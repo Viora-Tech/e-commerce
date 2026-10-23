@@ -11,7 +11,11 @@ import { Hono } from 'hono'
 import { createAiBulkWriteWorker } from './ai-bulk-write'
 import { API_ACTIVITY_PRUNE_EVERY_MS, createApiActivityPrune } from './api-activity'
 import { createAppEventWorker, createAppJobWorker } from './app-events'
-import { AUTOMATIONS_TICK_MS, createAutomationsWorker } from './automations'
+import {
+  AUTOMATIONS_PRUNE_EVERY_MS,
+  AUTOMATIONS_TICK_MS,
+  createAutomationsWorker,
+} from './automations'
 import { createBackInStockWorker } from './back-in-stock'
 import { BILLING_EVERY_MS, createBillingSweep } from './billing'
 import { CHANNEL_SYNC_EVERY_MS, createChannelSync } from './channel-sync'
@@ -170,6 +174,7 @@ const watched = [
   [automations.trigger, 'automations-trigger'],
   [automations.step, 'automations-step'],
   [automations.tick, 'automations-tick'],
+  [automations.prune, 'automations-prune'],
   [backInStock.worker, 'back-in-stock'],
   [mediaProcess.worker, 'media-process'],
   [storeExport.worker, 'store-export'],
@@ -249,6 +254,11 @@ await automations.tickQueue.upsertJobScheduler(
   'automations-tick',
   { every: AUTOMATIONS_TICK_MS },
   { name: 'tick' },
+)
+await automations.pruneQueue.upsertJobScheduler(
+  'automations-prune',
+  { every: AUTOMATIONS_PRUNE_EVERY_MS },
+  { name: 'prune' },
 )
 await outboxRelay.queue.upsertJobScheduler(
   'relay-outbox-events',
@@ -353,6 +363,8 @@ const shutdown = async () => {
   await automations.trigger.close()
   await automations.step.close()
   await automations.tick.close()
+  await automations.prune.close()
+  await automations.pruneQueue.close()
   await automations.triggerQueue.close()
   await automations.stepQueue.close()
   await automations.tickQueue.close()

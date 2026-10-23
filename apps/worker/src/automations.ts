@@ -1,5 +1,6 @@
 import { growthExitCheck, growthSweep, storeAppContext } from '@commerce/core'
 import {
+  AUTOMATION_PRUNE_QUEUE,
   AUTOMATION_STEP_QUEUE,
   AUTOMATION_TICK_QUEUE,
   AUTOMATION_TRIGGER_QUEUE,
@@ -10,6 +11,7 @@ import {
   evaluateRules,
   loadSubjectData,
   registerBuiltinActions,
+  runPruneJob,
   runStepJob,
   runTickJob,
   runTriggerJob,
@@ -28,6 +30,9 @@ import {
   Worker,
 } from '@commerce/queue'
 import { appDeps } from './app-events'
+
+/** Once a day: old run history is pruned. */
+export const AUTOMATIONS_PRUNE_EVERY_MS = 24 * 60 * 60_000
 
 /** How often due waits, retries, lost runs, approvals and schedules are picked up. */
 export const AUTOMATIONS_TICK_MS = 30_000
@@ -96,5 +101,11 @@ export function createAutomationsWorker(connection: IORedis, db: Db, opts: Opts)
     ...KEEP_FINISHED,
   })
 
-  return { trigger, step, tick, triggerQueue, stepQueue, tickQueue }
+  const pruneQueue = new Queue(AUTOMATION_PRUNE_QUEUE, { connection })
+  const prune = new Worker(AUTOMATION_PRUNE_QUEUE, () => runPruneJob(db, log), {
+    connection,
+    ...KEEP_FINISHED,
+  })
+
+  return { trigger, step, tick, prune, triggerQueue, stepQueue, tickQueue, pruneQueue }
 }

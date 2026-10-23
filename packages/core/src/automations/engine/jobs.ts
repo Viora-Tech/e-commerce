@@ -6,6 +6,8 @@ export const AUTOMATION_TRIGGER_QUEUE = '{automations}-trigger'
 export const AUTOMATION_STEP_QUEUE = '{automations}-step'
 /** Repeat tick: due waits and retries, stale runs, approval expiry, schedules. */
 export const AUTOMATION_TICK_QUEUE = '{automations}-tick'
+/** Daily: prunes step detail past 90 days and run summaries past 13 months. */
+export const AUTOMATION_PRUNE_QUEUE = '{automations}-prune'
 
 export type AutomationTriggerJob = { storeId: string; outboxId: string }
 export type AutomationStepJob = { storeId: string; runId: string }

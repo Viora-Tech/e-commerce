@@ -107,6 +107,7 @@ CREATE TABLE "automation_workflow" (
 	"draft_definition" jsonb,
 	"next_fire_at" timestamp with time zone,
 	"problem" text,
+	"problem_notified_at" timestamp with time zone,
 	"created_by" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -178,7 +179,13 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   UNION
   -- Sweep triggers (abandoned checkout and cart, lapsed customers) look for records every tick.
   SELECT store_id FROM automation_workflow
-    WHERE status = 'on' AND trigger_type IN ('checkout.abandoned', 'cart.abandoned', 'customer.lapsed');
+    WHERE status = 'on' AND trigger_type IN ('checkout.abandoned', 'cart.abandoned', 'customer.lapsed')
+  UNION
+  -- Owner notices still to send: a usage line crossed, or a workflow switched off for a problem.
+  SELECT store_id FROM automation_usage
+    WHERE month = to_char(now() AT TIME ZONE 'Asia/Kolkata', 'YYYY-MM') AND warned_at_100 IS NULL
+  UNION
+  SELECT store_id FROM automation_workflow WHERE problem IS NOT NULL AND problem_notified_at IS NULL;
 $$;
 --> statement-breakpoint
 REVOKE ALL ON FUNCTION stores_with_automation_work() FROM PUBLIC;
@@ -199,3 +206,13 @@ WHERE NOT (CASE WHEN jsonb_typeof("apps"->'installed') = 'array' THEN "apps"->'i
 INSERT INTO "app_installation" ("id", "store_id", "plugin_id", "installed_at")
 SELECT gen_random_uuid(), s."id", 'automations', now() FROM "store" s
 ON CONFLICT ("store_id", "plugin_id") DO NOTHING;
+--> statement-breakpoint
+-- The daily prune's store list (ids only): stores with step detail older than the cutoff.
+CREATE OR REPLACE FUNCTION stores_with_old_automation_history(cutoff timestamptz) RETURNS SETOF uuid
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT DISTINCT store_id FROM automation_step_run WHERE started_at < cutoff;
+$$;
+--> statement-breakpoint
+REVOKE ALL ON FUNCTION stores_with_old_automation_history(timestamptz) FROM PUBLIC;
+--> statement-breakpoint
+GRANT EXECUTE ON FUNCTION stores_with_old_automation_history(timestamptz) TO app;
