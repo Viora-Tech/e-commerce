@@ -2,6 +2,7 @@
 
 import type { StoreAffiliateSettings } from '@commerce/plugin-affiliates/settings'
 import { Button } from '@commerce/ui/shadcn/button'
+import { Input } from '@commerce/ui/shadcn/input'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -36,6 +37,8 @@ export default function SettingsPage() {
     setForm((f) => (f ? { ...f, ...patch } : f))
   const handleTds = (patch: Partial<StoreAffiliateSettings['tds']>) =>
     setForm((f) => (f ? { ...f, tds: { ...f.tds, ...patch } } : f))
+  const handleGst = (patch: Partial<StoreAffiliateSettings['gst']>) =>
+    setForm((f) => (f ? { ...f, gst: { ...f.gst, ...patch } } : f))
   const handleSave = async () => {
     if (!form) return
     setBusy(true)
@@ -154,7 +157,51 @@ export default function SettingsPage() {
               scale={100}
               onChange={(thresholdPaise) => handleTds({ thresholdPaise })}
             />
+            <SettingsRow
+              label={copy.tdsSection}
+              description={copy.tdsSectionHelp}
+              htmlFor="aff-tds-section"
+            >
+              <Input
+                id="aff-tds-section"
+                maxLength={80}
+                value={form.tds.section}
+                onChange={(e) => handleTds({ section: e.target.value })}
+              />
+            </SettingsRow>
           </>
+        ) : null}
+        <SettingsRow
+          label={copy.panRequired}
+          description={copy.panRequiredHelp}
+          htmlFor="aff-pan-required"
+        >
+          <Switch
+            id="aff-pan-required"
+            checked={form.requirePanAboveThreshold}
+            onCheckedChange={(requirePanAboveThreshold) =>
+              handleChange({ requirePanAboveThreshold })
+            }
+          />
+        </SettingsRow>
+      </SettingsCard>
+      <SettingsCard title={copy.gst} description={copy.gstHelp}>
+        <SettingsRow label={copy.gstOn} htmlFor="aff-gst">
+          <Switch
+            id="aff-gst"
+            checked={form.gst.enabled}
+            onCheckedChange={(enabled) => handleGst({ enabled })}
+          />
+        </SettingsRow>
+        {form.gst.enabled ? (
+          <NumberField
+            id="aff-gst-rate"
+            label={copy.gstRate}
+            value={form.gst.bp}
+            scale={100}
+            max={100}
+            onChange={(bp) => handleGst({ bp: Math.min(10_000, bp) })}
+          />
         ) : null}
       </SettingsCard>
     </div>

@@ -85,6 +85,9 @@ export const affiliateContent = {
     ifsc: 'IFSC',
     pan: 'PAN (optional)',
     panHint: 'Without a PAN, tax (TDS) is deducted at a higher rate.',
+    gstin: 'GSTIN (optional)',
+    gstinHint:
+      'If you are GST registered, GST is added to your payouts. Send the store a GST invoice.',
     save: 'Save payout details',
     saving: 'Saving…',
     saved: 'Saved. Your details are stored encrypted.',

@@ -33,6 +33,7 @@ import {
   setAffiliateRate,
   setAffiliateStatus,
   storePart,
+  tdsReportCsv,
   topAffiliates,
   totalsByAffiliate,
   updateAffiliateNote,
@@ -85,6 +86,7 @@ function publicAffiliate(a: NonNullable<Awaited<ReturnType<typeof getAffiliate>>
     payoutMethod: a.payoutMethod,
     payoutHint: a.payoutHint,
     hasPan: a.hasPan,
+    gstRegistered: a.gstRegistered,
     clicks: a.clicks,
     approvedAt: a.approvedAt,
     createdAt: a.createdAt,
@@ -374,6 +376,21 @@ export const affiliatesRouter = {
       .handler(async ({ context, input }) => {
         await program(context)
         return { csv: await payoutsCsv(context.tx, settingsSecret(), input.ids) }
+      }),
+    /**
+     * The quarterly TDS report (26Q): every commission credited in the quarter with the PAN
+     * decrypted. Settings-level members only, like the bank file.
+     */
+    tdsReport: can(permissions.SETTINGS_MANAGE)
+      .input(
+        z.object({
+          fy: z.number().int().min(2020).max(2100),
+          quarter: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
+        }),
+      )
+      .handler(async ({ context, input }) => {
+        const settings = await program(context)
+        return { csv: await tdsReportCsv(context.tx, settings, input, settingsSecret()) }
       }),
   },
 }

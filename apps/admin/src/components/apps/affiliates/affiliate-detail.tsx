@@ -71,6 +71,7 @@ export default function AffiliateDetail({ params }: AppPageProps) {
     { label: d.social, value: a.social || '—' },
     { label: d.payout, value: a.payoutHint ?? d.payoutNone },
     { label: d.panLabel, value: a.hasPan ? d.pan : d.noPan },
+    { label: d.gstLabel, value: a.gstRegistered ? d.gstYes : d.gstNo },
   ]
 
   return (

@@ -75,6 +75,8 @@ describe('settings split', () => {
       holdDays: 10,
       minPayoutPaise: 500_00,
       tds: defaultAffiliateSettings.tds,
+      gst: { enabled: true, bp: 1800 },
+      requirePanAboveThreshold: false,
     })
   })
 
