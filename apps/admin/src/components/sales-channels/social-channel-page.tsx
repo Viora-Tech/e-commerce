@@ -22,6 +22,7 @@ import PageHeader from '@/components/layout/page-header'
 import StatStrip from '@/components/layout/stat-strip'
 import { salesChannelsContent } from '@/data/sales-channels'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { api } from '@/lib/api-client'
 import { chipStatus } from '@/lib/channel-status'
 import { routes } from '@/lib/routes'
 import { percent } from '@/lib/stats'
@@ -32,6 +33,7 @@ import ChannelStatusChip from './channel-status-chip'
 import ConnectSocialDialog from './connect-social-dialog'
 import IssueRow from './issue-row'
 import ManageChannelDialog from './manage-channel-dialog'
+import MetaConnectionCard from './meta-connection-card'
 import RequestDialog from './request-dialog'
 
 type SocialChannelPageProps = {
@@ -66,6 +68,7 @@ export default function SocialChannelPage({ data, issues }: SocialChannelPagePro
   const [connecting, setConnecting] = useState(false)
   const [viewing, setViewing] = useState(false)
   const [managing, setManaging] = useState(false)
+  const [joining, setJoining] = useState(false)
   const live = useCopy(salesChannelsContent.live)
   const params = useSearchParams()
 
@@ -80,6 +83,27 @@ export default function SocialChannelPage({ data, issues }: SocialChannelPagePro
     router.replace(window.location.pathname)
   }, [params])
 
+  // Event handlers
+  /** Another Meta surface is on: join its sign-in and catalog, no second Facebook login. */
+  const handleJoinMeta = async () => {
+    setJoining(true)
+    try {
+      const r = await api.salesChannels.connect({
+        channel: data.channel,
+        shares: ['catalog', 'prices'],
+        account: null,
+        catalog: 'all',
+      })
+      if (r.kind === 'redirect') return window.location.assign(r.url)
+      toast.success(copy.meta.joined(info.name))
+      router.refresh()
+    } catch {
+      toast.error(copy.meta.failed)
+    } finally {
+      setJoining(false)
+    }
+  }
+
   // Render logic
   const { channel, state, totals } = data
   const requested = state.status === 'requested'
@@ -87,6 +111,10 @@ export default function SocialChannelPage({ data, issues }: SocialChannelPagePro
   const blocking = issues.filter((i) => rules.includes(i.rule))
   const name = info.name
   const aov = totals.orders > 0 ? Math.round(totals.revenuePaise / totals.orders) : 0
+  // Another Meta surface is on: this one joins that sign-in and catalog in one click.
+  const joinsMeta = data.meta.some(
+    (s) => s.channel !== channel && isLive(s.state) && s.state.status !== 'disconnected',
+  )
 
   return (
     <PageBody className="gap-6 md:pt-5 md:pb-8">
@@ -108,6 +136,11 @@ export default function SocialChannelPage({ data, issues }: SocialChannelPagePro
           ) : isLive(state) && state.status !== 'disconnected' ? (
             <KitButton variant="secondary" onClick={() => setManaging(true)}>
               {live.manage}
+            </KitButton>
+          ) : joinsMeta ? (
+            <KitButton onClick={handleJoinMeta} disabled={joining}>
+              <PlugConnect />
+              {copy.meta.turnOnCta(name)}
             </KitButton>
           ) : (
             <KitButton onClick={() => setConnecting(true)}>
@@ -227,24 +260,29 @@ export default function SocialChannelPage({ data, issues }: SocialChannelPagePro
             formatValue={(n) => format.moneyCompact(n * 100)}
           />
         </div>
-        <DataCard title={copy.connection}>
-          <KeyValueList
-            variant="grid"
-            rows={[
-              { label: copy.partner, value: info.partner },
-              { label: copy.account, value: state.account ?? shared.card.none },
-              {
-                label: copy.requestedOn,
-                value: state.requestedAt ? format.date(state.requestedAt) : shared.card.none,
-                hidden: !requested,
-              },
-              {
-                label: `${copy.checkout} · ${copy.checkoutWhere}`,
-                value: shared.controls.rows.onStore,
-              },
-            ]}
-          />
-        </DataCard>
+        <div className="flex flex-col gap-4">
+          {data.meta.length > 0 ? (
+            <MetaConnectionCard channel={channel} surfaces={data.meta} />
+          ) : null}
+          <DataCard title={copy.connection}>
+            <KeyValueList
+              variant="grid"
+              rows={[
+                { label: copy.partner, value: info.partner },
+                { label: copy.account, value: state.account ?? shared.card.none },
+                {
+                  label: copy.requestedOn,
+                  value: state.requestedAt ? format.date(state.requestedAt) : shared.card.none,
+                  hidden: !requested,
+                },
+                {
+                  label: `${copy.checkout} · ${copy.checkoutWhere}`,
+                  value: shared.controls.rows.onStore,
+                },
+              ]}
+            />
+          </DataCard>
+        </div>
       </div>
       <ChannelOrdersCard
         title={copy.recentHeading(name)}
