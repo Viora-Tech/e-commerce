@@ -1,4 +1,5 @@
-import { describe, expect, test } from 'bun:test'
+/** SOURCE OF TRUTH: Meta discovery tests — WHAT: which Graph calls find the business, catalog and WhatsApp account / WHY: a system user token is refused /me/businesses */
+import { describe, expect, test } from 'vitest'
 import { metaDiscover } from './providers'
 
 /** A fake Graph: answers by path, records every path asked for. */
@@ -19,15 +20,12 @@ function fakeGraph(routes: Record<string, unknown>) {
 }
 
 describe('metaDiscover', () => {
-  test('a system user token finds its business through debug_token, not /me/businesses', async () => {
+  test('a system user token finds its business through client_business_id, not /me/businesses', async () => {
     const { fetchImpl, asked } = fakeGraph({
-      '/debug_token': {
-        data: { granular_scopes: [{ scope: 'business_management', target_ids: ['b1'] }] },
-      },
-      '/b1': { id: 'b1', name: 'Waimers' },
+      '/me': { id: 'su1', client_business_id: 'b1' },
+      '/b1': { name: 'Waimers' },
       '/b1/owned_product_catalogs': { data: [{ id: 'c1', name: 'Waimers' }] },
       '/b1/owned_whatsapp_business_accounts': { data: [] },
-      '/me': { id: 'su1' },
     })
     const app = { appId: 'a', appSecret: 's', loginConfigId: 'cfg' }
     const account = await metaDiscover(fetchImpl, app, 'tok', 'Waimers')
@@ -42,7 +40,7 @@ describe('metaDiscover', () => {
   })
 
   test('a user token (no login configuration) lists its businesses', async () => {
-    const { fetchImpl, asked } = fakeGraph({
+    const { fetchImpl } = fakeGraph({
       '/me/businesses': { data: [{ id: 'b2', name: 'Shop' }] },
       '/b2/owned_product_catalogs': { data: [{ id: 'c2', name: 'Shop' }] },
       '/b2/owned_whatsapp_business_accounts': { data: [{ id: 'w2' }] },
@@ -51,6 +49,13 @@ describe('metaDiscover', () => {
     const account = await metaDiscover(fetchImpl, { appId: 'a', appSecret: 's' }, 'tok', 'Shop')
     expect(account.businessId).toBe('b2')
     expect(account.wabaId).toBe('w2')
-    expect(asked).not.toContain('/debug_token')
+  })
+
+  test('a refused step names itself in the error', async () => {
+    const { fetchImpl } = fakeGraph({ '/me': { id: 'su1', client_business_id: 'b1' } })
+    const app = { appId: 'a', appSecret: 's', loginConfigId: 'cfg' }
+    await expect(metaDiscover(fetchImpl, app, 'tok', 'Waimers')).rejects.toThrow(
+      'catalogs: (#100) Missing Permission',
+    )
   })
 })
