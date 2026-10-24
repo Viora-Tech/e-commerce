@@ -18,6 +18,90 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/db/src/inbox-schema.ts',
+    names: [
+      'INBOX_CHANNELS',
+      'INBOX_STATUSES',
+      'INBOX_BLOCKED_REASONS',
+      'INBOX_SENDERS',
+      'INBOX_MESSAGE_KINDS',
+      'INBOX_BLOCK_KINDS',
+      'memberPushSubscription',
+    ],
+    reason:
+      'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
+  },
+  {
+    file: 'packages/core/src/inbox/constants.ts',
+    names: [
+      'CONVERSATION_STATUSES',
+      'BLOCKED_REASONS',
+      'MESSAGE_SENDERS',
+      'MESSAGE_KINDS',
+      'BLOCK_KINDS',
+      'INBOX_VIEWS',
+    ],
+    reason:
+      'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
+  },
+  {
+    file: 'packages/core/src/inbox/conversations.ts',
+    names: ['isShareableDiscount'],
+    reason:
+      'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
+  },
+  {
+    file: 'packages/core/src/inbox/identity.ts',
+    names: ['CHAT_COOKIE', 'CHAT_COOKIE_MAX_AGE', 'newChatToken', 'hashChatToken'],
+    reason:
+      'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
+  },
+  {
+    file: 'packages/core/src/inbox/limits.ts',
+    names: ['IMAGE_MAX_BYTES'],
+    reason:
+      'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
+  },
+  {
+    file: 'packages/core/src/inbox/rules.ts',
+    names: ['linkCount'],
+    reason:
+      'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
+  },
+  {
+    file: 'packages/core/src/inbox/settings.ts',
+    names: [
+      'InboxDayHoursSchema',
+      'DEFAULT_INBOX_HOURS',
+      'INBOX_AVAILABILITY',
+      'INBOX_CONTACT_CAPTURE',
+      'InboxSettingsSchema',
+      'DEFAULT_INBOX_SETTINGS',
+      'zonedWeekMinute',
+      'isInboxAvailable',
+      'contactRequired',
+    ],
+    reason:
+      'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
+  },
+  {
+    file: 'packages/core/src/inbox/shopper.ts',
+    names: [
+      'shopperMessageOf',
+      'findShopperConversation',
+      'shopperThread',
+      'ShopperSendSchema',
+      'InboxRateLimited',
+      'shopperSend',
+      'markShopperSeen',
+      'mergeGuestConversation',
+      'postCartEvent',
+      'customerConversations',
+    ],
+    reason:
+      'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
+  },
+  {
     file: 'packages/db/src/pixel-schema.ts',
     names: ['pixelConnection', 'pixelEventLog', 'pixelEventDay'],
     reason:

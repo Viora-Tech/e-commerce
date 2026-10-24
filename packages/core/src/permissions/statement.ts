@@ -12,6 +12,7 @@ export const statement = {
   products: ['read', 'write', 'delete', 'import'],
   inventory: ['read', 'write'],
   customers: ['read', 'write', 'delete'],
+  inbox: ['read', 'reply', 'manage'],
   discounts: ['read', 'write'],
   marketing: ['read', 'write', 'send'],
   automations: ['read', 'write', 'publish', 'run'],
@@ -56,6 +57,12 @@ export const permissions = {
   CUSTOMERS_READ: permission('customers', 'read'),
   CUSTOMERS_WRITE: permission('customers', 'write'),
   CUSTOMERS_DELETE: permission('customers', 'delete'),
+  /** See Inbox conversations and their unread counts. */
+  INBOX_READ: permission('inbox', 'read'),
+  /** Send messages and notes, assign, close, reopen and block conversations. */
+  INBOX_REPLY: permission('inbox', 'reply'),
+  /** Change Inbox settings and quick replies. */
+  INBOX_MANAGE: permission('inbox', 'manage'),
   DISCOUNTS_READ: permission('discounts', 'read'),
   DISCOUNTS_WRITE: permission('discounts', 'write'),
   MARKETING_READ: permission('marketing', 'read'),
@@ -101,6 +108,11 @@ export const RESOURCE_METADATA: { [R in Resource]: ResourceMeta } = {
   },
   inventory: { label: 'Inventory', description: 'View stock levels and adjust quantities.' },
   customers: { label: 'Customers', description: 'View customer records, edit and delete them.' },
+  inbox: {
+    label: 'Inbox',
+    description:
+      'Read chats with shoppers, reply to them, and change Inbox settings and quick replies.',
+  },
   discounts: { label: 'Discounts', description: 'View and edit discount codes and offers.' },
   marketing: {
     label: 'Marketing',

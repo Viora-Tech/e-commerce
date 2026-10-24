@@ -207,6 +207,27 @@ export const ACTION_DOCS: Record<string, string> = {
   'inboundShipments.attach': 'Put an order on this shipment (off any other); both are recosted.',
   'inboundShipments.costs':
     'Shared charges, their splits across every order in it, and landed cost per line.',
+  'inbox.assign': 'Assigns to a team member (only they are notified), or unassigns.',
+  'inbox.blocks.list': 'Blocked browsers, emails and IPs (hashes only; never the raw value).',
+  'inbox.blocks.remove': 'Lifts one block.',
+  'inbox.counts': 'How many conversations each tab holds, and how many open ones are unread.',
+  'inbox.get':
+    'One conversation with the newest page of its thread (staff notes included), or an older page.',
+  'inbox.list':
+    'One page of conversations in a tab (Open, Mine, Unassigned, Closed, Blocked), newest first, with search.',
+  'inbox.markSeen': 'Marks everything in the thread read for staff.',
+  'inbox.quickReplies.create': 'Adds a saved reply with a /shortcut.',
+  'inbox.quickReplies.delete': 'Deletes a saved reply.',
+  'inbox.quickReplies.list': 'Saved replies, in their order.',
+  'inbox.quickReplies.reorder': 'Puts the saved replies in this order.',
+  'inbox.quickReplies.update': 'Changes a saved reply.',
+  'inbox.send':
+    'Sends a reply or a staff-only note: text, a product card, a discount code or an image.',
+  'inbox.setStatus':
+    "Close, reopen or block a conversation; blocking also blocks the sender's browser and email.",
+  'inbox.settings.get':
+    'Greeting, hours, away message, contact capture, sign-in, launcher, email fallback, retention.',
+  'inbox.settings.save': 'Saves part of the Inbox settings.',
   'inventory.bulkEdit': 'Same edit across selected rows; all or nothing.',
   'inventory.edit': 'One inline edit: returns the new on-hand count.',
   'inventory.exportRows': 'Every matching row, for CSV export.',
@@ -449,6 +470,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'shipments.wallets': 'One card per connected courier - each has its own account and balance.',
   'shopifyImport.appInstall':
     'Whether this deployment has the platform\'s own Shopify app, so "Install the app" can show.',
+  'shopifyImport.claimAppInstall':
+    'An install Shopify started while signed out: the callback swapped the code and sealed the token into a short-lived cookie; after sign-in the claim route hands it here for this store.',
   'shopifyImport.completeAppInstall':
     "Shopify's redirect after the merchant approved the app (the callback route passes the whole query): Shopify's hmac, our state for this very store, then the code exchange.",
   'shopifyImport.createApiRun': 'Preview an API import of the chosen resources.',
