@@ -3,7 +3,7 @@ import { definePlugin } from '@commerce/plugins'
 import { INBOX_APP_ID } from './constants'
 
 /** Where the channel lives in the admin (`routes.salesChannels.inbox*`). */
-export const INBOX_CHANNEL_PATH = '/sales-channels/inbox/settings'
+export const INBOX_CHANNEL_PATH = '/sales-channels/inbox'
 
 /**
  * Inbox: a chat button on every storefront page, replies from the admin in real time, product,

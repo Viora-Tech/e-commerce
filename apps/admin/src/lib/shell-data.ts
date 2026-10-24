@@ -27,6 +27,13 @@ export const ordersToShipCount = cache(async () =>
   ),
 )
 
+/** Open Inbox conversations with unread shopper messages, for the sidebar count; null without access. */
+export const inboxUnreadCount = cache(async () =>
+  call(appRouter.inbox.counts, undefined, { context: await serverContext() })
+    .then((c) => c.unread)
+    .catch(() => null),
+)
+
 /** A gateway at checkout runs on test keys (the admin-wide banner); false without permission. */
 export const paymentsTestMode = cache(async () =>
   call(appRouter.payments.testMode, undefined, { context: await serverContext() })

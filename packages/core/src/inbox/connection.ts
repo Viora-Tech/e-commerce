@@ -4,8 +4,8 @@
 export type EventSourceLike = {
   addEventListener(type: string, listener: (e: { data?: string }) => void): void
   close(): void
-  onerror: ((e: unknown) => void) | null
-  onopen: ((e: unknown) => void) | null
+  onerror: ((this: never, e: never) => unknown) | null
+  onopen: ((this: never, e: never) => unknown) | null
   /** 2 = CLOSED: the server refused (503) and the browser will not retry. */
   readonly readyState?: number
 }

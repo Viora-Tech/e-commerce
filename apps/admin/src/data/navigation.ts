@@ -9,6 +9,7 @@ import {
   Boxes,
   FolderOpen,
   Home,
+  MessageSquare,
   Package,
   Settings,
   ShoppingBag,
@@ -41,6 +42,25 @@ export type NavItem = {
   excludes?: string[]
 }
 export type NavGroup = { label?: string; items: NavItem[] }
+
+/** Sales channel apps (manifest `admin.salesChannel`) join this group while installed. */
+export const SALES_CHANNELS_GROUP = 'Sales channels'
+
+/** The Inbox sales channel's sidebar entry, shown while the Inbox app is installed. */
+export const INBOX_NAV: NavItem = {
+  href: routes.salesChannels.inbox(),
+  label: 'Inbox',
+  icon: MessageSquare,
+  permission: permissions.INBOX_READ,
+  children: [
+    { href: routes.salesChannels.inboxConversations(), label: 'Conversations' },
+    { href: routes.salesChannels.inboxQuickReplies(), label: 'Quick replies' },
+    { href: routes.salesChannels.inboxSettings(), label: 'Settings' },
+  ],
+}
+
+/** Sidebar entries of the sales channel apps, by app id. */
+export const CHANNEL_NAV: Record<string, NavItem> = { inbox: INBOX_NAV }
 
 /** Installed apps with their own pages are listed under this group's Apps entry. */
 export const APPS_GROUP = 'Apps'
@@ -151,7 +171,7 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    label: 'Sales channels',
+    label: SALES_CHANNELS_GROUP,
     items: [
       {
         href: routes.onlineStore.home(),
