@@ -40,6 +40,7 @@ import CartDrawer from '@/components/cart/cart-drawer'
 import StoreChrome from '@/components/checkout/store-chrome'
 import ConsentManager from '@/components/privacy/consent-manager'
 import PredictiveSearch from '@/components/search/predictive-search'
+import AppEmbeds from '@/components/theme/app-embeds'
 import LiquidBoot from '@/components/theme/liquid-boot'
 import LiquidHtml from '@/components/theme/liquid-html'
 import PreviewBar from '@/components/theme/preview-bar'
@@ -367,6 +368,7 @@ export default async function StoreLayout({ children, params }: Props) {
           </MoneyFormatProvider>
           <LiquidHtml html={liquid.afterFooter} />
           <LiquidBoot />
+          <AppEmbeds storeId={storeId} appEmbeds={theme.appEmbeds} />
           {tested.length ? <ExperimentBeacon seen={tested} /> : null}
           <ThemePreviewBridge adminOrigin={adminOrigin} />
           {preview ? null : <ConsentManager {...consent} themeBanner={themedConsent} />}
@@ -409,6 +411,7 @@ export default async function StoreLayout({ children, params }: Props) {
           <ThemePreviewBridge adminOrigin={adminOrigin} />
           {preview || themedConsent ? null : <ConsentManager {...consent} />}
           <StoreChrome>{footer}</StoreChrome>
+          <AppEmbeds storeId={storeId} appEmbeds={theme.appEmbeds} />
         </MoneyFormatProvider>
       </body>
     </html>
