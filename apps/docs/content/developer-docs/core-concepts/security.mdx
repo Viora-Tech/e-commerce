@@ -117,6 +117,11 @@ Full runbook: [Key rotation](/developer-docs/operations/key-rotation).
   entry, never the adapter root: its Node polyfills probe `Function()`, which the policy refuses.
   Both apps set Zod `jitless` in `instrumentation-client.ts` for the same reason, and every
   `not-found` renders per request so its scripts carry the nonce.
+- **App-store reviewer sign-in** (`REVIEWER_LOGIN_EMAIL` / `_PASSWORD`, both or it is left out
+  of Better Auth): `/sign-in/reviewer-password` (`packages/auth/src/reviewer.ts`) signs in that one
+  existing member when both the email and the password match (constant-time, one error for
+  either), 5 tries a minute. It never creates a user and stores no password; Better Auth's
+  email-and-password sign-in stays off. For Shopify and Meta review only: unset it after review.
 - **Merchant Google sign-in** (`MERCHANT_GOOGLE_CLIENT_ID` / `_SECRET`, both or the provider is
   left out of Better Auth): redirect flow with PKCE and a state row bound to the browser by a
   signed cookie; One Tap (`idToken`) is off. `validateMerchantUserInfo`
