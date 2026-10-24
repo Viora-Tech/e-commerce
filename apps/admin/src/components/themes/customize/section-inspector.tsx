@@ -2,7 +2,6 @@
 
 import { SINGLE_SECTIONS } from '@commerce/core/theme'
 import { Trash2 } from '@commerce/ui/icons'
-import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Puck } from '@puckeditor/core'
 import { motion, useReducedMotion } from 'motion/react'
@@ -21,6 +20,7 @@ import ImportedSectionNote from './imported-section-note'
 import InspectorBreadcrumb from './inspector-breadcrumb'
 import InspectorEmpty from './inspector-empty'
 import SectionIcon from './section-icon'
+import SegmentedTabs from './segmented-tabs'
 
 type Tab = 'basic' | 'advanced'
 
@@ -106,27 +106,15 @@ export default function SectionInspector() {
       {liquidType ? <ImportedSectionNote sectionType={liquidType} place="top" /> : null}
       {hasAdvanced ? (
         <>
-          <div
-            role="tablist"
-            aria-label={copy.label}
-            className="grid shrink-0 grid-cols-2 gap-0.5 rounded-lg bg-muted p-0.5"
-          >
-            {TABS.map((id) => (
-              <button
-                key={id}
-                type="button"
-                role="tab"
-                aria-selected={active === id}
-                onClick={() => setTab(id)}
-                className={cn(
-                  'h-8 rounded-md text-xs leading-[1.0625rem] font-medium text-muted-foreground transition-[color,background-color,box-shadow] duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/70 focus-visible:outline-none motion-reduce:transition-none',
-                  active === id && 'bg-card text-foreground shadow-card',
-                )}
-              >
-                {copy.tabs[id]}
-              </button>
-            ))}
-          </div>
+          <SegmentedTabs
+            tabs={TABS}
+            value={active}
+            onChange={setTab}
+            label={copy.label}
+            size="md"
+            className="shrink-0"
+            render={(id) => copy.tabs[id]}
+          />
           <p className="text-xs leading-[1.0625rem] text-muted-foreground">
             {copy.tabHints[active]}
           </p>

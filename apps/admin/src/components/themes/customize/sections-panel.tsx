@@ -1,6 +1,6 @@
 'use client'
 
-import { cn } from '@commerce/ui/lib/utils'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useDeferredValue, useState } from 'react'
 import CountBadge from '@/components/layout/count-badge'
 import { customizeContent } from '@/data/customize'
@@ -11,6 +11,7 @@ import { useCustomizePuck } from '@/lib/customize-puck'
 import { useThemePreview } from '@/lib/customize-theme-context'
 import AuditPanel from './audit-panel'
 import SectionsTree from './sections-tree'
+import SegmentedTabs from './segmented-tabs'
 
 type SectionsPanelProps = {
   onOpenTheme: () => void
@@ -35,6 +36,7 @@ export default function SectionsPanel({ onOpenTheme, templateLabel }: SectionsPa
   const components = useCustomizePuck((s) => s.config.components)
   const theme = useThemePreview()
   const [tab, setTab] = useState<Tab>('sections')
+  const reducedMotion = useReducedMotion()
 
   // Render logic
   const count = auditTemplate(
@@ -46,36 +48,36 @@ export default function SectionsPanel({ onOpenTheme, templateLabel }: SectionsPa
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="px-3 pt-3">
-        <div
-          role="tablist"
-          aria-label={copy.tabsLabel}
-          className="grid grid-cols-2 gap-0.5 rounded-lg bg-muted p-0.5"
-        >
-          {TABS.map((id) => (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              aria-selected={tab === id}
-              onClick={() => setTab(id)}
-              className={cn(
-                'flex h-7 items-center justify-center gap-1.5 rounded-md text-xs leading-[1.0625rem] font-medium text-muted-foreground transition-[color,background-color,box-shadow] duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:transition-none',
-                tab === id && 'bg-card text-foreground shadow-card',
-              )}
-            >
+        <SegmentedTabs
+          tabs={TABS}
+          value={tab}
+          onChange={setTab}
+          label={copy.tabsLabel}
+          render={(id) => (
+            <>
               {copy.tabs[id]}
               {id === 'audit' && count > 0 ? <CountBadge n={count} /> : null}
-            </button>
-          ))}
-        </div>
+            </>
+          )}
+        />
       </div>
-      <div role="tabpanel" className="flex min-h-0 flex-1 flex-col">
-        {tab === 'sections' ? (
-          <SectionsTree templateLabel={templateLabel} />
-        ) : (
-          <AuditPanel onOpenTheme={onOpenTheme} />
-        )}
-      </div>
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={tab}
+          role="tabpanel"
+          initial={reducedMotion ? false : { opacity: 0, transform: 'translateY(4px)' }}
+          animate={{ opacity: 1, transform: 'translateY(0px)' }}
+          exit={reducedMotion ? undefined : { opacity: 0 }}
+          transition={{ duration: reducedMotion ? 0 : 0.15, ease: [0.23, 1, 0.32, 1] }}
+          className="flex min-h-0 flex-1 flex-col"
+        >
+          {tab === 'sections' ? (
+            <SectionsTree templateLabel={templateLabel} />
+          ) : (
+            <AuditPanel onOpenTheme={onOpenTheme} />
+          )}
+        </motion.div>
+      </AnimatePresence>
     </div>
   )
 }

@@ -35,6 +35,17 @@ import SectionInspector from './section-inspector'
 import SectionsPanel from './sections-panel'
 import ShortcutsDialog from './shortcuts-dialog'
 
+/**
+ * Side panels close by narrowing to nothing (the canvas grows into the room, like a drawer)
+ * while their content fades and drifts toward the edge, instead of vanishing in one frame.
+ * Width is the one layout property animated here: there is no transform that hands the space
+ * back to the canvas.
+ */
+const PANEL_SLIDE =
+  'transition-[width] duration-[var(--duration-modal)] ease-drawer motion-reduce:transition-none'
+const PANEL_CONTENT =
+  'transition-[opacity,transform] duration-[var(--duration-popover)] ease-out motion-reduce:transition-none'
+
 type CustomizeLayoutProps = {
   topBar: ReactNode
   /** The Theme settings panel (presets and settings groups). */
@@ -182,56 +193,65 @@ export default function CustomizeLayout({
                 <CustomizeRail active={panel} onChange={openPanel} store={store} />
               )}
               <aside
-                hidden={!showLeft}
+                inert={!showLeft}
+                aria-hidden={!showLeft}
                 className={cn(
                   CHROME_PANEL,
-                  'w-[19rem] border-r border-border',
-                  !showLeft && 'hidden',
+                  PANEL_SLIDE,
+                  showLeft ? 'w-[19rem] border-r border-border' : 'w-0',
                 )}
               >
-                {panel === 'add' || panel === 'sections' ? (
-                  <PanelIdentity
-                    title={identity.title(store.name, templateLabel)}
-                    domain={store.domain}
-                  />
-                ) : null}
-                {panel === 'sections' ? (
-                  <PanelTitle
-                    size="md"
-                    title={panels.sections}
-                    action={
-                      <Button variant="outline" onClick={() => setPanel('add')}>
-                        <Plus aria-hidden />
-                        {panels.addSection}
-                      </Button>
-                    }
-                  />
-                ) : null}
-                {title ? <PanelTitle title={title} /> : null}
-                <AnimatePresence mode="wait" initial={false}>
-                  <motion.div
-                    key={panel}
-                    initial={reducedMotion ? false : { opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={reducedMotion ? undefined : { opacity: 0 }}
-                    transition={{ duration: reducedMotion ? 0 : 0.15, ease: 'easeOut' }}
-                    className={cn(
-                      'flex min-h-0 flex-1 flex-col',
-                      // The Add panel sits in the panel's own 16px gutter (Figma 369:4899).
-                      panel === 'add' && 'px-4 pt-4',
-                      // The Add panel (AddSectionBrowser, `fill`) owns its own internal
-                      // scroll below a sticky search box and tabs — scrolling here too
-                      // would carry that header away with the list. Every other panel
-                      // (Sections tree, Theme settings) has no such header and still
-                      // wants this level to scroll.
-                      panel === 'add' || panel === 'pages' || panel === 'ai'
-                        ? 'overflow-hidden'
-                        : 'overflow-y-auto',
-                    )}
-                  >
-                    {panelContent}
-                  </motion.div>
-                </AnimatePresence>
+                <div
+                  className={cn(
+                    'flex min-h-0 w-[19rem] flex-1 flex-col',
+                    PANEL_CONTENT,
+                    !showLeft && '-translate-x-3 opacity-0',
+                  )}
+                >
+                  {panel === 'add' || panel === 'sections' ? (
+                    <PanelIdentity
+                      title={identity.title(store.name, templateLabel)}
+                      domain={store.domain}
+                    />
+                  ) : null}
+                  {panel === 'sections' ? (
+                    <PanelTitle
+                      size="md"
+                      title={panels.sections}
+                      action={
+                        <Button variant="outline" onClick={() => setPanel('add')}>
+                          <Plus aria-hidden />
+                          {panels.addSection}
+                        </Button>
+                      }
+                    />
+                  ) : null}
+                  {title ? <PanelTitle title={title} /> : null}
+                  <AnimatePresence mode="wait" initial={false}>
+                    <motion.div
+                      key={panel}
+                      initial={reducedMotion ? false : { opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={reducedMotion ? undefined : { opacity: 0 }}
+                      transition={{ duration: reducedMotion ? 0 : 0.15, ease: 'easeOut' }}
+                      className={cn(
+                        'flex min-h-0 flex-1 flex-col',
+                        // The Add panel sits in the panel's own 16px gutter (Figma 369:4899).
+                        panel === 'add' && 'px-4 pt-4',
+                        // The Add panel (AddSectionBrowser, `fill`) owns its own internal
+                        // scroll below a sticky search box and tabs — scrolling here too
+                        // would carry that header away with the list. Every other panel
+                        // (Sections tree, Theme settings) has no such header and still
+                        // wants this level to scroll.
+                        panel === 'add' || panel === 'pages' || panel === 'ai'
+                          ? 'overflow-hidden'
+                          : 'overflow-y-auto',
+                      )}
+                    >
+                      {panelContent}
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
               </aside>
               <main id="main" className="relative flex min-w-0 flex-1 bg-muted">
                 {/* The page is laid out at the device's real width and scaled (CSS transform) to
@@ -280,15 +300,24 @@ export default function CustomizeLayout({
                 <FullViewExit />
               </main>
               <aside
-                hidden={!showRight}
+                inert={!showRight}
+                aria-hidden={!showRight}
                 data-inspector=""
                 className={cn(
                   CHROME_PANEL,
-                  'w-[21.25rem] border-l border-border',
-                  !showRight && 'hidden',
+                  PANEL_SLIDE,
+                  showRight ? 'w-[21.25rem] border-l border-border' : 'w-0',
                 )}
               >
-                <SectionInspector />
+                <div
+                  className={cn(
+                    'flex min-h-0 w-[21.25rem] flex-1 flex-col',
+                    PANEL_CONTENT,
+                    !showRight && 'translate-x-3 opacity-0',
+                  )}
+                >
+                  <SectionInspector />
+                </div>
               </aside>
             </div>
           </div>
