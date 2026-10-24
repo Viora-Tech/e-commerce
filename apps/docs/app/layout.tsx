@@ -1,6 +1,6 @@
 import { siteConfig } from '@commerce/config/site'
 import type { Metadata } from 'next'
-import { Bricolage_Grotesque, DM_Sans, Geist_Mono } from 'next/font/google'
+import { Geist_Mono, Plus_Jakarta_Sans } from 'next/font/google'
 import { Head, Search } from 'nextra/components'
 import { getPageMap } from 'nextra/page-map'
 import { Footer, Layout, Navbar } from 'nextra-theme-docs'
@@ -28,19 +28,12 @@ export const metadata: Metadata = {
   twitter: { card: 'summary_large_image' },
 }
 
-/* DM Sans (SIL OFL 1.1) for text and Bricolage Grotesque (SIL OFL 1.1) for headings: the same
-   pair as apps/admin/src/app/layout.tsx. Geist Mono stays for code. */
-const sans = DM_Sans({
+/* Plus Jakarta Sans (SIL OFL 1.1) for text and headings: the landing page's face
+   (apps/www/src/app/layout.tsx), so docs and site read as one. Geist Mono stays for code. */
+const sans = Plus_Jakarta_Sans({
   subsets: ['latin'],
   variable: '--font-primary',
-  weight: ['400', '500', '600'],
-  display: 'swap',
-  fallback: ['system-ui', 'sans-serif'],
-})
-const display = Bricolage_Grotesque({
-  subsets: ['latin'],
-  variable: '--font-display-face',
-  weight: ['700', '800'],
+  weight: ['400', '500', '600', '700', '800'],
   display: 'swap',
   fallback: ['system-ui', 'sans-serif'],
 })
@@ -53,15 +46,15 @@ const mono = Geist_Mono({
 
 const GITHUB_URL = 'https://github.com/Viora-Tech/e-commerce'
 
-/* The admin's single blue (#3f72dc light, #7fa2f5 dark, packages/ui/src/styles.css) through
-   Nextra's primary-colour hook; it drives the active sidebar link, links, focus rings and the
-   TOC. Page backgrounds are the admin's card white and its dark panel. */
+/* The brand orange (#ff6a13, apps/www --color-cta) through Nextra's primary-colour hook; it
+   drives the active sidebar link, links, focus rings and the TOC. Page backgrounds are the
+   landing page's white and its near-black. */
 const primaryColor = {
-  hue: { light: 219, dark: 224 },
-  saturation: { light: 70, dark: 86 },
-  lightness: { light: 55, dark: 72 },
+  hue: { light: 22, dark: 22 },
+  saturation: { light: 90, dark: 100 },
+  lightness: { light: 42, dark: 62 },
 }
-const backgroundColor = { light: '#ffffff', dark: '#101216' }
+const backgroundColor = { light: '#ffffff', dark: '#0a0a0a' }
 
 const navbar = (
   <Navbar logo={<LogoMark size={20} withWordmark />} projectLink={GITHUB_URL} align="right" />
@@ -83,7 +76,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
     <html
       lang="en"
       dir="ltr"
-      className={`${sans.variable} ${display.variable} ${mono.variable}`}
+      className={`${sans.variable} ${mono.variable}`}
       suppressHydrationWarning
     >
       <Head color={primaryColor} backgroundColor={backgroundColor} />
@@ -98,6 +91,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
           toc={{ title: 'On this page', backToTop: 'Scroll to top' }}
           editLink="Edit this page on GitHub"
           feedback={{ content: null }}
+          nextThemes={{ defaultTheme: 'dark' }}
         >
           {children}
         </Layout>
