@@ -17,6 +17,7 @@ import SettingsCard from '@/components/settings/settings-card'
 import SettingsToggleRow from '@/components/settings/settings-toggle-row'
 import { preferencesContent as copy } from '@/data/preferences'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import PreferencesPreviews from './preferences-previews'
 import PreferencesRelated from './preferences-related'
 import SocialImageField from './social-image-field'
@@ -251,15 +252,21 @@ export default function PreferencesForm({ initial, storefrontOrigin }: Preferenc
                 help={copy.tracking.analytics}
                 error={errors['tracking.gtm']}
               />
-              <TextSetting
-                id="tracking-meta"
-                label={copy.tracking.metaPixel}
-                value={form.tracking.metaPixel}
-                placeholder={copy.tracking.metaPixelPlaceholder}
-                onChange={(metaPixel) => patch('tracking', { metaPixel })}
-                help={copy.tracking.marketing}
-                error={errors['tracking.metaPixel']}
-              />
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-col gap-1">
+                  <span className="text-body font-medium">{copy.tracking.metaPixel}</span>
+                  <span className="text-caption text-muted-foreground">
+                    {copy.tracking.metaPixelMoved}
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  render={<Link href={routes.apps.page('pixels')} />}
+                  nativeButton={false}
+                >
+                  {copy.tracking.metaPixelLink}
+                </Button>
+              </div>
               <TextSetting
                 id="tracking-google-ads"
                 label={copy.tracking.googleAds}

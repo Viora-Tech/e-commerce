@@ -114,6 +114,8 @@ export const preferencesContent = {
     gtmPlaceholder: 'GTM-XXXXXXX',
     metaPixel: 'Meta pixel ID',
     metaPixelPlaceholder: '123456789012345',
+    metaPixelMoved: 'Moved to the Pixels app: several pixels, Conversions API and an event log.',
+    metaPixelLink: 'Open Pixels',
     googleAds: 'Google Ads tag ID',
     googleAdsPlaceholder: 'AW-123456789',
     analytics: 'Analytics',

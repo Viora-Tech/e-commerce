@@ -66,6 +66,7 @@
     "./automations/server": "./src/automations/server.ts",
     "./automations-app": "./src/automations/app.ts",
     "./pixels": "./src/pixels/client.ts",
+    "./pixels-app": "./src/pixels/app.ts",
     "./pixels/server": "./src/pixels/server.ts",
     "./email-design-compile": "./src/marketing/email-design-compile.ts",
     "./admin-accent": "./src/admin-accent/accent.ts",
