@@ -10,106 +10,18 @@ import {
   type StoreTx,
   variant,
 } from '@commerce/db'
-import { and, asc, eq, gte, inArray, isNull, lte, ne, notInArray, or, sql } from 'drizzle-orm'
+import { and, asc, eq, gte, inArray, isNull, lte, ne, sql } from 'drizzle-orm'
 import { type CommissionLine, computeCommission, scaleForRefund, tierFor } from './commission'
 import { addressKey, type FraudFinding, phoneKey, selfReferral } from './fraud'
-import {
-  canReverse,
-  eligibleAt,
-  isDue,
-  type ReverseReason,
-  withinCookieWindow,
-  withinLifetime,
-} from './hold'
+import { canReverse, eligibleAt, isDue, type ReverseReason } from './hold'
+import { earlierOrders, matchAffiliate } from './match'
 import { affiliate, affiliateCommission } from './schema'
-import type { AffiliateSettings } from './settings'
+import type { StoreAffiliateSettings } from './settings'
 import { financialYearStart, tdsForCredit } from './tds'
 
 export type CommissionRow = typeof affiliateCommission.$inferSelect
 type AffiliateRow = typeof affiliate.$inferSelect
 type OrderRow = typeof order.$inferSelect
-
-async function approvedAffiliateBy(
-  tx: StoreTx,
-  storeId: string,
-  where: ReturnType<typeof eq>,
-): Promise<AffiliateRow | null> {
-  const [row] = await tx
-    .select()
-    .from(affiliate)
-    .where(and(eq(affiliate.storeId, storeId), eq(affiliate.status, 'approved'), where))
-  return row ?? null
-}
-
-/** Earlier live orders by the same customer (account, else email), for first-order programs. */
-async function earlierOrders(tx: StoreTx, o: OrderRow): Promise<number> {
-  const who = o.customerId
-    ? eq(order.customerId, o.customerId)
-    : o.email
-      ? sql`lower(${order.email}) = ${o.email.toLowerCase()}`
-      : null
-  if (!who) return 0
-  const [r] = await tx
-    .select({ n: sql<number>`count(*)::int` })
-    .from(order)
-    .where(
-      and(
-        who,
-        ne(order.id, o.id),
-        sql`${order.placedAt} < ${o.placedAt.toISOString()}::timestamptz`,
-        notInArray(order.status, ['cancelled', 'draft']),
-        eq(order.isTest, false),
-      ),
-    )
-  return r?.n ?? 0
-}
-
-type Match = { affiliate: AffiliateRow; source: 'link' | 'coupon' | 'lifetime' }
-
-/** Coupon first (the shopper typed it), then the referral link inside the cookie window, then lifetime. */
-async function matchAffiliate(
-  tx: StoreTx,
-  storeId: string,
-  o: OrderRow,
-  settings: AffiliateSettings,
-): Promise<Match | null> {
-  if (o.discountCode) {
-    const a = await approvedAffiliateBy(tx, storeId, eq(affiliate.couponCode, o.discountCode))
-    if (a) return { affiliate: a, source: 'coupon' }
-  }
-  const ref = o.attribution?.ref
-  if (ref && o.attribution?.at) {
-    const touched = new Date(o.attribution.at)
-    if (withinCookieWindow(touched, o.placedAt, settings.cookieDays)) {
-      const a = await approvedAffiliateBy(tx, storeId, eq(affiliate.code, ref))
-      if (a) return { affiliate: a, source: 'link' }
-    }
-  }
-  if (settings.scope === 'lifetime' && o.customerId) {
-    const [first] = await tx
-      .select({
-        affiliateId: affiliateCommission.affiliateId,
-        placedAt: affiliateCommission.placedAt,
-      })
-      .from(affiliateCommission)
-      .where(
-        and(
-          eq(affiliateCommission.customerId, o.customerId),
-          or(
-            isNull(affiliateCommission.reversedReason),
-            ne(affiliateCommission.reversedReason, 'self_referral'),
-          ),
-        ),
-      )
-      .orderBy(asc(affiliateCommission.placedAt))
-      .limit(1)
-    if (first && withinLifetime(first.placedAt, o.placedAt, settings.lifetimeDays)) {
-      const a = await approvedAffiliateBy(tx, storeId, eq(affiliate.id, first.affiliateId))
-      if (a) return { affiliate: a, source: 'lifetime' }
-    }
-  }
-  return null
-}
 
 async function commissionLines(tx: StoreTx, orderId: string): Promise<CommissionLine[]> {
   const lines = await tx
@@ -206,12 +118,13 @@ export async function commissionForOrder(
  * `order.delivered` (cash on delivery is paid at the door), so it is idempotent: an order
  * with a commission keeps it. Test, imported, draft and cancelled orders earn nothing; a
  * self-referral is recorded reversed so the merchant sees it, and nobody is emailed.
+ * `settings` are the store-wide ones; the rates come from the affiliate's program.
  */
 export async function creditOrder(
   tx: StoreTx,
   storeId: string,
   orderId: string,
-  settings: AffiliateSettings,
+  settings: StoreAffiliateSettings,
   secret: string,
 ): Promise<CommissionRow | null> {
   const existing = await commissionForOrder(tx, orderId)
@@ -223,22 +136,24 @@ export async function creditOrder(
   }
   const match = await matchAffiliate(tx, storeId, o, settings)
   if (!match) return null
+  const rules = match.settings
   if (
     match.source !== 'lifetime' &&
-    settings.scope === 'first_order' &&
+    rules.scope === 'first_order' &&
     (await earlierOrders(tx, o)) > 0
   ) {
     return null
   }
-  const tier = tierFor(settings.tiers, await approvedSales(tx, match.affiliate.id))
+  const tier = tierFor(rules.tiers, await approvedSales(tx, match.affiliate.id))
   const result = computeCommission(
     {
       subtotalPaise: o.subtotalPaise,
       discountPaise: o.discountPaise,
       lines: await commissionLines(tx, orderId),
     },
-    settings,
+    rules,
     tier,
+    match.affiliate.rateOverride ?? null,
   )
   if (result.commissionPaise <= 0) return null
   const finding = await fraudCheck(tx, match.affiliate, o, secret)
@@ -250,6 +165,7 @@ export async function creditOrder(
       affiliateId: match.affiliate.id,
       orderId,
       customerId: o.customerId,
+      programId: match.programId,
       source: match.source,
       status: finding ? 'reversed' : 'pending',
       basePaise: result.basePaise,
@@ -276,7 +192,7 @@ export async function creditOrder(
 export async function startHold(
   tx: StoreTx,
   orderId: string,
-  settings: AffiliateSettings,
+  settings: StoreAffiliateSettings,
   now = new Date(),
 ): Promise<CommissionRow | null> {
   const [o] = await tx
@@ -388,7 +304,7 @@ function lateReversal(o: Pick<OrderRow, 'status' | 'fulfillmentStatus' | 'paymen
 export async function approveDueCommissions(
   tx: StoreTx,
   storeId: string,
-  settings: AffiliateSettings,
+  settings: StoreAffiliateSettings,
   now = new Date(),
 ): Promise<{ approved: number; reversed: number }> {
   const due = await tx
@@ -469,7 +385,7 @@ export async function decideCommission(
   storeId: string,
   id: string,
   decision: 'clear' | 'reverse',
-  settings: AffiliateSettings,
+  settings: StoreAffiliateSettings,
 ): Promise<CommissionRow | null> {
   const [c] = await tx.select().from(affiliateCommission).where(eq(affiliateCommission.id, id))
   if (!c) return null

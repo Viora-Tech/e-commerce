@@ -8,9 +8,12 @@ import {
   affiliateForCustomer,
   affiliateState,
   applyAsAffiliate,
+  defaultProgram,
   type PayoutDetails,
   PayoutDetailsSchema,
+  programBySlug,
   savePayoutDetails,
+  withProgramRules,
 } from '@commerce/plugin-affiliates/server'
 import { revalidatePath } from 'next/cache'
 import { headers } from 'next/headers'
@@ -39,6 +42,8 @@ export async function applyAffiliateAction(input: {
   social: string
   message: string
   acceptTerms: boolean
+  /** The program's link slug from `?program=`; none joins the default program. */
+  program?: string | undefined
 }): Promise<AffiliateActionResult> {
   const storeId = await requestStoreId()
   const me = await currentCustomer(storeId)
@@ -52,6 +57,11 @@ export async function applyAffiliateAction(input: {
   const result = await inStore(storeId, async (tx) => {
     const { installed, settings } = await affiliateState(tx, storeId)
     if (!installed || !settings.active) return 'closed' as const
+    const slug = String(input.program ?? '').trim()
+    const program = slug
+      ? await programBySlug(tx, storeId, slug)
+      : await defaultProgram(tx, storeId)
+    if (!program) return 'closed' as const
     await applyAsAffiliate(
       tx,
       storeId,
@@ -62,8 +72,9 @@ export async function applyAffiliateAction(input: {
         name,
         social: String(input.social ?? ''),
         message: String(input.message ?? ''),
+        programId: program.id,
       },
-      settings,
+      withProgramRules(settings, program.rules),
       settingsSecret(),
     )
     return 'ok' as const
