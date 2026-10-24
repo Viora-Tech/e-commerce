@@ -65,8 +65,8 @@ export async function noteSwitchedOff(
   })
 }
 
-/** Active owners' sign-in emails; the store's contact address when there is none. */
-async function ownerEmails(tx: StoreTx, storeId: string): Promise<string[]> {
+/** Active owners' sign-in emails; the store's contact address when there is none. Pixels alerts use it too. */
+export async function ownerEmails(tx: StoreTx, storeId: string): Promise<string[]> {
   const rows = await tx
     .select({ email: authSchema.user.email })
     .from(storeMember)

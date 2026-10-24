@@ -8,6 +8,7 @@ import {
   relayStoreOutbox,
 } from '@commerce/core'
 import type { AutomationTriggerQueue } from '@commerce/core/automations/server'
+import type { PixelOrderQueue } from '@commerce/core/pixels/server'
 import { getRegistries } from '@commerce/core/registries'
 import { type Db, storesWithUndispatchedOutboxEvents } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
@@ -54,6 +55,7 @@ export function createOutboxRelay(
     inventoryRestock?: InventoryRestockQueue | undefined
     domainRoutes?: DomainRouteQueue | undefined
     automationTriggers?: AutomationTriggerQueue | undefined
+    pixelOrders?: PixelOrderQueue | undefined
   },
 ) {
   const appJobs = createAppJobQueue(connection)
@@ -65,6 +67,7 @@ export function createOutboxRelay(
     inventoryRestock: opts.inventoryRestock,
     domainRoutes: opts.domainRoutes,
     automationTriggers: opts.automationTriggers,
+    pixelOrders: opts.pixelOrders,
     appJobs,
     salesStoreId: loadEnv(process.env).PLATFORM_SALES_STORE_ID,
     log: (message) => logger.info(message, { area: 'outbox' }),

@@ -102,12 +102,6 @@ const ALLOWLIST: AllowEntry[] = [
       'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
   },
   {
-    file: 'packages/db/src/pixel-schema.ts',
-    names: ['pixelConnection', 'pixelEventLog', 'pixelEventDay'],
-    reason:
-      'Pixels tables (feat/pixels-data, 2026-10-24): read by the worker and router in Pixels PR 3, which removes this entry',
-  },
-  {
     file: 'packages/core/src/pixels/hash.ts',
     names: [
       'sha256',
@@ -118,24 +112,24 @@ const ALLOWLIST: AllowEntry[] = [
       'normaliseState',
       'normalisePin',
       'splitName',
-      'hashUserData',
     ],
-    reason:
-      'Pixels core (feat/pixels-core, 2026-10-24): used by the sender in Pixels PR 3, which removes this entry',
+    reason: 'the Meta normalisers behind hashUserData; exported for their unit tests',
   },
   {
     file: 'packages/core/src/pixels/meta.ts',
-    names: [
-      'META_GRAPH',
-      'buildMetaEvent',
-      'matchedOf',
-      'classifyMetaError',
-      'cleanMetaMessage',
-      'sendMetaEvents',
-      'verifyMetaToken',
-    ],
+    names: ['META_GRAPH', 'classifyMetaError'],
     reason:
-      'Pixels core (feat/pixels-core, 2026-10-24): used by the sender and sendTest in Pixels PR 3, which removes this entry',
+      'the Graph base URL and error classifier behind sendMetaEvents; exported for their unit tests',
+  },
+  {
+    file: 'packages/core/src/pixels/prune.ts',
+    names: ['prunePixelData'],
+    reason: 'the prune for one store, behind runPixelPruneJob; exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/pixels/send.ts',
+    names: ['PixelRetryError'],
+    reason: 'thrown so BullMQ retries a send job; exported for its unit test',
   },
   {
     file: 'packages/ui/src/globe/webgl/sprite-dots.ts',

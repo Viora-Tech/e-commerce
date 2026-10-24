@@ -392,6 +392,9 @@ export const ACTION_DOCS: Record<string, string> = {
     'For the admin-wide "Test mode" banner: a gateway at checkout runs on test keys.',
   'payments.testOrderLink':
     '"Place a test order": a signed storefront link with only the ₹1 test product in the basket.',
+  'pixels.sendTest': 'One PageView with the test event code, sent now (10 s timeout).',
+  'pixels.setToken': 'Checked with Meta first; stored encrypted.',
+  'pixels.stats': 'The last 7 days: events sent, purchases, failures and skips for no consent.',
   'platformApps.completeWhatsapp':
     "The popup finished: swap the code (it lives 30 seconds), subscribe, register the number, then save it as the store's WhatsApp channel and turn the channel on.",
   'platformApps.disconnectWhatsapp':

@@ -160,7 +160,7 @@ async function merchant(email: string, slug: string) {
   // probed too (an uninstalled app only ever answers "install it first").
   await owner
     .update(store)
-    .set({ apps: { installed: ['affiliates'] } })
+    .set({ apps: { installed: ['affiliates', 'pixels'] } })
     .where(sql`${store.id} = ${s.id}`)
   return { headers, storeId: s.id, organizationId }
 }
