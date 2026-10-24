@@ -59,6 +59,7 @@ import { liquidShim } from '@/lib/liquid-shim'
 import { liquidLayoutFor, reactAttrs } from '@/lib/liquid-theme'
 import { mediaByUrl } from '@/lib/media-lookup'
 import { subscribeAction } from '@/lib/newsletter-actions'
+import { storePixels } from '@/lib/pixels/pixels'
 import { requestCart } from '@/lib/request-cart'
 import { heightForWidth } from '@/lib/section-images'
 import { requestOrigin, verificationMeta } from '@/lib/seo'
@@ -272,6 +273,8 @@ export default async function StoreLayout({ children, params }: Props) {
     bannerVersion: privacy.bannerVersion,
     initial: decodeConsent(jar.get(CONSENT_COOKIE)?.value),
     nonce,
+    // The Pixels app's pixels (null without the app); never in a theme preview.
+    pixels: preview ? null : await storePixels(storeId, current.apps),
     umami: umamiTrackerOf(current.apps),
     // Never in a theme preview (the consent manager is not drawn there either).
     chatwoot: preview ? null : await chatwootChatFor(storeId, current.apps),

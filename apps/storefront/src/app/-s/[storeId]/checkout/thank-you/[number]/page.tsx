@@ -12,12 +12,14 @@ import {
   verifyOrderViewToken,
 } from '@commerce/core'
 import { OPEN_ATTEMPT_STATUSES } from '@commerce/core/order-status'
+import { purchaseEventId } from '@commerce/core/pixels'
 import { getRegistries } from '@commerce/core/registries'
 import { address, giftCard, order, orderLine, payment, withStore } from '@commerce/db'
 import type { CheckoutSession } from '@commerce/payments'
 import { eq, inArray } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import ExperimentBeacon from '@/components/analytics/experiment-beacon'
+import PixelTrack from '@/components/analytics/pixel-track'
 import CheckoutBalance from '@/components/checkout/checkout-balance'
 import ThankYouTemplate from '@/components/checkout/thank-you'
 import { currentCustomer } from '@/lib/customer-session'
@@ -131,6 +133,18 @@ export default async function ThankYouPage({ params, searchParams }: Params) {
   return (
     <>
       {measured ? <ExperimentBeacon order={data.order.id} /> : null}
+      {/* Pixels app: the browser Purchase (ord_<orderId>); test orders never count. */}
+      {data.order.isTest ? null : (
+        <PixelTrack
+          event={{
+            name: 'Purchase',
+            eventId: purchaseEventId(data.order.id),
+            valuePaise: data.order.totalPaise,
+            contentIds: data.lines.flatMap((l) => (l.variantId ? [l.variantId] : [])),
+            numItems: data.lines.reduce((n, l) => n + l.quantity, 0),
+          }}
+        />
+      )}
       <ThankYouTemplate
         viewToken={payToken}
         order={data.order}

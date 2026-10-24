@@ -40,6 +40,8 @@ export const STOREFRONT_CACHE_TABLES = [
   'metaobject_definition',
   'navigation_menu',
   'page',
+  // Pixels app: the pixel ids the storefront initialises (0164).
+  'pixel_connection',
   'product',
   'product_media',
   'product_option',
@@ -147,9 +149,6 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   automation_workflow: ADMIN,
   monthly_expense: ADMIN,
   platform_account: ADMIN,
-  // Pixels app: the storefront starts reading pixel ids in Pixels PR 4, which moves this one
-  // into STOREFRONT_CACHE_TABLES with its trigger.
-  pixel_connection: ADMIN,
   pixel_event_day: LOG,
   pixel_event_log: LOG,
   plan_payment: ADMIN,
