@@ -10,8 +10,9 @@
 
 client_id = "REPLACE_WITH_CLIENT_ID"
 name = "Koomerce Migration"
-# Where Shopify opens the app from the merchant's admin. The importer lives in our admin.
-application_url = "https://ADMIN_HOST/apps/shopify-import/connect"
+# Where Shopify opens the app (after an install and on "Open app"): straight to the authorize
+# screen, then back to the importer in our admin.
+application_url = "https://ADMIN_HOST/api/apps/shopify-import/launch"
 embedded = false
 
 [access_scopes]

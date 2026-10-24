@@ -7,8 +7,12 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import {
   checkInstallCallback,
   exchangeInstallCode,
+  LAUNCH_STORE,
+  openInstallGrant,
+  sealInstallGrant,
   shopifyAppFromEnv,
   shopifyInstallUrl,
+  shopifyLaunchUrl,
   signInstallState,
 } from '../src/app-install'
 import { handleShopifyAppWebhook } from '../src/app-webhooks'
@@ -213,5 +217,55 @@ describe('an app connection', () => {
     expect(await storesForPlatformAccount(app, 'shopify', SHOP)).toEqual([])
     const events = await owner.select().from(outboxEvent).where(eq(outboxEvent.storeId, storeId))
     expect(events.map((e) => e.type)).toEqual(['shopify.app_uninstalled'])
+  })
+})
+
+describe('an install Shopify starts', () => {
+  const ADMIN = { adminUrl: 'https://admin.example.com', secret: SECRET }
+
+  it('goes straight to the authorize screen for the signed shop, with no store in the state', () => {
+    const query = shopifyRedirect({ shop: SHOP, timestamp: '1700000000', host: 'abc' })
+    const url = new URL(shopifyLaunchUrl(APP, query, ADMIN) as string)
+    expect(url.origin).toBe(`https://${SHOP}`)
+    expect(url.pathname).toBe('/admin/oauth/authorize')
+    const back = shopifyRedirect({
+      code: 'c1',
+      shop: SHOP,
+      state: url.searchParams.get('state') as string,
+      timestamp: '1700000001',
+    })
+    expect(checkInstallCallback(back, APP, SECRET)).toEqual({
+      storeId: LAUNCH_STORE,
+      shop: SHOP,
+      code: 'c1',
+    })
+  })
+
+  it('refuses an unsigned or forged launch', () => {
+    expect(shopifyLaunchUrl(APP, new URLSearchParams({ shop: SHOP }), ADMIN)).toBeNull()
+    const forged = shopifyRedirect({ shop: SHOP, timestamp: '1' }, 'not-the-secret')
+    expect(shopifyLaunchUrl(APP, forged, ADMIN)).toBeNull()
+    const notShopify = shopifyRedirect({ shop: 'evil.example.com', timestamp: '1' })
+    expect(shopifyLaunchUrl(APP, notShopify, ADMIN)).toBeNull()
+  })
+
+  it('seals the access for after sign-in, and only for 30 minutes', () => {
+    const token = {
+      accessToken: 'shpat_x',
+      scope: 'read_products',
+      expiresAt: null,
+      refreshToken: null,
+      refreshExpiresAt: null,
+    }
+    const now = new Date('2026-10-24T10:00:00Z')
+    const sealed = sealInstallGrant({ shop: SHOP, token }, SECRET, now)
+    expect(sealed).not.toContain('shpat_x')
+    expect(openInstallGrant(sealed, SECRET, now)).toEqual({ shop: SHOP, token })
+    expect(openInstallGrant(sealed, 'another-secret-another-secret-123', now)).toBeNull()
+    const parts = sealed.split('.')
+    const body = parts.at(-1) as string
+    const tampered = [...parts.slice(0, -1), `${body[0] === 'A' ? 'B' : 'A'}${body.slice(1)}`]
+    expect(openInstallGrant(tampered.join('.'), SECRET, now)).toBeNull()
+    expect(openInstallGrant(sealed, SECRET, new Date('2026-10-24T10:31:00Z'))).toBeNull()
   })
 })
