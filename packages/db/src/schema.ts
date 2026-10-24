@@ -813,6 +813,21 @@ export type MarketingAttribution = {
   at: string
 }
 
+/**
+ * What the storefront collector saw for a shopper, stamped on the cart and copied onto the
+ * order (next to `attribution`), so the server Purchase can match the browser one. `ip`/`ua`
+ * are cleared from orders after 30 days by the daily prune.
+ */
+export type PixelTracking = {
+  fbp?: string | undefined
+  fbc?: string | undefined
+  fbclid?: string | undefined
+  ip?: string | undefined
+  ua?: string | undefined
+  landingUrl?: string | undefined
+  consent?: { marketing: boolean; analytics: boolean; version: number; at: string } | undefined
+}
+
 /** One address table, reused by customers and orders. state_code drives CGST/SGST vs IGST. */
 export const address = pgTable('address', {
   id: id(),
@@ -915,6 +930,8 @@ export const cart = pgTable('cart', {
   customerName: text('customer_name'),
   /** Where the shopper came from (UTM, referrer, marketing click); copied onto the order. */
   attribution: jsonb('attribution').$type<MarketingAttribution>(),
+  /** Pixels app: the shopper's fbp/fbc, IP, UA and consent, from the storefront collector. */
+  tracking: jsonb('tracking').$type<PixelTracking>(),
   createdAt: createdAt(),
   /** Touched on every line or contact change; the abandoned window is measured from here. */
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -1034,6 +1051,8 @@ export const order = pgTable(
     tags: text('tags').array().notNull().default([]),
     /** Snapshot of the cart's attribution when the order was placed; drives Marketing reports. */
     attribution: jsonb('attribution').$type<MarketingAttribution>(),
+    /** Snapshot of the cart's `tracking` (Pixels app); ip/ua are cleared after 30 days. */
+    tracking: jsonb('tracking').$type<PixelTracking>(),
     /**
      * Pre-order deposit bookkeeping. `depositPaise` is null on an order with no
      * deposit-mode pre-order lines (paid in full as normal); `balanceDuePaise`
