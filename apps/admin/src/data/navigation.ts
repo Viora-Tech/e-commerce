@@ -182,9 +182,7 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: SocialMedia,
         permission: permissions.ONLINE_STORE_READ,
         children: [
-          { href: routes.salesChannels.socialChannel('instagram'), label: 'Instagram' },
-          { href: routes.salesChannels.socialChannel('facebook'), label: 'Facebook' },
-          { href: routes.salesChannels.socialChannel('whatsapp'), label: 'WhatsApp' },
+          { href: routes.salesChannels.socialMeta(), label: 'Meta' },
           { href: routes.salesChannels.socialChannel('google'), label: 'Google' },
         ],
       },

@@ -7,6 +7,9 @@
 
 const id = (value: string): string => encodeURIComponent(value)
 
+/** The Meta surfaces (`META_CHANNELS` in @commerce/core), kept here so routes import nothing. */
+const META_SURFACES = ['facebook', 'instagram', 'whatsapp']
+
 /**
  * A `?next=` worth following: a path on this admin only (`/oauth/authorize?…`), never another
  * site (`//evil.com`, a backslash, `https://…`). Anything else is null.
@@ -204,7 +207,12 @@ export const routes = {
     agenticReadiness: () => '/sales-channels/agentic/readiness',
     agenticControls: () => '/sales-channels/agentic/controls',
     social: () => '/sales-channels/social',
-    socialChannel: (channel: string) => `/sales-channels/social/${id(channel)}`,
+    /** Facebook, Instagram and WhatsApp share one Meta page, a tab each. */
+    socialMeta: () => '/sales-channels/social/meta',
+    socialChannel: (channel: string) =>
+      META_SURFACES.includes(channel)
+        ? `/sales-channels/social/meta?surface=${id(channel)}`
+        : `/sales-channels/social/${id(channel)}`,
   },
 
   apps: {
