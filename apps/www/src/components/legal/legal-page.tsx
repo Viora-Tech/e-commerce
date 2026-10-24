@@ -1,4 +1,3 @@
-import { TriangleAlert } from '@commerce/ui/icons'
 import { buttonVariants } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { legalContent as copy } from '@/data/legal'
@@ -11,7 +10,7 @@ import LegalToc from './legal-toc'
 
 type LegalPageProps = { doc: LegalDoc }
 
-/** The one layout every policy shares: header, template notice, sticky contents and a readable column. */
+/** The one layout every policy shares: header, sticky contents and a readable column. */
 export default function LegalPage({ doc }: LegalPageProps) {
   return (
     <SiteShell>
@@ -30,13 +29,6 @@ export default function LegalPage({ doc }: LegalPageProps) {
           </h1>
           <p className="text-lead text-pretty text-muted-foreground">{doc.lead}</p>
           <LegalActions readMinutes={doc.readMinutes} />
-          <p
-            role="note"
-            className="flex items-center gap-3 rounded-xl border border-border-strong bg-muted/50 px-4 py-3 text-sm font-medium text-foreground"
-          >
-            <TriangleAlert aria-hidden className="size-4 shrink-0" />
-            {copy.templateNotice}
-          </p>
         </header>
         <div className="mt-12 flex flex-col gap-8 lg:flex-row lg:gap-16">
           <LegalToc sections={doc.sections} />
