@@ -27,8 +27,6 @@ export const legalContent = {
   languageLabel: 'Language',
   downloadPdf: 'Download PDF',
   print: 'Print',
-  templateNotice:
-    'TEMPLATE — review with a lawyer before publishing. Replace every [placeholder] and [OWNER: …].',
   onThisPage: 'On this page',
   read: 'read',
   backToTop: 'Back to top',
