@@ -117,10 +117,7 @@ function allowedLiterals(checks: { table: string; def: string }[]): Map<string, 
 const PATTERNED: Record<string, () => string> = {
   // `^[0-9]{10,20}$` (Pixels app, 0160).
   'pixel_connection.pixel_id': () =>
-    `1${randomUUID()
-      .replace(/\D/g, '')
-      .padEnd(14, '0')
-      .slice(0, 14)}`,
+    `1${randomUUID().replace(/\D/g, '').padEnd(14, '0').slice(0, 14)}`,
 }
 
 function valueFor(col: Column, table: string): unknown {
