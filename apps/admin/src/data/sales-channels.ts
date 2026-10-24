@@ -222,6 +222,7 @@ export const salesChannelsContent = {
     account: 'Account',
     lastSync: 'Last sync',
     never: 'Not yet',
+    syncingNow: 'Syncing now…',
     items: 'Products sent',
     syncNow: 'Sync now',
     syncQueued: 'Sync started. It takes a minute or two.',
