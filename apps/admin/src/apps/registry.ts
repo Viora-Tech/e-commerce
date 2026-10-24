@@ -49,6 +49,8 @@ import IndiaPostOverviewPage from '@/components/apps/india-post/overview-page'
 import MeilisearchPage from '@/components/apps/meilisearch/settings-page'
 import SesConnectPage from '@/components/apps/messages/ses-connect-page'
 import WhatsappConnectPage from '@/components/apps/messages/whatsapp-connect-page'
+import PixelEventLogPage from '@/components/apps/pixels/event-log-page'
+import PixelsPage from '@/components/apps/pixels/pixels-page'
 import RapidshypConnectPage from '@/components/apps/rapidshyp/connect-page'
 import RapidshypOverviewPage from '@/components/apps/rapidshyp/overview-page'
 import RazorpayConnectPage from '@/components/apps/razorpay/connect-page'
@@ -188,6 +190,12 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
   forms: {
     pages: {
       '': SubmissionsList,
+    },
+  },
+  pixels: {
+    pages: {
+      '': PixelsPage,
+      events: PixelEventLogPage,
     },
   },
   search: {

@@ -1,0 +1,63 @@
+---
+title: Pixels
+description: Meta Pixel and Conversions API: your visits and sales reach Meta from the browser and from our server, counted once.
+---
+
+# Pixels
+
+Pixels is a built-in app, free on every plan. Install it from the [App store](/merchant-guide/apps/app-store). Its pages are **Pixels** and **Event log**.
+
+Browsers and ad blockers stop many Meta pixel events, so Meta misses sales and your ads learn less. Pixels sends each event twice: from the shopper's browser (the Meta pixel) and from our server (Meta's Conversions API). Both copies carry the same event ID, so Meta counts the event once.
+
+If you had a Meta pixel ID in **Online Store → Preferences**, it was moved here for you as a browser-only pixel. Nothing changes for shoppers until you add a token.
+
+## Add a pixel
+
+1. In Meta **Events Manager**, open **Data sources**, pick your pixel and copy its **ID**.
+2. On the same pixel, open **Settings → Conversions API → Generate access token** and copy the token.
+3. In Koomerce, open **Apps → Pixels → Add pixel**, paste both and save. We check the token with Meta and show the pixel's name.
+
+The token is optional: without it only the browser pixel runs. You can add up to 10 pixels. The token is stored encrypted and can never be shown again; only its last 4 characters are.
+
+## Events
+
+Each pixel sends, if you leave them ticked:
+
+- **Page view**: every page.
+- **Product view**: a product page.
+- **Add to cart**: the product page's Add to cart and Buy it now.
+- **Checkout started**: when checkout opens.
+- **Purchase**: see below.
+
+Values and products come from your catalogue and the cart, never from the browser. Customer details (email, phone, name, city, state, PIN) are hashed with SHA-256 before they leave Koomerce.
+
+## When Purchase is sent
+
+Choose on each pixel:
+
+- **When the order is placed** (the default): sent at checkout, from the browser and the server.
+- **When the order is paid** or **When the order is delivered**: sent from the server only.
+- **Prepaid when paid, COD when delivered**: for stores with many COD returns.
+
+Meta only accepts server events within 7 days of the order. An order delivered later than that is skipped and shows **Older than 7 days** in the event log. Test orders (payment test keys) and imported orders are never sent.
+
+## Consent
+
+Nothing is sent, from the browser or the server, unless the shopper said yes to **Marketing** in the cookie banner. The marketing line names advertising partners such as Meta. When Pixels was released, every store's banner was asked again once.
+
+## Test your setup
+
+1. In Events Manager, open **Test events** and copy the **test event code**.
+2. Edit the pixel, paste the code and save.
+3. Choose **Send test event**. It shows in Events Manager within a minute.
+4. Browse your store in another tab and accept marketing cookies: each event should show as **Browser** and **Server**, marked **Deduplicated**.
+
+Remove the test code when you are done, or Meta treats real events as tests.
+
+## Event log
+
+**Event log** lists every event sent or skipped in the last 30 days (successful page views are only counted). Filter by pixel, event and source, and open a row for Meta's answer, the fbtrace ID and which customer details matched. The log never holds the details themselves.
+
+## When a token stops working
+
+If Meta refuses a token (expired, revoked, or the system user lost access), the pixel shows **Error**, server events stop and the store owner gets one email. Choose **Replace token** and paste a new one. The browser pixel keeps running meanwhile.

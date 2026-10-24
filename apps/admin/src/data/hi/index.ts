@@ -74,6 +74,7 @@ import ordersBulkEdit from './orders-bulk-edit'
 import paymentModes from './payment-modes'
 import payments from './payments'
 import paymentsSetup from './payments-setup'
+import pixels from './pixels'
 import productForm from './product-form'
 import productPage from './product-page'
 import products from './products'
@@ -189,6 +190,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...payments,
   ...paymentModes,
   ...paymentsSetup,
+  ...pixels,
   ...razorpayWebsites,
   ...collections,
   ...commandPalette,
