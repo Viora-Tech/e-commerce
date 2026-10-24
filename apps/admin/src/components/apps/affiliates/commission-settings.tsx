@@ -1,6 +1,6 @@
 'use client'
 
-import type { AffiliateSettings } from '@commerce/plugin-affiliates/settings'
+import type { ProgramRules } from '@commerce/plugin-affiliates/settings'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
@@ -12,13 +12,13 @@ import { affiliatesContent } from '@/data/affiliates'
 import { useCopy } from '@/hooks/use-copy'
 
 type CommissionSettingsProps = {
-  form: AffiliateSettings
-  onChange: (patch: Partial<AffiliateSettings>) => void
+  form: ProgramRules
+  onChange: (patch: Partial<ProgramRules>) => void
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-/** Rate, which orders earn, the link window, per-product rates, tiers and discount codes. */
+/** A program's rate, which orders earn, per-product rates, tiers and discount codes. */
 export default function CommissionSettings({ form, onChange }: CommissionSettingsProps) {
   // Hooks
   const { settings: copy } = useCopy(affiliatesContent)
@@ -35,11 +35,11 @@ export default function CommissionSettings({ form, onChange }: CommissionSetting
         { target: 'product', id: '', label: '', rule: { type: 'percent', bp: 1000 } },
       ],
     })
-  const handleOverride = (i: number, patch: Partial<AffiliateSettings['overrides'][number]>) =>
+  const handleOverride = (i: number, patch: Partial<ProgramRules['overrides'][number]>) =>
     onChange({ overrides: form.overrides.map((o, j) => (j === i ? { ...o, ...patch } : o)) })
   const handleAddTier = () =>
     onChange({ tiers: [...form.tiers, { name: '', minSalesPaise: 50_000_00, bp: 1500 }] })
-  const handleTier = (i: number, patch: Partial<AffiliateSettings['tiers'][number]>) =>
+  const handleTier = (i: number, patch: Partial<ProgramRules['tiers'][number]>) =>
     onChange({ tiers: form.tiers.map((t, j) => (j === i ? { ...t, ...patch } : t)) })
 
   // Render logic
@@ -96,15 +96,6 @@ export default function CommissionSettings({ form, onChange }: CommissionSetting
             onChange={(lifetimeDays) => onChange({ lifetimeDays: Math.max(1, lifetimeDays) })}
           />
         ) : null}
-        <NumberField
-          id="aff-cookie"
-          label={copy.cookieDays}
-          description={copy.cookieHelp}
-          value={form.cookieDays}
-          min={1}
-          max={30}
-          onChange={(cookieDays) => onChange({ cookieDays: Math.min(30, Math.max(1, cookieDays)) })}
-        />
       </SettingsCard>
       <SettingsCard title={copy.overrides} description={copy.overridesHelp}>
         {form.overrides.length === 0 ? (

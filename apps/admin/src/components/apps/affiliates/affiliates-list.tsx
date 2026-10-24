@@ -82,6 +82,12 @@ export default function AffiliatesList() {
       render: (r) => <span className="font-mono">{r.couponCode ?? r.code}</span>,
     },
     {
+      id: 'program',
+      title: l.columns.program,
+      sortValue: (r) => r.programName,
+      render: (r) => r.programName,
+    },
+    {
       id: 'orders',
       title: l.columns.orders,
       sortValue: (r) => r.orders,

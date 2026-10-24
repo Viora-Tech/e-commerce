@@ -21,7 +21,7 @@ import { loadAffiliateSettings } from './store-settings'
 export const affiliatesPlugin = definePlugin({
   id: AFFILIATES_ID,
   name: 'Affiliates',
-  version: '1.0.0',
+  version: '1.1.0',
   kind: 'builtin',
   category: 'marketing',
   description:
@@ -31,6 +31,7 @@ export const affiliatesPlugin = definePlugin({
       'Referral links and codes for creators, paid only on orders that are delivered and kept.',
     highlights: [
       'A link and a discount code per affiliate',
+      'Several programs, each with its own rates, order-value levels and signup page',
       'Commission waits for delivery and the return window; cancels, RTO and refunds reverse it',
       'Payouts by UPI or a bank bulk-upload file, with TDS worked out',
       'A signup page and dashboard for affiliates on your store',
@@ -101,9 +102,11 @@ export const affiliatesPlugin = definePlugin({
       { path: '', title: 'Affiliates overview', navLabel: 'Overview', icon: 'BarChart3' },
       { path: 'affiliates', title: 'Affiliates', navLabel: 'Affiliates', icon: 'Users' },
       { path: 'affiliates/[id]', title: 'Affiliate' },
+      { path: 'programs', title: 'Programs', navLabel: 'Programs', icon: 'Blocks' },
+      { path: 'programs/[id]', title: 'Program' },
       { path: 'commissions', title: 'Commissions', navLabel: 'Commissions', icon: 'FileText' },
       { path: 'payouts', title: 'Payouts', navLabel: 'Payouts', icon: 'CreditCard' },
-      { path: 'settings', title: 'Program settings', navLabel: 'Settings', icon: 'Settings' },
+      { path: 'settings', title: 'Settings', navLabel: 'Settings', icon: 'Settings' },
     ],
   },
 })

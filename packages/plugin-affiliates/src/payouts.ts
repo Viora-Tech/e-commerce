@@ -4,7 +4,7 @@ import type { StoreTx } from '@commerce/db'
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { readPayoutDetails } from './affiliates'
 import { affiliate, affiliateCommission, affiliatePayout } from './schema'
-import type { AffiliateSettings } from './settings'
+import type { StoreAffiliateSettings } from './settings'
 import { AffiliateError } from './store-settings'
 
 export type PayoutRow = typeof affiliatePayout.$inferSelect
@@ -47,7 +47,7 @@ async function openClawbacks(tx: StoreTx): Promise<Map<string, number>> {
 /** Approved commissions not yet in a payout, per affiliate, less any clawback still owed. */
 export async function payoutCandidates(
   tx: StoreTx,
-  settings: AffiliateSettings,
+  settings: StoreAffiliateSettings,
 ): Promise<PayoutCandidate[]> {
   const clawbacks = await openClawbacks(tx)
   const rows = await tx
@@ -96,7 +96,7 @@ export async function payoutCandidates(
 export async function createPayouts(
   tx: StoreTx,
   storeId: string,
-  settings: AffiliateSettings,
+  settings: StoreAffiliateSettings,
   affiliateIds?: string[],
 ): Promise<PayoutRow[]> {
   const ready = (await payoutCandidates(tx, settings)).filter(
