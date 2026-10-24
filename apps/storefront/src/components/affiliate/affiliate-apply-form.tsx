@@ -4,12 +4,21 @@ import { useState, useTransition } from 'react'
 import { affiliateContent } from '@/data/affiliate'
 import { applyAffiliateAction } from '@/lib/affiliate-actions'
 
-type AffiliateApplyFormProps = { defaultName: string; terms: string }
+type AffiliateApplyFormProps = {
+  defaultName: string
+  terms: string
+  /** `?program=` slug of the program applied to; none is the default program. */
+  program?: string | undefined
+}
 
 const copy = affiliateContent.apply
 
 /** Name, where they post and a few words; the shopper's account supplies the email and phone. */
-export default function AffiliateApplyForm({ defaultName, terms }: AffiliateApplyFormProps) {
+export default function AffiliateApplyForm({
+  defaultName,
+  terms,
+  program,
+}: AffiliateApplyFormProps) {
   // Hooks
   const [pending, start] = useTransition()
   const [name, setName] = useState(defaultName)
@@ -23,7 +32,13 @@ export default function AffiliateApplyForm({ defaultName, terms }: AffiliateAppl
     e.preventDefault()
     setError(null)
     start(async () => {
-      const r = await applyAffiliateAction({ name, social, message, acceptTerms: accept })
+      const r = await applyAffiliateAction({
+        name,
+        social,
+        message,
+        acceptTerms: accept,
+        program,
+      })
       if (!r.ok) setError(copy.errors[r.error] ?? copy.errors.generic ?? '')
     })
   }

@@ -1,12 +1,11 @@
 'use client'
 
-import type { AffiliateSettings } from '@commerce/plugin-affiliates/settings'
-import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
+import type { StoreAffiliateSettings } from '@commerce/plugin-affiliates/settings'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Switch } from '@commerce/ui/shadcn/switch'
-import { Textarea } from '@commerce/ui/shadcn/textarea'
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import CommissionSettings from '@/components/apps/affiliates/commission-settings'
 import NumberField from '@/components/apps/affiliates/number-field'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
@@ -15,13 +14,14 @@ import SettingsRow from '@/components/settings/settings-row'
 import { affiliatesContent } from '@/data/affiliates'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 
-/** The program: open or paused, approval, commission, holds and payouts, TDS, the signup page. */
+/** Store-wide settings: open or paused, the link window, holds and payouts, TDS. */
 export default function SettingsPage() {
   // Hooks
   const { settings: copy, failed } = useCopy(affiliatesContent)
-  const [form, setForm] = useState<AffiliateSettings | null>(null)
-  const [saved, setSaved] = useState<AffiliateSettings | null>(null)
+  const [form, setForm] = useState<StoreAffiliateSettings | null>(null)
+  const [saved, setSaved] = useState<StoreAffiliateSettings | null>(null)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
@@ -32,20 +32,15 @@ export default function SettingsPage() {
   }, [])
 
   // Event handlers
-  const handleChange = (patch: Partial<AffiliateSettings>) =>
+  const handleChange = (patch: Partial<StoreAffiliateSettings>) =>
     setForm((f) => (f ? { ...f, ...patch } : f))
-  const handleTds = (patch: Partial<AffiliateSettings['tds']>) =>
+  const handleTds = (patch: Partial<StoreAffiliateSettings['tds']>) =>
     setForm((f) => (f ? { ...f, tds: { ...f.tds, ...patch } } : f))
   const handleSave = async () => {
     if (!form) return
     setBusy(true)
     try {
-      // Rates with no product or collection picked yet are left out rather than refused.
-      const next = await api.affiliates.settings.save({
-        ...form,
-        overrides: form.overrides.filter((o) => o.id),
-        tiers: form.tiers.filter((t) => t.name.trim()),
-      })
+      const next = await api.affiliates.settings.save(form)
       setForm(next)
       setSaved(next)
       toast.success(copy.saved)
@@ -75,7 +70,19 @@ export default function SettingsPage() {
         saving={busy}
       />
       <PageHeader title={copy.title} summary={copy.subtitle} />
-      <SettingsCard title={copy.program}>
+      <SettingsCard
+        title={copy.program}
+        description={copy.perProgram}
+        footer={
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={<Link href={routes.apps.page('affiliates', 'programs')} />}
+          >
+            {copy.goPrograms}
+          </Button>
+        }
+      >
         <SettingsRow label={copy.active} description={copy.activeHelp} htmlFor="aff-active">
           <Switch
             id="aff-active"
@@ -83,20 +90,20 @@ export default function SettingsPage() {
             onCheckedChange={(active) => handleChange({ active })}
           />
         </SettingsRow>
-        <SettingsRow label={copy.approval} htmlFor="aff-approval">
-          <NativeSelect
-            id="aff-approval"
-            value={form.approval}
-            onChange={(e) =>
-              handleChange({ approval: e.target.value === 'auto' ? 'auto' : 'manual' })
-            }
-          >
-            <NativeSelectOption value="manual">{copy.approvalManual}</NativeSelectOption>
-            <NativeSelectOption value="auto">{copy.approvalAuto}</NativeSelectOption>
-          </NativeSelect>
-        </SettingsRow>
       </SettingsCard>
-      <CommissionSettings form={form} onChange={handleChange} />
+      <SettingsCard title={copy.tracking}>
+        <NumberField
+          id="aff-cookie"
+          label={copy.cookieDays}
+          description={copy.cookieHelp}
+          value={form.cookieDays}
+          min={1}
+          max={30}
+          onChange={(cookieDays) =>
+            handleChange({ cookieDays: Math.min(30, Math.max(1, cookieDays)) })
+          }
+        />
+      </SettingsCard>
       <SettingsCard title={copy.payouts}>
         <NumberField
           id="aff-hold"
@@ -149,26 +156,6 @@ export default function SettingsPage() {
             />
           </>
         ) : null}
-      </SettingsCard>
-      <SettingsCard title={copy.page}>
-        <SettingsRow label={copy.pitch} description={copy.pitchHelp} htmlFor="aff-pitch">
-          <Textarea
-            id="aff-pitch"
-            rows={3}
-            maxLength={2000}
-            value={form.pitch}
-            onChange={(e) => handleChange({ pitch: e.target.value })}
-          />
-        </SettingsRow>
-        <SettingsRow label={copy.terms} description={copy.termsHelp} htmlFor="aff-terms">
-          <Textarea
-            id="aff-terms"
-            rows={6}
-            maxLength={10_000}
-            value={form.terms}
-            onChange={(e) => handleChange({ terms: e.target.value })}
-          />
-        </SettingsRow>
       </SettingsCard>
     </div>
   )

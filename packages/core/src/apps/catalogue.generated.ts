@@ -1651,6 +1651,7 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
       'Referral links and codes for creators, paid only on orders that are delivered and kept.',
     highlights: [
       'A link and a discount code per affiliate',
+      'Several programs, each with its own rates, order-value levels and signup page',
       'Commission waits for delivery and the return window; cancels, RTO and refunds reverse it',
       'Payouts by UPI or a bank bulk-upload file, with TDS worked out',
       'A signup page and dashboard for affiliates on your store',
@@ -1699,7 +1700,7 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
       ],
       shares: [],
     },
-    adminPages: ['Overview', 'Affiliates', 'Commissions', 'Payouts', 'Settings'],
+    adminPages: ['Overview', 'Affiliates', 'Programs', 'Commissions', 'Payouts', 'Settings'],
     themeBlocks: ['Affiliate signup'],
     credits: [],
   },
