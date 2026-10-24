@@ -14,8 +14,8 @@ type AppStickyBarProps = {
 
 /**
  * The app page's compact bar: once the header's Install button has scrolled out of view, a glass
- * bar with the icon, name, price and Install slides in. On a phone it sits at the bottom, over
- * the home indicator; on wider screens it hangs under the site nav. Fades only under reduced motion.
+ * bar with the icon, name, price and Install slides up from the bottom of the screen, over
+ * the home indicator, clear of the site nav. Fades only under reduced motion.
  */
 export default function AppStickyBar({ watch, tile, name, price, actions }: AppStickyBarProps) {
   // Hooks
@@ -38,10 +38,10 @@ export default function AppStickyBar({ watch, tile, name, price, actions }: AppS
     <div
       inert={!shown}
       className={cn(
-        'fixed inset-x-0 bottom-0 z-20 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] transition-[opacity,translate] duration-(--duration-modal) ease-out motion-reduce:translate-y-0 md:top-[5.25rem] md:bottom-auto md:px-8 md:pb-0 print:hidden',
+        'fixed inset-x-0 bottom-0 z-20 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] transition-[opacity,translate] duration-(--duration-modal) ease-out motion-reduce:translate-y-0 md:px-8 md:pb-6 print:hidden',
         shown
           ? 'translate-y-0 opacity-100'
-          : 'pointer-events-none translate-y-4 opacity-0 md:-translate-y-4',
+          : 'pointer-events-none translate-y-4 opacity-0',
       )}
     >
       <div className="glass-panel mx-auto flex max-w-[75rem] items-center gap-3 rounded-2xl p-2 pl-3 md:rounded-full md:pl-2">

@@ -49,6 +49,12 @@ These apply to every program:
 - **Link counts for**: how many days after a click an order still counts (up to 30). Clicks are only recorded for shoppers who accepted analytics cookies; discount codes always count.
 - **Hold after delivery** and **Minimum payout**.
 - **TDS**: on by default at 2% with a PAN and 20% without, once an affiliate's commission in the financial year passes ₹20,000 (section 194H; section 393 of the Income-tax Act, 2025 from April 2026). Check the rates with your accountant. Filing TDS returns and issuing Form 16A stay with you.
+- **Hold payouts without a PAN**: when on, an affiliate whose commission this year has passed the TDS threshold is not paid until they add a PAN (the Payouts page says why).
+- **GST on payouts**: affiliates who are GST registered add their GSTIN with their payout details. Their payout then gets GST on top (18% unless you change it), because they invoice you GST and you claim the input tax credit. TDS stays on the commission without GST. This is a research note, not tax advice: check it with your CA.
+
+## TDS report (26Q)
+
+On **Payouts**, **TDS report (26Q)** downloads a CSV for one quarter (April to June, July to September, October to December, January to March). It has one row per commission credited in the quarter, by the date it became ready to pay (India time): the affiliate's name, PAN (or `PANNOTAVBL` without one), the section from Settings (default `393(1) Sl. 1(ii) / 194H`), the credit date, amount, rate and TDS. Commissions reversed after they were credited are listed again under **Reversed after credit**. The file holds PANs, so it needs the **Settings** permission. Your CA files the return from it; Koomerce does not file TDS.
 
 ## Fraud checks
 

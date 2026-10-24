@@ -7,6 +7,7 @@ import {
   phoneBlindIndex,
 } from '@commerce/core'
 import { slugify } from '@commerce/core/catalog'
+import { validateGstin } from '@commerce/core/gstin'
 import { discount, type StoreTx } from '@commerce/db'
 import { and, desc, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
@@ -17,6 +18,13 @@ import type { AffiliateSettings, AffiliateStatus, ProgramRules } from './setting
 import { AffiliateError } from './store-settings'
 
 export type AffiliateRow = typeof affiliate.$inferSelect
+
+const Gstin = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .refine((v) => validateGstin(v).ok, 'Enter a valid 15-character GSTIN')
+  .optional()
 
 /** What an affiliate types for getting paid. Stored as one encrypted blob, never in the clear. */
 export const PayoutDetailsSchema = z.discriminatedUnion('method', [
@@ -33,6 +41,8 @@ export const PayoutDetailsSchema = z.discriminatedUnion('method', [
       .toUpperCase()
       .regex(/^[A-Z]{5}\d{4}[A-Z]$/, 'Enter a valid PAN')
       .optional(),
+    /** GST-registered affiliates add their GSTIN; GST is then added to their payouts. */
+    gstin: Gstin,
   }),
   z.object({
     method: z.literal('bank'),
@@ -52,6 +62,7 @@ export const PayoutDetailsSchema = z.discriminatedUnion('method', [
       .toUpperCase()
       .regex(/^[A-Z]{5}\d{4}[A-Z]$/, 'Enter a valid PAN')
       .optional(),
+    gstin: Gstin,
   }),
 ])
 export type PayoutDetails = z.infer<typeof PayoutDetailsSchema>
@@ -292,6 +303,7 @@ export async function savePayoutDetails(
       payoutDetails: encryptSecret(JSON.stringify(parsed), secret),
       payoutHint: hint,
       hasPan: Boolean(parsed.pan),
+      gstRegistered: Boolean(parsed.gstin),
       updatedAt: new Date(),
     })
     .where(eq(affiliate.id, id))

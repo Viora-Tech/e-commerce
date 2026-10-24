@@ -1,0 +1,2 @@
+ALTER TABLE "affiliate" ADD COLUMN IF NOT EXISTS "gst_registered" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE "affiliate_payout" ADD COLUMN IF NOT EXISTS "gst_paise" integer DEFAULT 0 NOT NULL;

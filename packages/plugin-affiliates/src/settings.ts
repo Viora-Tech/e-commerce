@@ -20,6 +20,9 @@ import { z } from 'zod'
 
 export const AFFILIATES_ID = 'affiliates'
 
+/** Default section label on the 26Q export: the Income-tax Act, 2025 entry and the old 194H. */
+export const TDS_SECTION = '393(1) Sl. 1(ii) / 194H'
+
 /** Percent of the line's net sale, or a flat amount (per order for the default rule, per unit for an override). */
 export const CommissionRuleSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('percent'), bp: z.number().int().min(0).max(10_000) }),
@@ -84,8 +87,29 @@ export const StoreAffiliateSettingsSchema = z.object({
       bp: z.number().int().min(0).max(10_000).default(200),
       noPanBp: z.number().int().min(0).max(10_000).default(2000),
       thresholdPaise: z.number().int().min(0).max(1_000_000_00).default(20_000_00),
+      /** The section printed on the quarterly TDS report (26Q). CA check. */
+      section: z.string().trim().max(80).default(TDS_SECTION),
     })
-    .default({ enabled: true, bp: 200, noPanBp: 2000, thresholdPaise: 20_000_00 }),
+    .default({
+      enabled: true,
+      bp: 200,
+      noPanBp: 2000,
+      thresholdPaise: 20_000_00,
+      section: TDS_SECTION,
+    }),
+  /**
+   * GST on commission for GST-registered affiliates (they gave a GSTIN): added on top of the
+   * payout, since they invoice it and the store claims the input tax credit. 18% by default.
+   * Research note, not tax advice: the merchant's CA should confirm.
+   */
+  gst: z
+    .object({
+      enabled: z.boolean().default(true),
+      bp: z.number().int().min(0).max(10_000).default(1800),
+    })
+    .default({ enabled: true, bp: 1800 }),
+  /** Hold payouts of an affiliate with no PAN once their commission this year passes the TDS threshold. */
+  requirePanAboveThreshold: z.boolean().default(false),
 })
 export type StoreAffiliateSettings = z.infer<typeof StoreAffiliateSettingsSchema>
 
@@ -147,6 +171,8 @@ export function storePart(s: StoreAffiliateSettings): StoreAffiliateSettings {
     holdDays: s.holdDays,
     minPayoutPaise: s.minPayoutPaise,
     tds: s.tds,
+    gst: s.gst,
+    requirePanAboveThreshold: s.requirePanAboveThreshold,
   }
 }
 
