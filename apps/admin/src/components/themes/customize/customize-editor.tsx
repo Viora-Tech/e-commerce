@@ -39,6 +39,7 @@ import type { TemplateChange } from '@/lib/use-template-manager'
 import { useThemeThumbnail } from '@/lib/use-theme-thumbnail'
 import type { PreviewDevice } from '../theme-preview'
 import { previewUrl, type ThemeItem } from '../theme-types'
+import AppsPanel from './apps-panel'
 import CanvasDock from './canvas-dock'
 import CreateTemplateDialog, { type AlternateKind } from './create-template-dialog'
 import CustomizeHotkeys from './customize-hotkeys'
@@ -426,6 +427,13 @@ export default function CustomizeEditor({
                     <CustomizeLayout
                       topBar={topBar}
                       settings={settingsPanel}
+                      apps={
+                        <AppsPanel
+                          installedApps={installedApps}
+                          theme={settings}
+                          onChange={setSettings}
+                        />
+                      }
                       pages={
                         <PagesPanel
                           themeId={record.id}

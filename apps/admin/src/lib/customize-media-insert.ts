@@ -4,7 +4,7 @@
  *        alt }` object fields, top level or inside list items), and the props with it set.
  * WHY:   Clicking a picture fills the selected block, dropping one on the canvas fills the
  *        block under the pointer; both pick the first empty picture setting, else the first.
- * WHERE: `components/themes/customize/media-panel.tsx`, `preview-frame.tsx` (canvas drop).
+ * WHERE: `preview-frame.tsx` (canvas drop).
  */
 
 import type { PuckAction } from '@puckeditor/core'

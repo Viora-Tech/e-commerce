@@ -26,7 +26,6 @@ import AiPanel from './ai-panel'
 import CustomizeRail, { type RailPanel } from './customize-rail'
 import FullViewExit from './full-view-exit'
 import HelpPanel from './help-panel'
-import MediaPanel from './media-panel'
 import PageSettingsPanel from './page-settings-panel'
 import PanelIdentity from './panel-identity'
 import PanelTitle from './panel-title'
@@ -52,6 +51,8 @@ type CustomizeLayoutProps = {
   settings: ReactNode
   /** The Pages panel: every page and template to jump between (`TemplateList`). */
   pages: ReactNode
+  /** The App embeds panel: installed apps' site-wide widgets (`AppsPanel`). */
+  apps: ReactNode
   /** Floating controls over the bottom of the canvas. */
   dock: ReactNode
   device: PreviewDevice
@@ -79,6 +80,7 @@ export default function CustomizeLayout({
   topBar,
   settings,
   pages,
+  apps,
   dock,
   device,
   loading,
@@ -146,7 +148,7 @@ export default function CustomizeLayout({
   // Pages, AI and Theme settings draw their own head (each has its own action); Add opens on
   // its switch.
   const titles: Partial<Record<RailPanel, string>> = {
-    media: panels.media,
+    apps: panels.apps,
     settings: panels.settings,
     help: panels.help,
   }
@@ -156,7 +158,7 @@ export default function CustomizeLayout({
     ai: <AiPanel storeId={store.id} enabled={aiEnabled} page={templateLabel} theme={theme} />,
     pages,
     sections: <SectionsPanel onOpenTheme={() => setPanel('theme')} templateLabel={templateLabel} />,
-    media: <MediaPanel />,
+    apps,
     theme: settings,
     help: <HelpPanel />,
     settings: (

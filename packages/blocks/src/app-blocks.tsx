@@ -1,4 +1,4 @@
-import type { AppBlockDefinition } from '@commerce/plugins'
+import type { AppBlockDefinition, AppEmbedDefinition } from '@commerce/plugins'
 import type { ComponentConfig, Fields } from '@puckeditor/core'
 
 /** One entry in the Apps tab's "Notify me · by Back in stock" grouping. */
@@ -16,6 +16,8 @@ export type AppBlockSource = {
   name: string
   icon?: string | undefined
   blocks?: AppBlockDefinition[] | undefined
+  /** Site-wide widgets the app offers (theme editor → Apps); the same array as its manifest's. */
+  embeds?: AppEmbedDefinition[] | undefined
 }
 
 export type BuiltAppBlocks = {
