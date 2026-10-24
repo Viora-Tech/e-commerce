@@ -7,6 +7,8 @@ type Copy = typeof salesChannelsContent
 
 /** The chip a channel's connection shows (Figma "Status chip" on cards and headers). */
 export function chipStatus(s: ChannelState): ChannelStatus {
+  // Disconnected on purpose is not a problem to fix: it reads like never connected.
+  if (s.status === 'disconnected') return 'not_connected'
   if (needsReconnect(s)) return 'attention'
   if (s.status === 'syncing' || s.status === 'first_sync') return 'syncing'
   if (s.status === 'paused') return 'paused'
@@ -92,7 +94,7 @@ export function channelBar(
     case 'disconnected':
       return {
         ...base,
-        tone: 'error',
+        tone: 'idle',
         title: b.disconnected,
         detail: sync.endedAt
           ? b.disconnectedBody(name, formatDate(sync.endedAt))

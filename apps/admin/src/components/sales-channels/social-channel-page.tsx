@@ -83,11 +83,15 @@ export default function SocialChannelPage({ data, issues }: SocialChannelPagePro
     const returned = params.get('connect')
     if (!returned) return
     if (returned === 'connected') toast.success(live.returned.connected(info.name))
-    else if (returned === 'failed') toast.error(live.returned.failed(info.name))
+    else if (returned === 'failed')
+      toast.error(live.returned.failed(info.name), {
+        description: params.get('reason') ?? undefined,
+      })
     else toast(live.returned.cancelled)
     // Drop only the flag: the Meta page keeps its `?surface=` tab.
     const url = new URL(window.location.href)
     url.searchParams.delete('connect')
+    url.searchParams.delete('reason')
     router.replace(`${url.pathname}${url.search}`)
   }, [params])
 
