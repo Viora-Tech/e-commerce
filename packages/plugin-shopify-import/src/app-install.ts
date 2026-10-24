@@ -7,6 +7,11 @@
  * - Install URL: `https://{shop}/admin/oauth/authorize?client_id&scope&redirect_uri&state`.
  * - Callback: Shopify's `hmac` over the query (`verifyShopifyQueryHmac`), our signed state
  *   (store, shop, nonce, 30 minutes), then the code exchange.
+ * - Launch: an install Shopify starts (the App Store's Install button, or "Open app") lands on
+ *   the app URL with Shopify's signed `shop`; it goes straight to the authorize screen with a
+ *   state for no store yet (`LAUNCH_STORE`). Back from Shopify, a signed-in member connects their
+ *   current store; a signed-out one gets a sealed grant (`sealInstallGrant`) to claim after
+ *   signing in, since the code can be swapped only once and soon.
  * - Tokens: expiring offline tokens (`expiring=1`): an access token for about an hour and a
  *   refresh token, swapped again with `grant_type=refresh_token` before it lapses. A response
  *   without `expires_in` (a non-expiring offline token) is kept as is.
@@ -16,7 +21,7 @@
  * Every call takes `fetchImpl`, so tests never reach Shopify.
  */
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
-import { verifyShopifyQueryHmac } from '@commerce/core'
+import { decryptSecret, encryptSecret, verifyShopifyQueryHmac } from '@commerce/core'
 import { ALL_SCOPE_HANDLES } from './client'
 import { ShopifyOAuthError } from './oauth'
 import { normaliseShopDomain } from './shopify-client'
@@ -95,6 +100,25 @@ export function shopifyInstallUrl(
     state: signInstallState({ storeId: input.storeId, shop }, input.secret, now),
   })
   return `https://${shop}/admin/oauth/authorize?${q}`
+}
+
+/** The state's store for an install Shopify started: the member's store is known only after sign-in. */
+export const LAUNCH_STORE = ''
+
+/**
+ * Shopify opened the app URL (an install from the App Store, or "Open app"): with Shopify's
+ * hmac over the query and a real shop, the authorize URL for that shop; otherwise null.
+ */
+export function shopifyLaunchUrl(
+  app: ShopifyApp,
+  query: URLSearchParams,
+  input: { adminUrl: string; secret: string },
+  now = new Date(),
+): string | null {
+  if (!query.get('hmac') || !verifyShopifyQueryHmac(query, app.clientSecret)) return null
+  const shop = normaliseShopDomain(query.get('shop') ?? '')
+  if (!shop) return null
+  return shopifyInstallUrl(app, { shopDomain: shop, storeId: LAUNCH_STORE, ...input }, now)
 }
 
 export type InstallCallback = { storeId: string; shop: string; code: string }
@@ -200,3 +224,34 @@ export const refreshAppToken = (
     },
     fetchImpl,
   )
+
+/* ---------- a launch grant, claimed after sign-in ---------- */
+
+const GRANT_TTL_MS = 30 * 60_000
+
+const grantKey = (secret: string) => `shopify-app-grant:${secret}`
+
+export type InstallGrant = { shop: string; token: AppToken }
+
+/** The swapped token for a signed-out launch, encrypted for a short-lived cookie. */
+export function sealInstallGrant(grant: InstallGrant, secret: string, now = new Date()): string {
+  return encryptSecret(
+    JSON.stringify({ ...grant, exp: now.getTime() + GRANT_TTL_MS }),
+    grantKey(secret),
+  )
+}
+
+/** The grant back, or null when it was tampered with, is malformed or expired. */
+export function openInstallGrant(
+  raw: string,
+  secret: string,
+  now = new Date(),
+): InstallGrant | null {
+  try {
+    const g = JSON.parse(decryptSecret(raw, grantKey(secret))) as InstallGrant & { exp: number }
+    if (typeof g.shop !== 'string' || !g.token?.accessToken || g.exp < now.getTime()) return null
+    return { shop: g.shop, token: g.token }
+  } catch {
+    return null
+  }
+}

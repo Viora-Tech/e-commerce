@@ -9,6 +9,7 @@ import {
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import {
+  type AppToken,
   ConnectionError,
   CSV_RESOURCES,
   checkInstallCallback,
@@ -28,8 +29,10 @@ import {
   ImportError,
   importStoreSettings,
   issueGroups,
+  LAUNCH_STORE,
   listIssues,
   listRuns,
+  openInstallGrant,
   preflightChecks,
   previewStoreSettings,
   type RunRow,
@@ -101,6 +104,13 @@ async function queue(context: Ctx, run: Pick<RunRow, 'id' | 'updatedAt'>) {
 const RunId = z.object({ id: z.uuid() })
 
 /** Shopify importer: CSV uploads, the API connection, and import runs. */
+/** Saves the app's token for this store and links the shop as its Shopify account. */
+async function connectAppAndLink(tx: StoreTx, storeId: string, shop: string, token: AppToken) {
+  const view = await connectApp(tx, storeId, shop, token, settingsSecret())
+  await linkPlatformAccount({ tx, storeId }, 'shopify', shop, { shopName: view.shopName ?? '' })
+  return view
+}
+
 export const shopifyImportRouter = {
   connection: can(permissions.APPS_MANAGE).handler(async ({ context }) => {
     await requireInstalled(context)
@@ -182,29 +192,35 @@ export const shopifyImportRouter = {
         })
       try {
         const cb = checkInstallCallback(new URLSearchParams(input.callback), app, settingsSecret())
-        if (cb.storeId !== context.scope.storeId)
+        // An install Shopify started has no store in its state: it joins the signed-in store.
+        if (cb.storeId !== LAUNCH_STORE && cb.storeId !== context.scope.storeId)
           throw new ORPCError('FORBIDDEN', {
             message: 'This install was started for another store.',
           })
         const token = await exchangeInstallCode(app, cb.shop, cb.code)
-        const view = await connectApp(
-          context.tx,
-          context.scope.storeId,
-          cb.shop,
-          token,
-          settingsSecret(),
-        )
-        await linkPlatformAccount(
-          { tx: context.tx, storeId: context.scope.storeId },
-          'shopify',
-          cb.shop,
-          {
-            shopName: view.shopName ?? '',
-          },
-        )
-        return view
+        return await connectAppAndLink(context.tx, context.scope.storeId, cb.shop, token)
       } catch (err) {
         if (err instanceof ORPCError) throw err
+        return asOrpc(err)
+      }
+    }),
+
+  /**
+   * An install Shopify started while signed out: the callback swapped the code and sealed the
+   * token into a short-lived cookie; after sign-in the claim route hands it here for this store.
+   */
+  claimAppInstall: can(permissions.APPS_MANAGE)
+    .input(z.object({ grant: z.string().max(8000) }))
+    .handler(async ({ context, input }) => {
+      await requireInstalled(context)
+      const grant = openInstallGrant(input.grant, settingsSecret())
+      if (!grant)
+        throw new ORPCError('BAD_REQUEST', {
+          message: 'This install link expired. Install the app from Shopify again.',
+        })
+      try {
+        return await connectAppAndLink(context.tx, context.scope.storeId, grant.shop, grant.token)
+      } catch (err) {
         return asOrpc(err)
       }
     }),

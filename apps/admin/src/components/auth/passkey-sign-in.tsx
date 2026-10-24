@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useState, useSyncExternalStore } from 'react'
 import { loginContent } from '@/data/login'
 import { useCopy } from '@/hooks/use-copy'
-import { authClient, authErrorCode } from '@/lib/auth-client'
+import { authClient, authErrorCode, goAfterSignIn } from '@/lib/auth-client'
 import { routes } from '@/lib/routes'
 
 const noSubscription = () => () => {}
@@ -41,8 +41,7 @@ export default function PasskeySignIn({ next }: PasskeySignInProps) {
       if (!authErrorCode(res.error).includes('CANCELLED')) setError(copy.failed)
       return
     }
-    router.push(next ?? routes.home())
-    router.refresh()
+    goAfterSignIn(router, next, routes.home())
   }
 
   // Early returns
