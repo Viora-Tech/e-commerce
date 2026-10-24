@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
+import { adminUrl } from '@/lib/admin-origin'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { withEvlog } from '@/lib/request-log'
 
@@ -11,7 +12,7 @@ import { withEvlog } from '@/lib/request-log'
 export const GET = withEvlog(async (req: NextRequest) => {
   const code = req.nextUrl.searchParams.get('code')
   const state = req.nextUrl.searchParams.get('state')
-  const back = new URL('/settings/payments', req.nextUrl.origin)
+  const back = adminUrl('/settings/payments')
   if (!code || !state) {
     back.searchParams.set('connect', 'cancelled')
     return NextResponse.redirect(back)
