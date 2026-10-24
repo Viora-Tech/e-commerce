@@ -1,4 +1,4 @@
-/** SOURCE OF TRUTH: Meta discovery tests — WHAT: which Graph calls find the business, catalog and WhatsApp account / WHY: a system user token is refused /me/businesses */
+/** SOURCE OF TRUTH: Meta discovery tests — WHAT: which Graph calls find the business, catalog and WhatsApp account / WHY: a system user token only reaches what was shared with it */
 import { describe, expect, test } from 'vitest'
 import { metaDiscover } from './providers'
 
@@ -20,12 +20,18 @@ function fakeGraph(routes: Record<string, unknown>) {
 }
 
 describe('metaDiscover', () => {
-  test('a system user token finds its business through client_business_id, not /me/businesses', async () => {
+  test('a system user token uses its client business and the assets shared with it', async () => {
+    // The business's own catalog and WhatsApp lists are left out: Meta refuses them here.
     const { fetchImpl, asked } = fakeGraph({
       '/me': { id: 'su1', client_business_id: 'b1' },
       '/b1': { name: 'Waimers' },
-      '/b1/owned_product_catalogs': { data: [{ id: 'c1', name: 'Waimers' }] },
-      '/b1/owned_whatsapp_business_accounts': { data: [] },
+      '/me/assigned_product_catalogs': {
+        data: [
+          { id: 'c0', name: 'Old catalog' },
+          { id: 'c1', name: 'Waimers' },
+        ],
+      },
+      '/me/assigned_whatsapp_business_accounts': { data: [] },
     })
     const app = { appId: 'a', appSecret: 's', loginConfigId: 'cfg' }
     const account = await metaDiscover(fetchImpl, app, 'tok', 'Waimers')
@@ -49,6 +55,17 @@ describe('metaDiscover', () => {
     const account = await metaDiscover(fetchImpl, { appId: 'a', appSecret: 's' }, 'tok', 'Shop')
     expect(account.businessId).toBe('b2')
     expect(account.wabaId).toBe('w2')
+  })
+
+  test('a system user with no shared catalog is told to share one', async () => {
+    const { fetchImpl } = fakeGraph({
+      '/me': { id: 'su1', client_business_id: 'b1' },
+      '/me/assigned_product_catalogs': { data: [] },
+    })
+    const app = { appId: 'a', appSecret: 's', loginConfigId: 'cfg' }
+    await expect(metaDiscover(fetchImpl, app, 'tok', 'Waimers')).rejects.toThrow(
+      'No catalog was shared',
+    )
   })
 
   test('a refused step names itself in the error', async () => {

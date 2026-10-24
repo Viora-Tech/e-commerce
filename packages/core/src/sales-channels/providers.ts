@@ -215,8 +215,67 @@ const step = <T>(name: string, call: Promise<T>) =>
   })
 
 /**
- * After sign-in: the merchant's first business, our catalog in it (made once, named after the
- * store), and their WhatsApp Business account if they have one.
+ * A system user token reaches only the assets the merchant shared in the Meta sign-in window, so
+ * the catalog comes from `/me/assigned_product_catalogs` (asking the business for all its catalogs
+ * is refused: "Requires business_management permission"). Ours by name, else the first shared.
+ */
+async function sharedCatalog(
+  fetchImpl: typeof fetch,
+  app: MetaApp,
+  token: string,
+  catalogName: string,
+): Promise<string> {
+  const shared = await step(
+    'catalogs',
+    graph<{ data: { id: string; name: string }[] }>(
+      fetchImpl,
+      app,
+      token,
+      '/me/assigned_product_catalogs?fields=id,name',
+    ),
+  )
+  const catalog = shared.data.find((c) => c.name === catalogName) ?? shared.data[0]
+  if (!catalog)
+    throw new ChannelApiError(
+      'api',
+      'No catalog was shared. Connect again and choose (or create) a catalog in the Meta window.',
+    )
+  return catalog.id
+}
+
+/** A user token: our catalog in the business, made once and named after the store. */
+async function ownedCatalog(
+  fetchImpl: typeof fetch,
+  app: MetaApp,
+  token: string,
+  businessId: string,
+  catalogName: string,
+): Promise<string> {
+  const catalogs = await step(
+    'catalogs',
+    graph<{ data: { id: string; name: string }[] }>(
+      fetchImpl,
+      app,
+      token,
+      `/${businessId}/owned_product_catalogs?fields=id,name`,
+    ),
+  )
+  const found = catalogs.data.find((c) => c.name === catalogName)
+  if (found) return found.id
+  const made = await step(
+    'create catalog',
+    graph<{ id: string }>(fetchImpl, app, token, `/${businessId}/owned_product_catalogs`, {
+      method: 'POST',
+      form: { name: catalogName },
+    }),
+  )
+  return made.id
+}
+
+/**
+ * After sign-in: the merchant's business, the catalog to sync (shared in the sign-in window for
+ * a system user token; made once and named after the store for a user token), and their
+ * WhatsApp Business account if they have one.
  */
 export async function metaDiscover(
   fetchImpl: typeof fetch,
@@ -243,32 +302,17 @@ export async function metaDiscover(
       'api',
       'No Meta business account found. Create one in Meta Business Suite, then connect again.',
     )
-  const catalogs = await step(
-    'catalogs',
-    graph<{ data: { id: string; name: string }[] }>(
-      fetchImpl,
-      app,
-      token,
-      `/${business.id}/owned_product_catalogs?fields=id,name`,
-    ),
-  )
-  const found = catalogs.data.find((c) => c.name === catalogName)
-  const catalogId =
-    found?.id ??
-    (
-      await step(
-        'create catalog',
-        graph<{ id: string }>(fetchImpl, app, token, `/${business.id}/owned_product_catalogs`, {
-          method: 'POST',
-          form: { name: catalogName },
-        }),
-      )
-    ).id
+  const catalogId = app.loginConfigId
+    ? await sharedCatalog(fetchImpl, app, token, catalogName)
+    : await ownedCatalog(fetchImpl, app, token, business.id, catalogName)
+  // A system user sees only the WhatsApp accounts shared with it; a user token, the business's.
   const wabas = await graph<{ data: { id: string }[] }>(
     fetchImpl,
     app,
     token,
-    `/${business.id}/owned_whatsapp_business_accounts?fields=id`,
+    app.loginConfigId
+      ? '/me/assigned_whatsapp_business_accounts?fields=id'
+      : `/${business.id}/owned_whatsapp_business_accounts?fields=id`,
   ).catch(() => ({ data: [] }))
   const me = await graph<{ id?: string }>(fetchImpl, app, token, '/me?fields=id').catch(() => ({
     id: undefined,
