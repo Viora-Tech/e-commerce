@@ -180,6 +180,42 @@ export type MetaAccount = {
   userId: string | null
 }
 
+type DebugToken = {
+  data?: { granular_scopes?: { scope: string; target_ids?: string[] }[] }
+}
+
+/**
+ * The business a login configuration's system user token was granted. That token belongs to a
+ * system user, so `/me/businesses` is refused ("Missing Permission"); the business id is in the
+ * token's granular scopes instead. Null for a user token, which lists its businesses itself.
+ */
+async function metaGrantedBusiness(
+  fetchImpl: typeof fetch,
+  app: MetaApp,
+  token: string,
+): Promise<{ id: string; name: string } | null> {
+  if (!app.loginConfigId) return null
+  const debug = await request<DebugToken>(
+    fetchImpl,
+    `${META_GRAPH}/debug_token?${new URLSearchParams({
+      input_token: token,
+      access_token: `${app.appId}|${app.appSecret}`,
+    })}`,
+    { method: 'GET' },
+    metaError,
+  )
+  const id = debug.data?.granular_scopes?.find((s) => s.scope === 'business_management')
+    ?.target_ids?.[0]
+  if (!id) return null
+  const business = await graph<{ id: string; name?: string }>(
+    fetchImpl,
+    app,
+    token,
+    `/${id}?fields=id,name`,
+  )
+  return { id: business.id, name: business.name ?? business.id }
+}
+
 /**
  * After sign-in: the merchant's first business, our catalog in it (made once, named after the
  * store), and their WhatsApp Business account if they have one.
@@ -190,13 +226,17 @@ export async function metaDiscover(
   token: string,
   catalogName: string,
 ): Promise<MetaAccount> {
-  const businesses = await graph<{ data: { id: string; name: string }[] }>(
-    fetchImpl,
-    app,
-    token,
-    '/me/businesses?fields=id,name',
-  )
-  const business = businesses.data[0]
+  const granted = await metaGrantedBusiness(fetchImpl, app, token)
+  const business =
+    granted ??
+    (
+      await graph<{ data: { id: string; name: string }[] }>(
+        fetchImpl,
+        app,
+        token,
+        '/me/businesses?fields=id,name',
+      )
+    ).data[0]
   if (!business)
     throw new ChannelApiError(
       'api',
