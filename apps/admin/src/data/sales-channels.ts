@@ -45,14 +45,14 @@ export const salesChannelsContent = {
     instagram: {
       name: 'Instagram',
       blurb:
-        'Tag products in posts and reels and show a shop on your profile. Shoppers check out on your store.',
+        'Your products in Instagram ads, kept in sync from your catalog. Shoppers check out on your store. Instagram Shops and product tags are not available in India yet.',
       partner: 'Meta',
       view: 'View on Instagram',
     },
     facebook: {
       name: 'Facebook',
       blurb:
-        'A shop on your Facebook Page and products in Marketplace ads. Shoppers check out on your store.',
+        'Your products in Facebook ads, kept in sync from your catalog. Shoppers check out on your store. Facebook Shops is not available in India yet.',
       partner: 'Meta',
       view: 'View on Facebook',
     },
