@@ -11,7 +11,7 @@ import OtpInput from '@/components/auth/otp-input'
 import PasskeySignIn from '@/components/auth/passkey-sign-in'
 import { loginContent } from '@/data/login'
 import { useCopy } from '@/hooks/use-copy'
-import { authClient } from '@/lib/auth-client'
+import { authClient, goAfterSignIn } from '@/lib/auth-client'
 import { routes } from '@/lib/routes'
 
 type LoginFormProps = {
@@ -91,8 +91,7 @@ export default function LoginForm({ google, googleError, password, next }: Login
     const res = await authClient.signIn.emailOtp({ email, otp: code })
     setBusy(false)
     if (res.error) return setError(res.error.message ?? copy.wrongCode)
-    router.push(next ?? routes.home())
-    router.refresh()
+    goAfterSignIn(router, next, routes.home())
   }
 
   const handlePasswordSignIn = async (e: FormEvent) => {
@@ -105,8 +104,7 @@ export default function LoginForm({ google, googleError, password, next }: Login
     })
     setBusy(false)
     if (res.error) return setError(copy.password.failed)
-    router.push(next ?? routes.home())
-    router.refresh()
+    goAfterSignIn(router, next, routes.home())
   }
 
   const handleShowPassword = () => {
