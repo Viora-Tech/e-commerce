@@ -220,14 +220,19 @@ export const ACTION_DOCS: Record<string, string> = {
   'inboundShipments.costs':
     'Shared charges, their splits across every order in it, and landed cost per line.',
   'inbox.assign': 'Assigns to a team member (only they are notified), or unassigns.',
+  'inbox.assignees': 'Team members a conversation can be assigned to.',
   'inbox.blocks.list': 'Blocked browsers, emails and IPs (hashes only; never the raw value).',
   'inbox.blocks.remove': 'Lifts one block.',
+  'inbox.cards': 'Product and discount cards for messages (the thread draws them as they are now).',
   'inbox.counts': 'How many conversations each tab holds, and how many open ones are unread.',
   'inbox.get':
     'One conversation with the newest page of its thread (staff notes included), or an older page.',
   'inbox.list':
     'One page of conversations in a tab (Open, Mine, Unassigned, Closed, Blocked), newest first, with search.',
   'inbox.markSeen': 'Marks everything in the thread read for staff.',
+  'inbox.metrics': "The Inbox home's numbers for the last 30 days.",
+  'inbox.panel':
+    'The customer panel: verified customer or possible match, live cart, recent orders (with orders access).',
   'inbox.quickReplies.create': 'Adds a saved reply with a /shortcut.',
   'inbox.quickReplies.delete': 'Deletes a saved reply.',
   'inbox.quickReplies.list': 'Saved replies, in their order.',
@@ -240,6 +245,7 @@ export const ACTION_DOCS: Record<string, string> = {
   'inbox.settings.get':
     'Greeting, hours, away message, contact capture, sign-in, launcher, email fallback, retention.',
   'inbox.settings.save': 'Saves part of the Inbox settings.',
+  'inbox.shareableDiscounts': 'Active discount codes staff may share in a chat.',
   'inbox.streamAccess': "The admin stream route's check: the member may read Inbox in this store.",
   'inbox.sync':
     'The polling fallback: messages and changed conversations since a message id, and the counts.',

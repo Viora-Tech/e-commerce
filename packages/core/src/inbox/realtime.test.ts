@@ -207,7 +207,9 @@ function harness(opts: { active?: () => boolean } = {}) {
     }
     now = end
   }
-  const sources: (EventSourceLike & {
+  const sources: (Omit<EventSourceLike, 'onerror' | 'onopen'> & {
+    onerror: ((e: unknown) => void) | null
+    onopen: ((e: unknown) => void) | null
     url: string
     emit: (type: string, data: unknown) => void
     closed: boolean

@@ -11,6 +11,10 @@ import { translation } from '@/lib/i18n'
 export const hindiPageNames: Record<string, { title: string; body?: string }> = {
   '/': { title: 'होम' },
   '/orders': { title: 'ऑर्डर' },
+  '/sales-channels/inbox': { title: 'इनबॉक्स' },
+  '/sales-channels/inbox/conversations': { title: 'बातचीत' },
+  '/sales-channels/inbox/quick-replies': { title: 'झटपट जवाब' },
+  '/sales-channels/inbox/settings': { title: 'इनबॉक्स सेटिंग्स' },
   '/orders/drafts': { title: 'ड्राफ़्ट' },
   '/orders/abandoned-checkouts': { title: 'अधूरे चेकआउट' },
   '/orders/shipments': { title: 'शिपमेंट' },

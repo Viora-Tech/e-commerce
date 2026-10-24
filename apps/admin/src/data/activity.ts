@@ -38,6 +38,11 @@ export const activityContent = {
       title: (n: number) => (n === 1 ? '1 item running low' : `${n} items running low`),
       detail: 'Restock soon to keep them on sale.',
     },
+    inboxUnread: {
+      title: (n: number) =>
+        n === 1 ? '1 chat waiting for a reply' : `${n} chats waiting for a reply`,
+      detail: 'Shoppers asked in Inbox. Reply while they are still on your store.',
+    },
     mediaFailed: {
       title: (n: number) =>
         n === 1 ? '1 photo could not be processed' : `${n} photos could not be processed`,

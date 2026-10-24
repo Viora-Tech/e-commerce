@@ -12,6 +12,7 @@ import { getSession } from '@/lib/auth'
 import { REQUEST_PATH_HEADER } from '@/lib/csp'
 import { routes, safeNext } from '@/lib/routes'
 import {
+  inboxUnreadCount,
   listApps,
   listStores,
   liveLogoUrl,
@@ -48,12 +49,18 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   // screen instead of the wizard when they are not allowed to sign up.
   if (orgs.length === 0) redirect(routes.onboarding())
   const active = orgs.find((o) => o.id === activeId) ?? null
-  // Every installed app gets a sidebar entry under Apps (its pages, or its settings page).
-  const appLinks = active
-    ? apps
-        .filter((a) => a.installed && a.id !== 'core')
-        .map((a) => ({ id: a.id, name: a.name, icon: a.admin.icon, href: appEntryHref(a) }))
-    : []
+  // Every installed app gets a sidebar entry under Apps (its pages, or its settings page);
+  // sales channel apps (Inbox) sit under Sales channels instead.
+  const installed = active ? apps.filter((a) => a.installed && a.id !== 'core') : []
+  const channels = installed.filter((a) => a.admin.salesChannel).map((a) => a.id)
+  const appLinks = installed
+    .filter((a) => !a.admin.salesChannel)
+    .map((a) => ({ id: a.id, name: a.name, icon: a.admin.icon, href: appEntryHref(a) }))
+  const inboxUnread = channels.includes('inbox') ? await inboxUnreadCount() : null
+  const navCounts: Record<string, number> = {
+    ...(active && toShip ? { [routes.orders.list()]: toShip } : {}),
+    ...(inboxUnread ? { [routes.salesChannels.inboxConversations()]: inboxUnread } : {}),
+  }
   // The sidebar's brand mark reuses the storefront theme's logo when the store has set one.
   const logoUrl = active ? logo : null
   const storeOptions = orgs.map((o) => ({ id: o.id, name: o.name, slug: o.slug }))
@@ -72,7 +79,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         storefrontUrl={storefrontUrl}
         apps={appLinks}
         logoUrl={logoUrl}
-        navCounts={active && toShip ? { [routes.orders.list()]: toShip } : {}}
+        channels={channels}
+        navCounts={navCounts}
         usage={
           active && plan
             ? {

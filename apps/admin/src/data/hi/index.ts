@@ -52,6 +52,7 @@ import gstInvoices from './gst-invoices'
 import home from './home'
 import imageEditor from './image-editor'
 import inbox from './inbox'
+import inboxConversations from './inbox-conversations'
 import indiaPost from './india-post'
 import installedApps from './installed-apps'
 import inventory from './inventory'
@@ -203,6 +204,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...profitCosts,
   ...profitReport,
   ...inbox,
+  ...inboxConversations,
   ...monthlyExpenses,
   ...purchasing,
   ...selectProducts,

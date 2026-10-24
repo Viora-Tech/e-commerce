@@ -9,12 +9,15 @@ import {
 import {
   assignConversation,
   createQuickReply,
+  customerPanel,
   deleteQuickReply,
   getConversation,
   INBOX_LIMITS,
   InboxSettingsPatchSchema,
+  inboxAssignees,
   inboxCounts,
   inboxLimitKey,
+  inboxMetrics,
   inboxState,
   inboxSync,
   ListConversationsSchema,
@@ -22,6 +25,7 @@ import {
   listConversations,
   listQuickReplies,
   markStaffSeen,
+  messageCards,
   messageEvents,
   messageView,
   publishInboxEvents,
@@ -34,6 +38,7 @@ import {
   saveInboxSettings,
   seenEvents,
   setConversationStatus,
+  shareableDiscounts,
   staffSend,
   statusEvents,
   typingEvent,
@@ -119,7 +124,8 @@ export const inboxRouter = {
     .handler(async ({ context, input }) => {
       await requireInstalled(context)
       const found = await refusal(() => getConversation(storeCtx(context), input, settingsSecret()))
-      return { ...found, messages: found.messages.map(messageView) }
+      const cards = await messageCards(context.tx, found.messages)
+      return { ...found, messages: found.messages.map(messageView), cards }
     }),
   /** Sends a reply or a staff-only note: text, a product card, a discount code or an image. */
   send: can(permissions.INBOX_REPLY)
@@ -179,6 +185,44 @@ export const inboxRouter = {
       )
       publishAfterCommit(context, statusEvents(context.scope.storeId, row))
       return row
+    }),
+  /** The customer panel: verified customer or possible match, live cart, recent orders (with orders access). */
+  panel: can(permissions.INBOX_READ)
+    .input(Id)
+    .handler(async ({ context, input }) => {
+      await requireInstalled(context)
+      return refusal(() =>
+        customerPanel(storeCtx(context), input.id, {
+          ordersAllowed: context.scope.can(permissions.ORDERS_READ),
+        }),
+      )
+    }),
+  /** Team members a conversation can be assigned to. */
+  assignees: can(permissions.INBOX_READ).handler(async ({ context }) => {
+    await requireInstalled(context)
+    return inboxAssignees(context.tx)
+  }),
+  /** The Inbox home's numbers for the last 30 days. */
+  metrics: can(permissions.INBOX_READ).handler(async ({ context }) => {
+    await requireInstalled(context)
+    return inboxMetrics(storeCtx(context))
+  }),
+  /** Active discount codes staff may share in a chat. */
+  shareableDiscounts: can(permissions.INBOX_REPLY).handler(async ({ context }) => {
+    await requireInstalled(context)
+    requireCardPermission(context, 'discount')
+    return shareableDiscounts(context.tx)
+  }),
+  /** Product and discount cards for messages (the thread draws them as they are now). */
+  cards: can(permissions.INBOX_READ)
+    .input(
+      z.object({
+        messages: z.array(z.object({ kind: z.string(), payload: z.unknown() })).max(BULK_MAX),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      await requireInstalled(context)
+      return messageCards(context.tx, input.messages)
     }),
   /** The polling fallback: messages and changed conversations since a message id, and the counts. */
   sync: can(permissions.INBOX_READ)

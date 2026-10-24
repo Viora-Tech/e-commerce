@@ -19,7 +19,7 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 const ALLOWLIST: AllowEntry[] = [
   {
     file: 'packages/core/src/inbox/connection.ts',
-    names: ['EVENT_TYPES', 'connectInbox'],
+    names: ['EVENT_TYPES'],
     reason:
       'the browser side of Inbox realtime, used by the admin inbox (PR 4) and the widget (PR 5); unit-tested here',
   },
@@ -56,14 +56,7 @@ const ALLOWLIST: AllowEntry[] = [
       'MESSAGE_SENDERS',
       'MESSAGE_KINDS',
       'BLOCK_KINDS',
-      'INBOX_VIEWS',
     ],
-    reason:
-      'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
-  },
-  {
-    file: 'packages/core/src/inbox/conversations.ts',
-    names: ['isShareableDiscount'],
     reason:
       'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
   },
@@ -94,7 +87,6 @@ const ALLOWLIST: AllowEntry[] = [
       'InboxSettingsSchema',
       'DEFAULT_INBOX_SETTINGS',
       'zonedWeekMinute',
-      'isInboxAvailable',
       'contactRequired',
     ],
     reason:
