@@ -188,6 +188,7 @@ const EXCLUDED_PATHS: Record<string, string> = {
   'affiliates.payouts.exportCsv': 'decrypted bank accounts and UPI IDs (people only)',
   'pixels.setToken': 'saves a Meta Conversions API token (owner rule: tokens never over MCP)',
   'pixels.clearToken': 'removes a Meta Conversions API token (owner rule: tokens never over MCP)',
+  'affiliates.payouts.tdsReport': 'decrypted PANs for the 26Q return (people only)',
   'apiAccess.createToken': 'creates an access token',
   'apiAccess.revoke': 'revokes MCP clients and access tokens',
   'ai.approveAction': 'a client must never approve its own proposals',

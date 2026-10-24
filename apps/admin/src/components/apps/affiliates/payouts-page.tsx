@@ -12,6 +12,7 @@ import {
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import MarkPaidDialog from '@/components/apps/affiliates/mark-paid-dialog'
+import TdsReportDialog from '@/components/apps/affiliates/tds-report-dialog'
 import { CELL, HEAD } from '@/components/apps/gst-invoices/table-classes'
 import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
@@ -43,6 +44,7 @@ export default function PayoutsPage() {
   const [paying, setPaying] = useState<string | null>(null)
   const [reload, setReload] = useState(0)
   const [busy, setBusy] = useState(false)
+  const [reporting, setReporting] = useState(false)
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `reload` re-runs the load after a change
   useEffect(() => {
@@ -104,6 +106,9 @@ export default function PayoutsPage() {
         summary={copy.subtitle}
         actions={
           <>
+            <Button variant="outline" onClick={() => setReporting(true)}>
+              {copy.tdsReport}
+            </Button>
             <Button variant="outline" onClick={handleExport} disabled={pending === 0}>
               {copy.export}
             </Button>
@@ -124,13 +129,14 @@ export default function PayoutsPage() {
               <TableHead className={HEAD}>{cols.to}</TableHead>
               <TableHead className={`${HEAD} text-right`}>{cols.gross}</TableHead>
               <TableHead className={`${HEAD} text-right`}>{cols.clawback}</TableHead>
+              <TableHead className={`${HEAD} text-right`}>{cols.gst}</TableHead>
               <TableHead className={`${HEAD} text-right`}>{cols.tds}</TableHead>
               <TableHead className={`${HEAD} text-right`}>{cols.net}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {candidates.length === 0 ? (
-              <TableEmptyRow colSpan={6} message={copy.readyEmpty} />
+              <TableEmptyRow colSpan={7} message={copy.readyEmpty} />
             ) : null}
             {candidates.map((c) => (
               <TableRow key={c.affiliateId}>
@@ -147,6 +153,9 @@ export default function PayoutsPage() {
                 </TableCell>
                 <TableCell className={`${CELL} text-right tabular-nums`}>
                   {c.clawbackPaise ? f.money(-c.clawbackPaise) : '—'}
+                </TableCell>
+                <TableCell className={`${CELL} text-right tabular-nums`}>
+                  {c.gstPaise ? f.money(c.gstPaise) : '—'}
                 </TableCell>
                 <TableCell className={`${CELL} text-right tabular-nums`}>
                   {f.money(c.tdsPaise)}
@@ -169,6 +178,7 @@ export default function PayoutsPage() {
               <TableHead className={HEAD}>{cols.affiliate}</TableHead>
               <TableHead className={HEAD}>{cols.status}</TableHead>
               <TableHead className={`${HEAD} text-right`}>{cols.net}</TableHead>
+              <TableHead className={`${HEAD} text-right`}>{cols.gst}</TableHead>
               <TableHead className={`${HEAD} text-right`}>{cols.tds}</TableHead>
               <TableHead className={HEAD}>{cols.created}</TableHead>
               <TableHead className={HEAD} />
@@ -176,7 +186,7 @@ export default function PayoutsPage() {
           </TableHeader>
           <TableBody>
             {payouts.length === 0 ? (
-              <TableEmptyRow colSpan={6} message={copy.historyEmpty} />
+              <TableEmptyRow colSpan={7} message={copy.historyEmpty} />
             ) : null}
             {payouts.map((p) => (
               <TableRow key={p.id}>
@@ -191,6 +201,9 @@ export default function PayoutsPage() {
                 </TableCell>
                 <TableCell className={`${CELL} text-right tabular-nums`}>
                   {f.money(p.netPaise)}
+                </TableCell>
+                <TableCell className={`${CELL} text-right tabular-nums`}>
+                  {p.gstPaise ? f.money(p.gstPaise) : '—'}
                 </TableCell>
                 <TableCell className={`${CELL} text-right tabular-nums`}>
                   {f.money(p.tdsPaise)}
@@ -219,6 +232,7 @@ export default function PayoutsPage() {
         </Table>
       </div>
       <p className="text-caption text-muted-foreground">{copy.exportNote}</p>
+      <TdsReportDialog open={reporting} onOpenChange={setReporting} onDownload={download} />
       <MarkPaidDialog
         payoutId={paying}
         onOpenChange={(open) => {

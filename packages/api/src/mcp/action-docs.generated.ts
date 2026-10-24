@@ -30,6 +30,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'Sales from affiliates, money owed, the best affiliates and who is waiting to be paid.',
   'affiliates.payouts.exportCsv':
     'The bank bulk-upload file for pending payouts, account numbers and UPI IDs decrypted.',
+  'affiliates.payouts.tdsReport':
+    'The quarterly TDS report (26Q): every commission credited in the quarter with the PAN decrypted.',
   'affiliates.programs.archive': 'Archives a program and moves its affiliates to another one.',
   'affiliates.programs.create':
     "A new program; its rules start from what the admin sends (a copy of the default's).",

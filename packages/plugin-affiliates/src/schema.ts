@@ -86,6 +86,8 @@ export const affiliate = pgTable(
     payoutDetails: text('payout_details'),
     payoutHint: text('payout_hint'),
     hasPan: boolean('has_pan').notNull().default(false),
+    /** They gave a GSTIN (kept inside the encrypted payout details): GST is added to payouts. */
+    gstRegistered: boolean('gst_registered').notNull().default(false),
     clicks: integer('clicks').notNull().default(0),
     approvedAt: timestamp('approved_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -115,6 +117,8 @@ export const affiliatePayout = pgTable(
       .references(() => affiliate.id),
     grossPaise: integer('gross_paise').notNull(),
     tdsPaise: integer('tds_paise').notNull().default(0),
+    /** GST added for a GST-registered affiliate, on the commission less clawbacks. */
+    gstPaise: integer('gst_paise').notNull().default(0),
     /** Clawbacks of earlier paid commissions taken off this payout. */
     clawbackPaise: integer('clawback_paise').notNull().default(0),
     netPaise: integer('net_paise').notNull(),

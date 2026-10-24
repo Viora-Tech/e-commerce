@@ -32,3 +32,31 @@ export function financialYearStart(at: Date): Date {
   const year = wall.getUTCMonth() >= 3 ? wall.getUTCFullYear() : wall.getUTCFullYear() - 1
   return dayStart(`${year}-04-01`)
 }
+
+/** A TDS return quarter: financial year by its starting year (2026 = FY 2026-27) and 1 to 4. */
+export type TdsQuarter = { fy: number; quarter: 1 | 2 | 3 | 4 }
+
+const QUARTER_MONTHS = ['04', '07', '10', '01'] as const
+
+/**
+ * The IST instants a 26Q quarter runs from (inclusive) to (exclusive): Q1 April to June, Q2
+ * July to September, Q3 October to December, Q4 January to March of the next calendar year.
+ */
+export function quarterRange({ fy, quarter }: TdsQuarter): { from: Date; to: Date } {
+  const startYear = quarter === 4 ? fy + 1 : fy
+  const from = dayStart(`${startYear}-${QUARTER_MONTHS[quarter - 1]}-01`)
+  const to =
+    quarter === 4
+      ? dayStart(`${fy + 1}-04-01`)
+      : dayStart(`${quarter === 3 ? fy + 1 : fy}-${QUARTER_MONTHS[quarter]}-01`)
+  return { from, to }
+}
+
+/** The quarter an instant falls in (IST). */
+export function quarterOf(at: Date): TdsQuarter {
+  const wall = wallClock(at)
+  const month = wall.getUTCMonth()
+  const fy = month >= 3 ? wall.getUTCFullYear() : wall.getUTCFullYear() - 1
+  const quarter = month >= 3 ? Math.floor((month - 3) / 3) + 1 : 4
+  return { fy, quarter: quarter as TdsQuarter['quarter'] }
+}

@@ -144,5 +144,14 @@ describe('affiliate programs API', () => {
         c,
       ),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    await expect(
+      call(appRouter.affiliates.payouts.tdsReport, { fy: 2026, quarter: 3 }, c),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    const report = await call(
+      appRouter.affiliates.payouts.tdsReport,
+      { fy: 2026, quarter: 3 },
+      { context: ctx(m.headers) },
+    )
+    expect(report.csv).toContain('"Deductee name","PAN","Section"')
   })
 })

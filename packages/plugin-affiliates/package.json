@@ -10,7 +10,8 @@
     "./commission": "./src/commission.ts",
     "./schema": "./src/schema.ts",
     "./settings": "./src/settings.ts",
-    "./server": "./src/server.ts"
+    "./server": "./src/server.ts",
+    "./tds": "./src/tds.ts"
   },
   "scripts": {
     "test": "vitest run",
