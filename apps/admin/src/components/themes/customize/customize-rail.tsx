@@ -5,10 +5,10 @@ import {
   AiIcon,
   editorGlyphs,
   HelpCircle,
-  ImageIcon,
   Layers,
   Palette,
   Plus,
+  Puzzle,
   Settings,
 } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
@@ -18,15 +18,7 @@ import { customizeContent } from '@/data/customize'
 import { useCopy } from '@/hooks/use-copy'
 import { CHROME_FOCUS, CHROME_TRANSITION } from '@/lib/customize-chrome'
 
-export type RailPanel =
-  | 'add'
-  | 'ai'
-  | 'pages'
-  | 'sections'
-  | 'media'
-  | 'theme'
-  | 'settings'
-  | 'help'
+export type RailPanel = 'add' | 'ai' | 'pages' | 'sections' | 'apps' | 'theme' | 'settings' | 'help'
 
 type CustomizeRailProps = {
   active: RailPanel
@@ -35,13 +27,13 @@ type CustomizeRailProps = {
   store: { name: string; logoUrl: string | null }
 }
 
-/** In the Figma rail's order (369:4864): add, AI, pages, layers, media, theme, settings. */
+/** In the Figma rail's order (369:4864), with App embeds where Media was: add, AI, pages, layers, apps, theme, settings. */
 const ITEMS: { panel: RailPanel; icon: typeof Plus }[] = [
   { panel: 'add', icon: Plus },
   { panel: 'ai', icon: AiIcon },
   { panel: 'pages', icon: editorGlyphs.page },
   { panel: 'sections', icon: Layers },
-  { panel: 'media', icon: ImageIcon },
+  { panel: 'apps', icon: Puzzle },
   { panel: 'theme', icon: Palette },
   { panel: 'settings', icon: Settings },
 ]

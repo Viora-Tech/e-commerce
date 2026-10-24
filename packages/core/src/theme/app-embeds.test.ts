@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: app embeds tests. WHAT resolveAppEmbeds defaults, saved settings and dropped keys; appEmbedSources installed-only and namespace check. WHY the storefront and the editor must agree on what is on. No database. */
 import { describe, expect, it } from 'vitest'
 import { appEmbedSources, resolveAppEmbeds } from './app-embeds'
 

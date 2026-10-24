@@ -78,7 +78,7 @@ export const ColorSchemeSchema = z.object({
 export type ColorScheme = z.infer<typeof ColorSchemeSchema>
 
 /** One app embed's state in a theme: on or off, and the settings the merchant changed. */
-export const AppEmbedStateSchema = z.object({
+const AppEmbedStateSchema = z.object({
   enabled: z.boolean(),
   settings: z.record(z.string(), z.unknown()).default({}),
 })
