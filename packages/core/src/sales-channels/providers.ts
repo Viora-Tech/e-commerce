@@ -180,41 +180,39 @@ export type MetaAccount = {
   userId: string | null
 }
 
-type DebugToken = {
-  data?: { granular_scopes?: { scope: string; target_ids?: string[] }[] }
-}
-
 /**
- * The business a login configuration's system user token was granted. That token belongs to a
- * system user, so `/me/businesses` is refused ("Missing Permission"); the business id is in the
- * token's granular scopes instead. Null for a user token, which lists its businesses itself.
+ * The business a login configuration's system user token belongs to. That token is a business
+ * integration system user's, so `/me/businesses` is refused ("Missing Permission"); Meta puts the
+ * merchant's business on the token instead (`/me?fields=client_business_id`, Facebook Login for
+ * Business docs). Null for a user token, which lists its businesses itself.
  */
-async function metaGrantedBusiness(
+async function metaClientBusiness(
   fetchImpl: typeof fetch,
   app: MetaApp,
   token: string,
 ): Promise<{ id: string; name: string } | null> {
   if (!app.loginConfigId) return null
-  const debug = await request<DebugToken>(
-    fetchImpl,
-    `${META_GRAPH}/debug_token?${new URLSearchParams({
-      input_token: token,
-      access_token: `${app.appId}|${app.appSecret}`,
-    })}`,
-    { method: 'GET' },
-    metaError,
-  )
-  const id = debug.data?.granular_scopes?.find((s) => s.scope === 'business_management')
-    ?.target_ids?.[0]
-  if (!id) return null
-  const business = await graph<{ id: string; name?: string }>(
+  const me = await graph<{ id?: string; client_business_id?: string }>(
     fetchImpl,
     app,
     token,
-    `/${id}?fields=id,name`,
+    '/me?fields=id,client_business_id',
   )
-  return { id: business.id, name: business.name ?? business.id }
+  const id = me.client_business_id
+  if (!id) return null
+  // The name is only for display: the system user may not be allowed to read it.
+  const named = await graph<{ name?: string }>(fetchImpl, app, token, `/${id}?fields=name`).catch(
+    () => ({ name: undefined }),
+  )
+  return { id, name: named.name ?? id }
 }
+
+/** Names the Graph step in a failure, so a refusal says which call it was. */
+const step = <T>(name: string, call: Promise<T>) =>
+  call.catch((e: unknown) => {
+    if (e instanceof ChannelApiError) throw new ChannelApiError(e.kind, `${name}: ${e.message}`)
+    throw e
+  })
 
 /**
  * After sign-in: the merchant's first business, our catalog in it (made once, named after the
@@ -226,15 +224,18 @@ export async function metaDiscover(
   token: string,
   catalogName: string,
 ): Promise<MetaAccount> {
-  const granted = await metaGrantedBusiness(fetchImpl, app, token)
+  const client = await step('business', metaClientBusiness(fetchImpl, app, token))
   const business =
-    granted ??
+    client ??
     (
-      await graph<{ data: { id: string; name: string }[] }>(
-        fetchImpl,
-        app,
-        token,
-        '/me/businesses?fields=id,name',
+      await step(
+        'businesses',
+        graph<{ data: { id: string; name: string }[] }>(
+          fetchImpl,
+          app,
+          token,
+          '/me/businesses?fields=id,name',
+        ),
       )
     ).data[0]
   if (!business)
@@ -242,20 +243,26 @@ export async function metaDiscover(
       'api',
       'No Meta business account found. Create one in Meta Business Suite, then connect again.',
     )
-  const catalogs = await graph<{ data: { id: string; name: string }[] }>(
-    fetchImpl,
-    app,
-    token,
-    `/${business.id}/owned_product_catalogs?fields=id,name`,
+  const catalogs = await step(
+    'catalogs',
+    graph<{ data: { id: string; name: string }[] }>(
+      fetchImpl,
+      app,
+      token,
+      `/${business.id}/owned_product_catalogs?fields=id,name`,
+    ),
   )
   const found = catalogs.data.find((c) => c.name === catalogName)
   const catalogId =
     found?.id ??
     (
-      await graph<{ id: string }>(fetchImpl, app, token, `/${business.id}/owned_product_catalogs`, {
-        method: 'POST',
-        form: { name: catalogName },
-      })
+      await step(
+        'create catalog',
+        graph<{ id: string }>(fetchImpl, app, token, `/${business.id}/owned_product_catalogs`, {
+          method: 'POST',
+          form: { name: catalogName },
+        }),
+      )
     ).id
   const wabas = await graph<{ data: { id: string }[] }>(
     fetchImpl,
