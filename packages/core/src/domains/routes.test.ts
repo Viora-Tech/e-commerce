@@ -76,12 +76,16 @@ function fakeDokploy(initial: DokployDomain[] = []) {
   }
 }
 
-async function seedStore(slug: string) {
+/** A store with its address; routed already unless `unrouted` (a store from before auto routes). */
+async function seedStore(slug: string, opts: { unrouted?: boolean } = {}) {
   const [s] = await owner.insert(store).values({ slug, name: slug }).returning()
   if (!s) throw new Error('seed')
-  await owner
-    .insert(storeDomain)
-    .values({ storeId: s.id, hostname: `${slug}.localhost`, isPrimary: true })
+  await owner.insert(storeDomain).values({
+    storeId: s.id,
+    hostname: `${slug}.localhost`,
+    isPrimary: true,
+    routeStatus: opts.unrouted ? 'none' : 'ready',
+  })
   return s.id
 }
 
@@ -229,6 +233,26 @@ describe('the poll asks for routes', () => {
       status: 'active',
       routeStatus: 'none',
     })
+    expect(await outboxRows()).toHaveLength(0)
+  })
+
+  it('asks once for a store address that never got its route', async () => {
+    const storeId = await seedStore('old', { unrouted: true })
+    const r = await pollPendingDomains(app, { provider, targets, now: t0, requestRoutes: true })
+    expect(r).toEqual({ stores: 0, checked: 0, failed: 0, routes: 1 })
+    const [row] = await owner.select().from(storeDomain).where(eq(storeDomain.storeId, storeId))
+    expect(row).toMatchObject({ kind: 'platform', routeStatus: 'pending', sslStatus: 'issuing' })
+    expect((await relayRouteJobs(storeId)).map((j) => j.action)).toEqual(['add'])
+
+    // Asked already: the next tick leaves it to the route job.
+    const again = await pollPendingDomains(app, { provider, targets, now: t0, requestRoutes: true })
+    expect(again.routes).toBe(0)
+  })
+
+  it('leaves store addresses alone when routing is off', async () => {
+    await seedStore('old', { unrouted: true })
+    const r = await pollPendingDomains(app, { provider, targets, now: t0 })
+    expect(r.routes).toBe(0)
     expect(await outboxRows()).toHaveLength(0)
   })
 
