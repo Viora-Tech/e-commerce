@@ -19,11 +19,13 @@ type LoginFormProps = {
   google: boolean
   /** `?error=` from a refused Google sign-in. */
   googleError: string | null
+  /** The app-store reviewer's password sign-in is on (REVIEWER_LOGIN_*): show its link. */
+  password: boolean
   /** Where to go after signing in; the admin home when null. */
   next: string | null
 }
 
-type Step = 'email' | 'otp'
+type Step = 'email' | 'otp' | 'password'
 type Mode = 'sign-in' | 'sign-up'
 
 const RESEND_SECONDS = 30
@@ -32,12 +34,13 @@ function clock(seconds: number): string {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
 }
 
-export default function LoginForm({ google, googleError, next }: LoginFormProps) {
+export default function LoginForm({ google, googleError, password, next }: LoginFormProps) {
   // Hooks
   const copy = useCopy(loginContent)
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [otp, setOtp] = useState('')
+  const [secret, setSecret] = useState('')
   const [step, setStep] = useState<Step>('email')
   const [mode, setMode] = useState<Mode>('sign-in')
   const [busy, setBusy] = useState(false)
@@ -92,9 +95,30 @@ export default function LoginForm({ google, googleError, next }: LoginFormProps)
     router.refresh()
   }
 
+  const handlePasswordSignIn = async (e: FormEvent) => {
+    e.preventDefault()
+    setBusy(true)
+    setError(null)
+    const res = await authClient.$fetch('/sign-in/reviewer-password', {
+      method: 'POST',
+      body: { email, password: secret },
+    })
+    setBusy(false)
+    if (res.error) return setError(copy.password.failed)
+    router.push(next ?? routes.home())
+    router.refresh()
+  }
+
+  const handleShowPassword = () => {
+    setStep('password')
+    setMode('sign-in')
+    setError(null)
+  }
+
   const handleChangeEmail = () => {
     setStep('email')
     setOtp('')
+    setSecret('')
     setError(null)
   }
 
@@ -107,6 +131,57 @@ export default function LoginForm({ google, googleError, next }: LoginFormProps)
   const brand = siteConfig.brand.name
   const head = mode === 'sign-in' ? copy.signIn : copy.signUp
   const body = mode === 'sign-in' ? copy.signIn.body : copy.signUp.body(brand)
+
+  if (step === 'password') {
+    return (
+      <div className="flex w-full max-w-sm flex-col gap-5">
+        <div className="flex flex-col gap-1.5">
+          <h1 className="text-page-title text-ink-strong">{copy.password.title}</h1>
+          <p className="text-body text-helper">{copy.password.body}</p>
+        </div>
+        <form onSubmit={handlePasswordSignIn} className="flex flex-col gap-4">
+          <Field>
+            <FieldLabel htmlFor="login-email">{copy.email}</FieldLabel>
+            <Input
+              id="login-email"
+              size="lg"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder={copy.emailPlaceholder}
+              autoComplete="username"
+              autoFocus
+              required
+            />
+          </Field>
+          <Field data-invalid={error ? true : undefined}>
+            <FieldLabel htmlFor="login-password">{copy.password.label}</FieldLabel>
+            <Input
+              id="login-password"
+              size="lg"
+              type="password"
+              value={secret}
+              onChange={(e) => setSecret(e.target.value)}
+              autoComplete="current-password"
+              aria-invalid={error ? true : undefined}
+              required
+            />
+            {error ? <FieldError>{error}</FieldError> : null}
+          </Field>
+          <Button type="submit" size="lg" className="w-full" loading={busy}>
+            {busy ? copy.password.signingIn : copy.password.submit}
+          </Button>
+        </form>
+        <button
+          type="button"
+          onClick={handleChangeEmail}
+          className="self-start text-body font-medium text-primary hover:underline"
+        >
+          {copy.password.back}
+        </button>
+      </div>
+    )
+  }
 
   if (step === 'otp') {
     return (
@@ -190,6 +265,15 @@ export default function LoginForm({ google, googleError, next }: LoginFormProps)
         </Button>
       </form>
       {mode === 'sign-in' ? <PasskeySignIn next={next} /> : null}
+      {password && mode === 'sign-in' ? (
+        <button
+          type="button"
+          onClick={handleShowPassword}
+          className="self-start text-body text-helper hover:underline"
+        >
+          {copy.password.link}
+        </button>
+      ) : null}
       <p className="text-body text-helper">
         {mode === 'sign-in' ? copy.newHere(brand) : copy.signUp.haveAccount}{' '}
         <button

@@ -1,6 +1,6 @@
 import 'server-only'
 import { createMerchantAuth, type MerchantAuth } from '@commerce/auth'
-import { loadEnv, merchantGoogleSignIn } from '@commerce/config'
+import { loadEnv, merchantGoogleSignIn, reviewerSignIn } from '@commerce/config'
 import {
   deliverPlatformEmailChangeCode,
   deliverPlatformLoginCode,
@@ -29,6 +29,8 @@ export function auth(): MerchantAuth {
       onSignIn: (event) => recordMemberSignIn(db(), event),
       // "Continue with Google" on the login page; off unless both MERCHANT_GOOGLE_* keys are set.
       google: merchantGoogleSignIn(env),
+      // "Sign in with a password" for the one app-store reviewer; off unless both REVIEWER_LOGIN_* are set.
+      reviewer: reviewerSignIn(env),
       // With the platform email account configured (SENDER_EMAIL_PROVIDER=ses or resend) the code is
       // emailed and never logged: a logged code lets anyone with log access sign in. Without
       // it (development) the code is printed and handed to the readback route so the login

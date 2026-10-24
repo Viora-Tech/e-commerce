@@ -7,3 +7,4 @@ export {
   type SendOtp,
   type SignInEvent,
 } from './merchant'
+export { REVIEWER_SIGN_IN_PATH, type ReviewerSignIn, reviewerPassword } from './reviewer'

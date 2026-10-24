@@ -6,6 +6,7 @@ import { logger } from '@commerce/observability/logging'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { emailOTP, organization } from 'better-auth/plugins'
+import { type ReviewerSignIn, reviewerPassword } from './reviewer'
 
 export type SendOtp = (input: { email: string; otp: string; type: string }) => Promise<void>
 
@@ -74,6 +75,11 @@ export type MerchantAuthOptions = {
    * the provider out entirely, so `/sign-in/social` and `/callback/google` answer "not found".
    */
   google?: { clientId: string; clientSecret: string } | null | undefined
+  /**
+   * The app-store reviewer's password sign-in (`reviewerSignIn` in @commerce/config). Null or
+   * unset leaves the endpoint out, so `/sign-in/reviewer-password` answers "not found".
+   */
+  reviewer?: ReviewerSignIn | null | undefined
 }
 
 /** One sign-in, as `onSignIn` receives it. */
@@ -138,7 +144,8 @@ export function validateMerchantUserInfo(
 }
 
 /**
- * Platform-level auth for merchants and staff. Email OTP, a passkey or Google, no passwords.
+ * Platform-level auth for merchants and staff. Email OTP, a passkey or Google; the only password
+ * is the optional app-store reviewer's (`reviewerPassword`), never stored in the database.
  * One organization = one store (store.organization_id). Better Auth owns these
  * tables; they carry no store_id and sit outside RLS on purpose.
  */
@@ -281,6 +288,7 @@ export function createMerchantAuth(opts: MerchantAuthOptions) {
           }
         },
       }),
+      ...(opts.reviewer ? [reviewerPassword(opts.reviewer)] : []),
     ],
   })
 }
