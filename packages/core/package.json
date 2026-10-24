@@ -62,6 +62,7 @@
     "./marketing": "./src/marketing/client.ts",
     "./automations": "./src/automations/client.ts",
     "./inbox": "./src/inbox/client.ts",
+    "./inbox-app": "./src/inbox/app.ts",
     "./inbox/server": "./src/inbox/server.ts",
     "./automations/server": "./src/automations/server.ts",
     "./automations-app": "./src/automations/app.ts",

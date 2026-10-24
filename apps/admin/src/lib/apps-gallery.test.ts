@@ -59,6 +59,16 @@ describe('appEntryHref', () => {
     )
   })
 
+  it('opens a sales channel app at its channel page', () => {
+    expect(
+      appEntryHref({
+        id: 'inbox',
+        provides,
+        admin: { pages: [], salesChannel: '/sales-channels/inbox' },
+      }),
+    ).toBe('/sales-channels/inbox')
+  })
+
   it('opens the settings page of the kind an app without pages provides', () => {
     expect(
       appEntryHref({

@@ -142,6 +142,7 @@ const appState = (id: string, actions: OrderAction[], extra = {}) => ({
     pages: [],
     orderDetailCard: false,
     customerDetailCard: false,
+    salesChannel: null,
     orderActions: actions,
   },
   ...extra,

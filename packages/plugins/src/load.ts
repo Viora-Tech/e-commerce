@@ -149,6 +149,7 @@ export function loadPlugins(plugins: PluginManifest[]): LoadedPlugins {
           orderDetailCard: p.admin?.orderDetailCard === true,
           customerDetailCard: p.admin?.customerDetailCard === true,
           orderActions: orderActionsOf(p, CORE_PLUGIN_ID),
+          salesChannel: p.admin?.salesChannel ?? null,
         },
         provides: {
           payments: (p.provides.payments ?? []).map((f) => ({ id: f.id, label: f.label })),

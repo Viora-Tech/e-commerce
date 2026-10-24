@@ -1,4 +1,5 @@
 import { automationsPlugin } from '@commerce/core/automations-app'
+import { inboxPlugin } from '@commerce/core/inbox-app'
 import { pixelsPlugin } from '@commerce/core/pixels-app'
 import { sesPlugin } from '@commerce/notifications-ses'
 import { whatsappPlugin } from '@commerce/notifications-whatsapp'
@@ -74,5 +75,6 @@ export default defineConfig({
     affiliatesPlugin,
     automationsPlugin,
     pixelsPlugin,
+    inboxPlugin,
   ],
 })

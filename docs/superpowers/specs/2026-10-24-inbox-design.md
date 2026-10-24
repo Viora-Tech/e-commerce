@@ -43,7 +43,7 @@ Realtime messages with typing and seen marks. One inbox with Open/Mine/Unassigne
 search and unread counts. Cart events in the thread. Product, discount and image cards. Quick replies.
 Assignment. Bell, push and email digest. Hindi and English throughout.
 
-**Non-goals (v1):** AI replies or an AI agent (v1.5), WhatsApp/Instagram/Messenger (v2), a mobile app, tags,
+**Non-goals (v1):** AI suggested replies for staff (v1.5; the AI agent is in v1, §13), WhatsApp/Instagram/Messenger (v2), a mobile app, tags,
 conversations as automation triggers, CSAT, and creating discounts from chat (v1 only picks existing active codes).
 
 **Anti-goals (must not happen):**
@@ -224,21 +224,22 @@ alternatives are the worker or a new `apps/realtime`:
 
 ## 9. PR breakdown (small PRs into `dev`, each with its own `docs/handoff/changes/` note)
 
-| # | PR | Size |
+| # | PR | Status / size |
 |---|---|---|
-| 1 | `0160_inbox.sql`, schema, RLS, core services (conversations, messages, quick replies, blocks), `inbox` permission + seeding, oRPC router, tests | M |
-| 2 | Realtime hub, admin/storefront stream routes, `inbox.sync` polling, edge verification note | S–M |
-| 3 | Manifest + catalogue, settings page, quick replies page, copy (en + hi) | S |
-| 4 | Admin `/inbox` three panes, composer pickers, customer panel, sidebar badge, bell row | M–L |
-| 5 | Storefront launcher + lazy widget, `wc_chat`, consent, cards (add to cart, apply code), image upload, cart events, sign-in merge, Chatwoot suppression | M–L |
-| 6 | Notifications: `inboxMessage` alert, push subscriptions + VAPID, digest job, shopper email fallback | S–M |
-| 7 | Abuse (limits, honeypot, auto-block), erasure/export/retention prune, customer/order Conversations cards, merchant guide | S–M |
-| 8 | Sales channel: nav entry under Sales channels, channel overview (conversations, orders assisted, sales from chat), order attribution to "Inbox" (7-day window, shared links) in sales-by-channel/source | S–M |
+| 1 | `0161_inbox.sql`, schema, RLS, core services, `inbox` permission + seeding, oRPC router, tests | merged (#732) |
+| 2 | Realtime hub, admin/storefront stream routes, `inbox.sync` polling, edge verification note | merged (#737) |
+| 3 | Manifest + catalogue (sales channel), settings, quick replies and blocked senders pages, copy (en + hi) | S |
+| 4 | Admin inbox per §12: Inbox home (to-dos, agent and staff cards, active status, 30-day metrics), conversations view (filters, list, thread, composer pickers, customer panel), sidebar entry under Sales channels with unread badge, bell row | M–L |
+| 5 | Storefront widget per §12 (pill launcher, glass card, featured products, suggested chips), `wc_chat`, consent, cards (add to cart, apply code), image upload, cart events, sign-in merge, Chatwoot suppression; widget settings as a schema for the theme editor's App embed | M–L |
+| 6 | **AI agent** per §13 (all chats / only when away / off, grounded in store data, cards, hand-off, practice scenarios, logging) | L (1.5–2 weeks) |
+| 7 | Notifications: `inboxMessage` alert, push subscriptions + VAPID, digest job, shopper email fallback | S–M |
+| 8 | Abuse (honeypot), erasure/export/retention prune, customer/order Conversations cards, merchant guide | S–M |
+| 9 | Sales channel attribution: orders from chat (shared links, 7 days after a staff/agent message) as source "Inbox" in sales-by-channel/source, orders assisted on the Inbox home | S–M |
 
 v1 ≈ 4–6 weeks for one stream.
 
 **Later phases:**
-- **v1.5 (M, 1.5–2 weeks)**: AI suggested replies on `packages/ai` (the same pattern as `review-reply.ts`, metered like `ai_usage`, with RLS tools for product search, a signed-in shopper's orders and policies). An "away" AI agent with handoff and a fixed AI notice. Analytics: conversations, first response time, and orders assisted (an order within 7 days of a conversation sets `attributed_order_id`).
+- **v1.5 (M, 1.5–2 weeks)**: AI suggested replies on `packages/ai` (the same pattern as `review-reply.ts`, metered like `ai_usage`, with RLS tools for product search, a signed-in shopper's orders and policies). (The AI agent itself moved into v1 as PR 6, §13.) Analytics: conversations, first response time, and orders assisted (an order within 7 days of a conversation sets `attributed_order_id`).
 - **v2 WhatsApp (M, 1–1.5 weeks, after Meta WhatsApp review)**: `handleMetaWebhook` / `whatsappEventUpdate` stop dropping inbound `messages` and route them to `channel='whatsapp'` (`phone_number_id` → store, `wa_id` → customer by phone blind index). Free text within 24 h of the shopper's last message (`session_expires_at`), then the composer switches to template mode (`notifications-whatsapp`).
 - **v2 Instagram/Messenger (M, about 1 week after permissions)**: the same Meta app, the `messages` webhook fields, the Send API, the 24 h window plus the human-agent tag.
 
@@ -263,3 +264,61 @@ v1 ≈ 4–6 weeks for one stream.
 2. **Preinstalled or installed from the App Store?** Recommended: installed from the App Store (free, one click), with
    onboarding suggesting it. Preinstalling would need a data migration like 0154. → §6, PR 3.
 3. **Price:** free on every plan, like Shopify Inbox? Recommended: yes (it is left out of `APP_PRICING`). If it is paid, PR 3 adds plan gating.
+
+## 12. Matching Shopify Inbox (owner's screenshots, 2026-10-24)
+
+**Storefront widget (PR 5)**
+- Closed: a small pill launcher bottom-right, icon + label ("Chat"), in the merchant's colours.
+- Open: a large rounded glassy card (about 31rem wide). Top-right: expand (full screen), dock to a side
+  panel, minimise. A "Sign in" pill top-left while signed out. Intro line ("Hi there! You can ask questions
+  about shopping, sizing, shipping, returns, or order status.") with two featured product cards fanned on the
+  right (best sellers by default; the merchant can pick). A small disclaimer ("This chat is powered by AI and
+  may make mistakes" only while the AI agent is on; "Your messages are visible to <Store>. See privacy
+  policy."). Suggested-question chips: Track my order, Explore the store, Find popular products, Shipping
+  and store policies. A big rounded "Ask anything…" input. The theme's font.
+- **Widget settings are a schema the theme editor's App embeds panel renders** (the coordinator wires the
+  panel): on/off; greeting; show featured products + pick products; colours (background, font colour,
+  invert activator colours); activator icon and label, horizontal position left/centre/right, vertical
+  position lowest/higher/highest; typography inherit from theme, activator font size; border radius; a
+  "Manage app" link to the Inbox admin. Stored with the theme like other app embeds; PR 3's launcher
+  label and position move there.
+
+**Admin (PR 4)**
+- Inbox home: banner "Collect customer emails without sign-in"; To-dos (Train your AI agent → Train agent;
+  Add your staff's available hours → Add hours); Agent card (Edit, Training menu, "Assign agent to
+  conversations: All conversations / Only when staff are away" + switch, accuracy/privacy notice); Staff card
+  rows: Staff hours ("Available now" badge), Collect customer details ("Sign-in required" or off), Instant
+  answers (count); right column: Active status (preview, edit) and Metrics, last 30 days: Conversations,
+  Messages, Assisted orders, Orders per session, Satisfaction rate.
+- Available hours: a toggle and from/to per weekday, an all-days toggle, the store time zone shown, "outside
+  hours the agent points shoppers to <store email>", and an "Automated first reply" toggle.
+- Conversations view: left filters Open / Closed, then Assigned to me, Agent conversations, Unassigned,
+  Unread, Blocked, with Settings at the bottom; the list in the middle ("All clear" empty state + "View
+  closed conversations"); the thread on the right ("Here's where you'll view messages…" until one is
+  picked). A banner when desktop notifications are blocked.
+
+## 13. AI agent (PR 6, owner priority 2026-10-24)
+
+- **Setting**: AI answers all chats / only when staff are away (outside hours or nobody online) / off.
+  **Off by default.** Uses `packages/ai` and the store's existing AI switch and usage limits.
+- **Grounded only in this store's data**: products (titles, prices, stock, variants, descriptions),
+  collections, policies (shipping, returns, refund, privacy), the store FAQ / knowledge the merchant writes
+  in Inbox settings, and, for a verified shopper, their own order status (never another shopper's; a guest
+  needs an email + order number match). Never invents prices, stock or policies. Answers in the shopper's
+  language (English, Hindi, Hinglish).
+- **Actions**: share products / add to cart / discount codes the merchant allowed, with the same cards as staff.
+- **Hand-off to a person** when the shopper asks for one ("talk to a human", "agent", Hindi equivalents),
+  the AI is not confident or the question is outside store data, an order problem it cannot solve (refund,
+  cancel, damaged), or the shopper is upset. Hand-off posts "Connecting you to the team", marks the
+  conversation **Needs human**, assigns per the routing rules, notifies staff and attaches a short AI
+  summary. Outside hours it says when they will get a reply and collects an email or phone.
+- Staff see AI messages labelled in the thread and can take over at any time: the AI stops on that
+  conversation once a staff member replies.
+- **Training**: practice scenarios (a simulated question, Response A vs Response B, or "Write response
+  instead"), in Sales / Store policies / Support with levels; picks are stored as style examples in the
+  agent's prompt.
+- **Logging**: every AI answer and every hand-off reason, for analytics (resolved by AI vs handed off).
+- Schema needs (PR 6 migration): `sender = 'ai'` (reserved in 0161), a `needs_human` flag / status on the
+  conversation, `inbox_ai_event` (answer, hand-off reason, confidence, tokens), knowledge entries and
+  training picks.
+- Size: L, about 1.5–2 weeks after PR 5.

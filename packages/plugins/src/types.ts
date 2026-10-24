@@ -243,6 +243,12 @@ export type AppAdmin = {
   customerDetailCard?: boolean | undefined
   /** Actions on orders: the order page's "More actions", the list's row menu and bulk bar. */
   orderActions?: OrderAction[] | undefined
+  /**
+   * A sales channel app (Inbox, like Shopify Inbox): its pages live at this admin path under
+   * Sales channels (e.g. `/sales-channels/inbox`) instead of `/apps/<pluginId>`, and it is listed
+   * in the sidebar's Sales channels group while installed, not under Apps.
+   */
+  salesChannel?: string | undefined
 }
 
 /**
@@ -449,6 +455,8 @@ export type PluginSummary = {
     customerDetailCard: boolean
     /** Declared actions plus a Create shipment per courier the plugin provides. */
     orderActions: OrderAction[]
+    /** The sales-channel path, or null for an ordinary app. */
+    salesChannel: string | null
   }
   credits: AppCredit[]
   access: {

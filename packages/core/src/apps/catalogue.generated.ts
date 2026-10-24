@@ -1776,4 +1776,55 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     themeBlocks: [],
     credits: [],
   },
+  {
+    id: 'inbox',
+    name: 'Inbox',
+    kind: 'builtin',
+    category: 'messages',
+    company: null,
+    description:
+      'Chat with shoppers while they browse: answer questions about size, COD and delivery from your admin, and share products and discount codes in the chat.',
+    tagline: 'Live chat on your store that sells: answer, share products and codes, see the cart.',
+    highlights: [
+      'A chat button on every page, in your theme’s colours, for guests and signed-in shoppers',
+      'Replies arrive at once; typing and seen marks on both sides',
+      'Share products (Add to cart in the chat), discount codes (applied for them) and images',
+      'Quick replies, assignment to your team, business hours and an away message',
+      'The shopper’s live cart and orders beside the conversation',
+    ],
+    guide: '/merchant-guide/apps/inbox',
+    worksWith: ['Every theme, including imported Shopify themes', 'English and Hindi'],
+    screenshots: [],
+    keywords: ['chat', 'live chat', 'inbox', 'support', 'shopify inbox', 'messages', 'whatsapp'],
+    faq: [],
+    icon: 'MessageSquare',
+    access: {
+      resources: [
+        {
+          resource: 'customers',
+          level: 'read-write',
+          why: 'Links each conversation to the shopper who signed in',
+        },
+        {
+          resource: 'orders',
+          level: 'read',
+          why: 'Shows a signed-in shopper’s orders to your team',
+        },
+        {
+          resource: 'products',
+          level: 'read',
+          why: 'Product cards you share in a chat',
+        },
+        {
+          resource: 'discounts',
+          level: 'read',
+          why: 'Discount codes you share in a chat',
+        },
+      ],
+      shares: [],
+    },
+    adminPages: [],
+    themeBlocks: [],
+    credits: [],
+  },
 ]

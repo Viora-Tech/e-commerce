@@ -91,7 +91,6 @@ const ALLOWLIST: AllowEntry[] = [
       'InboxDayHoursSchema',
       'DEFAULT_INBOX_HOURS',
       'INBOX_AVAILABILITY',
-      'INBOX_CONTACT_CAPTURE',
       'InboxSettingsSchema',
       'DEFAULT_INBOX_SETTINGS',
       'zonedWeekMinute',

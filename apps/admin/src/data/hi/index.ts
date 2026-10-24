@@ -51,6 +51,7 @@ import growthbook from './growthbook'
 import gstInvoices from './gst-invoices'
 import home from './home'
 import imageEditor from './image-editor'
+import inbox from './inbox'
 import indiaPost from './india-post'
 import installedApps from './installed-apps'
 import inventory from './inventory'
@@ -201,6 +202,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...purchaseDocuments,
   ...profitCosts,
   ...profitReport,
+  ...inbox,
   ...monthlyExpenses,
   ...purchasing,
   ...selectProducts,
