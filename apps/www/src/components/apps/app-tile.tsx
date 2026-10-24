@@ -1,4 +1,4 @@
-import { APP_LOGOS } from '@commerce/core/app-logos'
+import { APP_ICONS, APP_LOGOS } from '@commerce/core/app-logos'
 import KoomerceMark from '@commerce/ui/brand'
 import {
   BarChart3,
@@ -45,6 +45,7 @@ const SIZES = {
     glyph: 'size-[1.125rem]',
     mark: 'hidden',
     text: 'text-xs',
+    icon: 'size-9',
   },
   md: {
     box: 'size-12 rounded-[0.875rem]',
@@ -52,6 +53,7 @@ const SIZES = {
     glyph: 'size-6',
     mark: 'size-2',
     text: 'text-sm',
+    icon: 'size-12',
   },
   lg: {
     box: 'size-16 rounded-[1.125rem]',
@@ -59,6 +61,7 @@ const SIZES = {
     glyph: 'size-8',
     mark: 'size-2.5',
     text: 'text-lg',
+    icon: 'size-16',
   },
   xl: {
     box: 'size-20 rounded-[1.375rem] md:size-24 md:rounded-[1.625rem]',
@@ -66,6 +69,7 @@ const SIZES = {
     glyph: 'size-10 md:size-12',
     mark: 'size-3',
     text: 'text-2xl',
+    icon: 'size-20 md:size-24',
   },
 } as const
 
@@ -78,8 +82,8 @@ const monogram = (name: string) =>
     .toUpperCase()
 
 /**
- * An app's icon. A real company logo sits on a light plate (trademarks of their owners); our own
- * apps get a dark engraved tile with the glyph the admin uses and a small K; anything else a
+ * An app's icon. Our own apps with a designed icon draw it as is; a real company logo sits on a
+ * light plate (trademarks of their owners); other own apps get a dark engraved tile with the glyph the admin uses and a small K; anything else a
  * monogram. Never an image that can break: logos are checked by the `app-catalogue` sweep.
  */
 export default function AppTile({
@@ -94,6 +98,22 @@ export default function AppTile({
   const dims = SIZES[size]
   const src = APP_LOGOS[id]
   const Glyph = icon ? GLYPHS[icon] : undefined
+  // Our own apps: the designed icon, tile and corners included.
+  const own = APP_ICONS[id]
+
+  if (own) {
+    return (
+      // biome-ignore lint/performance/noImgElement: small fixed icon files; next/image adds nothing in a static export
+      <img
+        src={own}
+        alt=""
+        aria-hidden
+        loading="lazy"
+        decoding="async"
+        className={cn('inline-block shrink-0', dims.icon, className)}
+      />
+    )
+  }
 
   return (
     <span

@@ -1,4 +1,4 @@
-import { APP_LOGOS } from '@commerce/core/app-logos'
+import { APP_ICONS, APP_LOGOS } from '@commerce/core/app-logos'
 import { cn } from '@commerce/ui/lib/utils'
 import { appIcon } from '@/apps/app-icons'
 
@@ -10,7 +10,7 @@ type AppLogoProps = {
   className?: string
 }
 
-/** Built-in family: one gradient tile per app, a white glyph on top. */
+/** Fallback for an app with no designed icon yet: a gradient tile with a white glyph. */
 const TILES: Record<string, string> = {
   reviews: 'from-amber-400 to-amber-600 border-amber-600/90',
   'gst-invoices': 'from-blue-500 to-blue-700 border-blue-700/90',
@@ -24,19 +24,48 @@ const FALLBACK_TILE = 'from-slate-500 to-slate-700 border-slate-700/90'
 
 /** Pixel size to rem class pairs, so the tile and its glyph scale together. */
 const SIZES = {
-  28: { box: 'size-7 rounded-[0.4375rem]', logo: 'size-[1.1rem]', glyph: 'size-4' },
-  44: { box: 'size-11 rounded-[0.625rem]', logo: 'size-[1.7rem]', glyph: 'size-6' },
-  48: { box: 'size-12 rounded-[0.8125rem]', logo: 'size-[2.7rem]', glyph: 'size-6' },
-  72: { box: 'size-[4.5rem] rounded-2xl', logo: 'size-[3.75rem]', glyph: 'size-9' },
-  160: { box: 'size-40 rounded-[1.25rem]', logo: 'size-[6.1rem]', glyph: 'size-20' },
+  28: { box: 'size-7 rounded-[0.4375rem]', logo: 'size-[1.1rem]', glyph: 'size-4', icon: 'size-7' },
+  44: {
+    box: 'size-11 rounded-[0.625rem]',
+    logo: 'size-[1.7rem]',
+    glyph: 'size-6',
+    icon: 'size-11',
+  },
+  48: {
+    box: 'size-12 rounded-[0.8125rem]',
+    logo: 'size-[2.7rem]',
+    glyph: 'size-6',
+    icon: 'size-12',
+  },
+  72: {
+    box: 'size-[4.5rem] rounded-2xl',
+    logo: 'size-[3.75rem]',
+    glyph: 'size-9',
+    icon: 'size-[4.5rem]',
+  },
+  160: {
+    box: 'size-40 rounded-[1.25rem]',
+    logo: 'size-[6.1rem]',
+    glyph: 'size-20',
+    icon: 'size-40',
+  },
 } as const
 
-/** App logo (Figma "App logo"): official logo on white for third parties, vector tile for built-ins. */
+/** App logo (Figma "App logo"): our designed icon for built-ins, official logo on white for third parties. */
 export default function AppLogo({ id, icon, size = 44, className }: AppLogoProps) {
   // Render logic
   const dims = SIZES[size]
   // Real third-party logos, shown on a white tile (trademarks of their owners).
   const src = APP_LOGOS[id]
+  // Our own apps: the designed icon, tile and corners included.
+  const own = APP_ICONS[id]
+
+  if (own) {
+    return (
+      // biome-ignore lint/performance/noImgElement: fixed local icon files, not content
+      <img src={own} alt="" aria-hidden="true" className={cn('shrink-0', dims.icon, className)} />
+    )
+  }
 
   if (src) {
     return (
