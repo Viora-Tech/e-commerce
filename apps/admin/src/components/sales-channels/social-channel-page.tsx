@@ -59,6 +59,8 @@ const CHANNEL_RULES: Record<SocialChannel, readonly ReadinessRule[]> = {
   ],
 }
 const SHOWN_ISSUES = 6
+const SYNC_POLL_MS = 3000
+const isSyncing = (status: string) => status === 'syncing' || status === 'first_sync'
 
 /** Figma "Instagram / Facebook / WhatsApp / Google · Overview" and their connect states. */
 export default function SocialChannelPage({ data, issues }: SocialChannelPageProps) {
@@ -88,6 +90,13 @@ export default function SocialChannelPage({ data, issues }: SocialChannelPagePro
     url.searchParams.delete('connect')
     router.replace(`${url.pathname}${url.search}`)
   }, [params])
+
+  // While a sync runs in the worker, re-read the page so the bar moves to "Catalog shared" by itself.
+  useEffect(() => {
+    if (!isSyncing(data.state.status)) return
+    const id = setInterval(() => router.refresh(), SYNC_POLL_MS)
+    return () => clearInterval(id)
+  }, [data.state.status, router])
 
   // Event handlers
   const handleSurface = (c: MetaChannel) => router.push(routes.salesChannels.socialChannel(c))

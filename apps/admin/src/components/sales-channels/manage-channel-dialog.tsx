@@ -78,16 +78,17 @@ export default function ManageChannelDialog({
 
   // Render logic
   const last = state.sync.lastTriedAt
+  const syncing = state.status === 'syncing' || state.status === 'first_sync'
   const rows = [
     [copy.account, state.account ?? '—'],
-    [copy.lastSync, last ? format.ago(last) : copy.never],
+    [copy.lastSync, syncing ? copy.syncingNow : last ? format.ago(last) : copy.never],
     [copy.items, state.sync.sent != null ? format.number(state.sync.sent) : '—'],
   ]
 
   return (
     <>
       <Dialog open={open && !confirming} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{copy.title(name)}</DialogTitle>
             <DialogDescription className="sr-only">{copy.title(name)}</DialogDescription>
@@ -103,7 +104,7 @@ export default function ManageChannelDialog({
           {state.sync.message ? (
             <p className="text-caption text-danger">{state.sync.message}</p>
           ) : null}
-          <DialogFooter className="flex-wrap gap-2 sm:justify-between">
+          <DialogFooter className="flex-row flex-wrap items-center justify-between gap-2 sm:flex-nowrap">
             <Button
               variant="outline"
               className="text-danger"
@@ -130,7 +131,7 @@ export default function ManageChannelDialog({
               <Button
                 onClick={handleSync}
                 loading={busy === 'sync'}
-                disabled={busy !== null || state.status === 'paused'}
+                disabled={busy !== null || state.status === 'paused' || syncing}
               >
                 <RefreshCw aria-hidden="true" />
                 {copy.syncNow}

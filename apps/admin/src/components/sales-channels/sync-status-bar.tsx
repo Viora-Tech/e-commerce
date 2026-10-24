@@ -55,12 +55,16 @@ export default function SyncStatusBar({
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={100}
-          aria-valuenow={Math.round(progress * 100)}
+          aria-valuenow={progress > 0 ? Math.round(progress * 100) : undefined}
           className="h-1.5 w-32 overflow-hidden rounded-full bg-muted"
         >
+          {/* Nothing counted yet: a pulsing bar says it is working rather than stuck at 0. */}
           <span
-            className="block h-full rounded-full bg-primary"
-            style={{ width: `${Math.round(progress * 100)}%` }}
+            className={cn(
+              'block h-full rounded-full bg-primary transition-[width] duration-500',
+              progress > 0 ? '' : 'animate-pulse opacity-60',
+            )}
+            style={{ width: progress > 0 ? `${Math.round(progress * 100)}%` : '100%' }}
           />
         </span>
       ) : null}

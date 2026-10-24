@@ -93,7 +93,12 @@ describe('metaDiscover', () => {
     })
 
     test('uses the only shared catalog', async () => {
-      const account = await metaDiscover(shared([two[0]!]), app, 'tok', 'New Store (Koomerce)')
+      const account = await metaDiscover(
+        shared(two.slice(0, 1)),
+        app,
+        'tok',
+        'New Store (Koomerce)',
+      )
       expect(account.catalogId).toBe('live')
     })
 
