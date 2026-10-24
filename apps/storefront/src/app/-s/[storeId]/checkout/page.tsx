@@ -5,7 +5,9 @@ import {
   storeCheckoutLook,
   storeCheckoutSettings,
 } from '@commerce/core'
+import { initiateCheckoutEventId } from '@commerce/core/pixels'
 import { redirect } from 'next/navigation'
+import PixelTrack from '@/components/analytics/pixel-track'
 import CheckoutForm from '@/components/checkout/checkout-form'
 import { emiHintContent } from '@/data/product'
 import { readCartId } from '@/lib/cart-cookie'
@@ -47,21 +49,34 @@ export default async function CheckoutPage({ params }: Params) {
       : null
   // A signed-in shopper checks out as themselves, with their address book to pick from.
   const addresses = me ? await inStore(storeId, (tx) => listAddresses({ storeId, tx }, me.id)) : []
+  const itemCount = cart.lines.reduce((n, l) => n + l.quantity, 0)
   return (
-    <CheckoutForm
-      // Signing in on the contact step comes back here as a different shopper: start afresh.
-      key={me?.id ?? 'guest'}
-      cart={cart}
-      methods={methods}
-      discount={discount}
-      customer={me}
-      addresses={addresses}
-      deposit={deposit}
-      settings={settings}
-      policies={policies}
-      look={look}
-      emiMinPaise={emiMinPaise}
-      signIn={{ methods: signIn.methods, checkout: signIn.checkout, options: signIn.options }}
-    />
+    <>
+      {/* Pixels app: InitiateCheckout, one per cart (`ic_<cartId>`). */}
+      <PixelTrack
+        event={{
+          name: 'InitiateCheckout',
+          eventId: initiateCheckoutEventId(cart.id),
+          valuePaise: cart.subtotalPaise,
+          contentIds: cart.lines.map((l) => l.variantId),
+          numItems: itemCount,
+        }}
+      />
+      <CheckoutForm
+        // Signing in on the contact step comes back here as a different shopper: start afresh.
+        key={me?.id ?? 'guest'}
+        cart={cart}
+        methods={methods}
+        discount={discount}
+        customer={me}
+        addresses={addresses}
+        deposit={deposit}
+        settings={settings}
+        policies={policies}
+        look={look}
+        emiMinPaise={emiMinPaise}
+        signIn={{ methods: signIn.methods, checkout: signIn.checkout, options: signIn.options }}
+      />
+    </>
   )
 }

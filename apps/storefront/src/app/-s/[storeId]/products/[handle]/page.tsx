@@ -12,6 +12,7 @@ import { eq } from 'drizzle-orm'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { cache } from 'react'
+import PixelTrack from '@/components/analytics/pixel-track'
 import DeliveryEstimateWidget from '@/components/product/delivery-estimate'
 import EmiHint from '@/components/product/emi-hint'
 import EmiOffers from '@/components/product/emi-offers'
@@ -227,6 +228,15 @@ export default async function ProductPage({ params, searchParams }: Params) {
     <>
       {/* biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD from our own data; jsonLd() escapes it. */}
       <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(schema)} />
+      {/* Pixels app: ViewContent, sent only after a yes to marketing. */}
+      <PixelTrack
+        event={{
+          name: 'ViewContent',
+          productId: product.id,
+          variantId: variant?.id,
+          valuePaise: variant?.pricePaise,
+        }}
+      />
       {page}
       {/* An imported theme's Judge.me review widget (an app block) draws our Reviews app here. */}
       {reviews ? (

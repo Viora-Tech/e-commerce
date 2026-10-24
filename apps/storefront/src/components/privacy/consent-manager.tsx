@@ -18,6 +18,7 @@ import {
 } from '@commerce/plugin-chatwoot/widget'
 import { type UmamiTracker, umamiAllowed } from '@commerce/plugin-umami/settings'
 import { useEffect, useState } from 'react'
+import PixelEvents from '@/components/analytics/pixel-events'
 import TrackingTags from '@/components/analytics/tracking-tags'
 import UmamiScript from '@/components/analytics/umami-script'
 import VisitBeacon from '@/components/analytics/visit-beacon'
@@ -25,6 +26,7 @@ import CookieBanner from '@/components/privacy/cookie-banner'
 import ChatwootWidget from '@/components/support/chatwoot-widget'
 import { consentContent } from '@/data/online-store'
 import { COOKIE_SETTINGS_HASH } from '@/lib/cookie-settings'
+import type { BrowserPixel } from '@/lib/pixels/track'
 import { recordConsentAction } from '@/lib/privacy-actions'
 
 type ConsentManagerProps = {
@@ -32,6 +34,12 @@ type ConsentManagerProps = {
   /** Settings → Customer privacy: custom banner text (empty for the default) and its version. */
   bannerMessage: string
   bannerVersion: number
+  /**
+   * The Pixels app's pixels when the store installed it (then the old single Meta pixel in
+   * `tracking` is ignored); null without the app. They load, like the old pixel, only after a
+   * yes to marketing.
+   */
+  pixels?: BrowserPixel[] | null | undefined
   /** The choice read from the cookie on the server; null until the shopper decides. */
   initial: StoredConsent | null
   /** This request's script CSP nonce; the tracking tags need it to run. */
@@ -83,6 +91,7 @@ export default function ConsentManager({
   bannerVersion,
   initial,
   nonce,
+  pixels,
   appearance,
   themeBanner,
   umami,
@@ -128,13 +137,21 @@ export default function ConsentManager({
 
   // Render logic
   const tags = allowedTags({ tracking }, consent)
+  // With the Pixels app, its pixels replace the old single one.
+  const appPixels = pixels && consent?.marketing ? pixels : null
   const asking = !themeBanner && (consent === null || reopened)
   const current = consent ?? { analytics: false, marketing: false }
 
   return (
     <>
       {consent?.analytics ? <VisitBeacon /> : null}
-      <TrackingTags {...tags} nonce={nonce} />
+      <TrackingTags
+        {...tags}
+        metaPixel={pixels ? null : tags.metaPixel}
+        pixels={appPixels?.map((p) => p.id)}
+        nonce={nonce}
+      />
+      {appPixels?.length ? <PixelEvents pixels={appPixels} /> : null}
       {umami && umamiAllowed(umami, consent) ? <UmamiScript tracker={umami} nonce={nonce} /> : null}
       {chatwoot && chatwootAllowed(chatwoot.widget, consent) ? (
         <ChatwootWidget widget={chatwoot.widget} identity={chatwoot.identity} nonce={nonce} />

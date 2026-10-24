@@ -120,7 +120,11 @@ async function orderEvent(
   }
 }
 
-async function cartContents(tx: StoreTx, cartId: string, lineId?: string) {
+async function cartContents(
+  tx: StoreTx,
+  cartId: string,
+  only?: { lineId?: string | undefined; variantId?: string | undefined },
+) {
   const rows = await tx
     .select({
       id: cartLine.id,
@@ -131,7 +135,11 @@ async function cartContents(tx: StoreTx, cartId: string, lineId?: string) {
     .from(cartLine)
     .where(eq(cartLine.cartId, cartId))
   return rows
-    .filter((r) => !lineId || r.id === lineId)
+    .filter(
+      (r) =>
+        (!only?.lineId || r.id === only.lineId) &&
+        (!only?.variantId || r.variantId === only.variantId),
+    )
     .map((r) => ({ id: r.variantId, quantity: r.quantity, itemPricePaise: r.unitPricePaise }))
 }
 
@@ -144,8 +152,12 @@ async function storefrontEvent(
   let phone: string | null = null
   let customerId: string | null = null
   if (job.cartId && (job.eventName === 'AddToCart' || job.eventName === 'InitiateCheckout')) {
-    const lineId = job.eventName === 'AddToCart' ? job.cartLineId : undefined
-    contents = await cartContents(tx, job.cartId, lineId)
+    // AddToCart is about the line just added (by line id, else by variant).
+    const only =
+      job.eventName === 'AddToCart'
+        ? { lineId: job.cartLineId, variantId: job.cartLineId ? undefined : job.variantId }
+        : undefined
+    contents = await cartContents(tx, job.cartId, only)
     const [c] = await tx
       .select({ email: cart.email, phone: cart.phone, customerId: cart.customerId })
       .from(cart)
