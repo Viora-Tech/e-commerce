@@ -1,6 +1,12 @@
 import { channelDeps, queueChannelSync } from '@commerce/api'
 import { loadEnv } from '@commerce/config'
-import { completeChannelConnect, isAiAgent, memberAccess, verifyChannelState } from '@commerce/core'
+import {
+  ChannelApiError,
+  completeChannelConnect,
+  isAiAgent,
+  memberAccess,
+  verifyChannelState,
+} from '@commerce/core'
 import { withStore } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
 import { channelSyncQueue } from '@commerce/queue'
@@ -16,7 +22,8 @@ type Context = { params: Promise<{ provider: string }> }
  * Meta or Google sends the merchant back here after "Connect" with a one-time `code` and our
  * signed `state` (or an error when they said no). The signed-in member must belong to the store
  * the state names; then the code becomes saved access, the catalog is found or made, and the
- * first sync is queued. The merchant lands back on the channel's page either way.
+ * first sync is queued. The merchant lands back on the channel's page either way, with the
+ * partner's reason when it refused.
  */
 export async function GET(req: NextRequest, { params }: Context) {
   const { provider } = await params
@@ -30,8 +37,10 @@ export async function GET(req: NextRequest, { params }: Context) {
       : routes.salesChannels.socialChannel(s.channel)
     : routes.salesChannels.social()
   const back = adminUrl(page)
-  const done = (result: string) => {
+  const done = (result: string, reason?: string) => {
     back.searchParams.set('connect', result)
+    // The partner's own words ("No Google Merchant Center account found…"), shown in the toast.
+    if (reason) back.searchParams.set('reason', reason.slice(0, 300))
     return NextResponse.redirect(back)
   }
   if ((provider !== 'meta' && provider !== 'google') || !s) {
@@ -58,6 +67,6 @@ export async function GET(req: NextRequest, { params }: Context) {
       channel: s.channel,
       error: error instanceof Error ? error.message : String(error),
     })
-    return done('failed')
+    return done('failed', error instanceof ChannelApiError ? error.message : undefined)
   }
 }
