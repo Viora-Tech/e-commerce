@@ -35,6 +35,7 @@ import { createOutboxRelay, RELAY_EVERY_MS } from './outbox-relay'
 import { createPaymentFeeSync, PAYMENT_FEES_EVERY_MS } from './payment-fees'
 import { paymentWebhooks } from './payments'
 import { createUnpaidOrderExpiry, EXPIRY_EVERY_MS } from './payments-expiry'
+import { createPixelsWorker, PIXELS_PRUNE_EVERY_MS } from './pixels'
 import { platformWebhooks } from './platform-webhooks'
 import { BALANCE_EVERY_MS, createPreorderBalanceJob } from './preorder-balance'
 import { createPurchaseDocumentWorker } from './purchase-documents'
@@ -147,10 +148,15 @@ const automations = createAutomationsWorker(redis, db, {
   adminUrl: env.ADMIN_URL,
   mediaProcess: mediaProcess.queue,
 })
+const pixels = createPixelsWorker(redis, db, {
+  settingsSecret: env.SETTINGS_SECRET,
+  adminUrl: env.ADMIN_URL,
+})
 const outboxRelay = createOutboxRelay(redis, db, {
   notifications,
   appEvents,
   automationTriggers: automations.triggerQueue,
+  pixelOrders: pixels.orderQueue,
   inventoryRestock: backInStock.queue,
   domainRoutes: domainRoutes.queue,
 })
@@ -175,6 +181,9 @@ const watched = [
   [automations.trigger, 'automations-trigger'],
   [automations.step, 'automations-step'],
   [automations.tick, 'automations-tick'],
+  [pixels.order, 'pixels-order'],
+  [pixels.send, 'pixels-send'],
+  [pixels.prune, 'pixels-prune'],
   [backInStock.worker, 'back-in-stock'],
   [mediaProcess.worker, 'media-process'],
   [storeExport.worker, 'store-export'],
@@ -297,6 +306,11 @@ await automationsPrune.queue.upsertJobScheduler(
   { every: AUTOMATION_PRUNE_EVERY_MS },
   { name: 'prune' },
 )
+await pixels.pruneQueue.upsertJobScheduler(
+  'pixels-prune',
+  { every: PIXELS_PRUNE_EVERY_MS },
+  { name: 'prune' },
+)
 await apiActivityPrune.queue.upsertJobScheduler(
   'api-activity-prune',
   { every: API_ACTIVITY_PRUNE_EVERY_MS },
@@ -373,6 +387,12 @@ const shutdown = async () => {
   await automations.triggerQueue.close()
   await automations.stepQueue.close()
   await automations.tickQueue.close()
+  await pixels.order.close()
+  await pixels.send.close()
+  await pixels.prune.close()
+  await pixels.orderQueue.close()
+  await pixels.sendQueue.close()
+  await pixels.pruneQueue.close()
   await marketing.send.close()
   await marketing.tickQueue.close()
   await marketing.sendQueue.close()

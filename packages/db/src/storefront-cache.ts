@@ -134,6 +134,11 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   outbox_event: LOG,
   payment: SHOPPER,
   payment_event: LOG,
+  // Pixels app: the storefront starts reading pixel ids in Pixels PR 4, which moves this one
+  // into STOREFRONT_CACHE_TABLES with its trigger.
+  pixel_connection: ADMIN,
+  pixel_event_day: LOG,
+  pixel_event_log: LOG,
   plan_payment: ADMIN,
   privacy_audit_event: LOG,
   purchase_charge: ADMIN,

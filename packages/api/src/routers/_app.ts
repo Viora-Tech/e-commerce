@@ -41,6 +41,7 @@ import { onboardingRouter } from './onboarding'
 import { ordersRouter } from './orders'
 import { pagesRouter } from './pages'
 import { paymentsRouter } from './payments'
+import { pixelsRouter } from './pixels'
 import { platformAppsRouter } from './platform-apps'
 import { policiesRouter } from './policies'
 import { productsRouter } from './products'
@@ -116,6 +117,7 @@ export const appRouter = {
   monthlyExpenses: monthlyExpensesRouter,
   shopifyImport: shopifyImportRouter,
   affiliates: affiliatesRouter,
+  pixels: pixelsRouter,
   platformApps: platformAppsRouter,
   backInStock: backInStockRouter,
   emi: emiRouter,

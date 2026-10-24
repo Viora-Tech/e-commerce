@@ -112,6 +112,8 @@ export type OutboxEventType =
   | 'meta.access_removed'
   /** The merchant uninstalled the Koomerce app from their Shopify shop; its saved access went. */
   | 'shopify.app_uninstalled'
+  /** Pixels app: Meta stopped accepting a pixel's Conversions API token; the owner is emailed once. */
+  | 'pixel.connection_failed'
 
 /**
  * `orderId` is required for every order-lifecycle type; `variantId` (and
@@ -289,6 +291,8 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   'whatsapp.account_updated': null,
   'meta.access_removed': null,
   'shopify.app_uninstalled': null,
+  // The relay hands it to the Pixels app's `{pixels}-order` job, which emails the owner.
+  'pixel.connection_failed': null,
 }
 
 /**
@@ -365,4 +369,5 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'whatsapp.account_updated': null,
   'meta.access_removed': null,
   'shopify.app_uninstalled': null,
+  'pixel.connection_failed': null,
 }
