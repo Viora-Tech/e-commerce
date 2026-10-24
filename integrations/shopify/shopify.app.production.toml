@@ -24,14 +24,12 @@ redirect_urls = ["https://admin.koomerce.app/api/apps/shopify-import/oauth/callb
 [webhooks]
 api_version = "2026-10"
 
-  # Shopify's mandatory privacy webhooks, and uninstall. One endpoint on the worker; it checks
-  # X-Shopify-Hmac-Sha256 with SHOPIFY_APP_CLIENT_SECRET and reads X-Shopify-Topic.
+  # Shopify's mandatory privacy webhooks. app/uninstalled cannot be an app-level subscription
+  # while use_legacy_install_flow is on (CLI 4.9 refuses it); shop/redact follows an uninstall.
+  # One endpoint on the worker; it checks X-Shopify-Hmac-Sha256 with SHOPIFY_APP_CLIENT_SECRET
+  # and reads X-Shopify-Topic.
   [[webhooks.subscriptions]]
   compliance_topics = ["customers/data_request", "customers/redact", "shop/redact"]
-  uri = "https://api.koomerce.app/webhooks/platform/shopify"
-
-  [[webhooks.subscriptions]]
-  topics = ["app/uninstalled"]
   uri = "https://api.koomerce.app/webhooks/platform/shopify"
 
 [pos]
