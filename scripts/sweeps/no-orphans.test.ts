@@ -24,6 +24,36 @@ const ALLOWLIST: AllowEntry[] = [
       'Pixels tables (feat/pixels-data, 2026-10-24): read by the worker and router in Pixels PR 3, which removes this entry',
   },
   {
+    file: 'packages/core/src/pixels/hash.ts',
+    names: [
+      'sha256',
+      'normaliseEmail',
+      'normaliseMetaPhone',
+      'normaliseName',
+      'normaliseCity',
+      'normaliseState',
+      'normalisePin',
+      'splitName',
+      'hashUserData',
+    ],
+    reason:
+      'Pixels core (feat/pixels-core, 2026-10-24): used by the sender in Pixels PR 3, which removes this entry',
+  },
+  {
+    file: 'packages/core/src/pixels/meta.ts',
+    names: [
+      'META_GRAPH',
+      'buildMetaEvent',
+      'matchedOf',
+      'classifyMetaError',
+      'cleanMetaMessage',
+      'sendMetaEvents',
+      'verifyMetaToken',
+    ],
+    reason:
+      'Pixels core (feat/pixels-core, 2026-10-24): used by the sender and sendTest in Pixels PR 3, which removes this entry',
+  },
+  {
     file: 'packages/ui/src/globe/webgl/sprite-dots.ts',
     names: ['MAX_SPRITE_DOT_SAMPLES', 'spriteDotSpacing'],
     reason:
