@@ -167,8 +167,8 @@ export async function customerPanel(
         note: customer.note,
         tags: customer.tags,
         createdAt: customer.createdAt,
-        orderCount: sql<number>`(select count(*)::int from ${order} where ${order.customerId} = ${customer.id} and ${order.status} <> 'draft')`,
-        totalSpentPaise: sql<number>`(select coalesce(sum(${order.totalPaise}), 0)::int from ${order} where ${order.customerId} = ${customer.id} and ${order.status} not in ('draft', 'cancelled'))`,
+        orderCount: sql<number>`(select count(*)::int from ${order} where ${order.customerId} = ${c.customerId} and ${order.status} <> 'draft')`,
+        totalSpentPaise: sql<number>`(select coalesce(sum(${order.totalPaise}), 0)::int from ${order} where ${order.customerId} = ${c.customerId} and ${order.status} not in ('draft', 'cancelled'))`,
       })
       .from(customer)
       .where(eq(customer.id, c.customerId))
