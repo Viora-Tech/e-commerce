@@ -27,6 +27,7 @@ import { formsRouter } from './forms'
 import { giftCardsRouter } from './gift-cards'
 import { growthbookRouter } from './growthbook'
 import { gstInvoicesRouter } from './gst-invoices'
+import { inboxRouter } from './inbox'
 import { inventoryRouter, purchaseOrdersRouter, transfersRouter } from './inventory'
 import { invitationsRouter } from './invitations'
 import { marketingRouter } from './marketing'
@@ -101,6 +102,7 @@ export const appRouter = {
   customerAccounts: customerAccountsRouter,
   notifications: notificationsRouter,
   customers: customersRouter,
+  inbox: inboxRouter,
   discounts: discountsRouter,
   marketing: marketingRouter,
   automations: automationsRouter,
