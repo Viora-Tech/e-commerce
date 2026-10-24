@@ -1,20 +1,52 @@
 import { customer, newId, order, store } from '@commerce/db'
+import { sql } from 'drizzle-orm'
 import {
   boolean,
   index,
   integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core'
+import type { CommissionRule } from './settings'
 
 /**
  * Tables owned by the Affiliates app. They live in the platform's single migration chain
- * (packages/db/drizzle, 0158) and carry `store_id`, so `apply_store_rls()` isolates them like
- * core tables. The program itself is in `store.apps.settings.affiliates` (./settings).
+ * (packages/db/drizzle, 0158 and 0163) and carry `store_id`, so `apply_store_rls()` isolates
+ * them like core tables. Store-wide settings are in `store.apps.settings.affiliates`; each
+ * program's rules are a row here (./settings).
  */
+
+/**
+ * A program: its own commission, levels, exclusions, approval, code and signup page. Every
+ * store using the app has exactly one default program (the one v1 settings became); affiliates
+ * without a program belong to it. `rules` is a `ProgramRules` (parse it with
+ * `parseProgramRules`). Archived programs take no signups; their affiliates were moved.
+ */
+export const affiliateProgram = pgTable(
+  'affiliate_program',
+  {
+    id: uuid('id').primaryKey().$defaultFn(newId),
+    storeId: uuid('store_id')
+      .notNull()
+      .references(() => store.id),
+    name: text('name').notNull(),
+    /** `/affiliate?program=<slug>`. */
+    slug: text('slug').notNull(),
+    isDefault: boolean('is_default').notNull().default(false),
+    rules: jsonb('rules').notNull().default({}),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('affiliate_program_store_slug').on(t.storeId, t.slug),
+    uniqueIndex('affiliate_program_store_default').on(t.storeId).where(sql`is_default`),
+  ],
+)
 
 /**
  * One affiliate: a storefront customer who applied (or the merchant added). `code` is the
@@ -29,6 +61,10 @@ export const affiliate = pgTable(
       .notNull()
       .references(() => store.id),
     customerId: uuid('customer_id').references(() => customer.id, { onDelete: 'set null' }),
+    /** Their program; null means the store's default program. */
+    programId: uuid('program_id').references(() => affiliateProgram.id),
+    /** Their own default rate, above the program's levels and default (a `CommissionRule`). */
+    rateOverride: jsonb('rate_override').$type<CommissionRule | null>(),
     code: text('code').notNull(),
     name: text('name').notNull().default(''),
     email: text('email'),
@@ -59,6 +95,7 @@ export const affiliate = pgTable(
     uniqueIndex('affiliate_store_code').on(t.storeId, t.code),
     uniqueIndex('affiliate_store_customer').on(t.storeId, t.customerId),
     index('affiliate_store_status').on(t.storeId, t.status),
+    index('affiliate_store_program').on(t.storeId, t.programId),
   ],
 )
 
@@ -111,6 +148,8 @@ export const affiliateCommission = pgTable(
       .notNull()
       .references(() => order.id, { onDelete: 'cascade' }),
     customerId: uuid('customer_id'),
+    /** The program the commission was worked out under (a snapshot, for reports). */
+    programId: uuid('program_id'),
     source: text('source', { enum: ['link', 'coupon', 'lifetime'] }).notNull(),
     status: text('status', { enum: ['pending', 'approved', 'paid', 'reversed'] })
       .notNull()

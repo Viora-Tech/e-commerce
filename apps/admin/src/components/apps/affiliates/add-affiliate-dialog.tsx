@@ -11,8 +11,9 @@ import {
 } from '@commerce/ui/shadcn/dialog'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Label } from '@commerce/ui/shadcn/label'
+import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
 import { Switch } from '@commerce/ui/shadcn/switch'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { affiliatesContent } from '@/data/affiliates'
 import { useCopy } from '@/hooks/use-copy'
@@ -36,14 +37,28 @@ export default function AddAffiliateDialog({
   const [email, setEmail] = useState('')
   const [social, setSocial] = useState('')
   const [approve, setApprove] = useState(true)
+  const [programId, setProgramId] = useState('')
+  const [programs, setPrograms] = useState<{ id: string; name: string; isDefault: boolean }[]>([])
   const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    let cancelled = false
+    api.affiliates.programs.list().then((all) => {
+      if (cancelled) return
+      setPrograms(all.filter((p) => !p.archivedAt))
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [open])
 
   // Event handlers
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     setBusy(true)
     try {
-      await api.affiliates.add({ name, email, social, approve })
+      await api.affiliates.add({ name, email, social, approve, programId: programId || undefined })
       toast.success(copy.added)
       setName('')
       setEmail('')
@@ -84,6 +99,22 @@ export default function AddAffiliateDialog({
             <Label htmlFor="aff-social">{copy.social}</Label>
             <Input id="aff-social" value={social} onChange={(e) => setSocial(e.target.value)} />
           </div>
+          {programs.length > 1 ? (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="aff-add-program">{copy.program}</Label>
+              <NativeSelect
+                id="aff-add-program"
+                value={programId || programs.find((p) => p.isDefault)?.id || ''}
+                onChange={(e) => setProgramId(e.target.value)}
+              >
+                {programs.map((p) => (
+                  <NativeSelectOption key={p.id} value={p.id}>
+                    {p.name}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </div>
+          ) : null}
           <div className="flex items-center gap-3">
             <Switch id="aff-approve" checked={approve} onCheckedChange={setApprove} />
             <Label htmlFor="aff-approve">{copy.approve}</Label>

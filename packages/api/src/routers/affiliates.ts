@@ -2,27 +2,41 @@ import { settingsSecret } from '@commerce/config'
 import { CommerceError, permissions } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import {
-  AffiliateSettingsSchema,
   affiliateState,
   affiliateTotals,
   applyAsAffiliate,
   approveAffiliate,
   approveDueCommissions,
+  archiveProgram,
+  CommissionRuleSchema,
   cancelPayout,
   commissionLedger,
   createPayouts,
+  createProgram,
   decideCommission,
+  defaultProgram,
   getAffiliate,
+  getProgram,
   listAffiliates,
   listPayouts,
+  listPrograms,
   markPayoutPaid,
+  PROGRAM_SLUG,
+  ProgramRulesSchema,
   payoutCandidates,
   payoutsCsv,
+  restoreProgram,
+  StoreAffiliateSettingsSchema,
   saveAffiliateSettings,
+  saveProgram,
+  setAffiliateProgram,
+  setAffiliateRate,
   setAffiliateStatus,
+  storePart,
   topAffiliates,
   totalsByAffiliate,
   updateAffiliateNote,
+  withProgramRules,
 } from '@commerce/plugin-affiliates/server'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
@@ -61,6 +75,8 @@ function publicAffiliate(a: NonNullable<Awaited<ReturnType<typeof getAffiliate>>
     name: a.name,
     email: a.email,
     status: a.status,
+    programId: a.programId,
+    rateOverride: a.rateOverride,
     social: a.social,
     message: a.message,
     note: a.note,
@@ -76,6 +92,12 @@ function publicAffiliate(a: NonNullable<Awaited<ReturnType<typeof getAffiliate>>
 }
 
 const Id = z.object({ id: z.uuid() })
+
+const ProgramInput = z.object({
+  name: z.string().trim().min(1).max(80),
+  slug: z.string().trim().toLowerCase().regex(PROGRAM_SLUG).optional(),
+  rules: ProgramRulesSchema,
+})
 
 export const affiliatesRouter = {
   /** Sales from affiliates, money owed, the best affiliates and who is waiting to be paid. */
@@ -96,23 +118,77 @@ export const affiliatesRouter = {
       active: settings.active,
     }
   }),
+  /** Store-wide settings: open or paused, link window, hold, minimum payout and TDS. */
   settings: {
-    get: can(permissions.MARKETING_READ).handler(async ({ context }) => program(context)),
+    get: can(permissions.MARKETING_READ).handler(async ({ context }) =>
+      storePart(await program(context)),
+    ),
     save: can(permissions.MARKETING_WRITE)
-      .input(AffiliateSettingsSchema)
+      .input(StoreAffiliateSettingsSchema)
       .handler(async ({ context, input }) => {
         await program(context)
         return saveAffiliateSettings(context.tx, context.scope.storeId, input)
       }),
   },
+  /** Programs: each with its own commission, levels, exclusions, approval, code and signup page. */
+  programs: {
+    list: can(permissions.MARKETING_READ).handler(async ({ context }) => {
+      await program(context)
+      return listPrograms(context.tx, context.scope.storeId)
+    }),
+    get: can(permissions.MARKETING_READ)
+      .input(Id)
+      .handler(async ({ context, input }) => {
+        await program(context)
+        const p = await getProgram(context.tx, input.id)
+        if (!p) throw new ORPCError('NOT_FOUND', { message: 'Program not found' })
+        return p
+      }),
+    /** A new program; its rules start from what the admin sends (a copy of the default's). */
+    create: can(permissions.MARKETING_WRITE)
+      .input(ProgramInput)
+      .handler(async ({ context, input }) => {
+        await program(context)
+        return refusal(() => createProgram(context.tx, context.scope.storeId, input))
+      }),
+    /** Saves a program's name, link and rules; new rules apply to new orders only. */
+    save: can(permissions.MARKETING_WRITE)
+      .input(ProgramInput.extend({ id: z.uuid() }))
+      .handler(async ({ context, input }) => {
+        await program(context)
+        return refusal(() => saveProgram(context.tx, context.scope.storeId, input.id, input))
+      }),
+    /** Archives a program and moves its affiliates to another one. */
+    archive: can(permissions.MARKETING_WRITE)
+      .input(z.object({ id: z.uuid(), moveTo: z.uuid() }))
+      .handler(async ({ context, input }) => {
+        await program(context)
+        return refusal(() =>
+          archiveProgram(context.tx, context.scope.storeId, input.id, input.moveTo),
+        )
+      }),
+    /** Opens an archived program again. */
+    restore: can(permissions.MARKETING_WRITE)
+      .input(Id)
+      .handler(async ({ context, input }) => {
+        await program(context)
+        await restoreProgram(context.tx, input.id)
+        return { ok: true }
+      }),
+  },
   list: can(permissions.MARKETING_READ).handler(async ({ context }) => {
     await program(context)
-    const [rows, totals] = await Promise.all([
+    const [rows, totals, programs] = await Promise.all([
       listAffiliates(context.tx),
       totalsByAffiliate(context.tx),
+      listPrograms(context.tx, context.scope.storeId),
     ])
+    const fallback = programs.find((p) => p.isDefault)
+    const nameOf = (id: string | null) =>
+      (programs.find((p) => p.id === id) ?? fallback)?.name ?? ''
     return rows.map((a) => ({
       ...publicAffiliate(a),
+      programName: nameOf(a.programId),
       orders: totals.get(a.id)?.orders ?? 0,
       earnedPaise: totals.get(a.id)?.earnedPaise ?? 0,
       pendingPaise: totals.get(a.id)?.pendingPaise ?? 0,
@@ -124,11 +200,21 @@ export const affiliatesRouter = {
       await program(context)
       const a = await getAffiliate(context.tx, input.id)
       if (!a) throw new ORPCError('NOT_FOUND', { message: 'Affiliate not found' })
-      const [totals, ledger] = await Promise.all([
+      const [totals, ledger, programs] = await Promise.all([
         affiliateTotals(context.tx, a.id),
         commissionLedger(context.tx, { affiliateId: a.id, limit: 200 }),
+        listPrograms(context.tx, context.scope.storeId),
       ])
-      return { affiliate: publicAffiliate(a), totals, ledger }
+      const own = programs.find((p) => p.id === a.programId) ?? programs.find((p) => p.isDefault)
+      return {
+        affiliate: publicAffiliate(a),
+        totals,
+        ledger,
+        program: own ? { id: own.id, name: own.name, rules: own.rules } : null,
+        programs: programs
+          .filter((p) => !p.archivedAt)
+          .map((p) => ({ id: p.id, name: p.name, isDefault: p.isDefault })),
+      }
     }),
   /** The merchant adds someone by hand (a creator they already work with). */
   add: can(permissions.MARKETING_WRITE)
@@ -138,11 +224,17 @@ export const affiliatesRouter = {
         email: z.email().max(254),
         social: z.string().trim().max(200).default(''),
         approve: z.boolean().default(true),
+        /** Their program; none means the default. */
+        programId: z.uuid().optional(),
       }),
     )
     .handler(async ({ context, input }) => {
       const settings = await program(context)
       return refusal(async () => {
+        const chosen = input.programId
+          ? await getProgram(context.tx, input.programId)
+          : await defaultProgram(context.tx, context.scope.storeId)
+        if (!chosen) throw new ORPCError('NOT_FOUND', { message: 'Program not found' })
         const row = await applyAsAffiliate(
           context.tx,
           context.scope.storeId,
@@ -153,8 +245,13 @@ export const affiliatesRouter = {
             name: input.name,
             social: input.social,
             message: '',
+            programId: chosen.id,
           },
-          { ...settings, active: true, approval: input.approve ? 'auto' : 'manual' },
+          {
+            ...withProgramRules(settings, chosen.rules),
+            active: true,
+            approval: input.approve ? 'auto' : 'manual',
+          },
           settingsSecret(),
         )
         return publicAffiliate(row)
@@ -163,12 +260,28 @@ export const affiliatesRouter = {
   approve: can(permissions.MARKETING_WRITE)
     .input(Id)
     .handler(async ({ context, input }) => {
-      const settings = await program(context)
+      await program(context)
       return refusal(async () =>
-        publicAffiliate(
-          await approveAffiliate(context.tx, context.scope.storeId, input.id, settings),
-        ),
+        publicAffiliate(await approveAffiliate(context.tx, context.scope.storeId, input.id)),
       )
+    }),
+  /** Moves an affiliate to another program: new orders earn under it, their code takes its discount. */
+  setProgram: can(permissions.MARKETING_WRITE)
+    .input(z.object({ id: z.uuid(), programId: z.uuid() }))
+    .handler(async ({ context, input }) => {
+      await program(context)
+      await refusal(() =>
+        setAffiliateProgram(context.tx, context.scope.storeId, input.id, input.programId),
+      )
+      return { ok: true }
+    }),
+  /** Gives an affiliate their own default rate, or (null) back to the program's. */
+  setRate: can(permissions.MARKETING_WRITE)
+    .input(z.object({ id: z.uuid(), rule: CommissionRuleSchema.nullable() }))
+    .handler(async ({ context, input }) => {
+      await program(context)
+      await refusal(() => setAffiliateRate(context.tx, input.id, input.rule))
+      return { ok: true }
     }),
   setStatus: can(permissions.MARKETING_WRITE)
     .input(z.object({ id: z.uuid(), status: z.enum(['rejected', 'suspended']) }))

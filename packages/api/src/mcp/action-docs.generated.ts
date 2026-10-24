@@ -30,6 +30,16 @@ export const ACTION_DOCS: Record<string, string> = {
     'Sales from affiliates, money owed, the best affiliates and who is waiting to be paid.',
   'affiliates.payouts.exportCsv':
     'The bank bulk-upload file for pending payouts, account numbers and UPI IDs decrypted.',
+  'affiliates.programs.archive': 'Archives a program and moves its affiliates to another one.',
+  'affiliates.programs.create':
+    "A new program; its rules start from what the admin sends (a copy of the default's).",
+  'affiliates.programs.restore': 'Opens an archived program again.',
+  'affiliates.programs.save':
+    "Saves a program's name, link and rules; new rules apply to new orders only.",
+  'affiliates.setProgram':
+    'Moves an affiliate to another program: new orders earn under it, their code takes its discount.',
+  'affiliates.setRate':
+    "Gives an affiliate their own default rate, or (null) back to the program's.",
   'ai.action': 'One AI action with its card, for "Open approval" from the MCP & API activity log.',
   'ai.activity': 'Settings → AI → Activity: every AI action in the store, newest first.',
   'ai.applyBulk': 'Applies the reviewed suggestions to products; logged in Activity with an undo.',
