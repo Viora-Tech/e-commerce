@@ -14,6 +14,7 @@ import {
 } from 'drizzle-orm/pg-core'
 import { v7 as uuidv7 } from 'uuid'
 import { invitation } from './auth-schema'
+import type { PixelTracking } from './pixel-schema'
 
 export const newId = (): string => uuidv7()
 
@@ -811,21 +812,6 @@ export type MarketingAttribution = {
   ref?: string | undefined
   /** ISO time of the touch. */
   at: string
-}
-
-/**
- * What the storefront collector saw for a shopper, stamped on the cart and copied onto the
- * order (next to `attribution`), so the server Purchase can match the browser one. `ip`/`ua`
- * are cleared from orders after 30 days by the daily prune.
- */
-export type PixelTracking = {
-  fbp?: string | undefined
-  fbc?: string | undefined
-  fbclid?: string | undefined
-  ip?: string | undefined
-  ua?: string | undefined
-  landingUrl?: string | undefined
-  consent?: { marketing: boolean; analytics: boolean; version: number; at: string } | undefined
 }
 
 /** One address table, reused by customers and orders. state_code drives CGST/SGST vs IGST. */

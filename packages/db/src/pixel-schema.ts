@@ -14,8 +14,6 @@ import {
 } from 'drizzle-orm/pg-core'
 import { newId, order, store } from './schema'
 
-export type { PixelTracking } from './schema'
-
 /*
  * Pixels app (Meta Pixel + Conversions API). Design:
  * docs/superpowers/specs/2026-10-24-pixels-design.md §3. Status words are the ones in
@@ -61,13 +59,20 @@ export type PixelMatched = Partial<
   >
 >
 
-export const PIXEL_EVENT_NAMES: readonly PixelEventName[] = [
-  'PageView',
-  'ViewContent',
-  'AddToCart',
-  'InitiateCheckout',
-  'Purchase',
-]
+/**
+ * What the storefront collector saw for a shopper, stamped on `cart.tracking` and copied onto
+ * `order.tracking` (next to `attribution`), so the server Purchase can match the browser one.
+ * `ip`/`ua` are cleared from orders after 30 days by the daily prune.
+ */
+export type PixelTracking = {
+  fbp?: string | undefined
+  fbc?: string | undefined
+  fbclid?: string | undefined
+  ip?: string | undefined
+  ua?: string | undefined
+  landingUrl?: string | undefined
+  consent?: { marketing: boolean; analytics: boolean; version: number; at: string } | undefined
+}
 
 /**
  * One pixel a store sends to. `token_enc` is the merchant's Conversions API token, encrypted
