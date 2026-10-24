@@ -68,6 +68,42 @@ describe('metaDiscover', () => {
     )
   })
 
+  describe('choosing among shared catalogs (one integration serves every store on the business)', () => {
+    const app = { appId: 'a', appSecret: 's', loginConfigId: 'cfg' }
+    const shared = (data: { id: string; name: string }[]) =>
+      fakeGraph({
+        '/me': { id: 'su1', client_business_id: 'b1' },
+        '/b1': { name: 'Viora' },
+        '/me/assigned_product_catalogs': { data },
+        '/me/assigned_whatsapp_business_accounts': { data: [] },
+      }).fetchImpl
+    const two = [
+      { id: 'live', name: 'VIORA INDIA Catalog' },
+      { id: 'demo', name: 'Claw Gears (Koomerce)' },
+    ]
+
+    test("keeps the store's current catalog on a reconnect", async () => {
+      const account = await metaDiscover(shared(two), app, 'tok', 'Waimers (Koomerce)', 'live')
+      expect(account.catalogId).toBe('live')
+    })
+
+    test('picks the catalog named for this store', async () => {
+      const account = await metaDiscover(shared(two), app, 'tok', 'Claw Gears (Koomerce)')
+      expect(account.catalogId).toBe('demo')
+    })
+
+    test('uses the only shared catalog', async () => {
+      const account = await metaDiscover(shared([two[0]!]), app, 'tok', 'New Store (Koomerce)')
+      expect(account.catalogId).toBe('live')
+    })
+
+    test("refuses to guess between several, so it never syncs into another store's catalog", async () => {
+      await expect(metaDiscover(shared(two), app, 'tok', 'New Store (Koomerce)')).rejects.toThrow(
+        `Name this store's catalog "New Store (Koomerce)"`,
+      )
+    })
+  })
+
   test('a refused step names itself in the error', async () => {
     const { fetchImpl } = fakeGraph({ '/me': { id: 'su1', client_business_id: 'b1' } })
     const app = { appId: 'a', appSecret: 's', loginConfigId: 'cfg' }
