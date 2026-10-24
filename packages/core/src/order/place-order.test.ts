@@ -86,6 +86,22 @@ describe('placeOrder attribution', () => {
     const [o] = await owner.select().from(order).where(eq(order.id, result.orderId))
     expect(o?.attribution).toEqual(touch)
   })
+
+  it('copies the cart pixel tracking onto the order', async () => {
+    const { storeId, cartId } = await seed({ onHand: 5, quantity: 1 })
+    const tracking = {
+      fbp: 'fb.1.1792800000000.1234567890',
+      ip: '203.0.113.7',
+      ua: 'Mozilla/5.0',
+      consent: { marketing: true, analytics: true, version: 3, at: new Date().toISOString() },
+    }
+    await owner.update(cart).set({ tracking }).where(eq(cart.id, cartId))
+    const result = await withStore(app, storeId, (tx) =>
+      placeOrder({ storeId, tx }, { cartId, paymentProvider: new FakePaymentProvider() }),
+    )
+    const [o] = await owner.select().from(order).where(eq(order.id, result.orderId))
+    expect(o?.tracking).toEqual(tracking)
+  })
 })
 
 describe('placeOrder', () => {

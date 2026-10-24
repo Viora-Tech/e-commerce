@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Reviews">
+<defs>
+<linearGradient id="k-reviews-bg" x1="40" y1="0" x2="120" y2="160" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#FCD34D"/><stop offset=".48" stop-color="#F59E0B"/><stop offset="1" stop-color="#C2410C"/></linearGradient>
+<linearGradient id="k-reviews-hl" x1="0" y1="0" x2="0" y2="160" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<linearGradient id="k-reviews-ed" x1="0" y1="0" x2="0" y2="160" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".22" stop-color="#fff" stop-opacity="0"/><stop offset=".75" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".3"/></linearGradient>
+<filter id="k-reviews-sh" filterUnits="userSpaceOnUse" x="0" y="0" width="160" height="160" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceAlpha" stdDeviation="2"/><feOffset dy="3"/><feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .24 0"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<mask id="k-reviews-m" maskUnits="userSpaceOnUse" x="0" y="0" width="160" height="160"><rect width="160" height="160" fill="#fff"/><polygon points="70 57 81.8 80.8 108 84.6 89 103.2 93.5 129.4 70 117 46.5 129.4 51 103.2 32 84.6 58.2 80.8" stroke="#000" stroke-width="26" stroke-linejoin="round"/></mask>
+</defs>
+<rect width="160" height="160" rx="36" fill="url(#k-reviews-bg)"/>
+<rect width="160" height="160" rx="36" fill="url(#k-reviews-hl)"/>
+<rect x="1.5" y="1.5" width="157" height="157" rx="34.5" fill="none" stroke="url(#k-reviews-ed)" stroke-width="3"/>
+<g filter="url(#k-reviews-sh)">
+<g mask="url(#k-reviews-m)"><path d="M74 28h44a12 12 0 0 1 12 12v36a12 12 0 0 1-12 12H74a12 12 0 0 1-12-12V40a12 12 0 0 1 12-12Z" transform="rotate(12 96 58)" fill="#fff" fill-opacity=".62"/></g>
+<g><polygon points="70 57 81.8 80.8 108 84.6 89 103.2 93.5 129.4 70 117 46.5 129.4 51 103.2 32 84.6 58.2 80.8" fill="#fff" stroke="#fff" stroke-width="10" stroke-linejoin="round"/></g>
+</g>
+</svg>

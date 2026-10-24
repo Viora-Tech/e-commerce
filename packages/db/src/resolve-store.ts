@@ -119,6 +119,18 @@ export async function storesWithOldAutomationRuns(db: Db, now = new Date()): Pro
   return rows.map((r) => r.id)
 }
 
+/**
+ * Store ids with Pixels log or day rows past 30 days, or orders whose tracking IP/UA is due to
+ * be cleared, for the daily `{pixels}-prune`. SECURITY DEFINER backed (`stores_with_old_pixel_data`,
+ * migration 0160_pixels).
+ */
+export async function storesWithOldPixelData(db: Db, now = new Date()): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(
+    sql`select stores_with_old_pixel_data(${now.toISOString()}::timestamptz) as id`,
+  )
+  return rows.map((r) => r.id)
+}
+
 /** Store ids with baskets worth a recovery nudge, for the worker. SECURITY DEFINER backed. */
 export async function storesWithAbandonedCarts(db: Db, cutoff: Date): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(
@@ -168,6 +180,14 @@ export async function resolveHost(db: Db, hostname: string): Promise<HostRoute |
 /** Store ids with custom domains awaiting DNS or a certificate, for the worker. SECURITY DEFINER backed. */
 export async function storesWithPendingDomains(db: Db): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(sql`select stores_with_pending_domains() as id`)
+  return rows.map((r) => r.id)
+}
+
+/** Store ids with a store address (platform domain) whose route was never asked for, for the worker. SECURITY DEFINER backed. */
+export async function storesWithUnroutedPlatformDomains(db: Db): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(
+    sql`select stores_with_unrouted_platform_domains() as id`,
+  )
   return rows.map((r) => r.id)
 }
 

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Automations">
+<defs>
+<linearGradient id="k-automations-bg" x1="40" y1="0" x2="120" y2="160" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#FDBA74"/><stop offset=".48" stop-color="#F97316"/><stop offset="1" stop-color="#9A3412"/></linearGradient>
+<linearGradient id="k-automations-hl" x1="0" y1="0" x2="0" y2="160" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<linearGradient id="k-automations-ed" x1="0" y1="0" x2="0" y2="160" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".22" stop-color="#fff" stop-opacity="0"/><stop offset=".75" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".3"/></linearGradient>
+<filter id="k-automations-sh" filterUnits="userSpaceOnUse" x="0" y="0" width="160" height="160" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceAlpha" stdDeviation="2"/><feOffset dy="3"/><feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .24 0"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+
+</defs>
+<rect width="160" height="160" rx="36" fill="url(#k-automations-bg)"/>
+<rect width="160" height="160" rx="36" fill="url(#k-automations-hl)"/>
+<rect x="1.5" y="1.5" width="157" height="157" rx="34.5" fill="none" stroke="url(#k-automations-ed)" stroke-width="3"/>
+<g filter="url(#k-automations-sh)">
+<g><path d="M93 28 48 88h30l-10 44 45-61H83l10-43Z" fill="#fff" stroke="#fff" stroke-width="9" stroke-linejoin="round"/></g>
+</g>
+</svg>

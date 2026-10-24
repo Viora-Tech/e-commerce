@@ -7,7 +7,7 @@ import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import config from '../../commerce.config'
-import { APP_LOGOS } from '../../packages/core/src/apps/catalogue'
+import { APP_ICONS, APP_LOGOS } from '../../packages/core/src/apps/catalogue'
 import { APP_CATALOGUE_DATA } from '../../packages/core/src/apps/catalogue.generated'
 import { collectCatalogue } from '../gen-app-catalogue'
 import { ROOT } from './walk'
@@ -17,8 +17,8 @@ describe('sweep: app-catalogue', () => {
     expect(APP_CATALOGUE_DATA).toEqual(collectCatalogue(config.plugins))
   })
 
-  it('ships every app logo in the admin and on the App Store site', () => {
-    const missing = Object.values(APP_LOGOS).flatMap((file) =>
+  it('ships every app logo and icon in the admin and on the App Store site', () => {
+    const missing = [...Object.values(APP_LOGOS), ...Object.values(APP_ICONS)].flatMap((file) =>
       ['apps/admin/public', 'apps/www/public']
         .map((dir) => path.join(ROOT, dir, file))
         .filter((p) => !existsSync(p)),

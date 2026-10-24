@@ -18,6 +18,126 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/db/src/inbox-schema.ts',
+    names: [
+      'INBOX_CHANNELS',
+      'INBOX_STATUSES',
+      'INBOX_BLOCKED_REASONS',
+      'INBOX_SENDERS',
+      'INBOX_MESSAGE_KINDS',
+      'INBOX_BLOCK_KINDS',
+      'memberPushSubscription',
+    ],
+    reason:
+      'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
+  },
+  {
+    file: 'packages/core/src/inbox/constants.ts',
+    names: [
+      'CONVERSATION_STATUSES',
+      'BLOCKED_REASONS',
+      'MESSAGE_SENDERS',
+      'MESSAGE_KINDS',
+      'BLOCK_KINDS',
+      'INBOX_VIEWS',
+    ],
+    reason:
+      'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
+  },
+  {
+    file: 'packages/core/src/inbox/conversations.ts',
+    names: ['isShareableDiscount'],
+    reason:
+      'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
+  },
+  {
+    file: 'packages/core/src/inbox/identity.ts',
+    names: ['CHAT_COOKIE', 'CHAT_COOKIE_MAX_AGE', 'newChatToken', 'hashChatToken'],
+    reason:
+      'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
+  },
+  {
+    file: 'packages/core/src/inbox/limits.ts',
+    names: ['IMAGE_MAX_BYTES'],
+    reason:
+      'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
+  },
+  {
+    file: 'packages/core/src/inbox/rules.ts',
+    names: ['linkCount'],
+    reason:
+      'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
+  },
+  {
+    file: 'packages/core/src/inbox/settings.ts',
+    names: [
+      'InboxDayHoursSchema',
+      'DEFAULT_INBOX_HOURS',
+      'INBOX_AVAILABILITY',
+      'INBOX_CONTACT_CAPTURE',
+      'InboxSettingsSchema',
+      'DEFAULT_INBOX_SETTINGS',
+      'zonedWeekMinute',
+      'isInboxAvailable',
+      'contactRequired',
+    ],
+    reason:
+      'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
+  },
+  {
+    file: 'packages/core/src/inbox/shopper.ts',
+    names: [
+      'shopperMessageOf',
+      'findShopperConversation',
+      'shopperThread',
+      'ShopperSendSchema',
+      'InboxRateLimited',
+      'shopperSend',
+      'markShopperSeen',
+      'mergeGuestConversation',
+      'postCartEvent',
+      'customerConversations',
+    ],
+    reason:
+      'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
+  },
+  {
+    file: 'packages/db/src/pixel-schema.ts',
+    names: ['pixelConnection', 'pixelEventLog', 'pixelEventDay'],
+    reason:
+      'Pixels tables (feat/pixels-data, 2026-10-24): read by the worker and router in Pixels PR 3, which removes this entry',
+  },
+  {
+    file: 'packages/core/src/pixels/hash.ts',
+    names: [
+      'sha256',
+      'normaliseEmail',
+      'normaliseMetaPhone',
+      'normaliseName',
+      'normaliseCity',
+      'normaliseState',
+      'normalisePin',
+      'splitName',
+      'hashUserData',
+    ],
+    reason:
+      'Pixels core (feat/pixels-core, 2026-10-24): used by the sender in Pixels PR 3, which removes this entry',
+  },
+  {
+    file: 'packages/core/src/pixels/meta.ts',
+    names: [
+      'META_GRAPH',
+      'buildMetaEvent',
+      'matchedOf',
+      'classifyMetaError',
+      'cleanMetaMessage',
+      'sendMetaEvents',
+      'verifyMetaToken',
+    ],
+    reason:
+      'Pixels core (feat/pixels-core, 2026-10-24): used by the sender and sendTest in Pixels PR 3, which removes this entry',
+  },
+  {
     file: 'packages/ui/src/globe/webgl/sprite-dots.ts',
     names: ['MAX_SPRITE_DOT_SAMPLES', 'spriteDotSpacing'],
     reason:

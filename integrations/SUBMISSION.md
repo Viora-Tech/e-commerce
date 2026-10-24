@@ -9,6 +9,19 @@ change, so match by label if the order moved). Background and the code behind ev
 Everything marked `[OWNER: ...]` is yours to fill or confirm. Nothing here creates an account,
 accepts terms or submits anything.
 
+## Status (24 Oct 2026)
+
+| App | State | Next |
+|---|---|---|
+| Shopify "Koomerce Migration" | Submitted for review; all automated checks pass | Answer reviewer feedback |
+| Google (project `sellverse`, named Koomerce) | Branding verified; Merchant API registered (2.4); data access **submitted** with video https://youtu.be/0G6ZNX3o4HU | Answer questions sent to vioratech907@gmail.com |
+| Meta (app `2698025377367158`) | Published; **Tech Provider** (permanent); App Review draft `2698025430700486` for `catalog_management`, `business_management`, `public_profile` fully filled | Submit once business_management shows "1 of 1 API call" (1.7) |
+| Meta WhatsApp (`whatsapp_business_management`, `whatsapp_business_messaging`) | Not requested yet | Separate submission with videos B and C (1.8) and a test number |
+
+Reviewer login on every platform: `vioramice+shopifyreview@gmail.com` with **Sign in with a
+password** on https://admin.koomerce.app/login (env `REVIEWER_LOGIN_EMAIL` /
+`REVIEWER_LOGIN_PASSWORD`, password of 20 or more characters). Demo store: **Claw Gears**.
+
 ## 0. Before any submission
 
 Reviewers test the live product, so these must be true first:
@@ -97,9 +110,8 @@ Products to add: **Facebook Login for Business**, **WhatsApp**, **Webhooks**.
 **Status (24 Oct 2026): created.** App **Koomerce**, App ID `2698025377367158`, under the
 VIORA INDIA portfolio. Use cases chosen at creation include WhatsApp, Catalog API, Marketing
 API (create and measure ads), Messenger, Instagram messaging and content, Pages and others.
-App settings → Basic (1.3) and Facebook Login for Business → Settings (1.4) are saved. The
-data deletion URL in Basic temporarily points to https://koomerce.app/privacy until
-`/data-deletion` is deployed on koomerce.app; switch it to the values in 1.3 then.
+App settings → Basic (1.3) and Facebook Login for Business → Settings (1.4) are saved, the
+data deletion callback is set, the Website platform is added and the app is published.
 
 ### 1.3 App settings → Basic
 
@@ -154,6 +166,21 @@ Signature check: `X-Hub-Signature-256` with `META_APP_SECRET`. Other env: `META_
 
 ### 1.7 App Review → Permissions and features (Advanced Access)
 
+**Tech Provider first.** "Add to App Review" on any permission asks the app to become a Tech
+Provider (permanent; needs the verified business from 1.1). Done on 24 Oct 2026. Becoming one
+adds about 19 permissions to the App Review request on its own (ads, pages, Threads, leads,
+Instagram…): remove every one you are not submitting now (App Review → the request → trash
+icon → "Yes, remove"; it only drops them from the request, not from the app).
+
+**Required API call.** `business_management` needs at least one counted API call before its
+form saves ("0 of 1 API call(s) required"; counts take about an hour, up to 24 h). Make one in
+Graph API Explorer: app **Koomerce** → Get User Access Token with `business_management` →
+`GET me/businesses`.
+
+**Platform.** Reviewer instructions stay locked until App settings → Basic → Add platform →
+Website (`https://admin.koomerce.app/`) is saved; its testing instructions are what the
+review form shows.
+
 These are exactly what the code asks for (`META_SCOPES` in
 `packages/core/src/sales-channels/providers.ts` and the two configurations above). Do **not**
 request `pages_show_list`, `pages_read_engagement`, `instagram_*` or `ads_*`: the code does not
@@ -165,14 +192,13 @@ use them, and requesting unused permissions is a common rejection reason. (`ads_
 **`catalog_management`**
 
 > Koomerce is an e-commerce platform for Indian brands. A merchant connects their own Meta
-> business from the Koomerce admin (Sales channels → Social media → Facebook or Instagram →
-> Connect). Koomerce uses catalog_management to create one product catalog in the business the
+> business from the Koomerce admin (Sales channels → Social media → Meta → Connect Facebook). Koomerce uses catalog_management to create one product catalog in the business the
 > merchant selected in the Facebook Login for Business dialog, then keep it in sync with the
 > merchant's Koomerce store: it creates items for new products, updates titles, prices,
 > availability and images when they change, and deletes items when a product is archived. It
 > also reads each item's review status so the merchant sees in Koomerce which products Meta
-> rejected and why. This lets the merchant's products appear in their Facebook and Instagram
-> shops and catalog ads without uploading spreadsheets. Koomerce only touches catalogs the
+> rejected and why. This lets the merchant use their own products in Facebook and Instagram
+> catalog ads without uploading spreadsheets (Shops are not available in India). Koomerce only touches catalogs the
 > merchant granted, and stops when they disconnect.
 
 **`business_management`**
@@ -209,10 +235,10 @@ use them, and requesting unused permissions is a common rejection reason. (`ads_
 
 **Reviewer instructions** ("Provide step-by-step instructions" box):
 
-> 1. Go to https://admin.koomerce.app and sign in with email [OWNER: reviewer email] and
->    password [OWNER: reviewer password]. This is a demo store with test products.
+> 1. Go to https://admin.koomerce.app/login, click "Sign in with a password" and use the
+>    reviewer login (see Status). This is the demo store "Claw Gears" with test products.
 > 2. Catalog (catalog_management, business_management): left menu → Sales channels → Social
->    media → Instagram (or Facebook) → Connect. In the Facebook dialog choose your test business
+>    media → Meta → Facebook tab → Connect Facebook. In the Facebook dialog choose your test business
 >    and a catalog and continue. Back in Koomerce the channel shows "First sync", then
 >    "Connected" with the product count. Open Commerce Manager to see the items. Change a
 >    product's price in Products, return to the channel and press "Sync now"; the price updates
@@ -230,17 +256,20 @@ use them, and requesting unused permissions is a common rejection reason. (`ads_
 Record at 1080p, show the browser address bar, start signed out, add on-screen captions naming
 the permission at the moment it is used. Upload as MP4.
 
-**Video A: `catalog_management` + `business_management` (~3 min)**
+**Video A: `catalog_management` + `business_management` (~3 min)**: **done**,
+`koomerce-meta-catalog-review.mp4` (2:36, captioned; uploaded to both permissions). Recorded
+in the browser with the catalog `Claw Gears (Koomerce)`. A store picks its catalog by name,
+`<Store name> (Koomerce)`, so create and name it in Commerce Manager before connecting.
 
 | Time | On screen |
 |---|---|
 | 0:00 | koomerce.app → Sign in → admin.koomerce.app with the reviewer account. Caption: "Merchant signs in to Koomerce". |
 | 0:15 | Products list: show 3-4 products with prices. |
-| 0:30 | Sales channels → Social media → Instagram → Connect. |
+| 0:30 | Sales channels → Social media → Meta → Facebook → Connect Facebook. |
 | 0:40 | Facebook Login for Business dialog: show the permission list (catalog_management, business_management), choose the business and catalog, Continue. Caption: "business_management: merchant picks their business". |
 | 1:00 | Back in Koomerce: "First sync" → "Connected", item count. |
 | 1:15 | New tab: Commerce Manager → the catalog → items match the store. Caption: "catalog_management: items created". |
-| 1:40 | Koomerce: edit one product's price → Sales channels → Instagram → Sync now. Commerce Manager: price updated. Caption: "items updated". |
+| 1:40 | Koomerce: edit one product's price → Social media → Meta → Manage → Sync now. Commerce Manager: price updated. Caption: "items updated". |
 | 2:10 | Archive the product → Sync now → Commerce Manager: item gone. Caption: "items deleted". |
 | 2:30 | If any item is rejected, show the "not approved" list on the channel page. Caption: "review status read". |
 | 2:45 | Manage → Disconnect → status "Not connected". |
@@ -329,13 +358,33 @@ Client id/secret → env `GMC_GOOGLE_CLIENT_ID`, `GMC_GOOGLE_CLIENT_SECRET` (adm
 
 ### 2.4 One-time Merchant API registration
 
-From the company's own Merchant Center account (merchants.google.com, website koomerce.app
-verified and claimed), in the API Explorer for `developerRegistration:registerGcp`:
-`accounts/[OWNER: company Merchant Center id]/developerRegistration:registerGcp` with
-`{"developerEmail": "[OWNER: your Google account]"}`. Steps: `integrations/google/README.md`.
-Without it every Merchant API call answers 401.
+**Done on 24 Oct 2026** for Merchant Center **5882694222** (VIORA INDIA, homepage
+`waimers.in`, verified). Response: `gcpIds: ["98854989778"]`. Keep that homepage; do not
+switch it to koomerce.app (it runs Waimers' listings). Without the registration every Merchant
+API call fails with "GCP project … not registered".
+
+How it was done, and what failed first:
+
+1. OAuth Playground (developers.google.com/oauthplayground) → gear → **Use your own OAuth
+   credentials** → our client id and secret (the Playground URL is an authorised redirect URI
+   on the client). Scope `https://www.googleapis.com/auth/content` → Authorize → Exchange.
+2. Step 3: method **POST** (GET answers an HTML 404), URL with **no leading space** (a space
+   gives "Invalid request URL: https://%20https://…"):
+   `https://merchantapi.googleapis.com/accounts/v1/accounts/5882694222/developerRegistration:registerGcp`,
+   body `{"developerEmail":"<the Google account that signed in>"}`.
+3. `FAILED_PRECONDITION … unverified homepage`: verify the Merchant Center website first.
+4. Connect then failed with "registered but it should have at least one user with
+   API_DEVELOPER role": Merchant Center → Settings → People and access → give a verified user
+   the **API developer** role.
+5. "No Google Merchant Center account found" on Connect means the Google account chosen at
+   sign-in is not a user of any Merchant Center: pick one listed in People and access.
 
 ### 2.5 Verification Center → Submit for verification
+
+**Submitted on 24 Oct 2026** (video https://youtu.be/0G6ZNX3o4HU, justification below).
+Before recording, remove Koomerce at myaccount.google.com/connections so the consent screen
+lists the scope instead of "Koomerce already has some access", and zoom the address bar so
+`client_id=` is readable.
 
 **Scope justification** for `https://www.googleapis.com/auth/content`:
 

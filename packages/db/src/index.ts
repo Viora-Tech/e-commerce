@@ -9,7 +9,9 @@ export { createDb, type Db } from './client'
 export { seedWaimersShipping } from './default-shipping'
 export { isUniqueViolation } from './errors'
 export * from './finance-schema'
+export * from './inbox-schema'
 export * from './marketing-schema'
+export * from './pixel-schema'
 export * from './privacy-schema'
 export * from './purchasing-schema'
 export {
@@ -35,6 +37,7 @@ export {
   storesWithMemberDailySummaries,
   storesWithOldApiActivity,
   storesWithOldAutomationRuns,
+  storesWithOldPixelData,
   storesWithOpenShipments,
   storesWithPendingDomains,
   storesWithPendingManualOrders,
@@ -44,6 +47,7 @@ export {
   storesWithUndispatchedOutboxEvents,
   storesWithUnknownPaymentFees,
   storesWithUnpaidOnlineOrders,
+  storesWithUnroutedPlatformDomains,
 } from './resolve-store'
 export * from './returns-schema'
 export * from './schema'

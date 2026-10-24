@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Forms">
+<defs>
+<linearGradient id="k-forms-bg" x1="40" y1="0" x2="120" y2="160" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#7DD3FC"/><stop offset=".48" stop-color="#0EA5E9"/><stop offset="1" stop-color="#075985"/></linearGradient>
+<linearGradient id="k-forms-hl" x1="0" y1="0" x2="0" y2="160" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<linearGradient id="k-forms-ed" x1="0" y1="0" x2="0" y2="160" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".22" stop-color="#fff" stop-opacity="0"/><stop offset=".75" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".3"/></linearGradient>
+<filter id="k-forms-sh" filterUnits="userSpaceOnUse" x="0" y="0" width="160" height="160" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceAlpha" stdDeviation="2"/><feOffset dy="3"/><feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .24 0"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<mask id="k-forms-m" maskUnits="userSpaceOnUse" x="0" y="0" width="160" height="160"><rect width="160" height="160" fill="#fff"/><rect x="50" y="46" width="60" height="17" rx="6" fill="#000" fill-opacity=".45"/>
+<rect x="50" y="71" width="60" height="17" rx="6" fill="#000" fill-opacity=".45"/>
+<rect x="50" y="99" width="36" height="17" rx="8.5" fill="#000"/></mask>
+</defs>
+<rect width="160" height="160" rx="36" fill="url(#k-forms-bg)"/>
+<rect width="160" height="160" rx="36" fill="url(#k-forms-hl)"/>
+<rect x="1.5" y="1.5" width="157" height="157" rx="34.5" fill="none" stroke="url(#k-forms-ed)" stroke-width="3"/>
+<g filter="url(#k-forms-sh)">
+<g mask="url(#k-forms-m)"><rect x="36" y="30" width="88" height="100" rx="16" fill="#fff"/></g>
+</g>
+</svg>
