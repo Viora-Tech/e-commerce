@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
+import { adminUrl } from '@/lib/admin-origin'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { withEvlog } from '@/lib/request-log'
 import { routes } from '@/lib/routes'
@@ -10,7 +11,7 @@ import { routes } from '@/lib/routes'
  * expiring offline token and saves it; the merchant lands on the importer's Connect page.
  */
 export const GET = withEvlog(async (req: NextRequest) => {
-  const back = new URL(routes.apps.page('shopify-import', 'connect'), req.nextUrl.origin)
+  const back = adminUrl(routes.apps.page('shopify-import', 'connect'))
   const query = req.nextUrl.searchParams
   if (!query.get('code') || !query.get('state')) {
     back.searchParams.set('connect', 'cancelled')

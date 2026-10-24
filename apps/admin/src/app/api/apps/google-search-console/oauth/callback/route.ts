@@ -1,5 +1,6 @@
 import { SEARCH_CONSOLE_APP_ID } from '@commerce/core/search-console'
 import { type NextRequest, NextResponse } from 'next/server'
+import { adminUrl } from '@/lib/admin-origin'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { withEvlog } from '@/lib/request-log'
 import { routes } from '@/lib/routes'
@@ -13,7 +14,7 @@ import { routes } from '@/lib/routes'
 export const GET = withEvlog(async (req: NextRequest) => {
   const code = req.nextUrl.searchParams.get('code')
   const state = req.nextUrl.searchParams.get('state')
-  const back = new URL(routes.apps.settings(SEARCH_CONSOLE_APP_ID), req.nextUrl.origin)
+  const back = adminUrl(routes.apps.settings(SEARCH_CONSOLE_APP_ID))
   if (!code || !state) {
     back.searchParams.set('connect', 'cancelled')
     return NextResponse.redirect(back)
