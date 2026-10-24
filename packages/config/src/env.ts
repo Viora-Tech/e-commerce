@@ -262,6 +262,14 @@ const shape = z.object({
   MERCHANT_GOOGLE_CLIENT_ID: optionalOrBlank(z.string().min(1)),
   MERCHANT_GOOGLE_CLIENT_SECRET: optionalOrBlank(z.string().min(1)),
   /**
+   * App-store reviewers (Shopify, Meta) cannot receive a sign-in code, so one existing member may
+   * also sign in with a password. Both set turns "Sign in with a password" on for that email
+   * only (`reviewerSignIn`); either blank leaves it off. The member must already exist (invite
+   * them to the review store first). Never a real merchant's email.
+   */
+  REVIEWER_LOGIN_EMAIL: optionalOrBlank(z.string().email()),
+  REVIEWER_LOGIN_PASSWORD: optionalOrBlank(z.string().min(20)),
+  /**
    * The Google Search Console app's OAuth web client (scope `webmasters`). Both blank: the app
    * uses the MERCHANT_GOOGLE_* client instead; set these to keep Search Console in its own
    * Google Cloud project (its own consent screen and verification). The authorised redirect
@@ -419,6 +427,18 @@ export function loadEnv(source: Record<string, string | undefined>): Env {
  */
 export function settingsSecret(): string {
   return loadEnv(process.env).SETTINGS_SECRET
+}
+
+/**
+ * The app-store reviewer's password sign-in, or null when either key is unset: the admin then
+ * leaves the endpoint out of Better Auth and hides "Sign in with a password".
+ */
+export function reviewerSignIn(
+  env: Pick<Env, 'REVIEWER_LOGIN_EMAIL' | 'REVIEWER_LOGIN_PASSWORD'>,
+): { email: string; password: string } | null {
+  const email = env.REVIEWER_LOGIN_EMAIL
+  const password = env.REVIEWER_LOGIN_PASSWORD
+  return email && password ? { email: email.toLowerCase(), password } : null
 }
 
 /**

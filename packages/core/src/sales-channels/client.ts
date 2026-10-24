@@ -14,6 +14,13 @@ export type AiAgent = (typeof AI_AGENTS)[number]
 export const SOCIAL_CHANNELS = ['instagram', 'facebook', 'whatsapp', 'google'] as const
 export type SocialChannel = (typeof SOCIAL_CHANNELS)[number]
 
+/** The channels one Meta sign-in and catalog serve: connecting one lets the others join. */
+export const META_CHANNELS = ['facebook', 'instagram', 'whatsapp'] as const
+export type MetaChannel = (typeof META_CHANNELS)[number]
+
+export const isMetaChannel = (v: unknown): v is MetaChannel =>
+  typeof v === 'string' && (META_CHANNELS as readonly string[]).includes(v)
+
 export type SalesChannelId = AiAgent | SocialChannel
 
 export const isSocialChannel = (v: unknown): v is SocialChannel =>

@@ -403,6 +403,18 @@ export const salesChannelsContent = {
       `Orders that came from ${name} links show here, from the link the shopper came through.`,
     emptyHeading: (name: string) => `${name} is not connected`,
     pendingHeading: (name: string) => `${name} is waiting for approval`,
+    /** One Meta connection serves Facebook, Instagram and WhatsApp. */
+    meta: {
+      title: 'Meta connection',
+      subtitle: 'One sign-in and one catalog for Facebook, Instagram and WhatsApp.',
+      thisPage: 'This page',
+      turnOn: 'Turn on',
+      open: 'Open',
+      sales: (amount: string) => `${amount} · 30 days`,
+      joined: (name: string) => `${name} is on. It uses your Meta catalog.`,
+      failed: 'Could not turn it on. Try again.',
+      turnOnCta: (name: string) => `Turn on ${name}`,
+    },
     hubTitle: 'Social media',
     hubSubtitle:
       'Sell where your customers already scroll and chat. Shoppers check out on your store.',

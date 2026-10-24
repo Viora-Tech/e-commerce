@@ -22,6 +22,9 @@ import {
   ConnectRequestSchema,
   channelOfAttribution,
   channelState,
+  isMetaChannel,
+  META_CHANNELS,
+  type MetaChannel,
   NOT_CONNECTED,
   parseSalesChannels,
   type SalesChannelId,
@@ -324,6 +327,11 @@ export type SocialOverview = {
   series: { date: string; paise: number; previousPaise: number }[]
   activeProducts: number
   recent: ChannelOrder[]
+  /**
+   * For Facebook, Instagram and WhatsApp: all three, since they share one Meta connection, each
+   * with its state and last-30-day sales. Empty for Google.
+   */
+  meta: { channel: MetaChannel; state: ChannelState; revenuePaise: number; orders: number }[]
 }
 
 /** Social media → one channel. */
@@ -345,5 +353,19 @@ export async function loadSocialOverview(
     series: dailySeries(mine, now),
     activeProducts: products.active,
     recent: mine.slice(0, 5),
+    meta: isMetaChannel(channel)
+      ? META_CHANNELS.map((c) => {
+          const t = totals(
+            orders.filter((o) => o.channel === c),
+            now,
+          )
+          return {
+            channel: c,
+            state: channelState(settings, c),
+            revenuePaise: t.revenuePaise,
+            orders: t.orders,
+          }
+        })
+      : [],
   }
 }

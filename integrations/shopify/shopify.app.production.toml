@@ -1,0 +1,36 @@
+# Production config for the Koomerce Migration app (Kuldeep Partner org, public distribution).
+# From this folder: `shopify app deploy --config production` pushes it as a new app version,
+# including the compliance and app/uninstalled webhooks the Dev Dashboard form cannot set.
+# Keep it in step with shopify.app.toml (the template) and ALL_SCOPE_HANDLES.
+
+client_id = "75f45ddb7855e4d9633d3854f3b27d1e"
+name = "Koomerce Migration"
+# Where Shopify opens the app from the merchant's admin. The importer lives in our admin.
+application_url = "https://admin.koomerce.app/apps/shopify-import/connect"
+embedded = false
+
+[access_scopes]
+# Keep in step with ALL_SCOPE_HANDLES (packages/plugin-shopify-import/src/client.ts).
+# read_all_orders also needs Shopify's approval (Partner/Dev Dashboard -> API access requests).
+# read_customers and read_orders need protected customer data access, Level 2 (names, emails,
+# phones, addresses), requested in the Dev Dashboard before review.
+scopes = "read_products,read_inventory,read_customers,read_orders,read_all_orders,read_content,read_online_store_navigation,read_files,read_metaobject_definitions,read_metaobjects,read_discounts,read_gift_cards,read_shipping,read_legal_policies,read_purchase_options"
+# The admin builds the authorize URL itself (authorization code grant), with these scopes.
+use_legacy_install_flow = true
+
+[auth]
+redirect_urls = ["https://admin.koomerce.app/api/apps/shopify-import/oauth/callback"]
+
+[webhooks]
+api_version = "2026-10"
+
+  # Shopify's mandatory privacy webhooks. app/uninstalled cannot be an app-level subscription
+  # while use_legacy_install_flow is on (CLI 4.9 refuses it); shop/redact follows an uninstall.
+  # One endpoint on the worker; it checks X-Shopify-Hmac-Sha256 with SHOPIFY_APP_CLIENT_SECRET
+  # and reads X-Shopify-Topic.
+  [[webhooks.subscriptions]]
+  compliance_topics = ["customers/data_request", "customers/redact", "shop/redact"]
+  uri = "https://api.koomerce.app/webhooks/platform/shopify"
+
+[pos]
+embedded = false

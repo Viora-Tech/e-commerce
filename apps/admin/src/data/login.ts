@@ -53,6 +53,17 @@ export const loginContent = {
     button: 'Sign in with a passkey',
     failed: 'Could not sign in with a passkey. Use a code by email instead.',
   },
+  /** App-store reviewers only (REVIEWER_LOGIN_*): they cannot receive a sign-in code. */
+  password: {
+    link: 'Sign in with a password',
+    title: 'Sign in with a password',
+    body: 'For app reviewers. Everyone else signs in with a code by email.',
+    label: 'Password',
+    submit: 'Log in',
+    signingIn: 'Signing in',
+    failed: 'Wrong email or password.',
+    back: 'Use a code by email',
+  },
   terms: {
     prefix: 'By continuing you agree to the',
     terms: 'Terms of Service',
