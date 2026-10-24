@@ -217,13 +217,17 @@ const step = <T>(name: string, call: Promise<T>) =>
 /**
  * A system user token reaches only the assets the merchant shared in the Meta sign-in window, so
  * the catalog comes from `/me/assigned_product_catalogs` (asking the business for all its catalogs
- * is refused: "Requires business_management permission"). Ours by name, else the first shared.
+ * is refused: "Requires business_management permission"). The business integration is shared by
+ * every store on that Meta business, so it can also see catalogs other stores connected. The pick:
+ * this store's current catalog, else ours by name, else the only one shared. With several and no
+ * match it refuses rather than guess, since a guess could sync into another store's catalog.
  */
 async function sharedCatalog(
   fetchImpl: typeof fetch,
   app: MetaApp,
   token: string,
   catalogName: string,
+  current: string | null,
 ): Promise<string> {
   const shared = await step(
     'catalogs',
@@ -234,13 +238,17 @@ async function sharedCatalog(
       '/me/assigned_product_catalogs?fields=id,name',
     ),
   )
-  const catalog = shared.data.find((c) => c.name === catalogName) ?? shared.data[0]
-  if (!catalog)
-    throw new ChannelApiError(
-      'api',
-      'No catalog was shared. Connect again and choose (or create) a catalog in the Meta window.',
-    )
-  return catalog.id
+  const catalog =
+    shared.data.find((c) => c.id === current) ??
+    shared.data.find((c) => c.name === catalogName) ??
+    (shared.data.length === 1 ? shared.data[0] : undefined)
+  if (catalog) return catalog.id
+  throw new ChannelApiError(
+    'api',
+    shared.data.length === 0
+      ? 'No catalog was shared. Connect again and choose (or create) a catalog in the Meta window.'
+      : `Several catalogs are shared with this app. Name this store's catalog "${catalogName}" in Commerce Manager, then connect again.`,
+  )
 }
 
 /** A user token: our catalog in the business, made once and named after the store. */
@@ -282,6 +290,8 @@ export async function metaDiscover(
   app: MetaApp,
   token: string,
   catalogName: string,
+  /** The catalog this store already syncs to, kept on a reconnect. */
+  currentCatalog: string | null = null,
 ): Promise<MetaAccount> {
   const client = await step('business', metaClientBusiness(fetchImpl, app, token))
   const business =
@@ -303,7 +313,7 @@ export async function metaDiscover(
       'No Meta business account found. Create one in Meta Business Suite, then connect again.',
     )
   const catalogId = app.loginConfigId
-    ? await sharedCatalog(fetchImpl, app, token, catalogName)
+    ? await sharedCatalog(fetchImpl, app, token, catalogName, currentCatalog)
     : await ownedCatalog(fetchImpl, app, token, business.id, catalogName)
   // A system user sees only the WhatsApp accounts shared with it; a user token, the business's.
   const wabas = await graph<{ data: { id: string }[] }>(
