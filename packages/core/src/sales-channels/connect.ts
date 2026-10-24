@@ -312,8 +312,15 @@ export async function completeChannelConnect(
   const s = verifyChannelState(input.state, deps.secret, now)
   if (!s || PROVIDER_OF[s.channel] !== input.provider)
     throw new ChannelApiError('api', 'This sign-in link expired. Start Connect again.')
-  const [named] = await withStore(db, s.storeId, (tx) =>
-    tx.select({ name: store.name }).from(store).where(eq(store.id, s.storeId)),
+  const [named, current] = await withStore(db, s.storeId, (tx) =>
+    Promise.all([
+      tx
+        .select({ name: store.name })
+        .from(store)
+        .where(eq(store.id, s.storeId))
+        .then((rows) => rows[0]),
+      loadConnection({ tx, storeId: s.storeId }, input.provider),
+    ]),
   )
   const catalogName = `${named?.name ?? 'Store'} (${siteConfig.brand.name})`
   const redirectUri = callbackUrl(deps.adminUrl, input.provider)
@@ -324,7 +331,13 @@ export async function completeChannelConnect(
       code: input.code,
       redirectUri,
     })
-    const account = await metaDiscover(deps.fetch, deps.meta, token, catalogName)
+    const account = await metaDiscover(
+      deps.fetch,
+      deps.meta,
+      token,
+      catalogName,
+      current?.target ?? null,
+    )
     if (s.channel === 'whatsapp' && account.wabaId)
       await metaLinkWhatsapp(deps.fetch, deps.meta, token, account.wabaId, account.catalogId).catch(
         () => undefined,
