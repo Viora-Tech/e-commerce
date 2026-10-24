@@ -407,7 +407,10 @@ export const salesChannelsContent = {
     meta: {
       title: 'Meta connection',
       subtitle: 'One sign-in and one catalog for Facebook, Instagram and WhatsApp.',
-      thisPage: 'This page',
+      /** The Meta page's title in the browser tab; its tabs are the three surfaces. */
+      navTitle: 'Meta',
+      tabsLabel: 'Meta surface',
+      thisPage: 'This tab',
       turnOn: 'Turn on',
       open: 'Open',
       sales: (amount: string) => `${amount} · 30 days`,

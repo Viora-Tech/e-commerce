@@ -3,6 +3,8 @@
 import type { SocialOverview } from '@commerce/core'
 import {
   isLive,
+  META_CHANNELS,
+  type MetaChannel,
   needsReconnect,
   type ReadinessIssue,
   type ReadinessRule,
@@ -19,6 +21,7 @@ import EmptyState from '@/components/layout/empty-state'
 import KeyValueList from '@/components/layout/key-value-list'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
+import PillTabs from '@/components/layout/pill-tabs'
 import StatStrip from '@/components/layout/stat-strip'
 import { salesChannelsContent } from '@/data/sales-channels'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -80,10 +83,15 @@ export default function SocialChannelPage({ data, issues }: SocialChannelPagePro
     if (returned === 'connected') toast.success(live.returned.connected(info.name))
     else if (returned === 'failed') toast.error(live.returned.failed(info.name))
     else toast(live.returned.cancelled)
-    router.replace(window.location.pathname)
+    // Drop only the flag: the Meta page keeps its `?surface=` tab.
+    const url = new URL(window.location.href)
+    url.searchParams.delete('connect')
+    router.replace(`${url.pathname}${url.search}`)
   }, [params])
 
   // Event handlers
+  const handleSurface = (c: MetaChannel) => router.push(routes.salesChannels.socialChannel(c))
+
   /** Another Meta surface is on: join its sign-in and catalog, no second Facebook login. */
   const handleJoinMeta = async () => {
     setJoining(true)
@@ -150,6 +158,15 @@ export default function SocialChannelPage({ data, issues }: SocialChannelPagePro
           )
         }
       />
+      {data.meta.length > 0 ? (
+        <nav aria-label={copy.meta.tabsLabel} className="-mt-2 border-b border-border">
+          <PillTabs
+            tabs={META_CHANNELS.map((c) => ({ value: c, label: shared.social[c].name }))}
+            value={channel as MetaChannel}
+            onChange={handleSurface}
+          />
+        </nav>
+      ) : null}
       <ChannelBar
         state={state}
         name={name}
