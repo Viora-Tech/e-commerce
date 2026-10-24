@@ -14,6 +14,7 @@ import {
 } from 'drizzle-orm/pg-core'
 import { v7 as uuidv7 } from 'uuid'
 import { invitation } from './auth-schema'
+import type { PixelTracking } from './pixel-schema'
 
 export const newId = (): string => uuidv7()
 
@@ -915,6 +916,8 @@ export const cart = pgTable('cart', {
   customerName: text('customer_name'),
   /** Where the shopper came from (UTM, referrer, marketing click); copied onto the order. */
   attribution: jsonb('attribution').$type<MarketingAttribution>(),
+  /** Pixels app: the shopper's fbp/fbc, IP, UA and consent, from the storefront collector. */
+  tracking: jsonb('tracking').$type<PixelTracking>(),
   createdAt: createdAt(),
   /** Touched on every line or contact change; the abandoned window is measured from here. */
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -1034,6 +1037,8 @@ export const order = pgTable(
     tags: text('tags').array().notNull().default([]),
     /** Snapshot of the cart's attribution when the order was placed; drives Marketing reports. */
     attribution: jsonb('attribution').$type<MarketingAttribution>(),
+    /** Snapshot of the cart's `tracking` (Pixels app); ip/ua are cleared after 30 days. */
+    tracking: jsonb('tracking').$type<PixelTracking>(),
     /**
      * Pre-order deposit bookkeeping. `depositPaise` is null on an order with no
      * deposit-mode pre-order lines (paid in full as normal); `balanceDuePaise`

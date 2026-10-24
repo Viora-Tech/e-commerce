@@ -13,6 +13,7 @@ export default defineConfig({
     './src/finance-schema.ts',
     './src/auth-schema.ts',
     './src/marketing-schema.ts',
+    './src/pixel-schema.ts',
     './src/privacy-schema.ts',
     './src/purchasing-schema.ts',
     './src/returns-schema.ts',

@@ -9,6 +9,7 @@ import {
   order,
   orderLine,
   type ParcelDeliveryEstimate,
+  type PixelTracking,
   payment,
   product,
   store,
@@ -159,6 +160,8 @@ type State = {
   cartDiscountCode: string | null
   /** The cart's marketing touch, copied onto the order for attribution. */
   cartAttribution: MarketingAttribution | null
+  /** The cart's pixel tracking (fbp/fbc, IP, UA, consent), copied onto the order for the Pixels app. */
+  cartTracking: PixelTracking | null
   discount: ResolvedDiscount | null
   /** The rate charged; null when nothing ships or the store has no rates. */
   shipping: ShippingRateOption | null
@@ -233,7 +236,12 @@ const loadCart: WorkflowStep<State> = {
       preorder: resolvePreorderSettings(r, r.preorderOverride),
     }))
     checkGiftCardRules(lines, input, ctx.storeId)
-    return { lines, cartDiscountCode: c.discountCode, cartAttribution: c.attribution ?? null }
+    return {
+      lines,
+      cartDiscountCode: c.discountCode,
+      cartAttribution: c.attribution ?? null,
+      cartTracking: c.tracking ?? null,
+    }
   },
 }
 
@@ -404,7 +412,17 @@ const reserveStock: WorkflowStep<State> = {
 
 const createOrder: WorkflowStep<State> = {
   name: 'createOrder',
-  async run({ ctx, lines, parcels, input, discount: applied, cartAttribution, shipping, contact }) {
+  async run({
+    ctx,
+    lines,
+    parcels,
+    input,
+    discount: applied,
+    cartAttribution,
+    cartTracking,
+    shipping,
+    contact,
+  }) {
     let customerId: string | null = null
     let shippingAddressId: string | null = null
     if (input.checkout) {
@@ -635,6 +653,7 @@ const createOrder: WorkflowStep<State> = {
         // The gateway runs on its test keys: no real money, kept out of reports and invoices.
         isTest: input.paymentProvider.mode === 'test',
         attribution: cartAttribution,
+        tracking: cartTracking,
         cartId: input.cartId,
         tags,
         depositPaise: preorderLines.length > 0 ? depositPaise : null,
@@ -954,6 +973,7 @@ export async function placeOrder(
       lines: [],
       cartDiscountCode: null,
       cartAttribution: null,
+      cartTracking: null,
       discount: null,
       shipping: null,
       contact: null,

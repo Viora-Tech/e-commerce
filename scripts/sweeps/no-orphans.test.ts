@@ -18,6 +18,12 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/db/src/pixel-schema.ts',
+    names: ['pixelConnection', 'pixelEventLog', 'pixelEventDay'],
+    reason:
+      'Pixels tables (feat/pixels-data, 2026-10-24): read by the worker and router in Pixels PR 3, which removes this entry',
+  },
+  {
     file: 'packages/ui/src/globe/webgl/sprite-dots.ts',
     names: ['MAX_SPRITE_DOT_SAMPLES', 'spriteDotSpacing'],
     reason:
