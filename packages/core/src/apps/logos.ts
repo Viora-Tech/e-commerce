@@ -29,3 +29,22 @@ export const APP_LOGOS: Readonly<Record<string, string>> = {
   whatsapp: '/app-logos/whatsapp.svg',
   xpressbees: '/app-logos/xpressbees.png',
 }
+
+/**
+ * Our own apps' icons (the built-in family: a coloured tile with a custom mark), by app id. Each
+ * file lives under `public/app-icons` in the admin and on the App Store site; the
+ * `app-catalogue` sweep checks both. The tile and its corners are part of the file.
+ */
+export const APP_ICONS: Readonly<Record<string, string>> = {
+  affiliates: '/app-icons/affiliates.svg',
+  automations: '/app-icons/automations.svg',
+  'back-in-stock': '/app-icons/back-in-stock.svg',
+  'emi-pay-later': '/app-icons/emi-pay-later.svg',
+  forms: '/app-icons/forms.svg',
+  'gst-invoices': '/app-icons/gst-invoices.svg',
+  inbox: '/app-icons/inbox.svg',
+  pixels: '/app-icons/pixels.svg',
+  reviews: '/app-icons/reviews.svg',
+  search: '/app-icons/search.svg',
+  'shopify-import': '/app-icons/shopify-import.svg',
+}

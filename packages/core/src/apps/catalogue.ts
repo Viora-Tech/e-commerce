@@ -12,7 +12,7 @@ import { APP_PRICING } from '../billing/apps'
 import type { PlanId } from '../billing/plans'
 import { APP_CATALOGUE_DATA } from './catalogue.generated'
 
-export { APP_LOGOS } from './logos'
+export { APP_ICONS, APP_LOGOS } from './logos'
 
 export type CatalogueAccessLevel = 'read' | 'write' | 'read-write'
 
