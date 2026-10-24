@@ -9,6 +9,7 @@ import {
   automationStepQueue,
   channelSyncQueue,
   dailyVisitors,
+  inboxPublisher,
   liveVisitors,
   mediaProcessQueue,
   notificationQueue,
@@ -43,6 +44,7 @@ export function apiHost() {
         dailyVisitors(sharedRedis(loadEnv(process.env).REDIS_URL), storeId, days),
     },
     rateLimit: createRedisRateLimitStore(sharedRedis(loadEnv(process.env).REDIS_URL)),
+    inboxPublisher: inboxPublisher(loadEnv(process.env).REDIS_URL),
     reportError,
   }
 }

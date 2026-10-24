@@ -238,6 +238,10 @@ export const ACTION_DOCS: Record<string, string> = {
   'inbox.settings.get':
     'Greeting, hours, away message, contact capture, sign-in, launcher, email fallback, retention.',
   'inbox.settings.save': 'Saves part of the Inbox settings.',
+  'inbox.streamAccess': "The admin stream route's check: the member may read Inbox in this store.",
+  'inbox.sync':
+    'The polling fallback: messages and changed conversations since a message id, and the counts.',
+  'inbox.typing': '"Typing…" to the shopper; never stored, at most one every 3 seconds.',
   'inventory.bulkEdit': 'Same edit across selected rows; all or nothing.',
   'inventory.edit': 'One inline edit: returns the new on-hand count.',
   'inventory.exportRows': 'Every matching row, for CSV export.',

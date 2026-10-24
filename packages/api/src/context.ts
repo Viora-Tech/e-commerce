@@ -13,6 +13,7 @@ import type {
   StoreExportQueue,
 } from '@commerce/core'
 import type { AutomationStepQueue } from '@commerce/core/automations/server'
+import type { PubSubPublisher } from '@commerce/core/inbox/server'
 import type { Db } from '@commerce/db'
 import type { ErrorReporter } from '@commerce/observability'
 import type { RequestMemo } from './procedures/request-memo'
@@ -55,6 +56,8 @@ export type ApiContext = {
    *  token allows. Store procedures then run as that member, capped by the token's areas;
    *  account and other session-only procedures refuse it (`procedures/base.ts`). */
   apiPrincipal?: ApiPrincipal | undefined
+  /** Inbox realtime: publishes to Redis pub/sub after a write commits. Absent in tests: nothing is published (clients catch up by replay or polling). */
+  inboxPublisher?: PubSubPublisher | undefined
   /** `fetch` for GitHub's issues API ("Report a bug"). Absent: the global fetch. Tests pass a fake so they never reach GitHub. */
   githubFetch?: typeof fetch | undefined
 }

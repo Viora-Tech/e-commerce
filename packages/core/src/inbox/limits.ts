@@ -18,6 +18,8 @@ export const INBOX_LIMITS = {
   messagesPerHour: { limit: 60, windowMs: HOUR },
   /** A shopper's images in one conversation. */
   imagesPerHour: { limit: 5, windowMs: HOUR },
+  /** "Typing…": one per side per conversation every 3 s. */
+  typing: { limit: 1, windowMs: 3000 },
   /** One staff member's messages, across conversations. */
   staffPerMinute: { limit: 60, windowMs: MINUTE },
 } satisfies Record<string, RateLimitRule>

@@ -18,6 +18,23 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/core/src/inbox/connection.ts',
+    names: ['EVENT_TYPES', 'connectInbox'],
+    reason:
+      'the browser side of Inbox realtime, used by the admin inbox (PR 4) and the widget (PR 5); unit-tested here',
+  },
+  {
+    file: 'packages/core/src/inbox/realtime.ts',
+    names: ['createInboxHub', 'sseFrame'],
+    reason:
+      'the hub and the SSE frame behind processInboxHub and inboxStreamResponse, exported for their unit tests',
+  },
+  {
+    file: 'packages/core/src/inbox/events.ts',
+    names: ['storeReplay'],
+    reason: 'the admin stream replay behind replayForStore, exported for its unit test',
+  },
+  {
     file: 'packages/db/src/inbox-schema.ts',
     names: [
       'INBOX_CHANNELS',
@@ -52,7 +69,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/inbox/identity.ts',
-    names: ['CHAT_COOKIE', 'CHAT_COOKIE_MAX_AGE', 'newChatToken', 'hashChatToken'],
+    names: ['CHAT_COOKIE_MAX_AGE', 'newChatToken'],
     reason:
       'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
   },
@@ -87,9 +104,6 @@ const ALLOWLIST: AllowEntry[] = [
   {
     file: 'packages/core/src/inbox/shopper.ts',
     names: [
-      'shopperMessageOf',
-      'findShopperConversation',
-      'shopperThread',
       'ShopperSendSchema',
       'InboxRateLimited',
       'shopperSend',

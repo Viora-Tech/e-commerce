@@ -352,8 +352,8 @@ export async function staffSend(
   }
 }
 
-/** Staff opened the thread: nothing in it is unread for staff any more. */
-export async function markStaffSeen(ctx: StoreContext, id: string): Promise<void> {
+/** Staff opened the thread: nothing in it is unread for staff any more. Returns the last message id. */
+export async function markStaffSeen(ctx: StoreContext, id: string): Promise<string | null> {
   const [last] = await ctx.tx
     .select({ id: inboxMessage.id })
     .from(inboxMessage)
@@ -364,6 +364,7 @@ export async function markStaffSeen(ctx: StoreContext, id: string): Promise<void
     .update(inboxConversation)
     .set({ unreadStaff: 0, staffSeenMessageId: last?.id ?? null })
     .where(eq(inboxConversation.id, id))
+  return last?.id ?? null
 }
 
 /** Assigns to a store member (who then is the only one notified), or unassigns with null. */

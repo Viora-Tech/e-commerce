@@ -144,6 +144,63 @@ describe('inbox router', () => {
   })
 })
 
+describe('inbox realtime', () => {
+  it('publishes after the write commits, and nothing when it fails', async () => {
+    const m = await merchant('e@example.com', 'store-e')
+    await install(m.storeId)
+    const id = await conversationIn(m.storeId, 'Hello?')
+    const published: { channel: string; event: { type: string } }[] = []
+    const ctx = {
+      ...m.ctx,
+      inboxPublisher: {
+        publish: async (channel: string, message: string) => {
+          published.push({ channel, event: JSON.parse(message) })
+        },
+      },
+    } as ApiContext
+    await call(appRouter.inbox.send, { conversationId: id, body: 'Hi there' }, { context: ctx })
+    expect(published.map((p) => `${p.channel.split(':')[0]} ${p.event.type}`)).toEqual([
+      'inbox message',
+      'inbox conversation',
+      'conv message',
+    ])
+    published.length = 0
+    await call(
+      appRouter.inbox.send,
+      { conversationId: id, kind: 'note', body: 'psst' },
+      { context: ctx },
+    )
+    expect(published.some((p) => p.channel.startsWith('conv:'))).toBe(false)
+    published.length = 0
+    await expect(
+      call(appRouter.inbox.send, { conversationId: id, kind: 'discount' }, { context: ctx }),
+    ).rejects.toThrow(/discount/)
+    expect(published).toEqual([])
+    await call(appRouter.inbox.typing, { id }, { context: ctx })
+    await call(appRouter.inbox.typing, { id }, { context: ctx })
+    expect(published.map((p) => p.event.type)).toEqual(['typing'])
+  })
+
+  it('sync catches up from a cursor; the stream check needs the app', async () => {
+    const m = await merchant('f@example.com', 'store-f')
+    await expect(call(appRouter.inbox.streamAccess, undefined, { context: m.ctx })).rejects.toThrow(
+      /Install/,
+    )
+    await install(m.storeId)
+    expect(await call(appRouter.inbox.streamAccess, undefined, { context: m.ctx })).toEqual({
+      storeId: m.storeId,
+    })
+    const id = await conversationIn(m.storeId, 'One')
+    const start = await call(appRouter.inbox.sync, {}, { context: m.ctx })
+    expect(start.cursor).not.toBeNull()
+    await call(appRouter.inbox.send, { conversationId: id, body: 'Two' }, { context: m.ctx })
+    const next = await call(appRouter.inbox.sync, { since: start.cursor }, { context: m.ctx })
+    expect(next.messages.map((x) => x.body)).toContain('Two')
+    expect(classifyAction('inbox.sync')).toBe('read')
+    expect(classifyAction('inbox.streamAccess')).toBeNull()
+  })
+})
+
 describe('inbox permissions', () => {
   it('admins get every inbox grant; the Staff role gets none', () => {
     const admin = SYSTEM_ROLES.find((r) => r.slug === 'admin')

@@ -197,19 +197,36 @@ function storeProcedureWith(required?: Permission | readonly Permission[]) {
   return memberProcedure.use(async ({ context, next, path }) => {
     const member = await findMembership(context)
     context.log.set({ storeId: member.storeId })
-    return withStore(context.db, member.storeId, async (tx: StoreTx) => {
+    // Work that must wait until the transaction has committed (realtime publishes): a
+    // listener must never hear about a row it cannot read yet, or one that rolled back.
+    const committed: AfterCommit[] = []
+    const afterCommit = (fn: AfterCommit) => {
+      committed.push(fn)
+    }
+    const result = await withStore(context.db, member.storeId, async (tx: StoreTx) => {
       const scope = await scopeFor(context, tx, member, required)
       context.log.set({ role: scope.roleSlug })
       try {
-        const result = await next({ context: { scope, tx } })
+        const out = await next({ context: { scope, tx, afterCommit } })
         await logTokenCall(context, tx, member.storeId, path, required)
-        return result
+        return out
       } catch (error) {
         return report(context, member.storeId, error)
       }
     })
+    for (const fn of committed) {
+      try {
+        await fn()
+      } catch (error) {
+        context.reportError?.(error, { storeId: member.storeId })
+      }
+    }
+    return result
   })
 }
+
+/** Runs after the store transaction commits; failures are reported, never thrown. */
+export type AfterCommit = () => void | Promise<void>
 
 /**
  * Settings → MCP & API → Activity: a call made with an access token. Changes are logged one by

@@ -152,6 +152,7 @@ const READ_PATHS = new Set([
   'payments.setup',
   'payments.testMode',
   'gstInvoices.bulkDownload',
+  'inbox.sync',
   'apps.testConnection',
   'collections.products',
   'giftCards.products',
@@ -200,6 +201,8 @@ const EXCLUDED_PATHS: Record<string, string> = {
   'searchConsole.connectStart': 'a browser sign-in hand-off to Google',
   'searchConsole.connectComplete': 'a browser sign-in hand-off to Google',
   'platformApps.completeWhatsapp': 'a browser sign-in hand-off to Meta (WhatsApp Embedded Signup)',
+  'inbox.streamAccess': 'opens a browser realtime stream (people only)',
+  'inbox.typing': 'a typing indicator from a person at the keyboard',
   'media.presign': 'a browser upload hand-off',
   'media.confirm': 'a browser upload hand-off',
 }
