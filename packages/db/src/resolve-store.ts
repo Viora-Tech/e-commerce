@@ -183,6 +183,14 @@ export async function storesWithPendingDomains(db: Db): Promise<string[]> {
   return rows.map((r) => r.id)
 }
 
+/** Store ids with a store address (platform domain) whose route was never asked for, for the worker. SECURITY DEFINER backed. */
+export async function storesWithUnroutedPlatformDomains(db: Db): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(
+    sql`select stores_with_unrouted_platform_domains() as id`,
+  )
+  return rows.map((r) => r.id)
+}
+
 /** Store ids with a domain whose certificate needs checking or retrying, for the worker. SECURITY DEFINER backed. */
 export async function storesWithCertificateChecks(db: Db, now = new Date()): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(

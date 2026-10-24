@@ -5,6 +5,7 @@ import {
   type StoreTx,
   storeDomain,
   storesWithPendingDomains,
+  storesWithUnroutedPlatformDomains,
   withStore,
 } from '@commerce/db'
 import { and, asc, desc, eq, inArray, or } from 'drizzle-orm'
@@ -319,5 +320,42 @@ export async function pollPendingDomains(
       }
     }
   }
+  if (deps.requestRoutes) routes += await requestMissingPlatformRoutes(db, deps)
   return { stores: storeIds.length, checked, failed, routes }
+}
+
+/**
+ * Store addresses (`<slug>.<PLATFORM_STORE_DOMAIN>`) whose route was never asked for: a store
+ * made before routes were automatic, or while the admin could not ask. Each gets its route
+ * queued once; the route job adds it in Dokploy. Returns how many were queued.
+ */
+async function requestMissingPlatformRoutes(
+  db: Db,
+  deps: { now?: Date | undefined; log?: ((message: string) => void) | undefined },
+): Promise<number> {
+  let queued = 0
+  for (const storeId of await storesWithUnroutedPlatformDomains(db)) {
+    try {
+      queued += await withStore(db, storeId, async (tx) => {
+        const rows = await tx
+          .select({ id: storeDomain.id })
+          .from(storeDomain)
+          .where(and(eq(storeDomain.kind, 'platform'), eq(storeDomain.routeStatus, 'none')))
+        const now = deps.now ?? new Date()
+        for (const row of rows) {
+          await tx
+            .update(storeDomain)
+            .set({ sslStatus: 'issuing' })
+            .where(eq(storeDomain.id, row.id))
+          await requestDomainRoute(tx, storeId, row.id, now)
+        }
+        return rows.length
+      })
+    } catch (err) {
+      deps.log?.(
+        `[domains] store address route for ${storeId} failed: ${err instanceof Error ? err.message : err}`,
+      )
+    }
+  }
+  return queued
 }

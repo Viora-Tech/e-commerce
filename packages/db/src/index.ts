@@ -47,6 +47,7 @@ export {
   storesWithUndispatchedOutboxEvents,
   storesWithUnknownPaymentFees,
   storesWithUnpaidOnlineOrders,
+  storesWithUnroutedPlatformDomains,
 } from './resolve-store'
 export * from './returns-schema'
 export * from './schema'
