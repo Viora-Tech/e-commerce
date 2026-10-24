@@ -201,7 +201,7 @@ export default function AdminSidebar({
               <DropdownMenuItem
                 key={s.id}
                 disabled={switchingId !== null || s.id === activeStoreId}
-                onSelect={() => handleSwitchStore(s.id)}
+                onClick={() => handleSwitchStore(s.id)}
               >
                 {/* Figma "State · Switching store": the picked store spins until Home reloads. */}
                 {switchingId === s.id ? <Spinner /> : <Store className="size-4" />}
