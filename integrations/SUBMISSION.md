@@ -209,10 +209,11 @@ use them, and requesting unused permissions is a common rejection reason. (`ads_
 
 **Reviewer instructions** ("Provide step-by-step instructions" box):
 
-> 1. Go to https://admin.koomerce.app and sign in with email [OWNER: reviewer email] and
->    password [OWNER: reviewer password]. This is a demo store with test products.
+> 1. Go to https://admin.koomerce.app/login, click "Sign in with a password" and sign in with
+>    email vioramice+shopifyreview@gmail.com and the password in the credentials box. This is a
+>    demo store (Claw Gears) with test products.
 > 2. Catalog (catalog_management, business_management): left menu → Sales channels → Social
->    media → Instagram (or Facebook) → Connect. In the Facebook dialog choose your test business
+>    media → Meta → the Facebook (or Instagram) tab → Connect. In the Facebook dialog choose your test business
 >    and a catalog and continue. Back in Koomerce the channel shows "First sync", then
 >    "Connected" with the product count. Open Commerce Manager to see the items. Change a
 >    product's price in Products, return to the channel and press "Sync now"; the price updates
