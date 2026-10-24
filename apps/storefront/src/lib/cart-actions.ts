@@ -42,6 +42,7 @@ import { readAttribution } from './attribution-cookie'
 import { clearCartId, readCartId, writeCartId } from './cart-cookie'
 import { currentCustomer } from './customer-session'
 import { db } from './db'
+import { hasChatCookie, postChatCartLine } from './inbox'
 import { accessibleOrderId } from './order-access'
 import { nudgeOutbox } from './outbox'
 import { storePaymentProviders } from './payments'
@@ -75,7 +76,27 @@ export async function addLineAction(variantId: string, quantity: number) {
     return id as string
   })
   if (cartId !== existing) await writeCartId(cartId)
+  await chatCartLine(storeId, cartId, 'add', variantId, Math.max(1, quantity))
   revalidatePath('/', 'layout')
+}
+
+/** The cart line as Inbox shows it (title from the cart itself), only for a browser that chatted. */
+async function chatCartLine(
+  storeId: string,
+  cartId: string,
+  action: 'add' | 'remove' | 'quantity',
+  variantId: string,
+  quantity: number,
+  title?: string,
+) {
+  if (!(await hasChatCookie())) return
+  const name =
+    title ??
+    (await inStore(storeId, (tx) => getCart({ storeId, tx }, cartId)))?.lines.find(
+      (l) => l.variantId === variantId,
+    )?.productTitle ??
+    ''
+  await postChatCartLine(storeId, { action, variantId, title: name, quantity, cartId })
 }
 
 /**
@@ -120,7 +141,22 @@ export async function setQuantityAction(lineId: string, quantity: number) {
   const storeId = await requestStoreId()
   const cartId = await readCartId()
   if (!cartId) return
+  const line = (await hasChatCookie())
+    ? (await inStore(storeId, (tx) => getCart({ storeId, tx }, cartId)))?.lines.find(
+        (l) => l.id === lineId,
+      )
+    : undefined
   await inStore(storeId, (tx) => setLineQuantity({ storeId, tx }, cartId, lineId, quantity))
+  if (line) {
+    await chatCartLine(
+      storeId,
+      cartId,
+      quantity <= 0 ? 'remove' : 'quantity',
+      line.variantId,
+      quantity,
+      line.productTitle,
+    )
+  }
   revalidatePath('/cart')
   revalidatePath('/', 'layout')
 }

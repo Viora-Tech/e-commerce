@@ -18,6 +18,24 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/core/src/inbox/widget.ts',
+    names: [
+      'WIDGET_ICONS',
+      'WIDGET_HORIZONTAL',
+      'WIDGET_VERTICAL',
+      'DEFAULT_INBOX_WIDGET',
+      'INBOX_WIDGET_FIELDS',
+    ],
+    reason:
+      'the Inbox app embed schema the theme editor App embeds panel renders (coordinator, 2026-10-24); read once that panel lands',
+  },
+  {
+    file: 'packages/core/src/inbox/panel.ts',
+    names: ['productCards'],
+    reason:
+      'the card builder behind messageCards and featuredProducts, exported for the AI agent (Inbox PR 6)',
+  },
+  {
     file: 'packages/core/src/inbox/connection.ts',
     names: ['EVENT_TYPES'],
     reason:
@@ -61,18 +79,6 @@ const ALLOWLIST: AllowEntry[] = [
       'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
   },
   {
-    file: 'packages/core/src/inbox/identity.ts',
-    names: ['CHAT_COOKIE_MAX_AGE', 'newChatToken'],
-    reason:
-      'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
-  },
-  {
-    file: 'packages/core/src/inbox/limits.ts',
-    names: ['IMAGE_MAX_BYTES'],
-    reason:
-      'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
-  },
-  {
     file: 'packages/core/src/inbox/rules.ts',
     names: ['linkCount'],
     reason:
@@ -87,22 +93,13 @@ const ALLOWLIST: AllowEntry[] = [
       'InboxSettingsSchema',
       'DEFAULT_INBOX_SETTINGS',
       'zonedWeekMinute',
-      'contactRequired',
     ],
     reason:
       'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
   },
   {
     file: 'packages/core/src/inbox/shopper.ts',
-    names: [
-      'ShopperSendSchema',
-      'InboxRateLimited',
-      'shopperSend',
-      'markShopperSeen',
-      'mergeGuestConversation',
-      'postCartEvent',
-      'customerConversations',
-    ],
+    names: ['ShopperSendSchema', 'customerConversations'],
     reason:
       'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
   },

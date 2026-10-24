@@ -1,4 +1,5 @@
 import { shopperPoll, shopperStream } from '@/lib/inbox'
+import { uploadChatPhoto } from '@/lib/inbox-photo'
 import { clientIp, rateLimited } from '@/lib/rate-limit'
 import { requestStoreId } from '@/lib/request-store'
 
@@ -34,4 +35,12 @@ export async function GET(request: Request, { params }: Params) {
     return Response.json(await shopperPoll(storeId, after), { headers: NO_STORE })
   }
   return new Response('Not found', { status: 404 })
+}
+
+/** `/inbox/photo`: one chat photo, answered with a signed token the message then carries. */
+export async function POST(request: Request, { params }: Params) {
+  const { action } = await params
+  if (action !== 'photo') return new Response('Not found', { status: 404 })
+  const result = await uploadChatPhoto(request)
+  return Response.json(result, { status: result.ok ? 200 : 422, headers: NO_STORE })
 }
