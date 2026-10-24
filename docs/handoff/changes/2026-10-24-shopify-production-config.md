@@ -8,3 +8,7 @@
   `app/uninstalled` get registered (needed before App Store review).
 - Protected customer data: step 1 (data use, name/email/phone/address) is saved as a draft in
   Partners; step 2 (16 data protection questions) is the owner's.
+- Deployed as `koomerce-migration-3` (2026-10-24) with the three compliance webhooks only:
+  the CLI refuses an app-level `app/uninstalled` subscription while
+  `use_legacy_install_flow = true`. Follow-up: register `app/uninstalled` per shop after install
+  (GraphQL `webhookSubscriptionCreate`), or move to Shopify managed installation.
