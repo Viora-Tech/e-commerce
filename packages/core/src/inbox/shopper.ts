@@ -394,6 +394,8 @@ export type CartEvent = {
   variantId: string
   title: string
   quantity: number
+  /** The cart it happened in, so the staff panel can show a guest's live cart. */
+  cartId?: string
 }
 
 /**

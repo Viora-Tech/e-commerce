@@ -38,6 +38,7 @@ import { type ReactNode, Suspense } from 'react'
 import ExperimentBeacon from '@/components/analytics/experiment-beacon'
 import CartDrawer from '@/components/cart/cart-drawer'
 import StoreChrome from '@/components/checkout/store-chrome'
+import InboxLauncher from '@/components/inbox/inbox-launcher'
 import ConsentManager from '@/components/privacy/consent-manager'
 import PredictiveSearch from '@/components/search/predictive-search'
 import LiquidBoot from '@/components/theme/liquid-boot'
@@ -55,6 +56,7 @@ import { COOKIE_SETTINGS_HASH } from '@/lib/cookie-settings'
 import { NONCE_HEADER } from '@/lib/csp'
 import { requestExperiments } from '@/lib/experiments'
 import { themeFontVariables } from '@/lib/fonts'
+import { inboxLauncherOf } from '@/lib/inbox-launcher'
 import { liquidShim } from '@/lib/liquid-shim'
 import { liquidLayoutFor, reactAttrs } from '@/lib/liquid-theme'
 import { mediaByUrl } from '@/lib/media-lookup'
@@ -267,6 +269,8 @@ export default async function StoreLayout({ children, params }: Props) {
   // being tracked. When the footer group holds a CookieBanner section, that section draws
   // it in the theme's look; otherwise the standalone one below does, so there is always
   // exactly one.
+  // The Inbox app's chat button: never in a theme preview, and only while the app is on.
+  const inboxChat = preview ? null : inboxLauncherOf(current.apps)
   const consent = {
     tracking: prefs.tracking,
     bannerMessage: privacy.bannerMessage,
@@ -276,8 +280,9 @@ export default async function StoreLayout({ children, params }: Props) {
     // The Pixels app's pixels (null without the app); never in a theme preview.
     pixels: preview ? null : await storePixels(storeId, current.apps),
     umami: umamiTrackerOf(current.apps),
-    // Never in a theme preview (the consent manager is not drawn there either).
-    chatwoot: preview ? null : await chatwootChatFor(storeId, current.apps),
+    // Never in a theme preview (the consent manager is not drawn there either). When the
+    // Inbox app is installed its own chat wins and Chatwoot's is not drawn.
+    chatwoot: preview || inboxChat ? null : await chatwootChatFor(storeId, current.apps),
   }
   let themedConsent = false
   let consentDrawn = false
@@ -370,6 +375,7 @@ export default async function StoreLayout({ children, params }: Props) {
           {tested.length ? <ExperimentBeacon seen={tested} /> : null}
           <ThemePreviewBridge adminOrigin={adminOrigin} />
           {preview ? null : <ConsentManager {...consent} themeBanner={themedConsent} />}
+          {inboxChat ? <InboxLauncher widget={inboxChat} storeName={current.name} /> : null}
         </body>
       </html>
     )
@@ -409,6 +415,7 @@ export default async function StoreLayout({ children, params }: Props) {
           <ThemePreviewBridge adminOrigin={adminOrigin} />
           {preview || themedConsent ? null : <ConsentManager {...consent} />}
           <StoreChrome>{footer}</StoreChrome>
+          {inboxChat ? <InboxLauncher widget={inboxChat} storeName={current.name} /> : null}
         </MoneyFormatProvider>
       </body>
     </html>

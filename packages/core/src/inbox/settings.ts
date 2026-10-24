@@ -1,6 +1,7 @@
-/** SOURCE OF TRUTH: InboxSettingsSchema, parseInboxSettings, isInboxAvailable — WHAT: the Inbox app's settings (greeting, away message, availability and weekly hours, contact capture, require sign-in, launcher, email fallback, retention), kept in `store.apps.settings.inbox` with no table, and whether staff are "online" now in the store's time zone / WHY: the widget's away line, the contact-capture rule and the email fallback all hang on one reading of these. Pure. */
+/** SOURCE OF TRUTH: InboxSettingsSchema, parseInboxSettings, isInboxAvailable — WHAT: the Inbox app's settings (greeting, away message, availability and weekly hours, contact capture, require sign-in, email fallback, retention, and the widget's look), kept in `store.apps.settings.inbox` with no table, and whether staff are "online" now in the store's time zone / WHY: the widget's away line, the contact-capture rule and the email fallback all hang on one reading of these. Pure. */
 import { wallClock } from '@commerce/dates'
 import { z } from 'zod'
+import { InboxWidgetSchema, parseInboxWidget } from './widget'
 
 const Time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'A time like 09:30')
 
@@ -34,14 +35,13 @@ export const InboxSettingsSchema = z.object({
   contactCapture: z.enum(INBOX_CONTACT_CAPTURE).default('optional'),
   /** Off by default (owner, 2026-10-24): guests may chat. */
   requireSignIn: z.boolean().default(false),
-  launcherPosition: z.enum(['right', 'left']).default('right'),
-  /** Blank shows "Chat with us" in the shopper's language. */
-  launcherLabel: z.string().trim().max(40).default(''),
   sound: z.boolean().default(true),
   /** Minutes without a staff reply before the shopper is emailed; 0 turns it off. */
   emailFallbackMinutes: z.number().int().min(0).max(240).default(10),
   /** Conversations whose last message is older than this are deleted. */
   retentionMonths: z.number().int().min(3).max(60).default(24),
+  /** The chat button and card's look: the theme editor's Inbox app embed (`widget.ts`). */
+  widget: z.preprocess((v) => parseInboxWidget(v), InboxWidgetSchema),
 })
 export type InboxSettings = z.infer<typeof InboxSettingsSchema>
 

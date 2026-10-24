@@ -13,10 +13,11 @@ import {
   role,
   rolePermission,
   type StoreTx,
+  sellableStock,
   storeMember,
   variant,
 } from '@commerce/db'
-import { and, asc, desc, eq, gte, inArray, isNull, min, or, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, inArray, isNull, or, sql } from 'drizzle-orm'
 import { getCart } from '../cart/cart'
 import type { StoreContext } from '../context'
 import { isShareableDiscount } from './conversations'
@@ -29,6 +30,10 @@ export type CardProduct = {
   imageUrl: string | null
   minPricePaise: number | null
   active: boolean
+  /** The variant "Add to cart" in the chat adds: the cheapest one in stock (or that sells without stock). */
+  variantId: string | null
+  /** False when no variant can be bought now. */
+  available: boolean
 }
 export type CardDiscount = { id: string; code: string | null; title: string; active: boolean }
 export type MessageCards = {
@@ -58,37 +63,7 @@ export async function messageCards(
       messages.filter((m) => m.kind === 'discount').flatMap((m) => idsOf(m.payload, 'discountId')),
     ),
   ]
-  const out: MessageCards = { products: {}, discounts: {} }
-  if (productIds.length > 0) {
-    const rows = await tx
-      .select({
-        id: product.id,
-        title: product.title,
-        handle: product.handle,
-        status: product.status,
-        minPricePaise: min(variant.pricePaise),
-      })
-      .from(product)
-      .leftJoin(variant, eq(variant.productId, product.id))
-      .where(inArray(product.id, productIds))
-      .groupBy(product.id)
-    const images = await tx
-      .select({ productId: productMedia.productId, url: media.url })
-      .from(productMedia)
-      .innerJoin(media, eq(media.id, productMedia.mediaId))
-      .where(inArray(productMedia.productId, productIds))
-      .orderBy(asc(productMedia.position))
-    for (const r of rows) {
-      out.products[r.id] = {
-        id: r.id,
-        title: r.title,
-        handle: r.handle,
-        imageUrl: images.find((i) => i.productId === r.id)?.url ?? null,
-        minPricePaise: r.minPricePaise ?? null,
-        active: r.status === 'active',
-      }
-    }
-  }
+  const out: MessageCards = { products: await productCards(tx, productIds), discounts: {} }
   if (discountIds.length > 0) {
     const rows = await tx.select().from(discount).where(inArray(discount.id, discountIds))
     for (const d of rows) {
@@ -101,6 +76,83 @@ export async function messageCards(
     }
   }
   return out
+}
+
+/** Card data for products, keyed by id: title, first image, lowest price, a buyable variant. */
+export async function productCards(
+  tx: StoreTx,
+  productIds: string[],
+): Promise<Record<string, CardProduct>> {
+  const out: Record<string, CardProduct> = {}
+  if (productIds.length === 0) return out
+  const rows = await tx
+    .select({
+      id: product.id,
+      title: product.title,
+      handle: product.handle,
+      status: product.status,
+    })
+    .from(product)
+    .where(inArray(product.id, productIds))
+  const variants = await tx
+    .select({
+      id: variant.id,
+      productId: variant.productId,
+      pricePaise: variant.pricePaise,
+      trackInventory: variant.trackInventory,
+      onHand: sellableStock.onHand,
+      reserved: sellableStock.reserved,
+    })
+    .from(variant)
+    .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
+    .where(and(inArray(variant.productId, productIds), isNull(variant.archivedAt)))
+    .orderBy(asc(variant.pricePaise))
+  const images = await tx
+    .select({ productId: productMedia.productId, url: media.url })
+    .from(productMedia)
+    .innerJoin(media, eq(media.id, productMedia.mediaId))
+    .where(inArray(productMedia.productId, productIds))
+    .orderBy(asc(productMedia.position))
+  for (const r of rows) {
+    const own = variants.filter((v) => v.productId === r.id)
+    const buyable = own.find((v) => !v.trackInventory || (v.onHand ?? 0) - (v.reserved ?? 0) > 0)
+    out[r.id] = {
+      id: r.id,
+      title: r.title,
+      handle: r.handle,
+      imageUrl: images.find((i) => i.productId === r.id)?.url ?? null,
+      minPricePaise: own[0]?.pricePaise ?? null,
+      active: r.status === 'active',
+      variantId: buyable?.id ?? null,
+      available: r.status === 'active' && Boolean(buyable),
+    }
+  }
+  return out
+}
+
+/** The widget's featured products: the merchant's picks, else the two best sellers. */
+export async function featuredProducts(tx: StoreTx, picked: string[]): Promise<CardProduct[]> {
+  const ids =
+    picked.length > 0
+      ? picked
+      : (
+          await tx
+            .select({ id: product.id })
+            .from(product)
+            .where(eq(product.status, 'active'))
+            .orderBy(
+              desc(sql`(
+                select coalesce(sum(ol.quantity), 0) from order_line ol
+                join variant v on v.id = ol.variant_id
+                join "order" o on o.id = ol.order_id
+                where v.product_id = ${product.id} and o.status not in ('draft', 'cancelled') and not o.is_test
+              )`),
+              asc(product.title),
+            )
+            .limit(2)
+        ).map((r) => r.id)
+  const cards = await productCards(tx, ids)
+  return ids.flatMap((id) => (cards[id]?.active ? [cards[id]] : []))
 }
 
 /** The latest cart id a cart line in this thread carried (guests have no customer to look up). */
