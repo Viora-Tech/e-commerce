@@ -57,6 +57,20 @@ describe('installCanvasInteraction', () => {
     document.querySelector('.link')?.dispatchEvent(click)
     expect(click.defaultPrevented).toBe(true)
   })
+
+  it("hands a click on a section's invisible backdrop to the section under it", () => {
+    const popup = document.querySelector('[data-puck-component="b"]') as Element
+    popup.insertAdjacentHTML('beforeend', '<div class="scrim" style="opacity: 0"></div>')
+    const scrim = document.querySelector('.scrim') as Element
+    const words = document.querySelector('.copy') as Element
+    document.elementsFromPoint = () => [scrim, popup, words]
+    const clicked = vi.fn()
+    for (const el of document.querySelectorAll('[data-puck-component]'))
+      el.addEventListener('click', () => clicked(el.getAttribute('data-puck-component')))
+    scrim.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    expect(clicked).toHaveBeenCalledWith('a')
+    expect(clicked).not.toHaveBeenCalledWith('b')
+  })
 })
 
 describe('selectedControlsCss', () => {

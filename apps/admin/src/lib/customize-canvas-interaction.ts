@@ -11,9 +11,10 @@
  *   press on its content, so selecting text or pressing a control never drags it;
  * - links and forms never take the canvas away from the editor;
  * - a click that lands on something that is not a section (an imported theme's invisible
- *   full-page layer: a cart-drawer backdrop, a page loader, a menu overlay) goes to the section
- *   under the pointer instead, so such a layer can never make sections unselectable
- *   (`sectionUnder`). The first time it happens, the console names the layer.
+ *   full-page layer: a cart-drawer backdrop, a page loader, a menu overlay), or on a section's
+ *   own see-through layer (a closed popup's backdrop), goes to the section under the pointer
+ *   instead, so such a layer can never make sections unselectable (`sectionUnder`). The first
+ *   time it happens, the console names the layer.
  *
  * Plain DOM logic with no JSX, so it sits outside the component-structure rule.
  */
@@ -74,16 +75,34 @@ function describe(el: Element): string {
 }
 
 /**
- * The section under the pointer when the click landed outside every section: the topmost
- * element at that point that sits inside one. Null when the press really was outside them
- * (the page's empty margin) or on Puck's own chrome.
+ * Whether the element shows nothing: it or a parent up to its section is fully transparent. A
+ * closed popup's backdrop (opacity 0, still catching clicks) is such a layer, because design
+ * mode un-hides popups and the theme's script that would close them never runs in the canvas.
+ */
+function invisible(el: Element, section: Element): boolean {
+  const view = el.ownerDocument.defaultView
+  if (!view) return false
+  for (let node: Element | null = el; node && node !== section; node = node.parentElement) {
+    const style = view.getComputedStyle(node)
+    if (style.opacity === '0' || style.visibility === 'hidden') return true
+  }
+  return false
+}
+
+/**
+ * The section under the pointer when the click landed outside every section, or on an
+ * invisible layer of one (`invisible`): the topmost element at that point that sits visibly
+ * inside a section. Null when the press really was outside them (the page's empty margin), on
+ * Puck's own chrome, or on something the section shows.
  */
 function sectionUnder(doc: Document, e: MouseEvent): Element | null {
   const target = e.target as Element
-  if (target.closest('[data-puck-component]') || target.closest(OVERLAY_PORTAL)) return null
+  if (target.closest(OVERLAY_PORTAL)) return null
+  const own = target.closest('[data-puck-component]')
+  if (own && !invisible(target, own)) return null
   for (const el of doc.elementsFromPoint(e.clientX, e.clientY)) {
     const section = el.closest('[data-puck-component]')
-    if (section) return section
+    if (section && section !== own && !invisible(el, section)) return section
   }
   return null
 }
@@ -160,7 +179,7 @@ export function installCanvasInteraction(
     if (!reported.has(e.target)) {
       reported.add(e.target)
       console.info(
-        `[customize] a click landed on ${describe(e.target)}, a layer outside every section; sent it to the section underneath`,
+        `[customize] a click landed on ${describe(e.target)}, an invisible layer or one outside every section; sent it to the section underneath`,
       )
     }
     e.preventDefault()

@@ -48,7 +48,7 @@ const CHIP =
   'inline-flex max-w-[14rem] items-center rounded-[0.3125rem] px-2 py-0.5 text-xs leading-[1.0625rem] font-medium whitespace-nowrap'
 
 const TOOL =
-  'flex size-6 shrink-0 items-center justify-center rounded-[0.375rem] text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:pointer-events-none disabled:opacity-35 motion-reduce:transition-none'
+  'flex size-6 shrink-0 items-center justify-center rounded-[0.375rem] text-foreground/80 transition-colors duration-150 hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:pointer-events-none disabled:opacity-35 motion-reduce:transition-none'
 
 const SEPARATOR = 'mx-0.5 h-4 w-px shrink-0 bg-border'
 
