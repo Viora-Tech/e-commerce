@@ -120,7 +120,10 @@ export function deletionCode(secret: string, now = new Date()): string {
 }
 
 export function isDeletionCode(code: string, secret: string): boolean {
-  const [body, mac] = code.split('-')
+  // The MAC is base64url and can hold '-' itself: split at the first one (the body has none).
+  const cut = code.indexOf('-')
+  const body = cut > 0 ? code.slice(0, cut) : ''
+  const mac = cut > 0 ? code.slice(cut + 1) : ''
   if (!body || !mac) return false
   const a = Buffer.from(mac)
   const b = Buffer.from(codeMac(body, secret))

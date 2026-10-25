@@ -139,7 +139,11 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   payment_event: LOG,
   // Classified with the Pixels PR (they were missing): Affiliates, Automations, Profit, platform apps.
   affiliate: "an affiliate's own pages are personal and never cached",
+  affiliate_blocklist: ADMIN,
+  affiliate_click_day: ADMIN,
+  affiliate_code: "an affiliate's codes show on their own dashboard, never in a cached page",
   affiliate_commission: ADMIN,
+  affiliate_creative: "creatives show on an affiliate's own dashboard, never in a cached page",
   affiliate_payout: ADMIN,
   affiliate_program:
     'read only by the affiliate signup page, which is per shopper and never cached',

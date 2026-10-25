@@ -251,6 +251,8 @@ describe('Meta callbacks', () => {
     const code = deletionCode(SECRET)
     expect(isDeletionCode(code, SECRET)).toBe(true)
     expect(isDeletionCode(code, 'other')).toBe(false)
+    // Every code checks, including ones whose MAC happens to contain a dash.
+    for (let i = 0; i < 300; i++) expect(isDeletionCode(deletionCode(SECRET), SECRET)).toBe(true)
     expect(isDeletionCode('made-up', SECRET)).toBe(false)
   })
 })
