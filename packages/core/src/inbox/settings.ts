@@ -26,11 +26,11 @@ export const INBOX_AVAILABILITY = ['always', 'hours', 'offline'] as const
 export const INBOX_CONTACT_CAPTURE = ['off', 'optional', 'required_when_away'] as const
 
 /** When the AI agent answers: never, every chat, or only when staff are away (design §13). */
-const INBOX_AI_MODES = ['off', 'all', 'away'] as const
+export const INBOX_AI_MODES = ['off', 'all', 'away'] as const
 export type InboxAiMode = (typeof INBOX_AI_MODES)[number]
 
 /** Longest store knowledge the merchant can give the AI agent (FAQ, sizing, delivery notes). */
-const INBOX_AI_KNOWLEDGE_MAX = 4000
+export const INBOX_AI_KNOWLEDGE_MAX = 4000
 
 const InboxAiSettingsSchema = z.object({
   /** Off by default (design §13). */

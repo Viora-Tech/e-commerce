@@ -15,8 +15,8 @@ type InboxFiltersProps = {
   className?: string
 }
 
-/** Open and Closed first, then the narrower views, as in Shopify Inbox. */
-const MAIN: InboxView[] = ['open', 'closed']
+/** Open, the AI's hand-offs and Closed first, then the narrower views, as in Shopify Inbox. */
+const MAIN: InboxView[] = ['open', 'needs_person', 'closed']
 const MORE: InboxView[] = ['mine', 'unassigned', 'unread', 'blocked']
 
 /** The inbox's left rail: the views with their counts, and Settings at the bottom. */

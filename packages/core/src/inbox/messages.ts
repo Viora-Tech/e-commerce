@@ -137,6 +137,8 @@ export async function appendMessage(
         unreadShopper: sql`${inboxConversation.unreadShopper} + 1`,
         // A staff reply means the shopper's messages so far were read.
         unreadStaff: 0,
+        // A person answered: the AI's hand-off is done.
+        needsHuman: false,
         staffSeenMessageId: inserted.id,
         ...(conversation.firstResponseAt ? {} : { firstResponseAt: now }),
       })

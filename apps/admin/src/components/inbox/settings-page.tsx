@@ -16,6 +16,7 @@ import { inboxContent } from '@/data/inbox'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import AiAgentSettings from './ai-agent-settings'
 import BlockedSenders from './blocked-senders'
 import HoursEditor from './hours-editor'
 
@@ -34,7 +35,7 @@ function wholeNumber(raw: string, min: number, max: number, fallback: number): n
 
 /**
  * Sales channels › Inbox › Settings: the chat button and greeting, business hours and the away
- * message, what is asked of guests, the unanswered email, retention, and blocked senders.
+ * message, the AI agent, what is asked of guests, the unanswered email, retention, and blocked senders.
  */
 export default function SettingsPage({ settings, timeZone }: SettingsPageProps) {
   // Hooks
@@ -146,6 +147,8 @@ export default function SettingsPage({ settings, timeZone }: SettingsPageProps) 
             />
           </SettingsRow>
         </SettingsCard>
+
+        <AiAgentSettings value={form.ai} onChange={(ai) => patch({ ai })} />
 
         <SettingsCard title={s.contact.title}>
           <SettingsRow

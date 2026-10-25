@@ -124,6 +124,7 @@ export default function ConversationList({
                       <span className="flex items-center justify-between gap-2">
                         <span className="truncate text-caption text-muted-foreground">
                           {r.lastSender === 'staff' ? `${l.you}: ` : ''}
+                          {r.lastSender === 'ai' ? `${l.ai}: ` : ''}
                           {r.lastMessagePreview}
                         </span>
                         {unread ? (
@@ -132,6 +133,11 @@ export default function ConversationList({
                           </span>
                         ) : null}
                       </span>
+                      {r.needsHuman ? (
+                        <span className="w-fit rounded-full bg-warning-soft px-2 py-0.5 text-caption font-medium text-warning-foreground dark:text-warning">
+                          {l.needsPerson}
+                        </span>
+                      ) : null}
                       {r.assigneeUserId ? (
                         <span className="truncate text-caption text-muted-foreground">
                           {l.assignedTo(nameOfMember(r.assigneeUserId))}
