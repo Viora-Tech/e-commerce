@@ -45,6 +45,16 @@ export const INBOX_MESSAGE_KINDS = [
   'template',
 ] as const
 export const INBOX_BLOCK_KINDS = ['visitor', 'email', 'ip'] as const
+/** What the Inbox AI agent did with one shopper message. */
+const INBOX_AI_EVENT_KINDS = ['answer', 'handoff'] as const
+/** Why the AI agent handed a conversation to a person (design §13). */
+const INBOX_HANDOFF_REASONS = [
+  'asked_for_human',
+  'not_confident',
+  'order_problem',
+  'upset',
+  'outside_store',
+] as const
 
 export type InboxChannel = (typeof INBOX_CHANNELS)[number]
 export type InboxStatus = (typeof INBOX_STATUSES)[number]
@@ -99,6 +109,11 @@ export const inboxConversation = pgTable(
     sessionExpiresAt: at('session_expires_at'),
     /** Reserved for v1.5 "orders assisted". */
     attributedOrderId: uuid('attributed_order_id'),
+    /** The AI agent handed this conversation to a person; it stays quiet until staff close it. */
+    needsHuman: boolean('needs_human').notNull().default(false),
+    /** The AI agent's short summary for staff, written when it handed off. */
+    handoffSummary: text('handoff_summary'),
+    handoffAt: at('handoff_at'),
     anonymisedAt: at('anonymised_at'),
     createdAt: createdAt(),
     updatedAt: at('updated_at').notNull().defaultNow(),
@@ -221,5 +236,34 @@ export const memberPushSubscription = pgTable(
   (t) => [
     uniqueIndex('member_push_subscription_endpoint').on(t.storeId, t.endpoint),
     index('member_push_subscription_user').on(t.storeId, t.userId),
+  ],
+)
+
+/**
+ * One thing the Inbox AI agent did: an answer or a hand-off, with why, how sure it was and the
+ * tokens it used. Feeds "resolved by AI vs handed off"; never holds message text.
+ */
+export const inboxAiEvent = pgTable(
+  'inbox_ai_event',
+  {
+    id: id(),
+    storeId: storeId(),
+    conversationId: uuid('conversation_id')
+      .notNull()
+      .references(() => inboxConversation.id, { onDelete: 'cascade' }),
+    /** The shopper message it answered. */
+    messageId: uuid('message_id'),
+    kind: text('kind', { enum: INBOX_AI_EVENT_KINDS }).notNull(),
+    reason: text('reason', { enum: INBOX_HANDOFF_REASONS }),
+    /** 0 to 100. */
+    confidence: integer('confidence'),
+    inputTokens: integer('input_tokens').notNull().default(0),
+    outputTokens: integer('output_tokens').notNull().default(0),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index('inbox_ai_event_store_created').on(t.storeId, t.createdAt),
+    uniqueIndex('inbox_ai_event_message').on(t.conversationId, t.messageId),
+    check('inbox_ai_event_kind_check', sql`${t.kind} in (${oneOf(INBOX_AI_EVENT_KINDS)})`),
   ],
 )

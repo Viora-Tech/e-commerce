@@ -141,6 +141,12 @@ export async function appendMessage(
         ...(conversation.firstResponseAt ? {} : { firstResponseAt: now }),
       })
       .where(eq(inboxConversation.id, conversation.id))
+  } else if (m.sender === 'ai') {
+    // The AI agent's answer is unread for the shopper; staff still see the thread as unread.
+    await tx
+      .update(inboxConversation)
+      .set({ ...patch, unreadShopper: sql`${inboxConversation.unreadShopper} + 1` })
+      .where(eq(inboxConversation.id, conversation.id))
   } else {
     await tx.update(inboxConversation).set(patch).where(eq(inboxConversation.id, conversation.id))
   }

@@ -12,6 +12,7 @@ import { simulateReadableStream } from 'ai'
 import { MockLanguageModelV4 } from 'ai/test'
 import { CAMPAIGN_WRITER_MARKER } from './campaign-writer'
 import type { AiFeature } from './features'
+import { INBOX_AGENT_MARKER } from './inbox-agent'
 import { mockPlan } from './mock-plan'
 import { MOCK_DOCUMENTS } from './purchase-documents/fixtures'
 import {
@@ -156,6 +157,16 @@ function generated(prompt: Prompt): string {
       heading: 'Picked for you',
       body: 'We have put together a few things we think you will like. Take a look while they last.',
       button: 'Shop now',
+    })
+  }
+  if (system.includes(INBOX_AGENT_MARKER)) {
+    return JSON.stringify({
+      action: 'reply',
+      reply: 'Happy to help. Tell me what you are looking for and I will find it for you.',
+      productIds: [],
+      handoffReason: null,
+      summary: '',
+      confidence: 80,
     })
   }
   if (system.includes(REVIEW_REPLY_MARKER)) {
