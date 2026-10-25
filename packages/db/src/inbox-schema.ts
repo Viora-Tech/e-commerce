@@ -165,6 +165,8 @@ export const inboxMessage = pgTable(
   },
   (t) => [
     index('inbox_message_conversation').on(t.conversationId, t.id),
+    /** The AI agent's look-up of the store's past questions and the team's replies. */
+    index('inbox_message_store_sender').on(t.storeId, t.sender, t.id),
     uniqueIndex('inbox_message_client').on(t.conversationId, t.clientId),
     check('inbox_message_sender_check', sql`${t.sender} in (${oneOf(INBOX_SENDERS)})`),
     check('inbox_message_kind_check', sql`${t.kind} in (${oneOf(INBOX_MESSAGE_KINDS)})`),
