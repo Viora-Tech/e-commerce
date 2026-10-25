@@ -9,7 +9,7 @@ import { blockedKinds, fraudIndex, payoutKeys, refreshReview } from './blocklist
 import { ensureCoupon, linkCodeIs, recordCode } from './codes'
 import { phoneKey } from './fraud'
 import { defaultProgram, getProgram, programOf } from './programs'
-import { affiliate } from './schema'
+import { affiliate, affiliateClickDay } from './schema'
 import type { AffiliateSettings, AffiliateStatus } from './settings'
 import { AffiliateError } from './store-settings'
 
@@ -99,6 +99,8 @@ export type ApplyInput = {
   source?: AffiliateRow['source'] | undefined
   /** The IP a storefront application came from, for the blocklist. */
   ip?: string | null | undefined
+  /** Answers to the program's signup form, already cleaned (`cleanAnswers`). */
+  answers?: Record<string, string> | undefined
 }
 
 /**
@@ -154,10 +156,15 @@ export async function applyAsAffiliate(
       signupIpIndex: input.ip ? fraudIndex('ip', input.ip.trim().toLowerCase(), secret) : null,
       // A blocked phone does not refuse the signup: the merchant reviews before any payout.
       reviewReasons: blocked.has('phone') ? ['blocked_phone'] : [],
+      answers: input.answers ?? {},
     })
     .returning()
   if (!row) throw new AffiliateError('AFFILIATE_NOT_SAVED', 'Affiliate not saved')
   await recordCode(tx, storeId, row.id, 'link', row.code)
+  // A storefront application that waits for the merchant: they get an email about it.
+  if (settings.approval !== 'auto' && row.source === 'applied') {
+    await insertOutboxEvent(tx, storeId, 'affiliate.applied', { affiliateId: row.id })
+  }
   return settings.approval === 'auto' ? approveAffiliate(tx, storeId, row.id) : row
 }
 
@@ -197,13 +204,24 @@ export async function setAffiliateStatus(
   tx: StoreTx,
   id: string,
   status: Extract<AffiliateStatus, 'rejected' | 'suspended'>,
+  /** For a rejection: why, emailed to them when given. */
+  reason = '',
 ): Promise<AffiliateRow> {
+  const rejected = status === 'rejected'
   const [row] = await tx
     .update(affiliate)
-    .set({ status, updatedAt: new Date() })
+    .set({
+      status,
+      updatedAt: new Date(),
+      ...(rejected
+        ? { rejectedAt: new Date(), rejectReason: reason.trim().slice(0, 500) || null }
+        : {}),
+    })
     .where(eq(affiliate.id, id))
     .returning()
   if (!row) throw new AffiliateError('AFFILIATE_NOT_FOUND', 'Affiliate not found')
+  if (rejected)
+    await insertOutboxEvent(tx, row.storeId, 'affiliate.rejected', { affiliateId: row.id })
   if (row.discountId) {
     await tx
       .update(discount)
@@ -253,6 +271,22 @@ export async function recordAffiliateClick(
     .set({ clicks: sql`${affiliate.clicks} + 1` })
     .where(and(eq(affiliate.storeId, storeId), linkCodeIs(code), eq(affiliate.status, 'approved')))
     .returning({ id: affiliate.id })
+  const hit = rows[0]
+  if (hit) {
+    // Per day in India time, for the trend charts.
+    await tx
+      .insert(affiliateClickDay)
+      .values({
+        storeId,
+        affiliateId: hit.id,
+        day: sql`(now() at time zone 'Asia/Kolkata')::date`,
+        clicks: 1,
+      })
+      .onConflictDoUpdate({
+        target: [affiliateClickDay.storeId, affiliateClickDay.affiliateId, affiliateClickDay.day],
+        set: { clicks: sql`${affiliateClickDay.clicks} + 1` },
+      })
+  }
   return rows.length > 0
 }
 

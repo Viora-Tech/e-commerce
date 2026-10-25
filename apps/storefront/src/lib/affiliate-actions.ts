@@ -9,6 +9,7 @@ import {
   affiliateForCustomer,
   affiliateState,
   applyAsAffiliate,
+  cleanAnswers,
   defaultProgram,
   enrolFromOrder,
   enrolOrderId,
@@ -48,6 +49,8 @@ export async function applyAffiliateAction(input: {
   acceptTerms: boolean
   /** The program's link slug from `?program=`; none joins the default program. */
   program?: string | undefined
+  /** Answers to the program's own signup questions, by field id. */
+  answers?: Record<string, string | boolean> | undefined
 }): Promise<AffiliateActionResult> {
   const storeId = await requestStoreId()
   const me = await currentCustomer(storeId)
@@ -67,6 +70,8 @@ export async function applyAffiliateAction(input: {
       ? await programBySlug(tx, storeId, slug)
       : await defaultProgram(tx, storeId)
     if (!program) return 'closed' as const
+    const form = cleanAnswers(program.rules.form, input.answers ?? {})
+    if (form.missing) return 'missing' as const
     await applyAsAffiliate(
       tx,
       storeId,
@@ -79,6 +84,7 @@ export async function applyAffiliateAction(input: {
         message: String(input.message ?? ''),
         programId: program.id,
         ip,
+        answers: form.answers,
       },
       withProgramRules(settings, program.rules),
       settingsSecret(),

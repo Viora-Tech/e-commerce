@@ -15,6 +15,7 @@ import {
 import { registriesForStore } from '@commerce/core/registries'
 import { type Db, withStore } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
+import { applicationNotice } from '@commerce/plugin-affiliates/server'
 import { getContactMessage, messageText } from '@commerce/plugin-forms/server'
 import {
   loadReviewsSettings,
@@ -164,6 +165,26 @@ export function createNotificationWorker(
           payoutId,
           settingsSecret: opts.settingsSecret,
           storefrontUrl: opts.storefrontUrl ?? '',
+        })
+        const bad = sent.filter((r) => !r.ok)
+        if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
+        return sent
+      }
+      // Affiliates app, to the merchant: a new application waiting for approval.
+      if (template === 'affiliate_application') {
+        if (!affiliateId) return []
+        const sent = await withStore(db, storeId, async (tx) => {
+          const affiliate = await applicationNotice(tx, affiliateId, opts.adminUrl ?? '')
+          if (!affiliate) return []
+          return deliverToStoreContact(
+            { storeId, tx },
+            template,
+            { affiliate },
+            {
+              registry: (await registriesForStore(tx, storeId)).notifications,
+              settingsSecret: opts.settingsSecret,
+            },
+          )
         })
         const bad = sent.filter((r) => !r.ok)
         if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))

@@ -1,11 +1,13 @@
-import { customer, newId, order, store } from '@commerce/db'
+import { customer, media, newId, order, store } from '@commerce/db'
 import { sql } from 'drizzle-orm'
 import {
   boolean,
+  date,
   index,
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -96,6 +98,11 @@ export const affiliate = pgTable(
     signupIpIndex: text('signup_ip_index'),
     /** Why their payouts wait for the merchant (`ReviewReason`); empty when nothing needs a look. */
     reviewReasons: jsonb('review_reasons').$type<string[]>().notNull().default([]),
+    /** Their answers to the program's signup form (`ProgramRules.form`), by field id. */
+    answers: jsonb('answers').$type<Record<string, string>>().notNull().default({}),
+    rejectedAt: timestamp('rejected_at', { withTimezone: true }),
+    /** Why the merchant declined them; emailed to them when given. */
+    rejectReason: text('reject_reason'),
     /** Their request for their own code (`CodeRequest`), waiting for the merchant or decided. */
     codeRequest: jsonb('code_request').$type<{
       code: string
@@ -261,4 +268,41 @@ export const affiliateCode = pgTable(
     uniqueIndex('affiliate_code_store_kind_code').on(t.storeId, t.kind, t.code),
     index('affiliate_code_affiliate').on(t.storeId, t.affiliateId),
   ],
+)
+
+/** Images and captions the merchant gives affiliates to post; null program means every program. */
+export const affiliateCreative = pgTable(
+  'affiliate_creative',
+  {
+    id: uuid('id').primaryKey().$defaultFn(newId),
+    storeId: uuid('store_id')
+      .notNull()
+      .references(() => store.id),
+    programId: uuid('program_id').references(() => affiliateProgram.id),
+    mediaId: uuid('media_id')
+      .notNull()
+      .references(() => media.id, { onDelete: 'cascade' }),
+    title: text('title').notNull().default(''),
+    caption: text('caption').notNull().default(''),
+    sort: integer('sort').notNull().default(0),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('affiliate_creative_store').on(t.storeId, t.archivedAt, t.sort)],
+)
+
+/** Clicks on an affiliate's links per day (India time), for trends; `affiliate.clicks` is the total. */
+export const affiliateClickDay = pgTable(
+  'affiliate_click_day',
+  {
+    storeId: uuid('store_id')
+      .notNull()
+      .references(() => store.id),
+    affiliateId: uuid('affiliate_id')
+      .notNull()
+      .references(() => affiliate.id, { onDelete: 'cascade' }),
+    day: date('day', { mode: 'string' }).notNull(),
+    clicks: integer('clicks').notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.storeId, t.affiliateId, t.day] })],
 )

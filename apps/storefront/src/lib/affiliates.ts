@@ -5,11 +5,15 @@ import {
   affiliateForCustomer,
   affiliateState,
   affiliateTotals,
+  affiliateTrend,
   commissionLedger,
   defaultProgram,
+  listCreatives,
   programBySlug,
   programOf,
   recordAffiliateClick,
+  type SignupField,
+  type TrendPoint,
 } from '@commerce/plugin-affiliates/server'
 import { inStore } from './store-context'
 
@@ -34,6 +38,8 @@ export type AffiliatePortal = {
     couponPercent: number | null
     cookieDays: number
     holdDays: number
+    /** Extra questions on the signup page. */
+    form: SignupField[]
   }
   affiliate: {
     status: 'pending' | 'approved' | 'rejected' | 'suspended'
@@ -47,6 +53,16 @@ export type AffiliatePortal = {
   totals: Awaited<ReturnType<typeof affiliateTotals>> | null
   /** Recent commissions: date, amount and where they stand. No shopper details. */
   recent: { id: string; placedAt: Date; commissionPaise: number; status: string }[]
+  /** Images and captions to post (their program's and the all-programs ones). */
+  creatives: {
+    id: string
+    url: string
+    contentType: string | null
+    title: string
+    caption: string
+  }[]
+  /** Their last 12 months: orders, commission and clicks per month. */
+  trend: TrendPoint[]
 }
 
 /**
@@ -80,15 +96,19 @@ export async function loadAffiliatePortal(
       couponPercent: rules.coupon.enabled ? rules.coupon.bp / 100 : null,
       cookieDays: settings.cookieDays,
       holdDays: settings.holdDays,
+      form: rules.form,
     }
-    if (!row) return { program, affiliate: null, totals: null, recent: [] }
+    if (!row)
+      return { program, affiliate: null, totals: null, recent: [], creatives: [], trend: [] }
     const approved = row.status === 'approved'
-    const [totals, ledger] = approved
+    const [totals, ledger, creatives, trend] = approved
       ? await Promise.all([
           affiliateTotals(tx, row.id),
           commissionLedger(tx, { affiliateId: row.id, limit: 20 }),
+          listCreatives(tx, { programId: chosen.id }),
+          affiliateTrend(tx, { by: 'month', affiliateId: row.id }),
         ])
-      : [null, []]
+      : [null, [], [], []]
     return {
       program,
       affiliate: {
@@ -109,6 +129,14 @@ export async function loadAffiliatePortal(
         commissionPaise: c.commissionPaise,
         status: c.status,
       })),
+      creatives: creatives.map((c) => ({
+        id: c.id,
+        url: c.url,
+        contentType: c.contentType,
+        title: c.title,
+        caption: c.caption,
+      })),
+      trend,
     }
   })
 }

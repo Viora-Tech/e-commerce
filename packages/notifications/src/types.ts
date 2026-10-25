@@ -48,6 +48,8 @@ export type TemplateId =
   | 'review_reminder'
   /** The store replied to the shopper's review (Reviews app). Email only. */
   | 'review_reply'
+  /** To the MERCHANT: someone applied to the affiliate program and waits for approval. Email only. */
+  | 'affiliate_application'
   /** To an AFFILIATE (Affiliates app): approved, a new sale, or a payout sent. Email, and WhatsApp with an approved template. */
   | 'affiliate_update'
   /** To the MERCHANT: an unpaid transfer order will be cancelled automatically. Email only. */
@@ -233,8 +235,15 @@ export type TemplateData = {
    */
   affiliate?:
     | {
-        kind: 'approved' | 'sale' | 'payout'
+        kind: 'approved' | 'sale' | 'payout' | 'rejected' | 'applied'
         name: string
+        /** For rejected: the merchant's reason. */
+        reason?: string | undefined
+        /** For applied (to the merchant): how to reach them, where they post, what they wrote. */
+        email?: string | undefined
+        social?: string | undefined
+        message?: string | undefined
+        adminUrl?: string | undefined
         link?: string | undefined
         couponCode?: string | undefined
         amountLabel?: string | undefined

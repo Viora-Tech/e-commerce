@@ -74,6 +74,11 @@ export default function AffiliateDetail({ params }: AppPageProps) {
     { label: d.payout, value: a.payoutHint ?? d.payoutNone },
     { label: d.panLabel, value: a.hasPan ? d.pan : d.noPan },
     { label: d.gstLabel, value: a.gstRegistered ? d.gstYes : d.gstNo },
+    // Their answers to the program's own signup questions, in the form's order.
+    ...(data.program?.rules.form ?? []).flatMap((q) =>
+      a.answers[q.id] ? [{ label: q.label, value: a.answers[q.id] ?? '' }] : [],
+    ),
+    ...(a.rejectReason ? [{ label: d.rejectReason, value: a.rejectReason }] : []),
   ]
 
   return (

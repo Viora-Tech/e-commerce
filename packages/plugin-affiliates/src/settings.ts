@@ -143,6 +143,51 @@ export const StoreAffiliateSettingsSchema = z.object({
 })
 export type StoreAffiliateSettings = z.infer<typeof StoreAffiliateSettingsSchema>
 
+/** Field kinds a program's signup form can ask. */
+export const SIGNUP_FIELD_KINDS = [
+  'text',
+  'textarea',
+  'url',
+  'number',
+  'select',
+  'checkbox',
+] as const
+export type SignupFieldKind = (typeof SIGNUP_FIELD_KINDS)[number]
+
+/** One extra question on a program's signup page. */
+export const SignupFieldSchema = z.object({
+  id: z.string().regex(/^[a-z0-9_]{1,32}$/),
+  label: z.string().trim().min(1).max(120),
+  kind: z.enum(SIGNUP_FIELD_KINDS).default('text'),
+  required: z.boolean().default(false),
+  /** For a select: the choices. */
+  options: z.array(z.string().trim().min(1).max(80)).max(20).default([]),
+})
+export type SignupField = z.infer<typeof SignupFieldSchema>
+
+/**
+ * A shopper's answers kept to the form's fields: trimmed, at most 1,000 characters, a select
+ * only one of its options, a checkbox `yes` or nothing. The first required field left empty is
+ * returned as `missing`.
+ */
+export function cleanAnswers(
+  form: readonly SignupField[],
+  raw: Record<string, unknown>,
+): { answers: Record<string, string>; missing: string | null } {
+  const answers: Record<string, string> = {}
+  let missing: string | null = null
+  for (const f of form) {
+    const v = raw[f.id]
+    let value = typeof v === 'string' ? v.trim().slice(0, 1000) : v === true ? 'yes' : ''
+    if (f.kind === 'select' && !f.options.includes(value)) value = ''
+    if (f.kind === 'checkbox') value = value ? 'yes' : ''
+    if (f.kind === 'number' && value && !/^-?\d+(\.\d+)?$/.test(value)) value = ''
+    if (value) answers[f.id] = value
+    else if (f.required && !missing) missing = f.id
+  }
+  return { answers, missing }
+}
+
 /** One program's rules, in `affiliate_program.rules`. */
 export const ProgramRulesSchema = z.object({
   commission: CommissionRuleSchema.default({ type: 'percent', bp: 1000 }),
@@ -169,6 +214,8 @@ export const ProgramRulesSchema = z.object({
   pitch: z.string().max(2000).default(''),
   /** Program terms the affiliate accepts when applying. */
   terms: z.string().max(10_000).default(''),
+  /** Extra questions on the signup page, after name and where they post. */
+  form: z.array(SignupFieldSchema).max(10).default([]),
 })
 export type ProgramRules = z.infer<typeof ProgramRulesSchema>
 
@@ -222,6 +269,7 @@ export function programPart(s: ProgramRules): ProgramRules {
     tiers: s.tiers,
     pitch: s.pitch,
     terms: s.terms,
+    form: s.form,
   }
 }
 
@@ -252,3 +300,8 @@ export type CommissionStatus = (typeof COMMISSION_STATUSES)[number]
 
 export const PAYOUT_STATUSES = ['pending', 'paid'] as const
 export type PayoutStatus = (typeof PAYOUT_STATUSES)[number]
+
+/** Orders per click, as a percentage with one decimal; null with no clicks. */
+export function conversionPercent(orders: number, clicks: number): number | null {
+  return clicks > 0 ? Math.round((orders / clicks) * 1000) / 10 : null
+}
