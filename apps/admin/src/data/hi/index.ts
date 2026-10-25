@@ -31,7 +31,7 @@ import customData from './custom-data'
 import customers from './customers'
 import customersBulkEdit from './customers-bulk-edit'
 import customizeAi from './customize-ai'
-import customizeMedia from './customize-media'
+import customizeAppEmbeds from './customize-app-embeds'
 import dateRange from './date-range'
 import dates from './dates'
 import dhlExpress from './dhl-express'
@@ -51,6 +51,8 @@ import growthbook from './growthbook'
 import gstInvoices from './gst-invoices'
 import home from './home'
 import imageEditor from './image-editor'
+import inbox from './inbox'
+import inboxConversations from './inbox-conversations'
 import indiaPost from './india-post'
 import installedApps from './installed-apps'
 import inventory from './inventory'
@@ -74,6 +76,7 @@ import ordersBulkEdit from './orders-bulk-edit'
 import paymentModes from './payment-modes'
 import payments from './payments'
 import paymentsSetup from './payments-setup'
+import pixels from './pixels'
 import productForm from './product-form'
 import productPage from './product-page'
 import products from './products'
@@ -149,7 +152,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...customers,
   ...customersBulkEdit,
   ...customizeAi,
-  ...customizeMedia,
+  ...customizeAppEmbeds,
   ...dates,
   ...dhlExpress,
   ...fedex,
@@ -189,6 +192,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...payments,
   ...paymentModes,
   ...paymentsSetup,
+  ...pixels,
   ...razorpayWebsites,
   ...collections,
   ...commandPalette,
@@ -199,6 +203,8 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...purchaseDocuments,
   ...profitCosts,
   ...profitReport,
+  ...inbox,
+  ...inboxConversations,
   ...monthlyExpenses,
   ...purchasing,
   ...selectProducts,

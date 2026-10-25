@@ -18,6 +18,41 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/core/src/inbox/widget.ts',
+    names: [
+      'WIDGET_ICONS',
+      'WIDGET_HORIZONTAL',
+      'WIDGET_VERTICAL',
+      'DEFAULT_INBOX_WIDGET',
+      'INBOX_WIDGET_FIELDS',
+    ],
+    reason:
+      'the Inbox app embed schema the theme editor App embeds panel renders (coordinator, 2026-10-24); read once that panel lands',
+  },
+  {
+    file: 'packages/core/src/inbox/panel.ts',
+    names: ['productCards'],
+    reason:
+      'the card builder behind messageCards and featuredProducts, exported for the AI agent (Inbox PR 6)',
+  },
+  {
+    file: 'packages/core/src/inbox/connection.ts',
+    names: ['EVENT_TYPES'],
+    reason:
+      'the browser side of Inbox realtime, used by the admin inbox (PR 4) and the widget (PR 5); unit-tested here',
+  },
+  {
+    file: 'packages/core/src/inbox/realtime.ts',
+    names: ['createInboxHub', 'sseFrame'],
+    reason:
+      'the hub and the SSE frame behind processInboxHub and inboxStreamResponse, exported for their unit tests',
+  },
+  {
+    file: 'packages/core/src/inbox/events.ts',
+    names: ['storeReplay'],
+    reason: 'the admin stream replay behind replayForStore, exported for its unit test',
+  },
+  {
     file: 'packages/db/src/inbox-schema.ts',
     names: [
       'INBOX_CHANNELS',
@@ -39,26 +74,7 @@ const ALLOWLIST: AllowEntry[] = [
       'MESSAGE_SENDERS',
       'MESSAGE_KINDS',
       'BLOCK_KINDS',
-      'INBOX_VIEWS',
     ],
-    reason:
-      'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
-  },
-  {
-    file: 'packages/core/src/inbox/conversations.ts',
-    names: ['isShareableDiscount'],
-    reason:
-      'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
-  },
-  {
-    file: 'packages/core/src/inbox/identity.ts',
-    names: ['CHAT_COOKIE', 'CHAT_COOKIE_MAX_AGE', 'newChatToken', 'hashChatToken'],
-    reason:
-      'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
-  },
-  {
-    file: 'packages/core/src/inbox/limits.ts',
-    names: ['IMAGE_MAX_BYTES'],
     reason:
       'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
   },
@@ -74,38 +90,18 @@ const ALLOWLIST: AllowEntry[] = [
       'InboxDayHoursSchema',
       'DEFAULT_INBOX_HOURS',
       'INBOX_AVAILABILITY',
-      'INBOX_CONTACT_CAPTURE',
       'InboxSettingsSchema',
       'DEFAULT_INBOX_SETTINGS',
       'zonedWeekMinute',
-      'isInboxAvailable',
-      'contactRequired',
     ],
     reason:
       'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
   },
   {
     file: 'packages/core/src/inbox/shopper.ts',
-    names: [
-      'shopperMessageOf',
-      'findShopperConversation',
-      'shopperThread',
-      'ShopperSendSchema',
-      'InboxRateLimited',
-      'shopperSend',
-      'markShopperSeen',
-      'mergeGuestConversation',
-      'postCartEvent',
-      'customerConversations',
-    ],
+    names: ['ShopperSendSchema', 'customerConversations'],
     reason:
       'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
-  },
-  {
-    file: 'packages/db/src/pixel-schema.ts',
-    names: ['pixelConnection', 'pixelEventLog', 'pixelEventDay'],
-    reason:
-      'Pixels tables (feat/pixels-data, 2026-10-24): read by the worker and router in Pixels PR 3, which removes this entry',
   },
   {
     file: 'packages/core/src/pixels/hash.ts',
@@ -118,24 +114,24 @@ const ALLOWLIST: AllowEntry[] = [
       'normaliseState',
       'normalisePin',
       'splitName',
-      'hashUserData',
     ],
-    reason:
-      'Pixels core (feat/pixels-core, 2026-10-24): used by the sender in Pixels PR 3, which removes this entry',
+    reason: 'the Meta normalisers behind hashUserData; exported for their unit tests',
   },
   {
     file: 'packages/core/src/pixels/meta.ts',
-    names: [
-      'META_GRAPH',
-      'buildMetaEvent',
-      'matchedOf',
-      'classifyMetaError',
-      'cleanMetaMessage',
-      'sendMetaEvents',
-      'verifyMetaToken',
-    ],
+    names: ['META_GRAPH', 'classifyMetaError'],
     reason:
-      'Pixels core (feat/pixels-core, 2026-10-24): used by the sender and sendTest in Pixels PR 3, which removes this entry',
+      'the Graph base URL and error classifier behind sendMetaEvents; exported for their unit tests',
+  },
+  {
+    file: 'packages/core/src/pixels/prune.ts',
+    names: ['prunePixelData'],
+    reason: 'the prune for one store, behind runPixelPruneJob; exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/pixels/send.ts',
+    names: ['PixelRetryError'],
+    reason: 'thrown so BullMQ retries a send job; exported for its unit test',
   },
   {
     file: 'packages/ui/src/globe/webgl/sprite-dots.ts',

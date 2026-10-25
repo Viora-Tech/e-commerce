@@ -33,6 +33,7 @@ import {
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { authClient } from '@/lib/auth-client'
+import { withSalesChannels } from '@/lib/nav-channels'
 import { localizeNavItems, navGroupName } from '@/lib/page-names'
 import { routes } from '@/lib/routes'
 import {
@@ -52,6 +53,8 @@ type AdminSidebarProps = {
   stores: StoreOption[]
   activeStoreId: string | null
   apps: { id: string; name: string; icon: string | null; href: string }[]
+  /** Installed sales channel apps (Inbox), listed under Sales channels. */
+  channels?: string[] | undefined
   logoUrl: string | null
   user: { name: string; email: string; image: string | null }
   /** The live storefront's address; its host is the domain pill. */
@@ -117,6 +120,7 @@ export default function AdminSidebar({
   stores,
   activeStoreId,
   apps,
+  channels = [],
   logoUrl,
   user,
   storefrontUrl,
@@ -201,7 +205,7 @@ export default function AdminSidebar({
               <DropdownMenuItem
                 key={s.id}
                 disabled={switchingId !== null || s.id === activeStoreId}
-                onSelect={() => handleSwitchStore(s.id)}
+                onClick={() => handleSwitchStore(s.id)}
               >
                 {/* Figma "State · Switching store": the picked store spins until Home reloads. */}
                 {switchingId === s.id ? <Spinner /> : <Store className="size-4" />}
@@ -241,7 +245,7 @@ export default function AdminSidebar({
       </SidebarHeader>
 
       <SidebarContent className="no-scrollbar gap-0.5 pt-0.5">
-        {NAV_GROUPS.map((group) => (
+        {withSalesChannels(NAV_GROUPS, channels).map((group) => (
           <NavGroupBlock
             key={group.label}
             label={group.label ? navGroupName(group.label, locale) : undefined}

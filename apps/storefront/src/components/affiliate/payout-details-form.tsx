@@ -21,6 +21,7 @@ export default function PayoutDetailsForm({ hint }: PayoutDetailsFormProps) {
   const [accountNumber, setAccountNumber] = useState('')
   const [ifsc, setIfsc] = useState('')
   const [pan, setPan] = useState('')
+  const [gstin, setGstin] = useState('')
   const [error, setError] = useState<{ message: string; field?: string | undefined } | null>(null)
   const [saved, setSaved] = useState(false)
 
@@ -30,10 +31,11 @@ export default function PayoutDetailsForm({ hint }: PayoutDetailsFormProps) {
     setError(null)
     setSaved(false)
     const panValue = pan.trim() ? pan.trim() : undefined
+    const gstinValue = gstin.trim() ? gstin.trim() : undefined
     const details =
       method === 'upi'
-        ? { method, upiId, pan: panValue }
-        : { method, accountName, accountNumber, ifsc, pan: panValue }
+        ? { method, upiId, pan: panValue, gstin: gstinValue }
+        : { method, accountName, accountNumber, ifsc, pan: panValue, gstin: gstinValue }
     start(async () => {
       const r = await savePayoutDetailsAction(details)
       if (r.ok) {
@@ -41,6 +43,7 @@ export default function PayoutDetailsForm({ hint }: PayoutDetailsFormProps) {
         setUpiId('')
         setAccountNumber('')
         setPan('')
+        setGstin('')
       } else {
         setError({ message: copy.errors[r.error] ?? copy.errors.generic ?? '', field: r.field })
       }
@@ -130,6 +133,18 @@ export default function PayoutDetailsForm({ hint }: PayoutDetailsFormProps) {
           onChange={(e) => setPan(e.target.value)}
         />
         <span className="text-small text-muted">{copy.panHint}</span>
+      </label>
+      <label className="field">
+        <span className="field__label text-small">{copy.gstin}</span>
+        <input
+          className="field__input uppercase"
+          autoComplete="off"
+          maxLength={15}
+          value={gstin}
+          aria-invalid={invalid('gstin')}
+          onChange={(e) => setGstin(e.target.value)}
+        />
+        <span className="text-small text-muted">{copy.gstinHint}</span>
       </label>
       {error ? (
         <p className="text-small text-danger" role="alert">

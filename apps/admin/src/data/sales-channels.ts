@@ -99,7 +99,7 @@ export const salesChannelsContent = {
       `Sending your catalog to ${name} for the first time. This can take a few minutes.`,
     sharing: (name: string) => `Sharing your catalog with ${name}…`,
     sentOf: (sent: number, total: number) =>
-      `${sent.toLocaleString('en-IN')} of ${total.toLocaleString('en-IN')} products sent`,
+      `${sent.toLocaleString('en-IN')} of ${total.toLocaleString('en-IN')} items sent`,
     syncedBody: 'Products, prices and stock are up to date.',
     errorBody: (name: string) =>
       `${name} could not take the latest changes. Reconnect to start sharing again.`,
@@ -152,6 +152,38 @@ export const salesChannelsContent = {
     recentEmpty:
       'Orders from ChatGPT, Perplexity, Gemini and Copilot show here, from the link the shopper came through.',
     viewInOrders: 'View in Orders',
+  },
+  getReady: {
+    headline: 'AI shopping agents are coming. Get your store ready to sell inside them.',
+    stepsHeading: 'Get ready for agentic sales',
+    done: 'Done',
+    todo: 'To do',
+    steps: {
+      catalog: {
+        title: 'Make your catalog ready for AI',
+        body: (score: number, issues: number) =>
+          issues === 0
+            ? `AI-ready score ${score}/100. Nothing to fix.`
+            : `AI-ready score ${score}/100. ${issues === 1 ? '1 issue' : `${issues} issues`} to fix.`,
+      },
+      visible: {
+        title: 'Choose what agents can see',
+        body: (visible: number, active: number) =>
+          `${visible} of ${active} active products visible to agents, at your store prices.`,
+      },
+    },
+    note: 'Agents only see what you allow in Controls. Orders from agents land in Orders like any other order.',
+    channelsHeading: 'Channels',
+    manage: 'Let Koomerce manage for me',
+    manageBody: 'We list your store with each agent as it goes live, with the products you allow.',
+    managedOn: 'You’re on the list for every AI agent',
+    managedOff: 'Your agent requests are withdrawn',
+    sourcesHeading: 'Sources',
+    sources: {
+      catalog: 'Koomerce catalog',
+      products: (n: string) => `${n} products`,
+      score: 'AI-ready score',
+    },
   },
   orders: {
     order: 'Order',
@@ -380,8 +412,9 @@ export const salesChannelsContent = {
   socialPage: {
     connectCta: (name: string) => `Connect ${name}`,
     stats: {
-      live: 'Products live',
-      liveNote: (n: number) => `of ${n} in your catalog`,
+      live: 'Items live',
+      /** Each variant is its own item on the platform, so items outnumber products. */
+      liveNote: (n: number) => `variants of your ${n} active products`,
       orders: (name: string) => `Orders from ${name}`,
       revenue: (name: string) => `Sales from ${name}`,
       aov: 'Average order',

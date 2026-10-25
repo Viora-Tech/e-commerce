@@ -77,6 +77,13 @@ export const ColorSchemeSchema = z.object({
 })
 export type ColorScheme = z.infer<typeof ColorSchemeSchema>
 
+/** One app embed's state in a theme: on or off, and the settings the merchant changed. */
+const AppEmbedStateSchema = z.object({
+  enabled: z.boolean(),
+  settings: z.record(z.string(), z.unknown()).default({}),
+})
+export type AppEmbedState = z.infer<typeof AppEmbedStateSchema>
+
 export const ThemeSchema = z.object({
   schemes: z.array(ColorSchemeSchema).min(1),
   /** Scheme id used on light pages. */
@@ -174,6 +181,11 @@ export const ThemeSchema = z.object({
   customCss: z.string().max(20_000).default(''),
   /** The preset this theme started from; "Reset to preset" re-applies it. */
   preset: z.enum(THEME_PRESET_IDS).default('waimers'),
+  /**
+   * Theme editor → Apps: each app embed's switch and settings in this theme, keyed by the
+   * embed's `<pluginId>/<Name>`. An embed missing here uses its own default (`app-embeds.ts`).
+   */
+  appEmbeds: z.record(z.string(), AppEmbedStateSchema).default({}),
 })
 export type Theme = z.infer<typeof ThemeSchema>
 
@@ -263,6 +275,7 @@ export const defaultTheme: Theme = {
   customCss: '',
   brand: DEFAULT_BRAND,
   preset: 'waimers',
+  appEmbeds: {},
 }
 
 /** Parse a stored theme, falling back to defaults for anything missing or invalid. */

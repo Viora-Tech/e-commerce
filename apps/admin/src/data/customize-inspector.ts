@@ -114,7 +114,7 @@ export const inspectorContent = {
     theme: 'Theme settings',
     pages: 'Pages',
     newPage: 'New page',
-    media: 'Media',
+    apps: 'App embeds',
     settings: 'Page settings',
     help: 'Help',
   },

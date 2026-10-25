@@ -4,6 +4,8 @@ import AffiliatesList from '@/components/apps/affiliates/affiliates-list'
 import CommissionsList from '@/components/apps/affiliates/commissions-list'
 import AffiliatesOverview from '@/components/apps/affiliates/overview-page'
 import AffiliatePayouts from '@/components/apps/affiliates/payouts-page'
+import AffiliateProgramEditor from '@/components/apps/affiliates/program-editor'
+import AffiliatePrograms from '@/components/apps/affiliates/programs-page'
 import AffiliateSettings from '@/components/apps/affiliates/settings-page'
 import AutomationApprovalsPage from '@/components/apps/automations/approvals-page'
 import AutomationRunPage from '@/components/apps/automations/run-page'
@@ -49,6 +51,8 @@ import IndiaPostOverviewPage from '@/components/apps/india-post/overview-page'
 import MeilisearchPage from '@/components/apps/meilisearch/settings-page'
 import SesConnectPage from '@/components/apps/messages/ses-connect-page'
 import WhatsappConnectPage from '@/components/apps/messages/whatsapp-connect-page'
+import PixelEventLogPage from '@/components/apps/pixels/event-log-page'
+import PixelsPage from '@/components/apps/pixels/pixels-page'
 import RapidshypConnectPage from '@/components/apps/rapidshyp/connect-page'
 import RapidshypOverviewPage from '@/components/apps/rapidshyp/overview-page'
 import RazorpayConnectPage from '@/components/apps/razorpay/connect-page'
@@ -113,6 +117,8 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       '': AffiliatesOverview,
       affiliates: AffiliatesList,
       'affiliates/[id]': AffiliateDetail,
+      programs: AffiliatePrograms,
+      'programs/[id]': AffiliateProgramEditor,
       commissions: CommissionsList,
       payouts: AffiliatePayouts,
       settings: AffiliateSettings,
@@ -188,6 +194,12 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
   forms: {
     pages: {
       '': SubmissionsList,
+    },
+  },
+  pixels: {
+    pages: {
+      '': PixelsPage,
+      events: PixelEventLogPage,
     },
   },
   search: {

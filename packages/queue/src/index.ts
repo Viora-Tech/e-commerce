@@ -28,6 +28,11 @@ import {
   type AutomationStepJob,
   type AutomationStepQueue,
 } from '@commerce/core/automations/server'
+import {
+  PIXELS_SEND_QUEUE,
+  type PixelSendJob,
+  type PixelSendQueue,
+} from '@commerce/core/pixels/server'
 import { logger } from '@commerce/observability/logging'
 import { Queue } from 'bullmq'
 import IORedis from 'ioredis'
@@ -99,6 +104,9 @@ export const QUEUE_LIMITS = {
   /** Automations: one job per outbox row a trigger listens to, then one per run step (design §8.5). */
   automationsTrigger: { concurrency: 10, perStore: 4 },
   automationsStep: { concurrency: 20, perStore: 4 },
+  /** Pixels: one job per order event, then one Conversions API call per pixel and event. */
+  pixelsOrder: { concurrency: 5, perStore: 2 },
+  pixelsSend: { concurrency: 10, perStore: 3 },
 } as const satisfies Record<string, QueueLimits>
 
 /**
@@ -313,6 +321,15 @@ export function automationStepQueue(redisUrl: string): AutomationStepQueue {
   return g.__automationStepQueue
 }
 
+/** Producer side of the Pixels send queue (the storefront's `/api/px` collector). */
+export function pixelSendQueue(redisUrl: string): PixelSendQueue {
+  const g = globalThis as { __pixelSendQueue?: PixelSendQueue }
+  g.__pixelSendQueue ??= new Queue<PixelSendJob>(PIXELS_SEND_QUEUE, {
+    connection: createConnection(redisUrl),
+  })
+  return g.__pixelSendQueue
+}
+
 /** One process-wide Redis connection for caches; same globalThis caching as the queue. */
 export function sharedRedis(redisUrl: string): IORedis {
   const g = globalThis as { __commerceRedis?: IORedis }
@@ -324,5 +341,6 @@ export { Queue, Worker } from 'bullmq'
 export type { default as IORedis } from 'ioredis'
 export * from './cache'
 export * from './fair'
+export { inboxHub, inboxPublisher } from './inbox'
 export { redisRateLimiter } from './rate-limit'
 export * from './visitors'

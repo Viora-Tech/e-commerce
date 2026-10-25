@@ -29,23 +29,23 @@
 @source "../node_modules/nextra-theme-docs/dist/**/*.{js,mjs}";
 
 /* ---------------------------------------------------------------------------
- * Tokens — the admin's neutrals and its single blue (packages/ui/src/styles.css, light and
- * dark). The primary hue behind Nextra's own active states, focus rings and TOC, and the
- * page backgrounds, come from <Head color backgroundColor> in app/layout.tsx.
- * `--docs-link` is the blue darkened enough to pass contrast as body text on white.
+ * Tokens — the landing page's look (apps/www): black, white and neutral greys with the brand
+ * orange as the one accent. The primary hue behind Nextra's own active states, focus rings and
+ * TOC, and the page backgrounds, come from <Head color backgroundColor> in app/layout.tsx.
+ * `--docs-link` is the orange darkened enough to pass contrast as body text on white.
  * ------------------------------------------------------------------------- */
 :root {
-  --docs-fg: #111318;
-  --docs-muted: #5e6470;
-  --docs-subtle: #8a909b;
-  --docs-border: #e3e6eb;
-  --docs-border-strong: #d5d8de;
-  --docs-surface: #f7f8fa;
+  --docs-fg: #0a0a0a;
+  --docs-muted: #525252;
+  --docs-subtle: #737373;
+  --docs-border: #e5e5e5;
+  --docs-border-strong: #d4d4d4;
+  --docs-surface: #f5f5f5;
   --docs-card: #ffffff;
-  --docs-accent: #3f72dc;
-  --docs-link: #2f62cf;
-  --docs-accent-bg: #eaf1fd;
-  --docs-accent-border: rgb(63 114 220 / 0.35);
+  --docs-accent: #ff6a13;
+  --docs-link: #c2410c;
+  --docs-accent-bg: #fff1e8;
+  --docs-accent-border: rgb(255 106 19 / 0.35);
   --docs-radius: 0.75rem;
   --docs-amber: #a15c07;
   --docs-amber-bg: #fffbeb;
@@ -56,17 +56,17 @@
 }
 
 :root.dark {
-  --docs-fg: #dde1e7;
-  --docs-muted: #959ba6;
-  --docs-subtle: #80868f;
+  --docs-fg: #fafafa;
+  --docs-muted: #a1a1a1;
+  --docs-subtle: #8a8a8a;
   --docs-border: rgb(255 255 255 / 0.1);
   --docs-border-strong: rgb(255 255 255 / 0.16);
-  --docs-surface: #181a20;
-  --docs-card: #181a20;
-  --docs-accent: #7fa2f5;
-  --docs-link: #7fa2f5;
-  --docs-accent-bg: #1f283d;
-  --docs-accent-border: rgb(127 162 245 / 0.35);
+  --docs-surface: #171717;
+  --docs-card: #171717;
+  --docs-accent: #ff8a3d;
+  --docs-link: #ff8a3d;
+  --docs-accent-bg: rgb(255 106 19 / 0.12);
+  --docs-accent-border: rgb(255 138 61 / 0.35);
   --docs-amber: #fbbf24;
   --docs-amber-bg: rgb(251 191 36 / 0.08);
   --docs-amber-border: rgb(251 191 36 / 0.3);
@@ -285,7 +285,7 @@ article > main {
     margin-top: 0.5rem;
     color: var(--docs-fg);
     text-align: left;
-    font-family: var(--font-display-face), var(--font-primary), system-ui, sans-serif;
+    font-family: var(--font-primary), system-ui, sans-serif;
     font-size: 2.25rem;
     font-weight: 700;
     line-height: 1.2;
@@ -307,7 +307,7 @@ article > main {
     padding-bottom: 0;
     border-top: 1px solid var(--docs-border);
     color: var(--docs-fg);
-    font-family: var(--font-display-face), var(--font-primary), system-ui, sans-serif;
+    font-family: var(--font-primary), system-ui, sans-serif;
     font-size: 1.5rem;
     font-weight: 700;
     letter-spacing: -0.025em;

@@ -243,6 +243,12 @@ export type AppAdmin = {
   customerDetailCard?: boolean | undefined
   /** Actions on orders: the order page's "More actions", the list's row menu and bulk bar. */
   orderActions?: OrderAction[] | undefined
+  /**
+   * A sales channel app (Inbox, like Shopify Inbox): its pages live at this admin path under
+   * Sales channels (e.g. `/sales-channels/inbox`) instead of `/apps/<pluginId>`, and it is listed
+   * in the sidebar's Sales channels group while installed, not under Apps.
+   */
+  salesChannel?: string | undefined
 }
 
 /**
@@ -273,9 +279,32 @@ export type AppBlockDefinition = {
   resolveData?: ((args: any) => Promise<any>) | undefined
 }
 
+/**
+ * A site-wide storefront widget an installed app contributes (Shopify's "app embeds"): a chat
+ * bubble, a pop-up, a floating bar. Unlike a block it is not placed on a page; the merchant turns
+ * it on per theme in the theme editor's Apps panel and edits its settings there, and the
+ * storefront draws every embed that is on, once per page. `type` is namespaced like a block's.
+ * Structurally typed for the same reason as `AppBlockDefinition`.
+ */
+export type AppEmbedDefinition = {
+  /** `<pluginId>/<Name>`, e.g. `inbox/Chat`. */
+  type: string
+  label: string
+  description?: string | undefined
+  /** Puck `Fields` for the embed's settings in the Apps panel. */
+  fields: Record<string, unknown>
+  defaultProps: Record<string, unknown>
+  /** Off until the merchant turns it on, unless this says otherwise. */
+  enabledByDefault?: boolean | undefined
+  /** Draws the embed with its settings. Client islands are fine. */
+  // biome-ignore lint/suspicious/noExplicitAny: erased render signature, like AppBlockDefinition.
+  render: (props: any) => unknown
+}
+
 /** What a plugin contributes to the storefront beyond providers. */
 export type PluginStorefront = {
   blocks?: AppBlockDefinition[] | undefined
+  embeds?: AppEmbedDefinition[] | undefined
 }
 
 /**
@@ -449,6 +478,8 @@ export type PluginSummary = {
     customerDetailCard: boolean
     /** Declared actions plus a Create shipment per courier the plugin provides. */
     orderActions: OrderAction[]
+    /** The sales-channel path, or null for an ordinary app. */
+    salesChannel: string | null
   }
   credits: AppCredit[]
   access: {

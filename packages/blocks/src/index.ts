@@ -64,6 +64,14 @@ export {
 } from './sections/zero-drift/cookie-banner'
 export { footerSettings } from './sections/zero-drift/footer'
 export { headerSettings } from './sections/zero-drift/header'
-export { announceCartAdded, CART_ADDED_EVENT, type StoreActions } from './store-actions'
+export {
+  announceCartAdded,
+  CART_ADDED_EVENT,
+  COMMERCE_TRACK_EVENT,
+  type CommerceTrackDetail,
+  pendingCommerceTracks,
+  type StoreActions,
+  trackCommerce,
+} from './store-actions'
 export * from './types'
 export { removeFromWishlist, toggleWishlist, useWishlist } from './wishlist'

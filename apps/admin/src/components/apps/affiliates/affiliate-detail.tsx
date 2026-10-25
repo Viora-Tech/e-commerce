@@ -5,6 +5,7 @@ import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import type { AppPageProps } from '@/apps/registry'
+import AffiliateProgramCard from '@/components/apps/affiliates/affiliate-program-card'
 import AffiliateRowActions from '@/components/apps/affiliates/affiliate-row-actions'
 import { commissionColumns } from '@/components/apps/affiliates/commission-columns'
 import { statusTone } from '@/components/apps/affiliates/tones'
@@ -70,6 +71,7 @@ export default function AffiliateDetail({ params }: AppPageProps) {
     { label: d.social, value: a.social || '—' },
     { label: d.payout, value: a.payoutHint ?? d.payoutNone },
     { label: d.panLabel, value: a.hasPan ? d.pan : d.noPan },
+    { label: d.gstLabel, value: a.gstRegistered ? d.gstYes : d.gstNo },
   ]
 
   return (
@@ -127,6 +129,15 @@ export default function AffiliateDetail({ params }: AppPageProps) {
           </div>
         </div>
       </div>
+      <AffiliateProgramCard
+        key={`${a.programId}-${JSON.stringify(a.rateOverride)}`}
+        affiliateId={a.id}
+        programId={data.program?.id ?? a.programId}
+        programs={data.programs}
+        programRule={data.program?.rules.commission ?? null}
+        rateOverride={a.rateOverride}
+        onChanged={handleChanged}
+      />
       <h2 className="text-body font-semibold text-ink-strong">{d.commissions}</h2>
       <ResourceTable
         resourceName={copy.commissions.resource}

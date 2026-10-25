@@ -35,7 +35,7 @@ export const BLOCK_KINDS = ['visitor', 'email', 'ip'] as const
 export type BlockKind = (typeof BLOCK_KINDS)[number]
 
 /** The inbox list's tabs. */
-export const INBOX_VIEWS = ['open', 'mine', 'unassigned', 'closed', 'blocked'] as const
+export const INBOX_VIEWS = ['open', 'mine', 'unassigned', 'unread', 'closed', 'blocked'] as const
 export type InboxView = (typeof INBOX_VIEWS)[number]
 
 /** Longest message body. */

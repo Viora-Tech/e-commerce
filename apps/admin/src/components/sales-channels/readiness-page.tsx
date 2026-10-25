@@ -106,7 +106,8 @@ export default function ReadinessPage({ report, aiBulk }: ReadinessPageProps) {
         }
       />
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
-        <div className="flex flex-col gap-4">
+        {/* The score stays in view while the product list scrolls. */}
+        <div className="flex flex-col gap-4 lg:sticky lg:top-4">
           <DataCard
             title={
               <span className="flex items-center gap-2">

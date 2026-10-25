@@ -310,7 +310,7 @@ export async function anonymiseCustomer(
     sql`update discount set status = 'disabled', updated_at = now() where store_id = ${ctx.storeId} and id in (select discount_id from affiliate where store_id = ${ctx.storeId} and ${affiliateOf})`,
   )
   await tx.execute(
-    sql`update affiliate set name = 'Former affiliate', email = null, phone_index = null, social = '', message = '', note = '', payout_method = null, payout_details = null, payout_hint = null, has_pan = false, customer_id = null, status = 'suspended', updated_at = now() where store_id = ${ctx.storeId} and ${affiliateOf}`,
+    sql`update affiliate set name = 'Former affiliate', email = null, phone_index = null, social = '', message = '', note = '', payout_method = null, payout_details = null, payout_hint = null, has_pan = false, gst_registered = false, customer_id = null, status = 'suspended', updated_at = now() where store_id = ${ctx.storeId} and ${affiliateOf}`,
   )
   // As a buyer: their orders stay credited to the affiliate, without the link back to them.
   await tx.execute(

@@ -14,13 +14,22 @@ vi.mock('@/components/analytics/visit-beacon', () => ({
   default: () => createElement('i', { 'data-testid': 'beacon' }),
 }))
 vi.mock('@/components/analytics/tracking-tags', () => ({
-  default: (p: { ga4: string | null; gtm: string | null; metaPixel: string | null }) =>
+  default: (p: {
+    ga4: string | null
+    gtm: string | null
+    metaPixel: string | null
+    pixels?: readonly string[] | undefined
+  }) =>
     createElement('i', {
       'data-testid': 'tags',
       'data-ga4': p.ga4 ?? '',
       'data-gtm': p.gtm ?? '',
       'data-pixel': p.metaPixel ?? '',
+      'data-pixels': (p.pixels ?? []).join(','),
     }),
+}))
+vi.mock('@/components/analytics/pixel-events', () => ({
+  default: () => createElement('i', { 'data-testid': 'pixel-events' }),
 }))
 vi.mock('@/components/support/chatwoot-widget', () => ({
   default: (p: { identity: { identifier: string } | null }) =>
@@ -155,5 +164,28 @@ describe('server-side analytics check (proxy visitor id, beacon route)', () => {
       false,
     )
     expect(analyticsAllowed(encodeConsent({ analytics: true, marketing: false }, 1, AT))).toBe(true)
+  })
+})
+
+describe('the Pixels app', () => {
+  const pixels = [{ id: '9876543210', events: ['PageView' as const], browserPurchase: true }]
+  const renderWith = (cookie: string | null) =>
+    renderToStaticMarkup(
+      createElement(ConsentManager, {
+        tracking,
+        bannerMessage: '',
+        bannerVersion: 1,
+        initial: decodeConsent(cookie),
+        pixels,
+      }),
+    )
+
+  it('loads its pixels and events only after a yes to marketing, and drops the old pixel', () => {
+    const analyticsOnly = renderWith(encodeConsent({ analytics: true, marketing: false }, 1, AT))
+    expect(analyticsOnly).toContain('data-pixel="" data-pixels=""')
+    expect(analyticsOnly).not.toContain('data-testid="pixel-events"')
+    const yes = renderWith(encodeConsent({ analytics: false, marketing: true }, 1, AT))
+    expect(yes).toContain('data-pixel="" data-pixels="9876543210"')
+    expect(yes).toContain('data-testid="pixel-events"')
   })
 })

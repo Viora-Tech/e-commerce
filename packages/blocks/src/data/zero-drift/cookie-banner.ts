@@ -16,7 +16,10 @@ export const cookieBannerContent = {
       label: 'Analytics',
       body: 'Counts visits and pages, and where visitors came from, so the store can improve.',
     },
-    marketing: { label: 'Marketing', body: 'Measures ads on Meta and other platforms.' },
+    marketing: {
+      label: 'Marketing',
+      body: 'Shares your visits and purchases with advertising partners such as Meta, with your email and phone scrambled first, to measure and show ads.',
+    },
   },
   positionOptions: [
     { label: 'Bar across the bottom', value: 'bar' },

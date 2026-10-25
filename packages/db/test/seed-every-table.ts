@@ -110,7 +110,19 @@ function allowedLiterals(checks: { table: string; def: string }[]): Map<string, 
   return out
 }
 
-function valueFor(col: Column): unknown {
+/**
+ * Columns whose check constraint is a pattern rather than an `in (...)` list: a value of the
+ * right shape. Keyed by `table.column`.
+ */
+const PATTERNED: Record<string, () => string> = {
+  // `^[0-9]{10,20}$` (Pixels app, 0160).
+  'pixel_connection.pixel_id': () =>
+    `1${randomUUID().replace(/\D/g, '').padEnd(14, '0').slice(0, 14)}`,
+}
+
+function valueFor(col: Column, table: string): unknown {
+  const patterned = PATTERNED[`${table}.${col.name}`]
+  if (patterned) return patterned()
   const t = col.type
   if (t === 'uuid') return randomUUID()
   if (t.endsWith('[]')) return sql`'{}'`
@@ -190,9 +202,9 @@ export async function seedEveryTable(
       if (storeScoped && col.name === 'store_id') value = storeId
       else if (fk) value = await parentId(fk)
       else if (literals.has(`${table}.${col.name}`)) value = literals.get(`${table}.${col.name}`)
-      else if (col.notNull && !col.hasDefault) value = valueFor(col)
-      else if (col.name === 'id' && !col.hasDefault) value = valueFor(col)
-      else if (col.name === 'email' || col.name === 'phone') value = valueFor(col)
+      else if (col.notNull && !col.hasDefault) value = valueFor(col, table)
+      else if (col.name === 'id' && !col.hasDefault) value = valueFor(col, table)
+      else if (col.name === 'email' || col.name === 'phone') value = valueFor(col, table)
       if (value === undefined) {
         if (col.notNull && !col.hasDefault) return undefined
         continue

@@ -6,6 +6,9 @@ import {
   affiliateState,
   affiliateTotals,
   commissionLedger,
+  defaultProgram,
+  programBySlug,
+  programOf,
   recordAffiliateClick,
 } from '@commerce/plugin-affiliates/server'
 import { inStore } from './store-context'
@@ -22,6 +25,9 @@ export async function countAffiliateClick(
 
 export type AffiliatePortal = {
   program: {
+    /** `?program=` value for links back to this signup page. */
+    slug: string
+    isDefault: boolean
     active: boolean
     pitch: string
     terms: string
@@ -43,25 +49,37 @@ export type AffiliatePortal = {
 }
 
 /**
- * What `/affiliate` draws for this shopper: the program, and their own affiliate record and
- * figures when they have one. Null when the store does not have the Affiliates app.
+ * What `/affiliate` draws for this shopper: the program (their own once they joined, else the
+ * one `?program=` names, else the default), and their own affiliate record and figures when they
+ * have one. Null when the store does not have the Affiliates app, or `?program=` names no open
+ * program.
  */
 export async function loadAffiliatePortal(
   storeId: string,
   me: SignedInCustomer | null,
+  programSlug?: string | undefined,
 ): Promise<AffiliatePortal | null> {
   return inStore(storeId, async (tx) => {
     const { installed, settings } = await affiliateState(tx, storeId)
     if (!installed) return null
+    const row = me ? await affiliateForCustomer(tx, storeId, me.id) : null
+    const chosen = row
+      ? await programOf(tx, storeId, row)
+      : programSlug
+        ? await programBySlug(tx, storeId, programSlug)
+        : await defaultProgram(tx, storeId)
+    if (!chosen) return null
+    const rules = chosen.rules
     const program = {
+      slug: chosen.slug,
+      isDefault: chosen.isDefault,
       active: settings.active,
-      pitch: settings.pitch,
-      terms: settings.terms,
-      couponPercent: settings.coupon.enabled ? settings.coupon.bp / 100 : null,
+      pitch: rules.pitch,
+      terms: rules.terms,
+      couponPercent: rules.coupon.enabled ? rules.coupon.bp / 100 : null,
       cookieDays: settings.cookieDays,
       holdDays: settings.holdDays,
     }
-    const row = me ? await affiliateForCustomer(tx, storeId, me.id) : null
     if (!row) return { program, affiliate: null, totals: null, recent: [] }
     const approved = row.status === 'approved'
     const [totals, ledger] = approved

@@ -10,6 +10,7 @@ import { CORE_PLUGIN_ID, type LoadedPlugins, loadPlugins, type Registries } from
 import { eq } from 'drizzle-orm'
 import commerceConfig from '../../../../commerce.config'
 import { parseAppsSettings } from '../apps/settings'
+import { type AppEmbedSource, appEmbedSources } from '../theme/app-embeds'
 import { corePlugin } from './core-plugin'
 
 let loaded: LoadedPlugins | null = null
@@ -54,4 +55,17 @@ export async function appBlockSourcesForStore(
     blocks: p.storefront?.blocks,
   }))
   return { allSources, enabledIds }
+}
+
+/**
+ * The site-wide embeds of the apps this store installed (the theme editor's Apps panel and the
+ * storefront's `AppEmbeds`). Their on/off and settings live in each theme (`resolveAppEmbeds`).
+ */
+export async function appEmbedSourcesForStore(
+  tx: StoreTx,
+  storeId: string,
+): Promise<AppEmbedSource[]> {
+  const [s] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
+  const installed = new Set([CORE_PLUGIN_ID, ...parseAppsSettings(s?.apps).installed])
+  return appEmbedSources(getRegistries().plugins, installed)
 }

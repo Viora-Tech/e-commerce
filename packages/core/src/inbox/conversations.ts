@@ -10,7 +10,20 @@ import {
   type StoreTx,
   storeMember,
 } from '@commerce/db'
-import { and, desc, eq, exists, ilike, inArray, isNull, lt, or, type SQL, sql } from 'drizzle-orm'
+import {
+  and,
+  desc,
+  eq,
+  exists,
+  gt,
+  ilike,
+  inArray,
+  isNull,
+  lt,
+  or,
+  type SQL,
+  sql,
+} from 'drizzle-orm'
 import { z } from 'zod'
 import type { StoreContext } from '../context'
 import {
@@ -21,6 +34,7 @@ import {
 import { blockSender, removeConversationBlocks } from './blocks'
 import {
   type ConversationStatus,
+  INBOX_VIEWS,
   type InboxView,
   LIST_PAGE,
   MESSAGE_MAX,
@@ -98,6 +112,7 @@ function viewFilter(view: InboxView, userId: string): SQL | undefined {
   if (view === 'open') return eq(c.status, 'open')
   if (view === 'mine') return and(eq(c.status, 'open'), eq(c.assigneeUserId, userId))
   if (view === 'unassigned') return and(eq(c.status, 'open'), isNull(c.assigneeUserId))
+  if (view === 'unread') return and(eq(c.status, 'open'), gt(c.unreadStaff, 0))
   if (view === 'closed') return eq(c.status, 'closed')
   return eq(c.status, 'blocked')
 }
@@ -136,7 +151,7 @@ function searchFilter(raw: string, secret: string): SQL | undefined {
 }
 
 export const ListConversationsSchema = z.object({
-  view: z.enum(['open', 'mine', 'unassigned', 'closed', 'blocked']).default('open'),
+  view: z.enum(INBOX_VIEWS).default('open'),
   search: z.string().max(200).optional(),
   /** The last row of the previous page. */
   cursor: z.object({ lastMessageAt: z.coerce.date(), id: z.uuid() }).optional(),
@@ -182,7 +197,7 @@ export async function listConversations(
   }
 }
 
-export type InboxCounts = Record<InboxView, number> & { unread: number }
+export type InboxCounts = Record<InboxView, number>
 
 /** How many conversations each tab holds, and how many open ones have unread shopper messages. */
 export async function inboxCounts(ctx: StoreContext, userId: string): Promise<InboxCounts> {
@@ -352,8 +367,8 @@ export async function staffSend(
   }
 }
 
-/** Staff opened the thread: nothing in it is unread for staff any more. */
-export async function markStaffSeen(ctx: StoreContext, id: string): Promise<void> {
+/** Staff opened the thread: nothing in it is unread for staff any more. Returns the last message id. */
+export async function markStaffSeen(ctx: StoreContext, id: string): Promise<string | null> {
   const [last] = await ctx.tx
     .select({ id: inboxMessage.id })
     .from(inboxMessage)
@@ -364,6 +379,7 @@ export async function markStaffSeen(ctx: StoreContext, id: string): Promise<void
     .update(inboxConversation)
     .set({ unreadStaff: 0, staffSeenMessageId: last?.id ?? null })
     .where(eq(inboxConversation.id, id))
+  return last?.id ?? null
 }
 
 /** Assigns to a store member (who then is the only one notified), or unassigns with null. */

@@ -5,7 +5,7 @@ import { type ComponentType, useState, useTransition } from 'react'
 import { mainProductContent as copy } from '../data/zero-drift/main-product'
 import { useFormatPaise } from '../money-format'
 import { safeHref } from '../slot-types'
-import { announceCartAdded } from '../store-actions'
+import { announceCartAdded, trackCommerce } from '../store-actions'
 import type { ProductDetail } from '../types'
 import { useReducedMotion } from '../use-reduced-motion'
 import Icon from './icon'
@@ -51,11 +51,22 @@ export default function ProductBuyButtons({
   const [quantity, setQuantity] = useState(1)
   const reduceMotion = useReducedMotion()
 
+  // Helpers
+  const reportAdd = (variantId: string, pricePaise: number) =>
+    trackCommerce({
+      name: 'AddToCart',
+      productId: product.id,
+      variantId,
+      valuePaise: pricePaise * quantity,
+      numItems: quantity,
+    })
+
   // Event handlers
   const handleAdd = () => {
     if (!variant || !onAddToCart) return
     startTransition(async () => {
       await onAddToCart(variant.id, quantity)
+      reportAdd(variant.id, variant.pricePaise)
       announceCartAdded()
       setAdded(true)
       setTimeout(() => setAdded(false), 2000)
@@ -66,6 +77,7 @@ export default function ProductBuyButtons({
     if (!variant || !onAddToCart) return
     startTransition(async () => {
       await onAddToCart(variant.id, quantity)
+      reportAdd(variant.id, variant.pricePaise)
       window.location.assign('/checkout')
     })
   }

@@ -1,5 +1,6 @@
 /** SOURCE OF TRUTH: the admin's activity bell — WHAT: what needs the merchant now (payments to refund, stock out or running low, return requests, photos that failed processing) and what just happened (new orders, refund flags, returns), each part only for staff whose role may see it / WHY: read from the data itself, so the bell can never disagree with the pages it links to and needs no table of its own */
 import {
+  inboxConversation,
   inventoryLevel,
   media,
   order,
@@ -28,6 +29,8 @@ export type ActivityAttention = {
   lowStock: number
   returnsRequested: number
   mediaFailed: number
+  /** Open Inbox conversations with shopper messages nobody has read yet. */
+  inboxUnread: number
 }
 
 export type ActivityEvent =
@@ -155,6 +158,15 @@ async function countOf(
   return row?.n ?? 0
 }
 
+/** The Inbox row: open conversations with unread shopper messages (0 while Inbox is not installed). */
+async function inboxUnread(tx: StoreTx): Promise<number> {
+  const [row] = await tx
+    .select({ n: sql<number>`count(*)::int` })
+    .from(inboxConversation)
+    .where(and(eq(inboxConversation.status, 'open'), sql`${inboxConversation.unreadStaff} > 0`))
+  return row?.n ?? 0
+}
+
 /**
  * The bell's contents for one member: `can` is their role's check, so a member who may not
  * see orders gets no order events or refund counts, and so on.
@@ -172,6 +184,7 @@ export async function loadActivityFeed(
     refundsNeeded: orders ? await countOf(tx, 'refunds') : 0,
     returnsRequested: orders ? await countOf(tx, 'returns') : 0,
     mediaFailed: files ? await countOf(tx, 'media') : 0,
+    inboxUnread: can(permissions.INBOX_READ) ? await inboxUnread(tx) : 0,
     ...(stock ? await stockCounts(tx, storeId) : { outOfStock: 0, lowStock: 0 }),
   }
   const events = orders

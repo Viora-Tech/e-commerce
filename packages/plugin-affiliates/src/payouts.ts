@@ -1,11 +1,13 @@
 /** SOURCE OF TRUTH: affiliate payouts — WHAT: grouping approved commissions, marking them paid, the bank bulk-upload CSV / WHY: no money moves in the platform; the merchant pays outside and records it here */
 import { insertOutboxEvent } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
-import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { and, desc, eq, gte, inArray, isNull, sql } from 'drizzle-orm'
 import { readPayoutDetails } from './affiliates'
+import { payoutGstPaise, payoutNetPaise } from './gst'
 import { affiliate, affiliateCommission, affiliatePayout } from './schema'
-import type { AffiliateSettings } from './settings'
+import type { StoreAffiliateSettings } from './settings'
 import { AffiliateError } from './store-settings'
+import { financialYearStart } from './tds'
 
 export type PayoutRow = typeof affiliatePayout.$inferSelect
 
@@ -18,12 +20,36 @@ export type PayoutCandidate = {
   tdsPaise: number
   /** Earlier paid commissions whose orders came back, taken off this payout. */
   clawbackPaise: number
+  /** GST added for a GST-registered affiliate. */
+  gstPaise: number
+  gstRegistered: boolean
   netPaise: number
   commissions: number
   /** Over the minimum payout and has payout details saved. */
   ready: boolean
-  /** Why not, when not ready. */
-  blocker: 'below_minimum' | 'no_details' | null
+  /**
+   * Why not, when not ready. `no_pan`: the store asks for a PAN once an affiliate's commission
+   * this financial year passes the TDS threshold, and they have none.
+   */
+  blocker: 'below_minimum' | 'no_details' | 'no_pan' | null
+}
+
+/** Commission credited (approved or paid) this financial year, per affiliate. */
+async function creditedThisYear(tx: StoreTx, now: Date): Promise<Map<string, number>> {
+  const rows = await tx
+    .select({
+      affiliateId: affiliateCommission.affiliateId,
+      total: sql<number>`coalesce(sum(${affiliateCommission.commissionPaise}), 0)::int`,
+    })
+    .from(affiliateCommission)
+    .where(
+      and(
+        inArray(affiliateCommission.status, ['approved', 'paid']),
+        gte(affiliateCommission.approvedAt, financialYearStart(now)),
+      ),
+    )
+    .groupBy(affiliateCommission.affiliateId)
+  return new Map(rows.map((r) => [r.affiliateId, r.total]))
 }
 
 /** Clawbacks not yet recovered, per affiliate. */
@@ -47,15 +73,21 @@ async function openClawbacks(tx: StoreTx): Promise<Map<string, number>> {
 /** Approved commissions not yet in a payout, per affiliate, less any clawback still owed. */
 export async function payoutCandidates(
   tx: StoreTx,
-  settings: AffiliateSettings,
+  settings: StoreAffiliateSettings,
+  now = new Date(),
 ): Promise<PayoutCandidate[]> {
   const clawbacks = await openClawbacks(tx)
+  const credited = settings.requirePanAboveThreshold
+    ? await creditedThisYear(tx, now)
+    : new Map<string, number>()
   const rows = await tx
     .select({
       affiliateId: affiliateCommission.affiliateId,
       name: affiliate.name,
       code: affiliate.code,
       payoutHint: affiliate.payoutHint,
+      hasPan: affiliate.hasPan,
+      gstRegistered: affiliate.gstRegistered,
       gross: sql<number>`sum(${affiliateCommission.commissionPaise})::int`,
       tds: sql<number>`sum(${affiliateCommission.tdsPaise})::int`,
       n: sql<number>`count(*)::int`,
@@ -63,16 +95,30 @@ export async function payoutCandidates(
     .from(affiliateCommission)
     .innerJoin(affiliate, eq(affiliate.id, affiliateCommission.affiliateId))
     .where(and(eq(affiliateCommission.status, 'approved'), isNull(affiliateCommission.payoutId)))
-    .groupBy(affiliateCommission.affiliateId, affiliate.name, affiliate.code, affiliate.payoutHint)
+    .groupBy(
+      affiliateCommission.affiliateId,
+      affiliate.name,
+      affiliate.code,
+      affiliate.payoutHint,
+      affiliate.hasPan,
+      affiliate.gstRegistered,
+    )
   return rows.map((r) => {
     const clawbackPaise = Math.min(clawbacks.get(r.affiliateId) ?? 0, r.gross)
     const owed = r.gross - clawbackPaise
+    const gstPaise = payoutGstPaise(settings.gst, r.gstRegistered, owed)
+    const panNeeded =
+      settings.requirePanAboveThreshold &&
+      !r.hasPan &&
+      (credited.get(r.affiliateId) ?? 0) > settings.tds.thresholdPaise
     const blocker =
       owed <= 0 || owed < settings.minPayoutPaise
         ? 'below_minimum'
         : !r.payoutHint
           ? 'no_details'
-          : null
+          : panNeeded
+            ? 'no_pan'
+            : null
     return {
       affiliateId: r.affiliateId,
       name: r.name,
@@ -81,7 +127,14 @@ export async function payoutCandidates(
       grossPaise: r.gross,
       tdsPaise: r.tds,
       clawbackPaise,
-      netPaise: Math.max(0, owed - r.tds),
+      gstPaise,
+      gstRegistered: r.gstRegistered,
+      netPaise: payoutNetPaise({
+        grossPaise: r.gross,
+        clawbackPaise,
+        gstPaise,
+        tdsPaise: r.tds,
+      }),
       commissions: r.n,
       ready: blocker === null,
       blocker,
@@ -96,7 +149,7 @@ export async function payoutCandidates(
 export async function createPayouts(
   tx: StoreTx,
   storeId: string,
-  settings: AffiliateSettings,
+  settings: StoreAffiliateSettings,
   affiliateIds?: string[],
 ): Promise<PayoutRow[]> {
   const ready = (await payoutCandidates(tx, settings)).filter(
@@ -112,6 +165,7 @@ export async function createPayouts(
         grossPaise: c.grossPaise,
         tdsPaise: c.tdsPaise,
         clawbackPaise: c.clawbackPaise,
+        gstPaise: c.gstPaise,
         netPaise: c.netPaise,
       })
       .returning()
@@ -204,13 +258,13 @@ export async function listPayouts(tx: StoreTx, limit = 500): Promise<PayoutListI
 }
 
 /** A CSV cell: quoted, inner quotes doubled, and no formula injection in a spreadsheet. */
-function cell(v: string | number): string {
+export function csvCell(v: string | number): string {
   const s = String(v)
   const safe = /^[=+\-@]/.test(s) ? `'${s}` : s
   return `"${safe.replace(/"/g, '""')}"`
 }
 
-const rupees = (paise: number) => (paise / 100).toFixed(2)
+export const rupees = (paise: number) => (paise / 100).toFixed(2)
 
 /**
  * Pending payouts as a CSV for a bank's bulk upload (or paying UPI IDs by hand): the decrypted
@@ -239,13 +293,15 @@ export async function payoutsCsv(
     'IFSC',
     'UPI ID',
     'PAN',
+    'GSTIN',
     'Gross (INR)',
     'TDS (INR)',
     'Clawback (INR)',
+    'GST (INR)',
     'Amount to pay (INR)',
     'Email',
   ]
-  const lines = [head.map(cell).join(',')]
+  const lines = [head.map(csvCell).join(',')]
   for (const { p, a } of rows) {
     const d = readPayoutDetails(a, secret)
     lines.push(
@@ -257,13 +313,15 @@ export async function payoutsCsv(
         d?.method === 'bank' ? d.ifsc : '',
         d?.method === 'upi' ? d.upiId : '',
         d?.pan ?? '',
+        d?.gstin ?? '',
         rupees(p.grossPaise),
         rupees(p.tdsPaise),
         rupees(p.clawbackPaise),
+        rupees(p.gstPaise),
         rupees(p.netPaise),
         a.email ?? '',
       ]
-        .map(cell)
+        .map(csvCell)
         .join(','),
     )
   }

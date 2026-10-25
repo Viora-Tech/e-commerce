@@ -5,12 +5,12 @@ description: Referral links and discount codes for creators and customers, paid 
 
 # Affiliates
 
-Affiliates is a built-in app. Install it from the [App store](/merchant-guide/apps/app-store). It is included from the Growth plan; on Starter it costs ₹299 a month. Its pages are Overview, Affiliates, Commissions, Payouts and Settings.
+Affiliates is a built-in app. Install it from the [App store](/merchant-guide/apps/app-store). It is included from the Growth plan; on Starter it costs ₹299 a month. Its pages are Overview, Affiliates, Programs, Commissions, Payouts and Settings.
 
 ## How it works
 
 1. A shopper opens **/affiliate** on your store, signs in with their store account and applies. You can also add a creator yourself from **Affiliates → Add affiliate**.
-2. You approve them (or set **New signups** to approve automatically). They get an email with their link (`yourstore.com/?ref=their-code`) and, if codes are on, a personal discount code.
+2. You approve them (or set a program's **New signups** to approve automatically). They get an email with their link (`yourstore.com/?ref=their-code`) and, if codes are on, a personal discount code.
 3. An order placed through the link, or with their code, earns them a commission. It shows as **On hold**.
 4. When the order is delivered, the hold period starts (your return window, 7 days unless you change it). If the order is cancelled, comes back undelivered (RTO) or is fully refunded first, the commission is reversed. A partial refund lowers it.
 5. After the hold, the commission becomes **Ready to pay**. TDS is worked out at this point.
@@ -18,16 +18,43 @@ Affiliates is a built-in app. Install it from the [App store](/merchant-guide/ap
 
 Koomerce never moves money for affiliates: you pay them yourself.
 
-## Settings
+## Programs
 
+Every affiliate belongs to one program. Your store starts with a **Default** program (your settings from before programs existed moved into it unchanged). Add more under **Programs → New program**, for example one for creators and one for wholesale partners. A new program starts as a copy of the default one.
+
+Each program has:
+
+- **Signup link**: the default program signs up at **/affiliate**; another program at **/affiliate?program=its-link**.
+- **New signups**: approve automatically, or approve each one yourself.
 - **Commission**: a percent of the sale or a fixed amount per order. The sale is counted after discounts, without GST and shipping. Gift cards earn nothing.
-- **Different rates**: a product or collection can have its own percent. A product rate wins over a collection rate.
 - **Which orders earn**: only a customer's first order, or every order for a number of days after their first referred order.
-- **Link counts for**: how many days after a click an order still counts (up to 30). Clicks are only recorded for shoppers who accepted analytics cookies; discount codes always count.
+- **Different rates**: a product or collection can have its own percent. A product rate wins over a collection rate.
+- **Order-value levels**: a different percent once an order passes a value, for example 12% on orders from ₹2,000. The value is the goods after discount, GST included, without shipping. The commission itself is still on the sale without GST. **Check a rate** shows both figures.
+- **Earns nothing**: products or collections that never earn commission. Their price is left out of the sale too.
 - **Tiers**: raise the percent once an affiliate's approved sales pass an amount.
 - **Discount codes**: each approved affiliate gets a code in **Discounts**, so your usual discount rules apply. Pausing an affiliate switches their code off.
+- **Signup page**: the pitch and terms shown on that program's signup page.
+
+The order of rates on each product in an order: **Earns nothing**, then a product rate, then a collection rate, then the affiliate's own rate, then the order-value level, then the program's commission. A tier raises whichever percent applies last.
+
+**Moving an affiliate**: on the affiliate's page, pick another program. New orders earn under it and their code takes its discount. Commissions already on hold keep their amounts. The same page sets an **Own rate** for one affiliate.
+
+**Archiving a program** asks which program its affiliates move to. An archived program takes no signups; you can open it again. The default program cannot be archived.
+
+## Settings
+
+These apply to every program:
+
+- **Program open**: off pauses new signups and new commissions everywhere.
+- **Link counts for**: how many days after a click an order still counts (up to 30). Clicks are only recorded for shoppers who accepted analytics cookies; discount codes always count.
 - **Hold after delivery** and **Minimum payout**.
 - **TDS**: on by default at 2% with a PAN and 20% without, once an affiliate's commission in the financial year passes ₹20,000 (section 194H; section 393 of the Income-tax Act, 2025 from April 2026). Check the rates with your accountant. Filing TDS returns and issuing Form 16A stay with you.
+- **Hold payouts without a PAN**: when on, an affiliate whose commission this year has passed the TDS threshold is not paid until they add a PAN (the Payouts page says why).
+- **GST on payouts**: affiliates who are GST registered add their GSTIN with their payout details. Their payout then gets GST on top (18% unless you change it), because they invoice you GST and you claim the input tax credit. TDS stays on the commission without GST. This is a research note, not tax advice: check it with your CA.
+
+## TDS report (26Q)
+
+On **Payouts**, **TDS report (26Q)** downloads a CSV for one quarter (April to June, July to September, October to December, January to March). It has one row per commission credited in the quarter, by the date it became ready to pay (India time): the affiliate's name, PAN (or `PANNOTAVBL` without one), the section from Settings (default `393(1) Sl. 1(ii) / 194H`), the credit date, amount, rate and TDS. Commissions reversed after they were credited are listed again under **Reversed after credit**. The file holds PANs, so it needs the **Settings** permission. Your CA files the return from it; Koomerce does not file TDS.
 
 ## Fraud checks
 

@@ -30,6 +30,18 @@ export const ACTION_DOCS: Record<string, string> = {
     'Sales from affiliates, money owed, the best affiliates and who is waiting to be paid.',
   'affiliates.payouts.exportCsv':
     'The bank bulk-upload file for pending payouts, account numbers and UPI IDs decrypted.',
+  'affiliates.payouts.tdsReport':
+    'The quarterly TDS report (26Q): every commission credited in the quarter with the PAN decrypted.',
+  'affiliates.programs.archive': 'Archives a program and moves its affiliates to another one.',
+  'affiliates.programs.create':
+    "A new program; its rules start from what the admin sends (a copy of the default's).",
+  'affiliates.programs.restore': 'Opens an archived program again.',
+  'affiliates.programs.save':
+    "Saves a program's name, link and rules; new rules apply to new orders only.",
+  'affiliates.setProgram':
+    'Moves an affiliate to another program: new orders earn under it, their code takes its discount.',
+  'affiliates.setRate':
+    "Gives an affiliate their own default rate, or (null) back to the program's.",
   'ai.action': 'One AI action with its card, for "Open approval" from the MCP & API activity log.',
   'ai.activity': 'Settings → AI → Activity: every AI action in the store, newest first.',
   'ai.applyBulk': 'Applies the reviewed suggestions to products; logged in Activity with an undo.',
@@ -208,14 +220,19 @@ export const ACTION_DOCS: Record<string, string> = {
   'inboundShipments.costs':
     'Shared charges, their splits across every order in it, and landed cost per line.',
   'inbox.assign': 'Assigns to a team member (only they are notified), or unassigns.',
+  'inbox.assignees': 'Team members a conversation can be assigned to.',
   'inbox.blocks.list': 'Blocked browsers, emails and IPs (hashes only; never the raw value).',
   'inbox.blocks.remove': 'Lifts one block.',
+  'inbox.cards': 'Product and discount cards for messages (the thread draws them as they are now).',
   'inbox.counts': 'How many conversations each tab holds, and how many open ones are unread.',
   'inbox.get':
     'One conversation with the newest page of its thread (staff notes included), or an older page.',
   'inbox.list':
     'One page of conversations in a tab (Open, Mine, Unassigned, Closed, Blocked), newest first, with search.',
   'inbox.markSeen': 'Marks everything in the thread read for staff.',
+  'inbox.metrics': "The Inbox home's numbers for the last 30 days.",
+  'inbox.panel':
+    'The customer panel: verified customer or possible match, live cart, recent orders (with orders access).',
   'inbox.quickReplies.create': 'Adds a saved reply with a /shortcut.',
   'inbox.quickReplies.delete': 'Deletes a saved reply.',
   'inbox.quickReplies.list': 'Saved replies, in their order.',
@@ -228,6 +245,11 @@ export const ACTION_DOCS: Record<string, string> = {
   'inbox.settings.get':
     'Greeting, hours, away message, contact capture, sign-in, launcher, email fallback, retention.',
   'inbox.settings.save': 'Saves part of the Inbox settings.',
+  'inbox.shareableDiscounts': 'Active discount codes staff may share in a chat.',
+  'inbox.streamAccess': "The admin stream route's check: the member may read Inbox in this store.",
+  'inbox.sync':
+    'The polling fallback: messages and changed conversations since a message id, and the counts.',
+  'inbox.typing': '"Typing…" to the shopper; never stored, at most one every 3 seconds.',
   'inventory.bulkEdit': 'Same edit across selected rows; all or nothing.',
   'inventory.edit': 'One inline edit: returns the new on-hand count.',
   'inventory.exportRows': 'Every matching row, for CSV export.',
@@ -382,6 +404,9 @@ export const ACTION_DOCS: Record<string, string> = {
     'For the admin-wide "Test mode" banner: a gateway at checkout runs on test keys.',
   'payments.testOrderLink':
     '"Place a test order": a signed storefront link with only the ₹1 test product in the basket.',
+  'pixels.sendTest': 'One PageView with the test event code, sent now (10 s timeout).',
+  'pixels.setToken': 'Checked with Meta first; stored encrypted.',
+  'pixels.stats': 'The last 7 days: events sent, purchases, failures and skips for no consent.',
   'platformApps.completeWhatsapp':
     "The popup finished: swap the code (it lives 30 seconds), subscribe, register the number, then save it as the store's WhatsApp channel and turn the channel on.",
   'platformApps.disconnectWhatsapp':

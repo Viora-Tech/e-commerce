@@ -7,15 +7,24 @@ import {
   phoneBlindIndex,
 } from '@commerce/core'
 import { slugify } from '@commerce/core/catalog'
+import { validateGstin } from '@commerce/core/gstin'
 import { discount, type StoreTx } from '@commerce/db'
 import { and, desc, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { phoneKey } from './fraud'
+import { defaultProgram, getProgram, programOf } from './programs'
 import { affiliate } from './schema'
-import type { AffiliateSettings, AffiliateStatus } from './settings'
+import type { AffiliateSettings, AffiliateStatus, ProgramRules } from './settings'
 import { AffiliateError } from './store-settings'
 
 export type AffiliateRow = typeof affiliate.$inferSelect
+
+const Gstin = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .refine((v) => validateGstin(v).ok, 'Enter a valid 15-character GSTIN')
+  .optional()
 
 /** What an affiliate types for getting paid. Stored as one encrypted blob, never in the clear. */
 export const PayoutDetailsSchema = z.discriminatedUnion('method', [
@@ -32,6 +41,8 @@ export const PayoutDetailsSchema = z.discriminatedUnion('method', [
       .toUpperCase()
       .regex(/^[A-Z]{5}\d{4}[A-Z]$/, 'Enter a valid PAN')
       .optional(),
+    /** GST-registered affiliates add their GSTIN; GST is then added to their payouts. */
+    gstin: Gstin,
   }),
   z.object({
     method: z.literal('bank'),
@@ -51,6 +62,7 @@ export const PayoutDetailsSchema = z.discriminatedUnion('method', [
       .toUpperCase()
       .regex(/^[A-Z]{5}\d{4}[A-Z]$/, 'Enter a valid PAN')
       .optional(),
+    gstin: Gstin,
   }),
 ])
 export type PayoutDetails = z.infer<typeof PayoutDetailsSchema>
@@ -85,11 +97,14 @@ export type ApplyInput = {
   name: string
   social: string
   message: string
+  /** The program they join; none means the store's default program. */
+  programId?: string | null | undefined
 }
 
 /**
  * A shopper applies (or the merchant adds someone). One affiliate per customer account: a
- * second application returns the first. Auto-approve programs approve at once.
+ * second application returns the first. `settings` are the store's with the chosen program's
+ * rules on top (`withProgramRules`); an auto-approve program approves at once.
  */
 export async function applyAsAffiliate(
   tx: StoreTx,
@@ -106,12 +121,19 @@ export async function applyAsAffiliate(
       .where(and(eq(affiliate.storeId, storeId), eq(affiliate.customerId, input.customerId)))
     if (existing) return existing
   }
+  const program = input.programId
+    ? await getProgram(tx, input.programId)
+    : await defaultProgram(tx, storeId)
+  if (!program || program.archivedAt) {
+    throw new AffiliateError('PROGRAM_NOT_FOUND', 'Program not found')
+  }
   const key = phoneKey(input.phone)
   const [row] = await tx
     .insert(affiliate)
     .values({
       storeId,
       customerId: input.customerId,
+      programId: program.id,
       code: await freeCode(tx, storeId, input.name || input.email?.split('@')[0] || 'partner'),
       name: input.name.trim().slice(0, 120),
       email: input.email?.trim().toLowerCase() || null,
@@ -121,7 +143,7 @@ export async function applyAsAffiliate(
     })
     .returning()
   if (!row) throw new AffiliateError('AFFILIATE_NOT_SAVED', 'Affiliate not saved')
-  return settings.approval === 'auto' ? approveAffiliate(tx, storeId, row.id, settings) : row
+  return settings.approval === 'auto' ? approveAffiliate(tx, storeId, row.id) : row
 }
 
 /** The affiliate's personal code in the discount engine; made once, never twice. */
@@ -129,9 +151,9 @@ async function ensureCoupon(
   tx: StoreTx,
   storeId: string,
   row: AffiliateRow,
-  settings: AffiliateSettings,
+  coupon: ProgramRules['coupon'],
 ): Promise<AffiliateRow> {
-  if (!settings.coupon.enabled || row.discountId) return row
+  if (!coupon.enabled || row.discountId) return row
   let code = normaliseCode(row.code)
   for (let n = 2; n < 50; n++) {
     const [clash] = await tx
@@ -149,7 +171,7 @@ async function ensureCoupon(
       kind: 'code',
       code,
       method: 'percent',
-      value: settings.coupon.bp,
+      value: coupon.bp,
       appliesTo: 'all',
       appliesToIds: [],
       status: 'active',
@@ -164,12 +186,14 @@ async function ensureCoupon(
   return next ?? row
 }
 
-/** Approves an affiliate: makes their code and emails them (outbox, same transaction). */
+/**
+ * Approves an affiliate: makes their code (at their program's discount) and emails them
+ * (outbox, same transaction).
+ */
 export async function approveAffiliate(
   tx: StoreTx,
   storeId: string,
   id: string,
-  settings: AffiliateSettings,
 ): Promise<AffiliateRow> {
   const [row] = await tx
     .update(affiliate)
@@ -181,7 +205,8 @@ export async function approveAffiliate(
     if (!current) throw new AffiliateError('AFFILIATE_NOT_FOUND', 'Affiliate not found')
     return current
   }
-  const withCoupon = await ensureCoupon(tx, storeId, row, settings)
+  const program = await programOf(tx, storeId, row)
+  const withCoupon = await ensureCoupon(tx, storeId, row, program.rules.coupon)
   if (withCoupon.discountId) {
     await tx
       .update(discount)
@@ -278,6 +303,7 @@ export async function savePayoutDetails(
       payoutDetails: encryptSecret(JSON.stringify(parsed), secret),
       payoutHint: hint,
       hasPan: Boolean(parsed.pan),
+      gstRegistered: Boolean(parsed.gstin),
       updatedAt: new Date(),
     })
     .where(eq(affiliate.id, id))

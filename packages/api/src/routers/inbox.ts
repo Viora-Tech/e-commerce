@@ -9,19 +9,26 @@ import {
 import {
   assignConversation,
   createQuickReply,
+  customerPanel,
   deleteQuickReply,
   getConversation,
   INBOX_LIMITS,
   InboxSettingsPatchSchema,
+  inboxAssignees,
   inboxCounts,
   inboxLimitKey,
+  inboxMetrics,
   inboxState,
+  inboxSync,
   ListConversationsSchema,
   listBlocks,
   listConversations,
   listQuickReplies,
   markStaffSeen,
+  messageCards,
+  messageEvents,
   messageView,
+  publishInboxEvents,
   QuickReplyInputSchema,
   QuickReplyUpdateSchema,
   removeBlock,
@@ -29,17 +36,21 @@ import {
   SetStatusSchema,
   StaffSendSchema,
   saveInboxSettings,
+  seenEvents,
   setConversationStatus,
+  shareableDiscounts,
   staffSend,
+  statusEvents,
+  typingEvent,
   updateQuickReply,
 } from '@commerce/core/inbox/server'
 import type { StoreTx } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import type { ApiContext } from '../context'
-import { BULK_MAX, can, type StoreScope } from '../procedures'
+import { type AfterCommit, BULK_MAX, can, type StoreScope } from '../procedures'
 
-type Ctx = ApiContext & { tx: StoreTx; scope: StoreScope }
+type Ctx = ApiContext & { tx: StoreTx; scope: StoreScope; afterCommit: (fn: AfterCommit) => void }
 
 /** Same-process fallback when the host gives no shared limiter (tests, local dev). */
 const fallbackRateLimit = createMemoryRateLimitStore()
@@ -67,6 +78,11 @@ async function refusal<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 const storeCtx = (context: Ctx) => ({ storeId: context.scope.storeId, tx: context.tx })
+
+/** Publishes once the transaction commits, so a listener can always read what it hears about. */
+function publishAfterCommit(context: Ctx, events: Parameters<typeof publishInboxEvents>[1]) {
+  context.afterCommit(() => publishInboxEvents(context.inboxPublisher, events))
+}
 
 /** Product and discount cards also need to read what they share. */
 function requireCardPermission(context: Ctx, kind: string | undefined) {
@@ -108,7 +124,8 @@ export const inboxRouter = {
     .handler(async ({ context, input }) => {
       await requireInstalled(context)
       const found = await refusal(() => getConversation(storeCtx(context), input, settingsSecret()))
-      return { ...found, messages: found.messages.map(messageView) }
+      const cards = await messageCards(context.tx, found.messages)
+      return { ...found, messages: found.messages.map(messageView), cards }
     }),
   /** Sends a reply or a staff-only note: text, a product card, a discount code or an image. */
   send: can(permissions.INBOX_REPLY)
@@ -127,6 +144,12 @@ export const inboxRouter = {
         })
       }
       const sent = await refusal(() => staffSend(storeCtx(context), input, context.scope.userId))
+      if (sent.created) {
+        publishAfterCommit(
+          context,
+          messageEvents(context.scope.storeId, sent.conversation, sent.message),
+        )
+      }
       return { conversation: sent.conversation, message: messageView(sent.message) }
     }),
   /** Marks everything in the thread read for staff. */
@@ -134,7 +157,8 @@ export const inboxRouter = {
     .input(Id)
     .handler(async ({ context, input }) => {
       await requireInstalled(context)
-      await markStaffSeen(storeCtx(context), input.id)
+      const messageId = await markStaffSeen(storeCtx(context), input.id)
+      publishAfterCommit(context, seenEvents(context.scope.storeId, input.id, 'staff', messageId))
       return { ok: true }
     }),
   /** Assigns to a team member (only they are notified), or unassigns. */
@@ -142,20 +166,90 @@ export const inboxRouter = {
     .input(z.object({ id: z.uuid(), assigneeUserId: z.string().min(1).max(64).nullable() }))
     .handler(async ({ context, input }) => {
       await requireInstalled(context)
-      return refusal(() => assignConversation(storeCtx(context), input, context.scope.userId))
+      const row = await refusal(() =>
+        assignConversation(storeCtx(context), input, context.scope.userId),
+      )
+      publishAfterCommit(context, statusEvents(context.scope.storeId, row))
+      return row
     }),
   /** Close, reopen or block a conversation; blocking also blocks the sender's browser and email. */
   setStatus: can(permissions.INBOX_REPLY)
     .input(SetStatusSchema)
     .handler(async ({ context, input }) => {
       await requireInstalled(context)
-      return refusal(() =>
+      const row = await refusal(() =>
         setConversationStatus(storeCtx(context), input, {
           userId: context.scope.userId,
           secret: settingsSecret(),
         }),
       )
+      publishAfterCommit(context, statusEvents(context.scope.storeId, row))
+      return row
     }),
+  /** The customer panel: verified customer or possible match, live cart, recent orders (with orders access). */
+  panel: can(permissions.INBOX_READ)
+    .input(Id)
+    .handler(async ({ context, input }) => {
+      await requireInstalled(context)
+      return refusal(() =>
+        customerPanel(storeCtx(context), input.id, {
+          ordersAllowed: context.scope.can(permissions.ORDERS_READ),
+        }),
+      )
+    }),
+  /** Team members a conversation can be assigned to. */
+  assignees: can(permissions.INBOX_READ).handler(async ({ context }) => {
+    await requireInstalled(context)
+    return inboxAssignees(context.tx)
+  }),
+  /** The Inbox home's numbers for the last 30 days. */
+  metrics: can(permissions.INBOX_READ).handler(async ({ context }) => {
+    await requireInstalled(context)
+    return inboxMetrics(storeCtx(context))
+  }),
+  /** Active discount codes staff may share in a chat. */
+  shareableDiscounts: can(permissions.INBOX_REPLY).handler(async ({ context }) => {
+    await requireInstalled(context)
+    requireCardPermission(context, 'discount')
+    return shareableDiscounts(context.tx)
+  }),
+  /** Product and discount cards for messages (the thread draws them as they are now). */
+  cards: can(permissions.INBOX_READ)
+    .input(
+      z.object({
+        messages: z.array(z.object({ kind: z.string(), payload: z.unknown() })).max(BULK_MAX),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      await requireInstalled(context)
+      return messageCards(context.tx, input.messages)
+    }),
+  /** The polling fallback: messages and changed conversations since a message id, and the counts. */
+  sync: can(permissions.INBOX_READ)
+    .input(z.object({ since: z.uuid().nullish() }))
+    .handler(async ({ context, input }) => {
+      await requireInstalled(context)
+      return inboxSync(storeCtx(context), input, context.scope.userId)
+    }),
+  /** "Typing…" to the shopper; never stored, at most one every 3 seconds. */
+  typing: can(permissions.INBOX_REPLY)
+    .input(Id)
+    .handler(async ({ context, input }) => {
+      const limit = await checkRateLimit(
+        context.rateLimit ?? fallbackRateLimit,
+        inboxLimitKey('typing', context.scope.storeId, `${input.id}:staff`),
+        INBOX_LIMITS.typing,
+      )
+      if (limit.ok) {
+        publishAfterCommit(context, [typingEvent(context.scope.storeId, input.id, 'staff')])
+      }
+      return { ok: true }
+    }),
+  /** The admin stream route's check: the member may read Inbox in this store. */
+  streamAccess: can(permissions.INBOX_READ).handler(async ({ context }) => {
+    await requireInstalled(context)
+    return { storeId: context.scope.storeId }
+  }),
   quickReplies: {
     /** Saved replies, in their order. */
     list: can(permissions.INBOX_READ).handler(async ({ context }) => {

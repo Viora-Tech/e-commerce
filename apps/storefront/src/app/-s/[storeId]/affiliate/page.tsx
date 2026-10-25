@@ -8,7 +8,10 @@ import { loadAffiliatePortal } from '@/lib/affiliates'
 import { currentCustomer } from '@/lib/customer-session'
 import { requestOrigin } from '@/lib/seo'
 
-type AffiliatePageProps = { params: Promise<{ storeId: string }> }
+type AffiliatePageProps = {
+  params: Promise<{ storeId: string }>
+  searchParams: Promise<{ program?: string | string[] }>
+}
 
 export const metadata: Metadata = {
   title: copy.metaTitle,
@@ -20,10 +23,15 @@ export const metadata: Metadata = {
  * shopper, their status while it is reviewed, and the dashboard once approved. Not found when
  * the store does not have the app.
  */
-export default async function AffiliatePage({ params }: AffiliatePageProps) {
+export default async function AffiliatePage({ params, searchParams }: AffiliatePageProps) {
   const { storeId } = await params
+  const { program: wanted } = await searchParams
+  const slug = typeof wanted === 'string' ? wanted : undefined
   const me = await currentCustomer(storeId)
-  const [portal, origin] = await Promise.all([loadAffiliatePortal(storeId, me), requestOrigin()])
+  const [portal, origin] = await Promise.all([
+    loadAffiliatePortal(storeId, me, slug),
+    requestOrigin(),
+  ])
 
   // Early returns
   if (!portal) notFound()
@@ -40,6 +48,7 @@ export default async function AffiliatePage({ params }: AffiliatePageProps) {
 
   // Render logic
   const p = portal.program
+  const here = p.isDefault ? '/affiliate' : `/affiliate?program=${p.slug}`
   const status = a ? copy[a.status as 'pending' | 'rejected' | 'suspended'] : null
   return (
     <section className="page-width flex flex-col gap-8 py-10 md:py-14">
@@ -64,11 +73,18 @@ export default async function AffiliatePage({ params }: AffiliatePageProps) {
       ) : !p.active ? (
         <p className="text-body text-muted">{copy.closed}</p>
       ) : me ? (
-        <AffiliateApplyForm defaultName={me.name ?? ''} terms={p.terms} />
+        <AffiliateApplyForm
+          defaultName={me.name ?? ''}
+          terms={p.terms}
+          program={p.isDefault ? undefined : p.slug}
+        />
       ) : (
         <div className="flex max-w-[36rem] flex-col items-start gap-4 rounded-[var(--radius-card)] bg-surface p-6">
           <p className="text-body">{copy.signIn.body}</p>
-          <Link className="btn btn--primary" href="/account/login?return_to=%2Faffiliate">
+          <Link
+            className="btn btn--primary"
+            href={`/account/login?return_to=${encodeURIComponent(here)}`}
+          >
             <span className="btn__label">{copy.signIn.button}</span>
           </Link>
         </div>

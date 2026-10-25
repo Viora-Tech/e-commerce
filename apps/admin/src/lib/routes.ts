@@ -207,6 +207,14 @@ export const routes = {
     agenticReadiness: () => '/sales-channels/agentic/readiness',
     agenticControls: () => '/sales-channels/agentic/controls',
     social: () => '/sales-channels/social',
+    /** The Inbox app's channel: conversations, quick replies and settings. */
+    inbox: () => '/sales-channels/inbox',
+    inboxConversations: () => '/sales-channels/inbox/conversations',
+    /** One conversation open in the inbox (and the tab it sits in). */
+    inboxConversation: (conversationId: string, view?: string) =>
+      `/sales-channels/inbox/conversations?id=${id(conversationId)}${view ? `&view=${id(view)}` : ''}`,
+    inboxQuickReplies: () => '/sales-channels/inbox/quick-replies',
+    inboxSettings: () => '/sales-channels/inbox/settings',
     /** Facebook, Instagram and WhatsApp share one Meta page, a tab each. */
     socialMeta: () => '/sales-channels/social/meta',
     socialChannel: (channel: string) =>

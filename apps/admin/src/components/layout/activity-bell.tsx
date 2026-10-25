@@ -7,6 +7,7 @@ import {
   type IconComponent,
   ImageIcon,
   Inbox,
+  MessageSquare,
   Package,
   PackageX,
   ReceiptIcon,
@@ -48,6 +49,7 @@ const ATTENTION_TAB: Record<keyof ActivityAttention, Tab> = {
   outOfStock: 'stock',
   lowStock: 'stock',
   mediaFailed: 'all',
+  inboxUnread: 'all',
 }
 
 const EVENT_TAB: Record<ActivityEvent['kind'], Tab> = {
@@ -80,6 +82,11 @@ const ATTENTION: Record<
   outOfStock: { href: () => routes.stock.inventory(), icon: PackageX, tone: 'warning' },
   lowStock: { href: () => routes.stock.inventory(), icon: Package, tone: 'neutral' },
   mediaFailed: { href: () => routes.content.files(), icon: ImageIcon, tone: 'neutral' },
+  inboxUnread: {
+    href: () => routes.salesChannels.inboxConversations(),
+    icon: MessageSquare,
+    tone: 'info',
+  },
 }
 
 const ATTENTION_ORDER: readonly (keyof ActivityAttention)[] = [
@@ -88,6 +95,7 @@ const ATTENTION_ORDER: readonly (keyof ActivityAttention)[] = [
   'returnsRequested',
   'outOfStock',
   'lowStock',
+  'inboxUnread',
   'mediaFailed',
 ]
 

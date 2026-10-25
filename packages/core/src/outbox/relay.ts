@@ -11,6 +11,12 @@ import { type DomainRouteQueue, ROUTE_JOB_ATTEMPTS, ROUTE_JOB_BACKOFF_MS } from 
 import { enqueueNotification, type NotificationQueue } from '../notifications/enqueue'
 import { inviteForPaidPlanOrder, revokePlanInvitesForOrder } from '../onboarding/plan-invites'
 import {
+  PIXELS_APP_ID,
+  PIXELS_OUTBOX_TYPES,
+  type PixelOrderQueue,
+  pixelOrderJobId,
+} from '../pixels/jobs'
+import {
   type AppEventQueue,
   type AppJobQueue,
   enqueueAppEvent,
@@ -53,6 +59,8 @@ export type OutboxRelayDeps = {
   appJobs?: AppJobQueue | undefined
   /** Absent only in tests that do not exercise Automations; those rows then start no runs. */
   automationTriggers?: AutomationTriggerQueue | undefined
+  /** Absent only in tests that do not exercise the Pixels app; those rows then queue nothing for it. */
+  pixelOrders?: PixelOrderQueue | undefined
   log?: ((message: string) => void) | undefined
   /** The platform's own sales store (`PLATFORM_SALES_STORE_ID`): paid plan orders there grant a signup invite. */
   salesStoreId?: string | undefined
@@ -281,6 +289,24 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
         removeOnFail: 1000,
       },
     )
+  }
+  if (PIXELS_OUTBOX_TYPES.has(type) && deps.pixelOrders) {
+    // Pixels app: the server Purchase (or the owner alert for a refused token), only when the
+    // store installed it. Keyed by the row, so a re-dispatch is a no-op.
+    const installed = await installedApps(deps.db, row.storeId)
+    if (installed.includes(PIXELS_APP_ID)) {
+      await deps.pixelOrders.add(
+        'order',
+        { storeId: row.storeId, outboxId: row.id },
+        {
+          jobId: pixelOrderJobId(row.id),
+          attempts: 5,
+          backoff: { type: 'exponential', delay: 10_000 },
+          removeOnComplete: true,
+          removeOnFail: 1000,
+        },
+      )
+    }
   }
   if (type === 'inventory.restocked' && payload.variantId && deps.inventoryRestock) {
     await deps.inventoryRestock.add(

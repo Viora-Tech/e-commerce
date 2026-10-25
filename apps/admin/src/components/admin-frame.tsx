@@ -26,6 +26,8 @@ type AdminFrameProps = {
   storefrontUrl: string
   /** Installed apps, listed under Apps in the sidebar; `href` is the app page or its settings. */
   apps: { id: string; name: string; icon: string | null; href: string }[]
+  /** Installed sales channel apps (Inbox), listed under Sales channels. */
+  channels?: string[] | undefined
   /** The live theme's logo, if the store has uploaded one; else the sidebar shows a monogram. */
   logoUrl: string | null
   /** The test server's "Report a bug" button and menu item (`BUG_REPORTS_ENABLED`). */
@@ -49,6 +51,7 @@ export default function AdminFrame({
   activeStoreId,
   storefrontUrl,
   apps,
+  channels,
   logoUrl,
   bugReports,
   navCounts,
@@ -84,6 +87,7 @@ export default function AdminFrame({
         stores={stores}
         activeStoreId={activeStoreId}
         apps={apps}
+        channels={channels}
         logoUrl={logoUrl}
         user={user}
         storefrontUrl={storefrontUrl}
