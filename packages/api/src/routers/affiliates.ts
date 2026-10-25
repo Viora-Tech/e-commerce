@@ -248,6 +248,7 @@ export const affiliatesRouter = {
             social: input.social,
             message: '',
             programId: chosen.id,
+            source: 'added',
           },
           {
             ...withProgramRules(settings, chosen.rules),

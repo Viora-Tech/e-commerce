@@ -52,6 +52,15 @@ These apply to every program:
 - **Hold payouts without a PAN**: when on, an affiliate whose commission this year has passed the TDS threshold is not paid until they add a PAN (the Payouts page says why).
 - **GST on payouts**: affiliates who are GST registered add their GSTIN with their payout details. Their payout then gets GST on top (18% unless you change it), because they invoice you GST and you claim the input tax credit. TDS stays on the commission without GST. This is a research note, not tax advice: check it with your CA.
 
+## Share and earn
+
+Turn buyers into affiliates. Turn it on in **Affiliates → Settings → Share and earn**. After an order, the thank-you page, the order page and the order emails show **Share and earn 10% on every sale** (your program's rate). The buyer taps it, taps **Get my link**, and is an approved affiliate straight away, with a link and a discount code to share.
+
+- Nobody becomes an affiliate without tapping: opening the email does nothing.
+- Pick the program buyers join. To pay buyers differently from creators, make a **Customers** program with its own rate.
+- Set a minimum order value to invite only bigger orders. Test orders and guest checkouts get no invite.
+- Their own orders never earn them commission (the usual self-referral checks).
+
 ## TDS report (26Q)
 
 On **Payouts**, **TDS report (26Q)** downloads a CSV for one quarter (April to June, July to September, October to December, January to March). It has one row per commission credited in the quarter, by the date it became ready to pay (India time): the affiliate's name, PAN (or `PANNOTAVBL` without one), the section from Settings (default `393(1) Sl. 1(ii) / 194H`), the credit date, amount, rate and TDS. Commissions reversed after they were credited are listed again under **Reversed after credit**. The file holds PANs, so it needs the **Settings** permission. Your CA files the return from it; Koomerce does not file TDS.

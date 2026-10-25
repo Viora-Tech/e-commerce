@@ -89,6 +89,10 @@ export const affiliate = pgTable(
     /** They gave a GSTIN (kept inside the encrypted payout details): GST is added to payouts. */
     gstRegistered: boolean('gst_registered').notNull().default(false),
     clicks: integer('clicks').notNull().default(0),
+    /** How they joined: applied on the signup page, added by the merchant, or a buyer's Share and earn tap. */
+    source: text('source', { enum: ['applied', 'added', 'enrolled'] })
+      .notNull()
+      .default('applied'),
     approvedAt: timestamp('approved_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

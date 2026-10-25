@@ -357,6 +357,18 @@ export const affiliatesContent = {
       'Affiliates who add a GSTIN invoice you GST on their commission, so it is added on top of their payout and you claim the input tax credit. 18% by default. CA check: confirm this with your accountant.',
     gstOn: 'Add GST for GST-registered affiliates',
     gstRate: 'GST rate (%)',
+    enrol: {
+      title: 'Share and earn',
+      description:
+        'After an order, the thank-you page and order emails invite the buyer to become an affiliate with one tap. They are approved at once and get a link and code. Nobody joins without tapping.',
+      on: 'Invite buyers to share and earn',
+      program: 'Program they join',
+      programHelp:
+        'Make a “Customers” program with its own rate if buyers should earn differently from creators.',
+      defaultProgram: (name: string) => `${name} (default)`,
+      minOrder: 'Only orders above (₹)',
+      minOrderHelp: '0 invites every buyer.',
+    },
     page: 'Signup page',
     pitch: 'Pitch',
     pitchHelp: 'Shown at the top of /affiliate on your store.',

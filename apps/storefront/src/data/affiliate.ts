@@ -99,4 +99,27 @@ export const affiliateContent = {
       generic: 'Something went wrong. Please try again.',
     } as Record<string, string>,
   },
+  join: {
+    metaTitle: 'Share and earn',
+    title: 'Share and earn',
+    body: (reward: string) =>
+      `Love what you bought? Share your personal link and earn ${reward} on every order it brings.`,
+    points: {
+      link: 'You get a link and a discount code for friends and followers.',
+      paid: 'You earn once their order is delivered and kept.',
+    },
+    button: 'Get my link',
+    joining: 'Getting your link…',
+    done: 'You’re in. Share your link and code anywhere.',
+    link: 'Your link',
+    dashboard: 'See your sales and add payout details',
+    already: 'You’re already an affiliate of this store.',
+    invalid: 'This invite has expired or is no longer available.',
+    shop: 'Continue shopping',
+    errors: {
+      busy: 'Too many tries. Please wait a little and try again.',
+      closed: 'This invite has expired or is no longer available.',
+      generic: 'Something went wrong. Please try again.',
+    } as Record<string, string>,
+  },
 }

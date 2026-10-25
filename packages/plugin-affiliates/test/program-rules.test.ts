@@ -77,6 +77,7 @@ describe('settings split', () => {
       tds: defaultAffiliateSettings.tds,
       gst: { enabled: true, bp: 1800 },
       requirePanAboveThreshold: false,
+      autoEnrol: { mode: 'off', programId: null, minOrderPaise: 0 },
     })
   })
 

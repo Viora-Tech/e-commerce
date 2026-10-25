@@ -99,6 +99,8 @@ export type ApplyInput = {
   message: string
   /** The program they join; none means the store's default program. */
   programId?: string | null | undefined
+  /** How they joined; `applied` unless the merchant added them or a buyer tapped Share and earn. */
+  source?: AffiliateRow['source'] | undefined
 }
 
 /**
@@ -140,6 +142,7 @@ export async function applyAsAffiliate(
       phoneIndex: key ? phoneBlindIndex(key, secret) : null,
       social: input.social.trim().slice(0, 200),
       message: input.message.trim().slice(0, 2000),
+      source: input.source ?? 'applied',
     })
     .returning()
   if (!row) throw new AffiliateError('AFFILIATE_NOT_SAVED', 'Affiliate not saved')
