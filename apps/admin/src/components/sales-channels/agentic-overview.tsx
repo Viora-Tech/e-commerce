@@ -22,6 +22,7 @@ import { useCopy, useFormat } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
 import { percent } from '@/lib/stats'
 import AgentCard from './agent-card'
+import AgenticGetReady from './agentic-get-ready'
 import ChannelBar from './channel-bar'
 import ChannelOrdersCard from './channel-orders-card'
 import ConnectAgentDialog from './connect-agent-dialog'
@@ -56,6 +57,10 @@ export default function AgenticOverviewPage({ data }: AgenticOverviewPageProps) 
     data.agents.find((a) => isLive(a.state))
   const anyActive = data.agents.some((a) => a.state.status !== 'not_connected')
   const { totals, products, readiness } = data
+
+  // Early returns
+  // Until an agent is live or needs a look, the page is the short "get ready" checklist.
+  if (!featured) return <AgenticGetReady data={data} />
 
   return (
     <PageBody className="gap-6 md:pt-5 md:pb-8">

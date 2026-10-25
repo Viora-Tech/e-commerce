@@ -153,6 +153,38 @@ export const salesChannelsContent = {
       'Orders from ChatGPT, Perplexity, Gemini and Copilot show here, from the link the shopper came through.',
     viewInOrders: 'View in Orders',
   },
+  getReady: {
+    headline: 'AI shopping agents are coming. Get your store ready to sell inside them.',
+    stepsHeading: 'Get ready for agentic sales',
+    done: 'Done',
+    todo: 'To do',
+    steps: {
+      catalog: {
+        title: 'Make your catalog ready for AI',
+        body: (score: number, issues: number) =>
+          issues === 0
+            ? `AI-ready score ${score}/100. Nothing to fix.`
+            : `AI-ready score ${score}/100. ${issues === 1 ? '1 issue' : `${issues} issues`} to fix.`,
+      },
+      visible: {
+        title: 'Choose what agents can see',
+        body: (visible: number, active: number) =>
+          `${visible} of ${active} active products visible to agents, at your store prices.`,
+      },
+    },
+    note: 'Agents only see what you allow in Controls. Orders from agents land in Orders like any other order.',
+    channelsHeading: 'Channels',
+    manage: 'Let Koomerce manage for me',
+    manageBody: 'We list your store with each agent as it goes live, with the products you allow.',
+    managedOn: 'You’re on the list for every AI agent',
+    managedOff: 'Your agent requests are withdrawn',
+    sourcesHeading: 'Sources',
+    sources: {
+      catalog: 'Koomerce catalog',
+      products: (n: string) => `${n} products`,
+      score: 'AI-ready score',
+    },
+  },
   orders: {
     order: 'Order',
     channel: 'Agent',
