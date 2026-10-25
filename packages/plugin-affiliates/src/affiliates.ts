@@ -1,21 +1,16 @@
 /** SOURCE OF TRUTH: affiliates — WHAT: signup, approval, coupon codes, clicks and encrypted payout details / WHY: the admin and the storefront portal share every rule */
-import {
-  decryptSecret,
-  encryptSecret,
-  insertOutboxEvent,
-  normaliseCode,
-  phoneBlindIndex,
-} from '@commerce/core'
+import { decryptSecret, encryptSecret, insertOutboxEvent, phoneBlindIndex } from '@commerce/core'
 import { slugify } from '@commerce/core/catalog'
 import { validateGstin } from '@commerce/core/gstin'
 import { discount, type StoreTx } from '@commerce/db'
 import { and, desc, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { blockedKinds, fraudIndex, payoutKeys, refreshReview } from './blocklist'
+import { ensureCoupon, linkCodeIs, recordCode } from './codes'
 import { phoneKey } from './fraud'
 import { defaultProgram, getProgram, programOf } from './programs'
 import { affiliate } from './schema'
-import type { AffiliateSettings, AffiliateStatus, ProgramRules } from './settings'
+import type { AffiliateSettings, AffiliateStatus } from './settings'
 import { AffiliateError } from './store-settings'
 
 export type AffiliateRow = typeof affiliate.$inferSelect
@@ -85,7 +80,7 @@ async function freeCode(tx: StoreTx, storeId: string, wanted: string): Promise<s
     const [taken] = await tx
       .select({ id: affiliate.id })
       .from(affiliate)
-      .where(and(eq(affiliate.storeId, storeId), eq(affiliate.code, code)))
+      .where(and(eq(affiliate.storeId, storeId), linkCodeIs(code)))
     if (!taken) return code
   }
   return `${base}-${crypto.randomUUID().slice(0, 6)}`
@@ -162,47 +157,8 @@ export async function applyAsAffiliate(
     })
     .returning()
   if (!row) throw new AffiliateError('AFFILIATE_NOT_SAVED', 'Affiliate not saved')
+  await recordCode(tx, storeId, row.id, 'link', row.code)
   return settings.approval === 'auto' ? approveAffiliate(tx, storeId, row.id) : row
-}
-
-/** The affiliate's personal code in the discount engine; made once, never twice. */
-async function ensureCoupon(
-  tx: StoreTx,
-  storeId: string,
-  row: AffiliateRow,
-  coupon: ProgramRules['coupon'],
-): Promise<AffiliateRow> {
-  if (!coupon.enabled || row.discountId) return row
-  let code = normaliseCode(row.code)
-  for (let n = 2; n < 50; n++) {
-    const [clash] = await tx
-      .select({ id: discount.id })
-      .from(discount)
-      .where(eq(discount.code, code))
-    if (!clash) break
-    code = normaliseCode(`${row.code}${n}`)
-  }
-  const [made] = await tx
-    .insert(discount)
-    .values({
-      storeId,
-      title: `Affiliate: ${row.name || row.code}`.slice(0, 120),
-      kind: 'code',
-      code,
-      method: 'percent',
-      value: coupon.bp,
-      appliesTo: 'all',
-      appliesToIds: [],
-      status: 'active',
-    })
-    .returning({ id: discount.id })
-  if (!made) return row
-  const [next] = await tx
-    .update(affiliate)
-    .set({ discountId: made.id, couponCode: code, updatedAt: new Date() })
-    .where(eq(affiliate.id, row.id))
-    .returning()
-  return next ?? row
 }
 
 /**
@@ -295,13 +251,7 @@ export async function recordAffiliateClick(
   const rows = await tx
     .update(affiliate)
     .set({ clicks: sql`${affiliate.clicks} + 1` })
-    .where(
-      and(
-        eq(affiliate.storeId, storeId),
-        eq(affiliate.code, code),
-        eq(affiliate.status, 'approved'),
-      ),
-    )
+    .where(and(eq(affiliate.storeId, storeId), linkCodeIs(code), eq(affiliate.status, 'approved')))
     .returning({ id: affiliate.id })
   return rows.length > 0
 }

@@ -16,12 +16,14 @@ import {
   commissionLedger,
   createPayouts,
   createProgram,
+  decideCodeRequest,
   decideCommission,
   defaultProgram,
   getAffiliate,
   getProgram,
   listAffiliates,
   listBlocklist,
+  listCodes,
   listPayouts,
   listPrograms,
   markPayoutPaid,
@@ -31,6 +33,7 @@ import {
   payoutsCsv,
   removeFromBlocklist,
   restoreProgram,
+  rotateCoupon,
   StoreAffiliateSettingsSchema,
   saveAffiliateSettings,
   saveProgram,
@@ -93,6 +96,7 @@ function publicAffiliate(a: NonNullable<Awaited<ReturnType<typeof getAffiliate>>
     hasPan: a.hasPan,
     gstRegistered: a.gstRegistered,
     reviewReasons: a.reviewReasons,
+    codeRequest: a.codeRequest,
     source: a.source,
     clicks: a.clicks,
     approvedAt: a.approvedAt,
@@ -209,16 +213,18 @@ export const affiliatesRouter = {
       await program(context)
       const a = await getAffiliate(context.tx, input.id)
       if (!a) throw new ORPCError('NOT_FOUND', { message: 'Affiliate not found' })
-      const [totals, ledger, programs] = await Promise.all([
+      const [totals, ledger, programs, codes] = await Promise.all([
         affiliateTotals(context.tx, a.id),
         commissionLedger(context.tx, { affiliateId: a.id, limit: 200 }),
         listPrograms(context.tx, context.scope.storeId),
+        listCodes(context.tx, a.id),
       ])
       const own = programs.find((p) => p.id === a.programId) ?? programs.find((p) => p.isDefault)
       return {
         affiliate: publicAffiliate(a),
         totals,
         ledger,
+        codes,
         program: own ? { id: own.id, name: own.name, rules: own.rules } : null,
         programs: programs
           .filter((p) => !p.archivedAt)
@@ -299,6 +305,26 @@ export const affiliatesRouter = {
       await program(context)
       return refusal(async () =>
         publicAffiliate(await setAffiliateStatus(context.tx, input.id, input.status)),
+      )
+    }),
+  /** A leaked coupon: the old one stops working and a new one is made. The link is untouched. */
+  rotateCoupon: can(permissions.MARKETING_WRITE)
+    .input(Id)
+    .handler(async ({ context, input }) => {
+      await program(context)
+      return refusal(async () =>
+        publicAffiliate(await rotateCoupon(context.tx, context.scope.storeId, input.id)),
+      )
+    }),
+  /** Approve or decline an affiliate's request for their own code. */
+  decideCode: can(permissions.MARKETING_WRITE)
+    .input(z.object({ id: z.uuid(), decision: z.enum(['approve', 'decline']) }))
+    .handler(async ({ context, input }) => {
+      await program(context)
+      return refusal(async () =>
+        publicAffiliate(
+          await decideCodeRequest(context.tx, context.scope.storeId, input.id, input.decision),
+        ),
       )
     }),
   /** "Looks fine": the merchant checked a needs-review affiliate; their payouts go ahead. */

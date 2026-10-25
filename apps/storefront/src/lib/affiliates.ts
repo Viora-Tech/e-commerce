@@ -42,6 +42,7 @@ export type AffiliatePortal = {
     couponCode: string | null
     payoutHint: string | null
     hasPan: boolean
+    codeRequest: { code: string; status: 'pending' | 'approved' | 'declined' } | null
   } | null
   totals: Awaited<ReturnType<typeof affiliateTotals>> | null
   /** Recent commissions: date, amount and where they stand. No shopper details. */
@@ -97,6 +98,9 @@ export async function loadAffiliatePortal(
         couponCode: row.couponCode,
         payoutHint: row.payoutHint,
         hasPan: row.hasPan,
+        codeRequest: row.codeRequest
+          ? { code: row.codeRequest.code, status: row.codeRequest.status }
+          : null,
       },
       totals,
       recent: ledger.map((c) => ({
