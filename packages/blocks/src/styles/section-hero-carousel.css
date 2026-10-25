@@ -202,7 +202,9 @@
 
 /* Typographic slides (no video/image chosen) are a deliberate editorial
    moment, not an empty state: bigger heading, more generous padding. */
-.hero-carousel__content--flat {
+/* Doubled class: `.hero-carousel__content` below sets align-items: flex-start and comes later,
+   which left the CTA hanging left under a centred heading. */
+.hero-carousel__content.hero-carousel__content--flat {
   align-items: center;
   justify-content: center;
   max-width: 45rem;
@@ -250,7 +252,11 @@
    counter and the subheading near-black in dark mode over a photograph still
    being darkened for white type. The light-field variant is excluded: there
    the copy is on a pale pane and keeps its ink colour. */
-.hero-carousel__slide--full_bleed .hero-carousel__content:not(.hero-carousel__content--on-light) {
+/* A flat slide (no photo) has no scrim: its type follows its own field's colour instead. */
+.hero-carousel__slide--full_bleed
+  .hero-carousel__content:not(.hero-carousel__content--on-light):not(
+    .hero-carousel__content--flat
+  ) {
   color: var(--hero-white);
 }
 

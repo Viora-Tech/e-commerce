@@ -234,9 +234,10 @@ export default function CustomizeTopBar({
           </Button>
         ) : null}
         {live ? (
-          <Button onClick={onSave} disabled={!dirty || saving}>
-            {saving ? <Spinner /> : <Globe aria-hidden="true" />}
-            {copy.publish}
+          // On the live theme saving is going live: one Save, named as such, like Shopify's.
+          <Button onClick={onSave} disabled={!dirty || saving} title={copy.saveLiveHint}>
+            {saving ? <Spinner /> : <Save aria-hidden="true" />}
+            {copy.save}
           </Button>
         ) : canPublish ? (
           <Button onClick={onPublish} disabled={saving || publishing}>

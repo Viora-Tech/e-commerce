@@ -142,10 +142,15 @@ export default function AgenticGetReady({ data }: AgenticGetReadyProps) {
         </div>
         <div className="flex flex-col gap-4 lg:sticky lg:top-4">
           <DataCard title={copy.channelsHeading}>
-            <label className="flex items-center justify-between gap-3 text-body font-medium text-foreground">
-              {copy.manage}
-              <Switch checked={managed} disabled={busy} onCheckedChange={handleManage} />
-            </label>
+            <div className="flex items-center justify-between gap-3 text-body font-medium text-foreground">
+              <span id="agentic-manage">{copy.manage}</span>
+              <Switch
+                checked={managed}
+                disabled={busy}
+                onCheckedChange={handleManage}
+                aria-labelledby="agentic-manage"
+              />
+            </div>
             <p className="mt-1 text-caption text-muted-foreground">{copy.manageBody}</p>
             <ul className="mt-4 flex flex-col gap-3 border-t border-border pt-4">
               {AI_AGENTS.map((agent) => {

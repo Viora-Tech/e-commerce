@@ -7,6 +7,7 @@ import type { MediaImage } from '../types'
 import Icon from './icon'
 import Picture from './picture'
 import ProductGalleryLightbox, { isVideo } from './product-gallery-lightbox'
+import ProductImagePlaceholder from './product-image-placeholder'
 
 type ProductGalleryProps = {
   images: MediaImage[]
@@ -70,7 +71,9 @@ export default function ProductGallery({
   if (images.length === 0) {
     return (
       <div className="product-gallery product-gallery--placeholder">
-        <div className="product-gallery__main" />
+        <div className="product-gallery__main">
+          <ProductImagePlaceholder />
+        </div>
       </div>
     )
   }

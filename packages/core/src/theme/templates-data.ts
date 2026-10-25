@@ -130,7 +130,13 @@ const HEADER_GROUP: TemplateSection[] = [
 
 const FOOTER_GROUP: TemplateSection[] = [
   withProps('Newsletter', 'newsletter', { ...copy.newsletter, interests: [], reasons: [] }),
-  withProps('Footer', 'footer', { ...copy.footer, helpCards: [], socials: [] }),
+  // The Newsletter section above already asks for an email; a second form in the footer read twice.
+  withProps('Footer', 'footer', {
+    ...copy.footer,
+    showNewsletter: false,
+    helpCards: [],
+    socials: [],
+  }),
   section('CookieBanner', 'cookie-banner'),
 ]
 

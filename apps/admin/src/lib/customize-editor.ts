@@ -1,5 +1,7 @@
 import { THEME_FONT_IDS, THEME_FONTS } from '@commerce/core/theme'
 import type { Data, PuckAction } from '@puckeditor/core'
+import { toast } from 'sonner'
+import { customizeContent } from '@/data/customize'
 import { prefersReducedMotion, scrollToSection } from '@/lib/customize-canvas-motion'
 import type { CustomizeDoc } from '@/lib/customize-doc'
 import { zoneItems } from '@/lib/customize-slots'
@@ -39,3 +41,24 @@ export const isDesktopHome = (loaded: { ref: TemplateRefLike } | null, device: s
   loaded?.ref.key === 'home' && loaded.ref.suffix === '' && device === 'desktop'
 
 type TemplateRefLike = { key: string; suffix: string }
+
+/**
+ * Whether the opened page has drafts kept from an earlier visit. On the editor's first load they
+ * are named once, with Discard, so "Unsaved changes" never appears out of nowhere.
+ */
+export function leftoverDrafts(
+  parts: readonly { draft: boolean }[],
+  firstLoad: boolean,
+  onDiscard: () => unknown,
+): boolean {
+  const leftover = parts.some((p) => p.draft)
+  if (leftover && firstLoad) {
+    const copy = customizeContent.bar
+    toast.message(copy.leftoverTitle, {
+      description: copy.leftoverBody,
+      duration: 12_000,
+      action: { label: copy.discard, onClick: () => void onDiscard() },
+    })
+  }
+  return leftover
+}
