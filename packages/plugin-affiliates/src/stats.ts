@@ -166,7 +166,8 @@ export async function affiliateTrend(
     programId?: string | undefined
   },
 ): Promise<TrendPoint[]> {
-  const unit = opts.by === 'week' ? 'week' : 'month'
+  // Inlined, not a parameter: GROUP BY must see the same expression as SELECT. Only 'week' or 'month'.
+  const unit = sql.raw(opts.by === 'week' ? "'week'" : "'month'")
   const span = opts.by === 'week' ? sql`interval '12 weeks'` : sql`interval '12 months'`
   const ist = sql`(${affiliateCommission.placedAt} at time zone 'Asia/Kolkata')`
   const period = sql<string>`to_char(date_trunc(${unit}, ${ist}), 'YYYY-MM-DD')`

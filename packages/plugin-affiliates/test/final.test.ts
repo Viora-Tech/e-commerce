@@ -14,7 +14,7 @@ import {
   defaultProgramRules,
   type SignupField,
 } from '../src/settings'
-import { affiliateTrend, ledgerCsv } from '../src/stats'
+import { affiliateTrend, ledgerCsv, topProducts } from '../src/stats'
 
 /*
  * The last v1.1 pieces: signup answers kept to the form, the applied and rejected events (the
@@ -136,6 +136,7 @@ describe('clicks, trends and creatives', () => {
     )
     expect(trend.reduce((s, p) => s + p.clicks, 0)).toBe(2)
     expect((await inStore(storeId, (tx) => ledgerCsv(tx))).split('\n')[0]).toContain('Commission')
+    expect(await inStore(storeId, (tx) => topProducts(tx, {}))).toEqual([])
   })
 
   it('lists a program’s creatives with the all-programs ones, hiding archived', async () => {
