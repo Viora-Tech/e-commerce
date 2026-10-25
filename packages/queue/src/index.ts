@@ -28,6 +28,7 @@ import {
   type AutomationStepJob,
   type AutomationStepQueue,
 } from '@commerce/core/automations/server'
+import { INBOX_AI_QUEUE, type InboxAiJob, type InboxAiQueue } from '@commerce/core/inbox/server'
 import {
   PIXELS_SEND_QUEUE,
   type PixelSendJob,
@@ -107,6 +108,8 @@ export const QUEUE_LIMITS = {
   /** Pixels: one job per order event, then one Conversions API call per pixel and event. */
   pixelsOrder: { concurrency: 5, perStore: 2 },
   pixelsSend: { concurrency: 10, perStore: 3 },
+  /** Inbox AI agent: one model call per shopper message; a busy store never holds up another's chat. */
+  inboxAi: { concurrency: 6, perStore: 2 },
 } as const satisfies Record<string, QueueLimits>
 
 /**
@@ -319,6 +322,15 @@ export function automationStepQueue(redisUrl: string): AutomationStepQueue {
     connection: createConnection(redisUrl),
   })
   return g.__automationStepQueue
+}
+
+/** Producer side of the Inbox AI reply queue (the storefront's chat send action). */
+export function inboxAiQueue(redisUrl: string): InboxAiQueue {
+  const g = globalThis as { __inboxAiQueue?: InboxAiQueue }
+  g.__inboxAiQueue ??= new Queue<InboxAiJob>(INBOX_AI_QUEUE, {
+    connection: createConnection(redisUrl),
+  })
+  return g.__inboxAiQueue
 }
 
 /** Producer side of the Pixels send queue (the storefront's `/api/px` collector). */

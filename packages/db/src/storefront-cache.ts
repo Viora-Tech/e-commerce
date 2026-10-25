@@ -109,6 +109,7 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   gift_card: SHOPPER,
   gift_card_transaction: LOG,
   inbound_shipment: ADMIN,
+  inbox_ai_event: ADMIN,
   inbox_block: ADMIN,
   inbox_conversation: 'chat threads load in the widget, never in a cached page',
   inbox_message: 'chat messages load in the widget, never in a cached page',

@@ -1051,6 +1051,13 @@
       "when": 1792869602425,
       "tag": "0165_affiliate_gst",
       "breakpoints": true
+    },
+    {
+      "idx": 150,
+      "version": "7",
+      "when": 1792869662425,
+      "tag": "0166_inbox_ai",
+      "breakpoints": true
     }
   ]
 }

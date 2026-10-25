@@ -6,6 +6,7 @@ import { loadEnv, settingsSecret } from '@commerce/config'
 import { createRedisRateLimitStore } from '@commerce/core'
 import {
   contactRequired,
+  enqueueInboxAiReply,
   featuredProducts,
   findShopperConversation,
   InboxError,
@@ -23,7 +24,7 @@ import {
   shopperThread,
   typingEvent,
 } from '@commerce/core/inbox/server'
-import { sharedRedis } from '@commerce/queue'
+import { inboxAiQueue, sharedRedis } from '@commerce/queue'
 import { headers } from 'next/headers'
 import { currentCustomer } from './customer-session'
 import { chatIdentity, chatIdentityForSend, chatPublisher, openChatPhotoToken } from './inbox'
@@ -94,6 +95,19 @@ export type ChatSendResult =
   | { ok: true; message: ShopperMessage; conversationId: string }
   | { ok: false; error: 'sign_in' | 'blocked' | 'busy' | 'invalid' | 'failed' }
 
+/** Queues the AI agent's look at a new shopper message; a queue outage never fails the send. */
+async function queueAiReply(storeId: string, conversationId: string, messageId: string) {
+  try {
+    await enqueueInboxAiReply(inboxAiQueue(loadEnv(process.env).REDIS_URL), {
+      storeId,
+      conversationId,
+      messageId,
+    })
+  } catch {
+    // The staff inbox still has the message; the AI just skips it.
+  }
+}
+
 /** Sends the shopper's message (text or a photo), starting their conversation if needed. */
 export async function sendChatAction(input: ChatSendInput): Promise<ChatSendResult> {
   const storeId = await requestStoreId()
@@ -128,6 +142,8 @@ export async function sendChatAction(input: ChatSendInput): Promise<ChatSendResu
         chatPublisher(),
         messageEvents(storeId, sent.conversation, sent.message),
       )
+      // The AI agent decides in the worker whether it answers (mode, staff online, take-over).
+      if (!sent.spam) await queueAiReply(storeId, sent.conversation.id, sent.message.id)
     }
     return {
       ok: true,

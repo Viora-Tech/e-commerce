@@ -30,12 +30,6 @@ const ALLOWLIST: AllowEntry[] = [
       'the Inbox app embed schema the theme editor App embeds panel renders (coordinator, 2026-10-24); read once that panel lands',
   },
   {
-    file: 'packages/core/src/inbox/panel.ts',
-    names: ['productCards'],
-    reason:
-      'the card builder behind messageCards and featuredProducts, exported for the AI agent (Inbox PR 6)',
-  },
-  {
     file: 'packages/core/src/inbox/connection.ts',
     names: ['EVENT_TYPES'],
     reason:
