@@ -29,6 +29,7 @@ export const affiliateContent = {
     submit: 'Send application',
     sending: 'Sending…',
     errors: {
+      missing: 'Please answer the questions marked as required.',
       name: 'Enter your name.',
       terms: 'Please accept the program terms.',
       busy: 'Too many tries. Please wait a little and try again.',
@@ -64,6 +65,20 @@ export const affiliateContent = {
       qrAlt: 'QR code for your link',
       download: 'Download QR (PNG)',
       otherSite: 'Only pages of this store can be linked.',
+    },
+    creatives: {
+      title: 'Ready to post',
+      help: 'Images and captions from the store. Save one, copy the caption, add your link.',
+      copyCaption: 'Copy caption',
+      download: 'Save image',
+    },
+    trend: {
+      title: 'Your last 12 months',
+      orders: 'Orders',
+      earned: 'Earned',
+      clicks: 'Clicks',
+      conversion: (p: number) => `${p}% of clicks became orders`,
+      empty: 'Your chart fills up as your link brings visits and sales.',
     },
     vanity: {
       title: 'Want your own code?',

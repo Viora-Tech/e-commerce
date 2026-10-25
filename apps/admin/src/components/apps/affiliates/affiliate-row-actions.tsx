@@ -1,8 +1,11 @@
 'use client'
 
 import { CircleCheck, Eye, Pause, Unlink } from '@commerce/ui/icons'
+import { Textarea } from '@commerce/ui/shadcn/textarea'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import ActionMenu from '@/components/layout/action-menu'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { affiliatesContent } from '@/data/affiliates'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -25,6 +28,8 @@ export default function AffiliateRowActions({
 }: AffiliateRowActionsProps) {
   // Hooks
   const { list: copy, failed } = useCopy(affiliatesContent)
+  const [rejecting, setRejecting] = useState(false)
+  const [reason, setReason] = useState('')
 
   // Helpers
   const run = async (fn: () => Promise<unknown>, done: string) => {
@@ -39,8 +44,11 @@ export default function AffiliateRowActions({
 
   // Event handlers
   const handleApprove = () => run(() => api.affiliates.approve({ id }), copy.approved)
-  const handleReject = () =>
-    run(() => api.affiliates.setStatus({ id, status: 'rejected' }), copy.rejected)
+  const handleReject = async () => {
+    await run(() => api.affiliates.setStatus({ id, status: 'rejected', reason }), copy.rejected)
+    setRejecting(false)
+    setReason('')
+  }
   const handleSuspend = () =>
     run(() => api.affiliates.setStatus({ id, status: 'suspended' }), copy.suspended)
 
@@ -69,7 +77,7 @@ export default function AffiliateRowActions({
             label: copy.reject,
             icon: Unlink,
             hidden: status !== 'pending',
-            onSelect: handleReject,
+            onSelect: () => setRejecting(true),
           },
           {
             label: copy.suspend,
@@ -80,6 +88,24 @@ export default function AffiliateRowActions({
           },
         ]}
       />
+      <ConfirmDialog
+        open={rejecting}
+        onOpenChange={setRejecting}
+        title={copy.rejectTitle}
+        body={copy.rejectBody}
+        confirmLabel={copy.reject}
+        tone="destructive"
+        onConfirm={handleReject}
+      >
+        <Textarea
+          aria-label={copy.rejectReason}
+          placeholder={copy.rejectReason}
+          value={reason}
+          maxLength={500}
+          rows={3}
+          onChange={(e) => setReason(e.target.value)}
+        />
+      </ConfirmDialog>
     </span>
   )
 }

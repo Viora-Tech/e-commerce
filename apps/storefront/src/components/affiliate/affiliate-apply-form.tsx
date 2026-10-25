@@ -1,14 +1,18 @@
 'use client'
 
+import type { SignupField } from '@commerce/plugin-affiliates/settings'
 import { useState, useTransition } from 'react'
 import { affiliateContent } from '@/data/affiliate'
 import { applyAffiliateAction } from '@/lib/affiliate-actions'
+import SignupFields from './signup-fields'
 
 type AffiliateApplyFormProps = {
   defaultName: string
   terms: string
   /** `?program=` slug of the program applied to; none is the default program. */
   program?: string | undefined
+  /** The program's own signup questions. */
+  fields?: SignupField[] | undefined
 }
 
 const copy = affiliateContent.apply
@@ -18,6 +22,7 @@ export default function AffiliateApplyForm({
   defaultName,
   terms,
   program,
+  fields = [],
 }: AffiliateApplyFormProps) {
   // Hooks
   const [pending, start] = useTransition()
@@ -25,6 +30,7 @@ export default function AffiliateApplyForm({
   const [social, setSocial] = useState('')
   const [message, setMessage] = useState('')
   const [accept, setAccept] = useState(false)
+  const [answers, setAnswers] = useState<Record<string, string | boolean>>({})
   const [error, setError] = useState<string | null>(null)
 
   // Event handlers
@@ -38,6 +44,7 @@ export default function AffiliateApplyForm({
         message,
         acceptTerms: accept,
         program,
+        answers,
       })
       if (!r.ok) setError(copy.errors[r.error] ?? copy.errors.generic ?? '')
     })
@@ -80,6 +87,11 @@ export default function AffiliateApplyForm({
           onChange={(e) => setMessage(e.target.value)}
         />
       </label>
+      <SignupFields
+        fields={fields}
+        values={answers}
+        onChange={(id, value) => setAnswers((a) => ({ ...a, [id]: value }))}
+      />
       {terms ? (
         <details className="text-small">
           <summary className="cursor-pointer">{copy.termsTitle}</summary>

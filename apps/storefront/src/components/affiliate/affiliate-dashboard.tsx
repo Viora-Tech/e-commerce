@@ -2,6 +2,8 @@ import { formatPaise } from '@commerce/blocks'
 import { formatInZone } from '@commerce/dates'
 import CodeRequestForm from '@/components/affiliate/code-request-form'
 import CopyValue from '@/components/affiliate/copy-value'
+import CreativesList from '@/components/affiliate/creatives-list'
+import EarningsTrend from '@/components/affiliate/earnings-trend'
 import LinkBuilder from '@/components/affiliate/link-builder'
 import PayoutDetailsForm from '@/components/affiliate/payout-details-form'
 import { affiliateContent } from '@/data/affiliate'
@@ -51,6 +53,8 @@ export default function AffiliateDashboard({ portal, origin }: AffiliateDashboar
           </div>
         ))}
       </dl>
+      <EarningsTrend points={portal.trend} />
+      <CreativesList creatives={portal.creatives} />
       <section className="flex max-w-[48rem] flex-col gap-3">
         <h2 className="h3">{copy.recent}</h2>
         {portal.recent.length === 0 ? (

@@ -13,6 +13,7 @@ import CommissionPreview from '@/components/apps/affiliates/commission-preview'
 import CommissionSettings from '@/components/apps/affiliates/commission-settings'
 import ProgramExcludesCard from '@/components/apps/affiliates/program-excludes-card'
 import ProgramLevelsCard from '@/components/apps/affiliates/program-levels-card'
+import SignupFormCard from '@/components/apps/affiliates/signup-form-card'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import StatusChip from '@/components/layout/status-chip'
@@ -219,6 +220,10 @@ export default function ProgramEditor({ params }: AppPageProps) {
           />
         </SettingsRow>
       </SettingsCard>
+      <SignupFormCard
+        fields={form.rules.form}
+        onChange={(fields) => handleRules({ form: fields })}
+      />
       <ArchiveProgramDialog
         open={archiving}
         onOpenChange={setArchiving}

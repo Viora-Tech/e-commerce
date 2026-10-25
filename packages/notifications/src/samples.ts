@@ -141,6 +141,20 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
       portalUrl: 'https://waimers.example/affiliate',
     },
   },
+  affiliate_application: {
+    ...base,
+    orderNumber: undefined,
+    lines: [],
+    taxBreakdown: undefined,
+    affiliate: {
+      kind: 'applied',
+      name: 'Asha K',
+      email: 'asha@example.com',
+      social: '@asha.styles',
+      message: 'I post skincare reels for 40k followers.',
+      adminUrl: 'https://admin.koomerce.app/apps/affiliates/affiliates/1',
+    },
+  },
   contact_message: {
     ...base,
     orderNumber: undefined,

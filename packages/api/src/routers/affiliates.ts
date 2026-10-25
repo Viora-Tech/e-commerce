@@ -5,9 +5,11 @@ import {
   addToBlocklist,
   affiliateState,
   affiliateTotals,
+  affiliateTrend,
   applyAsAffiliate,
   approveAffiliate,
   approveDueCommissions,
+  archiveCreative,
   archiveProgram,
   BLOCKLIST_KINDS,
   CommissionRuleSchema,
@@ -21,9 +23,11 @@ import {
   defaultProgram,
   getAffiliate,
   getProgram,
+  ledgerCsv,
   listAffiliates,
   listBlocklist,
   listCodes,
+  listCreatives,
   listPayouts,
   listPrograms,
   markPayoutPaid,
@@ -36,6 +40,7 @@ import {
   rotateCoupon,
   StoreAffiliateSettingsSchema,
   saveAffiliateSettings,
+  saveCreative,
   saveProgram,
   setAffiliateProgram,
   setAffiliateRate,
@@ -43,6 +48,7 @@ import {
   storePart,
   tdsReportCsv,
   topAffiliates,
+  topProducts,
   totalsByAffiliate,
   updateAffiliateNote,
   withProgramRules,
@@ -97,6 +103,8 @@ function publicAffiliate(a: NonNullable<Awaited<ReturnType<typeof getAffiliate>>
     gstRegistered: a.gstRegistered,
     reviewReasons: a.reviewReasons,
     codeRequest: a.codeRequest,
+    answers: a.answers,
+    rejectReason: a.rejectReason,
     source: a.source,
     clicks: a.clicks,
     approvedAt: a.approvedAt,
@@ -300,13 +308,66 @@ export const affiliatesRouter = {
       return { ok: true }
     }),
   setStatus: can(permissions.MARKETING_WRITE)
-    .input(z.object({ id: z.uuid(), status: z.enum(['rejected', 'suspended']) }))
+    .input(
+      z.object({
+        id: z.uuid(),
+        status: z.enum(['rejected', 'suspended']),
+        /** For a rejection: why, emailed to them. */
+        reason: z.string().max(500).default(''),
+      }),
+    )
     .handler(async ({ context, input }) => {
       await program(context)
       return refusal(async () =>
-        publicAffiliate(await setAffiliateStatus(context.tx, input.id, input.status)),
+        publicAffiliate(await setAffiliateStatus(context.tx, input.id, input.status, input.reason)),
       )
     }),
+  /** Sales, commission and clicks per week or month (last 12), with the products affiliates sell most. */
+  trend: can(permissions.MARKETING_READ)
+    .input(
+      z.object({ by: z.enum(['week', 'month']).default('week'), programId: z.uuid().optional() }),
+    )
+    .handler(async ({ context, input }) => {
+      await program(context)
+      const [points, products] = await Promise.all([
+        affiliateTrend(context.tx, { by: input.by, programId: input.programId }),
+        topProducts(context.tx, { programId: input.programId, limit: 10 }),
+      ])
+      return { points, products }
+    }),
+  /** The commissions ledger as CSV, for the merchant's books. */
+  ledgerCsv: can(permissions.MARKETING_READ).handler(async ({ context }) => {
+    await program(context)
+    return { csv: await ledgerCsv(context.tx) }
+  }),
+  /** Images and captions for affiliates to post, per program or for all. */
+  creatives: {
+    list: can(permissions.MARKETING_READ).handler(async ({ context }) => {
+      await program(context)
+      return listCreatives(context.tx, { archived: true })
+    }),
+    save: can(permissions.MARKETING_WRITE)
+      .input(
+        z.object({
+          id: z.uuid().optional(),
+          mediaId: z.uuid(),
+          programId: z.uuid().nullable().default(null),
+          title: z.string().max(120).default(''),
+          caption: z.string().max(2200).default(''),
+        }),
+      )
+      .handler(async ({ context, input }) => {
+        await program(context)
+        return refusal(() => saveCreative(context.tx, context.scope.storeId, input))
+      }),
+    archive: can(permissions.MARKETING_WRITE)
+      .input(z.object({ id: z.uuid(), archived: z.boolean() }))
+      .handler(async ({ context, input }) => {
+        await program(context)
+        await archiveCreative(context.tx, input.id, input.archived)
+        return { ok: true }
+      }),
+  },
   /** A leaked coupon: the old one stops working and a new one is made. The link is untouched. */
   rotateCoupon: can(permissions.MARKETING_WRITE)
     .input(Id)

@@ -81,12 +81,16 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
           ? 'You are approved'
           : d.affiliate?.kind === 'payout'
             ? 'Your payout was sent'
-            : 'New sale through your link',
+            : d.affiliate?.kind === 'rejected'
+              ? 'Your application was not approved'
+              : 'New sale through your link',
         d.affiliate?.amountLabel ?? d.affiliate?.couponCode ?? '-',
         d.affiliate?.portalUrl ?? '-',
       ]
     case 'contact_message':
       return [d.storeName, d.contactMessage?.name || '-']
+    case 'affiliate_application':
+      return [d.storeName, d.affiliate?.name || '-']
     case 'review_request':
     case 'review_reminder':
       return [d.customerName, d.storeName, d.review?.items?.[0]?.url ?? '-']
