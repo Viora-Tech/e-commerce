@@ -9,6 +9,8 @@ import {
   affiliateState,
   applyAsAffiliate,
   defaultProgram,
+  enrolFromOrder,
+  enrolOrderId,
   type PayoutDetails,
   PayoutDetailsSchema,
   programBySlug,
@@ -82,6 +84,27 @@ export async function applyAffiliateAction(input: {
   if (result !== 'ok') return { ok: false, error: result }
   revalidatePath(AFFILIATE_PORTAL_PATH)
   return { ok: true }
+}
+
+export type JoinActionResult =
+  | { ok: true; code: string; couponCode: string | null }
+  | { ok: false; error: 'busy' | 'closed' }
+
+/**
+ * Share and earn: the buyer's one tap on the invite from their order. The signed token names
+ * the store and the order; the affiliate made is always that order's own customer.
+ */
+export async function joinFromOrderAction(token: string): Promise<JoinActionResult> {
+  const storeId = await requestStoreId()
+  const orderId = enrolOrderId(token, storeId, settingsSecret())
+  if (!orderId) return { ok: false, error: 'closed' }
+  if (!(await rateLimited('affiliate-apply:ip', await ipKey(storeId), APPLY_RULE)).ok) {
+    return { ok: false, error: 'busy' }
+  }
+  const row = await inStore(storeId, (tx) => enrolFromOrder(tx, storeId, orderId, settingsSecret()))
+  if (row?.status !== 'approved') return { ok: false, error: 'closed' }
+  revalidatePath(AFFILIATE_PORTAL_PATH)
+  return { ok: true, code: row.code, couponCode: row.couponCode }
 }
 
 export async function savePayoutDetailsAction(

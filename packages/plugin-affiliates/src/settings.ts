@@ -23,6 +23,9 @@ export const AFFILIATES_ID = 'affiliates'
 /** Default section label on the 26Q export: the Income-tax Act, 2025 entry and the old 194H. */
 export const TDS_SECTION = '393(1) Sl. 1(ii) / 194H'
 
+/** Share and earn: off, or an invite the buyer accepts with one tap. */
+export const AUTO_ENROL_MODES = ['off', 'invite'] as const
+
 /** Percent of the line's net sale, or a flat amount (per order for the default rule, per unit for an override). */
 export const CommissionRuleSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('percent'), bp: z.number().int().min(0).max(10_000) }),
@@ -110,6 +113,19 @@ export const StoreAffiliateSettingsSchema = z.object({
     .default({ enabled: true, bp: 1800 }),
   /** Hold payouts of an affiliate with no PAN once their commission this year passes the TDS threshold. */
   requirePanAboveThreshold: z.boolean().default(false),
+  /**
+   * Share and earn: after an order, the thank-you page and order emails invite the buyer to
+   * become an affiliate in one tap. Invite only, never automatic (consent).
+   */
+  autoEnrol: z
+    .object({
+      mode: z.enum(AUTO_ENROL_MODES).default('off'),
+      /** The program they join; null is the store's default program. */
+      programId: z.uuid().nullable().default(null),
+      /** Orders below this value get no invite. */
+      minOrderPaise: z.number().int().min(0).max(10_000_000).default(0),
+    })
+    .default({ mode: 'off', programId: null, minOrderPaise: 0 }),
 })
 export type StoreAffiliateSettings = z.infer<typeof StoreAffiliateSettingsSchema>
 
@@ -173,6 +189,7 @@ export function storePart(s: StoreAffiliateSettings): StoreAffiliateSettings {
     tds: s.tds,
     gst: s.gst,
     requirePanAboveThreshold: s.requirePanAboveThreshold,
+    autoEnrol: s.autoEnrol,
   }
 }
 
