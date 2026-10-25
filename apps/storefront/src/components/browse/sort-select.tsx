@@ -129,7 +129,7 @@ export default function SortSelect({ action, value, options, keep }: SortSelectP
         aria-activedescendant={open ? `sort-opt-${options[active]}` : undefined}
         onKeyDown={handleKey}
         data-open={open ? '' : undefined}
-        className="pointer-events-none absolute right-0 z-20 mt-2 min-w-[12rem] origin-top-right scale-[0.97] rounded-[var(--radius-card,0.75rem)] border border-line bg-[var(--color-background,#fff)] py-1 opacity-0 shadow-lg transition-[opacity,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] outline-none data-[open]:pointer-events-auto data-[open]:scale-100 data-[open]:opacity-100 motion-reduce:transition-none"
+        className="pointer-events-none absolute right-0 z-20 mt-2 min-w-[12rem] origin-top-right scale-[0.97] rounded-[var(--radius-card,0.75rem)] border border-line bg-[var(--color-bg)] text-[var(--color-ink)] py-1 opacity-0 shadow-lg transition-[opacity,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] outline-none data-[open]:pointer-events-auto data-[open]:scale-100 data-[open]:opacity-100 motion-reduce:transition-none"
       >
         {options.map((o, i) => (
           <button
