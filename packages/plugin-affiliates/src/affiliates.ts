@@ -11,6 +11,7 @@ import { validateGstin } from '@commerce/core/gstin'
 import { discount, type StoreTx } from '@commerce/db'
 import { and, desc, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
+import { blockedKinds, fraudIndex, payoutKeys, refreshReview } from './blocklist'
 import { phoneKey } from './fraud'
 import { defaultProgram, getProgram, programOf } from './programs'
 import { affiliate } from './schema'
@@ -101,6 +102,8 @@ export type ApplyInput = {
   programId?: string | null | undefined
   /** How they joined; `applied` unless the merchant added them or a buyer tapped Share and earn. */
   source?: AffiliateRow['source'] | undefined
+  /** The IP a storefront application came from, for the blocklist. */
+  ip?: string | null | undefined
 }
 
 /**
@@ -130,6 +133,16 @@ export async function applyAsAffiliate(
     throw new AffiliateError('PROGRAM_NOT_FOUND', 'Program not found')
   }
   const key = phoneKey(input.phone)
+  const domain = input.email?.split('@')[1] ?? null
+  const blocked = await blockedKinds(tx, secret, {
+    email: input.email,
+    email_domain: domain,
+    ip: input.ip,
+    phone: input.phone,
+  })
+  if (blocked.has('email') || blocked.has('email_domain') || blocked.has('ip')) {
+    throw new AffiliateError('AFFILIATE_BLOCKED', 'This application cannot be accepted')
+  }
   const [row] = await tx
     .insert(affiliate)
     .values({
@@ -143,6 +156,9 @@ export async function applyAsAffiliate(
       social: input.social.trim().slice(0, 200),
       message: input.message.trim().slice(0, 2000),
       source: input.source ?? 'applied',
+      signupIpIndex: input.ip ? fraudIndex('ip', input.ip.trim().toLowerCase(), secret) : null,
+      // A blocked phone does not refuse the signup: the merchant reviews before any payout.
+      reviewReasons: blocked.has('phone') ? ['blocked_phone'] : [],
     })
     .returning()
   if (!row) throw new AffiliateError('AFFILIATE_NOT_SAVED', 'Affiliate not saved')
@@ -299,7 +315,8 @@ export async function savePayoutDetails(
 ): Promise<{ hint: string; hasPan: boolean }> {
   const parsed = PayoutDetailsSchema.parse(details)
   const hint = payoutHint(parsed)
-  await tx
+  const keys = payoutKeys(parsed)
+  const [row] = await tx
     .update(affiliate)
     .set({
       payoutMethod: parsed.method,
@@ -307,9 +324,14 @@ export async function savePayoutDetails(
       payoutHint: hint,
       hasPan: Boolean(parsed.pan),
       gstRegistered: Boolean(parsed.gstin),
+      panIndex: keys.pan ? fraudIndex('pan', keys.pan, secret) : null,
+      payeeIndex: keys.payee ? fraudIndex('payee', keys.payee, secret) : null,
       updatedAt: new Date(),
     })
     .where(eq(affiliate.id, id))
+    .returning()
+  // A PAN or payee another affiliate uses, or one on the blocklist, holds payouts for review.
+  if (row) await refreshReview(tx, row, keys, secret)
   return { hint, hasPan: Boolean(parsed.pan) }
 }
 

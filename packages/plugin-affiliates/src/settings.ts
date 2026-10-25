@@ -1,5 +1,6 @@
 /** SOURCE OF TRUTH: affiliate settings — WHAT: the store-wide settings, one program's rules, and the two merged / WHY: one schema for the admin forms, the API, the storefront and the worker */
 import { z } from 'zod'
+import { DEFAULT_COUPON_SITES } from './fraud'
 
 /**
  * Two levels, both pure and client-safe so the admin forms import them directly:
@@ -126,6 +127,19 @@ export const StoreAffiliateSettingsSchema = z.object({
       minOrderPaise: z.number().int().min(0).max(10_000_000).default(0),
     })
     .default({ mode: 'off', programId: null, minOrderPaise: 0 }),
+  /**
+   * Checks that hold a commission for review: a code used from a coupon site (needs the
+   * shopper's analytics consent for the referrer) and a coupon spike.
+   */
+  fraud: z
+    .object({
+      couponSites: z
+        .array(z.string().trim().toLowerCase().min(3).max(100))
+        .max(100)
+        .default([...DEFAULT_COUPON_SITES]),
+      spikeMultiple: z.number().int().min(2).max(20).default(3),
+    })
+    .default({ couponSites: [...DEFAULT_COUPON_SITES], spikeMultiple: 3 }),
 })
 export type StoreAffiliateSettings = z.infer<typeof StoreAffiliateSettingsSchema>
 
@@ -190,6 +204,7 @@ export function storePart(s: StoreAffiliateSettings): StoreAffiliateSettings {
     gst: s.gst,
     requirePanAboveThreshold: s.requirePanAboveThreshold,
     autoEnrol: s.autoEnrol,
+    fraud: s.fraud,
   }
 }
 

@@ -1072,6 +1072,13 @@
       "when": 1792928265585,
       "tag": "0168_affiliate_source",
       "breakpoints": true
+    },
+    {
+      "idx": 153,
+      "version": "7",
+      "when": 1792929746646,
+      "tag": "0169_affiliate_fraud",
+      "breakpoints": true
     }
   ]
 }

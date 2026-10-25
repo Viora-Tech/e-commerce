@@ -240,6 +240,8 @@ const SENSITIVE_PATHS: Record<string, string> = {
   'affiliates.payouts.create': 'groups commissions into payouts (money)',
   'affiliates.commissions.decide': 'approves or rejects an affiliate commission (money)',
   'affiliates.commissions.approveDue': 'approves every due affiliate commission (money)',
+  'affiliates.blocklist.add': 'blocks buyers or affiliates (fraud list)',
+  'affiliates.blocklist.remove': 'unblocks buyers or affiliates (fraud list)',
   'inbox.send': 'sends a message to a shopper',
   'returns.storeCredit': 'issues store credit (money)',
   'giftCards.issue': 'issues a gift card (money)',

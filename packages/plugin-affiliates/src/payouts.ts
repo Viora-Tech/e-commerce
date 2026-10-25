@@ -31,7 +31,7 @@ export type PayoutCandidate = {
    * Why not, when not ready. `no_pan`: the store asks for a PAN once an affiliate's commission
    * this financial year passes the TDS threshold, and they have none.
    */
-  blocker: 'below_minimum' | 'no_details' | 'no_pan' | null
+  blocker: 'below_minimum' | 'no_details' | 'no_pan' | 'review' | null
 }
 
 /** Commission credited (approved or paid) this financial year, per affiliate. */
@@ -88,6 +88,7 @@ export async function payoutCandidates(
       payoutHint: affiliate.payoutHint,
       hasPan: affiliate.hasPan,
       gstRegistered: affiliate.gstRegistered,
+      review: affiliate.reviewReasons,
       gross: sql<number>`sum(${affiliateCommission.commissionPaise})::int`,
       tds: sql<number>`sum(${affiliateCommission.tdsPaise})::int`,
       n: sql<number>`count(*)::int`,
@@ -102,6 +103,7 @@ export async function payoutCandidates(
       affiliate.payoutHint,
       affiliate.hasPan,
       affiliate.gstRegistered,
+      affiliate.reviewReasons,
     )
   return rows.map((r) => {
     const clawbackPaise = Math.min(clawbacks.get(r.affiliateId) ?? 0, r.gross)
@@ -118,7 +120,9 @@ export async function payoutCandidates(
           ? 'no_details'
           : panNeeded
             ? 'no_pan'
-            : null
+            : r.review.length > 0
+              ? 'review'
+              : null
     return {
       affiliateId: r.affiliateId,
       name: r.name,

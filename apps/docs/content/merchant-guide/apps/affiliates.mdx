@@ -69,6 +69,16 @@ On **Payouts**, **TDS report (26Q)** downloads a CSV for one quarter (April to J
 
 An order placed from the affiliate's own account, email, phone or saved address is recorded as **Own order** and earns nothing. If it was genuine, open **Commissions** and choose **Not their own order: allow**.
 
+Suspicious commissions are **held**, not refused. They wait in **Commissions** with a reason until you clear or reverse them:
+
+- **Code used from a coupon site**: the order used an affiliate's code, the shopper never clicked the affiliate's link, and they arrived from a coupon site (GrabOn, CouponDunia, CashKaro and more; edit the list in **Settings → Fraud checks**). This needs the shopper's analytics consent, since that is when the referrer is known.
+- **Unusual burst of orders on this code**: in 24 hours a code got more than 3× its usual day (at least 5 orders). Change the multiple in **Settings → Fraud checks**.
+- **Buyer is on your blocklist**.
+
+**Blocklist** (**Settings → Blocklist**): block an email, an email domain, a phone, an IP address, a PAN or a UPI ID / bank account. Blocked buyers' commissions are held. Blocked emails, domains and IPs cannot apply. An affiliate whose phone, PAN or payout account is blocked waits for your review.
+
+**Needs review**: when two affiliates use the same PAN or the same UPI ID or bank account, both are marked for review. Their commissions keep counting, but their payouts wait. Open the affiliate, check, and choose **Looks fine**, or suspend them.
+
 ## Payout details
 
 Affiliates add a UPI ID or bank account (and optionally their PAN) on their dashboard at **/affiliate**. The details are stored encrypted. Your admin only shows a masked line such as `UPI as•••@okaxis`. The bank file holds the full details and needs the **Settings** permission to download. Keep it private and delete it after uploading.

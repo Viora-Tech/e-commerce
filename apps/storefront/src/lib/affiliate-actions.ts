@@ -5,6 +5,7 @@ import 'server-only'
 import { settingsSecret } from '@commerce/config'
 import {
   AFFILIATE_PORTAL_PATH,
+  AffiliateError,
   affiliateForCustomer,
   affiliateState,
   applyAsAffiliate,
@@ -56,6 +57,7 @@ export async function applyAffiliateAction(input: {
   if (!(await rateLimited('affiliate-apply:ip', await ipKey(storeId), APPLY_RULE)).ok) {
     return { ok: false, error: 'busy' }
   }
+  const ip = clientIp(await headers())
   const result = await inStore(storeId, async (tx) => {
     const { installed, settings } = await affiliateState(tx, storeId)
     if (!installed || !settings.active) return 'closed' as const
@@ -75,10 +77,14 @@ export async function applyAffiliateAction(input: {
         social: String(input.social ?? ''),
         message: String(input.message ?? ''),
         programId: program.id,
+        ip,
       },
       withProgramRules(settings, program.rules),
       settingsSecret(),
-    )
+    ).catch((err: unknown) => {
+      if (err instanceof AffiliateError && err.code === 'AFFILIATE_BLOCKED') return null
+      throw err
+    })
     return 'ok' as const
   })
   if (result !== 'ok') return { ok: false, error: result }

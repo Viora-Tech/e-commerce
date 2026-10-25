@@ -2,14 +2,17 @@ import { settingsSecret } from '@commerce/config'
 import { CommerceError, permissions } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import {
+  addToBlocklist,
   affiliateState,
   affiliateTotals,
   applyAsAffiliate,
   approveAffiliate,
   approveDueCommissions,
   archiveProgram,
+  BLOCKLIST_KINDS,
   CommissionRuleSchema,
   cancelPayout,
+  clearReview,
   commissionLedger,
   createPayouts,
   createProgram,
@@ -18,6 +21,7 @@ import {
   getAffiliate,
   getProgram,
   listAffiliates,
+  listBlocklist,
   listPayouts,
   listPrograms,
   markPayoutPaid,
@@ -25,6 +29,7 @@ import {
   ProgramRulesSchema,
   payoutCandidates,
   payoutsCsv,
+  removeFromBlocklist,
   restoreProgram,
   StoreAffiliateSettingsSchema,
   saveAffiliateSettings,
@@ -87,6 +92,8 @@ function publicAffiliate(a: NonNullable<Awaited<ReturnType<typeof getAffiliate>>
     payoutHint: a.payoutHint,
     hasPan: a.hasPan,
     gstRegistered: a.gstRegistered,
+    reviewReasons: a.reviewReasons,
+    source: a.source,
     clicks: a.clicks,
     approvedAt: a.approvedAt,
     createdAt: a.createdAt,
@@ -294,6 +301,48 @@ export const affiliatesRouter = {
         publicAffiliate(await setAffiliateStatus(context.tx, input.id, input.status)),
       )
     }),
+  /** "Looks fine": the merchant checked a needs-review affiliate; their payouts go ahead. */
+  clearReview: can(permissions.MARKETING_WRITE)
+    .input(Id)
+    .handler(async ({ context, input }) => {
+      await program(context)
+      await clearReview(context.tx, input.id)
+      return { ok: true }
+    }),
+  /** Blocked emails, domains, phones, IPs, PANs and payees: buyers held, applicants refused. */
+  blocklist: {
+    list: can(permissions.MARKETING_READ).handler(async ({ context }) => {
+      await program(context)
+      return listBlocklist(context.tx)
+    }),
+    add: can(permissions.MARKETING_WRITE)
+      .input(
+        z.object({
+          kind: z.enum(BLOCKLIST_KINDS),
+          value: z.string().trim().min(1).max(200),
+          note: z.string().max(200).default(''),
+        }),
+      )
+      .handler(async ({ context, input }) => {
+        await program(context)
+        return refusal(() =>
+          addToBlocklist(
+            context.tx,
+            context.scope.storeId,
+            input,
+            context.scope.userId,
+            settingsSecret(),
+          ),
+        )
+      }),
+    remove: can(permissions.MARKETING_WRITE)
+      .input(Id)
+      .handler(async ({ context, input }) => {
+        await program(context)
+        await removeFromBlocklist(context.tx, input.id)
+        return { ok: true }
+      }),
+  },
   saveNote: can(permissions.MARKETING_WRITE)
     .input(z.object({ id: z.uuid(), note: z.string().max(2000) }))
     .handler(async ({ context, input }) => {

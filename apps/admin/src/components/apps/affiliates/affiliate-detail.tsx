@@ -8,6 +8,7 @@ import type { AppPageProps } from '@/apps/registry'
 import AffiliateProgramCard from '@/components/apps/affiliates/affiliate-program-card'
 import AffiliateRowActions from '@/components/apps/affiliates/affiliate-row-actions'
 import { commissionColumns } from '@/components/apps/affiliates/commission-columns'
+import ReviewCard from '@/components/apps/affiliates/review-card'
 import { statusTone } from '@/components/apps/affiliates/tones'
 import PageHeader from '@/components/layout/page-header'
 import StatStrip from '@/components/layout/stat-strip'
@@ -102,6 +103,9 @@ export default function AffiliateDetail({ params }: AppPageProps) {
           { id: 'paid', label: d.tiles.paid, value: f.money(t.paidPaise) },
         ]}
       />
+      {a.reviewReasons.length > 0 ? (
+        <ReviewCard affiliateId={a.id} reasons={a.reviewReasons} onChanged={handleChanged} />
+      ) : null}
       <div className="grid gap-4 lg:grid-cols-2">
         <dl className="flex flex-col gap-3 rounded-xl surface-card px-5 py-4">
           {facts.map((x) => (
