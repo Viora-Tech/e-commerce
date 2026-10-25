@@ -4,12 +4,7 @@ import { and, eq, ne } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { recomputeOrderStatuses } from '../order/recompute'
 import { recordPaymentCharges } from './charges'
-import {
-  applyPaymentStatus,
-  findPaymentId,
-  gatewayPaidTooLittle,
-  paymentAmountFor,
-} from './confirm'
+import { applyPaymentStatus, findPaymentId } from './confirm'
 
 export type WebhookOutcome =
   | {
@@ -70,42 +65,35 @@ export async function handlePaymentWebhook(
   let capturedOrderId: string | null = null
   try {
     const e = parsed.event
-    const expected =
-      e.type === 'payment.captured' || e.type === 'payment.authorized'
-        ? await paymentAmountFor(ctx, {
-            providerRef: e.providerRef,
-            idempotencyKey: e.idempotencyKey,
-          })
-        : null
-    if (
-      (e.type === 'payment.captured' || e.type === 'payment.authorized') &&
-      expected !== null &&
-      gatewayPaidTooLittle(expected, e.amountPaise)
-    ) {
-      // Kept for the merchant to look at, never applied: the order stays unpaid.
-      await ctx.tx
-        .update(paymentEvent)
-        .set({
-          status: 'processed',
-          processedAt: new Date(),
-          error: `amount mismatch: gateway reported ${e.amountPaise} paise, attempt is ${expected}`,
-        })
-        .where(eq(paymentEvent.id, row.id))
-      return {
-        ok: true,
-        eventId: parsed.eventId,
-        applied: false,
-        duplicate: false,
-        capturedOrderId,
-      }
-    }
     if (e.type === 'payment.captured' || e.type === 'payment.authorized') {
+      // The amount invariant lives inside applyPaymentStatus now (every capture
+      // path shares it); the webhook just hands it the reported amount and, if
+      // refused, records why on the event.
       const r = await applyPaymentStatus(ctx, {
         providerRef: e.providerRef,
         idempotencyKey: e.idempotencyKey,
         status: e.type === 'payment.captured' ? 'captured' : 'authorized',
         providerPaymentId: e.providerPaymentId,
+        capturedAmountPaise: e.amountPaise,
       })
+      if (r?.rejected === 'underpaid') {
+        // Kept for the merchant to look at, never applied: the order stays unpaid.
+        await ctx.tx
+          .update(paymentEvent)
+          .set({
+            status: 'processed',
+            processedAt: new Date(),
+            error: `amount mismatch: gateway reported ${e.amountPaise} paise, attempt is ${r.payment.amountPaise}`,
+          })
+          .where(eq(paymentEvent.id, row.id))
+        return {
+          ok: true,
+          eventId: parsed.eventId,
+          applied: false,
+          duplicate: false,
+          capturedOrderId,
+        }
+      }
       applied = r !== null
       if (r?.becameCaptured) capturedOrderId = r.payment.orderId
       // The gateway's fee and how the shopper paid, when the capture carries them.
