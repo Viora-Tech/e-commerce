@@ -25,6 +25,7 @@ import {
   isDesktopHome,
   isSourceError,
   LOAD_TIMEOUT_MS,
+  leftoverDrafts,
   revealInserted,
   sameRef,
 } from '@/lib/customize-editor'
@@ -155,7 +156,7 @@ export default function CustomizeEditor({
           config,
         )
         drafts.prime(partsOf(ref, doc))
-        setTemplatesDirty(header.draft || main.draft || footer.draft)
+        setTemplatesDirty(leftoverDrafts([header, main, footer], loaded === null, handleDiscard))
         setLoaded({ ref, doc, nonce })
         setSwitching(false)
       },
@@ -173,8 +174,7 @@ export default function CustomizeEditor({
     }
   }, [record.id, ref, nonce, attempt])
 
-  // Section edits are kept as drafts on the server, so leaving only loses a write
-  // still in flight, or theme settings (which save with Save).
+  // Drafts live on the server: leaving only loses a write in flight, or unsaved theme settings.
   // biome-ignore lint/correctness/useExhaustiveDependencies: `drafts.pending` reads a ref.
   useEffect(() => {
     const settingsDirty = JSON.stringify(settings) !== JSON.stringify(record.settings)

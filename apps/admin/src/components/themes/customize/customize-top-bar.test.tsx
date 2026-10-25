@@ -65,10 +65,10 @@ describe('CustomizeTopBar: Save and Publish (Figma 369:126247)', () => {
     expect(onPublish).toHaveBeenCalled()
   })
 
-  it('on the live theme Publish commits the changes, with no separate Save', async () => {
+  it('on the live theme one Save commits the changes, with no Publish', async () => {
     const { onSave, onPublish, user } = setup({ live: true, dirty: true })
-    expect(button(copy.save)).toBeNull()
-    await user.click(button(copy.publish) as HTMLElement)
+    expect(button(copy.publish)).toBeNull()
+    await user.click(button(copy.save) as HTMLElement)
     expect(onSave).toHaveBeenCalled()
     expect(onPublish).not.toHaveBeenCalled()
   })
