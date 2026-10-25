@@ -46,7 +46,12 @@ describe('readPalette', () => {
       customAccent: '#00ff00',
     }
     const dark = readPalette(true, look, true)
-    expect(dark.swatches).toEqual({ land: '#ff0000', ocean: '#102030', accent: '#00ff00' })
+    expect(dark.swatches).toEqual({
+      land: '#ff0000',
+      ocean: '#102030',
+      accent: '#00ff00',
+      border: '#ff3333',
+    })
     expect(dark.marker).toEqual([0, 1, 0])
     const light = readPalette(false, look, true)
     expect(light.dotColor).toEqual([1, 0, 0])

@@ -26,3 +26,16 @@ export function revealInserted(action: PuckAction, next: { data: Data }): void {
   const id = action.id ?? zoneItems(doc, action.destinationZone)[action.destinationIndex]?.props.id
   if (id) scrollToSection(id, prefersReducedMotion())
 }
+
+/** Two template refs name the same page. */
+export const sameRef = (a: TemplateRefLike, b: TemplateRefLike) =>
+  a.key === b.key && a.suffix === b.suffix
+
+/** How long the first page may take before the loading screen says it could not be reached. */
+export const LOAD_TIMEOUT_MS = 20_000
+
+/** The canvas shows the default home page at desktop width: what the Themes page pictures. */
+export const isDesktopHome = (loaded: { ref: TemplateRefLike } | null, device: string) =>
+  loaded?.ref.key === 'home' && loaded.ref.suffix === '' && device === 'desktop'
+
+type TemplateRefLike = { key: string; suffix: string }

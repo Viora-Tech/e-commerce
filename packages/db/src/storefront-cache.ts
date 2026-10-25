@@ -140,6 +140,7 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   affiliate: "an affiliate's own pages are personal and never cached",
   affiliate_commission: ADMIN,
   affiliate_payout: ADMIN,
+  affiliate_program: 'read only by the affiliate signup page, which is per shopper and never cached',
   automation_run: LOG,
   automation_run_record: LOG,
   automation_secret: ADMIN,

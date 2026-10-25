@@ -3,7 +3,6 @@ import {
   createDb,
   customer,
   discount,
-  order,
   product,
   role,
   rolePermission,
@@ -162,15 +161,13 @@ describe('cards, featured products, assignees, numbers', () => {
       .insert(product)
       .values({ storeId, title: 'Saree', handle: 'saree', status: 'active' })
       .returning()
-    await owner
-      .insert(variant)
-      .values({
-        storeId,
-        productId: p?.id as string,
-        title: 'Default',
-        pricePaise: 99_000,
-        trackInventory: false,
-      })
+    await owner.insert(variant).values({
+      storeId,
+      productId: p?.id as string,
+      title: 'Default',
+      pricePaise: 99_000,
+      trackInventory: false,
+    })
     const [d] = await owner
       .insert(discount)
       .values({ storeId, title: 'Ten', code: 'TEN', method: 'percent', value: 10 })

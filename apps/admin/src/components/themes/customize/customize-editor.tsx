@@ -20,7 +20,14 @@ import {
   HEADER_ZONE,
   normalizeDoc,
 } from '@/lib/customize-doc'
-import { FONT_SAMPLES, isSourceError, revealInserted } from '@/lib/customize-editor'
+import {
+  FONT_SAMPLES,
+  isDesktopHome,
+  isSourceError,
+  LOAD_TIMEOUT_MS,
+  revealInserted,
+  sameRef,
+} from '@/lib/customize-editor'
 import { CUSTOMIZE_OVERRIDES } from '@/lib/customize-overrides'
 import { previewMetadata } from '@/lib/customize-preview'
 import {
@@ -76,17 +83,7 @@ type CustomizeEditorProps = {
 }
 
 type Loaded = { ref: TemplateRef; doc: CustomizeDoc; nonce: number }
-
 const copy = customizeContent.bar
-
-const sameRef = (a: TemplateRef, b: TemplateRef) => a.key === b.key && a.suffix === b.suffix
-
-/** How long the first page may take before the loading screen says it could not be reached. */
-const LOAD_TIMEOUT_MS = 20_000
-
-/** The canvas shows the default home page at desktop width: what the Themes page pictures. */
-const isDesktopHome = (loaded: Loaded | null, device: PreviewDevice) =>
-  loaded?.ref.key === 'home' && loaded.ref.suffix === '' && device === 'desktop'
 
 /**
  * Online Store › Themes › Customize. Puck is the engine: one document per template
@@ -393,6 +390,7 @@ export default function CustomizeEditor({
   ) : (
     <ThemePanel theme={settings} mode={mode} onChange={setSettings} onMode={setModePick} />
   )
+  const appsPanel = <AppsPanel installed={installedApps} theme={settings} onChange={setSettings} />
   const previewResource = preview.kind
     ? {
         kind: preview.kind,
@@ -427,13 +425,7 @@ export default function CustomizeEditor({
                     <CustomizeLayout
                       topBar={topBar}
                       settings={settingsPanel}
-                      apps={
-                        <AppsPanel
-                          installedApps={installedApps}
-                          theme={settings}
-                          onChange={setSettings}
-                        />
-                      }
+                      apps={appsPanel}
                       pages={
                         <PagesPanel
                           themeId={record.id}
