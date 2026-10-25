@@ -4,6 +4,7 @@ import Picture from './picture'
 import Price from './price'
 import ProductCardQuickAdd from './product-card-quick-add'
 import ProductCardWishlist from './product-card-wishlist'
+import ProductImagePlaceholder from './product-image-placeholder'
 
 const saleLabel = (percent: number) => `−${percent}%`
 
@@ -66,7 +67,9 @@ export default function ProductCard({
               sizes="(min-width: 990px) 25vw, (min-width: 750px) 33vw, 50vw"
             />
           ) : (
-            <div className="product-card__image product-card__image--primary product-card__image--placeholder" />
+            <div className="product-card__image product-card__image--primary product-card__image--placeholder">
+              <ProductImagePlaceholder />
+            </div>
           )}
           {hover ? (
             <Picture
