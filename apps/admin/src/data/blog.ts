@@ -11,7 +11,15 @@ const status: Record<ArticleStatus, string> = {
 
 export const blogListContent = {
   heading: 'Blog posts',
-  add: 'Add blog post',
+  add: 'Write post',
+  summary: (all: number, live: number, scheduled: number, drafts: number) => {
+    if (all === 0) return 'Stories, launches and guides for your shoppers.'
+    const parts = [`${all} ${all === 1 ? 'post' : 'posts'}`]
+    if (live > 0) parts.push(`${live} live`)
+    if (scheduled > 0) parts.push(`${scheduled} scheduled`)
+    if (drafts > 0) parts.push(`${drafts} ${drafts === 1 ? 'draft' : 'drafts'}`)
+    return parts.join(' · ')
+  },
   manageBlogs: 'Manage blogs',
   resource: { singular: 'blog post', plural: 'blog posts' },
   none: 'None',
@@ -25,7 +33,7 @@ export const blogListContent = {
   tabs: { all: 'All', published: 'Published', scheduled: 'Scheduled', draft: 'Drafts' },
   status,
   scheduledFor: (when: string) => `Scheduled ${when}`,
-  filters: { blog: 'Blog', tag: 'Tag', any: 'Any', clear: 'Clear filters' },
+  filters: { blog: 'Blog', tag: 'Tag', any: 'Any' },
   bulk: {
     publish: 'Publish',
     unpublish: 'Unpublish',
@@ -40,6 +48,14 @@ export const blogListContent = {
       cancel: 'Cancel',
       confirm: 'Delete',
     },
+  },
+  row: {
+    open: 'Open post',
+    publish: 'Publish',
+    unpublish: 'Unpublish',
+    view: 'View on store',
+    delete: 'Delete',
+    deleteTitle: (title: string) => `Delete ${title}?`,
   },
   empty: {
     heading: 'Write your first blog post',
@@ -119,9 +135,9 @@ export const articleFormContent = {
 } as const
 
 const commentPolicy: Record<CommentPolicy, string> = {
-  disabled: 'Comments are disabled',
-  moderated: 'Comments are allowed, pending moderation',
-  open: 'Comments are allowed, published automatically',
+  disabled: 'Off',
+  moderated: 'On, after you approve',
+  open: 'On, published right away',
 }
 
 export const blogsManageContent = {
@@ -140,6 +156,7 @@ export const blogsManageContent = {
     handle: 'URL handle',
     handleHelp: 'Leave empty to build it from the title.',
     comments: 'Comments',
+    template: 'Theme template',
     cancel: 'Cancel',
     save: 'Save',
     saving: 'Saving…',

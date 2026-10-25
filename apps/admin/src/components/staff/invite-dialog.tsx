@@ -1,15 +1,5 @@
 'use client'
 
-import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Label } from '@commerce/ui/shadcn/label'
 import {
@@ -21,7 +11,10 @@ import {
 } from '@commerce/ui/shadcn/select'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { staffContent as copy } from '@/data/staff'
+import FormDialog from '@/components/layout/form-dialog'
+import { staffContent } from '@/data/staff'
+import { staffInvitesContent } from '@/data/staff-invites'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 export type InvitableRole = { id: string; name: string; slug: string }
@@ -36,6 +29,8 @@ type InviteDialogProps = {
 /** Sends a Better Auth invitation and records the role the person will hold. */
 export default function InviteDialog({ open, roles, onOpenChange, onInvited }: InviteDialogProps) {
   // Hooks
+  const copy = useCopy(staffContent)
+  const invitesCopy = useCopy(staffInvitesContent)
   const [email, setEmail] = useState('')
   const [roleId, setRoleId] = useState('')
   const [sending, setSending] = useState(false)
@@ -50,8 +45,10 @@ export default function InviteDialog({ open, roles, onOpenChange, onInvited }: I
   const handleSend = async () => {
     setSending(true)
     try {
-      await api.staff.invite({ email: email.trim(), roleId })
-      toast.success(copy.invite.sent(email.trim()))
+      const result = await api.staff.invite({ email: email.trim(), roleId })
+      // The invitation exists either way; when its email did not go it waits under Pending invites.
+      if (result.emailSent) toast.success(copy.invite.sent(email.trim()))
+      else toast.error(invitesCopy.emailFailed, { description: invitesCopy.emailFailedHelp })
       onOpenChange(false)
       onInvited()
     } catch (err) {
@@ -66,46 +63,45 @@ export default function InviteDialog({ open, roles, onOpenChange, onInvited }: I
   const roleItems = Object.fromEntries(invitable.map((r) => [r.id, r.name]))
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{copy.invite.title}</DialogTitle>
-          <DialogDescription>{copy.invite.body}</DialogDescription>
-        </DialogHeader>
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="invite-email">{copy.invite.email}</Label>
-            <Input
-              id="invite-email"
-              type="email"
-              value={email}
-              placeholder={copy.invite.emailPlaceholder}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="invite-role">{copy.invite.role}</Label>
-            <Select items={roleItems} value={roleId} onValueChange={(v) => v && setRoleId(v)}>
-              <SelectTrigger id="invite-role" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {invitable.map((r) => (
-                  <SelectItem key={r.id} value={r.id}>
-                    {r.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={copy.invite.title}
+      description={copy.invite.body}
+      submitLabel={copy.invite.send}
+      cancelLabel={copy.invite.cancel}
+      busy={sending}
+      submitDisabled={!email.trim() || !roleId}
+      onSubmit={handleSend}
+      size="md"
+    >
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="invite-email">{copy.invite.email}</Label>
+          <Input
+            id="invite-email"
+            type="email"
+            value={email}
+            placeholder={copy.invite.emailPlaceholder}
+            onChange={(e) => setEmail(e.target.value)}
+          />
         </div>
-        <DialogFooter>
-          <DialogClose render={<Button variant="outline" />}>{copy.invite.cancel}</DialogClose>
-          <Button disabled={sending || !email.trim() || !roleId} onClick={handleSend}>
-            {copy.invite.send}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="invite-role">{copy.invite.role}</Label>
+          <Select items={roleItems} value={roleId} onValueChange={(v) => v && setRoleId(v)}>
+            <SelectTrigger id="invite-role" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {invitable.map((r) => (
+                <SelectItem key={r.id} value={r.id}>
+                  {r.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    </FormDialog>
   )
 }

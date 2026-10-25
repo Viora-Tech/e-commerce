@@ -197,9 +197,8 @@ export const paymentsSetupContent = {
     title: 'How getting paid online works',
     body: 'A payment company (like Razorpay or Cashfree) takes the money from the shopper by UPI or card and sends it to your bank account. They keep a small fee, usually around 2%.',
   },
-  whatsapp: {
-    label: 'Need help? Chat with us on WhatsApp',
-    soon: 'WhatsApp help is coming soon. Email support for now.',
+  guide: {
+    label: 'View setup guide',
   },
   wizard: {
     progress: (step: number, total: number) => `Step ${step} of ${total}`,
@@ -303,7 +302,7 @@ export const gatewayGuides: Record<'razorpay' | 'cashfree', GatewayGuide> = {
       },
       {
         title: 'Turn on payment updates',
-        body: 'In Account & Settings → Webhooks, press Add New Webhook. Paste the address and secret below, tick payment.captured, payment.failed and refund.processed, and save.',
+        body: 'In Account & Settings → Webhooks, press Add New Webhook. Paste the address and secret below, tick every event listed under them, and save.',
       },
     ],
     fields: {
@@ -317,6 +316,10 @@ export const gatewayGuides: Record<'razorpay' | 'cashfree', GatewayGuide> = {
       webhookSecret: {
         label: 'Webhook secret',
         help: 'We made one for you. Paste the same secret into Razorpay.',
+      },
+      webhookEvents: {
+        label: 'Events to tick',
+        help: 'Tick all of these under Active Events in Razorpay. Missing one means some payments or refunds never update here.',
       },
     },
   },
@@ -358,3 +361,6 @@ export const methodSortLabels: SortableListLabels = {
   dropped: (title, position, total) => `${title} dropped at position ${position} of ${total}`,
   cancelled: (title) => `Move of ${title} cancelled`,
 }
+
+/** `view=page` opens the full Payments page even for a shop that hasn't finished the guide. */
+export const PAYMENTS_PAGE_HREF = '/settings/payments?view=page'

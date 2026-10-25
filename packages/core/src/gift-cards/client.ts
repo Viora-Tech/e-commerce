@@ -8,8 +8,8 @@ export { normaliseGiftCardCode } from './code'
  * Nothing here touches the database or node crypto.
  */
 
-/** Generated codes: 16 characters from an alphabet without 0/O/1/I, shown in groups of four. */
-export const GIFT_CARD_CODE_LENGTH = 16
+/** Generated codes: 12 characters from an alphabet without 0/O/1/I, shown in groups of four. */
+export const GIFT_CARD_CODE_LENGTH = 12
 export const GIFT_CARD_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 /** Merchant-chosen codes (Shopify allows 8 to 20 characters). */
 export const GIFT_CARD_CUSTOM_CODE_MIN = 8
@@ -17,7 +17,18 @@ export const GIFT_CARD_CUSTOM_CODE_MAX = 20
 /** A typo guard, not a legal limit: ₹2,00,000. */
 export const GIFT_CARD_MAX_VALUE_PAISE = 20_000_000
 
-/** "ABCDEFGHJKLMNPQR" → "ABCD EFGH JKLM NPQR". */
+/**
+ * 12 random characters from the unambiguous alphabet (60 bits; redemption is rate limited).
+ * Web Crypto, so the admin form's Generate button and the server share it.
+ */
+export function generateGiftCardCode(): string {
+  const bytes = globalThis.crypto.getRandomValues(new Uint8Array(GIFT_CARD_CODE_LENGTH))
+  let code = ''
+  for (const b of bytes) code += GIFT_CARD_CODE_ALPHABET[b & 31]
+  return code
+}
+
+/** "ABCDEFGHJKLM" → "ABCD EFGH JKLM". */
 export function formatGiftCardCode(code: string): string {
   return (normaliseGiftCardCode(code).match(/.{1,4}/g) ?? []).join(' ')
 }

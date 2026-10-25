@@ -25,6 +25,7 @@ const appA = definePlugin({
   name: 'App A',
   version: '0.0.1',
   kind: 'builtin',
+  access: { resources: [] },
   provides: {},
   hooks: { 'order.paid': async () => {} },
 })
@@ -33,6 +34,7 @@ const appB = definePlugin({
   name: 'App B',
   version: '0.0.1',
   kind: 'builtin',
+  access: { resources: [] },
   provides: {},
   hooks: { 'order.paid': async () => {} },
 })
@@ -143,6 +145,28 @@ describe('relayStoreOutbox', () => {
     )
     expect(outcome).toEqual({ claimed: 1, dispatched: 1, failed: 0 })
     expect(notifications.calls).toHaveLength(0)
+  })
+
+  it('sends no shopper message for an event marked notifyCustomer: false, but still fans it out', async () => {
+    const storeId = await seedStore('relay-silent', ['app-a'])
+    const orderId = crypto.randomUUID()
+    await withStore(app, storeId, (tx) =>
+      insertOutboxEvent(tx, storeId, 'order.paid', { orderId, notifyCustomer: false }),
+    )
+    const notifications = fakeQueue<{ storeId: string; orderId: string; template: string }>()
+    const appEvents = fakeQueue<{ storeId: string; pluginId?: string }>()
+    const outcome = await relayStoreOutbox(
+      {
+        db: app,
+        plugins,
+        notifications: notifications.queue,
+        appEvents: appEvents.queue as AppEventQueue,
+      },
+      storeId,
+    )
+    expect(outcome).toEqual({ claimed: 1, dispatched: 1, failed: 0 })
+    expect(notifications.calls).toHaveLength(0)
+    expect(appEvents.calls).toHaveLength(1)
   })
 
   it('queues the newsletter confirm email with the signup, one job per signup row (D-09)', async () => {

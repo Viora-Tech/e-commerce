@@ -108,10 +108,13 @@ describe('inventory router', () => {
       {
         supplierName: 'Pulsar Gaming',
         locationId,
-        shippingPaise: 10000,
-        taxPaise: 0,
-        lines: [{ variantId, quantity: 10, unitCostPaise: 120000 }],
+        lines: [{ variantId, quantity: 10, unitPriceMinor: 120000 }],
       },
+      { context: m.ctx },
+    )
+    await call(
+      appRouter.purchaseCharges.add,
+      { purchaseOrderId: id, kind: 'freight_local', amountMinor: 10000 },
       { context: m.ctx },
     )
     await call(appRouter.purchaseOrders.markOrdered, { id }, { context: m.ctx })
@@ -123,7 +126,7 @@ describe('inventory router', () => {
     const lineId = po?.lines[0]?.id as string
     await call(
       appRouter.purchaseOrders.receive,
-      { id, receipts: [{ lineId, quantity: 10 }] },
+      { id, receipts: [{ lineId, accepted: 10 }] },
       { context: m.ctx },
     )
     ;[row] = (await call(appRouter.inventory.list, { locationId }, { context: m.ctx })).rows
@@ -135,10 +138,51 @@ describe('inventory router', () => {
   it('keeps each store to its own locations', async () => {
     const a = await merchant('a@example.com', 'inv-c')
     const b = await merchant('b@example.com', 'inv-d')
-    await call(appRouter.inventory.createLocation, { name: 'Warehouse' }, { context: a.ctx })
+    const made = await call(
+      appRouter.inventory.createLocation,
+      { name: 'Warehouse' },
+      { context: a.ctx },
+    )
     const seen = await call(appRouter.inventory.locations, undefined, { context: b.ctx })
     expect(seen.map((l) => l.name)).toEqual(['Default location'])
+    await expect(
+      call(appRouter.inventory.updateLocation, { id: made.id, name: 'Mine' }, { context: b.ctx }),
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' })
+    const renamed = await call(
+      appRouter.inventory.updateLocation,
+      { id: made.id, name: 'Pune warehouse', city: 'Pune', stateCode: 'MH' },
+      { context: a.ctx },
+    )
+    expect(renamed).toMatchObject({ name: 'Pune warehouse', city: 'Pune', stateCode: 'MH' })
     const none = await call(appRouter.transfers.list, { search: 'Warehouse' }, { context: a.ctx })
     expect(none.total).toBe(0)
+  })
+
+  it('finds a purchase order by its displayed number and says when one is missing', async () => {
+    const m = await merchant('search@example.com', 'inv-e')
+    const variantId = await seedVariant(m.storeId, 0)
+    const [loc] = await call(appRouter.inventory.locations, undefined, { context: m.ctx })
+    const make = (supplierName: string) =>
+      call(
+        appRouter.purchaseOrders.save,
+        {
+          supplierName,
+          locationId: loc?.id as string,
+          lines: [{ variantId, quantity: 1, unitPriceMinor: 0 }],
+        },
+        { context: m.ctx },
+      )
+    await make('Alpha')
+    await make('Beta')
+    for (const search of ['2', '#2', 'PO2', '#PO2', 'po 2', ' #po 2 ']) {
+      const res = await call(appRouter.purchaseOrders.list, { search }, { context: m.ctx })
+      expect(
+        res.rows.map((r) => r.supplierName),
+        search,
+      ).toEqual(['Beta'])
+    }
+    await expect(
+      call(appRouter.purchaseOrders.get, { id: newId() }, { context: m.ctx }),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' })
   })
 })

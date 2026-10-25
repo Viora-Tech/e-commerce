@@ -10,6 +10,7 @@ import { storeDataContent } from '@/data/store-data'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import DeleteStoreDialog from './delete-store-dialog'
+import SettingsCard from './settings-card'
 import StoreExportList from './store-export-list'
 
 type Overview = Awaited<ReturnType<typeof api.storeData.overview>>
@@ -100,31 +101,31 @@ export default function StoreDataSection() {
   return (
     <>
       {overview.canExport ? (
-        <Card size="form" id="store-data" className="scroll-mt-6">
-          <CardHeader>
-            <CardTitle>{copy.export.heading}</CardTitle>
-            <CardDescription>{copy.export.help}</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <Button onClick={handleExport} disabled={requesting || working}>
-                <Download aria-hidden="true" />
-                {working ? copy.export.working : copy.export.action}
-              </Button>
-              <p className="text-caption text-muted-foreground">
-                {copy.export.keptFor(overview.keptDays)} {copy.export.filesNote}
-              </p>
-            </div>
-            <div className="flex flex-col gap-2">
-              <p className="text-body-strong text-foreground">{copy.export.recent}</p>
-              <StoreExportList
-                exports={overview.exports}
-                downloadingId={downloadingId}
-                onDownload={handleDownload}
-              />
-            </div>
-          </CardContent>
-        </Card>
+        <SettingsCard
+          id="store-data"
+          className="scroll-mt-6"
+          title={copy.export.heading}
+          description={copy.export.help}
+          bodyClassName="flex flex-col gap-4"
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <Button onClick={handleExport} disabled={requesting || working}>
+              <Download aria-hidden="true" />
+              {working ? copy.export.working : copy.export.action}
+            </Button>
+            <p className="text-caption text-muted-foreground">
+              {copy.export.keptFor(overview.keptDays)} {copy.export.filesNote}
+            </p>
+          </div>
+          <div className="flex flex-col gap-2">
+            <p className="text-body-strong text-foreground">{copy.export.recent}</p>
+            <StoreExportList
+              exports={overview.exports}
+              downloadingId={downloadingId}
+              onDownload={handleDownload}
+            />
+          </div>
+        </SettingsCard>
       ) : null}
 
       <Card size="form" id="delete-store" className="scroll-mt-6 border-destructive/40">

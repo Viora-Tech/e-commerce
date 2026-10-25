@@ -14,11 +14,15 @@ import {
   TableRow,
 } from '@commerce/ui/shadcn/table'
 import Link from 'next/link'
+import type { CSSProperties } from 'react'
 import { Fragment, useState } from 'react'
 import { growthOverviewContent as copy, SOURCE_LABELS } from '@/data/growth'
+import { growthSplitContent } from '@/data/growth-report'
+import { useCopy } from '@/hooks/use-copy'
 import { formatRate } from '@/lib/analytics-range'
 import { formatPaise } from '@/lib/money'
 import SourceIcon from './source-icon'
+import SplitCell from './split-cell'
 
 type SourceTableCardProps = {
   rows: SourceRow[]
@@ -30,9 +34,13 @@ const c = copy.sources.columns
 /** Width for a row's share-of-sales bar, clamped to a sane range. */
 const shareWidth = (share: number) => `${Math.min(100, Math.round(share * 100))}%`
 
-/** Sessions, orders, sales and conversion per friendly source, expandable to that source's campaigns. */
+/**
+ * Sessions, orders, sales (first-time vs returning) and conversion per friendly source,
+ * expandable to that source's campaigns.
+ */
 export default function SourceTableCard({ rows, campaigns }: SourceTableCardProps) {
   // Hooks
+  const split = useCopy(growthSplitContent)
   const [expanded, setExpanded] = useState<string | null>(null)
 
   // Event handlers
@@ -44,7 +52,7 @@ export default function SourceTableCard({ rows, campaigns }: SourceTableCardProp
   const forSource = (source: string) => campaigns.filter((row) => row.sourceKey === source)
 
   return (
-    <Card className="gap-0 p-5">
+    <Card gap="none" inset={5}>
       <p className="text-kit-title text-foreground">{copy.sources.title}</p>
       {rows.length === 0 ? (
         <p className="mt-5 text-kit-body text-muted-foreground">{copy.sources.empty}</p>
@@ -56,6 +64,8 @@ export default function SourceTableCard({ rows, campaigns }: SourceTableCardProp
               <TableHead className="text-right">{c.sessions}</TableHead>
               <TableHead className="text-right">{c.orders}</TableHead>
               <TableHead className="text-right">{c.sales}</TableHead>
+              <TableHead className="text-right">{split.newBuyers}</TableHead>
+              <TableHead className="text-right">{split.returning}</TableHead>
               <TableHead className="text-right">{c.conversion}</TableHead>
               <TableHead className="text-right">{c.share}</TableHead>
               <TableHead aria-hidden className="w-8" />
@@ -83,6 +93,18 @@ export default function SourceTableCard({ rows, campaigns }: SourceTableCardProp
                     <TableCell className="text-right tabular-nums">
                       {formatPaise(row.salesPaise)}
                     </TableCell>
+                    <TableCell className="text-right">
+                      <SplitCell
+                        salesPaise={row.split.newSalesPaise}
+                        orders={row.split.newOrders}
+                      />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <SplitCell
+                        salesPaise={row.split.returningSalesPaise}
+                        orders={row.split.returningOrders}
+                      />
+                    </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {row.sessions > 0 ? formatRate(row.conversion) : '-'}
                     </TableCell>
@@ -90,8 +112,8 @@ export default function SourceTableCard({ rows, campaigns }: SourceTableCardProp
                       <div className="flex items-center justify-end gap-2">
                         <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
                           <div
-                            className="h-full rounded-full bg-primary"
-                            style={{ width: shareWidth(row.shareOfSales) }}
+                            className="h-full w-(--w) rounded-full bg-primary"
+                            style={{ '--w': shareWidth(row.shareOfSales) } as CSSProperties}
                           />
                         </div>
                         <span className="tabular-nums">{formatRate(row.shareOfSales)}</span>
@@ -108,7 +130,7 @@ export default function SourceTableCard({ rows, campaigns }: SourceTableCardProp
                   </TableRow>
                   {open ? (
                     <TableRow className="bg-muted/30">
-                      <TableCell colSpan={7} className="py-3">
+                      <TableCell colSpan={9} className="py-3">
                         <p className="mb-2 text-kit-mini font-medium text-muted-foreground">
                           {copy.sources.campaignsUnder}
                         </p>

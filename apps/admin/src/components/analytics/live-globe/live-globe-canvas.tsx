@@ -1,8 +1,5 @@
 'use client'
 
-import { cn } from '@commerce/ui/lib/utils'
-import createGlobe, { type Globe } from 'cobe'
-import { useEffect, useRef } from 'react'
 import {
   attachControls,
   clampZoom,
@@ -11,10 +8,13 @@ import {
   positionOverlay,
   stepMotion,
   ZOOM_BUTTON_STEP,
-} from './globe-controls'
+} from '@commerce/ui/globe/controls'
+import { locationToAngles, projectToView } from '@commerce/ui/globe/projection'
+import { cn } from '@commerce/ui/lib/utils'
+import createGlobe, { type Globe } from 'cobe'
+import { useEffect, useRef } from 'react'
 import GlobeOverlay from './globe-overlay'
 import { readPalette } from './globe-palette'
-import { locationToAngles, projectToView } from './projection'
 import type { GlobeCanvasProps } from './types'
 
 export type { GlobeArc, GlobeMarker } from './types'
@@ -49,6 +49,7 @@ export default function LiveGlobeCanvas({
   onActiveChange,
   className,
   shiftX = 0,
+  brand = false,
 }: GlobeCanvasProps) {
   // Hooks
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -70,7 +71,7 @@ export default function LiveGlobeCanvas({
     motionRef.current = s
     let revealStartedAt = performance.now()
     let lastNewestId = markersRef.current.find((m) => m.isNewest)?.id ?? null
-    const palette = readPalette(dark)
+    const palette = readPalette(dark, undefined, brand)
 
     const globe: Globe = createGlobe(canvas, {
       devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2),
@@ -144,6 +145,24 @@ export default function LiveGlobeCanvas({
     }
     rafId = requestAnimationFrame(tick)
 
+    // Motion spec 09: pause the auto-rotate/reveal/pulse loop while the tab is hidden so
+    // no animation time passes there; on return shift the time bases forward by the gap.
+    let hiddenAt: number | null = null
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        hiddenAt = performance.now()
+        cancelAnimationFrame(rafId)
+        rafId = 0
+      } else if (hiddenAt !== null) {
+        const gap = performance.now() - hiddenAt
+        hiddenAt = null
+        s.startedAt += gap
+        revealStartedAt += gap
+        if (!rafId) rafId = requestAnimationFrame(tick)
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+
     const detach = attachControls(canvas, s, reducedMotion)
     const handleResize = () => {
       globe.update({ width: canvas.clientWidth * 2, height: canvas.clientHeight * 2 })
@@ -154,11 +173,12 @@ export default function LiveGlobeCanvas({
       cancelAnimationFrame(rafId)
       globe.destroy()
       detach()
+      document.removeEventListener('visibilitychange', handleVisibility)
       window.removeEventListener('resize', handleResize)
     }
     // Re-run on theme/focus changes; markers/arcs update through the refs above so drag state
     // and the reveal/pulse animation are not interrupted by every new-order poll.
-  }, [dark, reducedMotion, focus.lat, focus.lng, shiftX])
+  }, [dark, reducedMotion, focus.lat, focus.lng, shiftX, brand])
 
   // Event handlers
   const handleZoom = (direction: -1 | 0 | 1) => {
@@ -189,7 +209,7 @@ export default function LiveGlobeCanvas({
         markers={markers}
         activeId={activeId}
         onActiveChange={onActiveChange}
-        onZoom={handleZoom}
+        onZoom={brand ? undefined : handleZoom}
       />
     </div>
   )

@@ -49,6 +49,22 @@ const cleanTitle = (t: string): string => t.replace(/\s+-\s+NA$/, '').trim()
 
 const paise = (n: number | null): number | null => (n == null ? null : Math.round(n * 100))
 
+/**
+ * The catalogue's images stay on Shopify's CDN (`…/a.jpg?v=…`), so the type comes from the
+ * extension. Same map as `contentTypeFromName` in `@commerce/core` (db cannot import core).
+ */
+const IMAGE_TYPES: Record<string, string> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  avif: 'image/avif',
+  gif: 'image/gif',
+}
+const imageTypeOf = (url: string): string | null =>
+  IMAGE_TYPES[/\.([a-z0-9]+)$/i.exec(url.split(/[?#]/, 1)[0] ?? '')?.[1]?.toLowerCase() ?? ''] ??
+  null
+
 /** Dev seed: Waimers on localhost with the real catalogue. Idempotent on store slug. */
 export async function seedDev(ownerUrl: string): Promise<void> {
   const db = createDb(ownerUrl)
@@ -58,7 +74,18 @@ export async function seedDev(ownerUrl: string): Promise<void> {
       console.log('seed: waimers already present')
       return
     }
-    const [s] = await db.insert(store).values({ slug: 'waimers', name: 'Waimers' }).returning()
+    const [s] = await db
+      .insert(store)
+      .values({
+        slug: 'waimers',
+        name: 'Waimers',
+        // Zero Drift is Waimers' own theme: its sections are offered in this store's editor
+        // only. Packs are per theme now (`theme.settings.themePacks`); this store-level list is
+        // what a theme without its own list follows, so the seeded live theme (made later with
+        // no list) offers Zero Drift. @commerce/core `effectiveThemePacks`.
+        apps: { installed: [], settings: { core: { themePacks: ['zero-drift'] } } },
+      })
+      .returning()
     if (!s) throw new Error('store insert failed')
     const storeId = s.id
     await db.insert(storeDomain).values([
@@ -131,7 +158,7 @@ export async function seedDev(ownerUrl: string): Promise<void> {
       for (const [i, url] of imageUrls.entries()) {
         const [m] = await db
           .insert(media)
-          .values({ storeId, url, alt: cleanTitle(r.title) })
+          .values({ storeId, url, contentType: imageTypeOf(url), alt: cleanTitle(r.title) })
           .returning()
         if (!m) throw new Error('media insert failed')
         mediaIds.set(url, m.id)

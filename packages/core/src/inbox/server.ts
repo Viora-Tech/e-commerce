@@ -1,0 +1,15 @@
+/** SOURCE OF TRUTH: `@commerce/core/inbox/server` — WHAT: everything Inbox does with the database: conversations, messages, the shopper side, quick replies, blocks, rate limits and settings state / WHY: the admin API, the storefront widget and the stream routes import one entry point. Server only. */
+
+export * from './ai-agent'
+export * from './blocks'
+export * from './client'
+export * from './conversations'
+export * from './events'
+export * from './identity'
+export * from './limits'
+export * from './messages'
+export * from './panel'
+export * from './quick-replies'
+export * from './realtime'
+export * from './shopper'
+export * from './state'

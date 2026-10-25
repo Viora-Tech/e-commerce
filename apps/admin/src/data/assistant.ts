@@ -47,9 +47,9 @@ export const assistantContent = {
 
   chips: {
     home: [
-      'How were sales this week?',
-      'Which orders are late?',
-      "What's running out?",
+      'Which products sold most this week?',
+      'Why did conversion drop?',
+      'Draft a Diwali offer',
       'Create discount DIWALI10: 10% off, 20 Oct to 5 Nov',
     ],
     products: [
@@ -158,15 +158,22 @@ export const assistantContent = {
       seo: 'Search title and description',
       tags: 'Tags (added to yours)',
       altText: 'Photo alt text',
+      keywords: 'Suggest search keywords (added to yours)',
     } as Record<string, string>,
     languageLabel: 'Language',
     toneLabel: 'Tone',
     start: 'Start writing',
     starting: 'Starting…',
-    cost: (n: number) =>
-      n === 1 ? 'Uses 1 AI request.' : `Uses ${n} AI requests, one per product.`,
+    cost: (n: number, perProduct: number) =>
+      n * perProduct === 1
+        ? 'Uses 1 AI request.'
+        : perProduct === 1
+          ? `Uses ${n} AI requests, one per product.`
+          : `Uses ${n * perProduct} AI requests, ${perProduct} per product (keywords, then the writing).`,
     progress: (done: number, total: number) => `${done} of ${total} written`,
-    background: 'It keeps going if you close this. Come back to review.',
+    background: 'It keeps going if you leave this page. Come back to review.',
+    optionsHeading: 'Settings for this run',
+    backTo: { products: 'Products', seo: 'SEO', readiness: 'Catalog readiness' },
     cancelRun: 'Stop',
     reviewHeading: 'Review and apply',
     reviewHint: 'Untick any you do not want. Apply saves the ticked ones to your products.',
@@ -207,9 +214,14 @@ export const assistantContent = {
     empty: 'No AI changes yet. Ask the AI bar to do something, and approve it.',
     by: (who: string) => `by ${who}`,
     undo: 'Undo',
+    review: 'Review',
     undone: 'Undone',
     more: 'Show more',
     failed: 'Could not load activity.',
-    sources: { assistant: 'AI assistant', bulkWriter: 'Write with AI' } as Record<string, string>,
+    sources: {
+      assistant: 'AI assistant',
+      bulkWriter: 'Write with AI',
+      mcp: 'AI client (MCP)',
+    } as Record<string, string>,
   },
 } as const

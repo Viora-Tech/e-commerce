@@ -7,6 +7,7 @@ import {
   DiscountCodeTaken,
   deleteDiscount,
   discountStats,
+  duplicateDiscount,
   getDiscount,
   listDiscounts,
   setDiscountStatus,
@@ -59,6 +60,10 @@ export const discountsRouter = {
   toggle: can(permissions.DISCOUNTS_WRITE)
     .input(z.object({ id: z.uuid(), status: z.enum(['active', 'disabled']) }))
     .handler(({ context, input }) => setDiscountStatus(context.tx, input.id, input.status)),
+
+  duplicate: can(permissions.DISCOUNTS_WRITE)
+    .input(z.object({ id: z.uuid() }))
+    .handler(({ context, input }) => duplicateDiscount(context.tx, input.id)),
 
   delete: can(permissions.DISCOUNTS_WRITE)
     .input(z.object({ id: z.uuid() }))

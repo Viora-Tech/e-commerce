@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "bun scripts/dev.ts",
     "start": "bun run src/index.ts",
+    "fees:backfill": "bun run --env-file=../../.env src/payment-fees-backfill.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
@@ -16,16 +17,27 @@
     "@commerce/notifications": "workspace:*",
     "@commerce/observability": "workspace:*",
     "@commerce/payments": "workspace:*",
+    "@commerce/plugin-affiliates": "workspace:*",
     "@commerce/plugin-back-in-stock": "workspace:*",
+    "@commerce/plugin-chatwoot": "workspace:*",
+    "@commerce/plugin-forms": "workspace:*",
+    "@commerce/plugin-growthbook": "workspace:*",
+    "@commerce/plugin-reviews": "workspace:*",
+    "@commerce/plugin-meilisearch": "workspace:*",
+    "@commerce/plugin-search": "workspace:*",
+    "@commerce/plugin-search-console": "workspace:*",
+    "@commerce/plugin-umami": "workspace:*",
+    "@commerce/plugin-shopify-import": "workspace:*",
     "@commerce/queue": "workspace:*",
     "@commerce/shipping": "workspace:*",
     "@commerce/storage": "workspace:*",
     "@sentry/bun": "^11.0.0",
     "bullmq": "^5.81.5",
     "drizzle-orm": "^0.45.2",
+    "evlog": "^2.30.1",
     "hono": "^4.13.8",
     "ioredis": "^5.10.1",
-    "sharp": "^0.35.4"
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
     "@types/bun": "^1.3.11",

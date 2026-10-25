@@ -1,10 +1,11 @@
 'use client'
 
+import { CheckIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
 import MoneyInput from '@/components/fields/money-input'
-import { productFormContent } from '@/data/products'
+import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 
 /** Fields left blank are not touched; `skuPrefix` becomes PREFIX-VALUE-VALUE per row. */
@@ -71,6 +72,7 @@ export default function VariantBulkBar({ count, onApply, onClear }: VariantBulkB
         />
       </span>
       <Button size="sm" onClick={handleApply} disabled={empty}>
+        <CheckIcon aria-hidden="true" />
         {copy.apply}
       </Button>
       <Button size="sm" variant="ghost" onClick={onClear}>

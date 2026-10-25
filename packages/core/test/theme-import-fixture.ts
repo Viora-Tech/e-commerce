@@ -1,6 +1,15 @@
 /** SOURCE OF TRUTH: the Shopify theme test fixture — WHAT: a tiny but complete Shopify theme (layout, a section with schema and blocks, a snippet, JSON templates and groups, settings, locale, an asset) zipped in memory, plus a fake data source / WHY: theme-import tests must never call real stores or read the owner's theme from disk; this is the theme they all import and render */
 import { strToU8, zipSync } from 'fflate'
-import type { LiquidDataSource, LiquidProductData } from '../src/theme-import/drops'
+import type {
+  LiquidBlogData,
+  LiquidCollectionData,
+  LiquidCustomData,
+  LiquidDataSource,
+  LiquidMetafieldData,
+  LiquidMetaobjectData,
+  LiquidPageData,
+  LiquidProductData,
+} from '../src/theme-import/drops'
 
 export const FIXTURE_HERO = `{%- liquid
   assign heading = section.settings.heading
@@ -199,9 +208,27 @@ export const FIXTURE_PRODUCT: LiquidProductData = {
   preorder: false,
 }
 
+/** Extra records a test hands the fake data source: more catalogue, extra fields, entries. */
+export type FakeStoreData = {
+  products?: LiquidProductData[]
+  collections?: LiquidCollectionData[]
+  pages?: LiquidPageData[]
+  blogs?: LiquidBlogData[]
+  /** Owner id → extra fields. */
+  metafields?: Record<string, LiquidMetafieldData[]>
+  entries?: LiquidMetaobjectData[]
+}
+
 /** A data source answering from memory, counting calls. */
-export function fakeDataSource(): LiquidDataSource & { calls: string[] } {
+export function fakeDataSource(extra: FakeStoreData = {}): LiquidDataSource & { calls: string[] } {
   const calls: string[] = []
+  const products = [FIXTURE_PRODUCT, ...(extra.products ?? [])]
+  const collections = extra.collections ?? []
+  const entries = extra.entries ?? []
+  const custom = (list: LiquidMetaobjectData[]): LiquidCustomData => ({
+    metafields: {},
+    entries: list,
+  })
   return {
     calls,
     shop: {
@@ -212,14 +239,16 @@ export function fakeDataSource(): LiquidDataSource & { calls: string[] } {
       url: 'https://shop.example',
       currency: 'INR',
       description: '',
+      policies: [],
     },
     product: async (h) => {
       calls.push(`product:${h}`)
-      return h === 'mouse' ? FIXTURE_PRODUCT : null
+      return products.find((p) => p.handle === h) ?? null
     },
-    collection: async () => null,
+    collection: async (h) => collections.find((c) => c.handle === h) ?? null,
     collectionProducts: async () => [],
-    collections: async () => [],
+    relatedProducts: async () => [],
+    collections: async () => collections,
     menu: async (h) => {
       calls.push(`menu:${h}`)
       return h === 'main-menu'
@@ -232,8 +261,23 @@ export function fakeDataSource(): LiquidDataSource & { calls: string[] } {
           }
         : null
     },
-    blog: async () => null,
-    page: async () => null,
+    blog: async (h) => extra.blogs?.find((b) => b.handle === h) ?? null,
+    page: async (h) => extra.pages?.find((p) => p.handle === h) ?? null,
     cart: async () => ({ itemCount: 2, totalPrice: 100, items: [] }),
+    metafields: async (ownerType, ids) => {
+      calls.push(`metafields:${ownerType}:${ids.join(',')}`)
+      const metafields = Object.fromEntries(
+        ids.flatMap((id) => (extra.metafields?.[id] ? [[id, extra.metafields[id]]] : [])),
+      )
+      return { metafields, entries }
+    },
+    metaobjectsOfType: async (type) => {
+      calls.push(`metaobjects:${type}`)
+      return custom(entries)
+    },
+    metaobjects: async (ids) => {
+      calls.push(`metaobjects-by-id:${ids.join(',')}`)
+      return custom(entries.filter((e) => ids.includes(e.id)))
+    },
   }
 }

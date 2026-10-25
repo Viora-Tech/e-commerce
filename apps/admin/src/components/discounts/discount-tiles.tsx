@@ -1,38 +1,59 @@
-import { formatNumber } from '@commerce/money'
-import { Card } from '@commerce/ui/shadcn/card'
-import { discountsContent } from '@/data/discounts'
+'use client'
+
+import StatStrip from '@/components/layout/stat-strip'
+import { type DiscountLifecycle, discountsContent } from '@/data/discounts'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
 
 export type DiscountStats = Awaited<ReturnType<typeof api.discounts.stats>>
 
-type TileProps = {
-  title: string
-  value: number
-  period: string
+type DiscountTilesProps = {
+  stats: DiscountStats
+  status: DiscountLifecycle | null
+  /** Picks the lifecycle a tile filters to; a tile that is already on clears itself. */
+  onSelect: (status: DiscountLifecycle | null) => void
 }
 
-/* Same tile as the order list (frame 5:2512): title, figure, period line. */
-function Tile({ title, value, period }: TileProps) {
-  return (
-    <Card className="h-[6.5rem] gap-0 rounded-lg p-4">
-      <p className="text-card-title">{title}</p>
-      <div className="mt-3 flex items-end gap-2">
-        <span className="text-stat text-ink-strong tabular-nums">{formatNumber(value)}</span>
-      </div>
-      <p className="mt-1.5 text-period text-muted-foreground">{period}</p>
-    </Card>
-  )
-}
+/** The four stat tiles over the discount list; the first three filter the table below. */
+export default function DiscountTiles({ stats, status, onSelect }: DiscountTilesProps) {
+  // Hooks
+  const { tiles } = useCopy(discountsContent)
+  const fmt = useFormat()
 
-/** The four tiles above the discount list. */
-export default function DiscountTiles({ stats }: { stats: DiscountStats }) {
-  const t = discountsContent.tiles
+  // Render logic
   return (
-    <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-      <Tile title={t.active} value={stats.active} period={t.now} />
-      <Tile title={t.scheduled} value={stats.scheduled} period={t.now} />
-      <Tile title={t.expired} value={stats.expired} period={t.now} />
-      <Tile title={t.usedThisMonth} value={stats.usedThisMonth} period={t.month} />
-    </div>
+    <StatStrip
+      active={status}
+      onChange={onSelect}
+      tiles={[
+        {
+          id: 'active',
+          label: tiles.active,
+          value: fmt.number(stats.active),
+          note: tiles.now,
+          filter: 'active',
+        },
+        {
+          id: 'scheduled',
+          label: tiles.scheduled,
+          value: fmt.number(stats.scheduled),
+          note: tiles.now,
+          filter: 'scheduled',
+        },
+        {
+          id: 'expired',
+          label: tiles.expired,
+          value: fmt.number(stats.expired),
+          note: tiles.now,
+          filter: 'expired',
+        },
+        {
+          id: 'used',
+          label: tiles.usedThisMonth,
+          value: fmt.number(stats.usedThisMonth),
+          note: tiles.month,
+        },
+      ]}
+    />
   )
 }

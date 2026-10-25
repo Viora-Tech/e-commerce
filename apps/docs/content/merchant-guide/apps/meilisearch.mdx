@@ -1,0 +1,101 @@
+---
+title: Meilisearch search
+description: Connect Meilisearch for fast store search that forgives typos, with your own synonyms. Your built-in search takes over if Meilisearch is down.
+---
+
+# Meilisearch search
+
+The **Meilisearch** app makes your store's search faster and kinder to typos. A shopper who
+types "t-shrit", "tshirt" or "tee" finds your T-shirts. It powers the **search page** and the
+**suggestions in the search box** as shoppers type.
+
+[Meilisearch](https://www.meilisearch.com) is a free, open-source search engine. It runs on a
+server of its own: your own server, or Meilisearch Cloud.
+
+Prices, stock and which products are on sale always come from your store, never from
+Meilisearch, so search results are never out of date on what matters. If Meilisearch is down or
+answers slowly, your store's built-in search answers instead, so search never breaks.
+
+## What you need
+
+- A running Meilisearch (version 1.x).
+- Its **master key**, or an **admin API key**.
+
+### Run Meilisearch yourself
+
+On any server with Docker, choose a long random master key (16 characters or more) and run:
+
+```bash
+docker run -d --name meilisearch -p 7700:7700 \
+  -e MEILI_ENV=production \
+  -e MEILI_MASTER_KEY='your-long-random-master-key' \
+  -v meili_data:/meili_data \
+  getmeili/meilisearch:<version>
+```
+
+Use the newest `v1.x` tag from [Docker Hub](https://hub.docker.com/r/getmeili/meilisearch).
+Put it behind HTTPS (for example a reverse proxy with a certificate) so its address starts
+with `https://`. Keep the master key secret: anyone with it can change your index.
+
+Only the free community edition is needed. Nothing in this app uses Meilisearch's paid
+Enterprise features.
+
+### Or use Meilisearch Cloud
+
+Create a project at [meilisearch.com/cloud](https://www.meilisearch.com/cloud). Its overview
+shows the project **URL** and the **Master key** / **Default Admin API Key**.
+
+### Which key to paste
+
+- **Master key** (best): the app uses it once to create a **search-only key** just for your
+  store's search, then searches with that.
+- **Default Admin API Key**: works too. You get it by asking Meilisearch with the master key:
+  `curl -H "Authorization: Bearer <master key>" https://search.yourstore.in/keys`. This key
+  cannot create other keys, so searches use the admin key. It never leaves our servers either
+  way; shoppers' browsers never see a key.
+
+## Connect it
+
+1. Go to **Apps**, find **Meilisearch** under **Connections** and click **Install**.
+2. Open **Apps → Meilisearch** in the sidebar.
+3. Fill in **Meilisearch address**, for example `https://search.yourstore.in`.
+4. Paste the **Admin key**. It is stored locked (encrypted) and never shown again.
+5. Click **Test connection**. You should see "Connected to Meilisearch 1.x". This also creates
+   your store's search index.
+6. Click **Reindex now**. When **Products in search** shows your product count and **Last
+   update** has a time, your store's search uses Meilisearch.
+
+After that, products you add, change, archive or delete reach search on their own within
+seconds. Run **Reindex now** again only if you think search has drifted (for example after
+restoring Meilisearch from an old backup).
+
+## Synonyms
+
+Some shoppers say "kurti", some "kurta"; some "mobile", some "phone". Under **Synonyms**, write
+one group of words that mean the same thing per line, split by commas:
+
+```
+tee, t-shirt, tshirt
+kurta, kurti
+mobile, phone
+```
+
+Click **Save synonyms**. A search for any word in a group now finds products with the others.
+
+## How results are ranked
+
+A match in the **title** counts most, then **vendor**, **product type** and **tags**, then
+**SKUs** and **options** (like "Black" or "XL"), and the **description** last. Typos are
+forgiven in words of 4 letters or more, but not in SKUs, where one wrong character is a
+different product. Filters and sorting on the search page (price, availability, vendor, type,
+tags, newest) work as before.
+
+## If something is wrong
+
+- **"Meilisearch did not accept the key"**: paste the master key or an admin API key again.
+- **"Could not reach Meilisearch at that address"**: check the address, that Meilisearch is
+  running, and that the address starts with `https://`.
+- **"Meilisearch has no such index yet"**: click **Test connection**, then **Reindex now**.
+- **Last problem** on the page shows the last thing that went wrong while copying products.
+  Your store's search keeps working with the built-in search while it is shown.
+- To stop using Meilisearch, uninstall the app. Search goes back to the built-in search at once.

@@ -1,72 +1,76 @@
 'use client'
 
-import { Store, Upload } from '@commerce/ui/icons'
+import { siteConfig } from '@commerce/config/site'
+import { Settings, Store, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
+import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import PageHeader from '@/components/layout/page-header'
+import BackgroundWorkNotice from '@/components/media/background-work-notice'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { shopifyImportContent } from '@/data/shopify-import'
+import { shopifyImportSettingsContent } from '@/data/shopify-import-settings'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import type { Formatters } from '@/lib/format'
+import RemainingCard from './remaining-card'
 import RunStatusLabel from './run-status-label'
+import StorageNotice from './storage-notice'
 import { type RunListItem, totals } from './types'
 
-const copy = shopifyImportContent.home
 const base = shopifyImportContent.base
-const PER_PAGE = 20
 
-const columns: ResourceColumnSpec<RunListItem>[] = [
+const columnsFor = (
+  all: typeof shopifyImportContent,
+  fmt: Formatters,
+): ResourceColumnSpec<RunListItem>[] => [
   {
     id: 'started',
-    title: copy.columns.started,
+    title: all.home.columns.started,
     hideable: false,
     render: (r) => (
-      <span className="font-medium text-ink-strong tabular-nums">
-        {new Date(r.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
-      </span>
+      <span className="font-medium text-ink-strong tabular-nums">{fmt.dateTime(r.createdAt)}</span>
     ),
   },
   {
     id: 'source',
-    title: copy.columns.source,
+    title: all.home.columns.source,
     render: (r) => (
       <span className="text-muted-foreground">
-        {r.mode === 'csv' ? copy.source.csv(r.fileName) : copy.source.api}
+        {r.mode === 'csv' ? all.home.source.csv(r.fileName) : all.home.source.api}
       </span>
     ),
   },
   {
     id: 'what',
-    title: copy.columns.what,
+    title: all.home.columns.what,
     align: 'start',
     // The list can be long ("Products, Collections, …"); let it wrap instead of running
     // under the Status column.
     className: 'min-w-[14rem] max-w-[24rem] whitespace-normal',
     render: (r) => (
-      <span className="line-clamp-2">
-        {r.resources.map((x) => shopifyImportContent.resources[x]).join(', ')}
-      </span>
+      <span className="line-clamp-2">{r.resources.map((x) => all.resources[x]).join(', ')}</span>
     ),
   },
   {
     id: 'status',
-    title: copy.columns.status,
+    title: all.home.columns.status,
     className: 'whitespace-nowrap',
     render: (r) => <RunStatusLabel status={r.status} preview={r.dryRun} />,
   },
   {
     id: 'result',
-    title: copy.columns.result,
+    title: all.home.columns.result,
     align: 'end',
     render: (r) => {
       const t = totals(r.progress)
       return (
         <span className="line-clamp-2 text-muted-foreground tabular-nums">
           {r.status === 'completed'
-            ? copy.result(t.created, t.updated, t.failed)
+            ? all.home.result(t.created, t.updated, t.failed)
             : r.status === 'failed'
-              ? (r.error ?? copy.failedNoReason)
+              ? (r.error ?? all.home.failedNoReason)
               : null}
         </span>
       )
@@ -77,14 +81,18 @@ const columns: ResourceColumnSpec<RunListItem>[] = [
 /** App root: the two ways in, and every import so far. */
 export default function ImportsPage() {
   // Hooks
+  const all = useCopy(shopifyImportContent)
+  const fmt = useFormat()
+  const { card: settings } = useCopy(shopifyImportSettingsContent)
   const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState<number>(siteConfig.ui.rowsPerPage.default)
   const [data, setData] = useState<{ items: RunListItem[]; total: number } | null>(null)
-  const [shop, setShop] = useState<string | null>(null)
+  const [shop, setShop] = useState<string | null | undefined>(undefined)
 
   useEffect(() => {
     let live = true
     const load = () =>
-      api.shopifyImport.runs({ page, perPage: PER_PAGE }).then((next) => {
+      api.shopifyImport.runs({ page, perPage }).then((next) => {
         if (live) setData(next)
       })
     load().catch(() => {})
@@ -96,16 +104,18 @@ export default function ImportsPage() {
       live = false
       clearInterval(timer)
     }
-  }, [page])
+  }, [page, perPage])
 
   useEffect(() => {
     api.shopifyImport
       .connection()
       .then((c) => setShop(c?.shopName ?? c?.shopDomain ?? null))
-      .catch(() => {})
+      .catch(() => setShop(null))
   }, [])
 
   // Render logic
+  const copy = all.home
+  const columns = columnsFor(all, fmt)
   const ways = [
     {
       icon: Upload,
@@ -121,12 +131,25 @@ export default function ImportsPage() {
       action: copy.apiAction,
       href: `${base}/connect`,
     },
+    {
+      icon: Settings,
+      title: settings.title,
+      body: settings.body,
+      action: settings.action,
+      href: `${base}/settings`,
+    },
   ]
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={copy.title} subtitle={copy.subtitle} />
-      <div className="grid gap-4 md:grid-cols-2">
+      <StorageNotice />
+      <BackgroundWorkNotice />
+      {shop === undefined ? (
+        <Skeleton className="h-64 w-full" />
+      ) : (
+        <RemainingCard connected={shop !== null} />
+      )}
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {ways.map((way) => (
           <Card key={way.href}>
             <CardContent className="flex h-full flex-col items-start gap-3">
@@ -160,7 +183,11 @@ export default function ImportsPage() {
         query=""
         onQueryChange={() => {}}
         page={page}
-        perPage={PER_PAGE}
+        perPage={perPage}
+        onPerPageChange={(next) => {
+          setPerPage(next)
+          setPage(1)
+        }}
         total={data?.total ?? 0}
         onPageChange={setPage}
         selectable={false}

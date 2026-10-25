@@ -34,6 +34,12 @@ export type ResourceColumnSpec<T extends RowData> = {
   title: string
   /** Value used for sorting; omit to make the column unsortable. */
   sortValue?: (item: T) => SortValue | undefined
+  /** The sort menu's direction words ("Newest first" / "Oldest first"); else Descending/Ascending. */
+  sortLabels?: { desc: string; asc: string; first?: 'asc' | 'desc' | undefined } | undefined
+  /** The column's name in the sort menu when it differs from the header ("Order number"). */
+  sortTitle?: string | undefined
+  /** Where it sits in the sort menu, lowest first; columns without one follow, in column order. */
+  sortRank?: number | undefined
   /** Frame 5:2591 centres every column; product-style cells pass `start`. */
   align?: CellAlign
   /** `false` keeps the column out of the "View" toggle. */
@@ -136,6 +142,17 @@ function ColumnHeader<T extends RowData>({ column, title, align }: ColumnHeaderP
   // Render logic
   const sorted = column.getIsSorted()
   const Icon = sorted === 'desc' ? ArrowDown : sorted === 'asc' ? ArrowUp : ChevronsUpDown
+  const sortIcon = (
+    <Icon
+      className={cn(
+        'size-3.5',
+        align === 'center' && 'absolute left-full ml-0.5',
+        sorted
+          ? 'text-foreground'
+          : 'text-muted-foreground-soft opacity-0 transition-opacity group-hover/head:opacity-100 group-data-open/head:opacity-100',
+      )}
+    />
+  )
 
   return (
     <div className={cn('flex items-center', HEAD_ALIGN[align])}>
@@ -145,14 +162,17 @@ function ColumnHeader<T extends RowData>({ column, title, align }: ColumnHeaderP
             <Button
               variant="ghost"
               size="sm"
-              className="-mx-1 h-6 gap-1 px-1 font-[number:inherit] text-[length:inherit] text-inherit leading-[inherit] hover:bg-muted hover:text-foreground data-open:bg-muted"
+              className="group/head relative -mx-1 h-6 gap-1 px-1 font-[number:inherit] text-[length:inherit] text-inherit leading-[inherit] hover:bg-muted hover:text-foreground data-open:bg-muted"
             />
           }
         >
+          {/* The sorted column carries its direction beside the name (↑ / ↓); the rest show the
+              sort hint only on hover, so the one that sorts the list stands out. Right-aligned
+              columns put it before the name and centred ones float it outside, so the name lines
+              up with the values below. */}
+          {align === 'end' ? sortIcon : null}
           {title}
-          <Icon
-            className={cn('size-3.5 text-muted-foreground-soft', sorted && 'text-foreground')}
-          />
+          {align === 'end' ? null : sortIcon}
         </DropdownMenuTrigger>
         <DropdownMenuContent align={align === 'end' ? 'end' : 'start'}>
           <DropdownMenuItem onClick={() => column.toggleSorting(false)}>

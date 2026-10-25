@@ -1,6 +1,7 @@
 import { customer } from '@commerce/db'
 import { eq } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { noteCustomerTagsChanged, recordCustomerChange } from '../customers/changes'
 import { NEWSLETTER_TAG } from '../customers/newsletter'
 import { encryptCustomerPhone, phoneBlindIndex } from '../customers/phone-crypto'
 import { setMarketingConsents } from '../privacy/marketing-consent'
@@ -45,11 +46,13 @@ export async function updateProfile(
       updatedAt: new Date(),
     })
     .where(eq(customer.id, customerId))
+  await noteCustomerTagsChanged(ctx.tx, ctx.storeId, customerId, current.tags, tags)
   await setMarketingConsents(
     ctx,
     customerId,
     { email: acceptsMarketing, whatsapp: acceptsWhatsapp, sms: acceptsSms },
     { source: 'account', actor: { type: 'customer', id: customerId } },
   )
+  await recordCustomerChange(ctx.tx, ctx.storeId, customerId, 'updated')
   return { ok: true }
 }

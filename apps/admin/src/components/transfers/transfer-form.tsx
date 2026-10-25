@@ -1,19 +1,24 @@
 'use client'
 
+import { ArrowLeftRight, PackageCheck, Save, Trash2, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import ConfirmActionDialog from '@/components/inventory/confirm-action-dialog'
 import type { StoreLocation } from '@/components/inventory/location-select'
 import NotesCard from '@/components/inventory/notes-card'
-import PageBody from '@/components/layout/page-body'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
+import NoticeBar from '@/components/layout/notice-bar'
 import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
-import { transferFormContent, transfersContent } from '@/data/inventory'
+import ProoflyPageBody from '@/components/layout/proofly-page-body'
+import OrderChip from '@/components/orders/order-chip'
+import { transferFormContent } from '@/data/inventory'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import RouteCard from './route-card'
 import TransferLinesCard, { type TransferLine } from './transfer-lines-card'
+import TransferSummaryCard from './transfer-summary-card'
 
 export type LoadedTransfer = NonNullable<Awaited<ReturnType<typeof api.transfers.get>>>
 
@@ -25,7 +30,7 @@ type TransferFormProps = {
 type Form = { fromLocationId: string; toLocationId: string; note: string; lines: TransferLine[] }
 
 const copy = transferFormContent
-const LIST = '/products/transfers'
+const LIST = routes.stock.transfers()
 
 function initialForm(transfer: LoadedTransfer | null, locations: StoreLocation[]): Form {
   if (transfer) {
@@ -135,51 +140,42 @@ export default function TransferForm({ transfer, locations }: TransferFormProps)
   const sameRoute = form.fromLocationId === form.toLocationId
 
   return (
-    <PageBody width="narrow" className="kit-form gap-4">
+    <ProoflyPageBody>
       <PageHeader
         title={transfer ? copy.title(transfer.number) : copy.newTitle}
-        subtitle={status ? transfersContent.status[status] : undefined}
-        breadcrumbs={[
-          { label: copy.back, href: LIST },
-          { label: transfer ? transfersContent.number(transfer.number) : copy.newTitle },
-        ]}
+        summary={transfer ? undefined : copy.subtitle}
+        lead={{ kind: 'icon', node: <ArrowLeftRight aria-hidden="true" /> }}
+        badges={status ? <OrderChip kind="transfer" value={status} /> : null}
+        back={{ label: copy.back, href: LIST }}
         actions={
           draft ? (
             <>
               {transfer ? (
                 <Button variant="outline" onClick={() => setConfirmDelete(true)} disabled={busy}>
+                  <Trash2 aria-hidden="true" />
                   {copy.delete}
                 </Button>
               ) : null}
               <Button variant="outline" onClick={handleSave} disabled={busy || sameRoute}>
+                <Save aria-hidden="true" />
                 {busy ? copy.saving : copy.save}
               </Button>
               <Button onClick={handleShip} disabled={busy || sameRoute}>
+                <Truck aria-hidden="true" />
                 {copy.ship}
               </Button>
             </>
           ) : status === 'in_transit' ? (
             <Button onClick={handleReceive} disabled={busy}>
+              <PackageCheck aria-hidden="true" />
               {copy.receive}
             </Button>
           ) : null
         }
       />
-      {draft ? null : (
-        <p className="rounded-lg bg-primary-soft px-4 py-3 text-body text-ink-strong">
-          {copy.locked}
-        </p>
-      )}
+      {draft ? null : <NoticeBar>{copy.locked}</NoticeBar>}
       <PageColumns
         main={
-          <TransferLinesCard
-            lines={form.lines}
-            fromLocationId={form.fromLocationId}
-            locked={!draft}
-            onChange={(lines) => patch({ lines })}
-          />
-        }
-        side={
           <>
             <RouteCard
               locations={locations}
@@ -187,6 +183,12 @@ export default function TransferForm({ transfer, locations }: TransferFormProps)
               toLocationId={form.toLocationId}
               disabled={!draft}
               onChange={patch}
+            />
+            <TransferLinesCard
+              lines={form.lines}
+              fromLocationId={form.fromLocationId}
+              locked={!draft}
+              onChange={(lines) => patch({ lines })}
             />
             <NotesCard
               id="transfer-note"
@@ -198,14 +200,25 @@ export default function TransferForm({ transfer, locations }: TransferFormProps)
             />
           </>
         }
+        side={
+          <TransferSummaryCard
+            status={status}
+            lines={form.lines}
+            locations={locations}
+            fromLocationId={form.fromLocationId}
+            toLocationId={form.toLocationId}
+          />
+        }
       />
-      <ConfirmActionDialog
+      <ConfirmDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
-        copy={copy.confirmDelete}
-        destructive
+        title={copy.confirmDelete.title}
+        body={copy.confirmDelete.body}
+        confirmLabel={copy.confirmDelete.confirm}
+        cancelLabel={copy.confirmDelete.cancel}
         onConfirm={handleDelete}
       />
-    </PageBody>
+    </ProoflyPageBody>
   )
 }

@@ -3,6 +3,7 @@
 import type { DashboardChartsData } from '@commerce/api'
 import { useEffect, useState } from 'react'
 import PillTabs from '@/components/layout/pill-tabs'
+import SectionHead from '@/components/layout/section-head'
 import { homeContent } from '@/data/home'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -56,18 +57,18 @@ export default function ChartsPanel({ initialRange, initial }: ChartsPanelProps)
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-card-title text-ink-strong">{c.sectionTitle}</p>
-          <p className="text-caption text-muted-foreground">{c.sectionSubtitle}</p>
-        </div>
-        <PillTabs
-          variant="segmented"
-          tabs={tabs}
-          value={String(range) as RangeTab['value']}
-          onChange={(v) => setRange(Number(v) as 7 | 30 | 90)}
-        />
-      </div>
+      <SectionHead
+        title={c.sectionTitle}
+        intro={c.sectionSubtitle}
+        action={
+          <PillTabs
+            variant="segmented"
+            tabs={tabs}
+            value={String(range) as RangeTab['value']}
+            onChange={(v) => setRange(Number(v) as 7 | 30 | 90)}
+          />
+        }
+      />
       <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,739fr)_minmax(0,361fr)]">
         <SalesOrdersChart data={data} loading={loading} />
         <TopProductsChart data={data} loading={loading} />

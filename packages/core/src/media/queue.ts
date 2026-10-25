@@ -6,7 +6,14 @@
  * mirroring `NotificationQueue`/`AppEventQueue` in `../plugins/events.ts`.
  */
 
-export type MediaProcessJob = { storeId: string; mediaId: string }
+import { logger } from '@commerce/observability/logging'
+
+export type MediaProcessJob = {
+  storeId: string
+  mediaId: string
+  /** Set by bulk producers (Shopify import): the worker uses the faster encode profile. Absent for a merchant's own upload. */
+  bulk?: boolean | undefined
+}
 
 export type MediaProcessQueue = {
   add(
@@ -54,6 +61,10 @@ export async function enqueueMediaProcess(
   try {
     await addMediaProcessJob(queue, job)
   } catch (err) {
-    console.error(`[media] could not enqueue processing for ${job.mediaId}`, err)
+    logger.error('could not enqueue media processing', {
+      storeId: job.storeId,
+      mediaId: job.mediaId,
+      error: err,
+    })
   }
 }

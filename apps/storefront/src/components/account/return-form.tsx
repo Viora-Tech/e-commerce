@@ -1,10 +1,11 @@
 'use client'
 
-import type { LineEligibility, ReturnReason } from '@commerce/core/returns'
+import type { LineEligibility, ReturnPreference, ReturnReason } from '@commerce/core/returns'
 import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import { returnReasonLabels, returnsContent } from '@/data/returns'
 import { submitReturnAction } from '@/lib/return-actions'
+import ReturnOutcome from './return-outcome'
 import ReturnPhotos from './return-photos'
 
 export type ReturnFormLine = {
@@ -14,6 +15,8 @@ export type ReturnFormLine = {
   imageUrl: string | null
   returnable: number
   why: LineEligibility['why']
+  /** Other variants of the same product the shopper can swap to (empty without exchanges). */
+  swaps: { variantId: string; title: string }[]
 }
 
 type ReturnFormProps = {
@@ -21,12 +24,20 @@ type ReturnFormProps = {
   closesLabel: string
   lines: ReturnFormLine[]
   reasons: ReturnReason[]
+  /** The store takes exchanges for another variant. */
+  exchanges: boolean
 }
 
 const copy = returnsContent.form
 
 /** The shopper's return request: items and how many, a reason, a note and photos. */
-export default function ReturnForm({ orderNumber, closesLabel, lines, reasons }: ReturnFormProps) {
+export default function ReturnForm({
+  orderNumber,
+  closesLabel,
+  lines,
+  reasons,
+  exchanges,
+}: ReturnFormProps) {
   // Hooks
   const [pending, start] = useTransition()
   const [qty, setQty] = useState<Record<string, number>>({})
@@ -34,12 +45,17 @@ export default function ReturnForm({ orderNumber, closesLabel, lines, reasons }:
   const [note, setNote] = useState('')
   const [photos, setPhotos] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [preference, setPreference] = useState<ReturnPreference>('refund')
+  const [swaps, setSwaps] = useState<Record<string, string>>({})
 
   // Event handlers
   const handleToggle = (line: ReturnFormLine, on: boolean) =>
     setQty((q) => ({ ...q, [line.id]: on ? line.returnable : 0 }))
 
   const handleQty = (id: string, value: number) => setQty((q) => ({ ...q, [id]: value }))
+
+  const handleSwap = (lineId: string, variantId: string) =>
+    setSwaps((s) => ({ ...s, [lineId]: variantId }))
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -48,15 +64,28 @@ export default function ReturnForm({ orderNumber, closesLabel, lines, reasons }:
       .map(([orderLineId, quantity]) => ({ orderLineId, quantity }))
     if (picked.length === 0) return setError(copy.errors.noItems)
     if (!reason) return setError(copy.errors.noReason)
+    const exchange = picked.flatMap((l) => {
+      const variantId = swaps[l.orderLineId]
+      return variantId ? [{ orderLineId: l.orderLineId, variantId }] : []
+    })
+    if (preference === 'exchange' && exchange.length === 0) return setError(copy.errors.noSwap)
     setError(null)
     start(async () => {
-      const r = await submitReturnAction({ orderNumber, lines: picked, reason, note, photos })
+      const r = await submitReturnAction({
+        orderNumber,
+        lines: picked,
+        reason,
+        note,
+        photos,
+        preference,
+        exchange,
+      })
       if (r?.error) setError(r.error)
     })
   }
 
   // Render logic
-  const card = 'flex flex-col gap-4 rounded-2xl border border-line p-5 sm:p-6'
+  const card = 'flex flex-col gap-4 rounded-[var(--radius-card)] bg-surface p-5 sm:p-6'
 
   return (
     <form onSubmit={handleSubmit} className="flex max-w-[40rem] flex-col gap-6">
@@ -155,9 +184,21 @@ export default function ReturnForm({ orderNumber, closesLabel, lines, reasons }:
             disabled={pending}
             onChange={(e) => setNote(e.target.value)}
           />
-          <span className="text-small text-muted">{copy.exchangeNote}</span>
+          {exchanges ? null : <span className="text-small text-muted">{copy.exchangeNote}</span>}
         </label>
       </fieldset>
+
+      {exchanges ? (
+        <ReturnOutcome
+          className={card}
+          lines={lines.filter((l) => (qty[l.id] ?? 0) > 0)}
+          preference={preference}
+          swaps={swaps}
+          disabled={pending}
+          onPreference={setPreference}
+          onSwap={handleSwap}
+        />
+      ) : null}
 
       <div className={card}>
         <ReturnPhotos photos={photos} onChange={setPhotos} disabled={pending} />

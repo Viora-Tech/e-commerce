@@ -13,6 +13,7 @@ import {
 import { safeEqual } from '@commerce/payments'
 import { type NextRequest, NextResponse } from 'next/server'
 import { accountsContent } from '@/data/accounts-domain'
+import { withEvlog } from '@/lib/request-log'
 import {
   isDev,
   OAUTH_COOKIE,
@@ -121,7 +122,7 @@ async function handle(request: NextRequest, provider: string, input: CallbackInp
 }
 
 /** Google and Facebook come back with a GET. */
-export async function GET(request: NextRequest, { params }: Params) {
+export const GET = withEvlog(async (request: NextRequest, { params }: Params) => {
   const q = request.nextUrl.searchParams
   return handle(request, (await params).provider, {
     code: q.get('code'),
@@ -129,10 +130,10 @@ export async function GET(request: NextRequest, { params }: Params) {
     error: q.get('error'),
     user: null,
   })
-}
+})
 
 /** Apple posts the form (`response_mode=form_post`). */
-export async function POST(request: NextRequest, { params }: Params) {
+export const POST = withEvlog(async (request: NextRequest, { params }: Params) => {
   const form = await request.formData().catch(() => null)
   const field = (k: string) => {
     const v = form?.get(k)
@@ -144,4 +145,4 @@ export async function POST(request: NextRequest, { params }: Params) {
     error: field('error'),
     user: field('user'),
   })
-}
+})

@@ -3,11 +3,16 @@ import {
   createAddress,
   customerExists,
   deleteAddress,
+  GSTIN_MESSAGES,
   listAddresses,
   permissions,
+  recordCustomerChange,
+  SEGMENT_FIELDS,
   setMarketingConsent,
   updateAddress,
+  validateGstin,
 } from '@commerce/core'
+import { lenientPhone } from '@commerce/core/phone'
 import { loadPincodeDirectory } from '@commerce/shipping/pincode-directory'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
@@ -28,6 +33,7 @@ import {
   tagCustomers,
   updateCustomer,
 } from '../services/customer.service'
+import { customerSheet } from '../services/customer-sheet.service'
 
 const FiltersSchema = z.object({
   search: z.string().trim().max(SEARCH_MAX).optional(),
@@ -38,6 +44,8 @@ const FiltersSchema = z.object({
   minOrders: z.number().int().min(0).optional(),
   acceptsMarketing: z.boolean().optional(),
   tag: z.string().trim().min(1).max(40).optional(),
+  /** Business (B2B) customers, i.e. those with a saved GSTIN. */
+  business: z.boolean().optional(),
 })
 
 const RulesSchema = z.object({
@@ -45,7 +53,7 @@ const RulesSchema = z.object({
   conditions: z
     .array(
       z.object({
-        field: z.enum(['spend', 'orders', 'state', 'tag', 'last_order_days', 'marketing']),
+        field: z.enum(SEGMENT_FIELDS),
         op: z.enum(['gte', 'lte', 'eq', 'neq', 'contains']),
         value: z.string().trim().max(100),
       }),
@@ -86,10 +94,27 @@ function unwrap(result: AddressResult) {
   })
 }
 
+/**
+ * A GSTIN typed by staff, checked like checkout's (`validateGstin`) and stored upper case;
+ * blank clears it, undefined leaves it alone.
+ */
+function parseGstin(raw: string | null | undefined): string | null | undefined {
+  if (raw === undefined) return undefined
+  if (raw === null || raw.trim() === '') return null
+  const check = validateGstin(raw)
+  if (check.ok) return check.gstin
+  throw new ORPCError('BAD_REQUEST', {
+    message: GSTIN_MESSAGES[check.reason as keyof typeof GSTIN_MESSAGES] ?? GSTIN_MESSAGES.shape,
+    data: { field: 'gstin' },
+  })
+}
+
 export const customersRouter = {
   list: can(permissions.CUSTOMERS_READ)
     .input(
       FiltersSchema.extend({
+        /** Exactly these customers, e.g. the ones a discount is limited to. */
+        ids: z.array(z.uuid()).max(PAGE_SIZE_MAX).optional(),
         page: z.number().int().min(1).default(1),
         perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(25),
         sort: z.enum(['recent', 'name', 'orders', 'spent']).optional(),
@@ -123,6 +148,11 @@ export const customersRouter = {
       const ctx = { tx: context.tx, storeId: context.scope.storeId }
       return { ...found, addresses: await listAddresses(ctx, input.id) }
     }),
+
+  /** Rows for the Customers bulk-edit spreadsheet, in the order the ids were given. */
+  sheet: can(permissions.CUSTOMERS_READ)
+    .input(z.object({ ids: z.array(z.uuid()).min(1).max(5000) }))
+    .handler(({ context, input }) => customerSheet(context.tx, input.ids, settingsSecret())),
 
   /** Add an address to the customer's book; the first one becomes their default. */
   addAddress: can(permissions.CUSTOMERS_WRITE)
@@ -178,13 +208,21 @@ export const customersRouter = {
       z.object({
         id: z.uuid(),
         name: z.string().trim().max(200).nullable().optional(),
-        phone: z.string().trim().max(30).nullable().optional(),
+        phone: lenientPhone(30).nullable().optional(),
         tags: z.array(z.string().trim().min(1).max(40)).max(50).optional(),
         note: z.string().trim().max(2000).nullable().optional(),
         acceptsMarketing: z.boolean().optional(),
+        /** Business details for B2B invoices; blank clears. */
+        gstin: z.string().trim().max(20).nullable().optional(),
+        businessName: z.string().trim().max(120).nullable().optional(),
       }),
     )
-    .handler(async ({ context, input: { id, acceptsMarketing, ...patch } }) => {
+    .handler(async ({ context, input: { id, acceptsMarketing, gstin, ...rest } }) => {
+      const patch = {
+        ...rest,
+        ...(gstin === undefined ? {} : { gstin: parseGstin(gstin) }),
+        ...(rest.businessName === undefined ? {} : { businessName: rest.businessName || null }),
+      }
       // Consent goes through the consent writer, so the change is in the customer's
       // history and the privacy audit trail with who made it.
       if (acceptsMarketing !== undefined) {
@@ -203,7 +241,11 @@ export const customersRouter = {
           },
         )
       }
-      return updateCustomer(context.tx, id, patch, settingsSecret())
+      const updated = await updateCustomer(context.tx, id, patch, settingsSecret())
+      if (updated) {
+        await recordCustomerChange(context.tx, context.scope.storeId, id, 'updated')
+      }
+      return updated
     }),
 
   delete: can(permissions.CUSTOMERS_DELETE)

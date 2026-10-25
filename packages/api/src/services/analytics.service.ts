@@ -1,3 +1,4 @@
+import { notTestOrder } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import {
   address,
@@ -11,7 +12,7 @@ import {
   variant,
 } from '@commerce/db'
 import { and, asc, count, desc, eq, gte, inArray, lt, ne, sql, sum } from 'drizzle-orm'
-import type { DailyVisitors, LiveVisitors, VisitorSource } from '../context'
+import type { LiveVisitors, VisitorSource } from '../context'
 import {
   averageOrderValue,
   bucketByDay,
@@ -28,9 +29,11 @@ import {
   toDailyPoints,
   toWeeklyPoints,
 } from './analytics-buckets'
+import { countSessions, totalSessions } from './sessions'
 
 /** Drafts are not orders: they never reach revenue, counts or the funnel. */
-const notDraft = ne(order.status, 'draft')
+/** Test-mode orders (gateway test keys, no real money) are left out too. */
+const notDraft = and(ne(order.status, 'draft'), notTestOrder)
 const counted = and(notDraft, ne(order.status, 'cancelled'))
 
 const TOP_PRODUCTS = 8
@@ -103,15 +106,6 @@ async function ordersIn(tx: StoreTx, from: Date, to: Date): Promise<OrderRow[]> 
     .where(and(counted, gte(order.placedAt, from), lt(order.placedAt, to)))
 }
 
-async function sessionsFor(
-  visitors: VisitorSource | undefined,
-  storeId: string | undefined,
-  days: string[],
-): Promise<DailyVisitors> {
-  if (!visitors?.daily || !storeId) return { perDay: days.map(() => 0), total: 0 }
-  return visitors.daily(storeId, days)
-}
-
 /** Orders whose customer had already ordered before the order in question. */
 async function returningOrderIds(tx: StoreTx, rows: OrderRow[]): Promise<Set<string>> {
   const ids = [...new Set(rows.map((r) => r.customerId).filter((v): v is string => v !== null))]
@@ -167,15 +161,16 @@ export async function analyticsOverview(
     ordersIn(tx, range.from, range.to),
     ordersIn(tx, range.previousFrom, range.previousTo),
   ])
-  const sessions = await sessionsFor(opts.visitors, opts.storeId, range.days)
+  const [sessionsPerDay, sessionsPrev] = await Promise.all([
+    countSessions(tx, range, false),
+    totalSessions(tx, range.previousFrom, range.previousTo),
+  ])
 
   const revenue = current.reduce((n, r) => n + r.totalPaise, 0)
   const revenuePrev = previous.reduce((n, r) => n + r.totalPaise, 0)
   const returning = await returningOrderIds(tx, current)
   const returningPrev = await returningOrderIds(tx, previous)
-  const sessionTotal = sessions.total
-  /* No historical session store, so the comparison period reads zero rather than a wrong number. */
-  const sessionsPrev = 0
+  const sessionTotal = sessionsPerDay.reduce((n, v) => n + v, 0)
 
   const revenueByDay = bucketByDay(
     current.map((r) => ({ at: r.placedAt, weight: r.totalPaise })),
@@ -196,14 +191,7 @@ export async function analyticsOverview(
       value: sessionTotal,
       previous: sessionsPrev,
       delta: delta(sessionTotal, sessionsPrev),
-      series: sessions.perDay,
-    },
-    {
-      id: 'orders',
-      value: current.length,
-      previous: previous.length,
-      delta: delta(current.length, previous.length),
-      series: ordersByDay,
+      series: sessionsPerDay,
     },
     {
       id: 'revenue',
@@ -213,11 +201,21 @@ export async function analyticsOverview(
       series: revenueByDay,
     },
     {
+      id: 'orders',
+      value: current.length,
+      previous: previous.length,
+      delta: delta(current.length, previous.length),
+      series: ordersByDay,
+    },
+    {
       id: 'conversion',
       value: conversionRate(current.length, sessionTotal),
       previous: conversionRate(previous.length, sessionsPrev),
-      delta: null,
-      series: ordersByDay.map((o, i) => conversionRate(o, sessions.perDay[i] ?? 0)),
+      delta: delta(
+        conversionRate(current.length, sessionTotal),
+        conversionRate(previous.length, sessionsPrev),
+      ),
+      series: ordersByDay.map((o, i) => conversionRate(o, sessionsPerDay[i] ?? 0)),
     },
     {
       id: 'aov',
@@ -372,7 +370,12 @@ export async function analyticsLive(
     .orderBy(desc(cart.createdAt))
     .limit(LIVE_EVENTS)
 
-  const lastHour = recentOrders.filter((o) => o.placedAt >= hourAgo)
+  // Counted on its own: the event list starts at IST midnight and is capped, so between 00:00
+  // and 01:00 (or on a busy day) it would miss orders from the last hour.
+  const [lastHour] = await tx
+    .select({ n: count(), revenue: sum(order.totalPaise) })
+    .from(order)
+    .where(and(counted, gte(order.placedAt, hourAgo)))
   const events: AnalyticsLive['events'] = [
     ...recentOrders.map((o) => ({
       id: `order-${o.id}`,
@@ -395,8 +398,36 @@ export async function analyticsLive(
   return {
     visitors,
     activeCarts: cartsRow?.n ?? 0,
-    ordersLastHour: lastHour.length,
-    revenueLastHourPaise: lastHour.reduce((n, o) => n + o.totalPaise, 0),
+    ordersLastHour: Number(lastHour?.n ?? 0),
+    revenueLastHourPaise: Number(lastHour?.revenue ?? 0),
     events,
   }
+}
+
+export type SaleDay = { day: string; revenuePaise: number; orders: number }
+
+/**
+ * The store's own biggest sales days in the last year, for the date picker's "Big sale days":
+ * real dates from its orders (IST days), not a fixed festival calendar.
+ */
+export async function bigSaleDays(tx: StoreTx, limit = 5): Promise<SaleDay[]> {
+  const day = sql<string>`to_char(${order.placedAt} at time zone 'Asia/Kolkata', 'YYYY-MM-DD')`
+  const rows = await tx
+    .select({
+      day,
+      revenue: sql<number>`coalesce(sum(${order.totalPaise}), 0)::bigint`,
+      orders: sql<number>`count(*)::int`,
+    })
+    .from(order)
+    .where(
+      and(
+        sql`${order.status} not in ('draft', 'cancelled')`,
+        notTestOrder,
+        gte(order.placedAt, sql`now() - interval '365 days'`),
+      ),
+    )
+    .groupBy(day)
+    .orderBy(desc(sql`2`))
+    .limit(limit)
+  return rows.map((r) => ({ day: r.day, revenuePaise: Number(r.revenue), orders: r.orders }))
 }

@@ -78,6 +78,25 @@ export function verifyOrderViewToken(
   return verifyOrderToken('order-view', token, secret, now)
 }
 
+/**
+ * Whether this request may see, or act on, an order: the signed-in customer who owns it,
+ * or a valid view token minted for this exact order. The order number alone (sequential,
+ * enumerable) is never enough. Every storefront action that mints a fresh view token for an
+ * order ("Retry payment", "Pay balance", "New QR") goes through here first (security audit
+ * 2026-10-06, A-00: they minted one for any order number a stranger sent).
+ */
+export function canViewOrder(
+  o: { id: string; customerId: string | null },
+  viewer: { customerId: string | null | undefined; token: string | null | undefined },
+  secret: string,
+  now = new Date(),
+): boolean {
+  if (viewer.customerId && o.customerId === viewer.customerId) return true
+  if (!viewer.token) return false
+  const verified = verifyOrderViewToken(viewer.token, secret, now)
+  return verified.ok && verified.orderId === o.id
+}
+
 export const balancePath = (token: string): string => `/checkout/balance/${token}`
 
 export function balanceUrl(
@@ -105,4 +124,32 @@ export function thankYouUrl(
   now = new Date(),
 ): string {
   return `${storefrontUrl.replace(/\/$/, '')}${thankYouPath(orderNumber, orderViewToken(orderId, secret, now))}`
+}
+
+/** A draft invoice's pay link: long enough for a customer to come back to it. */
+const INVOICE_LINK_TTL_MS = 30 * 86_400_000
+
+/** The signed "pay this invoice" token in a draft invoice email (its own purpose prefix). */
+function invoiceToken(orderId: string, secret: string, now = new Date()): string {
+  return signOrderToken('draft-invoice', orderId, secret, INVOICE_LINK_TTL_MS, now)
+}
+
+export function verifyInvoiceToken(
+  token: string,
+  secret: string,
+  now = new Date(),
+): { ok: true; orderId: string } | { ok: false; reason: 'malformed' | 'expired' | 'signature' } {
+  return verifyOrderToken('draft-invoice', token, secret, now)
+}
+
+const invoicePath = (token: string): string => `/checkout/invoice/${token}`
+
+/** The "Pay securely" button of a draft invoice email, on the store's own domain. */
+export function invoiceUrl(
+  orderId: string,
+  secret: string,
+  storefrontUrl: string,
+  now = new Date(),
+): string {
+  return `${storefrontUrl.replace(/\/$/, '')}${invoicePath(invoiceToken(orderId, secret, now))}`
 }

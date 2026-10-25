@@ -1,44 +1,96 @@
 'use client'
 
+import { AppWindow, Send } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { parseAsInteger, useQueryStates } from 'nuqs'
-import { Suspense, useEffect, useState } from 'react'
+import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { abandonedColumns } from '@/components/abandoned/abandoned-columns'
 import AbandonedTiles, { type AbandonedStats } from '@/components/abandoned/abandoned-tiles'
-import PageBody from '@/components/layout/page-body'
-import PageHeader from '@/components/layout/page-header'
-import RelativeTime from '@/components/layout/relative-time'
-import StatusLabel from '@/components/status/status-label'
-import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
-import { abandonedContent as copy } from '@/data/drafts'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
+import ProoflyListPage from '@/components/layout/proofly-list-page'
+import SendMessageDialog, { type CustomMessage } from '@/components/orders/send-message-dialog'
+import ResourceTable from '@/components/table/resource-table'
+import RowMenu from '@/components/table/row-menu'
+import ViewSelect from '@/components/table/view-select'
+import {
+  ABANDONED_LIST_FILTERS,
+  type AbandonedListFilter,
+  abandonedBulkContent,
+  abandonedContent,
+} from '@/data/drafts'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { LIST_PER_PAGE } from '@/lib/list-query'
-import { formatPaise } from '@/lib/money'
+import { type ListQuery, sameListQuery } from '@/lib/list-query'
+import { routes } from '@/lib/routes'
+import { parseRowsPerPage } from '@/lib/rows-per-page'
+import { runBatched } from '@/lib/run-batched'
 
 type ListResult = Awaited<ReturnType<typeof api.orders.listAbandoned>>
 type Item = ListResult['items'][number]
 
-export type AbandonedInitial = { page: number; result: ListResult; stats: AbandonedStats }
+export type AbandonedInitial = {
+  query: ListQuery<AbandonedListFilter>
+  perPage: number
+  result: ListResult
+  stats: AbandonedStats
+  /** Whole-window (30 day) counts for the tabs; `stats` is the 7 day figures for the tiles. */
+  counts: AbandonedStats
+}
 
-const statusOf = (c: Item) => (c.recovered ? 'recovered' : c.recoverySentAt ? 'sent' : 'open')
+/** A recovery can go out: the shopper left an email and has not bought the cart since. */
+const recoverable = (c: Item) => !c.recovered && Boolean(c.email)
+
+/** The API's refusal for a shopper who has not agreed to marketing messages (`sendRecovery`). */
+const noConsent = (err: unknown) => err instanceof Error && /agreed to marketing/i.test(err.message)
 
 function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
   // Hooks
-  const [{ page }, setQ] = useQueryStates(
-    { page: parseAsInteger.withDefault(1) },
+  const copy = useCopy(abandonedContent)
+  const bulkCopy = useCopy(abandonedBulkContent)
+  const fmt = useFormat()
+  const [{ page, query, status, perPage: rawPerPage }, setQ] = useQueryStates(
+    {
+      query: parseAsString.withDefault(''),
+      status: parseAsStringLiteral(ABANDONED_LIST_FILTERS),
+      page: parseAsInteger.withDefault(1),
+      perPage: parseAsInteger.withDefault(initial.perPage),
+    },
     { shallow: true },
   )
   const [items, setItems] = useState<Item[]>(initial.result.items)
   const [total, setTotal] = useState(initial.result.total)
   const [loading, setLoading] = useState(false)
   const [sending, setSending] = useState<string | null>(null)
+  /** The cart whose "Send reminder" review dialog is open. */
+  const [reviewing, setReviewing] = useState<string | null>(null)
+  /** Selected carts waiting on the bulk "Send recovery" confirm. */
+  const [bulk, setBulk] = useState<{ ids: string[]; clear: () => void } | null>(null)
+
+  const hydrated = useRef(false)
 
   useEffect(() => {
-    if (page === initial.page) return
+    const size = parseRowsPerPage(rawPerPage)
+    // The server's first page is used once; after any change (including back to the first
+    // tab) the list is fetched again, so it never keeps another tab's rows.
+    const firstRun = !hydrated.current
+    hydrated.current = true
+    if (
+      firstRun &&
+      size === initial.perPage &&
+      sameListQuery({ page, query, status }, initial.query)
+    )
+      return
     let cancelled = false
     setLoading(true)
     api.orders
-      .listAbandoned({ page, perPage: LIST_PER_PAGE, sinceDays: 30 })
+      .listAbandoned({
+        page,
+        perPage: size,
+        sinceDays: 30,
+        status: status ?? undefined,
+        search: query || undefined,
+      })
       .then((r) => {
         if (cancelled) return
         setItems(r.items)
@@ -48,13 +100,37 @@ function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
     return () => {
       cancelled = true
     }
-  }, [page, initial.page])
+  }, [page, query, status, rawPerPage, initial.query, initial.perPage])
+
+  // Helpers
+  /** Sends one recovery per cart, ten at a time; a refusal never stops the rest. */
+  const sendRecoveries = async (carts: Item[]) => {
+    let sent = 0
+    let declined = 0
+    const r = await runBatched(
+      carts.map((c) => c.id),
+      async (cartId) => {
+        try {
+          await api.orders.sendRecovery({ cartId })
+        } catch (err) {
+          if (!noConsent(err)) throw err
+          declined += 1
+          return
+        }
+        sent += 1
+        setItems((list) =>
+          list.map((x) => (x.id === cartId ? { ...x, recoverySentAt: new Date() } : x)),
+        )
+      },
+    )
+    return { sent, noConsent: declined, failed: r.failed }
+  }
 
   // Event handlers
-  const handleSend = async (cartId: string) => {
+  const handleSend = async (cartId: string, custom?: CustomMessage) => {
     setSending(cartId)
     try {
-      const r = await api.orders.sendRecovery({ cartId })
+      const r = await api.orders.sendRecovery({ cartId, custom })
       toast.success(copy.sent(r.sent))
       setItems((list) =>
         list.map((c) => (c.id === cartId ? { ...c, recoverySentAt: new Date() } : c)),
@@ -66,86 +142,130 @@ function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
     }
   }
 
+  const handleSendAll = async () => {
+    const due = items.filter((c) => recoverable(c) && !c.recoverySentAt)
+    if (due.length === 0) {
+      toast.info(copy.nothingToSend)
+      return
+    }
+    setSending('all')
+    const r = await sendRecoveries(due)
+    setSending(null)
+    toast.success(copy.remindersDone(r.sent))
+  }
+
+  const handleSendSelected = async () => {
+    if (!bulk) return
+    const picked = new Set(bulk.ids)
+    const due = items.filter((c) => picked.has(c.id) && recoverable(c))
+    const r = await sendRecoveries(due)
+    const summary = bulkCopy.done(r.sent, bulk.ids.length - due.length, r.noConsent, r.failed)
+    if (r.sent > 0) toast.success(summary)
+    else toast.info(summary)
+    bulk.clear()
+  }
+
   // Render logic
-  const columns: ResourceColumnSpec<Item>[] = [
-    {
-      id: 'contact',
-      title: copy.columns.contact,
-      align: 'start',
-      hideable: false,
-      sortValue: (c) => c.email ?? c.phone ?? '',
-      render: (c) => (
-        <span className="block min-w-0">
-          <span className="block truncate text-body-strong text-foreground">
-            {c.customerName ?? c.email ?? c.phone ?? copy.anonymous}
-          </span>
-          {c.email ? (
-            <span className="block truncate text-caption text-muted-foreground">{c.email}</span>
-          ) : null}
-        </span>
-      ),
-    },
-    {
-      id: 'items',
-      title: copy.columns.items,
-      sortValue: (c) => c.itemCount,
-      render: (c) => <span className="tabular-nums">{copy.itemCount(c.itemCount)}</span>,
-    },
-    {
-      id: 'value',
-      title: copy.columns.value,
-      sortValue: (c) => c.subtotalPaise,
-      render: (c) => <span className="tabular-nums">{formatPaise(c.subtotalPaise)}</span>,
-    },
-    {
-      id: 'activity',
-      title: copy.columns.activity,
-      sortValue: (c) => new Date(c.updatedAt).getTime(),
-      render: (c) => <RelativeTime value={c.updatedAt} />,
-    },
-    {
-      id: 'status',
-      title: copy.columns.status,
-      render: (c) => <StatusLabel kind="abandoned" value={statusOf(c)} />,
-    },
-    {
-      id: 'action',
-      title: '',
-      hideable: false,
-      render: (c) =>
-        c.recovered || !c.email ? null : (
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={sending === c.id}
-            onClick={() => handleSend(c.id)}
-          >
-            {sending === c.id ? copy.sending : copy.send}
-          </Button>
-        ),
-    },
-  ]
+  const perPage = parseRowsPerPage(rawPerPage)
+  const columns = abandonedColumns(copy, fmt)
 
   return (
-    <PageBody width="frame" className="gap-6">
-      <PageHeader title={copy.heading} subtitle={copy.intro} />
-      <AbandonedTiles stats={initial.stats} />
+    <ProoflyListPage
+      title={copy.heading}
+      summary={copy.summary(
+        initial.stats.carts,
+        initial.stats.recovered,
+        fmt.money(initial.stats.valuePaise),
+      )}
+      actions={
+        <Button loading={sending === 'all'} onClick={handleSendAll}>
+          <Send aria-hidden="true" />
+          {copy.sendReminders}
+        </Button>
+      }
+      stats={
+        <AbandonedTiles
+          stats={initial.stats}
+          status={status}
+          onSelect={(s) => setQ({ status: s, page: 1 })}
+        />
+      }
+    >
       <ResourceTable
-        size="frame"
         resourceName={copy.resource}
         columns={columns}
         items={items}
         getId={(c) => c.id}
+        href={(c) => routes.orders.abandonedCheckout(c.id)}
         loading={loading}
-        query=""
-        onQueryChange={() => undefined}
+        rowActions={(c) => (
+          <RowMenu
+            items={[
+              { label: copy.view, href: routes.orders.abandonedCheckout(c.id), icon: AppWindow },
+              ...(c.recovered || !c.email
+                ? []
+                : [{ label: copy.send, onSelect: () => setReviewing(c.id), icon: Send }]),
+            ]}
+          />
+        )}
+        selectable
+        bulkActions={(ids, clear) => (
+          <Button type="button" variant="outline" size="sm" onClick={() => setBulk({ ids, clear })}>
+            <Send aria-hidden="true" />
+            {bulkCopy.send(ids.length)}
+          </Button>
+        )}
+        query={query}
+        onQueryChange={(query) => setQ({ query, page: 1 })}
+        onClearAll={() => setQ({ query: '', status: null, page: 1 })}
+        views={
+          <ViewSelect<AbandonedListFilter | null>
+            label={copy.viewLabel}
+            value={status}
+            onChange={(s) => setQ({ status: s, page: 1 })}
+            formatCount={fmt.number}
+            options={[
+              { value: null, label: copy.tabs.all, count: initial.counts.carts },
+              {
+                value: 'not_recovered',
+                label: copy.tabs.not_recovered,
+                count: initial.counts.notRecovered,
+              },
+              {
+                value: 'reminder_sent',
+                label: copy.tabs.reminder_sent,
+                count: initial.counts.remindersSent,
+              },
+              { value: 'recovered', label: copy.tabs.recovered, count: initial.counts.recovered },
+            ]}
+          />
+        }
         page={page}
-        perPage={LIST_PER_PAGE}
+        perPage={perPage}
         total={total}
         onPageChange={(page) => setQ({ page })}
+        onPerPageChange={(n) => setQ({ perPage: n, page: 1 })}
         empty={{ heading: copy.empty, body: copy.intro }}
       />
-    </PageBody>
+      {bulk ? (
+        <ConfirmDialog
+          open
+          onOpenChange={(open) => !open && setBulk(null)}
+          title={bulkCopy.title(bulk.ids.length)}
+          body={bulkCopy.body}
+          confirmLabel={bulkCopy.confirm}
+          tone="default"
+          stopPropagation
+          onConfirm={handleSendSelected}
+        />
+      ) : null}
+      <SendMessageDialog
+        orderId={reviewing}
+        template="checkout_recovery"
+        onSend={(custom) => (reviewing ? handleSend(reviewing, custom) : Promise.resolve())}
+        onClose={() => setReviewing(null)}
+      />
+    </ProoflyListPage>
   )
 }
 

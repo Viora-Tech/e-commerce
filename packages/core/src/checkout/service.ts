@@ -5,7 +5,7 @@ import type { StoreContext } from '../context'
 import { type PaymentAdjustment, PaymentAdjustmentSchema } from '../payments/adjustments'
 import { parsePaymentSettings } from '../payments/settings'
 import { liveThemeSettings } from '../theme/library'
-import type { CheckoutBranding } from './branding'
+import { type CheckoutBranding, DEFAULT_CHECKOUT_COLOURS } from './branding'
 import { type CheckoutSettings, CheckoutSettingsSchema, parseCheckoutSettings } from './settings'
 
 export type CheckoutSettingsView = {
@@ -24,8 +24,10 @@ export async function loadCheckoutSettings(ctx: StoreContext): Promise<CheckoutS
     .from(store)
     .where(eq(store.id, ctx.storeId))
   const payments = parsePaymentSettings(s?.payments)
+  const settings = parseCheckoutSettings(s?.preferences)
+  const branding = await withThemeColours(ctx, s?.preferences, settings.branding)
   return {
-    settings: parseCheckoutSettings(s?.preferences),
+    settings: { ...settings, branding },
     codEnabled: payments.enabled.includes('cod'),
     codFee: payments.adjustments.cod ?? null,
     storeName: s?.name ?? '',
@@ -85,22 +87,73 @@ export type CheckoutLook = {
   storeName: string
   /** Settings → Checkout → Branding's logo, else the live theme's, else null (the name shows). */
   logoUrl: string | null
+  /** The store's contact number (Settings → Store details), for "Need help? WhatsApp us". */
+  contactPhone: string | null
+}
+
+/** Brand colour of the live theme: its light scheme's button colour. */
+type Theme = Awaited<ReturnType<typeof liveThemeSettings>>
+const themeBrandColour = (theme: Theme) =>
+  (theme.schemes.find((x) => x.id === theme.lightScheme) ?? theme.schemes[0])?.button ?? null
+
+/**
+ * The branding colours this store has actually picked. Every save writes the whole branding,
+ * defaults included, so a stored stock colour counts as not picked.
+ */
+function savedColours(preferences: unknown): { accent: boolean; button: boolean } {
+  const branding = (preferences as { checkout?: { branding?: Record<string, unknown> } } | null)
+    ?.checkout?.branding
+  const picked = (v: unknown, stock: string) =>
+    typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v) && v.toUpperCase() !== stock.toUpperCase()
+  return {
+    accent: picked(branding?.accent, DEFAULT_CHECKOUT_COLOURS.accent),
+    button: picked(branding?.button, DEFAULT_CHECKOUT_COLOURS.button),
+  }
 }
 
 /**
- * The checkout's look for the storefront. Only the logo may come from the theme, as a
- * fallback; colours, type and corners never do, so no theme can restyle the checkout.
+ * Until a store picks its own checkout accent and Pay button colours, both follow its live
+ * theme's brand colour, so a new store's checkout matches its shop instead of a stock blue.
+ * Only the value is borrowed: no theme CSS reaches the checkout, and a saved colour always wins.
+ */
+async function withThemeColours(
+  ctx: StoreContext,
+  preferences: unknown,
+  branding: CheckoutBranding,
+  theme?: Theme,
+): Promise<CheckoutBranding> {
+  const saved = savedColours(preferences)
+  if (saved.accent && saved.button) return branding
+  const brand = themeBrandColour(theme ?? (await liveThemeSettings(ctx.tx, ctx.storeId)))
+  if (!brand) return branding
+  return {
+    ...branding,
+    accent: saved.accent ? branding.accent : brand,
+    button: saved.button ? branding.button : brand,
+  }
+}
+
+/**
+ * The checkout's look for the storefront. The theme only supplies fallbacks (the logo, and the
+ * accent and Pay button colours until the store picks its own); type, corners and the rest never
+ * come from it, and no theme CSS reaches the checkout.
  */
 export async function storeCheckoutLook(ctx: StoreContext): Promise<CheckoutLook> {
   const [s] = await ctx.tx
-    .select({ name: store.name, preferences: store.preferences })
+    .select({ name: store.name, preferences: store.preferences, phone: store.contactPhone })
     .from(store)
     .where(eq(store.id, ctx.storeId))
-  const { branding } = parseCheckoutSettings(s?.preferences)
-  const themeLogo = branding.logo ? null : (await liveThemeSettings(ctx.tx, ctx.storeId)).brand.logo
+  const parsed = parseCheckoutSettings(s?.preferences).branding
+  const saved = savedColours(s?.preferences)
+  const theme =
+    parsed.logo && saved.accent && saved.button
+      ? null
+      : await liveThemeSettings(ctx.tx, ctx.storeId)
+  const branding = theme ? await withThemeColours(ctx, s?.preferences, parsed, theme) : parsed
   return {
     branding,
     storeName: s?.name ?? '',
-    logoUrl: branding.logo?.url ?? themeLogo?.url ?? null,
+    logoUrl: branding.logo?.url ?? theme?.brand.logo?.url ?? null,
+    contactPhone: s?.phone ?? null,
   }
 }

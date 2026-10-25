@@ -1,6 +1,11 @@
 'use client'
 
-import { OPS_BY_FIELD, type SegmentCondition, type SegmentField } from '@commerce/core/segments'
+import {
+  isFlagField,
+  OPS_BY_FIELD,
+  type SegmentCondition,
+  type SegmentField,
+} from '@commerce/core/segments'
 import { Trash2 } from '@commerce/ui/icons'
 import { Input } from '@commerce/ui/shadcn/input'
 import {
@@ -27,6 +32,10 @@ const marketingItems = [
   { value: 'true', label: copy.marketingValues.true ?? 'Subscribed' },
   { value: 'false', label: copy.marketingValues.false ?? 'Not subscribed' },
 ]
+const businessItems = [
+  { value: 'true', label: copy.businessValues.true ?? 'Business' },
+  { value: 'false', label: copy.businessValues.false ?? 'Individual' },
+]
 
 /** Rupees in the input, paise in the rule, so spend rules compare like the list does. */
 function paiseToRupees(paise: string): string {
@@ -45,7 +54,7 @@ export default function ConditionRow({ condition, fields, onChange, onRemove }: 
   const handleField = (value: unknown) => {
     const field = String(value) as SegmentField
     const op = OPS_BY_FIELD[field][0] ?? 'eq'
-    onChange({ field, op, value: field === 'marketing' ? 'true' : '' })
+    onChange({ field, op, value: isFlagField(field) ? 'true' : '' })
   }
 
   const handleOp = (value: unknown) => {
@@ -60,6 +69,7 @@ export default function ConditionRow({ condition, fields, onChange, onRemove }: 
   const ops = OPS_BY_FIELD[condition.field]
   const fieldItems = fields.map((f) => ({ value: f, label: copy.fields[f] ?? f }))
   const opItems = ops.map((o) => ({ value: o, label: copy.ops[o] ?? o }))
+  const flagItems = condition.field === 'business' ? businessItems : marketingItems
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -106,17 +116,17 @@ export default function ConditionRow({ condition, fields, onChange, onRemove }: 
             ))}
           </SelectContent>
         </Select>
-      ) : condition.field === 'marketing' ? (
+      ) : isFlagField(condition.field) ? (
         <Select
-          items={marketingItems}
+          items={flagItems}
           value={condition.value || 'true'}
           onValueChange={(v) => handleValue(String(v ?? 'true'))}
         >
-          <SelectTrigger className="w-44" aria-label={copy.fields.marketing}>
+          <SelectTrigger className="w-52" aria-label={copy.fields[condition.field]}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {marketingItems.map((m) => (
+            {flagItems.map((m) => (
               <SelectItem key={m.value} value={m.value}>
                 {m.label}
               </SelectItem>

@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   NotificationRegistry,
+  PLATFORM_TEMPLATE_IDS,
   renderEmail,
   renderWhatsapp,
+  sampleTemplateDataByTemplate,
   TEMPLATE_IDS,
   TEMPLATE_NAMES,
 } from '../src'
@@ -29,6 +31,40 @@ describe('templates', () => {
     expect(e.text).toContain('Maboroshi mousepad x1, ')
     expect(e.html).toContain('Maboroshi mousepad')
     expect(renderWhatsapp('order_placed', sampleTemplateData).text).toContain('#42')
+  })
+
+  it('an order from two warehouses lists its parcels with dates; one parcel lists none', async () => {
+    const parcels = [
+      {
+        from: 'Gurugram, Haryana',
+        items: [{ title: 'Maboroshi mousepad', quantity: 1 }],
+        dateRange: 'Tue, 13 Oct - Wed, 14 Oct',
+        onHold: false,
+      },
+      {
+        from: 'New Delhi, Delhi',
+        items: [{ title: 'Hitscan Hyperlight / Black', quantity: 2 }],
+        dateRange: null,
+        onHold: true,
+      },
+    ]
+    const split = await renderEmail('order_placed', { ...sampleTemplateData, parcels })
+    expect(split.text).toContain('Ships in 2 parcels:')
+    expect(split.text).toContain(
+      'Parcel 1 from Gurugram, Haryana (Arrives Tue, 13 Oct - Wed, 14 Oct)',
+    )
+    expect(split.text).toContain(
+      'Parcel 2 from New Delhi, Delhi (Pre-order: ships when it arrives)',
+    )
+    expect(split.text).toContain('- 2 × Hitscan Hyperlight / Black')
+    expect(split.html).toContain('Ships in 2 parcels')
+    expect(split.html).toContain('Parcel 2 from New Delhi, Delhi')
+    const single = await renderEmail('order_placed', {
+      ...sampleTemplateData,
+      parcels: parcels.slice(0, 1),
+    })
+    expect(single.text).not.toContain('Ships in')
+    expect(single.html).not.toContain('Ships in')
   })
 
   it('return messages name the return and say where the money went', async () => {
@@ -92,6 +128,63 @@ describe('templates', () => {
     })
     expect(e.html).toContain('CGST')
     expect(e.html).toContain('SGST')
+  })
+
+  it('staff_invite names the store, platform, inviter and role, with an accept button', async () => {
+    const data = sampleTemplateDataByTemplate.staff_invite
+    const e = await renderEmail('staff_invite', data)
+    expect(e.subject).toBe("You're invited to manage Waimers on Koomerce")
+    expect(e.text).toContain('owner@waimers.example invited you to help run Waimers as Staff.')
+    expect(e.text).toContain('https://admin.koomerce.app/accept-invitation/sample')
+    expect(e.text).toContain('expires in 2 days')
+    expect(e.text).not.toContain('Items:')
+    expect(e.html).toContain('Team invitation')
+    expect(e.html).toContain('Accept invitation')
+    expect(e.html).toContain('href="https://admin.koomerce.app/accept-invitation/sample"')
+    expect(e.html).not.toContain('Maboroshi')
+  })
+
+  it('staff_invite reads well without a role and escapes the store name', async () => {
+    const e = await renderEmail('staff_invite', {
+      ...sampleTemplateDataByTemplate.staff_invite,
+      storeName: '<i>Shop</i>',
+      staffInvite: { inviterEmail: 'a@b.example', platformName: 'Koomerce' },
+    })
+    expect(e.text).toContain('a@b.example invited you to help run <i>Shop</i>. Accept')
+    expect(e.html).not.toContain('<i>Shop</i>')
+    expect(e.html).toContain('&lt;i&gt;Shop&lt;/i&gt;')
+  })
+
+  it('purchase_order names the order, lists its lines in the order currency and the merchant note', async () => {
+    const data = sampleTemplateDataByTemplate.purchase_order
+    const e = await renderEmail('purchase_order', data)
+    expect(e.subject).toBe('Waimers: purchase order PO7')
+    expect(e.text).toContain('Hello Shenzhen Pads')
+    expect(e.text).toContain('Please find purchase order PO7 from Waimers attached (USD 1,240.00).')
+    expect(e.text).toContain('We expect it to arrive by 15 Nov 2026.')
+    expect(e.text).toContain('Wireless pad / Black x100, USD 840.00')
+    expect(e.text).toContain('Please pack the sleeves separately. Please confirm the order')
+    expect(e.text).not.toContain('View your order')
+    expect(e.html).toContain('Purchase order PO7')
+    expect(e.html).not.toContain('Maboroshi')
+    expect(PLATFORM_TEMPLATE_IDS).not.toContain('purchase_order')
+  })
+
+  it('purchase_order reads well with no note and no arrival date', async () => {
+    const data = sampleTemplateDataByTemplate.purchase_order
+    const e = await renderEmail('purchase_order', {
+      ...data,
+      purchaseOrder: { numberLabel: 'PO8', supplierName: '' },
+    })
+    expect(e.text).toContain('Hello there')
+    expect(e.text).toContain('attached (USD 1,240.00).\n')
+    expect(e.text).not.toContain('expect it to arrive')
+    expect(e.text).toContain('\nPlease confirm the order')
+  })
+
+  it('keeps platform templates out of the store message list', () => {
+    expect(PLATFORM_TEMPLATE_IDS).toContain('staff_invite')
+    expect(TEMPLATE_IDS).toContain('staff_invite')
   })
 
   it('renders the one-time code for login_code', async () => {

@@ -1,5 +1,4 @@
-import { loadEnv } from '@commerce/config'
-import { Palette } from '@commerce/ui/icons'
+import { Eye, Palette } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -16,6 +15,8 @@ import { themeImportContent } from '@/data/theme-import'
 import { themesContent } from '@/data/themes'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { getCopy } from '@/lib/copy-server'
+import { routes } from '@/lib/routes'
+import { storefrontOrigin } from '@/lib/storefront-origin'
 
 type Props = { params: Promise<{ id: string }> }
 
@@ -34,14 +35,14 @@ export default async function Page({ params }: Props) {
     return <SectionEmpty {...themesContent.unavailable} body={copy.notFound} icon={Palette} />
   }
   const { report } = found
-  const origin = new URL(loadEnv(process.env).STOREFRONT_URL).origin
+  const origin = await storefrontOrigin()
 
   return (
     <PageBody>
       <PageHeader
         title={copy.title}
         subtitle={copy.subtitle(theme.name, found.fileName)}
-        breadcrumbs={[{ label: copy.back, href: '/online-store/themes' }, { label: theme.name }]}
+        back={{ label: copy.back, href: routes.onlineStore.themes() }}
         actions={
           <>
             <Button
@@ -51,12 +52,14 @@ export default async function Page({ params }: Props) {
                 <a href={previewUrl(origin, theme.previewToken)} target="_blank" rel="noreferrer" />
               }
             >
+              <Eye aria-hidden="true" />
               {copy.preview}
             </Button>
             <Button
               nativeButton={false}
-              render={<Link href={`/online-store/themes/${theme.id}/editor`} />}
+              render={<Link href={routes.onlineStore.themeEditor(theme.id)} />}
             >
+              <Palette aria-hidden="true" />
               {copy.customize}
             </Button>
           </>

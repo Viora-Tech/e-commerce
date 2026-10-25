@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   articleExcerpt,
   displayStatus,
+  excerptText,
   isArticleVisible,
   normaliseTags,
   readingMinutes,
@@ -37,11 +38,20 @@ describe('richTextToText', () => {
     expect(richTextToText('  plain words  ')).toBe('plain words')
     expect(richTextToText(null)).toBe('')
   })
+
+  it('reads an imported HTML body as words, one block a line', () => {
+    expect(
+      richTextToText(
+        '<h2>Start with your hand</h2>\n<p>Almost every mouse &amp; pad tracks&nbsp;well.</p>',
+      ),
+    ).toBe('Start with your hand\nAlmost every mouse & pad tracks well.')
+  })
 })
 
 describe('articleExcerpt', () => {
   it('prefers the merchant excerpt', () => {
     expect(articleExcerpt('  Hand written.  ', doc('Body text'))).toBe('Hand written.')
+    expect(articleExcerpt('<p>Hand <b>written</b>.</p>', doc('Body text'))).toBe('Hand written.')
   })
 
   it('falls back to the body, cut at a word boundary with an ellipsis', () => {
@@ -54,6 +64,31 @@ describe('articleExcerpt', () => {
 
   it('returns short bodies whole', () => {
     expect(articleExcerpt('', doc('Short post.'))).toBe('Short post.')
+  })
+
+  it('reads HTML typed into the editor as text, never showing its tags', () => {
+    const pasted = doc(
+      '<h2>Start with your hand, not the spec sheet</h2>',
+      '<p>Almost every gaming mouse sold today tracks better than any human can aim.</p>',
+    )
+    expect(articleExcerpt(null, pasted)).toBe(
+      'Start with your hand, not the spec sheet ' +
+        'Almost every gaming mouse sold today tracks better than any human can aim.',
+    )
+    expect(articleExcerpt('<h2>Saved &amp; tagged</h2>', doc('Body'))).toBe('Saved & tagged')
+  })
+
+  it('keeps a lone angle bracket in prose', () => {
+    expect(articleExcerpt(null, doc('Latency < 1 ms > the rest'))).toBe('Latency < 1 ms > the rest')
+  })
+})
+
+describe('excerptText', () => {
+  it('is the excerpt as plain text on one line, or empty', () => {
+    expect(excerptText('<p>One</p>\n<p>Two</p>')).toBe('One Two')
+    expect(excerptText(JSON.stringify(doc('<b>Bold</b> claim')))).toBe('Bold claim')
+    expect(excerptText(null)).toBe('')
+    expect(excerptText('   ')).toBe('')
   })
 })
 

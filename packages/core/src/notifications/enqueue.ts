@@ -1,4 +1,4 @@
-import type { TemplateId } from '@commerce/notifications'
+import type { CustomMessage, TemplateId } from '@commerce/notifications'
 
 /** BullMQ queue name. Braces keep every key on one Dragonfly/Redis slot. */
 export const NOTIFICATIONS_QUEUE = '{notifications}-send'
@@ -18,8 +18,20 @@ export type NotificationJob = {
   returnId?: string | undefined
   /** For refund_issued: which refund the message reports. */
   refundId?: string | undefined
+  /** A hand-sent message's edited subject and note. */
+  custom?: CustomMessage | undefined
   /** For newsletter_confirm: the pending `newsletter_signup`. */
   signupId?: string | undefined
+  /** For contact_message: the `contact_message` row (Forms app). */
+  contactMessageId?: string | undefined
+  /** For review_reply: the `review` the store answered (Reviews app). */
+  reviewId?: string | undefined
+  /** For affiliate_update: the affiliate it goes to and what happened (Affiliates app). */
+  affiliateId?: string | undefined
+  affiliateNotice?: 'approved' | 'sale' | 'payout' | 'rejected' | undefined
+  /** The commission (`sale`) or payout (`payout`) the message reports. */
+  commissionId?: string | undefined
+  payoutId?: string | undefined
 }
 
 /**
@@ -38,8 +50,9 @@ export type NotificationQueue = {
   ): Promise<unknown>
 }
 
+// BullMQ allows ':' in a custom id only as exactly three parts: the key joins the third.
 export const notificationJobId = (job: NotificationJob): string =>
-  `${job.storeId}:${job.orderId}:${job.template}${job.key ? `:${job.key}` : ''}`
+  `${job.storeId}:${job.orderId}:${job.template}${job.key ? `-${job.key}` : ''}`
 
 /**
  * Queue one order event. The job id makes a repeat call for the same order and

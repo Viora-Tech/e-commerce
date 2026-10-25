@@ -1,35 +1,47 @@
 'use client'
 
-import type { ProductStatus } from '@commerce/core/catalog'
-import { Download, ExternalLink, Plus, SquarePlus, Upload } from '@commerce/ui/icons'
+import { siteConfig } from '@commerce/config/site'
+import { type ProductStatus, STOCK_FILTERS } from '@commerce/core/catalog'
+import { Download, Plus, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import KitListPage from '@/components/kit/kit-list-page'
-import PillTabs from '@/components/layout/pill-tabs'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
+import ProoflyListPage from '@/components/layout/proofly-list-page'
 import BulkTagDialog from '@/components/products/bulk-tag-dialog'
 import BulkWriteBanner from '@/components/products/bulk-write/bulk-write-banner'
-import BulkWriteSheet from '@/components/products/bulk-write/bulk-write-sheet'
-import ConfirmBulkDelete from '@/components/products/confirm-bulk-delete'
 import { downloadProductCsv } from '@/components/products/export-products'
 import ImportDialog from '@/components/products/import-dialog'
 import ProductBulkActions from '@/components/products/product-bulk-actions'
 import { productColumns } from '@/components/products/product-columns'
-import ProductFilters, { type StockFilter } from '@/components/products/product-filters'
-import ResourceTable, { type AppliedFilter } from '@/components/table/resource-table'
-import RowIconCells from '@/components/table/row-icon-cells'
-import { PRODUCT_STATUSES, productsListContent } from '@/data/products'
+import ProductRowMenu from '@/components/products/product-row-menu'
+import ProductTiles from '@/components/products/product-tiles'
+import {
+  appliedFromGroups,
+  clearGroups,
+  FILTER_PANEL_CLASS,
+  type FilterGroup,
+  FilterPanel,
+  facetOptions,
+} from '@/components/table/filter-panel'
+import ResourceTable from '@/components/table/resource-table'
+import ViewSelect from '@/components/table/view-select'
+import { filterPanelContent } from '@/data/filter-panel'
+import { PRODUCT_STATUSES, productsListContent, type StockFilter } from '@/data/products'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { LIST_PER_PAGE, type ListQuery, sameListQuery } from '@/lib/list-query'
+import { type ListQuery, sameListQuery } from '@/lib/list-query'
 import { usePrimaryAction } from '@/lib/primary-action'
+import { routes } from '@/lib/routes'
 
 type ListResult = Awaited<ReturnType<typeof api.products.list>>
 type Facets = Awaited<ReturnType<typeof api.products.facets>>
+type Stats = Awaited<ReturnType<typeof api.products.stats>>
 type BulkAction = Parameters<typeof api.products.bulk>[0]['action']
 type BulkResult = Awaited<ReturnType<typeof api.products.bulk>>
 
@@ -37,14 +49,19 @@ type BulkResult = Awaited<ReturnType<typeof api.products.bulk>>
 export type ProductsInitial = {
   query: ListQuery<ProductStatus>
   result: ListResult
-  allCount: number
+  stats: Stats
   facets: Facets
   /** Bulk "Write with AI" is on for this store and member. */
   aiBulk: boolean
+  /** The store's public origin, for the row menu's "View on store". */
+  storefrontOrigin: string
+  /** The Automations app is installed: "Run automation" on the bulk bar. */
+  automations: boolean
 }
 
 type Query = {
   page: number
+  perPage: number
   query: string
   status: ProductStatus | null
   vendor: string | null
@@ -53,8 +70,7 @@ type Query = {
   stock: StockFilter | null
 }
 
-const PER_PAGE = LIST_PER_PAGE
-const STOCK_FILTERS = ['in', 'out', 'low'] as const
+const DEFAULT_PER_PAGE = siteConfig.ui.rowsPerPage.default
 
 function listInput(q: Query) {
   return {
@@ -74,12 +90,15 @@ function hasFilters(q: Query) {
 function ProductsContent({ initial }: { initial: ProductsInitial }) {
   // Hooks
   const copy = useCopy(productsListContent)
+  const panelCopy = useCopy(filterPanelContent)
   const fmt = useFormat()
-  usePrimaryAction('/products/new')
+  usePrimaryAction(routes.products.new())
+  const router = useRouter()
   const [q, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
       page: parseAsInteger.withDefault(1),
+      perPage: parseAsInteger.withDefault(DEFAULT_PER_PAGE),
       status: parseAsStringLiteral(PRODUCT_STATUSES),
       vendor: parseAsString,
       productType: parseAsString,
@@ -95,21 +114,23 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
   const [tagging, setTagging] = useState<{ ids: string[]; clear: () => void } | null>(null)
   const [deleting, setDeleting] = useState<{ ids: string[]; clear: () => void } | null>(null)
   const [busy, setBusy] = useState(false)
-  const [writing, setWriting] = useState<{ ids: string[] | null; jobId: string | null } | null>(
-    null,
-  )
-  const [aiRefresh, setAiRefresh] = useState(0)
+
+  const hydrated = useRef(false)
 
   useEffect(() => {
     const sameQuery = sameListQuery(
       { page: q.page, query: q.query, status: q.status },
       initial.query,
     )
-    if (sameQuery && !hasFilters(q)) return
+    // The server's first page is used once; after any change (including back to the first
+    // tab) the list is fetched again, so it never keeps another tab's rows.
+    const firstRun = !hydrated.current
+    hydrated.current = true
+    if (firstRun && sameQuery && !hasFilters(q) && q.perPage === DEFAULT_PER_PAGE) return
     let cancelled = false
     setLoading(true)
     api.products
-      .list({ page: q.page, perPage: PER_PAGE, ...listInput(q) })
+      .list({ page: q.page, perPage: q.perPage, ...listInput(q) })
       .then((r) => {
         if (cancelled) return
         setItems(r.items)
@@ -123,7 +144,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
 
   // Helpers
   const refresh = async () => {
-    const r = await api.products.list({ page: q.page, perPage: PER_PAGE, ...listInput(q) })
+    const r = await api.products.list({ page: q.page, perPage: q.perPage, ...listInput(q) })
     setItems(r.items)
     setTotal(r.total)
   }
@@ -179,48 +200,88 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
   }
 
   // Render logic
-  const stockLabel = copy.filters.stockOptions.find((o) => o.value === q.stock)?.label ?? q.stock
-  const applied = [
-    q.vendor && {
+  const { stats } = initial
+  const statusCounts = {
+    active: stats.active,
+    draft: stats.draft,
+    archived: Math.max(0, stats.total - stats.active - stats.draft),
+  }
+  const groups: FilterGroup[] = [
+    {
       key: 'vendor',
-      label: `${copy.filters.vendor}: ${q.vendor}`,
-      onRemove: () => setQ({ vendor: null, page: 1 }),
+      label: copy.filters.vendor,
+      type: 'select',
+      options: facetOptions(initial.facets.vendors),
+      value: q.vendor,
+      onChange: (vendor) => setQ({ vendor, page: 1 }),
+      anyLabel: copy.filters.any,
     },
-    q.productType && {
+    {
       key: 'type',
-      label: `${copy.filters.productType}: ${q.productType}`,
-      onRemove: () => setQ({ productType: null, page: 1 }),
+      label: copy.filters.productType,
+      type: 'select',
+      options: facetOptions(initial.facets.productTypes),
+      value: q.productType,
+      onChange: (productType) => setQ({ productType, page: 1 }),
+      anyLabel: copy.filters.any,
     },
-    q.tag && {
+    {
       key: 'tag',
-      label: `${copy.filters.tag}: ${q.tag}`,
-      onRemove: () => setQ({ tag: null, page: 1 }),
+      label: copy.filters.tag,
+      type: 'select',
+      options: facetOptions(initial.facets.tags),
+      value: q.tag,
+      onChange: (tag) => setQ({ tag, page: 1 }),
+      anyLabel: copy.filters.any,
     },
-    q.stock && {
+    {
       key: 'stock',
-      label: `${copy.filters.stock}: ${stockLabel}`,
-      onRemove: () => setQ({ stock: null, page: 1 }),
+      label: copy.filters.stock,
+      type: 'select',
+      options: copy.filters.stockOptions,
+      value: q.stock,
+      onChange: (next) => setQ({ stock: STOCK_FILTERS.find((s) => s === next) ?? null, page: 1 }),
+      anyLabel: copy.filters.any,
     },
-  ].filter(Boolean) as AppliedFilter[]
+  ]
 
   return (
-    <KitListPage
-      title={copy.heading}
+    <ProoflyListPage
+      title={copy.title}
+      summary={copy.summary(stats.total, stats.lowStock, stats.outOfStock)}
+      stats={
+        <ProductTiles
+          stats={stats}
+          stock={q.stock}
+          status={q.status}
+          onSelect={(patch) =>
+            setQ({
+              stock: null,
+              status: null,
+              vendor: null,
+              productType: null,
+              tag: null,
+              ...patch,
+              page: 1,
+            })
+          }
+        />
+      }
       actions={
         <>
-          <Button variant="outline" size="lg" onClick={handleExport} disabled={busy}>
-            <Download strokeWidth={1.6} />
-            {copy.export}
-          </Button>
-          <Button variant="outline" size="lg" onClick={() => setImporting(true)} disabled={busy}>
+          <Button variant="outline" onClick={() => setImporting(true)} disabled={busy}>
             <Upload strokeWidth={1.6} />
             {copy.import}
+          </Button>
+          <Button variant="outline" onClick={handleExport} disabled={busy}>
+            <Download strokeWidth={1.6} />
+            {copy.export}
           </Button>
           <Tooltip>
             <TooltipTrigger
               render={
-                <Button size="lg" render={<Link href="/products/new" />} nativeButton={false}>
-                  <SquarePlus strokeWidth={1.6} />
+                <Button render={<Link href={routes.products.new()} />} nativeButton={false}>
+                  <Plus strokeWidth={1.6} />
                   {copy.add}
                 </Button>
               }
@@ -234,38 +295,22 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
     >
       {initial.aiBulk ? (
         <BulkWriteBanner
-          refreshKey={aiRefresh}
-          onOpen={(jobId) => setWriting({ ids: null, jobId })}
+          onOpen={(jobId) => router.push(routes.products.bulkWrite({ job: jobId }))}
         />
       ) : null}
       <ResourceTable
         resourceName={copy.resource}
-        columns={productColumns(copy, fmt)}
+        columns={productColumns(copy, fmt, initial.facets.lowStockThreshold)}
         items={items}
         getId={(p) => p.id}
-        href={(p) => `/products/${p.id}`}
-        rowIconCells={{
-          count: 2,
-          render: (p) => (
-            <RowIconCells
-              links={[
-                {
-                  label: copy.row.openNewTab,
-                  icon: ExternalLink,
-                  href: `/products/${p.id}`,
-                  newTab: true,
-                },
-              ]}
-              menu={[
-                { label: copy.row.edit, href: `/products/${p.id}` },
-                {
-                  label: copy.row.inventory,
-                  href: `/products/inventory?query=${encodeURIComponent(p.title)}`,
-                },
-              ]}
-            />
-          ),
-        }}
+        href={(p) => routes.products.detail(p.id)}
+        rowActions={(p) => (
+          <ProductRowMenu
+            product={p}
+            storefrontOrigin={initial.storefrontOrigin}
+            onChanged={() => void refresh()}
+          />
+        )}
         loading={loading}
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
@@ -280,47 +325,59 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
             page: 1,
           })
         }
-        filters={
-          <ProductFilters
-            values={{ vendor: q.vendor, productType: q.productType, tag: q.tag, stock: q.stock }}
-            facets={initial.facets}
-            onChange={(patch) => setQ({ ...patch, page: 1 })}
-            onClear={() =>
-              setQ({ vendor: null, productType: null, tag: null, stock: null, page: 1 })
-            }
+        filters={(close) => (
+          <FilterPanel
+            groups={groups}
+            onClear={() => clearGroups(groups)}
+            footer={{ label: panelCopy.show(total), onDone: close }}
           />
-        }
-        applied={applied}
-        tabs={
-          <PillTabs
+        )}
+        filtersClassName={FILTER_PANEL_CLASS}
+        applied={appliedFromGroups(groups, panelCopy)}
+        views={
+          <ViewSelect
             value={q.status}
             onChange={(status) => setQ({ status, page: 1 })}
-            tabs={[
-              { value: null, label: copy.tabs.all, count: initial.allCount },
-              ...PRODUCT_STATUSES.map((s) => ({ value: s, label: copy.status[s] })),
+            options={[
+              { value: null, label: copy.tabs.all, count: stats.total },
+              ...PRODUCT_STATUSES.map((s) => ({
+                value: s,
+                label: copy.status[s],
+                count: statusCounts[s],
+              })),
             ]}
           />
         }
         page={q.page}
-        perPage={PER_PAGE}
+        perPage={q.perPage}
+        onPerPageChange={(perPage) => setQ({ perPage, page: 1 })}
         total={total}
         onPageChange={(page) => setQ({ page })}
         bulkActions={(ids, clear) => (
           <ProductBulkActions
+            ids={ids}
             busy={busy}
             onStatus={(status) =>
               runBulk(ids, { kind: 'status', status }, clear, (r) => copy.bulk.updated(r.changed))
             }
             onTag={() => setTagging({ ids, clear })}
+            onBulkEdit={() => router.push(routes.products.bulkEdit(ids))}
             onDelete={() => setDeleting({ ids, clear })}
-            onWriteAi={initial.aiBulk ? () => setWriting({ ids, jobId: null }) : undefined}
+            onWriteAi={
+              initial.aiBulk ? () => router.push(routes.products.bulkWrite({ ids })) : undefined
+            }
+            automations={initial.automations}
+            onDone={() => {
+              clear()
+              void refresh()
+            }}
           />
         )}
         empty={{
           heading: copy.empty.heading,
           body: copy.empty.body,
           action: (
-            <Button render={<Link href="/products/new" />} nativeButton={false}>
+            <Button render={<Link href={routes.products.new()} />} nativeButton={false}>
               <Plus />
               {copy.add}
             </Button>
@@ -329,32 +386,23 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
       />
 
       <ImportDialog open={importing} onOpenChange={setImporting} onImported={refresh} />
-      {initial.aiBulk ? (
-        <BulkWriteSheet
-          open={writing !== null}
-          onOpenChange={(open) => {
-            if (open) return
-            setWriting(null)
-            setAiRefresh((n) => n + 1)
-          }}
-          productIds={writing?.ids ?? null}
-          jobId={writing?.jobId ?? null}
-          onApplied={() => void refresh()}
-        />
-      ) : null}
       <BulkTagDialog
         open={tagging !== null}
         onOpenChange={(open) => !open && setTagging(null)}
         onApply={handleApplyTag}
+        count={tagging?.ids.length ?? 0}
       />
-      <ConfirmBulkDelete
-        count={deleting?.ids.length ?? 0}
+      <ConfirmDialog
         open={deleting !== null}
-        busy={busy}
         onOpenChange={(open) => !open && setDeleting(null)}
+        title={copy.bulk.confirmDelete.title(deleting?.ids.length ?? 0)}
+        body={copy.bulk.confirmDelete.body}
+        confirmLabel={copy.bulk.confirmDelete.confirm}
+        cancelLabel={copy.bulk.confirmDelete.cancel}
+        busy={busy}
         onConfirm={handleConfirmDelete}
       />
-    </KitListPage>
+    </ProoflyListPage>
   )
 }
 

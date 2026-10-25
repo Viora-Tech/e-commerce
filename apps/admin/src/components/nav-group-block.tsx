@@ -1,28 +1,25 @@
 'use client'
 
+import { cn } from '@commerce/ui/lib/utils'
 import type { NavItem } from '@/data/navigation'
 import { usePermissions } from '@/hooks/use-permissions'
+import { SIDEBAR_DURATION, SIDEBAR_LABEL } from '@/lib/sidebar-motion'
 import NavSection from './nav-section'
 
 type NavGroupBlockProps = {
-  /** Draw a hairline and the group's name above it (every group after the first). */
-  divided?: boolean
-  /** The group's name: announced to screen readers, and shown small when `divided`. */
+  /** The group's name: announced to screen readers and shown small above its items. */
   label?: string | undefined
   items: NavItem[]
   pathname: string
+  /** Count pills by the row's href. */
+  counts?: Record<string, number> | undefined
 }
 
 /**
- * One logical group of rail entries. Like the Saleor Dashboard sidebar it draws no label:
- * groups are told apart by the gap between them, and each item expands to its sub-pages.
+ * One named group of rail entries (Workspace, Sales channels, Apps, Settings); each item
+ * expands in place to its sub-pages.
  */
-export default function NavGroupBlock({
-  label,
-  items,
-  pathname,
-  divided = false,
-}: NavGroupBlockProps) {
+export default function NavGroupBlock({ label, items, pathname, counts = {} }: NavGroupBlockProps) {
   // Hooks
   const { loading, hasPermission } = usePermissions()
 
@@ -39,14 +36,32 @@ export default function NavGroupBlock({
         }))
   if (visible.length === 0) return null
 
+  /* Figma "Group label": 36px tall (14px above the 12px label, 6px below), 8px in from the rows;
+     rows sit 4px apart (owner asked for more air than Figma's 2px). */
   return (
-    <nav aria-label={label} className={divided ? 'border-border border-t pt-3' : undefined}>
-      {divided && label ? (
-        <p className="text-eyebrow mb-1.5 px-5 group-data-[collapsible=icon]:hidden">{label}</p>
+    <nav
+      aria-label={label}
+      className={`flex flex-col gap-0.5 px-2.5 transition-[padding] group-data-[collapsible=icon]:px-2 ${SIDEBAR_DURATION}`}
+    >
+      {label ? (
+        <p
+          className={cn(
+            'px-2 pt-3.5 pb-1.5 text-xs font-medium text-muted-foreground group-data-[collapsible=icon]:-mb-5',
+            SIDEBAR_LABEL,
+            'transition-[opacity,margin]',
+          )}
+        >
+          {label}
+        </p>
       ) : null}
-      <ul className="flex flex-col gap-0.5 px-3 group-data-[collapsible=icon]:px-2">
+      <ul className="flex flex-col gap-1">
         {visible.map((item) => (
-          <NavSection key={item.href} item={item} pathname={pathname} />
+          <NavSection
+            key={item.href}
+            item={item}
+            pathname={pathname}
+            count={counts[item.href] ?? 0}
+          />
         ))}
       </ul>
     </nav>

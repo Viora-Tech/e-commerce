@@ -1,14 +1,16 @@
 'use client'
 
-import { RefreshCw, X } from '@commerce/ui/icons'
+import { Pencil, RefreshCw, X } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
-import { DragHandle, ROW_STATE_CLASS, SORT_DURATION_MS } from '@commerce/ui/sortable'
+import { DragHandle, ROW_STATE_CLASS } from '@commerce/ui/sortable'
 import { useSortable } from '@dnd-kit/sortable'
 import { AnimatePresence, motion } from 'motion/react'
 import type { MediaTileItem } from '@/components/media/media-tile'
-import { productFormContent } from '@/data/products'
+import { imageEditorContent } from '@/data/image-editor'
+import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
+import { IMAGE_ENTER_MS, IMAGE_GLIDE_SPRING } from '@/hooks/use-image-dnd'
 
 type ProductImageTileProps = {
   item: MediaTileItem
@@ -16,13 +18,15 @@ type ProductImageTileProps = {
   main: boolean
   reduced: boolean
   onEdit: () => void
+  /** Opens the image editor (crop, rotate, adjust); left out for videos. */
+  onEditImage?: (() => void) | undefined
   onRemove: () => void
   onReplace: () => void
 }
 
 /* The shared sortable easing (cubic-bezier(0.25, 1, 0.5, 1)) as a Motion curve. */
 const EASE = [0.25, 1, 0.5, 1] as const
-const LAYOUT = { layout: { duration: SORT_DURATION_MS / 1000, ease: EASE } }
+const LAYOUT = { layout: IMAGE_GLIDE_SPRING }
 
 const BADGE_MOTION = {
   initial: { opacity: 0, y: 4 },
@@ -38,40 +42,32 @@ export function imageName(item: MediaTileItem): string {
 
 /**
  * One image in the product gallery, sortable with @dnd-kit (MIT). The whole tile drags by
- * mouse or touch; the grip is the keyboard handle (space, arrows, space). Tiles hold still
- * while an image is carried (the main image is twice the size, so shuffling them mid-drag
- * would overlap): the tile under it shows a bar on the side the image will land, its own
- * slot turns into a dashed outline, and on drop Motion glides every tile to its new place.
+ * mouse or touch; the grip is the keyboard handle (space, arrows, space). dnd-kit moves
+ * nothing itself (the main image is twice the size, so its strategies would overlap): the
+ * card reorders a preview as the image passes over tiles and Motion glides each tile on a
+ * spring (`useImageDnd`). The carried image's own slot is a dashed outline, its landing place.
  */
 export default function ProductImageTile({
   item,
   main,
   reduced,
   onEdit,
+  onEditImage,
   onRemove,
   onReplace,
 }: ProductImageTileProps) {
   // Hooks
   const { media: copy } = useCopy(productFormContent)
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    setActivatorNodeRef,
-    isDragging,
-    isOver,
-    index,
-    activeIndex,
-  } = useSortable({ id: item.id })
+  const { open: editImage } = useCopy(imageEditorContent)
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, isDragging } = useSortable({
+    id: item.id,
+  })
 
   // Render logic
   const name = imageName(item)
   /* Pointer sensors on the whole tile; the keyboard sensor only on the grip, so space or
      enter on the tile's own buttons never picks the image up. */
   const { onKeyDown: _keys, ...pointer } = listeners ?? {}
-  const target = isOver && !isDragging && activeIndex !== -1
-  /* Moving back, the image lands before this tile; moving on, after it. */
-  const landsBefore = activeIndex > index
 
   return (
     <motion.li
@@ -79,13 +75,12 @@ export default function ProductImageTile({
       layout={!reduced}
       initial={reduced ? false : { opacity: 0, scale: 0.96 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.18, ease: EASE, ...LAYOUT }}
+      transition={{ duration: IMAGE_ENTER_MS / 1000, ease: EASE, ...LAYOUT }}
       {...pointer}
       className={cn(
-        'group/tile relative aspect-square touch-manipulation overflow-hidden rounded-lg border border-border bg-muted/40',
+        'group/tile relative aspect-square touch-manipulation overflow-hidden rounded-lg border border-border bg-media-tile',
         main && 'col-span-2 row-span-2',
         isDragging ? ROW_STATE_CLASS.placeholder : 'cursor-grab',
-        target && 'ring-2 ring-primary ring-offset-2 ring-offset-card',
       )}
     >
       <div className="size-full">
@@ -104,20 +99,6 @@ export default function ProductImageTile({
           />
         </button>
       </div>
-      {target ? (
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 bg-primary-soft/50"
-        >
-          <span
-            className={cn(
-              'absolute inset-y-2 w-1 rounded-full bg-primary',
-              landsBefore ? 'left-1' : 'right-1',
-            )}
-          />
-        </span>
-      ) : null}
-
       <DragHandle
         ref={setActivatorNodeRef}
         label={copy.sort.handle(name)}
@@ -125,6 +106,16 @@ export default function ProductImageTile({
         {...listeners}
         className="absolute top-1.5 left-1.5 size-7 border border-border bg-card/95 shadow-card transition-opacity duration-150 focus-visible:opacity-100 motion-reduce:transition-none pointer-fine:opacity-0 pointer-fine:group-hover/tile:opacity-100"
       />
+      {onEditImage ? (
+        <button
+          type="button"
+          onClick={onEditImage}
+          aria-label={editImage(name)}
+          className="absolute top-1.5 right-10 flex size-7 items-center justify-center rounded-md border border-border bg-card/95 text-muted-foreground shadow-card transition-[color,opacity] duration-150 hover:text-foreground focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-ring motion-reduce:transition-none pointer-fine:opacity-0 pointer-fine:group-hover/tile:opacity-100"
+        >
+          <Pencil className="size-3.5" aria-hidden="true" />
+        </button>
+      ) : null}
       <button
         type="button"
         onClick={onRemove}
@@ -150,7 +141,7 @@ export default function ProductImageTile({
           variant="outline"
           size="sm"
           onClick={onReplace}
-          className="absolute right-2 bottom-2"
+          className="absolute right-2 bottom-2 bg-card/95 shadow-card hover:bg-card"
         >
           <RefreshCw aria-hidden="true" />
           {copy.replace}

@@ -1,0 +1,165 @@
+---
+title: Move your store from Shopify
+description: What the Shopify importer brings over (products to gift cards), how the preview and report read, what stays in Shopify and why, and the Shopify scopes to give the app.
+---
+
+# Move your store from Shopify
+
+The **Shopify importer** app (Apps → Shopify importer) copies your Shopify store into this one.
+It only reads from Shopify; nothing there changes. Every import is previewed first, and running
+it again updates what it brought over before instead of making copies.
+
+## What comes over
+
+| In Shopify | Here | Notes |
+| --- | --- | --- |
+| Products, variants, stock, images | Products | Images are copied and optimised. |
+| Collections (manual and smart) | Collections | Smart rules we cannot express become a manual collection with its current products. |
+| Customers | Customers | Matched by email, then phone. |
+| Orders | Orders | Read-only history: no stock change, no messages, no invoices. |
+| Pages, blog posts, menus, URL redirects | Pages, Blog, Navigation, Redirects | |
+| **Files** (Content → Files) | **Files** | Pictures (up to 50 MB) and mp4 videos (up to 1 GB). |
+| **Metaobjects** | **Content types** and their **entries** | Links between entries, to products, collections and files are kept. |
+| **Metafields** on products and collections | **Extra fields** | Each Shopify field becomes an extra field of the matching type. |
+| **Discounts** | **Discounts** | Code and automatic discounts our discount model can express. |
+| **Gift cards** | **Gift cards** | Balances, with a **new code** (see below). |
+
+## Run an import
+
+1. Open **Apps → Shopify importer → Connect store**. If you see **Install the Koomerce app**,
+   type your store address (`your-store.myshopify.com`), press **Install**, and approve the app
+   on Shopify: you come back connected, with every scope below already given. Otherwise connect
+   your own Shopify app (see [Apps](/merchant-guide/apps/app-store#connect-your-shopify-store)).
+2. Press **Test connection**. Any scope listed under **Missing** has to be added to the app in
+   Shopify first (list below).
+3. Under **What to import**, tick what you want. Everything is ticked to start with.
+4. Press **Preview import**. Nothing is written yet. The preview shows how many of each thing
+   would be new or updated, a few samples, **What stays in Shopify** and a list of problems.
+5. Press **Import now**. You can leave the page; the import keeps going.
+
+**Import within a day of the preview and it goes faster.** The import reuses what the preview
+already read from Shopify (products, collections, customers, orders, pages, blog posts and
+files) and only asks Shopify for what changed since. The run page says so: "Using the preview
+from … + 3 changes since". Stock is always read fresh. After a day, or for menus, redirects,
+content types, extra fields, discounts and gift cards, the import reads Shopify again.
+
+Run it again any time (**Run again**): records it brought over before are updated, never
+duplicated.
+
+**Before you import.** Under "What to import" a card lists anything that isn't set up yet,
+with a **Fix this** button: no file storage connected (connect Cloudflare R2 or Amazon S3, or
+images are skipped), a Shopify access the app is missing (that one thing can't be ticked
+until you add it), or orders chosen without products. You can still preview with warnings.
+
+**See what is left.** The importer's first page lists every type with Shopify's count, how
+many are here, and what is still missing, with a button on each row (**Import 3**, **Copy
+images**, **Copy files**) and **Import remaining** for all of it. Only the missing records are
+brought over; everything already here is left alone. On an import's page, problems are grouped
+by cause ("1,400 images and files not copied: file storage isn't working") with one fix each.
+A row only says **Done** when Shopify's number is known and everything is here. If it is not
+known yet, the row says **Not checked yet** with a **Run a preview** button. **Product images**
+always has its own row: how many images your Shopify products have, how many are on your
+products here, and **Copy images** for the rest (each picture is downloaded once, never twice).
+
+**Stop an import.** While an import is waiting or running, press **Stop import**. What's
+already imported stays; the page says who stopped it and when. Bring in the rest later with
+**Run again**, **Retry**, or **Import remaining**.
+
+**Retry only what was missed.** When an import finishes with problems, press **Retry the 12
+that were missed**: only those records, images or files are brought over again; everything
+that already worked is left alone. **Import everything again** still runs the whole import.
+
+If an import ever stops on its own (the server restarted mid-way), the page says **The import
+stopped unexpectedly** and offers **Try again**. Trying again is safe: it runs again without
+duplicating anything.
+
+An image or file that Shopify is slow to send is tried three times; if it still does not come
+through, the import carries on without it and lists it as a problem, so **Retry the ones that
+were missed** can bring it over later. If nothing at all moves for 10 minutes, the import stops
+with **The import stopped moving** and offers **Try again**.
+
+## What stays in Shopify
+
+The run page has a card called **What stays in Shopify**. It lists, in plain words and with a
+count, everything that did not come over or arrived changed. The problems list below it names
+each record. What you can see there:
+
+- **Extra fields on other things.** Extra fields here are on products and collections only for
+  now. Values on variants, customers, orders, pages, blog posts and your shop are counted
+  ("40 extra field values on customers") and stay in Shopify.
+- **Field types with no match.** Money, rating, measurements (weight, volume, size), JSON, and
+  links to variants, pages or customers. The field and its values stay in Shopify. Colours and
+  IDs come over as text; date and time fields keep the date; link fields keep the web address.
+- **Files we cannot hold yet.** PDFs and other documents (download them from Shopify), YouTube
+  or Vimeo links (add them to a section by their link), 3D models, and videos over 1 GB.
+- **Discounts our model cannot express.** Buy X get Y, discounts made by Shopify apps, discounts
+  for chosen customers or segments, a minimum number of items, single variants, an amount off
+  each item, free shipping limited by country or shipping price, and codes with characters other
+  than letters, numbers and hyphens. A Shopify discount with several codes becomes one discount
+  per code here. A minimum purchase amount here counts the whole cart, not only the items the
+  discount applies to.
+- **Gift cards**, explained next.
+
+## Gift cards get a new code
+
+Shopify never shares a gift card's full code with other apps, only its last four characters.
+So a card cannot keep its old code here. What the importer does instead:
+
+- A card with a balance, still active and with a customer gets a **new code** holding the same
+  balance and linked to that customer. Its staff note says which Shopify card it replaced
+  ("ending ab12"). The new code is **not** sent automatically: open the card under
+  **Products → Gift cards** and press **Resend** to email it to the customer when you are ready.
+- A card with a balance but **no customer** stays in Shopify (no one to give a new code to). The
+  report lists it by its last characters and balance; it keeps working on Shopify.
+- Used-up, disabled and expired cards stay in Shopify.
+
+Running the import again moves each card's balance to match Shopify, unless the card has already
+been spent in this store; then its balance here is kept.
+
+## Store settings
+
+**Apps › Shopify importer › Store settings** brings your store's setup over, not just its
+catalogue. Press **Check Shopify** to see, part by part, exactly what would change; tick the
+parts you want and press **Import**. Nothing changes before that, and running it again is safe:
+anything already here shows as matching.
+
+| Part | What comes over | What you set up by hand |
+| --- | --- | --- |
+| Store details | Store name, contact email and phone, business address; the default location gets the address if it has none | Currency, time zone and weight unit are compared and noted, never changed |
+| Tax and GST | Whether prices include tax; your GST number if an app saved it on your Shopify store | A GST number already here is never replaced (shown as *Kept yours*). Shopify does not share its own GST setting with apps |
+| Locations | Each location's name, address and PIN code, matched by name. Your first location takes the name of Shopify's first shipping location | New locations hold no stock and do not sell online until you turn that on. App-run locations (fulfilment services) are skipped |
+| Shipping | Zones and rates from your general shipping profile: flat, by order value, by weight, free over an amount | Carrier-calculated rates, rates using value and weight at once, zones outside India, product-specific profiles and in-store pickup |
+| Packages | Nothing: Shopify does not share saved packages with apps | Add your box sizes in **Settings › Shipping** |
+| Policies | Refund, privacy, terms of service, shipping and contact policies, with scripts and styling removed | Pictures inside a policy, legal notice, terms of sale and subscription policies |
+| Extra fields | Definitions on products, variants, collections, customers and orders whose type exists here | Types with no match (money, rating, JSON…); a field that already exists here as another type keeps yours |
+
+## The Koomerce app on Shopify
+
+**Install the Koomerce app** is the one-click way in. The app only reads your Shopify store; it
+never changes anything there. Its access refreshes itself, so you do not need to reconnect.
+
+- To disconnect, press **Disconnect** on the Connect page, or remove the app in Shopify
+  (**Settings → Apps**). Removing it in Shopify disconnects it here too, within a minute.
+- What you already imported stays: it is your store's data now.
+- Shopify asks the app's maker, not you, to approve access to customer details and orders older
+  than 60 days, so those work as soon as the app is installed.
+
+## Shopify scopes to give the app
+
+If you connect your own app instead, give it these read scopes in the Shopify Dev Dashboard:
+
+`read_products`, `read_inventory`, `read_customers`, `read_orders`, `read_all_orders`,
+`read_content`, `read_online_store_navigation`, `read_files`, `read_metaobject_definitions`,
+`read_metaobjects`, `read_discounts`, `read_gift_cards`, `read_shipping`, `read_legal_policies`,
+`read_purchase_options`.
+
+`read_purchase_options` brings pre-orders over: products Shopify sells through a pre-order
+purchase option (a selling plan named like "Pre-order") arrive with pre-order switched on.
+Without it the products still import, and the run says pre-orders were left out.
+
+The last two are for **Store settings** (shipping rates and policies). An app connected before
+they were added keeps working: add them in the Dev Dashboard, release a new version, then press
+**Reconnect** on the part that asks for them.
+
+If Shopify refuses one (for example gift cards on some plans), the import still brings over
+everything else and the problems list says which scope to add.

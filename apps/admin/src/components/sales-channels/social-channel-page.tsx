@@ -1,0 +1,351 @@
+'use client'
+
+import type { SocialOverview } from '@commerce/core'
+import {
+  isLive,
+  META_CHANNELS,
+  type MetaChannel,
+  needsReconnect,
+  type ReadinessIssue,
+  type ReadinessRule,
+  type SocialChannel,
+} from '@commerce/core/sales-channels'
+import { PlugConnect } from '@commerce/ui/icons'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
+import KitButton from '@/components/kit/kit-button'
+import ChartCard from '@/components/layout/chart-card'
+import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
+import KeyValueList from '@/components/layout/key-value-list'
+import PageBody from '@/components/layout/page-body'
+import PageHeader from '@/components/layout/page-header'
+import PillTabs from '@/components/layout/pill-tabs'
+import StatStrip from '@/components/layout/stat-strip'
+import { salesChannelsContent } from '@/data/sales-channels'
+import { useCopy, useFormat } from '@/hooks/use-copy'
+import { api } from '@/lib/api-client'
+import { chipStatus } from '@/lib/channel-status'
+import { routes } from '@/lib/routes'
+import { percent } from '@/lib/stats'
+import ChannelBar from './channel-bar'
+import ChannelLogo from './channel-logo'
+import ChannelOrdersCard from './channel-orders-card'
+import ChannelStatusChip from './channel-status-chip'
+import ConnectSocialDialog from './connect-social-dialog'
+import IssueRow from './issue-row'
+import ManageChannelDialog from './manage-channel-dialog'
+import MetaConnectionCard from './meta-connection-card'
+import RequestDialog from './request-dialog'
+
+type SocialChannelPageProps = {
+  data: SocialOverview & { connectNow: boolean }
+  issues: ReadinessIssue[]
+}
+
+/** What each partner rejects a product for, so "Before you connect" lists only those. */
+const CHANNEL_RULES: Record<SocialChannel, readonly ReadinessRule[]> = {
+  instagram: ['no_images', 'no_description', 'no_category', 'no_refund_policy'],
+  facebook: ['no_images', 'no_description', 'no_category', 'no_refund_policy'],
+  whatsapp: ['no_images', 'no_description'],
+  google: [
+    'no_identifier',
+    'no_images',
+    'no_description',
+    'no_category',
+    'no_refund_policy',
+    'no_shipping_policy',
+  ],
+}
+const SHOWN_ISSUES = 6
+const SYNC_POLL_MS = 3000
+const isSyncing = (status: string) => status === 'syncing' || status === 'first_sync'
+
+/** Figma "Instagram / Facebook / WhatsApp / Google · Overview" and their connect states. */
+export default function SocialChannelPage({ data, issues }: SocialChannelPageProps) {
+  // Hooks
+  const router = useRouter()
+  const copy = useCopy(salesChannelsContent.socialPage)
+  const info = useCopy(salesChannelsContent.social[data.channel])
+  const shared = useCopy(salesChannelsContent)
+  const format = useFormat()
+  const [connecting, setConnecting] = useState(false)
+  const [viewing, setViewing] = useState(false)
+  const [managing, setManaging] = useState(false)
+  const [joining, setJoining] = useState(false)
+  const live = useCopy(salesChannelsContent.live)
+  const params = useSearchParams()
+
+  // Back from Facebook or Google: say how it went once, then drop the flag from the address.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs once per `?connect=` value
+  useEffect(() => {
+    const returned = params.get('connect')
+    if (!returned) return
+    if (returned === 'connected') toast.success(live.returned.connected(info.name))
+    else if (returned === 'failed')
+      toast.error(live.returned.failed(info.name), {
+        description: params.get('reason') ?? undefined,
+      })
+    else toast(live.returned.cancelled)
+    // Drop only the flag: the Meta page keeps its `?surface=` tab.
+    const url = new URL(window.location.href)
+    url.searchParams.delete('connect')
+    url.searchParams.delete('reason')
+    router.replace(`${url.pathname}${url.search}`)
+  }, [params])
+
+  // While a sync runs in the worker, re-read the page so the bar moves to "Catalog shared" by itself.
+  useEffect(() => {
+    if (!isSyncing(data.state.status)) return
+    const id = setInterval(() => router.refresh(), SYNC_POLL_MS)
+    return () => clearInterval(id)
+  }, [data.state.status, router])
+
+  // Event handlers
+  const handleSurface = (c: MetaChannel) => router.push(routes.salesChannels.socialChannel(c))
+
+  /** Another Meta surface is on: join its sign-in and catalog, no second Facebook login. */
+  const handleJoinMeta = async () => {
+    setJoining(true)
+    try {
+      const r = await api.salesChannels.connect({
+        channel: data.channel,
+        shares: ['catalog', 'prices'],
+        account: null,
+        catalog: 'all',
+      })
+      if (r.kind === 'redirect') return window.location.assign(r.url)
+      toast.success(copy.meta.joined(info.name))
+      router.refresh()
+    } catch {
+      toast.error(copy.meta.failed)
+    } finally {
+      setJoining(false)
+    }
+  }
+
+  // Render logic
+  const { channel, state, totals } = data
+  const requested = state.status === 'requested'
+  const rules = CHANNEL_RULES[channel]
+  const blocking = issues.filter((i) => rules.includes(i.rule))
+  const name = info.name
+  const aov = totals.orders > 0 ? Math.round(totals.revenuePaise / totals.orders) : 0
+  // Another Meta surface is on: this one joins that sign-in and catalog in one click.
+  const joinsMeta = data.meta.some(
+    (s) => s.channel !== channel && isLive(s.state) && s.state.status !== 'disconnected',
+  )
+
+  return (
+    <PageBody className="gap-6 md:pt-5 md:pb-8">
+      <PageHeader
+        title={name}
+        subtitle={info.blurb}
+        lead={{
+          kind: 'logo',
+          node: <ChannelLogo channel={channel} size="lg" className="border-0 shadow-none" />,
+        }}
+        badges={<ChannelStatusChip status={chipStatus(state)} />}
+        actions={
+          requested ? (
+            <KitButton variant="secondary" onClick={() => setViewing(true)}>
+              {shared.card.viewRequest}
+            </KitButton>
+          ) : needsReconnect(state) ? (
+            <KitButton onClick={() => setConnecting(true)}>{shared.bar.reconnect}</KitButton>
+          ) : isLive(state) && state.status !== 'disconnected' ? (
+            <KitButton variant="secondary" onClick={() => setManaging(true)}>
+              {live.manage}
+            </KitButton>
+          ) : joinsMeta ? (
+            <KitButton onClick={handleJoinMeta} disabled={joining}>
+              <PlugConnect />
+              {copy.meta.turnOnCta(name)}
+            </KitButton>
+          ) : (
+            <KitButton onClick={() => setConnecting(true)}>
+              <PlugConnect />
+              {copy.connectCta(name)}
+            </KitButton>
+          )
+        }
+      />
+      {data.meta.length > 0 ? (
+        <nav aria-label={copy.meta.tabsLabel} className="-mt-2 border-b border-border">
+          <PillTabs
+            tabs={META_CHANNELS.map((c) => ({ value: c, label: shared.social[c].name }))}
+            value={channel as MetaChannel}
+            onChange={handleSurface}
+          />
+        </nav>
+      ) : null}
+      <ChannelBar
+        state={state}
+        name={name}
+        onReconnect={() => setConnecting(true)}
+        onWithdraw={() => setViewing(true)}
+      />
+      <StatStrip
+        tiles={[
+          {
+            id: 'live',
+            label: copy.stats.live,
+            value:
+              isLive(state) && state.sync.sent != null
+                ? format.number(state.sync.sent)
+                : shared.card.none,
+            note: copy.stats.liveNote(data.activeProducts),
+          },
+          {
+            id: 'orders',
+            label: copy.stats.orders(name),
+            value: format.number(totals.orders),
+            trend: percent(totals.orders, totals.prevOrders),
+            trendNote: shared.vsLast,
+          },
+          {
+            id: 'revenue',
+            label: copy.stats.revenue(name),
+            value: format.money(totals.revenuePaise),
+            trend: percent(totals.revenuePaise, totals.prevRevenuePaise),
+            trendNote: shared.vsLast,
+          },
+          {
+            id: 'aov',
+            label: copy.stats.aov,
+            value: totals.orders > 0 ? format.money(aov) : shared.card.none,
+            note: shared.period,
+          },
+        ]}
+      />
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
+        <div className="flex flex-col gap-4">
+          <DataCard
+            title={copy.beforeHeading}
+            subtitle={copy.beforeBody(info.partner)}
+            count={blocking.length}
+            flush
+            action={
+              <KitButton variant="linkSm" href={routes.salesChannels.agenticReadiness()}>
+                {shared.readiness.title}
+              </KitButton>
+            }
+          >
+            {blocking.length === 0 ? (
+              <EmptyState variant="plain" size="sm" body={shared.readiness.empty} />
+            ) : (
+              <ul className="divide-y divide-border border-t border-border">
+                {blocking.slice(0, SHOWN_ISSUES).map((i) => (
+                  <IssueRow
+                    key={i.id}
+                    severity={i.severity}
+                    severityLabel={shared.readiness.severity[i.severity]}
+                    title={
+                      i.kind === 'policy'
+                        ? (shared.readiness.policyNames[i.ref] ?? i.title)
+                        : i.title
+                    }
+                    kind={i.kind === 'policy' ? shared.readiness.policy : shared.readiness.product}
+                    detail={
+                      i.rule === 'short_description'
+                        ? shared.readiness.rules.short_description(i.n ?? 0)
+                        : i.rule === 'few_images'
+                          ? shared.readiness.rules.few_images(i.n ?? 0)
+                          : shared.readiness.rules[i.rule]
+                    }
+                    action={
+                      <KitButton
+                        variant="pill"
+                        href={
+                          i.kind === 'policy'
+                            ? routes.settings.policy(i.ref)
+                            : routes.products.detail(i.ref)
+                        }
+                      >
+                        {i.fix === 'ai'
+                          ? shared.readiness.fixes.attributes
+                          : shared.readiness.fixes[i.fix]}
+                      </KitButton>
+                    }
+                  />
+                ))}
+              </ul>
+            )}
+          </DataCard>
+          <ChartCard
+            title={copy.salesHeading(name)}
+            subtitle={copy.salesSub(format.money(totals.revenuePaise))}
+            periods={[
+              {
+                id: '30d',
+                label: copy.thisPeriod,
+                data: data.series.map((p) => ({
+                  label: format.date(p.date),
+                  value: p.paise / 100,
+                })),
+              },
+            ]}
+            seriesLabel={copy.thisPeriod}
+            formatValue={(n) => format.moneyCompact(n * 100)}
+          />
+        </div>
+        <div className="flex flex-col gap-4">
+          {data.meta.length > 0 ? (
+            <MetaConnectionCard channel={channel} surfaces={data.meta} />
+          ) : null}
+          <DataCard title={copy.connection}>
+            <KeyValueList
+              variant="grid"
+              rows={[
+                { label: copy.partner, value: info.partner },
+                { label: copy.account, value: state.account ?? shared.card.none },
+                {
+                  label: copy.requestedOn,
+                  value: state.requestedAt ? format.date(state.requestedAt) : shared.card.none,
+                  hidden: !requested,
+                },
+                {
+                  label: `${copy.checkout} · ${copy.checkoutWhere}`,
+                  value: shared.controls.rows.onStore,
+                },
+              ]}
+            />
+          </DataCard>
+        </div>
+      </div>
+      <ChannelOrdersCard
+        title={copy.recentHeading(name)}
+        empty={copy.recentEmpty(name)}
+        orders={data.recent}
+      />
+      {connecting ? (
+        <ConnectSocialDialog
+          open
+          onOpenChange={setConnecting}
+          channel={channel}
+          activeProducts={data.activeProducts}
+          connectNow={data.connectNow}
+          onRequested={() => router.refresh()}
+        />
+      ) : null}
+      {viewing ? (
+        <RequestDialog
+          open
+          onOpenChange={setViewing}
+          channel={channel}
+          name={name}
+          requestedAt={state.requestedAt}
+          onWithdrawn={() => router.refresh()}
+        />
+      ) : null}
+      <ManageChannelDialog
+        open={managing}
+        onOpenChange={setManaging}
+        channel={channel}
+        name={name}
+        state={state}
+      />
+    </PageBody>
+  )
+}

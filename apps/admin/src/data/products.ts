@@ -1,5 +1,9 @@
 import type { ProductStatus } from '@commerce/core/catalog'
 import { parseRupees } from '@commerce/money'
+import { routes } from '@/lib/routes'
+
+/** Stock levels the product list filters by (`?stock=`); defined once in core. */
+export type { StockFilter } from '@commerce/core/catalog'
 
 export const PRODUCT_STATUSES = ['active', 'draft', 'archived'] as const
 
@@ -18,6 +22,24 @@ export const productsListContent = {
   export: 'Export',
   import: 'Import',
   tabs: { all: 'All products' },
+  summary: (total: number, low: number, out: number) =>
+    [
+      `${total} ${total === 1 ? 'product' : 'products'}`,
+      low > 0 ? `${low} low on stock` : null,
+      out > 0 ? `${out} out of stock` : null,
+    ]
+      .filter(Boolean)
+      .join(' · '),
+  tiles: {
+    total: 'Total products',
+    low: 'Low stock',
+    out: 'Out of stock',
+    draft: 'Draft',
+    totalNote: 'Active, draft and archived',
+    lowNote: '5 or fewer left',
+    outNote: 'Not on sale until restocked',
+    draftNote: 'Hidden until you publish',
+  },
   filters: {
     label: 'Filters',
     vendor: 'Vendor',
@@ -30,7 +52,6 @@ export const productsListContent = {
       { value: 'low', label: 'Low stock' },
       { value: 'out', label: 'Out of stock' },
     ],
-    clear: 'Clear',
   },
   status: { active: 'Active', draft: 'Draft', archived: 'Archived' } satisfies Record<
     ProductStatus,
@@ -44,6 +65,9 @@ export const productsListContent = {
     vendor: 'Vendor',
     price: 'Price',
   },
+  /** The sort menu (Figma "State · Sort open", 626:148698). */
+  sortTitles: { product: 'Product title', type: 'Product type' },
+  sortAlpha: { desc: 'Z to A', asc: 'A to Z', first: 'asc' as const },
   inventory: (available: number, variants: number) =>
     `${available} in stock for ${variants} variant${variants === 1 ? '' : 's'}`,
   inStock: (available: number) => `${available} in stock`,
@@ -54,13 +78,28 @@ export const productsListContent = {
   launching: (date: Date) =>
     `Launching ${date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`,
   bulk: {
+    bulkEdit: 'Bulk edit',
     setActive: 'Set as active',
     setDraft: 'Set as draft',
     archive: 'Archive',
     addTag: 'Add tag',
     delete: 'Delete',
+    exportSelected: 'Export',
+    addToCollection: 'Add to collection',
+    collection: {
+      title: 'Add to collection',
+      label: 'Collection',
+      help: (n: number) =>
+        `The ${n} selected product${n === 1 ? '' : 's'} join this collection. Automatic collections fill themselves, so only manual ones are listed.`,
+      loading: 'Loading collections',
+      none: 'No manual collections yet. Create one under Collections first.',
+      apply: 'Add',
+      cancel: 'Cancel',
+    },
     tagPrompt: 'Tag to add',
     tagPlaceholder: 'summer',
+    tagHelp: (n: number) =>
+      `Added to the ${n} selected product${n === 1 ? '' : 's'}. Their other tags stay.`,
     apply: 'Apply',
     cancel: 'Cancel',
     updated: (n: number) => `${n} product${n === 1 ? '' : 's'} updated`,
@@ -113,314 +152,6 @@ export const productsListContent = {
   },
 } as const
 
-/** Every string the product form shows. Change copy here, never in a component. */
-export const productFormContent = {
-  newTitle: 'Add new product',
-  editTitle: 'Edit product',
-  searchPlaceholder: 'Search product for add',
-  publish: 'Publish product',
-  saveDraft: 'Save to draft',
-  addAnother: 'Start another product',
-  basics: 'Basic details',
-  backLabel: 'Products',
-  preview: 'Preview',
-  saveBar: { message: 'Unsaved changes', save: 'Save', discard: 'Discard' },
-  toasts: {
-    saved: 'Product saved',
-    created: 'Product created',
-    deleted: 'Product deleted',
-    archived: 'Product archived: it has orders, so it was kept for history',
-    failed: 'Save failed',
-  },
-  errors: {
-    title: 'Add a title',
-    variantsBanner: 'Fix the variants before saving',
-    required: 'Required',
-    /** Inline validation from `formErrors` in components/products/form-state.ts. */
-    optionNeedsValue: (option: string) => `Add at least one value to ${option}`,
-    newOption: 'the new option',
-    priceMissing: (variant: string) => `Price is missing for ${variant}`,
-    depositMissing: 'Enter a deposit amount',
-    depositTooHigh: 'The deposit must be less than the price',
-    depositPercent: 'Enter a percentage between 1 and 99',
-  },
-  /** Aria label for the money prefix so screen readers read the currency. */
-  currency: 'Rupees',
-  sectionNav: {
-    label: 'Jump to section',
-    labels: {
-      media: 'Media',
-      details: 'Details',
-      pricing: 'Pricing',
-      inventory: 'Inventory',
-      variants: 'Variants',
-      shipping: 'Shipping',
-      seo: 'Google preview',
-      more: 'More',
-    },
-  },
-  more: {
-    heading: 'More settings',
-    help: 'Pre-order and launch, custom data, theme template and stock history.',
-  },
-  details: {
-    title: 'Title',
-    titlePlaceholder: 'Short sleeve t-shirt',
-    description: 'Description',
-    descriptionPlaceholder: 'Tell shoppers what makes it worth buying.',
-  },
-  media: {
-    heading: 'Media',
-    label: 'Product image',
-    browse: 'Browse',
-    replace: 'Replace',
-    add: 'Add image',
-    remove: (name: string) => `Remove ${name}`,
-    coverAlt: 'Cover image',
-    empty: 'Drop an image here or browse for one.',
-    main: 'Main image',
-    reorderHint: 'Drag to reorder. The first image is the one shoppers see first.',
-    editAlt: (name: string) => `Edit alt text for ${name}`,
-    uploading: (percent: number) => `Uploading ${percent}%`,
-    retry: 'Retry',
-    dismiss: 'Dismiss',
-    dropToUpload: 'Drop to upload',
-    sort: {
-      instructions:
-        'Press space to pick up an image, arrow keys to move it, space again to drop it. The first image is the main image.',
-      handle: (name: string) => `Move ${name}`,
-      picked: (name: string) => `Picked up ${name}`,
-      moved: (name: string, position: number, total: number) =>
-        `${name} moved to position ${position} of ${total}`,
-      dropped: (name: string, position: number, total: number) =>
-        position === 1
-          ? `${name} is now the main image`
-          : `${name} dropped at position ${position} of ${total}`,
-      cancelled: (name: string) => `Move of ${name} cancelled`,
-    },
-  },
-  categories: {
-    heading: 'Organisation',
-    category: 'Category',
-    categoryPlaceholder: 'Search categories, e.g. "Shirts"',
-    categorySearchHint: 'Start typing to search',
-    categoryNoResults: 'No matching category',
-    categoryLoading: 'Loading categories…',
-    categoryClear: 'Clear category',
-    categoryFailed: 'Could not load categories. Click the field to try again.',
-    categoryHelp:
-      'From Shopify’s open standard product taxonomy. Optional, but helps search and marketplaces.',
-    type: 'Product type',
-    typePlaceholder: 'Select a category',
-    tag: 'Product tag',
-    colour: 'Select your colour',
-    colourHelp: 'From the colour option on this product.',
-  },
-  pricing: {
-    heading: 'Pricing',
-    price: 'Product price',
-    currency: 'INR',
-    mrp: 'Compare at price',
-    mrpOptional: '(optional)',
-    /** Trailing figure in the compare-at field, the frame's "Sale=" slot. */
-    saving: (amount: string) => `Save ${amount}`,
-    mrpBelowPrice: 'Keep it above the product price so the saving reads right.',
-    cost: 'Cost per item',
-    costHelp: 'Shoppers never see this.',
-    margin: (pct: string, profit: string) => `Margin ${pct}, profit ${profit}`,
-    taxable: 'Charge tax on this product',
-    taxIncluded: 'Tax included',
-    taxIncludedYes: 'Yes',
-    taxIncludedNo: 'No',
-    taxIncludedHelp:
-      'Yes means the price already carries GST and the split is extracted on the order.',
-    expiration: 'Expiration',
-    expirationStart: 'Start',
-    expirationEnd: 'End',
-    expirationHelp: 'When the compare at price applies. Leave empty to run it always.',
-  },
-  inventory: {
-    heading: 'Inventory',
-    stockQuantity: 'Stock quantity',
-    stockStatus: 'Stock status',
-    unlimited: 'Unlimited',
-    unlimitedValue: 'Unlimited',
-    unlimitedHelp: 'Stock is never counted down for this product.',
-    featured: 'Highlight this product in a featured section.',
-    stockStates: {
-      unlimited: 'Unlimited',
-      inStock: 'In stock',
-      low: 'Low stock',
-      out: 'Out of stock',
-    },
-    sku: 'SKU (Stock Keeping Unit)',
-    barcode: 'Barcode (ISBN, UPC, GTIN)',
-    track: 'Track quantity',
-    quantity: 'Quantity',
-    reason: 'Reason for change',
-    weight: 'Weight (grams)',
-    weightHelp: 'Used for courier rates. Empty means the store default.',
-    reasons: [
-      { label: 'Correction', value: 'correction' },
-      { label: 'Stock received', value: 'received' },
-      { label: 'Damaged', value: 'damaged' },
-      { label: 'Returned', value: 'returned' },
-      { label: 'Sold offline', value: 'sold' },
-      { label: 'Other', value: 'other' },
-    ],
-  },
-  variants: {
-    heading: 'Variants',
-    addOption: 'Add options like size or colour',
-    addAnother: 'Add another option',
-    optionNameSuggestions: ['Size', 'Colour', 'Material'],
-    optionName: 'Option name',
-    optionNamePlaceholder: 'Size',
-    optionValues: 'Option values',
-    optionValuesPlaceholder: 'Type a value and press Enter',
-    optionValuesHelp: 'Press Enter or comma after each value.',
-    optionValueRemove: (value: string) => `Remove ${value}`,
-    optionValueSuggestions: {
-      size: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
-      colour: ['Black', 'White', 'Grey', 'Red', 'Blue', 'Green', 'Yellow', 'Pink', 'Beige'],
-      material: ['Cotton', 'Polyester', 'Linen', 'Wool', 'Silk', 'Leather'],
-    },
-    remove: 'Remove option',
-    done: 'Done',
-    maxOptions: 'Up to 3 options',
-    count: (n: number) => `${n} variant${n === 1 ? '' : 's'}`,
-    columns: { variant: 'Variant', price: 'Price', mrp: 'MRP', sku: 'SKU', available: 'Available' },
-    tooMany: (n: number) =>
-      `${n} variants. Large matrices are slow to edit; consider fewer values.`,
-    autoFillSku: 'Suggest SKUs',
-    autoFillSkuHelp: 'Fills blank SKUs from the product title and variant.',
-    needsValues: 'Add at least one value to each option to build the variants.',
-    confirmRemoveTitle: 'Remove variants that have stock?',
-    confirmRemoveBody: (n: number, units: number) =>
-      `${n} variant${n === 1 ? '' : 's'} holding ${units} unit${units === 1 ? '' : 's'} in stock will be removed. Past orders keep their own record.`,
-    confirmRemoveCancel: 'Keep them',
-    confirmRemoveConfirm: 'Remove anyway',
-  },
-  status: {
-    heading: 'Status',
-    label: 'Status',
-    options: [
-      { label: 'Active', value: 'active' },
-      { label: 'Draft', value: 'draft' },
-      { label: 'Archived', value: 'archived' },
-    ],
-    help: {
-      active: 'Visible on the storefront.',
-      draft: 'Hidden until you publish it.',
-      archived: 'Hidden and kept for order history.',
-    },
-  },
-  organisation: {
-    heading: 'Product organisation',
-    type: 'Product type',
-    vendor: 'Vendor',
-    tags: 'Tags',
-    tagsPlaceholder: 'Add a tag and press Enter',
-    removeTag: (tag: string) => `Remove ${tag}`,
-  },
-  shipping: {
-    heading: 'Shipping',
-    weight: 'Weight (grams)',
-    weightHelp: 'Used for courier rates. Empty means the store default.',
-    hsCode: 'HS (harmonised system) code',
-    hsCodeHelp: 'Used on customs forms and printed on GST invoices.',
-    gstRate: 'GST rate (%)',
-    gstRateHelp: 'Leave blank to use the store rate from Settings, GST & invoices.',
-    country: 'Country of origin',
-    countryHelp: 'Where the product was made or assembled.',
-    countryPlaceholder: 'Select a country',
-    package: 'Package',
-    packageHelp:
-      'The box this product ships in. Shipment booking uses it instead of the store default box.',
-    packageManage: 'Add or edit named boxes in Settings, Shipping & delivery.',
-    packageAllVariants: 'Applies to every variant of this product.',
-    packageStoreDefault: "Use the store's default box",
-    packageCustom: 'Custom size',
-    packageOption: (name: string, l: number, w: number, h: number) =>
-      `${name} (${l} × ${w} × ${h} cm)`,
-    packageIncomplete: 'Enter the length, width and height, or pick a named box.',
-    packageLength: 'Length (cm)',
-    packageWidth: 'Width (cm)',
-    packageHeight: 'Height (cm)',
-    packageVolumetric: (kg: number) => `Volumetric weight ${kg} kg (L × W × H ÷ 5000)`,
-    packageActual: (kg: number) => `actual ${kg} kg`,
-    packageBillingHint: (kg: number) => `couriers bill the higher, ${kg} kg`,
-  },
-  preorder: {
-    heading: 'Pre-order & launch',
-    enable: 'Allow pre-orders on this product',
-    enableHelp: 'Purchasable beyond stock, up to the limit below, while pre-order is on.',
-    shipDate: 'Expected ship date',
-    shipsInDays: 'Or, ships in (days)',
-    shipsInDaysHelp: 'Used when no expected ship date is set.',
-    limit: 'Pre-order quantity limit',
-    limitHelp: 'Leave blank for no limit.',
-    buttonLabel: 'Pre-order button label',
-    paymentMode: 'Payment',
-    paymentModeFull: 'Charge in full',
-    paymentModeFixed: 'Fixed deposit (₹)',
-    paymentModePercentage: 'Percentage deposit (%)',
-    depositAmount: 'Deposit amount',
-    depositPercent: 'Deposit percent',
-    hideUntilLaunch: 'Hide from collections until launch',
-    launchHeading: 'Launch countdown',
-    launchAt: 'Launches at',
-    launchAtHelp: 'Store time (Asia/Kolkata). Leave blank to sell right away.',
-  },
-  history: {
-    heading: 'Stock history',
-    empty: 'No stock movements yet. Changes you make to quantities show up here.',
-    columns: { when: 'When', variant: 'Variant', change: 'Change', reason: 'Reason' },
-    failed: 'Could not load stock history',
-  },
-  duplicate: {
-    action: 'Duplicate',
-    toast: 'Product duplicated',
-    failed: 'Could not duplicate',
-  },
-  unsaved: 'Leave without saving? Your changes will be lost.',
-  variantBulk: {
-    selected: (n: number) => `${n} variant${n === 1 ? '' : 's'} selected`,
-    price: 'Set price',
-    quantity: 'Set quantity',
-    sku: 'SKU prefix',
-    skuHelp: 'A prefix gives each selected variant PREFIX-VALUE SKUs.',
-    apply: 'Apply',
-    clear: 'Clear selection',
-    image: 'Image',
-    chooseImage: 'Choose image',
-    noImage: 'No image',
-    selectAll: 'Select all variants',
-    selectOne: (title: string) => `Select ${title}`,
-  },
-  seo: {
-    heading: 'Google search preview',
-    intro:
-      'How this product can appear in Google results. Optional: we fill it in from the title and description.',
-    edit: 'Edit',
-    title: 'Page title',
-    titleHelp: (n: number) => `${n} of 70 characters used`,
-    description: 'Meta description',
-    descriptionHelp: (n: number) => `${n} of 320 characters used`,
-    handle: 'URL handle',
-    handlePrefix: '/products/',
-    previewLabel: 'Preview',
-    previewHint: 'Add a title and description to see how this product might appear on Google.',
-  },
-  delete: {
-    action: 'Delete product',
-    title: (name: string) => `Delete ${name}?`,
-    body: 'This cannot be undone. Products with orders are archived instead so history stays intact.',
-    confirm: 'Delete',
-    cancel: 'Cancel',
-  },
-} as const
-
 /** Rupees ↔ paise helpers for form fields. */
 export const rupees = {
   toField: (paise: number | null | undefined) => (paise == null ? '' : (paise / 100).toString()),
@@ -432,11 +163,43 @@ export const productsSectionsContent = {
   collections: {
     heading: 'No collections',
     body: 'Group products by category, occasion or campaign so shoppers can browse them together on the storefront.',
-    action: { label: 'View products', href: '/products' },
+    action: { label: 'View products', href: routes.products.list() },
   },
   giftCards: {
     heading: 'No gift cards',
     body: 'Gift cards are prepaid balances shoppers redeem at checkout. Issue them manually or sell them as a product.',
-    action: { label: 'View products', href: '/products' },
+    action: { label: 'View products', href: routes.products.list() },
+  },
+} as const
+
+/** Frames "Product · Banner": the one next step shown above a product's sections. */
+export const productBannerContent = {
+  summary: (state: string, type: string | null, vendor: string | null) =>
+    [state, type, vendor].filter(Boolean).join(' · '),
+  state: {
+    active: 'Live on your shop',
+    draft: 'Draft, not visible to shoppers',
+    archived: 'Archived, hidden from your shop',
+  },
+  low: {
+    heading: (what: string) => `${what} is running low`,
+    body: (left: number, total: number) =>
+      `Only ${left} left of ${total} in total. Reorder before it sells out.`,
+    action: 'Update inventory',
+  },
+  out: {
+    heading: 'This product is out of stock',
+    body: 'Shoppers cannot buy it until you add stock.',
+    action: 'Update inventory',
+  },
+  draft: {
+    heading: 'This product is a draft',
+    body: 'Publish it when it is ready for shoppers.',
+    action: 'Publish product',
+  },
+  archived: {
+    heading: 'This product is archived',
+    body: 'It is hidden from your shop. Set it to active to sell it again.',
+    action: 'Set to active',
   },
 } as const

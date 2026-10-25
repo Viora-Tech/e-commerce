@@ -6,6 +6,7 @@ import {
   customer,
   inventoryAdjustment,
   inventoryLevel,
+  marketingSession,
   order,
   orderLine,
   payment,
@@ -17,6 +18,7 @@ import {
 } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { call } from '@orpc/server'
+import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type { ApiContext } from '../src/context'
 import { appRouter } from '../src/routers/_app'
@@ -33,7 +35,7 @@ const auth = createMerchantAuth({
   },
 })
 
-/** Fixed sessions so conversion maths is checkable without Dragonfly. */
+/** Fixed beacon counts; sessions come from `marketing_session` rows each test seeds. */
 const visitors = {
   live: async () => ({ last30: 4, perMinute: Array.from({ length: 30 }, () => 0) }),
   daily: async (_storeId: string, days: string[]) => ({
@@ -138,6 +140,15 @@ describe('analytics.overview', () => {
         placedAt: daysAgo(12),
       },
     ])
+    // Four visits this week (one visitor came twice) and one in the week before.
+    const visit = { storeId: a.storeId, channel: 'direct' }
+    await owner.insert(marketingSession).values([
+      { ...visit, visitorId: 'v1', startedAt: hoursAgo(1) },
+      { ...visit, visitorId: 'v2', startedAt: daysAgo(1) },
+      { ...visit, visitorId: 'v2', startedAt: daysAgo(1.5) },
+      { ...visit, visitorId: 'v3', startedAt: daysAgo(3) },
+      { ...visit, visitorId: 'v4', startedAt: daysAgo(9) },
+    ])
     await owner.insert(cart).values([
       { storeId: a.storeId, status: 'open', email: 'someone@example.com' },
       { storeId: a.storeId, status: 'open' },
@@ -152,13 +163,20 @@ describe('analytics.overview', () => {
     const kpi = (id: string) => week.kpis.find((k) => k.id === id)
     expect(kpi('orders')?.value).toBe(2)
     expect(kpi('revenue')?.value).toBe(160000)
-    expect(kpi('sessions')?.value).toBe(200)
-    expect(kpi('conversion')?.value).toBeCloseTo(2 / 200)
+    expect(week.kpis.map((k) => k.id).slice(0, 4)).toEqual([
+      'sessions',
+      'revenue',
+      'orders',
+      'conversion',
+    ])
+    expect(kpi('sessions')?.value).toBe(4)
+    expect(kpi('sessions')?.previous).toBe(1)
+    expect(kpi('conversion')?.value).toBeCloseTo(2 / 4)
     expect(kpi('aov')?.value).toBe(80000)
     expect(week.range.days).toHaveLength(7)
 
     const funnel = Object.fromEntries(week.funnel.map((s) => [s.id, s.value]))
-    expect(funnel.sessions).toBe(200)
+    expect(funnel.sessions).toBe(4)
     expect(funnel.carts).toBe(3)
     expect(funnel.checkouts).toBe(2)
     expect(funnel.orders).toBe(2)
@@ -741,6 +759,251 @@ describe('analytics.report', () => {
       lastOrder: istDay(daysAgo(3)),
     })
     expect(top.rows.map((r) => r.values.email)).toContain('Guest@Example.com')
+  })
+
+  it('reports profit by month and by product after goods, courier, fees and RTO', async () => {
+    const a = await merchant('p@example.com', 'store-p')
+    // GST-registered, so the 18% GST on the 2% fee is claimed back and left out of profit.
+    await owner
+      .update(store)
+      .set({
+        gstin: '06ABCDE1234F1Z5',
+        apps: {
+          installed: [],
+          settings: { core: { profit: { gatewayFees: { razorpay: { percentBps: 200 } } } } },
+        },
+      })
+      .where(eq(store.id, a.storeId))
+    const [p] = await owner
+      .insert(product)
+      .values({ storeId: a.storeId, handle: 'shirt', title: 'Shirt' })
+      .returning()
+    const [v] = await owner
+      .insert(variant)
+      .values({ storeId: a.storeId, productId: p?.id as string, title: 'M', pricePaise: 118_000 })
+      .returning()
+    const placedAt = daysAgo(2)
+    const [o] = await owner
+      .insert(order)
+      .values({
+        storeId: a.storeId,
+        number: 1,
+        subtotalPaise: 118_000,
+        totalPaise: 118_000,
+        taxPaise: 18_000,
+        status: 'open',
+        paymentStatus: 'paid',
+        paymentMethod: 'razorpay',
+        placedAt,
+      })
+      .returning()
+    await owner.insert(orderLine).values({
+      storeId: a.storeId,
+      orderId: o?.id as string,
+      variantId: v?.id as string,
+      quantity: 1,
+      unitPricePaise: 118_000,
+      costAtSalePaise: 50_000,
+    })
+    await owner.insert(payment).values({
+      storeId: a.storeId,
+      orderId: o?.id as string,
+      provider: 'razorpay',
+      providerRef: 'pay_p1',
+      status: 'captured',
+      amountPaise: 118_000,
+    })
+    await owner.insert(shipment).values({
+      storeId: a.storeId,
+      orderId: o?.id as string,
+      provider: 'fake',
+      waybill: 'P1',
+      courierChargePaise: 6_000,
+    })
+    const month = istDay(placedAt).slice(0, 7)
+    const byMonth = await report(a, 'profit-by-month', '30d')
+    expect(row(byMonth, month)).toMatchObject({
+      orders: 1,
+      netSales: 100_000,
+      costOfGoods: 50_000,
+      courierCost: 6_000,
+      gatewayFees: 2_360,
+      rtoCost: 0,
+      profit: 41_640,
+    })
+    expect(byMonth.totals.profit).toBe(41_640)
+    const byProduct = await report(a, 'profit-by-product', '30d')
+    expect(row(byProduct, p?.id as string)).toMatchObject({
+      product: 'Shirt',
+      units: 1,
+      netSales: 100_000,
+      costOfGoods: 50_000,
+      profit: 41_640,
+    })
+  })
+
+  it('takes monthly expenses off for net profit and averages by basket size', async () => {
+    const a = await merchant('n@example.com', 'store-n')
+    await owner
+      .update(store)
+      .set({
+        gstin: '06ABCDE1234F1Z5',
+        apps: {
+          installed: [],
+          settings: { core: { profit: { gatewayFees: { razorpay: { percentBps: 200 } } } } },
+        },
+        shipping: {
+          boxPresets: [
+            {
+              id: 'mailer',
+              name: 'Poly mailer',
+              lengthCm: 30,
+              widthCm: 25,
+              heightCm: 2,
+              weightGrams: 20,
+              isDefault: true,
+              costPaise: 800,
+            },
+          ],
+        },
+      })
+      .where(eq(store.id, a.storeId))
+    const rent = await call(
+      appRouter.monthlyExpenses.create,
+      { name: 'Rent', category: 'rent', amountPaise: 3_100_000, startsOn: '2025-12' },
+      { context: a.ctx },
+    )
+    await call(
+      appRouter.monthlyExpenses.update,
+      {
+        id: rent.id,
+        name: 'Rent',
+        category: 'rent',
+        amountPaise: 6_200_000,
+        fromMonth: '2026-01',
+        endsOn: null,
+      },
+      { context: a.ctx },
+    )
+    const listed = await call(appRouter.monthlyExpenses.list, undefined, { context: a.ctx })
+    expect(listed.expenses.map((e) => [e.startsOn, e.endsOn, e.amountPaise])).toEqual([
+      ['2025-12', '2025-12', 3_100_000],
+      ['2026-01', null, 6_200_000],
+    ])
+
+    const [p] = await owner
+      .insert(product)
+      .values({ storeId: a.storeId, handle: 'pad', title: 'Pad' })
+      .returning()
+    const [v] = await owner
+      .insert(variant)
+      .values({ storeId: a.storeId, productId: p?.id as string, title: 'L', pricePaise: 118_000 })
+      .returning()
+    const [shipTo] = await owner
+      .insert(address)
+      .values({
+        storeId: a.storeId,
+        name: 'Aarav',
+        line1: '1 Road',
+        city: 'Gurugram',
+        stateCode: 'HR',
+        pincode: '122001',
+        phone: '9876543210',
+      })
+      .returning()
+    const placedAt = new Date('2026-01-10T06:00:00Z')
+    const place = async (n: number, units: number, shipped: boolean) => {
+      const total = 118_000 * units
+      const [o] = await owner
+        .insert(order)
+        .values({
+          storeId: a.storeId,
+          number: n,
+          subtotalPaise: total,
+          totalPaise: total,
+          taxPaise: 18_000 * units,
+          status: 'open',
+          paymentStatus: 'paid',
+          paymentMethod: 'razorpay',
+          shippingAddressId: shipped ? null : (shipTo?.id ?? null),
+          placedAt,
+        })
+        .returning()
+      const orderId = o?.id as string
+      await owner.insert(orderLine).values({
+        storeId: a.storeId,
+        orderId,
+        variantId: v?.id as string,
+        quantity: units,
+        unitPricePaise: 118_000,
+        costAtSalePaise: 50_000,
+      })
+      await owner.insert(payment).values({
+        storeId: a.storeId,
+        orderId,
+        provider: 'razorpay',
+        providerRef: `pay_n${n}`,
+        status: 'captured',
+        amountPaise: total,
+        // Razorpay's own fee (2%), so only packing and delivery can be estimates.
+        feePaise: 2_360 * units,
+        feeTaxPaise: 0,
+      })
+      if (shipped) {
+        await owner.insert(shipment).values({
+          storeId: a.storeId,
+          orderId,
+          provider: 'fake',
+          waybill: `N${n}`,
+          courierChargePaise: 6_000,
+          packingCostPaise: 800,
+        })
+      }
+    }
+    // Booked: 100,000 − 50,000 − 800 − 6,000 − 2,360 = 40,840.
+    await place(1, 1, true)
+    // Not booked: the box now (₹8) and the default ₹100 delivery, both estimated:
+    // 200,000 − 100,000 − 800 − 10,000 − 4,720 = 84,480.
+    await place(2, 2, false)
+
+    const january = await call(
+      appRouter.analytics.report,
+      { slug: 'profit-by-month', range: { key: 'custom', from: '2026-01-01', to: '2026-01-31' } },
+      { context: a.ctx },
+    )
+    expect(row(january, '2026-01')).toMatchObject({
+      orders: 2,
+      packingCost: 1_600,
+      courierCost: 16_000,
+      profit: 125_320,
+      expenses: 6_200_000,
+      netProfit: 125_320 - 6_200_000,
+      estimatedOrders: 1,
+    })
+    expect(january.profit).toMatchObject({
+      orders: 2,
+      estimatedOrders: 1,
+      perOrderPaise: 62_660,
+      perUnitPaise: Math.round(125_320 / 3),
+      verdict: { kind: 'short', shortPaise: 6_200_000 - 125_320, ordersNeeded: 97 },
+      soFar: null,
+    })
+    expect(january.profit?.byBasket).toEqual([
+      { size: '1', orders: 1, perOrderPaise: 40_840 },
+      { size: '2', orders: 1, perOrderPaise: 84_480 },
+      { size: '3+', orders: 0, perOrderPaise: null },
+    ])
+    const december = await call(
+      appRouter.analytics.report,
+      { slug: 'profit-by-month', range: { key: 'custom', from: '2025-12-01', to: '2025-12-31' } },
+      { context: a.ctx },
+    )
+    expect(december.totals.expenses).toBe(3_100_000)
+
+    await call(appRouter.monthlyExpenses.delete, { id: rent.id }, { context: a.ctx })
+    expect(
+      (await call(appRouter.monthlyExpenses.list, undefined, { context: a.ctx })).expenses,
+    ).toEqual([])
   })
 
   it('answers every report in the catalogue on an empty store', async () => {

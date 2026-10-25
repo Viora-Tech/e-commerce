@@ -111,6 +111,7 @@ export async function nearDuplicatePairs(): Promise<string[]> {
 export const HELPER_OWNERS: Record<string, string[]> = {
   settingsSecret: ['packages/config/src/env.ts'],
   safeEqual: ['packages/payments/src/safe-equal.ts'],
+  readableError: ['packages/payments/src/readable-error.ts'],
   timingSafeEqualString: ['packages/shipping/src/webhook-auth.ts'],
   isUniqueViolation: ['packages/db/src/errors.ts'],
   msUntilLaunch: ['packages/core/src/preorder/launch.ts'],
@@ -405,9 +406,101 @@ export async function oversizedFiles(): Promise<Record<string, number>> {
   const out: Record<string, number> = {}
   for (const f of files) {
     const rel = toRel(f)
-    if (!rel.endsWith('.ts') || rel.includes('/test/') || rel.includes('/migrations/')) continue
+    if (!rel.endsWith('.ts') || rel.endsWith('.generated.ts')) continue
+    if (rel.includes('/test/') || rel.includes('/migrations/')) continue
     const lines = readFileSync(f, 'utf8').split('\n').length
     if (lines > FILE_SIZE_MAX_LINES) out[rel] = lines
   }
   return out
+}
+
+/* ---------------------------------------------------------------- admin-routes */
+
+/** First path segments of the admin's own pages (`apps/admin/src/app`). */
+const ADMIN_SEGMENTS =
+  'orders|products|customers|content|analytics|growth|discounts|online-store|apps|settings|account|dev|select-store|onboarding|login|accept-invitation'
+const ADMIN_HREF = new RegExp(`^/(?:(?:${ADMIN_SEGMENTS})(?:[/?#].*)?)?$`)
+const NAVIGATE_CALLS = new Set(['redirect', 'permanentRedirect', 'push', 'replace', 'prefetch'])
+
+function isHrefPosition(node: ts.Node): boolean {
+  let at: ts.Node = node
+  // Template literals and JSX `{...}` wrap the string.
+  while (ts.isTemplateHead(at) || ts.isTemplateExpression(at)) at = at.parent
+  const parent = at.parent
+  if (!parent) return false
+  if (ts.isJsxAttribute(parent)) return parent.name.getText() === 'href'
+  if (ts.isJsxExpression(parent) && ts.isJsxAttribute(parent.parent)) {
+    return parent.parent.name.getText() === 'href'
+  }
+  if (ts.isPropertyAssignment(parent)) return parent.name.getText() === 'href'
+  if (ts.isCallExpression(parent)) {
+    const callee = ts.isPropertyAccessExpression(parent.expression)
+      ? parent.expression.name.text
+      : parent.expression.getText()
+    return NAVIGATE_CALLS.has(callee)
+  }
+  return false
+}
+
+/**
+ * Hardcoded admin paths in `href`s and navigation calls under `apps/admin/src`, counted per
+ * file (`routes.ts` is the one home). Tests and `data/hi` (keys, not links) are skipped.
+ */
+export async function hardcodedAdminHrefs(): Promise<Map<string, number>> {
+  const counts = new Map<string, number>()
+  for (const file of await listFiles(['apps/admin/src'])) {
+    const rel = toRel(file)
+    if (rel === 'apps/admin/src/lib/routes.ts' || rel.startsWith('apps/admin/src/data/hi/'))
+      continue
+    const sf = loadSourceFile(file)
+    let n = 0
+    visit(sf, (node) => {
+      const text =
+        ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)
+          ? node.text
+          : ts.isTemplateHead(node)
+            ? node.text
+            : null
+      if (text === null || !text.startsWith('/')) return
+      const isHead = ts.isTemplateHead(node)
+      // A template head like `/orders/` is a path prefix; a bare `/` head is not an admin path.
+      if (
+        !(isHead
+          ? new RegExp(`^/(?:${ADMIN_SEGMENTS})(?:[/?#].*)?$`).test(text)
+          : ADMIN_HREF.test(text))
+      )
+        return
+      if (isHrefPosition(node)) n++
+    })
+    if (n > 0) counts.set(rel, n)
+  }
+  return counts
+}
+
+/* ---------------------------------------------------------------- site-config */
+
+/** The brand name (`siteConfig.brand.name`) spelled out in a string or JSX text, by file. */
+export async function brandNameSites(brand: string): Promise<string[]> {
+  const files: string[] = []
+  for (const file of await listFiles(SOURCE_ROOTS)) {
+    const rel = toRel(file)
+    if (rel.startsWith('apps/docs/') || rel === 'packages/config/src/site.ts') continue
+    const sf = loadSourceFile(file)
+    let found = false
+    visit(sf, (node) => {
+      if (
+        (ts.isStringLiteral(node) ||
+          ts.isNoSubstitutionTemplateLiteral(node) ||
+          ts.isTemplateHead(node) ||
+          ts.isTemplateMiddle(node) ||
+          ts.isTemplateTail(node) ||
+          ts.isJsxText(node)) &&
+        node.text.includes(brand)
+      ) {
+        found = true
+      }
+    })
+    if (found) files.push(rel)
+  }
+  return files
 }

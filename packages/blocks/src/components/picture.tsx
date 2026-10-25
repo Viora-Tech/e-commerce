@@ -31,18 +31,19 @@ type PictureProps = {
 }
 
 /**
- * Smallest-to-largest generated widths, matching
- * `packages/core/src/media/constants.ts` (`VARIANT_WIDTHS`) — duplicated
- * rather than imported so this framework-agnostic block package stays free
- * of a `@commerce/core` dependency. Covered by
- * `packages/core/src/media/loader.test.ts`'s `generatedWidths` test, which
- * fails first if the two ever drift.
+ * The widths a media row actually has, smallest first. Read from the row rather than a
+ * fixed list so older media (which may carry a 960 variant) and newer media (which does
+ * not) both get a full srcset.
  */
-const WIDTHS = [320, 640, 960, 1280, 1920] as const
+const widthsOf = (variants: Record<string, unknown>) =>
+  Object.keys(variants)
+    .map(Number)
+    .filter((w) => Number.isFinite(w))
+    .sort((a, b) => a - b)
 
 function srcSet(variants: Record<string, { avif: string; webp: string }>, format: 'avif' | 'webp') {
   const entries: string[] = []
-  for (const w of WIDTHS) {
+  for (const w of widthsOf(variants)) {
     const entry = variants[String(w)]
     if (entry) entries.push(`${entry[format]} ${w}w`)
   }
@@ -119,7 +120,7 @@ export default function Picture({
       />
     )
   }
-  const widest = WIDTHS.filter((w) => variants[String(w)]).at(-1)
+  const widest = widthsOf(variants).at(-1)
   const fallbackWebp = widest ? variants[String(widest)]?.webp : undefined
   return (
     <picture style={fill ? FILL_WRAPPER : undefined}>

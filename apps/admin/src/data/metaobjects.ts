@@ -1,4 +1,5 @@
-import type { FieldType, PresetKey } from '@commerce/core/metaobjects'
+import type { FieldType, MeasureKind, MeasureUnit, PresetKey } from '@commerce/core/metaobjects'
+import type { Currency } from '@commerce/money'
 
 /*
  * Merchants see "Content types", "Entries" and "Extra fields"; the code, the API and the
@@ -8,10 +9,25 @@ import type { FieldType, PresetKey } from '@commerce/core/metaobjects'
 /** Field type picker groups, in order. Labels live in `fieldTypeContent.groups`. */
 export const FIELD_TYPE_GROUPS = [
   { id: 'text', types: ['single_line_text', 'multi_line_text', 'rich_text'] },
-  { id: 'number', types: ['number_integer', 'number_decimal'] },
-  { id: 'choice', types: ['date', 'url', 'boolean'] },
+  {
+    id: 'number',
+    types: ['number_integer', 'number_decimal', 'money', 'rating', 'measurement'],
+  },
+  { id: 'choice', types: ['choice', 'boolean', 'date', 'date_time', 'color'] },
+  { id: 'web', types: ['url', 'link'] },
   { id: 'media', types: ['file'] },
-  { id: 'link', types: ['product_reference', 'collection_reference', 'metaobject_reference'] },
+  {
+    id: 'link',
+    types: [
+      'product_reference',
+      'variant_reference',
+      'collection_reference',
+      'page_reference',
+      'article_reference',
+      'metaobject_reference',
+    ],
+  },
+  { id: 'rows', types: ['group'] },
 ] as const satisfies readonly { id: string; types: readonly FieldType[] }[]
 type FieldTypeGroup = (typeof FIELD_TYPE_GROUPS)[number]['id']
 
@@ -21,10 +37,12 @@ export const fieldTypeContent: {
 } = {
   groups: {
     text: 'Text',
-    number: 'Numbers',
-    choice: 'Date, link and yes / no',
+    number: 'Numbers and money',
+    choice: 'Choices, dates and colours',
+    web: 'Web links',
     media: 'Pictures and files',
     link: 'Pick from your store',
+    rows: 'Rows',
   },
   types: {
     single_line_text: { label: 'Short text', help: 'A name, a label or one of a few choices.' },
@@ -45,6 +63,56 @@ export const fieldTypeContent: {
       label: 'Another entry',
       help: 'An entry of another content type, like a designer.',
     },
+    color: { label: 'Colour', help: 'A colour you pick, like a brand or fabric colour.' },
+    date_time: { label: 'Date and time', help: 'A day and a time, like when a sale starts.' },
+    money: { label: 'Money', help: 'An amount of money, like ₹499.' },
+    choice: {
+      label: 'Pick from a list',
+      help: 'Choices you write, like S, M, L. Allow several values to pick more than one.',
+    },
+    link: { label: 'Button link', help: 'Words and a link, like "See the size chart".' },
+    rating: { label: 'Star rating', help: 'Stars out of 5, like 4½.' },
+    measurement: { label: 'Measurement', help: 'A number with a unit, like 1.5 kg or 30 cm.' },
+    page_reference: { label: 'Page', help: 'One of your pages, like About us.' },
+    variant_reference: { label: 'Product variant', help: 'One size or colour of a product.' },
+    article_reference: { label: 'Blog post', help: 'One of your blog posts.' },
+    group: {
+      label: 'Rows of fields',
+      help: 'A small table you fill row by row, like one row per size.',
+    },
+  },
+}
+
+/** Names of the currencies a money field can use. */
+export const currencyContent: Record<Currency, string> = {
+  INR: 'Indian rupee (₹)',
+  USD: 'US dollar ($)',
+  EUR: 'Euro (€)',
+}
+
+/** What a measurement measures, and how each unit reads in a picker. */
+export const measureContent: {
+  kinds: Record<MeasureKind, string>
+  units: Record<MeasureUnit, string>
+} = {
+  kinds: {
+    weight: 'Weight (g, kg)',
+    length: 'Length (cm, inches)',
+    volume: 'Volume (ml, litres)',
+  },
+  units: {
+    g: 'g',
+    kg: 'kg',
+    oz: 'oz',
+    lb: 'lb',
+    mm: 'mm',
+    cm: 'cm',
+    m: 'm',
+    in: 'inches',
+    ft: 'feet',
+    ml: 'ml',
+    l: 'litres',
+    fl_oz: 'fl oz',
   },
 }
 
@@ -61,6 +129,8 @@ export const presetContent: Record<PresetKey | 'blank', { title: string; body: s
 
 export const newContentTypeContent = {
   title: 'New content type',
+  summary: 'Start from a ready-made type, or build your own.',
+  startBlank: 'Start blank',
   back: 'Content types',
   pick: {
     heading: 'What do you want to make?',
@@ -83,11 +153,17 @@ export const metaobjectListContent = {
   heading: 'Content types',
   subtitle:
     'Your own kinds of content, like size guides, FAQs or store locations, to show on your store.',
-  add: 'Add content type',
+  add: 'New content type',
+  fromTemplate: 'Start from template',
+  summary: (types: number, entries: number) =>
+    types === 0
+      ? 'Your own kinds of content, like size guides and FAQs.'
+      : `${types} content ${types === 1 ? 'type' : 'types'} · ${entries} ${entries === 1 ? 'entry' : 'entries'} you can use on any page`,
+  entryCount: (n: number) => (n === 1 ? '1 entry' : `${n} entries`),
   resource: { singular: 'content type', plural: 'content types' },
   columns: {
     name: 'Name',
-    type: 'Handle',
+    type: 'Content type',
     fields: 'Fields',
     entries: 'Entries',
     updated: 'Last updated',
@@ -130,8 +206,6 @@ export const definitionFormContent = {
     list: 'Several values',
     edit: 'Edit field',
     remove: 'Remove field',
-    moveUp: 'Move up',
-    moveDown: 'Move down',
   },
   display: {
     heading: 'Entry name',
@@ -166,6 +240,7 @@ export const fieldDialogContent = {
   type: 'What goes in it',
   typePlaceholder: 'Pick a kind of value',
   description: 'Hint',
+  descriptionPlaceholder: 'Shown under the field while filling it in',
   list: 'Allow several values',
   listHelp: 'Keep a list in order, like several products or size rows.',
   required: 'Must fill',
@@ -180,6 +255,27 @@ export const fieldDialogContent = {
   maxItems: 'Most values',
   choices: 'Preset choices',
   choicesHelp: 'One per line. Leave empty to allow any text.',
+  choiceList: 'Choices',
+  choiceListHelp: 'One per line, like S, then M, then L.',
+  currency: 'Currency',
+  measure: 'It measures',
+  measurePlaceholder: 'Pick weight, length or volume',
+  ratingMax: 'Number of stars',
+  ratingMaxOption: (n: number) => `Out of ${n}`,
+  maxRows: 'Most rows',
+  typeLocked: (n: number) =>
+    `${n === 1 ? '1 entry already uses' : `${n} entries already use`} this field, so what goes in it is fixed. To change it, add a new field.`,
+  rows: {
+    heading: 'Fields in each row',
+    help: 'Each row has these fields, like Size, Chest and Waist.',
+    add: 'Add row field',
+    empty: 'Add the first field of a row, like Size.',
+    name: 'Name',
+    namePlaceholder: 'Size',
+    type: 'What goes in it',
+    required: 'Must fill',
+    remove: 'Remove row field',
+  },
   target: 'Content type',
   targetPlaceholder: 'Pick a content type',
   noTargets: 'Make another content type first, then link to it here.',
@@ -192,7 +288,8 @@ export const fieldDialogContent = {
 
 export const entryListContent = {
   add: 'Add entry',
-  editDefinition: 'Edit fields',
+  summary: (n: number) => (n === 1 ? '1 entry' : `${n} entries`),
+  editDefinition: 'Edit definition',
   back: 'Content types',
   resource: { singular: 'entry', plural: 'entries' },
   columns: { name: 'Name', handle: 'Handle', status: 'Status', updated: 'Last updated' },
@@ -253,6 +350,9 @@ export const fieldInputContent = {
     collection: 'Pick collection',
     metaobject: 'Pick entry',
     file: 'Pick file',
+    page: 'Pick page',
+    variant: 'Pick variant',
+    article: 'Pick blog post',
   },
   change: 'Change',
   remove: 'Remove',
@@ -262,16 +362,52 @@ export const fieldInputContent = {
   filesEmpty: 'No files yet. Upload them under Content, Files first.',
   missing: 'Deleted. Pick another one.',
   choose: 'Pick one',
+  colour: {
+    swatch: 'Pick a colour',
+    invalid: 'Type a colour like #1A2B3C',
+  },
+  date: 'Date',
+  time: 'Time',
+  amount: 'Amount',
+  link: {
+    label: 'Words on the button',
+    labelPlaceholder: 'See the size chart',
+    url: 'Goes to',
+    urlPlaceholder: 'https://... or /pages/size-chart',
+  },
+  rating: {
+    star: (n: number) => (n === 1 ? '1 star' : `${n} stars`),
+    value: (value: number, max: number) => `${value} of ${max}`,
+    none: 'No stars yet',
+    clear: 'Clear',
+  },
+  number: 'Number',
+  unit: 'Unit',
+  rows: {
+    row: (n: number) => `Row ${n}`,
+    add: 'Add row',
+    remove: 'Remove row',
+    empty: 'No rows yet. Add the first one.',
+  },
 } as const
 
 export const customDataContent = {
   title: 'Custom data',
-  intro: 'Add extra fields to your products and collections, and manage your content types.',
+  intro:
+    'Add extra fields to products, variants, collections, customers, orders, pages, blog posts and your store, and manage your content types.',
   tabs: {
     products: { id: 'products', label: 'Products' },
+    variants: { id: 'variants', label: 'Variants' },
     collections: { id: 'collections', label: 'Collections' },
+    customers: { id: 'customers', label: 'Customers' },
+    orders: { id: 'orders', label: 'Orders' },
+    pages: { id: 'pages', label: 'Pages' },
+    articles: { id: 'articles', label: 'Blog posts' },
+    shop: { id: 'store', label: 'Store' },
     metaobjects: { id: 'metaobjects', label: 'Content types' },
   },
+  /** The Store page: the store's own values under its fields. */
+  shopValues: 'Your store’s values',
   metafields: {
     heading: (owner: string) => `${owner} extra fields`,
     body: (owner: string) =>
@@ -279,11 +415,18 @@ export const customDataContent = {
     add: 'Add extra field',
     empty: (owner: string) =>
       `No ${owner.toLowerCase()} extra fields yet. Add one, like a care guide or a warranty.`,
+    emptyHeading: (owner: string) => `No ${owner.toLowerCase()} extra fields yet`,
+    emptyBody: (owner: string) =>
+      `An extra field adds your own box to every ${owner.toLowerCase()}, like a care guide or a warranty. Fill it in on the ${owner.toLowerCase()}’s page and your theme can show it.`,
+    reordered: 'Order saved',
+    reorderFailed: 'Could not save the new order. Try again.',
     values: (n: number) => (n === 1 ? '1 value' : `${n} values`),
     listOf: (label: string) => `List of ${label.toLowerCase()}`,
     hidden: 'Hidden from storefront',
+    filter: 'Filter',
     edit: 'Edit',
     delete: 'Delete',
+    actions: (name: string) => `Actions for ${name}`,
   },
   dialog: {
     addTitle: (owner: string) => `Add ${owner.toLowerCase()} extra field`,
@@ -293,8 +436,14 @@ export const customDataContent = {
     namespaceKeyHelp: 'Your theme reads it as metafields.namespace.key. It is fixed once you save.',
     namespaceKey: 'Theme key',
     description: 'Hint',
+    descriptionPlaceholder: 'Shown under the field',
     storefront: 'Show on your store',
     storefrontHelp: 'Let your theme show this value.',
+    filterable: 'Use as filter',
+    filterableHelp:
+      'Shoppers can narrow collection and search pages by this value, like Grip or Hand size.',
+    privateNote:
+      'Customer and order extra fields stay private: they are never shown on your store.',
     fixed: 'What goes in it and the key are fixed once the extra field is saved.',
     save: 'Save',
     saving: 'Saving',
@@ -319,7 +468,16 @@ export const customDataContent = {
     empty: 'No content types yet.',
     entries: (n: number) => (n === 1 ? '1 entry' : `${n} entries`),
   },
-  owners: { product: 'Product', collection: 'Collection' },
+  owners: {
+    product: 'Product',
+    variant: 'Variant',
+    collection: 'Collection',
+    customer: 'Customer',
+    order: 'Order',
+    page: 'Page',
+    article: 'Blog post',
+    shop: 'Store',
+  },
   loadFailed: 'Could not load. Reload the page to try again.',
 } as const
 
@@ -327,7 +485,10 @@ export const metafieldsCardContent = {
   heading: 'Extra fields',
   empty: 'Add your own fields, like a care guide or warranty, to show more details.',
   manage: 'Manage extra fields',
+  addField: 'Add a field',
   saveFirst: 'Save first, then fill in the extra fields.',
+  variant: 'Variant',
+  variantHeading: 'Variant extra fields',
   save: 'Save extra fields',
   saving: 'Saving',
   saved: 'Extra fields saved',

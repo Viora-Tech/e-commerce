@@ -1,6 +1,7 @@
 import { newId, store } from '@commerce/db'
 import { sql } from 'drizzle-orm'
 import {
+  type AnyPgColumn,
   boolean,
   check,
   index,
@@ -25,8 +26,14 @@ const storeId = () =>
     .references(() => store.id)
 const at = (name: string) => timestamp(name, { withTimezone: true }).notNull().defaultNow()
 
-import type { ImportResource, PreviewSample, ResourceProgress } from './client'
-import { RUN_STATUSES } from './client'
+import type {
+  ImportResource,
+  ImportSnapshot,
+  PreviewSample,
+  ResourceProgress,
+  SnapshotUse,
+} from './client'
+import { ISSUE_KINDS, RUN_STATUSES } from './client'
 
 export {
   IMPORT_RESOURCES,
@@ -79,9 +86,39 @@ export const importRun = pgTable(
       .notNull()
       .default({}),
     preview: jsonb('preview').$type<PreviewSample[]>().notNull().default([]),
+    /**
+     * A finished preview's copy of what it read (gzipped JSONL per resource in
+     * private storage), reused by the import that follows within 24 hours.
+     * Deleted when that import finishes, or after 7 days.
+     */
+    snapshot: jsonb('snapshot').$type<ImportSnapshot>(),
+    snapshotTakenAt: timestamp('snapshot_taken_at', { withTimezone: true }),
+    /** Set on a real import that read the preview's copy instead of Shopify. */
+    snapshotUse: jsonb('snapshot_use').$type<SnapshotUse>(),
     /** Why the run as a whole stopped; row problems go to shopify_import_issue. */
     error: text('error'),
     createdBy: text('created_by'),
+    /**
+     * "Import remaining": write only records that are not imported yet or have an open
+     * problem from their last import; everything already here is left alone.
+     */
+    onlyMissing: boolean('only_missing').notNull().default(false),
+    /**
+     * Files: by default only files something imported uses (product media, collections, pages,
+     * articles, extra fields) are copied. True also copies the unused ones.
+     */
+    includeUnusedFiles: boolean('include_unused_files').notNull().default(false),
+    /** Set on "Retry the ones that were missed": the run whose problems this one retries. */
+    retryOf: uuid('retry_of').references((): AnyPgColumn => importRun.id, {
+      onDelete: 'set null',
+    }),
+    /**
+     * Stop import: when it was asked for and by whom. A queued run is cancelled at once;
+     * a running one is stopped by its worker within seconds (or by the next read after
+     * `STOP_GRACE_MS` if the worker does not answer), then `status` is `cancelled`.
+     */
+    stopRequestedAt: timestamp('stop_requested_at', { withTimezone: true }),
+    stoppedBy: text('stopped_by'),
     startedAt: timestamp('started_at', { withTimezone: true }),
     finishedAt: timestamp('finished_at', { withTimezone: true }),
     createdAt: at('created_at'),
@@ -91,9 +128,12 @@ export const importRun = pgTable(
     check('shopify_import_run_mode', sql`${t.mode} in ('csv', 'api')`),
     check(
       'shopify_import_run_status',
-      sql`${t.status} in ('queued', 'running', 'completed', 'failed')`,
+      sql`${t.status} in ('queued', 'running', 'completed', 'failed', 'cancelled')`,
     ),
     index('shopify_import_run_store_created').on(t.storeId, t.createdAt),
+    index('shopify_import_run_snapshot_taken')
+      .on(t.snapshotTakenAt)
+      .where(sql`${t.snapshotTakenAt} is not null`),
   ],
 )
 
@@ -112,9 +152,19 @@ export const importIssue = pgTable(
     /** Handle, email, order name or Shopify id, whatever identifies the record. */
     ref: text('ref'),
     message: text('message').notNull(),
+    /**
+     * The record's import key (Shopify id, or the CSV key such as `handle:tee`) when the
+     * problem is one a retry can fix; null for problems a retry would only repeat.
+     */
+    sourceId: text('source_id'),
+    /** What failed: the record itself, one of its images, or a file from Files. */
+    kind: text('kind', { enum: ISSUE_KINDS }),
     createdAt: at('created_at'),
   },
-  (t) => [index('shopify_import_issue_run').on(t.runId)],
+  (t) => [
+    index('shopify_import_issue_run').on(t.runId),
+    check('shopify_import_issue_kind', sql`${t.kind} in ('record', 'media', 'file')`),
+  ],
 )
 
 /**

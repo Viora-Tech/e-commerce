@@ -34,6 +34,10 @@ export type Attribution = {
   messageId?: string | undefined
   campaignId?: string | undefined
   automationId?: string | undefined
+  /** The short link (Growth → Links) the visit came through. */
+  linkId?: string | undefined
+  /** An affiliate's referral code from `?ref=` (Affiliates app), lower-cased. */
+  ref?: string | undefined
   /** ISO time of the touch. */
   at: string
 }
@@ -114,6 +118,15 @@ const clip = (v: string | null | undefined, max = 120): string | undefined => {
   return t ? t.slice(0, max) : undefined
 }
 
+/**
+ * An affiliate's referral code from `?ref=` (Affiliates app): lower-case letters, digits and
+ * hyphens, 3 to 32 long; anything else is not one of ours.
+ */
+export function refCodeOf(raw: string | null | undefined): string | null {
+  const v = raw?.trim().toLowerCase()
+  return v && /^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$/.test(v) ? v : null
+}
+
 /** Lower-cased host without `www.`, or null for anything that is not an http(s) URL. */
 export function hostOf(url: string | null | undefined): string | null {
   if (!url) return null
@@ -180,6 +193,8 @@ export function attributionFromVisit(input: {
     campaignId?: string | undefined
     automationId?: string | undefined
   }
+  /** Set when the visit came through a short link (`/l/<slug>`). */
+  linkId?: string | undefined
   now?: Date | undefined
 }): Attribution {
   let params = new URLSearchParams()
@@ -199,7 +214,7 @@ export function attributionFromVisit(input: {
   const externalRef = refHost && refHost !== ownHost ? refHost : null
   const source = clip(params.get('utm_source'))
   const medium = clip(params.get('utm_medium'))
-  const channel = classifyChannel({
+  const classified = classifyChannel({
     source,
     medium,
     referrerHost: externalRef,
@@ -210,6 +225,13 @@ export function attributionFromVisit(input: {
     },
     marketingMessage: Boolean(input.marketing),
   })
+  // A short link is never a direct visit: untagged and opened from an app (no referrer), it
+  // still came from wherever the merchant shared it, and must not lose to an older touch.
+  const linked = classified === 'direct' && input.linkId ? 'referral' : classified
+  // An affiliate's link is the affiliate's sale, unless the merchant tagged it otherwise.
+  const ref = refCodeOf(params.get('ref'))
+  const untagged = linked === 'direct' || linked === 'referral' || linked === 'social'
+  const channel = ref && untagged ? 'affiliate' : linked
   return {
     channel,
     source: source ?? externalRef ?? undefined,
@@ -222,6 +244,8 @@ export function attributionFromVisit(input: {
     messageId: input.marketing?.messageId,
     campaignId: input.marketing?.campaignId,
     automationId: input.marketing?.automationId,
+    linkId: input.linkId,
+    ref: ref ?? undefined,
     at: (input.now ?? new Date()).toISOString(),
   }
 }
@@ -275,6 +299,8 @@ export function decodeAttribution(raw: string | null | undefined): Attribution |
       messageId: str(v.messageId, 40),
       campaignId: str(v.campaignId, 40),
       automationId: str(v.automationId, 40),
+      linkId: str(v.linkId, 40),
+      ref: refCodeOf(str(v.ref, 40)) ?? undefined,
       at: v.at,
     }
   } catch {

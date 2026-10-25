@@ -1,6 +1,7 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
+import PhoneInput from '../components/store-phone-input-lazy'
 
 type NotifyMeActionState = { status: 'idle' | 'done' | 'error'; error?: string }
 
@@ -62,6 +63,7 @@ export default function NotifyMeBlock({
   copy,
 }: NotifyMeBlockProps) {
   // Hooks
+  const [phone, setPhone] = useState('')
   const [state, submit, pending] = useActionState(
     (s: NotifyMeActionState, form: FormData) =>
       context ? context.action(context.variantId, s, form) : Promise.resolve(s),
@@ -104,15 +106,14 @@ export default function NotifyMeBlock({
             <label className="visually-hidden" htmlFor="app-notify-me-phone">
               {copy.whatsappLabel}
             </label>
-            <input
+            <PhoneInput
               id="app-notify-me-phone"
-              className="field__input"
-              type="tel"
-              name="phone"
-              inputMode="numeric"
               autoComplete="tel"
               placeholder={copy.whatsappPlaceholder}
+              value={phone}
+              onChange={setPhone}
             />
+            <input type="hidden" name="phone" value={phone} />
           </>
         ) : null}
         <p className="notify-me__consent text-small">{copy.consent}</p>

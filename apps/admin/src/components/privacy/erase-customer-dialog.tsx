@@ -1,15 +1,6 @@
 'use client'
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { dataRequestDetailContent as copy } from '@/data/customer-privacy'
 
 type EraseCustomerDialogProps = {
@@ -28,19 +19,15 @@ export default function EraseCustomerDialog({
 }: EraseCustomerDialogProps) {
   // Render logic
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{copy.eraseTitle}</AlertDialogTitle>
-          <AlertDialogDescription>{copy.eraseBody}</AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>{copy.cancel}</AlertDialogCancel>
-          <AlertDialogAction variant="destructive" onClick={onConfirm} disabled={busy}>
-            {copy.eraseConfirm}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ConfirmDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={copy.eraseTitle}
+      body={copy.eraseBody}
+      confirmLabel={copy.eraseConfirm}
+      cancelLabel={copy.cancel}
+      busy={busy}
+      onConfirm={onConfirm}
+    />
   )
 }

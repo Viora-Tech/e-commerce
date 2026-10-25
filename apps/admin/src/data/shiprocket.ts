@@ -79,8 +79,10 @@ export const shiprocketAppContent = {
       webhook: 'Get near-instant tracking updates if you turn on the webhook',
       ndr: 'Reattempt delivery or change the address from the NDR queue',
       wallet: 'See your live Shiprocket wallet balance and get low-balance alerts',
+      reverse_pickup: 'Book a courier pickup for a customer return',
     } as Record<string, string>,
     webhookUrlLabel: 'Tracking webhook URL',
+    webhookWhere: 'Paste into Shiprocket → Settings → API → Webhooks',
     webhookUrlHelp:
       'Paste this into Shiprocket → Settings → API → Webhooks, along with the same shared secret you set on the connect page, so scans reach this app within minutes instead of waiting for the next poll.',
     copied: 'Copied',

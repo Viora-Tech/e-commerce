@@ -2,6 +2,7 @@
 
 import { cn } from '@commerce/ui/lib/utils'
 import { mediaContent } from '@/data/media'
+import { useCopy } from '@/hooks/use-copy'
 import { filenameFrom, type MediaItem } from './media-pick-types'
 import MediaThumb from './media-thumb'
 
@@ -13,8 +14,6 @@ type MediaPickRecentProps = {
   onConfirm: (id: string) => void
 }
 
-const copy = mediaContent.picker
-
 /** "Recently used": the files last picked in this browser, one click away above the library. */
 export default function MediaPickRecent({
   items,
@@ -22,6 +21,9 @@ export default function MediaPickRecent({
   onToggle,
   onConfirm,
 }: MediaPickRecentProps) {
+  // Hooks
+  const { picker: copy } = useCopy(mediaContent)
+
   // Early returns
   if (items.length === 0) return null
 

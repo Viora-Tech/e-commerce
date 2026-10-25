@@ -1,3 +1,4 @@
+import { Icon } from '@commerce/blocks'
 import {
   articleExcerpt,
   formatArticleDate,
@@ -16,7 +17,11 @@ import { breadcrumbList, jsonLd, requestOrigin } from '@/lib/seo'
 import { inStore } from '@/lib/store-context'
 import { renderTemplate } from '@/lib/template-render'
 
-type Params = { params: Promise<{ storeId: string; blog: string; article: string }> }
+type Params = {
+  params: Promise<{ storeId: string; blog: string; article: string }>
+  /** `?view=` from the Customize preview: the alternate template being edited. */
+  searchParams?: Promise<{ view?: string }>
+}
 
 async function load(storeId: string, blogHandle: string, handle: string) {
   return inStore(storeId, async (tx) => {
@@ -53,8 +58,9 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   }
 }
 
-export default async function ArticlePage({ params }: Params) {
+export default async function ArticlePage({ params, searchParams }: Params) {
   const { storeId, blog: blogHandle, article: handle } = await params
+  const view = (await searchParams)?.view
   const found = await load(storeId, blogHandle, handle)
   if (!found) notFound()
 
@@ -90,37 +96,30 @@ export default async function ArticlePage({ params }: Params) {
 
   const main = (
     <div className="page-width">
-      <article className="mx-auto flex w-full max-w-3xl flex-col gap-8 py-12">
+      <article className="article-page">
         {/* biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD from our own data, `<` escaped. */}
         <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(schema)} />
-        <nav aria-label="Breadcrumb" className="text-caption text-muted">
-          <Link href="/" className="hover:text-ink">
-            {copy.home}
-          </Link>
-          <span aria-hidden> / </span>
-          <Link href={blogPath} className="hover:text-ink">
-            {blog.title}
-          </Link>
-        </nav>
+        <Link href={blogPath} className="article-page__back">
+          <Icon name="arrow-right" size={14} />
+          {copy.backTo(blog.title)}
+        </Link>
 
-        <header className="flex flex-col gap-3">
-          <h1 className="text-ink">{post.title}</h1>
-          <p className="text-caption flex flex-wrap gap-x-3 text-muted">
-            {post.author ? <span>{copy.by(post.author)}</span> : null}
+        <header className="article-page__header">
+          <p className="article-page__meta">
+            {post.tags[0] ? <span className="article-page__tag">{post.tags[0]}</span> : null}
             <time dateTime={published.toISOString()}>
               {formatArticleDate(published, post.timeZone)}
             </time>
+            <span aria-hidden="true">·</span>
             <span>{copy.readingTime(readingMinutes(post.body))}</span>
           </p>
+          <h1 className="section-title">{post.title}</h1>
+          {post.author ? <p className="article-page__byline">{copy.by(post.author)}</p> : null}
         </header>
 
         {post.imageUrl ? (
           // biome-ignore lint/performance/noImgElement: media library URLs, no optimisation pipeline on the storefront yet.
-          <img
-            src={post.imageUrl}
-            alt={post.imageAlt ?? ''}
-            className="aspect-video w-full rounded-section object-cover"
-          />
+          <img src={post.imageUrl} alt={post.imageAlt ?? ''} className="article-page__image" />
         ) : null}
 
         {post.body ? (
@@ -144,13 +143,12 @@ export default async function ArticlePage({ params }: Params) {
 
         <ShareLinks url={url} title={post.title} />
         <ArticleNeighbours blogPath={blogPath} previous={post.previous} next={post.next} />
-        <Link href={blogPath} className="text-sm text-ink underline underline-offset-4">
-          {copy.backTo(blog.title)}
-        </Link>
       </article>
     </div>
   )
-  return inStore(storeId, (tx) =>
-    renderTemplate(tx, storeId, 'article', { renderers: { MainArticle: () => main } }),
-  )
+  return renderTemplate(storeId, 'article', {
+    suffix: post.templateSuffix,
+    view,
+    renderers: { MainArticle: () => main },
+  })
 }

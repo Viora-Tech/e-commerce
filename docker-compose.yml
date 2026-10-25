@@ -23,6 +23,27 @@ services:
     ulimits:
       memlock: -1
 
+  # PgBouncer in transaction mode, as production runs it in front of Postgres. Only with
+  # `docker compose --profile pooling up -d`; the pooling test (packages/db/test) uses it when
+  # PGBOUNCER_PORT=6432 is set. Login as the `app` role.
+  pgbouncer:
+    image: edoburu/pgbouncer:v1.25.2-p0
+    profiles: ["pooling"]
+    environment:
+      # No DB_NAME: PgBouncer serves every database (`* = host=postgres`), test copies included.
+      DB_HOST: postgres
+      DB_USER: app
+      DB_PASSWORD: app
+      POOL_MODE: transaction
+      AUTH_TYPE: scram-sha-256
+      MAX_CLIENT_CONN: 1000
+      DEFAULT_POOL_SIZE: 20
+    ports:
+      - "6432:5432"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   # GlitchTip: self-hosted, Sentry-protocol-compatible error tracking. Never starts with
   # `bun run infra:up`; only with `docker compose --profile observability up -d`. Its own
   # Postgres/Redis, so it never touches the app's `commerce` database.

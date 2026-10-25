@@ -4,6 +4,7 @@ import { useMDXComponents as getDocsMDXComponents } from 'nextra-theme-docs'
 import Callout from './components/callout'
 import Faq from './components/faq'
 import FaqItem from './components/faq-item'
+import Find from './components/find'
 import RelatedGuides from './components/related-guides'
 import Screenshot from './components/screenshot'
 import VideoTip from './components/video-tip'
@@ -17,6 +18,7 @@ export function useMDXComponents(components?: MDXComponents): MDXComponents {
     Callout,
     Faq,
     FaqItem,
+    Find,
     Screenshot,
     VideoTip,
     RelatedGuides,

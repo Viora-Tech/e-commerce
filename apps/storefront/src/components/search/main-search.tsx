@@ -1,4 +1,5 @@
 import type { CardProduct } from '@commerce/blocks'
+import { Icon } from '@commerce/blocks'
 import type { BrowseResult } from '@commerce/core'
 import type { BrowseFilters, BrowseSort } from '@commerce/core/browse'
 import { hasActiveFilters } from '@commerce/core/browse'
@@ -57,22 +58,25 @@ export default function MainSearch({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
         />
       ) : null}
-      <h1 className="h2 mb-6">{copy.title}</h1>
-      <search className="mb-8 block max-w-xl">
-        <form action="/search" method="get" className="flex gap-3">
+      <h1 className="section-title search-page__title">{copy.title}</h1>
+      <search className="search-page__search">
+        <form action="/search" method="get" className="search-page__form">
           <label htmlFor="search-q" className="visually-hidden">
             {copy.label}
           </label>
-          <input
-            id="search-q"
-            className="field__input flex-1"
-            type="search"
-            name="q"
-            defaultValue={query}
-            placeholder={copy.placeholder}
-            autoComplete="off"
-          />
-          <button className="btn btn--primary" type="submit">
+          <span className="search-page__field">
+            <Icon name="search" size={16} />
+            <input
+              id="search-q"
+              className="search-page__input"
+              type="search"
+              name="q"
+              defaultValue={query}
+              placeholder={copy.placeholder}
+              autoComplete="off"
+            />
+          </span>
+          <button className="btn btn--primary search-page__submit" type="submit">
             {copy.submit}
           </button>
         </form>
@@ -92,21 +96,29 @@ export default function MainSearch({
           </Link>
         </div>
       ) : (
-        <BrowseResults
-          path="/search"
-          q={query}
-          products={products}
-          total={result.total}
-          facets={result.facets}
-          filters={filters}
-          sort={sort}
-          defaultSort="relevance"
-          sorts={SEARCH_SORTS}
-          page={page}
-          perPage={SEARCH_PER_PAGE}
-          showFilters={settings.showFilters !== false}
-          showSort={settings.showSort !== false}
-        />
+        <>
+          {result.corrected ? (
+            <p className="text-body text-muted">
+              {copy.searchInstead(query)}{' '}
+              <span className="font-medium text-ink">{copy.correctedTo(result.corrected)}</span>
+            </p>
+          ) : null}
+          <BrowseResults
+            path="/search"
+            q={query}
+            products={products}
+            total={result.total}
+            facets={result.facets}
+            filters={filters}
+            sort={sort}
+            defaultSort="relevance"
+            sorts={SEARCH_SORTS}
+            page={page}
+            perPage={SEARCH_PER_PAGE}
+            showFilters={settings.showFilters !== false}
+            showSort={settings.showSort !== false}
+          />
+        </>
       )}
     </section>
   )

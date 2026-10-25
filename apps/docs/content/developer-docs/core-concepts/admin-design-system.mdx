@@ -1,0 +1,97 @@
+---
+title: Admin design system (Proofly look)
+---
+
+# Admin design system (Proofly look)
+
+The admin follows the Figma file "Vextro admin" (Foundations and Components pages). The tokens
+live in `packages/ui/src/styles.css`; only the admin imports that file, so the storefront is not
+affected. Variable names match the Figma code syntax (`var(--key-top)`, `var(--raised)`).
+
+## Rules
+
+- **One blue.** `--primary` (#3F72DC light, #7FA2F5 dark) with opacity tints only (`--primary-soft`).
+  `--action` is the same blue. A member's own accent pick still overrides `--primary*` at runtime.
+- **Fonts.** DM Sans for every UI string. Bricolage Grotesque only for page titles and big
+  numbers: the `text-page-title`, `text-stat` and `text-kit-stat*` utilities switch to it.
+  Both load through `next/font/google` in `app/layout.tsx`.
+- **Layers.** Shell (`--sidebar`, top bar) below the content panel (`--background`) below cards
+  (`--card`) below raised surfaces (`--raised`: menus, toasts, floating bars). Dark mode is
+  layered the same way, never flat black.
+- **Key material** (gradient, top highlight, bottom lip, soft glow) is for the one primary action
+  on a screen and main header actions only. Use `<Button>` (key-primary, the default variant) or
+  `<Button variant="key-neutral">`. Everything small is `outline` (plain-outline) or `ghost`
+  (plain-ghost). `loading` shows the spinner and blocks presses.
+- **Status chips** (`components/layout/status-chip.tsx`) are coloured only when someone has to
+  act; done states are neutral grey with a hairline.
+- **Radius.** 16 for the content panel, 12 for cards, 10 for controls, 8 for chips.
+
+## Shared pieces
+
+| Piece | File |
+| --- | --- |
+| Sidebar (store switcher, domain, groups, usage card, user row) | `components/admin-sidebar.tsx`, `components/nav-section.tsx`, `components/layout/sidebar-usage-card.tsx` |
+| Top bar (panel toggle, search, Ask AI, View store, bell, theme, account) | `components/layout/top-bar.tsx`, `components/layout/user-menu.tsx` |
+| Stat card | `components/layout/stat-tile.tsx` |
+| Table (header with sort, 48px rows, row actions, footer) | `components/table/resource-table/*`, `components/table/row-actions-cell.tsx` |
+| Page and inline states | `components/states/page-state.tsx`, `page-skeleton.tsx`, `inline-state.tsx` |
+| Floating bar (bulk actions, save changes) | `components/layout/floating-bar.tsx`, `save-bar.tsx` |
+| Toast | `packages/ui/src/components/shadcn/sonner.tsx` |
+
+## siteConfig
+
+`packages/config/src/site.ts` (import `@commerce/config/site`) holds the platform name, tagline,
+domain, logos, support contact, public URLs, locale defaults (INR, en-IN, Asia/Kolkata), UI
+defaults (rows per page 10/25/50/100, toast times), plan-limit placeholders and social links. It
+is pure data with no secrets, so client code may import it. The `site-config` sweep fails on the
+literal brand name anywhere else.
+
+## Routes
+
+`apps/admin/src/lib/routes.ts` is the one list of admin URLs (`routes.orders.detail(id)`,
+`routes.settings.taxes()`). Navigation data, the command palette and the shell read from it. The
+`admin-routes` sweep fails on a new hardcoded admin href; the allow-list counts per file and may
+only go down.
+
+## Final theme tokens, dropdowns and glass
+
+Values come from the Figma "Vextro" variable collection (Proofly light / dark).
+
+- **Dark layers (neutral, after CodeHelp's web app, 2026-10-14).** Page `#0F0F0F` (`--background`),
+  sidebar `#131213`, cards `#09090B` (a step deeper than the page), raised / popover `#18181B`.
+  No colour tint. Inputs sit on `--input-surface` `#0F0F0F`. Text: `--foreground` `#FCFCFC`,
+  `--ink-strong` `#FFFFFF`, `--muted-foreground` `#A1A1AA`, `--muted-foreground-soft` `#8B8B94`.
+- **Dark lines.** Solid zinc: `--border` and `--input` `#27272A`, `--border-strong` `#3F3F46`,
+  `--border-soft` `#232326`, `--line` and `--hairline` `#1F1F22`, rows `--line-list` `#1C1C1F`.
+- **Card recipe.** The `surface-card` utility (`Card`, stat tiles, table cards, page states). Light is
+  `0 1px 2px` + `0 4px 12px` at 6% / 4%; dark is a flat card with a 1px `--border` ring (hover:
+  `--border-strong`). Never on floating layers.
+- **Dark key.** White with dark ink for every accent (`#FAFAFA` to `#F4F4F5`, `#18181B` ink), no glow.
+  Active nav pills and soft fills (`--accent`, `--sidebar-accent`, `--glass-active`) are neutral
+  `#27272A` with `#FAFAFA` ink. `darkKey()` in `@commerce/core/admin-accent` returns the key, and the
+  stylesheet's `.dark` values are its output (a test keeps them in sync). The picked accent shows in
+  links, focus rings, charts and text selection.
+- **Dark status tones.** Lifted hues on low-alpha fills: success `#5CC68C`, warning `#F0B65A`,
+  danger `#F0756F`, info `#8FB0F7` at 10 to 12%. Solid fills (`bg-destructive`, `bg-success`)
+  carry dark ink (`--*-foreground`), never white on a light tone.
+- **Pictures.** Product thumbnails and media tiles sit on `--media` / `--media-tile` (white light,
+  a soft `#DFE1E6` in dark): catalogue photos are cut for a light ground, and a black product on a
+  transparent PNG disappears on a dark card.
+- **Avatars.** Initials discs use `--avatar` / `--avatar-foreground` (ink in light; the accent's
+  tint with its pale ink in dark, rather than a bright white disc).
+- **Scrollbars and selection.** `--scrollbar-thumb` (white 16% in dark); dark text selection is
+  the accent at 32%.
+- **Banners.** Next-step and info banners use `surface-banner`: card surface, `--brand-border`
+  and a left-to-right `--brand-wash` to `--brand-wash-end`. Never a solid navy.
+- **Neutral chip.** `--chip-neutral` fill with `--chip-neutral-text` (dark `#23252B` / `#B4B9C2`).
+- **Selected options.** `--brand-select` plus a primary border (stat tiles, option cards).
+- **Dropdowns** (select, combobox, dropdown menu, popover, command): trigger `h-9` (compact `h-8`),
+  8px radius, input surface and border, chevron that turns when open, 2px brand focus ring,
+  `aria-invalid` red border. Menu is a glass popover with a 12px radius, `p-1.5`, max height
+  20rem; rows are `2.125rem`, highlighted is brand 8%, selected is brand text with the check on
+  the right. Motion is `motion-menu`: 150ms fade and 4px rise, none under reduced motion.
+- **Glass** (floating layers only): utilities `glass-bar` (top bar once the page scrolls, floating
+  bars), `glass-popover` (menus, popovers, ⌘K, toasts) and `glass-scrim` (dialog and sheet
+  backdrops). Tokens: `--glass-bar`, `--glass-popover`, `--glass-border`, `--glass-highlight`,
+  `--glass-scrim`. Without `backdrop-filter`, or with reduced transparency, they fall back to the
+  solid `--raised` / `--popover` surface.

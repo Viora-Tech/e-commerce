@@ -1,5 +1,6 @@
 'use client'
 
+import { Send } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -49,6 +50,7 @@ export default function TestSendDialog({
         subject: form.subject,
         previewText: form.previewText,
         blocks: form.blocks,
+        design: form.editor === 'visual' ? form.design : null,
         testPrefix: copy.prefix,
       })
       toast.success(copy.sent(to.trim()))
@@ -75,6 +77,7 @@ export default function TestSendDialog({
         </Field>
         <DialogFooter>
           <Button onClick={handleSend} disabled={busy || !to.includes('@')}>
+            <Send aria-hidden="true" />
             {copy.send}
           </Button>
         </DialogFooter>

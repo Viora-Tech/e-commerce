@@ -1,5 +1,6 @@
 'use client'
 
+import { PlugConnect } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import Link from 'next/link'
@@ -8,6 +9,7 @@ import { toast } from 'sonner'
 import { paymentsSetupContent } from '@/data/payments-setup'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import type { PaymentProblem } from './types'
 
 type GatewayProblemProps = {
@@ -45,7 +47,7 @@ export default function GatewayProblem({
   }
 
   // Render logic
-  const connectHref = `/apps/${gatewayId}/connect`
+  const connectHref = routes.apps.connect(gatewayId)
   const action =
     problem.code === 'webhook_silent' && problem.fix === 'reregister' ? (
       <Button size="sm" onClick={handleFixWebhook} disabled={fixing}>
@@ -58,6 +60,7 @@ export default function GatewayProblem({
       </Button>
     ) : problem.code === 'reconnect' ? (
       <Button size="sm" nativeButton={false} render={<Link href={connectHref} />}>
+        <PlugConnect aria-hidden="true" />
         {copy.reconnectAction}
       </Button>
     ) : problem.code === 'config_invalid' ? (

@@ -47,9 +47,26 @@ export const DERIVED_HEADERS = [
   'x-store-id',
   'x-visitor-country',
   'x-theme-preview',
+  'x-theme-version',
   'x-form-posted',
   'x-pathname',
+  'x-listing',
 ] as const
+
+/** Listing params an imported theme's collection and search pages read; the rest is noise. */
+const LISTING_PARAM = /^(filter\.|q$|sort_by$|page$)/
+
+/**
+ * A request's listing params (`filter.*`, `q`, `sort_by`, `page`) in a stable order, for an
+ * imported theme's collection and search pages and the cache key of their render; empty when
+ * there are none. Tracking params never split the cache.
+ */
+export function listingSearch(params: URLSearchParams): string {
+  const kept = [...params].filter(([k, v]) => LISTING_PARAM.test(k) && v.trim() !== '')
+  kept.sort(([a, x], [b, y]) => (a === b ? x.localeCompare(y) : a.localeCompare(b)))
+  const qs = new URLSearchParams(kept.slice(0, 60)).toString()
+  return qs.length <= 2000 ? qs : ''
+}
 
 export type PrimaryRedirectInput = {
   /** Request hostname, lower case, no port. */

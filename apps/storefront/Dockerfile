@@ -27,10 +27,21 @@ RUN bun install --frozen-lockfile
 
 # --- Build with the full pruned source ------------------------------------------------------
 FROM installer AS builder
+# `next build` runs on Node, not Bun: Bun 1.3.11 segfaults mid-build on linux/arm64 (Graviton)
+# under memory pressure. `bun run` honours the `#!/usr/bin/env node` shebang once Node exists.
+# Build stage only; the runtime image is unchanged.
+# Node comes from the official image, not Alpine's package: Alpine's nodejs lags security
+# releases (it still served 22.23.2 after the CVE-2026-111497 fix in 22.23.4). The official
+# binary carries full ICU, so en-IN / hi-IN format the same as in the browser (React #418).
+COPY --from=node:22.23.4-alpine /usr/local/bin/node /usr/local/bin/node
+RUN apk add --no-cache libstdc++ libgcc
 COPY --from=pruner /repo/out/full/ .
 # turbo prune only copies workspace packages, not root-only files — packages/core imports
 # this one by relative path (see apps/docs/content/developer-docs/building/plugins.mdx).
 COPY --from=pruner /repo/commerce.config.ts ./commerce.config.ts
+# The storefront has no static files of its own yet, and git keeps no empty folders; the
+# runner's COPY of public/ needs it to exist.
+RUN mkdir -p apps/storefront/public
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 # See apps/admin/Dockerfile's identical line for why this is here (fits the GitHub Actions
@@ -40,6 +51,13 @@ RUN bun run build --filter=@commerce/storefront
 
 # --- Minimal runtime image ------------------------------------------------------------------
 FROM base AS runner
+# The standalone Next server runs on Node: Bun 1.3.11 fails to load Next's compiled
+# server runtime ("Expected CommonJS module to have a function wrapper").
+# Node comes from the official image, not Alpine's package: Alpine's nodejs lags security
+# releases (it still served 22.23.2 after the CVE-2026-111497 fix in 22.23.4). The official
+# binary carries full ICU, so en-IN / hi-IN format the same as in the browser (React #418).
+COPY --from=node:22.23.4-alpine /usr/local/bin/node /usr/local/bin/node
+RUN apk add --no-cache libstdc++ libgcc
 WORKDIR /app
 RUN addgroup -S nodejs && adduser -S nextjs -G nodejs
 ENV NODE_ENV=production
@@ -55,6 +73,6 @@ USER nextjs
 EXPOSE 3100
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD bun -e "fetch('http://127.0.0.1:3100/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+  CMD node -e "fetch('http://127.0.0.1:3100/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
-CMD ["bun", "apps/storefront/server.js"]
+CMD ["node", "apps/storefront/server.js"]

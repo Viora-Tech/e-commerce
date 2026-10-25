@@ -1,14 +1,16 @@
 'use client'
 
 import { ArrowLeft, CircleCheck, ExternalLink } from '@commerce/ui/icons'
+import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent } from '@commerce/ui/shadcn/card'
-import { Progress } from '@commerce/ui/shadcn/progress'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import PageHeader from '@/components/layout/page-header'
+import SettingsCard from '@/components/settings/settings-card'
 import { gatewayGuides, paymentsSetupContent } from '@/data/payments-setup'
+import { SETTINGS_BACK } from '@/data/settings'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { base, instant } from '@/lib/motion'
@@ -149,19 +151,33 @@ export default function SetupWizard({ setup, onReload, onDone }: SetupWizardProp
 
   return (
     <div className="flex w-full flex-col gap-5 py-2">
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between gap-3 text-caption text-muted-foreground">
-          <span>{copy.progress(index + 1, STEPS.length)}</span>
-          {step === 'ready' ? null : (
+      <PageHeader
+        title={setupCopy.title}
+        subtitle={copy.progress(index + 1, STEPS.length)}
+        actions={
+          step === 'ready' ? null : (
             <Button variant="ghost" size="sm" onClick={handleSkip}>
               {copy.skip}
             </Button>
-          )}
-        </div>
-        <Progress
-          value={((index + 1) / STEPS.length) * 100}
-          aria-label={copy.progress(index + 1, STEPS.length)}
-        />
+          )
+        }
+        back={SETTINGS_BACK}
+      />
+      <div
+        role="progressbar"
+        aria-valuemin={1}
+        aria-valuemax={STEPS.length}
+        aria-valuenow={index + 1}
+        aria-label={copy.progress(index + 1, STEPS.length)}
+        className="flex gap-1.5"
+      >
+        {STEPS.map((id, i) => (
+          <span
+            key={id}
+            aria-hidden="true"
+            className={cn('h-1 flex-1 rounded-full', i <= index ? 'bg-action' : 'bg-muted')}
+          />
+        ))}
       </div>
 
       <AnimatePresence mode="wait" initial={false}>
@@ -172,79 +188,68 @@ export default function SetupWizard({ setup, onReload, onDone }: SetupWizardProp
           exit={reduced ? { opacity: 0 } : { opacity: 0, x: -24 }}
           transition={reduced ? instant : base}
         >
-          <Card>
-            <CardContent className="flex flex-col gap-5">
-              <div className="flex flex-col gap-2">
-                {step === 'ready' ? (
-                  <CircleCheck aria-hidden="true" weight="fill" className="size-10 text-success" />
-                ) : null}
-                <h2 className="text-page font-semibold text-foreground">{title}</h2>
-                <p className="text-body text-muted-foreground">{body}</p>
-                {step === 'how' ? <WhatsThis /> : null}
-              </div>
+          <SettingsCard title={title} description={body} bodyClassName="gap-5">
+            {step === 'ready' ? (
+              <CircleCheck aria-hidden="true" weight="fill" className="size-10 text-success" />
+            ) : null}
+            {step === 'how' ? <WhatsThis /> : null}
 
-              {step === 'how' ? (
-                <WizardHowStep gateways={setup.gateways} busy={busy} onPick={handlePick} />
-              ) : null}
+            {step === 'how' ? (
+              <WizardHowStep gateways={setup.gateways} busy={busy} onPick={handlePick} />
+            ) : null}
 
-              {step === 'connect' && gateway && gateway !== 'cod' ? (
-                <GatewayConnectForm
-                  providerId={gateway}
-                  setup={setup}
-                  onConnected={handleConnected}
-                />
-              ) : null}
+            {step === 'connect' && gateway && gateway !== 'cod' ? (
+              <GatewayConnectForm
+                providerId={gateway}
+                setup={setup}
+                onConnected={handleConnected}
+              />
+            ) : null}
 
-              {step === 'methods' ? (
-                <>
-                  <MethodsList methods={methods} hasGateway onChange={setMethods} />
-                  <Button
-                    size="lg"
-                    className="w-full sm:w-fit"
-                    onClick={handleSaveMethods}
-                    disabled={busy !== null}
-                  >
+            {step === 'methods' ? (
+              <>
+                <MethodsList methods={methods} hasGateway onChange={setMethods} />
+                <Button
+                  size="lg"
+                  className="w-full sm:w-fit"
+                  onClick={handleSaveMethods}
+                  disabled={busy !== null}
+                >
+                  {copy.next}
+                </Button>
+              </>
+            ) : null}
+
+            {step === 'test' ? (
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-wrap gap-2">
+                  <Button size="lg" variant="outline" className="gap-1.5" onClick={handleTestOrder}>
+                    {copy.test.open}
+                    <ExternalLink aria-hidden="true" className="size-4" />
+                  </Button>
+                  <Button size="lg" onClick={() => go('ready')}>
                     {copy.next}
                   </Button>
-                </>
-              ) : null}
-
-              {step === 'test' ? (
-                <div className="flex flex-col gap-3">
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      className="gap-1.5"
-                      onClick={handleTestOrder}
-                    >
-                      {copy.test.open}
-                      <ExternalLink aria-hidden="true" className="size-4" />
-                    </Button>
-                    <Button size="lg" onClick={() => go('ready')}>
-                      {copy.next}
-                    </Button>
-                  </div>
-                  {testOpened ? (
-                    <p className="text-caption text-success">{copy.test.opened}</p>
-                  ) : null}
                 </div>
-              ) : null}
+                {testOpened ? (
+                  <p className="text-caption text-success">{copy.test.opened}</p>
+                ) : null}
+              </div>
+            ) : null}
 
-              {step === 'ready' ? (
-                <Button size="lg" className="w-full sm:w-fit" onClick={onDone}>
-                  {copy.ready.done}
-                </Button>
-              ) : null}
+            {step === 'ready' ? (
+              <Button size="lg" className="w-full sm:w-fit" onClick={onDone}>
+                {copy.ready.done}
+              </Button>
+            ) : null}
 
-              {index > 0 && step !== 'ready' ? (
-                <Button variant="ghost" className="w-fit gap-1.5 px-0" onClick={handleBack}>
-                  <ArrowLeft aria-hidden="true" className="size-4" />
-                  {copy.back}
-                </Button>
-              ) : null}
-            </CardContent>
-          </Card>
+            {index > 0 && step !== 'ready' ? (
+              <Button variant="ghost" className="w-fit gap-1.5 px-0" onClick={handleBack}>
+                <ArrowLeft aria-hidden="true" className="size-4" />
+                {copy.back}
+              </Button>
+            ) : null}
+          </SettingsCard>
         </motion.div>
       </AnimatePresence>
 

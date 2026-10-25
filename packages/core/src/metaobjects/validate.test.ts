@@ -47,7 +47,7 @@ describe('field types', () => {
 
   it('multi line text keeps line breaks', () => {
     expect(ok(validateFieldValue(rule('multi_line_text'), 'a\r\nb'))).toBe('a\nb')
-    expect(validateFieldValue(rule('multi_line_text'), {}).ok).toBe(false)
+    expect(validateFieldValue(rule('multi_line_text'), { text: 'a' }).ok).toBe(false)
   })
 
   it('rich text must be a Lexical document', () => {

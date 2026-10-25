@@ -1,6 +1,7 @@
 import { settingsSecret } from '@commerce/config'
 import { unsubscribeCustomer, verifyUnsubscribeToken } from '@commerce/core'
 import { headers } from 'next/headers'
+import { withEvlog } from '@/lib/request-log'
 import { inStore } from '@/lib/store-context'
 
 type Params = { params: Promise<{ token: string }> }
@@ -10,11 +11,11 @@ type Params = { params: Promise<{ token: string }> }
  * List-Unsubscribe header. POST only, so link scanners cannot unsubscribe
  * anyone by fetching it.
  */
-export async function POST(_request: Request, { params }: Params) {
+export const POST = withEvlog(async (_request: Request, { params }: Params) => {
   const { token } = await params
   const storeId = (await headers()).get('x-store-id')
   const v = verifyUnsubscribeToken(token, settingsSecret())
   if (!v || !storeId || v.storeId !== storeId) return new Response(null, { status: 404 })
   await inStore(storeId, (tx) => unsubscribeCustomer(tx, v.customerId))
   return new Response(null, { status: 200 })
-}
+})

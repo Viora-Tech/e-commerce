@@ -6,7 +6,7 @@ import {
   InputGroupInput,
   InputGroupText,
 } from '@commerce/ui/shadcn/input-group'
-import { productFormContent } from '@/data/products'
+import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 
 type MoneyInputProps = {

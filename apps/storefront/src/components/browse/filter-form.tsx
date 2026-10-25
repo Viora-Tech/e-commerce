@@ -1,6 +1,6 @@
 'use client'
 
-import { formatPaise, Icon } from '@commerce/blocks'
+import { Icon, useFormatPaise } from '@commerce/blocks'
 import type { BrowseFacets, FacetValue } from '@commerce/core'
 import { type BrowseFilters, FILTER_PARAM } from '@commerce/core/browse'
 import { useRouter } from 'next/navigation'
@@ -44,6 +44,7 @@ export default function FilterForm({
   idPrefix,
 }: FilterFormProps) {
   // Hooks
+  const formatPaise = useFormatPaise()
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
 
@@ -70,7 +71,7 @@ export default function FilterForm({
     values.map((v) => (
       <label
         key={`${key}-${v.value}`}
-        className="flex cursor-pointer items-center gap-3 py-1 text-body"
+        className="flex cursor-pointer items-center gap-3 py-1 text-small text-ink"
       >
         <input
           type="checkbox"
@@ -97,6 +98,23 @@ export default function FilterForm({
         ],
         filters.available === null ? [] : [filters.available ? '1' : '0'],
         'avail',
+      ),
+    })
+  }
+  // Gift cards next to products: a kind filter, so a shopper can find (or skip) them.
+  if (facets.giftCards > 0 && facets.products > 0) {
+    groups.push({
+      key: 'kind',
+      title: copy.kind,
+      open: filters.giftCard !== null,
+      body: checks(
+        FILTER_PARAM.giftCard,
+        [
+          { value: '0', count: facets.products, label: copy.kindProducts },
+          { value: '1', count: facets.giftCards, label: copy.kindGiftCards },
+        ],
+        filters.giftCard === null ? [] : [filters.giftCard ? '1' : '0'],
+        'kind',
       ),
     })
   }
@@ -153,6 +171,21 @@ export default function FilterForm({
       ),
     })
   }
+  for (const m of facets.metafields) {
+    groups.push({
+      key: `metafield-${m.key}`,
+      title: m.name,
+      open: (filters.metafields[m.key]?.length ?? 0) > 0,
+      body: checks(
+        `${FILTER_PARAM.metafieldPrefix}${m.key}`,
+        m.type === 'boolean'
+          ? m.values.map((v) => ({ ...v, label: v.value === '1' ? copy.yes : copy.no }))
+          : m.values,
+        filters.metafields[m.key] ?? [],
+        m.key,
+      ),
+    })
+  }
   if (facets.productTypes.length > 1) {
     groups.push({
       key: 'type',
@@ -195,7 +228,7 @@ export default function FilterForm({
           open={g.open || g.key === 'availability'}
           className="group border-b border-line py-4"
         >
-          <summary className="flex cursor-pointer list-none items-center justify-between text-body font-semibold [&::-webkit-details-marker]:hidden">
+          <summary className="flex cursor-pointer list-none items-center justify-between text-body font-medium text-ink [&::-webkit-details-marker]:hidden">
             {g.title}
             <span aria-hidden="true" className="transition-transform group-open:rotate-180">
               <Icon name="chevron-down" size={16} />

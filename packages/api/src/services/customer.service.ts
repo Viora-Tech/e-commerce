@@ -1,8 +1,11 @@
 import {
   decryptCustomerPhone,
+  deleteMetafieldsOf,
   encryptCustomerPhone,
   evaluateSegment,
   normalisePhoneDigits,
+  noteCustomerTagsChanged,
+  notTestOrder,
   phoneBlindIndex,
   type SegmentCustomer,
 } from '@commerce/core'
@@ -22,8 +25,11 @@ const DAY_MS = 86_400_000
 const RECENT_WINDOW_DAYS = 30
 /** The overview card plots one week against the week before (frame 5:3062). */
 const WINDOW_DAYS = 7
-/** Drafts are not orders yet, so they never count as customer activity. */
-const notDraft = ne(order.status, 'draft')
+/**
+ * Drafts are not orders yet, and test-mode orders (gateway test keys) moved no real money:
+ * neither counts as customer activity.
+ */
+const notDraft = and(ne(order.status, 'draft'), notTestOrder)
 
 export type CustomerSegmentName = 'new' | 'returning' | 'subscribed'
 export type CustomerSort = 'recent' | 'name' | 'orders' | 'spent'
@@ -36,10 +42,14 @@ export type CustomerFilters = {
   minOrders?: number | undefined
   acceptsMarketing?: boolean | undefined
   tag?: string | undefined
+  /** Business (B2B) customers: true keeps those with a saved GSTIN, false those without. */
+  business?: boolean | undefined
 }
 
 export type CustomerQuery = {
   search?: string | undefined
+  /** Exactly these customers, e.g. the ones a discount is limited to. */
+  ids?: string[] | undefined
   segment?: CustomerSegmentName | undefined
 } & CustomerFilters
 
@@ -52,6 +62,8 @@ export type CustomerListItem = {
   stateCode: string | null
   tags: string[]
   acceptsMarketing: boolean
+  /** Saved a GSTIN; the GSTIN itself stays on the customer page. */
+  hasGstin: boolean
   orderCount: number
   spentPaise: number
   lastOrderAt: Date | null
@@ -77,16 +89,22 @@ export type CustomerStats = {
  */
 const c = alias(customer, 'c')
 
-/** Per-customer totals; drafts never count, and cancelled orders never count towards spend. */
+/**
+ * Per-customer totals; drafts and test-mode orders never count, and cancelled orders never
+ * count towards spend.
+ */
 const orderCountSql = sql<number>`(
-  select count(*)::int from ${order} o where o.customer_id = c.id and o.status <> 'draft')`
+  select count(*)::int from ${order} o
+  where o.customer_id = c.id and o.status <> 'draft' and not o.is_test)`
 const spentSql = sql<number>`(
   select coalesce(sum(o.total_paise), 0)::int from ${order} o
-  where o.customer_id = c.id and o.status not in ('cancelled', 'draft'))`
+  where o.customer_id = c.id and o.status not in ('cancelled', 'draft') and not o.is_test)`
 const lastOrderSql = sql<Date | null>`(
-  select max(o.placed_at) from ${order} o where o.customer_id = c.id and o.status <> 'draft')`
+  select max(o.placed_at) from ${order} o
+  where o.customer_id = c.id and o.status <> 'draft' and not o.is_test)`
 const citySql = sql<string | null>`(${c.defaultAddress} ->> 'city')`
 const stateSql = sql<string | null>`(${c.defaultAddress} ->> 'stateCode')`
+const hasGstinSql = sql<boolean>`(coalesce(btrim(${c.gstin}), '') <> '')`
 
 const SELECTION = {
   id: c.id,
@@ -97,6 +115,7 @@ const SELECTION = {
   stateCode: stateSql,
   tags: c.tags,
   acceptsMarketing: c.acceptsMarketing,
+  hasGstin: hasGstinSql,
   orderCount: orderCountSql,
   spentPaise: spentSql,
   lastOrderAt: lastOrderSql,
@@ -115,6 +134,7 @@ function filterWhere(input: CustomerQuery, now: Date, secret: string) {
   const phoneMatch =
     searchDigits.length >= 4 ? eq(c.phoneIndex, phoneBlindIndex(searchDigits, secret)) : undefined
   return and(
+    input.ids ? (input.ids.length > 0 ? inArray(c.id, input.ids) : sql`false`) : undefined,
     input.search
       ? or(ilike(c.name, `%${input.search}%`), ilike(c.email, `%${input.search}%`), phoneMatch)
       : undefined,
@@ -129,6 +149,11 @@ function filterWhere(input: CustomerQuery, now: Date, secret: string) {
       ? eq(c.acceptsMarketing, input.acceptsMarketing)
       : undefined,
     input.tag ? sql`${c.tags} @> array[${input.tag}]::text[]` : undefined,
+    input.business === undefined
+      ? undefined
+      : input.business
+        ? hasGstinSql
+        : sql`not ${hasGstinSql}`,
   )
 }
 
@@ -140,6 +165,7 @@ function toSegmentCustomer(item: CustomerListItem): SegmentCustomer {
     tags: item.tags,
     lastOrderAt: item.lastOrderAt,
     acceptsMarketing: item.acceptsMarketing,
+    hasGstin: item.hasGstin,
   }
 }
 
@@ -317,6 +343,7 @@ export async function getCustomer(tx: StoreTx, id: string, secret: string) {
         paymentMethod: order.paymentMethod,
         totalPaise: order.totalPaise,
         placedAt: order.placedAt,
+        isTest: order.isTest,
       })
       .from(order)
       .where(and(eq(order.customerId, id), sql`${order.status} <> 'draft'`))
@@ -337,7 +364,9 @@ export async function getCustomer(tx: StoreTx, id: string, secret: string) {
           .limit(50)
       : Promise.resolve([]),
   ])
-  const live = orders.filter((o) => o.status !== 'cancelled')
+  // The list still shows test-mode orders; the totals leave them out.
+  const real = orders.filter((o) => !o.isTest)
+  const live = real.filter((o) => o.status !== 'cancelled')
   const spentPaise = live.reduce((sum, o) => sum + o.totalPaise, 0)
   const { phoneIndex: _phoneIndex, ...customerFields } = row
   return {
@@ -345,10 +374,11 @@ export async function getCustomer(tx: StoreTx, id: string, secret: string) {
     orders,
     notifications: sent,
     totals: {
-      orderCount: orders.length,
+      orderCount: real.length,
       spentPaise,
-      lastOrderAt: orders[0]?.placedAt ?? null,
-      firstOrderAt: orders.at(-1)?.placedAt ?? null,
+      lastOrderAt: real[0]?.placedAt ?? null,
+      firstOrderAt: real.at(-1)?.placedAt ?? null,
+
       averagePaise: live.length > 0 ? Math.round(spentPaise / live.length) : 0,
     },
   }
@@ -363,6 +393,8 @@ export async function updateCustomer(
     tags?: string[] | undefined
     note?: string | null | undefined
     acceptsMarketing?: boolean | undefined
+    gstin?: string | null | undefined
+    businessName?: string | null | undefined
   },
   secret: string,
 ) {
@@ -379,12 +411,17 @@ export async function updateCustomer(
             // keeps its proof (phone sign-in trusts only proven numbers).
             phoneVerifiedAt: sql`case when ${customer.phoneIndex} = ${phoneBlindIndex(phone, secret)} then ${customer.phoneVerifiedAt} else null end`,
           }
+  const [before] =
+    rest.tags === undefined
+      ? []
+      : await tx.select({ tags: customer.tags }).from(customer).where(eq(customer.id, id))
   const [row] = await tx
     .update(customer)
     .set({ ...rest, ...phoneUpdate, updatedAt: new Date() })
     .where(eq(customer.id, id))
     .returning()
   if (!row) return null
+  if (before) await noteCustomerTagsChanged(tx, row.storeId, row.id, before.tags, row.tags)
   const { phoneIndex: _phoneIndex, ...rest2 } = row
   return { ...rest2, phone: decryptCustomerPhone(row.phone, secret) }
 }
@@ -394,6 +431,7 @@ export async function deleteCustomer(tx: StoreTx, id: string) {
   const [linked] = await tx.select({ total: count() }).from(order).where(eq(order.customerId, id))
   const orders = linked?.total ?? 0
   if (orders > 0) return { deleted: false as const, orders }
+  await deleteMetafieldsOf(tx, 'customer', [id])
   await tx.delete(customer).where(eq(customer.id, id))
   return { deleted: true as const, orders: 0 }
 }
@@ -406,7 +444,7 @@ export async function tagCustomers(
   const tag = input.tag.trim().toLowerCase()
   if (input.ids.length === 0 || !tag) return { updated: 0 }
   const rows = await tx
-    .select({ id: customer.id, tags: customer.tags })
+    .select({ id: customer.id, storeId: customer.storeId, tags: customer.tags })
     .from(customer)
     .where(inArray(customer.id, input.ids))
   let updated = 0
@@ -418,6 +456,7 @@ export async function tagCustomers(
       .update(customer)
       .set({ tags: next, updatedAt: new Date() })
       .where(eq(customer.id, row.id))
+    await noteCustomerTagsChanged(tx, row.storeId, row.id, row.tags, next)
     updated += 1
   }
   return { updated }

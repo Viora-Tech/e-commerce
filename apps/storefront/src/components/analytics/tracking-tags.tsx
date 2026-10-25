@@ -8,7 +8,15 @@ type TrackingTagsProps = {
   /** Ids already validated against their formats (G-…, GTM-…, digits) and cleared by consent. */
   ga4: string | null
   gtm: string | null
+  /** The old single pixel (Online Store preferences) for stores without the Pixels app: PageView only. */
   metaPixel: string | null
+  /**
+   * The Pixels app's pixel ids (digits only), cleared by marketing consent. Each is initialised;
+   * every event, PageView included, is then sent by `PixelEvents` with its event id.
+   */
+  pixels?: readonly string[] | undefined
+  /** Google Ads tag (AW-…), cleared by marketing consent; shares gtag.js with GA4. */
+  googleAds?: string | null | undefined
   /**
    * The request's script CSP nonce (`lib/csp.ts`). The inline loaders need it; the scripts
    * they load (gtag.js, gtm.js, fbevents.js) are then trusted through `strict-dynamic`. The
@@ -18,16 +26,45 @@ type TrackingTagsProps = {
   nonce?: string | undefined
 }
 
+/** gtag.js loads once for every Google tag (GA4 and Ads); each id is then configured. */
+function gtagInit(ids: string[]): string {
+  const config = ids.map((id) => `gtag('config','${id}');`).join('')
+  return `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());${config}`
+}
+
+const FBQ_LOADER =
+  "!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');"
+
+const PIXEL_ID = /^[0-9]{10,20}$/
+
+/** fbevents.js once, then each pixel; the legacy single pixel also tracks its PageView. */
+function fbqInit(pixels: readonly string[], legacy: string | null): string {
+  const ids = pixels.filter((id) => PIXEL_ID.test(id))
+  if (ids.length) return FBQ_LOADER + ids.map((id) => `fbq('init','${id}');`).join('')
+  return legacy ? `${FBQ_LOADER}fbq('init','${legacy}');fbq('track','PageView');` : ''
+}
+
 /**
- * Google Analytics 4, Tag Manager and the Meta pixel. Rendered only with ids the
+ * Google Analytics 4, Google Ads, Tag Manager and the Meta pixel. Rendered only with ids the
  * consent banner allows; the ids match strict patterns, so inlining them is safe.
  * `lazyOnload`: they are injected once the page has loaded and the browser is idle,
  * so they never compete with the hero image (LCP) or the first tap (INP). Never on
  * sign-in pages, whose URLs carry single-use tokens (`trackingAllowedOn`).
  */
-export default function TrackingTags({ ga4, gtm, metaPixel, nonce }: TrackingTagsProps) {
+export default function TrackingTags({
+  ga4,
+  gtm,
+  metaPixel,
+  pixels = [],
+  googleAds,
+  nonce,
+}: TrackingTagsProps) {
   // Hooks
   const pathname = usePathname()
+
+  // Helpers
+  const gtagIds = [ga4, googleAds].filter((id): id is string => Boolean(id))
+  const meta = fbqInit(pixels, metaPixel)
 
   // Early returns
   if (!trackingAllowedOn(pathname)) return null
@@ -35,16 +72,16 @@ export default function TrackingTags({ ga4, gtm, metaPixel, nonce }: TrackingTag
   // Render logic
   return (
     <>
-      {ga4 ? (
+      {gtagIds.length ? (
         <>
           <Script
             id="ga4-src"
-            src={`https://www.googletagmanager.com/gtag/js?id=${ga4}`}
+            src={`https://www.googletagmanager.com/gtag/js?id=${gtagIds[0]}`}
             strategy="lazyOnload"
             nonce={nonce}
           />
           <Script id="ga4-init" strategy="lazyOnload" nonce={nonce}>
-            {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${ga4}');`}
+            {gtagInit(gtagIds)}
           </Script>
         </>
       ) : null}
@@ -53,9 +90,9 @@ export default function TrackingTags({ ga4, gtm, metaPixel, nonce }: TrackingTag
           {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;var n=d.querySelector('[nonce]');n&&j.setAttribute('nonce',n.nonce||n.getAttribute('nonce'));j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${gtm}');`}
         </Script>
       ) : null}
-      {metaPixel ? (
+      {meta ? (
         <Script id="meta-pixel-init" strategy="lazyOnload" nonce={nonce}>
-          {`!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${metaPixel}');fbq('track','PageView');`}
+          {meta}
         </Script>
       ) : null}
     </>

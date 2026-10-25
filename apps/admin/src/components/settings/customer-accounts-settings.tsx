@@ -7,20 +7,16 @@ import {
   type LoginProvider,
   type ProviderReadiness,
 } from '@commerce/core/customer-accounts'
-import { UserCircle } from '@commerce/ui/icons'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
-import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { Switch } from '@commerce/ui/shadcn/switch'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import ChoiceList from '@/components/returns/choice-list'
-import LoginAppSheet from '@/components/settings/login-app-sheet'
+import LoginAppDialog from '@/components/settings/login-app-dialog'
 import SignInExtrasCard from '@/components/settings/sign-in-extras-card'
 import SignInProvidersCard from '@/components/settings/sign-in-providers-card'
 import {
@@ -28,8 +24,11 @@ import {
   LOGIN_METHOD_COPY,
   PROVIDER_COPY,
 } from '@/data/customer-accounts'
-import { settingsContent } from '@/data/settings'
+import { SETTINGS_BACK, settingsContent } from '@/data/settings'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
+import SettingsCard from './settings-card'
+import SettingsToggleRow from './settings-toggle-row'
 
 type Loaded = {
   settings: Settings
@@ -120,83 +119,72 @@ export default function CustomerAccountsSettings() {
       <PageHeader
         title={copy.title}
         subtitle={copy.subtitle}
-        icon={<UserCircle aria-hidden="true" />}
+        back={SETTINGS_BACK}
+        save={{ dirty: dirty && !none, saving: busy, onSave: handleSave, label: copy.save }}
       />
       {!form || !loaded ? (
         <Skeleton className="h-96 w-full rounded-2xl" />
       ) : (
         <>
-          <Card size="form" id="checkout">
-            <CardHeader>
-              <CardTitle>{copy.checkout.heading}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ChoiceList
-                name="account-checkout"
-                value={form.checkout}
-                onChange={(v) =>
-                  setForm({
-                    ...form,
-                    checkout: v === 'account_required' ? 'account_required' : 'guest',
-                  })
-                }
-                choices={[
-                  { value: 'guest', ...copy.checkout.choices.guest },
-                  { value: 'account_required', ...copy.checkout.choices.account_required },
-                ]}
-              />
-            </CardContent>
-          </Card>
+          <SettingsCard id="checkout" title={copy.checkout.heading}>
+            <ChoiceList
+              name="account-checkout"
+              value={form.checkout}
+              onChange={(v) =>
+                setForm({
+                  ...form,
+                  checkout: v === 'account_required' ? 'account_required' : 'guest',
+                })
+              }
+              choices={[
+                { value: 'guest', ...copy.checkout.choices.guest },
+                { value: 'account_required', ...copy.checkout.choices.account_required },
+              ]}
+            />
+          </SettingsCard>
 
-          <Card size="form" id="sign-in">
-            <CardHeader>
-              <CardTitle>{copy.methods.heading}</CardTitle>
-              <CardDescription>{copy.methods.body}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <FieldGroup>
-                {LOGIN_METHODS.map((m) => {
-                  const can = loaded.available.includes(m)
-                  const text = LOGIN_METHOD_COPY[m]
-                  return (
-                    <Field key={m} orientation="horizontal" className="items-start justify-between">
-                      <div className="flex flex-col gap-0.5">
-                        <FieldLabel htmlFor={`login-${m}`} className="flex items-center gap-2">
-                          {text.label}
-                          {can ? null : <Badge variant="neutral">{copy.methods.unavailable}</Badge>}
-                        </FieldLabel>
-                        <FieldDescription>{can ? text.hint : text.needs}</FieldDescription>
-                      </div>
-                      <Switch
-                        id={`login-${m}`}
-                        checked={form.loginMethods.includes(m)}
-                        disabled={!can && !form.loginMethods.includes(m)}
-                        onCheckedChange={(on) => toggle(m, on)}
-                      />
-                    </Field>
-                  )
-                })}
-                {stale.length > 0 ? (
-                  <p className="text-caption text-warning-foreground dark:text-warning">
-                    {copy.methods.stillOn(stale.map((m) => LOGIN_METHOD_COPY[m].label).join(', '))}
-                  </p>
-                ) : null}
-                {none ? (
-                  <p className="text-caption text-destructive">{copy.methods.needOne}</p>
-                ) : null}
-                {loaded.available.length < LOGIN_METHODS.length ? (
-                  <Button
-                    variant="outline"
-                    className="w-fit"
-                    render={<Link href="/settings/notifications" />}
-                    nativeButton={false}
-                  >
-                    {copy.methods.turnOnApp}
-                  </Button>
-                ) : null}
-              </FieldGroup>
-            </CardContent>
-          </Card>
+          <SettingsCard id="sign-in" title={copy.methods.heading} description={copy.methods.body}>
+            {LOGIN_METHODS.map((m) => {
+              const can = loaded.available.includes(m)
+              const text = LOGIN_METHOD_COPY[m]
+              return (
+                <SettingsToggleRow
+                  key={m}
+                  id={`login-${m}`}
+                  label={
+                    <>
+                      {text.label}
+                      {can ? null : <Badge variant="neutral">{copy.methods.unavailable}</Badge>}
+                    </>
+                  }
+                  description={can ? text.hint : text.needs}
+                  checked={form.loginMethods.includes(m)}
+                  disabled={!can && !form.loginMethods.includes(m)}
+                  onChange={(on) => toggle(m, on)}
+                />
+              )
+            })}
+            <div className="flex flex-col gap-3 pt-3 empty:hidden">
+              {stale.length > 0 ? (
+                <p className="text-caption text-warning-foreground dark:text-warning">
+                  {copy.methods.stillOn(stale.map((m) => LOGIN_METHOD_COPY[m].label).join(', '))}
+                </p>
+              ) : null}
+              {none ? (
+                <p className="text-caption text-destructive">{copy.methods.needOne}</p>
+              ) : null}
+              {loaded.available.length < LOGIN_METHODS.length ? (
+                <Button
+                  variant="outline"
+                  className="w-fit"
+                  render={<Link href={routes.settings.notifications()} />}
+                  nativeButton={false}
+                >
+                  {copy.methods.turnOnApp}
+                </Button>
+              ) : null}
+            </div>
+          </SettingsCard>
 
           <SignInProvidersCard
             form={form}
@@ -212,7 +200,7 @@ export default function CustomerAccountsSettings() {
 
           <SignInExtrasCard form={form} onChange={setForm} />
 
-          <LoginAppSheet
+          <LoginAppDialog
             key={setupFor ?? 'closed'}
             provider={setupFor}
             onOpenChange={(open) => {
@@ -224,21 +212,16 @@ export default function CustomerAccountsSettings() {
             onSaved={reloadApps}
           />
 
-          <Card size="form">
-            <CardHeader>
-              <CardTitle>{copy.deletion.heading}</CardTitle>
-              <CardDescription>{copy.deletion.body}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button
-                variant="outline"
-                render={<Link href="/settings/privacy" />}
-                nativeButton={false}
-              >
-                {copy.deletion.link}
-              </Button>
-            </CardContent>
-          </Card>
+          <SettingsCard title={copy.deletion.heading} description={copy.deletion.body}>
+            <Button
+              variant="outline"
+              className="self-end"
+              render={<Link href={routes.settings.privacy()} />}
+              nativeButton={false}
+            >
+              {copy.deletion.link}
+            </Button>
+          </SettingsCard>
         </>
       )}
     </div>

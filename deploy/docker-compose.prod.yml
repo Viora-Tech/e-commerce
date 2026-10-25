@@ -25,6 +25,10 @@ name: commerce
 x-app-env: &app-env
   DATABASE_URL: ${DATABASE_URL}
   DATABASE_URL_OWNER: ${DATABASE_URL_OWNER}
+  # PgBouncer (transaction mode): DATABASE_POOLED=true, and DATABASE_URL_DIRECT for the
+  # storefront cache's LISTEN connection. Blank is a direct connection.
+  DATABASE_POOLED: ${DATABASE_POOLED:-}
+  DATABASE_URL_DIRECT: ${DATABASE_URL_DIRECT:-}
   REDIS_URL: ${REDIS_URL:-redis://dragonfly:6379}
   AUTH_SECRET: ${AUTH_SECRET}
   ADMIN_URL: ${ADMIN_URL}
@@ -38,8 +42,40 @@ x-app-env: &app-env
   STOREFRONT_CNAME_TARGET: ${STOREFRONT_CNAME_TARGET:-}
   PLATFORM_DOMAINS: ${PLATFORM_DOMAINS:-}
   PLATFORM_STORE_DOMAIN: ${PLATFORM_STORE_DOMAIN:-}
+  # Worker image jobs at once, and per store; blank uses the defaults (3 and 3). Near the vCPU count.
+  MEDIA_PROCESS_CONCURRENCY: ${MEDIA_PROCESS_CONCURRENCY:-}
+  MEDIA_PROCESS_PER_STORE: ${MEDIA_PROCESS_PER_STORE:-}
+  # Storefront render cache (MB, blank = 48, 0 = off) and how long a CDN may keep a page for
+  # visitors without cookies (seconds, blank = 30, 0 = private). See developer docs, performance.
+  STOREFRONT_CACHE_MB: ${STOREFRONT_CACHE_MB:-}
+  STOREFRONT_EDGE_TTL: ${STOREFRONT_EDGE_TTL:-}
+  # Sections of an imported theme's page sent first (blank = 3); the rest stream in behind them.
+  STOREFRONT_EAGER_SECTIONS: ${STOREFRONT_EAGER_SECTIONS:-}
   MERCHANT_SIGNUP_MODE: ${MERCHANT_SIGNUP_MODE:-invite}
+  # Merchant "Continue with Google" on the admin login page; both blank hides the button.
+  MERCHANT_GOOGLE_CLIENT_ID: ${MERCHANT_GOOGLE_CLIENT_ID:-}
+  MERCHANT_GOOGLE_CLIENT_SECRET: ${MERCHANT_GOOGLE_CLIENT_SECRET:-}
+  # Google Search Console app; blank uses the MERCHANT_GOOGLE_* client.
+  GSC_GOOGLE_CLIENT_ID: ${GSC_GOOGLE_CLIENT_ID:-}
+  GSC_GOOGLE_CLIENT_SECRET: ${GSC_GOOGLE_CLIENT_SECRET:-}
+  # Sales channels: Google Merchant Center client (blank uses MERCHANT_GOOGLE_*) and the Meta app
+  # (either blank keeps "Connect" as a request).
+  GMC_GOOGLE_CLIENT_ID: ${GMC_GOOGLE_CLIENT_ID:-}
+  GMC_GOOGLE_CLIENT_SECRET: ${GMC_GOOGLE_CLIENT_SECRET:-}
+  META_APP_ID: ${META_APP_ID:-}
+  META_APP_SECRET: ${META_APP_SECRET:-}
+  # The Meta app's Login for Business configurations and webhook verify token (integrations/meta).
+  META_LOGIN_CONFIG_ID: ${META_LOGIN_CONFIG_ID:-}
+  META_WHATSAPP_CONFIG_ID: ${META_WHATSAPP_CONFIG_ID:-}
+  META_WEBHOOK_VERIFY_TOKEN: ${META_WEBHOOK_VERIFY_TOKEN:-}
+  # The Koomerce migration app on Shopify (integrations/shopify); blank hides "Install the app".
+  SHOPIFY_APP_CLIENT_ID: ${SHOPIFY_APP_CLIENT_ID:-}
+  SHOPIFY_APP_CLIENT_SECRET: ${SHOPIFY_APP_CLIENT_SECRET:-}
   PLATFORM_SALES_STORE_ID: ${PLATFORM_SALES_STORE_ID:-}
+  # UPI AutoPay for plans: the platform's own Razorpay account. All three set turns AutoPay on.
+  PLATFORM_RAZORPAY_KEY_ID: ${PLATFORM_RAZORPAY_KEY_ID:-}
+  PLATFORM_RAZORPAY_KEY_SECRET: ${PLATFORM_RAZORPAY_KEY_SECRET:-}
+  PLATFORM_RAZORPAY_WEBHOOK_SECRET: ${PLATFORM_RAZORPAY_WEBHOOK_SECRET:-}
   # Which proxy's client-IP header to believe for per-IP rate limits. `cloudflare` only when the
   # origin is firewalled to Cloudflare's IP ranges (see the deployment runbook); `none` ignores
   # every forwarded header.
@@ -62,6 +98,8 @@ x-app-env: &app-env
   R2_PUBLIC_BASE_URL: ${R2_PUBLIC_BASE_URL:-}
   S3_PUBLIC_BASE_URL: ${S3_PUBLIC_BASE_URL:-}
   SENDER_EMAIL_PROVIDER: ${SENDER_EMAIL_PROVIDER:-dev}
+  SENDER_EMAIL_FALLBACK: ${SENDER_EMAIL_FALLBACK:-}
+  RESEND_API_KEY: ${RESEND_API_KEY:-}
   SES_REGION: ${SES_REGION:-}
   SES_ACCESS_KEY_ID: ${SES_ACCESS_KEY_ID:-}
   SES_SECRET_ACCESS_KEY: ${SES_SECRET_ACCESS_KEY:-}
@@ -73,12 +111,30 @@ x-app-env: &app-env
   OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
   AI_MODEL: ${AI_MODEL:-}
   AI_MODEL_STRONG: ${AI_MODEL_STRONG:-}
+  AI_MAX_STEPS: ${AI_MAX_STEPS:-}
   AI_UNLIMITED_STORES: ${AI_UNLIMITED_STORES:-}
+  # Umami addresses reachable on a private network or over http (our own Umami).
+  UMAMI_TRUSTED_ORIGINS: ${UMAMI_TRUSTED_ORIGINS:-}
+  MEILISEARCH_TRUSTED_ORIGINS: ${MEILISEARCH_TRUSTED_ORIGINS:-}
+  # Chatwoot addresses reachable on a private network or over http (a self-hosted Chatwoot).
+  CHATWOOT_TRUSTED_ORIGINS: ${CHATWOOT_TRUSTED_ORIGINS:-}
+  # GrowthBook addresses reachable on a private network or over http (our own GrowthBook).
+  GROWTHBOOK_TRUSTED_ORIGINS: ${GROWTHBOOK_TRUSTED_ORIGINS:-}
   SENTRY_DSN: ${SENTRY_DSN:-}
   SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
   # Release-tag Sentry events with the image's commit sha when IMAGE_TAG is pinned; override
   # with SENTRY_RELEASE, or leave both unset.
   SENTRY_RELEASE: ${SENTRY_RELEASE:-${IMAGE_TAG:-}}
+  # Structured logs: JSON on stdout always; also shipped over OTLP/HTTP when the endpoint is set.
+  OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: ${OTEL_EXPORTER_OTLP_LOGS_ENDPOINT:-}
+  OTEL_EXPORTER_OTLP_HEADERS: ${OTEL_EXPORTER_OTLP_HEADERS:-}
+  LOG_SAMPLE_RATE: ${LOG_SAMPLE_RATE:-}
+  # "Report a bug" button: test server only, off unless set. On needs GITHUB_ISSUES_TOKEN
+  # (fine-grained, only Issues: write on GITHUB_ISSUES_REPO) or the apps refuse to start.
+  BUG_REPORTS_ENABLED: ${BUG_REPORTS_ENABLED:-false}
+  GITHUB_ISSUES_TOKEN: ${GITHUB_ISSUES_TOKEN:-}
+  GITHUB_ISSUES_REPO: ${GITHUB_ISSUES_REPO:-}
+  SOURCE_COMMIT: ${SOURCE_COMMIT:-${IMAGE_TAG:-}}
   NODE_ENV: production
   # V8 heap cap, sized under each service's mem_limit (below) so the process fails fast with a
   # clear OOM inside its own container instead of the kernel OOM-killer picking a victim among
@@ -271,6 +327,12 @@ services:
       # best-effort basis. 320 leaves headroom under the 384m mem_limit for the queue
       # connections and BullMQ's own buffers, which live outside the JS heap.
       NODE_OPTIONS: --max-old-space-size=320
+      # Automatic HTTPS routes for custom domains (Dokploy API). Worker only: the admin and
+      # storefront never call Dokploy, so the key stays out of their environment.
+      DOKPLOY_URL: ${DOKPLOY_URL:-}
+      DOKPLOY_API_KEY: ${DOKPLOY_API_KEY:-}
+      DOKPLOY_STOREFRONT_APPLICATION_ID: ${DOKPLOY_STOREFRONT_APPLICATION_ID:-}
+      DOKPLOY_STOREFRONT_PORT: ${DOKPLOY_STOREFRONT_PORT:-3100}
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -286,6 +348,9 @@ services:
       retries: 3
     mem_limit: 384m
     mem_reservation: 192m
+    # At most one CPU: image processing and imports must never take the whole box from the
+    # storefront (developer docs, Deployment → CPU for the worker).
+    cpus: 1.0
     # `internal` reaches Postgres and Dragonfly; `egress` lets it call payment gateways, couriers,
     # SES and WhatsApp. Nothing on `egress` publishes a port, so it adds no inbound route.
     networks: [internal, egress]

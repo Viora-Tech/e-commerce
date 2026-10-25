@@ -13,12 +13,13 @@ import {
 } from '@commerce/ui/shadcn/table'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
+import StatusChip from '@/components/layout/status-chip'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { api } from '@/lib/api-client'
 import GstNumberPicker from './gst-number-picker'
 import { saveFile } from './save-file'
+import { CELL, HEAD } from './table-classes'
 
 type Period = Awaited<ReturnType<typeof api.gstInvoices.periods.list>>[number]
 
@@ -101,16 +102,16 @@ export default function ReturnsPage() {
     <div className="flex flex-col gap-4">
       <PageHeader
         title={copy.title}
-        subtitle={copy.subtitle}
+        summary={copy.subtitle}
         actions={<GstNumberPicker value={gst} onChange={setGst} />}
       />
-      <DataCard title={copy.title} flush>
+      <div className="overflow-hidden rounded-xl surface-card">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>{copy.month}</TableHead>
-              <TableHead>{copy.status}</TableHead>
-              <TableHead className="text-right" />
+              <TableHead className={HEAD}>{copy.month}</TableHead>
+              <TableHead className={`${HEAD} text-center`}>{copy.status}</TableHead>
+              <TableHead className={`${HEAD} text-right`} />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -120,13 +121,15 @@ export default function ReturnsPage() {
               const closed = Boolean(p?.closedAt)
               return (
                 <TableRow key={m}>
-                  <TableCell className="font-medium">{monthLabel(m)}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {[filed ? copy.filed : null, closed ? copy.closed : null]
-                      .filter(Boolean)
-                      .join(', ') || copy.open}
+                  <TableCell className={`${CELL} font-medium`}>{monthLabel(m)}</TableCell>
+                  <TableCell className={`${CELL} text-center`}>
+                    <StatusChip tone={filed || closed ? 'neutral' : 'attention'}>
+                      {[filed ? copy.filed : null, closed ? copy.closed : null]
+                        .filter(Boolean)
+                        .join(', ') || copy.open}
+                    </StatusChip>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className={CELL}>
                     <span className="flex flex-wrap justify-end gap-2">
                       <Button
                         size="sm"
@@ -160,8 +163,8 @@ export default function ReturnsPage() {
             })}
           </TableBody>
         </Table>
-        <p className="p-4 text-caption text-muted-foreground">{copy.note}</p>
-      </DataCard>
+        <p className="border-t border-line p-4 text-caption text-muted-foreground">{copy.note}</p>
+      </div>
     </div>
   )
 }

@@ -1,11 +1,12 @@
 'use client'
 
 import { dayStart } from '@commerce/dates'
+import { Pencil, Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card } from '@commerce/ui/shadcn/card'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import DataCard from '@/components/layout/data-card'
 import { giftCardDetailContent } from '@/data/gift-cards'
 import { api } from '@/lib/api-client'
 import { formatPattern } from '@/lib/format-date'
@@ -53,15 +54,17 @@ export default function ExpiryCard({ card, onChanged }: ExpiryCardProps) {
     : copy.never
 
   return (
-    <Card className="gap-3 p-5">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-card-title text-foreground">{copy.heading}</p>
-        {editing ? null : (
+    <DataCard
+      title={copy.heading}
+      action={
+        editing ? null : (
           <Button variant="ghost" size="sm" onClick={handleEdit}>
+            <Pencil aria-hidden="true" />
             {copy.edit}
           </Button>
-        )}
-      </div>
+        )
+      }
+    >
       {editing ? (
         <div className="flex flex-col gap-3">
           <Input
@@ -72,6 +75,7 @@ export default function ExpiryCard({ card, onChanged }: ExpiryCardProps) {
           />
           <div className="flex flex-wrap gap-2">
             <Button size="sm" onClick={() => save(value || null)} disabled={busy || !value}>
+              <Save aria-hidden="true" />
               {copy.save}
             </Button>
             {card.expiresOn ? (
@@ -87,6 +91,6 @@ export default function ExpiryCard({ card, onChanged }: ExpiryCardProps) {
       ) : (
         <p className="text-body text-foreground">{label}</p>
       )}
-    </Card>
+    </DataCard>
   )
 }

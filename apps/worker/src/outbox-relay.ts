@@ -1,15 +1,21 @@
 import { loadEnv } from '@commerce/config'
 import {
   type AppEventQueue,
+  type DomainRouteQueue,
   type InventoryRestockQueue,
   type NotificationQueue,
   type OutboxRelayDeps,
   relayStoreOutbox,
 } from '@commerce/core'
+import type { AutomationTriggerQueue } from '@commerce/core/automations/server'
+import type { PixelOrderQueue } from '@commerce/core/pixels/server'
 import { getRegistries } from '@commerce/core/registries'
 import { type Db, storesWithUndispatchedOutboxEvents } from '@commerce/db'
+import { logger } from '@commerce/observability/logging'
 import {
+  createAppJobQueue,
   type IORedis,
+  KEEP_FINISHED,
   OUTBOX_RELAY_QUEUE,
   type OutboxRelayJob,
   Queue,
@@ -33,6 +39,9 @@ export const RELAY_EVERY_MS = 5_000
  * `{ storeId }` job so an interactive admin action can nudge its own store's
  * rows out sooner than the next sweep, without waiting on every other store.
  *
+ * `catalog.products_changed` rows become app jobs (the Meilisearch app's index sync) on the
+ * relay's own `{apps}-jobs` producer.
+ *
  * Pattern from Trigger.dev's event log and Temporal's workflow history
  * (credited in `outbox/write.ts`): a durable poll-and-fan-out relay, not a
  * message broker.
@@ -44,16 +53,24 @@ export function createOutboxRelay(
     notifications: NotificationQueue
     appEvents?: AppEventQueue | undefined
     inventoryRestock?: InventoryRestockQueue | undefined
+    domainRoutes?: DomainRouteQueue | undefined
+    automationTriggers?: AutomationTriggerQueue | undefined
+    pixelOrders?: PixelOrderQueue | undefined
   },
 ) {
+  const appJobs = createAppJobQueue(connection)
   const deps: OutboxRelayDeps = {
     db,
     plugins: getRegistries(),
     notifications: opts.notifications,
     appEvents: opts.appEvents,
     inventoryRestock: opts.inventoryRestock,
+    domainRoutes: opts.domainRoutes,
+    automationTriggers: opts.automationTriggers,
+    pixelOrders: opts.pixelOrders,
+    appJobs,
     salesStoreId: loadEnv(process.env).PLATFORM_SALES_STORE_ID,
-    log: (message) => console.log(`[outbox] ${message}`),
+    log: (message) => logger.info(message, { area: 'outbox' }),
   }
   const queue = new Queue<OutboxRelayJob>(OUTBOX_RELAY_QUEUE, { connection })
   const worker = new Worker<OutboxRelayJob>(
@@ -70,13 +87,13 @@ export function createOutboxRelay(
           dispatched += r.dispatched
           failed += r.failed
         } catch (err) {
-          console.warn(`[outbox] store ${storeId} failed:`, err)
+          logger.warn('outbox relay failed', { storeId, error: err })
         }
       }
-      if (dispatched || failed) console.log(`[outbox] dispatched=${dispatched} failed=${failed}`)
+      if (dispatched || failed) logger.info('outbox relayed', { dispatched, failed })
       return { stores: storeIds.length, dispatched, failed }
     },
-    { connection },
+    { connection, ...KEEP_FINISHED },
   )
-  return { queue, worker }
+  return { queue, worker, appJobs }
 }

@@ -1,0 +1,76 @@
+---
+title: Menus and URL redirects
+description: Build your header and footer menus, find broken links before shoppers do, and keep old links working when you rename or move things.
+---
+
+# Menus and URL redirects
+
+Your header and footer menus live under **Content → Menus**. **URL redirects** sit on the same
+page, behind the **Redirects** button.
+
+## What a menu item can link to
+
+When you add or edit a menu item, pick what it links to:
+
+| Link to | Where it goes |
+| --- | --- |
+| **Home** | Your home page |
+| **Collection** | One collection you pick |
+| **All collections** | The page listing every collection |
+| **Product** | One product you pick |
+| **Page** | One of your pages (About, Contact…) |
+| **Blog** | A blog's list of posts |
+| **Blog post** | One published post |
+| **Policy** | Your refund, privacy, terms, shipping or contact policy (only published ones are offered) |
+| **Search page** | The store search |
+| **Custom URL** | Any address you type, on your store (`/pages/size-guide`) or outside it (`https://instagram.com/…`) |
+
+## Broken links
+
+The menu editor checks every link while you work. When something is wrong, a yellow box above
+the items says how many links need attention, and each one is marked:
+
+- **Broken link**: the product, collection, page, blog, post or policy it points at no longer
+  exists. If an old link is still caught by a redirect, the mark says **Broken, but redirected
+  to …**, so you know where shoppers end up. Edit the item and pick the right destination.
+- **Hidden from shoppers**: it exists but shoppers cannot open it: a draft product or collection,
+  a hidden page, or a post that is not published yet.
+
+Custom URLs that point inside your store (like `/products/old-name`) are checked too. Links to
+other websites are not.
+
+## When you rename a handle
+
+Changing the URL handle of a **product**, **collection** or **page** (in its **Search engine
+listing**) keeps every old link working, on its own:
+
+- A redirect is added from the old address to the new one. It shows in **URL redirects** with
+  the source **Handle changed**.
+- Redirects that pointed at the old address now point straight at the new one, so shoppers never
+  bounce twice.
+- Menu items that linked to it follow the new handle.
+- If you rename it back later, the old redirect is removed, because that address is live again.
+
+## Import and export redirects
+
+On **URL redirects**:
+
+- **Export** downloads every redirect as a CSV with two columns, **Redirect from** and
+  **Redirect to**. It opens in Excel or Google Sheets.
+- **Import** reads the same format. A redirects export from Shopify works as it is.
+  1. Click **Import** and choose the file.
+  2. You see how many redirects are ready and which lines will be skipped and why (for example
+     "Line 7: A path cannot redirect to itself"). Nothing is saved yet.
+  3. Click **Import N redirects**. New addresses are added; an address you already redirect
+     takes the target from the file.
+
+Up to 5,000 redirects fit in one file. Split bigger lists into several files.
+
+## Common problems and fixes
+
+| Problem | Why it happens | Fix |
+| --- | --- | --- |
+| "Pick one of your policies" | The menu item points at a policy that does not exist. | Edit the item and pick a policy from the list. |
+| "Pick the blog post again" | A blog post link lost its blog part. | Edit the item and pick the post again. |
+| "Needs two columns" on import | A line has only one value. | Add the target in the second column. |
+| "That path is reserved" on import | The old address starts with `/api/`, `/_next` or `/-`. | These cannot be redirected; remove the line. |

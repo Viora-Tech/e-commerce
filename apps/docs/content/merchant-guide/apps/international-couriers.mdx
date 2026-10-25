@@ -1,0 +1,132 @@
+---
+title: International couriers
+description: Ship orders abroad with DHL Express or FedEx, with the commercial invoice made from your products.
+---
+
+# International couriers
+
+DHL Express and FedEx carry orders from India to other countries. Connect your own account
+with either (or both). They sit beside your Indian courier: an order going abroad shows DHL
+Express and FedEx rates in **Create shipment**, and an order inside India keeps using
+Delhivery, Shiprocket or RapidShyp. Neither app carries parcels within India.
+
+## What you need first
+
+- **A business account with the courier.** A DHL Express account number or a FedEx account
+  number, both 9 digits. Open one on [mydhl.express.dhl](https://mydhl.express.dhl/in/en/home.html)
+  or [fedex.com](https://www.fedex.com/en-in/open-account.html) if you don't have one.
+- **API keys.** DHL: create an app on [developer.dhl.com](https://developer.dhl.com/api-reference/dhl-express-mydhl-api)
+  with **DHL Express - MyDHL API**. FedEx: create a project on
+  [developer.fedex.com](https://developer.fedex.com/api/en-in/home.html) with Ship, Rate, Pickup
+  Request and Track, and link your shipping account to it. Both give you test keys at once;
+  live keys come after the courier approves you.
+- **Your IEC** (Importer-Exporter Code, 10 characters, from DGFT). It goes on the commercial
+  invoice; Indian customs needs it to clear a commercial export.
+- **Your GSTIN** in **Settings › Taxes & GST › GST & invoices**. It goes on the invoice as the
+  exporter's tax number.
+- **An HS code on every product you sell abroad**, in the product's **Shipping** section,
+  with **Country of origin** if it was not made in India. Customs reads the commercial
+  invoice line by line, so a product without an HS code cannot be booked.
+
+## Connect DHL Express or FedEx
+
+<Tabs items={['DHL Express', 'FedEx']}>
+<Tabs.Tab>
+
+From **Apps**, install **DHL Express**, then open its **Connect** page.
+
+<Steps>
+
+### Pick Test or Live
+
+**Test** uses DHL's sandbox: no real parcels, no charges. DHL's sandbox only tracks its own
+test waybills, so a test booking shows no tracking. Switch to **Live** with your live keys.
+
+### Paste your keys and account
+
+Enter **API key**, **API secret** and **DHL account number**. Test keys only work in Test
+mode, live keys only in Live mode.
+
+### Add your export details
+
+Enter the **Origin PIN code** and **Origin city** parcels leave from (DHL needs both to quote),
+and your **IEC**. Leave **Book a DHL pickup with each shipment** on unless you drop parcels at
+a DHL point or already have a daily pickup.
+
+### Test and save
+
+**Test connection** checks your keys with a read-only address lookup at DHL. Nothing is
+booked. Select **Save and connect**.
+
+</Steps>
+
+</Tabs.Tab>
+<Tabs.Tab>
+
+From **Apps**, install **FedEx**, then open its **Connect** page.
+
+<Steps>
+
+### Pick Test or Live
+
+**Test** uses FedEx's sandbox and its test key pair. **Live** uses your production key pair.
+
+### Paste your keys and account
+
+Enter **API key**, **Secret key** and **FedEx account number**.
+
+### Add your export details
+
+Enter the **Origin PIN code**, **Origin city** and your **IEC**. With **Request a FedEx pickup
+after each booking** on, a parcel booked before 3 pm is collected the same day, later ones the
+next day from 10 am.
+
+### Test and save
+
+**Test connection** asks FedEx for a sign-in token with your keys. Nothing is booked. Select
+**Save and connect**.
+
+</Steps>
+
+</Tabs.Tab>
+</Tabs>
+
+## Ship an order abroad
+
+Open the order and select **Create shipment**, as for any order
+([Shipments](/merchant-guide/orders/shipments)). For an address outside India the rate table
+lists every DHL Express and FedEx service with its price in rupees, its transit days and
+what it charges for (freight, fuel). Your Indian couriers show "Delivers within India only".
+
+When you book, the app sends the courier:
+
+- the shopper's name, address and phone,
+- one customs line per item: name, quantity, price in rupees, HS code, country of origin and
+  weight (an item without its own weight gets a share of the parcel's),
+- your GSTIN and IEC, and the order number as the invoice number.
+
+**Print label** opens one PDF: the label first, then the commercial invoice. Print the invoice
+copies and send them with the parcel.
+
+<Callout type="info">
+  The customs value is the order's value in rupees, and the shopper pays any import duty in
+  their country (DAP). Exports are prepaid: cash on delivery is not offered abroad.
+</Callout>
+
+## Tracking and cancelling
+
+Neither courier pushes tracking updates, so both are checked on the same polling schedule as
+RapidShyp rather than updating instantly. **Cancel** works before the courier collects the parcel:
+
+- **FedEx** cancels the shipment.
+- **DHL Express** cancels the pickup booked with it. DHL has no "cancel waybill": a waybill
+  that is never handed over is never billed.
+
+## Problems
+
+| What you see | What to do |
+| --- | --- |
+| "needs an HS code on every item" | Add the HS code in the product's **Shipping** section, then book again. |
+| "did not accept this API key and secret" | Copy both keys again, and check **Test** or **Live** matches them. |
+| "needs the destination city" | The order's address has no city. Edit the address, then quote again. |
+| A courier's own message, such as "The postal code is invalid" | Fix what it names in the shopper's address and book again. |

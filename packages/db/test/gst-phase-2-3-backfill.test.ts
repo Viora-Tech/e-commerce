@@ -5,6 +5,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { createDb } from '../src/client'
 import { business, gstRegistration, order, store } from '../src/schema'
 import { resetDb } from './reset'
+import { retryOnDeadlock } from './retry-deadlock'
 
 /*
  * 0084 numbers invoices per GSTIN. Its backfill hands every existing invoice, counter and
@@ -23,20 +24,24 @@ const BACKFILL = MIGRATION.slice(MIGRATION.indexOf('-- BACKFILL'))
 
 async function runBackfill() {
   for (const statement of BACKFILL.split('--> statement-breakpoint')) {
-    if (statement.trim()) await owner.execute(sql.raw(statement))
+    if (statement.trim()) await retryOnDeadlock(() => owner.execute(sql.raw(statement)))
   }
 }
 
 /** Seed rows as they were before 0084: the trigger stays off while the old state is built. */
 async function withoutTrigger(fn: () => Promise<void>) {
-  await owner.execute(
-    sql`alter table gst_registration disable trigger gst_registration_adopt_unassigned`,
+  await retryOnDeadlock(() =>
+    owner.execute(
+      sql`alter table gst_registration disable trigger gst_registration_adopt_unassigned`,
+    ),
   )
   try {
     await fn()
   } finally {
-    await owner.execute(
-      sql`alter table gst_registration enable trigger gst_registration_adopt_unassigned`,
+    await retryOnDeadlock(() =>
+      owner.execute(
+        sql`alter table gst_registration enable trigger gst_registration_adopt_unassigned`,
+      ),
     )
   }
 }

@@ -55,7 +55,6 @@ describe('settings redirects', () => {
       '/settings/customer-privacy': '/settings/privacy',
       '/settings/customer-privacy/:path*': '/settings/privacy/:path*',
       '/settings/account': '/account',
-      '/settings/appearance': '/account/appearance',
       '/settings/files': '/content/files/storage',
     })
   })

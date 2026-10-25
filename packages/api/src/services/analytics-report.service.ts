@@ -6,15 +6,24 @@ import { fulfilmentBuilders } from './reports/fulfilment'
 import { inventoryBuilders } from './reports/inventory'
 import { orderBuilders } from './reports/orders'
 import { paymentBuilders } from './reports/payments'
+import { profitBuilders } from './reports/profit'
 import { salesBuilders } from './reports/sales'
-import type { ReportBuilder, ReportData, ReportRow, ReportSpan, ReportValue } from './reports/types'
+import type {
+  ProfitInsights,
+  ReportBuilder,
+  ReportData,
+  ReportRow,
+  ReportSpan,
+  ReportValue,
+} from './reports/types'
 
-export type { ReportRow, ReportValue } from './reports/types'
+export type { ProfitInsights, ReportRow, ReportValue } from './reports/types'
 
 const BUILDERS: Record<string, ReportBuilder> = {
   ...salesBuilders,
   ...orderBuilders,
   ...paymentBuilders,
+  ...profitBuilders,
   ...fulfilmentBuilders,
   ...customerBuilders,
   ...inventoryBuilders,
@@ -35,6 +44,8 @@ export type ReportResult = {
   totals: Record<string, ReportValue>
   previousTotals: Record<string, ReportValue> | null
   chart: ReportChartPoint[]
+  /** Profit reports only: averages, net profit and how much is still estimated. */
+  profit: ProfitInsights | null
 }
 
 const num = (v: ReportValue | undefined): number | null => (typeof v === 'number' ? v : null)
@@ -123,5 +134,6 @@ export async function analyticsReport(
     totals: current.totals,
     previousTotals: previous?.totals ?? null,
     chart: chartOf(report, current, previous),
+    profit: current.profit ?? null,
   }
 }

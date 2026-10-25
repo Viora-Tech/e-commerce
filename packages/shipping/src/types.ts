@@ -25,6 +25,14 @@ export type ServiceabilityQuery = {
   weightGrams?: number | null | undefined
   /** Order value in rupees, for aggregators that quote insurance against it. */
   declaredValue?: number | null | undefined
+  /**
+   * ISO 3166-1 alpha-2 of the destination; absent means India. Only couriers with
+   * `coverage` 'international' or 'both' are asked about a foreign address, and then
+   * `destinationPincode` holds that country's postal code.
+   */
+  destinationCountry?: string | undefined
+  /** Destination city, which some international rate APIs want next to the postal code. */
+  destinationCity?: string | undefined
 }
 
 export type Serviceability = {
@@ -63,6 +71,13 @@ export type ShipmentLine = {
   title: string
   quantity: number
   unitPricePaise: number
+  /** Customs fields for a parcel going abroad (the variant's HS code, made-in country). */
+  hsCode?: string | undefined
+  /** ISO 3166-1 alpha-2; absent on an international booking means India. */
+  countryOfOrigin?: string | undefined
+  sku?: string | undefined
+  /** One unit's weight, when the variant has one; customs lines need a weight each. */
+  unitWeightGrams?: number | undefined
 }
 
 export type CreateShipmentInput = {
@@ -84,6 +99,21 @@ export type CreateShipmentInput = {
   /** Declared value for insurance and customs, in paise. */
   valuePaise: number
   weightGrams: number
+  /**
+   * The service picked from `quoteOptions` (`RateOption.serviceId`): Delhivery's mode, an
+   * aggregator's courier. Absent: the courier's own default, as before.
+   */
+  serviceId?: string | undefined
+  /**
+   * The tracking number the merchant already has, for a courier booked outside the platform
+   * (India Post at the post office counter: the article number on the receipt). Only couriers
+   * with `requiresTrackingNumber` read it; the rest issue their own.
+   */
+  trackingNumber?: string | undefined
+  /** The parcel's box, when known. Domestic adapters may ignore it; international rates need it. */
+  dimensionsCm?: { length: number; width: number; height: number } | undefined
+  /** The store's GSTIN, printed on an export's commercial invoice. */
+  exporterGstin?: string | undefined
 }
 
 export type CreateShipmentResult = {
@@ -92,6 +122,33 @@ export type CreateShipmentResult = {
   labelUrl?: string | undefined
   /** Whatever id the courier gave us for support queries; often the waybill again. */
   providerRef: string
+  /** What the courier charges for this consignment, when its booking answer says (paise). */
+  chargePaise?: number | undefined
+  /** Public page a shopper can open, when the courier names it at booking (before any scan). */
+  trackingUrl?: string | undefined
+  /**
+   * The label itself, for a courier that hands back the PDF rather than a public link (Blue
+   * Dart's waybill answer carries it; DTDC streams it behind the API key). The platform keeps
+   * it in the store's private storage and points `labelUrl` at the admin's own download, so a
+   * courier credential never ends up in a link. Ignored when `labelUrl` is set.
+   */
+  labelDocument?: ShippingLabelDocument | undefined
+  /**
+   * The label and, abroad, the commercial invoice as base64 PDFs, for couriers that hand back
+   * several files (DHL Express, FedEx). The platform joins them label-first into one PDF and
+   * keeps it exactly like `labelDocument`. Ignored when `labelUrl` or `labelDocument` is set.
+   */
+  documents?: ShipmentDocument[] | undefined
+}
+
+export type ShippingLabelDocument = {
+  contentType: 'application/pdf'
+  body: Uint8Array
+}
+
+export type ShipmentDocument = {
+  kind: 'label' | 'commercial_invoice' | 'other'
+  pdfBase64: string
 }
 
 export type ShipmentStatus =
@@ -136,6 +193,11 @@ export type RateQuery = {
   /** Goods value after discounts, in paise. */
   declaredValuePaise: number
   paymentMode: 'prepaid' | 'cod'
+  /** ISO 3166-1 alpha-2; absent means India. See `ServiceabilityQuery.destinationCountry`. */
+  destinationCountry?: string | undefined
+  destinationCity?: string | undefined
+  /** The parcel's box, for couriers that price by volumetric weight themselves. */
+  dimensionsCm?: { length: number; width: number; height: number } | undefined
 }
 
 /** A courier's own price for one parcel. Never shown raw; the platform names and rounds it. */
@@ -143,6 +205,35 @@ export type RateQuote = {
   pricePaise: number
   minTransitDays: number | null
   maxTransitDays: number | null
+}
+
+/** One line of a quoted price, only as the courier's answer itemised it. */
+export type RateCharge = {
+  kind: 'freight' | 'cod' | 'fuel' | 'insurance' | 'rto' | 'other' | 'gst'
+  pricePaise: number
+}
+
+/**
+ * One bookable service on a route: Delhivery Surface or Express, or one carrier inside an
+ * aggregator (Shiprocket, RapidShyp). `serviceId` goes back into `createShipment` so the
+ * merchant books what they picked, not the courier's default.
+ */
+export type RateOption = {
+  serviceId: string
+  /** "Surface", "Express", or an aggregator's service name ("Bluedart Air"). */
+  serviceLabel: string
+  /** The carrier behind an aggregator's option ("Delhivery"); null for a direct courier. */
+  carrier: string | null
+  /** Total for the parcel, tax included, in paise. */
+  pricePaise: number
+  minTransitDays: number | null
+  maxTransitDays: number | null
+  /** Null when the courier's answer does not say. */
+  codAvailable: boolean | null
+  /** What the courier itemised; empty when it gave a total only. */
+  charges: RateCharge[]
+  /** The weight the courier charges for, when it says. */
+  chargeableWeightGrams: number | null
 }
 
 /**
@@ -169,6 +260,15 @@ export type ShippingCapability =
   | 'insurance'
   /** Book a courier to collect a customer return from the shopper (a reverse pickup). */
   | 'reverse_pickup'
+  /** Carry parcels abroad, with the customs lines and commercial invoice that needs. */
+  | 'international'
+
+/**
+ * Where a courier delivers. `domestic` (the default when a provider leaves it out): Indian
+ * PIN codes only. `international`: other countries only (DHL Express and FedEx from India);
+ * the storefront's PIN-code estimate never asks such a courier. `both`: either.
+ */
+export type ShippingCoverage = 'domestic' | 'international' | 'both'
 
 /**
  * A reverse pickup: the courier collects the parcel from the shopper
@@ -246,6 +346,19 @@ export type ShippingProvider = {
   /** Stable id used in store settings and the shipment table. Lowercase, no spaces. */
   readonly id: string
   readonly label: string
+  /** Where it delivers; absent means `domestic`. See `ShippingCoverage`. */
+  readonly coverage?: ShippingCoverage | undefined
+  /**
+   * True for a courier booked outside the platform (India Post's counter): `createShipment`
+   * needs the merchant's own tracking number in `trackingNumber`, so the Create shipment flow
+   * asks for it.
+   */
+  readonly requiresTrackingNumber?: boolean | undefined
+  /**
+   * True when the courier has no tracking feed for us: the merchant sets the status by hand
+   * (`recordManualTracking` in core) and the shared poll job never calls `track()`.
+   */
+  readonly tracksManually?: boolean | undefined
   /**
    * Optional: what the courier would charge for this parcel, or null when it
    * will not quote. Checkout prices shipping from the merchant's zones and
@@ -255,6 +368,12 @@ export type ShippingProvider = {
    * changing the contract again.
    */
   quoteRate?(query: RateQuery): Promise<RateQuote | null>
+  /**
+   * Optional: every service the courier offers on this route, each with its price and what
+   * it itemised. The Create shipment rate table lists them all when present and falls back
+   * to `quoteRate` (one row) otherwise.
+   */
+  quoteOptions?(query: RateQuery): Promise<RateOption[]>
   /**
    * Look up serviceability. Throws CourierError on transport or auth failure;
    * returns `serviceable: false` for a successful lookup with a negative
@@ -309,6 +428,12 @@ export type ShippingProviderFactory<Config> = {
   fields: ProviderField[]
   /** What this adapter can do; the admin uses it to grey out unsupported actions. */
   capabilities: ShippingCapability[]
+  /**
+   * True when `checkServiceability` answers without the merchant's credentials (DTDC's PIN code
+   * lookup is a public endpoint), so a passing lookup proves nothing about the key: the Connect
+   * page's "Test connection" then also runs `verifyCredentials`.
+   */
+  serviceabilityWithoutCredentials?: boolean
   validateConfig(raw: unknown): { ok: true; config: Config } | { ok: false; errors: string[] }
   create(config: Config): ShippingProvider
 }

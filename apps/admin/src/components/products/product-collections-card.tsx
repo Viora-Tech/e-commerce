@@ -1,12 +1,13 @@
 'use client'
 
+import { Save } from '@commerce/ui/icons'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import DataCard from '@/components/layout/data-card'
 import { productCollectionsCardContent } from '@/data/collections'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -76,43 +77,42 @@ export default function ProductCollectionsCard({
   const dirty = JSON.stringify(value) !== JSON.stringify(saved)
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{copy.heading}</CardTitle>
-        {productId && dirty ? (
-          <CardAction>
-            <Button size="sm" onClick={() => void handleSave()} disabled={busy}>
-              {busy ? copy.saving : copy.save}
-            </Button>
-          </CardAction>
-        ) : null}
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        {!productId ? (
-          <p className="text-body text-muted-foreground">{copy.saveFirst}</p>
-        ) : loaded === null ? (
-          <Skeleton className="h-16 w-full" />
-        ) : (
-          <>
-            <ProductCollectionsField options={loaded.manual} value={value} onChange={setValue} />
-            <div className="flex flex-col gap-1.5">
-              <FieldLabel>{copy.automaticLabel}</FieldLabel>
-              {loaded.automatic.length > 0 ? (
-                <ul className="flex flex-wrap gap-2">
-                  {loaded.automatic.map((c) => (
-                    <li key={c.id}>
-                      <Badge variant="secondary">{c.title}</Badge>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-body text-muted-foreground">{copy.automaticNone}</p>
-              )}
-              <FieldDescription>{copy.automaticHelp}</FieldDescription>
-            </div>
-          </>
-        )}
-      </CardContent>
-    </Card>
+    <DataCard
+      title={copy.heading}
+      action={
+        productId && dirty ? (
+          <Button size="sm" onClick={() => void handleSave()} disabled={busy}>
+            <Save aria-hidden="true" />
+            {busy ? copy.saving : copy.save}
+          </Button>
+        ) : null
+      }
+      bodyClassName="flex flex-col gap-4"
+    >
+      {!productId ? (
+        <p className="text-body text-muted-foreground">{copy.saveFirst}</p>
+      ) : loaded === null ? (
+        <Skeleton className="h-16 w-full" />
+      ) : (
+        <>
+          <ProductCollectionsField options={loaded.manual} value={value} onChange={setValue} />
+          <div className="flex flex-col gap-1.5">
+            <FieldLabel>{copy.automaticLabel}</FieldLabel>
+            {loaded.automatic.length > 0 ? (
+              <ul className="flex flex-wrap gap-2">
+                {loaded.automatic.map((c) => (
+                  <li key={c.id}>
+                    <Badge variant="secondary">{c.title}</Badge>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-body text-muted-foreground">{copy.automaticNone}</p>
+            )}
+            <FieldDescription>{copy.automaticHelp}</FieldDescription>
+          </div>
+        </>
+      )}
+    </DataCard>
   )
 }

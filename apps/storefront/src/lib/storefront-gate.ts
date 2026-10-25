@@ -5,6 +5,7 @@ import {
   ACCESS_MAX_AGE,
   parsePreferences,
   readThemePreviewToken,
+  searchIndexable,
   signStorefrontAccess,
   verifyStorefrontAccess,
 } from '@commerce/core'
@@ -17,13 +18,21 @@ export const PREVIEW_COOKIE = 'wc_theme_preview'
 export const PREVIEW_MAX_AGE = 60 * 60
 export { ACCESS_COOKIE, ACCESS_MAX_AGE }
 
-type Lock = { enabled: boolean; password: string }
+type Lock = {
+  enabled: boolean
+  password: string
+  /** Search engines may crawl and index (password page off, indexing on). */
+  search: boolean
+  /** AI crawlers may too; never when search engines may not. */
+  ai: boolean
+}
 
 const LOCK_TTL_MS = 10_000
 const locks = new Map<string, { lock: Lock; expiresAt: number }>()
 
 /**
- * Whether the store's password page is on, and its password. Cached briefly per
+ * Whether the store's password page is on, its password, and which crawlers are welcome
+ * (Preferences › Search engine visibility). Cached briefly per
  * process so the proxy does not read preferences on every request; turning the
  * password on or off takes effect within the TTL.
  */
@@ -37,7 +46,13 @@ export async function storefrontLock(storeId: string): Promise<Lock> {
       .where(eq(store.id, storeId))
     return parsePreferences(row?.preferences)
   })
-  const lock = { enabled: prefs.password.enabled, password: prefs.password.password }
+  const search = searchIndexable(prefs)
+  const lock = {
+    enabled: prefs.password.enabled,
+    password: prefs.password.password,
+    search,
+    ai: search && prefs.indexing.aiCrawlers,
+  }
   locks.set(storeId, { lock, expiresAt: Date.now() + LOCK_TTL_MS })
   return lock
 }

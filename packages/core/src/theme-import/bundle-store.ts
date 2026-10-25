@@ -1,6 +1,6 @@
 /** SOURCE OF TRUTH: imported theme storage reads — WHAT: whether a theme is an imported Liquid theme, its import record and report, its renderable bundle (cached per theme version) and single asset files for the storefront's asset route / WHY: every storefront request and every canvas render needs the bundle; reading ~5 MB of theme files per request would be wasteful, so it is cached and re-read only when the import row changes */
 import { newId, type StoreTx, themeFile, themeImport } from '@commerce/db'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, like, sql } from 'drizzle-orm'
 import { buildThemeBundle, type ThemeBundle } from './bundle'
 import type { ImportReport } from './report'
 
@@ -36,6 +36,16 @@ export async function themeImportFor(
 export async function importedThemeIds(tx: StoreTx): Promise<Set<string>> {
   const rows = await tx.select({ themeId: themeImport.themeId }).from(themeImport)
   return new Set(rows.map((r) => r.themeId))
+}
+
+/** How many Liquid sections each imported theme brought (`sections/*.liquid`), by theme id. */
+export async function importedSectionCounts(tx: StoreTx): Promise<Map<string, number>> {
+  const rows = await tx
+    .select({ themeId: themeFile.themeId, n: sql<number>`count(*)::int` })
+    .from(themeFile)
+    .where(like(themeFile.path, 'sections/%.liquid'))
+    .groupBy(themeFile.themeId)
+  return new Map(rows.map((r) => [r.themeId, r.n]))
 }
 
 const bundles = new Map<string, ThemeBundle>()
@@ -82,6 +92,53 @@ export async function loadThemeBundle(tx: StoreTx, themeId: string): Promise<The
     bundles.delete(oldest)
   }
   return bundle
+}
+
+/**
+ * The bundle with Edit code's unpublished saves in place of the live files, for a theme preview;
+ * null when the theme has none (the preview then shows the live bundle). Never cached: drafts
+ * change with every save, and a preview is not cached anyway.
+ */
+export async function loadThemeDraftBundle(
+  tx: StoreTx,
+  themeId: string,
+): Promise<ThemeBundle | null> {
+  const record = await themeImportFor(tx, themeId)
+  if (!record) return null
+  const files = await tx
+    .select({
+      path: themeFile.path,
+      body: themeFile.body,
+      draftBody: themeFile.draftBody,
+      encoding: themeFile.encoding,
+      checksum: themeFile.checksum,
+    })
+    .from(themeFile)
+    .where(eq(themeFile.themeId, themeId))
+  if (!files.some((f) => f.draftBody !== null)) return null
+  const textFiles = new Map<string, string>()
+  const assetChecksums = new Map<string, string>()
+  for (const f of files) {
+    if (f.encoding === 'utf8') textFiles.set(f.path, f.draftBody ?? f.body)
+    if (f.path.startsWith('assets/')) assetChecksums.set(f.path.slice('assets/'.length), f.checksum)
+  }
+  return buildThemeBundle({
+    themeId,
+    version: `${record.updatedAt.toISOString()}|draft`,
+    textFiles,
+    assetChecksums,
+    settings: record.settings,
+  })
+}
+
+/**
+ * The bundle already built for this theme version, or null, without a query: for a caller that
+ * knows the version (the storefront caches it per store version and skips `loadThemeBundle`'s
+ * import-record read on every render).
+ */
+export function peekThemeBundle(themeId: string, version: string): ThemeBundle | null {
+  const hit = bundles.get(themeId)
+  return hit && hit.version === version ? hit : null
 }
 
 /** One file of `assets/` for the storefront's asset route. */

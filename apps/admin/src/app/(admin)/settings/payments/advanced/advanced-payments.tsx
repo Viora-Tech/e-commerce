@@ -2,7 +2,7 @@
 
 import type { PaymentAdjustment } from '@commerce/core'
 import { CreditCard } from '@commerce/ui/icons'
-import BackToPayments, { PAYMENTS_PAGE_HREF } from '@/components/payments/back-to-payments'
+import BackLink from '@/components/layout/back-link'
 import UpiCompare from '@/components/payments/upi-compare'
 import ManualTransferFields from '@/components/settings/manual-transfer-fields'
 import PaymentAdjustmentFields from '@/components/settings/payment-adjustment-fields'
@@ -13,7 +13,7 @@ import ProviderSettingsForm, {
 import SettingsSection from '@/components/settings/settings-section'
 import UnpaidExpiryField from '@/components/settings/unpaid-expiry-field'
 import { paymentsSettingsContent } from '@/data/payments'
-import { paymentsSetupContent } from '@/data/payments-setup'
+import { PAYMENTS_PAGE_HREF, paymentsSetupContent } from '@/data/payments-setup'
 import { settingsContent } from '@/data/settings'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -126,7 +126,7 @@ export default function AdvancedPayments() {
 
   return (
     <div className="flex flex-col gap-3">
-      <BackToPayments />
+      <BackLink href={PAYMENTS_PAGE_HREF} label={setupCopy.backToPayments} />
       <ProviderSettingsForm<Extra>
         title={copy.advancedTitle}
         icon={<CreditCard aria-hidden="true" />}

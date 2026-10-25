@@ -16,6 +16,7 @@ import {
 import { appsContent } from '@/data/apps'
 import { backInStockContent } from '@/data/back-in-stock'
 import { blogListContent } from '@/data/blog'
+import { collectionsListContent } from '@/data/collections'
 import { customerDetailContent } from '@/data/customers'
 import { type DiscountLifecycle, discountsContent } from '@/data/discounts'
 import { abandonedContent, draftsContent } from '@/data/drafts'
@@ -30,9 +31,12 @@ import {
 } from '@/data/inventory'
 import { campaignsContent } from '@/data/marketing-campaigns'
 import { onlineStoreContent } from '@/data/online-store'
-import { orderDetailContent, ordersContent } from '@/data/orders'
+import { orderDetailContent } from '@/data/order-detail'
+import { ordersContent } from '@/data/orders'
 import { productsListContent } from '@/data/products'
+import { type InboundShipmentStatus, inboundShipmentsContent } from '@/data/purchasing'
 import { returnsContent } from '@/data/returns'
+import { reviewsContent } from '@/data/reviews'
 import { shipmentPanelContent } from '@/data/shipping'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { staffContent } from '@/data/staff'
@@ -65,7 +69,7 @@ export const STATUS = {
     draft: entry(ordersContent.status.draft, 'neutral'),
     open: entry(ordersContent.status.open, 'accent', DeliveryDelay),
     completed: entry(ordersContent.status.completed, 'success', CircleCheck),
-    cancelled: entry(ordersContent.status.cancelled, 'error', CancelCircle),
+    cancelled: entry(ordersContent.status.cancelled, 'neutral', CancelCircle),
   } satisfies Record<OrderLifecycleStatus, StatusEntry>,
   /**
    * The order's derived payment status: list column and detail header pill.
@@ -77,8 +81,8 @@ export const STATUS = {
     authorized: entry(ordersContent.paymentStatus.authorized, 'pending'),
     partially_paid: entry(ordersContent.paymentStatus.partially_paid, 'pending'),
     paid: entry(ordersContent.paymentStatus.paid, 'success'),
-    partially_refunded: entry(ordersContent.paymentStatus.partially_refunded, 'info'),
-    refunded: entry(ordersContent.paymentStatus.refunded, 'info'),
+    partially_refunded: entry(ordersContent.paymentStatus.partially_refunded, 'neutral'),
+    refunded: entry(ordersContent.paymentStatus.refunded, 'neutral'),
     refund_needed: entry(ordersContent.paymentStatus.refund_needed, 'error'),
   } satisfies Record<OrderPaymentStatus, StatusEntry>,
   /** One payment attempt (payment card rows, the summary box). */
@@ -102,10 +106,14 @@ export const STATUS = {
       PackageOpen,
     ),
     fulfilled: entry(ordersContent.fulfillmentStatus.fulfilled, 'success', PackageCheck),
-    shipped: entry(ordersContent.fulfillmentStatus.shipped, 'info', Truck),
-    partially_delivered: entry(ordersContent.fulfillmentStatus.partially_delivered, 'info', Truck),
+    shipped: entry(ordersContent.fulfillmentStatus.shipped, 'accent', Truck),
+    partially_delivered: entry(
+      ordersContent.fulfillmentStatus.partially_delivered,
+      'accent',
+      Truck,
+    ),
     delivered: entry(ordersContent.fulfillmentStatus.delivered, 'success', PackageCheck),
-    returned: entry(ordersContent.fulfillmentStatus.returned, 'error', CancelCircle),
+    returned: entry(ordersContent.fulfillmentStatus.returned, 'neutral', CancelCircle),
   } satisfies Record<OrderFulfillmentStatus, StatusEntry>,
   refund: {
     pending: entry(orderDetailContent.payment.refundStatus.pending ?? 'Pending', 'pending'),
@@ -135,24 +143,25 @@ export const STATUS = {
   /** A customer return or an RTO task: amber when it waits on the merchant. */
   return: {
     requested: entry(returnsContent.status.requested, 'pending'),
-    approved: entry(returnsContent.status.approved, 'accent'),
-    rejected: entry(returnsContent.status.rejected, 'error'),
-    in_transit: entry(returnsContent.status.in_transit, 'info', Truck),
-    received: entry(returnsContent.status.received, 'pending', PackageOpen),
+    // Figma Returns: approved blue, on the way back and arrived violet, declined grey.
+    approved: entry(returnsContent.status.approved, 'info'),
+    rejected: entry(returnsContent.status.rejected, 'neutral'),
+    in_transit: entry(returnsContent.status.in_transit, 'accent', Truck),
+    received: entry(returnsContent.status.received, 'accent', PackageOpen),
     resolved: entry(returnsContent.status.resolved, 'success', CircleCheck),
     cancelled: entry(returnsContent.status.cancelled, 'neutral'),
   },
   discount: {
     active: entry(discountsContent.lifecycle.active, 'success'),
-    scheduled: entry(discountsContent.lifecycle.scheduled, 'accent'),
+    scheduled: entry(discountsContent.lifecycle.scheduled, 'info'),
     expired: entry(discountsContent.lifecycle.expired, 'neutral'),
-    disabled: entry(discountsContent.lifecycle.disabled, 'error'),
+    disabled: entry(discountsContent.lifecycle.disabled, 'neutral'),
   } satisfies Record<DiscountLifecycle, StatusEntry>,
   giftCard: {
     active: entry(giftCardsContent.state.active, 'success'),
-    disabled: entry(giftCardsContent.state.disabled, 'error'),
-    expired: entry(giftCardsContent.state.expired, 'neutral'),
-    empty: entry(giftCardsContent.state.empty, 'info'),
+    disabled: entry(giftCardsContent.state.disabled, 'neutral'),
+    expired: entry(giftCardsContent.state.expired, 'pending'),
+    empty: entry(giftCardsContent.state.empty, 'neutral'),
   } satisfies Record<GiftCardStateFilter, StatusEntry>,
   product: {
     active: entry(productsListContent.status.active, 'success'),
@@ -161,14 +170,21 @@ export const STATUS = {
   } satisfies Record<ProductStatus, StatusEntry>,
   purchaseOrder: {
     draft: entry(purchaseOrdersContent.status.draft, 'neutral'),
-    ordered: entry(purchaseOrdersContent.status.ordered, 'accent'),
+    ordered: entry(purchaseOrdersContent.status.ordered, 'info'),
     partially_received: entry(purchaseOrdersContent.status.partially_received, 'pending'),
     received: entry(purchaseOrdersContent.status.received, 'success'),
     closed: entry(purchaseOrdersContent.status.closed, 'neutral'),
+    cancelled: entry(purchaseOrdersContent.status.cancelled, 'error'),
   } satisfies Record<PurchaseOrderStatus, StatusEntry>,
+  inboundShipment: {
+    in_transit: entry(inboundShipmentsContent.status.in_transit, 'accent'),
+    at_port: entry(inboundShipmentsContent.status.at_port, 'pending'),
+    cleared: entry(inboundShipmentsContent.status.cleared, 'info'),
+    delivered: entry(inboundShipmentsContent.status.delivered, 'success'),
+  } satisfies Record<InboundShipmentStatus, StatusEntry>,
   transfer: {
     draft: entry(transfersContent.status.draft, 'neutral'),
-    in_transit: entry(transfersContent.status.in_transit, 'pending'),
+    in_transit: entry(transfersContent.status.in_transit, 'accent'),
     received: entry(transfersContent.status.received, 'success'),
   } satisfies Record<TransferStatus, StatusEntry>,
   stock: {
@@ -180,6 +196,15 @@ export const STATUS = {
     queued: entry(customerDetailContent.timeline.status.queued ?? 'Queued', 'pending'),
     failed: entry(customerDetailContent.timeline.status.failed ?? 'Failed', 'error'),
   },
+  collectionType: {
+    manual: entry(collectionsListContent.list.kind.manual, 'neutral'),
+    automatic: entry(collectionsListContent.list.kind.automatic, 'info'),
+  },
+  /** Whether shoppers can browse a collection. */
+  collectionVisibility: {
+    active: entry(collectionsListContent.list.visibility.active, 'success'),
+    draft: entry(collectionsListContent.list.visibility.draft, 'neutral'),
+  },
   page: {
     published: entry(onlineStoreContent.pages.status.published, 'success'),
     draft: entry(onlineStoreContent.pages.status.draft, 'neutral'),
@@ -188,7 +213,7 @@ export const STATUS = {
   /** Blog posts: a scheduled post that is due reads as published. */
   article: {
     published: entry(blogListContent.status.published, 'success'),
-    scheduled: entry(blogListContent.status.scheduled, 'accent'),
+    scheduled: entry(blogListContent.status.scheduled, 'info'),
     draft: entry(blogListContent.status.draft, 'neutral'),
   },
   app: {
@@ -210,13 +235,28 @@ export const STATUS = {
     notified: entry(backInStockContent.signups.status.notified, 'success'),
     unsubscribed: entry(backInStockContent.signups.status.unsubscribed, 'neutral'),
   },
+  /** Product reviews (Reviews app). */
+  review: {
+    pending: entry(reviewsContent.status.pending, 'pending'),
+    published: entry(reviewsContent.status.published, 'success'),
+    hidden: entry(reviewsContent.status.hidden, 'neutral'),
+  },
   /** Shopify import runs; a finished dry run reads "Preview ready". */
   importRun: {
     queued: entry(shopifyImportContent.status.queued, 'neutral'),
     running: entry(shopifyImportContent.status.running, 'pending'),
     completed: entry(shopifyImportContent.status.completed, 'success'),
     failed: entry(shopifyImportContent.status.failed, 'error'),
+    cancelled: entry(shopifyImportContent.status.cancelled, 'neutral'),
     preview: entry(shopifyImportContent.previewReady, 'info'),
+  },
+  /** One type on "What's left to import". */
+  importState: {
+    done: entry(shopifyImportContent.remaining.state.done, 'success'),
+    missing: entry(shopifyImportContent.remaining.state.missing, 'pending'),
+    not_copied: entry(shopifyImportContent.remaining.state.not_copied, 'error'),
+    never: entry(shopifyImportContent.remaining.state.never, 'neutral'),
+    unknown: entry(shopifyImportContent.remaining.state.unknown, 'neutral'),
   },
   /** Draft orders: open until an invoice goes out. */
   draft: {
@@ -241,15 +281,15 @@ export const STATUS = {
   /** Badges on the customer detail header. */
   /** Badges on the customer detail header and the list's status column (5:3148). */
   customer: {
-    returning: entry(customerDetailContent.badges.returning, 'info'),
-    vip: entry(customerDetailContent.badges.vip, 'pending'),
+    returning: entry(customerDetailContent.badges.returning, 'neutral'),
+    vip: entry(customerDetailContent.badges.vip, 'info'),
     active: entry('Active', 'success'),
-    inactive: entry('Inactive', 'error'),
+    inactive: entry('Inactive', 'neutral'),
   },
   /** Marketing campaigns. */
   campaign: {
     draft: entry(campaignsContent.status.draft, 'neutral'),
-    scheduled: entry(campaignsContent.status.scheduled, 'accent'),
+    scheduled: entry(campaignsContent.status.scheduled, 'info'),
     sending: entry(campaignsContent.status.sending, 'pending'),
     sent: entry(campaignsContent.status.sent, 'success'),
     cancelled: entry(campaignsContent.status.cancelled, 'error'),

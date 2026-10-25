@@ -1,44 +1,24 @@
 'use client'
 
 import { customizeContent } from '@/data/customize'
-import {
-  type CustomizeDoc,
-  FOOTER_ZONE,
-  HEADER_ZONE,
-  MAIN_ZONE,
-  zoneSections,
-} from '@/lib/customize-doc'
-import { useCustomizePuck } from '@/lib/customize-puck'
+import { FOOTER_ZONE, HEADER_ZONE, MAIN_ZONE } from '@/lib/customize-doc'
 import SectionGroup from './section-group'
 
 const copy = customizeContent.groups
 
 /** The left panel's Sections tab: header group, the template's sections, footer group. */
-export default function SectionsTree() {
-  // Hooks
-  const data = useCustomizePuck((s) => s.appState.data) as unknown as CustomizeDoc
+type SectionsTreeProps = {
+  /** The open template's name, for "Template: Home page". */
+  templateLabel: string
+}
 
+export default function SectionsTree({ templateLabel }: SectionsTreeProps) {
   // Render logic
   return (
     <div className="flex flex-col">
-      <SectionGroup
-        title={copy.header}
-        zone={HEADER_ZONE}
-        group="header"
-        sections={zoneSections(data, HEADER_ZONE)}
-      />
-      <SectionGroup
-        title={copy.template}
-        zone={MAIN_ZONE}
-        group={null}
-        sections={zoneSections(data, MAIN_ZONE)}
-      />
-      <SectionGroup
-        title={copy.footer}
-        zone={FOOTER_ZONE}
-        group="footer"
-        sections={zoneSections(data, FOOTER_ZONE)}
-      />
+      <SectionGroup title={copy.headerGroup} everyPage zone={HEADER_ZONE} group="header" />
+      <SectionGroup title={copy.templateOf(templateLabel)} zone={MAIN_ZONE} group={null} />
+      <SectionGroup title={copy.footerGroup} everyPage zone={FOOTER_ZONE} group="footer" />
     </div>
   )
 }

@@ -205,6 +205,10 @@ export class DecentroProvider implements PaymentProvider {
     private readonly now: () => Date = () => new Date(),
   ) {}
 
+  get mode(): 'test' | 'live' {
+    return this.config.mode
+  }
+
   private get creds(): DecentroCredentials {
     return {
       clientId: this.config.clientId,
@@ -404,6 +408,8 @@ export class DecentroProvider implements PaymentProvider {
         providerPaymentId: providerRef,
         amountPaise: toPaise(body.paid_amount ?? body.amount),
         orderId,
+        // Decentro's callback carries no fee; its gateway rate (Costs for profit) is used.
+        charges: { feePaise: null, feeTaxPaise: null, method: { kind: 'upi' } },
         raw: body,
       }
     }

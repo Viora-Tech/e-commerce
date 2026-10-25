@@ -5,14 +5,9 @@ import type {
   PaymentProviderFactory,
   PaymentStatus,
 } from '@commerce/payments'
-import {
-  qrWasPaid,
-  type RazorpayConfig,
-  RazorpayProvider,
-  type RzpPayment,
-  type RzpQrCode,
-  razorpayFactory,
-} from './razorpay'
+import type { RzpPayment } from './charges'
+import { type RazorpayConfig, RazorpayProvider, razorpayFactory } from './razorpay'
+import { qrWasPaid, type RzpQrCode } from './webhook-events'
 
 /** How long a QR stays open. The store's unpaid-order window still decides when the order goes. */
 export const QR_OPEN_MINUTES = 30

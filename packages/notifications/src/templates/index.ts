@@ -29,6 +29,14 @@ export const TEMPLATE_IDS: TemplateId[] = [
   'balance_received',
   'payment_reminder',
   'unpaid_cancel_notice',
+  'staff_new_order',
+  'staff_daily_summary',
+  'contact_message',
+  'review_request',
+  'review_reminder',
+  'review_reply',
+  'affiliate_update',
+  'affiliate_application',
   'unpaid_cancelled',
   'back_in_stock_confirm',
   'back_in_stock_alert',
@@ -37,6 +45,23 @@ export const TEMPLATE_IDS: TemplateId[] = [
   'return_rejected',
   'return_received',
   'return_refunded',
+  'cod_confirm',
+  'staff_invite',
+  'email_change_code',
+  'email_changed',
+  'plan_bill',
+  'purchase_order',
+]
+
+/**
+ * Templates the platform sends about itself (through the platform email account), never a store's
+ * own customer messages. They are not in Settings → Notifications and a merchant cannot switch them off.
+ */
+export const PLATFORM_TEMPLATE_IDS: readonly TemplateId[] = [
+  'staff_invite',
+  'email_change_code',
+  'email_changed',
+  'plan_bill',
 ]
 
 /** Human names for the dev preview list and the admin's document-template picker. */
@@ -62,6 +87,14 @@ export const TEMPLATE_NAMES: Record<TemplateId, string> = {
   balance_received: 'Balance received',
   payment_reminder: 'Payment reminder',
   unpaid_cancel_notice: 'Unpaid order will be cancelled (merchant)',
+  staff_new_order: 'New order (team member alert)',
+  staff_daily_summary: 'Daily summary (team member alert)',
+  contact_message: 'New form message (merchant)',
+  review_request: 'Review request',
+  review_reminder: 'Review reminder',
+  review_reply: 'Reply to a review',
+  affiliate_update: 'Affiliate update (to the affiliate)',
+  affiliate_application: 'New affiliate application (merchant)',
   unpaid_cancelled: 'Unpaid order cancelled',
   back_in_stock_confirm: 'Back in stock: confirm alert',
   back_in_stock_alert: 'Back in stock: alert',
@@ -70,6 +103,12 @@ export const TEMPLATE_NAMES: Record<TemplateId, string> = {
   return_rejected: 'Return declined',
   return_received: 'Return received',
   return_refunded: 'Return refunded',
+  cod_confirm: 'Confirm your cash on delivery order',
+  staff_invite: 'Staff invitation (platform)',
+  email_change_code: 'Change email: code (platform)',
+  email_changed: 'Change email: notice to old address (platform)',
+  plan_bill: 'Plan or app bill (platform)',
+  purchase_order: 'Purchase order (to supplier)',
 }
 
 /** Drop runs of blank lines left by optional sections. */
@@ -86,8 +125,28 @@ function eyebrowFor(template: TemplateId, d: TemplateData): string {
       return 'Sign-in link'
     case 'newsletter_confirm':
       return 'Newsletter'
+    case 'contact_message':
+      return 'Form message'
+    case 'review_request':
+    case 'review_reminder':
+    case 'review_reply':
+      return 'Your review'
+    case 'affiliate_update':
+    case 'affiliate_application':
+      return 'Affiliate program'
     case 'gift_card_issued':
       return 'Gift card'
+    case 'staff_invite':
+      return 'Team invitation'
+    case 'plan_bill':
+      return 'Your bill'
+    case 'staff_daily_summary':
+      return 'Daily summary'
+    case 'email_change_code':
+    case 'email_changed':
+      return 'Your sign-in email'
+    case 'purchase_order':
+      return `Purchase order ${d.purchaseOrder?.numberLabel ?? ''}`.trim()
     case 'checkout_recovery':
       return 'Your basket'
     case 'back_in_stock_confirm':
@@ -133,10 +192,20 @@ function primaryActionFor(
       return d.actionUrl ? { label: 'Pay securely', url: d.actionUrl } : undefined
     case 'checkout_recovery':
       return d.actionUrl ? { label: 'Finish checkout', url: d.actionUrl } : undefined
+    case 'cod_confirm':
+      return d.actionUrl ? { label: 'Confirm or cancel my order', url: d.actionUrl } : undefined
     case 'login_link':
       return d.actionUrl ? { label: `Sign in to ${d.storeName}`, url: d.actionUrl } : undefined
     case 'newsletter_confirm':
       return d.actionUrl ? { label: 'Confirm my email', url: d.actionUrl } : undefined
+    case 'staff_invite':
+      return d.actionUrl ? { label: 'Accept invitation', url: d.actionUrl } : undefined
+    case 'plan_bill':
+      return d.actionUrl ? { label: 'Pay now', url: d.actionUrl } : undefined
+    case 'staff_new_order':
+      return d.actionUrl ? { label: 'Open the order', url: d.actionUrl } : undefined
+    case 'staff_daily_summary':
+      return d.actionUrl ? { label: 'Open your admin', url: d.actionUrl } : undefined
     case 'document_copy':
       return d.links?.[0] ? { label: d.links[0].label, url: d.links[0].url } : undefined
     case 'balance_request':
@@ -148,6 +217,17 @@ function primaryActionFor(
       return d.backInStock?.confirmUrl
         ? { label: 'Confirm alert', url: d.backInStock.confirmUrl }
         : undefined
+    case 'review_request':
+    case 'review_reminder': {
+      const first = d.review?.items?.[0]
+      return first ? { label: 'Write a review', url: first.url } : undefined
+    }
+    case 'affiliate_update':
+      return d.affiliate?.portalUrl
+        ? { label: 'Open your dashboard', url: d.affiliate.portalUrl }
+        : undefined
+    case 'review_reply':
+      return d.review?.productUrl ? { label: 'See the reply', url: d.review.productUrl } : undefined
     case 'back_in_stock_alert':
       return d.backInStock?.productUrl
         ? { label: 'Shop now', url: d.backInStock.productUrl }
@@ -157,17 +237,51 @@ function primaryActionFor(
   }
 }
 
+/** "Ships in 2 parcels" as plain text lines; nothing for an order shipping in one. */
+function parcelsText(d: TemplateData): string[] {
+  const parcels = d.parcels ?? []
+  if (parcels.length < 2) return []
+  const p = shared.parcels
+  return [
+    '',
+    `${p.title(parcels.length)}:`,
+    ...parcels.flatMap((parcel, i) => [
+      `${p.parcel(i + 1, parcel.from)}${parcel.onHold ? ` (${p.onHold})` : parcel.dateRange ? ` (${p.arrives(parcel.dateRange)})` : ''}`,
+      ...parcel.items.map((item) => `- ${p.item(item.quantity, item.title)}`),
+    ]),
+  ]
+}
+
+/** The same, as the email's parcels block. */
+function parcelsBlock(d: TemplateData) {
+  const parcels = d.parcels ?? []
+  if (parcels.length < 2) return undefined
+  const p = shared.parcels
+  return {
+    title: p.title(parcels.length),
+    note: p.note,
+    parcels: parcels.map((parcel, i) => ({
+      heading: p.parcel(i + 1, parcel.from),
+      items: parcel.items.map((item) => p.item(item.quantity, item.title)),
+      when: parcel.onHold ? p.onHold : parcel.dateRange ? p.arrives(parcel.dateRange) : null,
+    })),
+  }
+}
+
 export async function renderEmail(template: TemplateId, d: TemplateData): Promise<EmailBody> {
   const c = templateContent[template]
   const lines = d.lines.map(shared.lineText)
   // Messages about no order (a sign-in code) carry no items or total.
   const hasItems = d.lines.length > 0
   const gc = d.giftCard
+  // The merchant's own note from the "Review email" dialog, under the intro.
+  const note = d.custom?.message?.trim() || undefined
 
   const text = squash([
     c.heading(d),
     '',
     c.intro(d),
+    ...(note ? ['', note] : []),
     '',
     ...(gc
       ? [
@@ -182,6 +296,7 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
             `${shared.totalLabel}: ${d.totalLabel}`,
           ]
         : []),
+    ...parcelsText(d),
     '',
     c.outro(d),
     d.orderUrl ? `${shared.viewOrder}: ${d.orderUrl}` : '',
@@ -190,7 +305,7 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
     shared.footer(d),
   ])
 
-  const subject = c.subject(d)
+  const subject = d.custom?.subject?.trim() || c.subject(d)
   // Extra links go under the body as text lines (document links, installed-app links);
   // the primary action already carries the main call to action as a button.
   const primaryAction = primaryActionFor(template, d)
@@ -204,10 +319,12 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
       eyebrow: eyebrowFor(template, d),
       heading: c.heading(d),
       intro: c.intro(d),
+      note,
       outro: c.outro(d),
       lines: gc ? [] : d.lines,
       totalLabel: gc ? undefined : d.totalLabel,
       taxBreakdown: gc ? undefined : d.taxBreakdown,
+      parcels: gc ? undefined : parcelsBlock(d),
       giftCard: gc,
       code: d.code,
       primaryAction,
@@ -220,5 +337,7 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
 }
 
 export function renderWhatsapp(template: TemplateId, d: TemplateData): WhatsappBody {
-  return { text: templateContent[template].whatsapp(d) }
+  const text = templateContent[template].whatsapp(d)
+  const note = d.custom?.message?.trim()
+  return { text: note ? `${note}\n\n${text}` : text }
 }

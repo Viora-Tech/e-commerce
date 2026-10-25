@@ -1,29 +1,31 @@
 'use client'
 
-import { ChevronDown, ExternalLink, MoreVertical, SquarePlus } from '@commerce/ui/icons'
-import { Button } from '@commerce/ui/shadcn/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
-import { Kbd } from '@commerce/ui/shadcn/kbd'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
-import Link from 'next/link'
+import { AppWindow, ExternalLink, Users } from '@commerce/ui/icons'
+import { useRouter } from 'next/navigation'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import CustomerAvatar from '@/components/customers/customer-avatar'
-import KitListPage from '@/components/kit/kit-list-page'
-import PillTabs from '@/components/layout/pill-tabs'
-import { orderStage } from '@/components/orders/order-stage'
-import StatusLabel from '@/components/status/status-label'
-import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
-import RowIconCells from '@/components/table/row-icon-cells'
+import type { OrderActionGroup } from '@/apps/order-actions'
+import ProoflyListPage from '@/components/layout/proofly-list-page'
+import DeleteTestOrdersDialog from '@/components/orders/delete-test-orders-dialog'
+import OrderRowMenu from '@/components/orders/order-row-menu'
+import OrdersBulkActions from '@/components/orders/orders-bulk-actions'
+import OrdersBulkDialogs, { type OrdersBulkRequest } from '@/components/orders/orders-bulk-dialogs'
+import OrdersHeaderActions from '@/components/orders/orders-header-actions'
+import OrdersTiles, { type OrderTilesData } from '@/components/orders/orders-tiles'
+import { useOrderAppActions } from '@/components/orders/use-order-app-actions'
+import InlineState from '@/components/states/inline-state'
+import {
+  appliedFromGroups,
+  clearGroups,
+  FILTER_PANEL_CLASS,
+  FilterPanel,
+} from '@/components/table/filter-panel'
+import ResourceTable from '@/components/table/resource-table'
+import ViewSelect from '@/components/table/view-select'
+import { filterPanelContent } from '@/data/filter-panel'
 import {
   ORDER_LIST_FILTERS,
-  ORDER_MARKS,
   type OrderListFilter,
   type OrderMark,
   ordersContent,
@@ -31,212 +33,70 @@ import {
 } from '@/data/orders'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import type { Formatters } from '@/lib/format'
-import { formatNumericDate } from '@/lib/format-date'
-import { LIST_PER_PAGE, type ListQuery, sameListQuery } from '@/lib/list-query'
+import { type ListQuery, sameListQuery } from '@/lib/list-query'
+import { orderColumns } from '@/lib/order-columns'
 import { orderListFilter } from '@/lib/order-filter'
+import {
+  FILTER_PARAMS,
+  hasOrderFilters,
+  NO_FILTERS,
+  type OrderFilters as OrderFiltersValue,
+  orderFilterGroups,
+  orderFilterInput,
+} from '@/lib/order-list-filters'
 import { usePrimaryAction } from '@/lib/primary-action'
+import { routes } from '@/lib/routes'
+import { parseRowsPerPage } from '@/lib/rows-per-page'
+
+/** How many orders a bulk action updates at once. */
+const BULK_BATCH = 10
 
 type ListResult = Awaited<ReturnType<typeof api.orders.list>>
 type Item = ListResult['items'][number]
 
-/** First page, tiles and the all-orders count rendered on the server so nothing paints empty. */
+/** First page, stat cards and tab counts rendered on the server so nothing paints empty. */
 export type OrdersInitial = {
   query: ListQuery<OrderListFilter>
+  perPage: number
   result: ListResult
-  allCount: number
-  /** Manual UPI / bank transfer orders waiting to be marked paid; the Pending UPI tab's badge. */
-  pendingUpiCount: number
+  tiles: OrderTilesData
+  /** Installed apps' order actions for the row menus and bulk bar (`api.apps.orderActions`). */
+  appActions: OrderActionGroup[]
+  /** The Automations app is installed: "Run automation" on the bulk bar. */
+  automations: boolean
+  /** Tab badges: every order, unpaid, to pack and manual UPI waiting to be matched. */
+  counts: { all: number; unpaid: number; unfulfilled: number; pendingUpi: number }
 }
-
-const PER_PAGE = LIST_PER_PAGE
 
 type Query = ListQuery<OrderListFilter>
 
-function fetchOrders(q: Query) {
+function fetchOrders(q: Query, perPage: number, f: OrderFiltersValue) {
   return api.orders.list({
     page: q.page,
-    perPage: PER_PAGE,
+    perPage,
     search: q.query || undefined,
     ...orderListFilter(q.status),
+    ...orderFilterInput(f),
   })
-}
-
-/* Avatar + order number, the customer's name muted beneath: one column instead of two. */
-function OrderCell({ item }: { item: Item }) {
-  // Hooks
-  const copy = useCopy(ordersContent)
-
-  // Render logic
-  const who = item.customerName ?? item.email ?? copy.guest
-  return (
-    <span className="flex items-center gap-3 text-left">
-      <CustomerAvatar name={item.customerName} email={item.email} />
-      <span className="min-w-0">
-        <span className="line-clamp-1 font-medium text-ink-strong tabular-nums">
-          #{item.number}
-        </span>
-        <span className="line-clamp-1 text-caption text-muted-foreground">{who}</span>
-      </span>
-    </span>
-  )
-}
-
-/* 32px thumb on a hairline, the first line title and a muted "+n more" under it. */
-function ProductCell({ item }: { item: Item }) {
-  // Hooks
-  const copy = useCopy(ordersContent)
-
-  // Render logic
-  const extra = item.lineCount - 1
-  return (
-    <span className="flex items-center gap-3 text-left">
-      <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-card">
-        {item.firstLineImage ? (
-          // biome-ignore lint/performance/noImgElement: remote store media, sized by the frame.
-          <img src={item.firstLineImage} alt="" className="size-7 object-contain" />
-        ) : null}
-      </span>
-      <span className="min-w-0">
-        <span className="line-clamp-1 text-body text-foreground">
-          {item.firstLineTitle ?? copy.guest}
-        </span>
-        {extra > 0 ? (
-          <span className="block text-caption font-normal text-muted-foreground">
-            {copy.moreLines(extra)}
-          </span>
-        ) : null}
-      </span>
-    </span>
-  )
-}
-
-function orderColumns(copy: typeof ordersContent, fmt: Formatters): ResourceColumnSpec<Item>[] {
-  return [
-    {
-      id: 'number',
-      title: copy.columns.order,
-      sortValue: (o) => o.number,
-      hideable: false,
-      className: 'w-[15%] whitespace-normal',
-      render: (o) => <OrderCell item={o} />,
-    },
-    {
-      id: 'product',
-      title: copy.columns.product,
-      align: 'start',
-      className: 'w-[30%] whitespace-normal',
-      render: (o) => <ProductCell item={o} />,
-    },
-    {
-      id: 'date',
-      title: copy.columns.date,
-      sortValue: (o) => new Date(o.placedAt).getTime(),
-      render: (o) => <span className="tabular-nums">{formatNumericDate(o.placedAt)}</span>,
-    },
-    {
-      id: 'total',
-      title: copy.columns.total,
-      sortValue: (o) => o.totalPaise,
-      align: 'end',
-      render: (o) => <span className="tabular-nums">{fmt.money(o.totalPaise)}</span>,
-    },
-    {
-      id: 'payment',
-      title: copy.columns.payment,
-      sortValue: (o) => o.paymentStatus,
-      render: (o) => <StatusLabel kind="orderPayment" value={o.paymentStatus} />,
-    },
-    {
-      id: 'status',
-      title: copy.columns.status,
-      sortValue: (o) => `${o.status}:${o.fulfillmentStatus}`,
-      render: (o) => {
-        const stage = orderStage(o)
-        return <StatusLabel kind={stage.kind} value={stage.value} />
-      },
-    },
-  ]
-}
-
-type TabsProps = {
-  value: OrderListFilter | null
-  allCount: number
-  pendingUpiCount: number
-  onChange: (s: OrderListFilter | null) => void
-}
-
-function StatusTabs({ value, allCount, pendingUpiCount, onChange }: TabsProps) {
-  // Hooks
-  const copy = useCopy(ordersContent)
-
-  return (
-    <PillTabs<OrderListFilter | null>
-      value={value}
-      onChange={onChange}
-      tabs={[
-        { value: null, label: copy.tabs.all, count: allCount },
-        ...ORDER_LIST_FILTERS.map((s) => ({
-          value: s,
-          label: copy.tabs[s],
-          ...(s === PENDING_UPI ? { count: pendingUpiCount } : {}),
-        })),
-      ]}
-    />
-  )
-}
-
-/* Secondary menu first, the ink primary action last (PageHeader order). */
-function HeaderActions() {
-  // Hooks
-  const copy = useCopy(ordersContent)
-
-  return (
-    <div className="flex items-center gap-2">
-      <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="outline" size="lg" className="pr-2" />}>
-          {copy.moreActions}
-          <MoreVertical className="size-4" />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem render={<Link href="/orders/drafts" />}>
-            {copy.menu.drafts}
-          </DropdownMenuItem>
-          <DropdownMenuItem render={<Link href="/orders/abandoned-checkouts" />}>
-            {copy.menu.abandoned}
-          </DropdownMenuItem>
-          <DropdownMenuItem render={<Link href="/orders/returns" />}>
-            {copy.menu.returns}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <Button size="lg" render={<Link href="/orders/drafts" />} nativeButton={false}>
-              <SquarePlus strokeWidth={1.6} />
-              {copy.addOrder}
-            </Button>
-          }
-        />
-        <TooltipContent>
-          {copy.addOrder} <Kbd>N</Kbd>
-        </TooltipContent>
-      </Tooltip>
-    </div>
-  )
 }
 
 function OrdersContent({ initial }: { initial: OrdersInitial }) {
   // Hooks
   const copy = useCopy(ordersContent)
+  const panelCopy = useCopy(filterPanelContent)
   const fmt = useFormat()
-  usePrimaryAction('/orders/drafts')
-  const [{ page, query, status }, setQ] = useQueryStates(
+  const router = useRouter()
+  usePrimaryAction(routes.orders.drafts())
+  const [
+    { page, query, status, perPage: rawPerPage, payment, fulfilment, date, method, courier },
+    setQ,
+  ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
       page: parseAsInteger.withDefault(1),
       status: parseAsStringLiteral(ORDER_LIST_FILTERS),
+      perPage: parseAsInteger.withDefault(initial.perPage),
+      ...FILTER_PARAMS,
     },
     { shallow: true },
   )
@@ -244,108 +104,256 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   const [items, setItems] = useState<Item[]>(initial.result.items)
   const [total, setTotal] = useState(initial.result.total)
   const [loading, setLoading] = useState(false)
+  const [failed, setFailed] = useState(false)
+  const [couriers, setCouriers] = useState<string[]>([])
+  const [testOrders, setTestOrders] = useState(initial.result.testOrders)
+  const [askDeleteTests, setAskDeleteTests] = useState(false)
+  const [bulkRequest, setBulkRequest] = useState<OrdersBulkRequest | null>(null)
+
+  const hydrated = useRef(false)
+  const apps = useOrderAppActions(initial.appActions, () => {
+    reload().catch(() => setFailed(true))
+  })
+
+  // The Courier filter lists only couriers the store's orders actually went with.
+  useEffect(() => {
+    api.orders.couriers().then(setCouriers, () => undefined)
+  }, [])
 
   useEffect(() => {
-    if (sameListQuery({ page, query, status }, initial.query)) return
+    const perPage = parseRowsPerPage(rawPerPage)
+    // The server's first page is used once; after any change (including back to the first
+    // tab) the list is fetched again, so it never keeps another tab's rows.
+    const firstRun = !hydrated.current
+    hydrated.current = true
+    const f: OrderFiltersValue = { payment, fulfilment, date, method, courier }
+    if (
+      firstRun &&
+      perPage === initial.perPage &&
+      !hasOrderFilters(f) &&
+      sameListQuery({ page, query, status }, initial.query)
+    )
+      return
     let cancelled = false
     setLoading(true)
-    fetchOrders({ page, query, status })
+    setFailed(false)
+    fetchOrders({ page, query, status }, perPage, f)
       .then((r) => {
         if (cancelled) return
         setItems(r.items)
         setTotal(r.total)
+        setTestOrders(r.testOrders)
       })
+      .catch(() => !cancelled && setFailed(true))
       .finally(() => !cancelled && setLoading(false))
     return () => {
       cancelled = true
     }
-  }, [page, query, status, initial.query])
+  }, [
+    page,
+    query,
+    status,
+    rawPerPage,
+    payment,
+    fulfilment,
+    date,
+    method,
+    courier,
+    initial.query,
+    initial.perPage,
+  ])
+
+  // Helpers
+  const reload = async () => {
+    const r = await fetchOrders({ page, query, status }, parseRowsPerPage(rawPerPage), {
+      payment,
+      fulfilment,
+      date,
+      method,
+      courier,
+    })
+    setItems(r.items)
+    setTotal(r.total)
+    setTestOrders(r.testOrders)
+  }
 
   // Event handlers
+  const setFilters = (patch: Partial<OrderFiltersValue>) => setQ({ ...patch, page: 1 })
+  const handleTestsDeleted = () => {
+    // The tiles and tab counts come from the server render; the rows are fetched again here.
+    router.refresh()
+    reload().catch(() => setFailed(true))
+  }
   const handleBulkSetStatus = async (ids: string[], mark: OrderMark, clear: () => void) => {
     try {
-      await Promise.all(ids.map((id) => api.orders.setStatus({ id, status: mark })))
+      /* "Select all" can hand over thousands of ids: ten requests at a time, never all at once. */
+      for (let i = 0; i < ids.length; i += BULK_BATCH) {
+        await Promise.all(
+          ids.slice(i, i + BULK_BATCH).map((id) => api.orders.setStatus({ id, status: mark })),
+        )
+      }
       toast.success(copy.bulk.updated(ids.length, copy.marks[mark]))
       clear()
-      const r = await fetchOrders({ page, query, status })
-      setItems(r.items)
-      setTotal(r.total)
+      await reload()
     } catch {
       toast.error(copy.bulk.failed)
     }
   }
 
   // Render logic
+  /** Tags already on the loaded orders, offered while adding tags from a row. */
+  const tagSuggestions = [...new Set(items.flatMap((o) => o.tags ?? []))]
+  const perPage = parseRowsPerPage(rawPerPage)
   const columns = orderColumns(copy, fmt)
+  const filters: OrderFiltersValue = { payment, fulfilment, date, method, courier }
+  const filtered = hasOrderFilters(filters)
+  const groups = orderFilterGroups(filters, copy.filters, setFilters, couriers)
+  const searching = query.length > 0 || status !== null || filtered
+  const tabCounts: Partial<Record<OrderListFilter, number>> = {
+    unpaid: initial.counts.unpaid,
+    unfulfilled: initial.counts.unfulfilled,
+    [PENDING_UPI]: initial.counts.pendingUpi,
+  }
 
   return (
-    <KitListPage title={copy.heading} actions={<HeaderActions />}>
+    <ProoflyListPage
+      title={copy.title}
+      summary={copy.summary(
+        initial.counts.all,
+        initial.tiles.readyToShip,
+        initial.counts.pendingUpi,
+      )}
+      actions={
+        <OrdersHeaderActions
+          testOrders={testOrders}
+          onDeleteTests={() => setAskDeleteTests(true)}
+        />
+      }
+      stats={
+        <OrdersTiles
+          tiles={initial.tiles}
+          status={status}
+          onSelect={(s) => setQ({ status: s, page: 1 })}
+        />
+      }
+    >
+      {failed ? (
+        <InlineState kind="error" heading={copy.loadFailed} onRetry={() => setQ({ page })} />
+      ) : null}
       <ResourceTable
         resourceName={copy.resource}
         columns={columns}
         items={items}
         getId={(o) => o.id}
-        href={(o) => `/orders/${o.id}`}
-        rowIconCells={{
-          count: 2,
-          render: (o) => (
-            <RowIconCells
-              links={[
-                {
-                  label: copy.row.openNewTab,
-                  icon: ExternalLink,
-                  href: `/orders/${o.id}`,
-                  newTab: true,
-                },
-              ]}
-              menu={[
-                { label: copy.row.open, href: `/orders/${o.id}` },
-                ...(o.email
-                  ? [
-                      {
-                        label: copy.row.sameCustomer,
-                        href: `/orders?query=${encodeURIComponent(o.email)}`,
-                      },
-                    ]
-                  : []),
-              ]}
-            />
-          ),
-        }}
+        href={(o) => routes.orders.detail(o.id)}
+        rowActions={(o) => (
+          <OrderRowMenu
+            order={o}
+            appItems={apps.items('row', o, [o.id])}
+            tagSuggestions={tagSuggestions}
+            onChanged={() => {
+              router.refresh()
+              reload().catch(() => setFailed(true))
+            }}
+            items={[
+              { label: copy.row.open, href: routes.orders.detail(o.id), icon: AppWindow },
+              {
+                label: copy.row.openNewTab,
+                href: routes.orders.detail(o.id),
+                icon: ExternalLink,
+                newTab: true,
+              },
+              ...(o.email
+                ? [
+                    {
+                      label: copy.row.sameCustomer,
+                      href: `${routes.orders.list()}?query=${encodeURIComponent(o.email)}`,
+                      icon: Users,
+                    },
+                  ]
+                : []),
+            ]}
+          />
+        )}
         loading={loading}
+        defaultSort={{ id: 'date', desc: true }}
+        defaultHidden={['fulfilment', 'channel', 'tags']}
         query={query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
-        onClearAll={() => setQ({ query: '', status: null, page: 1 })}
-        tabs={
-          <StatusTabs
+        onClearAll={() => setQ({ query: '', status: null, ...NO_FILTERS, page: 1 })}
+        filters={(close) => (
+          <FilterPanel
+            groups={groups}
+            onClear={() => clearGroups(groups)}
+            footer={{ label: copy.filters.show(total), onDone: close }}
+          />
+        )}
+        filtersClassName={FILTER_PANEL_CLASS}
+        applied={appliedFromGroups(groups, panelCopy)}
+        views={
+          <ViewSelect<OrderListFilter | null>
+            label={copy.viewLabel}
             value={status}
-            allCount={initial.allCount}
-            pendingUpiCount={initial.pendingUpiCount}
-            onChange={(s) => setQ({ status: s, page: 1 })}
+            onChange={(s) => setQ({ status: s, ...NO_FILTERS, page: 1 })}
+            formatCount={fmt.number}
+            custom={filtered ? { label: copy.customView, count: total } : undefined}
+            options={[
+              { value: null, label: copy.tabs.all, count: initial.counts.all },
+              ...ORDER_LIST_FILTERS.map((s) => {
+                const count = tabCounts[s]
+                return {
+                  value: s,
+                  label: copy.tabs[s],
+                  ...(count === undefined ? {} : { count }),
+                }
+              }),
+            ]}
           />
         }
         page={page}
-        perPage={PER_PAGE}
+        perPage={perPage}
         total={total}
         onPageChange={(page) => setQ({ page })}
+        onPerPageChange={(n) => setQ({ perPage: n, page: 1 })}
+        loadAllIds={() =>
+          api.orders.ids({
+            search: query || undefined,
+            ...orderListFilter(status),
+            ...orderFilterInput(filters),
+          })
+        }
         bulkActions={(ids, clear) => (
-          <DropdownMenu>
-            <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
-              {copy.bulk.markAs}
-              <ChevronDown />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              {ORDER_MARKS.map((s) => (
-                <DropdownMenuItem key={s} onClick={() => handleBulkSetStatus(ids, s, clear)}>
-                  {copy.marks[s]}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <OrdersBulkActions
+            ids={ids}
+            onMark={(i, m) => handleBulkSetStatus(i, m, clear)}
+            onRequest={(kind, i) => setBulkRequest({ kind, ids: i, clear })}
+            appActions={initial.appActions}
+            automations={initial.automations}
+            onAppActionDone={() => {
+              clear()
+              reload().catch(() => setFailed(true))
+            }}
+          />
         )}
-        empty={copy.empty}
+        empty={searching ? copy.noResults : copy.empty}
       />
-    </KitListPage>
+      <OrdersBulkDialogs
+        request={bulkRequest}
+        items={items}
+        tagSuggestions={tagSuggestions}
+        onClose={() => setBulkRequest(null)}
+        onDone={() => {
+          setBulkRequest(null)
+          reload().catch(() => setFailed(true))
+        }}
+      />
+      <DeleteTestOrdersDialog
+        open={askDeleteTests}
+        onOpenChange={setAskDeleteTests}
+        count={testOrders}
+        onDeleted={handleTestsDeleted}
+      />
+    </ProoflyListPage>
   )
 }
 

@@ -1,19 +1,27 @@
 'use client'
 
-import type { ReturnReason } from '@commerce/core/returns'
+import { AppWindow, CancelCircle, CheckIcon, PackageOpen, Settings } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
-import { Suspense, useEffect, useState } from 'react'
-import PageBody from '@/components/layout/page-body'
-import PageHeader from '@/components/layout/page-header'
-import PillTabs from '@/components/layout/pill-tabs'
-import RelativeTime from '@/components/layout/relative-time'
-import StatusLabel from '@/components/status/status-label'
-import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
-import { returnsContent as copy } from '@/data/returns'
+import { Suspense, useEffect, useRef, useState } from 'react'
+import ProoflyListPage from '@/components/layout/proofly-list-page'
+import { returnColumns } from '@/components/returns/return-columns'
+import ReturnsListDialogs, {
+  listActions,
+  type ReturnsListRequest,
+} from '@/components/returns/returns-list-dialogs'
+import ResourceTable from '@/components/table/resource-table'
+import RowMenu from '@/components/table/row-menu'
+import ViewSelect from '@/components/table/view-select'
+import { returnDetailContent, returnListActionsContent, returnsContent } from '@/data/returns'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { LIST_PER_PAGE, type ListQuery, sameListQuery } from '@/lib/list-query'
-import { formatPaise } from '@/lib/money'
+import { type ListQuery, sameListQuery } from '@/lib/list-query'
 import { RETURN_LIST_FILTERS, type ReturnListFilter, returnListFilter } from '@/lib/return-filter'
+import { routes } from '@/lib/routes'
+import { parseRowsPerPage } from '@/lib/rows-per-page'
 
 type ListResult = Awaited<ReturnType<typeof api.returns.list>>
 type Item = ListResult['items'][number]
@@ -21,88 +29,15 @@ type Counts = Awaited<ReturnType<typeof api.returns.counts>>
 
 export type ReturnsInitial = {
   query: ListQuery<ReturnListFilter>
+  perPage: number
   result: ListResult
   counts: Counts
 }
 
-const reasonOf = (i: Item): string =>
-  i.kind === 'rto'
-    ? copy.rtoReason
-    : i.reason
-      ? (copy.reasons[i.reason as ReturnReason] ?? i.reason)
-      : ''
-
-const columns: ResourceColumnSpec<Item>[] = [
-  {
-    id: 'return',
-    title: copy.columns.return,
-    hideable: false,
-    sortValue: (r) => r.number,
-    className: 'w-32',
-    render: (r) => (
-      <span className="flex flex-col text-left">
-        <span className="font-medium text-ink-strong tabular-nums">{r.label}</span>
-        <span className="text-caption text-muted-foreground">{copy.kind[r.kind]}</span>
-      </span>
-    ),
-  },
-  {
-    id: 'order',
-    title: copy.columns.order,
-    sortValue: (r) => r.orderNumber,
-    render: (r) => <span className="tabular-nums">#{r.orderNumber}</span>,
-  },
-  {
-    id: 'customer',
-    title: copy.columns.customer,
-    align: 'start',
-    className: 'whitespace-normal',
-    render: (r) => <span className="line-clamp-1">{r.customerName ?? r.email ?? copy.guest}</span>,
-  },
-  {
-    id: 'reason',
-    title: copy.columns.reason,
-    align: 'start',
-    className: 'whitespace-normal',
-    render: (r) => <span className="line-clamp-1 text-muted-foreground">{reasonOf(r)}</span>,
-  },
-  {
-    id: 'items',
-    title: copy.columns.items,
-    sortValue: (r) => r.items,
-    render: (r) => <span className="tabular-nums">{copy.itemCount(r.items)}</span>,
-  },
-  {
-    id: 'value',
-    title: copy.columns.value,
-    align: 'end',
-    sortValue: (r) => r.valuePaise,
-    render: (r) => <span className="tabular-nums">{formatPaise(r.valuePaise)}</span>,
-  },
-  {
-    id: 'status',
-    title: copy.columns.status,
-    sortValue: (r) => r.status,
-    render: (r) => (
-      <StatusLabel
-        kind="return"
-        value={r.status}
-        label={r.kind === 'rto' ? copy.rtoStatus[r.status] : undefined}
-      />
-    ),
-  },
-  {
-    id: 'requested',
-    title: copy.columns.requested,
-    sortValue: (r) => new Date(r.requestedAt).getTime(),
-    render: (r) => <RelativeTime value={r.requestedAt} />,
-  },
-]
-
-function fetchReturns(q: ListQuery<ReturnListFilter>) {
+function fetchReturns(q: ListQuery<ReturnListFilter>, perPage: number) {
   return api.returns.list({
     page: q.page,
-    perPage: LIST_PER_PAGE,
+    perPage,
     search: q.query || undefined,
     ...returnListFilter(q.status),
   })
@@ -110,23 +45,42 @@ function fetchReturns(q: ListQuery<ReturnListFilter>) {
 
 function ReturnsContent({ initial }: { initial: ReturnsInitial }) {
   // Hooks
-  const [{ page, query, status }, setQ] = useQueryStates(
+  const copy = useCopy(returnsContent)
+  const detail = useCopy(returnDetailContent)
+  const actions = useCopy(returnListActionsContent)
+  const router = useRouter()
+  const fmt = useFormat()
+  const [{ page, query, status, perPage: rawPerPage }, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
       page: parseAsInteger.withDefault(1),
       status: parseAsStringLiteral(RETURN_LIST_FILTERS),
+      perPage: parseAsInteger.withDefault(initial.perPage),
     },
     { shallow: true },
   )
   const [items, setItems] = useState<Item[]>(initial.result.items)
   const [total, setTotal] = useState(initial.result.total)
   const [loading, setLoading] = useState(false)
+  const [request, setRequest] = useState<ReturnsListRequest | null>(null)
+
+  const hydrated = useRef(false)
 
   useEffect(() => {
-    if (sameListQuery({ page, query, status }, initial.query)) return
+    const size = parseRowsPerPage(rawPerPage)
+    // The server's first page is used once; after any change (including back to the first
+    // tab) the list is fetched again, so it never keeps another tab's rows.
+    const firstRun = !hydrated.current
+    hydrated.current = true
+    if (
+      firstRun &&
+      size === initial.perPage &&
+      sameListQuery({ page, query, status }, initial.query)
+    )
+      return
     let cancelled = false
     setLoading(true)
-    fetchReturns({ page, query, status })
+    fetchReturns({ page, query, status }, size)
       .then((r) => {
         if (cancelled) return
         setItems(r.items)
@@ -136,9 +90,27 @@ function ReturnsContent({ initial }: { initial: ReturnsInitial }) {
     return () => {
       cancelled = true
     }
-  }, [page, query, status, initial.query])
+  }, [page, query, status, rawPerPage, initial.query, initial.perPage])
+
+  // Helpers
+  const reload = async () => {
+    const r = await fetchReturns({ page, query, status }, parseRowsPerPage(rawPerPage))
+    setItems(r.items)
+    setTotal(r.total)
+    // The tab counts and the summary line come from the server render.
+    router.refresh()
+  }
+  const ask = (kind: ReturnsListRequest['kind'], ids: string[], clear: () => void = () => {}) =>
+    setRequest({ kind, ids, clear })
+
+  // Event handlers
+  const handleDone = () => {
+    setRequest(null)
+    reload().catch(() => undefined)
+  }
 
   // Render logic
+  const perPage = parseRowsPerPage(rawPerPage)
   const c = initial.counts
   const counts: Record<ReturnListFilter, number | undefined> = {
     requested: c.requested,
@@ -149,24 +121,94 @@ function ReturnsContent({ initial }: { initial: ReturnsInitial }) {
   }
 
   return (
-    <PageBody width="frame" className="gap-6">
-      <PageHeader title={copy.title} subtitle={copy.subtitle} />
+    <ProoflyListPage
+      title={copy.title}
+      summary={c.requested > 0 ? copy.needDecision(c.requested) : copy.subtitle}
+      actions={
+        <Button
+          variant="outline"
+          render={<Link href={routes.settings.returns()} />}
+          nativeButton={false}
+        >
+          <Settings aria-hidden="true" />
+          {copy.rules}
+        </Button>
+      }
+    >
       <ResourceTable
-        size="frame"
         resourceName={copy.resource}
-        columns={columns}
+        columns={returnColumns(copy, fmt)}
         items={items}
         getId={(r) => r.id}
-        href={(r) => `/orders/returns/${r.id}`}
+        href={(r) => routes.orders.returnDetail(r.id)}
+        rowActions={(r) => {
+          const can = listActions(r)
+          return (
+            <RowMenu
+              items={[
+                { label: copy.openReturn, href: routes.orders.returnDetail(r.id), icon: AppWindow },
+                {
+                  label: detail.decision.approve,
+                  icon: CheckIcon,
+                  hidden: !can.approve,
+                  separatorBefore: true,
+                  onSelect: () => ask('approve', [r.id]),
+                },
+                {
+                  label: detail.receive.button,
+                  icon: PackageOpen,
+                  hidden: !can.receive,
+                  onSelect: () => ask('receive', [r.id]),
+                },
+                {
+                  label: actions.close,
+                  hidden: !can.resolve,
+                  onSelect: () => ask('close', [r.id]),
+                },
+                {
+                  label: detail.rejectDialog.confirm,
+                  icon: CancelCircle,
+                  destructive: true,
+                  hidden: !can.reject,
+                  onSelect: () => ask('reject', [r.id]),
+                },
+              ]}
+            />
+          )
+        }}
+        selectable
+        bulkActions={(ids, clear) => (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => ask('approve', ids, clear)}
+            >
+              <CheckIcon aria-hidden="true" />
+              {actions.approveSelected(ids.length)}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => ask('close', ids, clear)}
+            >
+              {actions.closeSelected(ids.length)}
+            </Button>
+          </>
+        )}
         loading={loading}
         query={query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ query: '', status: null, page: 1 })}
-        tabs={
-          <PillTabs<ReturnListFilter | null>
+        views={
+          <ViewSelect<ReturnListFilter | null>
+            label={copy.viewLabel}
             value={status}
             onChange={(s) => setQ({ status: s, page: 1 })}
-            tabs={[
+            formatCount={fmt.number}
+            options={[
               { value: null, label: copy.tabs.all, count: c.all },
               ...RETURN_LIST_FILTERS.map((s) => ({
                 value: s,
@@ -177,12 +219,19 @@ function ReturnsContent({ initial }: { initial: ReturnsInitial }) {
           />
         }
         page={page}
-        perPage={LIST_PER_PAGE}
+        perPage={perPage}
         total={total}
         onPageChange={(page) => setQ({ page })}
+        onPerPageChange={(n) => setQ({ perPage: n, page: 1 })}
         empty={{ heading: copy.empty, body: copy.subtitle }}
       />
-    </PageBody>
+      <ReturnsListDialogs
+        request={request}
+        items={items}
+        onClose={() => setRequest(null)}
+        onDone={handleDone}
+      />
+    </ProoflyListPage>
   )
 }
 

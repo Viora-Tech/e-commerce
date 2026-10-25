@@ -1,15 +1,17 @@
 // Pattern after shadcnblocks' Gallery (our own implementation). See THIRD_PARTY_NOTICES.md.
 
+import type { ReactNode } from 'react'
 import { focalStyle } from '../../focal-point'
 import { linkTarget } from '../../link'
 import type { Image, Link } from '../../sections/framed'
 import { safeHref } from '../../slot-types'
 import Picture from '../picture'
 
-type GalleryImage = { image: Image; caption: string; link: Link }
+/** Copy is a string in storage, a React node while edited on the canvas. */
+type GalleryImage = { image: Image; caption: ReactNode; link: Link }
 
 type GalleryProps = {
-  heading: string
+  heading: ReactNode
   layout: 'grid' | 'masonry' | 'carousel'
   images: GalleryImage[]
 }
@@ -27,7 +29,7 @@ const LAYOUT_CLASS: Record<GalleryProps['layout'], string> = {
 export default function Gallery({ heading, layout, images }: GalleryProps) {
   return (
     <div className="page-width">
-      {heading ? <h2 className="h2 text-[var(--color-ink)]">{heading}</h2> : null}
+      {heading ? <h2 className="section-title">{heading}</h2> : null}
       <div className={`mt-[1.5rem] ${LAYOUT_CLASS[layout]}`}>
         {images.map((item, i) => {
           const figure = (
@@ -62,7 +64,7 @@ export default function Gallery({ heading, layout, images }: GalleryProps) {
           const href = safeHref(item.link?.href)
           return (
             // biome-ignore lint/suspicious/noArrayIndexKey: merchant-edited rows carry no id and never reorder between renders.
-            <div key={`${item.image?.url ?? item.caption}-${i}`}>
+            <div key={i}>
               {href ? (
                 <a href={href} {...linkTarget(item.link)}>
                   {figure}

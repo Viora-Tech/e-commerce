@@ -1,0 +1,1 @@
+ALTER TABLE "shopify_import_run" ADD COLUMN "include_unused_files" boolean DEFAULT false NOT NULL;

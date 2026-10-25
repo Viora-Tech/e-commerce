@@ -30,7 +30,7 @@ export const isResponsiveNumberField = (field: FieldLike): boolean => {
   )
 }
 
-const SETTINGS_GROUPS = ['layout', 'spacing', 'style', 'advanced'] as const
+const REQUIRED_SETTINGS_GROUPS = ['spacing', 'advanced'] as const
 
 /**
  * The shared per-section settings object (`sectionSettingsField` in
@@ -40,7 +40,9 @@ export const isSectionSettingsField = (field: FieldLike, name = ''): boolean => 
   if (field.type !== 'object') return false
   if (name && name !== 'settings') return false
   const keys = Object.keys(field.objectFields ?? {})
-  return SETTINGS_GROUPS.every((k) => keys.includes(k))
+  // Every kind has spacing and advanced; full sections add layout and style
+  // (`sectionSettingsField` kinds in @commerce/blocks: section, bleed, flow).
+  return REQUIRED_SETTINGS_GROUPS.every((k) => keys.includes(k))
 }
 
 const STYLE_GROUPS = ['spacing', 'size', 'typography', 'colour', 'corners', 'visibility'] as const

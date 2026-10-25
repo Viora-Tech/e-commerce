@@ -15,11 +15,14 @@ import {
   type LucideIcon,
   MessageSquare,
   Puzzle,
+  Search,
   Settings,
+  StarIcon,
   Store,
   Truck,
   Upload,
   Users,
+  Workflow,
 } from '@commerce/ui/icons'
 
 /** Icon names a manifest may use, mapped to the admin icon set. */
@@ -34,11 +37,14 @@ const ICONS: Record<string, LucideIcon> = {
   Inbox,
   MessageSquare,
   Puzzle,
+  Search,
   Settings,
+  Star: StarIcon,
   Store,
   Truck,
   Upload,
   Users,
+  Workflow,
 }
 
 export const appIcon = (name: string | null | undefined): LucideIcon =>

@@ -1,12 +1,16 @@
 'use client'
 
-import { Search, Trash2 } from '@commerce/ui/icons'
+import { Search, X } from '@commerce/ui/icons'
+import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card } from '@commerce/ui/shadcn/card'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useEffect, useState } from 'react'
 import type { DraftLine } from '@/components/drafts/draft-form-state'
-import { draftEditorContent as copy } from '@/data/drafts'
+import DraftMoneyInput from '@/components/drafts/draft-money-input'
+import DataCard from '@/components/layout/data-card'
+import LineItemRow from '@/components/layout/line-item-row'
+import { draftEditorContent } from '@/data/drafts'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
 
@@ -19,27 +23,45 @@ type Result = Awaited<ReturnType<typeof api.products.searchVariants>>[number]
 
 const SEARCH_DEBOUNCE_MS = 250
 
+const isDefault = (variantTitle: string) => !variantTitle || variantTitle === 'Default'
+
 const lineTitle = (l: { title: string; variantTitle: string }) =>
-  l.variantTitle && l.variantTitle !== 'Default' ? `${l.title} / ${l.variantTitle}` : l.title
+  isDefault(l.variantTitle) ? l.title : `${l.title} / ${l.variantTitle}`
+
+/** Search rows arrive ordered by product; fold them into one group per product. */
+const groupByProduct = (rows: Result[]) =>
+  rows.reduce<{ productId: string; title: string; variants: Result[] }[]>((groups, r) => {
+    const last = groups.at(-1)
+    if (last?.productId === r.productId) last.variants.push(r)
+    else groups.push({ productId: r.productId, title: r.title, variants: [r] })
+    return groups
+  }, [])
 
 export default function DraftProductsCard({ lines, onChange }: DraftProductsCardProps) {
   // Hooks
+  const copy = useCopy(draftEditorContent)
   const [search, setSearch] = useState('')
   const [results, setResults] = useState<Result[]>([])
   const [searching, setSearching] = useState(false)
+  const [searched, setSearched] = useState('')
 
   useEffect(() => {
     const term = search.trim()
     if (term.length < 2) {
       setResults([])
+      setSearched('')
       return
     }
     let cancelled = false
     setSearching(true)
     const t = setTimeout(() => {
       api.products
-        .searchVariants({ search: term, limit: 8 })
-        .then((r) => !cancelled && setResults(r))
+        .searchVariants({ search: term, limit: 10 })
+        .then((r) => {
+          if (cancelled) return
+          setResults(r)
+          setSearched(term)
+        })
         .finally(() => !cancelled && setSearching(false))
     }, SEARCH_DEBOUNCE_MS)
     return () => {
@@ -64,6 +86,7 @@ export default function DraftProductsCard({ lines, onChange }: DraftProductsCard
               quantity: 1,
               unitPricePaise: r.pricePaise,
               imageUrl: r.imageUrl,
+              giftCard: r.giftCard,
             },
           ],
     )
@@ -76,13 +99,8 @@ export default function DraftProductsCard({ lines, onChange }: DraftProductsCard
     onChange(lines.map((l) => (l.variantId === variantId ? { ...l, quantity } : l)))
   }
 
-  const handlePrice = (variantId: string, value: string) => {
-    const rupees = Math.max(0, Number.parseFloat(value) || 0)
-    onChange(
-      lines.map((l) =>
-        l.variantId === variantId ? { ...l, unitPricePaise: Math.round(rupees * 100) } : l,
-      ),
-    )
+  const handlePrice = (variantId: string, unitPricePaise: number) => {
+    onChange(lines.map((l) => (l.variantId === variantId ? { ...l, unitPricePaise } : l)))
   }
 
   const handleRemove = (variantId: string) => {
@@ -90,84 +108,133 @@ export default function DraftProductsCard({ lines, onChange }: DraftProductsCard
   }
 
   // Render logic
+  const groups = groupByProduct(results)
   return (
-    <Card className="gap-4 p-5">
-      <p className="text-kit-card-title text-foreground">{copy.products.heading}</p>
-      <div className="relative">
-        <Search className="-translate-y-1/2 absolute top-1/2 left-3 size-4 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={copy.products.search}
-          className="pl-9"
-        />
-        {results.length > 0 ? (
-          <ul className="absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded-lg border border-border bg-card p-1 shadow-popover">
-            {results.map((r) => (
-              <li key={r.variantId}>
-                <button
-                  type="button"
-                  onClick={() => handleAdd(r)}
-                  className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left hover:bg-muted"
-                >
-                  <span className="min-w-0 flex-1 truncate text-body">{lineTitle(r)}</span>
-                  <span className="shrink-0 text-body text-muted-foreground tabular-nums">
-                    {formatPaise(r.pricePaise)}
-                  </span>
-                </button>
-              </li>
+    <DataCard title={copy.products.heading}>
+      <div className="flex flex-col gap-4">
+        <div className="relative">
+          <Search className="-translate-y-1/2 absolute top-1/2 left-3 size-4 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={copy.products.search}
+            className="pl-9"
+          />
+        </div>
+        {groups.length > 0 ? (
+          // In the page flow, not a floating dropdown: the card clips anything that overflows
+          // it, which hid most of a product's variants.
+          <ul className="flex max-h-96 flex-col gap-1 overflow-y-auto rounded-lg border border-border p-1">
+            {groups.map((g) =>
+              g.variants.length === 1 && isDefault(g.variants[0]?.variantTitle ?? '') ? (
+                <li key={g.productId}>
+                  <ResultButton
+                    label={g.title}
+                    result={g.variants[0] as Result}
+                    onAdd={handleAdd}
+                  />
+                </li>
+              ) : (
+                <li key={g.productId} className="flex flex-col">
+                  <p className="px-2 pt-2 pb-1 font-medium text-body text-ink-strong">{g.title}</p>
+                  <ul className="flex flex-col">
+                    {g.variants.map((r) => (
+                      <li key={r.variantId}>
+                        <ResultButton
+                          label={isDefault(r.variantTitle) ? r.title : r.variantTitle}
+                          result={r}
+                          onAdd={handleAdd}
+                          inset
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              ),
+            )}
+          </ul>
+        ) : searched && !searching ? (
+          <p className="text-body text-muted-foreground">{copy.products.noResults}</p>
+        ) : null}
+        {lines.length === 0 ? (
+          <p className="text-body text-muted-foreground">
+            {searching ? copy.products.searching : copy.products.empty}
+          </p>
+        ) : (
+          <ul className="flex flex-col divide-y divide-line">
+            {lines.map((l) => (
+              <LineItemRow
+                key={l.variantId}
+                imageUrl={l.imageUrl ?? null}
+                title={lineTitle(l)}
+                subtitle={l.sku}
+                controls={
+                  <>
+                    <Input
+                      aria-label={copy.products.quantity}
+                      type="number"
+                      min={1}
+                      value={l.quantity}
+                      onChange={(e) => handleQuantity(l.variantId, e.target.value)}
+                      className="w-20 text-right tabular-nums"
+                    />
+                    <DraftMoneyInput
+                      aria-label={copy.products.price}
+                      valuePaise={l.unitPricePaise}
+                      onChangePaise={(paise) => handlePrice(l.variantId, paise)}
+                      className="w-28 text-right tabular-nums"
+                    />
+                  </>
+                }
+                amount={formatPaise(l.quantity * l.unitPricePaise)}
+                aside={
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={copy.products.remove}
+                    onClick={() => handleRemove(l.variantId)}
+                  >
+                    <X />
+                  </Button>
+                }
+              />
             ))}
           </ul>
-        ) : null}
+        )}
       </div>
-      {lines.length === 0 ? (
-        <p className="text-body text-muted-foreground">
-          {searching ? copy.products.searching : copy.products.empty}
-        </p>
-      ) : (
-        <ul className="flex flex-col divide-y divide-border">
-          {lines.map((l) => (
-            <li key={l.variantId} className="flex items-center gap-3 py-3 first:pt-0">
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-body-strong text-foreground">
-                  {lineTitle(l)}
-                </span>
-                {l.sku ? (
-                  <span className="block text-caption text-muted-foreground">{l.sku}</span>
-                ) : null}
-              </span>
-              <Input
-                aria-label={copy.products.quantity}
-                type="number"
-                min={1}
-                value={l.quantity}
-                onChange={(e) => handleQuantity(l.variantId, e.target.value)}
-                className="w-20 text-right tabular-nums"
-              />
-              <Input
-                aria-label={copy.products.price}
-                type="number"
-                min={0}
-                step="0.01"
-                value={(l.unitPricePaise / 100).toFixed(2)}
-                onChange={(e) => handlePrice(l.variantId, e.target.value)}
-                className="w-28 text-right tabular-nums"
-              />
-              <span className="w-24 shrink-0 text-right text-body tabular-nums">
-                {formatPaise(l.quantity * l.unitPricePaise)}
-              </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label={copy.products.remove}
-                onClick={() => handleRemove(l.variantId)}
-              >
-                <Trash2 />
-              </Button>
-            </li>
-          ))}
-        </ul>
+    </DataCard>
+  )
+}
+
+function ResultButton({
+  label,
+  result,
+  onAdd,
+  inset = false,
+}: {
+  label: string
+  result: Result
+  onAdd: (r: Result) => void
+  inset?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onAdd(result)}
+      className={cn(
+        'flex w-full items-center gap-3 rounded-md px-2 py-2 text-left hover:bg-muted',
+        inset && 'pl-5',
       )}
-    </Card>
+    >
+      <span className="min-w-0 flex-1 truncate text-body">{label}</span>
+      {result.sku ? (
+        <span className="hidden shrink-0 text-caption text-muted-foreground sm:inline">
+          {result.sku}
+        </span>
+      ) : null}
+      <span className="shrink-0 text-body text-muted-foreground tabular-nums">
+        {formatPaise(result.pricePaise)}
+      </span>
+    </button>
   )
 }

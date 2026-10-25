@@ -1,18 +1,30 @@
-import { notSystemTest } from '@commerce/core'
+import {
+  DEFAULT_GST_RATE_PERCENT,
+  LOW_STOCK_THRESHOLD,
+  noteProductEvent,
+  noteProductsChanged,
+  notSystemTest,
+  onHandleChange,
+  parseStoreTax,
+  type StockFilter,
+  storeLowStockThreshold,
+  watchStockCrossings,
+} from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import {
-  inventoryAdjustment,
   inventoryLevel,
   media,
+  primarySellingLevel,
   product,
   productMedia,
   productOption,
   productOptionValue,
-  sellableLevel,
+  sellableStock,
+  store,
   variant,
   variantOptionValue,
 } from '@commerce/db'
-import { and, asc, count, desc, eq, ilike, inArray, isNull, ne, or, sql } from 'drizzle-orm'
+import { and, asc, count, desc, eq, ilike, inArray, isNull, or, sql } from 'drizzle-orm'
 
 // Services are the only code that runs queries. They receive a store-scoped tx.
 
@@ -35,7 +47,7 @@ export type ProductListItem = {
   available: number
 }
 
-export type ProductStockFilter = 'in' | 'out' | 'low'
+export type ProductStockFilter = StockFilter
 
 export type ProductListInput = {
   page: number
@@ -46,14 +58,13 @@ export type ProductListInput = {
   productType?: string | undefined
   tag?: string | undefined
   stock?: ProductStockFilter | undefined
+  ids?: string[] | undefined
   /** Ids only: the export route reuses the current filter without paging. */
   idsOnly?: boolean | undefined
 }
 
-/** At or below this count a tracked product counts as low stock. */
-export const LOW_STOCK_AT = 5
-
-function listWhere(input: ProductListInput) {
+/** `lowThreshold` is the store's (`storeLowStockThreshold`), for the `low` stock filter. */
+function listWhere(input: ProductListInput, lowThreshold: number) {
   return and(
     notSystemTest,
     input.search
@@ -63,6 +74,7 @@ function listWhere(input: ProductListInput) {
           ilike(product.vendor, `%${input.search}%`),
         )
       : undefined,
+    input.ids ? inArray(product.id, input.ids) : undefined,
     input.status ? eq(product.status, input.status) : undefined,
     input.vendor ? eq(product.vendor, input.vendor) : undefined,
     input.productType ? eq(product.productType, input.productType) : undefined,
@@ -80,7 +92,7 @@ function listWhere(input: ProductListInput) {
                   select coalesce(sum(greatest(0, il.on_hand - il.reserved)), 0)
                   from variant v left join inventory_level il on il.variant_id = v.id and il.fulfils_online
                   where v.product_id = ${product.id} and v.archived_at is null
-                ) <= ${LOW_STOCK_AT}`
+                ) <= ${lowThreshold}`
               : sql`> 0`
         }`
       : undefined,
@@ -92,7 +104,7 @@ export async function listProductIds(tx: StoreTx, input: ProductListInput): Prom
   const rows = await tx
     .select({ id: product.id })
     .from(product)
-    .where(listWhere(input))
+    .where(listWhere(input, await storeLowStockThreshold(tx)))
     .orderBy(desc(product.createdAt))
   return rows.map((r) => r.id)
 }
@@ -101,7 +113,7 @@ export async function listProducts(
   tx: StoreTx,
   input: ProductListInput,
 ): Promise<{ items: ProductListItem[]; total: number }> {
-  const where = listWhere(input)
+  const where = listWhere(input, await storeLowStockThreshold(tx))
   const [countRow] = await tx.select({ total: count() }).from(product).where(where)
   const total = countRow?.total ?? 0
   const rows = await tx
@@ -118,11 +130,11 @@ export async function listProducts(
     .select({
       productId: variant.productId,
       pricePaise: variant.pricePaise,
-      onHand: inventoryLevel.onHand,
-      reserved: inventoryLevel.reserved,
+      onHand: sellableStock.onHand,
+      reserved: sellableStock.reserved,
     })
     .from(variant)
-    .leftJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
+    .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
     .where(inArray(variant.productId, ids))
   const images = await tx
     .select({ productId: productMedia.productId, url: media.url })
@@ -169,6 +181,7 @@ export async function getProduct(tx: StoreTx, id: string) {
       taxable: variant.taxable,
       trackInventory: variant.trackInventory,
       weightGrams: variant.weightGrams,
+      weightUnit: variant.weightUnit,
       hsCode: variant.hsCode,
       countryOfOrigin: variant.countryOfOrigin,
       gstRatePercent: variant.gstRatePercent,
@@ -177,11 +190,11 @@ export async function getProduct(tx: StoreTx, id: string) {
       packageWidthCm: variant.packageWidthCm,
       packageHeightCm: variant.packageHeightCm,
       mediaId: variant.mediaId,
-      onHand: inventoryLevel.onHand,
-      reserved: inventoryLevel.reserved,
+      onHand: sellableStock.onHand,
+      reserved: sellableStock.reserved,
     })
     .from(variant)
-    .leftJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
+    .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
     .where(and(eq(variant.productId, id), isNull(variant.archivedAt)))
     .orderBy(asc(variant.position))
   const options = await tx
@@ -242,18 +255,60 @@ export async function getProduct(tx: StoreTx, id: string) {
 }
 
 /** Distinct vendors, types and tags already used in the store, for autocomplete. */
-export async function productFacets(tx: StoreTx) {
+/** Most option names (and values per name) offered as suggestions on the product page. */
+const OPTION_FACETS_MAX = 50
+
+/**
+ * Values already in use across the store, offered as suggestions on the product page, plus the
+ * store's GST defaults so the pricing card can show what the customer pays.
+ */
+export async function productFacets(tx: StoreTx, storeId: string) {
   const rows = await tx
     .select({ vendor: product.vendor, productType: product.productType, tags: product.tags })
     .from(product)
     .where(notSystemTest)
+  const optionRows = await tx
+    .select({ name: productOption.name, value: productOptionValue.value })
+    .from(productOptionValue)
+    .innerJoin(productOption, eq(productOption.id, productOptionValue.optionId))
+    .orderBy(asc(productOption.name), asc(productOptionValue.position))
+  const [storeRow] = await tx
+    .select({
+      gstRatePercent: store.gstRatePercent,
+      apps: store.apps,
+      lowStockThreshold: store.lowStockThreshold,
+    })
+    .from(store)
+    .where(eq(store.id, storeId))
   const uniq = (xs: (string | null)[]) =>
     [...new Set(xs.filter((x): x is string => Boolean(x)))].sort((a, b) => a.localeCompare(b))
   return {
     vendors: uniq(rows.map((r) => r.vendor)),
     productTypes: uniq(rows.map((r) => r.productType)),
     tags: uniq(rows.flatMap((r) => r.tags)),
+    options: optionFacets(optionRows),
+    gst: {
+      ratePercent: storeRow?.gstRatePercent ?? DEFAULT_GST_RATE_PERCENT,
+      composition: storeRow ? parseStoreTax(storeRow.apps).composition : false,
+    },
+    /** Where "low stock" starts for this store, so the admin's chips match the list filters. */
+    lowStockThreshold: storeRow?.lowStockThreshold ?? LOW_STOCK_THRESHOLD,
   }
+}
+
+/** Option names used across the store, merged case-insensitively, each with its distinct values. */
+function optionFacets(rows: { name: string; value: string }[]) {
+  const byName = new Map<string, { name: string; values: string[] }>()
+  for (const { name, value } of rows) {
+    const key = name.trim().toLowerCase()
+    if (!key) continue
+    const entry = byName.get(key) ?? { name: name.trim(), values: [] }
+    byName.set(key, entry)
+    const v = value.trim()
+    const seen = entry.values.some((x) => x.toLowerCase() === v.toLowerCase())
+    if (v && !seen && entry.values.length < OPTION_FACETS_MAX) entry.values.push(v)
+  }
+  return [...byName.values()].slice(0, OPTION_FACETS_MAX)
 }
 
 export type ProductPatch = {
@@ -264,13 +319,21 @@ export type ProductPatch = {
   status?: ProductStatus | undefined
 }
 
-export async function updateProduct(tx: StoreTx, id: string, patch: ProductPatch) {
+/** A quick edit from the list. A new handle leaves a redirect behind (`onHandleChange`). */
+export async function updateProduct(tx: StoreTx, storeId: string, id: string, patch: ProductPatch) {
   const set = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined))
+  const [before] = await tx
+    .select({ handle: product.handle })
+    .from(product)
+    .where(eq(product.id, id))
   const [row] = await tx
     .update(product)
     .set({ ...set, updatedAt: new Date() })
     .where(eq(product.id, id))
     .returning()
+  if (row) await onHandleChange(tx, storeId, 'product', before?.handle, row.handle)
+  if (row) await noteProductsChanged(tx, [row.id], storeId)
+  if (row) await noteProductEvent(tx, storeId, 'product.updated', [row.id])
   return row ?? null
 }
 
@@ -288,135 +351,34 @@ export async function updateVariant(tx: StoreTx, id: string, patch: VariantPatch
     await tx.update(variant).set(variantPatch).where(eq(variant.id, id))
   }
   if (onHand !== undefined) {
-    await tx
-      .update(inventoryLevel)
-      .set({ onHand })
-      .where(and(eq(inventoryLevel.variantId, id), sellableLevel))
+    /* "Stock" is what sells online, summed over the locations that ship online orders. The
+       change lands on the primary selling row, so the total becomes what was typed. */
+    const [current] = await tx
+      .select({ onHand: sellableStock.onHand })
+      .from(sellableStock)
+      .where(eq(sellableStock.variantId, id))
+    const delta = onHand - (current?.onHand ?? 0)
+    if (delta !== 0) {
+      const [owner] = await tx
+        .select({ storeId: variant.storeId })
+        .from(variant)
+        .where(eq(variant.id, id))
+      // Falling to low or out of stock is an Automations trigger (once per crossing).
+      await watchStockCrossings(tx, owner?.storeId ?? '', [id], () =>
+        tx
+          .update(inventoryLevel)
+          .set({ onHand: sql`greatest(0, ${inventoryLevel.onHand} + ${delta})` })
+          .where(and(eq(inventoryLevel.variantId, id), primarySellingLevel(id))),
+      )
+    }
   }
   const [row] = await tx.select().from(variant).where(eq(variant.id, id))
-  return row ?? null
-}
-
-export type VariantSearchRow = {
-  variantId: string
-  productId: string
-  title: string
-  variantTitle: string
-  sku: string | null
-  pricePaise: number
-  imageUrl: string | null
-}
-
-/** Variant picker for the draft order editor: one row per sellable variant. */
-export async function searchVariants(
-  tx: StoreTx,
-  input: { search?: string | undefined; limit?: number | undefined },
-): Promise<VariantSearchRow[]> {
-  const search = input.search?.trim()
-  return tx
-    .select({
-      variantId: variant.id,
-      productId: product.id,
-      title: product.title,
-      variantTitle: variant.title,
-      sku: variant.sku,
-      pricePaise: variant.pricePaise,
-      imageUrl: sql<string | null>`coalesce((
-        select m.url from ${media} m where m.id = ${variant.mediaId}), (
-        select m2.url from ${productMedia} pm join ${media} m2 on m2.id = pm.media_id
-        where pm.product_id = ${product.id} order by pm.position limit 1))`,
-    })
-    .from(variant)
-    .innerJoin(product, eq(product.id, variant.productId))
-    .where(
-      and(
-        isNull(variant.archivedAt),
-        ne(product.status, 'archived'),
-        notSystemTest,
-        search
-          ? or(ilike(product.title, `%${search}%`), ilike(variant.sku, `%${search}%`))
-          : undefined,
-      ),
-    )
-    .orderBy(asc(product.title), asc(variant.position))
-    .limit(input.limit ?? 20)
-}
-
-export type ProductStats = {
-  total: number
-  active: number
-  outOfStock: number
-  stockValuePaise: number
-}
-
-/** Tiles above the list: counts plus what the stock on hand is worth at cost. */
-export async function productStats(tx: StoreTx): Promise<ProductStats> {
-  const [counts] = await tx
-    .select({
-      total: count(),
-      active: sql<number>`count(*) filter (where ${product.status} = 'active')`,
-    })
-    .from(product)
-    .where(notSystemTest)
-  const [stock] = await tx
-    .select({
-      value: sql<number>`coalesce(sum(greatest(0, ${inventoryLevel.onHand}) * coalesce(${variant.costPaise}, ${variant.pricePaise})), 0)`,
-    })
-    .from(variant)
-    .innerJoin(product, eq(product.id, variant.productId))
-    .leftJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
-    .where(and(isNull(variant.archivedAt), notSystemTest))
-  const [out] = await tx
-    .select({ n: sql<number>`count(*)` })
-    .from(product)
-    .where(
-      and(
-        notSystemTest,
-        sql`(
-        select coalesce(sum(greatest(0, il.on_hand - il.reserved)), 0)
-        from variant v left join inventory_level il on il.variant_id = v.id and il.fulfils_online
-        where v.product_id = ${product.id} and v.archived_at is null
-      ) = 0`,
-      ),
-    )
-  return {
-    total: counts?.total ?? 0,
-    active: Number(counts?.active ?? 0),
-    outOfStock: Number(out?.n ?? 0),
-    stockValuePaise: Number(stock?.value ?? 0),
+  // Price and SKU are in the search index; stock is read live, so it needs no catch-up.
+  if (row && Object.keys(variantPatch).length > 0) {
+    await noteProductsChanged(tx, [row.productId])
+    await noteProductEvent(tx, row.storeId, 'product.updated', [row.productId])
   }
-}
-
-export type AdjustmentRow = {
-  id: string
-  variantTitle: string
-  delta: number
-  reason: string
-  note: string | null
-  createdAt: Date
-}
-
-/** Recent stock movements for one product, newest first. */
-export async function productAdjustments(
-  tx: StoreTx,
-  productId: string,
-  limit = 20,
-): Promise<AdjustmentRow[]> {
-  const rows = await tx
-    .select({
-      id: inventoryAdjustment.id,
-      variantTitle: variant.title,
-      delta: inventoryAdjustment.delta,
-      reason: inventoryAdjustment.reason,
-      note: inventoryAdjustment.note,
-      createdAt: inventoryAdjustment.createdAt,
-    })
-    .from(inventoryAdjustment)
-    .innerJoin(variant, eq(variant.id, inventoryAdjustment.variantId))
-    .where(eq(variant.productId, productId))
-    .orderBy(desc(inventoryAdjustment.createdAt))
-    .limit(limit)
-  return rows
+  return row ?? null
 }
 
 /** Handles already in the store, so the import preview can say create or update. */

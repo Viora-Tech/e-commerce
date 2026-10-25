@@ -14,6 +14,7 @@ import {
 import { registriesForStore } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
 import { store } from '@commerce/db'
+import { logger } from '@commerce/observability/logging'
 import { eq } from 'drizzle-orm'
 
 export type CheckoutMethod = {
@@ -23,6 +24,8 @@ export type CheckoutMethod = {
   adjustment?: PaymentAdjustment | undefined
   /** For the main gateway: the ways to pay the merchant turned on, in their order. */
   methods?: OnlineMethodId[] | undefined
+  /** The gateway runs on its test keys: shown as "Test mode", no real money moves. */
+  test?: boolean | undefined
 }
 
 async function loadSettings(tx: StoreTx, storeId: string) {
@@ -37,11 +40,17 @@ export async function storePaymentProviders(tx: StoreTx, storeId: string) {
   // Renew a gateway's OAuth token before it is used; a no-op unless one is due.
   const refreshed = await refreshPaymentCredentials({ storeId, tx }, payments, secret)
   for (const r of refreshed) {
-    if (!r.ok) console.warn(`[payments] ${r.providerId} token refresh failed: ${r.error}`)
+    if (!r.ok) {
+      logger.warn('payment token refresh failed', {
+        storeId,
+        provider: r.providerId,
+        reason: r.error,
+      })
+    }
   }
   const settings = await loadSettings(tx, storeId)
   const { providers, errors } = resolvePaymentProviders(payments, settings, secret)
-  if (errors.length) console.warn('[payments] misconfigured providers:', errors.join('; '))
+  if (errors.length) logger.warn('misconfigured payment providers', { storeId, errors })
   return providers
 }
 
@@ -65,10 +74,26 @@ export async function storeCheckoutMethods(
       label: p.label,
       adjustment: settings.adjustments[p.id],
       methods: online && isGatewayProvider(p.id) ? online : undefined,
+      test: p.mode === 'test' ? true : undefined,
     }))
 }
 
 /** True when Razorpay or Cashfree is enabled with EMI on (the method row, or the older EMI switch). */
 export async function storeOffersEmi(tx: StoreTx, storeId: string): Promise<boolean> {
   return gatewayOffersEmi(await loadSettings(tx, storeId))
+}
+
+/**
+ * The store's discount for paying by UPI or bank transfer to its own account (the `manual`
+ * method's adjustment), when that method is on and the adjustment takes money off; null
+ * otherwise. The product page shows the price after it ("₹6,304 with UPI").
+ */
+export async function storeUpiDiscount(
+  tx: StoreTx,
+  storeId: string,
+): Promise<PaymentAdjustment | null> {
+  const settings = await loadSettings(tx, storeId)
+  const adjustment = settings.adjustments.manual
+  if (!settings.enabled.includes('manual') || !adjustment || adjustment.value >= 0) return null
+  return adjustment
 }

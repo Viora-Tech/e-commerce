@@ -3,6 +3,7 @@
 import { DELHIVERY_CAPABILITIES } from '@commerce/shipping-delhivery/client'
 import { Truck } from '@commerce/ui/icons'
 import CourierShipmentsLink from '@/components/apps/shared/courier-shipments-link'
+import CourierWebhookCard from '@/components/apps/shared/courier-webhook-card'
 import ProviderOverviewPage, {
   type OverviewList,
 } from '@/components/apps/shared/provider-overview-page'
@@ -14,6 +15,8 @@ const lists: OverviewList[] = [
   {
     heading: copy.capabilitiesHeading,
     items: DELHIVERY_CAPABILITIES.map((cap) => copy.capabilities[cap] ?? cap),
+    // Delhivery has no manifest or wallet API; the app covers both another way.
+    notAvailable: [copy.capabilities.manifest ?? '', copy.capabilities.wallet ?? ''],
   },
 ]
 
@@ -31,6 +34,14 @@ export default function OverviewPage() {
       copy={copy}
       connectedBody={connectedBody}
       lists={lists}
+      footer={
+        <CourierWebhookCard
+          providerId="delhivery"
+          title={copy.webhookUrlLabel}
+          where={copy.webhookWhere}
+          help={copy.webhookUrlHelp}
+        />
+      }
     />
   )
 }

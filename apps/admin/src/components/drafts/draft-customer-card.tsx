@@ -2,12 +2,13 @@
 
 import { Search } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card } from '@commerce/ui/shadcn/card'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useEffect, useState } from 'react'
 import type { DraftFormState } from '@/components/drafts/draft-form-state'
-import { draftEditorContent as copy } from '@/data/drafts'
+import DataCard from '@/components/layout/data-card'
+import { draftEditorContent } from '@/data/drafts'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type DraftCustomerCardProps = {
@@ -21,6 +22,7 @@ const SEARCH_DEBOUNCE_MS = 250
 
 export default function DraftCustomerCard({ form, onChange }: DraftCustomerCardProps) {
   // Hooks
+  const copy = useCopy(draftEditorContent)
   const [search, setSearch] = useState('')
   const [results, setResults] = useState<Customer[]>([])
 
@@ -60,15 +62,17 @@ export default function DraftCustomerCard({ form, onChange }: DraftCustomerCardP
 
   // Render logic
   return (
-    <Card className="gap-4 p-5">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-kit-card-title text-foreground">{copy.customer.heading}</p>
-        {form.customerId ? (
+    <DataCard
+      title={copy.customer.heading}
+      action={
+        form.customerId ? (
           <Button variant="ghost" size="sm" onClick={handleClear}>
             {copy.customer.clear}
           </Button>
-        ) : null}
-      </div>
+        ) : null
+      }
+      bodyClassName="flex flex-col gap-4"
+    >
       {form.customerId ? null : (
         <div className="relative">
           <Search className="-translate-y-1/2 absolute top-1/2 left-3 size-4 text-muted-foreground" />
@@ -76,7 +80,12 @@ export default function DraftCustomerCard({ form, onChange }: DraftCustomerCardP
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={copy.customer.search}
-            className="pl-9"
+            className="pl-9 [&::-webkit-search-cancel-button]:hidden"
+            type="search"
+            name="draft-customer-lookup"
+            autoComplete="off"
+            data-1p-ignore
+            data-lpignore="true"
           />
           {results.length > 0 ? (
             <ul className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-border bg-card p-1 shadow-popover">
@@ -122,6 +131,6 @@ export default function DraftCustomerCard({ form, onChange }: DraftCustomerCardP
           onChange={(e) => onChange({ phone: e.target.value })}
         />
       </Field>
-    </Card>
+    </DataCard>
   )
 }

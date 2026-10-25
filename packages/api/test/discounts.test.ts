@@ -177,4 +177,133 @@ describe('discounts', () => {
     const [row] = await owner.select().from(discount).where(eq(discount.id, d.id))
     expect(row?.status).toBe('disabled')
   })
+
+  it('saves a different amount for each product, and clears it when switched back', async () => {
+    const a = await merchant('a@example.com', 'store-a')
+    const x = crypto.randomUUID()
+    const y = crypto.randomUUID()
+    const input = {
+      title: 'Killtoned',
+      kind: 'code' as const,
+      code: 'killtoned',
+      method: 'fixed' as const,
+      value: 0,
+      appliesTo: 'products' as const,
+      appliesToIds: [x, y],
+      productValues: { [x]: 20_000, [y]: 30_000 },
+    }
+    const d = await call(appRouter.discounts.create, input, { context: a.ctx })
+    if (!d) throw new Error('create')
+    expect(d).toMatchObject({ value: 0, productValues: { [x]: 20_000, [y]: 30_000 } })
+
+    const list = await call(appRouter.discounts.list, {}, { context: a.ctx })
+    expect(list.items[0]).toMatchObject({ appliesTo: 'products', productValues: { [x]: 20_000 } })
+
+    await expect(
+      call(
+        appRouter.discounts.create,
+        { ...input, code: 'MISSING', productValues: { [x]: 20_000 } },
+        { context: a.ctx },
+      ),
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' })
+
+    const single = await call(
+      appRouter.discounts.update,
+      { id: d.id, data: { ...input, value: 20_000, productValues: null } },
+      { context: a.ctx },
+    )
+    expect(single).toMatchObject({ value: 20_000, productValues: null })
+  })
+
+  it('duplicates a discount as a paused copy with a free code and no usage', async () => {
+    const a = await merchant('dup@example.com', 'store-dup')
+    const d = await call(
+      appRouter.discounts.create,
+      { title: 'Diwali', kind: 'code', code: 'diwali10', method: 'percent', value: 1000 },
+      { context: a.ctx },
+    )
+    if (!d) throw new Error('create')
+    await owner.update(discount).set({ usedCount: 5 }).where(eq(discount.id, d.id))
+
+    const first = await call(appRouter.discounts.duplicate, { id: d.id }, { context: a.ctx })
+    expect(first).toMatchObject({
+      title: 'Diwali (copy)',
+      code: 'DIWALI10-COPY',
+      status: 'disabled',
+      usedCount: 0,
+      value: 1000,
+    })
+    const second = await call(appRouter.discounts.duplicate, { id: d.id }, { context: a.ctx })
+    expect(second).toMatchObject({ code: 'DIWALI10-COPY2', status: 'disabled' })
+    expect(
+      await call(appRouter.discounts.duplicate, { id: crypto.randomUUID() }, { context: a.ctx }),
+    ).toBeNull()
+  })
+
+  it('saves Shopify types: buy X get Y, free shipping limits, eligibility and combinations', async () => {
+    const a = await merchant('t@example.com', 'store-t')
+    const P = '00000000-0000-4000-8000-000000000001'
+    const bogo = await call(
+      appRouter.discounts.create,
+      {
+        title: 'BOGO',
+        type: 'bxgy',
+        kind: 'automatic',
+        method: 'percent',
+        value: 10_000,
+        bxgy: {
+          buys: { kind: 'quantity', quantity: 1, amountPaise: 0, appliesTo: 'products', ids: [P] },
+          gets: { quantity: 1, appliesTo: 'products', ids: [P] },
+          maxUsesPerOrder: 2,
+        },
+        combinesWith: { products: false, order: true, shipping: true },
+      },
+      { context: a.ctx },
+    )
+    const ship = await call(
+      appRouter.discounts.create,
+      {
+        title: 'Ship',
+        type: 'shipping',
+        kind: 'code',
+        code: 'SHIPKA',
+        method: 'free_shipping',
+        value: 0,
+        minQuantity: 2,
+        shippingStates: ['KA'],
+        maxShippingPaise: 15_000,
+        customerEligibility: 'customers',
+        eligibleIds: [P],
+      },
+      { context: a.ctx },
+    )
+    const got = await call(appRouter.discounts.get, { id: bogo?.id as string }, { context: a.ctx })
+    expect(got).toMatchObject({ type: 'bxgy', bxgy: { maxUsesPerOrder: 2 } })
+    expect(got?.combinesWith).toEqual({ products: false, order: true, shipping: true })
+    const gotShip = await call(
+      appRouter.discounts.get,
+      { id: ship?.id as string },
+      { context: a.ctx },
+    )
+    expect(gotShip).toMatchObject({
+      type: 'shipping',
+      minQuantity: 2,
+      shippingStates: ['KA'],
+      maxShippingPaise: 15_000,
+      customerEligibility: 'customers',
+      eligibleIds: [P],
+    })
+    // An older-shaped input still saves, with the type derived and nothing stacking.
+    const old = await call(
+      appRouter.discounts.create,
+      { title: 'Old', kind: 'code', code: 'OLD5', method: 'fixed', value: 500 },
+      { context: a.ctx },
+    )
+    const gotOld = await call(
+      appRouter.discounts.get,
+      { id: old?.id as string },
+      { context: a.ctx },
+    )
+    expect(gotOld).toMatchObject({ type: 'order', customerEligibility: 'all', bxgy: null })
+  })
 })

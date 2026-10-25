@@ -3,9 +3,10 @@ import type { Attachment } from '@commerce/notifications'
 import { type AppHookContext, definePlugin } from '@commerce/plugins'
 import { eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
-import { existing, InvoiceError, issueCreditNote, issueDocument, loadSettings } from './issue'
+import { issueCreditNotes } from './credit-notes'
+import { InvoiceError, issueDocument, liveDocuments, loadSettings } from './issue'
 import { orderLinks } from './links'
-import { enqueueOrder, isPreorder, issueDrafts, removeFromQueue } from './queue'
+import { enqueueOrderParcels, isPreorder, issueDrafts, removeFromQueue } from './queue'
 import { pdfBytes, pdfFilename, renderAndStore } from './render'
 import { documentsByIds } from './reports'
 import { invoiceBatch } from './schema'
@@ -33,12 +34,16 @@ const DOCUMENT_LABELS = {
 async function onOrderEvent(ctx: AppHookContext, orderId: string, event: 'paid' | 'fulfilled') {
   const now = new Date()
   const settings = await ctx.inStore((tx) => loadSettings(tx, ctx.storeId))
-  const queued = await ctx.inStore((tx) => enqueueOrder(tx, ctx.storeId, orderId, event, now))
-  if (queued) ctx.log(`order ${orderId} ${queued.created ? 'queued' : 'already queued'}`)
-  if (queued?.row.status === 'draft' && settings.autoIssue) {
+  // One draft per parcel: an order shipped from two warehouses is billed by both GSTINs.
+  const queued = await ctx.inStore((tx) =>
+    enqueueOrderParcels(tx, ctx.storeId, orderId, event, now),
+  )
+  for (const q of queued) {
+    ctx.log(`order ${orderId} ${q.created ? 'queued' : 'already queued'}`)
+    if (q.row.status !== 'draft' || !settings.autoIssue) continue
     try {
       const [issued] = await ctx.inStore((tx) =>
-        issueDrafts(tx, ctx.storeId, [{ id: queued.row.id, invoiceDate: now }], {
+        issueDrafts(tx, ctx.storeId, [{ id: q.row.id, invoiceDate: now }], {
           commit: true,
           now,
         }),
@@ -46,6 +51,7 @@ async function onOrderEvent(ctx: AppHookContext, orderId: string, event: 'paid' 
       if (issued) {
         await renderAndStore(ctx, issued.id)
         ctx.log(`issued ${issued.number}`)
+        ctx.reportActivity?.(`Issued invoice ${issued.number}`)
       }
     } catch (err) {
       // A closed period or a missing B2C detail leaves the draft in the queue for review.
@@ -60,6 +66,7 @@ async function onOrderEvent(ctx: AppHookContext, orderId: string, event: 'paid' 
       if (rv?.created) {
         await renderAndStore(ctx, rv.row.id)
         ctx.log(`receipt voucher ${rv.row.number}`)
+        ctx.reportActivity?.(`Issued receipt voucher ${rv.row.number}`)
       }
     }
   }
@@ -75,10 +82,14 @@ async function onOrderEvent(ctx: AppHookContext, orderId: string, event: 'paid' 
 /** Money back: a credit note against the invoice, or a refund voucher for an undispatched advance. */
 async function onRefund(ctx: AppHookContext, orderId: string, refundId: string) {
   try {
-    const note = await ctx.inStore((tx) => issueCreditNote(tx, ctx.storeId, refundId))
-    if (note) {
-      if (note.created || note.row.pdfStatus !== 'ready') await renderAndStore(ctx, note.row.id)
-      ctx.log(`credit note ${note.row.number} for refund ${refundId}`)
+    // One credit note per GSTIN the refund reduces (an order billed in parcels has several).
+    const notes = await ctx.inStore((tx) => issueCreditNotes(tx, ctx.storeId, refundId))
+    if (notes.length) {
+      for (const note of notes) {
+        if (note.created || note.row.pdfStatus !== 'ready') await renderAndStore(ctx, note.row.id)
+        ctx.log(`credit note ${note.row.number} for refund ${refundId}`)
+        ctx.reportActivity?.(`Issued credit note ${note.row.number}`)
+      }
       return
     }
   } catch (err) {
@@ -90,10 +101,20 @@ async function onRefund(ctx: AppHookContext, orderId: string, refundId: string) 
   if (!voucher) return
   if (voucher.created || voucher.row.pdfStatus !== 'ready')
     await renderAndStore(ctx, voucher.row.id)
-  // Nothing was supplied: the queued invoice for the cancelled pre-order goes too.
-  const draft = await ctx.inStore((tx) => existing(tx, orderId, 'tax_invoice'))
-  if (draft?.status === 'draft') await ctx.inStore((tx) => removeFromQueue(tx, [draft.id]))
+  // Nothing was supplied: the queued invoices for the cancelled pre-order go too.
+  const drafts = (await ctx.inStore((tx) => liveDocuments(tx, orderId, 'tax_invoice'))).filter(
+    (d) => d.status === 'draft',
+  )
+  if (drafts.length) {
+    await ctx.inStore((tx) =>
+      removeFromQueue(
+        tx,
+        drafts.map((d) => d.id),
+      ),
+    )
+  }
   ctx.log(`refund voucher ${voucher.row.number} for refund ${refundId}`)
+  ctx.reportActivity?.(`Issued refund voucher ${voucher.row.number}`)
 }
 
 /** The PDFs an order email carries: issued documents only, per the "attach to email" switches. */
@@ -109,8 +130,9 @@ async function emailAttachments(
     inv.attachToEmail &&
     (input.template === 'payment_received' || input.template === 'order_shipped')
   ) {
-    const row = await ctx.inStore((tx) => existing(tx, input.orderId, 'tax_invoice'))
-    if (row?.status === 'issued') {
+    // Every parcel's invoice: a split order has one per GSTIN.
+    const rows = await ctx.inStore((tx) => liveDocuments(tx, input.orderId, 'tax_invoice'))
+    for (const row of rows.filter((r) => r.status === 'issued')) {
       files.push({
         filename: pdfFilename(row),
         contentType: 'application/pdf',
@@ -153,6 +175,61 @@ export const gstInvoicesPlugin = definePlugin({
       note: 'Invoice templates and the live preview editor',
     },
   ],
+  listing: {
+    tagline: 'Tax invoices, credit notes and GSTR-1 export, per GST number.',
+    highlights: [
+      'Issues a GST invoice when an order is paid, numbered per GSTIN',
+      'Credit notes for returns and cancellations',
+      'Packing slips with your logo',
+      'GSTR-1 export for your accountant',
+    ],
+    guide: '/merchant-guide/money-and-gst/gst-invoices',
+    worksWith: ['Order emails, with the invoice attached', 'Returns, for credit notes'],
+    keywords: ['gst', 'invoice', 'tax', 'gstr-1'],
+    faq: [
+      {
+        question: 'Do I need this app if I am not GST registered?',
+        answer:
+          'No. Under the GST threshold you can skip it, and you can still print packing slips from each order.',
+      },
+      {
+        question: 'Can shoppers download their invoice?',
+        answer:
+          'Yes. Once issued, a link to the invoice shows on the shopper’s order page and in their order emails.',
+      },
+      {
+        question: 'I have more than one GST number. Does that work?',
+        answer:
+          'Yes. Each invoice comes from the order’s GST number, each number counts its own invoices, and each files its own GSTR-1.',
+      },
+      {
+        question: 'Does cancelling an order create a credit note?',
+        answer: 'A refund does. Refund an invoiced order and the credit note is issued with it.',
+      },
+    ],
+  },
+  access: {
+    resources: [
+      { resource: 'orders', level: 'read', why: 'Paid and shipped orders, to bill them' },
+      {
+        resource: 'customers',
+        level: 'read',
+        why: 'Billing name, address and GSTIN on the invoice',
+      },
+      { resource: 'refunds', level: 'read', why: 'Refunds, to issue credit notes' },
+      {
+        resource: 'invoices',
+        level: 'read-write',
+        why: 'Issues invoices, credit notes, slips and vouchers',
+      },
+      {
+        resource: 'order-events',
+        level: 'read',
+        why: 'Reacts when an order is paid, shipped or refunded',
+      },
+    ],
+    summary: 'makes invoices',
+  },
   provides: {},
   hooks: {
     'order.paid': (ctx, p) => onOrderEvent(ctx, p.orderId, 'paid'),
@@ -224,5 +301,22 @@ export const gstInvoicesPlugin = definePlugin({
       { path: 'invoices/[id]', title: 'Invoice' },
     ],
     orderDetailCard: true,
+    // Test-mode orders are hidden: they get no GST invoice (see `isTestOrder`).
+    orderActions: [
+      {
+        id: 'generate-invoice',
+        label: { en: 'Generate GST invoice', hi: 'GST इनवॉइस बनाएं' },
+        targets: ['detail', 'row'],
+        handler: { type: 'procedure', procedure: `${GST_INVOICES_ID}/generate` },
+        requires: ['not-test'],
+      },
+      {
+        id: 'add-to-queue',
+        label: { en: 'Add to invoice queue', hi: 'इनवॉइस कतार में जोड़ें' },
+        targets: ['detail', 'row', 'bulk'],
+        handler: { type: 'procedure', procedure: `${GST_INVOICES_ID}/queue-add` },
+        requires: ['not-test'],
+      },
+    ],
   },
 })

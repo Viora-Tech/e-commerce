@@ -3,7 +3,7 @@
 import type { Business, GstRegistrationErrorCode } from '@commerce/core'
 import { RegistrationInputSchema } from '@commerce/core/gst-registrations'
 import { gstinStateOf } from '@commerce/core/tax-settings'
-import { MapPinLineIcon } from '@commerce/ui/icons'
+import { CheckIcon, MapPinLineIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import {
@@ -24,6 +24,7 @@ import ChoiceField from '@/components/apps/gst-invoices/choice-field'
 import GeneralTextField from '@/components/settings/general-text-field'
 import { businessGstContent } from '@/data/business-gst'
 import { useCopy } from '@/hooks/use-copy'
+import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
 
 type AddRegistrationDialogProps = {
@@ -38,6 +39,7 @@ const EMPTY = {
   gstin: '',
   businessId: '',
   legalName: '',
+  tradeName: '',
   composition: false,
   invoicePrefix: '',
   line1: '',
@@ -62,6 +64,7 @@ export default function AddRegistrationDialog({
   onAnotherBusiness,
 }: AddRegistrationDialogProps) {
   // Hooks
+  const announceSetup = useSetupNext()
   const { dialog: copy } = useCopy(businessGstContent)
   const router = useRouter()
   const [form, setForm] = useState(EMPTY)
@@ -86,6 +89,7 @@ export default function AddRegistrationDialog({
     gstin: form.gstin,
     ...(form.businessId ? { businessId: form.businessId } : {}),
     legalName: form.legalName,
+    tradeName: form.tradeName,
     registrationType: form.composition ? ('composition' as const) : ('regular' as const),
     invoicePrefix: form.invoicePrefix,
     legalAddress: { line1: form.line1, line2: form.line2, city: form.city, pincode: form.pincode },
@@ -109,6 +113,7 @@ export default function AddRegistrationDialog({
     try {
       await api.businessGst.addRegistration(input())
       toast.success(copy.added)
+      void announceSetup('taxes')
       onOpenChange(false)
       router.refresh()
     } catch (err) {
@@ -174,6 +179,13 @@ export default function AddRegistrationDialog({
                 autoComplete="organization"
               />
             ) : null}
+            <GeneralTextField
+              id="gst-reg-trade-name"
+              label={copy.tradeName}
+              value={form.tradeName}
+              onChange={(tradeName) => patch({ tradeName })}
+              help={copy.tradeNameHelp}
+            />
             <Label className="flex items-start gap-2 font-normal text-body">
               <Checkbox
                 checked={form.composition}
@@ -254,6 +266,7 @@ export default function AddRegistrationDialog({
               {copy.cancel}
             </DialogClose>
             <Button type="submit" disabled={saving || !form.gstin}>
+              <CheckIcon aria-hidden="true" />
               {copy.submit}
             </Button>
           </DialogFooter>

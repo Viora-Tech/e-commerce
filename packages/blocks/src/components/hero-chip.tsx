@@ -1,4 +1,4 @@
-import { heroCarouselContent as copy } from '../data/glide/hero-carousel'
+import { heroCarouselContent as copy } from '../data/zero-drift/hero-carousel'
 import { formatPaise } from '../money'
 import type { CardProduct } from '../types'
 import Icon from './icon'

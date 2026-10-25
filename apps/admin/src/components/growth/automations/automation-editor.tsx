@@ -11,35 +11,34 @@ import {
   TRIGGER_HAS_CART,
 } from '@commerce/core/marketing'
 import { formatNumber } from '@commerce/money'
-import { CircleAlert, Plus, Trash2 } from '@commerce/ui/icons'
+import { ArrowRight, ChevronLeftIcon, CircleAlert, Save, Trash2, X } from '@commerce/ui/icons'
 import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Switch } from '@commerce/ui/shadcn/switch'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { blockId } from '@/components/growth/campaigns/form-state'
 import type { TemplatesResult } from '@/components/growth/campaigns/whatsapp-template-card'
-import PageBody from '@/components/layout/page-body'
-import PageHeader from '@/components/layout/page-header'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
+import PillTabs from '@/components/layout/pill-tabs'
 import SaveBar from '@/components/layout/save-bar'
+import StatusChip from '@/components/layout/status-chip'
 import { automationEditorContent as copy } from '@/data/marketing-automations'
 import { campaignReportContent } from '@/data/marketing-campaigns'
 import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
+import { routes } from '@/lib/routes'
+import AutomationFlow from './automation-flow'
+import AutomationPalette from './automation-palette'
 import AutomationRunsCard from './automation-runs-card'
 import AutomationStepCard from './automation-step-card'
+import AutomationTestPanel from './automation-test-panel'
 import AutomationTriggerCard from './automation-trigger-card'
-import DeleteAutomationDialog from './delete-automation-dialog'
 
 type Loaded = NonNullable<Awaited<ReturnType<typeof api.marketing.automations.get>>>
 
@@ -50,8 +49,6 @@ type AutomationEditorProps = {
 }
 
 type Form = { name: string; steps: AutomationStep[]; settings: AutomationSettings }
-
-const STEP_TYPES: AutomationStepType[] = ['wait', 'email', 'whatsapp', 'condition']
 
 function newStep(type: AutomationStepType): AutomationStep {
   const id = blockId()
@@ -95,6 +92,9 @@ export default function AutomationEditor({
   const [error, setError] = useState<string | null>(null)
   const [templates, setTemplates] = useState<TemplatesResult | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [selected, setSelected] = useState('trigger')
+  const [tab, setTab] = useState<'builder' | 'results'>('builder')
+  const [testing, setTesting] = useState(false)
 
   useEffect(() => {
     if (!form.steps.some((s) => s.type === 'whatsapp') || templates) return
@@ -105,6 +105,13 @@ export default function AutomationEditor({
   const setSteps = (steps: AutomationStep[]) => setForm((f) => ({ ...f, steps }))
 
   // Event handlers
+  const handleInsert = (type: AutomationStepType, index: number) => {
+    const step = newStep(type)
+    setSteps([...form.steps.slice(0, index), step, ...form.steps.slice(index)])
+    setSelected(step.id)
+    setTesting(false)
+  }
+
   const handleSave = async () => {
     setBusy(true)
     setError(null)
@@ -138,21 +145,15 @@ export default function AutomationEditor({
     setBusy(true)
     await api.marketing.automations.delete({ id: automation.id })
     toast.success(copy.deleted)
-    router.push('/growth/automations')
+    router.push(routes.growth.automations())
     router.refresh()
-  }
-
-  const handleMove = (index: number, delta: number) => {
-    const to = index + delta
-    if (to < 0 || to >= form.steps.length) return
-    const next = [...form.steps]
-    const [moved] = next.splice(index, 1)
-    if (moved) next.splice(to, 0, moved)
-    setSteps(next)
   }
 
   // Render logic
   const trigger = automation.trigger as AutomationTrigger
+  const selectedIndex = form.steps.findIndex((x) => x.id === selected)
+  const selectedStep = form.steps[selectedIndex]
+  const current = selectedStep || selected === 'end' ? selected : 'trigger'
   const dirty = JSON.stringify(form) !== saved
   // Basket triggers fire once the basket has been quiet this long, so steps count from there.
   const triggerDelay = TRIGGER_HAS_CART[trigger] ? (form.settings.afterMinutes ?? 60) : 0
@@ -167,7 +168,7 @@ export default function AutomationEditor({
   ]
 
   return (
-    <PageBody width="wide">
+    <div className="flex w-full flex-col gap-4 px-4 py-4 md:px-6">
       <SaveBar
         open={dirty}
         message={copy.saveBar.message}
@@ -177,112 +178,153 @@ export default function AutomationEditor({
         onDiscard={() => setForm(JSON.parse(saved) as Form)}
         saving={busy}
       />
-      <PageHeader
-        title={form.name}
-        breadcrumbs={[
-          { label: copy.breadcrumb, href: '/growth/automations' },
-          { label: form.name },
-        ]}
-        actions={
-          <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 text-body" htmlFor="automation-on">
-              <Switch id="automation-on" checked={active} onCheckedChange={handleToggle} />
-              {active ? copy.on : copy.off}
-            </label>
-            <Button
-              variant="ghost"
-              onClick={() => setConfirmDelete(true)}
-              aria-label={copy.delete.action}
-            >
-              <Trash2 />
-            </Button>
-          </div>
-        }
-      />
+      <header className="flex flex-wrap items-center gap-3">
+        <nav className="flex min-w-0 flex-1 items-center gap-2 text-body">
+          <Link
+            href={routes.growth.automations()}
+            className="flex items-center gap-1 text-muted-foreground hover:text-foreground"
+          >
+            <ChevronLeftIcon className="size-4" aria-hidden="true" />
+            {copy.breadcrumb}
+          </Link>
+          <span className="text-muted-foreground">/</span>
+          <span className="truncate font-medium text-ink-strong">{form.name}</span>
+          <StatusChip tone={active ? 'success' : 'neutral'} variant="dot">
+            {active ? copy.on : copy.off}
+          </StatusChip>
+        </nav>
+        <PillTabs
+          variant="underline"
+          value={tab}
+          onChange={setTab}
+          tabs={[
+            { value: 'builder', label: copy.tabs.builder },
+            { value: 'results', label: copy.tabs.results },
+          ]}
+        />
+        <div className="flex flex-1 items-center justify-end gap-2">
+          <Switch
+            id="automation-on"
+            checked={active}
+            onCheckedChange={handleToggle}
+            aria-label={active ? copy.on : copy.off}
+          />
+          <Button
+            variant="outline"
+            onClick={() => {
+              setTesting(!testing)
+              setTab('builder')
+            }}
+          >
+            {testing ? <X /> : <ArrowRight />}
+            {testing ? copy.stopTest : copy.testRun}
+          </Button>
+          <Button onClick={handleSave} disabled={busy || !dirty}>
+            <Save aria-hidden="true" />
+            {copy.saveBar.save}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setConfirmDelete(true)}
+            aria-label={copy.delete.action}
+          >
+            <Trash2 />
+          </Button>
+        </div>
+      </header>
       {error ? (
         <Alert variant="destructive">
           <CircleAlert />
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       ) : null}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
-        {tiles.map((t) => (
-          <Card key={t.label} className="gap-0 p-4">
-            <p className="text-card-title">{t.label}</p>
-            <p className="mt-2 text-stat text-ink-strong tabular-nums">{t.value}</p>
-          </Card>
-        ))}
-      </div>
-      <p className="text-caption text-muted-foreground">{copy.convertedHelp}</p>
-      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <div className="flex min-w-0 flex-col gap-5">
-          <Card className="p-4">
-            <Field>
-              <FieldLabel htmlFor="automation-name">{copy.name}</FieldLabel>
-              <Input
-                id="automation-name"
-                value={form.name}
-                maxLength={120}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              />
-            </Field>
-          </Card>
-          <AutomationTriggerCard
+      {tab === 'builder' ? (
+        <div className="grid min-h-[40rem] grid-cols-1 overflow-hidden rounded-xl border border-border bg-card lg:h-[calc(100dvh-10rem)] lg:grid-cols-[15rem_minmax(0,1fr)_22rem]">
+          <AutomationPalette
             trigger={trigger}
-            settings={form.settings}
-            onChange={(settings) => setForm((f) => ({ ...f, settings }))}
+            onAdd={(type) => handleInsert(type, form.steps.length)}
           />
-          <div className="flex items-center justify-between">
-            <h2 className="text-kit-title text-foreground">{copy.steps.title}</h2>
-            <DropdownMenu>
-              <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
-                <Plus />
-                {copy.steps.add}
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64">
-                {STEP_TYPES.map((t) => (
-                  <DropdownMenuItem
-                    key={t}
-                    onClick={() => setSteps([...form.steps, newStep(t)])}
-                    className="flex-col items-start gap-0"
-                  >
-                    <span className="font-medium">{copy.steps.types[t]}</span>
-                    <span className="text-caption text-muted-foreground">
-                      {copy.steps.hints[t]}
-                    </span>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-          {form.steps.length === 0 ? (
-            <p className="text-body text-muted-foreground">{copy.steps.empty}</p>
-          ) : null}
-          {form.steps.map((step, i) => (
-            <AutomationStepCard
-              key={step.id}
-              step={step}
-              index={i}
-              count={form.steps.length}
-              offsetMinutes={triggerDelay + minutesBefore(form.steps, i)}
-              hasCart={TRIGGER_HAS_CART[trigger]}
-              templates={templates}
-              storeName={storeName}
-              storefrontUrl={storefrontUrl}
-              onChange={(next) => setSteps(form.steps.map((x) => (x.id === step.id ? next : x)))}
-              onMove={(delta) => handleMove(i, delta)}
-              onRemove={() => setSteps(form.steps.filter((x) => x.id !== step.id))}
-            />
-          ))}
+          <AutomationFlow
+            trigger={trigger}
+            steps={form.steps}
+            selected={current}
+            onSelect={setSelected}
+            onInsert={handleInsert}
+            onReorder={setSteps}
+          />
+          <aside className="flex min-w-0 flex-col gap-3 overflow-y-auto border-border border-t p-4 lg:border-t-0 lg:border-l">
+            {testing ? (
+              <AutomationTestPanel steps={form.steps} />
+            ) : selectedStep ? (
+              <>
+                <h2 className="text-eyebrow text-muted-foreground">{copy.flow.settings}</h2>
+                <AutomationStepCard
+                  key={selectedStep.id}
+                  step={selectedStep}
+                  offsetMinutes={triggerDelay + minutesBefore(form.steps, selectedIndex)}
+                  hasCart={TRIGGER_HAS_CART[trigger]}
+                  templates={templates}
+                  storeName={storeName}
+                  storefrontUrl={storefrontUrl}
+                  onChange={(next) =>
+                    setSteps(form.steps.map((x) => (x.id === selectedStep.id ? next : x)))
+                  }
+                  onRemove={() => {
+                    setSteps(form.steps.filter((x) => x.id !== selectedStep.id))
+                    setSelected('trigger')
+                  }}
+                />
+              </>
+            ) : selected === 'end' ? (
+              <>
+                <h2 className="text-card-title text-ink-strong">{copy.flow.ends}</h2>
+                <p className="text-body text-muted-foreground">{copy.flow.endHelp}</p>
+              </>
+            ) : (
+              <>
+                <Field>
+                  <FieldLabel htmlFor="automation-name">{copy.name}</FieldLabel>
+                  <Input
+                    id="automation-name"
+                    value={form.name}
+                    maxLength={120}
+                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                  />
+                </Field>
+                <AutomationTriggerCard
+                  trigger={trigger}
+                  settings={form.settings}
+                  onChange={(settings) => setForm((f) => ({ ...f, settings }))}
+                />
+              </>
+            )}
+          </aside>
         </div>
-        <AutomationRunsCard runs={automation.runs} stepCount={form.steps.length} />
-      </div>
-      <DeleteAutomationDialog
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+            {tiles.map((t) => (
+              <Card key={t.label} gap="none" inset={4}>
+                <p className="text-card-title">{t.label}</p>
+                <p className="mt-2 text-stat text-ink-strong tabular-nums">{t.value}</p>
+              </Card>
+            ))}
+          </div>
+          <p className="text-caption text-muted-foreground">{copy.convertedHelp}</p>
+          <AutomationRunsCard runs={automation.runs} stepCount={form.steps.length} />
+        </>
+      )}
+      <ConfirmDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
+        title={copy.delete.title}
+        body={copy.delete.body}
+        confirmLabel={copy.delete.confirm}
+        cancelLabel={copy.delete.cancel}
         busy={busy}
-        onConfirm={handleDelete}
+        onConfirm={() => void handleDelete()}
       />
-    </PageBody>
+    </div>
   )
 }

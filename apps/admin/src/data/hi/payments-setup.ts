@@ -181,9 +181,8 @@ export default [
       title: 'ऑनलाइन पेमेंट कैसे मिलता है',
       body: 'एक पेमेंट कंपनी (जैसे Razorpay या Cashfree) ग्राहक से UPI या कार्ड से पैसा लेती है और आपके बैंक खाते में भेज देती है। वे थोड़ी फ़ीस रखते हैं, आमतौर पर लगभग 2%।',
     },
-    whatsapp: {
-      label: 'मदद चाहिए? WhatsApp पर हमसे बात करें',
-      soon: 'WhatsApp पर मदद जल्द आ रही है। अभी के लिए सपोर्ट को ईमेल करें।',
+    guide: {
+      label: 'सेटअप गाइड देखें',
     },
     wizard: {
       progress: (step, total) => `स्टेप ${step} / ${total}`,
@@ -275,7 +274,7 @@ export default [
         },
         {
           title: 'पेमेंट अपडेट चालू करें',
-          body: 'Account & Settings → Webhooks में Add New Webhook दबाएं। नीचे दिया पता और secret पेस्ट करें, payment.captured, payment.failed और refund.processed चुनें, और सेव करें।',
+          body: 'Account & Settings → Webhooks में Add New Webhook दबाएं। नीचे दिया पता और secret पेस्ट करें, उनके नीचे लिखे सभी events चुनें, और सेव करें।',
         },
       ],
       fields: {
@@ -289,6 +288,10 @@ export default [
         webhookSecret: {
           label: 'Webhook secret',
           help: 'हमने आपके लिए एक बना दिया है। यही secret Razorpay में पेस्ट करें।',
+        },
+        webhookEvents: {
+          label: 'चुनने वाले events',
+          help: 'Razorpay में Active Events के नीचे ये सभी चुनें। एक भी छूटा तो कुछ पेमेंट या रिफ़ंड यहां अपडेट नहीं होंगे।',
         },
       },
     },

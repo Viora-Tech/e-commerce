@@ -1,0 +1,140 @@
+import { siteConfig } from '@commerce/config/site'
+/** Copy for Apps → Installed apps (Figma "Installed apps · List" and its permissions sheet). */
+export const installedAppsContent = {
+  title: 'Installed apps',
+  browseStore: 'Browse App Store',
+  /** The line under the title. Empty parts are left out. */
+  summary: {
+    installed: (n: number) => (n === 1 ? '1 app installed' : `${n} apps installed`),
+    needsSetup: (n: number) => (n === 1 ? '1 needs setup' : `${n} need setup`),
+    problem: (n: number) => (n === 1 ? '1 has a problem' : `${n} have a problem`),
+    none: 'No apps installed yet',
+  },
+  tabs: { all: 'All', connected: 'Connected', needsSetup: 'Needs setup', error: 'Error' },
+  resource: { singular: 'app', plural: 'apps' },
+  columns: {
+    app: 'App',
+    status: 'Status',
+    access: 'Can access',
+    installed: 'Installed',
+    activity: 'Last activity',
+  },
+  sort: { newest: 'Newest first', oldest: 'Oldest first', az: 'A to Z', za: 'Z to A' },
+  byCompany: (company: string) => `by ${company}`,
+  builtBy: (brand: string) => `Built by ${brand}`,
+  status: { connected: 'Connected', needsSetup: 'Needs setup', error: 'Error' },
+  /** Store resources an app declares, by `AppResource`. */
+  resources: {
+    orders: 'Orders',
+    'order-events': 'Order events',
+    customers: 'Customers',
+    products: 'Products',
+    inventory: 'Stock',
+    shipments: 'Shipments',
+    payments: 'Payments',
+    refunds: 'Refunds',
+    invoices: 'Invoices',
+    reviews: 'Reviews',
+    collections: 'Collections',
+    discounts: 'Discounts',
+    'gift-cards': 'Gift cards',
+    'store-pages': 'Store pages',
+    content: 'Pages and blog',
+    files: 'Files',
+    'store-settings': 'Store settings',
+    visits: 'Visits',
+  } as Record<string, string>,
+  /** "Orders, customers": the first name as is, the rest in lower case. */
+  joinResources: (names: string[]) =>
+    names.map((n, i) => (i === 0 ? n : n.toLowerCase())).join(', '),
+  levels: { read: 'Read', write: 'Write', 'read-write': 'Read & write' },
+  readOnly: 'Read only',
+  /** "Read · makes invoices". */
+  accessLine: (level: string, summary: string | null) =>
+    summary ? `${level} · ${summary}` : level,
+  activity: {
+    notConnected: 'Not connected yet',
+    none: 'Not used yet',
+    /** The app ran but did not say what it did. */
+    generic: 'Worked in the background',
+  },
+  unknownDate: 'Before install dates were kept',
+  menu: {
+    label: (name: string) => `More actions for ${name}`,
+    open: 'Open app',
+    settings: 'Settings',
+    connect: 'Connect account',
+    permissions: 'Permissions',
+    disconnect: 'Disconnect',
+    uninstall: 'Uninstall',
+  },
+  bulk: { uninstall: (n: number) => (n === 1 ? 'Uninstall 1 app' : `Uninstall ${n} apps`) },
+  confirmUninstall: {
+    title: (name: string) => `Uninstall ${name}?`,
+    body: 'Its providers are switched off for this store. Saved credentials are kept until you remove them from Settings.',
+    keep: 'Keep',
+    confirm: 'Uninstall',
+  },
+  confirmBulk: {
+    title: (n: number) => `Uninstall ${n} apps?`,
+    body: (names: string) =>
+      `${names}. Their providers are switched off for this store. Saved credentials are kept until you remove them from Settings.`,
+    and: (rest: string, last: string) => `${rest} and ${last}`,
+  },
+  confirmDisconnect: {
+    title: (name: string) => `Disconnect ${name}?`,
+    body: 'The account is signed out and the app stops working until you connect it again. The app stays installed and its saved details are kept.',
+    confirm: 'Disconnect',
+  },
+  toast: {
+    uninstalled: (name: string) => `${name} uninstalled`,
+    uninstalledBody: 'Its providers are switched off for this store.',
+    uninstalledMany: (n: number) => `${n} apps uninstalled`,
+    disconnected: (name: string) => `${name} disconnected`,
+    failed: 'Could not update the app',
+  },
+  noResults: {
+    heading: (query: string) => `No installed app matches “${query}”`,
+    headingFiltered: 'No installed app matches this filter',
+    body: 'Check the spelling, or find it in the App Store.',
+  },
+  empty: {
+    heading: 'No apps installed yet',
+    body: 'Find tools for invoices, couriers, payments and marketing in the App Store.',
+  },
+  loadFailed: {
+    heading: 'Could not load apps',
+    body: 'Something went wrong on our side. Try again in a minute.',
+    retry: 'Try again',
+  },
+  sheet: {
+    title: (name: string) => `${name} permissions`,
+    intro: (store: string) => `What this app can see and do in ${store}.`,
+    introNoStore: 'What this app can see and do in your store.',
+    typeBuiltin: `${siteConfig.brand.name} app`,
+    typeConnection: 'Connection to another service',
+    version: (v: string) => `v${v}`,
+    canAccess: 'What it can access',
+    nothingElse: 'It cannot see your passwords or change your staff.',
+    shared: (name: string) => `Data shared with ${name}`,
+    savedCredentials: 'Saved credentials',
+    credentialsWhere: (name: string, where: string) => `${name} account details, kept in ${where}`,
+    encrypted: 'Encrypted',
+    /** Where each kind of provider keeps its account. */
+    where: {
+      payments: 'Settings › Payments',
+      shipping: 'Settings › Shipping & delivery',
+      notifications: 'Settings › Notifications',
+      storage: 'Content › Files › Storage',
+    },
+    history: 'History',
+    installed: 'Installed',
+    installedBy: (name: string) => `by ${name}`,
+    lastUsed: 'Last used',
+    notUsed: 'Not used yet',
+    problem: 'Problem',
+    removeAnyTime: 'You can remove its access any time from Apps.',
+    close: 'Close',
+    remove: 'Remove access',
+  },
+} as const

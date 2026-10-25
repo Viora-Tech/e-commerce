@@ -86,6 +86,22 @@ describe('placeOrder attribution', () => {
     const [o] = await owner.select().from(order).where(eq(order.id, result.orderId))
     expect(o?.attribution).toEqual(touch)
   })
+
+  it('copies the cart pixel tracking onto the order', async () => {
+    const { storeId, cartId } = await seed({ onHand: 5, quantity: 1 })
+    const tracking = {
+      fbp: 'fb.1.1792800000000.1234567890',
+      ip: '203.0.113.7',
+      ua: 'Mozilla/5.0',
+      consent: { marketing: true, analytics: true, version: 3, at: new Date().toISOString() },
+    }
+    await owner.update(cart).set({ tracking }).where(eq(cart.id, cartId))
+    const result = await withStore(app, storeId, (tx) =>
+      placeOrder({ storeId, tx }, { cartId, paymentProvider: new FakePaymentProvider() }),
+    )
+    const [o] = await owner.select().from(order).where(eq(order.id, result.orderId))
+    expect(o?.tracking).toEqual(tracking)
+  })
 })
 
 describe('placeOrder', () => {
@@ -295,6 +311,44 @@ describe('placeOrder', () => {
     const [o2] = await owner.select().from(order).where(eq(order.id, r2.orderId))
     expect(o1?.customerId).toBe(rows[0]?.id)
     expect(o2?.customerId).toBe(rows[0]?.id)
+  })
+
+  it('saves a checkout GSTIN on the customer and keeps it when a later checkout has none', async () => {
+    const first = await seed({ onHand: 10, quantity: 1 })
+    await owner
+      .update(store)
+      .set({ preferences: { checkout: { gstin: true } } })
+      .where(eq(store.id, first.storeId))
+    const [c2] = await owner.insert(cart).values({ storeId: first.storeId }).returning()
+    if (!c2) throw new Error('seed')
+    await owner.insert(cartLine).values({
+      storeId: first.storeId,
+      cartId: c2.id,
+      variantId: first.variantId,
+      quantity: 1,
+      unitPricePaise: 499900,
+    })
+    const checkout = (gstin: string | null, businessName: string | null) => ({
+      name: 'Asha Menon',
+      email: 'asha@example.com',
+      phone: '9999999999',
+      address: { line1: '12 MG Road', city: 'Bengaluru', stateCode: 'KA', pincode: '560001' },
+      gstin,
+      businessName,
+    })
+    const provider = new FakePaymentProvider({ mode: 'capture' })
+    await placeOrderAndPay(app, first.storeId, {
+      cartId: first.cartId,
+      paymentProvider: provider,
+      checkout: checkout('29aabct3518q1zs', 'Asha Traders'),
+    })
+    await placeOrderAndPay(app, first.storeId, {
+      cartId: c2.id,
+      paymentProvider: provider,
+      checkout: checkout(null, null),
+    })
+    const [row] = await owner.select().from(customer).where(eq(customer.storeId, first.storeId))
+    expect(row).toMatchObject({ gstin: '29AABCT3518Q1ZS', businessName: 'Asha Traders' })
   })
 
   it('throws OutOfStock and leaves nothing behind when stock is short', async () => {
@@ -659,5 +713,84 @@ describe('placeOrder outbox', () => {
       .where(eq(outboxEvent.storeId, storeId))
     expect(rows.map((r) => r.type).sort()).toEqual(['order.paid', 'order.placed'])
     for (const r of rows) expect(r.payload).toEqual({ orderId })
+  })
+})
+
+describe('placeOrder with the COD & RTO app', () => {
+  const checkout = {
+    name: 'Asha',
+    email: 'asha@example.com',
+    phone: '9999999999',
+    address: { line1: 'Near temple', city: 'Bengaluru', stateCode: 'KA', pincode: '560001' },
+  }
+
+  it('scores the order and asks a COD shopper to confirm', async () => {
+    const { storeId, cartId } = await seed({ onHand: 5, quantity: 1 })
+    await owner
+      .update(store)
+      .set({ apps: { installed: ['cod-rto'] } })
+      .where(eq(store.id, storeId))
+    const { orderId } = await withStore(app, storeId, (tx) =>
+      placeOrder(
+        { storeId, tx },
+        {
+          cartId,
+          paymentProvider: new FakePaymentProvider({ mode: 'capture', id: 'cod' }),
+          checkout,
+        },
+      ),
+    )
+    const [o] = await owner.select().from(order).where(eq(order.id, orderId))
+    // First order (+10), short address with no number (+20): 30, medium.
+    expect(o?.rtoRisk).toMatchObject({ score: 30, level: 'medium' })
+    expect(o?.codVerification).toBe('pending')
+    const types = (
+      await owner.select().from(outboxEvent).where(eq(outboxEvent.storeId, storeId))
+    ).map((r) => r.type)
+    expect(types).toEqual(expect.arrayContaining(['order.cod_confirm_requested', 'order.placed']))
+  })
+
+  it('refuses COD for a high-risk order when the store hides it, before anything is made', async () => {
+    const { storeId, cartId } = await seed({ onHand: 5, quantity: 1 })
+    await owner
+      .update(store)
+      .set({
+        apps: {
+          installed: ['cod-rto'],
+          settings: {
+            'cod-rto': { risk: { mediumAt: 10, highAt: 20 }, rules: { hideCodForHighRisk: true } },
+          },
+        },
+      })
+      .where(eq(store.id, storeId))
+    const run = withStore(app, storeId, (tx) =>
+      placeOrder(
+        { storeId, tx },
+        {
+          cartId,
+          paymentProvider: new FakePaymentProvider({ mode: 'capture', id: 'cod' }),
+          checkout,
+        },
+      ),
+    )
+    await expect(run).rejects.toMatchObject({ rule: 'cod_high_risk' })
+    expect(await owner.select().from(order)).toEqual([])
+  })
+
+  it('does nothing when the app is not installed', async () => {
+    const { storeId, cartId } = await seed({ onHand: 5, quantity: 1 })
+    const { orderId } = await withStore(app, storeId, (tx) =>
+      placeOrder(
+        { storeId, tx },
+        {
+          cartId,
+          paymentProvider: new FakePaymentProvider({ mode: 'capture', id: 'cod' }),
+          checkout,
+        },
+      ),
+    )
+    const [o] = await owner.select().from(order).where(eq(order.id, orderId))
+    expect(o?.rtoRisk).toBeNull()
+    expect(o?.codVerification).toBeNull()
   })
 })

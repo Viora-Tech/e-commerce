@@ -15,7 +15,13 @@ import {
   withStore,
 } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
+import { eq, sql } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
+import {
+  createMetafieldDefinition,
+  markMetafieldsFilterable,
+  setMetafields,
+} from '../metaobjects/service'
 import { browseProducts, suggestProducts } from './browse'
 import {
   activeFilters,
@@ -26,6 +32,8 @@ import {
   parseBrowseSort,
   parsePage,
 } from './browse-params'
+import { searchTerms } from './search-text'
+import { getSearchSynonyms, setSearchSynonyms } from './search-words'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
@@ -49,6 +57,9 @@ type Seed = {
   tags?: string[]
   sizes?: string[]
   createdAt?: Date
+  title?: string
+  description?: unknown
+  sku?: string
 }
 
 async function seed(storeId: string, s: Seed) {
@@ -57,7 +68,8 @@ async function seed(storeId: string, s: Seed) {
     .values({
       storeId,
       handle: s.handle,
-      title: s.handle.replace(/-/g, ' '),
+      title: s.title ?? s.handle.replace(/-/g, ' '),
+      description: s.description ?? null,
       status: 'active',
       productType: s.type ?? null,
       vendor: s.vendor ?? null,
@@ -74,7 +86,13 @@ async function seed(storeId: string, s: Seed) {
   for (const [i, size] of sizes.entries()) {
     const [v] = await owner
       .insert(variant)
-      .values({ storeId, productId, title: size ?? 'Default', pricePaise: s.price + i * 100 })
+      .values({
+        storeId,
+        productId,
+        title: size ?? 'Default',
+        pricePaise: s.price + i * 100,
+        sku: s.sku ? `${s.sku}-${i}` : null,
+      })
       .returning()
     variants.push(v?.id as string)
     await owner
@@ -244,6 +262,126 @@ describe('browseProducts', () => {
     expect(await run(storeId, (tx) => suggestProducts(tx, 'm'))).toEqual([])
     expect(await run(storeId, (tx) => suggestProducts(tx, '100%'))).toEqual([])
   })
+
+  it('searches vendor, handle, SKU, option values and description too, title matches first', async () => {
+    const [s] = await owner.insert(store).values({ slug: 'e', name: 'E' }).returning()
+    const storeId = s?.id as string
+    const lexical = (text: string) => ({
+      root: { type: 'root', children: [{ type: 'paragraph', children: [{ type: 'text', text }] }] },
+    })
+    await seed(storeId, {
+      handle: 'zeta-pad',
+      price: 100,
+      stock: 1,
+      description: lexical('Made by Pulsar'),
+    })
+    await seed(storeId, { handle: 'beta-mouse', price: 100, stock: 1, vendor: 'Pulsar' })
+    await seed(storeId, { handle: 'pulsar-x2', title: 'X2 Wireless', price: 100, stock: 1 })
+    await seed(storeId, { handle: 'gamma', price: 100, stock: 1, sku: 'PLS-PULSAR' })
+    await seed(storeId, { handle: 'pulsar-x3', title: 'Pulsar X3', price: 100, stock: 1 })
+    await seed(storeId, { handle: 'legacy', price: 100, stock: 1, description: 'old pulsar copy' })
+    await seed(storeId, {
+      handle: 'other',
+      price: 100,
+      stock: 1,
+      description: lexical('paragraph'),
+    })
+    await seed(storeId, { handle: 'tee', price: 100, stock: 1, sizes: ['Crimson'] })
+    const search = (query: string) =>
+      run(storeId, (tx) => browseProducts(tx, { ...base, query, sort: 'relevance' }))
+
+    const found = await search('PULSAR')
+    expect(found.handles[0]).toBe('pulsar-x3')
+    expect(found.handles.slice(1, 4).sort()).toEqual(['beta-mouse', 'gamma', 'pulsar-x2'])
+    expect(found.handles.slice(4).sort()).toEqual(['legacy', 'zeta-pad'])
+    expect(found.total).toBe(6)
+    // Lexical's node keys are not searchable text.
+    expect((await search('paragraph')).handles).toEqual(['other'])
+    // Every word must match, in any field.
+    expect((await search('pulsar wireless')).handles).toEqual(['pulsar-x2'])
+    // Option values, as Search & Discovery matches variant titles.
+    expect((await search('crimson')).handles).toEqual(['tee'])
+  })
+
+  it('corrects typos only when the words as typed find nothing, and says so', async () => {
+    const [s] = await owner.insert(store).values({ slug: 'f', name: 'F' }).returning()
+    const storeId = s?.id as string
+    await seed(storeId, {
+      handle: 'mech-keyboard',
+      title: 'Mechanical Keyboard',
+      price: 100,
+      stock: 1,
+    })
+    await seed(storeId, { handle: 'wireless-mouse', title: 'Wireless Mouse', price: 100, stock: 1 })
+    const search = (query: string) =>
+      run(storeId, (tx) => browseProducts(tx, { ...base, query, sort: 'relevance', storeId }))
+
+    const typo = await search('wirless mouse')
+    expect(typo.handles).toEqual(['wireless-mouse'])
+    expect(typo.corrected).toBe('wireless mouse')
+    expect((await search('mecanical keybord')).handles).toEqual(['mech-keyboard'])
+    // Found as typed: nothing is corrected.
+    expect((await search('mouse')).corrected).toBeNull()
+    // Nothing close: still nothing, and no correction claimed.
+    const none = await search('banana')
+    expect(none.total).toBe(0)
+    expect(none.corrected).toBeNull()
+    expect(await run(storeId, (tx) => suggestProducts(tx, 'keybord', 6, storeId))).toEqual([
+      'mech-keyboard',
+    ])
+  })
+
+  it('matches a word’s synonyms, and keeps them when the preferences form saves', async () => {
+    const [s] = await owner.insert(store).values({ slug: 'g', name: 'G' }).returning()
+    const storeId = s?.id as string
+    await seed(storeId, {
+      handle: 'mech-keyboard',
+      title: 'Mechanical Keyboard',
+      price: 100,
+      stock: 1,
+    })
+    await seed(storeId, { handle: 'desk-mat', title: 'Desk Mat', price: 100, stock: 1 })
+    const search = (query: string) =>
+      run(storeId, (tx) => browseProducts(tx, { ...base, query, sort: 'relevance', storeId }))
+    expect((await search('kb')).total).toBe(0)
+
+    const saved = await run(storeId, (tx) =>
+      setSearchSynonyms(tx, storeId, [
+        ['KB', 'keyboard', 'kb'],
+        ['mousepad', 'desk mat'],
+        ['solo'],
+      ]),
+    )
+    expect(saved).toEqual([
+      ['kb', 'keyboard'],
+      ['mousepad', 'desk mat'],
+    ])
+    expect((await search('kb')).handles).toEqual(['mech-keyboard'])
+    expect((await search('mousepad')).handles).toEqual(['desk-mat'])
+    expect((await search('kb')).corrected).toBeNull()
+
+    // The Online Store preferences form merges its own keys and never drops the synonyms.
+    await run(storeId, (tx) => updateStorePreferencesLike(tx, storeId))
+    expect(await run(storeId, (tx) => getSearchSynonyms(tx, storeId))).toEqual(saved)
+  })
+})
+
+/** What the Preferences form's save does to the column: merge its keys over what is there. */
+async function updateStorePreferencesLike(tx: StoreTx, storeId: string) {
+  await tx
+    .update(store)
+    .set({
+      preferences: sql`coalesce(${store.preferences}, '{}'::jsonb) || ${JSON.stringify({ seo: {} })}::jsonb`,
+    })
+    .where(eq(store.id, storeId))
+}
+
+describe('searchTerms', () => {
+  it('splits, lowercases and dedupes words, at most eight', () => {
+    expect(searchTerms('  Pulsar  X2 pulsar ')).toEqual(['pulsar', 'x2'])
+    expect(searchTerms('')).toEqual([])
+    expect(searchTerms('a b c d e f g h i j')).toHaveLength(8)
+  })
 })
 
 describe('browse params', () => {
@@ -305,5 +443,147 @@ describe('browse params', () => {
       'option:size:S',
     )
     expect(browseHref('/collections/x', {})).toBe('/collections/x')
+  })
+})
+
+describe('extra field filters', () => {
+  const field = (name: string, type: 'single_line_text' | 'boolean', more = {}) => ({
+    ownerType: 'product' as const,
+    name,
+    namespace: 'custom',
+    type,
+    list: false,
+    validations: {},
+    storefrontAccess: true,
+    ...more,
+  })
+
+  it('offers the fields marked "Use as filter" and filters by them, Shopify params', async () => {
+    const [s] = await owner.insert(store).values({ slug: 'mf', name: 'MF' }).returning()
+    const storeId = s?.id as string
+    const a = await seed(storeId, { handle: 'alpha', price: 100_00, stock: 1 })
+    const b = await seed(storeId, { handle: 'beta', price: 100_00, stock: 1 })
+    const c = await seed(storeId, { handle: 'gamma', price: 100_00, stock: 1 })
+    const ids = await run(storeId, async (tx) => {
+      const grip = await createMetafieldDefinition(
+        tx,
+        storeId,
+        field('Grip', 'single_line_text', { filterable: true }),
+      )
+      const sensor = await createMetafieldDefinition(
+        tx,
+        storeId,
+        field('Sensor', 'single_line_text'),
+      )
+      const wireless = await createMetafieldDefinition(
+        tx,
+        storeId,
+        field('Wireless', 'boolean', { filterable: true }),
+      )
+      const values: [string, Record<string, unknown>][] = [
+        [a.productId, { [grip.id]: 'Claw', [sensor.id]: 'PAW3395', [wireless.id]: true }],
+        [b.productId, { [grip.id]: 'Palm', [sensor.id]: 'PAW3395', [wireless.id]: false }],
+        [c.productId, { [grip.id]: 'Claw', [wireless.id]: true }],
+      ]
+      for (const [ownerId, v] of values) {
+        await setMetafields(tx, storeId, { ownerType: 'product', ownerId, values: v })
+      }
+      return { grip, sensor }
+    })
+
+    const all = await run(storeId, (tx) => browseProducts(tx, base))
+    expect(all.facets.metafields).toEqual([
+      {
+        key: 'custom.grip',
+        name: 'Grip',
+        type: 'list',
+        values: [
+          { value: 'Claw', count: 2 },
+          { value: 'Palm', count: 1 },
+        ],
+      },
+      {
+        key: 'custom.wireless',
+        name: 'Wireless',
+        type: 'boolean',
+        values: [
+          { value: '1', count: 2 },
+          { value: '0', count: 1 },
+        ],
+      },
+    ])
+
+    const claw = await run(storeId, (tx) =>
+      browseProducts(tx, {
+        ...base,
+        filters: parseBrowseFilters({ 'filter.p.m.custom.grip': 'Claw' }),
+      }),
+    )
+    expect(claw.handles).toEqual(['alpha', 'gamma'])
+    const wired = await run(storeId, (tx) =>
+      browseProducts(tx, {
+        ...base,
+        filters: parseBrowseFilters({ 'filter.p.m.custom.wireless': '0' }),
+      }),
+    )
+    expect(wired.handles).toEqual(['beta'])
+    // A field not marked as a filter neither shows nor filters.
+    const sensor = await run(storeId, (tx) =>
+      browseProducts(tx, {
+        ...base,
+        filters: parseBrowseFilters({ 'filter.p.m.custom.sensor': 'PAW3395' }),
+      }),
+    )
+    expect(sensor.handles).toEqual([])
+
+    // The Shopify import marks fields the old store filtered by; only filterable types change.
+    const marked = await run(storeId, (tx) =>
+      markMetafieldsFilterable(tx, [ids.sensor.id, ids.grip.id]),
+    )
+    expect(marked).toBe(1)
+    const after = await run(storeId, (tx) => browseProducts(tx, base))
+    expect(after.facets.metafields.map((m) => m.key)).toEqual([
+      'custom.grip',
+      'custom.sensor',
+      'custom.wireless',
+    ])
+  })
+
+  it('guesses the filters of a store with no field marked, then follows the marks', async () => {
+    const [s] = await owner.insert(store).values({ slug: 'mg', name: 'MG' }).returning()
+    const storeId = s?.id as string
+    const products = await Promise.all(
+      ['a', 'b', 'c', 'd'].map((h) => seed(storeId, { handle: h, price: 100_00, stock: 1 })),
+    )
+    const sensor = await run(storeId, async (tx) => {
+      const grip = await createMetafieldDefinition(tx, storeId, field('Grip', 'single_line_text'))
+      const sensor = await createMetafieldDefinition(
+        tx,
+        storeId,
+        field('Sensor', 'single_line_text'),
+      )
+      const grips = ['Claw', 'Claw', 'Palm', 'Palm']
+      for (const [i, p] of products.entries()) {
+        await setMetafields(tx, storeId, {
+          ownerType: 'product',
+          ownerId: p.productId,
+          values: { [grip.id]: grips[i], [sensor.id]: `S${i}` },
+        })
+      }
+      return sensor
+    })
+    const guessed = await run(storeId, (tx) => browseProducts(tx, base))
+    expect(guessed.facets.metafields.map((m) => m.key)).toEqual(['custom.grip'])
+    const palm = await run(storeId, (tx) =>
+      browseProducts(tx, {
+        ...base,
+        filters: parseBrowseFilters({ 'filter.p.m.custom.grip': 'Palm' }),
+      }),
+    )
+    expect(palm.handles).toEqual(['c', 'd'])
+
+    await run(storeId, (tx) => markMetafieldsFilterable(tx, [sensor.id]))
+    const marked = await run(storeId, (tx) => browseProducts(tx, base))
+    expect(marked.facets.metafields.map((m) => m.key)).toEqual(['custom.sensor'])
   })
 })

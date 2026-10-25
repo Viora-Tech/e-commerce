@@ -1,6 +1,7 @@
 'use client'
 
 import { RETURN_REASONS, type ReturnReason } from '@commerce/core/returns'
+import { Undo } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -155,6 +156,7 @@ export default function CreateReturnDialog({
             {returnDetailContent.cancel}
           </Button>
           <Button type="button" onClick={handleCreate} disabled={busy || picked.length === 0}>
+            <Undo aria-hidden="true" />
             {copy.confirm}
           </Button>
         </DialogFooter>

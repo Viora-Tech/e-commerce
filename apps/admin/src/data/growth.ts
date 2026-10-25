@@ -1,21 +1,22 @@
 import type { OverviewChannel, SourceKey } from '@commerce/api'
+import { routes } from '@/lib/routes'
 
 /** Copy for the Growth section (was Marketing): campaigns, automations, links. */
 export const growthContent = {
   index: {
     heading: 'Growth',
     body: 'Campaigns and automations that bring shoppers back: email, WhatsApp and discount-led promotions.',
-    action: { label: 'View discounts', href: '/discounts' },
+    action: { label: 'View discounts', href: routes.discounts.list() },
   },
   campaigns: {
     heading: 'No campaigns',
     body: 'A campaign is a one-off send to a segment of your customers: a launch, a sale or a restock.',
-    action: { label: 'View discounts', href: '/discounts' },
+    action: { label: 'View discounts', href: routes.discounts.list() },
   },
   automations: {
     heading: 'No automations',
     body: 'Automations run on their own: abandoned-checkout reminders, post-purchase follow-ups, win-back messages.',
-    action: { label: 'Notification settings', href: '/settings/notifications' },
+    action: { label: 'Notification settings', href: routes.settings.notifications() },
   },
 } as const
 
@@ -52,13 +53,47 @@ export const growthOverviewContent = {
   title: 'Growth',
   intro: 'How much you are selling from Instagram, Google, WhatsApp, AI assistants and direct.',
   createCampaign: 'Create campaign',
+  links: 'Links',
+  newCampaign: 'New campaign',
+  outcomes: {
+    summary: (amount: string, period: string) =>
+      `Campaigns, automations, discounts and links brought in ${amount} ${period}`,
+    periods: {
+      today: 'today',
+      '7d': 'in the last 7 days',
+      '30d': 'in the last 30 days',
+      '90d': 'in the last 90 days',
+      custom: 'in this period',
+    } as Record<string, string>,
+    vsPrevious: 'vs previous period',
+    card: {
+      title: 'What marketing earned',
+      subtitle: (orders: string) =>
+        `${orders} orders. One order can come from a campaign and a code; the total counts it once.`,
+      kinds: {
+        campaigns: 'Campaigns',
+        automations: 'Automations',
+        discounts: 'Discount codes',
+        links: 'Links',
+      },
+      orders: (n: string) => `${n} orders`,
+      top: (name: string, amount: string) => `Top: ${name} · ${amount}`,
+      nothing: {
+        campaigns: 'No campaign sales yet',
+        automations: 'No automation sales yet',
+        discounts: 'No orders used a code yet',
+        links: 'No sales from your links yet',
+      },
+      share: (pct: string) => `${pct} of what marketing earned`,
+    },
+  },
   kpis: {
     sessions: {
       label: 'Sessions',
       help: 'Counted from the first storefront visit after this was switched on.',
     },
     attributed_sales: {
-      label: 'Sales attributed to marketing',
+      label: 'Sales from marketing',
       help: 'Orders whose last non-direct visit came from a channel or campaign.',
     },
     attributed_orders: {
@@ -69,12 +104,14 @@ export const growthOverviewContent = {
       label: 'Conversion rate',
       help: 'Tracked orders divided by sessions.',
     },
-  },
-  salesOverTime: {
-    title: 'Attributed sales over time',
-    day: 'Daily',
-    week: 'Weekly',
-    series: 'Attributed sales',
+    total_sales: {
+      label: 'Total sales',
+      help: 'Every order placed in the range, from any source.',
+    },
+    aov: {
+      label: 'Average order value',
+      help: 'Total sales divided by orders.',
+    },
   },
   view: {
     label: 'View',
@@ -85,6 +122,10 @@ export const growthOverviewContent = {
     /** {source} is filled in with the friendly source label. */
     title: 'Your best source this period is {source}',
     body: 'It brought in the most sales of anything other than direct traffic.',
+    eyebrow: 'Best source',
+    sales: 'Sales',
+    orders: 'Orders',
+    conversion: 'Conversion',
   },
   sources: {
     title: 'Sales by source',
@@ -131,29 +172,6 @@ export const growthOverviewContent = {
       utm: 'Tagged link',
     },
   },
-  shortcuts: {
-    title: 'Reach your customers',
-    campaigns: {
-      title: 'Campaigns',
-      body: 'Send an email or WhatsApp broadcast to a customer segment.',
-      href: '/growth/campaigns',
-    },
-    automations: {
-      title: 'Automations',
-      body: 'Recover abandoned checkouts, welcome subscribers and win back lapsed buyers.',
-      href: '/growth/automations',
-    },
-    links: {
-      title: 'Links',
-      body: 'Build a tagged link for your Instagram bio, a WhatsApp broadcast or an ad.',
-      href: '/growth/links',
-    },
-    discounts: {
-      title: 'Discounts',
-      body: 'Create codes to use in campaigns and automations.',
-      href: '/discounts',
-    },
-  },
 } as const
 
 /** Where a merchant will paste a tagged link: maps to utm_source / utm_medium. */
@@ -170,21 +188,70 @@ export type LinkPlacementId = (typeof LINK_PLACEMENTS)[number]['id']
 
 export const growthLinksContent = {
   title: 'Links',
-  intro:
-    'Build a link that is tagged with where you shared it, so Growth can show you what it sold. Paste the tagged link wherever you post it.',
-  form: {
-    pageLabel: 'Page to link to',
-    pagePlaceholder: '/products/your-product',
-    pageHelp: 'A path on your store, like /products/hoodie or / for the homepage.',
-    placementLabel: 'Where will you share it?',
-    campaignLabel: 'Campaign name (optional)',
-    campaignPlaceholder: 'e.g. diwali-drop',
-    campaignHelp: 'Group several links together to see them as one campaign in Growth.',
+  resource: { singular: 'link', plural: 'links' },
+  summary: (links: number, clicks: string, orders: string) =>
+    `${links} short ${links === 1 ? 'link' : 'links'} · ${clicks} clicks · ${orders} orders`,
+  trend: {
+    title: 'Link results over time',
+    subtitle: 'Last 30 days, across every link.',
+    metrics: { clicks: 'Clicks', orders: 'Orders', revenue: 'Revenue' },
+    empty: 'No clicks on your links yet in this period',
   },
-  result: {
-    title: 'Your tagged link',
-    copy: 'Copy link',
-    copied: 'Copied',
-    empty: 'Fill in a page and where you will share it to get a tagged link.',
+  noLinks: 'No links yet',
+  newLink: 'New link',
+  columns: {
+    link: 'Link',
+    tags: 'Tracking tags',
+    clicks: 'Clicks',
+    orders: 'Orders',
+    revenue: 'Revenue',
+    created: 'Created',
+  },
+  noTags: 'No tags',
+  menu: { copy: 'Copy link', edit: 'Edit', open: 'Open link', delete: 'Delete' },
+  copied: 'Link copied',
+  deleted: 'Link deleted',
+  empty: {
+    heading: 'Make a link you can track',
+    body: 'Make a short link for WhatsApp, Instagram or YouTube. We tell you how many clicks turned into orders.',
+  },
+  dialog: {
+    newTitle: 'New link',
+    editTitle: 'Edit link',
+    name: 'Name',
+    namePlaceholder: 'Diwali sale WhatsApp',
+    destination: 'Where should it go?',
+    destinationPlaceholder: 'https://waimers.in/collections/glasspads',
+    destinationHelp: 'A page on your store, or its full address.',
+    destinationInvalid: 'Use a page on your store, like /collections/glasspads.',
+    slug: 'Short name',
+    slugHelp: (url: string) => `The link will be ${url}`,
+    slugInvalid: 'Lower-case letters, numbers and hyphens only.',
+    placement: 'Where will you share it?',
+    placementHelp: 'Fills in the source and medium for you.',
+    custom: 'Custom',
+    source: 'Source',
+    medium: 'Medium',
+    campaign: 'Campaign',
+    cancel: 'Cancel',
+    create: 'Create link',
+    save: 'Save',
+    created: 'Link created',
+    saved: 'Link saved',
+  },
+  deleteDialog: {
+    title: (name: string) => `Delete ${name}?`,
+    body: 'The short link stops working. Orders it already brought stay credited in Growth.',
+    cancel: 'Cancel',
+    confirm: 'Delete',
+  },
+  bulkDelete: {
+    action: 'Delete',
+    title: (n: number) => `Delete ${n} ${n === 1 ? 'link' : 'links'}?`,
+    body: 'These short links stop working. Orders they already brought stay credited in Growth.',
+    cancel: 'Cancel',
+    confirm: 'Delete',
+    deleted: (n: number) => `${n} ${n === 1 ? 'link' : 'links'} deleted`,
+    failed: (n: number) => `${n} could not be deleted`,
   },
 } as const

@@ -1,5 +1,7 @@
 'use client'
 
+import { VALUELESS_ITEM_TYPES } from '@commerce/core/navigation'
+import { Plus, Save } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
@@ -19,6 +21,7 @@ import {
   NAVIGATION_ITEM_TYPES,
   type NavigationItemType,
 } from '@/data/menus'
+import { useCopy } from '@/hooks/use-copy'
 import DestinationPicker from './destination-picker'
 
 type MenuItemDialogProps = {
@@ -29,9 +32,10 @@ type MenuItemDialogProps = {
   onOpenChange: (open: boolean) => void
 }
 
-const copy = menusContent.item
-
 const newItemId = () => crypto.randomUUID()
+
+/** Home, search and all collections link to a fixed page: no destination to pick. */
+const isValueless = (type: NavigationItemType) => VALUELESS_ITEM_TYPES.includes(type)
 
 export default function MenuItemDialog({
   open,
@@ -40,6 +44,7 @@ export default function MenuItemDialog({
   onOpenChange,
 }: MenuItemDialogProps) {
   // Hooks
+  const { item: copy } = useCopy(menusContent)
   const [title, setTitle] = useState('')
   const [type, setType] = useState<NavigationItemType>('home')
   const [value, setValue] = useState('')
@@ -52,6 +57,12 @@ export default function MenuItemDialog({
   }, [open, initial])
 
   // Event handlers
+  const handleType = (next: NavigationItemType) => {
+    // A handle picked for one kind means nothing for another.
+    if (next !== type) setValue('')
+    setType(next)
+  }
+
   const handlePick = (v: string, t: string) => {
     setValue(v)
     if (!title.trim()) setTitle(t)
@@ -62,7 +73,7 @@ export default function MenuItemDialog({
       toast.error(copy.missingTitle)
       return
     }
-    if (type !== 'home' && !value.trim()) {
+    if (!isValueless(type) && !value.trim()) {
       toast.error(copy.missingValue)
       return
     }
@@ -70,7 +81,7 @@ export default function MenuItemDialog({
       id: initial?.id ?? newItemId(),
       title: title.trim(),
       type,
-      value: type === 'home' ? undefined : value.trim(),
+      value: isValueless(type) ? undefined : value.trim(),
     })
     onOpenChange(false)
   }
@@ -101,7 +112,7 @@ export default function MenuItemDialog({
                 <button
                   key={t}
                   type="button"
-                  onClick={() => setType(t)}
+                  onClick={() => handleType(t)}
                   aria-pressed={type === t}
                   className={cn(
                     'rounded-full border px-3 py-1 text-body',
@@ -127,7 +138,7 @@ export default function MenuItemDialog({
                 autoComplete="off"
               />
             </Field>
-          ) : type === 'home' ? null : (
+          ) : type === 'home' || type === 'search' || type === 'collections' ? null : (
             <DestinationPicker type={type} selectedValue={value} onSelect={handlePick} />
           )}
         </FieldGroup>
@@ -136,6 +147,7 @@ export default function MenuItemDialog({
             {copy.cancel}
           </Button>
           <Button type="button" onClick={handleSave}>
+            {initial ? <Save aria-hidden="true" /> : <Plus aria-hidden="true" />}
             {initial ? copy.update : copy.add}
           </Button>
         </DialogFooter>

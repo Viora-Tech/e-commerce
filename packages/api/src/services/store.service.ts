@@ -34,10 +34,11 @@ export function presentStore<S extends typeof store.$inferSelect>(s: S) {
  * live in the same column and must survive.
  */
 export async function updateStorePreferences(tx: StoreTx, storeId: string, preferences: unknown) {
-  // `customSections` is only ever written by `saveCustomSection`; a stale copy in the form
-  // must not overwrite it.
+  // `customSections` and `searchSynonyms` have their own writers (`saveCustomSection`,
+  // `setSearchSynonyms`); a stale copy in the form must not overwrite them.
   const next = { ...((preferences ?? {}) as Record<string, unknown>) }
   delete next.customSections
+  delete next.searchSynonyms
   const [s] = await tx
     .update(store)
     .set({
@@ -97,6 +98,8 @@ export type StoreGeneralPatch = {
   gstin?: string | null
   gstRatePercent?: number
   timezone: string
+  /** Null is the currency's own format; left out keeps the saved one. */
+  moneyFormat?: string | null
 }
 
 export async function updateStoreGeneral(tx: StoreTx, storeId: string, patch: StoreGeneralPatch) {

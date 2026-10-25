@@ -1,7 +1,7 @@
 'use client'
 
+import { Pencil, Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card } from '@commerce/ui/shadcn/card'
 import {
   Dialog,
   DialogContent,
@@ -16,6 +16,7 @@ import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import MoneyInput from '@/components/fields/money-input'
+import DataCard from '@/components/layout/data-card'
 import { giftCardDetailContent } from '@/data/gift-cards'
 import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
@@ -66,18 +67,20 @@ export default function BalanceCard({ card, onChanged }: BalanceCardProps) {
   const canSave = !busy && valid && note.trim().length > 0 && next >= 0
 
   return (
-    <Card className="gap-4 p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <p className="text-card-title text-foreground">{copy.balance.heading}</p>
-          <p className="text-stat text-ink-strong tabular-nums">{formatPaise(card.balancePaise)}</p>
-          <p className="text-caption text-muted-foreground">
-            {copy.balance.of(formatPaise(card.initialValuePaise))}
-          </p>
-        </div>
+    <DataCard
+      title={copy.balance.heading}
+      action={
         <Button variant="outline" size="sm" onClick={handleOpen}>
+          <Pencil aria-hidden="true" />
           {copy.balance.adjust}
         </Button>
+      }
+    >
+      <div className="flex flex-col gap-1">
+        <p className="text-stat text-ink-strong tabular-nums">{formatPaise(card.balancePaise)}</p>
+        <p className="text-caption text-muted-foreground">
+          {copy.balance.of(formatPaise(card.initialValuePaise))}
+        </p>
       </div>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
@@ -117,11 +120,12 @@ export default function BalanceCard({ card, onChanged }: BalanceCardProps) {
               {copy.adjust.cancel}
             </Button>
             <Button onClick={() => handleSave(delta)} disabled={!canSave}>
+              <Save aria-hidden="true" />
               {busy ? copy.adjust.saving : copy.adjust.save}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Card>
+    </DataCard>
   )
 }

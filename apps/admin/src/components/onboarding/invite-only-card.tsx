@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import DataCard from '@/components/layout/data-card'
 import { onboardingContent } from '@/data/onboarding'
 import { getCopy } from '@/lib/copy-server'
 import WaitlistForm from './waitlist-form'
@@ -11,14 +11,13 @@ export default async function InviteOnlyCard({ defaultEmail }: InviteOnlyCardPro
   const copy = await getCopy(onboardingContent)
 
   return (
-    <Card size="form" className="w-full max-w-md">
-      <CardHeader>
-        <CardTitle className="text-page-title text-ink-strong">{copy.inviteOnly.heading}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-5">
-        <p className="text-body text-muted-foreground">{copy.inviteOnly.body}</p>
-        <WaitlistForm defaultEmail={defaultEmail} />
-      </CardContent>
-    </Card>
+    <DataCard
+      title={copy.inviteOnly.heading}
+      className="h-auto w-full max-w-md"
+      bodyClassName="flex flex-col gap-5"
+    >
+      <p className="text-body text-muted-foreground">{copy.inviteOnly.body}</p>
+      <WaitlistForm defaultEmail={defaultEmail} />
+    </DataCard>
   )
 }

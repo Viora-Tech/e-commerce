@@ -2,15 +2,20 @@ import {
   forgetInvitation,
   invitationRoleForUser,
   listRoles,
+  lockMembershipHeal,
+  type MemberAccess,
   memberAccess,
   type Permission,
+  recordApiActivity,
+  recordApiRead,
   seedSystemRoles,
   upsertMember,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
-import { resolveStoreForOrganization, withStore } from '@commerce/db'
+import { organizationMembership, withStore } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
-import { protectedProcedure, type SessionContext } from './base'
+import { memberProcedure, type SessionContext } from './base'
+import { remember } from './request-memo'
 
 export type StoreScope = {
   storeId: string
@@ -35,6 +40,16 @@ function describe(permission: Permission): string {
   return `${action} ${String(resource).replace(/_/g, ' ')}`
 }
 
+function accessOf(found: MemberAccess): Access {
+  return {
+    roleId: found.roleId,
+    roleSlug: found.roleSlug,
+    roleName: found.roleName,
+    isOwner: found.isOwner,
+    permissions: found.permissions,
+  }
+}
+
 /**
  * Reads the member's role. Stores created before roles existed, and members
  * added straight through Better Auth, are healed here: the system roles are
@@ -46,16 +61,16 @@ async function resolveAccess(
   userId: string,
   organizationRole: string,
 ): Promise<Access> {
-  const found = await memberAccess(tx, storeId, userId)
-  if (found) {
-    return {
-      roleId: found.roleId,
-      roleSlug: found.roleSlug,
-      roleName: found.roleName,
-      isOwner: found.isOwner,
-      permissions: found.permissions,
-    }
-  }
+  const known = await memberAccess(tx, storeId, userId)
+  if (known) return accessOf(known)
+
+  // One admin page load makes several store calls at once (layout and page), and each would
+  // heal here: concurrent `seedSystemRoles` rewrites collide on role_permission's unique key
+  // and all but one call fail. Heal one at a time per store, then re-read: the call that
+  // waited usually finds the membership the first one just wrote.
+  await lockMembershipHeal(tx, storeId)
+  const healed = await memberAccess(tx, storeId, userId)
+  if (healed) return accessOf(healed)
 
   await seedSystemRoles(tx, storeId)
   const roles = await listRoles(tx, storeId)
@@ -92,24 +107,41 @@ async function resolveAccess(
   }
 }
 
+/** Marks the errors that mean "there is no store to work in", the only ones the admin answers
+ *  with the store picker. A missing permission or a failed query is not one of them. */
+const NO_STORE = { reason: 'no_store' } as const
+
+function noStore(code: 'PRECONDITION_FAILED' | 'FORBIDDEN' | 'NOT_FOUND', message: string) {
+  return new ORPCError(code, { message, data: NO_STORE })
+}
+
+/**
+ * True when a store call failed only because the caller has no store to work in: none picked,
+ * no longer a member, or the store is gone. Admin pages send these to the store picker and let
+ * every other error reach the error page (a redirect there would loop, and hide the error).
+ */
+export function isNoStoreError(error: unknown): boolean {
+  return error instanceof ORPCError && error.data?.reason === NO_STORE.reason
+}
+
 /**
  * The caller's store: requires an active organization the user belongs to and resolves it
- * to a store. Shared by `can` and `canDetached`.
+ * to a store. Shared by `can` and `canDetached`. Once per request: a page's parallel store
+ * calls share one lookup (`request-memo.ts`).
  */
 async function findMembership(context: SessionContext) {
   const organizationId = context.session.activeOrganizationId
-  if (!organizationId) throw new ORPCError('PRECONDITION_FAILED', { message: 'Pick a store first' })
-
-  const org = await context.auth.api.getFullOrganization({
-    headers: context.headers,
-    query: { organizationId },
+  if (!organizationId) throw noStore('PRECONDITION_FAILED', 'Pick a store first')
+  const userId = context.session.user.id
+  return remember(context.memo, `membership:${organizationId}:${userId}`, async () => {
+    // The member row and the store id in one query, straight from the database on every
+    // request (Better Auth's getFullOrganization read the session again, the organization, its
+    // invitations, members and their users: seven round trips for the same answer).
+    const found = await organizationMembership(context.db, organizationId, userId)
+    if (!found) throw noStore('FORBIDDEN', 'Not a member of this store')
+    if (!found.storeId) throw noStore('NOT_FOUND', 'No store for this organization')
+    return { organizationId, storeId: found.storeId, role: found.role, userId }
   })
-  const membership = org?.members.find((m) => m.userId === context.session.user.id)
-  if (!membership) throw new ORPCError('FORBIDDEN', { message: 'Not a member of this store' })
-
-  const storeId = await resolveStoreForOrganization(context.db, organizationId)
-  if (!storeId) throw new ORPCError('NOT_FOUND', { message: 'No store for this organization' })
-  return { organizationId, storeId, role: membership.role, userId: context.session.user.id }
 }
 
 /**
@@ -117,14 +149,27 @@ async function findMembership(context: SessionContext) {
  * one of them is enough (the AI assistant: each of its tools checks its own permission).
  */
 async function scopeFor(
+  context: SessionContext,
   tx: StoreTx,
   member: Awaited<ReturnType<typeof findMembership>>,
   required: Permission | readonly Permission[] | undefined,
 ): Promise<StoreScope> {
-  const access = await resolveAccess(tx, member.storeId, member.userId, member.role)
+  // Read from the database once per request (the first call's transaction; the page's other
+  // calls wait on that read), never carried across requests: a revoked grant still applies
+  // from the next request on.
+  const access = await remember(context.memo, `access:${member.storeId}:${member.userId}`, () =>
+    resolveAccess(tx, member.storeId, member.userId, member.role),
+  )
+  // An access token is its member capped to the token's areas, and never reaches a procedure
+  // that names no permission (those check things only a person signed in should do).
+  const token = context.apiPrincipal
   const holds = (permission: Permission) =>
-    access.isOwner || access.permissions.includes(permission)
+    (access.isOwner || access.permissions.includes(permission)) &&
+    (!token || token.permissions.includes(permission))
   const wanted = required === undefined ? [] : typeof required === 'string' ? [required] : required
+  if (token && !wanted.length) {
+    throw new ORPCError('FORBIDDEN', { message: 'Access tokens cannot use this' })
+  }
   if (wanted.length && !wanted.some(holds)) {
     const first = wanted[0] as Permission
     throw new ORPCError('FORBIDDEN', {
@@ -146,20 +191,68 @@ function report(context: SessionContext, storeId: string, error: unknown): never
  * loads what that member may do, and runs the handler inside `withStore` so
  * every query is tenant-scoped. Permissions are read from the database on each
  * request rather than carried in the session, so revoking one takes effect on
- * the next call.
+ * the next request (a page's parallel calls share one read through `context.memo`).
  */
 function storeProcedureWith(required?: Permission | readonly Permission[]) {
-  return protectedProcedure.use(async ({ context, next }) => {
+  return memberProcedure.use(async ({ context, next, path }) => {
     const member = await findMembership(context)
-    return withStore(context.db, member.storeId, async (tx: StoreTx) => {
-      const scope = await scopeFor(tx, member, required)
+    context.log.set({ storeId: member.storeId })
+    // Work that must wait until the transaction has committed (realtime publishes): a
+    // listener must never hear about a row it cannot read yet, or one that rolled back.
+    const committed: AfterCommit[] = []
+    const afterCommit = (fn: AfterCommit) => {
+      committed.push(fn)
+    }
+    const result = await withStore(context.db, member.storeId, async (tx: StoreTx) => {
+      const scope = await scopeFor(context, tx, member, required)
+      context.log.set({ role: scope.roleSlug })
       try {
-        return await next({ context: { scope, tx } })
+        const out = await next({ context: { scope, tx, afterCommit } })
+        await logTokenCall(context, tx, member.storeId, path, required)
+        return out
       } catch (error) {
         return report(context, member.storeId, error)
       }
     })
+    for (const fn of committed) {
+      try {
+        await fn()
+      } catch (error) {
+        context.reportError?.(error, { storeId: member.storeId })
+      }
+    }
+    return result
   })
+}
+
+/** Runs after the store transaction commits; failures are reported, never thrown. */
+export type AfterCommit = () => void | Promise<void>
+
+/**
+ * Settings → MCP & API → Activity: a call made with an access token. Changes are logged one by
+ * one; repeated reads of the same procedure fold into one row per ten minutes.
+ */
+async function logTokenCall(
+  context: SessionContext,
+  tx: StoreTx,
+  storeId: string,
+  path: readonly string[],
+  required: Permission | readonly Permission[] | undefined,
+) {
+  const token = context.apiPrincipal
+  if (!token) return
+  const wanted = required === undefined ? [] : typeof required === 'string' ? [required] : required
+  const procedure = path.join('.')
+  const reads = wanted.every((perm) => perm.endsWith('.read'))
+  const entry = { grantId: token.grantId, tool: procedure, detail: `API · ${procedure}` }
+  if (reads)
+    await recordApiRead(tx, storeId, { ...entry, summary: `${token.name} read ${path[0]}` })
+  else
+    await recordApiActivity(tx, storeId, {
+      ...entry,
+      kind: 'change',
+      summary: `${token.name} changed ${path[0]}`,
+    })
 }
 
 /** Store-scoped procedure with no permission of its own. */
@@ -188,13 +281,31 @@ export function canAny(permissions: readonly Permission[]) {
  * generator runs after the middleware returns) never touches a committed transaction.
  */
 export function canDetached(permission: Permission | readonly Permission[]) {
-  return protectedProcedure.use(async ({ context, next }) => {
+  return detachedWith(permission)
+}
+
+/**
+ * `storeProcedure` (any member, no permission) for a handler that waits on an outside
+ * service, like `canDetached`: no transaction stays open; the handler opens its own
+ * `withStore` for reads and writes. "Report a bug" files GitHub issues through it.
+ */
+export const storeProcedureDetached = detachedWith(undefined)
+
+function detachedWith(permission: Permission | readonly Permission[] | undefined) {
+  return memberProcedure.use(async ({ context, next, path }) => {
     const member = await findMembership(context)
+    context.log.set({ storeId: member.storeId })
     const scope = await withStore(context.db, member.storeId, (tx: StoreTx) =>
-      scopeFor(tx, member, permission),
+      scopeFor(context, tx, member, permission),
     )
+    context.log.set({ role: scope.roleSlug })
     try {
-      return await next({ context: { scope } })
+      const result = await next({ context: { scope } })
+      if (context.apiPrincipal)
+        await withStore(context.db, member.storeId, (tx: StoreTx) =>
+          logTokenCall(context, tx, member.storeId, path, permission),
+        )
+      return result
     } catch (error) {
       return report(context, member.storeId, error)
     }

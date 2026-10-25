@@ -1,9 +1,12 @@
 'use client'
 
+import { RotateCcw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import { motion, useReducedMotion } from 'motion/react'
 import type { PendingUpload } from '@/components/media/use-upload-queue'
-import { productFormContent } from '@/data/products'
+import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
+import { IMAGE_ENTER_MS, IMAGE_GLIDE_SPRING } from '@/hooks/use-image-dnd'
 
 type ProductImagePendingProps = {
   upload: PendingUpload
@@ -19,12 +22,23 @@ export default function ProductImagePending({
 }: ProductImagePendingProps) {
   // Hooks
   const { media: copy } = useCopy(productFormContent)
+  const reduced = useReducedMotion() === true
 
   // Render logic
   const pct = Math.round(upload.progress * 100)
 
   return (
-    <li className="relative flex aspect-square flex-col justify-end overflow-hidden rounded-lg border border-border bg-muted">
+    <motion.li
+      layout={!reduced}
+      initial={reduced ? false : { opacity: 0, scale: 0.94 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{
+        duration: IMAGE_ENTER_MS / 1000,
+        ease: [0.25, 1, 0.5, 1],
+        layout: IMAGE_GLIDE_SPRING,
+      }}
+      className="relative flex aspect-square flex-col justify-end overflow-hidden rounded-lg border border-border bg-muted"
+    >
       {/* biome-ignore lint/performance/noImgElement: object URL preview while uploading. */}
       <img
         src={upload.previewUrl}
@@ -37,6 +51,7 @@ export default function ProductImagePending({
             <span className="line-clamp-2 text-caption text-destructive">{upload.error}</span>
             <span className="flex gap-1">
               <Button size="xs" variant="outline" onClick={onRetry}>
+                <RotateCcw aria-hidden="true" />
                 {copy.retry}
               </Button>
               <Button size="xs" variant="ghost" onClick={onDismiss}>
@@ -49,13 +64,13 @@ export default function ProductImagePending({
             <span className="text-caption tabular-nums">{copy.uploading(pct)}</span>
             <span className="h-1 overflow-hidden rounded-full bg-muted">
               <span
-                className="block h-full rounded-full bg-primary transition-[width] duration-150 motion-reduce:transition-none"
-                style={{ width: `${pct}%` }}
+                className="block h-full w-full origin-left rounded-full bg-primary transition-transform duration-150 motion-reduce:transition-none"
+                style={{ transform: `scaleX(${upload.progress})` }}
               />
             </span>
           </>
         )}
       </div>
-    </li>
+    </motion.li>
   )
 }

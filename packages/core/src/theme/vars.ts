@@ -18,7 +18,7 @@ export function schemeVars(s: ColorScheme): CssVars {
     '--color-on-brand': s.buttonText,
     '--color-accent': s.accent,
     '--color-accent-2': s.accent,
-    // The always-dark band: a constant, not a derivation (see Glide's css-variables).
+    // The always-dark band: a constant, not a derivation (see Zero Drift's css-variables).
     '--color-dark-band': s.text,
     '--color-on-dark-band': s.background,
   }
@@ -102,6 +102,11 @@ export function themeRootAttrs(theme: Theme): Record<string, string> {
     'data-card-sale-badge': theme.cards.showSaleBadge ? 'on' : 'off',
     'data-card-hover': theme.cards.hoverImage ? 'on' : 'off',
     'data-card-ratio': theme.cards.imageRatio,
+    'data-card-style': theme.cards.style,
+    'data-card-rating': theme.cards.showRating ? 'on' : 'off',
+    'data-card-quick-add': theme.cards.showQuickAdd ? 'on' : 'off',
+    'data-card-wishlist': theme.cards.showWishlist ? 'on' : 'off',
+    'data-cart': theme.cart.type,
   }
 }
 

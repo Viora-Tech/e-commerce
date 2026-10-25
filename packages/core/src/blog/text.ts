@@ -9,12 +9,44 @@ type LexicalNode = { type?: string; text?: string; children?: LexicalNode[] }
 
 const BLOCK_TYPES = new Set(['paragraph', 'heading', 'quote', 'listitem', 'code'])
 
+const ENTITIES: Record<string, string> = {
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  nbsp: ' ',
+}
+
+/**
+ * The words of an HTML body (a Shopify import keeps its article HTML as a string): block
+ * tags become line breaks, every other tag goes, and the common entities are decoded.
+ */
+function htmlToText(html: string): string {
+  return html
+    .replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, '')
+    .replace(/<\/?(p|div|h[1-6]|li|blockquote|br)\b[^>]*>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&(#\d+|#x[\da-f]+|[a-z]+);/gi, (whole, code: string) => {
+      if (code[0] !== '#') return ENTITIES[code.toLowerCase()] ?? whole
+      const n =
+        code[1] === 'x' || code[1] === 'X'
+          ? Number.parseInt(code.slice(2), 16)
+          : Number(code.slice(1))
+      return Number.isFinite(n) ? String.fromCodePoint(n) : whole
+    })
+    .split('\n')
+    .map((line) => line.replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .join('\n')
+}
+
 /** The readable text of a Lexical document (or a legacy plain string), blocks separated by newlines. */
 export function richTextToText(body: unknown): string {
   if (body == null) return ''
   if (typeof body === 'string') {
     const trimmed = body.trim()
-    if (!trimmed.startsWith('{')) return trimmed
+    if (!trimmed.startsWith('{')) return /<[a-z!/]/i.test(trimmed) ? htmlToText(trimmed) : trimmed
     try {
       return richTextToText(JSON.parse(trimmed))
     } catch {
@@ -44,15 +76,33 @@ export function richTextToText(body: unknown): string {
   return blocks.join('\n')
 }
 
+/** An HTML tag, as in `<h2>` or `</p>`: not a lone `<` in prose ("a < b"). */
+const HTML_TAG = /<\/?[a-z][a-z0-9]*\b[^>]*>/i
+
+/**
+ * The words of an excerpt or body on one line. HTML is read as HTML, even typed into the editor
+ * as text (a merchant pasting an article's source): a card never shows its tags.
+ */
+function plainLine(value: unknown): string {
+  const text = richTextToText(value)
+  return (HTML_TAG.test(text) ? htmlToText(text) : text).replace(/\s+/g, ' ').trim()
+}
+
+/** The merchant's excerpt as plain text on one line; empty when there is none. */
+export function excerptText(excerpt: string | null | undefined): string {
+  // A Shopify import can carry HTML in the excerpt too; the card shows words.
+  return excerpt ? plainLine(excerpt) : ''
+}
+
 /** The merchant's excerpt, or the opening of the body cut at a word boundary. */
 export function articleExcerpt(
   excerpt: string | null | undefined,
   body: unknown,
   max = 160,
 ): string {
-  const own = excerpt?.trim()
+  const own = excerptText(excerpt)
   if (own) return own
-  const text = richTextToText(body).replace(/\s+/g, ' ').trim()
+  const text = plainLine(body)
   if (text.length <= max) return text
   const cut = text.slice(0, max)
   const lastSpace = cut.lastIndexOf(' ')

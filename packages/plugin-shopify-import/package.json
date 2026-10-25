@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Shopify importer: products, customers and orders from CSV, or the whole store over the Admin API.",
+  "description": "Shopify importer: products, customers and orders from CSV, or the whole store (content, files, extra fields, discounts, gift cards) over the Admin API.",
   "exports": {
     ".": "./src/index.ts",
     "./schema": "./src/schema.ts",
@@ -17,6 +17,7 @@
   "dependencies": {
     "@commerce/core": "workspace:*",
     "@commerce/db": "workspace:*",
+    "@commerce/money": "workspace:*",
     "@commerce/plugins": "workspace:*",
     "@commerce/storage": "workspace:*",
     "drizzle-orm": "^0.45.2",

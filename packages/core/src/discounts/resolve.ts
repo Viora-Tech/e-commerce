@@ -1,8 +1,9 @@
 import { cart, cartLine, collectionProduct, discount, discountUsage, variant } from '@commerce/db'
 import { and, count, eq, inArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { combineDiscounts } from './combine'
+import { shopperFor } from './eligibility'
 import {
-  bestAutomaticDiscount,
   type DiscountCart,
   type DiscountContext,
   type DiscountOutcome,
@@ -14,7 +15,21 @@ import {
 export type ResolvedDiscount = Extract<DiscountOutcome, { ok: true }>
 
 /** Why a typed code was refused; deliberately coarse so codes cannot be probed. */
-export type CodeRejection = 'invalid' | 'not_applicable' | 'min_subtotal' | 'limit_reached'
+export type CodeRejection =
+  | 'invalid'
+  | 'not_applicable'
+  | 'min_subtotal'
+  | 'min_quantity'
+  | 'not_eligible'
+  | 'limit_reached'
+
+/** Who is checking out, as far as the caller knows. */
+export type DiscountShopper = {
+  email?: string | null | undefined
+  /** Delivery state code, once an address is entered. */
+  stateCode?: string | null | undefined
+  now?: Date
+}
 
 export type CodeCheck =
   | { ok: true; outcome: ResolvedDiscount }
@@ -106,9 +121,14 @@ function toCodeRejection(reason: Exclude<DiscountOutcome, { ok: true }>['reason'
   switch (reason) {
     case 'min_subtotal':
       return 'min_subtotal'
+    case 'min_quantity':
+      return 'min_quantity'
+    case 'customer_not_eligible':
+      return 'not_eligible'
     case 'usage_limit':
     case 'customer_limit':
       return 'limit_reached'
+    case 'region':
     case 'no_eligible_items':
       return 'not_applicable'
     default:
@@ -117,63 +137,77 @@ function toCodeRejection(reason: Exclude<DiscountOutcome, { ok: true }>['reason'
   }
 }
 
+/** The evaluator's context for one rule: the clock, this shopper's uses, who and where. */
+async function contextFor(
+  ctx: StoreContext,
+  rule: DiscountRule,
+  opts: DiscountShopper,
+  customer: DiscountContext['customer'],
+): Promise<DiscountContext> {
+  return {
+    now: opts.now,
+    customerUses: await customerUsageCount(ctx, rule.id, opts.email),
+    customer,
+    stateCode: opts.stateCode,
+  }
+}
+
 /** Validate a typed code against a cart. Used by the storefront and by checkout. */
 export async function checkDiscountCode(
   ctx: StoreContext,
   cartId: string,
   code: string,
-  opts: { email?: string | null | undefined; now?: Date } = {},
+  opts: DiscountShopper = {},
 ): Promise<CodeCheck> {
   const rule = await findDiscountByCode(ctx, code)
   if (!rule) return { ok: false, reason: 'invalid' }
-  const [dc, uses] = await Promise.all([
+  const [dc, customer] = await Promise.all([
     loadDiscountCart(ctx, cartId),
-    customerUsageCount(ctx, rule.id, opts.email),
+    shopperFor(ctx.tx, opts.email, [rule], opts.now),
   ])
-  const outcome = evaluateDiscount(dc, rule, { now: opts.now, customerUses: uses })
+  const outcome = evaluateDiscount(dc, rule, await contextFor(ctx, rule, opts, customer))
   if (!outcome.ok) return { ok: false, reason: toCodeRejection(outcome.reason) }
   return { ok: true, outcome }
 }
 
 /**
- * The discount that applies to a cart right now: the shopper's code when it
- * is still valid, otherwise the best automatic offer. Returns the code
- * rejection too so the UI can drop a code that stopped working.
+ * The discount in force on a cart right now: the shopper's code when it is still valid,
+ * plus the automatic discounts it combines with (Shopify's Combinations), or the best
+ * automatic offers alone. Several merge into one outcome (see `combineDiscounts`). Returns
+ * the code rejection too so the UI can drop a code that stopped working.
  */
 export async function resolveCartDiscount(
   ctx: StoreContext,
   cartId: string,
   code: string | null | undefined,
-  opts: { email?: string | null | undefined; now?: Date } = {},
+  opts: DiscountShopper = {},
 ): Promise<{ outcome: ResolvedDiscount | null; codeRejected: CodeRejection | null }> {
-  if (code) {
-    const r = await checkDiscountCode(ctx, cartId, code, opts)
-    if (r.ok) return { outcome: r.outcome, codeRejected: null }
-    const auto = await resolveAutomatic(ctx, cartId, opts)
-    return { outcome: auto, codeRejected: r.reason }
+  const [codeRule, automatic] = await Promise.all([
+    code ? findDiscountByCode(ctx, code) : Promise.resolve(null),
+    listAutomaticDiscounts(ctx),
+  ])
+  if (!codeRule && automatic.length === 0) {
+    return { outcome: null, codeRejected: code ? 'invalid' : null }
   }
-  return { outcome: await resolveAutomatic(ctx, cartId, opts), codeRejected: null }
-}
-
-async function resolveAutomatic(
-  ctx: StoreContext,
-  cartId: string,
-  opts: { email?: string | null | undefined; now?: Date },
-): Promise<ResolvedDiscount | null> {
-  const rules = await listAutomaticDiscounts(ctx)
-  if (rules.length === 0) return null
-  const dc = await loadDiscountCart(ctx, cartId)
-  const ctxFor = async (rule: DiscountRule): Promise<DiscountContext> => ({
-    now: opts.now,
-    customerUses: await customerUsageCount(ctx, rule.id, opts.email),
-  })
+  const rules = codeRule ? [codeRule, ...automatic] : automatic
+  const [dc, customer] = await Promise.all([
+    loadDiscountCart(ctx, cartId),
+    shopperFor(ctx.tx, opts.email, rules, opts.now),
+  ])
   // Per-customer caps need a usage count per rule; evaluate one at a time.
-  let best: ResolvedDiscount | null = null
-  for (const rule of rules) {
-    const r = bestAutomaticDiscount(dc, [rule], await ctxFor(rule))
-    if (r && (!best || r.amountPaise > best.amountPaise)) best = r
+  const contexts = new Map<string, DiscountContext>()
+  for (const rule of rules) contexts.set(rule.id, await contextFor(ctx, rule, opts, customer))
+  const evaluate = (rule: DiscountRule) => evaluateDiscount(dc, rule, contexts.get(rule.id))
+
+  let codeOutcome: ResolvedDiscount | null = null
+  let codeRejected: CodeRejection | null = code && !codeRule ? 'invalid' : null
+  if (codeRule) {
+    const r = evaluate(codeRule)
+    if (r.ok) codeOutcome = r
+    else codeRejected = toCodeRejection(r.reason)
   }
-  return best
+  const autos = automatic.map(evaluate).filter((r): r is ResolvedDiscount => r.ok)
+  return { outcome: combineDiscounts(dc, codeOutcome, autos, contexts), codeRejected }
 }
 
 /** Persist the code on the cart so it survives between cart, checkout and a refresh. */

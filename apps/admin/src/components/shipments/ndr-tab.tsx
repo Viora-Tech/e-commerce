@@ -1,5 +1,6 @@
 'use client'
 
+import { CheckIcon, Pencil, RotateCcw, Undo } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -23,6 +24,7 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
 import RelativeTime from '@/components/layout/relative-time'
+import TableEmptyRow from '@/components/table/table-empty-row'
 import { shipmentsContent } from '@/data/shipments'
 import { api } from '@/lib/api-client'
 
@@ -98,13 +100,7 @@ export default function NdrTab() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {rows.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
-                {copy.empty}
-              </TableCell>
-            </TableRow>
-          ) : null}
+          {rows.length === 0 ? <TableEmptyRow colSpan={5} message={copy.empty} /> : null}
           {rows.map((r) => (
             <TableRow key={r.id}>
               <TableCell>
@@ -118,6 +114,7 @@ export default function NdrTab() {
               <TableCell>
                 <div className="flex justify-end gap-2">
                   <Button variant="outline" size="sm" onClick={() => handleOpen(r, 'reattempt')}>
+                    <RotateCcw aria-hidden="true" />
                     {copy.actions.reattempt}
                   </Button>
                   <Button
@@ -125,9 +122,11 @@ export default function NdrTab() {
                     size="sm"
                     onClick={() => handleOpen(r, 'change_address')}
                   >
+                    <Pencil aria-hidden="true" />
                     {copy.actions.change_address}
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => handleOpen(r, 'rto')}>
+                    <Undo aria-hidden="true" />
                     {copy.actions.rto}
                   </Button>
                 </div>
@@ -178,6 +177,7 @@ export default function NdrTab() {
               Cancel
             </Button>
             <Button onClick={handleApply} disabled={busy}>
+              <CheckIcon aria-hidden="true" />
               {copy.apply}
             </Button>
           </DialogFooter>

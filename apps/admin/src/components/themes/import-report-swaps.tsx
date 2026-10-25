@@ -8,6 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from '@commerce/ui/shadcn/table'
+import ScrollSection from '@/components/layout/scroll-section'
 import type { themeImportContent } from '@/data/theme-import'
 
 type ImportReportSwapsProps = {
@@ -22,31 +23,38 @@ export default function ImportReportSwaps({ copy, swaps }: ImportReportSwapsProp
 
   // Render logic
   return (
-    <Card className="gap-0 p-0">
+    <Card gap="none" inset="none">
       <CardHeader className="border-b border-border px-5 py-4">
         <CardTitle>{copy.swapsHeading}</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-2/5 pl-5">{copy.swapColumns.shopify}</TableHead>
-              <TableHead className="pr-5">{copy.swapColumns.ours}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {swaps.map((key) => (
-              <TableRow key={key}>
-                <TableCell className="pl-5 align-top font-medium whitespace-normal">
-                  {copy.swaps[key].shopify}
-                </TableCell>
-                <TableCell className="pr-5 align-top whitespace-normal text-muted-foreground">
-                  {copy.swaps[key].ours}
-                </TableCell>
+        <ScrollSection
+          id="theme-report-swaps"
+          label={copy.swapsHeading}
+          count={swaps.length}
+          className="pb-2"
+        >
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-2/5 pl-5">{copy.swapColumns.shopify}</TableHead>
+                <TableHead className="pr-5">{copy.swapColumns.ours}</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {swaps.map((key) => (
+                <TableRow key={key}>
+                  <TableCell className="pl-5 align-top font-medium whitespace-normal">
+                    {copy.swaps[key].shopify}
+                  </TableCell>
+                  <TableCell className="pr-5 align-top whitespace-normal text-muted-foreground">
+                    {copy.swaps[key].ours}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </ScrollSection>
       </CardContent>
     </Card>
   )

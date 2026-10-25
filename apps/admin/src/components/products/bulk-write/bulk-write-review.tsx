@@ -1,10 +1,13 @@
 'use client'
 
 import { newTags } from '@commerce/ai/client'
+import { StarIcon } from '@commerce/ui/icons'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
+import StatusChip from '@/components/layout/status-chip'
 import { assistantContent } from '@/data/assistant'
+import { seoKeywordsContent } from '@/data/seo-keywords'
 import { useCopy } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
 
@@ -16,16 +19,17 @@ type BulkWriteReviewProps = {
   onSelected: (ids: string[]) => void
 }
 
-const BADGE: Record<string, 'success' | 'destructive' | 'neutral' | 'info'> = {
+const BADGE: Record<string, 'success' | 'danger' | 'neutral' | 'info'> = {
   ready: 'info',
   applied: 'success',
-  failed: 'destructive',
+  failed: 'danger',
 }
 
 /** Each product in a run: its status and, once written, the suggestion to tick or untick. */
 export default function BulkWriteReview({ job, selected, onSelected }: BulkWriteReviewProps) {
   // Hooks
   const copy = useCopy(assistantContent)
+  const keywordCopy = useCopy(seoKeywordsContent)
 
   // Helpers
   const toggle = (id: string, on: boolean) =>
@@ -39,7 +43,8 @@ export default function BulkWriteReview({ job, selected, onSelected }: BulkWrite
       {job.items.map((item) => {
         const s = item.suggestion
         const added = s ? newTags(item.current.tags, s.tags) : []
-        const ready = item.status === 'ready' && s !== null
+        const keywords = fields.includes('keywords') ? (item.keywords ?? []) : []
+        const ready = item.status === 'ready' && (s !== null || keywords.length > 0)
         return (
           <li
             key={item.id}
@@ -58,16 +63,34 @@ export default function BulkWriteReview({ job, selected, onSelected }: BulkWrite
               <span className="min-w-0 flex-1 truncate text-body font-medium text-ink-strong">
                 {item.title}
               </span>
-              <Badge variant={BADGE[item.status] ?? 'neutral'}>
+              <StatusChip tone={BADGE[item.status] ?? 'neutral'}>
                 {copy.bulk.status[item.status] ?? item.status}
-              </Badge>
+              </StatusChip>
             </div>
             {item.status === 'failed' ? (
               <p className="text-caption text-destructive">{item.error ?? copy.bulk.failedItem}</p>
             ) : null}
-            {s && item.status !== 'failed' ? (
+            {(s !== null || keywords.length > 0) && item.status !== 'failed' ? (
               <dl className="grid grid-cols-[minmax(0,7.5rem)_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-caption">
-                {fields.includes('seo') ? (
+                {keywords.length > 0 ? (
+                  <>
+                    <dt className="text-muted-foreground">{keywordCopy.heading}</dt>
+                    <dd className="flex flex-wrap gap-1">
+                      {keywords.map((k) => (
+                        <Badge
+                          key={k.keyword}
+                          variant={
+                            item.current.seoKeywords.includes(k.keyword) ? 'neutral' : 'info'
+                          }
+                        >
+                          {k.primary ? <StarIcon weight="fill" aria-hidden="true" /> : null}
+                          {k.keyword}
+                        </Badge>
+                      ))}
+                    </dd>
+                  </>
+                ) : null}
+                {s && fields.includes('seo') ? (
                   <>
                     <dt className="text-muted-foreground">{copy.card.fields.seoTitle}</dt>
                     <dd className="font-medium text-ink-strong">{s.seoTitle}</dd>
@@ -75,7 +98,7 @@ export default function BulkWriteReview({ job, selected, onSelected }: BulkWrite
                     <dd className="text-foreground">{s.seoDescription}</dd>
                   </>
                 ) : null}
-                {fields.includes('description') ? (
+                {s && fields.includes('description') ? (
                   <>
                     <dt className="text-muted-foreground">{copy.card.fields.description}</dt>
                     <dd className="line-clamp-3 text-foreground">{s.intro}</dd>
@@ -93,7 +116,7 @@ export default function BulkWriteReview({ job, selected, onSelected }: BulkWrite
                     </dd>
                   </>
                 ) : null}
-                {fields.includes('altText') && s.altTexts.length ? (
+                {s && fields.includes('altText') && s.altTexts.length ? (
                   <>
                     <dt className="text-muted-foreground">{copy.bulk.fields.altText}</dt>
                     <dd className="text-foreground">{s.altTexts.join(' · ')}</dd>

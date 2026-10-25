@@ -1,48 +1,30 @@
 'use client'
 
-import { MoreVertical, Pencil, Trash2 } from '@commerce/ui/icons'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
+import { Pencil, Trash2 } from '@commerce/ui/icons'
+import ActionMenu from '@/components/layout/action-menu'
 import { redirectsContent } from '@/data/redirects'
+import { useCopy } from '@/hooks/use-copy'
 
 type RedirectActionsProps = {
   onEdit: () => void
   onDelete: () => void
 }
 
-const copy = redirectsContent.actions
-
-const KEBAB =
-  'flex size-5 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
-
 /** The kebab on one redirect row: edit or delete. */
 export default function RedirectActions({ onEdit, onDelete }: RedirectActionsProps) {
+  // Hooks
+  const { actions: copy } = useCopy(redirectsContent)
+
   return (
     <span className="flex items-center justify-end">
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          aria-label={copy.label}
-          className={KEBAB}
-          onClick={(event) => event.stopPropagation()}
-          onKeyDown={(event) => event.stopPropagation()}
-        >
-          <MoreVertical className="size-5" aria-hidden="true" />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-40">
-          <DropdownMenuItem onClick={onEdit}>
-            <Pencil />
-            {copy.edit}
-          </DropdownMenuItem>
-          <DropdownMenuItem variant="destructive" onClick={onDelete}>
-            <Trash2 />
-            {copy.delete}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <ActionMenu
+        label={copy.label}
+        trigger="kebab-vertical"
+        items={[
+          { label: copy.edit, icon: Pencil, onSelect: onEdit },
+          { label: copy.delete, icon: Trash2, destructive: true, onSelect: onDelete },
+        ]}
+      />
     </span>
   )
 }

@@ -1,41 +1,60 @@
-import { formatNumber } from '@commerce/money'
-import { Card } from '@commerce/ui/shadcn/card'
-import CountUp from '@/components/layout/count-up'
+'use client'
+
+import StatStrip from '@/components/layout/stat-strip'
 import { collectionsListContent } from '@/data/collections'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
 
 export type CollectionStats = Awaited<ReturnType<typeof api.collections.stats>>
+export type CollectionTab = 'automatic' | 'manual' | 'empty'
 
-type CollectionTilesProps = { stats: CollectionStats }
-
-type TileProps = { title: string; value: string }
-
-const copy = collectionsListContent.tiles
-
-/* Same 135px tile as the product and order lists (5:2512). */
-function Tile({ title, value }: TileProps) {
-  return (
-    <Card className="h-[8.4375rem] gap-0 rounded-lg p-4">
-      <p className="text-kit-title text-foreground">{title}</p>
-      <div className="mt-4 flex items-end gap-2">
-        <span className="text-kit-stat text-ink-strong tabular-nums">
-          <CountUp value={value} />
-        </span>
-      </div>
-      <p className="mt-2 text-kit-body text-muted-foreground">{copy.period}</p>
-    </Card>
-  )
+type CollectionTilesProps = {
+  stats: CollectionStats
+  tab: CollectionTab | null
+  onSelect: (tab: CollectionTab | null) => void
 }
 
-/** The four counts above the category cards. */
-export default function CollectionTiles({ stats }: CollectionTilesProps) {
+/** The four counts over the list; each one is also a filter for the table. */
+export default function CollectionTiles({ stats, tab, onSelect }: CollectionTilesProps) {
+  // Hooks
+  const { list: copy } = useCopy(collectionsListContent)
+  const fmt = useFormat()
+
   // Render logic
   return (
-    <div className="grid grid-cols-2 gap-[0.9375rem] xl:grid-cols-4">
-      <Tile title={copy.total} value={formatNumber(stats.total)} />
-      <Tile title={copy.automatic} value={formatNumber(stats.automatic)} />
-      <Tile title={copy.manual} value={formatNumber(stats.manual)} />
-      <Tile title={copy.empty} value={formatNumber(stats.empty)} />
-    </div>
+    <StatStrip
+      active={tab}
+      onChange={onSelect}
+      tiles={[
+        {
+          id: 'all',
+          label: copy.tiles.all,
+          value: fmt.number(stats.total),
+          note: copy.tiles.allNote,
+          filter: null,
+        },
+        {
+          id: 'automatic',
+          label: copy.tiles.automatic,
+          value: fmt.number(stats.automatic),
+          note: copy.tiles.automaticNote,
+          filter: 'automatic',
+        },
+        {
+          id: 'manual',
+          label: copy.tiles.manual,
+          value: fmt.number(stats.manual),
+          note: copy.tiles.manualNote,
+          filter: 'manual',
+        },
+        {
+          id: 'empty',
+          label: copy.tiles.empty,
+          value: fmt.number(stats.empty),
+          note: copy.tiles.emptyNote,
+          filter: 'empty',
+        },
+      ]}
+    />
   )
 }

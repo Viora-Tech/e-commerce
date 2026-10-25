@@ -11,18 +11,11 @@
  * WHERE: api router `businessGst`; Taxes & GST and General saves call `adoptStoreGstin`.
  *        Every call runs inside `withStore`, so RLS scopes each statement to the store.
  */
-import {
-  business,
-  gstRegistration,
-  type LocationCourierPickup,
-  location,
-  newId,
-  type StoreTx,
-  store,
-} from '@commerce/db'
+import { business, gstRegistration, location, newId, type StoreTx, store } from '@commerce/db'
 import { and, asc, desc, eq, isNull, ne, sql } from 'drizzle-orm'
 import { CommerceError } from '../errors'
 import { listLocations } from '../inventory/levels'
+import { parseShippingSettings } from '../shipping/settings'
 import { gstinState, panFromGstin, validateGstin } from './gstin'
 import {
   type BusinessInput,
@@ -30,7 +23,6 @@ import {
   type BusinessUpdate,
   BusinessUpdateSchema,
   type GstRegistrationErrorCode,
-  type LegalAddress,
   LegalAddressSchema,
   type LocationRegistration,
   type RegistrationInput,
@@ -38,6 +30,12 @@ import {
   type RegistrationUpdate,
   RegistrationUpdateSchema,
 } from './registration-schemas'
+import type {
+  Business,
+  BusinessGstView,
+  GstRegistrationRow,
+  GstRegistrationView,
+} from './registration-views'
 import { INDIAN_STATE_NAMES } from './states'
 
 export class GstRegistrationError extends CommerceError {
@@ -47,41 +45,13 @@ export class GstRegistrationError extends CommerceError {
   }
 }
 
-export type Business = typeof business.$inferSelect
-export type GstRegistrationRow = typeof gstRegistration.$inferSelect
-
-export type GstRegistrationView = Omit<GstRegistrationRow, 'legalAddress'> & {
-  legalAddress: LegalAddress
-  /** Two-letter state, e.g. 'HR'. */
-  state: string
-  stateName: string
-  active: boolean
-}
-
-export type LocationBillingView = {
-  id: string
-  name: string
-  line1: string | null
-  line2: string | null
-  city: string | null
-  pincode: string | null
-  /** Two-letter state, e.g. 'HR'. */
-  stateCode: string | null
-  stateName: string | null
-  isDefault: boolean
-  gstRegistrationId: string | null
-  /** No active GST number in this location's state. */
-  stateUnregistered: boolean
-  phone: string | null
-  /** Couriers collect from here (shipping/ship-from.ts); null uses Settings › Shipping. */
-  courierPickup: LocationCourierPickup | null
-}
-
-export type BusinessGstView = {
-  businesses: Business[]
-  registrations: GstRegistrationView[]
-  locations: LocationBillingView[]
-}
+export type {
+  Business,
+  BusinessGstView,
+  GstRegistrationRow,
+  GstRegistrationView,
+  LocationBillingView,
+} from './registration-views'
 
 const PAN_MISMATCH_MESSAGE = 'This GST number belongs to a different PAN. Is it another business?'
 
@@ -123,8 +93,11 @@ export async function listBusinessGst(tx: StoreTx, storeId: string): Promise<Bus
   const [businesses, registrations, locations] = [
     await listBusinesses(tx),
     await listRegistrations(tx),
-    await listLocations(tx, storeId),
+    (await listLocations(tx, storeId)).sort(
+      (a, b) => a.priority - b.priority || Number(b.isDefault) - Number(a.isDefault),
+    ),
   ]
+  const [s] = await tx.select({ shipping: store.shipping }).from(store).where(eq(store.id, storeId))
   const registeredStates = new Set(registrations.filter((r) => r.active).map((r) => r.state))
   return {
     businesses,
@@ -145,8 +118,11 @@ export async function listBusinessGst(tx: StoreTx, storeId: string): Promise<Bus
         stateUnregistered: stateCode !== null && !registeredStates.has(stateCode),
         phone: l.phone,
         courierPickup: l.courierPickup ?? null,
+        fulfilsOnlineOrders: l.fulfilsOnlineOrders,
+        priority: l.priority,
       }
     }),
+    maxParcels: parseShippingSettings(s?.shipping).routing.maxParcels,
   }
 }
 
@@ -329,7 +305,9 @@ export async function addRegistration(
     : ((await primaryBusiness(tx)) ??
       (await insertBusiness(tx, storeId, {
         legalName: input.legalName || (await storeName(tx, storeId)),
-        tradeName: '',
+        // The first GST number names the business: its trade name too ("VIORA INDIA" on a
+        // proprietor's certificate whose legal name is the owner).
+        tradeName: input.tradeName,
         pan,
       })))
   if (owner.pan !== pan)

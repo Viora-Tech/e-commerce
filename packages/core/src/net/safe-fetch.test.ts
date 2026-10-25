@@ -1,6 +1,6 @@
 /** SOURCE OF TRUTH: SSRF guard tests — WHAT schemes, private/metadata/mapped addresses, redirect re-checks and the streaming byte cap / WHY an untrusted URL must never reach our own network; fetch and DNS are fakes, nothing leaves the process */
 import { describe, expect, it } from 'vitest'
-import { readCapped, safeFetch } from './safe-fetch'
+import { BlockedUrlError, readCapped, safeFetch } from './safe-fetch'
 
 const PUBLIC = '93.184.216.34'
 
@@ -108,6 +108,36 @@ describe('safeFetch', () => {
     expect(res.headers.get('content-type')).toBe('image/png')
     expect(await readCapped(res, 10)).toEqual(new Uint8Array([1, 2, 3]))
   })
+
+  it('sends headers only to the first origin, dropping them on a redirect elsewhere', async () => {
+    const seen: (HeadersInit | undefined)[] = []
+    const fn = (async (input: string | URL | Request, init?: RequestInit) => {
+      seen.push(init?.headers)
+      return String(input) === 'https://api.example/a'
+        ? new Response(null, { status: 302, headers: { location: 'https://other.example/b' } })
+        : new Response('ok')
+    }) as typeof fetch
+    const headers = { authorization: 'Bearer secret' }
+    await safeFetch('https://api.example/a', { fetch: fn, lookup: lookup(), headers })
+    expect(seen).toEqual([headers, undefined])
+  })
+
+  it('sends a POST once with its body and returns its redirect unfollowed', async () => {
+    const inits: RequestInit[] = []
+    const fn = (async (_input: string | URL | Request, init?: RequestInit) => {
+      inits.push(init ?? {})
+      return new Response(null, { status: 307, headers: { location: 'https://api.example/c' } })
+    }) as typeof fetch
+    const res = await safeFetch('https://api.example/a', {
+      fetch: fn,
+      lookup: lookup(),
+      method: 'POST',
+      body: '{"name":"x"}',
+    })
+    expect(res.status).toBe(307)
+    expect(inits).toHaveLength(1)
+    expect(inits[0]).toMatchObject({ method: 'POST', body: '{"name":"x"}', redirect: 'manual' })
+  })
 })
 
 describe('readCapped', () => {
@@ -133,5 +163,28 @@ describe('readCapped', () => {
   it('refuses up front when content-length is over the cap', async () => {
     const res = new Response('x'.repeat(20), { headers: { 'content-length': '20' } })
     expect(await readCapped(res, 10)).toBeNull()
+  })
+
+  it('marks a refused URL as such, so a caller that retries knows not to', async () => {
+    const f = fakeFetch({})
+    const refused = safeFetch('http://169.254.169.254/', {
+      fetch: f.fn,
+      lookup: lookup(),
+      allowHttp: true,
+    })
+    await expect(refused).rejects.toBeInstanceOf(BlockedUrlError)
+  })
+
+  it("hands the caller's signal to fetch along with its own timeout", async () => {
+    let seen: AbortSignal | null | undefined
+    const fn = (async (_input: string | URL | Request, init?: RequestInit) => {
+      seen = init?.signal
+      return new Response('ok')
+    }) as typeof fetch
+    const caller = new AbortController()
+    await safeFetch('https://example.com/a', { fetch: fn, lookup: lookup(), signal: caller.signal })
+    expect(seen?.aborted).toBe(false)
+    caller.abort(new Error('deadline'))
+    expect(seen?.aborted).toBe(true)
   })
 })

@@ -9,12 +9,22 @@ import {
 } from '../settings/secrets'
 import { PaymentAdjustmentSchema } from './adjustments'
 import { CheckoutMethodSchema } from './methods'
+import { baseProviderId, isGatewayInactive } from './modes'
 
 /** Stored on store.payments. Secret fields are encrypted before they reach the row. */
 export const PaymentSettingsSchema = z.object({
   /** Methods shown at checkout, in order. 'cod' is built in; others must be registered. */
   enabled: z.array(z.string().min(1)).default(['cod']),
+  /**
+   * Per provider id, its config. A gateway's waiting key set (the Live or Test
+   * one checkout is not using) sits under `<id>~<mode>`; see ./modes.
+   */
   providers: z.record(z.string(), z.record(z.string(), z.string())).default({}),
+  /**
+   * Gateways the merchant switched off (Active/Inactive), each with the
+   * provider ids it had on, restored when switched on again. Keys are kept.
+   */
+  inactive: z.record(z.string(), z.array(z.string())).optional(),
   /** Optional fee or discount per method id, applied to the order total at checkout. */
   adjustments: z.record(z.string(), PaymentAdjustmentSchema).default({}),
   /**
@@ -53,7 +63,9 @@ export function parsePaymentSettings(raw: unknown): PaymentSettings {
   return r.success ? r.data : defaultPaymentSettings
 }
 
-const fieldsOf = (registry: PaymentRegistry) => (id: string) => registry.get(id)?.fields
+// A waiting key set (`razorpay~live`) has its gateway's fields.
+const fieldsOf = (registry: PaymentRegistry) => (id: string) =>
+  registry.get(baseProviderId(id))?.fields
 
 export const encryptPaymentSettings = (
   s: PaymentSettings,
@@ -95,6 +107,8 @@ export function resolvePaymentProviders(
   const providers: PaymentProvider[] = []
   const errors: string[] = []
   for (const id of decrypted.enabled) {
+    // A switched-off gateway never reaches checkout, even if `enabled` still lists it.
+    if (isGatewayInactive(decrypted, registry.get(id)?.credentialsFrom ?? id)) continue
     const r = registry.create(id, registry.configFor(id, decrypted.providers))
     if (r.ok) providers.push(r.provider)
     else errors.push(`${id}: ${r.errors.join(', ')}`)

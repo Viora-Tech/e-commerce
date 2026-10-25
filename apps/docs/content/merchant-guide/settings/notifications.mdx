@@ -77,7 +77,21 @@ verify the address you send from, and paste the access details. Switch it on and
 
 ### Connect WhatsApp (optional)
 
-Select **Connect** next to **WhatsApp**. Create the message templates `order_placed`,
+Select **Connect** next to **WhatsApp**. When you see **Connect with Facebook**, use it:
+
+1. Sign in with Facebook in the window that opens.
+2. Pick your business, then pick or create your WhatsApp Business account and the phone number
+   to send from. A number already used in the WhatsApp app must be moved or deleted there first.
+3. When the window closes, the number is connected and switched on. The page shows the number,
+   its display name and its quality.
+4. Add a payment method in **WhatsApp Manager** (in rupees). Meta bills messages to your own
+   WhatsApp Business account; from 1 January 2027 Meta stops sending for Indian accounts that
+   are not billed in rupees.
+
+If Meta later restricts or disables the account, or flags the number's quality, the WhatsApp page
+says so, with the last failed message, so you know to look in WhatsApp Manager.
+
+To do it by hand instead: create the message templates `order_placed`,
 `payment_received` and `order_shipped` in Meta Business Manager, wait for approval, then paste
 your phone number ID and access token. Until the templates are approved you can tick test mode;
 it only reaches people who messaged your shop in the last day.
@@ -119,6 +133,16 @@ it. Everything is on to begin with.
 <FaqItem question="If I switch off Order confirmation, is anything else affected?">
 
 No. Only that one message stops. Orders, payments and invoices carry on as normal.
+
+</FaqItem>
+
+<FaqItem question="How do I get an email for every new order?">
+
+Each person picks their own alerts in **Account → Notifications** (account menu, top right):
+new orders, a daily summary, and more. See
+[Your account](/merchant-guide/settings/your-account#notifications). The **New order alert
+(team)** and **Daily summary (team)** switches under *Messages you get* here turn them off for
+the whole team.
 
 </FaqItem>
 

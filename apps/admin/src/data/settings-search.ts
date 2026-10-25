@@ -4,10 +4,14 @@
  * "COD", "GST", "courier"). Client-side only; nothing is fetched.
  */
 
+import { appStoreUrl } from '@commerce/config/site'
+import { routes } from '@/lib/routes'
+
 export type SettingsSearchEntry = {
   title: string
   /** The page it lives on, shown under the title. */
   where: string
+  /** An admin path, or a full `https://` URL (the App Store website), which opens a new tab. */
   href: string
   /** Other words that should find it. Lowercase. */
   keywords: string[]
@@ -119,7 +123,7 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     keywords: ['upi', 'gpay', 'google pay', 'phonepe', 'paytm', 'bhim', 'qr', 'qr code'],
   },
   {
-    title: 'Cash on delivery (COD)',
+    title: 'Turn cash on delivery on or off',
     where: 'Selling › Payments',
     href: '/settings/payments',
     keywords: ['cod', 'cash', 'cash on delivery', 'pay on delivery'],
@@ -186,20 +190,55 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
       'delhivery',
       'shiprocket',
       'rapidshyp',
+      'blue dart',
+      'bluedart',
+      'dtdc',
+      'xpressbees',
+      'ekart',
+      'shadowfax',
+      'dhl',
+      'fedex',
       'default courier',
       'cheapest',
       'fastest',
     ],
   },
   {
+    title: 'Find more apps',
+    where: 'App Store',
+    href: appStoreUrl(),
+    keywords: [
+      'app store',
+      'apps',
+      'install app',
+      'browse apps',
+      'more apps',
+      'plugins',
+      'integrations',
+      'add app',
+    ],
+  },
+  {
     title: 'Connect a courier',
-    where: 'Apps',
-    href: '/apps',
+    where: 'App Store',
+    href: appStoreUrl({ category: 'shipping' }),
     keywords: [
       'courier',
       'delhivery',
       'shiprocket',
       'rapidshyp',
+      'blue dart',
+      'bluedart',
+      'dtdc',
+      'india post',
+      'speed post',
+      'xpressbees',
+      'ekart',
+      'shadowfax',
+      'dhl',
+      'fedex',
+      'international shipping',
+      'export',
       'connect courier',
       'awb',
       'pickup',
@@ -275,18 +314,74 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
       'quota',
     ],
   },
-  // Your own preferences: the account menu, top right
   {
     title: 'Appearance',
-    where: 'Account menu',
-    href: '/account/appearance',
+    where: 'Team & advanced',
+    href: routes.settings.appearance(),
     keywords: ['dark mode', 'light mode', 'theme', 'colour', 'color', 'accent'],
+  },
+  // Your own preferences: the account menu, top right
+  {
+    title: 'Profile',
+    where: 'Account menu › Account',
+    href: routes.account.home(),
+    keywords: ['name', 'photo', 'avatar', 'picture', 'phone', 'mobile', 'whatsapp', 'account'],
+  },
+  {
+    title: 'Sign-in & security',
+    where: 'Account menu › Account',
+    href: routes.account.security(),
+    keywords: [
+      'change email',
+      'email',
+      'passkey',
+      'fingerprint',
+      'face id',
+      'google',
+      'sign-in history',
+      'security',
+    ],
+  },
+  {
+    title: 'Sessions',
+    where: 'Account menu › Account',
+    href: routes.account.sessions(),
+    keywords: ['devices', 'sign out', 'log out', 'logged in', 'sessions', 'lost phone'],
+  },
+  {
+    title: 'Your notifications',
+    where: 'Account menu › Account',
+    href: routes.account.notifications(),
+    keywords: ['order alerts', 'new order email', 'daily summary', 'whatsapp alerts', 'my alerts'],
+  },
+  {
+    title: 'Delete my account',
+    where: 'Account menu › Account › Profile',
+    href: `${routes.account.home()}#delete-account`,
+    keywords: ['delete account', 'close account', 'remove me'],
+  },
+  {
+    title: 'Your stores',
+    where: 'Account menu › Account › Stores',
+    href: routes.account.stores(),
+    keywords: ['switch store', 'leave store', 'stores', 'role', 'owner'],
   },
   {
     title: 'Admin language',
-    where: 'Account menu › Account',
-    href: '/account',
-    keywords: ['language', 'hindi', 'english', 'हिंदी', 'भाषा', 'translate', 'account'],
+    where: 'Account menu › Account › Language & region',
+    href: routes.account.language(),
+    keywords: [
+      'language',
+      'hindi',
+      'english',
+      'हिंदी',
+      'भाषा',
+      'translate',
+      '24-hour',
+      '12-hour',
+      'time format',
+      'week starts',
+    ],
   },
   // Customers
   {
@@ -331,6 +426,24 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     where: 'Selling › Checkout',
     href: '/settings/checkout#cod',
     keywords: ['cod', 'cash on delivery', 'cod limit', 'block pincode', 'cod fee', 'whatsapp'],
+  },
+  {
+    title: 'Cash on delivery fee',
+    where: 'Taxes & GST › Costs for profit',
+    href: `${routes.settings.costs()}#cod-fee`,
+    keywords: ['cod', 'cash on delivery', 'cod fee', 'cod charges', 'courier cod fee'],
+  },
+  {
+    title: 'Monthly expenses',
+    where: 'Taxes & GST › Monthly expenses',
+    href: routes.settings.expenses(),
+    keywords: ['expenses', 'rent', 'salary', 'staff', 'running costs', 'net profit', 'overheads'],
+  },
+  {
+    title: 'PIN codes without cash on delivery',
+    where: 'Selling › Checkout',
+    href: `${routes.settings.checkout()}#cod`,
+    keywords: ['cash on delivery', 'block pincode', 'cod pincode', 'pincode', 'pin code'],
   },
   {
     title: 'Business buyers at checkout',

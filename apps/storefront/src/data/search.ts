@@ -12,6 +12,9 @@ export const searchContent = {
   promptBody: 'Search by product name, type, brand or SKU.',
   emptyTitle: (query: string) => `No results for "${query}"`,
   emptyBody: 'Check the spelling or try a more general word.',
+  /** When the words as typed found nothing and their typo-corrected spelling did. */
+  correctedTo: (corrected: string) => `Showing results for "${corrected}"`,
+  searchInstead: (query: string) => `No results for "${query}".`,
   browseCollections: 'Browse collections',
   soldOut: 'Sold out',
   predictive: {
@@ -31,6 +34,7 @@ export const SEARCH_PER_PAGE = 24
 export const PREDICTIVE_DEBOUNCE_MS = 200
 
 export const notFoundContent = {
+  searchPlaceholder: 'Search products…',
   title: 'Page not found',
   body: 'The page you were looking for does not exist.',
   cta: 'Continue shopping',

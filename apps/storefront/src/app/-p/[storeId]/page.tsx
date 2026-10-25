@@ -7,6 +7,7 @@ import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import PasswordForm from '@/components/privacy/password-form'
 import { passwordContent as copy } from '@/data/online-store'
+import { verificationMeta } from '@/lib/seo'
 import { inStore } from '@/lib/store-context'
 
 type Params = { params: Promise<{ storeId: string }> }
@@ -23,7 +24,11 @@ async function load(storeId: string) {
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const s = await load((await params).storeId)
-  return { title: s?.name ?? copy.title }
+  // The console's ownership check reads the home page, which is this page while locked.
+  const verification = s
+    ? verificationMeta(parsePreferences(s.preferences).verification)
+    : undefined
+  return { title: s?.name ?? copy.title, verification }
 }
 
 /** Shopify-style password page: logo or name, the merchant's message, the password form. */
@@ -36,23 +41,23 @@ export default async function PasswordPage({ params }: Params) {
   const logo = s.theme.brand.logo
   return (
     <main className="grid min-h-svh w-full place-items-center px-6 py-16">
-      <div className="flex w-full max-w-md flex-col items-center gap-8 text-center">
+      <div className="flex w-full max-w-md flex-col gap-5 rounded-[var(--radius-card)] bg-surface p-6 md:p-8">
         {logo ? (
           <Image
             src={logo.url}
             alt={s.name}
             width={s.theme.brand.logoWidth}
             height={Math.round(s.theme.brand.logoWidth / 2)}
-            className="h-auto max-w-full object-contain"
+            className="h-auto max-h-8 w-auto max-w-[10rem] object-contain object-left"
           />
         ) : (
-          <p className="font-heading text-2xl font-bold">{s.name}</p>
+          <p className="font-heading text-lg font-bold uppercase">{s.name}</p>
         )}
-        <h1 className="h2 whitespace-pre-line">{message}</h1>
+        <h1 className="section-title whitespace-pre-line border-b border-line pb-5">{message}</h1>
         <PasswordForm />
-        <p className="text-sm text-muted">
+        <p className="text-xs text-muted">
           {copy.owner}{' '}
-          <a href={loadEnv(process.env).ADMIN_URL} className="underline underline-offset-4">
+          <a href={loadEnv(process.env).ADMIN_URL} className="text-ink">
             {copy.ownerLink}
           </a>
         </p>

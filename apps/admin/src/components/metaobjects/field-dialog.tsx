@@ -8,6 +8,8 @@ import {
   NO_LIST_TYPES,
   ruleProblems,
 } from '@commerce/core/metaobjects'
+import { CheckIcon } from '@commerce/ui/icons'
+import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -38,6 +40,8 @@ type FieldDialogProps = {
   field: FieldDefinition | null
   /** Keys other fields already use. */
   takenKeys: string[]
+  /** How many entries hold a value in this field: what goes in it is fixed while any do. */
+  filled: number
   targets: { id: string; name: string }[]
   onClose: () => void
   onSave: (field: FieldDefinition) => void
@@ -72,6 +76,7 @@ export default function FieldDialog({
   open,
   field,
   takenKeys,
+  filled,
   targets,
   onClose,
   onSave,
@@ -125,10 +130,17 @@ export default function FieldDialog({
     ...(draft.type ? ruleProblems(draft.name, draft.type, draft.validations) : [copy.typeRequired]),
   ]
   const listable = draft.type !== null && !NO_LIST_TYPES.includes(draft.type)
+  const locked = Boolean(field) && filled > 0
+  const lockedRowKeys = locked ? (field?.validations?.subfields ?? []).map((s) => s.key) : []
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent
+        className={cn(
+          'max-h-[90vh] overflow-y-auto',
+          draft.type === 'group' ? 'sm:max-w-2xl' : 'sm:max-w-lg',
+        )}
+      >
         <DialogHeader>
           <DialogTitle>{field ? copy.editTitle : copy.addTitle}</DialogTitle>
         </DialogHeader>
@@ -159,12 +171,19 @@ export default function FieldDialog({
           </div>
           <Field>
             <FieldLabel htmlFor="field-type">{copy.type}</FieldLabel>
-            <FieldTypeSelect id="field-type" value={draft.type} onChange={handleType} />
+            <FieldTypeSelect
+              id="field-type"
+              value={draft.type}
+              disabled={locked}
+              onChange={handleType}
+            />
+            {locked ? <FieldDescription>{copy.typeLocked(filled)}</FieldDescription> : null}
           </Field>
           <Field>
             <FieldLabel htmlFor="field-description">{copy.description}</FieldLabel>
             <Input
               id="field-description"
+              placeholder={copy.descriptionPlaceholder}
               size="lg"
               value={draft.description}
               maxLength={300}
@@ -184,6 +203,7 @@ export default function FieldDialog({
               label={copy.list}
               help={copy.listHelp}
               checked={draft.list}
+              disabled={locked}
               onChange={(list) => patch({ list })}
             />
           ) : null}
@@ -198,6 +218,8 @@ export default function FieldDialog({
                 list={draft.list}
                 validations={draft.validations ?? {}}
                 targets={targets}
+                shapeLocked={locked}
+                lockedRowKeys={lockedRowKeys}
                 onChange={(validations) => patch({ validations })}
               />
             </>
@@ -210,7 +232,10 @@ export default function FieldDialog({
           <Button variant="outline" onClick={onClose}>
             {copy.cancel}
           </Button>
-          <Button onClick={handleSave}>{copy.done}</Button>
+          <Button onClick={handleSave}>
+            <CheckIcon aria-hidden="true" />
+            {copy.done}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

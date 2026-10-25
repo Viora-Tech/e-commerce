@@ -27,8 +27,10 @@ export function readHsn(row: CsvRow): string | null {
 
 function status(row: CsvRow): NProduct['status'] {
   const s = row.get('status').toLowerCase()
-  if (s === 'active' || s === 'draft' || s === 'archived') return s
   const published = row.get('published')
+  // "Published" is the Online Store channel: an active product off it is hidden on Shopify too.
+  if (s === 'active') return published && !bool(published, true) ? 'draft' : 'active'
+  if (s === 'draft' || s === 'archived') return s
   return published && bool(published, false) ? 'active' : 'draft'
 }
 
@@ -56,7 +58,7 @@ function optionValues(row: CsvRow, count: number): string[] {
 function readVariant(
   row: CsvRow,
   names: string[],
-  columns: { tracker: boolean; qty: boolean },
+  columns: { tracker: boolean; qty: boolean; policy: boolean },
 ): NVariant {
   const grams = row.get('variant grams')
   return {
@@ -79,6 +81,9 @@ function readVariant(
     onHand: columns.qty ? Math.max(0, int(row.get('variant inventory qty')) ?? 0) : null,
     hsCode: readHsn(row),
     imageSrc: row.get('variant image') || null,
+    ...(columns.policy
+      ? { sellsOutOfStock: row.get('variant inventory policy').toLowerCase() === 'continue' }
+      : {}),
   }
 }
 
@@ -114,6 +119,7 @@ export function parseProductsCsv(text: string): { products: NProduct[]; issues: 
   const columns = {
     tracker: hasColumn(table, 'variant inventory tracker'),
     qty: hasColumn(table, 'variant inventory qty'),
+    policy: hasColumn(table, 'variant inventory policy'),
   }
   const byHandle = new Map<string, NProduct>()
 

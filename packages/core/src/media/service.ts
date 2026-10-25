@@ -13,6 +13,7 @@ import { z } from 'zod'
 import { CommerceError } from '../errors'
 import { memberAccess } from '../permissions/service'
 import { permissions } from '../permissions/statement'
+import { fileTypeWhere, type MediaFileType } from './usage'
 
 export const UploadIntentSchema = z.object({
   filename: z.string().trim().min(1).max(255),
@@ -162,10 +163,50 @@ export async function authorizeLocalUpload(
   return { ok: true, maxBytes: maxUploadBytesFor(announced) }
 }
 
+/**
+ * Image bytes the server received or fetched itself (a shopper's review photo, a photo
+ * copied from another app), saved the way a direct upload ends up: the original in the
+ * store's storage under a fresh media key, a `processing` media row, and the caller
+ * queues the upload-time pipeline, which strips EXIF and GPS, caps the size and makes
+ * the variants before the row turns `ready`. Same type and size rules as an upload
+ * (images only, `maxUploadBytesFor`).
+ */
+export async function saveImageForProcessing(
+  tx: StoreTx,
+  storeId: string,
+  provider: StorageProvider,
+  input: { filename: string; contentType: string; bytes: Uint8Array },
+): Promise<{ mediaId: string; url: string }> {
+  const contentType = input.contentType.toLowerCase()
+  if (!isAllowedContentType(contentType) || !isImageContentType(contentType)) {
+    throw new InvalidUpload(`${input.contentType} is not an image we accept`)
+  }
+  const limit = maxUploadBytesFor(contentType)
+  if (input.bytes.byteLength <= 0 || input.bytes.byteLength > limit) {
+    throw new InvalidUpload(`images must be under ${Math.round(limit / 1024 / 1024)} MB`)
+  }
+  const id = newId()
+  const key = mediaKey({ storeId, filename: input.filename, contentType, id })
+  await provider.put({ key, body: input.bytes, contentType })
+  const url = provider.publicUrl(key)
+  await tx.insert(media).values({
+    id,
+    storeId,
+    url,
+    key,
+    provider: provider.id,
+    contentType,
+    size: input.bytes.byteLength,
+    status: 'processing',
+  })
+  return { mediaId: id, url }
+}
+
 export type MediaSort = 'newest' | 'oldest' | 'name' | 'size'
-export type MediaFileType = 'image' | 'video'
 export type MediaSizeBucket = 'small' | 'medium' | 'large'
 export type MediaUsedFilter = 'used' | 'unused'
+
+export type { MediaFileType } from './usage'
 
 export type MediaListInput = {
   page: number
@@ -188,15 +229,40 @@ const usedSubquery = sql`(select count(*)::int from product_media pm where pm.me
 /** Media a product or metaobject may point at: confirmed and stored, optimised or not yet. */
 const USABLE_MEDIA_STATUSES: ('processing' | 'ready')[] = ['processing', 'ready']
 
-/** Library listing: ready items newest first, with how many products use each. */
-export async function listMedia(tx: StoreTx, input: MediaListInput) {
-  const [sizeMin, sizeMax] = input.size ? SIZE_BUCKETS[input.size] : [null, null]
-  const where = and(
+/** What the library shows of a file: the list item and the file page read the same columns. */
+export const libraryColumns = {
+  id: media.id,
+  url: media.url,
+  key: media.key,
+  alt: media.alt,
+  contentType: media.contentType,
+  size: media.size,
+  width: media.width,
+  height: media.height,
+  /* For the pickers' <Picture> previews: responsive variants and the ThumbHash blur-up. */
+  variants: sql<Record<string, { avif: string; webp: string }> | null>`${media.variants}`,
+  thumbhash: media.thumbhash,
+  createdAt: media.createdAt,
+  /* Drizzle renders correlated columns unqualified inside a single-table select, so spell the join out. */
+  usedBy: sql<number>`(select count(*)::int from product_media pm where pm.media_id = media.id)`,
+}
+
+/** The library's filters, shared by the listing and a file page's previous / next. */
+export function libraryWhere(input: Pick<MediaListInput, 'search' | 'fileType'>) {
+  return and(
     eq(media.status, 'ready'),
     input.search
       ? or(ilike(media.alt, `%${input.search}%`), ilike(media.key, `%${input.search}%`))
       : undefined,
-    input.fileType ? ilike(media.contentType, `${input.fileType}/%`) : undefined,
+    input.fileType ? fileTypeWhere(input.fileType) : undefined,
+  )
+}
+
+/** Library listing: ready items newest first, with how many products use each. */
+export async function listMedia(tx: StoreTx, input: MediaListInput) {
+  const [sizeMin, sizeMax] = input.size ? SIZE_BUCKETS[input.size] : [null, null]
+  const where = and(
+    libraryWhere(input),
     sizeMin !== null ? sql`${media.size} >= ${sizeMin}` : undefined,
     sizeMax !== null ? sql`${media.size} < ${sizeMax}` : undefined,
     input.used === 'used' ? sql`${usedSubquery} > 0` : undefined,
@@ -212,22 +278,7 @@ export async function listMedia(tx: StoreTx, input: MediaListInput) {
           : [desc(media.createdAt), desc(media.id)]
   const [countRow] = await tx.select({ n: sql<number>`count(*)::int` }).from(media).where(where)
   const rows = await tx
-    .select({
-      id: media.id,
-      url: media.url,
-      key: media.key,
-      alt: media.alt,
-      contentType: media.contentType,
-      size: media.size,
-      width: media.width,
-      height: media.height,
-      /* For the pickers' <Picture> previews: responsive variants and the ThumbHash blur-up. */
-      variants: sql<Record<string, { avif: string; webp: string }> | null>`${media.variants}`,
-      thumbhash: media.thumbhash,
-      createdAt: media.createdAt,
-      /* Drizzle renders correlated columns unqualified inside a single-table select, so spell the join out. */
-      usedBy: sql<number>`(select count(*)::int from product_media pm where pm.media_id = media.id)`,
-    })
+    .select(libraryColumns)
     .from(media)
     .where(where)
     .orderBy(...orderBy)

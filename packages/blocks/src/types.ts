@@ -25,7 +25,19 @@ export type CardProduct = {
   mrpPaise: number | null
   available: number
   images: MediaImage[]
+  /** The variant a card's Quick add puts in the cart: set only when the product has exactly one. */
+  quickAddVariantId?: string | null | undefined
+  /**
+   * Out of stock but still selling as a pre-order (the product page's rule): the card shows a
+   * "Pre-order" badge and its button reads `buttonLabel` instead of "Sold out". Null otherwise.
+   */
+  preorder?: { buttonLabel: string } | null | undefined
+  /** Published reviews (Reviews app); absent or null when the product has none. */
+  rating?: { average: number; count: number } | null | undefined
 }
+
+/** One of the product's extra fields, ready to show: `text` to parse, `html` for a panel body. */
+export type ProductFieldText = { text: string; html: string }
 
 export type ProductDetail = {
   id: string
@@ -69,6 +81,10 @@ export type ProductDetail = {
       }
     | null
     | undefined
+  /** The product's `custom` extra fields by key (spec cells, metafield accordions); none when absent. */
+  fields?: Record<string, ProductFieldText> | undefined
+  /** The collection the breadcrumb names between Home and the product. */
+  collection?: { title: string; url: string } | null | undefined
 }
 
 export type ThemeMode = 'light' | 'dark' | 'system'
@@ -96,6 +112,55 @@ export type CardArticle = {
   imageUrl: string | null
   imageAlt: string | null
   blogTitle: string
+}
+
+/** One published review as the product page shows it (Reviews app). */
+export type PublicReviewCard = {
+  id: string
+  rating: number
+  title: string
+  body: string
+  /** First name and last initial. */
+  name: string
+  verified: boolean
+  helpful: number
+  /** The store's public reply. */
+  reply: string | null
+  /** "2 days ago", worked out on the server so the page hydrates with the same text. */
+  whenLabel: string
+  photos: { url: string; width: number | null; height: number | null }[]
+}
+
+/**
+ * What the product page hands the Product reviews section when the store installed the
+ * Reviews app (`puck.metadata.appBlockContext.reviews`). Plain data: the widget posts to the
+ * storefront's `/reviews/*` routes, which take the store from the hostname.
+ */
+export type ReviewsWidgetContext = {
+  productId: string
+  productTitle: string
+  productImage: string | null
+  storeName: string
+  summary: { rating: number; count: number; stars: number[] }
+  reviews: PublicReviewCard[]
+  /**
+   * `open`: the form can be sent. `signin`: only verified buyers may review and we do not
+   * know who this is yet. `not_buyer`: signed in, but no order holds this product.
+   */
+  write: 'open' | 'signin' | 'not_buyer'
+  signInUrl: string
+  /** The order that makes this shopper a verified buyer, shown in the form. */
+  verifiedOrder: number | null
+  /** The signed link from a review request email, sent back with the review. */
+  requestToken: string | null
+  /** Name and email we already know (signed in or from the order); the form then skips email. */
+  knownName: string
+  emailKnown: boolean
+  /** Open the form on arrival (from a review request email). */
+  openForm: boolean
+  onlyVerified: boolean
+  /** The store shows customer photos (Reviews settings). */
+  showPhotos: boolean
 }
 
 /** A collection as the collection list section renders it. */

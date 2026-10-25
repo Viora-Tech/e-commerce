@@ -2,7 +2,13 @@ import type { SavedAddress, SignedInCustomer } from '@commerce/core'
 import type { CheckoutForm } from '@/lib/cart-actions'
 
 /** Everything the checkout form holds; the action's fields plus the optional extras. */
-export type CheckoutFormState = CheckoutForm & { gstin: string; businessName: string; note: string }
+export type CheckoutFormState = CheckoutForm & {
+  gstin: string
+  businessName: string
+  note: string
+  /** The address's tag (`ADDRESS_LABELS`), or '' for none. */
+  label: string
+}
 
 const EMPTY_FORM: Omit<CheckoutFormState, 'payment'> = {
   name: '',
@@ -16,6 +22,7 @@ const EMPTY_FORM: Omit<CheckoutFormState, 'payment'> = {
   gstin: '',
   businessName: '',
   note: '',
+  label: '',
 }
 
 /** The address book's "Use a new address" choice. */
@@ -38,6 +45,7 @@ export function prefillCheckout(
           city: address.city,
           stateCode: address.stateCode,
           pincode: address.pincode,
+          label: address.label ?? '',
         }
       : {}),
   }

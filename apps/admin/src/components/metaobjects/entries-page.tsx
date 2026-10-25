@@ -1,22 +1,20 @@
 'use client'
 
-import { Braces, Pencil, Plus, SquarePlus, Trash2 } from '@commerce/ui/icons'
-import { Badge } from '@commerce/ui/shadcn/badge'
+import { Braces, Pencil, Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import EmptyState from '@/components/layout/empty-state'
-import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
-import RelativeTime from '@/components/layout/relative-time'
+import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
+import StatusChip from '@/components/layout/status-chip'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { entryListContent } from '@/data/metaobjects'
-import { useCopy } from '@/hooks/use-copy'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { LIST_PER_PAGE } from '@/lib/list-query'
-import ConfirmDelete from './confirm-delete'
+import { routes } from '@/lib/routes'
 import { entriesPath, type LoadedDefinition } from './form-state'
 
 type EntriesResult = Awaited<ReturnType<typeof api.metaobjects.entries>>
@@ -25,13 +23,18 @@ type EntryRow = EntriesResult['rows'][number]
 type EntriesPageProps = {
   definition: LoadedDefinition
   initial: EntriesResult
+  /** Rows per page the server fetched `initial` with. */
+  initialPerPage: number
 }
 
 type Pending = { ids: string[]; clear: () => void }
 
 type ListCopy = typeof entryListContent
 
-const columnsFor = (copy: ListCopy): ResourceColumnSpec<EntryRow>[] => [
+const columnsFor = (
+  copy: ListCopy,
+  fmt: ReturnType<typeof useFormat>,
+): ResourceColumnSpec<EntryRow>[] => [
   {
     id: 'name',
     title: copy.columns.name,
@@ -39,43 +42,48 @@ const columnsFor = (copy: ListCopy): ResourceColumnSpec<EntryRow>[] => [
     hideable: false,
     align: 'start',
     className: 'w-96 px-3 whitespace-normal',
-    render: (e) => <span className="line-clamp-2 text-left text-body-strong">{e.displayName}</span>,
-  },
-  {
-    id: 'handle',
-    title: copy.columns.handle,
-    sortValue: (e) => e.handle,
-    render: (e) => <span className="font-mono text-caption">{e.handle}</span>,
+    render: (e) => (
+      <span className="flex min-w-0 flex-col text-left">
+        <span className="line-clamp-2 text-ink-strong">{e.displayName}</span>
+        <span className="truncate text-caption text-muted-foreground">{e.handle}</span>
+      </span>
+    ),
   },
   {
     id: 'status',
     title: copy.columns.status,
     sortValue: (e) => e.status,
+    align: 'center',
     render: (e) => (
-      <Badge variant={e.status === 'active' ? 'success' : 'neutral'}>{copy.status[e.status]}</Badge>
+      <StatusChip tone={e.status === 'active' ? 'success' : 'neutral'}>
+        {copy.status[e.status]}
+      </StatusChip>
     ),
   },
   {
     id: 'updated',
     title: copy.columns.updated,
     sortValue: (e) => new Date(e.updatedAt),
-    render: (e) => <RelativeTime value={e.updatedAt} />,
+    align: 'end',
+    render: (e) => <span className="text-muted-foreground">{fmt.when(e.updatedAt)}</span>,
   },
 ]
 
 /** Entries of one content type (metaobject definition), searchable, with bulk delete. */
-export default function EntriesPage({ definition, initial }: EntriesPageProps) {
+export default function EntriesPage({ definition, initial, initialPerPage }: EntriesPageProps) {
   // Hooks
   const copy = useCopy(entryListContent)
+  const fmt = useFormat()
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState(initialPerPage)
   const [result, setResult] = useState(initial)
   const [loading, setLoading] = useState(false)
   const [busy, setBusy] = useState(false)
   const [deleting, setDeleting] = useState<Pending | null>(null)
 
   useEffect(() => {
-    if (page === 1 && query === '') {
+    if (page === 1 && query === '' && perPage === initialPerPage) {
       setResult(initial)
       return
     }
@@ -85,7 +93,7 @@ export default function EntriesPage({ definition, initial }: EntriesPageProps) {
       .entries({
         definitionId: definition.id,
         page,
-        perPage: LIST_PER_PAGE,
+        perPage,
         query: query || undefined,
       })
       .then((r) => !cancelled && setResult(r))
@@ -93,7 +101,7 @@ export default function EntriesPage({ definition, initial }: EntriesPageProps) {
     return () => {
       cancelled = true
     }
-  }, [definition.id, page, query, initial])
+  }, [definition.id, page, perPage, query, initial, initialPerPage])
 
   // Event handlers
   const handleConfirmDelete = async () => {
@@ -109,7 +117,7 @@ export default function EntriesPage({ definition, initial }: EntriesPageProps) {
         await api.metaobjects.entries({
           definitionId: definition.id,
           page,
-          perPage: LIST_PER_PAGE,
+          perPage,
           query: query || undefined,
         }),
       )
@@ -121,99 +129,112 @@ export default function EntriesPage({ definition, initial }: EntriesPageProps) {
   }
 
   // Render logic
-  const columns = columnsFor(copy)
+  const columns = columnsFor(copy, fmt)
   const base = entriesPath(definition.type)
   const hasFields = definition.fields.length > 0
-  const addHref = `${base}/new`
+  const addHref = routes.content.newEntry(definition.type)
+  const noEntries = definition.entries === 0 && result.total === 0 && query === ''
 
   return (
-    <PageBody width="frame" className="gap-4">
-      <PageHeader
-        title={definition.name}
-        subtitle={definition.description ?? undefined}
-        breadcrumbs={[{ label: copy.back, href: '/content/metaobjects' }]}
-        actions={
-          <>
-            <Button
-              variant="outline"
-              render={<Link href={`${base}/definition`} />}
-              nativeButton={false}
-            >
-              <Pencil />
-              {copy.editDefinition}
-            </Button>
-            {hasFields && definition.entries > 0 ? (
-              <Button render={<Link href={addHref} />} nativeButton={false}>
-                <SquarePlus strokeWidth={1.6} />
-                {copy.add}
-              </Button>
-            ) : null}
-          </>
-        }
-      />
-      {!hasFields ? (
-        <Card>
-          <EmptyState
-            icon={Braces}
-            heading={copy.noFields.heading}
-            body={copy.noFields.body}
-            action={
-              <Button render={<Link href={`${base}/definition`} />} nativeButton={false}>
+    <ProoflyDetailPage
+      header={
+        <PageHeader
+          title={definition.name}
+          summary={definition.description ?? copy.summary(definition.entries)}
+          back={{ label: copy.back, href: routes.content.contentTypes() }}
+          actions={
+            <>
+              <Button
+                variant="outline"
+                render={<Link href={routes.content.contentTypeDefinition(definition.type)} />}
+                nativeButton={false}
+              >
+                <Pencil />
                 {copy.editDefinition}
               </Button>
-            }
-          />
-        </Card>
-      ) : definition.entries === 0 && result.total === 0 && query === '' ? (
-        <Card>
-          <EmptyState
-            icon={Braces}
-            heading={copy.empty.heading(definition.name)}
-            body={copy.empty.body}
-            action={
-              <Button render={<Link href={addHref} />} nativeButton={false}>
-                <Plus />
-                {copy.add}
-              </Button>
-            }
-          />
-        </Card>
-      ) : (
-        <ResourceTable
-          size="frame"
-          resourceName={copy.resource}
-          columns={columns}
-          items={result.rows}
-          getId={(e) => e.id}
-          href={(e) => `${base}/${e.id}`}
-          loading={loading}
-          query={query}
-          onQueryChange={(q) => {
-            setQuery(q)
-            setPage(1)
-          }}
-          page={page}
-          perPage={LIST_PER_PAGE}
-          total={result.total}
-          onPageChange={setPage}
-          bulkActions={(ids, clear) => (
-            <Button variant="outline" disabled={busy} onClick={() => setDeleting({ ids, clear })}>
-              <Trash2 />
-              {copy.bulk.delete}
-            </Button>
-          )}
+              {hasFields && definition.entries > 0 ? (
+                <Button render={<Link href={addHref} />} nativeButton={false}>
+                  <Plus strokeWidth={1.6} />
+                  {copy.add}
+                </Button>
+              ) : null}
+            </>
+          }
         />
-      )}
-      <ConfirmDelete
+      }
+      main={
+        !hasFields ? (
+          <div className="rounded-2xl border surface-card">
+            <EmptyState
+              icon={Braces}
+              heading={copy.noFields.heading}
+              body={copy.noFields.body}
+              action={
+                <Button
+                  render={<Link href={routes.content.contentTypeDefinition(definition.type)} />}
+                  nativeButton={false}
+                >
+                  <Pencil strokeWidth={1.6} aria-hidden="true" />
+                  {copy.editDefinition}
+                </Button>
+              }
+            />
+          </div>
+        ) : noEntries ? (
+          <div className="rounded-2xl border surface-card">
+            <EmptyState
+              icon={Braces}
+              heading={copy.empty.heading(definition.name)}
+              body={copy.empty.body}
+              action={
+                <Button render={<Link href={addHref} />} nativeButton={false}>
+                  <Plus strokeWidth={1.6} />
+                  {copy.add}
+                </Button>
+              }
+            />
+          </div>
+        ) : (
+          <ResourceTable
+            resourceName={copy.resource}
+            columns={columns}
+            items={result.rows}
+            getId={(e) => e.id}
+            href={(e) => `${base}/${e.id}`}
+            loading={loading}
+            query={query}
+            onQueryChange={(q) => {
+              setQuery(q)
+              setPage(1)
+            }}
+            page={page}
+            perPage={perPage}
+            total={result.total}
+            onPageChange={setPage}
+            onPerPageChange={(n) => {
+              setPerPage(n)
+              setPage(1)
+            }}
+            bulkActions={(ids, clear) => (
+              <Button variant="outline" disabled={busy} onClick={() => setDeleting({ ids, clear })}>
+                <Trash2 />
+                {copy.bulk.delete}
+              </Button>
+            )}
+          />
+        )
+      }
+    >
+      <ConfirmDialog
         open={deleting !== null}
-        busy={busy}
+        onOpenChange={(open) => !open && setDeleting(null)}
         title={copy.bulk.confirmTitle(deleting?.ids.length ?? 0)}
         body={copy.bulk.confirmBody}
-        confirm={copy.bulk.confirm}
-        cancel={copy.bulk.cancel}
-        onOpenChange={(open) => !open && setDeleting(null)}
-        onConfirm={handleConfirmDelete}
+        confirmLabel={copy.bulk.confirm}
+        cancelLabel={copy.bulk.cancel}
+        busy={busy}
+        onConfirm={() => void handleConfirmDelete()}
       />
-    </PageBody>
+    </ProoflyDetailPage>
   )
 }

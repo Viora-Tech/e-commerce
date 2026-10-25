@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react'
 import { navigationContent } from '../data/navigation'
+import { headerContent } from '../data/zero-drift/header'
 import { type MenuCollection, menuCardsFor } from '../header-menu'
-import { type HeaderSettings, headerSettings } from '../sections/glide/header'
+import { type HeaderSettings, headerSettings } from '../sections/zero-drift/header'
 import type { NavLink, ThemeMode } from '../types'
 import HeaderDrawer from './header-drawer'
-import HeaderMore from './header-more'
 import HeaderNav from './header-nav'
 import Icon from './icon'
 import StickyHeader from './sticky-header'
@@ -85,25 +85,26 @@ export default function Header({
                 <Icon name="search" size={24} />
               </a>
             )}
-            <a
-              href="/account"
-              className="header__icon-btn header__mobile-only"
-              aria-label={copy.account}
-            >
+            <a href="/account" className="header__icon-btn" aria-label={copy.account}>
               <Icon name="user" size={24} />
             </a>
+            {s.showWishlist ? (
+              <a
+                href={headerContent.wishlistHref}
+                className="header__icon-btn only-desktop"
+                aria-label={headerContent.wishlist}
+              >
+                <Icon name="heart" size={24} />
+              </a>
+            ) : null}
             <a
               href="/cart"
               className="header__icon-btn header__cart-link"
               aria-label={copy.cart(cartCount)}
             >
-              <Icon name="cart" size={24} />
+              <Icon name="bag" size={24} />
               {cartCount > 0 ? <span className="header__cart-count">{cartCount}</span> : null}
             </a>
-            <HeaderMore
-              showWishlist={s.showWishlist}
-              themeMode={showThemeToggle ? themeMode : null}
-            />
           </div>
         </div>
       </header>

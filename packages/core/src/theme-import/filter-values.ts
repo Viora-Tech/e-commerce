@@ -1,5 +1,5 @@
 /** SOURCE OF TRUTH: the values behind Shopify's Liquid filters — WHAT: the per-render runtime filters read, filter argument parsing, translations with plurals, Shopify money formats, image URLs and `image_tag` markup, placeholder art, colour maths and payment marks / WHY: kept apart from the filter table so each piece is testable and the table stays readable */
-import { type Currency, formatMoney } from '@commerce/money'
+import { type Currency, formatMoney, formatWithMoneyFormat } from '@commerce/money'
 import { Drop } from 'liquidjs'
 import { ColorDrop, type FontDrop, ImageDrop } from './drops'
 
@@ -20,6 +20,10 @@ export type LiquidRuntime = {
   nonce: string
   /** The merchant's old Shopify host, for `file_url` images we did not copy. */
   shopifyHost: string | null
+  /** Our URL for a Shopify file name the importer copied (loose name match), else null. */
+  importedFileUrl?: ((name: string) => string | null) | undefined
+  /** Told when a render reads the clock (`'now' | date`), so a cache keeps that output briefly. */
+  onClock?: (() => void) | undefined
 }
 
 export type Named = Record<string, unknown>
@@ -33,6 +37,12 @@ export function splitArgs(args: unknown[]): { positional: unknown[]; named: Name
     else positional.push(a)
   }
   return { positional, named }
+}
+
+/** Tells the runtime a render read the clock; a bare engine render (tests) has none to tell. */
+export function noteClockRead(self: unknown): void {
+  const ctx = (self as { context?: { globals?: { _rt?: LiquidRuntime } } }).context
+  ctx?.globals?._rt?.onClock?.()
 }
 
 export function runtimeOf(self: unknown): LiquidRuntime {
@@ -82,35 +92,7 @@ export function translate(locale: Record<string, unknown>, key: string, vars: Na
 }
 
 /** Shopify money formats: `{{amount}}`, `{{amount_no_decimals}}`, comma separators. */
-export function shopifyMoney(paise: number, format: string): string {
-  const major = paise / 100
-  const group = (n: string, sep: string) => n.replace(/\B(?=(\d{3})+(?!\d))/g, sep)
-  const parts = (decimals: number, thousands: string, point: string) => {
-    const [whole = '0', frac] = Math.abs(major).toFixed(decimals).split('.')
-    const sign = major < 0 ? '-' : ''
-    return `${sign}${group(whole, thousands)}${frac ? `${point}${frac}` : ''}`
-  }
-  return format.replace(/{{\s*(\w+)\s*}}/g, (_, name: string) => {
-    switch (name) {
-      case 'amount':
-        return parts(2, ',', '.')
-      case 'amount_no_decimals':
-        return parts(0, ',', '.')
-      case 'amount_with_comma_separator':
-        return parts(2, '.', ',')
-      case 'amount_no_decimals_with_comma_separator':
-        return parts(0, '.', ',')
-      case 'amount_with_apostrophe_separator':
-        return parts(2, "'", '.')
-      case 'amount_no_decimals_with_space_separator':
-        return parts(0, ' ', '.')
-      case 'amount_with_space_separator':
-        return parts(2, ' ', ',')
-      default:
-        return parts(2, ',', '.')
-    }
-  })
-}
+export const shopifyMoney = formatWithMoneyFormat
 
 export function money(rt: LiquidRuntime, value: unknown): string {
   const paise = Number(value ?? 0)
@@ -120,14 +102,24 @@ export function money(rt: LiquidRuntime, value: unknown): string {
     : formatMoney(Math.round(paise), rt.currency)
 }
 
+/**
+ * What an image filter reads inside a value: a product's or variant's image, or a
+ * metafield's value (`feature.image | image_url`, a file field).
+ */
+const innerImage = (v: Record<string, unknown>): unknown =>
+  v.featured_image ??
+  v.image ??
+  v.preview_image ??
+  v.src ??
+  (v instanceof Drop ? v.value : undefined)
+
 /** The image URL a value stands for: an image object, a URL string, or a product/variant. */
 export function imageSrc(value: unknown): string {
   if (value instanceof ImageDrop) return value.src
   if (value instanceof ImageUrl) return value.url
   if (typeof value === 'string') return value
   if (value && typeof value === 'object') {
-    const v = value as Record<string, unknown>
-    const inner = v.featured_image ?? v.image ?? v.preview_image ?? v.src
+    const inner = innerImage(value as Record<string, unknown>)
     if (inner !== undefined && inner !== value) return imageSrc(inner)
   }
   return ''
@@ -157,9 +149,9 @@ class ImageUrl extends Drop {
 const imageOf = (value: unknown): ImageDrop | null => {
   if (value instanceof ImageDrop) return value
   if (value && typeof value === 'object') {
-    const v = value as Record<string, unknown>
-    const inner = v.featured_image ?? v.image ?? v.preview_image
+    const inner = innerImage(value as Record<string, unknown>)
     if (inner instanceof ImageDrop) return inner
+    if (inner && typeof inner === 'object' && inner !== value) return imageOf(inner)
   }
   return null
 }
@@ -271,4 +263,62 @@ export function paymentIcon(type: unknown): string {
       .replace(/\b\w/g, (c) => c.toUpperCase()),
   )
   return `<svg class="icon icon--full-color" xmlns="http://www.w3.org/2000/svg" role="img" viewBox="0 0 38 24" width="38" height="24" aria-label="${label}"><rect x=".5" y=".5" width="37" height="23" rx="3" fill="#fff" stroke="#000" stroke-opacity=".07"/><text x="19" y="15" text-anchor="middle" font-family="Arial, sans-serif" font-size="6.5" font-weight="700" fill="#222">${label.slice(0, 10)}</text></svg>`
+}
+
+type VideoSourceLike = { url?: string; mime_type?: string; height?: number }
+
+/**
+ * `video | video_tag` / `media | media_tag` for a video copied into Files: every mp4
+ * rendition as a `<source>` (the smaller one for phones, `max-width: 749px`), the poster
+ * picture, and the flags the theme asked for.
+ */
+export function videoTag(video: unknown, named: Named): string {
+  const v = video as {
+    sources?: VideoSourceLike[]
+    url?: string
+    preview_image?: { src: string } | null
+  } | null
+  const listed = (v?.sources ?? []).filter(
+    (s) => s.url && (s.mime_type ?? 'video/mp4') === 'video/mp4',
+  )
+  const sources = [...listed].sort((a, b) => (a.height ?? 0) - (b.height ?? 0))
+  const fallback = v?.url ?? (typeof video === 'string' ? video : '')
+  if (sources.length === 0 && !fallback) return ''
+  const flags = ['autoplay', 'loop', 'muted', 'controls']
+    .filter((f) => named[f])
+    .map((f) => `${f}="${f}"`)
+  const attrs = [
+    'playsinline="true"',
+    named.class ? `class="${escapeAttr(named.class)}"` : '',
+    ...flags,
+    `preload="${escapeAttr(named.preload ?? 'metadata')}"`,
+    v?.preview_image ? `poster="${escapeAttr(v.preview_image.src)}"` : '',
+  ].filter(Boolean)
+  const tags =
+    sources.length > 1
+      ? sources.map((s, i) =>
+          i === 0
+            ? `<source src="${escapeAttr(s.url ?? '')}" type="video/mp4" media="(max-width: 749px)">`
+            : `<source src="${escapeAttr(s.url ?? '')}" type="video/mp4">`,
+        )
+      : [`<source src="${escapeAttr(sources[0]?.url ?? fallback)}" type="video/mp4">`]
+  return `<video ${attrs.join(' ')}>${tags.join('')}</video>`
+}
+
+/**
+ * A Shopify Files name as one comparable key. A theme setting says `shopify://files/videos/Keyboard Bento.mp4`
+ * while Shopify's own file name may come back as `Keyboard_Bento.mp4` or percent-encoded:
+ * case, spaces, underscores and hyphens do not tell two files apart.
+ */
+export function importedFileKey(name: string): string {
+  let decoded = name
+  try {
+    decoded = decodeURIComponent(name)
+  } catch {
+    // not percent-encoded
+  }
+  return decoded
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, '-')
 }

@@ -1,6 +1,7 @@
 import type { StoreTx } from '@commerce/db'
 import {
   cartLine,
+  collectionProduct,
   inventoryAdjustment,
   inventoryLevel,
   newId,
@@ -9,15 +10,19 @@ import {
   productMedia,
   productOption,
   productOptionValue,
+  purchaseOrderLine,
+  transferLine,
   variant,
   variantOptionValue,
 } from '@commerce/db'
-import { and, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { and, eq, inArray, isNull, type SQL, sql } from 'drizzle-orm'
 import { CommerceError } from '../errors'
 import { adjustStock, setStock } from '../inventory/levels'
 import { setProductMedia } from '../media/service'
-import { validateDepositAgainstPrice } from '../preorder/settings'
+import { onHandleChange } from '../redirects/handle-change'
 import { mediaInStore, withKnownMedia } from '../store-scope'
+import { noteProductEvent, noteProductsChanged } from './changes'
+import { preorderErrors, productRow, variantRow } from './product-rows'
 import type { InventoryReason, ProductWrite } from './schemas'
 import { slugify } from './slug'
 import {
@@ -54,86 +59,15 @@ export async function uniqueHandle(tx: StoreTx, base: string, exceptId?: string)
   }
 }
 
-type ProductFields = Omit<ProductWrite, 'options' | 'variants' | 'inventoryReason'>
+/** Product writes from an import (CSV, Shopify) start no automations (`noteProductEvent`). */
+export type ProductWriteOptions = { imported?: boolean | undefined }
 
-function productRow(fields: ProductFields) {
-  return {
-    title: fields.title,
-    description: fields.description ?? null,
-    vendor: fields.vendor || null,
-    categoryId: fields.categoryId || null,
-    productType: fields.productType || null,
-    tags: dedupe(fields.tags ?? []),
-    seoTitle: fields.seoTitle || null,
-    seoDescription: fields.seoDescription || null,
-    ...(fields.templateSuffix === undefined
-      ? {}
-      : { templateSuffix: fields.templateSuffix || null }),
-    status: fields.status ?? 'draft',
-    taxIncluded: fields.taxIncluded ?? true,
-    featured: fields.featured ?? false,
-    saleStartsAt: fields.saleStartsAt ?? null,
-    saleEndsAt: fields.saleEndsAt ?? null,
-    preorderEnabled: fields.preorderEnabled ?? false,
-    preorderShipDate: fields.preorderShipDate ?? null,
-    preorderShipsInDays: fields.preorderShipsInDays ?? null,
-    preorderLimit: fields.preorderLimit ?? null,
-    preorderButtonLabel: fields.preorderButtonLabel || 'Pre-order',
-    preorderPaymentMode: fields.preorderPaymentMode ?? 'full',
-    preorderDepositPaise: fields.preorderDepositPaise ?? null,
-    preorderDepositPercent: fields.preorderDepositPercent ?? null,
-    preorderHideFromCollectionsUntilLaunch: fields.preorderHideFromCollectionsUntilLaunch ?? false,
-    launchAt: fields.launchAt ?? null,
-    updatedAt: new Date(),
-  }
-}
-
-function dedupe(values: string[]): string[] {
-  const seen = new Set<string>()
-  const out: string[] = []
-  for (const raw of values) {
-    const v = raw.trim()
-    const k = v.toLowerCase()
-    if (!k || seen.has(k)) continue
-    seen.add(k)
-    out.push(v)
-  }
-  return out
-}
-
-function variantRow(input: VariantInput) {
-  return {
-    title: variantTitle(input.optionValues),
-    sku: input.sku || null,
-    barcode: input.barcode || null,
-    pricePaise: input.pricePaise,
-    mrpPaise: input.mrpPaise ?? null,
-    costPaise: input.costPaise ?? null,
-    taxable: input.taxable ?? true,
-    trackInventory: input.trackInventory ?? true,
-    weightGrams: input.weightGrams ?? null,
-    hsCode: input.hsCode ?? null,
-    countryOfOrigin: input.countryOfOrigin ?? null,
-    gstRatePercent: input.gstRatePercent ?? null,
-    boxPresetId: input.boxPresetId ?? null,
-    packageLengthCm: input.packageLengthCm ?? null,
-    packageWidthCm: input.packageWidthCm ?? null,
-    packageHeightCm: input.packageHeightCm ?? null,
-    mediaId: input.mediaId ?? null,
-  }
-}
-
-/** A fixed deposit must be less than every variant's price, so there is always a balance to defer. */
-function preorderErrors(write: ProductWrite): string[] {
-  if (!write.preorderEnabled || write.preorderPaymentMode !== 'fixed') return []
-  return write.variants
-    .map((v) =>
-      validateDepositAgainstPrice('fixed', write.preorderDepositPaise ?? null, v.pricePaise),
-    )
-    .filter((e): e is string => e !== null)
-}
-
-export async function createProduct(tx: StoreTx, storeId: string, write: ProductWrite) {
+export async function createProduct(
+  tx: StoreTx,
+  storeId: string,
+  write: ProductWrite,
+  opts: ProductWriteOptions = {},
+) {
   const errors = [...variantErrors(write.options, write.variants), ...preorderErrors(write)]
   if (errors.length) throw new InvalidProduct(errors)
   const id = newId()
@@ -153,19 +87,31 @@ export async function createProduct(tx: StoreTx, storeId: string, write: Product
     write.inventoryReason,
   )
   if (write.mediaIds) await setProductMedia(tx, storeId, id, write.mediaIds)
+  await noteProductsChanged(tx, [id], storeId)
+  if (!opts.imported) await noteProductEvent(tx, storeId, 'product.created', [id])
   return id
 }
 
-export async function updateProduct(tx: StoreTx, storeId: string, id: string, write: ProductWrite) {
+export async function updateProduct(
+  tx: StoreTx,
+  storeId: string,
+  id: string,
+  write: ProductWrite,
+  opts: ProductWriteOptions = {},
+) {
   const errors = [...variantErrors(write.options, write.variants), ...preorderErrors(write)]
   if (errors.length) throw new InvalidProduct(errors)
-  const [existing] = await tx.select({ id: product.id }).from(product).where(eq(product.id, id))
+  const [existing] = await tx
+    .select({ id: product.id, handle: product.handle })
+    .from(product)
+    .where(eq(product.id, id))
   if (!existing) throw new CommerceError('NOT_FOUND', `Product ${id} not found`, { storeId })
   const handle = write.handle ? await uniqueHandle(tx, write.handle, id) : undefined
   await tx
     .update(product)
     .set({ ...productRow(write), ...(handle ? { handle } : {}) })
     .where(eq(product.id, id))
+  await onHandleChange(tx, storeId, 'product', existing.handle, handle)
   // A variant image must be this store's media; a foreign or stale id is dropped.
   const known = await mediaInStore(
     tx,
@@ -180,6 +126,8 @@ export async function updateProduct(tx: StoreTx, storeId: string, id: string, wr
     write.inventoryReason,
   )
   if (write.mediaIds) await setProductMedia(tx, storeId, id, write.mediaIds)
+  await noteProductsChanged(tx, [id], storeId)
+  if (!opts.imported) await noteProductEvent(tx, storeId, 'product.updated', [id])
   return id
 }
 
@@ -361,6 +309,30 @@ async function pruneOptionValues(tx: StoreTx, productId: string) {
   }
 }
 
+/** Variants that sit on a purchase order or a transfer; those lines must keep their variant. */
+async function stockDocumentVariants(tx: StoreTx, ids: string[]): Promise<Set<string>> {
+  if (ids.length === 0) return new Set()
+  const [po, transfers] = await Promise.all([
+    tx
+      .select({ id: purchaseOrderLine.variantId })
+      .from(purchaseOrderLine)
+      .where(inArray(purchaseOrderLine.variantId, ids)),
+    tx
+      .select({ id: transferLine.variantId })
+      .from(transferLine)
+      .where(inArray(transferLine.variantId, ids)),
+  ])
+  return new Set([...po, ...transfers].map((r) => r.id))
+}
+
+/**
+ * "Notify me" signups (back-in-stock plugin) for variants about to be hard-deleted. Raw SQL
+ * because core does not import plugin schemas; the table always exists (core migration 0060).
+ */
+async function deleteBackInStockSignups(tx: StoreTx, where: SQL) {
+  await tx.execute(sql`delete from back_in_stock_signup where ${where}`)
+}
+
 async function removeVariants(tx: StoreTx, ids: string[]) {
   const referenced = new Set([
     ...(
@@ -375,6 +347,7 @@ async function removeVariants(tx: StoreTx, ids: string[]) {
         .from(cartLine)
         .where(inArray(cartLine.variantId, ids))
     ).map((r) => r.id),
+    ...(await stockDocumentVariants(tx, ids)),
   ])
   const archive = ids.filter((id) => referenced.has(id))
   const del = ids.filter((id) => !referenced.has(id))
@@ -383,6 +356,7 @@ async function removeVariants(tx: StoreTx, ids: string[]) {
     await tx.delete(variantOptionValue).where(inArray(variantOptionValue.variantId, archive))
   }
   if (del.length) {
+    await deleteBackInStockSignups(tx, sql`variant_id in (${sql.join(del, sql`, `)})`)
     await tx.delete(variantOptionValue).where(inArray(variantOptionValue.variantId, del))
     await tx.delete(inventoryAdjustment).where(inArray(inventoryAdjustment.variantId, del))
     await tx.delete(inventoryLevel).where(inArray(inventoryLevel.variantId, del))
@@ -444,14 +418,20 @@ export async function deleteProduct(
           .where(inArray(cartLine.variantId, ids))
       )[0]?.n
     : 0
-  if (Number(referenced) > 0 || Number(carted) > 0) {
+  const onStockDocuments = (await stockDocumentVariants(tx, ids)).size
+  if (Number(referenced) > 0 || Number(carted) > 0 || onStockDocuments > 0) {
     await tx
       .update(product)
       .set({ status: 'archived', updatedAt: new Date() })
       .where(eq(product.id, productId))
     await tx.update(variant).set({ archivedAt: new Date() }).where(eq(variant.productId, productId))
+    await noteProductsChanged(tx, [productId])
     return 'archived'
   }
+  // Rows that only point at the product and mean nothing once it is gone. Left in place, their
+  // foreign keys make the final delete fail (a product in any collection could not be deleted).
+  await tx.delete(collectionProduct).where(eq(collectionProduct.productId, productId))
+  await deleteBackInStockSignups(tx, sql`product_id = ${productId}`)
   if (ids.length) {
     await tx.delete(variantOptionValue).where(inArray(variantOptionValue.variantId, ids))
     await tx.delete(inventoryAdjustment).where(inArray(inventoryAdjustment.variantId, ids))
@@ -473,6 +453,7 @@ export async function deleteProduct(
   }
   await tx.delete(productMedia).where(eq(productMedia.productId, productId))
   await tx.delete(product).where(eq(product.id, productId))
+  await noteProductsChanged(tx, [productId])
   return 'deleted'
 }
 

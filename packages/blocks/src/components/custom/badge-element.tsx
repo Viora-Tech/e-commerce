@@ -1,7 +1,9 @@
+import type { ReactNode } from 'react'
 import ElementBox from './element-box'
 
 export type BadgeProps = {
-  text: string
+  /** A string in storage, a React node while edited on the canvas. */
+  text: ReactNode
   tone: 'brand' | 'accent' | 'success' | 'danger' | 'neutral'
   style: unknown
 }

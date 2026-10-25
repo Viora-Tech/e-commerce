@@ -1,6 +1,6 @@
 /* biome-ignore-all lint/style/noDescendingSpecificity: these rules override nextra-theme-docs selectors, so they are grouped by page area, not by specificity. */
 /*
- * Waimers Commerce Docs — Next.js-docs layout on top of nextra-theme-docs, in our own colours.
+ * Docs — Next.js-docs layout on top of nextra-theme-docs, in the admin's Proofly look.
  *
  * Tailwind is imported without `preflight` (its CSS reset) on purpose: the docs
  * theme ships its own base styles (`nextra-theme-docs/style.css`, imported first
@@ -29,23 +29,24 @@
 @source "../node_modules/nextra-theme-docs/dist/**/*.{js,mjs}";
 
 /* ---------------------------------------------------------------------------
- * Tokens — our light theme and Nextra's dark grey, grey text and hairlines,
- * with a restrained Ocean Green accent (#4ea674 light, #30d158 dark). The
- * primary hue behind Nextra's own active states, focus rings and TOC, and the
- * page backgrounds, come from <Head color backgroundColor> in app/layout.tsx.
- * `--docs-link` is the accent darkened enough to pass contrast as body text.
+ * Tokens — the landing page's look (apps/www): black, white and neutral greys with the brand
+ * orange as the one accent. The primary hue behind Nextra's own active states, focus rings and
+ * TOC, and the page backgrounds, come from <Head color backgroundColor> in app/layout.tsx.
+ * `--docs-link` is the orange darkened enough to pass contrast as body text on white.
  * ------------------------------------------------------------------------- */
 :root {
-  --docs-fg: #171717;
-  --docs-muted: #666666;
-  --docs-subtle: #8f8f8f;
-  --docs-border: #ebebeb;
-  --docs-border-strong: #d6d6d6;
-  --docs-surface: #fafafa;
-  --docs-accent: #4ea674;
-  --docs-link: #3a845c;
-  --docs-accent-bg: rgb(78 166 116 / 0.08);
-  --docs-accent-border: rgb(78 166 116 / 0.35);
+  --docs-fg: #0a0a0a;
+  --docs-muted: #525252;
+  --docs-subtle: #737373;
+  --docs-border: #e5e5e5;
+  --docs-border-strong: #d4d4d4;
+  --docs-surface: #f5f5f5;
+  --docs-card: #ffffff;
+  --docs-accent: #ff6a13;
+  --docs-link: #c2410c;
+  --docs-accent-bg: #fff1e8;
+  --docs-accent-border: rgb(255 106 19 / 0.35);
+  --docs-radius: 0.75rem;
   --docs-amber: #a15c07;
   --docs-amber-bg: #fffbeb;
   --docs-amber-border: #fcd34d;
@@ -55,16 +56,17 @@
 }
 
 :root.dark {
-  --docs-fg: #ededed;
+  --docs-fg: #fafafa;
   --docs-muted: #a1a1a1;
-  --docs-subtle: #737373;
-  --docs-border: #262626;
-  --docs-border-strong: #383838;
-  --docs-surface: #1a1a1a;
-  --docs-accent: #30d158;
-  --docs-link: #30d158;
-  --docs-accent-bg: rgb(48 209 88 / 0.08);
-  --docs-accent-border: rgb(48 209 88 / 0.3);
+  --docs-subtle: #8a8a8a;
+  --docs-border: rgb(255 255 255 / 0.1);
+  --docs-border-strong: rgb(255 255 255 / 0.16);
+  --docs-surface: #171717;
+  --docs-card: #171717;
+  --docs-accent: #ff8a3d;
+  --docs-link: #ff8a3d;
+  --docs-accent-bg: rgb(255 106 19 / 0.12);
+  --docs-accent-border: rgb(255 138 61 / 0.35);
   --docs-amber: #fbbf24;
   --docs-amber-bg: rgb(251 191 36 / 0.08);
   --docs-amber-border: rgb(251 191 36 / 0.3);
@@ -78,7 +80,7 @@
  * ------------------------------------------------------------------------- */
 html {
   font-family:
-    var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    var(--font-primary), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -122,7 +124,7 @@ samp {
 
 .nextra-search input {
   border: 1px solid var(--docs-border);
-  border-radius: 0.5rem;
+  border-radius: 0.625rem;
   background: var(--docs-surface);
 }
 
@@ -142,6 +144,7 @@ samp {
 :is(.nextra-sidebar, .nextra-mobile-nav) li > a,
 :is(.nextra-sidebar, .nextra-mobile-nav) li > button {
   padding-block: 0.3125rem;
+  border-radius: 0.5rem;
   color: var(--docs-muted);
   background: transparent;
 }
@@ -155,7 +158,7 @@ samp {
 :is(.nextra-sidebar, .nextra-mobile-nav) li > a[class*="x:bg-primary-100"] {
   color: var(--docs-link);
   font-weight: 500;
-  background: transparent;
+  background: var(--docs-accent-bg);
 }
 
 /* Group headings (folders). */
@@ -282,10 +285,11 @@ article > main {
     margin-top: 0.5rem;
     color: var(--docs-fg);
     text-align: left;
+    font-family: var(--font-primary), system-ui, sans-serif;
     font-size: 2.25rem;
-    font-weight: 600;
+    font-weight: 700;
     line-height: 1.2;
-    letter-spacing: -0.035em;
+    letter-spacing: -0.03em;
   }
 
   /* The first paragraph under the h1 reads as the page subtitle. */
@@ -303,9 +307,10 @@ article > main {
     padding-bottom: 0;
     border-top: 1px solid var(--docs-border);
     color: var(--docs-fg);
+    font-family: var(--font-primary), system-ui, sans-serif;
     font-size: 1.5rem;
-    font-weight: 600;
-    letter-spacing: -0.03em;
+    font-weight: 700;
+    letter-spacing: -0.025em;
     border-bottom: none;
   }
 
@@ -396,7 +401,7 @@ article > main {
   .nextra-steps h3:not([style^="visibility:"])::before {
     border: 1px solid var(--docs-accent-border);
     border-radius: 9999px;
-    background: rgb(var(--nextra-bg));
+    background: var(--docs-accent-bg);
     color: var(--docs-link);
     font-size: 0.875rem;
     font-weight: 600;
@@ -409,7 +414,7 @@ article > main {
  * ------------------------------------------------------------------------- */
 div.nextra-code {
   border: 1px solid var(--docs-border-strong);
-  border-radius: 0.5rem;
+  border-radius: var(--docs-radius);
   overflow: hidden;
   background: var(--docs-surface);
 }
@@ -469,7 +474,7 @@ div.nextra-code pre {
  * ------------------------------------------------------------------------- */
 .nextra-card {
   border: 1px solid var(--docs-border);
-  border-radius: 0.5rem;
+  border-radius: var(--docs-radius);
   box-shadow: none;
   background: transparent;
 }
@@ -538,6 +543,7 @@ a[title][class*="x:max-w-[50%]"] svg {
  * ------------------------------------------------------------------------- */
 .docs-home-card {
   border-color: var(--docs-border);
+  background: var(--docs-card);
 }
 
 .docs-home-card:hover {
@@ -559,4 +565,48 @@ a[title][class*="x:max-w-[50%]"] svg {
 .docs-feedback-button:hover {
   border-color: var(--docs-border-strong);
   color: var(--docs-fg);
+}
+
+/* ---------------------------------------------------------------------------
+ * Screenshots and images — rounded frame with a hairline border.
+ * ------------------------------------------------------------------------- */
+article > main img {
+  border: 1px solid var(--docs-border);
+  border-radius: var(--docs-radius);
+  box-shadow: 0 1px 2px rgb(17 19 24 / 0.06);
+}
+
+/* A plain card: rounded, hairline border, card fill. */
+.docs-card {
+  border: 1px solid var(--docs-border);
+  border-radius: var(--docs-radius);
+  background: var(--docs-card);
+  transition:
+    border-color 150ms ease-out,
+    background-color 150ms ease-out;
+}
+
+.docs-card:hover {
+  border-color: var(--docs-border-strong);
+  background: var(--docs-surface);
+}
+
+/* ---------------------------------------------------------------------------
+ * Home page — hero search and the "I want to…" task cards.
+ * ------------------------------------------------------------------------- */
+.docs-hero-search input {
+  height: 3rem;
+  border-radius: 0.875rem;
+  font-size: 1rem;
+  padding-inline: 1rem;
+}
+
+.docs-find {
+  border: 1px solid var(--docs-border);
+  border-radius: var(--docs-radius);
+  background: var(--docs-card);
+}
+
+.docs-find-label {
+  color: var(--docs-subtle);
 }

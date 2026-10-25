@@ -1,6 +1,7 @@
 'use client'
 
 import { slugify } from '@commerce/core/catalog'
+import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -22,6 +23,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { onlineStoreContent } from '@/data/online-store'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type CreatePageDialogProps = {
@@ -29,10 +31,11 @@ type CreatePageDialogProps = {
   onOpenChange: (open: boolean) => void
 }
 
-const copy = onlineStoreContent.pages.create
-
 export default function CreatePageDialog({ open, onOpenChange }: CreatePageDialogProps) {
   // Hooks
+  const {
+    pages: { create: copy },
+  } = useCopy(onlineStoreContent)
   const router = useRouter()
   const [title, setTitle] = useState('')
   const [handle, setHandle] = useState('')
@@ -96,7 +99,7 @@ export default function CreatePageDialog({ open, onOpenChange }: CreatePageDialo
             {copy.cancel}
           </Button>
           <Button type="button" onClick={handleCreate} disabled={!title.trim() || busy}>
-            {busy ? <Spinner /> : null}
+            {busy ? <Spinner /> : <Plus aria-hidden="true" />}
             {copy.confirm}
           </Button>
         </DialogFooter>

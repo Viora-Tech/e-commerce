@@ -26,7 +26,7 @@ export default function OrderList({ orders, timeZone }: OrderListProps) {
   // Early returns
   if (orders.length === 0) {
     return (
-      <div className="flex flex-col items-start gap-3 rounded-2xl border border-line p-8">
+      <div className="flex flex-col items-start gap-3 rounded-[var(--radius-card)] bg-surface p-8">
         <h2 className="h4">{copy.emptyTitle}</h2>
         <p className="text-body text-muted">{copy.emptyBody}</p>
         <Link href="/collections" className="btn btn--primary mt-2">
@@ -38,12 +38,12 @@ export default function OrderList({ orders, timeZone }: OrderListProps) {
 
   // Render logic
   return (
-    <ul className="grid gap-4 md:grid-cols-2">
+    <ul className="grid gap-4">
       {orders.map((o) => (
         <li key={o.id}>
           <Link
             href={`/account/orders/${o.number}`}
-            className="flex h-full gap-4 rounded-2xl border border-line p-5 transition-[border-color,scale] duration-(--duration-press) ease-out hover:border-ink active:scale-(--motion-card-press-scale)"
+            className="flex h-full gap-4 rounded-[var(--radius-card)] bg-surface p-5 transition-[scale] duration-(--duration-press) ease-out active:scale-(--motion-card-press-scale)"
           >
             <div className="size-16 shrink-0 overflow-hidden rounded-xl bg-surface">
               {o.firstImage ? (

@@ -5,6 +5,8 @@
  * `header` and `footer` are the section groups every template shares.
  */
 
+import { LIQUID_SECTION } from '../theme-import/fields'
+import { defaultTemplatesContent } from './data/default-templates'
 import { mapNestedBlocks, type StoredBlock } from './nested-blocks'
 
 export const TEMPLATE_KINDS = [
@@ -17,6 +19,8 @@ export const TEMPLATE_KINDS = [
   'cart',
   'search',
   'not_found',
+  'account',
+  'login',
 ] as const
 export type TemplateKind = (typeof TEMPLATE_KINDS)[number]
 
@@ -38,7 +42,11 @@ export type TemplateData = {
 export const TEMPLATE_SUFFIX = /^[a-z0-9-]{0,40}$/
 
 /** Kinds a resource can pick an alternate for (Shopify's "Theme template" select). */
-export const ALTERNATE_KINDS = ['product', 'collection', 'page'] as const
+export const ALTERNATE_KINDS = ['product', 'collection', 'page', 'blog', 'article'] as const
+/** A template kind a resource can pick an alternate of (`product.preorder`). */
+export type AlternateKind = (typeof ALTERNATE_KINDS)[number]
+/** How many resources of each kind use each alternate, by suffix. Store-wide, not per theme. */
+export type TemplateAssignments = Record<AlternateKind, Record<string, number>>
 
 /**
  * The section each resource template is built around. It renders the resource
@@ -53,6 +61,9 @@ export const MAIN_SECTION: Partial<Record<TemplateKind, string>> = {
   cart: 'MainCart',
   search: 'MainSearch',
   not_found: 'MainNotFound',
+  // The shopper's account pages (orders, addresses, profile...) and the sign-in page.
+  account: 'MainAccount',
+  login: 'MainLogin',
 }
 
 /** Sections that belong in a group rather than a template. */
@@ -92,42 +103,60 @@ const data = (content: TemplateSection[]): TemplateData => ({
   zones: {},
 })
 
-/** One of Glide's three signup popups, as `sections/footer-group.json` sets it up. */
-const popup = (id: string, props: Record<string, unknown>): TemplateSection => ({
-  type: 'SignupPopup',
+/** A section with props set over its block's defaults. */
+const withProps = (type: string, id: string, props: Record<string, unknown>): TemplateSection => ({
+  type,
   props: { id, ...props },
 })
 
+const copy = defaultTemplatesContent
+
 /**
- * Glide's footer group (`sections/footer-group.json`), in its order: the newsletter card,
- * the footer, the phone dock, the cookie banner and the three signup popups (one shows per
- * visit at most). Anything not set here takes the blocks' defaults, which are the theme's;
- * product handles are left out because they name the theme store's own products.
+ * Our generic sections only, with neutral copy set on each: several blocks' own defaults are
+ * still the Zero Drift theme's (the Waimers store's own words and links), and a store's
+ * stored `{ id }` rows rely on those, so the new-store copy lives here instead. Zero Drift
+ * pack sections (phone dock, signup popups) are left out; a store adds them on opt-in.
  */
+const HEADER_GROUP: TemplateSection[] = [
+  withProps('AnnouncementBar', 'announcement-bar', {
+    announcements: [{ text: copy.announcement, link: '' }],
+    displayMode: 'rotate',
+    showSocial: false,
+    socials: [],
+  }),
+  // No curated menu cards: the theme's pointed at the Waimers quiz page.
+  withProps('Header', 'header', { featureCards: [] }),
+]
+
 const FOOTER_GROUP: TemplateSection[] = [
-  { type: 'Newsletter', props: { id: 'newsletter', reasons: [] } },
-  section('Footer', 'footer'),
-  section('MobileDock', 'mobile-dock'),
+  withProps('Newsletter', 'newsletter', { ...copy.newsletter, interests: [], reasons: [] }),
+  // The Newsletter section above already asks for an email; a second form in the footer read twice.
+  withProps('Footer', 'footer', {
+    ...copy.footer,
+    showNewsletter: false,
+    helpCards: [],
+    socials: [],
+  }),
   section('CookieBanner', 'cookie-banner'),
-  popup('popup-corner', { style: 'corner', trigger: 'engaged', delay: 20, delayMobile: 30 }),
-  popup('popup-figure', {
-    style: 'figure',
-    trigger: 'exit',
-    kicker: 'Waimers list',
-    text: '',
+]
+
+const HOME: TemplateSection[] = [
+  withProps('Hero', 'hero', {
+    slides: [
+      {
+        kind: 'image',
+        layout: 'full_bleed',
+        heading: copy.hero.heading,
+        subheading: copy.hero.subheading,
+        image: { url: '', alt: '' },
+        cta: { ...copy.hero.cta },
+        textPosition: 'left',
+        colorScheme: 'dark',
+      },
+    ],
   }),
-  popup('popup-feed', {
-    style: 'feed',
-    where: 'collections',
-    collections: 'preorder, holidays-sale',
-    trigger: 'soon',
-    delay: 10,
-    delayMobile: 15,
-    kicker: 'Live on Waimers',
-    heading: 'Never miss a [drop]',
-    text: '',
-    buttonLabel: 'Alert me',
-  }),
+  section('ProductGrid', 'product-grid'),
+  withProps('RichText', 'rich-text', { ...copy.richText }),
 ]
 
 /**
@@ -136,22 +165,34 @@ const FOOTER_GROUP: TemplateSection[] = [
  * did before templates existed.
  */
 export function defaultTemplate(key: TemplateKey): TemplateData {
-  // Glide's header group (`sections/header-group.json`): the announcement bar over the
-  // header. Both take their settings from the blocks' defaults, which are the theme's.
-  if (key === 'header') {
-    return data([section('AnnouncementBar', 'announcement-bar'), section('Header', 'header')])
-  }
-  if (key === 'footer') return data(FOOTER_GROUP)
-  if (key === 'home') {
-    return data([
-      section('Hero', 'hero'),
-      section('ProductGrid', 'product-grid'),
-      section('RichText', 'rich-text'),
-    ])
-  }
+  // Fresh copies each call: callers store and edit what they get back.
+  const fresh = (sections: TemplateSection[]) => data(structuredClone(sections))
+  if (key === 'header') return fresh(HEADER_GROUP)
+  if (key === 'footer') return fresh(FOOTER_GROUP)
+  if (key === 'home') return fresh(HOME)
   const main = MAIN_SECTION[key]
   return data(main ? [section(main, 'main')] : [])
 }
+
+/**
+ * A blank theme's template ("Start from scratch"): the header and footer groups hold only their
+ * Header and Footer, the home page is empty, and every other template is just its main section,
+ * which it needs to show the product, cart or page being viewed. Never the live theme's sections.
+ */
+export function blankTemplate(key: TemplateKey): TemplateData {
+  const fresh = (sections: TemplateSection[]) => data(structuredClone(sections))
+  if (key === 'header') return fresh(HEADER_GROUP.filter((s) => s.type === 'Header'))
+  if (key === 'footer') return fresh(FOOTER_GROUP.filter((s) => s.type === 'Footer'))
+  if (key === 'home') return data([])
+  return defaultTemplate(key)
+}
+
+/**
+ * The templates a blank theme stores a row for: only those whose blank differs from the code
+ * default. A template with no row renders `defaultTemplate`, which for every other key already is
+ * just its main section.
+ */
+export const BLANK_THEME_TEMPLATES = ['header', 'footer', 'home'] as const satisfies TemplateKey[]
 
 /** Normalises anything stored in a template column into Puck data. */
 export function parseTemplateData(value: unknown): TemplateData | null {
@@ -171,6 +212,26 @@ export function parseTemplateData(value: unknown): TemplateData | null {
 
 /** Hidden sections stay in the template (Shopify's eye toggle) but never render. */
 export const isSectionHidden = (s: TemplateSection): boolean => s.props._hidden === true
+
+/**
+ * A stored template without an imported theme's own sections (`LiquidSection`), which render
+ * only with that theme's Liquid files. A theme made from a preset keeps the live theme's
+ * templates through this: our sections stay, the Shopify ones go, and a template left with
+ * nothing to show is our default for its key. Anything without Liquid sections comes back as is.
+ */
+export function withoutLiquidSections(key: TemplateKey, value: unknown): unknown {
+  const parsed = parseTemplateData(value)
+  if (!parsed?.content.some((s) => s.type === LIQUID_SECTION)) return value
+  const content = parsed.content.filter((s) => s.type !== LIQUID_SECTION)
+  if (!content.some((s) => !isSectionHidden(s))) return defaultTemplate(key)
+  return { ...(value as object), content }
+}
+
+/**
+ * Sections a page shows at most, to keep it fast (Figma 698:92403). Hidden sections do not
+ * count; the editor's Add panel stops offering sections at this many.
+ */
+export const MAX_VISIBLE_SECTIONS = 25
 
 /** `product.preorder`, or just `product` for the default. */
 export const templateName = (key: TemplateKey, suffix: string): string =>

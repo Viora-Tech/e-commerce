@@ -1,16 +1,17 @@
 'use client'
 
-import { MoreHorizontal, Video } from '@commerce/ui/icons'
+import { ImageIcon, Video } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
-import type { DragEvent } from 'react'
+import { ROW_STATE_CLASS } from '@commerce/ui/sortable'
+import { motion } from 'motion/react'
+import Link from 'next/link'
+import type { Ref } from 'react'
+import ActionMenu from '@/components/layout/action-menu'
+import FallbackImage from '@/components/layout/fallback-image'
 import { mediaContent } from '@/data/media'
+import { useCopy } from '@/hooks/use-copy'
+import { IMAGE_GLIDE_SPRING } from '@/hooks/use-image-dnd'
+import { contentTypeOf } from './file-meta'
 
 export type MediaTileItem = {
   id: string
@@ -33,55 +34,74 @@ type MediaTileProps = {
   cover?: boolean | undefined
   /** Caption under the thumbnail (library usage count). */
   caption?: string | undefined
+  /** Second caption line: type and size. */
+  meta?: string | undefined
+  /** Landscape thumbnail (the Files library) instead of a square. */
+  wide?: boolean | undefined
   actions: MediaTileAction[]
-  /** Native drag-and-drop wiring from the grid; absent in the library. */
-  drag?:
+  /** The file's page (the Files library); the whole tile becomes a link to it. */
+  href?: string | undefined
+  /** @dnd-kit wiring from the sortable grid (`MediaSortableTile`); absent in the library. */
+  sortable?:
     | {
-        onDragStart: (e: DragEvent<HTMLLIElement>) => void
-        onDragOver: (e: DragEvent<HTMLLIElement>) => void
-        onDrop: (e: DragEvent<HTMLLIElement>) => void
-        onDragEnd: () => void
+        ref: Ref<HTMLLIElement>
+        props: Record<string, unknown>
         dragging: boolean
-        target: boolean
+        reduced: boolean
       }
     | undefined
 }
 
-const copy = mediaContent.tile
+export default function MediaTile({
+  item,
+  cover,
+  caption,
+  meta,
+  wide,
+  actions,
+  href,
+  sortable,
+}: MediaTileProps) {
+  // Hooks
+  const { tile: copy, details } = useCopy(mediaContent)
 
-const isVideo = (contentType: string | null) => contentType?.startsWith('video/') ?? false
-
-export default function MediaTile({ item, cover, caption, actions, drag }: MediaTileProps) {
   // Render logic
-  const video = isVideo(item.contentType)
+  const video = contentTypeOf(item.contentType, item.url)?.startsWith('video/') ?? false
   const primary = actions.filter((a) => !a.destructive)
   const destructive = actions.filter((a) => a.destructive)
 
   return (
-    <li
-      draggable={drag !== undefined}
-      onDragStart={drag?.onDragStart}
-      onDragOver={drag?.onDragOver}
-      onDrop={drag?.onDrop}
-      onDragEnd={drag?.onDragEnd}
+    <motion.li
+      ref={sortable?.ref}
+      layout={sortable !== undefined && !sortable.reduced}
+      transition={{ layout: IMAGE_GLIDE_SPRING }}
+      {...sortable?.props}
       className={cn(
         'group relative flex flex-col gap-1',
-        drag && 'cursor-grab active:cursor-grabbing',
-        drag?.dragging && 'opacity-40',
+        sortable && 'cursor-grab touch-manipulation',
         cover && 'col-span-2 row-span-2',
       )}
     >
       <div
         className={cn(
-          'relative aspect-square w-full overflow-hidden rounded-lg border bg-muted',
-          drag?.target && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
+          'relative w-full overflow-hidden border bg-muted',
+          wide ? 'aspect-[4/3] rounded-xl' : 'aspect-square rounded-lg',
+          sortable?.dragging && ROW_STATE_CLASS.placeholder,
         )}
       >
         {video ? (
           <video src={item.url} muted playsInline className="size-full object-cover" />
         ) : (
-          // biome-ignore lint/performance/noImgElement: thumbnails from arbitrary storage hosts.
-          <img src={item.url} alt={item.alt ?? ''} className="size-full object-cover" />
+          <FallbackImage
+            src={item.url}
+            alt={item.alt ?? ''}
+            className="size-full object-cover"
+            fallback={
+              <span className="flex size-full items-center justify-center text-muted-foreground">
+                <ImageIcon className="size-6" aria-hidden />
+              </span>
+            }
+          />
         )}
         {cover ? (
           <span className="absolute top-2 left-2 rounded-md bg-card/90 px-2 py-0.5 text-caption text-foreground shadow-card">
@@ -94,36 +114,43 @@ export default function MediaTile({ item, cover, caption, actions, drag }: Media
             {copy.video}
           </span>
         ) : null}
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            aria-label={copy.menu}
-            className="absolute top-2 right-2 flex size-7 items-center justify-center rounded-md bg-card/90 text-foreground opacity-0 shadow-card transition-opacity group-hover:opacity-100 focus-visible:opacity-100 data-popup-open:opacity-100"
-          >
-            <MoreHorizontal className="size-4" aria-hidden />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {primary.map((a) => (
-              <DropdownMenuItem key={a.label} onClick={a.onSelect} disabled={a.disabled}>
-                {a.label}
-              </DropdownMenuItem>
-            ))}
-            {destructive.length ? <DropdownMenuSeparator /> : null}
-            {destructive.map((a) => (
-              <DropdownMenuItem
-                key={a.label}
-                variant="destructive"
-                onClick={a.onSelect}
-                disabled={a.disabled}
-              >
-                {a.label}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <ActionMenu
+          label={copy.menu}
+          variant="bare"
+          triggerClassName="absolute top-2 right-2 z-20 size-7 rounded-md bg-card/90 text-foreground opacity-0 shadow-card transition-opacity group-hover:opacity-100 focus-visible:opacity-100 data-popup-open:opacity-100"
+          items={[
+            ...primary.map((a) => ({ label: a.label, onSelect: a.onSelect, disabled: a.disabled })),
+            ...destructive.map((a) => ({
+              label: a.label,
+              onSelect: a.onSelect,
+              disabled: a.disabled,
+              destructive: true,
+            })),
+          ]}
+        />
       </div>
       {caption ? (
-        <span className="truncate text-caption text-muted-foreground">{caption}</span>
+        <span
+          className={cn(
+            'truncate text-caption',
+            meta ? 'font-medium text-ink-strong' : 'text-muted-foreground',
+          )}
+        >
+          {caption}
+        </span>
       ) : null}
-    </li>
+      {meta ? <span className="truncate text-caption text-muted-foreground">{meta}</span> : null}
+      {href ? (
+        // Over the thumbnail and captions, under the ⋯ menu (z-20), so the menu keeps its own click.
+        <Link
+          href={href}
+          aria-label={details.open(caption ?? item.alt ?? '')}
+          className={cn(
+            'absolute inset-0 z-10 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+            wide ? 'rounded-xl' : 'rounded-lg',
+          )}
+        />
+      ) : null}
+    </motion.li>
   )
 }

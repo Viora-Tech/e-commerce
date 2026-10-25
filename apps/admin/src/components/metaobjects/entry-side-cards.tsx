@@ -1,7 +1,6 @@
 'use client'
 
 import type { MetaobjectStatus } from '@commerce/core/metaobjects'
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import {
@@ -11,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
+import DataCard from '@/components/layout/data-card'
 import { entryFormContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -32,50 +32,40 @@ export default function EntrySideCards({ status, handle, onChange }: EntrySideCa
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle>{copy.status.heading}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Field>
-            <Select
-              items={items}
-              value={status}
-              onValueChange={(v) => v !== null && onChange({ status: v as MetaobjectStatus })}
-            >
-              <SelectTrigger className="w-full" aria-label={copy.status.heading}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {STATUSES.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {items[s]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FieldDescription>{copy.status.help}</FieldDescription>
-          </Field>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>{copy.handle.heading}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Field>
-            <Input
-              size="lg"
-              value={handle}
-              autoComplete="off"
-              aria-label={copy.handle.heading}
-              className="font-mono"
-              onChange={(e) => onChange({ handle: e.target.value })}
-            />
-            <FieldDescription>{copy.handle.help}</FieldDescription>
-          </Field>
-        </CardContent>
-      </Card>
+      <DataCard title={copy.status.heading}>
+        <Field>
+          <Select
+            items={items}
+            value={status}
+            onValueChange={(v) => v !== null && onChange({ status: v as MetaobjectStatus })}
+          >
+            <SelectTrigger className="w-full" aria-label={copy.status.heading}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {items[s]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <FieldDescription>{copy.status.help}</FieldDescription>
+        </Field>
+      </DataCard>
+      <DataCard title={copy.handle.heading}>
+        <Field>
+          <Input
+            size="lg"
+            value={handle}
+            autoComplete="off"
+            aria-label={copy.handle.heading}
+            className="font-mono"
+            onChange={(e) => onChange({ handle: e.target.value })}
+          />
+          <FieldDescription>{copy.handle.help}</FieldDescription>
+        </Field>
+      </DataCard>
     </>
   )
 }

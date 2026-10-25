@@ -57,6 +57,9 @@ export type ShopifyTemplateBlock = {
   static?: boolean | undefined
 }
 
+/** Shopify nests theme blocks at most this deep (a tab's contents inside a tab); deeper is a loop. */
+export const MAX_BLOCK_DEPTH = 8
+
 /** `templates/*.json` and `sections/*-group.json`. */
 export type ShopifyJsonTemplate = {
   name?: string | undefined

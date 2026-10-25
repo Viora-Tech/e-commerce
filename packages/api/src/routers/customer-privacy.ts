@@ -27,11 +27,13 @@ import {
   storageForStore,
   updateDataRequest,
 } from '@commerce/core'
+import { lenientPhone } from '@commerce/core/phone'
 import { registriesForStore } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can } from '../procedures'
+import { BULK_MAX, can, heavy } from '../procedures'
+import { sendableConsentChannels } from '../services/notifications.service'
 
 type Ctx = {
   tx: StoreTx
@@ -122,7 +124,7 @@ export const customerPrivacyRouter = {
         source: z.enum(STAFF_REQUEST_SOURCES),
         customerId: z.uuid().nullable(),
         contactEmail: z.string().trim().max(254).nullable().optional(),
-        contactPhone: z.string().trim().max(30).nullable().optional(),
+        contactPhone: lenientPhone(30).nullable().optional(),
         note: z.string().trim().max(PRIVACY_LIMITS.note).nullable().optional(),
       }),
     )
@@ -216,8 +218,16 @@ export const customerPrivacyRouter = {
     .handler(async ({ context, input }) => {
       const consent = await customerMarketingConsent(ctxOf(context), input.customerId)
       if (!consent) throw new ORPCError('NOT_FOUND', { message: 'Customer not found' })
-      return consent
+      return {
+        ...consent,
+        sendable: await sendableConsentChannels(context.tx, context.scope.storeId),
+      }
     }),
+
+  /** The marketing channels this store can send on, for the Customers list and bulk edit. */
+  sendableChannels: can(permissions.CUSTOMERS_READ).handler(({ context }) =>
+    sendableConsentChannels(context.tx, context.scope.storeId),
+  ),
 
   /** Staff record consent the customer gave or withdrew outside the store (a call, a form). */
   setConsent: can(permissions.CUSTOMERS_WRITE)
@@ -235,5 +245,30 @@ export const customerPrivacyRouter = {
         actor: staffOf(context),
       })
       return { changed }
+    }),
+
+  /** The same for a selection on the Customers list; each change keeps its own history row. */
+  setConsentMany: can(permissions.CUSTOMERS_WRITE)
+    .use(heavy('bulk'))
+    .input(
+      z.object({
+        ids: z.array(z.uuid()).min(1).max(BULK_MAX),
+        channel: z.enum(CONSENT_CHANNELS),
+        granted: z.boolean(),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      let updated = 0
+      for (const customerId of new Set(input.ids)) {
+        const changed = await setMarketingConsent(ctxOf(context), {
+          customerId,
+          channel: input.channel,
+          granted: input.granted,
+          source: 'admin',
+          actor: staffOf(context),
+        })
+        if (changed) updated++
+      }
+      return { updated }
     }),
 }

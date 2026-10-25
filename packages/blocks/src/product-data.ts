@@ -7,7 +7,7 @@
  *        either way. The formats are the Zero Drift theme's own (`snippets/spec-group.liquid`,
  *        `sections/product-size-guide.liquid`, `sections/product-size-table.liquid`), so
  *        metafields written for the Shopify theme paste straight in.
- * WHERE: `sections/glide/product-*.tsx` and `components/sections/glide/product-*.tsx`;
+ * WHERE: `sections/zero-drift/product-*.tsx` and `components/sections/zero-drift/product-*.tsx`;
  *        `components/product-description.tsx` reads `descriptionDoc` too.
  */
 import { parseRichText, plainTextToRichText } from '@commerce/richtext'

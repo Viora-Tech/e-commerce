@@ -18,6 +18,47 @@ export const emiPlugin = definePlugin({
   category: 'marketing',
   description:
     'Show "or ₹X/month" on product pages so shoppers see they can pay in parts with EMI or pay later.',
+  listing: {
+    tagline: '"Or ₹X/month" under product prices, and an EMI offers block.',
+    highlights: ['Shows the lowest EMI under each price', 'An EMI offers block for product pages'],
+    guide: '/merchant-guide/apps/emi-and-pay-later',
+    worksWith: ['EMI offers block in your theme', 'Razorpay, for EMI at checkout'],
+    keywords: ['emi', 'pay later', 'bnpl'],
+    faq: [
+      {
+        question: 'What do I need before it shows anything?',
+        answer:
+          'Razorpay or Cashfree taking payments, and EMI turned on at checkout in Settings → Payments. The app’s page tells you which of the two is still missing.',
+      },
+      {
+        question: 'Does it show on every product?',
+        answer:
+          'Only on products at or above the lowest price you set, ₹1,000 by default. Cheaper products show nothing.',
+      },
+      {
+        question: 'What is the difference between Razorpay and Cashfree here?',
+        answer:
+          'With Razorpay it shows Razorpay’s own offers box, with your banks, tenures and offers. With Cashfree it shows a simple monthly price.',
+      },
+    ],
+  },
+  access: {
+    resources: [
+      { resource: 'products', level: 'read', why: 'Prices, to show the monthly amount' },
+      {
+        resource: 'store-settings',
+        level: 'read',
+        why: 'Your public Razorpay key id, for its widget',
+      },
+    ],
+    summary: 'shows EMI prices',
+    shares: [
+      {
+        when: 'On product pages, with Razorpay chosen',
+        what: 'The product price and your public Razorpay key id, to Razorpay’s widget',
+      },
+    ],
+  },
   provides: {},
   storefront: { blocks: emiBlocks },
   admin: {

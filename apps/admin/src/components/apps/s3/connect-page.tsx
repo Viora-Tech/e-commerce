@@ -1,15 +1,16 @@
 'use client'
 
-import { CircleAlert, CircleCheck, ExternalLink, Upload } from '@commerce/ui/icons'
+import { CircleAlert, CircleCheck, ExternalLink, RefreshCw, Upload } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import { Card, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import type { ProviderDef, ProviderState } from '@/components/settings/provider-settings-form'
@@ -129,7 +130,11 @@ export default function ConnectPage() {
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <PageHeader title={copy.title} subtitle={copy.intro} icon={<Upload aria-hidden="true" />} />
+      <PageHeader
+        title={copy.title}
+        subtitle={copy.intro}
+        lead={{ kind: 'icon', node: <Upload aria-hidden="true" /> }}
+      />
       {error ? (
         <Alert variant="destructive">
           <CircleAlert />
@@ -139,173 +144,156 @@ export default function ConnectPage() {
       ) : null}
 
       {provider === null ? (
-        <Card className="gap-4 p-6">
+        <Card gap={4} inset={6}>
           <Skeleton className="h-5 w-40" />
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
         </Card>
       ) : (
         <>
-          <Card size="form">
-            <CardHeader>
-              <CardTitle>{copy.steps.one.title}</CardTitle>
-              <CardDescription>{copy.steps.one.body}</CardDescription>
-            </CardHeader>
-            <CardContent>
+          <DataCard
+            title={copy.steps.one.title}
+            subtitle={copy.steps.one.body}
+            bodyClassName="flex justify-end"
+          >
+            <Button
+              variant="outline"
+              className="w-fit gap-1.5"
+              render={<a href={copy.consoleUrl} target="_blank" rel="noreferrer" />}
+            >
+              {copy.openConsole}
+              <ExternalLink className="size-3.5" aria-hidden="true" />
+            </Button>
+          </DataCard>
+
+          <DataCard
+            title={copy.steps.two.title}
+            subtitle={copy.steps.two.body}
+            bodyClassName="flex flex-col gap-3"
+          >
+            <Button
+              variant="outline"
+              className="w-fit gap-1.5"
+              render={<a href={copy.iamUrl} target="_blank" rel="noreferrer" />}
+            >
+              {copy.openIam}
+              <ExternalLink className="size-3.5" aria-hidden="true" />
+            </Button>
+            <CodeBlock what="IAM policy" code={s3IamPolicy(values.bucket ?? '')} />
+          </DataCard>
+
+          <DataCard title={copy.publicAccess.heading}>
+            <p className="text-body text-muted-foreground">{copy.publicAccess.body}</p>
+          </DataCard>
+
+          <DataCard title={copy.cors.heading} subtitle={copy.cors.body}>
+            <CodeBlock what="CORS rule" code={s3CorsRule(adminOrigin())} />
+          </DataCard>
+
+          <DataCard
+            title={copy.steps.three.title}
+            subtitle={copy.steps.three.body}
+            bodyClassName="flex flex-col gap-5"
+          >
+            <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor="s3-accessKeyId">{copy.fields.accessKeyId.label}</FieldLabel>
+                <Input
+                  size="lg"
+                  id="s3-accessKeyId"
+                  autoComplete="off"
+                  value={values.accessKeyId}
+                  onChange={(e) => setField('accessKeyId', e.target.value)}
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="s3-secretAccessKey">
+                  {copy.fields.secretAccessKey.label}
+                </FieldLabel>
+                <Input
+                  size="lg"
+                  id="s3-secretAccessKey"
+                  type="password"
+                  autoComplete="off"
+                  value={values.secretAccessKey}
+                  onChange={(e) => setField('secretAccessKey', e.target.value)}
+                />
+                <FieldDescription>{copy.fields.secretAccessKey.help}</FieldDescription>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="s3-region">{copy.fields.region.label}</FieldLabel>
+                <Input
+                  size="lg"
+                  id="s3-region"
+                  autoComplete="off"
+                  value={values.region}
+                  onChange={(e) => setField('region', e.target.value)}
+                />
+                <FieldDescription>{copy.fields.region.help}</FieldDescription>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="s3-bucket">{copy.fields.bucket.label}</FieldLabel>
+                <Input
+                  size="lg"
+                  id="s3-bucket"
+                  autoComplete="off"
+                  value={values.bucket}
+                  onChange={(e) => setField('bucket', e.target.value)}
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="s3-publicBaseUrl">
+                  {copy.fields.publicBaseUrl.label}
+                </FieldLabel>
+                <Input
+                  size="lg"
+                  id="s3-publicBaseUrl"
+                  autoComplete="off"
+                  value={values.publicBaseUrl}
+                  onChange={(e) => setField('publicBaseUrl', e.target.value)}
+                />
+                <FieldDescription>{copy.fields.publicBaseUrl.help}</FieldDescription>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="s3-pathPrefix">{copy.fields.pathPrefix.label}</FieldLabel>
+                <Input
+                  size="lg"
+                  id="s3-pathPrefix"
+                  autoComplete="off"
+                  value={values.pathPrefix}
+                  onChange={(e) => setField('pathPrefix', e.target.value)}
+                />
+                <FieldDescription>{copy.fields.pathPrefix.help}</FieldDescription>
+              </Field>
+            </FieldGroup>
+
+            <div className="flex flex-col gap-2">
+              <p className="text-body font-medium text-foreground">{copy.steps.four.title}</p>
+              <p className="text-caption text-muted-foreground">{copy.steps.four.body}</p>
               <Button
+                type="button"
                 variant="outline"
-                className="w-fit gap-1.5"
-                render={<a href={copy.consoleUrl} target="_blank" rel="noreferrer" />}
+                className="w-fit"
+                onClick={handleTest}
+                disabled={test.status === 'testing'}
               >
-                {copy.openConsole}
-                <ExternalLink className="size-3.5" aria-hidden="true" />
+                {test.status === 'testing' ? <Spinner /> : <RefreshCw aria-hidden="true" />}
+                {test.status === 'testing' ? copy.testing : copy.testConnection}
               </Button>
-            </CardContent>
-          </Card>
-
-          <Card size="form">
-            <CardHeader>
-              <CardTitle>{copy.steps.two.title}</CardTitle>
-              <CardDescription>{copy.steps.two.body}</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3">
-              <Button
-                variant="outline"
-                className="w-fit gap-1.5"
-                render={<a href={copy.iamUrl} target="_blank" rel="noreferrer" />}
-              >
-                {copy.openIam}
-                <ExternalLink className="size-3.5" aria-hidden="true" />
-              </Button>
-              <CodeBlock what="IAM policy" code={s3IamPolicy(values.bucket ?? '')} />
-            </CardContent>
-          </Card>
-
-          <Card size="form">
-            <CardHeader>
-              <CardTitle>{copy.publicAccess.heading}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-body text-muted-foreground">{copy.publicAccess.body}</p>
-            </CardContent>
-          </Card>
-
-          <Card size="form">
-            <CardHeader>
-              <CardTitle>{copy.cors.heading}</CardTitle>
-              <CardDescription>{copy.cors.body}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <CodeBlock what="CORS rule" code={s3CorsRule(adminOrigin())} />
-            </CardContent>
-          </Card>
-
-          <Card size="form">
-            <CardHeader>
-              <CardTitle>{copy.steps.three.title}</CardTitle>
-              <CardDescription>{copy.steps.three.body}</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-5">
-              <FieldGroup>
-                <Field>
-                  <FieldLabel htmlFor="s3-accessKeyId">{copy.fields.accessKeyId.label}</FieldLabel>
-                  <Input
-                    size="lg"
-                    id="s3-accessKeyId"
-                    autoComplete="off"
-                    value={values.accessKeyId}
-                    onChange={(e) => setField('accessKeyId', e.target.value)}
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="s3-secretAccessKey">
-                    {copy.fields.secretAccessKey.label}
-                  </FieldLabel>
-                  <Input
-                    size="lg"
-                    id="s3-secretAccessKey"
-                    type="password"
-                    autoComplete="off"
-                    value={values.secretAccessKey}
-                    onChange={(e) => setField('secretAccessKey', e.target.value)}
-                  />
-                  <FieldDescription>{copy.fields.secretAccessKey.help}</FieldDescription>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="s3-region">{copy.fields.region.label}</FieldLabel>
-                  <Input
-                    size="lg"
-                    id="s3-region"
-                    autoComplete="off"
-                    value={values.region}
-                    onChange={(e) => setField('region', e.target.value)}
-                  />
-                  <FieldDescription>{copy.fields.region.help}</FieldDescription>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="s3-bucket">{copy.fields.bucket.label}</FieldLabel>
-                  <Input
-                    size="lg"
-                    id="s3-bucket"
-                    autoComplete="off"
-                    value={values.bucket}
-                    onChange={(e) => setField('bucket', e.target.value)}
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="s3-publicBaseUrl">
-                    {copy.fields.publicBaseUrl.label}
-                  </FieldLabel>
-                  <Input
-                    size="lg"
-                    id="s3-publicBaseUrl"
-                    autoComplete="off"
-                    value={values.publicBaseUrl}
-                    onChange={(e) => setField('publicBaseUrl', e.target.value)}
-                  />
-                  <FieldDescription>{copy.fields.publicBaseUrl.help}</FieldDescription>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="s3-pathPrefix">{copy.fields.pathPrefix.label}</FieldLabel>
-                  <Input
-                    size="lg"
-                    id="s3-pathPrefix"
-                    autoComplete="off"
-                    value={values.pathPrefix}
-                    onChange={(e) => setField('pathPrefix', e.target.value)}
-                  />
-                  <FieldDescription>{copy.fields.pathPrefix.help}</FieldDescription>
-                </Field>
-              </FieldGroup>
-
-              <div className="flex flex-col gap-2">
-                <p className="text-body font-medium text-foreground">{copy.steps.four.title}</p>
-                <p className="text-caption text-muted-foreground">{copy.steps.four.body}</p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-fit"
-                  onClick={handleTest}
-                  disabled={test.status === 'testing'}
-                >
-                  {test.status === 'testing' ? <Spinner /> : null}
-                  {test.status === 'testing' ? copy.testing : copy.testConnection}
-                </Button>
-                {test.status === 'ok' ? (
-                  <p className="flex items-center gap-1.5 text-body font-medium text-success">
-                    <CircleCheck aria-hidden="true" className="size-4" />
-                    {test.message}
-                  </p>
-                ) : test.status === 'error' ? (
-                  <p className="flex items-center gap-1.5 text-body font-medium text-destructive">
-                    <CircleAlert aria-hidden="true" className="size-4" />
-                    {test.message}
-                  </p>
-                ) : null}
-                <p className="text-caption text-muted-foreground">{copy.testHint}</p>
-              </div>
-            </CardContent>
-          </Card>
+              {test.status === 'ok' ? (
+                <p className="flex items-center gap-1.5 text-body font-medium text-success">
+                  <CircleCheck aria-hidden="true" className="size-4" />
+                  {test.message}
+                </p>
+              ) : test.status === 'error' ? (
+                <p className="flex items-center gap-1.5 text-body font-medium text-destructive">
+                  <CircleAlert aria-hidden="true" className="size-4" />
+                  {test.message}
+                </p>
+              ) : null}
+              <p className="text-caption text-muted-foreground">{copy.testHint}</p>
+            </div>
+          </DataCard>
 
           <Card size="form">
             <CardHeader>

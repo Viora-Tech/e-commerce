@@ -1,59 +1,67 @@
 'use client'
 
-import { ChevronDown } from '@commerce/ui/icons'
+import type { ConsentChannel } from '@commerce/core/privacy'
+import { Download, Save, Users } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { type CustomerRow, customerColumns } from '@/components/customers/customer-columns'
-import CustomerFilters, {
-  type CustomerFilterState,
-  EMPTY_CUSTOMER_FILTERS,
-} from '@/components/customers/customer-filters'
-import CustomerOverviewCard from '@/components/customers/customer-overview-card'
-import CustomerTiles, {
-  type CustomerOverview,
-  type CustomerStats,
-} from '@/components/customers/customer-tiles'
+import CustomerRowActions from '@/components/customers/customer-row-actions'
+import CustomerTiles, { type CustomerStats } from '@/components/customers/customer-tiles'
+import CustomersBulkActions from '@/components/customers/customers-bulk-actions'
 import TagCustomersDialog from '@/components/customers/tag-customers-dialog'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageBody from '@/components/layout/page-body'
-import PillTabs from '@/components/layout/pill-tabs'
-import ResourceTable, { type AppliedFilter } from '@/components/table/resource-table'
+import PageHeader from '@/components/layout/page-header'
+import PageState from '@/components/states/page-state'
+import {
+  appliedFromGroups,
+  clearGroups,
+  FILTER_PANEL_CLASS,
+  FilterPanel,
+} from '@/components/table/filter-panel'
+import ResourceTable from '@/components/table/resource-table'
+import ViewSelect from '@/components/table/view-select'
+import { CHANNEL_LABEL } from '@/data/customer-privacy'
 import { CUSTOMER_SEGMENTS, type CustomerSegment, customersContent } from '@/data/customers'
+import { CUSTOMERS_BULK_EDIT_IDS_KEY } from '@/data/customers-bulk-edit'
+import { filterPanelContent } from '@/data/filter-panel'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { downloadCsv, toCsv } from '@/lib/csv'
-import { LIST_PER_PAGE, type ListQuery, sameListQuery } from '@/lib/list-query'
+import { type ListQuery, sameListQuery } from '@/lib/list-query'
 import { formatPaise } from '@/lib/money'
+import { routes } from '@/lib/routes'
 import {
-  appliedCustomerFilters,
+  type CustomerFilterState,
+  customerFilterGroups,
   customerFilterInput,
+  EMPTY_CUSTOMER_FILTERS,
   hasCustomerFilters,
   segmentRulesFromFilters,
 } from './customer-filter-state'
 
 type ListResult = Awaited<ReturnType<typeof api.customers.list>>
 
-/** First page, tiles, overview and the all-customers count from the server so nothing paints empty. */
+/** A bulk marketing consent change waiting for the merchant to confirm it. */
+type ConsentChange = { ids: string[]; channel: ConsentChannel; granted: boolean }
+
+/** First page, stat cards and the all-customers count from the server so nothing paints empty. */
 export type CustomersInitial = {
   query: ListQuery<CustomerSegment>
+  perPage: number
   result: ListResult
   stats: CustomerStats
-  overview: CustomerOverview
   allCount: number
   tags: string[]
+  /** The Automations app is installed: "Run automation" on the bulk bar. */
+  automations: boolean
 }
 
-const PER_PAGE = LIST_PER_PAGE
-const copy = customersContent
-
-function exportRows(rows: CustomerRow[]): void {
+function exportRows(rows: CustomerRow[], exported: (n: number) => string): void {
   const csv = toCsv(
     ['Name', 'Email', 'Phone', 'City', 'State', 'Orders', 'Spent', 'Tags', 'Marketing'],
     rows.map((r) => [
@@ -69,15 +77,19 @@ function exportRows(rows: CustomerRow[]): void {
     ]),
   )
   downloadCsv(`customers-${new Date().toISOString().slice(0, 10)}.csv`, csv)
-  toast.success(copy.exported(rows.length))
+  toast.success(exported(rows.length))
 }
 
 function CustomersContent({ initial }: { initial: CustomersInitial }) {
   // Hooks
-  const [{ page, query, status }, setQ] = useQueryStates(
+  const copy = useCopy(customersContent)
+  const panelCopy = useCopy(filterPanelContent)
+  const router = useRouter()
+  const [{ page, perPage, query, status }, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
       page: parseAsInteger.withDefault(1),
+      perPage: parseAsInteger.withDefault(initial.perPage),
       status: parseAsStringLiteral(CUSTOMER_SEGMENTS),
     },
     { shallow: true },
@@ -86,21 +98,40 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
   const [items, setItems] = useState<CustomerRow[]>(initial.result.items)
   const [total, setTotal] = useState(initial.result.total)
   const [loading, setLoading] = useState(false)
+  const [failed, setFailed] = useState(false)
   const [tagAction, setTagAction] = useState<'add' | 'remove' | null>(null)
   const [tagIds, setTagIds] = useState<string[]>([])
+  const [consentChange, setConsentChange] = useState<ConsentChange | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
+  /** Channels the store can send on; the Marketing menu offers only these. */
+  const [sendable, setSendable] = useState<readonly ConsentChannel[]>(['email'])
+
+  useEffect(() => {
+    api.customerPrivacy
+      .sendableChannels()
+      .then(setSendable)
+      .catch(() => {})
+  }, [])
+  const hydrated = useRef(false)
+
   useEffect(() => {
     const untouched =
       sameListQuery({ page, query, status }, initial.query) &&
+      perPage === initial.perPage &&
       !hasCustomerFilters(filters) &&
       reloadKey === 0
-    if (untouched) return
+    // The server's first page is used once; after any change (including back to the first
+    // tab) the list is fetched again, so it never keeps another tab's rows.
+    const firstRun = !hydrated.current
+    hydrated.current = true
+    if (firstRun && untouched) return
     let cancelled = false
     setLoading(true)
+    setFailed(false)
     api.customers
       .list({
         page,
-        perPage: PER_PAGE,
+        perPage,
         search: query || undefined,
         segment: status ?? undefined,
         ...customerFilterInput(filters),
@@ -110,20 +141,17 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
         setItems(r.items)
         setTotal(r.total)
       })
+      .catch(() => !cancelled && setFailed(true))
       .finally(() => !cancelled && setLoading(false))
     return () => {
       cancelled = true
     }
-  }, [page, query, status, filters, initial.query, reloadKey])
+  }, [page, perPage, query, status, filters, initial.query, initial.perPage, reloadKey])
 
   // Helpers
   const patchFilters = (patch: Partial<CustomerFilterState>) => {
     setFilters((f) => ({ ...f, ...patch }))
     setQ({ page: 1 })
-  }
-
-  const clearFilter = (key: keyof CustomerFilterState) => {
-    patchFilters({ [key]: '' } as Partial<CustomerFilterState>)
   }
 
   // Event handlers
@@ -139,10 +167,21 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
         segment: status ?? undefined,
         ...customerFilterInput(filters),
       })
-      exportRows(rows)
+      exportRows(rows, copy.exported)
     } catch {
       toast.error(copy.exportFailed)
     }
+  }
+
+  /* Thousands of ids don't fit in a URL: hand them to the sheet through sessionStorage. */
+  const handleBulkEdit = (ids: string[]) => {
+    try {
+      sessionStorage.setItem(CUSTOMERS_BULK_EDIT_IDS_KEY, JSON.stringify(ids))
+    } catch {
+      toast.error(copy.bulk.openFailed)
+      return
+    }
+    router.push(routes.customers.bulkEdit())
   }
 
   const handleBulkTag = (ids: string[], action: 'add' | 'remove') => {
@@ -152,97 +191,164 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
 
   const handleReload = () => setReloadKey((k) => k + 1)
 
+  const handleConfirmConsent = async () => {
+    if (!consentChange) return
+    try {
+      const { updated } = await api.customerPrivacy.setConsentMany(consentChange)
+      toast.success(updated === 0 ? copy.bulk.noChange : copy.bulk.tagged(updated))
+      handleReload()
+    } catch (err) {
+      toast.error(copy.bulk.consentFailed)
+      throw err
+    }
+  }
+
   // Render logic
-  const columns = customerColumns(handleReload)
-  const applied = appliedCustomerFilters(filters, clearFilter) satisfies AppliedFilter[]
-  const segmentHref = `/customers/segments/new?rules=${encodeURIComponent(
+  const columns = customerColumns(copy)
+  const groups = customerFilterGroups(filters, initial.tags, patchFilters)
+  const applied = appliedFromGroups(groups, panelCopy)
+  const filtered = applied.length > 0 || query.length > 0
+  const segmentHref = `${routes.customers.newSegment()}?rules=${encodeURIComponent(
     JSON.stringify(segmentRulesFromFilters(filters, status)),
   )}`
+  const summary =
+    initial.stats.total === 0
+      ? copy.summary.empty
+      : [
+          copy.summary.total(initial.stats.total),
+          copy.summary.newThisWeek(initial.stats.newLast7),
+          copy.summary.repeat(initial.stats.returning),
+        ].join(' · ')
 
   return (
-    <PageBody width="frame" className="gap-5">
-      {/* 5:2900 + actions: 22px heading on the left, the filter shortcuts on the right. */}
-      <div className="flex h-12 items-center justify-between gap-3">
-        <h1 className="text-kit-heading text-ink-strong">{copy.heading}</h1>
-        <div className="flex items-center gap-2">
-          {applied.length > 0 ? (
-            <Button variant="outline" size="sm" render={<Link href={segmentHref} />}>
-              {copy.saveSegment}
+    <PageBody width="frame" className="gap-6">
+      <PageHeader
+        title={copy.heading}
+        summary={summary}
+        actions={
+          <>
+            {applied.length > 0 ? (
+              <Button variant="outline" render={<Link href={segmentHref} />} nativeButton={false}>
+                <Save strokeWidth={1.6} aria-hidden="true" />
+                {copy.saveSegment}
+              </Button>
+            ) : null}
+            <Button variant="outline" onClick={handleExportAll}>
+              <Download strokeWidth={1.6} />
+              {copy.exportAll}
             </Button>
-          ) : null}
-          <Button variant="outline" size="sm" onClick={handleExportAll}>
-            {copy.exportAll}
-          </Button>
-        </div>
-      </div>
-      {/* 5:3026 + 5:3062: three stacked tiles (270) beside the overview chart (826), 20px apart.
-          The row stretches, so the tile column's top and bottom line up with the chart's. */}
-      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,270fr)_minmax(0,826fr)] xl:items-stretch">
-        <CustomerTiles stats={initial.stats} visitors={initial.overview.visitors} />
-        <CustomerOverviewCard overview={initial.overview} />
-      </div>
-      {/* 5:3118: the table card sits 20px under the overview row. */}
-      <div>
+            <Button render={<Link href={routes.customers.segments()} />} nativeButton={false}>
+              <Users strokeWidth={1.6} />
+              {copy.segmentsLink}
+            </Button>
+          </>
+        }
+      />
+      <CustomerTiles
+        stats={initial.stats}
+        active={status}
+        onSelect={(s) => setQ({ status: s, page: 1 })}
+      />
+      {failed ? (
+        <PageState
+          kind="error"
+          heading={copy.loadFailed.heading}
+          body={copy.loadFailed.body}
+          onRetry={handleReload}
+        />
+      ) : (
         <ResourceTable
-          size="frame"
           resourceName={copy.resource}
           columns={columns}
           items={items}
           getId={(c) => c.id}
-          href={(c) => `/customers/${c.id}`}
+          href={(c) => routes.customers.detail(c.id)}
+          rowActions={(c) => (
+            <CustomerRowActions
+              id={c.id}
+              name={c.name ?? c.email ?? copy.unnamed}
+              email={c.email}
+              phone={c.phone}
+              onAddTag={() => handleBulkTag([c.id], 'add')}
+              onDeleted={handleReload}
+            />
+          )}
           loading={loading}
           query={query}
           onQueryChange={(q) => setQ({ query: q, page: 1 })}
           onClearAll={handleClearAll}
-          filters={<CustomerFilters value={filters} tags={initial.tags} onChange={patchFilters} />}
+          filters={(close) => (
+            <FilterPanel
+              groups={groups}
+              onClear={() => clearGroups(groups)}
+              footer={{ label: panelCopy.show(total), onDone: close }}
+            />
+          )}
+          filtersClassName={FILTER_PANEL_CLASS}
           applied={applied}
-          tabs={
-            <PillTabs
-              size="frame"
+          views={
+            <ViewSelect
               value={status}
               onChange={(s) => setQ({ status: s, page: 1 })}
-              tabs={[
+              options={[
                 { value: null, label: copy.tabs.all, count: initial.allCount },
                 ...CUSTOMER_SEGMENTS.map((s) => ({ value: s, label: copy.tabs[s] })),
               ]}
             />
           }
           page={page}
-          perPage={PER_PAGE}
+          perPage={perPage}
           total={total}
           onPageChange={(p) => setQ({ page: p })}
+          onPerPageChange={(n) => setQ({ perPage: n, page: 1 })}
           bulkActions={(ids, clear) => (
-            <DropdownMenu>
-              <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
-                {copy.bulk.addTag}
-                <ChevronDown />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                <DropdownMenuItem onClick={() => handleBulkTag(ids, 'add')}>
-                  {copy.bulk.addTag}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleBulkTag(ids, 'remove')}>
-                  {copy.bulk.removeTag}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    exportRows(items.filter((i) => ids.includes(i.id)))
-                    clear()
-                  }}
-                >
-                  {copy.bulk.export}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <CustomersBulkActions
+              ids={ids}
+              rows={items.filter((i) => ids.includes(i.id))}
+              sendable={sendable}
+              onBulkEdit={() => handleBulkEdit(ids)}
+              onTag={(action) => handleBulkTag(ids, action)}
+              onConsent={(channel, granted) => setConsentChange({ ids, channel, granted })}
+              onExport={() => {
+                exportRows(
+                  items.filter((i) => ids.includes(i.id)),
+                  copy.exported,
+                )
+                clear()
+              }}
+              onDeleted={() => {
+                clear()
+                handleReload()
+              }}
+              automations={initial.automations}
+              onAutomationDone={clear}
+            />
           )}
-          empty={copy.empty}
+          empty={filtered ? copy.noResults : copy.empty}
         />
-      </div>
+      )}
       <TagCustomersDialog
         ids={tagIds}
         action={tagAction}
         onClose={() => setTagAction(null)}
         onDone={handleReload}
+      />
+      <ConfirmDialog
+        open={consentChange !== null}
+        onOpenChange={(open) => !open && setConsentChange(null)}
+        title={
+          consentChange
+            ? copy.bulk.consentTitle(
+                consentChange.granted,
+                CHANNEL_LABEL[consentChange.channel],
+                consentChange.ids.length,
+              )
+            : ''
+        }
+        body={consentChange ? copy.bulk.consentBody(consentChange.granted) : undefined}
+        confirmLabel={copy.bulk.consentConfirm(consentChange?.granted ?? true)}
+        tone={consentChange?.granted === false ? 'destructive' : 'default'}
+        onConfirm={handleConfirmConsent}
       />
     </PageBody>
   )

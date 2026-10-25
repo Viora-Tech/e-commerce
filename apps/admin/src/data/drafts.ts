@@ -1,10 +1,54 @@
 /** Every word the draft order and abandoned checkout screens show. */
 
+/** The drafts list's tabs after "All" (`?status=`); mirrors DRAFT_LIST_STATUSES in core. */
+export const DRAFT_LIST_FILTERS = ['open', 'invoice_sent'] as const
+export type DraftListFilter = (typeof DRAFT_LIST_FILTERS)[number]
+
 export const draftsContent = {
   title: 'Draft orders',
   heading: 'Draft orders',
-  intro: 'Orders you build for a customer, invisible to the storefront until you convert them.',
+  intro:
+    'Orders you build for a customer. They stay hidden from your storefront until you convert them.',
+  tabs: { all: 'All drafts', open: 'Open', invoice_sent: 'Invoice sent' },
+  viewLabel: 'Draft view',
+  sortNewest: 'Newest first',
+  sortOldest: 'Oldest first',
   create: 'Create draft order',
+  summary: (total: number, invoiced: number) =>
+    [
+      `${total} ${total === 1 ? 'draft' : 'drafts'}`,
+      invoiced > 0 ? `${invoiced} ${invoiced === 1 ? 'invoice' : 'invoices'} sent` : null,
+    ]
+      .filter(Boolean)
+      .join(' · '),
+  tiles: {
+    open: { label: 'Open drafts', note: 'Ready to convert or send' },
+    invoiced: { label: 'Invoices sent', note: 'Waiting for the customer to pay' },
+    value: { label: 'Value in drafts', note: (n: number) => `Across all ${n} drafts` },
+  },
+  noResults: 'No drafts match that search',
+  openDraft: 'Open draft',
+  deleteDraft: 'Delete draft',
+  deleteSelected: (n: number) => `Delete ${n} ${n === 1 ? 'draft' : 'drafts'}`,
+  sendInvoice: 'Send invoice',
+  resendInvoice: 'Send invoice again',
+  sendSelected: (n: number) => `Send ${n} ${n === 1 ? 'invoice' : 'invoices'}`,
+  sendTitle: (n: number) => `Send ${n} ${n === 1 ? 'invoice' : 'invoices'}?`,
+  sendBody:
+    'Each customer gets their own invoice by email. Drafts without an email address are skipped.',
+  sendConfirm: 'Send invoices',
+  sentMany: (sent: number, skipped: number) =>
+    `${sent} ${sent === 1 ? 'invoice' : 'invoices'} sent${skipped ? `, ${skipped} skipped (no email)` : ''}`,
+  sendFailed: 'Could not send the invoices. Try again.',
+  invoiceSentOne: (to: string) => `Invoice sent to ${to}`,
+  deleteTitle: (n: number) => (n === 1 ? 'Delete this draft?' : `Delete ${n} drafts?`),
+  deleteBody: (n: number) =>
+    n === 1
+      ? 'The draft and its items are removed. This cannot be undone.'
+      : 'The drafts and their items are removed. Orders already placed from a draft are kept. This cannot be undone.',
+  deleted: (n: number) => (n === 1 ? 'Draft deleted' : `${n} drafts deleted`),
+  deleteFailed: 'Could not delete the drafts',
+  cancel: 'Cancel',
   resource: { singular: 'draft', plural: 'drafts' },
   search: 'Search drafts',
   empty: 'No draft orders yet',
@@ -24,6 +68,11 @@ export const draftsContent = {
 export const draftEditorContent = {
   newTitle: 'Create draft order',
   editTitle: (n: number) => `Draft #${n}`,
+  subtitle: {
+    for: (name: string) => `For ${name}`,
+    items: (n: number) => (n === 1 ? '1 item' : `${n} items`),
+    created: (date: string) => `created ${date}`,
+  },
   save: 'Save draft',
   saved: 'Draft saved',
   saveFailed: 'Could not save the draft',
@@ -60,8 +109,10 @@ export const draftEditorContent = {
     phone: 'Phone',
   },
   totals: {
-    heading: 'Totals',
+    heading: 'Payment',
     subtotal: 'Subtotal',
+    items: (n: number) => (n === 1 ? '1 item' : `${n} items`),
+    gstIncluded: (rate: number) => `GST ${rate}% · included in the prices above`,
     discount: 'Discount',
     discountLabel: 'Discount label',
     shipping: 'Shipping',
@@ -70,6 +121,7 @@ export const draftEditorContent = {
   note: { heading: 'Note', placeholder: 'Anything the packing team should know' },
   actions: {
     heading: 'Actions',
+    more: 'More actions',
     sendInvoice: 'Send invoice',
     invoiceSent: (to: string) => `Invoice sent to ${to}`,
     invoiceFailed: 'Could not send the invoice',
@@ -83,6 +135,9 @@ export const draftEditorContent = {
     deleteBody: 'The draft and its items are removed. This cannot be undone.',
     cancel: 'Cancel',
     saveFirst: 'Save the draft first',
+    needsAddress: 'Add a shipping address before converting',
+    open: 'Open',
+    invoiceSentStatus: 'Invoice sent',
   },
   paymentMethod: 'Payment method',
   methods: {
@@ -92,29 +147,49 @@ export const draftEditorContent = {
   },
 } as const
 
+/** The abandoned list's tabs after "All" (`?status=`); mirrors ABANDONED_LIST_STATUSES in core. */
+export const ABANDONED_LIST_FILTERS = ['not_recovered', 'reminder_sent', 'recovered'] as const
+export type AbandonedListFilter = (typeof ABANDONED_LIST_FILTERS)[number]
+
 export const abandonedContent = {
   title: 'Abandoned checkouts',
   heading: 'Abandoned checkouts',
+  viewLabel: 'Checkout view',
   intro: 'Baskets where a shopper left their contact but did not pay.',
+  summary: (carts: number, recovered: number, valuePaise: string) =>
+    `${carts} ${carts === 1 ? 'cart' : 'carts'} left this week · ${recovered} recovered · ${valuePaise} still waiting`,
+  tabs: {
+    all: 'All',
+    not_recovered: 'Not recovered',
+    reminder_sent: 'Reminder sent',
+    recovered: 'Recovered',
+  },
+  search: 'Search carts',
+  sendReminders: 'Send reminders',
+  remindersDone: (n: number) => (n === 1 ? 'Sent 1 reminder' : `Sent ${n} reminders`),
+  nothingToSend: 'No carts are waiting for a reminder',
   resource: { singular: 'checkout', plural: 'checkouts' },
   empty: 'No abandoned checkouts in this period',
   tiles: {
-    carts: 'Abandoned',
-    value: 'Value left behind',
+    carts: 'Abandoned carts',
     recovered: 'Recovered',
-    rate: 'Recovery rate',
+    value: 'Value waiting',
+    reminders: 'Reminders sent',
     period: 'Last 7 days',
+    recoveryRate: (pct: string) => `${pct} recovery`,
   },
   columns: {
-    contact: 'Contact',
-    items: 'Items',
+    contact: 'Customer',
+    cart: 'Cart',
     value: 'Value',
-    activity: 'Last activity',
-    status: 'Status',
+    activity: 'Left',
+    status: 'Recovery',
   },
-  status: { open: 'Abandoned', sent: 'Email sent', recovered: 'Recovered' },
+  more: (n: number) => `+ ${n} more`,
+  status: { open: 'Not recovered', sent: 'Reminder sent', recovered: 'Recovered' },
   anonymous: 'No contact',
   itemCount: (n: number) => (n === 1 ? '1 item' : `${n} items`),
+  view: 'View checkout',
   send: 'Send recovery email',
   sending: 'Sending',
   sent: (n: number) => (n === 1 ? 'Recovery email sent' : `Recovery message sent on ${n} channels`),
@@ -127,3 +202,20 @@ export const abandonedContent = {
     recoveryLink: 'Recovery link',
   },
 } as const
+
+/** The abandoned checkouts list's bulk "Send recovery" for the selected carts. */
+export const abandonedBulkContent = {
+  send: (n: number) => `Send recovery to ${n}`,
+  title: (n: number) => `Send recovery messages to ${n} ${n === 1 ? 'shopper' : 'shoppers'}?`,
+  body: 'Each shopper gets your recovery email (and WhatsApp when set up) with a link back to their cart. Checkouts already recovered or without an email are skipped, and so are shoppers who have not agreed to marketing messages.',
+  confirm: 'Send recovery',
+  done: (sent: number, skipped: number, noConsent: number, failed: number) =>
+    [
+      sent === 1 ? 'Sent 1 recovery message' : `Sent ${sent} recovery messages`,
+      skipped > 0 ? `${skipped} skipped` : null,
+      noConsent > 0 ? `${noConsent} without marketing consent` : null,
+      failed > 0 ? `${failed} failed` : null,
+    ]
+      .filter(Boolean)
+      .join(', '),
+}

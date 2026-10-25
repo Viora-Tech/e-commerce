@@ -1,55 +1,69 @@
+'use client'
+
 import { formatNumber } from '@commerce/money'
-import { percentDelta } from '@/components/layout/delta-chip'
-import StatCard from '@/components/layout/stat-card'
-import { customersContent } from '@/data/customers'
+import StatStrip from '@/components/layout/stat-strip'
+import { type CustomerSegment, customersContent } from '@/data/customers'
+import { useCopy } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
+import { percent } from '@/lib/stats'
 
 export type CustomerStats = Awaited<ReturnType<typeof api.customers.stats>>
-export type CustomerOverview = Awaited<ReturnType<typeof api.customers.overview>>
-
-/** Beside the chart (xl), each tile takes a third of its height with the figure centred. */
-const TILE = 'xl:h-full xl:justify-center'
 
 type CustomerTilesProps = {
   stats: CustomerStats
-  visitors: CustomerOverview['visitors']
+  /** The list tab the tiles filter by; null is "All customers". */
+  active: CustomerSegment | null
+  onSelect: (segment: CustomerSegment | null) => void
 }
 
 /**
- * Frames 5:3026 / 5:3038 / 5:3050: three 270 x 135 tiles stacked 20px apart down
- * the left of the overview chart, each carrying its figure, weekly change and period.
- * From xl the column stretches to the chart's height, so both sides line up.
+ * Four stat cards above the list (Figma "Customers / Customers list"). Each one is also a
+ * filter: pressing it picks the matching tab, pressing the active one goes back to all.
  */
-export default function CustomerTiles({ stats, visitors }: CustomerTilesProps) {
+export default function CustomerTiles({ stats, active, onSelect }: CustomerTilesProps) {
+  // Hooks
+  const content = useCopy(customersContent)
+
   // Render logic
-  const t = customersContent.tiles
+  const copy = content.stats
+  const repeatShare = stats.total === 0 ? 0 : Math.round((stats.returning / stats.total) * 100)
 
   return (
-    <div className="grid gap-5 sm:grid-cols-3 xl:h-full xl:grid-cols-1 xl:grid-rows-3">
-      <StatCard
-        size="sm"
-        className={TILE}
-        title={t.total}
-        value={formatNumber(stats.total)}
-        delta={percentDelta(stats.total, stats.totalPrevious)}
-        period={t.week}
-      />
-      <StatCard
-        size="sm"
-        className={TILE}
-        title={t.newCustomers}
-        value={formatNumber(stats.newLast7)}
-        delta={percentDelta(stats.newLast7, stats.newPrevious7)}
-        period={t.week}
-      />
-      <StatCard
-        size="sm"
-        className={TILE}
-        title={t.visitors}
-        value={formatNumber(visitors.value)}
-        delta={percentDelta(visitors.value, visitors.previous)}
-        period={t.week}
-      />
-    </div>
+    <StatStrip
+      active={active}
+      onChange={onSelect}
+      tiles={[
+        {
+          id: 'total',
+          label: copy.total,
+          value: formatNumber(stats.total),
+          trend: percent(stats.total, stats.totalPrevious),
+          trendNote: copy.vsLastWeek,
+          filter: null,
+        },
+        {
+          id: 'new',
+          label: copy.newCustomers,
+          value: formatNumber(stats.newLast7),
+          trend: percent(stats.newLast7, stats.newPrevious7),
+          trendNote: copy.vsLastWeek,
+          filter: 'new',
+        },
+        {
+          id: 'repeat',
+          label: copy.repeat,
+          value: formatNumber(stats.returning),
+          note: copy.shareOfAll(repeatShare),
+          filter: 'returning',
+        },
+        {
+          id: 'subscribed',
+          label: copy.subscribed,
+          value: formatNumber(stats.marketing),
+          note: copy.canGetEmails,
+          filter: 'subscribed',
+        },
+      ]}
+    />
   )
 }

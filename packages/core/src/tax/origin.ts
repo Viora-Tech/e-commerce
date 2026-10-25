@@ -1,29 +1,27 @@
-/** SOURCE OF TRUTH: resolveTaxOrigin, pickTaxOrigin, ORIGIN_FALLBACK, documentRegistration,
- *   listGstNumbers, SellerRegistration
+/** SOURCE OF TRUTH: taxOriginForParcels, compositionRegistrations, pickTaxOrigin, ORIGIN_FALLBACK,
+ *   documentRegistration, listGstNumbers, SellerRegistration
  * WHAT:  Which GSTIN an order is billed from (its tax origin), and the seller a GST document
  *        prints for a registration.
  * WHY:   GST is charged by the registration of the state the goods leave from. Prices include
  *        GST, so the origin only decides CGST + SGST (same state as the shopper) or IGST
  *        (another state); the shopper pays the same either way. ORIGIN_FALLBACK, in order:
- *        1. the active GSTIN linked to the location the order's goods sell from
- *           (`inventory_level_one_sellable`; when lines sell from different locations, the
- *           one holding the most order value, the default location winning a tie);
+ *        1. the active GSTIN linked to the location the order's goods ship from (its
+ *           parcels, order/routing.ts; with several parcels, the one holding the most order
+ *           value, the default location winning a tie);
  *        2. the store's default GSTIN;
  *        3. no GSTIN: the state in Settings › General (`store.address`), as before phase 3.
  *        A location without a linked GSTIN is never matched to one by state: billing is the
  *        merchant's explicit choice on Settings › Locations.
- * WHERE: placeOrder's createOrder step snapshots the result on the order
+ * WHERE: placeOrder's createOrder step (`taxOriginForParcels`) snapshots the result on the order
  *        (`order.gst_registration_id`, `order.tax_origin`); the GST invoices app reads the
  *        order's registration through `documentRegistration`.
  */
 import {
   business,
   gstRegistration,
-  inventoryLevel,
   location,
   type OrderTaxOrigin,
   type StoreTx,
-  sellableLevel,
 } from '@commerce/db'
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm'
 import { gstinState } from './gstin'
@@ -94,21 +92,22 @@ export function pickTaxOrigin(input: {
   }
 }
 
-export type OriginLine = { variantId: string; grossPaise: number }
-
 /**
- * The tax origin of an order with these goods lines (gift cards excluded by the caller: they
- * are vouchers, not goods leaving a warehouse). Reads under the store's RLS.
+ * The tax origin of an order shipped as these parcels (by location, with the goods value each
+ * holds). Until each parcel is taxed on its own, the order's split follows the parcel holding
+ * the most value. Reads under the store's RLS.
  */
-export async function resolveTaxOrigin(
+export async function taxOriginForParcels(
   tx: StoreTx,
-  input: { lines: readonly OriginLine[]; storeState: string | null | undefined },
+  input: {
+    parcels: readonly { locationId: string; grossPaise: number }[]
+    storeState: string | null | undefined
+  },
 ): Promise<OrderTaxOrigin> {
-  const ids = [...new Set(input.lines.map((l) => l.variantId))]
-  const levels = ids.length
+  const ids = [...new Set(input.parcels.map((p) => p.locationId))]
+  const rows = ids.length
     ? await tx
         .select({
-          variantId: inventoryLevel.variantId,
           locationId: location.id,
           locationName: location.name,
           isDefault: location.isDefault,
@@ -116,40 +115,47 @@ export async function resolveTaxOrigin(
           gstin: gstRegistration.gstin,
           cancelledAt: gstRegistration.cancelledAt,
         })
-        .from(inventoryLevel)
-        .innerJoin(location, eq(location.id, inventoryLevel.locationId))
+        .from(location)
         .leftJoin(gstRegistration, eq(gstRegistration.id, location.gstRegistrationId))
-        .where(and(inArray(inventoryLevel.variantId, ids), sellableLevel))
+        .where(inArray(location.id, ids))
     : []
-  const byLocation = new Map<string, OriginLocation>()
-  for (const line of input.lines) {
-    const level = levels.find((l) => l.variantId === line.variantId)
-    if (!level) continue
-    const known = byLocation.get(level.locationId)
-    if (known) {
-      known.grossPaise += line.grossPaise
-      continue
-    }
-    byLocation.set(level.locationId, {
-      locationId: level.locationId,
-      locationName: level.locationName,
-      isDefault: level.isDefault,
-      grossPaise: line.grossPaise,
-      registration:
-        level.registrationId && level.gstin && !level.cancelledAt
-          ? { id: level.registrationId, gstin: level.gstin }
-          : null,
-    })
-  }
+  const locations: OriginLocation[] = rows.map((r) => ({
+    locationId: r.locationId,
+    locationName: r.locationName,
+    isDefault: r.isDefault,
+    grossPaise: input.parcels
+      .filter((p) => p.locationId === r.locationId)
+      .reduce((sum, p) => sum + p.grossPaise, 0),
+    registration:
+      r.registrationId && r.gstin && !r.cancelledAt
+        ? { id: r.registrationId, gstin: r.gstin }
+        : null,
+  }))
   const [fallback] = await tx
     .select({ id: gstRegistration.id, gstin: gstRegistration.gstin })
     .from(gstRegistration)
     .where(eq(gstRegistration.isDefault, true))
   return pickTaxOrigin({
-    locations: [...byLocation.values()],
+    locations,
     defaultRegistration: fallback ?? null,
     storeState: input.storeState,
   })
+}
+
+/** Which of these GSTINs are under the composition scheme (they charge no GST). */
+export async function compositionRegistrations(
+  tx: StoreTx,
+  ids: readonly (string | null)[],
+): Promise<Set<string>> {
+  const wanted = [...new Set(ids.filter((id): id is string => id !== null))]
+  if (wanted.length === 0) return new Set()
+  const rows = await tx
+    .select({ id: gstRegistration.id })
+    .from(gstRegistration)
+    .where(
+      and(inArray(gstRegistration.id, wanted), eq(gstRegistration.registrationType, 'composition')),
+    )
+  return new Set(rows.map((r) => r.id))
 }
 
 /** Everything a GST document prints about the supplier, for one registration. */

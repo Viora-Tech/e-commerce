@@ -2,12 +2,14 @@
 
 import { formatCountdown, formatInZone } from '@commerce/dates'
 import { type ComponentType, useState, useTransition } from 'react'
-import { mainProductContent as copy } from '../data/glide/main-product'
-import { formatPaise } from '../money'
+import { mainProductContent as copy } from '../data/zero-drift/main-product'
+import { useFormatPaise } from '../money-format'
 import { safeHref } from '../slot-types'
+import { announceCartAdded, trackCommerce } from '../store-actions'
 import type { ProductDetail } from '../types'
 import { useReducedMotion } from '../use-reduced-motion'
 import Icon from './icon'
+import QuantityInput from './quantity-input'
 
 type ProductBuyButtonsProps = {
   product: ProductDetail
@@ -27,7 +29,10 @@ type ProductBuyButtonsProps = {
 const ui = copy.ui
 
 // The `buy_buttons` block: snippets/buy-buttons.liquid plus our launch countdown, pre-order
-// notes (ship date, deposit split) and the back-in-stock form for a sold-out variant.
+// notes (ship date, deposit split) and, for a sold-out variant, the theme's sold-out panel
+// (snippets/product-notify) with the back-in-stock form in place of the buttons. Laid out
+// as Figma Section / Product (705:122778): the quantity beside an outline Add to cart, then a
+// full-width Buy it now that adds and goes straight to checkout.
 export default function ProductBuyButtons({
   product,
   variant,
@@ -40,17 +45,40 @@ export default function ProductBuyButtons({
   preorderLink,
 }: ProductBuyButtonsProps) {
   // Hooks
+  const formatPaise = useFormatPaise()
   const [pending, startTransition] = useTransition()
   const [added, setAdded] = useState(false)
+  const [quantity, setQuantity] = useState(1)
   const reduceMotion = useReducedMotion()
+
+  // Helpers
+  const reportAdd = (variantId: string, pricePaise: number) =>
+    trackCommerce({
+      name: 'AddToCart',
+      productId: product.id,
+      variantId,
+      valuePaise: pricePaise * quantity,
+      numItems: quantity,
+    })
 
   // Event handlers
   const handleAdd = () => {
     if (!variant || !onAddToCart) return
     startTransition(async () => {
-      await onAddToCart(variant.id, 1)
+      await onAddToCart(variant.id, quantity)
+      reportAdd(variant.id, variant.pricePaise)
+      announceCartAdded()
       setAdded(true)
       setTimeout(() => setAdded(false), 2000)
+    })
+  }
+
+  const handleBuyNow = () => {
+    if (!variant || !onAddToCart) return
+    startTransition(async () => {
+      await onAddToCart(variant.id, quantity)
+      reportAdd(variant.id, variant.pricePaise)
+      window.location.assign('/checkout')
     })
   }
 
@@ -67,20 +95,23 @@ export default function ProductBuyButtons({
         : isPreorder
           ? (preorder?.buttonLabel ?? ui.preorderLabel)
           : ui.addToCart
-  const soldOut = Boolean(variant) && !isPreorder && (variant?.available ?? 0) <= 0
-  const notify = !launching && soldOut && variant && NotifyMe && notifyMeProps
+  // Sold out and not on pre-order: the panel takes the buy buttons' place (the theme's
+  // snippets/product-notify), with the back-in-stock form when the app is installed.
+  const soldOut = Boolean(variant) && !variant?.purchasable && !isPreorder && !launching
+  const allSoldOut = soldOut && product.variants.every((v) => !v.purchasable)
+  const notify = soldOut && variant && NotifyMe && notifyMeProps ? variant.id : null
   const availability = isPreorder
     ? ui.availablePreorder
     : !variant || variant.available <= 0
-      ? notify
-        ? ''
-        : ui.notifyWhenBack
+      ? ''
       : stockBarShown
         ? ''
         : variant.available > 5
           ? ui.inStockShips
           : ui.onlyLeft(variant.available)
   const updatesHref = isPreorder && preorderLink ? safeHref(preorderLink) : null
+  // A plain sale (not a launch countdown or a pre-order) gets the quantity and Buy it now.
+  const buyable = Boolean(variant?.purchasable) && !launching && !isPreorder
 
   return (
     <div className="product-info__buy">
@@ -108,27 +139,69 @@ export default function ProductBuyButtons({
           {ui.nonRefundable(preorder.nonRefundableDepositDays)}
         </p>
       ) : null}
-      <div className="buy-buttons" data-buy-buttons>
-        <div className="buy-buttons__row">
-          <button
-            type="button"
-            className={`btn btn--primary buy-buttons__submit${pending ? ' is-loading' : ''}${isPreorder ? ' buy-buttons__submit--preorder' : ''}`}
-            disabled={!variant?.purchasable || launching || pending || !onAddToCart}
-            onClick={handleAdd}
-          >
-            <span className="btn__label">{buyLabel}</span>
-          </button>
+      {soldOut ? (
+        <div className="product-notify product-notify--sold-out" data-buy-buttons>
+          <div className="product-notify__head">
+            <span className="status-chip status-chip--out">
+              <span className="status-chip__dot" aria-hidden="true" />
+              {ui.soldOut}
+            </span>
+            <p className="product-notify__heading h4">{ui.soldOutHeading}</p>
+            <p className="product-notify__text text-body">
+              {notify
+                ? allSoldOut
+                  ? ui.soldOutAllNotify
+                  : ui.soldOutOneNotify
+                : allSoldOut
+                  ? ui.soldOutAll
+                  : ui.soldOutOne}
+            </p>
+          </div>
+          {notify && NotifyMe && notifyMeProps ? (
+            <NotifyMe key={notify} variantId={notify} {...notifyMeProps} />
+          ) : null}
+        </div>
+      ) : (
+        <div className="buy-buttons" data-buy-buttons>
+          <div className="buy-buttons__row">
+            {buyable ? (
+              <QuantityInput
+                value={quantity}
+                onChange={setQuantity}
+                max={variant?.available && variant.available < 999 ? variant.available : undefined}
+                disabled={pending}
+                className="buy-buttons__quantity"
+              />
+            ) : null}
+            <button
+              type="button"
+              className={`btn ${buyable ? 'btn--secondary' : 'btn--primary'} buy-buttons__submit${pending ? ' is-loading' : ''}${isPreorder ? ' buy-buttons__submit--preorder' : ''}`}
+              disabled={!variant?.purchasable || launching || pending || !onAddToCart}
+              onClick={handleAdd}
+            >
+              <span className="btn__label">{buyLabel}</span>
+            </button>
+          </div>
+          {buyable ? (
+            <button
+              type="button"
+              className="btn btn--primary buy-buttons__buy-now"
+              disabled={pending || !onAddToCart}
+              onClick={handleBuyNow}
+            >
+              <span className="btn__label">{ui.buyNow}</span>
+            </button>
+          ) : null}
           {added ? (
-            <a href="/cart" className="btn btn--secondary">
+            <a href="/cart" className="buy-buttons__view-cart text-small">
               {ui.viewCart}
             </a>
           ) : null}
         </div>
-      </div>
+      )}
       {!launching && variant && availability ? (
         <p className="buy-buttons__availability text-small">{availability}</p>
       ) : null}
-      {notify ? <NotifyMe key={variant.id} variantId={variant.id} {...notifyMeProps} /> : null}
       {updatesHref ? (
         <a href={updatesHref} className="product-info__preorder-link text-small">
           {ui.preorderUpdates}

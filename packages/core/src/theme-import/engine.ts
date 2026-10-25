@@ -1,6 +1,6 @@
 /** SOURCE OF TRUTH: the Liquid engine for imported themes — WHAT: one LiquidJS instance per imported theme, its snippets served from memory, the Shopify-only tags (form, style, stylesheet, javascript, doc, schema, content_for, paginate, section, sections, layout) and the render limits / WHY: a theme's Liquid is untrusted merchant code; it runs here with no file system, no network and capped time and memory, and every form it draws posts to our own handlers instead of Shopify's */
 import {
-  type Context,
+  Context,
   type Emitter,
   evalToken,
   Hash,
@@ -12,10 +12,14 @@ import {
   type Tokenizer,
   type TopLevelToken,
   TypeGuards,
+  toValueSync,
   Value,
   type ValueToken,
 } from 'liquidjs'
+import { CommerceError } from '../errors'
+import { AssignTag } from './assign-tag'
 import { escapeAttr, type LiquidRuntime, registerShopifyFilters, stringifyLiquid } from './filters'
+import { MAX_BLOCK_DEPTH } from './schema'
 
 /** Where the forms a theme draws post to: our handlers, never Shopify's endpoints. */
 const THEME_ACTIONS = {
@@ -32,10 +36,18 @@ export type LiquidHooks = {
   /** `{% sections 'header-group' %}`: the layout leaves a marker the storefront fills. */
   renderGroup?: ((name: string) => string) | undefined
   /** `{% content_for 'blocks' %}` and `{% content_for 'block' %}`: theme blocks. */
-  renderThemeBlock?: ((block: unknown, section: unknown, ctx: Context) => string) | undefined
+  renderThemeBlock?:
+    | ((block: unknown, section: unknown, ctx: Context, depth: number) => string)
+    | undefined
   /** `?form_posted=<type>` on the request, so `form.posted_successfully?` is true after a post. */
   postedForm?: string | null | undefined
+  /** False when the Forms app is not installed: `{% form 'contact' %}` shows a plain notice instead. */
+  formsAvailable?: boolean | undefined
 }
+
+/** What a contact form shows when the Forms app is not installed for the store. */
+const FORM_UNAVAILABLE =
+  '<p class="form-unavailable" role="status">This form is not available right now.</p>'
 
 export type EngineRuntime = LiquidRuntime & LiquidHooks
 
@@ -154,6 +166,10 @@ class FormTag extends Tag {
     const object = this.args.object ? yield evalToken(this.args.object, ctx) : null
     const hash = (yield this.args.hash.render(ctx)) as Record<string, unknown>
     const target = FORM_ACTION[type] ?? { action: '#', method: 'get' }
+    if (type === 'contact' && runtime(ctx).formsAvailable === false) {
+      emitter.write(FORM_UNAVAILABLE)
+      return
+    }
     const attrs: Record<string, unknown> = {
       method: target.method ?? 'post',
       action: target.action,
@@ -165,9 +181,11 @@ class FormTag extends Tag {
     }
     if (type === 'product') attrs.enctype = 'multipart/form-data'
     const posted = runtime(ctx).postedForm === type
+    // A post we rejected comes back as `?form_posted=<type>_error`: the form shows its errors.
+    const failed = runtime(ctx).postedForm === `${type}_error`
     const formObject = {
       id: hash.id ?? `${type}_form`,
-      errors: null,
+      errors: failed ? ['form'] : null,
       email: '',
       body: '',
       name: '',
@@ -186,6 +204,12 @@ class FormTag extends Tag {
     }
     if (typeof hash.return_to === 'string') {
       hidden.push(`<input type="hidden" name="return_to" value="${escapeAttr(hash.return_to)}" />`)
+    }
+    // Spam trap for the contact form: a field a person never sees, so only a script fills it.
+    if (type === 'contact') {
+      hidden.push(
+        '<div hidden aria-hidden="true"><input type="text" name="contact_website" tabindex="-1" autocomplete="off" value="" /></div>',
+      )
     }
     ctx.push({ form: formObject })
     const inner = (yield this.liquid.renderer.renderTemplates(this.templates, ctx)) as string
@@ -260,6 +284,17 @@ class SectionsTag extends Tag {
   }
 }
 
+/**
+ * Scope keys a theme block's render carries: the block itself (whose `content_for 'blocks'`
+ * lists its own children) and how deep it sits.
+ */
+export const BLOCK_SCOPE = {
+  parent: 'commerce_parent_block',
+  depth: 'commerce_block_depth',
+} as const
+
+type BlockOwner = { blocks?: { id?: string; type?: string }[] } | null | undefined
+
 /** `{% content_for 'blocks' %}` (the section's theme blocks) and `{% content_for 'block', type: 'x', id: 'y' %}`. */
 class ContentForTag extends Tag {
   kind: ValueToken | undefined
@@ -274,22 +309,26 @@ class ContentForTag extends Tag {
     const render = runtime(ctx).renderThemeBlock
     if (!render) return
     const section = yield ctx._get(['section'])
+    // INVARIANT: inside a theme block the children are that block's own (a tab's contents),
+    // never the section's: the section's list holds the block itself and would loop forever.
+    const parent = (yield ctx._get([BLOCK_SCOPE.parent])) as BlockOwner
+    const depth = Number(yield ctx._get([BLOCK_SCOPE.depth])) || 0
+    if (depth >= MAX_BLOCK_DEPTH) return
+    const blocks = ((parent ?? section) as BlockOwner)?.blocks ?? []
     if (kind === 'blocks') {
-      const blocks = (section as { blocks?: unknown[] } | null)?.blocks ?? []
-      for (const block of blocks) emitter.write(render(block, section, ctx))
+      for (const block of blocks) emitter.write(render(block, section, ctx, depth + 1))
       return
     }
     if (kind === 'block') {
       const hash = (yield this.hash.render(ctx)) as Record<string, unknown>
       const id = stringifyLiquid(hash.id)
-      const blocks = (section as { blocks?: { id?: string; type?: string }[] } | null)?.blocks ?? []
       const found = blocks.find((b) => b.id === id) ?? {
         id,
         type: stringifyLiquid(hash.type),
         settings: {},
         shopify_attributes: '',
       }
-      emitter.write(render(found, section, ctx))
+      emitter.write(render(found, section, ctx, depth + 1))
     }
   }
 }
@@ -299,18 +338,104 @@ class NoopTag extends Tag {
   *render(): Generator<unknown, void, unknown> {}
 }
 
-/** Render limits for untrusted theme code: a runaway loop stops instead of holding a request. */
-const LIQUID_LIMITS = {
+/**
+ * The tag `bundle.ts` writes after every `<script` in a theme's source: the request's CSP
+ * nonce as an attribute (nothing in the editor, where there is none). Only source can hold
+ * a tag, so data a theme prints never gets a nonce.
+ */
+export const SCRIPT_NONCE_TAG = 'commerce_script_nonce'
+
+class ScriptNonceTag extends Tag {
+  render(ctx: Context, emitter: Emitter): void {
+    emitter.write(nonceAttr(runtime(ctx).nonce))
+  }
+}
+
+/**
+ * Render limits for untrusted theme code: a runaway loop stops instead of holding a request.
+ * Renders are synchronous (see `cache.ts`), so while one runs the whole server waits: every
+ * store on it, not just this one. The limits are CPU time, database reads are not in them
+ * (they happen between passes).
+ */
+export const LIQUID_LIMITS = {
+  /** Milliseconds one render pass may take. A real section takes a few. */
+  renderMs: 2_000,
   /**
-   * Milliseconds one render may take, database reads included (a section awaits the
-   * products it shows). Generous on purpose: this stops a runaway loop, not a slow disk.
+   * Milliseconds all the renders of one page context may take together (layout, every
+   * section, every pass): one request can never hold the server longer than this.
    */
-  renderMs: 20_000,
+  pageMs: 6_000,
+  /** Characters one render may write; a section bigger than this is a loop, not a page. */
+  outputChars: 4_000_000,
   /** Characters one template may have. */
   parseChars: 1_000_000,
   /** Rough memory units LiquidJS may allocate in one render. */
   memory: 50_000_000,
 } as const
+
+/** A render that ran out of its time or output budget. */
+class LiquidBudgetError extends CommerceError {
+  constructor(message: string) {
+    super('LIQUID_BUDGET', message)
+  }
+}
+
+/** The output of one render, refused once it passes `max` characters. */
+class CappedEmitter implements Emitter {
+  buffer = ''
+  readonly #max: number
+  constructor(max: number) {
+    this.#max = max
+  }
+  write(html: unknown): void {
+    this.buffer += stringifyLiquid(html)
+    if (this.buffer.length > this.#max) {
+      throw new LiquidBudgetError('a theme render wrote more than its output limit')
+    }
+  }
+}
+
+/** Time spent rendering for one page context, shared by every render it makes. */
+export type RenderBudget = { spentMs: number; since: number | null }
+
+export const newRenderBudget = (): RenderBudget => ({ spentMs: 0, since: null })
+
+/**
+ * `engine.renderSync`, held to the page's budget: at most `renderMs` for this pass and
+ * never past `pageMs` for the page, with the output capped. Nested renders (a static
+ * section or theme block inside a section) count once, inside their outer render.
+ */
+export function renderBounded(
+  engine: Liquid,
+  budget: RenderBudget,
+  tpl: Template[],
+  scope: object,
+  globals: object,
+): string {
+  const now = performance.now()
+  const nested = budget.since !== null
+  const used = budget.spentMs + (nested ? now - (budget.since as number) : 0)
+  const left = LIQUID_LIMITS.pageMs - used
+  if (left <= 0) throw new LiquidBudgetError('this page used up its theme render time')
+  if (!nested) budget.since = now
+  try {
+    const ctx = new Context(
+      scope,
+      engine.options,
+      { globals, sync: true, renderLimit: Math.min(LIQUID_LIMITS.renderMs, left) },
+      { liquid: engine },
+    )
+    const emitter = new CappedEmitter(LIQUID_LIMITS.outputChars)
+    return toValueSync(
+      engine.renderer.renderTemplates(tpl, ctx, emitter) as Generator<unknown, string, unknown>,
+    )
+  } finally {
+    if (!nested) {
+      budget.spentMs += performance.now() - now
+      budget.since = null
+    }
+  }
+}
 
 /**
  * A Liquid engine for one theme. `snippets` maps a snippet name (`icon-cart`) to its
@@ -333,6 +458,7 @@ export function createThemeEngine(snippets: Map<string, string>): Liquid {
     memoryLimit: LIQUID_LIMITS.memory,
   })
   registerShopifyFilters(engine)
+  engine.registerTag('assign', AssignTag)
   engine.registerTag('form', FormTag)
   engine.registerTag('paginate', PaginateTag)
   engine.registerTag('section', SectionTag)
@@ -341,6 +467,7 @@ export function createThemeEngine(snippets: Map<string, string>): Liquid {
   engine.registerTag('schema', SkipTag)
   engine.registerTag('doc', SkipTag)
   engine.registerTag('layout', NoopTag)
+  engine.registerTag(SCRIPT_NONCE_TAG, ScriptNonceTag)
   engine.registerTag('style', wrapTag('<style data-shopify>', '</style>'))
   engine.registerTag('stylesheet', wrapTag('<style>', '</style>'))
   engine.registerTag('javascript', wrapTag('<script>', '</script>'))

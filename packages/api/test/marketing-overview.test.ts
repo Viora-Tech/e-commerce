@@ -89,6 +89,10 @@ describe('marketing overview', () => {
     expect(kpi.attributed_sales).toBe(350000)
     expect(kpi.attributed_orders).toBe(2)
     expect(kpi.conversion).toBe(0.75)
+    // Sessions over time carries the period before, day by day, for the dashed line.
+    const sessions = o.kpis.find((k) => k.id === 'sessions')
+    expect(sessions?.previousSeries).toHaveLength(7)
+    expect(sessions?.previousSeries?.reduce((n, v) => n + v, 0)).toBe(0)
 
     const social = o.channels.find((c) => c.channel === 'social')
     expect(social).toMatchObject({ sessions: 2, orders: 1, salesPaise: 200000, conversion: 0.5 })

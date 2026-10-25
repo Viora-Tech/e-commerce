@@ -1,0 +1,87 @@
+---
+title: India Post
+description: Ship Speed Post parcels to every PIN code in India, booked at your post office, with our labels and COD.
+---
+
+# India Post
+
+India Post reaches every PIN code in India, including the ones private couriers skip. The
+India Post app prices each parcel from India Post's published Speed Post tariff, prints an
+address label with a barcode, and keeps the parcel's status on the order.
+
+<Callout type="info">
+  India Post has no booking or tracking API for online shops (its booking API is only for
+  contracted bulk customers). So you **book each parcel at the post office** and type the article
+  number from the receipt; the app does everything else.
+</Callout>
+
+## Set it up
+
+From **Apps**, install **India Post**, then open its **Connect** page.
+
+<Steps>
+
+### Enter your post office PIN code
+
+The PIN code of the post office where you hand in parcels. Rates and delivery times are worked
+out from it.
+
+### Add your business account, if you have one
+
+- **Speed Post customer ID**: your India Post business (BNPL) customer ID. It is printed on the
+  label.
+- **I have contract rates**: price parcels from India Post's contractual card instead of the
+  counter rates.
+- **Collect cash on delivery**: only if your India Post business account collects COD for you.
+  Add the **COD fee per parcel** from your agreement so the rate you see includes it.
+
+Without a business account, counter rates apply and every parcel is prepaid.
+
+### Optional: a data.gov.in API key
+
+Sign up free at [data.gov.in](https://www.data.gov.in), open **My Account** and copy your API
+key. With it the app looks each PIN code up in India Post's own directory and shows its post
+office and district. Without it, rates and delivery times still work.
+
+### Test and save
+
+**Test connection** checks the PIN code; nothing is booked.
+
+</Steps>
+
+## Ship an order
+
+1. Pack the parcel and book it at the post office counter as **Speed Post** (or Speed Post with
+   registration). Keep the receipt.
+2. In the admin, open the order and choose **Create shipment**. Pick **India Post Speed Post**
+   (or **Speed Post, registered**) in the courier list; the price shown is India Post's tariff
+   plus 18 % GST.
+3. Type the **article number** from the receipt, like `EE123456785IN`. Its last digits are a
+   check digit, so a typo is caught before it is saved.
+4. **Print label** opens a 4 × 6 inch label with the barcode, both addresses and, for COD, the
+   amount to collect.
+
+## Keep the status up to date
+
+India Post sends no tracking to apps, so open **Apps → India Post**. Each parcel on the way has
+a **Track on India Post** link (paste the article number there) and a status you set: booked,
+handed in, in transit, out for delivery, delivered or returned. **Delivered** closes the order
+and **Returned to you** starts the return (RTO) task, just like a courier scan. Shoppers see the
+same status and a link to India Post's tracker.
+
+## Rates and delivery times
+
+Rates come from India Post's Speed Post Parcel tariff effective 1 August 2026 (retail or
+contractual card), by weight and zone:
+
+| Zone | When | Delivery (India Post's standard) |
+| --- | --- | --- |
+| Local | Same city or district | 1-2 days |
+| Metro | Between Delhi, Mumbai, Kolkata, Chennai, Bengaluru and Hyderabad | 1-3 days |
+| Within state | Same state | 1-4 days |
+| Other states | Everywhere else | 4-5 days |
+| North East, J&K, Ladakh, islands | Charged as other states | 4-7 days (our estimate) |
+
+Delivery through a branch post office takes a day more, so the dates shown already include it.
+If your receipt shows a different price (a negotiated card), paste your own rates under
+**Connect → Your own rates**.

@@ -7,8 +7,9 @@ import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import StatusLabel from '@/components/status/status-label'
-import { notificationsSettingsContent as setupCopy } from '@/data/notifications'
+import OrderChip from '@/components/orders/order-chip'
+import { notificationsSettingsContent } from '@/data/notifications'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import type { ChannelStatusData } from './types'
 
@@ -19,13 +20,12 @@ type SendingCardProps = {
   platformEmail: boolean
 }
 
-const copy = setupCopy.sending
-
 const ICONS = { email: Inbox, whatsapp: MessageSquare }
 
 /** "How messages are sent": Email and WhatsApp, whether each is connected, and one button. */
 export default function SendingCard({ email, whatsapp, platformEmail }: SendingCardProps) {
   // Hooks
+  const { sending: copy } = useCopy(notificationsSettingsContent)
   const router = useRouter()
   const [opening, setOpening] = useState<string | null>(null)
 
@@ -64,11 +64,9 @@ export default function SendingCard({ email, whatsapp, platformEmail }: SendingC
                 <div className="flex min-w-0 flex-col gap-0.5">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-body font-medium text-foreground">{words.name}</p>
-                    <StatusLabel
+                    <OrderChip
                       kind="app"
                       value={connected || viaPlatform ? 'connected' : 'notConnected'}
-                      variant="pill"
-                      size="sm"
                       label={viaPlatform ? copy.state.platform : copy.state[c.state]}
                     />
                   </div>

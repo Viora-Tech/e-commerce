@@ -1,0 +1,260 @@
+'use client'
+
+import { Bell, CancelCircle, CircleCheck, Copy, Package, PackageCheck } from '@commerce/ui/icons'
+import { useState } from 'react'
+import { toast } from 'sonner'
+import TagInput from '@/components/fields/tag-input'
+import type { ActionItem } from '@/components/layout/action-menu'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
+import SendMessageDialog, { type CustomMessage } from '@/components/orders/send-message-dialog'
+import RowMenu from '@/components/table/row-menu'
+import { orderDetailContent } from '@/data/order-detail'
+import { ordersContent } from '@/data/orders'
+import { shipmentPanelContent } from '@/data/shipping'
+import { useCopy } from '@/hooks/use-copy'
+import { api } from '@/lib/api-client'
+import { canRemindToPay, MOVE_ACTION, nextOrderMove, type OrderMove } from '@/lib/order-next-move'
+import { routes } from '@/lib/routes'
+
+type OrderRowMenuProps = {
+  order: {
+    id: string
+    number: number
+    status: string
+    paymentStatus: string
+    paymentMethod: string | null
+    fulfillmentStatus: string | null
+    tags: string[] | null
+  }
+  /** The row's own items (open, new tab, same customer). */
+  items: readonly ActionItem[]
+  /** Installed apps' actions for this order; shown last under one "Apps" heading. */
+  appItems: readonly ActionItem[]
+  /** Every tag used on the store's orders, offered while typing. */
+  tagSuggestions: readonly string[]
+  /** The list re-reads its rows after a change here. */
+  onChanged: () => void
+}
+
+type Dialog = 'cancelOrder' | 'cancelShipment' | 'addTags' | 'removeTags' | 'remind' | null
+
+const SHIPPABLE = ['unfulfilled', 'partially_fulfilled']
+/** Booked with a courier but not yet in the shopper's hands. */
+const BOOKED = ['fulfilled', 'shipped']
+const PAID = ['paid', 'partially_paid']
+
+const MOVE_ICON = { paid: CircleCheck, fulfilled: PackageCheck, delivered: Package } as const
+
+/**
+ * The ⋯ menu on an order row, Shopify style: open, the order's next move (paid, fulfilled,
+ * delivered), a payment reminder, shipping, cancel, tags, copy the number, and the installed
+ * apps last under one "Apps" heading. Each item shows only when it applies; cancel and cancel
+ * shipment ask first, and the reminder opens the "Review email" step.
+ */
+export default function OrderRowMenu({
+  order,
+  items,
+  appItems,
+  tagSuggestions,
+  onChanged,
+}: OrderRowMenuProps) {
+  // Hooks
+  const detail = useCopy(orderDetailContent)
+  const list = useCopy(ordersContent)
+  const shipping = useCopy(shipmentPanelContent)
+  const [dialog, setDialog] = useState<Dialog>(null)
+  const [tags, setTags] = useState<string[]>([])
+
+  // Event handlers
+  const handleMove = async (to: OrderMove) => {
+    try {
+      await api.orders.setStatus({ id: order.id, status: to })
+      toast.success(detail.moved(list.marks[to].toLowerCase()))
+      onChanged()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : list.bulk.failed)
+    }
+  }
+
+  const handleSendReminder = async (custom: CustomMessage | undefined) => {
+    try {
+      await api.orders.sendPaymentReminder({ orderId: order.id, custom })
+      toast.success(detail.payment.transfer.sentToast)
+      onChanged()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : list.bulk.failed)
+    }
+  }
+
+  const handleCopyNumber = async () => {
+    await navigator.clipboard.writeText(`#${order.number}`).catch(() => undefined)
+    toast.success(list.row.numberCopied)
+  }
+
+  const handleCancelOrder = async () => {
+    try {
+      await api.orders.setStatus({ id: order.id, status: 'cancelled' })
+      toast.success(detail.moved(list.marks.cancelled.toLowerCase()))
+      onChanged()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : list.bulk.failed)
+    }
+  }
+
+  const handleCancelShipment = async () => {
+    try {
+      const full = await api.orders.get({ id: order.id })
+      const shipmentId = full?.shipment?.id
+      if (!shipmentId) return void toast.error(list.row.noShipment)
+      await api.orders.cancelShipment({ shipmentId })
+      toast.success(shipping.cancelled)
+      onChanged()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : list.bulk.failed)
+    }
+  }
+
+  const handleSaveTags = async () => {
+    const lower = new Set(tags.map((t) => t.toLowerCase()))
+    const next =
+      dialog === 'addTags'
+        ? [
+            ...current,
+            ...tags.filter((t) => !current.some((c) => c.toLowerCase() === t.toLowerCase())),
+          ]
+        : current.filter((t) => !lower.has(t.toLowerCase()))
+    try {
+      await api.orders.setTags({ id: order.id, tags: next })
+      toast.success(list.row.tagsSaved)
+      onChanged()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : list.bulk.failed)
+    }
+  }
+
+  const openTags = (kind: 'addTags' | 'removeTags') => {
+    setTags([])
+    setDialog(kind)
+  }
+
+  // Render logic
+  const open = order.status === 'open'
+  const current = order.tags ?? []
+  const fulfilment = order.fulfillmentStatus ?? 'unfulfilled'
+  const canShip =
+    open &&
+    SHIPPABLE.includes(fulfilment) &&
+    (PAID.includes(order.paymentStatus) || order.paymentMethod === 'cod')
+  const canCancelShipment = open && BOOKED.includes(fulfilment)
+  const cancellable = open && fulfilment !== 'delivered'
+  const move = nextOrderMove(order.status, order.paymentStatus, order.fulfillmentStatus)
+  const remindable = canRemindToPay(order)
+
+  const tagging = dialog === 'addTags' || dialog === 'removeTags'
+
+  return (
+    <>
+      <RowMenu
+        items={[
+          ...items,
+          {
+            label: move ? detail.actions[MOVE_ACTION[move]] : '',
+            icon: move ? MOVE_ICON[move] : undefined,
+            hidden: !move,
+            separatorBefore: true,
+            onSelect: () => move && handleMove(move),
+          },
+          {
+            label: detail.payment.transfer.send,
+            icon: Bell,
+            hidden: !remindable,
+            onSelect: () => setDialog('remind'),
+          },
+          {
+            label: list.row.createShipment,
+            href: routes.orders.ship(order.id),
+            hidden: !canShip,
+            separatorBefore: true,
+          },
+          {
+            label: list.row.cancelShipment,
+            hidden: !canCancelShipment,
+            onSelect: () => setDialog('cancelShipment'),
+          },
+          {
+            label: detail.actions.cancel,
+            icon: CancelCircle,
+            destructive: true,
+            hidden: !cancellable,
+            onSelect: () => setDialog('cancelOrder'),
+          },
+          {
+            label: list.row.addTags,
+            separatorBefore: true,
+            onSelect: () => openTags('addTags'),
+          },
+          {
+            label: list.row.removeTags,
+            hidden: current.length === 0,
+            onSelect: () => openTags('removeTags'),
+          },
+          {
+            label: list.row.copyNumber,
+            icon: Copy,
+            onSelect: handleCopyNumber,
+          },
+          ...appItems.map((item, i) => ({
+            ...item,
+            heading: i === 0 ? list.row.apps : undefined,
+          })),
+        ]}
+      />
+      <ConfirmDialog
+        open={dialog === 'cancelOrder'}
+        onOpenChange={(o) => !o && setDialog(null)}
+        title={detail.cancelDialog.title}
+        body={detail.cancelDialog.body}
+        confirmLabel={detail.cancelDialog.confirm}
+        cancelLabel={detail.cancelDialog.keep}
+        stopPropagation
+        onConfirm={handleCancelOrder}
+      />
+      <ConfirmDialog
+        open={dialog === 'cancelShipment'}
+        onOpenChange={(o) => !o && setDialog(null)}
+        title={list.row.cancelShipmentTitle}
+        body={list.row.cancelShipmentBody}
+        confirmLabel={list.row.cancelShipmentConfirm}
+        cancelLabel={list.row.keepShipment}
+        stopPropagation
+        onConfirm={handleCancelShipment}
+      />
+      <ConfirmDialog
+        open={tagging}
+        onOpenChange={(o) => !o && setDialog(null)}
+        title={dialog === 'removeTags' ? list.row.removeTagsTitle : list.row.addTagsTitle}
+        body={list.row.tagsBody}
+        confirmLabel={list.row.tagsSave}
+        cancelLabel={list.row.tagsCancel}
+        tone="default"
+        confirmDisabled={tags.length === 0}
+        stopPropagation
+        onConfirm={handleSaveTags}
+      >
+        <TagInput
+          id={`order-tags-${order.id}`}
+          tags={tags}
+          suggestions={dialog === 'removeTags' ? current : tagSuggestions}
+          onChange={setTags}
+        />
+      </ConfirmDialog>
+      <SendMessageDialog
+        orderId={dialog === 'remind' ? order.id : null}
+        template="payment_reminder"
+        stopPropagation
+        onSend={handleSendReminder}
+        onClose={() => setDialog(null)}
+      />
+    </>
+  )
+}

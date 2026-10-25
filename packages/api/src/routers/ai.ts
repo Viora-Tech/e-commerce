@@ -4,6 +4,9 @@ import {
   ASSISTANT_MAX_MESSAGE,
   ASSISTANT_PAGES,
   BULK_WRITE_FIELDS,
+  SEO_KEYWORD_LENGTH_MAX,
+  SEO_KEYWORDS_MAX,
+  ThemeOutlineSchema,
   WRITER_LANGUAGES,
   WRITER_TONES,
   WRITING_QUALITIES,
@@ -19,22 +22,49 @@ import {
 import { aiStoreFacts } from '@commerce/core/ai-runtime'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
+import type { ApiContext } from '../context'
 import type { StoreScope } from '../procedures'
 import { BULK_MAX, can, canAny, canDetached, PAGE_SIZE_MAX, storeProcedure } from '../procedures'
 import { ProposalProblem } from '../services/ai/assistant/actions/resolve'
 import type { ActionEnv } from '../services/ai/assistant/actions/types'
 import { runAssistant } from '../services/ai/assistant/assistant'
-import { ACTION_PERMISSIONS, ASSISTANT_PERMISSIONS } from '../services/ai/assistant/registry'
+import {
+  ACTION_PERMISSIONS,
+  APPROVE_PERMISSIONS,
+  ASSISTANT_PERMISSIONS,
+} from '../services/ai/assistant/registry'
 import {
   approveAction,
   cancelAction,
+  getAction,
   listActivity,
   reviseAction,
   undoAction,
 } from '../services/ai/assistant/service'
 import { startBulkWrite } from '../services/ai/bulk.service'
 import { writeProduct } from '../services/ai/product-writer'
+import { suggestKeywords } from '../services/ai/seo-keywords'
 import { aiSettingsView, aiStatus, saveAiSettings } from '../services/ai/settings.service'
+
+const SeoKeywords = z
+  .array(z.string().trim().min(1).max(SEO_KEYWORD_LENGTH_MAX))
+  .max(SEO_KEYWORDS_MAX)
+  .default([])
+
+const SuggestKeywordsInput = z.object({
+  /** The saved product, for the Search Console queries of its page; null while it is new. */
+  productId: z.uuid().nullable().default(null),
+  title: z.string().trim().min(1).max(255),
+  productType: z.string().trim().max(255).default(''),
+  vendor: z.string().trim().max(255).default(''),
+  categoryId: z.string().trim().max(40).nullable().default(null),
+  /** The description as plain text. */
+  description: z.string().trim().max(5000).default(''),
+  minPricePaise: z.number().int().min(0).nullable().default(null),
+  maxPricePaise: z.number().int().min(0).nullable().default(null),
+  /** Keywords the product has now, so the suggestions build on them. */
+  current: SeoKeywords,
+})
 
 const WriteProductInput = z.object({
   title: z.string().trim().min(1).max(255),
@@ -45,6 +75,8 @@ const WriteProductInput = z.object({
   /** The current description as plain text, so the writer improves on it rather than starting over. */
   existingDescription: z.string().trim().max(5000).default(''),
   existingTags: z.array(z.string().trim().max(60)).max(50).default([]),
+  /** The product's search keywords, primary first: they steer the search title and description. */
+  keywords: SeoKeywords,
   /** The product's media in gallery order; the first few photos are sent. */
   mediaIds: z.array(z.uuid()).max(20).default([]),
   tone: z.enum(WRITER_TONES).default('friendly'),
@@ -63,27 +95,37 @@ const AssistantInput = z.object({
     .object({ page: z.enum(ASSISTANT_PAGES), entityId: z.uuid().nullable().default(null) })
     .default({ page: 'other', entityId: null }),
   language: z.enum(['en', 'hi']).default('en'),
+  /**
+   * In the theme editor: the open page's outline (sections, simple settings, current values),
+   * so the assistant can answer about the page and propose edits to it. Data, never instructions.
+   */
+  theme: ThemeOutlineSchema.optional(),
 })
 
 const ActionId = z.object({ id: z.uuid() })
 
 const BulkFields = z.array(z.enum(BULK_WRITE_FIELDS)).min(1).max(BULK_WRITE_FIELDS.length)
 
-type ActionContext = {
+type ActionContext = ApiContext & {
   tx: ActionEnv['tx']
   scope: StoreScope
   session: { user: { email: string } }
 }
 
-/** What an approve, edit, cancel or undo runs with: the caller's RLS transaction and who they are. */
+/**
+ * What an approve, edit, cancel or undo runs with: the caller's RLS transaction, who they are,
+ * and their own request, so an approved `runAdminAction` calls the admin procedure as them.
+ */
 async function actionEnv(context: ActionContext): Promise<ActionEnv> {
+  const { tx, scope, session, ...api } = context
   return {
-    tx: context.tx,
-    storeId: context.scope.storeId,
-    userId: context.scope.userId,
-    email: context.session.user.email,
-    store: await aiStoreFacts(context.tx, context.scope.storeId),
+    tx,
+    storeId: scope.storeId,
+    userId: scope.userId,
+    email: session.user.email,
+    store: await aiStoreFacts(tx, scope.storeId),
     now: new Date(),
+    api,
   }
 }
 
@@ -126,6 +168,11 @@ export const aiRouter = {
     .input(WriteProductInput)
     .handler(({ context, input, signal }) => writeProduct(context, input, signal)),
 
+  /** "Suggest keywords" on the product page's Search keywords card. Suggests only: nothing is saved. */
+  suggestKeywords: canDetached(permissions.PRODUCTS_WRITE)
+    .input(SuggestKeywordsInput)
+    .handler(({ context, input, signal }) => suggestKeywords(context, input, signal)),
+
   /**
    * The AI bar on every admin page: a streamed answer (oRPC event iterator). Open to a member
    * whose role allows at least one assistant tool; each tool is offered only with its own
@@ -138,14 +185,14 @@ export const aiRouter = {
     ),
 
   /** Approve on a proposal card: runs it with the caller's permission for that action. */
-  approveAction: canAny(ACTION_PERMISSIONS)
+  approveAction: canAny(APPROVE_PERMISSIONS)
     .input(ActionId)
     .handler(async ({ context, input }) =>
       approveAction(await actionEnv(context), context.scope, input.id),
     ),
 
   /** Edit on a proposal card: the merchant's changes, checked like the model's input. */
-  reviseAction: canAny(ACTION_PERMISSIONS)
+  reviseAction: canAny(APPROVE_PERMISSIONS)
     .input(
       z.object({
         id: z.uuid(),
@@ -161,7 +208,7 @@ export const aiRouter = {
       ),
     ),
 
-  cancelAction: canAny(ACTION_PERMISSIONS)
+  cancelAction: canAny(APPROVE_PERMISSIONS)
     .input(ActionId)
     .handler(async ({ context, input }) => cancelAction(await actionEnv(context), input.id)),
 
@@ -171,6 +218,15 @@ export const aiRouter = {
     .handler(async ({ context, input }) =>
       undoAction(await actionEnv(context), context.scope, input.id),
     ),
+
+  /** One AI action with its card, for "Open approval" from the MCP & API activity log. */
+  action: canAny(ACTION_PERMISSIONS)
+    .input(ActionId)
+    .handler(async ({ context, input }) => {
+      const view = await getAction({ storeId: context.scope.storeId, tx: context.tx }, input.id)
+      if (!view) throw new ORPCError('NOT_FOUND', { message: 'That AI action was not found.' })
+      return view
+    }),
 
   /** Settings → AI → Activity: every AI action in the store, newest first. */
   activity: can(permissions.SETTINGS_READ)

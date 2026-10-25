@@ -2,6 +2,7 @@
 
 import { MANUAL_PAYMENT_METHODS, type ManualPaymentMethod } from '@commerce/core/manual-payments'
 import { parseRupees } from '@commerce/money'
+import { CircleCheck, ExternalLink } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -17,7 +18,7 @@ import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
 import Link from 'next/link'
 import { type FormEvent, useState } from 'react'
 import { toast } from 'sonner'
-import { orderDetailContent } from '@/data/orders'
+import { orderDetailContent } from '@/data/order-detail'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { todayKey } from '@/lib/format-date'
@@ -169,7 +170,13 @@ export default function CollectPaymentDialog({
           </div>
           <DialogFooter>
             {gateway ? (
-              <Button type="button" variant="outline" render={<Link href={payHref} />}>
+              <Button
+                nativeButton={false}
+                type="button"
+                variant="outline"
+                render={<Link href={payHref} />}
+              >
+                <ExternalLink aria-hidden="true" />
                 {copy.collectDialog.openPayPage}
               </Button>
             ) : null}
@@ -177,6 +184,7 @@ export default function CollectPaymentDialog({
               {copy.collectDialog.cancel}
             </Button>
             <Button type="submit" disabled={!valid || busy}>
+              <CircleCheck aria-hidden="true" />
               {copy.collectDialog.confirm}
             </Button>
           </DialogFooter>

@@ -1,6 +1,7 @@
 'use client'
 
-import { Newspaper, Plus, SquarePlus } from '@commerce/ui/icons'
+import { siteConfig } from '@commerce/config/site'
+import { Pencil } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
@@ -10,15 +11,25 @@ import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import ArticleBulkActions from '@/components/blog/article-bulk-actions'
 import { articleColumns } from '@/components/blog/article-columns'
-import ArticleFilters from '@/components/blog/article-filters'
-import ConfirmDeleteArticles from '@/components/blog/confirm-delete-articles'
-import KitListPage from '@/components/kit/kit-list-page'
-import PillTabs from '@/components/layout/pill-tabs'
-import ResourceTable, { type AppliedFilter } from '@/components/table/resource-table'
-import { ARTICLE_TABS, type ArticleTab, blogListContent as copy } from '@/data/blog'
+import ArticleRowMenu from '@/components/blog/article-row-menu'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
+import ProoflyListPage from '@/components/layout/proofly-list-page'
+import {
+  appliedFromGroups,
+  clearGroups,
+  FILTER_PANEL_CLASS,
+  type FilterGroup,
+  FilterPanel,
+} from '@/components/table/filter-panel'
+import ResourceTable from '@/components/table/resource-table'
+import ViewSelect from '@/components/table/view-select'
+import { ARTICLE_TABS, type ArticleTab, blogListContent } from '@/data/blog'
+import { filterPanelContent } from '@/data/filter-panel'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { LIST_PER_PAGE, type ListQuery, sameListQuery } from '@/lib/list-query'
+import { type ListQuery, sameListQuery } from '@/lib/list-query'
 import { usePrimaryAction } from '@/lib/primary-action'
+import { routes } from '@/lib/routes'
 
 type ListResult = Awaited<ReturnType<typeof api.blog.list>>
 type Counts = Awaited<ReturnType<typeof api.blog.counts>>
@@ -27,6 +38,7 @@ type Blogs = Awaited<ReturnType<typeof api.blog.blogs>>
 /** First page rendered on the server so the table never paints empty. */
 export type BlogPostsInitial = {
   query: ListQuery<ArticleTab>
+  perPage: number
   result: ListResult
   counts: Counts
   blogs: Blogs
@@ -35,20 +47,21 @@ export type BlogPostsInitial = {
 
 type Query = {
   page: number
+  perPage: number
   query: string
   status: ArticleTab | null
   blog: string | null
   tag: string | null
 }
 
-type Pending = { ids: string[]; clear: () => void }
+type BlogPostsPageProps = { initial: BlogPostsInitial; storefrontOrigin: string }
 
-const PER_PAGE = LIST_PER_PAGE
+type Pending = { ids: string[]; clear: () => void }
 
 function listInput(q: Query) {
   return {
     page: q.page,
-    perPage: PER_PAGE,
+    perPage: q.perPage,
     query: q.query || undefined,
     status: q.status ?? ('all' as const),
     blogId: q.blog ?? undefined,
@@ -56,13 +69,17 @@ function listInput(q: Query) {
   }
 }
 
-function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
+function BlogPostsContent({ initial, storefrontOrigin }: BlogPostsPageProps) {
   // Hooks
-  usePrimaryAction('/content/blog-posts/new')
+  const copy = useCopy(blogListContent)
+  const panelCopy = useCopy(filterPanelContent)
+  const fmt = useFormat()
+  usePrimaryAction(routes.content.newBlogPost())
   const [q, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
       page: parseAsInteger.withDefault(1),
+      perPage: parseAsInteger.withDefault(siteConfig.ui.rowsPerPage.default),
       status: parseAsStringLiteral(ARTICLE_TABS),
       blog: parseAsString,
       tag: parseAsString,
@@ -76,7 +93,9 @@ function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
   const [deleting, setDeleting] = useState<Pending | null>(null)
 
   useEffect(() => {
-    const same = sameListQuery({ page: q.page, query: q.query, status: q.status }, initial.query)
+    const same =
+      sameListQuery({ page: q.page, query: q.query, status: q.status }, initial.query) &&
+      q.perPage === initial.perPage
     if (same && !q.blog && !q.tag) {
       setResult(initial.result)
       return
@@ -90,7 +109,7 @@ function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
     return () => {
       cancelled = true
     }
-  }, [q, initial.query, initial.result])
+  }, [q, initial.query, initial.perPage, initial.result])
 
   // Helpers
   const refresh = async () => {
@@ -130,43 +149,45 @@ function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
 
   // Render logic
   const blogOptions = initial.blogs.map((b) => ({ value: b.id, label: b.title }))
-  const blogLabel = blogOptions.find((b) => b.value === q.blog)?.label ?? q.blog
-  const applied = [
-    q.blog && {
+  const groups: FilterGroup[] = [
+    {
       key: 'blog',
-      label: `${copy.filters.blog}: ${blogLabel}`,
-      onRemove: () => setQ({ blog: null, page: 1 }),
+      label: copy.filters.blog,
+      type: 'select',
+      options: blogOptions,
+      value: q.blog,
+      onChange: (blog) => setQ({ blog, page: 1 }),
+      anyLabel: copy.filters.any,
     },
-    q.tag && {
+    {
       key: 'tag',
-      label: `${copy.filters.tag}: ${q.tag}`,
-      onRemove: () => setQ({ tag: null, page: 1 }),
+      label: copy.filters.tag,
+      type: 'select',
+      options: initial.tags.map((t) => ({ value: t, label: t })),
+      value: q.tag,
+      onChange: (tag) => setQ({ tag, page: 1 }),
+      anyLabel: copy.filters.any,
     },
-  ].filter(Boolean) as AppliedFilter[]
+  ]
 
   return (
-    <KitListPage
+    <ProoflyListPage
       title={copy.heading}
+      summary={copy.summary(counts.all, counts.published, counts.scheduled, counts.draft)}
       actions={
         <>
           <Button
             variant="outline"
-            size="lg"
-            render={<Link href="/content/blog-posts/blogs" />}
             nativeButton={false}
+            render={<Link href={routes.content.blogs()} />}
           >
-            <Newspaper strokeWidth={1.6} />
             {copy.manageBlogs}
           </Button>
           <Tooltip>
             <TooltipTrigger
               render={
-                <Button
-                  size="lg"
-                  render={<Link href="/content/blog-posts/new" />}
-                  nativeButton={false}
-                >
-                  <SquarePlus strokeWidth={1.6} />
+                <Button nativeButton={false} render={<Link href={routes.content.newBlogPost()} />}>
+                  <Pencil strokeWidth={1.6} />
                   {copy.add}
                 </Button>
               }
@@ -179,41 +200,42 @@ function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
       }
     >
       <ResourceTable
-        size="frame"
         resourceName={copy.resource}
-        columns={articleColumns}
+        columns={articleColumns(copy, fmt)}
         items={result.rows}
         getId={(a) => a.id}
-        href={(a) => `/content/blog-posts/${a.id}`}
+        href={(a) => routes.content.blogPost(a.id)}
+        rowActions={(a) => (
+          <ArticleRowMenu article={a} storefrontOrigin={storefrontOrigin} onChanged={refresh} />
+        )}
         loading={loading}
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ query: '', status: null, blog: null, tag: null, page: 1 })}
-        filters={
-          <ArticleFilters
-            values={{ blog: q.blog, tag: q.tag }}
-            blogs={blogOptions}
-            tags={initial.tags}
-            onChange={(patch) => setQ({ ...patch, page: 1 })}
-            onClear={() => setQ({ blog: null, tag: null, page: 1 })}
+        filters={(close) => (
+          <FilterPanel
+            groups={groups}
+            onClear={() => clearGroups(groups)}
+            footer={{ label: panelCopy.show(result.total), onDone: close }}
           />
-        }
-        applied={applied}
-        tabs={
-          <PillTabs
-            size="frame"
+        )}
+        filtersClassName={FILTER_PANEL_CLASS}
+        applied={appliedFromGroups(groups, panelCopy)}
+        views={
+          <ViewSelect
             value={q.status}
             onChange={(status) => setQ({ status, page: 1 })}
-            tabs={[
+            options={[
               { value: null, label: copy.tabs.all, count: counts.all },
               ...ARTICLE_TABS.map((s) => ({ value: s, label: copy.tabs[s], count: counts[s] })),
             ]}
           />
         }
         page={q.page}
-        perPage={PER_PAGE}
+        perPage={q.perPage}
         total={result.total}
         onPageChange={(page) => setQ({ page })}
+        onPerPageChange={(perPage) => setQ({ perPage, page: 1 })}
         bulkActions={(ids, clear) => (
           <ArticleBulkActions
             busy={busy}
@@ -238,29 +260,32 @@ function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
           heading: copy.empty.heading,
           body: copy.empty.body,
           action: (
-            <Button render={<Link href="/content/blog-posts/new" />} nativeButton={false}>
-              <Plus />
+            <Button nativeButton={false} render={<Link href={routes.content.newBlogPost()} />}>
+              <Pencil strokeWidth={1.6} />
               {copy.add}
             </Button>
           ),
         }}
       />
 
-      <ConfirmDeleteArticles
-        count={deleting?.ids.length ?? 0}
+      <ConfirmDialog
         open={deleting !== null}
-        busy={busy}
         onOpenChange={(open) => !open && setDeleting(null)}
+        title={copy.bulk.confirmDelete.title(deleting?.ids.length ?? 0)}
+        body={copy.bulk.confirmDelete.body}
+        confirmLabel={copy.bulk.confirmDelete.confirm}
+        cancelLabel={copy.bulk.confirmDelete.cancel}
+        busy={busy}
         onConfirm={handleConfirmDelete}
       />
-    </KitListPage>
+    </ProoflyListPage>
   )
 }
 
-export default function BlogPostsPage({ initial }: { initial: BlogPostsInitial }) {
+export default function BlogPostsPage({ initial, storefrontOrigin }: BlogPostsPageProps) {
   return (
     <Suspense>
-      <BlogPostsContent initial={initial} />
+      <BlogPostsContent initial={initial} storefrontOrigin={storefrontOrigin} />
     </Suspense>
   )
 }

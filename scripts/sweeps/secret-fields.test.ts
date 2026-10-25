@@ -23,9 +23,17 @@ import { whatsappFactory } from '@commerce/notifications-whatsapp'
 import { cashfreeFactory } from '@commerce/payments-cashfree'
 import { decentroFactory } from '@commerce/payments-decentro'
 import { razorpayFactory } from '@commerce/payments-razorpay'
+import { bluedartFactory } from '@commerce/shipping-bluedart'
 import { delhiveryFactory } from '@commerce/shipping-delhivery'
+import { dhlExpressFactory } from '@commerce/shipping-dhl-express'
+import { dtdcFactory } from '@commerce/shipping-dtdc'
+import { ekartFactory } from '@commerce/shipping-ekart'
+import { fedexFactory } from '@commerce/shipping-fedex'
+import { indiaPostFactory } from '@commerce/shipping-indiapost'
 import { rapidshypFactory } from '@commerce/shipping-rapidshyp'
+import { shadowfaxFactory } from '@commerce/shipping-shadowfax'
 import { shiprocketFactory } from '@commerce/shipping-shiprocket'
+import { xpressbeesFactory } from '@commerce/shipping-xpressbees'
 import { r2Factory } from '@commerce/storage-r2'
 import { s3Factory } from '@commerce/storage-s3'
 import { describe, expect, it } from 'vitest'
@@ -57,6 +65,14 @@ describe('sweep: secret-fields', () => {
       delhiveryFactory,
       shiprocketFactory,
       rapidshypFactory,
+      bluedartFactory,
+      dtdcFactory,
+      indiaPostFactory,
+      xpressbeesFactory,
+      ekartFactory,
+      shadowfaxFactory,
+      dhlExpressFactory,
+      fedexFactory,
       sesFactory,
       whatsappFactory,
       r2Factory,

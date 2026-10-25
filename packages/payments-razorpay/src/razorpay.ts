@@ -8,12 +8,13 @@ import type {
   PaymentProvider,
   PaymentProviderFactory,
   PaymentStatus,
-  WebhookEvent,
   WebhookVerification,
 } from '@commerce/payments'
 import { safeEqual } from '@commerce/payments'
 import Razorpay from 'razorpay'
+import { fetchCharges, type RzpPayment } from './charges'
 import { refreshOAuthConfig } from './oauth'
+import { normaliseRazorpayWebhook, type RzpWebhookBody } from './webhook-events'
 
 export type RazorpayConfig = {
   /** API key id, or the OAuth `public_token` (rzp_test_oauth_...) when connected with OAuth. */
@@ -170,43 +171,6 @@ function hmacHex(secret: string, body: string): string {
   return createHmac('sha256', secret).update(body).digest('hex')
 }
 
-export type RzpPayment = {
-  id: string
-  order_id?: string | null
-  amount: number
-  status: string
-  error_description?: string | null
-  notes?: Record<string, string> | null
-}
-
-/** Razorpay's QR code entity, the fields we read. Notes may arrive as `[]` when empty. */
-export type RzpQrCode = {
-  id: string
-  status: string
-  image_url: string
-  payment_amount?: number | null
-  payments_amount_received?: number | null
-  close_by?: number | null
-  close_reason?: string | null
-  notes?: Record<string, string> | null
-}
-
-type RzpWebhookBody = {
-  event?: string
-  payload?: {
-    payment?: { entity?: RzpPayment }
-    refund?: { entity?: { id: string; amount: number; payment_id: string } }
-    qr_code?: { entity?: RzpQrCode }
-  }
-}
-
-/** A QR closes as `paid` once its single payment lands; that close is not a failure. */
-export function qrWasPaid(qr: RzpQrCode): boolean {
-  if (qr.close_reason === 'paid') return true
-  const due = Number(qr.payment_amount ?? 0)
-  return due > 0 && Number(qr.payments_amount_received ?? 0) >= due
-}
-
 /**
  * Razorpay adapter. Order-first flow: we create a Razorpay order for the
  * amount, the browser opens Checkout with that order id, the handler posts
@@ -216,9 +180,11 @@ export function qrWasPaid(qr: RzpQrCode): boolean {
 export class RazorpayProvider implements PaymentProvider {
   readonly id: string = 'razorpay'
   readonly label: string = 'UPI, cards, netbanking (Razorpay)'
+  readonly mode: 'test' | 'live' | undefined
   protected readonly client: Razorpay
 
   constructor(protected readonly config: RazorpayConfig) {
+    this.mode = razorpayMode(config.keyId) ?? undefined
     // An OAuth connection calls the API as the merchant with a Bearer token;
     // pasted keys use basic auth. The SDK supports both (`oauthToken`).
     this.client = isOAuthConfig(config)
@@ -297,6 +263,11 @@ export class RazorpayProvider implements PaymentProvider {
     }
   }
 
+  /** The payment's fee and card details, asked of Razorpay (read-only). */
+  fetchCharges(input: { providerRef: string; providerPaymentId: string }) {
+    return fetchCharges(this.client, input.providerPaymentId)
+  }
+
   /** "Test connection": lists one order, which needs working keys and creates nothing. */
   async testConnection(): Promise<ConnectionTestResult> {
     try {
@@ -354,91 +325,7 @@ export class RazorpayProvider implements PaymentProvider {
     const eventId = entityId
       ? `${body.event}:${entityId}`
       : (input.headers['x-razorpay-event-id'] ?? `${body.event}:unknown`)
-    return { ok: true, eventId, event: this.normalise(body) }
-  }
-
-  /**
-   * Checkout payments always belong to a Razorpay order we created (`providerRef`); one
-   * without an order was made outside our checkout (anyone can open Checkout with the
-   * public key id and put an attempt's `idempotencyKey` in its notes), so it is ignored.
-   */
-  private normalise(body: RzpWebhookBody): WebhookEvent {
-    const pay = body.payload?.payment?.entity
-    const qr = body.payload?.qr_code?.entity
-    const orderId = pay?.notes?.orderId ?? qr?.notes?.orderId ?? null
-    const idempotencyKey = pay?.notes?.idempotencyKey ?? qr?.notes?.idempotencyKey ?? null
-    switch (body.event) {
-      // A single-use UPI QR was paid: the QR id is the attempt's reference.
-      case 'qr_code.credited':
-        if (!pay || !qr) break
-        return {
-          type: 'payment.captured',
-          providerRef: qr.id,
-          providerPaymentId: pay.id,
-          idempotencyKey,
-          amountPaise: Number(pay.amount),
-          orderId,
-          raw: body,
-        }
-      // Closed unpaid (expired or closed by hand): the attempt failed, the shopper can get a new QR.
-      case 'qr_code.closed':
-        if (!qr || qrWasPaid(qr)) break
-        return {
-          type: 'payment.failed',
-          providerRef: qr.id,
-          providerPaymentId: null,
-          idempotencyKey,
-          reason: `UPI QR closed unpaid (${qr.close_reason ?? 'expired'})`,
-          orderId,
-          raw: body,
-        }
-      case 'payment.captured':
-        if (!pay?.order_id) break
-        return {
-          type: 'payment.captured',
-          providerRef: pay.order_id ?? '',
-          providerPaymentId: pay.id,
-          idempotencyKey,
-          amountPaise: Number(pay.amount),
-          orderId,
-          raw: body,
-        }
-      case 'payment.authorized':
-        if (!pay?.order_id) break
-        return {
-          type: 'payment.authorized',
-          providerRef: pay.order_id ?? '',
-          providerPaymentId: pay.id,
-          idempotencyKey,
-          amountPaise: Number(pay.amount),
-          orderId,
-          raw: body,
-        }
-      case 'payment.failed':
-        if (!pay?.order_id) break
-        return {
-          type: 'payment.failed',
-          providerRef: pay.order_id ?? '',
-          providerPaymentId: pay.id,
-          idempotencyKey,
-          reason: pay.error_description ?? 'failed',
-          orderId,
-          raw: body,
-        }
-      case 'refund.processed': {
-        const r = body.payload?.refund?.entity
-        if (!r) break
-        return {
-          type: 'refund.processed',
-          providerRef: pay?.order_id ?? '',
-          providerRefundId: r.id,
-          amountPaise: Number(r.amount),
-          orderId,
-          raw: body,
-        }
-      }
-    }
-    return { type: 'ignored', eventName: body.event ?? 'unknown', raw: body }
+    return { ok: true, eventId, event: normaliseRazorpayWebhook(body) }
   }
 }
 

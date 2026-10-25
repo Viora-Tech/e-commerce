@@ -1,15 +1,22 @@
 import type { MerchantAuth } from '@commerce/auth'
 import type {
   AiBulkQueue,
+  ApiPrincipal,
   AppEventQueue,
   AppJobQueue,
+  ChannelSyncQueue,
   MediaProcessQueue,
   NotificationQueue,
+  PlatformCodeSender,
+  PurchaseDocumentQueue,
   RateLimitStore,
   StoreExportQueue,
 } from '@commerce/core'
+import type { AutomationStepQueue } from '@commerce/core/automations/server'
+import type { PubSubPublisher } from '@commerce/core/inbox/server'
 import type { Db } from '@commerce/db'
 import type { ErrorReporter } from '@commerce/observability'
+import type { RequestMemo } from './procedures/request-memo'
 
 /** What the host (admin app) provides per request. */
 export type ApiContext = {
@@ -28,12 +35,31 @@ export type ApiContext = {
   storeExport?: StoreExportQueue | undefined
   /** Bulk "Write with AI" runs, worked through by the worker. Absent in tests: the run happens in the request. */
   aiBulk?: AiBulkQueue | undefined
+  /** AI reads of uploaded purchase documents, done by the worker. Absent in tests: the read happens in the request. */
+  purchaseDocuments?: PurchaseDocumentQueue | undefined
+  /** Sales-channel catalog syncs (after Connect, "Sync now"). Absent in tests: nothing is queued. */
+  channelSync?: ChannelSyncQueue | undefined
+  /** Automations step jobs (Run automation, approvals, retry). Absent in tests: the worker's tick picks the runs up. */
+  automationSteps?: AutomationStepQueue | undefined
   /** Live storefront visitors from Dragonfly; absent in tests, the dashboard then shows zeros. */
   visitors?: VisitorSource
   /** Reports an unexpected procedure error (never an intentional ORPCError) to Sentry. No-op in tests. */
   reportError?: ErrorReporter | undefined
   /** Backs per-store rate limits (e.g. the Connect page's "Test connection" button). Falls back to an in-process store when absent, which is fine for tests but not for a multi-instance deployment. */
   rateLimit?: RateLimitStore | undefined
+  /** The platform email account for account notices (email changed). Absent: the process's own (`getPlatformEmail`). Tests pass a fake. */
+  platformEmail?: PlatformCodeSender | undefined
+  /** One request's session and membership answers, shared by every call in it. Absent (tests,
+   *  scripts): each call looks them up itself. Never reuse one across requests. */
+  memo?: RequestMemo | undefined
+  /** Set only by the bearer-token routes (`/api/v1`): the access token's member and what the
+   *  token allows. Store procedures then run as that member, capped by the token's areas;
+   *  account and other session-only procedures refuse it (`procedures/base.ts`). */
+  apiPrincipal?: ApiPrincipal | undefined
+  /** Inbox realtime: publishes to Redis pub/sub after a write commits. Absent in tests: nothing is published (clients catch up by replay or polling). */
+  inboxPublisher?: PubSubPublisher | undefined
+  /** `fetch` for GitHub's issues API ("Report a bug"). Absent: the global fetch. Tests pass a fake so they never reach GitHub. */
+  githubFetch?: typeof fetch | undefined
 }
 
 export type LiveVisitors = {

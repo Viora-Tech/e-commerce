@@ -1,5 +1,5 @@
 import type { TemplateData } from '../types'
-import type { TaxLine } from './components'
+import type { ParcelsBlockProps, TaxLine } from './components'
 import {
   Body,
   CodeBlock,
@@ -8,6 +8,7 @@ import {
   Heading,
   ItemsTable,
   LinkLine,
+  ParcelsBlock,
   PrimaryButton,
   TotalsBlock,
 } from './components'
@@ -20,10 +21,14 @@ export type TransactionalEmailProps = {
   eyebrow: string
   heading: string
   intro: string
+  /** The merchant's own note for a hand-sent message, shown under the intro. */
+  note?: string | undefined
   outro: string
   lines: TemplateData['lines']
   totalLabel?: string | undefined
   taxBreakdown?: TaxLine[] | undefined
+  /** "Ships in 2 parcels", already in words. */
+  parcels?: ParcelsBlockProps | undefined
   giftCard?: TemplateData['giftCard']
   code?: string | undefined
   primaryAction?: { label: string; url: string } | undefined
@@ -44,10 +49,12 @@ export function TransactionalEmail({
   eyebrow,
   heading,
   intro,
+  note,
   outro,
   lines,
   totalLabel,
   taxBreakdown,
+  parcels,
   giftCard,
   code,
   primaryAction,
@@ -64,6 +71,12 @@ export function TransactionalEmail({
       <Eyebrow>{eyebrow}</Eyebrow>
       <Heading>{heading}</Heading>
       <Body>{intro}</Body>
+      {note
+        ?.split(/\n+/)
+        .filter(Boolean)
+        .map((p) => (
+          <Body key={p}>{p}</Body>
+        ))}
       {code ? <CodeBlock code={code} /> : null}
       {giftCard ? (
         <GiftCardBlock
@@ -76,6 +89,7 @@ export function TransactionalEmail({
       {lines.length > 0 && totalLabel ? (
         <TotalsBlock totalLabel={totalLabel} taxBreakdown={taxBreakdown} />
       ) : null}
+      {parcels ? <ParcelsBlock {...parcels} /> : null}
       <Body>{outro}</Body>
       {primaryAction ? (
         <PrimaryButton href={primaryAction.url}>{primaryAction.label}</PrimaryButton>

@@ -1,6 +1,6 @@
 import { type RefObject, useEffect, useRef } from 'react'
-import { HERO_CAROUSEL } from '../data/glide/hero-carousel'
 import { HERO, remToPx } from '../data/motion'
+import { HERO_CAROUSEL } from '../data/zero-drift/hero-carousel'
 import { loadMotion } from '../lazy-motion'
 
 /** The rest opacity a child returns to after its entrance (the subheading stays muted). */

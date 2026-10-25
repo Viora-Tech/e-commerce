@@ -203,12 +203,12 @@ describe('dashboard.summary', () => {
       expect.objectContaining({ title: 'Mouse', pricePaise: 100000, imageUrl: null }),
     ])
 
-    // Needs you: o1 (today) and o4 (9 days ago) are paid but unfulfilled; o2 is unpaid so it
-    // does not count; o3 is cancelled. Today's briefing only counts o1.
+    // Needs you: the same rule as the Unfulfilled list it opens, so o1 (today), o2 (unpaid) and
+    // o4 (9 days ago) count; o3 is cancelled. Today's briefing counts only o1, placed today.
     expect(s.today.ordersCount).toBe(1)
     expect(s.today.salesPaise).toBe(100000)
     expect(s.today.toShipCount).toBe(1)
-    expect(s.needsYou.ordersToShip.count).toBe(2)
+    expect(s.needsYou.ordersToShip.count).toBe(3)
     expect(s.needsYou.ordersToShip.href).toBe('/orders?status=unfulfilled')
     expect(s.needsYou.upiToVerify.count).toBe(0)
     expect(s.needsYou.gstQueued).toBeNull()
@@ -323,6 +323,44 @@ describe('dashboard.summary', () => {
     expect(s.liveVisitors).toEqual({ last30: 4, perMinute })
   })
 
+  it("judges low stock by the store's own threshold, the same on the dashboard and product list", async () => {
+    const a = await merchant('a@example.com', 'store-a')
+    const [p] = await owner
+      .insert(product)
+      .values({ storeId: a.storeId, handle: 'pad', title: 'Pad', status: 'active' })
+      .returning()
+    const [v] = await owner
+      .insert(variant)
+      .values({
+        storeId: a.storeId,
+        productId: p?.id as string,
+        title: 'Default',
+        pricePaise: 1000,
+      })
+      .returning()
+    await owner
+      .insert(inventoryLevel)
+      .values({ storeId: a.storeId, variantId: v?.id as string, onHand: 8, reserved: 0 })
+    const low = () =>
+      call(appRouter.products.list, { stock: 'low', page: 1, perPage: 10 }, { context: a.ctx })
+
+    // 8 left is fine at the default threshold of 5.
+    expect(
+      (await call(appRouter.dashboard.summary, undefined, { context: a.ctx })).lowStock,
+    ).toEqual([])
+    expect((await low()).total).toBe(0)
+
+    await owner.update(store).set({ lowStockThreshold: 10 }).where(eq(store.id, a.storeId))
+    const s = await call(appRouter.dashboard.summary, undefined, { context: a.ctx })
+    expect(s.lowStock).toEqual([expect.objectContaining({ title: 'Pad', available: 8 })])
+    expect(s.needsYou.lowStock.count).toBe(1)
+    expect((await low()).total).toBe(1)
+    expect((await call(appRouter.products.stats, undefined, { context: a.ctx })).lowStock).toBe(1)
+    expect(
+      (await call(appRouter.products.facets, undefined, { context: a.ctx })).lowStockThreshold,
+    ).toBe(10)
+  })
+
   it('is all zeros for an empty store', async () => {
     const a = await merchant('a@example.com', 'store-a')
     const s = await call(appRouter.dashboard.summary, undefined, { context: a.ctx })
@@ -339,14 +377,15 @@ describe('dashboard.summary', () => {
       ordersCount: 0,
       salesPaise: 0,
       toShipCount: 0,
+      visitors: 0,
       hourly: Array.from({ length: 24 }, () => 0),
     })
     expect(s.needsYou).toEqual({
-      ordersToShip: { count: 0, href: '/orders?status=unfulfilled' },
+      ordersToShip: { count: 0, href: '/orders?status=unfulfilled', oldestAt: null },
       upiToVerify: { count: 0, href: '/orders?status=pending_upi' },
       gstQueued: null,
-      lowStock: { count: 0, href: '/products/inventory' },
-      preorderBalanceDue: { count: 0, href: '/orders' },
+      lowStock: { count: 0, href: '/stock/inventory' },
+      preorderBalanceDue: { count: 0, href: '/orders?status=balance_due' },
       failedDeliveries: null,
     })
     expect(s.insight).toEqual({ salesChange: null, bestSeller: null })

@@ -6,7 +6,14 @@ import {
 } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
 import { type Db, withStore } from '@commerce/db'
-import { fairProcessor, type IORedis, QUEUE_LIMITS, Queue, Worker } from '@commerce/queue'
+import {
+  fairProcessor,
+  type IORedis,
+  KEEP_FINISHED,
+  QUEUE_LIMITS,
+  Queue,
+  Worker,
+} from '@commerce/queue'
 
 /**
  * Builds a requested full-store export (Settings → General → "Your store's data"): every
@@ -39,9 +46,9 @@ export function createStoreExportWorker(
         provider,
         secret: opts.settingsSecret,
       })
-      console.log(`[store-export] store=${storeId} export=${exportId} ready`)
+      // The job's wide event records the finished export with its storeId and exportId.
     }),
-    { connection, concurrency: QUEUE_LIMITS.storeExport.concurrency },
+    { connection, concurrency: QUEUE_LIMITS.storeExport.concurrency, ...KEEP_FINISHED },
   )
   return { queue, worker }
 }

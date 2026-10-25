@@ -1,97 +1,66 @@
 'use client'
 
-import { LayoutGrid, MoreHorizontal, SquarePlus } from '@commerce/ui/icons'
+import { siteConfig } from '@commerce/config/site'
+import { ExternalLink, LayoutGrid, Pencil, Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card } from '@commerce/ui/shadcn/card'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
-import { Kbd } from '@commerce/ui/shadcn/kbd'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useState } from 'react'
 import { toast } from 'sonner'
-import CollectionCards from '@/components/collections/collection-cards'
-import { collectionProductColumns } from '@/components/collections/collection-columns'
-import CollectionTiles from '@/components/collections/collection-tiles'
-import DeleteProductDialog from '@/components/collections/delete-product-dialog'
-import KitListPage from '@/components/kit/kit-list-page'
-import EmptyState from '@/components/layout/empty-state'
-import PillTabs from '@/components/layout/pill-tabs'
-import ResourceTable, { type AppliedFilter } from '@/components/table/resource-table'
-import { collectionsListContent as copy } from '@/data/collections'
+import { collectionListColumns } from '@/components/collections/collection-list-columns'
+import CollectionTiles, { type CollectionTab } from '@/components/collections/collection-tiles'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
+import ProoflyListPage from '@/components/layout/proofly-list-page'
+import ResourceTable from '@/components/table/resource-table'
+import RowMenu from '@/components/table/row-menu'
+import ViewSelect from '@/components/table/view-select'
+import { bulkActionsContent } from '@/data/bulk-actions'
+import { collectionFormContent, collectionsListContent } from '@/data/collections'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { usePrimaryAction } from '@/lib/primary-action'
+import { routes } from '@/lib/routes'
+import { runBatched, toastOutcome } from '@/lib/run-batched'
 
-type ProductsResult = Awaited<ReturnType<typeof api.collections.products>>
 type Collections = Awaited<ReturnType<typeof api.collections.list>>
-type Stats = Awaited<ReturnType<typeof api.collections.stats>>
-type Product = ProductsResult['items'][number]
+type Row = Collections[number]
 
 export type CollectionsInitial = {
   collections: Collections
-  stats: Stats
-  products: ProductsResult
+  /** The store's public origin, for the row menu's "View on store". */
+  storefrontOrigin: string
 }
 
-/** Frame 5:4205: ten rows per page under the category cards. */
-const PER_PAGE = 10
-const TABS = ['featured', 'onSale', 'outOfStock'] as const
+const TABS = ['automatic', 'manual', 'empty'] as const
+
+function inTab(row: Row, tab: CollectionTab | null): boolean {
+  if (tab === 'automatic') return row.kind === 'automatic'
+  if (tab === 'manual') return row.kind === 'manual'
+  if (tab === 'empty') return row.productCount === 0
+  return true
+}
 
 function CollectionsContent({ initial }: { initial: CollectionsInitial }) {
   // Hooks
-  usePrimaryAction('/products/collections/new')
+  const copy = useCopy(collectionsListContent)
+  const { delete: deleteCopy } = useCopy(collectionFormContent)
+  const fmt = useFormat()
+  usePrimaryAction(routes.products.newCollection())
   const [q, setQ] = useQueryStates(
     {
-      collection: parseAsString,
       query: parseAsString.withDefault(''),
       tab: parseAsStringLiteral(TABS),
       page: parseAsInteger.withDefault(1),
+      perPage: parseAsInteger.withDefault(siteConfig.ui.rowsPerPage.default),
     },
     { shallow: true },
   )
-  const [result, setResult] = useState(initial.products)
-  const [loading, setLoading] = useState(false)
-  const [deleting, setDeleting] = useState<Product | null>(null)
-
-  useEffect(() => {
-    const untouched = !q.collection && q.query === '' && !q.tab && q.page === 1
-    if (untouched) {
-      setResult(initial.products)
-      return
-    }
-    let cancelled = false
-    setLoading(true)
-    api.collections
-      .products({
-        collectionId: q.collection ?? undefined,
-        search: q.query || undefined,
-        tab: q.tab ?? undefined,
-        page: q.page,
-        perPage: PER_PAGE,
-      })
-      .then((r) => !cancelled && setResult(r))
-      .finally(() => !cancelled && setLoading(false))
-    return () => {
-      cancelled = true
-    }
-  }, [q, initial.products])
-
-  // Helpers
-  const refresh = async () => {
-    const r = await api.collections.products({
-      collectionId: q.collection ?? undefined,
-      search: q.query || undefined,
-      tab: q.tab ?? undefined,
-      page: q.page,
-      perPage: PER_PAGE,
-    })
-    setResult(r)
-  }
+  const [rows, setRows] = useState(initial.collections)
+  const shared = useCopy(bulkActionsContent)
+  const [deleting, setDeleting] = useState<Row | null>(null)
+  const [bulkDeleting, setBulkDeleting] = useState<{ ids: string[]; clear: () => void } | null>(
+    null,
+  )
 
   // Event handlers
   const handleConfirmDelete = async () => {
@@ -99,133 +68,142 @@ function CollectionsContent({ initial }: { initial: CollectionsInitial }) {
     if (!target) return
     setDeleting(null)
     try {
-      await api.products.delete({ id: target.id })
-      toast.success(copy.rowActions.remove)
-      await refresh()
+      await api.collections.delete({ id: target.id })
+      setRows((prev) => prev.filter((r) => r.id !== target.id))
+      toast.success(copy.list.deleted)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.rowActions.remove)
+      toast.error(err instanceof Error ? err.message : copy.list.deleteFailed)
     }
   }
 
+  const handleBulkDelete = async () => {
+    if (!bulkDeleting) return
+    const { ids, clear } = bulkDeleting
+    const outcome = await runBatched(ids, (id) => api.collections.delete({ id }))
+    toastOutcome(outcome, shared.summary)
+    clear()
+    setRows(await api.collections.list())
+  }
+
   // Render logic
-  const selected = initial.collections.find((c) => c.id === q.collection) ?? null
-  const applied: AppliedFilter[] = selected
-    ? [
-        {
-          key: 'collection',
-          label: copy.filteredBy(selected.title),
-          onRemove: () => setQ({ collection: null, page: 1 }),
-        },
-      ]
-    : []
+  const stats = {
+    total: rows.length,
+    automatic: rows.filter((r) => r.kind === 'automatic').length,
+    manual: rows.filter((r) => r.kind === 'manual').length,
+    empty: rows.filter((r) => r.productCount === 0).length,
+  }
+  const needle = q.query.trim().toLowerCase()
+  const matching = rows.filter(
+    (r) => inTab(r, q.tab) && (needle === '' || r.title.toLowerCase().includes(needle)),
+  )
+  const pageRows = matching.slice((q.page - 1) * q.perPage, q.page * q.perPage)
 
   return (
-    <KitListPage
-      title={copy.heading}
+    <ProoflyListPage
+      title={copy.title}
+      summary={copy.summary(stats.total, stats.automatic, stats.empty)}
       actions={
-        <>
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button variant="outline" size="lg">
-                  {copy.moreActions}
-                  <MoreHorizontal strokeWidth={1.6} />
-                </Button>
-              }
-            />
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem render={<Link href="/products/new" />}>{copy.add}</DropdownMenuItem>
-              <DropdownMenuItem render={<Link href="/products" />}>
-                {copy.allProducts}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button
-                  size="lg"
-                  render={<Link href="/products/collections/new" />}
-                  nativeButton={false}
-                >
-                  <SquarePlus strokeWidth={1.6} />
-                  {copy.newCollection}
-                </Button>
-              }
-            />
-            <TooltipContent>
-              {copy.newCollection} <Kbd>N</Kbd>
-            </TooltipContent>
-          </Tooltip>
-        </>
+        <Button render={<Link href={routes.products.newCollection()} />} nativeButton={false}>
+          <Plus strokeWidth={1.6} />
+          {copy.newCollection}
+        </Button>
       }
-      strip={
-        <>
-          <CollectionTiles stats={initial.stats} />
-          {initial.collections.length === 0 ? (
-            <Card className="mt-6">
-              <EmptyState
-                icon={LayoutGrid}
-                heading={copy.noCollections.heading}
-                body={copy.noCollections.body}
-                action={
-                  <Button render={<Link href="/products/collections/new" />} nativeButton={false}>
-                    {copy.noCollections.action}
-                  </Button>
-                }
-              />
-            </Card>
-          ) : (
-            <div className="mt-6">
-              <CollectionCards
-                collections={initial.collections}
-                selectedId={q.collection}
-                onSelect={(collection) => setQ({ collection, page: 1 })}
-              />
-            </div>
-          )}
-        </>
+      stats={
+        rows.length === 0 ? undefined : (
+          <CollectionTiles stats={stats} tab={q.tab} onSelect={(tab) => setQ({ tab, page: 1 })} />
+        )
       }
     >
       <ResourceTable
-        size="frame"
-        resourceName={copy.resource}
-        columns={collectionProductColumns<Product>((p) => setDeleting(p))}
-        items={result.items}
-        getId={(p) => p.id}
-        href={(p) => `/products/${p.id}`}
-        loading={loading}
+        resourceName={copy.list.resource}
+        columns={collectionListColumns(copy.list, fmt)}
+        items={pageRows}
+        getId={(c) => c.id}
+        href={(c) => routes.products.collection(c.id)}
+        rowActions={(c) => (
+          <RowMenu
+            items={[
+              { label: copy.list.row.edit, icon: Pencil, href: routes.products.collection(c.id) },
+              {
+                label: copy.list.row.viewOnStore,
+                icon: ExternalLink,
+                href: `${initial.storefrontOrigin}/collections/${c.handle}`,
+                newTab: true,
+                hidden: c.status !== 'active',
+              },
+              {
+                label: copy.list.row.delete,
+                icon: Trash2,
+                destructive: true,
+                onSelect: () => setDeleting(c),
+              },
+            ]}
+          />
+        )}
+        selectable
+        bulkActions={(ids, clear) => (
+          <Button variant="outline" size="sm" onClick={() => setBulkDeleting({ ids, clear })}>
+            <Trash2 aria-hidden="true" />
+            {copy.list.bulk.delete}
+          </Button>
+        )}
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
-        onClearAll={() => setQ({ query: '', tab: null, collection: null, page: 1 })}
-        applied={applied}
-        selectable={false}
-        tabs={
-          <PillTabs
-            size="frame"
+        onClearAll={() => setQ({ query: '', tab: null, page: 1 })}
+        views={
+          <ViewSelect
             value={q.tab}
             onChange={(tab) => setQ({ tab, page: 1 })}
-            tabs={[
-              { value: null, label: copy.tabs.all, count: initial.products.total },
-              { value: 'featured', label: copy.tabs.featured },
-              { value: 'onSale', label: copy.tabs.onSale },
-              { value: 'outOfStock', label: copy.tabs.outOfStock },
+            options={[
+              { value: null, label: copy.list.tabs.all, count: stats.total },
+              { value: 'automatic', label: copy.list.tabs.automatic, count: stats.automatic },
+              { value: 'manual', label: copy.list.tabs.manual, count: stats.manual },
+              { value: 'empty', label: copy.list.tabs.empty, count: stats.empty },
             ]}
           />
         }
         page={q.page}
-        perPage={PER_PAGE}
-        total={result.total}
+        perPage={q.perPage}
+        total={matching.length}
         onPageChange={(page) => setQ({ page })}
-        empty={{ heading: copy.empty.heading, body: copy.empty.body }}
+        onPerPageChange={(perPage) => setQ({ perPage, page: 1 })}
+        empty={
+          rows.length === 0
+            ? {
+                heading: copy.noCollections.heading,
+                body: copy.noCollections.body,
+                action: (
+                  <Button
+                    render={<Link href={routes.products.newCollection()} />}
+                    nativeButton={false}
+                  >
+                    <LayoutGrid />
+                    {copy.noCollections.action}
+                  </Button>
+                ),
+              }
+            : { heading: copy.list.empty.heading, body: copy.list.empty.body }
+        }
       />
-
-      <DeleteProductDialog
-        product={deleting}
-        onCancel={() => setDeleting(null)}
-        onConfirm={handleConfirmDelete}
+      <ConfirmDialog
+        open={deleting !== null}
+        onOpenChange={(open) => !open && setDeleting(null)}
+        title={deleteCopy.heading}
+        body={deleteCopy.body}
+        confirmLabel={deleteCopy.confirm}
+        cancelLabel={deleteCopy.cancel}
+        onConfirm={() => void handleConfirmDelete()}
       />
-    </KitListPage>
+      <ConfirmDialog
+        open={bulkDeleting !== null}
+        onOpenChange={(open) => !open && setBulkDeleting(null)}
+        title={copy.list.bulk.title(bulkDeleting?.ids.length ?? 0)}
+        body={copy.list.bulk.body}
+        confirmLabel={copy.list.bulk.confirm}
+        cancelLabel={copy.list.bulk.cancel}
+        onConfirm={handleBulkDelete}
+      />
+    </ProoflyListPage>
   )
 }
 

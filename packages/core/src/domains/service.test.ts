@@ -3,8 +3,10 @@ import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { createDevDomainProvider, DEV_SSL_ISSUE_MS } from './dev-provider'
+import { createDnsDomainProvider } from './dns-provider'
 import {
   connectDomain,
+  createDomainProvider,
   DomainError,
   domainView,
   listDomains,
@@ -141,6 +143,46 @@ describe('verifyDomain with the dev provider', () => {
   })
 })
 
+describe('verifyDomain with the dns provider', () => {
+  it('builds the dns provider by id and refuses unknown ones', () => {
+    expect(createDomainProvider('dns').id).toBe('dns')
+    expect(() => createDomainProvider('edge')).toThrow(DomainError)
+  })
+
+  it('routes a real domain once DNS and the certificate check out, and keeps it on a timeout', async () => {
+    const storeId = await seedStore('w')
+    const [d] = await connect(storeId, 'kuldeepsaini.com')
+    const id = d?.id as string
+    const token = d?.verificationToken as string
+    let tlsOk = false
+    let lookupsFail = false
+    const answer = (records: string[] | string[][]) =>
+      lookupsFail
+        ? Promise.reject(Object.assign(new Error('timeout'), { code: 'ETIMEOUT' }))
+        : Promise.resolve(records)
+    const dnsProvider = createDnsDomainProvider({
+      resolver: {
+        resolve4: () => answer([targets.aRecord]) as Promise<string[]>,
+        resolveCname: () => answer([]) as Promise<string[]>,
+        resolveTxt: () => answer([[token]]) as Promise<string[][]>,
+      },
+      tlsCheck: async () => tlsOk,
+    })
+    const check = (now: Date) =>
+      withStore(app, storeId, (tx) => verifyDomain(tx, id, { provider: dnsProvider, targets, now }))
+
+    expect(await check(t0)).toMatchObject({ status: 'active', sslStatus: 'issuing', error: null })
+    expect(await resolveHost(app, 'kuldeepsaini.com')).toMatchObject({ storeId })
+
+    lookupsFail = true
+    expect(await check(later(1000))).toMatchObject({ status: 'active', sslStatus: 'issuing' })
+
+    lookupsFail = false
+    tlsOk = true
+    expect(await check(later(2000))).toMatchObject({ status: 'active', sslStatus: 'active' })
+  })
+})
+
 describe('primary domain and redirects', () => {
   it('refuses a domain that is not live with SSL yet', async () => {
     const storeId = await seedStore('w')
@@ -224,19 +266,19 @@ describe('pollPendingDomains', () => {
     await verify(b, failed?.id as string)
 
     const r = await pollPendingDomains(app, { provider, targets, now: t0 })
-    expect(r).toEqual({ stores: 2, checked: 2, failed: 0 })
+    expect(r).toEqual({ stores: 2, checked: 2, failed: 0, routes: 0 })
     const [aDomain] = (await withStore(app, a, listDomains)).filter((d) => d.kind === 'custom')
     expect(aDomain).toMatchObject({ status: 'active', sslStatus: 'issuing' })
 
     // Next tick: the certificate lands; the real domain is still waiting on DNS.
     const next = await pollPendingDomains(app, { provider, targets, now: later(DEV_SSL_ISSUE_MS) })
-    expect(next).toEqual({ stores: 2, checked: 2, failed: 0 })
+    expect(next).toEqual({ stores: 2, checked: 2, failed: 0, routes: 0 })
     const settled = await pollPendingDomains(app, {
       provider,
       targets,
       now: later(2 * DEV_SSL_ISSUE_MS),
     })
-    expect(settled).toEqual({ stores: 1, checked: 1, failed: 0 })
+    expect(settled).toEqual({ stores: 1, checked: 1, failed: 0, routes: 0 })
   })
 
   it('logs and counts a provider failure without stopping', async () => {
@@ -254,7 +296,7 @@ describe('pollPendingDomains', () => {
       targets,
       log: (m) => logs.push(m),
     })
-    expect(r).toEqual({ stores: 1, checked: 0, failed: 1 })
+    expect(r).toEqual({ stores: 1, checked: 0, failed: 1, routes: 0 })
     expect(logs[0]).toMatch(/provider down/)
   })
 })

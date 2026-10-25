@@ -1,6 +1,7 @@
-import { storeNotificationChannels } from '@commerce/core'
+import { storefrontOriginFor, storeNotificationChannels } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
 import { type Db, product, variant, withStore } from '@commerce/db'
+import { logger } from '@commerce/observability/logging'
 import {
   availableStockFor,
   BACK_IN_STOCK_QUEUE,
@@ -9,7 +10,14 @@ import {
   type RestockJob,
   sendRestockAlerts,
 } from '@commerce/plugin-back-in-stock'
-import { fairProcessor, type IORedis, QUEUE_LIMITS, Queue, Worker } from '@commerce/queue'
+import {
+  fairProcessor,
+  type IORedis,
+  KEEP_FINISHED,
+  QUEUE_LIMITS,
+  Queue,
+  Worker,
+} from '@commerce/queue'
 import { eq } from 'drizzle-orm'
 
 export type BackInStockOpts = {
@@ -32,7 +40,7 @@ export function createBackInStockWorker(connection: IORedis, db: Db, opts: BackI
     BACK_IN_STOCK_QUEUE,
     fairProcessor(connection, BACK_IN_STOCK_QUEUE, QUEUE_LIMITS.backInStock, async (job) => {
       const { storeId, variantId } = job.data
-      const [settings, all] = await withStore(db, storeId, async (tx) => {
+      const [settings, all, origin] = await withStore(db, storeId, async (tx) => {
         const registries = await registriesForStore(tx, storeId)
         return [
           await loadStoreSettings(tx, storeId),
@@ -40,6 +48,8 @@ export function createBackInStockWorker(connection: IORedis, db: Db, opts: BackI
             registry: registries.notifications,
             settingsSecret: opts.settingsSecret,
           }),
+          // Alert links open on the store's own domain; the platform URL is the fallback.
+          opts.storefrontUrl ? await storefrontOriginFor(tx, storeId, opts.storefrontUrl) : null,
         ] as const
       })
       const channels = all.filter(
@@ -80,18 +90,18 @@ export function createBackInStockWorker(connection: IORedis, db: Db, opts: BackI
               backInStock: {
                 productTitle,
                 variantTitle,
-                productUrl: opts.storefrontUrl ?? undefined,
-                unsubscribeUrl: `${opts.storefrontUrl ?? ''}/back-in-stock/unsubscribe/${row.unsubscribeToken}`,
+                productUrl: origin ?? undefined,
+                unsubscribeUrl: `${origin ?? ''}/back-in-stock/unsubscribe/${row.unsubscribeToken}`,
               },
             },
           }),
-          log: (message) => console.log(`[back-in-stock] ${message}`),
+          log: (message) => logger.info(message, { area: 'back-in-stock', storeId }),
         },
         storeId,
         variantId,
       )
     }),
-    { connection, concurrency: QUEUE_LIMITS.backInStock.concurrency },
+    { connection, concurrency: QUEUE_LIMITS.backInStock.concurrency, ...KEEP_FINISHED },
   )
   return { queue, worker }
 }

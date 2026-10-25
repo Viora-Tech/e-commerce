@@ -11,7 +11,7 @@ type SingleLocationProps = { canAdd: boolean; onAdd: () => void }
 /** Shown instead of an empty table while the store has only one location. */
 export default function SingleLocation({ canAdd, onAdd }: SingleLocationProps) {
   return (
-    <Card className="py-10">
+    <Card inset="y-10">
       <EmptyState
         heading={transfersContent.single.heading}
         body={transfersContent.single.body}

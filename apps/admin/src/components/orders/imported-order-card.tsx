@@ -1,4 +1,5 @@
 import DataCard from '@/components/layout/data-card'
+import KeyValueList, { type KeyValueRow } from '@/components/layout/key-value-list'
 import { importedOrderContent } from '@/data/orders'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { OrderDetail } from './order-detail-types'
@@ -18,27 +19,22 @@ export default function ImportedOrderCard({ order }: ImportedOrderCardProps) {
 
   // Render logic
   const meta = order.importMeta
-  const rows: [string, string][] = [
-    [copy.name, meta?.name ?? `#${order.number}`],
-    [copy.financial, copy.status(meta?.financialStatus)],
-    [copy.fulfillment, copy.status(meta?.fulfillmentStatus)],
-    ...(meta?.paymentMethod ? [[copy.payment, meta.paymentMethod] as [string, string]] : []),
-    ...(meta?.cancelledAt
-      ? [[copy.cancelled, fmt.dateTime(meta.cancelledAt)] as [string, string]]
-      : []),
+  const rows: KeyValueRow[] = [
+    { label: copy.name, value: meta?.name ?? `#${order.number}` },
+    { label: copy.financial, value: copy.status(meta?.financialStatus) },
+    { label: copy.fulfillment, value: copy.status(meta?.fulfillmentStatus) },
+    { label: copy.payment, value: meta?.paymentMethod, hidden: !meta?.paymentMethod },
+    {
+      label: copy.cancelled,
+      value: meta?.cancelledAt ? fmt.dateTime(meta.cancelledAt) : null,
+      hidden: !meta?.cancelledAt,
+    },
   ]
 
   return (
     <DataCard title={copy.title(order.importedFrom)}>
       <p className="text-body text-muted-foreground">{copy.body}</p>
-      <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-body">
-        {rows.map(([label, value]) => (
-          <div key={label} className="contents">
-            <dt className="text-muted-foreground">{label}</dt>
-            <dd className="text-ink-strong">{value}</dd>
-          </div>
-        ))}
-      </dl>
+      <KeyValueList rows={rows} variant="grid" className="mt-4" />
     </DataCard>
   )
 }

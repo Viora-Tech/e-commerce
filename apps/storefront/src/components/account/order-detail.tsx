@@ -1,5 +1,6 @@
 import { formatPaise } from '@commerce/blocks'
 import type { ShopperOrderDetail } from '@commerce/core'
+import { gstRowsToShow } from '@commerce/core/gst'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import {
@@ -10,8 +11,10 @@ import {
   shipmentLabels,
   shipmentTone,
 } from '@/data/account'
-import { INDIAN_STATES } from '@/data/checkout'
+import { INDIAN_STATES } from '@/data/indian-states'
 import { reorderAction } from '@/lib/account-actions'
+import { shopperParcels } from '@/lib/parcels'
+import OrderParcels from './order-parcels'
 import StatusPill from './status-pill'
 import TrackingTimeline from './tracking-timeline'
 
@@ -50,7 +53,9 @@ export default function OrderDetail({
   const canReorder = o.lines.some((l) => l.purchasable)
   const buyAgain = reorderAction.bind(null, o.number)
   const gst = o.gst
-  const card = 'flex flex-col gap-4 rounded-2xl border border-line p-6'
+  // Parcels from different states put both CGST + SGST and IGST on one order.
+  const gstRows = gst ? gstRowsToShow(gst) : null
+  const card = 'flex flex-col gap-4 rounded-[var(--radius-card)] bg-surface p-5'
   const row = 'flex justify-between gap-4 text-body'
 
   return (
@@ -89,6 +94,17 @@ export default function OrderDetail({
           {copy.reorderNone}
         </p>
       ) : null}
+      {o.status === 'cancelled' ? (
+        <div className="rounded-xl border border-line px-4 py-3" role="note">
+          <p className="text-body font-medium text-ink">{copy.notices.cancelled}</p>
+          <p className="text-small text-muted">{copy.notices.cancelledBody}</p>
+        </div>
+      ) : o.shipment === 'rto' ? (
+        <div className="rounded-xl border border-danger px-4 py-3 text-danger" role="alert">
+          <p className="text-body font-medium">{copy.notices.failed}</p>
+          <p className="text-small">{copy.notices.failedBody}</p>
+        </div>
+      ) : null}
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="flex flex-col gap-6">
@@ -98,6 +114,8 @@ export default function OrderDetail({
             </h3>
             <TrackingTimeline tracking={o.tracking} timeZone={timeZone} />
           </section>
+
+          <OrderParcels parcels={shopperParcels(o.parcels)} />
 
           <section className={card} aria-labelledby="order-items">
             <h3 id="order-items" className="h4">
@@ -176,12 +194,7 @@ export default function OrderDetail({
               {gst && gst.taxPaise > 0 ? (
                 <div className="flex flex-col gap-1 pt-1 text-small text-muted">
                   <span>{copy.gstIncluded(formatPaise(gst.taxPaise))}</span>
-                  {gst.interState ? (
-                    <div className="flex justify-between">
-                      <span>{copy.igst(gst.ratePercent)}</span>
-                      <span>{formatPaise(gst.igstPaise)}</span>
-                    </div>
-                  ) : (
+                  {gstRows?.intraState ? (
                     <>
                       <div className="flex justify-between">
                         <span>{copy.cgst(gst.ratePercent)}</span>
@@ -192,7 +205,13 @@ export default function OrderDetail({
                         <span>{formatPaise(gst.sgstPaise)}</span>
                       </div>
                     </>
-                  )}
+                  ) : null}
+                  {gstRows?.interState ? (
+                    <div className="flex justify-between">
+                      <span>{copy.igst(gst.ratePercent)}</span>
+                      <span>{formatPaise(gst.igstPaise)}</span>
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
             </div>

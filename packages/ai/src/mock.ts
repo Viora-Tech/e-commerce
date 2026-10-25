@@ -10,8 +10,20 @@
 import type { LanguageModelV4CallOptions, LanguageModelV4StreamPart } from '@ai-sdk/provider'
 import { simulateReadableStream } from 'ai'
 import { MockLanguageModelV4 } from 'ai/test'
+import { CAMPAIGN_WRITER_MARKER } from './campaign-writer'
 import type { AiFeature } from './features'
+import { INBOX_AGENT_MARKER } from './inbox-agent'
 import { mockPlan } from './mock-plan'
+import { MOCK_DOCUMENTS } from './purchase-documents/fixtures'
+import {
+  DOCUMENT_READ_MARKER,
+  DOCUMENT_SHAPES,
+  type DocumentShape,
+} from './purchase-documents/schema'
+import { QUERY_WRITER_MARKER } from './query-writer'
+import { REVIEW_REPLY_MARKER } from './review-reply'
+import { SECTION_WRITER_MARKER } from './section-writer'
+import { SEO_KEYWORDS_MARKER } from './seo-keywords/prompt'
 
 const USAGE = {
   inputTokens: { total: 1_200, noCache: 1_200, cacheRead: undefined, cacheWrite: undefined },
@@ -45,9 +57,25 @@ function photoCount(prompt: Prompt): number {
   return message.content.filter((part) => part.type === 'file').length
 }
 
+/** Canned keywords built from the product's title, the first one primary. */
+function seoKeywords(prompt: Prompt): string {
+  const title = titleFrom(lastUserText(prompt)).toLowerCase().split(' ').slice(0, 3).join(' ')
+  return JSON.stringify({
+    keywords: [
+      { keyword: `${title} price`, intent: 'buy', primary: true },
+      { keyword: `buy ${title} online`, intent: 'buy', primary: false },
+      { keyword: `best ${title} under 2000`, intent: 'compare', primary: false },
+      { keyword: `${title} for laptop`, intent: 'compare', primary: false },
+      { keyword: `${title} sasta`, intent: 'buy', primary: false },
+      { keyword: `how to clean ${title}`, intent: 'info', primary: false },
+    ],
+  })
+}
+
 function productCopy(prompt: Prompt): string {
   const text = lastUserText(prompt)
   const title = titleFrom(text)
+  const keyword = /Primary search keyword: "(.+)"/.exec(text)?.[1]
   const photos = photoCount(prompt)
   const hindi = systemText(prompt).includes('Hindi')
   const altTexts = Array.from({ length: photos }, (_, i) =>
@@ -80,11 +108,97 @@ function productCopy(prompt: Prompt): string {
       { label: 'Connection', value: 'USB-C' },
       { label: 'Compatibility', value: 'Windows, macOS' },
     ],
-    seoTitle: `${title} | Buy online in India`,
-    seoDescription: `Shop ${title}: a sturdy, comfortable build with plug and play USB-C setup. Made for everyday use and long sessions.`,
+    seoTitle: keyword ? `${title}, ${keyword}` : `${title} | Buy online in India`,
+    seoDescription: keyword
+      ? `Looking for ${keyword}? ${title} has a sturdy, comfortable build and plug and play USB-C setup.`
+      : `Shop ${title}: a sturdy, comfortable build with plug and play USB-C setup. Made for everyday use and long sessions.`,
     tags: ['gaming', 'desk setup', 'usb-c', 'accessories'],
     altTexts,
   })
+}
+
+/** The fixture for the shape named in a document reader's instructions. */
+function documentRead(system: string): string {
+  const named = /Document type: (\w+)/.exec(system)?.[1] as DocumentShape | undefined
+  const shape = named && DOCUMENT_SHAPES.includes(named) ? named : 'service_bill'
+  return JSON.stringify(MOCK_DOCUMENTS[shape])
+}
+
+/** A canned query for "Refine with AI": products or sales, top N when the request says so. */
+function analyticsQuery(prompt: Prompt): string {
+  const request = /Request: """(.*)"""/.exec(lastUserText(prompt))?.[1]?.toLowerCase() ?? ''
+  const top = Number(/top (\d{1,3})/.exec(request)?.[1] ?? 10)
+  const query = request.includes('product')
+    ? `FROM products
+  SHOW net_quantity, gross_sales
+  GROUP BY product_title
+  SINCE -30d UNTIL today
+  ORDER BY net_quantity DESC
+  LIMIT ${top}`
+    : `FROM sales
+  SHOW net_sales, orders
+  GROUP BY state
+  SINCE -1m UNTIL today
+  ORDER BY net_sales DESC
+  LIMIT ${top}`
+  return JSON.stringify({ query })
+}
+
+/** The canned structured answer for whichever writer or reader made the call. */
+function generated(prompt: Prompt): string {
+  const system = systemText(prompt)
+  if (system.includes(DOCUMENT_READ_MARKER)) return documentRead(system)
+  if (system.includes(SEO_KEYWORDS_MARKER)) return seoKeywords(prompt)
+  if (system.includes(QUERY_WRITER_MARKER)) return analyticsQuery(prompt)
+  if (system.includes(CAMPAIGN_WRITER_MARKER)) {
+    return JSON.stringify({
+      subject: 'Something new for you',
+      previewText: 'Fresh picks from the store, chosen for you.',
+      heading: 'Picked for you',
+      body: 'We have put together a few things we think you will like. Take a look while they last.',
+      button: 'Shop now',
+    })
+  }
+  if (system.includes(INBOX_AGENT_MARKER)) {
+    return JSON.stringify({
+      action: 'reply',
+      reply: 'Happy to help. Tell me what you are looking for and I will find it for you.',
+      productIds: [],
+      handoffReason: null,
+      summary: '',
+      confidence: 80,
+    })
+  }
+  if (system.includes(REVIEW_REPLY_MARKER)) {
+    return JSON.stringify({
+      reply:
+        'Thank you for taking the time to write this. We are glad it works well for you, and we hope you enjoy it for a long time.',
+    })
+  }
+  if (system.includes(SECTION_WRITER_MARKER)) {
+    return JSON.stringify({
+      summary: 'Questions shoppers often ask before they order, answered in one place.',
+      section: {
+        type: 'Faq',
+        heading: 'Questions, answered',
+        items: [
+          {
+            question: 'How long does delivery take?',
+            answer: 'Most orders reach you in a few working days.',
+          },
+          {
+            question: 'Can I return an item?',
+            answer: 'Yes. See our returns page for how it works.',
+          },
+          {
+            question: 'Do you offer cash on delivery?',
+            answer: 'You can see every way to pay at checkout.',
+          },
+        ],
+      },
+    })
+  }
+  return productCopy(prompt)
 }
 
 type ToolValue = {
@@ -152,13 +266,13 @@ function answerStream(options: LanguageModelV4CallOptions): LanguageModelV4Strea
   ]
 }
 
-/** A fake model for one feature: canned product copy, or planned tool calls followed by an answer from their results. */
+/** A fake model for one feature: canned product copy or document readings, or planned tool calls followed by an answer from their results. */
 export function mockModel(feature: AiFeature): MockLanguageModelV4 {
   return new MockLanguageModelV4({
     provider: 'mock',
     modelId: `mock-${feature}`,
     doGenerate: async (options) => ({
-      content: [{ type: 'text', text: productCopy(options.prompt) }],
+      content: [{ type: 'text', text: generated(options.prompt) }],
       finishReason: { unified: 'stop', raw: undefined },
       usage: USAGE,
       warnings: [],

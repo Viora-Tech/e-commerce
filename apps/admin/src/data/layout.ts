@@ -8,12 +8,17 @@ const PAGE_TITLES: [prefix: string, title: string][] = [
   ['/orders/drafts', 'Draft orders'],
   ['/orders/abandoned-checkouts', 'Abandoned checkouts'],
   ['/orders/shipments', 'Shipments'],
+  ['/orders/shipments/pickups', 'Pickups and manifests'],
+  ['/orders/shipments/attention', 'Deliveries that need you'],
   ['/orders/returns', 'Returns'],
   ['/products', 'Products'],
   ['/products/collections', 'Collections'],
-  ['/products/inventory', 'Inventory'],
-  ['/products/purchase-orders', 'Purchase orders'],
-  ['/products/transfers', 'Transfers'],
+  ['/stock', 'Stock'],
+  ['/stock/inventory', 'Inventory'],
+  ['/stock/purchase-orders', 'Purchase orders'],
+  ['/stock/transfers', 'Transfers'],
+  ['/stock/inbound-shipments', 'Inbound shipments'],
+  ['/stock/suppliers', 'Suppliers'],
   ['/products/gift-cards', 'Gift cards'],
   ['/customers', 'Customers'],
   ['/customers/segments', 'Segments'],
@@ -27,15 +32,21 @@ const PAGE_TITLES: [prefix: string, title: string][] = [
   ['/analytics/reports', 'Reports'],
   ['/analytics/live', 'Live view'],
   ['/growth', 'Growth'],
+  ['/growth/attribution', 'Attribution'],
+  ['/growth/autopilot', 'Autopilot'],
   ['/growth/campaigns', 'Campaigns'],
   ['/growth/automations', 'Automations'],
-  ['/growth/links', 'Links'],
+  ['/growth/links', 'Tracking links'],
   ['/discounts', 'Discounts'],
   ['/online-store', 'Online Store'],
   ['/online-store/themes', 'Themes'],
   ['/online-store/pages', 'Pages'],
   ['/online-store/preferences', 'Preferences'],
   ['/apps', 'Apps'],
+  ['/sales-channels/inbox', 'Inbox'],
+  ['/sales-channels/inbox/conversations', 'Conversations'],
+  ['/sales-channels/inbox/quick-replies', 'Quick replies'],
+  ['/sales-channels/inbox/settings', 'Inbox settings'],
   ['/settings', 'Settings'],
   ['/settings/store', 'Store details'],
   ['/settings/payments', 'Payments'],
@@ -45,8 +56,14 @@ const PAGE_TITLES: [prefix: string, title: string][] = [
   ['/settings/custom-data', 'Custom data'],
   ['/settings/domains', 'Domains'],
   ['/settings/invoices', 'Invoices'],
+  ['/settings/appearance', 'Appearance'],
   ['/content/files/storage', 'File storage'],
   ['/account', 'Account'],
+  ['/account/security', 'Sign-in & security'],
+  ['/account/sessions', 'Sessions'],
+  ['/account/notifications', 'Notifications'],
+  ['/account/stores', 'Stores'],
+  ['/account/language', 'Language & region'],
   ['/account/appearance', 'Appearance'],
   ['/dev', 'Developer'],
 ]
@@ -73,7 +90,7 @@ export function pageTitleFor(pathname: string): string {
  * Every other page (lists, details, settings sections) renders its own PageHeader, so the
  * frame adds nothing and the title appears once.
  */
-const UNHEADED = ['/content', '/content/menus', '/content/menus/redirects', '/online-store/pages']
+const UNHEADED: string[] = []
 
 /** True when the page draws its own h1 (PageHeader, KitListPage or the dashboard). */
 export function hasOwnHeading(pathname: string): boolean {
@@ -85,10 +102,10 @@ export const layoutContent = {
   details: 'Details',
   noChange: 'No change',
   moreActions: 'More actions',
+  save: 'Save',
   filter: 'Filter',
   skipToContent: 'Skip to content',
   breadcrumb: 'Breadcrumb',
-  backTo: (label: string) => `Back to ${label}`,
   notFound: {
     heading: 'Page not found',
     body: 'The link may be out of date, or the item was removed.',
@@ -107,6 +124,15 @@ export const layoutContent = {
   more: 'More',
   viewAll: 'View all',
   viewAllApps: (n: number) => `View all apps (${n})`,
+  /** Last row under Apps in the sidebar: the App Store website, in a new tab. */
+  appStore: 'App Store',
   noStore: 'No store selected',
   toggleTheme: 'Toggle theme',
+  scroll: {
+    showing: (n: string) => `Showing ${n} items · scroll for more`,
+    showingAll: (n: string) => `Showing all ${n} items`,
+    more: 'Scroll for more',
+    expand: 'Show all',
+    collapse: 'Show less',
+  },
 } as const

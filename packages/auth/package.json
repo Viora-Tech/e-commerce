@@ -12,8 +12,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@better-auth/passkey": "1.7.6",
     "@commerce/config": "workspace:*",
     "@commerce/db": "workspace:*",
+    "@commerce/observability": "workspace:*",
     "better-auth": "1.7.6",
     "drizzle-orm": "^0.45.2"
   },

@@ -63,6 +63,15 @@ const config: NextConfig = {
     '@commerce/invoices',
     '@commerce/plugin-emi',
     '@commerce/plugin-gst-invoices',
+    '@commerce/plugin-affiliates',
+    '@commerce/plugin-forms',
+    '@commerce/plugin-growthbook',
+    '@commerce/plugin-reviews',
+    '@commerce/plugin-meilisearch',
+    '@commerce/plugin-search',
+    '@commerce/plugin-search-console',
+    '@commerce/plugin-umami',
+    '@commerce/plugin-chatwoot',
     '@commerce/plugin-shopify-import',
   ],
   // react-pdf and pdf-lib load fonts and wasm at runtime; keep them out of the bundle.
@@ -73,6 +82,8 @@ const config: NextConfig = {
     dangerouslyAllowLocalIP: process.env.NODE_ENV !== 'production',
     remotePatterns: [
       { protocol: 'https', hostname: 'cdn.shopify.com' },
+      // The platform's media bucket (R2 `koomerce-media`), fixed so a build needs no env for it.
+      { protocol: 'https', hostname: 'cdn.koomerce.app' },
       ...(process.env.R2_PUBLIC_BASE_URL
         ? [
             {

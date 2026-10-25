@@ -12,7 +12,7 @@ import {
 } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useReducedMotion } from 'motion/react'
-import { Fragment, type KeyboardEvent, type ReactNode, useRef, useState } from 'react'
+import { Fragment, type KeyboardEvent, type ReactNode, useId, useRef, useState } from 'react'
 import DragHandle from './drag-handle'
 import SortableOverlay from './sortable-overlay'
 import SortableTreeRow from './sortable-tree-row'
@@ -71,6 +71,8 @@ export default function SortableTree<T extends TreeNode>({
   // Hooks
   const prefersReducedMotion = useReducedMotion()
   const sensors = useDndSensors({ keyboard: false })
+  /* A stable id keeps dnd-kit's aria-describedby the same on the server and the client. */
+  const dndId = useId()
   const [activeId, setActiveId] = useState<string | null>(null)
   const [overId, setOverId] = useState<string | null>(null)
   const [offsetLeft, setOffsetLeft] = useState(0)
@@ -219,6 +221,7 @@ export default function SortableTree<T extends TreeNode>({
 
   return (
     <DndContext
+      id={dndId}
       sensors={sensors}
       collisionDetection={closestCenter}
       measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}

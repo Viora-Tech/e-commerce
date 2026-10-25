@@ -61,6 +61,30 @@ const TWO_PART_SUFFIXES: ReadonlySet<string> = new Set([
   'co.jp',
 ])
 
+/**
+ * Shared hosting suffixes: many unrelated owners sit under each, so none of
+ * them (or a bare two-part suffix like `co.in`) may be claimed as a sender
+ * domain. The claim also blocks parents and subdomains for every other store,
+ * so claiming `co.in` would have locked every `*.co.in` shop out (audit 2026-09-28).
+ */
+const SHARED_SUFFIXES: ReadonlySet<string> = new Set([
+  'github.io',
+  'myshopify.com',
+  'vercel.app',
+  'netlify.app',
+  'pages.dev',
+  'workers.dev',
+  'r2.dev',
+  'web.app',
+  'firebaseapp.com',
+  'herokuapp.com',
+  'blogspot.com',
+  'wixsite.com',
+  'azurewebsites.net',
+  'cloudfront.net',
+  'amazonaws.com',
+])
+
 export type SenderAddressError = 'empty' | 'invalid' | 'free_mail' | 'platform_domain' | 'too_long'
 
 export type ParsedSenderAddress =
@@ -99,6 +123,9 @@ export function parseSenderAddress(
   // The top-level label is letters only (no "shop.123").
   if (!/^[a-z]{2,63}$/.test(labels[labels.length - 1] ?? '')) return { ok: false, error: 'invalid' }
   if (FREE_MAIL_DOMAINS.has(domain)) return { ok: false, error: 'free_mail' }
+  if (TWO_PART_SUFFIXES.has(domain) || SHARED_SUFFIXES.has(domain)) {
+    return { ok: false, error: 'invalid' }
+  }
   if (platformDomains.some((p) => p && domainsOverlap(domain, p.toLowerCase()))) {
     return { ok: false, error: 'platform_domain' }
   }

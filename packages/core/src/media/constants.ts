@@ -8,7 +8,7 @@
 /** Never upscale past the source; never generate a master bigger than this on the long edge. */
 export const MAX_MASTER_LONG_EDGE = 2560
 /** Skip generating a variant wider than the cleaned master (no upscaling). */
-export const VARIANT_WIDTHS = [320, 640, 960, 1280, 1920] as const
+export const VARIANT_WIDTHS = [320, 640, 1280, 1920] as const
 
 /**
  * `stores/x/media/id-name.jpg` + width 640 + `avif` → a sibling key the

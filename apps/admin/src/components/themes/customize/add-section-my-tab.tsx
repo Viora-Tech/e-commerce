@@ -14,6 +14,7 @@ import {
   CHROME_TRANSITION,
 } from '@/lib/customize-chrome'
 import { deleteMySection, useMySections } from '@/lib/customize-my-sections'
+import { useEditingThemeId } from '@/lib/customize-theme-context'
 import { formatPattern } from '@/lib/format-date'
 import SectionIcon from './section-icon'
 
@@ -27,12 +28,13 @@ const copy = customizeContent.mySections
 const dateLabel = (iso: string) => formatPattern(iso, { day: 'numeric', month: 'short' })
 
 /**
- * The Add panel's "My sections" tab: the store's saved sections, newest
- * first. Clicking one adds a fresh copy (new ids) where the panel was opened.
+ * The Add panel's "My sections" tab: the store's saved sections this theme can use, newest
+ * first (one holding an imported Shopify section only in the theme it was saved from). Clicking
+ * one adds a fresh copy (new ids) where the panel was opened.
  */
 export default function MySectionsTab({ query, onAdd }: MySectionsTabProps) {
   // Hooks
-  const { status, items } = useMySections()
+  const { status, items } = useMySections(useEditingThemeId())
 
   // Event handlers
   const handleDelete = async (section: CustomSection) => {

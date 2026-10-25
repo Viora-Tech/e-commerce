@@ -1,5 +1,6 @@
 'use client'
 
+import { Eye, Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -15,14 +16,16 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import SetupChecklist from '@/components/apps/setup-checklist'
-import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
 import RelativeTime from '@/components/layout/relative-time'
+import TableEmptyRow from '@/components/table/table-empty-row'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
+import { routes } from '@/lib/routes'
 import GstNumberPicker from './gst-number-picker'
 import ReviewPanel from './review-panel'
+import { CELL, HEAD } from './table-classes'
 
 export type QueueRow = Awaited<ReturnType<typeof api.gstInvoices.queue.list>>[number]
 
@@ -140,7 +143,7 @@ export default function QueuePage() {
     <div className="flex flex-col gap-4">
       <PageHeader
         title={copy.title}
-        subtitle={copy.subtitle}
+        summary={copy.subtitle}
         actions={<GstNumberPicker value={gst} onChange={handleGst} allowAll />}
       />
       {gstin === null ? (
@@ -151,13 +154,13 @@ export default function QueuePage() {
             {
               label: copy.setup.gstin,
               done: false,
-              href: '/apps/gst-invoices/settings',
+              href: routes.apps.page('gst-invoices', 'settings'),
               action: copy.setup.gstinAction,
             },
           ]}
         />
       ) : null}
-      <DataCard title={copy.title} flush>
+      <div className="overflow-hidden rounded-xl surface-card">
         <div className="flex flex-col gap-3 p-4">
           <div className="grid gap-3 md:grid-cols-[1fr_10rem_10rem]">
             <div className="flex gap-2">
@@ -168,6 +171,7 @@ export default function QueuePage() {
                 onChange={(e) => setAdding(e.target.value)}
               />
               <Button variant="outline" disabled={busy || !adding.trim()} onClick={handleAdd}>
+                <Plus aria-hidden="true" />
                 {copy.add}
               </Button>
             </div>
@@ -191,6 +195,7 @@ export default function QueuePage() {
               <span className="text-body">{copy.selected(picked.size)}</span>
               <span className="flex-1" />
               <Button size="sm" variant="outline" disabled={busy} onClick={handleRemove}>
+                <Trash2 aria-hidden="true" />
                 {copy.remove}
               </Button>
               <Button
@@ -198,6 +203,7 @@ export default function QueuePage() {
                 disabled={busy}
                 onClick={() => setReviewing(list.filter((r) => picked.has(r.id)))}
               >
+                <Eye aria-hidden="true" />
                 {copy.review}
               </Button>
             </div>
@@ -206,43 +212,37 @@ export default function QueuePage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-10">
+              <TableHead className={`${HEAD} w-10`}>
                 <Checkbox
                   checked={allOn}
                   aria-label={copy.review}
                   onCheckedChange={(v) => setPicked(v ? new Set(list.map((r) => r.id)) : new Set())}
                 />
               </TableHead>
-              <TableHead>{copy.columns.order}</TableHead>
-              <TableHead>{copy.columns.buyer}</TableHead>
-              <TableHead>{copy.columns.eligible}</TableHead>
-              <TableHead>{copy.columns.dispatched}</TableHead>
-              <TableHead className="text-right">{copy.columns.total}</TableHead>
+              <TableHead className={HEAD}>{copy.columns.order}</TableHead>
+              <TableHead className={HEAD}>{copy.columns.buyer}</TableHead>
+              <TableHead className={HEAD}>{copy.columns.eligible}</TableHead>
+              <TableHead className={HEAD}>{copy.columns.dispatched}</TableHead>
+              <TableHead className={`${HEAD} text-right`}>{copy.columns.total}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows && list.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
-                  {copy.empty}
-                </TableCell>
-              </TableRow>
-            ) : null}
+            {rows && list.length === 0 ? <TableEmptyRow colSpan={6} message={copy.empty} /> : null}
             {list.map((r) => (
               <TableRow key={r.id}>
-                <TableCell>
+                <TableCell className={CELL}>
                   <Checkbox
                     checked={picked.has(r.id)}
                     aria-label={r.orderName}
                     onCheckedChange={(v) => handleToggle(r.id, Boolean(v))}
                   />
                 </TableCell>
-                <TableCell className="font-medium">
-                  <Link href={`/orders/${r.orderId}`} className="hover:underline">
+                <TableCell className={`${CELL} font-medium`}>
+                  <Link href={routes.orders.detail(r.orderId)} className="hover:underline">
                     {r.orderName}
                   </Link>
                 </TableCell>
-                <TableCell>
+                <TableCell className={CELL}>
                   <span className="flex flex-col">
                     {r.buyerName}
                     <span className="text-caption text-muted-foreground">
@@ -250,18 +250,20 @@ export default function QueuePage() {
                     </span>
                   </span>
                 </TableCell>
-                <TableCell>{r.eligibleAt ? <RelativeTime value={r.eligibleAt} /> : '-'}</TableCell>
-                <TableCell>
+                <TableCell className={CELL}>
+                  {r.eligibleAt ? <RelativeTime value={r.eligibleAt} /> : '-'}
+                </TableCell>
+                <TableCell className={CELL}>
                   {r.dispatchedAt ? <RelativeTime value={r.dispatchedAt} /> : '-'}
                 </TableCell>
-                <TableCell className="text-right tabular-nums">
+                <TableCell className={`${CELL} text-right tabular-nums`}>
                   {formatPaise(r.totalPaise)}
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
-      </DataCard>
+      </div>
     </div>
   )
 }

@@ -46,7 +46,9 @@ export const pagesRouter = {
         visible: z.boolean().optional(),
       }),
     )
-    .handler(({ context, input: { id, ...rest } }) => updatePage(context.tx, id, rest)),
+    .handler(({ context, input: { id, ...rest } }) =>
+      updatePage(context.tx, context.scope.storeId, id, rest),
+    ),
 
   delete: can(permissions.ONLINE_STORE_WRITE)
     .input(z.object({ id: z.uuid() }))

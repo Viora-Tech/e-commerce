@@ -5,7 +5,7 @@
 // The original's `CardContainer`: the card leans toward the pointer. Its `CardBody` is only a
 // sized preserve-3d box (the caller's own markup is that), and its `CardItem` layers are left
 // out until a section needs them (they only lift inside a card without `overflow: hidden`).
-// Changes: pointer events with Glide's guards (fine pointer with hover, never under reduced
+// Changes: pointer events with Zero Drift's guards (fine pointer with hover, never under reduced
 // motion, as the theme's [data-tilt] had) and no forced padding or centring.
 import { type PointerEvent, type ReactNode, useRef } from 'react'
 import { cx } from '../slot-types'

@@ -9,7 +9,10 @@ import {
 export const returnsContent = {
   title: 'Returns',
   subtitle: 'Items customers are sending back, and parcels the courier brought back (RTO).',
+  needDecision: (n: number) => `${n} ${n === 1 ? 'return needs' : 'returns need'} your decision`,
+  rules: 'Return rules',
   resource: { singular: 'return', plural: 'returns' },
+  openReturn: 'Open return',
   empty: 'No returns yet. When a customer asks to send something back, it shows up here.',
   searchPlaceholder: 'Search by order number, return number, name or email',
   tabs: {
@@ -43,6 +46,7 @@ export const returnsContent = {
     resolved: 'Done',
     cancelled: 'Cancelled',
   } satisfies Record<ReturnStatus, string>,
+  viewLabel: 'Return view',
   rtoStatus: { received: 'Back with you', resolved: 'Done' } as Record<string, string>,
   reasons: RETURN_REASON_LABELS satisfies Record<ReturnReason, string>,
   menuLink: 'Returns',
@@ -61,6 +65,7 @@ export const returnDetailContent = {
   restocked: (n: number) => `${n} back in stock`,
   why: 'What the customer said',
   reasonLabel: 'Reason',
+  wantsLabel: 'Asked for',
   noteLabel: 'Note',
   noNote: 'No note.',
   photos: 'Photos',
@@ -91,7 +96,13 @@ export const returnDetailContent = {
   },
   decision: {
     title: 'Your decision',
+    heading: 'Approve or decline this return',
     body: 'Look at the reason and the photos, then approve or decline.',
+    nextEyebrow: 'Next step',
+    pickupHeading: 'Arrange how it comes back',
+    pickupBody: 'Book a courier pickup, or ask the customer to send it.',
+    receiveHeading: 'Mark it received when the parcel arrives',
+    receiveBody: 'Check the items, then choose whether they go back into stock.',
     approve: 'Approve return',
     reject: 'Decline',
     declinedBecause: (note: string) => `Declined: ${note}`,
@@ -271,3 +282,47 @@ export const returnSettingsContent = {
   failed: 'Could not save. Please try again.',
   atLeastOne: 'Choose at least one reason.',
 } as const
+
+/** Settings → Returns: exchanges for another variant and the auto-approve rule. */
+export const returnRulesContent = {
+  exchangesTitle: 'Exchanges',
+  exchanges: 'Let customers ask for another size or colour',
+  exchangesHint:
+    'On the return form they can pick the variant they want instead of their money back. You send it from the return once the parcel is back.',
+  autoTitle: 'Approve returns automatically',
+  autoDescription:
+    'Requests that match are approved straight away. You still arrange the pickup and check the parcel when it arrives.',
+  auto: 'Approve matching requests automatically',
+  autoReasons: 'For these reasons',
+  autoMax: 'Up to this value',
+  autoMaxHint: 'In rupees. 0 means any value.',
+  wants: {
+    refund: 'Wants their money back',
+    exchange: 'Wants an exchange',
+    store_credit: 'Wants store credit',
+  } as Record<string, string>,
+  swapTo: (from: string, to: string) => `${from} for ${to}`,
+  autoApproved: 'Approved automatically by your return rules',
+} as const
+
+/** Row and bulk actions on the Returns list (decide, mark arrived, close) without opening each. */
+export const returnListActionsContent = {
+  approve: 'Approve',
+  approveSelected: (n: number) => `Approve ${n}`,
+  approveTitle: (n: number) => `Approve ${n === 1 ? 'this return' : `${n} returns`}?`,
+  approveBody:
+    'Each customer gets an email that their return is approved. Choose how the items come back (courier pickup or the customer sends them) on each return page.',
+  close: 'Close return',
+  closeSelected: (n: number) => `Close ${n}`,
+  closeTitle: (n: number) => `Close ${n === 1 ? 'this return' : `${n} returns`} without a refund?`,
+  closeBody:
+    'Closing settles the return with no refund, store credit or exchange. Only returns that have arrived can be closed; the rest are skipped.',
+  summary: (done: number, skipped: number, failed: number) =>
+    [
+      `${done} ${done === 1 ? 'return' : 'returns'} updated`,
+      skipped > 0 ? `${skipped} skipped` : null,
+      failed > 0 ? `${failed} failed` : null,
+    ]
+      .filter(Boolean)
+      .join(', '),
+}

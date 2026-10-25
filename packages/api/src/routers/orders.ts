@@ -1,7 +1,8 @@
-import { loadEnv, settingsSecret } from '@commerce/config'
+import { settingsSecret } from '@commerce/config'
 import {
   CommerceError,
-  DraftInputSchema,
+  CourierChargeInputSchema,
+  deleteTestOrders,
   InvalidOrderContact,
   insertOutboxEvent,
   isIsoDay,
@@ -10,10 +11,9 @@ import {
   ORDER_MARKS,
   ORDER_PAYMENT_STATUSES,
   OrderNotFound,
+  orderProfit,
   permissions,
-  ReminderTooSoon,
-  requestBalance,
-  sendManualPaymentReminder,
+  setCourierCharge,
   updateOrderContact,
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
@@ -21,26 +21,17 @@ import { z } from 'zod'
 import { can, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
 import {
-  convertStoreDraft,
-  getDraft,
-  listStoreAbandoned,
-  listStoreDrafts,
-  recordInvoiceSent,
-  removeDraft,
-  saveDraft,
-  sendRecovery,
-  storeAbandonedStats,
-} from '../services/draft.service'
-import {
   addOrderNote,
   getOrder,
-  importedSource,
+  listOrderIds,
   listOrders,
   ORDER_VIEWS,
+  orderCouriers,
   orderStats,
+  orderTiles,
+  readyToShipCount,
   refundOrderPayment,
   setOrderStatus,
-  setOrderTags,
 } from '../services/order.service'
 import {
   collectOrderPayment,
@@ -56,26 +47,16 @@ import {
   getShipmentForOrder,
   refreshShipmentTracking,
 } from '../services/shipping.service'
-
-const storefrontUrl = () => loadEnv(process.env).STOREFRONT_URL
+import { assertNotImported } from './imported-order'
+import { draftAndAbandonedRoutes } from './order-drafts'
+import { orderListRoutes } from './order-list'
+import { orderMessageRoutes } from './order-messages'
 
 /** What "Mark as" on the order page records; the statuses are then derived. */
 const change = z.enum(ORDER_MARKS)
 
-/** Imported historical orders are read-only; every state-changing route refuses them. */
-async function assertNotImported(
-  tx: Parameters<typeof importedSource>[0],
-  ref: Parameters<typeof importedSource>[1],
-) {
-  const source = await importedSource(tx, ref)
-  if (source) {
-    throw new ORPCError('BAD_REQUEST', {
-      message: 'This order was imported and is read-only. Notes and tags can still be changed.',
-    })
-  }
-}
-
 export const ordersRouter = {
+  /** Orders, a page at a time, by list tab, status, payment, fulfilment, date or a search. */
   list: can(permissions.ORDERS_READ)
     .input(
       z.object({
@@ -87,12 +68,52 @@ export const ordersRouter = {
         status: z.enum(['open', 'completed', 'cancelled']).optional(),
         paymentStatus: z.array(z.enum(ORDER_PAYMENT_STATUSES)).max(10).optional(),
         fulfillmentStatus: z.array(z.enum(ORDER_FULFILLMENT_STATUSES)).max(10).optional(),
+        /** Placed at or after this moment (the filter panel's Date). */
+        placedFrom: z.iso.datetime().optional(),
+        /** Cash on delivery, or anything paid up front. */
+        paymentMethod: z.enum(['cod', 'prepaid']).optional(),
+        /** Sent with this courier (the filter panel's Courier). */
+        courier: z.string().trim().min(1).max(60).optional(),
       }),
     )
     .handler(({ context, input }) => listOrders(context.tx, input)),
 
+  /** Every order id the list's filters match (the table's "Select all N orders"), up to 5,000. */
+  ids: can(permissions.ORDERS_READ)
+    .input(
+      z.object({
+        search: z.string().trim().max(SEARCH_MAX).optional(),
+        view: z.enum(ORDER_VIEWS).optional(),
+        paymentStatus: z.array(z.enum(ORDER_PAYMENT_STATUSES)).max(10).optional(),
+        fulfillmentStatus: z.array(z.enum(ORDER_FULFILLMENT_STATUSES)).max(10).optional(),
+        placedFrom: z.iso.datetime().optional(),
+        paymentMethod: z.enum(['cod', 'prepaid']).optional(),
+        courier: z.string().trim().min(1).max(60).optional(),
+      }),
+    )
+    .handler(({ context, input }) => listOrderIds(context.tx, input)),
+
+  /** The couriers the store's orders went with (the filter panel's Courier select). */
+  couriers: can(permissions.ORDERS_READ).handler(({ context }) => orderCouriers(context.tx)),
+
+  /**
+   * "Delete test orders": removes every order of this store paid on a gateway's test keys
+   * (`is_test`), with its dependent rows. Real orders are never touched. Returns the count.
+   */
+  deleteTestOrders: can(permissions.ORDERS_CANCEL).handler(async ({ context }) => ({
+    deleted: await deleteTestOrders({ tx: context.tx, storeId: context.scope.storeId }),
+  })),
+
+  /** The order stats for the last 7 days, against the 7 days before. */
   stats: can(permissions.ORDERS_READ).handler(({ context }) => orderStats(context.tx)),
 
+  /** The stat cards above the Orders list. */
+  tiles: can(permissions.ORDERS_READ).handler(({ context }) => orderTiles(context.tx)),
+
+  /** How many orders are waiting to ship. */
+  toShipCount: can(permissions.ORDERS_READ).handler(({ context }) => readyToShipCount(context.tx)),
+
+  /** One order with its lines, payments, shipment, balance due and the customer's order history. */
   get: can(permissions.ORDERS_READ)
     .input(z.object({ id: z.uuid() }))
     .handler(async ({ context, input }) => {
@@ -106,6 +127,20 @@ export const ordersRouter = {
       ])
       return { ...o, shipment, balance, customerOrders, customerOrderNumber }
     }),
+
+  /** What the order earned: net sales less goods, courier, fees and RTO (order/profit.ts). */
+  profit: can(permissions.ANALYTICS_READ)
+    .input(z.object({ orderId: z.uuid() }))
+    .handler(({ context, input }) =>
+      orderProfit({ storeId: context.scope.storeId, tx: context.tx }, input.orderId),
+    ),
+
+  /** What the courier charged for a consignment, typed by the merchant. */
+  setCourierCharge: can(permissions.ORDERS_WRITE)
+    .input(CourierChargeInputSchema)
+    .handler(({ context, input }) =>
+      setCourierCharge({ storeId: context.scope.storeId, tx: context.tx }, input),
+    ),
 
   /** Order numbers either side of this one, for the arrows in the detail header. */
   neighbours: can(permissions.ORDERS_READ)
@@ -230,74 +265,50 @@ export const ordersRouter = {
       }
     }),
 
-  /**
-   * Ask the shopper for a deposit pre-order's balance: email and WhatsApp
-   * (when set up) with a signed pay link. Can be sent again; reminders and
-   * the store's unpaid-balance rule count from the first request.
-   */
-  requestBalance: can(permissions.ORDERS_WRITE)
-    .input(z.object({ orderId: z.uuid() }))
-    .handler(async ({ context, input }) => {
-      await assertNotImported(context.tx, { orderId: input.orderId })
-      try {
-        return await requestBalance(
-          { storeId: context.scope.storeId, tx: context.tx },
-          input.orderId,
-          { author: context.session.user.email },
-        )
-      } catch (err) {
-        if (err instanceof CommerceError) {
-          throw new ORPCError('BAD_REQUEST', { message: err.message })
-        }
-        throw err
-      }
-    }),
-
-  /**
-   * "Send payment reminder" on an unpaid UPI / bank transfer order: email, and
-   * WhatsApp when set up, with the QR and bank details. At most once every 6 hours.
-   */
-  sendPaymentReminder: can(permissions.ORDERS_WRITE)
-    .input(z.object({ orderId: z.uuid() }))
-    .handler(async ({ context, input }) => {
-      await assertNotImported(context.tx, { orderId: input.orderId })
-      try {
-        return await sendManualPaymentReminder(
-          { storeId: context.scope.storeId, tx: context.tx },
-          input.orderId,
-          { author: context.session.user.email },
-        )
-      } catch (err) {
-        if (err instanceof ReminderTooSoon) {
-          throw new ORPCError('TOO_MANY_REQUESTS', {
-            message: err.message,
-            data: { nextAt: err.nextAt.toISOString() },
-          })
-        }
-        if (err instanceof CommerceError) {
-          throw new ORPCError('BAD_REQUEST', { message: err.message })
-        }
-        throw err
-      }
-    }),
-
-  /** Book the parcel with the store's courier; the order becomes fulfilled and the shopper is told. */
+  /** Book the parcel with the courier picked in the Create shipment flow (the store's first
+   *  courier when none is named); the parcel's items are packed and the shopper is told. */
   createShipment: can(permissions.ORDERS_FULFIL)
-    .input(z.object({ orderId: z.uuid() }))
+    .input(
+      z.object({
+        orderId: z.uuid(),
+        providerId: z.string().min(1).optional(),
+        /** The courier's service picked in the rate table (Delhivery Express, a Shiprocket carrier). */
+        serviceId: z.string().min(1).max(64).optional(),
+        /** The article number from the counter receipt, for a courier booked at its counter (India Post). */
+        trackingNumber: z.string().trim().min(1).max(40).optional(),
+        fulfillmentOrderId: z.guid().optional(),
+        /** A location id, or null for Settings Ã¢â‚¬Âº Shipping's address; omitted picks for you. */
+        pickupLocationId: z.uuid().nullish(),
+        weightGrams: z.number().int().min(1).optional(),
+        dimensionsCm: z
+          .object({
+            length: z.number().min(1),
+            width: z.number().min(1),
+            height: z.number().min(1),
+          })
+          .optional(),
+        paymentMode: z.enum(['cod', 'prepaid']).optional(),
+        codAmountPaise: z.number().int().min(0).optional(),
+        insured: z.boolean().optional(),
+      }),
+    )
     .handler(async ({ context, input }) => {
       await assertNotImported(context.tx, { orderId: input.orderId })
       const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
       // Booking packs what is left; the recompute writes order.fulfilled only
       // if this is what completed the packing.
+      const { orderId, ...choice } = input
       return bookShipment(
         context.tx,
         context.scope.storeId,
         shipping,
         settingsSecret(),
-        input.orderId,
+        orderId,
+        choice,
       )
     }),
 
+  /** Fetch the latest tracking events for a shipment from its courier. */
   refreshTracking: can(permissions.ORDERS_READ)
     .input(z.object({ shipmentId: z.uuid() }))
     .handler(async ({ context, input }) => {
@@ -311,6 +322,7 @@ export const ordersRouter = {
       )
     }),
 
+  /** Cancel a booked shipment with its courier. */
   cancelShipment: can(permissions.ORDERS_FULFIL)
     .input(z.object({ shipmentId: z.uuid() }))
     .handler(async ({ context, input }) => {
@@ -385,6 +397,7 @@ export const ordersRouter = {
       }
     }),
 
+  /** Add a staff note to the order's timeline. */
   addNote: can(permissions.ORDERS_WRITE)
     .input(z.object({ orderId: z.uuid(), body: z.string().trim().min(1).max(2000) }))
     .handler(({ context, input }) =>
@@ -394,85 +407,7 @@ export const ordersRouter = {
       }),
     ),
 
-  setTags: can(permissions.ORDERS_WRITE)
-    .input(z.object({ id: z.uuid(), tags: z.array(z.string().trim().min(1).max(40)).max(20) }))
-    .handler(({ context, input }) => setOrderTags(context.tx, input.id, input.tags)),
-
-  /* Draft orders: built by hand in admin, invisible to the storefront until converted. */
-
-  listDrafts: can(permissions.DRAFTS_READ)
-    .input(
-      z.object({
-        page: z.number().int().min(1).default(1),
-        perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(25),
-        search: z.string().trim().max(SEARCH_MAX).optional(),
-      }),
-    )
-    .handler(({ context, input }) => listStoreDrafts(context.tx, context.scope.storeId, input)),
-
-  getDraft: can(permissions.DRAFTS_READ)
-    .input(z.object({ id: z.uuid() }))
-    .handler(({ context, input }) => getDraft(context.tx, input.id)),
-
-  saveDraft: can(permissions.DRAFTS_WRITE)
-    .input(z.object({ id: z.uuid().optional(), draft: DraftInputSchema }))
-    .handler(({ context, input }) => saveDraft(context.tx, context.scope.storeId, input)),
-
-  deleteDraft: can(permissions.DRAFTS_WRITE)
-    .input(z.object({ id: z.uuid() }))
-    .handler(({ context, input }) => removeDraft(context.tx, context.scope.storeId, input.id)),
-
-  /** Email the shopper a pay link for the draft. */
-  sendInvoice: can(permissions.DRAFTS_WRITE)
-    .input(z.object({ id: z.uuid() }))
-    .handler(async ({ context, input }) => {
-      const draft = await getDraft(context.tx, input.id)
-      if (!draft) throw new ORPCError('NOT_FOUND', { message: 'Draft not found' })
-      if (!draft.email) {
-        throw new ORPCError('BAD_REQUEST', { message: 'Add an email address first' })
-      }
-      await recordInvoiceSent(context.tx, context.scope.storeId, input.id, draft.email)
-      await insertOutboxEvent(context.tx, context.scope.storeId, 'draft.invoice_sent', {
-        orderId: input.id,
-      })
-      return { sentTo: draft.email }
-    }),
-
-  convertDraft: can(permissions.DRAFTS_WRITE)
-    .input(z.object({ id: z.uuid(), paymentMethod: z.string().trim().max(60).optional() }))
-    .handler(async ({ context, input }) => {
-      const row = await convertStoreDraft(context.tx, context.scope.storeId, input)
-      await insertOutboxEvent(context.tx, context.scope.storeId, 'order.placed', {
-        orderId: input.id,
-      })
-      return row
-    }),
-
-  /* Abandoned checkouts: carts that captured a contact and went quiet. */
-
-  listAbandoned: can(permissions.ORDERS_READ)
-    .input(
-      z.object({
-        page: z.number().int().min(1).default(1),
-        perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(25),
-        sinceDays: z.number().int().min(1).max(90).default(30),
-      }),
-    )
-    .handler(({ context, input }) => listStoreAbandoned(context.tx, context.scope.storeId, input)),
-
-  abandonedStats: can(permissions.ORDERS_READ).handler(({ context }) =>
-    storeAbandonedStats(context.tx, context.scope.storeId),
-  ),
-
-  sendRecovery: can(permissions.ORDERS_WRITE)
-    .input(z.object({ cartId: z.uuid() }))
-    .handler(async ({ context, input }) => {
-      const { notifications } = await storeRegistries(context.tx, context.scope.storeId)
-      return sendRecovery(context.tx, context.scope.storeId, {
-        cartId: input.cartId,
-        registry: notifications,
-        settingsSecret: settingsSecret(),
-        storefrontUrl: storefrontUrl(),
-      })
-    }),
+  ...orderListRoutes,
+  ...orderMessageRoutes,
+  ...draftAndAbandonedRoutes,
 }

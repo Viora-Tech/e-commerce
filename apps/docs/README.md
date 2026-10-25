@@ -8,11 +8,23 @@ guardrails, plugins SDK, data model, running locally, testing, backups, deployme
 Content lives in `content/` as MDX, organised by `_meta.ts` files (sidebar order and titles).
 See `content/merchant-guide/` and `content/developer-docs/`.
 
-Two developer-docs pages, [Architecture](content/developer-docs/building/architecture.mdx) and
+Two developer-docs pages, [Architecture](content/developer-docs/getting-started/architecture.mdx) and
 [Backups](content/developer-docs/operations/backups.mdx), plus
 [Plugins SDK](content/developer-docs/building/plugins.mdx), were moved here from `docs/*.md` (one
 source of truth) — the old paths (`docs/architecture.md`, `docs/plugins.md`,
 `docs/ops/backups.md`) are now short stubs pointing here.
+
+## Page layout and moved pages
+
+The merchant guide follows the admin sidebar, in the same order and with the admin's own labels
+(`apps/admin/src/data/navigation.ts`, `data/settings.ts`): Start here, Home, Orders, Products,
+Stock, Customers, Content, Analytics, Growth, Discounts, Online store, Apps, Money & GST,
+Settings, Help. Developer docs have four groups: Getting started, Core concepts, Building,
+Operations.
+
+When you move a page, add `[oldUrl, newUrl]` to `redirects.mjs` (`next.config.mjs` makes them
+permanent redirects). `bun run check:redirects` checks every target exists and
+`bun run check:links` checks every internal link; both run before `bun run build`.
 
 ## Writing pages
 

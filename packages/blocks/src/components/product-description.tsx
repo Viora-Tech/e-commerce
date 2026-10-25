@@ -2,7 +2,7 @@
 
 import { RichTextRenderer, richTextToPlainText } from '@commerce/richtext'
 import { useState } from 'react'
-import { mainProductContent as copy } from '../data/glide/main-product'
+import { mainProductContent as copy } from '../data/zero-drift/main-product'
 import { descriptionDoc } from '../product-data'
 import type { ProductDetail } from '../types'
 

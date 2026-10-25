@@ -1,13 +1,14 @@
 'use client'
 
 import { returnActions } from '@commerce/core/returns'
-import { Clock, Undo } from '@commerce/ui/icons'
+import { Undo } from '@commerce/ui/icons'
 import { useRouter } from 'next/navigation'
-import DetailLayout from '@/components/layout/detail-layout'
 import PageHeader from '@/components/layout/page-header'
-import StatusLabel from '@/components/status/status-label'
+import OrderChip from '@/components/orders/order-chip'
+import OrderPageFrame from '@/components/orders/order-page-frame'
 import { returnDetailContent as copy, returnsContent } from '@/data/returns'
 import { formatWhen } from '@/lib/format-date'
+import { routes } from '@/lib/routes'
 import ReturnCustomerCard from './return-customer-card'
 import ReturnDecisionCard from './return-decision-card'
 import ReturnItemsCard from './return-items-card'
@@ -19,13 +20,6 @@ import type { ReturnDetail } from './return-types'
 import RtoCard from './rto-card'
 
 type ReturnViewProps = { detail: ReturnDetail }
-
-function headerTone(r: ReturnDetail) {
-  if (r.status === 'resolved') return 'success' as const
-  if (r.status === 'rejected' || r.kind === 'rto') return 'danger' as const
-  if (r.status === 'in_transit' || r.status === 'approved') return 'info' as const
-  return 'warning' as const
-}
 
 /** Orders → Returns → one return (or RTO task): what came back and the one next step. */
 export default function ReturnView({ detail: r }: ReturnViewProps) {
@@ -42,32 +36,31 @@ export default function ReturnView({ detail: r }: ReturnViewProps) {
   const statusLabel = rto ? returnsContent.rtoStatus[r.status] : undefined
 
   return (
-    <DetailLayout
+    <OrderPageFrame
       header={
         <PageHeader
           title={title}
-          icon={<Undo aria-hidden="true" />}
-          tone={headerTone(r)}
-          breadcrumbs={[{ label: copy.back, href: '/orders/returns' }, { label: r.label }]}
-          badges={<StatusLabel kind="return" value={r.status} variant="pill" label={statusLabel} />}
-          subtitle={
-            <span className="flex items-center gap-1">
-              <Clock className="size-3.5 text-muted-foreground" />
-              {rto
-                ? copy.cameBackOn(formatWhen(r.receivedAt ?? r.requestedAt))
-                : copy.askedOn(formatWhen(r.requestedAt))}
-            </span>
-          }
+          back={{ label: copy.back, href: routes.orders.returns() }}
+          badges={<OrderChip kind="return" value={r.status} label={statusLabel} />}
+          subtitle={[
+            rto
+              ? copy.cameBackOn(formatWhen(r.receivedAt ?? r.requestedAt))
+              : copy.askedOn(formatWhen(r.requestedAt)),
+            copy.forOrder(r.order.number),
+          ].join(' · ')}
+          lead={{ kind: 'icon', node: <Undo aria-hidden="true" /> }}
         />
+      }
+      nextStep={
+        can.approve || can.reject || can.arrangePickup || can.receive ? (
+          <ReturnDecisionCard detail={r} can={can} onChanged={refresh} />
+        ) : null
       }
       main={
         <>
           {rto ? <RtoCard detail={r} onChanged={refresh} /> : null}
           <ReturnItemsCard detail={r} />
           {rto ? null : <ReturnReasonCard detail={r} />}
-          {can.approve || can.reject || can.arrangePickup || can.receive ? (
-            <ReturnDecisionCard detail={r} can={can} onChanged={refresh} />
-          ) : null}
           {can.resolve ? <ReturnResolveCard detail={r} onChanged={refresh} /> : null}
           {r.status === 'resolved' ? <ReturnOutcomeCard detail={r} onChanged={refresh} /> : null}
         </>

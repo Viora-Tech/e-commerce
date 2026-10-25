@@ -1,10 +1,10 @@
-import { formatPaise } from '@commerce/blocks'
+import { EmptyState, formatPaise, Icon } from '@commerce/blocks'
 import { getCart } from '@commerce/core'
 import DiscountCodeField from '@/components/cart/discount-code-field'
 import FreeShippingProgress from '@/components/cart/free-shipping-progress'
 import { cartContent as content } from '@/data/cart'
 import { readCartId } from '@/lib/cart-cookie'
-import { cartDiscountView } from '@/lib/discount-actions'
+import { cartDiscountView } from '@/lib/discount-view'
 import { cartShippingHint } from '@/lib/shipping'
 import { inStore } from '@/lib/store-context'
 import CartLines from './cart-lines'
@@ -27,13 +27,13 @@ export default async function CartContents({ storeId }: CartContentsProps) {
   if (!cart || lines.length === 0) {
     return (
       <section className="section-cart page-width">
-        <div className="cart-empty">
-          <h1 className="cart-empty__heading h2">{content.empty.heading}</h1>
-          <p className="cart-empty__text text-body">{content.empty.body}</p>
-          <a href="/" className="btn btn--secondary btn--pill cart-empty__cta">
-            {content.empty.cta}
-          </a>
-        </div>
+        <h1 className="cart-page__title">{content.title}</h1>
+        <EmptyState
+          icon="bag"
+          title={content.empty.heading}
+          body={content.empty.body}
+          action={{ label: content.empty.cta, href: '/collections' }}
+        />
       </section>
     )
   }
@@ -48,14 +48,23 @@ export default async function CartContents({ storeId }: CartContentsProps) {
 
   return (
     <section className="section-cart page-width">
-      <h1 className="cart-page__title h2">{content.title}</h1>
+      <h1 className="cart-page__title">
+        {content.title}
+        <span className="cart-page__count">
+          {content.itemCount(lines.reduce((n, l) => n + l.quantity, 0))}
+        </span>
+      </h1>
       <div className="cart-layout">
         <div className="cart-layout__lines">
           <CartLines lines={lines} />
+          <a href="/collections" className="cart-page__continue">
+            <Icon name="arrow-right" size={16} />
+            {content.continueShopping}
+          </a>
         </div>
         <aside className="cart-layout__summary">
           <div className="cart-summary">
-            <h2 className="cart-summary__heading h4">{content.summary}</h2>
+            <h2 className="cart-summary__heading">{content.summary}</h2>
             <DiscountCodeField discount={discount} />
             <div className="cart-summary__row">
               <span>{content.subtotal}</span>
@@ -78,10 +87,18 @@ export default async function CartContents({ storeId }: CartContentsProps) {
               <span>{content.total}</span>
               <span>{formatPaise(total)}</span>
             </div>
-            <p className="text-caption">{content.taxes}</p>
+            <p className="text-caption">{content.taxesAtCheckout}</p>
             <a href="/checkout" className="btn btn--primary cart-summary__checkout">
               {content.checkout}
+              <Icon name="arrow-right" size={16} />
             </a>
+            <ul className="cart-summary__methods" aria-label={content.paymentMethods}>
+              {content.payments.map((p) => (
+                <li key={p} className="cart-summary__method">
+                  {p}
+                </li>
+              ))}
+            </ul>
           </div>
         </aside>
       </div>

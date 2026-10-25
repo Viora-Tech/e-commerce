@@ -1,23 +1,25 @@
 'use client'
 
 import { AiIcon, RotateCcw } from '@commerce/ui/icons'
-import { Badge } from '@commerce/ui/shadcn/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import KitButton from '@/components/kit/kit-button'
+import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
+import StatusChip from '@/components/layout/status-chip'
+import ApprovalDialog from '@/components/mcp/approval-dialog'
 import { assistantContent } from '@/data/assistant'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type Item = Awaited<ReturnType<typeof api.ai.activity>>['items'][number]
 
-const BADGE: Record<string, 'warning' | 'success' | 'destructive' | 'neutral'> = {
-  proposed: 'warning',
+const BADGE: Record<string, 'attention' | 'success' | 'danger' | 'neutral'> = {
+  proposed: 'attention',
   executed: 'success',
-  failed: 'destructive',
+  failed: 'danger',
   cancelled: 'neutral',
   expired: 'neutral',
   undone: 'neutral',
@@ -36,6 +38,7 @@ export default function AiActivityCard() {
   const [page, setPage] = useState(1)
   const [failed, setFailed] = useState(false)
   const [undoing, setUndoing] = useState<string | null>(null)
+  const [reviewing, setReviewing] = useState<string | null>(null)
 
   useEffect(() => {
     api.ai
@@ -62,82 +65,85 @@ export default function AiActivityCard() {
   }
 
   return (
-    <Card size="form">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+    <DataCard
+      title={
+        <>
           <AiIcon className="size-5 text-primary" aria-hidden="true" />
           {copy.activity.heading}
-        </CardTitle>
-        <CardDescription>{copy.activity.help}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {failed ? (
-          <p className="text-body text-muted-foreground">{copy.activity.failed}</p>
-        ) : items === null ? (
-          <Skeleton className="h-32 w-full rounded-xl" />
-        ) : items.length === 0 ? (
-          <p className="rounded-xl border border-border border-dashed px-4 py-6 text-center text-body text-muted-foreground">
-            {copy.activity.empty}
-          </p>
-        ) : (
-          <div className="flex flex-col gap-3">
-            <ul className="flex flex-col divide-y divide-border rounded-xl border border-border">
-              {items.map((item) => (
-                <li key={item.id} className="flex flex-wrap items-start gap-x-3 gap-y-2 px-4 py-3">
-                  <div className="flex min-w-0 flex-1 flex-col gap-1">
-                    <p className="text-body font-medium break-words text-ink-strong">
-                      {item.summary}
-                    </p>
-                    <p className="text-caption text-muted-foreground">
-                      {[
-                        copy.activity.sources[item.source] ?? item.source,
-                        fmt.when(item.executedAt ?? item.createdAt),
-                        item.by ? copy.activity.by(item.by) : null,
-                      ]
-                        .filter(Boolean)
-                        .join(' · ')}
-                    </p>
-                    {item.status === 'undone' && item.undoMessage ? (
-                      <p className="text-caption text-muted-foreground">{item.undoMessage}</p>
-                    ) : null}
-                    {item.status === 'failed' && item.error ? (
-                      <p className="text-caption text-destructive">{item.error}</p>
-                    ) : null}
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <Badge variant={BADGE[item.status] ?? 'neutral'}>
-                      {copy.card.status[item.status] ?? item.status}
-                    </Badge>
-                    {item.canUndo ? (
-                      <KitButton
-                        variant="pill"
-                        onClick={() => void handleUndo(item.id)}
-                        disabled={undoing !== null}
-                      >
-                        {undoing === item.id ? (
-                          <Spinner />
-                        ) : (
-                          <RotateCcw className="size-3.5" aria-hidden="true" />
-                        )}
-                        {copy.activity.undo}
-                      </KitButton>
-                    ) : null}
-                  </div>
-                </li>
-              ))}
-            </ul>
-            {hasMore ? (
-              <KitButton
-                variant="link"
-                onClick={() => setPage((p) => p + 1)}
-                className="self-start"
-              >
-                {copy.activity.more}
-              </KitButton>
-            ) : null}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+        </>
+      }
+      subtitle={copy.activity.help}
+    >
+      {failed ? (
+        <p className="text-body text-muted-foreground">{copy.activity.failed}</p>
+      ) : items === null ? (
+        <Skeleton className="h-32 w-full rounded-xl" />
+      ) : items.length === 0 ? (
+        <EmptyState variant="dashed" size="sm" body={copy.activity.empty} />
+      ) : (
+        <div className="flex flex-col gap-3">
+          <ul className="flex flex-col divide-y divide-border rounded-xl border border-border">
+            {items.map((item) => (
+              <li key={item.id} className="flex flex-wrap items-start gap-x-3 gap-y-2 px-4 py-3">
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                  <p className="text-body font-medium break-words text-ink-strong">
+                    {item.summary}
+                  </p>
+                  <p className="text-caption text-muted-foreground">
+                    {[
+                      copy.activity.sources[item.source] ?? item.source,
+                      fmt.when(item.executedAt ?? item.createdAt),
+                      item.by ? copy.activity.by(item.by) : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </p>
+                  {item.status === 'undone' && item.undoMessage ? (
+                    <p className="text-caption text-muted-foreground">{item.undoMessage}</p>
+                  ) : null}
+                  {item.status === 'failed' && item.error ? (
+                    <p className="text-caption text-destructive">{item.error}</p>
+                  ) : null}
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <StatusChip tone={BADGE[item.status] ?? 'neutral'}>
+                    {copy.card.status[item.status] ?? item.status}
+                  </StatusChip>
+                  {item.status === 'proposed' ? (
+                    <KitButton variant="pill" onClick={() => setReviewing(item.id)}>
+                      {copy.activity.review}
+                    </KitButton>
+                  ) : null}
+                  {item.canUndo ? (
+                    <KitButton
+                      variant="pill"
+                      onClick={() => void handleUndo(item.id)}
+                      disabled={undoing !== null}
+                    >
+                      {undoing === item.id ? (
+                        <Spinner />
+                      ) : (
+                        <RotateCcw className="size-3.5" aria-hidden="true" />
+                      )}
+                      {copy.activity.undo}
+                    </KitButton>
+                  ) : null}
+                </div>
+              </li>
+            ))}
+          </ul>
+          {hasMore ? (
+            <KitButton variant="link" onClick={() => setPage((p) => p + 1)} className="self-end">
+              {copy.activity.more}
+            </KitButton>
+          ) : null}
+        </div>
+      )}
+      <ApprovalDialog
+        actionId={reviewing}
+        onClose={() => setReviewing(null)}
+        onChange={() => setPage(1)}
+      />
+    </DataCard>
   )
 }

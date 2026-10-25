@@ -11,6 +11,30 @@ export const s3Plugin = definePlugin({
   company: 'Amazon Web Services',
   description:
     'Product images and files on your own Amazon S3 bucket, uploaded straight from the browser.',
+  listing: {
+    tagline: 'Keeps your images and files on your own S3 bucket, with CloudFront if you like.',
+    highlights: [
+      'Guided bucket and key setup',
+      'Uploads straight from the browser',
+      'Moves existing files over safely',
+    ],
+    guide: '/merchant-guide/content/files-and-storage',
+    worksWith: ['Products, Files and every app that stores images'],
+    keywords: ['storage', 'aws', 'images'],
+  },
+  access: {
+    resources: [
+      {
+        resource: 'files',
+        level: 'read-write',
+        why: 'Stores product images and the files you upload',
+      },
+    ],
+    summary: 'stores files',
+    shares: [
+      { when: 'Every upload', what: 'The file itself: product images, documents and theme files' },
+    ],
+  },
   provides: { storage: [s3Factory] },
   admin: {
     icon: 'Upload',

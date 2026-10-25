@@ -1,18 +1,11 @@
 'use client'
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@commerce/ui/shadcn/table'
+import { siteConfig } from '@commerce/config/site'
 import { useEffect, useState } from 'react'
-import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
 import RelativeTime from '@/components/layout/relative-time'
-import StatusLabel from '@/components/status/status-label'
+import OrderChip from '@/components/orders/order-chip'
+import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { backInStockContent } from '@/data/back-in-stock'
 import { api } from '@/lib/api-client'
 
@@ -20,10 +13,43 @@ type Row = Awaited<ReturnType<typeof api.backInStock.signups.list>>[number]
 
 const copy = backInStockContent.signups
 
+const columns: ResourceColumnSpec<Row>[] = [
+  {
+    id: 'variant',
+    title: copy.columns.variant,
+    hideable: false,
+    align: 'start',
+    sortValue: (r) => r.variantLabel,
+    render: (r) => <span className="font-medium">{r.variantLabel}</span>,
+  },
+  {
+    id: 'contact',
+    title: copy.columns.contact,
+    align: 'start',
+    sortValue: (r) => r.contact,
+    render: (r) => r.contact,
+  },
+  {
+    id: 'status',
+    title: copy.columns.status,
+    sortValue: (r) => r.status,
+    render: (r) => <OrderChip kind="bisSignup" value={r.status} />,
+  },
+  {
+    id: 'created',
+    title: copy.columns.created,
+    sortValue: (r) => new Date(r.createdAt),
+    render: (r) => <RelativeTime value={r.createdAt} />,
+  },
+]
+
 /** Every "notify me" signup: who is waiting, for what, and where they are in the double opt-in flow. */
 export default function SignupsList() {
   // Hooks
   const [rows, setRows] = useState<Row[] | null>(null)
+  const [query, setQuery] = useState('')
+  const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState<number>(siteConfig.ui.rowsPerPage.default)
 
   useEffect(() => {
     let cancelled = false
@@ -35,45 +61,45 @@ export default function SignupsList() {
     }
   }, [])
 
+  // Event handlers
+  const handleQuery = (next: string) => {
+    setQuery(next)
+    setPage(1)
+  }
+  const handlePerPage = (next: number) => {
+    setPerPage(next)
+    setPage(1)
+  }
+
   // Render logic
-  const list = rows ?? []
+  const needle = query.trim().toLowerCase()
+  const matching = (rows ?? []).filter(
+    (r) =>
+      !needle ||
+      r.variantLabel.toLowerCase().includes(needle) ||
+      r.contact.toLowerCase().includes(needle),
+  )
+  const visible = matching.slice((page - 1) * perPage, page * perPage)
 
   return (
-    <div className="flex flex-col gap-4">
-      <PageHeader title={copy.title} subtitle={copy.subtitle} />
-      <DataCard title={copy.title} flush>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{copy.columns.variant}</TableHead>
-              <TableHead>{copy.columns.contact}</TableHead>
-              <TableHead>{copy.columns.status}</TableHead>
-              <TableHead className="text-right">{copy.columns.created}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows && list.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="py-10 text-center text-muted-foreground">
-                  {copy.empty}
-                </TableCell>
-              </TableRow>
-            ) : null}
-            {list.map((r) => (
-              <TableRow key={r.id}>
-                <TableCell className="font-medium">{r.variantLabel}</TableCell>
-                <TableCell>{r.contact}</TableCell>
-                <TableCell>
-                  <StatusLabel kind="bisSignup" value={r.status} />
-                </TableCell>
-                <TableCell className="text-right">
-                  <RelativeTime value={r.createdAt} />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </DataCard>
+    <div className="flex flex-col gap-5">
+      <PageHeader title={copy.title} summary={copy.subtitle} />
+      <ResourceTable
+        resourceName={copy.resource}
+        columns={columns}
+        items={visible}
+        getId={(r) => r.id}
+        selectable={false}
+        loading={rows === null}
+        query={query}
+        onQueryChange={handleQuery}
+        page={page}
+        perPage={perPage}
+        total={matching.length}
+        onPageChange={setPage}
+        onPerPageChange={handlePerPage}
+        empty={{ heading: copy.empty }}
+      />
     </div>
   )
 }

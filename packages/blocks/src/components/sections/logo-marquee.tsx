@@ -2,7 +2,7 @@
 
 // Adapted from Magic UI's Marquee (MIT). See THIRD_PARTY_NOTICES.md and
 // packages/blocks/THIRD_PARTY_LICENSES.md.
-import { useEffect, useRef } from 'react'
+import { type ReactNode, useEffect, useRef } from 'react'
 import { loadMotion } from '../../lazy-motion'
 import type { Image } from '../../sections/framed'
 import { safeHref } from '../../slot-types'
@@ -10,7 +10,8 @@ import { useReducedMotion } from '../../use-reduced-motion'
 
 type Logo = { image: Image; alt: string; href: string }
 
-type LogoMarqueeProps = { heading: string; logos: Logo[]; speedSeconds: number }
+/** `heading` is a string in storage, a React node while edited on the canvas. */
+type LogoMarqueeProps = { heading: ReactNode; logos: Logo[]; speedSeconds: number }
 
 const resolveDuration = (speedSeconds: number): number => Math.max(5, speedSeconds || 30)
 

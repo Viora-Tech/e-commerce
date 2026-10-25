@@ -2,20 +2,20 @@
 
 import { lowestEmiPaise } from '@commerce/core/emi'
 import { EMI_GATEWAYS, type EmiGateway } from '@commerce/plugin-emi/offer'
-import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
-import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Label } from '@commerce/ui/shadcn/label'
 import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
+import SaveBar from '@/components/layout/save-bar'
+import SettingsCard from '@/components/settings/settings-card'
+import SettingsRow from '@/components/settings/settings-row'
 import { emiContent as copy } from '@/data/emi'
 import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
+import { routes } from '@/lib/routes'
 
 type View = Awaited<ReturnType<typeof api.emi.settings.get>>
 type Settings = View['settings']
@@ -47,7 +47,7 @@ function statusOf(view: View) {
     default:
       return {
         text: copy.status.emiOff,
-        link: { href: '/settings/payments', label: copy.status.emiOffLink },
+        link: { href: routes.settings.payments(), label: copy.status.emiOffLink },
       }
   }
 }
@@ -74,9 +74,9 @@ export default function SettingsPage() {
     if (!form) return
     setBusy(true)
     try {
-      const saved = await api.emi.settings.save(form)
-      setView(saved)
-      setForm(saved.settings)
+      const next = await api.emi.settings.save(form)
+      setView(next)
+      setForm(next.settings)
       toast.success(copy.saved)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.failed)
@@ -84,6 +84,8 @@ export default function SettingsPage() {
       setBusy(false)
     }
   }
+
+  const handleDiscard = () => setForm(view?.settings ?? null)
 
   const handleMinPrice = (value: string) => {
     const rupees = Math.min(1_000_000, Number(value.replace(/\D/g, '')) || 0)
@@ -97,44 +99,37 @@ export default function SettingsPage() {
   const status = statusOf(view)
   const examplePaise = Math.max(PREVIEW_PAISE, form.minPricePaise)
   const usesWidget = form.gateway === 'razorpay' && view.officialWidget
+  const dirty = JSON.stringify(form) !== JSON.stringify(view.settings)
 
   return (
-    <div className="flex flex-col gap-4">
-      <PageHeader
-        title={copy.title}
-        subtitle={copy.subtitle}
-        actions={
-          <Button disabled={busy} onClick={handleSave}>
-            {copy.save}
-          </Button>
-        }
+    <div className="flex flex-col gap-5">
+      <SaveBar
+        open={dirty}
+        message={copy.unsaved}
+        saveLabel={copy.save}
+        discardLabel={copy.discard}
+        onSave={handleSave}
+        onDiscard={handleDiscard}
+        saving={busy}
       />
-      <Alert>
-        <AlertDescription>
-          {status.text}{' '}
-          {status.link ? (
-            <Link href={status.link.href} className="underline">
-              {status.link.label}
-            </Link>
-          ) : null}
-        </AlertDescription>
-      </Alert>
-      <DataCard title={copy.show.title}>
-        <div className="flex items-center justify-between gap-4 p-4">
-          <div className="flex flex-col">
-            <Label htmlFor="emi-enabled">{copy.show.label}</Label>
-            <span className="text-caption text-muted-foreground">{copy.show.help}</span>
-          </div>
+      <PageHeader title={copy.title} summary={copy.subtitle} />
+      <p className="rounded-xl surface-banner px-4 py-3 text-body text-foreground">
+        {status.text}{' '}
+        {status.link ? (
+          <Link href={status.link.href} className="font-medium underline">
+            {status.link.label}
+          </Link>
+        ) : null}
+      </p>
+      <SettingsCard>
+        <SettingsRow label={copy.show.label} description={copy.show.help} htmlFor="emi-enabled">
           <Switch
             id="emi-enabled"
             checked={form.enabled}
             onCheckedChange={(v) => patch({ enabled: v })}
           />
-        </div>
-      </DataCard>
-      <DataCard title={copy.gateway.title}>
-        <div className="flex flex-col gap-3 p-4">
-          <span className="text-caption text-muted-foreground">{copy.gateway.help}</span>
+        </SettingsRow>
+        <SettingsRow label={copy.gateway.title} description={copy.gateway.help}>
           <RadioGroup
             value={form.gateway}
             onValueChange={(v) => patch({ gateway: v as EmiGateway })}
@@ -151,11 +146,12 @@ export default function SettingsPage() {
               </label>
             ))}
           </RadioGroup>
-        </div>
-      </DataCard>
-      <DataCard title={copy.minPrice.title}>
-        <div className="flex flex-col gap-1.5 p-4">
-          <Label htmlFor="emi-min-price">{copy.minPrice.label}</Label>
+        </SettingsRow>
+        <SettingsRow
+          label={copy.minPrice.label}
+          description={copy.minPrice.help}
+          htmlFor="emi-min-price"
+        >
           <Input
             id="emi-min-price"
             inputMode="numeric"
@@ -163,22 +159,19 @@ export default function SettingsPage() {
             value={String(Math.round(form.minPricePaise / 100))}
             onChange={(e) => handleMinPrice(e.target.value)}
           />
-          <span className="text-caption text-muted-foreground">{copy.minPrice.help}</span>
-        </div>
-      </DataCard>
-      <DataCard title={copy.preview.title}>
-        <div className="flex flex-col gap-1 p-4">
-          <span className="text-caption text-muted-foreground">
-            {copy.preview.example(formatPaise(examplePaise))}
-          </span>
+        </SettingsRow>
+        <SettingsRow
+          label={copy.preview.title}
+          description={copy.preview.example(formatPaise(examplePaise))}
+        >
           <span className="text-body text-primary">
             {copy.preview.line(formatPaise(lowestEmiPaise(examplePaise)))}
           </span>
           <span className="text-caption text-muted-foreground">
             {usesWidget ? copy.gateway.officialWidget : copy.gateway.simpleLine} {copy.preview.note}
           </span>
-        </div>
-      </DataCard>
+        </SettingsRow>
+      </SettingsCard>
     </div>
   )
 }

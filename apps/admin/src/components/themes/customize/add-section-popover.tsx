@@ -7,6 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/pop
 import { useState } from 'react'
 import { customizeContent } from '@/data/customize'
 import { CHROME_FOCUS, CHROME_ROW_HOVER, CHROME_TRANSITION } from '@/lib/customize-chrome'
+import AddBlockPicker from './add-block-picker'
 import AddSectionBrowser from './add-section-browser'
 
 type AddSectionPopoverProps = {
@@ -83,15 +84,20 @@ export default function AddSectionPopover({
         align="start"
         side="right"
         sideOffset={12}
-        className="relative flex w-[22rem] flex-col gap-0 p-0"
+        className={cn('relative flex flex-col gap-0 p-0', slot ? 'w-[14.25rem]' : 'w-[22rem]')}
       >
-        <AddSectionBrowser
-          zone={zone}
-          group={group}
-          index={index}
-          count={count}
-          onAdd={() => setOpen(false)}
-        />
+        {/* A section's own slot gets the compact block picker (Figma 696:87552). */}
+        {slot ? (
+          <AddBlockPicker zone={zone} index={index} count={count} onAdd={() => setOpen(false)} />
+        ) : (
+          <AddSectionBrowser
+            zone={zone}
+            group={group}
+            index={index}
+            count={count}
+            onAdd={() => setOpen(false)}
+          />
+        )}
       </PopoverContent>
     </Popover>
   )

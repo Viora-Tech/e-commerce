@@ -1,5 +1,5 @@
-import { footerContent as copy } from '../data/glide/footer'
-import type { SocialPlatform } from '../sections/glide/footer'
+import { footerContent as copy } from '../data/zero-drift/footer'
+import type { SocialPlatform } from '../sections/zero-drift/footer'
 import { safeHref } from '../slot-types'
 import Icon from './icon'
 

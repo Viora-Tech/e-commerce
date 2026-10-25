@@ -4,7 +4,7 @@ import type { RichTextValue } from '@commerce/richtext'
 import { Input } from '@commerce/ui/shadcn/input'
 import RichTextField from '@/components/fields/rich-text-field'
 import KitField from '@/components/kit/kit-field'
-import { productFormContent } from '@/data/products'
+import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 
 type ProductBasicsSectionProps = {
@@ -52,6 +52,8 @@ export default function ProductBasicsSection({
         onChange={onDescription}
         placeholder={copy.descriptionPlaceholder}
         minHeight={155}
+        // Room between the toolbar and the first line, so the text does not hug the toolbar.
+        className="[&_.editor-input]:py-5 [&_.editor-placeholder]:top-5"
       />
     </div>
   )

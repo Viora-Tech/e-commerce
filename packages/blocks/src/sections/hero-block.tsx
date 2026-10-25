@@ -1,12 +1,20 @@
 import type { ComponentConfig, Fields } from '@puckeditor/core'
 import HeroCarousel from '../components/hero-carousel'
-import { heroCarouselContent as copy } from '../data/glide/hero-carousel'
+import SectionCustomCss from '../components/section-custom-css'
+import { heroCarouselContent as copy } from '../data/zero-drift/hero-carousel'
+import {
+  bleedFrameProps,
+  defaultSectionSettings,
+  migrateSectionSettings,
+  type SectionSettingsValue,
+  sectionSettingsField,
+} from '../section-settings'
 import type { CardProduct } from '../types'
-import type { Image, Link } from './framed'
+import { type Image, type Link, SCHEMES } from './framed'
 import { heroFields } from './hero-fields'
 import type { SingleProductLoader } from './library'
 
-/** One slide as stored. Slides saved before the Glide refresh hold only the first six keys. */
+/** One slide as stored. Slides saved before the Zero Drift refresh hold only the first six keys. */
 export type HeroSlideProps = {
   heading: string
   subheading?: string | undefined
@@ -32,6 +40,8 @@ export type HeroSlideProps = {
 
 export type HeroProps = {
   slides: HeroSlideProps[]
+  /** Spacing, visibility and anchor (`bleed` section settings), on the hero's own frame. */
+  settings: SectionSettingsValue
   frame: 'full' | 'inset'
   pin: boolean
   autoplay: boolean
@@ -54,9 +64,9 @@ export type HeroProps = {
   showScrollCue: boolean
   scrollCueText: string
   lowStockThreshold: number
-  /** Before the Glide refresh: seconds per slide, 0 = off. Folded into `autoplay*` on resolve. */
+  /** Before the Zero Drift refresh: seconds per slide, 0 = off. Folded into `autoplay*` on resolve. */
   autoplaySeconds?: number | undefined
-  /** Before the Glide refresh: a fixed height in vh. Folded into `slideHeight` on resolve. */
+  /** Before the Zero Drift refresh: a fixed height in vh. Folded into `slideHeight` on resolve. */
   heightVh?: number | undefined
   /** Filled by resolveData, one entry per slide (null when it has no product or none was found). */
   resolved?: (CardProduct | null)[]
@@ -67,7 +77,11 @@ type HeroLoaders = { loadProduct?: SingleProductLoader | undefined }
 
 const noImage = { url: '', alt: '' }
 
+/** The hero's frame always had the shared frame's 40px padding; settings start from that look. */
+const HERO_SETTINGS = defaultSectionSettings({ padTop: 40, padBottom: 40 })
+
 const defaultProps: HeroProps = {
+  settings: HERO_SETTINGS,
   slides: [
     {
       kind: 'image',
@@ -116,7 +130,7 @@ const defaultProps: HeroProps = {
 }
 
 /**
- * The settings a hero saved before the Glide refresh implies: `autoplaySeconds` (0 = off) and
+ * The settings a hero saved before the Zero Drift refresh implies: `autoplaySeconds` (0 = off) and
  * a fixed `heightVh`. Undefined keys are left alone, so a hero saved since keeps its own.
  */
 function legacySettings(p: HeroProps): Partial<HeroProps> {
@@ -136,7 +150,10 @@ function legacySettings(p: HeroProps): Partial<HeroProps> {
 export function heroBlock(loaders: HeroLoaders = {}): ComponentConfig<HeroProps> {
   return {
     label: copy.label,
-    fields: heroFields as unknown as Fields<HeroProps>,
+    fields: {
+      ...heroFields,
+      settings: sectionSettingsField(SCHEMES, 'bleed'),
+    } as unknown as Fields<HeroProps>,
     defaultProps,
     resolveData: async ({ props }) => ({
       props: {
@@ -155,37 +172,42 @@ export function heroBlock(loaders: HeroLoaders = {}): ComponentConfig<HeroProps>
     }),
     render: (props) => {
       const p = { ...props, ...legacySettings(props) }
+      const settings = migrateSectionSettings(p, HERO_SETTINGS)
       return (
-        <HeroCarousel
-          slides={(p.slides ?? []).map((s, i) => ({
-            ...s,
-            mediaSide: s.splitMediaPosition,
-            scheme: s.colorScheme,
-            showChip: s.showProductChip,
-            product: p.resolved?.[i] ?? null,
-          }))}
-          autoplaySeconds={p.autoplay ? p.autoplayInterval : 0}
-          heightVh={p.slideHeight}
-          heightMobileVh={p.slideHeightMobile}
-          heightMode={p.heightMode}
-          frame={p.frame}
-          pin={p.pin}
-          showArrows={p.showArrows}
-          showDots={p.showDots}
-          dotProgress={p.dotProgress}
-          headingScale={p.headingScale}
-          showCounter={p.showSlideCounter}
-          scrimOpacity={p.scrimOpacity}
-          scrimTint={p.scrimTint}
-          grain={p.grain}
-          zoom={p.enableZoom}
-          entrance={p.enableEntrance}
-          wordEntrance={p.wordEntrance}
-          parallax={p.parallax}
-          scrollCue={p.showScrollCue}
-          scrollCueText={p.scrollCueText}
-          lowStockThreshold={p.lowStockThreshold}
-        />
+        <>
+          <SectionCustomCss css={settings.advanced.customCss} />
+          <HeroCarousel
+            frameProps={bleedFrameProps(settings)}
+            slides={(p.slides ?? []).map((s, i) => ({
+              ...s,
+              mediaSide: s.splitMediaPosition,
+              scheme: s.colorScheme,
+              showChip: s.showProductChip,
+              product: p.resolved?.[i] ?? null,
+            }))}
+            autoplaySeconds={p.autoplay ? p.autoplayInterval : 0}
+            heightVh={p.slideHeight}
+            heightMobileVh={p.slideHeightMobile}
+            heightMode={p.heightMode}
+            frame={p.frame}
+            pin={p.pin}
+            showArrows={p.showArrows}
+            showDots={p.showDots}
+            dotProgress={p.dotProgress}
+            headingScale={p.headingScale}
+            showCounter={p.showSlideCounter}
+            scrimOpacity={p.scrimOpacity}
+            scrimTint={p.scrimTint}
+            grain={p.grain}
+            zoom={p.enableZoom}
+            entrance={p.enableEntrance}
+            wordEntrance={p.wordEntrance}
+            parallax={p.parallax}
+            scrollCue={p.showScrollCue}
+            scrollCueText={p.scrollCueText}
+            lowStockThreshold={p.lowStockThreshold}
+          />
+        </>
       )
     },
   }

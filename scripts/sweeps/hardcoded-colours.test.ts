@@ -35,6 +35,16 @@ type AllowEntry = { file: string; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'apps/admin/src/components/mcp/mcp-client-logo.tsx',
+    reason:
+      "third-party brand marks (Claude, VS Code) drawn in each vendor's own brand colour, which no theme token should restyle",
+  },
+  {
+    file: 'apps/admin/src/components/settings/accent-wheel.tsx',
+    reason:
+      'the accent colour wheel paints the full hue spectrum with a white centre; it shows raw colours the merchant picks from, not themed UI',
+  },
+  {
     file: 'apps/admin/src/components/analytics/live-globe/globe-settings-panel.tsx',
     reason:
       'Live view globe colour presets (Night, Ocean blue, Mono) and colour-picker fallbacks: they are uploaded to the WebGL shader as RGB uniforms, which cannot read CSS custom properties; the default "Store accent" preset still comes from theme tokens',
@@ -43,6 +53,16 @@ const ALLOWLIST: AllowEntry[] = [
     file: 'apps/admin/src/components/apps/gst-invoices/look-group.tsx',
     reason:
       'accent-colour presets are stored as invoice.accentColor and passed straight into the react-pdf templates (packages/invoices/src/templates), which render outside the DOM and cannot resolve CSS custom properties — swapping these for var(--chart-N) would store an unusable value and break the PDF',
+  },
+  {
+    file: 'apps/admin/src/components/themes/customize/background-field.tsx',
+    reason:
+      'the white swatch is a stored section-background value: the setting holds a raw hex string and `<input type="color">` needs a hex start value, neither is app UI colour',
+  },
+  {
+    file: 'apps/admin/src/components/metaobjects/colour-input.tsx',
+    reason:
+      'the Colour field of Content types: a swatch picker for a merchant-chosen raw colour; `<input type="color">` needs a hex start value and the box shows a hex example, neither is app UI colour',
   },
   {
     file: 'apps/admin/src/components/growth/campaigns/email-preview.tsx',
@@ -61,14 +81,14 @@ const ALLOWLIST: AllowEntry[] = [
 
 const PALETTE_ALLOWLIST: AllowEntry[] = [
   {
+    file: 'apps/admin/src/components/apps/app-logo.tsx',
+    reason:
+      'one brand gradient per built-in app tile (amber Reviews, blue GST, etc.): each app has its own identity colour that is not a theme role, so no semantic token fits; the glyph on top stays white in both themes',
+  },
+  {
     file: 'apps/admin/src/components/orders/packing-slip.tsx',
     reason:
       'printed packing slip: fixed neutral ink on paper, deliberately not the screen theme (dark mode must not print grey on white)',
-  },
-  {
-    file: 'apps/admin/src/components/themes/customize/section-overlay.tsx',
-    reason:
-      'theme editor overlay drawn on top of the merchant storefront preview iframe, where the admin theme tokens do not exist; give it its own overlay tokens',
   },
 ]
 

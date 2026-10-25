@@ -10,15 +10,16 @@ import {
   InfoIcon,
   LayoutGrid,
   MessageSquare,
+  SquareTerminal,
   TrendingUp,
   TriangleAlert,
 } from '@commerce/ui/icons'
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import KitButton from '@/components/kit/kit-button'
+import StatusChip from '@/components/layout/status-chip'
 import { assistantContent } from '@/data/assistant'
 import type { ActionView } from '@/hooks/use-assistant'
 import { useCopy } from '@/hooks/use-copy'
@@ -37,12 +38,14 @@ const TOOL_ICONS: Record<string, typeof AiIcon> = {
   proposeCollection: LayoutGrid,
   proposeProductUpdate: FileEdit,
   proposeOrderNote: MessageSquare,
+  // An admin action an MCP client asked to run (Settings → MCP & API).
+  runAdminAction: SquareTerminal,
 }
 
-const BADGE: Record<string, 'warning' | 'success' | 'destructive' | 'neutral'> = {
-  proposed: 'warning',
+const BADGE: Record<string, 'attention' | 'success' | 'danger' | 'neutral'> = {
+  proposed: 'attention',
   executed: 'success',
-  failed: 'destructive',
+  failed: 'danger',
   cancelled: 'neutral',
   expired: 'neutral',
   undone: 'neutral',
@@ -107,9 +110,9 @@ export default function ActionCard({ action, onChange }: ActionCardProps) {
             </p>
           ) : null}
         </div>
-        <Badge variant={BADGE[action.status] ?? 'neutral'}>
+        <StatusChip tone={BADGE[action.status] ?? 'neutral'}>
           {copy.card.status[action.status] ?? action.status}
-        </Badge>
+        </StatusChip>
       </header>
 
       {action.flagged && open ? (
@@ -143,7 +146,7 @@ export default function ActionCard({ action, onChange }: ActionCardProps) {
       </div>
 
       {open && !editing ? (
-        <footer className="flex flex-wrap items-center gap-2 border-border border-t bg-muted/30 px-4 py-2.5">
+        <footer className="flex flex-wrap items-center justify-end gap-2 border-border border-t bg-muted/30 px-4 py-2.5">
           <KitButton variant="primary" onClick={handleApprove} disabled={busy !== null}>
             {busy === 'approve' ? <Spinner /> : null}
             {copy.card.approve}

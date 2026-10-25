@@ -48,9 +48,9 @@ export default [
 
     chips: {
       home: [
-        'इस हफ़्ते बिक्री कैसी रही?',
-        'कौन से ऑर्डर देर से चल रहे हैं?',
-        'कौन सा सामान खत्म हो रहा है?',
+        'इस हफ़्ते सबसे ज़्यादा कौन से प्रोडक्ट बिके?',
+        'कन्वर्ज़न क्यों गिरा?',
+        'दिवाली ऑफ़र का ड्राफ़्ट बनाएं',
         'Create discount DIWALI10: 10% off, 20 Oct to 5 Nov',
       ],
       products: [
@@ -148,14 +148,20 @@ export default [
         seo: 'सर्च टाइटल और विवरण',
         tags: 'टैग (आपके टैग में जुड़ेंगे)',
         altText: 'फ़ोटो का alt टेक्स्ट',
+        keywords: 'सर्च कीवर्ड सुझाएं (आपके कीवर्ड में जुड़ेंगे)',
       },
       languageLabel: 'भाषा',
       toneLabel: 'अंदाज़',
       start: 'लिखना शुरू करें',
       starting: 'शुरू हो रहा है…',
-      cost: (n) => `${n} AI रिक्वेस्ट, हर प्रोडक्ट की एक।`,
+      cost: (n, perProduct) =>
+        perProduct === 1
+          ? `${n} AI रिक्वेस्ट, हर प्रोडक्ट की एक।`
+          : `${n * perProduct} AI रिक्वेस्ट, हर प्रोडक्ट की ${perProduct} (कीवर्ड, फिर लिखना)।`,
       progress: (done, total) => `${total} में से ${done} लिखे गए`,
-      background: 'इसे बंद करने पर भी काम चलता रहेगा। जांचने के लिए वापस आएं।',
+      background: 'यह पेज छोड़ने पर भी काम चलता रहेगा। जांचने के लिए वापस आएं।',
+      optionsHeading: 'इस रन की सेटिंग',
+      backTo: { products: 'प्रोडक्ट', seo: 'SEO', readiness: 'कैटलॉग की तैयारी' },
       cancelRun: 'रोकें',
       reviewHeading: 'जांचें और लगाएं',
       reviewHint: 'जो नहीं चाहिए उसका टिक हटा दें। Apply टिक किए हुए प्रोडक्ट में सेव कर देगा।',
@@ -192,10 +198,11 @@ export default [
       empty: 'अभी तक AI से कोई बदलाव नहीं। AI बार से कुछ करवाएं और मंज़ूर करें।',
       by: (who) => `${who} ने`,
       undo: 'Undo',
+      review: 'देखें',
       undone: 'वापस लिया',
       more: 'और दिखाएं',
       failed: 'Activity लोड नहीं हो पाई।',
-      sources: { assistant: 'AI असिस्टेंट', bulkWriter: 'AI से लिखें' },
+      sources: { assistant: 'AI असिस्टेंट', bulkWriter: 'AI से लिखें', mcp: 'AI क्लाइंट (MCP)' },
     },
   }),
 ]

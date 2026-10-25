@@ -11,11 +11,12 @@ import {
   startBalancePayment,
   thankYouPath,
 } from '@commerce/core'
-import { order, payment } from '@commerce/db'
+import { payment } from '@commerce/db'
 import { and, eq } from 'drizzle-orm'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { db } from './db'
+import { accessibleOrderId } from './order-access'
 import { nudgeOutbox } from './outbox'
 import { storePaymentProviders } from './payments'
 import { clientIp, rateLimited } from './rate-limit'
@@ -31,18 +32,17 @@ const PAY_BALANCE_RULE = { limit: 10, windowMs: 60_000 }
  * after the attempt is committed. Lands on the gateway, or back on the
  * thank-you page, which shows where the balance stands.
  */
-export async function payBalanceAction(orderNumber: number): Promise<void> {
+export async function payBalanceAction(
+  orderNumber: number,
+  viewToken: string | null,
+): Promise<void> {
   const h = await headers()
   const storeId = h.get('x-store-id')
   if (!storeId) throw new Error('store not resolved')
-  // Looked up first so every exit below, including a rate-limited one, can
-  // still carry a validly-tokened thank-you link.
-  const orderId = await inStore(storeId, async (tx) => {
-    const [o] = await tx.select({ id: order.id }).from(order).where(eq(order.number, orderNumber))
-    return o?.id ?? null
-  })
-  // No order: nothing to tell apart from a stray order number, so the
-  // fallback (untokened) link is fine — the page 404s on it either way.
+  // The caller must own the order or hold its view token: every exit below mints a fresh
+  // one, which opens the order to whoever holds it (security audit 2026-10-06, A-00).
+  const orderId = await accessibleOrderId(storeId, orderNumber, viewToken)
+  // No order, or not theirs: the untokened link, which a stranger cannot open.
   if (!orderId) redirect(`/checkout/thank-you/${orderNumber}`)
   const oid: string = orderId
   const secret = settingsSecret()

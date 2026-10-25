@@ -61,7 +61,8 @@ type PaymentRef =
   | { providerRef: string; idempotencyKey?: string | null | undefined }
   | { paymentId: string }
 
-async function findPaymentId(ctx: StoreContext, ref: PaymentRef): Promise<string | null> {
+/** The attempt a gateway reference (or its idempotency key) names, or a payment id as given. */
+export async function findPaymentId(ctx: StoreContext, ref: PaymentRef): Promise<string | null> {
   if ('paymentId' in ref) return ref.paymentId
   const [byRef] = await ctx.tx
     .select({ id: payment.id })
@@ -112,6 +113,8 @@ export async function applyPaymentStatus(
      * and reconciliation captures — there is no gateway amount to check.
      */
     capturedAmountPaise?: number | null
+    /** Why a failure happened, in the gateway's words; stored on the attempt when it fails. */
+    error?: string | null | undefined
   },
 ): Promise<AppliedPayment | null> {
   const id = await findPaymentId(ctx, input)
@@ -182,6 +185,7 @@ export async function applyPaymentStatus(
       providerRef,
       providerPaymentId: input.providerPaymentId ?? p.providerPaymentId,
       refundNeeded,
+      ...(next === 'failed' && input.error ? { error: input.error } : {}),
     })
     .where(eq(payment.id, p.id))
     .returning()

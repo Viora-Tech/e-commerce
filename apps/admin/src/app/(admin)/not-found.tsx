@@ -1,24 +1,10 @@
-import { SearchX } from '@commerce/ui/icons'
-import { Button } from '@commerce/ui/shadcn/button'
-import Link from 'next/link'
-import EmptyState from '@/components/layout/empty-state'
 import PageBody from '@/components/layout/page-body'
-import { layoutContent } from '@/data/layout'
+import PageState from '@/components/states/page-state'
 
 export default function NotFound() {
-  const c = layoutContent.notFound
   return (
     <PageBody>
-      <EmptyState
-        icon={SearchX}
-        heading={c.heading}
-        body={c.body}
-        action={
-          <Button variant="outline" render={<Link href="/" />} nativeButton={false}>
-            {c.home}
-          </Button>
-        }
-      />
+      <PageState kind="not-found" />
     </PageBody>
   )
 }

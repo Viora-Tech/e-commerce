@@ -1,5 +1,6 @@
 import { cn } from '@commerce/ui/lib/utils'
 import type { ReactNode } from 'react'
+import RequiredMark from '@/components/fields/required-mark'
 
 type KitFieldProps = {
   label: string
@@ -30,7 +31,12 @@ export default function KitField({
     <div className={cn('flex min-w-0 flex-1 flex-col gap-1.5', className)}>
       <label htmlFor={htmlFor} className="text-body-strong text-foreground">
         {label}
-        {required ? <span className="ml-1 text-destructive">*</span> : null}
+        {required ? (
+          <>
+            {' '}
+            <RequiredMark />
+          </>
+        ) : null}
       </label>
       {children}
       {error ? (

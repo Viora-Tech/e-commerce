@@ -1,4 +1,15 @@
-import { cart, cartLine, createDb, discount, order, store, variant, withStore } from '@commerce/db'
+import {
+  cart,
+  cartLine,
+  createDb,
+  customer,
+  discount,
+  discountUsage,
+  order,
+  store,
+  variant,
+  withStore,
+} from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
@@ -6,7 +17,7 @@ import { createProduct } from '../catalog/products'
 import { createCollection } from '../collections/service'
 import { placeOrder } from '../order/place-order'
 import { FakePaymentProvider } from '../providers/payment'
-import { checkDiscountCode, loadDiscountCart } from './resolve'
+import { checkDiscountCode, loadDiscountCart, resolveCartDiscount } from './resolve'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
@@ -148,6 +159,115 @@ describe('collection-scoped discounts', () => {
       discountCode: 'RAZER15',
       discountPaise: 30_000,
       totalPaise: 280_000,
+    })
+  })
+})
+
+describe('a different amount for each product', () => {
+  it('placeOrder charges each product its own amount per unit', async () => {
+    const s = await seed()
+    // Two mice in the cart: ₹200 off each mouse, ₹300 off the keyboard, nothing on the sticker.
+    await owner.update(cartLine).set({ quantity: 2 }).where(eq(cartLine.unitPricePaise, 100_000))
+    await owner.insert(discount).values({
+      storeId: s.storeId,
+      title: 'Killtoned',
+      kind: 'code',
+      code: 'KILLTONED',
+      method: 'fixed',
+      value: 0,
+      appliesTo: 'products',
+      appliesToIds: [s.mouseId, s.keyboardId],
+      productValues: { [s.mouseId]: 20_000, [s.keyboardId]: 30_000 },
+    })
+    const check = await withStore(app, s.storeId, (tx) =>
+      checkDiscountCode({ storeId: s.storeId, tx }, s.cartId, 'killtoned'),
+    )
+    expect(check.ok && check.outcome.amountPaise).toBe(70_000)
+
+    const result = await withStore(app, s.storeId, (tx) =>
+      placeOrder(
+        { storeId: s.storeId, tx },
+        { cartId: s.cartId, paymentProvider: new FakePaymentProvider(), discountCode: 'KILLTONED' },
+      ),
+    )
+    const [o] = await owner.select().from(order).where(eq(order.id, result.orderId))
+    expect(o).toMatchObject({
+      discountCode: 'KILLTONED',
+      discountPaise: 70_000,
+      subtotalPaise: 410_000,
+      totalPaise: 340_000,
+    })
+  })
+})
+
+describe('combinations and customer eligibility', () => {
+  it('stacks a product code with an automatic order discount and counts a use of each', async () => {
+    const s = await seed()
+    const stack = { products: true, order: true, shipping: true }
+    await owner.insert(discount).values([
+      {
+        storeId: s.storeId,
+        title: 'Mouse 10',
+        type: 'products',
+        kind: 'code',
+        code: 'MOUSE10',
+        method: 'percent',
+        value: 1000,
+        appliesTo: 'products',
+        appliesToIds: [s.mouseId],
+        combinesWith: stack,
+      },
+      {
+        storeId: s.storeId,
+        title: 'Order 100',
+        type: 'order',
+        kind: 'automatic',
+        method: 'fixed',
+        value: 10_000,
+        combinesWith: stack,
+      },
+    ])
+    const result = await withStore(app, s.storeId, (tx) =>
+      placeOrder(
+        { storeId: s.storeId, tx },
+        { cartId: s.cartId, paymentProvider: new FakePaymentProvider(), discountCode: 'MOUSE10' },
+      ),
+    )
+    const [o] = await owner.select().from(order).where(eq(order.id, result.orderId))
+    // ₹100 off the mouse, then ₹100 off the order.
+    expect(o).toMatchObject({ discountCode: 'MOUSE10', discountPaise: 20_000 })
+    const uses = await owner
+      .select()
+      .from(discountUsage)
+      .where(eq(discountUsage.orderId, o?.id as string))
+    expect(uses.map((u) => u.amountPaise).sort()).toEqual([10_000, 10_000])
+  })
+
+  it('limits a code to picked customers once the email is known', async () => {
+    const s = await seed()
+    const [c] = await owner
+      .insert(customer)
+      .values({ storeId: s.storeId, email: 'vip@example.com', name: 'VIP' })
+      .returning()
+    await owner.insert(discount).values({
+      storeId: s.storeId,
+      title: 'VIP',
+      kind: 'code',
+      code: 'VIP',
+      method: 'percent',
+      value: 1000,
+      customerEligibility: 'customers',
+      eligibleIds: [c?.id as string],
+    })
+    const check = (email?: string) =>
+      withStore(app, s.storeId, (tx) =>
+        resolveCartDiscount({ storeId: s.storeId, tx }, s.cartId, 'VIP', { email }),
+      )
+    expect((await check()).outcome?.amountPaise).toBe(31_000)
+    expect((await check('vip@example.com')).outcome?.amountPaise).toBe(31_000)
+    expect(await check('someone@example.com')).toMatchObject({
+      outcome: null,
+      codeRejected: 'not_eligible',
     })
   })
 })

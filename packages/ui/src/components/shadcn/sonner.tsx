@@ -32,34 +32,35 @@ const Toaster = ({ ...props }: ToasterProps) => {
       closeButton
       style={
         {
-          '--normal-bg': 'var(--popover)',
+          '--normal-bg': 'var(--glass-popover)',
           '--normal-text': 'var(--popover-foreground)',
-          '--normal-border': 'var(--border)',
+          '--normal-border': 'var(--hairline)',
           '--border-radius': 'var(--radius)',
-          /* richColors tints the whole toast; keep the kit hues rather than sonner's defaults. */
-          '--success-bg': 'color-mix(in oklab, var(--success) 12%, var(--popover))',
-          '--success-border': 'color-mix(in oklab, var(--success) 35%, var(--popover))',
+          /* Rich colours: the whole toast is tinted with the kit's status hue, mixed into the popover. */
+          '--success-bg': 'color-mix(in oklab, var(--success) 14%, var(--popover))',
+          '--success-border': 'color-mix(in oklab, var(--success) 38%, var(--popover))',
           '--success-text': 'var(--success)',
           '--warning-bg': 'color-mix(in oklab, var(--warning) 16%, var(--popover))',
-          '--warning-border': 'color-mix(in oklab, var(--warning) 40%, var(--popover))',
-          '--warning-text': 'var(--warning-foreground)',
-          '--error-bg': 'color-mix(in oklab, var(--destructive) 10%, var(--popover))',
-          '--error-border': 'color-mix(in oklab, var(--destructive) 32%, var(--popover))',
-          '--error-text': 'var(--destructive)',
-          '--info-bg': 'color-mix(in oklab, var(--info) 10%, var(--popover))',
-          '--info-border': 'color-mix(in oklab, var(--info) 32%, var(--popover))',
+          '--warning-border': 'color-mix(in oklab, var(--warning) 42%, var(--popover))',
+          '--warning-text': 'var(--warning)',
+          '--error-bg': 'color-mix(in oklab, var(--danger) 12%, var(--popover))',
+          '--error-border': 'color-mix(in oklab, var(--danger) 36%, var(--popover))',
+          '--error-text': 'var(--danger)',
+          '--info-bg': 'color-mix(in oklab, var(--info) 12%, var(--popover))',
+          '--info-border': 'color-mix(in oklab, var(--info) 36%, var(--popover))',
           '--info-text': 'var(--info)',
         } as React.CSSProperties
       }
       toastOptions={{
         classNames: {
+          /* Proofly toast: glass for plain toasts; success/error/warning/info are tinted (rich colours). */
           toast:
-            'cn-toast !rounded-lg !border-border !shadow-popover !px-4 !py-3 !gap-3 !text-body',
+            'cn-toast !rounded-lg !shadow-glass !px-4 !py-3 !gap-3 !text-body [&:not([data-type=success]):not([data-type=error]):not([data-type=warning]):not([data-type=info])]:!border-glass-border [&:not([data-type=success]):not([data-type=error]):not([data-type=warning]):not([data-type=info])]:!bg-glass-popover [&:not([data-type=success]):not([data-type=error]):not([data-type=warning]):not([data-type=info])]:!backdrop-blur-xl [&:not([data-type=success]):not([data-type=error]):not([data-type=warning]):not([data-type=info])]:!backdrop-saturate-150 [@media(prefers-reduced-transparency:reduce)]:!backdrop-filter-none [@media(prefers-reduced-transparency:reduce)]:[&:not([data-type=success]):not([data-type=error]):not([data-type=warning]):not([data-type=info])]:!bg-raised',
           title: '!font-medium',
-          description: '!text-caption !opacity-80',
-          actionButton: '!bg-primary !text-primary-foreground !rounded-md !text-caption',
+          description: '!text-caption !text-current !opacity-80',
+          actionButton: '!bg-primary-soft !text-link !rounded-md !text-caption !font-medium',
           cancelButton: '!bg-muted !text-muted-foreground !rounded-md !text-caption',
-          closeButton: '!border-border !bg-card !text-muted-foreground hover:!text-foreground',
+          closeButton: '!border-hairline !bg-raised !text-muted-foreground hover:!text-foreground',
         },
       }}
       {...props}

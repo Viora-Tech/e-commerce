@@ -1,6 +1,7 @@
 'use client'
 
 import { parseRupees } from '@commerce/money'
+import { CheckIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -23,6 +24,9 @@ const copy = returnDetailContent.resolve
 /** What the merchant usually picks first: their policy for returns, sending again for an RTO. */
 function firstChoice(r: ReturnDetail): Outcome {
   if (r.kind === 'rto') return 'reship'
+  // What the customer asked for on the return form comes first.
+  if (r.preferredResolution === 'exchange') return 'exchange'
+  if (r.preferredResolution === 'store_credit') return 'credit'
   if (r.refundablePaise <= 0) return 'exchange'
   return r.policy.refundMethod === 'store_credit' ? 'credit' : 'refund'
 }
@@ -148,6 +152,7 @@ export default function ReturnResolveCard({ detail: r, onChanged }: ReturnResolv
             onClick={handleConfirm}
             disabled={busy || (needsAmount && !validAmount)}
           >
+            <CheckIcon aria-hidden="true" />
             {confirmLabel}
           </Button>
         </div>

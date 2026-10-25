@@ -1,5 +1,10 @@
 import { address, type Db, order, orderLine, payment, store, withStore } from '@commerce/db'
-import type { CheckoutSession, CreatePaymentInput, PaymentProvider } from '@commerce/payments'
+import {
+  type CheckoutSession,
+  type CreatePaymentInput,
+  type PaymentProvider,
+  readableError,
+} from '@commerce/payments'
 import { and, desc, eq, isNull, ne } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
@@ -184,7 +189,8 @@ async function markFailed(db: Db, storeId: string, attemptId: string, error: str
   })
 }
 
-const message = (err: unknown): string => (err instanceof Error ? err.message : String(err))
+/** Gateway SDKs reject with plain objects; `String()` stored those as "[object Object]". */
+const message = readableError
 
 /**
  * Ask the gateway for this attempt, outside any transaction that holds stock

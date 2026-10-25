@@ -4,6 +4,7 @@ import type { BrowseSort } from '@commerce/core/browse'
 export const browseContent = {
   filterAndSort: 'Filter and sort',
   filters: 'Filters',
+  collections: 'Collections',
   apply: 'Apply',
   clearAll: 'Clear all',
   close: 'Close',
@@ -12,6 +13,9 @@ export const browseContent = {
   productCount: (n: number) => `${n} ${n === 1 ? 'product' : 'products'}`,
   availability: 'Availability',
   inStock: 'In stock',
+  kind: 'Type of item',
+  kindProducts: 'Products',
+  kindGiftCards: 'Gift cards',
   outOfStock: 'Out of stock',
   price: 'Price',
   priceFrom: 'From',
@@ -20,8 +24,12 @@ export const browseContent = {
   productType: 'Product type',
   vendor: 'Brand',
   tag: 'Tags',
+  /** A yes/no extra field's filter values (`1`, `0`). */
+  yes: 'Yes',
+  no: 'No',
   chip: {
     available: (v: string) => (v === 'true' ? 'In stock' : 'Out of stock'),
+    giftCard: (v: string) => (v === 'true' ? 'Gift cards' : 'Products only'),
     price: (min: string | null, max: string | null) =>
       min && max ? `${min} to ${max}` : min ? `From ${min}` : `Up to ${max}`,
     remove: (label: string) => `Remove filter ${label}`,

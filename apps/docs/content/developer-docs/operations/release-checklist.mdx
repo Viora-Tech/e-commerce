@@ -1,0 +1,42 @@
+---
+title: Release checklist
+---
+
+# Release checklist (smoke test)
+
+Run this on the **test server** (admin.vioratech.in, the store's own domain) after `dev` has
+deployed and **before** opening the `dev` → `main` release PR. Unit tests check each piece on
+its own; this checks the whole flow on a real server, real DNS, real email and real storage,
+which is where the 2026-10-05 bugs hid (issues #255–#266).
+
+Click through each row. Tick it only if the **Expect** column is exactly what you saw. A failing
+row becomes a GitHub issue (label `bug` + `test-server`) and blocks the release.
+
+| # | Flow | Steps | Expect |
+| --- | --- | --- | --- |
+| 1 | Apps are up | Open the admin and the store's primary domain | Both load over HTTPS, no browser warning |
+| 2 | Owner sign-in | Log out, log in with the owner email | Code arrives by email within a minute; lands on Home |
+| 3 | Staff invite | Settings → Staff → invite a verified test address with a non-owner role | Invite email arrives; Pending invites lists it |
+| 4 | Staff sign-in | Open the invite as that person, accept, log in | Lands on Home of the store (no store-picker loop) |
+| 5 | Store links | Click **View store**, a product's "View on store", and a theme **Preview** | All open on the store's primary domain, never `shop.vioratech.in` |
+| 6 | Custom domain | Settings → Domains: every domain shows **Active**; open each | Each opens the shop; non-primary ones redirect if set |
+| 7 | Storage | Content → Files → Storage → **Test connection**; upload one image | "Connected to bucket …"; the image shows on the store |
+| 8 | Import | Apps → Shopify importer → **What's left to import**; copy one small type | Run moves (progress bars change), finishes Completed or lists clear problems; never "Running" with nothing moving |
+| 9 | Checkout (test mode) | Add a product to cart, check out with the payment provider's test details | Order appears in Orders; confirmation email arrives |
+| 10 | Order emails | Mark that test order fulfilled, then delivered | Shipping/delivery emails arrive with links on the store's domain |
+| 11 | Worker health | Dokploy → worker → Logs | Heartbeat every minute; no repeating error lines |
+| 12 | Dark mode + phone | Toggle dark mode; open admin Home and the store on a phone | Top bar readable; no sideways scrolling |
+
+## After the checklist
+
+- All rows ticked → open the release PR `dev` → `main` and paste the ticked table into its body.
+- Any row failed → issue on GitHub, fix PR into `dev`, re-run the failed rows (and any row the fix
+  touches) after the next deploy.
+
+## Bugs
+
+Every bug found anywhere (test server, local, a merchant) is one GitHub issue, so nothing is lost
+between sessions. On the test server, testers use **Report a bug** (account menu or the button at the
+bottom left), which files the issue for them with the page, store, browser and an optional
+screenshot attached; see [Bug reports](/developer-docs/operations/bug-reports). Labels: `bug`, plus `test-server`, `importer` or `deploy` where they fit. The fix
+PR says `Fixes #<n>` so the issue closes when it merges into the default branch (`dev`).

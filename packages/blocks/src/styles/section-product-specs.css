@@ -492,3 +492,27 @@
     translate: 0 0;
   }
 }
+
+/* Figma Section / Specs (705:122907), table look: the section title, then a bordered
+   card of label / value rows on alternating grounds. */
+.product-specs__heading:not(:where(.shopify-section *)) {
+  font-size: calc(2rem * var(--font-heading-scale, 1));
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+}
+
+@media screen and (min-width: 990px) {
+  .product-specs__heading:not(:where(.shopify-section *)) {
+    font-size: calc(2.5rem * var(--font-heading-scale, 1));
+  }
+}
+
+.product-specs__label:not(:where(.shopify-section *)) {
+  font-size: 14px;
+}
+
+.product-specs__value:not(:where(.shopify-section *)) {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+}

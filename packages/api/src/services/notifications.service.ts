@@ -55,6 +55,24 @@ function channelStatus(
 }
 
 /**
+ * The marketing channels a store can actually send on: email always (the platform account
+ * sends when no email app is connected), WhatsApp once its app is connected. SMS has no
+ * sending app yet. The customer page offers consent switches only for these.
+ */
+export async function sendableConsentChannels(tx: StoreTx, storeId: string) {
+  const s = await getStore(tx, storeId)
+  const settings = parseNotificationSettings(s?.notifications)
+  const installed = new Set(parseAppsSettings(s?.apps).installed)
+  const whatsapp = channelStatus(
+    'whatsapp',
+    installed,
+    new Set(settings.enabled),
+    settings.providers,
+  )
+  return whatsapp.state === 'connected' ? (['email', 'whatsapp'] as const) : (['email'] as const)
+}
+
+/**
  * Everything Settings → Notifications shows: each message with whether it is
  * on, and how messages go out (email and WhatsApp apps, the dev log).
  */

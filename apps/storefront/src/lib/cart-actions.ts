@@ -5,6 +5,7 @@ import 'server-only'
 import { settingsSecret } from '@commerce/config'
 import {
   addToCart,
+  CannotShipToState,
   CheckoutRuleViolation,
   captureCartContact,
   confirmClientPayment,
@@ -28,8 +29,9 @@ import {
   syncOpenQrAttempt,
   thankYouPath,
 } from '@commerce/core'
-import { order, payment } from '@commerce/db'
+import { type ParcelDeliveryEstimate, payment } from '@commerce/db'
 import { formatMoney } from '@commerce/money'
+import { logger } from '@commerce/observability/logging'
 import type { ClientConfirmation } from '@commerce/payments'
 import { and, desc, eq, ne } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
@@ -40,11 +42,13 @@ import { readAttribution } from './attribution-cookie'
 import { clearCartId, readCartId, writeCartId } from './cart-cookie'
 import { currentCustomer } from './customer-session'
 import { db } from './db'
+import { hasChatCookie, postChatCartLine } from './inbox'
+import { accessibleOrderId } from './order-access'
 import { nudgeOutbox } from './outbox'
 import { storePaymentProviders } from './payments'
 import { clientIp, rateLimited } from './rate-limit'
 import { requestStoreId } from './request-store'
-import { estimateForPincode } from './shipping'
+import { cartShippingHint, checkoutParcels, estimateForPincode } from './shipping'
 import { storeSignIn } from './sign-in-methods'
 import { inStore } from './store-context'
 
@@ -72,7 +76,27 @@ export async function addLineAction(variantId: string, quantity: number) {
     return id as string
   })
   if (cartId !== existing) await writeCartId(cartId)
+  await chatCartLine(storeId, cartId, 'add', variantId, Math.max(1, quantity))
   revalidatePath('/', 'layout')
+}
+
+/** The cart line as Inbox shows it (title from the cart itself), only for a browser that chatted. */
+async function chatCartLine(
+  storeId: string,
+  cartId: string,
+  action: 'add' | 'remove' | 'quantity',
+  variantId: string,
+  quantity: number,
+  title?: string,
+) {
+  if (!(await hasChatCookie())) return
+  const name =
+    title ??
+    (await inStore(storeId, (tx) => getCart({ storeId, tx }, cartId)))?.lines.find(
+      (l) => l.variantId === variantId,
+    )?.productTitle ??
+    ''
+  await postChatCartLine(storeId, { action, variantId, title: name, quantity, cartId })
 }
 
 /**
@@ -87,11 +111,52 @@ export async function cartCountAction() {
   return { item_count: open?.itemCount ?? 0, total_price: open?.subtotalPaise ?? 0, items: [] }
 }
 
+/** The cart drawer's contents (Theme settings → Cart → Drawer): lines, subtotal, free shipping. */
+export async function cartDrawerAction() {
+  const storeId = await requestStoreId()
+  const cartId = await readCartId()
+  return inStore(storeId, async (tx) => {
+    const cart = cartId ? await getCart({ storeId, tx }, cartId) : null
+    const open = cart?.status === 'open' ? cart : null
+    const hint = await cartShippingHint(tx)
+    return {
+      lines: (open?.lines ?? []).map((l) => ({
+        id: l.id,
+        handle: l.productHandle,
+        title: l.productTitle,
+        variantTitle: l.variantTitle === 'Default' ? null : l.variantTitle,
+        quantity: l.quantity,
+        linePaise: l.linePaise,
+        imageUrl: l.imageUrl,
+        available: l.available,
+      })),
+      itemCount: open?.itemCount ?? 0,
+      subtotalPaise: open?.subtotalPaise ?? 0,
+      freeAbovePaise: hint.freeAbovePaise,
+    }
+  })
+}
+
 export async function setQuantityAction(lineId: string, quantity: number) {
   const storeId = await requestStoreId()
   const cartId = await readCartId()
   if (!cartId) return
+  const line = (await hasChatCookie())
+    ? (await inStore(storeId, (tx) => getCart({ storeId, tx }, cartId)))?.lines.find(
+        (l) => l.id === lineId,
+      )
+    : undefined
   await inStore(storeId, (tx) => setLineQuantity({ storeId, tx }, cartId, lineId, quantity))
+  if (line) {
+    await chatCartLine(
+      storeId,
+      cartId,
+      quantity <= 0 ? 'remove' : 'quantity',
+      line.variantId,
+      quantity,
+      line.productTitle,
+    )
+  }
   revalidatePath('/cart')
   revalidatePath('/', 'layout')
 }
@@ -115,6 +180,8 @@ export type CheckoutForm = {
   businessName?: string
   /** Order note, when the store turned notes on. */
   note?: string
+  /** Home, Office or Other: the tag a signed-in shopper's new address is saved with. */
+  label?: string
 }
 
 export type CheckoutResult = { error: string } | undefined
@@ -174,6 +241,8 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
   const current = await inStore(storeId, (tx) => getCart({ storeId, tx }, cartId))
   const digitalOnly = !!current?.lines.length && current.lines.every((l) => l.giftCard)
 
+  /** The delivery window each warehouse's parcel was shown with, stored on the order's parcels. */
+  let deliveryEstimates: Record<string, ParcelDeliveryEstimate> = {}
   if (!digitalOnly) {
     // The courier's word on the destination, never the client's. A cached answer makes this cheap.
     const delivery = await inStore(storeId, (tx) => estimateForPincode(tx, storeId, form.pincode))
@@ -183,6 +252,12 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
     if (form.payment === 'cod' && !delivery.codAvailable) {
       return { error: checkoutContent.errors.codUnavailable }
     }
+    const parcels = await inStore(storeId, (tx) =>
+      checkoutParcels(tx, storeId, cartId, { pincode: form.pincode, stateCode: form.stateCode }),
+    ).catch(() => [])
+    deliveryEstimates = Object.fromEntries(
+      parcels.flatMap((p) => (p.estimate ? [[p.locationId, p.estimate] as const] : [])),
+    )
   }
 
   /* The order and its stock are committed first; the gateway is asked after
@@ -204,6 +279,7 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
         paymentProvider: provider,
         giftCardIds,
         shippingRateId: form.shippingRate || null,
+        deliveryEstimates,
         secret: settingsSecret(),
         checkout: {
           name: form.name,
@@ -231,6 +307,9 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
       // Rates are the store's to set; the shopper can only change the address or re-pick.
       if (err instanceof ShippingUnavailable)
         return { error: checkoutContent.errors.noShipping(form.pincode) }
+      // Only a composition-scheme warehouse holds it, and those cannot ship to another state.
+      if (err instanceof CannotShipToState)
+        return { error: checkoutContent.errors.cannotShipToState }
       if (err instanceof ShippingRateUnavailable)
         return { error: checkoutContent.errors.rateChanged }
       // Settings → Checkout, re-checked by placeOrder whatever the form showed.
@@ -249,12 +328,16 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
   if (me) {
     // Convenience only: never let the address book block an order that is already placed.
     await inStore(storeId, (tx) => rememberCheckoutAddress({ storeId, tx }, me.id, form)).catch(
-      (err) => console.error('[checkout] could not save address', err),
+      (err) => logger.error('could not save the checkout address', { storeId, error: err }),
     )
   }
   // Marketing: end the sequences this order converts and start the order automations.
   await inStore(storeId, (tx) => onOrderPlaced(tx, storeId, result.orderId)).catch((err) =>
-    console.error('[checkout] could not update marketing automations', err),
+    logger.error('could not update marketing automations', {
+      storeId,
+      orderId: result.orderId,
+      error: err,
+    }),
   )
   // order_placed (and payment_received when paid at checkout: gift cards,
   // capture-at-creation gateways) were already written to the outbox in the
@@ -278,6 +361,8 @@ function checkoutRuleMessage(err: CheckoutRuleViolation, pincode: string): strin
       return e.codOverLimit(formatMoney(err.amountPaise ?? 0))
     case 'state_mismatch':
       return e.stateMismatch(pincode)
+    case 'cod_high_risk':
+      return e.codHighRisk
   }
 }
 
@@ -296,16 +381,12 @@ function redirectAfterCheckout(
  * with the same amount and gateway, then back to the gateway. Two taps make
  * one attempt; the order and its stock are untouched.
  */
-export async function retryPaymentAction(orderNumber: number) {
+export async function retryPaymentAction(orderNumber: number, viewToken: string | null) {
   const storeId = await requestStoreId()
-  // Looked up before the rate-limit check too, so every exit (including a
-  // rate-limited one) can still land on a validly-tokened thank-you link.
-  const orderId = await inStore(storeId, async (tx) => {
-    const [o] = await tx.select({ id: order.id }).from(order).where(eq(order.number, orderNumber))
-    return o?.id ?? null
-  })
-  // No order: nothing to tell apart from a stray order number, so the
-  // fallback (untokened) link is fine — the page 404s on it either way.
+  // The caller must own the order or hold its view token: every exit below mints a fresh
+  // one, which opens the order to whoever holds it (security audit 2026-10-06, A-00).
+  const orderId = await accessibleOrderId(storeId, orderNumber, viewToken)
+  // No order, or not theirs: the untokened link, which a stranger cannot open.
   if (!orderId) redirect(`/checkout/thank-you/${orderNumber}`)
   const oid: string = orderId
   const backToThankYou = (): never =>
@@ -313,7 +394,7 @@ export async function retryPaymentAction(orderNumber: number) {
   const ip = clientIp(await headers())
   const [byIp, byOrder] = await Promise.all([
     rateLimited('payment-retry:ip', ip, PAYMENT_RETRY_IP_RULE),
-    rateLimited('payment-retry:order', String(orderNumber), PAYMENT_RETRY_IP_RULE),
+    rateLimited('payment-retry:order', `${storeId}:${orderNumber}`, PAYMENT_RETRY_IP_RULE),
   ])
   // No error slot on this action's return type: over the limit lands back on
   // the thank-you page, same as a retry that turns out not to be needed.
@@ -348,7 +429,7 @@ export async function retryPaymentAction(orderNumber: number) {
  * the order turns paid even when its webhook is late or not set up. True once
  * paid; the page then refreshes to the paid state.
  */
-export async function checkQrPaymentAction(orderNumber: number) {
+export async function checkQrPaymentAction(orderNumber: number, viewToken: string | null) {
   const storeId = await requestStoreId()
   const limited = await rateLimited(
     'qr-check:order',
@@ -356,9 +437,12 @@ export async function checkQrPaymentAction(orderNumber: number) {
     QR_CHECK_ORDER_RULE,
   )
   if (!limited.ok) return false
+  // Only for whoever can see the order: a stranger learns nothing about it and cannot make
+  // us call the gateway for it (security audit 2026-10-06, A-00).
+  const orderId = await accessibleOrderId(storeId, orderNumber, viewToken)
+  if (!orderId) return false
   const target = await inStore(storeId, async (tx) => {
-    const [o] = await tx.select({ id: order.id }).from(order).where(eq(order.number, orderNumber))
-    if (!o) return null
+    const o = { id: orderId }
     const [latest] = await tx
       .select({ provider: payment.provider })
       .from(payment)

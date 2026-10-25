@@ -1,5 +1,6 @@
 import { settingsSecret } from '@commerce/config'
 import { recordMessageClick, verifyClickToken } from '@commerce/core'
+import { logger } from '@commerce/observability/logging'
 import { headers } from 'next/headers'
 import { type NextRequest, NextResponse } from 'next/server'
 import {
@@ -7,6 +8,7 @@ import {
   MARKETING_CLICK_COOKIE,
   MARKETING_CLICK_MAX_AGE,
 } from '@/lib/attribution-cookie'
+import { withEvlog } from '@/lib/request-log'
 import { inStore } from '@/lib/store-context'
 
 type Params = { params: Promise<{ token: string }> }
@@ -18,7 +20,7 @@ type Params = { params: Promise<{ token: string }> }
  * cookie so the landing page's beacon credits the session (and any order) to
  * the campaign or automation.
  */
-export async function GET(request: NextRequest, { params }: Params) {
+export const GET = withEvlog(async (request: NextRequest, { params }: Params) => {
   const { token } = await params
   const storeId = (await headers()).get('x-store-id')
   const target = request.nextUrl.searchParams.get('u') ?? ''
@@ -31,7 +33,7 @@ export async function GET(request: NextRequest, { params }: Params) {
   try {
     owner = await inStore(storeId, (tx) => recordMessageClick(tx, payload.messageId))
   } catch (err) {
-    console.warn('[marketing] could not record a click', err)
+    logger.warn('could not record a message click', { storeId, error: err })
   }
   const response = NextResponse.redirect(target)
   response.cookies.set(
@@ -50,4 +52,4 @@ export async function GET(request: NextRequest, { params }: Params) {
     },
   )
   return response
-}
+})

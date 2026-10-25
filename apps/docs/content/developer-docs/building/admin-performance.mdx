@@ -1,0 +1,110 @@
+---
+title: Admin performance
+description: What an admin page load costs, the per-request memo that keeps it cheap, the shell's parallel reads, loading boundaries, and the client JS rules.
+---
+
+# Admin performance
+
+Signed-in admin pages render on the server and call the oRPC router in-process. Every store
+call runs inside its own RLS transaction. The rules on this page keep that cheap.
+
+## One request, one identity lookup
+
+A page load makes many store calls at once: about 4 from the `(admin)` layout and 2 to 7 from
+the page. Each call used to run all of the following again:
+
+1. read the session (Better Auth: `session`, then `user`)
+2. call `getFullOrganization`, which reads the session a second time, then the organization,
+   its invitations, its members and their users, then checks membership
+3. resolve the store id
+4. open a transaction and read the member's role and grants
+
+That added up to about 15 statements before the call's own query, 10 of them one after another.
+
+Now (`packages/api/src/procedures/request-memo.ts`):
+
+- **`context.memo`** is one `Map` per request. The admin's `serverContext()` is wrapped in
+  React `cache()`, so the layout and the page share one memo per render. The RPC route makes
+  one per HTTP call. Tests and scripts pass none, so every call looks things up itself.
+- **Session**: `protectedProcedure` reads it once per request. The admin seeds it from the
+  cached `getSession()` that the layout has already called.
+- **Membership**: `organizationMembership()` (`packages/db/src/resolve-store.ts`) reads the
+  member row and the store id in **one** query, once per request. It replaces
+  `getFullOrganization` on this path.
+- **Grants**: the first call's transaction reads them and the page's other calls reuse the
+  result.
+
+The memo never outlives the request, so a removed member or a revoked grant is refused on the
+next request. `packages/api/test/request-memo.test.ts` covers this. A failed lookup is not
+kept.
+
+**Rule:** server components get their context from `serverContext()`, never a hand-built
+`{ ...apiHost(), headers }`, so their calls share the memo.
+
+## The shell reads in parallel
+
+`app/(admin)/layout.tsx` reads the session first. It then reads the member's stores, the apps,
+the sidebar logo and the storefront origin **in parallel**. Before, it read them one after
+another. Reads that the layout and pages both need live in `lib/shell-data.ts` (`listStores`,
+`listApps`, `liveLogoUrl`) and `lib/storefront-origin.ts`. All of them are wrapped in
+`cache()`, so a page that also needs the apps (Home, an order) reuses the layout's read.
+
+The sidebar logo comes from `themes.logo`: one JSON path on the live theme row. Before, it came
+from `themes.list`, which loaded every theme's whole settings document and ran four more
+queries. The template picker on products and collections calls `themes.templates.live` instead
+of `themes.list` followed by `templates.list`.
+
+Home starts its reads at the same time as its `staff.me` guard instead of after it.
+
+## Loading boundaries
+
+Every top-level section has a `loading.tsx`: orders, products, customers, discounts, settings,
+account, content, growth, online-store, analytics and apps. The sidebar's links prefetch up to
+that boundary, so a click shows the skeleton at once (about 20 ms). Moving between pages
+**inside** a section with no boundary of its own kept the old page on screen until the server
+answered. Settings and Account use `SectionPageSkeleton`, which renders inside their nav rail.
+
+React keeps a skeleton it has shown on screen for at least 300 ms. Locally, most page content
+arrives in under 100 ms, so it appears at about 320 ms. On production latency that floor
+rarely matters.
+
+## Client JS
+
+Measure with `bun scripts/perf/first-load-js.ts apps/admin` after `next build` (see
+[Storefront performance](/developer-docs/building/performance#measuring-first-load-js)).
+
+- **Hindi copy loads only for Hindi members** (see
+  [Admin languages](/developer-docs/core-concepts/admin-languages)). `data/hi` cost every page
+  160 to 210 kB gzip, login included. Never import `@/data/hi` from a component.
+- Known, not fixed yet: `@commerce/ui/icons` defines about 160 Phosphor icons at module scope.
+  Each icon carries all six weights, so every page ships about 106 kB gzip of icons whether it
+  uses them or not. `/* @__PURE__ */` annotations did not let Turbopack drop the unused ones.
+  The fix is one module per icon behind a side-effect-free barrel. `motion` (the full
+  `motion` component rather than `m` with `LazyMotion`) and the Sentry client are the next
+  largest.
+
+## Measuring
+
+1. Copy the database (`CREATE DATABASE commerce_<you> TEMPLATE commerce`) and run
+   `ALTER DATABASE commerce_<you> SET log_statement = 'all'`, so the container log counts
+   statements per page load.
+2. Start a production build (`next build` and `next start`) against the copy. Sign in a test
+   member that exists only in the copy.
+3. Load each page in headless Chrome. Record the navigation TTFB, the time until no
+   `[data-slot="skeleton"]` remains in `main` after `router.push`, and the statements logged.
+
+October 2026, the Waimers import (264 products, 1.5k customers, 1.2k orders) on a laptop.
+Statements per cold load, including the client calls the page makes after it loads:
+
+| Page | TTFB before | TTFB after | Statements before | Statements after |
+| --- | --- | --- | --- | --- |
+| Home | 157 ms | 41 ms | 249 | 100 |
+| Orders | 152 ms | 40 ms | 194 | 71 |
+| Order | 113 ms | 36 ms | 195 | 94 |
+| Products | 133 ms | 38 ms | 158 | 59 |
+| Product | 132 ms | 39 ms | 292 | 121 |
+| Customers | 120 ms | 35 ms | 138 | 51 |
+| Settings | 107 ms | 33 ms | 108 | 50 |
+| Files | 135 ms | 36 ms | 140 | 58 |
+
+Remove the copy when you are done (`DROP DATABASE commerce_<you>`).

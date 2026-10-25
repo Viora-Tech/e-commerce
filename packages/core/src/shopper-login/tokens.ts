@@ -18,6 +18,10 @@ export type TokenPurpose =
   | 'one-tap'
   /** A newsletter confirm link (`customers/newsletter.ts`). */
   | 'newsletter'
+  /** A review request link, a review photo upload, or a stop-review-emails link (Reviews app). */
+  | 'review'
+  /** A "Share and earn" invite after an order (Affiliates app). */
+  | 'affiliate-enrol'
 
 /** A sign-in start request is good for 10 minutes: time to pick an account at the provider. */
 export const START_TTL_MS = 10 * 60 * 1000

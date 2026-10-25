@@ -225,6 +225,7 @@ export const consentCardContent = {
   noHistory: 'No changes recorded yet.',
   granted: 'Allowed',
   withdrawn: 'Withdrawn',
+  notAllowed: 'Not allowed',
   sources: {
     account: 'in their account',
     newsletter: 'newsletter signup',

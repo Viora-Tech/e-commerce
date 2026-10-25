@@ -65,6 +65,11 @@ export class ShopifyClient {
     this.accessToken = opts.accessToken
   }
 
+  /** The store's `*.myshopify.com` domain. */
+  get shopDomain(): string {
+    return this.opts.shopDomain
+  }
+
   get endpoint(): string {
     return `https://${this.opts.shopDomain}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`
   }

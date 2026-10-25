@@ -12,7 +12,8 @@ import { Switch } from '@commerce/ui/shadcn/switch'
 import Link from 'next/link'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { notificationsSettingsContent as setupCopy } from '@/data/notifications'
+import { notificationsSettingsContent } from '@/data/notifications'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type AdvancedSectionProps = {
@@ -20,7 +21,6 @@ type AdvancedSectionProps = {
   onChanged: () => Promise<void>
 }
 
-const copy = setupCopy.advanced
 /** The development log channels: email (`log`) and SMS (`log-sms`), switched together. */
 const LOGS = ['log', 'log-sms']
 
@@ -30,6 +30,8 @@ const LOGS = ['log', 'log-sms']
  */
 export default function AdvancedSection({ devLog, onChanged }: AdvancedSectionProps) {
   // Hooks
+  const setupCopy = useCopy(notificationsSettingsContent)
+  const { advanced: copy } = useCopy(notificationsSettingsContent)
   const [saving, setSaving] = useState(false)
 
   // Event handlers
@@ -77,7 +79,7 @@ export default function AdvancedSection({ devLog, onChanged }: AdvancedSectionPr
             </div>
             <Button
               variant="outline"
-              className="w-fit gap-1.5"
+              className="w-fit gap-1.5 self-end"
               nativeButton={false}
               render={<Link href="/dev/emails" />}
             >

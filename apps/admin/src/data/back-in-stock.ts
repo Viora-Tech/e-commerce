@@ -6,6 +6,7 @@ export const backInStockContent = {
     emailUsage: 'Email alerts',
     whatsappUsage: 'WhatsApp alerts',
     unlimited: 'Unlimited (no quota)',
+    whatsappVia: 'Sent through your WhatsApp channel',
     ofQuota: (sent: number, quota: number) =>
       `${sent.toLocaleString()} of ${quota.toLocaleString()}`,
     paused: 'Paused: this month’s free quota is used up. Sends resume next month.',
@@ -17,6 +18,7 @@ export const backInStockContent = {
     title: 'Signups',
     subtitle: 'Everyone who asked to be notified.',
     empty: 'No signups yet.',
+    resource: { singular: 'signup', plural: 'signups' },
     columns: {
       variant: 'Variant',
       contact: 'Contact',
@@ -41,6 +43,8 @@ export const backInStockContent = {
     batchSizeHelp:
       'Throttles a restock so a big waiting list does not flood your sending quota at once.',
     save: 'Save',
+    discard: 'Discard',
+    unsaved: 'Unsaved changes',
     saved: 'Settings saved',
     failed: 'Could not save settings',
   },

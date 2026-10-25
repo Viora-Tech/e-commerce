@@ -14,9 +14,9 @@ import { resetDb } from '@commerce/db/test'
 import { DocumentSnapshotSchema } from '@commerce/invoices'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
+import { issueCreditNote } from '../src/credit-notes'
 import {
   documentsForOrder,
-  issueCreditNote,
   issueDocument,
   loadSettings,
   regenerateDocument,

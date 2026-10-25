@@ -1,3 +1,5 @@
+import { routes } from '@/lib/routes'
+
 /** Copy for uploads, the product media card and the files library. */
 export const mediaContent = {
   accept: 'image/jpeg,image/png,image/webp,image/gif,image/avif,video/mp4',
@@ -42,10 +44,17 @@ export const mediaContent = {
   },
   library: {
     title: 'Files',
+    summary: (n: number, used: string) =>
+      n === 0
+        ? 'Photos, videos and documents for your store.'
+        : `${n === 1 ? '1 file' : `${n} files`} · ${used} used`,
+    tabs: { all: 'All', image: 'Images', video: 'Videos', document: 'Documents' },
+    noMatch: 'No files match your search.',
     storage: 'Storage',
     intro: 'Everything uploaded to this store. Files stay here when removed from a product.',
-    search: 'Search by alt text or file name',
-    upload: 'Upload',
+    search: 'Search files',
+    upload: 'Upload files',
+    view: { grid: 'Grid view', list: 'List view' },
     empty: {
       heading: 'No files yet',
       body: 'Upload product images here or from any product page. They are stored where Storage on this page says.',
@@ -63,6 +72,52 @@ export const mediaContent = {
     pagination: (from: number, to: number, total: number) => `${from}-${to} of ${total}`,
     previous: 'Previous',
     next: 'Next',
+  },
+  details: {
+    open: (name: string) => `Open ${name}`,
+    back: 'Files',
+    title: 'File',
+    preview: 'Preview',
+    details: 'Details',
+    type: 'Type',
+    size: 'Size',
+    dimensions: 'Dimensions',
+    uploaded: 'Uploaded',
+    status: 'Status',
+    statuses: {
+      pending: 'Uploading',
+      processing: 'Optimising',
+      ready: 'Ready',
+      failed: 'Failed',
+    } as Record<string, string>,
+    link: 'Link',
+    linkLabel: 'Public link',
+    linkHint: 'Public address of the file. Paste it anywhere the file is needed.',
+    copyWhat: 'Link',
+    openLink: 'Open in new tab',
+    optimised: 'Optimised versions',
+    optimisedHint: 'Smaller copies made at upload. The storefront picks the right one per screen.',
+    variant: (width: string, format: string) => `${width} px ${format}`,
+    variantWhat: (width: string, format: string) => `${width} px ${format} link`,
+    alt: 'Alt text',
+    altHint: 'Describes the image for screen readers and search. Saved to the file.',
+    altPlaceholder: 'Black glass mousepad, top view',
+    saveAlt: 'Save alt text',
+    saving: 'Saving…',
+    saved: 'Alt text saved',
+    saveFailed: 'Could not save the alt text',
+    usedIn: 'Used in',
+    usedInEmpty: 'Not used on any product',
+    download: 'Download',
+    delete: 'Delete file',
+    more: 'More actions',
+    previous: 'Previous file',
+    next: 'Next file',
+    notFound: {
+      heading: 'File not found',
+      body: 'It may have been deleted, or it belongs to another store.',
+      action: { label: 'Back to Files', href: routes.content.files() },
+    },
   },
   picker: {
     title: 'Select file',
@@ -124,6 +179,27 @@ export const mediaContent = {
     cancel: 'Cancel',
     done: 'Done',
     selectedCount: (n: number) => (n === 1 ? '1 selected' : `${n} selected`),
+  },
+  usage: {
+    heading: 'Where your space goes',
+    used: (size: string) => `${size} used`,
+    kinds: { image: 'Images', video: 'Videos', document: 'Documents' },
+    bar: 'Storage used by file type',
+    largest: {
+      heading: 'Largest files',
+      name: 'Name',
+      type: 'Type',
+      size: 'Size',
+      usedOn: 'Used on',
+      uploaded: (when: string) => `Uploaded ${when}`,
+      unused: 'Not used',
+      products: (n: number) => (n === 1 ? '1 product' : `${n} products`),
+      footer: (n: number) =>
+        n === 1 ? 'Showing the largest file' : `Showing the ${n} largest files`,
+      viewAll: 'View all files',
+      empty: 'Files you upload will show up here, biggest first.',
+      kind: { image: 'Image', video: 'Video', document: 'Document' },
+    },
   },
   settings: {
     title: 'File storage',

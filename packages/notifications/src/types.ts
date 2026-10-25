@@ -40,6 +40,18 @@ export type TemplateId =
   | 'balance_received'
   /** A manual UPI / bank transfer order is still unpaid; links to the payment details. Sent by the merchant. */
   | 'payment_reminder'
+  /** To the MERCHANT: a shopper sent a message from a contact or advice form (Forms app). Email only. */
+  | 'contact_message'
+  /** Asks the shopper to review what a delivered order brought (Reviews app). Email only. */
+  | 'review_request'
+  /** The one reminder when no review came after a review request (Reviews app). Email only. */
+  | 'review_reminder'
+  /** The store replied to the shopper's review (Reviews app). Email only. */
+  | 'review_reply'
+  /** To the MERCHANT: someone applied to the affiliate program and waits for approval. Email only. */
+  | 'affiliate_application'
+  /** To an AFFILIATE (Affiliates app): approved, a new sale, or a payout sent. Email, and WhatsApp with an approved template. */
+  | 'affiliate_update'
   /** To the MERCHANT: an unpaid transfer order will be cancelled automatically. Email only. */
   | 'unpaid_cancel_notice'
   /** A manual UPI / bank transfer order was cancelled for non-payment. */
@@ -58,6 +70,46 @@ export type TemplateId =
   | 'return_received'
   /** Money went back for the return (original payment or store credit). */
   | 'return_refunded'
+  /**
+   * COD & RTO app: asks a cash on delivery shopper to confirm (or cancel) the order; `actionUrl`
+   * is the confirm page. By WhatsApp when the store has it, email otherwise.
+   */
+  | 'cod_confirm'
+  /**
+   * PLATFORM message, not a store one: someone was invited to help run a store. Sent through the
+   * platform email account straight away; `actionUrl` is the accept link. Email only.
+   */
+  | 'staff_invite'
+  /**
+   * To a TEAM MEMBER who turned on new-order alerts (Account → Notifications): an order came
+   * in. `actionUrl` opens it in the admin. Email or WhatsApp.
+   */
+  | 'staff_new_order'
+  /**
+   * To a TEAM MEMBER who turned on the daily summary: the day's orders, sales and what waits
+   * to be shipped (`dailySummary`). `actionUrl` opens the admin. Email or WhatsApp.
+   */
+  | 'staff_daily_summary'
+  /**
+   * PLATFORM message: the code that confirms a member's NEW sign-in email (Account → Sign-in &
+   * security → Change email). Sent to the new address; `code` is the one-time code. Email only.
+   */
+  | 'email_change_code'
+  /**
+   * PLATFORM message: tells the OLD address that the member's sign-in email was changed, so a
+   * change they did not make does not go unnoticed. `emailChange.newEmail` is masked. Email only.
+   */
+  | 'email_changed'
+  /**
+   * PLATFORM message to a store owner: a plan or paid-app bill to pay (a new bill, a renewal, or
+   * one now overdue). `planBill` says what for; `actionUrl` is the pay link. Email only.
+   */
+  | 'plan_bill'
+  /**
+   * To a SUPPLIER: the store's purchase order, with the PDF attached. Sent from the admin's
+   * "Email to supplier" through the store's own sender email. Email only.
+   */
+  | 'purchase_order'
 
 export type Recipient = {
   email?: string | undefined
@@ -66,9 +118,25 @@ export type Recipient = {
   name?: string | undefined
 }
 
+/** One parcel of an order that ships from several warehouses, for "Ships in 2 parcels". */
+export type EmailParcel = {
+  /** "New Delhi, Delhi" */
+  from: string
+  items: { title: string; quantity: number }[]
+  /** "Tue, 18 Aug - Thu, 20 Aug"; null when no estimate was worked out. */
+  dateRange: string | null
+  /** Pre-order items that ship once they arrive. */
+  onHold: boolean
+}
+
 /** Everything a template needs; built by the worker from the order row. */
+/** The merchant's own subject and note for a hand-sent message ("Review email" dialog). */
+export type CustomMessage = { subject?: string | undefined; message?: string | undefined }
+
 export type TemplateData = {
   storeName: string
+  /** Set when the merchant edited the subject or added a note before sending. */
+  custom?: CustomMessage | undefined
   /** Absent for messages about a cart that is not an order yet. */
   orderNumber?: number | undefined
   customerName: string
@@ -76,6 +144,11 @@ export type TemplateData = {
   lines: { title: string; quantity: number; priceLabel: string; imageUrl?: string | undefined }[]
   /** GST split shown above the total, e.g. CGST/SGST or IGST rows. Omit to show only the total. */
   taxBreakdown?: { label: string; amount: string }[] | undefined
+  /**
+   * An order shipped from more than one warehouse: each parcel's origin, items and expected
+   * dates ("Ships in 2 parcels"). Omitted for an order that ships in one.
+   */
+  parcels?: EmailParcel[] | undefined
   paymentMethodLabel: string
   /** Printed in the footer under the store name, when the store has set one. */
   storeAddress?: string | undefined
@@ -146,6 +219,86 @@ export type TemplateData = {
         refundMethod?: 'original' | 'store_credit' | undefined
       }
     | undefined
+  /**
+   * For review_request / review_reminder: the products to review, each with its own link, the
+   * merchant's subject and the stop-these-emails link. For review_reply: the product and reply.
+   */
+  review?:
+    | {
+        items?: { title: string; url: string; imageUrl?: string | undefined }[] | undefined
+        /** The merchant's subject, product name already filled in. */
+        subject?: string | undefined
+        unsubscribeUrl?: string | undefined
+        productTitle?: string | undefined
+        productUrl?: string | undefined
+        reply?: string | undefined
+      }
+    | undefined
+  /**
+   * For affiliate_update: which news it is, already formatted. `kind` picks the wording:
+   * approved (with the link and code), sale (a pending commission) or payout (money sent).
+   */
+  affiliate?:
+    | {
+        kind: 'approved' | 'sale' | 'payout' | 'rejected' | 'applied'
+        name: string
+        /** For rejected: the merchant's reason. */
+        reason?: string | undefined
+        /** For applied (to the merchant): how to reach them, where they post, what they wrote. */
+        email?: string | undefined
+        social?: string | undefined
+        message?: string | undefined
+        adminUrl?: string | undefined
+        link?: string | undefined
+        couponCode?: string | undefined
+        amountLabel?: string | undefined
+        /** For payout: the TDS taken and the merchant's reference. */
+        tdsLabel?: string | undefined
+        reference?: string | undefined
+        portalUrl?: string | undefined
+      }
+    | undefined
+  /** For contact_message: who wrote and what they said. */
+  contactMessage?:
+    | { name: string; email: string; phone: string; text: string; path: string }
+    | undefined
+  /** For staff_daily_summary: the period and its figures, already formatted. */
+  dailySummary?:
+    | { periodLabel: string; orders: number; salesLabel: string; toShip: number }
+    | undefined
+  /** For email_changed: the new sign-in address, masked ("a•••@gmail.com"). */
+  emailChange?: { newEmail: string } | undefined
+  /** For staff_invite: who sent it, the role offered and the platform's own name (PLATFORM_EMAIL_NAME). */
+  /** For plan_bill: what the bill is for, how much, and by when. */
+  planBill?:
+    | {
+        kind: 'new' | 'renewal' | 'overdue'
+        /** "Growth plan (monthly)", "Reviews app". */
+        what: string
+        amountLabel: string
+        /** "25 Oct 2026": when the paid time ends or ended. */
+        dueLabel: string
+        platformName: string
+      }
+    | undefined
+  staffInvite?:
+    | {
+        inviterEmail: string
+        roleLabel?: string | undefined
+        platformName: string
+      }
+    | undefined
+  /** For purchase_order: which order, who it is for, when it should arrive and the merchant's note. */
+  purchaseOrder?:
+    | {
+        /** "PO7". */
+        numberLabel: string
+        supplierName: string
+        expectedLabel?: string | undefined
+        /** The merchant's own words, printed under the items. */
+        message?: string | undefined
+      }
+    | undefined
   /** For gift_card_issued: the code in full (the only place it is ever shown) and its terms. */
   giftCard?:
     | {
@@ -171,7 +324,17 @@ export type Message = {
   attachments?: Attachment[] | undefined
 }
 
-export type SendResult = { ok: true; providerRef: string } | { ok: false; error: string }
+export type SendResult =
+  | { ok: true; providerRef: string }
+  | {
+      ok: false
+      error: string
+      /**
+       * The provider, not the message, failed (network, throttling, 5xx, account paused), so
+       * another provider may well deliver it. Absent means "don't know": no fallback.
+       */
+      retryable?: boolean | undefined
+    }
 
 /**
  * A marketing send: an email the platform already rendered (campaigns,

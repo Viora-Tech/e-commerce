@@ -1,15 +1,6 @@
 'use client'
 
 import { ALTERNATE_KINDS, TEMPLATE_SUFFIX } from '@commerce/core/theme'
-import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import {
@@ -19,8 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useState } from 'react'
+import FormDialog from '@/components/layout/form-dialog'
 import { customizeContent } from '@/data/customize'
 import type { TemplateRef } from './template-picker'
 
@@ -68,53 +59,44 @@ export default function CreateTemplateDialog({
   const items = ALTERNATE_KINDS.map((k) => ({ value: k, label: names[k] }))
 
   return (
-    <Dialog open onOpenChange={(open) => !open && onCancel()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{copy.title}</DialogTitle>
-          <DialogDescription>{copy.body}</DialogDescription>
-        </DialogHeader>
-        <Field>
-          <FieldLabel>{copy.kind}</FieldLabel>
-          <Select items={items} value={kind} onValueChange={handleKind}>
-            <SelectTrigger className="w-full" aria-label={copy.kind}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {items.map((i) => (
-                <SelectItem key={i.value} value={i.value}>
-                  {i.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="template-name">{copy.name}</FieldLabel>
-          <Input
-            id="template-name"
-            value={name}
-            maxLength={40}
-            onChange={(e) => setName(e.target.value)}
-            autoComplete="off"
-            autoFocus
-          />
-          <FieldDescription>{copy.nameHelp}</FieldDescription>
-        </Field>
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onCancel}>
-            {copy.cancel}
-          </Button>
-          <Button
-            type="button"
-            disabled={!valid || busy}
-            onClick={() => onCreate(kind, suffix, basedOn)}
-          >
-            {busy ? <Spinner /> : null}
-            {copy.confirm}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <FormDialog
+      open
+      onOpenChange={(open) => !open && onCancel()}
+      title={copy.title}
+      description={copy.body}
+      submitLabel={copy.confirm}
+      cancelLabel={copy.cancel}
+      busy={busy}
+      submitDisabled={!valid}
+      onSubmit={() => onCreate(kind, suffix, basedOn)}
+    >
+      <Field>
+        <FieldLabel>{copy.kind}</FieldLabel>
+        <Select items={items} value={kind} onValueChange={handleKind}>
+          <SelectTrigger className="w-full" aria-label={copy.kind}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {items.map((i) => (
+              <SelectItem key={i.value} value={i.value}>
+                {i.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Field>
+      <Field>
+        <FieldLabel htmlFor="template-name">{copy.name}</FieldLabel>
+        <Input
+          id="template-name"
+          value={name}
+          maxLength={40}
+          onChange={(e) => setName(e.target.value)}
+          autoComplete="off"
+          autoFocus
+        />
+        <FieldDescription>{copy.nameHelp}</FieldDescription>
+      </Field>
+    </FormDialog>
   )
 }

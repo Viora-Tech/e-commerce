@@ -237,6 +237,8 @@ describe('returns router', () => {
       reasons: ['damaged', 'wrong_item'],
       restockAutomatically: false,
       refundMethod: 'store_credit',
+      exchanges: false,
+      autoApprove: { enabled: false, reasons: ['damaged', 'wrong_item'], maxValuePaise: 0 },
     })
   })
 })

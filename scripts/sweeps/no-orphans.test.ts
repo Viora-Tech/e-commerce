@@ -18,13 +18,350 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
-    file: 'packages/core/src/theme-import/archive.ts',
-    names: ['safeThemePath'],
-    reason: 'the zip-slip guard behind readThemeArchive, exported for its unit test',
+    file: 'packages/core/src/inbox/widget.ts',
+    names: [
+      'WIDGET_ICONS',
+      'WIDGET_HORIZONTAL',
+      'WIDGET_VERTICAL',
+      'DEFAULT_INBOX_WIDGET',
+      'INBOX_WIDGET_FIELDS',
+    ],
+    reason:
+      'the Inbox app embed schema the theme editor App embeds panel renders (coordinator, 2026-10-24); read once that panel lands',
+  },
+  {
+    file: 'packages/core/src/inbox/connection.ts',
+    names: ['EVENT_TYPES'],
+    reason:
+      'the browser side of Inbox realtime, used by the admin inbox (PR 4) and the widget (PR 5); unit-tested here',
+  },
+  {
+    file: 'packages/core/src/inbox/realtime.ts',
+    names: ['createInboxHub', 'sseFrame'],
+    reason:
+      'the hub and the SSE frame behind processInboxHub and inboxStreamResponse, exported for their unit tests',
+  },
+  {
+    file: 'packages/core/src/inbox/events.ts',
+    names: ['storeReplay'],
+    reason: 'the admin stream replay behind replayForStore, exported for its unit test',
+  },
+  {
+    file: 'packages/db/src/inbox-schema.ts',
+    names: [
+      'INBOX_CHANNELS',
+      'INBOX_STATUSES',
+      'INBOX_BLOCKED_REASONS',
+      'INBOX_SENDERS',
+      'INBOX_MESSAGE_KINDS',
+      'INBOX_BLOCK_KINDS',
+      'memberPushSubscription',
+    ],
+    reason:
+      'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
+  },
+  {
+    file: 'packages/core/src/inbox/constants.ts',
+    names: [
+      'CONVERSATION_STATUSES',
+      'BLOCKED_REASONS',
+      'MESSAGE_SENDERS',
+      'MESSAGE_KINDS',
+      'BLOCK_KINDS',
+    ],
+    reason:
+      'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
+  },
+  {
+    file: 'packages/core/src/inbox/rules.ts',
+    names: ['linkCount'],
+    reason:
+      'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
+  },
+  {
+    file: 'packages/core/src/inbox/settings.ts',
+    names: [
+      'InboxDayHoursSchema',
+      'DEFAULT_INBOX_HOURS',
+      'INBOX_AVAILABILITY',
+      'InboxSettingsSchema',
+      'DEFAULT_INBOX_SETTINGS',
+      'zonedWeekMinute',
+    ],
+    reason:
+      'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
+  },
+  {
+    file: 'packages/core/src/inbox/shopper.ts',
+    names: ['ShopperSendSchema', 'customerConversations'],
+    reason:
+      'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',
+  },
+  {
+    file: 'packages/core/src/pixels/hash.ts',
+    names: [
+      'sha256',
+      'normaliseEmail',
+      'normaliseMetaPhone',
+      'normaliseName',
+      'normaliseCity',
+      'normaliseState',
+      'normalisePin',
+      'splitName',
+    ],
+    reason: 'the Meta normalisers behind hashUserData; exported for their unit tests',
+  },
+  {
+    file: 'packages/core/src/pixels/meta.ts',
+    names: ['META_GRAPH', 'classifyMetaError'],
+    reason:
+      'the Graph base URL and error classifier behind sendMetaEvents; exported for their unit tests',
+  },
+  {
+    file: 'packages/core/src/pixels/prune.ts',
+    names: ['prunePixelData'],
+    reason: 'the prune for one store, behind runPixelPruneJob; exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/pixels/send.ts',
+    names: ['PixelRetryError'],
+    reason: 'thrown so BullMQ retries a send job; exported for its unit test',
+  },
+  {
+    file: 'packages/ui/src/globe/webgl/sprite-dots.ts',
+    names: ['MAX_SPRITE_DOT_SAMPLES', 'spriteDotSpacing'],
+    reason:
+      'the sample cap and dot spacing behind pickSpriteDotSamples and spriteDotRadiusPx; exported for their unit test',
+  },
+  {
+    file: 'packages/core/src/automations/engine/maintenance.ts',
+    names: ['pruneAutomationRuns'],
+    reason: 'the prune for one store, behind runAutomationPruneJob; exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/inventory/stock-events.ts',
+    names: ['stockCrossings'],
+    reason: 'the pure low/out crossing rule behind watchStockCrossings, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/automations/actions/index.ts',
+    names: ['builtinExecutors', 'missingBuiltinExecutors'],
+    reason:
+      'the executor list and its completeness check, exported for the catalogue-coverage test',
+  },
+  {
+    file: 'packages/core/src/automations/conditions/evaluate.ts',
+    names: ['readPath'],
+    reason: 'the dotted-path reader behind the evaluator, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/marketing/automation-cutover.ts',
+    names: ['lockAutomationsEngineMode', 'cutoverStoreToEngine', 'verifyCutover'],
+    reason:
+      'the Growth cut-over steps, run by scripts/migrate-marketing-automations.ts (scripts are not scanned)',
+  },
+  {
+    file: 'packages/core/src/marketing/automation-engine-map.ts',
+    names: ['ENGINE_SUBJECT', 'nodeIdsFor', 'ruleFor'],
+    reason: 'pieces of the legacy-to-engine mapping, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/marketing/growth-automations.ts',
+    names: ['stepsFromDefinition', 'engineAutomationStats'],
+    reason: 'the engine-to-Growth view helpers, exported for the cut-over and parity tests',
+  },
+  {
+    file: 'packages/core/src/marketing/growth-engine.ts',
+    names: ['SWEEP_TRIGGERS', 'isTransactionalNode'],
+    reason: 'the sweep trigger list and the COD transactional rule, exported for their unit tests',
+  },
+  {
+    file: 'packages/core/src/automations/catalogue.ts',
+    names: ['FIELD_TYPES', 'isPluginPieceId', 'builtinTrigger', 'conditionFieldsFor'],
+    reason:
+      'Automations contract (feat/automations, 2026-10-23): read by the admin editor and the conditions/actions work built in parallel on this branch',
+  },
+  {
+    file: 'packages/core/src/automations/definition.ts',
+    names: ['RULE_OPERATORS', 'RULE_QUANTIFIERS', 'RuleGroupSchema'],
+    reason:
+      'Automations contract (feat/automations, 2026-10-23): read by the admin editor and the conditions/actions work built in parallel on this branch',
+  },
+  {
+    file: 'packages/core/src/automations/merge-tags.ts',
+    names: ['readPath', 'mergeTagsIn'],
+    reason:
+      'Automations contract (feat/automations, 2026-10-23): read by the admin editor and the conditions/actions work built in parallel on this branch',
+  },
+  {
+    file: 'packages/core/src/automations/types.ts',
+    names: [
+      'WORKFLOW_STATUSES',
+      'WORKFLOW_ORIGINS',
+      'BUILTIN_SUBJECT_TYPES',
+      'STEP_RUN_STATUSES',
+      'ACTION_RISKS',
+      'TRIGGER_SOURCES',
+      'RUN_REASONS',
+      'STEP_RUN_RETENTION_DAYS',
+    ],
+    reason:
+      'Automations contract (feat/automations, 2026-10-23): read by the admin editor and the conditions/actions work built in parallel on this branch',
+  },
+  {
+    file: 'packages/core/src/automations/engine/trigger.ts',
+    names: ['eventForOutbox'],
+    reason: 'the outbox row to automation event rule, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/automations/registry.ts',
+    names: ['resetActionExecutorsForTest'],
+    reason: 'lets engine tests install mock executors',
+  },
+  {
+    file: 'packages/core/src/platform-apps/meta-callbacks.ts',
+    names: ['whatsappEventUpdate'],
+    reason:
+      'one WhatsApp webhook change to an account update, behind handleMetaWebhook; exported for its unit test',
+  },
+  {
+    file: 'packages/plugin-shopify-import/src/app-install.ts',
+    names: ['signInstallState'],
+    reason: 'the signed state inside shopifyInstallUrl; exported so the callback test can sign one',
+  },
+  {
+    file: 'packages/api/src/services/order-actions.service.ts',
+    names: ['orderActionGroups'],
+    reason:
+      'the pure who-sees-which-order-action rule behind apps.orderActions, exported for its unit test',
+  },
+  {
+    file: 'packages/api/src/services/ai/query-writer.ts',
+    names: ['writeValidQuery'],
+    reason:
+      'the write-parse-retry loop behind refineQuery, exported for its unit test (no AI call)',
+  },
+  {
+    file: 'packages/core/src/analytics-query/controls.ts',
+    names: ['setShow'],
+    reason: 'the metric-order rule behind toggleMetric, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/catalog/stock-state.ts',
+    names: ['STOCK_FILTER_PARAM', 'stockFilterState'],
+    reason:
+      'the state ↔ `?stock=` spelling map that STOCK_FILTERS must cover, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/sender-email/platform.ts',
+    names: ['platformEmailFromEnv'],
+    reason:
+      'builds the platform email account from given env (SES/Resend, fallback), exported for its unit test',
+  },
+  {
+    file: 'packages/blocks/src/components/product-payment-signals.tsx',
+    names: ['upiPricePaise'],
+    reason: 'the checkout-matching UPI price behind the offer note, exported for its unit test',
+  },
+  {
+    file: 'packages/blocks/src/components/product-variant-picker.tsx',
+    names: ['swatchImages'],
+    reason: 'the swatch-or-pill rule behind the variant picker, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/theme-import/main-product-props.ts',
+    names: ['plainText'],
+    reason: 'the rich text to inline copy rule behind mainProductProps, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/theme-import/product-fields.ts',
+    names: ['productDisplayFields'],
+    reason: 'the pure shaping behind loadProductPageExtras, exported for its unit test (no DB)',
+  },
+  {
+    file: 'packages/plugin-shopify-import/src/write-products.ts',
+    names: ['preorderFrom'],
+    reason:
+      'the inventory-policy to pre-order rule behind the product write, exported for its unit test',
+  },
+  {
+    file: 'packages/db/src/storefront-cache.ts',
+    names: [
+      'STOREFRONT_CACHE_CHANNEL',
+      'STOREFRONT_CACHE_TABLES',
+      'STOREFRONT_CACHE_SOFT_TABLES',
+      'STOREFRONT_CACHE_EXEMPT',
+      'parseStorefrontCachePayload',
+    ],
+    reason:
+      'the cache trigger classification and payload format, read by its test (the ratchet that makes every new store table pick a side)',
+  },
+  {
+    file: 'packages/core/src/member-account/profile.ts',
+    names: ['normaliseMemberPhone'],
+    reason: 'the E.164 rule behind MemberProfileInputSchema, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/member-account/email-change.ts',
+    names: ['maskEmail'],
+    reason: 'the masking rule behind the email-changed notice, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/member-account/sign-ins.ts',
+    names: ['maskIp', 'signInMethod'],
+    reason:
+      'the IP masking and method rules behind recordMemberSignIn, exported for their unit test',
+  },
+  {
+    file: 'packages/core/src/inventory/landed-cost.ts',
+    names: ['allocate'],
+    reason: 'the largest-remainder split behind computeLandedCosts, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/payments/charges.ts',
+    names: ['merchantFee'],
+    reason: 'the shopper-paid-fee split behind recordPaymentCharges, exported for its unit test',
+  },
+  {
+    file: 'packages/db/src/finance-schema.ts',
+    names: ['MONTHLY_EXPENSE_CATEGORIES'],
+    reason: 'the table check list, exported so core monthly-expenses.test.ts checks it matches',
+  },
+  {
+    file: 'packages/core/src/inventory/schemas.ts',
+    names: ['FxRateSchema'],
+    reason: 'the exchange-rate rule inside the purchase schemas, exported for its unit test',
+  },
+  {
+    file: 'packages/db/src/purchasing-schema.ts',
+    names: ['INBOUND_SHIPMENT_STATUS_VALUES', 'PURCHASE_CHARGE_KIND_VALUES', 'SPLIT_METHOD_VALUES'],
+    reason: 'the column enums; landed-cost.test.ts checks core keeps the same lists',
+  },
+  {
+    file: 'packages/api/src/services/bug-report.service.ts',
+    names: ['scrubSecrets'],
+    reason: 'the redaction rule behind buildBugIssue, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/theme-import/bundle.ts',
+    names: ['nonceThemeScripts'],
+    reason:
+      'the source rewrite behind buildThemeBundle (nonces only on the theme own scripts, security audit 2026-10-06), exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/theme-import/engine.ts',
+    names: ['LIQUID_LIMITS'],
+    reason: 'the render budgets renderBounded applies, exported so security.test.ts can pin them',
+  },
+  {
+    file: 'packages/core/src/theme-import/import-media.ts',
+    names: ['THEME_MEDIA_LIMITS', 'liveVideosIn'],
+    reason:
+      'the download budget and live-page reader behind importShopifyTheme (security audit 2026-10-06), exported for their unit tests',
   },
   {
     file: 'packages/core/src/theme-import/fields.ts',
-    names: ['settingsFromProps', 'blocksFromProps', 'liquidSectionKey', 'shopifySectionId'],
+    names: ['settingsFromProps', 'shopifySectionId'],
     reason: 'the parts of liquidPlacement (props to engine input), exported for their unit tests',
   },
   {
@@ -34,7 +371,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/theme-import/import.ts',
-    names: ['ThemeImportError', 'cleanShopifyHost'],
+    names: ['cleanShopifyHost'],
     reason: 'thrown and used by importShopifyTheme, exported for its tests',
   },
   {
@@ -94,7 +431,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/api/src/services/analytics-buckets.ts',
-    names: ['DEFAULT_RANGE', 'istDayStart'],
+    names: ['DEFAULT_RANGE'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -120,11 +457,6 @@ const ALLOWLIST: AllowEntry[] = [
   {
     file: 'packages/api/src/services/page.service.ts',
     names: ['getPublishedPageByHandle'],
-    reason: 'no external importer today — investigate before removing',
-  },
-  {
-    file: 'packages/api/src/services/product.service.ts',
-    names: ['LOW_STOCK_AT'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -170,7 +502,6 @@ const ALLOWLIST: AllowEntry[] = [
   {
     file: 'packages/core/src/cart/abandoned.ts',
     names: [
-      'ABANDONED_AFTER_MS',
       'RECOVERY_TTL_MS',
       'getAbandonedCart',
       'recoveryToken',
@@ -197,7 +528,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/collections/rules.ts',
-    names: ['matchesCollectionCondition', 'evaluateRules'],
+    names: ['matchesCollectionCondition'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -243,8 +574,24 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/domains/records.ts',
-    names: ['VERIFY_LABEL', 'relativeName'],
+    names: ['relativeName'],
     reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/core/src/domains/routes.ts',
+    names: ['ROUTE_RETRY_MS'],
+    reason: 'the route retry window behind needsRouteRequest, exported for its unit tests',
+  },
+  {
+    file: 'packages/core/src/domains/certificate-retry.ts',
+    names: ['checkCertificate', 'RETRY_REQUEST_GAP_MS'],
+    reason:
+      'the per-host check and the retry gap behind the sweep and the merchant button, exported for their unit tests',
+  },
+  {
+    file: 'packages/core/src/domains/certificate.ts',
+    names: ['DAY', 'CERT_RETRY_WINDOW_MS'],
+    reason: 'the schedule constants behind certCheckDue, exported for its unit tests',
   },
   {
     file: 'packages/core/src/domains/service.ts',
@@ -259,9 +606,7 @@ const ALLOWLIST: AllowEntry[] = [
   {
     file: 'packages/core/src/gift-cards/service.ts',
     names: [
-      'generateGiftCardCode',
       'hashGiftCardCode',
-      'storeToday',
       'issueGiftCardsForOrder',
       'undeliveredGiftCards',
       'giftCardPaymentsFor',
@@ -280,34 +625,28 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/marketing/attribution.ts',
-    names: [
-      'MARKETING_CHANNELS',
-      'ATTRIBUTION_WINDOW_DAYS',
-      'SESSION_IDLE_MS',
-      'hostOf',
-      'classifyChannel',
-    ],
+    names: ['ATTRIBUTION_WINDOW_DAYS', 'SESSION_IDLE_MS', 'hostOf', 'classifyChannel'],
     reason: 'no external importer today — investigate before removing',
   },
   {
     file: 'packages/core/src/marketing/automation-steps.ts',
-    names: ['AUTOMATION_TRIGGERS', 'AutomationStepSchema'],
-    reason: 'no external importer today — investigate before removing',
-  },
-  {
-    file: 'packages/core/src/marketing/automations.ts',
-    names: ['CONVERSION_WINDOW_DAYS'],
+    names: ['AutomationStepSchema'],
     reason: 'no external importer today — investigate before removing',
   },
   {
     file: 'packages/core/src/marketing/campaigns.ts',
-    names: ['CAMPAIGN_BATCH_SIZE', 'utmName'],
+    names: ['CAMPAIGN_BATCH_SIZE'],
     reason: 'no external importer today — investigate before removing',
   },
   {
     file: 'packages/core/src/marketing/email.ts',
-    names: ['EmailBlockSchema', 'MERGE_TAGS', 'escapeHtml', 'safeUrl'],
+    names: ['EmailBlockSchema'],
     reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/core/src/marketing/email-design.ts',
+    names: ['decodeEntities', 'htmlToPlainText', 'hasUnsubscribeTag'],
+    reason: 'exported for its unit test (email-design.test.ts)',
   },
   {
     file: 'packages/core/src/marketing/send.ts',
@@ -349,13 +688,13 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'no external importer today — investigate before removing',
   },
   {
-    file: 'packages/core/src/metaobjects/service.ts',
-    names: ['referenceProblems'],
-    reason: 'no external importer today — investigate before removing',
+    file: 'packages/core/src/metaobjects/field-changes.ts',
+    names: ['fieldChangeProblems'],
+    reason: 'the pure rule behind storedFieldProblems (same file), exported for its unit test',
   },
   {
     file: 'packages/core/src/metaobjects/storefront.ts',
-    names: ['metaobjectsByType', 'metafieldsFor'],
+    names: ['metafieldsFor'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -369,18 +708,8 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'no external importer today — investigate before removing',
   },
   {
-    file: 'packages/core/src/navigation/resolve.ts',
-    names: ['itemHref'],
-    reason: 'no external importer today — investigate before removing',
-  },
-  {
     file: 'packages/core/src/navigation/settings.ts',
     names: ['defaultNavigationSettings'],
-    reason: 'no external importer today — investigate before removing',
-  },
-  {
-    file: 'packages/core/src/notifications/deliver.ts',
-    names: ['buildTemplateData', 'buildCartTemplateData'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -468,14 +797,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/preorder/balance-link.ts',
-    names: [
-      'BALANCE_LINK_TTL_MS',
-      'ORDER_LINK_TTL_MS',
-      'signOrderToken',
-      'verifyOrderToken',
-      'balanceToken',
-      'balancePath',
-    ],
+    names: ['BALANCE_LINK_TTL_MS', 'ORDER_LINK_TTL_MS', 'balanceToken', 'balancePath'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -560,14 +882,15 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'no external importer today — investigate before removing',
   },
   {
-    file: 'packages/core/src/theme/templates-data.ts',
-    names: ['MAIN_SECTION', 'isTemplateKey'],
-    reason: 'no external importer today — investigate before removing',
-  },
-  {
     file: 'packages/core/src/theme/vars.ts',
     names: ['themeToCssVars'],
     reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/core/src/cod-rto/settings.ts',
+    names: ['codPrepaidDuePaise'],
+    reason:
+      'COD & RTO partial prepaid: the rule is saved and unit-tested; checkout calls it once split COD payments exist (handoff 2026-10-25-cod-rto-app)',
   },
   {
     file: 'packages/db/src/auth-schema.ts',
@@ -576,7 +899,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/db/src/schema.ts',
-    names: ['PAYMENT_STATUSES', 'METAFIELD_TYPES', 'THEME_TEMPLATE_KINDS'],
+    names: ['PAYMENT_STATUSES', 'METAFIELD_TYPES'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -647,11 +970,6 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'no external importer today — investigate before removing',
   },
   {
-    file: 'packages/invoices/src/barcode.ts',
-    names: ['code128Values'],
-    reason: 'no external importer today — investigate before removing',
-  },
-  {
     file: 'packages/invoices/src/document.ts',
     names: ['hsnFor', 'totalsOf', 'summariseByRate'],
     reason: 'no external importer today — investigate before removing',
@@ -702,11 +1020,6 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'no external importer today — investigate before removing',
   },
   {
-    file: 'packages/notifications/src/templates/content.ts',
-    names: ['balanceTemplates', 'transferTemplates', 'backInStockTemplates'],
-    reason: 'no external importer today — investigate before removing',
-  },
-  {
     file: 'packages/payments-razorpay/src/razorpay.ts',
     names: [
       'SNAPMINT_PROVIDER',
@@ -748,8 +1061,66 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'imported only by the root commerce.config.ts, like backInStockPlugin',
   },
   {
-    file: 'packages/plugin-gst-invoices/src/issue.ts',
-    names: ['creditNoteCutoff'],
+    file: 'packages/plugin-affiliates/src/plugin.ts',
+    names: ['affiliatesPlugin'],
+    reason: 'imported only by the root commerce.config.ts, like formsPlugin',
+  },
+  {
+    file: 'packages/plugin-affiliates/src/secrets.ts',
+    names: ['AFFILIATE_CIPHER_COLUMNS', 'refreshAffiliatePhoneIndexes'],
+    reason: 'imported only by scripts/rotate-secrets.ts (scripts are not counted as importers)',
+  },
+  {
+    file: 'packages/plugin-affiliates/src/commissions.ts',
+    names: ['commissionForOrder'],
+    reason: 'used inside the module; exported for the flow tests that read one order’s commission',
+  },
+  {
+    file: 'packages/plugin-forms/src/plugin.ts',
+    names: ['formsPlugin'],
+    reason: 'imported only by the root commerce.config.ts, like emiPlugin',
+  },
+  {
+    file: 'packages/core/src/catalog/search-text.ts',
+    names: ['maxEdits', 'editDistance', 'correctTerm', 'synonymsOf'],
+    reason: 'test-only: the steps of planSearch, tested one by one in search-text.test.ts',
+  },
+  {
+    file: 'packages/plugin-search/src/plugin.ts',
+    names: ['searchPlugin'],
+    reason: 'imported only by the root commerce.config.ts, like formsPlugin',
+  },
+  {
+    file: 'packages/plugin-reviews/src/plugin.ts',
+    names: ['reviewsPlugin'],
+    reason: 'imported only by the root commerce.config.ts, like formsPlugin',
+  },
+  {
+    file: 'packages/plugin-reviews/src/judgeme.ts',
+    names: [
+      'parseJudgemeCsv',
+      'matchJudgemeRows',
+      'curationOf',
+      'matchRow',
+      'countJudgemeRows',
+      'importedStatus',
+      'rowsToImport',
+    ],
+    reason: 'the pure CSV reader and the matcher, used inside this file and tested directly',
+  },
+  {
+    file: 'packages/core/src/theme-import/data.ts',
+    names: ['withReviewMetafields'],
+    reason: 'the pure metafield merge, used inside this file and tested directly',
+  },
+  {
+    file: 'packages/core/src/theme-import/related.ts',
+    names: ['rankRelated'],
+    reason: 'the pure ranking, used inside this file and tested directly',
+  },
+  {
+    file: 'packages/plugin-gst-invoices/src/credit-notes.ts',
+    names: ['creditNoteCutoff', 'issueCreditNote'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -759,7 +1130,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/plugin-gst-invoices/src/queue.ts',
-    names: ['soldOnlyGiftCards', 'B2C_DETAIL_THRESHOLD_PAISE', 'checkRule46'],
+    names: ['B2C_DETAIL_THRESHOLD_PAISE', 'checkRule46'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -774,7 +1145,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/plugin-shopify-import/src/csv-orders.ts',
-    names: ['orderNumberFrom', 'shopifyDate'],
+    names: ['shopifyDate'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -788,9 +1159,14 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'no external importer today — investigate before removing',
   },
   {
-    file: 'packages/plugin-shopify-import/src/media.ts',
-    names: ['mediaSourceKey'],
-    reason: 'no external importer today — investigate before removing',
+    file: 'packages/plugin-shopify-import/src/api-files.ts',
+    names: ['mapFile'],
+    reason: 'Shopify file → our file shape (best mp4 pick), exported for its unit test',
+  },
+  {
+    file: 'packages/plugin-shopify-import/src/field-values.ts',
+    names: ['shopifyRichText', 'parseShopifyValue'],
+    reason: 'Shopify field value readers, exported for their unit tests',
   },
   {
     file: 'packages/plugin-shopify-import/src/service.ts',
@@ -832,18 +1208,40 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/plugin-shopify-import/src/write-customers.ts',
-    names: ['customerSourceId', 'matchCustomer'],
+    names: ['matchCustomer'],
     reason: 'no external importer today — investigate before removing',
   },
   {
     file: 'packages/plugin-shopify-import/src/write-orders.ts',
-    names: ['PLACEHOLDER_HANDLE', 'orderSourceId', 'statusFor'],
+    names: ['PLACEHOLDER_HANDLE', 'statusFor'],
     reason: 'no external importer today — investigate before removing',
   },
   {
-    file: 'packages/plugin-shopify-import/src/write-products.ts',
-    names: ['localHandle', 'productSourceId'],
-    reason: 'no external importer today — investigate before removing',
+    file: 'packages/plugin-shopify-import/src/shopify-api.ts',
+    names: ['productStatus'],
+    reason: 'the Online Store visibility rule behind product status, exported for its unit test',
+  },
+  {
+    file: 'packages/plugin-shopify-import/src/write-customers.ts',
+    names: ['writeCustomer'],
+    reason:
+      'one-record writer the batched writer falls back to; exported for the fallback unit test',
+  },
+  {
+    file: 'packages/plugin-shopify-import/src/issue-groups.ts',
+    names: ['causeOf'],
+    reason: 'classifies one problem; exported for its unit test',
+  },
+  {
+    file: 'packages/plugin-shopify-import/src/status.ts',
+    names: ['shopifyCounts', 'importStatus'],
+    reason:
+      'the two halves of remainingStatus (Shopify counts, then the numbers); exported for their unit tests',
+  },
+  {
+    file: 'packages/plugin-shopify-import/src/write-orders.ts',
+    names: ['writeOrder'],
+    reason: 'one-record writer the batched writer falls back to; exported for its unit tests',
   },
   {
     file: 'packages/queue/src/visitors.ts',
@@ -856,11 +1254,9 @@ const ALLOWLIST: AllowEntry[] = [
       'isCivilDate',
       'isoWeekday',
       'daysBetween',
-      'addCalendarDays',
       'isWorkingDay',
       'nextWorkingDay',
       'addWorkingDays',
-      'zonedNow',
       'parseCutoff',
       'isValidTimeZone',
       'buildTrack',
@@ -916,6 +1312,236 @@ const ALLOWLIST: AllowEntry[] = [
     file: 'packages/core/src/shopper-login/identities.ts',
     names: ['connectDecision'],
     reason: 'pure rule behind planConnect (security audit 2026-09), exported for its unit test',
+  },
+  {
+    file: 'packages/api/src/services/growth-outcomes.service.ts',
+    names: ['OUTCOME_KINDS'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/api/src/services/growth-outcomes.service.ts',
+    names: ['isEarned', 'outcomeTotals'],
+    reason: 'exported for its unit test; no other importer today',
+  },
+  {
+    file: 'packages/api/src/services/order.service.ts',
+    names: ['orderNumberFromSearch'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/api/src/services/short-links.service.ts',
+    names: ['shortLinkStats'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/auth/src/merchant.ts',
+    names: ['validateMerchantUserInfo'],
+    reason: 'exported for its unit test; no other importer today',
+  },
+  {
+    file: 'packages/blocks/src/section-settings.ts',
+    names: ['SECTION_BACKGROUND_TOKENS'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/core/src/catalog/bulk-edit-schemas.ts',
+    names: ['BulkEditProductPatchSchema', 'BulkEditVariantPatchSchema', 'BulkEditRowSchema'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/core/src/order/profit-service.ts',
+    names: ['ShipmentNotFound'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/core/src/order/routing-service.ts',
+    names: ['loadRoutingLocations'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/core/src/order/routing.ts',
+    names: ['MAX_ROUTING_LOCATIONS'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/core/src/redirects/csv.ts',
+    names: ['REDIRECT_CSV_HEADERS'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/core/src/redirects/csv.ts',
+    names: ['REDIRECT_CSV_MAX_ROWS'],
+    reason: 'exported for its unit test; no other importer today',
+  },
+  {
+    file: 'packages/core/src/redirects/handle-change.ts',
+    names: ['renameMenuTargets'],
+    reason: 'exported for its unit test; no other importer today',
+  },
+  {
+    file: 'packages/core/src/returns/service.ts',
+    names: ['sellingLocation'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/core/src/returns/service.ts',
+    names: ['returnPickupLocation'],
+    reason: 'exported for its unit test; no other importer today',
+  },
+  {
+    file: 'packages/core/src/secret-rotation.ts',
+    names: ['rotateAppSettings'],
+    reason: 'exported for its unit test; no other importer today',
+  },
+  {
+    file: 'packages/core/src/theme-import/import.ts',
+    names: ['importedPages'],
+    reason: 'exported for its unit test; no other importer today',
+  },
+  {
+    file: 'packages/core/src/theme-import/page-context.ts',
+    names: ['resourceHandle'],
+    reason: 'exported for its unit test; no other importer today',
+  },
+  {
+    file: 'packages/core/src/theme-import/report.ts',
+    names: ['IMPORTED_TEMPLATES'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/core/src/theme/versions.ts',
+    names: ['VERSIONS_KEPT'],
+    reason: 'exported for its unit test; no other importer today',
+  },
+  {
+    file: 'packages/db/src/auth-schema.ts',
+    names: ['memberSignIn'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/db/src/schema.ts',
+    names: ['FULFILLMENT_ORDER_STATUSES'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/db/src/theme-schema.ts',
+    names: ['THEME_TEMPLATE_KINDS'],
+    reason: 'exported for its unit test; no other importer today',
+  },
+  {
+    file: 'packages/invoices/src/purchase-order/purchase-order-pdf.tsx',
+    names: ['PurchaseOrderPdf'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/plugin-growthbook/src/plugin.ts',
+    names: ['growthbookPlugin'],
+    reason: 'listed in the root commerce.config.ts, which this sweep does not scan',
+  },
+  {
+    file: 'packages/plugin-gst-invoices/src/queue.ts',
+    names: ['enqueueOrder'],
+    reason: 'exported for its unit test; no other importer today',
+  },
+  {
+    file: 'packages/plugin-chatwoot/src/plugin.ts',
+    names: ['chatwootPlugin'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/plugin-chatwoot/src/plugin.ts',
+    names: ['syncCustomerToChatwoot'],
+    reason: 'exported for its unit test; no other importer today',
+  },
+  {
+    file: 'packages/plugin-umami/src/plugin.ts',
+    names: ['umamiPlugin'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/ui/src/icons-more.tsx',
+    names: ['SidebarToggleIcon', 'Circle', 'Highlighter'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/core/src/sales-channels/connect.ts',
+    names: ['signChannelState'],
+    reason: 'the signed OAuth state behind the channel connect flow, exported for sync.test.ts',
+  },
+  {
+    file: 'packages/core/src/shipping/courier-rates.ts',
+    names: ['rateOptionLabel'],
+    reason: 'the label rule behind the courier rate options, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/theme-code/check.ts',
+    names: ['checkCss', 'checkLiquid'],
+    reason: 'the per-language checks behind codeProblems, exported for check.test.ts',
+  },
+  {
+    file: 'packages/core/src/theme-code/files.ts',
+    names: ['codeProblems'],
+    reason: 'the save-time check behind the theme code editor, exported for check.test.ts',
+  },
+  {
+    file: 'packages/ui/src/globe/webgl/border-dash.ts',
+    names: ['DASH_DUTY_CYCLE', 'isDashVisible'],
+    reason: 'the dash pattern the border shader draws, exported for its unit test',
+  },
+  {
+    file: 'packages/ui/src/globe/webgl/border-points.ts',
+    names: ['encodeBorderPoints'],
+    reason: 'the border vertex packing, exported for its unit test',
+  },
+  {
+    file: 'packages/ui/src/globe/webgl/dot-layout.ts',
+    names: ['TARGET_ROW_SPACING_CSS_PX'],
+    reason: 'the dot grid spacing, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/analytics-query/schema.ts',
+    names: ['QUERY_KEYWORDS'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/core/src/billing/apps.ts',
+    names: ['canUseApp'],
+    reason: 'no external importer today — billing API not wired into the admin yet',
+  },
+  {
+    file: 'packages/core/src/billing/credits-service.ts',
+    names: ['listAiTopups'],
+    reason: 'no external importer today — billing API not wired into the admin yet',
+  },
+  {
+    file: 'packages/core/src/billing/plans.ts',
+    names: ['PLAN_GST_PERCENT', 'isPlanId'],
+    reason: 'no external importer today — billing API not wired into the admin yet',
+  },
+  {
+    file: 'packages/core/src/billing/service.ts',
+    names: ['orderAllowance'],
+    reason: 'no external importer today — billing API not wired into the admin yet',
+  },
+  {
+    file: 'packages/core/src/catalog/browse.ts',
+    names: ['metafieldFacets'],
+    reason: 'the extra-field filter grouping behind listing filters, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/order/test-orders.ts',
+    names: ['discountReleases', 'countTestOrders'],
+    reason: 'test order purge helpers, exported for their unit and database tests',
+  },
+  {
+    file: 'packages/core/src/theme-import/related.ts',
+    names: ['DISCOVERY_NAMESPACE'],
+    reason: 'the Search & Discovery metafield namespace, exported for its unit test',
+  },
+  {
+    file: 'packages/plugin-shopify-import/src/storefront-filters.ts',
+    names: ['filterKeysFromHtml'],
+    reason: 'the filter-key parser behind storefrontFilterKeys, exported for its unit test',
   },
 ]
 

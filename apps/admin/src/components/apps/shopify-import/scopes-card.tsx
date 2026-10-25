@@ -1,22 +1,24 @@
 'use client'
 
 import type { ScopeHandle } from '@commerce/plugin-shopify-import/client'
+import { RefreshCw } from '@commerce/ui/icons'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import StatusChip from '@/components/layout/status-chip'
 import { shopifyImportContent } from '@/data/shopify-import'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type Check = Awaited<ReturnType<typeof api.shopifyImport.testConnection>>
 
-const copy = shopifyImportContent.connect
-
 /** Runs a real Shopify call and shows the shop name plus which import scopes the token has. */
 export default function ScopesCard() {
   // Hooks
+  const copy = useCopy(shopifyImportContent.connect)
   const [check, setCheck] = useState<Check | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -40,7 +42,7 @@ export default function ScopesCard() {
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>{copy.testHeading}</CardTitle>
         <Button type="button" variant="outline" size="sm" onClick={handleTest} disabled={busy}>
-          {busy ? <Spinner /> : null}
+          {busy ? <Spinner /> : <RefreshCw aria-hidden="true" />}
           {copy.test}
         </Button>
       </CardHeader>
@@ -56,9 +58,9 @@ export default function ScopesCard() {
               <span className="text-caption text-muted-foreground">{copy.scopesMissing}</span>
               <div className="flex flex-wrap gap-1.5">
                 {check.missing.map((handle) => (
-                  <Badge key={handle} variant="destructive">
+                  <StatusChip key={handle} tone="danger">
                     {scopeLabel(handle)}
-                  </Badge>
+                  </StatusChip>
                 ))}
               </div>
             </div>

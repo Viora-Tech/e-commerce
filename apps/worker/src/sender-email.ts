@@ -1,6 +1,13 @@
 import { getPlatformEmail, pollSenderEmails } from '@commerce/core'
 import type { Db } from '@commerce/db'
-import { type IORedis, Queue, SENDER_EMAIL_VERIFY_QUEUE, Worker } from '@commerce/queue'
+import { logger } from '@commerce/observability/logging'
+import {
+  type IORedis,
+  KEEP_FINISHED,
+  Queue,
+  SENDER_EMAIL_VERIFY_QUEUE,
+  Worker,
+} from '@commerce/queue'
 
 /** How often sender domains are checked. SES itself looks for the records for up to 72 hours. */
 export const SENDER_CHECK_EVERY_MS = 5 * 60_000
@@ -20,16 +27,12 @@ export function createSenderEmailPoller(connection: IORedis, db: Db) {
       const r = await pollSenderEmails(db, {
         identities: platform.identities,
         reservedDomains: platform.reservedDomains,
-        log: (m) => console.warn(m),
+        log: (m) => logger.warn(m, { area: 'sender-email' }),
       })
-      if (r.checked > 0 || r.failed > 0) {
-        console.log(
-          `[sender-email] checked ${r.checked}, ${r.verified} verified, ${r.failed} failed`,
-        )
-      }
+      if (r.checked > 0 || r.failed > 0) logger.info('sender emails checked', { ...r })
       return r
     },
-    { connection },
+    { connection, ...KEEP_FINISHED },
   )
   return { queue, worker }
 }

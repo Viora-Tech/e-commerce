@@ -10,10 +10,19 @@ import Video from '../components/sections/video'
 import { sectionsContent as copy } from '../data/sections'
 import { defaultSectionSettings } from '../section-settings'
 import type { CardCollection, CardProduct } from '../types'
-import { type Frame, framed, type Image, imageField, type Link, linkField, noImage } from './framed'
-import { type AnnouncementBarProps, announcementBarSection } from './glide/announcement-bar'
-import { type FeaturedProductProps, featuredProductSection } from './glide/featured-product'
-import { type NewsletterProps, newsletterSection } from './glide/newsletter'
+import {
+  type Frame,
+  framed,
+  type Image,
+  imageField,
+  inlineLinkField,
+  type Link,
+  noImage,
+} from './framed'
+import { inlineRichtext, inlineText, inlineTextarea } from './inline-fields'
+import { type AnnouncementBarProps, announcementBarSection } from './zero-drift/announcement-bar'
+import { type FeaturedProductProps, featuredProductSection } from './zero-drift/featured-product'
+import { type NewsletterProps, newsletterSection } from './zero-drift/newsletter'
 
 /** Collections for the collection list section, in the order the handles were given. */
 export type CollectionLoader = (handles: string[]) => Promise<CardCollection[]>
@@ -25,31 +34,38 @@ export type LibraryProps = {
   AnnouncementBar: AnnouncementBarProps
   ImageBanner: Frame & {
     image: Image
+    eyebrow: string
     heading: string
     text: string
     button: Link
+    secondaryButton: Link
     height: 'small' | 'medium' | 'large'
-    align: 'left' | 'center'
+    align: 'left' | 'center' | 'right'
     overlay: number
   }
   ImageWithText: Frame & {
     image: Image
+    kicker: string
     heading: string
     text: string
     button: Link
     imageFirst: boolean
   }
   Multicolumn: Frame & {
+    kicker: string
     heading: string
-    columns: { title: string; text: string; image: Image }[]
+    columns: { title: string; text: string; image: Image; link?: Link | undefined }[]
   }
   CollectionList: Frame & {
+    kicker: string
     heading: string
+    style: 'below' | 'overlay'
     handles: { handle: string }[]
     resolved?: CardCollection[]
   }
   FeaturedProduct: FeaturedProductProps
   Testimonials: Frame & {
+    kicker: string
     heading: string
     items: { quote: string; author: string; role: string }[]
   }
@@ -66,7 +82,7 @@ type Loaders = {
 
 type LibraryConfig = Record<keyof LibraryProps, ComponentConfig>
 
-const heading = { type: 'text', label: 'Heading' } as const
+const heading = inlineText('Heading')
 
 export function librarySections(loaders: Loaders): LibraryConfig {
   return {
@@ -76,9 +92,11 @@ export function librarySections(loaders: Loaders): LibraryConfig {
       'Image banner',
       {
         image: imageField(),
+        eyebrow: inlineText('Eyebrow'),
         heading,
-        text: { type: 'textarea', label: 'Text' },
-        button: linkField(),
+        text: inlineRichtext('Text'),
+        button: inlineLinkField(),
+        secondaryButton: inlineLinkField('Secondary button'),
         height: {
           type: 'select',
           label: 'Height',
@@ -94,17 +112,20 @@ export function librarySections(loaders: Loaders): LibraryConfig {
           options: [
             { label: 'Left', value: 'left' },
             { label: 'Center', value: 'center' },
+            { label: 'Right', value: 'right' },
           ],
         },
         overlay: { type: 'number', label: 'Overlay opacity (%)', min: 0, max: 90 },
       },
       {
         image: noImage,
+        eyebrow: copy.imageBanner.eyebrow,
         heading: copy.imageBanner.heading,
         text: copy.imageBanner.text,
         button: { label: copy.imageBanner.button, href: '/collections/all' },
+        secondaryButton: { label: copy.imageBanner.secondary, href: '/collections/all' },
         height: 'medium',
-        align: 'center',
+        align: 'left',
         overlay: 30,
       },
       (p) => <ImageBanner {...p} />,
@@ -112,11 +133,13 @@ export function librarySections(loaders: Loaders): LibraryConfig {
         defaultProps: {
           settings: defaultSectionSettings({ padTop: 0, padBottom: 0 }),
           image: noImage,
+          eyebrow: copy.imageBanner.eyebrow,
           heading: copy.imageBanner.heading,
           text: copy.imageBanner.text,
           button: { label: copy.imageBanner.button, href: '/collections/all' },
+          secondaryButton: { label: copy.imageBanner.secondary, href: '/collections/all' },
           height: 'medium',
-          align: 'center',
+          align: 'left',
           overlay: 30,
         },
       },
@@ -126,9 +149,10 @@ export function librarySections(loaders: Loaders): LibraryConfig {
       'Image with text',
       {
         image: imageField(),
+        kicker: inlineText('Eyebrow'),
         heading,
-        text: { type: 'textarea', label: 'Text' },
-        button: linkField(),
+        text: inlineRichtext('Text'),
+        button: inlineLinkField(),
         imageFirst: {
           type: 'radio',
           label: 'Image position',
@@ -140,6 +164,7 @@ export function librarySections(loaders: Loaders): LibraryConfig {
       },
       {
         image: noImage,
+        kicker: copy.imageWithText.kicker,
         heading: copy.imageWithText.heading,
         text: copy.imageWithText.text,
         button: { label: copy.imageWithText.button, href: '/pages/about' },
@@ -151,29 +176,41 @@ export function librarySections(loaders: Loaders): LibraryConfig {
     Multicolumn: framed<LibraryProps['Multicolumn']>(
       'Multicolumn',
       {
+        kicker: inlineText('Eyebrow'),
         heading,
         columns: {
           type: 'array',
           label: 'Columns',
           getItemSummary: (c: { title?: string }) => c.title || 'Column',
           arrayFields: {
-            title: { type: 'text', label: 'Title' },
-            text: { type: 'textarea', label: 'Text' },
-            image: imageField(),
+            title: inlineText('Title'),
+            text: inlineRichtext('Text'),
+            image: imageField('Icon or image'),
+            link: inlineLinkField('Link'),
           },
         },
       },
       {
+        kicker: copy.multicolumn.kicker,
         heading: copy.multicolumn.heading,
         columns: copy.multicolumn.columns.map((c) => ({ ...c, image: noImage })),
       },
-      (p) => <Multicolumn heading={p.heading} columns={p.columns} />,
+      (p) => <Multicolumn kicker={p.kicker} heading={p.heading} columns={p.columns} />,
     ),
 
     CollectionList: framed<LibraryProps['CollectionList']>(
       'Collection list',
       {
+        kicker: inlineText('Eyebrow'),
         heading,
+        style: {
+          type: 'radio',
+          label: 'Title',
+          options: [
+            { label: 'Below the image', value: 'below' },
+            { label: 'Over the image', value: 'overlay' },
+          ],
+        },
         handles: {
           type: 'array',
           label: 'Collections',
@@ -181,10 +218,17 @@ export function librarySections(loaders: Loaders): LibraryConfig {
           arrayFields: { handle: { type: 'text', label: 'Collection handle' } },
         },
       },
-      { heading: copy.collectionList.heading, handles: [] },
+      {
+        kicker: copy.collectionList.kicker,
+        heading: copy.collectionList.heading,
+        style: 'below',
+        handles: [],
+      },
       (p) => (
         <CollectionList
+          kicker={p.kicker}
           heading={p.heading}
+          style={p.style}
           collections={p.resolved ?? []}
           empty={copy.collectionList.empty}
         />
@@ -203,29 +247,31 @@ export function librarySections(loaders: Loaders): LibraryConfig {
       },
     ),
 
-    // Glide's featured-product section; config in ./glide/featured-product.tsx.
+    // Zero Drift's featured-product section; config in ./zero-drift/featured-product.tsx.
     FeaturedProduct: featuredProductSection(loaders),
 
     Testimonials: framed<LibraryProps['Testimonials']>(
       'Testimonials',
       {
+        kicker: inlineText('Eyebrow'),
         heading,
         items: {
           type: 'array',
           label: 'Testimonials',
           getItemSummary: (t: { author?: string }) => t.author || 'Testimonial',
           arrayFields: {
-            quote: { type: 'textarea', label: 'Quote' },
-            author: { type: 'text', label: 'Name' },
-            role: { type: 'text', label: 'Detail' },
+            quote: inlineTextarea('Quote'),
+            author: inlineText('Name'),
+            role: inlineText('Detail'),
           },
         },
       },
       {
+        kicker: copy.testimonials.kicker,
         heading: copy.testimonials.heading,
         items: copy.testimonials.items.map((t) => ({ ...t })),
       },
-      (p) => <Testimonials heading={p.heading} items={p.items} />,
+      (p) => <Testimonials kicker={p.kicker} heading={p.heading} items={p.items} />,
     ),
 
     LogoList: framed<LibraryProps['LogoList']>(
@@ -252,13 +298,13 @@ export function librarySections(loaders: Loaders): LibraryConfig {
           label: 'Questions',
           getItemSummary: (q: { question?: string }) => q.question || 'Question',
           arrayFields: {
-            question: { type: 'text', label: 'Question' },
-            answer: { type: 'textarea', label: 'Answer' },
+            question: inlineText('Question'),
+            answer: inlineRichtext('Answer'),
           },
         },
       },
       { heading: copy.faq.heading, items: copy.faq.items.map((q) => ({ ...q })) },
-      (p) => <Faq heading={p.heading} items={p.items} />,
+      (p, _meta, editing) => <Faq heading={p.heading} items={p.items} editing={editing} />,
     ),
 
     Video: framed<LibraryProps['Video']>(

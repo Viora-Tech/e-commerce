@@ -48,6 +48,34 @@ describe('S3CompatProvider', () => {
     expect(sent.input.Key).toBe('media/a.png')
   })
 
+  it('put forwards the caller signal to the SDK, combined with the hard deadline', async () => {
+    const { provider, client } = fake()
+    const caller = new AbortController()
+    await provider.put({
+      key: 'a.png',
+      body: new Uint8Array([1]),
+      contentType: 'image/png',
+      signal: caller.signal,
+    })
+    const opts = (client.send as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as {
+      abortSignal: AbortSignal
+    }
+    expect(opts.abortSignal.aborted).toBe(false)
+    caller.abort()
+    expect(opts.abortSignal.aborted).toBe(true)
+  })
+
+  it('every bucket call carries a deadline signal', async () => {
+    const { provider, client } = fake()
+    await provider.put({ key: 'a.png', body: new Uint8Array([1]), contentType: 'image/png' })
+    await provider.delete('a.png')
+    await provider.head('a.png')
+    const calls = (client.send as ReturnType<typeof vi.fn>).mock.calls
+    expect(calls.length).toBe(3)
+    for (const call of calls)
+      expect((call[1] as { abortSignal?: AbortSignal })?.abortSignal).toBeInstanceOf(AbortSignal)
+  })
+
   it('delete is idempotent by design: it never checks existence first', async () => {
     const { provider, client } = fake()
     await provider.delete('missing.png')

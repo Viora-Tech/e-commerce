@@ -1,0 +1,263 @@
+---
+title: Custom domains
+description: How a merchant's own domain goes from pending to live — the records we ask for, the dev and dns providers, the worker's re-check, and the HTTPS route the worker adds in Dokploy.
+---
+
+# Custom domains
+
+A merchant connects `brand.in` in Settings → Domains. The row starts `pending`; the storefront
+only answers a hostname once its `store_domain` row is `status = 'active'` (`resolve_store` /
+`resolve_host`, see [Request flow](/developer-docs/core-concepts/request-flow)). A **domain provider** decides when that
+happens.
+
+Code: `packages/core/src/domains/` (`service.ts` for connect / verify / poll, `records.ts` for
+the records we show, `provider.ts` for the provider contract, `dev-provider.ts` and
+`dns-provider.ts` for the two providers, `routes.ts` and `dokploy.ts` for the automatic HTTPS
+route). Admin: `apps/admin/src/components/domains/`.
+
+## The records we ask for
+
+| Hostname | Routing record | Ownership record |
+| --- | --- | --- |
+| `brand.in` (apex) | `A @ → STOREFRONT_A_RECORD` | `TXT _waimers-verify → waimers-verify=<token>` |
+| `www.brand.in` (subdomain) | `CNAME www → STOREFRONT_CNAME_TARGET` | `TXT _waimers-verify.www → waimers-verify=<token>` |
+
+The token is made when the domain is connected and never changes for that row.
+
+## Providers
+
+`DOMAIN_PROVIDER` picks one; `dev` is the default.
+
+### `dev` (offline)
+
+Never touches the network. `*.test` and `*.example` verify on the first check (certificate
+`issuing` for a minute, then `active`), a first label starting with `fail` is misconfigured, and
+every real domain stays `pending` forever. Right for local work and tests, wrong for any server
+where merchants connect real domains.
+
+### `dns` (real)
+
+`createDnsDomainProvider` in `dns-provider.ts`. On each check it asks DNS (`node:dns/promises`,
+5 s per lookup) and, once DNS is right, does a TLS handshake.
+
+| Situation | DNS state | What decides it |
+| --- | --- | --- |
+| Apex A records include `STOREFRONT_A_RECORD` | routing OK | `resolve4(host)` |
+| Subdomain CNAME equals `STOREFRONT_CNAME_TARGET` (case and trailing dot ignored) | routing OK | `resolveCname(host)` |
+| Subdomain A record is `STOREFRONT_A_RECORD` (flattened CNAME, Cloudflare DNS-only) | routing OK | `resolve4(host)` |
+| Every A record is in Cloudflare's published ranges (orange cloud) | routing OK **only** if the TXT record matches; noted in `error` | `resolve4` + `resolveTxt` |
+| `_waimers-verify[.name]` TXT holds the token | ownership OK | `resolveTxt` |
+| Records missing (NXDOMAIN / no data) | `pending` | keeps polling |
+| Routing points somewhere else, or the TXT has another value | `misconfigured` → row `failed` | plain-words `error`, e.g. "brand.in points at 1.2.3.4. Change the A record to 15.206.197.145." |
+| A lookup times out or the DNS server fails | previous state, no throw | `previous` in the check input |
+
+When routing and ownership are both OK the provider connects to `host:443` with
+`servername = host` and `rejectUnauthorized: true` (5 s limit). A trusted certificate makes the
+SSL state `active`; anything else is `issuing` and the next check tries again.
+
+`verifyDomain` writes the answer: DNS verified flips the row to `status = 'active'` (the
+storefront starts answering) and copies the SSL state. A live domain never drops back to
+pending over a failed check. The resolver and the TLS checker are function parameters, so
+tests (`dns-provider.test.ts`) never touch the network.
+
+## Re-checks
+
+- **Worker**: the `{domains}-verify` repeat job (every 2 minutes, scheduler id
+  `verify-pending-domains`, `apps/worker/src/domains.ts`) checks every custom domain that is
+  `pending`, or `active` with a certificate still `pending`/`issuing`
+  (`stores_with_pending_domains()`).
+- **Admin**: the domain page re-checks every few seconds while the tab is open and the domain is
+  settling, and "Verify connection" checks at once (`domains.verify`).
+- A `failed` domain is not polled: the merchant fixes the records and presses "Verify
+  connection", as the page tells them.
+
+## Turning it on for a server
+
+```bash
+DOMAIN_PROVIDER=dns
+# The storefront server's public IPv4. Apex domains point their A record here.
+STOREFRONT_A_RECORD=15.206.197.145
+# A hostname that resolves to that server. Subdomains point their CNAME here.
+STOREFRONT_CNAME_TARGET=shops.koomerce.app
+```
+
+`loadEnv` refuses `DOMAIN_PROVIDER=dns` while `STOREFRONT_A_RECORD` is still the documentation
+default (`192.0.2.10`), so merchants are never told to point at it. Both the admin (the
+"Verify connection" button) and the worker (the poll) read these keys, so set them on both.
+
+### Each live hostname also needs an HTTPS route on the proxy
+
+DNS reaching the server is not enough: Traefik must route the hostname to the storefront and
+hold a certificate for it, and Traefik only does that for hostnames added as a **domain on the
+storefront app in Dokploy**. Until that route exists the TLS check fails and the domain stays
+`active` with SSL `issuing`.
+
+With the four `DOKPLOY_*` keys set on the **worker**, this step is automatic
+(`packages/core/src/domains/routes.ts`):
+
+1. The worker's poll checks a domain, DNS is verified, and the domain has no working
+   certificate yet. It sets `store_domain.route_status = 'pending'` and writes a
+   `domain.route_requested` outbox row in the same transaction (`requestDomainRoute`).
+2. The outbox relay turns the row into a `{domains}-route` job (6 attempts, exponential backoff
+   from 30 s), keyed by the outbox row so a re-dispatch never doubles it.
+3. The job (`runDomainRouteJob`) re-checks the row (still a live custom domain), re-checks the
+   hostname (`hostname.ts` rules, never a platform domain or the CNAME target), lists the
+   storefront app's Dokploy domains and creates one only if the hostname is not there yet:
+   `https: true`, `certificateType: 'letsencrypt'`, `path: '/'`, `port: DOKPLOY_STOREFRONT_PORT`.
+   Dokploy writes the Traefik config at once (no redeploy), Traefik gets the certificate, and
+   the next poll's TLS check moves SSL to `active`. The row becomes `route_status = 'ready'`.
+4. A job that uses all its attempts marks the row `failed`. The poll asks again 30 minutes
+   after the last request (`ROUTE_RETRY_MS`), as it does for a `pending` or `ready` route whose
+   certificate still has not shown up (a lost job, or a route deleted by hand).
+5. Removing a domain whose route was ever asked for writes `domain.route_removed` with the
+   hostname. Its job deletes the Dokploy domain, unless the hostname is live again (any store,
+   `resolve_store`).
+
+The www twin is its own `store_domain` row, so it gets its own route. Admin requests never call
+Dokploy: Dokploy being down only delays the route, and the domain page says "Getting your
+security certificate" (or, after the retries, that it is taking longer than usual).
+
+| Key | What it is |
+| --- | --- |
+| `DOKPLOY_URL` | Dokploy's base URL as the worker reaches it, without `/api`, e.g. `https://dokploy.example.com` |
+| `DOKPLOY_API_KEY` | A Dokploy API key. Secret: sent only in the `x-api-key` header, never logged or returned |
+| `DOKPLOY_STOREFRONT_APPLICATION_ID` | The storefront application's id in Dokploy |
+| `DOKPLOY_STOREFRONT_PORT` | The port the storefront container listens on (default `3100`) |
+
+Any of the first three unset (local, tests): no route is asked for, every route job is a no-op,
+and each domain is added in Dokploy by hand as before. Every Dokploy request has a 10 s timeout.
+
+**Setting it up on the server**
+
+1. **API key**: in Dokploy, open **Settings → Profile**, find **API/CLI**, and generate a key.
+   Use an account that can manage domains on the storefront app.
+2. **Application id**: open the storefront application in Dokploy. The id is the last part of
+   the address bar (`…/services/application/<applicationId>`). It is also in the app's
+   **General** tab next to the API examples.
+3. **Port**: the storefront runs `next start --port 3100`; keep `3100` unless the app's own
+   domains in Dokploy use another container port.
+4. Set the four keys in the **worker's** environment (Dokploy → worker app → Environment), then
+   redeploy the worker. The admin and storefront do not need them.
+5. Check: connect a test domain, point its DNS at the server, and within a few minutes the
+   storefront app's **Domains** tab in Dokploy lists it with HTTPS on.
+
+Domains added in Dokploy by hand before this was turned on are left alone: the worker only
+deletes routes it asked for. A hostname listed in `PLATFORM_DOMAINS` can never be connected, so
+it never reaches Dokploy either; take a domain out of that list before connecting it as a
+store's own.
+
+Other things that keep a certificate from issuing:
+
+- **Cloudflare proxy (orange cloud)**: the handshake reaches Cloudflare, not us, so SSL turns
+  `active` as soon as Cloudflare serves its own certificate. Set Cloudflare's SSL mode to
+  **Full (strict)** so it also checks our origin certificate.
+- **An extra AAAA (IPv6) record** pointing at the old host: Let's Encrypt prefers IPv6, so the
+  challenge goes there and fails. Ask the merchant to delete it.
+- **Origin locked to Cloudflare's ranges** ([Deployment](/developer-docs/operations/deployment), "Lock the
+  origin"): a merchant domain that is not on Cloudflare cannot reach the server at all. Servers
+  that take custom domains must allow 80/443 from everywhere, or put the storefront behind a
+  separate entry point.
+- **The check runs from the server itself** (admin and worker containers connect to
+  `host:443`). The firewall / security group must let the server reach its own public address
+  on 443, or every domain stays `issuing`.
+
+## Store links use the primary domain
+
+One storefront app serves every store by hostname, so a link must use a hostname that
+resolves to the store. `STOREFRONT_URL` belongs to no store on a multi-tenant server: a link on
+it answers "No store is configured for shop.example.in." Every store-facing link is therefore
+built from `storefrontOriginFor(tx, storeId, fallback)` (`packages/core/src/domains/origin.ts`):
+
+- the store's primary domain when it is live (`is_primary AND status = 'active'`), as
+  `https://<hostname>`. A primary domain that is still `pending` does not count yet;
+- else `fallback`, which is `STOREFRONT_URL` (origin only);
+- in development, when `STOREFRONT_URL` is a `localhost` URL, the fallback always wins, because
+  the store's real domains do not point at the dev machine.
+
+Who calls it:
+
+| Where | Links |
+| --- | --- |
+| Admin pages, through `store.origin` (`apps/admin/src/lib/storefront-origin.ts`) | top bar "View store", theme preview and import report preview, product/page/blog post/policy "View", Growth › Links |
+| API services | marketing shop, click and unsubscribe links (`marketingDeps`), abandoned-cart recovery link, Settings › Payments test order link, the imported theme editor canvas (Liquid `shop.url`, theme asset base) |
+| Core / worker | order and balance links in order emails (`deliverNotification`), newsletter confirm link, back-in-stock alert links, campaign and automation sends, `ctx.storefrontUrl` for apps (`storeAppContext`) |
+| Storefront | `storefrontUrl` handed to apps' order links on the thank-you and account order pages |
+
+`store.origin` is a bare `storeProcedure` (every member, see
+[guardrails](/developer-docs/core-concepts/guardrails)): it is the address every shopper already sees,
+and staff without `settings.read` still need working links. Theme preview links
+(`?theme-preview=<token>`) work on any hostname of the store: the storefront proxy checks the
+token against the store the hostname resolves to and never redirects a preview to the primary.
+Checkout itself never reads `STOREFRONT_URL`: it runs on the shopper's own host, and gateway
+webhooks go to the worker URL. The one payments link the admin builds (Settings › Payments test
+order) opens on the store's origin like the rest.
+
+## Certificate checks and retries
+
+Traefik asks Let's Encrypt for a certificate once, when the route is added. If DNS does not
+exist yet (NXDOMAIN) the order fails and Traefik does not try again until the route is reloaded,
+so the browser keeps seeing Traefik's self-signed "TRAEFIK DEFAULT CERT". The certificate sweep
+(`runCertificateSweep`, `packages/core/src/domains/certificate-retry.ts`) closes that gap for
+platform addresses and custom domains alike.
+
+- **The check** (`tlsCertState`): a TLS connection to `host:443` without rejecting untrusted
+  certificates, then inspecting what came back: the default certificate, a chain the system
+  does not trust or a name mismatch, nothing, or a certificate trusted for that host (`valid`).
+- **The job:** a repeat job on `{domains}-certificate` every minute, scheduled only when
+  `DOMAIN_PROVIDER=dns`. It looks at rows with `status = 'active'` and `route_status = 'ready'`
+  that are due (`certCheckDue`; `stores_with_certificate_checks()` finds the stores). Waiting
+  rows follow a backoff counted from `ssl_started_at`: every minute for 5 minutes, then every
+  5 minutes up to 30 minutes, every 15 minutes up to 2 hours, hourly up to 6 hours, then every
+  6 hours until 3 days. After that only the merchant's button works. `ssl_checked_at` is the
+  last look. Active rows are re-checked once a day, which also catches a row that was marked
+  active without a real certificate.
+- **The outcome**, per row (`checkCertificate`):
+
+| Seen | Recorded |
+| --- | --- |
+| Trusted certificate for the host | `ssl_status = 'active'`, error cleared |
+| DNS does not resolve to `STOREFRONT_A_RECORD` (or Cloudflare) | `failed`, error `DNS not pointing here yet` |
+| DNS right, no certificate, under 5 minutes in | `issuing` |
+| DNS right, no certificate, later | re-register in Dokploy (delete + create, a new ACME attempt), `issuing`; after a 20 s pause one more look; still none: `failed`, error `Certificate pending` |
+
+  A re-register needs the Dokploy keys, happens at most once every 10 minutes per host (Let's
+  Encrypt allows 5 failed validations an hour per host), and only when DNS is already right. A
+  live host that is merely unreachable for a moment is left alone.
+- **Merchant button:** Settings, Domains, the domain, **Retry certificate**
+  (`domains.retryCertificate`, `settings.manage`). `requestCertificateRetry` refuses an active
+  certificate, a domain whose DNS is not verified, and a second press within 2 minutes; it
+  restarts the wait and writes `domain.route_requested` with `reregister: true`. The route job
+  then deletes and re-creates the Dokploy domain and, after the pause, records the result
+  (`recheckAfterSettle`). The Dokploy keys stay in the worker.
+- **Admin:** `DomainView.sslReason` (`dns` or `certificate`) drives the badge (Waiting for DNS /
+  Certificate failed) and the text on the domain page.
+
+Migration `0113_ssl_retry` adds `ssl_started_at`, `ssl_checked_at` and
+`stores_with_certificate_checks()`.
+
+## Store addresses (`<slug>.<PLATFORM_STORE_DOMAIN>`)
+
+A new store's own address takes the same route path, so with one wildcard DNS record a store
+works the moment it is created, with no manual step.
+
+1. **DNS, once:** add a wildcard `*` A record for `PLATFORM_STORE_DOMAIN` (for example
+   `*.koomerce.app`) pointing at the proxy server. Our own hosts (admin, shop, worker, panel...)
+   keep their explicit records, which win over the wildcard.
+2. **On creation:** when the Dokploy keys are set, `createStore` is told (`requestPlatformRoute`)
+   to queue the route. The new address row is written with `route_status = 'pending'` and
+   `ssl_status = 'issuing'`, plus a `domain.route_requested` outbox row, all in the store
+   transaction. Store creation never calls Dokploy, so Dokploy being down never blocks it.
+3. **The job** (`runDomainRouteJob`) accepts a platform row only for `<one-label>.<PLATFORM_STORE_DOMAIN>`
+   (`storeDomain` in the route guard), adds it to the storefront app in Dokploy (HTTPS,
+   Let's Encrypt, `DOKPLOY_STOREFRONT_PORT`) unless it is already there, and sets
+   `route_status = 'ready'`. It does not assume the certificate: `ssl_status` stays `issuing`
+   and the certificate sweep (below) moves it to `active` once the host really serves one.
+   Retries as for custom domains
+   (6 attempts, exponential backoff); after that the row stays `failed` and the domain page
+   shows "taking longer than usual".
+4. **Reserved names:** the store address cannot be one of our own hostnames
+   (`RESERVED_STORE_SLUGS` in `packages/core/src/onboarding/slug-format.ts`), so a merchant can
+   never take `worker`, `panel`, `dokploy` and the like.
+
+Not covered: changing a store's primary address after `PLATFORM_STORE_DOMAIN` changes. Existing
+stores keep their old address rows; a merchant cannot switch to the new one from Settings → Domains.

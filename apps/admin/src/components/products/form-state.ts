@@ -4,14 +4,18 @@ import {
   type ProductStatus,
   type ProductWrite,
   variantTitle,
+  type WeightUnit,
 } from '@commerce/core/catalog'
 import { isRichTextEmpty, parseRichText, type RichTextValue } from '@commerce/richtext'
-import { type productFormContent, rupees } from '@/data/products'
+import type { productFormContent } from '@/data/product-form'
+import { rupees } from '@/data/products'
 import type { api } from '@/lib/api-client'
+import { DEFAULT_WEIGHT_UNIT, fromGrams, toGrams } from './weight-units'
 
 export type LoadedProduct = NonNullable<Awaited<ReturnType<typeof api.products.get>>>
 
-export type Facets = { vendors: string[]; productTypes: string[]; tags: string[] }
+/** Store-wide values the form suggests (vendors, option names and values) and the GST defaults. */
+export type Facets = Awaited<ReturnType<typeof api.products.facets>>
 
 export type OptionRow = { id?: string | undefined; name: string; values: string[] }
 
@@ -26,7 +30,9 @@ export type VariantRow = {
   taxable: boolean
   trackInventory: boolean
   quantity: string
+  /** As typed, in `weightUnit`; saved as whole grams. */
   weight: string
+  weightUnit: WeightUnit
   hsCode: string
   countryOfOrigin: string
   /** Blank uses the store rate. */
@@ -52,6 +58,8 @@ export type ProductFormState = {
   tags: string[]
   seoTitle: string
   seoDescription: string
+  /** Search keywords, primary first; they steer Write with AI, the storefront never shows them. */
+  seoKeywords: string[]
   /** Alternate product template; blank is the default. */
   templateSuffix: string
   handle: string
@@ -97,6 +105,7 @@ export function emptyVariant(optionValues: string[], template?: VariantRow): Var
     trackInventory: template?.trackInventory ?? true,
     quantity: '0',
     weight: template?.weight ?? '',
+    weightUnit: template?.weightUnit ?? DEFAULT_WEIGHT_UNIT,
     hsCode: template?.hsCode ?? '',
     countryOfOrigin: template?.countryOfOrigin ?? '',
     gstRate: template?.gstRate ?? '',
@@ -119,6 +128,7 @@ export function emptyForm(): ProductFormState {
     tags: [],
     seoTitle: '',
     seoDescription: '',
+    seoKeywords: [],
     templateSuffix: '',
     handle: '',
     taxIncluded: true,
@@ -153,6 +163,7 @@ export function fromProduct(p: LoadedProduct): ProductFormState {
     tags: p.tags,
     seoTitle: p.seoTitle ?? '',
     seoDescription: p.seoDescription ?? '',
+    seoKeywords: p.seoKeywords,
     templateSuffix: p.templateSuffix ?? '',
     handle: p.handle,
     taxIncluded: p.taxIncluded,
@@ -175,27 +186,33 @@ export function fromProduct(p: LoadedProduct): ProductFormState {
       name: o.name,
       values: o.values.map((v) => v.value),
     })),
-    variants: p.variants.map((v) => ({
-      id: v.id,
-      optionValues: v.optionValues,
-      price: rupees.toField(v.pricePaise),
-      mrp: rupees.toField(v.mrpPaise),
-      cost: rupees.toField(v.costPaise),
-      sku: v.sku ?? '',
-      barcode: v.barcode ?? '',
-      taxable: v.taxable,
-      trackInventory: v.trackInventory,
-      quantity: String(v.onHand ?? 0),
-      weight: v.weightGrams == null ? '' : String(v.weightGrams),
-      hsCode: v.hsCode ?? '',
-      countryOfOrigin: v.countryOfOrigin ?? '',
-      gstRate: v.gstRatePercent == null ? '' : String(v.gstRatePercent),
-      boxPresetId: v.boxPresetId ?? null,
-      packageLengthCm: v.packageLengthCm ?? null,
-      packageWidthCm: v.packageWidthCm ?? null,
-      packageHeightCm: v.packageHeightCm ?? null,
-      mediaId: v.mediaId,
-    })),
+    // A product imported without variants (Shopify "historical" items) still needs one row,
+    // or the editor has nothing to show and renders a blank page.
+    variants:
+      p.variants.length === 0
+        ? [emptyVariant([])]
+        : p.variants.map((v) => ({
+            id: v.id,
+            optionValues: v.optionValues,
+            price: rupees.toField(v.pricePaise),
+            mrp: rupees.toField(v.mrpPaise),
+            cost: rupees.toField(v.costPaise),
+            sku: v.sku ?? '',
+            barcode: v.barcode ?? '',
+            taxable: v.taxable,
+            trackInventory: v.trackInventory,
+            quantity: String(v.onHand ?? 0),
+            weight: fromGrams(v.weightGrams, v.weightUnit ?? DEFAULT_WEIGHT_UNIT),
+            weightUnit: v.weightUnit ?? DEFAULT_WEIGHT_UNIT,
+            hsCode: v.hsCode ?? '',
+            countryOfOrigin: v.countryOfOrigin ?? '',
+            gstRate: v.gstRatePercent == null ? '' : String(v.gstRatePercent),
+            boxPresetId: v.boxPresetId ?? null,
+            packageLengthCm: v.packageLengthCm ?? null,
+            packageWidthCm: v.packageWidthCm ?? null,
+            packageHeightCm: v.packageHeightCm ?? null,
+            mediaId: v.mediaId,
+          })),
     media: p.images.map((i) => ({ id: i.id, url: i.url, alt: i.alt, contentType: i.contentType })),
     inventoryReason: 'correction',
   }
@@ -331,6 +348,7 @@ export function toWrite(form: ProductFormState): ProductWrite {
     tags: form.tags,
     seoTitle: form.seoTitle.trim() || null,
     seoDescription: form.seoDescription.trim() || null,
+    seoKeywords: form.seoKeywords,
     templateSuffix: form.templateSuffix || null,
     status: form.status,
     taxIncluded: form.taxIncluded,
@@ -364,7 +382,8 @@ export function toWrite(form: ProductFormState): ProductWrite {
       barcode: v.barcode.trim() || null,
       taxable: v.taxable,
       trackInventory: v.trackInventory,
-      weightGrams: intOrNull(v.weight),
+      weightGrams: toGrams(v.weight, v.weightUnit),
+      weightUnit: v.weightUnit,
       hsCode: v.hsCode.trim() || null,
       countryOfOrigin: v.countryOfOrigin.trim() || null,
       gstRatePercent: v.gstRate.trim() === '' ? null : Number(v.gstRate),

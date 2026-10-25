@@ -1,7 +1,8 @@
 'use client'
 
+import StatusChip from '@/components/layout/status-chip'
 import { inventoryContent, type ManualReasonValue } from '@/data/inventory'
-import InventoryTiles, { type InventoryStats } from './inventory-tiles'
+import { useCopy } from '@/hooks/use-copy'
 import LocationSelect, { type StoreLocation } from './location-select'
 import ReasonSelect from './reason-select'
 
@@ -12,10 +13,7 @@ type InventoryStripProps = {
   /** Hidden for members who can only read stock. */
   reason: ManualReasonValue | null
   onReasonChange: (reason: ManualReasonValue) => void
-  stats: InventoryStats
 }
-
-const copy = inventoryContent
 
 /** Location picker, the reason inline edits are logged with, then the stat tiles. */
 export default function InventoryStrip({
@@ -24,39 +22,43 @@ export default function InventoryStrip({
   onLocationChange,
   reason,
   onReasonChange,
-  stats,
 }: InventoryStripProps) {
+  // Hooks
+  const copy = useCopy(inventoryContent)
+
+  // Render logic
+  const online = locations.find((l) => l.id === locationId)?.fulfilsOnlineOrders ?? false
+
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-center gap-3">
-        <label htmlFor="inventory-location" className="text-kit-body text-muted-foreground">
+    <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="inventory-location" className="text-caption text-muted-foreground">
           {copy.location}
         </label>
-        <LocationSelect
-          id="inventory-location"
-          locations={locations}
-          value={locationId}
-          onChange={onLocationChange}
-          className="min-w-56 bg-card"
-        />
-        {reason ? (
-          <>
-            <label
-              htmlFor="inventory-reason"
-              className="ml-auto text-kit-body text-muted-foreground"
-            >
-              {copy.reason}
-            </label>
-            <ReasonSelect
-              id="inventory-reason"
-              value={reason}
-              onChange={onReasonChange}
-              className="min-w-44 bg-card"
-            />
-          </>
-        ) : null}
+        <div className="flex items-center gap-4">
+          <LocationSelect
+            id="inventory-location"
+            locations={locations}
+            value={locationId}
+            onChange={onLocationChange}
+            className="w-75 max-w-full bg-card"
+          />
+          {online ? <StatusChip tone="info">{copy.defaultBadge}</StatusChip> : null}
+        </div>
       </div>
-      <InventoryTiles stats={stats} />
+      {reason ? (
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="inventory-reason" className="text-caption text-muted-foreground">
+            {copy.reason}
+          </label>
+          <ReasonSelect
+            id="inventory-reason"
+            value={reason}
+            onChange={onReasonChange}
+            className="w-50 bg-card"
+          />
+        </div>
+      ) : null}
     </div>
   )
 }

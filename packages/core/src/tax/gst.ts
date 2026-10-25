@@ -253,3 +253,19 @@ function rowOf(g: GstBreakdown, amountPaise: number): GstRateRow {
     igstPaise: g.igstPaise,
   }
 }
+
+/**
+ * Which GST rows to show for a stored breakdown. An order shipped in parcels from different
+ * states carries both CGST + SGST and IGST, so both show; otherwise exactly as `interState` says.
+ */
+export function gstRowsToShow(t: {
+  cgstPaise: number
+  sgstPaise: number
+  igstPaise: number
+  interState: boolean
+}): { intraState: boolean; interState: boolean } {
+  return {
+    intraState: t.cgstPaise > 0 || t.sgstPaise > 0 || (!t.interState && t.igstPaise === 0),
+    interState: t.igstPaise > 0 || (t.interState && t.cgstPaise === 0),
+  }
+}

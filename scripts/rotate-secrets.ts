@@ -14,6 +14,7 @@ import { loadEnv } from '@commerce/config'
  * Covers every `encryptSecret` usage in the codebase (`rotateStoreSecrets` in
  * `packages/core/src/secret-rotation.ts`):
  *   - store.payments / .notifications / .shipping / .storage / .login_providers
+ *   - store.apps: encrypted values inside apps' own settings (the Umami API key)
  *   - gift_card.code_cipher
  *   - customer.phone (and its blind index customer.phone_index, which is keyed by the secret)
  *   - shopify_import_connection.access_token (added below; the plugin owns that table)
@@ -33,10 +34,15 @@ import {
   secretKeyId,
 } from '@commerce/core'
 import { createDb, store, withStore } from '@commerce/db'
+import {
+  AFFILIATE_CIPHER_COLUMNS,
+  refreshAffiliatePhoneIndexes,
+} from '@commerce/plugin-affiliates/server'
 
 /** Plugin-owned encrypted columns core does not know about. */
 const PLUGIN_COLUMNS: CipherColumn[] = [
   { label: 'Shopify import tokens', table: 'shopify_import_connection', column: 'access_token' },
+  ...AFFILIATE_CIPHER_COLUMNS,
 ]
 
 async function main() {
@@ -62,17 +68,26 @@ async function main() {
   const stores = await db.select({ id: store.id, slug: store.slug }).from(store)
 
   for (const s of stores) {
-    const counts = await withStore(db, s.id, (tx) =>
-      rotateStoreSecrets(tx, s.id, keyring, { apply, columns: PLUGIN_COLUMNS }),
-    )
+    const counts = await withStore(db, s.id, async (tx) => {
+      const c = await rotateStoreSecrets(tx, s.id, keyring, { apply, columns: PLUGIN_COLUMNS })
+      // Affiliate phone indexes are HMACs under the key: recompute them from the (now moved)
+      // customer phones, in the same transaction.
+      if (apply) await refreshAffiliatePhoneIndexes(tx, keyring.current, keyring.previous)
+      return c
+    })
     const columns = Object.entries(counts.columns).filter(([, n]) => n > 0)
-    const moved = counts.settings + counts.phones + columns.reduce((sum, [, n]) => sum + n, 0)
+    const moved =
+      counts.settings +
+      counts.appSettings +
+      counts.phones +
+      columns.reduce((sum, [, n]) => sum + n, 0)
     if (moved + counts.unreadable === 0) continue
     totals.stores += 1
     totals.secrets += moved
     totals.unreadable += counts.unreadable
     const parts = [
       `${counts.settings} settings secret(s)`,
+      `${counts.appSettings} app setting secret(s)`,
       `${counts.phones} customer phone(s)`,
       ...columns.map(([label, n]) => `${n} ${label}`),
     ]

@@ -1,0 +1,20 @@
+// Uptime and server alerts for the platform, emailed through Email Routing (no SMTP account).
+// Every 5 minutes a cron checks each site (src/checks.ts) and emails when one goes down or comes
+// back; Dokploy's server alerts (CPU, memory, failed deploys) POST to /dokploy and are emailed
+// as they arrive. Deploy with `bunx wrangler deploy` from apps/monitor. Secrets (never in this
+// file): DOKPLOY_TOKEN, the shared token in Dokploy's custom notification URL.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "koomerce-monitor",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "triggers": { "crons": ["*/5 * * * *"] },
+  // Up or down per check, so an outage is one email when it starts and one when it ends.
+  "kv_namespaces": [{ "binding": "STATE", "id": "1f4e154ac26e494b9917f2d3ffc244b6" }],
+  // A send_email binding can only reach this one verified address.
+  "send_email": [{ "name": "NOTIFY", "destination_address": "vioramice@gmail.com" }],
+  // Cores on the app server (EC2 t3a.medium: 2 vCPUs). The schedule's CPU is summed over cores,
+  // so it is divided by this when the payload carries no `cores` field.
+  "vars": { "SERVER_CPU_CORES": "2" },
+  "observability": { "enabled": true }
+}

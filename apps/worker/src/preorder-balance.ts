@@ -1,7 +1,8 @@
 import { parsePaymentSettings, resolvePaymentProviders, runBalanceSchedule } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
 import { type Db, store, storesWithBalanceDue, withStore } from '@commerce/db'
-import { type IORedis, PREORDER_BALANCE_QUEUE, Queue, Worker } from '@commerce/queue'
+import { logger } from '@commerce/observability/logging'
+import { type IORedis, KEEP_FINISHED, PREORDER_BALANCE_QUEUE, Queue, Worker } from '@commerce/queue'
 import { eq } from 'drizzle-orm'
 
 /** Reminders and deadlines are in days; a minute of slack is plenty. */
@@ -41,19 +42,25 @@ export function createPreorderBalanceJob(
           })
           for (const r of await runBalanceSchedule(db, storeId, providers)) {
             if (r.result === 'skipped') {
-              if (r.reason) console.warn(`[balance] ${storeId}/${r.orderId} skipped: ${r.reason}`)
+              if (r.reason) {
+                logger.warn('preorder balance skipped', {
+                  storeId,
+                  orderId: r.orderId,
+                  reason: r.reason,
+                })
+              }
             } else {
               counts[r.result] += 1
             }
           }
         } catch (err) {
-          console.warn(`[balance] store ${storeId} failed:`, err)
+          logger.warn('preorder balance failed', { storeId, error: err })
         }
       }
-      if (Object.values(counts).some(Boolean)) console.log('[balance]', counts)
+      if (Object.values(counts).some(Boolean)) logger.info('preorder balances processed', counts)
       return { stores: storeIds.length, ...counts }
     },
-    { connection },
+    { connection, ...KEEP_FINISHED },
   )
   return { queue, worker }
 }

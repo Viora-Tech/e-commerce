@@ -1,6 +1,6 @@
 /*
  * Storefront block styles for the page editor preview and the rich-text
- * playground. Imported into the `vendor` cascade layer so Glide's global
+ * playground. Imported into the `vendor` cascade layer so Zero Drift's global
  * element rules (button, a, h1…) never beat the admin's Tailwind utilities.
  */
 @import "@commerce/blocks/styles.css" layer(vendor);

@@ -1,10 +1,11 @@
 'use client'
 
-import { Loader2Icon } from '@commerce/ui/icons'
+import { CheckIcon, Loader2Icon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -12,6 +13,7 @@ import {
 import { type ChangeEvent, type DragEvent, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { mediaContent } from '@/data/media'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { readRecentMedia, rememberMedia } from '@/lib/media-recent'
 import { rejectReason } from '@/lib/upload'
@@ -35,6 +37,10 @@ type MediaPickDialogProps = {
   open: boolean
   /** Defaults to "Select file"; callers still pass a task-specific title. */
   title?: string
+  /** A line under the title saying what the pick is for. */
+  description?: string
+  /** The confirm button's words; defaults to "Done". */
+  doneLabel?: string
   /** Shown when the library has no images yet. */
   empty?: string
   /** Multiple files can be selected, in pick order. Defaults to single-select. */
@@ -52,7 +58,6 @@ type MediaPickDialogProps = {
   onPickMany?: (media: PickedMedia[]) => void
 }
 
-const copy = mediaContent.picker
 const PER_PAGE = 42
 
 type FetchArgs = {
@@ -85,6 +90,8 @@ function fetchMediaPage(args: FetchArgs) {
 export default function MediaPickDialog({
   open,
   title,
+  description,
+  doneLabel,
   empty,
   multiple,
   items: fixedItems,
@@ -93,6 +100,7 @@ export default function MediaPickDialog({
   onPickMany,
 }: MediaPickDialogProps) {
   // Hooks
+  const { picker: copy } = useCopy(mediaContent)
   const [items, setItems] = useState<MediaItem[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -292,6 +300,11 @@ export default function MediaPickDialog({
       <DialogContent className="flex h-[min(90svh,48rem)] w-full flex-col gap-0 p-0 sm:max-w-[64rem]">
         <DialogHeader className="gap-3 border-b p-4">
           <DialogTitle className="text-base font-medium">{title ?? copy.title}</DialogTitle>
+          {description ? (
+            <DialogDescription className="text-caption text-muted-foreground">
+              {description}
+            </DialogDescription>
+          ) : null}
           <MediaPickToolbar
             restricted={restricted}
             query={query}
@@ -404,7 +417,8 @@ export default function MediaPickDialog({
               {copy.cancel}
             </Button>
             <Button type="button" disabled={doneDisabled} onClick={handleDone}>
-              {copy.done}
+              <CheckIcon aria-hidden="true" />
+              {doneLabel ?? copy.done}
             </Button>
           </div>
         </DialogFooter>

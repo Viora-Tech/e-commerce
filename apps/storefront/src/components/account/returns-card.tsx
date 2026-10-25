@@ -68,7 +68,7 @@ export default function ReturnsCard({ state, orderNumber, timeZone, justSent }: 
 
   return (
     <section
-      className="flex flex-col gap-4 rounded-2xl border border-line p-6"
+      className="flex flex-col gap-4 rounded-[var(--radius-card)] bg-surface p-6"
       aria-labelledby="order-returns"
     >
       <h3 id="order-returns" className="h4">

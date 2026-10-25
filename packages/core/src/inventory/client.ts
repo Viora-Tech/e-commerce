@@ -1,4 +1,8 @@
 /** Browser-safe inventory helpers: pure stock maths and input schemas, no database. */
+export * from './document-match'
+export * from './document-rules'
+export * from './landed-cost'
+export * from './po-sheet'
 export * from './schemas'
 export * from './stock'
 

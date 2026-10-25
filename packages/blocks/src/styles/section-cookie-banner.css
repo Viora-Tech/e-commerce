@@ -1,5 +1,5 @@
 /**
- * Cookie banner (sections/cookie-banner.liquid, components/sections/glide/cookie-banner.tsx).
+ * Cookie banner (sections/cookie-banner.liquid, components/sections/zero-drift/cookie-banner.tsx).
  *
  * Three positions off one card: a full-width bar across the bottom, or a
  * card in either bottom corner. The outer element is the fixed layer and the
@@ -284,4 +284,54 @@
   .cookie-banner__link {
     align-self: center;
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* Figma storefront cookie banner (Section / Cookie banner, 704:109796) */
+/* ------------------------------------------------------------------ */
+/* A card floating 24px off the bottom and one page margin in from the sides,
+   "We use cookies" over the message, Preferences as a quiet text button and
+   Reject / Accept as two equal outline buttons. */
+.cookie-banner--bar {
+  left: var(--page-margin);
+  right: var(--page-margin);
+  bottom: var(--space-5);
+}
+
+.cookie-banner__card,
+.cookie-banner--bar .cookie-banner__card {
+  gap: var(--space-4) var(--space-5);
+  padding: 20px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card, var(--radius-m));
+}
+
+.cookie-banner__copy {
+  gap: 6px;
+}
+
+.cookie-banner__heading {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: var(--font-body-size, 16px);
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.cookie-banner__actions {
+  gap: var(--space-2);
+}
+
+.cookie-banner__button {
+  height: 40px;
+  padding-inline: var(--space-4);
+}
+
+.cookie-banner__link {
+  height: 40px;
+  padding-inline: var(--space-4);
+  color: var(--color-ink);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
 }

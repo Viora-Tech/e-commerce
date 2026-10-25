@@ -12,6 +12,13 @@ read 2026-10-01): Marquee (`src/effects/marquee.tsx`), the 3D Marquee demo (`mar
 `src/effects/marquee-3d.tsx`) and Safari (`src/effects/safari.tsx`), used by the Glide theme
 sections (Reviews showcase and the phase 2 sections listed in `src/sections/sources.ts`).
 
+Adapted components for the starter kit (source from the public shadcn registry via the Magic UI
+MCP, read 2026-10-10): Retro Grid (`src/effects/retro-grid.tsx`, the CSS fallback only), Border
+Beam (`src/effects/border-beam.tsx`), Word Rotate (`src/effects/word-rotate.tsx`) and Number
+Ticker (`src/effects/number-ticker.tsx`, shared by `StatsCounter` and `StatsCards`) and Magic Card
+(`src/effects/magic-card.tsx`, the gradient mode only), used by
+`src/components/sections/kit/*`.
+
 ```
 MIT License
 

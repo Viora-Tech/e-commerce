@@ -1,3 +1,4 @@
+import { logger } from '@commerce/observability/logging'
 import { describe, expect, it, vi } from 'vitest'
 import { runWorkflow, type WorkflowStep } from './run'
 
@@ -62,8 +63,8 @@ describe('runWorkflow', () => {
     expect(errors).toEqual(['compensation failed: b'])
   })
 
-  it('logs a failing compensation to console.error by default', async () => {
-    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+  it('logs a failing compensation through the shared logger by default', async () => {
+    const spy = vi.spyOn(logger, 'error').mockImplementation(() => {})
     const s: S = { log: [], value: 0 }
     const broken: WorkflowStep<S> = {
       name: 'b',
@@ -75,7 +76,7 @@ describe('runWorkflow', () => {
       },
     }
     await expect(runWorkflow(s, [broken, step('c', { fail: true })])).rejects.toThrow('c failed')
-    expect(spy).toHaveBeenCalledWith('compensation failed: b', expect.any(Error))
+    expect(spy).toHaveBeenCalledWith('compensation failed: b', { error: expect.any(Error) })
     spy.mockRestore()
   })
 })

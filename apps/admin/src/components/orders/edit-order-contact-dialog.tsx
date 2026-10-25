@@ -1,5 +1,7 @@
 'use client'
 
+import { Save } from '@commerce/ui/icons'
+import PhoneInput from '@commerce/ui/phone-input'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import {
@@ -25,7 +27,7 @@ import AddressFields, {
   type AddressValue,
   EMPTY_ADDRESS,
 } from '@/components/customers/address-fields'
-import { orderDetailContent } from '@/data/orders'
+import { orderDetailContent } from '@/data/order-detail'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { fieldErrorsOf } from '@/lib/api-errors'
@@ -167,13 +169,11 @@ export default function EditOrderContactDialog({
               </Field>
               <Field data-invalid={Boolean(errors.phone)}>
                 <FieldLabel htmlFor="order-contact-phone">{c.phone}</FieldLabel>
-                <Input
+                <PhoneInput
                   id="order-contact-phone"
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel"
                   value={draft.phone}
-                  onChange={(e) => set('phone')(e.target.value)}
+                  onChange={set('phone')}
+                  autoComplete="tel"
                 />
                 {errors.phone ? <FieldError>{errors.phone}</FieldError> : null}
               </Field>
@@ -210,6 +210,7 @@ export default function EditOrderContactDialog({
               {c.cancel}
             </Button>
             <Button type="submit" disabled={saving}>
+              <Save aria-hidden="true" />
               {c.save}
             </Button>
           </DialogFooter>

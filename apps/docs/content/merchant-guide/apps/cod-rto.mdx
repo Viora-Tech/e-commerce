@@ -1,0 +1,65 @@
+---
+title: COD & RTO
+description: Fewer parcels coming back. Customers confirm cash on delivery orders from a link, every order gets an RTO risk score, and you can turn COD off for risky ones.
+---
+
+# COD & RTO
+
+COD & RTO is a built-in app, free on every plan. Install it from the [App store](/merchant-guide/apps/app-store). Its pages are **Overview**, **Risky orders**, **Return reasons** and **Settings**, and it adds an **RTO risk** card to every order page.
+
+RTO (return to origin) is a parcel the courier brings back because nobody took it. You pay the courier both ways and the stock is stuck for weeks. Most RTOs are cash on delivery orders the customer never really meant to place, or addresses the courier could not find. The app goes after both.
+
+## COD confirmation
+
+Right after a cash on delivery order, the customer gets a message with a link to **confirm** or **cancel** the order. It goes by WhatsApp when you connected [WhatsApp](/merchant-guide/settings/notifications) and the order has a phone number, by email otherwise.
+
+- **Confirm**: the order is marked confirmed. Ship it as usual.
+- **Cancel**: the order is cancelled and its stock goes back on sale. This only works before anything has shipped.
+- **No answer** after the hours you set (24 by default): the order gets the `cod-unconfirmed` tag and a note asking you to call the customer. When the customer says yes on the phone, press **Confirmed by phone** on the order's RTO risk card.
+- **Cancel orders nobody confirmed** is off by default. Turn it on in **Settings** to cancel unanswered orders after the hours you choose (48 by default). A missed WhatsApp message should not cost you a real sale, so think before you turn it on.
+
+You can send the link to every COD order, or only to medium and high risk ones.
+
+The message is called **Confirm your COD order** in **Settings → Notifications**. With WhatsApp, create an approved template named `cod_confirm` with five placeholders: the customer's name, your shop's name, the order number, the total and the link.
+
+## RTO risk score
+
+Every order gets a score from 0 to 100 at checkout, worked out from your own shop's history:
+
+| What | Points |
+| --- | --- |
+| 30% or more of your finished parcels to this PIN code came back (at least 5 parcels) | +35 |
+| 15% to 30% came back | +20 |
+| Fewer than 5 parcels, but 2 or more came back | +10 |
+| The customer refused a parcel before (2 or more times) | +30 (+45) |
+| The customer cancelled 2 or more orders before | +10 |
+| The customer took 2 or more earlier orders and refused none | −15 |
+| The address is very short | +10 |
+| The address has no house, flat or plot number | +10 |
+| Order above ₹5,000 (above ₹10,000) | +10 (+15) |
+| First order from this customer | +10 |
+
+The customer is matched by phone number or email, so guest orders count too. A prepaid order's score is halved, since the money is already in. 30 and above is **medium risk**, 60 and above is **high risk**; you can change both in **Settings**. High-risk orders get the `rto-risk-high` tag, so you can find them in **Orders**.
+
+The order page's card lists the reasons behind the score. Orders placed before you installed the app have no score: press **Score again** to work one out. Press it again after you fix an address, too.
+
+## Checkout rules
+
+- **Turn off cash on delivery for high-risk orders**: when the score is high, checkout asks the customer to pay online instead. It is checked on our server, so it cannot be skipped.
+- **Ask for part of big COD orders up front** is saved now, but checkout does not ask for it yet. It will in a coming update.
+
+Your other cash on delivery rules (an order limit and blocked PIN codes) stay in **Settings → Checkout**.
+
+## Overview and Risky orders
+
+**Overview** shows your RTO rate, the rate for COD and for prepaid orders, what parcels that came back were worth, how many COD customers confirmed, cancelled or did not answer, your open orders by risk, and the PIN codes that send the most parcels back. Pick the last 7, 30 or 90 days.
+
+**Risky orders** lists medium and high risk orders, high risk only, orders with no answer, orders still waiting for one, or everything the app checked. Leave **Only orders not shipped** on to see what you can still stop.
+
+## Returns
+
+The app also adds to [Returns & RTO](/merchant-guide/orders/returns-and-rto):
+
+- **Exchanges**: in **Settings → Returns**, turn on **Let customers ask for another size or colour**. On the return form the customer picks what they want instead (money back, store credit, or another variant that is in stock). When the parcel is back, **Exchange** on the return sends exactly what they picked.
+- **Approve returns automatically**: in **Settings → Returns**, approve requests for the reasons you choose (for example damaged or wrong item) up to a value you set. You still arrange the pickup and check the parcel.
+- **Return reasons**: the app's page shows why customers send things back, what that cost, and the products that come back most with their main reason.

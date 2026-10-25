@@ -5,6 +5,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { createDb } from '../src/client'
 import { order, orderLine, payment, product, refund, shipment, store, variant } from '../src/schema'
 import { resetDb } from './reset'
+import { retryOnDeadlock } from './retry-deadlock'
 
 /*
  * 0062 splits `order.status` into lifecycle, payment and fulfilment. These
@@ -24,7 +25,7 @@ const MIGRATION = readFileSync(
 
 async function runMigration() {
   for (const statement of MIGRATION.split('--> statement-breakpoint')) {
-    if (statement.trim()) await owner.execute(sql.raw(statement))
+    if (statement.trim()) await retryOnDeadlock(() => owner.execute(sql.raw(statement)))
   }
 }
 
@@ -64,7 +65,9 @@ async function seed(fixtures: Record<string, Fixture>) {
     .insert(variant)
     .values({ storeId: s.id, productId: p?.id as string, title: 'V', pricePaise: 500 })
     .returning()
-  await owner.execute(sql`alter table "order" drop constraint if exists "order_status_check"`)
+  await retryOnDeadlock(() =>
+    owner.execute(sql`alter table "order" drop constraint if exists "order_status_check"`),
+  )
   const ids: Record<string, string> = {}
   let number = 1
   for (const [name, f] of Object.entries(fixtures)) {

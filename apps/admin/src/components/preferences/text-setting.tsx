@@ -1,8 +1,8 @@
 'use client'
 
-import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
+import { preferencesContent as copy } from '@/data/preferences'
 
 type TextSettingProps = {
   id: string
@@ -17,7 +17,8 @@ type TextSettingProps = {
   type?: 'text' | 'password'
 }
 
-/** One labelled text preference with help or its validation error underneath. */
+/** Figma Preferences (685:78485): label over the field, help on the left, a character count on
+ *  the right when the field has a limit, any error in place of the help. */
 export default function TextSetting({
   id,
   label,
@@ -41,18 +42,27 @@ export default function TextSetting({
   }
 
   return (
-    <Field data-invalid={error ? true : undefined}>
-      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+    <div className="flex min-w-0 flex-col gap-1.5">
+      <label htmlFor={id} className="text-body-strong text-foreground">
+        {label}
+      </label>
       {multiline ? (
         <Textarea {...shared} rows={3} onChange={(e) => onChange(e.target.value)} />
       ) : (
         <Input {...shared} size="lg" type={type} onChange={(e) => onChange(e.target.value)} />
       )}
-      {error ? (
-        <FieldError>{error}</FieldError>
-      ) : help ? (
-        <FieldDescription>{help}</FieldDescription>
-      ) : null}
-    </Field>
+      <div className="flex items-start justify-between gap-3 text-caption">
+        {error ? (
+          <p className="text-destructive">{error}</p>
+        ) : (
+          <p className="text-muted-foreground">{help}</p>
+        )}
+        {maxLength && type !== 'password' ? (
+          <p className="shrink-0 text-muted-foreground tabular-nums">
+            {copy.seo.count(value.length, maxLength)}
+          </p>
+        ) : null}
+      </div>
+    </div>
   )
 }

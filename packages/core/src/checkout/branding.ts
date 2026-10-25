@@ -26,7 +26,7 @@ export const CHECKOUT_CORNERS = ['sharp', 'soft', 'round'] as const
 export type CheckoutCorners = (typeof CHECKOUT_CORNERS)[number]
 
 /** The neutral look a store gets before it picks anything. */
-const DEFAULT_CHECKOUT_COLOURS = {
+export const DEFAULT_CHECKOUT_COLOURS = {
   accent: '#2F5BEA',
   button: '#2F5BEA',
   summary: '#F5F5F2',
@@ -83,6 +83,8 @@ export const CHECKOUT_LIGHT_SURFACE: Record<string, string> = {
   '--ck-line': '#E3E3E0',
   '--ck-field': '#FFFFFF',
   '--ck-soft': '#F7F7F5',
+  '--ck-canvas': '#F7F7F5',
+  '--ck-card-shadow': '0 1px 2px rgb(0 0 0 / 0.04), 0 12px 32px -16px rgb(0 0 0 / 0.1)',
 }
 
 /** A url() value that cannot break out of the declaration; the url is already schema-checked. */

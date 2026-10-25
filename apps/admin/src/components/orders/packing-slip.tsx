@@ -1,4 +1,5 @@
-import { orderDetailContent } from '@/data/orders'
+/* oxlint-disable shadcn/no-raw-colors -- printed page: always black on white, never themed. */
+import { orderDetailContent } from '@/data/order-detail'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { OrderDetail } from './order-detail-types'
 

@@ -2,6 +2,7 @@ import { settingsSecret } from '@commerce/config'
 import { getCart, verifyRecoveryToken } from '@commerce/core'
 import { type NextRequest, NextResponse } from 'next/server'
 import { CART_COOKIE } from '@/lib/cart-cookie'
+import { withEvlog } from '@/lib/request-log'
 import { inStore } from '@/lib/store-context'
 
 type Params = { params: Promise<{ storeId: string; token: string }> }
@@ -13,7 +14,7 @@ const CART_MAX_AGE = 60 * 60 * 24 * 30
  * over the cart id and an expiry, so a guessed id opens nothing. A cart that
  * has already been bought sends the shopper to the storefront instead.
  */
-export async function GET(request: NextRequest, { params }: Params) {
+export const GET = withEvlog(async (request: NextRequest, { params }: Params) => {
   const { storeId, token } = await params
   const home = new URL('/', request.url)
   const verified = verifyRecoveryToken(token, settingsSecret())
@@ -30,4 +31,4 @@ export async function GET(request: NextRequest, { params }: Params) {
     maxAge: CART_MAX_AGE,
   })
   return response
-}
+})

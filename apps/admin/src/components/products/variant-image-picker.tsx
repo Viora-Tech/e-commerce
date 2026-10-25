@@ -4,7 +4,7 @@ import { ImageIcon, XIcon } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { useState } from 'react'
 import MediaPickDialog, { type MediaItem as PickerItem } from '@/components/media/media-pick-dialog'
-import { productFormContent } from '@/data/products'
+import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 import type { MediaItem } from './form-state'
 
@@ -85,6 +85,8 @@ export default function VariantImagePicker({
       <MediaPickDialog
         open={picking}
         title={`${copy.image}: ${label}`}
+        description={copy.pickHelp}
+        doneLabel={copy.useImage}
         items={toPickerItems(media)}
         onClose={() => setPicking(false)}
         onPick={handlePick}

@@ -94,7 +94,9 @@ export function zoneScore(
   zone: Pick<ShippingZoneInput, 'stateCodes' | 'pincodeRules'>,
   to: ShippingDestination,
 ) {
-  const pin = to.pincode.trim()
+  // One spelling of the PIN code (`560 100`, `560-100`) for every rule (security audit
+  // 2026-09-28 branch, ported 2026-10-06: a space dodged an exclude rule).
+  const pin = to.pincode.replace(/[\s-]/g, '')
   if (zone.pincodeRules.some((r) => r.mode === 'exclude' && pincodeMatches(r.pattern, pin))) {
     return null
   }
@@ -172,16 +174,28 @@ export type ShippingQuote =
   | { kind: 'no_rates' }
   | { kind: 'rates'; options: ShippingRateOption[] }
 
+/**
+ * The rates for this address and cart: the most specific zone that covers it and has a rate for
+ * the cart. A zone with no rates (or none for this cart) falls through to the next zone that
+ * covers the address, so an empty zone left behind by an import never blocks checkout
+ * (Waimers, 2026-10-21: two empty "All India" zones listing every state outranked the
+ * everywhere zone that held the only rate).
+ */
 export function quoteShipping(
   zones: readonly ShippingZoneInput[],
   to: ShippingDestination,
   cart: ShippingCartMeasure,
 ): ShippingQuote {
   if (zones.length === 0) return { kind: 'not_configured' }
-  const zone = pickZone(zones, to)
-  if (!zone) return { kind: 'no_rates' }
-  const options = ratesForZone(zone, cart)
-  return options.length ? { kind: 'rates', options } : { kind: 'no_rates' }
+  const covering = zones
+    .map((zone) => ({ zone, score: zoneScore(zone, to) }))
+    .filter((c): c is { zone: ShippingZoneInput; score: number } => c.score !== null)
+    .sort((a, b) => b.score - a.score || a.zone.position - b.zone.position)
+  for (const { zone } of covering) {
+    const options = ratesForZone(zone, cart)
+    if (options.length) return { kind: 'rates', options }
+  }
+  return { kind: 'no_rates' }
 }
 
 /**

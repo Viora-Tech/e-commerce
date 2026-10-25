@@ -42,7 +42,7 @@ describe('aiProvider', () => {
 
 describe('models and plans from the environment', () => {
   it('uses the feature default unless AI_MODEL overrides it', () => {
-    expect(modelIdFor('assistant', {})).toBe('anthropic/claude-haiku-4.5')
+    expect(modelIdFor('assistant', {})).toBe('anthropic/claude-haiku-5.5')
     expect(modelIdFor('assistant', { AI_MODEL: 'openai/gpt-4.1-mini' })).toBe('openai/gpt-4.1-mini')
   })
 
@@ -63,12 +63,14 @@ describe('models and plans from the environment', () => {
       productWriter: true,
       assistant: false,
       bulkWriter: true,
+      documentReader: true,
     })
     expect(parseFeatureToggles({ askStore: false, assistant: true }).assistant).toBe(true)
     expect(parseFeatureToggles('junk')).toEqual({
       productWriter: true,
       assistant: true,
       bulkWriter: true,
+      documentReader: true,
     })
   })
 

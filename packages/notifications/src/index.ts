@@ -1,7 +1,9 @@
+export { withFallback } from './fallback'
 export { NotificationRegistry } from './registry'
 export { sampleTemplateDataByTemplate } from './samples'
 export {
   type EmailBody,
+  PLATFORM_TEMPLATE_IDS,
   renderEmail,
   renderWhatsapp,
   TEMPLATE_IDS,

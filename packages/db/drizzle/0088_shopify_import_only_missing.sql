@@ -1,0 +1,1 @@
+ALTER TABLE "shopify_import_run" ADD COLUMN "only_missing" boolean DEFAULT false NOT NULL;

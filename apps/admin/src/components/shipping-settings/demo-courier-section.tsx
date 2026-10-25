@@ -8,53 +8,21 @@ import {
   CollapsibleTrigger,
 } from '@commerce/ui/shadcn/collapsible'
 import { Switch } from '@commerce/ui/shadcn/switch'
-import { useState } from 'react'
-import { toast } from 'sonner'
 import { shippingSettingsContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
-import { api } from '@/lib/api-client'
-
-type Settings = Awaited<ReturnType<typeof api.store.getShipping>>['settings']
 
 type DemoCourierSectionProps = {
-  settings: Settings
-  /** Unsaved edits on the page: save them first so this switch does not drop them. */
-  dirty: boolean
-  demoId: string
-  onSaved: (next: Settings) => void
+  on: boolean
+  onChange: (on: boolean) => void
 }
 
-/** Advanced, development only: switch the pretend courier on or off. Saves straight away. */
-export default function DemoCourierSection({
-  settings,
-  dirty,
-  demoId,
-  onSaved,
-}: DemoCourierSectionProps) {
+/** Advanced, development only: the pretend courier, saved with the page's other edits. */
+export default function DemoCourierSection({ on, onChange }: DemoCourierSectionProps) {
   // Hooks
   const setupCopy = useCopy(shippingSettingsContent)
-  const [saving, setSaving] = useState(false)
-
-  // Event handlers
-  const handleToggle = async (on: boolean) => {
-    setSaving(true)
-    try {
-      const enabled = on
-        ? [...new Set([...settings.enabled, demoId])]
-        : settings.enabled.filter((id) => id !== demoId)
-      const result = await api.store.updateShipping({ ...settings, enabled })
-      onSaved(result ?? { ...settings, enabled })
-      toast.success(setupCopy.saved)
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : setupCopy.saveFailed)
-    } finally {
-      setSaving(false)
-    }
-  }
 
   // Render logic
   const copy = setupCopy.advanced
-  const on = settings.enabled.includes(demoId)
 
   return (
     <Collapsible>
@@ -71,16 +39,9 @@ export default function DemoCourierSection({
               <label htmlFor="shipping-demo-courier" className="text-body font-medium">
                 {copy.demo}
               </label>
-              <p className="text-caption text-muted-foreground">
-                {dirty ? copy.saveFirst : copy.demoHelp}
-              </p>
+              <p className="text-caption text-muted-foreground">{copy.demoHelp}</p>
             </div>
-            <Switch
-              id="shipping-demo-courier"
-              checked={on}
-              disabled={saving || dirty}
-              onCheckedChange={handleToggle}
-            />
+            <Switch id="shipping-demo-courier" checked={on} onCheckedChange={onChange} />
           </CardContent>
         </Card>
       </CollapsibleContent>

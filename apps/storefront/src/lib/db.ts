@@ -7,6 +7,9 @@ import { createDb, type Db } from '@commerce/db'
 const g = globalThis as unknown as { __commerceDb?: Db }
 
 export function db(): Db {
-  if (!g.__commerceDb) g.__commerceDb = createDb(loadEnv(process.env).DATABASE_URL)
+  if (!g.__commerceDb) {
+    const env = loadEnv(process.env)
+    g.__commerceDb = createDb(env.DATABASE_URL, { pooled: env.DATABASE_POOLED })
+  }
   return g.__commerceDb
 }

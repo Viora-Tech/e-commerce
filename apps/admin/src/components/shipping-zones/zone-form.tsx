@@ -1,30 +1,22 @@
 'use client'
 
 import { permissions } from '@commerce/core/permissions'
-import { CircleAlert, Trash2 } from '@commerce/ui/icons'
+import { CircleAlert, Save, Trash2 } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { shippingRatesContent } from '@/data/shipping-rates'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
+import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
 import { emptyZone, fromZone, type LoadedZone, toZoneInput, type ZoneFormState } from './form-state'
 import ZonePincodesCard from './zone-pincodes-card'
@@ -44,6 +36,7 @@ const initialForm = (zone: LoadedZone | null): ZoneFormState =>
 /** Create or edit a shipping zone: its name, states, PIN code rules and rates. */
 export default function ZoneForm({ zone }: ZoneFormProps) {
   // Hooks
+  const announceSetup = useSetupNext()
   const { zone: copy } = useCopy(shippingRatesContent)
   const router = useRouter()
   const { hasPermission } = usePermissions()
@@ -69,6 +62,7 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
         const created = await api.shipping.zones.create(data)
         setSaved(JSON.stringify(form))
         toast.success(copy.toasts.created)
+        void announceSetup('shipping')
         router.replace(`/settings/shipping/zones/${created.id}`)
         return
       }
@@ -77,6 +71,7 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
       setForm(next)
       setSaved(JSON.stringify(next))
       toast.success(copy.toasts.saved)
+      void announceSetup('shipping')
       router.refresh()
     } catch (err) {
       setServerError(err instanceof Error ? err.message : copy.toasts.failed)
@@ -126,7 +121,7 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
       <PageHeader
         title={title}
         subtitle={copy.meta}
-        breadcrumbs={[{ label: copy.backLabel, href: LIST_HREF }, { label: title }]}
+        back={{ label: copy.backLabel, href: LIST_HREF }}
         actions={
           !canManage ? null : zone ? (
             <Button variant="outline" onClick={() => setConfirmDelete(true)} disabled={busy}>
@@ -135,6 +130,7 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
             </Button>
           ) : (
             <Button onClick={handleSave} disabled={busy || !dirty}>
+              <Save aria-hidden="true" />
               {copy.saveBar.save}
             </Button>
           )
@@ -182,20 +178,16 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
         disabled={!canManage}
       />
 
-      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{copy.delete.title(zone?.name ?? '')}</AlertDialogTitle>
-            <AlertDialogDescription>{copy.delete.body}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={busy}>{copy.delete.cancel}</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={handleDelete} disabled={busy}>
-              {copy.delete.confirm}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title={copy.delete.title(zone?.name ?? '')}
+        body={copy.delete.body}
+        confirmLabel={copy.delete.confirm}
+        cancelLabel={copy.delete.cancel}
+        busy={busy}
+        onConfirm={handleDelete}
+      />
     </div>
   )
 }

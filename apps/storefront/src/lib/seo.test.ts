@@ -6,6 +6,7 @@ import {
   metaDescription,
   productGraph,
   storeGraph,
+  verificationMeta,
 } from './seo'
 import { emptySitemapXml, llmsTxt, robotsTxt, type StoreIndex, sitemapXml } from './seo-files'
 
@@ -115,11 +116,22 @@ describe('metadata helpers', () => {
 
 describe('crawler files', () => {
   it('robots.txt keeps private paths out and points at the sitemap', () => {
-    const txt = robotsTxt(origin, false)
+    const txt = robotsTxt(origin, { search: true, ai: true })
     expect(txt).toContain('Disallow: /checkout')
     expect(txt).toContain('Disallow: /account')
     expect(txt).toContain('Sitemap: https://waimers.in/sitemap.xml')
-    expect(robotsTxt(origin, true)).toBe('User-agent: *\nDisallow: /\n')
+    expect(txt).not.toContain('GPTBot')
+    expect(robotsTxt(origin, { search: false, ai: false })).toBe('User-agent: *\nDisallow: /\n')
+  })
+
+  it('robots.txt turns AI crawlers away in their own group when they are off', () => {
+    const txt = robotsTxt(origin, { search: true, ai: false })
+    expect(txt.startsWith('User-agent: GPTBot\n')).toBe(true)
+    expect(txt).toContain('User-agent: ClaudeBot\n')
+    expect(txt).toContain('User-agent: Google-Extended\n')
+    // The AI group shuts everything; the general group still welcomes search engines.
+    expect(txt).toContain('User-agent: Amazonbot\nDisallow: /\n\nUser-agent: *\nAllow: /\n')
+    expect(txt).toContain('Sitemap: https://waimers.in/sitemap.xml')
   })
 
   it('sitemap.xml lists every indexable URL, escaped, with lastmod when known', () => {
@@ -138,5 +150,34 @@ describe('crawler files', () => {
     expect(md).toContain('- [Veil Pro](https://waimers.in/products/veil): from ₹7,499')
     expect(md).toContain('## Collections')
     expect(md).toContain('- [sitemap.xml](https://waimers.in/sitemap.xml)')
+  })
+})
+
+describe('site verification tags', () => {
+  const blank = { google: '', bing: '', meta: '', pinterest: '' }
+
+  it('adds nothing when no token is saved', () => {
+    expect(verificationMeta(blank)).toBeUndefined()
+  })
+
+  it('names each console its own meta tag', () => {
+    expect(
+      verificationMeta({
+        google: 'g-token',
+        bing: 'b-token',
+        meta: 'm-token',
+        pinterest: 'p-token',
+      }),
+    ).toEqual({
+      google: 'g-token',
+      other: {
+        'msvalidate.01': 'b-token',
+        'facebook-domain-verification': 'm-token',
+        'p:domain_verify': 'p-token',
+      },
+    })
+    expect(verificationMeta({ ...blank, meta: 'm-token' })).toEqual({
+      other: { 'facebook-domain-verification': 'm-token' },
+    })
   })
 })

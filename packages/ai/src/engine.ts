@@ -11,6 +11,7 @@ import { generateText, isStepCount, type LanguageModel, Output, streamText, tool
 import type { z } from 'zod'
 import { type AiFeature, FEATURE_MODELS } from './features'
 import type { AiPlan } from './plans'
+import { maxStepsFor } from './provider'
 
 /** Who and what one AI call is for. Built by the API from the signed-in member's scope. */
 export type AiRuntime = {
@@ -23,6 +24,8 @@ export type AiRuntime = {
 export type AiContent =
   | { type: 'text'; text: string }
   | { type: 'image'; data: Uint8Array; mediaType: string }
+  /** A whole file the model reads, e.g. a scanned PDF (`application/pdf`). */
+  | { type: 'file'; data: Uint8Array; mediaType: string }
 
 export type AiMessage = { role: 'user' | 'assistant'; content: string }
 
@@ -151,7 +154,7 @@ export async function* streamAnswer(opts: {
       messages: opts.messages,
       tools: sdkTools(opts.tools, opts.runtime),
       toolApproval: approvals,
-      stopWhen: isStepCount(settings.maxSteps),
+      stopWhen: isStepCount(maxStepsFor(opts.runtime.feature)),
       maxOutputTokens: settings.maxOutputTokens,
       temperature: settings.temperature,
       maxRetries: 1,

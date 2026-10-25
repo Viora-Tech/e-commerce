@@ -1,17 +1,11 @@
 'use client'
 
-import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import PhoneInput from '@commerce/ui/phone-input'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import FormDialog from '@/components/layout/form-dialog'
 import { customerDetailContent as copy } from '@/data/customers'
 import { api } from '@/lib/api-client'
 import type { CustomerDetail } from './customer-detail-types'
@@ -60,46 +54,41 @@ export default function EditCustomerDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{copy.edit.heading}</DialogTitle>
-        </DialogHeader>
-        <FieldGroup>
-          <Field>
-            <FieldLabel htmlFor="edit-customer-name">{copy.edit.name}</FieldLabel>
-            <Input
-              id="edit-customer-name"
-              size="lg"
-              value={draft.name}
-              onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-            />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="edit-customer-email">{copy.edit.email}</FieldLabel>
-            <Input id="edit-customer-email" size="lg" value={customer.email ?? ''} readOnly />
-            <FieldDescription>{copy.edit.emailHelp}</FieldDescription>
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="edit-customer-phone">{copy.edit.phone}</FieldLabel>
-            <Input
-              id="edit-customer-phone"
-              size="lg"
-              inputMode="tel"
-              value={draft.phone}
-              onChange={(e) => setDraft({ ...draft, phone: e.target.value })}
-            />
-          </Field>
-        </FieldGroup>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            {copy.edit.cancel}
-          </Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {copy.edit.save}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <FormDialog
+      open={open}
+      onOpenChange={(next) => !next && onClose()}
+      title={copy.edit.heading}
+      submitLabel={copy.edit.save}
+      cancelLabel={copy.edit.cancel}
+      busy={saving}
+      onSubmit={handleSave}
+      size="md"
+    >
+      <FieldGroup>
+        <Field>
+          <FieldLabel htmlFor="edit-customer-name">{copy.edit.name}</FieldLabel>
+          <Input
+            id="edit-customer-name"
+            size="lg"
+            value={draft.name}
+            onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+          />
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="edit-customer-email">{copy.edit.email}</FieldLabel>
+          <Input id="edit-customer-email" size="lg" value={customer.email ?? ''} readOnly />
+          <FieldDescription>{copy.edit.emailHelp}</FieldDescription>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="edit-customer-phone">{copy.edit.phone}</FieldLabel>
+          <PhoneInput
+            id="edit-customer-phone"
+            value={draft.phone}
+            onChange={(phone) => setDraft({ ...draft, phone })}
+            autoComplete="tel"
+          />
+        </Field>
+      </FieldGroup>
+    </FormDialog>
   )
 }

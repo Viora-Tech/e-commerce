@@ -1,41 +1,41 @@
 'use client'
 
+import { siteConfig } from '@commerce/config/site'
 import type { NavigationSettings } from '@commerce/core/navigation'
-import { Plus } from '@commerce/ui/icons'
-import { Badge } from '@commerce/ui/shadcn/badge'
+import { ArrowLeftRight, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import PageBody from '@/components/layout/page-body'
-import PageHeader from '@/components/layout/page-header'
+import ProoflyListPage from '@/components/layout/proofly-list-page'
+import StatusChip from '@/components/layout/status-chip'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { type MenuListItem, menusContent } from '@/data/menus'
+import { useCopy } from '@/hooks/use-copy'
+import { routes } from '@/lib/routes'
 import CreateMenuDialog from './create-menu-dialog'
 import MenuActions from './menu-actions'
-import StorefrontNavigationSummary from './storefront-navigation-summary'
+import { placementsFor } from './placements'
+import StorefrontNavigationDialog from './storefront-navigation-dialog'
 
 type NavigationListProps = {
   initialMenus: MenuListItem[]
   initialSettings: NavigationSettings
 }
 
-const copy = menusContent
-
-/** Where the storefront uses this menu's handle, for the table's usage badges. */
-function placementsFor(handle: string, settings: NavigationSettings): ('header' | 'footer')[] {
-  const placements: ('header' | 'footer')[] = []
-  if (settings.main === handle) placements.push('header')
-  if (settings.footer.includes(handle)) placements.push('footer')
-  return placements
-}
-
 export default function NavigationList({ initialMenus, initialSettings }: NavigationListProps) {
   // Hooks
+  const copy = useCopy(menusContent)
   const router = useRouter()
   const [query, setQuery] = useState('')
+  const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState<number>(siteConfig.ui.rowsPerPage.default)
   const [creating, setCreating] = useState(false)
+  const [assigning, setAssigning] = useState(false)
   const [settings, setSettings] = useState(initialSettings)
+
+  // Helpers
+  const usedIn = (m: MenuListItem) => placementsFor(m.handle, settings)
 
   // Event handlers
   const handleSettingsSaved = (next: NavigationSettings) => {
@@ -43,10 +43,25 @@ export default function NavigationList({ initialMenus, initialSettings }: Naviga
     router.refresh()
   }
 
+  const handleQuery = (next: string) => {
+    setQuery(next)
+    setPage(1)
+  }
+
+  const handlePerPage = (next: number) => {
+    setPerPage(next)
+    setPage(1)
+  }
+
   // Render logic
-  const shown = initialMenus.filter(
-    (m) => !query || m.title.toLowerCase().includes(query.toLowerCase()),
+  const needle = query.trim().toLowerCase()
+  const matching = initialMenus.filter(
+    (m) => !needle || m.title.toLowerCase().includes(needle) || m.handle.includes(needle),
   )
+  const shown = matching.slice((page - 1) * perPage, page * perPage)
+  const where = copy.usedInJoin([
+    ...new Set(initialMenus.flatMap((m) => usedIn(m)).map((p) => copy.where[p])),
+  ])
 
   const columns: ResourceColumnSpec<MenuListItem>[] = [
     {
@@ -55,21 +70,11 @@ export default function NavigationList({ initialMenus, initialSettings }: Naviga
       sortValue: (m) => m.title,
       hideable: false,
       render: (m) => (
-        <span className="flex flex-wrap items-center gap-1.5">
-          <span className="font-bold text-ink-strong">{m.title}</span>
-          {placementsFor(m.handle, settings).map((placement) => (
-            <Badge key={placement} variant="secondary">
-              {copy.usage[placement]}
-            </Badge>
-          ))}
+        <span className="flex min-w-0 flex-col">
+          <span className="truncate font-medium text-ink-strong">{m.title}</span>
+          <span className="truncate text-caption text-muted-foreground">{m.handle}</span>
         </span>
       ),
-    },
-    {
-      id: 'handle',
-      title: copy.columns.handle,
-      sortValue: (m) => m.handle,
-      render: (m) => <span className="text-muted-foreground">/menus/{m.handle}</span>,
     },
     {
       id: 'items',
@@ -78,78 +83,87 @@ export default function NavigationList({ initialMenus, initialSettings }: Naviga
       render: (m) => <span className="tabular-nums">{copy.itemCount(m.itemCount)}</span>,
     },
     {
-      id: 'updated',
-      title: copy.columns.updated,
-      sortValue: (m) => new Date(m.updatedAt),
-      align: 'end',
+      id: 'usedIn',
+      title: copy.columns.usedIn,
+      render: (m) => {
+        const placements = usedIn(m)
+        return placements.length > 0 ? (
+          placements.map((p) => copy.usage[p]).join(', ')
+        ) : (
+          <span className="text-muted-foreground">{copy.notUsed}</span>
+        )
+      },
+    },
+    {
+      id: 'status',
+      title: copy.columns.status,
       render: (m) => (
-        <span className="text-muted-foreground tabular-nums">
-          {new Date(m.updatedAt).toLocaleString('en-IN', {
-            dateStyle: 'medium',
-            timeStyle: 'short',
-          })}
-        </span>
+        <StatusChip tone={usedIn(m).length > 0 ? 'success' : 'neutral'}>
+          {usedIn(m).length > 0 ? copy.status.active : copy.status.unused}
+        </StatusChip>
       ),
     },
   ]
 
+  const addButton = (
+    <Button type="button" onClick={() => setCreating(true)}>
+      <Plus strokeWidth={1.6} />
+      {copy.add}
+    </Button>
+  )
+
   return (
-    <PageBody>
-      <PageHeader
-        title={copy.title}
-        actions={
-          <>
-            <Button
-              variant="outline"
-              nativeButton={false}
-              render={<Link href="/content/menus/redirects" />}
-            >
-              {copy.redirects}
+    <ProoflyListPage
+      title={copy.title}
+      summary={copy.summary(initialMenus.length, where)}
+      actions={
+        <>
+          {initialMenus.length > 0 ? (
+            <Button type="button" variant="outline" onClick={() => setAssigning(true)}>
+              {copy.headerFooter}
             </Button>
-            <Button type="button" onClick={() => setCreating(true)}>
-              <Plus />
-              {copy.add}
-            </Button>
-          </>
-        }
+          ) : null}
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={<Link href={routes.content.redirects()} />}
+          >
+            <ArrowLeftRight aria-hidden="true" />
+            {copy.redirects}
+          </Button>
+          {addButton}
+        </>
+      }
+    >
+      <ResourceTable
+        resourceName={copy.resource}
+        columns={columns}
+        items={shown}
+        getId={(m) => m.id}
+        href={(m) => routes.content.menu(m.id)}
+        rowActions={(m) => <MenuActions menu={m} />}
+        query={query}
+        onQueryChange={handleQuery}
+        page={page}
+        perPage={perPage}
+        total={matching.length}
+        onPageChange={setPage}
+        onPerPageChange={handlePerPage}
+        selectable={false}
+        empty={{
+          heading: copy.empty.heading,
+          body: copy.empty.body,
+          action: addButton,
+        }}
       />
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
-        <div className="order-2 lg:order-1">
-          <ResourceTable
-            resourceName={{ singular: 'menu', plural: 'menus' }}
-            columns={columns}
-            items={shown}
-            getId={(m) => m.id}
-            href={(m) => `/content/menus/${m.id}`}
-            rowActions={(m) => <MenuActions menu={m} />}
-            query={query}
-            onQueryChange={setQuery}
-            page={1}
-            perPage={100}
-            total={shown.length}
-            onPageChange={() => {}}
-            selectable={false}
-            empty={{
-              heading: copy.empty.heading,
-              body: copy.empty.body,
-              action: (
-                <Button type="button" onClick={() => setCreating(true)}>
-                  <Plus />
-                  {copy.add}
-                </Button>
-              ),
-            }}
-          />
-        </div>
-        <div className="order-1 lg:order-2">
-          <StorefrontNavigationSummary
-            menus={initialMenus}
-            settings={settings}
-            onSaved={handleSettingsSaved}
-          />
-        </div>
-      </div>
+      <StorefrontNavigationDialog
+        open={assigning}
+        onOpenChange={setAssigning}
+        menus={initialMenus}
+        settings={settings}
+        onSaved={handleSettingsSaved}
+      />
       <CreateMenuDialog open={creating} onOpenChange={setCreating} />
-    </PageBody>
+    </ProoflyListPage>
   )
 }

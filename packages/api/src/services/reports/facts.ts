@@ -1,3 +1,4 @@
+import { notTestOrder } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { address, order, refund, shipment } from '@commerce/db'
 import { and, eq, gte, inArray, lt, sql } from 'drizzle-orm'
@@ -84,9 +85,12 @@ export async function refundFacts(tx: StoreTx, span: ReportSpan): Promise<Refund
       reason: refund.reason,
     })
     .from(refund)
+    .innerJoin(order, eq(order.id, refund.orderId))
     .where(
       and(
+        notTestOrder,
         inArray(refund.status, ['processed', 'manual']),
+
         gte(refund.createdAt, span.from),
         lt(refund.createdAt, span.to),
       ),

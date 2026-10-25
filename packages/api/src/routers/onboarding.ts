@@ -74,6 +74,8 @@ export const onboardingRouter = {
           name: input.name,
           slug: input.slug,
           platformDomain: env().PLATFORM_STORE_DOMAIN,
+          // Always ask: the worker owns the Dokploy keys, and its route job does nothing without them.
+          requestPlatformRoute: true,
           addLocalhostDomain: process.env.NODE_ENV !== 'production',
           profile: input.profile,
           installApps: input.profile?.sellsOn === 'shopify' ? [SHOPIFY_IMPORT_ID] : [],

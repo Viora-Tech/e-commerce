@@ -1,7 +1,7 @@
 'use client'
 
 import type { Business } from '@commerce/core'
-import { ChevronDown, TriangleAlert } from '@commerce/ui/icons'
+import { ChevronDown, Pencil, Plus, TriangleAlert } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import {
@@ -37,7 +37,7 @@ export default function OtherBusinesses({
 
   return (
     <Collapsible defaultOpen={businesses.length > 0}>
-      <Card size="form" className="gap-0 py-0">
+      <Card size="form" gap="none" inset="y-none">
         <CollapsibleTrigger className="group flex w-full items-center justify-between gap-3 px-6 py-4 text-left text-body-strong text-ink-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           {copy.toggle}
           <ChevronDown
@@ -69,6 +69,7 @@ export default function OtherBusinesses({
                     </div>
                     {canManage ? (
                       <Button variant="ghost" size="sm" onClick={() => onEdit(b)}>
+                        <Pencil aria-hidden="true" />
                         {all.business.edit}
                       </Button>
                     ) : null}
@@ -77,7 +78,8 @@ export default function OtherBusinesses({
               </ul>
             )}
             {canManage ? (
-              <Button variant="outline" className="self-start" onClick={onAdd}>
+              <Button variant="outline" className="self-end" onClick={onAdd}>
+                <Plus aria-hidden="true" />
                 {copy.add}
               </Button>
             ) : null}

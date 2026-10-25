@@ -14,7 +14,7 @@ the [Vercel AI SDK](https://ai-sdk.dev) directly; they go through a small interf
 | Provider | `packages/ai/src/provider.ts` | `aiProvider()` reads `AI_PROVIDER` and the gateway keys; `aiModel(feature, env, tier)` returns the model or `null` (AI off) |
 | Features and models | `packages/ai/src/features.ts` | `AI_FEATURES`, the two `MODEL_TIERS` (fast, strong), `FEATURE_MODELS` (tier, output cap, temperature, tool steps per feature), `tierFor` and `TIER_CALL_WEIGHT` |
 | Injection guard | `packages/ai/src/guard-text.ts` | `guardData` (store text made safe for a model), `DATA_RULES` (the prompt rule) |
-| Assistant | `packages/ai/src/assistant/` | prompt, hard limits (`ASSISTANT_LIMITS`), page context (`pageContextFor`); see [AI assistant](./ai-assistant) |
+| Assistant | `packages/ai/src/assistant/` | prompt, hard limits (`ASSISTANT_LIMITS`), page context (`pageContextFor`); see [AI assistant](/developer-docs/building/ai-assistant) |
 | Plans | `packages/ai/src/plans.ts` | `PLAN_QUOTAS` (calls and tokens per month per plan), `checkQuota`, `aiMonth` (IST month) |
 | Prompts and schemas | `packages/ai/src/<feature>/` | the feature's instructions and its output schema |
 | Client-safe surface | `@commerce/ai/client` | features, plans, schemas: safe in `'use client'` code |
@@ -43,7 +43,7 @@ Every call goes to one of two tiers in `MODEL_TIERS` (`packages/ai/src/features.
 
 | Tier | Default | Used for | Override |
 |---|---|---|---|
-| `fast` | `anthropic/claude-haiku-4.5` | the assistant (chat and tools), quick writing | `AI_MODEL` |
+| `fast` | `anthropic/claude-haiku-5.5` | the assistant (chat and tools), quick writing, reading purchase documents (`documentReader`) | `AI_MODEL` |
 | `strong` | `anthropic/claude-sonnet-4.5` | long writing (`productWriter`, `bulkWriter`) when the store picks **Best** writing quality in Settings → AI | `AI_MODEL_STRONG` |
 
 `tierFor(feature, quality)` decides; features marked `writes: true` move to `strong` at "best".
@@ -56,12 +56,13 @@ deterministic planner (`packages/ai/src/mock-plan.ts`) that turns a message into
 "Create discount DIWALI10: 10% off collection Mice, 20 Oct to 5 Nov" really becomes that
 proposal, and "Raise prices 5% in collection Mice", "Add 8 products to new collection Glasspads",
 "Write this product in Hindi" (on a product page) and "Draft a reply to order #2250" each
-produce their card. Use it for local demos and screenshots with no key. It is refused when
+produce their card. A purchase document read (`documentReader`) answers a fixed supplier invoice,
+Bill of Entry or service bill (`packages/ai/src/purchase-documents/fixtures.ts`). Use it for local demos and screenshots with no key. It is refused when
 `NODE_ENV=production`.
 
-Cost on the fast tier (Claude Haiku 4.5, $1 in / $5 out per million tokens): a product write is
-roughly 5k tokens in and 800 out (about $0.009, ₹0.8); an assistant message roughly 9k in over
-two to four steps and 500 out (about $0.012, ₹1).
+Cost on the fast tier (Claude Haiku 5.5, $0.10 in / $0.50 out per million tokens for prompts up
+to 100K tokens): a product write is roughly 5k tokens in and 800 out (about $0.0009, ₹0.08); an
+assistant message roughly 9k in over two to four steps and 500 out (about $0.0012, ₹0.1).
 
 ## How one call runs
 
@@ -92,12 +93,15 @@ prompt or answer is ever stored or logged.
 
 ### Plans
 
-| Plan | Calls / month | Tokens / month |
-|---|---|---|
-| free | 30 | 150,000 |
-| starter (default) | 300 | 1,500,000 |
-| growth | 2,000 | 10,000,000 |
-| unlimited | no limit | no limit |
+| Plan | Credits / month | Calls / month | Tokens / month |
+|---|---|---|---|
+| free | 100 | 30 | 150,000 |
+| starter (default) | 500 | 1,000 | 5,000,000 |
+| growth | 3,000 | 5,000 | 30,000,000 |
+| pro | 15,000 | no cap | no cap |
+
+Pro is capped by its credits. Only the platform's own stores (`AI_UNLIMITED_STORES`) skip the
+quota.
 
 The merchant API never changes the plan; billing (or a platform admin) sets `ai_settings.plan`.
 
@@ -109,7 +113,7 @@ and stops.
 
 A tool with `risk: 'propose'` runs, but changes nothing in the store: it validates the model's
 input and stores a proposal. The AI assistant's write tools are all `propose` tools; the change
-itself runs only from the merchant's Approve, outside the model (see [AI assistant](./ai-assistant)).
+itself runs only from the merchant's Approve, outside the model (see [AI assistant](/developer-docs/building/ai-assistant)).
 
 ## What data goes to the model
 
@@ -123,6 +127,14 @@ itself runs only from the merchant's Approve, outside the model (see [AI assista
   order's customer first name (`orderDetails`, for reply drafts), and the answer says so.
   Customer notes go through with phone numbers and emails hidden.
 - **Bulk Write with AI**: the same as Write with AI, per product, from the worker.
+- **Suggest keywords** (`ai.suggestKeywords`, and the `keywords` field of a bulk run): the
+  product's title, brand, type, category breadcrumb, description, price range, its current
+  `product.seo_keywords` and, when a source is registered with `setSearchQueriesSource`
+  (`packages/core/src/seo/search-queries.ts`, the Search Console connection), up to 20 queries
+  that brought visitors to `/products/<handle>`. Runs under the `productWriter` switch (bulk:
+  `bulkWriter`). The chosen keywords (primary first) then go to Write with AI, which puts the
+  primary one in the search title and once in the search description. The storefront never
+  prints them (no `meta keywords`: search engines ignore it).
 
 ## Add an AI feature (one slice)
 
@@ -153,7 +165,7 @@ Say you are adding "Reply to a review".
 
    For a streamed, tool-using feature copy `assistant/assistant.ts`: `streamAnswer` plus tools
    built with `defineAiTool`, each opening its own `withStore` for `runtime.storeId`. To give the
-   assistant a new tool instead of a new feature, see [AI assistant](./ai-assistant).
+   assistant a new tool instead of a new feature, see [AI assistant](/developer-docs/building/ai-assistant).
 4. **Procedure**: add it to `packages/api/src/routers/ai.ts` with
    `canDetached(permissions.X)`, and give `ai.status` a boolean for the button (map the feature
    to its permission in `settings.service.ts`). Add the procedure to the cross-store leak test's

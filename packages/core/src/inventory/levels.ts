@@ -6,12 +6,14 @@ import {
   type StoreTx,
   variant,
 } from '@commerce/db'
-import { and, asc, eq, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, type SQL, sql } from 'drizzle-orm'
+import type { PgTable } from 'drizzle-orm/pg-core'
 import type { InventoryReason } from '../catalog/schemas'
 import { CommerceError } from '../errors'
 import { insertOutboxEvent } from '../outbox/write'
 import type { LocationInput } from './schemas'
 import { availableOf, NegativeStockError, nextOnHand } from './stock'
+import { watchStockCrossings } from './stock-events'
 
 export class InventoryError extends CommerceError {}
 
@@ -23,6 +25,51 @@ export async function defaultLocationId(tx: StoreTx, storeId: string): Promise<s
   const id = rows[0]?.id
   if (!id) throw new InventoryError('NO_LOCATION', 'Could not resolve a location', { storeId })
   return id
+}
+
+/**
+ * Throws unless every location belongs to this store. Foreign keys are checked
+ * without row-level security, so a pasted id from another store would pass them.
+ */
+export async function assertLocations(tx: StoreTx, storeId: string, ids: string[]) {
+  const wanted = new Set(ids)
+  const found = await tx
+    .select({ id: location.id })
+    .from(location)
+    .where(inArray(location.id, [...wanted]))
+  if (found.length !== wanted.size) {
+    throw new InventoryError('LOCATION_NOT_FOUND', 'Location not found', { storeId })
+  }
+}
+
+/** Throws unless every variant belongs to this store (see `assertLocations`). */
+export async function assertVariants(tx: StoreTx, storeId: string, ids: string[]) {
+  const wanted = new Set(ids)
+  if (wanted.size === 0) return
+  const found = await tx
+    .select({ id: variant.id })
+    .from(variant)
+    .where(inArray(variant.id, [...wanted]))
+  if (found.length !== wanted.size) {
+    throw new InventoryError('VARIANT_NOT_FOUND', 'One of the products was not found', { storeId })
+  }
+}
+
+/** The next per-store document number. The advisory lock makes two creates at once queue. */
+export async function nextDocumentNumber(
+  tx: StoreTx,
+  storeId: string,
+  kind: 'purchase_order' | 'transfer' | 'inbound_shipment',
+  max: SQL<number>,
+  from: PgTable,
+): Promise<number> {
+  await tx.execute(
+    sql`select pg_advisory_xact_lock(hashtextextended(${`${kind}_number:${storeId}`}, 0))`,
+  )
+  const [row] = await tx
+    .select({ n: sql<number>`coalesce(${max}, 0) + 1`.mapWith(Number) })
+    .from(from)
+  return row?.n ?? 1
 }
 
 export async function listLocations(tx: StoreTx, storeId: string) {
@@ -94,11 +141,17 @@ export type AdjustStockInput = {
  * below zero; variants that sell regardless of stock may.
  */
 export async function adjustStock(tx: StoreTx, input: AdjustStockInput): Promise<number> {
+  if (input.delta === 0) return changeStock(tx, input)
+  // Falling to low or out of stock is an Automations trigger (once per crossing).
+  return watchStockCrossings(tx, input.storeId, [input.variantId], () => changeStock(tx, input))
+}
+
+async function changeStock(tx: StoreTx, input: AdjustStockInput): Promise<number> {
   const locationId = input.locationId ?? (await defaultLocationId(tx, input.storeId))
   const level = await levelFor(tx, input.storeId, input.variantId, locationId)
   if (input.delta === 0) return level.onHand
   const [v] = await tx
-    .select({ trackInventory: variant.trackInventory })
+    .select({ trackInventory: variant.trackInventory, productId: variant.productId })
     .from(variant)
     .where(eq(variant.id, input.variantId))
   let next: number

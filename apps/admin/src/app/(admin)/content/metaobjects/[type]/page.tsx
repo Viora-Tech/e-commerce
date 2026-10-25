@@ -1,10 +1,10 @@
+import { siteConfig } from '@commerce/config/site'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import EntriesPage from '@/components/metaobjects/entries-page'
 import { metaobjectListContent } from '@/data/metaobjects'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { getCopy } from '@/lib/copy-server'
-import { LIST_PER_PAGE } from '@/lib/list-query'
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getCopy(metaobjectListContent)).heading }
@@ -21,8 +21,14 @@ export default async function Page({ params }: Props) {
   if (!definition) notFound()
   const initial = await call(
     appRouter.metaobjects.entries,
-    { definitionId: definition.id, page: 1, perPage: LIST_PER_PAGE },
+    { definitionId: definition.id, page: 1, perPage: siteConfig.ui.rowsPerPage.default },
     { context },
   )
-  return <EntriesPage definition={definition} initial={initial} />
+  return (
+    <EntriesPage
+      definition={definition}
+      initial={initial}
+      initialPerPage={siteConfig.ui.rowsPerPage.default}
+    />
+  )
 }

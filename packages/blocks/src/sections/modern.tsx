@@ -10,18 +10,37 @@ import StatsCounter from '../components/sections/stats-counter'
 import TestimonialMarquee from '../components/sections/testimonial-marquee'
 import VideoHero from '../components/sections/video-hero'
 import { modernSectionsContent as copy } from '../data/modern-sections'
-import { type Frame, framed, type Image, imageField, type Link, linkField, noImage } from './framed'
+import {
+  type Frame,
+  framed,
+  type Image,
+  imageField,
+  inlineLinkField,
+  type Link,
+  linkField,
+  noImage,
+} from './framed'
+import { inlineRichtext, inlineText, inlineTextarea } from './inline-fields'
 
-const heading = { type: 'text', label: 'Heading' } as const
+const heading = inlineText('Heading')
 const noLink: Link = { label: '', href: '' }
 
 export type ModernProps = {
-  SpotlightHero: Frame & { heading: string; text: string; primary: Link; secondary: Link }
+  SpotlightHero: Frame & {
+    eyebrow: string
+    heading: string
+    text: string
+    primary: Link
+    secondary: Link
+    image: Image
+  }
   SplitHero: Frame & {
     eyebrow: string
     heading: string
     text: string
     button: Link
+    secondaryButton: Link
+    trust: { text: string }[]
     image: Image
     imageFirst: boolean
   }
@@ -29,9 +48,12 @@ export type ModernProps = {
     videoUrl: string
     poster: Image
     overlayOpacity: number
+    eyebrow: string
     heading: string
     text: string
     button: Link
+    secondaryButton: Link
+    align: 'left' | 'center'
   }
   BentoGrid: Frame & {
     heading: string
@@ -56,7 +78,13 @@ export type ModernProps = {
     items: { question: string; answer: string }[]
     multiOpen: boolean
   }
-  CtaBanner: Frame & { heading: string; text: string; button: Link; secondaryButton: Link }
+  CtaBanner: Frame & {
+    kicker: string
+    heading: string
+    text: string
+    button: Link
+    secondaryButton: Link
+  }
   Gallery: Frame & {
     heading: string
     layout: 'grid' | 'masonry' | 'carousel'
@@ -77,23 +105,29 @@ export function modernSections(): ModernConfig {
     SpotlightHero: framed<ModernProps['SpotlightHero']>(
       'Spotlight hero',
       {
+        eyebrow: inlineText('Eyebrow'),
         heading,
-        text: { type: 'textarea', label: 'Text' },
-        primary: linkField('Primary button'),
-        secondary: linkField('Secondary button'),
+        text: inlineRichtext('Text'),
+        primary: inlineLinkField('Primary button'),
+        secondary: inlineLinkField('Secondary button'),
+        image: imageField('Product image'),
       },
       {
+        eyebrow: copy.spotlightHero.eyebrow,
         heading: copy.spotlightHero.heading,
         text: copy.spotlightHero.text,
         primary: { label: copy.spotlightHero.primary, href: '/collections/all' },
         secondary: { label: copy.spotlightHero.secondary, href: '/pages/about' },
+        image: noImage,
       },
       (p) => (
         <SpotlightHero
+          eyebrow={p.eyebrow}
           heading={p.heading}
           text={p.text}
           primary={p.primary}
           secondary={p.secondary}
+          image={p.image}
         />
       ),
     ),
@@ -101,10 +135,18 @@ export function modernSections(): ModernConfig {
     SplitHero: framed<ModernProps['SplitHero']>(
       'Split hero',
       {
-        eyebrow: { type: 'text', label: 'Eyebrow' },
+        eyebrow: inlineText('Eyebrow'),
         heading,
-        text: { type: 'textarea', label: 'Text' },
-        button: linkField(),
+        text: inlineRichtext('Text'),
+        button: inlineLinkField(),
+        secondaryButton: inlineLinkField('Secondary button'),
+        trust: {
+          type: 'array',
+          label: 'Trust line',
+          max: 4,
+          getItemSummary: (t: { text?: string }) => t.text || 'Item',
+          arrayFields: { text: inlineText('Text') },
+        },
         image: imageField(),
         imageFirst: {
           type: 'radio',
@@ -120,6 +162,8 @@ export function modernSections(): ModernConfig {
         heading: copy.splitHero.heading,
         text: copy.splitHero.text,
         button: { label: copy.splitHero.button, href: '/collections/all' },
+        secondaryButton: { label: copy.splitHero.secondary, href: '/pages/about' },
+        trust: copy.splitHero.trust.map((text) => ({ text })),
         image: noImage,
         imageFirst: false,
       },
@@ -132,26 +176,42 @@ export function modernSections(): ModernConfig {
         videoUrl: { type: 'text', label: 'Video URL (mp4)' },
         poster: imageField('Poster image'),
         overlayOpacity: { type: 'number', label: 'Overlay opacity (%)', min: 0, max: 90 },
+        eyebrow: inlineText('Eyebrow'),
         heading,
-        text: { type: 'textarea', label: 'Text' },
-        button: linkField(),
+        text: inlineRichtext('Text'),
+        button: inlineLinkField(),
+        secondaryButton: inlineLinkField('Secondary button'),
+        align: {
+          type: 'radio',
+          label: 'Text position',
+          options: [
+            { label: 'Left', value: 'left' },
+            { label: 'Center', value: 'center' },
+          ],
+        },
       },
       {
         videoUrl: '',
         poster: noImage,
         overlayOpacity: 40,
+        eyebrow: copy.videoHero.eyebrow,
         heading: copy.videoHero.heading,
         text: copy.videoHero.text,
         button: { label: copy.videoHero.button, href: '/collections/all' },
+        secondaryButton: { label: copy.videoHero.secondary, href: '/pages/about' },
+        align: 'left',
       },
       (p) => (
         <VideoHero
           videoUrl={p.videoUrl}
           poster={p.poster}
           overlayOpacity={p.overlayOpacity}
+          eyebrow={p.eyebrow}
           heading={p.heading}
           text={p.text}
           button={p.button}
+          secondaryButton={p.secondaryButton}
+          align={p.align}
         />
       ),
     ),
@@ -165,8 +225,8 @@ export function modernSections(): ModernConfig {
           label: 'Tiles',
           getItemSummary: (t: { title?: string }) => t.title || 'Tile',
           arrayFields: {
-            title: { type: 'text', label: 'Title' },
-            text: { type: 'textarea', label: 'Text' },
+            title: inlineText('Title'),
+            text: inlineRichtext('Text'),
             image: imageField(),
             size: {
               type: 'select',
@@ -225,9 +285,9 @@ export function modernSections(): ModernConfig {
           label: 'Testimonials',
           getItemSummary: (t: { author?: string }) => t.author || 'Testimonial',
           arrayFields: {
-            quote: { type: 'textarea', label: 'Quote' },
-            author: { type: 'text', label: 'Name' },
-            role: { type: 'text', label: 'Detail' },
+            quote: inlineTextarea('Quote'),
+            author: inlineText('Name'),
+            role: inlineText('Detail'),
           },
         },
       },
@@ -248,9 +308,9 @@ export function modernSections(): ModernConfig {
           getItemSummary: (s: { label?: string }) => s.label || 'Stat',
           arrayFields: {
             value: { type: 'number', label: 'Value' },
-            prefix: { type: 'text', label: 'Prefix' },
-            suffix: { type: 'text', label: 'Suffix' },
-            label: { type: 'text', label: 'Label' },
+            prefix: inlineText('Prefix'),
+            suffix: inlineText('Suffix'),
+            label: inlineText('Label'),
           },
         },
       },
@@ -262,14 +322,14 @@ export function modernSections(): ModernConfig {
       'FAQ accordion',
       {
         heading,
-        intro: { type: 'textarea', label: 'Side intro (desktop)' },
+        intro: inlineRichtext('Side intro (desktop)'),
         items: {
           type: 'array',
           label: 'Questions',
           getItemSummary: (q: { question?: string }) => q.question || 'Question',
           arrayFields: {
-            question: { type: 'text', label: 'Question' },
-            answer: { type: 'textarea', label: 'Answer' },
+            question: inlineText('Question'),
+            answer: inlineRichtext('Answer'),
           },
         },
         multiOpen: {
@@ -287,20 +347,28 @@ export function modernSections(): ModernConfig {
         items: copy.faqAccordion.items.map((q) => ({ ...q })),
         multiOpen: false,
       },
-      (p) => (
-        <FaqAccordion heading={p.heading} intro={p.intro} items={p.items} multiOpen={p.multiOpen} />
+      (p, _meta, editing) => (
+        <FaqAccordion
+          heading={p.heading}
+          intro={p.intro}
+          items={p.items}
+          multiOpen={p.multiOpen}
+          editing={editing}
+        />
       ),
     ),
 
     CtaBanner: framed<ModernProps['CtaBanner']>(
-      'CTA banner with glow',
+      'CTA banner',
       {
+        kicker: inlineText('Eyebrow'),
         heading,
-        text: { type: 'textarea', label: 'Text' },
-        button: linkField('Primary button'),
-        secondaryButton: linkField('Secondary button'),
+        text: inlineRichtext('Text'),
+        button: inlineLinkField('Primary button'),
+        secondaryButton: inlineLinkField('Secondary button'),
       },
       {
+        kicker: copy.ctaBanner.kicker,
         heading: copy.ctaBanner.heading,
         text: copy.ctaBanner.text,
         button: { label: copy.ctaBanner.button, href: '/collections/all' },
@@ -308,6 +376,7 @@ export function modernSections(): ModernConfig {
       },
       (p) => (
         <CtaBanner
+          kicker={p.kicker}
           heading={p.heading}
           text={p.text}
           button={p.button}
@@ -335,7 +404,7 @@ export function modernSections(): ModernConfig {
           getItemSummary: (i: { caption?: string }) => i.caption || 'Image',
           arrayFields: {
             image: imageField(),
-            caption: { type: 'text', label: 'Caption' },
+            caption: inlineText('Caption'),
             link: linkField('Link'),
           },
         },

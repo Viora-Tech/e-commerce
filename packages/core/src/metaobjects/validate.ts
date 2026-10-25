@@ -1,7 +1,10 @@
+import { isRichType, validateRichItem } from './field-values'
 import {
   type FieldDefinition,
   type FieldType,
   type FieldValidations,
+  GROUP_FIELD_TYPES,
+  GROUP_ROWS_MAX,
   isReferenceType,
   NO_LIST_TYPES,
   type ReferenceType,
@@ -44,11 +47,15 @@ export function keyFromName(name: string): string {
   return key.slice(0, 64).replace(/_+$/, '') || 'field'
 }
 
-/** Nothing entered: absent, null, blank text or an empty list. */
+/**
+ * Nothing entered: absent, null, blank text, an empty list, or an object with nothing in it
+ * (a link with no address or text, a group row left blank).
+ */
 export function isEmptyValue(v: unknown): boolean {
   if (v === undefined || v === null) return true
   if (typeof v === 'string') return v.trim() === ''
   if (Array.isArray(v)) return v.every(isEmptyValue)
+  if (typeof v === 'object' && !('root' in v)) return Object.values(v).every(isEmptyValue)
   return false
 }
 
@@ -159,12 +166,52 @@ function validateItem(
     case 'file':
     case 'product_reference':
     case 'collection_reference':
-    case 'metaobject_reference': {
+    case 'metaobject_reference':
+    case 'page_reference':
+    case 'variant_reference':
+    case 'article_reference': {
       if (typeof v !== 'string' || !UUID.test(v))
         return { ok: false, error: 'must be picked from the list' }
       return { ok: true, value: v.toLowerCase() }
     }
+    case 'group':
+      return { ok: false, error: 'must be a list of rows' }
+    default:
+      return isRichType(type)
+        ? validateRichItem(type, v, rules)
+        : { ok: false, error: 'has a type we do not know' }
   }
+}
+
+/**
+ * A group's rows: each row is checked against the group's fields (keys it does not know are
+ * dropped), blank rows are left out, and errors name the row ("Sizes row 2: Chest is
+ * required").
+ */
+function validateGroup(rule: FieldRule, raw: unknown): FieldResult {
+  const name = rule.name
+  if (!Array.isArray(raw)) return { ok: false, error: `${name} must be a list of rows` }
+  const subfields = rule.validations?.subfields ?? []
+  const rows = raw.filter((row) => !isEmptyValue(row))
+  const max = Math.min(rule.validations?.maxItems ?? GROUP_ROWS_MAX, GROUP_ROWS_MAX)
+  if (rows.length > max) return { ok: false, error: `${name} can hold at most ${max} rows` }
+  const out: Record<string, unknown>[] = []
+  for (const [i, row] of rows.entries()) {
+    if (typeof row !== 'object' || row === null || Array.isArray(row)) {
+      return { ok: false, error: `${name} row ${i + 1} must be a row of fields` }
+    }
+    const clean: Record<string, unknown> = {}
+    for (const sub of subfields) {
+      const r = validateFieldValue(
+        { ...sub, list: false },
+        (row as Record<string, unknown>)[sub.key],
+      )
+      if (!r.ok) return { ok: false, error: `${name} row ${i + 1}: ${r.error}` }
+      if (r.value !== null) clean[sub.key] = r.value
+    }
+    out.push(clean)
+  }
+  return { ok: true, value: out }
 }
 
 /**
@@ -176,6 +223,7 @@ export function validateFieldValue(rule: FieldRule, raw: unknown): FieldResult {
   if (isEmptyValue(raw)) {
     return rule.required ? { ok: false, error: `${name} is required` } : { ok: true, value: null }
   }
+  if (rule.type === 'group') return validateGroup(rule, raw)
   if (rule.list && !NO_LIST_TYPES.includes(rule.type)) {
     if (!Array.isArray(raw)) return { ok: false, error: `${name} must be a list` }
     const items = raw.filter((v) => !isEmptyValue(v))
@@ -232,6 +280,10 @@ export function collectReferences(
 ): ReferenceUse[] {
   const out: ReferenceUse[] = []
   for (const rule of rules) {
+    if (rule.type === 'group') {
+      out.push(...groupFileReferences(rule, values[rule.source]))
+      continue
+    }
     if (!isReferenceType(rule.type)) continue
     const v = values[rule.source]
     const ids = Array.isArray(v) ? v : v === undefined || v === null ? [] : [v]
@@ -246,6 +298,20 @@ export function collectReferences(
     }
   }
   return out
+}
+
+/** Files picked in a group's rows (the only references a row can hold). */
+function groupFileReferences(rule: FieldRule & { source: string }, rows: unknown): ReferenceUse[] {
+  if (!Array.isArray(rows)) return []
+  const fileKeys = (rule.validations?.subfields ?? [])
+    .filter((s) => s.type === 'file')
+    .map((s) => s.key)
+  return rows.flatMap((row) =>
+    fileKeys.flatMap((key) => {
+      const id = (row as Record<string, unknown> | null)?.[key]
+      return typeof id === 'string' ? [{ type: 'file' as const, id, source: rule.source }] : []
+    }),
+  )
 }
 
 /** Check a definition's field list: unique keys, sensible rules, a real display field. */
@@ -271,9 +337,9 @@ export function definitionProblems(
 export function ruleProblems(
   name: string,
   type: FieldType,
-  rules: FieldValidations | undefined,
+  given: FieldValidations | undefined,
 ): string[] {
-  if (!rules) return []
+  const rules = given ?? {}
   const problems: string[] = []
   const numeric = type === 'number_integer' || type === 'number_decimal'
   if (numeric && (typeof rules.min === 'string' || typeof rules.max === 'string')) {
@@ -296,14 +362,52 @@ export function ruleProblems(
   ) {
     problems.push(`${name}: make the minimum length smaller than the maximum`)
   }
-  if (rules.choices?.length && type !== 'single_line_text') {
-    problems.push(`${name}: only short text can have preset choices`)
+  if (rules.choices?.length && type !== 'single_line_text' && type !== 'choice') {
+    problems.push(`${name}: only short text and choice fields can have choices`)
+  }
+  if (type === 'choice' && !rules.choices?.length) {
+    problems.push(`${name}: add the choices to pick from, one per line`)
+  }
+  if (rules.choices && new Set(rules.choices).size !== rules.choices.length) {
+    problems.push(`${name}: each choice can be there only once`)
   }
   if (rules.metaobjectDefinitionId && type !== 'metaobject_reference') {
     problems.push(`${name}: only an "Another entry" field can name a content type`)
   }
   if (type === 'metaobject_reference' && !rules.metaobjectDefinitionId) {
     problems.push(`${name}: pick which content type it links to`)
+  }
+  if (rules.currency && type !== 'money') problems.push(`${name}: only money has a currency`)
+  if (rules.ratingMax !== undefined && type !== 'rating') {
+    problems.push(`${name}: only a rating has a number of stars`)
+  }
+  if (rules.measure && type !== 'measurement') {
+    problems.push(`${name}: only a measurement has a unit kind`)
+  }
+  if (type === 'measurement' && !rules.measure) {
+    problems.push(`${name}: pick weight, length or volume`)
+  }
+  problems.push(...groupProblems(name, type, rules))
+  return problems
+}
+
+/** A group needs its row fields, each a plain type with a unique key and sensible rules. */
+function groupProblems(name: string, type: FieldType, rules: FieldValidations): string[] {
+  if (type !== 'group') {
+    return rules.subfields ? [`${name}: only a group has fields of its own`] : []
+  }
+  const subfields = rules.subfields ?? []
+  if (subfields.length === 0) return [`${name}: add at least one field to each row`]
+  const problems: string[] = []
+  const seen = new Set<string>()
+  for (const sub of subfields) {
+    if (seen.has(sub.key)) problems.push(`${name}: two row fields use the key ${sub.key}`)
+    seen.add(sub.key)
+    if (!(GROUP_FIELD_TYPES as readonly string[]).includes(sub.type)) {
+      problems.push(`${name}: a row cannot hold ${sub.name}'s kind of value`)
+      continue
+    }
+    problems.push(...ruleProblems(`${name} › ${sub.name}`, sub.type, sub.validations))
   }
   return problems
 }

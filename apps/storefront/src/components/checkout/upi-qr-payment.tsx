@@ -11,6 +11,8 @@ import { CK_BUTTON_PRIMARY, CK_BUTTON_SECONDARY, CK_HEADING } from '@/lib/checko
 
 type UpiQrPaymentProps = {
   orderNumber: number
+  /** The order's view token: the checks and "New QR" prove access with it, never the number alone. */
+  viewToken: string
   qr: UpiQr
   amountLabel: string
 }
@@ -38,15 +40,23 @@ function clock(ms: number): string {
  * webhook lands, and asks the gateway directly every so often (and on "I've
  * paid") in case it doesn't. Once closed, the shopper asks for a new QR.
  */
-export default function UpiQrPayment({ orderNumber, qr, amountLabel }: UpiQrPaymentProps) {
+export default function UpiQrPayment({
+  orderNumber,
+  viewToken,
+  qr,
+  amountLabel,
+}: UpiQrPaymentProps) {
   // Hooks
   const router = useRouter()
-  const [now, setNow] = useState(() => Date.now())
+  // The clock is read only after hydration: the server's time and the shopper's differ, and
+  // a QR that closes in between would draw the expired state on one side only (error #418).
+  const [now, setNow] = useState<number | null>(null)
   const [drawn, setDrawn] = useState<string | null>(null)
   const [notYet, setNotYet] = useState(false)
   const [checking, startCheck] = useTransition()
 
   useEffect(() => {
+    setNow(Date.now())
     const tick = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(tick)
   }, [])
@@ -68,7 +78,7 @@ export default function UpiQrPayment({ orderNumber, qr, amountLabel }: UpiQrPaym
     }, POLL_MS)
     const ask = setInterval(() => {
       if (msLeft(qr.expiresAt, Date.now()) === 0) return
-      checkQrPaymentAction(orderNumber).then((paid) => {
+      checkQrPaymentAction(orderNumber, viewToken).then((paid) => {
         if (paid) router.refresh()
       })
     }, GATEWAY_CHECK_MS)
@@ -76,18 +86,19 @@ export default function UpiQrPayment({ orderNumber, qr, amountLabel }: UpiQrPaym
       clearInterval(poll)
       clearInterval(ask)
     }
-  }, [qr.expiresAt, router, orderNumber])
+  }, [qr.expiresAt, router, orderNumber, viewToken])
 
   // Event handlers
   const handlePaid = () =>
     startCheck(async () => {
-      const paid = await checkQrPaymentAction(orderNumber)
+      const paid = await checkQrPaymentAction(orderNumber, viewToken)
       setNotYet(!paid)
       if (paid) router.refresh()
     })
 
   // Render logic
-  const left = msLeft(qr.expiresAt, now)
+  // Null until the page has the shopper's clock: open, with no countdown yet.
+  const left = now === null ? null : msLeft(qr.expiresAt, now)
   const expired = left === 0
   const src = qr.imageUrl ?? drawn
   const apps = qr.apps ?? []
@@ -101,25 +112,20 @@ export default function UpiQrPayment({ orderNumber, qr, amountLabel }: UpiQrPaym
           <h2 className={`${CK_HEADING} text-[1.0625rem]!`}>{content.heading(amountLabel)}</h2>
           <p className="text-[0.8125rem] text-ck-muted">{content.help}</p>
         </div>
-        {expired ? null : (
+        {left === null || expired ? null : (
           <span
             className="shrink-0 rounded-full bg-ck-soft px-2.5 py-1 text-[0.75rem] font-medium tabular-nums text-ck-muted"
             title={content.closesIn(clock(left))}
-            suppressHydrationWarning
           >
-            <span className="sr-only" suppressHydrationWarning>
-              {content.closesIn(clock(left))}
-            </span>
-            <span aria-hidden="true" suppressHydrationWarning>
-              {clock(left)}
-            </span>
+            <span className="sr-only">{content.closesIn(clock(left))}</span>
+            <span aria-hidden="true">{clock(left)}</span>
           </span>
         )}
       </div>
       {expired ? (
         <div className="flex flex-col gap-4">
           <p className="text-[0.9375rem] text-ck-ink">{content.expired}</p>
-          <form action={retryPaymentAction.bind(null, orderNumber)}>
+          <form action={retryPaymentAction.bind(null, orderNumber, viewToken)}>
             <button type="submit" className={CK_BUTTON_PRIMARY}>
               {content.renew}
             </button>

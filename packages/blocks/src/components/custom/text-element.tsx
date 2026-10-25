@@ -1,14 +1,19 @@
-import { parseRichText, RichTextRenderer, type RichTextValue } from '@commerce/richtext'
+import type { ReactNode } from 'react'
+import RichCopy from '../rich-copy'
 import ElementBox from './element-box'
 
-export type TextProps = { body: RichTextValue | string | null | undefined; style: unknown }
+export type TextProps = {
+  /** Richtext HTML, or a legacy plain string or Lexical JSON (`RichCopy` reads all three). */
+  body: ReactNode | object
+  style: unknown
+}
 
 /** Rich text in the theme's `.rte` typography, rendered on the server. */
 export default function TextElement({ body, style }: TextProps) {
   // Render logic
   return (
     <ElementBox look={style} className="custom-text">
-      <RichTextRenderer data={parseRichText(body)} className="rte" />
+      <RichCopy value={body} className="rte" />
     </ElementBox>
   )
 }

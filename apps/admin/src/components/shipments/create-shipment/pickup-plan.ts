@@ -1,0 +1,32 @@
+import { todayKey } from '@/lib/format-date'
+
+/** A start time as typed: "14:00" or "9:30". */
+export const TIME_24H = /^\d{1,2}:\d{2}$/
+
+/** How many days ahead the pickup day cards go: today, tomorrow, the day after. */
+export const PICKUP_DAYS = 3
+const DAY_MS = 24 * 60 * 60 * 1000
+
+/** "YYYY-MM-DD" for `offset` days after `now`. */
+export function pickupDayKey(offset: number, now: Date = new Date()): string {
+  return todayKey(new Date(now.getTime() + offset * DAY_MS))
+}
+
+export type PickupPlan = {
+  /** The "Ask the courier to collect" switch. */
+  ask: boolean
+  /** "YYYY-MM-DD". */
+  date: string
+  /** 24h start time as typed. */
+  timeFrom: string
+}
+
+export const startingPickupPlan = (now: Date = new Date()): PickupPlan => ({
+  ask: true,
+  date: pickupDayKey(1, now),
+  timeFrom: '14:00',
+})
+
+/** Whether the plan is complete enough to send to the courier. */
+export const pickupReady = (plan: PickupPlan): boolean =>
+  plan.date !== '' && TIME_24H.test(plan.timeFrom)

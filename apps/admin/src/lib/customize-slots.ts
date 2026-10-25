@@ -1,3 +1,4 @@
+import { richtextFromLexical } from '@commerce/blocks/puck'
 import type { TemplateSection } from '@commerce/core/theme'
 import { instantiateCustomSection } from '@commerce/core/theme'
 import type { PuckAction } from '@puckeditor/core'
@@ -104,8 +105,11 @@ const ROOT_ZONES = [MAIN_ZONE, HEADER_ZONE, FOOTER_ZONE]
 /** Is this one of the document's own zones (template, header, footer), not a slot? */
 export const isRootZone = (zone: string) => ROOT_ZONES.includes(zone)
 
-/** Calls `fn` for every block in the document, at every depth, with where it sits. */
-function eachBlock(
+/**
+ * Calls `fn` for every block in the document, at every depth, with where it sits; returning
+ * true stops the walk.
+ */
+export function eachBlock(
   doc: CustomizeDoc,
   fn: (block: TemplateSection, zone: string, index: number) => boolean | undefined,
 ): void {
@@ -261,7 +265,9 @@ export function insertCopyActions(
   count: number,
   makeId?: (type: string) => string,
 ): PuckAction[] {
-  const copy = instantiateCustomSection(block, makeId) as TemplateSection
+  // A section saved before the Lexical field was retired carries Lexical JSON; Puck's
+  // richtext field edits HTML (see `normalizeDoc`).
+  const copy = richtextFromLexical(instantiateCustomSection(block, makeId)) as TemplateSection
   const index = clampInsertIndex(target.index, count)
   return [
     {

@@ -6,6 +6,7 @@ import {
   ensureMainTheme,
   GstinSchema,
   GstRegistrationError,
+  keepReplacedKeySets,
   liveThemeSettings,
   loadStoreStorageSettings,
   NotificationSettingsSchema,
@@ -21,18 +22,20 @@ import {
   presentStoreGeneral,
   rateLimitKey,
   retryAfterSeconds,
+  SETUP_ITEM_IDS,
   ShippingSettingsSchema,
   StorageSettingsSchema,
   StoreGeneralSchema,
   StorePreferencesSchema,
   signThemePreviewToken,
+  storefrontOriginFor,
   ThemeSchema,
   updateThemeSettings,
 } from '@commerce/core'
 import { CORE_PLUGIN_ID } from '@commerce/plugins'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can } from '../procedures'
+import { can, storeProcedure } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
 import {
   loadStorageSettings,
@@ -74,6 +77,38 @@ const previousSecrets = () => parsePreviousSecrets(loadEnv(process.env).SETTINGS
  */
 const fallbackRateLimit = createMemoryRateLimitStore()
 
+/**
+ * A courier Connect page's read-only "Test connection": the form's values (a masked secret
+ * means the saved one) through the courier's own serviceability lookup. Rate-limited per
+ * store so a mistyped token can't be hammered into a credential-guessing loop against the
+ * real courier account.
+ */
+function courierConnectionTest(providerId: string) {
+  return can(permissions.SETTINGS_MANAGE)
+    .input(z.object({ fields: z.record(z.string(), z.string()) }))
+    .handler(async ({ context, input }) => {
+      const limit = await checkRateLimit(
+        context.rateLimit ?? fallbackRateLimit,
+        rateLimitKey('shipping-test-connection', context.scope.storeId),
+        TEST_CONNECTION_RULE,
+      )
+      if (!limit.ok) {
+        throw new ORPCError('TOO_MANY_REQUESTS', {
+          message: `Too many attempts. Try again in about ${Math.ceil(retryAfterSeconds(limit) / 60)} minute(s).`,
+        })
+      }
+      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
+      return testShippingConnection(
+        context.tx,
+        context.scope.storeId,
+        shipping,
+        settingsSecret(),
+        providerId,
+        input.fields,
+      )
+    })
+}
+
 export const storeRouter = {
   current: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
     const { storeId } = context.scope
@@ -86,10 +121,22 @@ export const storeRouter = {
     }
   }),
 
-  /** The Settings home's setup checklist: what is done, from real data. */
-  setupChecklist: can(permissions.SETTINGS_READ).handler(({ context }) =>
-    settingsChecklist(context.tx, context.scope.storeId),
+  /**
+   * The store's public web address (`https://<live primary domain>`, STOREFRONT_URL only
+   * when it has none): every admin "View store", preview and share link starts here. Bare
+   * `storeProcedure` on purpose (docs/guardrails.md): it is the address shoppers already
+   * see, and staff without `settings.read` still need working links.
+   */
+  origin: storeProcedure.handler(({ context }) =>
+    storefrontOriginFor(context.tx, context.scope.storeId, loadEnv(process.env).STOREFRONT_URL),
   ),
+
+  /** The Settings home's setup checklist: what is done, from real data. */
+  setupChecklist: can(permissions.SETTINGS_READ)
+    .input(z.object({ after: z.enum(SETUP_ITEM_IDS).optional() }).optional())
+    .handler(({ context, input }) =>
+      settingsChecklist(context.tx, context.scope.storeId, input?.after),
+    ),
 
   /** Store details for Settings › General. */
   getGeneral: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
@@ -104,6 +151,7 @@ export const storeRouter = {
       StoreGeneralSchema.extend({
         gstin: GstinSchema.optional(),
         gstRatePercent: z.coerce.number().min(0).max(40).optional(),
+        moneyFormat: StoreGeneralSchema.shape.moneyFormat.optional(),
       }),
     )
     .handler(async ({ context, input }) => {
@@ -118,6 +166,7 @@ export const storeRouter = {
           ? {}
           : { gstRatePercent: Math.round(input.gstRatePercent) }),
         timezone: input.timezone,
+        ...(input.moneyFormat === undefined ? {} : { moneyFormat: empty(input.moneyFormat) }),
       }).catch((err: unknown) => {
         if (err instanceof GstRegistrationError) {
           throw new ORPCError('BAD_REQUEST', { message: err.message, data: { code: err.code } })
@@ -150,7 +199,7 @@ export const storeRouter = {
       return saved.settings
     }),
 
-  /** Online Store › Preferences: SEO defaults, password page, privacy banner and tracking. */
+  /** Online Store › Preferences: SEO defaults, password page, search and AI crawler access, site verification and tracking. */
   getPreferences: can(permissions.ONLINE_STORE_READ).handler(async ({ context }) => {
     const s = await getStore(context.tx, context.scope.storeId)
     return parsePreferences(s?.preferences)
@@ -189,8 +238,9 @@ export const storeRouter = {
         (await getStore(context.tx, context.scope.storeId))?.payments,
       )
       const { payments } = await storeRegistries(context.tx, context.scope.storeId)
+      // Keys of the other mode replacing a gateway's set keep the replaced set waiting.
       const next = prepareProviderSettings(
-        input,
+        { ...input, providers: keepReplacedKeySets(current.providers, input.providers) },
         current,
         payments,
         settingsSecret(),
@@ -314,83 +364,17 @@ export const storeRouter = {
   }),
 
   /**
-   * The Connect page's "Test connection" button. Rate-limited per store so a
-   * mistyped token can't be hammered into a credential-guessing loop against
-   * the real courier account.
+   * Each courier Connect page's "Test connection" button (see `courierConnectionTest`).
+   * One procedure per courier so a page's types follow its own provider.
    */
-  testDelhiveryConnection: can(permissions.SETTINGS_MANAGE)
-    .input(z.object({ fields: z.record(z.string(), z.string()) }))
-    .handler(async ({ context, input }) => {
-      const limit = await checkRateLimit(
-        context.rateLimit ?? fallbackRateLimit,
-        rateLimitKey('shipping-test-connection', context.scope.storeId),
-        TEST_CONNECTION_RULE,
-      )
-      if (!limit.ok) {
-        throw new ORPCError('TOO_MANY_REQUESTS', {
-          message: `Too many attempts. Try again in about ${Math.ceil(retryAfterSeconds(limit) / 60)} minute(s).`,
-        })
-      }
-      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
-      return testShippingConnection(
-        context.tx,
-        context.scope.storeId,
-        shipping,
-        settingsSecret(),
-        'delhivery',
-        input.fields,
-      )
-    }),
-
-  /** Same as `testDelhiveryConnection`, for the Shiprocket Connect page. */
-  testShiprocketConnection: can(permissions.SETTINGS_MANAGE)
-    .input(z.object({ fields: z.record(z.string(), z.string()) }))
-    .handler(async ({ context, input }) => {
-      const limit = await checkRateLimit(
-        context.rateLimit ?? fallbackRateLimit,
-        rateLimitKey('shipping-test-connection', context.scope.storeId),
-        TEST_CONNECTION_RULE,
-      )
-      if (!limit.ok) {
-        throw new ORPCError('TOO_MANY_REQUESTS', {
-          message: `Too many attempts. Try again in about ${Math.ceil(retryAfterSeconds(limit) / 60)} minute(s).`,
-        })
-      }
-      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
-      return testShippingConnection(
-        context.tx,
-        context.scope.storeId,
-        shipping,
-        settingsSecret(),
-        'shiprocket',
-        input.fields,
-      )
-    }),
-
-  /** Same as `testDelhiveryConnection`, for the RapidShyp Connect page. */
-  testRapidshypConnection: can(permissions.SETTINGS_MANAGE)
-    .input(z.object({ fields: z.record(z.string(), z.string()) }))
-    .handler(async ({ context, input }) => {
-      const limit = await checkRateLimit(
-        context.rateLimit ?? fallbackRateLimit,
-        rateLimitKey('shipping-test-connection', context.scope.storeId),
-        TEST_CONNECTION_RULE,
-      )
-      if (!limit.ok) {
-        throw new ORPCError('TOO_MANY_REQUESTS', {
-          message: `Too many attempts. Try again in about ${Math.ceil(retryAfterSeconds(limit) / 60)} minute(s).`,
-        })
-      }
-      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
-      return testShippingConnection(
-        context.tx,
-        context.scope.storeId,
-        shipping,
-        settingsSecret(),
-        'rapidshyp',
-        input.fields,
-      )
-    }),
+  testDelhiveryConnection: courierConnectionTest('delhivery'),
+  testShiprocketConnection: courierConnectionTest('shiprocket'),
+  testRapidshypConnection: courierConnectionTest('rapidshyp'),
+  testXpressbeesConnection: courierConnectionTest('xpressbees'),
+  testEkartConnection: courierConnectionTest('ekart'),
+  testShadowfaxConnection: courierConnectionTest('shadowfax'),
+  testDhlExpressConnection: courierConnectionTest('dhl-express'),
+  testFedexConnection: courierConnectionTest('fedex'),
 
   /**
    * The Decentro Connect page's "Test connection": the form's values (a

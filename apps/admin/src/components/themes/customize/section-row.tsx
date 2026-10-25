@@ -19,9 +19,11 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@commerce/ui/shadcn/dropdown-menu'
-import { type KeyboardEvent, type ReactNode, useRef, useState } from 'react'
+import { type KeyboardEvent, type MouseEvent, type ReactNode, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import { customizeContent } from '@/data/customize'
 import {
   CHROME_FOCUS,
@@ -30,6 +32,8 @@ import {
   CHROME_ROW_SELECTED,
   CHROME_TRANSITION,
 } from '@/lib/customize-chrome'
+import { copyBlock } from '@/lib/customize-clipboard'
+import { sectionHandle } from '@/lib/customize-section-kinds'
 import SectionIcon from './section-icon'
 
 type SectionRowProps = {
@@ -57,12 +61,13 @@ type SectionRowProps = {
 }
 
 const copy = customizeContent.tree
+const toolbar = customizeContent.toolbar
 
 /**
  * One section in the tree, Shopify-style: drag handle, glyph, name, the eye
- * (always visible while hidden) and a "more" menu with Duplicate, Rename and
- * Remove. Rename swaps the name for an inline input: Enter or leaving the
- * field saves it, Escape cancels.
+ * (always visible while hidden) and a "more" menu (also on right-click, Figma 696:87006):
+ * Rename, Duplicate, Copy, Hide on the page, Save as my section and Remove. Rename swaps the
+ * name for an inline input: Enter or leaving the field saves it, Escape cancels.
  */
 export default function SectionRow({
   section,
@@ -99,6 +104,17 @@ export default function SectionRow({
     if (draft.trim() !== name) onRename(draft)
   }
 
+  const handleCopy = () => {
+    copyBlock(section)
+    toast.success(customizeContent.clipboard.copied(name))
+  }
+
+  const handleContextMenu = (e: MouseEvent<HTMLDivElement>) => {
+    if (renaming) return
+    e.preventDefault()
+    setMenuOpen(true)
+  }
+
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault()
@@ -115,8 +131,10 @@ export default function SectionRow({
   const eyeLabel = hidden ? copy.show(name) : copy.hide(name)
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: right-click opens the same menu the row's own "more" button does.
     <div
       ref={rowRef}
+      onContextMenu={handleContextMenu}
       className={cn(
         'group gap-0.5 pr-1',
         CHROME_ROW,
@@ -151,7 +169,7 @@ export default function SectionRow({
       )}
       {renaming ? (
         <span className="flex min-w-0 flex-1 items-center gap-2 pl-0.5">
-          <SectionIcon type={section.type} tile="sm" />
+          <SectionIcon type={section.type} handle={sectionHandle(section)} tile="sm" />
           <input
             ref={inputRef}
             // biome-ignore lint/a11y/noAutofocus: the input only exists because Rename was just chosen.
@@ -181,6 +199,7 @@ export default function SectionRow({
         >
           <SectionIcon
             type={section.type}
+            handle={sectionHandle(section)}
             tile="sm"
             className={cn(hidden && 'opacity-50 grayscale')}
           />
@@ -244,15 +263,28 @@ export default function SectionRow({
               // back to its trigger (which a blur would read as "done").
               finalFocus={() => inputRef.current ?? true}
             >
-              {locked ? null : (
-                <DropdownMenuItem onClick={onDuplicate}>
-                  <Copy aria-hidden />
-                  {copy.duplicateItem}
-                </DropdownMenuItem>
-              )}
               <DropdownMenuItem onClick={handleStartRename}>
                 <Pencil aria-hidden />
                 {copy.rename}
+              </DropdownMenuItem>
+              {locked ? null : (
+                <>
+                  <DropdownMenuItem onClick={onDuplicate}>
+                    <Copy aria-hidden />
+                    {copy.duplicateItem}
+                    <DropdownMenuShortcut aria-hidden>⌘D</DropdownMenuShortcut>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleCopy}>
+                    <Copy aria-hidden />
+                    {toolbar.copy}
+                    <DropdownMenuShortcut aria-hidden>⌘C</DropdownMenuShortcut>
+                  </DropdownMenuItem>
+                </>
+              )}
+              <DropdownMenuItem onClick={onToggleHidden}>
+                {hidden ? <Eye aria-hidden /> : <EyeOff aria-hidden />}
+                {hidden ? toolbar.show : toolbar.hide}
+                <DropdownMenuShortcut aria-hidden>⌘⇧H</DropdownMenuShortcut>
               </DropdownMenuItem>
               {onMoveOut && moveOutLabel ? (
                 <DropdownMenuItem onClick={onMoveOut}>
@@ -272,6 +304,7 @@ export default function SectionRow({
                   <DropdownMenuItem variant="destructive" onClick={() => onRemove(rowRef.current)}>
                     <Trash2 aria-hidden />
                     {copy.removeItem}
+                    <DropdownMenuShortcut aria-hidden>⌫</DropdownMenuShortcut>
                   </DropdownMenuItem>
                 </>
               )}

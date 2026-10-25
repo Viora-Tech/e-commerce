@@ -5,15 +5,15 @@ import type { StoreTx } from '@commerce/db'
 import {
   collection,
   collectionProduct,
-  inventoryLevel,
   media,
   product,
   productMedia,
-  sellableLevel,
+  sellableStock,
   variant,
 } from '@commerce/db'
 import type { RichTextValue } from '@commerce/richtext'
 import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { cardPreorder, cardRatings, listCardProducts } from './catalog'
 
 export type CollectionDetail = {
   id: string
@@ -75,6 +75,22 @@ export async function listCollections(tx: StoreTx): Promise<CollectionCard[]> {
   }))
 }
 
+/**
+ * Shopify's built-in `all` collection: every active product. It has no row, so its `id` is
+ * empty and callers browse without a collection. A store's own `all` collection wins.
+ */
+const ALL_PRODUCTS: CollectionDetail = {
+  id: '',
+  handle: 'all',
+  title: 'All products',
+  description: null,
+  imageUrl: null,
+  seoTitle: null,
+  seoDescription: null,
+  sortOrder: 'created_desc',
+  templateSuffix: null,
+}
+
 export async function getCollectionByHandle(
   tx: StoreTx,
   handle: string,
@@ -83,7 +99,7 @@ export async function getCollectionByHandle(
     .select()
     .from(collection)
     .where(and(eq(collection.handle, handle), eq(collection.status, 'active')))
-  if (!row) return null
+  if (!row) return handle === 'all' ? ALL_PRODUCTS : null
   const [image] = row.imageMediaId
     ? await tx.select({ url: media.url }).from(media).where(eq(media.id, row.imageMediaId))
     : []
@@ -135,6 +151,15 @@ export async function listCollectionProducts(
       title: product.title,
       vendor: product.vendor,
       productType: product.productType,
+      launchAt: product.launchAt,
+      preorderEnabled: product.preorderEnabled,
+      preorderShipDate: product.preorderShipDate,
+      preorderShipsInDays: product.preorderShipsInDays,
+      preorderLimit: product.preorderLimit,
+      preorderButtonLabel: product.preorderButtonLabel,
+      preorderPaymentMode: product.preorderPaymentMode,
+      preorderDepositPaise: product.preorderDepositPaise,
+      preorderDepositPercent: product.preorderDepositPercent,
     })
     .from(collectionProduct)
     .innerJoin(product, eq(product.id, collectionProduct.productId))
@@ -147,15 +172,17 @@ export async function listCollectionProducts(
   const ids = rows.map((r) => r.id)
   const variants = await tx
     .select({
+      id: variant.id,
       productId: variant.productId,
       pricePaise: variant.pricePaise,
       mrpPaise: variant.mrpPaise,
-      onHand: inventoryLevel.onHand,
-      reserved: inventoryLevel.reserved,
+      onHand: sellableStock.onHand,
+      reserved: sellableStock.reserved,
       trackInventory: variant.trackInventory,
+      preorderOverride: variant.preorderOverride,
     })
     .from(variant)
-    .leftJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
+    .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
     .where(and(inArray(variant.productId, ids), isNull(variant.archivedAt)))
   const images = await tx
     .select({
@@ -169,6 +196,7 @@ export async function listCollectionProducts(
     .innerJoin(media, eq(media.id, productMedia.mediaId))
     .where(and(inArray(productMedia.productId, ids), sql`${productMedia.position} < 2`))
     .orderBy(asc(productMedia.position))
+  const ratings = await cardRatings(tx, ids)
 
   const items = rows.map((p) => {
     const vs = variants.filter((v) => v.productId === p.id)
@@ -185,6 +213,10 @@ export async function listCollectionProducts(
       pricePaise: cheapest?.pricePaise ?? 0,
       mrpPaise: cheapest?.mrpPaise ?? null,
       available: vs.reduce((n, v) => n + availableFor(v), 0),
+      // Quick add needs no choice only when there is one variant to add.
+      quickAddVariantId: vs.length === 1 ? (vs[0]?.id ?? null) : null,
+      preorder: cardPreorder(p, vs),
+      rating: ratings.get(p.id) ?? null,
       images: images
         .filter((i) => i.productId === p.id)
         .map((i) => ({
@@ -209,6 +241,7 @@ export async function collectionCards(
 ): Promise<CardProduct[]> {
   const found = await getCollectionByHandle(tx, handle)
   if (!found) return []
+  if (!found.id) return listCardProducts(tx, limit)
   const { items } = await listCollectionProducts(tx, found.id, {
     sort: found.sortOrder,
     page: 1,

@@ -1,6 +1,5 @@
 'use client'
 
-import { Card } from '@commerce/ui/shadcn/card'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import {
   Select,
@@ -11,6 +10,7 @@ import {
 } from '@commerce/ui/shadcn/select'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import DataCard from '@/components/layout/data-card'
 import { giftCardSettingsContent as copy, GIFT_CARD_EXPIRY_MONTHS } from '@/data/gift-cards'
 import { api } from '@/lib/api-client'
 
@@ -49,11 +49,7 @@ export default function GiftCardSettingsCard({ initial }: GiftCardSettingsCardPr
   }
 
   return (
-    <Card className="gap-4 p-5">
-      <div className="flex flex-col gap-1">
-        <p className="text-card-title text-foreground">{copy.heading}</p>
-        <p className="text-caption text-muted-foreground">{copy.help}</p>
-      </div>
+    <DataCard title={copy.heading} subtitle={copy.help}>
       <Field>
         <FieldLabel htmlFor="gift-card-expiry">{copy.label}</FieldLabel>
         <Select
@@ -74,6 +70,6 @@ export default function GiftCardSettingsCard({ initial }: GiftCardSettingsCardPr
           </SelectContent>
         </Select>
       </Field>
-    </Card>
+    </DataCard>
   )
 }

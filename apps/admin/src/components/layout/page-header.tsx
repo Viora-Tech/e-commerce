@@ -1,31 +1,40 @@
-import { ArrowLeft } from '@commerce/ui/icons'
+'use client'
+
 import { cn } from '@commerce/ui/lib/utils'
-import Link from 'next/link'
+import { Button } from '@commerce/ui/shadcn/button'
 import type { ReactNode } from 'react'
 import { layoutContent } from '@/data/layout'
+import { useCopy } from '@/hooks/use-copy'
+import BackLink from './back-link'
 
-export type Crumb = { label: string; href?: string }
+type LeadTone = 'success' | 'warning' | 'info' | 'danger' | 'neutral'
+
+/** What sits before the title: a record tile or glyph, a person's avatar, or an app logo. */
+export type PageHeaderLead = {
+  kind: 'tile' | 'avatar' | 'logo' | 'icon'
+  node: ReactNode
+  /** Tints an `icon` lead when the record has a clear meaning, e.g. `success` for a fulfilled order. */
+  tone?: LeadTone
+}
 
 type PageHeaderProps = {
   title: string
   /** The meta line under the title ("Placed 12 May, 9:15 pm"); a string or rich content. */
   subtitle?: ReactNode
-  /** The parent crumb with a link becomes the square back button left of the title. */
-  breadcrumbs?: Crumb[]
-  /** Right-aligned buttons; icon buttons first, the ink primary action last. */
-  actions?: ReactNode
-  /** Status pills beside the title (order status, product status). */
+  /** The plain-language line under the title ("72 products · 8 low on stock"). */
+  summary?: ReactNode
+  /** Small link above the title that leads back to the parent page. */
+  back?: { label: string; href: string }
+  /** The glyph, photo, avatar or logo before the title. */
+  lead?: PageHeaderLead
+  /** Status chips beside the title. */
   badges?: ReactNode
-  /** The record's glyph (an order box) in the square before the title, as in Saleor. When a
-   *  breadcrumb parent has a link, the square doubles as the back button (the arrow shows when
-   *  no glyph is given); with no parent link it's a plain icon badge, e.g. a settings section. */
-  icon?: ReactNode
-  /** Tints the icon square (a soft badge instead of a plain outline) when the record has a
-   *  clear meaning, e.g. `success` for a fulfilled order. Neutral (the default) keeps the
-   *  plain bordered square. */
-  tone?: 'success' | 'warning' | 'info' | 'danger' | 'neutral'
-  /** Kept for older call sites; both sizes draw the same header. */
-  size?: 'compact' | 'frame'
+  /** Right-aligned buttons; icon buttons first, the one primary action last. */
+  actions?: ReactNode
+  /** The Save button after `actions`: dimmed until `dirty`. Leave it out for pages with no form. */
+  save?: { dirty: boolean; saving?: boolean; onSave: () => void; label?: string }
+  /** `md` draws a 48px tile lead (the default), `sm` a 40px one for denser record headers. */
+  size?: 'md' | 'sm'
 }
 
 const TONE = {
@@ -33,73 +42,91 @@ const TONE = {
   warning: 'border-transparent bg-warning-soft text-warning-foreground dark:text-warning',
   info: 'border-transparent bg-info-soft text-info',
   danger: 'border-transparent bg-danger-soft text-danger',
-  neutral: 'border-border bg-card text-foreground hover:border-border-strong hover:bg-muted/60',
+  neutral: 'border-border bg-card text-foreground',
 } as const
 
-/** The nearest crumb with a link: where the back button goes. */
-function parentOf(crumbs: Crumb[] | undefined): Crumb | null {
-  if (!crumbs) return null
-  for (let i = crumbs.length - 1; i >= 0; i--) {
-    if (crumbs[i]?.href) return crumbs[i] ?? null
+const TILE = {
+  md: 'size-12 rounded-xl border-border bg-primary-soft text-primary [&_svg]:size-6',
+  sm: 'size-10 rounded-lg border-border bg-muted text-foreground shadow-input [&_svg]:size-5',
+} as const
+
+function leadClass(lead: PageHeaderLead, size: 'md' | 'sm'): string {
+  switch (lead.kind) {
+    case 'tile':
+      return cn('flex shrink-0 items-center justify-center overflow-hidden border', TILE[size])
+    case 'icon':
+      return cn(
+        'mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md border [&_svg]:size-4',
+        TONE[lead.tone ?? 'neutral'],
+      )
+    case 'logo':
+      return 'flex shrink-0 items-center justify-center overflow-hidden rounded-xl'
+    case 'avatar':
+      return 'flex shrink-0 items-center justify-center overflow-hidden rounded-full'
   }
-  return null
 }
 
 /**
- * Title row every admin page starts with, after the Saleor Dashboard top nav (BSD-3):
- * a square outlined back button, the large regular-weight title with its status pills,
- * a small grey meta line under it, and the actions on the right. Wraps on phones.
+ * Title block every admin page starts with (Figma): the small "‹ Back" link, an optional lead
+ * (tile, avatar, logo or icon), the large title with its chips, a plain line under it, and the
+ * actions on the right, with Save last. Wraps on phones.
  */
 export default function PageHeader({
   title,
   subtitle,
-  breadcrumbs,
-  actions,
+  summary,
+  back,
+  lead,
   badges,
-  icon,
-  tone = 'neutral',
+  actions,
+  save,
+  size = 'md',
 }: PageHeaderProps) {
+  // Hooks
+  const copy = useCopy(layoutContent)
+
   // Render logic
-  const parent = parentOf(breadcrumbs)
+  const line = summary ?? subtitle
 
   return (
-    <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
-      <div className="flex min-w-[min(100%,16rem)] flex-1 items-start gap-4">
-        {parent?.href ? (
-          <Link
-            href={parent.href}
-            aria-label={layoutContent.backTo(parent.label)}
-            className={cn(
-              'mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md border [&_svg]:size-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-              TONE[tone],
-            )}
-          >
-            {icon ?? <ArrowLeft className="size-4" />}
-          </Link>
-        ) : icon ? (
-          <span
-            aria-hidden="true"
-            className={cn(
-              'mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md border [&_svg]:size-4',
-              TONE[tone],
-            )}
-          >
-            {icon}
-          </span>
-        ) : null}
-        <div className="flex min-w-0 flex-col gap-1">
-          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-            <h1 className="truncate text-page-title text-ink-strong">{title}</h1>
-            {badges ? <div className="flex flex-wrap items-center gap-1.5">{badges}</div> : null}
-          </div>
-          {subtitle ? (
-            <div className="text-caption font-normal text-muted-foreground">{subtitle}</div>
+    <div className="flex flex-col gap-3">
+      {back ? <BackLink href={back.href} label={back.label} /> : null}
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+        <div className="flex min-w-[min(100%,16rem)] flex-1 items-start gap-4">
+          {lead ? (
+            <span
+              aria-hidden={lead.kind === 'icon' ? true : undefined}
+              className={leadClass(lead, size)}
+            >
+              {lead.node}
+            </span>
           ) : null}
+          <div className="flex min-w-0 flex-col gap-1">
+            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+              <h1 className="min-w-0 truncate text-page-title text-ink-strong">{title}</h1>
+              {badges ? <div className="flex flex-wrap items-center gap-1.5">{badges}</div> : null}
+            </div>
+            {line ? (
+              <div className="text-body font-normal text-muted-foreground">{line}</div>
+            ) : null}
+          </div>
         </div>
+        {actions || save ? (
+          <div className="flex max-w-full min-w-0 flex-wrap items-center gap-2">
+            {actions}
+            {save ? (
+              <Button
+                type="button"
+                onClick={save.onSave}
+                disabled={!save.dirty}
+                loading={save.saving}
+              >
+                {save.label ?? copy.save}
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
       </div>
-      {actions ? (
-        <div className="flex max-w-full min-w-0 flex-wrap items-center gap-2">{actions}</div>
-      ) : null}
     </div>
   )
 }

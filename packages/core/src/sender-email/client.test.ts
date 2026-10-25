@@ -9,6 +9,15 @@ import {
 } from './client'
 
 describe('parseSenderAddress', () => {
+  // Audit 2026-09-28: claiming a public suffix blocked every shop under it.
+  it('refuses public and shared-hosting suffixes as a sender domain', () => {
+    for (const raw of ['x@co.in', 'x@co.uk', 'x@github.io', 'x@myshopify.com']) {
+      expect(parseSenderAddress(raw), raw).toEqual({ ok: false, error: 'invalid' })
+    }
+    expect(parseSenderAddress('x@waimers.co.in').ok).toBe(true)
+    expect(parseSenderAddress('x@shop.github.io').ok).toBe(true)
+  })
+
   it('lower-cases and splits a good address', () => {
     expect(parseSenderAddress('  Support@Waimers.IN ')).toEqual({
       ok: true,

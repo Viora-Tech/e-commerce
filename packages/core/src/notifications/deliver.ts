@@ -13,28 +13,33 @@ import {
   refund,
   shipment,
   store,
-  storeDomain,
   variant,
 } from '@commerce/db'
 import { formatMoney } from '@commerce/money'
 import type {
   Attachment,
+  CustomMessage,
+  EmailParcel,
   NotificationChannel,
   NotificationRegistry,
   Recipient,
   TemplateData,
   TemplateId,
 } from '@commerce/notifications'
+import { formatDeliveryRange } from '@commerce/shipping'
 import { and, eq, inArray, or, sql } from 'drizzle-orm'
+import { codConfirmDelivery } from '../cod-rto/confirm'
 import type { StoreContext } from '../context'
 import { newsletterConfirmToken, newsletterConfirmUrl } from '../customers/newsletter'
 import { phoneBlindIndex } from '../customers/phone-crypto'
+import { storefrontOriginFor } from '../domains/origin'
 import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
 import { mayNudgeKnownContact, phoneLookupVariants } from '../marketing/recipient'
+import { orderParcelsView, type ParcelView } from '../order/parcel-view'
 import { manualCancelAt } from '../payments/manual-followup'
 import { parsePaymentSettings } from '../payments/settings'
 import { balanceOwed } from '../preorder/balance'
-import { balanceUrl, thankYouUrl } from '../preorder/balance-link'
+import { balanceUrl, invoiceUrl, thankYouUrl } from '../preorder/balance-link'
 import {
   balancePayBy,
   depositIsNonRefundable,
@@ -43,7 +48,7 @@ import {
 } from '../preorder/store-settings'
 import { returnTemplateData } from '../returns/notify'
 import { storeNotificationChannels } from '../sender-email/channels'
-import type { GstBreakdown } from '../tax/gst'
+import { type GstBreakdown, gstRowsToShow } from '../tax/gst'
 import { isMessageOn } from './messages'
 import { parseNotificationSettings } from './settings'
 
@@ -65,7 +70,10 @@ const PAYMENT_LABELS: Record<string, string> = {
 export type DeliverOptions = {
   registry: NotificationRegistry
   settingsSecret: string
-  /** Public storefront origin, for the "view your order" link. Optional. */
+  /**
+   * Platform storefront URL (`STOREFRONT_URL`), the fallback for order links when the store
+   * has no live primary domain (`storefrontOriginFor`). Optional.
+   */
   storefrontUrl?: string | undefined
   /** Override channel resolution; tests inject fakes here. */
   channels?: NotificationChannel[] | undefined
@@ -114,17 +122,44 @@ function taxLines(o: typeof order.$inferSelect): TemplateData['taxBreakdown'] {
   const t = o.taxBreakdown
   if (!isGst(t) || t.taxPaise <= 0) return undefined
   const taxableLabel = formatMoney(o.totalPaise - t.taxPaise)
-  if (t.interState) {
-    return [
-      { label: 'Taxable value', amount: taxableLabel },
-      { label: `IGST (${t.ratePercent}%)`, amount: formatMoney(t.igstPaise) },
-    ]
-  }
+  // Parcels from different states put both CGST + SGST and IGST on one order.
+  const show = gstRowsToShow(t)
   return [
     { label: 'Taxable value', amount: taxableLabel },
-    { label: `CGST (${t.ratePercent / 2}%)`, amount: formatMoney(t.cgstPaise) },
-    { label: `SGST (${t.ratePercent / 2}%)`, amount: formatMoney(t.sgstPaise) },
+    ...(show.intraState
+      ? [
+          { label: `CGST (${t.ratePercent / 2}%)`, amount: formatMoney(t.cgstPaise) },
+          { label: `SGST (${t.ratePercent / 2}%)`, amount: formatMoney(t.sgstPaise) },
+        ]
+      : []),
+    ...(show.interState
+      ? [{ label: `IGST (${t.ratePercent}%)`, amount: formatMoney(t.igstPaise) }]
+      : []),
   ]
+}
+
+/** "Ships in 2 parcels" for an order leaving from several warehouses; undefined for one parcel. */
+function emailParcels(views: readonly ParcelView[]): EmailParcel[] | undefined {
+  const live = views.filter((p) => p.status !== 'cancelled')
+  if (live.length < 2) return undefined
+  return live.map((p) => ({
+    from: [p.city, p.stateName].filter(Boolean).join(', ') || p.locationName,
+    items: p.lines.map((l) => {
+      const variantTitle = l.variantTitle?.trim()
+      const title = l.title?.trim() || 'Item'
+      return {
+        title:
+          variantTitle && variantTitle !== 'Default' && variantTitle !== 'Default Title'
+            ? `${title} / ${variantTitle}`
+            : title,
+        quantity: l.quantity,
+      }
+    }),
+    dateRange: p.deliveryEstimate
+      ? formatDeliveryRange(p.deliveryEstimate.earliest, p.deliveryEstimate.latest)
+      : null,
+    onHold: p.status === 'on_hold',
+  }))
 }
 
 /** Human label for a refund's method, for the refund_issued message. */
@@ -252,6 +287,7 @@ export async function buildTemplateData(
     .from(shipment)
     .where(eq(shipment.orderId, orderId))
   const method = o.paymentMethod ?? ''
+  const parcels = emailParcels(await orderParcelsView(ctx.tx, orderId))
   return {
     data: {
       storeName: s?.name ?? '',
@@ -268,6 +304,7 @@ export async function buildTemplateData(
           l.variantImage ?? images.find((i) => i.productId === l.productId)?.url ?? undefined,
       })),
       taxBreakdown: taxLines(o),
+      ...(parcels ? { parcels } : {}),
       paymentMethodLabel: PAYMENT_LABELS[method] ?? method,
       orderUrl:
         storefrontUrl && settingsSecret
@@ -283,7 +320,7 @@ export async function buildTemplateData(
 }
 
 /** The store's enabled channels, unless the caller injected fakes. */
-async function channelsFor(ctx: StoreContext, opts: DeliverOptions) {
+export async function channelsFor(ctx: StoreContext, opts: DeliverOptions) {
   if (opts.channels) return opts.channels
   return storeNotificationChannels(ctx.tx, ctx.storeId, {
     registry: opts.registry,
@@ -292,7 +329,7 @@ async function channelsFor(ctx: StoreContext, opts: DeliverOptions) {
 }
 
 /** Whether the store still sends this template (see `isMessageOn`). */
-async function messageOn(ctx: StoreContext, template: TemplateId): Promise<boolean> {
+export async function messageOn(ctx: StoreContext, template: TemplateId): Promise<boolean> {
   const [s] = await ctx.tx
     .select({ notifications: store.notifications })
     .from(store)
@@ -320,12 +357,7 @@ export async function deliverNewsletterConfirm(
   const [s] = await ctx.tx.select({ name: store.name }).from(store).where(eq(store.id, ctx.storeId))
   // The confirm page checks the store its hostname resolves to, so the link goes to the
   // store's own primary domain (the platform storefront URL in development).
-  const [primary] = await ctx.tx
-    .select({ hostname: storeDomain.hostname })
-    .from(storeDomain)
-    .where(and(eq(storeDomain.isPrimary, true), eq(storeDomain.status, 'active')))
-  const dev = /(^|\.)localhost$/.test(new URL(opts.storefrontUrl).hostname)
-  const base = primary && !dev ? `https://${primary.hostname}` : opts.storefrontUrl
+  const base = await storefrontOriginFor(ctx.tx, ctx.storeId, opts.storefrontUrl)
   const token = newsletterConfirmToken(signup, opts.settingsSecret)
   const data: TemplateData = {
     storeName: s?.name ?? '',
@@ -460,11 +492,13 @@ async function recoveryConsented(
  */
 export async function deliverCartRecovery(
   ctx: StoreContext,
-  input: { cartId: string; actionUrl?: string | undefined },
+  input: { cartId: string; actionUrl?: string | undefined; custom?: CustomMessage | undefined },
   opts: DeliverOptions,
 ): Promise<DeliveryResult[]> {
   const built = await buildCartTemplateData(ctx, input.cartId, input.actionUrl)
   if (!built) return []
+  // The merchant's own subject and note from the "Review email" dialog.
+  const data = input.custom ? { ...built.data, custom: input.custom } : built.data
   const template: TemplateId = 'checkout_recovery'
   const channels = await channelsFor(ctx, opts)
   const already = await ctx.tx
@@ -481,7 +515,7 @@ export async function deliverCartRecovery(
       results.push({ channel: channel.id, to, ok: false, error: RECOVERY_NO_CONSENT })
       continue
     }
-    const r = await channel.send({ to: built.to, template, data: built.data })
+    const r = await channel.send({ to: built.to, template, data })
     await ctx.tx
       .insert(notification)
       .values({
@@ -523,7 +557,12 @@ export async function deliverNotification(
   },
   opts: DeliverOptions,
 ): Promise<DeliveryResult[]> {
-  const built = await buildTemplateData(ctx, input.orderId, opts.storefrontUrl, opts.settingsSecret)
+  // Order and balance links open on the store's own domain; `opts.storefrontUrl` (the
+  // platform URL) is only the fallback for a store without a live primary domain.
+  const storefrontUrl = opts.storefrontUrl
+    ? await storefrontOriginFor(ctx.tx, ctx.storeId, opts.storefrontUrl)
+    : undefined
+  const built = await buildTemplateData(ctx, input.orderId, storefrontUrl, opts.settingsSecret)
   if (!built) return []
   // The merchant switched this message off in Settings → Notifications.
   if (!(await messageOn(ctx, input.template))) return []
@@ -531,7 +570,11 @@ export async function deliverNotification(
   if (BALANCE_ASKS.has(input.template)) {
     const [o] = await ctx.tx.select().from(order).where(eq(order.id, input.orderId))
     if (!o || balanceOwed(o) <= 0) return []
-    if (opts.storefrontUrl) actionUrl = balanceUrl(o.id, opts.settingsSecret, opts.storefrontUrl)
+    if (storefrontUrl) actionUrl = balanceUrl(o.id, opts.settingsSecret, storefrontUrl)
+  }
+  // A draft invoice's "Pay securely" button: the signed page where the customer pays it online.
+  if (input.template === 'draft_invoice' && storefrontUrl) {
+    actionUrl = invoiceUrl(input.orderId, opts.settingsSecret, storefrontUrl)
   }
   // A reminder to pay is pointless once the order is paid or gone.
   if (input.template === 'payment_reminder') {
@@ -552,8 +595,12 @@ export async function deliverNotification(
     : null
   if (MERCHANT_TEMPLATES.has(input.template) && !merchant) return []
   const recipient = merchant?.to ?? built.to
-
-  const channels = await channelsFor(ctx, opts)
+  // The COD & RTO app's confirm link goes by WhatsApp when the store has it, else email.
+  const cod = { channels: await channelsFor(ctx, opts), to: recipient, storefrontUrl }
+  const routed = await codConfirmDelivery(ctx, input, { ...cod, secret: opts.settingsSecret })
+  if (!routed) return []
+  actionUrl = routed.actionUrl ?? actionUrl
+  const channels = routed.channels
   const extras = opts.extras ? await opts.extras(input) : null
   const data = {
     ...built.data,

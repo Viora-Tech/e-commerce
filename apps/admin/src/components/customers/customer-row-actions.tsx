@@ -1,69 +1,54 @@
 'use client'
 
-import { MessageSquare, Trash2 } from '@commerce/ui/icons'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
-import { type MouseEvent, useState } from 'react'
+import { editorGlyphs, Send, ShoppingBag, Trash2, WhatsappLogo } from '@commerce/ui/icons'
+import { useState } from 'react'
 import { toast } from 'sonner'
+import ActionMenu from '@/components/layout/action-menu'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { customersContent } from '@/data/customers'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { whatsappUrl } from '@/lib/customer-contact'
+import { routes } from '@/lib/routes'
 
 type CustomerRowActionsProps = {
   id: string
   name: string
   email: string | null
+  phone: string | null
+  /** Opens the list's tag dialog for this one customer. */
+  onAddTag: () => void
   onDeleted: () => void
 }
 
-/* Frame 5:3151: two 20px glyphs 8px apart, centred in the Action cell. */
-const GLYPH =
-  'inline-flex size-5 items-center justify-center text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&_svg]:size-5 disabled:opacity-40 disabled:hover:text-muted-foreground'
-
-const copy = customersContent.rowActions
-
-/** Message and delete for one row; both stop the row's own navigation. */
+/**
+ * The ⋯ menu at the end of a customer row (next to the table's open arrow): their orders,
+ * email, WhatsApp, a tag and delete. The row opens the customer on click, so every event here stops at the cell; the
+ * menu and the confirm dialog are portalled out of the row.
+ */
 export default function CustomerRowActions({
   id,
   name,
   email,
+  phone,
+  onAddTag,
   onDeleted,
 }: CustomerRowActionsProps) {
   // Hooks
+  const content = useCopy(customersContent)
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
 
   // Event handlers
-  const handleMessage = (event: MouseEvent) => {
-    event.stopPropagation()
-    if (!email) {
-      toast.error(copy.noEmail)
-      return
-    }
-    window.location.href = `mailto:${email}`
-  }
-
-  const handleAskDelete = (event: MouseEvent) => {
-    event.stopPropagation()
-    setConfirming(true)
-  }
-
   const handleDelete = async () => {
     setBusy(true)
     try {
       const result = await api.customers.delete({ id })
       if (!result.deleted) {
-        toast.error(copy.deleteBlocked(result.orders))
+        toast.error(content.rowActions.deleteBlocked(result.orders))
         return
       }
-      toast.success(copy.deleted)
+      toast.success(content.rowActions.deleted)
       onDeleted()
     } finally {
       setBusy(false)
@@ -72,41 +57,50 @@ export default function CustomerRowActions({
   }
 
   // Render logic
+  const copy = content.rowActions
+  const chat = whatsappUrl(phone)
+
   return (
-    <span className="flex items-center justify-center gap-2">
-      <button
-        type="button"
-        className={GLYPH}
-        aria-label={copy.message(name)}
-        title={email ?? copy.noEmail}
-        disabled={!email}
-        onClick={handleMessage}
-      >
-        <MessageSquare strokeWidth={1.6} />
-      </button>
-      <button
-        type="button"
-        className={GLYPH}
-        aria-label={copy.delete(name)}
-        title={copy.delete(name)}
-        onClick={handleAskDelete}
-      >
-        <Trash2 strokeWidth={1.6} />
-      </button>
-      <AlertDialog open={confirming} onOpenChange={setConfirming}>
-        <AlertDialogContent onClick={(event) => event.stopPropagation()}>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{copy.deleteHeading}</AlertDialogTitle>
-            <AlertDialogDescription>{copy.deleteBody}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={busy}>{copy.cancel}</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" disabled={busy} onClick={handleDelete}>
-              {copy.confirm}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+    // biome-ignore lint/a11y/noStaticElementInteractions: only stops the row's own click; the controls inside are buttons.
+    // biome-ignore lint/a11y/useKeyWithClickEvents: same, keyboard events stop at the trigger.
+    <span className="flex items-center" onClick={(event) => event.stopPropagation()}>
+      <ActionMenu
+        label={copy.menu(name)}
+        items={[
+          {
+            label: copy.viewOrders,
+            icon: ShoppingBag,
+            href: `${routes.orders.list()}?query=${encodeURIComponent(email ?? '')}`,
+            hidden: !email,
+          },
+          { label: copy.email, icon: Send, href: `mailto:${email}`, hidden: !email },
+          {
+            label: copy.whatsapp,
+            icon: WhatsappLogo,
+            href: chat ?? undefined,
+            newTab: true,
+            hidden: !chat,
+          },
+          { label: copy.addTag, icon: editorGlyphs.badge, onSelect: onAddTag },
+          {
+            label: copy.delete(name),
+            icon: Trash2,
+            destructive: true,
+            onSelect: () => setConfirming(true),
+          },
+        ]}
+      />
+      <ConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title={copy.deleteHeading}
+        body={copy.deleteBody}
+        confirmLabel={copy.confirm}
+        cancelLabel={copy.cancel}
+        busy={busy}
+        stopPropagation
+        onConfirm={handleDelete}
+      />
     </span>
   )
 }

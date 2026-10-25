@@ -1,8 +1,8 @@
 'use client'
 
 import { APPS_CATEGORY } from '@commerce/blocks/puck'
+import { appStoreUrl } from '@commerce/config/site'
 import { Puzzle } from '@commerce/ui/icons'
-import Link from 'next/link'
 import { customizeContent } from '@/data/customize'
 import { CHROME_GROUP_LABEL } from '@/lib/customize-chrome'
 import { useCustomizePuck } from '@/lib/customize-puck'
@@ -45,12 +45,14 @@ export default function AppsTab({ query, hovered, onHover, labelOf, onAdd }: App
         </span>
         <p className="text-[0.8125rem] font-medium text-foreground">{copy.appsEmpty.title}</p>
         <p className="text-xs text-muted-foreground">{copy.appsEmpty.body}</p>
-        <Link
-          href="/apps"
+        <a
+          href={appStoreUrl()}
+          target="_blank"
+          rel="noopener noreferrer"
           className="rounded-sm text-xs font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring/70 focus-visible:outline-none"
         >
           {copy.appsEmpty.link}
-        </Link>
+        </a>
       </div>
     )
   }
@@ -66,11 +68,7 @@ export default function AppsTab({ query, hovered, onHover, labelOf, onAdd }: App
     <>
       {[...byApp.entries()].map(([app, types]) => (
         <div key={app} className="flex flex-col">
-          <p
-            className={`sticky top-0 z-10 bg-[var(--add-surface,var(--popover))] px-2 pt-3 pb-1 ${CHROME_GROUP_LABEL}`}
-          >
-            {app}
-          </p>
+          <p className={`pb-1 ${CHROME_GROUP_LABEL}`}>{app}</p>
           {types.map((type) => (
             <SectionCard
               key={type}

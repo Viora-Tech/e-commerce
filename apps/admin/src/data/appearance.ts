@@ -1,4 +1,4 @@
-/** Copy for Account › Appearance (the account menu, top right). */
+/** Copy for Settings › Appearance (also opened from the account menu, top right). */
 export const appearanceContent = {
   title: 'Appearance',
   intro: 'How the admin looks to you. Your store and what shoppers see stay the same.',
@@ -7,6 +7,8 @@ export const appearanceContent = {
     body: 'Buttons, active tabs, table headers, charts and focus rings use this colour.',
     presetsLabel: 'Preset colours',
     presets: {
+      neutral: 'Neutral',
+      'proofly-blue': 'Proofly blue',
       'ocean-green': 'Ocean Green',
       blue: 'Blue',
       indigo: 'Indigo',
@@ -17,6 +19,8 @@ export const appearanceContent = {
       slate: 'Slate',
     } as Record<string, string>,
     custom: 'Custom colour',
+    wheel: 'Pick a colour on the wheel',
+    brightness: 'Brightness',
     customPicker: 'Pick a custom colour',
     hexInvalid: 'Enter a hex code like #2563eb',
     source: {
@@ -26,7 +30,7 @@ export const appearanceContent = {
     },
     save: 'Save for me',
     reset: 'Reset to default',
-    resetHelp: 'Reset follows the store default the owner picked, or Ocean Green.',
+    resetHelp: 'Reset follows the store default the owner picked, or Neutral.',
     saved: 'Accent colour saved',
     resetDone: 'Accent colour reset',
     failed: 'Could not save the accent colour',
@@ -38,11 +42,8 @@ export const appearanceContent = {
     pillActive: 'All',
     pillIdle: 'Unfulfilled',
     pillOther: 'Paid',
-    tableHead: ['Order', 'Customer', 'Total'],
-    tableRow: ['#1042', 'Aarav Mehta', '₹2,499'],
-    chart: 'Sales this week',
-    focus: 'Focused field',
     switchLabel: 'Track stock',
+    switchHelp: 'Focused field and switch use the accent too.',
   },
   store: {
     heading: 'Store default',
@@ -51,7 +52,7 @@ export const appearanceContent = {
     apply: 'Use this colour as the store default',
     reset: 'Reset store default',
     saved: 'Store default saved',
-    resetDone: 'Store default reset to Ocean Green',
+    resetDone: 'Store default reset to Neutral',
   },
   mode: {
     heading: 'Theme',
@@ -60,5 +61,13 @@ export const appearanceContent = {
     light: 'Light',
     dark: 'Dark',
     system: 'System',
+  },
+  productLayout: {
+    heading: 'Product page layout',
+    body: 'How a product shows its sections when you edit it.',
+    label: 'Layout',
+    settings: 'Settings',
+    tabs: 'Tabs',
+    help: 'Settings puts the sections in a list on the left. Tabs puts them in a row on top.',
   },
 }

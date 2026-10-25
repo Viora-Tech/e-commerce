@@ -13,6 +13,7 @@ import {
   imageTag,
   imageUrl,
   money,
+  noteClockRead,
   paymentIcon,
   placeholderSvg,
   rgbToHsl,
@@ -21,7 +22,12 @@ import {
   str,
   toRgb,
   translate,
+  videoTag,
 } from './filter-values'
+
+/** What `form.errors | default_errors` prints after a post we rejected. */
+const FORM_ERRORS_HTML =
+  '<ul class="errors" role="alert"><li>Please check your details and try again.</li></ul>'
 
 export type { LiquidRuntime } from './filter-values'
 
@@ -48,7 +54,10 @@ export function registerShopifyFilters(engine: Liquid): void {
     return runtimeOf(this).assetText(str(file)) ?? ''
   })
   add('file_url', function (this: unknown, file: unknown) {
-    const host = runtimeOf(this).shopifyHost
+    const rt = runtimeOf(this)
+    const ours = rt.importedFileUrl?.(str(file))
+    if (ours) return ours
+    const host = rt.shopifyHost
     return host ? `https://${host}/cdn/shop/files/${encodeURIComponent(str(file))}` : ''
   })
   engine.registerFilter('file_img_url', engine.filters.file_url as FilterImplOptions)
@@ -110,7 +119,9 @@ export function registerShopifyFilters(engine: Liquid): void {
       .replace(/</g, '\\u003c')
       .replace(/>/g, '\\u003e')
   })
-  add('default_errors', () => '')
+  add('default_errors', (errors: unknown) =>
+    Array.isArray(errors) && errors.length > 0 ? FORM_ERRORS_HTML : '',
+  )
   add('structured_data', () => '')
   add('payment_button', () => '')
   add('payment_terms', () => '')
@@ -154,11 +165,16 @@ export function registerShopifyFilters(engine: Liquid): void {
   add('weight_with_unit', (grams: unknown) => `${(Number(grams ?? 0) / 1000).toFixed(2)} kg`)
   add('unit_price_with_measurement', () => '')
 
-  add(
-    'link_to',
-    (text: unknown, url: unknown, title: unknown) =>
-      `<a href="${escapeAttr(url)}"${title ? ` title="${escapeAttr(title)}"` : ''}>${str(text)}</a>`,
-  )
+  // `link_to: url, title` plus Shopify's named attributes (`class: 'x'`), printed before `href`.
+  add('link_to', (text: unknown, url: unknown, ...args: unknown[]) => {
+    const { positional, named } = splitArgs(args)
+    const title = positional[0]
+    const attrs = Object.entries(named)
+      .filter(([k]) => /^[\w-]+$/.test(k))
+      .map(([k, v]) => ` ${k}="${escapeAttr(v)}"`)
+      .join('')
+    return `<a${attrs} href="${escapeAttr(url)}"${title ? ` title="${escapeAttr(title)}"` : ''}>${str(text)}</a>`
+  })
   add('url_for_type', (type: unknown) => `/collections/types?q=${encodeURIComponent(str(type))}`)
   add('url_for_vendor', (v: unknown) => `/collections/vendors?q=${encodeURIComponent(str(v))}`)
   add(
@@ -314,27 +330,7 @@ export function registerShopifyFilters(engine: Liquid): void {
   })
   add('brightness_difference', (a: unknown, b: unknown) => Math.abs(brightness(a) - brightness(b)))
 
-  add('video_tag', (video: unknown, ...args: unknown[]) => {
-    const { named } = splitArgs(args)
-    const v = video as {
-      sources?: { url: string; mime_type: string }[]
-      url?: string
-      preview_image?: ImageDrop | null
-    } | null
-    const src = v?.sources?.[0]?.url ?? v?.url ?? (typeof video === 'string' ? video : '')
-    if (!src) return ''
-    const flags = ['autoplay', 'loop', 'muted', 'controls']
-      .filter((f) => named[f])
-      .map((f) => `${f}="${f}"`)
-    const attrs = [
-      'playsinline="true"',
-      named.class ? `class="${escapeAttr(named.class)}"` : '',
-      ...flags,
-      `preload="${escapeAttr(named.preload ?? 'metadata')}"`,
-      v?.preview_image ? `poster="${escapeAttr(v.preview_image.src)}"` : '',
-    ].filter(Boolean)
-    return `<video ${attrs.join(' ')}><source src="${escapeAttr(src)}" type="video/mp4"></video>`
-  })
+  add('video_tag', (video: unknown, ...args: unknown[]) => videoTag(video, splitArgs(args).named))
   add('external_video_url', (video: unknown) => {
     const v = video as { host?: string; external_id?: string } | null
     if (!v?.external_id) return ''
@@ -351,7 +347,11 @@ export function registerShopifyFilters(engine: Liquid): void {
         : `https://www.youtube.com/embed/${v.external_id}`
     return `<iframe src="${escapeAttr(src)}" allow="autoplay; encrypted-media" allowfullscreen loading="lazy"></iframe>`
   })
-  add('media_tag', (media: unknown) => imageTag(media, {}))
+  add('media_tag', (media: unknown, ...args: unknown[]) =>
+    (media as { media_type?: string } | null)?.media_type === 'video'
+      ? videoTag(media, splitArgs(args).named)
+      : imageTag(media, {}),
+  )
   add('model_viewer_tag', () => '')
 
   // `date` with Shopify's named formats; LiquidJS's own handles strftime strings.
@@ -369,9 +369,11 @@ export function registerShopifyFilters(engine: Liquid): void {
     }
     const fmt = named_[format] ?? format
     const impl = typeof baseDate === 'function' ? baseDate : baseDate.handler
+    const clock = value === 'now' || value === 'today'
+    if (clock) noteClockRead(this)
     return (impl as (this: unknown, v: unknown, f: string) => unknown).call(
       this,
-      value === 'now' || value === 'today' ? new Date() : value,
+      clock ? new Date() : value,
       fmt,
     )
   })

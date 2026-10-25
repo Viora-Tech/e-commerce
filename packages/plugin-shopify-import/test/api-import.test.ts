@@ -34,7 +34,9 @@ import {
   PAGES,
   PRODUCT_PAGES,
   REDIRECTS,
+  SELLING_PLAN_GROUPS,
   VARIANT_PAGES,
+  VARIANT_STOCK,
 } from './fixtures/graphql'
 import {
   app,
@@ -86,6 +88,7 @@ function shopify(query: string, variables: Record<string, unknown>): Response {
     },
     Products: PRODUCT_PAGES[cursor],
     Variants: VARIANT_PAGES[cursor],
+    VariantStock: VARIANT_STOCK,
     Collections: COLLECTIONS,
     Customers: CUSTOMERS,
     Orders: ORDERS,
@@ -93,6 +96,7 @@ function shopify(query: string, variables: Record<string, unknown>): Response {
     Articles: ARTICLES,
     Menus: MENUS,
     Redirects: REDIRECTS,
+    SellingPlanGroups: SELLING_PLAN_GROUPS,
   }
   return json({ data: data[op], extensions: { cost } })
 }
@@ -408,6 +412,19 @@ describe('API import run', () => {
     const [done] = await owner.select().from(importRun).where(eq(importRun.id, run.id))
     expect(done?.status).toBe('completed')
     expect(done?.error).toBeNull()
+    // The import read the preview's copy (plus changes), then deleted it.
+    expect(preview?.snapshot?.streams).toHaveProperty('products')
+    expect(done?.snapshotUse?.reused).toEqual([
+      'products',
+      'collections',
+      'customers',
+      'orders',
+      'pages',
+      'articles',
+    ])
+    expect(done?.snapshot).toBeNull()
+    expect(storage.objects.size).toBeGreaterThan(0)
+    expect([...storage.objects.keys()].some((k) => k.includes('/snapshot/'))).toBe(false)
 
     // Products, including the variant that arrived on the nested second page.
     const variants = await owner.select().from(variant).orderBy(asc(variant.sku))
@@ -418,6 +435,12 @@ describe('API import run', () => {
     ])
     const [aria] = await owner.select().from(product).where(eq(product.handle, 'aria-headset'))
     expect(JSON.stringify(aria?.description)).toContain('https://media.test/stores/')
+    // Each record keeps the theme template Shopify gave it (`product.preorder`).
+    expect(aria?.templateSuffix).toBe('preorder')
+    // Sold through Shopify's pre-order plan: buyable beyond stock here; a subscription is not.
+    expect(aria?.preorderEnabled).toBe(true)
+    const [keycaps] = await owner.select().from(product).where(eq(product.handle, 'keycaps'))
+    expect(keycaps?.preorderEnabled).toBe(false)
 
     // Smart rules we can express stay automatic; the rest fall back to manual membership.
     const cols = await owner.select().from(collection).orderBy(asc(collection.handle))
@@ -444,6 +467,8 @@ describe('API import run', () => {
       .where(eq(collectionProduct.collectionId, cols[0]?.id as string))
     expect(audio.map((m) => m.productId)).toEqual([aria?.id])
     expect(cols[2]?.imageMediaId).not.toBeNull()
+    // A suffix our template keys cannot hold falls back to the default template.
+    expect(cols[2]?.templateSuffix).toBeNull()
 
     const [meera] = await owner.select().from(customer)
     expect(meera).toMatchObject({ email: 'meera@example.com', acceptsMarketing: true })
@@ -461,7 +486,11 @@ describe('API import run', () => {
     expect(line?.variantId).toBe(variants.find((v) => v.sku === 'KEY-BLU')?.id)
 
     const [p] = await owner.select().from(page)
-    expect(p).toMatchObject({ handle: 'shipping-policy', seoTitle: 'Shipping' })
+    expect(p).toMatchObject({
+      handle: 'shipping-policy',
+      seoTitle: 'Shipping',
+      templateSuffix: 'about',
+    })
     expect(p?.publishedAt).not.toBeNull()
 
     const [journal] = await owner.select().from(blog).where(eq(blog.handle, 'journal'))
@@ -472,7 +501,9 @@ describe('API import run', () => {
       status: 'published',
       author: 'Kuldeep',
       excerpt: 'Live now.',
+      templateSuffix: 'notes',
     })
+    expect(journal?.templateSuffix).toBe('series')
     expect(post?.imageMediaId).not.toBeNull()
 
     const [menu] = await owner
@@ -532,7 +563,8 @@ describe('API import run', () => {
     expect(await counts()).toEqual(before)
     const [second] = await owner.select().from(importRun).where(eq(importRun.id, again.id))
     expect(second?.progress.products).toMatchObject({ created: 0, updated: 2 })
-    expect(second?.progress.redirects).toMatchObject({ skipped: 1 })
+    // Already here with the same target: in place, counted like any record a re-run finds (#272 notes).
+    expect(second?.progress.redirects).toMatchObject({ updated: 1, skipped: 0 })
   })
 
   it('queues each hosted image once, nothing on a dry run, and nothing again on a re-run', async () => {

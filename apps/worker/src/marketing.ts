@@ -4,13 +4,16 @@ import {
   processDueRuns,
   sendCampaignBatch,
   startDueCampaigns,
+  storefrontOriginFor,
 } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
 import { type Db, type StoreTx, storesWithMarketingWork, withStore } from '@commerce/db'
+import { logger } from '@commerce/observability/logging'
 import {
   ABANDONED_SWEEP_QUEUE,
   fairProcessor,
   type IORedis,
+  KEEP_FINISHED,
   MARKETING_SEND_QUEUE,
   MARKETING_TICK_QUEUE,
   QUEUE_LIMITS,
@@ -31,7 +34,8 @@ async function depsFor(tx: StoreTx, storeId: string, opts: Opts): Promise<Market
   return {
     registry: (await registriesForStore(tx, storeId)).notifications,
     settingsSecret: opts.settingsSecret,
-    storefrontUrl: opts.storefrontUrl,
+    // Shop, click and unsubscribe links go to the store's own domain (env URL is the fallback).
+    storefrontUrl: await storefrontOriginFor(tx, storeId, opts.storefrontUrl),
   }
 }
 
@@ -90,12 +94,12 @@ export function createMarketingWorker(connection: IORedis, db: Db, opts: Opts) {
           )
           steps += r.processed
         } catch (err) {
-          console.warn(`[marketing] tick for store ${storeId} failed:`, err)
+          logger.warn('marketing tick failed', { storeId, error: err })
         }
       }
       return { stores: storeIds.length, queued, enrolled, steps }
     },
-    { connection },
+    { connection, ...KEEP_FINISHED },
   )
 
   const send = new Worker<SendJob>(
@@ -112,10 +116,10 @@ export function createMarketingWorker(connection: IORedis, db: Db, opts: Opts) {
         failed += r.failed
         if (r.done) break
       }
-      console.log(`[marketing] campaign ${campaignId}: ${sent} sent, ${failed} failed`)
+      // The job's wide event carries these counts as `result`, with storeId and campaignId.
       return { sent, failed }
     }),
-    { connection, concurrency: QUEUE_LIMITS.marketingSend.concurrency },
+    { connection, concurrency: QUEUE_LIMITS.marketingSend.concurrency, ...KEEP_FINISHED },
   )
 
   return { tickQueue, sendQueue, tick, send }

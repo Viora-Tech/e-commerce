@@ -8,7 +8,8 @@ import { createConnection } from './index'
  * pipeline (`createRedisRateLimitStore`) is exercised for real.
  */
 const redisUrl = process.env.REDIS_URL ?? 'redis://localhost:6379'
-const prefix = `test-${Date.now()}`
+// Per worker and per run, so parallel test files and checkouts never share keys.
+const prefix = `test-w${process.env.VITEST_POOL_ID ?? 0}-${Date.now()}`
 let redis: ReturnType<typeof createConnection>
 
 beforeAll(() => {

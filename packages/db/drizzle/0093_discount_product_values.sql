@@ -1,0 +1,1 @@
+ALTER TABLE "discount" ADD COLUMN "product_values" jsonb;

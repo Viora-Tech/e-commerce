@@ -1,10 +1,11 @@
 import {
   notSystemTest,
+  notTestOrder,
   type OrderFulfillmentStatus,
   type OrderPaymentStatus,
   parseAppsSettings,
   StoreAddressSchema,
-  UNFULFILLED_STATUSES,
+  storeLowStockThreshold,
   UNPAID_PAYMENT_STATUSES,
 } from '@commerce/core'
 import { dayKey, startOfMonth, wallClock, startOfDay as zoneStartOfDay } from '@commerce/dates'
@@ -13,44 +14,31 @@ import {
   address,
   customer,
   inventoryAdjustment,
-  inventoryLevel,
   media,
   order,
   orderLine,
   product,
   productMedia,
-  sellableLevel,
+  sellableStock,
   store,
   variant,
 } from '@commerce/db'
 import { GST_INVOICES_ID, invoice } from '@commerce/plugin-gst-invoices/server'
-import {
-  and,
-  asc,
-  count,
-  desc,
-  eq,
-  gt,
-  gte,
-  inArray,
-  isNull,
-  lt,
-  ne,
-  notInArray,
-  sql,
-  sum,
-} from 'drizzle-orm'
+import { and, asc, count, desc, eq, gte, inArray, isNull, lt, ne, sql, sum } from 'drizzle-orm'
 import type { LiveVisitors, VisitorSource } from '../context'
-import type { OrderStatus } from './order.service'
+import { istIsoDate } from './analytics-buckets'
+import { type OrderStatus, viewFilter } from './order.service'
 
 const DAY_MS = 86_400_000
 const WINDOW_DAYS = 7
-/** Drafts are not orders yet: they never count towards revenue, tiles or the recent list. */
-const notDraft = ne(order.status, 'draft')
+/**
+ * Drafts are not orders yet, and test-mode orders (gateway test keys) moved no real money:
+ * neither counts towards revenue, tiles or the recent list.
+ */
+const notDraft = and(ne(order.status, 'draft'), notTestOrder)
 
 const RECENT_ORDERS = 7
 const TOP_PRODUCTS = 5
-const LOW_STOCK_THRESHOLD = 5
 const LOW_STOCK_ROWS = 6
 const HOURS = 24
 const STATE_ROWS = 5
@@ -173,10 +161,14 @@ export type DashboardSummary = {
     toShipCount: number
     /** Orders per hour so far today, IST, midnight first, one entry per hour up to and including now. */
     hourly: number[]
+    /** Storefront visitors (sessions) today, IST, from the beacon; 0 without a visitor source. */
+    visitors: number
   }
   /** Yesterday's full 24 hours, IST, same shape as `today.hourly`, for the briefing sparkline's comparison line. */
   yesterday: {
     hourly: number[]
+    /** Storefront visitors (sessions) yesterday, IST; 0 without a visitor source. */
+    visitors: number
   }
   /**
    * The "Needs you" inbox: one row per actionable queue, each with a count and
@@ -184,7 +176,8 @@ export type DashboardSummary = {
    * a zero) or the app it belongs to is not installed.
    */
   needsYou: {
-    ordersToShip: { count: number; href: string }
+    /** `oldestAt`: when the longest-waiting one was placed (Home's "Waiting 3 days"). */
+    ordersToShip: { count: number; href: string; oldestAt: Date | null }
     upiToVerify: { count: number; href: string }
     gstQueued: { count: number; href: string } | null
     lowStock: { count: number; href: string }
@@ -242,6 +235,10 @@ export type DashboardChartsData = {
   orders: number[]
   /** Same shape as `salesPaise`, for the range immediately before; `null` when there is no order history that far back. */
   previousSalesPaise: number[] | null
+  /** Storefront visitors (sessions) per day, same shape as `orders`; zeros without a visitor source. */
+  visitors: number[]
+  /** Visitors per day for the range immediately before, same shape. */
+  previousVisitors: number[]
   topProducts: {
     productId: string
     title: string
@@ -410,6 +407,7 @@ export async function dashboardSummary(
   } = {},
 ): Promise<DashboardSummary> {
   const now = opts.now ?? new Date()
+  const lowStockThreshold = await storeLowStockThreshold(tx, opts.storeId)
   const thisStart = startOfDay(now, WINDOW_DAYS - 1)
   const lastStart = startOfDay(now, WINDOW_DAYS * 2 - 1)
 
@@ -444,11 +442,11 @@ export async function dashboardSummary(
     .where(and(ne(product.status, 'archived'), notSystemTest))
   const stockRows = await tx
     .select({
-      variantId: inventoryLevel.variantId,
-      available: sql<number>`${inventoryLevel.onHand} - ${inventoryLevel.reserved}`.mapWith(Number),
+      variantId: sellableStock.variantId,
+      available: sql<number>`${sellableStock.onHand} - ${sellableStock.reserved}`.mapWith(Number),
     })
-    .from(inventoryLevel)
-    .innerJoin(variant, and(eq(variant.id, inventoryLevel.variantId), sellableLevel))
+    .from(sellableStock)
+    .innerJoin(variant, eq(variant.id, sellableStock.variantId))
     .where(eq(variant.trackInventory, true))
   const inStock = stockRows.filter((r) => r.available > 0).length
   const outOfStock = stockRows.length - inStock
@@ -535,19 +533,19 @@ export async function dashboardSummary(
       productId: variant.productId,
       title: product.title,
       variantTitle: variant.title,
-      available: sql<number>`${inventoryLevel.onHand} - ${inventoryLevel.reserved}`.mapWith(Number),
+      available: sql<number>`${sellableStock.onHand} - ${sellableStock.reserved}`.mapWith(Number),
     })
-    .from(inventoryLevel)
-    .innerJoin(variant, and(eq(variant.id, inventoryLevel.variantId), sellableLevel))
+    .from(sellableStock)
+    .innerJoin(variant, eq(variant.id, sellableStock.variantId))
     .innerJoin(product, eq(product.id, variant.productId))
     .where(
       and(
         eq(variant.trackInventory, true),
         ne(product.status, 'archived'),
-        lt(sql`${inventoryLevel.onHand} - ${inventoryLevel.reserved}`, LOW_STOCK_THRESHOLD + 1),
+        lt(sql`${sellableStock.onHand} - ${sellableStock.reserved}`, lowStockThreshold + 1),
       ),
     )
-    .orderBy(asc(sql`${inventoryLevel.onHand} - ${inventoryLevel.reserved}`))
+    .orderBy(asc(sql`${sellableStock.onHand} - ${sellableStock.reserved}`))
     .limit(LOW_STOCK_ROWS)
   const imageIds = [...new Set([...topIds, ...lowStockRows.map((r) => r.productId)])]
   const images = imageIds.length
@@ -570,10 +568,10 @@ export async function dashboardSummary(
         .select({
           productId: variant.productId,
           pricePaise: sql<number>`min(${variant.pricePaise})`.mapWith(Number),
-          inStock: sql<boolean>`bool_or(${variant.trackInventory} = false or coalesce(${inventoryLevel.onHand} - ${inventoryLevel.reserved}, 0) > 0)`,
+          inStock: sql<boolean>`bool_or(${variant.trackInventory} = false or coalesce(${sellableStock.onHand} - ${sellableStock.reserved}, 0) > 0)`,
         })
         .from(variant)
-        .leftJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
+        .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
         .where(inArray(variant.productId, topIds))
         .groupBy(variant.productId)
     : []
@@ -687,30 +685,33 @@ export async function dashboardSummary(
 
   /* Today, in IST: the briefing sentence and its "N need shipping" count. */
   const todayStart = startOfDay(now, 0)
+  /* Visitors today and yesterday (IST days), for the hero's Visitors and Conversion tiles. */
+  const visitorDays = [istIsoDate(startOfDay(now, 1)), istIsoDate(todayStart)]
+  const dailyVisitors =
+    opts.visitors?.daily && opts.storeId
+      ? await opts.visitors.daily(opts.storeId, visitorDays)
+      : { perDay: [0, 0], total: 0 }
+  const [visitorsYesterday = 0, visitorsToday = 0] = dailyVisitors.perDay
   const todayRows = live(recentRows).filter((r) => r.placedAt >= todayStart)
+  // Same rule as the Unfulfilled list "Ship N orders" opens, so the counts match (COD included).
+  const toShip = viewFilter('unfulfilled')
   const [toShipTodayRow] = await tx
     .select({ n: count() })
     .from(order)
-    .where(
-      and(
-        eq(order.status, 'open'),
-        notInArray(order.paymentStatus, [...UNPAID_PAYMENT_STATUSES]),
-        inArray(order.fulfillmentStatus, [...UNFULFILLED_STATUSES]),
-        gte(order.placedAt, todayStart),
-      ),
-    )
+    .where(and(toShip, gte(order.placedAt, todayStart)))
 
   /* Needs you: one count per queue, each with its deep link. */
+  // "Waiting N days" skips orders held for a pre-order line that has not shipped yet: they are
+  // waiting on stock, not on the merchant.
   const [ordersToShipRow] = await tx
-    .select({ n: count() })
+    .select({
+      n: count(),
+      oldestAt: sql<Date | null>`min(${order.placedAt}) filter (where not exists (
+        select 1 from order_line ol where ol.order_id = "order".id and ol.preorder
+        and (ol.preorder_ship_date is null or ol.preorder_ship_date > now())))`,
+    })
     .from(order)
-    .where(
-      and(
-        eq(order.status, 'open'),
-        notInArray(order.paymentStatus, [...UNPAID_PAYMENT_STATUSES]),
-        inArray(order.fulfillmentStatus, [...UNFULFILLED_STATUSES]),
-      ),
-    )
+    .where(toShip)
   const [upiToVerifyRow] = await tx
     .select({ n: count() })
     .from(order)
@@ -724,28 +725,20 @@ export async function dashboardSummary(
     )
   const [lowStockCountRow] = await tx
     .select({ n: count() })
-    .from(inventoryLevel)
-    .innerJoin(variant, and(eq(variant.id, inventoryLevel.variantId), sellableLevel))
+    .from(sellableStock)
+    .innerJoin(variant, eq(variant.id, sellableStock.variantId))
     .innerJoin(product, eq(product.id, variant.productId))
     .where(
       and(
         eq(variant.trackInventory, true),
         ne(product.status, 'archived'),
-        lt(sql`${inventoryLevel.onHand} - ${inventoryLevel.reserved}`, LOW_STOCK_THRESHOLD + 1),
+        lt(sql`${sellableStock.onHand} - ${sellableStock.reserved}`, lowStockThreshold + 1),
       ),
     )
   const [preorderBalanceDueRow] = await tx
     .select({ n: count() })
     .from(order)
-    .where(
-      and(
-        gt(order.balanceDuePaise, 0),
-        isNull(order.balancePaidAt),
-        isNull(order.importedFrom),
-        ne(order.status, 'cancelled'),
-        ne(order.status, 'draft'),
-      ),
-    )
+    .where(and(viewFilter('balance_due'), ne(order.status, 'draft')))
   let gstQueued: { count: number; href: string } | null = null
   let dispatch: DashboardSummary['dispatch'] = null
   if (opts.storeId) {
@@ -779,14 +772,18 @@ export async function dashboardSummary(
     Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth() + 1, 0),
   ).getUTCDate()
   const monthStart = startOfMonth(now)
-  const monthToDatePaise = sumPaise(live(recentRows.filter((r) => r.placedAt >= monthStart)))
-  const projectedPaise =
-    dayOfMonth > 0 ? Math.round((monthToDatePaise / dayOfMonth) * daysInMonth) : 0
   const ninetyDaysAgo = startOfDay(now, 89)
   const revenueRows = await tx
     .select({ placedAt: order.placedAt, totalPaise: order.totalPaise })
     .from(order)
     .where(and(notDraft, ne(order.status, 'cancelled'), gte(order.placedAt, ninetyDaysAgo)))
+  // From the whole month (revenueRows reach back 90 days), not the 14-day window above:
+  // from the 15th that window no longer held the month's first days.
+  const monthToDatePaise = revenueRows
+    .filter((r) => r.placedAt >= monthStart)
+    .reduce((n, r) => n + r.totalPaise, 0)
+  const projectedPaise =
+    dayOfMonth > 0 ? Math.round((monthToDatePaise / dayOfMonth) * daysInMonth) : 0
   const byDay = new Map<string, number>()
   for (const r of revenueRows)
     byDay.set(isoDate(r.placedAt), (byDay.get(isoDate(r.placedAt)) ?? 0) + r.totalPaise)
@@ -910,14 +907,22 @@ export async function dashboardSummary(
       salesPaise: sumPaise(todayRows),
       toShipCount: toShipTodayRow?.n ?? 0,
       hourly: todayHourly,
+      visitors: visitorsToday,
     },
-    yesterday: { hourly: yesterdayHourly },
+    yesterday: { hourly: yesterdayHourly, visitors: visitorsYesterday },
     needsYou: {
-      ordersToShip: { count: ordersToShipRow?.n ?? 0, href: '/orders?status=unfulfilled' },
+      ordersToShip: {
+        count: ordersToShipRow?.n ?? 0,
+        href: '/orders?status=unfulfilled',
+        oldestAt: ordersToShipRow?.oldestAt ? new Date(ordersToShipRow.oldestAt) : null,
+      },
       upiToVerify: { count: upiToVerifyRow?.n ?? 0, href: '/orders?status=pending_upi' },
       gstQueued,
-      lowStock: { count: lowStockCountRow?.n ?? 0, href: '/products/inventory' },
-      preorderBalanceDue: { count: preorderBalanceDueRow?.n ?? 0, href: '/orders' },
+      lowStock: { count: lowStockCountRow?.n ?? 0, href: '/stock/inventory' },
+      preorderBalanceDue: {
+        count: preorderBalanceDueRow?.n ?? 0,
+        href: '/orders?status=balance_due',
+      },
       failedDeliveries: null,
     },
     insight: { salesChange, bestSeller },
@@ -946,7 +951,12 @@ export async function dashboardSummary(
  */
 export async function dashboardCharts(
   tx: StoreTx,
-  opts: { storeId?: string; now?: Date; range?: DashboardChartRange } = {},
+  opts: {
+    storeId?: string
+    now?: Date
+    range?: DashboardChartRange
+    visitors?: VisitorSource | undefined
+  } = {},
 ): Promise<DashboardChartsData> {
   const now = opts.now ?? new Date()
   const range = opts.range ?? 30
@@ -961,6 +971,15 @@ export async function dashboardCharts(
   const days = Array.from({ length: range }, (_, i) =>
     isoDate(new Date(from.getTime() + i * DAY_MS)),
   )
+  const previousDays = Array.from({ length: range }, (_, i) =>
+    isoDate(new Date(prevFrom.getTime() + i * DAY_MS)),
+  )
+  const visitorDaily =
+    opts.visitors?.daily && opts.storeId
+      ? await opts.visitors.daily(opts.storeId, [...previousDays, ...days])
+      : { perDay: zeros(range * 2), total: 0 }
+  const previousVisitors = visitorDaily.perDay.slice(0, range)
+  const visitors = visitorDaily.perDay.slice(range)
   const salesPaise = zeros(range)
   const orders = zeros(range)
   const previousSalesPaise = zeros(range)
@@ -1019,8 +1038,8 @@ export async function dashboardCharts(
     salesPaise,
     orders,
     previousSalesPaise: hasPrevious ? previousSalesPaise : null,
+    visitors,
+    previousVisitors,
     topProducts: topRows.map((r) => ({ ...r, imageUrl: firstImage.get(r.productId) ?? null })),
   }
 }
-
-export const DASHBOARD_LOW_STOCK_THRESHOLD = LOW_STOCK_THRESHOLD

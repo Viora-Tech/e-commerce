@@ -3,6 +3,7 @@ import { type StoreTx, senderEmail, store } from '@commerce/db'
 import type { NotificationChannel, NotificationRegistry } from '@commerce/notifications'
 import { eq } from 'drizzle-orm'
 import { parseNotificationSettings, resolveNotificationChannels } from '../notifications/settings'
+import { LogNotificationChannel } from '../providers/log-channel'
 import { type ChosenSender, chooseSender } from './client'
 import { getPlatformEmail, type PlatformEmail } from './platform'
 
@@ -13,6 +14,9 @@ export type StoreChannelDeps = {
   /** The platform account; defaults to the one built from env. Tests pass their own. */
   platform?: PlatformEmail | undefined
 }
+
+/** Tests pass their own channels; only a real development run gets the log fallback. */
+const devFallback = () => !['production', 'test'].includes(process.env.NODE_ENV ?? '')
 
 /** A store's own email app (Amazon SES) wins; the dev log channel does not count. */
 const ownsEmail = (channels: NotificationChannel[]) =>
@@ -59,6 +63,11 @@ export async function storeNotificationChannels(
     deps.previousSecrets,
   )
   const transport = (deps.platform ?? getPlatformEmail()).transport
+  // Development without the platform account: print emails to the worker log rather than
+  // refusing every send ("enable an email channel"), so hand-sent messages can be tried locally.
+  if (!transport && !channels.some((c) => c.requires === 'email') && devFallback()) {
+    return [...channels, new LogNotificationChannel()]
+  }
   if (!transport || ownsEmail(channels)) return channels
   return [...channels, transport.channel(await platformSenderFor(tx, storeId, transport))]
 }

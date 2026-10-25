@@ -1,0 +1,16 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "test": {
+      "dependsOn": ["^build", "//#plugin-graph"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/.env.test",
+        "$TURBO_ROOT$/apps/storefront/src/**",
+        "$TURBO_ROOT$/apps/storefront/package.json"
+      ]
+    },
+    "typecheck": { "dependsOn": ["^build", "//#plugin-graph"] }
+  }
+}

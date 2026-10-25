@@ -12,7 +12,7 @@ export default function TopProductsCard({ products }: TopProductsCardProps) {
   const c = copy.topProducts
 
   return (
-    <Card className="gap-0 p-5">
+    <Card gap="none" inset={5}>
       <p className="text-kit-title text-foreground">{c.title}</p>
       {products.length === 0 ? (
         <p className="mt-5 text-kit-body text-muted-foreground">{c.empty}</p>

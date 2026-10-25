@@ -16,11 +16,11 @@ export type AudienceKind = 'email' | 'whatsapp'
  * Written against the aliases in the from clause; see the note in
  * cart/abandoned.ts about interpolated columns in projection subqueries.
  */
-const orderCount = sql<number>`(select count(*)::int from "order" o where o.customer_id = customer.id and o.status not in ('draft', 'cancelled'))`
-const spent = sql<number>`(select coalesce(sum(o.total_paise), 0)::int from "order" o where o.customer_id = customer.id and o.status not in ('draft', 'cancelled'))`
+const orderCount = sql<number>`(select count(*)::int from "order" o where o.customer_id = customer.id and o.status not in ('draft', 'cancelled') and not o.is_test)`
+const spent = sql<number>`(select coalesce(sum(o.total_paise), 0)::int from "order" o where o.customer_id = customer.id and o.status not in ('draft', 'cancelled') and not o.is_test)`
 const lastOrder = sql<
   string | null
->`(select max(o.placed_at) from "order" o where o.customer_id = customer.id and o.status not in ('draft', 'cancelled'))`
+>`(select max(o.placed_at) from "order" o where o.customer_id = customer.id and o.status not in ('draft', 'cancelled') and not o.is_test)`
 
 /** Indian mobile numbers without a country code gain 91; anything else keeps its digits. */
 export function normalisePhone(raw: string | null | undefined): string | null {
@@ -62,6 +62,7 @@ export async function campaignAudience(
       tags: customer.tags,
       acceptsMarketing: customer.acceptsMarketing,
       stateCode: sql<string | null>`${customer.defaultAddress} ->> 'stateCode'`,
+      hasGstin: sql<boolean>`coalesce(btrim(${customer.gstin}), '') <> ''`,
       orderCount,
       spent,
       lastOrder,
@@ -82,6 +83,7 @@ export async function campaignAudience(
           tags: r.tags,
           lastOrderAt: r.lastOrder,
           acceptsMarketing: r.acceptsMarketing,
+          hasGstin: r.hasGstin,
         },
         rules,
         now,

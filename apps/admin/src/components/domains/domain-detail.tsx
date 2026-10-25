@@ -2,30 +2,24 @@
 
 import type { DomainView } from '@commerce/core'
 import { permissions } from '@commerce/core/permissions'
-import { ExternalLink } from '@commerce/ui/icons'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
+import { ExternalLink, RefreshCw, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Label } from '@commerce/ui/shadcn/label'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
+import SaveBar from '@/components/layout/save-bar'
+import SettingsCard from '@/components/settings/settings-card'
 import { domainsContent } from '@/data/domains'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { formatDateTime } from '@/lib/format-date'
+import { routes } from '@/lib/routes'
 import DnsRecordsCard from './dns-records-card'
+import DomainSslSection from './domain-ssl-section'
 import DomainStatusBadge from './domain-status-badge'
 
 const copy = domainsContent.detail
@@ -38,9 +32,8 @@ type DomainDetailProps = {
 }
 
 const settling = (d: DomainView) =>
-  d.kind === 'custom' &&
-  (d.status === 'pending' ||
-    (d.status === 'active' && d.sslStatus !== 'active' && d.sslStatus !== 'failed'))
+  (d.kind === 'custom' && d.status === 'pending') ||
+  (d.status === 'active' && (d.sslStatus === 'pending' || d.sslStatus === 'issuing'))
 
 function connectionText(d: DomainView): string {
   if (d.status === 'active') return copy.verification.connected
@@ -57,6 +50,8 @@ export default function DomainDetail({ initial, primaryHostname }: DomainDetailP
   const [checking, setChecking] = useState(false)
   const [saving, setSaving] = useState(false)
   const [confirmRemove, setConfirmRemove] = useState(false)
+  /** The redirect switch as edited; the save bar records it. */
+  const [redirect, setRedirect] = useState(initial.redirectToPrimary)
 
   // Poll while DNS or the certificate is still settling, only while the tab is visible.
   useEffect(() => {
@@ -99,9 +94,11 @@ export default function DomainDetail({ initial, primaryHostname }: DomainDetailP
     }
   }
 
-  const handleRedirect = (checked: boolean) =>
+  const handleSaveRedirect = () =>
     run(async () => {
-      setDomain(await api.domains.setRedirect({ id: domain.id, redirectToPrimary: checked }))
+      const next = await api.domains.setRedirect({ id: domain.id, redirectToPrimary: redirect })
+      setDomain(next)
+      setRedirect(next.redirectToPrimary)
       toast.success(copy.traffic.saved)
     })
 
@@ -117,7 +114,7 @@ export default function DomainDetail({ initial, primaryHostname }: DomainDetailP
       setConfirmRemove(false)
       await api.domains.remove({ id: domain.id })
       toast.success(copy.removed(domain.hostname))
-      router.push('/settings/domains')
+      router.push(routes.settings.domains())
       router.refresh()
     })
 
@@ -125,7 +122,6 @@ export default function DomainDetail({ initial, primaryHostname }: DomainDetailP
   const canManage = hasPermission(permissions.SETTINGS_MANAGE)
   const isCustom = domain.kind === 'custom'
   const canBePrimary = domain.status === 'active' && domain.sslStatus === 'active'
-  const sslText = copy.ssl[domain.status === 'active' ? domain.sslStatus : 'pending']
   const lastChecked = domain.lastCheckedAt
     ? copy.verification.checked(formatDateTime(domain.lastCheckedAt))
     : copy.verification.never
@@ -134,9 +130,18 @@ export default function DomainDetail({ initial, primaryHostname }: DomainDetailP
 
   return (
     <div className="flex flex-col gap-4">
+      <SaveBar
+        open={redirect !== domain.redirectToPrimary}
+        message={copy.traffic.unsaved}
+        saveLabel={copy.traffic.save}
+        discardLabel={copy.traffic.discard}
+        onSave={handleSaveRedirect}
+        onDiscard={() => setRedirect(domain.redirectToPrimary)}
+        saving={saving}
+      />
       <PageHeader
         title={domain.hostname}
-        breadcrumbs={[{ label: copy.back, href: '/settings/domains' }, { label: domain.hostname }]}
+        back={{ label: copy.back, href: routes.settings.domains() }}
         actions={
           <>
             <DomainStatusBadge domain={domain} />
@@ -157,72 +162,66 @@ export default function DomainDetail({ initial, primaryHostname }: DomainDetailP
       {isCustom ? <DnsRecordsCard records={domain.records} /> : null}
 
       {isCustom ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>{copy.verification.heading}</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            <p
-              className={`text-body ${domain.status === 'failed' ? 'text-destructive' : 'text-foreground'}`}
-            >
-              {connectionText(domain)}
-            </p>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <span className="text-caption text-muted-foreground">{lastChecked}</span>
-              {canManage ? (
-                <Button variant="outline" size="sm" disabled={checking} onClick={handleVerify}>
-                  {checking ? copy.verification.verifying : copy.verification.verify}
-                </Button>
-              ) : null}
-            </div>
-            <div className="border-border flex flex-col gap-1 border-t pt-3">
-              <p className="text-body-strong text-ink-strong">{copy.ssl.heading}</p>
-              <p className="text-body text-muted-foreground">{sslText}</p>
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{copy.traffic.heading}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          {domain.isPrimary ? (
-            <p className="text-body text-muted-foreground">{copy.traffic.primaryHelp}</p>
-          ) : (
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="domain-redirect">{copy.traffic.redirectLabel}</Label>
-                <p className="text-caption text-muted-foreground">
-                  {copy.traffic.redirectHelp(primaryHostname)}
-                </p>
-              </div>
-              <Switch
-                id="domain-redirect"
-                checked={domain.redirectToPrimary}
-                disabled={!canManage || saving}
-                onCheckedChange={handleRedirect}
-              />
-            </div>
-          )}
-          {!domain.isPrimary && canManage ? (
-            <div className="border-border flex flex-wrap items-center justify-between gap-3 border-t pt-4">
-              <p className="text-caption text-muted-foreground">
-                {canBePrimary ? copy.primaryHelpShort : copy.primaryBlocked}
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={!canBePrimary || saving}
-                onClick={handlePrimary}
-              >
-                {copy.makePrimary}
+        <SettingsCard title={copy.verification.heading} bodyClassName="flex flex-col gap-3">
+          <p
+            className={`text-body ${domain.status === 'failed' ? 'text-destructive' : 'text-foreground'}`}
+          >
+            {connectionText(domain)}
+          </p>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span className="text-caption text-muted-foreground">{lastChecked}</span>
+            {canManage ? (
+              <Button variant="outline" size="sm" disabled={checking} onClick={handleVerify}>
+                <RefreshCw aria-hidden="true" />
+                {checking ? copy.verification.verifying : copy.verification.verify}
               </Button>
+            ) : null}
+          </div>
+          <div className="border-border border-t pt-3">
+            <DomainSslSection domain={domain} canManage={canManage} onChange={setDomain} />
+          </div>
+        </SettingsCard>
+      ) : (
+        <SettingsCard>
+          <DomainSslSection domain={domain} canManage={canManage} onChange={setDomain} />
+        </SettingsCard>
+      )}
+
+      <SettingsCard title={copy.traffic.heading} bodyClassName="flex flex-col gap-4">
+        {domain.isPrimary ? (
+          <p className="text-body text-muted-foreground">{copy.traffic.primaryHelp}</p>
+        ) : (
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="domain-redirect">{copy.traffic.redirectLabel}</Label>
+              <p className="text-caption text-muted-foreground">
+                {copy.traffic.redirectHelp(primaryHostname)}
+              </p>
             </div>
-          ) : null}
-        </CardContent>
-      </Card>
+            <Switch
+              id="domain-redirect"
+              checked={redirect}
+              disabled={!canManage || saving}
+              onCheckedChange={setRedirect}
+            />
+          </div>
+        )}
+        {!domain.isPrimary && canManage ? (
+          <div className="border-border flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+            <p className="text-caption text-muted-foreground">
+              {canBePrimary ? copy.primaryHelpShort : copy.primaryBlocked}
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!canBePrimary || saving}
+              onClick={handlePrimary}
+            >
+              {copy.makePrimary}
+            </Button>
+          </div>
+        ) : null}
+      </SettingsCard>
 
       {canManage ? (
         <div className="flex flex-wrap items-center justify-end gap-3">
@@ -232,25 +231,21 @@ export default function DomainDetail({ initial, primaryHostname }: DomainDetailP
             disabled={removeNote !== null || saving}
             onClick={() => setConfirmRemove(true)}
           >
+            <Trash2 aria-hidden="true" />
             {copy.remove}
           </Button>
         </div>
       ) : null}
 
-      <AlertDialog open={confirmRemove} onOpenChange={setConfirmRemove}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{copy.removeTitle(domain.hostname)}</AlertDialogTitle>
-            <AlertDialogDescription>{copy.removeBody}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{copy.removeCancel}</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={handleRemove}>
-              {copy.removeConfirm}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={confirmRemove}
+        onOpenChange={setConfirmRemove}
+        title={copy.removeTitle(domain.hostname)}
+        body={copy.removeBody}
+        confirmLabel={copy.removeConfirm}
+        cancelLabel={copy.removeCancel}
+        onConfirm={handleRemove}
+      />
     </div>
   )
 }

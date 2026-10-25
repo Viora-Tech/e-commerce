@@ -1,13 +1,15 @@
 'use client'
 
 import type { LocationBillingView } from '@commerce/core'
+import { Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import TextField from '@/components/apps/gst-invoices/text-field'
 import ToggleRow from '@/components/apps/gst-invoices/toggle-row'
+import PhoneField from '@/components/fields/phone-field'
+import SettingsCard from '@/components/settings/settings-card'
 import { businessGstContent } from '@/data/business-gst'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -56,64 +58,57 @@ export default function LocationPickupCard({ location, canManage }: LocationPick
   const disabled = !canManage || saving
 
   return (
-    <Card size="form">
-      <CardHeader>
-        <CardTitle>{copy.heading}</CardTitle>
-        <CardDescription>{copy.help}</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        {addressReady ? (
-          <ToggleRow
-            id="location-pickup"
-            label={copy.toggle}
-            checked={on}
-            onChange={(next) => (disabled ? undefined : setOn(next))}
-          />
-        ) : (
-          <p className="text-body text-muted-foreground">{copy.needsAddress}</p>
-        )}
-        {addressReady && on ? (
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <TextField
-                id="pickup-name"
-                label={copy.pickupName}
-                value={pickupName}
-                onChange={setPickupName}
-                help={copy.pickupNameHelp}
-                maxLength={80}
-              />
-            </div>
+    <SettingsCard title={copy.heading} description={copy.help} bodyClassName="flex flex-col gap-4">
+      {addressReady ? (
+        <ToggleRow
+          id="location-pickup"
+          label={copy.toggle}
+          checked={on}
+          onChange={(next) => (disabled ? undefined : setOn(next))}
+        />
+      ) : (
+        <p className="text-body text-muted-foreground">{copy.needsAddress}</p>
+      )}
+      {addressReady && on ? (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="sm:col-span-2">
             <TextField
-              id="pickup-contact"
-              label={copy.contactName}
-              value={contactName}
-              onChange={setContactName}
-              help={copy.contactNameHelp}
+              id="pickup-name"
+              label={copy.pickupName}
+              value={pickupName}
+              onChange={setPickupName}
+              help={copy.pickupNameHelp}
               maxLength={80}
             />
-            <TextField
-              id="pickup-phone"
-              label={copy.phone}
-              value={phone}
-              onChange={setPhone}
-              help={copy.phoneHelp}
-              inputMode="tel"
-              maxLength={20}
-            />
           </div>
-        ) : null}
-        {addressReady && !on ? (
-          <p className="text-caption text-muted-foreground">{copy.off}</p>
-        ) : null}
-        {canManage && addressReady ? (
-          <div className="flex justify-end">
-            <Button onClick={handleSave} disabled={disabled}>
-              {copy.save}
-            </Button>
-          </div>
-        ) : null}
-      </CardContent>
-    </Card>
+          <TextField
+            id="pickup-contact"
+            label={copy.contactName}
+            value={contactName}
+            onChange={setContactName}
+            help={copy.contactNameHelp}
+            maxLength={80}
+          />
+          <PhoneField
+            id="pickup-phone"
+            label={copy.phone}
+            value={phone}
+            onChange={setPhone}
+            help={copy.phoneHelp}
+          />
+        </div>
+      ) : null}
+      {addressReady && !on ? (
+        <p className="text-caption text-muted-foreground">{copy.off}</p>
+      ) : null}
+      {canManage && addressReady ? (
+        <div className="flex justify-end">
+          <Button onClick={handleSave} disabled={disabled}>
+            <Save aria-hidden="true" />
+            {copy.save}
+          </Button>
+        </div>
+      ) : null}
+    </SettingsCard>
   )
 }

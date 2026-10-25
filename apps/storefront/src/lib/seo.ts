@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { SEO_DESCRIPTION_MAX, seoContent } from '@/data/seo'
 import { originFromHost } from './store-resolver'
@@ -116,9 +117,16 @@ type ProductForLd = {
     purchasable?: boolean | undefined
   }[]
   preorder?: { enabled: boolean } | null | undefined
+  /** Average and count of published reviews (Reviews app); null or absent with none. */
+  rating?: { value: number; count: number } | null | undefined
+  /** A few published reviews, for `review` (Google reads up to a handful). */
+  reviews?: { author: string; rating: number; title: string; body: string }[] | undefined
 }
 
-/** Product with one Offer per variant (INR, stock), and its breadcrumb trail. */
+/**
+ * Product with one Offer per variant (INR, stock), its rating and a few reviews when the
+ * Reviews app has published ones, and its breadcrumb trail.
+ */
 export function productGraph(p: ProductForLd, origin: string, currency: string, storeName: string) {
   const url = `${origin}/products/${p.handle}`
   const offers = p.variants.map((v) => ({
@@ -161,6 +169,28 @@ export function productGraph(p: ProductForLd, origin: string, currency: string, 
                 offers,
               }
             : offers[0],
+        ...(p.rating && p.rating.count > 0
+          ? {
+              aggregateRating: {
+                '@type': 'AggregateRating',
+                ratingValue: p.rating.value,
+                reviewCount: p.rating.count,
+                bestRating: 5,
+                worstRating: 1,
+              },
+            }
+          : {}),
+        ...(p.reviews?.length
+          ? {
+              review: p.reviews.map((r) => ({
+                '@type': 'Review',
+                author: { '@type': 'Person', name: r.author },
+                reviewRating: { '@type': 'Rating', ratingValue: r.rating, bestRating: 5 },
+                ...(r.title ? { name: r.title } : {}),
+                reviewBody: r.body,
+              })),
+            }
+          : {}),
       },
       breadcrumbList(origin, [
         { name: seoContent.home, path: '/' },
@@ -215,3 +245,23 @@ export function canonicalPath(path: string, page = 1): string {
 
 /** Robots directive for pages that must never be indexed (cart, checkout, account). */
 export const NO_INDEX = { index: false, follow: false } as const
+
+/** The ownership tokens saved under Preferences › Search engine visibility. */
+type VerificationTokens = { google: string; bing: string; meta: string; pinterest: string }
+
+/**
+ * Next's `verification` metadata for the saved tokens: Google Search Console, Bing
+ * Webmaster Tools (`msvalidate.01`), Meta Business domain verification and Pinterest.
+ * Tokens are validated to a plain character set when saved; blank ones add no tag.
+ */
+export function verificationMeta(t: VerificationTokens): Metadata['verification'] {
+  const other: Record<string, string> = {}
+  if (t.bing) other['msvalidate.01'] = t.bing
+  if (t.meta) other['facebook-domain-verification'] = t.meta
+  if (t.pinterest) other['p:domain_verify'] = t.pinterest
+  if (!t.google && !Object.keys(other).length) return undefined
+  return {
+    ...(t.google ? { google: t.google } : {}),
+    ...(Object.keys(other).length ? { other } : {}),
+  }
+}

@@ -1,7 +1,7 @@
 'use client'
 
 import { parseRupees } from '@commerce/money'
-import { TriangleAlert } from '@commerce/ui/icons'
+import { Save, TriangleAlert } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -62,6 +62,7 @@ export default function RtoCard({ detail: r, onChanged }: RtoCardProps) {
               onChange={(e) => setCost(e.target.value)}
             />
             <Button type="button" variant="outline" onClick={handleSave} disabled={busy}>
+              <Save aria-hidden="true" />
               {copy.costSave}
             </Button>
           </div>

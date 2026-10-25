@@ -2,13 +2,14 @@
 
 // Adapted from Magic UI's Marquee (MIT). See THIRD_PARTY_NOTICES.md and
 // packages/blocks/THIRD_PARTY_LICENSES.md.
-import { useEffect, useRef } from 'react'
+import { type ReactNode, useEffect, useRef } from 'react'
 import { loadMotion } from '../../lazy-motion'
 import { useReducedMotion } from '../../use-reduced-motion'
 
-type Testimonial = { quote: string; author: string; role: string }
+/** Copy is a string in storage, a React node while edited on the canvas. */
+type Testimonial = { quote: ReactNode; author: ReactNode; role: ReactNode }
 
-type TestimonialMarqueeProps = { heading: string; items: Testimonial[] }
+type TestimonialMarqueeProps = { heading: ReactNode; items: Testimonial[] }
 
 const DURATION = 40
 const LOOP = { duration: DURATION, repeat: Infinity, ease: 'linear' } as const
@@ -79,7 +80,7 @@ function Row({ items, reverse }: { items: Testimonial[]; reverse: boolean }) {
   const cards = items.map((t, i) => (
     <blockquote
       // biome-ignore lint/suspicious/noArrayIndexKey: merchant-edited rows carry no id and never reorder between renders.
-      key={`${t.author}-${i}`}
+      key={i}
       className="mx-[0.5rem] w-[20rem] shrink-0 rounded-[var(--radius-card)] border border-[var(--color-line)] bg-[var(--color-surface)] p-[1.25rem]"
     >
       <p className="text-body text-[var(--color-ink)]">{t.quote}</p>

@@ -1,23 +1,32 @@
 'use client'
 
-import { CreditCard, ExternalLink, Plus } from '@commerce/ui/icons'
+import { ExternalLink, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
+import SettingsCard from '@/components/settings/settings-card'
+import { paymentModesContent } from '@/data/payment-modes'
 import { paymentsSetupContent } from '@/data/payments-setup'
+import { razorpayWebsitesContent } from '@/data/razorpay-websites'
+import { SETTINGS_BACK } from '@/data/settings'
 import { useCopy } from '@/hooks/use-copy'
+import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import AddGatewayDialog from './add-gateway-dialog'
 import AdvancedSection from './advanced-section'
 import HelpFooter from './help-footer'
 import MainGatewayCard from './main-gateway-card'
 import MethodsList from './methods-list'
 import { openTestOrder } from './open-test-order'
+import OtherGatewayCard from './other-gateway-card'
+import RazorpayWebsiteBanner from './razorpay-website-banner'
+import RazorpayWebsiteList from './razorpay-website-list'
 import StatusBanner from './status-banner'
+import TestModeBar from './test-mode-bar'
 import type { CheckoutMethodRow, PaymentsSetup } from './types'
 import WhatsThis from './whats-this'
 
@@ -27,6 +36,15 @@ type PaymentsOverviewProps = {
   onOpenGuide: () => void
 }
 
+/** The websites card's id, which the "Razorpay is blocking payments" banner links to. */
+const WEBSITES_ID = 'razorpay-websites'
+
+/** The one online gateway on at checkout: turning it off leaves COD / bank transfer only. */
+function isOnlyOnline(setup: PaymentsSetup, id: string | undefined): boolean {
+  const on = setup.gateways.filter((g) => g.connected)
+  return on.length === 1 && on[0]?.id === id
+}
+
 /**
  * Settings → Payments for a shop that has set up (or skipped the guide):
  * status, the main way to get paid and its health, the ways shoppers can pay,
@@ -34,7 +52,10 @@ type PaymentsOverviewProps = {
  */
 export default function PaymentsOverview({ setup, onReload, onOpenGuide }: PaymentsOverviewProps) {
   // Hooks
+  const announceSetup = useSetupNext()
   const copy = useCopy(paymentsSetupContent)
+  const modes = useCopy(paymentModesContent)
+  const sites = useCopy(razorpayWebsitesContent)
   const router = useRouter()
   const [methods, setMethods] = useState<CheckoutMethodRow[]>(setup.methods)
   const [savingMethods, setSavingMethods] = useState(false)
@@ -49,6 +70,7 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
     try {
       await api.payments.saveMethods({ methods: next })
       toast.success(copy.methods.saved)
+      void announceSetup('payments')
       await onReload()
     } catch {
       setMethods(before)
@@ -73,7 +95,7 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
   const handleConnect = async (id: string) => {
     try {
       if (!setup.gateways.find((g) => g.id === id)?.installed) await api.apps.install({ id })
-      router.push(`/apps/${id}/connect`)
+      router.push(routes.apps.connect(id))
       // A just-installed app gets its sidebar link from the server layout.
       router.refresh()
     } catch {
@@ -83,6 +105,8 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
 
   // Render logic
   const hasGateway = setup.primary !== null
+  const others = setup.gateways.filter((g) => g.configured && g.id !== setup.primary?.id)
+  const razorpay = setup.gateways.some((g) => g.id === 'razorpay' && g.configured)
   const actions = (
     <Button variant="outline" className="gap-1.5" onClick={handleTestOrder} disabled={opening}>
       {opening ? <Spinner /> : null}
@@ -101,11 +125,19 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
             <WhatsThis />
           </span>
         }
-        icon={<CreditCard aria-hidden="true" />}
         actions={actions}
+        back={SETTINGS_BACK}
       />
 
       <StatusBanner canTakePayments={setup.canTakePayments} canTakeOnline={setup.canTakeOnline} />
+      {setup.testMode ? <TestModeBar /> : null}
+      {setup.razorpayWebsiteBlock ? (
+        <RazorpayWebsiteBanner
+          block={setup.razorpayWebsiteBlock}
+          websites={setup.razorpayWebsites}
+          listId={WEBSITES_ID}
+        />
+      ) : null}
 
       <section className="flex flex-col gap-2" aria-labelledby="payments-main">
         <h2 id="payments-main" className="text-card font-semibold text-foreground">
@@ -113,30 +145,48 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
         </h2>
         <MainGatewayCard
           primary={setup.primary}
+          gateway={setup.gateways.find((g) => g.id === setup.primary?.id)}
+          onlyOnline={isOnlyOnline(setup, setup.primary?.id)}
           onAdd={handleOpenAdd}
           onChanged={onReload}
           onTurnOnUpi={handleTurnOnUpi}
         />
       </section>
 
-      <section className="flex flex-col gap-2" aria-labelledby="payments-methods">
-        <h2 id="payments-methods" className="text-card font-semibold text-foreground">
-          {copy.methods.heading}
-        </h2>
-        <Card>
-          <CardContent className="flex flex-col gap-3">
-            <p className="text-body text-muted-foreground">
-              {hasGateway ? copy.methods.help : copy.methods.needsGateway}
-            </p>
-            <MethodsList
-              methods={methods}
-              hasGateway={hasGateway}
-              disabled={savingMethods}
-              onChange={saveMethods}
+      {others.length ? (
+        <section className="flex flex-col gap-2" aria-labelledby="payments-others">
+          <h2 id="payments-others" className="text-card font-semibold text-foreground">
+            {modes.others.heading}
+          </h2>
+          {others.map((g) => (
+            <OtherGatewayCard
+              key={g.id}
+              gateway={g}
+              onlyOnline={isOnlyOnline(setup, g.id)}
+              onChanged={onReload}
             />
-          </CardContent>
-        </Card>
-      </section>
+          ))}
+        </section>
+      ) : null}
+
+      {razorpay || setup.razorpayWebsiteBlock ? (
+        <SettingsCard id={WEBSITES_ID} title={sites.list.label} description={sites.list.help}>
+          <RazorpayWebsiteList websites={setup.razorpayWebsites} />
+        </SettingsCard>
+      ) : null}
+
+      <SettingsCard
+        id="payments-methods"
+        title={copy.methods.heading}
+        description={hasGateway ? copy.methods.help : copy.methods.needsGateway}
+      >
+        <MethodsList
+          methods={methods}
+          hasGateway={hasGateway}
+          disabled={savingMethods}
+          onChange={saveMethods}
+        />
+      </SettingsCard>
 
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" size="lg" className="gap-1.5" onClick={handleOpenAdd}>

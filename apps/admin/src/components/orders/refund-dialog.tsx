@@ -1,6 +1,7 @@
 'use client'
 
 import { parseRupees } from '@commerce/money'
+import { RotateCcw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -15,7 +16,7 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { type FormEvent, useState } from 'react'
 import { toast } from 'sonner'
-import { orderDetailContent } from '@/data/orders'
+import { orderDetailContent } from '@/data/order-detail'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import type { OrderPayment } from './order-detail-types'
@@ -118,6 +119,7 @@ export default function RefundDialog({
               {copy.refundDialog.close}
             </Button>
             <Button type="submit" disabled={!valid || busy}>
+              <RotateCcw aria-hidden="true" />
               {copy.refundDialog.confirm}
               {valid ? ` ${fmt.money(paise)}` : ''}
             </Button>

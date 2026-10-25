@@ -40,6 +40,7 @@ export const PRODUCT_PAGES: Record<string, unknown> = {
           vendor: 'Waimers',
           productType: 'Audio',
           tags: ['audio'],
+          templateSuffix: 'preorder',
           status: 'ACTIVE',
           seo: { title: 'Aria', description: null },
           options: [{ name: 'Colour', position: 1 }],
@@ -145,6 +146,7 @@ export const COLLECTIONS = {
         title: 'Staff picks',
         descriptionHtml: '',
         sortOrder: 'MANUAL',
+        templateSuffix: 'Gift Guide',
         image: { url: 'https://cdn.shopify.com/picks.png', altText: 'Picks' },
         seo: null,
         ruleSet: null,
@@ -255,6 +257,7 @@ export const PAGES = {
         body: '<p>We ship in <em>2 days</em>.</p>',
         isPublished: true,
         publishedAt: '2024-02-01T00:00:00Z',
+        templateSuffix: 'about',
         seoTitle: { value: 'Shipping' },
         seoDescription: null,
       },
@@ -277,7 +280,8 @@ export const ARTICLES = {
         publishedAt: '2025-01-01T00:00:00Z',
         author: { name: 'Kuldeep' },
         image: { url: 'https://cdn.shopify.com/launch.png', altText: 'Launch' },
-        blog: { handle: 'journal', title: 'Journal' },
+        templateSuffix: 'notes',
+        blog: { handle: 'journal', title: 'Journal', templateSuffix: 'series' },
         seoTitle: null,
         seoDescription: null,
       },
@@ -315,5 +319,38 @@ export const REDIRECTS = {
   urlRedirects: {
     pageInfo: pageInfo(null),
     nodes: [{ id: 'gid://shopify/UrlRedirect/1', path: '/old-sale', target: '/collections/audio' }],
+  },
+}
+
+const stock = (id: string, qty: number) => ({
+  id: `gid://shopify/ProductVariant/${id}`,
+  inventoryQuantity: qty,
+  inventoryItem: { tracked: true },
+})
+
+/** `productVariants` stock, read fresh when an import reuses a preview's products. */
+export const VARIANT_STOCK = {
+  productVariants: {
+    pageInfo: pageInfo(null),
+    nodes: [stock('11', 7), stock('21', 1), stock('22', 2)],
+  },
+}
+
+/** Purchase options: a pre-order plan (aria-headset) and a subscription that is not one. */
+export const SELLING_PLAN_GROUPS = {
+  sellingPlanGroups: {
+    pageInfo: pageInfo(null),
+    nodes: [
+      {
+        name: 'Preorder',
+        merchantCode: 'preorder',
+        products: { nodes: [{ id: 'gid://shopify/Product/1' }] },
+      },
+      {
+        name: 'Subscribe & save',
+        merchantCode: 'subscription',
+        products: { nodes: [{ id: 'gid://shopify/Product/2' }] },
+      },
+    ],
   },
 }

@@ -10,9 +10,11 @@ import {
   storeDomain,
   withStore,
 } from '@commerce/db'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { installApp, parseAppsSettings } from '../apps/settings'
+import { PREINSTALLED_APPS } from '../automations/app'
 import { createCollection } from '../collections/service'
+import { requestDomainRoute } from '../domains/routes'
 import { CommerceError } from '../errors'
 import { listRoles, seedSystemRoles, upsertMember } from '../permissions/service'
 import { emptyStoreAddress, StoreAddressSchema } from '../settings/general'
@@ -37,6 +39,11 @@ export type CreateStoreInput = {
   slug: string
   /** e.g. "waimers.store" - `<slug>.<platformDomain>` becomes the primary domain. */
   platformDomain: string
+  /**
+   * True when Dokploy manages the proxy: the new `<slug>.<platformDomain>` is queued for an
+   * HTTPS route (worker job, retried; store creation never waits on Dokploy).
+   */
+  requestPlatformRoute?: boolean
   /** Adds `<slug>.localhost` too, for local development. */
   addLocalhostDomain?: boolean
   /**
@@ -188,11 +195,41 @@ export async function createStore(input: CreateStoreInput): Promise<CreateStoreR
         .where(eq(storeDomain.hostname, domain.hostname))
       if (already.length === 0) await tx.insert(storeDomain).values(domain)
     }
+    if (input.requestPlatformRoute) {
+      // Only a row nobody asked for yet, so a retried createStore queues it once.
+      const [row] = await tx
+        .select({ id: storeDomain.id })
+        .from(storeDomain)
+        .where(
+          and(
+            eq(storeDomain.storeId, storeId),
+            eq(storeDomain.hostname, domains[0]?.hostname ?? ''),
+            eq(storeDomain.routeStatus, 'none'),
+          ),
+        )
+      if (row) {
+        await tx.update(storeDomain).set({ sslStatus: 'issuing' }).where(eq(storeDomain.id, row.id))
+        await requestDomainRoute(tx, storeId, row.id, new Date())
+      }
+    }
   })
 
   let organizationId = storeRow.organizationId
   if (!organizationId) {
-    const orgResult = await input.createOrganization({ name, slug: input.slug })
+    const orgResult = await input
+      .createOrganization({ name, slug: input.slug })
+      .catch(async (err: unknown) => {
+        // Refused (e.g. Better Auth's organization limit): give the address back, or an
+        // owner over their limit could hold any number of store addresses with no store
+        // behind them (security audit 2026-09-28 branch, ported 2026-10-06).
+        if (created) {
+          await withStore(db, storeId, async (tx) => {
+            await tx.delete(storeDomain).where(eq(storeDomain.storeId, storeId))
+            await tx.delete(store).where(eq(store.id, storeId))
+          })
+        }
+        throw err
+      })
     organizationId = orgResult.organizationId
     await withStore(db, storeId, (tx) =>
       tx.update(store).set({ organizationId }).where(eq(store.id, storeId)),
@@ -210,10 +247,12 @@ export async function createStore(input: CreateStoreInput): Promise<CreateStoreR
       roleId: ownerRoleId,
       status: 'active',
     })
-    await ensureMainTheme(tx, storeId)
+    // A new merchant starts on the neutral Minimal look, never the Waimers one.
+    await ensureMainTheme(tx, storeId, 'minimal')
     await seedWaimersShipping(tx, storeId)
     if (input.profile) await applyBusinessProfile(tx, storeId, input.profile)
-    if (input.installApps?.length) await installStoreApps(tx, storeId, input.installApps)
+    // Built-in apps every store starts with (Automations, like Shopify Flow), then any asked for.
+    await installStoreApps(tx, storeId, [...PREINSTALLED_APPS, ...(input.installApps ?? [])])
   })
 
   return { storeId, organizationId, slug: storeRow.slug, created }

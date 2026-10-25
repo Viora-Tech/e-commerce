@@ -7,9 +7,10 @@ import {
 } from '@commerce/ui/shadcn/dropdown-menu'
 import Link from 'next/link'
 import { layoutContent } from '@/data/layout'
-import type { MenuLink } from './card-menu'
 
-type FilterButtonProps = { label?: string; items: readonly MenuLink[] }
+type FilterLink = { label: string; href: string }
+
+type FilterButtonProps = { label?: string; items: readonly FilterLink[] }
 
 /** 5:2141: 85 x 32 solid green button, 14px label, 20px sort glyph; opens the filter links. */
 export default function FilterButton({ label = layoutContent.filter, items }: FilterButtonProps) {

@@ -1,0 +1,44 @@
+# The Koomerce migration app: the platform's own Shopify app, installed on a merchant's shop so
+# the Shopify importer can read it (Apps -> Shopify importer -> Connect -> Install the Koomerce app).
+# One app per deployment. Read-only scopes; no embedded admin UI.
+#
+# Replace the three placeholders, then from this folder:
+#   shopify app config link   (pick the app you made in the Dev Dashboard; fills client_id)
+#   shopify app deploy        (pushes this config as a new app version)
+# Full steps: integrations/shopify/README.md and docs/handoff/changes/2026-10-23-platform-apps.md.
+# Field reference: https://shopify.dev/docs/apps/build/cli-for-apps/app-configuration
+
+client_id = "REPLACE_WITH_CLIENT_ID"
+name = "Koomerce Migration"
+# Where Shopify opens the app (after an install and on "Open app"): straight to the authorize
+# screen, then back to the importer in our admin.
+application_url = "https://ADMIN_HOST/api/apps/shopify-import/launch"
+embedded = false
+
+[access_scopes]
+# Keep in step with ALL_SCOPE_HANDLES (packages/plugin-shopify-import/src/client.ts).
+# read_all_orders also needs Shopify's approval (Partner/Dev Dashboard -> API access requests).
+# read_customers and read_orders need protected customer data access, Level 2 (names, emails,
+# phones, addresses), requested in the Dev Dashboard before review.
+scopes = "read_products,read_inventory,read_customers,read_orders,read_all_orders,read_content,read_online_store_navigation,read_files,read_metaobject_definitions,read_metaobjects,read_discounts,read_gift_cards,read_shipping,read_legal_policies,read_purchase_options"
+# The admin builds the authorize URL itself (authorization code grant), with these scopes.
+use_legacy_install_flow = true
+
+[auth]
+redirect_urls = ["https://ADMIN_HOST/api/apps/shopify-import/oauth/callback"]
+
+[webhooks]
+api_version = "2026-10"
+
+  # Shopify's mandatory privacy webhooks, and uninstall. One endpoint on the worker; it checks
+  # X-Shopify-Hmac-Sha256 with SHOPIFY_APP_CLIENT_SECRET and reads X-Shopify-Topic.
+  [[webhooks.subscriptions]]
+  compliance_topics = ["customers/data_request", "customers/redact", "shop/redact"]
+  uri = "https://WORKER_HOST/webhooks/platform/shopify"
+
+  [[webhooks.subscriptions]]
+  topics = ["app/uninstalled"]
+  uri = "https://WORKER_HOST/webhooks/platform/shopify"
+
+[pos]
+embedded = false

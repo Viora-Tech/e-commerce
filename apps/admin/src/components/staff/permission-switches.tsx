@@ -9,7 +9,8 @@ import {
 import { Button } from '@commerce/ui/shadcn/button'
 import { Label } from '@commerce/ui/shadcn/label'
 import { Switch } from '@commerce/ui/shadcn/switch'
-import { staffContent as copy } from '@/data/staff'
+import { staffContent } from '@/data/staff'
+import { useCopy } from '@/hooks/use-copy'
 
 type PermissionSwitchesProps = {
   value: Permission[]
@@ -19,9 +20,10 @@ type PermissionSwitchesProps = {
 
 const RESOURCES = Object.keys(statement) as Resource[]
 
-/** `orders.refund` reads as "Refund" beside its resource heading. */
+/** `orders.refund` reads as "Refund" beside its resource heading; `manage_types` as "Manage types". */
 function actionLabel(action: string): string {
-  return action.charAt(0).toUpperCase() + action.slice(1)
+  const words = action.replaceAll('_', ' ')
+  return words.charAt(0).toUpperCase() + words.slice(1)
 }
 
 function resourcePermissions(resource: Resource): Permission[] {
@@ -30,6 +32,9 @@ function resourcePermissions(resource: Resource): Permission[] {
 
 /** The grid of grants in the role editor, generated from the statement. */
 export default function PermissionSwitches({ value, disabled, onChange }: PermissionSwitchesProps) {
+  // Hooks
+  const copy = useCopy(staffContent)
+
   // Helpers
   const setMany = (permissions: Permission[], on: boolean) => {
     const next = new Set(value)

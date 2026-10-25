@@ -1,194 +1,55 @@
 import { settingsSecret } from '@commerce/config'
 import {
-  commitTemplateDrafts,
-  createTemplateAlternate,
+  createBlankTheme,
   createThemeFromPreset,
-  deleteCustomSection,
-  deleteTemplateAlternate,
   deleteTheme,
-  discardTemplateDrafts,
   duplicateTheme,
   ensureMainTheme,
   getTheme,
+  importedSectionCounts,
   importedThemeIds,
-  listCustomSections,
-  listTemplates,
   listThemes,
-  loadSourceCatalog,
-  loadSourceValues,
-  loadTemplate,
+  listThemeVersions,
+  liveThemeLogoUrl,
   permissions,
   publishTheme,
-  renameCustomSection,
   renameTheme,
-  SECTION_GROUPS,
-  saveCustomSection,
-  saveTemplateDraft,
+  restoreThemeVersion,
+  saveThemePacks,
+  setThemeThumbnail,
   signThemePreviewToken,
-  TEMPLATE_KINDS,
-  TEMPLATE_SUFFIX,
+  snapshotTheme,
+  storeThemePacks,
+  THEME_PACK_IDS,
   THEME_PRESET_IDS,
-  ThemeLibraryError,
+  type ThemePackId,
   type ThemeRecord,
   ThemeSchema,
+  themePacksOf,
+  themesWithDrafts,
   updateThemeSettings,
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can } from '../procedures'
+import { can, canDetached, heavy } from '../procedures'
+import { proposeSection } from '../services/ai/section-writer'
+import { storeRegistries } from '../services/apps.service'
+import { storageProviderFor } from '../services/media.service'
 import {
   importThemeZip,
   liquidEditorInfo,
   renderLiquidForEditor,
   themeImportReport,
 } from '../services/theme-import.service'
-import { themePreviewContext } from '../services/theme-preview.service'
-
-const IdInput = z.object({ id: z.string().uuid() })
-
-const TemplateKeyInput = z.enum([...TEMPLATE_KINDS, ...SECTION_GROUPS])
-const TemplateRef = z.object({
-  themeId: z.string().uuid(),
-  template: TemplateKeyInput,
-  suffix: z.string().regex(TEMPLATE_SUFFIX).default(''),
-})
-
-/** Puck data, validated loosely: every section needs a type and an id; blocks own their props. */
-const TemplateDataInput = z.object({
-  root: z.object({ props: z.record(z.string(), z.unknown()).optional() }).passthrough(),
-  content: z
-    .array(
-      z.object({
-        type: z.string().min(1).max(60),
-        props: z.object({ id: z.string().min(1).max(80) }).catchall(z.unknown()),
-      }),
-    )
-    .max(60),
-  zones: z.record(z.string(), z.unknown()).optional(),
-})
-
-/**
- * Theme templates for the Customize editor. Edits are drafts the preview renders;
- * `commit` (Save) makes them the theme's saved templates, which for the live theme
- * is what shoppers see.
- */
-const templatesRouter = {
-  /** What the Customize preview needs to draw the header and footer as the storefront does. */
-  previewContext: can(permissions.ONLINE_STORE_READ).handler(({ context }) =>
-    themePreviewContext(context.tx, context.scope.storeId),
-  ),
-
-  list: can(permissions.ONLINE_STORE_READ)
-    .input(z.object({ themeId: z.string().uuid() }))
-    .handler(({ context, input }) => listTemplates(context.tx, input.themeId)),
-
-  get: can(permissions.ONLINE_STORE_READ)
-    .input(TemplateRef)
-    .handler(({ context, input }) =>
-      loadTemplate(context.tx, input.themeId, input.template, input.suffix, { withDraft: true }),
-    ),
-
-  saveDraft: can(permissions.ONLINE_STORE_WRITE)
-    .input(TemplateRef.extend({ data: TemplateDataInput }))
-    .handler(({ context, input }) =>
-      libraryErrors(async () => {
-        await saveTemplateDraft(context.tx, context.scope.storeId, input)
-        return { ok: true as const }
-      }),
-    ),
-
-  commit: can(permissions.ONLINE_STORE_WRITE)
-    .input(z.object({ themeId: z.string().uuid() }))
-    .handler(({ context, input }) =>
-      libraryErrors(async () => ({
-        saved: await commitTemplateDrafts(context.tx, input.themeId),
-      })),
-    ),
-
-  /** Dynamic sources a template's settings can connect to (the editor's picker). */
-  sources: can(permissions.ONLINE_STORE_READ)
-    .input(z.object({ template: TemplateKeyInput }))
-    .handler(({ context, input }) => loadSourceCatalog(context.tx, input.template)),
-
-  /** Values of connected sources for the Customize preview's chosen product or collection. */
-  sourceValues: can(permissions.ONLINE_STORE_READ)
-    .input(
-      z.object({
-        paths: z.array(z.string().max(300)).max(100),
-        productId: z.string().uuid().nullish(),
-        collectionId: z.string().uuid().nullish(),
-      }),
-    )
-    .handler(({ context, input }) =>
-      loadSourceValues(context.tx, input.paths, {
-        storeId: context.scope.storeId,
-        productId: input.productId,
-        collectionId: input.collectionId,
-      }),
-    ),
-
-  discard: can(permissions.ONLINE_STORE_WRITE)
-    .input(z.object({ themeId: z.string().uuid() }))
-    .handler(async ({ context, input }) => {
-      await discardTemplateDrafts(context.tx, input.themeId)
-      return { ok: true as const }
-    }),
-
-  create: can(permissions.ONLINE_STORE_WRITE)
-    .input(TemplateRef.extend({ basedOn: z.string().regex(TEMPLATE_SUFFIX).optional() }))
-    .handler(({ context, input }) =>
-      libraryErrors(() => createTemplateAlternate(context.tx, context.scope.storeId, input)),
-    ),
-
-  delete: can(permissions.ONLINE_STORE_WRITE)
-    .input(TemplateRef)
-    .handler(({ context, input }) =>
-      libraryErrors(async () => {
-        await deleteTemplateAlternate(context.tx, input)
-        return { ok: true as const }
-      }),
-    ),
-}
-
-/**
- * "My sections": the store's own saved sections, a library shared by every theme.
- * The block is validated for shape and size in core (`prepareCustomSection`).
- */
-const customSectionsRouter = {
-  list: can(permissions.ONLINE_STORE_READ).handler(({ context }) =>
-    listCustomSections(context.tx, context.scope.storeId),
-  ),
-
-  save: can(permissions.ONLINE_STORE_WRITE)
-    .input(
-      z.object({
-        name: z.string().max(200),
-        block: z.object({
-          type: z.string().min(1).max(60),
-          props: z.object({ id: z.string().min(1).max(80) }).catchall(z.unknown()),
-        }),
-      }),
-    )
-    .handler(({ context, input }) =>
-      libraryErrors(() => saveCustomSection(context.tx, context.scope.storeId, input)),
-    ),
-
-  rename: can(permissions.ONLINE_STORE_WRITE)
-    .input(z.object({ id: z.string().uuid(), name: z.string().max(200) }))
-    .handler(({ context, input }) =>
-      libraryErrors(async () => {
-        await renameCustomSection(context.tx, context.scope.storeId, input)
-        return { ok: true as const }
-      }),
-    ),
-
-  delete: can(permissions.ONLINE_STORE_WRITE)
-    .input(IdInput)
-    .handler(async ({ context, input }) => {
-      await deleteCustomSection(context.tx, context.scope.storeId, input.id)
-      return { ok: true as const }
-    }),
-}
+import {
+  decodeThumbnail,
+  InvalidThumbnail,
+  THUMBNAIL_DATA_URL_MAX,
+  uploadThumbnail,
+} from '../services/theme-thumbnail.service'
+import { themeCodeRouter } from './theme-code'
+import { IdInput, libraryErrors, savedBy } from './theme-helpers'
+import { customSectionsRouter, templatesRouter } from './theme-templates'
 
 /** The largest theme zip the import accepts (Shopify's own themes are a few MB). */
 const THEME_ZIP_MAX_BYTES = 50 * 1024 * 1024
@@ -216,7 +77,9 @@ const LiquidSectionInput = z.object({
  * import report, and the Customize canvas's renders of its Liquid sections.
  */
 const importRouter = {
+  // The store's import budget (`heavy`): an import unpacks a zip and downloads its files.
   shopify: can(permissions.ONLINE_STORE_WRITE)
+    .use(heavy('import'))
     .input(
       z.object({
         file: z
@@ -234,7 +97,10 @@ const importRouter = {
         const result = await importThemeZip(context.tx, storeId, input)
         const created = await getTheme(context.tx, result.themeId)
         if (!created) throw new ORPCError('NOT_FOUND', { message: 'Theme not found' })
-        return { theme: present(storeId, created, true), report: result.report }
+        return {
+          theme: await presentOne(context.tx, storeId, created),
+          report: result.report,
+        }
       }),
     ),
 
@@ -261,52 +127,137 @@ const importRouter = {
     ),
 }
 
-async function libraryErrors<T>(fn: () => Promise<T>): Promise<T> {
-  try {
-    return await fn()
-  } catch (err) {
-    if (err instanceof ThemeLibraryError) {
-      const code = err.code === 'THEME_NOT_FOUND' ? 'NOT_FOUND' : 'BAD_REQUEST'
-      throw new ORPCError(code, { message: err.message })
-    }
-    throw err
-  }
+/**
+ * What the library shows beside a theme beyond its row: unsaved edits, imported sections, and the
+ * store-level section packs a theme without its own list follows.
+ */
+type ThemeFacts = {
+  imported: boolean
+  hasDraft: boolean
+  sectionCount: number | null
+  storePacks: ThemePackId[]
+}
+
+const NO_FACTS: ThemeFacts = {
+  imported: false,
+  hasDraft: false,
+  sectionCount: null,
+  storePacks: [],
 }
 
 /**
  * A theme as the admin sees it, with a signed token that lets the storefront render
  * exactly this theme (for the library thumbnail, the Preview button and the editor).
  */
-function present(storeId: string, t: ThemeRecord, imported = false) {
+function present(storeId: string, t: ThemeRecord, facts: ThemeFacts = NO_FACTS) {
   return {
     ...t,
     /** Imported from a Shopify theme zip: renders through the Liquid engine, has a report. */
-    imported,
+    imported: facts.imported,
+    /** Customize holds edits that are not saved yet. */
+    hasDraft: facts.hasDraft,
+    /** Liquid sections an imported theme brought; null for our own (they share one library). */
+    sectionCount: facts.sectionCount,
+    /** Section packs (Zero Drift…) its Customize Add menu offers: its own, else the store's. */
+    packs: t.ownPacks ?? facts.storePacks,
     previewToken: signThemePreviewToken({ secret: settingsSecret(), storeId, themeId: t.id }),
   }
 }
 
-/** `present`, with the imported flag read for this one theme. */
-async function presentOne(
-  tx: Parameters<typeof importedThemeIds>[0],
-  storeId: string,
-  t: ThemeRecord,
-) {
-  return present(storeId, t, (await importedThemeIds(tx)).has(t.id))
+type LibraryTx = Parameters<typeof importedThemeIds>[0]
+
+/** The facts for every theme of the store, read once for a whole list. */
+async function libraryFacts(tx: LibraryTx, storeId: string): Promise<(id: string) => ThemeFacts> {
+  const [imported, drafts, counts, storePacks] = await Promise.all([
+    importedThemeIds(tx),
+    themesWithDrafts(tx),
+    importedSectionCounts(tx),
+    storeThemePacks(tx, storeId),
+  ])
+  return (id) => ({
+    imported: imported.has(id),
+    hasDraft: drafts.has(id),
+    sectionCount: counts.get(id) ?? null,
+    storePacks,
+  })
+}
+
+/** `present`, with the facts read for this one theme. */
+async function presentOne(tx: LibraryTx, storeId: string, t: ThemeRecord) {
+  return present(storeId, t, (await libraryFacts(tx, storeId))(t.id))
+}
+
+/**
+ * Version history (`@commerce/core` theme/versions): what went live, newest first, and
+ * restoring one into the drafts. Restore never publishes.
+ */
+const versionsRouter = {
+  list: can(permissions.ONLINE_STORE_READ)
+    .input(z.object({ themeId: z.string().uuid() }))
+    .handler(({ context, input }) => listThemeVersions(context.tx, input.themeId)),
+
+  restore: can(permissions.ONLINE_STORE_WRITE)
+    .input(z.object({ themeId: z.string().uuid(), batchId: z.string().uuid() }))
+    .handler(({ context, input }) =>
+      libraryErrors(async () => ({
+        restored: await restoreThemeVersion(context.tx, context.scope.storeId, input),
+      })),
+    ),
 }
 
 /** Online Store › Themes: the library, Shopify style. One theme is live (`main`). */
 export const themesRouter = {
   templates: templatesRouter,
+  versions: versionsRouter,
   customSections: customSectionsRouter,
   import: importRouter,
+  code: themeCodeRouter,
+
+  /** "Build with AI": one library section with its words filled in. A proposal only. */
+  proposeSection: canDetached(permissions.ONLINE_STORE_WRITE)
+    .input(
+      z.object({
+        request: z.string().trim().min(3).max(600),
+        page: z.string().trim().min(1).max(60),
+      }),
+    )
+    .handler(({ context, input, signal }) => proposeSection(context, input, signal)),
+
+  /** The live theme's logo for the admin sidebar (every page load): one small read. */
+  logo: can(permissions.ONLINE_STORE_READ).handler(({ context }) => liveThemeLogoUrl(context.tx)),
+
+  /**
+   * A theme's opt-in section packs (Zero Drift…): which pack sections its Customize Add menu
+   * offers. Its own list, or for a theme from before packs were per theme, the store's.
+   */
+  packs: can(permissions.ONLINE_STORE_READ)
+    .input(IdInput)
+    .handler(({ context, input }) =>
+      libraryErrors(async () => {
+        const found = await getTheme(context.tx, input.id)
+        if (!found) throw new ORPCError('NOT_FOUND', { message: 'Theme not found' })
+        return themePacksOf(context.tx, context.scope.storeId, found)
+      }),
+    ),
+
+  /** Turns section packs on or off for one theme: owners and administrators (settings manage). */
+  setPacks: can(permissions.SETTINGS_MANAGE)
+    .input(
+      z.object({
+        id: z.string().uuid(),
+        packs: z.array(z.enum(THEME_PACK_IDS)).max(THEME_PACK_IDS.length),
+      }),
+    )
+    .handler(({ context, input }) =>
+      libraryErrors(() => saveThemePacks(context.tx, input.id, input.packs)),
+    ),
 
   list: can(permissions.ONLINE_STORE_READ).handler(async ({ context }) => {
     const { storeId } = context.scope
     await ensureMainTheme(context.tx, storeId)
     const themes = await listThemes(context.tx)
-    const imported = await importedThemeIds(context.tx)
-    return themes.map((t) => present(storeId, t, imported.has(t.id)))
+    const facts = await libraryFacts(context.tx, storeId)
+    return themes.map((t) => present(storeId, t, facts(t.id)))
   }),
 
   get: can(permissions.ONLINE_STORE_READ)
@@ -314,8 +265,7 @@ export const themesRouter = {
     .handler(async ({ context, input }) => {
       const found = await getTheme(context.tx, input.id)
       if (!found) throw new ORPCError('NOT_FOUND', { message: 'Theme not found' })
-      const imported = await importedThemeIds(context.tx)
-      return present(context.scope.storeId, found, imported.has(found.id))
+      return presentOne(context.tx, context.scope.storeId, found)
     }),
 
   create: can(permissions.ONLINE_STORE_WRITE)
@@ -324,7 +274,19 @@ export const themesRouter = {
       libraryErrors(async () =>
         present(
           context.scope.storeId,
-          await createThemeFromPreset(context.tx, context.scope.storeId, input),
+          await createThemeFromPreset(context.tx, context.scope.storeId, input, savedBy(context)),
+        ),
+      ),
+    ),
+
+  /** "Start from scratch": base settings and empty templates, nothing from the live theme. */
+  createBlank: can(permissions.ONLINE_STORE_WRITE)
+    .input(z.object({ name: z.string().max(50).optional() }))
+    .handler(({ context, input }) =>
+      libraryErrors(async () =>
+        present(
+          context.scope.storeId,
+          await createBlankTheme(context.tx, context.scope.storeId, input, savedBy(context)),
         ),
       ),
     ),
@@ -336,7 +298,7 @@ export const themesRouter = {
         presentOne(
           context.tx,
           context.scope.storeId,
-          await updateThemeSettings(context.tx, input.id, input.settings),
+          await updateThemeSettings(context.tx, input.id, input.settings, savedBy(context)),
         ),
       ),
     ),
@@ -348,7 +310,7 @@ export const themesRouter = {
         presentOne(
           context.tx,
           context.scope.storeId,
-          await renameTheme(context.tx, input.id, input.name),
+          await renameTheme(context.tx, input.id, input.name, savedBy(context)),
         ),
       ),
     ),
@@ -360,18 +322,58 @@ export const themesRouter = {
         presentOne(
           context.tx,
           context.scope.storeId,
-          await duplicateTheme(context.tx, context.scope.storeId, input.id),
+          await duplicateTheme(context.tx, context.scope.storeId, input.id, savedBy(context)),
         ),
       ),
+    ),
+
+  /**
+   * The home page picture Customize takes on Save (a webp data URL, see
+   * theme-thumbnail.service). Not a save itself: the theme's "Last saved" stays put.
+   */
+  thumbnail: can(permissions.ONLINE_STORE_WRITE)
+    .input(z.object({ id: z.string().uuid(), image: z.string().max(THUMBNAIL_DATA_URL_MAX) }))
+    .handler(({ context, input }) =>
+      libraryErrors(async () => {
+        let bytes: Uint8Array
+        try {
+          bytes = decodeThumbnail(input.image)
+        } catch (err) {
+          if (err instanceof InvalidThumbnail) {
+            throw new ORPCError('BAD_REQUEST', { message: err.message })
+          }
+          throw err
+        }
+        // Read under RLS first: another store's theme id never reaches storage.
+        if (!(await getTheme(context.tx, input.id))) {
+          throw new ORPCError('NOT_FOUND', { message: 'Theme not found' })
+        }
+        const { storeId } = context.scope
+        const { storage: registry } = await storeRegistries(context.tx, storeId)
+        const storage = await storageProviderFor(context.tx, storeId, registry, settingsSecret())
+        const url = await uploadThumbnail(storage, { storeId, themeId: input.id, bytes })
+        await setThemeThumbnail(context.tx, input.id, url)
+        return { url }
+      }),
     ),
 
   /** Making a theme live is its own permission, as Shopify separates edit and publish. */
   publish: can(permissions.ONLINE_STORE_PUBLISH)
     .input(IdInput)
     .handler(({ context, input }) =>
-      libraryErrors(async () =>
-        presentOne(context.tx, context.scope.storeId, await publishTheme(context.tx, input.id)),
-      ),
+      libraryErrors(async () => {
+        const wasLive = (await getTheme(context.tx, input.id))?.role === 'main'
+        const live = await publishTheme(context.tx, input.id)
+        // Publishing the theme that is already live changes nothing, so it adds no version.
+        if (!wasLive) {
+          await snapshotTheme(context.tx, context.scope.storeId, {
+            themeId: live.id,
+            reason: 'publish',
+            by: savedBy(context),
+          })
+        }
+        return presentOne(context.tx, context.scope.storeId, live)
+      }),
     ),
 
   delete: can(permissions.ONLINE_STORE_WRITE)

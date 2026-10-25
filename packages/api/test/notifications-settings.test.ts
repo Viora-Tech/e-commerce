@@ -11,6 +11,7 @@ import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   notificationsOverview,
   previewMessage,
+  sendableConsentChannels,
   sendTestMessage,
   setMessageOn,
 } from '../src/services/notifications.service'
@@ -70,6 +71,19 @@ describe('notificationsOverview', () => {
     expect(r.channels.email.state).toBe('connected')
     expect(r.channels.whatsapp.state).toBe('installed')
     expect(r.canSendTest).toBe(true)
+  })
+
+  it('offers WhatsApp consent only once the WhatsApp app is connected, and never SMS', async () => {
+    const off = await makeStore('n-send-off', { apps: { installed: ['whatsapp'] } })
+    const on = await makeStore('n-send-on', {
+      apps: { installed: ['whatsapp'] },
+      notifications: { enabled: ['whatsapp'], providers: {} },
+    })
+    expect(await withStore(app, off, (tx) => sendableConsentChannels(tx, off))).toEqual(['email'])
+    expect(await withStore(app, on, (tx) => sendableConsentChannels(tx, on))).toEqual([
+      'email',
+      'whatsapp',
+    ])
   })
 })
 
@@ -150,7 +164,11 @@ describe('sendTestMessage', () => {
 describe('settingsChecklist: payments', () => {
   const paymentsDone = async (slug: string, payments: unknown) => {
     const storeId = await makeStore(slug, payments === undefined ? {} : { payments })
-    const items = await withStore(app, storeId, (tx) => settingsChecklist(tx, storeId))
+    const items = await withStore(
+      app,
+      storeId,
+      async (tx) => (await settingsChecklist(tx, storeId)).items,
+    )
     return items.find((i) => i.id === 'payments')?.done
   }
 
@@ -188,7 +206,11 @@ describe('settingsChecklist', () => {
       payments: { enabled: ['cod', 'manual'], providers: {} },
       notifications: { enabled: ['ses'], providers: {} },
     })
-    const items = await withStore(app, storeId, (tx) => settingsChecklist(tx, storeId))
+    const items = await withStore(
+      app,
+      storeId,
+      async (tx) => (await settingsChecklist(tx, storeId)).items,
+    )
     const done = Object.fromEntries(items.map((i) => [i.id, i.done]))
     expect(done).toEqual({
       store: true,
@@ -203,8 +225,23 @@ describe('settingsChecklist', () => {
 
   it('leaves everything to do on a new store, even though cash on delivery starts on', async () => {
     const storeId = await makeStore('n-checklist-new')
-    const items = await withStore(app, storeId, (tx) => settingsChecklist(tx, storeId))
+    const items = await withStore(
+      app,
+      storeId,
+      async (tx) => (await settingsChecklist(tx, storeId)).items,
+    )
     expect(items.filter((i) => i.done)).toEqual([])
     expect(items).toHaveLength(7)
+  })
+})
+
+describe('settingsChecklist: next task', () => {
+  it('names the first undone task, or the one after the task just saved', async () => {
+    const storeId = await makeStore('n-next', { contactEmail: 'shop@example.com' })
+    const first = await withStore(app, storeId, (tx) => settingsChecklist(tx, storeId))
+    expect(first.next).toBe('store')
+    const after = await withStore(app, storeId, (tx) => settingsChecklist(tx, storeId, 'store'))
+    expect(after.next).toBe('payments')
+    expect(after.total).toBe(after.items.length)
   })
 })

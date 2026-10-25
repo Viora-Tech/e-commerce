@@ -1,19 +1,20 @@
 'use client'
 
 import type { FieldDefinition } from '@commerce/core/metaobjects'
+import { Eye, Save, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import PageBody from '@/components/layout/page-body'
-import PageColumns from '@/components/layout/page-columns'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
+import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import SaveBar from '@/components/layout/save-bar'
 import { definitionFormContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import ConfirmDelete from './confirm-delete'
+import { routes } from '@/lib/routes'
 import DefinitionDetailsCard from './definition-details-card'
 import DefinitionFieldsCard from './definition-fields-card'
 import DefinitionSettingsCard from './definition-settings-card'
@@ -31,7 +32,7 @@ type DefinitionFormProps = {
   targets: { id: string; name: string }[]
 }
 
-const NAMEABLE = ['single_line_text', 'number_integer', 'number_decimal']
+const NAMEABLE = ['single_line_text', 'number_integer', 'number_decimal', 'choice']
 
 /** Create or edit a metaobject definition: its handle, fields, display name and access. */
 export default function DefinitionForm({ definition, targets }: DefinitionFormProps) {
@@ -98,7 +99,7 @@ export default function DefinitionForm({ definition, targets }: DefinitionFormPr
     try {
       await api.metaobjects.deleteDefinition({ id: definition.id })
       toast.success(copy.delete.done)
-      router.push('/content/metaobjects')
+      router.push(routes.content.contentTypes())
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.failed)
       setBusy(false)
@@ -110,7 +111,64 @@ export default function DefinitionForm({ definition, targets }: DefinitionFormPr
   const title = definition ? definition.name : copy.newTitle
 
   return (
-    <PageBody width="narrow" className="kit-form gap-4">
+    <ProoflyDetailPage
+      header={
+        <PageHeader
+          title={title}
+          back={{ label: copy.back, href: routes.content.contentTypes() }}
+          actions={
+            definition ? (
+              <>
+                <Button
+                  variant="outline"
+                  render={<Link href={entriesPath(definition.type)} />}
+                  nativeButton={false}
+                >
+                  <Eye aria-hidden="true" />
+                  {copy.viewEntries}
+                </Button>
+                <Button variant="outline" onClick={() => setConfirmDelete(true)} disabled={busy}>
+                  <Trash2 aria-hidden="true" />
+                  {copy.delete.action}
+                </Button>
+              </>
+            ) : (
+              <Button onClick={handleSave} disabled={busy}>
+                <Save aria-hidden="true" />
+                {busy ? copy.saving : copy.save}
+              </Button>
+            )
+          }
+        />
+      }
+      main={
+        <>
+          <DefinitionDetailsCard
+            name={form.name}
+            type={form.type}
+            description={form.description}
+            typeLocked={(definition?.entries ?? 0) > 0}
+            followName={!typeEdited}
+            onChange={patch}
+            onTypeEdited={() => setTypeEdited(true)}
+          />
+          <DefinitionFieldsCard
+            fields={form.fields}
+            filled={definition?.filled ?? {}}
+            targets={targets}
+            onChange={handleFields}
+          />
+        </>
+      }
+      side={
+        <DefinitionSettingsCard
+          fields={form.fields}
+          displayNameKey={form.displayNameKey}
+          storefrontAccess={form.storefrontAccess}
+          onChange={patch}
+        />
+      }
+    >
       <SaveBar
         open={dirty}
         message={copy.unsaved}
@@ -120,67 +178,16 @@ export default function DefinitionForm({ definition, targets }: DefinitionFormPr
         onDiscard={() => setForm(JSON.parse(saved) as DefinitionFormState)}
         saving={busy}
       />
-      <PageHeader
-        title={title}
-        breadcrumbs={[
-          { label: copy.back, href: '/content/metaobjects' },
-          ...(definition ? [{ label: definition.name, href: entriesPath(definition.type) }] : []),
-        ]}
-        actions={
-          definition ? (
-            <>
-              <Button
-                variant="outline"
-                render={<Link href={entriesPath(definition.type)} />}
-                nativeButton={false}
-              >
-                {copy.viewEntries}
-              </Button>
-              <Button variant="outline" onClick={() => setConfirmDelete(true)} disabled={busy}>
-                {copy.delete.action}
-              </Button>
-            </>
-          ) : (
-            <Button onClick={handleSave} disabled={busy}>
-              {busy ? copy.saving : copy.save}
-            </Button>
-          )
-        }
-      />
-      <PageColumns
-        main={
-          <>
-            <DefinitionDetailsCard
-              name={form.name}
-              type={form.type}
-              description={form.description}
-              typeLocked={(definition?.entries ?? 0) > 0}
-              followName={!typeEdited}
-              onChange={patch}
-              onTypeEdited={() => setTypeEdited(true)}
-            />
-            <DefinitionFieldsCard fields={form.fields} targets={targets} onChange={handleFields} />
-          </>
-        }
-        side={
-          <DefinitionSettingsCard
-            fields={form.fields}
-            displayNameKey={form.displayNameKey}
-            storefrontAccess={form.storefrontAccess}
-            onChange={patch}
-          />
-        }
-      />
-      <ConfirmDelete
+      <ConfirmDialog
         open={confirmDelete}
-        busy={busy}
+        onOpenChange={setConfirmDelete}
         title={copy.delete.title(definition?.name ?? '')}
         body={copy.delete.body(definition?.entries ?? 0)}
-        confirm={copy.delete.confirm}
-        cancel={copy.delete.cancel}
-        onOpenChange={setConfirmDelete}
-        onConfirm={handleDelete}
+        confirmLabel={copy.delete.confirm}
+        cancelLabel={copy.delete.cancel}
+        busy={busy}
+        onConfirm={() => void handleDelete()}
       />
-    </PageBody>
+    </ProoflyDetailPage>
   )
 }

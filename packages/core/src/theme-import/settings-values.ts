@@ -81,12 +81,12 @@ export function liquidSettingValue(
     }
     case 'product': {
       const found = text ? data.product(text) : null
-      return found ? new ProductDrop(found) : null
+      return found ? new ProductDrop(found, data) : null
     }
     case 'product_list':
       return handlesOf(value).flatMap((h) => {
         const p = data.product(h)
-        return p ? [new ProductDrop(p)] : []
+        return p ? [new ProductDrop(p, data)] : []
       })
     case 'collection': {
       const found = text ? data.collection(text) : null
@@ -99,7 +99,7 @@ export function liquidSettingValue(
       })
     case 'link_list': {
       const menu = text ? data.menu(text) : null
-      return menu ? new LinklistDrop(menu) : null
+      return menu ? new LinklistDrop(menu, data) : null
     }
     case 'blog': {
       const blog = text ? data.blog(text) : null
@@ -142,9 +142,17 @@ export function liquidSettingValue(
     case 'video_url':
       return videoUrl(text)
     case 'video': {
-      const v = value as { url?: unknown; poster?: LiquidImageData | null } | null
+      const v = value as {
+        url?: unknown
+        mobileUrl?: unknown
+        poster?: LiquidImageData | null
+      } | null
       return v && typeof v === 'object' && typeof v.url === 'string' && v.url
-        ? new VideoDrop({ url: v.url, poster: v.poster ?? null })
+        ? new VideoDrop({
+            url: v.url,
+            mobileUrl: typeof v.mobileUrl === 'string' && v.mobileUrl ? v.mobileUrl : null,
+            poster: v.poster ?? null,
+          })
         : null
     }
     case 'metaobject':

@@ -2,11 +2,13 @@ import { type Attachment, NotificationRegistry, type TemplateId } from '@commerc
 import { PaymentRegistry } from '@commerce/payments'
 import { ShippingRegistry } from '@commerce/shipping'
 import { StorageRegistry } from '@commerce/storage'
+import { orderActionsOf } from './order-actions'
 import type {
   AppEvent,
   AppHook,
   AppHookContext,
   AppJob,
+  AppJobFailed,
   OrderLink,
   OrderLinkContext,
   PluginManifest,
@@ -47,6 +49,8 @@ export type LoadedPlugins = Registries & {
   ): Promise<OrderLink[]>
   /** An installed app's named job, or null when the app or job is unknown or not installed. */
   jobFor(pluginId: string, name: string, installed: readonly string[]): AppJob | null
+  /** An installed app's handler for one of its jobs failing for good, or null. */
+  jobFailedFor(pluginId: string, name: string, installed: readonly string[]): AppJobFailed | null
   /**
    * Attachments for one order email from every installed app. Unlike links, a
    * failure here throws: the notification job retries rather than sending an
@@ -134,10 +138,18 @@ export function loadPlugins(plugins: PluginManifest[]): LoadedPlugins {
         hooks: Object.keys(p.hooks ?? {}) as AppEvent[],
         productFields: p.productFields ?? [],
         credits: (p.credits ?? []).map((c) => ({ ...c })),
+        access: {
+          resources: p.access.resources.map((r) => ({ ...r })),
+          summary: p.access.summary ?? null,
+          shares: (p.access.shares ?? []).map((s) => ({ ...s })),
+        },
         admin: {
           icon: p.admin?.icon ?? null,
           pages: (p.admin?.pages ?? []).map((page) => ({ ...page })),
           orderDetailCard: p.admin?.orderDetailCard === true,
+          customerDetailCard: p.admin?.customerDetailCard === true,
+          orderActions: orderActionsOf(p, CORE_PLUGIN_ID),
+          salesChannel: p.admin?.salesChannel ?? null,
         },
         provides: {
           payments: (p.provides.payments ?? []).map((f) => ({ id: f.id, label: f.label })),
@@ -173,6 +185,10 @@ export function loadPlugins(plugins: PluginManifest[]): LoadedPlugins {
     jobFor: (pluginId, name, installed) => {
       if (pluginId !== CORE_PLUGIN_ID && !installed.includes(pluginId)) return null
       return byId.get(pluginId)?.jobs?.[name] ?? null
+    },
+    jobFailedFor: (pluginId, name, installed) => {
+      if (pluginId !== CORE_PLUGIN_ID && !installed.includes(pluginId)) return null
+      return byId.get(pluginId)?.jobFailed?.[name] ?? null
     },
     emailAttachments: async (installed, ctx, input) => {
       const allowed = new Set([CORE_PLUGIN_ID, ...installed])

@@ -1,26 +1,27 @@
 'use client'
 
-import { Copy } from '@commerce/ui/icons'
+import { Copy, Pencil } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import CustomerAvatar from '@/components/customers/customer-avatar'
 import CopyButton from '@/components/fields/copy-button'
+import ContactActions from '@/components/layout/contact-actions'
 import DataCard from '@/components/layout/data-card'
-import { INDIAN_STATES } from '@/data/india'
-import { orderDetailContent } from '@/data/orders'
+import KeyValueList, { type KeyValueRow } from '@/components/layout/key-value-list'
+import LabeledGroup from '@/components/layout/labeled-group'
+import { stateName } from '@/data/india'
+import { orderDetailContent } from '@/data/order-detail'
 import { useCopy } from '@/hooks/use-copy'
+import { routes } from '@/lib/routes'
 import EditOrderContactDialog from './edit-order-contact-dialog'
 import type { OrderDetail } from './order-detail-types'
 
 type CustomerCardProps = {
   order: OrderDetail
 }
-
-type Row = { key: string; label: string; value: string; href?: string | undefined }
-
-const stateName = (code: string) => INDIAN_STATES.find((s) => s.code === code)?.name ?? code
 
 /**
  * Who ordered and where it goes, one field per line with its own copy button,
@@ -48,23 +49,23 @@ export default function CustomerCard({ order }: CustomerCardProps) {
   const a = order.shippingAddress
   const name = a?.name || order.customer?.name || ''
   const phone = order.phone || a?.phone || ''
-  const contact: Row[] = [
-    { key: 'name', label: c.name, value: name },
+  const contact: KeyValueRow[] = [
+    { label: c.name, value: name, copy: true },
     {
-      key: 'email',
       label: c.email,
       value: order.email ?? '',
       href: order.email ? `mailto:${order.email}` : undefined,
+      copy: true,
     },
-    { key: 'phone', label: c.phone, value: phone, href: phone ? `tel:${phone}` : undefined },
+    { label: c.phone, value: phone, href: phone ? `tel:${phone}` : undefined, copy: true },
   ]
-  const place: Row[] = a
+  const place: KeyValueRow[] = a
     ? [
-        { key: 'line1', label: c.line1, value: a.line1 },
-        ...(a.line2 ? [{ key: 'line2', label: c.line2, value: a.line2 }] : []),
-        { key: 'city', label: c.city, value: a.city },
-        { key: 'state', label: c.state, value: stateName(a.stateCode) },
-        { key: 'pincode', label: c.pincode, value: a.pincode },
+        { label: c.line1, value: a.line1, copy: true },
+        { label: c.line2, value: a.line2, copy: true, hidden: !a.line2 },
+        { label: c.city, value: a.city, copy: true },
+        { label: c.state, value: stateName(a.stateCode), copy: true },
+        { label: c.pincode, value: a.pincode, copy: true },
       ]
     : []
   // Courier-app order: name, phone, address, city, state, PIN code.
@@ -79,97 +80,99 @@ export default function CustomerCard({ order }: CustomerCardProps) {
   ]
     .filter((v): v is string => Boolean(v))
     .join('\n')
-  const link =
-    'text-caption text-foreground underline underline-offset-2 hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
   const profileHref = order.customer ? `/customers/${order.customer.id}` : null
   const readOnly = Boolean(order.importedFrom)
 
   return (
     <DataCard
-      title={copy.customer.heading2}
+      title={c.heading}
       action={
-        <div className="flex items-center gap-3">
-          {order.email ? (
-            <Link href={`/orders?query=${encodeURIComponent(order.email)}`} className={link}>
-              {c.viewOrders}
-            </Link>
-          ) : null}
-          {profileHref ? (
-            <Link href={profileHref} className={link}>
-              {c.viewProfile}
-            </Link>
-          ) : null}
-        </div>
+        readOnly ? null : (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            title={c.editHint}
+            onClick={() => setEditing(true)}
+          >
+            <Pencil />
+            {c.edit}
+          </Button>
+        )
       }
     >
-      <div className="flex flex-col gap-5 text-body">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-muted-foreground">
-            {order.customer
-              ? order.customerOrderNumber > 0
-                ? c.orderCount(order.customerOrderNumber)
-                : null
-              : c.guest}
-          </p>
-          <div className="flex items-center gap-2">
-            {allText ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                title={c.copyAllHint}
-                onClick={handleCopyAll}
+      {/* Figma "Orders / Order detail" › Customer: who, then the fields one per line (label over
+          value, a copy button each), Copy all for courier, and Call / WhatsApp at the bottom. */}
+      <div className="flex flex-col gap-4 text-body">
+        <div className="flex items-center gap-2.5">
+          <CustomerAvatar
+            name={name || null}
+            email={order.email}
+            className="size-8 bg-muted font-medium text-foreground"
+          />
+          <div className="flex min-w-0 flex-col">
+            {profileHref ? (
+              <Link
+                href={profileHref}
+                className="truncate font-medium text-ink-strong hover:underline"
               >
-                <Copy />
-                {c.copyAll}
-              </Button>
-            ) : null}
-            {readOnly ? null : (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                title={c.editHint}
-                onClick={() => setEditing(true)}
-              >
-                {c.edit}
-              </Button>
+                {name || order.email}
+              </Link>
+            ) : (
+              <span className="truncate font-medium text-ink-strong">{name || order.email}</span>
+            )}
+            {order.customer ? (
+              order.customerOrderNumber > 0 && order.email ? (
+                <Link
+                  href={`${routes.orders.list()}?query=${encodeURIComponent(order.email)}`}
+                  className="w-fit text-xs text-muted-foreground hover:text-foreground hover:underline"
+                >
+                  {c.orderCount(order.customerOrderNumber)}
+                </Link>
+              ) : null
+            ) : (
+              <span className="text-xs text-muted-foreground">{c.guest}</span>
             )}
           </div>
         </div>
 
-        <DetailRows heading={c.contact} rows={contact} />
-        {a ? (
-          <DetailRows heading={c.address} rows={place} />
-        ) : (
-          <div className="flex flex-col gap-1">
-            <p className="text-eyebrow">{c.address}</p>
+        <LabeledGroup label={c.contact}>
+          <KeyValueList rows={contact} />
+        </LabeledGroup>
+        <LabeledGroup label={c.address}>
+          {a ? (
+            <KeyValueList rows={place} />
+          ) : (
             <p className="text-muted-foreground">{c.noAddress}</p>
-          </div>
-        )}
-        {a ? (
-          <div className="flex flex-col gap-1">
-            <p className="text-eyebrow">{c.billing}</p>
-            <p className="text-muted-foreground">{c.billingSame}</p>
-          </div>
-        ) : null}
+          )}
+        </LabeledGroup>
+        {a ? <p className="text-xs text-muted-foreground">{c.billingSame}</p> : null}
 
         {order.buyerGstin ? (
-          <div className="flex flex-col gap-1">
-            <p className="text-eyebrow">{c.business}</p>
+          <LabeledGroup label={c.business}>
             {order.buyerBusinessName ? <p>{order.buyerBusinessName}</p> : null}
             <div className="flex items-center gap-1">
               <span className="font-mono">{order.buyerGstin}</span>
               <CopyButton value={order.buyerGstin} what={c.gstin} visible />
             </div>
-          </div>
+          </LabeledGroup>
         ) : null}
         {order.customerNote ? (
-          <div className="flex flex-col gap-1">
-            <p className="text-eyebrow">{c.note}</p>
+          <LabeledGroup label={c.note}>
             <p className="whitespace-pre-line">{order.customerNote}</p>
+          </LabeledGroup>
+        ) : null}
+
+        {allText ? (
+          <div className="flex flex-col gap-1.5">
+            <Button type="button" variant="outline" className="w-full" onClick={handleCopyAll}>
+              <Copy />
+              {c.copyAllCourier}
+            </Button>
+            <p className="text-xs text-muted-foreground">{c.copyAllHint}</p>
           </div>
         ) : null}
+        <ContactActions phone={phone} layout="grid" />
       </div>
 
       {editing ? (
@@ -181,40 +184,5 @@ export default function CustomerCard({ order }: CustomerCardProps) {
         />
       ) : null}
     </DataCard>
-  )
-}
-
-type DetailRowsProps = { heading: string; rows: Row[] }
-
-/** A labelled list of fields; an empty field shows a dash and has nothing to copy. */
-function DetailRows({ heading, rows }: DetailRowsProps) {
-  return (
-    <div className="flex flex-col gap-1">
-      <p className="text-eyebrow">{heading}</p>
-      <dl className="flex flex-col divide-y divide-border">
-        {rows.map((r) => (
-          <div key={r.key} className="flex min-h-10 items-center gap-2 py-1">
-            <dt className="w-24 shrink-0 text-caption text-muted-foreground">{r.label}</dt>
-            <dd className="min-w-0 flex-1 break-words text-ink-strong">
-              {r.value ? (
-                r.href ? (
-                  <a
-                    href={r.href}
-                    className="text-link underline underline-offset-2 hover:text-foreground"
-                  >
-                    {r.value}
-                  </a>
-                ) : (
-                  r.value
-                )
-              ) : (
-                <span className="text-muted-foreground">-</span>
-              )}
-            </dd>
-            {r.value ? <CopyButton value={r.value} what={r.label} visible /> : null}
-          </div>
-        ))}
-      </dl>
-    </div>
   )
 }

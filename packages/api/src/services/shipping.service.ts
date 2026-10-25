@@ -1,17 +1,22 @@
 import {
   applyTracking,
+  type CreateShipmentOptions,
   cancelShipment,
   createShipmentForOrder,
   decryptShippingSettings,
   estimateForStore,
+  FulfillmentOnHold,
   mergeMaskedSecrets,
+  orderNumberLabel,
   parseShippingSettings,
   primaryShippingProvider,
   type RateLimitRule,
+  recordProviderActivity,
   type ShippingRegistry,
   type ShippingSettings,
   shippingProviderById,
 } from '@commerce/core'
+import { getRegistries } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
 import { shipment, store } from '@commerce/db'
 import { CourierError, describeCourierFailure, isValidPincode } from '@commerce/shipping'
@@ -151,6 +156,13 @@ export async function testShippingConnection(
     return { ok: false, message: 'Enter a valid 6-digit origin PIN code first.' }
   }
 
+  /* An export-only courier (DHL Express, FedEx) has no answer for an Indian PIN code, so its
+     own read-only check (a token or a rate lookup abroad) stands in for the serviceability one. */
+  if (built.provider.coverage === 'international') {
+    const check = await built.provider.verifyCredentials()
+    return check.ok ? { ok: true, message: check.message } : { ok: false, message: check.message }
+  }
+
   try {
     const result = await built.provider.checkServiceability({
       originPincode: pincode,
@@ -161,6 +173,11 @@ export async function testShippingConnection(
         ok: false,
         message: `${factory.label} accepted the token, but does not currently serve PIN ${pincode}. Double check the origin PIN code.`,
       }
+    }
+    // The PIN code lookup did not use the credentials (DTDC), so prove them separately.
+    if (factory.serviceabilityWithoutCredentials) {
+      const check = await built.provider.verifyCredentials()
+      if (!check.ok) return { ok: false, message: check.message }
     }
     // A cheap bonus lookup: only RapidShyp exposes this today (Fetch Pickup Location API), and
     // failing to fetch it never fails the connection test itself - the Connect page just keeps
@@ -181,6 +198,9 @@ export async function testShippingConnection(
 
 /** Courier failures become BAD_REQUEST with the app's wording; the courier's never reaches the UI raw. */
 const courierToRpc = (err: unknown): never => {
+  if (err instanceof FulfillmentOnHold) {
+    throw new ORPCError('PRECONDITION_FAILED', { message: err.message })
+  }
   if (err instanceof CourierError) {
     const detail = err.kind === 'rejected' ? err.message : describeCourierFailure(err)
     throw new ORPCError('BAD_REQUEST', { message: detail })
@@ -188,23 +208,50 @@ const courierToRpc = (err: unknown): never => {
   throw err
 }
 
+/** Book one order (or one of its parcels) with the courier the merchant picked; without a
+ *  pick, the store's first courier, as before the Create shipment flow. */
 export async function bookShipment(
   tx: StoreTx,
   storeId: string,
   registry: ShippingRegistry,
   secret: string,
   orderId: string,
+  choice: CreateShipmentOptions & { providerId?: string | undefined } = {},
 ) {
-  const provider = primaryShippingProvider(
-    registry,
-    await loadShippingSettings(tx, storeId),
-    secret,
-  )
+  const { providerId, ...options } = choice
+  const settings = await loadShippingSettings(tx, storeId)
+  const provider = providerId
+    ? shippingProviderById(registry, settings, secret, providerId)
+    : primaryShippingProvider(registry, settings, secret)
   if (!provider)
     throw new ORPCError('PRECONDITION_FAILED', {
-      message: 'Enable a courier in Settings › Shipping first.',
+      message: providerId
+        ? `Courier ${providerId} is no longer connected. Pick another one.`
+        : 'Enable a courier in Settings › Shipping first.',
     })
-  return createShipmentForOrder({ storeId, tx }, provider, orderId).catch(courierToRpc)
+  const row = await createShipmentForOrder({ storeId, tx }, provider, orderId, options).catch(
+    courierToRpc,
+  )
+  await noteShipmentBooked(tx, storeId, provider.id, orderId)
+  return row
+}
+
+/** "Booked shipment for #1187" as the courier app's last activity on the Installed apps list. */
+export async function noteShipmentBooked(
+  tx: StoreTx,
+  storeId: string,
+  providerId: string,
+  orderId: string,
+): Promise<void> {
+  const label = await orderNumberLabel(tx, orderId)
+  await recordProviderActivity(
+    tx,
+    storeId,
+    getRegistries().owners,
+    'shipping',
+    providerId,
+    label ? `Booked shipment for ${label}` : 'Booked a shipment',
+  )
 }
 
 export async function refreshShipmentTracking(

@@ -1,5 +1,6 @@
 'use client'
 
+import { CheckIcon, LogOut } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { FieldError } from '@commerce/ui/shadcn/field'
@@ -90,7 +91,7 @@ export default function AcceptInvitation({
               {copy.otherAccount.body(signedInEmail ?? '', email)}
             </p>
             <Button className="w-full" variant="outline" onClick={handleSignOut} disabled={busy}>
-              {busy ? <Spinner /> : null}
+              {busy ? <Spinner /> : <LogOut aria-hidden="true" />}
               {copy.otherAccount.signOut}
             </Button>
           </>
@@ -98,7 +99,7 @@ export default function AcceptInvitation({
           <>
             {error ? <FieldError>{error}</FieldError> : null}
             <Button className="w-full" onClick={handleAccept} disabled={busy}>
-              {busy ? <Spinner /> : null}
+              {busy ? <Spinner /> : <CheckIcon aria-hidden="true" />}
               {copy.accept}
             </Button>
           </>

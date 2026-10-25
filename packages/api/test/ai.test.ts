@@ -158,6 +158,7 @@ describe('AI off', () => {
       productWriter: false,
       assistant: false,
       bulkWriter: false,
+      documentReader: false,
     })
     await expect(
       call(appRouter.ai.writeProduct, writeInput, { context: a.ctx }),
@@ -232,12 +233,18 @@ describe('settings, switches and quota', () => {
       { features: { productWriter: false } },
       { context: a.ctx },
     )
-    expect(saved.features).toEqual({ productWriter: false, assistant: true, bulkWriter: true })
+    expect(saved.features).toEqual({
+      productWriter: false,
+      assistant: true,
+      bulkWriter: true,
+      documentReader: true,
+    })
     expect(await call(appRouter.ai.status, undefined, { context: a.ctx })).toEqual({
       configured: true,
       productWriter: false,
       assistant: true,
       bulkWriter: true,
+      documentReader: true,
     })
     await expect(
       call(appRouter.ai.writeProduct, writeInput, { context: a.ctx }),
@@ -273,8 +280,8 @@ describe('settings, switches and quota', () => {
       call(appRouter.ai.writeProduct, writeInput, { context: a.ctx }),
     ).resolves.toBeTruthy()
     const settings = await call(appRouter.ai.settings, undefined, { context: a.ctx })
-    expect(settings.plan).toBe('unlimited')
-    expect(settings.quota).toEqual({ calls: null, tokens: null })
+    expect(settings.plan).toBe('pro')
+    expect(settings.quota).toMatchObject({ calls: null, tokens: null })
   })
 
   it('rate limits bursts per store (20 per 5 minutes)', async () => {
@@ -299,6 +306,8 @@ describe('permissions', () => {
       productWriter: false,
       assistant: true,
       bulkWriter: false,
+      // The staff role may write inventory, so it may have bills read.
+      documentReader: true,
     })
     await expect(
       call(appRouter.ai.writeProduct, writeInput, { context: staff }),

@@ -1,5 +1,6 @@
 'use client'
 
+import { Send } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -84,6 +85,7 @@ export default function SendDialog({
             {copy.cancel}
           </Button>
           <Button onClick={handleConfirm} disabled={busy || invalid}>
+            <Send aria-hidden="true" />
             {mode === 'now' ? copy.confirmNow(reach ?? 0) : copy.confirmLater}
           </Button>
         </DialogFooter>

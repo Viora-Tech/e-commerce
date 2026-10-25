@@ -1,4 +1,10 @@
-import type { PresignedUpload, PresignInput, PutInput, StorageProvider } from './types'
+import type {
+  PresignedUpload,
+  PresignInput,
+  PutInput,
+  PutStreamInput,
+  StorageProvider,
+} from './types'
 
 export type MemoryStorageOptions = {
   /** Where `publicUrl` points; tests only ever compare the string. */
@@ -41,6 +47,16 @@ export class MemoryStorageProvider implements StorageProvider {
 
   async put(input: PutInput): Promise<void> {
     this.objects.set(input.key, { body: input.body, contentType: input.contentType })
+  }
+
+  /** Keys written through `putStream`, so tests can tell a streamed copy from a buffered one. */
+  readonly streamed: string[] = []
+
+  async putStream(input: PutStreamInput): Promise<void> {
+    const body = new Uint8Array(await new Response(input.body).arrayBuffer())
+    input.signal?.throwIfAborted()
+    this.streamed.push(input.key)
+    this.objects.set(input.key, { body, contentType: input.contentType })
   }
 
   async get(key: string): Promise<Uint8Array | null> {

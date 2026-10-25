@@ -43,6 +43,7 @@ export const staffContent = {
   },
   roles: {
     heading: 'Roles',
+    columns: { role: 'Role', members: 'Members' },
     create: 'Create role',
     empty: 'No custom roles yet.',
     builtIn: 'Built in',
@@ -72,6 +73,7 @@ export const staffContent = {
     save: 'Save role',
     cancel: 'Cancel',
     readOnly: 'Built in roles cannot be changed.',
+    back: 'Staff',
   },
   status: {
     active: 'Active',

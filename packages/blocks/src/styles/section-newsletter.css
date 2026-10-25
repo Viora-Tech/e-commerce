@@ -2,7 +2,7 @@
  * Newsletter banner (sections/newsletter.liquid, components/sections/newsletter.tsx):
  * rounded card, headline + reasons on the left, interests and the email
  * capture on the right. Stacks to a single column below 750px. The meteors
- * behind the copy are Aceternity's (effects/meteors.tsx), not Glide's script.
+ * behind the copy are Aceternity's (effects/meteors.tsx), not Zero Drift's script.
  *
  * The card's palette is a handful of local custom properties (--nl-*)
  * rather than hard-coded colours; they track the section frame's
@@ -436,4 +436,56 @@ html:not(.has-cursor-fill) .newsletter__submit:hover {
   .newsletter__submit {
     width: 100%;
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* Figma Section / Newsletter (708:120010)                              */
+/* ------------------------------------------------------------------ */
+/* A surface card on the card radius: eyebrow, a 32px bold heading, the line,
+   then a plain field and a separate button rather than one pill. */
+.newsletter__card:not(:where(.shopify-section *)) {
+  border-radius: var(--radius-card, var(--radius-m));
+}
+
+.newsletter__heading:not(:where(.shopify-section *)) {
+  font-size: calc(2rem * var(--font-heading-scale, 1));
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
+
+.newsletter__eyebrow:not(:where(.shopify-section *)) {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+.newsletter__field:not(:where(.shopify-section *)) {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+
+.newsletter__field:focus-within:not(:where(.shopify-section *)) {
+  box-shadow: none;
+}
+
+.newsletter__input:not(:where(.shopify-section *)) {
+  height: 48px;
+  padding-inline: 14px;
+  border: 1px solid var(--nl-field-border);
+  border-radius: var(--radius-input, var(--radius-m));
+  background-color: var(--nl-field-bg);
+}
+
+.newsletter__input:focus:not(:where(.shopify-section *)) {
+  border-color: var(--nl-ink);
+}
+
+.newsletter__submit:not(:where(.shopify-section *)) {
+  height: 48px;
+  border-radius: var(--radius-button, var(--radius-m));
 }

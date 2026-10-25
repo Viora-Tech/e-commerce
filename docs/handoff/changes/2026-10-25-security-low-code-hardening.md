@@ -38,17 +38,25 @@ touched.
   not a re-hash, so editing an already-applied migration does not re-run it.
 
 - **C-07 — dependency CVEs** (root `package.json` `overrides`, `bun.lock`).
-  Added `overrides` pinning the two prod-runtime deps the audit flagged:
+  Added `overrides` pinning the prod-runtime deps the audit flagged:
   - `follow-redirects` → `1.16.1` (was `1.16.0`, pulled by `razorpay`; two HIGH credential-header
     leak advisories GHSA-q3jh-wrc6-jgq8, GHSA-8r9p-f939-6h3c).
-  - `undici` → `7.30.1` (was `7.29.1`, pulled by `@ai-sdk/gateway` + `shadcn`; advisory
-    `>=7.0.0 <7.30.1`). Pinned **within the existing `^7` range** — deliberately not the 8.x major,
-    to avoid a breaking bump on launch eve.
+  - `undici` → `8.12.3`. **Changed from the `7.30.1` pin this branch carried off `main`** when it
+    was merged into `dev`. `dev` had since added `jsdom@30.1.2` (admin component-test env,
+    `// @vitest-environment jsdom`) which requires `undici ^8.11.2`, hoisting undici to the 8.x line;
+    the live advisory moved with it to **`>=8.0.0 <8.12.2`** (up to HIGH — content-encoding DoS,
+    GHSA-xjj6-f33q-929c; EventSource DoS GHSA-4qv8-2p9j-2685; SRI bypass GHSA-f72v-6w45-q472),
+    hitting prod consumers `ai` / `@ai-sdk/gateway` / `mjml` via the hoisted `8.11.2`. `8.12.3` is the
+    fixed release and **satisfies `jsdom`'s `^8.11.2`**, so the override clears the advisory without
+    breaking the admin test env. Bun has no nested/scoped overrides (it warns and ignores them), so a
+    global pin was the only lever; it force-upgrades the few remaining `^7`/`^6` nested consumers
+    (`@ai-sdk/provider-utils`, `cheerio`, `juice/cheerio`, `shadcn`, `miniflare`) to `8.12.3` — low
+    risk (the `@ai-sdk` siblings already ran on undici 8 in this tree; `cheerio`'s undici is a
+    `fromURL` cold path `juice` never calls). `@commerce/core` + `@commerce/ai` typecheck clean on it.
 
-  `bun audit` no longer lists either. The remaining audit hits (dompurify/xmldom in `@commerce/docs`,
-  vite/vitest/happy-dom in admin dev-deps, source-map-js) are **docs- or test-tooling only**, not
-  shipped in the storefront/admin runtime — out of scope here; bumping vitest/happy-dom risks the
-  test suite and was left for a separate dependency-maintenance pass.
+  `bun audit` no longer lists `undici` or `follow-redirects`. The remaining audit hits (katex/mermaid
+  in `@commerce/docs`, esbuild in `drizzle-kit`, etc.) are **docs- or build-tooling only**, not shipped
+  in the storefront/admin runtime — out of scope here, left for a separate dependency-maintenance pass.
 
 ## Verified
 

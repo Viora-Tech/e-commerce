@@ -74,27 +74,48 @@ export type MethodView = {
   title: string
   hint: string | null
   icon: 'phone' | 'card' | 'cash' | 'bank'
+  /** The gateway's brand when the option is a gateway ("Razorpay"), else null. */
+  brand: string | null
 }
 
-/** What a shopper reads for each way to pay; never a gateway's brand name. */
+/** The payment gateways' brand names, by provider id. */
+const gatewayBrand = (m: CheckoutMethod): string | null => content.gatewayBrands[m.id] ?? null
+
+/**
+ * What a shopper reads for each way to pay. A gateway is titled by its brand ("Razorpay",
+ * "Cashfree"), since a store may offer several, with what it takes as the hint
+ * ("UPI · Cards · Netbanking"); UPI, cash on delivery and transfers say what they are.
+ */
 export function methodView(m: CheckoutMethod): MethodView {
   const names = m.methods?.map((id) => content.onlineMethodNames[id]).filter(Boolean) ?? []
   if (m.id === 'cod')
-    return { title: content.methods.cod, hint: content.methods.codHint, icon: 'cash' }
+    return { title: content.methods.cod, hint: content.methods.codHint, icon: 'cash', brand: null }
   if (m.id === 'decentro')
-    return { title: content.methods.upi, hint: content.methods.upiHint, icon: 'phone' }
+    return { title: content.methods.upi, hint: content.methods.upiHint, icon: 'phone', brand: null }
   if (m.id === 'manual') {
-    return { title: content.methods.manual, hint: content.methods.manualHint, icon: 'bank' }
-  }
-  if (m.id === 'razorpay' || m.id === 'cashfree') {
-    const title = takesUpi(m) ? content.methods.gatewayWithUpi : content.methods.gatewayNoUpi
     return {
-      title,
-      hint: names.length ? names.join(' · ') : null,
-      icon: takesUpi(m) ? 'phone' : 'card',
+      title: content.methods.manual,
+      hint: content.methods.manualHint,
+      icon: 'bank',
+      brand: null,
     }
   }
-  return { title: m.label, hint: null, icon: 'card' }
+  const brand = gatewayBrand(m)
+  if (brand) {
+    const takes = takesUpi(m) ? content.methods.gatewayWithUpi : content.methods.gatewayNoUpi
+    return {
+      title: brand,
+      hint: names.length ? names.join(' · ') : takes,
+      icon: takesUpi(m) ? 'phone' : 'card',
+      brand,
+    }
+  }
+  return { title: m.label, hint: null, icon: 'card', brand: null }
+}
+
+/** The gateways that process the money on this checkout, once each: ["Razorpay", "Cashfree"]. */
+export function processorNames(methods: CheckoutMethod[]): string[] {
+  return [...new Set(methods.flatMap((m) => gatewayBrand(m) ?? []))]
 }
 
 export type CheckoutTotalsInput = {

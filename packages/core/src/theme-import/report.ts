@@ -32,7 +32,7 @@ export type ImportReport = {
   themeName: string
   themeVersion: string
   themeAuthor: string
-  /** Sections on the imported pages (home, header and footer groups). */
+  /** Sections on the imported pages (home, product, collection and page templates, header and footer). */
   imported: ImportCounts
   /** Every section file in the theme. */
   all: ImportCounts
@@ -75,8 +75,24 @@ export function importStatusFor(reasons: ReportReason[]): ImportStatus {
   return PRECEDENCE.find((s) => statuses.has(s)) ?? 'imported'
 }
 
-/** Templates a theme import turns into our templates today; the rest run on our pages. */
-export const IMPORTED_TEMPLATES = new Set(['index'])
+/**
+ * Templates a theme import turns into our templates, with their alternates (`page.about`,
+ * `product.preorder`); the rest run on our pages. A resource template keeps the theme's
+ * sections around our own main section (`main_template`).
+ */
+export const IMPORTED_TEMPLATES = new Set([
+  'index',
+  'product',
+  'collection',
+  'page',
+  'blog',
+  'article',
+  '404',
+])
+
+/** Whether a Shopify template name (`page.about` included) is turned into one of ours. */
+export const isImportedTemplate = (name: string): boolean =>
+  IMPORTED_TEMPLATES.has(name.split('.')[0] ?? name)
 
 /** Sections that draw a resource page's main content (product, collection, cart...). */
 export const isMainSection = (type: string): boolean => type.startsWith('main-') || type === 'main'

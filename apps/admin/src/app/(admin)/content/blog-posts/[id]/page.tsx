@@ -1,9 +1,9 @@
-import { loadEnv } from '@commerce/config'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import ArticleForm from '@/components/blog/article-form'
 import { articleFormContent } from '@/data/blog'
 import { appRouter, call, serverContext } from '@/lib/api'
+import { storefrontOrigin } from '@/lib/storefront-origin'
 
 export const metadata: Metadata = { title: articleFormContent.editTitle }
 
@@ -25,7 +25,7 @@ export default async function Page({ params }: Props) {
       blogs={blogs}
       tags={tags}
       defaultAuthor={article.author}
-      storefrontOrigin={loadEnv(process.env).STOREFRONT_URL}
+      storefrontOrigin={await storefrontOrigin()}
     />
   )
 }

@@ -41,7 +41,7 @@ better trade for a small deployment. It also means EXIF (see below) is stripped 
      **master**, and it replaces the original at the same storage key. The pre-pipeline
      original (which may have carried GPS) is never left reachable under any key once this
      step finishes.
-   - Generate every width in `VARIANT_WIDTHS` (320/640/960/1280/1920) that doesn't exceed the
+   - Generate every width in `VARIANT_WIDTHS` (320/640/1280/1920; media made before 960 was dropped may still carry a 960 variant, and delivery uses whatever widths the row has) that doesn't exceed the
      master's width — never upscale — in both AVIF and WebP.
    - Hash a ThumbHash (`thumbhash`, MIT) from a small decode of the master.
 4. **Write back.** `markMediaProcessed` sets `status: 'ready'`, `variants` (a
@@ -115,7 +115,13 @@ paths go through the same media host, so both are covered.
   upload path uses), so BullMQ ignores a repeat.
 - **Concurrency.** The enqueue happens inside `host()`, so it shares the importer's existing
   limits (`IMAGE_CONCURRENCY` downloads per product, 3 products at a time on the API path);
-  processing itself is bounded by the worker's `MEDIA_PROCESS_CONCURRENCY` (2).
+  processing itself is bounded by the worker's `MEDIA_PROCESS_CONCURRENCY` (default 3) and
+  `MEDIA_PROCESS_PER_STORE` (default 3, never above the concurrency). Import jobs carry
+  `bulk: true`, which the worker turns into the bulk profile: AVIF effort 2 (instead of 4) and the
+  widths encoded one at a time, so three parallel jobs stay well inside the 1.5 GB worker limit.
+  A job without the flag also gets it when its store has 25 or more images still `processing` (a big upload, or a backlog queued before the flag existed). A merchant's own single upload keeps the interactive profile. At start the worker splits the cores
+  across the parallel jobs (`tuneImagePipeline`: libvips threads = cores / concurrency) and caps
+  libvips' cache at 100 MB.
 - **Dry run.** Writers return before hosting any media on a dry run, and `run.ts` does not
   wire the hook for a dry run at all: nothing is downloaded or queued.
 - **Queue down.** `addMediaProcessJob` throws (unlike `enqueueMediaProcess`), and
@@ -127,10 +133,34 @@ paths go through the same media host, so both are covered.
 Outside the worker (`processMedia` absent, for example a script calling `executeRun`
 directly), imported images stay `processing` until the backfill runs.
 
+## Keeping the shop fast while images process
+
+Image processing shares the server's CPU with the storefront. On the 2-vCPU production box a
+backlog of a few hundred imported images held the worker at 200% CPU and pushed store pages from
+about 1 s to 3 to 5 s. Two things keep that in check:
+
+- **A CPU cap on the worker container** (the real fix). Docker gives every container an equal
+  share of the CPU, and `nice` inside a container only reorders that container's own threads, so
+  the cap has to be set on the service. Values and where to set them:
+  [Deployment → CPU for the worker](/developer-docs/operations/deployment#cpu-for-the-worker).
+- **Fewer jobs at once**: `MEDIA_PROCESS_CONCURRENCY=1` on a 2-vCPU box (each job then uses
+  every core it is allowed through `tuneImagePipeline`, so a single upload is not slower).
+
+### The "store may be slower" notice
+
+While more than 50 images are `processing`, or a real (not preview) Shopify import is running,
+the admin shows "Processing N images in the background: your store may be a little slower until
+it finishes (about X min)" on Home, Content → Files and the importer
+(`components/media/background-work-notice.tsx`, polled every 30 s). The numbers come from
+`media.backgroundWork` → `backgroundWork(mediaBacklog(tx), importInProgress(tx))` in core: N is
+the store's rows still `processing` (`pending` is an upload the browser never confirmed, not
+work), X is N divided by how many finished in the last ten minutes, or six seconds an image when
+none did. Copy: `data/background-work.ts` (Hindi in `data/hi/`).
+
 ## Backfill
 
 ```bash
-bun run media:reprocess [--store <slug>]
+bun run media:reprocess [--store <slug>] [--concurrency <n>]
 ```
 
 Runs the same `processImage` pipeline directly (no queue) over every row that still needs it:
@@ -138,6 +168,23 @@ stuck `processing` (a worker restart mid-job, or a Shopify-import image whose en
 and was listed as an import issue), `failed` (retry), and `ready` rows with
 `variants IS NULL` (legacy media from before this feature). Batched (`LIMIT`, not `OFFSET` — a fixed row already re-fetches out of the
 `WHERE` on its own) and resumable: interrupt it any time, re-run it, it continues.
+
+`--concurrency <n>` (default 2, max 8) processes that many rows at once, each in its own
+transaction; one failed row is marked `failed` and the rest carry on. `processImage` (sharp) is
+CPU-bound, so set it to about the server's cores.
+
+### Rehost after a bucket move
+
+```bash
+bun run media:rehost --store <slug> [--dry-run] [--concurrency <n>]
+```
+
+For rows whose `url` is not under the store's current storage: if the object is already in the
+current bucket only the URLs are rewritten, otherwise the Shopify source (from the import
+mapping) is downloaded again, run through `processImage` and stored in the current bucket.
+Product and collection descriptions that mention the old base are rewritten afterwards.
+`--dry-run` only counts; safe to re-run. `--concurrency` works as for `media:reprocess`: about
+one row per core (one at a time took ~25 s an image on a 2-vCPU server and used one core).
 
 ## Testing
 

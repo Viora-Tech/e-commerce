@@ -1,12 +1,38 @@
 export type { ApiContext, DailyVisitors, LiveVisitors, VisitorSource } from './context'
-export { base, protectedProcedure, storeProcedure } from './procedures'
+export { apiTokenRefusal } from './mcp/action-catalogue'
+export { handleMcpDownload } from './mcp/download-link'
+export {
+  type AuthorizeParams,
+  type AuthorizeRequest,
+  authorizationServerMetadata,
+  checkAuthorize,
+  consentStore,
+  decideAuthorize,
+  handleRegister,
+  handleRevoke,
+  handleToken,
+  OAUTH_CORS,
+  protectedResourceMetadata,
+} from './mcp/oauth'
+export { clientIp, handleMcpRequest, mcpPath, resourceMetadataUrl } from './mcp/server'
+export {
+  base,
+  createRequestMemo,
+  isNoStoreError,
+  protectedProcedure,
+  type RequestMemo,
+  remember,
+  storeProcedure,
+} from './procedures'
 export { type AppRouter, appRouter } from './routers/_app'
+export { channelDeps, queueChannelSync } from './routers/sales-channels'
 export type {
   AnalyticsKpi,
   AnalyticsLive,
   AnalyticsOverview,
 } from './services/analytics.service'
 export type {
+  ProfitInsights,
   ReportChartPoint,
   ReportResult,
   ReportRow,
@@ -21,12 +47,25 @@ export {
   type ReportColumnKind,
   type ReportDefinition,
 } from './services/analytics-reports'
-export {
-  DASHBOARD_LOW_STOCK_THRESHOLD,
-  type DashboardChartRange,
-  type DashboardChartsData,
-  type DashboardSummary,
+export type { CampaignPerformanceRow } from './services/campaign-performance.service'
+export type { CustomerSheetRow } from './services/customer-sheet.service'
+export type {
+  DashboardChartRange,
+  DashboardChartsData,
+  DashboardSummary,
 } from './services/dashboard.service'
+export type { AutopilotProposalView, AutopilotView } from './services/growth-autopilot.service'
+export type {
+  GrowthOutcomes,
+  OutcomeKind,
+  OutcomeRow,
+} from './services/growth-outcomes.service'
+export type { CampaignDay, CampaignLinkRow, CampaignReport } from './services/growth-report.service'
+export type {
+  HomeAnalytics,
+  HomeCompare,
+  HomeMetricFigures,
+} from './services/home-analytics.service'
 export type {
   CampaignRow,
   ChannelRow,
@@ -41,3 +80,4 @@ export {
   SOURCE_KEYS,
   SOURCE_LABELS,
 } from './services/marketing-overview.service'
+export type { OrderSheetRow } from './services/order-sheet.service'

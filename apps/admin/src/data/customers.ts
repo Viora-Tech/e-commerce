@@ -1,3 +1,5 @@
+import { routes } from '@/lib/routes'
+
 export const CUSTOMER_SEGMENTS = ['new', 'returning', 'subscribed'] as const
 export type CustomerSegment = (typeof CUSTOMER_SEGMENTS)[number]
 
@@ -19,49 +21,33 @@ export function customerActivity(
   return new Date(customer.lastOrderAt).getTime() >= cutoff ? 'active' : 'inactive'
 }
 
-/**
- * Short readable code for the frame's "#CUST001" column. There is no customer
- * number in the schema, so the tail of the record id stands in: stable, unique
- * and short enough to read out on a call.
- */
-export function customerCode(id: string): string {
-  return `#${id.replaceAll('-', '').slice(-6).toUpperCase()}`
-}
-
 /** Copy for the Customers section. */
 export const customersContent = {
   title: 'Customers',
-  /* Frame 5:2879: three stacked tiles beside the overview chart, then the table. */
-  heading: 'Customer list',
-  resource: { singular: 'customer', plural: 'customers' },
-  tiles: {
+  heading: 'Customers',
+  /* The plain-language line under the title. */
+  summary: {
+    empty: 'Everyone who orders from your store shows up here.',
+    total: (n: number) => (n === 1 ? '1 customer' : `${n} customers`),
+    newThisWeek: (n: number) => `${n} new this week`,
+    repeat: (n: number) =>
+      n === 1 ? '1 has ordered more than once' : `${n} have ordered more than once`,
+  },
+  stats: {
     total: 'Total customers',
     newCustomers: 'New customers',
-    visitors: 'Visitor',
-    newThisMonth: 'New customers',
-    returning: 'Returning',
-    average: 'Average lifetime value',
-    period: 'Last 30 days',
-    week: 'Last 7 days',
-    allTime: 'All time',
+    repeat: 'Repeat customers',
+    subscribed: 'Subscribed',
+    vsLastWeek: 'vs last week',
+    shareOfAll: (percent: number) => `${percent}% of all customers`,
+    canGetEmails: 'can get your emails',
   },
-  overview: {
-    title: 'Customer overview',
-    thisWeek: 'This week',
-    lastWeek: 'Last week',
-    tabs: {
-      activeCustomers: 'Active customers',
-      repeatCustomers: 'Repeat customers',
-      shopVisitors: 'Shop visitors',
-      conversionRate: 'Conversion rate',
-    },
-    series: {
-      activeCustomers: 'Active customers',
-      repeatCustomers: 'Repeat customers',
-      shopVisitors: 'Shop visitors',
-      conversionRate: 'Conversion rate',
-    },
+  segmentsLink: 'Segments',
+  loadFailed: {
+    heading: 'Could not load customers',
+    body: 'Check your connection and try again.',
   },
+  resource: { singular: 'customer', plural: 'customers' },
   tabs: {
     all: 'All customers',
     new: 'New',
@@ -76,6 +62,8 @@ export const customersContent = {
     totalSpend: 'Total spend',
     status: 'Status',
     action: 'Action',
+    customer: 'Customer',
+    totalSpent: 'Total spent',
     email: 'Email',
     location: 'Location',
     orders: 'Orders',
@@ -84,6 +72,9 @@ export const customersContent = {
     tags: 'Tags',
   },
   rowActions: {
+    menu: (name: string) => `More actions for ${name}`,
+    email: 'Email',
+    whatsapp: 'WhatsApp',
     message: (name: string) => `Email ${name}`,
     noEmail: 'No email on file',
     delete: (name: string) => `Delete ${name}`,
@@ -96,11 +87,14 @@ export const customersContent = {
     deleted: 'Customer deleted',
     cancel: 'Cancel',
     confirm: 'Delete',
+    viewOrders: 'View orders',
+    addTag: 'Add tag',
   },
   filters: {
     heading: 'Filter customers',
     state: 'State',
     anyState: 'Any state',
+    spend: 'Spend',
     minSpend: 'Spent at least',
     maxSpend: 'Spent at most',
     orders: 'Minimum orders',
@@ -108,21 +102,18 @@ export const customersContent = {
     marketingAny: 'Anyone',
     marketingYes: 'Subscribed',
     marketingNo: 'Not subscribed',
+    business: 'Business customers',
+    businessAny: 'Anyone',
+    businessYes: 'Has a GSTIN',
+    businessNo: 'No GSTIN',
     tag: 'Tag',
     anyTag: 'Any tag',
-    applied: {
-      state: (code: string) => `State ${code}`,
-      minSpend: (amount: string) => `Spent ${amount} or more`,
-      maxSpend: (amount: string) => `Spent up to ${amount}`,
-      orders: (n: number) => `${n} orders or more`,
-      marketing: (yes: boolean) => (yes ? 'Subscribed' : 'Not subscribed'),
-      tag: (tag: string) => `Tag ${tag}`,
-    },
   },
   bulk: {
     addTag: 'Add tag',
     removeTag: 'Remove tag',
     export: 'Export selection',
+    email: 'Email',
     tagHeading: 'Tag customers',
     tagLabel: 'Tag name',
     tagPlaceholder: 'vip',
@@ -131,9 +122,32 @@ export const customersContent = {
     tagged: (n: number) => (n === 1 ? '1 customer updated' : `${n} customers updated`),
     noChange: 'Nothing to change',
     failed: 'Could not update the tags',
+    marketing: 'Marketing',
+    subscribe: (channel: string) => `Subscribe to ${channel}`,
+    unsubscribe: (channel: string) => `Unsubscribe from ${channel}`,
+    consentTitle: (granted: boolean, channel: string, n: number) => {
+      const who = n === 1 ? '1 customer' : `${n} customers`
+      return granted
+        ? `Subscribe ${who} to ${channel} marketing?`
+        : `Unsubscribe ${who} from ${channel} marketing?`
+    },
+    consentBody: (granted: boolean) =>
+      granted
+        ? 'Only do this if they agreed to hear from you, for example on a call or a signed form. Each change is kept in their consent history.'
+        : 'They stop getting marketing on this channel. Each change is kept in their consent history.',
+    consentConfirm: (granted: boolean) => (granted ? 'Subscribe' : 'Unsubscribe'),
+    consentFailed: 'Could not update marketing consent',
+    bulkEdit: 'Bulk edit',
+    openFailed: 'Could not open the bulk editor',
+    delete: 'Delete',
+    deleteTitle: (n: number) => (n === 1 ? 'Delete 1 customer?' : `Delete ${n} customers?`),
+    deleteBody:
+      'Their records and notes go away. This cannot be undone. Customers with orders stay, so the order history keeps them.',
+    deleteConfirm: 'Delete',
   },
   saveSegment: 'Save as segment',
   exportAll: 'Export',
+  statuses: { vip: 'VIP', active: 'Active', inactive: 'Inactive' },
   exported: (n: number) => (n === 1 ? '1 row exported' : `${n} rows exported`),
   exportFailed: 'Could not build the export',
   unnamed: 'No name',
@@ -142,10 +156,14 @@ export const customersContent = {
     heading: 'No customers yet',
     body: 'Everyone who places an order shows up here with their order history and contact details.',
   },
+  noResults: {
+    heading: 'No customers match these filters',
+    body: 'Try a different search or clear the filters.',
+  },
   detail: {
     heading: 'Customer not found',
     body: 'This customer record does not exist in the current store.',
-    action: { label: 'Back to customers', href: '/customers' },
+    action: { label: 'Back to customers', href: routes.customers.list() },
   },
 } as const
 
@@ -153,9 +171,32 @@ export const customersContent = {
 export const customerDetailContent = {
   back: 'Customers',
   since: (when: string) => `Customer since ${when}`,
-  badges: { returning: 'Returning', vip: 'VIP' },
+  sinceToday: 'Customer since today',
+  sinceYesterday: 'Customer since yesterday',
+  withCity: (text: string, city: string) => `${text} · ${city}`,
+  badges: { returning: 'Returning', vip: 'VIP', new: 'New' },
+  nextStep: {
+    eyebrow: 'Next step',
+    notNow: 'Not now',
+    vip: {
+      title: 'Thank your VIP',
+      body: (orders: number, spent: string) =>
+        `${orders === 1 ? '1 order' : `${orders} orders`} and ${spent} spent. Tell them about your next drop before anyone else.`,
+    },
+    winBack: {
+      title: 'Win them back',
+      body: (days: number) =>
+        `No order in ${days} days. A friendly message often brings people back.`,
+    },
+    whatsapp: 'Message on WhatsApp',
+    email: 'Email instead',
+    emailPrimary: 'Send an email',
+  },
   actions: {
     edit: 'Edit',
+    more: 'More actions',
+    whatsapp: 'WhatsApp',
+    call: 'Call',
     email: 'Email customer',
     delete: 'Delete customer',
     deleteHeading: 'Delete this customer?',
@@ -186,7 +227,7 @@ export const customerDetailContent = {
     failed: 'Could not save the customer',
   },
   totals: {
-    heading: 'Stats',
+    heading: 'Lifetime',
     orders: 'Orders',
     spent: 'Total spent',
     lastOrder: 'Last order',
@@ -194,7 +235,7 @@ export const customerDetailContent = {
     firstOrder: 'First order',
   },
   profile: {
-    heading: 'Profile',
+    heading: 'Contact',
     name: 'Name',
     email: 'Email',
     phone: 'Phone',
@@ -210,11 +251,26 @@ export const customerDetailContent = {
   orders: {
     heading: 'Orders',
     empty: 'No orders from this customer yet. Their first purchase will show up here.',
+    emptyHeading: 'No orders yet',
+    emptyBody: 'Once this customer orders, you will see it here.',
+    createOrder: 'Create an order',
+    viewAll: 'View all orders',
+    showing: (shown: number, total: number) =>
+      shown < total ? `Showing the ${shown} most recent orders` : `Showing all ${total} orders`,
     columns: { order: 'Order', date: 'Date', status: 'Status', total: 'Total' },
+  },
+  activity: {
+    heading: 'Timeline',
+    empty: 'Nothing has happened yet. Orders and messages will show up here.',
+    placed: (number: number, total: string) => `Placed order #${number} for ${total}`,
+    sent: (what: string, channel: string) => `${what} sent by ${channel}`,
+    failed: (what: string) => `${what} could not be sent`,
+    more: (n: number) => `Show ${n} older`,
+    less: 'Show fewer',
   },
   timeline: {
     heading: 'Messages sent',
-    empty: 'No notifications sent to this customer yet.',
+    empty: 'No messages sent to this customer yet.',
     template: {
       order_placed: 'Order confirmation',
       payment_received: 'Payment received',
@@ -228,13 +284,34 @@ export const customerDetailContent = {
   tags: {
     heading: 'Tags',
     placeholder: 'Add a tag and press Enter',
-    saved: 'Tags saved',
+    remove: (tag: string) => `Remove ${tag}`,
   },
   note: {
-    heading: 'Note',
-    placeholder: 'Anything the team should know about this customer',
-    save: 'Save note',
-    saved: 'Note saved',
+    heading: 'Notes',
+    placeholder: 'Anything the team should know',
+  },
+  /** GSTIN and legal name for B2B invoices; saved with the page's other edits. */
+  business: {
+    heading: 'Business details',
+    gstin: 'GSTIN',
+    gstinPlaceholder: '06AAACW1234A1Z5',
+    businessName: 'Business name',
+    businessNamePlaceholder: 'Registered business name',
+    hint: 'Saved from checkout when the customer enters a GSTIN.',
+  },
+  /** Why a GSTIN was refused, by `validateGstin` reason (same rules as checkout). */
+  gstinErrors: {
+    shape: 'A GSTIN has 15 characters, like 06AAACW1234A1Z5',
+    state: 'The first two digits are not a GST state code',
+    checksum: 'This GSTIN has a typo: its last character does not match the rest',
+  },
+  /** One save bar for the page's inline edits: note, tags, business details and consent. */
+  changes: {
+    unsaved: 'Unsaved changes',
+    save: 'Save',
+    discard: 'Discard',
+    saved: 'Customer saved',
+    failed: 'Could not save. Your changes are still here.',
   },
 } as const
 
@@ -243,17 +320,57 @@ export const segmentsContent = {
   title: 'Segments',
   heading: 'Customer segments',
   intro: 'A segment is a saved filter. Open one to see who is in it right now.',
+  summary: (n: number) =>
+    n === 0
+      ? 'No segments yet'
+      : n === 1
+        ? '1 saved filter, counted live'
+        : `${n} saved filters, counted live`,
+  back: 'Customers',
   resource: { singular: 'segment', plural: 'segments' },
   create: 'Create segment',
   columns: { name: 'Segment', customers: 'Customers', updated: 'Updated' },
   empty: {
-    heading: 'No segments yet',
-    body: 'Save a filter as a segment to reuse it for discounts and messages.',
+    heading: 'Group customers who behave alike',
+    body: 'Make a segment like "bought twice in 60 days" and send it a WhatsApp campaign or a discount.',
+  },
+  templates: {
+    heading: 'Start from a template',
+    body: 'Ready-made segments most stores use. Open one, change the numbers to suit your store, and save it.',
+    use: 'Use template',
+    items: {
+      topSpenders: {
+        name: 'Top spenders',
+        description: 'Spent ₹10,000 or more with you.',
+      },
+      repeatBuyers: { name: 'Repeat buyers', description: 'Ordered at least twice.' },
+      oneTimeBuyers: {
+        name: 'One-time buyers',
+        description: 'Ordered once. A nudge can turn them into repeat buyers.',
+      },
+      recentBuyers: { name: 'Bought in the last 30 days', description: 'Fresh, happy customers.' },
+      lapsed: {
+        name: 'No order in 90 days',
+        description: 'Customers drifting away. Win them back with an offer.',
+      },
+      slippingVips: {
+        name: 'Big spenders slipping away',
+        description: 'Spent ₹5,000 or more but have not ordered in 60 days.',
+      },
+      subscribed: {
+        name: 'Subscribed to marketing',
+        description: 'Agreed to hear from you, so you can message them.',
+      },
+      business: {
+        name: 'Business customers',
+        description: 'Customers who saved a GSTIN. Send them bulk offers or GST-ready invoices.',
+      },
+    },
   },
   notFound: {
     heading: 'Segment not found',
     body: 'This segment does not exist in the current store.',
-    action: { label: 'Back to segments', href: '/customers/segments' },
+    action: { label: 'Back to segments', href: routes.customers.segments() },
   },
   builder: {
     newHeading: 'New segment',
@@ -270,11 +387,15 @@ export const segmentsContent = {
     empty: 'No conditions yet, so every customer matches.',
     preview: 'Matching customers',
     previewCount: (n: number) => (n === 1 ? '1 customer' : `${n} customers`),
+    previewLive: 'counted live from your customers',
+    previewAll: 'Every customer, until you add a condition',
+    newIntro: 'Pick who belongs in it. The count updates as you go.',
     previewEmpty: 'Nothing matches these conditions yet.',
     save: 'Save segment',
     saved: 'Segment saved',
     failed: 'Could not save the segment',
     deleted: 'Segment deleted',
+    deleteFailed: 'Could not delete the segment',
     delete: 'Delete segment',
     deleteHeading: 'Delete this segment?',
     deleteBody: 'The saved filter goes away. Customers are not affected.',
@@ -290,6 +411,7 @@ export const segmentsContent = {
     tag: 'Tag',
     last_order_days: 'Days since last order',
     marketing: 'Marketing consent',
+    business: 'Customer type',
   } as Record<string, string>,
   ops: {
     gte: 'is at least',
@@ -299,6 +421,12 @@ export const segmentsContent = {
     contains: 'includes',
   } as Record<string, string>,
   marketingValues: { true: 'Subscribed', false: 'Not subscribed' } as Record<string, string>,
+  businessValues: {
+    true: 'Business (has a GSTIN)',
+    false: 'Individual (no GSTIN)',
+  } as Record<string, string>,
+  /** Joins conditions when any one of them is enough. */
+  orJoin: ' or ',
   valuePlaceholder: {
     spend: '5000',
     orders: '2',
@@ -306,6 +434,7 @@ export const segmentsContent = {
     tag: 'vip',
     last_order_days: '90',
     marketing: '',
+    business: '',
   } as Record<string, string>,
 } as const
 

@@ -43,6 +43,11 @@ const SKIP: Record<string, string> = {
   'store.testDelhiveryConnection': 'courier API',
   'store.testShiprocketConnection': 'courier API',
   'store.testRapidshypConnection': 'courier API',
+  'store.testXpressbeesConnection': 'courier API',
+  'store.testEkartConnection': 'courier API',
+  'store.testShadowfaxConnection': 'courier API',
+  'store.testDhlExpressConnection': 'courier API',
+  'store.testFedexConnection': 'courier API',
   'store.testDecentroConnection': 'payment gateway API',
   'store.verifyStorage': 'storage bucket API',
   'store.testStorageConnection': 'storage bucket API',
@@ -52,11 +57,12 @@ const SKIP: Record<string, string> = {
   'orders.cancelShipment': 'courier API',
   'returns.arrangePickup': 'courier API',
   'shipments.bulkBook': 'courier API',
-  'shipments.compareRates': 'courier API',
+  'shipments.quote': 'courier API',
   'shipments.schedulePickup': 'courier API',
   'shipments.createManifest': 'courier API',
   'shipments.ndrAction': 'courier API',
   'shipments.refreshWallet': 'courier API',
+  'apps.testConnection': 'courier and payment gateway API',
   'payments.connect': 'payment gateway API',
   'payments.testConnection': 'payment gateway API',
   'payments.testOrderLink': 'payment gateway API',
@@ -73,10 +79,26 @@ const SKIP: Record<string, string> = {
   'shopifyImport.connect': 'Shopify API',
   'shopifyImport.testConnection': 'Shopify API',
   'shopifyImport.createApiRun': 'Shopify API',
+  'shopifyImport.preflight': 'Shopify API',
+  'shopifyImport.status': 'Shopify API',
+  'shopifyImport.settingsPreview': 'Shopify API',
+  'shopifyImport.importSettings': 'Shopify API',
+  'searchConsole.connectStart': 'Google OAuth',
+  'searchConsole.connectComplete': 'Google OAuth',
+  'searchConsole.disconnect': 'revokes the token at Google',
+  'searchConsole.properties': 'Google Search Console API',
+  'searchConsole.chooseProperty': 'Google Search Console API',
+  'searchConsole.refresh': 'Google Search Console API',
+  'searchConsole.sitemaps': 'Google Search Console API',
+  'searchConsole.submitSitemap': 'Google Search Console API',
   'ai.writeProduct': 'AI model provider (a dev .env key would reach the real gateway)',
+  'ai.suggestKeywords': 'AI model provider (a dev .env key would reach the real gateway)',
   'ai.assistant': 'AI model provider (a dev .env key would reach the real gateway)',
+  'reviews.writeReply': 'AI model provider (a dev .env key would reach the real gateway)',
   'ai.bulkWrite':
     'AI model provider (runs in the request without a queue); covered by ai-assistant.test.ts',
+  'purchaseDocuments.read':
+    'AI model provider (reads in the request without a queue); covered by purchase-documents.test.ts',
   'domains.connect': 'DNS and certificate provider',
   'domains.verify': 'DNS and certificate provider',
   'onboarding.create': 'creates another store and switches the session to it',
@@ -134,6 +156,12 @@ async function merchant(email: string, slug: string) {
   })
   expect(seeded.failed, `seeder could not fill: ${JSON.stringify(seeded.failed)}`).toEqual([])
   await owner.execute(sql`update product set status = 'active' where store_id = ${s.id}`)
+  // Apps whose routers refuse until installed are walked installed, so their procedures are
+  // probed too (an uninstalled app only ever answers "install it first").
+  await owner
+    .update(store)
+    .set({ apps: { installed: ['affiliates', 'pixels', 'inbox', 'reviews'] } })
+    .where(sql`${store.id} = ${s.id}`)
   return { headers, storeId: s.id, organizationId }
 }
 
@@ -229,6 +257,7 @@ const NAMESPACE_TABLE: Record<string, string> = {
   discounts: 'discount',
   'marketing.automations': 'marketing_automation',
   'marketing.campaigns': 'marketing_campaign',
+  'marketing.emailTemplates': 'marketing_email_template',
   giftCards: 'gift_card',
   gstInvoices: 'invoice',
   'gstInvoices.periods': 'invoice_period',
@@ -238,6 +267,7 @@ const NAMESPACE_TABLE: Record<string, string> = {
   domains: 'store_domain',
   themes: 'theme',
   'themes.templates': 'theme_template',
+  'themes.versions': 'theme_version',
   storeData: 'store_export',
   'backInStock.signups': 'back_in_stock_signup',
 }
@@ -254,6 +284,12 @@ const NAME_HINTS: [RegExp, string][] = [
   [/Role$/, 'role'],
   [/Location$/, 'location'],
 ]
+
+/** Id fields whose table is set by the procedure, not by the field name alone. */
+const PROCEDURE_KEY_TABLE: Record<string, string> = {
+  'purchaseOrders.receive.lineId': 'purchase_order_line',
+  'themes.code.version.versionId': 'theme_file_version',
+}
 
 const KEY_ALIAS: Record<string, string> = {
   orderLineId: 'order_line',
@@ -282,6 +318,8 @@ const KEY_ALIAS: Record<string, string> = {
 const snake = (s: string) => s.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`)
 
 function tableFor(key: string, path: string[], tables: Set<string>): string {
+  const byProcedure = PROCEDURE_KEY_TABLE[`${path.join('.')}.${key}`]
+  if (byProcedure) return byProcedure
   if (KEY_ALIAS[key]) return KEY_ALIAS[key]
   const m = key.match(/^(.+?)Ids?$/)
   if (m?.[1] && tables.has(snake(m[1]))) return snake(m[1])

@@ -1,0 +1,34 @@
+// The marketing site on Cloudflare Workers: the static export (out/) plus one small Worker
+// (worker/index.ts) that only answers POST /api/forms. Every other request is served straight
+// from the assets and never runs Worker code (run_worker_first).
+// Build with `bun run build` (writes out/), then `bunx wrangler deploy` from apps/www.
+// The Turnstile secret is a Worker secret (TURNSTILE_SECRET), never in this file.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "koomerce-www",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./out",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/api/*"]
+  },
+  "routes": [{ "pattern": "koomerce.app", "custom_domain": true }],
+  // Form submissions (migrations/). Read them: `bunx wrangler d1 execute koomerce-www-forms
+  // --remote --command "SELECT * FROM submissions ORDER BY id DESC LIMIT 20"`.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "koomerce-www-forms",
+      "database_id": "e768de78-23c2-4266-9159-7d1cb2fea9b0",
+      "migrations_dir": "migrations"
+    }
+  ],
+  // New waitlist and contact entries are emailed here through Email Routing; a send_email
+  // binding can only reach this one verified address.
+  "send_email": [{ "name": "NOTIFY", "destination_address": "vioramice@gmail.com" }],
+  // Only the form Worker runs code, so logs hold just its errors (a failed submit or email).
+  "observability": { "enabled": true }
+}

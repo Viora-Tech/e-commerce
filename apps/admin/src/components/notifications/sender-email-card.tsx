@@ -1,23 +1,16 @@
 'use client'
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
-import { Badge } from '@commerce/ui/shadcn/badge'
+import { RefreshCw, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
+import StatusChip from '@/components/layout/status-chip'
 import { senderEmailContent as copy } from '@/data/sender-email'
+import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
 import SenderDnsTable from './sender-dns-table'
 import SenderEmailForm from './sender-email-form'
@@ -28,7 +21,7 @@ import type { SenderEmailOverview } from './types'
 /** Re-read the saved status this often while waiting; the worker does the SES checks. */
 const POLL_MS = 30_000
 
-const TONE = { pending: 'warning', verified: 'success', failed: 'destructive' } as const
+const TONE = { pending: 'attention', verified: 'success', failed: 'danger' } as const
 
 /** The server's refusal code (`data.reason`) in plain words. */
 function errorText(err: unknown): string {
@@ -50,6 +43,7 @@ const when = (iso: Date | string) =>
  */
 export default function SenderEmailCard() {
   // Hooks
+  const announceSetup = useSetupNext()
   const [data, setData] = useState<SenderEmailOverview | null>(null)
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState<'save' | 'check' | 'remove' | null>(null)
@@ -83,6 +77,7 @@ export default function SenderEmailCard() {
       setData(next)
       setEditing(false)
       toast.success(next.sender?.status === 'verified' ? copy.verifiedToast : copy.saved)
+      void announceSetup('notifications')
     } catch (err) {
       setError(errorText(err))
     } finally {
@@ -129,7 +124,7 @@ export default function SenderEmailCard() {
   // Early returns
   if (!data) {
     return (
-      <Card className="gap-3 p-6">
+      <Card gap={3} inset={6}>
         <Skeleton className="h-5 w-48" />
         <Skeleton className="h-10 w-full" />
       </Card>
@@ -167,7 +162,7 @@ export default function SenderEmailCard() {
                 <p className="font-mono text-body font-medium break-all text-foreground">
                   {sender.email}
                 </p>
-                <Badge variant={TONE[sender.status]}>{copy.status[sender.status]}</Badge>
+                <StatusChip tone={TONE[sender.status]}>{copy.status[sender.status]}</StatusChip>
               </div>
               <p className="text-caption text-muted-foreground">{copy.statusHelp[sender.status]}</p>
               {reason ? <p className="text-caption text-destructive">{reason}</p> : null}
@@ -180,7 +175,7 @@ export default function SenderEmailCard() {
             <div className="flex flex-col gap-2 sm:flex-row">
               {sender.status !== 'verified' ? (
                 <Button onClick={handleCheck} disabled={busy !== null} className="w-full sm:w-auto">
-                  {busy === 'check' ? <Spinner /> : null}
+                  {busy === 'check' ? <Spinner /> : <RefreshCw aria-hidden="true" />}
                   {busy === 'check' ? copy.checking : copy.checkNow}
                 </Button>
               ) : null}
@@ -204,26 +199,22 @@ export default function SenderEmailCard() {
               disabled={busy !== null}
               onClick={() => setConfirmRemove(true)}
             >
+              <Trash2 aria-hidden="true" />
               {copy.remove}
             </Button>
           ) : null}
         </div>
       </CardContent>
 
-      <AlertDialog open={confirmRemove} onOpenChange={setConfirmRemove}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{copy.remove}</AlertDialogTitle>
-            <AlertDialogDescription>{copy.removeConfirm}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{copy.form.cancel}</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={handleRemove}>
-              {copy.remove}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={confirmRemove}
+        onOpenChange={setConfirmRemove}
+        title={copy.remove}
+        body={copy.removeConfirm}
+        confirmLabel={copy.remove}
+        cancelLabel={copy.form.cancel}
+        onConfirm={handleRemove}
+      />
     </Card>
   )
 }

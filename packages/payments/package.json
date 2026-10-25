@@ -6,6 +6,7 @@
   "description": "Payment gateway contract, registry and conformance suite. No runtime dependencies.",
   "exports": {
     ".": "./src/index.ts",
+    "./failure-reasons": "./src/failure-reasons.ts",
     "./testing": "./src/testing.ts"
   },
   "scripts": {

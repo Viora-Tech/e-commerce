@@ -5,6 +5,14 @@
  */
 export type { LanguageModel as AiModel } from 'ai'
 export { assistantInstructions } from './assistant/prompt'
+export {
+  CAMPAIGN_WRITER_MARKER,
+  type CampaignCopy,
+  CampaignCopySchema,
+  campaignWriterContent,
+  campaignWriterInstructions,
+  clampCampaignCopy,
+} from './campaign-writer'
 export * from './client'
 export {
   type AiContent,
@@ -18,6 +26,22 @@ export {
   generateStructured,
   streamAnswer,
 } from './engine'
+export {
+  clampInboxAgent,
+  INBOX_AGENT_HANDOFF_REASONS,
+  INBOX_AGENT_MARKER,
+  INBOX_AGENT_MIN_CONFIDENCE,
+  INBOX_AGENT_PRODUCTS_MAX,
+  INBOX_AGENT_REPLY_MAX,
+  type InboxAgentHandoffReason,
+  type InboxAgentInput,
+  type InboxAgentOrder,
+  type InboxAgentOutput,
+  type InboxAgentProduct,
+  InboxAgentSchema,
+  inboxAgentContent,
+  inboxAgentInstructions,
+} from './inbox-agent'
 export type { ProductWriterInput } from './product-writer/prompt'
 export { productWriterContent, productWriterInstructions } from './product-writer/prompt'
 export {
@@ -28,3 +52,37 @@ export {
   modelIdFor,
   modelIdForTier,
 } from './provider'
+export { MOCK_DOCUMENTS } from './purchase-documents/fixtures'
+export {
+  documentReaderContent,
+  documentReaderInstructions,
+  pdfText,
+} from './purchase-documents/prompt'
+export { DOCUMENT_SCHEMAS } from './purchase-documents/schema'
+export {
+  type QueryWriterOutput,
+  QueryWriterSchema,
+  queryWriterContent,
+  queryWriterInstructions,
+} from './query-writer'
+export {
+  clampReply,
+  type ReviewReply,
+  ReviewReplySchema,
+  reviewReplyContent,
+  reviewReplyInstructions,
+} from './review-reply'
+export {
+  proposalProps,
+  SECTION_WRITER_TYPES,
+  type SectionProposal,
+  SectionProposalSchema,
+  type SectionWriterType,
+  sectionWriterContent,
+  sectionWriterInstructions,
+} from './section-writer'
+export {
+  type SeoKeywordsInput,
+  seoKeywordsContent,
+  seoKeywordsInstructions,
+} from './seo-keywords/prompt'

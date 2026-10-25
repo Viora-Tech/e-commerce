@@ -1,5 +1,4 @@
-import type { CardProduct } from '@commerce/blocks'
-import { formatPaise } from '@commerce/blocks'
+import { type CardProduct, formatPaise, Pagination } from '@commerce/blocks'
 import type { BrowseFacets } from '@commerce/core'
 import {
   activeFilters,
@@ -33,10 +32,16 @@ type BrowseResultsProps = {
   perPage: number
   showFilters: boolean
   showSort: boolean
+  /** The count over the grid; a collection page shows it in its header instead. */
+  showCount?: boolean | undefined
 }
 
-function chipLabel(kind: string, value: string, f: BrowseFilters): string {
+function chipLabel(kind: string, value: string, f: BrowseFilters, facets: BrowseFacets): string {
   if (kind === 'available') return copy.chip.available(value)
+  if (kind === 'giftCard') return copy.chip.giftCard(value)
+  // A yes/no extra field reads `1` / `0` in the URL; the chip names the field.
+  const field = facets.metafields.find((m) => kind === `metafield:${m.key}`)
+  if (field?.type === 'boolean') return `${field.name}: ${value === '1' ? copy.yes : copy.no}`
   if (kind === 'price') {
     return copy.chip.price(
       f.priceMin === null ? null : formatPaise(f.priceMin),
@@ -65,6 +70,7 @@ export default function BrowseResults({
   perPage,
   showFilters,
   showSort,
+  showCount = true,
 }: BrowseResultsProps) {
   // Helpers
   const sortParam = () => (sort === defaultSort ? null : sort)
@@ -98,9 +104,21 @@ export default function BrowseResults({
   const formKey = JSON.stringify([filters, sort])
 
   return (
-    <div className={showFilters ? 'grid gap-8 md:grid-cols-[15rem_minmax(0,1fr)]' : ''}>
+    <div className={showFilters ? 'browse browse--filters' : 'browse'}>
       {showFilters ? (
-        <aside className="hidden md:block" aria-label={copy.filters}>
+        <aside className="browse__filters" aria-label={copy.filters}>
+          <div className="browse__filters-head">
+            <h2 className="browse__filters-title">{copy.filters}</h2>
+            {filtered ? (
+              <Link
+                href={href({ filters: EMPTY_FILTERS })}
+                scroll={false}
+                className="browse__clear"
+              >
+                {copy.clearAll}
+              </Link>
+            ) : null}
+          </div>
           {form('desktop')}
         </aside>
       ) : null}
@@ -124,41 +142,42 @@ export default function BrowseResults({
               </div>
             </details>
           ) : null}
-          <span className="text-small text-muted">{copy.productCount(total)}</span>
+          {showCount ? (
+            <span className="text-small text-muted">{copy.productCount(total)}</span>
+          ) : null}
+          {chips.length > 0 ? (
+            <ul className="browse__chips">
+              {chips.map((c) => {
+                const label = chipLabel(c.kind, c.value, filters, facets)
+                return (
+                  <li key={c.key}>
+                    <Link
+                      href={href({ filters: c.without })}
+                      scroll={false}
+                      aria-label={copy.chip.remove(label)}
+                      className="browse__chip"
+                    >
+                      {label}
+                      <span aria-hidden="true">×</span>
+                    </Link>
+                  </li>
+                )
+              })}
+              <li>
+                <Link
+                  href={href({ filters: EMPTY_FILTERS })}
+                  scroll={false}
+                  className="browse__clear"
+                >
+                  {copy.clearAll}
+                </Link>
+              </li>
+            </ul>
+          ) : null}
           {showSort ? (
             <SortSelect key={formKey} action={path} value={sort} options={sorts} keep={keep} />
           ) : null}
         </div>
-
-        {chips.length > 0 ? (
-          <ul className="flex flex-wrap items-center gap-2">
-            {chips.map((c) => {
-              const label = chipLabel(c.kind, c.value, filters)
-              return (
-                <li key={c.key}>
-                  <Link
-                    href={href({ filters: c.without })}
-                    scroll={false}
-                    aria-label={copy.chip.remove(label)}
-                    className="inline-flex items-center gap-2 rounded-full border border-line px-3 py-1 text-small hover:border-ink"
-                  >
-                    {label}
-                    <span aria-hidden="true">×</span>
-                  </Link>
-                </li>
-              )
-            })}
-            <li>
-              <Link
-                href={href({ filters: EMPTY_FILTERS })}
-                scroll={false}
-                className="text-small underline underline-offset-4"
-              >
-                {copy.clearAll}
-              </Link>
-            </li>
-          </ul>
-        ) : null}
 
         {filtered && products.length === 0 ? (
           <div className="flex flex-col items-start gap-2 rounded-2xl border border-line p-8">
@@ -175,29 +194,7 @@ export default function BrowseResults({
           <CollectionGrid products={products} />
         )}
 
-        {pages > 1 ? (
-          <nav className="collection__pagination" aria-label={copy.pageOf(page, pages)}>
-            {page > 1 ? (
-              <Link
-                className="btn btn--secondary btn--pill"
-                href={href({ page: page - 1 })}
-                rel="prev"
-              >
-                {copy.previous}
-              </Link>
-            ) : null}
-            <span className="text-caption">{copy.pageOf(page, pages)}</span>
-            {page < pages ? (
-              <Link
-                className="btn btn--secondary btn--pill"
-                href={href({ page: page + 1 })}
-                rel="next"
-              >
-                {copy.next}
-              </Link>
-            ) : null}
-          </nav>
-        ) : null}
+        <Pagination page={page} pages={pages} hrefFor={(n) => href({ page: n })} />
       </div>
     </div>
   )

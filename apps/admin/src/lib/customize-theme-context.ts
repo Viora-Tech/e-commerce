@@ -1,5 +1,6 @@
 import type { Theme } from '@commerce/core/theme'
 import { createContext, useContext } from 'react'
+import type { ImportedTheme } from './imported-sections'
 
 /** The theme being edited, for anything outside Puck's own tree that needs to render storefront sections (e.g. the add-section hover preview). */
 export const ThemePreviewContext = createContext<Theme | null>(null)
@@ -36,4 +37,35 @@ export const LiquidHeadContext = createContext<LiquidHead | null>(null)
 
 export function useLiquidHead(): LiquidHead | null {
   return useContext(LiquidHeadContext)
+}
+
+/**
+ * The id of the theme Customize is editing, for what sits deep in Puck's overrides and talks to
+ * the server about this theme ("My sections": saved per theme when they hold Liquid). Empty
+ * outside the editor.
+ */
+export const EditingThemeIdContext = createContext<string>('')
+
+export function useEditingThemeId(): string {
+  return useContext(EditingThemeIdContext)
+}
+
+/**
+ * This theme's opt-in section packs (`theme.packs`), so the Add panel offers a pack's sections
+ * (Zero Drift…) only where it is on. Context because the panel sits deep in Puck's overrides.
+ */
+export const ThemePacksContext = createContext<readonly string[]>([])
+
+export function useThemePacks(): readonly string[] {
+  return useContext(ThemePacksContext)
+}
+
+/**
+ * Set while Customize edits an imported theme: its section schemas, so the Add panel can offer
+ * the theme's own sections. `null` for our own themes.
+ */
+export const ImportedThemeContext = createContext<ImportedTheme | null>(null)
+
+export function useImportedTheme(): ImportedTheme | null {
+  return useContext(ImportedThemeContext)
 }

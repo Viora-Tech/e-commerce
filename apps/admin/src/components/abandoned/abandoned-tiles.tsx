@@ -1,38 +1,63 @@
 import { formatPercent } from '@commerce/money'
-import StatCard from '@/components/layout/stat-card'
-import { abandonedContent as copy } from '@/data/drafts'
-import { formatPaise } from '@/lib/money'
+import StatStrip from '@/components/layout/stat-strip'
+import { type AbandonedListFilter, abandonedContent as copy } from '@/data/drafts'
+import { useFormat } from '@/hooks/use-copy'
 
 export type AbandonedStats = {
   carts: number
   valuePaise: number
   recovered: number
   recoveryRate: number
+  notRecovered: number
+  remindersSent: number
 }
 
-type AbandonedTilesProps = { stats: AbandonedStats }
+type AbandonedTilesProps = {
+  stats: AbandonedStats
+  /** The tab now showing; the tile that matches it lights up. */
+  status: AbandonedListFilter | null
+  onSelect: (status: AbandonedListFilter | null) => void
+}
 
-/** Four tiles above the table, same rhythm as the order list (frame 5:2511). */
-export default function AbandonedTiles({ stats }: AbandonedTilesProps) {
+/** Four tiles above the table (Figma "Orders / Abandoned checkouts list"); Recovered and Reminders sent filter the table. */
+export default function AbandonedTiles({ stats, status, onSelect }: AbandonedTilesProps) {
+  // Hooks
+  const fmt = useFormat()
+
   // Render logic
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-      <StatCard title={copy.tiles.carts} period={copy.tiles.period} value={String(stats.carts)} />
-      <StatCard
-        title={copy.tiles.value}
-        period={copy.tiles.period}
-        value={formatPaise(stats.valuePaise)}
-      />
-      <StatCard
-        title={copy.tiles.recovered}
-        period={copy.tiles.period}
-        value={String(stats.recovered)}
-      />
-      <StatCard
-        title={copy.tiles.rate}
-        period={copy.tiles.period}
-        value={formatPercent(stats.recoveryRate)}
-      />
-    </div>
+    <StatStrip
+      active={status}
+      onChange={onSelect}
+      tiles={[
+        {
+          id: 'carts',
+          label: copy.tiles.carts,
+          note: copy.tiles.period,
+          value: fmt.number(stats.carts),
+          filter: null,
+        },
+        {
+          id: 'recovered',
+          label: copy.tiles.recovered,
+          note: copy.tiles.recoveryRate(formatPercent(stats.recoveryRate)),
+          value: fmt.number(stats.recovered),
+          filter: 'recovered',
+        },
+        {
+          id: 'value',
+          label: copy.tiles.value,
+          note: copy.tiles.period,
+          value: fmt.money(stats.valuePaise),
+        },
+        {
+          id: 'reminders',
+          label: copy.tiles.reminders,
+          note: copy.tiles.period,
+          value: fmt.number(stats.remindersSent),
+          filter: 'reminder_sent',
+        },
+      ]}
+    />
   )
 }

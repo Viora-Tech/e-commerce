@@ -8,11 +8,10 @@ import {
   documentIssuer,
   documentsByIds,
   documentsForOrder,
-  enqueueOrder,
   GST_INVOICES_ID,
   gstr1ForPeriod,
   InvoiceError,
-  issueCreditNote,
+  issueCreditNotes,
   issueDocument,
   issueDrafts,
   listDocuments,
@@ -35,7 +34,6 @@ import {
   createEmailBatch,
   emailBatch,
   mediaUrls,
-  orderIdsByNumber,
   orderRefunds,
   storeName,
 } from '../services/gst-invoices.service'
@@ -49,6 +47,7 @@ import {
   renderDeps,
   requireInstalled,
 } from './gst-invoices-context'
+import { addToQueue, generateInvoice } from './gst-invoices-order-actions'
 
 const IssueBatch = z.object({
   items: z
@@ -172,6 +171,9 @@ export const gstInvoicesRouter = {
       }
     }),
 
+  /** "Generate GST invoice": queue and issue one order at once (`./gst-invoices-order-actions`). */
+  generate: generateInvoice,
+
   queue: {
     list: can(permissions.ORDERS_READ)
       .input(
@@ -202,28 +204,8 @@ export const gstInvoicesRouter = {
           }
         })
       }),
-    /** Add orders by hand, e.g. a pre-order the merchant wants invoiced now. */
-    add: can(permissions.ORDERS_WRITE)
-      .input(
-        z.object({
-          orderIds: z.array(z.uuid()).max(100).default([]),
-          orderNumbers: z.array(z.number().int().positive()).max(100).default([]),
-        }),
-      )
-      .handler(async ({ context, input }) => {
-        await requireInstalled(context)
-        try {
-          const byNumber = await orderIdsByNumber(context.tx, input.orderNumbers)
-          let added = 0
-          for (const orderId of [...input.orderIds, ...byNumber.ids]) {
-            const r = await enqueueOrder(context.tx, context.scope.storeId, orderId, 'manual')
-            if (r?.created) added++
-          }
-          return { added, missing: byNumber.missing }
-        } catch (err) {
-          asOrpc(err)
-        }
-      }),
+    /** Add orders by hand, or the Orders list's bulk action (`./gst-invoices-order-actions`). */
+    add: addToQueue,
     remove: can(permissions.ORDERS_WRITE)
       .input(z.object({ ids: z.array(z.uuid()).min(1).max(BULK_MAX) }))
       .handler(async ({ context, input }) => {
@@ -362,16 +344,19 @@ export const gstInvoicesRouter = {
     .input(z.object({ refundId: z.uuid() }))
     .handler(async ({ context, input }) => {
       await requireInstalled(context)
-      const issued = await issueCreditNote(context.tx, context.scope.storeId, input.refundId).catch(
-        asOrpc,
-      )
-      if (!issued) {
+      const issued =
+        (await issueCreditNotes(context.tx, context.scope.storeId, input.refundId).catch(asOrpc)) ??
+        []
+      if (issued.length === 0) {
         throw new ORPCError('BAD_REQUEST', {
           message: 'Issue the tax invoice first; a credit note reverses an invoice.',
         })
       }
-      const done = await renderAndStore(renderDeps(context), issued.row.id)
-      return { id: done.id, number: done.number }
+      // A refund on an order billed in parcels makes one credit note per GST number.
+      const done = []
+      for (const note of issued) done.push(await renderAndStore(renderDeps(context), note.row.id))
+      const [first] = done
+      return { id: first?.id ?? '', number: first?.number ?? null }
     }),
 
   list: can(permissions.ORDERS_READ)

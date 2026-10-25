@@ -1,3 +1,4 @@
+import { loadEnv } from '@commerce/config'
 import { CONSENT_COOKIE } from '@commerce/core/preferences'
 import { withQuery } from '@commerce/core/redirects'
 import { THEME_PREVIEW_PARAM } from '@commerce/core/theme'
@@ -8,9 +9,12 @@ import { accountsHostname } from './lib/accounts-host'
 import { analyticsAllowed } from './lib/consent-cookie'
 import { forwardNonce, newNonce, scriptCsp, storefrontFrameAncestors } from './lib/csp'
 import { db } from './lib/db'
+import { edgeCacheControl, isSharedPage } from './lib/edge-cache'
+import { noteVisit, WARM_USER_AGENT } from './lib/recent-pages'
 import { redirectFor } from './lib/redirects'
 import {
   DERIVED_HEADERS,
+  listingSearch,
   PASSWORD_PREFIX,
   primaryRedirect,
   routeForAccounts,
@@ -27,6 +31,17 @@ import {
   storefrontLock,
 } from './lib/storefront-gate'
 import { parseVisitorId, VISITOR_COOKIE, VISITOR_COOKIE_MAX_AGE } from './lib/visitor-cookie'
+
+/** Seconds a CDN may keep a shared page when `STOREFRONT_EDGE_TTL` is unset. */
+const DEFAULT_EDGE_TTL = 30
+
+let edgeTtl: number | null = null
+/** `STOREFRONT_EDGE_TTL`, read once per process. */
+const edgeTtlSeconds = () =>
+  (edgeTtl ??= loadEnv(process.env).STOREFRONT_EDGE_TTL ?? DEFAULT_EDGE_TTL)
+
+/** A version id from the admin (`?theme-version=`): a uuid, nothing else reaches the header. */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const resolve = createStoreResolver<HostRoute>({
   lookup: (hostname) => resolveHost(db(), hostname),
@@ -108,6 +123,8 @@ async function routeRequest(request: NextRequest, withNonce: (headers: Headers) 
   const posted = request.nextUrl.searchParams.get('form_posted')
   if (posted && /^[a-z_]{1,40}$/.test(posted)) headers.set('x-form-posted', posted)
   headers.set('x-pathname', request.nextUrl.pathname)
+  const listing = listingSearch(request.nextUrl.searchParams)
+  if (listing) headers.set('x-listing', listing)
 
   if (route.kind === 'passthrough') return NextResponse.next({ request: { headers } })
 
@@ -137,6 +154,10 @@ async function routeRequest(request: NextRequest, withNonce: (headers: Headers) 
   const token = param ?? (inFrame ? null : (request.cookies.get(PREVIEW_COOKIE)?.value ?? null))
   const preview = readPreview(storeId, token)
   if (preview && token) headers.set('x-theme-preview', token)
+  // `?theme-version=<batch>` (Versions › Preview in the admin): that version of the previewed
+  // theme, for this page only. Only with a valid preview; the renderer checks the theme too.
+  const version = request.nextUrl.searchParams.get('theme-version')
+  if (preview && token && version && UUID.test(version)) headers.set('x-theme-version', version)
 
   // Password page: while it is on, every page renders it unless the visitor has the
   // signed pass or a valid preview token.
@@ -177,6 +198,32 @@ async function routeRequest(request: NextRequest, withNonce: (headers: Headers) 
       sameSite: 'lax',
       path: '/',
       maxAge: VISITOR_COOKIE_MAX_AGE,
+    })
+  }
+  // A page that is the same for every visitor without our cookies may sit in a CDN briefly
+  // (`lib/edge-cache.ts`); everything else keeps Next's private, no-store answer.
+  const shared = edgeCacheControl({
+    method: request.method,
+    pathname: request.nextUrl.pathname,
+    cookieNames: request.cookies.getAll().map((c) => c.name),
+    rsc: request.headers.has('rsc'),
+    personal: Boolean(preview) || locked || posted !== null,
+    ttlSeconds: edgeTtlSeconds(),
+  })
+  if (shared && !response.headers.has('set-cookie')) response.headers.set('cache-control', shared)
+  // Pages shoppers view are re-rendered after the store changes (`lib/cache-warm.ts`).
+  if (
+    request.method === 'GET' &&
+    !preview &&
+    !locked &&
+    !request.headers.has('rsc') &&
+    isSharedPage(request.nextUrl.pathname) &&
+    request.headers.get('user-agent') !== WARM_USER_AGENT
+  ) {
+    noteVisit(storeId, {
+      host: host ?? hostname,
+      proto: request.headers.get('x-forwarded-proto'),
+      path: request.nextUrl.pathname,
     })
   }
   return response

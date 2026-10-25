@@ -5,7 +5,7 @@
 @source "../../../../packages/blocks/src/**/*.tsx";
 
 /*
- * Glide's token names, unchanged. Values are injected per store by the
+ * Zero Drift's token names, unchanged. Values are injected per store by the
  * layout (see @commerce/core themeToCss). Tailwind classes below map onto
  * them so components write `bg-surface text-ink border-line`.
  */
@@ -55,6 +55,7 @@
   --color-ck-line: var(--ck-line);
   --color-ck-field: var(--ck-field);
   --color-ck-soft: var(--ck-soft);
+  --color-ck-canvas: var(--ck-canvas);
   --color-ck-danger: var(--ck-danger);
   --color-ck-danger-soft: color-mix(in oklab, var(--ck-danger) 9%, transparent);
   --color-ck-success: var(--ck-success);
@@ -82,6 +83,8 @@
   --ck-line: #e3e3e0;
   --ck-field: #ffffff;
   --ck-soft: #f7f7f5;
+  /* The page behind the stepped checkout's cards: a warm off-white in light, the page itself in dark. */
+  --ck-canvas: var(--ck-soft);
   --ck-danger: #c23a2b;
   --ck-success: #1d8a50;
   /* A QR needs a light quiet zone to scan, so it stays white in dark mode too. */
@@ -91,6 +94,8 @@
   /* Focus rings as real properties: arbitrary box-shadow values cannot read @theme inline names. */
   --ck-ring: color-mix(in oklab, var(--ck-accent) 24%, transparent);
   --ck-danger-ring: color-mix(in oklab, var(--ck-danger) 14%, transparent);
+  /* The stepped checkout's summary card: a hairline lift in light mode, flat in dark. */
+  --ck-card-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 12px 32px -16px rgb(0 0 0 / 0.1);
   color-scheme: light;
 }
 
@@ -101,11 +106,29 @@
   --ck-line: #2c2c31;
   --ck-field: #18181b;
   --ck-soft: #1b1b1f;
+  --ck-canvas: var(--ck-bg);
   --ck-danger: #f0776a;
   --ck-success: #4cc488;
   --ck-summary: color-mix(in oklab, var(--ck-summary-light) 8%, #0b0b0d);
   --ck-summary-ink: #ededee;
+  --ck-card-shadow: none;
   color-scheme: dark;
+}
+
+/* The thank-you mark settling in (StatusMark); transform and opacity only. */
+@keyframes ck-settle {
+  from {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+}
+
+/* The picked way to pay opening onto its details (PaymentMethods); transform and opacity only. */
+@keyframes ck-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
 }
 
 /* The theme's mobile dock pads <body> for itself; the checkout hides the dock, so not here. */
@@ -121,10 +144,12 @@ body:has(.ck) {
     --ck-line: #2c2c31;
     --ck-field: #18181b;
     --ck-soft: #1b1b1f;
+    --ck-canvas: var(--ck-bg);
     --ck-danger: #f0776a;
     --ck-success: #4cc488;
     --ck-summary: color-mix(in oklab, var(--ck-summary-light) 8%, #0b0b0d);
     --ck-summary-ink: #ededee;
+    --ck-card-shadow: none;
     color-scheme: dark;
   }
 }
@@ -159,7 +184,7 @@ h3 {
   font-size: calc(1.25rem * var(--font-heading-scale, 1));
 }
 
-/* Fields in Glide's language (account forms, the cart's code entry). */
+/* Fields in Zero Drift's language (account forms, the cart's code entry). */
 .field {
   display: grid;
   gap: 0.35rem;

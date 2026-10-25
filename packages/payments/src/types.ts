@@ -127,6 +127,40 @@ export type CreatePaymentResult = {
   session: CheckoutSession
 }
 
+/**
+ * How the shopper paid, as precisely as the gateway says. Picks the store's fee rate for a
+ * payment whose fee the gateway has not reported yet (core order/profit.ts).
+ */
+export type PaymentMethodDetail = {
+  kind: 'upi' | 'card' | 'netbanking' | 'wallet' | 'emi' | 'cardless_emi' | 'paylater' | 'other'
+  /** Cards and card EMI. */
+  cardType?: 'credit' | 'debit' | 'prepaid' | undefined
+  /** Card network, lowercase: visa, mastercard, rupay, amex, diners, maestro… */
+  network?: string | undefined
+  /** Card issued outside India. */
+  international?: boolean | undefined
+  /** Business or corporate card. */
+  corporate?: boolean | undefined
+  /** Netbanking bank code, wallet or lender, when the gateway names it. */
+  provider?: string | undefined
+}
+
+/**
+ * What the gateway kept from one payment, as it reported it. Money is integer paise.
+ * `feePaise` is the whole deduction, GST included; `feeTaxPaise` is the GST inside it (input
+ * tax credit for a GST-registered merchant). A fee the shopper paid on top is not the
+ * merchant's cost: adapters leave out a fee the gateway says the shopper bore, and core takes
+ * off anything paid above the attempt's amount (`grossPaise`).
+ */
+export type PaymentCharges = {
+  /** Null when the gateway has not worked the fee out yet. */
+  feePaise: number | null
+  feeTaxPaise: number | null
+  method: PaymentMethodDetail | null
+  /** What the shopper paid, as the gateway reports it, when known. */
+  grossPaise?: number | undefined
+}
+
 /** What the browser posts back after a client-side checkout completes. */
 export type ClientConfirmation = Record<string, string>
 
@@ -139,6 +173,8 @@ export type WebhookEvent =
       providerPaymentId: string
       amountPaise: number
       orderId: string | null
+      /** The fee and method, when the event carries them. */
+      charges?: PaymentCharges | undefined
       raw: unknown
     }
   | {
@@ -162,10 +198,28 @@ export type WebhookEvent =
       raw: unknown
     }
   | {
+      /** The gateway worked out its fee after the capture (Cashfree's charges webhook). */
+      type: 'payment.charges'
+      providerRef: string
+      providerPaymentId: string
+      charges: PaymentCharges
+      orderId: string | null
+      raw: unknown
+    }
+  | {
       type: 'refund.processed'
       providerRef: string
       providerRefundId: string
       amountPaise: number
+      orderId: string | null
+      raw: unknown
+    }
+  | {
+      /** The gateway gave up on a refund it had accepted: the money did not go back. */
+      type: 'refund.failed'
+      providerRef: string
+      providerRefundId: string
+      reason: string
       orderId: string | null
       raw: unknown
     }
@@ -186,6 +240,12 @@ export interface PaymentProvider {
    * the gateway's one webhook URL and its event dedupe.
    */
   readonly webhookId?: string | undefined
+  /**
+   * Whether these credentials take real money ('live') or are the gateway's
+   * sandbox ('test'). Orders paid through a 'test' provider are flagged as test
+   * orders. Unset means unknown, which is treated as live.
+   */
+  readonly mode?: 'test' | 'live' | undefined
 
   createPayment(input: CreatePaymentInput): Promise<CreatePaymentResult>
 
@@ -217,6 +277,16 @@ export interface PaymentProvider {
    * "Test connection" button. Must not create anything on the gateway.
    */
   testConnection?(): Promise<ConnectionTestResult>
+
+  /**
+   * Optional read-only lookup of what the gateway kept from one captured payment, and how it
+   * was paid. Null when the gateway has no answer yet. Used by the fee sync (worker) for
+   * payments whose fee did not come with the capture. Must not create anything.
+   */
+  fetchCharges?(input: {
+    providerRef: string
+    providerPaymentId: string
+  }): Promise<PaymentCharges | null>
 
   /** Verify the signature and parse the body into a normalised event. Never throws on bad input. */
   parseWebhook(input: {

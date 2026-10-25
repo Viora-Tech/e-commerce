@@ -1,7 +1,7 @@
 'use client'
 
 import type { DashboardSummary } from '@commerce/api'
-import { FireIcon, TargetIcon } from '@commerce/ui/icons'
+import { FireIcon, Save, TargetIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
@@ -73,6 +73,7 @@ export default function SalesGoalRing({ month }: SalesGoalRingProps) {
       action={
         !editing ? (
           <Button variant="outline" size="sm" onClick={handleEdit}>
+            <TargetIcon aria-hidden="true" />
             {goalPaise ? c.edit : c.setGoal}
           </Button>
         ) : null
@@ -101,7 +102,10 @@ export default function SalesGoalRing({ month }: SalesGoalRingProps) {
             {error ? c.inputError : c.inputHelp}
           </p>
           <div className="flex gap-2">
-            <Button onClick={handleSave}>{c.save}</Button>
+            <Button onClick={handleSave}>
+              <Save aria-hidden="true" />
+              {c.save}
+            </Button>
             <Button variant="outline" onClick={() => setEditing(false)}>
               {c.cancel}
             </Button>
@@ -159,7 +163,9 @@ export default function SalesGoalRing({ month }: SalesGoalRingProps) {
           <div className="flex w-full items-center gap-2 border-border border-t pt-3">
             <FireIcon className="size-4 shrink-0 text-warning" />
             <p className="text-caption text-muted-foreground">
-              {month.bestDay ? c.record(fmt.money(month.bestDayPaise), month.bestDay) : c.noRecord}
+              {month.bestDay
+                ? c.record(fmt.money(month.bestDayPaise), fmt.day(month.bestDay))
+                : c.noRecord}
             </p>
           </div>
         </div>

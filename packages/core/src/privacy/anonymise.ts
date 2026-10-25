@@ -29,6 +29,7 @@ import { phoneLoginOtpKey } from '../accounts/otp'
 import { normaliseMobile } from '../accounts/schemas'
 import type { StoreContext } from '../context'
 import { decryptCustomerPhone } from '../customers/phone-crypto'
+import { deleteMetafieldsOf } from '../metaobjects/service'
 import { CONTACT_NOTE_PATTERN } from '../order/contact'
 import { type PrivacyActor, recordPrivacyEvent } from './audit'
 import { DataRequestError } from './requests'
@@ -148,6 +149,9 @@ export async function anonymiseCustomer(
   await tx.delete(customerLoginTicket).where(eq(customerLoginTicket.customerId, id))
   if (cu.email) await tx.delete(customerLoginTicket).where(eq(customerLoginTicket.email, cu.email))
   if (cu.email) await tx.delete(customerLoginCode).where(eq(customerLoginCode.email, cu.email))
+
+  // Extra fields on the customer may hold anything the merchant chose to record about them.
+  await deleteMetafieldsOf(tx, 'customer', [id])
 
   // Address book: nothing legal hangs on it.
   const addresses = await tx
@@ -282,7 +286,36 @@ export async function anonymiseCustomer(
   // Newsletter signups (pending or confirmed) for their email: the proof of opt-in goes too.
   if (cu.email) {
     await tx.delete(newsletterSignup).where(eq(newsletterSignup.email, cu.email.toLowerCase()))
+    // Messages they sent from a theme's contact form (Forms app, same plain-SQL reason as above).
+    await tx.execute(
+      sql`delete from contact_message where store_id = ${ctx.storeId} and lower(email) = ${cu.email.toLowerCase()}`,
+    )
+    // Reviews app (same plain-SQL reason): no more review emails, and their reviews stay
+    // as anonymous text without the email, name or account link.
+    await tx.execute(
+      sql`delete from review_request where store_id = ${ctx.storeId} and lower(email) = ${cu.email.toLowerCase()}`,
+    )
+    await tx.execute(
+      sql`update review set reviewer_email = null, reviewer_name = 'A customer', customer_id = null where store_id = ${ctx.storeId} and (lower(reviewer_email) = ${cu.email.toLowerCase()} or customer_id = ${input.customerId})`,
+    )
   }
+  // Affiliates app (same plain-SQL reason): an affiliate record of theirs keeps its commissions
+  // and payouts (the merchant's books, TDS), but the person goes: name, email, phone index, what
+  // they wrote, the encrypted payout details and PAN, and the account link. It stops earning and
+  // its discount code is switched off.
+  const affiliateOf = cu.email
+    ? sql`(customer_id = ${input.customerId} or lower(email) = ${cu.email.toLowerCase()})`
+    : sql`customer_id = ${input.customerId}`
+  await tx.execute(
+    sql`update discount set status = 'disabled', updated_at = now() where store_id = ${ctx.storeId} and id in (select discount_id from affiliate where store_id = ${ctx.storeId} and ${affiliateOf})`,
+  )
+  await tx.execute(
+    sql`update affiliate set name = 'Former affiliate', email = null, phone_index = null, social = '', message = '', note = '', payout_method = null, payout_details = null, payout_hint = null, has_pan = false, gst_registered = false, customer_id = null, status = 'suspended', updated_at = now() where store_id = ${ctx.storeId} and ${affiliateOf}`,
+  )
+  // As a buyer: their orders stay credited to the affiliate, without the link back to them.
+  await tx.execute(
+    sql`update affiliate_commission set customer_id = null where store_id = ${ctx.storeId} and customer_id = ${input.customerId}`,
+  )
 
   await tx
     .update(customer)
@@ -292,6 +325,8 @@ export async function anonymiseCustomer(
       phoneIndex: null,
       phoneVerifiedAt: null,
       name: null,
+      gstin: null,
+      businessName: null,
       defaultAddress: null,
       tags: [],
       note: null,

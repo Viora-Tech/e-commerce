@@ -1,5 +1,6 @@
 import {
   MenuItemsSchema,
+  menuLinkProblems,
   NavigationSettingsSchema,
   parseNavigationSettings,
   permissions,
@@ -32,6 +33,11 @@ export const navigationRouter = {
       }),
     )
     .handler(({ context, input }) => saveMenu(context.tx, context.scope.storeId, input)),
+
+  /** Items whose destination is gone or hidden from shoppers (the editor's broken-link check). */
+  checkLinks: can(permissions.ONLINE_STORE_READ)
+    .input(z.object({ items: MenuItemsSchema }))
+    .handler(({ context, input }) => menuLinkProblems(context.tx, input.items)),
 
   delete: can(permissions.ONLINE_STORE_WRITE)
     .input(z.object({ id: z.uuid() }))

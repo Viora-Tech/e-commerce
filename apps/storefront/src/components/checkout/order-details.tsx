@@ -1,5 +1,6 @@
 import type { address, order } from '@commerce/db'
-import { thankYouContent as content, INDIAN_STATES } from '@/data/checkout'
+import { thankYouContent as content } from '@/data/checkout'
+import { INDIAN_STATES } from '@/data/indian-states'
 import { CK_HEADING } from '@/lib/checkout-classes'
 
 type OrderDetailsProps = {
@@ -37,7 +38,7 @@ export default function OrderDetails({ order: o, shipTo }: OrderDetailsProps) {
       <h2 id="order-details-heading" className={`${CK_HEADING} text-[1rem]!`}>
         {content.details.heading}
       </h2>
-      <dl className="grid gap-x-6 gap-y-4 rounded-ck border border-ck-line p-5 text-[0.875rem] sm:grid-cols-2">
+      <dl className="grid gap-x-6 gap-y-5 rounded-ck border border-ck-line bg-ck-field p-5 text-[0.875rem] [box-shadow:0_1px_2px_rgb(0_0_0/0.03)] sm:grid-cols-2 sm:p-6">
         {rows.map(([label, lines]) => (
           <div key={label} className="flex min-w-0 flex-col gap-1">
             <dt className="text-[0.8125rem] text-ck-muted">{label}</dt>

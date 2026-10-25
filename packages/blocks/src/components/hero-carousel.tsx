@@ -1,7 +1,8 @@
 'use client'
 
 import { type ReactNode, useEffect, useRef, useState } from 'react'
-import { heroCarouselContent as copy, HERO_CAROUSEL } from '../data/glide/hero-carousel'
+import { heroCarouselContent as copy, HERO_CAROUSEL } from '../data/zero-drift/hero-carousel'
+import type { bleedFrameProps } from '../section-settings'
 import { useReducedMotion } from '../use-reduced-motion'
 import HeroSlideView, { type HeroSlide } from './hero-slide-view'
 import Icon from './icon'
@@ -13,7 +14,9 @@ export type { HeroSlide } from './hero-slide-view'
 
 type HeroCarouselProps = {
   slides: HeroSlide[]
-  /** Seconds per slide; 0 turns autoplay off (how slides saved before the Glide refresh say it). */
+  /** The section settings on the outer frame (`bleedFrameProps`): padding, visibility, anchor. */
+  frameProps?: ReturnType<typeof bleedFrameProps> | undefined
+  /** Seconds per slide; 0 turns autoplay off (how slides saved before the Zero Drift refresh say it). */
   autoplaySeconds?: number | undefined
   /** Slide height as a share of the screen. */
   heightVh?: number | undefined
@@ -55,6 +58,7 @@ function slideLeft(track: HTMLElement, slide: HTMLElement): number {
 // Motion itself is fetched after hydration (`loadMotion`), never with the page.
 export default function HeroCarousel({
   slides,
+  frameProps,
   autoplaySeconds = 5,
   heightVh = 72,
   heightMobileVh = 70,
@@ -177,7 +181,10 @@ export default function HeroCarousel({
   const slideProps = { total, showCounter, wordEntrance, lowStockThreshold }
 
   return (
-    <div className="section-frame hero-carousel-frame">
+    <div
+      {...frameProps}
+      className={`section-frame hero-carousel-frame${frameProps?.className ? ` ${frameProps.className}` : ''}`}
+    >
       <div
         ref={root}
         className={`hero-carousel hero-carousel--${frame}${pin ? ' hero-carousel--pinned' : ''}${autoplay.paused ? ' is-paused' : ''}`}

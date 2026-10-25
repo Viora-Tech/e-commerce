@@ -1,8 +1,8 @@
 'use client'
 
 import { type ReactNode, useRef } from 'react'
-import { mainProductContent as copy } from '../data/glide/main-product'
-import { formatPaise } from '../money'
+import { mainProductContent as copy } from '../data/zero-drift/main-product'
+import { useFormatPaise } from '../money-format'
 import { safeHref } from '../slot-types'
 import Icon from './icon'
 import RichCopy from './rich-copy'
@@ -18,13 +18,28 @@ type ProductPaymentSignalsProps = {
   body: string
   supportLabel: string
   supportUrl: string
+  /** The store's UPI checkout discount; null hides a UPI price note, undefined previews `upiPercent`. */
+  upiDiscount?: UpiDiscount | null | undefined
 }
+
+/**
+ * A payment-method adjustment as the store saves it (`store.payments.adjustments`): paise for
+ * `fixed`, basis points for `percent`, negative for a discount.
+ */
+export type UpiDiscount = { type: 'fixed' | 'percent'; value: number }
 
 const ui = copy.ui
 
-/** The UPI price, rounded down to the whole rupee as the checkout charges it. */
-const upiPaise = (pricePaise: number, percent: number) =>
+/** The section's own percentage (an editor preview), rounded down to the rupee as the theme did. */
+const previewPaise = (pricePaise: number, percent: number) =>
   Math.floor((pricePaise * (100 - percent)) / 100 / 100) * 100
+
+/** The price after the store's UPI discount, the way checkout applies it (half away from zero). */
+export function upiPricePaise(pricePaise: number, d: UpiDiscount): number {
+  const raw = d.type === 'fixed' ? d.value : (pricePaise * d.value) / 10_000
+  const off = Math.sign(raw) * Math.round(Math.abs(raw))
+  return Math.max(0, pricePaise + off)
+}
 
 // The `payment_signals` block with snippets/offer-modal.liquid: the offer note under the
 // price, which opens a panel explaining how to claim it when there is anything to explain.
@@ -37,22 +52,33 @@ export default function ProductPaymentSignals({
   body,
   supportLabel,
   supportUrl,
+  upiDiscount,
 }: ProductPaymentSignalsProps) {
   // Hooks
+  const formatPaise = useFormatPaise()
   const dialogRef = useRef<HTMLDialogElement>(null)
 
   // Event handlers
   const handleOpen = () => dialogRef.current?.showModal()
   const handleClose = () => dialogRef.current?.close()
 
+  // Early returns
+  // A "₹X with UPI" note the checkout would not honour is worse than none.
+  const storeDiscount = upiDiscount && upiDiscount.value < 0 ? upiDiscount : null
+  if (upiDiscount !== undefined && !storeDiscount && upiPercent > 0) return null
+
   // Render logic
-  const inline = upiPercent > 0 && pricePaise > 0
+  const upiPaise = storeDiscount
+    ? upiPricePaise(pricePaise, storeDiscount)
+    : upiDiscount === undefined && upiPercent > 0
+      ? previewPaise(pricePaise, upiPercent)
+      : null
+  const inline = upiPaise !== null && pricePaise > 0
   const support = supportLabel ? safeHref(supportUrl) : null
   const hasPanel = Boolean(body.trim() || support)
   const shown = inline ? (
     <>
-      <span className="offer-note__price">{formatPaise(upiPaise(pricePaise, upiPercent))}</span>{' '}
-      {ui.upiPrice}
+      <span className="offer-note__price">{formatPaise(upiPaise ?? pricePaise)}</span> {ui.upiPrice}
     </>
   ) : (
     note

@@ -1,5 +1,6 @@
 'use client'
 
+import PhoneInput from '@commerce/blocks/phone-input-lazy'
 import type { SignedInCustomer } from '@commerce/core'
 import { useState, useTransition } from 'react'
 import { accountContent } from '@/data/account'
@@ -44,7 +45,7 @@ export default function ProfileForm({ customer }: ProfileFormProps) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex max-w-[36rem] flex-col gap-5 rounded-2xl border border-line p-6"
+      className="flex max-w-[36rem] flex-col gap-5 rounded-[var(--radius-card)] bg-surface p-6"
     >
       <h2 className="h3">{copy.title}</h2>
       <div className="field">
@@ -68,19 +69,20 @@ export default function ProfileForm({ customer }: ProfileFormProps) {
         />
         {errors.name ? <span className="text-small text-danger">{errors.name}</span> : null}
       </label>
-      <label className="field">
-        <span className="field__label text-small">{copy.phone}</span>
-        <input
-          className="field__input"
-          type="tel"
-          inputMode="tel"
+      <div className="field">
+        <label htmlFor="profile-phone" className="field__label text-small">
+          {copy.phone}
+        </label>
+        <PhoneInput
+          id="profile-phone"
+          countries={['IN']}
           autoComplete="tel"
           value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          onChange={setPhone}
           aria-invalid={errors.phone ? true : undefined}
         />
         {errors.phone ? <span className="text-small text-danger">{errors.phone}</span> : null}
-      </label>
+      </div>
       <fieldset className="flex flex-col gap-3">
         <legend className="field__label text-small">{copy.marketingHeading}</legend>
         {[

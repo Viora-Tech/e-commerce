@@ -36,26 +36,23 @@ const LINKS = [
   },
 ]
 
-/** Account heading and tabs; the tabs scroll sideways on a phone. */
+/**
+ * Figma Pages · Account (705:114056): the sidebar - "Account", who is signed in, then the
+ * sections as rows with the current one on the surface and Sign out last. On a phone the
+ * rows run sideways above the page.
+ */
 export default function AccountNav({ email, name }: AccountNavProps) {
   // Hooks
   const pathname = usePathname()
 
   // Render logic
   return (
-    <div className="mb-8 flex flex-col gap-5 border-b border-line md:mb-10">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex min-w-0 flex-col gap-1">
-          <h1 className="h2">{accountContent.title}</h1>
-          <p className="truncate text-small text-muted">{name ? `${name}, ${email}` : email}</p>
-        </div>
-        <form action={signOutAction}>
-          <button type="submit" className="btn btn--secondary btn--small">
-            {copy.signOut}
-          </button>
-        </form>
+    <aside className="account-nav">
+      <div className="account-nav__head">
+        <p className="account-nav__title">{accountContent.title}</p>
+        <p className="account-nav__who">{name ? `${name}, ${email}` : email}</p>
       </div>
-      <nav className="-mb-px flex gap-6 overflow-x-auto" aria-label={accountContent.title}>
+      <nav className="account-nav__links" aria-label={accountContent.title}>
         {LINKS.map((l) => {
           const active = l.match(pathname)
           return (
@@ -63,13 +60,18 @@ export default function AccountNav({ email, name }: AccountNavProps) {
               key={l.href}
               href={l.href}
               aria-current={active ? 'page' : undefined}
-              className={`shrink-0 border-b-2 pb-3 text-body font-medium ${active ? 'border-ink text-ink' : 'border-transparent text-muted hover:text-ink'}`}
+              className="account-nav__link"
             >
               {l.label}
             </Link>
           )
         })}
+        <form action={signOutAction}>
+          <button type="submit" className="account-nav__link account-nav__sign-out">
+            {copy.signOut}
+          </button>
+        </form>
       </nav>
-    </div>
+    </aside>
   )
 }

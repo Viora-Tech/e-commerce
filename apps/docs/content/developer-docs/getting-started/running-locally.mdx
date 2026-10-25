@@ -1,0 +1,174 @@
+---
+title: Running locally
+---
+
+# Running locally
+
+Turborepo + bun. Apps: `apps/admin` (Next, port **3200**), `apps/storefront` (Next, **3100**),
+`apps/worker` (Bun + BullMQ, **4100**), and this docs site, `apps/docs` (**3500**). Background
+agents should use other ports (3700+) and stop them when done.
+
+## 1. Environment
+
+Copy the root `.env.example` to `.env` and fill in the required keys (`packages/config/src/env.ts`
+is the source of truth for which keys each app needs). At minimum:
+
+```sh filename=".env"
+DATABASE_URL=              # Postgres, `app` role
+DATABASE_URL_OWNER=        # Postgres, owner role — migrations, seeds
+REDIS_URL=                 # BullMQ queues and visitor counters
+AUTH_SECRET=                # Better Auth signing secret, 32+ chars
+```
+
+Every app reads it via `bun run --env-file=../../.env`.
+
+## 2. Infrastructure
+
+```sh filename="Terminal"
+docker compose up -d --wait     # Postgres 17 + Dragonfly
+```
+
+## 3. Install, migrate, seed
+
+```sh filename="Terminal"
+bun install
+bun run db:migrate              # dev database
+bun run db:seed                 # real Waimers catalogue (72 products)
+bun run db:seed:demo             # 60+ orders, customers, drafts, abandoned carts
+bun run db:seed:demo:collections
+```
+
+## 4. Run
+
+```sh filename="Terminal"
+bun run dev                     # admin, storefront, worker
+bun run dev:docs                # this docs site, on :3500
+```
+
+Admin: `http://localhost:3200`. Storefront: `http://localhost:3100`. Worker:
+`http://localhost:4100`. Docs: `http://localhost:3500`.
+
+## Worker restarts in dev
+
+`bun run dev` starts the worker through `apps/worker/scripts/dev.ts`, not `bun --watch`. On
+Windows Bun only watches the folder it started in, so edits under `packages/*` were skipped
+("not in the project directory and will not be watched") and the worker kept running old code.
+
+The script reads `apps/worker/package.json`, follows its `workspace:` dependencies
+transitively (today about 16 packages: `@commerce/core`, `db`, `queue`, `notifications`, ...),
+and watches each package's `src/` folder plus its `package.json`. Any `.ts`, `.tsx`, `.js` or
+`.json` change there, or in `apps/worker/src`, restarts the worker:
+
+```text filename="Terminal"
+[worker:dev] watching 16 workspace packages
+worker listening on :4100
+[worker:dev] packages/core/src/orders/service.ts changed, restarting
+worker listening on :4100
+```
+
+The restart sends `SIGTERM`, waits for the worker's own shutdown (queues and the database pool
+close) and then starts it again. A worker that has not exited after 10 seconds gets `SIGKILL`.
+Test files (`*.test.ts`), `node_modules`, `dist` and non-code files do not trigger a restart.
+If the worker crashes on boot, the script keeps watching, so saving a fix brings it back.
+A new workspace dependency is picked up the next time you start `bun run dev`.
+
+To run the worker once with no watching (it does not load the root `.env`):
+`bun run --cwd apps/worker start`.
+
+## Signing up to create a new store
+
+`MERCHANT_SIGNUP_MODE` (`packages/config/src/env.ts`) gates who may create their own store from
+`/onboarding`: `invite` (default) or `open`. In `invite` mode, a person with no store yet who
+signs in sees "Signups are invite-only for now" unless their email has a live invite. There is
+no platform admin UI yet, so invites are issued from the CLI:
+
+```sh filename="Terminal"
+bun run platform:invite owner@example.com
+```
+
+This prints a link (`<ADMIN_URL>/onboarding?...`); send it to the merchant. Access is granted by
+matching their signed-in email to a live invite, not by the link itself, so it is a convenience,
+not a secret. Set `MERCHANT_SIGNUP_MODE=open` in `.env` for local development if you want to skip
+this and let any signed-in email create a store. `PLATFORM_STORE_DOMAIN` (default
+`waimers.store`) is the base domain new stores' primary domain is built from
+(`<slug>.<PLATFORM_STORE_DOMAIN>`); every new store also gets `<slug>.localhost` outside
+production. The service behind all of this is `createStore`
+(`packages/core/src/onboarding/service.ts`).
+
+## Merchant "Continue with Google" (optional)
+
+The admin login page shows **Continue with Google** only when both keys are set in `.env`:
+
+```sh filename=".env"
+MERCHANT_GOOGLE_CLIENT_ID=
+MERCHANT_GOOGLE_CLIENT_SECRET=
+```
+
+Create an OAuth client of type **Web application** in Google Cloud (APIs & Services →
+Credentials) and add the authorised redirect URI `<ADMIN_URL>/api/auth/callback/google`
+(locally `http://localhost:3200/api/auth/callback/google`; Better Auth's default base path
+`/api/auth`). Restart the admin after changing them. A Google sign-in follows the same path as
+an email code: an existing member with the same verified email signs into their own account,
+anyone else lands on `/onboarding` and meets `MERCHANT_SIGNUP_MODE`. These are not the
+`SHOPPER_GOOGLE_*` keys (storefront shopper sign-in). Security notes:
+[Security](/developer-docs/core-concepts/security).
+
+Existing staff invitations to join an existing store (Settings → Staff, `/accept-invitation/[id]`)
+are unaffected by this gate - they always work.
+
+Staff invite emails go through the platform email account (`deliverPlatformStaffInvite`,
+`packages/core/src/accounts/staff-invite-email.ts`, template `staff_invite`, sender name
+`PLATFORM_EMAIL_NAME`). Without it (`SENDER_EMAIL_PROVIDER=dev`) the admin prints
+`[invite] <email> for <org>: <accept URL>` instead; with it the URL is never logged. A refused send
+does not fail the invite: Better Auth swallows errors from `sendInvitationEmail`, so the API wraps
+the call in `runInvite` (`@commerce/auth`) to learn the outcome and returns `emailSent: false`.
+The Staff page then says "Couldn't send the invite email" and the invite waits under **Pending
+invites** (`staff.invitations`, `staff.resendInvitation`, `staff.cancelInvitation`; every action
+checks the invitation belongs to the active store's organization before calling Better Auth,
+which on its own would let someone who runs two stores act on the other store's invites).
+
+### The guided flow and the waitlist
+
+`/onboarding` is a client-side wizard (`apps/admin/src/components/onboarding/onboarding-wizard.tsx`),
+one question per screen: store name and address → what you sell → where you are based → where you
+sell today. Nothing is written until the last screen, which calls `onboarding.create` with the
+name, slug and a `profile` (`BusinessProfileSchema` in
+`packages/core/src/onboarding/business-profile.ts`, browser-safe via `@commerce/core/onboarding`).
+`createStore` then, idempotently:
+
+- stores `{ sells, sellsOn }` on `store.business_profile`;
+- fills `store.address` with the country and state, only when the address is still empty;
+- creates the starter collections for that kind of shop (`starterCollections()`), each an
+  automatic collection with one "tag is `<tag>`" rule, skipping any title that already exists;
+- installs the apps the router passes in `installApps`. For `sellsOn: 'shopify'` that is the
+  Shopify importer, and the response's `nextPath` is `/apps/shopify-import` instead of `/`.
+
+In invite mode the "invite-only" card carries a waitlist form (email, phone, what you sell).
+`onboarding.joinWaitlist` is rate-limited to 5 tries an hour per user and per IP
+(`checkRateLimit`, Redis-backed in the deployed admin, in-memory otherwise) and upserts
+`signup_waitlist` by email (`joinSignupWaitlist`, `packages/core/src/onboarding/waitlist.ts`).
+`bun run platform:invite <email>` sets `invited_at` on the matching waitlist row. There is no UI to
+browse the waitlist yet; read it with `select email, phone, sells, invited_at from signup_waitlist`.
+Migration `0073_signup_waitlist` adds the table and the `store.business_profile` column.
+
+## The dev OTP route
+
+Sign-in uses email OTP (Better Auth). Instead of reading the `verification` table out of
+Postgres, `GET /api/dev/otp?email=<address>` (both admin and storefront ship this route)
+returns the last code the server generated for that email, as `{ otp: "123456" }`.
+
+It is **localhost only** — it answers 404 unless development mode is explicitly enabled and
+the request arrived on `localhost` (or an allow-listed host via `DEV_OTP_ALLOWED_HOSTS`), and
+the response is never cached. It does not exist in production builds outside that guard.
+
+## Ports
+
+| App | Port |
+| --- | --- |
+| `apps/admin` | 3200 |
+| `apps/storefront` | 3100 |
+| `apps/worker` | 4100 |
+| `apps/docs` | 3500 |
+
+Never use 3100/3200/4100/3300 for anything else while those apps are running — they're how
+work gets reviewed live.

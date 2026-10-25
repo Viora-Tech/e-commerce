@@ -4,22 +4,21 @@ import {
   cartLine,
   customer,
   type Db,
-  discount,
-  discountUsage,
-  inventoryLevel,
   type MarketingAttribution,
+  newId,
   order,
   orderLine,
+  type ParcelDeliveryEstimate,
+  type PixelTracking,
   payment,
   product,
-  sellableLevel,
   store,
   variant,
   withStore,
 } from '@commerce/db'
 import type { CheckoutSession, PaymentProvider } from '@commerce/payments'
 import { loadPincodeDirectory } from '@commerce/shipping/pincode-directory'
-import { and, desc, eq, isNull, lt, ne, or, sql } from 'drizzle-orm'
+import { and, desc, eq, isNull, ne, sql } from 'drizzle-orm'
 import { stateMatchesPincode } from '../checkout/pincode-state'
 import {
   type CheckoutContact,
@@ -28,21 +27,19 @@ import {
   checkoutRuleSubtotalPaise,
   parseCheckoutSettings,
 } from '../checkout/settings'
+import { requestCodConfirmation } from '../cod-rto/confirm'
+import { assessCheckoutRisk, type CheckoutRisk, tagsForRisk } from '../cod-rto/risk'
 import type { StoreContext } from '../context'
+import { recordCustomerChange } from '../customers/changes'
 import { encryptCustomerPhone, phoneBlindIndex } from '../customers/phone-crypto'
 import { applyDiscount } from '../discounts/evaluate'
-import {
-  customerUsageCount,
-  type ResolvedDiscount,
-  resolveCartDiscount,
-} from '../discounts/resolve'
+import { type ResolvedDiscount, resolveCartDiscount } from '../discounts/resolve'
+import { recordDiscountUses, releaseDiscountUses } from '../discounts/usage'
 import {
   CartEmpty,
   CartNotOpen,
   CheckoutRuleViolation,
-  DiscountUnavailable,
   NotLaunchedYet,
-  OutOfStock,
   ShippingRateUnavailable,
   ShippingUnavailable,
 } from '../errors'
@@ -65,10 +62,13 @@ import { StoreAddressSchema } from '../settings/general'
 import { quoteShipping, type ShippingRateOption } from '../shipping/rates'
 import { loadRateZones } from '../shipping/rates-service'
 import { computeOrderGst } from '../tax/gst'
-import { resolveTaxOrigin } from '../tax/origin'
 import { chargedGstRate, parseStoreTax, type StoreTaxSettings } from '../tax/settings'
 import { runWorkflow, type WorkflowLog, type WorkflowStep } from '../workflow/run'
+import { createFulfillmentOrders, deleteFulfillmentOrders } from './fulfillment-orders'
+import { taxParcels } from './parcel-tax'
 import { recomputeOrderStatuses } from './recompute'
+import type { RoutedParcel } from './routing'
+import { type ReservedUnits, releaseReserved, routeAndReserve } from './routing-service'
 
 export type CheckoutDetails = {
   /** Blank is allowed only when Settings → Checkout makes email optional. */
@@ -88,6 +88,12 @@ export type PlaceOrderInput = {
   paymentProvider: PaymentProvider
   /** Optional in tests; required by the storefront checkout. */
   checkout?: CheckoutDetails
+  /**
+   * The delivery window checkout showed for parcels from each location (by location id), from
+   * the courier's estimate. Stored on the parcels that ship from there; a parcel routed to a
+   * location checkout did not preview gets none.
+   */
+  deliveryEstimates?: Readonly<Record<string, ParcelDeliveryEstimate>> | undefined
   /**
    * `SETTINGS_SECRET` (the caller already has it — see `packages/api/src/routers/*`'s
    * `secret()` helper), used to encrypt the new/updated `customer.phone` on the customer
@@ -141,6 +147,8 @@ type Line = {
   giftCard: boolean
   /** Variant weight; null counts as 0 for weight-based rates. */
   weightGrams: number | null
+  /** The variant's weighted average cost now: snapshotted as the line's cost at sale. */
+  costPaise: number | null
   /** Store-timezone instant the product goes on sale; null = always on sale. */
   launchAt: Date | null
   /** Resolved pre-order settings (product merged with the variant's override, if any). */
@@ -154,12 +162,16 @@ type State = {
   cartDiscountCode: string | null
   /** The cart's marketing touch, copied onto the order for attribution. */
   cartAttribution: MarketingAttribution | null
+  /** The cart's pixel tracking (fbp/fbc, IP, UA, consent), copied onto the order for the Pixels app. */
+  cartTracking: PixelTracking | null
   discount: ResolvedDiscount | null
   /** The rate charged; null when nothing ships or the store has no rates. */
   shipping: ShippingRateOption | null
   /** Contact fields as Settings → Checkout allows them; null without checkout details. */
   contact: CheckoutContact | null
-  reserved: Line[]
+  /** Where the goods ship from, by line index (`key`); empty for gift cards only. */
+  parcels: RoutedParcel[]
+  reserved: ReservedUnits[]
   orderId: string | null
   orderNumber: number | null
   /** Order total: subtotal less discount, plus the payment-method fee or discount and shipping. */
@@ -171,6 +183,8 @@ type State = {
   /** Deposit charged now and balance deferred, from the order's pre-order lines. Both 0 when none. */
   depositPaise: number
   balanceDuePaise: number
+  /** COD & RTO app: the order's RTO risk and whether to ask for COD confirmation; null without it. */
+  risk: CheckoutRisk | null
 }
 
 const sumPaise = (lines: Line[]): number =>
@@ -193,6 +207,7 @@ const loadCart: WorkflowStep<State> = {
         hsCode: variant.hsCode,
         giftCard: product.isGiftCard,
         weightGrams: variant.weightGrams,
+        costPaise: variant.costPaise,
         launchAt: product.launchAt,
         preorderOverride: variant.preorderOverride,
         preorderEnabled: product.preorderEnabled,
@@ -220,11 +235,17 @@ const loadCart: WorkflowStep<State> = {
       hsCode: r.hsCode,
       giftCard: r.giftCard,
       weightGrams: r.weightGrams,
+      costPaise: r.costPaise,
       launchAt: r.launchAt,
       preorder: resolvePreorderSettings(r, r.preorderOverride),
     }))
     checkGiftCardRules(lines, input, ctx.storeId)
-    return { lines, cartDiscountCode: c.discountCode, cartAttribution: c.attribution ?? null }
+    return {
+      lines,
+      cartDiscountCode: c.discountCode,
+      cartAttribution: c.attribution ?? null,
+      cartTracking: c.tracking ?? null,
+    }
   },
 }
 
@@ -284,6 +305,7 @@ const resolveDiscount: WorkflowStep<State> = {
     const code = input.discountCode === undefined ? cartDiscountCode : input.discountCode
     const { outcome } = await resolveCartDiscount(ctx, input.cartId, code, {
       email: input.checkout?.email,
+      stateCode: input.checkout?.address?.stateCode,
     })
     return { discount: outcome }
   },
@@ -350,6 +372,26 @@ const enforceCheckoutRules: WorkflowStep<State> = {
   },
 }
 
+/** COD & RTO app: score the order, and refuse COD when the store hides it for high risk. */
+const assessRisk: WorkflowStep<State> = {
+  name: 'assessRisk',
+  async run({ ctx, input, lines, discount: applied, shipping, contact }) {
+    const co = input.checkout
+    if (!co || lines.every((l) => l.giftCard)) return { risk: null }
+    const d = applyDiscount(sumPaise(lines), shipping?.pricePaise ?? 0, applied)
+    const risk = await assessCheckoutRisk(ctx, {
+      pincode: co.address.pincode,
+      phone: contact?.phone ?? co.phone,
+      email: contact ? contact.email : co.email,
+      line1: co.address.line1,
+      line2: co.address.line2,
+      orderValuePaise: checkoutRuleSubtotalPaise(lines, d.discountPaise) + d.shippingPaise,
+      paymentMethod: input.paymentProvider.id,
+    })
+    return { risk }
+  },
+}
+
 /**
  * The payment fee for this order. Cash on delivery takes the rate's own COD
  * fee when the rate sets one, instead of the store's (Settings → Payments),
@@ -368,64 +410,44 @@ function paymentAdjustmentFor(
   }
 }
 
+/**
+ * Route the goods to warehouses and hold their stock there (order/routing.ts). Pre-order lines
+ * may sell past stock within their limit; untracked goods hold nothing. Gift cards are left out.
+ */
 const reserveStock: WorkflowStep<State> = {
   name: 'reserveStock',
-  async run({ ctx, lines }) {
-    const reserved: Line[] = []
-    for (const line of lines) {
-      // Untracked variants (made-to-order, digital) never run out: nothing to reserve.
-      if (line.giftCard) continue
-      const [v] = await ctx.tx
-        .select({ trackInventory: variant.trackInventory })
-        .from(variant)
-        .where(eq(variant.id, line.variantId))
-      if (v && !v.trackInventory) continue
-      /*
-       * Normal stock covers the line, OR pre-order is on and the shortfall
-       * this reservation would create (reserved - on_hand, after adding this
-       * line's quantity) stays within the pre-order limit (unlimited when the
-       * limit is null). `reserved - on_hand` is only ever positive because of
-       * a pre-order oversell, so it doubles as "pre-order units already
-       * committed" without a separate counter, and the whole check runs in
-       * one atomic UPDATE so concurrent checkouts can't both slip under the
-       * limit.
-       */
-      const rows = await ctx.tx
-        .update(inventoryLevel)
-        .set({ reserved: sql`${inventoryLevel.reserved} + ${line.quantity}` })
-        .where(
-          and(
-            eq(inventoryLevel.variantId, line.variantId),
-            sellableLevel,
-            or(
-              sql`${inventoryLevel.onHand} - ${inventoryLevel.reserved} >= ${line.quantity}`,
-              line.preorder.enabled
-                ? line.preorder.limit == null
-                  ? sql`true`
-                  : sql`(${inventoryLevel.reserved} - ${inventoryLevel.onHand} + ${line.quantity}) <= ${line.preorder.limit}`
-                : sql`false`,
-            ),
-          ),
-        )
-        .returning({ id: inventoryLevel.id })
-      if (rows.length === 0) throw new OutOfStock(line.variantId, ctx.storeId)
-      reserved.push(line)
-    }
-    return { reserved }
+  async run({ ctx, input, lines }) {
+    const { parcels, reserved } = await routeAndReserve(ctx, {
+      lines: lines.map((l, i) => ({
+        key: String(i),
+        variantId: l.variantId,
+        quantity: l.quantity,
+        giftCard: l.giftCard,
+        preorder: l.preorder.enabled ? { enabled: true, limit: l.preorder.limit } : null,
+      })),
+      buyerState: input.checkout?.address.stateCode ?? null,
+    })
+    return { parcels, reserved }
   },
   async compensate({ ctx, reserved }) {
-    for (const line of reserved) {
-      await ctx.tx
-        .update(inventoryLevel)
-        .set({ reserved: sql`${inventoryLevel.reserved} - ${line.quantity}` })
-        .where(and(eq(inventoryLevel.variantId, line.variantId), sellableLevel))
-    }
+    await releaseReserved(ctx, reserved)
   },
 }
 
 const createOrder: WorkflowStep<State> = {
   name: 'createOrder',
-  async run({ ctx, lines, input, discount: applied, cartAttribution, shipping, contact }) {
+  async run({
+    ctx,
+    lines,
+    parcels,
+    input,
+    discount: applied,
+    cartAttribution,
+    cartTracking,
+    shipping,
+    contact,
+    risk,
+  }) {
     let customerId: string | null = null
     let shippingAddressId: string | null = null
     if (input.checkout) {
@@ -495,6 +517,19 @@ const createOrder: WorkflowStep<State> = {
         .returning({ id: address.id })
       customerId = cu?.id ?? null
       shippingAddressId = ad?.id ?? null
+      // A business buyer's validated GSTIN (and name) is kept on the customer for next time; a
+      // checkout without them never clears what is saved.
+      if (customerId && contact?.gstin) {
+        await ctx.tx
+          .update(customer)
+          .set({
+            gstin: contact.gstin,
+            businessName: sql`coalesce(${contact.businessName}, ${customer.businessName})`,
+          })
+          .where(eq(customer.id, customerId))
+      }
+      // Created or updated (the upsert does not say which); app consumers upsert either way.
+      if (customerId) await recordCustomerChange(ctx.tx, ctx.storeId, customerId, 'updated')
     }
     const [s] = await ctx.tx
       .update(store)
@@ -563,23 +598,40 @@ const createOrder: WorkflowStep<State> = {
     }, 0)
     const tags = preorderLines.length > 0 ? ['pre-order'] : []
     const storeAddress = StoreAddressSchema.safeParse(s.address ?? {})
-    // The GSTIN of the location the goods sell from decides CGST + SGST or IGST (tax/origin.ts).
-    const origin = await resolveTaxOrigin(ctx.tx, {
-      lines: lines
-        .filter((l) => !l.giftCard)
-        .map((l) => ({ variantId: l.variantId, grossPaise: l.quantity * l.unitPricePaise })),
-      storeState: storeAddress.success ? storeAddress.data.state : null,
+    // The GSTIN of the location the goods ship from decides CGST + SGST or IGST (tax/origin.ts).
+    const grossOf = (key: string, quantity: number) =>
+      quantity * (lines[Number(key)]?.unitPricePaise ?? 0)
+    const storeState = storeAddress.success ? storeAddress.data.state : null
+    const shipToState = input.checkout?.address.stateCode ?? null
+    // Each parcel splits its own GST from its GSTIN; the order's is their sum (parcel-tax.ts).
+    const billed = await taxParcels(ctx.tx, {
+      parcels,
+      lineOf: (key, quantity) => {
+        const line = lines[Number(key)]
+        return {
+          grossPaise: grossOf(key, quantity),
+          ratePercent: line ? lineGstRate(line, s.gstRatePercent, storeTax) : 0,
+        }
+      },
+      discountPaise,
+      adjustmentPaise,
+      shippingPaise,
+      shipToState,
+      storeState,
     })
-    const tax = computeOrderGst({
-      lines: lines.map((l) => ({
-        grossPaise: l.quantity * l.unitPricePaise,
-        ratePercent: lineGstRate(l, s.gstRatePercent, storeTax),
-      })),
-      totalPaise,
-      reductionPaise: discountPaise + Math.max(0, -adjustmentPaise),
-      shipToState: input.checkout?.address.stateCode ?? null,
-      storeState: origin.stateCode,
-    })
+    const origin = billed.origin
+    const tax =
+      billed.tax ??
+      computeOrderGst({
+        lines: lines.map((l) => ({
+          grossPaise: l.quantity * l.unitPricePaise,
+          ratePercent: lineGstRate(l, s.gstRatePercent, storeTax),
+        })),
+        totalPaise,
+        reductionPaise: discountPaise + Math.max(0, -adjustmentPaise),
+        shipToState,
+        storeState: origin.stateCode,
+      })
     const [o] = await ctx.tx
       .insert(order)
       .values({
@@ -623,9 +675,13 @@ const createOrder: WorkflowStep<State> = {
         buyerBusinessName: contact?.businessName ?? null,
         customerNote: contact?.note ?? null,
         paymentMethod: input.paymentProvider.id,
+        // The gateway runs on its test keys: no real money, kept out of reports and invoices.
+        isTest: input.paymentProvider.mode === 'test',
         attribution: cartAttribution,
+        tracking: cartTracking,
         cartId: input.cartId,
-        tags,
+        tags: risk ? tagsForRisk(tags, risk.risk, risk.settings) : tags,
+        rtoRisk: risk?.risk ?? null,
         depositPaise: preorderLines.length > 0 ? depositPaise : null,
         balanceDuePaise: preorderLines.length > 0 ? balanceDuePaise : null,
       })
@@ -635,8 +691,11 @@ const createOrder: WorkflowStep<State> = {
     // workflow's compensation (below) deletes the order and the whole
     // transaction rolls back, taking this row with it.
     await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.placed', { orderId: o.id })
+    if (risk?.verify) await requestCodConfirmation(ctx, o.id)
+    const lineIds = lines.map(() => newId())
     await ctx.tx.insert(orderLine).values(
-      lines.map((l) => ({
+      lines.map((l, i) => ({
+        id: lineIds[i],
         storeId: ctx.storeId,
         orderId: o.id,
         variantId: l.variantId,
@@ -648,33 +707,39 @@ const createOrder: WorkflowStep<State> = {
         hsCode: l.giftCard ? null : l.hsCode,
         giftCard: l.giftCard,
         preorder: l.preorder.enabled && !l.giftCard,
+        // What the unit cost the store as it sold: profit never reads today's cost.
+        costAtSalePaise: l.giftCard ? null : l.costPaise,
         preorderShipDate:
           l.preorder.enabled && !l.giftCard ? resolveShipDate(l.preorder, new Date()) : null,
       })),
     )
+    // The parcels routing chose, where reserveStock holds their stock.
+    await createFulfillmentOrders(ctx, {
+      orderId: o.id,
+      plans: parcels.map((p, i) => ({
+        locationId: p.locationId,
+        status: p.status,
+        needsTransfer: p.needsTransfer,
+        money: billed.money[i],
+        deliveryEstimate: input.deliveryEstimates?.[p.locationId] ?? null,
+        lines: p.lines.map((l) => ({
+          orderLineId: lineIds[Number(l.key)] as string,
+          quantity: l.quantity,
+          fulfilledQuantity: 0,
+        })),
+      })),
+      fallbackRegistrationId: origin.gstRegistrationId,
+    })
     if (applied) {
       const email = (contact ? contact.email : input.checkout?.email.trim().toLowerCase()) || null
-      await claimDiscountUse(ctx, applied.discount.id, email)
-      await ctx.tx.insert(discountUsage).values({
-        storeId: ctx.storeId,
-        discountId: applied.discount.id,
-        orderId: o.id,
-        customerId,
-        email,
-        amountPaise: discountPaise,
-      })
+      await recordDiscountUses(ctx, applied, { id: o.id, customerId, email, discountPaise })
     }
     return { orderId: o.id, orderNumber, totalPaise, balanceDuePaise, depositPaise }
   },
   async compensate({ ctx, orderId, discount: applied }) {
     if (!orderId) return
-    if (applied) {
-      await ctx.tx.delete(discountUsage).where(eq(discountUsage.orderId, orderId))
-      await ctx.tx
-        .update(discount)
-        .set({ usedCount: sql`greatest(${discount.usedCount} - 1, 0)` })
-        .where(eq(discount.id, applied.discount.id))
-    }
+    if (applied) await releaseDiscountUses(ctx, applied, orderId)
+    await deleteFulfillmentOrders(ctx.tx, orderId)
     await ctx.tx.delete(orderLine).where(eq(orderLine.orderId, orderId))
     await ctx.tx.delete(order).where(eq(order.id, orderId))
   },
@@ -715,45 +780,6 @@ async function upsertCustomerByPhone(
     .insert(customer)
     .values({ storeId: ctx.storeId, email: null, ...values })
     .returning({ id: customer.id })
-}
-
-/**
- * Count one use of a discount, or throw `DiscountUnavailable` when it has run
- * out. `resolveDiscount` checked the limits from a snapshot, and a concurrent
- * checkout may have used the last redemption since. So the discount row is
- * locked for the rest of the transaction, the shopper's cap is re-counted under
- * that lock, and the increment only happens while `used_count` is under the
- * limit: a limit of 100 means 100 orders however many checkouts race.
- *
- * Pattern from Medusa's promotion `registerUsage` (MIT): lock the promotion
- * row, then re-check the limits under the lock.
- */
-async function claimDiscountUse(
-  ctx: StoreContext,
-  discountId: string,
-  email: string | null,
-): Promise<void> {
-  const [d] = await ctx.tx
-    .select({ usagePerCustomer: discount.usagePerCustomer })
-    .from(discount)
-    .where(eq(discount.id, discountId))
-    .for('update')
-  if (!d) throw new DiscountUnavailable(discountId, ctx.storeId)
-  if (d.usagePerCustomer !== null) {
-    const uses = await customerUsageCount(ctx, discountId, email)
-    if (uses >= d.usagePerCustomer) throw new DiscountUnavailable(discountId, ctx.storeId)
-  }
-  const claimed = await ctx.tx
-    .update(discount)
-    .set({ usedCount: sql`${discount.usedCount} + 1` })
-    .where(
-      and(
-        eq(discount.id, discountId),
-        or(isNull(discount.usageLimit), lt(discount.usedCount, discount.usageLimit)),
-      ),
-    )
-    .returning({ id: discount.id })
-  if (claimed.length === 0) throw new DiscountUnavailable(discountId, ctx.storeId)
 }
 
 /**
@@ -974,9 +1000,11 @@ export async function placeOrder(
       lines: [],
       cartDiscountCode: null,
       cartAttribution: null,
+      cartTracking: null,
       discount: null,
       shipping: null,
       contact: null,
+      parcels: [],
       reserved: [],
       orderId: null,
       orderNumber: null,
@@ -986,6 +1014,7 @@ export async function placeOrder(
       attemptId: null,
       depositPaise: 0,
       balanceDuePaise: 0,
+      risk: null,
     },
     [
       loadCart,
@@ -993,6 +1022,7 @@ export async function placeOrder(
       resolveDiscount,
       resolveShipping,
       enforceCheckoutRules,
+      assessRisk,
       reserveStock,
       createOrder,
       redeemCards,

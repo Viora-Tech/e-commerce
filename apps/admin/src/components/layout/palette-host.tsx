@@ -27,8 +27,11 @@ export default function PaletteHost() {
     let goToTimer: ReturnType<typeof setTimeout> | undefined
 
     function onKey(e: KeyboardEvent) {
+      // Chrome's autofill sends keydown events with no key.
+      if (!e.key) return
       if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
+        if (e.repeat) return
         setOpen((o) => !o)
         return
       }

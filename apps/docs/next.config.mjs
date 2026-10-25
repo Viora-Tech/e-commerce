@@ -16,22 +16,13 @@ const MERMAID_WRAPPER = './components/mermaid-alias.ts'
 
 export default withNextra({
   reactStrictMode: true,
-  // Standalone build for the optional production Docker image (apps/docs/Dockerfile).
-  output: 'standalone',
-  outputFileTracingRoot: fileURLToPath(new URL('../..', import.meta.url)),
+  // A static export (out/) served by Cloudflare Workers static assets, see wrangler.jsonc.
+  // Moved pages keep their old links through out/_redirects, written after the build from
+  // redirects.mjs (scripts/write-redirects.mjs).
+  output: 'export',
+  transpilePackages: ['@commerce/config'],
   images: {
     unoptimized: true,
-  },
-  // Settings were regrouped in October 2026: "Business and GST" is now the GST numbers tab of
-  // Taxes & GST, so its guide merged into that one.
-  async redirects() {
-    return [
-      {
-        source: '/merchant-guide/settings/business-and-gst',
-        destination: '/merchant-guide/settings/taxes',
-        permanent: false,
-      },
-    ]
   },
   turbopack: {
     resolveAlias: {

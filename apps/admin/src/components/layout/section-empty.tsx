@@ -18,14 +18,14 @@ type SectionEmptyProps = SectionEmptyContent & { icon: LucideIcon }
 export default function SectionEmpty({ heading, body, action, icon }: SectionEmptyProps) {
   return (
     <PageBody>
-      <Card className="py-10">
+      <Card inset="y-10">
         <EmptyState
           heading={heading}
           body={body}
           icon={icon}
           action={
             action ? (
-              <Button variant="outline" render={<Link href={action.href} />}>
+              <Button nativeButton={false} variant="outline" render={<Link href={action.href} />}>
                 {action.label}
               </Button>
             ) : undefined

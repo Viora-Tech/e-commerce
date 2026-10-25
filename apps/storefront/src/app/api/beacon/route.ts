@@ -10,18 +10,23 @@ import {
   setCartAttribution,
 } from '@commerce/core'
 import { CONSENT_COOKIE } from '@commerce/core/preferences'
+import { logger } from '@commerce/observability/logging'
 import { recordVisit, sharedRedis } from '@commerce/queue'
 import { cookies, headers } from 'next/headers'
+import { countAffiliateClick } from '@/lib/affiliates'
 import {
   ATTRIBUTION_COOKIE,
   ATTRIBUTION_MAX_AGE,
+  decodeLinkClick,
   decodeMarketingClick,
+  LINK_CLICK_COOKIE,
   MARKETING_CLICK_COOKIE,
   SESSION_COOKIE,
   SESSION_MAX_AGE,
 } from '@/lib/attribution-cookie'
 import { readCartId } from '@/lib/cart-cookie'
 import { analyticsAllowed } from '@/lib/consent-cookie'
+import { withEvlog } from '@/lib/request-log'
 import { inStore } from '@/lib/store-context'
 import { parseVisitorId, VISITOR_COOKIE, VISITOR_COOKIE_MAX_AGE } from '@/lib/visitor-cookie'
 
@@ -43,7 +48,13 @@ async function readBody(request: Request): Promise<{ href: string; referrer: str
 function hasCampaignSignal(href: string): boolean {
   try {
     const p = new URL(href).searchParams
-    return p.has('utm_source') || p.has('utm_medium') || p.has('utm_campaign') || p.has('gclid')
+    return (
+      p.has('utm_source') ||
+      p.has('utm_medium') ||
+      p.has('utm_campaign') ||
+      p.has('gclid') ||
+      p.has('ref')
+    )
   } catch {
     return false
   }
@@ -65,7 +76,7 @@ function sameTouch(a: Attribution, b: Attribution): boolean {
  * proxy derives `x-store-id` from the host and mints the visitor cookie, so
  * the body only supplies the page URL and document.referrer.
  */
-export async function POST(request: Request) {
+export const POST = withEvlog(async (request: Request) => {
   const h = await headers()
   const jar = await cookies()
   const storeId = h.get('x-store-id')
@@ -91,6 +102,7 @@ export async function POST(request: Request) {
 
   const { href, referrer } = await readBody(request)
   const click = decodeMarketingClick(jar.get(MARKETING_CLICK_COOKIE)?.value)
+  const linkId = decodeLinkClick(jar.get(LINK_CLICK_COOKIE)?.value)
   const inSession = Boolean(jar.get(SESSION_COOKIE)?.value)
   jar.set(SESSION_COOKIE, '1', {
     httpOnly: true,
@@ -99,17 +111,20 @@ export async function POST(request: Request) {
     path: '/',
     maxAge: SESSION_MAX_AGE,
   })
-  if (inSession && !click && !hasCampaignSignal(href)) return new Response(null, { status: 204 })
+  if (inSession && !click && !linkId && !hasCampaignSignal(href)) {
+    return new Response(null, { status: 204 })
+  }
 
   const current = attributionFromVisit({
     landingUrl: href || request.url,
     referrer,
     storeHost: h.get('host'),
     ...(click ? { marketing: click } : {}),
+    ...(linkId ? { linkId } : {}),
   })
   const previous = decodeAttribution(jar.get(ATTRIBUTION_COOKIE)?.value)
   // Reloading a tagged page inside a live session is the same session, not a new one.
-  if (inSession && !click && previous && sameTouch(current, previous)) {
+  if (inSession && !click && !linkId && previous && sameTouch(current, previous)) {
     return new Response(null, { status: 204 })
   }
   const picked = compactAttribution(pickAttribution(current, previous))
@@ -118,10 +133,12 @@ export async function POST(request: Request) {
     await inStore(storeId, async (tx) => {
       await recordMarketingSession(tx, storeId, { visitorId, attribution: current })
       if (cartId) await setCartAttribution(tx, cartId, picked)
+      // An affiliate's link (Affiliates app): one click per session that landed on it.
+      if (current.ref) await countAffiliateClick(tx, storeId, current.ref)
     })
   } catch (err) {
     // A lost session row costs a report line, never the page view.
-    console.warn('[beacon] could not record the session', err)
+    logger.warn('could not record the marketing session', { storeId, error: err })
   }
   jar.set(ATTRIBUTION_COOKIE, encodeAttribution(picked), {
     httpOnly: true,
@@ -131,5 +148,6 @@ export async function POST(request: Request) {
     maxAge: ATTRIBUTION_MAX_AGE,
   })
   if (click) jar.delete(MARKETING_CLICK_COOKIE)
+  if (linkId) jar.delete(LINK_CLICK_COOKIE)
   return new Response(null, { status: 204 })
-}
+})

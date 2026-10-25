@@ -2,7 +2,7 @@
 
 import { msUntil } from '@commerce/dates'
 import { type ComponentType, type ReactNode, useEffect, useState } from 'react'
-import { mainProductContent as copy } from '../data/glide/main-product'
+import { mainProductContent as copy } from '../data/zero-drift/main-product'
 import { announceVariant } from '../product-variant-event'
 import {
   hasCopy,
@@ -11,16 +11,18 @@ import {
   whatsappHref,
 } from '../sections/main-product-settings'
 import type { ProductDetail } from '../types'
+import Breadcrumbs from './breadcrumbs'
 import Price from './price'
-import ProductAccordions from './product-accordions'
+import ProductAccordions, { type PolicyPanel } from './product-accordions'
 import ProductAssurance from './product-assurance'
 import ProductBuyButtons from './product-buy-buttons'
 import ProductDescription from './product-description'
 import ProductGallery from './product-gallery'
 import ProductNoteLine from './product-note-line'
-import ProductPaymentSignals from './product-payment-signals'
+import ProductPaymentSignals, { type UpiDiscount } from './product-payment-signals'
 import ProductRating from './product-rating'
 import ProductShareRow from './product-share-row'
+import ProductSpecGrid from './product-spec-grid'
 import ProductStockBar from './product-stock-bar'
 import ProductTrustBadges from './product-trust-badges'
 import ProductVariantPicker from './product-variant-picker'
@@ -28,6 +30,8 @@ import ProductWhatsappAsk from './product-whatsapp-ask'
 
 type ProductViewProps = {
   product: ProductDetail
+  /** Shipping and Returns panels from the store's published policies (`showPolicyPanels`). */
+  policyPanels?: PolicyPanel[] | undefined
   onAddToCart?: ((variantId: string, quantity: number) => Promise<void>) | undefined
   /** Rendered below the price with the selected variant's price (EMI hint, offers). */
   UnderPrice?: ComponentType<{ pricePaise: number }> | undefined
@@ -44,6 +48,12 @@ type ProductViewProps = {
   notifyMeProps?: { whatsappEnabled: boolean } | undefined
   /** The MainProduct section's settings (`mainProductSettings(saved)`); defaults when omitted. */
   settings?: MainProductSettings | undefined
+  /**
+   * The store's discount for paying by UPI / bank transfer (its checkout adjustment), so the
+   * offer note shows the price checkout will charge; null when it has none, which hides a
+   * UPI price note. Left out (the editor canvas), the section's own percentage previews it.
+   */
+  upiDiscount?: UpiDiscount | null | undefined
 }
 
 function defaultVariant(product: ProductDetail) {
@@ -70,6 +80,8 @@ export default function ProductView({
   NotifyMe,
   notifyMeProps,
   settings,
+  upiDiscount,
+  policyPanels,
 }: ProductViewProps) {
   // Hooks
   const [variantId, setVariantId] = useState(defaultVariant(product)?.id)
@@ -112,6 +124,16 @@ export default function ProductView({
 
   return (
     <section className="section-product page-width">
+      <Breadcrumbs
+        items={[
+          ...(product.collection
+            ? [{ label: product.collection.title, href: product.collection.url }]
+            : product.productType
+              ? [{ label: product.productType }]
+              : []),
+          { label: product.title },
+        ]}
+      />
       <div
         className={`product-layout${s.galleryLayout === 'stacked' ? ' product-layout--stacked' : ''}`}
       >
@@ -127,18 +149,20 @@ export default function ProductView({
         </div>
 
         <div className="product-layout__info">
-          {s.showVendor && product.vendor ? <p className="text-caption">{product.vendor}</p> : null}
-          <h1 className="product-info__title h2">
+          {s.showVendor && product.vendor ? (
+            <p className="product-info__vendor">{product.vendor}</p>
+          ) : null}
+          <h1 className="product-info__title">
             {product.title}
-            {product.preorder?.enabled ? (
+            {isPreorder ? (
               <span className="product-info__preorder-badge">{copy.ui.preorderBadge}</span>
             ) : null}
           </h1>
           {s.showRating ? <ProductRating value={s.ratingValue} count={s.ratingCount} /> : null}
           {variant ? (
             <div className="product-info__price product-info__price--large">
-              <Price pricePaise={variant.pricePaise} mrpPaise={variant.mrpPaise} />
-              <p className="text-caption">{copy.ui.inclusiveOfTaxes}</p>
+              <Price pricePaise={variant.pricePaise} mrpPaise={variant.mrpPaise} percentBadge />
+              <p className="product-info__tax-note">{copy.ui.inclusiveOfTaxes}</p>
               {UnderPrice ? <UnderPrice pricePaise={variant.pricePaise} /> : null}
             </div>
           ) : null}
@@ -151,6 +175,7 @@ export default function ProductView({
               body={s.offerBody}
               supportLabel={s.offerSupportLabel}
               supportUrl={s.offerSupportUrl}
+              upiDiscount={upiDiscount}
             />
           ) : null}
           <ProductVariantPicker product={product} variant={variant} onPick={handlePick} />
@@ -179,6 +204,7 @@ export default function ProductView({
               {belowBuy}
             </>
           )}
+          {s.showSpecs ? <ProductSpecGrid fields={product.fields} spec={s.specFields} /> : null}
           {s.showTrustBadges ? (
             <ProductTrustBadges
               badges={s.trustBadges}
@@ -195,7 +221,14 @@ export default function ProductView({
               whatsappLabel={s.assuranceWhatsappLabel}
             />
           ) : null}
-          {s.showAccordions ? <ProductAccordions items={s.accordions} /> : null}
+          {s.showAccordions || (s.showPolicyPanels && policyPanels?.length) ? (
+            <ProductAccordions
+              items={s.showAccordions ? s.accordions : []}
+              fields={product.fields}
+              specTableRows={s.specRows}
+              policyPanels={s.showPolicyPanels ? policyPanels : undefined}
+            />
+          ) : null}
           {s.showReturnsLine ? (
             <ProductNoteLine
               icon="shield"

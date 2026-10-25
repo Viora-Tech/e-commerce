@@ -8,7 +8,12 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
+/**
+ * No chrome of its own: the signed-in pages and the sign-in page render through their theme
+ * templates (`account`, `login`), whose main section draws the page frame (`AccountFrame`); the
+ * other account pages draw it themselves.
+ */
 export default function AccountLayout({ children }: AccountLayoutProps) {
   // Render logic
-  return <div className="page-width py-10 md:py-14">{children}</div>
+  return children
 }

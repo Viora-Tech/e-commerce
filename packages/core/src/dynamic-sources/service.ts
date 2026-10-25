@@ -26,6 +26,7 @@ import {
   type SourceType,
   type SourceValues,
 } from './format'
+import { loopProblems } from './loops'
 
 /**
  * Dynamic sources on the server: what a template can connect to, and the values
@@ -126,6 +127,14 @@ export async function assertTemplateBindings(
       catalogs.set(t.template, types)
     }
     problems.push(...bindingProblems(t.data, t.template, types))
+  }
+  if (templates.some((t) => JSON.stringify(t.data).includes('"$loop"'))) {
+    const visible = await tx
+      .select({ type: metaobjectDefinition.type })
+      .from(metaobjectDefinition)
+      .where(eq(metaobjectDefinition.storefrontAccess, true))
+    const types = new Set(visible.map((d) => d.type))
+    for (const t of templates) problems.push(...loopProblems(t.data, types))
   }
   if (problems.length) throw new InvalidBindings(problems)
 }
@@ -328,5 +337,14 @@ export async function loadSourceValues(
   // Only what was asked for: a page's other metafields stay out of the result.
   const asked = new Set(paths)
   for (const key of Object.keys(values)) if (!asked.has(key)) delete values[key]
+  // A date and time reads in the store's clock.
+  const timed = Object.values(values).filter((v) => v.type === 'date_time')
+  if (timed.length) {
+    const [row] = await tx
+      .select({ timeZone: store.timezone })
+      .from(store)
+      .where(eq(store.id, scope.storeId))
+    for (const v of timed) v.timeZone = row?.timeZone
+  }
   return values
 }

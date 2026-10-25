@@ -1,8 +1,8 @@
 /** SOURCE OF TRUTH: METAOBJECT_PRESETS, PRESET_KEYS, PresetKey, FromPresetInputSchema, presetDefinition
  * WHAT:  Ready-made content types ("Size guide", "FAQ", ...) a merchant starts from instead of a blank form.
  * WHY:   One registry, so the router (`metaobjects.fromPreset`), the admin's "What do you want to make?"
- *        picture cards and the tests all read the same keys. Fields use only the 12 existing field
- *        types; a size chart is a list of text rows until richer types exist. Browser-safe, no database.
+ *        picture cards and the tests all read the same keys. A size chart is a group (one row per
+ *        size), a testimonial's stars a rating (CMS PR2 types). Browser-safe, no database.
  * WHERE: `createDefinitionFromPreset` (service.ts) builds from it; card titles and Hindi live in the
  *        admin's `data/metaobjects.ts` (`presetContent`, typed `Record<PresetKey, ...>`).
  */
@@ -44,10 +44,17 @@ export const METAOBJECT_PRESETS = {
     displayNameKey: 'title',
     fields: [
       text('title', 'Title', { required: true, description: 'For example: Women’s tops' }),
-      text('unit', 'Measured in', { validations: { choices: ['cm', 'inches'] } }),
-      text('rows', 'Size chart rows', {
-        list: true,
-        description: 'One row per size, like: S | Chest 36 | Waist 28',
+      field('unit', 'Measured in', 'choice', { validations: { choices: ['cm', 'inches'] } }),
+      field('rows', 'Sizes', 'group', {
+        description: 'One row per size',
+        validations: {
+          subfields: [
+            { key: 'size', name: 'Size', type: 'single_line_text', required: true },
+            { key: 'chest', name: 'Chest', type: 'single_line_text', required: false },
+            { key: 'waist', name: 'Waist', type: 'single_line_text', required: false },
+            { key: 'length', name: 'Length', type: 'single_line_text', required: false },
+          ],
+        },
       }),
       field('how_to_measure', 'How to measure', 'multi_line_text'),
       field('image', 'Picture', 'file'),
@@ -96,7 +103,7 @@ export const METAOBJECT_PRESETS = {
     fields: [
       text('customer', 'Customer name', { required: true }),
       field('quote', 'What they said', 'multi_line_text', { required: true }),
-      field('rating', 'Stars (1 to 5)', 'number_integer', { validations: { min: 1, max: 5 } }),
+      field('rating', 'Stars', 'rating', { validations: { ratingMax: 5 } }),
       field('photo', 'Photo', 'file'),
       field('product', 'Product they bought', 'product_reference'),
     ],

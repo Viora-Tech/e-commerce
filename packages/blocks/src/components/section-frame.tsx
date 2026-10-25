@@ -3,11 +3,15 @@ import {
   type Alignment,
   type ContentWidth,
   type CornerRadius,
+  customCssClass,
   migrateSectionSettings,
   type SectionSettingsValue,
   type Shadow,
+  sectionBackground,
+  sectionPaddingStyle,
   sectionVisibilityClassName,
 } from '../section-settings'
+import SectionCustomCss from './section-custom-css'
 import SectionReveal from './section-reveal'
 
 type SectionFrameProps = {
@@ -46,16 +50,6 @@ const RADIUS_CLASS: Record<CornerRadius, string> = {
 }
 const SHADOW_CLASS: Record<Shadow, string> = { none: '', sm: 'shadow-sm', md: 'shadow-md' }
 
-const paddingVars = (
-  prefix: 'pt' | 'pb',
-  value: SectionSettingsValue['spacing']['paddingTop'],
-): CSSProperties =>
-  ({
-    [`--section-${prefix}-mobile`]: `${value.mobile}px`,
-    [`--section-${prefix}-tablet`]: `${value.tablet}px`,
-    [`--section-${prefix}-desktop`]: `${value.desktop}px`,
-  }) as CSSProperties
-
 /**
  * Port of snippets/section-frame.liquid: colour scheme class + vertical
  * padding — plus, when `settings` is given, the full per-section settings
@@ -92,6 +86,7 @@ export default function SectionFrame({
   const s = migrateSectionSettings({ scheme, padTop, padBottom, settings })
   const { layout, spacing, style, advanced } = s
   const hasBackgroundImage = Boolean(style.backgroundImage.url)
+  const background = sectionBackground(style.backgroundColor)
   const outerClasses = join(
     'section-frame',
     'relative',
@@ -101,12 +96,12 @@ export default function SectionFrame({
     style.border ? 'border border-border' : undefined,
     hasBackgroundImage ? 'overflow-hidden' : undefined,
     sectionVisibilityClassName(advanced),
+    customCssClass(advanced.customCss),
     className,
   )
   const outerStyle: CSSProperties = {
-    ...paddingVars('pt', spacing.paddingTop),
-    ...paddingVars('pb', spacing.paddingBottom),
-    ...(style.backgroundColor ? { backgroundColor: style.backgroundColor } : {}),
+    ...sectionPaddingStyle(spacing),
+    ...(background ? { backgroundColor: background } : {}),
   }
   const contentClasses =
     layout.contentWidth === 'full'
@@ -125,6 +120,7 @@ export default function SectionFrame({
       id={advanced.anchorId || undefined}
       data-content-width={layout.contentWidth}
     >
+      <SectionCustomCss css={advanced.customCss} />
       {hasBackgroundImage ? (
         <>
           <img

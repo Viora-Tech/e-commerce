@@ -1,12 +1,10 @@
 'use client'
 
-import { Truck } from '@commerce/ui/icons'
-import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import Link from 'next/link'
 import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import AppStoreLink from '@/components/apps/app-store-link'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import HelpFooter from '@/components/payments/help-footer'
@@ -17,8 +15,10 @@ import ShippingPolicyFields from '@/components/settings/shipping-policy-fields'
 import ShippingTryPin from '@/components/settings/shipping-try-pin'
 import WhatsThisHelp from '@/components/settings/whats-this-help'
 import ShippingZonesCard from '@/components/shipping-zones/shipping-zones-card'
+import { SETTINGS_BACK } from '@/data/settings'
 import { shippingSettingsContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
+import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
 import DemoCourierSection from './demo-courier-section'
 
@@ -39,6 +39,7 @@ type SectionProps = { id: string; children: ReactNode }
  */
 export default function ShippingPage() {
   // Hooks
+  const announceSetup = useSetupNext()
   const copy = useCopy(shippingSettingsContent)
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [form, setForm] = useState<Settings | null>(null)
@@ -68,6 +69,7 @@ export default function ShippingPage() {
       setForm(next)
       setSaved(JSON.stringify(next))
       toast.success(copy.saved)
+      void announceSetup('shipping')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.saveFailed)
     } finally {
@@ -79,10 +81,17 @@ export default function ShippingPage() {
     if (saved) setForm(JSON.parse(saved) as Settings)
   }
 
-  const handleDemoSaved = (next: Settings) => {
-    setForm(next)
-    setSaved(JSON.stringify(next))
-  }
+  const handleDemo = (on: boolean) =>
+    setForm((f) =>
+      f
+        ? {
+            ...f,
+            enabled: on
+              ? [...new Set([...f.enabled, DEMO_COURIER])]
+              : f.enabled.filter((id) => id !== DEMO_COURIER),
+          }
+        : f,
+    )
 
   // Early returns
   if (!loaded || !form) {
@@ -90,7 +99,7 @@ export default function ShippingPage() {
       <div className="flex flex-col gap-4">
         <Skeleton className="h-8 w-40" />
         <Skeleton className="h-16 w-full" />
-        <Card className="gap-4 p-6">
+        <Card gap={4} inset={6}>
           <Skeleton className="h-5 w-56" />
           <Skeleton className="h-10 w-full" />
         </Card>
@@ -125,7 +134,8 @@ export default function ShippingPage() {
             />
           </span>
         }
-        icon={<Truck aria-hidden="true" />}
+        back={SETTINGS_BACK}
+        save={{ dirty, saving: busy, onSave: handleSave, label: copy.save }}
       />
 
       <HealthLine
@@ -134,9 +144,9 @@ export default function ShippingPage() {
         help={couriers.length > 0 ? null : copy.health.noCourierHelp}
         action={
           couriers.length > 0 ? null : (
-            <Button nativeButton={false} render={<Link href="/apps" />}>
+            <AppStoreLink category="shipping" variant="default">
               {copy.health.connect}
-            </Button>
+            </AppStoreLink>
           )
         }
       />
@@ -164,12 +174,7 @@ export default function ShippingPage() {
       </Section>
 
       {DEV ? (
-        <DemoCourierSection
-          settings={form}
-          dirty={dirty}
-          onSaved={handleDemoSaved}
-          demoId={DEMO_COURIER}
-        />
+        <DemoCourierSection on={form.enabled.includes(DEMO_COURIER)} onChange={handleDemo} />
       ) : null}
       <HelpFooter />
     </div>

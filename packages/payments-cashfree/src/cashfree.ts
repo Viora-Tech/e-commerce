@@ -7,6 +7,7 @@
  * - https://www.cashfree.com/docs/payments/online/webhooks/signature-verification
  * - https://www.cashfree.com/docs/api-reference/payments/latest/payments/webhooks
  * - https://www.cashfree.com/docs/api-reference/payments/latest/refunds/webhooks
+ * - Fees and payment methods: see charges.ts.
  *
  * Re-checked 27 September 2026 against Cashfree's official Node SDK instead,
  * because www.cashfree.com and docs.cashfree.com were blocked from the build
@@ -32,10 +33,11 @@ import type {
   PaymentProviderFactory,
   PaymentStatus,
   RefundContext,
-  WebhookEvent,
   WebhookVerification,
 } from '@commerce/payments'
 import { safeEqual } from '@commerce/payments'
+import { type CfOrderSettlement, type CfPaidPayment, chargesOfPayment } from './charges'
+import { type CfWebhookBody, cashfreeEventId, normaliseCashfreeWebhook } from './webhook-events'
 
 export type CashfreeConfig = {
   appId: string
@@ -164,45 +166,6 @@ type CfRefundResponse = {
   refund_status: string
 }
 
-type CfWebhookOrder = {
-  order_id: string
-  order_amount: number
-  order_currency: string
-  order_tags?: Record<string, string> | null
-}
-
-type CfWebhookPayment = {
-  cf_payment_id: string | number
-  payment_status: string
-  payment_amount: number
-  payment_currency?: string
-  payment_message?: string | null
-  payment_time?: string
-  payment_group?: string
-}
-
-type CfWebhookRefund = {
-  cf_refund_id: string | number
-  cf_payment_id?: string | number
-  refund_id: string
-  order_id: string
-  refund_amount: number
-  refund_status: string
-}
-
-type CfWebhookBody = {
-  data?: {
-    order?: CfWebhookOrder
-    payment?: CfWebhookPayment
-    refund?: CfWebhookRefund
-    customer_details?: unknown
-    type?: string
-    event_time?: string
-  }
-  event_time?: string
-  type?: string
-}
-
 class CashfreeApiError extends Error {
   constructor(
     message: string,
@@ -227,6 +190,10 @@ export class CashfreeProvider implements PaymentProvider {
     protected readonly config: CashfreeConfig,
     private readonly fetchImpl: typeof fetch = fetch,
   ) {}
+
+  get mode(): 'test' | 'live' {
+    return this.config.mode
+  }
 
   private async request<T>(
     method: string,
@@ -387,6 +354,26 @@ export class CashfreeProvider implements PaymentProvider {
     return { status: 'pending', providerPaymentId: null, amountPaise }
   }
 
+  /**
+   * How the payment was paid (the payment) and what Cashfree kept (the order's settlement).
+   * The settlement may not exist yet; the fee then stays unknown and the sync asks again.
+   */
+  async fetchCharges(input: { providerRef: string; providerPaymentId: string }) {
+    const order = `/orders/${input.providerRef}`
+    const pay = await this.request<CfPaidPayment>(
+      'GET',
+      `${order}/payments/${input.providerPaymentId}`,
+    )
+    if (pay.payment_status !== 'SUCCESS') return null
+    const settlement = await this.request<CfOrderSettlement>('GET', `${order}/settlements`).catch(
+      (err) => {
+        if (err instanceof CashfreeApiError && err.status === 404) return null
+        throw err
+      },
+    )
+    return chargesOfPayment(pay, settlement, input.providerPaymentId)
+  }
+
   async refund(
     paymentId: string,
     amountPaise: number,
@@ -444,62 +431,8 @@ export class CashfreeProvider implements PaymentProvider {
 
     // The documented sample nests type/event_time inside `data`; prefer the top-level copy.
     const type = body.type ?? body.data?.type ?? 'unknown'
-    const eventId = this.defaultEventId(type, body)
-    return { ok: true, eventId, event: this.normalise(type, body) }
-  }
-
-  private defaultEventId(type: string, body: CfWebhookBody): string {
-    const paymentId = body.data?.payment?.cf_payment_id
-    const refundId = body.data?.refund?.cf_refund_id
-    const id =
-      paymentId != null ? String(paymentId) : refundId != null ? String(refundId) : 'unknown'
-    return `${type}:${id}`
-  }
-
-  private normalise(type: string, body: CfWebhookBody): WebhookEvent {
-    switch (type) {
-      case 'PAYMENT_SUCCESS_WEBHOOK': {
-        const order = body.data?.order
-        const payment = body.data?.payment
-        if (!order || !payment) break
-        return {
-          type: 'payment.captured',
-          providerRef: order.order_id,
-          providerPaymentId: String(payment.cf_payment_id),
-          idempotencyKey: order.order_tags?.idempotencyKey ?? null,
-          amountPaise: Math.round(payment.payment_amount * 100),
-          orderId: order.order_tags?.orderId ?? null,
-          raw: body,
-        }
-      }
-      case 'PAYMENT_FAILED_WEBHOOK': {
-        const order = body.data?.order
-        const payment = body.data?.payment
-        if (!order || !payment) break
-        return {
-          type: 'payment.failed',
-          providerRef: order.order_id,
-          providerPaymentId: payment.cf_payment_id != null ? String(payment.cf_payment_id) : null,
-          idempotencyKey: order.order_tags?.idempotencyKey ?? null,
-          reason: payment.payment_message ?? 'failed',
-          orderId: order.order_tags?.orderId ?? null,
-          raw: body,
-        }
-      }
-      case 'REFUND_STATUS_WEBHOOK': {
-        const refund = body.data?.refund
-        if (refund?.refund_status !== 'SUCCESS') break
-        return {
-          type: 'refund.processed',
-          providerRef: refund.order_id,
-          providerRefundId: String(refund.cf_refund_id),
-          amountPaise: Math.round(refund.refund_amount * 100),
-          orderId: null,
-          raw: body,
-        }
-      }
-    }
-    return { type: 'ignored', eventName: type, raw: body }
+    const eventId = cashfreeEventId(type, body)
+    return { ok: true, eventId, event: normaliseCashfreeWebhook(type, body) }
   }
 
   /** Read-only probe for the Connect page: a random order id always 404s on valid keys. */

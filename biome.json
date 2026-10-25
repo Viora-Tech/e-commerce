@@ -7,9 +7,15 @@
       "!**/dist",
       "!**/drizzle",
       "!**/.turbo",
+      "!**/.shopify",
       "!**/coverage",
       "!**/.next",
+      "!apps/www/out",
+      "!apps/docs/out",
+      "!**/.wrangler",
+      "!**/worker-configuration.d.ts",
       "!apps/docs/public/_pagefind",
+      "!apps/www/public",
       "!packages/blocks/src/styles",
       "!packages/ui/src/styles.css",
       "!apps/admin/src/app/globals.css",
@@ -34,7 +40,7 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true
+      "preset": "recommended"
     }
   },
   "css": {

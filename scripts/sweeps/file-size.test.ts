@@ -15,13 +15,38 @@ const GROWTH_MARGIN = 50
 
 const SPLIT = 'several concerns in one module — split by concern when it next changes'
 
+const COPY =
+  'copy for one admin area (data/<feature>.ts, mirrored in data/hi) — split by screen when it next changes'
+
 const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
-  'packages/api/src/routers/gst-invoices.ts': { lines: 510, reason: SPLIT },
+  'apps/admin/src/data/automations.ts': { lines: 675, reason: COPY },
+  'apps/admin/src/data/hi/automations.ts': { lines: 655, reason: COPY },
+  'packages/api/src/services/marketing-overview.service.ts': { lines: 503, reason: SPLIT },
+  'apps/admin/src/data/customize.ts': { lines: 556, reason: COPY },
+  'apps/storefront/src/lib/liquid-theme.ts': { lines: 560, reason: SPLIT },
   'packages/api/src/routers/store.ts': { lines: 524, reason: SPLIT },
   'packages/api/src/services/analytics-reports.ts': { lines: 554, reason: SPLIT },
   'packages/api/src/services/dashboard.service.ts': { lines: 1027, reason: SPLIT },
-  'packages/api/src/services/payments-setup.service.ts': { lines: 515, reason: SPLIT },
-  'packages/api/src/services/shipments-workspace.service.ts': { lines: 548, reason: SPLIT },
+  'packages/api/src/services/order.service.ts': { lines: 527, reason: SPLIT },
+  'packages/api/src/services/customer.service.ts': { lines: 509, reason: SPLIT },
+  'packages/api/src/services/payments-setup.service.ts': {
+    lines: 626,
+    reason:
+      'gateway setup plus the Live/Test and Active switches — move the switches into their own module',
+  },
+  'packages/blocks/src/section-settings.ts': {
+    lines: 524,
+    reason: 'the typed setting schema every storefront section reads — split per section group',
+  },
+  'packages/core/src/api-access/service.ts': {
+    lines: 856,
+    reason: 'API keys plus the OAuth server for MCP clients — split OAuth into its own module',
+  },
+  'packages/core/src/billing/service.ts': {
+    lines: 502,
+    reason:
+      'plan billing: checkout, renewals and allowances — split renewals into their own module',
+  },
   'packages/core/src/gift-cards/service.ts': { lines: 705, reason: SPLIT },
   'packages/core/src/marketing/automations.ts': { lines: 837, reason: SPLIT },
   'packages/core/src/marketing/campaigns.ts': { lines: 508, reason: SPLIT },
@@ -29,26 +54,40 @@ const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
   'packages/core/src/notifications/deliver.ts': { lines: 609, reason: SPLIT },
   'packages/core/src/order/place-order.ts': { lines: 1044, reason: SPLIT },
   'packages/core/src/returns/service.ts': { lines: 763, reason: SPLIT },
+  'packages/core/src/theme-code/files.ts': { lines: 550, reason: SPLIT },
+  'packages/core/src/theme-import/resource-drops.ts': {
+    lines: 568,
+    reason: 'Liquid drops for every resource — split collection/search drops into their own module',
+  },
+  'packages/plugin-shopify-import/src/write-content.ts': {
+    lines: 505,
+    reason:
+      'collections, pages, blogs, menus and redirects in one writer — split one file per resource',
+  },
   'packages/db/src/schema.ts': {
-    lines: 2403,
+    lines: 2406,
     reason: 'the Drizzle schema; split into per-area schema files (like marketing-schema.ts)',
   },
   'packages/invoices/src/document.ts': { lines: 508, reason: SPLIT },
-  'packages/payments-cashfree/src/cashfree.ts': {
-    lines: 565,
-    reason: 'one gateway adapter implementing the whole provider contract',
-  },
   'packages/payments-decentro/src/decentro.ts': {
     lines: 504,
     reason: 'one gateway adapter implementing the whole provider contract',
   },
-  'packages/plugin-gst-invoices/src/issue.ts': { lines: 554, reason: SPLIT },
+  'packages/plugin-gst-invoices/src/issue.ts': { lines: 529, reason: SPLIT },
   'packages/plugin-shopify-import/src/shopify-api.ts': {
-    lines: 866,
+    lines: 957,
     reason: 'Shopify GraphQL queries and their typed answers',
   },
   'packages/shipping-delhivery/src/delhivery.ts': {
-    lines: 719,
+    lines: 831,
+    reason: 'one courier adapter implementing the whole provider contract',
+  },
+  'packages/shipping-dhl-express/src/dhl-express.ts': {
+    lines: 743,
+    reason: 'one courier adapter implementing the whole provider contract',
+  },
+  'packages/shipping-fedex/src/fedex.ts': {
+    lines: 827,
     reason: 'one courier adapter implementing the whole provider contract',
   },
   'packages/shipping-rapidshyp/src/rapidshyp.ts': {

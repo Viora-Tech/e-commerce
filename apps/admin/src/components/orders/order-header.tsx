@@ -1,23 +1,18 @@
 'use client'
 
-import { Clock, ShoppingBag } from '@commerce/ui/icons'
+import { ShoppingBag } from '@commerce/ui/icons'
 import { type ReactNode, useEffect, useState } from 'react'
 import PageHeader from '@/components/layout/page-header'
-import StatusLabel from '@/components/status/status-label'
-import { orderDetailContent } from '@/data/orders'
+import StatusChip from '@/components/layout/status-chip'
+import { orderDetailContent } from '@/data/order-detail'
+import { ordersContent } from '@/data/orders'
+import { salesChannelsContent } from '@/data/sales-channels'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { orderChannel } from '@/lib/order-channel'
+import { routes } from '@/lib/routes'
+import OrderChip from './order-chip'
 import { methodLabel, type OrderDetail } from './order-detail-types'
-
-/** Icon-badge tone for the order glyph square: what the header's own colour vocabulary reads. */
-function headerTone(order: OrderDetail) {
-  if (order.status === 'cancelled' || order.paymentStatus === 'refund_needed') {
-    return 'danger' as const
-  }
-  if (order.status === 'completed') return 'success' as const
-  if (order.fulfillmentStatus === 'returned') return 'danger' as const
-  return 'warning' as const
-}
 
 export type Neighbours = Awaited<ReturnType<typeof api.orders.neighbours>>
 
@@ -25,16 +20,18 @@ type OrderHeaderProps = {
   order: OrderDetail
   /** The header actions, given the previous and next orders once they load. */
   actions: (neighbours: Neighbours | null) => ReactNode
+  /** Where Back goes; the orders list unless the order was opened from somewhere else. */
+  back?: { label: string; href: string } | undefined
 }
 
 /**
- * After the Saleor Dashboard order header (BSD-3): the order glyph in a bordered square
- * (a link back to the list), "Order #n" with its pills, a small grey meta line, and the
- * calm action set on the right.
+ * The order page header (Figma "Orders / Order detail"): a back link, the order glyph, "Order #n"
+ * with its status chips, a plain-words line under it, and Print and the ⋯ menu on the right.
  */
-export default function OrderHeader({ order, actions }: OrderHeaderProps) {
+export default function OrderHeader({ order, actions, back }: OrderHeaderProps) {
   // Hooks
   const copy = useCopy(orderDetailContent)
+  const listCopy = useCopy(ordersContent)
   const fmt = useFormat()
   const [neighbours, setNeighbours] = useState<Neighbours | null>(null)
 
@@ -49,47 +46,52 @@ export default function OrderHeader({ order, actions }: OrderHeaderProps) {
   }, [order.id])
 
   // Render logic
-  /* Open is the everyday state; only a closed order earns its own lifecycle pill. */
+  const soldThrough = orderChannel(order.attribution)
+  /* Open is the everyday state; only a closed order earns its own lifecycle chip. */
   const closed = order.status !== 'open'
+  /* Figma: a paid order nobody has shipped yet reads "To ship" (blue), as in the list. */
+  const toShip =
+    !closed && order.fulfillmentStatus === 'unfulfilled' && order.paymentStatus === 'paid'
 
   return (
     <div className="print:hidden">
       <PageHeader
         title={copy.title(order.number)}
-        icon={<ShoppingBag aria-hidden="true" />}
-        tone={headerTone(order)}
-        subtitle={
-          <span className="flex flex-wrap items-center gap-x-2">
-            <span className="flex items-center gap-1">
-              <Clock className="size-3.5 text-muted-foreground" />
-              {copy.placed(fmt.when(order.placedAt))}
-            </span>
-            {order.paymentMethod ? (
-              <>
-                <span aria-hidden="true">|</span>
-                <span>
-                  {copy.paidVia}:{' '}
-                  <span className="text-foreground">{methodLabel(order.paymentMethod, copy)}</span>
-                </span>
-              </>
-            ) : null}
-          </span>
-        }
+        size="sm"
+        back={back ?? { label: copy.back, href: routes.orders.list() }}
+        lead={{ kind: 'tile', node: <ShoppingBag /> }}
         badges={
           <>
-            {closed ? (
-              <StatusLabel kind="order" value={order.status} variant="pill" size="sm" />
+            {closed ? <OrderChip kind="order" value={order.status} /> : null}
+            <OrderChip kind="orderPayment" value={order.paymentStatus} />
+            {toShip ? (
+              <StatusChip tone="info">{listCopy.toShip}</StatusChip>
+            ) : (
+              <OrderChip kind="fulfilment" value={order.fulfillmentStatus} />
+            )}
+            {order.isTest ? (
+              <span title={listCopy.testChipHint}>
+                <StatusChip tone="attention">{listCopy.testChip}</StatusChip>
+              </span>
             ) : null}
-            <StatusLabel kind="orderPayment" value={order.paymentStatus} variant="pill" size="sm" />
-            <StatusLabel
-              kind="fulfilment"
-              value={order.fulfillmentStatus}
-              variant="pill"
-              size="sm"
-            />
+            {soldThrough ? (
+              <StatusChip tone="neutral" variant="outline">
+                {salesChannelsContent.orderCard.via(soldThrough.name)}
+              </StatusChip>
+            ) : null}
           </>
         }
-        breadcrumbs={[{ label: copy.back, href: '/orders' }, { label: `#${order.number}` }]}
+        summary={
+          <>
+            <span title={fmt.dateTime(order.placedAt)}>{copy.placed(fmt.ago(order.placedAt))}</span>
+            {order.paymentMethod ? (
+              <>
+                {' · '}
+                {copy.paidVia}: {methodLabel(order.paymentMethod, copy)}
+              </>
+            ) : null}
+          </>
+        }
         actions={actions(neighbours)}
       />
     </div>

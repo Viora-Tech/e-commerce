@@ -2,34 +2,36 @@
 
 import 'server-only'
 
-import {
-  type CodeRejection,
-  checkDiscountCode,
-  resolveCartDiscount,
-  setCartDiscountCode,
-} from '@commerce/core'
+import { type CodeRejection, checkDiscountCode, setCartDiscountCode } from '@commerce/core'
 import { revalidatePath } from 'next/cache'
+import { headers } from 'next/headers'
 import { readCartId } from './cart-cookie'
+import { clientIp, rateLimited } from './rate-limit'
 import { requestStoreId } from './request-store'
 import { inStore } from './store-context'
 
-export type DiscountActionResult = { ok: true } | { ok: false; reason: CodeRejection }
+/**
+ * Per IP and per cart, so discount codes cannot be guessed by the thousand (security audit
+ * 2026-09-28 branch, ported 2026-10-06). Generous for a shopper trying a few codes.
+ */
+const APPLY_DISCOUNT_RULE = { limit: 20, windowMs: 10 * 60_000 }
 
-/** What the cart or checkout summary shows for the discount in force. */
-export type CartDiscountView = {
-  label: string
-  code: string | null
-  amountPaise: number
-  freeShipping: boolean
-  /** Set when the saved code no longer works, so the UI can say so and drop it. */
-  codeRejected: CodeRejection | null
-}
+export type DiscountActionResult = { ok: true } | { ok: false; reason: CodeRejection }
 
 /** Try a code against the cart and keep it when it works. Never reveals why a code is unknown. */
 export async function applyDiscountAction(code: string): Promise<DiscountActionResult> {
   const storeId = await requestStoreId()
   const cartId = await readCartId()
   if (!cartId) return { ok: false, reason: 'invalid' }
+  const [byIp, byCart] = await Promise.all([
+    rateLimited(
+      'discount-apply:ip',
+      `${storeId}:${clientIp(await headers())}`,
+      APPLY_DISCOUNT_RULE,
+    ),
+    rateLimited('discount-apply:cart', `${storeId}:${cartId}`, APPLY_DISCOUNT_RULE),
+  ])
+  if (!byIp.ok || !byCart.ok) return { ok: false, reason: 'invalid' }
   const result = await inStore(storeId, async (tx) => {
     const ctx = { storeId, tx }
     const check = await checkDiscountCode(ctx, cartId, code)
@@ -49,27 +51,4 @@ export async function removeDiscountAction(): Promise<void> {
   await inStore(storeId, (tx) => setCartDiscountCode({ storeId, tx }, cartId, null))
   revalidatePath('/cart')
   revalidatePath('/checkout')
-}
-
-/** Server-side read used by the cart and checkout pages to render the summary. */
-export async function cartDiscountView(
-  cartId: string,
-  code: string | null,
-): Promise<CartDiscountView | null> {
-  const storeId = await requestStoreId()
-  const { outcome, codeRejected } = await inStore(storeId, (tx) =>
-    resolveCartDiscount({ storeId, tx }, cartId, code),
-  )
-  if (!outcome) return codeRejected ? emptyRejected(codeRejected) : null
-  return {
-    label: outcome.label,
-    code: outcome.discount.code,
-    amountPaise: outcome.amountPaise,
-    freeShipping: outcome.freeShipping,
-    codeRejected,
-  }
-}
-
-function emptyRejected(reason: CodeRejection): CartDiscountView {
-  return { label: '', code: null, amountPaise: 0, freeShipping: false, codeRejected: reason }
 }

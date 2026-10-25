@@ -7,10 +7,10 @@ export default [
     details: 'पूरी जानकारी',
     noChange: 'कोई बदलाव नहीं',
     moreActions: 'और विकल्प',
+    save: 'सेव करें',
     filter: 'फ़िल्टर',
     skipToContent: 'सीधे कंटेंट पर जाएं',
     breadcrumb: 'ब्रेडक्रंब',
-    backTo: (label) => `${label} पर वापस`,
     notFound: {
       heading: 'पेज नहीं मिला',
       body: 'लिंक पुराना हो सकता है, या वह चीज़ हटा दी गई है।',
@@ -29,7 +29,15 @@ export default [
     more: 'और',
     viewAll: 'सब देखें',
     viewAllApps: (n) => `सभी ऐप्स देखें (${n})`,
+    appStore: 'ऐप स्टोर',
     noStore: 'कोई स्टोर नहीं चुना',
     toggleTheme: 'थीम बदलें',
+    scroll: {
+      showing: (n) => `${n} आइटम दिख रहे हैं · और देखने के लिए स्क्रोल करें`,
+      showingAll: (n) => `सभी ${n} आइटम दिख रहे हैं`,
+      more: 'और देखने के लिए स्क्रोल करें',
+      expand: 'सब दिखाएं',
+      collapse: 'कम दिखाएं',
+    },
   }),
 ]

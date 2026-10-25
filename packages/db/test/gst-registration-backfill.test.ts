@@ -5,6 +5,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { createDb } from '../src/client'
 import { business, gstRegistration, store } from '../src/schema'
 import { resetDb } from './reset'
+import { retryOnDeadlock } from './retry-deadlock'
 
 /*
  * 0080 adds business and gst_registration and backfills them from store.gstin. The
@@ -22,7 +23,7 @@ const BACKFILL = MIGRATION.slice(MIGRATION.indexOf('-- BACKFILL'))
 
 async function runBackfill() {
   for (const statement of BACKFILL.split('--> statement-breakpoint')) {
-    if (statement.trim()) await owner.execute(sql.raw(statement))
+    if (statement.trim()) await retryOnDeadlock(() => owner.execute(sql.raw(statement)))
   }
 }
 

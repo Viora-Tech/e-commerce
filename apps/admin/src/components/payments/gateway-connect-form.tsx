@@ -1,15 +1,21 @@
 'use client'
 
-import { CircleAlert, CircleCheck } from '@commerce/ui/icons'
+import { gatewayKeySets } from '@commerce/core/payment-modes'
+import { CircleAlert, CircleCheck, PlugConnect, RefreshCw, Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
-import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useRef, useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
+import { paymentModesContent } from '@/data/payment-modes'
 import { gatewayGuides, paymentsSetupContent } from '@/data/payments-setup'
 import { useCopy } from '@/hooks/use-copy'
+import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
 import GatewayGuide from './gateway-guide'
 import RazorpayWebhookFields from './razorpay-webhook-fields'
@@ -19,6 +25,8 @@ type GatewayConnectFormProps = {
   providerId: GatewayId
   setup: PaymentsSetup
   onConnected: () => void
+  /** The wizard look: the steps in one card, the mode, keys and buttons in another. */
+  twoColumn?: boolean
 }
 
 type Mode = 'test' | 'live'
@@ -48,9 +56,16 @@ function initialValues(
   }
 }
 
-function initialMode(providerId: GatewayId, saved: Record<string, string>): Mode {
-  if (providerId === 'cashfree') return saved.mode === 'live' ? 'live' : 'test'
-  return saved.keyId?.startsWith('rzp_live_') ? 'live' : 'test'
+/** The saved key set for one mode (masked secrets), wherever it is stored. */
+function savedSet(providerId: GatewayId, setup: PaymentsSetup, mode: Mode): Record<string, string> {
+  return gatewayKeySets(setup.settings.providers, providerId)[mode] ?? {}
+}
+
+/** `?keys=live` (the card's "Add live keys"), else the set checkout uses, else Test. */
+function initialMode(providerId: GatewayId, setup: PaymentsSetup): Mode {
+  const asked = new URLSearchParams(window.location.search).get('keys')
+  if (asked === 'test' || asked === 'live') return asked
+  return gatewayKeySets(setup.settings.providers, providerId).active ?? 'test'
 }
 
 /** The Razorpay key's own mode, from its prefix; null when it can't tell. */
@@ -69,21 +84,29 @@ export default function GatewayConnectForm({
   providerId,
   setup,
   onConnected,
+  twoColumn = false,
 }: GatewayConnectFormProps) {
   // Hooks
+  const announceSetup = useSetupNext()
+  const router = useRouter()
   const { connect: copy } = useCopy(paymentsSetupContent)
+  const { keySet: keySetCopy, mode: modeCopy } = useCopy(paymentModesContent)
   const guides = useCopy(gatewayGuides)
+  // Each mode has its own saved keys; the toggle picks which set is being edited.
+  const [mode, setMode] = useState<Mode>(() => initialMode(providerId, setup))
   const [values, setValues] = useState<Record<string, string>>(() =>
-    initialValues(providerId, setup.settings.providers[providerId] ?? {}),
-  )
-  const [mode, setMode] = useState<Mode>(() =>
-    initialMode(providerId, setup.settings.providers[providerId] ?? {}),
+    initialValues(providerId, savedSet(providerId, setup, mode)),
   )
   const [openedDashboard, setOpenedDashboard] = useState(false)
   const [showKeys, setShowKeys] = useState(!(providerId === 'razorpay' && setup.razorpayOAuth))
   const [test, setTest] = useState<TestResult>({ status: 'idle' })
   const [saving, setSaving] = useState(false)
   const [redirecting, setRedirecting] = useState(false)
+  // Live keys saved while checkout runs on test keys: offer to go live straight away.
+  const [askLive, setAskLive] = useState(false)
+  const [switching, setSwitching] = useState(false)
+  // Set once "Go live" ran, so closing the dialog afterwards is not read as "not now".
+  const triedLive = useRef(false)
 
   // Helpers
   const fieldsToSend = () => (providerId === 'cashfree' ? { ...values, mode } : values)
@@ -96,7 +119,10 @@ export default function GatewayConnectForm({
 
   const handleMode = (next: string[]) => {
     const picked = next[0]
-    if (picked === 'test' || picked === 'live') setMode(picked)
+    if (picked === 'test' || picked === 'live') {
+      setMode(picked)
+      setValues(initialValues(providerId, savedSet(providerId, setup, picked)))
+    }
     setTest({ status: 'idle' })
   }
 
@@ -120,7 +146,7 @@ export default function GatewayConnectForm({
   const handleTest = async () => {
     setTest({ status: 'testing' })
     try {
-      const r = await api.payments.testConnection({ providerId, fields: fieldsToSend() })
+      const r = await api.payments.testConnection({ providerId, fields: fieldsToSend(), mode })
       setTest({ status: r.ok ? 'ok' : 'error', message: r.message })
     } catch (err) {
       setTest({ status: 'error', message: err instanceof Error ? err.message : copy.saveFailed })
@@ -130,14 +156,47 @@ export default function GatewayConnectForm({
   const handleSave = async () => {
     setSaving(true)
     try {
-      await api.payments.connect({ providerId, fields: fieldsToSend() })
-      toast.success(copy.saved(guides[providerId].name))
+      await api.payments.connect({ providerId, fields: fieldsToSend(), mode })
+      // Keys for the mode checkout isn't using wait for the card's Live/Test switch.
+      const active = gatewayKeySets(setup.settings.providers, providerId).active
+      void announceSetup('payments')
+      if (active === 'test' && mode === 'live') {
+        setAskLive(true)
+        return
+      }
+      if (active && active !== mode) toast.success(keySetCopy.waiting(mode))
+      else toast.success(copy.saved(guides[providerId].name))
       onConnected()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.saveFailed)
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleGoLive = async () => {
+    triedLive.current = true
+    setSwitching(true)
+    try {
+      const r = await api.payments.switchMode({ providerId, mode: 'live' })
+      if (r.ok) {
+        toast.success(modeCopy.switched('live'))
+        // Redraws the layout's "Test mode" banner.
+        router.refresh()
+      } else toast.error(r.code === 'no_keys' ? modeCopy.missing('live') : r.message)
+    } catch {
+      toast.error(modeCopy.failed)
+    } finally {
+      setSwitching(false)
+    }
+  }
+
+  const handleAskLive = (open: boolean) => {
+    if (open) return
+    setAskLive(false)
+    if (!triedLive.current) toast.success(keySetCopy.waiting('live'))
+    triedLive.current = false
+    onConnected()
   }
 
   // Render logic
@@ -193,52 +252,147 @@ export default function GatewayConnectForm({
       <RazorpayWebhookFields
         url={webhookUrl}
         secret={values.webhookSecret ?? ''}
+        events={setup.razorpayWebhookEvents}
+        websites={setup.razorpayWebsites}
         onNewSecret={handleNewSecret}
       />
     ) : null
 
+  const modeBlock = (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-3">
+        <span id={`${providerId}-mode-label`} className="text-body font-medium text-foreground">
+          {copy.mode.label}
+        </span>
+        <ToggleGroup
+          aria-labelledby={`${providerId}-mode-label`}
+          value={[mode]}
+          onValueChange={handleMode}
+          variant="outline"
+          spacing={0}
+        >
+          <ToggleGroupItem value="test">{copy.mode.test}</ToggleGroupItem>
+          <ToggleGroupItem value="live">{copy.mode.live}</ToggleGroupItem>
+        </ToggleGroup>
+      </div>
+      <p className="text-caption text-muted-foreground">
+        {mode === 'test' ? copy.mode.testHelp : copy.mode.liveHelp} {keySetCopy.editing(mode)}
+      </p>
+    </div>
+  )
+
+  const oauthBlock = oauth ? (
+    <div className="flex flex-col gap-2">
+      <Button
+        size="lg"
+        className="w-full gap-2 sm:w-fit"
+        onClick={handleOAuth}
+        disabled={redirecting}
+      >
+        {redirecting ? <Spinner /> : <PlugConnect aria-hidden="true" />}
+        {copy.oneClick(guide.name)}
+      </Button>
+      <p className="text-caption text-muted-foreground">{copy.oneClickHelp}</p>
+      {showKeys ? null : (
+        <Button variant="link" className="w-fit px-0" onClick={handleShowKeys}>
+          {copy.orKeys}
+        </Button>
+      )}
+    </div>
+  ) : null
+
+  const actions = (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="lg"
+          onClick={handleTest}
+          disabled={!filled || test.status === 'testing'}
+        >
+          {test.status === 'testing' ? <Spinner /> : <RefreshCw aria-hidden="true" />}
+          {test.status === 'testing' ? copy.testing : copy.testConnection}
+        </Button>
+        <Button
+          type="button"
+          size="lg"
+          onClick={handleSave}
+          disabled={!filled || saving || mismatch}
+        >
+          {saving ? <Spinner /> : <Save aria-hidden="true" />}
+          {saving ? copy.saving : copy.save}
+        </Button>
+      </div>
+      {test.status === 'ok' ? (
+        <p className="flex items-center gap-1.5 text-body font-medium text-success">
+          <CircleCheck aria-hidden="true" className="size-4 shrink-0" />
+          {test.message}
+        </p>
+      ) : test.status === 'error' ? (
+        <p className="flex items-center gap-1.5 text-body font-medium text-destructive">
+          <CircleAlert aria-hidden="true" className="size-4 shrink-0" />
+          {test.message}
+        </p>
+      ) : (
+        <p className="text-caption text-muted-foreground">{copy.testHint}</p>
+      )}
+    </div>
+  )
+
+  const goLiveDialog = (
+    <ConfirmDialog
+      open={askLive}
+      onOpenChange={handleAskLive}
+      title={modeCopy.toLive.title}
+      body={modeCopy.toLive.body}
+      confirmLabel={modeCopy.toLive.confirm}
+      tone="default"
+      busy={switching}
+      onConfirm={handleGoLive}
+    />
+  )
+
+  if (twoColumn) {
+    return (
+      <div
+        className={
+          showKeys ? 'grid gap-6 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]' : 'grid gap-6'
+        }
+      >
+        {showKeys ? (
+          <Card size="form">
+            <CardContent>
+              <GatewayGuide
+                guide={guide}
+                done={[openedDashboard || filled, filled, providerId === 'cashfree' || filled]}
+                onOpenDashboard={handleOpenDashboard}
+              />
+            </CardContent>
+          </Card>
+        ) : null}
+        <Card size="form">
+          <CardContent className="flex flex-col gap-6">
+            {modeBlock}
+            {oauthBlock}
+            {showKeys ? (
+              <>
+                {keyBoxes}
+                {webhookBoxes}
+                {actions}
+              </>
+            ) : null}
+          </CardContent>
+        </Card>
+        {goLiveDialog}
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-3">
-          <span id={`${providerId}-mode-label`} className="text-body font-medium text-foreground">
-            {copy.mode.label}
-          </span>
-          <ToggleGroup
-            aria-labelledby={`${providerId}-mode-label`}
-            value={[mode]}
-            onValueChange={handleMode}
-            variant="outline"
-            spacing={0}
-          >
-            <ToggleGroupItem value="test">{copy.mode.test}</ToggleGroupItem>
-            <ToggleGroupItem value="live">{copy.mode.live}</ToggleGroupItem>
-          </ToggleGroup>
-        </div>
-        <p className="text-caption text-muted-foreground">
-          {mode === 'test' ? copy.mode.testHelp : copy.mode.liveHelp}
-        </p>
-      </div>
-
-      {oauth ? (
-        <div className="flex flex-col gap-2">
-          <Button
-            size="lg"
-            className="w-full gap-2 sm:w-fit"
-            onClick={handleOAuth}
-            disabled={redirecting}
-          >
-            {redirecting ? <Spinner /> : null}
-            {copy.oneClick(guide.name)}
-          </Button>
-          <p className="text-caption text-muted-foreground">{copy.oneClickHelp}</p>
-          {showKeys ? null : (
-            <Button variant="link" className="w-fit px-0" onClick={handleShowKeys}>
-              {copy.orKeys}
-            </Button>
-          )}
-        </div>
-      ) : null}
+      {modeBlock}
+      {oauthBlock}
 
       {showKeys ? (
         <>
@@ -250,44 +404,10 @@ export default function GatewayConnectForm({
             stepThree={webhookBoxes}
           />
 
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="lg"
-                onClick={handleTest}
-                disabled={!filled || test.status === 'testing'}
-              >
-                {test.status === 'testing' ? <Spinner /> : null}
-                {test.status === 'testing' ? copy.testing : copy.testConnection}
-              </Button>
-              <Button
-                type="button"
-                size="lg"
-                onClick={handleSave}
-                disabled={!filled || saving || mismatch}
-              >
-                {saving ? <Spinner /> : null}
-                {saving ? copy.saving : copy.save}
-              </Button>
-            </div>
-            {test.status === 'ok' ? (
-              <p className="flex items-center gap-1.5 text-body font-medium text-success">
-                <CircleCheck aria-hidden="true" className="size-4 shrink-0" />
-                {test.message}
-              </p>
-            ) : test.status === 'error' ? (
-              <p className="flex items-center gap-1.5 text-body font-medium text-destructive">
-                <CircleAlert aria-hidden="true" className="size-4 shrink-0" />
-                {test.message}
-              </p>
-            ) : (
-              <p className="text-caption text-muted-foreground">{copy.testHint}</p>
-            )}
-          </div>
+          {actions}
         </>
       ) : null}
+      {goLiveDialog}
     </div>
   )
 }

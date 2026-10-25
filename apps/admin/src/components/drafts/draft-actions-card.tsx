@@ -1,7 +1,5 @@
 'use client'
 
-import { Button } from '@commerce/ui/shadcn/button'
-import { Card } from '@commerce/ui/shadcn/card'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import {
   Select,
@@ -10,33 +8,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
-import { draftEditorContent as copy } from '@/data/drafts'
+import DataCard from '@/components/layout/data-card'
+import { draftEditorContent } from '@/data/drafts'
+import { useCopy } from '@/hooks/use-copy'
 
 type DraftActionsCardProps = {
-  saved: boolean
-  busy: boolean
+  /** Why the draft cannot convert yet (unsaved, no address); null when it can. */
+  hint: string | null
   paymentMethod: string
   onPaymentMethod: (method: string) => void
-  onSendInvoice: () => void
-  onConvert: () => void
-  onDelete: () => void
 }
 
-const methodItems = Object.entries(copy.methods).map(([value, label]) => ({ value, label }))
-
 export default function DraftActionsCard({
-  saved,
-  busy,
+  hint,
   paymentMethod,
   onPaymentMethod,
-  onSendInvoice,
-  onConvert,
-  onDelete,
 }: DraftActionsCardProps) {
+  // Hooks
+  const copy = useCopy(draftEditorContent)
+
   // Render logic
+  const methodItems = Object.entries(copy.methods).map(([value, label]) => ({ value, label }))
   return (
-    <Card className="gap-4 p-5">
-      <p className="text-kit-card-title text-foreground">{copy.actions.heading}</p>
+    <DataCard title={copy.actions.heading} bodyClassName="flex flex-col gap-4">
       <Field>
         <FieldLabel htmlFor="draft-method">{copy.paymentMethod}</FieldLabel>
         <Select
@@ -56,20 +50,7 @@ export default function DraftActionsCard({
           </SelectContent>
         </Select>
       </Field>
-      <div className="flex flex-col gap-2">
-        <Button variant="outline" disabled={!saved || busy} onClick={onSendInvoice}>
-          {copy.actions.sendInvoice}
-        </Button>
-        <Button disabled={!saved || busy} onClick={onConvert}>
-          {copy.actions.convert}
-        </Button>
-        <Button variant="ghost" disabled={!saved || busy} onClick={onDelete}>
-          {copy.actions.delete}
-        </Button>
-      </div>
-      {saved ? null : (
-        <p className="text-caption text-muted-foreground">{copy.actions.saveFirst}</p>
-      )}
-    </Card>
+      {hint ? <p className="text-caption text-muted-foreground">{hint}</p> : null}
+    </DataCard>
   )
 }

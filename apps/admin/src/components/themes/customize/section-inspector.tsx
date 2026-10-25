@@ -1,68 +1,80 @@
 'use client'
 
-import { X } from '@commerce/ui/icons'
+import { SINGLE_SECTIONS } from '@commerce/core/theme'
+import { Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Puck } from '@puckeditor/core'
 import { motion, useReducedMotion } from 'motion/react'
-import type { ReactNode } from 'react'
+import { type MouseEvent, useState } from 'react'
 import { customizeContent } from '@/data/customize'
-import { type CustomizeDoc, FOOTER_ZONE, HEADER_ZONE } from '@/lib/customize-doc'
+import { useCopy } from '@/hooks/use-copy'
+import { deleteWithCollapse } from '@/lib/customize-canvas-motion'
+import type { CustomizeDoc } from '@/lib/customize-doc'
+import { isElementStyleField, isSectionSettingsField } from '@/lib/customize-field-shape'
 import { sectionName } from '@/lib/customize-insert'
+import { InspectorTabContext } from '@/lib/customize-inspector-tab'
 import { useCustomizePuck } from '@/lib/customize-puck'
-import { findBlock, locateBlock, slotOwner } from '@/lib/customize-slots'
-import PanelHeader from './panel-header'
+import { sectionHandle } from '@/lib/customize-section-kinds'
+import { locateBlock } from '@/lib/customize-slots'
+import ImportedSectionNote from './imported-section-note'
+import InspectorBreadcrumb from './inspector-breadcrumb'
+import InspectorEmpty from './inspector-empty'
 import SectionIcon from './section-icon'
+import SegmentedTabs from './segmented-tabs'
 
-type SectionInspectorProps = {
-  /** Shown instead of the empty state, so the pane is never just blank text. */
-  settings: ReactNode
-}
+type Tab = 'basic' | 'advanced'
 
-const copy = customizeContent.inspector
-const groups = customizeContent.groups
-const panels = customizeContent.panels
+const TABS: Tab[] = ['basic', 'advanced']
 
-const zoneLabel = (zone: string) => {
-  if (zone === HEADER_ZONE) return groups.header
-  if (zone === FOOTER_ZONE) return groups.footer
-  return groups.template
-}
-
-/** The right pane: the selected section's settings, drawn by Puck's own field
- * renderer, under a header naming the section and the group it sits in — or,
- * with nothing selected, the theme settings, so there's always something to
- * edit here. */
-export default function SectionInspector({ settings }: SectionInspectorProps) {
+/** The right pane (Figma "Inspector", 381:6210): the selected section's name with a delete
+ * button, Basic (the section's own fields, in a Content card) and Advanced (layout, spacing,
+ * style cards, under where the block sits) on a segmented switch with a one-line hint, all
+ * drawn by Puck's own field renderer on one 16px-gutter column. With nothing selected it says
+ * how to pick one (`InspectorEmpty`, Figma 369:129005); theme settings live only in the rail's
+ * Theme tab. Esc deselects (`CustomizeHotkeys`). */
+export default function SectionInspector() {
   // Hooks
+  const copy = useCopy(customizeContent.inspector)
   const selected = useCustomizePuck((s) => s.selectedItem)
   const components = useCustomizePuck((s) => s.config.components)
   const data = useCustomizePuck((s) => s.appState.data as unknown as CustomizeDoc)
   const dispatch = useCustomizePuck((s) => s.dispatch)
   const reducedMotion = useReducedMotion()
+  const [tab, setTab] = useState<Tab>('basic')
+
+  // Event handlers
+  const handleRemove = (e: MouseEvent<HTMLButtonElement>) => {
+    if (!selected) return
+    const located = locateBlock(data, selected.props.id)
+    if (!located) return
+    const el =
+      document
+        .querySelector<HTMLIFrameElement>('iframe')
+        ?.contentDocument?.querySelector<HTMLElement>(
+          `[data-puck-component="${selected.props.id}"]`,
+        ) ?? null
+    e.currentTarget.blur()
+    deleteWithCollapse(dispatch, located, el, reducedMotion === true)
+  }
 
   // Early returns
-  if (!selected) {
-    return (
-      <section aria-label={panels.theme} className="flex min-h-0 flex-1 flex-col">
-        <PanelHeader title={panels.theme} hint={panels.themeHint} />
-        <div className="min-h-0 flex-1 overflow-y-auto">{settings}</div>
-      </section>
-    )
-  }
+  if (!selected) return <InspectorEmpty />
 
   // Render logic
   const component = components[selected.type]
   // A renamed section (or an imported one, named after its theme schema) shows its own name.
   const label = sectionName(selected, component?.label ?? selected.type)
-  const hasFields = Object.keys(component?.fields ?? {}).length > 0
-  const located = locateBlock(data, selected.props.id)
-  // A nested block names its container ("In Promo strip"); a section its group.
-  const owner = located ? slotOwner(data, located.zone) : null
-  const parent = owner ? findBlock(data, owner.id) : null
-  const crumb = parent
-    ? copy.inside(sectionName(parent, components[parent.type]?.label ?? parent.type))
-    : located
-      ? zoneLabel(located.zone)
+  const fields = Object.entries(component?.fields ?? {})
+  const hasFields = fields.length > 0
+  const hasAdvanced = fields.some(
+    ([name, field]) =>
+      isSectionSettingsField(field as never, name) || isElementStyleField(field as never, name),
+  )
+  const active: Tab = hasAdvanced ? tab : 'basic'
+  // An imported Shopify section names its file in the theme (`props.sectionType`).
+  const liquidType =
+    selected.type === 'LiquidSection' && typeof selected.props.sectionType === 'string'
+      ? selected.props.sectionType
       : null
 
   return (
@@ -71,36 +83,61 @@ export default function SectionInspector({ settings }: SectionInspectorProps) {
       initial={reducedMotion ? false : { opacity: 0, x: 8 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: reducedMotion ? 0 : 0.2, ease: 'easeOut' }}
-      className="flex min-h-0 flex-1 flex-col"
+      className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto overscroll-contain p-4"
       aria-label={copy.label}
     >
-      <PanelHeader
-        icon={<SectionIcon type={selected.type} tile="md" />}
-        title={label}
-        hint={crumb}
-        actions={
+      <header className="flex shrink-0 items-center gap-2">
+        <h2 className="min-w-0 flex-1 truncate text-base leading-[1.4375rem] font-semibold text-foreground">
+          {label}
+        </h2>
+        {SINGLE_SECTIONS.has(selected.type) ? null : (
           <Button
             variant="ghost"
-            size="icon-sm"
-            className="size-7 rounded-md text-muted-foreground hover:text-foreground"
-            onClick={() => dispatch({ type: 'setUi', ui: { itemSelector: null } })}
-            aria-label={panels.deselect}
-            title={panels.deselect}
+            size="icon-xs"
+            className="text-muted-foreground hover:text-danger"
+            onClick={handleRemove}
+            aria-label={copy.remove(label)}
+            title={copy.remove(label)}
           >
-            <X aria-hidden className="size-4" />
+            <Trash2 aria-hidden className="size-4" />
           </Button>
-        }
-      />
+        )}
+      </header>
+      {liquidType ? <ImportedSectionNote sectionType={liquidType} place="top" /> : null}
+      {hasAdvanced ? (
+        <>
+          <SegmentedTabs
+            tabs={TABS}
+            value={active}
+            onChange={setTab}
+            label={copy.label}
+            size="md"
+            className="shrink-0"
+            render={(id) => copy.tabs[id]}
+          />
+          <p className="text-xs leading-[1.0625rem] text-muted-foreground">
+            {copy.tabHints[active]}
+          </p>
+        </>
+      ) : null}
+      {active === 'advanced' ? (
+        <p className="flex h-7 shrink-0 items-center text-xs leading-[1.0625rem]">
+          <InspectorBreadcrumb blockId={selected.props.id} />
+        </p>
+      ) : null}
       {hasFields ? (
-        <div className="min-h-0 flex-1 overflow-y-auto [&>form]:flex [&>form]:flex-col [&>form]:gap-4 [&>form]:px-4 [&>form]:pt-4 [&>form]:pb-6">
-          <Puck.Fields wrapFields={false} />
+        <div className="[&>form]:flex [&>form]:flex-col [&>form]:gap-3.5">
+          <InspectorTabContext.Provider value={hasAdvanced ? active : 'all'}>
+            <Puck.Fields wrapFields={false} />
+          </InspectorTabContext.Provider>
         </div>
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
-          <SectionIcon type={selected.type} tile="md" />
+          <SectionIcon type={selected.type} handle={sectionHandle(selected)} tile="md" />
           <p className="text-[0.8125rem] text-muted-foreground">{copy.emptyFields}</p>
         </div>
       )}
+      {liquidType ? <ImportedSectionNote sectionType={liquidType} place="bottom" /> : null}
     </motion.section>
   )
 }

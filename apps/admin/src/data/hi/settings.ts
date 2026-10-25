@@ -53,7 +53,7 @@ export default [
         email: 'संपर्क ईमेल',
         emailHelp: 'ऑर्डर ईमेल पर दिखता है। ग्राहक जवाब दें तो यहीं आता है।',
         phone: 'फ़ोन',
-        phoneHelp: 'ग्राहक और कूरियर आपको कॉल कर सकें। देश का कोड भी लिखें, जैसे +91।',
+        phoneHelp: 'ग्राहक और कूरियर आपको कॉल कर सकें। देश चुनें, फिर नंबर लिखें।',
       },
       address: {
         heading: 'बिज़नेस का पता',
@@ -75,6 +75,11 @@ export default [
         help: 'कीमतों, ऑर्डर के समय और रिपोर्ट में काम आता है।',
         currency: 'करेंसी',
         currencyHelp: 'अभी सिर्फ़ भारतीय रुपया (INR)।',
+        moneyFormat: 'कीमत का फ़ॉर्मेट',
+        moneyFormatHelp:
+          'आपके स्टोर में कीमतें कैसे दिखें। {{amount}} से 6,499.00 और {{amount_no_decimals}} से 6,499 दिखता है, जैसे Rs. {{amount}}। ₹6,499 के लिए खाली छोड़ें। Shopify इंपोर्ट आपकी शॉप का फ़ॉर्मेट ले आता है।',
+        moneyFormatError: '{{amount}} या {{amount_no_decimals}} डालें, जैसे Rs. {{amount}}',
+        moneyFormatPreview: (example: string) => `ऐसे दिखेगा: ${example}`,
         timezone: 'टाइम ज़ोन',
       },
       timezones: [
@@ -110,6 +115,7 @@ export default [
       allDone: 'सब हो गया। आपकी दुकान बेचने के लिए तैयार है।',
       doneLabel: 'पूरा',
       open: 'खोलें',
+      setUp: 'सेटअप करें',
       loadFailed: 'आपकी चेकलिस्ट लोड नहीं हो पाई।',
       items: {
         store: {
@@ -156,13 +162,19 @@ export default [
         },
       },
     },
+    next: {
+      doneTitle: (task, done, total) => `${task} सेव हुआ · ${total} में से ${done} सेटअप`,
+      progressTitle: (done, total) => `${total} में से ${done} सेटअप`,
+      description: (task) => `अगला: ${task}`,
+      setUp: 'अभी सेटअप करें',
+      dontShow: 'दोबारा न दिखाएं',
+    },
     all: {
       heading: 'सारी Settings',
     },
     elsewhere: {
-      personal: 'आपकी भाषा और एडमिन का रंग-रूप आपके अपने हैं, स्टोर के नहीं:',
+      personal: 'आपकी प्रोफ़ाइल, साइन-इन और भाषा आपके अपने हैं, स्टोर के नहीं:',
       account: 'अकाउंट',
-      appearance: 'रंग-रूप',
       personalWhere: '(ऊपर दाईं ओर आपके नाम के अक्षरों वाले मेन्यू में भी)।',
       storage: 'अपलोड की गई फ़ाइलें कहाँ रखी जाती हैं:',
       storageLink: 'कंटेंट › फ़ाइलें › स्टोरेज',

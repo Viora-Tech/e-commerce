@@ -5,6 +5,7 @@ import {
   createArticle,
   createBlog,
   createCollection,
+  importRedirect,
   MenuItemsSchema,
   slugify,
   updateArticle,
@@ -15,6 +16,7 @@ import {
   article,
   blog,
   collection,
+  collectionProduct,
   type NavigationItem,
   navigationMenu,
   newId,
@@ -22,7 +24,7 @@ import {
   product,
   type StoreTx,
 } from '@commerce/db'
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, max } from 'drizzle-orm'
 import { htmlToRichText, htmlToText, type RichText, replaceImageSources } from './html'
 import { errorMessage, findMapping, type ImportContext, saveMapping } from './runtime'
 import type { ImportResource } from './schema'
@@ -49,17 +51,26 @@ async function richText(ctx: ImportContext, html: string | null): Promise<RichTe
   return doc
 }
 
+/** How a record is named in the report, and its import key (what a retry fetches again). */
+type Key = { ref: string; sourceId: string }
+
 async function hostOne(
   ctx: ImportContext,
   resource: ImportResource,
-  ref: string,
+  key: Key,
   image: { src: string; alt: string | null } | null,
 ): Promise<string | null> {
   if (!image) return null
   try {
     return await ctx.media.host(image.src, image.alt)
   } catch (err) {
-    ctx.report.issue({ resource, ref, message: `Image was not copied: ${errorMessage(err)}` })
+    ctx.report.issue({
+      resource,
+      ref: key.ref,
+      sourceId: key.sourceId,
+      kind: 'media',
+      message: `Image was not copied: ${errorMessage(err)}`,
+    })
     return null
   }
 }
@@ -68,7 +79,7 @@ async function hostOne(
 async function upsert(
   ctx: ImportContext,
   resource: ImportResource,
-  ref: string,
+  key: Key,
   title: string,
   find: (tx: StoreTx) => Promise<string | null>,
   write: (existing: string | null) => Promise<string>,
@@ -80,7 +91,7 @@ async function upsert(
       ctx.report.count(resource, existing ? 'updated' : 'created')
       ctx.report.sample({
         resource,
-        key: ref,
+        key: key.ref,
         title,
         action: existing ? 'update' : 'create',
         detail,
@@ -92,7 +103,7 @@ async function upsert(
     return id
   } catch (err) {
     ctx.report.count(resource, 'failed')
-    ctx.report.issue({ resource, ref, message: errorMessage(err) })
+    ctx.report.issue({ resource, ref: key.ref, sourceId: key.sourceId, message: errorMessage(err) })
     return null
   }
 }
@@ -134,14 +145,15 @@ export async function writeCollection(ctx: ImportContext, c: NCollection) {
       message: `Smart rules we cannot express (${c.unmappedRules.join(', ')}); imported as a manual collection with its current products`,
     })
   }
+  const key = { ref: c.handle, sourceId: c.sourceId ?? `handle:${c.handle}` }
   return upsert(
     ctx,
     'collections',
-    c.handle,
+    key,
     c.title,
     (tx) => mappedOr(tx, 'collections', c.sourceId, collection, handle),
     async (existing) => {
-      const imageMediaId = await hostOne(ctx, 'collections', c.handle, c.image)
+      const imageMediaId = await hostOne(ctx, 'collections', key, c.image)
       const description = await richText(ctx, c.bodyHtml)
       return ctx.inStore(async (tx) => {
         const productIds: string[] = []
@@ -167,12 +179,13 @@ export async function writeCollection(ctx: ImportContext, c: NCollection) {
           sortOrder: SORTS[c.sortOrder ?? ''] ?? 'manual',
           seoTitle: clip(c.seoTitle, 200),
           seoDescription: clip(c.seoDescription, 400),
+          templateSuffix: c.templateSuffix,
           status: c.published ? 'active' : 'draft',
           ...(automatic ? {} : { productIds: productIds.slice(0, 500) }),
         }
         const id = existing ?? (await createCollection(tx, ctx.storeId, write))
         if (existing) await updateCollection(tx, ctx.storeId, existing, write)
-        await saveMapping(tx, ctx.storeId, 'collections', c.sourceId ?? `handle:${c.handle}`, id)
+        await saveMapping(tx, ctx.storeId, 'collections', key.sourceId, id)
         const [row] = await tx
           .select({ handle: collection.handle })
           .from(collection)
@@ -192,12 +205,68 @@ export async function writeCollection(ctx: ImportContext, c: NCollection) {
   )
 }
 
+/**
+ * Put products this run wrote into the manual collection Shopify has them in, for a run
+ * that did not rewrite the collection itself ("Import remaining", a retry, products only):
+ * without this a product imported after its collections never joins them. Only adds, and
+ * only `written` products (local handles), after the members already there, so a product
+ * the merchant took out here stays out unless it was imported again. Collections we keep
+ * automatic are left to their rules. Returns how many products joined.
+ */
+export async function linkCollectionMembers(
+  ctx: ImportContext,
+  c: NCollection,
+  written: ReadonlySet<string>,
+): Promise<number> {
+  if (c.rules !== null && c.unmappedRules.length === 0) return 0
+  const handles = [...new Set(c.productHandles.map((h) => handleOf(h, 'product')))].filter((h) =>
+    written.has(h),
+  )
+  if (handles.length === 0) return 0
+  return ctx.inStore(async (tx) => {
+    const id = await findMapping(tx, 'collections', c.sourceId ?? `handle:${c.handle}`)
+    if (!id) return 0
+    const [row] = await tx
+      .select({ kind: collection.kind })
+      .from(collection)
+      .where(eq(collection.id, id))
+    if (row?.kind !== 'manual') return 0
+    const rows = await tx
+      .select({ id: product.id, handle: product.handle })
+      .from(product)
+      .where(inArray(product.handle, handles))
+    const byHandle = new Map(rows.map((r) => [r.handle, r.id]))
+    const ids = handles.flatMap((h) => byHandle.get(h) ?? [])
+    if (ids.length === 0) return 0
+    const [last] = await tx
+      .select({ position: max(collectionProduct.position) })
+      .from(collectionProduct)
+      .where(eq(collectionProduct.collectionId, id))
+    const start = (last?.position ?? -1) + 1
+    const added = await tx
+      .insert(collectionProduct)
+      .values(
+        ids.map((productId, i) => ({
+          id: newId(),
+          storeId: ctx.storeId,
+          collectionId: id,
+          productId,
+          position: start + i,
+        })),
+      )
+      .onConflictDoNothing()
+      .returning({ id: collectionProduct.id })
+    return added.length
+  })
+}
+
 export async function writePage(ctx: ImportContext, p: NPage) {
   const handle = handleOf(p.handle, 'page')
+  const key = { ref: p.handle, sourceId: p.sourceId ?? `handle:${p.handle}` }
   return upsert(
     ctx,
     'pages',
-    p.handle,
+    key,
     p.title,
     (tx) => mappedOr(tx, 'pages', p.sourceId, page, handle),
     async (existing) => {
@@ -209,6 +278,7 @@ export async function writePage(ctx: ImportContext, p: NPage) {
           seoTitle: clip(p.seoTitle, 200),
           seoDescription: clip(p.seoDescription, 400),
           publishedAt: p.published ? (p.publishedAt ? new Date(p.publishedAt) : new Date()) : null,
+          templateSuffix: p.templateSuffix,
           updatedAt: new Date(),
         }
         let id = existing
@@ -229,7 +299,7 @@ export async function writePage(ctx: ImportContext, p: NPage) {
             await upsertImportedRedirect(tx, ctx.storeId, `/pages/${p.handle}`, `/pages/${free}`)
           }
         }
-        await saveMapping(tx, ctx.storeId, 'pages', p.sourceId ?? `handle:${p.handle}`, id)
+        await saveMapping(tx, ctx.storeId, 'pages', key.sourceId, id)
         return id
       })
     },
@@ -238,18 +308,32 @@ export async function writePage(ctx: ImportContext, p: NPage) {
 
 async function blogFor(tx: StoreTx, storeId: string, a: NArticle): Promise<string> {
   const handle = handleOf(a.blogHandle, 'news')
-  const [row] = await tx.select({ id: blog.id }).from(blog).where(eq(blog.handle, handle))
-  if (row) return row.id
-  return createBlog(tx, storeId, { title: a.blogTitle.slice(0, 120) || 'News', handle })
+  const [row] = await tx
+    .select({ id: blog.id, templateSuffix: blog.templateSuffix })
+    .from(blog)
+    .where(eq(blog.handle, handle))
+  if (!row) {
+    return createBlog(tx, storeId, {
+      title: a.blogTitle.slice(0, 120) || 'News',
+      handle,
+      templateSuffix: a.blogTemplateSuffix,
+    })
+  }
+  // Every article carries its blog's template; the blog takes Shopify's on each import.
+  if (row.templateSuffix !== a.blogTemplateSuffix) {
+    await tx.update(blog).set({ templateSuffix: a.blogTemplateSuffix }).where(eq(blog.id, row.id))
+  }
+  return row.id
 }
 
 export async function writeArticle(ctx: ImportContext, a: NArticle) {
   const handle = handleOf(a.handle, 'post')
   const ref = `${a.blogHandle}/${a.handle}`
+  const key = { ref, sourceId: a.sourceId ?? `handle:${ref}` }
   return upsert(
     ctx,
     'articles',
-    ref,
+    key,
     a.title,
     async (tx) => {
       const mapped = await findMapping(tx, 'articles', a.sourceId)
@@ -268,7 +352,7 @@ export async function writeArticle(ctx: ImportContext, a: NArticle) {
       return row?.id ?? null
     },
     async (existing) => {
-      const imageMediaId = await hostOne(ctx, 'articles', ref, a.image)
+      const imageMediaId = await hostOne(ctx, 'articles', key, a.image)
       const body = await richText(ctx, a.bodyHtml)
       return ctx.inStore(async (tx) => {
         const blogId = await blogFor(tx, ctx.storeId, a)
@@ -286,10 +370,11 @@ export async function writeArticle(ctx: ImportContext, a: NArticle) {
           publishedAt: a.published && a.publishedAt ? new Date(a.publishedAt) : null,
           seoTitle: clip(a.seoTitle, 200),
           seoDescription: clip(a.seoDescription, 400),
+          templateSuffix: a.templateSuffix,
         }
         const id = existing ?? (await createArticle(tx, ctx.storeId, write))
         if (existing) await updateArticle(tx, existing, write)
-        await saveMapping(tx, ctx.storeId, 'articles', a.sourceId ?? `handle:${ref}`, id)
+        await saveMapping(tx, ctx.storeId, 'articles', key.sourceId, id)
         const [row] = await tx
           .select({ handle: article.handle, blog: blog.handle })
           .from(article)
@@ -340,10 +425,11 @@ export function navigationItem(item: NMenuItem, id: () => string, depth = 1): Na
 
 export async function writeMenu(ctx: ImportContext, m: NMenu) {
   const handle = handleOf(m.handle, 'menu')
+  const key = { ref: m.handle, sourceId: m.sourceId ?? `handle:${m.handle}` }
   return upsert(
     ctx,
     'menus',
-    m.handle,
+    key,
     m.title,
     (tx) => mappedOr(tx, 'menus', m.sourceId, navigationMenu, handle),
     async (existing) => {
@@ -368,12 +454,15 @@ export async function writeMenu(ctx: ImportContext, m: NMenu) {
             items: parsed.data,
           })
         }
-        await saveMapping(tx, ctx.storeId, 'menus', m.sourceId ?? `handle:${m.handle}`, id)
+        await saveMapping(tx, ctx.storeId, 'menus', key.sourceId, id)
         return id
       })
     },
   )
 }
+
+/** A redirect's import key: its Shopify id, else its path. */
+export const redirectSourceId = (r: NRedirect) => r.sourceId ?? `path:${r.path}`
 
 export async function writeRedirect(ctx: ImportContext, r: NRedirect) {
   try {
@@ -387,12 +476,29 @@ export async function writeRedirect(ctx: ImportContext, r: NRedirect) {
       })
       return
     }
-    const outcome = await ctx.inStore((tx) =>
-      upsertImportedRedirect(tx, ctx.storeId, r.path, r.target),
+    const { outcome, skip } = await ctx.inStore((tx) =>
+      importRedirect(tx, ctx.storeId, r.path, r.target),
     )
+    // Already here with the same target: the redirect is in place, like any record a
+    // re-run finds unchanged (it used to read "skipped", which looked like a failure).
+    if (skip === 'unchanged') return ctx.report.count('redirects', 'updated')
     ctx.report.count('redirects', outcome)
+    if (skip === 'manual') ctx.report.leave('redirects', 'redirect_manual')
+    if (skip === 'invalid') {
+      ctx.report.leave('redirects', 'redirect_invalid')
+      ctx.report.issue({
+        resource: 'redirects',
+        ref: r.path,
+        message: `Redirect from "${r.path}" points nowhere we can use (the home page or an empty path)`,
+      })
+    }
   } catch (err) {
     ctx.report.count('redirects', 'failed')
-    ctx.report.issue({ resource: 'redirects', ref: r.path, message: errorMessage(err) })
+    ctx.report.issue({
+      resource: 'redirects',
+      ref: r.path,
+      sourceId: redirectSourceId(r),
+      message: errorMessage(err),
+    })
   }
 }

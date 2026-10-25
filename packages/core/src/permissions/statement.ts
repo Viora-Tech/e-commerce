@@ -12,9 +12,11 @@ export const statement = {
   products: ['read', 'write', 'delete', 'import'],
   inventory: ['read', 'write'],
   customers: ['read', 'write', 'delete'],
+  inbox: ['read', 'reply', 'manage'],
   discounts: ['read', 'write'],
   marketing: ['read', 'write', 'send'],
-  content: ['read', 'write'],
+  automations: ['read', 'write', 'publish', 'run'],
+  content: ['read', 'write', 'manage_types'],
   analytics: ['read'],
   online_store: ['read', 'write', 'publish'],
   apps: ['manage'],
@@ -55,13 +57,29 @@ export const permissions = {
   CUSTOMERS_READ: permission('customers', 'read'),
   CUSTOMERS_WRITE: permission('customers', 'write'),
   CUSTOMERS_DELETE: permission('customers', 'delete'),
+  /** See Inbox conversations and their unread counts. */
+  INBOX_READ: permission('inbox', 'read'),
+  /** Send messages and notes, assign, close, reopen and block conversations. */
+  INBOX_REPLY: permission('inbox', 'reply'),
+  /** Change Inbox settings and quick replies. */
+  INBOX_MANAGE: permission('inbox', 'manage'),
   DISCOUNTS_READ: permission('discounts', 'read'),
   DISCOUNTS_WRITE: permission('discounts', 'write'),
   MARKETING_READ: permission('marketing', 'read'),
   MARKETING_WRITE: permission('marketing', 'write'),
   MARKETING_SEND: permission('marketing', 'send'),
+  /** See workflows, runs and record history. */
+  AUTOMATIONS_READ: permission('automations', 'read'),
+  /** Edit drafts and run dry tests ("Test with a record"). */
+  AUTOMATIONS_WRITE: permission('automations', 'write'),
+  /** Turn workflows on or off, publish versions, retry or cancel runs. */
+  AUTOMATIONS_PUBLISH: permission('automations', 'publish'),
+  /** "Run automation" on a record or a selection (plus each action's own permission). */
+  AUTOMATIONS_RUN: permission('automations', 'run'),
   CONTENT_READ: permission('content', 'read'),
   CONTENT_WRITE: permission('content', 'write'),
+  /** Add, change and delete content types and extra fields (their entries and values need write). */
+  CONTENT_MANAGE_TYPES: permission('content', 'manage_types'),
   ANALYTICS_READ: permission('analytics', 'read'),
   ONLINE_STORE_READ: permission('online_store', 'read'),
   ONLINE_STORE_WRITE: permission('online_store', 'write'),
@@ -90,12 +108,25 @@ export const RESOURCE_METADATA: { [R in Resource]: ResourceMeta } = {
   },
   inventory: { label: 'Inventory', description: 'View stock levels and adjust quantities.' },
   customers: { label: 'Customers', description: 'View customer records, edit and delete them.' },
+  inbox: {
+    label: 'Inbox',
+    description:
+      'Read chats with shoppers, reply to them, and change Inbox settings and quick replies.',
+  },
   discounts: { label: 'Discounts', description: 'View and edit discount codes and offers.' },
   marketing: {
     label: 'Marketing',
     description: 'View marketing reports, edit campaigns and automations, and send them.',
   },
-  content: { label: 'Content', description: 'View and edit files and content entries.' },
+  automations: {
+    label: 'Automations',
+    description: 'View workflows and runs, edit and publish workflows, and run them on records.',
+  },
+  content: {
+    label: 'Content',
+    description:
+      'View and edit files and content entries, and manage content types and extra fields.',
+  },
   analytics: { label: 'Analytics', description: 'View reports and the live view.' },
   online_store: {
     label: 'Online store',

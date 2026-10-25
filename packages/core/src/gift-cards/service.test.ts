@@ -23,13 +23,12 @@ import { refundPayment } from '../order/refund'
 import { cancelOrder } from '../order/status'
 import { CodPaymentProvider } from '../providers/cod'
 import { FakePaymentProvider } from '../providers/payment'
-import { addMonths, giftCardState, normaliseGiftCardCode } from './client'
+import { addMonths, generateGiftCardCode, giftCardState, normaliseGiftCardCode } from './client'
 import {
   changeGiftCardBalance,
   deliverGiftCard,
   findRedeemableGiftCard,
   GiftCardError,
-  generateGiftCardCode,
   getGiftCard,
   hashGiftCardCode,
   issueGiftCard,
@@ -119,9 +118,9 @@ class FakeEmail implements NotificationChannel {
 }
 
 describe('gift card codes', () => {
-  it('generates 16 unambiguous characters and hashes them per store', () => {
+  it('generates 12 unambiguous characters and hashes them per store', () => {
     const code = generateGiftCardCode()
-    expect(code).toMatch(/^[A-HJ-NP-Z2-9]{16}$/)
+    expect(code).toMatch(/^[A-HJ-NP-Z2-9]{12}$/)
     expect(hashGiftCardCode('a', code)).toBe(hashGiftCardCode('a', code.toLowerCase()))
     expect(hashGiftCardCode('a', code)).not.toBe(hashGiftCardCode('b', code))
     expect(normaliseGiftCardCode('abcd-efgh 2345')).toBe('ABCDEFGH2345')

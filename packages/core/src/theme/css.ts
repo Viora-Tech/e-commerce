@@ -18,7 +18,7 @@ export function themeToCss(theme: Theme): string {
   })
   const dark = cssVarsToDeclarations(themeColorVars(theme, 'dark'))
 
-  // A section wearing a scheme paints itself with it (Glide's css-variables.liquid).
+  // A section wearing a scheme paints itself with it (Zero Drift's css-variables.liquid).
   const perScheme = theme.schemes
     .map(
       (s) =>

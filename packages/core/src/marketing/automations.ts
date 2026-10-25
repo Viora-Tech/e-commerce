@@ -13,8 +13,10 @@ import { and, asc, desc, eq, inArray, isNull, lte, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { recoveryUrl } from '../cart/abandoned'
 import { decryptCustomerPhone } from '../customers/phone-crypto'
+import { insertOutboxEvent } from '../outbox/write'
 import { hasMarketingConsent } from '../privacy/client'
 import { normalisePhone } from './audience'
+import { legacyOwnsStore } from './automation-cutover'
 import {
   AutomationSettingsSchema,
   type AutomationStep,
@@ -28,6 +30,7 @@ import {
   STOPS_ON_ORDER,
 } from './automation-steps'
 import { applyMergeTags, type EmailCartLine, type MergeValues } from './email'
+import { markEngineConversions } from './growth-engine'
 import { RECIPIENT_MISMATCH, recipientIsCustomers } from './recipient'
 import {
   firstName,
@@ -150,7 +153,7 @@ export async function automationStats(
       runs: sql<number>`count(*)::int`,
       active: sql<number>`count(*) filter (where ${marketingAutomationRun.status} = 'active')::int`,
       converted: sql<number>`count(*) filter (where ${marketingAutomationRun.status} = 'converted')::int`,
-      revenue: sql<number>`coalesce(sum(o.total_paise) filter (where ${marketingAutomationRun.status} = 'converted'), 0)::int`,
+      revenue: sql<number>`coalesce(sum(o.total_paise) filter (where ${marketingAutomationRun.status} = 'converted' and not o.is_test), 0)::int`,
     })
     .from(marketingAutomationRun)
     .leftJoin(sql`"order" o`, sql`o.id = ${marketingAutomationRun.convertedOrderId}`)
@@ -259,6 +262,8 @@ export async function enrolDue(
   secret: string,
   now = new Date(),
 ): Promise<number> {
+  // Stores moved onto the Automations engine are enrolled by its sweep triggers.
+  if (!(await legacyOwnsStore(tx, storeId))) return 0
   let enrolled = 0
   for (const a of await activeAutomations(tx, 'checkout_abandoned')) {
     const after = parseAutomationSettings(a.settings).afterMinutes ?? 60
@@ -404,8 +409,14 @@ export async function enrolSubscriber(
   secret: string,
   now = new Date(),
 ): Promise<number> {
+  const legacy = await legacyOwnsStore(tx, storeId)
   const [c] = await tx.select().from(customer).where(eq(customer.email, email.trim().toLowerCase()))
   if (!c) return 0
+  if (!legacy) {
+    // On the engine the welcome trigger is an outbox event (keyed per customer by the engine).
+    await insertOutboxEvent(tx, storeId, 'customer.subscribed', { customerId: c.id })
+    return 0
+  }
   let n = 0
   for (const a of await activeAutomations(tx, 'customer_subscribed')) {
     const ok = await enrol(
@@ -437,8 +448,11 @@ export async function onOrderPlaced(
   orderId: string,
   now = new Date(),
 ): Promise<{ converted: number; enrolled: number }> {
+  const legacy = await legacyOwnsStore(tx, storeId)
   const [o] = await tx.select().from(order).where(eq(order.id, orderId))
   if (!o || o.importedFrom || o.status === 'draft') return { converted: 0, enrolled: 0 }
+  // On the engine the order triggers come from the outbox; only the conversion credit is here.
+  if (!legacy) return { converted: await markEngineConversions(tx, o, now), enrolled: 0 }
   const converted = await markConversions(tx, o, now)
   let enrolled = 0
   const [cu] = o.customerId
@@ -517,7 +531,8 @@ type Context = {
   steps: AutomationStep[]
 }
 
-async function cartFacts(tx: StoreTx, cartId: string) {
+/** The cart as the abandoned-cart email shows it: lines with image and price label, total, status. */
+export async function cartFacts(tx: StoreTx, cartId: string) {
   const [c] = await tx.select({ status: cart.status }).from(cart).where(eq(cart.id, cartId))
   const lines = await tx.execute<{
     title: string
@@ -593,6 +608,7 @@ export async function processDueRuns(
   deps: MarketingDeps,
   now = new Date(),
 ): Promise<{ processed: number; sent: number }> {
+  if (!(await legacyOwnsStore(tx, storeId))) return { processed: 0, sent: 0 }
   const due = await tx
     .select({ run: marketingAutomationRun })
     .from(marketingAutomationRun)

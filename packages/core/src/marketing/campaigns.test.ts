@@ -103,6 +103,8 @@ const content = {
     { id: 'b1', type: 'text' as const, text: 'Hello', align: 'left' as const },
     { id: 'b2', type: 'button' as const, label: 'Shop', url: 'https://shop.test/collections/all' },
   ],
+  editor: 'blocks' as const,
+  design: null,
   whatsapp: null,
 }
 
@@ -147,6 +149,25 @@ describe('campaign audience and consent', () => {
       campaignAudience(tx, { kind: 'email', segmentId: seg?.id as string }, TEST_SECRET),
     )
     expect(members.map((m) => m.to)).toEqual(['buyer@x.in'])
+  })
+
+  it('narrows to business customers, those with a saved GSTIN', async () => {
+    const storeId = await newStore('b2')
+    await addCustomer(storeId, 'firm@x.in', { gstin: '27AAPFU0939F1ZV' })
+    await addCustomer(storeId, 'blank@x.in', { gstin: '  ' })
+    await addCustomer(storeId, 'person@x.in')
+    const [seg] = await owner
+      .insert(customerSegment)
+      .values({
+        storeId,
+        name: 'Business customers',
+        rules: { match: 'all', conditions: [{ field: 'business', op: 'eq', value: 'true' }] },
+      })
+      .returning()
+    const members = await withStore(app, storeId, (tx) =>
+      campaignAudience(tx, { kind: 'email', segmentId: seg?.id as string }, TEST_SECRET),
+    )
+    expect(members.map((m) => m.to)).toEqual(['firm@x.in'])
   })
 })
 
@@ -325,5 +346,40 @@ describe('tokens', () => {
   it('rejects forged or cross-store message tokens', () => {
     expect(verifyMessageToken('a.b.c', SECRET)).toBeNull()
     expect(verifyMessageToken('nope', SECRET)).toBeNull()
+  })
+})
+
+describe('visual designs', () => {
+  it('sends the compiled design with merge tags, tracking and the unsubscribe link', async () => {
+    const storeId = await newStore('v')
+    await addCustomer(storeId, 'v@x.in')
+    const { sent, deps } = recorder()
+    const design = {
+      project: {},
+      mjml: '<mjml>…</mjml>',
+      html: '<html><body><p>Hi {first_name}</p><a href="https://shop.test/sale">Sale</a><a href="{unsubscribe_url}">Leave</a></body></html>',
+    }
+    const c = await withStore(app, storeId, (tx) =>
+      createCampaign(tx, storeId, { ...content, blocks: [], editor: 'visual', design }),
+    )
+    const id = c?.id as string
+    await withStore(app, storeId, (tx) => scheduleCampaign(tx, id))
+    await withStore(app, storeId, (tx) => startDueCampaigns(tx, storeId, TEST_SECRET))
+    await withStore(app, storeId, (tx) => sendCampaignBatch(tx, storeId, deps, id))
+    const msg = sent[0] as Extract<MarketingSend, { kind: 'email' }>
+    expect(msg.html).toContain('Hi Asha')
+    expect(msg.html).toContain('/unsubscribe')
+    expect(msg.html).not.toContain('href="https://shop.test/sale"')
+    expect(msg.text).toContain('Sale (')
+  })
+
+  it('treats a visual campaign without a design as empty', async () => {
+    const storeId = await newStore('w')
+    const c = await withStore(app, storeId, (tx) =>
+      createCampaign(tx, storeId, { ...content, editor: 'visual', design: null }),
+    )
+    await expect(
+      withStore(app, storeId, (tx) => scheduleCampaign(tx, c?.id as string)),
+    ).rejects.toBeInstanceOf(CampaignNotReady)
   })
 })

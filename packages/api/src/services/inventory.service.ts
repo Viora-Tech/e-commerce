@@ -1,12 +1,16 @@
-import { notSystemTest } from '@commerce/core'
+import {
+  type StockFilter as CoreStockFilter,
+  notSystemTest,
+  storeLowStockThreshold,
+} from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import {
   inventoryAdjustment,
   inventoryLevel,
   media,
+  primarySellingLevel,
   product,
   productMedia,
-  store,
   variant,
 } from '@commerce/db'
 import {
@@ -26,7 +30,8 @@ import {
 
 // Services are the only code that runs queries. They receive a store-scoped tx.
 
-export type StockFilter = 'all' | 'in' | 'low' | 'out'
+/** A `?stock=` filter, or every row. */
+export type StockFilter = 'all' | CoreStockFilter
 
 export type InventoryQuery = {
   locationId: string
@@ -53,10 +58,7 @@ export type InventoryRow = {
   costPaise: number | null
 }
 
-async function threshold(tx: StoreTx): Promise<number> {
-  const [row] = await tx.select({ n: store.lowStockThreshold }).from(store).limit(1)
-  return row?.n ?? 5
-}
+const threshold = (tx: StoreTx) => storeLowStockThreshold(tx)
 
 /* Level at the chosen location; a variant with no row there reads as zero. */
 const onHandSql = sql<number>`coalesce(${inventoryLevel.onHand}, 0)`.mapWith(Number)
@@ -278,7 +280,7 @@ export async function searchVariants(
       inventoryLevel,
       input.locationId
         ? joinLevel(input.locationId)
-        : and(eq(inventoryLevel.variantId, variant.id), eq(inventoryLevel.fulfilsOnline, true)),
+        : and(eq(inventoryLevel.variantId, variant.id), primarySellingLevel(variant.id)),
     )
     .where(
       and(

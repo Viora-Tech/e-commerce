@@ -1,5 +1,6 @@
 'use client'
 
+import { PackageCheck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -12,8 +13,8 @@ import {
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import ProductThumb from '@/components/products/product-thumb'
-import { orderDetailContent } from '@/data/orders'
+import LineItemRow from '@/components/layout/line-item-row'
+import { orderDetailContent } from '@/data/order-detail'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { type OrderDetail, unfulfilledLines } from './order-detail-types'
@@ -98,24 +99,23 @@ export default function FulfilDialog({ order, onClose, onDone }: FulfilDialogPro
           ) : (
             <ul className="flex flex-col divide-y divide-border">
               {rows.map(({ line, remaining }) => (
-                <li key={line.id} className="flex items-center gap-3 py-3 first:pt-0">
-                  <ProductThumb url={line.imageUrl} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{line.title}</p>
-                    <p className="text-caption font-normal">
-                      {copy.unfulfilled.ofQuantity(line.fulfilledQuantity, line.quantity)}
-                    </p>
-                  </div>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={remaining}
-                    aria-label={copy.fulfilDialog.quantity}
-                    className="w-20 tabular-nums"
-                    value={quantityFor(line.id, remaining)}
-                    onChange={(e) => handleQuantity(line.id, e.target.value, remaining)}
-                  />
-                </li>
+                <LineItemRow
+                  key={line.id}
+                  imageUrl={line.imageUrl}
+                  title={line.title ?? ''}
+                  subtitle={copy.unfulfilled.ofQuantity(line.fulfilledQuantity, line.quantity)}
+                  controls={
+                    <Input
+                      type="number"
+                      min={0}
+                      max={remaining}
+                      aria-label={copy.fulfilDialog.quantity}
+                      className="w-20 tabular-nums"
+                      value={quantityFor(line.id, remaining)}
+                      onChange={(e) => handleQuantity(line.id, e.target.value, remaining)}
+                    />
+                  }
+                />
               ))}
             </ul>
           )}
@@ -127,6 +127,7 @@ export default function FulfilDialog({ order, onClose, onDone }: FulfilDialogPro
               {copy.fulfilDialog.cancel}
             </Button>
             <Button type="button" onClick={handleConfirm} disabled={busy || total === 0}>
+              <PackageCheck aria-hidden="true" />
               {copy.fulfilDialog.confirm}
             </Button>
           </DialogFooter>

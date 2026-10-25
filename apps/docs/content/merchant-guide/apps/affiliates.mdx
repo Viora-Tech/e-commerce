@@ -1,0 +1,125 @@
+---
+title: Affiliates
+description: Referral links and discount codes for creators and customers, paid on delivered orders.
+---
+
+# Affiliates
+
+Affiliates is a built-in app. Install it from the [App store](/merchant-guide/apps/app-store). It is included from the Growth plan; on Starter it costs ₹299 a month. Its pages are Overview, Affiliates, Programs, Commissions, Payouts and Settings.
+
+## How it works
+
+1. A shopper opens **/affiliate** on your store, signs in with their store account and applies. You can also add a creator yourself from **Affiliates → Add affiliate**.
+2. You approve them (or set a program's **New signups** to approve automatically). They get an email with their link (`yourstore.com/?ref=their-code`) and, if codes are on, a personal discount code.
+3. An order placed through the link, or with their code, earns them a commission. It shows as **On hold**.
+4. When the order is delivered, the hold period starts (your return window, 7 days unless you change it). If the order is cancelled, comes back undelivered (RTO) or is fully refunded first, the commission is reversed. A partial refund lowers it.
+5. After the hold, the commission becomes **Ready to pay**. TDS is worked out at this point.
+6. On **Payouts**, choose **Create payouts**, download the bank file, pay through your bank or UPI, then **Mark paid** with the UTR. The affiliate is emailed.
+
+Koomerce never moves money for affiliates: you pay them yourself.
+
+## Programs
+
+Every affiliate belongs to one program. Your store starts with a **Default** program (your settings from before programs existed moved into it unchanged). Add more under **Programs → New program**, for example one for creators and one for wholesale partners. A new program starts as a copy of the default one.
+
+Each program has:
+
+- **Signup link**: the default program signs up at **/affiliate**; another program at **/affiliate?program=its-link**.
+- **New signups**: approve automatically, or approve each one yourself.
+- **Commission**: a percent of the sale or a fixed amount per order. The sale is counted after discounts, without GST and shipping. Gift cards earn nothing.
+- **Which orders earn**: only a customer's first order, or every order for a number of days after their first referred order.
+- **Different rates**: a product or collection can have its own percent. A product rate wins over a collection rate.
+- **Order-value levels**: a different percent once an order passes a value, for example 12% on orders from ₹2,000. The value is the goods after discount, GST included, without shipping. The commission itself is still on the sale without GST. **Check a rate** shows both figures.
+- **Earns nothing**: products or collections that never earn commission. Their price is left out of the sale too.
+- **Tiers**: raise the percent once an affiliate's approved sales pass an amount.
+- **Discount codes**: each approved affiliate gets a code in **Discounts**, so your usual discount rules apply. Pausing an affiliate switches their code off.
+- **Signup page**: the pitch and terms shown on that program's signup page.
+
+The order of rates on each product in an order: **Earns nothing**, then a product rate, then a collection rate, then the affiliate's own rate, then the order-value level, then the program's commission. A tier raises whichever percent applies last.
+
+**Moving an affiliate**: on the affiliate's page, pick another program. New orders earn under it and their code takes its discount. Commissions already on hold keep their amounts. The same page sets an **Own rate** for one affiliate.
+
+**Archiving a program** asks which program its affiliates move to. An archived program takes no signups; you can open it again. The default program cannot be archived.
+
+## Settings
+
+These apply to every program:
+
+- **Program open**: off pauses new signups and new commissions everywhere.
+- **Link counts for**: how many days after a click an order still counts (up to 30). Clicks are only recorded for shoppers who accepted analytics cookies; discount codes always count.
+- **Hold after delivery** and **Minimum payout**.
+- **TDS**: on by default at 2% with a PAN and 20% without, once an affiliate's commission in the financial year passes ₹20,000 (section 194H; section 393 of the Income-tax Act, 2025 from April 2026). Check the rates with your accountant. Filing TDS returns and issuing Form 16A stay with you.
+- **Hold payouts without a PAN**: when on, an affiliate whose commission this year has passed the TDS threshold is not paid until they add a PAN (the Payouts page says why).
+- **GST on payouts**: affiliates who are GST registered add their GSTIN with their payout details. Their payout then gets GST on top (18% unless you change it), because they invoice you GST and you claim the input tax credit. TDS stays on the commission without GST. This is a research note, not tax advice: check it with your CA.
+
+## Share and earn
+
+Turn buyers into affiliates. Turn it on in **Affiliates → Settings → Share and earn**. After an order, the thank-you page, the order page and the order emails show **Share and earn 10% on every sale** (your program's rate). The buyer taps it, taps **Get my link**, and is an approved affiliate straight away, with a link and a discount code to share.
+
+- Nobody becomes an affiliate without tapping: opening the email does nothing.
+- Pick the program buyers join. To pay buyers differently from creators, make a **Customers** program with its own rate.
+- Set a minimum order value to invite only bigger orders. Test orders and guest checkouts get no invite.
+- Their own orders never earn them commission (the usual self-referral checks).
+
+## TDS report (26Q)
+
+On **Payouts**, **TDS report (26Q)** downloads a CSV for one quarter (April to June, July to September, October to December, January to March). It has one row per commission credited in the quarter, by the date it became ready to pay (India time): the affiliate's name, PAN (or `PANNOTAVBL` without one), the section from Settings (default `393(1) Sl. 1(ii) / 194H`), the credit date, amount, rate and TDS. Commissions reversed after they were credited are listed again under **Reversed after credit**. The file holds PANs, so it needs the **Settings** permission. Your CA files the return from it; Koomerce does not file TDS.
+
+## Fraud checks
+
+An order placed from the affiliate's own account, email, phone or saved address is recorded as **Own order** and earns nothing. If it was genuine, open **Commissions** and choose **Not their own order: allow**.
+
+Suspicious commissions are **held**, not refused. They wait in **Commissions** with a reason until you clear or reverse them:
+
+- **Code used from a coupon site**: the order used an affiliate's code, the shopper never clicked the affiliate's link, and they arrived from a coupon site (GrabOn, CouponDunia, CashKaro and more; edit the list in **Settings → Fraud checks**). This needs the shopper's analytics consent, since that is when the referrer is known.
+- **Unusual burst of orders on this code**: in 24 hours a code got more than 3× its usual day (at least 5 orders). Change the multiple in **Settings → Fraud checks**.
+- **Buyer is on your blocklist**.
+
+**Blocklist** (**Settings → Blocklist**): block an email, an email domain, a phone, an IP address, a PAN or a UPI ID / bank account. Blocked buyers' commissions are held. Blocked emails, domains and IPs cannot apply. An affiliate whose phone, PAN or payout account is blocked waits for your review.
+
+**Needs review**: when two affiliates use the same PAN or the same UPI ID or bank account, both are marked for review. Their commissions keep counting, but their payouts wait. Open the affiliate, check, and choose **Looks fine**, or suspend them.
+
+## Codes
+
+Each affiliate has a link code (`?ref=`) and a discount code. Open an affiliate to see both.
+
+- **Replace discount code**: for a code that leaked to a coupon site. The old code stops working at once and a new one is made. Their link stays the same.
+- **Their own code**: affiliates can ask for a code like their name in their dashboard. Approve or decline it on the affiliate's page. Approving changes their link and discount code; links they already posted keep earning.
+
+## Affiliate dashboard
+
+Approved affiliates see their link and code on `/affiliate`, plus a **link builder**: they search a product (or paste any page of your store) and get a referral link, a QR code to download, and a WhatsApp share button.
+
+## Creatives
+
+**Affiliates → Creatives**: add product photos or banners with a caption. Choose a program, or **All programs**. Affiliates see them on their dashboard under **Ready to post**, where they save the image and copy the caption. **Hide** removes one from dashboards without deleting it.
+
+## Signup questions and applications
+
+In a program, **Signup questions** adds up to 10 questions to its signup page (short or long text, a link, a number, a choice or a tick box), each optional or required. Answers show on the affiliate's page.
+
+When someone applies to a program that needs your approval, your store email gets **New affiliate application** with a link to approve them. **Reject** asks for an optional note; they are emailed that you did not approve them, with your note.
+
+## Trends and reports
+
+The Affiliates overview shows sales from affiliates by week or month, clicks and conversion (orders from clicks), and the products affiliates sell most. **Download ledger (CSV)** saves every commission for your books. Each affiliate's dashboard shows their last 12 months.
+
+## Payout details
+
+Affiliates add a UPI ID or bank account (and optionally their PAN) on their dashboard at **/affiliate**. The details are stored encrypted. Your admin only shows a masked line such as `UPI as•••@okaxis`. The bank file holds the full details and needs the **Settings** permission to download. Keep it private and delete it after uploading.
+
+## Signup block
+
+In the [website builder](/merchant-guide/online-store/website-builder), **Add → Apps → Affiliate signup** places an invitation with a button to **/affiliate** on any page. Edit its heading, text and button there.
+
+## Clawbacks
+
+If an order is refunded, cancelled or returned after its commission went into a payout, the commission is not taken out of that payout. The amount becomes a **clawback** and is subtracted from the affiliate's next payout. The Payouts page and the bank file show it.
+
+## Messages
+
+Affiliates get a message when they are approved, when a sale comes in, and when you mark a payout paid. These are listed in **Settings → Notifications** as **Affiliate update**. Email always goes out. To send it on WhatsApp too, create a WhatsApp template named `affiliate_update` with four parameters: your store name, what happened, the amount or code, and the dashboard link. Once Meta approves it, affiliates with a phone on their account get it there as well.
+
+## Privacy
+
+Erasing an affiliate's customer account removes their name, email, payout details and PAN from the affiliate record, pauses it and switches off their code. Their commissions and payouts stay in your books.

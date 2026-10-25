@@ -5,12 +5,14 @@ import {
   storeCheckoutLook,
   storeCheckoutSettings,
 } from '@commerce/core'
+import { initiateCheckoutEventId } from '@commerce/core/pixels'
 import { redirect } from 'next/navigation'
+import PixelTrack from '@/components/analytics/pixel-track'
 import CheckoutForm from '@/components/checkout/checkout-form'
 import { emiHintContent } from '@/data/product'
 import { readCartId } from '@/lib/cart-cookie'
 import { currentCustomer } from '@/lib/customer-session'
-import { cartDiscountView } from '@/lib/discount-actions'
+import { cartDiscountView } from '@/lib/discount-view'
 import { storeEmiOffers } from '@/lib/emi-offers'
 import { storeCheckoutMethods, storeOffersEmi } from '@/lib/payments'
 import { cartDepositTerms } from '@/lib/preorder'
@@ -24,21 +26,21 @@ export default async function CheckoutPage({ params }: Params) {
   const cartId = await readCartId()
   const cart = cartId ? await inStore(storeId, (tx) => getCart({ storeId, tx }, cartId)) : null
   if (cart?.status !== 'open' || cart.lines.length === 0) redirect('/cart')
-  // Settings → Customer accounts can require an account before checkout.
-  const [signIn, signedIn] = await Promise.all([storeSignIn(storeId), currentCustomer(storeId)])
-  if (signIn.checkout === 'account_required' && !signedIn) {
-    redirect('/account/login?return_to=%2Fcheckout')
-  }
-  const [methods, discount, me, deposit, settings, policies, look, emiApp] = await Promise.all([
-    inStore(storeId, (tx) => storeCheckoutMethods(tx, storeId)),
-    cartDiscountView(cart.id, cart.discountCode),
-    currentCustomer(storeId),
-    inStore(storeId, (tx) => cartDepositTerms(tx, storeId, cart.id)),
-    inStore(storeId, (tx) => storeCheckoutSettings({ tx, storeId })),
-    inStore(storeId, (tx) => publishedPolicyLinks({ tx, storeId })),
-    inStore(storeId, (tx) => storeCheckoutLook({ tx, storeId })),
-    inStore(storeId, (tx) => storeEmiOffers(tx, storeId)),
-  ])
+  // Settings → Customer accounts can require an account: the contact step then signs the
+  // shopper in with the store's own codes and providers before anything else (`checkoutAction`
+  // refuses an order without one regardless).
+  const [signIn, methods, discount, me, deposit, settings, policies, look, emiApp] =
+    await Promise.all([
+      storeSignIn(storeId),
+      inStore(storeId, (tx) => storeCheckoutMethods(tx, storeId)),
+      cartDiscountView(cart.id, cart.discountCode),
+      currentCustomer(storeId),
+      inStore(storeId, (tx) => cartDepositTerms(tx, storeId, cart.id)),
+      inStore(storeId, (tx) => storeCheckoutSettings({ tx, storeId })),
+      inStore(storeId, (tx) => publishedPolicyLinks({ tx, storeId })),
+      inStore(storeId, (tx) => storeCheckoutLook({ tx, storeId })),
+      inStore(storeId, (tx) => storeEmiOffers(tx, storeId)),
+    ])
   // The EMI line under the total: the EMI app's own minimum once installed, else the older hint's.
   const emiMinPaise = emiApp.installed
     ? (emiApp.config?.minPricePaise ?? null)
@@ -47,18 +49,34 @@ export default async function CheckoutPage({ params }: Params) {
       : null
   // A signed-in shopper checks out as themselves, with their address book to pick from.
   const addresses = me ? await inStore(storeId, (tx) => listAddresses({ storeId, tx }, me.id)) : []
+  const itemCount = cart.lines.reduce((n, l) => n + l.quantity, 0)
   return (
-    <CheckoutForm
-      cart={cart}
-      methods={methods}
-      discount={discount}
-      customer={me}
-      addresses={addresses}
-      deposit={deposit}
-      settings={settings}
-      policies={policies}
-      look={look}
-      emiMinPaise={emiMinPaise}
-    />
+    <>
+      {/* Pixels app: InitiateCheckout, one per cart (`ic_<cartId>`). */}
+      <PixelTrack
+        event={{
+          name: 'InitiateCheckout',
+          eventId: initiateCheckoutEventId(cart.id),
+          valuePaise: cart.subtotalPaise,
+          contentIds: cart.lines.map((l) => l.variantId),
+          numItems: itemCount,
+        }}
+      />
+      <CheckoutForm
+        // Signing in on the contact step comes back here as a different shopper: start afresh.
+        key={me?.id ?? 'guest'}
+        cart={cart}
+        methods={methods}
+        discount={discount}
+        customer={me}
+        addresses={addresses}
+        deposit={deposit}
+        settings={settings}
+        policies={policies}
+        look={look}
+        emiMinPaise={emiMinPaise}
+        signIn={{ methods: signIn.methods, checkout: signIn.checkout, options: signIn.options }}
+      />
+    </>
   )
 }

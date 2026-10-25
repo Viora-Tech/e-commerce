@@ -1,5 +1,6 @@
 'use client'
 
+import { Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -14,6 +15,7 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { type FormEvent, useState } from 'react'
 import { toast } from 'sonner'
 import { mediaContent } from '@/data/media'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type AltTextDialogProps = {
@@ -23,10 +25,9 @@ type AltTextDialogProps = {
   onSaved: (id: string, alt: string | null) => void
 }
 
-const copy = mediaContent.altDialog
-
 export default function AltTextDialog({ item, onClose, onSaved }: AltTextDialogProps) {
   // Hooks
+  const { altDialog: copy } = useCopy(mediaContent)
   const [alt, setAlt] = useState(item?.alt ?? '')
   const [busy, setBusy] = useState(false)
 
@@ -83,6 +84,7 @@ export default function AltTextDialog({ item, onClose, onSaved }: AltTextDialogP
               {copy.cancel}
             </Button>
             <Button type="submit" disabled={busy}>
+              <Save aria-hidden="true" />
               {copy.save}
             </Button>
           </DialogFooter>

@@ -26,7 +26,8 @@ export type WhatsappConfig = {
 
 export type FetchLike = (input: string, init: RequestInit) => Promise<Response>
 
-export const GRAPH_API = 'https://graph.facebook.com/v22.0'
+/** Same Graph version as Sales channels (META_GRAPH_VERSION in @commerce/core); v22.0 stops 20 May 2027. */
+export const GRAPH_API = 'https://graph.facebook.com/v26.0'
 
 /**
  * Body parameters for each approved template, in the order the template's
@@ -50,9 +51,15 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
       return [d.customerName, d.storeName, n, d.links?.[0]?.url ?? '-']
     case 'login_code':
     case 'account_deletion_code':
+    case 'email_change_code':
       return [d.code ?? '-', d.storeName]
+    case 'email_changed':
+      return [d.storeName, d.emailChange?.newEmail ?? '-']
     case 'login_link':
     case 'newsletter_confirm':
+    case 'staff_invite':
+    case 'purchase_order':
+    case 'plan_bill':
       return [d.storeName, d.actionUrl ?? '-']
     case 'gift_card_issued':
       return [d.customerName, d.storeName, d.giftCard?.balanceLabel ?? '-', d.giftCard?.code ?? '-']
@@ -65,12 +72,48 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
       return [d.customerName, d.storeName, n, d.totalLabel, d.orderUrl ?? '-']
     case 'unpaid_cancelled':
       return [d.customerName, d.storeName, n, d.totalLabel]
+    // One template for the three affiliate messages: {{1}} store, {{2}} what happened, {{3}} amount
+    // or code, {{4}} the dashboard link.
+    case 'affiliate_update':
+      return [
+        d.storeName,
+        d.affiliate?.kind === 'approved'
+          ? 'You are approved'
+          : d.affiliate?.kind === 'payout'
+            ? 'Your payout was sent'
+            : d.affiliate?.kind === 'rejected'
+              ? 'Your application was not approved'
+              : 'New sale through your link',
+        d.affiliate?.amountLabel ?? d.affiliate?.couponCode ?? '-',
+        d.affiliate?.portalUrl ?? '-',
+      ]
+    case 'contact_message':
+      return [d.storeName, d.contactMessage?.name || '-']
+    case 'affiliate_application':
+      return [d.storeName, d.affiliate?.name || '-']
+    case 'review_request':
+    case 'review_reminder':
+      return [d.customerName, d.storeName, d.review?.items?.[0]?.url ?? '-']
+    case 'review_reply':
+      return [d.storeName, d.review?.productTitle ?? '-', d.review?.productUrl ?? '-']
     case 'unpaid_cancel_notice':
       return [d.storeName, n, d.totalLabel, d.deadlineLabel ?? '-']
+    case 'staff_new_order':
+      return [d.storeName, n, d.totalLabel, d.actionUrl ?? '-']
+    case 'staff_daily_summary':
+      return [
+        d.storeName,
+        d.dailySummary?.periodLabel ?? '-',
+        String(d.dailySummary?.orders ?? 0),
+        d.dailySummary?.salesLabel ?? '-',
+        String(d.dailySummary?.toShip ?? 0),
+      ]
     case 'back_in_stock_confirm':
       return [d.backInStock?.productTitle ?? '-', d.backInStock?.confirmUrl ?? '-']
     case 'back_in_stock_alert':
       return [d.backInStock?.productTitle ?? '-', d.storeName, d.backInStock?.productUrl ?? '-']
+    case 'cod_confirm':
+      return [d.customerName, d.storeName, n, d.totalLabel, d.actionUrl ?? '-']
     case 'return_requested':
     case 'return_received':
       return [d.storeName, d.returnInfo?.label ?? '-', n]

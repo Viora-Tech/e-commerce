@@ -1,4 +1,4 @@
-/* Collection index and collection page, following the Glide grid rhythm. */
+/* Collection index and collection page, following the Zero Drift grid rhythm. */
 .section-collection {
   padding-block: 3rem 4rem;
 }
@@ -97,4 +97,300 @@
 .collection__empty {
   padding-block: 3rem;
   text-align: center;
+}
+
+/* ------------------------------------------------------------------ */
+/* Figma Pages · Collection (704:109926)                                */
+/* ------------------------------------------------------------------ */
+/* Breadcrumb, a 40px title, the description with the product count at the
+   row's end; a 13rem filter column headed "Filters / Clear all"; the chips and
+   the sort on one toolbar; three cards across; numbered pages. */
+.section-collection .breadcrumbs:not(:where(.shopify-section *)) {
+  margin-top: var(--space-5);
+}
+
+.collection__header:not(:where(.shopify-section *)) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  column-gap: var(--space-5);
+  row-gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+.collection__header > *:not(:where(.shopify-section *)) {
+  grid-column: 1;
+}
+
+.collection__title:not(:where(.shopify-section *)) {
+  margin: 0;
+  font-size: calc(2rem * var(--font-heading-scale, 1));
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  text-transform: none;
+}
+
+.collection__description:not(:where(.shopify-section *)) {
+  color: var(--color-muted);
+}
+
+.collection__count:not(:where(.shopify-section *)) {
+  grid-column: 2;
+  grid-row: -2;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.browse--filters:not(:where(.shopify-section *)) {
+  display: grid;
+  gap: var(--space-7);
+}
+
+.browse__filters:not(:where(.shopify-section *)) {
+  display: none;
+}
+
+.browse__filters-head:not(:where(.shopify-section *)) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.browse__filters-title:not(:where(.shopify-section *)) {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.browse__clear:not(:where(.shopify-section *)) {
+  color: var(--color-muted);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.browse__clear:hover:not(:where(.shopify-section *)) {
+  color: var(--color-ink);
+}
+
+.browse__chips:not(:where(.shopify-section *)) {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.browse__chip:not(:where(.shopify-section *)) {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 4px var(--space-3);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-button, var(--radius-m));
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.browse__chip:hover:not(:where(.shopify-section *)) {
+  border-color: var(--color-ink);
+}
+
+@media (min-width: 990px) {
+  .browse--filters:not(:where(.shopify-section *)) {
+    grid-template-columns: 13.5rem minmax(0, 1fr);
+  }
+
+  .browse__filters:not(:where(.shopify-section *)) {
+    display: block;
+  }
+
+  .browse--filters .collection__grid:not(:where(.shopify-section *)) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.collection__grid:not(:where(.shopify-section *)) {
+  gap: var(--space-7) var(--space-5);
+}
+
+/* Figma Store / Pagination (692:81545): square page buttons, the current one filled. */
+.pagination:not(:where(.shopify-section *)) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-top: var(--space-7);
+}
+
+.pagination__pages:not(:where(.shopify-section *)) {
+  display: flex;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pagination__page:not(:where(.shopify-section *)),
+.pagination__step:not(:where(.shopify-section *)),
+.pagination__gap:not(:where(.shopify-section *)) {
+  display: inline-grid;
+  place-items: center;
+  min-width: 36px;
+  height: 36px;
+  padding-inline: var(--space-2);
+  border-radius: var(--radius-m);
+  color: var(--color-ink);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.pagination__step:not(:where(.shopify-section *)) {
+  border: 1px solid var(--color-line);
+}
+
+.pagination__step svg:not(:where(.shopify-section *)) {
+  transform: rotate(90deg);
+}
+
+.pagination__step--next svg:not(:where(.shopify-section *)) {
+  transform: rotate(-90deg);
+}
+
+.pagination__page:hover:not(:where(.shopify-section *)),
+.pagination__step:hover:not(:where(.shopify-section *)) {
+  background-color: var(--color-surface);
+}
+
+.pagination__page[aria-current="page"]:not(:where(.shopify-section *)) {
+  background-color: var(--color-ink);
+  color: var(--color-bg);
+}
+
+.pagination__gap:not(:where(.shopify-section *)) {
+  color: var(--color-muted);
+}
+
+@media (min-width: 990px) {
+  .collection-list__grid.collection__index-grid:not(:where(.shopify-section *)) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Figma Pages · Search (704:116713)                                    */
+/* ------------------------------------------------------------------ */
+/* The 40px title, then a full-width field with a search glyph and a solid
+   Search button, then the results toolbar and grid. */
+.search-page__title:not(:where(.shopify-section *)) {
+  margin-bottom: var(--space-5);
+}
+
+.search-page__search:not(:where(.shopify-section *)) {
+  display: block;
+  margin-bottom: var(--space-6);
+}
+
+.search-page__form:not(:where(.shopify-section *)) {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.search-page__field:not(:where(.shopify-section *)) {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  height: 48px;
+  padding-inline: 14px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-input, var(--radius-m));
+  background-color: var(--color-bg);
+  color: var(--color-muted);
+}
+
+.search-page__field:focus-within:not(:where(.shopify-section *)) {
+  border-color: var(--color-ink);
+}
+
+.search-page__input:not(:where(.shopify-section *)) {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: none;
+  color: var(--color-ink);
+  font: inherit;
+  font-size: var(--font-body-size, 16px);
+}
+
+.search-page__input:focus:not(:where(.shopify-section *)) {
+  outline: none;
+}
+
+.search-page__submit:not(:where(.shopify-section *)) {
+  height: 48px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Figma Pages · Wishlist (707:123413)                                  */
+/* ------------------------------------------------------------------ */
+.wishlist:not(:where(.shopify-section *)) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding-block: var(--space-6) var(--space-9);
+}
+
+.wishlist__count:not(:where(.shopify-section *)),
+.wishlist__loading:not(:where(.shopify-section *)) {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+.wishlist__note:not(:where(.shopify-section *)) {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card, var(--radius-m));
+  color: var(--color-muted);
+}
+
+.wishlist__note-title:not(:where(.shopify-section *)) {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.wishlist__note-body:not(:where(.shopify-section *)) {
+  margin: 0;
+  font-size: 13px;
+}
+
+.wishlist__grid:not(:where(.shopify-section *)) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-7) var(--space-5);
+  margin-top: var(--space-2);
+}
+
+@media (min-width: 990px) {
+  .wishlist__grid:not(:where(.shopify-section *)) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }

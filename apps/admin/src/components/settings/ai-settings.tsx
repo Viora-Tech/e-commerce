@@ -6,24 +6,27 @@ import {
   WRITING_QUALITIES,
   type WritingQuality,
 } from '@commerce/ai/client'
-import { AiIcon, CircleAlert, ShieldCheck } from '@commerce/ui/icons'
+import { AI_CREDIT_PACK } from '@commerce/core/billing'
+import { CircleAlert, CreditCard, ShieldCheck } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Badge } from '@commerce/ui/shadcn/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
-import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Progress } from '@commerce/ui/shadcn/progress'
 import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { Switch } from '@commerce/ui/shadcn/switch'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { aiContent } from '@/data/ai'
-import { settingsContent } from '@/data/settings'
+import { SETTINGS_BACK, settingsContent } from '@/data/settings'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import AiActivityCard from './ai-activity-card'
+import SettingsCard from './settings-card'
+import SettingsRow from './settings-row'
+import SettingsToggleRow from './settings-toggle-row'
 
 type Loaded = Awaited<ReturnType<typeof api.ai.settings>>
 
@@ -35,6 +38,13 @@ function nextMonthStart(month: string): Date {
 
 function share(used: number, limit: number | null): number {
   return limit === null || limit <= 0 ? 0 : Math.min(100, (used / limit) * 100)
+}
+
+/** At or past this share of the monthly limit the count turns amber (Figma "Near the monthly limit"). */
+const NEAR_LIMIT = 90
+
+function countTone(used: number, limit: number | null): string {
+  return share(used, limit) >= NEAR_LIMIT ? 'text-warning' : 'text-muted-foreground'
 }
 
 /**
@@ -51,6 +61,7 @@ export default function AiSettings() {
   const [quality, setQuality] = useState<WritingQuality>('standard')
   const [failed, setFailed] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [buying, setBuying] = useState(false)
 
   useEffect(() => {
     api.ai
@@ -64,10 +75,9 @@ export default function AiSettings() {
   }, [])
 
   // Helpers
-  const meter = (used: number, limit: number | null) =>
-    limit === null
-      ? copy.settings.usage.unlimited(fmt.number(used))
-      : copy.settings.usage.of(fmt.number(used), fmt.number(limit))
+  // Every plan, Pro included, has a monthly credit cap; the meter always shows it.
+  const meter = (used: number, limit: number) =>
+    copy.settings.usage.of(fmt.number(used), fmt.number(limit))
 
   // Event handlers
   const handleSave = async () => {
@@ -86,6 +96,19 @@ export default function AiSettings() {
     }
   }
 
+  const handleBuyCredits = async () => {
+    setBuying(true)
+    try {
+      const bill = await api.billing.buyCredits()
+      if (bill.url) window.location.assign(bill.url)
+      else toast.error(copy.settings.usage.buyFailed)
+    } catch (err) {
+      toast.error(err instanceof Error && err.message ? err.message : copy.settings.usage.buyFailed)
+    } finally {
+      setBuying(false)
+    }
+  }
+
   // Early returns
   if (failed) return <p className="text-body text-muted-foreground">{copy.settings.loadFailed}</p>
 
@@ -96,7 +119,7 @@ export default function AiSettings() {
     (JSON.stringify(features) !== JSON.stringify(loaded.features) ||
       quality !== loaded.writingQuality)
   const usage = loaded?.usage
-  const tokens = usage ? usage.total.inputTokens + usage.total.outputTokens : 0
+  const credits = usage ? Math.ceil(usage.total.credits) : 0
 
   return (
     <div className="flex flex-col gap-4">
@@ -116,7 +139,8 @@ export default function AiSettings() {
       <PageHeader
         title={copy.settings.title}
         subtitle={copy.settings.subtitle}
-        icon={<AiIcon aria-hidden="true" />}
+        back={SETTINGS_BACK}
+        save={{ dirty, saving: busy, onSave: handleSave, label: copy.settings.save }}
       />
       {!loaded || !features || !usage ? (
         <Skeleton className="h-96 w-full rounded-2xl" />
@@ -129,120 +153,103 @@ export default function AiSettings() {
               <AlertDescription>{copy.settings.off.body}</AlertDescription>
             </Alert>
           )}
-          <Card size="form">
-            <CardHeader>
-              <CardTitle className="flex flex-wrap items-center gap-2">
+          <DataCard
+            title={
+              <>
                 {copy.settings.usage.heading}
                 <Badge variant="neutral">
                   {copy.settings.usage.plan}: {copy.settings.usage.plans[loaded.plan]}
                 </Badge>
-              </CardTitle>
-              <CardDescription>
-                {copy.settings.usage.help(
-                  fmt.pattern(nextMonthStart(usage.month), { day: 'numeric', month: 'long' }),
-                )}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-5">
-              <div className="flex flex-col gap-1.5">
-                <div className="flex flex-wrap items-center justify-between gap-2 text-body">
-                  <span className="text-ink-strong">{copy.settings.usage.requests}</span>
-                  <span className="text-muted-foreground tabular-nums">
-                    {meter(usage.total.calls, loaded.quota.calls)}
-                  </span>
-                </div>
-                {loaded.quota.calls === null ? null : (
-                  <Progress value={share(usage.total.calls, loaded.quota.calls)} />
-                )}
+              </>
+            }
+            subtitle={copy.settings.usage.help(
+              fmt.pattern(nextMonthStart(usage.month), { day: 'numeric', month: 'long' }),
+            )}
+            bodyClassName="flex flex-col gap-5"
+          >
+            <div className="flex flex-col gap-1.5">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-body">
+                <span className="text-ink-strong">{copy.settings.usage.credits}</span>
+                <span className={`tabular-nums ${countTone(credits, loaded.quota.credits)}`}>
+                  {meter(credits, loaded.quota.credits)}
+                </span>
               </div>
-              <div className="flex flex-col gap-1.5">
-                <div className="flex flex-wrap items-center justify-between gap-2 text-body">
-                  <span className="text-ink-strong">{copy.settings.usage.words}</span>
-                  <span className="text-muted-foreground tabular-nums">
-                    {meter(tokens, loaded.quota.tokens)}
-                  </span>
-                </div>
-                {loaded.quota.tokens === null ? null : (
-                  <Progress value={share(tokens, loaded.quota.tokens)} />
-                )}
-                <p className="text-caption text-muted-foreground">
-                  {copy.settings.usage.wordsHelp}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card size="form">
-            <CardHeader>
-              <CardTitle>{copy.settings.features.heading}</CardTitle>
-              <CardDescription>{copy.settings.features.help}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <FieldGroup>
-                {AI_FEATURES.map((feature) => (
-                  <Field
-                    key={feature}
-                    orientation="horizontal"
-                    className="items-start justify-between gap-4"
-                  >
-                    <div className="flex flex-col gap-0.5">
-                      <FieldLabel htmlFor={`ai-${feature}`}>
-                        {copy.settings.features[feature].label}
-                      </FieldLabel>
-                      <FieldDescription>{copy.settings.features[feature].help}</FieldDescription>
-                      <span className="text-caption text-muted-foreground tabular-nums">
-                        {copy.settings.usage.requestCount(usage.byFeature[feature].calls)}
-                      </span>
-                    </div>
-                    <Switch
-                      id={`ai-${feature}`}
-                      checked={features[feature]}
-                      onCheckedChange={(on) => setFeatures({ ...features, [feature]: on })}
-                    />
-                  </Field>
-                ))}
-                <Field className="gap-2">
-                  <FieldLabel>{copy.settings.quality.label}</FieldLabel>
-                  <FieldDescription>{copy.settings.quality.help}</FieldDescription>
-                  <RadioGroup
-                    value={quality}
-                    onValueChange={(v) => setQuality(v as WritingQuality)}
-                    className="flex flex-wrap gap-4"
-                  >
-                    {WRITING_QUALITIES.map((q) => (
-                      <label
-                        key={q}
-                        htmlFor={`ai-quality-${q}`}
-                        className="flex items-center gap-2"
-                      >
-                        <RadioGroupItem id={`ai-quality-${q}`} value={q} />
-                        <span className="text-body">{copy.settings.quality[q]}</span>
-                      </label>
-                    ))}
-                  </RadioGroup>
-                </Field>
-              </FieldGroup>
-            </CardContent>
-          </Card>
-          <Card size="form">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ShieldCheck className="size-5 text-primary" aria-hidden="true" />
-                {copy.settings.privacy.heading}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3">
-              <ul className="flex list-disc flex-col gap-1.5 pl-5 text-body text-ink-strong">
-                {copy.settings.privacy.lines.map((line) => (
-                  <li key={line}>{line}</li>
-                ))}
-              </ul>
-              {loaded.configured ? (
-                <p className="text-caption text-muted-foreground">
-                  {copy.settings.privacy.model(loaded.models.fast, loaded.models.strong)}
+              <Progress value={share(credits, loaded.quota.credits)} />
+              <p className="text-caption text-muted-foreground">
+                {copy.settings.usage.creditsHelp}
+              </p>
+              {loaded.extraCredits > 0 ? (
+                <p className="text-caption text-foreground">
+                  {copy.settings.usage.extra(fmt.number(Math.floor(loaded.extraCredits)))}
                 </p>
               ) : null}
-            </CardContent>
-          </Card>
+            </div>
+            <Button
+              variant="outline"
+              className="self-end"
+              loading={buying}
+              onClick={handleBuyCredits}
+            >
+              <CreditCard aria-hidden="true" />
+              {copy.settings.usage.buy(fmt.money(AI_CREDIT_PACK.pricePaise))}
+            </Button>
+          </DataCard>
+          <SettingsCard
+            title={copy.settings.features.heading}
+            description={copy.settings.features.help}
+          >
+            {AI_FEATURES.map((feature) => (
+              <SettingsToggleRow
+                key={feature}
+                id={`ai-${feature}`}
+                label={copy.settings.features[feature].label}
+                description={copy.settings.features[feature].help}
+                checked={features[feature]}
+                onChange={(on) => setFeatures({ ...features, [feature]: on })}
+              >
+                <span className="text-caption text-muted-foreground tabular-nums">
+                  {copy.settings.usage.requestCount(usage.byFeature[feature].calls)}
+                </span>
+              </SettingsToggleRow>
+            ))}
+            <SettingsRow
+              label={copy.settings.quality.label}
+              description={copy.settings.quality.help}
+            >
+              <RadioGroup
+                value={quality}
+                onValueChange={(v) => setQuality(v as WritingQuality)}
+                className="flex flex-wrap gap-4"
+              >
+                {WRITING_QUALITIES.map((q) => (
+                  <label key={q} htmlFor={`ai-quality-${q}`} className="flex items-center gap-2">
+                    <RadioGroupItem id={`ai-quality-${q}`} value={q} />
+                    <span className="text-body">{copy.settings.quality[q]}</span>
+                  </label>
+                ))}
+              </RadioGroup>
+            </SettingsRow>
+          </SettingsCard>
+          <DataCard
+            title={
+              <>
+                <ShieldCheck className="size-5 text-primary" aria-hidden="true" />
+                {copy.settings.privacy.heading}
+              </>
+            }
+            bodyClassName="flex flex-col gap-3"
+          >
+            <ul className="flex list-disc flex-col gap-1.5 pl-5 text-body text-ink-strong">
+              {copy.settings.privacy.lines.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+            {loaded.configured ? (
+              <p className="text-caption text-muted-foreground">
+                {copy.settings.privacy.model(loaded.models.fast, loaded.models.strong)}
+              </p>
+            ) : null}
+          </DataCard>
           <AiActivityCard />
         </>
       )}

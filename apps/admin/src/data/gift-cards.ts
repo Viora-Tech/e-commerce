@@ -12,6 +12,7 @@ export const GIFT_CARD_EXPIRY_MONTHS = [12, 24, 36, 60] as const
 
 export const giftCardsContent = {
   heading: 'Gift cards',
+  summary: 'Cards shoppers buy or you issue by hand',
   resource: { singular: 'gift card', plural: 'gift cards' },
   create: 'Create gift card',
   addProduct: 'Add gift card product',
@@ -107,15 +108,19 @@ export const giftCardIssueContent = {
   details: 'Gift card details',
   code: 'Gift card code',
   codeHelp:
-    'Leave blank for a random 16 character code. Custom codes are 8 to 20 letters and digits.',
+    'Leave blank or tap Generate for a random 12 character code. Custom codes are 8 to 20 letters and digits.',
   codePlaceholder: 'Generated automatically',
+  codeGenerate: 'Generate',
   value: 'Initial value',
   valueInvalid: 'Enter a value above ₹0',
   expiry: 'Expiration date',
   noExpiry: 'No expiration date',
   setExpiry: 'Set expiration date',
   customer: 'Customer',
-  customerSearch: 'Search customers',
+  customerSearch: 'Search customers by name, email or phone',
+  customerSearching: 'Searching…',
+  customerNone: 'No customers match',
+  customerFailed: 'Could not load customers',
   customerHelp: 'The card shows on the customer and can be emailed to them.',
   clear: 'Remove',
   recipient: 'Or send to an email address',
@@ -204,6 +209,8 @@ export const giftCardDetailContent = {
     placeholder: 'Only staff see this',
     empty: 'No notes',
     save: 'Save',
+    discard: 'Discard',
+    unsaved: 'Unsaved changes',
     saved: 'Note saved',
   },
   details: {
@@ -216,4 +223,29 @@ export const giftCardDetailContent = {
     message: 'Message',
   },
   failed: 'Could not save the change',
+} as const
+
+/** The gift card list's ⋯ menu and selection bar: resend, disable and enable. */
+export const giftCardListActionsContent = {
+  open: 'View gift card',
+  resend: 'Resend',
+  disable: 'Disable',
+  enable: 'Enable',
+  resent: (to: string) => `Gift card emailed to ${to}`,
+  resendFailed: 'Could not send the gift card',
+  disabled: 'Gift card disabled',
+  enabled: 'Gift card enabled',
+  failed: 'Could not update the gift card',
+  confirmDisable: {
+    title: (n: number) => (n === 1 ? 'Disable this gift card?' : `Disable ${n} gift cards?`),
+    body: 'A disabled card cannot be used at checkout. You can enable it again at any time.',
+    confirm: 'Disable',
+    cancel: 'Keep active',
+  },
+  confirmResend: {
+    title: (n: number) => `Email ${n} gift card${n === 1 ? '' : 's'} again?`,
+    body: 'Each code goes again to its recipient, or to the customer when there is none. Cards without an email address are skipped.',
+    confirm: 'Send',
+    cancel: 'Cancel',
+  },
 } as const

@@ -2,6 +2,7 @@
 import {
   collection,
   createDb,
+  outboxEvent,
   shippingZone,
   store,
   storeDomain,
@@ -14,6 +15,7 @@ import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { listRoles } from '../permissions/service'
 import { createStore, OnboardingError } from './service'
+import { SLUG_MIN, slugFormatProblem } from './slug'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
@@ -172,7 +174,91 @@ describe('createStore', () => {
       const [row] = await tx.select().from(store).where(eq(store.id, result.storeId))
       expect(row?.businessProfile).toEqual({ sells: 'fashion', sellsOn: 'shopify' })
       expect(row?.address).toMatchObject({ state: 'Rajasthan', country: 'IN' })
-      expect(row?.apps).toEqual({ installed: ['shopify-import'] })
+      // Automations is pre-installed on every store, then the apps the merchant asked for.
+      expect(row?.apps).toEqual({ installed: ['automations', 'shopify-import'] })
     })
   })
+})
+
+// Audit 2026-09-28: a refused organization (e.g. over the limit) used to leave the
+// store row behind, so the address stayed taken with no store.
+describe('createStore when the organization is refused', () => {
+  it('gives the store address back', async () => {
+    const attempt = () =>
+      createStore({
+        db: app,
+        ownerUserId: OWNER_USER_ID,
+        name: 'Squat',
+        slug: 'squatted',
+        platformDomain: 'waimers.store',
+        addLocalhostDomain: false,
+        createOrganization: async () => {
+          throw new Error('organization limit reached')
+        },
+      })
+    await expect(attempt()).rejects.toThrow('organization limit reached')
+    expect(await owner.select().from(store).where(eq(store.slug, 'squatted'))).toHaveLength(0)
+    expect(
+      await owner
+        .select()
+        .from(storeDomain)
+        .where(eq(storeDomain.hostname, 'squatted.waimers.store')),
+    ).toHaveLength(0)
+    // Someone else can now have it.
+    const other = await createStore({
+      db: app,
+      ownerUserId: OTHER_USER_ID,
+      name: 'Real',
+      slug: 'squatted',
+      platformDomain: 'waimers.store',
+      addLocalhostDomain: false,
+      ...fakeOrg('org_real'),
+    })
+    expect(other.created).toBe(true)
+  })
+})
+
+describe('createStore: platform address route', () => {
+  const base = {
+    db: app,
+    ownerUserId: OWNER_USER_ID,
+    name: 'Asha Handlooms',
+    slug: 'asha-handlooms',
+    platformDomain: 'koomerce.app',
+    ...fakeOrg('org_asha'),
+  }
+  const rows = async () => {
+    const domains = await owner.select().from(storeDomain)
+    const events = await owner.select().from(outboxEvent)
+    return { domains, events }
+  }
+
+  it('queues one HTTPS route for the new address when Dokploy manages the proxy', async () => {
+    await createStore({ ...base, requestPlatformRoute: true })
+    await createStore({ ...base, requestPlatformRoute: true })
+    const { domains, events } = await rows()
+    expect(domains).toHaveLength(1)
+    expect(domains[0]).toMatchObject({
+      hostname: 'asha-handlooms.koomerce.app',
+      routeStatus: 'pending',
+      sslStatus: 'issuing',
+    })
+    expect(events.filter((e) => e.type === 'domain.route_requested')).toHaveLength(1)
+  })
+
+  it('queues nothing when Dokploy is not configured', async () => {
+    await createStore(base)
+    const { domains, events } = await rows()
+    expect(domains[0]).toMatchObject({ routeStatus: 'none', sslStatus: 'active' })
+    expect(events).toHaveLength(0)
+  })
+})
+
+describe('reserved store addresses', () => {
+  it.each(['worker', 'dokploy', 'panel', 'maus', 'umami', 'ns1', 'admin-new', 'cdn2', 'l'])(
+    'refuses our own hostname %s',
+    (slug) => {
+      expect(slugFormatProblem(slug) === 'reserved' || slug.length < SLUG_MIN).toBe(true)
+    },
+  )
 })

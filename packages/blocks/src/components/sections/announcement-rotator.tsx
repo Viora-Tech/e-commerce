@@ -1,7 +1,7 @@
 'use client'
 
 import { type ReactNode, useEffect, useRef, useState } from 'react'
-import { announcementBarContent as copy } from '../../data/glide/announcement-bar'
+import { announcementBarContent as copy } from '../../data/zero-drift/announcement-bar'
 import { cx } from '../../slot-types'
 import { useReducedMotion } from '../../use-reduced-motion'
 import Icon from '../icon'

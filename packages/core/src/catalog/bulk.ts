@@ -1,15 +1,15 @@
 /** What the product list triggers: CSV import, duplicate and bulk edits. */
 import type { StoreTx } from '@commerce/db'
 import {
-  inventoryLevel,
   product,
   productOption,
   productOptionValue,
-  sellableLevel,
+  sellableStock,
   variant,
   variantOptionValue,
 } from '@commerce/db'
-import { and, asc, eq, inArray } from 'drizzle-orm'
+import { asc, eq, inArray } from 'drizzle-orm'
+import { noteProductEvent, noteProductsChanged, txStoreId } from './changes'
 import type { ImportProduct } from './import-csv'
 import { createProduct, deleteProduct, uniqueHandle, updateProduct } from './products'
 import type { ProductStatus, ProductWrite } from './schemas'
@@ -119,10 +119,10 @@ export async function importProducts(
     const id = byHandle.get(row.handle)
     try {
       if (id) {
-        await updateProduct(tx, storeId, id, write)
+        await updateProduct(tx, storeId, id, write, { imported: true })
         outcome.updated++
       } else {
-        await createProduct(tx, storeId, write)
+        await createProduct(tx, storeId, write, { imported: true })
         outcome.created++
       }
     } catch (err) {
@@ -170,10 +170,10 @@ export async function exportRows(tx: StoreTx, productIds: string[]): Promise<Exp
       mrpPaise: variant.mrpPaise,
       costPaise: variant.costPaise,
       weightGrams: variant.weightGrams,
-      onHand: inventoryLevel.onHand,
+      onHand: sellableStock.onHand,
     })
     .from(variant)
-    .leftJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
+    .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
     .where(inArray(variant.productId, productIds))
     .orderBy(asc(variant.position))
 
@@ -249,15 +249,12 @@ export async function duplicateProduct(tx: StoreTx, storeId: string, id: string)
   ).filter((v) => v.archivedAt === null)
   const levels = variants.length
     ? await tx
-        .select({ variantId: inventoryLevel.variantId, onHand: inventoryLevel.onHand })
-        .from(inventoryLevel)
+        .select({ variantId: sellableStock.variantId, onHand: sellableStock.onHand })
+        .from(sellableStock)
         .where(
-          and(
-            inArray(
-              inventoryLevel.variantId,
-              variants.map((v) => v.id),
-            ),
-            sellableLevel,
+          inArray(
+            sellableStock.variantId,
+            variants.map((v) => v.id),
           ),
         )
     : []
@@ -278,6 +275,7 @@ export async function duplicateProduct(tx: StoreTx, storeId: string, id: string)
     tags: source.tags,
     seoTitle: source.seoTitle,
     seoDescription: source.seoDescription,
+    seoKeywords: source.seoKeywords,
     status: 'draft',
     inventoryReason: 'correction',
     options,
@@ -335,6 +333,16 @@ export async function bulkUpdateProducts(
       .where(inArray(product.id, ids))
       .returning({ id: product.id })
     result.changed = rows.length
+    await noteProductsChanged(
+      tx,
+      rows.map((r) => r.id),
+    )
+    await noteProductEvent(
+      tx,
+      await txStoreId(tx),
+      'product.updated',
+      rows.map((r) => r.id),
+    )
     return result
   }
 
@@ -344,6 +352,7 @@ export async function bulkUpdateProducts(
     .select({ id: product.id, tags: product.tags })
     .from(product)
     .where(inArray(product.id, ids))
+  const changedIds: string[] = []
   for (const row of rows) {
     const has = row.tags.some((t) => t.toLowerCase() === tag.toLowerCase())
     if (action.kind === 'addTag' && has) continue
@@ -354,6 +363,11 @@ export async function bulkUpdateProducts(
         : row.tags.filter((t) => t.toLowerCase() !== tag.toLowerCase())
     await tx.update(product).set({ tags, updatedAt: new Date() }).where(eq(product.id, row.id))
     result.changed++
+    changedIds.push(row.id)
+  }
+  await noteProductsChanged(tx, changedIds)
+  if (changedIds.length) {
+    await noteProductEvent(tx, await txStoreId(tx), 'product.updated', changedIds)
   }
   return result
 }

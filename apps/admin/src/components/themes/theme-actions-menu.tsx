@@ -1,63 +1,57 @@
 'use client'
 
-import { MoreHorizontal } from '@commerce/ui/icons'
-import { Button } from '@commerce/ui/shadcn/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
+import ActionMenu from '@/components/layout/action-menu'
 import { themesContent } from '@/data/themes'
+import { useCopy } from '@/hooks/use-copy'
 
-export type ThemeAction = 'rename' | 'duplicate' | 'download' | 'delete'
+export type ThemeAction = 'rename' | 'duplicate' | 'versions' | 'download' | 'delete'
 
 type ThemeActionsMenuProps = {
   actions: readonly ThemeAction[]
+  /** Customize as the menu's first item (Figma "menu open"), for cards whose button is off-screen. */
+  customizeHref?: string
+  /** Edit code, after Customize (Figma 699:93894: Themes › ⋯ › Edit code). */
+  codeHref?: string
+  /** The live theme card's kebab is a key button beside Customize (Figma); rows keep the rim. */
+  variant?: 'default' | 'outline' | 'plain'
   disabled?: boolean
   onAction: (action: ThemeAction) => void
 }
 
-const copy = themesContent.library
+/** The kebab on a theme card: customize, duplicate, rename, versions, download settings, delete. */
+export default function ThemeActionsMenu({
+  actions,
+  customizeHref,
+  codeHref,
+  variant = 'outline',
+  disabled,
+  onAction,
+}: ThemeActionsMenuProps) {
+  // Hooks
+  const labels = useCopy(themesContent.library)
 
-const LABELS: Record<ThemeAction, string> = {
-  rename: copy.rename,
-  duplicate: copy.duplicate,
-  download: copy.download,
-  delete: copy.delete,
-}
-
-/** The kebab on a theme card: rename, duplicate, download settings, delete. */
-export default function ThemeActionsMenu({ actions, disabled, onAction }: ThemeActionsMenuProps) {
   // Render logic
   const safe = actions.filter((a) => a !== 'delete')
   const canDelete = actions.includes('delete')
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <Button variant="outline" size="icon" aria-label={copy.actions} disabled={disabled} />
-        }
-      >
-        <MoreHorizontal aria-hidden />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        {safe.map((a) => (
-          <DropdownMenuItem key={a} onClick={() => onAction(a)}>
-            {LABELS[a]}
-          </DropdownMenuItem>
-        ))}
-        {canDelete ? (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onClick={() => onAction('delete')}>
-              {LABELS.delete}
-            </DropdownMenuItem>
-          </>
-        ) : null}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <ActionMenu
+      label={labels.actions}
+      variant={variant}
+      size="md"
+      align="start"
+      disabled={disabled}
+      items={[
+        { label: labels.customize, href: customizeHref, hidden: !customizeHref },
+        { label: labels.editCode, href: codeHref, hidden: !codeHref },
+        ...safe.map((a) => ({ label: labels[a], onSelect: () => onAction(a) })),
+        {
+          label: labels.delete,
+          destructive: true,
+          hidden: !canDelete,
+          onSelect: () => onAction('delete'),
+        },
+      ]}
+    />
   )
 }

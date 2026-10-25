@@ -1,3 +1,4 @@
+import { SEO_KEYWORD_LENGTH_MAX, SEO_KEYWORDS_MAX } from '@commerce/ai/client'
 import { z } from 'zod'
 
 export const ProductStatusSchema = z.enum(['draft', 'active', 'archived'])
@@ -15,6 +16,11 @@ export const RichTextSchema = z.object({ root: z.record(z.string(), z.unknown())
 
 const paise = z.number().int().min(0).max(1_000_000_000)
 
+/** Units a variant's weight can be typed in on the product page (`variant.weight_unit`). */
+export const WEIGHT_UNITS = ['g', 'kg', 'lb', 'oz'] as const
+const WeightUnitSchema = z.enum(WEIGHT_UNITS)
+export type WeightUnit = z.infer<typeof WeightUnitSchema>
+
 export const VariantInputSchema = z.object({
   id: z.uuid().optional(),
   optionValues: z.array(z.string().trim().min(1).max(100)).max(3),
@@ -26,6 +32,8 @@ export const VariantInputSchema = z.object({
   taxable: z.boolean().optional(),
   trackInventory: z.boolean().optional(),
   weightGrams: z.number().int().min(0).max(1_000_000).nullable().optional(),
+  /** Unit the product page shows the weight in; grams stay the source of truth. Null shows kg. */
+  weightUnit: WeightUnitSchema.nullable().optional(),
   hsCode: z.string().trim().max(20).nullable().optional(),
   countryOfOrigin: z.string().trim().max(2).nullable().optional(),
   /** One of the store's named boxes (Settings → Shipping); null with dims set means a custom box. */
@@ -62,6 +70,11 @@ export const ProductFieldsSchema = z
     tags: z.array(z.string().trim().min(1).max(50)).max(100).optional(),
     seoTitle: z.string().trim().max(70).nullable().optional(),
     seoDescription: z.string().trim().max(320).nullable().optional(),
+    /** Search keywords, primary first; left out means unchanged. They steer Write with AI only. */
+    seoKeywords: z
+      .array(z.string().trim().min(1).max(SEO_KEYWORD_LENGTH_MAX))
+      .max(SEO_KEYWORDS_MAX)
+      .optional(),
     /** Alternate product template (`product.<suffix>`); blank or null is the default. */
     templateSuffix: z
       .string()

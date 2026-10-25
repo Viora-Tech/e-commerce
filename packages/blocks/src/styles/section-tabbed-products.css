@@ -1,4 +1,4 @@
-/* Ported from Glide assets/section-tabbed-products.css (px to rem; custom elements to classes). */
+/* Ported from Zero Drift assets/section-tabbed-products.css (px to rem; custom elements to classes). */
 /**
  * Tabbed products (sections/tabbed-products.liquid).
  *
@@ -465,5 +465,80 @@ html:not(.has-cursor-fill) .tabbed-products__tab[aria-selected='true']:hover {
 @keyframes tabbed-products-shimmer {
   to {
     background-position: -200% 0;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Figma Section / Tabbed products and Product grid (704:122080,        */
+/* 704:121703): the tabs as Store / Tabs "Pills" - a surface track with  */
+/* the chosen tab raised on the page colour - and 24px gutters.         */
+/* ------------------------------------------------------------------ */
+.tabbed-products__tabs:not(:where(.shopify-section *)) {
+  margin-bottom: var(--space-7);
+}
+
+.tabbed-products__tablist:not(:where(.shopify-section *)) {
+  gap: 0;
+  padding: 4px;
+  border-radius: var(--radius-m);
+  background-color: var(--color-surface);
+}
+
+.tabbed-products__tab:not(:where(.shopify-section *)),
+html.has-cursor-fill .tabbed-products__tab:hover:not(:where(.shopify-section *)),
+html:not(.has-cursor-fill) .tabbed-products__tab:hover:not(:where(.shopify-section *)) {
+  padding: 6px var(--space-4);
+  border: 0;
+  border-radius: calc(var(--radius-m) - 2px);
+  background-color: transparent;
+  color: var(--color-muted);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: 0;
+  --tp-fill-color: transparent;
+}
+
+.tabbed-products__tab:hover:not(:where(.shopify-section *)) {
+  color: var(--color-ink);
+}
+
+.tabbed-products__tab[aria-selected='true']:not(:where(.shopify-section *)),
+html.has-cursor-fill .tabbed-products__tab[aria-selected='true']:hover:not(:where(.shopify-section *)),
+html:not(.has-cursor-fill) .tabbed-products__tab[aria-selected='true']:hover:not(:where(.shopify-section *)) {
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+}
+
+.tabbed-products__indicator:not(:where(.shopify-section *)) {
+  border-radius: calc(var(--radius-m) - 2px);
+  background-color: var(--color-bg);
+}
+
+.tabbed-products__tablist.has-indicator .tabbed-products__tab[aria-selected='true']:not(:where(.shopify-section *)),
+.tabbed-products__tablist.has-indicator .tabbed-products__tab[aria-selected='true']:hover:not(:where(.shopify-section *)) {
+  color: var(--color-ink);
+}
+
+.tabbed-products__grid:not(:where(.shopify-section *)) {
+  gap: var(--space-7) var(--space-5);
+}
+
+.tabbed-products__heading:not(:where(.shopify-section *)) {
+  --tp-line: 1.1em;
+
+  margin-bottom: var(--space-6);
+  font-size: calc(2rem * var(--font-heading-scale, 1));
+  letter-spacing: -0.015em;
+}
+
+.tabbed-products__heading-item:not(:where(.shopify-section *)) {
+  line-height: 1.1;
+}
+
+@media screen and (min-width: 990px) {
+  .tabbed-products__heading:not(:where(.shopify-section *)) {
+    font-size: calc(2.5rem * var(--font-heading-scale, 1));
   }
 }

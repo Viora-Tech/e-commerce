@@ -1,28 +1,7 @@
-import type { ReactNode } from 'react'
+export type { GlobeArc, GlobeMarker } from '@commerce/ui/globe/types'
+
+import type { GlobeArc, GlobeMarker } from '@commerce/ui/globe/types'
 import type { GlobeSettings } from './globe-settings'
-
-export type GlobeMarker = {
-  id: string
-  lat: number
-  lng: number
-  label: string
-  isNewest: boolean
-  /** City, order number and amount; shown next to the marker on hover or focus. */
-  tooltip: ReactNode
-  /** The order's total, for "Highlight big orders" (marker size, and a glow on the top 10%).
-   * Undefined markers (e.g. none carry it) are treated as zero, so sizing just falls back to
-   * the flat default. */
-  valuePaise?: number
-}
-
-export type GlobeArc = {
-  id: string
-  fromLat: number
-  fromLng: number
-  toLat: number
-  toLng: number
-  isNewest: boolean
-}
 
 /** Props both globes take (cobe on the Home card, our WebGL globe on the Live view). */
 export type GlobeCanvasProps = {
@@ -43,6 +22,8 @@ export type GlobeCanvasProps = {
    * view uses it to sit the globe on the right while the stats float over the left.
    */
   shiftX?: number
+  /** Home card (Figma 227:548): land in the brand blue instead of muted grey, and no zoom buttons. */
+  brand?: boolean
   /**
    * The "Globe settings" panel's state, and its gear button next to the zoom controls. Only
    * the WebGL globe reads or shows any of this — the Home card's cobe globe (which never

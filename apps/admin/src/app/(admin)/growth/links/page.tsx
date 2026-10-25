@@ -1,9 +1,7 @@
-import { loadEnv } from '@commerce/config'
-import type { Metadata } from 'next'
-import LinksBuilder from '@/components/growth/links-builder'
+import { redirect } from 'next/navigation'
+import { routes } from '@/lib/routes'
 
-export const metadata: Metadata = { title: 'Links' }
-
+/** Tracking links moved to a tab of Campaigns, as in Shopify. */
 export default function Page() {
-  return <LinksBuilder storefrontOrigin={loadEnv(process.env).STOREFRONT_URL} />
+  redirect(routes.growth.trackingLinks())
 }

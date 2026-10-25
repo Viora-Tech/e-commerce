@@ -5,7 +5,7 @@
  * Pure and client-safe.
  */
 
-export const AI_FEATURES = ['productWriter', 'assistant', 'bulkWriter'] as const
+export const AI_FEATURES = ['productWriter', 'assistant', 'bulkWriter', 'documentReader'] as const
 export type AiFeature = (typeof AI_FEATURES)[number]
 
 /**
@@ -13,13 +13,14 @@ export type AiFeature = (typeof AI_FEATURES)[number]
  * `provider/model` form, so one id works on both. `AI_MODEL` overrides `fast` and
  * `AI_MODEL_STRONG` overrides `strong` from the environment.
  *
- * - fast: Claude Haiku 4.5 ($1 in / $5 out per million tokens). Chat, tool calls, quick
- *   writing. Reads photos and follows a schema well.
+ * - fast: Claude Haiku 5.5 ($0.10 in / $0.50 out per million tokens up to 100K-token prompts,
+ *   $0.50 / $2.50 above; 10x cheaper than Haiku 4.5). Chat, tool calls, quick writing.
+ *   Reads photos and follows a schema well.
  * - strong: Claude Sonnet 4.5 ($3 in / $15 out). Long writing when a store picks "Best"
  *   writing quality in Settings → AI.
  */
 export const MODEL_TIERS = {
-  fast: 'anthropic/claude-haiku-4.5',
+  fast: 'anthropic/claude-haiku-5.5',
   strong: 'anthropic/claude-sonnet-4.5',
 } as const
 export type ModelTier = keyof typeof MODEL_TIERS
@@ -46,8 +47,9 @@ export type FeatureModel = {
 }
 
 /**
- * Rough cost per call on the fast tier: product write ~$0.009 (~5k in, ~800 out, three
- * photos), assistant turn ~$0.012 (~9k in over 2-4 steps, ~500 out).
+ * Rough cost per call on the fast tier (Haiku 5.5): product write ~$0.0009 (~5k in, ~800 out,
+ * three photos), assistant turn ~$0.0012 (~9k in over 2-4 steps, ~500 out), document read
+ * ~$0.002 (~8k in for a two-page invoice, ~2k out).
  */
 export const FEATURE_MODELS: Record<AiFeature, FeatureModel> = {
   productWriter: {
@@ -69,6 +71,14 @@ export const FEATURE_MODELS: Record<AiFeature, FeatureModel> = {
     writes: true,
     maxOutputTokens: 1_800,
     temperature: 0.7,
+    maxSteps: 1,
+  },
+  /** Reads a supplier invoice or Bill of Entry: long structured output, no creativity. */
+  documentReader: {
+    tier: 'fast',
+    writes: false,
+    maxOutputTokens: 8_000,
+    temperature: 0,
     maxSteps: 1,
   },
 }

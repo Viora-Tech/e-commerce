@@ -119,18 +119,34 @@ function installDragFlip(doc: Document, view: Window): () => void {
     }
   }
 
-  let wasDragging = false
+  // Samples only while a drag is on: a loop running every frame for the editor's whole life kept
+  // the canvas producing frames even when nothing moved.
   const tick = () => {
-    const entry = doc.querySelector('[data-puck-entry]')
-    const dragging = entry?.getAttribute('data-puck-dragging') === 'true'
-    if (dragging && !wasDragging) seed()
-    if (dragging) flip()
-    wasDragging = dragging === true
+    flip()
     frame = view.requestAnimationFrame(tick)
   }
-  frame = view.requestAnimationFrame(tick)
+  const sync = () => {
+    const dragging = doc.querySelector('[data-puck-entry]')?.getAttribute('data-puck-dragging')
+    if (dragging === 'true' && !frame) {
+      seed()
+      frame = view.requestAnimationFrame(tick)
+    } else if (dragging !== 'true' && frame) {
+      view.cancelAnimationFrame(frame)
+      frame = 0
+    }
+  }
+  const observer = new MutationObserver(sync)
+  observer.observe(doc.body, {
+    attributes: true,
+    attributeFilter: ['data-puck-dragging'],
+    subtree: true,
+  })
+  sync()
 
-  return () => view.cancelAnimationFrame(frame)
+  return () => {
+    observer.disconnect()
+    view.cancelAnimationFrame(frame)
+  }
 }
 
 /**
@@ -151,7 +167,11 @@ function installInsertRing(doc: Document): () => void {
     el.addEventListener('animationend', clear)
   }
 
-  const observer = new MutationObserver(() => {
+  const observer = new MutationObserver((records) => {
+    // Typing and the sections' own DOM updates mutate the canvas all the time; only an added
+    // element can be a new section.
+    if (!records.some((r) => [...r.addedNodes].some((n) => n.nodeType === Node.ELEMENT_NODE)))
+      return
     const next = new Set(components(doc).map(idOf))
     for (const el of components(doc)) {
       if (!known.has(idOf(el))) ring(el)
@@ -162,6 +182,70 @@ function installInsertRing(doc: Document): () => void {
   if (entry) observer.observe(entry, { childList: true, subtree: true })
 
   return () => observer.disconnect()
+}
+
+/** Set on a section while it is out of the canvas's view (with a margin). */
+const OFFSCREEN = 'data-canvas-offscreen'
+
+/** Room above and below the canvas in which a section counts as in view. */
+const OFFSCREEN_MARGIN = '200px 0px'
+
+/** Pauses the CSS animations of every section marked by `installOffscreenPause`. */
+export const OFFSCREEN_PAUSE_CSS = `[${OFFSCREEN}], [${OFFSCREEN}] *, [${OFFSCREEN}]::before, [${OFFSCREEN}]::after, [${OFFSCREEN}] *::before, [${OFFSCREEN}] *::after { animation-play-state: paused !important; }`
+
+/**
+ * Pauses the animations of sections scrolled out of the canvas. A marquee, an orbit or a
+ * shimmer keeps the page producing frames, and every frame re-layers the whole page: on a
+ * long home page that was a third of a CPU core with the editor sitting idle. Sections in
+ * view keep moving, so the canvas still looks like the store. CSS animations pause through
+ * `OFFSCREEN_PAUSE_CSS`; script-driven Web Animations are paused and resumed here.
+ */
+export function installOffscreenPause(doc: Document): () => void {
+  const view = doc.defaultView
+  if (!view) return () => {}
+  const scripted = (el: Element) =>
+    el
+      .getAnimations({ subtree: true })
+      .filter((a) => !(a instanceof view.CSSAnimation) && !(a instanceof view.CSSTransition))
+  const observer = new view.IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        const away = !entry.isIntersecting
+        if (entry.target.hasAttribute(OFFSCREEN) === away) continue
+        entry.target.toggleAttribute(OFFSCREEN, away)
+        for (const animation of scripted(entry.target)) {
+          if (away && animation.playState === 'running') animation.pause()
+          else if (!away && animation.playState === 'paused') animation.play()
+        }
+      }
+    },
+    { rootMargin: OFFSCREEN_MARGIN },
+  )
+  const watched = new WeakSet<Element>()
+  const watch = () => {
+    for (const el of components(doc)) {
+      if (watched.has(el)) continue
+      watched.add(el)
+      observer.observe(el)
+    }
+  }
+  // Sections come and go as the page is edited; look for new ones at most once a frame.
+  let frame = 0
+  const mutations = new MutationObserver((records) => {
+    if (frame || !records.some((r) => r.addedNodes.length > 0)) return
+    frame = view.requestAnimationFrame(() => {
+      frame = 0
+      watch()
+    })
+  })
+  mutations.observe(doc.body, { childList: true, subtree: true })
+  watch()
+  return () => {
+    mutations.disconnect()
+    observer.disconnect()
+    view.cancelAnimationFrame(frame)
+    for (const el of components(doc)) el.removeAttribute(OFFSCREEN)
+  }
 }
 
 /** Returns a cleanup function; installs nothing under reduced motion. */
@@ -226,7 +310,7 @@ const MAX_WAIT_FRAMES = 60
  */
 export function scrollToSection(id: string, reducedMotion: boolean): void {
   // Selecting a row also dispatches Puck's own `setUi`, which re-renders the
-  // canvas's selection chrome (SectionOverlay) a tick later — scrolling in
+  // canvas's selection chrome (BlockToolbar) a tick later — scrolling in
   // the same call stack raced that re-render and was silently un-done before
   // it ever painted. Waiting a frame lets that settle first. A section that
   // was only just inserted may take a few more frames to render inside the

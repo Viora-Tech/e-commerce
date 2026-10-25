@@ -17,6 +17,7 @@ import type {
   OrderLifecycleStatus,
   OrderPaymentStatus,
 } from '../order/aggregate-status'
+import { orderParcelsView, type ParcelView } from '../order/parcel-view'
 import { balanceOwed } from '../preorder/balance'
 import type { GstBreakdown } from '../tax/gst'
 
@@ -197,6 +198,8 @@ export type ShopperOrderDetail = ShopperOrderSummary & {
   paymentMethod: string | null
   /** A deposit pre-order's balance still owed (0 once paid, or on other orders). */
   balanceDuePaise: number
+  /** Where each part ships from; more than one when the order left from several warehouses. */
+  parcels: ParcelView[]
   email: string | null
   phone: string | null
   address: {
@@ -287,6 +290,7 @@ export async function getCustomerOrder(
     gst: isGst(o.taxBreakdown) ? o.taxBreakdown : null,
     paymentMethod: o.paymentMethod,
     balanceDuePaise: o.checkoutPaidAt ? balanceOwed(o) : 0,
+    parcels: await orderParcelsView(ctx.tx, o.id),
     email: o.email,
     phone: o.phone,
     address: addr

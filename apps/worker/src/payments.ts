@@ -2,13 +2,15 @@ import {
   checkRateLimit,
   clientIp,
   handlePaymentWebhook,
+  orderNumberLabel,
   parsePaymentSettings,
   type RateLimitStore,
   rateLimitKey,
+  recordProviderActivity,
   resolvePaymentProviders,
   retryAfterSeconds,
 } from '@commerce/core'
-import { registriesForStore } from '@commerce/core/registries'
+import { getRegistries, registriesForStore } from '@commerce/core/registries'
 import { type Db, store, withStore } from '@commerce/db'
 import { eq } from 'drizzle-orm'
 import { Hono } from 'hono'
@@ -70,13 +72,31 @@ export function paymentWebhooks(db: Db, settingsSecret: string, rateLimitStore: 
       // handlePaymentWebhook -> applyPaymentStatus already writes the
       // order.paid outbox row in this same transaction when it captures.
       const handled = await handlePaymentWebhook({ storeId, tx }, provider, { rawBody, headers })
+      // "Took a payment for #1188" as the gateway app's last activity on the Installed apps list.
+      if (handled.ok && handled.capturedOrderId) {
+        const label = await orderNumberLabel(tx, handled.capturedOrderId)
+        await recordProviderActivity(
+          tx,
+          storeId,
+          getRegistries().owners,
+          'payments',
+          provider.id,
+          label ? `Took a payment for ${label}` : 'Took a payment',
+        )
+      }
       return { ...handled, ack: provider.webhookAck }
     })
 
     if (!outcome.ok) return rejectWebhook(c, 'webhook', { providerId, storeId }, outcome.reason)
-    console.log(
-      `[webhook] ${providerId} ${outcome.eventId} applied=${outcome.applied} duplicate=${outcome.duplicate}`,
-    )
+    c.var.log?.set({
+      storeId,
+      webhook: {
+        provider: providerId,
+        eventId: outcome.eventId,
+        applied: outcome.applied,
+        duplicate: outcome.duplicate,
+      },
+    })
     // Some gateways (Decentro) keep retrying unless the reply carries their acknowledgement.
     const { ack, ...result } = outcome
     return c.json({ ...result, ...ack })

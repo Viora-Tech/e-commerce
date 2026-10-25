@@ -3,9 +3,12 @@ import {
   type BulkWriteField,
   clampProductCopy,
   descriptionFromCopy,
+  mergeKeywords,
   newTags,
   type ProductCopy,
   ProductCopySchema,
+  parseSuggestedKeywords,
+  type SuggestedKeyword,
   type WriterLanguage,
   type WriterTone,
 } from '@commerce/ai/client'
@@ -97,8 +100,15 @@ export type AiJobItemView = {
   status: AiJobItemStatus
   error: string | null
   suggestion: ProductCopy | null
+  /** Suggested search keywords, primary first, when the run writes keywords. */
+  keywords: SuggestedKeyword[] | null
   /** What the product has now, for the review's before and after. */
-  current: { seoTitle: string | null; seoDescription: string | null; tags: string[] }
+  current: {
+    seoTitle: string | null
+    seoDescription: string | null
+    seoKeywords: string[]
+    tags: string[]
+  }
 }
 
 export type AiJobView = {
@@ -114,9 +124,18 @@ export type AiJobView = {
   items: AiJobItemView[]
 }
 
+/**
+ * A stored suggestion is the product copy (absent in a keywords-only run) with the suggested
+ * search keywords under `keywords` (absent when the run did not write keywords).
+ */
 function parseSuggestion(raw: unknown): ProductCopy | null {
   const parsed = ProductCopySchema.safeParse(raw)
   return parsed.success ? clampProductCopy(parsed.data) : null
+}
+
+function parseKeywords(raw: unknown): SuggestedKeyword[] | null {
+  if (!raw || typeof raw !== 'object') return null
+  return parseSuggestedKeywords((raw as { keywords?: unknown }).keywords)
 }
 
 /** A run with every item and its suggestion, or null when it is not this store's. */
@@ -133,6 +152,7 @@ export async function getAiJob(ctx: StoreContext, id: string): Promise<AiJobView
       title: product.title,
       seoTitle: product.seoTitle,
       seoDescription: product.seoDescription,
+      seoKeywords: product.seoKeywords,
       tags: product.tags,
     })
     .from(aiJobItem)
@@ -156,7 +176,13 @@ export async function getAiJob(ctx: StoreContext, id: string): Promise<AiJobView
       status: item.status,
       error: item.error,
       suggestion: parseSuggestion(item.suggestion),
-      current: { seoTitle: item.seoTitle, seoDescription: item.seoDescription, tags: item.tags },
+      keywords: parseKeywords(item.suggestion),
+      current: {
+        seoTitle: item.seoTitle,
+        seoDescription: item.seoDescription,
+        seoKeywords: item.seoKeywords,
+        tags: item.tags,
+      },
     })),
   }
 }
@@ -208,11 +234,16 @@ export async function cancelAiJob(ctx: StoreContext, id: string): Promise<boolea
 
 /** The product patch for one suggestion and the fields the merchant kept. */
 function patchFromSuggestion(
-  copy: ProductCopy,
+  copy: ProductCopy | null,
+  keywords: SuggestedKeyword[] | null,
   fields: BulkWriteField[],
   current: ProductFieldsSnapshot,
 ): ProductFieldsPatch {
   const patch: ProductFieldsPatch = {}
+  if (fields.includes('keywords') && keywords?.length) {
+    patch.seoKeywords = mergeKeywords(current.seoKeywords, keywords)
+  }
+  if (!copy) return patch
   if (fields.includes('description')) patch.description = descriptionFromCopy(copy, true)
   if (fields.includes('seo')) {
     if (copy.seoTitle) patch.seoTitle = copy.seoTitle
@@ -261,9 +292,15 @@ export async function applyAiJobItems(
   )
   const patches = items.flatMap((item) => {
     const copy = parseSuggestion(item.suggestion)
+    const keywords = parseKeywords(item.suggestion)
     const before = snapshots.find((s) => s.productId === item.productId)
-    return copy && before
-      ? [{ productId: item.productId, patch: patchFromSuggestion(copy, input.fields, before) }]
+    return (copy || keywords) && before
+      ? [
+          {
+            productId: item.productId,
+            patch: patchFromSuggestion(copy, keywords, input.fields, before),
+          },
+        ]
       : []
   })
   if (!patches.length) return { applied: 0, actionId: null }

@@ -3,17 +3,20 @@ import {
   parsePaymentSettings,
   refreshPaymentCredentials,
   resolvePaymentProviders,
+  runCodConfirmationSweep,
   runManualFollowUp,
 } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
 import {
   type Db,
   store,
+  storesWithPendingCodChecks,
   storesWithPendingManualOrders,
   storesWithUnpaidOnlineOrders,
   withStore,
 } from '@commerce/db'
-import { type IORedis, Queue, UNPAID_EXPIRY_QUEUE, Worker } from '@commerce/queue'
+import { logger } from '@commerce/observability/logging'
+import { type IORedis, KEEP_FINISHED, Queue, UNPAID_EXPIRY_QUEUE, Worker } from '@commerce/queue'
 import { eq } from 'drizzle-orm'
 
 /** How often unpaid orders are checked. Windows are in minutes, so a minute of slack is fine. */
@@ -31,6 +34,9 @@ export const EXPIRY_EVERY_MS = 60_000
  * orders (Settings › Payments, off by default): the merchant is told 12
  * hours ahead, then the order is cancelled. Shoppers are never reminded
  * automatically; the merchant sends that from the order.
+ *
+ * And the COD & RTO app's confirmation deadlines: COD orders nobody confirmed are flagged
+ * for a call, and cancelled when the store turned auto-cancel on.
  */
 export function createUnpaidOrderExpiry(
   connection: IORedis,
@@ -64,20 +70,44 @@ export function createUnpaidOrderExpiry(
             if (r.result === 'cancelled') cancelled += 1
             if (r.result === 'paid') paid += 1
             if (r.result === 'skipped') {
-              console.warn(`[expiry] ${storeId}/${r.orderId} skipped: ${r.reason}`)
+              logger.warn('unpaid order expiry skipped', {
+                storeId,
+                orderId: r.orderId,
+                reason: r.reason,
+              })
             }
           }
         } catch (err) {
-          console.warn(`[expiry] store ${storeId} failed:`, err)
+          logger.warn('unpaid order expiry failed', { storeId, error: err })
         }
       }
-      if (cancelled || paid) console.log(`[expiry] cancelled=${cancelled} paid=${paid}`)
+      if (cancelled || paid) logger.info('unpaid orders expired', { cancelled, paid })
       const transfers = await followUpManualTransfers(db)
-      return { stores: storeIds.length, cancelled, paid, ...transfers }
+      const cod = await sweepCodConfirmations(db)
+      return { stores: storeIds.length, cancelled, paid, ...transfers, ...cod }
     },
-    { connection },
+    { connection, ...KEEP_FINISHED },
   )
   return { queue, worker }
+}
+
+/** COD orders past the store's confirmation deadlines: flagged, or cancelled when opted in. */
+async function sweepCodConfirmations(db: Db) {
+  let codFlagged = 0
+  let codCancelled = 0
+  for (const storeId of await storesWithPendingCodChecks(db)) {
+    try {
+      const r = await runCodConfirmationSweep(db, storeId)
+      codFlagged += r.flagged
+      codCancelled += r.cancelled
+    } catch (err) {
+      logger.warn('cod confirmation sweep failed', { storeId, error: err })
+    }
+  }
+  if (codFlagged || codCancelled) {
+    logger.info('cod confirmations swept', { flagged: codFlagged, cancelled: codCancelled })
+  }
+  return { codFlagged, codCancelled }
 }
 
 /** Merchant notice then cancel for unpaid manual-transfer orders, in stores that opted in. */
@@ -89,14 +119,20 @@ async function followUpManualTransfers(db: Db) {
       for (const r of await runManualFollowUp(db, storeId)) {
         if (r.result === 'noticed') noticed += 1
         if (r.result === 'cancelled') transfersCancelled += 1
-        if (r.reason) console.warn(`[transfers] ${storeId}/${r.orderId} skipped: ${r.reason}`)
+        if (r.reason) {
+          logger.warn('manual transfer follow-up skipped', {
+            storeId,
+            orderId: r.orderId,
+            reason: r.reason,
+          })
+        }
       }
     } catch (err) {
-      console.warn(`[transfers] store ${storeId} failed:`, err)
+      logger.warn('manual transfer follow-up failed', { storeId, error: err })
     }
   }
   if (noticed || transfersCancelled) {
-    console.log(`[transfers] noticed=${noticed} cancelled=${transfersCancelled}`)
+    logger.info('manual transfers followed up', { noticed, cancelled: transfersCancelled })
   }
   return { noticed, transfersCancelled }
 }

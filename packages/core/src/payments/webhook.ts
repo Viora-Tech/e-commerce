@@ -1,8 +1,10 @@
-import { paymentEvent } from '@commerce/db'
-import type { PaymentProvider } from '@commerce/payments'
-import { and, eq } from 'drizzle-orm'
+import { paymentEvent, refund } from '@commerce/db'
+import { type PaymentProvider, readableError } from '@commerce/payments'
+import { and, eq, ne } from 'drizzle-orm'
 import type { StoreContext } from '../context'
-import { applyPaymentStatus } from './confirm'
+import { recomputeOrderStatuses } from '../order/recompute'
+import { recordPaymentCharges } from './charges'
+import { applyPaymentStatus, findPaymentId } from './confirm'
 
 export type WebhookOutcome =
   | {
@@ -94,6 +96,14 @@ export async function handlePaymentWebhook(
       }
       applied = r !== null
       if (r?.becameCaptured) capturedOrderId = r.payment.orderId
+      // The gateway's fee and how the shopper paid, when the capture carries them.
+      if (r && e.type === 'payment.captured' && e.charges) {
+        await recordPaymentCharges(ctx.tx, r.payment.id, e.charges)
+      }
+    } else if (e.type === 'payment.charges') {
+      const id = await findPaymentId(ctx, { providerRef: e.providerRef })
+      if (id) await recordPaymentCharges(ctx.tx, id, e.charges)
+      applied = id !== null
     } else if (e.type === 'payment.failed') {
       applied =
         (await applyPaymentStatus(ctx, {
@@ -101,14 +111,20 @@ export async function handlePaymentWebhook(
           idempotencyKey: e.idempotencyKey,
           status: 'failed',
           providerPaymentId: e.providerPaymentId,
+          // The gateway's own words (Razorpay's "website does not match…"), shown to the merchant.
+          error: e.reason,
         })) !== null
     } else if (e.type === 'refund.processed') {
+      await settleRefund(ctx, e.providerRefundId, 'processed')
       applied =
         (await applyPaymentStatus(ctx, {
           providerRef: e.providerRef,
           status: 'refunded',
           providerPaymentId: null,
         })) !== null
+    } else if (e.type === 'refund.failed') {
+      // The gateway's reason stays on the stored payment_event; the refund keeps the merchant's own.
+      applied = await settleRefund(ctx, e.providerRefundId, 'failed')
     }
     await ctx.tx
       .update(paymentEvent)
@@ -117,9 +133,31 @@ export async function handlePaymentWebhook(
   } catch (err) {
     await ctx.tx
       .update(paymentEvent)
-      .set({ status: 'failed', error: err instanceof Error ? err.message : String(err) })
+      .set({ status: 'failed', error: readableError(err) })
       .where(eq(paymentEvent.id, row.id))
     throw err
   }
   return { ok: true, eventId: parsed.eventId, applied, duplicate: false, capturedOrderId }
+}
+
+/**
+ * Record what the gateway finally did with a refund we asked for. A failed one stops counting
+ * as refunded (recompute reads refunds that are not `failed`), so the order and its return no
+ * longer say the money went back when it did not. True when a refund row changed.
+ */
+async function settleRefund(
+  ctx: StoreContext,
+  providerRefundId: string,
+  status: 'processed' | 'failed',
+): Promise<boolean> {
+  if (!providerRefundId) return false
+  const changed = await ctx.tx
+    .update(refund)
+    .set({ status })
+    .where(and(eq(refund.providerRefundId, providerRefundId), ne(refund.status, status)))
+    .returning({ orderId: refund.orderId })
+  for (const orderId of new Set(changed.map((r) => r.orderId))) {
+    await recomputeOrderStatuses(ctx, orderId)
+  }
+  return changed.length > 0
 }

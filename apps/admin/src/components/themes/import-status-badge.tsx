@@ -1,20 +1,21 @@
 import type { ImportStatus } from '@commerce/core/theme-import'
-import { Badge } from '@commerce/ui/shadcn/badge'
+import StatusChip from '@/components/layout/status-chip'
 
 type ImportStatusBadgeProps = {
   status: ImportStatus
   label: string
 }
 
-const VARIANT = {
-  imported: 'success',
-  replaced: 'info',
-  unavailable: 'warning',
-  unsupported: 'destructive',
-} as const satisfies Record<ImportStatus, string>
+/** Done states stay neutral; only what needs the merchant (not yet, could not) is coloured. */
+const TONE = {
+  imported: 'neutral',
+  replaced: 'neutral',
+  unavailable: 'attention',
+  unsupported: 'danger',
+} as const satisfies Record<ImportStatus, 'neutral' | 'attention' | 'danger'>
 
-/** The result pill of one imported section: exact, ours, not yet, or could not. */
+/** The result chip of one imported section: exact, ours, not yet, or could not. */
 export default function ImportStatusBadge({ status, label }: ImportStatusBadgeProps) {
   // Render logic
-  return <Badge variant={VARIANT[status]}>{label}</Badge>
+  return <StatusChip tone={TONE[status]}>{label}</StatusChip>
 }

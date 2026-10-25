@@ -1,5 +1,8 @@
-/** SOURCE OF TRUTH: our data and Shopify's basic Liquid objects — WHAT: the plain data an imported theme reads (`LiquidData*` types the store loader fills) and the small objects every theme prints: images, videos, colours, colour schemes, fonts, blank metafields / WHY: a theme's markup reads Shopify's objects; these shapes are what lets a theme LOOK the same while every value comes from our store */
+/** SOURCE OF TRUTH: our data and Shopify's basic Liquid objects — WHAT: the plain data an imported theme reads (`LiquidData*` types the store loader fills, extra fields and content entries included) and the small objects every theme prints: images, videos, colours, colour schemes, fonts / WHY: a theme's markup reads Shopify's objects; these shapes are what lets a theme LOOK the same while every value comes from our store */
 import { Drop } from 'liquidjs'
+import type { BrowseFacets } from '../catalog/browse'
+import type { BrowseFilters, BrowseSort } from '../catalog/browse-params'
+import type { FieldType, MeasureKind } from '../metaobjects/schemas'
 import { numericId } from './numeric-id'
 
 /** An image we host: product media, a section image, a collection image. */
@@ -40,7 +43,12 @@ export type LiquidProductData = {
   createdAt: Date
   /** Sold under our pre-order rules; shown to the theme as a "Pre-order" selling plan group. */
   preorder: boolean
+  /** Handles of the active collections it is in (`product.collections`); none when not loaded. */
+  collectionHandles?: string[] | undefined
 }
+
+/** Shopify's recommendation intents (`/recommendations/products?intent=`). */
+export type RecommendationIntent = 'related' | 'complementary'
 
 export type LiquidCollectionData = {
   id: string
@@ -110,6 +118,73 @@ export type LiquidShopData = {
   url: string
   currency: string
   description: string
+  /**
+   * Published store policies (Settings → Policies) in footer order, for `shop.policies` and
+   * `shop.privacy_policy` etc. `type` is the policy's handle (`privacy-policy`...), `url` our
+   * `/policies/<type>` page.
+   */
+  policies: LiquidPolicyData[]
+}
+
+/** One published store policy, for Shopify's `policy` object. */
+export type LiquidPolicyData = { type: string; title: string; url: string }
+
+/** A file an extra field points at (an image, or any other file in Files). */
+export type LiquidFileData = LiquidImageData & { id: string; contentType: string | null }
+
+/** A record an extra field links to: enough for the drops to find it in the request cache. */
+export type LiquidFieldRef =
+  | { kind: 'file'; id: string; file: LiquidFileData }
+  | { kind: 'product'; id: string; handle: string }
+  | { kind: 'collection'; id: string; handle: string }
+  | { kind: 'page'; id: string; handle: string }
+  | { kind: 'article'; id: string; handle: string; blogHandle: string }
+  | { kind: 'variant'; id: string; productHandle: string }
+  | { kind: 'metaobject'; id: string }
+
+/**
+ * One extra-field value as a theme reads it: our stored value with every reference
+ * swapped for a `LiquidFieldRef` (hidden or deleted targets drop out) and rich text as HTML.
+ */
+export type LiquidFieldData = {
+  key: string
+  type: FieldType
+  list: boolean
+  /** Measurements only: weight, length or volume (Shopify's weight, dimension, volume). */
+  measure: MeasureKind | null
+  value: unknown
+}
+
+/** An extra field (metafield) on a product or collection. */
+export type LiquidMetafieldData = LiquidFieldData & { namespace: string }
+
+/** One content entry (metaobject); `type` is its content type's handle. */
+export type LiquidMetaobjectData = {
+  id: string
+  handle: string
+  type: string
+  fields: LiquidFieldData[]
+}
+
+/** Owners our extra fields live on. */
+export type LiquidMetafieldOwner = 'product' | 'collection'
+
+/** What one custom-data load returns; the request cache keeps all of it. */
+export type LiquidCustomData = {
+  /** Owner id to its extra fields; owners with none are absent. */
+  metafields: Record<string, LiquidMetafieldData[]>
+  /** Entries asked for, plus the ones their values link to (a few levels deep). */
+  entries: LiquidMetaobjectData[]
+}
+
+/** A collection or search listing for a Liquid theme: one page of products and its filters. */
+export type LiquidBrowseData = {
+  products: LiquidProductData[]
+  total: number
+  facets: BrowseFacets
+  filters: BrowseFilters
+  sort: BrowseSort
+  q: string
 }
 
 /**
@@ -120,14 +195,74 @@ export type LiquidShopData = {
 export type LiquidDataSource = {
   shop: LiquidShopData
   product(handle: string): Promise<LiquidProductData | null>
+  /**
+   * Several products by handle in one load (a grid of `all_products[...]` reads in one render
+   * pass). Optional: without it the cache asks `product` once per handle.
+   */
+  products?: ((handles: string[]) => Promise<Map<string, LiquidProductData>>) | undefined
   collection(handle: string): Promise<LiquidCollectionData | null>
   /** A collection's products in its own order, the first `limit` of them. */
   collectionProducts(handle: string, limit: number): Promise<LiquidProductData[]>
+  /**
+   * Several collections' products in one load (category tabs, a grid of collections). Optional:
+   * without it the cache asks `collectionProducts` once per collection.
+   */
+  collectionsProducts?:
+    | ((handles: string[], limit: number) => Promise<Map<string, LiquidProductData[]>>)
+    | undefined
   collections(): Promise<LiquidCollectionData[]>
+  /**
+   * Shopify's product recommendations for one product (our UUID), available ones only.
+   * `related`: the merchant's picks (Search & Discovery's `related_products`), then shared
+   * collection, type and tags. `complementary`: the merchant's `complementary_products` only.
+   */
+  relatedProducts(
+    productId: string,
+    limit: number,
+    intent?: RecommendationIntent,
+  ): Promise<LiquidProductData[]>
   menu(handle: string): Promise<LiquidMenuData | null>
   blog(handle: string): Promise<LiquidBlogData | null>
   page(handle: string): Promise<LiquidPageData | null>
   cart(): Promise<LiquidCartData>
+  /** Extra fields of many owners at once (one batch per render pass). */
+  metafields(ownerType: LiquidMetafieldOwner, ownerIds: string[]): Promise<LiquidCustomData>
+  /** Every published entry of one content type, in order, with the entries they link to. */
+  metaobjectsOfType(type: string): Promise<LiquidCustomData>
+  /** Published entries by id, with the entries they link to. */
+  metaobjects(ids: string[]): Promise<LiquidCustomData>
+  /**
+   * Files the Shopify importer copied, by their Shopify file name (lowercase) → our URL, for
+   * `file_url`. Optional: a source without it leaves `file_url` pointing at the old store.
+   */
+  importedFiles?: (() => Promise<Map<string, string>>) | undefined
+  /**
+   * Judge.me's shop-wide review data (`shop.metafields.judgeme.*`: `reviews_grid`,
+   * `all_reviews_rating`...), built from the Reviews app; null when the app is not installed.
+   */
+  judgeme?: (() => Promise<Record<string, unknown> | null>) | undefined
+  /**
+   * A listing with the request's filters, sort and page applied (`collection.products` and
+   * `collection.filters` on a collection page, `search` on the search page). `collectionId`
+   * null lists every product. Optional: without it a theme sees the first products unfiltered.
+   */
+  browse?:
+    | ((input: {
+        collectionId: string | null
+        query: Record<string, string | string[] | undefined>
+        perPage: number
+      }) => Promise<LiquidBrowseData>)
+    | undefined
+}
+
+/**
+ * Reviews for imported themes, handed in by the storefront when the Reviews app is
+ * installed (core never imports the app): ratings per product for Shopify's standard
+ * `product.metafields.reviews.rating` / `.rating_count`, and Judge.me's shop data.
+ */
+export type LiquidReviewsSource = {
+  ratings(productIds: string[]): Promise<Map<string, { rating: number; count: number }>>
+  judgeme(): Promise<Record<string, unknown>>
 }
 
 /** Shopify's handleize: lowercase, words joined by hyphens. */
@@ -197,11 +332,23 @@ export class VideoDrop extends Drop {
     height: number
   }[]
   readonly preview_image: ImageDrop | null
-  constructor(video: { url: string; poster?: LiquidImageData | null }) {
+  constructor(video: { url: string; mobileUrl?: string | null; poster?: LiquidImageData | null }) {
     super()
     this.id = urlNumber(video.url)
+    // Shopify lists a video's renditions; themes pick by height (a phone-sized one under 720).
     this.sources = [
       { url: video.url, mime_type: 'video/mp4', format: 'mp4', width: 1920, height: 1080 },
+      ...(video.mobileUrl && video.mobileUrl !== video.url
+        ? [
+            {
+              url: video.mobileUrl,
+              mime_type: 'video/mp4',
+              format: 'mp4',
+              width: 1280,
+              height: 720,
+            },
+          ]
+        : []),
     ]
     this.preview_image = imageDrop(video.poster)
   }
@@ -293,22 +440,6 @@ export class FontDrop extends Drop {
   }
   override valueOf(): string {
     return this.handle
-  }
-}
-
-/** Metafields: we have none under Shopify's namespaces, so every lookup is blank. */
-export class MetafieldsDrop extends Drop {
-  override liquidMethodMissing(): unknown {
-    return new BlankNamespaceDrop()
-  }
-}
-
-class BlankNamespaceDrop extends Drop {
-  override liquidMethodMissing(): unknown {
-    return null
-  }
-  override valueOf(): string {
-    return ''
   }
 }
 

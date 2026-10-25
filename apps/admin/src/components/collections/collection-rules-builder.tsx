@@ -14,7 +14,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
-import { collectionFormContent as copy } from '@/data/collections'
+import DataCard from '@/components/layout/data-card'
+import { collectionDetailContent, collectionFormContent } from '@/data/collections'
+import { useCopy } from '@/hooks/use-copy'
 import CollectionRuleRow from './collection-rule-row'
 
 type CollectionRulesBuilderProps = {
@@ -23,11 +25,6 @@ type CollectionRulesBuilderProps = {
   matches: number | null
   onChange: (rules: CollectionRules) => void
 }
-
-const MATCH_ITEMS = [
-  { value: 'all', label: 'all conditions' },
-  { value: 'any', label: 'any condition' },
-]
 
 const defaultCondition = (): CollectionCondition => ({ field: 'type', op: 'eq', value: '' })
 
@@ -45,6 +42,10 @@ export default function CollectionRulesBuilder({
   matches,
   onChange,
 }: CollectionRulesBuilderProps) {
+  // Hooks
+  const { conditions: copy } = useCopy(collectionDetailContent)
+  const { kind } = useCopy(collectionFormContent)
+
   // Event handlers
   const handleMatch = (value: unknown) => {
     onChange({ ...rules, match: String(value) === 'any' ? 'any' : 'all' })
@@ -63,16 +64,25 @@ export default function CollectionRulesBuilder({
   }
 
   // Render logic
+  const matchItems = [
+    { value: 'all', label: copy.all },
+    { value: 'any', label: copy.any },
+  ]
+
   return (
-    <div className="flex flex-col gap-4">
+    <DataCard
+      title={copy.heading}
+      action={<p className="text-body text-muted-foreground">{copy.help}</p>}
+      bodyClassName="flex flex-col gap-3"
+    >
       <div className="flex items-center gap-2">
-        <span className="text-body text-muted-foreground">Products matching</span>
+        <span className="text-body text-foreground">{copy.mustMatch}</span>
         <Select value={rules.match} onValueChange={handleMatch}>
-          <SelectTrigger className="w-44" aria-label="Match mode">
+          <SelectTrigger className="w-44" aria-label={copy.mustMatch}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {MATCH_ITEMS.map((m) => (
+            {matchItems.map((m) => (
               <SelectItem key={m.value} value={m.value}>
                 {m.label}
               </SelectItem>
@@ -92,12 +102,12 @@ export default function CollectionRulesBuilder({
       <div className="flex items-center justify-between gap-3">
         <Button variant="outline" onClick={handleAdd}>
           <Plus aria-hidden="true" />
-          Add condition
+          {copy.add}
         </Button>
         <span className="text-body text-muted-foreground tabular-nums">
-          {matches === null ? copy.kind.previewing : copy.kind.preview(matches)}
+          {matches === null ? kind.previewing : kind.preview(matches)}
         </span>
       </div>
-    </div>
+    </DataCard>
   )
 }

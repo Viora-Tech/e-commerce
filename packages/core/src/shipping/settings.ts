@@ -7,6 +7,7 @@ import {
   type ShippingPolicy,
   type ShippingProvider,
   ShippingRegistry,
+  servesDestination,
 } from '@commerce/shipping'
 import { z } from 'zod'
 import {
@@ -104,6 +105,11 @@ export const BoxPresetSchema = z.object({
   heightCm: z.number().min(1).max(200),
   weightGrams: z.number().int().min(1).max(50000),
   isDefault: z.boolean().default(false),
+  /**
+   * What one box plus its filler costs, for order profit (packing). Before GST for a
+   * GST-registered store, as paid otherwise. Null: not set, counts as ₹0 and is flagged.
+   */
+  costPaise: z.number().int().min(0).max(10_000_00).nullable().default(null),
 })
 export type BoxPreset = z.infer<typeof BoxPresetSchema>
 
@@ -118,6 +124,13 @@ export const ShippingSettingsSchema = z.object({
   /** Named boxes for the booking flow; one may be marked default. No migration - lives in the
    *  same JSON column as everything else here. */
   boxPresets: z.array(BoxPresetSchema).max(20).default([]),
+  /** How checkout splits an order across warehouses (order/routing.ts). */
+  routing: z
+    .object({
+      /** The most parcels one order may be split into before the default location tops up. */
+      maxParcels: z.number().int().min(1).max(5).default(2),
+    })
+    .default({ maxParcels: 2 }),
 })
 export type ShippingSettings = z.infer<typeof ShippingSettingsSchema>
 export type ShippingPolicySettings = z.infer<typeof ShippingPolicySchema>
@@ -192,14 +205,29 @@ export function resolveShippingProviders(
   return { providers, errors }
 }
 
-/** The one courier estimates default to: the first enabled and valid one. */
+/**
+ * The one courier estimates default to: the first enabled and valid one that delivers inside
+ * India. An export-only courier (DHL Express, FedEx) is passed over, since a storefront PIN
+ * code is always Indian; it is the answer only when it is all the store has.
+ */
 export function primaryShippingProvider(
   registry: ShippingRegistry,
   settings: ShippingSettings,
   secret: string,
   previousSecrets: string[] = [],
 ): ShippingProvider | null {
-  return resolveShippingProviders(registry, settings, secret, previousSecrets).providers[0] ?? null
+  const { providers } = resolveShippingProviders(registry, settings, secret, previousSecrets)
+  return providers.find((p) => servesDestination(p, 'IN')) ?? providers[0] ?? null
+}
+
+/** The courier a storefront PIN-code estimate asks: the primary one, unless it only ships abroad. */
+export function domesticShippingProvider(
+  registry: ShippingRegistry,
+  settings: ShippingSettings,
+  secret: string,
+): ShippingProvider | null {
+  const provider = primaryShippingProvider(registry, settings, secret)
+  return provider && servesDestination(provider, 'IN') ? provider : null
 }
 
 /**
@@ -236,7 +264,7 @@ export async function estimateForStore(input: {
   return estimateDelivery({
     pincode: input.pincode,
     policy: toShippingPolicy(input.settings),
-    provider: primaryShippingProvider(input.registry, input.settings, input.secret),
+    provider: domesticShippingProvider(input.registry, input.settings, input.secret),
     now: input.now ?? new Date(),
     cached: input.cached,
   })

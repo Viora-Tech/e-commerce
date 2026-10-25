@@ -5,39 +5,47 @@ import {
   type CsvResource,
   MAX_CSV_BYTES,
 } from '@commerce/plugin-shopify-import/client'
-import { Upload } from '@commerce/ui/icons'
+import { Eye, Package, ShoppingBag, Users } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
-import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
-import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useRouter } from 'next/navigation'
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
+import ChoiceCard from '@/components/layout/choice-card'
+import DataCard from '@/components/layout/data-card'
 import { shopifyImportContent } from '@/data/shopify-import'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import CsvDropzone from './csv-dropzone'
+import CsvHelp from './csv-help'
+import StorageNotice from './storage-notice'
 
-const copy = shopifyImportContent.csv
 const base = shopifyImportContent.base
+
+const KIND_ICON = { products: Package, customers: Users, orders: ShoppingBag } as const
 
 /** Upload one of Shopify's CSV exports; the preview starts at once. */
 export default function CsvPage() {
   // Hooks
+  const copy = useCopy(shopifyImportContent.csv)
   const router = useRouter()
   const [resource, setResource] = useState<CsvResource>('products')
   const [file, setFile] = useState<File | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<'notCsv' | 'tooBig' | null>(null)
   const [busy, setBusy] = useState(false)
-  const input = useRef<HTMLInputElement>(null)
 
   // Event handlers
   const handleFile = (next: File | null) => {
     setError(null)
-    setFile(null)
     if (!next) return
-    if (!/\.csv$/i.test(next.name)) return setError(copy.notCsv)
-    if (next.size > MAX_CSV_BYTES) return setError(copy.tooBig)
+    if (!/\.csv$/i.test(next.name)) {
+      setFile(null)
+      return setError('notCsv')
+    }
+    if (next.size > MAX_CSV_BYTES) {
+      setFile(null)
+      return setError('tooBig')
+    }
     setFile(next)
   }
 
@@ -55,56 +63,34 @@ export default function CsvPage() {
   }
 
   return (
-    <div className="flex max-w-3xl flex-col gap-4">
-      <PageHeader title={copy.title} subtitle={copy.subtitle} />
-      <Card>
-        <CardHeader>
-          <CardTitle>{copy.kindHeading}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <RadioGroup value={resource} onValueChange={(v) => setResource(String(v) as CsvResource)}>
-            {CSV_RESOURCES.map((kind) => (
-              <Field key={kind} orientation="horizontal" className="items-start">
-                <RadioGroupItem id={`csv-kind-${kind}`} value={kind} className="mt-0.5" />
-                <div className="flex flex-col gap-0.5">
-                  <FieldLabel htmlFor={`csv-kind-${kind}`}>{copy.kinds[kind].label}</FieldLabel>
-                  <FieldDescription>{copy.kinds[kind].help}</FieldDescription>
-                </div>
-              </Field>
-            ))}
-          </RadioGroup>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>{copy.fileHeading}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          <input
-            ref={input}
-            type="file"
-            accept=".csv,text/csv"
-            className="sr-only"
-            onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
-          />
-          <div className="flex flex-wrap items-center gap-3">
-            <Button type="button" variant="outline" onClick={() => input.current?.click()}>
-              <Upload />
-              {file ? copy.replace : copy.choose}
-            </Button>
-            <span className="text-body text-muted-foreground">
-              {file ? `${file.name}, ${copy.size(file.size)}` : copy.none}
-            </span>
-          </div>
-          {error ? <p className="text-body text-destructive">{error}</p> : null}
-        </CardContent>
-      </Card>
-      <div className="flex justify-end">
-        <Button type="button" onClick={handlePreview} disabled={!file || busy}>
-          {busy ? <Spinner /> : null}
-          {copy.preview}
-        </Button>
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
+      <div className="flex flex-col gap-4">
+        {resource === 'products' ? <StorageNotice /> : null}
+        <DataCard title={copy.kindHeading} bodyClassName="grid gap-3 sm:grid-cols-3">
+          {CSV_RESOURCES.map((kind) => (
+            <ChoiceCard
+              key={kind}
+              layout="tile"
+              icon={KIND_ICON[kind]}
+              label={copy.kinds[kind].label}
+              description={copy.kinds[kind].short}
+              selected={resource === kind}
+              onSelect={() => setResource(kind)}
+            />
+          ))}
+        </DataCard>
+        <DataCard title={copy.fileHeading}>
+          <CsvDropzone file={file} error={error} onFile={handleFile} />
+        </DataCard>
+        <div className="flex flex-col items-end gap-1.5">
+          <Button type="button" onClick={handlePreview} disabled={!file || busy}>
+            {busy ? <Spinner /> : <Eye aria-hidden="true" />}
+            {copy.preview}
+          </Button>
+          {file ? null : <p className="text-caption text-muted-foreground">{copy.previewHint}</p>}
+        </div>
       </div>
+      <CsvHelp resource={resource} />
     </div>
   )
 }

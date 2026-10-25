@@ -2,6 +2,7 @@
 
 import { variantTitle } from '@commerce/core/catalog'
 import { cn } from '@commerce/ui/lib/utils'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Input } from '@commerce/ui/shadcn/input'
 import {
@@ -13,8 +14,9 @@ import {
   TableRow,
 } from '@commerce/ui/shadcn/table'
 import MoneyInput from '@/components/fields/money-input'
-import { productFormContent } from '@/data/products'
-import { useCopy } from '@/hooks/use-copy'
+import { productFormContent } from '@/data/product-form'
+import { useCopy, useFormat } from '@/hooks/use-copy'
+import { bestMargin } from '@/lib/variant-margin'
 import type { MediaItem, VariantRow } from './form-state'
 import VariantImagePicker from './variant-image-picker'
 
@@ -24,11 +26,13 @@ type VariantMatrixProps = {
   selected: number[]
   onSelectedChange: (next: number[]) => void
   onVariant: (index: number, patch: Partial<VariantRow>) => void
+  /** Fills one row's blank SKU from the product and its option values. */
+  onGenerateSku: (index: number) => void
 }
 
 /** Same grid as ResourceTable: white 40px header on a hairline, rows on lighter hairlines. */
 const HEAD =
-  'h-10 border-b border-border px-3 text-table-head text-muted-foreground first:pl-5 last:pr-5'
+  'h-10 border-b border-border bg-muted px-3 text-table-head text-muted-foreground first:pl-5 last:pr-5'
 const CELL = 'border-b border-line px-3 py-2 text-body first:pl-5 last:pr-5'
 
 const rowKey = (v: VariantRow) => v.id ?? variantTitle(v.optionValues)
@@ -40,12 +44,15 @@ export default function VariantMatrix({
   selected,
   onSelectedChange,
   onVariant,
+  onGenerateSku,
 }: VariantMatrixProps) {
   // Hooks
   const {
-    variants: { columns: copy },
+    variants: { columns: copy, footer },
     variantBulk: bulkCopy,
+    inventory: inventoryCopy,
   } = useCopy(productFormContent)
+  const fmt = useFormat()
 
   // Event handlers
   const handleToggleAll = (checked: boolean) => {
@@ -58,6 +65,8 @@ export default function VariantMatrix({
 
   // Render logic
   const allSelected = variants.length > 0 && selected.length === variants.length
+  const units = variants.reduce((sum, v) => sum + (Number(v.quantity) || 0), 0)
+  const best = bestMargin(variants)
 
   return (
     <div className="overflow-x-auto">
@@ -75,7 +84,7 @@ export default function VariantMatrix({
             <TableHead className={HEAD}>{copy.variant}</TableHead>
             <TableHead className={cn(HEAD, 'w-36')}>{copy.price}</TableHead>
             <TableHead className={cn(HEAD, 'w-36')}>{copy.mrp}</TableHead>
-            <TableHead className={cn(HEAD, 'w-40')}>{copy.sku}</TableHead>
+            <TableHead className={cn(HEAD, 'w-56')}>{copy.sku}</TableHead>
             <TableHead className={cn(HEAD, 'w-28')}>{copy.available}</TableHead>
           </TableRow>
         </TableHeader>
@@ -115,12 +124,27 @@ export default function VariantMatrix({
                   />
                 </TableCell>
                 <TableCell className={CELL}>
-                  <Input
-                    aria-label={`${copy.sku} ${title}`}
-                    value={v.sku}
-                    onChange={(e) => onVariant(i, { sku: e.target.value })}
-                    autoComplete="off"
-                  />
+                  <div className="flex items-center gap-1">
+                    <Input
+                      aria-label={`${copy.sku} ${title}`}
+                      value={v.sku}
+                      onChange={(e) => onVariant(i, { sku: e.target.value })}
+                      autoComplete="off"
+                    />
+                    {v.sku.trim() ? null : (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="shrink-0"
+                        onClick={() => onGenerateSku(i)}
+                        title={inventoryCopy.skuGenerateHelp}
+                        aria-label={`${inventoryCopy.skuGenerate} ${copy.sku} ${title}`}
+                      >
+                        {inventoryCopy.skuGenerate}
+                      </Button>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell className={CELL}>
                   <MoneyInput
@@ -136,6 +160,18 @@ export default function VariantMatrix({
           })}
         </TableBody>
       </Table>
+      <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-caption text-muted-foreground">
+        <span>{footer.stockAcross(units, variants.length)}</span>
+        {best ? (
+          <span>
+            {footer.marginOn(
+              `${best.profit.pct}%`,
+              fmt.money(best.profit.profitPaise),
+              variantTitle(best.variant.optionValues),
+            )}
+          </span>
+        ) : null}
+      </div>
     </div>
   )
 }

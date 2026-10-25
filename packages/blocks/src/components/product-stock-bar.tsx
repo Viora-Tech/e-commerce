@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import { mainProductContent as copy } from '../data/glide/main-product'
+import { mainProductContent as copy } from '../data/zero-drift/main-product'
 
 type ProductStockBarProps = {
   /** Units of the selected variant on hand. */

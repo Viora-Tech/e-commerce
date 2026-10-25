@@ -19,6 +19,8 @@ export type AbandonedCart = {
   email: string | null
   phone: string | null
   customerName: string | null
+  /** Title of the first line's product, for the "Cart" column ("Void Black Mousepad"). */
+  firstTitle: string | null
   itemCount: number
   subtotalPaise: number
   updatedAt: Date
@@ -33,7 +35,15 @@ export type AbandonedStats = {
   recovered: number
   /** Share of abandoned carts in the window that later converted, 0 to 1. */
   recoveryRate: number
+  /** Carts in the window that are not recovered yet (reminded or not). */
+  notRecovered: number
+  /** Carts in the window that got a recovery message. */
+  remindersSent: number
 }
+
+/** The abandoned list's tabs after "All" (`?status=`). */
+export const ABANDONED_LIST_STATUSES = ['not_recovered', 'reminder_sent', 'recovered'] as const
+export type AbandonedListStatus = (typeof ABANDONED_LIST_STATUSES)[number]
 
 /*
  * Written literally rather than with `${cart.id}`: Drizzle renders an
@@ -41,6 +51,9 @@ export type AbandonedStats = {
  * the wrong scope and silently returns zero.
  */
 const lineCount = sql<number>`(select coalesce(sum(cl.quantity), 0)::int from cart_line cl where cl.cart_id = cart.id)`
+const firstTitle = sql<
+  string | null
+>`(select p.title from cart_line cl join variant v on v.id = cl.variant_id join product p on p.id = v.product_id where cl.cart_id = cart.id order by cl.id limit 1)`
 const subtotal = sql<number>`(select coalesce(sum(cl.quantity * cl.unit_price_paise), 0)::int from cart_line cl where cl.cart_id = cart.id)`
 
 /** Carts with a contact, at least one line and no activity for the grace period. */
@@ -55,11 +68,29 @@ function abandonedWhere(now: Date, since: Date) {
 
 export async function listAbandoned(
   ctx: StoreContext,
-  input: { page: number; perPage: number; sinceDays?: number | undefined; now?: Date | undefined },
+  input: {
+    page: number
+    perPage: number
+    sinceDays?: number | undefined
+    now?: Date | undefined
+    status?: AbandonedListStatus | undefined
+    search?: string | undefined
+  },
 ): Promise<{ items: AbandonedCart[]; total: number }> {
   const now = input.now ?? new Date()
   const since = new Date(now.getTime() - (input.sinceDays ?? 30) * 86_400_000)
-  const where = abandonedWhere(now, since)
+  const search = input.search?.trim()
+  const where = and(
+    abandonedWhere(now, since),
+    input.status === 'recovered' ? eq(cart.status, 'converted') : undefined,
+    input.status === 'not_recovered' ? sql`${cart.status} <> 'converted'` : undefined,
+    input.status === 'reminder_sent'
+      ? and(sql`${cart.status} <> 'converted'`, isNotNull(cart.recoverySentAt))
+      : undefined,
+    search
+      ? sql`(${cart.email} ilike ${`%${search}%`} or ${cart.phone} ilike ${`%${search}%`} or ${cart.customerName} ilike ${`%${search}%`})`
+      : undefined,
+  )
   const [countRow] = await ctx.tx
     .select({ total: sql<number>`count(*)::int` })
     .from(cart)
@@ -73,6 +104,7 @@ export async function listAbandoned(
       status: cart.status,
       updatedAt: cart.updatedAt,
       recoverySentAt: cart.recoverySentAt,
+      firstTitle,
       itemCount: lineCount,
       subtotalPaise: subtotal,
     })
@@ -94,7 +126,7 @@ export async function abandonedStats(
   const now = opts.now ?? new Date()
   const since = new Date(now.getTime() - (opts.days ?? 7) * 86_400_000)
   const rows = await ctx.tx
-    .select({ status: cart.status, subtotalPaise: subtotal })
+    .select({ status: cart.status, subtotalPaise: subtotal, sentAt: cart.recoverySentAt })
     .from(cart)
     .where(abandonedWhere(now, since))
   const recovered = rows.filter((r) => r.status === 'converted').length
@@ -105,6 +137,8 @@ export async function abandonedStats(
       .reduce((sum, r) => sum + r.subtotalPaise, 0),
     recovered,
     recoveryRate: rows.length === 0 ? 0 : recovered / rows.length,
+    notRecovered: rows.length - recovered,
+    remindersSent: rows.filter((r) => r.sentAt !== null).length,
   }
 }
 

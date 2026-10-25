@@ -7,10 +7,12 @@ import {
   accentForeground,
   accentOverride,
   DEFAULT_ACCENT,
+  darkKey,
   deriveAccentPalette,
   hexToOklch,
   KIT_PALETTE,
   normaliseAccent,
+  OCEAN_GREEN,
   oklchToHex,
   readAccentCookie,
 } from './accent'
@@ -29,7 +31,9 @@ describe('normaliseAccent', () => {
   })
 
   it('treats the default as no override', () => {
-    expect(accentOverride('#4EA674')).toBeNull()
+    expect(accentOverride('#171717')).toBeNull()
+    expect(accentOverride('#3F72DC')).toBe('#3f72dc')
+    expect(accentOverride('#4EA674')).toBe('#4ea674')
     expect(accentOverride('#2563eb')).toBe('#2563eb')
     expect(accentOverride('nope')).toBeNull()
   })
@@ -74,7 +78,7 @@ describe('deriveAccentPalette', () => {
     expect(deriveAccentPalette(DEFAULT_ACCENT)).toBe(KIT_PALETTE)
   })
 
-  it('derives values close to the kit from a green next to the default', () => {
+  it('derives a full palette for Ocean Green, now an ordinary preset', () => {
     const { light, dark } = deriveAccentPalette('#4ea675')
     expect(light.primary).toBe('#4ea675')
     // Aqua Spring #eaf8e7 and Surf Crest #c1e6ba are light, low-chroma greens.
@@ -82,8 +86,12 @@ describe('deriveAccentPalette', () => {
     expect(hexToOklch(light.primaryTint).l).toBeCloseTo(0.89, 1)
     // Kit dark primary #5fbf87 is lighter than the light one with the same hue.
     expect(hexToOklch(dark.primary).l).toBeGreaterThan(hexToOklch(light.primary).l)
-    expect(Math.abs(hexToOklch(dark.primary).h - hexToOklch(DEFAULT_ACCENT).h)).toBeLessThan(3)
-    expect(dark.primarySoft).toBe('rgb(78 166 117 / 0.16)')
+    expect(Math.abs(hexToOklch(dark.primary).h - hexToOklch(OCEAN_GREEN).h)).toBeLessThan(3)
+    // The dark soft fill is the lifted colour at low alpha.
+    const lifted = Number.parseInt(dark.primary.slice(1), 16)
+    expect(dark.primarySoft).toBe(
+      `rgb(${(lifted >> 16) & 255} ${(lifted >> 8) & 255} ${lifted & 255} / 0.12)`,
+    )
     // Same choice of text colour as the kit made for #5fbf87 in dark mode.
     expect(hexToOklch(dark.primaryForeground).l).toBeLessThan(0.25)
     expect(hexToOklch(dark.primaryTint).l).toBeLessThan(0.5)
@@ -95,7 +103,41 @@ describe('deriveAccentPalette', () => {
   })
 })
 
+describe('darkKey', () => {
+  it('matches the stylesheet .dark key for the default blue', () => {
+    // packages/ui/src/styles.css, `.dark` --key-top / --key-bottom / --key-border / --key-ink.
+    expect(darkKey(KIT_PALETTE.dark.primary)).toEqual({
+      top: '#fafafa',
+      bottom: '#f4f4f5',
+      border: '#ffffff',
+      ink: '#18181b',
+    })
+  })
+
+  it('is a white key with dark ink that reaches AA on every preset', () => {
+    for (const p of ACCENT_PRESETS) {
+      const key = darkKey(deriveAccentPalette(p.hex).dark.primary)
+      expect(hexToOklch(key.top).l).toBeGreaterThan(0.95)
+      expect(contrastRatio(key.ink, key.top)).toBeGreaterThanOrEqual(4.5)
+      expect(contrastRatio(key.ink, key.bottom)).toBeGreaterThanOrEqual(4.5)
+    }
+  })
+
+  it('drives the dark key in an override: white with dark ink, never a saturated fill', () => {
+    const css = accentCss('#e11d48')
+    const dark = css.slice(css.indexOf(':root.dark{'))
+    const key = darkKey(deriveAccentPalette('#e11d48').dark.primary)
+    expect(dark).toContain(`--key-top:${key.top}`)
+    expect(dark).toContain(`--key-ink:${key.ink}`)
+    expect(dark).not.toContain('--key-ink:#ffffff')
+  })
+})
+
 describe('accentCss', () => {
+  it('overrides when Ocean Green is picked (it used to fall through to the blue default)', () => {
+    expect(accentCss(OCEAN_GREEN)).toContain('--primary:#4ea674')
+  })
+
   it('is empty for the default, nothing, or an invalid value', () => {
     expect(accentCss(DEFAULT_ACCENT)).toBe('')
     expect(accentCss(null)).toBe('')
@@ -115,7 +157,7 @@ describe('accentCss', () => {
     const css = accentCss('#e11d48', '#preview')
     expect(css.startsWith('#preview{--primary:#e11d48')).toBe(true)
     expect(css).toContain('.dark #preview{')
-    expect(accentCss(DEFAULT_ACCENT, '#preview')).toContain('--primary-soft:#eaf8e7')
+    expect(accentCss(DEFAULT_ACCENT, '#preview')).toContain('--primary-soft:#f5f5f5')
     expect(accentCss('nope', '#preview')).toBe('')
   })
 })

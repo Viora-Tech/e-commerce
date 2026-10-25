@@ -1,16 +1,22 @@
 import {
   audienceSize,
+  type CampaignOrder,
   type CampaignStats,
+  campaignOrders,
   campaignStats,
+  type EmailBrand,
   getCampaign,
+  liveThemeSettings,
   type MarketingDeps,
   marketingChannels,
+  storefrontOriginFor,
   storeSender,
 } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
 import { customerSegment, type StoreTx } from '@commerce/db'
 import type { ChannelTemplate } from '@commerce/notifications'
 import { asc, eq } from 'drizzle-orm'
+import { type CampaignReport, campaignReport } from './growth-report.service'
 
 export async function marketingDeps(
   tx: StoreTx,
@@ -20,19 +26,24 @@ export async function marketingDeps(
   return {
     registry: (await registriesForStore(tx, storeId)).notifications,
     settingsSecret: env.settingsSecret,
-    storefrontUrl: env.storefrontUrl,
+    // The store's own domain; `env.storefrontUrl` (STOREFRONT_URL) only when it has none.
+    storefrontUrl: await storefrontOriginFor(tx, storeId, env.storefrontUrl),
   }
 }
 
 export type CampaignDetail = NonNullable<Awaited<ReturnType<typeof getCampaign>>> & {
   stats: CampaignStats
   segmentName: string | null
+  /** The newest orders credited to it, for "Orders from this campaign". */
+  recentOrders: CampaignOrder[]
+  /** Funnel, rates, buyer split and landing pages; null until sending starts. */
+  report: CampaignReport | null
 }
 
 export async function campaignDetail(tx: StoreTx, id: string): Promise<CampaignDetail | null> {
   const c = await getCampaign(tx, id)
   if (!c) return null
-  const [stats, seg] = await Promise.all([
+  const [stats, seg, recentOrders, report] = await Promise.all([
     campaignStats(tx, [id]),
     c.segmentId
       ? tx
@@ -40,11 +51,15 @@ export async function campaignDetail(tx: StoreTx, id: string): Promise<CampaignD
           .from(customerSegment)
           .where(eq(customerSegment.id, c.segmentId))
       : [],
+    campaignOrders(tx, id),
+    c.startedAt ? campaignReport(tx, c) : null,
   ])
   return {
     ...c,
     stats: stats.get(id) as CampaignStats,
     segmentName: seg[0]?.name ?? null,
+    recentOrders,
+    report,
   }
 }
 
@@ -77,6 +92,39 @@ export async function marketingSetup(
     storeName: sender.storeName,
     storefrontUrl: deps.storefrontUrl,
     segments,
+  }
+}
+
+/** A root-relative media URL (`/media/...`) made absolute, since an inbox has no base URL. */
+function absolute(url: string | null | undefined, origin: string): string | null {
+  if (!url) return null
+  if (/^https?:\/\//i.test(url)) return url
+  return url.startsWith('/') ? `${origin.replace(/\/$/, '')}${url}` : null
+}
+
+/** The live theme's logo, first colour scheme and social profiles, for the visual email builder. */
+export async function emailBrand(
+  tx: StoreTx,
+  storeId: string,
+  storefrontUrl: string,
+): Promise<EmailBrand> {
+  const [theme, sender] = await Promise.all([
+    liveThemeSettings(tx, storeId),
+    storeSender(tx, storeId),
+  ])
+  const scheme = theme.schemes[0]
+  return {
+    storeName: sender.storeName,
+    logoUrl: absolute(theme.brand.logo?.url, storefrontUrl),
+    logoWidth: theme.brand.logoWidth,
+    colours: {
+      background: scheme?.background ?? '#ffffff',
+      text: scheme?.text ?? '#1a1a1a',
+      muted: scheme?.textMuted ?? '#6b6b6b',
+      button: scheme?.button ?? '#1a1a1a',
+      buttonText: scheme?.buttonText ?? '#ffffff',
+    },
+    social: theme.social.links.map((l) => ({ platform: l.platform, url: l.url })),
   }
 }
 

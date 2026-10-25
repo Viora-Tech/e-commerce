@@ -2,7 +2,6 @@
 
 import type { BoxPreset } from '@commerce/core'
 import { type PackageDimensionsCm, volumetricWeightGrams } from '@commerce/core/parcel'
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import {
   Field,
   FieldDescription,
@@ -20,12 +19,16 @@ import {
 } from '@commerce/ui/shadcn/select'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import MoneyInput from '@/components/fields/money-input'
+import DataCard from '@/components/layout/data-card'
+import SettingsRow from '@/components/settings/settings-row'
 import { COUNTRIES } from '@/data/countries'
-import { productFormContent } from '@/data/products'
+import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import type { VariantRow } from './form-state'
+import WeightInput from './weight-input'
+import { toGrams } from './weight-units'
 
 type ShippingCardProps = {
   variant: VariantRow
@@ -125,168 +128,151 @@ export default function ShippingCard({
   ])
   const dims = packageDims(variant, boxPresets)
   const volumetricKg = dims ? volumetricWeightGrams(dims) / 1000 : null
-  const actualGrams = Number(variant.weight)
-  const actualKg = variant.weight.trim() && Number.isFinite(actualGrams) ? actualGrams / 1000 : null
+  const actualGrams = toGrams(variant.weight, variant.weightUnit)
+  const actualKg = actualGrams == null ? null : actualGrams / 1000
   const billedKg =
     volumetricKg != null && actualKg != null
       ? Math.max(volumetricKg, actualKg)
       : (volumetricKg ?? actualKg)
 
   return (
-    <Card size="form">
-      <CardHeader>
-        <CardTitle>{copy.heading}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <FieldGroup>
-          <div className="grid gap-4 md:grid-cols-2">
+    <DataCard title={copy.heading}>
+      <FieldGroup>
+        {/* Figma 283:14681 Shipping: label and help on the left, a 330px control on the right. */}
+        <SettingsRow label={copy.weight} description={copy.weightHelp} htmlFor="variant-weight">
+          <WeightInput
+            id="variant-weight"
+            weight={variant.weight}
+            unit={variant.weightUnit}
+            onChange={onChange}
+          />
+        </SettingsRow>
+        <SettingsRow label={copy.hsCode} description={copy.hsCodeHelp} htmlFor="variant-hs">
+          <Input
+            size="lg"
+            id="variant-hs"
+            value={variant.hsCode}
+            onChange={(e) => onChange({ hsCode: e.target.value })}
+            autoComplete="off"
+            inputMode="numeric"
+            className="md:max-w-[20.75rem]"
+          />
+        </SettingsRow>
+        <SettingsRow label={copy.gstRate} description={copy.gstRateHelp} htmlFor="variant-gst">
+          <Input
+            size="lg"
+            id="variant-gst"
+            value={variant.gstRate}
+            onChange={(e) => onChange({ gstRate: e.target.value.replace(/\D/g, '').slice(0, 2) })}
+            autoComplete="off"
+            inputMode="numeric"
+            className="md:max-w-[20.75rem]"
+          />
+        </SettingsRow>
+        <SettingsRow label={copy.country} description={copy.countryHelp} htmlFor="variant-origin">
+          <Select
+            items={items}
+            value={variant.countryOfOrigin || NONE}
+            onValueChange={(next) =>
+              onChange({ countryOfOrigin: next === NONE ? '' : String(next) })
+            }
+          >
+            <SelectTrigger size="lg" id="variant-origin" className="w-full md:max-w-[20.75rem]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NONE}>{copy.countryPlaceholder}</SelectItem>
+              {COUNTRIES.map((country) => (
+                <SelectItem key={country.code} value={country.code}>
+                  {country.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </SettingsRow>
+        <SettingsRow label={copy.package} description={copy.packageHelp} htmlFor="variant-package">
+          <Select
+            items={packageItems}
+            value={packageValue}
+            onValueChange={(next) => handlePackage(String(next))}
+          >
+            <SelectTrigger size="lg" id="variant-package" className="w-full md:max-w-[20.75rem]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={STORE_DEFAULT}>{copy.packageStoreDefault}</SelectItem>
+              {boxPresets.map((box) => (
+                <SelectItem key={box.id} value={box.id}>
+                  {packageItems[box.id]}
+                </SelectItem>
+              ))}
+              <SelectItem value={CUSTOM}>{copy.packageCustom}</SelectItem>
+            </SelectContent>
+          </Select>
+          <FieldDescription>
+            {singleVariant ? null : `${copy.packageAllVariants} `}
+            <Link href={routes.settings.shipping()} className="underline underline-offset-2">
+              {copy.packageManage}
+            </Link>
+          </FieldDescription>
+        </SettingsRow>
+        {packageValue === CUSTOM ? (
+          <div className="grid gap-4 md:grid-cols-3">
             <Field>
-              <FieldLabel htmlFor="variant-weight">{copy.weight}</FieldLabel>
-              <MoneyInput
-                size="lg"
-                id="variant-weight"
-                currency={false}
-                suffix="g"
-                value={variant.weight}
-                onChange={(weight) => onChange({ weight })}
-              />
-              <FieldDescription>{copy.weightHelp}</FieldDescription>
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="variant-hs">{copy.hsCode}</FieldLabel>
+              <FieldLabel htmlFor="variant-package-length">{copy.packageLength}</FieldLabel>
               <Input
                 size="lg"
-                id="variant-hs"
-                value={variant.hsCode}
-                onChange={(e) => onChange({ hsCode: e.target.value })}
-                autoComplete="off"
+                id="variant-package-length"
+                type="number"
                 inputMode="numeric"
+                min={1}
+                max={200}
+                step={1}
+                value={variant.packageLengthCm ?? ''}
+                onChange={(e) => onPackage({ packageLengthCm: toCm(e.target.value) })}
               />
-              <FieldDescription>{copy.hsCodeHelp}</FieldDescription>
             </Field>
             <Field>
-              <FieldLabel htmlFor="variant-gst">{copy.gstRate}</FieldLabel>
+              <FieldLabel htmlFor="variant-package-width">{copy.packageWidth}</FieldLabel>
               <Input
                 size="lg"
-                id="variant-gst"
-                value={variant.gstRate}
-                onChange={(e) =>
-                  onChange({ gstRate: e.target.value.replace(/\D/g, '').slice(0, 2) })
-                }
-                autoComplete="off"
+                id="variant-package-width"
+                type="number"
                 inputMode="numeric"
+                min={1}
+                max={200}
+                step={1}
+                value={variant.packageWidthCm ?? ''}
+                onChange={(e) => onPackage({ packageWidthCm: toCm(e.target.value) })}
               />
-              <FieldDescription>{copy.gstRateHelp}</FieldDescription>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="variant-package-height">{copy.packageHeight}</FieldLabel>
+              <Input
+                size="lg"
+                id="variant-package-height"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={200}
+                step={1}
+                value={variant.packageHeightCm ?? ''}
+                onChange={(e) => onPackage({ packageHeightCm: toCm(e.target.value) })}
+              />
             </Field>
           </div>
-          <Field>
-            <FieldLabel htmlFor="variant-origin">{copy.country}</FieldLabel>
-            <Select
-              items={items}
-              value={variant.countryOfOrigin || NONE}
-              onValueChange={(next) =>
-                onChange({ countryOfOrigin: next === NONE ? '' : String(next) })
-              }
-            >
-              <SelectTrigger size="lg" id="variant-origin" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NONE}>{copy.countryPlaceholder}</SelectItem>
-                {COUNTRIES.map((country) => (
-                  <SelectItem key={country.code} value={country.code}>
-                    {country.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FieldDescription>{copy.countryHelp}</FieldDescription>
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="variant-package">{copy.package}</FieldLabel>
-            <Select
-              items={packageItems}
-              value={packageValue}
-              onValueChange={(next) => handlePackage(String(next))}
-            >
-              <SelectTrigger size="lg" id="variant-package" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={STORE_DEFAULT}>{copy.packageStoreDefault}</SelectItem>
-                {boxPresets.map((box) => (
-                  <SelectItem key={box.id} value={box.id}>
-                    {packageItems[box.id]}
-                  </SelectItem>
-                ))}
-                <SelectItem value={CUSTOM}>{copy.packageCustom}</SelectItem>
-              </SelectContent>
-            </Select>
-            <FieldDescription>
-              {copy.packageHelp} {singleVariant ? null : `${copy.packageAllVariants} `}
-              <Link href="/settings/shipping" className="underline underline-offset-2">
-                {copy.packageManage}
-              </Link>
-            </FieldDescription>
-          </Field>
-          {packageValue === CUSTOM ? (
-            <div className="grid gap-4 md:grid-cols-3">
-              <Field>
-                <FieldLabel htmlFor="variant-package-length">{copy.packageLength}</FieldLabel>
-                <Input
-                  size="lg"
-                  id="variant-package-length"
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  max={200}
-                  step={1}
-                  value={variant.packageLengthCm ?? ''}
-                  onChange={(e) => onPackage({ packageLengthCm: toCm(e.target.value) })}
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="variant-package-width">{copy.packageWidth}</FieldLabel>
-                <Input
-                  size="lg"
-                  id="variant-package-width"
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  max={200}
-                  step={1}
-                  value={variant.packageWidthCm ?? ''}
-                  onChange={(e) => onPackage({ packageWidthCm: toCm(e.target.value) })}
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="variant-package-height">{copy.packageHeight}</FieldLabel>
-                <Input
-                  size="lg"
-                  id="variant-package-height"
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  max={200}
-                  step={1}
-                  value={variant.packageHeightCm ?? ''}
-                  onChange={(e) => onPackage({ packageHeightCm: toCm(e.target.value) })}
-                />
-              </Field>
-            </div>
-          ) : null}
-          {packageError ? <FieldError>{packageError}</FieldError> : null}
-          {volumetricKg != null ? (
-            <p className="text-caption text-muted-foreground">
-              {copy.packageVolumetric(round1(volumetricKg))}
-              {actualKg != null ? `, ${copy.packageActual(round1(actualKg))}` : ''}
-              {actualKg != null && billedKg != null
-                ? `; ${copy.packageBillingHint(round1(billedKg))}`
-                : ''}
-            </p>
-          ) : null}
-        </FieldGroup>
-      </CardContent>
-    </Card>
+        ) : null}
+        {packageError ? <FieldError>{packageError}</FieldError> : null}
+        {volumetricKg != null ? (
+          <p className="text-caption text-muted-foreground">
+            {copy.packageVolumetric(round1(volumetricKg))}
+            {actualKg != null ? `, ${copy.packageActual(round1(actualKg))}` : ''}
+            {actualKg != null && billedKg != null
+              ? `; ${copy.packageBillingHint(round1(billedKg))}`
+              : ''}
+          </p>
+        ) : null}
+      </FieldGroup>
+    </DataCard>
   )
 }

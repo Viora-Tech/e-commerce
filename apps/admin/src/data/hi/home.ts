@@ -1,4 +1,4 @@
-import { briefingSentence, greetingWord, homeContent } from '@/data/home'
+import { greetingWord, homeContent, homePageContent, summaryLine } from '@/data/home'
 import { translation } from '@/lib/i18n'
 
 /** Hindi for the hour names in the heatmap: "सुबह 10 बजे", "दोपहर 2 बजे", "रात 9 बजे". */
@@ -17,16 +17,185 @@ export default [
     if (hour < 17) return 'नमस्ते'
     return 'गुड ईवनिंग'
   }),
-  translation(briefingSentence, (input) => {
-    const { greeting, firstName, ordersToday, salesToday, toShip } = input
-    const hello = firstName ? `${greeting}, ${firstName}।` : `${greeting}।`
-    if (ordersToday === 0) {
-      return `${hello} आज अभी तक कोई ऑर्डर नहीं आया।`
-    }
+  translation(summaryLine, (input) => {
+    const { ordersToday, salesToday, toShip } = input
+    if (ordersToday === 0) return 'आज अभी तक कोई ऑर्डर नहीं आया।'
     const came = ordersToday === 1 ? 'आया' : 'आए'
-    const base = `${hello} आज ${ordersToday} ऑर्डर ${came}, कुल ${salesToday} के`
+    const base = `आज ${ordersToday} ऑर्डर ${came}, कुल ${salesToday} के`
     if (toShip === 0) return `${base}।`
     return `${base}, ${toShip} भेजने बाकी हैं।`
+  }),
+  translation(homePageContent, {
+    ask: {
+      placeholder: 'अपने स्टोर के बारे में कुछ भी पूछें…',
+      button: 'पूछें',
+      label: 'AI असिस्टेंट से पूछें',
+      shortcut: '⌘K',
+    },
+    setup: {
+      title: 'सेटअप पूरा करें',
+      progress: (done, total) => `${total} में से ${done} पूरे`,
+      openCta: 'सेटअप करें',
+      products: {
+        title: 'अपने प्रोडक्ट जोड़ें',
+        done: (n) => `आपके स्टोर में ${n} प्रोडक्ट हैं`,
+        todo: 'बेचना शुरू करने के लिए पहला प्रोडक्ट जोड़ें',
+      },
+      payments: {
+        title: 'पेमेंट जोड़ें',
+        done: (name) => `${name} से पेमेंट मिल रहे हैं`,
+        testMode: (name) => `${name} टेस्ट मोड में है। असली पेमेंट लेने के लिए live keys पर जाएँ`,
+        todo: 'UPI और कार्ड लेने के लिए गेटवे जोड़ें',
+      },
+      shipping: {
+        title: 'शिपिंग सेटअप करें',
+        done: (name) => `${name} जुड़ा हुआ है`,
+        todo: 'लेबल प्रिंट करने के लिए कूरियर जोड़ें',
+      },
+    },
+    todo: {
+      title: 'करने के काम',
+      count: (n) => `${n} काम बाकी`,
+    },
+    sales: {
+      title: 'आज की बिक्री',
+      titleDays: (n) => `पिछले ${n} दिनों की बिक्री`,
+      today: 'आज',
+      days7: '7 दिन',
+      days30: '30 दिन',
+      channels: 'सभी चैनल',
+      liveNow: (n) => `${n} अभी लाइव`,
+      customize: 'कस्टमाइज़ करें',
+      totalSales: 'कुल बिक्री',
+      ordersTitle: 'ऑर्डर',
+      visitorsTitle: 'विज़िटर',
+      conversionTitle: 'कन्वर्ज़न दर',
+      points: 'अंक',
+      visitorsNow: 'अभी लाइव',
+      viewReport: 'बिक्री रिपोर्ट देखें',
+      vsYesterday: 'कल के मुकाबले',
+      noCompare: 'तुलना नहीं',
+      emptyVisitors: 'दुकान पर ग्राहक आने लगते ही यहां सेशन दिखेंगे।',
+      ranges: {
+        today: 'आज',
+        yesterday: 'कल',
+        '7d': 'पिछले 7 दिन',
+        '30d': 'पिछले 30 दिन',
+        thisMonth: 'इस महीने',
+        lastMonth: 'पिछले महीने',
+        thisQuarter: 'इस तिमाही',
+        thisFy: 'इस वित्त वर्ष',
+        diwali: 'दिवाली हफ़्ता',
+        festive: 'त्योहारों का मौसम',
+        custom: 'अपनी तारीखें',
+      },
+      festiveHint: 'सित–नव',
+      rangeLabel: 'तारीखें',
+      from: 'से',
+      to: 'तक',
+      compareTo: 'तुलना करें',
+      compareOptions: { previous: 'पिछली अवधि', year: 'पिछले साल यही तारीखें' },
+      vsPeriod: 'पिछली अवधि के मुकाबले',
+      vsYear: 'पिछले साल के मुकाबले',
+      cancel: 'रद्द करें',
+      apply: 'लागू करें',
+      channelOptions: {
+        all: 'सभी चैनल',
+        online: 'ऑनलाइन स्टोर',
+        instagram: 'इंस्टाग्राम',
+        whatsapp: 'व्हाट्सऐप',
+        google: 'गूगल और यूट्यूब',
+        pos: 'दुकान पर (POS)',
+        other: 'अन्य',
+      },
+      soon: 'जल्द',
+      metrics: {
+        sales: 'कुल बिक्री',
+        orders: 'ऑर्डर',
+        aov: 'औसत ऑर्डर मूल्य',
+        sessions: 'सेशन',
+        visitors: 'विज़िटर',
+        conversion: 'कन्वर्ज़न दर',
+        returning: 'दोबारा आने वाले ग्राहक',
+        gross: 'कुल बिक्री (छूट से पहले)',
+        refunds: 'रिफ़ंड',
+        discounts: 'दी गई छूट',
+        gst: 'GST वसूला',
+        codShare: 'COD बनाम प्रीपेड',
+        abandoned: 'छोड़ी गई कार्ट',
+        shipping: 'शिपिंग शुल्क',
+        topProducts: 'सबसे ज़्यादा बिके प्रोडक्ट',
+      },
+      pickMetric: 'इस जगह के लिए आंकड़ा चुनें',
+      searchMetrics: 'आंकड़े खोजें',
+      noMetric: 'कोई आंकड़ा नहीं मिला',
+      done: 'हो गया',
+      customizeHint: 'बदलने के लिए कोई टाइल चुनें',
+      bestSeller: (title) => `सबसे ज़्यादा: ${title}`,
+      loadFailed: 'ये आंकड़े लोड नहीं हो पाए। फिर कोशिश करें।',
+      tilesSaveFailed: 'आपकी टाइल सेव नहीं हो पाईं',
+      compareLabel: 'इससे तुलना करें',
+      noHourly: 'विज़िटर दिन के हिसाब से गिने जाते हैं। यह चार्ट देखने के लिए 7 या 30 दिन चुनें।',
+      vsPrevious: (n) => `पिछले ${n} दिनों के मुकाबले`,
+      orders: (n) => `${n} ऑर्डर`,
+      hourlyNote: 'घंटे के हिसाब से ऑर्डर, आज और कल',
+      empty: 'पेमेंट वाले ऑर्डर आते ही यहां बिक्री का चार्ट दिखेगा।',
+      series: { today: 'आज', yesterday: 'कल', sales: 'बिक्री', before: 'पहले' },
+    },
+    latest: {
+      title: 'ताज़ा ऑर्डर',
+      viewAll: 'सब देखें',
+      empty: 'नया ऑर्डर आते ही यहां दिखेगा।',
+      ship: 'भेजें',
+      view: 'देखें',
+      toShip: 'भेजना बाकी',
+      shipped: 'भेज दिया',
+      delivered: 'पहुंच गया',
+      cancelled: 'रद्द',
+      paymentDue: 'पेमेंट बाकी',
+      refund: 'रिफ़ंड बाकी',
+      done: 'पेमेंट हो गया',
+    },
+    live: {
+      title: 'अभी लाइव',
+      visitors: () => 'लोग अभी आपके स्टोर पर हैं',
+      today: (orders, sales) => `आज ${orders} · ${sales}`,
+      ordersWord: (n) => `${n} ऑर्डर`,
+    },
+    suggest: {
+      title: 'आपके लिए सुझाव',
+      note: 'आपके स्टोर के आधार पर',
+      dismiss: 'यह सुझाव छिपाएं',
+      hidden: 'सुझाव छिपा दिया गया',
+      undo: 'वापस करें',
+      restockTitle: 'अपना सबसे ज़्यादा बिकने वाला प्रोडक्ट भरें',
+      restockBody: (title, units, left) =>
+        `${title} पिछले 30 दिनों में ${units} बिका और सिर्फ़ ${left} बचे हैं।`,
+      restockCta: 'स्टॉक भरें',
+      abandonedTitle: 'छोड़े गए कार्ट वापस लाएं',
+      abandonedBody: (carts, value) =>
+        `इस हफ़्ते ${carts} कार्ट, कुल ${value} के, छूट गए। एक प्यारा सा रिमाइंडर भेजें।`,
+      abandonedCta: 'खोलें',
+      reviewsTitle: 'प्रोडक्ट रिव्यू जमा करें',
+      reviewsBody: 'Reviews ऐप जोड़ें ताकि ग्राहक खरीदी चीज़ को रेट कर सकें।',
+      reviewsCta: 'खोलें',
+      describeTitle: 'प्रोडक्ट की जानकारी लिखें',
+      describeBody: 'AI से हिंदी और अंग्रेज़ी में लिखवाएं, हर एक आप मंज़ूर करें।',
+      describeCta: 'खोलें',
+      saleTitle: 'सेल की तैयारी करें',
+      saleBody: 'अगली सेल के लिए एक कदम में डिस्काउंट बनाएं, मिनटों में तैयार।',
+      saleCta: 'खोलें',
+      whatsappTitle: 'ऑर्डर अपडेट WhatsApp पर भेजें',
+      whatsappBody: 'WhatsApp जोड़ें ताकि ग्राहकों को ऑर्डर की खबर बिना फ़ोन किए मिल जाए।',
+      whatsappCta: 'जोड़ें',
+    },
+    more: {
+      title: 'और आंकड़े',
+      subtitle: 'समय के साथ बिक्री, प्रोडक्ट और पेमेंट',
+      previewSales: 'बिक्री',
+      previewProducts: 'टॉप प्रोडक्ट',
+      previewPayments: 'पेमेंट',
+    },
   }),
   translation(homeContent, {
     briefing: {
@@ -46,6 +215,7 @@ export default [
           label: (n) => (n === 1 ? '1 ऑर्डर भेजने के लिए तैयार है' : `${n} ऑर्डर भेजने के लिए तैयार हैं`),
           help: 'पेमेंट हो गया, पैक हो गया, बस कूरियर का इंतज़ार है।',
           cta: 'ऑर्डर भेजें',
+          waiting: (days) => `${days} दिन से इंतज़ार`,
         },
         upiToVerify: {
           label: (n) => (n === 1 ? '1 UPI पेमेंट चेक करना है' : `${n} UPI पेमेंट चेक करने हैं`),
@@ -81,7 +251,7 @@ export default [
       salesDown: (pct, comparedTo) => `${comparedTo} के मुकाबले बिक्री ${pct} घटी है।`,
       salesFlat: 'बिक्री पिछले हफ़्ते जितनी ही है।',
       comparedToLastWeek: 'पिछले हफ़्ते के इसी समय',
-      bestSeller: (title, units) => `इस हफ़्ते सबसे ज़्यादा ${title} बिका, ${units} पीस।`,
+      bestSeller: (title, units) => `पिछले 30 दिनों में सबसे ज़्यादा ${title} बिका, ${units} पीस।`,
       lowStockNudge: (n) =>
         n === 1
           ? '1 प्रोडक्ट इसी रफ़्तार से जल्दी खत्म हो जाएगा।'

@@ -43,10 +43,49 @@ kept in the GitHub Actions cache (one scope per image):
 | `ghcr.io/viora-tech/storefront` | `apps/storefront/Dockerfile` | `storefront` |
 | `ghcr.io/viora-tech/worker` | `apps/worker/Dockerfile` | `worker` |
 | `ghcr.io/viora-tech/tasks` | `deploy/Dockerfile.tasks` | `migrate`, `backup`, restore, key rotation |
-| `ghcr.io/viora-tech/docs` | `apps/docs/Dockerfile` | not in the compose file (optional) |
 
 Each is tagged with the full commit sha and `latest`. The compose file runs
 `${IMAGE_TAG:-latest}`, with `pull_policy: always` so a redeploy really fetches the new `latest`.
+
+## Branches: `dev` and `main`
+
+| Branch | What goes in | Deployed to |
+| --- | --- | --- |
+| `feat/…`, `fix/…` | One piece of work. Start from `origin/dev`. | nowhere |
+| `dev` (default branch) | Every reviewed PR is merged here first. Several features collect here and are tested together. | test server (vioratech.in) |
+| `main` | Only a release PR `dev` → `main`, once `dev` has been checked on the test server. | production |
+
+- Open PRs with `--base dev` (it is the default, so `gh pr create` does this).
+- After a PR merges, GitHub deletes its branch automatically (`delete_branch_on_merge`). `dev`
+  is never deleted because it is the default branch.
+- Hotfix for production: branch from `main`, PR into `main`, then merge `main` back into `dev`.
+- The org is on GitHub Free, so branch protection rules aren't available on this private repo;
+  the rule above is a convention, kept by review.
+
+### Test server deploys (vioratech.in)
+
+<Callout type="info">
+  Code for moving image builds off this server (CodeBuild builds ARM images, pushes them to ECR
+  and calls the Dokploy API to deploy one app at a time) is in the repo, but no AWS resource
+  exists yet and Dokploy still builds on the server. Until the apps switch to the Docker
+  provider, this section describes what runs. See [Builds on CodeBuild](/developer-docs/operations/codebuild)
+  and [`deploy/codebuild/README.md`](https://github.com/Viora-Tech/e-commerce/blob/main/deploy/codebuild/README.md).
+</Callout>
+
+The test server is one EC2 machine running Dokploy, which builds the apps from `dev` with their
+Dockerfiles. Builds are heavy, so:
+
+- **No instant deploys.** Auto-deploy is off. `/usr/local/bin/nightly-deploy.sh` runs at
+  02:30 IST (`/etc/cron.d/nightly-deploy`): worker first (it runs migrations), then admin, then
+  storefront, **one at a time**, and **only apps whose watch paths changed** since their last
+  deploy. It reads the repo with a read-only GitHub deploy key and keeps the last deployed commit
+  per app in `/var/lib/nightly-deploy/<applicationId>.sha`. Log: `/var/log/nightly-deploy.log`;
+  `nightly-deploy.sh --dry-run` shows what would deploy.
+- **Need it now?** Press Deploy on the app in Dokploy.
+- **Live apps first.** Running containers get CPU priority over builds
+  (`/etc/cron.d/protect-live-apps`) and a memory reservation each.
+- Environment variables live only in Dokploy. Add or change one key at a time; never paste a
+  whole new env over an app's existing one.
 
 ## Server sizing and why
 
@@ -55,6 +94,34 @@ Next/Bun app containers and Dokploy itself with headroom for traffic bursts — 
 budget at the top of `deploy/docker-compose.prod.yml`. Everything here (Postgres tuning, memory
 limits) assumes this single box; if traffic outgrows it, Postgres and the apps split onto
 separate instances before anything else changes.
+
+### CPU for the worker
+
+Shoppers and the worker share the box's two vCPUs. Image processing and imports can use all of
+them: in October 2026 an image backlog held the worker at 200% CPU and store pages went from
+about 1 s to 3 to 5 s. Docker splits CPU evenly between busy containers, and `nice` inside a
+container only reorders that container's own threads, so the limit has to be set on the service.
+
+In Dokploy, each application → **Advanced → Resources** (values are Docker's raw units:
+`1000000000` NanoCPUs = 1 CPU), then **Deploy** the app for it to take effect:
+
+| App | CPU limit | CPU reservation |
+| --- | --- | --- |
+| worker | `1000000000` (1 CPU) | empty |
+| storefront | empty | `500000000` (0.5 CPU) |
+| admin | empty | `250000000` |
+| postgres | empty | `500000000` |
+
+The worker's **limit** is what keeps the shop fast: whatever the worker does, at least one CPU
+stays free for the storefront, admin and Postgres. Reservations only tell Swarm where a task
+fits; on one box they document intent. Also set `MEDIA_PROCESS_CONCURRENCY=1` on the worker on a
+2-vCPU box. A bigger box: raise the worker limit to half its CPUs and the concurrency with it.
+
+`deploy/docker-compose.prod.yml` already caps the worker (`cpus: 1.0`) for setups that run the
+compose file directly.
+
+While a backlog runs, the admin tells the merchant (Home, Content → Files, the importer): see
+[Image pipeline → The "store may be slower" notice](/developer-docs/building/media-pipeline#the-store-may-be-slower-notice).
 
 ## 1. Create the Lightsail instance
 
@@ -176,6 +243,16 @@ Dokploy → Settings → Git Providers → **GitHub** → install the Dokploy Gi
 4. Cloudflare Page Rules/Rulesets: none required to start; add caching/security rules later as
    needed.
 
+### Merchants' own domains
+
+Set `DOMAIN_PROVIDER=dns`, `STOREFRONT_A_RECORD` (this server's public IPv4) and
+`STOREFRONT_CNAME_TARGET` (a hostname that resolves to it) on the admin and worker; with the
+default `dev` provider real domains stay pending forever. Each domain that goes live also needs
+its own HTTPS route on the storefront app in Dokploy. Set `DOKPLOY_URL`, `DOKPLOY_API_KEY`,
+`DOKPLOY_STOREFRONT_APPLICATION_ID` (and `DOKPLOY_STOREFRONT_PORT` if not `3100`) on the worker
+and it adds and removes those routes itself; unset, add each domain by hand. How to create the
+key and find the id, plus troubleshooting: [Custom domains](/developer-docs/building/custom-domains).
+
 ### Lock the origin to Cloudflare (required)
 
 Per-IP rate limits (sign-in codes, checkout, gift card checks, newsletter, webhooks) key on the
@@ -187,6 +264,9 @@ server directly can send that header with any value and get a fresh limit per re
    `ips-v6`). Keep 22 for your own IP. Recheck the list when Cloudflare announces changes.
 2. Set `TRUSTED_PROXY=cloudflare` in the environment (it is in
    `deploy/env.production.example`). The apps then read `cf-connecting-ip` and nothing else.
+
+To let Cloudflare cache store pages as well, add the cache rule in
+[Storefront performance → Cloudflare in front](/developer-docs/building/performance#cloudflare-in-front).
 
 `TRUSTED_PROXY=none` (the default, and right for local development) believes no forwarded
 header at all: `cf-connecting-ip`, `x-forwarded-for` and `x-real-ip` are ignored. The worker

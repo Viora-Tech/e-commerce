@@ -1,30 +1,44 @@
+import { settingsSecret } from '@commerce/config'
 import {
   adjustStock,
   BulkStockEditSchema,
+  cancelPurchaseOrder,
   closePurchaseOrder,
   createLocation,
   deletePurchaseOrder,
   deleteTransfer,
+  EmailPurchaseOrderSchema,
+  emailPurchaseOrder,
   InventoryError,
   LocationInputSchema,
+  LocationUpdateSchema,
   listLocations,
+  loadPurchaseOrderSheet,
   markOrdered,
+  PURCHASE_ORDER_STATUSES,
   PurchaseOrderInputSchema,
   permissions,
+  poFilename,
   ReceiptSchema,
   receivePurchaseOrder,
   receiveTransfer,
+  reopenPurchaseOrder,
+  STOCK_FILTERS,
   StockEditSchema,
   savePurchaseOrder,
   saveTransfer,
   setStock,
   shipTransfer,
+  storeNotificationChannels,
   TransferInputSchema,
+  updateLocation,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
+import { renderPurchaseOrderToBuffer } from '@commerce/invoices/render'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can, heavy, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
+import { storeRegistries } from '../services/apps.service'
 import {
   inventoryFacets,
   inventoryHistory,
@@ -32,6 +46,7 @@ import {
   listInventory,
   searchVariants,
 } from '../services/inventory.service'
+import { previewCosts } from '../services/landed-cost.service'
 import {
   getPurchaseOrder,
   listPurchaseOrders,
@@ -40,7 +55,7 @@ import {
 import { getTransfer, listTransfers } from '../services/transfer.service'
 
 /** Stock rules the merchant broke (negative stock, wrong status) come back as 400s. */
-async function friendly<T>(fn: () => Promise<T>): Promise<T> {
+export async function friendly<T>(fn: () => Promise<T>): Promise<T> {
   try {
     return await fn()
   } catch (err) {
@@ -54,7 +69,7 @@ async function friendly<T>(fn: () => Promise<T>): Promise<T> {
 const listInput = z.object({
   locationId: z.uuid(),
   search: z.string().trim().max(SEARCH_MAX).optional(),
-  stock: z.enum(['all', 'in', 'low', 'out']).optional(),
+  stock: z.enum(['all', ...STOCK_FILTERS]).optional(),
   vendor: z.string().max(200).optional(),
   productType: z.string().max(200).optional(),
   sort: z.enum(['product', 'available_asc', 'available_desc']).optional(),
@@ -90,6 +105,13 @@ export const inventoryRouter = {
   createLocation: can(permissions.INVENTORY_WRITE)
     .input(LocationInputSchema)
     .handler(({ context, input }) => createLocation(context.tx, context.scope.storeId, input)),
+
+  /** Name, address and phone of an existing location; "Bills under" follows a new state. */
+  updateLocation: can(permissions.INVENTORY_WRITE)
+    .input(LocationUpdateSchema)
+    .handler(({ context, input }) =>
+      friendly(() => updateLocation(context.tx, context.scope.storeId, input)),
+    ),
 
   stats: can(permissions.INVENTORY_READ)
     .input(z.object({ locationId: z.uuid() }))
@@ -154,9 +176,7 @@ export const purchaseOrdersRouter = {
   list: can(permissions.INVENTORY_READ)
     .input(
       z.object({
-        status: z
-          .enum(['all', 'draft', 'ordered', 'partially_received', 'received', 'closed'])
-          .optional(),
+        status: z.enum(['all', ...PURCHASE_ORDER_STATUSES]).optional(),
         search: z.string().trim().max(SEARCH_MAX).optional(),
         page: z.number().int().min(1).default(1),
         perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(25),
@@ -166,7 +186,11 @@ export const purchaseOrdersRouter = {
 
   get: can(permissions.INVENTORY_READ)
     .input(z.object({ id: z.uuid() }))
-    .handler(({ context, input }) => getPurchaseOrder(context.tx, input.id)),
+    .handler(async ({ context, input }) => {
+      const po = await getPurchaseOrder(context.tx, input.id)
+      if (!po) throw new ORPCError('NOT_FOUND', { message: 'This purchase order was not found' })
+      return po
+    }),
 
   save: can(permissions.INVENTORY_WRITE)
     .input(PurchaseOrderInputSchema)
@@ -183,7 +207,9 @@ export const purchaseOrdersRouter = {
   receive: can(permissions.INVENTORY_WRITE)
     .input(ReceiptSchema)
     .handler(({ context, input }) =>
-      friendly(() => receivePurchaseOrder(context.tx, context.scope.storeId, input)),
+      friendly(() =>
+        receivePurchaseOrder(context.tx, context.scope.storeId, input, context.scope.userId),
+      ),
     ),
 
   close: can(permissions.INVENTORY_WRITE)
@@ -192,10 +218,66 @@ export const purchaseOrdersRouter = {
       friendly(() => closePurchaseOrder(context.tx, context.scope.storeId, input.id)),
     ),
 
+  /** Call off a draft or an order nothing has arrived on. */
+  cancel: can(permissions.INVENTORY_WRITE)
+    .input(z.object({ id: z.uuid() }))
+    .handler(({ context, input }) =>
+      friendly(() => cancelPurchaseOrder(context.tx, context.scope.storeId, input.id)),
+    ),
+
+  /** Undo a close or a cancel. */
+  reopen: can(permissions.INVENTORY_WRITE)
+    .input(z.object({ id: z.uuid() }))
+    .handler(({ context, input }) =>
+      friendly(() => reopenPurchaseOrder(context.tx, context.scope.storeId, input.id)),
+    ),
+
+  /** Charges, their splits and each line's landed cost for this order and its shipment. No writes. */
+  costs: can(permissions.INVENTORY_READ)
+    .input(z.object({ id: z.uuid() }))
+    .handler(({ context, input }) =>
+      friendly(() =>
+        previewCosts(context.tx, context.scope.storeId, { purchaseOrderId: input.id }),
+      ),
+    ),
+
   delete: can(permissions.INVENTORY_WRITE)
     .input(z.object({ id: z.uuid() }))
     .handler(({ context, input }) =>
       friendly(() => deletePurchaseOrder(context.tx, context.scope.storeId, input.id)),
+    ),
+
+  /** The purchase order as a PDF for the supplier: print it or save it. */
+  pdf: can(permissions.INVENTORY_READ)
+    .use(heavy('bulk'))
+    .input(z.object({ id: z.uuid() }))
+    .handler(({ context, input }) =>
+      friendly(async () => {
+        const sheet = await loadPurchaseOrderSheet(context.tx, context.scope.storeId, input.id)
+        const bytes = await renderPurchaseOrderToBuffer(sheet)
+        return new File([bytes as Uint8Array<ArrayBuffer>], poFilename(sheet.number), {
+          type: 'application/pdf',
+        })
+      }),
+    ),
+
+  /** Email the PDF to the supplier through the store's sender email; optionally mark a draft ordered. */
+  email: can(permissions.INVENTORY_WRITE)
+    .use(heavy('bulk'))
+    .input(EmailPurchaseOrderSchema)
+    .handler(({ context, input }) =>
+      friendly(async () => {
+        const { storeId } = context.scope
+        const { notifications } = await storeRegistries(context.tx, storeId)
+        const channels = await storeNotificationChannels(context.tx, storeId, {
+          registry: notifications,
+          settingsSecret: settingsSecret(),
+        })
+        return emailPurchaseOrder(context.tx, storeId, input, {
+          channels,
+          renderPdf: renderPurchaseOrderToBuffer,
+        })
+      }),
     ),
 }
 

@@ -141,7 +141,7 @@ export const AUTOMATION_TEMPLATES: AutomationTemplate[] = [
   {
     id: 'abandoned_checkout',
     trigger: 'checkout_abandoned',
-    name: 'Abandoned checkout',
+    name: 'Abandoned checkout recovery',
     description:
       'Reach shoppers who left at checkout and agreed to hear from you: an email after an hour, a WhatsApp nudge at six hours, and a discount on day two.',
     settings: { afterMinutes: 60, audience: 'subscribed' },
@@ -221,7 +221,7 @@ export const AUTOMATION_TEMPLATES: AutomationTemplate[] = [
   {
     id: 'welcome_subscriber',
     trigger: 'customer_subscribed',
-    name: 'Welcome new subscriber',
+    name: 'Welcome new subscribers',
     description: 'Say hello when someone joins your email list, with a first-order code.',
     settings: { audience: 'subscribed' },
     steps: [
@@ -273,7 +273,7 @@ export const AUTOMATION_TEMPLATES: AutomationTemplate[] = [
   {
     id: 'win_back',
     trigger: 'customer_lapsed',
-    name: 'Win back',
+    name: 'Win back lapsed customers',
     description: 'Invite customers back when they have not ordered for a while, with an offer.',
     settings: { lapsedDays: 90, audience: 'subscribed' },
     steps: [

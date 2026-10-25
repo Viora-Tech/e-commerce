@@ -59,7 +59,7 @@ export default function DeleteAccount() {
   ) : null
 
   return (
-    <section className="flex flex-col gap-3 rounded-2xl border border-line p-6">
+    <section className="flex flex-col gap-3 rounded-[var(--radius-card)] bg-surface p-6">
       <h2 className="h3">{copy.heading}</h2>
       {step === 'intro' ? (
         <div>

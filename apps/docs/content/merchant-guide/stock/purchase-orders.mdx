@@ -1,0 +1,196 @@
+---
+title: Purchase orders and landed cost
+description: Order stock from suppliers in any currency, upload freight, customs and clearing bills for Koomerce to read, and see what each product really costs once it lands.
+---
+
+# Purchase orders and landed cost
+
+A **purchase order** records what you ordered from a supplier. When the stock arrives, you
+receive it, and two things happen: the units go on your shelf, and each product's **cost** is
+updated to what it really cost you to get it there: the price you paid **plus** its share of
+freight, customs duty and clearing. That true cost is the **landed cost**.
+
+You find all of this under **Stock**: **Purchase orders**, **Inbound shipments** and
+**Suppliers**.
+
+## What this is for
+
+- Knowing your real margin. A mouse pad bought for $5 does not cost you ₹425 once freight,
+  duty and the clearing agent are paid. It may cost ₹540.
+- Buying from abroad in USD, CNY or another currency, at the rate on your Bill of Entry.
+- Sharing one container's freight and customs across several orders and suppliers.
+- Adding a bill that arrives weeks later, without redoing anything.
+
+## Suppliers
+
+Suppliers have their own page: [Suppliers](/merchant-guide/stock/suppliers).
+
+## Adding products
+
+In the **Products** card, click **Add products**. The same picker you use for collections
+opens: search by name or SKU, filter by collection, type or status, and tick whole products or
+just some of their variants. Click **Add** and each ticked variant becomes a line with quantity
+1. When the order is in rupees, the unit price starts at the product's current cost, so you
+only change what is different. A variant that is already on the order is not added twice.
+
+## Currency and exchange rate
+
+In the **Currency** card, pick what the supplier bills in. For anything other than rupees,
+enter the **exchange rate**: how many rupees one unit of that currency is. Use the rate on your
+Bill of Entry (customs uses it) or on your bank's payment advice. Unit prices on the order are
+then typed in that currency, and every total is shown in rupees.
+
+The currency is fixed once the order is sent. The rate can still be corrected until the order
+is finished.
+
+## Charges
+
+Everything you pay on top of the goods is a **charge**. Add them in the **Charges** card on a
+purchase order, or as **shared charges** on an inbound shipment.
+
+| Charge | Part of product cost? |
+| --- | --- |
+| Freight and insurance | Yes |
+| Basic customs duty (BCD) | Yes |
+| Social welfare surcharge (SWS) | Yes |
+| IGST paid at customs | **No**: you claim it back as input credit |
+| Clearing agent (CHA) fee | Yes (its GST is input credit) |
+| Port and handling | Yes |
+| Local freight | Yes |
+| Bank and exchange charges | Yes |
+| Goods adjustment | Yes. Can be negative, for a supplier credit |
+| Other | Yes, unless you switch it off |
+
+For each charge, type the amount **before GST** and, separately, the GST on that bill. GST on a
+bill is always input credit, so it is tracked but never added to product cost. IGST paid at
+customs is marked **Claim back as input credit** for the same reason. You can switch that on or
+off for any charge.
+
+## How a charge is split across products
+
+| Split | Use it for |
+| --- | --- |
+| **By weight** | Freight and insurance (the default). Heavier products carry more. |
+| **By value** | Customs duty and most other charges (the default). Dearer products carry more. |
+| **By quantity** | An equal share per unit. |
+| **Only some products** | A charge that belongs to a few products only, split by value among them. |
+| **Amount per product** | When the bill already says the amount per product, like duty per line on a Bill of Entry. The amounts must add up to the charge. |
+
+If a product has **no weight** saved, a by-weight charge is split **by value** instead, and the
+Charges card says which products need a weight. Add weights to the products (on the product
+page) and the split follows.
+
+Splits are worked out in whole paise and always add up to the charge exactly.
+
+## Inbound shipments
+
+One container can carry several purchase orders. See [Inbound shipments](/merchant-guide/stock/inbound-shipments).
+
+## Upload bills and let Koomerce read them
+
+Instead of typing every line, upload the bill and let Koomerce read it for you. You always check
+what it read before anything changes.
+
+1. Open the purchase order (or the inbound shipment) and scroll to **Bills and documents**.
+2. Pick **What is it**: Supplier invoice, Bill of Entry, Freight bill, Clearing agent (CHA) bill,
+   Bank or exchange advice, or Other bill.
+3. Drop the file in, or click to choose it. PDF, JPG or PNG, up to 15 MB. A phone photo of a
+   paper bill works too.
+4. It shows **Reading…** for a few seconds, then **Ready to check**. Click **Check and apply**.
+
+The check screen shows the file on the left and what Koomerce read on the right. Anything it was
+not sure about says **Check this**. Correct any value, untick what you do not want, then press
+**Apply**. Nothing is saved until you do, and everything you ticked is saved together.
+
+### What each bill does
+
+| Bill | What it can apply |
+| --- | --- |
+| **Supplier invoice** | On a draft order: the quantities and prices per product (new products found by their SKU are added), and the currency and exchange rate. On an order you already sent: a **goods adjustment** for any price difference, because the order itself is locked. Freight or insurance printed on the invoice becomes a charge. |
+| **Bill of Entry** | The exchange rate customs used, onto every order in the shipment priced in that currency; the BE number, date and port, onto the shipment; and BCD, SWS and IGST as charges. When every line is matched, each product gets exactly the duty printed for it. IGST stays out of cost (input credit). |
+| **Freight, CHA, bank or other bill** | One charge with its amount before GST and the GST (input credit). You can change which kind of charge it is. |
+
+### How products are matched
+
+For each line on the bill, Koomerce looks for the product on your order by the supplier's code or
+SKU first, then by HSN code and name. If it cannot tell, the line says **Not matched**: pick the
+product yourself, or leave it unticked. Koomerce never creates new products from a bill.
+
+Differences are shown on each line, for example *Order says 100 @ $12.50, this says 98 @ $12.40*.
+On a sent order, quantity differences are settled when you receive: receive what arrived and
+close the order.
+
+### Good to know
+
+- Each bill applies **once**. To apply it again (say you removed what it added by hand), open it
+  and click **Allow applying again**. That does not undo anything.
+- The file stays private to your store. It is never on a public link.
+- Reading a bill counts as one AI request in your monthly allowance (Settings → AI). Turn
+  **Read bills with AI** off there to keep files without reading them.
+- If a bill could not be read, click **Read again**, or upload a clearer photo or the original
+  PDF.
+
+## Print or email the purchase order
+
+Once the order is saved, the **⋯** menu at the top has:
+
+- **Print**: opens the purchase order as a PDF in a new tab, ready to print.
+- **Download PDF**: saves the same file.
+- **Email to supplier**: sends the PDF to the supplier from your store's email address.
+
+The PDF shows your business (with the GSTIN of the warehouse it is going to), the address to
+deliver to, the supplier, each product with its SKU and HSN code, quantity and price in the
+order's currency, the total, the date you want it by, the supplier's payment terms and your
+notes. Freight, duty and other charges are **not** on it: those are your own costs.
+
+To email it, check the supplier's address (it is filled in from the order), add a message if
+you like, for example *Please pack the sleeves separately*, and click **Send**. On a draft,
+**Also mark as ordered** is ticked, so the units start showing as incoming at the same moment.
+If the email cannot be sent, nothing changes and the draft stays a draft. Replies from the
+supplier come straight to your inbox.
+
+The email goes from the sender address you set up under **Settings › Notifications**. Until
+that address is verified, it goes from the platform's address with replies set to your store's
+email.
+
+## Receiving
+
+Click **Receive items**. For each product, enter how many you **accept** (they go on hand) and
+how many you **reject** (damaged or wrong; they stop showing as incoming but are not stocked).
+The dialog shows what the product's cost becomes before you confirm.
+
+### How the product cost changes
+
+The new cost is the **weighted average** of what you already had and what just arrived:
+
+> new cost = (units on hand × current cost + units accepted × landed cost) ÷ (units on hand + units accepted)
+
+If you had none on hand, the landed cost simply becomes the cost.
+
+**Example.** You have 10 pads at ₹500. You receive 10 more that landed at ₹800 each.
+New cost = (10 × 500 + 10 × 800) ÷ 20 = **₹650**.
+
+## A bill that arrives later
+
+Clearing agents and freight forwarders often bill after the goods are in. Just add the charge to
+the order or shipment, even if it is already received. The landed cost is worked out again, and
+the extra cost is added to the units **still on your shelf**. Units you already sold keep the
+cost they were sold at.
+
+**Example.** You received 10 pads at ₹1,000 and sold 4. A ₹1,000 CHA bill arrives: that is ₹100
+a pad. The 6 still on hand go up to ₹1,100. Fix or remove the charge later and the cost moves
+back the same way.
+
+## Cancel, close and reopen
+
+- **Cancel order**: for an order nothing has arrived on yet. It stops showing as incoming and
+  stops sharing any shipment's charges.
+- **Close**: stop waiting for the rest of a partly received order.
+- **Reopen**: undo a close (if something is still outstanding) or a cancel.
+
+## Good to know
+
+- Old purchase orders: their Shipping and Taxes fields became charges. Shipping counts as cost;
+  Taxes were GST, so they are marked as input credit.
+- Stock received before landed cost existed keeps its old cost. Only receipts from now on are
+  averaged in.

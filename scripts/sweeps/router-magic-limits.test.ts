@@ -16,13 +16,35 @@ const SMALL = 'a picker/preview that deliberately shows fewer rows than a list p
 
 const ALLOWLIST: AllowEntry[] = [
   { site: 'packages/api/src/routers/blog.ts: limit.max(12)', reason: SMALL },
+  {
+    site: 'packages/api/src/routers/customers.ts: ids.max(5000)',
+    reason:
+      'bulk-edit spreadsheet rows: matches "Select all" (SELECT_ALL_MAX 5000), a read, not a bulk write',
+  },
+  {
+    site: 'packages/api/src/routers/orders.ts: ids.max(10)',
+    reason: 'the orders.ids (Select all) procedure: its status filter lists hold a few enum values',
+  },
+  {
+    site: 'packages/api/src/routers/order-list.ts: ids.max(5000)',
+    reason:
+      'bulk-edit spreadsheet rows: matches "Select all" (SELECT_ALL_MAX 5000), a read, not a bulk write',
+  },
+  {
+    site: 'packages/api/src/routers/orders.ts: ids.max(60)',
+    reason: 'the orders.ids (Select all) procedure: its courier filter is a name, not a search box',
+  },
+  {
+    site: 'packages/api/src/routers/themes.ts: page.max(60)',
+    reason: 'a theme page key (template name) for the AI section proposal, not a page number',
+  },
   { site: 'packages/api/src/routers/collections.ts: limit.max(50)', reason: SMALL },
   {
     site: 'packages/api/src/routers/collections.ts: productIds.max(500)',
     reason: 'a manual collection may hold more products than one bulk action carries',
   },
   {
-    site: 'packages/api/src/routers/gst-invoices.ts: orderIds.max(100)',
+    site: 'packages/api/src/routers/gst-invoices-order-actions.ts: orderIds.max(100)',
     reason: 'invoicing orders by hand is capped lower: each order is issued (numbered, PDF) inline',
   },
   {
@@ -47,13 +69,10 @@ const ALLOWLIST: AllowEntry[] = [
   },
   { site: 'packages/api/src/routers/products.ts: limit.max(100)', reason: SMALL },
   { site: 'packages/api/src/routers/products.ts: limit.max(50)', reason: SMALL },
+  { site: 'packages/api/src/routers/theme-templates.ts: limit.max(50)', reason: SMALL },
   {
     site: 'packages/api/src/routers/redirects.ts: ids.max(250)',
     reason: 'redirect bulk delete matches the 250-row redirects page — fold into BULK_MAX with it',
-  },
-  {
-    site: 'packages/api/src/routers/shipments.ts: orderIds.max(100)',
-    reason: 'bulk courier booking is capped lower: each order is a courier API call',
   },
 ]
 

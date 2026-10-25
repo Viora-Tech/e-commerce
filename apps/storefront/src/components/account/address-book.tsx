@@ -3,7 +3,7 @@
 import type { SavedAddress } from '@commerce/core'
 import { useState, useTransition } from 'react'
 import { accountContent } from '@/data/account'
-import { INDIAN_STATES } from '@/data/checkout'
+import { INDIAN_STATES } from '@/data/indian-states'
 import { defaultAddressAction, deleteAddressAction } from '@/lib/account-actions'
 import AddressForm from './address-form'
 import StatusPill from './status-pill'
@@ -55,7 +55,7 @@ export default function AddressBook({ addresses }: AddressBookProps) {
       ) : null}
 
       {addresses.length === 0 && !adding ? (
-        <div className="flex flex-col items-start gap-2 rounded-2xl border border-line p-8">
+        <div className="flex flex-col items-start gap-2 rounded-[var(--radius-card)] bg-surface p-8">
           <h3 className="h4">{copy.emptyTitle}</h3>
           <p className="text-body text-muted">{copy.emptyBody}</p>
         </div>
@@ -68,7 +68,10 @@ export default function AddressBook({ addresses }: AddressBookProps) {
               <AddressForm address={a} defaultChecked={a.isDefault} onDone={handleDone} />
             </li>
           ) : (
-            <li key={a.id} className="flex flex-col gap-4 rounded-2xl border border-line p-6">
+            <li
+              key={a.id}
+              className="flex flex-col gap-4 rounded-[var(--radius-card)] bg-surface p-6"
+            >
               <div className="flex items-start justify-between gap-3">
                 <address className="text-body not-italic">
                   <span className="font-semibold">{a.name}</span>

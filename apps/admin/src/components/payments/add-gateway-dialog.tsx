@@ -1,7 +1,6 @@
 'use client'
 
-import { Search } from '@commerce/ui/icons'
-import { Badge } from '@commerce/ui/shadcn/badge'
+import { PlugConnect, Search } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -14,6 +13,7 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import { useState } from 'react'
+import StatusChip from '@/components/layout/status-chip'
 import {
   gatewayCatalogue,
   type MethodId,
@@ -116,20 +116,20 @@ export default function AddGatewayDialog({
             return (
               <li key={g.id} className="flex flex-col gap-3 rounded-lg border border-border p-3">
                 <div className="flex items-start gap-3">
-                  <GatewayLogo monogram={g.monogram} />
+                  <GatewayLogo id={g.id} monogram={g.monogram} />
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <p className="text-body font-semibold text-foreground">{g.name}</p>
                     <p className="text-caption text-muted-foreground">{g.blurb}</p>
                   </div>
                   {app?.connected ? (
-                    <Badge variant="success">{copy.connected}</Badge>
+                    <StatusChip tone="success">{copy.connected}</StatusChip>
                   ) : canConnect ? (
                     <Button size="sm" onClick={() => handleConnect(g.id)} disabled={busy !== null}>
-                      {busy === g.id ? <Spinner /> : null}
+                      {busy === g.id ? <Spinner /> : <PlugConnect aria-hidden="true" />}
                       {busy === g.id ? copy.installing : copy.connect}
                     </Button>
                   ) : (
-                    <Badge variant="neutral">{copy.comingSoon}</Badge>
+                    <StatusChip tone="neutral">{copy.comingSoon}</StatusChip>
                   )}
                 </div>
                 <p className="text-caption text-muted-foreground">

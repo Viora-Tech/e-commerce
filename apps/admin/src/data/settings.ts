@@ -1,3 +1,4 @@
+import type { SetupItemId } from '@commerce/core/setup-tasks'
 import type { LucideIcon } from '@commerce/ui/icons'
 import {
   AiIcon,
@@ -8,15 +9,19 @@ import {
   Globe,
   Home,
   MapPinLineIcon,
+  Palette,
+  PlugConnect,
   ReceiptIcon,
   ShieldCheck,
   ShoppingCart,
   Store,
+  TrendingUp,
   Truck,
   Undo,
   UserCircle,
   UserCog,
 } from '@commerce/ui/icons'
+import { routes } from '@/lib/routes'
 
 export type SettingsSection = {
   href: string
@@ -36,7 +41,7 @@ export type SettingsGroup = {
 
 /** The settings home: setup checklist and every section. First in the left rail. */
 export const SETTINGS_HOME: SettingsSection = {
-  href: '/settings',
+  href: routes.settings.home(),
   title: 'Overview',
   body: 'Your setup checklist and every settings page.',
   icon: Home,
@@ -51,22 +56,28 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     id: 'store',
     sections: [
       {
-        href: '/settings/store',
+        href: routes.settings.store(),
         title: 'Store details',
         body: 'Shop name, contact details, address, currency and time zone, and your store data.',
         icon: Store,
       },
       {
-        href: '/settings/domains',
+        href: routes.settings.domains(),
         title: 'Domains',
         body: 'The website addresses your shop opens on.',
         icon: Globe,
       },
       {
-        href: '/settings/locations',
+        href: routes.settings.locations(),
         title: 'Locations & warehouses',
         body: 'Where you keep stock, and which GST number each place bills under.',
         icon: MapPinLineIcon,
+      },
+      {
+        href: routes.settings.billing(),
+        title: 'Plan & billing',
+        body: 'Your plan, what your store used this month, and your invoices.',
+        icon: CreditCard,
       },
     ],
   },
@@ -74,25 +85,25 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     id: 'selling',
     sections: [
       {
-        href: '/settings/payments',
+        href: routes.settings.payments(),
         title: 'Payments',
         body: 'How customers pay you: UPI, cards, cash on delivery and fees per method.',
         icon: CreditCard,
       },
       {
-        href: '/settings/checkout',
+        href: routes.settings.checkout(),
         title: 'Checkout',
         body: 'What shoppers fill in, minimum order value, COD rules and how checkout looks.',
         icon: ShoppingCart,
       },
       {
-        href: '/settings/shipping',
+        href: routes.settings.shipping(),
         title: 'Shipping & delivery',
         body: 'Where you deliver, what it costs, your boxes, couriers and dispatch days.',
         icon: Truck,
       },
       {
-        href: '/settings/returns',
+        href: routes.settings.returns(),
         title: 'Returns',
         body: 'How many days customers have to return, which reasons you accept, and refunds.',
         icon: Undo,
@@ -103,9 +114,21 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     id: 'taxes',
     sections: [
       {
-        href: '/settings/taxes',
+        href: routes.settings.taxes(),
         title: 'GST & invoices',
         body: 'Your GST numbers, how GST is added to prices, and how invoices are numbered.',
+        icon: ReceiptIcon,
+      },
+      {
+        href: routes.settings.costs(),
+        title: 'Costs for profit',
+        body: 'What payment gateways, cash on delivery and delivery cost you, so order profit is right.',
+        icon: TrendingUp,
+      },
+      {
+        href: routes.settings.expenses(),
+        title: 'Monthly expenses',
+        body: 'Rent, staff, apps and other running costs, taken off profit for net profit each month.',
         icon: ReceiptIcon,
       },
     ],
@@ -114,19 +137,19 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     id: 'customers',
     sections: [
       {
-        href: '/settings/customer-accounts',
+        href: routes.settings.customerAccounts(),
         title: 'Customer accounts',
         body: 'Guest checkout, and sign-in codes by email, SMS or WhatsApp.',
         icon: UserCircle,
       },
       {
-        href: '/settings/privacy',
+        href: routes.settings.privacy(),
         title: 'Privacy & data requests',
         body: 'Cookie banner, marketing consent, and customers asking for or deleting their data.',
         icon: ShieldCheck,
       },
       {
-        href: '/settings/policies',
+        href: routes.settings.policies(),
         title: 'Policies',
         body: 'Refund, privacy, terms, shipping and contact pages, from ready-made templates.',
         icon: ClipboardList,
@@ -137,7 +160,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     id: 'messages',
     sections: [
       {
-        href: '/settings/notifications',
+        href: routes.settings.notifications(),
         title: 'Notifications',
         body: 'Order emails and WhatsApp messages to customers, and the address they come from.',
         icon: Bell,
@@ -148,22 +171,36 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     id: 'team',
     sections: [
       {
-        href: '/settings/staff',
+        href: routes.settings.staff(),
         title: 'Staff',
         body: 'Who can sign in to this store and what they can do.',
         icon: UserCog,
       },
       {
-        href: '/settings/ai',
+        href: routes.settings.ai(),
         title: 'AI',
         body: 'Write with AI and Ask your store: what you used this month, and turning them on.',
         icon: AiIcon,
       },
       {
-        href: '/settings/custom-data',
+        href: routes.settings.mcp(),
+        title: 'MCP & API',
+        body: 'AI tools like Claude, ChatGPT and Cursor, access tokens for scripts, and what they did.',
+        icon: PlugConnect,
+      },
+      {
+        href: routes.settings.customData(),
         title: 'Custom data',
         body: 'Extra fields on products and collections, and your content types.',
         icon: Braces,
+      },
+      {
+        // Your own light/dark and accent, plus the owner's store default accent. The account
+        // menu opens the same page under Account.
+        href: routes.settings.appearance(),
+        title: 'Appearance',
+        body: 'Light or dark mode and your accent colour, just for you.',
+        icon: Palette,
       },
     ],
   },
@@ -223,7 +260,7 @@ export const settingsContent = {
       email: 'Contact email',
       emailHelp: 'Shown on order emails. When customers reply, it comes here.',
       phone: 'Phone',
-      phoneHelp: 'For customers and couriers to call you. Include the country code, like +91.',
+      phoneHelp: 'For customers and couriers to call you. Pick the country, then type the number.',
     },
     address: {
       heading: 'Business address',
@@ -245,6 +282,11 @@ export const settingsContent = {
       help: 'Used for prices, order times and reports.',
       currency: 'Currency',
       currencyHelp: 'Indian rupees (INR) for now.',
+      moneyFormat: 'Price format',
+      moneyFormatHelp:
+        'How prices read in your store. {{amount}} shows 6,499.00 and {{amount_no_decimals}} shows 6,499, e.g. Rs. {{amount}}. Leave blank for ₹6,499. A Shopify import brings your shop’s format.',
+      moneyFormatError: 'Include {{amount}} or {{amount_no_decimals}}, e.g. Rs. {{amount}}',
+      moneyFormatPreview: (example: string) => `Shows as ${example}`,
       timezone: 'Time zone',
     },
     timezones: [
@@ -270,14 +312,7 @@ export const settingsContent = {
   },
 } as const
 
-export type SetupItemId =
-  | 'store'
-  | 'payments'
-  | 'shipping'
-  | 'taxes'
-  | 'domain'
-  | 'notifications'
-  | 'policies'
+export type { SetupItemId }
 
 /** Copy for the Settings home: the setup checklist and the list of every settings page. */
 export const settingsHomeContent = {
@@ -291,61 +326,73 @@ export const settingsHomeContent = {
     allDone: 'All done. Your shop is ready to sell.',
     doneLabel: 'Done',
     open: 'Open',
+    setUp: 'Set up',
     loadFailed: 'Could not load your checklist.',
     items: {
       store: {
         title: 'Store details',
         todo: 'Add your shop name, email and business address.',
         done: 'Name, email and address are filled in.',
-        href: '/settings/store',
+        href: routes.settings.store(),
       },
       payments: {
         title: 'Payments',
         todo: 'Choose how customers pay you: UPI, cards or cash on delivery.',
         done: 'You chose how customers pay you.',
-        href: '/settings/payments',
+        href: routes.settings.payments(),
       },
       shipping: {
         title: 'Shipping & delivery',
         todo: 'Say where you deliver and what delivery costs.',
         done: 'Delivery areas and prices are set.',
-        href: '/settings/shipping',
+        href: routes.settings.shipping(),
       },
       taxes: {
         title: 'Taxes & GST',
         todo: 'Add your GSTIN if you are GST registered. Skip this if you are not.',
         done: 'Your GSTIN is on your invoices.',
-        href: '/settings/taxes',
+        href: routes.settings.taxes(),
       },
       domain: {
         title: 'Domain',
         todo: 'Connect your own website address, like yourshop.in.',
         done: 'Your own website address is working.',
-        href: '/settings/domains',
+        href: routes.settings.domains(),
       },
       notifications: {
         title: 'Notifications',
         todo: 'Connect email so customers hear from you when they order.',
         done: 'Customers get order emails.',
-        href: '/settings/notifications',
+        href: routes.settings.notifications(),
       },
       policies: {
         title: 'Policies',
         todo: 'Publish your refund, privacy, terms, shipping and contact pages.',
         done: 'Your policy pages are live.',
-        href: '/settings/policies',
+        href: routes.settings.policies(),
       },
     } satisfies Record<SetupItemId, { title: string; todo: string; done: string; href: string }>,
+  },
+  /** The prompt shown after saving any setup page while setup is unfinished. */
+  next: {
+    doneTitle: (task: string, done: number, total: number) =>
+      `${task} saved · ${done} of ${total} set up`,
+    progressTitle: (done: number, total: number) => `${done} of ${total} set up`,
+    description: (task: string) => `Next: ${task}`,
+    setUp: 'Set up now',
+    dontShow: 'Don’t show again',
   },
   all: {
     heading: 'All settings',
   },
   elsewhere: {
-    personal: 'Your language and how the admin looks are yours, not the store’s:',
+    personal: 'Your profile, sign-in and language are yours, not the store’s:',
     account: 'Account',
-    appearance: 'Appearance',
     personalWhere: '(also in the menu under your initials, top right).',
     storage: 'Where uploads are stored:',
     storageLink: 'Content › Files › Storage',
   },
 } as const
+
+/** The "‹ Settings" link every settings page shows above its title. */
+export const SETTINGS_BACK = { href: SETTINGS_HOME.href, label: settingsContent.nav.back }

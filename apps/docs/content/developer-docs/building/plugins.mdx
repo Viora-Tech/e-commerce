@@ -39,7 +39,7 @@ flowchart TD
   perstore --> settings["Settings → Payments / Shipping / Notifications<br/>forms generated from factory.fields"]
   perstore --> runtime["Checkout · webhooks · worker jobs"]
   load --> hooks["hooksFor(event) · jobFor(name)<br/>{apps}-events · {apps}-jobs"]
-  manifest -->|"admin.pages · orderDetailCard"| adminreg["apps/admin/src/apps/registry.ts<br/>ADMIN_APPS → /apps/pluginId/…"]
+  manifest -->|"admin.pages · orderDetailCard · orderActions"| adminreg["apps/admin/src/apps/registry.ts<br/>ADMIN_APPS → /apps/pluginId/…"]
   manifest -->|storefront.blocks| appblocks["App blocks<br/>template-render (storefront) ·<br/>commerce.blocks.config.ts (editor)"]
 ```
 
@@ -144,13 +144,20 @@ export class FedexProvider implements ShippingProvider {
   constructor(private readonly config: FedexConfig) {}
 
   async checkServiceability(q) { /* GET rates, map to Serviceability */ }
+  // A courier that answers with the label PDF instead of a public link (Blue Dart, DTDC)
+  // returns `labelDocument: { contentType: 'application/pdf', body }` instead of `labelUrl`:
+  // core keeps it in the store's private storage and links the admin's
+  // `/api/shipments/<id>/label`, so no courier credential ends up in a URL.
   async createShipment(input) { /* POST ship, return { waybill, labelUrl, providerRef } */ }
   async track(waybill) { /* map FedEx scan codes to the normalised status */ }
   async cancel(waybill) { /* ... */ }
   async verifyCredentials() { /* one cheap authenticated call */ }
   // Optional. Checkout prices shipping from the merchant's zones and rates
   // (Settings → Shipping → Shipping rates, `@commerce/core/shipping-rates`), so a
-  // courier that only answers serviceability (Delhivery) leaves this out.
+  // courier that only answers serviceability (Delhivery) leaves this out. The admin's
+  // Create shipment flow (`shipments.quote` → `compareCourierRates`) asks it and
+  // serviceability at once: without it the courier is still listed, as "Rate on booking";
+  // a throw or a `serviceable: false` becomes that courier's own row, never the others'.
   async quoteRate(q) { /* { pricePaise, minTransitDays, maxTransitDays } or null */ }
 }
 
@@ -184,12 +191,46 @@ Rules that keep every adapter interchangeable:
 - **Throw `CourierError` for transport/auth failures**; return
   `serviceable: false` for a genuine "no". The platform falls back on the first
   and tells the shopper the second.
+- **Couriers with a login, and signed webhooks, use the shared helpers.** A courier that
+  answers a username/password login with a bearer token keeps it in a `LoginTokenCache`
+  (one login for concurrent calls, a fresh one after a 401); a webhook signed with an
+  HMAC-SHA256 of the body checks it with `hmacSha256Matches` (hex or base64). Both come from
+  `@commerce/shipping`; `packages/shipping-xpressbees` and `packages/shipping-ekart` use them,
+  and each newer courier keeps every wire shape in its own `mapping.ts`.
+- **A failed delivery attempt must say so in the scan's wording.** The NDR queue opens from
+  the latest scan's description, so an adapter whose courier marks attempts by code prefixes
+  "Undelivered: " to that scan (see `scanDescription` in the Xpressbees, Ekart and Shadowfax
+  adapters).
 - **Never call `Date.now()` for delivery dates.** Return transit days; the
   platform's calendar (`@commerce/shipping` `delivery-date.ts`) turns them into
   a date in the store's timezone with cutoff and holidays applied.
+- **A courier booked at its own counter** (India Post, `packages/shipping-indiapost`) sets
+  `requiresTrackingNumber = true`: the Create shipment flow asks the merchant for the number on
+  the receipt and passes it as `CreateShipmentInput.trackingNumber`. A courier with no tracking
+  feed sets `tracksManually = true`: the poll job skips it and the merchant records statuses
+  with `shipments.recordStatus` (`recordManualTracking` in core).
+- **Say where you deliver.** `coverage` on the provider is `domestic` (the default: Indian
+  PIN codes only), `international` (exports only: `packages/shipping-dhl-express` and
+  `packages/shipping-fedex`, the real versions of this sketch) or `both`. The rate table
+  never asks a courier about a country it does not cover, and the storefront's PIN-code
+  estimate never asks an export-only one. Rate and serviceability queries carry
+  `destinationCountry` (ISO alpha-2, absent means India) and `destinationCity`; shipment lines
+  carry `hsCode`, `countryOfOrigin`, `sku` and `unitWeightGrams`, the input carries
+  `dimensionsCm` and `exporterGstin`. `customsLines` in `@commerce/shipping` checks the HS
+  codes and shares out the parcel weight.
+- **A courier that answers with PDFs, not a link,** returns them as `documents` (base64,
+  `label` / `commercial_invoice`); the platform joins them label-first into one PDF and keeps
+  it exactly like `labelDocument` (private storage, opened through the admin's label route).
 - Payments: `createPayment` returns a `CheckoutSession` of kind `client`,
   `redirect`, `manual` or `none`; `parseWebhook` must verify the signature with
   a constant-time compare and return a stable `eventId` for deduplication.
+- Payment fees: put the gateway's fee and how the shopper paid on the capture
+  event (`charges: PaymentCharges`: `feePaise` GST included, `feeTaxPaise` the
+  GST inside it, `method` a `PaymentMethodDetail`), use `null` for a fee the
+  gateway has not worked out yet, never a guess. A fee that arrives later can
+  come as a `payment.charges` event, or from the optional read-only
+  `fetchCharges`, which the worker's fee sync calls. Leave out a fee the
+  shopper bore. See [Data model › Gateway fees](/developer-docs/core-concepts/data-model#gateway-fees).
 - Notifications: `send` returns `{ ok, providerRef?, error? }`; never throw for
   a rejected recipient.
 
@@ -207,6 +248,13 @@ export const fedexPlugin = definePlugin({
   category: 'shipping',
   company: 'FedEx',
   description: 'Rates, labels and tracking on your FedEx account.',
+  access: {
+    resources: [
+      { resource: 'shipments', level: 'read-write', why: 'Creates shipments, prints labels, tracks parcels' },
+      { resource: 'customers', level: 'read', why: 'Name, phone and address, for the parcel only' },
+    ],
+    shares: [{ when: 'Sent per shipment', what: 'Ship-to name, address and phone, parcel weight and size' }],
+  },
   provides: { shipping: [fedexFactory] },
 })
 ```
@@ -248,6 +296,59 @@ credits: [
     note: 'Invoice templates and the live preview editor' },
 ],
 ```
+
+### `access`, required on every manifest
+
+Before a merchant installs an app they see what it can reach, and after it is installed the
+Installed apps list ("Can access") and its permissions sheet show the same thing. Declare it
+honestly from what the code does, never more and never less:
+
+- **`resources`**: each store resource the app touches (`orders`, `order-events`, `customers`,
+  `products`, `inventory`, `shipments`, `payments`, `refunds`, `invoices`, `reviews`,
+  `collections`, `discounts`, `gift-cards`, `store-pages`, `content`, `files`, `store-settings`,
+  `visits`), its `level` (`read`, `write` or `read-write`) and a plain `why` line. A resource may
+  appear once.
+- **`summary`** (optional): a few words shown after the level, e.g. `makes invoices`.
+- **`shares`** (optional): what leaves the platform for the outside service, as
+  `{ when, what }` rows (`Sent per shipment` → `Ship-to address, phone…`). Leave it out when
+  nothing is sent anywhere.
+
+An app that keeps its own connection in `store.apps.settings[id]` instead of a provider (Search
+Console, Umami) also sets `setupState(settings)`, returning `{ connected, problem }`, so the
+Installed list can show Connected, Needs setup or Error.
+
+### `listing`, the App Store page
+
+Apps are browsed and installed on the App Store website (`apps/www`, `koomerce.app/apps`), not
+in the admin. An app appears there when its manifest has a `listing`:
+
+```ts
+listing: {
+  tagline: 'Rates, labels, pickups and tracking, plus a delivery checker block.',
+  highlights: ['Live rates and labels', 'Pickups, tracking updates and NDR'],
+  guide: '/merchant-guide/orders/shipments', // a path under the docs site
+  worksWith: ['The Shipments workspace, beside any other courier you install'],
+  keywords: ['courier', 'awb', 'pincode'], // extra search words
+  screenshots: [{ src: '/app-shots/delhivery-1.png', alt: 'The Delhivery overview page' }],
+  // questions a merchant asks first, answered from the merchant guide (never invented stats);
+  // the site adds price, account, data and removal questions from the catalogue itself
+  faq: [{ question: 'Does it do COD?', answer: 'Yes, ...' }],
+  // unlisted: true keeps it off the site (the admin still has it)
+},
+```
+
+The site cannot import plugins (they carry server code), so `bun scripts/gen-app-catalogue.ts`
+copies the listed apps (name, kind, category, company, description, `listing`, `access`, the
+admin pages' nav labels, the admin icon name and theme block labels) into `packages/core/src/apps/catalogue.generated.ts`,
+read through `@commerce/core/app-catalogue`. Run it after changing a manifest; the
+`app-catalogue` sweep fails while the file is stale. Prices are not in the listing: they come from
+`APP_PRICING` (`@commerce/core/billing`). A third-party logo goes in `public/app-logos` of both
+`apps/admin` and `apps/www` and in `APP_LOGOS` (`@commerce/core/app-logos`). Screenshots go under
+`apps/www/public`.
+
+The site's **Install** button opens `<admin>/apps/install?app=<id>`: sign-in, store choice for a
+member of several stores, then the usual Connect, Permissions and Done steps. Third-party apps
+(OAuth install, the public API, webhooks) will use the same URL and listing shape later.
 
 ### Storage providers
 
@@ -326,8 +427,9 @@ listed in the PR (for Decentro: the refund-status callback format).
    Two plugins with the same id, or two providers with the same id in one
    kind, fail at boot with a message naming both.
 
-2. Restart the apps. **Admin → Apps** now lists FedEx; a merchant installs it
-   for their store and fills the credentials under **Settings → Shipping**.
+2. Restart the apps. With a `listing`, run `bun scripts/gen-app-catalogue.ts` so the App Store
+   website lists FedEx; a merchant installs it from there (or from
+   `/apps/install?app=fedex` in the admin) and fills the credentials on its Connect page.
    Uninstalling removes it from the enabled list but keeps the credentials, so
    reinstalling restores the setup.
 
@@ -344,7 +446,7 @@ that installed the app from Admin → Apps.
 | Field | What it does |
 | --- | --- |
 | `category` | Badge on the Apps page, e.g. `invoicing`. |
-| `hooks` | `order.paid`, `order.fulfilled`, `refund.created`. Run in the worker on the `{apps}-events` queue, at least once per (order, event) or (refund, event): **make them idempotent**. `order.paid`/`order.fulfilled` fire from the `payment_received`/`order_shipped` notifications, so every path that marks an order paid or shipped is covered; `refund.created` is queued by the refund route. |
+| `hooks` | `order.paid`, `order.fulfilled`, `order.delivered`, `refund.created`. Run in the worker on the `{apps}-events` queue, at least once per (order, event) or (refund, event): **make them idempotent**. `order.paid`/`order.fulfilled` fire from the `payment_received`/`order_shipped` notifications, so every path that marks an order paid or shipped is covered; `order.delivered` fans out from the `order.delivered` outbox row (courier tracking or "mark delivered"); `refund.created` is queued by the refund route. `customer.created` / `customer.updated` (payload `customerId`, `orderId` empty) fan out from outbox rows written with `recordCustomerChange` (`@commerce/core`) on sign-up, checkout, profile and admin edits, one job per row; read the customer when the hook runs and upsert. Bulk imports write none. |
 | `jobs` | Named background jobs the app queues for itself with `enqueueAppJob(context.appJobs, { storeId, pluginId, name, data })`. They run on `{apps}-jobs` with the same context as hooks. |
 | `orderLinks` | Links on the shopper's order page and in order emails (`ctx.surface` says which). Failures are swallowed. |
 | `emailAttachments` | Files attached to one order email (`{ orderId, template }`). A failure fails the notification job so it retries. SES sends them; other channels ignore them. |
@@ -352,12 +454,16 @@ that installed the app from Admin → Apps.
 | `admin.icon` | Icon name (from the admin icon set) for the sidebar entry and the app header. |
 | `admin.pages[]` | `{ path, title, navLabel?, icon? }`. Each page renders at `/apps/<pluginId>/<path>` inside the admin shell with the app header (icon and name) and tabs for every page that has a `navLabel`. `path: ''` is the app root, which the sidebar links to. Dynamic segments use `[name]`, e.g. `invoices/[id]`. |
 | `admin.orderDetailCard` | Adds a card to the order detail page. |
+| `admin.customerDetailCard` | Adds a card to the customer detail page (`ADMIN_APPS[id].CustomerCard`, gets `customerId`). |
+
+| `admin.orderActions` | Actions on orders, Shopify style: in the order page's **More actions**, an Orders list row's ⋯ menu and the bulk bar, under the app's icon and name. See [Order actions](#order-actions). |
 
 Hooks and jobs get an `AppHookContext`: `inStore(fn)` (a transaction under
 the store's RLS), `storage()` (the store's provider, now with server-side
 `put`/`get`), `notify(...)` (send an order email with attachments through the
-store's channels), `settingsSecret` (for signing links), `storefrontUrl`,
-`log`, and, in the worker, `processMedia(mediaId)` (queue an image the app stored as
+store's channels), `settingsSecret` (for signing links), `storefrontUrl` (the store's own
+origin: its live primary domain, `STOREFRONT_URL` only as the fallback; see
+[custom domains](/developer-docs/building/custom-domains)), `log`, and, in the worker, `processMedia(mediaId)` (queue an image the app stored as
 `processing` for the [media pipeline](/developer-docs/building/media-pipeline); idempotent
 per media id, throws if the queue is unreachable).
 
@@ -402,6 +508,222 @@ Razorpay's hosted Affordability Widget script with only the public key id,
 never vendoring it; `packages/blocks/src/app-blocks/razorpay-affordability.ts`
 holds the loader, the one-widget-per-page rule and the dark-theme check, and
 its tests fake the DOM so nothing is fetched.
+
+`packages/plugin-forms` (Forms) is the smallest app that owns a table and has no block: its
+`contact_message` table, a `saveContactMessage` service that writes the row and an outbox event
+(`contact.message_received`) in one transaction, and one admin page (Submissions). The storefront
+route `/theme-actions/contact` calls it only when the store installed the app
+(`formsInstalled` in `apps/storefront/src/lib/forms-context.ts`); the worker's notifications
+consumer emails the store's contact address with the core `contact_message` template through
+`deliverToStoreContact`. Core never imports the app: the outbox event carries only the message id.
+
+`packages/plugin-reviews` (Reviews) is the fullest worked example of an app with its own
+tables, a storefront surface and emails:
+
+- **Tables** (`schema.ts`, migration `0091_reviews`, all under RLS): `review` (product,
+  optional order and customer, rating 1-5, title, body, reviewer name, private reviewer
+  email, `status` pending/published/hidden, `held_reason`, `verified_buyer`, `source`
+  storefront/judgeme, `external_id` unique per store, `helpful_count`, `reply`/`reply_at`,
+  `featured`), `review_media` (a `media` row, or a Judge.me `source_url` until the copy job
+  fetched it) and `review_request` (one per order and product: `due_at`, `sent_at`,
+  `reminder_sent_at`, `reviewed_at`, `opted_out_at`). Settings live in `store.apps` under
+  `reviews` (`./settings`, pure and client-safe).
+- **Ratings** are worked out from published reviews on every read (`ratingSummaries`), so
+  approve, hide, delete and import never leave a stale average.
+- **Storefront**: the product page hands the Zero Drift Product reviews section
+  `appBlockContext.reviews` (`apps/storefront/src/lib/reviews.ts`); the widget
+  (`packages/blocks/src/components/reviews/*`) posts to `/reviews/photo`, `/reviews/submit` and
+  `/reviews/helpful` (`apps/storefront/src/lib/review-actions.ts`). The store comes from the
+  hostname, never the body; each endpoint is rate-limited per IP and store; the form has a
+  honeypot (`review_website`); photos go through `saveImageForProcessing` (core) and the media
+  pipeline, which strips GPS, and come back as signed tokens so a review only attaches photos
+  the same visitor uploaded. **Verified buyer** means the shopper's account, or the order of a
+  signed review request link (`?review=`), holds an order with the product.
+- **Emails**: the app's `order.delivered` hook plans `review_request` rows; the worker's
+  `{reviews}-requests` sweep (`apps/worker/src/reviews.ts`, stores from the SECURITY DEFINER
+  `stores_with_due_review_requests()`) writes one `review.request_due` outbox row per order, the
+  relay queues `review_request` / `review_reminder`, and the notifications worker sends them with
+  core's `deliverEmailTo`. The first store reply writes `review.replied` (`review_reply`).
+  Each email carries a signed stop link (`/reviews/unsubscribe`).
+- **Judge.me import** (`judgeme.ts`): reads the export by column name, matches by SKU then
+  handle, skips rows whose external id is already here, and queues the `copy-photos` app job,
+  which fetches each photo through `@commerce/core/safe-fetch` only.
+- **Imported themes**: `reviewsLiquidSource` feeds `storeLiquidData`'s `reviews` option, which
+  adds Shopify's `reviews.rating` / `reviews.rating_count` product metafields and Judge.me's
+  `shop.metafields.judgeme.*` (see the theme import page).
+
+`packages/plugin-umami` (Umami) is the worked example of a `connection` app with no provider
+kind and no table:
+
+- **Settings** in `store.apps` under `umami` (`./settings`, pure and client-safe): the Umami
+  address, website id, `waitForConsent`, and the API key as an `encryptSecret` blob that never
+  leaves the server (the admin sees `hasApiKey` only). `bun run rotate-secrets` re-encrypts it
+  with the rest (`rotateAppSettings` walks every encrypted value under `store.apps.settings`),
+  so any app may keep an `encryptSecret` string in its settings entry.
+- **Outbound calls** (`./client`): the merchant's Umami address goes through
+  `@commerce/core/safe-fetch` (public https hosts only; `safeFetch` now takes `method`,
+  `headers` and `body`, and drops headers on a redirect to another origin). The platform's own
+  Umami on a private network or over http is listed in `UMAMI_TRUSTED_ORIGINS`.
+- **Storefront**: `apps/storefront/src/lib/umami.ts` reads the tracker from the store row and
+  `ConsentManager` renders `UmamiScript` (`next/script` with the request nonce) once
+  `umamiAllowed` says so: after a yes to analytics, or until a no when the store does not wait.
+- **Admin**: `api.umami.settings.{get,save,test,createWebsite}` for the app page, and
+  `api.umami.report({ range })` for the Analytics page's `VisitorsSection`, which always gets a
+  drawable state (`not-installed`, `not-connected`, `error`, `ready`), never a thrown error.
+  `./report` normalises Umami 3 and Umami 2 answers (`path` vs `url` metric names, flat figures
+  vs `{ value, prev }`).
+
+`packages/plugin-chatwoot` (Chatwoot, id `chatwoot`) is the worked example of an app that wraps a
+separately run service and mirrors customers into it:
+
+- **Settings** in `store.apps` under `chatwoot` (`./settings`, pure): address, account id,
+  website inbox token, `consent` (`necessary` | `analytics` | `marketing`), `identifyShoppers`,
+  `syncContacts`, and two `encryptSecret` blobs, the API access token and the inbox's HMAC
+  identity secret. `./widget` is the zod-free slice the consent manager imports.
+- **Storefront**: `apps/storefront/src/lib/chatwoot.ts` reads the widget from the store row and,
+  for a signed-in shopper only (never an edge-cached page), signs their identifier
+  (`identifier_hash` = HMAC-SHA256 hex) and adds `contactAttributes`. `ConsentManager` renders
+  `ChatwootWidget` (Chatwoot's `/packs/js/sdk.js` via `next/script` with the nonce, then
+  `chatwootSDK.run`, `setUser`, `setCustomAttributes`; `reset` after a sign-out) once
+  `chatwootAllowed` says so. ConsentManager is drawn by both the block layout and the imported
+  Liquid theme layout, so the chat works on both.
+- **Sync**: hooks on `customer.created`, `customer.updated` and `order.paid` call
+  `syncCustomerToChatwoot`: read settings and `loadCustomerFacts` in one transaction, then search
+  Chatwoot by our customer id (the contact `identifier`), then email, then phone; create, or update
+  only when something changed (`contactNeedsUpdate`), so retries cost one search. A guest contact
+  with the same email is claimed; a contact tied to another identifier never is. A 429 or outage
+  throws and the `{apps}-events` backoff retries.
+- **Admin**: `api.chatwoot.settings.{get,save,test}` and
+  `api.chatwoot.conversations.{customer,order}` (a drawable state, never an error) behind the
+  Conversations card on both detail pages. Outbound calls go through `safeFetch` unless the origin
+  is listed in `CHATWOOT_TRUSTED_ORIGINS`.
+
+`packages/plugin-growthbook` (GrowthBook, id `growthbook`) is a `connection` app that also owns a
+table (`experiment_event`) and changes what the storefront renders: server-side A/B assignment
+for sections and Liquid themes. See [A/B tests (GrowthBook)](/developer-docs/building/experiments).
+
+`packages/plugin-search-console` (Google Search Console, id `google-search-console`) is the
+worked example of a per-store **OAuth** connection with a daily background pull:
+
+- **Connect**: `api.searchConsole.connectStart` returns Google's consent URL (scope `webmasters`,
+  `access_type=offline`, PKCE S256). The `state` is HMAC-signed with `SETTINGS_SECRET` and
+  carries the store id and a nonce; the PKCE verifier is derived from the nonce with the secret,
+  so nothing is stored between the redirect and the callback. Google returns to
+  `apps/admin/src/app/api/apps/google-search-console/oauth/callback`, which calls
+  `searchConsole.connectComplete` (`settings.manage`). The refresh token is kept as an
+  `encryptSecret` blob in `store.apps.settings['google-search-console']`; disconnect revokes it
+  at Google and deletes it. The OAuth client is `GSC_GOOGLE_CLIENT_ID`/`_SECRET`, or the merchant
+  sign-in client when those are blank.
+- **Google calls** (`./google`): plain `fetch` to the OAuth endpoints and the Search Console API
+  (`sites.list`, `searchAnalytics.query`, `sitemaps.list`, `sitemaps.submit`), 20 s timeouts,
+  `SearchConsoleError` (`GOOGLE_AUTH` = connect again, `GOOGLE_API` = Google's own words).
+- **Data**: core owns the table (`search_console_row`, migration 0119) and every query
+  (`packages/core/src/search-console/service.ts`), because the SEO report and the product page
+  read it too and core cannot import a plugin. `./server`'s `syncSearchConsole` reads the
+  settings in one transaction, asks Google outside any (the app role's idle-in-transaction
+  timeout), and replaces the rows in another, only if the connection did not change meanwhile.
+  The worker's hourly `{search-console}-sweep` queues the app's `sync` job for stores whose last
+  try is over 20 hours old (`stores_with_search_console_due()`); "Refresh now" runs the same
+  sync in the request, at most every 15 minutes.
+- **Shared rules** (`@commerce/core/search-console`, pure): URL → path (`/collections/x/products/y`
+  is the product), adding rows up (position weighted by impressions), "almost page 1"
+  (position 8–20, 100+ views) and "low click rate" thresholds. `searchStatsForProduct(tx,
+  storeId, productId)` feeds the product card; `loadSeoReport(tx, storeId)` adds `low_ctr` and
+  `almost_page_one` issues, which never lower the score. The same module registers the stored
+  per-page searches with `setSearchQueriesSource` (`seo/search-queries.ts`), so "Suggest
+  keywords" grounds its suggestions in real Google searches once the app is connected.
+
+`packages/plugin-meilisearch` (Meilisearch, id `meilisearch`, category `search`) is the worked
+example of an app that **replaces a core behaviour behind a fallback**:
+
+- **Settings** in `store.apps` under `meilisearch` (`./settings`, pure): the address, the admin
+  key and a search-only key (both `encryptSecret` blobs), synonym groups, and the last sync's
+  time, count and error. Index per store: `products_<storeId>`.
+- **Search hook** (`@commerce/core`, `catalog/search-engine.ts`): `setProductSearchEngine(fn)`
+  registers one engine; `browseProducts({ storeId, query })` and `suggestProducts(tx, q, limit,
+  storeId)` ask it for product ids (best first, at most 1000) and then filter, count facets,
+  sort and page **those ids in SQL** (`p.id = any(...)`, ranked by `array_position`), so RLS,
+  prices and stock always come from Postgres. No engine, the store not connected, no match
+  (SQL also matches inside words), an error or no answer within `ENGINE_BUDGET_MS` (300 ms, via an `AbortSignal` the engine must honour) all
+  run the built-in SQL search. The storefront registers the engine in `lib/search-engine.ts`
+  (imported by the search page and `/api/search/suggest`); after a failure the engine skips that
+  Meilisearch for 30 s.
+- **Catalogue changes** (`catalog.products_changed` outbox row, `noteProductsChanged(tx, ids)`
+  in `catalog/changes.ts`): written by create, update, archive and delete, bulk status and tag
+  edits, the bulk editor, AI field writes and the admin quick edits. The relay queues the app
+  job `products.changed` (`PRODUCTS_CHANGED_JOB`) with `{ productIds }` for every installed app
+  that declares a job by that name, so any app keeping a copy of the catalogue can use it. Stock
+  changes are not sent: availability is read live in SQL.
+- **Indexing** (`./server`): `reindexStore` builds `products_<storeId>_rebuild` in batches of
+  500 (each read in its own short transaction), swaps it with the live index
+  (`/swap-indexes`) and re-sends products edited meanwhile; `syncProducts` upserts what is still
+  searchable and deletes the rest. Documents and index settings are in `./documents` (ranked
+  searchable attributes, typo tolerance off on SKUs and handles, filterable and sortable fields,
+  synonyms). Only community-edition REST routes are used.
+- **Admin**: `api.meilisearch.{get,save,test,reindex}`; `test` checks the key, creates the index
+  and, when the key may, a search-only key. `MEILISEARCH_TRUSTED_ORIGINS` lists a private-network
+  Meilisearch the SSRF guard would otherwise refuse.
+
+### Order actions
+
+An installed app can add actions to orders, the way Shopify apps add to an order's "More
+actions". They show in three places, each app's actions under its name with its `admin.icon`
+beside every item:
+
+- the order page's **More actions** (`detail`),
+- an Orders list row's ⋯ menu (`row`),
+- the Orders list's bulk bar, **More actions** for the selected orders (`bulk`).
+
+```ts filename="src/plugin.ts"
+admin: {
+  icon: 'FileText',
+  orderActions: [
+    {
+      id: 'add-to-queue',                                   // unique in the app
+      label: { en: 'Add to invoice queue', hi: 'इनवॉइस कतार में जोड़ें' },
+      targets: ['detail', 'row', 'bulk'],
+      handler: { type: 'procedure', procedure: 'gst-invoices/queue-add' },
+      permission: 'orders.write',                           // the default
+      requires: ['not-test'],
+    },
+  ],
+},
+```
+
+**Handlers** (`OrderActionHandler`, plain data so the manifest stays server-safe):
+
+| `type` | What happens |
+| --- | --- |
+| `link` | Opens an admin route. `path` must start with `/`; `{orderId}` becomes the order's id, and on the bulk bar `{orderIds}` the selected ids, comma separated. |
+| `procedure` | Runs a server action through an existing API procedure. `procedure` is a key namespaced `<pluginId>/<name>`; the admin registers the call under it in `apps/admin/src/apps/order-action-procedures.ts` (`ORDER_ACTION_PROCEDURES`), which calls the app's API procedure for the chosen orders and returns the toast text. A key with no entry is never shown. |
+| `shipment` | Opens the Create shipment flow with this courier picked: one order goes to `/orders/<id>/ship?courier=<providerId>`, several open the bulk dialog on "one courier for all". `providerId` must be a courier the plugin provides. |
+
+**Create shipment comes free for couriers.** Every plugin that provides a shipping courier gets
+a `ship-<providerId>` action (`orderActionsOf` in `@commerce/plugins`): "Create shipment",
+on all three menus, needs `orders.fulfil`, and shows only for open orders still to pack that are
+paid or cash on delivery. Declare nothing for it. The core plugin's demo courier gets none,
+because the order page has its own first-class **Create shipment** item.
+
+**Conditions** (`requires`): `open`, `unfulfilled`, `paid-or-cod`, `not-test`. The order page
+and the row menu hide an action on an order that fails one; the bulk bar always offers it, so
+the handler must skip what it cannot do (the GST app's bulk "Add to invoice queue" passes
+`skipIneligible` and reports how many test or gift-card-only orders it skipped).
+
+**Who sees what.** `api.apps.orderActions` (`orders.read`, so staff without settings access get
+them too) returns the groups for the store and member: only apps that are installed and set up
+(a connection needs its account), only actions whose `permission` the member holds (an unknown
+permission grants nothing), and a courier's Create shipment only while that courier is switched
+on. The rules are the pure `orderActionGroups` (`packages/api/src/services/order-actions.service.ts`);
+the admin's `actionsFor` (`apps/admin/src/apps/order-actions.ts`) then picks one menu's actions
+and applies the conditions. The API procedure behind a `procedure` action still checks its own
+permission and the installed app, so the menus are a convenience, never the guard.
+
+`definePlugin` rejects a bad or repeated id, an empty English label, no targets, a link outside
+the admin, an un-namespaced procedure key, and a courier the plugin does not provide.
+`packages/plugin-gst-invoices` is the worked example: **Generate GST invoice** (`detail`, `row`;
+`gstInvoices.generate` queues the order and issues it at once, dated when the goods left or
+today) and **Add to invoice queue** (all three; `gstInvoices.queue.add`), both hidden on test
+orders.
 
 ## 7. Storefront app blocks
 

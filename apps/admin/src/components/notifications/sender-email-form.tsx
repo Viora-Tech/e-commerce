@@ -1,5 +1,6 @@
 'use client'
 
+import { Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -85,7 +86,7 @@ export default function SenderEmailForm({
       {changing ? <p className="text-caption text-muted-foreground">{copy.changeWarning}</p> : null}
       <div className="flex flex-col gap-2 sm:flex-row">
         <Button type="submit" disabled={!canSave} className="w-full sm:w-auto">
-          {saving ? <Spinner /> : null}
+          {saving ? <Spinner /> : <Save aria-hidden="true" />}
           {saving ? copy.saving : copy.save}
         </Button>
         {onCancel ? (

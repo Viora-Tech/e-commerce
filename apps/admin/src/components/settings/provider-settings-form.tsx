@@ -2,16 +2,16 @@
 
 import { CircleAlert, Puzzle } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
-import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import Link from 'next/link'
 import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import AppStoreLink from '@/components/apps/app-store-link'
 import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { providerSettingsContent as copy } from '@/data/provider-settings'
+import { SETTINGS_BACK } from '@/data/settings'
 import ProviderCard, { type ProviderDef } from './provider-card'
 import SectionTabs, { type SectionTab } from './section-tabs'
 import SettingsSection from './settings-section'
@@ -40,6 +40,8 @@ type ProviderSettingsFormProps<Extra> = {
   renderHint?: ((provider: ProviderDef) => ReactNode) | undefined
   /** A plain line on what a provider is, at the top of its card. */
   renderDescription?: ((provider: ProviderDef) => ReactNode) | undefined
+  /** Extra buttons in the header, before Save (a "View setup guide" link). */
+  headerActions?: ReactNode
   /** The parent page, shown as the back button beside the title. */
   back?: { label: string; href: string } | undefined
   /** Rendered under an enabled provider, receives and updates the extra part. */
@@ -66,7 +68,7 @@ function LoadingCards() {
   return (
     <>
       {[0, 1].map((i) => (
-        <Card key={i} className="gap-4 p-6">
+        <Card key={i} gap={4} inset={6}>
           <Skeleton className="h-5 w-40" />
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
@@ -85,12 +87,12 @@ function LoadingCards() {
 export default function ProviderSettingsForm<Extra extends object>({
   title,
   intro,
-  icon,
   load,
   save,
   emptyExtra,
   renderHint,
   renderDescription,
+  headerActions,
   back,
   renderExtra,
   renderFooter,
@@ -171,8 +173,9 @@ export default function ProviderSettingsForm<Extra extends object>({
       <PageHeader
         title={title}
         subtitle={intro}
-        icon={back ? undefined : icon}
-        breadcrumbs={back ? [back, { label: title }] : undefined}
+        actions={headerActions}
+        back={back?.href ? { label: back.label, href: back.href } : SETTINGS_BACK}
+        save={{ dirty, saving: busy, onSave: handleSave, label: copy.save }}
       />
       {error ? (
         <Alert variant="destructive">
@@ -195,11 +198,7 @@ export default function ProviderSettingsForm<Extra extends object>({
                   icon={Puzzle}
                   heading={copy.noProviders.heading}
                   body={copy.noProviders.body}
-                  action={
-                    <Button variant="outline" render={<Link href={copy.noProviders.href} />}>
-                      {copy.noProviders.action}
-                    </Button>
-                  }
+                  action={<AppStoreLink>{copy.noProviders.action}</AppStoreLink>}
                 />
               </Card>
             ) : (

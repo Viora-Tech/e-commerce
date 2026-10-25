@@ -40,13 +40,20 @@ export type SenderIdentityProvider = {
   readonly id: string
   /** AWS region, for the MAIL FROM MX value (`feedback-smtp.<region>.amazonses.com`). */
   readonly region: string
-  /** Start verifying a domain. Adopts an identity that already exists (a retry after a crash). */
-  create(domain: string, opts: { mailFromDomain: string | null }): Promise<SenderIdentityState>
+  /**
+   * Start verifying a domain. Adopts an identity that already exists only when this
+   * platform made it for the same store (a retry after a crash), never one someone
+   * else put in the account.
+   */
+  create(
+    domain: string,
+    opts: { mailFromDomain: string | null; storeId?: string | undefined },
+  ): Promise<SenderIdentityState>
   /** Current state, or null when the identity does not exist. */
   get(domain: string): Promise<SenderIdentityState | null>
   /** Set the custom MAIL FROM subdomain. Never throws: false when SES refused. */
   setMailFrom(domain: string, mailFromDomain: string): Promise<boolean>
-  /** Delete the identity. Missing is fine. */
+  /** Delete the identity, only if this platform made it. Missing is fine. */
   remove(domain: string): Promise<void>
 }
 
@@ -79,6 +86,24 @@ type RawIdentity = {
   VerificationStatus?: string
   VerificationInfo?: { ErrorType?: string }
   MailFromAttributes?: { MailFromDomain?: string; MailFromDomainStatus?: string }
+  Tags?: { Key?: string; Value?: string }[]
+}
+
+const MANAGED_TAG = { Key: 'managed-by', Value: 'waimers-commerce' }
+const STORE_TAG = 'store-id'
+
+const tagValue = (raw: RawIdentity, key: string): string | undefined =>
+  raw.Tags?.find((t) => t.Key === key)?.Value
+
+/**
+ * An identity this platform created (and, when both say, for this store). An
+ * identity someone else added to the SES account, e.g. another product's
+ * verified domain, is never adopted or deleted (audit 2026-09-28).
+ */
+function isOurs(raw: RawIdentity, storeId: string | undefined): boolean {
+  if (tagValue(raw, MANAGED_TAG.Key) !== MANAGED_TAG.Value) return false
+  const owner = tagValue(raw, STORE_TAG)
+  return !storeId || !owner || owner === storeId
 }
 
 const errorName = (err: unknown) =>
@@ -140,7 +165,7 @@ export class SesIdentityProvider implements SenderIdentityProvider {
 
   async create(
     domain: string,
-    opts: { mailFromDomain: string | null },
+    opts: { mailFromDomain: string | null; storeId?: string | undefined },
   ): Promise<SenderIdentityState> {
     try {
       await this.client.send(
@@ -150,11 +175,15 @@ export class SesIdentityProvider implements SenderIdentityProvider {
           ...(this.config.configurationSetName
             ? { ConfigurationSetName: this.config.configurationSetName }
             : {}),
-          Tags: [{ Key: 'managed-by', Value: 'waimers-commerce' }],
+          Tags: [MANAGED_TAG, ...(opts.storeId ? [{ Key: STORE_TAG, Value: opts.storeId }] : [])],
         }),
       )
     } catch (err) {
       if (errorName(err) !== 'AlreadyExistsException') throw err
+      const existing = await this.getRaw(domain)
+      if (!existing || !isOurs(existing, opts.storeId)) {
+        throw new Error(`${domain} is already set up in the email account by someone else`)
+      }
     }
     if (opts.mailFromDomain) await this.setMailFrom(domain, opts.mailFromDomain)
     const state = await this.get(domain)
@@ -163,11 +192,15 @@ export class SesIdentityProvider implements SenderIdentityProvider {
   }
 
   async get(domain: string): Promise<SenderIdentityState | null> {
+    const raw = await this.getRaw(domain)
+    return raw ? identityState(raw) : null
+  }
+
+  private async getRaw(domain: string): Promise<RawIdentity | null> {
     try {
-      const raw = (await this.client.send(
+      return (await this.client.send(
         new GetEmailIdentityCommand({ EmailIdentity: domain }),
       )) as RawIdentity
-      return identityState(raw)
     } catch (err) {
       if (errorName(err) === 'NotFoundException') return null
       throw err
@@ -191,6 +224,8 @@ export class SesIdentityProvider implements SenderIdentityProvider {
   }
 
   async remove(domain: string): Promise<void> {
+    const existing = await this.getRaw(domain)
+    if (!existing || !isOurs(existing, undefined)) return
     try {
       await this.client.send(new DeleteEmailIdentityCommand({ EmailIdentity: domain }))
     } catch (err) {

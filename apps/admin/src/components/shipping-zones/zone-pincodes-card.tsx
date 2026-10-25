@@ -1,14 +1,14 @@
 'use client'
 
 import { isPincodePattern, type PincodeRule } from '@commerce/core/shipping-rates'
-import { Trash2 } from '@commerce/ui/icons'
-import { Badge } from '@commerce/ui/shadcn/badge'
+import { Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
 import DataCard from '@/components/layout/data-card'
+import StatusChip from '@/components/layout/status-chip'
 import { shippingRatesContent } from '@/data/shipping-rates'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -90,6 +90,7 @@ export default function ZonePincodesCard({ value, onChange, disabled }: ZonePinc
             />
           </div>
           <Button variant="outline" size="lg" onClick={handleAdd} disabled={disabled}>
+            <Plus aria-hidden="true" />
             {copy.add}
           </Button>
         </div>
@@ -104,9 +105,9 @@ export default function ZonePincodesCard({ value, onChange, disabled }: ZonePinc
                 className="flex items-center gap-2 rounded-md border border-border py-1 pr-1 pl-3"
               >
                 <span className="font-mono text-body">{r.pattern}</span>
-                <Badge variant={r.mode === 'exclude' ? 'destructive' : 'neutral'}>
+                <StatusChip tone={r.mode === 'exclude' ? 'danger' : 'neutral'}>
                   {r.mode === 'exclude' ? copy.exclude : copy.include}
-                </Badge>
+                </StatusChip>
                 <Button
                   variant="ghost"
                   size="icon-sm"

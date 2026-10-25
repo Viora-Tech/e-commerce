@@ -334,6 +334,31 @@ describe('address book', () => {
     ).toMatchObject({ ok: false })
   })
 
+  it('tags an address Home, Office or Other, and an edit without a tag keeps it', async () => {
+    const storeId = await makeStore('a')
+    const asha = (await signIn(storeId, 'asha@example.com')).customerId
+    const made = await run(storeId, (ctx) => createAddress(ctx, asha, { ...HOME, label: 'office' }))
+    if (!made.ok) throw new Error('create failed')
+    expect(await run(storeId, (ctx) => listAddresses(ctx, asha))).toMatchObject([
+      { label: 'office' },
+    ])
+    await run(storeId, (ctx) => updateAddress(ctx, asha, made.id, { ...HOME, city: 'Delhi' }))
+    expect(await run(storeId, (ctx) => listAddresses(ctx, asha))).toMatchObject([
+      { city: 'Delhi', label: 'office' },
+    ])
+    await run(storeId, (ctx) => updateAddress(ctx, asha, made.id, { ...HOME, label: null }))
+    expect(await run(storeId, (ctx) => listAddresses(ctx, asha))).toMatchObject([{ label: null }])
+    expect(
+      await run(storeId, (ctx) => createAddress(ctx, asha, { ...HOME, label: 'castle' })),
+    ).toMatchObject({ ok: false, errors: { label: expect.any(String) } })
+    // A checkout address remembered with a tag keeps it.
+    await run(storeId, (ctx) =>
+      rememberCheckoutAddress(ctx, asha, { ...HOME, line1: '9 Lake Road', label: 'home' }),
+    )
+    const book = await run(storeId, (ctx) => listAddresses(ctx, asha))
+    expect(book.find((a) => a.line1 === '9 Lake Road')?.label).toBe('home')
+  })
+
   it('caps the book and remembers checkout addresses once', async () => {
     const storeId = await makeStore('a')
     const asha = (await signIn(storeId, 'asha@example.com')).customerId

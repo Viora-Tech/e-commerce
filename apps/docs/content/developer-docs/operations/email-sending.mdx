@@ -1,14 +1,63 @@
 ---
 title: Email sending and sender domains
-description: The platform SES account, per-store sender domains (Easy DKIM, custom MAIL FROM, DMARC), the From/Reply-To rule, the worker poll, and the env vars.
+description: The platform email account (Amazon SES or Resend, with optional fallback), per-store sender domains (Easy DKIM, custom MAIL FROM, DMARC), the From/Reply-To rule, the worker poll, and the env vars.
 ---
 
 # Email sending and sender domains
 
-Every store's customer email goes out through **one Amazon SES account owned by the platform**.
-Each store can add its own sender address (`support@waimers.in`); its domain becomes a **domain
-identity** in that account. Merchants never need an AWS account. A store can still connect the
-**Amazon SES app** with its own keys; then that app sends instead and none of this applies.
+Every store's customer email goes out through **one email account owned by the platform**:
+**Amazon SES** or **Resend** (`SENDER_EMAIL_PROVIDER`), optionally with the other as a
+**fallback** (`SENDER_EMAIL_FALLBACK`). Each store can add its own sender address
+(`support@waimers.in`); its domain becomes a **domain identity** in the platform's SES account.
+Merchants never need an AWS or Resend account. A store can still connect the **Amazon SES app**
+with its own keys; then that app sends instead and none of this applies.
+
+## Providers
+
+| Provider | Package | Sends | Store sender domains |
+| --- | --- | --- | --- |
+| Amazon SES | `packages/notifications-ses` (AWS SDK v2 client) | Platform address and stores' verified domains | Yes, SES domain identities |
+| Resend | `packages/notifications-resend` (`fetch` to `POST https://api.resend.com/emails`, no SDK) | Platform address only | No (see below) |
+
+Both channels carry the same things: From name (cleaned, quoted or MIME encoded-word by
+`formatMailbox`), Reply-To, attachments (Resend: base64 with `content_type`) and, on marketing
+sends, the `List-Unsubscribe` headers. Resend sends also carry a tag: `template=<id>` for
+transactional mail, `kind=marketing` for campaigns.
+
+**Why store domains stay on SES.** Resend's Domains API could verify a domain too, but its
+records are different (a `resend._domainkey` TXT key plus MX/SPF on a `send.` subdomain, not
+three SES DKIM CNAMEs), so the `sender_email` table, the DNS record builder and the Sender email
+card would all need a second shape, and with a fallback the merchant would have to add both
+sets of records. So a **verified store domain always sends through SES**, whatever
+`SENDER_EMAIL_PROVIDER` says; Resend sends only `PLATFORM_EMAIL_FROM`. Without SES keys
+(`resend` alone) the Sender email card cannot start a domain (it shows the provider error), and
+any store with a verified domain from before sends from the platform address with Reply-To the
+shop.
+
+### Fallback
+
+`withFallback` (`packages/notifications/src/fallback.ts`) wraps two channels: the second is
+tried **only** when the first fails with `retryable: true` on its `SendResult`, i.e. the
+provider, not the message, failed:
+
+- SES (`packages/notifications-ses/src/ses.ts`): the SDK's `$retryable` or `$fault: server`,
+  HTTP 429/5xx, `Throttling`, `TooManyRequests`, `LimitExceeded`, `SendingPaused`,
+  `AccountSuspended`, service errors, socket errors (`ECONNRESET`, `ETIMEDOUT`, …).
+- Resend: no answer (network, 15 s timeout), HTTP 429 (rate limit, daily or monthly quota) or 5xx.
+
+A rejected message (bad address, validation, unverified From) is never sent twice. The
+notification log keeps the `platform_email` channel id either way; when the fallback delivered,
+the provider reference is prefixed `resend:` or `ses:`. When SES sends a store's own domain and
+fails, the Resend fallback sends from the platform address with Reply-To the shop, as before
+verification. A timeout can, rarely, mean the first provider did deliver, so a fallback may
+duplicate that one email.
+
+| `SENDER_EMAIL_PROVIDER` | `SENDER_EMAIL_FALLBACK` | Platform address | Verified store domain |
+| --- | --- | --- | --- |
+| `ses` | `none` | SES | SES |
+| `ses` | `resend` | SES, then Resend | SES, then Resend from the platform address |
+| `resend` | `none` | Resend | SES if its keys are set, else Resend from the platform address |
+| `resend` | `ses` | Resend, then SES | SES, then Resend from the platform address |
 
 ## Pieces
 
@@ -83,26 +132,31 @@ flowchart TD
 
 | Key | Default | Meaning |
 | --- | --- | --- |
-| `SENDER_EMAIL_PROVIDER` | `dev` | `ses` turns on the platform account. `dev` checks domains offline and sends nothing through the platform. |
+| `SENDER_EMAIL_PROVIDER` | `dev` | `ses` or `resend` turns on the platform account and picks who sends the platform address. `dev` checks domains offline and sends nothing through the platform. |
+| `SENDER_EMAIL_FALLBACK` | `none` (blank = `none`) | `ses` or `resend`: the other provider, tried on provider errors. Needs that provider's keys too. Naming the provider itself is ignored. |
+| `RESEND_API_KEY` | none | Resend API key with sending access. `PLATFORM_EMAIL_FROM`'s domain must be verified in the Resend dashboard (once, by hand). |
 | `SES_REGION` | none | Region of the platform SES account, e.g. `ap-south-1`. Also the MAIL FROM MX (`feedback-smtp.<region>.amazonses.com`). |
 | `SES_ACCESS_KEY_ID`, `SES_SECRET_ACCESS_KEY` | none | IAM user with `ses:SendEmail`, `ses:CreateEmailIdentity`, `ses:GetEmailIdentity`, `ses:DeleteEmailIdentity`, `ses:PutEmailIdentityMailFromAttributes`, `ses:TagResource`. |
 | `PLATFORM_EMAIL_FROM` | none | The platform's verified sender, e.g. `no-reply@mail.waimers.com`. Verify its domain in SES by hand once. |
-| `PLATFORM_EMAIL_NAME` | `Waimers` | Display name when a store has no name. |
+| `PLATFORM_EMAIL_NAME` | the platform name (`siteConfig.brand.name`) | Display name when a store has no name. |
 | `SES_CONFIGURATION_SET` | none | Optional default configuration set for every store identity (event destinations). |
 
 Set these on **all three apps** (admin, storefront, worker): the storefront sends sign-in codes,
 the worker sends order email and runs the poll, the admin creates identities.
-`SENDER_EMAIL_PROVIDER=ses` without the SES keys or `PLATFORM_EMAIL_FROM` fails at first use
-with a clear error. The SES account must be **out of the sandbox** (production access), or it
+`SENDER_EMAIL_PROVIDER=ses` without the SES keys or `PLATFORM_EMAIL_FROM` (or `resend` without
+`RESEND_API_KEY`, or a fallback without its keys) fails at first use with a clear error. Blank
+values (compose's `${KEY:-}`) count as unset. The SES account must be **out of the sandbox** (production access), or it
 can only mail verified addresses. The same `SES_*` keys drive the SES package's live test suite, so never put
 real keys in `.env.test`.
 
 ## Bounces and complaints
 
-Not wired in this release. SES's **account-level suppression list** (on by default for new
-accounts, bounces and complaints) already stops repeat sends to bad addresses. Follow-up: an SES
-configuration set (`SES_CONFIGURATION_SET`) with an SNS event destination posting to a worker
-webhook that verifies the SNS signature and marks customers `bounced`/`complained`.
+Not wired in this release, for either provider. SES's **account-level suppression list** (on
+by default for new accounts, bounces and complaints) and Resend's own suppression list already
+stop repeat sends to bad addresses. Follow-up: one suppression path in core (mark customers
+`bounced`/`complained`) fed by an SNS handler (SES configuration set `SES_CONFIGURATION_SET`,
+SNS signature check) and a Resend webhook route (`email.bounced`, `email.complained`, svix
+signature check). There is no SES handler yet, so no Resend one was added on its own.
 
 ## Testing
 
@@ -110,3 +164,9 @@ All SES calls are mocked: `packages/notifications-ses/test/identity.test.ts` (SD
 state mapping), `packages/core/src/sender-email/client.test.ts` (rules) and
 `packages/core/src/sender-email/service.test.ts` (lifecycle, claims across stores, RLS, the
 From/Reply-To choice before and after verification, BYO SES precedence).
+
+Resend is never called for real: `packages/notifications-resend/test/resend.test.ts` mocks
+`fetch` (request body, error mapping, retryable classes, conformance suite).
+`packages/notifications/test/fallback.test.ts` covers `withFallback`, and
+`packages/core/src/sender-email/platform.test.ts` covers provider choice, fallback both ways
+and store domains staying on SES, with SES and Resend both mocked.

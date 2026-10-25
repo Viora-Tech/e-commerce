@@ -1,38 +1,34 @@
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import DetailLayout from '@/components/layout/detail-layout'
+import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 
 const MAIN_SECTIONS = 3
 const SIDE_SECTIONS = 2
 
-/** Shape of a detail page while it loads: the DetailLayout header, sections and right column. */
+/** Shape of a detail page while it loads: the header, cards in the main column and the side column. */
 export default function DetailPageSkeleton() {
   return (
-    <DetailLayout
+    <ProoflyDetailPage
       header={
-        <div className="flex items-center gap-4">
-          <Skeleton className="size-8 rounded-md" />
-          <div className="flex flex-col gap-2">
-            <Skeleton className="h-7 w-64" />
-            <Skeleton className="h-3 w-40" />
+        <div className="flex flex-col gap-3">
+          <Skeleton className="h-5 w-24" />
+          <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-7 w-64" />
+              <Skeleton className="h-4 w-40" />
+            </div>
+            <Skeleton className="ml-auto h-8 w-28" />
           </div>
-          <Skeleton className="ml-auto h-8 w-28" />
         </div>
       }
       main={Array.from({ length: MAIN_SECTIONS }, (_, i) => (
-        <div
-          key={i.toString()}
-          className="flex flex-col gap-4 border-border border-b px-4 py-6 md:px-6"
-        >
+        <div key={i.toString()} className="flex flex-col gap-4 rounded-xl border border-border p-6">
           <Skeleton className="h-6 w-40" />
           <Skeleton className="h-9 w-full" />
           <Skeleton className="h-9 w-3/4" />
         </div>
       ))}
       side={Array.from({ length: SIDE_SECTIONS }, (_, i) => (
-        <div
-          key={i.toString()}
-          className="flex flex-col gap-3 border-border border-b px-4 py-6 md:px-6"
-        >
+        <div key={i.toString()} className="flex flex-col gap-3 rounded-xl border border-border p-6">
           <Skeleton className="h-6 w-32" />
           <Skeleton className="h-3.5 w-full" />
           <Skeleton className="h-3.5 w-2/3" />

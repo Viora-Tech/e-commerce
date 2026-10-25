@@ -105,21 +105,26 @@ describe('RapidshypProvider serviceability and rates', () => {
     expect(r).toMatchObject({ pricePaise: 6000 })
   })
 
-  it('listCourierOptions returns every serviceable courier with COD flagged per courier', async () => {
+  it('quoteOptions returns every serviceable courier with COD flagged per courier', async () => {
     const f = fakeFetch({
       '/rapidshyp/apis/v1/serviceabilty_check': (_url, init) => {
         const body = JSON.parse((init?.body as string) ?? '{}')
         const list = body.cod
           ? [{ courier_code: 'B', courier_name: 'Xpressbees', total_freight: 90 }]
           : [
-              { courier_code: 'A', courier_name: 'Delhivery', total_freight: 60 },
+              {
+                courier_code: 'A',
+                courier_name: 'Delhivery Surface',
+                parent_courier_name: 'Delhivery',
+                total_freight: 60,
+              },
               { courier_code: 'B', courier_name: 'Xpressbees', total_freight: 90 },
             ]
         return json({ status: true, serviceable_courier_list: list })
       },
     })
     const p = new RapidshypProvider({ ...config, fetchImpl: f.impl })
-    const options = await p.listCourierOptions({
+    const options = await p.quoteOptions({
       originPincode: '131028',
       destinationPincode: '560001',
       weightGrams: 500,
@@ -127,8 +132,16 @@ describe('RapidshypProvider serviceability and rates', () => {
       paymentMode: 'prepaid',
     })
     expect(options).toHaveLength(2)
-    expect(options.find((o) => o.courierId === 'A')).toMatchObject({ codAvailable: false })
-    expect(options.find((o) => o.courierId === 'B')).toMatchObject({ codAvailable: true })
+    expect(options.find((o) => o.serviceId === 'A')).toMatchObject({
+      carrier: 'Delhivery',
+      serviceLabel: 'Delhivery Surface',
+      pricePaise: 6000,
+      codAvailable: false,
+    })
+    expect(options.find((o) => o.serviceId === 'B')).toMatchObject({
+      carrier: 'Xpressbees',
+      codAvailable: true,
+    })
   })
 
   it('maps a rejected/auth API key to an auth CourierError', async () => {
@@ -183,6 +196,40 @@ describe('RapidshypProvider createShipment (wrapper API)', () => {
       paymentMethod: 'PREPAID',
     })
     expect(body.shippingAddress).toMatchObject({ pinCode: sampleShipment.to.pincode })
+  })
+
+  it('reassigns to the courier picked in the rate table when the wrapper chose another', async () => {
+    const f = fakeFetch({
+      '/rapidshyp/apis/v1/wrapper': () =>
+        json({
+          orderId: 'ord-1',
+          orderCreated: true,
+          shipment: [
+            {
+              shipmentId: 'ship-1',
+              pickupScheduled: true,
+              awb: 'RS-A',
+              courierCode: 'A',
+              labelURL: 'https://labels/old.pdf',
+            },
+          ],
+        }),
+      '/rapidshyp/apis/v1/assign_awb': () => json({ awb: 'RS-B', courier_code: 'B' }),
+      '/rapidshyp/apis/v1/schedule_pickup': () => json({ status: 'SUCCESS', awb: 'RS-B' }),
+      '/rapidshyp/apis/v1/generate_label': () =>
+        json({
+          status: true,
+          labelData: [{ shipmentId: 'ship-1', labelURL: 'https://labels/new.pdf' }],
+        }),
+    })
+    const p = new RapidshypProvider({ ...config, fetchImpl: f.impl })
+    const r = await p.createShipment({ ...sampleShipment, serviceId: 'B' })
+    expect(r).toMatchObject({ waybill: 'RS-B', labelUrl: 'https://labels/new.pdf' })
+    const assign = f.calls.find((c) => c.url.pathname.endsWith('/assign_awb'))
+    expect(JSON.parse(assign?.init?.body as string)).toEqual({
+      shipment_id: 'ship-1',
+      courier_code: 'B',
+    })
   })
 
   it('falls back to assign_awb when the wrapper did not assign a courier', async () => {

@@ -1,7 +1,7 @@
 'use client'
 
 import { validateGstin } from '@commerce/core/gstin'
-import { Download, FileText, RefreshCw } from '@commerce/ui/icons'
+import { Download, FileText, Plus, ReceiptIcon, RefreshCw, Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Label } from '@commerce/ui/shadcn/label'
@@ -166,6 +166,7 @@ export default function OrderCard({ orderId }: OrderCardProps) {
               disabled={busy !== null}
               onClick={() => handleCredit(r.id)}
             >
+              <ReceiptIcon strokeWidth={1.6} aria-hidden="true" />
               {copy.creditNote}
             </Button>
           </div>
@@ -193,6 +194,7 @@ export default function OrderCard({ orderId }: OrderCardProps) {
                 disabled={busy !== null || gstinBad}
                 onClick={() => handleRegenerate(invoice.id)}
               >
+                <Save strokeWidth={1.6} aria-hidden="true" />
                 {copy.saveGstin}
               </Button>
             </div>
@@ -202,6 +204,7 @@ export default function OrderCard({ orderId }: OrderCardProps) {
         <div className="flex flex-wrap gap-2">
           {!invoice && data.enabled.tax_invoice ? (
             <Button size="sm" disabled={busy !== null} onClick={handleQueue}>
+              <Plus strokeWidth={1.6} aria-hidden="true" />
               {copy.queue}
             </Button>
           ) : null}
@@ -213,6 +216,7 @@ export default function OrderCard({ orderId }: OrderCardProps) {
               disabled={busy !== null}
               onClick={() => handleSlip(k)}
             >
+              <ReceiptIcon strokeWidth={1.6} aria-hidden="true" />
               {k === 'packing_slip' ? copy.issueSlip : copy.issueConfirmation}
             </Button>
           ))}

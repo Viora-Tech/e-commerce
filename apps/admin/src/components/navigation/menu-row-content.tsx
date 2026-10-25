@@ -1,11 +1,18 @@
+'use client'
+
 import {
   ChevronRight,
+  CircleAlert,
   FileText,
   FolderOpen,
   Home,
+  LayoutGrid,
   LinkIcon,
+  Newspaper,
   Package,
   Pencil,
+  Search,
+  ShieldCheck,
   Trash2,
 } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
@@ -13,6 +20,8 @@ import { Button } from '@commerce/ui/shadcn/button'
 import type { SortableRowState } from '@commerce/ui/sortable'
 import type { ReactNode } from 'react'
 import { destinationPath, type MenuItem, menusContent, type NavigationItemType } from '@/data/menus'
+import { useCopy } from '@/hooks/use-copy'
+import type { MenuLinkProblem } from './link-problems'
 
 type MenuRowContentProps = {
   item: MenuItem
@@ -25,12 +34,12 @@ type MenuRowContentProps = {
   collapsed: boolean
   /** The drag handle, with the sortable listeners attached by the caller. */
   grip: ReactNode
+  /** From the broken-link check: why this item's link does not work, if it does not. */
+  problem?: MenuLinkProblem | undefined
   onToggle?: () => void
   onEdit?: () => void
   onRemove?: () => void
 }
-
-const copy = menusContent.item
 
 /** Left padding per level: 1rem base, then 2rem (MENU_INDENT_REM) per nesting level. */
 const DEPTH_PAD = ['pl-2', 'pl-10', 'pl-18'] as const
@@ -40,6 +49,11 @@ const TYPE_ICON: Record<NavigationItemType, typeof Home> = {
   product: Package,
   collection: FolderOpen,
   page: FileText,
+  blog: Newspaper,
+  article: Newspaper,
+  policy: ShieldCheck,
+  search: Search,
+  collections: LayoutGrid,
   url: LinkIcon,
 }
 
@@ -52,14 +66,26 @@ export default function MenuRowContent({
   hasChildren,
   collapsed,
   grip,
+  problem,
   onToggle,
   onEdit,
   onRemove,
 }: MenuRowContentProps) {
+  // Hooks
+  const { item: copy, editor } = useCopy(menusContent)
+
   // Render logic
   const TypeIcon = TYPE_ICON[item.type]
   const quiet = state === 'placeholder'
   const toggleLabel = collapsed ? copy.expand(item.title) : copy.collapse(item.title)
+  const path = destinationPath(item.type, item.value)
+  const problemLabel = !problem
+    ? null
+    : problem.problem === 'hidden'
+      ? editor.linkCheck.hidden
+      : problem.redirectTo
+        ? editor.linkCheck.redirected(problem.redirectTo)
+        : editor.linkCheck.missing
 
   return (
     <div
@@ -93,10 +119,14 @@ export default function MenuRowContent({
         <span className="flex min-w-0 shrink items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 text-caption text-muted-foreground">
           <TypeIcon className="size-3.5 shrink-0" />
           <span className="shrink-0">{copy.types[item.type]}</span>
-          {item.type === 'home' ? null : (
-            <span className="truncate font-mono">{destinationPath(item.type, item.value)}</span>
-          )}
+          {item.type === 'home' ? null : <span className="truncate font-mono">{path}</span>}
         </span>
+        {problemLabel ? (
+          <span className="flex shrink-0 items-center gap-1 rounded-md bg-destructive/10 px-2 py-0.5 text-caption text-destructive">
+            <CircleAlert className="size-3.5" aria-hidden="true" />
+            {problemLabel}
+          </span>
+        ) : null}
         {carried > 0 ? (
           <span className="shrink-0 rounded-full bg-primary px-1.5 text-caption font-medium text-primary-foreground tabular-nums">
             {copy.carried(carried)}

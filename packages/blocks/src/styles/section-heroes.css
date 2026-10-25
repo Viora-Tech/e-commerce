@@ -1,0 +1,337 @@
+/**
+ * The Figma storefront hero group (Sections · 2 · Hero): split hero, spotlight hero, video
+ * hero and image banner. Each block is one section's look; tokens only, so every preset
+ * (Waimers dark, Minimal light, Bold, Soft) recolours it.
+ */
+
+/* ---- Hero copy (components/hero-copy.tsx) -------------------------- */
+/* Eyebrow, display heading and a large muted paragraph 16px apart, the buttons
+   32px under them. */
+.hero-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-6);
+  max-width: 38.75rem;
+  text-align: start;
+}
+
+.hero-copy--center {
+  align-items: center;
+  margin-inline: auto;
+  max-width: 53.75rem;
+  text-align: center;
+}
+
+.hero-copy--right {
+  align-items: flex-end;
+  margin-inline-start: auto;
+  text-align: end;
+}
+
+.hero-copy__heading-block {
+  display: flex;
+  flex-direction: column;
+  align-items: inherit;
+  gap: var(--space-4);
+}
+
+.hero-copy__eyebrow {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hero-copy__heading {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: calc(2.5rem * var(--font-heading-scale, 1));
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+.hero-copy__text {
+  color: var(--color-muted);
+  font-size: 18px;
+  line-height: 1.55;
+}
+
+.hero-copy__text p {
+  margin: 0;
+}
+
+.hero-copy__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: inherit;
+  gap: var(--space-3);
+}
+
+.hero-copy--center .hero-copy__buttons {
+  justify-content: center;
+}
+
+.hero-copy--right .hero-copy__buttons {
+  justify-content: flex-end;
+}
+
+.hero-copy__button {
+  height: 56px;
+  padding-inline: 28px;
+  font-size: var(--font-body-size, 16px);
+}
+
+@media screen and (min-width: 990px) {
+  .hero-copy__heading {
+    font-size: calc(3.5rem * var(--font-heading-scale, 1));
+  }
+}
+
+/* ---- Split hero (Section / Split hero, 704:113444) ------------------ */
+/* The copy and its trust line on one side, the photo on a surface panel on the
+   other, 64px apart. */
+.split-hero {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: center;
+  gap: var(--space-6);
+}
+
+.split-hero__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.split-hero__trust {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+}
+
+.split-hero__trust-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.split-hero__media {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 31 / 28;
+  border-radius: var(--radius-card, var(--radius-m));
+  background-color: var(--color-surface);
+}
+
+.split-hero__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media screen and (min-width: 990px) {
+  .split-hero {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 620px);
+    gap: var(--space-9);
+  }
+
+  .split-hero--media-left {
+    grid-template-columns: minmax(0, 620px) minmax(0, 1fr);
+  }
+
+  .split-hero--media-left .split-hero__media {
+    order: -1;
+  }
+}
+
+/* ---- Spotlight hero (Section / Spotlight hero, 704:113606) ---------- */
+/* Centred copy under a brand glow, the product on a surface panel below. */
+.spotlight-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding-block: 96px;
+}
+
+.spotlight-hero__glow {
+  position: absolute;
+  z-index: -1;
+  width: 56rem;
+  height: 32rem;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--color-brand) 32%, transparent),
+    transparent
+  );
+  transform: translate(-50%, -75%);
+  pointer-events: none;
+}
+
+.spotlight-hero__glow--static {
+  left: 50%;
+  top: 0;
+  transform: translate(-50%, -33%);
+}
+
+.spotlight-hero__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-6);
+}
+
+.spotlight-hero__media {
+  position: relative;
+  overflow: hidden;
+  width: min(55rem, 100%);
+  aspect-ratio: 88 / 42;
+  border-radius: var(--radius-card, var(--radius-m));
+  background-color: var(--color-surface);
+}
+
+.spotlight-hero__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ---- Video hero (Section / Video hero, 704:113728) ------------------ */
+/* Full bleed, 720px, the copy at the bottom, play / pause in the corner. */
+.video-hero {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: flex-end;
+  min-height: 35rem;
+  overflow: hidden;
+  padding-block: var(--space-10);
+  background-color: var(--color-surface);
+}
+
+.video-hero__media {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.video-hero__scrim {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-color: rgb(0 0 0 / 48%);
+}
+
+.video-hero__inner {
+  width: 100%;
+}
+
+.video-hero__play {
+  position: absolute;
+  right: var(--space-10);
+  bottom: var(--space-10);
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background-color: var(--color-ink);
+  color: var(--color-bg);
+  cursor: pointer;
+}
+
+@media screen and (min-width: 990px) {
+  .video-hero {
+    min-height: 45rem;
+  }
+}
+
+@media screen and (max-width: 749px) {
+  .video-hero__play {
+    right: var(--page-margin);
+    bottom: var(--page-margin);
+  }
+}
+
+/* ---- Image banner (Section / Image banner, 704:113894) -------------- */
+.image-banner {
+  color: var(--color-ink);
+  background-color: var(--color-surface);
+}
+
+.image-banner,
+.image-banner--medium {
+  min-height: 35rem;
+}
+
+.image-banner--small {
+  min-height: 25rem;
+}
+
+.image-banner--large {
+  min-height: 45rem;
+}
+
+.image-banner::after {
+  background-color: rgb(0 0 0 / var(--banner-overlay, 0.3));
+}
+
+.image-banner__content {
+  max-width: var(--page-width);
+  width: 100%;
+  margin-inline: auto;
+  padding-block: var(--space-9);
+}
+
+.image-banner--center .image-banner__content {
+  align-items: stretch;
+  text-align: start;
+}
+
+/* Over a photo or video the copy is always light, whatever the scheme: the scrim
+   darkens the media, so the theme's ink would vanish on a light preset. */
+.image-banner:has(.image-banner__media) .hero-copy,
+.video-hero:has(.video-hero__media) .hero-copy {
+  --color-ink: #ffffff;
+  --color-muted: rgb(255 255 255 / 80%);
+}
+
+/* ---- Hero copy, section size --------------------------------------- */
+/* The same block inside a page (image with text): a 32px heading, 16px text and
+   48px buttons. */
+.hero-copy--section:not(:where(.shopify-section *)) {
+  gap: var(--space-5);
+}
+
+.hero-copy--section .hero-copy__heading:not(:where(.shopify-section *)) {
+  font-size: calc(2rem * var(--font-heading-scale, 1));
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.hero-copy--section .hero-copy__text:not(:where(.shopify-section *)) {
+  font-size: var(--font-body-size, 16px);
+}
+
+.hero-copy--section .hero-copy__button:not(:where(.shopify-section *)) {
+  height: 48px;
+  padding-inline: var(--space-5);
+  font-size: 14px;
+}

@@ -2,14 +2,58 @@
   "$schema": "https://turbo.build/schema.json",
   "tasks": {
     "build": { "dependsOn": ["^build"], "outputs": ["dist/**"] },
-    "test": { "dependsOn": ["^build"], "cache": false, "passThroughEnv": ["TEST_DB_NAMESPACE"] },
+    "test": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/.env.test"],
+      "outputs": [],
+      "passThroughEnv": ["TEST_DB_NAMESPACE", "TEST_WORKERS", "VITEST_MAX_WORKERS"]
+    },
     "test:coverage": {
       "dependsOn": ["^build"],
       "cache": false,
       "outputs": ["coverage/**"],
-      "passThroughEnv": ["TEST_DB_NAMESPACE"]
+      "passThroughEnv": ["TEST_DB_NAMESPACE", "TEST_WORKERS", "VITEST_MAX_WORKERS"]
     },
-    "typecheck": { "dependsOn": ["^build"] },
+    "typecheck": { "dependsOn": ["^build"], "outputs": ["*.tsbuildinfo"] },
+    "//#plugin-graph": {
+      "dependsOn": [
+        "@commerce/blocks#build",
+        "@commerce/core#build",
+        "@commerce/notifications-ses#build",
+        "@commerce/notifications-whatsapp#build",
+        "@commerce/payments-cashfree#build",
+        "@commerce/payments-decentro#build",
+        "@commerce/payments-razorpay#build",
+        "@commerce/plugin-affiliates#build",
+        "@commerce/plugin-back-in-stock#build",
+        "@commerce/plugin-chatwoot#build",
+        "@commerce/plugin-emi#build",
+        "@commerce/plugin-forms#build",
+        "@commerce/plugin-meilisearch#build",
+        "@commerce/plugin-growthbook#build",
+        "@commerce/plugin-reviews#build",
+        "@commerce/plugin-search#build",
+        "@commerce/plugin-search-console#build",
+        "@commerce/plugin-gst-invoices#build",
+        "@commerce/plugin-shopify-import#build",
+        "@commerce/plugin-umami#build",
+        "@commerce/plugins#build",
+        "@commerce/shipping-bluedart#build",
+        "@commerce/shipping-delhivery#build",
+        "@commerce/shipping-dtdc#build",
+        "@commerce/shipping-indiapost#build",
+        "@commerce/shipping-ekart#build",
+        "@commerce/shipping-dhl-express#build",
+        "@commerce/shipping-fedex#build",
+        "@commerce/shipping-rapidshyp#build",
+        "@commerce/shipping-shadowfax#build",
+        "@commerce/shipping-shiprocket#build",
+        "@commerce/shipping-xpressbees#build",
+        "@commerce/storage-r2#build",
+        "@commerce/storage-s3#build"
+      ],
+      "inputs": ["commerce.config.ts", "commerce.blocks.config.ts"]
+    },
     "dev": { "cache": false, "persistent": true }
   }
 }

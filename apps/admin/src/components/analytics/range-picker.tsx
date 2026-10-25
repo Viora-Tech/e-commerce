@@ -1,32 +1,40 @@
 'use client'
 
-import { Button } from '@commerce/ui/shadcn/button'
-import { Input } from '@commerce/ui/shadcn/input'
-import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/popover'
-import { useState } from 'react'
+import DateRangePicker from '@/components/layout/date-range-picker'
 import PillTabs from '@/components/layout/pill-tabs'
 import { analyticsContent as copy, RANGE_KEYS } from '@/data/analytics'
 import type { RangeState } from '@/lib/analytics-range'
+import { addDays, type HomeRange, istToday, rangeFor } from '@/lib/home-range'
 
 type RangePickerProps = {
   value: RangeState
   onChange: (next: RangeState) => void
 }
 
-const todayIso = () => new Date().toISOString().slice(0, 10)
-
-/** Range tabs plus a custom from/to popover; the choice lives in the URL. */
-export default function RangePicker({ value, onChange }: RangePickerProps) {
-  // Hooks
-  const [from, setFrom] = useState(value.from ?? todayIso())
-  const [to, setTo] = useState(value.to ?? todayIso())
-  const [open, setOpen] = useState(false)
-
-  // Event handlers
-  const handleApply = () => {
-    onChange({ key: 'custom', from, to })
-    setOpen(false)
+/** The analytics range as the shared picker's from–to pair. */
+function toPickerRange(value: RangeState): HomeRange {
+  if (value.key === 'custom' && value.from && value.to) {
+    return { preset: 'custom', from: value.from, to: value.to }
   }
+  if (value.key === '90d') {
+    const to = istToday()
+    return { preset: 'custom', from: addDays(to, -89), to }
+  }
+  return rangeFor(value.key === 'custom' ? '30d' : value.key)
+}
+
+/** A picked range back as the URL's range: the quick keys stay keys, anything else is custom. */
+function fromPickerRange(range: HomeRange): RangeState {
+  if (range.preset === 'today' || range.preset === '7d' || range.preset === '30d') {
+    return { key: range.preset }
+  }
+  return { key: 'custom', from: range.from, to: range.to }
+}
+
+/** Quick range tabs plus the shared date-range picker; the choice lives in the URL. */
+export default function RangePicker({ value, onChange }: RangePickerProps) {
+  // Event handlers
+  const handleApply = (range: HomeRange) => onChange(fromPickerRange(range))
 
   // Render logic
   const tabs = RANGE_KEYS.map((key) => ({ value: key as string | null, label: copy.ranges[key] }))
@@ -39,44 +47,7 @@ export default function RangePicker({ value, onChange }: RangePickerProps) {
         value={value.key === 'custom' ? null : value.key}
         onChange={(key) => onChange({ key: (key ?? '30d') as RangeState['key'] })}
       />
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger
-          render={
-            <Button variant={value.key === 'custom' ? 'default' : 'outline'} size="sm">
-              {value.key === 'custom' ? `${value.from} to ${value.to}` : copy.ranges.custom}
-            </Button>
-          }
-        />
-        <PopoverContent align="end" className="w-72 space-y-3">
-          <div className="space-y-1">
-            <label htmlFor="range-from" className="block text-caption text-muted-foreground">
-              {copy.ranges.from}
-            </label>
-            <Input
-              id="range-from"
-              type="date"
-              value={from}
-              max={to}
-              onChange={(e) => setFrom(e.target.value)}
-            />
-          </div>
-          <div className="space-y-1">
-            <label htmlFor="range-to" className="block text-caption text-muted-foreground">
-              {copy.ranges.to}
-            </label>
-            <Input
-              id="range-to"
-              type="date"
-              value={to}
-              min={from}
-              onChange={(e) => setTo(e.target.value)}
-            />
-          </div>
-          <Button className="w-full" onClick={handleApply}>
-            {copy.ranges.apply}
-          </Button>
-        </PopoverContent>
-      </Popover>
+      <DateRangePicker range={toPickerRange(value)} onApply={handleApply} />
     </div>
   )
 }

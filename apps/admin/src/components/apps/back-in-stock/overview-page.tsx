@@ -10,8 +10,9 @@ import {
   TableRow,
 } from '@commerce/ui/shadcn/table'
 import { useEffect, useState } from 'react'
-import DataCard from '@/components/layout/data-card'
+import { CELL, HEAD } from '@/components/apps/gst-invoices/table-classes'
 import PageHeader from '@/components/layout/page-header'
+import TableEmptyRow from '@/components/table/table-empty-row'
 import { backInStockContent } from '@/data/back-in-stock'
 import { api } from '@/lib/api-client'
 
@@ -19,21 +20,25 @@ type Overview = Awaited<ReturnType<typeof api.backInStock.overview>>
 
 const copy = backInStockContent.overview
 
-function usageRow(label: string, usage: { sent: number; quota: number; unlimited: boolean }) {
+/** Figma "Back in stock · Overview": one card per channel, the count large, a bar while there is a quota. */
+function usageCard(
+  label: string,
+  usage: { sent: number; quota: number; unlimited: boolean },
+  note: string | null,
+) {
   const pct =
     usage.unlimited || usage.quota <= 0 ? 0 : Math.min(100, (usage.sent / usage.quota) * 100)
   return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex items-center justify-between text-body">
-        <span>{label}</span>
-        <span className="text-muted-foreground">
-          {usage.unlimited ? copy.unlimited : copy.ofQuota(usage.sent, usage.quota)}
-        </span>
-      </div>
+    <div className="flex flex-col gap-2 rounded-xl surface-card px-5 py-4">
+      <span className="text-caption text-muted-foreground">{label}</span>
+      <span className="text-xl font-semibold text-ink-strong tabular-nums">
+        {usage.unlimited ? copy.unlimited : copy.ofQuota(usage.sent, usage.quota)}
+      </span>
       {usage.unlimited ? null : <Progress value={pct} />}
       {!usage.unlimited && usage.sent >= usage.quota && usage.quota > 0 ? (
         <p className="text-caption text-destructive">{copy.paused}</p>
       ) : null}
+      {note ? <p className="text-caption text-muted-foreground">{note}</p> : null}
     </div>
   )
 }
@@ -60,39 +65,34 @@ export default function OverviewPage() {
   const top = data.topVariants
 
   return (
-    <div className="flex flex-col gap-4">
-      <PageHeader title={copy.title} subtitle={copy.subtitle} />
-      <DataCard title={copy.title}>
-        <div className="flex flex-col gap-5 p-4">
-          {usageRow(copy.emailUsage, data.usage.email)}
-          {usageRow(copy.whatsappUsage, data.usage.whatsapp)}
-        </div>
-      </DataCard>
-      <DataCard title={copy.demandTitle} flush>
+    <div className="flex flex-col gap-5">
+      <PageHeader title={copy.title} summary={copy.subtitle} />
+      <div className="grid gap-4 md:grid-cols-2">
+        {usageCard(copy.emailUsage, data.usage.email, null)}
+        {usageCard(copy.whatsappUsage, data.usage.whatsapp, copy.whatsappVia)}
+      </div>
+      <div className="overflow-hidden rounded-xl surface-card">
+        <h2 className="px-6 pt-5 pb-3 text-body font-semibold text-ink-strong">
+          {copy.demandTitle}
+        </h2>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>{copy.columns.variant}</TableHead>
-              <TableHead className="text-right">{copy.columns.waiting}</TableHead>
+              <TableHead className={HEAD}>{copy.columns.variant}</TableHead>
+              <TableHead className={`${HEAD} text-right`}>{copy.columns.waiting}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {top.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={2} className="py-10 text-center text-muted-foreground">
-                  {copy.demandEmpty}
-                </TableCell>
-              </TableRow>
-            ) : null}
+            {top.length === 0 ? <TableEmptyRow colSpan={2} message={copy.demandEmpty} /> : null}
             {top.map((t) => (
               <TableRow key={t.variantId}>
-                <TableCell className="font-medium">{t.label}</TableCell>
-                <TableCell className="text-right tabular-nums">{t.waiting}</TableCell>
+                <TableCell className={`${CELL} font-medium`}>{t.label}</TableCell>
+                <TableCell className={`${CELL} text-right tabular-nums`}>{t.waiting}</TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
-      </DataCard>
+      </div>
     </div>
   )
 }

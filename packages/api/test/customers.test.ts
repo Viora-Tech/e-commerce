@@ -1,5 +1,5 @@
 import { createMerchantAuth } from '@commerce/auth'
-import { createDb, customer, notification, order, store } from '@commerce/db'
+import { createDb, customer, customerAddress, notification, order, store } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { call } from '@orpc/server'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
@@ -272,6 +272,53 @@ describe('customers', () => {
     expect(cheap.items.map((c) => c.email)).toEqual(['ravi@example.com'])
   })
 
+  it('filters business customers (a saved GSTIN) in the list, export and segments', async () => {
+    const a = await merchant('a@example.com', 'store-a')
+    await owner.insert(customer).values([
+      {
+        storeId: a.storeId,
+        email: 'firm@example.com',
+        gstin: '29AABCT3518Q1ZS',
+        businessName: 'Asha Traders',
+      },
+      { storeId: a.storeId, email: 'blank@example.com', gstin: ' ' },
+      { storeId: a.storeId, email: 'person@example.com' },
+    ])
+
+    const business = await call(appRouter.customers.list, { business: true }, { context: a.ctx })
+    expect(business.items.map((c) => c.email)).toEqual(['firm@example.com'])
+    expect(business.total).toBe(1)
+    expect(business.items[0]).toMatchObject({ hasGstin: true })
+    expect(business.items[0]).not.toHaveProperty('gstin')
+
+    const individuals = await call(
+      appRouter.customers.list,
+      { business: false, sort: 'name' },
+      { context: a.ctx },
+    )
+    expect(individuals.items.map((c) => c.email).sort()).toEqual([
+      'blank@example.com',
+      'person@example.com',
+    ])
+
+    const exported = await call(appRouter.customers.export, { business: true }, { context: a.ctx })
+    expect(exported.map((c) => c.email)).toEqual(['firm@example.com'])
+
+    const rules = {
+      match: 'all' as const,
+      conditions: [{ field: 'business' as const, op: 'eq' as const, value: 'true' }],
+    }
+    const preview = await call(appRouter.customers.previewSegment, { rules }, { context: a.ctx })
+    expect(preview.sample.map((c) => c.email)).toEqual(['firm@example.com'])
+    await call(
+      appRouter.customers.saveSegment,
+      { name: 'Business customers', rules },
+      { context: a.ctx },
+    )
+    const segments = await call(appRouter.customers.segments, undefined, { context: a.ctx })
+    expect(segments[0]).toMatchObject({ name: 'Business customers', customerCount: 1 })
+  })
+
   it('adds and removes a tag across a selection without touching other tags', async () => {
     const a = await merchant('a@example.com', 'store-a')
     const [asha, ravi] = await owner
@@ -310,6 +357,94 @@ describe('customers', () => {
     expect(removed.updated).toBe(2)
     const afterRemove = await call(appRouter.customers.list, {}, { context: a.ctx })
     expect(afterRemove.items.find((c) => c.email === 'asha@example.com')?.tags).toEqual(['vip'])
+  })
+
+  it('loads the bulk-edit sheet in the order asked, skipping other stores', async () => {
+    const a = await merchant('a@example.com', 'store-a')
+    const b = await merchant('b@example.com', 'store-b')
+    const [asha, ravi] = await owner
+      .insert(customer)
+      .values([
+        { storeId: a.storeId, email: 'asha@example.com', name: 'Asha', tags: ['vip'] },
+        { storeId: a.storeId, email: 'ravi@example.com', acceptsSms: true },
+      ])
+      .returning()
+    const [other] = await owner
+      .insert(customer)
+      .values({ storeId: b.storeId, email: 'other@example.com' })
+      .returning()
+    const sheet = await call(
+      appRouter.customers.sheet,
+      { ids: [ravi?.id as string, other?.id as string, asha?.id as string] },
+      { context: a.ctx },
+    )
+    expect(sheet.map((r) => [r.email, r.name, r.tags, r.acceptsSms, r.anonymised])).toEqual([
+      ['ravi@example.com', '', [], true, false],
+      ['asha@example.com', 'Asha', ['vip'], false, false],
+    ])
+  })
+
+  it('sheet rows carry business details and the default address only', async () => {
+    const a = await merchant('a@example.com', 'store-a')
+    const [asha, ravi] = await owner
+      .insert(customer)
+      .values([
+        {
+          storeId: a.storeId,
+          email: 'asha@example.com',
+          gstin: '29AABCT3518Q1ZS',
+          businessName: 'Asha Traders',
+        },
+        { storeId: a.storeId, email: 'ravi@example.com' },
+      ])
+      .returning()
+    const book = (isDefault: boolean, city: string) => ({
+      storeId: a.storeId,
+      customerId: asha?.id as string,
+      name: 'Asha',
+      line1: '12 MG Road',
+      city,
+      stateCode: 'KA',
+      pincode: '560001',
+      phone: '9876543210',
+      isDefault,
+    })
+    await owner.insert(customerAddress).values([book(false, 'Mysuru'), book(true, 'Bengaluru')])
+    const sheet = await call(
+      appRouter.customers.sheet,
+      { ids: [asha?.id as string, ravi?.id as string] },
+      { context: a.ctx },
+    )
+    expect(sheet[0]).toMatchObject({
+      gstin: '29AABCT3518Q1ZS',
+      businessName: 'Asha Traders',
+      defaultAddress: { city: 'Bengaluru', stateCode: 'KA', pincode: '560001', line2: null },
+    })
+    expect(sheet[1]).toMatchObject({ gstin: '', businessName: '', defaultAddress: null })
+  })
+
+  it('saves business details, checking the GSTIN like checkout and clearing on blank', async () => {
+    const a = await merchant('a@example.com', 'store-a')
+    const [asha] = await owner
+      .insert(customer)
+      .values({ storeId: a.storeId, email: 'asha@example.com' })
+      .returning()
+    const id = asha?.id as string
+    await expect(
+      call(appRouter.customers.update, { id, gstin: '29AABCT3518Q1ZV' }, { context: a.ctx }),
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST', message: expect.stringContaining('typo') })
+    const saved = await call(
+      appRouter.customers.update,
+      { id, gstin: ' 29aabct3518q1zs ', businessName: 'Asha Traders' },
+      { context: a.ctx },
+    )
+    expect(saved).toMatchObject({ gstin: '29AABCT3518Q1ZS', businessName: 'Asha Traders' })
+    const cleared = await call(
+      appRouter.customers.update,
+      { id, gstin: '', businessName: '' },
+      { context: a.ctx },
+    )
+    expect(cleared).toMatchObject({ gstin: null, businessName: null })
   })
 
   it('saves a segment, counts its members and previews rules before saving', async () => {

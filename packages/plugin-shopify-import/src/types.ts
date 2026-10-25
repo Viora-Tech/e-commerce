@@ -4,12 +4,17 @@
  * Money is paise, weights grams, dates ISO strings.
  */
 import type { CollectionRules } from '@commerce/db'
+import type { IssueKind } from './client'
 import type { ImportResource } from './schema'
 
 export type Issue = {
   resource: ImportResource
   row?: number | null | undefined
   ref?: string | null | undefined
+  /** The record's import key when a retry could fix this (see `shopify_import_issue.source_id`). */
+  sourceId?: string | null | undefined
+  /** Defaults to `record` when `sourceId` is set. */
+  kind?: IssueKind | undefined
   message: string
 }
 
@@ -31,6 +36,11 @@ export type NVariant = {
   hsCode: string | null
   /** Source URL of the variant's image; must also appear in the product images. */
   imageSrc: string | null
+  /**
+   * Shopify's "Continue selling when out of stock" (inventory policy `continue`), which
+   * pre-order apps switch on; undefined when the source did not say (a CSV without the column).
+   */
+  sellsOutOfStock?: boolean | undefined
 }
 
 export type NProduct = {
@@ -47,6 +57,8 @@ export type NProduct = {
   optionNames: string[]
   variants: NVariant[]
   images: NImage[]
+  /** Alternate template (`product.<suffix>`); null is the default, undefined (CSV) leaves it as is. */
+  templateSuffix?: string | null
   row?: number | undefined
 }
 
@@ -136,6 +148,8 @@ export type NCollection = {
   /** Member product handles in the source's order. */
   productHandles: string[]
   published: boolean
+  /** Alternate template (`collection.<suffix>`); null is the default. */
+  templateSuffix: string | null
 }
 
 export type NPage = {
@@ -147,6 +161,8 @@ export type NPage = {
   seoDescription: string | null
   published: boolean
   publishedAt: string | null
+  /** Alternate template (`page.<suffix>`); null is the default. */
+  templateSuffix: string | null
 }
 
 export type NArticle = {
@@ -164,6 +180,9 @@ export type NArticle = {
   publishedAt: string | null
   seoTitle: string | null
   seoDescription: string | null
+  /** Alternate templates (`article.<suffix>`, and the blog's `blog.<suffix>`); null is the default. */
+  templateSuffix: string | null
+  blogTemplateSuffix: string | null
 }
 
 export type NMenuItem = {
@@ -177,3 +196,121 @@ export type NMenuItem = {
 export type NMenu = { sourceId: string | null; handle: string; title: string; items: NMenuItem[] }
 
 export type NRedirect = { sourceId: string | null; path: string; target: string }
+
+/* ------------------------------------------------- import everything (2026-10) */
+
+/** One file from Shopify's Files page. */
+export type NFile = {
+  sourceId: string
+  kind: 'image' | 'video' | 'file' | 'external_video' | 'model_3d'
+  /** What to download: the image, the best mp4 under the video limit, or the file itself. */
+  url: string | null
+  alt: string | null
+  /** The name in Shopify Files (`intro.mp4`), when Shopify gives it; themes refer to videos by it. */
+  filename?: string | null | undefined
+  /** Videos: a smaller (720p or less) mp4 for phones, when Shopify has one. */
+  mobileUrl?: string | null | undefined
+  /** Videos: the preview picture Shopify made, used as the poster. */
+  posterUrl?: string | null | undefined
+  /** Videos: size of the phone-sized copy, bytes. */
+  mobileSize?: number | null | undefined
+  /** Images: pixels, when Shopify says. */
+  width?: number | null | undefined
+  height?: number | null | undefined
+  mimeType: string | null
+  /** Bytes, when Shopify says. */
+  size: number | null
+  /** Shopify's `fileStatus`: READY, PROCESSING, UPLOADED, FAILED. */
+  status: string
+}
+
+/** A field of a metaobject definition, or a metafield definition, as Shopify describes it. */
+export type NFieldDefinition = {
+  key: string
+  name: string
+  description: string | null
+  required: boolean
+  /** Shopify type name: `single_line_text_field`, `list.product_reference`, … */
+  type: string
+  validations: { name: string; value: string | null }[]
+}
+
+export type NMetaobjectDefinition = {
+  sourceId: string
+  type: string
+  name: string
+  description: string | null
+  displayNameKey: string | null
+  fields: NFieldDefinition[]
+  storefrontAccess: boolean
+}
+
+export type NFieldValue = { key: string; type: string; value: string | null }
+
+export type NMetaobject = {
+  sourceId: string
+  /** The Shopify definition's id. */
+  definitionSourceId: string
+  handle: string
+  displayName: string
+  status: 'active' | 'draft'
+  fields: NFieldValue[]
+}
+
+export type MetafieldOwner = 'PRODUCT' | 'COLLECTION'
+
+export type NMetafieldDefinition = NFieldDefinition & {
+  sourceId: string
+  ownerType: MetafieldOwner
+  namespace: string
+}
+
+/** Every metafield value of one product or collection. */
+export type NOwnerMetafields = {
+  ownerType: MetafieldOwner
+  ownerSourceId: string
+  handle: string
+  metafields: (NFieldValue & { namespace: string })[]
+}
+
+/** Shopify's discount union, reduced to what we can express plus why the rest is not. */
+export type NDiscount = {
+  sourceId: string
+  title: string
+  kind: 'code' | 'automatic'
+  /** `DiscountCodeBasic`, `DiscountAutomaticBxgy`, … */
+  typename: string
+  /** Code discounts: every code with its own use count. */
+  codes: { code: string; used: number }[]
+  method: 'percent' | 'fixed' | 'free_shipping' | null
+  /** Basis points for percent, paise for fixed. */
+  value: number
+  appliesOnEachItem: boolean
+  items:
+    | { kind: 'all' }
+    | { kind: 'products'; ids: string[]; variants: boolean; more: boolean }
+    | { kind: 'collections'; ids: string[]; more: boolean }
+  minSubtotalPaise: number | null
+  minQuantity: number | null
+  allCustomers: boolean
+  /** Free shipping: every country, or the ones listed. */
+  countries: string[] | 'all'
+  maxShippingPaise: number | null
+  usageLimit: number | null
+  oncePerCustomer: boolean
+  used: number
+  startsAt: string | null
+  endsAt: string | null
+}
+
+export type NGiftCard = {
+  sourceId: string
+  lastCharacters: string
+  balancePaise: number
+  initialPaise: number
+  currency: string
+  enabled: boolean
+  expiresOn: string | null
+  note: string | null
+  customer: { sourceId: string; email: string | null; name: string | null } | null
+}

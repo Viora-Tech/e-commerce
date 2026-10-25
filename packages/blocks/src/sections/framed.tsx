@@ -11,6 +11,7 @@ import {
 } from '../section-settings'
 import type { MediaImage } from '../types'
 import type { SectionMetadata } from './dynamic'
+import { inlineText } from './inline-fields'
 
 /**
  * Every section carries a `settings` object (layout/spacing/style/advanced —
@@ -66,17 +67,31 @@ export const linkField = (label = 'Button') =>
       href: { type: 'text', label: 'Link' },
     },
   }) as const
+/**
+ * A button whose label the merchant can also type into on the canvas: the label arrives as a
+ * React node while editing, so only use it where the label is drawn, never as an aria-label.
+ */
+export const inlineLinkField = (label = 'Button') =>
+  ({
+    type: 'object',
+    label,
+    objectFields: {
+      label: inlineText('Label'),
+      href: { type: 'text', label: 'Link' },
+    },
+  }) as const
 export const noImage: Image = { url: '', alt: '' }
 
 /**
  * A library section: its own fields plus the colour scheme and padding every
- * section shares, rendered inside the Glide section frame.
+ * section shares, rendered inside the Zero Drift section frame.
  */
 export function framed<P extends Frame>(
   label: string,
   fields: Record<string, unknown>,
   defaults: Omit<P, keyof Frame>,
-  body: (props: P, meta: SectionMetadata) => ReactNode,
+  /** `editing` is true on the Customize canvas, where collapsed copy has to be reachable. */
+  body: (props: P, meta: SectionMetadata, editing: boolean) => ReactNode,
   extra: {
     defaultProps?: P
     resolveData?: (data: { props: P }) => Promise<{ props: Partial<P>; readOnly: object }>
@@ -91,7 +106,7 @@ export function framed<P extends Frame>(
       const settings = migrateSectionSettings(p as unknown as LegacySectionProps)
       return (
         <SectionFrame settings={settings}>
-          {body(p, (puck?.metadata ?? {}) as SectionMetadata)}
+          {body(p, (puck?.metadata ?? {}) as SectionMetadata, puck?.isEditing === true)}
         </SectionFrame>
       )
     },

@@ -9,10 +9,19 @@
  * Ratchet: a NEW file formatting dates itself fails; moving one to the owner means deleting
  * its entry (stale entries fail).
  */
+import { readFileSync } from 'node:fs'
+import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { dateFormatSites } from './consistency'
+import { ROOT } from './walk'
 
 type AllowEntry = { file: string; reason: string }
+
+/**
+ * Images whose Next.js server renders on Node (Alpine `apk add nodejs`). The docs site is a
+ * static export on Cloudflare Workers now, so it has no image.
+ */
+const NODE_DOCKERFILES = ['apps/admin/Dockerfile', 'apps/storefront/Dockerfile']
 
 const ADMIN = 'admin screen not on the 2026-10-01 audit list — move to useFormat().pattern'
 const ADMIN_LIB = 'admin lib/copy formatter — build it on formatPattern in lib/format-date.ts'
@@ -21,10 +30,7 @@ const CORE =
 const STOREFRONT = 'storefront date text — move to formatInZone with the store timezone'
 
 const ALLOWLIST: AllowEntry[] = [
-  { file: 'apps/admin/src/components/apps/shopify-import/connect-page.tsx', reason: ADMIN },
-  { file: 'apps/admin/src/components/apps/shopify-import/imports-page.tsx', reason: ADMIN },
   { file: 'apps/admin/src/components/home/charts/sales-orders-chart.tsx', reason: ADMIN },
-  { file: 'apps/admin/src/components/navigation/navigation-list.tsx', reason: ADMIN },
   { file: 'apps/admin/src/components/notifications/sender-email-card.tsx', reason: ADMIN },
   { file: 'apps/admin/src/components/orders/packing-slip.tsx', reason: ADMIN },
   { file: 'apps/admin/src/components/products/stock-history-card.tsx', reason: ADMIN },
@@ -32,11 +38,25 @@ const ALLOWLIST: AllowEntry[] = [
   { file: 'apps/admin/src/data/products.ts', reason: ADMIN_LIB },
   { file: 'apps/admin/src/lib/analytics-range.ts', reason: ADMIN_LIB },
   { file: 'apps/admin/src/lib/report-format.ts', reason: ADMIN_LIB },
+  {
+    file: 'apps/monitor/src/index.ts',
+    reason:
+      'standalone Cloudflare Worker (uptime monitor) with no workspace deps; pins timeZone Asia/Kolkata itself',
+  },
+  {
+    file: 'apps/www/src/data/guides.ts',
+    reason:
+      'marketing site guide dates, pinned to Asia/Kolkata; www does not depend on @commerce/dates',
+  },
+  {
+    file: 'apps/www/worker/index.ts',
+    reason:
+      'marketing-site Cloudflare Worker (contact notifications), pins timeZone Asia/Kolkata itself',
+  },
   { file: 'apps/storefront/src/components/checkout/balance-due.tsx', reason: STOREFRONT },
   { file: 'apps/storefront/src/data/account.ts', reason: STOREFRONT },
   { file: 'apps/storefront/src/data/policies.ts', reason: STOREFRONT },
   { file: 'packages/core/src/blog/text.ts', reason: CORE },
-  { file: 'packages/core/src/dynamic-sources/format.ts', reason: CORE },
   { file: 'packages/core/src/gift-cards/client.ts', reason: CORE },
   { file: 'packages/core/src/gift-cards/service.ts', reason: CORE },
   { file: 'packages/core/src/notifications/deliver.ts', reason: CORE },
@@ -65,5 +85,16 @@ describe('sweep: date-format', () => {
   it('the allow-list has no stale entries', async () => {
     const files = await dateFormatSites()
     expect(ALLOWLIST.filter((e) => !files.includes(e.file))).toEqual([])
+  })
+
+  it('every image that runs Node installs the full ICU locale data', () => {
+    // Alpine's nodejs ships English-only ICU data: en-IN then formats as en-US on the server
+    // while the browser uses en-IN, and the page fails to hydrate (React #418, issue #292).
+    const missing = NODE_DOCKERFILES.filter((file) =>
+      readFileSync(path.join(ROOT, file), 'utf8')
+        .split('\n')
+        .some((line) => /apk add\b.*\bnodejs\b/.test(line) && !/\bicu-data-full\b/.test(line)),
+    )
+    expect(missing, 'add icu-data-full next to nodejs').toEqual([])
   })
 })

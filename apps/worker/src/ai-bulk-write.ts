@@ -1,7 +1,14 @@
 import { AI_BULK_QUEUE, type AiBulkJob } from '@commerce/core'
 import { runAiJob } from '@commerce/core/ai-runtime'
 import type { Db } from '@commerce/db'
-import { fairProcessor, type IORedis, QUEUE_LIMITS, Queue, Worker } from '@commerce/queue'
+import {
+  fairProcessor,
+  type IORedis,
+  KEEP_FINISHED,
+  QUEUE_LIMITS,
+  Queue,
+  Worker,
+} from '@commerce/queue'
 
 /**
  * Bulk "Write with AI" (products list → select → Write with AI): one job per run. The runner
@@ -20,11 +27,16 @@ export function createAiBulkWriteWorker(
     AI_BULK_QUEUE,
     fairProcessor(connection, AI_BULK_QUEUE, QUEUE_LIMITS.aiBulkWrite, async (job) => {
       const { storeId, jobId } = job.data
+      // The job's wide event (`logWorkerJobs`) records the finished run with its storeId and jobId.
       await runAiJob({ db, storeId, jobId, settingsSecret: opts.settingsSecret })
-      console.log(`[ai-bulk-write] store=${storeId} job=${jobId} finished`)
     }),
     // A run can take minutes; keep the lock alive well past one product's model call.
-    { connection, concurrency: QUEUE_LIMITS.aiBulkWrite.concurrency, lockDuration: 120_000 },
+    {
+      connection,
+      concurrency: QUEUE_LIMITS.aiBulkWrite.concurrency,
+      lockDuration: 120_000,
+      ...KEEP_FINISHED,
+    },
   )
   return { queue, worker }
 }

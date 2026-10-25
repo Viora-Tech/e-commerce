@@ -1,36 +1,49 @@
-/** SOURCE OF TRUTH: the store data an imported theme reads — WHAT: a per-request `LiquidDataSource` over our database (products with variants, options and images; collections and their products; menus; blogs; pages; the shop), cached within the request / WHY: imported Liquid asks for Shopify objects by handle; this answers from our catalogue under the store's RLS, so the theme shows our live data */
+/** SOURCE OF TRUTH: the store data an imported theme reads — WHAT: a per-request `LiquidDataSource` over our database (products with variants, options and images; collections and their products; menus; blogs; pages; the shop; extra fields and content entries through `custom-data.ts`), cached within the request / WHY: imported Liquid asks for Shopify objects by handle; this answers from our catalogue under the store's RLS, so the theme shows our live data */
 import {
   article,
   blog,
   collection,
   collectionProduct,
-  inventoryLevel,
   media,
   navigationMenu,
   page,
   product,
-  productMedia,
-  productOption,
-  productOptionValue,
   type StoreTx,
-  sellableLevel,
   store,
   variant,
-  variantOptionValue,
 } from '@commerce/db'
-import { and, asc, desc, eq, inArray, isNotNull, isNull, like, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, isNotNull, like, sql } from 'drizzle-orm'
+import { excerptText } from '../blog/text'
+import { browseProducts } from '../catalog/browse'
+import {
+  BROWSE_SORTS,
+  parseBrowseFilters,
+  parseBrowseSort,
+  parsePage,
+} from '../catalog/browse-params'
+import { keyFromName } from '../metaobjects/validate'
 import { toNavLinks } from '../navigation/resolve'
+import { publishedPolicyLinks } from '../policies/service'
+import { loadMetafields, loadMetaobjects, loadMetaobjectsOfType } from './custom-data'
 import type {
   LiquidBlogData,
   LiquidCartData,
   LiquidCollectionData,
+  LiquidCustomData,
   LiquidDataSource,
-  LiquidImageData,
   LiquidLinkData,
-  LiquidProductData,
+  LiquidReviewsSource,
   LiquidShopData,
 } from './drops'
+import { loadImportedFiles } from './imported-files'
 import { uuidPrefixOf } from './numeric-id'
+import { collectionsProducts, loadProducts, productsByHandles } from './product-data'
+import {
+  firstAvailable,
+  MAX_RECOMMENDATIONS,
+  pickedRecommendationIds,
+  relatedProductIds,
+} from './related'
 import { richTextHtml } from './rich-html'
 
 export type StoreLiquidDataOptions = {
@@ -40,146 +53,61 @@ export type StoreLiquidDataOptions = {
   origin: string
   /** The shopper's cart, from the storefront cart cookie; empty in the editor. */
   cart?: (() => Promise<LiquidCartData>) | undefined
+  /** The Reviews app's data, when the store installed it (see `withReviewMetafields`). */
+  reviews?: LiquidReviewsSource | undefined
+}
+
+/**
+ * Our ratings as Shopify's standard review metafields (`reviews.rating`, a rating out of 5,
+ * and `reviews.rating_count`), which review apps keep on each product and themes read for
+ * stars on cards and product pages. A product with our reviews gets ours in place of any
+ * copied from Shopify; one without keeps what the importer brought.
+ */
+export function withReviewMetafields(
+  data: LiquidCustomData,
+  ratings: Map<string, { rating: number; count: number }>,
+): LiquidCustomData {
+  const metafields = { ...data.metafields }
+  for (const [id, r] of ratings) {
+    if (r.count <= 0) continue
+    const others = (metafields[id] ?? []).filter((f) => f.namespace !== 'reviews')
+    metafields[id] = [
+      ...others,
+      {
+        namespace: 'reviews',
+        key: 'rating',
+        type: 'rating',
+        list: false,
+        measure: null,
+        value: { value: r.rating, max: 5 },
+      },
+      {
+        namespace: 'reviews',
+        key: 'rating_count',
+        type: 'number_integer',
+        list: false,
+        measure: null,
+        value: r.count,
+      },
+    ]
+  }
+  return { ...data, metafields }
 }
 
 const EMPTY_CART: LiquidCartData = { itemCount: 0, totalPrice: 0, items: [] }
-
-/** Untracked variants are always purchasable; mirrors the storefront catalogue. */
-const onHand = (v: { onHand: number | null; reserved: number | null; track: boolean }) =>
-  v.track ? Math.max(0, (v.onHand ?? 0) - (v.reserved ?? 0)) : 999
 
 const toHtml = richTextHtml
 
 const escapeHtml = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
-/** Products by id, fully loaded (variants, options, images), in the order given. */
-async function loadProducts(tx: StoreTx, ids: string[]): Promise<LiquidProductData[]> {
-  if (ids.length === 0) return []
-  const [rows, variants, images, options] = await Promise.all([
-    tx
-      .select()
-      .from(product)
-      .where(and(inArray(product.id, ids), eq(product.status, 'active'))),
-    tx
-      .select({
-        id: variant.id,
-        productId: variant.productId,
-        title: variant.title,
-        price: variant.pricePaise,
-        mrp: variant.mrpPaise,
-        sku: variant.sku,
-        barcode: variant.barcode,
-        weight: variant.weightGrams,
-        track: variant.trackInventory,
-        onHand: inventoryLevel.onHand,
-        reserved: inventoryLevel.reserved,
-        imageUrl: media.url,
-        position: variant.position,
-        preorder: variant.preorderOverride,
-      })
-      .from(variant)
-      .leftJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
-      .leftJoin(media, eq(media.id, variant.mediaId))
-      .where(and(inArray(variant.productId, ids), isNull(variant.archivedAt)))
-      .orderBy(asc(variant.position)),
-    tx
-      .select({
-        productId: productMedia.productId,
-        id: media.id,
-        url: media.url,
-        alt: media.alt,
-        width: media.width,
-        height: media.height,
-        contentType: media.contentType,
-      })
-      .from(productMedia)
-      .innerJoin(media, eq(media.id, productMedia.mediaId))
-      .where(inArray(productMedia.productId, ids))
-      .orderBy(asc(productMedia.position)),
-    tx
-      .select({
-        productId: productOption.productId,
-        name: productOption.name,
-        position: productOption.position,
-        value: productOptionValue.value,
-        valuePosition: productOptionValue.position,
-      })
-      .from(productOption)
-      .leftJoin(productOptionValue, eq(productOptionValue.optionId, productOption.id))
-      .where(inArray(productOption.productId, ids))
-      .orderBy(asc(productOption.position), asc(productOptionValue.position)),
-  ])
-  const variantIds = variants.map((v) => v.id)
-  const values = variantIds.length
-    ? await tx
-        .select({
-          variantId: variantOptionValue.variantId,
-          value: productOptionValue.value,
-          position: productOption.position,
-        })
-        .from(variantOptionValue)
-        .innerJoin(productOptionValue, eq(productOptionValue.id, variantOptionValue.optionValueId))
-        .innerJoin(productOption, eq(productOption.id, productOptionValue.optionId))
-        .where(inArray(variantOptionValue.variantId, variantIds))
-        .orderBy(asc(productOption.position))
-    : []
-  const byId = new Map(rows.map((r) => [r.id, r]))
-  return ids.flatMap((id) => {
-    const p = byId.get(id)
-    if (!p) return []
-    const opts = new Map<string, string[]>()
-    for (const o of options.filter((x) => x.productId === id)) {
-      const list = opts.get(o.name) ?? []
-      if (o.value && !list.includes(o.value)) list.push(o.value)
-      opts.set(o.name, list)
-    }
-    const imgs: LiquidImageData[] = images
-      .filter((i) => i.productId === id && (i.contentType ?? 'image/').startsWith('image/'))
-      .map((i) => ({
-        id: i.id,
-        url: i.url,
-        alt: i.alt ?? p.title,
-        width: i.width,
-        height: i.height,
-      }))
-    const description = toHtml(p.description)
-    return [
-      {
-        id: p.id,
-        handle: p.handle,
-        title: p.title,
-        descriptionHtml: description,
-        vendor: p.vendor ?? '',
-        type: p.productType ?? '',
-        tags: p.tags,
-        images: imgs,
-        options: [...opts].map(([name, vals]) => ({ name, values: vals })),
-        createdAt: p.createdAt,
-        preorder: p.preorderEnabled,
-        variants: variants
-          .filter((v) => v.productId === id)
-          .map((v) => {
-            const qty = onHand(v)
-            // Pre-order variants sell with no stock, as Shopify's "continue selling" does.
-            const preorder = v.preorder?.enabled ?? p.preorderEnabled
-            return {
-              id: v.id,
-              title: v.title,
-              price: v.price,
-              compareAtPrice: v.mrp && v.mrp > v.price ? v.mrp : null,
-              available: qty > 0 || preorder,
-              inventoryQuantity: qty,
-              sku: v.sku,
-              barcode: v.barcode,
-              weightGrams: v.weight,
-              options: values.filter((x) => x.variantId === v.id).map((x) => x.value),
-              image: v.imageUrl ? { url: v.imageUrl, alt: p.title } : null,
-            }
-          }),
-      },
-    ]
-  })
+/**
+ * `article.excerpt`, which Liquid reads as HTML: the stored excerpt is text (a Shopify import
+ * keeps the summary's words), read as plain text first so tags saved in it never show escaped.
+ */
+function excerptHtml(excerpt: string | null): string {
+  const text = excerptText(excerpt)
+  return text ? `<p>${escapeHtml(text)}</p>` : ''
 }
 
 /** Our menu items as Shopify links, three levels deep. */
@@ -226,6 +154,8 @@ export async function storeLiquidData(
     })
     .from(store)
     .where(eq(store.id, options.storeId))
+  // The footer's policy links (`shop.policies`): payment gateways check a store shows them.
+  const policyLinks = await publishedPolicyLinks({ tx, storeId: options.storeId })
   const seo = ((s?.preferences as { seo?: { description?: string } } | null)?.seo ?? {}) as {
     description?: string
   }
@@ -237,6 +167,7 @@ export async function storeLiquidData(
     url: options.origin,
     currency: 'INR',
     description: seo.description ?? '',
+    policies: policyLinks.map((l) => ({ type: l.type, title: l.title, url: l.href })),
   }
 
   const collectionList = (): Promise<LiquidCollectionData[]> =>
@@ -279,6 +210,7 @@ export async function storeLiquidData(
           .where(and(eq(product.handle, handle), eq(product.status, 'active')))
         return row ? ((await loadProducts(tx, [row.id]))[0] ?? null) : null
       }),
+    products: (handles) => productsByHandles(tx, handles),
     collection: async (handle) => {
       if (handle === 'all') {
         const [count] = await tx
@@ -299,11 +231,12 @@ export async function storeLiquidData(
     collectionProducts: (handle, limit) =>
       once(`cp:${handle}:${limit}`, async () => {
         if (handle === 'all') {
+          // Shopify's `collections.all` reads A to Z by title (an empty cart's "Bestsellers").
           const rows = await tx
             .select({ id: product.id })
             .from(product)
             .where(eq(product.status, 'active'))
-            .orderBy(desc(product.createdAt))
+            .orderBy(asc(product.title), asc(product.id))
             .limit(limit)
           return loadProducts(
             tx,
@@ -323,7 +256,23 @@ export async function storeLiquidData(
           rows.map((r) => r.id),
         )
       }),
+    collectionsProducts: (handles, limit) => collectionsProducts(tx, handles, limit),
     collections: collectionList,
+    relatedProducts: (productId, limit, intent = 'related') =>
+      once(`rel:${productId}:${limit}:${intent}`, async () => {
+        const wanted = Math.min(Math.max(1, Math.trunc(limit) || 4), MAX_RECOMMENDATIONS)
+        // The merchant's picks first (Search & Discovery); complementary has nothing else.
+        const fields = (await loadMetafields(tx, 'product', [productId])).metafields[productId]
+        const picked = pickedRecommendationIds(fields ?? [], intent).filter(
+          (id) => id !== productId,
+        )
+        const auto = intent === 'related' ? await relatedProductIds(tx, productId) : []
+        const ids = [...new Set([...picked, ...auto])]
+        // Sold-out products are dropped after loading (stock lives on the variants), so the
+        // ranked list is read in chunks until enough are in stock: the closest matches (same
+        // brand and kind) are often all sold out, and one fixed slice of them left the row empty.
+        return firstAvailable(ids, wanted, (chunk) => loadProducts(tx, chunk))
+      }),
     menu: (handle) =>
       once(`m:${handle}`, async () => {
         const [row] = await tx
@@ -366,7 +315,7 @@ export async function storeLiquidData(
             title: a.title,
             url: `/blogs/${b.handle}/${a.handle}`,
             author: a.author,
-            excerptHtml: a.excerpt ? `<p>${escapeHtml(a.excerpt)}</p>` : '',
+            excerptHtml: excerptHtml(a.excerpt),
             contentHtml: toHtml(a.body),
             image: a.imageUrl ? { url: a.imageUrl, alt: a.imageAlt ?? a.title } : null,
             tags: a.tags,
@@ -385,7 +334,58 @@ export async function storeLiquidData(
           : null
       }),
     cart: () => once('cart', () => options.cart?.() ?? Promise.resolve(EMPTY_CART)),
+    metafields: async (ownerType, ownerIds) => {
+      const data = await loadMetafields(tx, ownerType, ownerIds)
+      if (ownerType !== 'product' || !options.reviews) return data
+      return withReviewMetafields(data, await options.reviews.ratings(ownerIds))
+    },
+    judgeme: () =>
+      once('judgeme', async () => (options.reviews ? options.reviews.judgeme() : null)),
+    metaobjectsOfType: (type) =>
+      once(`mt:${type}`, () => loadMetaobjectsOfType(tx, keyFromName(type))),
+    metaobjects: (ids) => loadMetaobjects(tx, ids),
+    importedFiles: () => once('imported-files', () => loadImportedFiles(tx)),
+    browse: async ({ collectionId, query, perPage }) => {
+      const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)
+      const q = (first(query.q) ?? '').trim().slice(0, 100)
+      const filters = parseBrowseFilters(query)
+      // Shopify's defaults: a collection's own order, search by relevance.
+      const fallback = collectionId ? 'manual' : q ? 'relevance' : 'title-ascending'
+      const sort = parseBrowseSort(first(query.sort_by), BROWSE_SORTS, fallback)
+      const result = await browseProducts(tx, {
+        collectionId: collectionId ?? undefined,
+        query: q || undefined,
+        // The store's search engine (the Meilisearch app) ranks a search when it has one ready.
+        storeId: options.storeId,
+        filters,
+        sort: sort === 'manual' && !collectionId ? 'title-ascending' : sort,
+        page: parsePage(first(query.page)),
+        perPage,
+      })
+      const byHandle = await productsByHandles(tx, result.handles)
+      return {
+        products: result.handles.flatMap((h) => byHandle.get(h) ?? []),
+        total: result.total,
+        facets: result.facets,
+        filters,
+        sort,
+        q,
+      }
+    },
   }
+}
+
+/** The product an imported theme's script names: our UUID or the whole number it was shown. Null when neither matches. */
+export async function resolveThemeProductId(tx: StoreTx, raw: string): Promise<string | null> {
+  if (UUID.test(raw)) return raw
+  const prefix = uuidPrefixOf(raw)
+  if (!prefix) return null
+  const rows = await tx
+    .select({ id: product.id })
+    .from(product)
+    .where(like(sql`${product.id}::text`, `${prefix}%`))
+    .limit(2)
+  return rows.length === 1 ? (rows[0]?.id ?? null) : null
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i

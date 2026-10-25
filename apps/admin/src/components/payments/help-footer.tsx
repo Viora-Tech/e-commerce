@@ -1,24 +1,26 @@
 'use client'
 
-import { MessageSquare } from '@commerce/ui/icons'
+import { siteConfig } from '@commerce/config/site'
+import { ExternalLink } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { toast } from 'sonner'
 import { paymentsSetupContent } from '@/data/payments-setup'
 import { useCopy } from '@/hooks/use-copy'
 
-/** WhatsApp help, a placeholder until the support number is live. */
+/** A plain link to the setup guide in the docs (WhatsApp help lives only in the user menu). */
 export default function HelpFooter() {
   // Hooks
   const copy = useCopy(paymentsSetupContent)
 
-  // Event handlers
-  const handleHelp = () => toast.info(copy.whatsapp.soon)
-
   return (
     <div className="flex justify-center">
-      <Button variant="ghost" className="gap-2" onClick={handleHelp}>
-        <MessageSquare aria-hidden="true" className="size-4" />
-        {copy.whatsapp.label}
+      <Button
+        variant="ghost"
+        className="gap-2"
+        render={<a href={siteConfig.urls.docs} target="_blank" rel="noreferrer" />}
+        nativeButton={false}
+      >
+        <ExternalLink aria-hidden="true" className="size-4" />
+        {copy.guide.label}
       </Button>
     </div>
   )

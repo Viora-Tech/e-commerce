@@ -1,0 +1,1 @@
+ALTER TABLE "product" ADD COLUMN "seo_keywords" text[] DEFAULT '{}' NOT NULL;

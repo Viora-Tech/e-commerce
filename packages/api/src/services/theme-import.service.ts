@@ -1,5 +1,6 @@
 import { loadEnv, settingsSecret } from '@commerce/config'
 import {
+  canvasSafeHtml,
   createPageContext,
   googleFontsHref,
   importShopifyTheme,
@@ -9,10 +10,15 @@ import {
   renderLiquidSection,
   type ShopifySectionSchema,
   sectionWrapper,
+  storefrontOriginFor,
   storeLiquidData,
+  ThemeImportError,
+  ThemeLibraryError,
   themeImportFor,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
+import { logger } from '@commerce/observability/logging'
+import { reviewsLiquidSource } from '@commerce/plugin-reviews/server'
 import { storeRegistries } from './apps.service'
 import { storageProviderFor } from './media.service'
 
@@ -22,7 +28,9 @@ import { storageProviderFor } from './media.service'
  * canvas shows the look, the storefront runs the behaviour).
  */
 
-const storefront = () => new URL(loadEnv(process.env).STOREFRONT_URL)
+/** The store's own storefront (its live primary domain; STOREFRONT_URL only as the fallback). */
+const storefront = async (tx: StoreTx, storeId: string) =>
+  new URL(await storefrontOriginFor(tx, storeId, loadEnv(process.env).STOREFRONT_URL))
 
 /** Imports an uploaded Shopify theme zip as a new unpublished theme. */
 export async function importThemeZip(
@@ -30,15 +38,26 @@ export async function importThemeZip(
   storeId: string,
   input: { file: File; shopifyHost?: string | undefined },
 ) {
-  const { storage } = await storeRegistries(tx, storeId)
-  const provider = await storageProviderFor(tx, storeId, storage, settingsSecret())
-  const zip = new Uint8Array(await input.file.arrayBuffer())
-  return importShopifyTheme(
-    tx,
-    storeId,
-    { zip, fileName: input.file.name, shopifyHost: input.shopifyHost },
-    { storage: provider },
-  )
+  try {
+    const { storage } = await storeRegistries(tx, storeId)
+    const provider = await storageProviderFor(tx, storeId, storage, settingsSecret())
+    const zip = new Uint8Array(await input.file.arrayBuffer())
+    return await importShopifyTheme(
+      tx,
+      storeId,
+      { zip, fileName: input.file.name, shopifyHost: input.shopifyHost },
+      { storage: provider },
+    )
+  } catch (err) {
+    if (err instanceof ThemeLibraryError) throw err
+    // Never a bare 500: the merchant gets plain words, and the request's transaction
+    // rolls back so no half-made theme stays behind.
+    logger.error('theme import failed', { storeId, file: input.file.name, error: err })
+    throw new ThemeImportError(
+      'THEME_IMPORT_INVALID',
+      'We could not import this theme, and nothing was added. Try again; if it keeps failing, contact support with the file name.',
+    )
+  }
 }
 
 /** The import report page's data. */
@@ -53,20 +72,26 @@ export async function themeImportReport(tx: StoreTx, themeId: string) {
   }
 }
 
-/** Script tags never run in the editor canvas (it shares the admin's origin). */
-const stripScripts = (html: string) =>
-  html
-    .replace(/<script\b[\s\S]*?<\/script>/gi, '')
-    .replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*')/gi, '')
+/**
+ * Nothing a theme wrote runs in the editor canvas (it shares the admin's origin): scripts,
+ * frames, handlers and script URLs are removed by a real HTML sanitiser (`canvasSafeHtml`),
+ * not a pattern a theme can step around.
+ */
+const stripScripts = canvasSafeHtml
 
 async function editorContext(tx: StoreTx, storeId: string, themeId: string) {
   const bundle = await loadThemeBundle(tx, themeId)
   if (!bundle) return null
   const record = await themeImportFor(tx, themeId)
-  const url = storefront()
+  const url = await storefront(tx, storeId)
   return createPageContext({
     bundle,
-    data: await storeLiquidData(tx, { storeId, host: url.host, origin: url.origin }),
+    data: await storeLiquidData(tx, {
+      storeId,
+      host: url.host,
+      origin: url.origin,
+      reviews: await reviewsLiquidSource(tx, storeId),
+    }),
     request: {
       template: 'index',
       path: '/',

@@ -1,10 +1,12 @@
 import type { CSSProperties } from 'react'
-import type { FooterSettings } from '../sections/glide/footer'
+import type { FooterSettings } from '../sections/zero-drift/footer'
 import { safeHref } from '../slot-types'
 import type { ThemeMode } from '../types'
 import FooterBottom from './footer-bottom'
+import FooterNewsletter from './footer-newsletter'
 import Icon from './icon'
 import RichCopy from './rich-copy'
+import type { NewsletterAction } from './sections/newsletter'
 import SocialLinks from './social-links'
 
 type FooterProps = FooterSettings & {
@@ -21,12 +23,14 @@ type FooterProps = FooterSettings & {
   themeToggle?: ThemeMode | null
   /** The theme's logo, drawn over the about text when the section shows it. */
   logo?: { url: string; width: number; height?: number | undefined } | null
+  /** The storefront's newsletter signup, for the footer's email field. */
+  newsletterAction?: NewsletterAction | undefined
 }
 
 const external = (href: string) => /^https?:\/\//i.test(href)
 
-// Port of sections/footer.liquid: help cards, the about column, the store's menu columns
-// (accordions on phones) and the bottom bar.
+// Figma Section / Footer (704:109663), from sections/footer.liquid: help cards, the brand column,
+// the store's menu columns (accordions on phones), the email sign-up and the bottom bar.
 export default function Footer({
   storeName,
   columns,
@@ -35,6 +39,7 @@ export default function Footer({
   grievance = null,
   themeToggle = null,
   logo = null,
+  newsletterAction,
   helpCards,
   aboutHeading,
   tagline,
@@ -45,13 +50,16 @@ export default function Footer({
   showPaymentIcons,
   paymentIcons,
   showPolicies,
+  showNewsletter,
+  newsletterHeading,
+  newsletterButton,
 }: FooterProps) {
   // Render logic
   const span = wide ? 2 : 1
-  const gridColumns = Math.min(6, Math.max(2, columns.length + span))
+  const gridColumns = Math.min(7, Math.max(2, columns.length + span + (showNewsletter ? 2 : 0)))
 
   return (
-    <footer className="footer color-scheme-3">
+    <footer className="footer">
       <div
         className="footer__top page-width"
         style={{ '--footer-columns': gridColumns } as CSSProperties}
@@ -98,7 +106,7 @@ export default function Footer({
               />
             </a>
           ) : null}
-          <p className="footer__heading">{aboutHeading || storeName}</p>
+          <p className="footer__brand-name">{aboutHeading || storeName}</p>
           <RichCopy value={tagline} className="footer__text text-small" />
           {showSocial ? <SocialLinks links={socials} /> : null}
         </div>
@@ -123,6 +131,13 @@ export default function Footer({
             </details>
           </div>
         ))}
+        {showNewsletter ? (
+          <FooterNewsletter
+            heading={newsletterHeading}
+            button={newsletterButton}
+            action={newsletterAction}
+          />
+        ) : null}
       </div>
       <FooterBottom
         storeName={storeName}

@@ -1,5 +1,5 @@
-/** SOURCE OF TRUTH: Shopify theme zip reading — WHAT: unpack the zip Shopify emails ("Download theme file") into a checked map of theme files: size caps, file-count cap, zip-slip safe paths, only the folders and file types a theme has / WHY: the upload is untrusted bytes, and nothing in it is ever executed on our servers; every later step reads only what this returns */
-import { unzipSync } from 'fflate'
+/** SOURCE OF TRUTH: Shopify theme zip reading — WHAT: unpack the zip Shopify emails ("Download theme file") into a checked map of theme files: size caps counted on the bytes actually inflated (never on what the zip claims), file-count cap, zip-slip safe paths, only the folders and file types a theme has / WHY: the upload is untrusted bytes, and nothing in it is ever executed on our servers; every later step reads only what this returns */
+import { Inflate } from 'fflate'
 import { CommerceError } from '../errors'
 
 /** Upload and unpack limits. A large real theme (Zero Drift) is ~5 MB unpacked. */
@@ -82,7 +82,7 @@ export class ThemeArchiveProblem extends CommerceError {
 const extensionOf = (path: string): string => path.split('.').pop()?.toLowerCase() ?? ''
 
 /** The content type for a theme file, or null for a type a theme never has. */
-function themeContentType(path: string): { type: string; text: boolean } | null {
+export function themeContentType(path: string): { type: string; text: boolean } | null {
   const ext = extensionOf(path)
   if (TEXT_TYPES[ext]) return { type: TEXT_TYPES[ext], text: true }
   if (BINARY_TYPES[ext]) return { type: BINARY_TYPES[ext], text: false }
@@ -122,6 +122,107 @@ function inThemeFolder(path: string): boolean {
   return parts.length === 3 && folder === 'templates' && parts[1] === 'customers'
 }
 
+const NOT_A_ZIP = 'This file is not a zip. Upload the .zip Shopify emailed you.'
+const TOO_BIG = 'This zip unpacks to more than 120 MB.'
+
+/** One entry of the zip's central directory: where its bytes are and what it claims. */
+type ZipEntry = {
+  name: string
+  method: number
+  flags: number
+  compressedSize: number
+  declaredSize: number
+  localOffset: number
+}
+
+const u16 = (b: Uint8Array, at: number) => (b[at] ?? 0) | ((b[at + 1] ?? 0) << 8)
+const u32 = (b: Uint8Array, at: number) => (u16(b, at) | (u16(b, at + 2) << 16)) >>> 0
+
+/** The central directory (the zip's own table of contents), bounds-checked. */
+function zipEntries(zip: Uint8Array): ZipEntry[] {
+  // End of central directory: 22 bytes plus an optional comment of up to 64 KB.
+  let end = -1
+  for (let i = zip.length - 22; i >= 0 && i >= zip.length - 22 - 0xffff; i--) {
+    if (u32(zip, i) === 0x06054b50) {
+      end = i
+      break
+    }
+  }
+  if (end < 0) throw new ThemeArchiveProblem(NOT_A_ZIP)
+  const count = u16(zip, end + 10)
+  let at = u32(zip, end + 16)
+  // ZIP64 (over 65,535 files or 4 GB) is never a theme.
+  if (count === 0xffff || at === 0xffffffff) throw new ThemeArchiveProblem(NOT_A_ZIP)
+  const names = new TextDecoder('utf-8')
+  const entries: ZipEntry[] = []
+  for (let n = 0; n < count; n++) {
+    if (at + 46 > zip.length || u32(zip, at) !== 0x02014b50) {
+      throw new ThemeArchiveProblem(NOT_A_ZIP)
+    }
+    const nameLength = u16(zip, at + 28)
+    const next = at + 46 + nameLength + u16(zip, at + 30) + u16(zip, at + 32)
+    if (next > zip.length) throw new ThemeArchiveProblem(NOT_A_ZIP)
+    entries.push({
+      flags: u16(zip, at + 8),
+      method: u16(zip, at + 10),
+      compressedSize: u32(zip, at + 20),
+      declaredSize: u32(zip, at + 24),
+      localOffset: u32(zip, at + 42),
+      name: names.decode(zip.subarray(at + 46, at + 46 + nameLength)),
+    })
+    at = next
+  }
+  return entries
+}
+
+/** Compressed bytes are fed to the inflater this many at a time, so one step stays small. */
+const INFLATE_STEP = 16 * 1024
+
+/** Thrown from inside the inflater to stop it the moment it passes its budget. */
+class OverBudget extends CommerceError {
+  constructor() {
+    super('THEME_ARCHIVE_OVER_BUDGET', 'a zip entry inflated past its declared size')
+  }
+}
+
+/**
+ * One entry's bytes, inflated against what it declared: the count is of bytes actually
+ * produced, and inflation stops as soon as it passes the declared size. A zip whose
+ * directory understates a file (a "zip bomb" that says 1 KB and inflates to gigabytes)
+ * costs one small step of work, never the whole expansion. Null for an entry we do not
+ * read (encrypted, an unknown compression, a stored size that does not add up).
+ */
+function entryBytes(zip: Uint8Array, entry: ZipEntry): Uint8Array | null {
+  const local = entry.localOffset
+  if (local + 30 > zip.length || u32(zip, local) !== 0x04034b50) {
+    throw new ThemeArchiveProblem(NOT_A_ZIP)
+  }
+  const start = local + 30 + u16(zip, local + 26) + u16(zip, local + 28)
+  const end = start + entry.compressedSize
+  if (end > zip.length) throw new ThemeArchiveProblem(NOT_A_ZIP)
+  if (entry.flags & 1) return null
+  const data = zip.subarray(start, end)
+  if (entry.method === 0) return data.byteLength === entry.declaredSize ? data.slice() : null
+  if (entry.method !== 8) return null
+  const out = new Uint8Array(entry.declaredSize)
+  let size = 0
+  const inflater = new Inflate((chunk) => {
+    if (size + chunk.byteLength > out.byteLength) throw new OverBudget()
+    out.set(chunk, size)
+    size += chunk.byteLength
+  })
+  try {
+    for (let i = 0; i < data.byteLength; i += INFLATE_STEP) {
+      inflater.push(data.subarray(i, i + INFLATE_STEP), i + INFLATE_STEP >= data.byteLength)
+    }
+    if (data.byteLength === 0) inflater.push(new Uint8Array(0), true)
+  } catch (err) {
+    if (err instanceof OverBudget) throw new ThemeArchiveProblem(TOO_BIG)
+    throw new ThemeArchiveProblem(NOT_A_ZIP)
+  }
+  return size === out.byteLength ? out : null
+}
+
 /**
  * Reads the uploaded zip. Throws `ThemeArchiveProblem` with a message the merchant
  * can act on when it is too large, not a zip, or not a Shopify theme.
@@ -130,29 +231,19 @@ export function readThemeArchive(zip: Uint8Array): ThemeArchive {
   if (zip.byteLength > THEME_ARCHIVE_LIMITS.zipBytes) {
     throw new ThemeArchiveProblem('This file is larger than 50 MB. Upload the theme zip only.')
   }
+  const listed = zipEntries(zip).filter((e) => !e.name.endsWith('/'))
+  if (listed.length > THEME_ARCHIVE_LIMITS.files) {
+    throw new ThemeArchiveProblem('This zip has too many files to be a theme.')
+  }
+  const entries: Record<string, Uint8Array | null> = {}
   let declared = 0
-  let count = 0
-  let entries: Record<string, Uint8Array>
-  try {
-    entries = unzipSync(zip, {
-      // Checked from the zip's own directory before anything is inflated.
-      filter: (file) => {
-        if (file.name.endsWith('/')) return false
-        count += 1
-        declared += file.originalSize
-        if (count > THEME_ARCHIVE_LIMITS.files) {
-          throw new ThemeArchiveProblem('This zip has too many files to be a theme.')
-        }
-        if (file.originalSize > THEME_ARCHIVE_LIMITS.fileBytes) return false
-        if (declared > THEME_ARCHIVE_LIMITS.totalBytes) {
-          throw new ThemeArchiveProblem('This zip unpacks to more than 120 MB.')
-        }
-        return true
-      },
-    })
-  } catch (err) {
-    if (err instanceof ThemeArchiveProblem) throw err
-    throw new ThemeArchiveProblem('This file is not a zip. Upload the .zip Shopify emailed you.')
+  for (const entry of listed) {
+    // Checked from the zip's own directory before anything is inflated; `entryBytes`
+    // then holds every file to what it declared, so these sums bound the real work.
+    if (entry.declaredSize > THEME_ARCHIVE_LIMITS.fileBytes) continue
+    declared += entry.declaredSize
+    if (declared > THEME_ARCHIVE_LIMITS.totalBytes) throw new ThemeArchiveProblem(TOO_BIG)
+    entries[entry.name] = entryBytes(zip, entry)
   }
 
   const names = Object.keys(entries)

@@ -2,31 +2,26 @@
 
 import { permissions } from '@commerce/core/permissions'
 import { Plus, Truck } from '@commerce/ui/icons'
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@commerce/ui/shadcn/table'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
-import { INDIAN_STATES } from '@/data/india'
+import StatusChip from '@/components/layout/status-chip'
+import SettingsCard from '@/components/settings/settings-card'
+import SettingsTable from '@/components/settings/settings-table'
+import SettingsTableCell from '@/components/settings/settings-table-cell'
+import SettingsTableRow from '@/components/settings/settings-table-row'
+import RowActionsCell from '@/components/table/row-actions-cell'
+import { stateName } from '@/data/india'
 import { shippingRatesContent } from '@/data/shipping-rates'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import { describePrice, fromRate, type LoadedZone } from './form-state'
 
 type ListCopy = (typeof shippingRatesContent)['list']
-
-const stateName = (code: string): string => INDIAN_STATES.find((s) => s.code === code)?.name ?? code
 
 /** "Karnataka, Kerala · 2 PIN code rules", or "All of India". */
 function coverage(copy: ListCopy, zone: LoadedZone): string {
@@ -41,7 +36,7 @@ function coverage(copy: ListCopy, zone: LoadedZone): string {
   return parts.join(' · ')
 }
 
-const zoneHref = (id: string) => `/settings/shipping/zones/${id}`
+const zoneHref = (id: string) => routes.settings.shippingZone(id)
 
 /** Settings → Shipping → Shipping rates: every zone with what it covers and charges. */
 export default function ShippingZonesCard() {
@@ -71,75 +66,82 @@ export default function ShippingZonesCard() {
   const copy = ratesCopy.list
   const canManage = hasPermission(permissions.SETTINGS_MANAGE)
   const create = canManage ? (
-    <Button nativeButton={false} render={<Link href="/settings/shipping/zones/new" />}>
+    <Button nativeButton={false} render={<Link href={routes.settings.newShippingZone()} />}>
       <Plus />
       {copy.create}
     </Button>
   ) : null
 
+  // Early returns
+  if (failed || zones === null || zones.length === 0) {
+    return (
+      <SettingsCard title={copy.heading} description={copy.meta}>
+        {failed ? (
+          <p className="text-body text-danger">{copy.loadFailed}</p>
+        ) : zones === null ? (
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        ) : (
+          <EmptyState
+            icon={Truck}
+            heading={copy.empty.heading}
+            body={copy.empty.body}
+            action={create}
+          />
+        )}
+      </SettingsCard>
+    )
+  }
+
   return (
-    <DataCard title={copy.heading} meta={copy.meta} action={zones?.length ? create : null} flush>
-      {failed ? (
-        <p className="px-5 pb-2 text-body text-destructive">{copy.loadFailed}</p>
-      ) : zones === null ? (
-        <div className="flex flex-col gap-2 px-5 pb-2">
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-        </div>
-      ) : zones.length === 0 ? (
-        <EmptyState
-          icon={Truck}
-          heading={copy.empty.heading}
-          body={copy.empty.body}
-          action={create}
-        />
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="pl-5">{copy.columns.zone}</TableHead>
-              <TableHead className="hidden md:table-cell">{copy.columns.covers}</TableHead>
-              <TableHead className="pr-5">{copy.columns.rates}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {zones.map((z) => (
-              <TableRow key={z.id}>
-                <TableCell className="pl-5 align-top">
-                  <Link
-                    href={zoneHref(z.id)}
-                    className="text-body-strong text-ink-strong underline-offset-4 hover:underline"
-                  >
-                    {z.name}
-                  </Link>
-                  <div className="text-caption text-muted-foreground md:hidden">
-                    {coverage(copy, z)}
-                  </div>
-                </TableCell>
-                <TableCell className="hidden align-top text-muted-foreground md:table-cell">
-                  {coverage(copy, z)}
-                </TableCell>
-                <TableCell className="pr-5 align-top whitespace-normal">
-                  {z.rates.length === 0 ? (
-                    <Badge variant="warning">{copy.noRates}</Badge>
-                  ) : (
-                    <ul className="flex flex-col gap-1">
-                      {z.rates.map((r) => (
-                        <li key={r.id} className="flex flex-wrap items-baseline gap-x-2">
-                          <span className="text-body-strong">{r.name}</span>
-                          <span className="text-caption text-muted-foreground">
-                            {describePrice(ratesCopy, fmt, fromRate(r))}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
-    </DataCard>
+    <SettingsTable
+      heading={copy.heading}
+      description={copy.meta}
+      actions
+      columns={[
+        { label: copy.columns.zone },
+        { label: copy.columns.covers, className: 'hidden md:table-cell' },
+        { label: copy.columns.rates },
+      ]}
+      footer={create}
+    >
+      {zones.map((z) => (
+        <SettingsTableRow key={z.id} className="align-top">
+          <SettingsTableCell>
+            <Link
+              href={zoneHref(z.id)}
+              className="font-semibold text-ink-strong underline-offset-4 hover:underline"
+            >
+              {z.name}
+            </Link>
+            <div className="text-caption text-muted-foreground md:hidden">{coverage(copy, z)}</div>
+          </SettingsTableCell>
+          <SettingsTableCell className="hidden text-muted-foreground md:table-cell">
+            {coverage(copy, z)}
+          </SettingsTableCell>
+          <SettingsTableCell className="whitespace-normal">
+            {z.rates.length === 0 ? (
+              <StatusChip tone="attention">{copy.noRates}</StatusChip>
+            ) : (
+              <ul className="flex flex-col gap-1">
+                {z.rates.map((r) => (
+                  <li key={r.id} className="flex flex-wrap items-baseline gap-x-2">
+                    <span className="font-semibold">{r.name}</span>
+                    <span className="text-caption text-muted-foreground">
+                      {describePrice(ratesCopy, fmt, fromRate(r))}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </SettingsTableCell>
+          <SettingsTableCell className="w-16 p-0 last:pr-2 md:last:pr-2">
+            <RowActionsCell href={zoneHref(z.id)} />
+          </SettingsTableCell>
+        </SettingsTableRow>
+      ))}
+    </SettingsTable>
   )
 }

@@ -1,6 +1,7 @@
-/** SOURCE OF TRUTH: AI product field changes and their undo — WHAT reads, patches and restores the product fields AI may change (title, description, search text, tags, photo alt text) / WHY the assistant, the bulk writer and Undo touch them one way, inside RLS */
+/** SOURCE OF TRUTH: AI product field changes and their undo — WHAT reads, patches and restores the product fields AI may change (title, description, search text, search keywords, tags, photo alt text) / WHY the assistant, the bulk writer and Undo touch them one way, inside RLS */
 import { media, product, productMedia, type StoreTx } from '@commerce/db'
 import { asc, eq, inArray } from 'drizzle-orm'
+import { noteProductEvent, noteProductsChanged } from '../catalog/changes'
 import { syncAutomaticCollections } from '../collections/service'
 
 /** What AI may change on a product. `description` is Lexical JSON (see @commerce/richtext). */
@@ -9,6 +10,8 @@ export type ProductFieldsPatch = {
   description?: unknown
   seoTitle?: string | null | undefined
   seoDescription?: string | null | undefined
+  /** Search keywords, primary first. */
+  seoKeywords?: string[] | undefined
   tags?: string[] | undefined
   /** Alt text per photo id; only the product's own photos are changed. */
   mediaAlt?: { mediaId: string; alt: string | null }[] | undefined
@@ -21,6 +24,7 @@ export type ProductFieldsSnapshot = {
   description: unknown
   seoTitle: string | null
   seoDescription: string | null
+  seoKeywords: string[]
   tags: string[]
   mediaAlt: { mediaId: string; alt: string | null }[]
 }
@@ -54,6 +58,7 @@ export async function productFieldsSnapshot(
       description: product.description,
       seoTitle: product.seoTitle,
       seoDescription: product.seoDescription,
+      seoKeywords: product.seoKeywords,
       tags: product.tags,
     })
     .from(product)
@@ -86,6 +91,7 @@ async function writeFields(
       description: patch.description,
       seoTitle: patch.seoTitle,
       seoDescription: patch.seoDescription,
+      seoKeywords: patch.seoKeywords,
       tags: patch.tags,
     }).filter(([, v]) => v !== undefined),
   )
@@ -117,9 +123,14 @@ export async function patchProductFields(
   patches: { productId: string; patch: ProductFieldsPatch }[],
 ): Promise<number> {
   let changed = 0
+  const changedIds: string[] = []
   for (const { productId, patch } of patches) {
-    if (await writeFields(tx, productId, patch)) changed++
+    if (!(await writeFields(tx, productId, patch))) continue
+    changed++
+    changedIds.push(productId)
   }
+  await noteProductsChanged(tx, changedIds, storeId)
+  await noteProductEvent(tx, storeId, 'product.updated', changedIds)
   if (patches.some((p) => p.patch.tags !== undefined)) await syncAutomaticCollections(tx, storeId)
   return changed
 }

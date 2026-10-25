@@ -1,41 +1,38 @@
 'use client'
 
 import {
+  Bell,
+  CancelCircle,
   ChevronLeftIcon,
   ChevronRightIcon,
-  MoreHorizontal,
+  CircleCheck,
+  Copy,
+  Package,
+  PackageCheck,
   Printer,
   RotateCcw,
   Send,
+  Truck,
+  Users,
 } from '@commerce/ui/icons'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
 import Link from 'next/link'
 import { useState } from 'react'
+import { toast } from 'sonner'
+import ActionMenu, { type ActionItem } from '@/components/layout/action-menu'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
+import { orderAppActionsContent } from '@/data/order-app-actions'
+import { orderDetailContent } from '@/data/order-detail'
 import {
   type OrderFulfillmentStatus,
   type OrderMark,
   type OrderPaymentStatus,
   type OrderStatus,
-  orderDetailContent,
+  ordersContent,
 } from '@/data/orders'
 import { useCopy } from '@/hooks/use-copy'
+import { MOVE_ACTION, nextOrderMove } from '@/lib/order-next-move'
+import { routes } from '@/lib/routes'
 
 type OrderActionsProps = {
   status: OrderStatus
@@ -47,42 +44,22 @@ type OrderActionsProps = {
   onRefund: () => void
   /** Present while a deposit pre-order's balance is owed: "Request balance". */
   onRequestBalance?: (() => void) | undefined
+  /** Present while the order is ready to ship (open, to pack, paid or COD): "Create shipment". */
+  onShip?: (() => void) | undefined
+  /** Cancels the booked courier shipment (asks first); undefined when there is none to cancel. */
+  onCancelShipment?: (() => void) | undefined
+  /** Nudges the customer about an unmatched UPI or bank transfer. */
+  onSendReminder?: (() => void) | undefined
+  /** The order's number, for "Copy order number". */
+  orderNumber?: number | undefined
+  /** The customer's email, for "Orders from this customer". */
+  customerEmail?: string | null | undefined
+  /** Installed apps' actions, grouped under each app (`useOrderAppActions`). */
+  appItems?: readonly ActionItem[]
   /** Imported history: only printing and stepping between orders. */
   readOnly?: boolean
   previousId?: string | undefined
   nextId?: string | undefined
-}
-
-type Step = { label: string; to: OrderMark; primary: boolean }
-
-const OWED: ReadonlySet<OrderPaymentStatus> = new Set(['unpaid', 'authorized', 'partially_paid'])
-const TO_PACK: ReadonlySet<OrderFulfillmentStatus> = new Set(['unfulfilled', 'partially_fulfilled'])
-const ON_ITS_WAY: ReadonlySet<OrderFulfillmentStatus> = new Set([
-  'fulfilled',
-  'shipped',
-  'partially_delivered',
-])
-
-/**
- * The one forward step for an open order: take the money, then pack, then
- * hand over. Taking the money and marking delivered earn the ink button;
- * packing stays in the menu because the Unfulfilled section already offers it.
- */
-function nextStep(
-  copy: typeof orderDetailContent,
-  status: OrderStatus,
-  payment: OrderPaymentStatus,
-  fulfilment: OrderFulfillmentStatus,
-): Step | undefined {
-  if (status !== 'open') return undefined
-  if (OWED.has(payment)) return { label: copy.actions.markPaid, to: 'paid', primary: true }
-  if (TO_PACK.has(fulfilment)) {
-    return { label: copy.actions.fulfil, to: 'fulfilled', primary: false }
-  }
-  if (ON_ITS_WAY.has(fulfilment)) {
-    return { label: copy.actions.deliver, to: 'delivered', primary: true }
-  }
-  return undefined
 }
 
 export default function OrderActions({
@@ -94,107 +71,161 @@ export default function OrderActions({
   onMove,
   onRefund,
   onRequestBalance,
+  onShip,
+  onCancelShipment,
+  onSendReminder,
+  orderNumber,
+  customerEmail,
+  appItems = [],
   readOnly = false,
   previousId,
   nextId,
 }: OrderActionsProps) {
   // Hooks
   const copy = useCopy(orderDetailContent)
-  const [confirmCancel, setConfirmCancel] = useState(false)
+  const list = useCopy(ordersContent)
+  const appCopy = useCopy(orderAppActionsContent)
+  const [confirm, setConfirm] = useState<'cancel' | 'cancelShipment' | null>(null)
+
+  // Event handlers
+  const handleCopyNumber = async () => {
+    if (orderNumber === undefined) return
+    await navigator.clipboard.writeText(`#${orderNumber}`).catch(() => undefined)
+    toast.success(list.row.numberCopied)
+  }
 
   // Render logic
-  const next = readOnly ? undefined : nextStep(copy, status, paymentStatus, fulfillmentStatus)
-  const primary = next?.primary ? next : undefined
-  const menuMove = next && !primary ? next : undefined
+  const move = readOnly ? undefined : nextOrderMove(status, paymentStatus, fulfillmentStatus)
+  /* The Next step card owns the main action; the menu keeps the same move for when it is not shown. */
+  const menuMove = move ? { label: copy.actions[MOVE_ACTION[move]], to: move } : undefined
   // Once the parcel is in the shopper's hands, a cancel no longer undoes anything.
   const cancellable = !readOnly && status === 'open' && fulfillmentStatus !== 'delivered'
   const refundable = !readOnly && canRefund
+  const moveIcon =
+    menuMove?.to === 'paid' ? CircleCheck : menuMove?.to === 'fulfilled' ? PackageCheck : Package
 
-  /* After the Saleor Dashboard order header (BSD-3): small square icon buttons, one menu for
-     everything secondary, and at most one ink primary action. */
+  /* Figma "Orders / Order detail" header: previous / next order arrows, Print and "More actions"
+     (outline); the main action lives in the Next step card. */
   return (
     <div className="flex items-center gap-2 print:hidden">
-      <Button
-        variant="outline"
-        size="icon"
-        aria-label={copy.actions.print}
-        title={copy.actions.print}
-        onClick={() => window.print()}
-      >
-        <Printer aria-hidden="true" />
-      </Button>
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          render={<Button variant="outline" size="icon" aria-label={copy.actions.more} />}
+      <div className="flex items-center">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label={copy.previous}
+          disabled={!previousId}
+          nativeButton={!previousId}
+          render={previousId ? <Link href={`/orders/${previousId}`} /> : undefined}
         >
-          <MoreHorizontal aria-hidden="true" />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="min-w-48">
-          {menuMove ? (
-            <DropdownMenuItem onClick={() => onMove(menuMove.to)} disabled={busy}>
-              {menuMove.label}
-            </DropdownMenuItem>
-          ) : null}
-          {refundable ? (
-            <DropdownMenuItem onClick={onRefund} disabled={busy}>
-              <RotateCcw aria-hidden="true" /> {copy.actions.refund}
-            </DropdownMenuItem>
-          ) : null}
-          {onRequestBalance && !readOnly ? (
-            <DropdownMenuItem onClick={onRequestBalance} disabled={busy}>
-              <Send aria-hidden="true" /> {copy.payment.preorder.request}
-            </DropdownMenuItem>
-          ) : null}
-          {menuMove || refundable || onRequestBalance ? <DropdownMenuSeparator /> : null}
-          <DropdownMenuItem
-            disabled={!previousId}
-            render={previousId ? <Link href={`/orders/${previousId}`} /> : undefined}
-          >
-            <ChevronLeftIcon aria-hidden="true" /> {copy.previous}
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            disabled={!nextId}
-            render={nextId ? <Link href={`/orders/${nextId}`} /> : undefined}
-          >
-            <ChevronRightIcon aria-hidden="true" /> {copy.next}
-          </DropdownMenuItem>
-          {cancellable ? (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem variant="destructive" onClick={() => setConfirmCancel(true)}>
-                {copy.actions.cancel}
-              </DropdownMenuItem>
-            </>
-          ) : null}
-        </DropdownMenuContent>
-      </DropdownMenu>
-      {primary ? (
-        <Button onClick={() => onMove(primary.to)} disabled={busy}>
-          {primary.label}
+          <ChevronLeftIcon aria-hidden="true" />
         </Button>
-      ) : null}
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label={copy.next}
+          disabled={!nextId}
+          nativeButton={!nextId}
+          render={nextId ? <Link href={`/orders/${nextId}`} /> : undefined}
+        >
+          <ChevronRightIcon aria-hidden="true" />
+        </Button>
+      </div>
+      <Button variant="outline" title={copy.actions.print} onClick={() => window.print()}>
+        <Printer aria-hidden="true" />
+        {copy.actions.printShort}
+      </Button>
+      <ActionMenu
+        label={copy.actions.more}
+        trigger="button"
+        items={[
+          {
+            label: menuMove?.label ?? '',
+            icon: moveIcon,
+            hidden: !menuMove,
+            disabled: busy,
+            onSelect: () => menuMove && onMove(menuMove.to),
+          },
+          {
+            label: appCopy.createShipment,
+            icon: Truck,
+            hidden: !onShip || readOnly,
+            disabled: busy,
+            onSelect: onShip,
+          },
+          {
+            label: list.row.cancelShipment,
+            icon: CancelCircle,
+            hidden: !onCancelShipment || readOnly,
+            disabled: busy,
+            onSelect: () => setConfirm('cancelShipment'),
+          },
+          {
+            label: copy.actions.refund,
+            icon: RotateCcw,
+            hidden: !refundable,
+            disabled: busy,
+            onSelect: onRefund,
+          },
+          {
+            label: copy.payment.preorder.request,
+            icon: Send,
+            hidden: !onRequestBalance || readOnly,
+            disabled: busy,
+            onSelect: onRequestBalance,
+          },
+          {
+            label: copy.payment.transfer.send,
+            icon: Bell,
+            hidden: !onSendReminder || readOnly,
+            disabled: busy,
+            onSelect: onSendReminder,
+          },
+          {
+            label: list.row.copyNumber,
+            icon: Copy,
+            hidden: orderNumber === undefined,
+            separatorBefore: true,
+            onSelect: handleCopyNumber,
+          },
+          {
+            label: list.row.sameCustomer,
+            icon: Users,
+            hidden: !customerEmail,
+            href: `${routes.orders.list()}?query=${encodeURIComponent(customerEmail ?? '')}`,
+          },
+          ...(readOnly ? [] : appItems).map((item, i) => ({
+            ...item,
+            heading: i === 0 ? list.row.apps : undefined,
+          })),
+          {
+            label: copy.actions.cancel,
+            icon: CancelCircle,
+            destructive: true,
+            hidden: !cancellable,
+            separatorBefore: true,
+            onSelect: () => setConfirm('cancel'),
+          },
+        ]}
+      />
 
-      <AlertDialog open={confirmCancel} onOpenChange={setConfirmCancel}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{copy.cancelDialog.title}</AlertDialogTitle>
-            <AlertDialogDescription>{copy.cancelDialog.body}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{copy.cancelDialog.keep}</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 dark:bg-destructive dark:text-destructive-foreground dark:hover:bg-destructive/90"
-              onClick={() => {
-                setConfirmCancel(false)
-                onMove('cancelled')
-              }}
-            >
-              {copy.cancelDialog.confirm}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={confirm === 'cancel'}
+        onOpenChange={(o) => !o && setConfirm(null)}
+        title={copy.cancelDialog.title}
+        body={copy.cancelDialog.body}
+        confirmLabel={copy.cancelDialog.confirm}
+        cancelLabel={copy.cancelDialog.keep}
+        onConfirm={() => onMove('cancelled')}
+      />
+      <ConfirmDialog
+        open={confirm === 'cancelShipment'}
+        onOpenChange={(o) => !o && setConfirm(null)}
+        title={list.row.cancelShipmentTitle}
+        body={list.row.cancelShipmentBody}
+        confirmLabel={list.row.cancelShipmentConfirm}
+        cancelLabel={list.row.keepShipment}
+        onConfirm={() => onCancelShipment?.()}
+      />
     </div>
   )
 }

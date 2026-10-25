@@ -2,8 +2,6 @@
  *  zoom controls. */
 export const liveGlobeContent = {
   heroTitle: 'Orders around the world',
-  heroSubtitle: 'Live positions of orders from the last 24 hours',
-  heroEmpty: 'Orders will appear here on the globe once you have shipping addresses.',
   heroUnsupported: 'Your browser cannot draw the 3-D globe, so here is the order list instead.',
   zoomIn: 'Zoom in',
   zoomOut: 'Zoom out',
@@ -18,6 +16,8 @@ export const globeSettingsContent = {
   title: 'Globe settings',
   subtitle: 'Saved on this device only.',
   reset: 'Reset to default',
+  /** The panel's tabs, in order. */
+  tabs: { look: 'Look', layers: 'Layers', data: 'Data', palette: 'Palette' } as const,
 
   layers: {
     heading: 'Layers',
@@ -49,6 +49,10 @@ export const globeSettingsContent = {
     styles: { solid: 'Solid land', dotted: 'Dotted' } as const,
     borderStyle: 'Border style',
     borderStyles: { solid: 'Solid', dotted: 'Dashed' } as const,
+    borderStyleOff: 'Turn on Country borders to see this.',
+    dotSize: 'Dot size',
+    dotSizes: { fine: 'Fine', medium: 'Medium', bold: 'Bold' } as const,
+    dotSizeOff: 'Only for the Dotted style.',
     theme: 'Colours',
     themes: {
       accent: 'Store accent',
@@ -59,6 +63,7 @@ export const globeSettingsContent = {
     customLand: 'Land colour',
     customOcean: 'Ocean colour',
     customAccent: 'Accent colour',
+    customBorder: 'Border colour',
     useTheme: 'Use theme colour',
   },
 
