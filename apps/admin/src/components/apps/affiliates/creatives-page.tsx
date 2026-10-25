@@ -10,6 +10,7 @@ import PageHeader from '@/components/layout/page-header'
 import MediaPickDialog from '@/components/media/media-pick-dialog'
 import type { PickedMedia } from '@/components/media/media-pick-types'
 import SettingsCard from '@/components/settings/settings-card'
+import { affiliateCreativesContent } from '@/data/affiliate-creatives'
 import { affiliatesContent } from '@/data/affiliates'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -31,7 +32,8 @@ const programLabel = (programs: { id: string; name: string }[], id: string | nul
 /** Affiliates › Creatives: images and captions affiliates see on their dashboard, ready to post. */
 export default function CreativesPage() {
   // Hooks
-  const { creatives: copy, failed } = useCopy(affiliatesContent)
+  const copy = useCopy(affiliateCreativesContent)
+  const { failed } = useCopy(affiliatesContent)
   const [rows, setRows] = useState<Creative[] | null>(null)
   const [programs, setPrograms] = useState<{ id: string; name: string }[]>([])
   const [picking, setPicking] = useState(false)

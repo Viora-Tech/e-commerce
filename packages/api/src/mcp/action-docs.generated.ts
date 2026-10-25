@@ -152,6 +152,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'Checkout routes online orders to this location, or not (the default always ships).',
   'businessGst.setMaxParcels': 'The most parcels one order may be split into.',
   'chatwoot.settings.test': 'Reads the profile and inboxes with the saved token; creates nothing.',
+  'codRto.forOrder': "The order page's card.",
+  'codRto.markConfirmed': '"Confirmed by phone": the merchant called the shopper.',
   'collections.forProduct':
     "Manual collections a product sits in, for the product form's organisation card.",
   'collections.preview': 'Live "matches N products" while the merchant writes rules.',

@@ -6,6 +6,7 @@ import { loadEnv, settingsSecret } from '@commerce/config'
 import {
   CommerceError,
   getCustomerOrder,
+  type ReturnPreference,
   type ReturnReason,
   requestReturn,
   storageForStore,
@@ -89,6 +90,9 @@ export type ReturnRequestInput = {
   reason: ReturnReason
   note: string
   photos: string[]
+  preference: ReturnPreference
+  /** For an exchange: the variant wanted instead, per order line. */
+  exchange: { orderLineId: string; variantId: string }[]
 }
 
 /** Send the request; on success the shopper lands back on the order with a notice. */
@@ -126,6 +130,8 @@ export async function submitReturnAction(
         photos: photos.slice(0, 3),
         requestedBy: 'customer',
         customerId: me.id,
+        preference: input.preference,
+        exchange: input.preference === 'exchange' ? input.exchange.slice(0, 100) : [],
       })
       return true
     })

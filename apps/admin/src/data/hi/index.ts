@@ -2,6 +2,7 @@ import type { TranslationPair } from '@/lib/i18n'
 import abandonedDetail from './abandoned-detail'
 import account from './account'
 import activity from './activity'
+import affiliateCreatives from './affiliate-creatives'
 import affiliates from './affiliates'
 import ai from './ai'
 import analytics from './analytics'
@@ -19,6 +20,7 @@ import bulkEdit from './bulk-edit'
 import businessGst from './business-gst'
 import chatwoot from './chatwoot'
 import checkoutSettings from './checkout-settings'
+import codRto from './cod-rto'
 import collections from './collections'
 import commandPalette from './command-palette'
 import common from './common'
@@ -125,6 +127,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...activity,
   ...account,
   ...affiliates,
+  ...affiliateCreatives,
   ...appInstall,
   ...apps,
   ...abandonedDetail,
@@ -141,6 +144,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...bulkEdit,
   ...businessGst,
   ...checkoutSettings,
+  ...codRto,
   ...common,
   ...resourcePicker,
   ...connectAside,

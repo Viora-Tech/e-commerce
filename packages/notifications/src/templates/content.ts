@@ -18,6 +18,16 @@ export const templateContent: Record<TemplateId, TemplateCopy> = {
   ...backInStockTemplates,
   ...returnTemplates,
   ...shipmentTemplates,
+  cod_confirm: {
+    subject: (d) => `${d.storeName}: please confirm your cash on delivery order #${d.orderNumber}`,
+    heading: (d) => `Hi ${d.customerName}, is this order yours?`,
+    intro: (d) =>
+      `You chose cash on delivery for order #${d.orderNumber} of ${d.totalLabel}. Please confirm it so we can pack and ship it. If you did not mean to order, you can cancel it with the same link.`,
+    outro: (d) =>
+      d.actionUrl ? `Confirm or cancel here: ${d.actionUrl}` : 'Reply to this email to confirm.',
+    whatsapp: (d) =>
+      `${d.storeName}: please confirm your cash on delivery order #${d.orderNumber} of ${d.totalLabel}.${d.actionUrl ? ` Confirm or cancel: ${d.actionUrl}` : ''}`,
+  },
   order_placed: {
     subject: (d) => `${d.storeName}: order #${d.orderNumber} received`,
     heading: (d) => `Thanks, ${d.customerName}`,

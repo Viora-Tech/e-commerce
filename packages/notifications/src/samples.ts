@@ -233,6 +233,7 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
       unsubscribeUrl: 'https://waimers.example/back-in-stock/unsubscribe/abc',
     },
   },
+  cod_confirm: { ...base, actionUrl: 'https://waimers.example/cod/abc' },
   return_requested: {
     ...base,
     taxBreakdown: undefined,

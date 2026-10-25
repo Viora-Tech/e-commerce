@@ -28,6 +28,7 @@ import { addLineAction } from '@/lib/cart-actions'
 import { getProductByHandle, getProductSeo, type ProductDetail } from '@/lib/catalog'
 import { storeEmiOffers } from '@/lib/emi-offers'
 import { storeOffersEmi, storeUpiDiscount } from '@/lib/payments'
+import { policyPanels } from '@/lib/related'
 import { productReviews } from '@/lib/reviews'
 import { jsonLd, metaDescription, productGraph, requestOrigin } from '@/lib/seo'
 import { estimateDeliveryAction } from '@/lib/shipping-actions'
@@ -132,6 +133,7 @@ export default async function ProductPage({ params, searchParams }: Params) {
     : await storeRead(storeId, 'legacy-emi', (tx) => storeOffersEmi(tx, storeId))
   const UnderPrice = emiApp.config ? EmiOffers : legacyEmi ? EmiHint : undefined
   const bis = await storeRead(storeId, 'back-in-stock', (tx) => backInStockContext(tx, storeId))
+  const policies = await storeRead(storeId, 'policy-panels', (tx) => policyPanels(tx))
   const variant = defaultVariant(product)
   const isPreorder = Boolean(product.preorder?.enabled) && (!variant || variant.available <= 0)
   const schema = productGraph(
@@ -189,6 +191,7 @@ export default async function ProductPage({ params, searchParams }: Params) {
               ratingCount: rated?.count ?? 0,
             }}
             upiDiscount={upiDiscount}
+            policyPanels={policies}
             UnderPrice={s.showEmiHint !== false ? UnderPrice : undefined}
             belowBuy={s.showDeliveryEstimate === false ? undefined : <DeliveryEstimateWidget />}
             NotifyMe={bis.installed ? NotifyMeForm : undefined}

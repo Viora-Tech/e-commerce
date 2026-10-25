@@ -210,6 +210,10 @@ export const notificationsSettingsContent = {
       name: 'Reply to a review',
       when: 'The first time you reply to a customer review (Reviews app).',
     },
+    cod_confirm: {
+      name: 'Confirm your COD order',
+      when: 'Right after a cash on delivery order, with a confirm or cancel link (COD & RTO app).',
+    },
     affiliate_update: {
       name: 'Affiliate update',
       when: 'To an affiliate when they are approved, make a sale, or are paid (Affiliates app).',

@@ -7,6 +7,7 @@ export default {
   'emi-and-pay-later': 'EMI & pay later',
   'back-in-stock': 'Back in stock',
   affiliates: 'Affiliates',
+  'cod-rto': 'COD & RTO',
   pixels: 'Pixels (Meta pixel)',
   umami: 'Umami',
   growthbook: 'A/B tests (GrowthBook)',

@@ -15,6 +15,7 @@ import { bugReportsRouter } from './bug-reports'
 import { businessGstRouter } from './business-gst'
 import { chatwootRouter } from './chatwoot'
 import { checkoutSettingsRouter } from './checkout-settings'
+import { codRtoRouter } from './cod-rto'
 import { collectionsRouter } from './collections'
 import { customerAccountsRouter } from './customer-accounts'
 import { customerPrivacyRouter } from './customer-privacy'
@@ -118,6 +119,7 @@ export const appRouter = {
   shopifyImport: shopifyImportRouter,
   affiliates: affiliatesRouter,
   pixels: pixelsRouter,
+  codRto: codRtoRouter,
   platformApps: platformAppsRouter,
   backInStock: backInStockRouter,
   emi: emiRouter,

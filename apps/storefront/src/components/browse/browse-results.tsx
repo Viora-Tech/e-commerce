@@ -38,6 +38,7 @@ type BrowseResultsProps = {
 
 function chipLabel(kind: string, value: string, f: BrowseFilters, facets: BrowseFacets): string {
   if (kind === 'available') return copy.chip.available(value)
+  if (kind === 'giftCard') return copy.chip.giftCard(value)
   // A yes/no extra field reads `1` / `0` in the URL; the chip names the field.
   const field = facets.metafields.find((m) => kind === `metafield:${m.key}`)
   if (field?.type === 'boolean') return `${field.name}: ${value === '1' ? copy.yes : copy.no}`

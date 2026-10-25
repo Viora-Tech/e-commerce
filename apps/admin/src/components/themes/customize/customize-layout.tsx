@@ -10,6 +10,7 @@ import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 import { customizeContent } from '@/data/customize'
 import { useCopy } from '@/hooks/use-copy'
+import { type AskAiRequest, onAskAi } from '@/lib/customize-canvas-events'
 import { CHROME_PANEL } from '@/lib/customize-chrome'
 import type { InsertTarget } from '@/lib/customize-insert'
 import { InsertContext } from '@/lib/customize-insert-context'
@@ -93,6 +94,7 @@ export default function CustomizeLayout({
 }: CustomizeLayoutProps) {
   // Hooks
   const [panel, setPanel] = useState<RailPanel>('sections')
+  const [aiTarget, setAiTarget] = useState<AskAiRequest | null>(null)
   const view = useEditorViewState()
   const [inserting, setInserting] = useState<InsertTarget | null>(null)
   const [shortcuts, setShortcuts] = useState(false)
@@ -118,6 +120,16 @@ export default function CustomizeLayout({
     observer.observe(stage)
     return () => observer.disconnect()
   }, [stage])
+  // The canvas toolbar's Ask AI: the AI panel opens, aimed at that block.
+  useEffect(
+    () =>
+      onAskAi((request) => {
+        setAiTarget(request)
+        setPanel('ai')
+        view.setLeft(true)
+      }),
+    [view],
+  )
   // Full view shows the page as shoppers get it: Puck's interactive mode, where a click works
   // like on the live store. Leaving it goes back to editing.
   useEffect(() => {
@@ -155,7 +167,15 @@ export default function CustomizeLayout({
   const title = titles[panel]
   const content: Record<RailPanel, ReactNode> = {
     add: <AddSectionPanel />,
-    ai: <AiPanel storeId={store.id} enabled={aiEnabled} page={templateLabel} theme={theme} />,
+    ai: (
+      <AiPanel
+        storeId={store.id}
+        enabled={aiEnabled}
+        page={templateLabel}
+        theme={theme}
+        target={aiTarget}
+      />
+    ),
     pages,
     sections: <SectionsPanel onOpenTheme={() => setPanel('theme')} templateLabel={templateLabel} />,
     apps,

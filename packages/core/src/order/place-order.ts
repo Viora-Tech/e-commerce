@@ -27,6 +27,8 @@ import {
   checkoutRuleSubtotalPaise,
   parseCheckoutSettings,
 } from '../checkout/settings'
+import { requestCodConfirmation } from '../cod-rto/confirm'
+import { assessCheckoutRisk, type CheckoutRisk, tagsForRisk } from '../cod-rto/risk'
 import type { StoreContext } from '../context'
 import { recordCustomerChange } from '../customers/changes'
 import { encryptCustomerPhone, phoneBlindIndex } from '../customers/phone-crypto'
@@ -181,6 +183,8 @@ type State = {
   /** Deposit charged now and balance deferred, from the order's pre-order lines. Both 0 when none. */
   depositPaise: number
   balanceDuePaise: number
+  /** COD & RTO app: the order's RTO risk and whether to ask for COD confirmation; null without it. */
+  risk: CheckoutRisk | null
 }
 
 const sumPaise = (lines: Line[]): number =>
@@ -368,6 +372,26 @@ const enforceCheckoutRules: WorkflowStep<State> = {
   },
 }
 
+/** COD & RTO app: score the order, and refuse COD when the store hides it for high risk. */
+const assessRisk: WorkflowStep<State> = {
+  name: 'assessRisk',
+  async run({ ctx, input, lines, discount: applied, shipping, contact }) {
+    const co = input.checkout
+    if (!co || lines.every((l) => l.giftCard)) return { risk: null }
+    const d = applyDiscount(sumPaise(lines), shipping?.pricePaise ?? 0, applied)
+    const risk = await assessCheckoutRisk(ctx, {
+      pincode: co.address.pincode,
+      phone: contact?.phone ?? co.phone,
+      email: contact ? contact.email : co.email,
+      line1: co.address.line1,
+      line2: co.address.line2,
+      orderValuePaise: checkoutRuleSubtotalPaise(lines, d.discountPaise) + d.shippingPaise,
+      paymentMethod: input.paymentProvider.id,
+    })
+    return { risk }
+  },
+}
+
 /**
  * The payment fee for this order. Cash on delivery takes the rate's own COD
  * fee when the rate sets one, instead of the store's (Settings → Payments),
@@ -422,6 +446,7 @@ const createOrder: WorkflowStep<State> = {
     cartTracking,
     shipping,
     contact,
+    risk,
   }) {
     let customerId: string | null = null
     let shippingAddressId: string | null = null
@@ -655,7 +680,8 @@ const createOrder: WorkflowStep<State> = {
         attribution: cartAttribution,
         tracking: cartTracking,
         cartId: input.cartId,
-        tags,
+        tags: risk ? tagsForRisk(tags, risk.risk, risk.settings) : tags,
+        rtoRisk: risk?.risk ?? null,
         depositPaise: preorderLines.length > 0 ? depositPaise : null,
         balanceDuePaise: preorderLines.length > 0 ? balanceDuePaise : null,
       })
@@ -665,6 +691,7 @@ const createOrder: WorkflowStep<State> = {
     // workflow's compensation (below) deletes the order and the whole
     // transaction rolls back, taking this row with it.
     await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.placed', { orderId: o.id })
+    if (risk?.verify) await requestCodConfirmation(ctx, o.id)
     const lineIds = lines.map(() => newId())
     await ctx.tx.insert(orderLine).values(
       lines.map((l, i) => ({
@@ -987,6 +1014,7 @@ export async function placeOrder(
       attemptId: null,
       depositPaise: 0,
       balanceDuePaise: 0,
+      risk: null,
     },
     [
       loadCart,
@@ -994,6 +1022,7 @@ export async function placeOrder(
       resolveDiscount,
       resolveShipping,
       enforceCheckoutRules,
+      assessRisk,
       reserveStock,
       createOrder,
       redeemCards,

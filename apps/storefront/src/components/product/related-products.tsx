@@ -1,5 +1,6 @@
 import { type ProductDetail, ProductRecommendations } from '@commerce/blocks'
 import { listCardProducts } from '@/lib/catalog'
+import { relatedHandles } from '@/lib/related'
 import { storeRead } from '@/lib/store-cache'
 
 type RelatedProductsProps = {
@@ -9,7 +10,10 @@ type RelatedProductsProps = {
   limit: number
 }
 
-/** Products of the same type as the one being viewed, Shopify's related products fallback. */
+/**
+ * Related products: others from the product's own collections first (newest first), then ones of
+ * the same type, then the newest in the store, never the product itself.
+ */
 export default async function RelatedProducts({
   storeId,
   product,
@@ -18,11 +22,20 @@ export default async function RelatedProducts({
 }: RelatedProductsProps) {
   // Hooks
   const type = product.productType ?? undefined
-  const candidates = await storeRead(storeId, `card-products|${limit + 1}|${type ?? ''}`, (tx) =>
-    listCardProducts(tx, limit + 1, type),
-  )
+  const [fromCollections, sameType] = await Promise.all([
+    storeRead(storeId, `related|${product.id}|${limit}`, async (tx) => {
+      const handles = await relatedHandles(tx, product.id, limit)
+      return handles.length ? listCardProducts(tx, handles.length, undefined, handles) : []
+    }),
+    storeRead(storeId, `card-products|${limit + 1}|${type ?? ''}`, (tx) =>
+      listCardProducts(tx, limit + 1, type),
+    ),
+  ])
 
   // Render logic
-  const products = candidates.filter((p) => p.id !== product.id).slice(0, limit)
+  const seen = new Set<string>([product.id])
+  const products = [...fromCollections, ...sameType]
+    .filter((p) => !seen.has(p.id) && Boolean(seen.add(p.id)))
+    .slice(0, limit)
   return <ProductRecommendations heading={heading} products={products} />
 }

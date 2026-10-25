@@ -445,6 +445,8 @@ export const checkoutContent = {
       `Your order is below this shop's minimum. Add ${missing} more and try again.`,
     codOverLimit: (limit: string) =>
       `Cash on delivery is available on orders up to ${limit}. Please pay online.`,
+    codHighRisk:
+      'Cash on delivery is not available for this order. Please pay online, it only takes a moment.',
     stateMismatch: (pincode: string) =>
       `The state you picked does not match PIN code ${pincode}. Check the state and the PIN code, then try again.`,
   },

@@ -11,6 +11,7 @@ import ChoiceList from '@/components/returns/choice-list'
 import { returnSettingsContent as copy, returnsContent } from '@/data/returns'
 import { SETTINGS_BACK, settingsContent } from '@/data/settings'
 import { api } from '@/lib/api-client'
+import ReturnsRulesCard from './returns-rules-card'
 import SettingsCard from './settings-card'
 import SettingsRow from './settings-row'
 import SettingsToggleRow from './settings-toggle-row'
@@ -136,6 +137,8 @@ export default function ReturnsSettings() {
               />
             ))}
           </SettingsCard>
+
+          <ReturnsRulesCard policy={form} onPatch={patch} />
 
           <SettingsCard title={copy.refund}>
             <ChoiceList

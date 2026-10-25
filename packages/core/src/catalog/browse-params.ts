@@ -30,6 +30,8 @@ export const BROWSE_SORTS: readonly BrowseSort[] = [
 export type BrowseFilters = {
   /** true: only in stock, false: only sold out, null: both. */
   available: boolean | null
+  /** true: only gift cards, false: only other products, null: both. */
+  giftCard: boolean | null
   /** Paise, inclusive, against the product's lowest variant price. */
   priceMin: number | null
   priceMax: number | null
@@ -44,6 +46,7 @@ export type BrowseFilters = {
 
 export const EMPTY_FILTERS: BrowseFilters = {
   available: null,
+  giftCard: null,
   priceMin: null,
   priceMax: null,
   productTypes: [],
@@ -57,6 +60,7 @@ export type SearchParamsInput = Record<string, string | string[] | undefined>
 
 export const FILTER_PARAM = {
   available: 'filter.v.availability',
+  giftCard: 'filter.p.gift_card',
   priceMin: 'filter.v.price.gte',
   priceMax: 'filter.v.price.lte',
   productType: 'filter.p.product_type',
@@ -96,6 +100,7 @@ const storedKey = (raw: string): string =>
 /** Filters from a request's search params; anything malformed is ignored. */
 export function parseBrowseFilters(params: SearchParamsInput): BrowseFilters {
   const avail = list(params[FILTER_PARAM.available])
+  const gift = list(params[FILTER_PARAM.giftCard])
   const options: Record<string, string[]> = {}
   for (const [key, value] of Object.entries(params)) {
     if (!key.startsWith(FILTER_PARAM.optionPrefix)) continue
@@ -119,6 +124,13 @@ export function parseBrowseFilters(params: SearchParamsInput): BrowseFilters {
       : avail.includes('0') && !avail.includes('1')
         ? false
         : null
+  // Both kind boxes ticked is no kind filter, as with availability.
+  const giftCard =
+    gift.includes('1') && !gift.includes('0')
+      ? true
+      : gift.includes('0') && !gift.includes('1')
+        ? false
+        : null
   let priceMin = rupees(params[FILTER_PARAM.priceMin])
   let priceMax = rupees(params[FILTER_PARAM.priceMax])
   if (priceMin !== null && priceMax !== null && priceMin > priceMax) {
@@ -126,6 +138,7 @@ export function parseBrowseFilters(params: SearchParamsInput): BrowseFilters {
   }
   return {
     available,
+    giftCard,
     priceMin,
     priceMax,
     productTypes: list(params[FILTER_PARAM.productType]),
@@ -153,6 +166,7 @@ export function parsePage(raw: unknown): number {
 
 export const hasActiveFilters = (f: BrowseFilters): boolean =>
   f.available !== null ||
+  f.giftCard !== null ||
   f.priceMin !== null ||
   f.priceMax !== null ||
   f.productTypes.length > 0 ||
@@ -165,6 +179,7 @@ export const hasActiveFilters = (f: BrowseFilters): boolean =>
 export function filterEntries(f: BrowseFilters): [string, string][] {
   const out: [string, string][] = []
   if (f.available !== null) out.push([FILTER_PARAM.available, f.available ? '1' : '0'])
+  if (f.giftCard !== null) out.push([FILTER_PARAM.giftCard, f.giftCard ? '1' : '0'])
   if (f.priceMin !== null) out.push([FILTER_PARAM.priceMin, String(f.priceMin / 100)])
   if (f.priceMax !== null) out.push([FILTER_PARAM.priceMax, String(f.priceMax / 100)])
   for (const v of f.productTypes) out.push([FILTER_PARAM.productType, v])
@@ -204,6 +219,14 @@ export function activeFilters(f: BrowseFilters): ActiveFilter[] {
       kind: 'available',
       value: String(f.available),
       without: { ...f, available: null },
+    })
+  }
+  if (f.giftCard !== null) {
+    out.push({
+      key: 'giftCard',
+      kind: 'giftCard',
+      value: String(f.giftCard),
+      without: { ...f, giftCard: null },
     })
   }
   if (f.priceMin !== null || f.priceMax !== null) {

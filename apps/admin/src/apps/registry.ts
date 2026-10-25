@@ -25,6 +25,11 @@ import CashfreeOverviewPage from '@/components/apps/cashfree/overview-page'
 import ChatwootCustomerCard from '@/components/apps/chatwoot/customer-card'
 import ChatwootOrderCard from '@/components/apps/chatwoot/order-card'
 import ChatwootSettingsPage from '@/components/apps/chatwoot/settings-page'
+import CodRtoOrderCard from '@/components/apps/cod-rto/order-card'
+import CodRtoOverviewPage from '@/components/apps/cod-rto/overview-page'
+import CodRtoReturnReasonsPage from '@/components/apps/cod-rto/return-reasons-page'
+import CodRtoRiskyOrdersPage from '@/components/apps/cod-rto/risky-orders-page'
+import CodRtoSettingsPage from '@/components/apps/cod-rto/settings-page'
 import DecentroConnectPage from '@/components/apps/decentro/connect-page'
 import DecentroOverviewPage from '@/components/apps/decentro/overview-page'
 import DelhiveryConnectPage from '@/components/apps/delhivery/connect-page'
@@ -163,6 +168,15 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
     pages: { '': ChatwootSettingsPage },
     OrderCard: ChatwootOrderCard,
     CustomerCard: ChatwootCustomerCard,
+  },
+  'cod-rto': {
+    pages: {
+      '': CodRtoOverviewPage,
+      orders: CodRtoRiskyOrdersPage,
+      returns: CodRtoReturnReasonsPage,
+      settings: CodRtoSettingsPage,
+    },
+    OrderCard: CodRtoOrderCard,
   },
   decentro: {
     pages: {

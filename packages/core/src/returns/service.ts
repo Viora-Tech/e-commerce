@@ -37,6 +37,7 @@ import {
   returnEligibility,
   returnLabel,
 } from './policy'
+import { applyReturnWishes, type ReturnWishes } from './preferences'
 
 export type ReturnRow = typeof returnRequest.$inferSelect
 
@@ -273,7 +274,7 @@ export async function orderReturnState(
   }
 }
 
-export type RequestReturnInput = {
+export type RequestReturnInput = ReturnWishes & {
   orderId: string
   lines: { orderLineId: string; quantity: number }[]
   reason: ReturnReason
@@ -356,11 +357,13 @@ export async function requestReturn(ctx: StoreContext, input: RequestReturnInput
       quantity,
     })),
   )
+  const auto = await applyReturnWishes(ctx, row, { ...input, lines: wanted }, state.policy)
   await insertOutboxEvent(ctx.tx, ctx.storeId, 'return.requested', {
     orderId: o.id,
     returnId: row.id,
   })
-  return row
+  // The store's auto-approve rule took it: approved now, the merchant arranges the pickup.
+  return auto ? approveReturn(ctx, row.id) : row
 }
 
 /** Lock one return for a state change; refuses a missing one. */

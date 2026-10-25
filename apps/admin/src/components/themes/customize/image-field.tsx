@@ -180,6 +180,8 @@ export default function ImageField({ value, onChange }: ImageFieldProps) {
           className="flex-1"
           disabled={uploading}
           onClick={() => setPicking(true)}
+          // The canvas opens this picker on a second click on the image (InspectorFields).
+          data-image-pick=""
         >
           {hasImage ? copy.change : copy.select}
         </Button>

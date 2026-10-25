@@ -11,6 +11,7 @@ import { refundedPaise, refundPayment } from '../order/refund'
 import { insertOutboxEvent } from '../outbox/write'
 import { createShipmentForOrder } from '../shipping/shipments'
 import { returnLabel } from './policy'
+import { exchangeLinesFor } from './preferences'
 import { lockReturn, ReturnNotAllowed, returnLocation, updateReturnRow } from './service'
 
 /** Captured payments on an order and how much of each can still go back. */
@@ -224,7 +225,9 @@ export async function exchangeReturn(
     .from(returnRequestLine)
     .innerJoin(orderLine, eq(orderLine.id, returnRequestLine.orderLineId))
     .where(eq(returnRequestLine.returnRequestId, id))
-  const lines = (input.lines?.length ? input.lines : returned).map((l) => ({
+  // What the shopper asked for on the form (another size), else the same items again.
+  const wished = input.lines?.length ? null : await exchangeLinesFor(ctx, id)
+  const lines = (input.lines?.length ? input.lines : (wished ?? returned)).map((l) => ({
     variantId: l.variantId,
     quantity: l.quantity,
     unitPricePaise: 0,

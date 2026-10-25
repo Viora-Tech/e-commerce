@@ -3,12 +3,14 @@ import {
   parsePaymentSettings,
   refreshPaymentCredentials,
   resolvePaymentProviders,
+  runCodConfirmationSweep,
   runManualFollowUp,
 } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
 import {
   type Db,
   store,
+  storesWithPendingCodChecks,
   storesWithPendingManualOrders,
   storesWithUnpaidOnlineOrders,
   withStore,
@@ -32,6 +34,9 @@ export const EXPIRY_EVERY_MS = 60_000
  * orders (Settings › Payments, off by default): the merchant is told 12
  * hours ahead, then the order is cancelled. Shoppers are never reminded
  * automatically; the merchant sends that from the order.
+ *
+ * And the COD & RTO app's confirmation deadlines: COD orders nobody confirmed are flagged
+ * for a call, and cancelled when the store turned auto-cancel on.
  */
 export function createUnpaidOrderExpiry(
   connection: IORedis,
@@ -78,11 +83,31 @@ export function createUnpaidOrderExpiry(
       }
       if (cancelled || paid) logger.info('unpaid orders expired', { cancelled, paid })
       const transfers = await followUpManualTransfers(db)
-      return { stores: storeIds.length, cancelled, paid, ...transfers }
+      const cod = await sweepCodConfirmations(db)
+      return { stores: storeIds.length, cancelled, paid, ...transfers, ...cod }
     },
     { connection, ...KEEP_FINISHED },
   )
   return { queue, worker }
+}
+
+/** COD orders past the store's confirmation deadlines: flagged, or cancelled when opted in. */
+async function sweepCodConfirmations(db: Db) {
+  let codFlagged = 0
+  let codCancelled = 0
+  for (const storeId of await storesWithPendingCodChecks(db)) {
+    try {
+      const r = await runCodConfirmationSweep(db, storeId)
+      codFlagged += r.flagged
+      codCancelled += r.cancelled
+    } catch (err) {
+      logger.warn('cod confirmation sweep failed', { storeId, error: err })
+    }
+  }
+  if (codFlagged || codCancelled) {
+    logger.info('cod confirmations swept', { flagged: codFlagged, cancelled: codCancelled })
+  }
+  return { codFlagged, codCancelled }
 }
 
 /** Merchant notice then cancel for unpaid manual-transfer orders, in stores that opted in. */

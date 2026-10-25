@@ -101,6 +101,23 @@ export default function FilterForm({
       ),
     })
   }
+  // Gift cards next to products: a kind filter, so a shopper can find (or skip) them.
+  if (facets.giftCards > 0 && facets.products > 0) {
+    groups.push({
+      key: 'kind',
+      title: copy.kind,
+      open: filters.giftCard !== null,
+      body: checks(
+        FILTER_PARAM.giftCard,
+        [
+          { value: '0', count: facets.products, label: copy.kindProducts },
+          { value: '1', count: facets.giftCards, label: copy.kindGiftCards },
+        ],
+        filters.giftCard === null ? [] : [filters.giftCard ? '1' : '0'],
+        'kind',
+      ),
+    })
+  }
   if (facets.priceMax !== null && facets.priceMax > 0) {
     groups.push({
       key: 'price',

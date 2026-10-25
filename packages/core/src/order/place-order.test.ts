@@ -715,3 +715,82 @@ describe('placeOrder outbox', () => {
     for (const r of rows) expect(r.payload).toEqual({ orderId })
   })
 })
+
+describe('placeOrder with the COD & RTO app', () => {
+  const checkout = {
+    name: 'Asha',
+    email: 'asha@example.com',
+    phone: '9999999999',
+    address: { line1: 'Near temple', city: 'Bengaluru', stateCode: 'KA', pincode: '560001' },
+  }
+
+  it('scores the order and asks a COD shopper to confirm', async () => {
+    const { storeId, cartId } = await seed({ onHand: 5, quantity: 1 })
+    await owner
+      .update(store)
+      .set({ apps: { installed: ['cod-rto'] } })
+      .where(eq(store.id, storeId))
+    const { orderId } = await withStore(app, storeId, (tx) =>
+      placeOrder(
+        { storeId, tx },
+        {
+          cartId,
+          paymentProvider: new FakePaymentProvider({ mode: 'capture', id: 'cod' }),
+          checkout,
+        },
+      ),
+    )
+    const [o] = await owner.select().from(order).where(eq(order.id, orderId))
+    // First order (+10), short address with no number (+20): 30, medium.
+    expect(o?.rtoRisk).toMatchObject({ score: 30, level: 'medium' })
+    expect(o?.codVerification).toBe('pending')
+    const types = (
+      await owner.select().from(outboxEvent).where(eq(outboxEvent.storeId, storeId))
+    ).map((r) => r.type)
+    expect(types).toEqual(expect.arrayContaining(['order.cod_confirm_requested', 'order.placed']))
+  })
+
+  it('refuses COD for a high-risk order when the store hides it, before anything is made', async () => {
+    const { storeId, cartId } = await seed({ onHand: 5, quantity: 1 })
+    await owner
+      .update(store)
+      .set({
+        apps: {
+          installed: ['cod-rto'],
+          settings: {
+            'cod-rto': { risk: { mediumAt: 10, highAt: 20 }, rules: { hideCodForHighRisk: true } },
+          },
+        },
+      })
+      .where(eq(store.id, storeId))
+    const run = withStore(app, storeId, (tx) =>
+      placeOrder(
+        { storeId, tx },
+        {
+          cartId,
+          paymentProvider: new FakePaymentProvider({ mode: 'capture', id: 'cod' }),
+          checkout,
+        },
+      ),
+    )
+    await expect(run).rejects.toMatchObject({ rule: 'cod_high_risk' })
+    expect(await owner.select().from(order)).toEqual([])
+  })
+
+  it('does nothing when the app is not installed', async () => {
+    const { storeId, cartId } = await seed({ onHand: 5, quantity: 1 })
+    const { orderId } = await withStore(app, storeId, (tx) =>
+      placeOrder(
+        { storeId, tx },
+        {
+          cartId,
+          paymentProvider: new FakePaymentProvider({ mode: 'capture', id: 'cod' }),
+          checkout,
+        },
+      ),
+    )
+    const [o] = await owner.select().from(order).where(eq(order.id, orderId))
+    expect(o?.rtoRisk).toBeNull()
+    expect(o?.codVerification).toBeNull()
+  })
+})

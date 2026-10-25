@@ -13,6 +13,7 @@ import { customizeContent } from '@/data/customize'
 import { useAssistant } from '@/hooks/use-assistant'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import type { CustomizeDoc } from '@/lib/customize-doc'
+import { useCustomizePuck } from '@/lib/customize-puck'
 import { useImportedTheme } from '@/lib/customize-theme-context'
 import { routes } from '@/lib/routes'
 import { buildThemeOutline, type OutlineComponent } from '@/lib/theme-outline'
@@ -29,6 +30,8 @@ type AiPanelProps = {
   page: string
   /** The theme open in the editor: its name, and whether it is the store's live theme. */
   theme: { name: string; live: boolean }
+  /** The block the canvas toolbar's Ask AI aimed at (it is the selected block). */
+  target?: { blockId: string; label: string } | null | undefined
 }
 
 /**
@@ -40,7 +43,7 @@ type AiPanelProps = {
  * "Build a section" above it proposes one library section, which goes on the canvas only when
  * the merchant adds it. Without AI it says where to turn it on.
  */
-export default function AiPanel({ storeId, enabled, page, theme }: AiPanelProps) {
+export default function AiPanel({ storeId, enabled, page, theme, target }: AiPanelProps) {
   // Hooks
   const copy = useCopy(customizeContent.ai)
   const rail = useCopy(customizeContent.rail)
@@ -48,6 +51,7 @@ export default function AiPanel({ storeId, enabled, page, theme }: AiPanelProps)
   const locale = useLocale()
   const assistant = useAssistant(storeId)
   const getPuck = useGetPuck()
+  const selectedId = useCustomizePuck((s) => s.selectedItem?.props.id)
   const imported = useImportedTheme()
   const scroller = useRef<HTMLDivElement>(null)
   // Keep the newest answer in view while it streams.
@@ -123,6 +127,8 @@ export default function AiPanel({ storeId, enabled, page, theme }: AiPanelProps)
   }
 
   // Render logic
+  // Quick actions only while the block Ask AI aimed at is still the selected one.
+  const aimed = target && target.blockId === selectedId ? target : null
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {head}
@@ -167,6 +173,26 @@ export default function AiPanel({ storeId, enabled, page, theme }: AiPanelProps)
           </ol>
         )}
       </div>
+      {aimed ? (
+        <div className="flex shrink-0 flex-col gap-2 border-t border-border px-4 pt-3 pb-2">
+          <p className="truncate text-xs font-medium text-muted-foreground">
+            {copy.target.title(aimed.label)}
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {copy.target.chips.map((chip) => (
+              <button
+                key={chip}
+                type="button"
+                disabled={assistant.busy}
+                onClick={() => handleSend(copy.target.prompt(chip, aimed.label))}
+                className="rounded-full border border-border bg-card px-2.5 py-1 text-xs text-foreground transition-colors hover:border-border-strong hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/70 focus-visible:outline-none disabled:opacity-50"
+              >
+                {chip}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
       <div className="shrink-0 px-4 pb-4">
         <AssistantComposer busy={assistant.busy} onSend={handleSend} onStop={assistant.stop} />
       </div>
