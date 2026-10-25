@@ -12,6 +12,8 @@ import { renderLiquidSection } from './render'
 const FACETS: BrowseFacets = {
   inStock: 3,
   outOfStock: 1,
+  giftCards: 0,
+  products: 4,
   priceMin: 99_900,
   priceMax: 899_900,
   productTypes: [],

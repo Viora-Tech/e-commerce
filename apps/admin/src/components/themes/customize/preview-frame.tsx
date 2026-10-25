@@ -5,6 +5,7 @@ import { themeRootAttrs, themeToCss } from '@commerce/core/theme'
 import { useGetPuck } from '@puckeditor/core'
 import { useReducedMotion } from 'motion/react'
 import { type ReactNode, useEffect } from 'react'
+import { installFieldClicks } from '@/lib/customize-canvas-events'
 import {
   CANVAS_INTERACTION_CSS,
   installCanvasInteraction,
@@ -17,8 +18,10 @@ import {
   OFFSCREEN_PAUSE_CSS,
   scrollToSection,
 } from '@/lib/customize-canvas-motion'
+import type { CustomizeDoc } from '@/lib/customize-doc'
 import { CANVAS_DROP_CSS, installMediaDrop } from '@/lib/customize-media-drop'
 import { useCustomizePuck } from '@/lib/customize-puck'
+import { findBlock } from '@/lib/customize-slots'
 import { useLiquidHead, usePreviewMode, useThemePreview } from '@/lib/customize-theme-context'
 import { CANVAS_ZOOM_VAR, useCanvasZoom } from '@/lib/customize-zoom'
 import CanvasInsertLine from './canvas-insert-line'
@@ -170,6 +173,22 @@ export default function PreviewFrame({ children, document }: PreviewFrameProps) 
       style.remove()
       uninstall()
     }
+  }, [document, getPuck])
+
+  // A click on a heading, text or image shows that field in the inspector; a second click on an
+  // image of the selected block opens its picker (lib/customize-canvas-events).
+  useEffect(() => {
+    if (!document) return
+    return installFieldClicks(document, {
+      selectedId: () => {
+        const id = getPuck().selectedItem?.props?.id
+        return typeof id === 'string' ? id : null
+      },
+      props: (blockId) => {
+        const block = findBlock(getPuck().appState.data as unknown as CustomizeDoc, blockId)
+        return (block?.props as Record<string, unknown> | undefined) ?? null
+      },
+    })
   }, [document, getPuck])
 
   useEffect(() => {

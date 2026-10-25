@@ -3,8 +3,13 @@ import { hasCopy, type MainProductAccordion } from '../sections/main-product-set
 import type { ProductFieldText } from '../types'
 import RichCopy from './rich-copy'
 
+/** A panel the storefront adds from a published store policy: a short line and its link. */
+export type PolicyPanel = { title: string; text: string; href: string; linkLabel: string }
+
 type ProductAccordionsProps = {
   items: MainProductAccordion[]
+  /** Shipping and Returns panels from the store's policies; one the merchant already wrote is left out. */
+  policyPanels?: PolicyPanel[] | undefined
   /** The product's own fields; a panel with a `metafieldKey` the product has shows that field. */
   fields?: Record<string, ProductFieldText> | undefined
   /** `field key | Label` lines for a Specification panel with no written spec. */
@@ -41,13 +46,19 @@ export default function ProductAccordions({
   items,
   fields,
   specTableRows = '',
+  policyPanels = [],
 }: ProductAccordionsProps) {
   // Early returns
   const shown = items.flatMap((a) => {
     const body = hasCopy(a.title) ? panelBody(a, fields, specTableRows) : null
     return body ? [{ title: a.title, body }] : []
   })
-  if (shown.length === 0) return null
+  // A merchant panel titled like a policy panel ("Shipping", "Returns") already covers it.
+  const written = shown.map((a) => (typeof a.title === 'string' ? a.title.toLowerCase() : ''))
+  const policies = policyPanels.filter(
+    (p) => !written.some((t) => t.includes(p.title.split(' ')[0]?.toLowerCase() ?? '')),
+  )
+  if (shown.length === 0 && policies.length === 0) return null
 
   return (
     <>
@@ -75,6 +86,22 @@ export default function ProductAccordions({
           ) : (
             <RichCopy value={a.body.html} className="product-accordion__body rte" />
           )}
+        </details>
+      ))}
+      {policies.map((p) => (
+        <details key={p.href} className="product-accordion">
+          <summary className="product-accordion__summary">
+            <span className="product-accordion__title">{p.title}</span>
+            <span className="product-accordion__toggle" aria-hidden="true" />
+          </summary>
+          <div className="product-accordion__body rte">
+            <p>{p.text}</p>
+            <p>
+              <a href={p.href} className="link">
+                {p.linkLabel}
+              </a>
+            </p>
+          </div>
         </details>
       ))}
     </>

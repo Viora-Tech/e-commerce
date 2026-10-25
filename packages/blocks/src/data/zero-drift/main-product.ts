@@ -34,6 +34,7 @@ export const mainProductContent = {
     deliveryText: 'Dispatch line above the PIN code check',
     showDescription: 'Product description',
     showAccordions: 'Accordions',
+    showPolicyPanels: 'Shipping and returns panels (from your policies)',
     accordions: 'Accordions',
     accordionTitle: 'Title',
     accordionBody: 'Content',
@@ -103,6 +104,7 @@ export const mainProductContent = {
     specRows: '',
     showDescription: true,
     showAccordions: false,
+    showPolicyPanels: true,
     accordions: [
       { title: 'Specification', body: '', metafieldKey: 'specification' },
       { title: 'Package contents', body: '', metafieldKey: 'package_contents' },
