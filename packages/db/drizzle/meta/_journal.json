@@ -1058,6 +1058,13 @@
       "when": 1792869662425,
       "tag": "0166_inbox_ai",
       "breakpoints": true
+    },
+    {
+      "idx": 151,
+      "version": "7",
+      "when": 1792926754823,
+      "tag": "0167_inbox_message_store_sender",
+      "breakpoints": true
     }
   ]
 }

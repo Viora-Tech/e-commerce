@@ -92,6 +92,17 @@ const answer = (over: Record<string, unknown> = {}) =>
     }),
   )
 
+/** A model that answers like `answer()` and hands the prompt it was sent to `onPrompt`. */
+function textModelSpy(onPrompt: (prompt: string) => void) {
+  const model = answer()
+  const generate = model.doGenerate.bind(model)
+  model.doGenerate = async (options) => {
+    onPrompt(JSON.stringify(options.prompt))
+    return generate(options)
+  }
+  return model
+}
+
 const run = (storeId: string, conversationId: string, messageId: string, model = answer()) =>
   runInboxAiReply({ db: app, job: { storeId, conversationId, messageId }, model })
 
@@ -164,6 +175,26 @@ describe('runInboxAiReply', () => {
     )
     expect((await inStore(s, (ctx) => inboxCounts(ctx, 'u1'))).needs_person).toBe(0)
     expect((await conversationRow(conversation.id))?.needsHuman).toBe(false)
+  })
+
+  it('learns from the team’s past reply to a similar question', async () => {
+    const s = await newStore('all')
+    const before = await say(s, guest(), 'Do you have cash on delivery?')
+    await inStore(s, (ctx) =>
+      staffSend(
+        ctx,
+        { conversationId: before.conversation.id, body: 'Yes, COD up to ₹5,000.' },
+        'u1',
+      ),
+    )
+    let seen = ''
+    const model = textModelSpy((prompt) => {
+      seen = prompt
+    })
+    const now = await say(s, guest(), 'is cash on delivery available in Pune?')
+    await run(s, now.conversation.id, now.message.id, model)
+    expect(seen).toContain('PAST TEAM ANSWERS')
+    expect(seen).toContain('COD up to ₹5,000')
   })
 
   it('hands off when the model is unsure or fails', async () => {

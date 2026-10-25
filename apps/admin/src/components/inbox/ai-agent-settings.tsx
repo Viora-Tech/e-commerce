@@ -2,6 +2,7 @@
 
 import { INBOX_AI_KNOWLEDGE_MAX, INBOX_AI_MODES, type InboxAiSettings } from '@commerce/core/inbox'
 import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
+import { Switch } from '@commerce/ui/shadcn/switch'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsRow from '@/components/settings/settings-row'
@@ -41,6 +42,15 @@ export default function AiAgentSettings({ value, onChange }: AiAgentSettingsProp
           ))}
         </NativeSelect>
       </SettingsRow>
+      {value.mode === 'off' ? null : (
+        <SettingsRow label={a.learn.label} description={a.learn.help} htmlFor="inbox-ai-learn">
+          <Switch
+            id="inbox-ai-learn"
+            checked={value.learn}
+            onCheckedChange={(learn) => onChange({ ...value, learn })}
+          />
+        </SettingsRow>
+      )}
       {value.mode === 'off' ? null : (
         <SettingsRow
           label={a.knowledge.label}

@@ -91,6 +91,10 @@ export const inboxContent = {
           'We ship in 2 to 4 days. COD is available up to ₹5,000. Sizes run true to fit.',
         count: (n: number, max: number) => `${n} / ${max}`,
       },
+      learn: {
+        label: 'Learn from your team’s replies',
+        help: 'The AI reads how your team answered similar questions before and answers the same way. Notes are never used.',
+      },
       usage: 'Each answer uses your plan’s AI allowance.',
     },
     privacy: {

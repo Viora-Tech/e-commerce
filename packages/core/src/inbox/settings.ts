@@ -37,6 +37,8 @@ const InboxAiSettingsSchema = z.object({
   mode: z.enum(INBOX_AI_MODES).default('off'),
   /** What the agent may say beyond products and policies, in the merchant's own words. */
   knowledge: z.string().trim().max(INBOX_AI_KNOWLEDGE_MAX).default(''),
+  /** Learn from the team's past replies to similar questions (on by default). */
+  learn: z.boolean().default(true),
 })
 export type InboxAiSettings = z.infer<typeof InboxAiSettingsSchema>
 
@@ -58,7 +60,7 @@ export const InboxSettingsSchema = z.object({
   /** The chat button and card's look: the theme editor's Inbox app embed (`widget.ts`). */
   widget: z.preprocess((v) => parseInboxWidget(v), InboxWidgetSchema),
   /** The AI agent: when it answers and what it knows (`ai-agent.ts`). */
-  ai: InboxAiSettingsSchema.default({ mode: 'off', knowledge: '' }),
+  ai: InboxAiSettingsSchema.default({ mode: 'off', knowledge: '', learn: true }),
 })
 export type InboxSettings = z.infer<typeof InboxSettingsSchema>
 

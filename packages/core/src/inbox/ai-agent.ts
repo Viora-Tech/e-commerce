@@ -23,7 +23,7 @@ import {
   type StoreTx,
   withStore,
 } from '@commerce/db'
-import { and, desc, eq, ilike, inArray, isNotNull, or } from 'drizzle-orm'
+import { and, asc, desc, eq, ilike, inArray, isNotNull, ne, or } from 'drizzle-orm'
 import { admitAiCall } from '../ai/quota'
 import { recordAiUsage } from '../ai/usage'
 import { POLICY_TYPES, policyHandle } from '../policies/client'
@@ -63,6 +63,9 @@ const SEARCH_PRODUCTS = 6
 const THREAD_TURNS = 12
 /** The signed-in shopper's own orders the agent sees. */
 const SHOPPER_ORDERS = 5
+/** Past question-and-reply pairs the agent learns from, out of this many matching questions. */
+const PAST_ANSWERS = 3
+const PAST_CANDIDATES = 30
 
 /** What a hand-off posts to the shopper, by whether staff are online now. */
 const HANDOFF_LINE = {
@@ -150,6 +153,60 @@ async function loadOrders(
     status: o.status === 'cancelled' ? 'cancelled' : (o.fulfillmentStatus ?? o.status),
     totalPaise: o.totalPaise,
   }))
+}
+
+/**
+ * The team's past answers to questions like this one: earlier shopper messages in other chats that
+ * share a word with it, each paired with the first staff reply after it. Most words in common
+ * first, then the newest. Notes and cards are never examples.
+ */
+async function loadPastAnswers(
+  tx: StoreTx,
+  question: string,
+  conversationId: string,
+): Promise<InboxAgentInput['pastAnswers']> {
+  const words = searchWords(question)
+  if (words.length === 0) return []
+  const m = inboxMessage
+  const asked = await tx
+    .select({ id: m.id, conversationId: m.conversationId, body: m.body })
+    .from(m)
+    .where(
+      and(
+        eq(m.sender, 'shopper'),
+        eq(m.kind, 'text'),
+        ne(m.conversationId, conversationId),
+        or(...words.map((w) => ilike(m.body, `%${w}%`))),
+      ),
+    )
+    .orderBy(desc(m.id))
+    .limit(PAST_CANDIDATES)
+  if (asked.length === 0) return []
+  const replies = await tx
+    .select({ id: m.id, conversationId: m.conversationId, body: m.body })
+    .from(m)
+    .where(
+      and(
+        eq(m.sender, 'staff'),
+        eq(m.kind, 'text'),
+        inArray(m.conversationId, [...new Set(asked.map((a) => a.conversationId))]),
+      ),
+    )
+    .orderBy(asc(m.id))
+  const score = (body: string) => words.filter((w) => body.toLowerCase().includes(w)).length
+  // `asked` is newest first and the sort is stable, so ties keep the newest.
+  const ranked = [...asked].sort((x, y) => score(y.body) - score(x.body))
+  const pairs: InboxAgentInput['pastAnswers'] = []
+  const used = new Set<string>()
+  for (const a of ranked) {
+    if (pairs.length === PAST_ANSWERS) break
+    if (used.has(a.conversationId)) continue
+    const reply = replies.find((r) => r.conversationId === a.conversationId && r.id > a.id)
+    if (!reply?.body.trim()) continue
+    used.add(a.conversationId)
+    pairs.push({ question: a.body, answer: reply.body })
+  }
+  return pairs
 }
 
 type Loaded = {
@@ -335,6 +392,9 @@ export async function runInboxAiReply(opts: RunInboxAiOptions): Promise<InboxAiR
     products: await loadProducts(tx, l.question.body),
     policies: await loadPolicies(tx),
     orders: await loadOrders(tx, l.conversation.customerId),
+    pastAnswers: l.state.settings.ai.learn
+      ? await loadPastAnswers(tx, l.question.body, l.conversation.id)
+      : [],
   }))
   let out: InboxAgentOutput
   let usage = { inputTokens: 0, outputTokens: 0 }
