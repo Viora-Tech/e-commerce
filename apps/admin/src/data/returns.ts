@@ -65,6 +65,7 @@ export const returnDetailContent = {
   restocked: (n: number) => `${n} back in stock`,
   why: 'What the customer said',
   reasonLabel: 'Reason',
+  wantsLabel: 'Asked for',
   noteLabel: 'Note',
   noNote: 'No note.',
   photos: 'Photos',
@@ -280,6 +281,28 @@ export const returnSettingsContent = {
   saved: 'Return rules saved.',
   failed: 'Could not save. Please try again.',
   atLeastOne: 'Choose at least one reason.',
+} as const
+
+/** Settings → Returns: exchanges for another variant and the auto-approve rule. */
+export const returnRulesContent = {
+  exchangesTitle: 'Exchanges',
+  exchanges: 'Let customers ask for another size or colour',
+  exchangesHint:
+    'On the return form they can pick the variant they want instead of their money back. You send it from the return once the parcel is back.',
+  autoTitle: 'Approve returns automatically',
+  autoDescription:
+    'Requests that match are approved straight away. You still arrange the pickup and check the parcel when it arrives.',
+  auto: 'Approve matching requests automatically',
+  autoReasons: 'For these reasons',
+  autoMax: 'Up to this value',
+  autoMaxHint: 'In rupees. 0 means any value.',
+  wants: {
+    refund: 'Wants their money back',
+    exchange: 'Wants an exchange',
+    store_credit: 'Wants store credit',
+  } as Record<string, string>,
+  swapTo: (from: string, to: string) => `${from} for ${to}`,
+  autoApproved: 'Approved automatically by your return rules',
 } as const
 
 /** Row and bulk actions on the Returns list (decide, mark arrived, close) without opening each. */

@@ -1082,8 +1082,28 @@ export const order = pgTable(
      * and imported orders. No foreign key: carts are pruned, orders are kept.
      */
     cartId: uuid('cart_id'),
+    /**
+     * COD & RTO app: how likely this parcel is to come back (score 0 to 100, level and the
+     * reasons), worked out at checkout or by "Score again". Null when the app was not installed.
+     */
+    rtoRisk: jsonb('rto_risk').$type<OrderRtoRisk>(),
+    /**
+     * COD & RTO app: the shopper's answer to the "confirm your cash on delivery order" link.
+     * `pending` waits for it, `unconfirmed` is past the store's deadline (flagged for the
+     * merchant), `confirmed` / `cancelled` is what the shopper (or the merchant by phone) said.
+     */
+    codVerification: text('cod_verification', {
+      enum: ['pending', 'confirmed', 'cancelled', 'unconfirmed'],
+    }),
+    codVerifyRequestedAt: timestamp('cod_verify_requested_at', { withTimezone: true }),
+    /** When the shopper answered, the merchant marked it, or the deadline flagged it. */
+    codVerifiedAt: timestamp('cod_verified_at', { withTimezone: true }),
   },
   (t) => [
+    /** The COD & RTO sweep reads orders still waiting for the shopper's answer. */
+    index('order_cod_verification_open')
+      .on(t.storeId, t.codVerifyRequestedAt)
+      .where(sql`${t.codVerification} in ('pending', 'unconfirmed')`),
     uniqueIndex('order_store_cart_unique')
       .on(t.storeId, t.cartId)
       .where(sql`${t.cartId} is not null`),
@@ -1110,6 +1130,15 @@ export const order = pgTable(
       .where(sql`${t.balanceDuePaise} > 0 and ${t.balancePaidAt} is null`),
   ],
 )
+
+/** The COD & RTO app's score for one order (`order.rto_risk`). */
+export type OrderRtoRisk = {
+  score: number
+  level: 'low' | 'medium' | 'high'
+  /** Why, most points first: a code the admin words, and the points it added (or took off). */
+  factors: { code: string; points: number }[]
+  scoredAt: string
+}
 
 export type OrderImportMeta = {
   /** The source's order name, e.g. `#1001`. */

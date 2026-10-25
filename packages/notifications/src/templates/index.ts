@@ -45,6 +45,7 @@ export const TEMPLATE_IDS: TemplateId[] = [
   'return_rejected',
   'return_received',
   'return_refunded',
+  'cod_confirm',
   'staff_invite',
   'email_change_code',
   'email_changed',
@@ -102,6 +103,7 @@ export const TEMPLATE_NAMES: Record<TemplateId, string> = {
   return_rejected: 'Return declined',
   return_received: 'Return received',
   return_refunded: 'Return refunded',
+  cod_confirm: 'Confirm your cash on delivery order',
   staff_invite: 'Staff invitation (platform)',
   email_change_code: 'Change email: code (platform)',
   email_changed: 'Change email: notice to old address (platform)',
@@ -190,6 +192,8 @@ function primaryActionFor(
       return d.actionUrl ? { label: 'Pay securely', url: d.actionUrl } : undefined
     case 'checkout_recovery':
       return d.actionUrl ? { label: 'Finish checkout', url: d.actionUrl } : undefined
+    case 'cod_confirm':
+      return d.actionUrl ? { label: 'Confirm or cancel my order', url: d.actionUrl } : undefined
     case 'login_link':
       return d.actionUrl ? { label: `Sign in to ${d.storeName}`, url: d.actionUrl } : undefined
     case 'newsletter_confirm':

@@ -276,6 +276,7 @@ const NAMESPACE_AREA: Record<string, ApiArea> = {
   reviews: 'products',
   orders: 'orders',
   returns: 'orders',
+  codRto: 'orders',
   shipments: 'orders',
   gstInvoices: 'orders',
   customers: 'customers',

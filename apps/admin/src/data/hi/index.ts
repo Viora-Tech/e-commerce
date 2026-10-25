@@ -19,6 +19,7 @@ import bulkEdit from './bulk-edit'
 import businessGst from './business-gst'
 import chatwoot from './chatwoot'
 import checkoutSettings from './checkout-settings'
+import codRto from './cod-rto'
 import collections from './collections'
 import commandPalette from './command-palette'
 import common from './common'
@@ -141,6 +142,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...bulkEdit,
   ...businessGst,
   ...checkoutSettings,
+  ...codRto,
   ...common,
   ...resourcePicker,
   ...connectAside,

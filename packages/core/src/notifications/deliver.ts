@@ -28,6 +28,7 @@ import type {
 } from '@commerce/notifications'
 import { formatDeliveryRange } from '@commerce/shipping'
 import { and, eq, inArray, or, sql } from 'drizzle-orm'
+import { codConfirmDelivery } from '../cod-rto/confirm'
 import type { StoreContext } from '../context'
 import { newsletterConfirmToken, newsletterConfirmUrl } from '../customers/newsletter'
 import { phoneBlindIndex } from '../customers/phone-crypto'
@@ -594,8 +595,12 @@ export async function deliverNotification(
     : null
   if (MERCHANT_TEMPLATES.has(input.template) && !merchant) return []
   const recipient = merchant?.to ?? built.to
-
-  const channels = await channelsFor(ctx, opts)
+  // The COD & RTO app's confirm link goes by WhatsApp when the store has it, else email.
+  const cod = { channels: await channelsFor(ctx, opts), to: recipient, storefrontUrl }
+  const routed = await codConfirmDelivery(ctx, input, { ...cod, secret: opts.settingsSecret })
+  if (!routed) return []
+  actionUrl = routed.actionUrl ?? actionUrl
+  const channels = routed.channels
   const extras = opts.extras ? await opts.extras(input) : null
   const data = {
     ...built.data,

@@ -128,6 +128,8 @@ export class CheckoutRuleViolation extends CommerceError {
     | 'cod_over_limit'
     /** The address's state cannot be right for its PIN code (`checkout/pincode-state.ts`). */
     | 'state_mismatch'
+    /** COD & RTO app: the store refuses cash on delivery for high-risk orders. */
+    | 'cod_high_risk'
   readonly fields: Readonly<Record<string, string>>
   /** Minimum order: what is still missing. COD limit: the limit. In paise. */
   readonly amountPaise: number | null
