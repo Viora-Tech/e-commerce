@@ -1,10 +1,9 @@
-# Security: low-severity code hardening (C-01, C-03, C-07)
+# Security: low-severity code hardening (C-01, C-02, C-03, C-07; C-04/I-07 resolved)
 
-**Branch** `security/low-code-hardening` from `main`. Closes three of the low-severity
-code findings from `docs/security/2026-10-24-infra-pentest.md`. Built the night before the
-2026-10-26 launch **on a branch, not deployed** — merge after launch. No schema change, no
-app (web/admin) code touched; the diff is one HMAC line, one migration line, a dependency
-pin, and tests.
+**Branch** `security/low-code-hardening` from `main`. Clears the low-severity code findings
+from `docs/security/2026-10-24-infra-pentest.md`. Built the night before the 2026-10-26 launch
+**on a branch, not deployed** — merge after launch. No schema change, no app (web/admin) code
+touched.
 
 ## Done
 
@@ -16,6 +15,19 @@ pin, and tests.
   **Invalidates in-flight recovery links** (7-day TTL — acceptable, and blast radius is ~zero
   pre-launch). Tests in `abandoned.test.ts`: existing round-trip/tamper/expiry still green, plus
   a new case asserting a bare-scheme (no-prefix) HMAC is rejected.
+
+- **C-02 — payment amount-guard centralised** (`packages/core/src/payments/confirm.ts`,
+  `webhook.ts`). The "a gateway-reported amount must cover the attempt" invariant used to live only
+  in `webhook.ts`. Moved it into `applyPaymentStatus` — the single choke point every capture path
+  goes through: new optional input `capturedAmountPaise`; when present and the attempt would move to
+  `authorized`/`captured`, `gatewayPaidTooLittle(p.amountPaise, capturedAmountPaise)` refuses the move
+  and returns `rejected: 'underpaid'` with the attempt row untouched. `webhook.ts` now passes
+  `capturedAmountPaise: e.amountPaise` and, on `rejected`, writes the same `amount mismatch …` note on
+  the `payment_event` and returns `applied:false` as before — identical external behaviour, now with
+  one owner of the invariant. The non-webhook paths (manual, COD, balance, expiry, client-confirm)
+  pass nothing → guard skipped, behaviour unchanged. Removed the now-dead `paymentAmountFor` helper
+  (its only caller was the webhook). Existing integration test `webhook.test.ts` ("keeps an order
+  unpaid when the gateway reports less than the attempt") covers the centralised path unchanged.
 
 - **C-03 — migration self-applies RLS** (`packages/db/drizzle/0078_store_data.sql`).
   Appended `SELECT apply_store_rls();` at EOF (behind a `--> statement-breakpoint`), like every
@@ -41,49 +53,35 @@ pin, and tests.
 ## Verified
 
 `bun run lint` (biome) on the changed files — clean. `turbo run typecheck --filter=@commerce/core`
-— pass. C-01 token logic proven via a standalone round-trip + domain-separation check (the
-DB-backed `abandoned.test.ts` suite could not run locally — test-DB auth mismatch for user
-`kulde` — and will run in CI). `bun audit` re-run confirms C-07.
+— pass (incl. the C-02 payment changes). C-01 token logic proven via a standalone round-trip +
+domain-separation check; C-02's behaviour is covered by the existing `webhook.test.ts` underpayment
+case. The DB-backed suites could not run locally (Docker Postgres unreachable on `localhost:5432`
+from this shell — a known local-env issue) and run in CI. `bun audit` re-run confirms C-07.
 
-## Deferred — own PRs after launch (specs below)
+## Resolved without a code change
 
-### C-02 — centralise the payment amount-guard
-**Why not bundled:** the guard isn't a stray check. In `packages/core/src/payments/webhook.ts`
-it does gateway-specific bookkeeping — on `gatewayPaidTooLittle(expected, e.amountPaise)` it marks
-the `payment_event` row `processed` with an `amount mismatch: …` note and returns
-`{applied:false}` **without** calling `applyPaymentStatus`. Current state is **safe**: the
-non-webhook capture paths (`confirmClientPayment`, QR settle, manual mark-as-paid, COD, balance,
-expiry reconcile) rely on gateway amount-binding, and most legitimately capture with *no*
-gateway-reported amount at all.
+### C-04 — marketing open-pixel replay: not a real exposure
+The finding's premise is that replaying an open pixel inflates open analytics. It does not:
+`recordMessageOpen` (`packages/core/src/marketing/tracking.ts`) is **first-open-wins** — it sets
+`marketingMessage.openedAt` only `WHERE openedAt IS NULL`, with **no per-open counter**. A replayed
+(or image-proxy-prefetched) pixel is already a no-op; there is nothing to inflate. Adding a timestamp
+to the token (which is **shared** with `clickToken`) would invalidate in-flight tokens and complicate
+the format to defend against an input the data model already neutralises. Unsubscribe replay is
+idempotent and List-Unsubscribe links must stay valid indefinitely. **No change made; the existing
+`openedAt IS NULL` guard is the replay protection, already documented in `tracking.ts`.** If per-open
+*event* analytics are ever added (a counter), revisit then.
 
-**Spec:**
-1. Add `capturedAmountPaise?: number | null` to `applyPaymentStatus`'s input type (`PaymentRef & …`).
-2. Inside, when `next === 'captured'` **and** `capturedAmountPaise != null`, evaluate
-   `gatewayPaidTooLittle(p.amountPaise, capturedAmountPaise)`. On underpayment, do **not** capture;
-   signal it back distinctly (e.g. extend the return type with a `rejected: 'underpaid'` variant, or
-   return a dedicated result) so the webhook can still write its `payment_event` error note and its
-   `WebhookOutcome`.
-3. `webhook.ts`: pass `capturedAmountPaise: e.amountPaise` into `applyPaymentStatus` and drop the
-   now-duplicated pre-check, mapping the new rejected signal onto today's `payment_event` update +
-   return.
-4. All other callers pass nothing → guard skipped (correct — no gateway amount to compare).
-5. Tests: extend `amount-check.test.ts` and add a webhook case (underpaid capture stays unpaid +
-   event noted); regression-test manual/COD/balance captures still succeed with no amount.
+## Sequenced to the EC2→Lightsail migration (ops, not code)
 
-Needs the webhook event-row semantics preserved exactly — hence its own reviewed PR with full
-payment tests, not a launch-eve bundle.
-
-### C-04 — marketing open/unsubscribe token replay
-**Why not bundled:** `messageToken` (`packages/core/src/marketing/tokens.ts`) is shared by the
-open-pixel **and** `clickToken`. Adding replay protection forces a product decision — reject opens
-older than a window, or dedupe per (message, opener) in `recordMessageOpen` instead; and must **not**
-start expiring click-through on older campaigns (click tokens are fine today — destination is MAC'd).
-It is explicitly optional ("only if open-rate integrity matters"). Unsubscribe replay is idempotent
-(harmless) and List-Unsubscribe links must stay valid indefinitely, so unsubscribe tokens should be
-left alone.
-
-**Spec (one viable shape):** bind a send timestamp into the *message* token body
-(`<storeId>.<messageId>.<sentAtMs>.<mac>`); enforce a max-age **only on the open path**
-(`apps/storefront/src/app/api/m/open/[token]/route.ts` / `recordMessageOpen`), leaving click
-verification age-agnostic. Decide the window with the owner first. Changing the format invalidates
-in-flight message tokens (fine pre-launch).
+### I-07 — crown secrets in flat env
+The app reads all secrets from `process.env` via `loadEnv`/`settingsSecret` (zod-validated,
+fail-fast, with `SETTINGS_SECRET_PREVIOUS` rotation). I-07 is about **where those env vars come
+from**, not app logic, so there is no safe code-only fix and the `SETTINGS_SECRET` decrypt path must
+not be touched blind on launch eve. Verified hygiene (25 Oct): **no secret value in any committed
+file** — `.env` gitignored and untracked, only empty placeholders in `.env.example` /
+`deploy/env.production.example`; values live in Dokploy's env config. Residual risk is an env dump by
+someone with Dokploy/SSH access, now 2FA-gated (CP-01/CP-02) with origin ports moving behind the
+tunnel → **Low**. The move to AWS Secrets Manager (instance-role read, entrypoint injection that is a
+no-op until `AWS_SECRETS_MANAGER_SECRET_ID` is set, then rotate `SETTINGS_SECRET`) is written up step
+by step as **section F of `docs/security/secret-rotation-runbook.md`** and is executed during the
+Lightsail cutover, when secrets are provisioned fresh on the new box regardless.

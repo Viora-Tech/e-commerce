@@ -12,6 +12,12 @@ export type AppliedPayment = {
   becameCaptured: boolean
   /** True when money was captured that the order cannot keep (cancelled order, already paid). */
   refundNeeded: boolean
+  /**
+   * Set when a caller supplied a gateway-reported amount that did not cover the
+   * attempt: the capture was refused and the attempt row left untouched. Only a
+   * gateway path (`capturedAmountPaise` given) can produce this.
+   */
+  rejected?: 'underpaid'
 }
 
 /** A second balance capture, or one after the balance was recorded by hand, is money to send back. */
@@ -82,20 +88,6 @@ export function gatewayPaidTooLittle(expectedPaise: number, reportedPaise: numbe
   return !Number.isFinite(reportedPaise) || reportedPaise < expectedPaise
 }
 
-/** The amount of the attempt a gateway event points at, or null when it names none. */
-export async function paymentAmountFor(
-  ctx: StoreContext,
-  ref: { providerRef: string; idempotencyKey?: string | null | undefined },
-): Promise<number | null> {
-  const id = await findPaymentId(ctx, ref)
-  if (!id) return null
-  const [row] = await ctx.tx
-    .select({ amountPaise: payment.amountPaise })
-    .from(payment)
-    .where(eq(payment.id, id))
-  return row?.amountPaise ?? null
-}
-
 /**
  * Apply a gateway status to one payment attempt and its order. Idempotent and
  * forward-only (`nextPaymentStatus`): a duplicate capture is a no-op and a late
@@ -109,7 +101,18 @@ export async function paymentAmountFor(
  */
 export async function applyPaymentStatus(
   ctx: StoreContext,
-  input: PaymentRef & { status: PaymentStatus; providerPaymentId: string | null },
+  input: PaymentRef & {
+    status: PaymentStatus
+    providerPaymentId: string | null
+    /**
+     * The amount a gateway reported for this event, in paise. Supplied only by
+     * the webhook (and any future gateway path): when present and the attempt
+     * would move to authorized/captured, it must cover the attempt amount or the
+     * move is refused (`rejected: 'underpaid'`). Omit it on manual, COD, balance
+     * and reconciliation captures — there is no gateway amount to check.
+     */
+    capturedAmountPaise?: number | null
+  },
 ): Promise<AppliedPayment | null> {
   const id = await findPaymentId(ctx, input)
   if (!id) return null
@@ -130,6 +133,25 @@ export async function applyPaymentStatus(
   const providerRef = 'providerRef' in input ? input.providerRef : p.providerRef
   if (!next) {
     return { payment: p, becameCaptured: false, refundNeeded: p.refundNeeded }
+  }
+
+  // The one place every capture path shares the amount invariant: a signed
+  // gateway event can name an attempt it did not pay for (pay ₹1 on the store's
+  // public key, copy an attempt's notes onto it), so a reported amount that does
+  // not cover the attempt never moves it to authorized/captured. The attempt row
+  // is left untouched; the caller (webhook) records why. Paths with no gateway
+  // amount (manual, COD, balance, reconcile) pass nothing and skip the check.
+  if (
+    input.capturedAmountPaise != null &&
+    (next === 'captured' || next === 'authorized') &&
+    gatewayPaidTooLittle(p.amountPaise, input.capturedAmountPaise)
+  ) {
+    return {
+      payment: p,
+      becameCaptured: false,
+      refundNeeded: p.refundNeeded,
+      rejected: 'underpaid',
+    }
   }
 
   let refundNeeded = p.refundNeeded
