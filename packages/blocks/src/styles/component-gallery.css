@@ -18,6 +18,20 @@
   display: block;
 }
 
+/* No photo yet: a square surface with the bag outline, not an empty frame. */
+.product-gallery--placeholder .product-gallery__main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  background-color: color-mix(in oklab, currentColor 7%, transparent);
+}
+
+.product-gallery--placeholder .product-image-placeholder {
+  width: 22%;
+  opacity: 0.45;
+}
+
 /* ---------------------------------------------------------------- */
 /* Stage: the media frame plus its prev/next arrows                  */
 /* ---------------------------------------------------------------- */

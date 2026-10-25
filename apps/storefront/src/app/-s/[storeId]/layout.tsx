@@ -46,6 +46,7 @@ import LiquidBoot from '@/components/theme/liquid-boot'
 import LiquidHtml from '@/components/theme/liquid-html'
 import PreviewBar from '@/components/theme/preview-bar'
 import ThemePreviewBridge from '@/components/theme/theme-preview-bridge'
+import { collectionsContent } from '@/data/collections'
 import { policyPageContent } from '@/data/policies'
 import { privacyContent } from '@/data/privacy'
 import { searchContent } from '@/data/search'
@@ -92,15 +93,59 @@ async function themedRerender() {
   return isRerender((await cookies()).get(RERENDER_COOKIE)?.value, pathname)
 }
 
-/** The Header section's menu, or the Navigation setting's main menu when it names none. */
+/** Collections a store with no menu at all shows in its header, after "Shop all". */
+const STARTER_MENU_COLLECTIONS = 4
+
+/** A store with no footer menu yet gets two plain columns, so its footer is never blank. */
+function starterFooterColumns(collections: readonly { handle: string; title: string }[]) {
+  const copy = collectionsContent.starterFooter
+  return [
+    {
+      id: 'starter-shop',
+      heading: copy.shop,
+      links: [
+        { id: 'starter-all', label: collectionsContent.shopAll, href: '/collections/all' },
+        ...collections.slice(0, STARTER_MENU_COLLECTIONS).map((c) => ({
+          id: `starter-${c.handle}`,
+          label: c.title,
+          href: `/collections/${c.handle}`,
+        })),
+      ],
+    },
+    {
+      id: 'starter-help',
+      heading: copy.help,
+      links: [
+        { id: 'starter-search', label: copy.search, href: '/search' },
+        { id: 'starter-track', label: copy.trackOrder, href: '/track-order' },
+        { id: 'starter-account', label: copy.account, href: '/account' },
+      ],
+    },
+  ]
+}
+
+/**
+ * The Header section's menu, or the Navigation setting's main menu when it names none. A store
+ * that has no such menu yet (a new store) gets Shopify's starter: Shop all and its first
+ * collections, so the header is never empty. A menu the merchant emptied stays empty.
+ */
 function menuLinks(
   menus: Map<string, { items: Parameters<typeof toNavLinks>[0] }>,
   handle: unknown,
   fallback: string | null,
+  collections: readonly { handle: string; title: string }[],
 ) {
   const picked = typeof handle === 'string' && handle ? handle : fallback
   const menu = picked === null ? undefined : menus.get(picked)
-  return toNavLinks(menu?.items ?? [])
+  if (menu) return toNavLinks(menu.items)
+  return [
+    { id: 'starter-all', label: collectionsContent.shopAll, href: '/collections/all' },
+    ...collections.slice(0, STARTER_MENU_COLLECTIONS).map((c) => ({
+      id: `starter-${c.handle}`,
+      label: c.title,
+      href: `/collections/${c.handle}`,
+    })),
+  ]
 }
 
 /** The live theme's settings, cached per store version. */
@@ -214,6 +259,7 @@ export default async function StoreLayout({ children, params }: Props) {
   const settings = parseNavigationSettings(current.navigation)
   const menusByHandle = new Map(menus.map((menu) => [menu.handle, menu]))
   // A nested footer menu splits into one column per parent, as Shopify's does.
+  const hasFooterMenu = settings.footer.length > 0
   const footerColumns = settings.footer.flatMap((handle) => {
     const menu = menusByHandle.get(handle)
     return menu ? toFooterColumns(menu, menu.items) : []
@@ -230,7 +276,7 @@ export default async function StoreLayout({ children, params }: Props) {
         renderers: {
           Header: (s) => {
             const hs = headerSettings(s)
-            const links = menuLinks(menusByHandle, hs.menu, settings.main)
+            const links = menuLinks(menusByHandle, hs.menu, settings.main, collections)
             const { popular, brands } = searchShortcuts(
               hs.popularTerms,
               hs.brandCollections,
@@ -306,7 +352,7 @@ export default async function StoreLayout({ children, params }: Props) {
                 // The section's own links win; with none, Theme settings → Social media fills in.
                 socials={settings.socials.length ? settings.socials : theme.social.links}
                 storeName={current.name}
-                columns={footerColumns}
+                columns={hasFooterMenu ? footerColumns : starterFooterColumns(collections)}
                 newsletterAction={subscribeAction}
                 policies={policies.map((p) => ({ label: p.title, href: p.href }))}
                 // Reopens the cookie banner, so a choice can be changed any time.

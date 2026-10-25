@@ -80,10 +80,15 @@
   justify-content: center;
 }
 
+.product-card__image--placeholder {
+  background-color: color-mix(in oklab, currentColor 7%, transparent);
+}
+
 .product-card__image--placeholder svg {
-  width: 60%;
-  height: 60%;
-  color: var(--color-line);
+  width: 28%;
+  height: 28%;
+  color: currentColor;
+  opacity: 0.45;
 }
 
 .product-card__image--hover,
