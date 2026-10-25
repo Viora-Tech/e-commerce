@@ -99,7 +99,7 @@ export const salesChannelsContent = {
       `Sending your catalog to ${name} for the first time. This can take a few minutes.`,
     sharing: (name: string) => `Sharing your catalog with ${name}…`,
     sentOf: (sent: number, total: number) =>
-      `${sent.toLocaleString('en-IN')} of ${total.toLocaleString('en-IN')} products sent`,
+      `${sent.toLocaleString('en-IN')} of ${total.toLocaleString('en-IN')} items sent`,
     syncedBody: 'Products, prices and stock are up to date.',
     errorBody: (name: string) =>
       `${name} could not take the latest changes. Reconnect to start sharing again.`,
@@ -380,8 +380,9 @@ export const salesChannelsContent = {
   socialPage: {
     connectCta: (name: string) => `Connect ${name}`,
     stats: {
-      live: 'Products live',
-      liveNote: (n: number) => `of ${n} in your catalog`,
+      live: 'Items live',
+      /** Each variant is its own item on the platform, so items outnumber products. */
+      liveNote: (n: number) => `variants of your ${n} active products`,
       orders: (name: string) => `Orders from ${name}`,
       revenue: (name: string) => `Sales from ${name}`,
       aov: 'Average order',

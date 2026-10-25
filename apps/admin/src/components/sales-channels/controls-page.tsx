@@ -205,7 +205,8 @@ export default function ControlsPage({ view: initial, collections }: ControlsPag
             ) : null}
           </DataCard>
         </div>
-        <div className="flex flex-col gap-4">
+        {/* The summary stays in view while the settings scroll. */}
+        <div className="flex flex-col gap-4 lg:sticky lg:top-4">
           <DataCard title={copy.visibleHeading}>
             <KeyValueList
               variant="grid"
