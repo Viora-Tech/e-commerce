@@ -66,5 +66,9 @@
   },
   "patchedDependencies": {
     "cobe@2.0.1": "patches/cobe@2.0.1.patch"
+  },
+  "overrides": {
+    "follow-redirects": "1.16.1",
+    "undici": "7.30.1"
   }
 }

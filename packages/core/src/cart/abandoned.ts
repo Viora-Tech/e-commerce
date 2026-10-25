@@ -152,7 +152,10 @@ export function verifyRecoveryToken(
 }
 
 function sign(body: string, secret: string): string {
-  return createHmac('sha256', secret).update(body).digest('base64url')
+  // Purpose-prefixed like preorder/balance-link.ts, so a recovery token can
+  // never be confused with another `<id>.<expiry>` token signed with the same
+  // secret. Changing the prefix invalidates in-flight recovery links (7-day TTL).
+  return createHmac('sha256', secret).update(`recovery:${body}`).digest('base64url')
 }
 
 export const recoveryPath = (token: string) => `/checkout/recover/${token}`

@@ -1,3 +1,4 @@
+import { createHmac } from 'node:crypto'
 import { cart, createDb, inventoryLevel, product, store, variant, withStore } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
@@ -82,6 +83,19 @@ describe('recovery token', () => {
     const token = recoveryToken('11111111-2222-3333-4444-555555555555', SECRET)
     const later = new Date(Date.now() + RECOVERY_TTL_MS + 1000)
     expect(verifyRecoveryToken(token, SECRET, later)).toEqual({ ok: false, reason: 'expired' })
+  })
+
+  it('is domain-separated: a bare <id>.<expiry> HMAC (no purpose prefix) is rejected', () => {
+    const cartId = '11111111-2222-3333-4444-555555555555'
+    const expires = Date.now() + RECOVERY_TTL_MS
+    const body = `${cartId}.${expires}`
+    // A token signed the old way (secret over the bare body, no `recovery:` prefix)
+    // must no longer verify, so it can never be swapped in for another token type.
+    const bareMac = createHmac('sha256', SECRET).update(body).digest('base64url')
+    expect(verifyRecoveryToken(`${body}.${bareMac}`, SECRET)).toEqual({
+      ok: false,
+      reason: 'signature',
+    })
   })
 })
 

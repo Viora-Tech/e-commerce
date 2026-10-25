@@ -46,3 +46,5 @@ BEGIN
   RAISE EXCEPTION 'privacy_audit_event is append only';
 END;
 $$;
+--> statement-breakpoint
+SELECT apply_store_rls();
