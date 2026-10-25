@@ -361,6 +361,8 @@ function checkoutRuleMessage(err: CheckoutRuleViolation, pincode: string): strin
       return e.codOverLimit(formatMoney(err.amountPaise ?? 0))
     case 'state_mismatch':
       return e.stateMismatch(pincode)
+    case 'cod_high_risk':
+      return e.codHighRisk
   }
 }
 

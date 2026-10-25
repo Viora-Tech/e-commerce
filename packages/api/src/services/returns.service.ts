@@ -5,6 +5,7 @@ import {
   closeReturn,
   deliverGiftCard,
   exchangeReturn,
+  exchangeWishes,
   getReturn,
   giftCardChannels,
   listReturns,
@@ -106,10 +107,11 @@ export async function returnDetail(
   const ctx = { storeId, tx }
   const r = await getReturn(ctx, id)
   if (!r) return null
-  const [payments, couriers, policy] = await Promise.all([
+  const [payments, couriers, policy, wishes] = await Promise.all([
     refundablePayments(ctx, r.orderId),
     pickupCouriers(tx, storeId, shippingRegistry, secret),
     loadReturnPolicy(ctx),
+    exchangeWishes(ctx, id),
   ])
   const suggestion = r.status === 'received' ? await suggestedRefundPaise(ctx, id) : null
   const [card] = r.giftCardId
@@ -133,6 +135,8 @@ export async function returnDetail(
     policy,
     giftCard: card ?? null,
     rtoShipment: rtoShipment ?? null,
+    /** What the shopper asked to swap to (an exchange for another size). */
+    exchangeWishes: wishes,
   }
 }
 

@@ -71,6 +71,11 @@ export type TemplateId =
   /** Money went back for the return (original payment or store credit). */
   | 'return_refunded'
   /**
+   * COD & RTO app: asks a cash on delivery shopper to confirm (or cancel) the order; `actionUrl`
+   * is the confirm page. By WhatsApp when the store has it, email otherwise.
+   */
+  | 'cod_confirm'
+  /**
    * PLATFORM message, not a store one: someone was invited to help run a store. Sent through the
    * platform email account straight away; `actionUrl` is the accept link. Email only.
    */

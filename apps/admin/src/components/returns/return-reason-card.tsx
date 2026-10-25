@@ -1,7 +1,7 @@
 import type { ReturnReason } from '@commerce/core/returns'
 import DataCard from '@/components/layout/data-card'
 import KeyValueList from '@/components/layout/key-value-list'
-import { returnDetailContent as copy, returnsContent } from '@/data/returns'
+import { returnDetailContent as copy, returnRulesContent, returnsContent } from '@/data/returns'
 import type { ReturnDetail } from './return-types'
 
 type ReturnReasonCardProps = { detail: ReturnDetail }
@@ -10,6 +10,14 @@ type ReturnReasonCardProps = { detail: ReturnDetail }
 export default function ReturnReasonCard({ detail: r }: ReturnReasonCardProps) {
   // Render logic
   const reason = r.reason ? (returnsContent.reasons[r.reason as ReturnReason] ?? r.reason) : null
+  const rules = returnRulesContent
+  const wants = r.preferredResolution ? (rules.wants[r.preferredResolution] ?? null) : null
+  const swaps = r.exchangeWishes.map((w) =>
+    rules.swapTo(
+      [w.title, w.from && w.from !== 'Default' ? w.from : null].filter(Boolean).join(' / '),
+      w.variantTitle,
+    ),
+  )
 
   return (
     <DataCard title={copy.why}>
@@ -17,6 +25,20 @@ export default function ReturnReasonCard({ detail: r }: ReturnReasonCardProps) {
         <KeyValueList
           rows={[
             { label: copy.reasonLabel, value: reason },
+            {
+              label: copy.wantsLabel,
+              hidden: !wants,
+              value: (
+                <span className="flex flex-col">
+                  <span>{wants}</span>
+                  {swaps.map((s) => (
+                    <span key={s} className="text-muted-foreground">
+                      {s}
+                    </span>
+                  ))}
+                </span>
+              ),
+            },
             {
               label: copy.noteLabel,
               value: <span className="whitespace-pre-line">{r.customerNote || copy.noNote}</span>,
@@ -47,6 +69,9 @@ export default function ReturnReasonCard({ detail: r }: ReturnReasonCardProps) {
             },
           ]}
         />
+        {r.autoApproved ? (
+          <p className="text-caption text-muted-foreground">{rules.autoApproved}</p>
+        ) : null}
         {r.status === 'rejected' && r.decisionNote ? (
           <p className="rounded-lg bg-danger-soft px-3 py-2 text-danger">
             {copy.decision.declinedBecause(r.decisionNote)}

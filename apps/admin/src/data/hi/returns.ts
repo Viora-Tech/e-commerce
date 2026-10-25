@@ -1,4 +1,4 @@
-import { returnListActionsContent } from '@/data/returns'
+import { returnListActionsContent, returnRulesContent } from '@/data/returns'
 import { translation } from '@/lib/i18n'
 
 export default [
@@ -21,5 +21,25 @@ export default [
       ]
         .filter(Boolean)
         .join(', '),
+  }),
+  translation(returnRulesContent, {
+    exchangesTitle: 'एक्सचेंज',
+    exchanges: 'ग्राहकों को दूसरा साइज़ या रंग मांगने दें',
+    exchangesHint:
+      'रिटर्न फ़ॉर्म पर वे पैसे वापस लेने की जगह अपनी पसंद का वेरिएंट चुन सकते हैं। पार्सल वापस आने पर आप उसे रिटर्न के पेज से भेजें।',
+    autoTitle: 'रिटर्न अपने आप मंज़ूर करें',
+    autoDescription:
+      'जो रिक्वेस्ट इन नियमों से मेल खाती हैं, वे तुरंत मंज़ूर हो जाती हैं। पिकअप और पार्सल की जांच आप ही करते हैं।',
+    auto: 'मेल खाने वाली रिक्वेस्ट अपने आप मंज़ूर करें',
+    autoReasons: 'इन कारणों के लिए',
+    autoMax: 'इतनी कीमत तक',
+    autoMaxHint: 'रुपये में। 0 का मतलब कोई भी कीमत।',
+    wants: {
+      refund: 'पैसे वापस चाहिए',
+      exchange: 'एक्सचेंज चाहिए',
+      store_credit: 'स्टोर क्रेडिट चाहिए',
+    },
+    swapTo: (from, to) => `${from} की जगह ${to}`,
+    autoApproved: 'आपके रिटर्न नियमों से अपने आप मंज़ूर',
   }),
 ]

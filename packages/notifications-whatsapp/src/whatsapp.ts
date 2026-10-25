@@ -112,6 +112,8 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
       return [d.backInStock?.productTitle ?? '-', d.backInStock?.confirmUrl ?? '-']
     case 'back_in_stock_alert':
       return [d.backInStock?.productTitle ?? '-', d.storeName, d.backInStock?.productUrl ?? '-']
+    case 'cod_confirm':
+      return [d.customerName, d.storeName, n, d.totalLabel, d.actionUrl ?? '-']
     case 'return_requested':
     case 'return_received':
       return [d.storeName, d.returnInfo?.label ?? '-', n]

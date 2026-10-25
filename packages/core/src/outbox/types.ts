@@ -118,6 +118,8 @@ export type OutboxEventType =
   | 'shopify.app_uninstalled'
   /** Pixels app: Meta stopped accepting a pixel's Conversions API token; the owner is emailed once. */
   | 'pixel.connection_failed'
+  /** COD & RTO app: a cash on delivery order waits for the shopper's confirm / cancel answer. */
+  | 'order.cod_confirm_requested'
 
 /**
  * `orderId` is required for every order-lifecycle type; `variantId` (and
@@ -300,6 +302,8 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   'shopify.app_uninstalled': null,
   // The relay hands it to the Pixels app's `{pixels}-order` job, which emails the owner.
   'pixel.connection_failed': null,
+  // COD & RTO app: the confirm / cancel link (WhatsApp when the store has it, else email).
+  'order.cod_confirm_requested': 'cod_confirm',
 }
 
 /**
@@ -379,4 +383,5 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'meta.access_removed': null,
   'shopify.app_uninstalled': null,
   'pixel.connection_failed': null,
+  'order.cod_confirm_requested': null,
 }

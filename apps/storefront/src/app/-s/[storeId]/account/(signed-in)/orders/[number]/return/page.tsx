@@ -1,4 +1,4 @@
-import { getCustomerOrder, orderReturnState } from '@commerce/core'
+import { exchangeOptions, getCustomerOrder, orderReturnState } from '@commerce/core'
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import ReturnForm, { type ReturnFormLine } from '@/components/account/return-form'
@@ -27,6 +27,7 @@ export default async function AccountReturnPage({ params }: ReturnPageProps) {
     return {
       order: found,
       state: await orderReturnState({ storeId, tx }, found.id),
+      swaps: await exchangeOptions({ storeId, tx }, found.id),
       timeZone: await storeTimeZone(tx, storeId),
     }
   })
@@ -34,6 +35,7 @@ export default async function AccountReturnPage({ params }: ReturnPageProps) {
   if (!data.state.eligibility.open) redirect(`/account/orders/${data.order.number}`)
 
   const why = new Map(data.state.eligibility.lines.map((l) => [l.lineId, l]))
+  const exchanges = data.state.policy.exchanges
   const lines: ReturnFormLine[] = data.state.lines.map((l) => ({
     id: l.id,
     title: l.title,
@@ -41,6 +43,7 @@ export default async function AccountReturnPage({ params }: ReturnPageProps) {
     imageUrl: l.imageUrl,
     returnable: why.get(l.id)?.returnable ?? 0,
     why: why.get(l.id)?.why ?? 'not_shipped',
+    swaps: exchanges ? (data.swaps.get(l.id) ?? []) : [],
   }))
   const closes = data.state.eligibility.closesAt
     ? formatAccountDate(data.state.eligibility.closesAt, data.timeZone)
@@ -52,6 +55,7 @@ export default async function AccountReturnPage({ params }: ReturnPageProps) {
       closesLabel={closes}
       lines={lines}
       reasons={data.state.policy.reasons}
+      exchanges={exchanges}
     />
   )
 }

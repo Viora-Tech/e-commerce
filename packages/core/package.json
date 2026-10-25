@@ -82,6 +82,8 @@
     "./fulfillment-orders": "./src/order/fulfillment-orders.ts",
     "./returns": "./src/returns/policy.ts",
     "./return-reasons": "./src/returns/reasons.ts",
+    "./cod-rto": "./src/cod-rto/client.ts",
+    "./cod-rto-app": "./src/cod-rto/app.ts",
     "./policies": "./src/policies/client.ts",
     "./sales-channels": "./src/sales-channels/client.ts",
     "./checkout-settings": "./src/checkout/settings.ts",

@@ -38,6 +38,22 @@ export const ReturnPolicySchema = z.object({
   restockAutomatically: z.boolean().default(true),
   /** What the admin suggests first when giving money back. */
   refundMethod: z.enum(RETURN_REFUND_METHODS).default('original'),
+  /** Shoppers can ask for the same product in another variant (a size swap) instead of money. */
+  exchanges: z.boolean().default(false),
+  /**
+   * Approve a shopper's request at once when its reason is on this list and its value is at or
+   * under the limit (0: any value). The merchant still arranges the pickup and checks the parcel.
+   */
+  autoApprove: z
+    .object({
+      enabled: z.boolean().default(false),
+      reasons: z
+        .array(z.enum(RETURN_REASONS))
+        .default(['damaged', 'wrong_item'])
+        .transform((r) => RETURN_REASONS.filter((code) => r.includes(code))),
+      maxValuePaise: z.number().int().min(0).default(0),
+    })
+    .prefault({}),
 })
 export type ReturnPolicy = z.infer<typeof ReturnPolicySchema>
 
@@ -65,6 +81,21 @@ export type ReturnKind = (typeof RETURN_KINDS)[number]
 
 export const RETURN_RESOLUTIONS = ['refund', 'exchange', 'store_credit', 'reship', 'none'] as const
 export type ReturnResolution = (typeof RETURN_RESOLUTIONS)[number]
+
+/** What a shopper can ask for on the return form (`return_request.preferred_resolution`). */
+export const RETURN_PREFERENCES = ['refund', 'exchange', 'store_credit'] as const
+export type ReturnPreference = (typeof RETURN_PREFERENCES)[number]
+
+/** Whether the store's auto-approve rule takes this shopper request without a person. */
+export function qualifiesForAutoApprove(
+  policy: ReturnPolicy,
+  request: { reason: ReturnReason; valuePaise: number; requestedBy: 'customer' | 'merchant' },
+): boolean {
+  const rule = policy.autoApprove
+  if (!rule.enabled || request.requestedBy !== 'customer') return false
+  if (!rule.reasons.includes(request.reason)) return false
+  return rule.maxValuePaise === 0 || request.valuePaise <= rule.maxValuePaise
+}
 
 /** Returns someone still has to act on (the admin "Needs action" filter). */
 export const OPEN_RETURN_STATUSES: readonly ReturnStatus[] = [

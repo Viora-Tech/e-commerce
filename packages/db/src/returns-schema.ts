@@ -83,6 +83,12 @@ export const returnRequest = pgTable(
     pickupProvider: text('pickup_provider'),
     pickupWaybill: text('pickup_waybill'),
     pickupLabelUrl: text('pickup_label_url'),
+    /** What the shopper asked for: money back, store credit, or the same item in another variant. */
+    preferredResolution: text('preferred_resolution', {
+      enum: ['refund', 'exchange', 'store_credit'],
+    }),
+    /** Approved by the store's auto-approve rule (Settings → Returns), not by a person. */
+    autoApproved: boolean('auto_approved').notNull().default(false),
     /** What the courier charged for an RTO, typed by the merchant. */
     courierCostPaise: integer('courier_cost_paise'),
     requestedBy: text('requested_by', { enum: ['customer', 'merchant', 'system'] })
@@ -126,6 +132,8 @@ export const returnRequestLine = pgTable(
     quantity: integer('quantity').notNull(),
     /** Units put back in stock so far; a second restock click moves nothing. */
     restockedQuantity: integer('restocked_quantity').notNull().default(0),
+    /** The variant the shopper wants instead (an exchange for another size); null for money back. */
+    exchangeVariantId: uuid('exchange_variant_id'),
   },
   (t) => [
     index('return_request_line_request').on(t.returnRequestId),

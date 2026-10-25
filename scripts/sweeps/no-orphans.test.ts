@@ -797,14 +797,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/preorder/balance-link.ts',
-    names: [
-      'BALANCE_LINK_TTL_MS',
-      'ORDER_LINK_TTL_MS',
-      'signOrderToken',
-      'verifyOrderToken',
-      'balanceToken',
-      'balancePath',
-    ],
+    names: ['BALANCE_LINK_TTL_MS', 'ORDER_LINK_TTL_MS', 'balanceToken', 'balancePath'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -892,6 +885,12 @@ const ALLOWLIST: AllowEntry[] = [
     file: 'packages/core/src/theme/vars.ts',
     names: ['themeToCssVars'],
     reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/core/src/cod-rto/settings.ts',
+    names: ['codPrepaidDuePaise'],
+    reason:
+      'COD & RTO partial prepaid: the rule is saved and unit-tested; checkout calls it once split COD payments exist (handoff 2026-10-25-cod-rto-app)',
   },
   {
     file: 'packages/db/src/auth-schema.ts',

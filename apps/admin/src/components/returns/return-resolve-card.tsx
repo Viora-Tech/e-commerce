@@ -24,6 +24,9 @@ const copy = returnDetailContent.resolve
 /** What the merchant usually picks first: their policy for returns, sending again for an RTO. */
 function firstChoice(r: ReturnDetail): Outcome {
   if (r.kind === 'rto') return 'reship'
+  // What the customer asked for on the return form comes first.
+  if (r.preferredResolution === 'exchange') return 'exchange'
+  if (r.preferredResolution === 'store_credit') return 'credit'
   if (r.refundablePaise <= 0) return 'exchange'
   return r.policy.refundMethod === 'store_credit' ? 'credit' : 'refund'
 }
