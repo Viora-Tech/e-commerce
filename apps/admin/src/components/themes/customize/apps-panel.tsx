@@ -22,7 +22,7 @@ import { FIELD_INPUT } from '@/lib/customize-field-styles'
 
 type AppsPanelProps = {
   /** The apps this store has installed; only their embeds are listed. */
-  installedApps: string[]
+  installed: string[]
   theme: Theme
   onChange: (next: Theme) => void
 }
@@ -35,22 +35,22 @@ type LabelledField = Field & { label?: string }
  * offer, each with a switch and, opened, its settings. Both save into `theme.appEmbeds` with the
  * other theme settings, so they ship on Save like the rest of the theme.
  */
-export default function AppsPanel({ installedApps, theme, onChange }: AppsPanelProps) {
+export default function AppsPanel({ installed, theme, onChange }: AppsPanelProps) {
   // Hooks
   const copy = useCopy(customizeContent.appEmbeds)
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState<string | null>(null)
 
-  // Derived
-  const embeds = resolveAppEmbeds(editorAppEmbedSources(new Set(installedApps)), theme.appEmbeds)
+  // Event handlers
+  const handleSet = (type: string, enabled: boolean, settings: Record<string, unknown>) =>
+    onChange({ ...theme, appEmbeds: { ...theme.appEmbeds, [type]: { enabled, settings } } })
+
+  // Render logic
+  const embeds = resolveAppEmbeds(editorAppEmbedSources(new Set(installed)), theme.appEmbeds)
   const needle = query.trim().toLowerCase()
   const matched = embeds.filter((e) =>
     `${e.embed.label} ${e.appName}`.toLowerCase().includes(needle),
   )
-
-  // Event handlers
-  const handleSet = (type: string, enabled: boolean, settings: Record<string, unknown>) =>
-    onChange({ ...theme, appEmbeds: { ...theme.appEmbeds, [type]: { enabled, settings } } })
 
   // Early returns
   if (embeds.length === 0) {

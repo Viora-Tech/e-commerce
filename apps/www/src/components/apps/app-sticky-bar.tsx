@@ -39,9 +39,7 @@ export default function AppStickyBar({ watch, tile, name, price, actions }: AppS
       inert={!shown}
       className={cn(
         'fixed inset-x-0 bottom-0 z-20 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] transition-[opacity,translate] duration-(--duration-modal) ease-out motion-reduce:translate-y-0 md:px-8 md:pb-6 print:hidden',
-        shown
-          ? 'translate-y-0 opacity-100'
-          : 'pointer-events-none translate-y-4 opacity-0',
+        shown ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-4 opacity-0',
       )}
     >
       <div className="glass-panel mx-auto flex max-w-[75rem] items-center gap-3 rounded-2xl p-2 pl-3 md:rounded-full md:pl-2">
