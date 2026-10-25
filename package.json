@@ -66,21 +66,21 @@
     "@commerce/plugin-emi": "workspace:*",
     "@commerce/plugin-forms": "workspace:*",
     "@commerce/plugin-growthbook": "workspace:*",
-    "@commerce/plugin-reviews": "workspace:*",
+    "@commerce/plugin-gst-invoices": "workspace:*",
     "@commerce/plugin-meilisearch": "workspace:*",
+    "@commerce/plugin-reviews": "workspace:*",
     "@commerce/plugin-search": "workspace:*",
     "@commerce/plugin-search-console": "workspace:*",
-    "@commerce/plugin-umami": "workspace:*",
-    "@commerce/plugin-gst-invoices": "workspace:*",
     "@commerce/plugin-shopify-import": "workspace:*",
+    "@commerce/plugin-umami": "workspace:*",
     "@commerce/plugins": "workspace:*",
     "@commerce/shipping-bluedart": "workspace:*",
     "@commerce/shipping-delhivery": "workspace:*",
-    "@commerce/shipping-dtdc": "workspace:*",
-    "@commerce/shipping-indiapost": "workspace:*",
-    "@commerce/shipping-ekart": "workspace:*",
     "@commerce/shipping-dhl-express": "workspace:*",
+    "@commerce/shipping-dtdc": "workspace:*",
+    "@commerce/shipping-ekart": "workspace:*",
     "@commerce/shipping-fedex": "workspace:*",
+    "@commerce/shipping-indiapost": "workspace:*",
     "@commerce/shipping-rapidshyp": "workspace:*",
     "@commerce/shipping-shadowfax": "workspace:*",
     "@commerce/shipping-shiprocket": "workspace:*",
@@ -91,5 +91,9 @@
   },
   "patchedDependencies": {
     "cobe@2.0.1": "patches/cobe@2.0.1.patch"
+  },
+  "overrides": {
+    "follow-redirects": "1.16.1",
+    "undici": "8.12.3"
   }
 }
