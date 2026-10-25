@@ -1,6 +1,7 @@
 /** SOURCE OF TRUTH: affiliate order matching — WHAT: which affiliate (and program) an order earns for / WHY: coupon, link and lifetime binding must be checked in one fixed order */
 import { order, type StoreTx } from '@commerce/db'
-import { and, asc, eq, isNull, ne, notInArray, or, sql } from 'drizzle-orm'
+import { and, asc, eq, isNull, ne, notInArray, or, type SQL, sql } from 'drizzle-orm'
+import { linkCodeIs } from './codes'
 import { withinCookieWindow, withinLifetime } from './hold'
 import { programOf } from './programs'
 import { affiliate, affiliateCommission } from './schema'
@@ -12,7 +13,7 @@ type OrderRow = typeof order.$inferSelect
 async function approvedAffiliateBy(
   tx: StoreTx,
   storeId: string,
-  where: ReturnType<typeof eq>,
+  where: SQL,
 ): Promise<AffiliateRow | null> {
   const [row] = await tx
     .select()
@@ -87,7 +88,8 @@ async function matchedAffiliate(
   if (ref && o.attribution?.at) {
     const touched = new Date(o.attribution.at)
     if (withinCookieWindow(touched, o.placedAt, settings.cookieDays)) {
-      const a = await approvedAffiliateBy(tx, storeId, eq(affiliate.code, ref))
+      // A retired link code still earns: old posts keep paying.
+      const a = await approvedAffiliateBy(tx, storeId, linkCodeIs(ref))
       if (a) return { affiliate: a, source: 'link' }
     }
   }

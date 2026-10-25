@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import type { AppPageProps } from '@/apps/registry'
 import AffiliateProgramCard from '@/components/apps/affiliates/affiliate-program-card'
 import AffiliateRowActions from '@/components/apps/affiliates/affiliate-row-actions'
+import CodesCard from '@/components/apps/affiliates/codes-card'
 import { commissionColumns } from '@/components/apps/affiliates/commission-columns'
 import ReviewCard from '@/components/apps/affiliates/review-card'
 import { statusTone } from '@/components/apps/affiliates/tones'
@@ -133,6 +134,16 @@ export default function AffiliateDetail({ params }: AppPageProps) {
           </div>
         </div>
       </div>
+      {a.status === 'approved' ? (
+        <CodesCard
+          affiliateId={a.id}
+          code={a.code}
+          couponCode={a.couponCode}
+          request={a.codeRequest}
+          history={data.codes}
+          onChanged={handleChanged}
+        />
+      ) : null}
       <AffiliateProgramCard
         key={`${a.programId}-${JSON.stringify(a.rateOverride)}`}
         affiliateId={a.id}

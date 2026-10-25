@@ -1079,6 +1079,13 @@
       "when": 1792929746646,
       "tag": "0169_affiliate_fraud",
       "breakpoints": true
+    },
+    {
+      "idx": 154,
+      "version": "7",
+      "when": 1792931027380,
+      "tag": "0170_affiliate_codes",
+      "breakpoints": true
     }
   ]
 }

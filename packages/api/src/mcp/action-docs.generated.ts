@@ -28,6 +28,7 @@ export const ACTION_DOCS: Record<string, string> = {
   'affiliates.commissions.approveDue':
     'Approves every commission whose hold is over now, instead of waiting for the hourly pass.',
   'affiliates.commissions.decide': 'Clear a fraud flag (back to pending) or refuse a commission.',
+  'affiliates.decideCode': "Approve or decline an affiliate's request for their own code.",
   'affiliates.overview':
     'Sales from affiliates, money owed, the best affiliates and who is waiting to be paid.',
   'affiliates.payouts.exportCsv':
@@ -40,6 +41,7 @@ export const ACTION_DOCS: Record<string, string> = {
   'affiliates.programs.restore': 'Opens an archived program again.',
   'affiliates.programs.save':
     "Saves a program's name, link and rules; new rules apply to new orders only.",
+  'affiliates.rotateCoupon': 'A leaked coupon: the old one stops working and a new one is made.',
   'affiliates.setProgram':
     'Moves an affiliate to another program: new orders earn under it, their code takes its discount.',
   'affiliates.setRate':

@@ -79,6 +79,17 @@ Suspicious commissions are **held**, not refused. They wait in **Commissions** w
 
 **Needs review**: when two affiliates use the same PAN or the same UPI ID or bank account, both are marked for review. Their commissions keep counting, but their payouts wait. Open the affiliate, check, and choose **Looks fine**, or suspend them.
 
+## Codes
+
+Each affiliate has a link code (`?ref=`) and a discount code. Open an affiliate to see both.
+
+- **Replace discount code**: for a code that leaked to a coupon site. The old code stops working at once and a new one is made. Their link stays the same.
+- **Their own code**: affiliates can ask for a code like their name in their dashboard. Approve or decline it on the affiliate's page. Approving changes their link and discount code; links they already posted keep earning.
+
+## Affiliate dashboard
+
+Approved affiliates see their link and code on `/affiliate`, plus a **link builder**: they search a product (or paste any page of your store) and get a referral link, a QR code to download, and a WhatsApp share button.
+
 ## Payout details
 
 Affiliates add a UPI ID or bank account (and optionally their PAN) on their dashboard at **/affiliate**. The details are stored encrypted. Your admin only shows a masked line such as `UPI as•••@okaxis`. The bank file holds the full details and needs the **Settings** permission to download. Keep it private and delete it after uploading.

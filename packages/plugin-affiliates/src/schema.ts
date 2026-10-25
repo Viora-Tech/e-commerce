@@ -96,6 +96,12 @@ export const affiliate = pgTable(
     signupIpIndex: text('signup_ip_index'),
     /** Why their payouts wait for the merchant (`ReviewReason`); empty when nothing needs a look. */
     reviewReasons: jsonb('review_reasons').$type<string[]>().notNull().default([]),
+    /** Their request for their own code (`CodeRequest`), waiting for the merchant or decided. */
+    codeRequest: jsonb('code_request').$type<{
+      code: string
+      at: string
+      status: 'pending' | 'approved' | 'declined'
+    } | null>(),
     /** How they joined: applied on the signup page, added by the merchant, or a buyer's Share and earn tap. */
     source: text('source', { enum: ['applied', 'added', 'enrolled'] })
       .notNull()
@@ -225,4 +231,34 @@ export const affiliateBlocklist = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex('affiliate_blocklist_store_value').on(t.storeId, t.kind, t.valueIndex)],
+)
+
+/**
+ * Every link code and coupon an affiliate has had. `affiliate.code` and `coupon_code` hold the
+ * current ones; a retired link code still earns (old posts keep paying), a retired coupon's
+ * discount is disabled.
+ */
+export const affiliateCode = pgTable(
+  'affiliate_code',
+  {
+    id: uuid('id').primaryKey().$defaultFn(newId),
+    storeId: uuid('store_id')
+      .notNull()
+      .references(() => store.id),
+    affiliateId: uuid('affiliate_id')
+      .notNull()
+      .references(() => affiliate.id, { onDelete: 'cascade' }),
+    kind: text('kind', { enum: ['link', 'coupon'] }).notNull(),
+    code: text('code').notNull(),
+    discountId: uuid('discount_id'),
+    status: text('status', { enum: ['active', 'retired'] })
+      .notNull()
+      .default('active'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    retiredAt: timestamp('retired_at', { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex('affiliate_code_store_kind_code').on(t.storeId, t.kind, t.code),
+    index('affiliate_code_affiliate').on(t.storeId, t.affiliateId),
+  ],
 )

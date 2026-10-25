@@ -15,6 +15,7 @@ import {
   type PayoutDetails,
   PayoutDetailsSchema,
   programBySlug,
+  requestCode,
   savePayoutDetails,
   withProgramRules,
 } from '@commerce/plugin-affiliates/server'
@@ -88,6 +89,38 @@ export async function applyAffiliateAction(input: {
     return 'ok' as const
   })
   if (result !== 'ok') return { ok: false, error: result }
+  revalidatePath(AFFILIATE_PORTAL_PATH)
+  return { ok: true }
+}
+
+const CODE_RULE = { limit: 5, windowMs: 60 * 60_000 }
+
+/** The affiliate asks for their own code; the merchant approves it in the admin. */
+export async function requestCodeAction(
+  code: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const storeId = await requestStoreId()
+  const me = await currentCustomer(storeId)
+  if (!me) return { ok: false, error: 'signin' }
+  if (!(await rateLimited('affiliate-code:ip', await ipKey(storeId), CODE_RULE)).ok) {
+    return { ok: false, error: 'busy' }
+  }
+  try {
+    await inStore(storeId, async (tx) => {
+      const row = await affiliateForCustomer(tx, storeId, me.id)
+      if (!row) throw new AffiliateError('AFFILIATE_NOT_APPROVED', 'Not an affiliate')
+      await requestCode(tx, storeId, row.id, String(code ?? ''))
+    })
+  } catch (err) {
+    if (err instanceof AffiliateError) {
+      return {
+        ok: false,
+        error:
+          err.code === 'CODE_TAKEN' ? 'taken' : err.code === 'CODE_INVALID' ? 'invalid' : 'generic',
+      }
+    }
+    throw err
+  }
   revalidatePath(AFFILIATE_PORTAL_PATH)
   return { ok: true }
 }
