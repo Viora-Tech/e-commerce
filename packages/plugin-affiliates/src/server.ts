@@ -1,5 +1,6 @@
 /** Services for the API router, the storefront and the worker. Server only. */
 export * from './affiliates'
+export * from './blocklist'
 export * from './commission'
 export * from './commissions'
 export * from './emails'

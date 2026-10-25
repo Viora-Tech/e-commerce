@@ -29,6 +29,9 @@ export const affiliatesContent = {
     same_email: 'Same email as the affiliate',
     same_phone: 'Same phone as the affiliate',
     same_address: 'Ships to an address the affiliate saved',
+    coupon_leak_site: 'Code used from a coupon site',
+    coupon_spike: 'Unusual burst of orders on this code',
+    blocked_buyer: 'Buyer is on your blocklist',
   } as Record<string, string>,
   overview: {
     title: 'Affiliates',
@@ -194,6 +197,19 @@ export const affiliatesContent = {
     saveRate: 'Save rate',
     rateSaved: 'Rate saved. It applies to new orders.',
     programRate: (rule: string) => `Program rate: ${rule}`,
+    review: {
+      title: 'Needs your review before the next payout',
+      help: 'Commissions keep counting. Check the affiliate, then clear this, or suspend them.',
+      clear: 'Looks fine',
+      cleared: 'Cleared. Their payouts go ahead.',
+      reasons: {
+        duplicate_pan: 'Another affiliate uses the same PAN',
+        duplicate_payee: 'Another affiliate is paid to the same UPI ID or bank account',
+        blocked_phone: 'Their phone is on your blocklist',
+        blocked_pan: 'Their PAN is on your blocklist',
+        blocked_payee: 'Their UPI ID or bank account is on your blocklist',
+      } as Record<string, string>,
+    },
     tiles: {
       clicks: 'Clicks',
       orders: 'Orders',
@@ -241,6 +257,7 @@ export const affiliatesContent = {
       below_minimum: 'Below the minimum payout',
       no_details: 'No payout details yet',
       no_pan: 'No PAN yet (needed above the TDS threshold)',
+      review: 'Needs your review (see the affiliate)',
     } as Record<string, string>,
     tdsReport: 'TDS report (26Q)',
     tdsDialog: {
@@ -357,6 +374,44 @@ export const affiliatesContent = {
       'Affiliates who add a GSTIN invoice you GST on their commission, so it is added on top of their payout and you claim the input tax credit. 18% by default. CA check: confirm this with your accountant.',
     gstOn: 'Add GST for GST-registered affiliates',
     gstRate: 'GST rate (%)',
+    fraud: {
+      title: 'Fraud checks',
+      description:
+        'Suspicious commissions are held, not refused: they wait in Commissions for you to clear or reverse. A code used from a coupon site is only seen when the shopper allowed analytics.',
+      sites: 'Coupon sites',
+      sitesHelp: 'One site per line. Orders with an affiliate code that came from these are held.',
+      spike: 'Hold a burst above (× a normal day)',
+      spikeHelp:
+        'Holds coupon orders when a code gets this many times its usual daily orders in 24 hours (5 at least).',
+    },
+    blocklist: {
+      title: 'Blocklist',
+      description:
+        'Blocked buyers’ commissions are held. Blocked emails and IPs cannot apply. An affiliate with a blocked phone, PAN or payout account waits for your review.',
+      kind: 'Type',
+      value: 'Value',
+      note: 'Note (optional)',
+      add: 'Block',
+      added: 'Blocked',
+      remove: 'Remove',
+      empty: 'Nothing blocked yet.',
+      kinds: {
+        email: 'Email',
+        email_domain: 'Email domain',
+        phone: 'Phone',
+        ip: 'IP address',
+        pan: 'PAN',
+        payee: 'UPI ID or account',
+      },
+      placeholders: {
+        email: 'name@example.com',
+        email_domain: 'example.com',
+        phone: '98765 43210',
+        ip: '203.0.113.7',
+        pan: 'ABCDE1234F',
+        payee: 'name@upi or 1234567890@SBIN0001234',
+      },
+    },
     enrol: {
       title: 'Share and earn',
       description:

@@ -23,6 +23,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'account.updateNotifications':
     "Saves the member's own alerts for this store, on their own staff row only.",
   'affiliates.add': 'The merchant adds someone by hand (a creator they already work with).',
+  'affiliates.clearReview':
+    '"Looks fine": the merchant checked a needs-review affiliate; their payouts go ahead.',
   'affiliates.commissions.approveDue':
     'Approves every commission whose hold is over now, instead of waiting for the hourly pass.',
   'affiliates.commissions.decide': 'Clear a fraud flag (back to pending) or refuse a commission.',

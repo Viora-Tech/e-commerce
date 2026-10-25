@@ -7,6 +7,8 @@ import { Switch } from '@commerce/ui/shadcn/switch'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import BlocklistCard from '@/components/apps/affiliates/blocklist-card'
+import FraudCard from '@/components/apps/affiliates/fraud-card'
 import NumberField from '@/components/apps/affiliates/number-field'
 import ShareAndEarnCard from '@/components/apps/affiliates/share-and-earn-card'
 import PageHeader from '@/components/layout/page-header'
@@ -129,6 +131,8 @@ export default function SettingsPage() {
           onChange={(minPayoutPaise) => handleChange({ minPayoutPaise })}
         />
       </SettingsCard>
+      <FraudCard value={form.fraud} onChange={(fraud) => handleChange({ fraud })} />
+      <BlocklistCard />
       <SettingsCard title={copy.tds} description={copy.tdsHelp}>
         <SettingsRow label={copy.tdsOn} htmlFor="aff-tds">
           <Switch

@@ -8,6 +8,7 @@
     ".": "./src/index.ts",
     "./blocks": "./src/blocks.tsx",
     "./commission": "./src/commission.ts",
+    "./fraud": "./src/fraud.ts",
     "./schema": "./src/schema.ts",
     "./settings": "./src/settings.ts",
     "./server": "./src/server.ts",

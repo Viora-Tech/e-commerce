@@ -6,6 +6,7 @@ import {
   levelFor,
   orderValuePaise,
 } from '../src/commission'
+import { DEFAULT_COUPON_SITES } from '../src/fraud'
 import {
   defaultAffiliateSettings,
   defaultProgramRules,
@@ -78,6 +79,7 @@ describe('settings split', () => {
       gst: { enabled: true, bp: 1800 },
       requirePanAboveThreshold: false,
       autoEnrol: { mode: 'off', programId: null, minOrderPaise: 0 },
+      fraud: { couponSites: [...DEFAULT_COUPON_SITES], spikeMultiple: 3 },
     })
   })
 
