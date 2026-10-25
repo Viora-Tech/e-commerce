@@ -72,6 +72,27 @@ export const inboxContent = {
         suffix: 'minutes',
       },
     },
+    ai: {
+      title: 'AI agent',
+      description:
+        'Answers shoppers from your products, policies and the notes below. It hands the chat to your team when it is not sure, when someone asks for a person, or for refunds and order problems. It stops as soon as you reply.',
+      mode: {
+        label: 'When the AI answers',
+        options: {
+          off: 'Off',
+          away: 'Only while you are away',
+          all: 'Every chat, until your team replies',
+        },
+      },
+      knowledge: {
+        label: 'What the AI should know',
+        help: 'Delivery times, sizing, COD, returns: anything not on your product pages. The AI never makes up prices, stock or dates.',
+        placeholder:
+          'We ship in 2 to 4 days. COD is available up to ₹5,000. Sizes run true to fit.',
+        count: (n: number, max: number) => `${n} / ${max}`,
+      },
+      usage: 'Each answer uses your plan’s AI allowance.',
+    },
     privacy: {
       title: 'Privacy',
       retention: {

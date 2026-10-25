@@ -16,7 +16,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type { StoreContext } from '../context'
 import { runInboxAiReply } from './ai-agent'
 import { asksForHuman } from './ai-rules'
-import { staffSend } from './conversations'
+import { inboxCounts, listConversations, staffSend } from './conversations'
 import { hashChatToken, newChatToken } from './identity'
 import type { ShopperIdentity } from './rules'
 import { DEFAULT_INBOX_SETTINGS, type InboxAiMode } from './settings'
@@ -146,6 +146,24 @@ describe('runInboxAiReply', () => {
     const c = await conversationRow(conversation.id)
     expect(c?.needsHuman).toBe(true)
     expect(c?.handoffSummary).toBeTruthy()
+  })
+
+  it('lists a hand-off under Needs a person until staff reply', async () => {
+    const s = await newStore('all')
+    const { conversation, message } = await say(s, guest(), 'connect me to a real person')
+    await run(s, conversation.id, message.id)
+    const list = await inStore(s, (ctx) =>
+      listConversations(ctx, { view: 'needs_person' }, { userId: 'u1', secret: SECRET }),
+    )
+    expect(list.rows.map((r) => [r.id, r.needsHuman, Boolean(r.handoffSummary)])).toEqual([
+      [conversation.id, true, true],
+    ])
+    expect((await inStore(s, (ctx) => inboxCounts(ctx, 'u1'))).needs_person).toBe(1)
+    await inStore(s, (ctx) =>
+      staffSend(ctx, { conversationId: conversation.id, body: 'Hi, Asha here.' }, 'u1'),
+    )
+    expect((await inStore(s, (ctx) => inboxCounts(ctx, 'u1'))).needs_person).toBe(0)
+    expect((await conversationRow(conversation.id))?.needsHuman).toBe(false)
   })
 
   it('hands off when the model is unsure or fails', async () => {
