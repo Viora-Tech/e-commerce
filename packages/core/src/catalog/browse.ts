@@ -17,6 +17,9 @@ export type FacetValue = { value: string; count: number }
 export type BrowseFacets = {
   inStock: number
   outOfStock: number
+  /** How many are gift cards; the kind filter shows only when a listing mixes them with products. */
+  giftCards: number
+  products: number
   /** Lowest and highest product price in the listing, paise; null when empty. */
   priceMin: number | null
   priceMax: number | null
@@ -154,7 +157,7 @@ function baseQuery(
   const match = search ? sql`and ${search.match}` : sql``
   const relevance = search?.relevance ?? sql`0`
   return sql`
-    select p.id, p.handle, p.title, p.created_at, p.product_type, p.vendor, p.tags,
+    select p.id, p.handle, p.title, p.created_at, p.product_type, p.vendor, p.tags, p.is_gift_card,
       ${input.collectionId ? sql`cp.position` : sql`0`} as position,
       ${relevance} as relevance,
       (select min(v.price_paise) from variant v where v.product_id = p.id and v.archived_at is null) as min_price,
@@ -200,6 +203,7 @@ const GUESS = { maxValues: 25, maxLength: 60, perValue: 1.5 }
 function filterWhere(f: BrowseFilters): SQL {
   const parts: SQL[] = [sql`true`]
   if (f.available !== null) parts.push(f.available ? sql`b.in_stock` : sql`not b.in_stock`)
+  if (f.giftCard !== null) parts.push(f.giftCard ? sql`b.is_gift_card` : sql`not b.is_gift_card`)
   if (f.priceMin !== null) parts.push(sql`b.min_price >= ${f.priceMin}`)
   if (f.priceMax !== null) parts.push(sql`b.min_price <= ${f.priceMax}`)
   if (f.productTypes.length) parts.push(sql`b.product_type in ${inList(f.productTypes)}`)
@@ -364,6 +368,7 @@ async function runBrowse(
   const [stats] = await tx.execute<Row>(sql`
     with b as (${base})
     select count(*) filter (where in_stock) as in_stock, count(*) filter (where not in_stock) as out_stock,
+      count(*) filter (where is_gift_card) as gift_cards, count(*) filter (where not is_gift_card) as products,
       min(min_price) as price_min, max(min_price) as price_max from b`)
   const facetRows = await tx.execute<Row>(sql`
     with b as (${base})
@@ -420,6 +425,8 @@ async function runBrowse(
     facets: {
       inStock: num(stats?.in_stock),
       outOfStock: num(stats?.out_stock),
+      giftCards: num(stats?.gift_cards),
+      products: num(stats?.products),
       priceMin: stats?.price_min == null ? null : num(stats.price_min),
       priceMax: stats?.price_max == null ? null : num(stats.price_max),
       productTypes: values('type'),

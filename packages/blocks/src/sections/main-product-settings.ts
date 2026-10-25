@@ -51,6 +51,8 @@ export type MainProductSettings = {
   showDescription: boolean
   showAccordions: boolean
   accordions: MainProductAccordion[]
+  /** Shipping and Returns panels from the store's published policies, below the accordions. */
+  showPolicyPanels: boolean
   showTrustBadges: boolean
   trustBadges: MainProductBadge[]
   trustWhatsappLabel: Copy
@@ -108,6 +110,7 @@ export const mainProductFields: Fields = {
   specRows: { type: 'textarea', label: f.specRows },
   showDescription: showHide(f.showDescription),
   showAccordions: showHide(f.showAccordions),
+  showPolicyPanels: showHide(f.showPolicyPanels),
   accordions: {
     type: 'array',
     label: f.accordions,
@@ -201,6 +204,7 @@ export function mainProductSettings(raw: Record<string, unknown> = {}): MainProd
     specRows: str(raw.specRows, d.specRows),
     showDescription: bool(raw.showDescription, d.showDescription),
     showAccordions: bool(raw.showAccordions, d.showAccordions),
+    showPolicyPanels: bool(raw.showPolicyPanels, d.showPolicyPanels),
     accordions: (accordions ?? d.accordions).map((a) => ({
       title: text(a.title, ''),
       body: text(a.body, ''),

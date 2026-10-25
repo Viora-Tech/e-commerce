@@ -1,13 +1,22 @@
 'use client'
 
 import { SINGLE_SECTIONS } from '@commerce/core/theme'
-import { ArrowDown, ArrowUp, ChevronUpIcon, Copy, GripVertical, Trash2 } from '@commerce/ui/icons'
+import {
+  AiIcon,
+  ArrowDown,
+  ArrowUp,
+  ChevronUpIcon,
+  Copy,
+  GripVertical,
+  Trash2,
+} from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { registerOverlayPortal } from '@puckeditor/core'
 import { motion, useReducedMotion } from 'motion/react'
 import { type MouseEvent, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { customizeContent } from '@/data/customize'
+import { requestAskAi } from '@/lib/customize-canvas-events'
 import { forwardSectionDrag } from '@/lib/customize-canvas-interaction'
 import { deleteWithCollapse } from '@/lib/customize-canvas-motion'
 import { copyBlock } from '@/lib/customize-clipboard'
@@ -49,7 +58,8 @@ const SEPARATOR = 'mx-0.5 h-4 w-px shrink-0 bg-border'
  * subscription below is one or two per canvas rather than one per block.
  *
  * - Selected: the block's name chip, "select container" for a block inside a layout block,
- *   move up/down, duplicate, delete and a "more" menu (hide, copy). Moves use the same Puck
+ *   move up/down, duplicate, delete, Ask AI (the AI panel aimed at this block) and a "more"
+ *   menu (hide, copy). Moves use the same Puck
  *   actions as the Sections tree and Alt+Up/Down, so undo covers them and the block stays
  *   selected.
  * - Text editing: the name chip, then bold, italic, underline, link and clear formatting in
@@ -247,6 +257,15 @@ export default function BlockToolbarBar({
                 </>
               )}
               <span aria-hidden className={SEPARATOR} />
+              <button
+                type="button"
+                onClick={() => requestAskAi({ blockId: componentId, label })}
+                aria-label={copy.toolbar.askAi(label)}
+                title={copy.toolbar.askAi(label)}
+                className={cn(TOOL, 'hover:text-primary')}
+              >
+                <AiIcon aria-hidden weight="regular" className="size-3.5" />
+              </button>
               <BlockToolbarMore
                 label={label}
                 hidden={block?.props._hidden === true}

@@ -22,3 +22,17 @@ export const deliveryEstimateContent = {
   unserviceable: (pincode: string) => `Sorry, we cannot deliver to ${pincode} yet.`,
   rateLimited: 'Too many checks. Try again in a minute.',
 } as const
+
+/** The Shipping and Returns panels under a product, linking the store's published policies. */
+export const policyPanelsContent = {
+  shipping: {
+    title: 'Shipping & delivery',
+    text: 'Delivery times, charges and cash on delivery are in our shipping policy.',
+    linkLabel: 'Read the shipping policy',
+  },
+  returns: {
+    title: 'Returns & refunds',
+    text: 'How to return or exchange an item, and when refunds reach you.',
+    linkLabel: 'Read the returns policy',
+  },
+} as const

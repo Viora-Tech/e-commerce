@@ -13,7 +13,7 @@ import {
 import type { ProductDetail } from '../types'
 import Breadcrumbs from './breadcrumbs'
 import Price from './price'
-import ProductAccordions from './product-accordions'
+import ProductAccordions, { type PolicyPanel } from './product-accordions'
 import ProductAssurance from './product-assurance'
 import ProductBuyButtons from './product-buy-buttons'
 import ProductDescription from './product-description'
@@ -30,6 +30,8 @@ import ProductWhatsappAsk from './product-whatsapp-ask'
 
 type ProductViewProps = {
   product: ProductDetail
+  /** Shipping and Returns panels from the store's published policies (`showPolicyPanels`). */
+  policyPanels?: PolicyPanel[] | undefined
   onAddToCart?: ((variantId: string, quantity: number) => Promise<void>) | undefined
   /** Rendered below the price with the selected variant's price (EMI hint, offers). */
   UnderPrice?: ComponentType<{ pricePaise: number }> | undefined
@@ -79,6 +81,7 @@ export default function ProductView({
   notifyMeProps,
   settings,
   upiDiscount,
+  policyPanels,
 }: ProductViewProps) {
   // Hooks
   const [variantId, setVariantId] = useState(defaultVariant(product)?.id)
@@ -218,11 +221,12 @@ export default function ProductView({
               whatsappLabel={s.assuranceWhatsappLabel}
             />
           ) : null}
-          {s.showAccordions ? (
+          {s.showAccordions || (s.showPolicyPanels && policyPanels?.length) ? (
             <ProductAccordions
-              items={s.accordions}
+              items={s.showAccordions ? s.accordions : []}
               fields={product.fields}
               specTableRows={s.specRows}
+              policyPanels={s.showPolicyPanels ? policyPanels : undefined}
             />
           ) : null}
           {s.showReturnsLine ? (
