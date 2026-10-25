@@ -16,6 +16,7 @@ import { conversationName, withMessage } from '@/lib/inbox-view'
 import { routes } from '@/lib/routes'
 import Composer, { type ComposerSend } from './composer'
 import CustomerPanel from './customer-panel'
+import HandoffBanner from './handoff-banner'
 import MessageItem, { type ThreadData, type ThreadMessage } from './message-item'
 import ThreadHeader from './thread-header'
 
@@ -140,7 +141,12 @@ export default function ThreadPane({
         ? {
             ...t,
             messages: withMessage(t.messages, sent.message as ThreadMessage),
-            conversation: { ...t.conversation, status: sent.conversation.status },
+            conversation: {
+              ...t.conversation,
+              status: sent.conversation.status,
+              // A reply (not a note) takes the chat over from the AI.
+              needsHuman: m.kind === 'note' ? t.conversation.needsHuman : false,
+            },
           }
         : t,
     )
@@ -244,6 +250,7 @@ export default function ThreadPane({
           onCopyLink={handleCopyLink}
           onCustomer={() => setPanelOpen(true)}
         />
+        {c.needsHuman ? <HandoffBanner summary={c.handoffSummary} /> : null}
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
           {thread.hasMore ? (
             <div className="mb-3 flex justify-center">

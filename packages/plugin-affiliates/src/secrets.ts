@@ -1,13 +1,21 @@
 /** SOURCE OF TRUTH: affiliate secrets at rest — WHAT: which affiliate columns hold encrypted blobs, and refreshing the phone blind index after a key rotation / WHY: `bun run rotate-secrets` must leave nothing under a retired key */
-import { type CipherColumn, decryptCustomerPhone, phoneBlindIndex } from '@commerce/core'
+import {
+  type CipherColumn,
+  decryptCustomerPhone,
+  decryptSecret,
+  phoneBlindIndex,
+} from '@commerce/core'
 import { customer, type StoreTx } from '@commerce/db'
 import { eq, isNotNull } from 'drizzle-orm'
+import { PayoutDetailsSchema } from './affiliates'
+import { fraudIndex, payoutKeys } from './blocklist'
 import { phoneKey } from './fraud'
-import { affiliate } from './schema'
+import { affiliate, affiliateBlocklist } from './schema'
 
 /** `affiliate.payout_details` is one `encryptSecret` blob per row (UPI or bank, PAN). */
 export const AFFILIATE_CIPHER_COLUMNS: CipherColumn[] = [
   { label: 'affiliate payout details', table: 'affiliate', column: 'payout_details' },
+  { label: 'affiliate blocklist values', table: 'affiliate_blocklist', column: 'value' },
 ]
 
 /**
@@ -32,6 +40,55 @@ export async function refreshAffiliatePhoneIndexes(
     const next = key ? phoneBlindIndex(key, secret) : null
     if (next === r.index) continue
     await tx.update(affiliate).set({ phoneIndex: next }).where(eq(affiliate.id, r.id))
+    changed += 1
+  }
+  return changed + (await refreshFraudIndexes(tx, secret, previousSecrets))
+}
+
+const open = (cipher: string, secret: string, previous: string[]): string | null => {
+  try {
+    return decryptSecret(cipher, secret, previous)
+  } catch {
+    return null
+  }
+}
+
+/**
+ * The fraud blind indexes after a rotation: each affiliate's PAN and payee (from their payout
+ * details) and each blocklist value (from its encrypted copy). The signup IP is not kept, so its
+ * index is cleared rather than left matching nothing.
+ */
+async function refreshFraudIndexes(
+  tx: StoreTx,
+  secret: string,
+  previous: string[],
+): Promise<number> {
+  let changed = 0
+  const affiliates = await tx
+    .select({ id: affiliate.id, details: affiliate.payoutDetails })
+    .from(affiliate)
+  for (const a of affiliates) {
+    const raw = a.details ? open(a.details, secret, previous) : null
+    const parsed = raw ? PayoutDetailsSchema.safeParse(JSON.parse(raw)) : null
+    const keys = parsed?.success ? payoutKeys(parsed.data) : { pan: null, payee: null }
+    await tx
+      .update(affiliate)
+      .set({
+        panIndex: keys.pan ? fraudIndex('pan', keys.pan, secret) : null,
+        payeeIndex: keys.payee ? fraudIndex('payee', keys.payee, secret) : null,
+        signupIpIndex: null,
+      })
+      .where(eq(affiliate.id, a.id))
+    changed += 1
+  }
+  const entries = await tx.select().from(affiliateBlocklist)
+  for (const e of entries) {
+    const key = open(e.value, secret, previous)
+    if (!key) continue
+    await tx
+      .update(affiliateBlocklist)
+      .set({ valueIndex: fraudIndex(e.kind, key, secret) })
+      .where(eq(affiliateBlocklist.id, e.id))
     changed += 1
   }
   return changed

@@ -3,11 +3,10 @@
 import { siteConfig } from '@commerce/config/site'
 import {
   AiIcon,
-  editorGlyphs,
   HelpCircle,
   Layers,
   Palette,
-  Plus,
+  type Plus,
   Puzzle,
   Settings,
 } from '@commerce/ui/icons'
@@ -27,11 +26,12 @@ type CustomizeRailProps = {
   store: { name: string; logoUrl: string | null }
 }
 
-/** In the Figma rail's order (369:4864), with App embeds where Media was: add, AI, pages, layers, apps, theme, settings. */
+/**
+ * The rail's panels. Add section opens from Layers' "+ Add" (and `/`), and pages from the top
+ * bar's page picker, which also creates and manages templates, so neither repeats here.
+ */
 const ITEMS: { panel: RailPanel; icon: typeof Plus }[] = [
-  { panel: 'add', icon: Plus },
   { panel: 'ai', icon: AiIcon },
-  { panel: 'pages', icon: editorGlyphs.page },
   { panel: 'sections', icon: Layers },
   { panel: 'apps', icon: Puzzle },
   { panel: 'theme', icon: Palette },

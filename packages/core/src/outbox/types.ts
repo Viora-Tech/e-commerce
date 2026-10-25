@@ -83,6 +83,10 @@ export type OutboxEventType =
   | 'affiliate.commission_reversed'
   /** Affiliates app: the merchant marked a payout paid; the affiliate is emailed. */
   | 'affiliate.payout_paid'
+  /** Affiliates app: a shopper applied and waits for approval; the merchant is emailed. */
+  | 'affiliate.applied'
+  /** Affiliates app: the merchant declined an affiliate; they are emailed (with the reason, if given). */
+  | 'affiliate.rejected'
   /** A customer's tags changed (admin edit, bulk tag, an automation); payload has the diff. */
   | 'customer.tags_changed'
   /** A shopper gave marketing consent (newsletter confirm, checkout tick). Growth's welcome trigger. */
@@ -275,6 +279,9 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   'affiliate.commission_approved': null,
   'affiliate.commission_reversed': null,
   'affiliate.payout_paid': null,
+  // The relay queues `affiliate_application` (merchant) and `affiliate_update` (rejected) itself.
+  'affiliate.applied': null,
+  'affiliate.rejected': null,
   // Automations triggers only (the relay's `{automations}-trigger` consumer).
   'customer.tags_changed': null,
   'customer.subscribed': null,
@@ -356,6 +363,8 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'affiliate.commission_approved': null,
   'affiliate.commission_reversed': null,
   'affiliate.payout_paid': null,
+  'affiliate.applied': null,
+  'affiliate.rejected': null,
   'customer.tags_changed': null,
   'customer.subscribed': null,
   'product.created': null,

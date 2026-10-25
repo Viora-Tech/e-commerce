@@ -11,6 +11,7 @@ import {
 } from '@commerce/ui/shadcn/table'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import AffiliateTrendCard from '@/components/apps/affiliates/affiliate-trend-card'
 import { CELL, HEAD } from '@/components/apps/gst-invoices/table-classes'
 import PageHeader from '@/components/layout/page-header'
 import StatStrip from '@/components/layout/stat-strip'
@@ -22,7 +23,7 @@ import { routes } from '@/lib/routes'
 
 type Overview = Awaited<ReturnType<typeof api.affiliates.overview>>
 
-/** Sales from affiliates, money on hold and owed, who waits for you, and the top affiliates. */
+/** Sales from affiliates, money on hold and owed, who waits for you, trends, top products and affiliates. */
 export default function OverviewPage() {
   // Hooks
   const { overview: copy } = useCopy(affiliatesContent)
@@ -98,6 +99,7 @@ export default function OverviewPage() {
           ) : null}
         </div>
       ) : null}
+      <AffiliateTrendCard />
       <div className="overflow-hidden rounded-xl surface-card">
         <h2 className="px-6 pt-5 pb-3 text-body font-semibold text-ink-strong">{copy.topTitle}</h2>
         <Table>

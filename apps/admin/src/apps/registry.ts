@@ -2,6 +2,7 @@ import type { ComponentType } from 'react'
 import AffiliateDetail from '@/components/apps/affiliates/affiliate-detail'
 import AffiliatesList from '@/components/apps/affiliates/affiliates-list'
 import CommissionsList from '@/components/apps/affiliates/commissions-list'
+import AffiliateCreatives from '@/components/apps/affiliates/creatives-page'
 import AffiliatesOverview from '@/components/apps/affiliates/overview-page'
 import AffiliatePayouts from '@/components/apps/affiliates/payouts-page'
 import AffiliateProgramEditor from '@/components/apps/affiliates/program-editor'
@@ -120,6 +121,7 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       programs: AffiliatePrograms,
       'programs/[id]': AffiliateProgramEditor,
       commissions: CommissionsList,
+      creatives: AffiliateCreatives,
       payouts: AffiliatePayouts,
       settings: AffiliateSettings,
     },

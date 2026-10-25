@@ -11,6 +11,7 @@ import {
   variant,
 } from '@commerce/db'
 import { and, asc, eq, gte, inArray, isNull, lte, ne, sql } from 'drizzle-orm'
+import { orderRisk } from './blocklist'
 import { type CommissionLine, computeCommission, scaleForRefund, tierFor } from './commission'
 import { addressKey, type FraudFinding, phoneKey, selfReferral } from './fraud'
 import { canReverse, eligibleAt, isDue, type ReverseReason } from './hold'
@@ -157,6 +158,8 @@ export async function creditOrder(
   )
   if (result.commissionPaise <= 0) return null
   const finding = await fraudCheck(tx, match.affiliate, o, secret)
+  // Not their own order, but risky: held (pending with a flag) until the merchant decides.
+  const risk = finding ? null : await orderRisk(tx, o, match, settings, secret)
   const now = new Date()
   const [row] = await tx
     .insert(affiliateCommission)
@@ -171,7 +174,7 @@ export async function creditOrder(
       basePaise: result.basePaise,
       earnedPaise: result.commissionPaise,
       commissionPaise: result.commissionPaise,
-      flag: finding,
+      flag: finding ?? risk,
       placedAt: o.placedAt,
       ...(finding ? { reversedAt: now, reversedReason: 'self_referral' } : {}),
     })

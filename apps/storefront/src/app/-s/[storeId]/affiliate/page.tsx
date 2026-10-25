@@ -77,6 +77,7 @@ export default async function AffiliatePage({ params, searchParams }: AffiliateP
           defaultName={me.name ?? ''}
           terms={p.terms}
           program={p.isDefault ? undefined : p.slug}
+          fields={p.form}
         />
       ) : (
         <div className="flex max-w-[36rem] flex-col items-start gap-4 rounded-[var(--radius-card)] bg-surface p-6">

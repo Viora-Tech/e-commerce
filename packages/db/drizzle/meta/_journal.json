@@ -1051,6 +1051,48 @@
       "when": 1792869602425,
       "tag": "0165_affiliate_gst",
       "breakpoints": true
+    },
+    {
+      "idx": 150,
+      "version": "7",
+      "when": 1792869662425,
+      "tag": "0166_inbox_ai",
+      "breakpoints": true
+    },
+    {
+      "idx": 151,
+      "version": "7",
+      "when": 1792926754823,
+      "tag": "0167_inbox_message_store_sender",
+      "breakpoints": true
+    },
+    {
+      "idx": 152,
+      "version": "7",
+      "when": 1792928265585,
+      "tag": "0168_affiliate_source",
+      "breakpoints": true
+    },
+    {
+      "idx": 153,
+      "version": "7",
+      "when": 1792929746646,
+      "tag": "0169_affiliate_fraud",
+      "breakpoints": true
+    },
+    {
+      "idx": 154,
+      "version": "7",
+      "when": 1792931027380,
+      "tag": "0170_affiliate_codes",
+      "breakpoints": true
+    },
+    {
+      "idx": 155,
+      "version": "7",
+      "when": 1792932895802,
+      "tag": "0171_affiliate_final",
+      "breakpoints": true
     }
   ]
 }

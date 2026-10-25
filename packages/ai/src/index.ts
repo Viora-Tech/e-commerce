@@ -26,6 +26,22 @@ export {
   generateStructured,
   streamAnswer,
 } from './engine'
+export {
+  clampInboxAgent,
+  INBOX_AGENT_HANDOFF_REASONS,
+  INBOX_AGENT_MARKER,
+  INBOX_AGENT_MIN_CONFIDENCE,
+  INBOX_AGENT_PRODUCTS_MAX,
+  INBOX_AGENT_REPLY_MAX,
+  type InboxAgentHandoffReason,
+  type InboxAgentInput,
+  type InboxAgentOrder,
+  type InboxAgentOutput,
+  type InboxAgentProduct,
+  InboxAgentSchema,
+  inboxAgentContent,
+  inboxAgentInstructions,
+} from './inbox-agent'
 export type { ProductWriterInput } from './product-writer/prompt'
 export { productWriterContent, productWriterInstructions } from './product-writer/prompt'
 export {

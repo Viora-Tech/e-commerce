@@ -25,6 +25,7 @@ import {
   VERIFY_EVERY_MS,
 } from './domains'
 import { createImportSnapshotCleanup, SNAPSHOT_CLEANUP_EVERY_MS } from './import-snapshots'
+import { createInboxAiReplyWorker } from './inbox-ai-reply'
 import { createMarketingWorker, MARKETING_TICK_MS, retireAbandonedSweep } from './marketing'
 import { mediaProcessLimits } from './media-limits'
 import { createMediaProcessWorker } from './media-process'
@@ -119,6 +120,7 @@ const backInStock = createBackInStockWorker(redis, db, {
 })
 const storeExport = createStoreExportWorker(redis, db, { settingsSecret: env.SETTINGS_SECRET })
 const aiBulkWrite = createAiBulkWriteWorker(redis, db, { settingsSecret: env.SETTINGS_SECRET })
+const inboxAi = createInboxAiReplyWorker(redis, db)
 const purchaseDocuments = createPurchaseDocumentWorker(redis, db)
 const importSnapshots = createImportSnapshotCleanup(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
@@ -188,6 +190,7 @@ const watched = [
   [mediaProcess.worker, 'media-process'],
   [storeExport.worker, 'store-export'],
   [aiBulkWrite.worker, 'ai-bulk-write'],
+  [inboxAi.worker, 'inbox-ai-reply'],
   [purchaseDocuments.worker, 'purchase-documents'],
   [importSnapshots.worker, 'import-snapshot-cleanup'],
   [reviewRequests.worker, 'review-requests'],
@@ -405,6 +408,8 @@ const shutdown = async () => {
   await storeExport.queue.close()
   await aiBulkWrite.worker.close()
   await aiBulkWrite.queue.close()
+  await inboxAi.worker.close()
+  await inboxAi.queue.close()
   await purchaseDocuments.worker.close()
   await purchaseDocuments.queue.close()
   await importSnapshots.worker.close()

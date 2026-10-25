@@ -1,20 +1,16 @@
 /** SOURCE OF TRUTH: affiliates — WHAT: signup, approval, coupon codes, clicks and encrypted payout details / WHY: the admin and the storefront portal share every rule */
-import {
-  decryptSecret,
-  encryptSecret,
-  insertOutboxEvent,
-  normaliseCode,
-  phoneBlindIndex,
-} from '@commerce/core'
+import { decryptSecret, encryptSecret, insertOutboxEvent, phoneBlindIndex } from '@commerce/core'
 import { slugify } from '@commerce/core/catalog'
 import { validateGstin } from '@commerce/core/gstin'
 import { discount, type StoreTx } from '@commerce/db'
 import { and, desc, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
+import { blockedKinds, fraudIndex, payoutKeys, refreshReview } from './blocklist'
+import { ensureCoupon, linkCodeIs, recordCode } from './codes'
 import { phoneKey } from './fraud'
 import { defaultProgram, getProgram, programOf } from './programs'
-import { affiliate } from './schema'
-import type { AffiliateSettings, AffiliateStatus, ProgramRules } from './settings'
+import { affiliate, affiliateClickDay } from './schema'
+import type { AffiliateSettings, AffiliateStatus } from './settings'
 import { AffiliateError } from './store-settings'
 
 export type AffiliateRow = typeof affiliate.$inferSelect
@@ -84,7 +80,7 @@ async function freeCode(tx: StoreTx, storeId: string, wanted: string): Promise<s
     const [taken] = await tx
       .select({ id: affiliate.id })
       .from(affiliate)
-      .where(and(eq(affiliate.storeId, storeId), eq(affiliate.code, code)))
+      .where(and(eq(affiliate.storeId, storeId), linkCodeIs(code)))
     if (!taken) return code
   }
   return `${base}-${crypto.randomUUID().slice(0, 6)}`
@@ -99,6 +95,12 @@ export type ApplyInput = {
   message: string
   /** The program they join; none means the store's default program. */
   programId?: string | null | undefined
+  /** How they joined; `applied` unless the merchant added them or a buyer tapped Share and earn. */
+  source?: AffiliateRow['source'] | undefined
+  /** The IP a storefront application came from, for the blocklist. */
+  ip?: string | null | undefined
+  /** Answers to the program's signup form, already cleaned (`cleanAnswers`). */
+  answers?: Record<string, string> | undefined
 }
 
 /**
@@ -128,6 +130,16 @@ export async function applyAsAffiliate(
     throw new AffiliateError('PROGRAM_NOT_FOUND', 'Program not found')
   }
   const key = phoneKey(input.phone)
+  const domain = input.email?.split('@')[1] ?? null
+  const blocked = await blockedKinds(tx, secret, {
+    email: input.email,
+    email_domain: domain,
+    ip: input.ip,
+    phone: input.phone,
+  })
+  if (blocked.has('email') || blocked.has('email_domain') || blocked.has('ip')) {
+    throw new AffiliateError('AFFILIATE_BLOCKED', 'This application cannot be accepted')
+  }
   const [row] = await tx
     .insert(affiliate)
     .values({
@@ -140,50 +152,20 @@ export async function applyAsAffiliate(
       phoneIndex: key ? phoneBlindIndex(key, secret) : null,
       social: input.social.trim().slice(0, 200),
       message: input.message.trim().slice(0, 2000),
+      source: input.source ?? 'applied',
+      signupIpIndex: input.ip ? fraudIndex('ip', input.ip.trim().toLowerCase(), secret) : null,
+      // A blocked phone does not refuse the signup: the merchant reviews before any payout.
+      reviewReasons: blocked.has('phone') ? ['blocked_phone'] : [],
+      answers: input.answers ?? {},
     })
     .returning()
   if (!row) throw new AffiliateError('AFFILIATE_NOT_SAVED', 'Affiliate not saved')
-  return settings.approval === 'auto' ? approveAffiliate(tx, storeId, row.id) : row
-}
-
-/** The affiliate's personal code in the discount engine; made once, never twice. */
-async function ensureCoupon(
-  tx: StoreTx,
-  storeId: string,
-  row: AffiliateRow,
-  coupon: ProgramRules['coupon'],
-): Promise<AffiliateRow> {
-  if (!coupon.enabled || row.discountId) return row
-  let code = normaliseCode(row.code)
-  for (let n = 2; n < 50; n++) {
-    const [clash] = await tx
-      .select({ id: discount.id })
-      .from(discount)
-      .where(eq(discount.code, code))
-    if (!clash) break
-    code = normaliseCode(`${row.code}${n}`)
+  await recordCode(tx, storeId, row.id, 'link', row.code)
+  // A storefront application that waits for the merchant: they get an email about it.
+  if (settings.approval !== 'auto' && row.source === 'applied') {
+    await insertOutboxEvent(tx, storeId, 'affiliate.applied', { affiliateId: row.id })
   }
-  const [made] = await tx
-    .insert(discount)
-    .values({
-      storeId,
-      title: `Affiliate: ${row.name || row.code}`.slice(0, 120),
-      kind: 'code',
-      code,
-      method: 'percent',
-      value: coupon.bp,
-      appliesTo: 'all',
-      appliesToIds: [],
-      status: 'active',
-    })
-    .returning({ id: discount.id })
-  if (!made) return row
-  const [next] = await tx
-    .update(affiliate)
-    .set({ discountId: made.id, couponCode: code, updatedAt: new Date() })
-    .where(eq(affiliate.id, row.id))
-    .returning()
-  return next ?? row
+  return settings.approval === 'auto' ? approveAffiliate(tx, storeId, row.id) : row
 }
 
 /**
@@ -222,13 +204,24 @@ export async function setAffiliateStatus(
   tx: StoreTx,
   id: string,
   status: Extract<AffiliateStatus, 'rejected' | 'suspended'>,
+  /** For a rejection: why, emailed to them when given. */
+  reason = '',
 ): Promise<AffiliateRow> {
+  const rejected = status === 'rejected'
   const [row] = await tx
     .update(affiliate)
-    .set({ status, updatedAt: new Date() })
+    .set({
+      status,
+      updatedAt: new Date(),
+      ...(rejected
+        ? { rejectedAt: new Date(), rejectReason: reason.trim().slice(0, 500) || null }
+        : {}),
+    })
     .where(eq(affiliate.id, id))
     .returning()
   if (!row) throw new AffiliateError('AFFILIATE_NOT_FOUND', 'Affiliate not found')
+  if (rejected)
+    await insertOutboxEvent(tx, row.storeId, 'affiliate.rejected', { affiliateId: row.id })
   if (row.discountId) {
     await tx
       .update(discount)
@@ -276,14 +269,24 @@ export async function recordAffiliateClick(
   const rows = await tx
     .update(affiliate)
     .set({ clicks: sql`${affiliate.clicks} + 1` })
-    .where(
-      and(
-        eq(affiliate.storeId, storeId),
-        eq(affiliate.code, code),
-        eq(affiliate.status, 'approved'),
-      ),
-    )
+    .where(and(eq(affiliate.storeId, storeId), linkCodeIs(code), eq(affiliate.status, 'approved')))
     .returning({ id: affiliate.id })
+  const hit = rows[0]
+  if (hit) {
+    // Per day in India time, for the trend charts.
+    await tx
+      .insert(affiliateClickDay)
+      .values({
+        storeId,
+        affiliateId: hit.id,
+        day: sql`(now() at time zone 'Asia/Kolkata')::date`,
+        clicks: 1,
+      })
+      .onConflictDoUpdate({
+        target: [affiliateClickDay.storeId, affiliateClickDay.affiliateId, affiliateClickDay.day],
+        set: { clicks: sql`${affiliateClickDay.clicks} + 1` },
+      })
+  }
   return rows.length > 0
 }
 
@@ -296,7 +299,8 @@ export async function savePayoutDetails(
 ): Promise<{ hint: string; hasPan: boolean }> {
   const parsed = PayoutDetailsSchema.parse(details)
   const hint = payoutHint(parsed)
-  await tx
+  const keys = payoutKeys(parsed)
+  const [row] = await tx
     .update(affiliate)
     .set({
       payoutMethod: parsed.method,
@@ -304,9 +308,14 @@ export async function savePayoutDetails(
       payoutHint: hint,
       hasPan: Boolean(parsed.pan),
       gstRegistered: Boolean(parsed.gstin),
+      panIndex: keys.pan ? fraudIndex('pan', keys.pan, secret) : null,
+      payeeIndex: keys.payee ? fraudIndex('payee', keys.payee, secret) : null,
       updatedAt: new Date(),
     })
     .where(eq(affiliate.id, id))
+    .returning()
+  // A PAN or payee another affiliate uses, or one on the blocklist, holds payouts for review.
+  if (row) await refreshReview(tx, row, keys, secret)
   return { hint, hasPan: Boolean(parsed.pan) }
 }
 

@@ -49,6 +49,7 @@ export const inboxConversationsContent = {
   filters: {
     title: 'Conversations',
     open: 'Open',
+    needs_person: 'Needs a person',
     closed: 'Closed',
     mine: 'Assigned to me',
     unassigned: 'Unassigned',
@@ -65,6 +66,8 @@ export const inboxConversationsContent = {
     loadMore: 'Load more',
     guest: 'Guest',
     you: 'You',
+    ai: 'AI',
+    needsPerson: 'Needs a person',
     unread: 'Unread',
     assignedTo: (name: string) => `Assigned to ${name}`,
   },
@@ -90,6 +93,11 @@ export const inboxConversationsContent = {
     note: 'Note',
     typing: 'Typing…',
     startedOn: (url: string) => `Started on ${url}`,
+    aiAuthor: 'AI agent',
+    handoff: {
+      title: 'The AI handed this chat to you',
+      hint: 'Reply below to take over. The AI stays quiet in this chat from now on.',
+    },
     system: {
       assigned: (name: string) => `Assigned to ${name}`,
       unassigned: 'Unassigned',

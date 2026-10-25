@@ -7,6 +7,7 @@ import {
   reverseCommission,
   startHold,
 } from './commissions'
+import { orderLinks } from './enrol'
 import { AFFILIATES_ID } from './settings'
 import { loadAffiliateSettings } from './store-settings'
 
@@ -35,6 +36,8 @@ export const affiliatesPlugin = definePlugin({
       'Commission waits for delivery and the return window; cancels, RTO and refunds reverse it',
       'Payouts by UPI or a bank bulk-upload file, with TDS worked out',
       'A signup page and dashboard for affiliates on your store',
+      'Share and earn: turn happy buyers into affiliates with one tap',
+      'Creatives, a link builder with QR codes, and trends for every affiliate',
     ],
     guide: '/merchant-guide/apps/affiliates',
     worksWith: [
@@ -64,6 +67,8 @@ export const affiliatesPlugin = definePlugin({
   },
   provides: {},
   storefront: { blocks: affiliateBlocks },
+  // Share and earn: a one-tap invite on the thank-you page and in order emails.
+  orderLinks,
   hooks: {
     'order.paid': async (ctx, payload) => {
       const row = await ctx.inStore(async (tx) =>
@@ -105,6 +110,7 @@ export const affiliatesPlugin = definePlugin({
       { path: 'programs', title: 'Programs', navLabel: 'Programs', icon: 'Blocks' },
       { path: 'programs/[id]', title: 'Program' },
       { path: 'commissions', title: 'Commissions', navLabel: 'Commissions', icon: 'FileText' },
+      { path: 'creatives', title: 'Creatives', navLabel: 'Creatives', icon: 'Upload' },
       { path: 'payouts', title: 'Payouts', navLabel: 'Payouts', icon: 'CreditCard' },
       { path: 'settings', title: 'Settings', navLabel: 'Settings', icon: 'Settings' },
     ],

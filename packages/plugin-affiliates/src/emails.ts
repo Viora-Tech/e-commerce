@@ -6,7 +6,7 @@ import type { TemplateData } from '@commerce/notifications'
 import { eq } from 'drizzle-orm'
 import { affiliate, affiliateCommission, affiliatePayout } from './schema'
 
-export type AffiliateNotice = 'approved' | 'sale' | 'payout'
+export type AffiliateNotice = 'approved' | 'sale' | 'payout' | 'rejected'
 
 /** The storefront path of the affiliate portal. */
 export const AFFILIATE_PORTAL_PATH = '/affiliate'
@@ -46,6 +46,9 @@ export async function affiliateEmail(
   if (input.notice === 'approved') {
     info.link = base ? `${base}/?ref=${a.code}` : undefined
     info.couponCode = a.couponCode ?? undefined
+  } else if (input.notice === 'rejected') {
+    if (a.status !== 'rejected') return null
+    info.reason = a.rejectReason ?? undefined
   } else if (input.notice === 'sale') {
     if (!input.commissionId) return null
     const [c] = await tx
@@ -66,4 +69,29 @@ export async function affiliateEmail(
     info.reference = p.reference || undefined
   }
   return { to: { email: a.email, phone }, data: { customerName: info.name, affiliate: info } }
+}
+
+/**
+ * The merchant's "new affiliate application" email: who applied, where they post, which program,
+ * their answers, and the admin page to approve them. Null when the application is gone or was
+ * decided already.
+ */
+export async function applicationNotice(
+  tx: StoreTx,
+  affiliateId: string,
+  adminUrl: string,
+): Promise<NonNullable<TemplateData['affiliate']> | null> {
+  const [a] = await tx.select().from(affiliate).where(eq(affiliate.id, affiliateId))
+  if (a?.status !== 'pending') return null
+  const answers = Object.values(a.answers ?? {}).filter(Boolean)
+  return {
+    kind: 'applied',
+    name: a.name,
+    email: a.email ?? undefined,
+    social: a.social || undefined,
+    message: [a.message, ...answers].filter(Boolean).join('\n').slice(0, 2000) || undefined,
+    adminUrl: adminUrl
+      ? `${adminUrl.replace(/\/+$/, '')}/apps/affiliates/affiliates/${a.id}`
+      : undefined,
+  }
 }

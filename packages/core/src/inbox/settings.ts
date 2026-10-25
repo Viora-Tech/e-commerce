@@ -25,6 +25,23 @@ export const DEFAULT_INBOX_HOURS: InboxDayHours[] = [0, 1, 2, 3, 4, 5, 6].map((d
 export const INBOX_AVAILABILITY = ['always', 'hours', 'offline'] as const
 export const INBOX_CONTACT_CAPTURE = ['off', 'optional', 'required_when_away'] as const
 
+/** When the AI agent answers: never, every chat, or only when staff are away (design §13). */
+export const INBOX_AI_MODES = ['off', 'all', 'away'] as const
+export type InboxAiMode = (typeof INBOX_AI_MODES)[number]
+
+/** Longest store knowledge the merchant can give the AI agent (FAQ, sizing, delivery notes). */
+export const INBOX_AI_KNOWLEDGE_MAX = 4000
+
+const InboxAiSettingsSchema = z.object({
+  /** Off by default (design §13). */
+  mode: z.enum(INBOX_AI_MODES).default('off'),
+  /** What the agent may say beyond products and policies, in the merchant's own words. */
+  knowledge: z.string().trim().max(INBOX_AI_KNOWLEDGE_MAX).default(''),
+  /** Learn from the team's past replies to similar questions (on by default). */
+  learn: z.boolean().default(true),
+})
+export type InboxAiSettings = z.infer<typeof InboxAiSettingsSchema>
+
 export const InboxSettingsSchema = z.object({
   /** Blank shows the widget's own greeting in the shopper's language. */
   greeting: z.string().trim().max(300).default(''),
@@ -42,6 +59,8 @@ export const InboxSettingsSchema = z.object({
   retentionMonths: z.number().int().min(3).max(60).default(24),
   /** The chat button and card's look: the theme editor's Inbox app embed (`widget.ts`). */
   widget: z.preprocess((v) => parseInboxWidget(v), InboxWidgetSchema),
+  /** The AI agent: when it answers and what it knows (`ai-agent.ts`). */
+  ai: InboxAiSettingsSchema.default({ mode: 'off', knowledge: '', learn: true }),
 })
 export type InboxSettings = z.infer<typeof InboxSettingsSchema>
 

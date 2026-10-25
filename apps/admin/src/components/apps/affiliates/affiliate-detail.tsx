@@ -7,7 +7,9 @@ import { toast } from 'sonner'
 import type { AppPageProps } from '@/apps/registry'
 import AffiliateProgramCard from '@/components/apps/affiliates/affiliate-program-card'
 import AffiliateRowActions from '@/components/apps/affiliates/affiliate-row-actions'
+import CodesCard from '@/components/apps/affiliates/codes-card'
 import { commissionColumns } from '@/components/apps/affiliates/commission-columns'
+import ReviewCard from '@/components/apps/affiliates/review-card'
 import { statusTone } from '@/components/apps/affiliates/tones'
 import PageHeader from '@/components/layout/page-header'
 import StatStrip from '@/components/layout/stat-strip'
@@ -72,6 +74,11 @@ export default function AffiliateDetail({ params }: AppPageProps) {
     { label: d.payout, value: a.payoutHint ?? d.payoutNone },
     { label: d.panLabel, value: a.hasPan ? d.pan : d.noPan },
     { label: d.gstLabel, value: a.gstRegistered ? d.gstYes : d.gstNo },
+    // Their answers to the program's own signup questions, in the form's order.
+    ...(data.program?.rules.form ?? []).flatMap((q) =>
+      a.answers[q.id] ? [{ label: q.label, value: a.answers[q.id] ?? '' }] : [],
+    ),
+    ...(a.rejectReason ? [{ label: d.rejectReason, value: a.rejectReason }] : []),
   ]
 
   return (
@@ -102,6 +109,9 @@ export default function AffiliateDetail({ params }: AppPageProps) {
           { id: 'paid', label: d.tiles.paid, value: f.money(t.paidPaise) },
         ]}
       />
+      {a.reviewReasons.length > 0 ? (
+        <ReviewCard affiliateId={a.id} reasons={a.reviewReasons} onChanged={handleChanged} />
+      ) : null}
       <div className="grid gap-4 lg:grid-cols-2">
         <dl className="flex flex-col gap-3 rounded-xl surface-card px-5 py-4">
           {facts.map((x) => (
@@ -129,6 +139,16 @@ export default function AffiliateDetail({ params }: AppPageProps) {
           </div>
         </div>
       </div>
+      {a.status === 'approved' ? (
+        <CodesCard
+          affiliateId={a.id}
+          code={a.code}
+          couponCode={a.couponCode}
+          request={a.codeRequest}
+          history={data.codes}
+          onChanged={handleChanged}
+        />
+      ) : null}
       <AffiliateProgramCard
         key={`${a.programId}-${JSON.stringify(a.rateOverride)}`}
         affiliateId={a.id}

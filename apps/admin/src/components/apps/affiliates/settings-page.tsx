@@ -7,7 +7,10 @@ import { Switch } from '@commerce/ui/shadcn/switch'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import BlocklistCard from '@/components/apps/affiliates/blocklist-card'
+import FraudCard from '@/components/apps/affiliates/fraud-card'
 import NumberField from '@/components/apps/affiliates/number-field'
+import ShareAndEarnCard from '@/components/apps/affiliates/share-and-earn-card'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import SettingsCard from '@/components/settings/settings-card'
@@ -17,7 +20,7 @@ import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 
-/** Store-wide settings: open or paused, the link window, holds and payouts, TDS. */
+/** Store-wide settings: open or paused, the link window, Share and earn, holds and payouts, TDS. */
 export default function SettingsPage() {
   // Hooks
   const { settings: copy, failed } = useCopy(affiliatesContent)
@@ -107,6 +110,10 @@ export default function SettingsPage() {
           }
         />
       </SettingsCard>
+      <ShareAndEarnCard
+        value={form.autoEnrol}
+        onChange={(autoEnrol) => handleChange({ autoEnrol })}
+      />
       <SettingsCard title={copy.payouts}>
         <NumberField
           id="aff-hold"
@@ -124,6 +131,8 @@ export default function SettingsPage() {
           onChange={(minPayoutPaise) => handleChange({ minPayoutPaise })}
         />
       </SettingsCard>
+      <FraudCard value={form.fraud} onChange={(fraud) => handleChange({ fraud })} />
+      <BlocklistCard />
       <SettingsCard title={copy.tds} description={copy.tdsHelp}>
         <SettingsRow label={copy.tdsOn} htmlFor="aff-tds">
           <Switch

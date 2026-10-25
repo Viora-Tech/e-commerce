@@ -64,6 +64,10 @@ export type ConversationSummary = {
   lastMessagePreview: string | null
   lastSender: InboxConversationRow['lastSender']
   unreadStaff: number
+  /** The AI agent handed this chat to a person and nobody has replied yet. */
+  needsHuman: boolean
+  /** The AI agent's note for the team when it handed off. */
+  handoffSummary: string | null
   createdAt: Date
 }
 
@@ -82,6 +86,8 @@ const summaryColumns = {
   lastMessagePreview: inboxConversation.lastMessagePreview,
   lastSender: inboxConversation.lastSender,
   unreadStaff: inboxConversation.unreadStaff,
+  needsHuman: inboxConversation.needsHuman,
+  handoffSummary: inboxConversation.handoffSummary,
   createdAt: inboxConversation.createdAt,
 }
 
@@ -103,6 +109,8 @@ function summaryOf(r: SummaryRow): ConversationSummary {
     lastMessagePreview: r.lastMessagePreview,
     lastSender: r.lastSender,
     unreadStaff: r.unreadStaff ?? 0,
+    needsHuman: Boolean(r.needsHuman),
+    handoffSummary: r.handoffSummary,
     createdAt: r.createdAt as Date,
   }
 }
@@ -110,6 +118,7 @@ function summaryOf(r: SummaryRow): ConversationSummary {
 function viewFilter(view: InboxView, userId: string): SQL | undefined {
   const c = inboxConversation
   if (view === 'open') return eq(c.status, 'open')
+  if (view === 'needs_person') return and(eq(c.status, 'open'), eq(c.needsHuman, true))
   if (view === 'mine') return and(eq(c.status, 'open'), eq(c.assigneeUserId, userId))
   if (view === 'unassigned') return and(eq(c.status, 'open'), isNull(c.assigneeUserId))
   if (view === 'unread') return and(eq(c.status, 'open'), gt(c.unreadStaff, 0))
@@ -205,6 +214,7 @@ export async function inboxCounts(ctx: StoreContext, userId: string): Promise<In
   const [row] = await ctx.tx
     .select({
       open: sql<number>`count(*) filter (where ${c.status} = 'open')::int`,
+      needs_person: sql<number>`count(*) filter (where ${c.status} = 'open' and ${c.needsHuman})::int`,
       mine: sql<number>`count(*) filter (where ${c.status} = 'open' and ${c.assigneeUserId} = ${userId})::int`,
       unassigned: sql<number>`count(*) filter (where ${c.status} = 'open' and ${c.assigneeUserId} is null)::int`,
       closed: sql<number>`count(*) filter (where ${c.status} = 'closed')::int`,
@@ -212,7 +222,9 @@ export async function inboxCounts(ctx: StoreContext, userId: string): Promise<In
       unread: sql<number>`count(*) filter (where ${c.status} = 'open' and ${c.unreadStaff} > 0)::int`,
     })
     .from(c)
-  return row ?? { open: 0, mine: 0, unassigned: 0, closed: 0, blocked: 0, unread: 0 }
+  return (
+    row ?? { open: 0, needs_person: 0, mine: 0, unassigned: 0, closed: 0, blocked: 0, unread: 0 }
+  )
 }
 
 async function loadConversation(tx: StoreTx, storeId: string, id: string) {
@@ -435,7 +447,8 @@ export async function setConversationStatus(
     status: input.status,
     updatedAt: now,
   }
-  if (input.status === 'closed') Object.assign(patch, { closedAt: now, closedBy: opts.userId })
+  if (input.status === 'closed')
+    Object.assign(patch, { closedAt: now, closedBy: opts.userId, needsHuman: false })
   if (input.status === 'open')
     Object.assign(patch, { closedAt: null, closedBy: null, blockedReason: null })
   if (input.status === 'blocked') {

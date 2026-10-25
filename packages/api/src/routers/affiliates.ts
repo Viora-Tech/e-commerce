@@ -2,22 +2,32 @@ import { settingsSecret } from '@commerce/config'
 import { CommerceError, permissions } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import {
+  addToBlocklist,
   affiliateState,
   affiliateTotals,
+  affiliateTrend,
   applyAsAffiliate,
   approveAffiliate,
   approveDueCommissions,
+  archiveCreative,
   archiveProgram,
+  BLOCKLIST_KINDS,
   CommissionRuleSchema,
   cancelPayout,
+  clearReview,
   commissionLedger,
   createPayouts,
   createProgram,
+  decideCodeRequest,
   decideCommission,
   defaultProgram,
   getAffiliate,
   getProgram,
+  ledgerCsv,
   listAffiliates,
+  listBlocklist,
+  listCodes,
+  listCreatives,
   listPayouts,
   listPrograms,
   markPayoutPaid,
@@ -25,9 +35,12 @@ import {
   ProgramRulesSchema,
   payoutCandidates,
   payoutsCsv,
+  removeFromBlocklist,
   restoreProgram,
+  rotateCoupon,
   StoreAffiliateSettingsSchema,
   saveAffiliateSettings,
+  saveCreative,
   saveProgram,
   setAffiliateProgram,
   setAffiliateRate,
@@ -35,6 +48,7 @@ import {
   storePart,
   tdsReportCsv,
   topAffiliates,
+  topProducts,
   totalsByAffiliate,
   updateAffiliateNote,
   withProgramRules,
@@ -87,6 +101,11 @@ function publicAffiliate(a: NonNullable<Awaited<ReturnType<typeof getAffiliate>>
     payoutHint: a.payoutHint,
     hasPan: a.hasPan,
     gstRegistered: a.gstRegistered,
+    reviewReasons: a.reviewReasons,
+    codeRequest: a.codeRequest,
+    answers: a.answers,
+    rejectReason: a.rejectReason,
+    source: a.source,
     clicks: a.clicks,
     approvedAt: a.approvedAt,
     createdAt: a.createdAt,
@@ -202,16 +221,18 @@ export const affiliatesRouter = {
       await program(context)
       const a = await getAffiliate(context.tx, input.id)
       if (!a) throw new ORPCError('NOT_FOUND', { message: 'Affiliate not found' })
-      const [totals, ledger, programs] = await Promise.all([
+      const [totals, ledger, programs, codes] = await Promise.all([
         affiliateTotals(context.tx, a.id),
         commissionLedger(context.tx, { affiliateId: a.id, limit: 200 }),
         listPrograms(context.tx, context.scope.storeId),
+        listCodes(context.tx, a.id),
       ])
       const own = programs.find((p) => p.id === a.programId) ?? programs.find((p) => p.isDefault)
       return {
         affiliate: publicAffiliate(a),
         totals,
         ledger,
+        codes,
         program: own ? { id: own.id, name: own.name, rules: own.rules } : null,
         programs: programs
           .filter((p) => !p.archivedAt)
@@ -248,6 +269,7 @@ export const affiliatesRouter = {
             social: input.social,
             message: '',
             programId: chosen.id,
+            source: 'added',
           },
           {
             ...withProgramRules(settings, chosen.rules),
@@ -286,13 +308,128 @@ export const affiliatesRouter = {
       return { ok: true }
     }),
   setStatus: can(permissions.MARKETING_WRITE)
-    .input(z.object({ id: z.uuid(), status: z.enum(['rejected', 'suspended']) }))
+    .input(
+      z.object({
+        id: z.uuid(),
+        status: z.enum(['rejected', 'suspended']),
+        /** For a rejection: why, emailed to them. */
+        reason: z.string().max(500).default(''),
+      }),
+    )
     .handler(async ({ context, input }) => {
       await program(context)
       return refusal(async () =>
-        publicAffiliate(await setAffiliateStatus(context.tx, input.id, input.status)),
+        publicAffiliate(await setAffiliateStatus(context.tx, input.id, input.status, input.reason)),
       )
     }),
+  /** Sales, commission and clicks per week or month (last 12), with the products affiliates sell most. */
+  trend: can(permissions.MARKETING_READ)
+    .input(
+      z.object({ by: z.enum(['week', 'month']).default('week'), programId: z.uuid().optional() }),
+    )
+    .handler(async ({ context, input }) => {
+      await program(context)
+      const [points, products] = await Promise.all([
+        affiliateTrend(context.tx, { by: input.by, programId: input.programId }),
+        topProducts(context.tx, { programId: input.programId, limit: 10 }),
+      ])
+      return { points, products }
+    }),
+  /** The commissions ledger as CSV, for the merchant's books. */
+  ledgerCsv: can(permissions.MARKETING_READ).handler(async ({ context }) => {
+    await program(context)
+    return { csv: await ledgerCsv(context.tx) }
+  }),
+  /** Images and captions for affiliates to post, per program or for all. */
+  creatives: {
+    list: can(permissions.MARKETING_READ).handler(async ({ context }) => {
+      await program(context)
+      return listCreatives(context.tx, { archived: true })
+    }),
+    save: can(permissions.MARKETING_WRITE)
+      .input(
+        z.object({
+          id: z.uuid().optional(),
+          mediaId: z.uuid(),
+          programId: z.uuid().nullable().default(null),
+          title: z.string().max(120).default(''),
+          caption: z.string().max(2200).default(''),
+        }),
+      )
+      .handler(async ({ context, input }) => {
+        await program(context)
+        return refusal(() => saveCreative(context.tx, context.scope.storeId, input))
+      }),
+    archive: can(permissions.MARKETING_WRITE)
+      .input(z.object({ id: z.uuid(), archived: z.boolean() }))
+      .handler(async ({ context, input }) => {
+        await program(context)
+        await archiveCreative(context.tx, input.id, input.archived)
+        return { ok: true }
+      }),
+  },
+  /** A leaked coupon: the old one stops working and a new one is made. The link is untouched. */
+  rotateCoupon: can(permissions.MARKETING_WRITE)
+    .input(Id)
+    .handler(async ({ context, input }) => {
+      await program(context)
+      return refusal(async () =>
+        publicAffiliate(await rotateCoupon(context.tx, context.scope.storeId, input.id)),
+      )
+    }),
+  /** Approve or decline an affiliate's request for their own code. */
+  decideCode: can(permissions.MARKETING_WRITE)
+    .input(z.object({ id: z.uuid(), decision: z.enum(['approve', 'decline']) }))
+    .handler(async ({ context, input }) => {
+      await program(context)
+      return refusal(async () =>
+        publicAffiliate(
+          await decideCodeRequest(context.tx, context.scope.storeId, input.id, input.decision),
+        ),
+      )
+    }),
+  /** "Looks fine": the merchant checked a needs-review affiliate; their payouts go ahead. */
+  clearReview: can(permissions.MARKETING_WRITE)
+    .input(Id)
+    .handler(async ({ context, input }) => {
+      await program(context)
+      await clearReview(context.tx, input.id)
+      return { ok: true }
+    }),
+  /** Blocked emails, domains, phones, IPs, PANs and payees: buyers held, applicants refused. */
+  blocklist: {
+    list: can(permissions.MARKETING_READ).handler(async ({ context }) => {
+      await program(context)
+      return listBlocklist(context.tx)
+    }),
+    add: can(permissions.MARKETING_WRITE)
+      .input(
+        z.object({
+          kind: z.enum(BLOCKLIST_KINDS),
+          value: z.string().trim().min(1).max(200),
+          note: z.string().max(200).default(''),
+        }),
+      )
+      .handler(async ({ context, input }) => {
+        await program(context)
+        return refusal(() =>
+          addToBlocklist(
+            context.tx,
+            context.scope.storeId,
+            input,
+            context.scope.userId,
+            settingsSecret(),
+          ),
+        )
+      }),
+    remove: can(permissions.MARKETING_WRITE)
+      .input(Id)
+      .handler(async ({ context, input }) => {
+        await program(context)
+        await removeFromBlocklist(context.tx, input.id)
+        return { ok: true }
+      }),
+  },
   saveNote: can(permissions.MARKETING_WRITE)
     .input(z.object({ id: z.uuid(), note: z.string().max(2000) }))
     .handler(async ({ context, input }) => {

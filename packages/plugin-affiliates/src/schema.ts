@@ -1,11 +1,13 @@
-import { customer, newId, order, store } from '@commerce/db'
+import { customer, media, newId, order, store } from '@commerce/db'
 import { sql } from 'drizzle-orm'
 import {
   boolean,
+  date,
   index,
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -89,6 +91,28 @@ export const affiliate = pgTable(
     /** They gave a GSTIN (kept inside the encrypted payout details): GST is added to payouts. */
     gstRegistered: boolean('gst_registered').notNull().default(false),
     clicks: integer('clicks').notNull().default(0),
+    /** HMAC blind indexes (settings key) of their PAN and payee (UPI id, or account@ifsc), for the duplicate check. */
+    panIndex: text('pan_index'),
+    payeeIndex: text('payee_index'),
+    /** Blind index of the IP they applied from, for the blocklist. */
+    signupIpIndex: text('signup_ip_index'),
+    /** Why their payouts wait for the merchant (`ReviewReason`); empty when nothing needs a look. */
+    reviewReasons: jsonb('review_reasons').$type<string[]>().notNull().default([]),
+    /** Their answers to the program's signup form (`ProgramRules.form`), by field id. */
+    answers: jsonb('answers').$type<Record<string, string>>().notNull().default({}),
+    rejectedAt: timestamp('rejected_at', { withTimezone: true }),
+    /** Why the merchant declined them; emailed to them when given. */
+    rejectReason: text('reject_reason'),
+    /** Their request for their own code (`CodeRequest`), waiting for the merchant or decided. */
+    codeRequest: jsonb('code_request').$type<{
+      code: string
+      at: string
+      status: 'pending' | 'approved' | 'declined'
+    } | null>(),
+    /** How they joined: applied on the signup page, added by the merchant, or a buyer's Share and earn tap. */
+    source: text('source', { enum: ['applied', 'added', 'enrolled'] })
+      .notNull()
+      .default('applied'),
     approvedAt: timestamp('approved_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -187,4 +211,98 @@ export const affiliateCommission = pgTable(
     index('affiliate_commission_store_due').on(t.storeId, t.status, t.eligibleAt),
     index('affiliate_commission_store_customer').on(t.storeId, t.customerId),
   ],
+)
+
+/**
+ * Values the store refuses or holds: buyers' emails, domains and phones (their commissions are
+ * held), applicants' emails and IPs (refused), and PANs and payees (the affiliate waits for
+ * review). The value is kept encrypted beside its blind index, so a key rotation can recompute it.
+ */
+export const affiliateBlocklist = pgTable(
+  'affiliate_blocklist',
+  {
+    id: uuid('id').primaryKey().$defaultFn(newId),
+    storeId: uuid('store_id')
+      .notNull()
+      .references(() => store.id),
+    kind: text('kind', {
+      enum: ['email', 'email_domain', 'phone', 'ip', 'pan', 'payee'],
+    }).notNull(),
+    /** `encryptSecret` of the normalised value (`blocklistKey`). */
+    value: text('value').notNull(),
+    valueIndex: text('value_index').notNull(),
+    /** The masked line the admin shows. */
+    hint: text('hint').notNull(),
+    note: text('note').notNull().default(''),
+    createdBy: text('created_by'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('affiliate_blocklist_store_value').on(t.storeId, t.kind, t.valueIndex)],
+)
+
+/**
+ * Every link code and coupon an affiliate has had. `affiliate.code` and `coupon_code` hold the
+ * current ones; a retired link code still earns (old posts keep paying), a retired coupon's
+ * discount is disabled.
+ */
+export const affiliateCode = pgTable(
+  'affiliate_code',
+  {
+    id: uuid('id').primaryKey().$defaultFn(newId),
+    storeId: uuid('store_id')
+      .notNull()
+      .references(() => store.id),
+    affiliateId: uuid('affiliate_id')
+      .notNull()
+      .references(() => affiliate.id, { onDelete: 'cascade' }),
+    kind: text('kind', { enum: ['link', 'coupon'] }).notNull(),
+    code: text('code').notNull(),
+    discountId: uuid('discount_id'),
+    status: text('status', { enum: ['active', 'retired'] })
+      .notNull()
+      .default('active'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    retiredAt: timestamp('retired_at', { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex('affiliate_code_store_kind_code').on(t.storeId, t.kind, t.code),
+    index('affiliate_code_affiliate').on(t.storeId, t.affiliateId),
+  ],
+)
+
+/** Images and captions the merchant gives affiliates to post; null program means every program. */
+export const affiliateCreative = pgTable(
+  'affiliate_creative',
+  {
+    id: uuid('id').primaryKey().$defaultFn(newId),
+    storeId: uuid('store_id')
+      .notNull()
+      .references(() => store.id),
+    programId: uuid('program_id').references(() => affiliateProgram.id),
+    mediaId: uuid('media_id')
+      .notNull()
+      .references(() => media.id, { onDelete: 'cascade' }),
+    title: text('title').notNull().default(''),
+    caption: text('caption').notNull().default(''),
+    sort: integer('sort').notNull().default(0),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('affiliate_creative_store').on(t.storeId, t.archivedAt, t.sort)],
+)
+
+/** Clicks on an affiliate's links per day (India time), for trends; `affiliate.clicks` is the total. */
+export const affiliateClickDay = pgTable(
+  'affiliate_click_day',
+  {
+    storeId: uuid('store_id')
+      .notNull()
+      .references(() => store.id),
+    affiliateId: uuid('affiliate_id')
+      .notNull()
+      .references(() => affiliate.id, { onDelete: 'cascade' }),
+    day: date('day', { mode: 'string' }).notNull(),
+    clicks: integer('clicks').notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.storeId, t.affiliateId, t.day] })],
 )

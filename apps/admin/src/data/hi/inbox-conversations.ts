@@ -52,6 +52,7 @@ export default [
     filters: {
       title: 'बातचीत',
       open: 'खुली',
+      needs_person: 'इंसान की ज़रूरत',
       closed: 'बंद',
       mine: 'मुझे सौंपी गई',
       unassigned: 'किसी को नहीं सौंपी',
@@ -68,6 +69,8 @@ export default [
       loadMore: 'और दिखाएँ',
       guest: 'मेहमान',
       you: 'आप',
+      ai: 'AI',
+      needsPerson: 'इंसान की ज़रूरत',
       unread: 'बिना पढ़ा',
       assignedTo: (name) => `${name} को सौंपी गई`,
     },
@@ -93,6 +96,11 @@ export default [
       note: 'नोट',
       typing: 'लिख रहे हैं…',
       startedOn: (url) => `${url} पर शुरू हुई`,
+      aiAuthor: 'AI एजेंट',
+      handoff: {
+        title: 'AI ने यह चैट आपको सौंपी है',
+        hint: 'नीचे जवाब देकर बात संभालें। अब इस चैट में AI जवाब नहीं देगा।',
+      },
       system: {
         assigned: (name) => `${name} को सौंपी गई`,
         unassigned: 'सौंपना हटाया गया',

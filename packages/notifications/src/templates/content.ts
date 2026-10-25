@@ -143,6 +143,7 @@ ${d.review?.reply ?? ''}`,
       const a = d.affiliate
       if (a?.kind === 'approved') return `You are in: the ${d.storeName} affiliate program`
       if (a?.kind === 'payout') return `${d.storeName} sent your payout`
+      if (a?.kind === 'rejected') return `Your ${d.storeName} affiliate application`
       return `New sale through your ${d.storeName} link`
     },
     heading: (d) => `Hi ${d.affiliate?.name || 'there'}`,
@@ -153,6 +154,14 @@ ${d.review?.reply ?? ''}`,
           `Welcome to the ${d.storeName} affiliate program. Share your link and earn on every sale it brings.`,
           a.link ? `Your link: ${a.link}` : '',
           a.couponCode ? `Your code for followers: ${a.couponCode}` : '',
+        ]
+          .filter(Boolean)
+          .join('\n\n')
+      }
+      if (a?.kind === 'rejected') {
+        return [
+          `Thank you for applying to the ${d.storeName} affiliate program. This time the store did not approve your application.`,
+          a.reason ? `Their note: ${a.reason}` : '',
         ]
           .filter(Boolean)
           .join('\n\n')
@@ -170,6 +179,24 @@ ${d.review?.reply ?? ''}`,
     },
     outro: () => 'Your dashboard shows your clicks, sales and earnings.',
     whatsapp: (d) => `${d.storeName} affiliate program: ${d.affiliate?.portalUrl ?? ''}`,
+  },
+  affiliate_application: {
+    subject: (d) => `New affiliate application: ${d.affiliate?.name || 'someone'}`,
+    heading: () => 'Someone wants to sell for you',
+    intro: (d) => {
+      const a = d.affiliate
+      return [
+        `${a?.name || 'Someone'} applied to your affiliate program and is waiting for your approval.`,
+        a?.email ? `Email: ${a.email}` : '',
+        a?.social ? `Posts on: ${a.social}` : '',
+        a?.message ? `They wrote: ${a.message}` : '',
+        a?.adminUrl ? `Approve or decline: ${a.adminUrl}` : '',
+      ]
+        .filter(Boolean)
+        .join('\n\n')
+    },
+    outro: () => 'You get this email because the Affiliates app is installed.',
+    whatsapp: (d) => `New affiliate application: ${d.affiliate?.name ?? ''}`,
   },
   contact_message: {
     subject: (d) =>

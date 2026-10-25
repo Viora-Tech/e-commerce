@@ -67,10 +67,13 @@ export type OutboxRelayDeps = {
 }
 
 /** The Affiliates app's events that email the affiliate, and which message each one is. */
-const AFFILIATE_NOTICES: Partial<Record<OutboxEventType, 'approved' | 'sale' | 'payout'>> = {
+const AFFILIATE_NOTICES: Partial<
+  Record<OutboxEventType, 'approved' | 'sale' | 'payout' | 'rejected'>
+> = {
   'affiliate.approved': 'approved',
   'affiliate.commission_created': 'sale',
   'affiliate.payout_paid': 'payout',
+  'affiliate.rejected': 'rejected',
 }
 
 /** Rows claimed per store per tick; the next tick (or the next store) picks up the rest. */
@@ -205,6 +208,16 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
       template: 'review_reply',
       key: row.id,
       reviewId: payload.reviewId,
+    })
+  }
+  if (type === 'affiliate.applied' && payload.affiliateId) {
+    // Affiliates app: to the merchant, no order; the worker reads the application from the app.
+    await enqueueNotification(deps.notifications, {
+      storeId: row.storeId,
+      orderId: '',
+      template: 'affiliate_application',
+      key: row.id,
+      affiliateId: payload.affiliateId,
     })
   }
   const affiliateNotice = AFFILIATE_NOTICES[type]

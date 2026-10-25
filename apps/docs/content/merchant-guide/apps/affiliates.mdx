@@ -52,6 +52,15 @@ These apply to every program:
 - **Hold payouts without a PAN**: when on, an affiliate whose commission this year has passed the TDS threshold is not paid until they add a PAN (the Payouts page says why).
 - **GST on payouts**: affiliates who are GST registered add their GSTIN with their payout details. Their payout then gets GST on top (18% unless you change it), because they invoice you GST and you claim the input tax credit. TDS stays on the commission without GST. This is a research note, not tax advice: check it with your CA.
 
+## Share and earn
+
+Turn buyers into affiliates. Turn it on in **Affiliates → Settings → Share and earn**. After an order, the thank-you page, the order page and the order emails show **Share and earn 10% on every sale** (your program's rate). The buyer taps it, taps **Get my link**, and is an approved affiliate straight away, with a link and a discount code to share.
+
+- Nobody becomes an affiliate without tapping: opening the email does nothing.
+- Pick the program buyers join. To pay buyers differently from creators, make a **Customers** program with its own rate.
+- Set a minimum order value to invite only bigger orders. Test orders and guest checkouts get no invite.
+- Their own orders never earn them commission (the usual self-referral checks).
+
 ## TDS report (26Q)
 
 On **Payouts**, **TDS report (26Q)** downloads a CSV for one quarter (April to June, July to September, October to December, January to March). It has one row per commission credited in the quarter, by the date it became ready to pay (India time): the affiliate's name, PAN (or `PANNOTAVBL` without one), the section from Settings (default `393(1) Sl. 1(ii) / 194H`), the credit date, amount, rate and TDS. Commissions reversed after they were credited are listed again under **Reversed after credit**. The file holds PANs, so it needs the **Settings** permission. Your CA files the return from it; Koomerce does not file TDS.
@@ -59,6 +68,41 @@ On **Payouts**, **TDS report (26Q)** downloads a CSV for one quarter (April to J
 ## Fraud checks
 
 An order placed from the affiliate's own account, email, phone or saved address is recorded as **Own order** and earns nothing. If it was genuine, open **Commissions** and choose **Not their own order: allow**.
+
+Suspicious commissions are **held**, not refused. They wait in **Commissions** with a reason until you clear or reverse them:
+
+- **Code used from a coupon site**: the order used an affiliate's code, the shopper never clicked the affiliate's link, and they arrived from a coupon site (GrabOn, CouponDunia, CashKaro and more; edit the list in **Settings → Fraud checks**). This needs the shopper's analytics consent, since that is when the referrer is known.
+- **Unusual burst of orders on this code**: in 24 hours a code got more than 3× its usual day (at least 5 orders). Change the multiple in **Settings → Fraud checks**.
+- **Buyer is on your blocklist**.
+
+**Blocklist** (**Settings → Blocklist**): block an email, an email domain, a phone, an IP address, a PAN or a UPI ID / bank account. Blocked buyers' commissions are held. Blocked emails, domains and IPs cannot apply. An affiliate whose phone, PAN or payout account is blocked waits for your review.
+
+**Needs review**: when two affiliates use the same PAN or the same UPI ID or bank account, both are marked for review. Their commissions keep counting, but their payouts wait. Open the affiliate, check, and choose **Looks fine**, or suspend them.
+
+## Codes
+
+Each affiliate has a link code (`?ref=`) and a discount code. Open an affiliate to see both.
+
+- **Replace discount code**: for a code that leaked to a coupon site. The old code stops working at once and a new one is made. Their link stays the same.
+- **Their own code**: affiliates can ask for a code like their name in their dashboard. Approve or decline it on the affiliate's page. Approving changes their link and discount code; links they already posted keep earning.
+
+## Affiliate dashboard
+
+Approved affiliates see their link and code on `/affiliate`, plus a **link builder**: they search a product (or paste any page of your store) and get a referral link, a QR code to download, and a WhatsApp share button.
+
+## Creatives
+
+**Affiliates → Creatives**: add product photos or banners with a caption. Choose a program, or **All programs**. Affiliates see them on their dashboard under **Ready to post**, where they save the image and copy the caption. **Hide** removes one from dashboards without deleting it.
+
+## Signup questions and applications
+
+In a program, **Signup questions** adds up to 10 questions to its signup page (short or long text, a link, a number, a choice or a tick box), each optional or required. Answers show on the affiliate's page.
+
+When someone applies to a program that needs your approval, your store email gets **New affiliate application** with a link to approve them. **Reject** asks for an optional note; they are emailed that you did not approve them, with your note.
+
+## Trends and reports
+
+The Affiliates overview shows sales from affiliates by week or month, clicks and conversion (orders from clicks), and the products affiliates sell most. **Download ledger (CSV)** saves every commission for your books. Each affiliate's dashboard shows their last 12 months.
 
 ## Payout details
 

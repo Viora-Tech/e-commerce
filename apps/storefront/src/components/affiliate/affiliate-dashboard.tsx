@@ -1,6 +1,10 @@
 import { formatPaise } from '@commerce/blocks'
 import { formatInZone } from '@commerce/dates'
+import CodeRequestForm from '@/components/affiliate/code-request-form'
 import CopyValue from '@/components/affiliate/copy-value'
+import CreativesList from '@/components/affiliate/creatives-list'
+import EarningsTrend from '@/components/affiliate/earnings-trend'
+import LinkBuilder from '@/components/affiliate/link-builder'
 import PayoutDetailsForm from '@/components/affiliate/payout-details-form'
 import { affiliateContent } from '@/data/affiliate'
 import type { AffiliatePortal } from '@/lib/affiliates'
@@ -15,7 +19,7 @@ type AffiliateDashboardProps = {
 
 const copy = affiliateContent.dashboard
 
-/** An approved affiliate's link, code, figures, recent sales and payout details. */
+/** An approved affiliate's link, code, link builder, figures, recent sales and payout details. */
 export default function AffiliateDashboard({ portal, origin }: AffiliateDashboardProps) {
   // Render logic
   const { affiliate: a, totals: t } = portal
@@ -35,6 +39,8 @@ export default function AffiliateDashboard({ portal, origin }: AffiliateDashboar
         <CopyValue label={copy.link} value={link} hint={copy.linkHint} />
         {a.couponCode ? <CopyValue label={copy.coupon} value={a.couponCode} /> : null}
       </div>
+      <LinkBuilder origin={origin} code={a.code} />
+      <CodeRequestForm request={a.codeRequest} />
       <dl className="grid grid-cols-2 gap-4 md:grid-cols-5">
         {stats.map((s) => (
           <div
@@ -47,6 +53,8 @@ export default function AffiliateDashboard({ portal, origin }: AffiliateDashboar
           </div>
         ))}
       </dl>
+      <EarningsTrend points={portal.trend} />
+      <CreativesList creatives={portal.creatives} />
       <section className="flex max-w-[48rem] flex-col gap-3">
         <h2 className="h3">{copy.recent}</h2>
         {portal.recent.length === 0 ? (

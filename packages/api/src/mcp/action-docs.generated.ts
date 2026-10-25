@@ -23,9 +23,13 @@ export const ACTION_DOCS: Record<string, string> = {
   'account.updateNotifications':
     "Saves the member's own alerts for this store, on their own staff row only.",
   'affiliates.add': 'The merchant adds someone by hand (a creator they already work with).',
+  'affiliates.clearReview':
+    '"Looks fine": the merchant checked a needs-review affiliate; their payouts go ahead.',
   'affiliates.commissions.approveDue':
     'Approves every commission whose hold is over now, instead of waiting for the hourly pass.',
   'affiliates.commissions.decide': 'Clear a fraud flag (back to pending) or refuse a commission.',
+  'affiliates.decideCode': "Approve or decline an affiliate's request for their own code.",
+  'affiliates.ledgerCsv': "The commissions ledger as CSV, for the merchant's books.",
   'affiliates.overview':
     'Sales from affiliates, money owed, the best affiliates and who is waiting to be paid.',
   'affiliates.payouts.exportCsv':
@@ -38,10 +42,13 @@ export const ACTION_DOCS: Record<string, string> = {
   'affiliates.programs.restore': 'Opens an archived program again.',
   'affiliates.programs.save':
     "Saves a program's name, link and rules; new rules apply to new orders only.",
+  'affiliates.rotateCoupon': 'A leaked coupon: the old one stops working and a new one is made.',
   'affiliates.setProgram':
     'Moves an affiliate to another program: new orders earn under it, their code takes its discount.',
   'affiliates.setRate':
     "Gives an affiliate their own default rate, or (null) back to the program's.",
+  'affiliates.trend':
+    'Sales, commission and clicks per week or month (last 12), with the products affiliates sell most.',
   'ai.action': 'One AI action with its card, for "Open approval" from the MCP & API activity log.',
   'ai.activity': 'Settings → AI → Activity: every AI action in the store, newest first.',
   'ai.applyBulk': 'Applies the reviewed suggestions to products; logged in Activity with an undo.',

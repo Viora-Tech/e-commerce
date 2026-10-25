@@ -55,9 +55,11 @@ export default function MessageItem({ message, cards, seen, nameOfMember }: Mess
   const imageUrl = typeof message.payload?.url === 'string' ? message.payload.url : null
   const author = fromShopper
     ? null
-    : message.memberUserId
-      ? nameOfMember(message.memberUserId)
-      : null
+    : message.sender === 'ai'
+      ? t.aiAuthor
+      : message.memberUserId
+        ? nameOfMember(message.memberUserId)
+        : null
 
   return (
     <Message align={fromShopper ? 'start' : 'end'}>
