@@ -12,7 +12,7 @@ import { runEmbeddedSignup } from '@/lib/facebook-sdk'
 
 type Loaded = Awaited<ReturnType<typeof api.platformApps.whatsapp>>
 
-type Busy = 'idle' | 'popup' | 'saving' | 'disconnecting'
+type Busy = 'idle' | 'popup' | 'popup-app' | 'saving' | 'disconnecting'
 
 const STATUS_TONE: Record<string, 'secondary' | 'destructive'> = {
   restricted: 'destructive',
@@ -40,11 +40,11 @@ export default function WhatsappSignupCard() {
   }, [])
 
   // Event handlers
-  const handleConnect = async () => {
+  const handleConnect = async (businessApp: boolean) => {
     if (!loaded?.signup) return
-    setBusy('popup')
+    setBusy(businessApp ? 'popup-app' : 'popup')
     try {
-      const r = await runEmbeddedSignup(loaded.signup)
+      const r = await runEmbeddedSignup({ ...loaded.signup, businessApp })
       if (r.kind === 'cancelled') {
         toast(copy.cancelled)
         return
@@ -133,9 +133,20 @@ export default function WhatsappSignupCard() {
       {account ? <p className="text-caption text-muted-foreground">{copy.billing}</p> : null}
       <div className="flex flex-wrap items-center gap-2">
         {loaded.signup ? (
-          <Button type="button" onClick={handleConnect} disabled={busy !== 'idle'}>
+          <Button type="button" onClick={() => handleConnect(false)} disabled={busy !== 'idle'}>
             {busy === 'popup' || busy === 'saving' ? <Spinner /> : null}
             {busy === 'popup' ? copy.connecting : busy === 'saving' ? copy.saving : copy.connect}
+          </Button>
+        ) : null}
+        {loaded.signup && !account ? (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => handleConnect(true)}
+            disabled={busy !== 'idle'}
+          >
+            {busy === 'popup-app' ? <Spinner /> : null}
+            {busy === 'popup-app' ? copy.connecting : copy.connectApp}
           </Button>
         ) : null}
         {account ? (
@@ -151,7 +162,10 @@ export default function WhatsappSignupCard() {
         ) : null}
       </div>
       {loaded.signup && !account ? (
-        <p className="text-caption text-muted-foreground">{copy.manual}</p>
+        <>
+          <p className="text-caption text-muted-foreground">{copy.appHelp}</p>
+          <p className="text-caption text-muted-foreground">{copy.manual}</p>
+        </>
       ) : null}
     </div>
   )

@@ -78,6 +78,8 @@ export async function runEmbeddedSignup(input: {
   appId: string
   configId: string
   version: string
+  /** The number already runs the WhatsApp Business app: Meta's coexistence flow keeps the app working. */
+  businessApp?: boolean
 }): Promise<EmbeddedSignupResult> {
   const fb = await loadSdk(input.appId, input.version)
   return new Promise<EmbeddedSignupResult>((resolve) => {
@@ -136,7 +138,9 @@ export async function runEmbeddedSignup(input: {
         config_id: input.configId,
         response_type: 'code',
         override_default_response_type: true,
-        extras: { setup: {} },
+        extras: input.businessApp
+          ? { setup: {}, featureType: 'whatsapp_business_app_onboarding', sessionInfoVersion: '3' }
+          : { setup: {} },
       },
     )
   })

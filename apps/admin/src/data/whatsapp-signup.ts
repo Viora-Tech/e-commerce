@@ -4,6 +4,9 @@ export const whatsappSignupContent = {
   intro:
     'Sign in with Facebook and pick or create your WhatsApp Business account and number. We fill in the details below for you.',
   connect: 'Connect with Facebook',
+  connectApp: 'I use the WhatsApp Business app',
+  appHelp:
+    'Already chatting with customers in the WhatsApp Business app? Use "I use the WhatsApp Business app" to keep the app and your chats on your phone while Koomerce sends order messages from the same number.',
   connecting: 'Finishing in Facebook…',
   saving: 'Connecting your number…',
   connected: 'WhatsApp connected',
