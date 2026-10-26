@@ -53,6 +53,18 @@ export async function loadDiscountCart(ctx: StoreContext, cartId: string): Promi
     .from(cartLine)
     .innerJoin(variant, eq(variant.id, cartLine.variantId))
     .where(eq(cartLine.cartId, cartId))
+  return withCollections(ctx, rows)
+}
+
+/**
+ * Lines the caller priced (a cart, an admin draft order) in the evaluator's shape, each with
+ * the collections its product is in.
+ */
+export async function withCollections(
+  ctx: StoreContext,
+  rows: { productId: string; quantity: number; unitPricePaise: number }[],
+  shippingPaise = 0,
+): Promise<DiscountCart> {
   const collectionsByProduct = await productCollections(ctx, [
     ...new Set(rows.map((r) => r.productId)),
   ])
@@ -60,7 +72,7 @@ export async function loadDiscountCart(ctx: StoreContext, cartId: string): Promi
     ...r,
     collectionIds: collectionsByProduct.get(r.productId) ?? [],
   }))
-  return { lines, shippingPaise: 0 }
+  return { lines, shippingPaise }
 }
 
 /** Collection ids per product, for the products given. */
@@ -159,10 +171,24 @@ export async function checkDiscountCode(
   code: string,
   opts: DiscountShopper = {},
 ): Promise<CodeCheck> {
+  return checkCodeOn(ctx, () => loadDiscountCart(ctx, cartId), code, opts)
+}
+
+/**
+ * Validate a typed code against lines the caller loads once the code exists: the storefront
+ * cart above, or an admin draft order (`order/draft-discount.ts`). Same rules, same
+ * per-customer count, same coarse rejection.
+ */
+export async function checkCodeOn(
+  ctx: StoreContext,
+  loadCart: () => Promise<DiscountCart>,
+  code: string,
+  opts: DiscountShopper = {},
+): Promise<CodeCheck> {
   const rule = await findDiscountByCode(ctx, code)
   if (!rule) return { ok: false, reason: 'invalid' }
   const [dc, customer] = await Promise.all([
-    loadDiscountCart(ctx, cartId),
+    loadCart(),
     shopperFor(ctx.tx, opts.email, [rule], opts.now),
   ])
   const outcome = evaluateDiscount(dc, rule, await contextFor(ctx, rule, opts, customer))

@@ -1,12 +1,21 @@
 'use client'
 
-import { Bell, CancelCircle, CircleCheck, Copy, Package, PackageCheck } from '@commerce/ui/icons'
+import {
+  Bell,
+  CancelCircle,
+  CircleCheck,
+  Copy,
+  FileEdit,
+  Package,
+  PackageCheck,
+} from '@commerce/ui/icons'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import TagInput from '@/components/fields/tag-input'
 import type { ActionItem } from '@/components/layout/action-menu'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import SendMessageDialog, { type CustomMessage } from '@/components/orders/send-message-dialog'
+import { useDuplicateOrder } from '@/components/orders/use-duplicate-order'
 import RowMenu from '@/components/table/row-menu'
 import { orderDetailContent } from '@/data/order-detail'
 import { ordersContent } from '@/data/orders'
@@ -62,6 +71,7 @@ export default function OrderRowMenu({
   const detail = useCopy(orderDetailContent)
   const list = useCopy(ordersContent)
   const shipping = useCopy(shipmentPanelContent)
+  const duplicateOrder = useDuplicateOrder()
   const [dialog, setDialog] = useState<Dialog>(null)
   const [tags, setTags] = useState<string[]>([])
 
@@ -202,6 +212,12 @@ export default function OrderRowMenu({
             label: list.row.copyNumber,
             icon: Copy,
             onSelect: handleCopyNumber,
+          },
+          {
+            label: duplicateOrder.label,
+            icon: FileEdit,
+            hidden: !duplicateOrder.allowed,
+            onSelect: () => duplicateOrder.duplicate(order.id),
           },
           ...appItems.map((item, i) => ({
             ...item,
