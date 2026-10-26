@@ -1,5 +1,10 @@
 'use client'
 
+import {
+  PROMOTE_ANSWER,
+  PROMOTE_CHANNEL_LABELS,
+  type PromoteChannel,
+} from '@commerce/plugin-affiliates/settings'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useEffect, useState } from 'react'
@@ -71,6 +76,18 @@ export default function AffiliateDetail({ params }: AppPageProps) {
     { label: d.link, value: link },
     { label: d.coupon, value: a.couponCode ?? d.noCoupon },
     { label: d.social, value: a.social || '—' },
+    // Where they said they will share, from the signup page's channel choices.
+    ...(a.answers[PROMOTE_ANSWER]
+      ? [
+          {
+            label: d.promotes,
+            value: (a.answers[PROMOTE_ANSWER] ?? '')
+              .split(',')
+              .map((c) => PROMOTE_CHANNEL_LABELS[c as PromoteChannel] ?? c)
+              .join(', '),
+          },
+        ]
+      : []),
     { label: d.payout, value: a.payoutHint ?? d.payoutNone },
     { label: d.panLabel, value: a.hasPan ? d.pan : d.noPan },
     { label: d.gstLabel, value: a.gstRegistered ? d.gstYes : d.gstNo },

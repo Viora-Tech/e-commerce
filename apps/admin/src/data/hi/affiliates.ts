@@ -230,6 +230,7 @@ export default [
       rateSaved: 'दर सेव हुई। यह नए ऑर्डर पर लागू होगी।',
       programRate: (rule) => `प्रोग्राम की दर: ${rule}`,
       rejectReason: 'मना करने की वजह',
+      promotes: 'कहाँ शेयर करेंगे',
       codes: {
         title: 'कोड',
         link: 'लिंक कोड',

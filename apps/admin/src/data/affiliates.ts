@@ -239,6 +239,7 @@ export const affiliatesContent = {
     rateSaved: 'Rate saved. It applies to new orders.',
     programRate: (rule: string) => `Program rate: ${rule}`,
     rejectReason: 'Why they were declined',
+    promotes: 'Will share on',
     codes: {
       title: 'Codes',
       link: 'Link code',
