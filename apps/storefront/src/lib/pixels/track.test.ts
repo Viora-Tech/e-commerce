@@ -59,6 +59,29 @@ describe('pixel events in the browser', () => {
     expect(JSON.parse(beacons[0] as string)).toMatchObject({ name: 'Purchase', eventId: 'ord_abc' })
   })
 
+  it('tells the collector how many were added, for AddToCart only', async () => {
+    const add: BrowserPixel = { id: '4444444444', events: ['AddToCart'], browserPurchase: true }
+    sendPixelEvent([add], {
+      name: 'AddToCart',
+      eventId: 'atc_v1_1',
+      variantId: 'v1',
+      valuePaise: 99_800,
+      numItems: 2,
+    })
+    sendPixelEvent([add], { name: 'PageView', eventId: '0199a000-0000-7000-8000-000000000001' })
+    await new Promise((r) => setTimeout(r, 0))
+    const sent = beacons.map((b) => JSON.parse(b) as Record<string, unknown>)
+    expect(sent.find((b) => b.name === 'AddToCart')).toMatchObject({ quantity: 2 })
+    expect(sent.find((b) => b.name === 'PageView')).not.toHaveProperty('quantity')
+    expect(fbq).toHaveBeenCalledWith(
+      'trackSingle',
+      '4444444444',
+      'AddToCart',
+      { value: 998, currency: 'INR', content_ids: ['v1'], content_type: 'product', num_items: 2 },
+      { eventID: 'atc_v1_1' },
+    )
+  })
+
   it('sends nothing from sign-in pages', () => {
     vi.stubGlobal('window', {
       fbq,

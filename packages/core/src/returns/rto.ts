@@ -1,5 +1,6 @@
 /** SOURCE OF TRUTH: RTO (return to origin) — WHAT: when tracking says a parcel came back undelivered, record it and open a "Returned to you (RTO)" task on the order; RTO counts and costs for the Shipments workspace / WHY: an RTO ties up stock and money, and the merchant must restock and then refund or re-ship; one idempotent writer means a repeated tracking scan never opens two tasks */
 import {
+  fulfillmentOrderLine,
   order,
   orderLine,
   orderNote,
@@ -13,6 +14,43 @@ import { insertOutboxEvent } from '../outbox/write'
 import type { ShipmentRow } from '../shipping/shipments'
 import { returnLabel } from './policy'
 import { nextReturnNumber } from './service'
+
+/**
+ * What the returned parcel carried, by order line. A shipment booked for one parcel
+ * (fulfilment order) carries only that parcel's units: an order split into two parcels
+ * whose second one came back must not restock the first. Older shipments without a
+ * parcel carried everything fulfilled on the order.
+ */
+async function parcelUnits(
+  ctx: StoreContext,
+  row: ShipmentRow,
+): Promise<{ id: string; quantity: number }[]> {
+  if (row.fulfillmentOrderId) {
+    const units = await ctx.tx
+      .select({
+        id: fulfillmentOrderLine.orderLineId,
+        packed: fulfillmentOrderLine.fulfilledQuantity,
+        quantity: fulfillmentOrderLine.quantity,
+      })
+      .from(fulfillmentOrderLine)
+      .innerJoin(orderLine, eq(orderLine.id, fulfillmentOrderLine.orderLineId))
+      .where(
+        and(
+          eq(fulfillmentOrderLine.fulfillmentOrderId, row.fulfillmentOrderId),
+          eq(orderLine.giftCard, false),
+        ),
+      )
+    if (units.length > 0) {
+      // Packed units when the parcel recorded them, else everything it was meant to hold.
+      const packed = units.some((u) => u.packed > 0)
+      return units.map((u) => ({ id: u.id, quantity: packed ? u.packed : u.quantity }))
+    }
+  }
+  return ctx.tx
+    .select({ id: orderLine.id, quantity: orderLine.fulfilledQuantity })
+    .from(orderLine)
+    .where(and(eq(orderLine.orderId, row.orderId), eq(orderLine.giftCard, false)))
+}
 
 /**
  * Called by `applyTracking` when a shipment turns `rto`. Stamps when it came
@@ -32,11 +70,7 @@ export async function recordRtoForShipment(ctx: StoreContext, row: ShipmentRow) 
     .update(shipment)
     .set({ rtoDeliveredAt: now })
     .where(and(eq(shipment.id, row.id), isNull(shipment.rtoDeliveredAt)))
-  const lines = await ctx.tx
-    .select({ id: orderLine.id, quantity: orderLine.fulfilledQuantity })
-    .from(orderLine)
-    .where(and(eq(orderLine.orderId, row.orderId), eq(orderLine.giftCard, false)))
-  const shipped = lines.filter((l) => l.quantity > 0)
+  const shipped = (await parcelUnits(ctx, row)).filter((l) => l.quantity > 0)
 
   const number = await nextReturnNumber(ctx)
   const [task] = await ctx.tx

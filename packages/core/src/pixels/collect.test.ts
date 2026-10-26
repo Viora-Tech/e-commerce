@@ -39,6 +39,7 @@ describe('parsePixelBeacon', () => {
       url: 'https://w.in/p',
       productId: null,
       variantId: uuid,
+      quantity: null,
     })
     expect(parsePixelBeacon({ name: 'Lead', eventId: uuid })).toBeNull()
     expect(parsePixelBeacon({ name: 'Purchase', eventId: 'hello' })).toBeNull()

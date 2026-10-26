@@ -29,13 +29,15 @@ import {
   syncOpenQrAttempt,
   thankYouPath,
 } from '@commerce/core'
+import { CONSENT_COOKIE, currentConsent, decodeConsent } from '@commerce/core/consent'
+import { collectorStore, withdrawCartMarketingConsent } from '@commerce/core/pixels/server'
 import { type ParcelDeliveryEstimate, payment } from '@commerce/db'
 import { formatMoney } from '@commerce/money'
 import { logger } from '@commerce/observability/logging'
 import type { ClientConfirmation } from '@commerce/payments'
 import { and, desc, eq, ne } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
-import { headers } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { checkoutContent } from '@/data/checkout'
 import { readAttribution } from './attribution-cookie'
@@ -228,6 +230,7 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
   /* Contact first: if anything below fails the cart is still recoverable. The latest
      marketing touch rides along so the order credits the email or ad that closed it. */
   const attribution = await readAttribution()
+  const consent = decodeConsent((await cookies()).get(CONSENT_COOKIE)?.value)
   await inStore(storeId, async (tx) => {
     await captureCartContact({ storeId, tx }, cartId, {
       email: form.email,
@@ -235,6 +238,10 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
       name: form.name,
     })
     await setCartAttribution(tx, cartId, attribution)
+    // Pixels: a marketing yes taken back on the banner keeps the order's server Purchase off.
+    const { bannerVersion } = await collectorStore(tx, storeId)
+    const marketing = currentConsent(consent, bannerVersion)?.marketing === true
+    await withdrawCartMarketingConsent(tx, cartId, marketing, new Date())
   })
 
   // Gift cards are emailed, so a basket of only gift cards has nothing to ship.
