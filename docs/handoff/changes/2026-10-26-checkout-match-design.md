@@ -36,9 +36,9 @@ with every card open.
   there and focuses it (`bringIntoView`; smooth scroll, or a jump with reduced motion).
 - **Old `?step=` links** (`?step=payment`, bookmarks, recovery) no longer drive anything. After
   mount the value is read once. A known section is scrolled to, anything else is ignored, and
-  the parameter is dropped. New `app/-s/[storeId]/checkout/error.tsx`: a crash anywhere in
-  checkout/pay/thank-you now shows a checkout-styled "Try again / Back to cart" card and
-  reports to GlitchTip, instead of Next's bare "This page couldn't load".
+  the parameter is dropped. The checkout error boundary is #791's `ErrorScreen`; this PR adds
+  GlitchTip reporting to it (`components/errors/error-screen.tsx`), since errors caught by a
+  boundary never reach GlitchTip's global handlers.
 
 ## Express checkout and shipping
 
@@ -75,5 +75,11 @@ sends it.
 Colours are still only `--ck-*` (merchant checkout branding). Waimers renders dark because its
 theme mode is "system" (`<html>` has no `data-theme`), so `.ck` follows the shopper's OS dark
 setting. That is the existing behaviour and is kept: the layout now matches in both modes, and
-the cards use `--ck-section-shadow` (a hairline ring in dark). The admin's branding preview
-(`checkout-branding-preview.tsx`) still draws the old layout and needs its own pass.
+the cards use `--ck-section-shadow` (a hairline ring in dark).
+
+## Admin
+
+`apps/admin/src/components/settings/checkout-branding-preview.tsx` now draws the one-page
+layout too (Express, numbered cards, summary with Pay; phone: summary card on top, Pay bar),
+with its copy in `data/checkout-settings.ts` and the Hindi overlay. `CHECKOUT_LIGHT_SURFACE`
+gains `--ck-success` for the PIN line.
