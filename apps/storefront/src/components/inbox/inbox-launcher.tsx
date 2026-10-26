@@ -2,9 +2,16 @@
 
 import type { InboxWidget } from '@commerce/core/inbox'
 import dynamic from 'next/dynamic'
-import { type CSSProperties, useEffect, useState } from 'react'
+import { type CSSProperties, useEffect, useRef, useState } from 'react'
 import { inboxChatContent as copy } from '@/data/inbox'
 import { CHAT_GUARD, chatFontFamily } from '@/lib/inbox-guard'
+import {
+  bottomBars,
+  CHAT_ROOT_ATTR,
+  launcherBottom,
+  launcherLift,
+  overlayOver,
+} from '@/lib/launcher-lift'
 import ChatIcon from './chat-icon'
 
 type InboxLauncherProps = {
@@ -20,8 +27,8 @@ const ACTIVE_KEY = 'inbox:active'
 /** Nothing of the chat loads until the shopper opens it (or has chatted before). */
 const ChatWidget = dynamic(() => import('./chat-widget'), { ssr: false })
 
-/** Same values as the card's offset in `chat-widget.tsx`, which sits just above this button. */
-const BOTTOM = { lowest: '1rem', higher: '5.5rem', highest: '10rem' } as const
+/** A late-painting theme bar (a dock its script draws) is measured again after this. */
+const REMEASURE_MS = 1500
 
 /**
  * The icon swap (chat <-> chevron): the outgoing icon turns 20deg, shrinks to 0.9 and fades
@@ -46,13 +53,52 @@ const wasActive = () => {
  * chevron that closes it (on a phone the chat is full screen and closes from its header). A
  * plain button on the server; the chat itself is a separate bundle loaded on the first click,
  * or on idle when this browser has chatted before. No cookie and no third party until the
- * shopper sends a message.
+ * shopper sends a message. It lifts itself above any bar a theme pins to the bottom of the
+ * window under it (a mobile dock, a sticky add-to-cart, the cookie banner), measured on load, on
+ * resize and when the page's elements change (`lib/launcher-lift.ts`), and sits above the usual
+ * theme layers (z-index 999), hiding while a theme overlay (a cart drawer) is open over it.
  */
 export default function InboxLauncher({ widget, storeName, logoUrl }: InboxLauncherProps) {
   // Hooks
   const [open, setOpen] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const [unread, setUnread] = useState(0)
+  const [lift, setLift] = useState(0)
+  const [covered, setCovered] = useState(false)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    let frame = 0
+    const measure = () => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(() => {
+        const box = buttonRef.current?.getBoundingClientRect()
+        // Hidden (the phone's full-screen chat is open): keep the last answer.
+        if (!box || box.width === 0) return
+        setLift(launcherLift(bottomBars(box), box, window.innerHeight))
+        setCovered(overlayOver(box))
+      })
+    }
+    measure()
+    const late = globalThis.setTimeout(measure, REMEASURE_MS)
+    // A dock drawn by a theme script, a cookie banner answered and removed, a drawer opened.
+    const observer = new MutationObserver(measure)
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['class', 'open', 'hidden'],
+    })
+    window.addEventListener('resize', measure)
+    window.addEventListener('load', measure)
+    return () => {
+      cancelAnimationFrame(frame)
+      globalThis.clearTimeout(late)
+      observer.disconnect()
+      window.removeEventListener('resize', measure)
+      window.removeEventListener('load', measure)
+    }
+  }, [])
 
   useEffect(() => {
     if (!wasActive()) return
@@ -77,7 +123,7 @@ export default function InboxLauncher({ widget, storeName, logoUrl }: InboxLaunc
         ? 'left-1/2 -translate-x-1/2'
         : 'right-4'
   const style = {
-    bottom: `calc(${BOTTOM[widget.vertical]} + env(safe-area-inset-bottom))`,
+    bottom: `calc(${launcherBottom(widget.vertical, lift)})`,
     fontSize: `${widget.activatorFontSize / 16}rem`,
     fontFamily: chatFontFamily(widget.inheritFont),
     ...(widget.invertActivator
@@ -98,8 +144,10 @@ export default function InboxLauncher({ widget, storeName, logoUrl }: InboxLaunc
         aria-label={open ? copy.close : copy.open}
         aria-expanded={open}
         onClick={handleToggle}
+        ref={buttonRef}
+        {...{ [CHAT_ROOT_ATTR]: '' }}
         style={style}
-        className={`${CHAT_GUARD} fixed z-40 flex h-14 touch-manipulation items-center justify-center gap-2 rounded-full font-medium! shadow-[0_0_0_1px_rgb(0_0_0/0.06),0_8px_24px_rgb(0_0_0/0.16)] transition-[scale,opacity]! duration-(--duration-press)! ease-out! active:scale-(--motion-press-scale)! ${pill ? 'px-5' : 'w-14'} ${open ? 'max-sm:hidden!' : ''} ${side}`}
+        className={`${CHAT_GUARD} fixed z-[999]! flex h-14 touch-manipulation items-center justify-center gap-2 rounded-full font-medium! shadow-[0_0_0_1px_rgb(0_0_0/0.06),0_8px_24px_rgb(0_0_0/0.16)] transition-[scale,opacity]! duration-(--duration-press)! ease-out! active:scale-(--motion-press-scale)! ${pill ? 'px-5' : 'w-14'} ${open ? 'max-sm:hidden!' : ''} ${covered && !open ? 'invisible! opacity-0!' : ''} ${side}`}
       >
         {pill ? (
           <>
@@ -131,6 +179,7 @@ export default function InboxLauncher({ widget, storeName, logoUrl }: InboxLaunc
       {loaded ? (
         <ChatWidget
           open={open}
+          lift={lift}
           widget={widget}
           storeName={storeName}
           logoUrl={logoUrl}

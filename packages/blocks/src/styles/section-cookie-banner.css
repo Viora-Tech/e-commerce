@@ -286,6 +286,27 @@
   }
 }
 
+/* In a column card (both corner cards, and every card on a phone) the copy's
+   `flex: 1 1 20rem` basis above is a HEIGHT, not a width: the card grew a
+   20rem blank gap between the message and the buttons, which on a phone made
+   the banner a tall, mostly empty sheet. There the copy and the preferences
+   panel size to their content. The selectors carry extra weight on purpose:
+   an imported Liquid copy of this theme ships the original rule unlayered
+   and later in the page, and this fix is meant for its banner too. */
+.cookie-banner--left .cookie-banner__card .cookie-banner__copy,
+.cookie-banner--right .cookie-banner__card .cookie-banner__copy,
+.cookie-banner--left .cookie-banner__card .cookie-banner__panel,
+.cookie-banner--right .cookie-banner__card .cookie-banner__panel {
+  flex: 0 0 auto;
+}
+
+@media screen and (max-width: 749px) {
+  .cookie-banner .cookie-banner__card .cookie-banner__copy,
+  .cookie-banner .cookie-banner__card .cookie-banner__panel {
+    flex: 0 0 auto;
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /* Figma storefront cookie banner (Section / Cookie banner, 704:109796) */
 /* ------------------------------------------------------------------ */

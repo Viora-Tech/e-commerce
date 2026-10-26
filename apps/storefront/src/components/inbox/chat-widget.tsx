@@ -13,6 +13,7 @@ import {
   sendChatAction,
 } from '@/lib/inbox-actions'
 import { CHAT_GUARD, chatFontFamily } from '@/lib/inbox-guard'
+import { CHAT_ROOT_ATTR, launcherBottom } from '@/lib/launcher-lift'
 import ChatComposer from './chat-composer'
 import ChatContactForm from './chat-contact-form'
 import ChatHeader, { type ChatMode } from './chat-header'
@@ -22,6 +23,8 @@ import ChatTrack from './chat-track'
 
 type ChatWidgetProps = {
   open: boolean
+  /** How far the launcher lifted itself over a theme's bottom bar (`lib/launcher-lift.ts`). */
+  lift: number
   widget: InboxWidget
   storeName: string
   /** The store's logo for the header avatar (`lib/inbox-logo.ts`); its first letter without one. */
@@ -38,8 +41,6 @@ type Contact = { name: string; email: string; phone: string }
 const TYPING_EVERY_MS = 3000
 const TYPING_SHOWN_MS = 5000
 
-/** The launcher's distance from the bottom (same values as `inbox-launcher.tsx`). */
-const BOTTOM = { lowest: '1rem', higher: '5.5rem', highest: '10rem' } as const
 /** The launcher's 3.5rem plus the gap between it and the card. */
 const ABOVE_LAUNCHER = '4.25rem'
 
@@ -111,6 +112,7 @@ function chime() {
  */
 export default function ChatWidget({
   open,
+  lift,
   widget,
   storeName,
   logoUrl,
@@ -311,7 +313,7 @@ export default function ChatWidget({
     '--chat-accent': widget.background || 'var(--btn-bg, var(--color-ink, CanvasText))',
     '--chat-on-accent': widget.textColour || 'var(--btn-text, var(--color-bg, Canvas))',
     '--chat-radius': `${widget.borderRadius / 16}rem`,
-    '--chat-bottom': `calc(${BOTTOM[widget.vertical]} + ${ABOVE_LAUNCHER} + env(safe-area-inset-bottom))`,
+    '--chat-bottom': `calc(${launcherBottom(widget.vertical, lift)} + ${ABOVE_LAUNCHER})`,
     fontFamily: chatFontFamily(widget.inheritFont),
   } as CSSProperties
   const hairline = 'border-[color-mix(in_srgb,currentColor_8%,transparent)]'
@@ -323,7 +325,8 @@ export default function ChatWidget({
       aria-hidden={!open}
       inert={!open}
       style={style}
-      className={`${CHAT_GUARD} fixed z-50 flex flex-col overflow-hidden overscroll-contain bg-[var(--color-bg,Canvas)] text-[var(--color-ink,CanvasText)] shadow-[0_0_0_1px_rgb(0_0_0/0.06),0_12px_32px_rgb(0_0_0/0.12),0_2px_6px_rgb(0_0_0/0.06)] ${PANEL_MOTION} ${frame} ${motion}`}
+      {...{ [CHAT_ROOT_ATTR]: '' }}
+      className={`${CHAT_GUARD} fixed z-[2147483000]! flex flex-col overflow-hidden overscroll-contain bg-[var(--color-bg,Canvas)] text-[var(--color-ink,CanvasText)] shadow-[0_0_0_1px_rgb(0_0_0/0.06),0_12px_32px_rgb(0_0_0/0.12),0_2px_6px_rgb(0_0_0/0.06)] ${PANEL_MOTION} ${frame} ${motion}`}
     >
       <ChatHeader
         storeName={storeName}

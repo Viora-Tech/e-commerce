@@ -36,3 +36,24 @@
 - Not browser-checked by the author (no dev server on the low-RAM PC): check the three error
   pages (throw in a page, in checkout, in the store layout), the thank-you page, and the chat on
   desktop + phone, under our theme and an imported Liquid theme, with and without reduced motion.
+
+## Follow-up: live phone bugs on waimers.koomerce.app (Glide Liquid theme)
+
+- **Chat button under a theme's bottom bar.** Glide's mobile dock (and our own Zero Drift dock,
+  `position: fixed`, z-index 45 vs the launcher's 40) covered the chat button on phones.
+  `lib/launcher-lift.ts` (pure `launcherLift`/`isOverlay`, tested in `launcher-lift.test.ts`)
+  samples `elementsFromPoint` along the window's bottom edge under the button, finds fixed/sticky
+  ancestors pinned to the bottom (within 32px, at most half the window tall, overlapping the
+  button's column) and lifts the button just above the tallest (`launcherBottom`: the merchant's
+  height + safe area, or the bar's top + 0.75rem, whichever is higher). Re-measured on mount,
+  after 1.5s, on `load`, on resize and on DOM changes (MutationObserver, rAF-throttled). The chat
+  card's `--chat-bottom` follows the same lift. Launcher z-index 999 (`!`), hidden while a tall
+  theme overlay (an open cart drawer) sits over its spot so it never covers the drawer's buttons.
+  The open card is z-index 2147483000, so the phone's full-screen chat is above any dock. The chat
+  roots carry `data-chat-root` so the scan skips them.
+- **Cookie banner tall empty sheet on phones.** Ours (`packages/blocks` Zero Drift cookie banner;
+  Glide's Liquid banner uses the same classes and stylesheet origin). In a column card (every
+  card on a phone, and both corner cards on desktop) `.cookie-banner__copy { flex: 1 1 20rem }`
+  made 20rem a height: a blank gap above the buttons. Copy and preferences panel now
+  `flex: 0 0 auto` there, with heavier selectors so the imported theme's own unlayered copy of
+  the original rule loses too (`section-cookie-banner.css`).
