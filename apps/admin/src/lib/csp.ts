@@ -64,5 +64,23 @@ export function forwardNonce(headers: Headers, nonce: string, csp: CspHeader): v
   headers.set(csp.name, csp.value)
 }
 
+/**
+ * SOURCE OF TRUTH KEYWORDS: no-transform, Cloudflare email obfuscation, React #418
+ * WHAT:  The `Cache-Control` every admin page response carries: Next's own value for a
+ *        dynamic page plus `no-transform`.
+ * WHY:   The admin sits behind Cloudflare, whose zone-wide Email Address Obfuscation rewrites
+ *        any email in page text (the sidebar's user row, customer and order emails) into
+ *        `<span class="__cf_email__">[email protected]</span>` and adds a decoder script. The
+ *        script has no nonce, so this CSP blocks it, and React finds "[email protected]" where
+ *        it rendered the address: hydration fails (#418, "text") on every page, React redraws
+ *        the whole document, and the HTML still streaming in can no longer find its
+ *        placeholders ("Cannot read properties of null (reading 'parentNode')" from the
+ *        inline `$RS` / `$RC` scripts). Cloudflare leaves a `no-transform` response alone.
+ *        Next keeps a `Cache-Control` the proxy already set on a dynamic page.
+ * WHERE: `proxy.ts` sets it on page responses; `csp.test.ts` holds it.
+ */
+export const PAGE_CACHE_CONTROL =
+  'private, no-cache, no-store, max-age=0, must-revalidate, no-transform'
+
 /** Set by the proxy: the path and query the browser asked for (`/apps/install?app=reviews`). */
 export const REQUEST_PATH_HEADER = 'x-request-path'
