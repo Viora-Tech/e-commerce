@@ -1,4 +1,10 @@
-import { type Attribution, decodeAttribution, encodeAttribution } from '@commerce/core/marketing'
+import {
+  type Attribution,
+  decodeAttribution,
+  decodeReferral,
+  encodeAttribution,
+  withReferral,
+} from '@commerce/core/marketing'
 import { cookies } from 'next/headers'
 
 /** Last non-direct touch, kept for the attribution window; stamped on carts and orders. */
@@ -9,6 +15,12 @@ export const SESSION_COOKIE = 'wc_ses'
 export const MARKETING_CLICK_COOKIE = 'wc_mk'
 /** Set by a short link (`/l/<slug>`) for the landing page's beacon: the link's id only. */
 export const LINK_CLICK_COOKIE = 'wc_lk'
+/**
+ * The affiliate link the shopper last came through (Affiliates app): `<code>.<click time>`, set
+ * by the proxy whatever the consent banner says. Functional, not analytics: it only lets the
+ * affiliate who sent the shopper earn on the sale. Lives for the store's link window.
+ */
+export const REFERRAL_COOKIE = 'wc_ref'
 
 export const ATTRIBUTION_MAX_AGE = 60 * 60 * 24 * 30
 export const SESSION_MAX_AGE = 30 * 60
@@ -43,9 +55,16 @@ export function decodeLinkClick(raw: string | undefined): string | null {
   return raw && UUID.test(raw) ? raw : null
 }
 
-/** The shopper's current touch, for server actions that create carts. */
+/**
+ * The shopper's current touch, for server actions that create carts and place orders: the
+ * analytics touch (only there after a yes to analytics) with the affiliate referral counted in.
+ */
 export async function readAttribution(): Promise<Attribution | null> {
-  return decodeAttribution((await cookies()).get(ATTRIBUTION_COOKIE)?.value)
+  const jar = await cookies()
+  return withReferral(
+    decodeAttribution(jar.get(ATTRIBUTION_COOKIE)?.value),
+    decodeReferral(jar.get(REFERRAL_COOKIE)?.value),
+  )
 }
 
 export { encodeAttribution }

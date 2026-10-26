@@ -7,7 +7,7 @@ import { orderViewToken, thankYouPath } from '@commerce/core'
 import { order } from '@commerce/db'
 import { eq } from 'drizzle-orm'
 import { headers } from 'next/headers'
-import { redirect } from 'next/navigation'
+import { redirectToOrderPage } from './order-view-cookie'
 import { clientIp, rateLimited } from './rate-limit'
 import { requestStoreId } from './request-store'
 import { inStore } from './store-context'
@@ -43,5 +43,5 @@ export async function trackOrderAction(
     return o && contactMatches(contact, o) ? o.id : null
   })
   if (!found) return { status: 'not-found' }
-  redirect(thankYouPath(number, orderViewToken(found, settingsSecret())))
+  return redirectToOrderPage(thankYouPath(number, orderViewToken(found, settingsSecret())))
 }

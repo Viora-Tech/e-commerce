@@ -67,6 +67,14 @@ flowchart LR
 - Our own `VisitBeacon` is analytics: `ConsentManager` renders it only after an analytics yes.
   Server side, `proxy.ts` mints the `wc_vid` visitor cookie and `/api/beacon` records anything
   only when the consent cookie says analytics (`analyticsAllowed`).
+- Two functional cookies are set without consent. `wc_ref` (Affiliates app) holds only an
+  affiliate's code and the click time (`<code>.<unix seconds>`) for the store's link window; the
+  proxy sets it on a `?ref=` landing (`lib/referral-landing.ts`) and counts the click as a daily
+  per-affiliate total, and `readAttribution` turns it into the order's touch when no later
+  analytics touch exists (`withReferral`). `wc_ov` holds an order page's view token for 30
+  minutes, path-scoped to `/checkout/thank-you/<n>` or `/checkout/pay/<n>`: the proxy moves `?t=`
+  into it and redirects, so pixels and tags that read `location.href` never see the token
+  (`lib/order-token-swap.ts`).
 - The footer gets a **Cookie settings** link to `#cookie-settings`, which reopens the banner.
 
 ## Marketing consent in the send path
