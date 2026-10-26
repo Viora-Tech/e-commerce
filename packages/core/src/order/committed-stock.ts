@@ -98,3 +98,32 @@ export async function releaseCommittedStock(ctx: StoreContext, move: StockMove):
     .set({ reserved: sql`greatest(0, ${inventoryLevel.reserved} - ${move.quantity})` })
     .where(levelOf(move))
 }
+
+/**
+ * An imported order taken over while still open (`order/takeover.ts`): its unpacked units are
+ * counted back as on hand and committed together, so available stock stays exactly as imported
+ * (the source platform had already taken them out of what it reported) while packing, cancelling
+ * and editing move them like any order's. Logged as `other`.
+ */
+export async function holdTakenOverStock(ctx: StoreContext, move: StockMove): Promise<void> {
+  if (move.quantity <= 0) return
+  if (!(await isTracked(ctx, move.variantId))) return
+  const [level] = await ctx.tx
+    .update(inventoryLevel)
+    .set({
+      onHand: sql`${inventoryLevel.onHand} + ${move.quantity}`,
+      reserved: sql`${inventoryLevel.reserved} + ${move.quantity}`,
+    })
+    .where(levelOf(move))
+    .returning({ locationId: inventoryLevel.locationId })
+  if (!level) return
+  await ctx.tx.insert(inventoryAdjustment).values({
+    id: newId(),
+    storeId: ctx.storeId,
+    variantId: move.variantId,
+    locationId: level.locationId,
+    delta: move.quantity,
+    reason: 'other',
+    note: 'Imported order taken over: its units held as committed (available unchanged)',
+  })
+}

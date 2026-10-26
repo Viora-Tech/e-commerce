@@ -83,7 +83,9 @@ export async function duplicateOrderAsDraft(
   const input: DraftInput = {
     customerId: o.customerId,
     email: o.email,
-    phone: o.phone,
+    // The order's contact phone, else the one on its shipping address (orders placed with the phone
+    // only on the address, or by an admin before contact phones were kept, have none of their own).
+    phone: o.phone || ship[0]?.phone || null,
     shipping: a
       ? {
           name: a.name,

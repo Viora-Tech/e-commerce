@@ -1149,6 +1149,12 @@ export type OrderImportMeta = {
   paymentMethod?: string | null
   cancelledAt?: string | null
   refundedPaise?: number | null
+  /**
+   * Set when staff took an imported order that was still open over ("Manage this order in
+   * Koomerce", `order/takeover.ts`): `imported_from` is cleared then, so the platform it came
+   * from is kept here. From then on it is worked like an order placed here.
+   */
+  takenOver?: { at: string; by: string; source: string } | null
 }
 
 export const orderLine = pgTable('order_line', {

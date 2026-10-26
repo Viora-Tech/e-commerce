@@ -40,15 +40,11 @@ import { manualCancelAt } from '../payments/manual-followup'
 import { parsePaymentSettings } from '../payments/settings'
 import { balanceOwed } from '../preorder/balance'
 import { balanceUrl, invoiceUrl, thankYouUrl } from '../preorder/balance-link'
-import {
-  balancePayBy,
-  depositIsNonRefundable,
-  type PreorderStoreSettings,
-  parsePreorderStoreSettings,
-} from '../preorder/store-settings'
+import { parsePreorderStoreSettings } from '../preorder/store-settings'
 import { returnTemplateData } from '../returns/notify'
 import { storeNotificationChannels } from '../sender-email/channels'
 import { type GstBreakdown, gstRowsToShow } from '../tax/gst'
+import { balanceData } from './balance-data'
 import { isMessageOn } from './messages'
 import { parseNotificationSettings } from './settings'
 
@@ -90,24 +86,6 @@ export type DeliverOptions = {
         attachments: Attachment[]
       }>)
     | undefined
-}
-
-/** What a deposit pre-order still owes, for the balance messages; undefined on other orders. */
-function balanceData(
-  o: typeof order.$inferSelect,
-  settings: PreorderStoreSettings,
-): TemplateData['balance'] {
-  if (o.depositPaise === null) return undefined
-  const owed = balanceOwed(o)
-  const payBy = balancePayBy(settings, o.balanceRequestedAt)
-  return {
-    dueLabel: formatMoney(owed),
-    depositLabel: formatMoney(o.totalPaise - owed),
-    payByLabel: payBy
-      ? payBy.toLocaleDateString('en-IN', { dateStyle: 'medium', timeZone: 'Asia/Kolkata' })
-      : undefined,
-    depositNonRefundable: depositIsNonRefundable(settings),
-  }
 }
 
 const isGst = (v: unknown): v is GstBreakdown =>

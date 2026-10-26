@@ -1071,11 +1071,6 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'imported only by scripts/rotate-secrets.ts (scripts are not counted as importers)',
   },
   {
-    file: 'packages/plugin-affiliates/src/commissions.ts',
-    names: ['commissionForOrder'],
-    reason: 'used inside the module; exported for the flow tests that read one order’s commission',
-  },
-  {
     file: 'packages/plugin-forms/src/plugin.ts',
     names: ['formsPlugin'],
     reason: 'imported only by the root commerce.config.ts, like emiPlugin',

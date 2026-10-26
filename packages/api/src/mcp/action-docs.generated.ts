@@ -346,6 +346,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'orders.abandonedStats':
     'Abandoned checkouts in a period: how many, their value, and how many were recovered.',
   'orders.addNote': "Add a staff note to the order's timeline.",
+  'orders.cancel':
+    '"Cancel order": a reason, restock on or off, tell the customer or not, and how the money goes back (original payment, recorded by hand, or not at all).',
   'orders.cancelShipment':
     'Cancel a booked shipment with its courier, before it is collected or put on a manifest.',
   'orders.checkDraftDiscount':
@@ -365,6 +367,10 @@ export const ACTION_DOCS: Record<string, string> = {
     'The stat cards above the drafts list: open drafts, invoices sent, and their total value.',
   'orders.duplicateOrder':
     "Start a new draft from an existing order: same customer, address, lines at today's prices (archived products skipped and named), notes and shipping.",
+  'orders.edit':
+    'Save an order edit (add, remove, quantities, shipping, discount) on an open order not yet shipped.',
+  'orders.editPreview':
+    "The edit's review step: new lines and totals, and what is owed either way.",
   'orders.fulfil':
     'Pack some or all of the lines; the shopper is told once the parcel is complete.',
   'orders.get':
@@ -389,6 +395,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'orders.refreshTracking': 'Fetch the latest tracking events for a shipment from its courier.',
   'orders.refund':
     'Send money back through the gateway (or record a cash/UPI refund); partial amounts allowed.',
+  'orders.refundOptions':
+    'How a refund on this order can go back: how much is left, and to the original payment or not.',
   'orders.requestBalance':
     "Ask the shopper for a deposit pre-order's balance: email and WhatsApp (when set up) with a signed pay link.",
   'orders.saveDraft':
@@ -405,6 +413,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'orders.stats': 'The order stats for the last 7 days, against the 7 days before.',
   'orders.tagMany':
     'The list\'s bulk "Add tags" / "Remove tags": every given tag on (or off) every order.',
+  'orders.takeOver':
+    '"Manage this order" (Imported card): an imported order that is still open becomes one worked here (ship, cancel, edit).',
   'orders.tiles': 'The stat cards above the Orders list.',
   'orders.toShipCount': 'How many orders are waiting to ship.',
   'orders.updateContact':

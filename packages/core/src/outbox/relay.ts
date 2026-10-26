@@ -128,6 +128,8 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
         refundId: payload.refundId,
         // A customer changes many times: each change (row) is its own job.
         ...(payload.customerId ? { customerId: payload.customerId, key: row.id } : {}),
+        // An order can be edited many times: each edit is its own job too.
+        ...(type === 'order.edited' ? { key: row.id } : {}),
         pluginId,
       })
     }

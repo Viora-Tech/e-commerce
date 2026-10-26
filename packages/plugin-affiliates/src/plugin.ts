@@ -1,5 +1,6 @@
 import { definePlugin } from '@commerce/plugins'
 import { affiliateBlocks } from './blocks'
+import { recomputeCommissionForEdit } from './commission-edit'
 import {
   applyRefunds,
   approveDueCommissions,
@@ -99,6 +100,10 @@ export const affiliatesPlugin = definePlugin({
     },
     'refund.created': async (ctx, payload) => {
       await ctx.inStore((tx) => applyRefunds(tx, ctx.storeId, payload.orderId))
+    },
+    // Staff changed the order's items or totals: a pending commission follows, an earned one only drops.
+    'order.edited': async (ctx, payload) => {
+      await ctx.inStore((tx) => recomputeCommissionForEdit(tx, ctx.storeId, payload.orderId))
     },
   },
   admin: {
