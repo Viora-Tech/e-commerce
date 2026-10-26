@@ -1,4 +1,5 @@
 /** SOURCE OF TRUTH: balanceData — WHAT: the "balance due" block of the balance messages (owed, paid so far, pay-by date) / WHY: a deposit pre-order and an order an edit left owing are worded differently; split from deliver.ts to keep it small */
+import { formatInZone } from '@commerce/dates'
 import type { order } from '@commerce/db'
 import { formatMoney } from '@commerce/money'
 import type { TemplateData } from '@commerce/notifications'
@@ -31,7 +32,7 @@ export function balanceData(
     dueLabel: formatMoney(owed),
     depositLabel: formatMoney(o.totalPaise - owed),
     payByLabel: payBy
-      ? payBy.toLocaleDateString('en-IN', { dateStyle: 'medium', timeZone: 'Asia/Kolkata' })
+      ? formatInZone(payBy, { dateStyle: 'medium' })
       : undefined,
     depositNonRefundable: depositIsNonRefundable(settings),
   }
