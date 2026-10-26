@@ -475,9 +475,9 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'no external importer today — investigate before removing',
   },
   {
-    file: 'packages/core/src/accounts/orders.ts',
-    names: ['paymentState'],
-    reason: 'no external importer today — investigate before removing',
+    file: 'packages/core/src/payments/confirm.ts',
+    names: ['gatewayPaidTooLittle'],
+    reason: 'exported for its unit test (amount-check.test.ts); used inside applyPaymentStatus',
   },
   {
     file: 'packages/core/src/apps/settings.ts',

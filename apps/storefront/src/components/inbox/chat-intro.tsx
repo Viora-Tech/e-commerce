@@ -2,78 +2,93 @@
 
 import type { CardProduct } from '@commerce/core/inbox/server'
 import { inboxChatContent as copy } from '@/data/inbox'
+import ChatIcon from './chat-icon'
 import ChatProductCard from './chat-product-card'
 
 type ChatIntroProps = {
   greeting: string
-  awayMessage: string
-  available: boolean
-  storeName: string
+  /** Shown under the greeting while the store is away. */
+  awayMessage: string | null
+  /** "Popular right now"; empty once the shopper has written or is tracking an order. */
   featured: CardProduct[]
   onAsk: (text: string) => void
+  onTrack: () => void
 }
 
-/** Two cards fanned beside the intro, like Shopify Inbox's welcome. */
-const TILTS = [-4, 3]
+type HelpRow = {
+  key: string
+  icon: 'parcel' | 'compass' | 'truck'
+  title: string
+  sub: string
+}
+
+const ROWS: HelpRow[] = [
+  { key: 'track', icon: 'parcel', ...copy.help.track },
+  { key: 'choose', icon: 'compass', ...copy.help.choose },
+  { key: 'policies', icon: 'truck', ...copy.help.policies },
+]
 
 /**
- * What a shopper sees before they write: the greeting (or the away line), up to two featured
- * products, the privacy line and suggested questions. "Track my order" opens the order page.
+ * What a shopper sees before they write: "Hi there", the store's greeting, the Quick help rows
+ * (track an order in the chat, help choosing, shipping and returns) and the popular products.
  */
 export default function ChatIntro({
   greeting,
   awayMessage,
-  available,
-  storeName,
   featured,
   onAsk,
+  onTrack,
 }: ChatIntroProps) {
-  // Render logic
-  const chips = [
-    { key: 'explore', label: copy.chips.explore, ask: copy.chipMessages.explore },
-    { key: 'popular', label: copy.chips.popular, ask: copy.chipMessages.popular },
-    { key: 'policies', label: copy.chips.policies, ask: copy.chipMessages.policies },
-  ]
-  const chip =
-    'rounded-full border border-[color-mix(in_srgb,currentColor_18%,transparent)] px-3 py-1.5 text-[0.8125rem] transition-[background-color,scale] duration-(--duration-press) ease-out hover:bg-[color-mix(in_srgb,currentColor_6%,transparent)] active:scale-(--motion-press-scale)'
+  // Event handlers
+  const handleRow = (key: string) => {
+    if (key === 'track') onTrack()
+    else if (key === 'choose') onAsk(copy.helpMessages.choose)
+    else onAsk(copy.helpMessages.policies)
+  }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-start gap-3">
-        <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <p className="text-[1.0625rem] leading-snug font-medium">{greeting || copy.greeting}</p>
-          <p className="flex items-center gap-1.5 text-[0.75rem] opacity-70">
-            <span
-              aria-hidden="true"
-              className={`size-2 rounded-full ${available ? 'bg-[var(--color-success,currentColor)]' : 'bg-[color-mix(in_srgb,currentColor_35%,transparent)]'}`}
-            />
-            {available ? copy.online : awayMessage || copy.away}
-          </p>
-        </div>
+    <div className="flex flex-col gap-5 pt-2">
+      <div className="flex flex-col gap-1.5">
+        <h2 className="text-[1.375rem] leading-tight font-bold tracking-[-0.01em]">{copy.hello}</h2>
+        <p className="text-[0.875rem] leading-relaxed text-pretty opacity-65">
+          {greeting || copy.greeting}
+        </p>
+        {awayMessage ? (
+          <p className="text-[0.8125rem] leading-relaxed text-pretty opacity-65">{awayMessage}</p>
+        ) : null}
       </div>
-      {featured.length > 0 ? (
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {featured.map((p, i) => (
-            <ChatProductCard key={p.id} product={p} tilt={TILTS[i]} />
-          ))}
-        </div>
-      ) : null}
-      <p className="text-[0.6875rem] opacity-60">
-        {copy.disclaimer(storeName)}{' '}
-        <a href="/policies/privacy-policy" className="underline">
-          {copy.privacy}
-        </a>
-      </p>
-      <div className="flex flex-wrap gap-2">
-        <a href="/track-order" className={chip}>
-          {copy.chips.track}
-        </a>
-        {chips.map((c) => (
-          <button key={c.key} type="button" className={chip} onClick={() => onAsk(c.ask)}>
-            {c.label}
+      <nav
+        aria-label={copy.quickHelp}
+        className="flex flex-col overflow-hidden rounded-[0.875rem] ring-1 ring-[color-mix(in_srgb,currentColor_8%,transparent)]"
+      >
+        {ROWS.map((row) => (
+          <button
+            key={row.key}
+            type="button"
+            onClick={() => handleRow(row.key)}
+            className="flex touch-manipulation items-center gap-3 border-[color-mix(in_srgb,currentColor_8%,transparent)] px-3 py-2.5 text-left transition-[background-color] duration-(--duration-press) ease-out not-first:border-t hover:bg-[color-mix(in_srgb,currentColor_3%,transparent)] active:bg-[color-mix(in_srgb,currentColor_6%,transparent)]"
+          >
+            <span className="flex size-[2.125rem] shrink-0 items-center justify-center rounded-[0.625rem] bg-[color-mix(in_srgb,currentColor_6%,transparent)]">
+              <ChatIcon kind={row.icon} className="size-[1.125rem]" />
+            </span>
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="text-[0.875rem] font-semibold">{row.title}</span>
+              <span className="truncate text-[0.75rem] opacity-60">{row.sub}</span>
+            </span>
+            <ChatIcon kind="chevronRight" className="size-4 shrink-0 opacity-40" />
           </button>
         ))}
-      </div>
+      </nav>
+      {featured.length > 0 ? (
+        <section className="flex flex-col gap-2">
+          <h3 className="text-[0.75rem] font-medium opacity-60">{copy.popular}</h3>
+          <div className="grid grid-cols-2 gap-2">
+            {featured.map((p) => (
+              <ChatProductCard key={p.id} product={p} compact />
+            ))}
+          </div>
+        </section>
+      ) : null}
     </div>
   )
 }

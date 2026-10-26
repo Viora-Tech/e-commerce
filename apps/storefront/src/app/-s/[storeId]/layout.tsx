@@ -423,7 +423,13 @@ export default async function StoreLayout({ children, params }: Props) {
           {tested.length ? <ExperimentBeacon seen={tested} /> : null}
           <ThemePreviewBridge adminOrigin={adminOrigin} />
           {preview ? null : <ConsentManager {...consent} themeBanner={themedConsent} />}
-          {inboxChat ? <InboxLauncher widget={inboxChat} storeName={current.name} /> : null}
+          {inboxChat ? (
+            <InboxLauncher
+              widget={inboxChat}
+              storeName={current.name}
+              logoUrl={theme.brand.logo?.url}
+            />
+          ) : null}
         </body>
       </html>
     )
@@ -463,7 +469,13 @@ export default async function StoreLayout({ children, params }: Props) {
           <ThemePreviewBridge adminOrigin={adminOrigin} />
           {preview || themedConsent ? null : <ConsentManager {...consent} />}
           <StoreChrome>{footer}</StoreChrome>
-          {inboxChat ? <InboxLauncher widget={inboxChat} storeName={current.name} /> : null}
+          {inboxChat ? (
+            <InboxLauncher
+              widget={inboxChat}
+              storeName={current.name}
+              logoUrl={theme.brand.logo?.url}
+            />
+          ) : null}
           <AppEmbeds storeId={storeId} appEmbeds={theme.appEmbeds} />
         </MoneyFormatProvider>
       </body>
