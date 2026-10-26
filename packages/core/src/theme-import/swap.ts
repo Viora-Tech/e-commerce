@@ -55,7 +55,7 @@ export const SWAP_TABLE: readonly SwapRow[] = [
   {
     key: 'predictive_search',
     shopify: 'Predictive search (/search/suggest)',
-    ours: 'Our search page (/search); the search box keeps its look',
+    ours: 'Our search answers /search/suggest as Shopify does: results drop down as shoppers type',
     kind: 'replaced',
     detect: /predictive_search|search\/suggest/,
   },

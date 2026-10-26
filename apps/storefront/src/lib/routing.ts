@@ -54,10 +54,11 @@ export const DERIVED_HEADERS = [
 ] as const
 
 /** Listing params an imported theme's collection and search pages read; the rest is noise. */
-const LISTING_PARAM = /^(filter\.|q$|sort_by$|page$)/
+const LISTING_PARAM = /^(filter\.|q$|sort_by$|page$|options\[unavailable_products\]$)/
 
 /**
- * A request's listing params (`filter.*`, `q`, `sort_by`, `page`) in a stable order, for an
+ * A request's listing params (`filter.*`, `q`, `sort_by`, `page`, and a search form's
+ * `options[unavailable_products]`) in a stable order, for an
  * imported theme's collection and search pages and the cache key of their render; empty when
  * there are none. Tracking params never split the cache.
  */

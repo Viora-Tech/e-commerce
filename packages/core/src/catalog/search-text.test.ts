@@ -88,16 +88,58 @@ describe('planSearch', () => {
     expect(planSearch(['wirless', 'mouse'], words, [])).toEqual({
       terms: ['wireless', 'mouse'],
       groups: [['wireless'], ['mouse']],
+      splits: [[], []],
       corrected: 'wireless mouse',
+      mode: 'all',
     })
   })
 
   it('expands synonyms and never "corrects" a word that has some', () => {
     const plan = planSearch(['kb'], words, [['kb', 'keyboard']])
-    expect(plan).toEqual({ terms: ['kb'], groups: [['kb', 'keyboard']], corrected: null })
+    expect(plan).toEqual({
+      terms: ['kb'],
+      groups: [['kb', 'keyboard']],
+      splits: [[]],
+      corrected: null,
+      mode: 'all',
+    })
   })
 
   it('leaves a clean query as it is', () => {
     expect(planSearch(['mouse'], words, []).corrected).toBeNull()
+  })
+
+  it('splits run-together words, and only corrects when asked', () => {
+    const shop = vocab('glass', 'pad', 'glasspad', 'mousepad')
+    expect(planSearch(['glasspad', 'mousepd'], shop, [], false)).toEqual({
+      terms: ['glasspad', 'mousepd'],
+      groups: [['glasspad'], ['mousepd']],
+      splits: [['glass pad'], []],
+      corrected: null,
+      mode: 'all',
+    })
+    expect(planSearch(['mousepd'], shop, []).corrected).toBe('mousepad')
+  })
+})
+
+describe('run-together words', () => {
+  const words: VocabularyWord[] = [
+    { word: 'glass', count: 40 },
+    { word: 'pad', count: 60 },
+    { word: 'mouse', count: 80 },
+    { word: 'gla', count: 1 },
+    { word: 'sspad', count: 1 },
+  ]
+  const splits = (term: string) => planSearch([term], words, [], false).splits[0]
+
+  it('reads a word as two catalogue words, the commonest split first', () => {
+    expect(splits('glasspad')).toEqual(['glass pad', 'gla sspad'])
+    expect(splits('mousepad')).toEqual(['mouse pad'])
+  })
+
+  it('never splits short words, numbers or words with no two-word reading', () => {
+    expect(splits('pads')).toEqual([])
+    expect(splits('x2pad')).toEqual([])
+    expect(splits('keyboard')).toEqual([])
   })
 })

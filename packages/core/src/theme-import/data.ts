@@ -20,6 +20,7 @@ import {
   parseBrowseFilters,
   parseBrowseSort,
   parsePage,
+  parseUnavailable,
 } from '../catalog/browse-params'
 import { keyFromName } from '../metaobjects/validate'
 import { toNavLinks } from '../navigation/resolve'
@@ -361,6 +362,8 @@ export async function storeLiquidData(
         sort: sort === 'manual' && !collectionId ? 'title-ascending' : sort,
         page: parsePage(first(query.page)),
         perPage,
+        // The theme's search form says where sold-out products go (`show`, `last`, `hide`).
+        unavailable: q ? parseUnavailable(query['options[unavailable_products]']) : 'show',
       })
       const byHandle = await productsByHandles(tx, result.handles)
       return {
