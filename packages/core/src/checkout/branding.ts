@@ -27,9 +27,9 @@ export type CheckoutCorners = (typeof CHECKOUT_CORNERS)[number]
 
 /** The neutral look a store gets before it picks anything. */
 export const DEFAULT_CHECKOUT_COLOURS = {
-  accent: '#2F5BEA',
-  button: '#2F5BEA',
-  summary: '#F5F5F2',
+  accent: '#171717',
+  button: '#171717',
+  summary: '#FFFFFF',
 } as const
 
 export const CheckoutBrandingSchema = z.object({
@@ -39,7 +39,7 @@ export const CheckoutBrandingSchema = z.object({
   accent: hex.default(DEFAULT_CHECKOUT_COLOURS.accent),
   /** The Pay button. Its text turns white or near-black, whichever reads better. */
   button: hex.default(DEFAULT_CHECKOUT_COLOURS.button),
-  font: z.enum(CHECKOUT_FONT_IDS).default('inter'),
+  font: z.enum(CHECKOUT_FONT_IDS).default('plus-jakarta-sans'),
   corners: z.enum(CHECKOUT_CORNERS).default('soft'),
   /** The order summary column: a solid colour, or an image under a wash of that colour. */
   summary: z
@@ -78,13 +78,14 @@ const RADII: Record<CheckoutCorners, [string, string]> = {
  */
 export const CHECKOUT_LIGHT_SURFACE: Record<string, string> = {
   '--ck-bg': '#FFFFFF',
-  '--ck-ink': '#1A1A1A',
-  '--ck-muted': '#6E6E73',
-  '--ck-line': '#E3E3E0',
+  '--ck-ink': '#0A0A0A',
+  '--ck-muted': '#737373',
+  '--ck-line': '#E5E5E5',
   '--ck-field': '#FFFFFF',
-  '--ck-soft': '#F7F7F5',
-  '--ck-canvas': '#F7F7F5',
-  '--ck-card-shadow': '0 1px 2px rgb(0 0 0 / 0.04), 0 12px 32px -16px rgb(0 0 0 / 0.1)',
+  '--ck-soft': '#F5F5F5',
+  '--ck-canvas': '#FAFAFA',
+  '--ck-card-shadow':
+    '0 0 0 1px rgb(0 0 0 / 0.06), 0 1px 2px rgb(0 0 0 / 0.06), 0 8px 24px rgb(0 0 0 / 0.06)',
 }
 
 /** A url() value that cannot break out of the declaration; the url is already schema-checked. */

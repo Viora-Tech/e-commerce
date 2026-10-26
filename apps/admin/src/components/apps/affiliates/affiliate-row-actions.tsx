@@ -1,6 +1,7 @@
 'use client'
 
 import { CircleCheck, Eye, Pause, Unlink } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -17,6 +18,8 @@ type AffiliateRowActionsProps = {
   onChanged: () => void
   /** Hides "Open" on the affiliate's own page. */
   showOpen?: boolean
+  /** Shows Reject and Approve as buttons while the affiliate waits (the affiliate's own page). */
+  buttons?: boolean
 }
 
 /** Approve, reject or pause one affiliate; the row's own click is stopped here. */
@@ -25,6 +28,7 @@ export default function AffiliateRowActions({
   status,
   onChanged,
   showOpen = true,
+  buttons = false,
 }: AffiliateRowActionsProps) {
   // Hooks
   const { list: copy, failed } = useCopy(affiliatesContent)
@@ -56,7 +60,18 @@ export default function AffiliateRowActions({
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: only stops the row's own click; the controls inside are buttons.
     // biome-ignore lint/a11y/useKeyWithClickEvents: same, keyboard events stop at the trigger.
-    <span className="flex items-center justify-end" onClick={(event) => event.stopPropagation()}>
+    <span
+      className="flex items-center justify-end gap-2"
+      onClick={(event) => event.stopPropagation()}
+    >
+      {buttons && status === 'pending' ? (
+        <>
+          <Button variant="outline" onClick={() => setRejecting(true)}>
+            {copy.reject}
+          </Button>
+          <Button onClick={handleApprove}>{copy.approve}</Button>
+        </>
+      ) : null}
       <ActionMenu
         label={copy.menu}
         contentClassName="w-52"

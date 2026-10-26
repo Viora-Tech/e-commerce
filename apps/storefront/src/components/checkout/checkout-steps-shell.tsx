@@ -77,7 +77,7 @@ export default function CheckoutStepsShell({
       </header>
       <div className="mx-auto! grid w-full max-w-[72rem] flex-1 content-start lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:gap-14 lg:px-8 lg:pt-10 lg:pb-16 xl:gap-20">
         <aside className="flex flex-col gap-6 lg:sticky lg:top-8 lg:col-start-2 lg:row-start-1 lg:self-start">
-          <div className="relative isolate border-ck-line bg-ck-summary bg-[image:var(--ck-summary-image)] bg-cover bg-center px-5 text-ck-summary-ink sm:px-8 lg:max-h-[calc(100dvh-10rem)] lg:overflow-y-auto lg:overscroll-contain lg:rounded-[calc(var(--ck-radius)*2)] lg:border lg:p-7 lg:[box-shadow:var(--ck-card-shadow)]">
+          <div className="relative isolate border-ck-line bg-ck-summary bg-[image:var(--ck-summary-image)] bg-cover bg-center px-5 text-ck-summary-ink sm:px-8 lg:max-h-[calc(100dvh-10rem)] lg:overflow-y-auto lg:overscroll-contain lg:rounded-[calc(var(--ck-radius)*1.6)] lg:p-6 lg:[box-shadow:var(--ck-card-shadow)]">
             {image ? (
               <div
                 aria-hidden="true"

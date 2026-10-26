@@ -234,7 +234,7 @@ describe('CheckoutForm', () => {
   })
 
   it('carries the branding as --ck-* properties, not the theme', () => {
-    expect(html).toContain('--ck-accent:#2F5BEA')
+    expect(html).toContain('--ck-accent:#171717')
     expect(html).toContain('class="ck ')
   })
 })

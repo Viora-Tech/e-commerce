@@ -78,13 +78,13 @@
 
 .ck {
   --ck-bg: #ffffff;
-  --ck-ink: #1a1a1a;
-  --ck-muted: #6e6e73;
-  --ck-line: #e3e3e0;
+  --ck-ink: #0a0a0a;
+  --ck-muted: #737373;
+  --ck-line: #e5e5e5;
   --ck-field: #ffffff;
-  --ck-soft: #f7f7f5;
-  /* The page behind the stepped checkout's cards: a warm off-white in light, the page itself in dark. */
-  --ck-canvas: var(--ck-soft);
+  --ck-soft: #f5f5f5;
+  /* The page behind the checkout's cards: the admin's light grey in light, the page itself in dark. */
+  --ck-canvas: #fafafa;
   --ck-danger: #c23a2b;
   --ck-success: #1d8a50;
   /* A QR needs a light quiet zone to scan, so it stays white in dark mode too. */
@@ -95,7 +95,8 @@
   --ck-ring: color-mix(in oklab, var(--ck-accent) 24%, transparent);
   --ck-danger-ring: color-mix(in oklab, var(--ck-danger) 14%, transparent);
   /* The stepped checkout's summary card: a hairline lift in light mode, flat in dark. */
-  --ck-card-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 12px 32px -16px rgb(0 0 0 / 0.1);
+  --ck-card-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.06), 0 1px 2px rgb(0 0 0 / 0.06), 0 8px 24px rgb(0 0 0 / 0.06);
   color-scheme: light;
 }
 

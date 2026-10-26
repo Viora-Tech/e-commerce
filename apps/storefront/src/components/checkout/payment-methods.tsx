@@ -20,6 +20,16 @@ type MethodPanelProps = { method: CheckoutMethod }
 
 const panel = content.methodPanel
 
+/** Each gateway's own colour for its name chip; anything else wears the checkout's ink. */
+const BRAND_COLOURS: Record<string, string> = {
+  Razorpay: '#072654',
+  Cashfree: '#5B3DF5',
+  Decentro: '#0B0B12',
+  PhonePe: '#5F259F',
+  PayU: '#3A8D2F',
+  Paytm: '#002E6E',
+}
+
 /**
  * Figma Checkout / Payment (490:12040): the ways to pay as one joined list of radio rows, the
  * picked row opening onto what happens next. A gateway shows its brand with what it takes;
@@ -37,7 +47,7 @@ export default function PaymentMethods({
   return (
     <fieldset className="border-0! p-0!">
       <legend className="sr-only">{content.payment}</legend>
-      <div className="divide-y divide-ck-line overflow-hidden rounded-[calc(var(--ck-radius)*1.4)] border border-ck-line bg-ck-field [box-shadow:0_1px_2px_rgb(0_0_0/0.03)]">
+      <div className="flex flex-col gap-2">
         {methods.map((m) => {
           const view = methodView(m)
           const checked = selected === m.id
@@ -48,7 +58,7 @@ export default function PaymentMethods({
             <div
               key={m.id}
               data-method={m.id}
-              className={`transition-colors duration-150 motion-reduce:transition-none ${checked ? 'bg-ck-accent-soft' : ''}`}
+              className={`rounded-ck border transition-[border-color,box-shadow,background-color] duration-150 motion-reduce:transition-none ${checked ? 'border-ck-accent bg-ck-soft/60 [box-shadow:0_0_0_1px_var(--ck-accent)]' : 'border-ck-line bg-ck-field'}`}
             >
               <label
                 className={`flex min-h-16 items-center gap-3.5 px-4 py-3.5 has-[:focus-visible]:[box-shadow:inset_0_0_0_2px_var(--ck-accent)] sm:px-5 ${blocked ? 'cursor-not-allowed opacity-55' : 'cursor-pointer'}`}
@@ -72,19 +82,25 @@ export default function PaymentMethods({
                     className={`size-1.5 rounded-full bg-ck-accent-ink ${checked ? 'opacity-100' : 'opacity-0'}`}
                   />
                 </span>
-                <span
-                  aria-hidden="true"
-                  className={`flex size-9 shrink-0 items-center justify-center rounded-full border border-ck-line bg-ck-bg text-[0.875rem] font-semibold ${checked ? 'text-ck-accent' : 'text-ck-muted'}`}
-                >
-                  {view.brand ? (
-                    view.brand.charAt(0)
-                  ) : (
+                {view.brand ? (
+                  <span
+                    aria-hidden="true"
+                    style={{ backgroundColor: BRAND_COLOURS[view.brand] ?? 'var(--ck-ink)' }}
+                    className="inline-flex h-6 shrink-0 items-center rounded-[0.3125rem] px-2 text-[0.6875rem] font-extrabold tracking-[0.02em] text-white"
+                  >
+                    {view.brand}
+                  </span>
+                ) : (
+                  <span
+                    aria-hidden="true"
+                    className={`flex size-9 shrink-0 items-center justify-center rounded-[0.625rem] border border-ck-line bg-ck-bg ${checked ? 'text-ck-ink' : 'text-ck-muted'}`}
+                  >
                     <CheckoutIcon name={view.icon} className="size-[1.125rem]" />
-                  )}
-                </span>
+                  </span>
+                )}
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <span className="flex flex-wrap items-center gap-2 text-[0.9375rem] leading-snug font-medium text-ck-ink">
-                    {view.title}
+                    <span className={view.brand ? 'sr-only' : undefined}>{view.title}</span>
                     {m.test ? (
                       <span
                         title={content.testModeHint}

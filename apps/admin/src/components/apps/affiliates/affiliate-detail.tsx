@@ -96,6 +96,7 @@ export default function AffiliateDetail({ params }: AppPageProps) {
             status={a.status}
             onChanged={handleChanged}
             showOpen={false}
+            buttons
           />
         }
       />

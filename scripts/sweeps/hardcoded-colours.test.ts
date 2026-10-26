@@ -35,6 +35,11 @@ type AllowEntry = { file: string; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'apps/storefront/src/components/checkout/payment-methods.tsx',
+    reason:
+      "payment gateway name chips (Razorpay, Cashfree, PhonePe…) in each gateway's own brand colour, which the merchant's checkout branding should not restyle",
+  },
+  {
     file: 'apps/admin/src/components/mcp/mcp-client-logo.tsx',
     reason:
       "third-party brand marks (Claude, VS Code) drawn in each vendor's own brand colour, which no theme token should restyle",
