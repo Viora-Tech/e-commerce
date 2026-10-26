@@ -104,7 +104,7 @@ describe('staff', () => {
       ),
     )
     counts = await inStore(s, (ctx) => inboxCounts(ctx, 'u2'))
-    expect(counts).toMatchObject({ open: 1, mine: 1, unassigned: 0, closed: 1, unread: 1 })
+    expect(counts).toMatchObject({ open: 1, mine: 1, unassigned: 0, closed: 1, all: 2, unread: 1 })
     const mine = await inStore(s, (ctx) =>
       listConversations(ctx, { view: 'mine' }, { userId: 'u2', secret: SECRET }),
     )
@@ -113,6 +113,10 @@ describe('staff', () => {
       listConversations(ctx, { view: 'closed' }, { userId: 'u2', secret: SECRET }),
     )
     expect(closed.rows[0]).toMatchObject({ id: b.conversation.id, unreadStaff: 0 })
+    const all = await inStore(s, (ctx) =>
+      listConversations(ctx, { view: 'all' }, { userId: 'u2', secret: SECRET }),
+    )
+    expect(all.rows.map((r) => r.id).sort()).toEqual([a.conversation.id, b.conversation.id].sort())
   })
 
   it('a reply marks first response, clears unread, and reopens a closed thread', async () => {

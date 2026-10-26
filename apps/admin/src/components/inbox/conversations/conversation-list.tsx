@@ -11,6 +11,7 @@ import { inboxConversationsContent } from '@/data/inbox-conversations'
 import { useCopy } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
 import { conversationName, initialsOf } from '@/lib/inbox-view'
+import CloseButton from './close-button'
 
 export type ConversationRow = Awaited<ReturnType<typeof api.inbox.list>>['rows'][number]
 
@@ -21,11 +22,14 @@ type ConversationListProps = {
   hasMore: boolean
   /** Shows "View closed conversations" on an empty Open list. */
   showViewClosed: boolean
+  /** The member may close and reopen (a row shows the circle on hover or keyboard focus). */
+  canClose: boolean
   nameOfMember: (userId: string) => string
   onSearch: (search: string) => void
   onSelect: (id: string) => void
   onMore: () => void
   onViewClosed: () => void
+  onSetStatus: (id: string, next: 'open' | 'closed', prev: 'open' | 'closed') => void
   className?: string
 }
 
@@ -36,11 +40,13 @@ export default function ConversationList({
   search,
   hasMore,
   showViewClosed,
+  canClose,
   nameOfMember,
   onSearch,
   onSelect,
   onMore,
   onViewClosed,
+  onSetStatus,
   className,
 }: ConversationListProps) {
   // Hooks
@@ -89,8 +95,9 @@ export default function ConversationList({
             {rows.map((r) => {
               const name = conversationName(r, copy)
               const unread = r.unreadStaff > 0
+              const status = canClose && r.status !== 'blocked' ? r.status : null
               return (
-                <li key={r.id}>
+                <li key={r.id} className="group relative">
                   <button
                     type="button"
                     aria-current={r.id === selectedId ? 'true' : undefined}
@@ -118,7 +125,10 @@ export default function ConversationList({
                         </span>
                         <RelativeTime
                           value={r.lastMessageAt}
-                          className="shrink-0 text-caption text-muted-foreground"
+                          className={cn(
+                            'shrink-0 text-caption text-muted-foreground',
+                            status && 'group-focus-within:invisible group-hover:invisible',
+                          )}
                         />
                       </span>
                       <span className="flex items-center justify-between gap-2">
@@ -145,6 +155,15 @@ export default function ConversationList({
                       ) : null}
                     </span>
                   </button>
+                  {status ? (
+                    <CloseButton
+                      status={status}
+                      onClick={() =>
+                        onSetStatus(r.id, status === 'open' ? 'closed' : 'open', status)
+                      }
+                      className="invisible absolute top-2 right-2 group-focus-within:visible group-hover:visible"
+                    />
+                  ) : null}
                 </li>
               )
             })}

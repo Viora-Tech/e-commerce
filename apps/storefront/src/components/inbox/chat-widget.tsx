@@ -12,6 +12,7 @@ import {
   chatTypingAction,
   sendChatAction,
 } from '@/lib/inbox-actions'
+import { CHAT_GUARD, chatFontFamily } from '@/lib/inbox-guard'
 import ChatComposer from './chat-composer'
 import ChatContactForm from './chat-contact-form'
 import ChatHeader, { type ChatMode } from './chat-header'
@@ -23,7 +24,7 @@ type ChatWidgetProps = {
   open: boolean
   widget: InboxWidget
   storeName: string
-  /** The theme's logo for the header avatar; the store's first letter without one. */
+  /** The store's logo for the header avatar (`lib/inbox-logo.ts`); its first letter without one. */
   logoUrl?: string | null | undefined
   onClose: () => void
   /** The shopper sent a message: the chat should load on idle next time. */
@@ -297,7 +298,7 @@ export default function ChatWidget({
     '--chat-on-accent': widget.textColour || 'var(--btn-text, var(--color-bg, Canvas))',
     '--chat-radius': `${widget.borderRadius / 16}rem`,
     '--chat-bottom': `calc(${BOTTOM[widget.vertical]} + ${ABOVE_LAUNCHER} + env(safe-area-inset-bottom))`,
-    ...(widget.inheritFont ? { fontFamily: 'var(--font-body, inherit)' } : {}),
+    fontFamily: chatFontFamily(widget.inheritFont),
   } as CSSProperties
   const hairline = 'border-[color-mix(in_srgb,currentColor_8%,transparent)]'
 
@@ -308,7 +309,7 @@ export default function ChatWidget({
       aria-hidden={!open}
       inert={!open}
       style={style}
-      className={`fixed z-50 flex flex-col overflow-hidden overscroll-contain bg-[var(--color-bg,Canvas)] text-[var(--color-ink,CanvasText)] shadow-[0_0_0_1px_rgb(0_0_0/0.06),0_12px_32px_rgb(0_0_0/0.12),0_2px_6px_rgb(0_0_0/0.06)] transition-[opacity,scale,visibility] ease-out ${frame} ${motion}`}
+      className={`${CHAT_GUARD} fixed z-50 flex flex-col overflow-hidden overscroll-contain bg-[var(--color-bg,Canvas)] text-[var(--color-ink,CanvasText)] shadow-[0_0_0_1px_rgb(0_0_0/0.06),0_12px_32px_rgb(0_0_0/0.12),0_2px_6px_rgb(0_0_0/0.06)] transition-[opacity,scale,visibility] ease-out ${frame} ${motion}`}
     >
       <ChatHeader
         storeName={storeName}
@@ -348,7 +349,7 @@ export default function ChatWidget({
             />
           ) : null}
           {typingAt ? (
-            <p className="w-fit rounded-2xl rounded-bl-[0.25rem] bg-[color-mix(in_srgb,currentColor_6%,transparent)] px-3.5 py-2 text-[0.8125rem] opacity-70">
+            <p className="w-fit rounded-2xl rounded-bl-[0.25rem] bg-[color-mix(in_srgb,currentColor_6%,transparent)] px-3.5 py-2 text-[0.8125rem]! opacity-70">
               {copy.typing}
             </p>
           ) : null}

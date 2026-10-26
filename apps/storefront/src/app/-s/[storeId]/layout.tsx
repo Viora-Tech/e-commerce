@@ -59,6 +59,7 @@ import { NONCE_HEADER } from '@/lib/csp'
 import { requestExperiments } from '@/lib/experiments'
 import { themeFontVariables } from '@/lib/fonts'
 import { inboxLauncherOf } from '@/lib/inbox-launcher'
+import { chatLogoUrl } from '@/lib/inbox-logo'
 import { liquidShim } from '@/lib/liquid-shim'
 import { liquidLayoutFor, reactAttrs } from '@/lib/liquid-theme'
 import { mediaByUrl } from '@/lib/media-lookup'
@@ -318,6 +319,16 @@ export default async function StoreLayout({ children, params }: Props) {
   // exactly one.
   // The Inbox app's chat button: never in a theme preview, and only while the app is on.
   const inboxChat = preview ? null : inboxLauncherOf(current.apps)
+  const chatLogo = inboxChat
+    ? await chatLogoUrl({
+        storeId,
+        themeId,
+        liquid: themeLayout !== null,
+        themeLogo: theme.brand.logo?.url,
+        preferences: current.preferences,
+        favicon: theme.brand.favicon?.url,
+      })
+    : null
   const consent = {
     tracking: prefs.tracking,
     bannerMessage: privacy.bannerMessage,
@@ -424,11 +435,7 @@ export default async function StoreLayout({ children, params }: Props) {
           <ThemePreviewBridge adminOrigin={adminOrigin} />
           {preview ? null : <ConsentManager {...consent} themeBanner={themedConsent} />}
           {inboxChat ? (
-            <InboxLauncher
-              widget={inboxChat}
-              storeName={current.name}
-              logoUrl={theme.brand.logo?.url}
-            />
+            <InboxLauncher widget={inboxChat} storeName={current.name} logoUrl={chatLogo} />
           ) : null}
         </body>
       </html>
@@ -470,11 +477,7 @@ export default async function StoreLayout({ children, params }: Props) {
           {preview || themedConsent ? null : <ConsentManager {...consent} />}
           <StoreChrome>{footer}</StoreChrome>
           {inboxChat ? (
-            <InboxLauncher
-              widget={inboxChat}
-              storeName={current.name}
-              logoUrl={theme.brand.logo?.url}
-            />
+            <InboxLauncher widget={inboxChat} storeName={current.name} logoUrl={chatLogo} />
           ) : null}
           <AppEmbeds storeId={storeId} appEmbeds={theme.appEmbeds} />
         </MoneyFormatProvider>
