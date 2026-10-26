@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { signHandoffToken, verifyHandoffToken } from './handoff'
+import {
+  signCheckoutSession,
+  signHandoffToken,
+  verifyCheckoutSession,
+  verifyHandoffToken,
+} from './handoff'
 
 const SECRET = 'test-handoff-secret-0123456789'
 const H = { storeId: 'store-1', cartId: 'cart-1', customerId: 'cust-1' }
@@ -48,5 +53,28 @@ describe('checkout hand-off token', () => {
       reason: 'signature',
     })
     expect(verifyHandoffToken(token, SECRET)).toMatchObject({ ok: true })
+  })
+})
+
+describe('checkout session token', () => {
+  it('round-trips the store, cart and customer', () => {
+    const token = signCheckoutSession(H, SECRET)
+    expect(verifyCheckoutSession(token, SECRET)).toEqual({
+      ok: true,
+      storeId: 'store-1',
+      cartId: 'cart-1',
+      customerId: 'cust-1',
+    })
+  })
+
+  it('is not interchangeable with a hand-off token (distinct purposes)', () => {
+    expect(verifyCheckoutSession(signHandoffToken(H, SECRET), SECRET)).toEqual({
+      ok: false,
+      reason: 'signature',
+    })
+    expect(verifyHandoffToken(signCheckoutSession(H, SECRET), SECRET)).toEqual({
+      ok: false,
+      reason: 'signature',
+    })
   })
 })
