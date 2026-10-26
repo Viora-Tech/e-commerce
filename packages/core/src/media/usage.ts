@@ -1,8 +1,11 @@
 /** SOURCE OF TRUTH: media file types (image, video, document), the library's type filter and the storage usage breakdown */
 import type { StoreTx } from '@commerce/db'
 import { media } from '@commerce/db'
-import { and, desc, eq, isNotNull, sql } from 'drizzle-orm'
+import { and, desc, inArray, isNotNull, sql } from 'drizzle-orm'
 import { CONTENT_TYPE_BY_EXTENSION } from './content-type'
+
+/** Media a product or metaobject may point at, and Files lists: confirmed and stored, optimised or not yet. */
+export const USABLE_MEDIA_STATUSES: ('processing' | 'ready')[] = ['processing', 'ready']
 
 export type MediaFileType = 'image' | 'video' | 'document'
 
@@ -27,7 +30,7 @@ const kindOf = sql<MediaFileType>`case when ${typeOf} ilike 'image/%' then 'imag
 
 /**
  * What the Files storage page shows: bytes and file count per type (images, videos,
- * documents) over ready media, and the largest files with how many products use each.
+ * documents) over stored media (ready or still optimising, as Files lists them), and the largest files with how many products use each.
  */
 export async function mediaUsage(tx: StoreTx, largest = 4) {
   const [byKind, biggest] = await Promise.all([
@@ -38,7 +41,7 @@ export async function mediaUsage(tx: StoreTx, largest = 4) {
         bytes: sql<number>`coalesce(sum(${media.size}), 0)::bigint`,
       })
       .from(media)
-      .where(eq(media.status, 'ready'))
+      .where(inArray(media.status, USABLE_MEDIA_STATUSES))
       .groupBy(kindOf),
     tx
       .select({
@@ -51,7 +54,7 @@ export async function mediaUsage(tx: StoreTx, largest = 4) {
         usedBy: sql<number>`(select count(*)::int from product_media pm where pm.media_id = media.id)`,
       })
       .from(media)
-      .where(and(eq(media.status, 'ready'), isNotNull(media.size)))
+      .where(and(inArray(media.status, USABLE_MEDIA_STATUSES), isNotNull(media.size)))
       .orderBy(desc(media.size), desc(media.id))
       .limit(largest),
   ])

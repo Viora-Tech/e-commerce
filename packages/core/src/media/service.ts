@@ -14,7 +14,7 @@ import { pruneVariantMedia, syncFeaturedMedia, variantsUsingMedia } from '../cat
 import { CommerceError } from '../errors'
 import { memberAccess } from '../permissions/service'
 import { permissions } from '../permissions/statement'
-import { fileTypeWhere, type MediaFileType } from './usage'
+import { fileTypeWhere, type MediaFileType, USABLE_MEDIA_STATUSES } from './usage'
 
 export const UploadIntentSchema = z.object({
   filename: z.string().trim().min(1).max(255),
@@ -227,9 +227,6 @@ const SIZE_BUCKETS: Record<MediaSizeBucket, [number, number | null]> = {
 
 const usedSubquery = sql`(select count(*)::int from product_media pm where pm.media_id = media.id)`
 
-/** Media a product or metaobject may point at: confirmed and stored, optimised or not yet. */
-const USABLE_MEDIA_STATUSES: ('processing' | 'ready')[] = ['processing', 'ready']
-
 /** What the library shows of a file: the list item and the file page read the same columns. */
 export const libraryColumns = {
   id: media.id,
@@ -243,15 +240,22 @@ export const libraryColumns = {
   /* For the pickers' <Picture> previews: responsive variants and the ThumbHash blur-up. */
   variants: sql<Record<string, { avif: string; webp: string }> | null>`${media.variants}`,
   thumbhash: media.thumbhash,
+  /* `processing` files are listed too (#811): the tile says "Optimising" until the worker is done. */
+  status: media.status,
   createdAt: media.createdAt,
   /* Drizzle renders correlated columns unqualified inside a single-table select, so spell the join out. */
   usedBy: sql<number>`(select count(*)::int from product_media pm where pm.media_id = media.id)`,
 }
 
-/** The library's filters, shared by the listing and a file page's previous / next. */
+/**
+ * The library's filters, shared by the listing and a file page's previous / next. A just
+ * uploaded image is `processing` until the worker has optimised it; it is a stored, usable file
+ * (see `setProductMedia`), so it is listed straight away. Listing only `ready` rows made a fresh
+ * upload vanish from Files until the worker got to it (#811).
+ */
 export function libraryWhere(input: Pick<MediaListInput, 'search' | 'fileType'>) {
   return and(
-    eq(media.status, 'ready'),
+    inArray(media.status, USABLE_MEDIA_STATUSES),
     input.search
       ? or(ilike(media.alt, `%${input.search}%`), ilike(media.key, `%${input.search}%`))
       : undefined,
@@ -259,7 +263,7 @@ export function libraryWhere(input: Pick<MediaListInput, 'search' | 'fileType'>)
   )
 }
 
-/** Library listing: ready items newest first, with how many products use each. */
+/** Library listing: usable (ready or processing) items newest first, with how many products use each. */
 export async function listMedia(tx: StoreTx, input: MediaListInput) {
   const [sizeMin, sizeMax] = input.size ? SIZE_BUCKETS[input.size] : [null, null]
   const where = and(
@@ -353,9 +357,8 @@ export async function deleteMedia(tx: StoreTx, id: string, provider: StorageProv
  * finishes for one media row: `url`/`key` now point at the cleaned master
  * (so nothing GPS-tagged stays publicly reachable at the old key), `variants`
  * holds every generated width's AVIF/WebP URL, and the real dimensions and
- * ThumbHash are recorded. Setting `status: 'ready'` here — not at confirm —
- * is what makes `listMedia` (which filters `status = 'ready'`) wait for
- * processing before a product can use the image.
+ * ThumbHash are recorded. `status: 'ready'` is set here, not at confirm; the
+ * library lists `processing` rows too and shows them as still optimising.
  */
 export async function markMediaProcessed(
   tx: StoreTx,

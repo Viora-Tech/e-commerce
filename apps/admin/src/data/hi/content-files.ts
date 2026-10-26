@@ -26,6 +26,8 @@ export default [
       remove: 'प्रोडक्ट से हटाएं',
       delete: 'फ़ाइल हटाएं',
       video: 'वीडियो',
+      optimising: 'ऑप्टिमाइज़ हो रही है',
+      cantShow: 'यह फ़ाइल नहीं दिखा सकते',
     },
     altDialog: {
       title: 'फ़ोटो का वर्णन',

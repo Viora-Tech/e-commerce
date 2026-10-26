@@ -4,12 +4,9 @@ import { media, product, productMedia } from '@commerce/db'
 import { and, asc, desc, eq, sql } from 'drizzle-orm'
 import { libraryColumns, libraryWhere, type MediaListInput } from './service'
 
-/** One file for its page in the library: the list item's columns plus its status; null when missing. */
+/** One file for its page in the library: the list item's columns (with its status); null when missing. */
 export async function getMedia(tx: StoreTx, id: string) {
-  const [row] = await tx
-    .select({ ...libraryColumns, status: media.status })
-    .from(media)
-    .where(eq(media.id, id))
+  const [row] = await tx.select(libraryColumns).from(media).where(eq(media.id, id))
   return row ?? null
 }
 

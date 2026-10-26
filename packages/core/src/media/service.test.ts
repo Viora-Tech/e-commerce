@@ -114,11 +114,14 @@ describe('createUploadIntent / confirmUpload', () => {
     const confirmed = await withStore(app, storeId, (tx) =>
       confirmUpload(tx, ticket.mediaId, provider, { width: 1600 }),
     )
-    // Images are handed to the pipeline, not made ready immediately.
+    // Images are handed to the pipeline, not made ready immediately, but the library lists
+    // them while they are optimised so a fresh upload never vanishes (#811).
     expect(confirmed.status).toBe('processing')
-    expect(
-      (await withStore(app, storeId, (tx) => listMedia(tx, { page: 1, perPage: 10 }))).total,
-    ).toBe(0)
+    const processing = await withStore(app, storeId, (tx) =>
+      listMedia(tx, { page: 1, perPage: 10 }),
+    )
+    expect(processing.total).toBe(1)
+    expect(processing.items[0]).toMatchObject({ status: 'processing' })
 
     await withStore(app, storeId, (tx) =>
       markMediaProcessed(tx, ticket.mediaId, {
@@ -135,7 +138,7 @@ describe('createUploadIntent / confirmUpload', () => {
     )
     const list = await withStore(app, storeId, (tx) => listMedia(tx, { page: 1, perPage: 10 }))
     expect(list.total).toBe(1)
-    expect(list.items[0]).toMatchObject({ width: 1600, usedBy: 0 })
+    expect(list.items[0]).toMatchObject({ width: 1600, usedBy: 0, status: 'ready' })
   })
 
   it('confirming a video goes straight to ready (no pipeline for mp4)', async () => {
@@ -211,6 +214,9 @@ describe('markMediaFailed', () => {
     await withStore(app, storeId, (tx) => markMediaFailed(tx, ticket.mediaId, 'decompression bomb'))
     const [row] = await withStore(app, storeId, (tx) => tx.select().from(media))
     expect(row).toMatchObject({ status: 'failed', processError: 'decompression bomb' })
+    expect(
+      (await withStore(app, storeId, (tx) => listMedia(tx, { page: 1, perPage: 10 }))).total,
+    ).toBe(0)
   })
 })
 
