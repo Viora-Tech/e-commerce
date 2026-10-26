@@ -127,6 +127,8 @@ export const productFormContent = {
     retry: 'Retry',
     dismiss: 'Dismiss',
     dropToUpload: 'Drop to upload',
+    /** The image file did not load (missing, still processing, or a format browsers can't draw). */
+    cantShow: "Can't show this file",
     sort: {
       instructions:
         'Press space to pick up an image, arrow keys to move it, space again to drop it. The first image is the main image.',

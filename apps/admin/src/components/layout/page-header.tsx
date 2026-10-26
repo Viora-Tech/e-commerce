@@ -102,9 +102,14 @@ export default function PageHeader({
             </span>
           ) : null}
           <div className="flex min-w-0 flex-col gap-1">
-            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-              <h1 className="min-w-0 truncate text-page-title text-ink-strong">{title}</h1>
-              {badges ? <div className="flex flex-wrap items-center gap-1.5">{badges}</div> : null}
+            {/* One line: a long title truncates rather than pushing the chips onto the summary
+                line, where a fixed-height copy of this row (the bug report picture) drew them
+                on top of it (#804). */}
+            <div className="flex min-w-0 items-center gap-x-3">
+              <h1 title={title} className="min-w-0 truncate text-page-title text-ink-strong">
+                {title}
+              </h1>
+              {badges ? <div className="flex shrink-0 items-center gap-1.5">{badges}</div> : null}
             </div>
             {line ? (
               <div className="text-body font-normal text-muted-foreground">{line}</div>

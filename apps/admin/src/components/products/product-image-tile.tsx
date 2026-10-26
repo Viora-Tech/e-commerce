@@ -1,11 +1,12 @@
 'use client'
 
-import { Pencil, RefreshCw, X } from '@commerce/ui/icons'
+import { ImageIcon, Pencil, RefreshCw, X } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { DragHandle, ROW_STATE_CLASS } from '@commerce/ui/sortable'
 import { useSortable } from '@dnd-kit/sortable'
 import { AnimatePresence, motion } from 'motion/react'
+import { useState } from 'react'
 import type { MediaTileItem } from '@/components/media/media-tile'
 import { imageEditorContent } from '@/data/image-editor'
 import { productFormContent } from '@/data/product-form'
@@ -62,6 +63,8 @@ export default function ProductImageTile({
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, isDragging } = useSortable({
     id: item.id,
   })
+  /* The URL that failed to load; a replaced image (new URL) gets a fresh try. */
+  const [broken, setBroken] = useState<string | null>(null)
 
   // Render logic
   const name = imageName(item)
@@ -90,13 +93,22 @@ export default function ProductImageTile({
           className="size-full focus-visible:outline-2 focus-visible:outline-ring focus-visible:-outline-offset-2"
           aria-label={copy.editAlt(name)}
         >
-          {/* biome-ignore lint/performance/noImgElement: media comes from arbitrary storage hosts. */}
-          <img
-            src={item.url}
-            alt=""
-            draggable={false}
-            className={cn('size-full', main ? 'object-contain' : 'object-cover')}
-          />
+          {broken === item.url ? (
+            <span className="flex size-full flex-col items-center justify-center gap-2 p-3 text-center text-caption text-muted-foreground">
+              <ImageIcon className="size-6" aria-hidden="true" />
+              <span className="font-medium text-foreground">{copy.cantShow}</span>
+              <span className="max-w-full truncate">{name}</span>
+            </span>
+          ) : (
+            /* biome-ignore lint/performance/noImgElement: media comes from arbitrary storage hosts. */
+            <img
+              src={item.url}
+              alt=""
+              draggable={false}
+              onError={() => setBroken(item.url)}
+              className={cn('size-full', main ? 'object-contain' : 'object-cover')}
+            />
+          )}
         </button>
       </div>
       <DragHandle

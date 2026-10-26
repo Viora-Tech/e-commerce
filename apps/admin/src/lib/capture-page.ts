@@ -18,6 +18,17 @@ function keep(node: Node): boolean {
   return node.tagName.toLowerCase() !== 'nextjs-portal'
 }
 
+/**
+ * URLs on other hosts (the media CDN). An `<img>` loads them without CORS, and the CDN answers
+ * those without `Access-Control-Allow-Origin` (it varies on `Origin`), so the library's
+ * cache-first fetch reused that copy, failed CORS and drew an empty tile instead of the photo
+ * (#804). A fresh request per picture gets the CORS headers.
+ */
+function crossOrigin(): RegExp {
+  const host = window.location.host.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(`^https?://(?!${host}/)`)
+}
+
 /** Decoded size of a base64 data URL. */
 function bytesOf(dataUrl: string): number {
   const base64 = dataUrl.slice(dataUrl.indexOf(',') + 1)
@@ -46,6 +57,7 @@ export async function capturePage(): Promise<string | null> {
       height: window.innerHeight,
       backgroundColor: getComputedStyle(node).backgroundColor,
       filter: keep,
+      fetch: { bypassingCache: crossOrigin() },
     }
     const png = await domToPng(node, {
       ...options,

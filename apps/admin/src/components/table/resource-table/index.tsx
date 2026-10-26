@@ -79,8 +79,14 @@ export type ResourceTableProps<T extends RowData> = {
    * "Book selected"). Without it the table keeps the selection itself.
    */
   selection?: { ids: string[]; onChange: (ids: string[]) => void }
-  /** Rendered in the selection bar; call `clear` after a bulk action. */
+  /** The main bulk actions, in the floating bar at the bottom; call `clear` after one runs. */
   bulkActions?: (selectedIds: string[], clear: () => void) => ReactNode
+  /**
+   * The less common bulk actions, behind a ⋯ menu in the selection header at the top of the
+   * table. The header never repeats `bulkActions` (#808): without this it shows only the
+   * selection ("3 products selected", Select all, Clear).
+   */
+  bulkMore?: (selectedIds: string[], clear: () => void) => ReactNode
   /**
    * Every id the current search and filters match, for the selection bar's "Select all N"
    * (Shopify-style). Without it, selection stays on the visible page.
@@ -298,7 +304,7 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
                 singular={props.resourceName.singular}
                 onSelectAll={props.loadAllIds ? selectAllMatching : undefined}
                 selectingAll={selectingAll}
-                actions={props.bulkActions?.(selectedIds, clearSelection)}
+                actions={props.bulkMore?.(selectedIds, clearSelection)}
                 onClear={clearSelection}
               />
             </div>
@@ -395,8 +401,8 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
         onPageChange={props.onPageChange}
         onPerPageChange={props.onPerPageChange}
       />
-      {/* The floating bar at the bottom keeps the bulk actions in reach while scrolling a long
-          list; the header row carries the same choice where the eye already is. */}
+      {/* The floating bar at the bottom holds the main bulk actions, in reach while scrolling a
+          long list; the header row shows the selection and only the ⋯ extras (#808). */}
       <FloatingBar open={selecting}>
         <span className="text-caption font-medium whitespace-nowrap text-foreground tabular-nums">
           {tableCopy.selected(
