@@ -1,9 +1,10 @@
-/** SOURCE OF TRUTH: return email data — WHAT: the template fields a return_* message needs (the items going back, the refund, the pickup) / WHY: `deliverNotification` builds order messages; a return message swaps in the return's own lines and details */
-import { orderLine, returnRequest, returnRequestLine } from '@commerce/db'
+/** SOURCE OF TRUTH: return email data — WHAT: the template fields a return_* message needs (the items going back, the refund, the pickup), and the repeat approval message when a courier is booked after it went out / WHY: `deliverNotification` builds order messages; a return message swaps in the return's own lines and details */
+import { orderLine, outboxEvent, returnRequest, returnRequestLine } from '@commerce/db'
 import { formatMoney } from '@commerce/money'
 import type { TemplateData } from '@commerce/notifications'
-import { eq } from 'drizzle-orm'
+import { and, eq, isNull, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { insertOutboxEvent } from '../outbox/write'
 import { RETURN_REASON_LABELS, type ReturnReason, returnLabel } from './policy'
 
 export async function returnTemplateData(
@@ -50,4 +51,30 @@ export async function returnTemplateData(
             : undefined,
     },
   }
+}
+
+/**
+ * A courier booked after the approval went out (the merchant picked "later", or the store's
+ * auto-approve rule took the request): that email told the shopper to send the parcel
+ * themselves, so they get the approval again, now with the courier and its tracking number.
+ * Booked in the same step as the approval, the pending approval message already carries it.
+ */
+export async function announceLatePickup(ctx: StoreContext, r: { id: string; orderId: string }) {
+  const [pending] = await ctx.tx
+    .select({ id: outboxEvent.id })
+    .from(outboxEvent)
+    .where(
+      and(
+        eq(outboxEvent.storeId, ctx.storeId),
+        eq(outboxEvent.type, 'return.approved'),
+        isNull(outboxEvent.dispatchedAt),
+        sql`${outboxEvent.payload}->>'returnId' = ${r.id}`,
+      ),
+    )
+    .limit(1)
+  if (pending) return
+  await insertOutboxEvent(ctx.tx, ctx.storeId, 'return.approved', {
+    orderId: r.orderId,
+    returnId: r.id,
+  })
 }

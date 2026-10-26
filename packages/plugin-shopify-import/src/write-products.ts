@@ -193,6 +193,10 @@ async function applyProduct(
   const saved = existingId
     ? await updateProduct(tx, ctx.storeId, existingId, write, { imported: true })
     : await createProduct(tx, ctx.storeId, write, { imported: true })
+  // Not part of the product form's write: only Shopify's flag (or the gift cards page) sets it.
+  if (p.isGiftCard !== undefined) {
+    await tx.update(product).set({ isGiftCard: p.isGiftCard }).where(eq(product.id, saved))
+  }
   if (mappings) mappings.push({ sourceId: productSourceId(p), localId: saved })
   else await saveMapping(tx, ctx.storeId, 'products', productSourceId(p), saved)
   const [row] = await tx

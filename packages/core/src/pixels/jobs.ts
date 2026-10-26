@@ -47,6 +47,8 @@ export type PixelStorefrontSendJob = {
   productId?: string | undefined
   variantId?: string | undefined
   cartLineId?: string | undefined
+  /** AddToCart: units just added, so the value is that add and not the whole cart line. */
+  quantity?: number | undefined
 }
 
 export type PixelSendJob = PixelOrderSendJob | PixelStorefrontSendJob

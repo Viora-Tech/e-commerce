@@ -158,6 +158,9 @@ async function storefrontEvent(
         ? { lineId: job.cartLineId, variantId: job.cartLineId ? undefined : job.variantId }
         : undefined
     contents = await cartContents(tx, job.cartId, only)
+    // The line holds every unit of the variant; the event is about the ones just added.
+    const added = job.eventName === 'AddToCart' ? job.quantity : undefined
+    if (added) contents = contents.map((c) => ({ ...c, quantity: Math.min(c.quantity, added) }))
     const [c] = await tx
       .select({ email: cart.email, phone: cart.phone, customerId: cart.customerId })
       .from(cart)

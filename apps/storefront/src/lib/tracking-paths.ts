@@ -1,10 +1,18 @@
 /**
- * Pages third-party tags (GA4, GTM, Meta pixel) never load on. Sign-in pages carry
- * single-use tokens in the URL (`/account/login/link?token=…`), and those tags send the
- * full page URL to Google and Meta, where anyone with access to the merchant's analytics
- * could replay the token before the shopper taps "Sign in".
+ * Pages third-party tags (GA4, GTM, Meta pixel) never load on. Their URLs carry a token
+ * (`/account/login/link?token=…`, `/checkout/balance/<token>`, `/cod/<token>`), and those
+ * tags send the full page URL to Google and Meta, where anyone with access to the
+ * merchant's analytics could replay it: sign in, pay, confirm a COD order or read the order.
  */
-const PRIVATE_PREFIXES = ['/account/login']
+const PRIVATE_PREFIXES = [
+  '/account/login',
+  '/checkout/balance',
+  '/checkout/invoice',
+  '/checkout/recover',
+  '/cod',
+  '/newsletter/confirm',
+  '/unsubscribe',
+]
 
 /** The path as the shopper sees it, whether or not the internal `/-s/<store>` prefix shows. */
 function visiblePath(pathname: string): string {

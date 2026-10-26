@@ -74,7 +74,25 @@ async function returnValue(ctx: StoreContext, returnId: string) {
     .where(eq(returnRequestLine.returnRequestId, returnId))
   const value = lines.reduce((s, l) => s + l.quantity * l.unitPricePaise, 0)
   const share = o.subtotalPaise > 0 ? (o.subtotalPaise - o.discountPaise) / o.subtotalPaise : 1
-  return { kind: r.kind, goodsPaise: Math.round(value * share), availablePaise }
+  const goodsPaise = Math.round(value * share)
+  // An RTO of one parcel out of several is worth that parcel's goods, not the whole order.
+  const kind =
+    r.kind === 'rto' && !(await coversWholeOrder(ctx, o.id, returnId)) ? 'return' : r.kind
+  return { kind, goodsPaise, availablePaise }
+}
+
+/** Whether a return holds every shipped unit of its order (an RTO of the only parcel). */
+async function coversWholeOrder(ctx: StoreContext, orderId: string, returnId: string) {
+  const shipped = await ctx.tx
+    .select({ id: orderLine.id, quantity: orderLine.fulfilledQuantity })
+    .from(orderLine)
+    .where(and(eq(orderLine.orderId, orderId), eq(orderLine.giftCard, false)))
+  const back = await ctx.tx
+    .select({ id: returnRequestLine.orderLineId, quantity: returnRequestLine.quantity })
+    .from(returnRequestLine)
+    .where(eq(returnRequestLine.returnRequestId, returnId))
+  const backBy = new Map(back.map((b) => [b.id, b.quantity]))
+  return shipped.every((l) => l.quantity <= 0 || (backBy.get(l.id) ?? 0) >= l.quantity)
 }
 
 function assertResolvable(ctx: StoreContext, r: { status: string; number: number }) {
