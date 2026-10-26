@@ -7,7 +7,15 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { SEO_FILES } from './data/seo'
 import { accountsHostname } from './lib/accounts-host'
 import { analyticsAllowed } from './lib/consent-cookie'
-import { forwardNonce, newNonce, scriptCsp, storefrontFrameAncestors } from './lib/csp'
+import {
+  forwardNonce,
+  ISOLATED_FRAME_ANCESTORS,
+  ISOLATION_HEADERS,
+  isIsolatedStorePath,
+  newNonce,
+  scriptCsp,
+  storefrontFrameAncestors,
+} from './lib/csp'
 import { db } from './lib/db'
 import { edgeCacheControl, isSharedPage } from './lib/edge-cache'
 import { noteVisit, WARM_USER_AGENT } from './lib/recent-pages'
@@ -59,13 +67,19 @@ function visitorCountry(request: NextRequest): string | null {
  */
 export async function proxy(request: NextRequest) {
   const nonce = newNonce()
+  // Checkout and the shopper account (D-01) refuse all framing and carry the isolation headers;
+  // every other page keeps the self-plus-admin frame-ancestors the theme editor needs.
+  const isolated = isIsolatedStorePath(request.nextUrl.pathname)
   const csp = scriptCsp({
     nonce,
     dev: process.env.NODE_ENV !== 'production',
-    frameAncestors: storefrontFrameAncestors(process.env.ADMIN_URL),
+    frameAncestors: isolated
+      ? ISOLATED_FRAME_ANCESTORS
+      : storefrontFrameAncestors(process.env.ADMIN_URL),
   })
   const response = await routeRequest(request, (headers) => forwardNonce(headers, nonce, csp))
   response.headers.set(csp.name, csp.value)
+  if (isolated) for (const [name, value] of ISOLATION_HEADERS) response.headers.set(name, value)
   return response
 }
 

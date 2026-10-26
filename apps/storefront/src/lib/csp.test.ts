@@ -1,7 +1,14 @@
 import { createElement, type ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
-import { forwardNonce, newNonce, scriptCsp, storefrontFrameAncestors } from './csp'
+import {
+  forwardNonce,
+  ISOLATION_HEADERS,
+  isIsolatedStorePath,
+  newNonce,
+  scriptCsp,
+  storefrontFrameAncestors,
+} from './csp'
 
 // next/script injects on the client; render it as a plain tag so the nonce is visible.
 vi.mock('next/script', () => ({
@@ -53,6 +60,39 @@ describe('storefront script CSP', () => {
       frameAncestors: storefrontFrameAncestors('https://admin.waimers.in'),
     })
     expect(prod.value.endsWith("frame-ancestors 'self' https://admin.waimers.in")).toBe(true)
+  })
+
+  it('treats only checkout and account as isolated, with a safe path boundary', () => {
+    for (const p of [
+      '/checkout',
+      '/checkout/',
+      '/checkout/thank-you/42',
+      '/checkout/pay/7',
+      '/account',
+      '/account/orders',
+    ]) {
+      expect(isIsolatedStorePath(p)).toBe(true)
+    }
+    for (const p of [
+      '/',
+      '/products/shoe',
+      '/cart',
+      '/collections/all',
+      '/checkouting',
+      '/accountant',
+      '/blogs/account',
+    ]) {
+      expect(isIsolatedStorePath(p)).toBe(false)
+    }
+  })
+
+  it('isolation headers allow gateway popups but deny framing and cross-origin reads', () => {
+    const h = Object.fromEntries(ISOLATION_HEADERS)
+    // same-origin-allow-popups (not same-origin): a payment gateway window the page opens can
+    // still post its result back to the opener.
+    expect(h['Cross-Origin-Opener-Policy']).toBe('same-origin-allow-popups')
+    expect(h['Cross-Origin-Resource-Policy']).toBe('same-origin')
+    expect(h['X-Frame-Options']).toBe('DENY')
   })
 
   it('forwards only our nonce and policy on the request', () => {
