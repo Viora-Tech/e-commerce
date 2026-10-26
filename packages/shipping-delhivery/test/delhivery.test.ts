@@ -78,7 +78,7 @@ describe('DelhiveryProvider', () => {
     expect((await p.verifyCredentials()).ok).toBe(false)
   })
 
-  it('reserves a waybill then posts the form-encoded shipment and returns a label link', async () => {
+  it('reserves a waybill then posts the form-encoded shipment; the label is never a token link', async () => {
     const f = fakeFetch({
       '/waybill/api/bulk/json/': () => json('WB123'),
       '/api/cmu/create.json': () =>
@@ -91,7 +91,9 @@ describe('DelhiveryProvider', () => {
       codAmountPaise: 199900,
     })
     expect(r.waybill).toBe('WB123')
-    expect(r.labelUrl).toContain('WB123')
+    // The packing slip needs the token: the admin's label route fetches it server-side.
+    expect(r.labelUrl).toBeUndefined()
+    expect(r.labelViaProvider).toBe(true)
 
     const create = f.calls[1]
     expect(create?.init?.method).toBe('POST')
@@ -234,11 +236,82 @@ describe('DelhiveryProvider', () => {
     expect(t.trackingUrl).toContain('WB123')
   })
 
-  it('cancels with the edit endpoint', async () => {
-    const f = fakeFetch({ '/api/p/edit': () => json({ status: true }) })
+  it('cancels with the edit endpoint: a JSON body and the token header', async () => {
+    const f = fakeFetch({
+      '/api/p/edit': () =>
+        json({ status: true, waybill: 'WB123', remark: 'Shipment has been cancelled' }),
+    })
     const p = new DelhiveryProvider({ ...config, fetchImpl: f.impl })
     await p.cancel('WB123')
-    expect(f.calls[0]?.init?.body).toBe('waybill=WB123&cancellation=true')
+    expect(f.calls[0]?.init?.method).toBe('POST')
+    expect(f.calls[0]?.init?.headers).toMatchObject({
+      Authorization: 'Token tok',
+      'Content-Type': 'application/json',
+    })
+    expect(JSON.parse(f.calls[0]?.init?.body as string)).toEqual({
+      waybill: 'WB123',
+      cancellation: 'true',
+    })
+  })
+
+  it('a refused cancel is a rejection carrying Delhivery remark', async () => {
+    const f = fakeFetch({
+      '/api/p/edit': () => json({ status: false, remark: 'Shipment already picked up' }),
+    })
+    const p = new DelhiveryProvider({ ...config, fetchImpl: f.impl })
+    await expect(p.cancel('WB123')).rejects.toMatchObject({
+      kind: 'rejected',
+      message: expect.stringContaining('Shipment already picked up'),
+    })
+  })
+
+  it('fetches the label: packing slip with the token, then the PDF link without it', async () => {
+    const pdf = new TextEncoder().encode('%PDF-1.4 label')
+    const f = fakeFetch({
+      '/api/p/packing_slip': () =>
+        json({
+          packages: [{ wbn: 'WB123', pdf_download_link: 'https://files.example.com/l/WB123.pdf' }],
+          packages_found: 1,
+        }),
+      '/l/WB123.pdf': () => new Response(pdf, { headers: { 'content-type': 'application/pdf' } }),
+    })
+    const p = new DelhiveryProvider({ ...config, fetchImpl: f.impl })
+    const label = await p.getLabel('WB123')
+    expect(label.contentType).toBe('application/pdf')
+    expect(new TextDecoder().decode(label.body)).toBe('%PDF-1.4 label')
+    expect(f.calls[0]?.url.searchParams.get('wbns')).toBe('WB123')
+    expect(f.calls[0]?.url.searchParams.get('pdf')).toBe('true')
+    expect(f.calls[0]?.init?.headers).toMatchObject({ Authorization: 'Token tok' })
+    // The file link is opened without the token.
+    expect(f.calls[1]?.url.host).toBe('files.example.com')
+    expect(JSON.stringify(f.calls[1]?.init?.headers ?? {})).not.toContain('tok')
+  })
+
+  it('reads an inline base64 label, and says so when there is none yet', async () => {
+    const encoded = Buffer.from('%PDF-1.4 inline').toString('base64')
+    const inline = fakeFetch({
+      '/api/p/packing_slip': () => json({ packages: [{ wbn: 'WB1', pdf_encoding: encoded }] }),
+    })
+    const label = await new DelhiveryProvider({ ...config, fetchImpl: inline.impl }).getLabel('WB1')
+    expect(new TextDecoder().decode(label.body)).toBe('%PDF-1.4 inline')
+
+    const empty = fakeFetch({
+      '/api/p/packing_slip': () => json({ packages: [], packages_found: 0 }),
+    })
+    await expect(
+      new DelhiveryProvider({ ...config, fetchImpl: empty.impl }).getLabel('WB2'),
+    ).rejects.toMatchObject({ kind: 'bad_response' })
+  })
+
+  it('a label link that is not a PDF is refused', async () => {
+    const f = fakeFetch({
+      '/api/p/packing_slip': () =>
+        json({ packages: [{ wbn: 'WB3', pdf_download_link: 'https://files.example.com/x' }] }),
+      '/x': () => new Response('<html>expired</html>'),
+    })
+    await expect(
+      new DelhiveryProvider({ ...config, fetchImpl: f.impl }).getLabel('WB3'),
+    ).rejects.toMatchObject({ kind: 'bad_response' })
   })
 
   it('maps status vocabulary', () => {
@@ -386,6 +459,11 @@ describe('DelhiveryProvider rates', () => {
     expect(err).toBeInstanceOf(CourierError)
     expect((err as Error).message).toContain('no pickup location named "Waimers Sonipat"')
     expect((err as Error).message).not.toContain('| true')
+    // The admin reads the exact name sent from the error's detail, not from the sentence.
+    expect((err as CourierError).detail).toEqual({
+      code: 'no_pickup_location',
+      pickupLocationName: 'Waimers Sonipat',
+    })
   })
 })
 
@@ -405,8 +483,85 @@ describe('DelhiveryProvider pickup, NDR and webhook', () => {
     expect(body).toMatchObject({
       pickup_location: 'Waimers Sonipat',
       pickup_date: '2026-09-26',
+      // Delhivery wants hh:mm:ss.
+      pickup_time: '14:00:00',
       expected_package_count: 3,
     })
+    expect(f.calls[0]?.init?.headers).toMatchObject({ Authorization: 'Token tok' })
+  })
+
+  it('a pickup with no location named goes to the Connect page pickup location', async () => {
+    const f = fakeFetch({ '/fm/request/new/': () => json({ pickup_id: 1 }, 201) })
+    const p = new DelhiveryProvider({ ...config, fetchImpl: f.impl })
+    expect(p.defaultPickupLocationName).toBe('Waimers Sonipat')
+    await p.schedulePickup({
+      pickupLocationName: '',
+      date: '2026-09-26',
+      timeFrom: '9:30',
+      expectedPackageCount: 1,
+    })
+    const body = JSON.parse(f.calls[0]?.init?.body as string)
+    expect(body).toMatchObject({ pickup_location: 'Waimers Sonipat', pickup_time: '09:30:00' })
+  })
+
+  it('an unknown warehouse (HTTP 401 from Delhivery) is a named refusal, not a bad token', async () => {
+    const f = fakeFetch({
+      '/fm/request/new/': () =>
+        json(
+          {
+            pickup_location:
+              'Invalid Pickup Location ClientWarehouse matching query does not exist.',
+          },
+          401,
+        ),
+    })
+    const p = new DelhiveryProvider({ ...config, fetchImpl: f.impl })
+    const err = await p
+      .schedulePickup({
+        pickupLocationName: 'Waimers HQ',
+        date: '2026-09-26',
+        timeFrom: '14:00',
+        expectedPackageCount: 1,
+      })
+      .catch((e: unknown) => e)
+    expect(err).toMatchObject({
+      kind: 'rejected',
+      detail: { code: 'no_pickup_location', pickupLocationName: 'Waimers HQ' },
+    })
+  })
+
+  it('a pickup already raised for that place and day counts as done', async () => {
+    const input = {
+      pickupLocationName: 'Waimers Sonipat',
+      date: '2026-09-26',
+      timeFrom: '14:00',
+      expectedPackageCount: 2,
+    }
+    const exists = fakeFetch({ '/fm/request/new/': () => json({ pr_exist: true }) })
+    expect(
+      await new DelhiveryProvider({ ...config, fetchImpl: exists.impl }).schedulePickup(input),
+    ).toEqual({ providerPickupId: 'existing' })
+    const refused = fakeFetch({
+      '/fm/request/new/': () =>
+        json({ error: 'Pickup request already exists for this location and date' }, 400),
+    })
+    expect(
+      await new DelhiveryProvider({ ...config, fetchImpl: refused.impl }).schedulePickup(input),
+    ).toEqual({ providerPickupId: 'existing' })
+  })
+
+  it('a real bad token on the pickup call is still an auth failure', async () => {
+    const f = fakeFetch({
+      '/fm/request/new/': () => json({ detail: 'Invalid token.' }, 401),
+    })
+    await expect(
+      new DelhiveryProvider({ ...config, fetchImpl: f.impl }).schedulePickup({
+        pickupLocationName: 'Waimers Sonipat',
+        date: '2026-09-26',
+        timeFrom: '14:00',
+        expectedPackageCount: 1,
+      }),
+    ).rejects.toMatchObject({ kind: 'auth' })
   })
 
   it('rejects a pickup response with no pickup_id and no pr_exist', async () => {

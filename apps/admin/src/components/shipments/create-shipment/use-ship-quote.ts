@@ -7,11 +7,10 @@ import {
   MANUAL,
   type PackageForm,
   type ParcelQuote,
-  parsePackage,
-  quoteRequest,
   type ShipmentDraft,
   startingPick,
 } from './flow-state'
+import { debouncedAsk, quoteAsk } from './quote-ask'
 
 /** Wait this long after the last package edit before asking the couriers again. */
 const QUOTE_DEBOUNCE_MS = 600
@@ -20,9 +19,12 @@ const QUOTE_DEBOUNCE_MS = 600
 export const NO_PICK = ''
 
 /**
- * Live rates for the page: ask every courier a moment after the package stops changing, keep
- * the picked courier when it still answers, else start on the recommended one. `recheck` asks
- * again without a package change.
+ * Live rates for the page. The couriers are asked only for a complete, valid package, 600 ms
+ * after the last edit, and only when the values actually changed (`quoteAsk`'s key); a newer
+ * edit cancels the ask in flight, so a stale answer never lands. While a new answer is on its
+ * way the last prices stay on screen under "Updating prices…" instead of flickering away. The
+ * picked courier is kept when it still answers, else the recommended one is picked. `recheck`
+ * asks again without a package change.
  */
 export function useShipQuote(
   draft: ShipmentDraft | null,
@@ -33,54 +35,59 @@ export function useShipQuote(
 ) {
   // Hooks
   const [quote, setQuote] = useState<ParcelQuote | null>(null)
+  /* The request the prices on screen answer; differs from the current one while updating. */
+  const [quotedKey, setQuotedKey] = useState<string | null>(null)
   /* Nothing is picked until the couriers answer; "Ship it yourself" is only ever the merchant's
      choice or the fallback when no courier can take the parcel. */
   const [pick, setPick] = useState(NO_PICK)
   const [retry, setRetry] = useState(0)
-  /* The last quote failed: the card says so with a retry instead of spinning forever. */
-  const [failed, setFailed] = useState(false)
+  /* The last ask failed: the card says so with a retry instead of spinning forever. */
+  const [failedKey, setFailedKey] = useState<string | null>(null)
+  const ask = draft && form && draft.couriers.length > 0 ? quoteAsk(draft, parcelId, form) : null
+  const key = ask?.state === 'ready' ? ask.key : null
+  const failed = key !== null && failedKey === key
   useEffect(() => {
-    const o = draft?.orders[0]
-    const p = o?.parcels.find((x) => x.id === parcelId) ?? o?.parcels[0]
-    const pkg = form ? parsePackage(form) : null
-    if (!draft || !o || !p || !form || !pkg || draft.couriers.length === 0 || retry < 0) {
-      setQuote(null)
-      return
-    }
-    let live = true
-    setQuote(null)
-    setFailed(false)
-    const timer = setTimeout(() => {
-      api.shipments
-        .quote({ parcels: [quoteRequest(o, p, form, pkg)] })
-        .then(([answer]) => {
-          if (!live) return
-          setQuote(answer ?? null)
-          setPick((current) =>
-            current === MANUAL || answer?.options.some((r) => r.providerId === current)
-              ? current
-              : startingPick(answer?.options ?? [], preferred),
-          )
-        })
-        .catch((err) => {
-          if (!live) return
-          setFailed(true)
-          toast.error(err instanceof Error ? err.message : String(err))
-        })
-    }, QUOTE_DEBOUNCE_MS)
-    return () => {
-      live = false
-      clearTimeout(timer)
-    }
-  }, [draft, parcelId, form, retry, preferred])
+    if (!key || retry < 0) return
+    const controller = new AbortController()
+    debouncedAsk(
+      (signal) => api.shipments.quote({ parcels: [JSON.parse(key)] }, { signal }),
+      QUOTE_DEBOUNCE_MS,
+      controller.signal,
+    )
+      .then((answers) => {
+        if (!answers) return
+        const answer = answers[0] ?? null
+        setFailedKey(null)
+        setQuote(answer)
+        setQuotedKey(key)
+        setPick((current) =>
+          current === MANUAL || answer?.options.some((r) => r.optionKey === current)
+            ? current
+            : startingPick(answer?.options ?? [], preferred),
+        )
+      })
+      .catch((err) => {
+        setFailedKey(key)
+        toast.error(err instanceof Error ? err.message : String(err))
+      })
+    return () => controller.abort()
+  }, [key, retry, preferred])
 
   return {
-    quote,
+    /* Couriers can only price a parcel with a weight; until then there is nothing to show. */
+    quote: ask?.state === 'needs_package' ? null : quote,
     pick,
     setPick,
-    recheck: () => setRetry((n) => n + 1),
+    recheck: () => {
+      setQuotedKey(null)
+      setFailedKey(null)
+      setRetry((n) => n + 1)
+    },
     failed,
-    /* Couriers can only price a parcel with a weight; until then there is nothing to ask. */
-    needsPackage: form !== null && parsePackage(form) === null,
+    needsPackage: ask?.state === 'needs_package',
+    /* Half a box size typed: the prices on screen wait for the rest. */
+    waitingForSize: ask?.state === 'incomplete',
+    /* A new answer is on its way for a changed package; the old prices stay meanwhile. */
+    updating: key !== null && key !== quotedKey && !failed,
   }
 }

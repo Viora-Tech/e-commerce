@@ -74,6 +74,8 @@ export const createShipmentContent = {
     help: 'Live prices and delivery dates for this parcel. Pick the one you want.',
     checking: 'Asking your couriers…',
     needsWeight: 'Add the parcel weight above to see courier prices.',
+    updating: 'Updating prices…',
+    finishSize: 'Finish the box size to update the prices.',
     quoteFailed: 'Could not get prices from your couriers.',
     noCourier: 'No courier is connected yet. Ship it yourself below, or connect one in Apps.',
     connect: 'Connect a courier',
@@ -206,6 +208,8 @@ export const createShipmentContent = {
     schedule: 'Schedule pickup',
     scheduling: 'Scheduling…',
     scheduled: 'Pickup requested',
+    requestedFor: (date: string) =>
+      `Pickup requested for ${date}. The courier collects every parcel booked here.`,
     notSupported: "This courier doesn't take pickup requests here. Book it on their dashboard.",
     cardTitle: 'Pickup and updates',
     today: 'Today',

@@ -17,6 +17,11 @@ export class PickupNotSupported extends Error {
  * belonging to it. A courier without `schedulePickup` (declared by
  * `capabilities`) is asked to arrange collection outside the app; the row is
  * still recorded so the merchant has one place that lists what is waiting.
+ *
+ * One request per courier, pickup location and day: when one is already scheduled, the
+ * shipments join it and the courier is not asked again (Delhivery takes a second request for
+ * a place only after the first was collected). A failed request is recorded with its error and
+ * the shipments stay unattached, so "Request pickup" can try again.
  */
 export async function schedulePickup(
   ctx: StoreContext,
@@ -26,10 +31,38 @@ export async function schedulePickup(
     date: string
     timeFrom: string
     timeTo?: string | undefined
+    /** The courier pickup location; empty for the courier account's own (`defaultPickupLocationName`). */
     pickupLocationName: string
   },
 ): Promise<ShipmentPickupRow> {
   if (input.shipmentIds.length === 0) throw new Error('pick at least one shipment')
+  const place = input.pickupLocationName || provider.defaultPickupLocationName || ''
+
+  const [open] = await ctx.tx
+    .select()
+    .from(shipmentPickup)
+    .where(
+      and(
+        eq(shipmentPickup.storeId, ctx.storeId),
+        eq(shipmentPickup.provider, provider.id),
+        eq(shipmentPickup.scheduledFor, input.date),
+        eq(shipmentPickup.pickupLocationName, place),
+        eq(shipmentPickup.status, 'scheduled'),
+      ),
+    )
+    .limit(1)
+  if (open) {
+    const attached = await attachToPickup(ctx, open.id, input.shipmentIds)
+    const [joined] = await ctx.tx
+      .update(shipmentPickup)
+      .set({
+        expectedPackageCount: open.expectedPackageCount + attached,
+        updatedAt: new Date(),
+      })
+      .where(eq(shipmentPickup.id, open.id))
+      .returning()
+    return joined ?? open
+  }
 
   let providerPickupId: string | null = null
   let status: ShipmentPickupRow['status'] = 'requested'
@@ -37,7 +70,7 @@ export async function schedulePickup(
   if (provider.schedulePickup) {
     try {
       const r = await provider.schedulePickup({
-        pickupLocationName: input.pickupLocationName,
+        pickupLocationName: place,
         date: input.date,
         timeFrom: input.timeFrom,
         timeTo: input.timeTo,
@@ -60,6 +93,7 @@ export async function schedulePickup(
       timeFrom: input.timeFrom,
       timeTo: input.timeTo ?? null,
       expectedPackageCount: input.shipmentIds.length,
+      pickupLocationName: place || null,
       status,
       providerRef: providerPickupId,
       error,
@@ -67,19 +101,28 @@ export async function schedulePickup(
     .returning()
   if (!row) throw new Error('could not record the pickup')
 
-  if (status !== 'failed') {
-    await ctx.tx
-      .update(shipment)
-      .set({ pickupId: row.id, updatedAt: new Date() })
-      .where(
-        and(
-          inArray(shipment.id, input.shipmentIds),
-          eq(shipment.storeId, ctx.storeId),
-          isNull(shipment.pickupId),
-        ),
-      )
-  }
+  if (status !== 'failed') await attachToPickup(ctx, row.id, input.shipmentIds)
   return row
+}
+
+/** Mark the shipments not yet on a pickup as belonging to this one; how many it took. */
+async function attachToPickup(
+  ctx: StoreContext,
+  pickupId: string,
+  shipmentIds: string[],
+): Promise<number> {
+  const rows = await ctx.tx
+    .update(shipment)
+    .set({ pickupId, updatedAt: new Date() })
+    .where(
+      and(
+        inArray(shipment.id, shipmentIds),
+        eq(shipment.storeId, ctx.storeId),
+        isNull(shipment.pickupId),
+      ),
+    )
+    .returning({ id: shipment.id })
+  return rows.length
 }
 
 /**

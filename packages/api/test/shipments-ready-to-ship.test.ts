@@ -7,6 +7,7 @@ import {
   order,
   orderLine,
   product,
+  shipment,
   store,
   variant,
 } from '@commerce/db'
@@ -185,6 +186,37 @@ describe('shipments.readyToShip', () => {
 
     const preorderRow = r.items.find((i) => i.orderId === partial)
     expect(preorderRow).toMatchObject({ orderNumber: 2, itemsCount: 1, isPreorder: true })
+  })
+
+  it('lists a packed order again once its label was cancelled and nothing replaced it', async () => {
+    const m = await merchant('rebook@example.com', 'rebook')
+    const freed = await seedOrderWithLines(
+      m.storeId,
+      { number: 1, paymentStatus: 'paid', fulfillmentStatus: 'fulfilled' },
+      [{ quantity: 1 }],
+    )
+    const rebooked = await seedOrderWithLines(
+      m.storeId,
+      { number: 2, paymentStatus: 'paid', fulfillmentStatus: 'fulfilled' },
+      [{ quantity: 1 }],
+    )
+    await owner.insert(shipment).values([
+      { storeId: m.storeId, orderId: freed, provider: 'fake', waybill: 'C1', status: 'cancelled' },
+      {
+        storeId: m.storeId,
+        orderId: rebooked,
+        provider: 'fake',
+        waybill: 'C2',
+        status: 'cancelled',
+      },
+      { storeId: m.storeId, orderId: rebooked, provider: 'fake', waybill: 'L2', status: 'created' },
+    ])
+    const r = await call(
+      appRouter.shipments.readyToShip,
+      { page: 1, perPage: 50 },
+      { context: m.ctx },
+    )
+    expect(r.items.map((i) => i.orderId)).toEqual([freed])
   })
 
   it('paginates and never shows another store’s orders', async () => {

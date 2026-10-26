@@ -1538,6 +1538,14 @@ export const shipment = pgTable(
     courierChargePaise: integer('courier_charge_paise'),
     packingCostPaise: integer('packing_cost_paise'), // packing snapshot when booked or packed
     boxPresetId: text('box_preset_id'),
+    /** COD or prepaid as booked (the merchant can switch it from the order's own); null on older rows. */
+    paymentMode: text('payment_mode', { enum: ['cod', 'prepaid'] }),
+    /** What the courier collects at the door, as booked; 0 for prepaid, null on older rows. */
+    codAmountPaise: integer('cod_amount_paise'),
+    /** Where the courier collects it, as booked: its pickup location name, else the address name. */
+    pickupLocationName: text('pickup_location_name'),
+    /** The courier service booked ("Surface", "Express", an aggregator's carrier), when picked. */
+    serviceLabel: text('service_label'),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -1565,6 +1573,8 @@ export const shipmentPickup = pgTable(
     timeFrom: text('time_from').notNull(),
     timeTo: text('time_to'),
     expectedPackageCount: integer('expected_package_count').notNull().default(0),
+    /** The courier pickup location (warehouse) asked to be collected from; null on older rows. */
+    pickupLocationName: text('pickup_location_name'),
     status: text('status', {
       enum: ['requested', 'scheduled', 'completed', 'failed'],
     })

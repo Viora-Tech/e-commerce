@@ -343,7 +343,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'orders.abandonedStats':
     'Abandoned checkouts in a period: how many, their value, and how many were recovered.',
   'orders.addNote': "Add a staff note to the order's timeline.",
-  'orders.cancelShipment': 'Cancel a booked shipment with its courier.',
+  'orders.cancelShipment':
+    'Cancel a booked shipment with its courier, before it is collected or put on a manifest.',
   'orders.collectPayment': 'Record money collected outside a gateway; the order becomes paid.',
   'orders.convertDraft':
     'Place a draft as a real order: holds stock and records a pending payment for the chosen method.',
@@ -494,10 +495,12 @@ export const ACTION_DOCS: Record<string, string> = {
     "Connection state for the app's pages: account, property, last sync, refresh cooldown.",
   'shipments.counts':
     'Rows per Shipments tab, plus "booked today" and "need attention" for the summary line.',
+  'shipments.get':
+    'One booked shipment for its details view: courier and service, AWB, status, COD or prepaid, package, pickup, the label link the admin may open, and whether it can still be cancelled (and why not).',
   'shipments.indiaPostLabel':
     'Our own India Post address label (Code 128 article number), as a PDF.',
   'shipments.label':
-    "A label the courier handed back as a PDF (Blue Dart, DTDC), kept in the store's private storage at booking.",
+    "A shipment's label PDF for the admin's /api/shipments/<id>/label route: the copy kept in the store's private storage (Blue Dart, DTDC, DHL Express, FedEx), else the courier's own, fetched server-side…",
   'shipments.prepare':
     "Create shipment, step 1: each order's parcels (items, weight, box, pickup place, COD) and the store's couriers, boxes and pickup places.",
   'shipments.quote':

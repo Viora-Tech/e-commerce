@@ -44,8 +44,8 @@ import {
 import {
   bookShipment,
   cancelStoreShipment,
-  getShipmentForOrder,
   refreshShipmentTracking,
+  shipmentDetailsForOrder,
 } from '../services/shipping.service'
 import { assertNotImported } from './imported-order'
 import { draftAndAbandonedRoutes } from './order-drafts'
@@ -119,8 +119,9 @@ export const ordersRouter = {
     .handler(async ({ context, input }) => {
       const o = await getOrder(context.tx, input.id)
       if (!o) return null
+      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
       const [shipment, balance, customerOrders, customerOrderNumber] = await Promise.all([
-        getShipmentForOrder(context.tx, input.id),
+        shipmentDetailsForOrder(context.tx, shipping, input.id),
         orderBalance(context.tx, context.scope.storeId, input.id, o.totalPaise),
         customerOrderCount(context.tx, o.customerId),
         customerOrderIndex(context.tx, o.customerId, o.placedAt),
@@ -274,6 +275,8 @@ export const ordersRouter = {
         providerId: z.string().min(1).optional(),
         /** The courier's service picked in the rate table (Delhivery Express, a Shiprocket carrier). */
         serviceId: z.string().min(1).max(64).optional(),
+        /** That service's name as the rate table showed it, kept for the shipment details view. */
+        serviceLabel: z.string().trim().min(1).max(80).optional(),
         /** The article number from the counter receipt, for a courier booked at its counter (India Post). */
         trackingNumber: z.string().trim().min(1).max(40).optional(),
         fulfillmentOrderId: z.guid().optional(),
@@ -322,7 +325,10 @@ export const ordersRouter = {
       )
     }),
 
-  /** Cancel a booked shipment with its courier. */
+  /**
+   * Cancel a booked shipment with its courier, before it is collected or put on a manifest. The
+   * order timeline records who did it, and the parcel can be booked again.
+   */
   cancelShipment: can(permissions.ORDERS_FULFIL)
     .input(z.object({ shipmentId: z.uuid() }))
     .handler(async ({ context, input }) => {
@@ -333,6 +339,7 @@ export const ordersRouter = {
         shipping,
         settingsSecret(),
         input.shipmentId,
+        context.session.user.email,
       )
     }),
 

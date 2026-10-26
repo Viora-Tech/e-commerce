@@ -45,12 +45,22 @@ describe('courierInitials', () => {
 })
 
 describe('pickup plan', () => {
-  test('starts tomorrow at 14:00 and is ready', () => {
+  test('before noon in India it starts today at 14:00 and is ready', () => {
+    // 11:30 IST.
     const now = new Date('2026-10-15T06:00:00Z')
     const plan = startingPickupPlan(now)
-    expect(plan.date).toBe(pickupDayKey(1, now))
-    expect(plan.date).toBe('2026-10-16')
+    expect(plan.date).toBe(pickupDayKey(0, now))
+    expect(plan.date).toBe('2026-10-15')
+    expect(plan.timeFrom).toBe('14:00')
     expect(pickupReady(plan)).toBe(true)
+  })
+
+  test('from noon in India it starts tomorrow', () => {
+    // 12:00 IST exactly, and 23:50 IST.
+    expect(startingPickupPlan(new Date('2026-10-15T06:30:00Z')).date).toBe('2026-10-16')
+    expect(startingPickupPlan(new Date('2026-10-15T18:20:00Z')).date).toBe('2026-10-16')
+    // 00:10 IST on the 16th (still the 15th in UTC): before noon, so today, the 16th.
+    expect(startingPickupPlan(new Date('2026-10-15T18:40:00Z')).date).toBe('2026-10-16')
   })
 
   test('a malformed time is not ready', () => {
