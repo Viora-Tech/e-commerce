@@ -74,6 +74,7 @@ export default [
       delete: 'हटाएं',
       exportSelected: 'एक्सपोर्ट',
       addToCollection: 'कलेक्शन में जोड़ें',
+      more: 'और बल्क एक्शन',
       collection: {
         title: 'कलेक्शन में जोड़ें',
         label: 'कलेक्शन',

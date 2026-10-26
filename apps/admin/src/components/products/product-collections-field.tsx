@@ -11,6 +11,7 @@ import {
 } from '@commerce/ui/shadcn/select'
 import { productCollectionsContent } from '@/data/collections'
 import { useCopy } from '@/hooks/use-copy'
+import { withCollection } from './collection-pick'
 
 export type CollectionOption = { id: string; title: string }
 
@@ -31,10 +32,11 @@ export default function ProductCollectionsField({
   const copy = useCopy(productCollectionsContent)
 
   // Event handlers
+  /* Base UI also calls this with `null` when its item list changes (the picked collection
+     leaves `available`); only a real option may join the list (#804). */
   const handleAdd = (id: unknown) => {
-    const next = String(id)
-    if (!next || value.includes(next)) return
-    onChange([...value, next])
+    const next = withCollection(value, options, id)
+    if (next !== value) onChange(next)
   }
 
   const handleRemove = (id: string) => onChange(value.filter((v) => v !== id))
@@ -72,7 +74,7 @@ export default function ProductCollectionsField({
         </ul>
       ) : null}
       {available.length > 0 ? (
-        <Select value="" onValueChange={handleAdd}>
+        <Select<string> value={null} onValueChange={handleAdd}>
           <SelectTrigger id="product-collections" className="w-full">
             <SelectValue placeholder={copy.placeholder} />
           </SelectTrigger>
