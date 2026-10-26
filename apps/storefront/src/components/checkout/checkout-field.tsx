@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
-import { CK_INPUT, CK_INPUT_HEIGHT, CK_LABEL } from '@/lib/checkout-classes'
+import { CK_INPUT, CK_INPUT_FILLED, CK_INPUT_HEIGHT, CK_LABEL } from '@/lib/checkout-classes'
 
 type CheckoutFieldProps = {
   id: string
@@ -23,6 +23,8 @@ type CheckoutFieldProps = {
   placeholder?: string
   maxLength?: number
   readOnly?: boolean
+  /** Filled in by the checkout (City from the PIN code): soft grey with a brief highlight. */
+  filled?: boolean
   /** A control that replaces the plain input (the phone picker); it gets the field id and describes itself with the note. */
   control?: ReactNode
 }
@@ -48,6 +50,7 @@ export default function CheckoutField({
   placeholder,
   maxLength,
   readOnly,
+  filled = false,
   control,
 }: CheckoutFieldProps) {
   // Render logic
@@ -72,7 +75,7 @@ export default function CheckoutField({
           <input
             id={id}
             name={id}
-            className={`${CK_INPUT} ${CK_INPUT_HEIGHT} ${prefix ? 'pl-[4.25rem]!' : ''} ${trailing ? 'pr-10!' : ''}`}
+            className={`${filled ? CK_INPUT_FILLED : CK_INPUT} ${CK_INPUT_HEIGHT} ${prefix ? 'pl-[4.25rem]!' : ''} ${trailing ? 'pr-10!' : ''}`}
             type={type}
             inputMode={inputMode}
             required={required}

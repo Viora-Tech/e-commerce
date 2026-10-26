@@ -23,8 +23,8 @@ export default function SummaryLine({
   preorder = false,
 }: SummaryLineProps) {
   return (
-    <li className="flex items-center gap-4">
-      <div className="relative size-14 shrink-0">
+    <li className="flex items-center gap-3 lg:gap-3.5">
+      <div className="relative size-13 shrink-0 lg:size-16">
         <div className="absolute inset-0 overflow-hidden rounded-ck border border-ck-summary-line bg-ck-bg">
           {imageUrl ? (
             // biome-ignore lint/performance/noImgElement: cart thumbnails come pre-sized from the media pipeline.
@@ -38,14 +38,17 @@ export default function SummaryLine({
             </span>
           )}
         </div>
-        {quantity > 1 ? (
-          <span className="absolute -top-2 -right-2 flex min-w-5 items-center justify-center rounded-full bg-ck-summary-ink px-1.5 text-[0.6875rem] leading-5 font-semibold text-ck-summary tabular-nums">
-            {quantity}
-          </span>
-        ) : null}
+        <span
+          aria-hidden="true"
+          className="absolute -top-[0.4375rem] -right-[0.4375rem] flex h-5 min-w-5 items-center justify-center rounded-[0.375rem] bg-ck-summary-ink px-1 font-mono text-[0.6875rem] font-medium text-ck-summary tabular-nums"
+        >
+          {quantity}
+        </span>
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <p className="line-clamp-2 text-[0.9375rem] leading-snug font-medium">{title}</p>
+        <p className="line-clamp-2 text-[0.8125rem] leading-snug font-semibold lg:text-[0.875rem]">
+          {title}
+        </p>
         <p className="flex flex-wrap items-center gap-x-2 text-[0.8125rem] text-ck-summary-muted">
           {variant ? <span>{variant}</span> : null}
           <span className="sr-only">{content.quantity(quantity)}</span>
@@ -56,7 +59,9 @@ export default function SummaryLine({
           ) : null}
         </p>
       </div>
-      <p className="shrink-0 text-[0.9375rem] font-medium tabular-nums">{formatPaise(linePaise)}</p>
+      <p className="shrink-0 text-[0.8125rem] font-bold tabular-nums lg:text-[0.875rem]">
+        {formatPaise(linePaise)}
+      </p>
     </li>
   )
 }

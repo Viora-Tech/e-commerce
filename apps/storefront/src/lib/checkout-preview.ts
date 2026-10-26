@@ -91,7 +91,12 @@ export function methodView(m: CheckoutMethod): MethodView {
   if (m.id === 'cod')
     return { title: content.methods.cod, hint: content.methods.codHint, icon: 'cash', brand: null }
   if (m.id === 'decentro')
-    return { title: content.methods.upi, hint: content.methods.upiHint, icon: 'phone', brand: null }
+    return {
+      title: content.methods.upi,
+      hint: content.methods.upiHint,
+      icon: 'phone',
+      brand: content.upiBrand,
+    }
   if (m.id === 'manual') {
     return {
       title: content.methods.manual,
@@ -218,6 +223,22 @@ export function deliveryLine(s: CheckoutShipping | null, checking: boolean): str
   const own = s?.rates.kind === 'rates' ? s.rates.options[0]?.dateRange : null
   const range = own ?? d.dateRange
   return range ? content.delivery.estimate(range) : null
+}
+
+/**
+ * The last day the order should arrive, for the green line under the PIN code
+ * ("Gurugram, Haryana · by Thu, 29 Oct"): the picked option's dates, else the courier's
+ * for this PIN code. A range ("Tue, 27 Oct - Thu, 29 Oct") gives its end.
+ */
+export function deliveryBy(
+  s: CheckoutShipping | null,
+  rate: CheckoutRate | undefined,
+): string | null {
+  const d = s?.delivery
+  if (!d?.ok || !d.serviceable || s?.rates.kind === 'none') return null
+  const range = rate?.dateRange ?? d.dateRange
+  if (!range) return null
+  return range.split(' - ').pop()?.trim() || null
 }
 
 /**

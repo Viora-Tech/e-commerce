@@ -16,8 +16,9 @@ type SummaryDisclosureProps = {
 const WIDE = '(min-width: 64rem)'
 
 /**
- * On a phone the order summary folds into a "Show order summary · ₹X" bar at the top, so
- * the form comes first; tapping it opens the summary in place. From `lg` up the summary
+ * On a phone the order summary folds into a "Show order summary ▾ · ₹X" card at the top
+ * (design: checkout-design Mobile), so the form comes first; tapping it opens the summary in
+ * place. From `lg` up the summary
  * is always open and the bar is gone. Height eases open, and not at all with reduced motion.
  */
 export default function SummaryDisclosure({
@@ -51,14 +52,13 @@ export default function SummaryDisclosure({
         aria-expanded={open}
         aria-controls={id}
         onClick={handleToggle}
-        className="-mx-5! flex min-h-14 items-center justify-between gap-3 border-y! border-ck-summary-line! bg-transparent! px-5 text-left text-[0.9375rem]! text-ck-summary-ink! outline-none focus-visible:[box-shadow:inset_0_0_0_3px_var(--ck-ring)] sm:-mx-8! sm:px-8 lg:hidden"
+        className="flex min-h-12 w-full items-center justify-between gap-3 rounded-[inherit] border-0! bg-transparent! px-4 py-3.5 text-left text-ck-summary-ink! outline-none focus-visible:[box-shadow:inset_0_0_0_3px_var(--ck-ring)] lg:hidden"
       >
-        <span className="flex items-center gap-2 font-medium">
-          <CheckoutIcon name="bag" className="size-[1.125rem]" />
+        <span className="flex items-center gap-2 text-[0.8125rem] font-semibold">
           {open ? content.hideSummary : content.showSummary}
           <CheckoutIcon
             name="chevron"
-            className={`size-4 transition-transform duration-200 motion-reduce:transition-none ${open ? 'rotate-180' : ''}`}
+            className={`size-3.5 transition-[rotate] duration-200 ease-out motion-reduce:transition-none ${open ? 'rotate-180' : ''}`}
           />
         </span>
         {updating ? (
@@ -67,7 +67,7 @@ export default function SummaryDisclosure({
             className="h-4 w-16 animate-pulse rounded bg-ck-summary-line motion-reduce:animate-none"
           />
         ) : (
-          <span className="text-[1.125rem] font-semibold tracking-[-0.01em] tabular-nums">
+          <span className="text-[1.0625rem] font-extrabold tracking-[-0.01em] tabular-nums">
             {totalLabel}
           </span>
         )}
@@ -75,10 +75,12 @@ export default function SummaryDisclosure({
       <div
         id={id}
         inert={!shown}
-        className={`grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none lg:grid-rows-[1fr] ${open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
+        className={`grid transition-[grid-template-rows] duration-250 ease-out motion-reduce:transition-none lg:grid-rows-[1fr] ${open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
       >
         <div className="min-h-0 overflow-hidden lg:overflow-visible">
-          <div className="pt-6 pb-7 lg:pt-0 lg:pb-0">{children}</div>
+          <div className="border-t border-ck-summary-line px-4 pt-3.5 pb-4 lg:border-0 lg:p-0">
+            {children}
+          </div>
         </div>
       </div>
     </div>

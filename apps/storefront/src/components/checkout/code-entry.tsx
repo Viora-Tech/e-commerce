@@ -18,6 +18,8 @@ type CodeEntryProps = {
   chips?: ReactNode
   /** Hide the entry (a code is already applied and only one is allowed). */
   hideEntry?: boolean
+  /** Start as the field rather than the one-line link (the discount code, per the design). */
+  defaultOpen?: boolean
   onCode: (code: string) => void
   onApply: () => void
 }
@@ -38,6 +40,7 @@ export default function CodeEntry({
   error,
   chips = null,
   hideEntry = false,
+  defaultOpen = false,
   onCode,
   onApply,
 }: CodeEntryProps) {
@@ -54,7 +57,7 @@ export default function CodeEntry({
   }
 
   // Render logic
-  const showField = open || code !== '' || error !== null
+  const showField = defaultOpen || open || code !== '' || error !== null
 
   return (
     <div className="flex flex-col gap-2.5">
@@ -67,7 +70,7 @@ export default function CodeEntry({
           <div className="flex gap-2">
             <input
               id={id}
-              className={`${CK_INPUT} h-11 uppercase placeholder:normal-case`}
+              className={`${CK_INPUT} h-10 text-[0.875rem]! uppercase placeholder:normal-case max-lg:h-11 max-lg:text-[1rem]!`}
               value={code}
               onChange={(e) => onCode(e.target.value.toUpperCase())}
               onKeyDown={handleKeyDown}
@@ -85,7 +88,7 @@ export default function CodeEntry({
               type="button"
               onClick={onApply}
               disabled={pending || !code.trim()}
-              className="inline-flex h-11 shrink-0 items-center rounded-ck-button! border! border-ck-summary-line! bg-ck-summary-line! px-4 text-[0.875rem]! font-semibold! text-ck-summary-ink! outline-none transition-opacity duration-150 focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)] disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none"
+              className="inline-flex h-10 shrink-0 items-center rounded-ck-button! border! border-ck-summary-line! bg-ck-summary-line! px-3.5 text-[0.8125rem]! font-semibold! text-ck-summary-ink! outline-none transition-[opacity,scale] duration-(--duration-press) ease-out focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)] active:scale-(--motion-press-scale) disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 max-lg:h-11"
             >
               {pending ? (
                 <CheckoutIcon

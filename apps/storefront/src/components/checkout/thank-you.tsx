@@ -4,8 +4,8 @@ import { OPEN_ATTEMPT_STATUSES } from '@commerce/core/order-status'
 import type { address, order, orderLine, payment } from '@commerce/db'
 import type { CheckoutSession } from '@commerce/payments'
 import type { ReactNode } from 'react'
+import CheckoutPageShell from '@/components/checkout/checkout-page-shell'
 import CheckoutParcels from '@/components/checkout/checkout-parcels'
-import CheckoutStepsShell from '@/components/checkout/checkout-steps-shell'
 import OrderDetails from '@/components/checkout/order-details'
 import OrderProgress from '@/components/checkout/order-progress'
 import OrderSummary from '@/components/checkout/order-summary'
@@ -145,7 +145,7 @@ export default function ThankYouTemplate({
   const trackLink = settled && !progress.end ? track : null
 
   return (
-    <CheckoutStepsShell
+    <CheckoutPageShell
       look={look}
       backHref="/"
       backLabel={content.continueShopping}
@@ -235,6 +235,6 @@ export default function ThankYouTemplate({
           ) : null}
         </ThankYouCard>
       </div>
-    </CheckoutStepsShell>
+    </CheckoutPageShell>
   )
 }

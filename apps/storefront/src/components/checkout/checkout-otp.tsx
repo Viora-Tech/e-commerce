@@ -22,8 +22,8 @@ import {
   requestOtp,
   verifyOtp,
 } from '@/lib/checkout-otp'
-import { displayPhone } from '@/lib/checkout-recap'
 import { fieldId } from '@/lib/checkout-validation'
+import { displayPhone } from '@/lib/display-phone'
 import { requestPhoneCodeAction, verifyPhoneCodeAction } from '@/lib/privacy-actions'
 import { SEND_CODE_ID } from '@/lib/use-checkout-form'
 
