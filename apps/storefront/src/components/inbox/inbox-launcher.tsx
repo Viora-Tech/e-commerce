@@ -2,6 +2,7 @@
 
 import type { InboxWidget } from '@commerce/core/inbox'
 import dynamic from 'next/dynamic'
+import { usePathname } from 'next/navigation'
 import { type CSSProperties, useEffect, useRef, useState } from 'react'
 import { inboxChatContent as copy } from '@/data/inbox'
 import { CHAT_GUARD, chatFontFamily } from '@/lib/inbox-guard'
@@ -66,6 +67,7 @@ export default function InboxLauncher({ widget, storeName, logoUrl }: InboxLaunc
   const [lift, setLift] = useState(0)
   const [covered, setCovered] = useState(false)
   const buttonRef = useRef<HTMLButtonElement>(null)
+  const pathname = usePathname()
 
   useEffect(() => {
     let frame = 0
@@ -116,6 +118,9 @@ export default function InboxLauncher({ widget, storeName, logoUrl }: InboxLaunc
   // Render logic
   const label = widget.activatorLabel || (widget.activatorIcon === 'none' ? copy.launcher : '')
   const pill = Boolean(label) && !open
+  // On a phone the checkout's form and sticky Pay bar fill the screen; the button would cover a
+  // field, so it waits off checkout pages there (desktop keeps it).
+  const checkout = pathname.includes('/checkout')
   const side =
     widget.horizontal === 'left'
       ? 'left-4'
@@ -147,7 +152,7 @@ export default function InboxLauncher({ widget, storeName, logoUrl }: InboxLaunc
         ref={buttonRef}
         {...{ [CHAT_ROOT_ATTR]: '' }}
         style={style}
-        className={`${CHAT_GUARD} fixed z-[999]! flex h-14 touch-manipulation items-center justify-center gap-2 rounded-full font-medium! shadow-[0_0_0_1px_rgb(0_0_0/0.06),0_8px_24px_rgb(0_0_0/0.16)] transition-[scale,opacity]! duration-(--duration-press)! ease-out! active:scale-(--motion-press-scale)! ${pill ? 'px-5' : 'w-14'} ${open ? 'max-sm:hidden!' : ''} ${covered && !open ? 'invisible! opacity-0!' : ''} ${side}`}
+        className={`${CHAT_GUARD} fixed z-[999]! flex h-14 touch-manipulation items-center justify-center gap-2 rounded-full font-medium! shadow-[0_0_0_1px_rgb(0_0_0/0.06),0_8px_24px_rgb(0_0_0/0.16)] transition-[scale,opacity]! duration-(--duration-press)! ease-out! active:scale-(--motion-press-scale)! ${pill ? 'px-5' : 'w-14'} ${open || checkout ? 'max-sm:hidden!' : ''} ${covered && !open ? 'invisible! opacity-0!' : ''} ${side}`}
       >
         {pill ? (
           <>
