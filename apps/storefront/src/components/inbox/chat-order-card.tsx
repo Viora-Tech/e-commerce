@@ -20,10 +20,10 @@ const card =
   'flex flex-col gap-3.5 rounded-[0.875rem] bg-[var(--color-bg,Canvas)] p-3.5 ring-1 ring-[color-mix(in_srgb,currentColor_8%,transparent)]'
 
 const button =
-  'flex min-h-11 flex-1 touch-manipulation items-center justify-center rounded-[0.625rem] px-3 text-[0.875rem] font-semibold transition-[background-color,scale] duration-(--duration-press) ease-out active:scale-(--motion-press-scale)'
+  'flex min-h-11 flex-1 touch-manipulation items-center justify-center rounded-[0.625rem] px-3 text-[0.875rem]! font-semibold! transition-[background-color,scale] duration-(--duration-press) ease-out active:scale-(--motion-press-scale)'
 
 const chip =
-  'min-h-11 touch-manipulation rounded-full px-3.5 text-[0.8125rem] shadow-[0_0_0_1px_color-mix(in_srgb,currentColor_18%,transparent)] transition-[background-color,scale] duration-(--duration-press) ease-out hover:bg-[color-mix(in_srgb,currentColor_6%,transparent)] active:scale-(--motion-press-scale)'
+  'min-h-11 touch-manipulation rounded-full px-3.5 text-[0.8125rem]! shadow-[0_0_0_1px_color-mix(in_srgb,currentColor_18%,transparent)] transition-[background-color,scale] duration-(--duration-press) ease-out hover:bg-[color-mix(in_srgb,currentColor_6%,transparent)] active:scale-(--motion-press-scale)'
 
 const PILL_GOOD =
   'bg-[color-mix(in_srgb,var(--color-success,currentColor)_14%,transparent)] text-[var(--color-success,currentColor)]'
@@ -85,11 +85,11 @@ export default function ChatOrderCard({ order, onAsk }: ChatOrderCardProps) {
       <article className={card} aria-label={copy.order(order.number)}>
         <header className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 flex-col gap-0.5">
-            <h3 className="text-[0.9375rem] font-semibold">{copy.order(order.number)}</h3>
-            <p className="text-[0.8125rem] opacity-70">{subline(order)}</p>
+            <h3 className="text-[0.9375rem]! font-semibold!">{copy.order(order.number)}</h3>
+            <p className="text-[0.8125rem]! opacity-70">{subline(order)}</p>
           </div>
           <span
-            className={`shrink-0 rounded-full px-2.5 py-1 text-[0.75rem] font-semibold ${PILL[order.status]}`}
+            className={`shrink-0 rounded-full px-2.5 py-1 text-[0.75rem]! font-semibold! ${PILL[order.status]}`}
           >
             {chatOrderStatusLabels[order.status]}
           </span>
@@ -102,14 +102,14 @@ export default function ChatOrderCard({ order, onAsk }: ChatOrderCardProps) {
               <img
                 src={item.imageUrl}
                 alt=""
-                className="size-12 shrink-0 rounded-lg object-cover"
+                className="size-12! shrink-0 rounded-lg object-cover!"
               />
             ) : (
               <span className="size-12 shrink-0 rounded-lg bg-[color-mix(in_srgb,currentColor_8%,transparent)]" />
             )}
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span className="truncate text-[0.875rem] font-medium">{item.title}</span>
-              <span className="text-[0.8125rem] opacity-70">
+              <span className="truncate text-[0.875rem]! font-medium!">{item.title}</span>
+              <span className="text-[0.8125rem]! opacity-70">
                 {[item.variant, copy.qty(item.quantity)].filter(Boolean).join(' · ')}
                 {order.moreItems > 0 ? ` · ${copy.more(order.moreItems)}` : ''}
               </span>
@@ -126,7 +126,7 @@ export default function ChatOrderCard({ order, onAsk }: ChatOrderCardProps) {
             }}
           />
         ) : (
-          <p className="text-[0.875rem] leading-snug">{ended}</p>
+          <p className="text-[0.875rem]! leading-snug!">{ended}</p>
         )}
 
         <div className="flex gap-2">

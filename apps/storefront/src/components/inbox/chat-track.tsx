@@ -19,13 +19,13 @@ type ChatTrackProps = {
 const copy = chatTrackContent
 
 const bubbleMine =
-  'max-w-[85%] self-end rounded-2xl rounded-br-[0.25rem] bg-(--chat-accent)! px-3.5 py-2 text-[0.9375rem] leading-snug text-(--chat-on-accent)!'
+  'max-w-[85%] self-end rounded-2xl rounded-br-[0.25rem] bg-(--chat-accent)! px-3.5 py-2 text-[0.9375rem]! leading-snug! text-(--chat-on-accent)!'
 
 const bubbleTheirs =
-  'max-w-[85%] self-start rounded-2xl rounded-bl-[0.25rem] bg-[color-mix(in_srgb,currentColor_6%,transparent)] px-3.5 py-2 text-[0.9375rem] leading-snug'
+  'max-w-[85%] self-start rounded-2xl rounded-bl-[0.25rem] bg-[color-mix(in_srgb,currentColor_6%,transparent)] px-3.5 py-2 text-[0.9375rem]! leading-snug!'
 
 const textButton =
-  'min-h-11 touch-manipulation self-start px-1 text-[0.8125rem] font-medium underline underline-offset-2'
+  'min-h-11 touch-manipulation self-start px-1 text-[0.8125rem]! font-medium! underline underline-offset-2'
 
 /**
  * "Track my order" inside the chat thread: the shopper's ask, the store's reply, then a guest's
@@ -72,7 +72,7 @@ export default function ChatTrack({ signedIn, onAsk }: ChatTrackProps) {
     <div className="flex flex-col gap-2.5">
       <p className={bubbleMine}>{copy.ask}</p>
       <div className="flex flex-col gap-1">
-        <span className="flex items-center gap-1 text-[0.6875rem] font-medium opacity-60">
+        <span className="flex items-center gap-1 text-[0.6875rem]! font-medium! opacity-60">
           <ChatIcon kind="sparkle" className="size-3" />
           {inboxChatContent.assistant}
         </span>
@@ -80,7 +80,7 @@ export default function ChatTrack({ signedIn, onAsk }: ChatTrackProps) {
       </div>
       <div aria-live="polite" className="flex flex-col gap-2.5">
         {recent === undefined ? (
-          <p className="text-[0.8125rem] opacity-60">{copy.recent.loading}</p>
+          <p className="text-[0.8125rem]! opacity-60">{copy.recent.loading}</p>
         ) : null}
         {recent && recent.length === 0 && !picked ? (
           <p className={bubbleTheirs}>{copy.recent.none}</p>

@@ -46,14 +46,14 @@ export default function ChatProductCard({ product, compact }: ChatProductCardPro
         <img
           src={product.imageUrl}
           alt=""
-          className={`aspect-square w-full rounded-[0.625rem] object-cover ${placeholder}`}
+          className={`aspect-square! h-auto! w-full! rounded-[0.625rem] object-cover! ${placeholder}`}
         />
       ) : (
         <span className={`block aspect-square w-full rounded-[0.625rem] ${placeholder}`} />
       )}
       <span className="flex min-w-0 flex-col gap-0.5 px-1 pb-1">
-        <span className="truncate text-[0.8125rem] font-medium">{product.title}</span>
-        {price ? <span className="text-[0.75rem] opacity-60 tabular-nums">{price}</span> : null}
+        <span className="truncate text-[0.8125rem]! font-medium!">{product.title}</span>
+        {price ? <span className="text-[0.75rem]! opacity-60 tabular-nums">{price}</span> : null}
       </span>
     </a>
   ) : (
@@ -64,28 +64,28 @@ export default function ChatProductCard({ product, compact }: ChatProductCardPro
           <img
             src={product.imageUrl}
             alt=""
-            className={`size-14 rounded-[0.625rem] object-cover ${placeholder}`}
+            className={`size-14! rounded-[0.625rem] object-cover! ${placeholder}`}
           />
         ) : (
           <span className={`block size-14 rounded-[0.625rem] ${placeholder}`} />
         )}
       </a>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <a href={href} className="truncate text-[0.875rem] font-medium">
+        <a href={href} className="truncate text-[0.875rem]! font-medium!">
           {product.title}
         </a>
-        {price ? <span className="text-[0.8125rem] opacity-60 tabular-nums">{price}</span> : null}
+        {price ? <span className="text-[0.8125rem]! opacity-60 tabular-nums">{price}</span> : null}
         {product.available ? (
           <button
             type="button"
             onClick={handleAdd}
             disabled={state !== 'idle'}
-            className="w-fit touch-manipulation rounded-full bg-(--chat-accent)! px-3 py-1 text-[0.75rem] font-medium text-(--chat-on-accent)! transition-[scale,opacity] duration-(--duration-press) ease-out active:scale-(--motion-press-scale) disabled:opacity-60"
+            className="w-fit touch-manipulation rounded-full bg-(--chat-accent)! px-3 py-1 text-[0.75rem]! font-medium! text-(--chat-on-accent)! transition-[scale,opacity] duration-(--duration-press) ease-out active:scale-(--motion-press-scale) disabled:opacity-60"
           >
             {state === 'added' ? copy.card.added : copy.card.addToCart}
           </button>
         ) : (
-          <span className="text-[0.75rem] opacity-60">{copy.card.soldOut}</span>
+          <span className="text-[0.75rem]! opacity-60">{copy.card.soldOut}</span>
         )}
       </div>
     </div>

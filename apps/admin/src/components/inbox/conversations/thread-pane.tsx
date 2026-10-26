@@ -31,9 +31,13 @@ type ThreadPaneProps = {
   /** AI is set up and the assistant is on: show suggested replies and the chat summary. */
   aiHelp: boolean
   nameOfMember: (userId: string) => string
+  /** A close or reopen made anywhere on the page (row circle, header, Undo), applied here at once. */
+  statusChange: { seq: number; id: string; status: 'open' | 'closed' } | null
   onBack: () => void
   /** The list should refresh (status or assignment changed here). */
   onChanged: () => void
+  /** Close or reopen this conversation (optimistic, with Undo); the page owns it. */
+  onSetStatus: (next: 'open' | 'closed', prev: 'open' | 'closed') => void
 }
 
 /** How long a "Typing…" from the shopper stays up without another one. */
@@ -54,8 +58,10 @@ export default function ThreadPane({
   quickReplies,
   aiHelp,
   nameOfMember,
+  statusChange,
   onBack,
   onChanged,
+  onSetStatus,
 }: ThreadPaneProps) {
   // Hooks
   const copy = useCopy(inboxConversationsContent)
@@ -109,6 +115,12 @@ export default function ThreadPane({
       }
       if (message.sender === 'shopper') {
         setTypingAt(0)
+        // A shopper's message reopens a closed chat (the server already did).
+        setThread((t) =>
+          t?.conversation.status === 'closed'
+            ? { ...t, conversation: { ...t.conversation, status: 'open' } }
+            : t,
+        )
         api.inbox.markSeen({ id: conversationId }).catch(() => undefined)
       }
     } else if (event.type === 'typing' && event.sender === 'shopper') {
@@ -120,6 +132,16 @@ export default function ThreadPane({
       )
     }
   }, [live, conversationId])
+
+  useEffect(() => {
+    if (!statusChange || statusChange.id !== conversationId) return
+    const status = statusChange.status
+    setThread((t) =>
+      t && t.conversation.status !== 'blocked'
+        ? { ...t, conversation: { ...t.conversation, status } }
+        : t,
+    )
+  }, [statusChange, conversationId])
 
   useEffect(() => {
     if (thread?.messages.length) bottomRef.current?.scrollIntoView({ block: 'end' })
@@ -258,7 +280,11 @@ export default function ThreadPane({
           nameOfMember={nameOfMember}
           onBack={onBack}
           onAssign={handleAssign}
-          onStatus={(s) => handleStatus(s).catch(() => undefined)}
+          onStatus={(s) =>
+            c.status === 'blocked'
+              ? handleStatus(s).catch(() => undefined)
+              : onSetStatus(s, c.status)
+          }
           onBlock={() => setBlocking(true)}
           onCopyLink={handleCopyLink}
           onCustomer={() => setPanelOpen(true)}

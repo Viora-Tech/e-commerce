@@ -4,12 +4,13 @@ import type { InboxWidget } from '@commerce/core/inbox'
 import dynamic from 'next/dynamic'
 import { type CSSProperties, useEffect, useState } from 'react'
 import { inboxChatContent as copy } from '@/data/inbox'
+import { CHAT_GUARD, chatFontFamily } from '@/lib/inbox-guard'
 import ChatIcon from './chat-icon'
 
 type InboxLauncherProps = {
   widget: InboxWidget
   storeName: string
-  /** The theme's logo, for the chat header's avatar. */
+  /** The store's logo for the chat header's avatar (`lib/inbox-logo.ts`). */
   logoUrl?: string | null | undefined
 }
 
@@ -69,7 +70,7 @@ export default function InboxLauncher({ widget, storeName, logoUrl }: InboxLaunc
   const style = {
     bottom: `calc(${BOTTOM[widget.vertical]} + env(safe-area-inset-bottom))`,
     fontSize: `${widget.activatorFontSize / 16}rem`,
-    ...(widget.inheritFont ? { fontFamily: 'var(--font-body, inherit)' } : {}),
+    fontFamily: chatFontFamily(widget.inheritFont),
     ...(widget.invertActivator
       ? {
           background: widget.textColour || 'var(--color-bg, Canvas)',
@@ -91,7 +92,7 @@ export default function InboxLauncher({ widget, storeName, logoUrl }: InboxLaunc
         aria-expanded={open}
         onClick={handleToggle}
         style={style}
-        className={`fixed z-40 flex h-14 touch-manipulation items-center justify-center gap-2 rounded-full font-medium shadow-[0_0_0_1px_rgb(0_0_0/0.06),0_8px_24px_rgb(0_0_0/0.16)] transition-[scale,opacity] duration-(--duration-press) ease-out active:scale-(--motion-press-scale) ${pill ? 'px-5' : 'w-14'} ${open ? 'max-sm:hidden' : ''} ${side}`}
+        className={`${CHAT_GUARD} fixed z-40 flex h-14 touch-manipulation items-center justify-center gap-2 rounded-full font-medium! shadow-[0_0_0_1px_rgb(0_0_0/0.06),0_8px_24px_rgb(0_0_0/0.16)] transition-[scale,opacity] duration-(--duration-press) ease-out active:scale-(--motion-press-scale) ${pill ? 'px-5' : 'w-14'} ${open ? 'max-sm:hidden' : ''} ${side}`}
       >
         {pill ? (
           <>
@@ -115,7 +116,7 @@ export default function InboxLauncher({ widget, storeName, logoUrl }: InboxLaunc
           </span>
         )}
         {unread > 0 && !open ? (
-          <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--color-bg,Canvas)] px-1.5 text-[0.6875rem] font-semibold text-[var(--color-ink,CanvasText)] tabular-nums shadow-[0_0_0_1px_rgb(0_0_0/0.08)]">
+          <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--color-bg,Canvas)] px-1.5 text-[0.6875rem]! font-semibold! text-[var(--color-ink,CanvasText)] tabular-nums shadow-[0_0_0_1px_rgb(0_0_0/0.08)]">
             {unread}
           </span>
         ) : null}

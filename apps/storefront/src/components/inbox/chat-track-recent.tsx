@@ -28,14 +28,14 @@ export default function ChatTrackRecent({ orders, onPick }: ChatTrackRecentProps
               <img
                 src={o.firstItem.imageUrl}
                 alt=""
-                className="size-10 shrink-0 rounded-lg object-cover"
+                className="size-10! shrink-0 rounded-lg object-cover!"
               />
             ) : (
               <span className="size-10 shrink-0 rounded-lg bg-[color-mix(in_srgb,currentColor_8%,transparent)]" />
             )}
             <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span className="text-[0.875rem] font-semibold">{copy.card.order(o.number)}</span>
-              <span className="truncate text-[0.8125rem] opacity-70">
+              <span className="text-[0.875rem]! font-semibold!">{copy.card.order(o.number)}</span>
+              <span className="truncate text-[0.8125rem]! opacity-70">
                 {formatInZone(
                   o.placedAt,
                   { day: 'numeric', month: 'short' },
@@ -44,7 +44,7 @@ export default function ChatTrackRecent({ orders, onPick }: ChatTrackRecentProps
                 · {o.total}
               </span>
             </span>
-            <span className="shrink-0 text-[0.8125rem] font-medium opacity-80">
+            <span className="shrink-0 text-[0.8125rem]! font-medium! opacity-80">
               {chatOrderStatusLabels[o.status]}
             </span>
             <span aria-hidden="true" className="shrink-0 opacity-50">

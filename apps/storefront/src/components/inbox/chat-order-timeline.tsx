@@ -16,7 +16,7 @@ const DOT: Record<ChatTrackStep['state'], string> = {
 
 const LABEL: Record<ChatTrackStep['state'], string> = {
   done: '',
-  current: 'font-semibold',
+  current: 'font-semibold!',
   todo: 'opacity-55',
 }
 
@@ -35,7 +35,7 @@ export default function ChatOrderTimeline({ steps, details }: ChatOrderTimelineP
             className="relative flex gap-3 pb-3.5 last:pb-0"
           >
             <span aria-hidden="true" className="relative flex w-3 shrink-0 justify-center">
-              <span className={`mt-[0.3125rem] size-2.5 rounded-full ${DOT[s.state]}`} />
+              <span className={`mt-[0.3125rem]! size-2.5 rounded-full ${DOT[s.state]}`} />
               {next ? (
                 <span
                   className={`absolute top-[1.125rem] bottom-[-0.125rem] w-[0.125rem] rounded-full ${
@@ -47,12 +47,12 @@ export default function ChatOrderTimeline({ steps, details }: ChatOrderTimelineP
               ) : null}
             </span>
             <div className="flex min-w-0 flex-col gap-0.5">
-              <span className={`text-[0.875rem] leading-snug ${LABEL[s.state]}`}>
+              <span className={`text-[0.875rem]! leading-snug! ${LABEL[s.state]}`}>
                 {chatTrackSteps[s.key]}
               </span>
               {detail ? (
                 <span
-                  className={`text-[0.8125rem] leading-snug ${s.state === 'todo' ? 'opacity-55' : 'opacity-70'}`}
+                  className={`text-[0.8125rem]! leading-snug! ${s.state === 'todo' ? 'opacity-55' : 'opacity-70'}`}
                 >
                   {detail}
                 </span>

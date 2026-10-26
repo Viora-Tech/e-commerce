@@ -49,12 +49,14 @@ export default function ChatIntro({
   return (
     <div className="flex flex-col gap-5 pt-2">
       <div className="flex flex-col gap-1.5">
-        <h2 className="text-[1.375rem] leading-tight font-bold tracking-[-0.01em]">{copy.hello}</h2>
-        <p className="text-[0.875rem] leading-relaxed text-pretty opacity-65">
+        <h2 className="text-[1.375rem]! leading-tight! font-bold! tracking-[-0.01em]!">
+          {copy.hello}
+        </h2>
+        <p className="text-[0.875rem]! leading-relaxed! text-pretty opacity-65">
           {greeting || copy.greeting}
         </p>
         {awayMessage ? (
-          <p className="text-[0.8125rem] leading-relaxed text-pretty opacity-65">{awayMessage}</p>
+          <p className="text-[0.8125rem]! leading-relaxed! text-pretty opacity-65">{awayMessage}</p>
         ) : null}
       </div>
       <nav
@@ -72,8 +74,8 @@ export default function ChatIntro({
               <ChatIcon kind={row.icon} className="size-[1.125rem]" />
             </span>
             <span className="flex min-w-0 flex-1 flex-col">
-              <span className="text-[0.875rem] font-semibold">{row.title}</span>
-              <span className="truncate text-[0.75rem] opacity-60">{row.sub}</span>
+              <span className="text-[0.875rem]! font-semibold!">{row.title}</span>
+              <span className="truncate text-[0.75rem]! opacity-60">{row.sub}</span>
             </span>
             <ChatIcon kind="chevronRight" className="size-4 shrink-0 opacity-40" />
           </button>
@@ -81,7 +83,7 @@ export default function ChatIntro({
       </nav>
       {featured.length > 0 ? (
         <section className="flex flex-col gap-2">
-          <h3 className="text-[0.75rem] font-medium opacity-60">{copy.popular}</h3>
+          <h3 className="text-[0.75rem]! font-medium! opacity-60">{copy.popular}</h3>
           <div className="grid grid-cols-2 gap-2">
             {featured.map((p) => (
               <ChatProductCard key={p.id} product={p} compact />
