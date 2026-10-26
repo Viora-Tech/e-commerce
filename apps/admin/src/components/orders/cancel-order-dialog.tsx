@@ -33,9 +33,19 @@ type CancelOrderDialogProps = {
 /** Came from another platform (still imported, or taken over): its stock was counted there. */
 const wasImported = (o: OrderDetail) => Boolean(o.importedFrom || o.importMeta?.takenOver)
 
-/** The best refund the order allows: back to the original payment, else recorded by hand. */
-const defaultRoute = (options: RefundOptions): RefundRoute =>
-  options.refundablePaise <= 0 ? 'none' : options.original ? 'original' : 'manual'
+/** Paid outside any gateway (cash on delivery, recorded payments): nothing to send money back through. */
+const OFFLINE_PROVIDERS = new Set(['cod', 'manual'])
+
+/**
+ * The best refund the order allows: back to the original payment, else recorded by hand. Cash on
+ * delivery has no gateway to refund into, so it starts on "recorded by hand", which is what the
+ * merchant actually does.
+ */
+const defaultRoute = (options: RefundOptions): RefundRoute => {
+  if (options.refundablePaise <= 0) return 'none'
+  const offlineOnly = options.providers.every((p) => OFFLINE_PROVIDERS.has(p))
+  return options.original && !offlineOnly ? 'original' : 'manual'
+}
 
 /**
  * "Cancel order" (Shopify's dialog): a reason, restock (off by default for an imported order),
