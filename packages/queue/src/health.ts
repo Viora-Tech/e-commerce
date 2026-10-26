@@ -17,7 +17,7 @@ import type IORedis from 'ioredis'
  * The worker queues the platform console's Overview watches: the ones that carry store work a
  * merchant waits on (emails, apps, media, exports, AI, automations, pixels). Read-only counts.
  */
-export const WATCHED_QUEUES = [
+const WATCHED_QUEUES = [
   NOTIFICATIONS_QUEUE,
   APP_EVENTS_QUEUE,
   APP_JOBS_QUEUE,

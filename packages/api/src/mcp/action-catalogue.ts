@@ -192,7 +192,7 @@ const EXCLUDED_NAMESPACES: Record<string, string> = {
   onboarding: 'creating a new store (cross-store)',
   invitations: 'accepting an invitation to another store (cross-store)',
   bugReports: 'files issues with the platform team (internal)',
-  platform: 'the Koomerce staff console (cross-store, staff only)',
+  platform: 'the platform staff console (cross-store, staff only)',
 }
 
 /** Single procedures no client may see. */

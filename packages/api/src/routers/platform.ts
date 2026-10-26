@@ -35,7 +35,7 @@ function describe(input: Record<string, unknown>): string | null {
  * (`mcp/action-catalogue.ts`). Developer docs: Operations > Platform console.
  */
 export const platformRouter = {
-  /** Who is looking: the console's header and the guard check for its pages. */
+  // Who is looking: the console's header and the guard check for its pages.
   whoami: platformProcedure.handler(({ context }) => context.platform.actor),
 
   overview: platformProcedure.handler(async ({ context }) => {

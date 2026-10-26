@@ -1,0 +1,80 @@
+---
+title: Platform console
+---
+
+# Platform console
+
+`/platform` in the admin is the console for the people who run the platform (VIORA INDIA staff),
+separate from any merchant's store admin. Phase 1 is read-only: Overview, Stores (list and
+detail), Users and Audit log, plus a Reports nav item for bug reports.
+
+## Who gets in
+
+Everything below must hold, or the page and every `platform.*` procedure answer **404 / NOT_FOUND**
+(never 403, so the console cannot be discovered):
+
+1. A signed-in admin **cookie session**. Access tokens (`/api/v1`) and MCP clients never pass:
+   they carry `apiPrincipal`, and those hosts do not hand the router the owner connection.
+2. The email is on **`PLATFORM_ADMIN_EMAILS`** (comma-separated, case-insensitive). Blank or unset
+   lets nobody in. Set it in Dokploy on the admin app (it is in `x-app-env`).
+3. This session was **opened with a passkey** (the sign-in log, `member_sign_in.method =
+   'passkey'`, for the session id). The auth stack has no TOTP; a passkey is the second factor.
+   Staff add a passkey under Account → Sign-in & security, sign out, then sign in with it.
+4. The host passed `platformDb` (only `platformHost()` in `apps/admin/src/lib/api.ts` does: the
+   `/api/rpc` route and server renders).
+
+Pages call `requirePlatformStaff()` (`apps/admin/src/lib/platform-access.ts`), which asks the API's
+own guard (`platform.whoami`), so a page and the API can never disagree. The `(platform)` layout
+and every page call it.
+
+## Cross-store reads
+
+The console is the one place that reads across stores, the explicit exception to the
+sharding-readiness rule "no query joins across stores" (Architecture, section 3):
+
+- Queries live only in `packages/core/src/platform/` (`overview.ts`, `stores.ts`, `users.ts`,
+  `audit.ts`), as explicit SQL.
+- They run on the **owner connection** (`DATABASE_URL_OWNER`, `ownerDb()` in the admin, a pool of
+  2) inside `platformRead`, a `READ ONLY` transaction: a console query cannot write even by
+  mistake. `DATABASE_URL_OWNER` must be the superuser (as in production): tenant tables force RLS,
+  which only a superuser bypasses.
+- Integrations report **connected yes/no only**: the SQL returns the `enabled` list and the
+  provider ids (`jsonb_object_keys`) from `store.payments|shipping|notifications`; the settings
+  values (keys, secrets) never leave the database.
+- Store numbers leave test orders (`order.is_test`) and draft/cancelled orders out.
+
+## Audit log
+
+Every `platform.*` read writes one row to **`platform_access_log`** (migration 0175): actor id
+and email, action (`overview.read`, `stores.list`, `stores.detail`, `users.list`, `audit.list`,
+`reports.*`), the store looked into (`store_id_ref`) and the filter used (never row data). The
+table has no `store_id` and no grant to the app role: tenant requests can neither read nor forge
+it. Handlers log with `context.platform.audit(action, { storeId, target })`.
+
+The Audit log page reads that table and, read-only, `platform_audit_event` (store exports and
+deletions).
+
+## Overview sources
+
+| Figure | Source |
+|---|---|
+| Stores active / trial / paused | `store_plan.status` (`active` + `due` count as active) |
+| Orders and GMV today / 7 / 30 days | `order`, IST day, not test, `open` or `completed` |
+| Subscriptions and MRR | `store_plan` active or due, priced from `PLANS` (yearly ÷ 12, before GST) |
+| Failed payments | `plan_payment` due (overdue once its period started), `autopay_mandate` halted |
+| Outbox | `outbox_event` not dispatched; failing = attempts or last error |
+| Worker queues | BullMQ job counts (`queueHealth` in `@commerce/queue`) |
+| Open bug reports | GitHub search, issues labelled `test-server` (needs `GITHUB_ISSUES_TOKEN`) |
+
+## Adding a console page
+
+1. A core read in `packages/core/src/platform/`, through `platformRead`.
+2. A procedure on `platformProcedure` in `packages/api/src/routers/platform.ts` (or a sub-router
+   mounted there), calling `context.platform.audit(...)` before it returns.
+3. A page under `apps/admin/src/app/(platform)/platform/` that calls the procedure with
+   `platformCallOptions()`; a route in `routes.platform`; copy in `data/platform.ts`.
+4. Add the procedure to `SKIP` in `packages/api/test/cross-store-leak.test.ts` (it answers
+   NOT_FOUND there) and cover it in `packages/api/test/platform.test.ts`.
+
+The `platform` namespace is excluded from MCP (`EXCLUDED_NAMESPACES` in
+`mcp/action-catalogue.ts`), so no procedure under it is ever an MCP action or callable by a token.
