@@ -89,6 +89,16 @@ describe('rankRelated', () => {
     expect(out).toEqual(['first', 'second'])
   })
 
+  it('counts a matching vendor like a matching type, both beating tags alone', () => {
+    const out = rankRelated({ type: 'Pad', vendor: 'Waimers', tags: ['glass'] }, [
+      c('tag', { tags: ['glass'] }),
+      c('vendor', { vendor: 'waimers' }),
+      c('both', { type: 'pad', vendor: 'WAIMERS' }),
+      c('other-vendor', { vendor: 'Artisan' }),
+    ])
+    expect(out).toEqual(['both', 'vendor', 'tag'])
+  })
+
   it('does not match an empty type', () => {
     expect(rankRelated({ type: '', tags: [] }, [c('a', { type: '' })])).toEqual([])
   })

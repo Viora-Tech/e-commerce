@@ -2,8 +2,9 @@ import type { NewsletterState } from '@commerce/blocks/puck'
 import { resolveThemeVariantId } from '@commerce/core'
 import { addLineAction, cartCountAction } from '@/lib/cart-actions'
 import { submitContact } from '@/lib/contact-actions'
-import { renderRecommendations, renderStaticLiquidSection } from '@/lib/liquid-theme'
+import { renderStaticLiquidSection } from '@/lib/liquid-theme'
 import { subscribeAction } from '@/lib/newsletter-actions'
+import { recommendationsResponse } from '@/lib/recommendations-route'
 import { withEvlog } from '@/lib/request-log'
 import { inStore } from '@/lib/store-context'
 
@@ -99,20 +100,8 @@ export const POST = withEvlog(async (req: Request, { params }: Params) => {
 export const GET = withEvlog(async (req: Request, { params }: Params) => {
   const { storeId, action } = await params
   if (action === 'cart') return Response.json(await cartCountAction())
-  if (action === 'recommendations') {
-    const url = new URL(req.url)
-    const productId = url.searchParams.get('product_id') ?? ''
-    const sectionId = url.searchParams.get('section_id') ?? ''
-    const limit = Number(url.searchParams.get('limit')) || 4
-    // Shopify's intents; anything else is the default, related.
-    const intent = url.searchParams.get('intent') === 'complementary' ? 'complementary' : 'related'
-    if (!productId || !/^[a-z0-9_-]{1,120}$/i.test(sectionId)) return notFound()
-    const html = await inStore(storeId, (tx) =>
-      renderRecommendations(tx, storeId, { sectionId, productId, limit, intent }),
-    )
-    if (html === null) return notFound()
-    return new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8' } })
-  }
+  // Older pages' shim sent recommendations here; the store-domain route answers them now.
+  if (action === 'recommendations') return recommendationsResponse(req, storeId, false)
   if (action === 'section') {
     const url = new URL(req.url)
     const type = url.searchParams.get('section_id') ?? ''

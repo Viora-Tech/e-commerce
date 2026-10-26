@@ -4,8 +4,11 @@ import {
   CannotShipToState,
   CommerceError,
   captureCartContact,
+  checkDraftDiscountCode,
   convertDraft,
   createDraft,
+  DiscountUnavailable,
+  type DraftCodeInput,
   DraftEmpty,
   type DraftInput,
   type DraftListStatus,
@@ -13,6 +16,7 @@ import {
   deleteDraft,
   deleteDrafts,
   deliverCartRecovery,
+  duplicateOrderAsDraft,
   listAbandoned,
   listDrafts,
   markRecoverySent,
@@ -56,6 +60,12 @@ function draftErrorToRpc(err: unknown): never {
   }
   if (err instanceof DraftEmpty) {
     throw new ORPCError('BAD_REQUEST', { message: 'Add at least one product first' })
+  }
+  if (err instanceof DiscountUnavailable) {
+    throw new ORPCError('CONFLICT', {
+      message:
+        "The draft's discount code has no uses left. Remove the code and save the draft to place it.",
+    })
   }
   if (err instanceof CannotShipToState) {
     throw new ORPCError('BAD_REQUEST', {
@@ -151,6 +161,21 @@ export async function saveDraft(
     }
     const created = await createDraft(ctxOf(tx, storeId), input.draft)
     return { id: created.id }
+  } catch (err) {
+    draftErrorToRpc(err)
+  }
+}
+
+/** The "Apply discount code" check on the draft editor; nothing is written. */
+export const checkStoreDraftDiscount = (tx: StoreTx, storeId: string, input: DraftCodeInput) =>
+  checkDraftDiscountCode(ctxOf(tx, storeId), input)
+
+/** "Duplicate order": a new draft from the order, opened in the draft editor. */
+export async function duplicateStoreOrder(tx: StoreTx, storeId: string, orderId: string) {
+  try {
+    const draft = await duplicateOrderAsDraft(ctxOf(tx, storeId), orderId)
+    if (!draft) throw new ORPCError('NOT_FOUND', { message: 'Order not found' })
+    return draft
   } catch (err) {
     draftErrorToRpc(err)
   }

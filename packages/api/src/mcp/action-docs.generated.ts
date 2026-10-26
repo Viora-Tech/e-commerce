@@ -177,11 +177,14 @@ export const ACTION_DOCS: Record<string, string> = {
     'The same for a selection on the Customers list; each change keeps its own history row.',
   'customers.addAddress':
     "Add an address to the customer's book; the first one becomes their default.",
+  'customers.create': 'Add a customer by hand ("Add customer" on the list).',
   'customers.export': 'Rows for a CSV export of the current filter; the browser builds the file.',
   'customers.lookupPincode':
     'City and state for a PIN code, from the same directory as Settings → Checkout\'s "PIN code first".',
   'customers.overview': 'Headline figures and the weekly series behind the Customer Overview card.',
   'customers.previewSegment': 'Live count and a sample for the rule builder.',
+  'customers.setDefaultAddress':
+    "Make one saved address the customer's default (the profile card shows it).",
   'customers.sheet':
     'Rows for the Customers bulk-edit spreadsheet, in the order the ids were given.',
   'dashboard.analytics':
@@ -345,6 +348,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'orders.addNote': "Add a staff note to the order's timeline.",
   'orders.cancelShipment':
     'Cancel a booked shipment with its courier, before it is collected or put on a manifest.',
+  'orders.checkDraftDiscount':
+    "Check a store discount code against a draft's lines and customer with checkout's rules (dates, minimums, products and collections, eligibility, per-customer cap).",
   'orders.collectPayment': 'Record money collected outside a gateway; the order becomes paid.',
   'orders.convertDraft':
     'Place a draft as a real order: holds stock and records a pending payment for the chosen method.',
@@ -358,6 +363,8 @@ export const ACTION_DOCS: Record<string, string> = {
     '"Delete test orders": removes every order of this store paid on a gateway\'s test keys (is_test), with its dependent rows.',
   'orders.draftTiles':
     'The stat cards above the drafts list: open drafts, invoices sent, and their total value.',
+  'orders.duplicateOrder':
+    "Start a new draft from an existing order: same customer, address, lines at today's prices (archived products skipped and named), notes and shipping.",
   'orders.fulfil':
     'Pack some or all of the lines; the shopper is told once the parcel is complete.',
   'orders.get':

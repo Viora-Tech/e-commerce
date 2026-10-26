@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { proxy } from '../proxy'
-import { ADMIN_FRAME_ANCESTORS, newNonce, scriptCsp } from './csp'
+import { ADMIN_FRAME_ANCESTORS, newNonce, PAGE_CACHE_CONTROL, scriptCsp } from './csp'
 
 const nonceOf = (value: string | null) => value?.match(/'nonce-([^']+)'/)?.[1] ?? null
 
@@ -46,6 +46,15 @@ describe('admin script CSP', () => {
     expect(nonceOf(a)).not.toBe(nonceOf(b))
     // NextResponse.next({ request: { headers } }) carries overridden request headers this way.
     expect(first.headers.get('x-middleware-request-x-nonce')).toBe(nonceOf(a))
+  })
+
+  it('proxy: pages say no-transform, so Cloudflare does not rewrite emails (React #418)', () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    const res = proxy(new NextRequest('https://admin.waimers.in/customers'))
+    expect(res.headers.get('cache-control')).toBe(PAGE_CACHE_CONTROL)
+    expect(PAGE_CACHE_CONTROL.split(', ')).toEqual(
+      expect.arrayContaining(['no-transform', 'no-store', 'private']),
+    )
   })
 
   it('proxy: development answers report-only', () => {

@@ -48,6 +48,7 @@ import ShipmentPanel from './shipment-panel'
 import TagsCard from './tags-card'
 import TimelineCard from './timeline-card'
 import UnfulfilledCard from './unfulfilled-card'
+import { useDuplicateOrder } from './use-duplicate-order'
 import { useOrderAppActions } from './use-order-app-actions'
 
 type OrderViewProps = {
@@ -68,6 +69,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
   const router = useRouter()
   const { hasPermission } = usePermissions()
   const apps = useOrderAppActions(appActions, () => router.refresh())
+  const duplicateOrder = useDuplicateOrder()
   const automation = useRunAutomation('order', appCards.includes('automations'))
   const [busy, setBusy] = useState(false)
   const [refunding, setRefunding] = useState<OrderPayment | null>(null)
@@ -215,6 +217,11 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
                   : undefined
               }
               onSendReminder={sendReminder}
+              onDuplicate={
+                duplicateOrder.allowed && !readOnly
+                  ? () => duplicateOrder.duplicate(order.id)
+                  : undefined
+              }
               orderNumber={order.number}
               customerEmail={order.email}
               appItems={[

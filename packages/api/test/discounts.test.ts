@@ -171,7 +171,19 @@ describe('discounts', () => {
       amountPaise: 6000,
     })
     const detail = await call(appRouter.discounts.get, { id: d.id }, { context: a.ctx })
-    expect(detail?.usage).toEqual({ orders: 1, amountPaise: 6000 })
+    expect(detail?.usage).toMatchObject({
+      orders: 1,
+      amountPaise: 6000,
+      revenuePaise: 4000,
+      recent: [{ orderId: o?.id, number: 1, totalPaise: 4000, amountPaise: 6000 }],
+    })
+    expect(detail?.usage.lastUsedAt).toBeInstanceOf(Date)
+    const listed = await call(appRouter.discounts.list, {}, { context: a.ctx })
+    expect(listed.items.find((i) => i.id === d.id)?.usage).toMatchObject({
+      orders: 1,
+      revenuePaise: 4000,
+      amountPaise: 6000,
+    })
     const gone = await call(appRouter.discounts.delete, { id: d.id }, { context: a.ctx })
     expect(gone).toEqual({ outcome: 'disabled' })
     const [row] = await owner.select().from(discount).where(eq(discount.id, d.id))

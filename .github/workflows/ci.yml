@@ -1,16 +1,30 @@
 name: CI
 
-# Paused (owner, 2026-10-02): checks run locally before each PR, so CI does not start on its
-# own. Run it by hand from the Actions tab; restore the triggers below to turn it back on.
+# Runs on every PR and on pushes to the long-lived branches, plus by hand from the Actions tab.
+# Re-enabled 2026-10-26 (was paused 2026-10-02) so the DB-backed security tests — the cross-store
+# RLS leak test and the payment webhook guard — gate every merge and a regression can't ship.
 on:
   workflow_dispatch:
-  # push:
-  #   branches: [main]
-  # pull_request:
+  push:
+    branches: [dev, main]
+  pull_request:
+
+# One run per branch/PR; a newer push cancels the older in-progress run.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check:
     runs-on: ubuntu-latest
+    # The GitHub runner has 2 cores / ~7 GB. The default (turbo fans out ~10 packages, each vitest
+    # spawning TEST_WORKERS=3 forks with a DB copy apiece) OOM-kills the runner. One DB copy per
+    # worker and one package at a time (--concurrency=1 on the test/typecheck steps) keeps it under
+    # the cap. The admin app's tsc also needs a larger V8 heap than the ~2 GB default, so raise it.
+    env:
+      TEST_WORKERS: '1'
+      NODE_OPTIONS: '--max-old-space-size=6144'
+      REDIS_URL: 'redis://localhost:6379'
     services:
       postgres:
         image: postgres:17-alpine
@@ -24,8 +38,17 @@ jobs:
           --health-interval 5s
           --health-timeout 3s
           --health-retries 10
-      # Dragonfly is not started here: service containers cannot pass
-      # --cluster_mode=emulated, and no test uses the queue yet.
+      # @commerce/queue tests (fair/visitors/rate-limit) run against a real Redis. Dragonfly can't
+      # run as a service container (it needs --cluster_mode=emulated), but these tests use only
+      # standard ops (sorted sets, multi, hashtag keys on a single node), so stock Redis serves.
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
     steps:
       # Pinned to full commit SHAs; the comment is the release. Bump both together.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -36,6 +59,9 @@ jobs:
       - name: Create roles and test databases
         run: PGPASSWORD=postgres psql -h localhost -U postgres -d commerce -v ON_ERROR_STOP=1 -f docker/postgres/init.sql
       - run: bun run lint
-      - run: bun run typecheck
+      # --concurrency=1: ~10 parallel tsc OOM-kills the runner; even two at a time can overlap the
+      # two heaviest (admin + storefront). One at a time, each with the 6 GB heap above, is reliable.
+      - run: bun run typecheck --concurrency=1
       - run: bun run test:sweeps
-      - run: bun run test
+      # --concurrency=1: run one package's vitest at a time so peak memory stays bounded (see env note).
+      - run: bun run test --concurrency=1

@@ -1,17 +1,24 @@
 'use client'
 
 import type { ConsentChannel } from '@commerce/core/privacy'
-import { Download, Save, Users } from '@commerce/ui/icons'
+import { Download, Plus, Save, Users } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
+import {
+  parseAsBoolean,
+  parseAsInteger,
+  parseAsString,
+  parseAsStringLiteral,
+  useQueryStates,
+} from 'nuqs'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { type CustomerRow, customerColumns } from '@/components/customers/customer-columns'
 import CustomerRowActions from '@/components/customers/customer-row-actions'
 import CustomerTiles, { type CustomerStats } from '@/components/customers/customer-tiles'
 import CustomersBulkActions from '@/components/customers/customers-bulk-actions'
+import NewCustomerDialog from '@/components/customers/new-customer-dialog'
 import TagCustomersDialog from '@/components/customers/tag-customers-dialog'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageBody from '@/components/layout/page-body'
@@ -29,11 +36,13 @@ import { CHANNEL_LABEL } from '@/data/customer-privacy'
 import { CUSTOMER_SEGMENTS, type CustomerSegment, customersContent } from '@/data/customers'
 import { CUSTOMERS_BULK_EDIT_IDS_KEY } from '@/data/customers-bulk-edit'
 import { filterPanelContent } from '@/data/filter-panel'
+import { newCustomerContent } from '@/data/new-customer'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { downloadCsv, toCsv } from '@/lib/csv'
 import { type ListQuery, sameListQuery } from '@/lib/list-query'
 import { formatPaise } from '@/lib/money'
+import { usePrimaryAction } from '@/lib/primary-action'
 import { routes } from '@/lib/routes'
 import {
   type CustomerFilterState,
@@ -61,6 +70,9 @@ export type CustomersInitial = {
   automations: boolean
 }
 
+/** The `N` shortcut's target: this page with "Add customer" open. */
+const NEW_CUSTOMER_HREF = `${routes.customers.list()}?new=true`
+
 function exportRows(rows: CustomerRow[], exported: (n: number) => string): void {
   const csv = toCsv(
     ['Name', 'Email', 'Phone', 'City', 'State', 'Orders', 'Spent', 'Tags', 'Marketing'],
@@ -85,15 +97,19 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
   const copy = useCopy(customersContent)
   const panelCopy = useCopy(filterPanelContent)
   const router = useRouter()
-  const [{ page, perPage, query, status }, setQ] = useQueryStates(
+  const newCopy = useCopy(newCustomerContent)
+  const [{ page, perPage, query, status, new: adding }, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
       page: parseAsInteger.withDefault(1),
       perPage: parseAsInteger.withDefault(initial.perPage),
       status: parseAsStringLiteral(CUSTOMER_SEGMENTS),
+      /** `?new=1` opens "Add customer" (the `N` shortcut lands here). */
+      new: parseAsBoolean,
     },
     { shallow: true },
   )
+  usePrimaryAction(NEW_CUSTOMER_HREF)
   const [filters, setFilters] = useState<CustomerFilterState>(EMPTY_CUSTOMER_FILTERS)
   const [items, setItems] = useState<CustomerRow[]>(initial.result.items)
   const [total, setTotal] = useState(initial.result.total)
@@ -237,9 +253,17 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
               <Download strokeWidth={1.6} />
               {copy.exportAll}
             </Button>
-            <Button render={<Link href={routes.customers.segments()} />} nativeButton={false}>
+            <Button
+              variant="outline"
+              render={<Link href={routes.customers.segments()} />}
+              nativeButton={false}
+            >
               <Users strokeWidth={1.6} />
               {copy.segmentsLink}
+            </Button>
+            <Button onClick={() => setQ({ new: true })}>
+              <Plus strokeWidth={1.6} aria-hidden="true" />
+              {newCopy.button}
             </Button>
           </>
         }
@@ -327,6 +351,7 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
           empty={filtered ? copy.noResults : copy.empty}
         />
       )}
+      {adding ? <NewCustomerDialog onClose={() => setQ({ new: null })} /> : null}
       <TagCustomersDialog
         ids={tagIds}
         action={tagAction}

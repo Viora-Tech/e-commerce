@@ -29,6 +29,15 @@ export const orderDetailContent = {
     printShort: 'Print',
     more: 'More actions',
   },
+  duplicate: {
+    action: 'Duplicate order',
+    done: 'Draft created from this order',
+    skipped: (n: number) =>
+      n === 1
+        ? 'Draft created. 1 item was left out because it is no longer available.'
+        : `Draft created. ${n} items were left out because they are no longer available.`,
+    failed: 'Could not duplicate this order',
+  },
   moved: (status: string) => `Order marked as ${status}`,
   cancelDialog: {
     title: 'Cancel this order?',

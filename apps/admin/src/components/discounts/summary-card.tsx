@@ -7,7 +7,7 @@ import { useCopy } from '@/hooks/use-copy'
 import { formatPattern } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
 import { toInput } from './form-input'
-import type { DiscountFormState, LoadedDiscount } from './form-state'
+import { type DiscountFormState, fromLocalInput, type LoadedDiscount } from './form-state'
 
 type SummaryCardProps = {
   form: DiscountFormState
@@ -19,11 +19,8 @@ type Copy = (typeof discountFormContent)['summary']
 const CLASSES = ['products', 'order', 'shipping'] as const
 
 function fmt(s: string): string | null {
-  if (!s) return null
-  const d = new Date(s)
-  return Number.isNaN(d.getTime())
-    ? null
-    : formatPattern(d, { day: 'numeric', month: 'short', year: 'numeric' })
+  const d = fromLocalInput(s)
+  return d ? formatPattern(d, { day: 'numeric', month: 'short', year: 'numeric' }) : null
 }
 
 /** "₹200 off", or "₹200 to ₹300 off each item" once per-product amounts are typed. */

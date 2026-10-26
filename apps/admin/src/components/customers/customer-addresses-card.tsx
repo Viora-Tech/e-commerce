@@ -33,6 +33,19 @@ export default function CustomerAddressesCard({ customer, onChanged }: CustomerA
   const [busy, setBusy] = useState(false)
 
   // Event handlers
+  const handleMakeDefault = async (addressId: string) => {
+    setBusy(true)
+    try {
+      await api.customers.setDefaultAddress({ customerId: customer.id, addressId })
+      toast.success(copy.defaultSaved)
+      onChanged()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : copy.defaultFailed)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const handleDelete = async () => {
     if (!deleting) return
     setBusy(true)
@@ -103,7 +116,18 @@ export default function CustomerAddressesCard({ customer, onChanged }: CustomerA
                 ) : a.isDefault ? (
                   <StatusChip>{copy.default}</StatusChip>
                 ) : null}
-                <div className="ml-auto flex items-center gap-1">
+                <div className="ml-auto flex flex-wrap items-center justify-end gap-1">
+                  {a.id && !a.isDefault ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={busy}
+                      onClick={() => a.id && handleMakeDefault(a.id)}
+                    >
+                      {copy.setDefault}
+                    </Button>
+                  ) : null}
                   <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(a)}>
                     <Pencil aria-hidden="true" />
                     {copy.edit}

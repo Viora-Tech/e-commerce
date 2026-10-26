@@ -7,6 +7,7 @@ import {
   ChevronRightIcon,
   CircleCheck,
   Copy,
+  FileEdit,
   Package,
   PackageCheck,
   Printer,
@@ -50,6 +51,8 @@ type OrderActionsProps = {
   onCancelShipment?: (() => void) | undefined
   /** Nudges the customer about an unmatched UPI or bank transfer. */
   onSendReminder?: (() => void) | undefined
+  /** Starts a new draft from this order ("Duplicate order"); undefined hides it. */
+  onDuplicate?: (() => void) | undefined
   /** The order's number, for "Copy order number". */
   orderNumber?: number | undefined
   /** The customer's email, for "Orders from this customer". */
@@ -74,6 +77,7 @@ export default function OrderActions({
   onShip,
   onCancelShipment,
   onSendReminder,
+  onDuplicate,
   orderNumber,
   customerEmail,
   appItems = [],
@@ -181,10 +185,18 @@ export default function OrderActions({
             onSelect: onSendReminder,
           },
           {
+            label: copy.duplicate.action,
+            icon: FileEdit,
+            hidden: !onDuplicate,
+            disabled: busy,
+            separatorBefore: true,
+            onSelect: onDuplicate,
+          },
+          {
             label: list.row.copyNumber,
             icon: Copy,
             hidden: orderNumber === undefined,
-            separatorBefore: true,
+            separatorBefore: !onDuplicate,
             onSelect: handleCopyNumber,
           },
           {

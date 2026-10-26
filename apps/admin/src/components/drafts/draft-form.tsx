@@ -16,6 +16,7 @@ import {
   draftToForm,
   emptyDraft,
   formToDraft,
+  savedCodeCheck,
 } from '@/components/drafts/draft-form-state'
 import DraftProductsCard from '@/components/drafts/draft-products-card'
 import DraftTotalsCard from '@/components/drafts/draft-totals-card'
@@ -230,7 +231,13 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
         main={
           <>
             <DraftProductsCard lines={form.lines} onChange={(lines) => patch({ lines })} />
-            <DraftTotalsCard key={resetKey} form={form} tax={draftTax(draft)} onChange={patch} />
+            <DraftTotalsCard
+              key={resetKey}
+              form={form}
+              tax={draftTax(draft)}
+              savedCheck={savedCodeCheck(draft)}
+              onChange={patch}
+            />
             <DataCard title={copy.note.heading} bodyClassName="flex flex-col gap-3">
               <Textarea
                 value={form.note}
