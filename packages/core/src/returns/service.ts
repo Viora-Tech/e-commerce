@@ -25,6 +25,7 @@ import { insertOutboxEvent } from '../outbox/write'
 import { resolveParcelWeightGrams } from '../shipping/parcel'
 import { defaultBoxPreset, parseShippingSettings } from '../shipping/settings'
 import { shipFromFor } from '../shipping/ship-from'
+import { announceLatePickup } from './notify'
 import {
   ACTIVE_RETURN_STATUSES,
   type Eligibility,
@@ -501,7 +502,7 @@ export async function arrangeReturnPickup(
     valuePaise: lines.reduce((sum, l) => sum + l.quantity * l.unitPricePaise, 0),
     weightGrams: resolveParcelWeightGrams(lines, boxWeight),
   })
-  return setReturn(ctx, id, {
+  const row = await setReturn(ctx, id, {
     status: 'in_transit',
     pickupMethod: 'courier',
     pickupProvider: provider.id,
@@ -509,6 +510,8 @@ export async function arrangeReturnPickup(
     pickupLabelUrl: result.labelUrl ?? null,
     pickupArrangedAt: new Date(),
   })
+  await announceLatePickup(ctx, r)
+  return row
 }
 
 /** The location a variant mainly sells from online (`primarySellingLevel`). */

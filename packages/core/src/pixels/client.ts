@@ -78,6 +78,31 @@ export function isValidEventId(name: PixelEventName, id: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
 }
 
+// Page URLs. Meta gets the page as `event_source_url` and the order keeps it as its landing
+// page, so only the parts that say where the shopper came from survive: no `?t=` order token,
+// no `?email=` from a mail link, no search text, no fragment.
+
+/** Query parameters a page URL keeps: campaign tags and ad click ids. */
+const KEPT_URL_PARAMS = /^(utm_[a-z]+|fbclid|gclid|gbraid|wbraid|ttclid|variant)$/
+
+/** The page URL with every other query parameter and the fragment removed; null if unusable. */
+export function pixelPageUrl(raw: string | null | undefined): string | null {
+  if (!raw || raw.length > 2000) return null
+  try {
+    const u = new URL(raw)
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') return null
+    for (const key of [...u.searchParams.keys()]) {
+      if (!KEPT_URL_PARAMS.test(key)) u.searchParams.delete(key)
+    }
+    u.hash = ''
+    u.username = ''
+    u.password = ''
+    return u.toString()
+  } catch {
+    return null
+  }
+}
+
 // First-party Meta cookies, set by our own `/api/px` so Safari's 7-day cap on script cookies
 // does not apply. Format: `fb.<subdomain index>.<creation ms>.<random or fbclid>`.
 

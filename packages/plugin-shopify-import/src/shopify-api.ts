@@ -6,6 +6,7 @@
  */
 import type { CollectionCondition, CollectionOp, CollectionRules } from '@commerce/db'
 import { bulkOrPaged, runBulkQuery, streamBulkRoots, streamJsonl } from './bulk'
+import { asGiftCardVariants, giftCardFrom } from './gift-card-products'
 import type { ShopifyClient } from './shopify-client'
 import type {
   NAddress,
@@ -65,7 +66,7 @@ export const PRODUCTS_QUERY = `query Products($cursor: String, $query: String) {
   products(first: 25, after: $cursor, sortKey: ID, query: $query) {
     ${PAGE_INFO}
     nodes {
-      id handle title descriptionHtml vendor productType tags status templateSuffix publishedAt
+      id handle title descriptionHtml vendor productType tags status templateSuffix publishedAt isGiftCard
       seo { title description }
       options { name position }
       hsn: metafield(namespace: "custom", key: "hsn") { value }
@@ -112,6 +113,8 @@ type GProduct = {
   /** When it went on the Online Store; null while it is not on that sales channel. */
   publishedAt?: string | null
   templateSuffix: string | null
+  /** Shopify's gift card flag; optional so an older fixture without it still maps. */
+  isGiftCard?: boolean | null
   seo: { title: string | null; description: string | null } | null
   options: { name: string; position: number }[]
   hsn: { value: string } | null
@@ -192,7 +195,13 @@ export function mapProduct(p: GProduct, variants: GVariant[], onlineStore = fals
       ? [{ src: m.image.url, alt: m.alt || m.image.altText || null, position: i + 1 }]
       : [],
   )
-  const mapped = variants.map((v) => mapVariant(v, optionNames, productHsn))
+  const giftCard = giftCardFrom({
+    flag: p.isGiftCard,
+    productType: p.productType,
+    templateSuffix: p.templateSuffix,
+  })
+  const read = variants.map((v) => mapVariant(v, optionNames, productHsn))
+  const mapped = giftCard ? asGiftCardVariants(read) : read
   for (const v of mapped) {
     if (v.imageSrc && !images.some((i) => i.src === v.imageSrc)) {
       images.push({ src: v.imageSrc, alt: null, position: images.length + 1 })
@@ -215,6 +224,7 @@ export function mapProduct(p: GProduct, variants: GVariant[], onlineStore = fals
       : mapped.slice(0, 1).map((v) => ({ ...v, optionValues: [] })),
     images,
     templateSuffix: templateSuffix(p.templateSuffix),
+    isGiftCard: giftCard ?? false,
   }
 }
 
@@ -228,7 +238,7 @@ export const PRODUCTS_BULK_QUERY = `{
   products {
     edges {
       node {
-        id handle title descriptionHtml vendor productType tags status templateSuffix publishedAt
+        id handle title descriptionHtml vendor productType tags status templateSuffix publishedAt isGiftCard
         seo { title description }
         options { name position }
         hsn: metafield(namespace: "custom", key: "hsn") { value }

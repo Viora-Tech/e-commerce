@@ -4,6 +4,7 @@
  * gallery entries. Pure: never throws, unreadable rows become issues.
  */
 import { bool, type CsvRow, cleanId, hasColumn, int, paise, readTable, tags, toGrams } from './csv'
+import { asGiftCardVariants, giftCardFrom } from './gift-card-products'
 import type { Issue, NImage, NProduct, NVariant } from './types'
 
 const MAX_OPTIONS = 3
@@ -160,6 +161,12 @@ export function parseProductsCsv(text: string): { products: NProduct[]; issues: 
         optionNames: names,
         variants: [readVariant(row, names, columns)],
         images: [],
+        isGiftCard: giftCardFrom({
+          // A blank cell says nothing; the product type may still.
+          flag: row.get('gift card') ? bool(row.get('gift card'), false) : undefined,
+          productType: row.get('type', 'product type'),
+          templateSuffix: row.get('template suffix'),
+        }),
         row: row.line,
       }
       byHandle.set(handle, product)
@@ -209,6 +216,7 @@ export function parseProductsCsv(text: string): { products: NProduct[]; issues: 
       })
       continue
     }
+    if (p.isGiftCard) p.variants = asGiftCardVariants(p.variants)
     p.images.sort((a, b) => a.position - b.position)
     p.images.forEach((image, i) => {
       image.position = i + 1

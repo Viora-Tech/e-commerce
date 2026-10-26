@@ -59,6 +59,8 @@ export type NProduct = {
   images: NImage[]
   /** Alternate template (`product.<suffix>`); null is the default, undefined (CSV) leaves it as is. */
   templateSuffix?: string | null
+  /** Shopify gift card product; undefined (a CSV that does not say) leaves the flag as it is. */
+  isGiftCard?: boolean | undefined
   row?: number | undefined
 }
 

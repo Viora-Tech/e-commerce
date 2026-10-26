@@ -118,6 +118,9 @@ export function sendPixelEvent(pixels: BrowserPixel[], detail: CommerceTrackDeta
     url: window.location.href,
     productId: detail.productId,
     variantId: detail.variantId,
+    ...(name === 'AddToCart' && typeof detail.numItems === 'number'
+      ? { quantity: detail.numItems }
+      : {}),
   })
 }
 

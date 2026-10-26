@@ -100,25 +100,25 @@
 /* Figma storefront dock (Section / Mobile dock, 704:109692): 22px glyphs over 12px
    medium labels, 4px apart; the current page in ink, the rest muted. */
 @media screen and (max-width: 749px) {
-  .mobile-dock__list {
+  .mobile-dock__list:not(:where(.shopify-section *)) {
     padding-inline: var(--space-4);
   }
 
-  .mobile-dock__link {
+  .mobile-dock__link:not(:where(.shopify-section *)) {
     gap: var(--space-1);
   }
 
-  .mobile-dock__label {
+  .mobile-dock__label:not(:where(.shopify-section *)) {
     font-size: 12px;
     font-weight: 500;
     line-height: 1.4;
   }
 
-  .mobile-dock__link[aria-current="page"] {
+  .mobile-dock__link[aria-current="page"]:not(:where(.shopify-section *)) {
     color: var(--color-ink);
   }
 
-  .mobile-dock__cart-count {
+  .mobile-dock__cart-count:not(:where(.shopify-section *)) {
     padding: 1px 6px;
     height: auto;
     min-width: 0;

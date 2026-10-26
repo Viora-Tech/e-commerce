@@ -11,7 +11,7 @@ describe('checkout branding', () => {
     const settings = parseCheckoutSettings({ checkout: { email: 'optional', gstin: true } })
     expect(settings.email).toBe('optional')
     expect(settings.branding).toEqual(defaultCheckoutBranding)
-    expect(settings.branding.font).toBe('inter')
+    expect(settings.branding.font).toBe('plus-jakarta-sans')
     expect(settings.branding.trustBadges).toBe(true)
   })
 

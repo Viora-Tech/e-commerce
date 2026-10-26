@@ -13,8 +13,11 @@ type Props = {
 
 export const metadata: Metadata = { title: copy.title, robots: { index: false } }
 
+// Centred by padding on a wrapper: a theme's own `section { margin: 0 }` outranks margin utilities.
+const PAGE = 'flex justify-center px-4 py-16 md:py-24'
+
 const PANEL =
-  'mx-auto my-16 flex w-[min(28rem,calc(100%-2rem))] flex-col gap-4 rounded-[var(--radius-card)] bg-surface p-6 md:my-24 md:p-8'
+  'flex w-full max-w-[28rem] flex-col gap-4 rounded-[var(--radius-card)] bg-surface p-6 md:p-8'
 
 /**
  * Where the COD confirmation message lands (COD & RTO app). Opening the page changes
@@ -31,13 +34,15 @@ export default async function CodConfirmPage({ params, searchParams }: Props) {
   // Early returns
   if (!view) {
     return (
-      <section className={PANEL}>
-        <h1 className="h3">{copy.title}</h1>
-        <p className="text-body text-muted">{copy.invalid}</p>
-        <a href="/" className="btn btn--primary">
-          {copy.home}
-        </a>
-      </section>
+      <div className={PAGE}>
+        <section className={PANEL}>
+          <h1 className="h3">{copy.title}</h1>
+          <p className="text-body text-muted">{copy.invalid}</p>
+          <a href="/" className="btn btn--primary">
+            {copy.home}
+          </a>
+        </section>
+      </div>
     )
   }
 
@@ -53,35 +58,37 @@ export default async function CodConfirmPage({ params, searchParams }: Props) {
           : copy.ask(view.orderNumber, formatMoney(view.totalPaise), view.items)
 
   return (
-    <section className={PANEL}>
-      <h1 className="h3">{copy.title}</h1>
-      <p className="text-body text-muted" role={done ? 'status' : undefined}>
-        {message}
-      </p>
-      {answered ? (
-        <a href="/" className="btn btn--primary">
-          {copy.home}
-        </a>
-      ) : (
-        <div className="flex flex-col gap-3">
-          <form action={answerCodAction.bind(null, token, 'confirm')}>
-            <button type="submit" className="btn btn--primary w-full">
-              {copy.confirm}
-            </button>
-          </form>
-          {view.canCancel ? (
-            <form
-              action={answerCodAction.bind(null, token, 'cancel')}
-              className="flex flex-col gap-2"
-            >
-              <button type="submit" className="btn btn--secondary w-full">
-                {copy.cancel}
+    <div className={PAGE}>
+      <section className={PANEL}>
+        <h1 className="h3">{copy.title}</h1>
+        <p className="text-body text-muted" role={done ? 'status' : undefined}>
+          {message}
+        </p>
+        {answered ? (
+          <a href="/" className="btn btn--primary">
+            {copy.home}
+          </a>
+        ) : (
+          <div className="flex flex-col gap-3">
+            <form action={answerCodAction.bind(null, token, 'confirm')}>
+              <button type="submit" className="btn btn--primary w-full">
+                {copy.confirm}
               </button>
-              <span className="text-small text-muted">{copy.cancelHelp}</span>
             </form>
-          ) : null}
-        </div>
-      )}
-    </section>
+            {view.canCancel ? (
+              <form
+                action={answerCodAction.bind(null, token, 'cancel')}
+                className="flex flex-col gap-2"
+              >
+                <button type="submit" className="btn btn--secondary w-full">
+                  {copy.cancel}
+                </button>
+                <span className="text-small text-muted">{copy.cancelHelp}</span>
+              </form>
+            ) : null}
+          </div>
+        )}
+      </section>
+    </div>
   )
 }

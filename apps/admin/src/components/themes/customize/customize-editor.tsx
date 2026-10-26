@@ -135,7 +135,7 @@ export default function CustomizeEditor({
   // The Themes page's picture of this theme, retaken on Save of the home page.
   const thumbnail = useThemeThumbnail({
     themeId: record.id,
-    hasPicture: Boolean(record.thumbnailUrl),
+    picture: record.thumbnailUrl ?? null,
     onSavedHome: isDesktopHome(loaded, device) && !switching && !templatesDirty,
   })
 

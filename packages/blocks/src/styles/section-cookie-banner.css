@@ -292,25 +292,25 @@
 /* A card floating 24px off the bottom and one page margin in from the sides,
    "We use cookies" over the message, Preferences as a quiet text button and
    Reject / Accept as two equal outline buttons. */
-.cookie-banner--bar {
+.cookie-banner--bar:not(:where(.shopify-section *)) {
   left: var(--page-margin);
   right: var(--page-margin);
   bottom: var(--space-5);
 }
 
-.cookie-banner__card,
-.cookie-banner--bar .cookie-banner__card {
+.cookie-banner__card:not(:where(.shopify-section *)),
+.cookie-banner--bar .cookie-banner__card:not(:where(.shopify-section *)) {
   gap: var(--space-4) var(--space-5);
   padding: 20px;
   border: 1px solid var(--color-line);
   border-radius: var(--radius-card, var(--radius-m));
 }
 
-.cookie-banner__copy {
+.cookie-banner__copy:not(:where(.shopify-section *)) {
   gap: 6px;
 }
 
-.cookie-banner__heading {
+.cookie-banner__heading:not(:where(.shopify-section *)) {
   margin: 0;
   color: var(--color-ink);
   font-size: var(--font-body-size, 16px);
@@ -318,16 +318,16 @@
   line-height: 1.5;
 }
 
-.cookie-banner__actions {
+.cookie-banner__actions:not(:where(.shopify-section *)) {
   gap: var(--space-2);
 }
 
-.cookie-banner__button {
+.cookie-banner__button:not(:where(.shopify-section *)) {
   height: 40px;
   padding-inline: var(--space-4);
 }
 
-.cookie-banner__link {
+.cookie-banner__link:not(:where(.shopify-section *)) {
   height: 40px;
   padding-inline: var(--space-4);
   color: var(--color-ink);

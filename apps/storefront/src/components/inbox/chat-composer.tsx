@@ -8,16 +8,24 @@ type ChatComposerProps = {
   disabled: boolean
   /** Shown above the field when sending is not possible (sign in, closed chat). */
   notice?: string | undefined
+  storeName: string
+  /** Guests get a small "Sign in" link in the line under the field. */
+  signInHref: string | null
   onSend: (text: string, website: string) => void
   onPhoto: (file: File) => void
   onTyping: () => void
   uploading: boolean
 }
 
-/** The big rounded "Ask anything…" field, a photo button and Send. Enter sends. */
+/**
+ * One rounded field: a photo button, "Ask anything…" and the accent Send. Enter sends. Under it
+ * the line about who answers, the privacy link and, for guests, Sign in.
+ */
 export default function ChatComposer({
   disabled,
   notice,
+  storeName,
+  signInHref,
   onSend,
   onPhoto,
   onTyping,
@@ -42,11 +50,14 @@ export default function ChatComposer({
     }
   }
 
+  // Render logic
+  const link = 'underline-offset-2 hover:underline'
+
   return (
     <div className="flex flex-col gap-2">
       {notice ? <p className="text-[0.8125rem] opacity-70">{notice}</p> : null}
       {uploading ? <p className="text-[0.75rem] opacity-60">{copy.uploading}</p> : null}
-      <div className="flex items-end gap-2 rounded-3xl border border-[color-mix(in_srgb,currentColor_18%,transparent)] bg-[var(--color-bg,Canvas)] px-3 py-2">
+      <div className="flex items-end gap-1 rounded-[0.875rem] bg-[var(--color-bg,Canvas)] p-1.5 ring-1 ring-[color-mix(in_srgb,currentColor_12%,transparent)] transition-[box-shadow] duration-(--duration-press) focus-within:ring-[color-mix(in_srgb,currentColor_28%,transparent)]">
         {/* A field people never see; a bot that fills it is ignored. */}
         <input
           type="text"
@@ -63,7 +74,7 @@ export default function ChatComposer({
           aria-label={copy.attach}
           disabled={disabled || uploading}
           onClick={() => fileRef.current?.click()}
-          className="shrink-0 touch-manipulation rounded-full p-1.5 opacity-70 hover:opacity-100 disabled:opacity-30"
+          className="flex size-9 shrink-0 touch-manipulation items-center justify-center rounded-[0.625rem] opacity-60 transition-[opacity,background-color,scale] duration-(--duration-press) ease-out hover:bg-[color-mix(in_srgb,currentColor_6%,transparent)] hover:opacity-100 active:scale-(--motion-press-scale) disabled:opacity-30"
         >
           <ChatIcon kind="photo" className="size-5" />
         </button>
@@ -90,18 +101,32 @@ export default function ChatComposer({
             if (e.target.value.trim()) onTyping()
           }}
           onKeyDown={handleKeyDown}
-          className="max-h-32 min-h-9 flex-1 resize-none bg-transparent py-1.5 text-[1rem] outline-none placeholder:opacity-50"
+          className="max-h-32 min-h-9 flex-1 resize-none bg-transparent px-1 py-[0.4375rem] text-[1rem] leading-snug outline-none placeholder:opacity-50"
         />
         <button
           type="button"
           aria-label={copy.send}
           disabled={disabled || !draft.trim()}
           onClick={handleSend}
-          className="shrink-0 touch-manipulation rounded-full bg-[var(--btn-bg,var(--color-ink,CanvasText))] p-2 text-[var(--btn-text,var(--color-bg,Canvas))] transition-[scale,opacity] duration-(--duration-press) ease-out active:scale-(--motion-press-scale) disabled:opacity-40"
+          className="flex size-9 shrink-0 touch-manipulation items-center justify-center rounded-[0.625rem] bg-(--chat-accent)! text-(--chat-on-accent)! transition-[scale,opacity] duration-(--duration-press) ease-out active:scale-(--motion-press-scale) disabled:opacity-35 disabled:active:scale-100"
         >
-          <ChatIcon kind="send" className="size-4" />
+          <ChatIcon kind="send" className="size-[1.125rem]" />
         </button>
       </div>
+      <p className="text-center text-[0.71875rem] opacity-55">
+        {copy.footnote(storeName)} ·{' '}
+        <a href="/policies/privacy-policy" className={link}>
+          {copy.privacy}
+        </a>
+        {signInHref ? (
+          <>
+            {' · '}
+            <a href={signInHref} className={`${link} font-medium`}>
+              {copy.signIn}
+            </a>
+          </>
+        ) : null}
+      </p>
     </div>
   )
 }

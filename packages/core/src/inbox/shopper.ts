@@ -7,6 +7,7 @@ import type { RateLimitStore } from '../rate-limit/limiter'
 import { isSenderBlocked } from './blocks'
 import { MESSAGE_MAX, SHOPPER_MESSAGE_KINDS } from './constants'
 import { encryptContactPhone, inboxHash } from './identity'
+import { cleanPagePath } from './insights'
 import { checkInboxLimits, type InboxLimit, shopperMessageChecks } from './limits'
 import {
   appendMessage,
@@ -118,7 +119,7 @@ export const ShopperSendSchema = z.object({
   name: z.string().trim().max(80).optional(),
   email: z.email().max(200).optional(),
   phone: z.string().trim().max(20).optional(),
-  /** The page the shopper started from. */
+  /** The page the shopper wrote from: starts the chat's `startedUrl`, and each text message keeps its own. */
   url: z.string().max(500).optional(),
 })
 export type ShopperSendInput = z.input<typeof ShopperSendSchema>
@@ -200,6 +201,10 @@ export async function shopperSend(
     payload = { mediaId: m.id, url: m.url }
   } else if (!body) {
     throw new InboxError('INBOX_INVALID', 'Write a message', ctx.storeId)
+  } else {
+    // The page they wrote from: the panel's "Pages viewed" and the product they are on.
+    const page = cleanPagePath(input.url)
+    if (page) payload = { page }
   }
 
   const ipHash = inboxHash('ip', opts.ip, opts.secret)

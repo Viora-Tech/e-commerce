@@ -241,47 +241,47 @@
 /* 704:108820): an ink band on the default ground, 36px, 12px medium    */
 /* copy, the rotator's arrows at the bar's two ends.                    */
 /* ------------------------------------------------------------------ */
-.announcement-bar:not([class*="color-scheme-"]) {
+.announcement-bar:not([class*="color-scheme-"]):not(:where(.shopify-section *)) {
   border-bottom: 0;
   background-color: var(--color-ink);
   color: var(--color-bg);
 }
 
-.announcement-bar__inner {
+.announcement-bar__inner:not(:where(.shopify-section *)) {
   min-height: 36px;
   padding-block: 0;
 }
 
-.announcement-bar--rotate .announcement-bar__inner {
+.announcement-bar--rotate .announcement-bar__inner:not(:where(.shopify-section *)) {
   justify-content: space-between;
   max-width: none;
   padding-inline: var(--space-4);
 }
 
-.announcement-bar__control {
+.announcement-bar__control:not(:where(.shopify-section *)) {
   width: 16px;
   height: 16px;
   opacity: 1;
 }
 
-.announcement-bar__control svg {
+.announcement-bar__control svg:not(:where(.shopify-section *)) {
   width: 16px;
   height: 16px;
 }
 
-.announcement-bar__text,
-.announcement-bar__link {
+.announcement-bar__text:not(:where(.shopify-section *)),
+.announcement-bar__link:not(:where(.shopify-section *)) {
   font-size: 12px;
   line-height: 1.4;
   letter-spacing: 0;
 }
 
-.announcement-bar__marquee-item {
+.announcement-bar__marquee-item:not(:where(.shopify-section *)) {
   font-size: 12px;
   letter-spacing: 0;
   text-transform: none;
 }
 
-.announcement-bar:not([class*="color-scheme-"]) .announcement-bar__marquee-item::after {
+.announcement-bar:not([class*="color-scheme-"]) .announcement-bar__marquee-item:not(:where(.shopify-section *))::after {
   color: color-mix(in srgb, var(--color-bg) 50%, transparent);
 }

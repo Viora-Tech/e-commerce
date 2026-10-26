@@ -6,11 +6,22 @@ import {
   affiliateState,
   affiliateTotals,
   affiliateTrend,
-  commissionLedger,
+  type CommissionRule,
   defaultProgram,
   listCreatives,
+  type PayoutOutlook,
+  type PortalPayout,
+  type PortalRange,
+  type PortalSale,
+  type PortalStats,
+  payoutOutlook,
+  portalPayouts,
+  portalSales,
+  portalStats,
   programBySlug,
   programOf,
+  programRate,
+  rangeStart,
   recordAffiliateClick,
   type SignupField,
   type TrendPoint,
@@ -35,9 +46,16 @@ export type AffiliatePortal = {
     active: boolean
     pitch: string
     terms: string
+    /** What the program pays on the default rule, and the best percent its levels or tiers reach. */
+    rate: { rule: CommissionRule; upToBp: number | null }
+    /** Some products or collections earn a different rate. */
+    hasOverrides: boolean
+    scope: 'first_order' | 'lifetime'
+    lifetimeDays: number
     couponPercent: number | null
     cookieDays: number
     holdDays: number
+    minPayoutPaise: number
     /** Extra questions on the signup page. */
     form: SignupField[]
   }
@@ -48,11 +66,20 @@ export type AffiliatePortal = {
     couponCode: string | null
     payoutHint: string | null
     hasPan: boolean
+    appliedAt: Date
+    /** Why the store declined them, when it said. */
+    rejectReason: string | null
     codeRequest: { code: string; status: 'pending' | 'approved' | 'declined' } | null
   } | null
+  /** All-time balances: pending, ready to pay, paid. */
   totals: Awaited<ReturnType<typeof affiliateTotals>> | null
-  /** Recent commissions: date, amount and where they stand. No shopper details. */
-  recent: { id: string; placedAt: Date; commissionPaise: number; status: string }[]
+  /** The date range the figures below are for. */
+  range: PortalRange
+  stats: PortalStats | null
+  /** Their newest referred orders, the buyer masked. */
+  recent: PortalSale[]
+  payouts: PortalPayout[]
+  outlook: PayoutOutlook | null
   /** Images and captions to post (their program's and the all-programs ones). */
   creatives: {
     id: string
@@ -75,6 +102,7 @@ export async function loadAffiliatePortal(
   storeId: string,
   me: SignedInCustomer | null,
   programSlug?: string | undefined,
+  range: PortalRange = '30d',
 ): Promise<AffiliatePortal | null> {
   return inStore(storeId, async (tx) => {
     const { installed, settings } = await affiliateState(tx, storeId)
@@ -93,42 +121,60 @@ export async function loadAffiliatePortal(
       active: settings.active,
       pitch: rules.pitch,
       terms: rules.terms,
+      // Their own rate, when the store set one, is what they earn.
+      rate: row?.rateOverride ? { rule: row.rateOverride, upToBp: null } : programRate(rules),
+      hasOverrides: rules.overrides.length > 0,
+      scope: rules.scope,
+      lifetimeDays: rules.lifetimeDays,
       couponPercent: rules.coupon.enabled ? rules.coupon.bp / 100 : null,
       cookieDays: settings.cookieDays,
       holdDays: settings.holdDays,
+      minPayoutPaise: settings.minPayoutPaise,
       form: rules.form,
     }
-    if (!row)
-      return { program, affiliate: null, totals: null, recent: [], creatives: [], trend: [] }
-    const approved = row.status === 'approved'
-    const [totals, ledger, creatives, trend] = approved
-      ? await Promise.all([
-          affiliateTotals(tx, row.id),
-          commissionLedger(tx, { affiliateId: row.id, limit: 20 }),
-          listCreatives(tx, { programId: chosen.id }),
-          affiliateTrend(tx, { by: 'month', affiliateId: row.id }),
-        ])
-      : [null, [], [], []]
+    const empty = {
+      totals: null,
+      range,
+      stats: null,
+      recent: [],
+      payouts: [],
+      outlook: null,
+      creatives: [],
+      trend: [],
+    }
+    if (!row) return { program, affiliate: null, ...empty }
+    const affiliate = {
+      status: row.status,
+      name: row.name,
+      code: row.code,
+      couponCode: row.couponCode,
+      payoutHint: row.payoutHint,
+      hasPan: row.hasPan,
+      appliedAt: row.createdAt,
+      rejectReason: row.rejectReason,
+      codeRequest: row.codeRequest
+        ? { code: row.codeRequest.code, status: row.codeRequest.status }
+        : null,
+    }
+    if (row.status !== 'approved') return { program, affiliate, ...empty }
+    const [totals, stats, recent, payouts, outlook, creatives, trend] = await Promise.all([
+      affiliateTotals(tx, row.id),
+      portalStats(tx, row.id, rangeStart(range)),
+      portalSales(tx, row.id, 20),
+      portalPayouts(tx, row.id, 12),
+      payoutOutlook(tx, row.id, settings),
+      listCreatives(tx, { programId: chosen.id }),
+      affiliateTrend(tx, { by: 'month', affiliateId: row.id }),
+    ])
     return {
       program,
-      affiliate: {
-        status: row.status,
-        name: row.name,
-        code: row.code,
-        couponCode: row.couponCode,
-        payoutHint: row.payoutHint,
-        hasPan: row.hasPan,
-        codeRequest: row.codeRequest
-          ? { code: row.codeRequest.code, status: row.codeRequest.status }
-          : null,
-      },
+      affiliate,
       totals,
-      recent: ledger.map((c) => ({
-        id: c.id,
-        placedAt: c.placedAt,
-        commissionPaise: c.commissionPaise,
-        status: c.status,
-      })),
+      range,
+      stats,
+      recent,
+      payouts,
+      outlook,
       creatives: creatives.map((c) => ({
         id: c.id,
         url: c.url,

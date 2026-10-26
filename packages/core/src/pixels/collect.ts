@@ -13,6 +13,7 @@ import {
   isValidFbp,
   mintFbp,
   type PixelEventName,
+  pixelPageUrl,
 } from './client'
 import { PIXELS_APP_ID, type PixelStorefrontSendJob } from './jobs'
 
@@ -25,6 +26,8 @@ export type PixelBeacon = {
   url: string | null
   productId: string | null
   variantId: string | null
+  /** AddToCart: how many were just added (a count, never a price). */
+  quantity: number | null
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -37,21 +40,17 @@ export function parsePixelBeacon(raw: unknown): PixelBeacon | null {
   const b = raw as Record<string, unknown>
   if (!isPixelEventName(b.name)) return null
   if (typeof b.eventId !== 'string' || !isValidEventId(b.name, b.eventId)) return null
-  let url: string | null = null
-  if (typeof b.url === 'string' && b.url.length <= 2000) {
-    try {
-      const u = new URL(b.url)
-      if (u.protocol === 'https:' || u.protocol === 'http:') url = u.toString()
-    } catch {
-      url = null
-    }
-  }
+  const quantity = b.name === 'AddToCart' ? b.quantity : null
   return {
     name: b.name,
     eventId: b.eventId,
-    url,
+    url: typeof b.url === 'string' ? pixelPageUrl(b.url) : null,
     productId: uuidOrNull(b.productId),
     variantId: uuidOrNull(b.variantId),
+    quantity:
+      typeof quantity === 'number' && Number.isInteger(quantity) && quantity > 0 && quantity <= 999
+        ? quantity
+        : null,
   }
 }
 
@@ -137,7 +136,34 @@ export async function collectPixelEvent(
       ...(input.cartId ? { cartId: input.cartId } : {}),
       ...(input.beacon.productId ? { productId: input.beacon.productId } : {}),
       ...(input.beacon.variantId ? { variantId: input.beacon.variantId } : {}),
+      ...(input.beacon.quantity ? { quantity: input.beacon.quantity } : {}),
     }))
+}
+
+/**
+ * At checkout, the consent the cart carries must still be the shopper's: a yes given while
+ * browsing and taken back on the banner before paying turns the order's server Purchase off
+ * (the order copies the cart's tracking). Only ever withdraws; a yes comes from `/api/px`.
+ */
+export async function withdrawCartMarketingConsent(
+  tx: StoreTx,
+  cartId: string,
+  marketingNow: boolean,
+  now: Date,
+): Promise<void> {
+  if (marketingNow) return
+  await tx
+    .update(cart)
+    .set({
+      tracking: sql`jsonb_set(${cart.tracking}, '{consent}', coalesce(${cart.tracking}->'consent', '{}'::jsonb) || ${JSON.stringify({ marketing: false, at: now.toISOString() })}::jsonb)`,
+    })
+    .where(
+      and(
+        eq(cart.id, cartId),
+        eq(cart.status, 'open'),
+        sql`(${cart.tracking}->'consent'->>'marketing')::boolean is true`,
+      ),
+    )
 }
 
 /** What the collector needs of the store: is Pixels installed, and the banner version now shown. */

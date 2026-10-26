@@ -87,7 +87,11 @@ function searchWords(text: string): string[] {
   return [...new Set(words)].slice(0, 5)
 }
 
-async function loadProducts(tx: StoreTx, question: string): Promise<InboxAgentInput['products']> {
+/** Active products whose title matches a word of `question`, as the AI reads them. */
+export async function inboxAiProducts(
+  tx: StoreTx,
+  question: string,
+): Promise<InboxAgentInput['products']> {
   const words = searchWords(question)
   if (words.length === 0) return []
   const rows = await tx
@@ -117,7 +121,8 @@ async function loadProducts(tx: StoreTx, question: string): Promise<InboxAgentIn
   })
 }
 
-async function loadPolicies(tx: StoreTx): Promise<InboxAgentInput['policies']> {
+/** The store's published policy pages, as the AI reads them. */
+export async function inboxAiPolicies(tx: StoreTx): Promise<InboxAgentInput['policies']> {
   const rows = await tx
     .select({ title: page.title, body: page.body })
     .from(page)
@@ -389,8 +394,8 @@ export async function runInboxAiReply(opts: RunInboxAiOptions): Promise<InboxAiR
   if (!model) return { done: 'skipped', why: 'ai_off' }
 
   const pack = await withStore(db, job.storeId, async (tx) => ({
-    products: await loadProducts(tx, l.question.body),
-    policies: await loadPolicies(tx),
+    products: await inboxAiProducts(tx, l.question.body),
+    policies: await inboxAiPolicies(tx),
     orders: await loadOrders(tx, l.conversation.customerId),
     pastAnswers: l.state.settings.ai.learn
       ? await loadPastAnswers(tx, l.question.body, l.conversation.id)

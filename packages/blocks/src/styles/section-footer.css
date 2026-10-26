@@ -703,16 +703,16 @@ html:not(.js) .footer__theme {
 /* The page's surface band: the wordmark, tagline and plain social glyphs,
    the menu columns in sentence case, the email sign-up, then a hairline
    and the copyright beside the payment methods as neutral chips. */
-.footer {
+.footer:not(:where(.shopify-section *)) {
   --ft-surface: var(--color-surface);
   padding-top: var(--space-9);
 }
 
-.footer__top {
+.footer__top:not(:where(.shopify-section *)) {
   padding-bottom: var(--space-7);
 }
 
-.footer__brand-name {
+.footer__brand-name:not(:where(.shopify-section *)) {
   margin: 0;
   font-family: var(--font-heading);
   font-size: 24px;
@@ -722,7 +722,7 @@ html:not(.js) .footer__theme {
   text-transform: uppercase;
 }
 
-.footer__heading {
+.footer__heading:not(:where(.shopify-section *)) {
   margin: 0 0 var(--space-3);
   font-family: var(--font-body);
   font-size: 14px;
@@ -732,27 +732,27 @@ html:not(.js) .footer__theme {
   text-transform: none;
 }
 
-.footer__text {
+.footer__text:not(:where(.shopify-section *)) {
   font-size: 14px;
   line-height: 1.5;
 }
 
-.footer__menu-list {
+.footer__menu-list:not(:where(.shopify-section *)) {
   gap: var(--space-3);
 }
 
-.footer__menu-link {
+.footer__menu-link:not(:where(.shopify-section *)) {
   line-height: 1.5;
 }
 
-.footer__social {
+.footer__social:not(:where(.shopify-section *)) {
   gap: var(--space-3);
   margin-top: 0;
 }
 
-.footer__social-link,
-html:not(.has-cursor-fill) .footer__social-link:hover,
-html.has-cursor-fill .footer__social-link:hover {
+.footer__social-link:not(:where(.shopify-section *)),
+html:not(.has-cursor-fill) .footer__social-link:hover:not(:where(.shopify-section *)),
+html.has-cursor-fill .footer__social-link:hover:not(:where(.shopify-section *)) {
   width: 20px;
   height: 20px;
   border: 0;
@@ -760,26 +760,26 @@ html.has-cursor-fill .footer__social-link:hover {
   color: var(--ft-ink);
 }
 
-.footer__social-link::before {
+.footer__social-link:not(:where(.shopify-section *))::before {
   display: none;
 }
 
-.footer__social-link svg {
+.footer__social-link svg:not(:where(.shopify-section *)) {
   width: 20px;
   height: 20px;
 }
 
-.footer__block--newsletter {
+.footer__block--newsletter:not(:where(.shopify-section *)) {
   display: flex;
   flex-direction: column;
 }
 
-.footer__newsletter-form {
+.footer__newsletter-form:not(:where(.shopify-section *)) {
   display: flex;
   gap: var(--space-2);
 }
 
-.footer__newsletter-input {
+.footer__newsletter-input:not(:where(.shopify-section *)) {
   flex: 1 1 auto;
   min-width: 0;
   height: 48px;
@@ -792,34 +792,34 @@ html.has-cursor-fill .footer__social-link:hover {
   font-size: 16px;
 }
 
-.footer__newsletter-input::placeholder {
+.footer__newsletter-input:not(:where(.shopify-section *))::placeholder {
   color: var(--ft-muted);
 }
 
-.footer__newsletter-submit {
+.footer__newsletter-submit:not(:where(.shopify-section *)) {
   flex: none;
   height: 48px;
   padding-inline: 20px;
 }
 
-.footer__newsletter-note {
+.footer__newsletter-note:not(:where(.shopify-section *)) {
   margin: var(--space-2) 0 0;
   color: var(--ft-muted);
   font-size: 14px;
 }
 
-.footer__newsletter-note--error {
+.footer__newsletter-note--error:not(:where(.shopify-section *)) {
   color: var(--color-danger);
 }
 
-.footer__bottom {
+.footer__bottom:not(:where(.shopify-section *)) {
   flex-direction: column;
   align-items: stretch;
   gap: var(--space-3);
   padding-block: var(--space-7) var(--space-9);
 }
 
-.footer__bottom-row {
+.footer__bottom-row:not(:where(.shopify-section *)) {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -827,22 +827,22 @@ html.has-cursor-fill .footer__social-link:hover {
   gap: var(--space-3);
 }
 
-.footer__bottom > :not(.footer__bottom-row) {
+.footer__bottom > :not(.footer__bottom-row):not(:where(.shopify-section *)) {
   align-self: flex-start;
 }
 
-.footer__copyright {
+.footer__copyright:not(:where(.shopify-section *)) {
   margin: 0;
   font-size: 12px;
   font-weight: 500;
   line-height: 1.4;
 }
 
-.footer__payment {
+.footer__payment:not(:where(.shopify-section *)) {
   gap: 6px;
 }
 
-.footer__payment-chip {
+.footer__payment-chip:not(:where(.shopify-section *)) {
   padding: 4px 10px;
   border: 1px solid var(--ft-line);
   border-radius: var(--radius-pill);
@@ -853,11 +853,11 @@ html.has-cursor-fill .footer__social-link:hover {
 }
 
 @media screen and (min-width: 750px) {
-  .footer__top {
+  .footer__top:not(:where(.shopify-section *)) {
     gap: var(--space-7) var(--space-8);
   }
 
-  .footer__block--newsletter {
+  .footer__block--newsletter:not(:where(.shopify-section *)) {
     grid-column: span 2;
   }
 }
