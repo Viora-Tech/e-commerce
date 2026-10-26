@@ -17,6 +17,7 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { db } from './db'
 import { accessibleOrderId } from './order-access'
+import { redirectToOrderPage } from './order-view-cookie'
 import { nudgeOutbox } from './outbox'
 import { storePaymentProviders } from './payments'
 import { clientIp, rateLimited } from './rate-limit'
@@ -46,15 +47,15 @@ export async function payBalanceAction(
   if (!orderId) redirect(`/checkout/thank-you/${orderNumber}`)
   const oid: string = orderId
   const secret = settingsSecret()
-  const back = (busy = false): never =>
-    redirect(
+  const back = (busy = false): Promise<never> =>
+    redirectToOrderPage(
       `${thankYouPath(orderNumber, orderViewToken(oid, secret))}${busy ? '&balance=busy' : ''}`,
     )
   const [byIp, byOrder] = await Promise.all([
     rateLimited('pay-balance:ip', clientIp(h), PAY_BALANCE_RULE),
     rateLimited('pay-balance:order', `${storeId}:${orderNumber}`, PAY_BALANCE_RULE),
   ])
-  if (!byIp.ok || !byOrder.ok) back(true)
+  if (!byIp.ok || !byOrder.ok) await back(true)
 
   const target = await inStore(storeId, async (tx) => {
     const [deposit] = await tx
@@ -64,7 +65,7 @@ export async function payBalanceAction(
       .limit(1)
     return balanceProvider(await storePaymentProviders(tx, storeId), deposit?.provider ?? null)
   })
-  if (!target) redirect(thankYouPath(orderNumber, orderViewToken(oid, secret)))
+  if (!target) return redirectToOrderPage(thankYouPath(orderNumber, orderViewToken(oid, secret)))
 
   const started = await startBalancePayment(db(), storeId, oid, target).catch((err: unknown) => {
     // Paid or cancelled meanwhile: the thank-you page shows where it stands.
@@ -73,8 +74,8 @@ export async function payBalanceAction(
   })
   if (started?.becameCaptured) await nudgeOutbox(storeId)
   if (started?.session?.kind === 'client') {
-    redirect(payPath(orderNumber, orderViewToken(oid, secret)))
+    await redirectToOrderPage(payPath(orderNumber, orderViewToken(oid, secret)))
   }
   if (started?.session?.kind === 'redirect') redirect(started.session.url)
-  back()
+  await back()
 }

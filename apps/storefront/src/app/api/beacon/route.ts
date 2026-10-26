@@ -13,7 +13,6 @@ import { CONSENT_COOKIE } from '@commerce/core/preferences'
 import { logger } from '@commerce/observability/logging'
 import { recordVisit, sharedRedis } from '@commerce/queue'
 import { cookies, headers } from 'next/headers'
-import { countAffiliateClick } from '@/lib/affiliates'
 import {
   ATTRIBUTION_COOKIE,
   ATTRIBUTION_MAX_AGE,
@@ -133,8 +132,7 @@ export const POST = withEvlog(async (request: Request) => {
     await inStore(storeId, async (tx) => {
       await recordMarketingSession(tx, storeId, { visitorId, attribution: current })
       if (cartId) await setCartAttribution(tx, cartId, picked)
-      // An affiliate's link (Affiliates app): one click per session that landed on it.
-      if (current.ref) await countAffiliateClick(tx, storeId, current.ref)
+      // Affiliate link clicks are counted by the proxy, consent or not (`lib/referral-landing.ts`).
     })
   } catch (err) {
     // A lost session row costs a report line, never the page view.

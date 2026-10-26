@@ -10,8 +10,10 @@ import { analyticsAllowed } from './lib/consent-cookie'
 import { forwardNonce, newNonce, scriptCsp, storefrontFrameAncestors } from './lib/csp'
 import { db } from './lib/db'
 import { edgeCacheControl, isSharedPage } from './lib/edge-cache'
+import { ORDER_VIEW_COOKIE, ORDER_VIEW_MAX_AGE, orderTokenSwap } from './lib/order-token-swap'
 import { noteVisit, WARM_USER_AGENT } from './lib/recent-pages'
 import { redirectFor } from './lib/redirects'
+import { noteReferral } from './lib/referral-landing'
 import {
   DERIVED_HEADERS,
   listingSearch,
@@ -108,6 +110,26 @@ async function routeRequest(request: NextRequest, withNonce: (headers: Headers) 
   })
   if (target) return NextResponse.redirect(target, 301)
 
+  // An order page's `?t=` token moves into a cookie for that page before any HTML (and so any
+  // pixel or tag reading `location.href`) exists; the page reads it back (`lib/order-token-swap.ts`).
+  if (request.method === 'GET' || request.method === 'HEAD') {
+    const swap = orderTokenSwap(request.nextUrl.pathname, request.nextUrl.search)
+    if (swap) {
+      const moved = NextResponse.redirect(new URL(swap.location, request.nextUrl), 302)
+      moved.headers.set('cache-control', 'no-store')
+      if (swap.token) {
+        moved.cookies.set(ORDER_VIEW_COOKIE, swap.token, {
+          httpOnly: true,
+          sameSite: 'lax',
+          secure: request.nextUrl.protocol === 'https:',
+          path: swap.cookiePath,
+          maxAge: ORDER_VIEW_MAX_AGE,
+        })
+      }
+      return moved
+    }
+  }
+
   const route = routeForStore(storeId, request.nextUrl.pathname)
   if (route.kind === 'forbidden') return new NextResponse('Not found', { status: 404 })
 
@@ -183,6 +205,10 @@ async function routeRequest(request: NextRequest, withNonce: (headers: Headers) 
       maxAge: PREVIEW_MAX_AGE,
     })
   }
+  // An affiliate's link (`?ref=`): the referral cookie and the click count, with or without
+  // analytics consent (`lib/referral-landing.ts`).
+  const referred = request.nextUrl.searchParams.has('ref')
+  if (referred && !seoFile && !locked && !preview) await noteReferral(storeId, request, response)
   // The first page view after the shopper allowed analytics mints the anonymous visitor
   // id the beacon reports (the beacon is a keepalive POST whose Set-Cookie some browsers
   // drop, so it is done here). Without analytics consent no visitor id is set at all. Never
@@ -207,7 +233,8 @@ async function routeRequest(request: NextRequest, withNonce: (headers: Headers) 
     pathname: request.nextUrl.pathname,
     cookieNames: request.cookies.getAll().map((c) => c.name),
     rsc: request.headers.has('rsc'),
-    personal: Boolean(preview) || locked || posted !== null,
+    // A `?ref=` landing sets the referral cookie, so a cached copy must never answer it.
+    personal: Boolean(preview) || locked || posted !== null || referred,
     ttlSeconds: edgeTtlSeconds(),
   })
   if (shared && !response.headers.has('set-cookie')) response.headers.set('cache-control', shared)

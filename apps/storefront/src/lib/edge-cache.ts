@@ -5,7 +5,8 @@
  * Only a plain page view by a visitor carrying none of our cookies qualifies: that page is the
  * same for every such visitor (no cart, no account, no saved choices, no theme preview). Our
  * cookies are `wc_*`, plus `theme` (light or dark) and `recently_viewed`; anything else (analytics
- * cookies) does not change what we draw. Cart, checkout, account, actions and API routes never
+ * cookies) does not change what we draw, and neither does `wc_ref` (the affiliate referral, read
+ * only when an order is placed). Cart, checkout, account, actions and API routes never
  * qualify, and neither does a client-side navigation (`RSC: 1`), which the CDN cannot key apart.
  *
  * The page carries the CSP nonce it was rendered with, and a CDN hands that page (and its
@@ -25,6 +26,8 @@ const SHARED_PAGES = [
 ]
 
 const PERSONAL_COOKIES = new Set(['theme', 'recently_viewed'])
+/** Our cookies that never change what a page shows. */
+const NEUTRAL_COOKIES = new Set(['wc_ref'])
 
 /** A catalogue or content page: the same for every visitor without cookies. */
 export function isSharedPage(pathname: string): boolean {
@@ -33,6 +36,7 @@ export function isSharedPage(pathname: string): boolean {
 
 /** True for one of our cookies, whose value changes what a page shows. */
 export function isPersonalCookie(name: string): boolean {
+  if (NEUTRAL_COOKIES.has(name)) return false
   return name.startsWith('wc_') || PERSONAL_COOKIES.has(name)
 }
 

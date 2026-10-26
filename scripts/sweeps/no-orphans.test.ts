@@ -625,7 +625,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/marketing/attribution.ts',
-    names: ['ATTRIBUTION_WINDOW_DAYS', 'SESSION_IDLE_MS', 'hostOf', 'classifyChannel'],
+    names: ['ATTRIBUTION_WINDOW_DAYS', 'hostOf', 'classifyChannel'],
     reason: 'no external importer today — investigate before removing',
   },
   {

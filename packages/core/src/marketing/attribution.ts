@@ -312,3 +312,44 @@ export function decodeAttribution(raw: string | null | undefined): Attribution |
 export function compactAttribution(a: Attribution): Attribution {
   return Object.fromEntries(Object.entries(a).filter(([, v]) => v !== undefined)) as Attribution
 }
+
+/**
+ * An affiliate link click (Affiliates app), kept in its own first-party cookie whatever the
+ * shopper chose on the consent banner: the sale belongs to the affiliate who sent them, which
+ * is the store's agreement with that affiliate, not analytics. Holds the code and the click
+ * time only, nothing about the shopper.
+ */
+export type Referral = { code: string; at: Date }
+
+/** Cookie form: `<code>.<click time in epoch seconds>`. */
+export function encodeReferral(r: Referral): string {
+  return `${r.code}.${Math.floor(r.at.getTime() / 1000)}`
+}
+
+export function decodeReferral(raw: string | null | undefined): Referral | null {
+  if (!raw) return null
+  const dot = raw.lastIndexOf('.')
+  if (dot < 0) return null
+  const code = refCodeOf(raw.slice(0, dot))
+  const seconds = Number(raw.slice(dot + 1))
+  if (!code || !Number.isInteger(seconds) || seconds <= 0) return null
+  return { code, at: new Date(seconds * 1000) }
+}
+
+/**
+ * The touch a cart and order carry once the referral cookie is counted in. Last click wins, as
+ * with every other touch: a later non-direct touch from the analytics cookie (an email, an ad,
+ * or the same affiliate link the beacon already saw) keeps its place; otherwise, including for a
+ * shopper who said no to analytics and so has no other touch, the affiliate click is the touch.
+ */
+export function withReferral(
+  attribution: Attribution | null,
+  referral: Referral | null,
+): Attribution | null {
+  if (!referral) return attribution
+  if (attribution && attribution.channel !== 'direct') {
+    const at = new Date(attribution.at).getTime()
+    if (at >= referral.at.getTime()) return attribution
+  }
+  return { channel: 'affiliate', ref: referral.code, at: referral.at.toISOString() }
+}

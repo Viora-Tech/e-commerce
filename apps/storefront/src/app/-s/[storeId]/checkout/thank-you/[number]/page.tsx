@@ -26,6 +26,7 @@ import ThankYouTemplate from '@/components/checkout/thank-you'
 import { currentCustomer } from '@/lib/customer-session'
 import { db } from '@/lib/db'
 import { experimentsEnabled, requestExperiments } from '@/lib/experiments'
+import { orderPageToken } from '@/lib/order-view-cookie'
 import { shopperParcels } from '@/lib/parcels'
 import { balanceView, storePreorderPolicy } from '@/lib/preorder'
 import { inStore } from '@/lib/store-context'
@@ -40,7 +41,8 @@ type Params = {
 
 export default async function ThankYouPage({ params, searchParams }: Params) {
   const { storeId, number } = await params
-  const { t: token } = await searchParams
+  // The proxy moved `?t=` into a cookie for this page (`lib/order-token-swap.ts`).
+  const token = await orderPageToken((await searchParams).t)
   const env = loadEnv(process.env)
   const me = await currentCustomer(storeId)
   const data = await inStore(storeId, async (tx) => {

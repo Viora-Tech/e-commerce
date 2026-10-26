@@ -254,7 +254,7 @@ export const affiliateContent = {
     },
     tips: {
       title: 'Tips',
-      code: 'Your code always counts. Your link counts when the shopper allows cookies, so mention the code too.',
+      code: 'Your link and your code both count. Mention the code too: it still counts when a follower orders on another device.',
     },
     copy: 'Copy',
     copied: 'Copied',

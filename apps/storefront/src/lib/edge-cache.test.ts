@@ -70,5 +70,7 @@ describe('isPersonalCookie', () => {
     expect(isPersonalCookie('wc_vid')).toBe(true)
     expect(isPersonalCookie('theme')).toBe(true)
     expect(isPersonalCookie('_ga')).toBe(false)
+    // The affiliate referral never changes what a page shows.
+    expect(isPersonalCookie('wc_ref')).toBe(false)
   })
 })
