@@ -1,4 +1,10 @@
-export type { ApiContext, DailyVisitors, LiveVisitors, VisitorSource } from './context'
+export type {
+  ApiContext,
+  DailyVisitors,
+  LiveVisitors,
+  QueueHealth,
+  VisitorSource,
+} from './context'
 export { apiTokenRefusal } from './mcp/action-catalogue'
 export { handleMcpDownload } from './mcp/download-link'
 export {

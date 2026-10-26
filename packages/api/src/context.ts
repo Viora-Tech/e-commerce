@@ -60,6 +60,25 @@ export type ApiContext = {
   inboxPublisher?: PubSubPublisher | undefined
   /** `fetch` for GitHub's issues API ("Report a bug"). Absent: the global fetch. Tests pass a fake so they never reach GitHub. */
   githubFetch?: typeof fetch | undefined
+  /** The platform console's connection: the OWNER role, which sees every store. Only the admin's
+   *  cookie routes pass it; the bearer-token and MCP routes never do, so `platform.*` answers
+   *  "not found" there whatever the caller is. Every query on it is read-only (`platformRead`). */
+  platformDb?: Db | undefined
+  /** Platform staff emails. Absent: `PLATFORM_ADMIN_EMAILS` from the environment. Tests pass a list. */
+  platformStaff?: readonly string[] | undefined
+  /** Background job counts per worker queue, for the console's Overview. Absent: not shown. */
+  queueHealth?: (() => Promise<QueueHealth[]>) | undefined
+}
+
+/** One worker queue's job counts (BullMQ), as the platform console shows them. */
+export type QueueHealth = {
+  name: string
+  waiting: number
+  active: number
+  delayed: number
+  failed: number
+  /** When the oldest waiting job was added; null when none waits. */
+  oldestWaitingAt: Date | null
 }
 
 export type LiveVisitors = {
