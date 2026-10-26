@@ -35,6 +35,9 @@ const config: NextConfig = {
   // root so workspace packages (packages/*) are included.
   output: 'standalone',
   outputFileTracingRoot: monorepoRoot,
+  // The PIN code directory is read by path at run time (`@commerce/shipping/pincode-directory`),
+  // which tracing cannot see; without this the image has no City/State autofill.
+  outputFileTracingIncludes: { '/**': ['../../packages/shipping/data/pincode-directory.json.gz'] },
   async headers() {
     return [
       {

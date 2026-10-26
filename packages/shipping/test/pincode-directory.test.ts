@@ -1,6 +1,7 @@
 import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { gzipSync } from 'node:zlib'
 import { describe, expect, it } from 'vitest'
 import {
@@ -83,5 +84,42 @@ describe('PIN code directory', () => {
       'fixture',
     )
     expect(f.districts).toEqual(['Jammu and Kashmir', 'North 24 Parganas'])
+  })
+})
+
+/*
+ * The shipped file (scripts/build-pincode-directory.ts). If it goes missing,
+ * checkout silently loses City/State autofill, so these fail instead.
+ */
+describe('installed PIN code directory', () => {
+  const dir = readPincodeDirectory(
+    fileURLToPath(new URL('../data/pincode-directory.json.gz', import.meta.url)),
+  )
+
+  it('covers every PIN code and credits its source', () => {
+    expect(dir.size).toBeGreaterThan(19000)
+    expect(dir.source).toMatch(/Department of Posts.*Government Open Data Licence - India/)
+  })
+
+  it.each([
+    ['110001', 'Central Delhi', 'DL'],
+    ['122001', 'Gurugram', 'HR'],
+    ['400001', 'Mumbai', 'MH'],
+    ['560001', 'Bengaluru', 'KA'],
+    ['700001', 'Kolkata', 'WB'],
+    ['682001', 'Ernakulam', 'KL'],
+    ['500001', 'Hyderabad', 'TS'],
+    ['194101', 'Leh', 'LA'],
+    ['160017', 'Chandigarh', 'CH'],
+    ['410206', 'Raigad', 'MH'],
+    ['605001', 'Pondicherry', 'PY'],
+    ['396210', 'Daman', 'DN'],
+  ])('%s is %s, %s', (pin, district, stateCode) => {
+    expect(dir.lookup(pin)).toEqual({ district, stateCode })
+  })
+
+  it('knows nothing of PIN codes India Post never issued', () => {
+    expect(dir.lookup('999999')).toBeNull()
+    expect(dir.lookup('100000')).toBeNull()
   })
 })
