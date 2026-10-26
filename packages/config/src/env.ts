@@ -108,6 +108,20 @@ const platformDomains = z
       .filter(Boolean),
   )
 
+/**
+ * Comma-separated emails of the people who run Koomerce (VIORA INDIA staff); only they may open
+ * the platform console (`/platform`). Blank or unset: nobody, the console answers "not found".
+ */
+const platformAdminEmails = z
+  .string()
+  .default('')
+  .transform((s) =>
+    s
+      .split(',')
+      .map((e) => e.trim().toLowerCase())
+      .filter((e) => e.includes('@')),
+  )
+
 /** SETTINGS_SECRET's development default. Public, so production refuses it (see `schema`). */
 const DEV_SETTINGS_SECRET = 'dev-only-settings-secret'
 
@@ -220,6 +234,7 @@ const shape = z.object({
   /** Hostname a subdomain's CNAME must point at. */
   STOREFRONT_CNAME_TARGET: z.string().min(3).default('shops.waimers.localhost'),
   PLATFORM_DOMAINS: platformDomains,
+  PLATFORM_ADMIN_EMAILS: platformAdminEmails,
   /**
    * Automatic HTTPS routes for custom domains (worker only). With all three set, a custom
    * domain whose DNS is verified is added to the storefront app in Dokploy (https, Let's
