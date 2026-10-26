@@ -20,7 +20,9 @@ import {
 import { and, asc, desc, eq, gte, inArray, isNull, or, sql } from 'drizzle-orm'
 import { getCart } from '../cart/cart'
 import type { StoreContext } from '../context'
+import { decryptCustomerPhone } from '../customers/phone-crypto'
 import { isShareableDiscount } from './conversations'
+import { type InsightLocation, locationOf, pagesViewed, productHandleOf } from './insights'
 import { InboxError } from './messages'
 
 export type CardProduct = {
@@ -172,6 +174,51 @@ async function threadCartId(tx: StoreTx, conversationId: string): Promise<string
   return row?.cartId ?? null
 }
 
+/** The shopper's open cart: the signed-in customer's, else the one a cart line in the thread named. */
+export async function conversationCart(
+  ctx: StoreContext,
+  c: { id: string; customerId: string | null },
+): Promise<Awaited<ReturnType<typeof getCart>>> {
+  const [openCart] = c.customerId
+    ? await ctx.tx
+        .select({ id: cart.id })
+        .from(cart)
+        .where(and(eq(cart.customerId, c.customerId), eq(cart.status, 'open')))
+        .orderBy(desc(cart.updatedAt))
+        .limit(1)
+    : []
+  const cartId = openCart?.id ?? (await threadCartId(ctx.tx, c.id))
+  const found = cartId ? await getCart(ctx, cartId) : null
+  return found && found.status === 'open' ? found : null
+}
+
+/** How many of the shopper's newest messages the "Pages viewed" list reads. */
+const PAGE_MESSAGES = 50
+
+/** Pages the shopper wrote from (each text message keeps its page), newest first. */
+async function shopperPages(
+  tx: StoreTx,
+  conversationId: string,
+  startedUrl: string | null,
+): Promise<string[]> {
+  const rows = await tx
+    .select({ payload: inboxMessage.payload })
+    .from(inboxMessage)
+    .where(and(eq(inboxMessage.conversationId, conversationId), eq(inboxMessage.sender, 'shopper')))
+    .orderBy(desc(inboxMessage.id))
+    .limit(PAGE_MESSAGES)
+  return pagesViewed(startedUrl, rows)
+}
+
+/** The product a storefront path shows, when it is a product page. */
+export async function viewedProduct(tx: StoreTx, path: string | null): Promise<CardProduct | null> {
+  const handle = productHandleOf(path)
+  if (!handle) return null
+  const [p] = await tx.select({ id: product.id }).from(product).where(eq(product.handle, handle))
+  if (!p) return null
+  return (await productCards(tx, [p.id]))[p.id] ?? null
+}
+
 export type CustomerPanel = {
   /** The signed-in customer the thread belongs to (verified). */
   customer: {
@@ -188,8 +235,24 @@ export type CustomerPanel = {
   possibleMatch: { id: string; name: string | null; email: string | null } | null
   returning: boolean
   /** Only for a verified customer, and only when the member may read orders. */
-  orders: { id: string; number: number; totalPaise: number; placedAt: Date; status: string }[]
+  orders: {
+    id: string
+    number: number
+    totalPaise: number
+    placedAt: Date
+    status: 'draft' | 'open' | 'completed' | 'cancelled'
+    paymentStatus: string
+    fulfillmentStatus: string
+  }[]
   cart: Awaited<ReturnType<typeof getCart>>
+  /** The verified customer's phone (decrypted); guests' typed phone is on the conversation. */
+  phone: string | null
+  /** The verified customer's saved address city and state. */
+  location: InsightLocation | null
+  /** Storefront pages the shopper wrote from, newest first. */
+  pages: string[]
+  /** The product page of the newest of those pages, when it is one. */
+  viewing: CardProduct | null
 }
 
 /**
@@ -199,7 +262,7 @@ export type CustomerPanel = {
 export async function customerPanel(
   ctx: StoreContext,
   conversationId: string,
-  opts: { ordersAllowed: boolean },
+  opts: { ordersAllowed: boolean; secret?: string | undefined },
 ): Promise<CustomerPanel> {
   const [c] = await ctx.tx
     .select()
@@ -210,8 +273,10 @@ export async function customerPanel(
   let panelCustomer: CustomerPanel['customer'] = null
   let possibleMatch: CustomerPanel['possibleMatch'] = null
   let orders: CustomerPanel['orders'] = []
+  let phone: string | null = null
+  let location: InsightLocation | null = null
   if (c.customerId) {
-    const [row] = await ctx.tx
+    const [found] = await ctx.tx
       .select({
         id: customer.id,
         name: customer.name,
@@ -219,13 +284,20 @@ export async function customerPanel(
         note: customer.note,
         tags: customer.tags,
         createdAt: customer.createdAt,
+        phone: customer.phone,
+        defaultAddress: customer.defaultAddress,
         orderCount: sql<number>`(select count(*)::int from ${order} where ${order.customerId} = ${c.customerId} and ${order.status} <> 'draft')`,
         totalSpentPaise: sql<number>`(select coalesce(sum(${order.totalPaise}), 0)::int from ${order} where ${order.customerId} = ${c.customerId} and ${order.status} not in ('draft', 'cancelled'))`,
       })
       .from(customer)
       .where(eq(customer.id, c.customerId))
-    panelCustomer = row ?? null
-    if (row && opts.ordersAllowed) {
+    if (found) {
+      const { phone: stored, defaultAddress, ...rest } = found
+      panelCustomer = rest
+      phone = stored ? decryptCustomerPhone(stored, opts.secret ?? '') : null
+      location = locationOf(defaultAddress)
+    }
+    if (found && opts.ordersAllowed) {
       orders = await ctx.tx
         .select({
           id: order.id,
@@ -233,9 +305,11 @@ export async function customerPanel(
           totalPaise: order.totalPaise,
           placedAt: order.placedAt,
           status: order.status,
+          paymentStatus: order.paymentStatus,
+          fulfillmentStatus: order.fulfillmentStatus,
         })
         .from(order)
-        .where(and(eq(order.customerId, row.id), sql`${order.status} <> 'draft'`))
+        .where(and(eq(order.customerId, c.customerId), sql`${order.status} <> 'draft'`))
         .orderBy(desc(order.placedAt))
         .limit(5)
     }
@@ -247,16 +321,7 @@ export async function customerPanel(
     possibleMatch = row ?? null
   }
 
-  const [openCart] = c.customerId
-    ? await ctx.tx
-        .select({ id: cart.id })
-        .from(cart)
-        .where(and(eq(cart.customerId, c.customerId), eq(cart.status, 'open')))
-        .orderBy(desc(cart.updatedAt))
-        .limit(1)
-    : []
-  const cartId = openCart?.id ?? (await threadCartId(ctx.tx, conversationId))
-  const liveCart = cartId ? await getCart(ctx, cartId) : null
+  const liveCart = await conversationCart(ctx, c)
   const [earlier] = await ctx.tx
     .select({ n: sql<number>`count(*)::int` })
     .from(inboxConversation)
@@ -268,12 +333,17 @@ export async function customerPanel(
         sql`${inboxConversation.id} <> ${c.id}`,
       ),
     )
+  const pages = await shopperPages(ctx.tx, c.id, c.startedUrl)
   return {
     customer: panelCustomer,
     possibleMatch,
     returning: (panelCustomer?.orderCount ?? 0) > 0 || (earlier?.n ?? 0) > 0,
     orders,
-    cart: liveCart && liveCart.status === 'open' ? liveCart : null,
+    cart: liveCart,
+    phone,
+    location,
+    pages,
+    viewing: await viewedProduct(ctx.tx, pages[0] ?? null),
   }
 }
 

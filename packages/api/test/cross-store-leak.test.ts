@@ -95,6 +95,8 @@ const SKIP: Record<string, string> = {
   'ai.suggestKeywords': 'AI model provider (a dev .env key would reach the real gateway)',
   'ai.assistant': 'AI model provider (a dev .env key would reach the real gateway)',
   'reviews.writeReply': 'AI model provider (a dev .env key would reach the real gateway)',
+  'inbox.suggestReplies': 'AI model provider (a dev .env key would reach the real gateway)',
+  'inbox.summarise': 'AI model provider (a dev .env key would reach the real gateway)',
   'ai.bulkWrite':
     'AI model provider (runs in the request without a queue); covered by ai-assistant.test.ts',
   'purchaseDocuments.read':

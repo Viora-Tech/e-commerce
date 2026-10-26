@@ -18,7 +18,9 @@ import Composer, { type ComposerSend } from './composer'
 import CustomerPanel from './customer-panel'
 import HandoffBanner from './handoff-banner'
 import MessageItem, { type ThreadData, type ThreadMessage } from './message-item'
+import SuggestedReplies from './suggested-replies'
 import ThreadHeader from './thread-header'
+import ThreadSummary from './thread-summary'
 
 type ThreadPaneProps = {
   conversationId: string
@@ -26,6 +28,8 @@ type ThreadPaneProps = {
   live: { seq: number; event: InboxConnectionEvent } | null
   assignees: { userId: string; name: string | null; email: string }[]
   quickReplies: { id: string; shortcut: string; title: string; body: string }[]
+  /** AI is set up and the assistant is on: show suggested replies and the chat summary. */
+  aiHelp: boolean
   nameOfMember: (userId: string) => string
   onBack: () => void
   /** The list should refresh (status or assignment changed here). */
@@ -36,6 +40,8 @@ type ThreadPaneProps = {
 const TYPING_MS = 5000
 /** At most one typing signal to the shopper this often. */
 const TYPING_EVERY_MS = 3000
+/** Threads this long (messages anyone can see) open with an AI summary. */
+const SUMMARY_FROM = 6
 
 /**
  * The open conversation: header, messages (older pages on demand), the composer, and the
@@ -46,6 +52,7 @@ export default function ThreadPane({
   live,
   assignees,
   quickReplies,
+  aiHelp,
   nameOfMember,
   onBack,
   onChanged,
@@ -58,6 +65,7 @@ export default function ThreadPane({
   const [cartKey, setCartKey] = useState(0)
   const [blocking, setBlocking] = useState(false)
   const [panelOpen, setPanelOpen] = useState(false)
+  const [seed, setSeed] = useState<{ seq: number; text: string } | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const lastTyping = useRef(0)
 
@@ -223,10 +231,15 @@ export default function ThreadPane({
         )
         .at(-1)?.id
     : undefined
+  const visible = thread.messages.filter((m) => m.sender !== 'system' && m.kind !== 'note')
+  const newest = visible.at(-1)
+  const awaiting = newest?.sender === 'shopper' ? newest.id : null
+  const showSuggestions = aiHelp && canReply && c.status !== 'blocked' && awaiting !== null
+  const showSummary = aiHelp && visible.length >= SUMMARY_FROM && newest !== undefined
   const panel = (
     <CustomerPanel
       conversationId={conversationId}
-      contact={{ email: c.email, phone: c.contactPhone, startedUrl: c.startedUrl }}
+      contact={{ email: c.email, phone: c.contactPhone }}
       refreshKey={cartKey}
       canReadOrders={hasPermission(permissions.ORDERS_READ)}
     />
@@ -251,6 +264,9 @@ export default function ThreadPane({
           onCustomer={() => setPanelOpen(true)}
         />
         {c.needsHuman ? <HandoffBanner summary={c.handoffSummary} /> : null}
+        {showSummary ? (
+          <ThreadSummary conversationId={conversationId} latestId={newest.id} />
+        ) : null}
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
           {thread.hasMore ? (
             <div className="mb-3 flex justify-center">
@@ -277,6 +293,13 @@ export default function ThreadPane({
           </div>
           <div ref={bottomRef} />
         </div>
+        {showSuggestions ? (
+          <SuggestedReplies
+            conversationId={conversationId}
+            messageId={awaiting}
+            onPick={(text) => setSeed((s) => ({ seq: (s?.seq ?? 0) + 1, text }))}
+          />
+        ) : null}
         {canReply ? (
           <Composer
             disabled={c.status === 'blocked'}
@@ -286,6 +309,7 @@ export default function ThreadPane({
             canShareDiscounts={hasPermission(permissions.DISCOUNTS_READ)}
             onSend={handleSend}
             onTyping={handleTyping}
+            seed={seed}
           />
         ) : null}
       </div>

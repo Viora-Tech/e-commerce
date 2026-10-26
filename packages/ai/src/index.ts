@@ -42,6 +42,25 @@ export {
   inboxAgentContent,
   inboxAgentInstructions,
 } from './inbox-agent'
+export {
+  clampSuggestions,
+  clampSummary,
+  INBOX_SUGGEST_MARKER,
+  INBOX_SUGGEST_MAX,
+  INBOX_SUMMARY_MARKER,
+  type InboxAssistInput,
+  type InboxAssistOrder,
+  type InboxAssistShippingRate,
+  type InboxSuggestOutput,
+  InboxSuggestSchema,
+  type InboxSummaryLanguage,
+  type InboxSummaryOutput,
+  InboxSummarySchema,
+  inboxSuggestContent,
+  inboxSuggestInstructions,
+  inboxSummaryContent,
+  inboxSummaryInstructions,
+} from './inbox-assist'
 export type { ProductWriterInput } from './product-writer/prompt'
 export { productWriterContent, productWriterInstructions } from './product-writer/prompt'
 export {

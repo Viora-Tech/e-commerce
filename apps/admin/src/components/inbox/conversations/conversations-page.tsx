@@ -51,6 +51,7 @@ export default function ConversationsPage({ initialView, initialId }: Conversati
   >([])
   const [live, setLive] = useState<{ seq: number; event: InboxConnectionEvent } | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
+  const [aiHelp, setAiHelp] = useState(false)
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useInboxLive((event) => {
@@ -66,6 +67,10 @@ export default function ConversationsPage({ initialView, initialId }: Conversati
     api.inbox.quickReplies
       .list()
       .then(setQuickReplies)
+      .catch(() => undefined)
+    api.inbox
+      .aiAvailable()
+      .then((a) => setAiHelp(a.available))
       .catch(() => undefined)
   }, [])
 
@@ -184,6 +189,7 @@ export default function ConversationsPage({ initialView, initialId }: Conversati
             live={live}
             assignees={assignees}
             quickReplies={quickReplies}
+            aiHelp={aiHelp}
             nameOfMember={nameOfMember}
             onBack={() => setSelectedId(null)}
             onChanged={scheduleRefresh}

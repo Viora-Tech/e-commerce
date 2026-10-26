@@ -13,6 +13,7 @@ import { MockLanguageModelV4 } from 'ai/test'
 import { CAMPAIGN_WRITER_MARKER } from './campaign-writer'
 import type { AiFeature } from './features'
 import { INBOX_AGENT_MARKER } from './inbox-agent'
+import { INBOX_SUGGEST_MARKER, INBOX_SUMMARY_MARKER } from './inbox-assist'
 import { mockPlan } from './mock-plan'
 import { MOCK_DOCUMENTS } from './purchase-documents/fixtures'
 import {
@@ -167,6 +168,20 @@ function generated(prompt: Prompt): string {
       handoffReason: null,
       summary: '',
       confidence: 80,
+    })
+  }
+  if (system.includes(INBOX_SUGGEST_MARKER)) {
+    return JSON.stringify({
+      replies: [
+        'Thanks for writing to us. Let me check that for you and reply here in a few minutes.',
+        'Happy to help. Could you share your order number so we can look into it?',
+      ],
+    })
+  }
+  if (system.includes(INBOX_SUMMARY_MARKER)) {
+    return JSON.stringify({
+      about: 'The shopper asked about a product and their order.',
+      pending: 'They are waiting for the team to confirm the details.',
     })
   }
   if (system.includes(REVIEW_REPLY_MARKER)) {
