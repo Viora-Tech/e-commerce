@@ -19,9 +19,11 @@ jobs:
     runs-on: ubuntu-latest
     # The GitHub runner has 2 cores / ~7 GB. The default (turbo fans out ~10 packages, each vitest
     # spawning TEST_WORKERS=3 forks with a DB copy apiece) OOM-kills the runner. One DB copy per
-    # worker and one package at a time (--concurrency=1 on the test step) keeps it under the cap.
+    # worker and one package at a time (--concurrency=1 on the test/typecheck steps) keeps it under
+    # the cap. The admin app's tsc also needs a larger V8 heap than the ~2 GB default, so raise it.
     env:
       TEST_WORKERS: '1'
+      NODE_OPTIONS: '--max-old-space-size=6144'
     services:
       postgres:
         image: postgres:17-alpine
@@ -47,9 +49,9 @@ jobs:
       - name: Create roles and test databases
         run: PGPASSWORD=postgres psql -h localhost -U postgres -d commerce -v ON_ERROR_STOP=1 -f docker/postgres/init.sql
       - run: bun run lint
-      # --concurrency=2: ~10 parallel tsc OOM-kills the runner (the admin/storefront/api/core
-      # projects are each ~1-2 GB); two at a time stays under the ~7 GB cap.
-      - run: bun run typecheck --concurrency=2
+      # --concurrency=1: ~10 parallel tsc OOM-kills the runner; even two at a time can overlap the
+      # two heaviest (admin + storefront). One at a time, each with the 6 GB heap above, is reliable.
+      - run: bun run typecheck --concurrency=1
       - run: bun run test:sweeps
       # --concurrency=1: run one package's vitest at a time so peak memory stays bounded (see env note).
       - run: bun run test --concurrency=1
