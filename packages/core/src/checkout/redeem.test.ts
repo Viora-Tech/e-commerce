@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: redeemHandoff tests — opens an own-store open cart; refuses foreign-store, empty, and already-ordered carts */
 import { createDb, inventoryLevel, product, store, variant, withStore } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'

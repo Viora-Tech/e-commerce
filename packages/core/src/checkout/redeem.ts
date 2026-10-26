@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: checkout hand-off redemption — WHAT: redeemHandoff turns a verified hand-off token into an openable cart, refusing a foreign-store, empty, or already-ordered cart (D-01 phase B) / WHY: the single-use + tenant check for opening checkout on the branded checkout origin */
 import { getCart } from '../cart/cart'
 import type { StoreContext } from '../context'
 import type { CheckoutPayload } from './handoff'

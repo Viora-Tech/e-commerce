@@ -18,6 +18,12 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/core/src/domains/origin.ts',
+    names: ['checkoutOrigin'],
+    reason:
+      'pure branded-checkout-origin builder, unit-tested and paired with checkoutOriginFor (which callers use); the storefront resolves origins via checkoutOriginFor, not this (security audit D-01 phase B)',
+  },
+  {
     file: 'packages/core/src/inbox/widget.ts',
     names: [
       'WIDGET_ICONS',

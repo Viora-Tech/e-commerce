@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: checkout token tests — round-trip, tamper, expiry, malformed, and purpose separation (hand-off vs session) */
 import { describe, expect, it } from 'vitest'
 import {
   signCheckoutSession,

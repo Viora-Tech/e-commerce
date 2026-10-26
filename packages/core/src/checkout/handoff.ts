@@ -1,20 +1,10 @@
+/** SOURCE OF TRUTH: checkout hand-off & session tokens — WHAT: signed {storeId,cartId,customerId} tokens carrying the cart/identity to the branded checkout origin (D-01 phase B) / WHY: one purpose-prefixed HMAC, two lifetimes (2-min one-shot hand-off, 2-h session), neither verifies as the other or any other token under the same secret */
 import { createHmac, timingSafeEqual } from 'node:crypto'
 
-/*
- * Tokens that carry a shopper's cart (and, if signed in, their identity) around the branded,
- * theme-free checkout origin (security audit D-01, phase B). Two lifetimes over one payload:
- *
- * - **hand-off** (`signHandoffToken`): minted by the store origin's `/checkout/start`, redeemed
- *   once by `checkout.<primary>/c/<token>`. Short (2 min): it only has to survive one redirect.
- * - **session** (`signCheckoutSession`): what the checkout origin keeps in its host-only cookie
- *   after redemption, so the checkout pages know the store, cart and shopper. Longer (2 h).
- *
- * Both are a purpose-prefixed HMAC (same shape as `preorder/balance-link.ts`), so neither can be
- * replayed as the other, nor as any other token signed under the same secret.
- */
-
-export const CHECKOUT_HANDOFF_TTL_MS = 2 * 60_000
-export const CHECKOUT_SESSION_TTL_MS = 2 * 60 * 60_000
+// hand-off: minted by the store origin's /checkout/start, redeemed once by checkout.<primary>/c/<token>.
+const CHECKOUT_HANDOFF_TTL_MS = 2 * 60_000
+// session: what the checkout origin keeps in its host-only cookie after redemption.
+const CHECKOUT_SESSION_TTL_MS = 2 * 60 * 60_000
 
 export type CheckoutPayload = {
   storeId: string
@@ -22,9 +12,6 @@ export type CheckoutPayload = {
   /** The signed-in shopper carried across, or null for a guest. */
   customerId: string | null
 }
-
-/** Back-compat alias for the hand-off payload. */
-export type Handoff = CheckoutPayload
 
 type Verified =
   | (CheckoutPayload & { ok: true })
