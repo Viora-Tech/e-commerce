@@ -19,6 +19,7 @@ const PRIVACY_AUDIT_ACTIONS = [
   'consent.changed',
   'settings.saved',
   'account.deletion_requested',
+  'contact.phone_added',
 ] as const
 export type PrivacyAuditAction = (typeof PRIVACY_AUDIT_ACTIONS)[number]
 

@@ -13,6 +13,7 @@ import MetafieldsCard from '@/components/metaobjects/metafields-card'
 import { customerDetailContent } from '@/data/customers'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import ContactPhonePrompt from './contact-phone-prompt'
 import CustomerActivityCard from './customer-activity-card'
 import CustomerAddressesCard from './customer-addresses-card'
 import CustomerBusinessCard from './customer-business-card'
@@ -194,7 +195,7 @@ export default function CustomerView({
         }
         side={
           <>
-            <ProfileCard customer={customer} onEdit={() => setEditing(true)} />
+            <ProfileCard customer={customer} onEdit={() => setEditing(true)} onChanged={refresh} />
             <CustomerAddressesCard customer={customer} onChanged={refresh} />
             {consent ? (
               <MarketingConsentCard
@@ -204,6 +205,15 @@ export default function CustomerView({
                 value={draft.consent}
                 onChange={(channel, granted) =>
                   setDraft((d) => ({ ...d, consent: { ...d.consent, [channel]: granted } }))
+                }
+                hasPhone={Boolean(customer.phone)}
+                phonePrompt={
+                  <ContactPhonePrompt
+                    customerId={customer.id}
+                    suggestion={customer.phoneSuggestion}
+                    onAdd={() => setEditing(true)}
+                    onSaved={refresh}
+                  />
                 }
               />
             ) : null}

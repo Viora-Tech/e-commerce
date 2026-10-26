@@ -1,5 +1,6 @@
 import { settingsSecret } from '@commerce/config'
 import {
+  adoptContactPhone,
   createAddress,
   createCustomer,
   customerExists,
@@ -11,6 +12,7 @@ import {
   SEGMENT_FIELDS,
   setDefaultAddress,
   setMarketingConsent,
+  suggestContactPhone,
   updateAddress,
   validateGstin,
 } from '@commerce/core'
@@ -148,7 +150,50 @@ export const customersRouter = {
       const found = await getCustomer(context.tx, input.id, settingsSecret())
       if (!found) return null
       const ctx = { tx: context.tx, storeId: context.scope.storeId }
-      return { ...found, addresses: await listAddresses(ctx, input.id) }
+      const [addresses, phoneSuggestion] = await Promise.all([
+        listAddresses(ctx, input.id),
+        found.phone ? null : suggestContactPhone(ctx, input.id, settingsSecret()),
+      ])
+      // A contact phone the staff could take from their latest order or address (one click).
+      return { ...found, addresses, phoneSuggestion }
+    }),
+
+  /**
+   * Save the mobile from the customer's latest order (or saved address) as their contact phone,
+   * when they have none. Worked out on the server, refused when another customer has it; consent
+   * is never switched on by this.
+   */
+  adoptContactPhone: can(permissions.CUSTOMERS_WRITE)
+    .input(z.object({ id: z.uuid() }))
+    .handler(async ({ context, input }) => {
+      const result = await adoptContactPhone(
+        { tx: context.tx, storeId: context.scope.storeId },
+        input.id,
+        {
+          secret: settingsSecret(),
+          actor: {
+            type: 'staff',
+            id: context.scope.userId,
+            label: context.session.user.name?.trim() || context.session.user.email,
+          },
+        },
+      )
+      if (result.ok) return { phone: result.phone, source: result.source }
+      if (result.reason === 'not_found') {
+        throw new ORPCError('NOT_FOUND', { message: 'Customer not found' })
+      }
+      if (result.reason === 'duplicate') {
+        throw new ORPCError('CONFLICT', {
+          message: 'Another customer already has this mobile number',
+          data: { field: 'phone', existingId: result.existingId },
+        })
+      }
+      throw new ORPCError('BAD_REQUEST', {
+        message:
+          result.reason === 'has_phone'
+            ? 'This customer already has a phone number'
+            : 'No mobile number on their orders or addresses',
+      })
     }),
 
   /** Rows for the Customers bulk-edit spreadsheet, in the order the ids were given. */

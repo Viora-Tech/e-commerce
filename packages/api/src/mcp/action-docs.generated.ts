@@ -177,6 +177,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'The same for a selection on the Customers list; each change keeps its own history row.',
   'customers.addAddress':
     "Add an address to the customer's book; the first one becomes their default.",
+  'customers.adoptContactPhone':
+    "Save the mobile from the customer's latest order (or saved address) as their contact phone, when they have none.",
   'customers.create': 'Add a customer by hand ("Add customer" on the list).',
   'customers.export': 'Rows for a CSV export of the current filter; the browser builds the file.',
   'customers.lookupPincode':

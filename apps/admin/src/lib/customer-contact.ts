@@ -11,6 +11,11 @@ export function whatsappUrl(phone: string | null | undefined): string | null {
   return digits.length > NATIONAL_LENGTH ? `https://wa.me/${digits}` : null
 }
 
+/** A ten digit mobile as "79041 15879"; anything else comes back as it was. */
+export function spacedMobile(phone: string): string {
+  return /^\d{10}$/.test(phone) ? `${phone.slice(0, 5)} ${phone.slice(5)}` : phone
+}
+
 /** `tel:` link that keeps a leading plus and drops spaces and dashes. */
 export function telUrl(phone: string | null | undefined): string | null {
   if (!phone) return null

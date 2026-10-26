@@ -58,13 +58,29 @@ const mergeTags = (a: string[], b: string[]) => {
 const nameOf = (c: NCustomer) => [c.firstName, c.lastName].filter(Boolean).join(' ') || null
 const refOf = (c: NCustomer) => c.email ?? c.phone ?? nameOf(c)
 
-/** The columns both an update and an insert set. */
+/**
+ * The contact phone to store: Shopify's customer phone, else their default address phone (most
+ * Indian shoppers only ever typed one at checkout), so WhatsApp and SMS consent can be asked.
+ * Matching still uses the customer phone only, so a shared address number never merges two
+ * shoppers.
+ */
+export const contactPhoneOf = (c: NCustomer): string | null => c.phone || c.address?.phone || null
+
+/**
+ * The columns both an update and an insert set. No phone in Shopify leaves the stored one
+ * alone, so a re-import never wipes a number staff added.
+ */
 function fieldsOf(c: NCustomer, secret: string) {
+  const phone = contactPhoneOf(c)
   // Stored encrypted, the same as the admin and checkout paths (docs/security/data-protection.md).
   return {
     name: nameOf(c),
-    phone: c.phone ? encryptCustomerPhone(c.phone, secret).cipher : c.phone,
-    phoneIndex: c.phone ? phoneBlindIndex(c.phone, secret) : null,
+    ...(phone
+      ? {
+          phone: encryptCustomerPhone(phone, secret).cipher,
+          phoneIndex: phoneBlindIndex(phone, secret),
+        }
+      : {}),
     note: c.note,
     acceptsMarketing: c.acceptsMarketing,
     ...(c.address ? { defaultAddress: customerAddress(c.address) } : {}),
@@ -84,7 +100,11 @@ async function updateCustomer(
     .set({
       ...fields,
       // An imported number is not proven; a proof only covers the number it was for.
-      phoneVerifiedAt: sql`case when ${customer.phoneIndex} is not distinct from ${fields.phoneIndex} then ${customer.phoneVerifiedAt} else null end`,
+      ...(fields.phoneIndex
+        ? {
+            phoneVerifiedAt: sql`case when ${customer.phoneIndex} is not distinct from ${fields.phoneIndex} then ${customer.phoneVerifiedAt} else null end`,
+          }
+        : {}),
       email: current?.email ?? c.email,
       tags: mergeTags(current?.tags ?? [], c.tags),
     })

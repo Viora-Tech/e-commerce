@@ -173,14 +173,16 @@ async function customerFor(
       .where(eq(customer.phoneIndex, phoneBlindIndex(o.phone, secret)))
     if (row) return row.id
   }
+  // A new buyer's contact phone: the order's, else the shipping address's (as checkout does).
+  const phone = o.phone || o.shippingAddress?.phone || null
   const [created] = await tx
     .insert(customer)
     .values({
       storeId,
       email: o.email,
       // Stored encrypted, the same as the admin and checkout paths (docs/security/data-protection.md).
-      phone: o.phone ? encryptCustomerPhone(o.phone, secret).cipher : o.phone,
-      phoneIndex: o.phone ? phoneBlindIndex(o.phone, secret) : null,
+      phone: phone ? encryptCustomerPhone(phone, secret).cipher : null,
+      phoneIndex: phone ? phoneBlindIndex(phone, secret) : null,
       name: o.customerName,
       ...(o.createdAt ? { createdAt: new Date(o.createdAt) } : {}),
     })

@@ -234,6 +234,19 @@ export const customerDetailContent = {
     average: 'Average order',
     firstOrder: 'First order',
   },
+  /** A contact phone taken from the customer's latest order or address (issue #810). */
+  contactPhone: {
+    missing: 'No phone number',
+    add: 'Add phone',
+    takeFromOrder: (phone: string) => `Use ${phone} from their latest order`,
+    takeFromAddress: (phone: string) => `Use ${phone} from their saved address`,
+    taken: (phone: string) => `${phone} from their order belongs to another customer.`,
+    openOther: 'Open that customer',
+    saved: 'Phone number saved',
+    failed: 'Could not save the phone number',
+    consentNeedsPhone: 'Add a phone number to ask for WhatsApp/SMS consent.',
+    notSendable: 'Not set up in your store yet',
+  },
   profile: {
     heading: 'Contact',
     name: 'Name',
