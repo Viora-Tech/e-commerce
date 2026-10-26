@@ -31,9 +31,7 @@ export function balanceData(
   return {
     dueLabel: formatMoney(owed),
     depositLabel: formatMoney(o.totalPaise - owed),
-    payByLabel: payBy
-      ? formatInZone(payBy, { dateStyle: 'medium' })
-      : undefined,
+    payByLabel: payBy ? formatInZone(payBy, { dateStyle: 'medium' }) : undefined,
     depositNonRefundable: depositIsNonRefundable(settings),
   }
 }
