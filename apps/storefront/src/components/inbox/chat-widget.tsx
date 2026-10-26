@@ -43,6 +43,22 @@ const BOTTOM = { lowest: '1rem', higher: '5.5rem', highest: '10rem' } as const
 /** The launcher's 3.5rem plus the gap between it and the card. */
 const ABOVE_LAUNCHER = '4.25rem'
 
+/**
+ * Open and close. The card grows from the launcher's corner (0.96 and 8px below, with the fade)
+ * in 220ms and goes back the same way in 160ms; a phone's full-screen card rises from the bottom
+ * edge as a sheet (`--duration-drawer`, `--ease-drawer`) and drops back in 70% of that. It stays
+ * mounted while closed (invisible, inert), so both ways are CSS transitions that retarget when
+ * the shopper toggles mid-way; the first open, when the card mounts, starts from
+ * `@starting-style`. Transforms are `motion-safe` only, so reduced motion keeps the fade. Every
+ * class is `!`: an imported theme's unlayered CSS beats Tailwind's layered utilities.
+ */
+const PANEL_MOTION =
+  'transition-[opacity,scale,translate,visibility]! ease-out! max-sm:ease-(--ease-drawer)!'
+const PANEL_OPEN =
+  'visible! opacity-100! duration-[220ms]! max-sm:duration-(--duration-drawer)! starting:opacity-0! sm:motion-safe:starting:scale-[0.96]! sm:motion-safe:starting:translate-y-2! max-sm:motion-safe:starting:translate-y-full!'
+const PANEL_CLOSED =
+  'pointer-events-none invisible! opacity-0! duration-[160ms]! max-sm:duration-[245ms]! sm:motion-safe:scale-[0.96]! sm:motion-safe:translate-y-2! max-sm:motion-safe:translate-y-full!'
+
 const byId = (a: { id: string }, b: { id: string }) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
 
 /** Adds a message once by id (or replaces the optimistic copy with the same client id). */
@@ -282,7 +298,7 @@ export default function ChatWidget({
     mode === 'expanded'
       ? 'inset-0'
       : mode === 'docked'
-        ? `inset-y-0 w-full sm:w-[26rem] ${side === 'left' ? 'left-0' : 'right-0'}`
+        ? `inset-y-0 w-full sm:w-[26rem] ${side === 'left' ? 'left-0 sm:origin-left' : 'right-0 sm:origin-right'}`
         : `inset-0 sm:inset-auto sm:bottom-(--chat-bottom) sm:h-[min(41rem,calc(100dvh-var(--chat-bottom)-1rem))] sm:w-[25rem] sm:rounded-(--chat-radius) ${
             side === 'left'
               ? 'sm:left-4 sm:origin-bottom-left'
@@ -290,9 +306,7 @@ export default function ChatWidget({
                 ? 'sm:left-1/2 sm:-translate-x-1/2 sm:origin-bottom'
                 : 'sm:right-4 sm:origin-bottom-right'
           }`
-  const motion = open
-    ? 'visible scale-100 opacity-100 duration-200 starting:scale-(--motion-press-scale) starting:opacity-0'
-    : 'pointer-events-none invisible scale-(--motion-press-scale) opacity-0 duration-[140ms]'
+  const motion = open ? PANEL_OPEN : PANEL_CLOSED
   const style = {
     '--chat-accent': widget.background || 'var(--btn-bg, var(--color-ink, CanvasText))',
     '--chat-on-accent': widget.textColour || 'var(--btn-text, var(--color-bg, Canvas))',
@@ -309,7 +323,7 @@ export default function ChatWidget({
       aria-hidden={!open}
       inert={!open}
       style={style}
-      className={`${CHAT_GUARD} fixed z-50 flex flex-col overflow-hidden overscroll-contain bg-[var(--color-bg,Canvas)] text-[var(--color-ink,CanvasText)] shadow-[0_0_0_1px_rgb(0_0_0/0.06),0_12px_32px_rgb(0_0_0/0.12),0_2px_6px_rgb(0_0_0/0.06)] transition-[opacity,scale,visibility] ease-out ${frame} ${motion}`}
+      className={`${CHAT_GUARD} fixed z-50 flex flex-col overflow-hidden overscroll-contain bg-[var(--color-bg,Canvas)] text-[var(--color-ink,CanvasText)] shadow-[0_0_0_1px_rgb(0_0_0/0.06),0_12px_32px_rgb(0_0_0/0.12),0_2px_6px_rgb(0_0_0/0.06)] ${PANEL_MOTION} ${frame} ${motion}`}
     >
       <ChatHeader
         storeName={storeName}

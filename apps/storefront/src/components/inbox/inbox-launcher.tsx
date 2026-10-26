@@ -23,6 +23,15 @@ const ChatWidget = dynamic(() => import('./chat-widget'), { ssr: false })
 /** Same values as the card's offset in `chat-widget.tsx`, which sits just above this button. */
 const BOTTOM = { lowest: '1rem', higher: '5.5rem', highest: '10rem' } as const
 
+/**
+ * The icon swap (chat <-> chevron): the outgoing icon turns 20deg, shrinks to 0.9 and fades
+ * while the incoming one turns back in, 200ms on the strong ease-out. The turn and shrink are
+ * `motion-safe`, so reduced motion is a plain cross-fade. `!` keeps theme CSS (`svg {...}`) out.
+ */
+const SWAP = 'transition-[opacity,scale,rotate]! duration-200! ease-out!'
+const CHAT_OUT = 'opacity-0! motion-safe:-rotate-[20deg]! motion-safe:scale-90!'
+const CHEVRON_OUT = 'opacity-0! motion-safe:rotate-[20deg]! motion-safe:scale-90!'
+
 const wasActive = () => {
   try {
     return window.localStorage.getItem(ACTIVE_KEY) === '1'
@@ -81,8 +90,6 @@ export default function InboxLauncher({ widget, storeName, logoUrl }: InboxLaunc
           color: widget.textColour || 'var(--btn-text, var(--color-bg, Canvas))',
         }),
   } as CSSProperties
-  const swap =
-    'transition-[opacity,scale,rotate] duration-200 ease-out motion-reduce:transition-opacity'
 
   return (
     <>
@@ -92,7 +99,7 @@ export default function InboxLauncher({ widget, storeName, logoUrl }: InboxLaunc
         aria-expanded={open}
         onClick={handleToggle}
         style={style}
-        className={`${CHAT_GUARD} fixed z-40 flex h-14 touch-manipulation items-center justify-center gap-2 rounded-full font-medium! shadow-[0_0_0_1px_rgb(0_0_0/0.06),0_8px_24px_rgb(0_0_0/0.16)] transition-[scale,opacity] duration-(--duration-press) ease-out active:scale-(--motion-press-scale) ${pill ? 'px-5' : 'w-14'} ${open ? 'max-sm:hidden' : ''} ${side}`}
+        className={`${CHAT_GUARD} fixed z-40 flex h-14 touch-manipulation items-center justify-center gap-2 rounded-full font-medium! shadow-[0_0_0_1px_rgb(0_0_0/0.06),0_8px_24px_rgb(0_0_0/0.16)] transition-[scale,opacity]! duration-(--duration-press)! ease-out! active:scale-(--motion-press-scale)! ${pill ? 'px-5' : 'w-14'} ${open ? 'max-sm:hidden!' : ''} ${side}`}
       >
         {pill ? (
           <>
@@ -106,12 +113,12 @@ export default function InboxLauncher({ widget, storeName, logoUrl }: InboxLaunc
             {widget.activatorIcon === 'none' ? null : (
               <ChatIcon
                 kind={widget.activatorIcon}
-                className={`absolute size-6 ${swap} ${open ? 'scale-(--motion-press-scale) -rotate-45 opacity-0' : ''}`}
+                className={`absolute size-6 ${SWAP} ${open ? CHAT_OUT : ''}`}
               />
             )}
             <ChatIcon
               kind="chevronDown"
-              className={`absolute size-6 ${swap} ${open ? '' : 'scale-(--motion-press-scale) rotate-45 opacity-0'}`}
+              className={`absolute size-6 ${SWAP} ${open ? '' : CHEVRON_OUT}`}
             />
           </span>
         )}
