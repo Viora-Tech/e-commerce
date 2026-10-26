@@ -13,6 +13,7 @@ import {
   sendChatAction,
 } from '@/lib/inbox-actions'
 import { CHAT_GUARD, chatFontFamily } from '@/lib/inbox-guard'
+import { CHAT_ROOT_ATTR, launcherBottom } from '@/lib/launcher-lift'
 import ChatComposer from './chat-composer'
 import ChatContactForm from './chat-contact-form'
 import ChatHeader, { type ChatMode } from './chat-header'
@@ -22,6 +23,8 @@ import ChatTrack from './chat-track'
 
 type ChatWidgetProps = {
   open: boolean
+  /** How far the launcher lifted itself over a theme's bottom bar (`lib/launcher-lift.ts`). */
+  lift: number
   widget: InboxWidget
   storeName: string
   /** The store's logo for the header avatar (`lib/inbox-logo.ts`); its first letter without one. */
@@ -38,10 +41,24 @@ type Contact = { name: string; email: string; phone: string }
 const TYPING_EVERY_MS = 3000
 const TYPING_SHOWN_MS = 5000
 
-/** The launcher's distance from the bottom (same values as `inbox-launcher.tsx`). */
-const BOTTOM = { lowest: '1rem', higher: '5.5rem', highest: '10rem' } as const
 /** The launcher's 3.5rem plus the gap between it and the card. */
 const ABOVE_LAUNCHER = '4.25rem'
+
+/**
+ * Open and close. The card grows from the launcher's corner (0.96 and 8px below, with the fade)
+ * in 220ms and goes back the same way in 160ms; a phone's full-screen card rises from the bottom
+ * edge as a sheet (`--duration-drawer`, `--ease-drawer`) and drops back in 70% of that. It stays
+ * mounted while closed (invisible, inert), so both ways are CSS transitions that retarget when
+ * the shopper toggles mid-way; the first open, when the card mounts, starts from
+ * `@starting-style`. Transforms are `motion-safe` only, so reduced motion keeps the fade. Every
+ * class is `!`: an imported theme's unlayered CSS beats Tailwind's layered utilities.
+ */
+const PANEL_MOTION =
+  'transition-[opacity,scale,translate,visibility]! ease-out! max-sm:ease-(--ease-drawer)!'
+const PANEL_OPEN =
+  'visible! opacity-100! duration-[220ms]! max-sm:duration-(--duration-drawer)! starting:opacity-0! sm:motion-safe:starting:scale-[0.96]! sm:motion-safe:starting:translate-y-2! max-sm:motion-safe:starting:translate-y-full!'
+const PANEL_CLOSED =
+  'pointer-events-none invisible! opacity-0! duration-[160ms]! max-sm:duration-[245ms]! sm:motion-safe:scale-[0.96]! sm:motion-safe:translate-y-2! max-sm:motion-safe:translate-y-full!'
 
 const byId = (a: { id: string }, b: { id: string }) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
 
@@ -95,6 +112,7 @@ function chime() {
  */
 export default function ChatWidget({
   open,
+  lift,
   widget,
   storeName,
   logoUrl,
@@ -282,7 +300,7 @@ export default function ChatWidget({
     mode === 'expanded'
       ? 'inset-0'
       : mode === 'docked'
-        ? `inset-y-0 w-full sm:w-[26rem] ${side === 'left' ? 'left-0' : 'right-0'}`
+        ? `inset-y-0 w-full sm:w-[26rem] ${side === 'left' ? 'left-0 sm:origin-left' : 'right-0 sm:origin-right'}`
         : `inset-0 sm:inset-auto sm:bottom-(--chat-bottom) sm:h-[min(41rem,calc(100dvh-var(--chat-bottom)-1rem))] sm:w-[25rem] sm:rounded-(--chat-radius) ${
             side === 'left'
               ? 'sm:left-4 sm:origin-bottom-left'
@@ -290,14 +308,12 @@ export default function ChatWidget({
                 ? 'sm:left-1/2 sm:-translate-x-1/2 sm:origin-bottom'
                 : 'sm:right-4 sm:origin-bottom-right'
           }`
-  const motion = open
-    ? 'visible scale-100 opacity-100 duration-200 starting:scale-(--motion-press-scale) starting:opacity-0'
-    : 'pointer-events-none invisible scale-(--motion-press-scale) opacity-0 duration-[140ms]'
+  const motion = open ? PANEL_OPEN : PANEL_CLOSED
   const style = {
     '--chat-accent': widget.background || 'var(--btn-bg, var(--color-ink, CanvasText))',
     '--chat-on-accent': widget.textColour || 'var(--btn-text, var(--color-bg, Canvas))',
     '--chat-radius': `${widget.borderRadius / 16}rem`,
-    '--chat-bottom': `calc(${BOTTOM[widget.vertical]} + ${ABOVE_LAUNCHER} + env(safe-area-inset-bottom))`,
+    '--chat-bottom': `calc(${launcherBottom(widget.vertical, lift)} + ${ABOVE_LAUNCHER})`,
     fontFamily: chatFontFamily(widget.inheritFont),
   } as CSSProperties
   const hairline = 'border-[color-mix(in_srgb,currentColor_8%,transparent)]'
@@ -309,7 +325,8 @@ export default function ChatWidget({
       aria-hidden={!open}
       inert={!open}
       style={style}
-      className={`${CHAT_GUARD} fixed z-50 flex flex-col overflow-hidden overscroll-contain bg-[var(--color-bg,Canvas)] text-[var(--color-ink,CanvasText)] shadow-[0_0_0_1px_rgb(0_0_0/0.06),0_12px_32px_rgb(0_0_0/0.12),0_2px_6px_rgb(0_0_0/0.06)] transition-[opacity,scale,visibility] ease-out ${frame} ${motion}`}
+      {...{ [CHAT_ROOT_ATTR]: '' }}
+      className={`${CHAT_GUARD} fixed z-[2147483000]! flex flex-col overflow-hidden overscroll-contain bg-[var(--color-bg,Canvas)] text-[var(--color-ink,CanvasText)] shadow-[0_0_0_1px_rgb(0_0_0/0.06),0_12px_32px_rgb(0_0_0/0.12),0_2px_6px_rgb(0_0_0/0.06)] ${PANEL_MOTION} ${frame} ${motion}`}
     >
       <ChatHeader
         storeName={storeName}

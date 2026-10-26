@@ -120,7 +120,29 @@
 @keyframes ck-settle {
   from {
     opacity: 0;
-    transform: scale(0.88);
+    transform: scale(0.9);
+  }
+}
+
+/* The thank-you tick drawing itself (StatusMark): a pathLength="1" path, dash offset 1 -> 0. */
+@keyframes ck-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+
+/* One-time entrances (the thank-you page's headline and cards, the error pages): an 8px rise
+   with a fade, and the fade alone for reduced motion. Transform and opacity only. */
+@keyframes sf-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+}
+
+@keyframes sf-fade {
+  from {
+    opacity: 0;
   }
 }
 
