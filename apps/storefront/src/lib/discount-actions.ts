@@ -5,7 +5,7 @@ import 'server-only'
 import { type CodeRejection, checkDiscountCode, setCartDiscountCode } from '@commerce/core'
 import { revalidatePath } from 'next/cache'
 import { headers } from 'next/headers'
-import { readCartId } from './cart-cookie'
+import { checkoutCartId } from './checkout-context'
 import { clientIp, rateLimited } from './rate-limit'
 import { requestStoreId } from './request-store'
 import { inStore } from './store-context'
@@ -21,7 +21,7 @@ export type DiscountActionResult = { ok: true } | { ok: false; reason: CodeRejec
 /** Try a code against the cart and keep it when it works. Never reveals why a code is unknown. */
 export async function applyDiscountAction(code: string): Promise<DiscountActionResult> {
   const storeId = await requestStoreId()
-  const cartId = await readCartId()
+  const cartId = await checkoutCartId()
   if (!cartId) return { ok: false, reason: 'invalid' }
   const [byIp, byCart] = await Promise.all([
     rateLimited(
@@ -46,7 +46,7 @@ export async function applyDiscountAction(code: string): Promise<DiscountActionR
 
 export async function removeDiscountAction(): Promise<void> {
   const storeId = await requestStoreId()
-  const cartId = await readCartId()
+  const cartId = await checkoutCartId()
   if (!cartId) return
   await inStore(storeId, (tx) => setCartDiscountCode({ storeId, tx }, cartId, null))
   revalidatePath('/cart')

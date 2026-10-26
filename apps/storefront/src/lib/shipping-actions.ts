@@ -5,7 +5,7 @@ import 'server-only'
 import type { DeliveryEstimate } from '@commerce/core'
 import { headers } from 'next/headers'
 import { deliveryEstimateContent } from '@/data/product'
-import { readCartId } from './cart-cookie'
+import { checkoutCartId } from './checkout-context'
 import { clientIp, rateLimited } from './rate-limit'
 import { requestStoreId } from './request-store'
 import { type CheckoutShipping, checkoutShipping, estimateForPincode } from './shipping'
@@ -36,7 +36,7 @@ export async function checkoutShippingAction(to: {
   stateCode: string
 }): Promise<CheckoutShipping | null> {
   const storeId = await requestStoreId()
-  const cartId = await readCartId()
+  const cartId = await checkoutCartId()
   if (!cartId) return null
   return inStore(storeId, (tx) => checkoutShipping(tx, storeId, cartId, to))
 }
