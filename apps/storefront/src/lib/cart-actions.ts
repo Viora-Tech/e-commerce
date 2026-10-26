@@ -46,6 +46,7 @@ import { currentCustomer } from './customer-session'
 import { db } from './db'
 import { hasChatCookie, postChatCartLine } from './inbox'
 import { accessibleOrderId } from './order-access'
+import { redirectToOrderPage } from './order-view-cookie'
 import { nudgeOutbox } from './outbox'
 import { storePaymentProviders } from './payments'
 import { clientIp, rateLimited } from './rate-limit'
@@ -331,7 +332,7 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
   // announced (the outbox row, if any, was written on the first submit only:
   // `placeOrder` returns early on replay, before the workflow step that writes
   // order.placed ever runs).
-  if (result.replayed) return redirectAfterCheckout(result)
+  if (result.replayed) return await redirectAfterCheckout(result)
   if (me) {
     // Convenience only: never let the address book block an order that is already placed.
     await inStore(storeId, (tx) => rememberCheckoutAddress({ storeId, tx }, me.id, form)).catch(
@@ -351,7 +352,7 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
   // same transaction as the order/payment change (placeOrder, applyPaymentStatus).
   // This only wakes the relay so they go out in ~1s instead of up to 5s.
   await nudgeOutbox(storeId)
-  redirectAfterCheckout(result)
+  await redirectAfterCheckout(result)
 }
 
 /** The shopper-facing reason a checkout rule refused the order. */
@@ -374,13 +375,15 @@ function checkoutRuleMessage(err: CheckoutRuleViolation, pincode: string): strin
 }
 
 /** Open the gateway, or go straight to the thank-you page (which offers a retry when the gateway failed). */
-function redirectAfterCheckout(
+async function redirectAfterCheckout(
   result: Pick<PlaceOrderResult, 'session' | 'orderNumber' | 'orderId'>,
-): never {
+): Promise<never> {
   const token = orderViewToken(result.orderId, settingsSecret())
-  if (result.session?.kind === 'client') redirect(payPath(result.orderNumber, token))
+  if (result.session?.kind === 'client') {
+    return redirectToOrderPage(payPath(result.orderNumber, token))
+  }
   if (result.session?.kind === 'redirect') redirect(result.session.url)
-  redirect(thankYouPath(result.orderNumber, token))
+  return redirectToOrderPage(thankYouPath(result.orderNumber, token))
 }
 
 /**
@@ -396,8 +399,8 @@ export async function retryPaymentAction(orderNumber: number, viewToken: string 
   // No order, or not theirs: the untokened link, which a stranger cannot open.
   if (!orderId) redirect(`/checkout/thank-you/${orderNumber}`)
   const oid: string = orderId
-  const backToThankYou = (): never =>
-    redirect(thankYouPath(orderNumber, orderViewToken(oid, settingsSecret())))
+  const backToThankYou = (): Promise<never> =>
+    redirectToOrderPage(thankYouPath(orderNumber, orderViewToken(oid, settingsSecret())))
   const ip = clientIp(await headers())
   const [byIp, byOrder] = await Promise.all([
     rateLimited('payment-retry:ip', ip, PAYMENT_RETRY_IP_RULE),
@@ -405,7 +408,7 @@ export async function retryPaymentAction(orderNumber: number, viewToken: string 
   ])
   // No error slot on this action's return type: over the limit lands back on
   // the thank-you page, same as a retry that turns out not to be needed.
-  if (!byIp.ok || !byOrder.ok) backToThankYou()
+  if (!byIp.ok || !byOrder.ok) await backToThankYou()
   const target = await inStore(storeId, async (tx) => {
     const [latest] = await tx
       .select({ provider: payment.provider })
@@ -418,7 +421,7 @@ export async function retryPaymentAction(orderNumber: number, viewToken: string 
     return provider ?? null
   })
   if (!target) {
-    redirect(thankYouPath(orderNumber, orderViewToken(oid, settingsSecret())))
+    return redirectToOrderPage(thankYouPath(orderNumber, orderViewToken(oid, settingsSecret())))
   }
   const started = await retryAndStartPayment(db(), storeId, oid, target).catch((err: unknown) => {
     // Paid or cancelled meanwhile: the thank-you page shows where the order stands.
@@ -428,7 +431,7 @@ export async function retryPaymentAction(orderNumber: number, viewToken: string 
   // payment_received was already written to the outbox, in the same
   // transaction as the capture (applyPaymentStatus, via startPaymentAttempt).
   if (started?.becameCaptured) await nudgeOutbox(storeId)
-  redirectAfterCheckout({ session: started?.session ?? null, orderNumber, orderId: oid })
+  await redirectAfterCheckout({ session: started?.session ?? null, orderNumber, orderId: oid })
 }
 
 /**

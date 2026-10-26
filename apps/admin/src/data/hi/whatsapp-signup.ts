@@ -7,6 +7,9 @@ export default [
     intro:
       'Facebook से साइन इन करें और अपना WhatsApp Business अकाउंट और नंबर चुनें या बनाएं। नीचे की जानकारी हम आपके लिए भर देंगे।',
     connect: 'Facebook से जोड़ें',
+    connectApp: 'मैं WhatsApp Business ऐप इस्तेमाल करता हूं',
+    appHelp:
+      'क्या आप पहले से WhatsApp Business ऐप में ग्राहकों से बात करते हैं? "मैं WhatsApp Business ऐप इस्तेमाल करता हूं" चुनें, ताकि ऐप और आपकी चैट फ़ोन पर बनी रहें और Koomerce उसी नंबर से ऑर्डर मैसेज भेजे।',
     connecting: 'Facebook में पूरा हो रहा है…',
     saving: 'आपका नंबर जोड़ रहे हैं…',
     connected: 'WhatsApp जुड़ गया',

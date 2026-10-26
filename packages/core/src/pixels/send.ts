@@ -151,7 +151,12 @@ async function storefrontEvent(
   let email: string | null = null
   let phone: string | null = null
   let customerId: string | null = null
-  if (job.cartId && (job.eventName === 'AddToCart' || job.eventName === 'InitiateCheckout')) {
+  if (
+    job.cartId &&
+    (job.eventName === 'AddToCart' ||
+      job.eventName === 'InitiateCheckout' ||
+      job.eventName === 'AddPaymentInfo')
+  ) {
     // AddToCart is about the line just added (by line id, else by variant).
     const only =
       job.eventName === 'AddToCart'

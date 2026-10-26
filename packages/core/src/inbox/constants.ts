@@ -42,6 +42,8 @@ export const INBOX_VIEWS = [
   'unassigned',
   'unread',
   'closed',
+  /** Open and closed together (blocked has its own view). */
+  'all',
   'blocked',
 ] as const
 export type InboxView = (typeof INBOX_VIEWS)[number]

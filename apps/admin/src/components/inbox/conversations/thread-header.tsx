@@ -13,6 +13,7 @@ import {
 import StatusChip from '@/components/layout/status-chip'
 import { inboxConversationsContent } from '@/data/inbox-conversations'
 import { useCopy } from '@/hooks/use-copy'
+import CloseButton from './close-button'
 
 type ThreadHeaderProps = {
   name: string
@@ -33,7 +34,7 @@ type ThreadHeaderProps = {
 
 const TONE = { open: 'success', closed: 'neutral', blocked: 'danger' } as const
 
-/** The thread's header: back (phones), name and status, Assign, Close/Reopen and More. */
+/** The thread's header: back (phones), name and status, Assign, the close circle (or Reopen) and More. */
 export default function ThreadHeader({
   name,
   status,
@@ -102,13 +103,10 @@ export default function ThreadHeader({
           </DropdownMenu>
         ) : null}
         {canReply && status !== 'blocked' ? (
-          <Button
-            variant="outline"
-            size="sm"
+          <CloseButton
+            status={status}
             onClick={() => onStatus(status === 'open' ? 'closed' : 'open')}
-          >
-            {status === 'open' ? t.close : t.reopen}
-          </Button>
+          />
         ) : null}
         <Button
           variant="ghost"

@@ -1,4 +1,4 @@
-/** SOURCE OF TRUTH: Pixels storefront event tests — WHAT: page URLs reach Meta without tokens or contact details, an AddToCart is worth the units just added, and a marketing yes taken back before checkout keeps the order's Purchase off / WHY: the value and consent rules the browser and server copies must share */
+/** SOURCE OF TRUTH: Pixels storefront event tests — WHAT: page URLs reach Meta without tokens or contact details, an AddToCart is worth the units just added, an AddPaymentInfo the cart with the browser's event id, and a marketing yes taken back before checkout keeps the order's Purchase off / WHY: the value and consent rules the browser and server copies must share */
 import {
   cart,
   cartLine,
@@ -13,7 +13,7 @@ import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { encryptSecret } from '../secrets'
-import { hasMarketingConsent, pixelPageUrl } from './client'
+import { addPaymentInfoEventId, hasMarketingConsent, pixelPageUrl } from './client'
 import { collectPixelEvent, parsePixelBeacon, withdrawCartMarketingConsent } from './collect'
 import type { FetchLike } from './meta'
 import { runPixelSendJob } from './send'
@@ -120,6 +120,60 @@ describe('AddToCart value', () => {
     expect(await runPixelSendJob(app, job, { settingsSecret: SECRET, fetch, now })).toBe('sent')
     const sent = (calls[0] as { data: { custom_data: Record<string, unknown> }[] }).data[0]
     expect(sent?.custom_data).toMatchObject({ currency: 'INR', value: 499, num_items: 1 })
+  })
+})
+
+describe('AddPaymentInfo', () => {
+  it('goes to pixels that have it on, worth the cart, with the browser event id', async () => {
+    const s = await seedCart()
+    // A pixel added before the event existed keeps its five events until the merchant ticks it.
+    const [old] = await owner
+      .insert(pixelConnection)
+      .values({
+        storeId: s.storeId,
+        pixelId: '9876543210',
+        tokenEnc: encryptSecret('EAAx', SECRET),
+      })
+      .returning()
+    await owner
+      .update(pixelConnection)
+      .set({
+        events: ['PageView', 'ViewContent', 'AddToCart', 'InitiateCheckout', 'AddPaymentInfo'],
+      })
+      .where(eq(pixelConnection.id, s.px))
+    const eventId = addPaymentInfoEventId(s.cartId, 'cod')
+    const beacon = parsePixelBeacon({ name: 'AddPaymentInfo', eventId, quantity: 2 })
+    expect(beacon).toMatchObject({ name: 'AddPaymentInfo', eventId, quantity: null })
+    const jobs = await withStore(app, s.storeId, (tx) =>
+      collectPixelEvent(tx, {
+        storeId: s.storeId,
+        beacon: beacon as NonNullable<typeof beacon>,
+        cartId: s.cartId,
+        visitorId: null,
+        tracking: { consent },
+        now,
+      }),
+    )
+    expect(jobs.map((j) => j.connectionId)).toEqual([s.px])
+    expect(jobs.map((j) => j.connectionId)).not.toContain(old?.id)
+    const calls: unknown[] = []
+    const fetch: FetchLike = async (_url, init) => {
+      calls.push(JSON.parse(String(init.body)))
+      return new Response(JSON.stringify({ events_received: 1 }), { status: 200 })
+    }
+    const [job] = jobs
+    if (!job) throw new Error('no job')
+    expect(await runPixelSendJob(app, job, { settingsSecret: SECRET, fetch, now })).toBe('sent')
+    const sent = (calls[0] as { data: Record<string, unknown>[] }).data[0]
+    expect(sent).toMatchObject({ event_name: 'AddPaymentInfo', event_id: eventId })
+    expect(sent?.custom_data).toMatchObject({
+      currency: 'INR',
+      value: 1497,
+      content_ids: [s.variantId],
+    })
+    // The same pick again is the same event: logged once, not sent twice.
+    expect(await runPixelSendJob(app, job, { settingsSecret: SECRET, fetch, now })).toBe('sent')
+    expect(calls).toHaveLength(1)
   })
 })
 

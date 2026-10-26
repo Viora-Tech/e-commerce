@@ -20,6 +20,7 @@ that adapts outside work keeps the full licence text next to it; this file is th
 | [Shopify Product Taxonomy](https://github.com/Shopify/product-taxonomy) | MIT | Category list (release `v2026-08`, trimmed to id and name by `scripts/trim-product-taxonomy.ts`) for the product category picker and the `product.category` dynamic source | `packages/core/src/catalog/product-taxonomy.json`, `apps/admin/src/lib/product-taxonomy.ts` | [`packages/core/THIRD_PARTY_LICENSES.md`](packages/core/THIRD_PARTY_LICENSES.md) |
 | [react-phone-number-input](https://gitlab.com/catamphetamine/react-phone-number-input) 3.4.18 and [libphonenumber-js](https://gitlab.com/catamphetamine/libphonenumber-js) 1.13.15 (plus its dependency [country-flag-icons](https://gitlab.com/catamphetamine/country-flag-icons)) | MIT, Copyright (c) @catamphetamine (read from each package's LICENSE, 2026-10-11) | Phone input state, number formatting, country list and flag SVGs; used as libraries behind our own picker (Popover + Command), no code copied. libphonenumber-js also validates and normalises numbers to E.164 | `packages/ui/src/components/phone-input.tsx`, `packages/core/src/accounts/phone.ts` | MIT, Copyright (c) 2016 @catamphetamine |
 | [GrapesJS](https://github.com/GrapesJS/grapesjs) 0.23.6 and [grapesjs-mjml](https://github.com/GrapesJS/mjml) 1.0.8 (bundles [mjml-browser](https://github.com/mjmlio/mjml) 4.18, MIT); [MJML](https://github.com/mjmlio/mjml) 5.4.1 | BSD-3-Clause, Copyright (c) 2017-current Artur Arseniev (GrapesJS, grapesjs-mjml); MIT, Copyright (c) 2016 Mailjet SAS (MJML). Read from each package's LICENSE, 2026-10-20 | The visual email builder for campaigns, used as libraries (no code copied): GrapesJS with the MJML preset in the admin, loaded on demand; `mjml` compiles designs to email HTML on the server | `apps/admin/src/components/growth/campaigns/visual-builder`, `packages/core/src/marketing/email-design-compile.ts` | LICENSE inside each npm package |
+| [All India Pincode Directory](https://www.data.gov.in/catalog/all-india-pincode-directory) (Department of Posts, via data.gov.in), release of 30 May 2019 | Government Open Data Licence - India (GODL-India), with attribution | PIN code → district and state, reduced to one row per PIN code by `scripts/build-pincode-directory.ts` (state corrected per district, Ladakh and Puducherry fixed, renamed districts updated) | `packages/shipping/data/pincode-directory.json.gz` | [`packages/shipping/THIRD_PARTY_LICENSES.md`](packages/shipping/THIRD_PARTY_LICENSES.md) |
 
 Paid UI kits: Aceternity UI Pro, Magic UI Pro and shadcnblocks may be used in builder blocks under
 the owner's written permission — see [`docs/licences/aceternity-pro.md`](docs/licences/aceternity-pro.md),
@@ -104,39 +105,33 @@ Framework credit, not an adaptation: `apps/docs` (the docs site) is built with
 [GitHub `LICENSE`](https://github.com/shuding/nextra/blob/main/LICENSE); its footer credits
 Nextra too.
 
-### Pending: India PIN code directory (not included yet)
+### India PIN code directory
 
-Checkout's "PIN code first" (Settings → Checkout) fills city and state from India Post's
-[All India Pincode Directory](https://www.data.gov.in/catalog/all-india-pincode-directory),
-published on data.gov.in under the Government Open Data Licence - India (GODL-India), which
-allows use and redistribution with attribution. **No data from it is in the repository yet**:
-the session that built the feature could not reach data.gov.in (blocked by its network
-policy), so neither the dataset nor the licence text could be downloaded and verified, and no
-third-party copy was substituted. To add it:
-
-1. Download the CSV from data.gov.in and read the licence shown on the dataset page.
-2. Run `bun scripts/build-pincode-directory.ts <file.csv>`; it writes
-   `packages/shipping/data/pincode-directory.json.gz` (PIN code → district and state).
-3. Replace this section with a table row: Project "All India Pincode Directory (Department of
-   Posts, via data.gov.in)", Licence "GODL-India, with attribution", What we adapted "PIN
-   code → district and state, reduced to one row per PIN code", Where
-   `packages/shipping/data/pincode-directory.json.gz`, and keep the licence text in
-   `packages/shipping/THIRD_PARTY_LICENSES.md`.
-
-Until then checkout works as before: shoppers type city and state.
+Checkout's "PIN code first" (Settings → Checkout) fills city and state from
+`packages/shipping/data/pincode-directory.json.gz`, built by `scripts/build-pincode-directory.ts`
+from India Post's [All India Pincode Directory](https://www.data.gov.in/catalog/all-india-pincode-directory)
+CSV (release of 30 May 2019,
+`https://www.data.gov.in/sites/default/files/dataurl31052019/Pincode_30052019.csv`, downloaded
+2026-10-26). Publisher: Department of Posts, Ministry of Communications, Government of India.
+Licence: Government Open Data Licence - India (GODL-India), as data.gov.in states for all its
+content (read 2026-10-26); it allows use, adaptation and redistribution, including commercial,
+with attribution. We reduced the post-office rows to one district and state per PIN code, moved
+Leh and Kargil to Ladakh and Puducherry's enclaves to Puducherry, and used current names for a
+few renamed districts (for example Gurgaon → Gurugram). Full notice and attribution:
+[`packages/shipping/THIRD_PARTY_LICENSES.md`](packages/shipping/THIRD_PARTY_LICENSES.md).
 
 **India Post app, live lookups** (`packages/shipping-indiapost/src/pin-directory.ts`): with a
 merchant's own data.gov.in API key, the India Post app asks the same directory's official API
 (resource `5c2f62fe-5afa-4119-a499-fec9d604d5bd`) about one PIN code at a time and keeps the
 answer in memory for a day. GODL-India was read on the data.gov.in catalog page on 2026-10-20.
-Nothing from the dataset is stored in the repository. Attribution: All India Pincode Directory,
+Its answers are not stored. Attribution: All India Pincode Directory,
 Department of Posts, Ministry of Communications, Government of India, via data.gov.in, under
 the Government Open Data Licence - India. The Speed Post Parcel rates in
 `packages/shipping-indiapost/src/data/speed-post-parcel-tariff.ts` are a government tariff
 (facts, typed by hand from indiapost.gov.in); credit: Department of Posts.
 
 **PIN prefix → state check** (security audit D-06, `packages/core/src/checkout/pincode-state.ts`):
-until the directory is installed, `placeOrder` checks the typed state against a small table of
+when the directory has no answer for a PIN code, `placeOrder` checks the typed state against a small table of
 the first two digits of a PIN code and the states each can belong to. It was written by hand
 from India Post's public PIN code allocation (the "Postal Index Number" zones published by the
 Department of Posts, indiapost.gov.in). These are public facts; no dataset or text was copied,

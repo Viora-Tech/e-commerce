@@ -123,6 +123,7 @@ function viewFilter(view: InboxView, userId: string): SQL | undefined {
   if (view === 'unassigned') return and(eq(c.status, 'open'), isNull(c.assigneeUserId))
   if (view === 'unread') return and(eq(c.status, 'open'), gt(c.unreadStaff, 0))
   if (view === 'closed') return eq(c.status, 'closed')
+  if (view === 'all') return inArray(c.status, ['open', 'closed'])
   return eq(c.status, 'blocked')
 }
 
@@ -218,13 +219,12 @@ export async function inboxCounts(ctx: StoreContext, userId: string): Promise<In
       mine: sql<number>`count(*) filter (where ${c.status} = 'open' and ${c.assigneeUserId} = ${userId})::int`,
       unassigned: sql<number>`count(*) filter (where ${c.status} = 'open' and ${c.assigneeUserId} is null)::int`,
       closed: sql<number>`count(*) filter (where ${c.status} = 'closed')::int`,
+      all: sql<number>`count(*) filter (where ${c.status} in ('open', 'closed'))::int`,
       blocked: sql<number>`count(*) filter (where ${c.status} = 'blocked')::int`,
       unread: sql<number>`count(*) filter (where ${c.status} = 'open' and ${c.unreadStaff} > 0)::int`,
     })
     .from(c)
-  return (
-    row ?? { open: 0, needs_person: 0, mine: 0, unassigned: 0, closed: 0, blocked: 0, unread: 0 }
-  )
+  return row ?? (Object.fromEntries(INBOX_VIEWS.map((v) => [v, 0])) as InboxCounts)
 }
 
 async function loadConversation(tx: StoreTx, storeId: string, id: string) {

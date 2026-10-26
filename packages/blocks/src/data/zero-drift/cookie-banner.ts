@@ -11,7 +11,10 @@ export const cookieBannerContent = {
   preferencesLabel: 'Preferences',
   save: 'Save choices',
   categories: {
-    necessary: { label: 'Necessary', body: 'Cart, checkout and security. Always on.' },
+    necessary: {
+      label: 'Necessary',
+      body: 'Cart, checkout and security, and the affiliate referral: if an affiliate’s link brought you, which affiliate (never who you are), so they are credited for your order. Always on.',
+    },
     analytics: {
       label: 'Analytics',
       body: 'Counts visits and pages, and where visitors came from, so the store can improve.',

@@ -39,19 +39,19 @@ export default function ChatHeader({
         <img
           src={logoUrl}
           alt=""
-          className={`size-10 shrink-0 rounded-[0.75rem] border object-contain p-1 ${HAIRLINE}`}
+          className={`size-10! shrink-0 rounded-[0.75rem] border object-contain! p-1! ${HAIRLINE}`}
         />
       ) : (
         <span
           aria-hidden="true"
-          className="flex size-10 shrink-0 items-center justify-center rounded-[0.75rem] bg-[var(--color-ink,CanvasText)] text-[1rem] font-semibold text-[var(--color-bg,Canvas)]"
+          className="flex size-10 shrink-0 items-center justify-center rounded-[0.75rem] bg-[var(--color-ink,CanvasText)] text-[1rem]! font-semibold! text-[var(--color-bg,Canvas)]"
         >
           {initial}
         </span>
       )}
       <div className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate text-[0.9375rem] font-semibold">{storeName}</span>
-        <span className="flex items-center gap-1.5 text-[0.75rem] opacity-60">
+        <span className="truncate text-[0.9375rem]! font-semibold!">{storeName}</span>
+        <span className="flex items-center gap-1.5 text-[0.75rem]! opacity-60">
           <span
             aria-hidden="true"
             className={`size-1.5 shrink-0 rounded-full ${available ? 'bg-[var(--color-success,currentColor)]' : 'bg-[color-mix(in_srgb,currentColor_40%,transparent)]'}`}

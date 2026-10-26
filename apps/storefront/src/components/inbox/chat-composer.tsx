@@ -55,8 +55,8 @@ export default function ChatComposer({
 
   return (
     <div className="flex flex-col gap-2">
-      {notice ? <p className="text-[0.8125rem] opacity-70">{notice}</p> : null}
-      {uploading ? <p className="text-[0.75rem] opacity-60">{copy.uploading}</p> : null}
+      {notice ? <p className="text-[0.8125rem]! opacity-70">{notice}</p> : null}
+      {uploading ? <p className="text-[0.75rem]! opacity-60">{copy.uploading}</p> : null}
       <div className="flex items-end gap-1 rounded-[0.875rem] bg-[var(--color-bg,Canvas)] p-1.5 ring-1 ring-[color-mix(in_srgb,currentColor_12%,transparent)] transition-[box-shadow] duration-(--duration-press) focus-within:ring-[color-mix(in_srgb,currentColor_28%,transparent)]">
         {/* A field people never see; a bot that fills it is ignored. */}
         <input
@@ -101,7 +101,7 @@ export default function ChatComposer({
             if (e.target.value.trim()) onTyping()
           }}
           onKeyDown={handleKeyDown}
-          className="max-h-32 min-h-9 flex-1 resize-none bg-transparent px-1 py-[0.4375rem] text-[1rem] leading-snug outline-none placeholder:opacity-50"
+          className="max-h-32 min-h-9 flex-1 resize-none bg-transparent px-1 py-[0.4375rem] text-[1rem]! leading-snug! outline-none placeholder:opacity-50"
         />
         <button
           type="button"
@@ -113,7 +113,7 @@ export default function ChatComposer({
           <ChatIcon kind="send" className="size-[1.125rem]" />
         </button>
       </div>
-      <p className="text-center text-[0.71875rem] opacity-55">
+      <p className="text-center text-[0.71875rem]! opacity-55">
         {copy.footnote(storeName)} ·{' '}
         <a href="/policies/privacy-policy" className={link}>
           {copy.privacy}
@@ -121,7 +121,7 @@ export default function ChatComposer({
         {signInHref ? (
           <>
             {' · '}
-            <a href={signInHref} className={`${link} font-medium`}>
+            <a href={signInHref} className={`${link} font-medium!`}>
               {copy.signIn}
             </a>
           </>

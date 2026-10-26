@@ -15,9 +15,9 @@ type ChatTrackFormProps = {
 const copy = chatTrackContent.form
 
 const field =
-  'h-11 w-full rounded-[0.625rem] border border-[color-mix(in_srgb,currentColor_18%,transparent)] bg-transparent px-3 text-[1rem] outline-none placeholder:opacity-50 focus-visible:border-[currentColor]'
+  'h-11! w-full! rounded-[0.625rem]! border! border-[color-mix(in_srgb,currentColor_18%,transparent)]! bg-transparent! px-3! text-[1rem]! outline-none! placeholder:opacity-50! focus-visible:border-[currentColor]!'
 
-const label = 'text-[0.8125rem] font-semibold'
+const label = 'text-[0.8125rem]! font-semibold!'
 
 type Problem = 'not-found' | 'limited' | 'failed' | null
 
@@ -88,27 +88,27 @@ export default function ChatTrackForm({ signedIn, onFound }: ChatTrackFormProps)
           value={number}
           onChange={(e) => setNumber(e.target.value)}
         />
-        <span id={`${id}-hint`} className="text-[0.75rem] opacity-60">
+        <span id={`${id}-hint`} className="text-[0.75rem]! opacity-60">
           {copy.numberHint}
         </span>
       </div>
       <p
         aria-live="polite"
-        className="text-[0.8125rem] leading-snug text-[var(--color-danger,currentColor)] empty:hidden"
+        className="text-[0.8125rem]! leading-snug! text-[var(--color-danger,currentColor)] empty:hidden"
       >
         {message}
       </p>
       <button
         type="submit"
         disabled={busy}
-        className="flex min-h-11 w-full touch-manipulation items-center justify-center rounded-[0.625rem] bg-(--chat-accent)! px-4 text-[0.9375rem] font-semibold text-(--chat-on-accent)! transition-[opacity,scale] duration-(--duration-press) ease-out active:scale-(--motion-press-scale) disabled:opacity-60"
+        className="flex min-h-11 w-full touch-manipulation items-center justify-center rounded-[0.625rem] bg-(--chat-accent)! px-4 text-[0.9375rem]! font-semibold! text-(--chat-on-accent)! transition-[opacity,scale] duration-(--duration-press) ease-out active:scale-(--motion-press-scale) disabled:opacity-60"
       >
         {busy ? copy.finding : copy.submit}
       </button>
       {signedIn ? null : (
-        <p className="text-[0.75rem] leading-snug opacity-70">
+        <p className="text-[0.75rem]! leading-snug! opacity-70">
           {copy.signedInLine}{' '}
-          <a href={signInHref} className="font-semibold underline">
+          <a href={signInHref} className="font-semibold! underline">
             {copy.signIn}
           </a>
         </p>

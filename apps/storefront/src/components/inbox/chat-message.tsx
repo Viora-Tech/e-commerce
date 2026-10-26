@@ -52,7 +52,7 @@ export default function ChatMessage({
     const qty = typeof p?.quantity === 'number' ? p.quantity : 1
     const action = text(p, 'action')
     return (
-      <p className="py-1 text-center text-[0.75rem] opacity-55">
+      <p className="py-1 text-center text-[0.75rem]! opacity-55">
         {action === 'remove'
           ? copy.cart.remove(title)
           : action === 'quantity'
@@ -76,7 +76,7 @@ export default function ChatMessage({
   return (
     <div className="flex flex-col gap-3">
       {joined ? (
-        <div className="flex items-center gap-3 py-1 text-[0.6875rem] opacity-55">
+        <div className="flex items-center gap-3 py-1 text-[0.6875rem]! opacity-55">
           <span className="h-px flex-1 bg-current opacity-20" />
           <span className="shrink-0">{copy.joined(storeName)}</span>
           <span className="h-px flex-1 bg-current opacity-20" />
@@ -87,7 +87,7 @@ export default function ChatMessage({
           first ? (
             <span
               aria-hidden="true"
-              className="mb-0.5 flex size-6 shrink-0 items-center justify-center self-start rounded-full bg-[var(--color-ink,CanvasText)] text-[0.6875rem] font-semibold text-[var(--color-bg,Canvas)]"
+              className="mb-0.5! flex size-6 shrink-0 items-center justify-center self-start rounded-full bg-[var(--color-ink,CanvasText)] text-[0.6875rem]! font-semibold! text-[var(--color-bg,Canvas)]"
             >
               {initial}
             </span>
@@ -97,7 +97,7 @@ export default function ChatMessage({
         ) : null}
         <div className={`flex min-w-0 flex-1 flex-col gap-1 ${mine ? 'items-end' : 'items-start'}`}>
           {ai && first ? (
-            <span className="flex items-center gap-1 text-[0.6875rem] font-medium opacity-60">
+            <span className="flex items-center gap-1 text-[0.6875rem]! font-medium! opacity-60">
               <ChatIcon kind="sparkle" className="size-3" />
               {copy.assistant}
             </span>
@@ -122,13 +122,13 @@ export default function ChatMessage({
               <img
                 src={imageUrl}
                 alt=""
-                className={`max-h-60 rounded-2xl object-cover ${mine ? 'rounded-br-[0.25rem]' : 'rounded-bl-[0.25rem]'}`}
+                className={`max-h-60! rounded-2xl object-cover! ${mine ? 'rounded-br-[0.25rem]' : 'rounded-bl-[0.25rem]'}`}
               />
             </a>
           ) : null}
           {message.body ? (
             <p
-              className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-[0.9375rem] leading-snug break-words whitespace-pre-wrap transition-opacity duration-(--duration-press) ${
+              className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-[0.9375rem]! leading-snug! break-words whitespace-pre-wrap transition-opacity duration-(--duration-press) ${
                 mine
                   ? 'rounded-br-[0.25rem] bg-(--chat-accent)! text-(--chat-on-accent)!'
                   : 'rounded-bl-[0.25rem] bg-[color-mix(in_srgb,currentColor_6%,transparent)]'
@@ -141,12 +141,12 @@ export default function ChatMessage({
             <button
               type="button"
               onClick={onRetry}
-              className="touch-manipulation text-[0.75rem] text-[var(--color-danger,currentColor)] underline underline-offset-2"
+              className="touch-manipulation text-[0.75rem]! text-[var(--color-danger,currentColor)] underline underline-offset-2"
             >
               {copy.failed} {copy.retry}
             </button>
           ) : seen ? (
-            <span className="text-[0.6875rem] opacity-55">{copy.seen}</span>
+            <span className="text-[0.6875rem]! opacity-55">{copy.seen}</span>
           ) : null}
         </div>
       </div>

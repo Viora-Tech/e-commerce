@@ -70,6 +70,8 @@ export type TemplateId =
   | 'return_received'
   /** Money went back for the return (original payment or store credit). */
   | 'return_refunded'
+  /** The exchange for a return became an order and will ship; `lines` are the new items. */
+  | 'return_exchanged'
   /**
    * COD & RTO app: asks a cash on delivery shopper to confirm (or cancel) the order; `actionUrl`
    * is the confirm page. By WhatsApp when the store has it, email otherwise.
@@ -217,6 +219,8 @@ export type TemplateData = {
         /** Amount and where it went (return_refunded). */
         refundLabel?: string | undefined
         refundMethod?: 'original' | 'store_credit' | undefined
+        /** The order the items came back from (return_exchanged, which is about the new order). */
+        originalOrderNumber?: number | undefined
       }
     | undefined
   /**

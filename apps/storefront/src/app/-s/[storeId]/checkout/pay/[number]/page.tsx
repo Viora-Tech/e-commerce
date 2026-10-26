@@ -12,6 +12,7 @@ import { notFound, redirect } from 'next/navigation'
 import CheckoutShell from '@/components/checkout/checkout-shell'
 import { payClientContent } from '@/data/checkout'
 import { currentCustomer } from '@/lib/customer-session'
+import { orderPageToken } from '@/lib/order-view-cookie'
 import { inStore } from '@/lib/store-context'
 import PayClient from './pay-client'
 
@@ -22,7 +23,8 @@ type Params = {
 
 export default async function PayPage({ params, searchParams }: Params) {
   const { storeId, number } = await params
-  const { t: token } = await searchParams
+  // The proxy moved `?t=` into a cookie for this page (`lib/order-token-swap.ts`).
+  const token = await orderPageToken((await searchParams).t)
   const env = loadEnv(process.env)
   const me = await currentCustomer(storeId)
   const data = await inStore(storeId, async (tx) => {

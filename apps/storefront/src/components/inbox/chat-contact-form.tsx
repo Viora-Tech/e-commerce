@@ -9,7 +9,7 @@ type ChatContactFormProps = {
 }
 
 const field =
-  'w-full rounded-[0.625rem] bg-transparent px-3 py-2 text-[1rem] ring-1 ring-[color-mix(in_srgb,currentColor_14%,transparent)] outline-none placeholder:opacity-50 focus-visible:ring-2 focus-visible:ring-(--chat-accent)'
+  'w-full! rounded-[0.625rem]! bg-transparent! px-3! py-2! text-[1rem]! ring-1! ring-[color-mix(in_srgb,currentColor_14%,transparent)]! outline-none! placeholder:opacity-50! focus-visible:ring-2! focus-visible:ring-(--chat-accent)!'
 
 /** "How can we reach you?": an email or phone so the store can reply after the shopper leaves. */
 export default function ChatContactForm({ required, onDone }: ChatContactFormProps) {
@@ -30,8 +30,8 @@ export default function ChatContactForm({ required, onDone }: ChatContactFormPro
       }}
     >
       <div className="flex flex-col gap-0.5">
-        <p className="text-[0.875rem] font-semibold">{copy.contact.title}</p>
-        <p className="text-[0.75rem] opacity-60">
+        <p className="text-[0.875rem]! font-semibold!">{copy.contact.title}</p>
+        <p className="text-[0.75rem]! opacity-60">
           {required ? copy.contact.required : copy.contact.help}
         </p>
       </div>
@@ -66,7 +66,7 @@ export default function ChatContactForm({ required, onDone }: ChatContactFormPro
         {required ? null : (
           <button
             type="button"
-            className="touch-manipulation rounded-full px-3 py-1.5 text-[0.8125rem] opacity-70 transition-[scale,opacity] duration-(--duration-press) ease-out hover:opacity-100 active:scale-(--motion-press-scale)"
+            className="touch-manipulation rounded-full px-3 py-1.5 text-[0.8125rem]! opacity-70 transition-[scale,opacity] duration-(--duration-press) ease-out hover:opacity-100 active:scale-(--motion-press-scale)"
             onClick={() => onDone(null)}
           >
             {copy.contact.skip}
@@ -75,7 +75,7 @@ export default function ChatContactForm({ required, onDone }: ChatContactFormPro
         <button
           type="submit"
           disabled={!ready}
-          className="touch-manipulation rounded-full bg-(--chat-accent)! px-4 py-1.5 text-[0.8125rem] font-medium text-(--chat-on-accent)! transition-[scale,opacity] duration-(--duration-press) ease-out active:scale-(--motion-press-scale) disabled:opacity-40"
+          className="touch-manipulation rounded-full bg-(--chat-accent)! px-4 py-1.5 text-[0.8125rem]! font-medium! text-(--chat-on-accent)! transition-[scale,opacity] duration-(--duration-press) ease-out active:scale-(--motion-press-scale) disabled:opacity-40"
         >
           {copy.contact.save}
         </button>

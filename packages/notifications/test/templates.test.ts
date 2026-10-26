@@ -93,6 +93,23 @@ describe('templates', () => {
     expect(approved.text).toContain('RVP1')
   })
 
+  it('return_exchanged names the return, both orders and the link, and lists the new items', async () => {
+    const d = {
+      ...sampleTemplateData,
+      orderNumber: 57,
+      orderUrl: 'https://waimers.example/account/orders/57',
+      returnInfo: { label: 'R-3', originalOrderNumber: 42 },
+    }
+    const e = await renderEmail('return_exchanged', d)
+    expect(e.subject).toContain('R-3')
+    expect(e.text).toContain('order #57')
+    expect(e.text).toContain('(order #42)')
+    expect(e.text).toContain(d.orderUrl)
+    expect(e.text).toContain(sampleTemplateData.lines[0]?.title ?? '')
+    expect(e.html).toContain('Return R-3')
+    expect(renderWhatsapp('return_exchanged', d).text).toContain('#57')
+  })
+
   it('escapes shopper-supplied text in the html body', async () => {
     const e = await renderEmail('order_placed', { ...sampleTemplateData, customerName: '<b>x</b>' })
     expect(e.html).not.toContain('<b>x</b>')

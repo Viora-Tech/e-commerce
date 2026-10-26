@@ -1,6 +1,7 @@
 /** SOURCE OF TRUTH: Pixels rule tests — WHAT: event ids, the Purchase trigger per order event (incl. prepaid-paid / COD-delivered), the consent gate and skip reasons, and the _fbp/_fbc formats / WHY: the browser and server copies must agree, or Meta counts a sale twice or not at all */
 import { describe, expect, it } from 'vitest'
 import {
+  addPaymentInfoEventId,
   addToCartEventId,
   browserSendsPurchase,
   fbcFromClick,
@@ -25,6 +26,8 @@ describe('event ids', () => {
     expect(initiateCheckoutEventId(uuid)).toBe(`ic_${uuid}`)
     expect(addToCartEventId(uuid, 2)).toBe(`atc_${uuid}_2`)
     expect(addToCartEventId(uuid, 0)).toBe(`atc_${uuid}_1`)
+    expect(addPaymentInfoEventId(uuid, 'cod')).toBe(`api_${uuid}_cod`)
+    expect(addPaymentInfoEventId(uuid, 'Manual_UPI')).toBe(`api_${uuid}_manual-upi`)
   })
 
   it('accept only the shapes we mint', () => {
@@ -33,6 +36,9 @@ describe('event ids', () => {
     expect(isValidEventId('InitiateCheckout', initiateCheckoutEventId(uuid))).toBe(true)
     expect(isValidEventId('AddToCart', addToCartEventId(uuid, 3))).toBe(true)
     expect(isValidEventId('AddToCart', `atc_${uuid}`)).toBe(false)
+    expect(isValidEventId('AddPaymentInfo', addPaymentInfoEventId(uuid, 'razorpay'))).toBe(true)
+    expect(isValidEventId('AddPaymentInfo', `api_${uuid}_COD!`)).toBe(false)
+    expect(isValidEventId('AddPaymentInfo', `ic_${uuid}`)).toBe(false)
     expect(isValidEventId('PageView', uuid)).toBe(true)
     expect(isValidEventId('ViewContent', 'hello')).toBe(false)
     expect(isValidEventId('PageView', 'x'.repeat(200))).toBe(false)

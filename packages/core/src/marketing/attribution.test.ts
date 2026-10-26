@@ -4,9 +4,12 @@ import {
   classifyChannel,
   compactAttribution,
   decodeAttribution,
+  decodeReferral,
   encodeAttribution,
+  encodeReferral,
   hostOf,
   pickAttribution,
+  withReferral,
 } from './attribution'
 
 const now = new Date('2026-09-20T10:00:00Z')
@@ -126,5 +129,54 @@ describe('attribution cookie', () => {
     expect(hostOf('https://www.Google.com/search')).toBe('google.com')
     expect(hostOf('android-app://com.google')).toBeNull()
     expect(hostOf('')).toBeNull()
+  })
+})
+
+describe('referral cookie', () => {
+  const clicked = new Date('2026-09-18T08:30:00Z')
+
+  it('round-trips the code and the click time, nothing else', () => {
+    const raw = encodeReferral({ code: 'asha-k', at: clicked })
+    expect(raw).toBe(`asha-k.${clicked.getTime() / 1000}`)
+    expect(decodeReferral(raw)).toEqual({ code: 'asha-k', at: clicked })
+  })
+
+  it('treats anything malformed as absent', () => {
+    for (const raw of [
+      undefined,
+      '',
+      'asha-k',
+      'asha-k.',
+      'asha-k.abc',
+      'a.1700000000',
+      'BAD CODE.1',
+      'asha-k.-5',
+    ]) {
+      expect(decodeReferral(raw)).toBeNull()
+    }
+  })
+
+  it('attributes a shopper with no analytics touch (consent declined) to the affiliate', () => {
+    expect(withReferral(null, { code: 'asha-k', at: clicked })).toEqual({
+      channel: 'affiliate',
+      ref: 'asha-k',
+      at: clicked.toISOString(),
+    })
+  })
+
+  it('lets a later non-direct touch win (last click)', () => {
+    const email = { channel: 'email' as const, at: now.toISOString() }
+    expect(withReferral(email, { code: 'asha-k', at: clicked })).toBe(email)
+  })
+
+  it('lets a newer affiliate click beat an older touch, and ignores direct visits', () => {
+    const older = { channel: 'email' as const, at: '2026-09-01T00:00:00Z' }
+    expect(withReferral(older, { code: 'asha-k', at: clicked })?.ref).toBe('asha-k')
+    const direct = { channel: 'direct' as const, at: now.toISOString() }
+    expect(withReferral(direct, { code: 'asha-k', at: clicked })?.ref).toBe('asha-k')
+  })
+
+  it('changes nothing without a referral', () => {
+    expect(withReferral(null, null)).toBeNull()
   })
 })

@@ -602,10 +602,13 @@ export async function deliverNotification(
   actionUrl = routed.actionUrl ?? actionUrl
   const channels = routed.channels
   const extras = opts.extras ? await opts.extras(input) : null
+  // The exchange message is about the new order: its own items, only the return's label.
+  const returnData =
+    input.template === 'return_exchanged' ? { returnInfo: returned?.returnInfo } : returned
   const data = {
     ...built.data,
     ...(actionUrl ? { actionUrl } : {}),
-    ...returned,
+    ...returnData,
     ...refunded,
     ...merchant?.data,
     ...opts.data,

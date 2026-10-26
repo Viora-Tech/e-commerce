@@ -334,7 +334,7 @@ function privacyBlocks(f: Facts): Block[] {
     },
     { h: 'Cookies' },
     {
-      p: 'We use cookies that the store needs to work, such as your cart. Analytics and marketing cookies load only if you allow them in the cookie banner, and you can change your choice at any time from Cookie settings at the bottom of every page.',
+      p: 'We use cookies that the store needs to work, such as your cart. If you arrive through an affiliate’s link, a functional affiliate referral cookie remembers that affiliate’s code and the time of the click (nothing about you) for up to 30 days, so the affiliate who sent you is credited if you order; it is set whatever you choose in the cookie banner and is never shared with advertising partners. Analytics and marketing cookies load only if you allow them in the cookie banner, and you can change your choice at any time from Cookie settings at the bottom of every page.',
     },
     { h: 'Security' },
     {

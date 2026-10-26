@@ -78,6 +78,13 @@ describe('whatsapp specifics', () => {
   it('maps every template to its placeholders', () => {
     expect(templateParams('order_shipped', sampleTemplateData)).toEqual(['Waimers', '42', '-'])
     expect(templateParams('payment_received', sampleTemplateData)).toHaveLength(3)
+    expect(
+      templateParams('return_exchanged', {
+        ...sampleTemplateData,
+        orderUrl: 'https://waimers.example/o/42',
+        returnInfo: { label: 'R-3' },
+      }),
+    ).toEqual(['Waimers', 'R-3', '42', 'https://waimers.example/o/42'])
   })
 
   it('validates config and applies defaults', () => {

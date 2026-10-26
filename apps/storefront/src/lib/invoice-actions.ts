@@ -22,6 +22,7 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { invoiceContent as content } from '@/data/checkout'
 import { db } from './db'
+import { redirectToOrderPage } from './order-view-cookie'
 import { nudgeOutbox } from './outbox'
 import { storePaymentProviders } from './payments'
 import { clientIp, rateLimited } from './rate-limit'
@@ -58,9 +59,9 @@ export async function payInvoiceAction(token: string): Promise<PayInvoiceResult>
   })
   if (!found) return { error: content.unavailable }
   const secret = settingsSecret()
-  const thankYou = (): never =>
-    redirect(thankYouPath(found.number, orderViewToken(orderId, secret)))
-  if (!found.payable) thankYou()
+  const thankYou = (): Promise<never> =>
+    redirectToOrderPage(thankYouPath(found.number, orderViewToken(orderId, secret)))
+  if (!found.payable) await thankYou()
   if (!found.provider) return { error: content.noGateway }
   const provider = found.provider
 
@@ -79,13 +80,13 @@ export async function payInvoiceAction(token: string): Promise<PayInvoiceResult>
   } catch (err) {
     if (err instanceof OutOfStock) return { error: content.outOfStock }
     if (err instanceof DraftNeedsShippingAddress) return { error: content.noAddress }
-    if (err instanceof PaymentNotRetryable) thankYou()
+    if (err instanceof PaymentNotRetryable) await thankYou()
     if (err instanceof CommerceError) return { error: content.unavailable }
     throw err
   }
   if (started?.becameCaptured) await nudgeOutbox(storeId)
   const view = orderViewToken(orderId, secret)
-  if (started?.session?.kind === 'client') redirect(payPath(found.number, view))
+  if (started?.session?.kind === 'client') await redirectToOrderPage(payPath(found.number, view))
   if (started?.session?.kind === 'redirect') redirect(started.session.url)
-  thankYou()
+  await thankYou()
 }

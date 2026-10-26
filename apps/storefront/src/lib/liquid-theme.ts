@@ -155,7 +155,7 @@ function within<T>(storeId: string, tx: StoreTx | null, read: (tx: StoreTx) => P
  * cached per store version; the bundle itself is built once per theme version (core keeps it).
  * Pass `tx` when the caller already holds a transaction, so no second connection is taken.
  */
-async function importedTheme(
+export async function importedTheme(
   storeId: string,
   themeId: string,
   tx: StoreTx | null = null,
