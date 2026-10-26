@@ -49,6 +49,7 @@ import {
 } from '../services/shipping.service'
 import { assertNotImported } from './imported-order'
 import { draftAndAbandonedRoutes } from './order-drafts'
+import { orderEditRoutes } from './order-edit'
 import { orderListRoutes } from './order-list'
 import { orderMessageRoutes } from './order-messages'
 
@@ -417,4 +418,5 @@ export const ordersRouter = {
   ...orderListRoutes,
   ...orderMessageRoutes,
   ...draftAndAbandonedRoutes,
+  ...orderEditRoutes,
 }

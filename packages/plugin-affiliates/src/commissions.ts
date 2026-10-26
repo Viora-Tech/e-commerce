@@ -1,5 +1,5 @@
 /** SOURCE OF TRUTH: affiliate commissions — WHAT: which affiliate an order earns for, the hold, approval with TDS, reversals / WHY: order events (paid, delivered, cancelled, RTO, refund) all land here */
-import { insertOutboxEvent, phoneBlindIndex } from '@commerce/core'
+import { insertOutboxEvent, ORDER_EDIT_REFUND_REASON, phoneBlindIndex } from '@commerce/core'
 import {
   address,
   collectionProduct,
@@ -24,7 +24,7 @@ export type CommissionRow = typeof affiliateCommission.$inferSelect
 type AffiliateRow = typeof affiliate.$inferSelect
 type OrderRow = typeof order.$inferSelect
 
-async function commissionLines(tx: StoreTx, orderId: string): Promise<CommissionLine[]> {
+export async function commissionLines(tx: StoreTx, orderId: string): Promise<CommissionLine[]> {
   const lines = await tx
     .select({
       productId: variant.productId,
@@ -90,7 +90,7 @@ async function fraudCheck(
 }
 
 /** Net sales an affiliate brought that were earned (approved or paid), for tiers. */
-async function approvedSales(tx: StoreTx, affiliateId: string): Promise<number> {
+export async function approvedSales(tx: StoreTx, affiliateId: string): Promise<number> {
   const [r] = await tx
     .select({ s: sql<number>`coalesce(sum(${affiliateCommission.basePaise}), 0)::int` })
     .from(affiliateCommission)
@@ -264,10 +264,29 @@ export async function reverseCommission(
  * payment-method fee. Refunds come off the goods first, so refunding every item reverses the
  * commission even when the shipping charge was kept.
  */
-function goodsPaidPaise(
+export function goodsPaidPaise(
   o: Pick<OrderRow, 'totalPaise' | 'shippingPaise' | 'paymentAdjustmentPaise'>,
 ): number {
   return Math.max(0, o.totalPaise - o.shippingPaise - Math.max(0, o.paymentAdjustmentPaise))
+}
+
+/**
+ * Money refunded on the order that counts against the commission. An order edit's refunds do
+ * not: the edit already lowered the order's total, and the commission is recomputed from the
+ * edited lines (`commission-edit.ts`), so counting them would take the same money off twice.
+ */
+export async function refundedForCommission(tx: StoreTx, orderId: string): Promise<number> {
+  const [r] = await tx
+    .select({ s: sql<number>`coalesce(sum(${refund.amountPaise}), 0)::int` })
+    .from(refund)
+    .where(
+      and(
+        eq(refund.orderId, orderId),
+        ne(refund.status, 'failed'),
+        sql`${refund.reason} is distinct from ${ORDER_EDIT_REFUND_REASON}`,
+      ),
+    )
+  return r?.s ?? 0
 }
 
 /**
@@ -289,12 +308,8 @@ export async function applyRefunds(
     })
     .from(order)
     .where(eq(order.id, orderId))
-  const [r] = await tx
-    .select({ s: sql<number>`coalesce(sum(${refund.amountPaise}), 0)::int` })
-    .from(refund)
-    .where(and(eq(refund.orderId, orderId), ne(refund.status, 'failed')))
   const goods = o ? goodsPaidPaise(o) : 0
-  const refunded = r?.s ?? 0
+  const refunded = await refundedForCommission(tx, orderId)
   if (refunded > 0 && refunded >= goods) return reverseCommission(tx, storeId, orderId, 'refunded')
   const next = Math.min(
     current.commissionPaise,

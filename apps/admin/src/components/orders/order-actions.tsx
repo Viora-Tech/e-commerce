@@ -10,6 +10,7 @@ import {
   FileEdit,
   Package,
   PackageCheck,
+  Pencil,
   Printer,
   RotateCcw,
   Send,
@@ -24,6 +25,7 @@ import ActionMenu, { type ActionItem } from '@/components/layout/action-menu'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { orderAppActionsContent } from '@/data/order-app-actions'
 import { orderDetailContent } from '@/data/order-detail'
+import { orderEditContent } from '@/data/order-edit'
 import {
   type OrderFulfillmentStatus,
   type OrderMark,
@@ -53,6 +55,10 @@ type OrderActionsProps = {
   onSendReminder?: (() => void) | undefined
   /** Starts a new draft from this order ("Duplicate order"); undefined hides it. */
   onDuplicate?: (() => void) | undefined
+  /** Opens "Cancel order" (reason, restock, notify, refund); undefined once it cannot be cancelled. */
+  onCancel?: (() => void) | undefined
+  /** Opens the order edit page; undefined when the order cannot be edited. */
+  onEdit?: (() => void) | undefined
   /** The order's number, for "Copy order number". */
   orderNumber?: number | undefined
   /** The customer's email, for "Orders from this customer". */
@@ -78,6 +84,8 @@ export default function OrderActions({
   onCancelShipment,
   onSendReminder,
   onDuplicate,
+  onCancel,
+  onEdit,
   orderNumber,
   customerEmail,
   appItems = [],
@@ -89,7 +97,8 @@ export default function OrderActions({
   const copy = useCopy(orderDetailContent)
   const list = useCopy(ordersContent)
   const appCopy = useCopy(orderAppActionsContent)
-  const [confirm, setConfirm] = useState<'cancel' | 'cancelShipment' | null>(null)
+  const editCopy = useCopy(orderEditContent)
+  const [confirm, setConfirm] = useState<'cancelShipment' | null>(null)
 
   // Event handlers
   const handleCopyNumber = async () => {
@@ -102,8 +111,6 @@ export default function OrderActions({
   const move = readOnly ? undefined : nextOrderMove(status, paymentStatus, fulfillmentStatus)
   /* The Next step card owns the main action; the menu keeps the same move for when it is not shown. */
   const menuMove = move ? { label: copy.actions[MOVE_ACTION[move]], to: move } : undefined
-  // Once the parcel is in the shopper's hands, a cancel no longer undoes anything.
-  const cancellable = !readOnly && status === 'open' && fulfillmentStatus !== 'delivered'
   const refundable = !readOnly && canRefund
   const moveIcon =
     menuMove?.to === 'paid' ? CircleCheck : menuMove?.to === 'fulfilled' ? PackageCheck : Package
@@ -148,6 +155,13 @@ export default function OrderActions({
             hidden: !menuMove,
             disabled: busy,
             onSelect: () => menuMove && onMove(menuMove.to),
+          },
+          {
+            label: editCopy.action,
+            icon: Pencil,
+            hidden: !onEdit,
+            disabled: busy,
+            onSelect: onEdit,
           },
           {
             label: appCopy.createShipment,
@@ -213,22 +227,14 @@ export default function OrderActions({
             label: copy.actions.cancel,
             icon: CancelCircle,
             destructive: true,
-            hidden: !cancellable,
+            hidden: !onCancel,
+            disabled: busy,
             separatorBefore: true,
-            onSelect: () => setConfirm('cancel'),
+            onSelect: onCancel,
           },
         ]}
       />
 
-      <ConfirmDialog
-        open={confirm === 'cancel'}
-        onOpenChange={(o) => !o && setConfirm(null)}
-        title={copy.cancelDialog.title}
-        body={copy.cancelDialog.body}
-        confirmLabel={copy.cancelDialog.confirm}
-        cancelLabel={copy.cancelDialog.keep}
-        onConfirm={() => onMove('cancelled')}
-      />
       <ConfirmDialog
         open={confirm === 'cancelShipment'}
         onOpenChange={(o) => !o && setConfirm(null)}

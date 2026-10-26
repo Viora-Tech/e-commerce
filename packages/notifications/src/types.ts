@@ -185,6 +185,11 @@ export type TemplateData = {
         payByLabel?: string | undefined
         /** Shown when the store keeps the deposit if the balance is never paid. */
         depositNonRefundable?: boolean | undefined
+        /**
+         * `edit`: the store changed the order after it was paid and the new total is higher, so
+         * the extra is due (no deposit, no pre-order wording). Absent: a deposit pre-order.
+         */
+        kind?: 'edit' | undefined
       }
     | undefined
   /** For unpaid_cancel_notice: when the order will be cancelled. */

@@ -10,6 +10,12 @@ export type RefundInput = {
   paymentId: string
   amountPaise: number
   reason?: string | undefined
+  /**
+   * Record the refund without asking the gateway: the merchant sent the money back another way
+   * (UPI, cash), or the payment was taken on another platform (an imported order). Stored as
+   * `manual`, like a cash on delivery refund. Gift card money still goes back onto its card.
+   */
+  manual?: boolean | undefined
 }
 
 export class RefundNotAllowed extends CommerceError {
@@ -74,8 +80,8 @@ export async function refundPayment(
     throw new RefundNotAllowed(`Only ${remaining} paise left to refund on this payment`)
   }
 
-  const offline = OFFLINE_PROVIDERS.has(p.provider)
   const toGiftCard = p.provider === GIFT_CARD_PROVIDER
+  const offline = OFFLINE_PROVIDERS.has(p.provider) || (input.manual === true && !toGiftCard)
   let status: 'pending' | 'processed' | 'manual' = 'manual'
   let providerRefundId: string | null = null
   if (toGiftCard) {

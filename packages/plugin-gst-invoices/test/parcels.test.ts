@@ -24,6 +24,7 @@ import { DocumentSnapshotSchema } from '@commerce/invoices'
 import { asc, eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { issueCreditNote, issueCreditNotes } from '../src/credit-notes'
+import { reviseForOrderEdit } from '../src/order-edit'
 import { enqueueOrder, enqueueOrderParcels, issueDrafts } from '../src/queue'
 import { invoice } from '../src/schema'
 
@@ -505,5 +506,68 @@ describe('credit notes per GSTIN', () => {
     // The one-invoice wrapper still answers with the first.
     const first = await inStore(t.storeId, (tx) => issueCreditNote(tx, t.storeId, refundId, { at }))
     expect(first?.created).toBe(false)
+  })
+})
+
+describe('an order edit (reviseForOrderEdit)', () => {
+  async function issued(t: Seeded) {
+    const queued = await inStore(t.storeId, (tx) =>
+      enqueueOrderParcels(tx, t.storeId, t.orderId, 'manual', at),
+    )
+    await inStore(t.storeId, (tx) =>
+      issueDrafts(
+        tx,
+        t.storeId,
+        queued.map((q) => ({ id: q.row.id, invoiceDate: at })),
+        { commit: true, now: at },
+      ),
+    )
+  }
+
+  const parcelsInOrder = () =>
+    owner.select().from(fulfillmentOrder).orderBy(asc(fulfillmentOrder.position))
+
+  it('cancels an issued invoice whose parcel now bills more, and asks for a new one', async () => {
+    const t = await seed()
+    await addParcels(t, split(t))
+    await issued(t)
+    // The edit added a second cap to the Bengaluru parcel: its stored total went up.
+    const [, ka] = await parcelsInOrder()
+    await owner
+      .update(fulfillmentOrder)
+      .set({ totalPaise: 103_333 })
+      .where(eq(fulfillmentOrder.id, ka?.id as string))
+    const r = await inStore(t.storeId, (tx) => reviseForOrderEdit(tx, t.storeId, t.orderId))
+    expect(r).toMatchObject({ cancelled: ['INV/25-26/0001'], locked: [], reissue: true })
+    const rows = await invoicesOf(t.orderId)
+    expect(rows.map((x) => x.status)).toEqual(['issued', 'cancelled'])
+    expect(rows[1]?.cancelReason).toContain('Order edited')
+  })
+
+  it('leaves an invoice already filed in GSTR-1 and reports it', async () => {
+    const t = await seed()
+    await addParcels(t, split(t))
+    await issued(t)
+    await owner
+      .update(invoice)
+      .set({ reportedPeriod: '062025' })
+      .where(eq(invoice.orderId, t.orderId))
+    const [first] = await parcelsInOrder()
+    await owner
+      .update(fulfillmentOrder)
+      .set({ totalPaise: 206_667 })
+      .where(eq(fulfillmentOrder.id, first?.id as string))
+    const r = await inStore(t.storeId, (tx) => reviseForOrderEdit(tx, t.storeId, t.orderId))
+    expect(r.cancelled).toEqual([])
+    expect(r.locked).toEqual(['INV/25-26/0001'])
+  })
+
+  it('rebuilds a queued invoice from the edited order', async () => {
+    const t = await seed()
+    await addParcels(t, split(t))
+    await inStore(t.storeId, (tx) => enqueueOrderParcels(tx, t.storeId, t.orderId, 'manual', at))
+    const r = await inStore(t.storeId, (tx) => reviseForOrderEdit(tx, t.storeId, t.orderId))
+    expect(r.regenerated).toBe(2)
+    expect(r.reissue).toBe(false)
   })
 })

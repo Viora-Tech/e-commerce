@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { issueCreditNotes } from './credit-notes'
 import { InvoiceError, issueDocument, liveDocuments, loadSettings } from './issue'
 import { orderLinks } from './links'
+import { reviseForOrderEdit } from './order-edit'
 import { enqueueOrderParcels, isPreorder, issueDrafts, removeFromQueue } from './queue'
 import { pdfBytes, pdfFilename, renderAndStore } from './render'
 import { documentsByIds } from './reports'
@@ -115,6 +116,26 @@ async function onRefund(ctx: AppHookContext, orderId: string, refundId: string) 
   }
   ctx.log(`refund voucher ${voucher.row.number} for refund ${refundId}`)
   ctx.reportActivity?.(`Issued refund voucher ${voucher.row.number}`)
+}
+
+/**
+ * Staff edited the order (`order.edited`): queued invoices follow it, an issued one that now
+ * bills too little is cancelled and issued again (or reported when it is filed), and parcels the
+ * edit added are invoiced by the paid rule like any. Removed items are credited by their refund.
+ */
+async function onOrderEdited(ctx: AppHookContext, orderId: string) {
+  const r = await ctx.inStore((tx) => reviseForOrderEdit(tx, ctx.storeId, orderId))
+  if (r.regenerated) ctx.log(`order ${orderId}: ${r.regenerated} queued invoice(s) rebuilt`)
+  if (r.cancelled.length) {
+    ctx.log(`order ${orderId}: cancelled ${r.cancelled.join(', ')} to re-issue`)
+    ctx.reportActivity?.(`Re-issued invoice ${r.cancelled.join(', ')} after an order edit`)
+  }
+  if (r.locked.length) {
+    ctx.reportActivity?.(
+      `Invoice ${r.locked.join(', ')} is filed; issue the items added to the order by hand`,
+    )
+  }
+  if (r.reissue) await onOrderEvent(ctx, orderId, 'paid')
 }
 
 /** The PDFs an order email carries: issued documents only, per the "attach to email" switches. */
@@ -237,6 +258,7 @@ export const gstInvoicesPlugin = definePlugin({
     'refund.created': async (ctx, p) => {
       if (p.refundId) await onRefund(ctx, p.orderId, p.refundId)
     },
+    'order.edited': (ctx, p) => onOrderEdited(ctx, p.orderId),
   },
   jobs: {
     render: async (ctx, data) => {

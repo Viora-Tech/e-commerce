@@ -1,0 +1,258 @@
+/** SOURCE OF TRUTH: releaseLineUnits, holdAddedUnits, settleEditedParcels, retaxOrder — WHAT: what an order edit does to parcels, committed stock and GST / WHY: an edited order must hold exactly the stock and charge exactly the GST of an order placed with the new lines */
+import {
+  address,
+  fulfillmentOrder,
+  fulfillmentOrderLine,
+  order,
+  orderLine,
+  store,
+} from '@commerce/db'
+import { and, asc, desc, eq, ne, sql } from 'drizzle-orm'
+import type { StoreContext } from '../context'
+import { StoreAddressSchema } from '../settings/general'
+import { chargedGstRate, parseStoreTax } from '../tax/settings'
+import { releaseCommittedStock } from './committed-stock'
+import { createFulfillmentOrders } from './fulfillment-orders'
+import { taxParcels } from './parcel-tax'
+import type { RoutedParcel } from './routing'
+import { routeAndReserve } from './routing-service'
+
+/** The order's live parcel lines for one order line, newest parcel first, locked. */
+async function lineParcels(ctx: StoreContext, orderId: string, orderLineId: string) {
+  return ctx.tx
+    .select({
+      id: fulfillmentOrderLine.id,
+      quantity: fulfillmentOrderLine.quantity,
+      fulfilledQuantity: fulfillmentOrderLine.fulfilledQuantity,
+      locationId: fulfillmentOrder.locationId,
+    })
+    .from(fulfillmentOrderLine)
+    .innerJoin(fulfillmentOrder, eq(fulfillmentOrder.id, fulfillmentOrderLine.fulfillmentOrderId))
+    .where(
+      and(
+        eq(fulfillmentOrder.orderId, orderId),
+        eq(fulfillmentOrderLine.orderLineId, orderLineId),
+        ne(fulfillmentOrder.status, 'cancelled'),
+      ),
+    )
+    .orderBy(desc(fulfillmentOrder.position))
+    .for('update', { of: fulfillmentOrderLine })
+}
+
+/**
+ * Units taken off a line: each comes out of the newest parcel still holding it unpacked and its
+ * committed stock is released at that parcel's location (on hand stays). `remove` drops the
+ * line's parcel rows altogether (the order line itself is about to go).
+ */
+export async function releaseLineUnits(
+  ctx: StoreContext,
+  input: {
+    orderId: string
+    orderLineId: string
+    variantId: string
+    quantity: number
+    remove: boolean
+  },
+): Promise<void> {
+  let left = input.quantity
+  for (const row of await lineParcels(ctx, input.orderId, input.orderLineId)) {
+    const take = Math.min(left, row.quantity - row.fulfilledQuantity)
+    if (take > 0) {
+      await releaseCommittedStock(ctx, {
+        variantId: input.variantId,
+        quantity: take,
+        locationId: row.locationId,
+      })
+      left -= take
+    }
+    if (input.remove) {
+      await ctx.tx.delete(fulfillmentOrderLine).where(eq(fulfillmentOrderLine.id, row.id))
+    } else if (take > 0) {
+      await ctx.tx
+        .update(fulfillmentOrderLine)
+        .set({ quantity: row.quantity - take })
+        .where(eq(fulfillmentOrderLine.id, row.id))
+    }
+  }
+  // Units no parcel held (a parcel row lost or edited by hand) still leave where they sell.
+  if (left > 0) {
+    await releaseCommittedStock(ctx, { variantId: input.variantId, quantity: left })
+  }
+}
+
+export type AddedUnits = { orderLineId: string; variantId: string; quantity: number }
+
+/**
+ * Units added to the order: routed and held like a checkout (OutOfStock when the store cannot
+ * cover them), each into the order's open parcel at that location when there is one, else a new
+ * parcel numbered after the others.
+ */
+export async function holdAddedUnits(
+  ctx: StoreContext,
+  input: { orderId: string; units: readonly AddedUnits[]; registrationId: string | null },
+): Promise<void> {
+  if (input.units.length === 0) return
+  const [o] = await ctx.tx
+    .select({ shippingAddressId: order.shippingAddressId })
+    .from(order)
+    .where(eq(order.id, input.orderId))
+  const [shipTo] = o?.shippingAddressId
+    ? await ctx.tx
+        .select({ stateCode: address.stateCode })
+        .from(address)
+        .where(eq(address.id, o.shippingAddressId))
+    : []
+  const { parcels } = await routeAndReserve(ctx, {
+    lines: input.units.map((u) => ({
+      key: u.orderLineId,
+      variantId: u.variantId,
+      quantity: u.quantity,
+      giftCard: false,
+      preorder: null,
+    })),
+    buyerState: shipTo?.stateCode ?? null,
+  })
+  const open = await ctx.tx
+    .select({ id: fulfillmentOrder.id, locationId: fulfillmentOrder.locationId })
+    .from(fulfillmentOrder)
+    .where(and(eq(fulfillmentOrder.orderId, input.orderId), eq(fulfillmentOrder.status, 'open')))
+    .orderBy(asc(fulfillmentOrder.position))
+  const fresh: RoutedParcel[] = []
+  for (const parcel of parcels) {
+    const into =
+      parcel.status === 'open' ? open.find((p) => p.locationId === parcel.locationId) : undefined
+    if (!into) {
+      fresh.push(parcel)
+      continue
+    }
+    for (const l of parcel.lines) {
+      await ctx.tx
+        .insert(fulfillmentOrderLine)
+        .values({
+          storeId: ctx.storeId,
+          fulfillmentOrderId: into.id,
+          orderLineId: l.key,
+          quantity: l.quantity,
+          fulfilledQuantity: 0,
+        })
+        .onConflictDoUpdate({
+          target: [fulfillmentOrderLine.fulfillmentOrderId, fulfillmentOrderLine.orderLineId],
+          set: { quantity: sql`${fulfillmentOrderLine.quantity} + ${l.quantity}` },
+        })
+    }
+  }
+  await createFulfillmentOrders(ctx, {
+    orderId: input.orderId,
+    plans: fresh.map((p) => ({
+      locationId: p.locationId,
+      status: p.status,
+      needsTransfer: p.needsTransfer,
+      lines: p.lines.map((l) => ({
+        orderLineId: l.key,
+        quantity: l.quantity,
+        fulfilledQuantity: 0,
+      })),
+    })),
+    fallbackRegistrationId: input.registrationId,
+  })
+}
+
+/**
+ * After the lines moved: a parcel left with nothing to send is cancelled, one whose every unit
+ * is packed is fulfilled.
+ */
+export async function settleEditedParcels(ctx: StoreContext, orderId: string): Promise<void> {
+  await ctx.tx
+    .update(fulfillmentOrder)
+    .set({
+      status: sql`case
+        when coalesce((select sum(l.quantity) from ${fulfillmentOrderLine} l
+          where l.fulfillment_order_id = ${fulfillmentOrder.id}), 0) = 0 then 'cancelled'
+        when not exists (select 1 from ${fulfillmentOrderLine} l
+          where l.fulfillment_order_id = ${fulfillmentOrder.id} and l.fulfilled_quantity < l.quantity)
+          then 'fulfilled'
+        else ${fulfillmentOrder.status} end`,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(fulfillmentOrder.orderId, orderId), ne(fulfillmentOrder.status, 'cancelled')))
+}
+
+/**
+ * Work the order's GST out again from its live parcels, as checkout does (`taxParcels`), and
+ * store each parcel's share and the order's sum. Lines keep the rate they were charged at; an
+ * order with no goods parcels (gift cards only) keeps its tax.
+ */
+export async function retaxOrder(ctx: StoreContext, orderId: string): Promise<void> {
+  const [o] = await ctx.tx.select().from(order).where(eq(order.id, orderId))
+  if (!o) return
+  const parcels = await ctx.tx
+    .select({ id: fulfillmentOrder.id, locationId: fulfillmentOrder.locationId })
+    .from(fulfillmentOrder)
+    .where(and(eq(fulfillmentOrder.orderId, orderId), ne(fulfillmentOrder.status, 'cancelled')))
+    .orderBy(asc(fulfillmentOrder.position))
+  if (parcels.length === 0) return
+  const parcelLines = await ctx.tx
+    .select({
+      fulfillmentOrderId: fulfillmentOrderLine.fulfillmentOrderId,
+      orderLineId: fulfillmentOrderLine.orderLineId,
+      quantity: fulfillmentOrderLine.quantity,
+    })
+    .from(fulfillmentOrderLine)
+    .innerJoin(fulfillmentOrder, eq(fulfillmentOrder.id, fulfillmentOrderLine.fulfillmentOrderId))
+    .where(eq(fulfillmentOrder.orderId, orderId))
+  const lines = await ctx.tx.select().from(orderLine).where(eq(orderLine.orderId, orderId))
+  const byId = new Map(lines.map((l) => [l.id, l]))
+  const [s] = await ctx.tx
+    .select({ address: store.address, gstRatePercent: store.gstRatePercent, apps: store.apps })
+    .from(store)
+    .where(eq(store.id, ctx.storeId))
+  const storeTax = parseStoreTax(s?.apps)
+  const storeAddress = StoreAddressSchema.safeParse(s?.address ?? {})
+  const [shipTo] = o.shippingAddressId
+    ? await ctx.tx
+        .select({ stateCode: address.stateCode })
+        .from(address)
+        .where(eq(address.id, o.shippingAddressId))
+    : []
+  const routed: RoutedParcel[] = parcels.map((p) => ({
+    locationId: p.locationId,
+    status: 'open',
+    needsTransfer: false,
+    lines: parcelLines
+      .filter((l) => l.fulfillmentOrderId === p.id && l.quantity > 0)
+      .map((l) => ({ key: l.orderLineId, quantity: l.quantity })),
+  }))
+  const billed = await taxParcels(ctx.tx, {
+    parcels: routed,
+    lineOf: (key, quantity) => {
+      const line = byId.get(key)
+      return {
+        grossPaise: quantity * (line?.unitPricePaise ?? 0),
+        ratePercent:
+          !line || line.giftCard
+            ? 0
+            : (line.gstRatePercent ?? chargedGstRate(s?.gstRatePercent ?? 18, storeTax)),
+      }
+    },
+    discountPaise: o.discountPaise,
+    adjustmentPaise: o.paymentAdjustmentPaise,
+    shippingPaise: o.shippingPaise,
+    shipToState: shipTo?.stateCode ?? null,
+    storeState: storeAddress.success ? storeAddress.data.state : null,
+  })
+  for (const [i, p] of parcels.entries()) {
+    const money = billed.money[i]
+    if (money) {
+      await ctx.tx
+        .update(fulfillmentOrder)
+        .set({ ...money, updatedAt: new Date() })
+        .where(eq(fulfillmentOrder.id, p.id))
+    }
+  }
+  if (billed.tax) {
+    await ctx.tx
+      .update(order)
+      .set({ taxPaise: billed.tax.taxPaise, taxBreakdown: billed.tax })
+      .where(eq(order.id, orderId))
+  }
+}
