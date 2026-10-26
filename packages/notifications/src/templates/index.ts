@@ -45,6 +45,7 @@ export const TEMPLATE_IDS: TemplateId[] = [
   'return_rejected',
   'return_received',
   'return_refunded',
+  'return_exchanged',
   'cod_confirm',
   'staff_invite',
   'email_change_code',
@@ -103,6 +104,7 @@ export const TEMPLATE_NAMES: Record<TemplateId, string> = {
   return_rejected: 'Return declined',
   return_received: 'Return received',
   return_refunded: 'Return refunded',
+  return_exchanged: 'Exchange on its way',
   cod_confirm: 'Confirm your cash on delivery order',
   staff_invite: 'Staff invitation (platform)',
   email_change_code: 'Change email: code (platform)',
@@ -157,6 +159,7 @@ function eyebrowFor(template: TemplateId, d: TemplateData): string {
     case 'return_rejected':
     case 'return_received':
     case 'return_refunded':
+    case 'return_exchanged':
       return d.returnInfo ? `Return ${d.returnInfo.label}` : `Order #${d.orderNumber}`
     default:
       return d.orderNumber ? `Order #${d.orderNumber}` : d.storeName

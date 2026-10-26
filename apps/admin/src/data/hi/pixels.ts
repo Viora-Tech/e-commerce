@@ -9,6 +9,7 @@ export default [
       ViewContent: 'प्रोडक्ट व्यू',
       AddToCart: 'कार्ट में जोड़ा',
       InitiateCheckout: 'चेकआउट शुरू',
+      AddPaymentInfo: 'पेमेंट का तरीका चुना',
       Purchase: 'खरीदारी',
     },
     triggers: {

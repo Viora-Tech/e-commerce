@@ -194,6 +194,10 @@ export const notificationsSettingsContent = {
       name: 'Return refunded',
       when: 'When you refund a return or give store credit.',
     },
+    return_exchanged: {
+      name: 'Exchange on its way',
+      when: 'When you turn a return’s exchange draft into an order. Has the new order number and link.',
+    },
     contact_message: {
       name: 'New form message',
       when: 'When a shopper sends a message from a contact or advice form (Forms app).',

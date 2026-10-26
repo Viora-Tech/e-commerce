@@ -267,6 +267,13 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
     orderUrl: 'https://waimers.example/account/orders/42',
     returnInfo: { label: 'R-3', refundLabel: '₹1,999', refundMethod: 'original' },
   },
+  return_exchanged: {
+    ...base,
+    orderNumber: 57,
+    taxBreakdown: undefined,
+    orderUrl: 'https://waimers.example/account/orders/57',
+    returnInfo: { label: 'R-3', originalOrderNumber: 42 },
+  },
   staff_invite: {
     ...base,
     orderNumber: undefined,

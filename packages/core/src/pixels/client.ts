@@ -18,6 +18,7 @@ export const PIXEL_EVENTS = [
   'ViewContent',
   'AddToCart',
   'InitiateCheckout',
+  'AddPaymentInfo',
   'Purchase',
 ] as const satisfies readonly PixelEventName[]
 
@@ -49,7 +50,8 @@ export function isMetaPixelId(value: string): boolean {
 
 // Event ids. The browser `fbq(..., {eventID})` and the server `event_id` must be equal, so
 // Meta counts the event once (48 h window). Purchase, InitiateCheckout and AddToCart are
-// derived from records both sides know; PageView and ViewContent get a fresh UUID.
+// derived from records both sides know (AddPaymentInfo from the cart and the method picked);
+// PageView and ViewContent get a fresh UUID.
 
 const ID_PART = /^[A-Za-z0-9-]{1,64}$/
 
@@ -61,13 +63,25 @@ export function initiateCheckoutEventId(cartId: string): string {
   return `ic_${cartId}`
 }
 
+/**
+ * One per cart and way to pay: picking another method is a new event, picking one again is not.
+ * The method id is folded to lowercase letters, digits and hyphens so the id stays in one shape.
+ */
+export function addPaymentInfoEventId(cartId: string, methodId: string): string {
+  const method = methodId
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, '-')
+    .slice(0, 40)
+  return `api_${cartId}_${method || 'method'}`
+}
+
 /** `n` counts the adds to that line, so adding the same line twice is two events. */
 export function addToCartEventId(cartLineId: string, n: number): string {
   return `atc_${cartLineId}_${Math.max(1, Math.floor(n))}`
 }
 
 /**
- * An event id from the browser, accepted only in the shapes we mint: `ord_`, `ic_`, `atc_` or a
+ * An event id from the browser, accepted only in the shapes we mint: `ord_`, `ic_`, `atc_`, `api_` or a
  * bare UUID. Anything else is refused, so a page cannot write arbitrary text into the log.
  */
 export function isValidEventId(name: PixelEventName, id: string): boolean {
@@ -75,6 +89,7 @@ export function isValidEventId(name: PixelEventName, id: string): boolean {
   if (name === 'Purchase') return id.startsWith('ord_') && ID_PART.test(id.slice(4))
   if (name === 'InitiateCheckout') return id.startsWith('ic_') && ID_PART.test(id.slice(3))
   if (name === 'AddToCart') return /^atc_[A-Za-z0-9-]{1,64}_\d{1,4}$/.test(id)
+  if (name === 'AddPaymentInfo') return /^api_[A-Za-z0-9-]{1,64}_[a-z0-9-]{1,40}$/.test(id)
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
 }
 

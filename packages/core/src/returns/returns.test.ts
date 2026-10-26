@@ -23,7 +23,9 @@ import { FakeShippingProvider, type Tracking } from '@commerce/shipping'
 import { and, eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type { StoreContext } from '../context'
+import { convertDraft } from '../order/drafts'
 import { applyTracking, createShipmentForOrder } from '../shipping/shipments'
+import { returnTemplateData } from './notify'
 import {
   defaultReturnPolicy,
   parseReturnPolicy,
@@ -426,6 +428,16 @@ describe('customer return, start to finish', () => {
     const ex = await inStore(s.storeId, (ctx) => exchangeReturn(ctx, b.id))
     const [draft] = await owner.select().from(order).where(eq(order.id, ex.draftId))
     expect(draft).toMatchObject({ status: 'draft', totalPaise: 0 })
+    // The shopper hears about the exchange once the draft is an order, about that new order.
+    expect(await events(s.storeId, 'return.exchanged')).toHaveLength(0)
+    await inStore(s.storeId, (ctx) => convertDraft(ctx, ex.draftId))
+    const exchanged = await events(s.storeId, 'return.exchanged')
+    expect(exchanged.map((e) => e.payload)).toEqual([{ orderId: ex.draftId, returnId: b.id }])
+    const data = await inStore(s.storeId, (ctx) => returnTemplateData(ctx, b.id))
+    expect(data?.returnInfo).toMatchObject({
+      label: 'R-2',
+      originalOrderNumber: expect.any(Number),
+    })
     const listed = await inStore(s.storeId, (ctx) => listReturns(ctx, { search: 'R-2' }))
     expect(listed.items.map((i) => i.label)).toEqual(['R-2'])
   })

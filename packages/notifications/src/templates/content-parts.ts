@@ -164,6 +164,8 @@ const refundWhere = (d: TemplateData): string =>
   d.returnInfo?.refundMethod === 'store_credit'
     ? 'as store credit. The gift card code is in a separate email, and you can use it at checkout'
     : 'to the way you paid. Banks usually show it in 5 to 7 working days'
+const fromOrder = (d: TemplateData): string =>
+  d.returnInfo?.originalOrderNumber ? ` (order #${d.returnInfo.originalOrderNumber})` : ''
 const howBack = (d: TemplateData): string =>
   d.returnInfo?.pickup === 'courier'
     ? `A courier will come to collect it${d.returnInfo.pickupWaybill ? ` (tracking number ${d.returnInfo.pickupWaybill})` : ''}. Please pack the items safely and keep them ready.`
@@ -214,12 +216,25 @@ export const returnTemplates = {
     whatsapp: (d) =>
       `${d.storeName}: refund of ${d.returnInfo?.refundLabel ?? d.totalLabel} for return ${ret(d)} is on its way ${d.returnInfo?.refundMethod === 'store_credit' ? 'as store credit' : 'to the way you paid'}.`,
   },
+  return_exchanged: {
+    subject: (d) => `${d.storeName}: your exchange for return ${ret(d)} is on its way`,
+    heading: (d) => `Hi ${d.customerName}, your exchange is on its way`,
+    intro: (d) =>
+      `We are sending the replacement for return ${ret(d)}${fromOrder(d)} as order #${d.orderNumber}, at no charge.`,
+    outro: (d) =>
+      d.orderUrl
+        ? `We will message you again when it ships. Follow it here: ${d.orderUrl}`
+        : 'We will message you again when it ships.',
+    whatsapp: (d) =>
+      `${d.storeName}: your exchange for return ${ret(d)} is on its way as order #${d.orderNumber}.${d.orderUrl ? ` Follow it: ${d.orderUrl}` : ''}`,
+  },
 } satisfies Record<
   | 'return_requested'
   | 'return_approved'
   | 'return_rejected'
   | 'return_received'
-  | 'return_refunded',
+  | 'return_refunded'
+  | 'return_exchanged',
   TemplateCopy
 >
 

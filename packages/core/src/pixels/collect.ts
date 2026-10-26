@@ -34,7 +34,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const uuidOrNull = (v: unknown) => (typeof v === 'string' && UUID.test(v) ? v : null)
 
-/** The browser's body, or null when it is not one of our five events in our id shapes. */
+/** The browser's body, or null when it is not one of our events in our id shapes. */
 export function parsePixelBeacon(raw: unknown): PixelBeacon | null {
   if (!raw || typeof raw !== 'object') return null
   const b = raw as Record<string, unknown>
