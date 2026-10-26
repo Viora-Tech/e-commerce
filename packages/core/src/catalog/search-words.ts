@@ -22,7 +22,7 @@ const VOCABULARY_MAX_STORES = 500
 
 const vocabularies = new Map<string, { at: number; words: VocabularyWord[] }>()
 
-/** Every word (4+ letters) of the store's active products and how many products use it. */
+/** Every word (3+ letters: "pad" splits "glasspad") of the store's active products and how many products use it. */
 async function readVocabulary(tx: StoreTx): Promise<VocabularyWord[]> {
   const rows = await tx.execute<{ word: string; count: number }>(sql`
     select w as word, count(distinct src.id)::int as count from (
@@ -34,7 +34,7 @@ async function readVocabulary(tx: StoreTx): Promise<VocabularyWord[]> {
       join product_option_value pov on pov.option_id = po.id
       join product p on p.id = po.product_id and p.status = 'active'
     ) src, lateral regexp_split_to_table(src.txt, '[^[:alnum:]]+') w
-    where length(w) >= 4
+    where length(w) >= 3
     group by w`)
   return rows.map((r) => ({ word: String(r.word), count: Number(r.count) }))
 }
@@ -89,9 +89,9 @@ export async function setSearchSynonyms(
 export type SearchWords = { typed: SearchPlan; corrected: () => Promise<SearchPlan | null> }
 
 /**
- * The shopper's words with the store's synonyms, or null for a listing without a search. The
- * corrected plan reads the store's catalogue words, so it is only built when the typed words
- * found nothing.
+ * The shopper's words with the store's synonyms and run-together words split ("glasspad"), or
+ * null for a listing without a search. The typo-corrected plan is only built when the typed
+ * words found nothing. Both read the store's catalogue words, cached a minute per store.
  */
 export async function searchWordsFor(
   tx: StoreTx,
@@ -101,10 +101,11 @@ export async function searchWordsFor(
   const terms = searchTerms(query ?? '')
   if (!terms.length) return null
   const synonyms = storeId ? await getSearchSynonyms(tx, storeId) : []
+  const vocabulary = await searchVocabulary(tx, storeId)
   return {
-    typed: planSearch(terms, [], synonyms),
+    typed: planSearch(terms, vocabulary, synonyms, false),
     corrected: async () => {
-      const plan = planSearch(terms, await searchVocabulary(tx, storeId), synonyms)
+      const plan = planSearch(terms, vocabulary, synonyms)
       return plan.corrected ? plan : null
     },
   }

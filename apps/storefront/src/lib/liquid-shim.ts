@@ -9,7 +9,8 @@
  * - `/cart/change.js`, `/cart/update.js`, `/cart/clear.js` → our cart page.
  * - `?section_id=` / `?sections=` (section rendering) → our renderer of the theme's
  *   own section (`/theme-actions/section`), so lazy tabs and carousels fill in.
- * - `/search/suggest` → an empty answer, so the theme falls back to its search page link.
+ * - `/search/suggest(.json)` → passed through untouched: our own predictive search answers it
+ *   in Shopify's shape (`lib/predictive-route.ts`), JSON or the theme's section with results.
  * - `/recommendations/products` → the theme's own section rendered with our related
  *   products (`/theme-actions/recommendations`); an empty answer when there are none.
  * - `Shopify.customerPrivacy` (the theme's cookie banner) → our consent: whether to ask
@@ -93,11 +94,7 @@ const SHIM = `(function () {
     if (/^\\/cart\\/add(\\.js)?$/.test(path)) return addToCart(init);
     if (path === '/cart.js') return nativeFetch('/theme-actions/cart', { headers: { accept: 'application/json' } });
     if (/^\\/cart\\/(change|update|clear)(\\.js)?$/.test(path)) { location.href = '/cart'; return pending(); }
-    if (/^\\/search\\/suggest/.test(path)) {
-      return path.slice(-5) === '.json'
-        ? reply('{"resources":{"results":{"products":[],"collections":[],"pages":[],"articles":[],"queries":[]}}}', 'application/json')
-        : reply('', 'text/html');
-    }
+    if (/^\\/search\\/suggest/.test(path)) return nativeFetch(input, init);
     if (/^\\/recommendations\\/products/.test(path)) {
       return nativeFetch('/theme-actions/recommendations' + url.search, { headers: { accept: 'text/html' } })
         .then(function (res) { return res.ok ? res : reply('', 'text/html'); });

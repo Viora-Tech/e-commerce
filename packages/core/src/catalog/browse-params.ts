@@ -159,6 +159,18 @@ export function parseBrowseSort(
     : fallback
 }
 
+/**
+ * Sold-out products in a search, as Shopify's `options[unavailable_products]`: `show` where
+ * they rank, `last` after every buyable one, `hide` left out.
+ */
+export type UnavailableProducts = 'show' | 'last' | 'hide'
+
+/** Shopify's `options[unavailable_products]` value; `show` for anything else. */
+export function parseUnavailable(raw: unknown): UnavailableProducts {
+  const v = Array.isArray(raw) ? raw[0] : raw
+  return v === 'last' || v === 'hide' ? v : 'show'
+}
+
 export function parsePage(raw: unknown): number {
   const n = typeof raw === 'string' ? Number.parseInt(raw, 10) : Number.NaN
   return Number.isFinite(n) && n > 0 ? Math.min(n, 1000) : 1

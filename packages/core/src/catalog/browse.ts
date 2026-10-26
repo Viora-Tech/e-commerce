@@ -1,8 +1,14 @@
 import type { StoreTx } from '@commerce/db'
 import { type SQL, sql } from 'drizzle-orm'
 import { FILTERABLE_FIELD_TYPES } from '../metaobjects/schemas'
-import { type BrowseFilters, type BrowseSort, EMPTY_FILTERS } from './browse-params'
+import {
+  type BrowseFilters,
+  type BrowseSort,
+  EMPTY_FILTERS,
+  type UnavailableProducts,
+} from './browse-params'
 import { engineProductIds } from './search-engine'
+import { bestPlan, rankedClauses, searchClauses } from './search-sql'
 import { type SearchPlan, searchTerms } from './search-text'
 import { searchWordsFor } from './search-words'
 
@@ -69,77 +75,22 @@ export type BrowseInput = {
   sort: BrowseSort
   page: number
   perPage: number
+  /**
+   * Sold-out products (not in stock and not on pre-order), as Shopify's
+   * `options[unavailable_products]`: `show` where they rank (the default), `last` after every
+   * buyable one, `hide` left out.
+   */
+  unavailable?: UnavailableProducts | undefined
 }
 
-const escapeLike = (q: string) => q.replace(/[\\%_]/g, (c) => `\\${c}`)
+/** In stock or on pre-order: a shopper can buy it now (reads the listing row `b`). */
+const SELLABLE = sql`(b.in_stock or b.preorder_enabled)`
 
 const inList = (values: string[]): SQL =>
   sql`(${sql.join(
     values.map((v) => sql`${v}`),
     sql`, `,
   )})`
-
-/** The description's plain text: Lexical text nodes, or a legacy plain string. */
-const descriptionText = sql`case jsonb_typeof(p.description)
-  when 'string' then p.description #>> '{}'
-  when 'object' then jsonb_path_query_array(p.description, 'lax $.**.text')::text
-end`
-
-/**
- * One term against the product's own fields (everything but the description): Shopify Search &
- * Discovery's scope of title, vendor, type, handle, tags, SKUs and option values ("Black", "XL").
- */
-const fieldMatch = (pattern: string): SQL => sql`(
-  p.title ilike ${pattern} or p.vendor ilike ${pattern} or p.product_type ilike ${pattern}
-  or p.handle ilike ${pattern}
-  or exists (select 1 from unnest(p.tags) t where t ilike ${pattern})
-  or exists (select 1 from variant sv where sv.product_id = p.id and sv.archived_at is null and sv.sku ilike ${pattern})
-  or exists (
-    select 1 from product_option spo join product_option_value spov on spov.option_id = spo.id
-    where spo.product_id = p.id and spov.value ilike ${pattern}
-  )
-)`
-
-const every = (parts: SQL[]): SQL => sql`(${sql.join(parts, sql` and `)})`
-
-/** A group's words: the product matches when any of them appears (a word or its synonyms). */
-const anyOf = (words: string[], match: (pattern: string) => SQL): SQL =>
-  sql`(${sql.join(
-    words.map((w) => match(`%${escapeLike(w)}%`)),
-    sql` or `,
-  )})`
-
-/**
- * Shopify-style matching: each word (or one of its synonyms) must appear in the title, vendor,
- * type, handle, a tag, a SKU or the description. Ranked: title starts with the query, title
- * contains it, title holds every word, every word in the product's fields, then
- * description-only matches.
- */
-function searchClauses(plan: SearchPlan | null): { match: SQL; relevance: SQL } | null {
-  if (!plan?.terms.length) return null
-  const phrase = escapeLike(plan.terms.join(' '))
-  const match = every(
-    plan.groups.map((g) =>
-      anyOf(g, (pt) => sql`(${fieldMatch(pt)} or ${descriptionText} ilike ${pt})`),
-    ),
-  )
-  const relevance = sql`case
-    when p.title ilike ${`${phrase}%`} then 0
-    when p.title ilike ${`%${phrase}%`} then 1
-    when ${every(plan.groups.map((g) => anyOf(g, (pt) => sql`p.title ilike ${pt}`)))} then 2
-    when ${every(plan.groups.map((g) => anyOf(g, fieldMatch)))} then 3
-    else 4 end`
-  return { match, relevance }
-}
-
-/**
- * The engine's matches as the search: only those products, ranked in the engine's order. The
- * ids travel as one text parameter (already checked to be uuids by `engineProductIds`).
- */
-function rankedClauses(ids: string[]): { match: SQL; relevance: SQL } {
-  const list = sql`string_to_array(${ids.join(',')}, ',')::uuid[]`
-  return { match: sql`p.id = any(${list})`, relevance: sql`array_position(${list}, p.id)` }
-}
 
 /**
  * Every active product in scope with the fields filters and sorts need. `ranked` is the search
@@ -166,7 +117,8 @@ function baseQuery(
         left join inventory_level il on il.variant_id = v.id and il.fulfils_online
         where v.product_id = p.id and v.archived_at is null
           and (not v.track_inventory or coalesce(il.on_hand, 0) - coalesce(il.reserved, 0) > 0)
-      ) as in_stock
+      ) as in_stock,
+      p.preorder_enabled
     from product p ${join}
     where p.status = 'active' and not p.is_system_test ${match}`
 }
@@ -290,10 +242,13 @@ export function metafieldFacets(rows: FieldRow[]): MetafieldFacet[] {
     }))
 }
 
-function orderBy(sort: BrowseSort): SQL {
+function orderBy(sort: BrowseSort, unavailable: UnavailableProducts = 'show'): SQL {
+  if (unavailable === 'last') return sql`${SELLABLE} desc, ${orderBy(sort)}`
   switch (sort) {
     case 'relevance':
-      return sql`b.relevance, b.title, b.id`
+      // Equally relevant: the ones a shopper can buy now first, then the newest (a drop store's
+      // latest pads before last year's).
+      return sql`b.relevance, ${SELLABLE} desc, b.created_at desc, b.title, b.id`
     case 'best-selling':
       return sql`(
         select coalesce(sum(ol.quantity), 0) from order_line ol
@@ -328,19 +283,20 @@ async function rankedFor(tx: StoreTx, storeId: string | undefined, query: string
 
 /**
  * A listing (a collection, or a search): its page of handles, total and facets. The search
- * engine's answer wins when the store has one; otherwise the shopper's words run in SQL, and
- * only when they find nothing does the typo-corrected search run ("Showing results for …").
+ * engine's answer wins when the store has one; otherwise the shopper's words run in SQL
+ * (`bestPlan`: as typed, typo-corrected when that finds nothing, some-words-match when a
+ * multi-word search finds very little).
  */
 export async function browseProducts(tx: StoreTx, input: BrowseInput): Promise<BrowseResult> {
   const ranked = await rankedFor(tx, input.storeId, input.query)
   if (ranked) return { ...(await runBrowse(tx, input, ranked, null)), corrected: null }
   const words = await searchWordsFor(tx, input.storeId, input.query)
-  const typed = await runBrowse(tx, input, null, words?.typed ?? null)
-  if (typed.total > 0 || !words) return { ...typed, corrected: null }
-  const plan = await words.corrected()
-  if (!plan) return { ...typed, corrected: null }
-  const fixed = await runBrowse(tx, input, null, plan)
-  return fixed.total > 0 ? { ...fixed, corrected: plan.corrected } : { ...typed, corrected: null }
+  if (!words) return { ...(await runBrowse(tx, input, null, null)), corrected: null }
+  const { result, corrected } = await bestPlan(words, async (plan) => {
+    const listing = await runBrowse(tx, input, null, plan)
+    return { listing, found: listing.total }
+  })
+  return { ...result.listing, corrected }
 }
 
 async function runBrowse(
@@ -350,13 +306,15 @@ async function runBrowse(
   plan: SearchPlan | null,
 ): Promise<Omit<BrowseResult, 'corrected'>> {
   const base = baseQuery(input, ranked, plan)
-  const where = filterWhere(input.filters)
+  const unavailable = input.unavailable ?? 'show'
+  const filters = filterWhere(input.filters)
+  const where = unavailable === 'hide' ? sql`${filters} and ${SELLABLE}` : filters
   const offset = (Math.max(1, input.page) - 1) * input.perPage
 
   const page = await tx.execute<Row>(sql`
     with b as (${base})
     select b.handle, count(*) over () as total from b where ${where}
-    order by ${orderBy(input.sort)} limit ${input.perPage} offset ${offset}`)
+    order by ${orderBy(input.sort, unavailable)} limit ${input.perPage} offset ${offset}`)
   let total = num(page[0]?.total)
   if (page.length === 0 && offset > 0) {
     const [c] = await tx.execute<Row>(
@@ -449,13 +407,16 @@ async function runBrowse(
 
 /**
  * Quick matches for the header's predictive search: a few product handles, best first. With
- * `storeId`, the store's search engine ranks them when it has one ready.
+ * `storeId`, the store's search engine ranks them when it has one ready. `unavailable` is
+ * Shopify's `resources[options][unavailable_products]`: by default (`show`) a sold-out product
+ * ranks by relevance, after equally relevant buyable ones.
  */
 export async function suggestProducts(
   tx: StoreTx,
   query: string,
   limit = 6,
   storeId?: string,
+  unavailable: UnavailableProducts = 'show',
 ): Promise<string[]> {
   const q = query.trim().slice(0, 100)
   if (q.length < 2) return []
@@ -467,19 +428,20 @@ export async function suggestProducts(
     page: 1,
     perPage: limit,
   }
-  // The engine's order is the answer; SQL's own ranking puts in-stock products first.
-  const order = ranked ? sql`b.relevance` : sql`b.relevance, b.in_stock desc, b.title`
+  const hide = unavailable === 'hide' ? sql`where ${SELLABLE}` : sql``
   const run = async (plan: SearchPlan | null) => {
     const rows = await tx.execute<Row>(sql`
       with b as (${baseQuery(input, ranked, plan)})
-      select b.handle from b order by ${order} limit ${limit}`)
+      select b.handle from b ${hide} order by ${orderBy('relevance', unavailable)} limit ${limit}`)
     return rows.map((r) => String(r.handle))
   }
   if (ranked) return run(null)
   const words = await searchWordsFor(tx, storeId, q)
-  const typed = await run(words?.typed ?? null)
-  if (typed.length || !words) return typed
-  // Nothing for the words as typed: try them typo-corrected, as the search page does.
-  const plan = await words.corrected()
-  return plan ? run(plan) : typed
+  if (!words) return []
+  // As the search page: typo-corrected when nothing matched, some-words when very little did.
+  const { result } = await bestPlan(words, async (plan) => {
+    const handles = await run(plan)
+    return { handles, found: handles.length }
+  })
+  return result.handles
 }

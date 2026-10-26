@@ -120,4 +120,11 @@ describe('listingSearch', () => {
     )
     expect(listingSearch(new URLSearchParams('utm_source=x'))).toBe('')
   })
+
+  it("keeps a search form's sold-out choice, not its other options", () => {
+    const params = new URLSearchParams(
+      'q=pad&options[prefix]=last&options[unavailable_products]=last&type=product',
+    )
+    expect(listingSearch(params)).toBe('options%5Bunavailable_products%5D=last&q=pad')
+  })
 })
