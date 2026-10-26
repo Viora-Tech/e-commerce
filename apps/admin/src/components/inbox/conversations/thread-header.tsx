@@ -67,18 +67,24 @@ export default function ThreadHeader({
       >
         <ChevronLeftIcon className="size-4" />
       </Button>
-      <div className="flex min-w-0 flex-1 flex-col">
+      {/* The name keeps at least 8rem (~10 characters) and truncates past that; the status sits on
+          its own line under it, and the controls wrap below rather than squeeze the name. */}
+      <div className="flex min-w-32 flex-1 flex-col gap-1">
+        <h2 className="truncate text-card-title text-ink-strong" title={name}>
+          {name}
+        </h2>
         <div className="flex min-w-0 items-center gap-2">
-          <h2 className="truncate text-card-title text-ink-strong">{name}</h2>
           <StatusChip tone={TONE[status]}>{t.status[status]}</StatusChip>
+          {spam ? <p className="truncate text-caption text-muted-foreground">{t.spam}</p> : null}
         </div>
-        {spam ? <p className="text-caption text-muted-foreground">{t.spam}</p> : null}
       </div>
-      <div className="flex items-center gap-1.5">
+      <div className="flex shrink-0 items-center gap-1.5">
         {canReply ? (
           <DropdownMenu>
             <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
-              {assigneeUserId ? nameOfMember(assigneeUserId) : t.assign}
+              <span className="max-w-28 truncate">
+                {assigneeUserId ? nameOfMember(assigneeUserId) : t.assign}
+              </span>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>{t.assignTo}</DropdownMenuLabel>
