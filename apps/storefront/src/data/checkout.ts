@@ -38,29 +38,47 @@ export const invoiceContent = {
 } as const
 
 export const thankYouContent = {
-  heading: (number: number) => `Thank you, order #${number} is in`,
-  /** The calm headline above the status line, by where the order stands. */
+  /** The headline while the order still waits on its payment. */
   headline: {
-    confirmed: 'Thank you for your order',
     pending: 'Complete your payment',
     failed: 'Your payment did not go through',
-    cod: 'Your order is confirmed',
   },
+  /** The headline once the order is placed: "Thank you, Asha!". */
+  thanks: (name: string | null) => (name ? `Thank you, ${name}!` : 'Thank you!'),
+  /** The first card's heading, by where the order stands. */
+  card: {
+    confirmed: 'Your order is confirmed',
+    pending: 'Waiting for your payment',
+    failed: 'Payment not received',
+    cancelled: 'This order was cancelled',
+    refunded: 'This order was refunded',
+    returning: 'This order is on its way back to us',
+  },
+  /** Where order updates go: the contacts the order was placed with. */
+  updates: (contact: string | null) =>
+    contact ? `We will send updates to ${contact}.` : 'We will be in touch about delivery.',
+  arrives: (range: string) => `Expected delivery ${range}.`,
+  /** The four-step progress bar under the first card's line. */
+  progress: {
+    label: 'Order progress',
+    steps: { confirmed: 'Confirmed', packed: 'Packed', shipped: 'Shipped', delivered: 'Delivered' },
+  },
+  /** The Payment cell of Order details. */
+  paid: (amount: string) => `${amount} paid`,
+  codToPay: (amount: string) => `Cash on delivery · ${amount} to pay`,
+  due: (amount: string) => `${amount} to pay`,
+  giftCardLine: (last: string, amount: string) => `Gift card •••• ${last} · ${amount}`,
+  /** The Shipping cell: "Standard · Free". */
+  shippingLine: (rate: string, price: string) => `${rate} · ${price}`,
+  trackOrder: 'Track your order',
   orderNumber: (number: number) => `Order #${number}`,
-  orderNumberLabel: 'Order number',
-  orderNumberValue: (number: number) => `#${number}`,
-  confirmation: (email: string | null) =>
-    email ? `A confirmation is on its way to ${email}.` : 'We will be in touch about delivery.',
   status: {
-    cod: (total: string) => `Pay ${total} in cash when it arrives.`,
     awaiting: (total: string) => `We are confirming your payment of ${total}.`,
     manual: 'Your order is reserved until we receive your transfer.',
     upiQr: (total: string) =>
       `Pay ${total} with any UPI app. This page updates on its own once it is paid.`,
-    paid: (total: string) => `Payment of ${total} received.`,
     failed: (total: string) =>
       `Your payment of ${total} did not go through. Your order is saved; try again when ready.`,
-    giftCard: 'Paid in full with your gift card.',
     giftCardEmail: (email: string | null) =>
       email
         ? `Your gift card is on its way to ${email}. It usually arrives within a few minutes.`
@@ -71,7 +89,7 @@ export const thankYouContent = {
     heading: 'Order details',
     contact: 'Contact',
     shipTo: 'Delivering to',
-    delivery: 'Delivery',
+    delivery: 'Shipping',
     payment: 'Payment',
   },
   /** How the order is paid, by provider; never a gateway's brand name. */
@@ -80,7 +98,7 @@ export const thankYouContent = {
     decentro: 'UPI',
     manual: 'UPI or bank transfer',
     gift_card: 'Gift card',
-    online: 'Paid online',
+    online: 'Online payment',
   } as Record<string, string>,
   giftCardPaid: (last: string) => `Gift card •••• ${last}`,
   payNow: 'Pay now',

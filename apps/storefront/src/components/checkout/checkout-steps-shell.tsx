@@ -14,6 +14,8 @@ type CheckoutStepsShellProps = {
   summary: ReactNode
   /** Published policies, linked in the footer on every step. */
   policies?: PolicyLink[]
+  /** Replaces the "Secure checkout" note on the right of the header, e.g. "Continue shopping" after the order. */
+  headerEnd?: ReactNode
   children: ReactNode
 }
 
@@ -32,6 +34,7 @@ export default function CheckoutStepsShell({
   backLabel,
   summary,
   policies = [],
+  headerEnd = null,
   children,
 }: CheckoutStepsShellProps) {
   // Render logic
@@ -67,11 +70,13 @@ export default function CheckoutStepsShell({
                 <span className="hidden sm:inline">{content.help.label}</span>
               </a>
             ) : null}
-            <p className="flex items-center gap-1.5">
-              <CheckoutIcon name="lock" className="size-3.5" />
-              <span className="sm:hidden">{content.secureShort}</span>
-              <span className="hidden sm:inline">{content.secure}</span>
-            </p>
+            {headerEnd ?? (
+              <p className="flex items-center gap-1.5">
+                <CheckoutIcon name="lock" className="size-3.5" />
+                <span className="sm:hidden">{content.secureShort}</span>
+                <span className="hidden sm:inline">{content.secure}</span>
+              </p>
+            )}
           </div>
         </div>
       </header>

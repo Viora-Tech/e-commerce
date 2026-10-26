@@ -1,11 +1,16 @@
 import CheckoutIcon from '@/components/checkout/checkout-icon'
 
 type StatusMarkProps = {
-  tone: 'success' | 'pending' | 'failed'
+  /** `confirmed` is the placed order's tick in the store's accent; `success` the paid one in green. */
+  tone: 'confirmed' | 'success' | 'pending' | 'failed'
 }
 
 const TONES: Record<StatusMarkProps['tone'], { ring: string; icon: 'check' | 'clock' | 'alert' }> =
   {
+    confirmed: {
+      ring: 'bg-ck-accent text-ck-accent-ink border-ck-accent [box-shadow:0_0_0_6px_color-mix(in_oklab,var(--ck-accent)_8%,transparent)]',
+      icon: 'check',
+    },
     success: {
       ring: 'bg-ck-success/12 text-ck-success border-ck-success/25 [box-shadow:0_0_0_6px_color-mix(in_oklab,var(--ck-success)_6%,transparent)]',
       icon: 'check',

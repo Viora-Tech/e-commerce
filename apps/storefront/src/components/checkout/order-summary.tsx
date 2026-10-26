@@ -4,6 +4,7 @@ import { formatSignedMoney } from '@commerce/money'
 import SummaryLine from '@/components/checkout/summary-line'
 import SummaryRow from '@/components/checkout/summary-row'
 import { checkoutContent, thankYouContent as content } from '@/data/checkout'
+import { CK_HEADING } from '@/lib/checkout-classes'
 
 type OrderSummaryProps = {
   order: typeof order.$inferSelect
@@ -13,16 +14,20 @@ type OrderSummaryProps = {
   giftCards: { id: string; last: string; amountPaise: number }[]
 }
 
-/** The thank-you page's left column: what was bought and what it came to, as charged. */
+/**
+ * The thank-you page's summary card, drawn as the checkout's: every line with its thumbnail and
+ * quantity, then the price rows as charged, the GST inside the total and any gift cards.
+ */
 export default function OrderSummary({ order: o, lines, images, giftCards }: OrderSummaryProps) {
+  // Render logic
+  const itemCount = lines.reduce((n, l) => n + l.quantity, 0)
+
   return (
-    <div className="flex flex-col gap-7 lg:gap-9">
-      <div className="hidden flex-col gap-1.5 lg:flex">
-        <p className="text-[0.875rem] font-medium text-ck-summary-muted">
-          {content.orderNumber(o.number)}
-        </p>
-        <p className="text-[2.5rem] leading-none font-semibold tracking-[-0.025em] tabular-nums">
-          {formatPaise(o.totalPaise)}
+    <div className="flex flex-col gap-6">
+      <div className="hidden items-baseline justify-between gap-4 lg:flex">
+        <h2 className={`${CK_HEADING} text-[1.125rem]!`}>{content.summary}</h2>
+        <p className="text-[0.8125rem] text-ck-summary-muted">
+          {checkoutContent.itemCount(itemCount)}
         </p>
       </div>
       <section aria-label={content.summary} className="flex flex-col gap-7">
@@ -68,11 +73,17 @@ export default function OrderSummary({ order: o, lines, images, giftCards }: Ord
                 <span className="flex flex-col gap-0.5">
                   {content.total}
                   <span className="text-[0.75rem] font-normal text-ck-summary-muted">
-                    {checkoutContent.taxes}
+                    {o.taxPaise > 0
+                      ? checkoutContent.taxesIncluded(formatPaise(o.taxPaise))
+                      : checkoutContent.taxes}
                   </span>
                 </span>
               }
-              value={formatPaise(o.totalPaise)}
+              value={
+                <span className="text-[1.5rem] tracking-[-0.02em]">
+                  {formatPaise(o.totalPaise)}
+                </span>
+              }
             />
           </div>
           {giftCards.map((g) => (

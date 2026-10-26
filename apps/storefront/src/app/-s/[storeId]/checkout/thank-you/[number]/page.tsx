@@ -14,9 +14,10 @@ import {
 import { OPEN_ATTEMPT_STATUSES } from '@commerce/core/order-status'
 import { purchaseEventId } from '@commerce/core/pixels'
 import { getRegistries } from '@commerce/core/registries'
-import { address, giftCard, order, orderLine, payment, withStore } from '@commerce/db'
+import { address, giftCard, order, orderLine, payment, shipment, withStore } from '@commerce/db'
 import type { CheckoutSession } from '@commerce/payments'
-import { eq, inArray } from 'drizzle-orm'
+import type { Tracking } from '@commerce/shipping'
+import { desc, eq, inArray } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import ExperimentBeacon from '@/components/analytics/experiment-beacon'
 import PixelTrack from '@/components/analytics/pixel-track'
@@ -86,7 +87,23 @@ export default async function ThankYouPage({ params, searchParams }: Params) {
     const [shipTo] = o.shippingAddressId
       ? await tx.select().from(address).where(eq(address.id, o.shippingAddressId))
       : []
+    // The latest courier shipment: its status moves the progress bar, its link is "Track your order".
+    const [ship] = await tx
+      .select({
+        status: shipment.status,
+        trackingUrl: shipment.trackingUrl,
+        tracking: shipment.tracking,
+      })
+      .from(shipment)
+      .where(eq(shipment.orderId, o.id))
+      .orderBy(desc(shipment.createdAt))
+      .limit(1)
+    const trackingUrl =
+      ship?.trackingUrl ?? (ship?.tracking as Tracking | null | undefined)?.trackingUrl ?? null
     return {
+      owned: ownedBySession,
+      shipmentStatus: ship?.status ?? null,
+      trackingUrl,
       order: o,
       lines,
       pay,
@@ -157,6 +174,14 @@ export default async function ThankYouPage({ params, searchParams }: Params) {
         images={data.images}
         shipTo={data.shipTo}
         parcels={data.parcels}
+        shipmentStatus={data.shipmentStatus}
+        track={
+          data.trackingUrl
+            ? { href: data.trackingUrl, external: true }
+            : data.owned
+              ? { href: `/account/orders/${data.order.number}`, external: false }
+              : null
+        }
         balance={
           data.balance ? (
             <CheckoutBalance
