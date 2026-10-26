@@ -14,14 +14,17 @@ import {
 } from '@/lib/inbox-actions'
 import ChatComposer from './chat-composer'
 import ChatContactForm from './chat-contact-form'
-import ChatIcon from './chat-icon'
+import ChatHeader, { type ChatMode } from './chat-header'
 import ChatIntro from './chat-intro'
 import ChatMessage, { type ChatMessageView } from './chat-message'
+import ChatTrack from './chat-track'
 
 type ChatWidgetProps = {
   open: boolean
   widget: InboxWidget
   storeName: string
+  /** The theme's logo for the header avatar; the store's first letter without one. */
+  logoUrl?: string | null | undefined
   onClose: () => void
   /** The shopper sent a message: the chat should load on idle next time. */
   onActive: () => void
@@ -29,11 +32,15 @@ type ChatWidgetProps = {
   onUnread: (n: number) => void
 }
 
-type Mode = 'float' | 'expanded' | 'docked'
 type Contact = { name: string; email: string; phone: string }
 
 const TYPING_EVERY_MS = 3000
 const TYPING_SHOWN_MS = 5000
+
+/** The launcher's distance from the bottom (same values as `inbox-launcher.tsx`). */
+const BOTTOM = { lowest: '1rem', higher: '5.5rem', highest: '10rem' } as const
+/** The launcher's 3.5rem plus the gap between it and the card. */
+const ABOVE_LAUNCHER = '4.25rem'
 
 const byId = (a: { id: string }, b: { id: string }) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
 
@@ -42,6 +49,24 @@ function merge(list: ChatMessageView[], m: ChatMessageView): ChatMessageView[] {
   if (list.some((x) => x.id === m.id)) return list
   const rest = m.clientId ? list.filter((x) => !(x.pending && x.clientId === m.clientId)) : list
   return [...rest, m].sort(byId)
+}
+
+/**
+ * Per message: whether it starts a run from its sender (the "Assistant" label, the staff
+ * avatar) and whether a person took over from the assistant with it (the "joined" divider).
+ */
+function threadMeta(list: ChatMessageView[]) {
+  const meta = new Map<string, { first: boolean; joined: boolean }>()
+  let prev: string | null = null
+  let lastReply: string | null = null
+  for (const m of list) {
+    if (m.kind === 'cart_event') continue
+    const joined = m.sender === 'staff' && lastReply === 'ai'
+    meta.set(m.id, { first: joined || m.sender !== prev, joined })
+    prev = m.sender
+    if (m.sender === 'ai' || m.sender === 'staff') lastReply = m.sender
+  }
+  return meta
 }
 
 /** A short soft tone for a new reply, when the store turned sounds on. */
@@ -62,14 +87,16 @@ function chime() {
 }
 
 /**
- * The chat card (Shopify Inbox's): a large rounded glassy panel with full screen, dock to the
- * side and minimise; the intro with featured products and suggested questions; the thread
- * with product and code cards, photos and cart lines; and the "Ask anything…" field.
+ * The chat card: a clean rounded panel above the launcher (full screen on a phone) with the
+ * store's avatar and online status, full screen, dock to the side and minimise; the intro with
+ * Quick help and popular products; the thread with product and code cards, photos, cart lines
+ * and the in-chat order tracking; and the "Ask anything…" field.
  */
 export default function ChatWidget({
   open,
   widget,
   storeName,
+  logoUrl,
   onClose,
   onActive,
   onUnread,
@@ -80,12 +107,13 @@ export default function ChatWidget({
   const [cards, setCards] = useState<ChatState['cards']>({ products: {}, discounts: {} })
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [staffSeen, setStaffSeen] = useState<string | null>(null)
-  const [mode, setMode] = useState<Mode>('float')
+  const [mode, setMode] = useState<ChatMode>('float')
   const [notice, setNotice] = useState<string | null>(null)
   const [contact, setContact] = useState<Contact | null | undefined>(undefined)
   const [typingAt, setTypingAt] = useState(0)
   const [uploading, setUploading] = useState(false)
   const [unread, setUnread] = useState(0)
+  const [tracking, setTracking] = useState(false)
   const lastTyping = useRef(0)
   const bottomRef = useRef<HTMLDivElement>(null)
 
@@ -146,8 +174,8 @@ export default function ChatWidget({
   }, [open, conversationId])
 
   useEffect(() => {
-    if (open && messages.length) bottomRef.current?.scrollIntoView({ block: 'end' })
-  }, [open, messages.length])
+    if (open && (messages.length || tracking)) bottomRef.current?.scrollIntoView({ block: 'end' })
+  }, [open, messages.length, tracking])
 
   useEffect(() => {
     if (!typingAt) return
@@ -232,10 +260,11 @@ export default function ChatWidget({
   }
 
   // Early returns
-  if (!open || !state) return null
+  if (!state) return null
 
   // Render logic
   const visible = messages.filter((m) => m.kind !== 'system')
+  const meta = threadMeta(visible)
   const lastSeenMine = staffSeen
     ? visible.filter((m) => m.sender === 'shopper' && !m.pending && m.id <= staffSeen).at(-1)?.id
     : undefined
@@ -244,71 +273,59 @@ export default function ChatWidget({
     !state.signedIn &&
     (state.contactRequired || (state.askContact && visible.length > 0))
   const blockedBySignIn = state.requireSignIn && !state.signedIn
-  const radius = `${widget.borderRadius / 16}rem`
+  const signInHref = state.signedIn
+    ? null
+    : `/account/login?return_to=${encodeURIComponent(window.location.pathname)}`
+  const side = widget.horizontal
   const frame =
     mode === 'expanded'
-      ? 'inset-0 rounded-none'
+      ? 'inset-0'
       : mode === 'docked'
-        ? 'top-0 right-0 bottom-0 w-full sm:w-[26rem] rounded-none'
-        : 'right-2 bottom-2 left-2 h-[min(42rem,calc(100dvh-1rem))] sm:left-auto sm:right-4 sm:bottom-4 sm:w-[31rem]'
+        ? `inset-y-0 w-full sm:w-[26rem] ${side === 'left' ? 'left-0' : 'right-0'}`
+        : `inset-0 sm:inset-auto sm:bottom-(--chat-bottom) sm:h-[min(41rem,calc(100dvh-var(--chat-bottom)-1rem))] sm:w-[25rem] sm:rounded-(--chat-radius) ${
+            side === 'left'
+              ? 'sm:left-4 sm:origin-bottom-left'
+              : side === 'center'
+                ? 'sm:left-1/2 sm:-translate-x-1/2 sm:origin-bottom'
+                : 'sm:right-4 sm:origin-bottom-right'
+          }`
+  const motion = open
+    ? 'visible scale-100 opacity-100 duration-200 starting:scale-(--motion-press-scale) starting:opacity-0'
+    : 'pointer-events-none invisible scale-(--motion-press-scale) opacity-0 duration-[140ms]'
   const style = {
-    ...(mode === 'float' ? { borderRadius: radius } : {}),
-    ...(widget.background ? { backgroundColor: widget.background } : {}),
-    ...(widget.textColour ? { color: widget.textColour } : {}),
+    '--chat-accent': widget.background || 'var(--btn-bg, var(--color-ink, CanvasText))',
+    '--chat-on-accent': widget.textColour || 'var(--btn-text, var(--color-bg, Canvas))',
+    '--chat-radius': `${widget.borderRadius / 16}rem`,
+    '--chat-bottom': `calc(${BOTTOM[widget.vertical]} + ${ABOVE_LAUNCHER} + env(safe-area-inset-bottom))`,
     ...(widget.inheritFont ? { fontFamily: 'var(--font-body, inherit)' } : {}),
   } as CSSProperties
-  const iconButton =
-    'touch-manipulation rounded-full p-1.5 opacity-70 transition-[opacity,background-color] hover:bg-[color-mix(in_srgb,currentColor_8%,transparent)] hover:opacity-100'
+  const hairline = 'border-[color-mix(in_srgb,currentColor_8%,transparent)]'
 
   return (
     <section
       role="dialog"
       aria-label={copy.title(storeName)}
+      aria-hidden={!open}
+      inert={!open}
       style={style}
-      className={`fixed z-50 flex flex-col overflow-hidden overscroll-contain border border-[color-mix(in_srgb,currentColor_10%,transparent)] bg-[color-mix(in_srgb,var(--color-bg,Canvas)_88%,transparent)] text-[var(--color-ink,CanvasText)] shadow-2xl backdrop-blur-xl ${frame}`}
+      className={`fixed z-50 flex flex-col overflow-hidden overscroll-contain bg-[var(--color-bg,Canvas)] text-[var(--color-ink,CanvasText)] shadow-[0_0_0_1px_rgb(0_0_0/0.06),0_12px_32px_rgb(0_0_0/0.12),0_2px_6px_rgb(0_0_0/0.06)] transition-[opacity,scale,visibility] ease-out ${frame} ${motion}`}
     >
-      <header className="flex items-center justify-between gap-2 px-4 pt-3 pb-2">
-        {state.signedIn ? (
-          <span className="truncate text-[0.875rem] font-medium">{storeName}</span>
-        ) : (
-          <a
-            href={`/account/login?return_to=${encodeURIComponent(window.location.pathname)}`}
-            className="rounded-full border border-[color-mix(in_srgb,currentColor_18%,transparent)] px-3 py-1 text-[0.8125rem]"
-          >
-            {copy.signIn}
-          </a>
-        )}
-        <div className="flex items-center gap-0.5">
-          <button
-            type="button"
-            className={`${iconButton} hidden sm:block`}
-            aria-label={mode === 'expanded' ? copy.restore : copy.expand}
-            onClick={() => setMode(mode === 'expanded' ? 'float' : 'expanded')}
-          >
-            <ChatIcon kind={mode === 'expanded' ? 'shrink' : 'expand'} className="size-4" />
-          </button>
-          <button
-            type="button"
-            className={`${iconButton} hidden sm:block`}
-            aria-label={mode === 'docked' ? copy.undock : copy.dock}
-            onClick={() => setMode(mode === 'docked' ? 'float' : 'docked')}
-          >
-            <ChatIcon kind="dock" className="size-4" />
-          </button>
-          <button type="button" className={iconButton} aria-label={copy.close} onClick={onClose}>
-            <ChatIcon kind="minimise" className="size-4" />
-          </button>
-        </div>
-      </header>
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-2">
+      <ChatHeader
+        storeName={storeName}
+        logoUrl={logoUrl}
+        available={state.available}
+        mode={mode}
+        onMode={setMode}
+        onClose={onClose}
+      />
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3">
         <div className="flex flex-col gap-3">
           <ChatIntro
             greeting={state.greeting}
-            awayMessage={state.awayMessage}
-            available={state.available}
-            storeName={storeName}
-            featured={visible.length === 0 ? state.featured : []}
+            awayMessage={state.available ? null : state.awayMessage || copy.away}
+            featured={visible.length === 0 && !tracking ? state.featured : []}
             onAsk={(text) => send({ body: text })}
+            onTrack={() => setTracking(true)}
           />
           {visible.map((m) => (
             <ChatMessage
@@ -316,20 +333,39 @@ export default function ChatWidget({
               message={m}
               cards={cards}
               seen={m.id === lastSeenMine}
+              storeName={storeName}
+              first={meta.get(m.id)?.first ?? true}
+              joined={meta.get(m.id)?.joined ?? false}
               onRetry={() => handleRetry(m)}
             />
           ))}
-          {typingAt ? <p className="text-[0.75rem] opacity-60">{copy.typing}</p> : null}
+          {tracking ? (
+            <ChatTrack
+              signedIn={state.signedIn}
+              onAsk={(t) => {
+                send({ body: t })
+              }}
+            />
+          ) : null}
+          {typingAt ? (
+            <p className="w-fit rounded-2xl rounded-bl-[0.25rem] bg-[color-mix(in_srgb,currentColor_6%,transparent)] px-3.5 py-2 text-[0.8125rem] opacity-70">
+              {copy.typing}
+            </p>
+          ) : null}
           {needContact ? (
             <ChatContactForm required={state.contactRequired} onDone={(c) => setContact(c)} />
           ) : null}
         </div>
         <div ref={bottomRef} />
       </div>
-      <footer className="px-3 pt-1 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <footer
+        className={`border-t px-3 pt-3 pb-[max(0.625rem,env(safe-area-inset-bottom))] ${hairline}`}
+      >
         <ChatComposer
           disabled={blockedBySignIn || (needContact && state.contactRequired)}
           notice={blockedBySignIn ? copy.signInRequired : (notice ?? undefined)}
+          storeName={storeName}
+          signInHref={signInHref}
           onSend={handleSend}
           onPhoto={handlePhoto}
           onTyping={handleTyping}
