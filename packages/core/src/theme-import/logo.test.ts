@@ -1,3 +1,5 @@
+/** SOURCE OF TRUTH: liquidThemeLogoUrl tests — WHAT: which imported-theme image setting becomes the chat logo / WHY: a plain `logo` must win over variants and `shopify://` values must be skipped */
+
 import { describe, expect, it } from 'vitest'
 import { liquidThemeLogoUrl } from './logo'
 

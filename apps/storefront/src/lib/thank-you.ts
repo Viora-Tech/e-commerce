@@ -1,3 +1,5 @@
+import 'server-only'
+
 /**
  * The thank-you page's small rules, kept pure so they are tested on their own: the shopper's
  * first name for the headline, the four-step progress bar (folded from the chat's five steps)
