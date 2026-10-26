@@ -464,36 +464,3 @@ export const addressFormContent = {
   finding: 'Finding city and state…',
   found: (city: string, state: string) => `Filled in ${city}, ${state}. Change them if needed.`,
 }
-
-/** The address book card on the customer page. */
-export const customerAddressesContent = {
-  heading: 'Addresses',
-  add: 'Add address',
-  edit: 'Edit',
-  remove: 'Delete',
-  default: 'Default',
-  makeDefault: 'Make this the default address',
-  setDefault: 'Set as default',
-  defaultSaved: 'Default address changed',
-  defaultFailed: 'Could not change the default address',
-  fromOrder: 'From their latest order',
-  empty: 'No saved addresses yet.',
-  dialog: {
-    addTitle: 'Add address',
-    editTitle: 'Edit address',
-    name: 'Name',
-    phone: 'Mobile number',
-    save: 'Save address',
-    cancel: 'Cancel',
-    saved: 'Address saved',
-    failed: 'Could not save the address',
-  },
-  confirm: {
-    title: 'Delete this address?',
-    body: "It is removed from the customer's address book. Past orders keep the address they were shipped to.",
-    cancel: 'Keep it',
-    confirm: 'Delete',
-    done: 'Address deleted',
-    failed: 'Could not delete the address',
-  },
-}

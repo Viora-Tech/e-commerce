@@ -1,4 +1,5 @@
 import {
+  address,
   createDb,
   customer,
   inventoryLevel,
@@ -14,6 +15,7 @@ import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { OutOfStock } from '../errors'
+import { DraftInvalidGstin } from './draft-billing'
 import {
   convertDraft,
   createDraft,
@@ -246,5 +248,95 @@ describe('draft orders', () => {
       return convertDraft(ctx, created.id)
     })
     expect(converted?.status).toBe('open')
+  })
+})
+
+describe('draft billing address', () => {
+  const billing = {
+    name: 'Aarav Mehta',
+    line1: '9 Nariman Point',
+    city: 'Mumbai',
+    stateCode: 'MH',
+    pincode: '400021',
+    phone: '9820012345',
+    businessName: 'Mehta Traders',
+    gstin: '27aapfu0939f1zv',
+  }
+
+  it('keeps a separate billing address and GSTIN; the tax still follows the shipping state', async () => {
+    const { storeId, variantId } = await seed()
+    await owner
+      .update(store)
+      .set({ address: { line1: '1 Sector 29', city: 'Gurugram', state: 'HR', pincode: '122001' } })
+      .where(eq(store.id, storeId))
+    const out = await withStore(app, storeId, async (tx) => {
+      const ctx = { storeId, tx }
+      const created = await createDraft(ctx, {
+        email: 'aarav@example.in',
+        shipping,
+        billing,
+        lines: [{ variantId, quantity: 1 }],
+        discountPaise: 0,
+        shippingPaise: 0,
+      })
+      const converted = await convertDraft(ctx, created.id)
+      const [bill] = await tx
+        .select()
+        .from(address)
+        .where(eq(address.id, converted?.billingAddressId as string))
+      return { converted, bill }
+    })
+    expect(out.converted).toMatchObject({
+      buyerGstin: '27AAPFU0939F1ZV',
+      buyerBusinessName: 'Mehta Traders',
+    })
+    expect(out.bill).toMatchObject({ line1: '9 Nariman Point', stateCode: 'MH' })
+    expect(out.converted?.billingAddressId).not.toBe(out.converted?.shippingAddressId)
+    // Goods delivered in Haryana from a Haryana store: CGST + SGST, whatever the billing state.
+    expect(out.converted?.taxBreakdown).toMatchObject({ interState: false })
+  })
+
+  it("'same as shipping' drops the billing address; an edit that says neither keeps it", async () => {
+    const { storeId, variantId } = await seed()
+    const rows = await withStore(app, storeId, async (tx) => {
+      const ctx = { storeId, tx }
+      const base = {
+        shipping,
+        lines: [{ variantId, quantity: 1 }],
+        discountPaise: 0,
+        shippingPaise: 0,
+      }
+      const { id } = await createDraft(ctx, { ...base, billing })
+      await updateDraft(ctx, id, base)
+      const [kept] = await tx.select().from(order).where(eq(order.id, id))
+      await updateDraft(ctx, id, { ...base, billingSameAsShipping: true, billing })
+      const [same] = await tx.select().from(order).where(eq(order.id, id))
+      return { kept, same }
+    })
+    expect(rows.kept?.billingAddressId).toBeTruthy()
+    expect(rows.kept?.buyerGstin).toBe('27AAPFU0939F1ZV')
+    expect(rows.same).toMatchObject({
+      billingAddressId: null,
+      buyerGstin: null,
+      buyerBusinessName: null,
+    })
+  })
+
+  it('refuses a billing GSTIN that fails the check', async () => {
+    const { storeId, variantId } = await seed()
+    await expect(
+      withStore(app, storeId, (tx) =>
+        createDraft(
+          { storeId, tx },
+          {
+            shipping,
+            billing: { ...billing, gstin: '27AAPFU0939F1ZA' },
+            lines: [{ variantId, quantity: 1 }],
+            discountPaise: 0,
+            shippingPaise: 0,
+          },
+        ),
+      ),
+    ).rejects.toThrow(DraftInvalidGstin)
   })
 })

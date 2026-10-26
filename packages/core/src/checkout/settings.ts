@@ -2,7 +2,7 @@
 import { z } from 'zod'
 import { MOBILE_PATTERN, normaliseMobile, PINCODE_PATTERN } from '../accounts/schemas'
 import { CheckoutRuleViolation } from '../errors'
-import { validateGstin } from '../tax/gstin'
+import { GSTIN_MESSAGES, validateGstin } from '../tax/gstin'
 import { CheckoutBrandingSchema } from './branding'
 
 export * from './branding'
@@ -147,12 +147,8 @@ export function e164IndianMobile(raw: string): string | null {
   return local ? `+91${local}` : null
 }
 
-/** GSTIN messages the checkout shows, by `validateGstin` reason. */
-export const GSTIN_MESSAGES = {
-  shape: 'A GSTIN has 15 characters, like 06AAACW1234A1Z5',
-  state: 'The first two digits are not a GST state code',
-  checksum: 'This GSTIN has a typo: its last character does not match the rest',
-} as const
+/** GSTIN messages the checkout shows, by `validateGstin` reason (they live with the check). */
+export { GSTIN_MESSAGES } from '../tax/gstin'
 
 export type CheckoutContactInput = {
   email: string

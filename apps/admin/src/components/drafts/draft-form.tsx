@@ -9,9 +9,11 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import DraftActionsCard from '@/components/drafts/draft-actions-card'
 import DraftAddressCard from '@/components/drafts/draft-address-card'
+import DraftBillingCard from '@/components/drafts/draft-billing-card'
 import DraftCustomerCard from '@/components/drafts/draft-customer-card'
 import {
   type DraftFormState,
+  draftIncompleteBilling,
   draftMissingAddress,
   draftToForm,
   emptyDraft,
@@ -144,7 +146,9 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
       ? copy.actions.saveFirst
       : draftMissingAddress(saved)
         ? copy.actions.needsAddress
-        : null
+        : draftIncompleteBilling(saved)
+          ? copy.actions.needsBilling
+          : null
   const convertButton = (
     <Button disabled={busy || convertHint !== null} onClick={handleConvert}>
       <CircleCheck aria-hidden="true" />
@@ -252,6 +256,7 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
           <>
             <DraftCustomerCard form={form} onChange={patch} />
             <DraftAddressCard address={form.address} onChange={(address) => patch({ address })} />
+            <DraftBillingCard form={form} onChange={patch} />
             <DraftActionsCard
               hint={convertHint}
               paymentMethod={form.paymentMethod}

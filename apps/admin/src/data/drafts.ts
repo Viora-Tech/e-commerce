@@ -108,6 +108,14 @@ export const draftEditorContent = {
     pincode: 'Pincode',
     phone: 'Phone',
   },
+  billing: {
+    heading: 'Billing address',
+    same: 'Billing address is the same as shipping',
+    businessName: 'Company name (optional)',
+    gstin: 'GSTIN (optional)',
+    gstinHelp: 'Printed on the GST invoice. Leave blank when billing a person.',
+    gstinInvalid: 'Check the GSTIN: 15 characters, like 06AAACW1234A1Z5',
+  },
   totals: {
     heading: 'Payment',
     subtotal: 'Subtotal',
@@ -155,6 +163,7 @@ export const draftEditorContent = {
     cancel: 'Cancel',
     saveFirst: 'Save the draft first',
     needsAddress: 'Add a shipping address before converting',
+    needsBilling: "Complete the billing address, or tick 'same as shipping'",
     open: 'Open',
     invoiceSentStatus: 'Invoice sent',
   },

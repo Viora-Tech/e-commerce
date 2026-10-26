@@ -252,6 +252,7 @@ export default [
       address: 'शिपिंग पता',
       noAddress: 'कोई पता नहीं है',
       billingSame: 'बिलिंग पता शिपिंग वाला ही है',
+      billingAddress: 'बिलिंग पता',
       view: 'ग्राहक देखें',
       heading2: 'ग्राहक की जानकारी',
       viewOrders: 'ऑर्डर देखें',

@@ -147,23 +147,50 @@ export async function orderSnapshot(
   const [ship] = o.shippingAddressId
     ? await tx.select().from(address).where(eq(address.id, o.shippingAddressId))
     : []
+  // A separate billing address (draft orders): the bill goes there, the goods to `ship`.
+  const [bill] =
+    o.billingAddressId && o.billingAddressId !== o.shippingAddressId
+      ? await tx.select().from(address).where(eq(address.id, o.billingAddressId))
+      : []
   const [cu] = o.customerId
     ? await tx.select().from(customer).where(eq(customer.id, o.customerId))
     : []
   // A business buyer's GSTIN from checkout (Settings → Checkout) bills the business by name.
   const gstin = buyerGstin === undefined ? (o.buyerGstin ?? null) : buyerGstin
-  const businessName = gstin && gstin === o.buyerGstin ? o.buyerBusinessName : null
+  const businessName =
+    gstin && gstin === o.buyerGstin
+      ? o.buyerBusinessName
+      : // A billing address's company with no GSTIN still bills the company.
+        !gstin && !o.buyerGstin && bill
+        ? o.buyerBusinessName
+        : null
+  const billTo = bill ?? ship
   const buyer = addressParty({
-    name: businessName ?? ship?.name ?? cu?.name ?? null,
-    line1: ship?.line1 ?? null,
-    line2: ship?.line2 ?? null,
-    city: ship?.city ?? null,
-    state: ship?.stateCode ?? null,
-    pincode: ship?.pincode ?? null,
-    phone: ship?.phone ?? o.phone,
+    name: businessName ?? billTo?.name ?? cu?.name ?? null,
+    line1: billTo?.line1 ?? null,
+    line2: billTo?.line2 ?? null,
+    city: billTo?.city ?? null,
+    state: billTo?.stateCode ?? null,
+    pincode: billTo?.pincode ?? null,
+    phone: billTo?.phone ?? o.phone,
     email: o.email,
     gstin,
   })
+  // Ship-to prints only when the goods go somewhere other than the billing address.
+  const shipTo =
+    bill && ship
+      ? addressParty({
+          name: ship.name,
+          line1: ship.line1,
+          line2: ship.line2,
+          city: ship.city,
+          state: ship.stateCode,
+          pincode: ship.pincode,
+          phone: ship.phone,
+          email: null,
+          gstin: null,
+        })
+      : null
   const cod = o.paymentMethod === 'cod' && !o.checkoutPaidAt
   const country = (ship?.country ?? 'IN').toUpperCase()
   const exportSupply: ExportSupply | null =
@@ -216,10 +243,11 @@ export async function orderSnapshot(
       s?.name ?? '',
     ),
     buyer,
-    // Billing and delivery are the same address at checkout; ship-to prints only when they differ.
-    shipTo: null,
-    // Goods delivered to an address: the place of supply is the delivery state.
-    placeOfSupply: buyer.state,
+    shipTo,
+    /* Goods delivered to an address: the place of supply is the delivery state, exactly as
+       checkout and the order's tax (worked out from the shipping state) have it, whichever
+       address the bill goes to. */
+    placeOfSupply: shipTo?.state ?? buyer.state,
     defaultHsn: settings.defaultHsn,
     hsnDigits: settings.hsnDigits,
     fallbackRatePercent: chargedGstRate(s?.gstRatePercent ?? 18, storeTax),

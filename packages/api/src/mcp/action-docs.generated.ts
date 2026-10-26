@@ -187,6 +187,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'customers.previewSegment': 'Live count and a sample for the rule builder.',
   'customers.setDefaultAddress':
     "Make one saved address the customer's default (the profile card shows it).",
+  'customers.setDefaultBillingAddress':
+    "Make one saved address the customer's default billing address (draft orders bill it).",
   'customers.sheet':
     'Rows for the Customers bulk-edit spreadsheet, in the order the ids were given.',
   'dashboard.analytics':

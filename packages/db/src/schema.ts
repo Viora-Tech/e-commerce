@@ -878,13 +878,26 @@ export const customerAddress = pgTable(
     phone: text('phone').notNull(),
     /** Home, Office or Other on the checkout's address cards; null when the shopper never said. */
     label: text('label', { enum: CUSTOMER_ADDRESS_LABELS }),
+    /** The default shipping address (checkout and the storefront book call it "default"). */
     isDefault: boolean('is_default').notNull().default(false),
+    /**
+     * The default billing address. Off on every row means billing follows the default
+     * shipping address. At most one per customer.
+     */
+    isDefaultBilling: boolean('is_default_billing').notNull().default(false),
+    /** Company name for a billing address (the GST invoice bills to it); null for a person. */
+    businessName: text('business_name'),
+    /** A validated GSTIN (upper case, `validateGstin`) billed at this address; null for none. */
+    gstin: text('gstin'),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index('customer_address_customer').on(t.customerId),
     uniqueIndex('customer_address_one_default').on(t.customerId).where(sql`is_default`),
+    uniqueIndex('customer_address_one_default_billing')
+      .on(t.customerId)
+      .where(sql`is_default_billing`),
     check('customer_address_label_check', sql`${t.label} in (${oneOf(CUSTOMER_ADDRESS_LABELS)})`),
   ],
 )
@@ -980,6 +993,11 @@ export const order = pgTable(
     /** The shopper's note from checkout, when the store turned order notes on. */
     customerNote: text('customer_note'),
     shippingAddressId: uuid('shipping_address_id').references(() => address.id),
+    /**
+     * Where the bill goes when it is not the shipping address (draft orders, "Billing address
+     * is the same as shipping" unticked). Null: billing is the shipping address, as at checkout.
+     */
+    billingAddressId: uuid('billing_address_id').references(() => address.id),
     paymentMethod: text('payment_method'),
     /**
      * Paid through a gateway running on its test keys (Settings → Payments,

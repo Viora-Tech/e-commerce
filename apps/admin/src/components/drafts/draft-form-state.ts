@@ -1,3 +1,4 @@
+import { validateGstin } from '@commerce/core/gstin'
 import type { api } from '@/lib/api-client'
 
 type Draft = NonNullable<Awaited<ReturnType<typeof api.orders.getDraft>>>
@@ -31,6 +32,10 @@ export type DraftFormState = {
     pincode: string
     phone: string
   }
+  /** "Billing address is the same as shipping"; on for a new draft. */
+  billingSameAsShipping: boolean
+  /** The billing address when it differs: the shipping parts plus a company and its GSTIN. */
+  billing: DraftFormState['address'] & { businessName: string; gstin: string }
   lines: DraftLine[]
   discountPaise: number
   discountLabel: string
@@ -51,12 +56,20 @@ export const EMPTY_ADDRESS: DraftFormState['address'] = {
   phone: '',
 }
 
+export const EMPTY_BILLING: DraftFormState['billing'] = {
+  ...EMPTY_ADDRESS,
+  businessName: '',
+  gstin: '',
+}
+
 export const emptyDraft = (): DraftFormState => ({
   customerId: null,
   customerName: '',
   email: '',
   phone: '',
   address: { ...EMPTY_ADDRESS },
+  billingSameAsShipping: true,
+  billing: { ...EMPTY_BILLING },
   lines: [],
   discountPaise: 0,
   discountLabel: '',
@@ -66,23 +79,53 @@ export const emptyDraft = (): DraftFormState => ({
   note: '',
 })
 
+type AddressRow = {
+  name: string
+  line1: string
+  line2: string | null
+  city: string
+  stateCode: string
+  pincode: string
+  phone: string
+}
+
+/** A saved address (an order snapshot or a customer's book entry) as the form's fields. */
+export const addressToForm = (a: AddressRow): DraftFormState['address'] => ({
+  name: a.name,
+  line1: a.line1,
+  line2: a.line2 ?? '',
+  city: a.city,
+  stateCode: a.stateCode,
+  pincode: a.pincode,
+  phone: a.phone,
+})
+
+/**
+ * The billing half of the form: the draft's own billing address, else (a GSTIN with no
+ * separate address, e.g. a duplicated checkout order) the shipping address carrying that
+ * GSTIN, so saving keeps it; otherwise billing is the shipping address.
+ */
+function billingToForm(d: Draft): Pick<DraftFormState, 'billingSameAsShipping' | 'billing'> {
+  const place = d.billingAddress ?? (d.buyerGstin ? d.shippingAddress : null)
+  if (!place) return { billingSameAsShipping: true, billing: { ...EMPTY_BILLING } }
+  return {
+    billingSameAsShipping: false,
+    billing: {
+      ...addressToForm(place),
+      businessName: d.buyerBusinessName ?? '',
+      gstin: d.buyerGstin ?? '',
+    },
+  }
+}
+
 export function draftToForm(d: Draft): DraftFormState {
   return {
     customerId: d.customerId,
     customerName: d.customer?.name ?? '',
     email: d.email ?? '',
     phone: d.phone ?? '',
-    address: d.shippingAddress
-      ? {
-          name: d.shippingAddress.name,
-          line1: d.shippingAddress.line1,
-          line2: d.shippingAddress.line2 ?? '',
-          city: d.shippingAddress.city,
-          stateCode: d.shippingAddress.stateCode,
-          pincode: d.shippingAddress.pincode,
-          phone: d.shippingAddress.phone,
-        }
-      : { ...EMPTY_ADDRESS },
+    address: d.shippingAddress ? addressToForm(d.shippingAddress) : { ...EMPTY_ADDRESS },
+    ...billingToForm(d),
     lines: d.lines.map((l) => ({
       variantId: l.variantId,
       title: l.title ?? '',
@@ -118,6 +161,29 @@ function addressPayload(a: DraftFormState['address']) {
   }
 }
 
+/** The GSTIN typed on the billing address fails the check (blank is fine: no GSTIN). */
+export const billingGstinInvalid = (f: DraftFormState): boolean =>
+  !f.billingSameAsShipping && f.billing.gstin.trim() !== '' && !validateGstin(f.billing.gstin).ok
+
+/** "Same as shipping" is off and the billing address is not complete (or its GSTIN is wrong). */
+export const draftIncompleteBilling = (f: DraftFormState): boolean =>
+  !f.billingSameAsShipping && (addressPayload(f.billing) === null || billingGstinInvalid(f))
+
+/** What the draft says about billing: the same as shipping, a billing address, or nothing yet. */
+function billingPayload(f: DraftFormState) {
+  if (f.billingSameAsShipping) return { billingSameAsShipping: true }
+  const place = addressPayload(f.billing)
+  if (!place || billingGstinInvalid(f)) return {}
+  return {
+    billingSameAsShipping: false,
+    billing: {
+      ...place,
+      businessName: f.billing.businessName.trim() || null,
+      gstin: f.billing.gstin.trim() || null,
+    },
+  }
+}
+
 /** Something in the draft ships, and there is no complete address to ship it to. */
 export const draftMissingAddress = (f: DraftFormState): boolean =>
   f.lines.some((l) => !l.giftCard) && addressPayload(f.address) === null
@@ -129,6 +195,7 @@ export function formToDraft(f: DraftFormState) {
     phone: f.phone || null,
     customerName: f.customerName || null,
     shipping: addressPayload(f.address),
+    ...billingPayload(f),
     lines: f.lines.map((l) => ({
       variantId: l.variantId,
       quantity: l.quantity,

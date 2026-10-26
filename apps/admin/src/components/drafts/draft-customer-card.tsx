@@ -5,7 +5,11 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useEffect, useState } from 'react'
-import type { DraftFormState } from '@/components/drafts/draft-form-state'
+import {
+  addressToForm,
+  type DraftFormState,
+  EMPTY_BILLING,
+} from '@/components/drafts/draft-form-state'
 import DataCard from '@/components/layout/data-card'
 import { draftEditorContent } from '@/data/drafts'
 import { useCopy } from '@/hooks/use-copy'
@@ -17,6 +21,28 @@ type DraftCustomerCardProps = {
 }
 
 type Customer = Awaited<ReturnType<typeof api.customers.list>>['items'][number]
+
+type SavedAddress = NonNullable<Awaited<ReturnType<typeof api.customers.get>>>['addresses'][number]
+
+/**
+ * The draft's addresses from the customer's book: shipping from their default shipping address,
+ * billing from their default billing one (else it follows shipping). A billing default that is
+ * another address, or carries a company or GSTIN, fills the billing card; nothing saved, nothing
+ * changes.
+ */
+function addressesFrom(book: readonly SavedAddress[]): Partial<DraftFormState> {
+  const ship = book.find((a) => a.isDefault) ?? book[0]
+  if (!ship) return {}
+  const bill = book.find((a) => a.isDefaultBilling) ?? ship
+  const separate = bill.id !== ship.id || Boolean(bill.gstin || bill.businessName)
+  return {
+    address: addressToForm(ship),
+    billingSameAsShipping: !separate,
+    billing: separate
+      ? { ...addressToForm(bill), businessName: bill.businessName ?? '', gstin: bill.gstin ?? '' }
+      : { ...EMPTY_BILLING },
+  }
+}
 
 const SEARCH_DEBOUNCE_MS = 250
 
@@ -45,7 +71,7 @@ export default function DraftCustomerCard({ form, onChange }: DraftCustomerCardP
   }, [search])
 
   // Event handlers
-  const handlePick = (c: Customer) => {
+  const handlePick = async (c: Customer) => {
     onChange({
       customerId: c.id,
       customerName: c.name ?? '',
@@ -54,6 +80,9 @@ export default function DraftCustomerCard({ form, onChange }: DraftCustomerCardP
     })
     setSearch('')
     setResults([])
+    // Their saved addresses follow; a failed lookup leaves the address cards as they were.
+    const found = await api.customers.get({ id: c.id }).catch(() => null)
+    if (found) onChange(addressesFrom(found.addresses))
   }
 
   const handleClear = () => {

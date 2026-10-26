@@ -11,6 +11,7 @@ import {
   recordCustomerChange,
   SEGMENT_FIELDS,
   setDefaultAddress,
+  setDefaultBillingAddress,
   setMarketingConsent,
   suggestContactPhone,
   updateAddress,
@@ -74,7 +75,14 @@ const AddressSchema = z.object({
   stateCode: z.string().max(2),
   pincode: z.string().max(10),
   phone: z.string().max(30),
+  /** The default shipping address. */
   isDefault: z.boolean().optional(),
+  /** The default billing address; left out keeps it as it is. */
+  isDefaultBilling: z.boolean().optional(),
+  /** Company billed at this address; blank clears it, left out keeps it. */
+  businessName: z.string().max(200).nullish(),
+  /** GSTIN billed at this address, checked like checkout's; blank clears it, left out keeps it. */
+  gstin: z.string().max(20).nullish(),
 })
 
 /**
@@ -217,7 +225,7 @@ export const customersRouter = {
           .object({ email: z.boolean(), whatsapp: z.boolean(), sms: z.boolean() })
           .partial()
           .optional(),
-        address: AddressSchema.omit({ isDefault: true }).optional(),
+        address: AddressSchema.omit({ isDefault: true, isDefaultBilling: true }).optional(),
       }),
     )
     .handler(async ({ context, input }) => {
@@ -273,6 +281,17 @@ export const customersRouter = {
       await assertCustomer(context.tx, input.customerId)
       const ctx = { tx: context.tx, storeId: context.scope.storeId }
       const done = await setDefaultAddress(ctx, input.customerId, input.addressId)
+      if (!done) throw new ORPCError('NOT_FOUND', { message: 'Address not found' })
+      return { id: input.addressId }
+    }),
+
+  /** Make one saved address the customer's default billing address (draft orders bill it). */
+  setDefaultBillingAddress: can(permissions.CUSTOMERS_WRITE)
+    .input(z.object({ customerId: z.uuid(), addressId: z.uuid() }))
+    .handler(async ({ context, input }) => {
+      await assertCustomer(context.tx, input.customerId)
+      const ctx = { tx: context.tx, storeId: context.scope.storeId }
+      const done = await setDefaultBillingAddress(ctx, input.customerId, input.addressId)
       if (!done) throw new ORPCError('NOT_FOUND', { message: 'Address not found' })
       return { id: input.addressId }
     }),

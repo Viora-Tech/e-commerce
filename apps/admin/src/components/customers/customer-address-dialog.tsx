@@ -11,11 +11,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@commerce/ui/shadcn/dialog'
-import { Field, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
+import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { type FormEvent, useState } from 'react'
 import { toast } from 'sonner'
-import { customerAddressesContent as copy } from '@/data/customers'
+import { customerAddressesContent } from '@/data/customer-addresses'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { fieldErrorsOf } from '@/lib/api-errors'
 import AddressFields, { type AddressValue, EMPTY_ADDRESS } from './address-fields'
@@ -29,10 +30,28 @@ type CustomerAddressDialogProps = {
   onSaved: () => void
 }
 
-type Draft = { name: string; phone: string; place: AddressValue; isDefault: boolean }
+type Draft = {
+  name: string
+  phone: string
+  place: AddressValue
+  businessName: string
+  gstin: string
+  isDefault: boolean
+  isDefaultBilling: boolean
+}
 
 function draftFrom(a: CustomerAddressRow | null): Draft {
-  if (!a) return { name: '', phone: '', place: EMPTY_ADDRESS, isDefault: false }
+  if (!a) {
+    return {
+      name: '',
+      phone: '',
+      place: EMPTY_ADDRESS,
+      businessName: '',
+      gstin: '',
+      isDefault: false,
+      isDefaultBilling: false,
+    }
+  }
   return {
     name: a.name,
     phone: a.phone ?? '',
@@ -43,7 +62,10 @@ function draftFrom(a: CustomerAddressRow | null): Draft {
       stateCode: a.stateCode,
       pincode: a.pincode,
     },
+    businessName: a.businessName ?? '',
+    gstin: a.gstin ?? '',
     isDefault: a.isDefault,
+    isDefaultBilling: a.isDefaultBilling,
   }
 }
 
@@ -55,6 +77,7 @@ export default function CustomerAddressDialog({
   onSaved,
 }: CustomerAddressDialogProps) {
   // Hooks
+  const copy = useCopy(customerAddressesContent)
   const [draft, setDraft] = useState<Draft>(() => draftFrom(address))
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
@@ -72,7 +95,10 @@ export default function CustomerAddressDialog({
       city: draft.place.city,
       stateCode: draft.place.stateCode,
       pincode: draft.place.pincode,
+      businessName: draft.businessName,
+      gstin: draft.gstin,
       isDefault: draft.isDefault,
+      isDefaultBilling: draft.isDefaultBilling,
     }
     try {
       if (address?.id) {
@@ -130,16 +156,56 @@ export default function CustomerAddressDialog({
             onChange={(place) => setDraft({ ...draft, place })}
             errors={errors}
           />
-          {address?.isDefault ? null : (
-            <Field orientation="horizontal">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field data-invalid={Boolean(errors.businessName)}>
+              <FieldLabel htmlFor="customer-address-business">{d.businessName}</FieldLabel>
+              <Input
+                id="customer-address-business"
+                autoComplete="organization"
+                value={draft.businessName}
+                onChange={(e) => setDraft({ ...draft, businessName: e.target.value })}
+              />
+              {errors.businessName ? <FieldError>{errors.businessName}</FieldError> : null}
+            </Field>
+            <Field data-invalid={Boolean(errors.gstin)}>
+              <FieldLabel htmlFor="customer-address-gstin">{d.gstin}</FieldLabel>
+              <Input
+                id="customer-address-gstin"
+                className="font-mono uppercase"
+                maxLength={15}
+                value={draft.gstin}
+                onChange={(e) => setDraft({ ...draft, gstin: e.target.value.toUpperCase() })}
+              />
+              {errors.gstin ? (
+                <FieldError>{errors.gstin}</FieldError>
+              ) : (
+                <FieldDescription>{d.gstinHelp}</FieldDescription>
+              )}
+            </Field>
+          </div>
+          <div className="flex flex-col gap-3">
+            {/* The shipping default cannot be switched off here: another address takes it over. */}
+            <Field orientation="horizontal" data-disabled={address?.isDefault || undefined}>
               <Checkbox
                 id="customer-address-default"
                 checked={draft.isDefault}
+                disabled={address?.isDefault}
                 onCheckedChange={(v) => setDraft({ ...draft, isDefault: v === true })}
               />
               <FieldLabel htmlFor="customer-address-default">{copy.makeDefault}</FieldLabel>
             </Field>
-          )}
+            <Field orientation="horizontal">
+              <Checkbox
+                id="customer-address-default-billing"
+                checked={draft.isDefaultBilling}
+                onCheckedChange={(v) => setDraft({ ...draft, isDefaultBilling: v === true })}
+              />
+              <FieldLabel htmlFor="customer-address-default-billing">
+                {copy.makeDefaultBilling}
+              </FieldLabel>
+            </Field>
+            <p className="text-caption text-muted-foreground">{copy.defaultsHelp}</p>
+          </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
               {d.cancel}

@@ -11,6 +11,7 @@ import {
   type DraftCodeInput,
   DraftEmpty,
   type DraftInput,
+  DraftInvalidGstin,
   type DraftListStatus,
   DraftNotEditable,
   deleteDraft,
@@ -66,6 +67,9 @@ function draftErrorToRpc(err: unknown): never {
       message:
         "The draft's discount code has no uses left. Remove the code and save the draft to place it.",
     })
+  }
+  if (err instanceof DraftInvalidGstin) {
+    throw new ORPCError('BAD_REQUEST', { message: err.message, data: { field: 'billing.gstin' } })
   }
   if (err instanceof CannotShipToState) {
     throw new ORPCError('BAD_REQUEST', {
@@ -139,12 +143,17 @@ export async function getDraft(tx: StoreTx, id: string) {
   const [ship] = o.shippingAddressId
     ? await tx.select().from(address).where(eq(address.id, o.shippingAddressId))
     : []
+  const [bill] = o.billingAddressId
+    ? await tx.select().from(address).where(eq(address.id, o.billingAddressId))
+    : []
   return {
     ...o,
     lines,
     note: notes.find((n) => n.author === 'draft')?.body ?? '',
     customer: cust ?? null,
     shippingAddress: ship ?? null,
+    /** Null: billing is the shipping address. */
+    billingAddress: bill ?? null,
   }
 }
 

@@ -31,7 +31,7 @@ export async function duplicateOrderAsDraft(
 ): Promise<DuplicatedOrder | null> {
   const [o] = await ctx.tx.select().from(order).where(eq(order.id, orderId))
   if (!o) return null
-  const [rows, notes, ship] = await Promise.all([
+  const [rows, notes, ship, bill] = await Promise.all([
     ctx.tx
       .select({
         variantId: orderLine.variantId,
@@ -52,6 +52,9 @@ export async function duplicateOrderAsDraft(
       .where(and(eq(orderNote.orderId, orderId), eq(orderNote.author, 'draft'))),
     o.shippingAddressId
       ? ctx.tx.select().from(address).where(eq(address.id, o.shippingAddressId))
+      : Promise.resolve([]),
+    o.billingAddressId
+      ? ctx.tx.select().from(address).where(eq(address.id, o.billingAddressId))
       : Promise.resolve([]),
   ])
 
@@ -95,6 +98,18 @@ export async function duplicateOrderAsDraft(
           stateCode: a.stateCode,
           pincode: a.pincode,
           phone: a.phone,
+        }
+      : null,
+    // A separate billing address goes along; the GSTIN and company are copied below.
+    billing: bill[0]
+      ? {
+          name: bill[0].name,
+          line1: bill[0].line1,
+          line2: bill[0].line2 ?? undefined,
+          city: bill[0].city,
+          stateCode: bill[0].stateCode,
+          pincode: bill[0].pincode,
+          phone: bill[0].phone,
         }
       : null,
     lines,

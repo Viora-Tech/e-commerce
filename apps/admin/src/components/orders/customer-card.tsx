@@ -68,6 +68,18 @@ export default function CustomerCard({ order }: CustomerCardProps) {
         { label: c.pincode, value: a.pincode, copy: true },
       ]
     : []
+  const bill = order.billingAddress
+  const billing: KeyValueRow[] = bill
+    ? [
+        { label: c.name, value: bill.name, copy: true },
+        { label: c.line1, value: bill.line1, copy: true },
+        { label: c.line2, value: bill.line2, copy: true, hidden: !bill.line2 },
+        { label: c.city, value: bill.city, copy: true },
+        { label: c.state, value: stateName(bill.stateCode), copy: true },
+        { label: c.pincode, value: bill.pincode, copy: true },
+        { label: c.phone, value: bill.phone, copy: true, hidden: !bill.phone },
+      ]
+    : []
   // Courier-app order: name, phone, address, city, state, PIN code.
   const allText = [
     name,
@@ -146,7 +158,13 @@ export default function CustomerCard({ order }: CustomerCardProps) {
             <p className="text-muted-foreground">{c.noAddress}</p>
           )}
         </LabeledGroup>
-        {a ? <p className="text-xs text-muted-foreground">{c.billingSame}</p> : null}
+        {bill ? (
+          <LabeledGroup label={c.billingAddress}>
+            <KeyValueList rows={billing} />
+          </LabeledGroup>
+        ) : a ? (
+          <p className="text-xs text-muted-foreground">{c.billingSame}</p>
+        ) : null}
 
         {order.buyerGstin ? (
           <LabeledGroup label={c.business}>
