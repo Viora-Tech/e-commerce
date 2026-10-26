@@ -15,6 +15,11 @@ export type KeyValueRow = {
   strong?: boolean
   /** Drops the row, so callers can list optional rows inline. */
   hidden?: boolean
+  /**
+   * One line with an ellipsis (long emails, ids) instead of breaking mid-word; the full value
+   * shows on hover and the copy button copies all of it.
+   */
+  truncate?: boolean
 }
 
 type KeyValueListProps = {
@@ -61,8 +66,10 @@ export default function KeyValueList({ rows, variant = 'stack', className }: Key
         ) : (
           r.value
         )
+        const title = r.truncate && typeof r.value === 'string' ? r.value : undefined
         const valueClass = cn(
-          'min-w-0 text-body break-words',
+          'min-w-0 text-body',
+          !r.truncate && 'break-words',
           TONES[r.tone ?? 'default'],
           r.strong && 'font-medium',
         )
@@ -72,7 +79,9 @@ export default function KeyValueList({ rows, variant = 'stack', className }: Key
             <div key={r.label} className="contents">
               <dt className="text-body text-muted-foreground">{r.label}</dt>
               <dd className={cn(valueClass, 'flex items-center justify-end gap-1 text-right')}>
-                <span className="min-w-0">{content}</span>
+                <span className={cn('min-w-0', r.truncate && 'truncate')} title={title}>
+                  {content}
+                </span>
                 {copyValue ? <CopyButton value={copyValue} what={r.label} visible /> : null}
               </dd>
             </div>
@@ -88,7 +97,9 @@ export default function KeyValueList({ rows, variant = 'stack', className }: Key
           >
             <div className="flex min-w-0 flex-1 flex-col">
               <dt className="text-caption text-muted-foreground">{r.label}</dt>
-              <dd className={valueClass}>{content}</dd>
+              <dd className={cn(valueClass, r.truncate && 'truncate')} title={title}>
+                {content}
+              </dd>
             </div>
             {copyValue ? <CopyButton value={copyValue} what={r.label} visible /> : null}
           </div>

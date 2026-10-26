@@ -1086,6 +1086,11 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'test-only: the steps of planSearch, tested one by one in search-text.test.ts',
   },
   {
+    file: 'packages/plugin-shopify-import/src/write-customers.ts',
+    names: ['contactPhoneOf'],
+    reason: 'test-only: the contact phone fallback (#810), tested in contact-phone.test.ts',
+  },
+  {
     file: 'packages/plugin-search/src/plugin.ts',
     names: ['searchPlugin'],
     reason: 'imported only by the root commerce.config.ts, like formsPlugin',

@@ -1,6 +1,6 @@
 /** SOURCE OF TRUTH: staff-created customers — WHAT: `createCustomer`, the one writer behind the admin's "Add customer" (name, email, mobile, optional first address, marketing consent, note, tags), refusing a duplicate email or mobile / WHY: checkout and sign-in create customers on their own paths; a customer typed in by staff must land the same way (encrypted phone, consent history, outbox events) and never split one shopper into two records */
 import { customer } from '@commerce/db'
-import { and, inArray, isNull, or, sql } from 'drizzle-orm'
+import { and, inArray, isNull, ne, or, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { createAddress } from '../accounts/addresses'
 import { AddressInputSchema, fieldErrors, normaliseMobile } from '../accounts/schemas'
@@ -51,24 +51,29 @@ function cleanTags(tags: readonly string[]): string[] {
  * both the bare and the 91-prefixed forms are looked up: by blind index on encrypted rows, by
  * the plain value on rows the phone backfill has not reached.
  */
-async function customerWithPhone(
+export async function customerWithPhone(
   ctx: StoreContext,
   mobile: string,
   secret: string,
+  /** Leave this customer out (the one about to take the number). */
+  exceptId?: string,
 ): Promise<string | null> {
   const forms = [mobile, `91${mobile}`]
   const [row] = await ctx.tx
     .select({ id: customer.id })
     .from(customer)
     .where(
-      or(
-        inArray(
-          customer.phoneIndex,
-          forms.map((f) => phoneBlindIndex(f, secret)),
-        ),
-        and(
-          isNull(customer.phoneIndex),
-          inArray(customer.phone, [...forms, `+91${mobile}`, `+91 ${mobile}`]),
+      and(
+        exceptId ? ne(customer.id, exceptId) : undefined,
+        or(
+          inArray(
+            customer.phoneIndex,
+            forms.map((f) => phoneBlindIndex(f, secret)),
+          ),
+          and(
+            isNull(customer.phoneIndex),
+            inArray(customer.phone, [...forms, `+91${mobile}`, `+91 ${mobile}`]),
+          ),
         ),
       ),
     )

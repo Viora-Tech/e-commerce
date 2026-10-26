@@ -192,6 +192,18 @@ export default [
       average: 'औसत ऑर्डर',
       firstOrder: 'पहला ऑर्डर',
     },
+    contactPhone: {
+      missing: 'कोई फ़ोन नंबर नहीं',
+      add: 'फ़ोन जोड़ें',
+      takeFromOrder: (phone: string) => `उनके आख़िरी ऑर्डर वाला ${phone} इस्तेमाल करें`,
+      takeFromAddress: (phone: string) => `उनके सेव पते वाला ${phone} इस्तेमाल करें`,
+      taken: (phone: string) => `उनके ऑर्डर वाला ${phone} किसी दूसरे ग्राहक का है।`,
+      openOther: 'वह ग्राहक खोलें',
+      saved: 'फ़ोन नंबर सेव हुआ',
+      failed: 'फ़ोन नंबर सेव नहीं हो पाया',
+      consentNeedsPhone: 'WhatsApp/SMS की सहमति पूछने के लिए फ़ोन नंबर जोड़ें।',
+      notSendable: 'आपके स्टोर में अभी सेट नहीं है',
+    },
     profile: {
       heading: 'संपर्क',
       name: 'नाम',
