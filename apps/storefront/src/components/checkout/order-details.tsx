@@ -1,25 +1,49 @@
-import type { address, order } from '@commerce/db'
+import { formatPaise } from '@commerce/blocks'
+import type { address, order, payment } from '@commerce/db'
 import { thankYouContent as content } from '@/data/checkout'
 import { INDIAN_STATES } from '@/data/indian-states'
-import { CK_HEADING } from '@/lib/checkout-classes'
 
 type OrderDetailsProps = {
   order: typeof order.$inferSelect
   /** The order's delivery address snapshot; null for gift cards, which are emailed. */
   shipTo: typeof address.$inferSelect | null
+  /** The latest gateway, COD or transfer attempt; undefined when gift cards paid everything. */
+  payment: typeof payment.$inferSelect | undefined
+  giftCards: { id: string; last: string; amountPaise: number }[]
 }
 
 const stateName = (code: string): string => INDIAN_STATES.find(([c]) => c === code)?.[1] ?? code
 
-/** Contact, delivery address, delivery and payment method: what the shopper may want to check. */
-export default function OrderDetails({ order: o, shipTo }: OrderDetailsProps) {
+/**
+ * The second card's grid: Contact, Payment (how, and what was paid or is still to pay),
+ * Delivering to and Shipping (the rate and its price). Two columns from `sm`.
+ */
+export default function OrderDetails({
+  order: o,
+  shipTo,
+  payment: pay,
+  giftCards,
+}: OrderDetailsProps) {
   // Render logic
   const contact = [o.email, o.phone].filter((v): v is string => Boolean(v))
+  // What the gateway, COD or transfer line covers: the total less any gift cards.
+  const amount = formatPaise(pay?.amountPaise ?? o.totalPaise)
+  const paid = !!o.checkoutPaidAt
   const method = o.paymentMethod
     ? (content.methods[o.paymentMethod] ?? content.methods.online)
     : null
+  const payLines: string[] = []
+  if (method && o.paymentMethod !== 'gift_card') {
+    payLines.push(
+      o.paymentMethod === 'cod' && !paid
+        ? content.codToPay(amount)
+        : `${method} · ${paid ? content.paid(amount) : content.due(amount)}`,
+    )
+  }
+  for (const g of giftCards) payLines.push(content.giftCardLine(g.last, formatPaise(g.amountPaise)))
   const rows: [string, string[]][] = []
   if (contact.length > 0) rows.push([content.details.contact, contact])
+  if (payLines.length > 0) rows.push([content.details.payment, payLines])
   if (shipTo) {
     rows.push([
       content.details.shipTo,
@@ -30,26 +54,30 @@ export default function OrderDetails({ order: o, shipTo }: OrderDetailsProps) {
       ],
     ])
   }
-  if (o.shippingRateName) rows.push([content.details.delivery, [o.shippingRateName]])
-  if (method) rows.push([content.details.payment, [method]])
+  if (shipTo && o.shippingRateName) {
+    rows.push([
+      content.details.delivery,
+      [
+        content.shippingLine(
+          o.shippingRateName,
+          o.shippingPaise > 0 ? formatPaise(o.shippingPaise) : content.shippingFree,
+        ),
+      ],
+    ])
+  }
 
   return (
-    <section aria-labelledby="order-details-heading" className="flex flex-col gap-4">
-      <h2 id="order-details-heading" className={`${CK_HEADING} text-[1rem]!`}>
-        {content.details.heading}
-      </h2>
-      <dl className="grid gap-x-6 gap-y-5 rounded-ck border border-ck-line bg-ck-field p-5 text-[0.875rem] [box-shadow:0_1px_2px_rgb(0_0_0/0.03)] sm:grid-cols-2 sm:p-6">
-        {rows.map(([label, lines]) => (
-          <div key={label} className="flex min-w-0 flex-col gap-1">
-            <dt className="text-[0.8125rem] text-ck-muted">{label}</dt>
-            {lines.map((line) => (
-              <dd key={line} className="break-words text-ck-ink">
-                {line}
-              </dd>
-            ))}
-          </div>
-        ))}
-      </dl>
-    </section>
+    <dl className="grid gap-x-6 gap-y-5 text-[0.875rem] sm:grid-cols-2">
+      {rows.map(([label, lines]) => (
+        <div key={label} className="flex min-w-0 flex-col gap-1">
+          <dt className="text-[0.8125rem] text-ck-muted">{label}</dt>
+          {lines.map((line) => (
+            <dd key={line} className="text-ck-ink [overflow-wrap:anywhere]">
+              {line}
+            </dd>
+          ))}
+        </div>
+      ))}
+    </dl>
   )
 }
