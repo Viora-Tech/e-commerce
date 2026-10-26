@@ -1,3 +1,4 @@
+import { siteConfig } from '@commerce/config/site'
 /** Copy for Apps → WhatsApp → "Connect with Facebook" (WhatsApp Embedded Signup). */
 export const whatsappSignupContent = {
   title: 'Connect in one step',
@@ -5,8 +6,7 @@ export const whatsappSignupContent = {
     'Sign in with Facebook and pick or create your WhatsApp Business account and number. We fill in the details below for you.',
   connect: 'Connect with Facebook',
   connectApp: 'I use the WhatsApp Business app',
-  appHelp:
-    'Already chatting with customers in the WhatsApp Business app? Use "I use the WhatsApp Business app" to keep the app and your chats on your phone while Koomerce sends order messages from the same number.',
+  appHelp: `Already chatting with customers in the WhatsApp Business app? Use "I use the WhatsApp Business app" to keep the app and your chats on your phone while ${siteConfig.brand.name} sends order messages from the same number.`,
   connecting: 'Finishing in Facebook…',
   saving: 'Connecting your number…',
   connected: 'WhatsApp connected',
