@@ -47,7 +47,9 @@ jobs:
       - name: Create roles and test databases
         run: PGPASSWORD=postgres psql -h localhost -U postgres -d commerce -v ON_ERROR_STOP=1 -f docker/postgres/init.sql
       - run: bun run lint
-      - run: bun run typecheck
+      # --concurrency=2: ~10 parallel tsc OOM-kills the runner (the admin/storefront/api/core
+      # projects are each ~1-2 GB); two at a time stays under the ~7 GB cap.
+      - run: bun run typecheck --concurrency=2
       - run: bun run test:sweeps
       # --concurrency=1: run one package's vitest at a time so peak memory stays bounded (see env note).
       - run: bun run test --concurrency=1
