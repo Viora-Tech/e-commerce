@@ -177,11 +177,14 @@ export const ACTION_DOCS: Record<string, string> = {
     'The same for a selection on the Customers list; each change keeps its own history row.',
   'customers.addAddress':
     "Add an address to the customer's book; the first one becomes their default.",
+  'customers.create': 'Add a customer by hand ("Add customer" on the list).',
   'customers.export': 'Rows for a CSV export of the current filter; the browser builds the file.',
   'customers.lookupPincode':
     'City and state for a PIN code, from the same directory as Settings → Checkout\'s "PIN code first".',
   'customers.overview': 'Headline figures and the weekly series behind the Customer Overview card.',
   'customers.previewSegment': 'Live count and a sample for the rule builder.',
+  'customers.setDefaultAddress':
+    "Make one saved address the customer's default (the profile card shows it).",
   'customers.sheet':
     'Rows for the Customers bulk-edit spreadsheet, in the order the ids were given.',
   'dashboard.analytics':

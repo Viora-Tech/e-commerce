@@ -460,6 +460,9 @@ export const customerAddressesContent = {
   remove: 'Delete',
   default: 'Default',
   makeDefault: 'Make this the default address',
+  setDefault: 'Set as default',
+  defaultSaved: 'Default address changed',
+  defaultFailed: 'Could not change the default address',
   fromOrder: 'From their latest order',
   empty: 'No saved addresses yet.',
   dialog: {
