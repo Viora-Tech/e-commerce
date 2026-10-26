@@ -52,22 +52,32 @@ async function creditedThisYear(tx: StoreTx, now: Date): Promise<Map<string, num
   return new Map(rows.map((r) => [r.affiliateId, r.total]))
 }
 
-/** Clawbacks not yet recovered, per affiliate. */
+/**
+ * Clawbacks not yet recovered, per affiliate: every clawback ever owed less what payouts
+ * already took back. A ledger, not a per-row flag, so a commission refunded again after its
+ * first clawback was recovered still owes the new part.
+ */
 async function openClawbacks(tx: StoreTx): Promise<Map<string, number>> {
-  const rows = await tx
+  const owed = await tx
     .select({
       affiliateId: affiliateCommission.affiliateId,
       total: sql<number>`sum(${affiliateCommission.clawbackPaise})::int`,
     })
     .from(affiliateCommission)
-    .where(
-      and(
-        sql`${affiliateCommission.clawbackPaise} > 0`,
-        isNull(affiliateCommission.clawbackPayoutId),
-      ),
-    )
+    .where(sql`${affiliateCommission.clawbackPaise} > 0`)
     .groupBy(affiliateCommission.affiliateId)
-  return new Map(rows.map((r) => [r.affiliateId, r.total]))
+  const recovered = await tx
+    .select({
+      affiliateId: affiliatePayout.affiliateId,
+      total: sql<number>`sum(${affiliatePayout.clawbackPaise})::int`,
+    })
+    .from(affiliatePayout)
+    .where(sql`${affiliatePayout.clawbackPaise} > 0`)
+    .groupBy(affiliatePayout.affiliateId)
+  const back = new Map(recovered.map((r) => [r.affiliateId, r.total]))
+  return new Map(
+    owed.map((r) => [r.affiliateId, Math.max(0, r.total - (back.get(r.affiliateId) ?? 0))]),
+  )
 }
 
 /** Approved commissions not yet in a payout, per affiliate, less any clawback still owed. */
@@ -75,6 +85,8 @@ export async function payoutCandidates(
   tx: StoreTx,
   settings: StoreAffiliateSettings,
   now = new Date(),
+  /** One affiliate's (their dashboard), else everyone's. */
+  affiliateId?: string,
 ): Promise<PayoutCandidate[]> {
   const clawbacks = await openClawbacks(tx)
   const credited = settings.requirePanAboveThreshold
@@ -95,7 +107,13 @@ export async function payoutCandidates(
     })
     .from(affiliateCommission)
     .innerJoin(affiliate, eq(affiliate.id, affiliateCommission.affiliateId))
-    .where(and(eq(affiliateCommission.status, 'approved'), isNull(affiliateCommission.payoutId)))
+    .where(
+      and(
+        eq(affiliateCommission.status, 'approved'),
+        isNull(affiliateCommission.payoutId),
+        affiliateId ? eq(affiliateCommission.affiliateId, affiliateId) : undefined,
+      ),
+    )
     .groupBy(
       affiliateCommission.affiliateId,
       affiliate.name,

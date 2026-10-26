@@ -11,8 +11,8 @@ Affiliates is a built-in app. Install it from the [App store](/merchant-guide/ap
 
 1. A shopper opens **/affiliate** on your store, signs in with their store account and applies. You can also add a creator yourself from **Affiliates → Add affiliate**.
 2. You approve them (or set a program's **New signups** to approve automatically). They get an email with their link (`yourstore.com/?ref=their-code`) and, if codes are on, a personal discount code.
-3. An order placed through the link, or with their code, earns them a commission. It shows as **On hold**.
-4. When the order is delivered, the hold period starts (your return window, 7 days unless you change it). If the order is cancelled, comes back undelivered (RTO) or is fully refunded first, the commission is reversed. A partial refund lowers it.
+3. An order placed through the link, or with their code, earns them a commission on the sale after discounts (a prepaid payment offer counts as a discount), without GST, shipping or a COD fee. It shows as **On hold**.
+4. When the order is delivered, the hold period starts (your return window, 7 days unless you change it). If the order is cancelled, comes back undelivered (RTO) or is fully refunded first, the commission is reversed. A partial refund lowers it by the share of the goods paid back (shipping is not counted, so refunding every item reverses it).
 5. After the hold, the commission becomes **Ready to pay**. TDS is worked out at this point.
 6. On **Payouts**, choose **Create payouts**, download the bank file, pay through your bank or UPI, then **Mark paid** with the UTR. The affiliate is emailed.
 
@@ -86,9 +86,25 @@ Each affiliate has a link code (`?ref=`) and a discount code. Open an affiliate 
 - **Replace discount code**: for a code that leaked to a coupon site. The old code stops working at once and a new one is made. Their link stays the same.
 - **Their own code**: affiliates can ask for a code like their name in their dashboard. Approve or decline it on the affiliate's page. Approving changes their link and discount code; links they already posted keep earning.
 
+## The signup page
+
+`/affiliate` opens with what the program pays, taken from its settings: "Earn 10% on every sale" (or "₹150 on every order" for a flat rate), "Up to 15%" when order-value levels or tiers pay more, your pitch, a few perks (what followers save with the code, the link window, UPI or bank payouts) and three steps: apply, share, get paid. Below it, **Program terms** spell out your rules in plain words: the rate (after discounts, without GST), which orders count (a new customer's first order, or every order for a set time), the link window, when a sale is earned (delivery plus your return window), the minimum payout, and your own terms text.
+
+The application is short: name, their main profile or website, where they will share (Instagram, YouTube, WhatsApp, Facebook, a blog, friends and family), a few words about their audience, your signup questions, and an optional UPI ID so their first payout is not held up. They accept your terms and send it. Shoppers sign in with their store account first.
+
+After applying they see **Application received** with what happens next. A declined applicant sees your note, if you wrote one. On the affiliate's page in your admin, **Will share on** shows the channels they picked.
+
 ## Affiliate dashboard
 
-Approved affiliates see their link and code on `/affiliate`, plus a **link builder**: they search a product (or paste any page of your store) and get a referral link, a QR code to download, and a WhatsApp share button.
+Approved affiliates see, on `/affiliate`:
+
+- **Their link** with copy, share buttons (the phone's share sheet, WhatsApp, X, Telegram, Facebook, and a copy for Instagram) and a QR code to download. The **Link to any product** box turns a product search or any page of your store into a referral link.
+- **Their discount code**, with a reminder that the code always counts. The link counts only when the shopper allows cookies on your banner, so codes are worth mentioning in every post.
+- **Figures** for 7, 30 or 90 days or all time: clicks, orders, conversion, sales and commission earned.
+- **Their money**: pending, ready to pay and paid, what their next payout will be, what holds it (below your minimum payout, no payout details, no PAN, a review), and how much becomes payable next and when.
+- **Recent sales**: date, a masked buyer ("R••• S."), the sale, the commission and where it stands (payable from a date, being checked, or why it was not earned). Order numbers, emails and addresses are never shown.
+- **Payouts**: each payout with its date, your UTR and how it was worked out (commission, returned orders, GST, TDS).
+- Payout details, their last 12 months, creatives, a request for their own code, and the program terms.
 
 ## Creatives
 
@@ -106,7 +122,7 @@ The Affiliates overview shows sales from affiliates by week or month, clicks and
 
 ## Payout details
 
-Affiliates add a UPI ID or bank account (and optionally their PAN) on their dashboard at **/affiliate**. The details are stored encrypted. Your admin only shows a masked line such as `UPI as•••@okaxis`. The bank file holds the full details and needs the **Settings** permission to download. Keep it private and delete it after uploading.
+Affiliates add a UPI ID when they apply, or a UPI ID or bank account (and optionally their PAN) on their dashboard at **/affiliate**. The details are stored encrypted. Your admin only shows a masked line such as `UPI as•••@okaxis`. The bank file holds the full details and needs the **Settings** permission to download. Keep it private and delete it after uploading.
 
 ## Signup block
 
@@ -114,7 +130,7 @@ In the [website builder](/merchant-guide/online-store/website-builder), **Add �
 
 ## Clawbacks
 
-If an order is refunded, cancelled or returned after its commission went into a payout, the commission is not taken out of that payout. The amount becomes a **clawback** and is subtracted from the affiliate's next payout. The Payouts page and the bank file show it.
+If an order is refunded, cancelled or returned after its commission went into a payout, the commission is not taken out of that payout. The amount becomes a **clawback** and is subtracted from the affiliate’s next payout. A later refund on the same order adds to what is still owed. The Payouts page and the bank file show it.
 
 ## Messages
 

@@ -149,7 +149,9 @@ export async function creditOrder(
   const result = computeCommission(
     {
       subtotalPaise: o.subtotalPaise,
-      discountPaise: o.discountPaise,
+      // A payment-method discount (prepaid offer) is money the shopper did not pay, like a
+      // code; a COD fee is not a sale. The same reduction the GST split uses.
+      discountPaise: o.discountPaise + Math.max(0, -o.paymentAdjustmentPaise),
       lines: await commissionLines(tx, orderId),
     },
     rules,
@@ -257,7 +259,20 @@ export async function reverseCommission(
   return row ?? null
 }
 
-/** A refund shrinks the commission by the share of the order paid back; all of it reverses it. */
+/**
+ * What a refund is measured against: the goods the shopper paid for, without shipping and a
+ * payment-method fee. Refunds come off the goods first, so refunding every item reverses the
+ * commission even when the shipping charge was kept.
+ */
+function goodsPaidPaise(
+  o: Pick<OrderRow, 'totalPaise' | 'shippingPaise' | 'paymentAdjustmentPaise'>,
+): number {
+  return Math.max(0, o.totalPaise - o.shippingPaise - Math.max(0, o.paymentAdjustmentPaise))
+}
+
+/**
+ * A refund shrinks the commission by the share of the goods paid back; all of them reverses it.
+ */
 export async function applyRefunds(
   tx: StoreTx,
   storeId: string,
@@ -266,24 +281,37 @@ export async function applyRefunds(
   const current = await commissionForOrder(tx, orderId)
   if (!current || current.status === 'reversed') return null
   if (!current.payoutId && !canReverse(current.status)) return null
-  const [o] = await tx.select({ total: order.totalPaise }).from(order).where(eq(order.id, orderId))
+  const [o] = await tx
+    .select({
+      totalPaise: order.totalPaise,
+      shippingPaise: order.shippingPaise,
+      paymentAdjustmentPaise: order.paymentAdjustmentPaise,
+    })
+    .from(order)
+    .where(eq(order.id, orderId))
   const [r] = await tx
     .select({ s: sql<number>`coalesce(sum(${refund.amountPaise}), 0)::int` })
     .from(refund)
     .where(and(eq(refund.orderId, orderId), ne(refund.status, 'failed')))
-  const total = o?.total ?? 0
+  const goods = o ? goodsPaidPaise(o) : 0
   const refunded = r?.s ?? 0
-  if (refunded >= total) return reverseCommission(tx, storeId, orderId, 'refunded')
+  if (refunded > 0 && refunded >= goods) return reverseCommission(tx, storeId, orderId, 'refunded')
   const next = Math.min(
     current.commissionPaise,
-    scaleForRefund(current.earnedPaise, total, refunded),
+    scaleForRefund(current.earnedPaise, goods, refunded),
   )
   // Already in a payout: the part refunded since is recovered from the next payout.
   const clawback = current.payoutId ? current.commissionPaise - next : 0
+  // Not in a payout yet: the TDS deducted at approval follows the smaller credit.
+  const tdsPaise =
+    !current.payoutId && current.commissionPaise > 0
+      ? Math.round((current.tdsPaise * next) / current.commissionPaise)
+      : current.tdsPaise
   const [row] = await tx
     .update(affiliateCommission)
     .set({
       commissionPaise: next,
+      tdsPaise,
       clawbackPaise: current.clawbackPaise + clawback,
       updatedAt: new Date(),
     })

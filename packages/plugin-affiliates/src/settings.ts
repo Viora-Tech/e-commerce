@@ -305,3 +305,63 @@ export type PayoutStatus = (typeof PAYOUT_STATUSES)[number]
 export function conversionPercent(orders: number, clicks: number): number | null {
   return clicks > 0 ? Math.round((orders / clicks) * 1000) / 10 : null
 }
+
+/** Where an applicant says they will share their link (the signup form's "How will you promote?"). */
+export const PROMOTE_CHANNELS = [
+  'instagram',
+  'youtube',
+  'whatsapp',
+  'facebook',
+  'blog',
+  'friends',
+  'other',
+] as const
+export type PromoteChannel = (typeof PROMOTE_CHANNELS)[number]
+/** The channels' names where no translated copy is at hand (the admin's affiliate page). */ export const PROMOTE_CHANNEL_LABELS: Record<
+  PromoteChannel,
+  string
+> = {
+  instagram: 'Instagram',
+  youtube: 'YouTube',
+  whatsapp: 'WhatsApp',
+  facebook: 'Facebook',
+  blog: 'Blog or website',
+  friends: 'Friends and family',
+  other: 'Somewhere else',
+}
+
+/** The answers key the chosen channels are kept under, comma-separated (not a form field id). */
+export const PROMOTE_ANSWER = 'promote_via'
+
+/** The channels an applicant ticked, known ones only, in the list's order. */
+export function cleanChannels(raw: readonly unknown[] | undefined): PromoteChannel[] {
+  const picked = new Set((raw ?? []).filter((v): v is string => typeof v === 'string'))
+  return PROMOTE_CHANNELS.filter((c) => picked.has(c))
+}
+
+/**
+ * What a program pays, for the signup headline: its default rule, and the best percent its
+ * order-value levels or tiers can reach when that is higher ("10%, up to 15%"). Pure.
+ */
+export function programRate(rules: Pick<ProgramRules, 'commission' | 'levels' | 'tiers'>): {
+  rule: CommissionRule
+  upToBp: number | null
+} {
+  const base = rules.commission
+  const best = Math.max(
+    base.type === 'percent' ? base.bp : 0,
+    ...rules.levels.map((l) => (l.rule.type === 'percent' ? l.rule.bp : 0)),
+    ...(base.type === 'percent' ? rules.tiers.map((t) => t.bp) : []),
+  )
+  const upToBp = base.type === 'percent' && best > base.bp ? best : null
+  return { rule: base, upToBp }
+}
+
+/** A buyer as an affiliate may see them: "R••• S.", never the full name. Pure. */
+export function maskBuyer(name: string | null | undefined): string | null {
+  const parts = (name ?? '').trim().split(/\s+/).filter(Boolean)
+  const first = parts[0]
+  if (!first) return null
+  const last = parts.length > 1 ? parts[parts.length - 1] : undefined
+  return `${first.charAt(0).toUpperCase()}•••${last ? ` ${last.charAt(0).toUpperCase()}.` : ''}`
+}

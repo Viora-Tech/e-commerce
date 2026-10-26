@@ -10,11 +10,13 @@ import {
   affiliateState,
   applyAsAffiliate,
   cleanAnswers,
+  cleanChannels,
   defaultProgram,
   enrolFromOrder,
   enrolOrderId,
   type PayoutDetails,
   PayoutDetailsSchema,
+  PROMOTE_ANSWER,
   programBySlug,
   requestCode,
   savePayoutDetails,
@@ -51,13 +53,22 @@ export async function applyAffiliateAction(input: {
   program?: string | undefined
   /** Answers to the program's own signup questions, by field id. */
   answers?: Record<string, string | boolean> | undefined
-}): Promise<AffiliateActionResult> {
+  /** Where they will share their link (`PROMOTE_CHANNELS`). */
+  channels?: string[] | undefined
+  /** How they want to be paid, given now so the first payout is not held up; optional. */
+  payout?: PayoutDetails | undefined
+}): Promise<AffiliateActionResult & { field?: string }> {
   const storeId = await requestStoreId()
   const me = await currentCustomer(storeId)
   if (!me) return { ok: false, error: 'signin' }
   if (!input.acceptTerms) return { ok: false, error: 'terms' }
   const name = String(input.name ?? '').trim()
   if (!name) return { ok: false, error: 'name' }
+  const payout = input.payout ? PayoutDetailsSchema.safeParse(input.payout) : null
+  if (payout && !payout.success) {
+    return { ok: false, error: 'payout', field: String(payout.error.issues[0]?.path[0] ?? '') }
+  }
+  const channels = cleanChannels(input.channels)
   if (!(await rateLimited('affiliate-apply:ip', await ipKey(storeId), APPLY_RULE)).ok) {
     return { ok: false, error: 'busy' }
   }
@@ -72,7 +83,7 @@ export async function applyAffiliateAction(input: {
     if (!program) return 'closed' as const
     const form = cleanAnswers(program.rules.form, input.answers ?? {})
     if (form.missing) return 'missing' as const
-    await applyAsAffiliate(
+    const row = await applyAsAffiliate(
       tx,
       storeId,
       {
@@ -84,7 +95,9 @@ export async function applyAffiliateAction(input: {
         message: String(input.message ?? ''),
         programId: program.id,
         ip,
-        answers: form.answers,
+        answers: channels.length
+          ? { ...form.answers, [PROMOTE_ANSWER]: channels.join(',') }
+          : form.answers,
       },
       withProgramRules(settings, program.rules),
       settingsSecret(),
@@ -92,6 +105,10 @@ export async function applyAffiliateAction(input: {
       if (err instanceof AffiliateError && err.code === 'AFFILIATE_BLOCKED') return null
       throw err
     })
+    // Encrypted like the dashboard's form; a second application never replaces saved details.
+    if (row && payout?.success && !row.payoutDetails) {
+      await savePayoutDetails(tx, row.id, payout.data, settingsSecret())
+    }
     return 'ok' as const
   })
   if (result !== 'ok') return { ok: false, error: result }

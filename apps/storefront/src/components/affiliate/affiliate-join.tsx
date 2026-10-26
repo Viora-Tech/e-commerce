@@ -42,7 +42,7 @@ export default function AffiliateJoin({ token, origin }: AffiliateJoinProps) {
         </p>
         <CopyValue label={copy.link} value={`${origin.replace(/\/+$/, '')}/?ref=${joined.code}`} />
         {joined.couponCode ? (
-          <CopyValue label={affiliateContent.dashboard.coupon} value={joined.couponCode} />
+          <CopyValue label={affiliateContent.dashboard.share.code} value={joined.couponCode} />
         ) : null}
         <Link href="/affiliate" className="text-body underline">
           {copy.dashboard}
