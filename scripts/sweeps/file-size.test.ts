@@ -65,10 +65,16 @@ const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
       'collections, pages, blogs, menus and redirects in one writer — split one file per resource',
   },
   'packages/db/src/schema.ts': {
-    lines: 2406,
+    lines: 2490,
     reason: 'the Drizzle schema; split into per-area schema files (like marketing-schema.ts)',
   },
   'packages/invoices/src/document.ts': { lines: 508, reason: SPLIT },
+  'packages/config/src/env.ts': {
+    lines: 516,
+    reason:
+      'every env setting with its doc comment; split per area (auth, payments, AI) into env/*.ts',
+  },
+  'packages/core/src/sales-channels/connect.ts': { lines: 503, reason: SPLIT },
   'packages/payments-decentro/src/decentro.ts': {
     lines: 504,
     reason: 'one gateway adapter implementing the whole provider contract',

@@ -228,6 +228,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'inboundShipments.attach': 'Put an order on this shipment (off any other); both are recosted.',
   'inboundShipments.costs':
     'Shared charges, their splits across every order in it, and landed cost per line.',
+  'inbox.aiAvailable':
+    'Whether the thread shows AI help (suggested replies, summary): AI set up and the assistant on.',
   'inbox.assign': 'Assigns to a team member (only they are notified), or unassigns.',
   'inbox.assignees': 'Team members a conversation can be assigned to.',
   'inbox.blocks.list': 'Blocked browsers, emails and IPs (hashes only; never the raw value).',
@@ -256,6 +258,9 @@ export const ACTION_DOCS: Record<string, string> = {
   'inbox.settings.save': 'Saves part of the Inbox settings.',
   'inbox.shareableDiscounts': 'Active discount codes staff may share in a chat.',
   'inbox.streamAccess': "The admin stream route's check: the member may read Inbox in this store.",
+  'inbox.suggestReplies': "One to three reply drafts for the shopper's latest message.",
+  'inbox.summarise':
+    'A long chat in two lines: what it is about and what the shopper still waits for.',
   'inbox.sync':
     'The polling fallback: messages and changed conversations since a message id, and the counts.',
   'inbox.typing': '"Typing…" to the shopper; never stored, at most one every 3 seconds.',
