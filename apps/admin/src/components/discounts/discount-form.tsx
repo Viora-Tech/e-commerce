@@ -29,6 +29,7 @@ import MinimumCard from './minimum-card'
 import ShippingCard from './shipping-card'
 import SummaryCard from './summary-card'
 import UsageCard from './usage-card'
+import UsageStatsCard from './usage-stats-card'
 import ValueCard from './value-card'
 
 type DiscountFormProps = {
@@ -214,6 +215,7 @@ export default function DiscountForm({ discount }: DiscountFormProps) {
       }
       main={
         <>
+          {discount ? <UsageStatsCard usage={discount.usage} /> : null}
           <MethodCard
             form={form}
             typeLocked={discount !== null}

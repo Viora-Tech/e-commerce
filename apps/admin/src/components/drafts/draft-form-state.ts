@@ -2,6 +2,9 @@ import type { api } from '@/lib/api-client'
 
 type Draft = NonNullable<Awaited<ReturnType<typeof api.orders.getDraft>>>
 
+/** The server's answer for a discount code on this draft (`orders.checkDraftDiscount`). */
+export type DraftCodeCheck = Awaited<ReturnType<typeof api.orders.checkDraftDiscount>>
+
 export type DraftLine = {
   variantId: string
   title: string
@@ -31,6 +34,8 @@ export type DraftFormState = {
   lines: DraftLine[]
   discountPaise: number
   discountLabel: string
+  /** A store discount code; when set it replaces the manual discount. '' for none. */
+  discountCode: string
   shippingPaise: number
   paymentMethod: string
   note: string
@@ -55,6 +60,7 @@ export const emptyDraft = (): DraftFormState => ({
   lines: [],
   discountPaise: 0,
   discountLabel: '',
+  discountCode: '',
   shippingPaise: 0,
   paymentMethod: 'manual',
   note: '',
@@ -86,8 +92,10 @@ export function draftToForm(d: Draft): DraftFormState {
       unitPricePaise: l.unitPricePaise,
       giftCard: l.giftCard,
     })),
-    discountPaise: d.discountPaise,
-    discountLabel: d.discountLabel ?? '',
+    // A code's amount and label come from the code; the manual fields start empty beside it.
+    discountPaise: d.discountCode ? 0 : d.discountPaise,
+    discountLabel: d.discountCode ? '' : (d.discountLabel ?? ''),
+    discountCode: d.discountCode ?? '',
     shippingPaise: d.shippingPaise,
     paymentMethod: d.paymentMethod ?? 'manual',
     note: d.note,
@@ -128,21 +136,49 @@ export function formToDraft(f: DraftFormState) {
     })),
     discountPaise: f.discountPaise,
     discountLabel: f.discountLabel || null,
+    discountCode: f.discountCode || null,
     shippingPaise: f.shippingPaise,
     paymentMethod: f.paymentMethod || null,
     note: f.note || null,
   }
 }
 
+/** A saved draft's code as it was applied on the last save, until the re-check answers. */
+export function savedCodeCheck(d: Draft | null): DraftCodeCheck | null {
+  if (!d?.discountCode || !d.discountId) return null
+  return {
+    ok: true,
+    discountId: d.discountId,
+    code: d.discountCode,
+    label: d.discountLabel ?? d.discountCode,
+    amountPaise: d.discountPaise,
+    freeShipping: false,
+    shippingPaise: d.shippingPaise,
+  }
+}
+
+/** The shipping state a code is checked against: only a complete address has one, as on save. */
+export const draftStateCode = (f: DraftFormState): string | null =>
+  addressPayload(f.address)?.stateCode ?? null
+
 export const draftSubtotal = (lines: DraftLine[]): number =>
   lines.reduce((sum, l) => sum + l.quantity * l.unitPricePaise, 0)
 
-export function draftTotals(f: DraftFormState) {
+/**
+ * The bill as the server will save it: an applied code's amount (and waived shipping), else
+ * the manual discount. A code still being checked, or refused, takes nothing off yet.
+ */
+export function draftTotals(f: DraftFormState, check: DraftCodeCheck | null = null) {
   const subtotalPaise = draftSubtotal(f.lines)
-  const discountPaise = Math.min(f.discountPaise, subtotalPaise)
+  const coded = f.discountCode && check?.ok ? check : null
+  const discountPaise = f.discountCode
+    ? (coded?.amountPaise ?? 0)
+    : Math.min(f.discountPaise, subtotalPaise)
+  const shippingPaise = coded ? coded.shippingPaise : f.shippingPaise
   return {
     subtotalPaise,
     discountPaise,
-    totalPaise: subtotalPaise - discountPaise + f.shippingPaise,
+    shippingPaise,
+    totalPaise: subtotalPaise - discountPaise + shippingPaise,
   }
 }

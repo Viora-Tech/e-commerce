@@ -348,6 +348,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'orders.addNote': "Add a staff note to the order's timeline.",
   'orders.cancelShipment':
     'Cancel a booked shipment with its courier, before it is collected or put on a manifest.',
+  'orders.checkDraftDiscount':
+    "Check a store discount code against a draft's lines and customer with checkout's rules (dates, minimums, products and collections, eligibility, per-customer cap).",
   'orders.collectPayment': 'Record money collected outside a gateway; the order becomes paid.',
   'orders.convertDraft':
     'Place a draft as a real order: holds stock and records a pending payment for the chosen method.',
@@ -361,6 +363,8 @@ export const ACTION_DOCS: Record<string, string> = {
     '"Delete test orders": removes every order of this store paid on a gateway\'s test keys (is_test), with its dependent rows.',
   'orders.draftTiles':
     'The stat cards above the drafts list: open drafts, invoices sent, and their total value.',
+  'orders.duplicateOrder':
+    "Start a new draft from an existing order: same customer, address, lines at today's prices (archived products skipped and named), notes and shipping.",
   'orders.fulfil':
     'Pack some or all of the lines; the shopper is told once the parcel is complete.',
   'orders.get':

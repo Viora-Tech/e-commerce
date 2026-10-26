@@ -13,11 +13,13 @@ import {
 import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import type { StoreContext } from '../context'
+import { recordDiscountUse } from '../discounts/usage'
 import { CommerceError } from '../errors'
 import { announceExchangeOrder } from '../returns/notify'
 import { StoreAddressSchema } from '../settings/general'
 import { assertCustomerInStore } from '../store-scope'
 import { chargedGstRate, parseStoreTax } from '../tax/settings'
+import { draftMoney } from './draft-discount'
 import { createFulfillmentOrders } from './fulfillment-orders'
 import { taxParcels } from './parcel-tax'
 import { recomputeOrderStatuses } from './recompute'
@@ -79,6 +81,8 @@ export const DraftInputSchema = z.object({
   lines: z.array(DraftLineSchema).max(100).default([]),
   discountPaise: z.number().int().min(0).default(0),
   discountLabel: z.string().trim().max(120).nullish(),
+  /** A store discount code; when set it replaces the manual discount above. */
+  discountCode: z.string().trim().max(60).nullish(),
   shippingPaise: z.number().int().min(0).default(0),
   paymentMethod: z.string().trim().max(60).nullish(),
   note: z.string().trim().max(2000).nullish(),
@@ -132,9 +136,6 @@ async function resolveLines(ctx: StoreContext, lines: DraftInput['lines']) {
   })
 }
 
-const sumPaise = (lines: { quantity: number; unitPricePaise: number }[]) =>
-  lines.reduce((sum, l) => sum + l.quantity * l.unitPricePaise, 0)
-
 /** Draft numbers come from the same counter as orders, so a converted draft keeps its number. */
 async function nextNumber(ctx: StoreContext): Promise<number> {
   const [s] = await ctx.tx
@@ -175,16 +176,6 @@ async function writeLines(ctx: StoreContext, orderId: string, input: DraftInput)
   return lines
 }
 
-function totals(lines: { quantity: number; unitPricePaise: number }[], input: DraftInput) {
-  const subtotalPaise = sumPaise(lines)
-  const discountPaise = Math.min(input.discountPaise, subtotalPaise)
-  return {
-    subtotalPaise,
-    discountPaise,
-    totalPaise: subtotalPaise - discountPaise + input.shippingPaise,
-  }
-}
-
 export async function createDraft(ctx: StoreContext, input: DraftInput) {
   await assertCustomerInStore(ctx.tx, input.customerId, ctx.storeId)
   const number = await nextNumber(ctx)
@@ -210,7 +201,7 @@ export async function createDraft(ctx: StoreContext, input: DraftInput) {
     .returning({ id: order.id })
   if (!o) throw new CommerceError('DRAFT_INSERT_FAILED', 'draft insert returned nothing')
   const lines = await writeLines(ctx, o.id, input)
-  const t = totals(lines, input)
+  const t = await draftMoney(ctx, lines, input)
   await ctx.tx.update(order).set(t).where(eq(order.id, o.id))
   if (input.note) await setDraftNote(ctx, o.id, input.note)
   return { id: o.id, number }
@@ -225,7 +216,7 @@ export async function updateDraft(ctx: StoreContext, id: string, input: DraftInp
     ? await writeAddress(ctx, input)
     : existing.shippingAddressId
   const lines = await writeLines(ctx, id, input)
-  const t = totals(lines, input)
+  const t = await draftMoney(ctx, lines, input)
   const [o] = await ctx.tx
     .update(order)
     .set({
@@ -234,8 +225,6 @@ export async function updateDraft(ctx: StoreContext, id: string, input: DraftInp
       phone: input.phone ?? null,
       shippingAddressId,
       paymentMethod: input.paymentMethod ?? null,
-      discountLabel: input.discountLabel ?? null,
-      shippingPaise: input.shippingPaise,
       ...t,
     })
     .where(eq(order.id, id))
@@ -384,6 +373,17 @@ export async function convertDraft(
     (await draftNeedsShipping(ctx, id))
   ) {
     throw new DraftNeedsShippingAddress(ctx.storeId)
+  }
+  /* A code on the draft counts a use now, under checkout's lock and limits, so usage limits
+     and per-customer caps hold and the code's usage lists this order. Out of uses: refused
+     (DiscountUnavailable), and the merchant removes the code to place it. */
+  if (o.discountId) {
+    await recordDiscountUse(ctx, o.discountId, {
+      id,
+      customerId: o.customerId,
+      email: o.email,
+      discountPaise: o.discountPaise,
+    })
   }
 
   /* Routed and held like a checkout (order/routing.ts), to the draft's shipping state; the

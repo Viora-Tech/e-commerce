@@ -1,9 +1,100 @@
 import { type DiscountInput, discountType, normaliseCode } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
-import { discount, discountUsage } from '@commerce/db'
-import { and, count, desc, eq, gte, ilike, isNotNull, isNull, lte, or, sql } from 'drizzle-orm'
+import { discount, discountUsage, order } from '@commerce/db'
+import {
+  and,
+  count,
+  desc,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  isNotNull,
+  isNull,
+  lte,
+  max,
+  or,
+  sql,
+} from 'drizzle-orm'
 
 const DAY_MS = 86_400_000
+const RECENT_USES = 10
+
+/**
+ * What a discount has done, from its `discount_usage` rows (one per order that used it):
+ * the orders, what they brought in and what the discount gave away, and the last use.
+ * Test orders are left out; a cancelled order still counts as a use (it took one of the
+ * limit) but adds nothing to revenue or the amount given.
+ */
+export type DiscountUsageSummary = {
+  orders: number
+  revenuePaise: number
+  amountPaise: number
+  lastUsedAt: Date | null
+}
+
+const EMPTY_USAGE: DiscountUsageSummary = {
+  orders: 0,
+  revenuePaise: 0,
+  amountPaise: 0,
+  lastUsedAt: null,
+}
+
+const kept = sql`${order.status} <> 'cancelled'`
+
+/** Usage per discount for the ids given (a list page, or one discount). */
+async function usageOf(tx: StoreTx, ids: string[]): Promise<Map<string, DiscountUsageSummary>> {
+  const byId = new Map<string, DiscountUsageSummary>()
+  if (ids.length === 0) return byId
+  const rows = await tx
+    .select({
+      discountId: discountUsage.discountId,
+      orders: count(),
+      revenuePaise:
+        sql<number>`coalesce(sum(${order.totalPaise}) filter (where ${kept}), 0)::bigint`.mapWith(
+          Number,
+        ),
+      amountPaise:
+        sql<number>`coalesce(sum(${discountUsage.amountPaise}) filter (where ${kept}), 0)::bigint`.mapWith(
+          Number,
+        ),
+      lastUsedAt: max(discountUsage.createdAt),
+    })
+    .from(discountUsage)
+    .innerJoin(order, eq(order.id, discountUsage.orderId))
+    .where(and(inArray(discountUsage.discountId, ids), eq(order.isTest, false)))
+    .groupBy(discountUsage.discountId)
+  for (const r of rows) {
+    byId.set(r.discountId, {
+      orders: r.orders,
+      revenuePaise: r.revenuePaise,
+      amountPaise: r.amountPaise,
+      lastUsedAt: r.lastUsedAt,
+    })
+  }
+  return byId
+}
+
+/**
+ * The latest orders that used a discount, newest first, for its detail page. No customer
+ * details: a discount reader may not see customers; the order link shows them to those who can.
+ */
+async function recentUses(tx: StoreTx, id: string) {
+  return tx
+    .select({
+      orderId: order.id,
+      number: order.number,
+      status: order.status,
+      totalPaise: order.totalPaise,
+      amountPaise: discountUsage.amountPaise,
+      usedAt: discountUsage.createdAt,
+    })
+    .from(discountUsage)
+    .innerJoin(order, eq(order.id, discountUsage.orderId))
+    .where(and(eq(discountUsage.discountId, id), eq(order.isTest, false)))
+    .orderBy(desc(discountUsage.createdAt))
+    .limit(RECENT_USES)
+}
 
 /** Where a discount is in its life right now; derived, not stored. */
 export type DiscountLifecycle = 'active' | 'scheduled' | 'expired' | 'disabled'
@@ -25,6 +116,7 @@ export type DiscountListItem = {
   status: 'active' | 'disabled'
   lifecycle: DiscountLifecycle
   createdAt: Date
+  usage: DiscountUsageSummary
 }
 
 export type DiscountStats = {
@@ -92,6 +184,10 @@ export async function listDiscounts(
     .orderBy(desc(discount.createdAt))
     .limit(input.perPage)
     .offset((input.page - 1) * input.perPage)
+  const usage = await usageOf(
+    tx,
+    rows.map((r) => r.id),
+  )
   return {
     total: countRow?.total ?? 0,
     items: rows.map((r) => ({
@@ -110,6 +206,7 @@ export async function listDiscounts(
       status: r.status,
       lifecycle: lifecycleOf(r, now),
       createdAt: r.createdAt,
+      usage: usage.get(r.id) ?? EMPTY_USAGE,
     })),
   }
 }
@@ -138,17 +235,11 @@ export async function discountStats(tx: StoreTx, now = new Date()): Promise<Disc
 export async function getDiscount(tx: StoreTx, id: string) {
   const [row] = await tx.select().from(discount).where(eq(discount.id, id))
   if (!row) return null
-  const [usage] = await tx
-    .select({
-      orders: count(),
-      amountPaise: sql<number>`coalesce(sum(${discountUsage.amountPaise}), 0)::int`,
-    })
-    .from(discountUsage)
-    .where(eq(discountUsage.discountId, id))
+  const [usage, recent] = await Promise.all([usageOf(tx, [id]), recentUses(tx, id)])
   return {
     ...row,
     lifecycle: lifecycleOf(row),
-    usage: { orders: usage?.orders ?? 0, amountPaise: usage?.amountPaise ?? 0 },
+    usage: { ...(usage.get(id) ?? EMPTY_USAGE), recent },
   }
 }
 
