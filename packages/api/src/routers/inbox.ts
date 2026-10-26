@@ -48,7 +48,12 @@ import type { StoreTx } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import type { ApiContext } from '../context'
-import { type AfterCommit, BULK_MAX, can, type StoreScope } from '../procedures'
+import { type AfterCommit, BULK_MAX, can, canDetached, type StoreScope } from '../procedures'
+import {
+  inboxAiAvailable,
+  suggestInboxReplies,
+  summariseInboxChat,
+} from '../services/ai/inbox-assist'
 
 type Ctx = ApiContext & { tx: StoreTx; scope: StoreScope; afterCommit: (fn: AfterCommit) => void }
 
@@ -194,9 +199,22 @@ export const inboxRouter = {
       return refusal(() =>
         customerPanel(storeCtx(context), input.id, {
           ordersAllowed: context.scope.can(permissions.ORDERS_READ),
+          secret: settingsSecret(),
         }),
       )
     }),
+  /** Whether the thread shows AI help (suggested replies, summary): AI set up and the assistant on. */
+  aiAvailable: canDetached(permissions.INBOX_READ).handler(({ context }) =>
+    inboxAiAvailable(context),
+  ),
+  /** One to three reply drafts for the shopper's latest message. Suggests only: nothing is sent. */
+  suggestReplies: canDetached(permissions.INBOX_REPLY)
+    .input(Id)
+    .handler(({ context, input, signal }) => suggestInboxReplies(context, input.id, signal)),
+  /** A long chat in two lines: what it is about and what the shopper still waits for. */
+  summarise: canDetached(permissions.INBOX_READ)
+    .input(z.object({ id: z.uuid(), language: z.enum(['en', 'hi']) }))
+    .handler(({ context, input, signal }) => summariseInboxChat(context, input, signal)),
   /** Team members a conversation can be assigned to. */
   assignees: can(permissions.INBOX_READ).handler(async ({ context }) => {
     await requireInstalled(context)

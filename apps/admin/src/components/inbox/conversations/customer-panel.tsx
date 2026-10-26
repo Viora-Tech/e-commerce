@@ -11,13 +11,14 @@ import { inboxConversationsContent } from '@/data/inbox-conversations'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
+import ShopperActivity from './shopper-activity'
 
 type Panel = Awaited<ReturnType<typeof api.inbox.panel>>
 
 type CustomerPanelProps = {
   conversationId: string
   /** What the shopper typed in the chat (shown for guests). */
-  contact: { email: string | null; phone: string | null; startedUrl: string | null }
+  contact: { email: string | null; phone: string | null }
   /** Bumped by the parent when a cart line arrives, so the live cart reloads. */
   refreshKey: number
   canReadOrders: boolean
@@ -25,7 +26,7 @@ type CustomerPanelProps = {
 
 /**
  * Who the shopper is: new or returning, signed in or a possible match (unverified, so no
- * orders), their live cart, recent orders and the customer note.
+ * orders), their live cart, recent orders, what they are looking at and the customer note.
  */
 export default function CustomerPanel({
   conversationId,
@@ -80,6 +81,11 @@ export default function CustomerPanel({
           <>
             <p className="text-body-strong text-ink-strong">{c.name ?? c.email}</p>
             {c.email ? <p className="text-caption text-muted-foreground">{c.email}</p> : null}
+            {panel.phone ? (
+              <p className="text-caption text-muted-foreground">
+                {p.phone}: {panel.phone}
+              </p>
+            ) : null}
             <p className="text-caption text-muted-foreground">
               {p.totalSpent(fmt.money(c.totalSpentPaise), c.orderCount)}
             </p>
@@ -116,11 +122,6 @@ export default function CustomerPanel({
             ) : null}
           </>
         )}
-        {contact.startedUrl ? (
-          <p className="truncate text-caption text-muted-foreground" title={contact.startedUrl}>
-            {copy.thread.startedOn(contact.startedUrl)}
-          </p>
-        ) : null}
       </section>
 
       <section className="flex flex-col gap-2">
@@ -171,6 +172,8 @@ export default function CustomerPanel({
           )}
         </section>
       ) : null}
+
+      <ShopperActivity panel={panel} />
 
       {c?.note ? (
         <section className="flex flex-col gap-2">

@@ -13,5 +13,6 @@ export default {
   growthbook: 'A/B tests (GrowthBook)',
   'google-search-console': 'Google Search Console',
   meilisearch: 'Meilisearch search',
+  inbox: 'Inbox',
   chatwoot: 'Chatwoot',
 }

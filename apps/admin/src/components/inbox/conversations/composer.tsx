@@ -5,7 +5,7 @@ import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { Toggle } from '@commerce/ui/shadcn/toggle'
-import { type KeyboardEvent, useRef, useState } from 'react'
+import { type KeyboardEvent, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { inboxConversationsContent } from '@/data/inbox-conversations'
 import { useCopy } from '@/hooks/use-copy'
@@ -30,6 +30,8 @@ type ComposerProps = {
   onSend: (message: ComposerSend) => Promise<void>
   /** "Typing…" to the shopper; the caller throttles it. */
   onTyping: () => void
+  /** A draft to put in the box (a suggested reply), numbered so picking the same one twice still lands. */
+  seed?: { seq: number; text: string } | null | undefined
 }
 
 /**
@@ -44,6 +46,7 @@ export default function Composer({
   canShareDiscounts,
   onSend,
   onTyping,
+  seed,
 }: ComposerProps) {
   // Hooks
   const copy = useCopy(inboxConversationsContent)
@@ -52,6 +55,14 @@ export default function Composer({
   const [busy, setBusy] = useState(false)
   const [picking, setPicking] = useState<'product' | 'discount' | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const textRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    if (!seed) return
+    setNote(false)
+    setDraft(seed.text)
+    textRef.current?.focus()
+  }, [seed])
 
   // Helpers
   const send = async (message: ComposerSend) => {
@@ -139,6 +150,7 @@ export default function Composer({
         )}
       >
         <Textarea
+          ref={textRef}
           value={draft}
           rows={2}
           maxLength={2000}
