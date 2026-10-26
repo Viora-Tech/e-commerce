@@ -28,6 +28,7 @@ import {
   formErrors,
   fromProduct,
   type LoadedProduct,
+  type MediaItem,
   matrixOptions,
   type OptionRow,
   type ProductFormState,
@@ -121,6 +122,12 @@ export default function ProductForm({
       ...f,
       options,
       variants: reconcileVariants(options, f.options, f.variants).variants,
+    }))
+  /* Files uploaded for a variant join the end of the gallery (once). */
+  const addMedia = (items: MediaItem[]) =>
+    setForm((f) => ({
+      ...f,
+      media: [...f.media, ...items.filter((i) => !f.media.some((m) => m.id === i.id))],
     }))
   /* The package is one box per product, so every variant ships in it. */
   const patchPackage = (vp: Partial<VariantRow>) =>
@@ -279,6 +286,7 @@ export default function ProductForm({
         error={showErrors ? errors.variants : undefined}
         onOptions={setOptions}
         onVariant={patchVariant}
+        onAddMedia={addMedia}
       />
       <VariantMetafieldsCard variants={savedVariants} />
       <DataCard title={copy.preorder.heading}>

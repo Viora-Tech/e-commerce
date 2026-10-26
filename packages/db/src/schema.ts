@@ -451,6 +451,31 @@ export const variantOptionValue = pgTable('variant_option_value', {
 })
 
 /**
+ * A variant's own images, in order (Black shows its three photos). Every row points at media in
+ * the product's gallery; `variant.media_id` mirrors position 0, so the single-image readers
+ * (cart and order lines, feeds, catalogue sync, Liquid `variant.image`) keep working. Written
+ * only through `@commerce/core` catalog/variant-media.ts, which keeps the two in step.
+ */
+export const variantMedia = pgTable(
+  'variant_media',
+  {
+    id: id(),
+    storeId: storeId(),
+    variantId: uuid('variant_id')
+      .notNull()
+      .references(() => variant.id, { onDelete: 'cascade' }),
+    mediaId: uuid('media_id')
+      .notNull()
+      .references(() => media.id, { onDelete: 'cascade' }),
+    position: integer('position').notNull().default(0),
+  },
+  (t) => [
+    uniqueIndex('variant_media_unique').on(t.variantId, t.mediaId),
+    index('variant_media_media').on(t.mediaId),
+  ],
+)
+
+/**
  * SOURCE OF TRUTH: business, BUSINESS_PAYOUT_MODES, BUSINESS_ROUTE_STATUSES — WHAT one legal
  * entity (one PAN) selling through this store / WHY GST is registered per PAN per state, and a
  * warehouse may belong to a different legal business than the store's main one. Exactly one

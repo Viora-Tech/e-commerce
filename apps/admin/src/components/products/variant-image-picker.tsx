@@ -3,61 +3,59 @@
 import { ImageIcon, XIcon } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { useState } from 'react'
-import MediaPickDialog, { type MediaItem as PickerItem } from '@/components/media/media-pick-dialog'
 import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 import type { MediaItem } from './form-state'
+import { chosenItems } from './variant-images'
+import VariantImagesDialog from './variant-images-dialog'
 
 type VariantImagePickerProps = {
   media: MediaItem[]
-  mediaId: string | null
+  /** The variant's images in order; the first is its main image. */
+  mediaIds: string[]
   label: string
-  onChange: (mediaId: string | null) => void
+  onChange: (mediaIds: string[]) => void
+  /** Files uploaded from the dialog join the product gallery. */
+  onAddMedia: (items: MediaItem[]) => void
 }
 
-function toPickerItems(media: MediaItem[]): PickerItem[] {
-  return media.map((m) => ({
-    id: m.id,
-    url: m.url,
-    alt: m.alt,
-    key: null,
-    contentType: m.contentType,
-    size: null,
-  }))
-}
-
-/** Pick which gallery image represents this variant, from the product's own media. */
+/** The variant's main image as a thumbnail (with a count when it has more); opens the images dialog. */
 export default function VariantImagePicker({
   media,
-  mediaId,
+  mediaIds,
   label,
   onChange,
+  onAddMedia,
 }: VariantImagePickerProps) {
   // Hooks
-  const { variantBulk: copy } = useCopy(productFormContent)
+  const { variantBulk: copy, variantImages: imagesCopy } = useCopy(productFormContent)
   const [picking, setPicking] = useState(false)
+  /* Bumped on every open, so the dialog's draft starts from the saved list each time. */
+  const [opened, setOpened] = useState(0)
 
   // Event handlers
-  const handlePick = (picked: { id: string; url: string } | null) => {
-    setPicking(false)
-    onChange(picked?.id ?? null)
+  const handleOpen = () => {
+    setOpened((n) => n + 1)
+    setPicking(true)
   }
 
-  // Early returns
-  if (media.length === 0) {
-    return <span className="text-caption text-muted-foreground">{copy.noImage}</span>
+  const handleSave = (ids: string[]) => {
+    setPicking(false)
+    onChange(ids)
   }
 
   // Render logic
-  const current = media.find((m) => m.id === mediaId)
+  const chosen = chosenItems(mediaIds, media)
+  const current = chosen[0]
+  const extra = chosen.length - 1
 
   return (
     <>
       <span className="relative inline-flex shrink-0">
         <button
           type="button"
-          onClick={() => setPicking(true)}
-          aria-label={`${copy.image} ${label}`}
+          onClick={handleOpen}
+          aria-label={`${copy.image} ${label}${chosen.length > 1 ? `, ${imagesCopy.count(chosen.length)}` : ''}`}
           className={cn(
             'flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted',
             'transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
@@ -70,10 +68,18 @@ export default function VariantImagePicker({
             <ImageIcon className="size-4 text-muted-foreground" />
           )}
         </button>
+        {extra > 0 ? (
+          <span
+            aria-hidden="true"
+            className="absolute -right-1.5 -bottom-1.5 rounded-full border border-border bg-card px-1 text-caption leading-tight tabular-nums text-foreground shadow-card"
+          >
+            {imagesCopy.more(extra)}
+          </span>
+        ) : null}
         {current ? (
           <button
             type="button"
-            onClick={() => onChange(null)}
+            onClick={() => onChange([])}
             aria-label={copy.noImage}
             title={copy.noImage}
             className="absolute -top-1.5 -right-1.5 flex size-4 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-card hover:text-foreground"
@@ -82,14 +88,15 @@ export default function VariantImagePicker({
           </button>
         ) : null}
       </span>
-      <MediaPickDialog
+      <VariantImagesDialog
+        key={opened}
         open={picking}
-        title={`${copy.image}: ${label}`}
-        description={copy.pickHelp}
-        doneLabel={copy.useImage}
-        items={toPickerItems(media)}
+        label={label}
+        media={media}
+        value={chosen.map((c) => c.id)}
         onClose={() => setPicking(false)}
-        onPick={handlePick}
+        onAddMedia={onAddMedia}
+        onSave={handleSave}
       />
     </>
   )

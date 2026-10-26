@@ -34,7 +34,10 @@ export type VariantInput = {
   packageHeightCm?: number | null | undefined
   /** Absolute on-hand count when the merchant edits it inline. */
   onHand?: number | undefined
+  /** The variant's main image; mirrors `mediaIds[0]` when both are sent. */
   mediaId?: string | null | undefined
+  /** The variant's images in order (first = main). Left out keeps the list behind `mediaId`. */
+  mediaIds?: string[] | undefined
 }
 
 export type ExistingVariant = { id: string; title: string; archivedAt: Date | null }

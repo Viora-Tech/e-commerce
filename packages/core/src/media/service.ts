@@ -1,5 +1,5 @@
 import type { StoreTx } from '@commerce/db'
-import { media, newId, productMedia, variant } from '@commerce/db'
+import { media, newId, productMedia, variant, variantMedia } from '@commerce/db'
 import {
   isAllowedContentType,
   isImageContentType,
@@ -8,8 +8,9 @@ import {
   type PresignedUpload,
   type StorageProvider,
 } from '@commerce/storage'
-import { and, asc, desc, eq, ilike, inArray, isNotNull, notInArray, or, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
 import { z } from 'zod'
+import { pruneVariantMedia, syncFeaturedMedia, variantsUsingMedia } from '../catalog/variant-media'
 import { CommerceError } from '../errors'
 import { memberAccess } from '../permissions/service'
 import { permissions } from '../permissions/statement'
@@ -337,7 +338,11 @@ export async function deleteMedia(tx: StoreTx, id: string, provider: StorageProv
   const [row] = await tx.select().from(media).where(eq(media.id, id))
   if (!row) throw new CommerceError('NOT_FOUND', `Media ${id} not found`)
   await tx.delete(productMedia).where(eq(productMedia.mediaId, id))
+  // Variants showing it fall back to their next image (or none).
+  const variants = await variantsUsingMedia(tx, id)
+  await tx.delete(variantMedia).where(eq(variantMedia.mediaId, id))
   await tx.update(variant).set({ mediaId: null }).where(eq(variant.mediaId, id))
+  await syncFeaturedMedia(tx, variants)
   await tx.delete(media).where(eq(media.id, id))
   if (row.key && row.provider === provider.id) await provider.delete(row.key)
   return row
@@ -427,17 +432,8 @@ export async function setProductMedia(
       .insert(productMedia)
       .values(ordered.map((mediaId, position) => ({ storeId, productId, mediaId, position })))
   }
-  // A variant thumbnail must still be in the gallery.
-  await tx
-    .update(variant)
-    .set({ mediaId: null })
-    .where(
-      and(
-        eq(variant.productId, productId),
-        isNotNull(variant.mediaId),
-        ordered.length ? notInArray(variant.mediaId, ordered) : undefined,
-      ),
-    )
+  // A variant's images must still be in the gallery; its main image moves to the next one left.
+  await pruneVariantMedia(tx, productId, ordered)
   return ordered
 }
 

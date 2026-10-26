@@ -58,6 +58,7 @@ export const STOREFRONT_CACHE_TABLES = [
   'theme_version',
   'url_redirect',
   'variant',
+  'variant_media',
   'variant_option_value',
 ] as const
 

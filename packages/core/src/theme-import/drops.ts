@@ -25,7 +25,10 @@ export type LiquidVariantData = {
   sku: string | null
   barcode: string | null
   options: string[]
+  /** The variant's main image (`variant.image` / `featured_media`), carrying the media id. */
   image: LiquidImageData | null
+  /** The variant's images in order, first = `image`; empty when it has none of its own. */
+  media?: LiquidImageData[] | undefined
   weightGrams: number | null
 }
 

@@ -1,6 +1,7 @@
 import {
   DEFAULT_GST_RATE_PERCENT,
   LOW_STOCK_THRESHOLD,
+  loadVariantMedia,
   noteProductEvent,
   noteProductsChanged,
   notSystemTest,
@@ -232,6 +233,10 @@ export async function getProduct(tx: StoreTx, id: string) {
     .where(eq(productMedia.productId, id))
     .orderBy(asc(productMedia.position))
   const valueById = new Map(values.map((v) => [v.id, v]))
+  const variantImages = await loadVariantMedia(
+    tx,
+    variants.map((v) => v.id),
+  )
   return {
     ...p,
     images,
@@ -242,6 +247,8 @@ export async function getProduct(tx: StoreTx, id: string) {
     })),
     variants: variants.map((v) => ({
       ...v,
+      /** The variant's images in order; the first is `mediaId`. */
+      mediaIds: variantImages.get(v.id) ?? (v.mediaId ? [v.mediaId] : []),
       /** Values in option order, so the form can rebuild the matrix row. */
       optionValues: options.map(
         (o) =>

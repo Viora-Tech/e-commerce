@@ -44,7 +44,10 @@ export const VariantInputSchema = z.object({
   /** Null uses the store's GST rate. */
   gstRatePercent: z.number().int().min(0).max(40).nullable().optional(),
   onHand: z.number().int().min(0).max(1_000_000).optional(),
+  /** The variant's main image. Writers that know only one image (imports, bulk tools) send this. */
   mediaId: z.uuid().nullable().optional(),
+  /** The variant's images in order, first = main image; wins over `mediaId` when sent. */
+  mediaIds: z.array(z.uuid()).max(50).optional(),
 })
 
 export const OptionInputSchema = z.object({
