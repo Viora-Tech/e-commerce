@@ -5,10 +5,8 @@ import CheckoutAddressStep from '@/components/checkout/checkout-address-step'
 import CheckoutContactStep from '@/components/checkout/checkout-contact-step'
 import CheckoutPayFooter from '@/components/checkout/checkout-pay-footer'
 import CheckoutPaymentStep from '@/components/checkout/checkout-payment-step'
-import CheckoutProgress from '@/components/checkout/checkout-progress'
-import CheckoutRecap from '@/components/checkout/checkout-recap'
+import CheckoutSections from '@/components/checkout/checkout-sections'
 import CheckoutStepNav from '@/components/checkout/checkout-step-nav'
-import CheckoutStepPanel from '@/components/checkout/checkout-step-panel'
 import CheckoutStepsShell from '@/components/checkout/checkout-steps-shell'
 import CheckoutSummary from '@/components/checkout/checkout-summary'
 import DeliveryMethod from '@/components/checkout/delivery-method'
@@ -19,7 +17,6 @@ import { recapRows } from '@/lib/checkout-recap'
 import type { CheckoutStep } from '@/lib/checkout-steps'
 import { type CheckoutFormInput, useCheckoutForm } from '@/lib/use-checkout-form'
 import { useCheckoutGst } from '@/lib/use-checkout-gst'
-import { stepHeadingId } from '@/lib/use-checkout-step'
 
 type CheckoutFormProps = CheckoutFormInput
 
@@ -109,24 +106,56 @@ export default function CheckoutForm(props: CheckoutFormProps) {
         </SummaryDisclosure>
       }
     >
-      <form noValidate onSubmit={ck.handleSubmit} className="flex flex-col gap-8">
+      <form noValidate onSubmit={ck.handleSubmit} className="flex flex-col gap-3">
         <h1 className="sr-only">{content.title}</h1>
-        <CheckoutProgress steps={ck.steps} current={step} labels={labels} onGo={ck.handleGoto} />
-        <CheckoutRecap
+        <CheckoutSections
+          steps={ck.steps}
+          current={step}
+          labels={labels}
           rows={recapRows({
-            step,
+            step: 'payment',
             steps: ck.steps,
             form: ck.form,
             digitalOnly,
             rate: rate ?? null,
             arrives: shipping?.arrives ?? null,
           })}
-          onChange={ck.handleGoto}
-        />
-        <CheckoutStepPanel
-          headingId={stepHeadingId(step)}
           title={title}
           intro={stepIntro(step, digitalOnly, place)}
+          onChange={ck.handleGoto}
+          footer={
+            <CheckoutPayFooter
+              error={
+                ck.error ??
+                (ck.needsContact
+                  ? ck.accountRequired
+                    ? content.otp.needSignInRequired
+                    : content.otp.needSignIn
+                  : ck.toFix > 0
+                    ? content.validation.fixFields(ck.toFix)
+                    : null)
+              }
+              shortfall={shortfall}
+              policies={paying ? (ck.policies ?? []) : []}
+              trust={paying && look.branding.trustBadges ? trustMethodNames(totals.offered) : null}
+              processors={paying && !totals.coveredByCards ? processorNames(totals.offered) : []}
+              nav={
+                <CheckoutStepNav
+                  label={primaryLabel}
+                  pays={paying}
+                  pending={ck.pending}
+                  updating={quoting}
+                  disabled={
+                    paying
+                      ? ck.unserviceable || ck.shortfall > 0 || ck.gates.shipping === 'blocked'
+                      : step === 'shipping' && ck.gates.shipping !== 'ok'
+                  }
+                  onBack={at > 0 ? ck.handleBack : null}
+                  backLabel={at > 0 ? copy.goTo(labels[ck.steps[at - 1] as CheckoutStep]) : ''}
+                />
+              }
+            />
+          }
         >
           {step === 'contact' ? (
             <CheckoutContactStep ck={ck} />
@@ -145,38 +174,7 @@ export default function CheckoutForm(props: CheckoutFormProps) {
           ) : (
             <CheckoutPaymentStep ck={ck} />
           )}
-        </CheckoutStepPanel>
-        <CheckoutPayFooter
-          error={
-            ck.error ??
-            (ck.needsContact
-              ? ck.accountRequired
-                ? content.otp.needSignInRequired
-                : content.otp.needSignIn
-              : ck.toFix > 0
-                ? content.validation.fixFields(ck.toFix)
-                : null)
-          }
-          shortfall={shortfall}
-          policies={paying ? (ck.policies ?? []) : []}
-          trust={paying && look.branding.trustBadges ? trustMethodNames(totals.offered) : null}
-          processors={paying && !totals.coveredByCards ? processorNames(totals.offered) : []}
-          nav={
-            <CheckoutStepNav
-              label={primaryLabel}
-              pays={paying}
-              pending={ck.pending}
-              updating={quoting}
-              disabled={
-                paying
-                  ? ck.unserviceable || ck.shortfall > 0 || ck.gates.shipping === 'blocked'
-                  : step === 'shipping' && ck.gates.shipping !== 'ok'
-              }
-              onBack={at > 0 ? ck.handleBack : null}
-              backLabel={at > 0 ? copy.goTo(labels[ck.steps[at - 1] as CheckoutStep]) : ''}
-            />
-          }
-        />
+        </CheckoutSections>
       </form>
     </CheckoutStepsShell>
   )
