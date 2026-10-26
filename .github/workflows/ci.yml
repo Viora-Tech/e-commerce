@@ -1,16 +1,27 @@
 name: CI
 
-# Paused (owner, 2026-10-02): checks run locally before each PR, so CI does not start on its
-# own. Run it by hand from the Actions tab; restore the triggers below to turn it back on.
+# Runs on every PR and on pushes to the long-lived branches, plus by hand from the Actions tab.
+# Re-enabled 2026-10-26 (was paused 2026-10-02) so the DB-backed security tests — the cross-store
+# RLS leak test and the payment webhook guard — gate every merge and a regression can't ship.
 on:
   workflow_dispatch:
-  # push:
-  #   branches: [main]
-  # pull_request:
+  push:
+    branches: [dev, main]
+  pull_request:
+
+# One run per branch/PR; a newer push cancels the older in-progress run.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check:
     runs-on: ubuntu-latest
+    # The GitHub runner has 2 cores / ~7 GB. The default (turbo fans out ~10 packages, each vitest
+    # spawning TEST_WORKERS=3 forks with a DB copy apiece) OOM-kills the runner. One DB copy per
+    # worker and one package at a time (--concurrency=1 on the test step) keeps it under the cap.
+    env:
+      TEST_WORKERS: '1'
     services:
       postgres:
         image: postgres:17-alpine
@@ -38,4 +49,5 @@ jobs:
       - run: bun run lint
       - run: bun run typecheck
       - run: bun run test:sweeps
-      - run: bun run test
+      # --concurrency=1: run one package's vitest at a time so peak memory stays bounded (see env note).
+      - run: bun run test --concurrency=1
