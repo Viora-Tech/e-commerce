@@ -1,5 +1,5 @@
-/** SOURCE OF TRUTH: return email data — WHAT: the template fields a return_* message needs (the items going back, the refund, the pickup), and the repeat approval message when a courier is booked after it went out / WHY: `deliverNotification` builds order messages; a return message swaps in the return's own lines and details */
-import { orderLine, outboxEvent, returnRequest, returnRequestLine } from '@commerce/db'
+/** SOURCE OF TRUTH: return email data — WHAT: the template fields a return_* message needs (the items going back, the refund, the pickup), the repeat approval message when a courier is booked after it went out, and the exchange-on-its-way message when an exchange draft becomes an order / WHY: `deliverNotification` builds order messages; a return message swaps in the return's own lines and details */
+import { order, orderLine, outboxEvent, returnRequest, returnRequestLine } from '@commerce/db'
 import { formatMoney } from '@commerce/money'
 import type { TemplateData } from '@commerce/notifications'
 import { and, eq, isNull, sql } from 'drizzle-orm'
@@ -24,6 +24,10 @@ export async function returnTemplateData(
     .innerJoin(orderLine, eq(orderLine.id, returnRequestLine.orderLineId))
     .where(eq(returnRequestLine.returnRequestId, returnId))
   const value = lines.reduce((s, l) => s + l.quantity * l.unitPricePaise, 0)
+  const [from] = await ctx.tx
+    .select({ number: order.number })
+    .from(order)
+    .where(eq(order.id, r.orderId))
   const reason = r.reason as ReturnReason | null
   return {
     lines: lines.map((l) => ({
@@ -49,8 +53,24 @@ export async function returnTemplateData(
           : r.resolution === 'refund'
             ? 'original'
             : undefined,
+      originalOrderNumber: from?.number,
     },
   }
+}
+
+/**
+ * A return's exchange draft was turned into an order (`convertDraft`): the shopper hears the
+ * replacement is on its way, about the new order (its number, link and items). Any other draft
+ * converts silently, as before.
+ */
+export async function announceExchangeOrder(ctx: StoreContext, orderId: string) {
+  const [r] = await ctx.tx
+    .select({ id: returnRequest.id })
+    .from(returnRequest)
+    .where(and(eq(returnRequest.storeId, ctx.storeId), eq(returnRequest.exchangeOrderId, orderId)))
+    .limit(1)
+  if (!r) return
+  await insertOutboxEvent(ctx.tx, ctx.storeId, 'return.exchanged', { orderId, returnId: r.id })
 }
 
 /**

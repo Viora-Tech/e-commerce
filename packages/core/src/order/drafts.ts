@@ -14,6 +14,7 @@ import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
+import { announceExchangeOrder } from '../returns/notify'
 import { StoreAddressSchema } from '../settings/general'
 import { assertCustomerInStore } from '../store-scope'
 import { chargedGstRate, parseStoreTax } from '../tax/settings'
@@ -481,5 +482,6 @@ export async function convertDraft(
     amountPaise: o.totalPaise,
   })
   const result = await recomputeOrderStatuses(ctx, id)
+  await announceExchangeOrder(ctx, id)
   return updated && result ? { ...updated, ...result.after } : (updated ?? null)
 }

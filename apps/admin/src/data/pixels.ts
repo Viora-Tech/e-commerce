@@ -6,6 +6,7 @@ export const pixelsContent = {
     ViewContent: 'Product view',
     AddToCart: 'Add to cart',
     InitiateCheckout: 'Checkout started',
+    AddPaymentInfo: 'Payment method picked',
     Purchase: 'Purchase',
   } as Record<string, string>,
   triggers: {

@@ -42,6 +42,8 @@ export type OutboxEventType =
   | 'return.received'
   /** Money went back for a return (to the original payment or as store credit). */
   | 'return.refunded'
+  /** A return's exchange draft became an order; `orderId` is that new order, `returnId` the return. */
+  | 'return.exchanged'
   /** A shipment came back to the merchant undelivered (RTO); an RTO task was opened on the order. */
   | 'order.rto'
   /** A shipment's tracking says the courier is out with it today. */
@@ -253,6 +255,7 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   'return.rejected': 'return_rejected',
   'return.received': 'return_received',
   'return.refunded': 'return_refunded',
+  'return.exchanged': 'return_exchanged',
   // The merchant sees the RTO task on the order and in Shipments; the shopper is not emailed.
   'order.rto': null,
   'shipment.out_for_delivery': 'out_for_delivery',
@@ -321,6 +324,7 @@ export const REPEATABLE_OUTBOX_EVENTS: ReadonlySet<OutboxEventType> = new Set([
   'return.rejected',
   'return.received',
   'return.refunded',
+  'return.exchanged',
 ])
 
 /**
@@ -348,6 +352,7 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'return.rejected': null,
   'return.received': null,
   'return.refunded': null,
+  'return.exchanged': null,
   'order.rto': 'order.rto',
   'shipment.out_for_delivery': null,
   'order.delivered': 'order.delivered',

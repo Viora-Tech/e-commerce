@@ -30,14 +30,20 @@ export function useStoreActions(): StoreActions {
 
 /**
  * Pixels app: a storefront event a block or page reports (PageView, ViewContent, AddToCart,
- * InitiateCheckout, Purchase). The storefront's listener sends it to the store's pixels only
+ * InitiateCheckout, AddPaymentInfo, Purchase). The storefront's listener sends it to the store's pixels only
  * after a yes to marketing; with no listener (the editor, no consent) nothing happens.
  */
 export const COMMERCE_TRACK_EVENT = 'commerce:track'
 
 export type CommerceTrackDetail = {
-  name: 'PageView' | 'ViewContent' | 'AddToCart' | 'InitiateCheckout' | 'Purchase'
-  /** Set for events tied to a record (`ord_<orderId>`, `ic_<cartId>`); else the listener mints one. */
+  name:
+    | 'PageView'
+    | 'ViewContent'
+    | 'AddToCart'
+    | 'InitiateCheckout'
+    | 'AddPaymentInfo'
+    | 'Purchase'
+  /** Set for events tied to a record (`ord_<orderId>`, `ic_<cartId>`, `api_<cartId>_<method>`); else the listener mints one. */
   eventId?: string | undefined
   productId?: string | undefined
   variantId?: string | undefined

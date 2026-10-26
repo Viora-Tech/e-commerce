@@ -27,6 +27,7 @@ Each pixel sends, if you leave them ticked:
 - **Product view**: a product page.
 - **Add to cart**: the product page's Add to cart and Buy it now.
 - **Checkout started**: when checkout opens.
+- **Payment method picked** (Meta's AddPaymentInfo): when the shopper picks a way to pay at checkout, once per way to pay. Pixels added before 26 October 2026 have it unticked: tick it on the pixel's card to send it.
 - **Purchase**: see below.
 
 Values and products come from your catalogue and the cart, never from the browser. Customer details (email, phone, name, city, state, PIN) are hashed with SHA-256 before they leave Koomerce.

@@ -33,6 +33,8 @@ export type PixelEventName =
   | 'ViewContent'
   | 'AddToCart'
   | 'InitiateCheckout'
+  /** The shopper picked a way to pay at checkout (Meta's AddPaymentInfo). */
+  | 'AddPaymentInfo'
   | 'Purchase'
 /**
  * When the server Purchase is sent. `paid_or_delivered`: a prepaid order when it is paid, a COD

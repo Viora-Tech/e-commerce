@@ -123,6 +123,8 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
       return [d.storeName, d.returnInfo?.label ?? '-', n, d.returnInfo?.decisionNote ?? '-']
     case 'return_refunded':
       return [d.storeName, d.returnInfo?.refundLabel ?? d.totalLabel, d.returnInfo?.label ?? '-']
+    case 'return_exchanged':
+      return [d.storeName, d.returnInfo?.label ?? '-', n, d.orderUrl ?? '-']
     case 'out_for_delivery':
       return [d.storeName, n, d.trackingUrl ?? '-']
     case 'delivered':
