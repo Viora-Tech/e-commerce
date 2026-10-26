@@ -30,13 +30,15 @@ type VariantsCardProps = {
   title: string
   options: OptionRow[]
   variants: VariantRow[]
-  /** Gallery, so a variant can point at one of its images. */
+  /** Gallery, so a variant can use its images. */
   media: MediaItem[]
   /** Option names and values the store's other products use, offered first. */
   facets?: Facets | undefined
   error?: string | undefined
   onOptions: (options: OptionRow[]) => void
   onVariant: (index: number, patch: Partial<VariantRow>) => void
+  /** Files uploaded from a variant's images dialog join the product gallery. */
+  onAddMedia: (items: MediaItem[]) => void
 }
 
 type VariantsCopy = (typeof productFormContent)['variants']
@@ -92,6 +94,7 @@ export default function VariantsCard({
   error,
   onOptions,
   onVariant,
+  onAddMedia,
 }: VariantsCardProps) {
   // Hooks
   const { variants: copy } = useCopy(productFormContent)
@@ -266,6 +269,7 @@ export default function VariantsCard({
           selected={selected}
           onSelectedChange={setSelected}
           onVariant={onVariant}
+          onAddMedia={onAddMedia}
           onGenerateSku={handleGenerateSku}
         />
       ) : null}

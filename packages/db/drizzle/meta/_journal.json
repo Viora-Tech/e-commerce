@@ -1107,6 +1107,13 @@
       "when": 1793023470328,
       "tag": "0173_shipment_booking_details",
       "breakpoints": true
+    },
+    {
+      "idx": 158,
+      "version": "7",
+      "when": 1793031153597,
+      "tag": "0174_variant_media",
+      "breakpoints": true
     }
   ]
 }

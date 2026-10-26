@@ -449,6 +449,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'products.save':
     'Full write from the product form: options, variants and inventory in one transaction.',
   'products.searchVariants': 'Variant picker for the draft order editor.',
+  'products.setVariantImages':
+    "Set one variant's images in order (first = the variant's main image); a file not yet in the product's gallery is added to it.",
   'products.stats': 'Tiles above the list.',
   'products.update': 'Small patches from the list page (bulk status).',
   'purchaseDocuments.apply': 'Apply what the merchant ticked on the review screen.',

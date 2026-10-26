@@ -17,6 +17,7 @@ import {
   productOptionValue,
   sellableStock,
   variant,
+  variantMedia,
   variantOptionValue,
 } from '@commerce/db'
 import { review } from '@commerce/plugin-reviews/schema'
@@ -255,6 +256,21 @@ export async function getProductByHandle(
           .where(inArray(variantOptionValue.variantId, vids))
       : []
 
+  // Each variant's own images in order; the gallery shows them first when it is picked.
+  const variantImages =
+    vids.length > 0
+      ? await tx
+          .select({ variantId: variantMedia.variantId, url: media.url })
+          .from(variantMedia)
+          .innerJoin(media, eq(media.id, variantMedia.mediaId))
+          .where(inArray(variantMedia.variantId, vids))
+          .orderBy(asc(variantMedia.position))
+      : []
+  const imageUrlsOf = (v: (typeof vs)[number]) => {
+    const listed = variantImages.filter((r) => r.variantId === v.id).map((r) => r.url)
+    return listed.length > 0 ? listed : v.imageUrl ? [v.imageUrl] : []
+  }
+
   const purchasable = (v: (typeof vs)[number]) => purchasableFor(p, v, launched)
 
   const firstVariant = vs.find((v) => purchasable(v)) ?? vs[0]
@@ -301,6 +317,7 @@ export async function getProductByHandle(
       purchasable: purchasable(v),
       optionValueIds: links.filter((l) => l.variantId === v.id).map((l) => l.optionValueId),
       imageUrl: v.imageUrl,
+      imageUrls: imageUrlsOf(v),
     })),
   }
 }

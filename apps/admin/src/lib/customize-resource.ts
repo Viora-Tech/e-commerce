@@ -58,6 +58,7 @@ function toProductDetail(p: AdminProduct): ProductDetail {
           return id ? [id] : []
         }),
         imageUrl: p.images.find((i) => i.id === v.mediaId)?.url ?? null,
+        imageUrls: v.mediaIds.flatMap((id) => p.images.find((i) => i.id === id)?.url ?? []),
       }
     }),
     launchAt: p.launchAt ? new Date(p.launchAt).toISOString() : null,

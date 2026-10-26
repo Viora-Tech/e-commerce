@@ -3,6 +3,7 @@ import {
   BulkEditInputSchema,
   bulkEdit,
   bulkUpdateProducts,
+  CommerceError,
   createProduct,
   deleteProduct,
   duplicateProduct,
@@ -15,9 +16,11 @@ import {
   parseProductCsv,
   permissions,
   STOCK_FILTERS,
+  setVariantMedia,
   summariseImport,
   syncAutomaticCollections,
   uniqueHandle,
+  VARIANT_MEDIA_MAX,
   updateProduct as writeProduct,
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
@@ -240,6 +243,34 @@ export const productsRouter = {
     .handler(({ context, input: { id, ...patch } }) =>
       updateProduct(context.tx, context.scope.storeId, id, patch),
     ),
+
+  /**
+   * Set one variant's images in order (first = the variant's main image); a file not yet in the
+   * product's gallery is added to it. An empty list clears them.
+   */
+  setVariantImages: can(permissions.PRODUCTS_WRITE)
+    .input(
+      z.object({
+        variantId: z.uuid(),
+        mediaIds: z.array(z.uuid()).max(VARIANT_MEDIA_MAX),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      try {
+        return await setVariantMedia(
+          context.tx,
+          context.scope.storeId,
+          input.variantId,
+          input.mediaIds,
+        )
+      } catch (err) {
+        if (err instanceof CommerceError) {
+          const code = err.code === 'NOT_FOUND' ? 'NOT_FOUND' : 'BAD_REQUEST'
+          throw new ORPCError(code, { message: err.message })
+        }
+        throw err
+      }
+    }),
 
   updateVariant: can(permissions.INVENTORY_WRITE)
     .input(
