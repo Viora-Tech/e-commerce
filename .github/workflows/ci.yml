@@ -24,6 +24,7 @@ jobs:
     env:
       TEST_WORKERS: '1'
       NODE_OPTIONS: '--max-old-space-size=6144'
+      REDIS_URL: 'redis://localhost:6379'
     services:
       postgres:
         image: postgres:17-alpine
@@ -37,8 +38,17 @@ jobs:
           --health-interval 5s
           --health-timeout 3s
           --health-retries 10
-      # Dragonfly is not started here: service containers cannot pass
-      # --cluster_mode=emulated, and no test uses the queue yet.
+      # @commerce/queue tests (fair/visitors/rate-limit) run against a real Redis. Dragonfly can't
+      # run as a service container (it needs --cluster_mode=emulated), but these tests use only
+      # standard ops (sorted sets, multi, hashtag keys on a single node), so stock Redis serves.
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
     steps:
       # Pinned to full commit SHAs; the comment is the release. Bump both together.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
