@@ -43,16 +43,14 @@ export default function CheckoutAddressBook({ ck }: CheckoutAddressBookProps) {
       values={ck.form}
       errors={ck.shownErrors}
       digitalOnly={totals.digitalOnly}
-      gstinEnabled={ck.settings.gstin}
-      business={ck.business}
-      deliveryText={ck.unserviceable ? null : ck.deliveryText}
+      deliveryBy={ck.deliveryBy}
+      unserviceable={ck.unserviceable ? ck.deliveryText : null}
       checking={ck.checking}
       onLabel={customer ? ck.handleLabel : null}
       onField={ck.set}
       onLeave={ck.handleLeave}
       onPincode={ck.handlePincode}
       onState={ck.handleState}
-      onBusiness={ck.handleBusiness}
       onPlace={ck.handlePlace}
     />
   )

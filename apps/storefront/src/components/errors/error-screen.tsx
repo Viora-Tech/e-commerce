@@ -32,9 +32,16 @@ export default function ErrorScreen({ kind, error, retry }: ErrorScreenProps) {
   const [help, setHelp] = useState<ErrorHelp | null>(null)
   const [retrying, startRetry] = useTransition()
 
+  // A boundary-caught error is not uncaught, so GlitchTip's global handlers never see it:
+  // report it here (the SDK loads only now, and does nothing when no DSN was configured).
   useEffect(() => {
     console.error(error)
-  }, [error])
+    void import('@sentry/nextjs')
+      .then((sentry) =>
+        sentry.captureException(error, { mechanism: { type: `${kind}-boundary`, handled: true } }),
+      )
+      .catch(() => undefined)
+  }, [error, kind])
 
   useEffect(() => {
     let alive = true
@@ -159,8 +166,8 @@ export default function ErrorScreen({ kind, error, retry }: ErrorScreenProps) {
             <CheckoutBrand
               storeName={help.storeName}
               logoUrl={help.logoUrl}
-              backHref={backHref}
-              backLabel={text.secondary}
+              href={backHref}
+              label={text.secondary}
             />
           ) : null}
         </div>

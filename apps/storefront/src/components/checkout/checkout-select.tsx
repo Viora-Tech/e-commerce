@@ -1,5 +1,5 @@
 import CheckoutIcon from '@/components/checkout/checkout-icon'
-import { CK_INPUT, CK_INPUT_HEIGHT, CK_LABEL } from '@/lib/checkout-classes'
+import { CK_INPUT, CK_INPUT_FILLED, CK_INPUT_HEIGHT, CK_LABEL } from '@/lib/checkout-classes'
 
 type CheckoutSelectProps = {
   id: string
@@ -10,6 +10,8 @@ type CheckoutSelectProps = {
   onBlur?: () => void
   error?: string | null | undefined
   autoComplete?: string
+  /** Filled in by the checkout (State from the PIN code): soft grey with a brief highlight. */
+  filled?: boolean
 }
 
 /** A native select in the checkout's field look: the phone's own picker, keyboard-friendly. */
@@ -22,6 +24,7 @@ export default function CheckoutSelect({
   onBlur,
   error,
   autoComplete,
+  filled = false,
 }: CheckoutSelectProps) {
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
@@ -32,7 +35,7 @@ export default function CheckoutSelect({
         <select
           id={id}
           name={id}
-          className={`${CK_INPUT} ${CK_INPUT_HEIGHT} cursor-pointer appearance-none truncate pr-10!`}
+          className={`${filled ? CK_INPUT_FILLED : CK_INPUT} ${CK_INPUT_HEIGHT} cursor-pointer appearance-none truncate pr-10!`}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onBlur={onBlur}

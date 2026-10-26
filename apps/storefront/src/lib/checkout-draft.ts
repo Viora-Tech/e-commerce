@@ -1,7 +1,7 @@
 import type { CheckoutFormState } from '@/lib/checkout-form-state'
 
 /*
- * What a reload keeps of the stepped checkout: the typed details and the picks, for this
+ * What a reload keeps of the checkout: the typed details and the picks, for this
  * cart, in this browser tab only (sessionStorage, gone when the tab closes). The step itself
  * lives in the URL (`lib/checkout-steps.ts`); this is what lets `?step=payment` survive a
  * reload. Gift cards are not kept: their balance is re-checked when they are applied.

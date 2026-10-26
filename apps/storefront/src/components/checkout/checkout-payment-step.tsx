@@ -4,6 +4,7 @@ import { trackCommerce } from '@commerce/blocks'
 import type { CartView } from '@commerce/core'
 import { CHECKOUT_LIMITS } from '@commerce/core/checkout-settings'
 import { addPaymentInfoEventId } from '@commerce/core/pixels'
+import CheckoutGstFields from '@/components/checkout/checkout-gst-fields'
 import PaymentMethods from '@/components/checkout/payment-methods'
 import { checkoutContent as content } from '@/data/checkout'
 import { CK_INPUT, CK_LABEL } from '@/lib/checkout-classes'
@@ -33,9 +34,10 @@ function trackPaymentInfo(cart: CartView, methodId: string): void {
 }
 
 /**
- * The last step (Figma Checkout / Payment): the ways to pay as one list (UPI first, cash on
- * delivery last), the picked one opening onto what happens next, and the order note when the
- * store takes one. Paying opens the provider's own window or the UPI QR, as before.
+ * The Payment card's body (design): the ways to pay as radio cards (UPI first, cash on
+ * delivery last), the picked one opening onto what happens next, the order note when the
+ * store takes one, and "Get a GST invoice" when Settings → Checkout allows a GSTIN. Paying
+ * opens the provider's own window or the UPI QR, as before.
  */
 export default function CheckoutPaymentStep({ ck }: CheckoutPaymentStepProps) {
   // Event handlers
@@ -48,9 +50,9 @@ export default function CheckoutPaymentStep({ ck }: CheckoutPaymentStepProps) {
   const { totals } = ck
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-3.5">
       {totals.coveredByCards ? (
-        <p className="rounded-ck border border-ck-line bg-ck-field px-4 py-3 text-[0.875rem] text-ck-ink">
+        <p className="rounded-ck border border-ck-line bg-ck-canvas px-4 py-3 text-[0.875rem] text-ck-ink">
           {content.paidByGiftCard}
         </p>
       ) : (
@@ -59,6 +61,7 @@ export default function CheckoutPaymentStep({ ck }: CheckoutPaymentStepProps) {
           selected={totals.payment}
           codBlocked={totals.codBlocked}
           codNote={totals.codNote}
+          amountLabel={ck.payNow}
           onSelect={handleSelect}
         />
       )}
@@ -77,6 +80,16 @@ export default function CheckoutPaymentStep({ ck }: CheckoutPaymentStepProps) {
             onChange={ck.set('note')}
           />
         </div>
+      ) : null}
+      {ck.settings.gstin ? (
+        <CheckoutGstFields
+          values={ck.form}
+          errors={ck.shownErrors}
+          business={ck.business}
+          onBusiness={ck.handleBusiness}
+          onField={ck.set}
+          onLeave={ck.handleLeave}
+        />
       ) : null}
     </div>
   )

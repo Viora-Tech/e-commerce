@@ -33,7 +33,17 @@ const methods: CheckoutMethod[] = offeredMethods(cart as never, [
   { id: 'cashfree', label: 'Cashfree', methods: ['card', 'netbanking'] },
   { id: 'razorpay', label: 'Razorpay', methods: ['upi', 'card', 'netbanking', 'emi'] },
 ])
-const props = { methods, selected: 'razorpay', codBlocked: false, codNote: null, onSelect: vi.fn() }
+const props = {
+  methods,
+  selected: 'razorpay',
+  codBlocked: false,
+  codNote: null,
+  amountLabel: '₹1,000',
+  onSelect: vi.fn(),
+}
+/** The markup of one method's card. */
+const cardOf = (html: string, id: string): string =>
+  html.split('data-method=').find((part) => part.startsWith(`"${id}"`)) ?? ''
 const render = (over: object = {}) =>
   renderToStaticMarkup(createElement(PaymentMethods, { ...props, ...over }))
 
@@ -66,17 +76,19 @@ describe('PaymentMethods', () => {
 
   it('opens the picked method only, and switches with the pick', () => {
     const upi = render()
-    expect(upi).toContain('Pay with any UPI app')
-    expect(upi).toContain('Processed by Razorpay')
+    expect(cardOf(upi, 'razorpay')).toContain('You finish on Razorpay')
+    expect(cardOf(upi, 'razorpay')).not.toContain('inert')
+    expect(cardOf(upi, 'cashfree')).toContain('inert')
     expect(upi.match(/checked=""/g)).toHaveLength(1)
 
     const cards = render({ selected: 'cashfree' })
-    expect(cards).not.toContain('Pay with any UPI app')
-    expect(cards).toContain('secure window. Processed by Cashfree.')
+    expect(cardOf(cards, 'cashfree')).not.toContain('inert')
+    expect(cardOf(cards, 'cashfree')).toContain('You finish on Cashfree')
+    expect(cardOf(cards, 'razorpay')).toContain('inert')
 
     const cash = render({ selected: 'cod' })
-    expect(cash).not.toContain('Pay with any UPI app')
-    expect(cash).not.toContain('Processed by')
+    expect(cardOf(cash, 'cod')).toContain('Pay in cash when your order arrives')
+    expect(cardOf(cash, 'cod')).not.toContain('inert')
   })
 
   it('reports the pick for each method', () => {
@@ -88,10 +100,18 @@ describe('PaymentMethods', () => {
     expect(onSelect.mock.calls).toEqual([['cod'], ['cashfree']])
   })
 
-  it('asks for no UPI ID (UPI Collect is gone): QR or the app only', () => {
-    const html = render()
+  it('asks for no UPI ID (UPI Collect is gone): QR or the app only, with the amount', () => {
+    const upi = offeredMethods(cart as never, [{ id: 'decentro', label: 'UPI' }, ...methods])
+    const html = render({ methods: upi, selected: 'decentro' })
     expect(html).not.toMatch(/UPI ID|@bank|yourname/i)
-    for (const app of ['GPay', 'PhonePe', 'Paytm', 'BHIM']) expect(html).toContain(app)
+    for (const app of ['GPay', 'PhonePe', 'Paytm', 'Decentro']) expect(html).toContain(app)
+    expect(cardOf(html, 'decentro')).toContain('Pay ₹1,000 straight from your bank')
+  })
+
+  it('shows a discount for a way to pay as a chip', () => {
+    const upi = { id: 'decentro', label: 'UPI', adjustment: { type: 'percent', value: -200 } }
+    const html = render({ methods: [upi as CheckoutMethod, ...methods], selected: 'decentro' })
+    expect(cardOf(html, 'decentro')).toContain('−2%')
   })
 
   it('keeps blocked cash on delivery visible, disabled, with the reason', () => {

@@ -1,41 +1,44 @@
 'use client'
 
 import { formatPaise } from '@commerce/blocks'
-import CheckoutAddressStep from '@/components/checkout/checkout-address-step'
-import CheckoutContactStep from '@/components/checkout/checkout-contact-step'
-import CheckoutPayFooter from '@/components/checkout/checkout-pay-footer'
+import CheckoutAddressBook from '@/components/checkout/checkout-address-book'
+import CheckoutAgreement from '@/components/checkout/checkout-agreement'
+import CheckoutCard from '@/components/checkout/checkout-card'
+import CheckoutContact from '@/components/checkout/checkout-contact'
+import CheckoutIcon from '@/components/checkout/checkout-icon'
+import CheckoutPageShell from '@/components/checkout/checkout-page-shell'
+import CheckoutPayButton from '@/components/checkout/checkout-pay-button'
 import CheckoutPaymentStep from '@/components/checkout/checkout-payment-step'
-import CheckoutSections from '@/components/checkout/checkout-sections'
-import CheckoutStepNav from '@/components/checkout/checkout-step-nav'
-import CheckoutStepsShell from '@/components/checkout/checkout-steps-shell'
 import CheckoutSummary from '@/components/checkout/checkout-summary'
 import DeliveryMethod from '@/components/checkout/delivery-method'
+import ExpressPay from '@/components/checkout/express-pay'
 import SummaryDisclosure from '@/components/checkout/summary-disclosure'
 import { checkoutContent as content } from '@/data/checkout'
-import { processorNames, shippingRow, trustMethodNames } from '@/lib/checkout-preview'
-import { recapRows } from '@/lib/checkout-recap'
-import type { CheckoutStep } from '@/lib/checkout-steps'
+import { CK_LINK } from '@/lib/checkout-classes'
+import { processorNames, shippingRow } from '@/lib/checkout-preview'
+import { type CheckoutSection, sectionDomId, sectionHeadingId } from '@/lib/checkout-sections'
+import { cleanPincode } from '@/lib/checkout-validation'
 import { type CheckoutFormInput, useCheckoutForm } from '@/lib/use-checkout-form'
 import { useCheckoutGst } from '@/lib/use-checkout-gst'
 
 type CheckoutFormProps = CheckoutFormInput
 
-const copy = content.steps
+const FORM_ID = 'checkout-form'
+const copy = content.sections
+const express = content.express
 
-/** The intro under a step's heading; Contact's sign-in block says it in its own words. */
-function stepIntro(step: CheckoutStep, digitalOnly: boolean, place: string | null): string | null {
-  if (step === 'contact') return null
-  if (step === 'payment') return copy.intro.payment
-  if (step === 'shipping') return place ? copy.intro.shipping(place) : copy.intro.shippingNoPlace
-  return digitalOnly ? copy.intro.details : copy.intro.address
-}
+/** A card's number on this page: 1 Contact, 2 Delivery, then Shipping when there is one. */
+const numberIn = (sections: readonly CheckoutSection[], s: CheckoutSection): number =>
+  sections.indexOf(s) + 1
 
 /**
- * The locked checkout in four steps (Figma Checkout): Contact → Address → Delivery → Payment, with
- * the order summary beside every step (a fold-out bar on a phone). The step lives in the
- * URL, so back, forward and reload behave; each step's gate decides how far the shopper may
- * go. One form for the whole checkout (#224); the logic is `useCheckoutForm`, and the
- * server re-checks and re-prices everything on Pay.
+ * The checkout on one page (design: checkout-design Main.dc.html and Mobile.dc.html): Express
+ * checkout at the top, then numbered cards, 1 Contact, 2 Delivery, 3 Shipping, 4 Payment, all
+ * open at once, with the order summary on the right from `lg` (a fold-out card at the top on
+ * a phone) and Pay in the summary card on a computer or in a bar stuck to the bottom of a
+ * phone. Each card's number turns into a tick once its part is filled in. One form for the
+ * whole checkout (#224); the logic is `useCheckoutForm`, and the server re-checks and
+ * re-prices everything on Pay.
  */
 export default function CheckoutForm(props: CheckoutFormProps) {
   // Hooks
@@ -47,30 +50,64 @@ export default function CheckoutForm(props: CheckoutFormProps) {
   })
 
   // Render logic
-  const { totals, deposit, look, step, shipping, rate } = ck
+  const { totals, deposit, look, shipping, rate, done, sections } = ck
   const { digitalOnly } = totals
-  const labels: Record<CheckoutStep, string> = {
-    ...copy.label,
-    address: digitalOnly ? copy.detailsLabel : copy.label.address,
-  }
-  const at = ck.steps.indexOf(step)
-  const next = ck.steps[at + 1]
-  const paying = next === undefined
-  const place = ck.form.pincode ? [ck.form.pincode, ck.form.city].filter(Boolean).join(', ') : null
-  const title = step === 'address' && digitalOnly ? copy.detailsHeading : copy.heading[step]
-  const primaryLabel =
-    next === 'address' || next === 'shipping' || next === 'payment'
-      ? copy.continueTo[next]
-      : ck.payLabel
-  // Pay and Continue on Shipping wait for the courier's quote (the price is part of the total).
-  const quoting = (paying || step === 'shipping') && ck.gates.shipping === 'pending'
+  const pincode = cleanPincode(ck.form.pincode)
+  const fullPincode = /^[1-9]\d{5}$/.test(pincode)
   const shortfall =
     ck.shortfall > 0
       ? content.minimumOrder(formatPaise(ck.settings.minimumOrderPaise), formatPaise(ck.shortfall))
       : null
+  const error =
+    ck.error ??
+    (ck.needsContact
+      ? ck.accountRequired
+        ? content.otp.needSignInRequired
+        : content.otp.needSignIn
+      : ck.toFix > 0
+        ? content.validation.fixFields(ck.toFix)
+        : null)
+  // Express pays with the option picked in Shipping, so its line names that option and price.
+  const expressLine = digitalOnly
+    ? express.totalOnly(ck.payNow)
+    : shipping?.rates.kind === 'free'
+      ? express.total(ck.payNow, express.freeShipping)
+      : rate
+        ? express.total(
+            ck.payNow,
+            express.shippingLine(
+              rate.name || content.delivery.standard,
+              rate.pricePaise === 0 ? content.shippingFree : formatPaise(rate.pricePaise),
+            ),
+          )
+        : express.noShippingYet
+  const showExpress = ck.upi !== null && !totals.coveredByCards
+  const payDisabled = ck.unserviceable || ck.shortfall > 0
+  const footnote = look.branding.trustBadges
+    ? content.payFootnote(totals.coveredByCards ? [] : processorNames(totals.offered))
+    : null
+  const pay = (
+    <CheckoutPayButton
+      form={FORM_ID}
+      label={ck.payLabel}
+      pending={ck.pending}
+      updating={ck.updating}
+      disabled={payDisabled}
+    />
+  )
+  const signInLink =
+    ck.customer === null && ck.guest && !ck.accountRequired ? (
+      <button
+        type="button"
+        onClick={() => ck.handleGuest(false)}
+        className={`${CK_LINK} text-[0.75rem]! text-ck-muted! hover:text-ck-ink! sm:text-[0.8125rem]!`}
+      >
+        {copy.signIn}
+      </button>
+    ) : null
 
   return (
-    <CheckoutStepsShell
+    <CheckoutPageShell
       look={look}
       backHref="/cart"
       backLabel={content.backToCart}
@@ -105,63 +142,80 @@ export default function CheckoutForm(props: CheckoutFormProps) {
           />
         </SummaryDisclosure>
       }
+      summaryEnd={
+        <>
+          {!digitalOnly && fullPincode && ck.deliveryBy ? (
+            <p className="flex items-center gap-2.5 rounded-ck bg-ck-summary-line p-3 text-[0.75rem] transition-[opacity,translate] duration-200 ease-out starting:translate-y-1 starting:opacity-0 motion-reduce:starting:translate-y-0">
+              <CheckoutIcon name="truck" className="size-[1.125rem] shrink-0" />
+              <span>
+                {content.deliversTo.to} <strong className="font-semibold">{pincode}</strong>{' '}
+                {content.deliversTo.by} <strong className="font-semibold">{ck.deliveryBy}</strong>
+              </span>
+            </p>
+          ) : null}
+          {pay}
+          {footnote ? (
+            <p className="text-center text-[0.6875rem] text-ck-summary-muted">{footnote}</p>
+          ) : null}
+        </>
+      }
+      bottomBar={
+        <>
+          {pay}
+          {footnote ? (
+            <p className="text-center text-[0.625rem] text-ck-muted">{footnote}</p>
+          ) : null}
+        </>
+      }
     >
-      <form noValidate onSubmit={ck.handleSubmit} className="flex flex-col gap-3">
+      <form
+        id={FORM_ID}
+        noValidate
+        onSubmit={ck.handleSubmit}
+        className="flex flex-col gap-3 sm:gap-4"
+      >
         <h1 className="sr-only">{content.title}</h1>
-        <CheckoutSections
-          steps={ck.steps}
-          current={step}
-          labels={labels}
-          rows={recapRows({
-            step: 'payment',
-            steps: ck.steps,
-            form: ck.form,
-            digitalOnly,
-            rate: rate ?? null,
-            arrives: shipping?.arrives ?? null,
-          })}
-          title={title}
-          intro={stepIntro(step, digitalOnly, place)}
-          onChange={ck.handleGoto}
-          footer={
-            <CheckoutPayFooter
-              error={
-                ck.error ??
-                (ck.needsContact
-                  ? ck.accountRequired
-                    ? content.otp.needSignInRequired
-                    : content.otp.needSignIn
-                  : ck.toFix > 0
-                    ? content.validation.fixFields(ck.toFix)
-                    : null)
-              }
-              shortfall={shortfall}
-              policies={paying ? (ck.policies ?? []) : []}
-              trust={paying && look.branding.trustBadges ? trustMethodNames(totals.offered) : null}
-              processors={paying && !totals.coveredByCards ? processorNames(totals.offered) : []}
-              nav={
-                <CheckoutStepNav
-                  label={primaryLabel}
-                  pays={paying}
-                  pending={ck.pending}
-                  updating={quoting}
-                  disabled={
-                    paying
-                      ? ck.unserviceable || ck.shortfall > 0 || ck.gates.shipping === 'blocked'
-                      : step === 'shipping' && ck.gates.shipping !== 'ok'
-                  }
-                  onBack={at > 0 ? ck.handleBack : null}
-                  backLabel={at > 0 ? copy.goTo(labels[ck.steps[at - 1] as CheckoutStep]) : ''}
-                />
-              }
-            />
-          }
+        {showExpress ? (
+          <ExpressPay
+            line={expressLine}
+            pending={ck.pending}
+            disabled={ck.updating || ck.unserviceable || ck.shortfall > 0}
+            message={ck.expressNote}
+            onPay={ck.handleExpress}
+          />
+        ) : null}
+        <CheckoutCard
+          id={sectionDomId('contact')}
+          headingId={sectionHeadingId('contact')}
+          number={numberIn(sections, 'contact')}
+          title={copy.label.contact}
+          done={done.contact}
+          aside={signInLink}
         >
-          {step === 'contact' ? (
-            <CheckoutContactStep ck={ck} />
-          ) : step === 'address' ? (
-            <CheckoutAddressStep ck={ck} />
-          ) : step === 'shipping' ? (
+          <CheckoutContact ck={ck} />
+        </CheckoutCard>
+        <CheckoutCard
+          id={sectionDomId('address')}
+          headingId={sectionHeadingId('address')}
+          number={numberIn(sections, 'address')}
+          title={digitalOnly ? copy.detailsLabel : copy.label.address}
+          done={done.address}
+        >
+          <CheckoutAddressBook ck={ck} />
+        </CheckoutCard>
+        {digitalOnly ? null : (
+          <CheckoutCard
+            id={sectionDomId('shipping')}
+            headingId={sectionHeadingId('shipping')}
+            number={numberIn(sections, 'shipping')}
+            title={copy.label.shipping}
+            done={done.shipping}
+            aside={
+              fullPincode ? (
+                <span className="text-[0.75rem] text-ck-muted">{copy.shippingTo(pincode)}</span>
+              ) : null
+            }
+          >
             <DeliveryMethod
               shipping={shipping}
               rates={ck.rates}
@@ -171,11 +225,39 @@ export default function CheckoutForm(props: CheckoutFormProps) {
               estimate={ck.deliveryText}
               onSelect={ck.handleRate}
             />
-          ) : (
-            <CheckoutPaymentStep ck={ck} />
-          )}
-        </CheckoutSections>
+          </CheckoutCard>
+        )}
+        <CheckoutCard
+          id={sectionDomId('payment')}
+          headingId={sectionHeadingId('payment')}
+          number={numberIn(sections, 'payment')}
+          title={copy.label.payment}
+          aside={<span className="text-[0.75rem] text-ck-muted">{copy.paymentNote}</span>}
+        >
+          <CheckoutPaymentStep ck={ck} />
+        </CheckoutCard>
+        {shortfall ? (
+          <p
+            role="status"
+            className="rounded-ck border border-ck-line bg-ck-bg px-4 py-3 text-[0.875rem] text-ck-ink"
+          >
+            {shortfall}
+          </p>
+        ) : null}
+        {/* Out of the flow while empty, still in the accessibility tree so it announces. */}
+        <div aria-live="assertive" className="empty:absolute">
+          {error ? (
+            <p
+              id="checkout-error"
+              className="flex items-start gap-2.5 rounded-ck border border-ck-danger/35 bg-ck-danger-soft px-4 py-3 text-[0.875rem] leading-snug text-ck-danger transition-[opacity,translate] duration-200 ease-out starting:translate-y-1 starting:opacity-0 motion-reduce:starting:translate-y-0"
+            >
+              <CheckoutIcon name="alert" className="mt-0.5! size-4 shrink-0" />
+              {error}
+            </p>
+          ) : null}
+        </div>
+        <CheckoutAgreement policies={ck.policies ?? []} />
       </form>
-    </CheckoutStepsShell>
+    </CheckoutPageShell>
   )
 }

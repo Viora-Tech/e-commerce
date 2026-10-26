@@ -57,7 +57,7 @@ describe('checkoutFieldErrors', () => {
   })
 
   it('orders fields the way the form shows them', () => {
-    expect(fieldOrder(true).slice(0, 3)).toEqual(['email', 'phone', 'pincode'])
+    expect(fieldOrder(true).slice(0, 3)).toEqual(['phone', 'email', 'pincode'])
     expect(fieldOrder(false).at(-2)).toBe('pincode')
   })
 })

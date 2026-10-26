@@ -9,15 +9,28 @@ import type {
 import { lowestEmiPaise } from '@commerce/core/emi'
 import type { PolicyLink } from '@commerce/core/policies'
 import { useRouter } from 'next/navigation'
-import { useEffect, useRef, useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { checkoutContent as content } from '@/data/checkout'
 import { deleteAddressAction, saveAddressAction } from '@/lib/account-actions'
 import { captureContactAction, checkoutAction } from '@/lib/cart-actions'
 import { readDraft, writeDraft } from '@/lib/checkout-draft'
 import { type CheckoutFormState, NEW_ADDRESS, prefillCheckout } from '@/lib/checkout-form-state'
-import { checkoutTotals, deliveryLine, offeredMethods, takesUpi } from '@/lib/checkout-preview'
+import {
+  checkoutTotals,
+  deliveryBy,
+  deliveryLine,
+  isDigitalOnly,
+  offeredMethods,
+  takesUpi,
+} from '@/lib/checkout-preview'
 import { readRemembered, writeRemembered } from '@/lib/checkout-remember'
-import { type CheckoutStep, type StepGates, stepsFor } from '@/lib/checkout-steps'
+import { bringIntoView, followLegacyStep } from '@/lib/checkout-scroll'
+import {
+  firstOpenSection,
+  type SectionGates,
+  sectionDomId,
+  sectionsFor,
+} from '@/lib/checkout-sections'
 import {
   type CheckoutFieldKey,
   checkoutFieldErrors,
@@ -30,9 +43,8 @@ import type { AppliedGiftCard } from '@/lib/gift-card-actions'
 import type { CheckoutMethod } from '@/lib/payments'
 import type { CartDepositTerms } from '@/lib/preorder'
 import { isFullPincode, useCheckoutShipping } from '@/lib/use-checkout-shipping'
-import { useCheckoutStep } from '@/lib/use-checkout-step'
 
-/** Settings → Customer accounts, as the contact step needs it. */
+/** Settings → Customer accounts, as the Contact card needs it. */
 export type CheckoutSignIn = {
   /** Code methods the store can send, in order; never empty. */
   methods: LoginMethod[]
@@ -71,21 +83,19 @@ type ChangeHandler = (
 
 const NO_DEPOSIT: CartDepositTerms = { laterPaise: 0, nonRefundableDays: null }
 const GUEST_EMAIL: CheckoutSignIn = { methods: ['email'], checkout: 'guest', options: null }
-/** The Send code button of the contact step; Continue points here until the shopper signs in. */
+/** The Send code button in Contact; Pay points here until the shopper signs in. */
 export const SEND_CODE_ID = 'checkout-send-code'
 /** The Save button of an address being edited. */
 export const SAVE_ADDRESS_ID = 'checkout-address-save'
 
 /** What an address book entry needs before Save writes it. */
 const ADDRESS_KEYS = ['pincode', 'name', 'line1', 'city', 'stateCode', 'phone'] as const
-/** The fields the Contact step shows; every other field is the Address step's. */
+/** The fields the Contact card shows; every other field is the Delivery card's. */
 const CONTACT_KEYS: readonly CheckoutFieldKey[] = ['email', 'phone']
-const stepOfField = (key: CheckoutFieldKey): CheckoutStep =>
-  CONTACT_KEYS.includes(key) ? 'contact' : 'address'
 
 /**
- * Everything the stepped checkout knows and does, so `CheckoutForm` and its step panels
- * only draw. Every amount here is a preview; `checkoutAction` and `placeOrder` re-check and
+ * Everything the one-page checkout knows and does, so `CheckoutForm` and its cards only
+ * draw. Every amount here is a preview; `checkoutAction` and `placeOrder` re-check and
  * re-price everything on the server.
  */
 export function useCheckoutForm(input: CheckoutFormInput) {
@@ -110,15 +120,16 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   const [touched, setTouched] = useState<Partial<Record<CheckoutFieldKey, true>>>({})
   const [attempted, setAttempted] = useState(false)
   const [expressNote, setExpressNote] = useState<string | null>(null)
-  /** The shopper skipped the code and checks out as a guest (when the store allows it). */
-  const [guest, setGuest] = useState(false)
+  /**
+   * Checking out as a guest (the plain contact fields) unless the store needs an account;
+   * "Sign in" in the Contact card switches to the code.
+   */
+  const [guest, setGuest] = useState(signIn.checkout !== 'account_required')
   /** The saved address being edited in place, or null. */
   const [editingId, setEditingId] = useState<string | null>(null)
   const [addressError, setAddressError] = useState<string | null>(null)
   /** The tab's saved draft has been read back; until then the gates only know the prefill. */
   const [settled, setSettled] = useState(false)
-  /** A field to focus once its step is on screen (Pay found something to fix). */
-  const focusNext = useRef<CheckoutFieldKey | null>(null)
 
   // The courier cannot collect cash here: move off cash on delivery to the first online method.
   const { checking, shipping, rates, rate, rateId, setRateId, unserviceable, checkPincode, gate } =
@@ -130,7 +141,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
       ),
     )
 
-  // Read back this tab's draft (a reload keeps the details and the step), then quote the
+  // Read back this tab's draft (a reload keeps the details), then quote the
   // address the page opened with: the draft's, or the account's prefilled one.
   // biome-ignore lint/correctness/useExhaustiveDependencies: once, on mount.
   useEffect(() => {
@@ -164,6 +175,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     }
     if (isFullPincode(opened.pincode)) checkPincode(opened.pincode, opened.stateCode)
     setSettled(true)
+    followLegacyStep(sectionsFor(isDigitalOnly(cart)))
   }, [])
   useEffect(() => {
     if (!settled) return
@@ -202,21 +214,20 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     laterPaise: deposit.laterPaise,
   })
   const { digitalOnly, offered, payment, coveredByCards, payNowPaise } = totals
-  const gates: StepGates = {
-    contact: contactReady && !wrongFields.some((k) => CONTACT_KEYS.includes(k)) ? 'ok' : 'blocked',
+  const contactFieldsOk = !wrongFields.some((k) => CONTACT_KEYS.includes(k))
+  const addressFieldsOk = !wrongFields.some((k) => !CONTACT_KEYS.includes(k) && k !== 'gstin')
+  const gates: SectionGates = {
+    contact: contactReady && contactFieldsOk ? 'ok' : 'blocked',
     address: contactReady && wrongFields.length === 0 && editingId === null ? 'ok' : 'blocked',
     shipping: gate,
   }
-  const steps = stepsFor(digitalOnly)
-  const { step, go } = useCheckoutStep(steps, gates, settled)
-
-  // Pay found a field to fix on an earlier step: focus it once that step is on screen.
-  useEffect(() => {
-    const key = focusNext.current
-    if (!key || stepOfField(key) !== step) return
-    focusNext.current = null
-    document.getElementById(fieldId(key))?.focus()
-  }, [step])
+  const sections = sectionsFor(digitalOnly)
+  /** Each card's own work, for the tick on its number; Delivery does not wait on Contact. */
+  const done = {
+    contact: gates.contact === 'ok',
+    address: addressFieldsOk && editingId === null,
+    shipping: gates.shipping === 'ok',
+  }
 
   const set =
     (k: keyof CheckoutFormState): ChangeHandler =>
@@ -225,8 +236,9 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   const touch = (k: CheckoutFieldKey) =>
     setTouched((prev) => (prev[k] ? prev : { ...prev, [k]: true }))
   /**
-   * Point at what stops the address step: signing in (the mobile number, then Send code),
-   * the first wrong field, or an address still being edited.
+   * Point at what stops the order: signing in (the mobile number, then Send code), the first
+   * wrong field, or an address still being edited. Everything is on one page, so this only
+   * scrolls to it and focuses it.
    */
   const showFirstWrong = (): void => {
     setAttempted(true)
@@ -240,19 +252,19 @@ export function useCheckoutForm(input: CheckoutFormInput) {
         : editingId
           ? SAVE_ADDRESS_ID
           : null
-    if (!target) return
-    // Signing in and the contact fields live on the Contact step; every other fix on Address.
-    const home: CheckoutStep = first ? stepOfField(first) : signInFirst ? 'contact' : 'address'
-    if (step === home) document.getElementById(target)?.focus()
-    else {
-      if (first) focusNext.current = first
-      go({ type: 'goto', step: home })
-    }
+    if (target) bringIntoView(target)
   }
   /** Place the order with this way to pay, or point at the first field that needs fixing. */
   const submit = (paymentId: string): boolean => {
     if (gates.address !== 'ok') {
       showFirstWrong()
+      return false
+    }
+    // Shipping is part of the price: the order goes with the option picked in Shipping, and
+    // waits until there is one (the courier is still quoting, or nothing covers the address).
+    if (firstOpenSection(gates, sections) === 'shipping') {
+      if (gates.shipping === 'blocked') setError(content.errors.pickShipping)
+      bringIntoView(sectionDomId('shipping'))
       return false
     }
     setError(null)
@@ -365,41 +377,28 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   const handleLabel = (label: string) => setForm((prev) => ({ ...prev, label }))
   const handlePayment = (id: string) => setForm((prev) => ({ ...prev, payment: id }))
   const handlePhone = (phone: string) => setForm((prev) => ({ ...prev, phone }))
-  /** Continue on the contact and address steps shows every check first; later steps wait at their gate. */
-  const handleContinue = () => {
-    // Not signed in yet: Continue (and Enter) press the contact step's Send code / Verify.
-    const send = document.getElementById(SEND_CODE_ID)
-    if (step === 'contact' && !contactReady) {
-      if (send instanceof HTMLButtonElement && !send.disabled) send.click()
-      else showFirstWrong()
-      return
-    }
-    if (step === 'contact' && gates.contact !== 'ok') {
-      showFirstWrong()
-      return
-    }
-    if (step === 'address' && gates.address !== 'ok') {
-      showFirstWrong()
-      return
-    }
-    setError(null)
-    go({ type: 'next' })
-  }
-  const handleBack = () => go({ type: 'back' })
-  const handleGoto = (to: CheckoutStep) => go({ type: 'goto', step: to })
-  /* Enter in a field continues; on the last step it pays. One form for the whole checkout. */
+  /* Enter in a field pays, like the Pay button. One form for the whole checkout. */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setExpressNote(null)
-    if (step === steps[steps.length - 1]) submit(payment)
-    else handleContinue()
+    submit(payment)
   }
-  /* Express UPI: pick the UPI method and pay at once when the details are in. */
+  /*
+   * Express UPI: pick the UPI method and pay at once with the shipping option picked in
+   * Shipping (the cheapest until the shopper changes it), or point at what is missing.
+   */
   const handleExpress = () => {
     const upiMethod = offered.find(takesUpi)
     if (!upiMethod) return
     setForm((prev) => ({ ...prev, payment: upiMethod.id }))
-    setExpressNote(submit(upiMethod.id) ? null : content.express.needDetails)
+    const placed = submit(upiMethod.id)
+    setExpressNote(
+      placed
+        ? null
+        : gates.address === 'ok'
+          ? content.express.needShipping
+          : content.express.needDetails,
+    )
   }
   /* COD cannot collect what a gift card leaves; move to the first online method. */
   const handleGiftCardApply = (card: AppliedGiftCard) => {
@@ -453,12 +452,9 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     addressError,
     giftCards,
     shownErrors,
-    toFix:
-      attempted && contactReady && (step === 'contact' || step === 'address')
-        ? wrongFields.filter((k) => stepOfField(k) === step).length
-        : 0,
-    /** Continue was pressed before the contact step was settled. */
-    needsContact: attempted && step === 'contact' && !contactReady,
+    toFix: attempted && contactReady ? wrongFields.length : 0,
+    /** Pay was pressed before the contact was settled (signed in, or a guest). */
+    needsContact: attempted && !contactReady,
     totals,
     payNow,
     payLabel,
@@ -466,10 +462,12 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     shortfall,
     unserviceable,
     deliveryText: deliveryLine(shipping, checking),
+    /** "Thu, 29 Oct": the latest day the picked option arrives, for the PIN code line. */
+    deliveryBy: deliveryBy(shipping, rate),
     upi: offered.find(takesUpi) ?? null,
-    steps,
-    step,
+    sections,
     gates,
+    done,
     set,
     handlePincode,
     handleState,
@@ -486,9 +484,6 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     handleDeleteAddress,
     handleLabel,
     handleRate: setRateId,
-    handleContinue,
-    handleBack,
-    handleGoto,
     handleSubmit,
     handleExpress,
     handleGiftCardApply,

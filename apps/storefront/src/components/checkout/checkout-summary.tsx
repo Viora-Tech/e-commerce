@@ -81,14 +81,16 @@ export default function CheckoutSummary({
   )
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="hidden items-baseline justify-between gap-4 lg:flex">
-        <h2 className={`${CK_HEADING} text-[1.125rem]!`}>{content.summary}</h2>
-        <p className="text-[0.8125rem] text-ck-summary-muted">{content.itemCount(itemCount)}</p>
+    <div className="flex flex-col gap-4.5">
+      <div className="hidden items-center justify-between gap-4 lg:flex">
+        <h2 className={`${CK_HEADING} text-[1rem]! font-bold!`}>{content.summary}</h2>
+        <p className="flex h-6 items-center rounded-[0.5rem] bg-ck-summary-line px-2 font-mono text-[0.6875rem] font-medium tracking-[0.04em] text-ck-summary-muted uppercase">
+          {content.itemCount(itemCount)}
+        </p>
       </div>
 
-      <section aria-label={content.summary} className="flex flex-col gap-7">
-        <ul className="flex flex-col gap-5">
+      <section aria-label={content.summary} className="flex flex-col gap-4">
+        <ul className="flex flex-col gap-4">
           {cart.lines.map((l) => (
             <SummaryLine
               key={l.id}
@@ -103,7 +105,7 @@ export default function CheckoutSummary({
         </ul>
 
         {digitalOnly ? null : (
-          <div className="flex flex-col gap-4 border-t border-ck-summary-line pt-6">
+          <div className="flex flex-col gap-2 border-t border-ck-summary-line pt-4">
             <CheckoutDiscount discount={discount} />
             <GiftCardField
               applied={giftCards}
@@ -113,7 +115,7 @@ export default function CheckoutSummary({
           </div>
         )}
 
-        <dl className="flex flex-col gap-3 border-t border-ck-summary-line pt-6">
+        <dl className="flex flex-col gap-2 border-t border-ck-summary-line pt-4">
           <SummaryRow label={content.subtotal} value={formatPaise(cart.subtotalPaise)} />
           {discount?.label && discountPaise > 0 ? (
             <SummaryRow
@@ -135,7 +137,7 @@ export default function CheckoutSummary({
           {adjustmentPaise !== 0 ? (
             <SummaryRow label={adjustmentLabel} value={formatSignedMoney(adjustmentPaise)} />
           ) : null}
-          <div className="mt-2! border-t border-ck-summary-line pt-4">
+          <div className="mt-1! border-t border-ck-summary-line pt-3">
             <SummaryRow
               tone="total"
               label={
@@ -149,7 +151,11 @@ export default function CheckoutSummary({
                 </span>
               }
               value={
-                <span className="text-[1.5rem] tracking-[-0.02em]" aria-live="polite">
+                <span
+                  key={updating ? 'updating' : totalPaise}
+                  aria-live="polite"
+                  className="inline-block text-[1.25rem] font-extrabold tracking-[-0.02em] transition-[opacity,translate] duration-200 ease-out starting:translate-y-0.5 starting:opacity-0 motion-reduce:starting:translate-y-0 lg:text-[1.5rem]"
+                >
                   {updating ? shimmer : formatPaise(totalPaise)}
                 </span>
               }

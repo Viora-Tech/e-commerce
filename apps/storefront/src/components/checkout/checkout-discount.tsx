@@ -16,6 +16,8 @@ type CheckoutDiscountProps = {
  * The discount code in the checkout summary: the same server actions as the cart's field,
  * drawn in the checkout's look. A working code is a chip with Remove; an automatic offer
  * is a chip without it. The page re-renders with the new discount after either action.
+ * The field is open from the start (design); an applied code's chip settles in (opacity and
+ * scale from 0.97, 200ms ease-out).
  */
 export default function CheckoutDiscount({ discount }: CheckoutDiscountProps) {
   // Hooks
@@ -50,7 +52,7 @@ export default function CheckoutDiscount({ discount }: CheckoutDiscountProps) {
     error ??
     (rejected && !applied ? (content.errors[rejected] ?? content.errors.invalid ?? null) : null)
   const chip = applied ? (
-    <div className="flex items-center justify-between gap-3 text-[0.875rem]">
+    <div className="flex items-center justify-between gap-3 text-[0.875rem] transition-[opacity,scale] duration-200 ease-out starting:scale-[0.97] starting:opacity-0 motion-reduce:starting:scale-100">
       <span className="inline-flex min-w-0 items-center gap-2 rounded-full bg-ck-summary-line px-3 py-1 font-medium">
         <CheckoutIcon name="tag" className="size-3.5" />
         <span className="truncate">
@@ -82,6 +84,7 @@ export default function CheckoutDiscount({ discount }: CheckoutDiscountProps) {
       error={shownError}
       chips={chip}
       hideEntry={Boolean(applied?.code)}
+      defaultOpen
       onCode={setCode}
       onApply={handleApply}
     />

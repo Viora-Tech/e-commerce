@@ -74,7 +74,7 @@ export function fieldOrder(pincodeFirst: boolean): CheckoutFieldKey[] {
   const address: CheckoutFieldKey[] = pincodeFirst
     ? ['pincode', 'name', 'line1', 'city', 'stateCode']
     : ['name', 'line1', 'city', 'stateCode', 'pincode']
-  return ['email', 'phone', ...address, 'gstin']
+  return ['phone', 'email', ...address, 'gstin']
 }
 
 /** The DOM id of a field's input, shared by the field and the focus-first-error step. */
