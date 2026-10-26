@@ -34,6 +34,9 @@ type Item = ListResult['items'][number]
 
 const VIEWS = ['grid', 'list'] as const
 
+/** How often the page re-reads while a file on it is still being optimised. */
+const OPTIMISING_POLL_MS = 5_000
+
 export type FileCounts = { all: number; image: number; video: number; document: number }
 
 export type MediaLibraryInitial = {
@@ -120,6 +123,20 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
       cancelled = true
     }
   }, [page, perPage, query, type, initial.page, initial.perPage, initial.query, initial.type])
+  /* A fresh image shows at once marked "Optimising"; re-read the page until the worker is done,
+     so its tile switches to the small optimised copy without a reload (each read re-arms this). */
+  useEffect(() => {
+    if (!items.some((i) => i.status === 'processing')) return
+    const timer = setTimeout(() => {
+      fetchMedia(page, perPage, query, type)
+        .then((r) => {
+          setItems(r.items)
+          setTotal(r.total)
+        })
+        .catch(() => {})
+    }, OPTIMISING_POLL_MS)
+    return () => clearTimeout(timer)
+  }, [items, page, perPage, query, type])
 
   // Event handlers
   const handleSearch = (e: FormEvent) => {
@@ -272,6 +289,7 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
                 url: item.url,
                 alt: item.alt,
                 contentType: item.contentType,
+                variants: item.variants,
                 name: item.key ? fileName(item.key) : (item.alt ?? copy.title),
                 meta: metaOf(item),
                 actions: actionsFor(item),
@@ -285,8 +303,18 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
                   key={p.key}
                   className="relative aspect-[4/3] overflow-hidden rounded-xl border bg-muted"
                 >
-                  {/* biome-ignore lint/performance/noImgElement: object URL preview while uploading. */}
-                  <img src={p.previewUrl} alt="" className="size-full object-cover opacity-50" />
+                  {p.file.type.startsWith('video/') ? (
+                    <video
+                      src={p.previewUrl}
+                      muted
+                      playsInline
+                      preload="metadata"
+                      className="size-full object-cover opacity-50"
+                    />
+                  ) : (
+                    /* biome-ignore lint/performance/noImgElement: object URL preview while uploading. */
+                    <img src={p.previewUrl} alt="" className="size-full object-cover opacity-50" />
+                  )}
                   <span className="absolute inset-x-0 bottom-0 bg-card/90 px-2 py-1 text-center text-caption">
                     {p.error
                       ? mediaContent.tile.failed

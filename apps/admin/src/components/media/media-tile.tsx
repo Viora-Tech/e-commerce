@@ -1,23 +1,28 @@
 'use client'
 
-import { ImageIcon, Video } from '@commerce/ui/icons'
+import type { MediaVariants } from '@commerce/core/media-loader'
+import { Video } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { ROW_STATE_CLASS } from '@commerce/ui/sortable'
 import { motion } from 'motion/react'
 import Link from 'next/link'
 import type { Ref } from 'react'
 import ActionMenu from '@/components/layout/action-menu'
-import FallbackImage from '@/components/layout/fallback-image'
 import { mediaContent } from '@/data/media'
 import { useCopy } from '@/hooks/use-copy'
 import { IMAGE_GLIDE_SPRING } from '@/hooks/use-image-dnd'
-import { contentTypeOf } from './file-meta'
+import { contentTypeOf, fileName } from './file-meta'
+import MediaTilePreview from './media-tile-preview'
 
 export type MediaTileItem = {
   id: string
   url: string
   alt: string | null
   contentType: string | null
+  /** The pipeline's smaller copies; the tile shows one instead of the original when present. */
+  variants?: MediaVariants
+  /** `processing`: stored, the worker has not optimised it yet (the tile says so). */
+  status?: string | undefined
 }
 
 export type MediaTileAction = {
@@ -89,20 +94,14 @@ export default function MediaTile({
           sortable?.dragging && ROW_STATE_CLASS.placeholder,
         )}
       >
-        {video ? (
-          <video src={item.url} muted playsInline className="size-full object-cover" />
-        ) : (
-          <FallbackImage
-            src={item.url}
-            alt={item.alt ?? ''}
-            className="size-full object-cover"
-            fallback={
-              <span className="flex size-full items-center justify-center text-muted-foreground">
-                <ImageIcon className="size-6" aria-hidden />
-              </span>
-            }
-          />
-        )}
+        <MediaTilePreview
+          key={item.url}
+          url={item.url}
+          alt={item.alt}
+          variants={item.variants}
+          video={video}
+          name={caption ?? fileName(item.url)}
+        />
         {cover ? (
           <span className="absolute top-2 left-2 rounded-md bg-card/90 px-2 py-0.5 text-caption text-foreground shadow-card">
             {copy.cover}
@@ -112,6 +111,11 @@ export default function MediaTile({
           <span className="absolute bottom-2 left-2 flex items-center gap-1 rounded-md bg-card/90 px-2 py-0.5 text-caption text-foreground">
             <Video className="size-3" aria-hidden />
             {copy.video}
+          </span>
+        ) : null}
+        {item.status === 'processing' && !video ? (
+          <span className="absolute bottom-2 left-2 rounded-md bg-card/90 px-2 py-0.5 text-caption text-muted-foreground">
+            {copy.optimising}
           </span>
         ) : null}
         <ActionMenu
