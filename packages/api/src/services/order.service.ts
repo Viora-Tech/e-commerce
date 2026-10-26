@@ -384,6 +384,10 @@ export async function getOrder(tx: StoreTx, id: string) {
   const [ship] = o.shippingAddressId
     ? await tx.select().from(address).where(eq(address.id, o.shippingAddressId))
     : []
+  const [bill] =
+    o.billingAddressId && o.billingAddressId !== o.shippingAddressId
+      ? await tx.select().from(address).where(eq(address.id, o.billingAddressId))
+      : []
   return {
     ...o,
     status: o.status as OrderStatus,
@@ -395,6 +399,8 @@ export async function getOrder(tx: StoreTx, id: string) {
     paymentEvents: await eventsForPayments(tx, payments),
     customer: cust ?? null,
     shippingAddress: ship ?? null,
+    /** Where the bill goes when it is not the shipping address; null when they are the same. */
+    billingAddress: bill ?? null,
     /** Where each part ships from: one parcel per warehouse (order/routing.ts). */
     parcels: await orderParcelsView(tx, id),
   }

@@ -369,6 +369,40 @@ describe('invoice queue', () => {
     })
     expect(updated.invoiceDate).toEqual(row.invoiceDate)
   })
+
+  it('bills a separate billing address and ships to the delivery one; place of supply stays the delivery state', async () => {
+    const { storeId, variantId } = await seedStore()
+    const orderId = await seedOrder(storeId, variantId, 1, { state: 'HR' })
+    const [bill] = await owner
+      .insert(address)
+      .values({
+        storeId,
+        name: 'Aarav Mehta',
+        line1: '9 Nariman Point',
+        city: 'Mumbai',
+        stateCode: 'MH',
+        pincode: '400021',
+        phone: '9820012345',
+      })
+      .returning()
+    await owner
+      .update(order)
+      .set({
+        billingAddressId: bill?.id,
+        buyerGstin: '27AAPFU0939F1ZV',
+        buyerBusinessName: 'Mehta Traders',
+      })
+      .where(eq(order.id, orderId))
+    const { row } = await issueOn(storeId, orderId, d('2025-06-02T10:00:00Z'))
+    const doc = DocumentSnapshotSchema.parse(row.snapshot)
+    expect(doc.buyer).toMatchObject({ name: 'Mehta Traders', gstin: '27AAPFU0939F1ZV' })
+    expect(doc.buyer.address.join(' ')).toContain('Nariman Point')
+    expect(doc.buyer.state?.code).toBe('MH')
+    expect(doc.shipTo?.address.join(' ')).toContain('Carter Road')
+    // Goods go to Haryana from a Haryana seller: CGST + SGST, place of supply 06.
+    expect(doc.placeOfSupply?.gstCode).toBe('06')
+    expect(doc.interState).toBe(false)
+  })
 })
 
 describe('series', () => {

@@ -269,6 +269,7 @@ export const orderDetailContent = {
     address: 'Shipping address',
     noAddress: 'No address on file',
     billingSame: 'Billing address is the same as shipping',
+    billingAddress: 'Billing address',
     view: 'View customer',
     heading2: 'Customer details',
     viewOrders: 'View orders',

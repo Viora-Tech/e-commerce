@@ -76,6 +76,13 @@ export function gstinCheckChar(first14: string): string {
   return CHARSET.charAt((36 - (sum % 36)) % 36)
 }
 
+/** What to tell someone whose GSTIN fails `validateGstin`, by its reason. */
+export const GSTIN_MESSAGES = {
+  shape: 'A GSTIN has 15 characters, like 06AAACW1234A1Z5',
+  state: 'The first two digits are not a GST state code',
+  checksum: 'This GSTIN has a typo: its last character does not match the rest',
+} as const
+
 export type GstinCheck = { ok: true; gstin: string } | { ok: false; reason: string }
 
 /** Shape, state code and checksum. A typo in any character fails the checksum. */

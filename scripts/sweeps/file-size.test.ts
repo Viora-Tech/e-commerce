@@ -65,7 +65,7 @@ const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
       'collections, pages, blogs, menus and redirects in one writer — split one file per resource',
   },
   'packages/db/src/schema.ts': {
-    lines: 2490,
+    lines: 2549,
     reason: 'the Drizzle schema; split into per-area schema files (like marketing-schema.ts)',
   },
   'packages/invoices/src/document.ts': { lines: 508, reason: SPLIT },

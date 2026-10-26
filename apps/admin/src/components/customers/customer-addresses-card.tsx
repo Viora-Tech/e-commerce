@@ -8,7 +8,7 @@ import CopyButton from '@/components/fields/copy-button'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
 import StatusChip from '@/components/layout/status-chip'
-import { customerAddressesContent } from '@/data/customers'
+import { customerAddressesContent } from '@/data/customer-addresses'
 import { useCopy } from '@/hooks/use-copy'
 import { addressLines } from '@/lib/address'
 import { api } from '@/lib/api-client'
@@ -21,7 +21,8 @@ type CustomerAddressesCardProps = {
 }
 
 /**
- * The customer's address book: add, edit, delete, pick the default. A customer
+ * The customer's address book: add, edit, delete, pick the default shipping and the default
+ * billing address (with no billing default, billing follows shipping). A customer
  * who has only ever ordered as a guest has no book yet; their latest order's
  * address is shown and saving it puts it in the book.
  */
@@ -38,6 +39,19 @@ export default function CustomerAddressesCard({ customer, onChanged }: CustomerA
     try {
       await api.customers.setDefaultAddress({ customerId: customer.id, addressId })
       toast.success(copy.defaultSaved)
+      onChanged()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : copy.defaultFailed)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleMakeDefaultBilling = async (addressId: string) => {
+    setBusy(true)
+    try {
+      await api.customers.setDefaultBillingAddress({ customerId: customer.id, addressId })
+      toast.success(copy.defaultBillingSaved)
       onChanged()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.defaultFailed)
@@ -79,9 +93,14 @@ export default function CustomerAddressesCard({ customer, onChanged }: CustomerA
               phone: snapshot.phone ?? '',
               label: null,
               isDefault: true,
+              isDefaultBilling: false,
+              businessName: null,
+              gstin: null,
             },
           ]
         : []
+  // No address marked for billing: the bill follows the shipping default.
+  const billingId = (rows.find((r) => r.isDefaultBilling) ?? rows.find((r) => r.isDefault))?.id
 
   return (
     <DataCard
@@ -102,20 +121,31 @@ export default function CustomerAddressesCard({ customer, onChanged }: CustomerA
             <li key={a.id ?? 'snapshot'} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0">
               <div className="flex items-start justify-between gap-2">
                 <address className="min-w-0 text-body not-italic">
+                  {a.businessName ? (
+                    <p className="break-words font-medium">{a.businessName}</p>
+                  ) : null}
                   {addressLines(a).map((l) => (
                     <p key={l} className="break-words">
                       {l}
                     </p>
                   ))}
+                  {a.gstin ? (
+                    <p className="font-mono text-caption text-muted-foreground">
+                      {copy.gstinLabel} {a.gstin}
+                    </p>
+                  ) : null}
                 </address>
                 <CopyButton value={addressLines(a).join('\n')} what={copy.heading} visible />
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {a.id === null ? (
                   <span className="text-caption text-muted-foreground">{copy.fromOrder}</span>
-                ) : a.isDefault ? (
-                  <StatusChip>{copy.default}</StatusChip>
-                ) : null}
+                ) : (
+                  <>
+                    {a.isDefault ? <StatusChip>{copy.defaultShipping}</StatusChip> : null}
+                    {a.id === billingId ? <StatusChip>{copy.defaultBilling}</StatusChip> : null}
+                  </>
+                )}
                 <div className="ml-auto flex flex-wrap items-center justify-end gap-1">
                   {a.id && !a.isDefault ? (
                     <Button
@@ -126,6 +156,17 @@ export default function CustomerAddressesCard({ customer, onChanged }: CustomerA
                       onClick={() => a.id && handleMakeDefault(a.id)}
                     >
                       {copy.setDefault}
+                    </Button>
+                  ) : null}
+                  {a.id && a.id !== billingId ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={busy}
+                      onClick={() => a.id && handleMakeDefaultBilling(a.id)}
+                    >
+                      {copy.setDefaultBilling}
                     </Button>
                   ) : null}
                   <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(a)}>

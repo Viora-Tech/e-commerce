@@ -100,6 +100,14 @@ export default [
       pincode: 'पिनकोड',
       phone: 'फ़ोन',
     },
+    billing: {
+      heading: 'बिलिंग पता',
+      same: 'बिलिंग पता वही है जो शिपिंग पता है',
+      businessName: 'कंपनी का नाम (वैकल्पिक)',
+      gstin: 'GSTIN (वैकल्पिक)',
+      gstinHelp: 'GST इनवॉइस पर छपता है। किसी व्यक्ति के नाम बिल हो तो खाली छोड़ें।',
+      gstinInvalid: 'GSTIN जाँचें: 15 अक्षर, जैसे 06AAACW1234A1Z5',
+    },
     totals: {
       heading: 'पेमेंट',
       subtotal: 'सबटोटल',
@@ -147,6 +155,7 @@ export default [
       cancel: 'रद्द करें',
       saveFirst: 'पहले ड्राफ़्ट सेव करें',
       needsAddress: 'कन्वर्ट करने से पहले शिपिंग पता जोड़ें',
+      needsBilling: "बिलिंग पता पूरा करें, या 'शिपिंग जैसा ही' पर टिक करें",
       open: 'खुला',
       invoiceSentStatus: 'इनवॉइस भेजा',
     },

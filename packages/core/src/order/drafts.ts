@@ -19,6 +19,7 @@ import { announceExchangeOrder } from '../returns/notify'
 import { StoreAddressSchema } from '../settings/general'
 import { assertCustomerInStore } from '../store-scope'
 import { chargedGstRate, parseStoreTax } from '../tax/settings'
+import { DraftAddressSchema, DraftBillingSchema, writeAddress, writeBilling } from './draft-billing'
 import { draftMoney } from './draft-discount'
 import { createFulfillmentOrders } from './fulfillment-orders'
 import { taxParcels } from './parcel-tax'
@@ -59,25 +60,19 @@ export const DraftLineSchema = z.object({
   unitPricePaise: z.number().int().min(0).optional(),
 })
 
-export const DraftAddressSchema = z.object({
-  name: z.string().trim().min(1).max(120),
-  line1: z.string().trim().min(1).max(200),
-  line2: z.string().trim().max(200).optional(),
-  city: z.string().trim().min(1).max(120),
-  stateCode: z.string().trim().min(2).max(3),
-  pincode: z
-    .string()
-    .trim()
-    .regex(/^\d{6}$/),
-  phone: z.string().trim().min(6).max(20),
-})
-
 export const DraftInputSchema = z.object({
   customerId: z.uuid().nullish(),
   email: z.string().trim().email().max(200).nullish(),
   phone: z.string().trim().max(20).nullish(),
   customerName: z.string().trim().max(120).nullish(),
   shipping: DraftAddressSchema.nullish(),
+  /**
+   * True: billing is the shipping address ("Billing address is the same as shipping"), and any
+   * billing address and GSTIN on the draft are dropped. Otherwise `billing` sets them; with
+   * neither, an edit keeps what the draft had.
+   */
+  billingSameAsShipping: z.boolean().optional(),
+  billing: DraftBillingSchema.nullish(),
   lines: z.array(DraftLineSchema).max(100).default([]),
   discountPaise: z.number().int().min(0).default(0),
   discountLabel: z.string().trim().max(120).nullish(),
@@ -147,24 +142,6 @@ async function nextNumber(ctx: StoreContext): Promise<number> {
   return s.next - 1
 }
 
-async function writeAddress(ctx: StoreContext, input: DraftInput): Promise<string | null> {
-  if (!input.shipping) return null
-  const [a] = await ctx.tx
-    .insert(address)
-    .values({
-      storeId: ctx.storeId,
-      name: input.shipping.name,
-      line1: input.shipping.line1,
-      line2: input.shipping.line2 ?? null,
-      city: input.shipping.city,
-      stateCode: input.shipping.stateCode,
-      pincode: input.shipping.pincode,
-      phone: input.shipping.phone,
-    })
-    .returning({ id: address.id })
-  return a?.id ?? null
-}
-
 async function writeLines(ctx: StoreContext, orderId: string, input: DraftInput) {
   const lines = await resolveLines(ctx, input.lines)
   await ctx.tx.delete(orderLine).where(eq(orderLine.orderId, orderId))
@@ -179,7 +156,8 @@ async function writeLines(ctx: StoreContext, orderId: string, input: DraftInput)
 export async function createDraft(ctx: StoreContext, input: DraftInput) {
   await assertCustomerInStore(ctx.tx, input.customerId, ctx.storeId)
   const number = await nextNumber(ctx)
-  const shippingAddressId = await writeAddress(ctx, input)
+  const shippingAddressId = await writeAddress(ctx, input.shipping)
+  const billing = await writeBilling(ctx, input)
   const [o] = await ctx.tx
     .insert(order)
     .values({
@@ -190,6 +168,7 @@ export async function createDraft(ctx: StoreContext, input: DraftInput) {
       email: input.email ?? null,
       phone: input.phone ?? null,
       shippingAddressId,
+      ...billing,
       paymentMethod: input.paymentMethod ?? null,
       subtotalPaise: 0,
       shippingPaise: input.shippingPaise,
@@ -213,8 +192,9 @@ export async function updateDraft(ctx: StoreContext, id: string, input: DraftInp
   if (existing.status !== 'draft') throw new DraftNotEditable(id, ctx.storeId)
   await assertCustomerInStore(ctx.tx, input.customerId, ctx.storeId)
   const shippingAddressId = input.shipping
-    ? await writeAddress(ctx, input)
+    ? await writeAddress(ctx, input.shipping)
     : existing.shippingAddressId
+  const billing = await writeBilling(ctx, input)
   const lines = await writeLines(ctx, id, input)
   const t = await draftMoney(ctx, lines, input)
   const [o] = await ctx.tx
@@ -224,6 +204,7 @@ export async function updateDraft(ctx: StoreContext, id: string, input: DraftInp
       email: input.email ?? null,
       phone: input.phone ?? null,
       shippingAddressId,
+      ...billing,
       paymentMethod: input.paymentMethod ?? null,
       ...t,
     })

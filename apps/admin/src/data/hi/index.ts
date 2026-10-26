@@ -30,6 +30,7 @@ import contentBlog from './content-blog'
 import contentFiles from './content-files'
 import createShipment from './create-shipment'
 import customData from './custom-data'
+import customerAddresses from './customer-addresses'
 import customers from './customers'
 import customersBulkEdit from './customers-bulk-edit'
 import customizeAi from './customize-ai'
@@ -154,6 +155,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...contentFiles,
   ...createShipment,
   ...customData,
+  ...customerAddresses,
   ...customers,
   ...customersBulkEdit,
   ...customizeAi,

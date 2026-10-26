@@ -730,7 +730,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/order/drafts.ts',
-    names: ['DraftLineSchema', 'DraftAddressSchema'],
+    names: ['DraftLineSchema'],
     reason: 'no external importer today — investigate before removing',
   },
   {
