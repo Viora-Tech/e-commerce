@@ -31,6 +31,21 @@ in a quiet window after the `checkout.*` hosts are provisioned.
   on the store origin when a branded origin applies, so the form never serves where theme code runs.
 - **`CHECKOUT_SUBDOMAIN`** config flag + `.env.example` / `deploy/env.production.example`.
 
+## Must fix before flipping the flag (known gaps)
+
+- **Signed-in checkout on the checkout host.** The hand-off token carries `customerId` into the
+  `wc_checkout` session, but `checkoutAction` / the `/checkout` page still read the shopper via
+  `currentCustomer()`, which reads the store-origin `wc_customer` cookie — **absent on the checkout
+  host**. So on the checkout origin a signed-in shopper is seen as a guest (and an
+  `account_required` store would bounce them to login). **Guest checkout works**; signed-in does
+  not yet cross the origin. Invisible while the flag is off (same-origin, cookie present). Fix:
+  resolve the customer from `session.customerId` on the checkout host (a `checkoutCustomerId()`
+  beside `checkoutCartId()`, then load the customer record), before enabling `CHECKOUT_SUBDOMAIN`.
+- **Branded-host provisioning check.** With the flag on, a store with a primary host is assumed to
+  have its `checkout.<primary>` TLS/DNS provisioned; there is no runtime "is it provisioned" check,
+  so flipping the flag before Task 9 is done for a store would send its shoppers to a host with no
+  cert. Provision first (Task 9), verify, then flip — as the rollout says.
+
 ## Remaining (follow-ups, not required for the D-01 security goal)
 
 - **Task 7 — gateway return URLs & order emails → the checkout origin.** Deferred: the thank-you /
