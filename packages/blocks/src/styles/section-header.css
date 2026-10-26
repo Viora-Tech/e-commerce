@@ -2252,18 +2252,18 @@ button.header__menu-link {
 /* ------------------------------------------------------------------ */
 /* Bold wordmark, sentence-case links in the muted ink, four plain 20px
    icons 16px apart and the cart count as a brand pill on the bag. */
-.header {
+.header:not(:where(.shopify-section *)) {
   padding-block: 16px;
 }
 
-.header__logo-text {
+.header__logo-text:not(:where(.shopify-section *)) {
   font-size: 24px;
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: -0.005em;
 }
 
-.header__menu-link {
+.header__menu-link:not(:where(.shopify-section *)) {
   gap: 4px;
   padding-block: 8px;
   font-size: 14px;
@@ -2275,22 +2275,22 @@ button.header__menu-link {
   opacity: 1;
 }
 
-.header__menu-link:hover,
-.header__menu-link:focus-visible,
-.header__menu-details[open] > .header__menu-link {
+.header__menu-link:hover:not(:where(.shopify-section *)),
+.header__menu-link:focus-visible:not(:where(.shopify-section *)),
+.header__menu-details[open] > .header__menu-link:not(:where(.shopify-section *)) {
   color: var(--color-ink);
 }
 
-.header__menu-link svg {
+.header__menu-link svg:not(:where(.shopify-section *)) {
   width: 14px;
   height: 14px;
 }
 
-.header__cart-link {
+.header__cart-link:not(:where(.shopify-section *)) {
   position: relative;
 }
 
-.header__cart-count {
+.header__cart-count:not(:where(.shopify-section *)) {
   top: 0;
   right: -6px;
   min-width: 0;
@@ -2303,38 +2303,38 @@ button.header__menu-link {
 }
 
 @media screen and (min-width: 990px) {
-  .header__row {
+  .header__row:not(:where(.shopify-section *)) {
     gap: 24px;
   }
 
-  .header__row--logo-left .header__nav {
+  .header__row--logo-left .header__nav:not(:where(.shopify-section *)) {
     justify-self: start;
   }
 
-  .header__menu-list {
+  .header__menu-list:not(:where(.shopify-section *)) {
     gap: 4px;
   }
 
-  .header__icons {
+  .header__icons:not(:where(.shopify-section *)) {
     gap: 8px;
     padding: 0;
     border: 0;
     background-color: transparent;
   }
 
-  .header__icons > .header__icon-btn,
-  .header__icons > details > .header__icon-btn,
-  .header__icons > .header__cart-link {
+  .header__icons > .header__icon-btn:not(:where(.shopify-section *)),
+  .header__icons > details > .header__icon-btn:not(:where(.shopify-section *)),
+  .header__icons > .header__cart-link:not(:where(.shopify-section *)) {
     width: 28px;
     height: 28px;
   }
 
-  .header__icons svg {
+  .header__icons svg:not(:where(.shopify-section *)) {
     width: 20px;
     height: 20px;
   }
 
-  .header__icons .header__cart-count {
+  .header__icons .header__cart-count:not(:where(.shopify-section *)) {
     top: -4px;
     right: -10px;
   }
