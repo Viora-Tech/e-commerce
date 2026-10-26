@@ -2,6 +2,7 @@
 import type { ShippingLabelDocument } from '@commerce/shipping'
 import type { StoreContext } from '../context'
 import { documentStorage } from '../inventory/documents'
+import { storedLabelUrl } from './shipment-state'
 
 /**
  * Labels a courier handed back as a PDF (`CreateShipmentResult.labelDocument`: Blue Dart, DTDC;
@@ -12,9 +13,6 @@ import { documentStorage } from '../inventory/documents'
 
 const labelKey = (storeId: string, shipmentId: string) =>
   `stores/${storeId}/private/shipping-labels/${shipmentId}.pdf`
-
-/** Where the admin downloads a stored label. Relative: it is only ever opened from the admin. */
-const storedLabelUrl = (shipmentId: string) => `/api/shipments/${shipmentId}/label`
 
 /**
  * Keep the label; the URL to put on the shipment, or null when storage failed. Never throws:

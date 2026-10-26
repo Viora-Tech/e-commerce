@@ -31,6 +31,10 @@ type CourierStepProps = {
   needsPackage?: boolean
   /** Asking the couriers failed; show why with a retry rather than a spinner. */
   failed?: boolean
+  /** New prices are on their way for a changed package; the old ones stay, dimmed. */
+  updating?: boolean
+  /** Half a box size is typed; the prices wait for the rest. */
+  waitingForSize?: boolean
   /** Inside a card that already shows the heading and help (the full-page flow). */
   inCard?: boolean
 }
@@ -47,6 +51,8 @@ export default function CourierStep({
   onRetry,
   needsPackage = false,
   failed = false,
+  updating = false,
+  waitingForSize = false,
   inCard = false,
 }: CourierStepProps) {
   // Hooks
@@ -61,6 +67,8 @@ export default function CourierStep({
   const groups = quote ? groupCounts(quote.options) : []
   const shown = quote?.options.filter((o) => filter === null || o.providerName === filter) ?? []
   const kg = quote ? fmt.number(Math.round(quote.chargedWeightGrams / 10) / 100) : null
+  /* The prices on screen answer an older package: they stay, dimmed, under a calm note. */
+  const stale = quote !== null && (updating || waitingForSize)
 
   return (
     <div className="flex flex-col gap-3">
@@ -101,6 +109,15 @@ export default function CourierStep({
             </p>
           )
         ) : null}
+        {stale ? (
+          <p
+            aria-live="polite"
+            className="flex items-center gap-2 text-caption text-muted-foreground"
+          >
+            {updating ? <Spinner className="size-3.5" /> : null}
+            {updating ? copy.courier.updating : copy.courier.finishSize}
+          </p>
+        ) : null}
         {groups.length > 0 ? (
           <div className="flex flex-wrap items-center gap-2">
             {[{ group: null, count: quote?.options.length ?? 0 }, ...groups].map((g) => (
@@ -132,14 +149,22 @@ export default function CourierStep({
             </Button>
           </div>
         ) : null}
-        {shown.map((row) => (
-          <CourierOption
-            key={row.optionKey}
-            row={row}
-            selected={pick === row.optionKey}
-            onSelect={() => onPick(row.optionKey)}
-          />
-        ))}
+        <div
+          aria-busy={stale}
+          className={cn(
+            'flex flex-col gap-2 transition-opacity duration-200 ease-out',
+            stale && 'opacity-60',
+          )}
+        >
+          {shown.map((row) => (
+            <CourierOption
+              key={row.optionKey}
+              row={row}
+              selected={pick === row.optionKey}
+              onSelect={() => onPick(row.optionKey)}
+            />
+          ))}
+        </div>
         {counter ? (
           <Field className="rounded-lg border border-primary bg-primary-soft p-3">
             <FieldLabel htmlFor="counter-number">{copy.courier.counterNumber.label}</FieldLabel>

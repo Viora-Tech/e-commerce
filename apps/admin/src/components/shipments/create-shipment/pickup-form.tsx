@@ -9,21 +9,22 @@ import { toast } from 'sonner'
 import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { todayKey } from '@/lib/format-date'
+import { pickupReady, startingPickupPlan } from './pickup-plan'
 
 type PickupFormProps = {
   /** The parcels just booked; each courier is asked for its own. */
   shipmentIds: string[]
+  /** After the courier took the request (the details view reads the shipment again). */
+  onRequested?: (date: string) => void
 }
 
-const TIME = /^\d{1,2}:\d{2}$/
-
-/** After booking: ask the courier to come and collect, without leaving the flow. */
-export default function PickupForm({ shipmentIds }: PickupFormProps) {
+/** Ask the courier to come and collect, without leaving the page: after booking, or again from
+ *  a shipment's details when the first request was refused. One request per pickup location
+ *  and day; a parcel booked later that day joins the open one. */
+export default function PickupForm({ shipmentIds, onRequested }: PickupFormProps) {
   // Hooks
   const copy = useCopy(createShipmentContent.pickup)
-  const [date, setDate] = useState(() => todayKey())
-  const [timeFrom, setTimeFrom] = useState('14:00')
+  const [plan, setPlan] = useState(() => startingPickupPlan())
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
 
@@ -31,9 +32,20 @@ export default function PickupForm({ shipmentIds }: PickupFormProps) {
   const handleSchedule = async () => {
     setBusy(true)
     try {
-      await api.shipments.schedulePickup({ shipmentIds, date, timeFrom })
+      const pickups = await api.shipments.schedulePickup({
+        shipmentIds,
+        date: plan.date,
+        timeFrom: plan.timeFrom,
+      })
+      // A refusal is recorded, not thrown: read it so "requested" is never said falsely.
+      const refused = pickups.find((p) => p.status === 'failed')
+      if (refused) {
+        toast.error(refused.error || copy.notSupported)
+        return
+      }
       setDone(true)
       toast.success(copy.scheduled)
+      onRequested?.(plan.date)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.notSupported)
     } finally {
@@ -42,7 +54,7 @@ export default function PickupForm({ shipmentIds }: PickupFormProps) {
   }
 
   // Render logic
-  const ready = shipmentIds.length > 0 && date !== '' && TIME.test(timeFrom) && !busy && !done
+  const ready = shipmentIds.length > 0 && pickupReady(plan) && !busy && !done
 
   return (
     <section className="flex flex-col gap-3 rounded-lg border border-hairline p-3">
@@ -56,9 +68,9 @@ export default function PickupForm({ shipmentIds }: PickupFormProps) {
           <Input
             id="pickup-date"
             type="date"
-            value={date}
+            value={plan.date}
             disabled={done}
-            onChange={(e) => setDate(e.target.value)}
+            onChange={(e) => setPlan({ ...plan, date: e.target.value })}
           />
         </Field>
         <Field className="w-auto">
@@ -66,9 +78,9 @@ export default function PickupForm({ shipmentIds }: PickupFormProps) {
           <Input
             id="pickup-from"
             className="w-28"
-            value={timeFrom}
+            value={plan.timeFrom}
             disabled={done}
-            onChange={(e) => setTimeFrom(e.target.value)}
+            onChange={(e) => setPlan({ ...plan, timeFrom: e.target.value })}
           />
         </Field>
         <Button variant="outline" onClick={handleSchedule} disabled={!ready}>

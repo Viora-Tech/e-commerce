@@ -10,7 +10,7 @@
  *   GET  /waybill/api/bulk/json/?count=1                     reserve a waybill
  *   POST /api/cmu/create.json  (form: format=json&data=…)    create shipment
  *   GET  /api/v1/packages/json/?waybill=                     tracking
- *   POST /api/p/edit           (form: waybill=&cancellation=true)
+ *   POST /api/p/edit (cancel), packing slip and pickup request: see label-pickup.ts
  *
  * TWO CALLS FOR AN ESTIMATE, NOT ONE
  *
@@ -54,6 +54,7 @@ import {
   type Serviceability,
   type ServiceabilityQuery,
   type ShipmentStatus,
+  type ShippingLabelDocument,
   type ShippingProvider,
   type ShippingProviderFactory,
   type Tracking,
@@ -63,6 +64,13 @@ import {
   type WebhookRequest,
 } from '@commerce/shipping'
 import { DELHIVERY_BASE_URL, DELHIVERY_CAPABILITIES, DELHIVERY_STAGING_URL } from './client'
+import {
+  cancelDelhivery,
+  type DelhiveryWire,
+  fetchDelhiveryLabel,
+  NO_WAREHOUSE,
+  requestDelhiveryPickup,
+} from './label-pickup'
 
 export type DelhiveryConfig = {
   apiToken: string
@@ -161,9 +169,6 @@ function delhiveryCharges(row: ChargesRow): RateCharge[] {
   })
 }
 
-/** Delhivery's answer when `pickup_location` names no warehouse on the account. */
-const NO_WAREHOUSE = /ClientWarehouse matching query does not exist/i
-
 type WaybillResponse = string | { waybill?: string; response?: string }
 
 type CreateResponse = {
@@ -196,8 +201,6 @@ type TrackResponse = {
     }
   }>
 }
-
-type PickupResponse = { pickup_id?: number | string; pr_exist?: boolean; success?: boolean }
 
 /** Shape returned by /api/p/update, per the "Asynchronous NDR Package Action API" reference doc. */
 type NdrUpdateResponse = { upl?: string; UploadWbns?: string; success?: boolean; error?: string }
@@ -239,8 +242,22 @@ export class DelhiveryProvider implements ShippingProvider {
     this.fetchImpl = config.fetchImpl ?? fetch
   }
 
+  /** The Connect page's pickup location: what a booking without a location's own name uses. */
+  get defaultPickupLocationName(): string {
+    return this.config.pickupLocationName
+  }
+
   private headers(extra: Record<string, string> = {}): Record<string, string> {
     return { Authorization: `Token ${this.config.apiToken}`, Accept: 'application/json', ...extra }
+  }
+
+  private wire(): DelhiveryWire {
+    return {
+      id: this.id,
+      baseUrl: this.baseUrl,
+      headers: (extra) => this.headers(extra),
+      fetchImpl: this.fetchImpl,
+    }
   }
 
   private async getJson<T>(path: string): Promise<T> {
@@ -479,7 +496,8 @@ export class DelhiveryProvider implements ShippingProvider {
         throw new CourierError(
           'rejected',
           this.id,
-          `Delhivery has no pickup location named "${name}". Open Delhivery → Settings → Pickup locations, copy the name exactly (Test mode uses Delhivery's staging account, which has its own pickup locations), then paste it in Apps → Delhivery → Connect → Pickup location name, or in Settings → Locations → courier pickup.`,
+          `Delhivery has no pickup location named "${name}". Open Delhivery One → Settings → Pickup locations, copy the name exactly (Test mode uses Delhivery's staging account, which has its own pickup locations), then paste it in Apps → Delhivery → Connect → Pickup location name, or in Settings → Locations → courier pickup.`,
+          { detail: { code: 'no_pickup_location', pickupLocationName: name } },
         )
       }
       throw new CourierError(
@@ -490,11 +508,9 @@ export class DelhiveryProvider implements ShippingProvider {
     }
 
     const assigned = packages[0]?.waybill || waybill
-    return {
-      waybill: assigned,
-      providerRef: assigned,
-      labelUrl: `${this.baseUrl}/api/p/packing_slip?wbns=${encodeURIComponent(assigned)}&pdf=true`,
-    }
+    /* The packing slip needs the token, so it is never a browser link: the admin's label route
+       asks `getLabel` server-side. */
+    return { waybill: assigned, providerRef: assigned, labelViaProvider: true }
   }
 
   /**
@@ -610,37 +626,22 @@ export class DelhiveryProvider implements ShippingProvider {
     }
   }
 
+  /** Cancel Order API; a refusal carries Delhivery's remark (see `cancelDelhivery`). */
   async cancel(waybill: string): Promise<void> {
-    await this.postForm<unknown>(
-      '/api/p/edit',
-      `waybill=${encodeURIComponent(waybill)}&cancellation=true`,
-    )
+    await cancelDelhivery(this.wire(), waybill)
   }
 
-  /**
-   * Create Pickup API - `POST /fm/request/new/`, JSON body
-   * `{ pickup_location, pickup_time, pickup_date, expected_package_count }`,
-   * returns `pickup_id` (https://delhivery-express-api-doc.readme.io/reference/pickup-request-creation-api).
-   * The doc excerpt does not confirm the exact success/failure JSON shape, so
-   * a response with neither `pickup_id` nor `pr_exist: true` is treated as a
-   * rejection rather than guessed at.
-   */
+  async getLabel(waybill: string): Promise<ShippingLabelDocument> {
+    return fetchDelhiveryLabel(this.wire(), waybill)
+  }
+
+  /** Label and pickup request: label-pickup.ts (no place named: the Connect page's). */
   async schedulePickup(input: SchedulePickupInput): Promise<SchedulePickupResult> {
-    const result = await this.postJson<PickupResponse>('/fm/request/new/', {
-      pickup_location: input.pickupLocationName,
-      pickup_time: input.timeFrom,
-      pickup_date: input.date,
-      expected_package_count: input.expectedPackageCount,
-    })
-    const id = result.pickup_id
-    if (!id && !result.pr_exist) {
-      throw new CourierError(
-        'rejected',
-        this.id,
-        'Delhivery did not confirm the pickup request. Check the pickup location name matches the dashboard exactly.',
-      )
-    }
-    return { providerPickupId: id ? String(id) : 'existing' }
+    return requestDelhiveryPickup(
+      this.wire(),
+      input,
+      input.pickupLocationName || this.config.pickupLocationName,
+    )
   }
 
   /**

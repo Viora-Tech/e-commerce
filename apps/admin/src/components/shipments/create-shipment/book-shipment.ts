@@ -19,7 +19,13 @@ type BookShipmentArgs = {
   /** The picked rate row's `optionKey`, or MANUAL for "ship it yourself". */
   pick: string
   /** The picked rate row: its courier and the service it books. */
-  courier: { providerId: string; serviceId: string | null; needsTrackingNumber?: boolean } | null
+  courier: {
+    providerId: string
+    serviceId: string | null
+    /** The row's name ("Delhivery Surface"), kept on the shipment for its details. */
+    providerLabel?: string | undefined
+    needsTrackingNumber?: boolean | undefined
+  } | null
   /** The AWB and courier name typed for MANUAL, already trimmed. */
   typed: ReturnType<typeof trackingPayload>
   courierLabel: string | undefined
@@ -53,6 +59,7 @@ export async function bookShipment(a: BookShipmentArgs): Promise<BookedShipment>
     orderId: a.order.orderId,
     providerId: a.courier?.providerId,
     serviceId: a.courier?.serviceId ?? undefined,
+    serviceLabel: a.courier?.providerLabel || undefined,
     // Booked at the courier's counter (India Post): the number from the receipt.
     trackingNumber: a.courier?.needsTrackingNumber ? a.typed.trackingNumber : undefined,
     fulfillmentOrderId: a.parcel.id ?? undefined,
@@ -62,15 +69,20 @@ export async function bookShipment(a: BookShipmentArgs): Promise<BookedShipment>
     paymentMode: a.parsed.paymentMode,
     codAmountPaise: a.parsed.codAmountPaise,
   })
+  /* Until the courier has a pickup request for this place and day, the waybill sits in its
+     "Ready to Ship" list. The request goes out right after the booking; a refusal is recorded
+     (not thrown), so its status is read here and the details view offers "Request pickup". */
   let pickupRequested = false
   if (a.pickup.ask && a.canPickup) {
     try {
-      await api.shipments.schedulePickup({
+      const pickups = await api.shipments.schedulePickup({
         shipmentIds: [s.id],
         date: a.pickup.date,
         timeFrom: a.pickup.timeFrom,
       })
-      pickupRequested = true
+      const refused = pickups.find((p) => p.status === 'failed')
+      if (refused) toast.error(refused.error || a.pickupFailed)
+      else pickupRequested = true
     } catch (err) {
       toast.error(err instanceof Error ? err.message : a.pickupFailed)
     }

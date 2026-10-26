@@ -57,7 +57,7 @@ export const delhiveryAppContent = {
     testing: 'Testing…',
     testSuccess: (pin: string) => `Connected — Delhivery serves ${pin}.`,
     testHint:
-      "We check this by asking Delhivery whether it serves your origin PIN code - nothing is booked. This can't confirm the pickup location name; Delhivery only checks that when you book a shipment.",
+      "We check this by asking Delhivery whether it serves your origin PIN code - nothing is booked. This can't confirm the pickup location name: Delhivery has no way to look one up without creating or changing it, so it is only checked when you book. If a booking says the name is wrong, it shows the exact name we sent; copy the right one from Delhivery One → Settings → Pickup locations.",
     advanced: {
       trigger: 'Advanced',
       baseUrlLabel: 'API base URL',

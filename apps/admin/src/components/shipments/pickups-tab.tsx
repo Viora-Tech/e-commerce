@@ -15,9 +15,12 @@ import {
 } from '@commerce/ui/shadcn/table'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import CopyButton from '@/components/fields/copy-button'
 import DataCard from '@/components/layout/data-card'
 import TableEmptyRow from '@/components/table/table-empty-row'
 import { shipmentsContent } from '@/data/shipments'
+import { shipmentDetailsContent } from '@/data/shipping'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type Unpicked = Awaited<ReturnType<typeof api.shipments.listUnpicked>>
@@ -29,6 +32,7 @@ const copy = shipmentsContent.pickups
 /** Book a pickup for shipments waiting on one, then turn a pickup into a printable manifest. */
 export default function PickupsTab() {
   // Hooks
+  const details = useCopy(shipmentDetailsContent)
   const [unpicked, setUnpicked] = useState<Unpicked>([])
   const [pickups, setPickups] = useState<Pickups>([])
   const [manifests, setManifests] = useState<Manifests>([])
@@ -118,6 +122,7 @@ export default function PickupsTab() {
                   >
                     {s.waybill}
                   </FieldLabel>
+                  <CopyButton value={s.waybill} what={details.awb} visible />
                 </li>
               ))}
             </ul>

@@ -26,6 +26,8 @@ export type ShipmentRow = {
   deliveryFailed: boolean
   labelUrl: string | null
   trackingUrl: string | null
+  /** The courier app takes cancellations over its API (Shiprocket does not, today). */
+  courierCancels: boolean
 }
 
 /** "Pune, Maharashtra 411045" (Figma Ship to). */
@@ -47,6 +49,7 @@ export const rowFromOrder = (r: ReadyRow): ShipmentRow => ({
   deliveryFailed: false,
   labelUrl: null,
   trackingUrl: null,
+  courierCancels: false,
 })
 
 export const rowFromShipment = (s: ShipmentItem): ShipmentRow => ({
@@ -62,6 +65,7 @@ export const rowFromShipment = (s: ShipmentItem): ShipmentRow => ({
   deliveryFailed: s.ndrStatus === 'pending',
   labelUrl: s.labelUrl,
   trackingUrl: s.trackingUrl,
+  courierCancels: s.courierCancels,
 })
 
 /**

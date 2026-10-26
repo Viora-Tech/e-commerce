@@ -1100,6 +1100,13 @@
       "when": 1792937044755,
       "tag": "0172_cod_rto_app",
       "breakpoints": true
+    },
+    {
+      "idx": 157,
+      "version": "7",
+      "when": 1793023470328,
+      "tag": "0173_shipment_booking_details",
+      "breakpoints": true
     }
   ]
 }

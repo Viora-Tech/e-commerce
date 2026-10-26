@@ -1,5 +1,5 @@
 import { settingsSecret } from '@commerce/config'
-import { permissions, readShippingLabel } from '@commerce/core'
+import { permissions } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { BULK_MAX, can, heavy, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
@@ -25,6 +25,7 @@ import {
   listShipments,
   shipmentCounts,
 } from '../services/shipments-workspace.service'
+import { shipmentDetails, shipmentLabelFile } from '../services/shipping.service'
 
 const ndrAction = z.enum(['reattempt', 'change_address', 'rto'])
 
@@ -61,18 +62,38 @@ export const shipmentsRouter = {
         provider: z.string().optional(),
       }),
     )
-    .handler(({ context, input }) => listShipments(context.tx, input)),
+    .handler(async ({ context, input }) => {
+      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
+      return listShipments(context.tx, input, shipping)
+    }),
 
   /**
-   * A label the courier handed back as a PDF (Blue Dart, DTDC), kept in the store's private
-   * storage at booking. The admin's `/api/shipments/<id>/label` route streams this; the key is
-   * built from the caller's own store, so another store's shipment id finds nothing.
+   * One booked shipment for its details view: courier and service, AWB, status, COD or
+   * prepaid, package, pickup, the label link the admin may open, and whether it can still be
+   * cancelled (and why not).
+   */
+  get: can(permissions.ORDERS_READ)
+    .input(z.object({ id: z.uuid() }))
+    .handler(async ({ context, input }) => {
+      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
+      return shipmentDetails(context.tx, shipping, input.id)
+    }),
+
+  /**
+   * A shipment's label PDF for the admin's `/api/shipments/<id>/label` route: the copy kept in
+   * the store's private storage (Blue Dart, DTDC, DHL Express, FedEx), else the courier's own,
+   * fetched server-side with the store's saved key (Delhivery), so the key never reaches the
+   * browser. Rows are read under the caller's store, so another store's id finds nothing.
    */
   label: can(permissions.ORDERS_READ)
     .input(z.object({ id: z.uuid() }))
     .handler(async ({ context, input }) => {
-      const bytes = await readShippingLabel(
-        { storeId: context.scope.storeId, tx: context.tx },
+      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
+      const bytes = await shipmentLabelFile(
+        context.tx,
+        context.scope.storeId,
+        shipping,
+        settingsSecret(),
         input.id,
       )
       if (!bytes)

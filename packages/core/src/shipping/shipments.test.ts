@@ -3,8 +3,10 @@ import {
   createDb,
   order,
   orderLine,
+  orderNote,
   product,
   shipment,
+  shipmentManifest,
   store,
   variant,
   withStore,
@@ -14,6 +16,7 @@ import { FakeShippingProvider, type Tracking } from '@commerce/shipping'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { buildTemplateData } from '../notifications/deliver'
+import { schedulePickup } from './pickup'
 import {
   builtInShippingRegistry,
   encryptShippingSettings,
@@ -23,12 +26,8 @@ import {
   primaryShippingProvider,
   toShippingPolicy,
 } from './settings'
-import {
-  applyTracking,
-  cancelShipment,
-  createShipmentForOrder,
-  listOpenShipments,
-} from './shipments'
+import { cancelShipment, rebookableParcels } from './shipment-cancel'
+import { applyTracking, createShipmentForOrder, listOpenShipments } from './shipments'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
@@ -288,12 +287,110 @@ describe('shipments', () => {
     const row = await withStore(app, storeId, (tx) =>
       createShipmentForOrder({ storeId, tx }, provider, orderId),
     )
+    const cancelled: string[] = []
+    provider.cancel = async (waybill: string) => {
+      cancelled.push(waybill)
+    }
     const c = await withStore(app, storeId, (tx) =>
-      cancelShipment({ storeId, tx }, provider, row.id),
+      cancelShipment({ storeId, tx }, provider, row.id, { author: 'kuldeep@example.com' }),
     )
     expect(c.status).toBe('cancelled')
+    expect(cancelled).toEqual([row.waybill])
     const [s] = await owner.select().from(shipment).where(eq(shipment.id, row.id))
     expect(s?.status).toBe('cancelled')
+    // The timeline says who cancelled which AWB.
+    const notes = await owner.select().from(orderNote).where(eq(orderNote.orderId, orderId))
+    expect(notes).toHaveLength(1)
+    expect(notes[0]?.body).toContain(row.waybill)
+    expect(notes[0]?.author).toBe('kuldeep@example.com')
+  })
+
+  it('refuses a cancel once the parcel left, is on a manifest, or the courier has no cancel', async () => {
+    const { storeId, orderId } = await seedOrder()
+    const provider = new FakeShippingProvider()
+    let asked = 0
+    provider.cancel = async () => {
+      asked++
+    }
+    const row = await withStore(app, storeId, (tx) =>
+      createShipmentForOrder({ storeId, tx }, provider, orderId),
+    )
+    const cancel = (opts = {}) =>
+      withStore(app, storeId, (tx) => cancelShipment({ storeId, tx }, provider, row.id, opts))
+
+    await expect(cancel({ courierCancels: false })).rejects.toMatchObject({
+      code: 'SHIPMENT_NOT_CANCELLABLE',
+      block: 'not_supported',
+    })
+
+    const [m] = await owner
+      .insert(shipmentManifest)
+      .values({ storeId, provider: 'fake', shipmentIds: [row.id] })
+      .returning()
+    await expect(cancel()).rejects.toMatchObject({ block: 'in_manifest' })
+    await owner.delete(shipmentManifest).where(eq(shipmentManifest.id, m?.id as string))
+
+    await owner.update(shipment).set({ status: 'picked_up' }).where(eq(shipment.id, row.id))
+    await expect(cancel()).rejects.toMatchObject({ block: 'picked_up' })
+    // Refused before the courier was ever asked.
+    expect(asked).toBe(0)
+    const [s] = await owner.select().from(shipment).where(eq(shipment.id, row.id))
+    expect(s?.status).toBe('picked_up')
+  })
+
+  it('a cancelled label frees the parcel: it books again with the packed units', async () => {
+    const { storeId, orderId } = await seedOrder()
+    const provider = new FakeShippingProvider()
+    const first = await withStore(app, storeId, (tx) =>
+      createShipmentForOrder({ storeId, tx }, provider, orderId),
+    )
+    expect(first.fulfillmentOrderId).not.toBeNull()
+    await withStore(app, storeId, (tx) => cancelShipment({ storeId, tx }, provider, first.id))
+    expect(await withStore(app, storeId, (tx) => rebookableParcels(tx, orderId))).toEqual(
+      new Set([first.fulfillmentOrderId]),
+    )
+
+    const captured: Array<{ lines: Array<{ quantity: number }> }> = []
+    const again = Object.assign(new FakeShippingProvider(), {
+      createShipment: async (input: { lines: Array<{ quantity: number }> }) => {
+        captured.push(input)
+        return { waybill: 'WB-AGAIN', providerRef: 'WB-AGAIN' }
+      },
+    })
+    // Booking the same parcel by id carries the two packed units, not "nothing left to ship".
+    const second = await withStore(app, storeId, (tx) =>
+      createShipmentForOrder({ storeId, tx }, again, orderId, {
+        fulfillmentOrderId: first.fulfillmentOrderId as string,
+      }),
+    )
+    expect(second.waybill).toBe('WB-AGAIN')
+    expect(captured[0]?.lines.map((l) => l.quantity)).toEqual([2])
+    expect(await withStore(app, storeId, (tx) => rebookableParcels(tx, orderId))).toEqual(new Set())
+  })
+
+  it('keeps the booking facts, and a keyed label points at the admin route', async () => {
+    const { storeId, orderId } = await seedOrder()
+    const provider = Object.assign(new FakeShippingProvider(), {
+      createShipment: async () => ({
+        waybill: 'DL1',
+        providerRef: 'DL1',
+        labelViaProvider: true,
+      }),
+    })
+    const row = await withStore(app, storeId, (tx) =>
+      createShipmentForOrder({ storeId, tx }, provider, orderId, {
+        paymentMode: 'cod',
+        codAmountPaise: 150000,
+        serviceLabel: 'Surface',
+      }),
+    )
+    expect(row.labelUrl).toBe(`/api/shipments/${row.id}/label`)
+    expect(row).toMatchObject({
+      paymentMode: 'cod',
+      codAmountPaise: 150000,
+      pickupLocationName: 'Waimers HQ',
+      serviceLabel: 'Surface',
+    })
   })
 
   it('reads a courier return (RTO) as returned', async () => {
@@ -317,5 +414,97 @@ describe('shipments', () => {
         createShipmentForOrder({ storeId, tx }, new FakeShippingProvider(), orderId),
       ),
     ).rejects.toThrow('no shipping address')
+  })
+})
+
+describe('pickup requests', () => {
+  /** A courier that takes pickup requests, recording each one; `fail` makes it refuse. */
+  const pickupCourier = (asked: unknown[], fail = false) =>
+    Object.assign(new FakeShippingProvider(), {
+      defaultPickupLocationName: 'Waimers Sonipat',
+      schedulePickup: async (input: unknown) => {
+        asked.push(input)
+        if (fail) throw new Error('Delhivery has no pickup location named "Waimers Sonipat"')
+        return { providerPickupId: `PR${asked.length}` }
+      },
+    })
+
+  it('asks once per place and day; a second booking that day joins the open request', async () => {
+    const { storeId, orderId } = await seedOrder()
+    const asked: unknown[] = []
+    const courier = pickupCourier(asked)
+    const first = await withStore(app, storeId, (tx) =>
+      createShipmentForOrder({ storeId, tx }, courier, orderId),
+    )
+    // The courier's own pickup location is what the booking (and so the pickup) names.
+    expect(first.pickupLocationName).toBe('Waimers Sonipat')
+    const pickup = await withStore(app, storeId, (tx) =>
+      schedulePickup({ storeId, tx }, courier, {
+        shipmentIds: [first.id],
+        date: '2026-10-27',
+        timeFrom: '14:00',
+        pickupLocationName: '',
+      }),
+    )
+    expect(pickup).toMatchObject({
+      status: 'scheduled',
+      providerRef: 'PR1',
+      pickupLocationName: 'Waimers Sonipat',
+      expectedPackageCount: 1,
+    })
+    expect(asked[0]).toMatchObject({
+      pickupLocationName: 'Waimers Sonipat',
+      expectedPackageCount: 1,
+    })
+
+    // A second parcel the same day: no new request, the open one counts it.
+    await owner.update(shipment).set({ status: 'cancelled' }).where(eq(shipment.id, first.id))
+    const second = await withStore(app, storeId, (tx) =>
+      createShipmentForOrder({ storeId, tx }, courier, orderId),
+    )
+    const joined = await withStore(app, storeId, (tx) =>
+      schedulePickup({ storeId, tx }, courier, {
+        shipmentIds: [second.id],
+        date: '2026-10-27',
+        timeFrom: '15:00',
+        pickupLocationName: 'Waimers Sonipat',
+      }),
+    )
+    expect(asked).toHaveLength(1)
+    expect(joined.id).toBe(pickup.id)
+    expect(joined.expectedPackageCount).toBe(2)
+    const [s] = await owner.select().from(shipment).where(eq(shipment.id, second.id))
+    expect(s?.pickupId).toBe(pickup.id)
+  })
+
+  it('a refused request is recorded as failed and leaves the parcel free to request again', async () => {
+    const { storeId, orderId } = await seedOrder()
+    const asked: unknown[] = []
+    const row = await withStore(app, storeId, (tx) =>
+      createShipmentForOrder({ storeId, tx }, pickupCourier(asked), orderId),
+    )
+    const failed = await withStore(app, storeId, (tx) =>
+      schedulePickup({ storeId, tx }, pickupCourier(asked, true), {
+        shipmentIds: [row.id],
+        date: '2026-10-27',
+        timeFrom: '14:00',
+        pickupLocationName: '',
+      }),
+    )
+    expect(failed.status).toBe('failed')
+    expect(failed.error).toContain('no pickup location')
+    const [s] = await owner.select().from(shipment).where(eq(shipment.id, row.id))
+    expect(s?.pickupId).toBeNull()
+    // A failed request is not "open": the retry asks the courier again.
+    const retried = await withStore(app, storeId, (tx) =>
+      schedulePickup({ storeId, tx }, pickupCourier(asked), {
+        shipmentIds: [row.id],
+        date: '2026-10-27',
+        timeFrom: '14:00',
+        pickupLocationName: '',
+      }),
+    )
+    expect(retried.status).toBe('scheduled')
+    expect(asked).toHaveLength(2)
   })
 })

@@ -16,20 +16,33 @@ export class CourierError extends Error {
   readonly kind: CourierErrorKind
   readonly provider: string
   readonly status: number | undefined
+  /** A refusal the admin can explain better than the sentence, with the facts it needs. */
+  readonly detail: CourierErrorDetail | undefined
 
   constructor(
     kind: CourierErrorKind,
     provider: string,
     message: string,
-    options?: { status?: number | undefined; cause?: unknown },
+    options?: {
+      status?: number | undefined
+      cause?: unknown
+      detail?: CourierErrorDetail | undefined
+    },
   ) {
     super(message, { cause: options?.cause })
     this.name = 'CourierError'
     this.kind = kind
     this.provider = provider
     this.status = options?.status
+    this.detail = options?.detail
   }
 }
+
+/**
+ * `no_pickup_location`: the courier has no pickup location (warehouse) by the name we sent; the
+ * admin shows the exact name and where to find the right one on the courier's dashboard.
+ */
+export type CourierErrorDetail = { code: 'no_pickup_location'; pickupLocationName: string }
 
 /**
  * Wall-clock budget for a courier call.
@@ -64,7 +77,10 @@ export const ASSUMED_WEIGHT_GRAMS = 500
 export async function courierFetch(
   provider: string,
   url: string,
-  init: RequestInit & { timeoutMs?: number | undefined; fetchImpl?: typeof fetch | undefined } = {},
+  init: RequestInit & {
+    timeoutMs?: number | undefined
+    fetchImpl?: typeof fetch | undefined
+  } = {},
 ): Promise<Response> {
   const { timeoutMs = COURIER_TIMEOUT_MS, fetchImpl = fetch, ...rest } = init
   try {

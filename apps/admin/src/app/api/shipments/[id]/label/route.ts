@@ -5,10 +5,11 @@ import { withEvlog } from '@/lib/request-log'
 type Params = { params: Promise<{ id: string }> }
 
 /**
- * A courier label kept in the store's private storage (Blue Dart and DTDC hand back the PDF
- * itself, not a public link). Opened from the shipment's "Print label" link; the router checks
- * the session, the member's permission and the store, so this only turns its file into a PDF
- * response the browser shows inline.
+ * Every shipment's "Print label" lands here. The label is the copy kept in the store's private
+ * storage (Blue Dart, DTDC, DHL Express, FedEx hand back the PDF itself), or the courier's own
+ * fetched server-side with the store's saved key (Delhivery's packing slip answers 401 without
+ * it), so the key never reaches the browser. The router checks the session, the member's
+ * permission and the store; this only turns its file into a PDF the browser shows inline.
  */
 export const GET = withEvlog(async (_request: Request, { params }: Params) => {
   const { id } = await params
@@ -28,6 +29,13 @@ export const GET = withEvlog(async (_request: Request, { params }: Params) => {
     }
     if (error instanceof ORPCError && error.code === 'FORBIDDEN') {
       return new Response('Forbidden', { status: 403 })
+    }
+    // The courier could not hand the label over: say why (our wording, never the courier's raw).
+    if (error instanceof ORPCError && error.code === 'BAD_REQUEST') {
+      return new Response(error.message, {
+        status: 502,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
+      })
     }
     return new Response('Not found', { status: 404 })
   }

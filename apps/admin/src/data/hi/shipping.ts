@@ -1,4 +1,8 @@
-import { shipmentPanelContent, shippingSettingsContent } from '@/data/shipping'
+import {
+  shipmentDetailsContent,
+  shipmentPanelContent,
+  shippingSettingsContent,
+} from '@/data/shipping'
 import { translation } from '@/lib/i18n'
 
 export default [
@@ -160,6 +164,54 @@ export default [
       delivered: 'डिलीवर हो गया',
       rto: 'वापस लौट रहा है (RTO)',
       cancelled: 'कैंसिल',
+    },
+  }),
+  translation(shipmentDetailsContent, {
+    heading: 'शिपमेंट की जानकारी',
+    open: 'शिपमेंट की जानकारी',
+    loading: 'शिपमेंट लोड हो रहा है…',
+    failed: 'यह शिपमेंट लोड नहीं हो पाया।',
+    awb: 'AWB',
+    status: 'स्थिति',
+    payment: 'भुगतान',
+    prepaid: 'प्रीपेड',
+    cod: (amount) => `कैश ऑन डिलीवरी, ${amount} लेना है`,
+    codNoAmount: 'कैश ऑन डिलीवरी',
+    package: 'पैकेज',
+    weight: (kg) => `${kg} किलो`,
+    size: (l, w, h) => `${l} × ${w} × ${h} सेमी`,
+    pickup: 'पिकअप',
+    pickupOn: (date, time) => `${date} को ${time} से पिकअप माँगा गया`,
+    noPickup: 'अभी पिकअप नहीं माँगा गया। तब तक पार्सल कूरियर की “Ready to Ship” लिस्ट में रहेगा।',
+    requestPickup: 'पिकअप माँगें',
+    pickupFrom: 'कहाँ से पिकअप',
+    created: 'बुक हुआ',
+    printLabel: 'लेबल प्रिंट करें',
+    track: 'ट्रैक करें',
+    cancel: 'शिपमेंट कैंसिल करें',
+    cancelTitle: 'यह शिपमेंट कैंसिल करें?',
+    cancelBody: (courier, awb) =>
+      `${courier} AWB ${awb} को कैंसिल कर देगा। पार्सल पैक ही रहेगा और ऑर्डर फिर से बुक करने वाली लिस्ट में आ जाएगा, ताकि आप उसे किसी भी कूरियर से दोबारा बुक कर सकें।`,
+    cancelConfirm: 'शिपमेंट कैंसिल करें',
+    keep: 'शिपमेंट रहने दें',
+    cancelled: 'शिपमेंट कैंसिल हो गया। आप यह ऑर्डर फिर से बुक कर सकते हैं।',
+    cancelFailed: 'शिपमेंट कैंसिल नहीं हो पाया।',
+    blocked: {
+      not_supported: 'यह कूरियर यहाँ से कैंसिल नहीं लेता। कूरियर की अपनी साइट पर कैंसिल करें।',
+      cancelled: 'यह शिपमेंट कैंसिल हो चुका है। ऑर्डर फिर से बुक किया जा सकता है।',
+      picked_up:
+        'कूरियर यह पार्सल ले जा चुका है, इसलिए अब कैंसिल नहीं हो सकता। इसकी जगह कूरियर से वापसी (RTO) माँगें।',
+      settled: 'यह पार्सल डिलीवर हो चुका है या लौट आया है, कैंसिल करने को कुछ नहीं है।',
+      in_manifest: 'यह पार्सल कूरियर को दिए गए मैनिफ़ेस्ट में है, इसलिए अब कैंसिल नहीं हो सकता।',
+    },
+    noPickupLocation: {
+      title: 'Delhivery में इस नाम की कोई पिकअप लोकेशन नहीं है',
+      body: 'बुकिंग में यह पिकअप लोकेशन नाम भेजा गया, और आपके Delhivery अकाउंट में ठीक इसी स्पेलिंग वाली कोई लोकेशन नहीं है:',
+      fix: 'Delhivery One खोलें, Settings → Pickup locations में जाएँ और नाम हूबहू कॉपी करें। उसे Apps → Delhivery → Connect (Pickup location name) में, या Settings → Locations में उस लोकेशन पर पेस्ट करें। स्टेजिंग (टेस्ट) अकाउंट की पिकअप लोकेशन अलग होती हैं।',
+      openDelhivery: 'Delhivery One खोलें',
+      help: 'Delhivery मदद: पिकअप लोकेशन',
+      connect: 'Delhivery Connect खोलें',
+      name: 'पिकअप लोकेशन का नाम',
     },
   }),
 ]

@@ -209,7 +209,8 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
               onRequestBalance={requestBalance}
               onShip={canShip ? handleShip : undefined}
               onCancelShipment={
-                shipmentId && ['fulfilled', 'shipped'].includes(order.fulfillmentStatus)
+                /* Only while the courier still takes the cancel (before pickup or manifest). */
+                shipmentId && order.shipment?.cancelBlock === null
                   ? handleCancelShipment
                   : undefined
               }
@@ -267,7 +268,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
                 busy={busy}
                 onBook={handleShip}
                 onRefresh={handleRefreshTracking}
-                onCancel={handleCancelShipment}
+                onChanged={refresh}
               />
             </div>
           )}

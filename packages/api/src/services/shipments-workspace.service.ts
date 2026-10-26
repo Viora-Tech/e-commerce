@@ -6,6 +6,7 @@ import {
   primaryShippingProvider,
   resolveShippingProviders,
   type ShippingRegistry,
+  shipmentLabelUrl,
   shippingProviderById,
 } from '@commerce/core'
 import { SHIPMENT_TAB_STATUSES } from '@commerce/core/shipment-tabs'
@@ -131,7 +132,11 @@ export type ShipmentListFilter = {
 }
 
 /** The Shipments workspace's list: every shipment with its order number, filterable and searchable. */
-export async function listShipments(tx: StoreTx, input: ShipmentListFilter) {
+export async function listShipments(
+  tx: StoreTx,
+  input: ShipmentListFilter,
+  registry?: ShippingRegistry | undefined,
+) {
   const orderNumber = orderNumberIn(input.search)
   const where = and(
     input.search
@@ -181,10 +186,18 @@ export async function listShipments(tx: StoreTx, input: ShipmentListFilter) {
     .leftJoin(address, eq(address.id, order.shippingAddressId))
     .leftJoin(customer, eq(customer.id, order.customerId))
     .where(where)
-  const items = await base
+  const rows = await base
     .orderBy(desc(shipment.createdAt))
     .limit(input.perPage)
     .offset((input.page - 1) * input.perPage)
+  /* A label link that needs the courier's key (Delhivery, booked before the label route) is
+     served by the admin's route instead; the courier app's own say on cancelling hides the
+     row's Cancel for a courier that can't. */
+  const items = rows.map((r) => ({
+    ...r,
+    labelUrl: shipmentLabelUrl(r),
+    courierCancels: registry?.get(r.provider)?.capabilities.includes('cancel') ?? true,
+  }))
   return { items, total: countRow?.total ?? 0 }
 }
 
@@ -250,7 +263,15 @@ export type ReadyToShipRow = {
 const readyToShipWhere = () =>
   and(
     inArray(order.paymentStatus, ['paid', 'partially_paid']),
-    inArray(order.fulfillmentStatus, ['unfulfilled', 'partially_fulfilled']),
+    or(
+      inArray(order.fulfillmentStatus, ['unfulfilled', 'partially_fulfilled']),
+      /* Packed, but its label was cancelled and nothing replaced it: back on the list to book. */
+      and(
+        eq(order.fulfillmentStatus, 'fulfilled'),
+        sql`exists (select 1 from ${shipment} where ${shipment.orderId} = ${order.id} and ${shipment.status} = 'cancelled')`,
+        sql`not exists (select 1 from ${shipment} where ${shipment.orderId} = ${order.id} and ${shipment.status} not in ('cancelled', 'rto'))`,
+      ),
+    ),
     sql`${order.status} != 'cancelled'`,
     // A held parcel (Hold fulfilment) keeps the order off the list until it is released.
     sql`not exists (select 1 from ${fulfillmentOrder} where ${fulfillmentOrder.orderId} = ${order.id} and ${fulfillmentOrder.heldAt} is not null and ${fulfillmentOrder.status} in ('open', 'on_hold'))`,

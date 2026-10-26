@@ -21,7 +21,8 @@ import type { StoreContext } from '../context'
 import { applyPaymentStatus } from '../payments/confirm'
 import { CodPaymentProvider } from '../providers/cod'
 import { FakePaymentProvider } from '../providers/payment'
-import { applyTracking, cancelShipment, createShipmentForOrder } from '../shipping/shipments'
+import { cancelShipment } from '../shipping/shipment-cancel'
+import { applyTracking, createShipmentForOrder } from '../shipping/shipments'
 import { fulfilOrderLines } from './fulfil'
 import { placeOrderAndPay } from './place-order'
 import { recomputeOrderStatuses } from './recompute'
@@ -200,16 +201,22 @@ describe('recomputeOrderStatuses on every mutation path', () => {
     expect(await events(orderId, 'order.paid')).toBe(0)
   })
 
-  it('a cancelled label drops the order back to packed; RTO reads returned', async () => {
+  it('a cancelled label drops the order back to packed; a collected parcel cannot be cancelled', async () => {
     const { storeId, orderId } = await placeCod()
     const provider = new FakeShippingProvider()
     const ship = await inStore(storeId, (ctx) => createShipmentForOrder(ctx, provider, orderId))
-    await inStore(storeId, (ctx) =>
-      applyTracking(ctx, ship.id, { waybill: ship.waybill, status: 'picked_up', events: [] }),
-    )
-    expect(await statuses(orderId)).toEqual(['open', 'unpaid', 'shipped'])
     await inStore(storeId, (ctx) => cancelShipment(ctx, provider, ship.id))
     expect(await statuses(orderId)).toEqual(['open', 'unpaid', 'fulfilled'])
+
+    const again = await inStore(storeId, (ctx) => createShipmentForOrder(ctx, provider, orderId))
+    await inStore(storeId, (ctx) =>
+      applyTracking(ctx, again.id, { waybill: again.waybill, status: 'picked_up', events: [] }),
+    )
+    expect(await statuses(orderId)).toEqual(['open', 'unpaid', 'shipped'])
+    await expect(
+      inStore(storeId, (ctx) => cancelShipment(ctx, provider, again.id)),
+    ).rejects.toMatchObject({ block: 'picked_up' })
+    expect(await statuses(orderId)).toEqual(['open', 'unpaid', 'shipped'])
   })
 
   it('fixes a drifted row: status columns that disagree with the facts are rewritten', async () => {
