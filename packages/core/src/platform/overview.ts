@@ -1,4 +1,5 @@
 /** SOURCE OF TRUTH: platform console overview — WHAT: the cross-store numbers on /platform (stores by plan state, new stores, orders and GMV, subscriptions and MRR, failed payments, outbox health) / WHY: the people who run Koomerce need one honest read of the whole platform, test orders excluded */
+import { startOfDay } from '@commerce/dates'
 import type { Db } from '@commerce/db'
 import { sql } from 'drizzle-orm'
 import { PLAN_IDS, PLANS, type PlanId } from '../billing/plans'
@@ -6,15 +7,6 @@ import { platformRead } from './access'
 import { at, date, num } from './sql'
 
 const DAY_MS = 86_400_000
-/** India Standard Time, the platform's reporting day. */
-const IST_OFFSET_MS = 330 * 60_000
-
-/** Midnight IST of the day `now` falls in, as an instant. */
-export function startOfIstDay(now: Date): Date {
-  const shifted = now.getTime() + IST_OFFSET_MS
-  return new Date(shifted - (shifted % DAY_MS) - IST_OFFSET_MS)
-}
-
 export type PlatformSalesWindow = { orders: number; gmvPaise: number }
 
 export type PlatformPlanCount = {
@@ -58,14 +50,15 @@ export type PlatformOverview = {
 type CountRow = Record<string, string | number | Date | null>
 
 /** Monthly value of one plan at one interval, before GST. */
-export function monthlyPaise(plan: PlanId, interval: string): number {
+function monthlyPaise(plan: PlanId, interval: string): number {
   const prices = PLANS[plan].pricePaise
   return interval === 'year' ? Math.round(prices.year / 12) : prices.month
 }
 
 /** Everything on the platform console's Overview, in one read-only owner transaction. */
 export async function platformOverview(owner: Db, now = new Date()): Promise<PlatformOverview> {
-  const today = startOfIstDay(now)
+  // The platform's reporting day is India's (`DEFAULT_TIME_ZONE`).
+  const today = startOfDay(now)
   const week = new Date(now.getTime() - 7 * DAY_MS)
   const month = new Date(now.getTime() - 30 * DAY_MS)
 

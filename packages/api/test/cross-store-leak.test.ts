@@ -37,7 +37,16 @@ const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
 
 /** Never call outside services from tests: these reach a gateway, courier, mailer, Shopify or DNS. */
+const PLATFORM =
+  'platform console: owner connection + staff guard, NOT_FOUND here; covered by platform.test.ts'
+
 const SKIP: Record<string, string> = {
+  'platform.whoami': PLATFORM,
+  'platform.overview': PLATFORM,
+  'platform.stores.list': PLATFORM,
+  'platform.stores.get': PLATFORM,
+  'platform.users.list': PLATFORM,
+  'platform.audit.list': PLATFORM,
   'store.estimateDelivery': 'courier serviceability API',
   'store.verifyShipping': 'courier API',
   'store.testDelhiveryConnection': 'courier API',

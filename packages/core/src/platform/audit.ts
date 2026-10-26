@@ -2,12 +2,9 @@
 import type { Db } from '@commerce/db'
 import { type SQL, sql } from 'drizzle-orm'
 import { platformRead } from './access'
+import type { PlatformAuditSource } from './client'
 import { at, num, PLATFORM_PAGE_SIZE } from './sql'
 import { likePattern } from './stores'
-
-/** `console`: what staff read in the platform console. `store`: store exports and deletions. */
-export const PLATFORM_AUDIT_SOURCES = ['console', 'store'] as const
-export type PlatformAuditSource = (typeof PLATFORM_AUDIT_SOURCES)[number]
 
 export type PlatformAuditQuery = {
   source?: PlatformAuditSource | undefined

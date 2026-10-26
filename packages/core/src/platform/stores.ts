@@ -2,14 +2,11 @@
 import type { Db } from '@commerce/db'
 import { type SQL, sql } from 'drizzle-orm'
 import { platformRead } from './access'
+import type { PlatformStoreState } from './client'
 import { at, date, num, PLATFORM_PAGE_SIZE } from './sql'
 
 const DAY_MS = 86_400_000
 const ERROR_TEXT_MAX = 300
-
-/** Plan states the store list filters on; `none` is a store with no plan row yet. */
-export const PLATFORM_STORE_STATES = ['active', 'trialing', 'paused', 'cancelled', 'none'] as const
-export type PlatformStoreState = (typeof PLATFORM_STORE_STATES)[number]
 
 export type PlatformStoreRow = {
   id: string
@@ -225,7 +222,7 @@ const strings = (v: unknown): string[] =>
  * Providers from one settings column: the enabled list and the ids that have saved settings.
  * Gateways keep their waiting Live/Test key set under `<id>~<mode>`, folded into `<id>`.
  */
-export function integrationsOf(row: KeysRow | undefined): PlatformIntegration[] {
+function integrationsOf(row: KeysRow | undefined): PlatformIntegration[] {
   const enabled = strings(row?.enabled)
   const configured = new Set(strings(row?.keys).map((k) => k.split('~')[0] as string))
   const ids = [...new Set([...enabled, ...configured])].sort()
