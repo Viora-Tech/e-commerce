@@ -53,6 +53,13 @@ describe('<Picture>', () => {
     expect(html).toContain('background-image')
   })
 
+  it('draws no blur under a picture that may be transparent (it shows through as a halo)', () => {
+    const html = renderToStaticMarkup(
+      <Picture image={{ url: 'https://cdn.test/mouse.png', alt: null, thumbhash }} alt="" />,
+    )
+    expect(html).not.toContain('background-image')
+  })
+
   it('without variants it is the same bare <img> a section drew before', () => {
     const html = renderToStaticMarkup(
       <Picture image={{ url: 'https://cdn.test/a.jpg', alt: null }} alt="A" fill />,
