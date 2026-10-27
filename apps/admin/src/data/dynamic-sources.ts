@@ -52,22 +52,6 @@ export const dynamicSourcesContent = {
   connect: 'Connect dynamic source',
   change: 'Change source',
   disconnect: 'Disconnect',
-  title: 'Connect dynamic source',
-  intro: {
-    text: 'Show text from your store instead of typing it.',
-    richtext: 'Show text from your store instead of typing it.',
-    image: 'Show an image from your store instead of uploading one.',
-    link: 'Link to a page from your store.',
-    url: 'Link to a page from your store.',
-    number: 'Use a number from your store.',
-    color: 'Use a colour saved in your store.',
-  } satisfies Record<SettingKind, string>,
-  search: 'Search sources',
-  loading: 'Loading sources',
-  failed: 'Could not load sources',
-  empty: 'Nothing in your store fits this setting yet.',
-  emptyHelp: 'Add extra fields in Settings › Custom data, or entries in Content › Content types.',
-  noMatch: 'No sources match',
   connectedTo: 'Connected to',
   fallbackNote: 'When this is empty, the text you typed shows instead.',
   groups: {
@@ -108,4 +92,37 @@ export const dynamicSourcesContent = {
   /** Chip text: "Product › Title", "FAQ › Shipping › Answer". */
   chip: (parts: string[]) => parts.join(' › '),
   unknown: 'Source not found',
+}
+
+/** The "Connect dynamic source" dialog. */
+export const dynamicSourcePickerContent = {
+  title: 'Connect dynamic source',
+  intro: {
+    text: 'Show text from your store instead of typing it.',
+    richtext: 'Show text from your store instead of typing it.',
+    image: 'Show an image from your store instead of uploading one.',
+    link: 'Link to a page from your store.',
+    url: 'Link to a page from your store.',
+    number: 'Use a number from your store.',
+    color: 'Use a colour saved in your store.',
+  } satisfies Record<SettingKind, string>,
+  sections: {
+    product: 'Product',
+    collection: 'Collection',
+    shop: 'Store',
+  },
+  /** Under a content type's name in its section header. */
+  contentType: 'Content type',
+  count: (n: number) => (n === 1 ? '1 source' : `${n} sources`),
+  search: 'Search sources',
+  loading: 'Loading sources',
+  failed: 'Could not load sources',
+  empty: 'Nothing in your store fits this setting yet.',
+  emptyHelp: 'Add extra fields in Settings › Custom data, or entries in Content › Content types.',
+  noMatch: (query: string) => `No sources match “${query}”`,
+  noMatchHelp: 'Try a field name, a content type or one of its entries.',
+  clear: 'Clear search',
+  connected: 'Connected',
+  keys: 'Use ↑ ↓ to move and Enter to connect.',
+  cancel: 'Cancel',
 }

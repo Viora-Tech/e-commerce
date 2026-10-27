@@ -42,6 +42,7 @@ import discounts from './discounts'
 import domains from './domains'
 import drafts from './drafts'
 import dtdc from './dtdc'
+import dynamicSources from './dynamic-sources'
 import ekart from './ekart'
 import emailBuilder from './email-builder'
 import fedex from './fedex'
@@ -170,6 +171,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...dtdc,
   ...analytics,
   ...discounts,
+  ...dynamicSources,
   ...dateRange,
   ...filterPanel,
   ...growth,
