@@ -334,6 +334,33 @@ events written in the same transaction as the change), `order_note`, `discount` 
 metafields, `role` / `role_permission` / `store_member` / `store_invitation`, and the marketing
 tables in `marketing-schema.ts`.
 
+### Retention
+
+The worker deletes or empties rows that would otherwise grow forever. Every prune runs once a day,
+store by store, and these periods belong in the privacy policy (DPDP Act: keep personal data only as
+long as it is needed).
+
+| Rows | Kept | Then | Job |
+|---|---|---|---|
+| `cart` + `cart_line`, open, no email or phone | 30 days since `updated_at` | deleted | `{retention}-prune` |
+| `cart` + `cart_line`, not converted, with an email or phone (Abandoned checkouts) | 90 days | deleted | `{retention}-prune` |
+| `cart` + `cart_line`, converted | 30 days | deleted (`order.cart_id` has no foreign key) | `{retention}-prune` |
+| `outbox_event`, dispatched | 30 days after `dispatched_at` | deleted (undispatched rows never) | `{retention}-prune` |
+| `payment_event`, `shipment_webhook_event`, processed or failed | 180 days after `received_at` | `payload` set to `{}`, row kept | `{retention}-prune` |
+| `api_activity` | 90 days | deleted | `{api}-activity-prune` |
+| `automation_step_run` / finished `automation_run` | 90 days / 13 months | deleted | `{automations}-prune` |
+| `pixel_event_log`, `pixel_event_day`, `order.tracking` IP and user agent | 30 days | deleted / cleared | `{pixels}-prune` |
+
+`{retention}-prune` (`packages/core/src/retention`, `apps/worker/src/retention.ts`) runs at 03:30
+India time over the stores that `stores_with_retention_due` (migration 0177, same rules) lists. It
+works 500 rows per statement, each batch in its own transaction, so no lock a checkout or a webhook
+might wait on is held for long; a store with a bigger backlog clears it over a few nights. A deleted
+cart's recovery messages (`notification`) and marketing runs stay, with `cart_id` cleared. A table
+that adds a foreign key to `cart` must be handled in `pruneCartBatch` (`retention.test.ts` lists
+every such key). An emptied payment event no longer shows in the order page's payment history,
+which finds events by the gateway ids inside the payload. `notification` (who was told what) is
+kept.
+
 ### Parcels (fulfilment orders)
 
 Every placed order with goods has at least one `fulfillment_order`: the units one location
