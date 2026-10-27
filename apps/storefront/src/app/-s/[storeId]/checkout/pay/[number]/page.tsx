@@ -3,13 +3,15 @@ import {
   orderViewToken,
   storeCheckoutLook,
   thankYouPath,
+  variantImageUrls,
   verifyOrderViewToken,
 } from '@commerce/core'
-import { order, payment } from '@commerce/db'
+import { order, orderLine, payment } from '@commerce/db'
 import type { CheckoutSession } from '@commerce/payments'
 import { and, desc, eq, ne } from 'drizzle-orm'
 import { notFound, redirect } from 'next/navigation'
 import CheckoutShell from '@/components/checkout/checkout-shell'
+import OrderSummary from '@/components/checkout/order-summary'
 import { payClientContent } from '@/data/checkout'
 import { currentCustomer } from '@/lib/customer-session'
 import { orderPageToken } from '@/lib/order-view-cookie'
@@ -44,7 +46,12 @@ export default async function PayPage({ params, searchParams }: Params) {
       .where(and(eq(payment.orderId, o.id), ne(payment.provider, 'gift_card')))
       .orderBy(desc(payment.attempt), desc(payment.id))
       .limit(1)
-    return p ? { order: o, payment: p, look: await storeCheckoutLook({ storeId, tx }) } : null
+    if (!p) return null
+    // What is being paid for, beside the payment: the shopper should not pay blind (owner, 27 Oct).
+    const lines = await tx.select().from(orderLine).where(eq(orderLine.orderId, o.id))
+    const variantIds = lines.flatMap((l) => (l.variantId ? [l.variantId] : []))
+    const images = await variantImageUrls({ storeId, tx }, variantIds)
+    return { order: o, payment: p, lines, images, look: await storeCheckoutLook({ storeId, tx }) }
   })
 
   if (!data) notFound()
@@ -57,7 +64,14 @@ export default async function PayPage({ params, searchParams }: Params) {
   const session = data.payment.checkoutSession as CheckoutSession | null
   if (session?.kind !== 'client') redirect(thankYou)
   return (
-    <CheckoutShell look={data.look} backHref={thankYou} backLabel={payClientContent.back}>
+    <CheckoutShell
+      look={data.look}
+      backHref={thankYou}
+      backLabel={payClientContent.back}
+      summary={
+        <OrderSummary order={data.order} lines={data.lines} images={data.images} giftCards={[]} />
+      }
+    >
       <PayClient
         orderNumber={data.order.number}
         session={session}

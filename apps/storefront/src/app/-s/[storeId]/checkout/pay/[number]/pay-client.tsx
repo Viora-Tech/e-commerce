@@ -8,7 +8,7 @@ import CheckoutIcon from '@/components/checkout/checkout-icon'
 import StatusMark from '@/components/checkout/status-mark'
 import { payClientContent as content } from '@/data/checkout'
 import { confirmPaymentAction } from '@/lib/cart-actions'
-import { CK_BUTTON_PRIMARY, CK_HEADING } from '@/lib/checkout-classes'
+import { CK_BUTTON_PRIMARY, CK_BUTTON_SECONDARY, CK_HEADING } from '@/lib/checkout-classes'
 
 type RazorpayCheckout = new (
   options: Record<string, unknown>,
@@ -138,8 +138,17 @@ export default function PayClient({
   const stopped = state === 'failed' || state === 'dismissed'
   const busy = state === 'loading' || state === 'confirming'
 
+  const provider = content.providers[session.provider]
+
   return (
     <div className="flex flex-col gap-8">
+      <a
+        href={thankYouPath}
+        className="-ml-1 inline-flex items-center gap-1.5 self-start rounded-sm px-1 text-[0.875rem] font-medium text-ck-muted! no-underline outline-none hover:text-ck-ink! focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)]"
+      >
+        <CheckoutIcon name="back" className="size-4" />
+        {content.back}
+      </a>
       <div className="flex flex-col gap-5">
         <StatusMark tone={state === 'failed' ? 'failed' : 'pending'} />
         <div className="flex flex-col gap-2">
@@ -149,7 +158,10 @@ export default function PayClient({
           <h1 className={`${CK_HEADING} text-[2.25rem]! tabular-nums`}>
             {formatPaise(amountPaise)}
           </h1>
-          <p role="status" className="flex items-center gap-2 text-[1rem] text-ck-muted">
+          {provider ? (
+            <p className="text-[0.875rem] text-ck-muted">{content.paidWith(provider)}</p>
+          ) : null}
+          <p role="status" className="flex items-center gap-2 text-[1rem] text-ck-ink">
             {busy ? (
               <CheckoutIcon
                 name="spinner"
@@ -161,9 +173,21 @@ export default function PayClient({
         </div>
       </div>
       {stopped ? (
-        <button type="button" className={CK_BUTTON_PRIMARY} onClick={handleOpen}>
-          {content.tryAgain}
-        </button>
+        <div className="flex flex-col gap-3">
+          <button type="button" className={CK_BUTTON_PRIMARY} onClick={handleOpen}>
+            {content.tryAgain}
+          </button>
+          <a href={thankYouPath} className={`${CK_BUTTON_SECONDARY} no-underline`}>
+            {content.otherWays}
+          </a>
+          <p className="text-[0.8125rem] text-ck-muted">{content.saved}</p>
+          <a
+            href="/"
+            className="self-start text-[0.875rem] font-medium text-ck-ink! underline underline-offset-4"
+          >
+            {content.continueShopping}
+          </a>
+        </div>
       ) : null}
       <p className="flex items-center gap-2 text-[0.8125rem] text-ck-muted">
         <CheckoutIcon name="lock" className="size-3.5" />

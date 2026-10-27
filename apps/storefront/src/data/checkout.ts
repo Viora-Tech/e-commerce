@@ -174,6 +174,15 @@ export const payClientContent = {
   },
   tryAgain: 'Try again',
   back: 'Back to your order',
+  /** What closing the window means, under Try again. */
+  saved: 'Nothing was charged. Your order is held for a little while; pay now or come back to it.',
+  otherWays: 'See your order and other ways to pay',
+  continueShopping: 'Continue shopping',
+  paidWith: (provider: string) => `Paying with ${provider}`,
+  providers: {
+    razorpay: 'Razorpay: UPI, cards, netbanking',
+    cashfree: 'Cashfree: UPI, cards, netbanking',
+  } as Record<string, string>,
   secure: 'Payments are encrypted and handled by the payment provider.',
 } as const
 
