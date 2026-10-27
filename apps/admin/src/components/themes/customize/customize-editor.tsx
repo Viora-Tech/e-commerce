@@ -32,7 +32,6 @@ import {
 import { CUSTOMIZE_OVERRIDES } from '@/lib/customize-overrides'
 import { previewMetadata } from '@/lib/customize-preview'
 import {
-  ImportedThemeContext,
   LiquidHeadContext,
   PreviewModeContext,
   ThemePreviewContext,
@@ -55,6 +54,7 @@ import CustomizeLayout from './customize-layout'
 import CustomizeTopBar from './customize-top-bar'
 import EditorLoading from './editor-loading'
 import EditorVersionsPanel from './editor-versions-panel'
+import ImportedThemeProvider from './imported-theme-provider'
 import ImportedThemeSettings from './imported-theme-settings'
 import LiquidCanvasSection from './liquid-canvas-section'
 import PagesPanel from './pages-panel'
@@ -417,7 +417,7 @@ export default function CustomizeEditor({
         >
           <ThemePreviewContext.Provider value={settings}>
             <LiquidHeadContext.Provider value={liquidHead}>
-              <ImportedThemeContext.Provider value={liquidInfo ?? null}>
+              <ImportedThemeProvider info={liquidInfo ?? null} fields={liquidTheme.fields}>
                 <PreviewModeContext.Provider value={mode}>
                   <DynamicSourceContext.Provider value={sourceScope}>
                     <CustomizeHotkeys />
@@ -454,7 +454,7 @@ export default function CustomizeEditor({
                     />
                   </DynamicSourceContext.Provider>
                 </PreviewModeContext.Provider>
-              </ImportedThemeContext.Provider>
+              </ImportedThemeProvider>
             </LiquidHeadContext.Provider>
           </ThemePreviewContext.Provider>
         </Puck>

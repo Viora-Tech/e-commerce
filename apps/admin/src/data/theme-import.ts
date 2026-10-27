@@ -16,7 +16,7 @@ export const themeImportContent = {
   /** The inspector of an imported section (Figma 698:92941). */
   inspector: {
     title: 'Imported from Shopify · Liquid',
-    body: 'Its settings come from the section’s schema. Layout and blocks can only change in code.',
+    body: 'Its settings come from the section’s schema. Add, hide and reorder its blocks in Layers; change its markup in code.',
     openCode: 'Open in Edit code',
   },
   dialog: {

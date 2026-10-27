@@ -16,9 +16,11 @@ import { InspectorTabContext } from '@/lib/customize-inspector-tab'
 import { useCustomizePuck } from '@/lib/customize-puck'
 import { sectionHandle } from '@/lib/customize-section-kinds'
 import { locateBlock } from '@/lib/customize-slots'
+import { useLiquidBlocks } from '@/lib/customize-theme-context'
 import ImportedSectionNote from './imported-section-note'
 import InspectorBreadcrumb from './inspector-breadcrumb'
 import InspectorEmpty from './inspector-empty'
+import LiquidBlockInspector from './liquid-block-inspector'
 import SectionIcon from './section-icon'
 import SegmentedTabs from './segmented-tabs'
 
@@ -41,6 +43,7 @@ export default function SectionInspector() {
   const dispatch = useCustomizePuck((s) => s.dispatch)
   const reducedMotion = useReducedMotion()
   const [tab, setTab] = useState<Tab>('basic')
+  const { focus } = useLiquidBlocks()
 
   // Event handlers
   const handleRemove = (e: MouseEvent<HTMLButtonElement>) => {
@@ -76,6 +79,17 @@ export default function SectionInspector() {
     selected.type === 'LiquidSection' && typeof selected.props.sectionType === 'string'
       ? selected.props.sectionType
       : null
+  // A block picked in Layers shows its own settings, with a way back to the section's.
+  const blockFocus =
+    liquidType && focus && focus.sectionId === selected.props.id ? focus.blockId : null
+  const hasFocusedBlock =
+    blockFocus !== null &&
+    Array.isArray(selected.props.blocks) &&
+    (selected.props.blocks as { id?: string }[]).some((b) => b.id === blockFocus)
+
+  if (blockFocus && hasFocusedBlock) {
+    return <LiquidBlockInspector section={selected} sectionLabel={label} blockId={blockFocus} />
+  }
 
   return (
     <motion.section
