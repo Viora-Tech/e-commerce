@@ -445,6 +445,10 @@ export const checkoutContent = {
       'The shipping options for your order changed, so it was not placed. Pick a shipping method and place it again.',
     discountUnavailable:
       'That discount has just run out, so your order was not placed. Check the new total and place it again.',
+    discountNotApplied: (code: string) =>
+      `We applied ${code} for you. Check the new total, then tap Pay again.`,
+    discountRefused: (code: string, why: string) =>
+      `${code} can't be used on this order: ${why} Your order was not placed. Remove the code to pay the full price, or try another code.`,
     rateLimited: 'Too many attempts. Please wait a minute and try again.',
     contact: 'Check your contact details and try again.',
     minimumOrder: (missing: string) =>

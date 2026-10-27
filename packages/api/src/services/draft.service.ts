@@ -7,6 +7,7 @@ import {
   checkDraftDiscountCode,
   convertDraft,
   createDraft,
+  DiscountCodeRefused,
   DiscountUnavailable,
   type DraftCodeInput,
   DraftEmpty,
@@ -66,6 +67,11 @@ function draftErrorToRpc(err: unknown): never {
     throw new ORPCError('CONFLICT', {
       message:
         "The draft's discount code has no uses left. Remove the code and save the draft to place it.",
+    })
+  }
+  if (err instanceof DiscountCodeRefused) {
+    throw new ORPCError('CONFLICT', {
+      message: `The discount code ${err.code} does not work for this customer (${err.reason.replace('_', ' ')}). Remove it and save the draft to place it.`,
     })
   }
   if (err instanceof DraftInvalidGstin) {

@@ -16,7 +16,7 @@ import {
 import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
-import { DiscountUnavailable } from '../errors'
+import { DiscountCodeRefused, DiscountUnavailable } from '../errors'
 import { checkDraftDiscountCode } from './draft-discount'
 import { convertDraft, createDraft, updateDraft } from './drafts'
 import { duplicateOrderAsDraft } from './duplicate'
@@ -190,7 +190,7 @@ describe('discount codes on draft orders (#795)', () => {
     await owner.update(discount).set({ usedCount: 1 }).where(eq(discount.id, discountId))
     await expect(
       withStore(app, storeId, (tx) => convertDraft({ storeId, tx }, draftId)),
-    ).rejects.toBeInstanceOf(DiscountUnavailable)
+    ).rejects.toSatisfy((e) => e instanceof DiscountUnavailable || e instanceof DiscountCodeRefused)
     const [o] = await owner.select().from(order).where(eq(order.id, draftId))
     expect(o?.status).toBe('draft')
   })

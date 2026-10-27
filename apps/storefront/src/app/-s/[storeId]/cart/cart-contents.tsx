@@ -1,5 +1,6 @@
 import { EmptyState, formatPaise, Icon } from '@commerce/blocks'
 import { getCart } from '@commerce/core'
+import CartCheckoutLink from '@/components/cart/cart-checkout-link'
 import DiscountCodeField from '@/components/cart/discount-code-field'
 import FreeShippingProgress from '@/components/cart/free-shipping-progress'
 import { cartContent as content } from '@/data/cart'
@@ -88,10 +89,10 @@ export default async function CartContents({ storeId }: CartContentsProps) {
               <span>{formatPaise(total)}</span>
             </div>
             <p className="text-caption">{content.taxesAtCheckout}</p>
-            <a href="/checkout/start" className="btn btn--primary cart-summary__checkout">
+            <CartCheckoutLink className="btn btn--primary cart-summary__checkout">
               {content.checkout}
               <Icon name="arrow-right" size={16} />
-            </a>
+            </CartCheckoutLink>
             <ul className="cart-summary__methods" aria-label={content.paymentMethods}>
               {content.payments.map((p) => (
                 <li key={p} className="cart-summary__method">

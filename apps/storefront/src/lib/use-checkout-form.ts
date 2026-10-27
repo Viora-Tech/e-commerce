@@ -378,9 +378,23 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   const handlePayment = (id: string) => setForm((prev) => ({ ...prev, payment: id }))
   const handlePhone = (phone: string) => setForm((prev) => ({ ...prev, phone }))
   /* Enter in a field pays, like the Pay button. One form for the whole checkout. */
+  /*
+   * A code typed but never applied: apply it and let the shopper see the new total first,
+   * instead of paying the full price while the code sits in the field. True when it did.
+   */
+  const applyTypedCode = () => {
+    const code = document
+      .querySelector<HTMLInputElement>('[data-pending-code="discount"]')
+      ?.value.trim()
+    if (!code) return false
+    document.querySelector<HTMLButtonElement>('[data-apply-code="discount"]')?.click()
+    setError(content.errors.discountNotApplied(code))
+    return true
+  }
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setExpressNote(null)
+    if (applyTypedCode()) return
     submit(payment)
   }
   /*
@@ -389,7 +403,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
    */
   const handleExpress = () => {
     const upiMethod = offered.find(takesUpi)
-    if (!upiMethod) return
+    if (!upiMethod || applyTypedCode()) return
     setForm((prev) => ({ ...prev, payment: upiMethod.id }))
     const placed = submit(upiMethod.id)
     setExpressNote(
