@@ -235,6 +235,10 @@ export const ACTION_DOCS: Record<string, string> = {
   'inboundShipments.attach': 'Put an order on this shipment (off any other); both are recosted.',
   'inboundShipments.costs':
     'Shared charges, their splits across every order in it, and landed cost per line.',
+  'inboundShipments.save':
+    'Saves; a new tracking number with a connected carrier also reads its expected date.',
+  'inboundShipments.track':
+    "Read the carrier's expected delivery date now (FedEx, DHL Express, … when connected).",
   'inbox.aiAvailable':
     'Whether the thread shows AI help (suggested replies, summary): AI set up and the assistant on.',
   'inbox.assign': 'Assigns to a team member (only they are notified), or unassigns.',
@@ -403,6 +407,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'How a refund on this order can go back: how much is left, and to the original payment or not.',
   'orders.requestBalance':
     "Ask the shopper for a deposit pre-order's balance: email and WhatsApp (when set up) with a signed pay link.",
+  'orders.retryCourierPush':
+    "Send the order to a courier's panel again after it refused (order push).",
   'orders.saveDraft':
     "Create a draft order (no id) or replace an existing draft's lines, customer and addresses.",
   'orders.sendInvoice': 'Email the shopper a pay link for the draft.',

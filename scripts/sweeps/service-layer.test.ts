@@ -212,6 +212,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   { path: 'apps/worker/src/shipments-webhook.ts', exact: true, reason: WORKER },
   { path: 'apps/worker/src/shipping.ts', exact: true, reason: WORKER },
+  { path: 'apps/worker/src/order-push.ts', exact: true, reason: WORKER },
   { path: 'apps/worker/src/store-export.ts', exact: true, reason: WORKER },
   {
     path: 'packages/api/src/procedures/store.ts',

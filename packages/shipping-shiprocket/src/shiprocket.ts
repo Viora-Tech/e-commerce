@@ -55,6 +55,7 @@ import {
   type NdrActionInput,
   type NdrActionResult,
   type ProviderField,
+  type PushOrderResult,
   type RateCharge,
   type RateOption,
   type RateQuery,
@@ -406,7 +407,25 @@ export class ShiprocketProvider implements ShippingProvider {
     }
   }
 
-  async createShipment(input: CreateShipmentInput): Promise<CreateShipmentResult> {
+  /** The order lands in Shiprocket's Orders as "New", with no courier assigned yet. */
+  async pushOrder(input: CreateShipmentInput): Promise<PushOrderResult> {
+    const order = await this.createOrder(input)
+    return {
+      externalOrderId: String(order.order_id ?? input.orderId),
+      externalShipmentId: String(order.shipment_id),
+    }
+  }
+
+  /** `/orders/cancel` takes Shiprocket's own order ids, which `pushOrder` kept. */
+  async cancelPushedOrder(pushed: PushOrderResult): Promise<void> {
+    const id = Number(pushed.externalOrderId)
+    if (!Number.isFinite(id)) {
+      throw new CourierError('rejected', this.id, 'No Shiprocket order id to cancel.')
+    }
+    await this.postJson<unknown>('/orders/cancel', { ids: [id] })
+  }
+
+  private async createOrder(input: CreateShipmentInput) {
     const order = await this.postJson<CreateOrderResponse>(
       '/orders/create/adhoc',
       this.buildOrderPayload(input),
@@ -418,6 +437,14 @@ export class ShiprocketProvider implements ShippingProvider {
         `Shiprocket rejected the order: ${order.message || 'no detail returned'}`,
       )
     }
+    return order
+  }
+
+  async createShipment(input: CreateShipmentInput): Promise<CreateShipmentResult> {
+    // Sent here earlier as a pending order: book that one, not a second copy.
+    const order = input.pushed?.externalShipmentId
+      ? { shipment_id: Number(input.pushed.externalShipmentId) }
+      : await this.createOrder(input)
 
     /* The courier picked in the rate table (its courier_company_id), or none: Shiprocket
        then picks its recommended courier for the shipment. */

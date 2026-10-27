@@ -47,9 +47,12 @@ export async function loadPurchaseOrder(tx: StoreTx, storeId: string, id: string
 }
 
 /**
- * Create a draft, or edit one. Once ordered only the supplier details, dates, FX rate, HSN
- * codes and note can change: lines and currency are locked because stock is already
- * incoming, and a save that tries to change them is refused rather than half applied.
+ * Create a draft, or edit one. Once ordered, products, quantities and prices can still change
+ * until the goods arrive (incoming stock follows), but not while the order is on an inbound
+ * shipment: take it off the shipment first. A quantity never drops below what already
+ * arrived. Once received or closed, only prices, the FX rate and the details can be corrected;
+ * received stock is revalued. Currency and destination are fixed once ordered. A refused save
+ * changes nothing.
  * With `markOrdered` the draft is also sent to the supplier in the same transaction.
  * Every save recosts the order (and its shipment): prices and the rate feed landed cost.
  */
@@ -90,6 +93,7 @@ async function writeOrder(tx: StoreTx, storeId: string, input: PurchaseOrderInpu
     supplierPhone: input.supplierPhone || null,
     expectedAt: input.expectedAt ?? null,
     fxRate: input.currency === 'INR' ? '1' : input.fxRate,
+    name: input.name || null,
     note: input.note || null,
     updatedAt: new Date(),
   }
@@ -110,23 +114,47 @@ async function writeOrder(tx: StoreTx, storeId: string, input: PurchaseOrderInpu
     return id
   }
   const { po, lines } = await loadPurchaseOrder(tx, storeId, input.id)
-  if (po.status === 'closed' || po.status === 'received' || po.status === 'cancelled') {
-    throw new InventoryError('PO_LOCKED', 'This purchase order is finished', { storeId })
+  if (po.status === 'cancelled') {
+    throw new InventoryError('PO_LOCKED', 'This purchase order is cancelled', { storeId })
   }
   if (po.status !== 'draft') {
-    if (
-      input.locationId !== po.locationId ||
-      input.currency !== po.currency ||
-      lineSignature(input.lines) !== lineSignature(lines)
-    ) {
+    if (input.locationId !== po.locationId || input.currency !== po.currency) {
       throw new InventoryError(
         'PO_LINES_LOCKED',
-        'Products, quantities, prices, currency and the destination cannot change after the order is sent',
+        'The currency and destination cannot change after the order is sent',
         { storeId },
       )
     }
+    const linesChanged = lineSignature(input.lines) !== lineSignature(lines)
+    if (linesChanged && po.inboundShipmentId) {
+      throw new InventoryError(
+        'PO_IN_SHIPMENT',
+        'This order is on an inbound shipment. Remove it from the shipment first, then change its products, quantities or prices',
+        { storeId },
+      )
+    }
+    if (po.status === 'received' || po.status === 'closed') {
+      if (quantitySignature(input.lines) !== quantitySignature(lines)) {
+        throw new InventoryError(
+          'PO_LINES_LOCKED',
+          'Products and quantities cannot change once the order is received or closed; only prices can be corrected',
+          { storeId },
+        )
+      }
+      await tx.update(purchaseOrder).set(fields).where(eq(purchaseOrder.id, po.id))
+      await updateSentLines(tx, storeId, po, lines, input.lines)
+      return po.id
+    }
     await tx.update(purchaseOrder).set(fields).where(eq(purchaseOrder.id, po.id))
-    await updateHsnCodes(tx, lines, input.lines)
+    await updateSentLines(tx, storeId, po, lines, input.lines)
+    const after = await tx
+      .select()
+      .from(purchaseOrderLine)
+      .where(eq(purchaseOrderLine.purchaseOrderId, po.id))
+    await tx
+      .update(purchaseOrder)
+      .set({ status: purchaseOrderStatus(after, po.status) })
+      .where(eq(purchaseOrder.id, po.id))
     return po.id
   }
   await tx
@@ -168,15 +196,66 @@ async function replaceDraftLines(
   }
 }
 
-async function updateHsnCodes(tx: StoreTx, current: LineRow[], next: LineInput[]) {
-  const wanted = new Map(next.map((l) => [l.variantId, l.hsnCode || null]))
+/** Products and quantities only, for checks that let prices change. */
+const quantitySignature = (lines: LineKey[]) =>
+  lineSignature(lines.map((l) => ({ ...l, unitPriceMinor: 0 })))
+
+/**
+ * Apply edits to a sent order's lines, keeping incoming stock right: a new product becomes
+ * incoming, a removed one stops being, and a quantity change moves incoming by the difference.
+ * A line cannot go below what already arrived (received plus rejected), and a line with
+ * arrivals cannot be removed.
+ */
+async function updateSentLines(
+  tx: StoreTx,
+  storeId: string,
+  po: typeof purchaseOrder.$inferSelect,
+  current: LineRow[],
+  next: LineInput[],
+) {
+  const byVariant = new Map(current.map((l) => [l.variantId, l]))
+  const keep = new Set(next.map((l) => l.variantId))
   for (const line of current) {
-    const hsn = wanted.get(line.variantId) ?? null
-    if (hsn === line.hsnCode) continue
+    if (keep.has(line.variantId)) continue
+    if (line.received + line.rejected > 0) {
+      throw new InventoryError(
+        'PO_LINE_ARRIVED',
+        'A product that has already arrived cannot be removed from the order',
+        { storeId },
+      )
+    }
+    await adjustIncoming(tx, storeId, line.variantId, po.locationId, -remainingOf(line))
+    await tx.delete(purchaseOrderLine).where(eq(purchaseOrderLine.id, line.id))
+  }
+  for (const l of next) {
+    const was = byVariant.get(l.variantId)
+    if (!was) {
+      await tx.insert(purchaseOrderLine).values(lineValues(storeId, po.id, l))
+      await adjustIncoming(tx, storeId, l.variantId, po.locationId, l.quantity)
+      continue
+    }
+    const arrived = was.received + was.rejected
+    if (l.quantity < arrived) {
+      throw new InventoryError(
+        'PO_BELOW_RECEIVED',
+        `${arrived} already arrived for one product; its quantity cannot go below that`,
+        { storeId },
+      )
+    }
+    const delta = remainingOf({ ...was, quantity: l.quantity }) - remainingOf(was)
+    if (delta !== 0) await adjustIncoming(tx, storeId, l.variantId, po.locationId, delta)
+    const hsnCode = l.hsnCode || null
+    if (
+      l.quantity === was.quantity &&
+      l.unitPriceMinor === was.unitPriceMinor &&
+      hsnCode === was.hsnCode
+    ) {
+      continue
+    }
     await tx
       .update(purchaseOrderLine)
-      .set({ hsnCode: hsn })
-      .where(eq(purchaseOrderLine.id, line.id))
+      .set({ quantity: l.quantity, unitPriceMinor: l.unitPriceMinor, hsnCode })
+      .where(eq(purchaseOrderLine.id, was.id))
   }
 }
 

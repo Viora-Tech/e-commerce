@@ -1467,6 +1467,13 @@ export const refund = pgTable('refund', {
   reason: text('reason'),
   status: text('status', { enum: ['pending', 'processed', 'failed', 'manual'] }).notNull(),
   providerRefundId: text('provider_refund_id'),
+  /**
+   * How a refund recorded by hand went back (`REFUND_METHODS`: UPI, bank transfer, cash, store
+   * credit, …); null on gateway refunds and on manual ones recorded before this existed.
+   */
+  method: text('method'),
+  /** The gift card issued when the refund went back as store credit. */
+  giftCardId: uuid('gift_card_id'),
   createdAt: createdAt(),
 })
 
@@ -1604,6 +1611,31 @@ export const shipment = pgTable(
     index('shipment_pickup_id').on(t.pickupId),
     index('shipment_fulfillment_order').on(t.fulfillmentOrderId),
   ],
+)
+
+/**
+ * An order sent to a courier app (Shiprocket, RapidShyp) as a pending order, without booking:
+ * the merchant books it there or here later. One row per order and courier; booking here reuses
+ * `externalOrderId`/`externalShipmentId` instead of creating a second order at the courier.
+ * Rules: @commerce/core shipping/order-push.ts.
+ */
+export const courierOrder = pgTable(
+  'courier_order',
+  {
+    id: id(),
+    storeId: storeId(),
+    orderId: uuid('order_id')
+      .notNull()
+      .references(() => order.id, { onDelete: 'cascade' }),
+    provider: text('provider').notNull(),
+    externalOrderId: text('external_order_id'),
+    externalShipmentId: text('external_shipment_id'),
+    status: text('status', { enum: ['pushed', 'failed', 'booked', 'cancelled'] }).notNull(),
+    error: text('error'),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('courier_order_order_provider').on(t.orderId, t.provider)],
 )
 
 /**

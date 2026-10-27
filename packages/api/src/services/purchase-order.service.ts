@@ -71,6 +71,7 @@ export async function listPurchaseOrders(
     term
       ? or(
           ilike(purchaseOrder.supplierName, `%${term}%`),
+          ilike(purchaseOrder.name, `%${term}%`),
           number === null ? undefined : eq(purchaseOrder.number, number),
         )
       : undefined,
@@ -79,6 +80,7 @@ export async function listPurchaseOrders(
     .select({
       id: purchaseOrder.id,
       number: purchaseOrder.number,
+      name: purchaseOrder.name,
       supplierName: purchaseOrder.supplierName,
       status: purchaseOrder.status,
       locationName: location.name,

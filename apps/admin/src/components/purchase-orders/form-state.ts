@@ -26,6 +26,8 @@ export type PoLine = {
 
 /** The editable shape of a purchase order: money and counts stay strings while typed. */
 export type PoForm = {
+  /** The merchant's own name for the order, or empty. */
+  name: string
   supplierId: string | null
   supplierName: string
   supplierEmail: string
@@ -52,6 +54,7 @@ export function rateText(rate: string): string {
 
 export function emptyPoForm(locationId: string): PoForm {
   return {
+    name: '',
     supplierId: null,
     supplierName: '',
     supplierEmail: '',
@@ -68,6 +71,7 @@ export function emptyPoForm(locationId: string): PoForm {
 export function fromPurchaseOrder(po: LoadedPurchaseOrder): PoForm {
   const currency = po.currency as PurchaseCurrency
   return {
+    name: po.name ?? '',
     supplierId: po.supplierId,
     supplierName: po.supplierName,
     supplierEmail: po.supplierEmail ?? '',
@@ -134,6 +138,7 @@ export function toInput(
     markOrdered,
     supplierId: form.supplierId,
     supplierName: form.supplierName.trim(),
+    name: form.name.trim() || undefined,
     supplierEmail: form.supplierEmail.trim(),
     supplierPhone: form.supplierPhone.trim() || undefined,
     locationId: form.locationId,

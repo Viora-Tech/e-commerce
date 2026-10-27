@@ -444,6 +444,91 @@ describe('cancel and reopen', () => {
   })
 })
 
+describe('editing a sent order', () => {
+  const edit = (
+    c: Ctx,
+    id: string,
+    lines: { variantId: string; quantity: number; unitPriceMinor: number }[],
+    over: Partial<PurchaseOrderInput> = {},
+  ) =>
+    run(c, (tx) =>
+      savePurchaseOrder(tx, c.storeId, {
+        id,
+        supplierName: 'Shenzhen Pads',
+        locationId: c.loc,
+        currency: 'INR',
+        fxRate: '1',
+        lines,
+        ...over,
+      }),
+    )
+  const incomingOf = async (variantId: string) =>
+    (await owner.select().from(inventoryLevel).where(eq(inventoryLevel.variantId, variantId)))[0]
+      ?.incoming
+
+  it('changes quantities, prices and products until the goods arrive, keeping incoming right', async () => {
+    const c = await seedStore()
+    const a = await c.addVariant()
+    const b = await c.addVariant()
+    const id = await order(c, [{ variantId: a, quantity: 10, unitPriceMinor: 100 }])
+    await edit(
+      c,
+      id,
+      [
+        { variantId: a, quantity: 6, unitPriceMinor: 150 },
+        { variantId: b, quantity: 4, unitPriceMinor: 200 },
+      ],
+      { name: 'Diwali restock' },
+    )
+    expect(await incomingOf(a)).toBe(6)
+    expect(await incomingOf(b)).toBe(4)
+    expect((await lineFor(id, a)).unitPriceMinor).toBe(150)
+    const [po] = await owner.select().from(purchaseOrder).where(eq(purchaseOrder.id, id))
+    expect(po?.name).toBe('Diwali restock')
+
+    // 2 of a arrive: a cannot drop below 2 or be removed; b can be removed.
+    await receive(c, id, [{ lineId: (await lineFor(id, a)).id, accepted: 2 }])
+    await expect(
+      edit(c, id, [{ variantId: a, quantity: 1, unitPriceMinor: 150 }]),
+    ).rejects.toMatchObject({ code: 'PO_BELOW_RECEIVED' })
+    await expect(
+      edit(c, id, [{ variantId: b, quantity: 4, unitPriceMinor: 200 }]),
+    ).rejects.toMatchObject({ code: 'PO_LINE_ARRIVED' })
+    await edit(c, id, [{ variantId: a, quantity: 2, unitPriceMinor: 150 }])
+    expect(await incomingOf(a)).toBe(0)
+    expect(await incomingOf(b)).toBe(0)
+    const [after] = await owner.select().from(purchaseOrder).where(eq(purchaseOrder.id, id))
+    expect(after?.status).toBe('received')
+  })
+
+  it('refuses line changes while the order is on an inbound shipment', async () => {
+    const c = await seedStore()
+    const a = await c.addVariant()
+    const id = await order(c, [{ variantId: a, quantity: 5, unitPriceMinor: 100 }])
+    const ship = await run(c, (tx) => saveInboundShipment(tx, c.storeId, { status: 'in_transit' }))
+    await run(c, (tx) => attachPurchaseOrder(tx, c.storeId, ship, id))
+    await expect(
+      edit(c, id, [{ variantId: a, quantity: 6, unitPriceMinor: 100 }]),
+    ).rejects.toMatchObject({ code: 'PO_IN_SHIPMENT' })
+    await run(c, (tx) => detachPurchaseOrder(tx, c.storeId, id))
+    await edit(c, id, [{ variantId: a, quantity: 6, unitPriceMinor: 100 }])
+    expect(await incomingOf(a)).toBe(6)
+  })
+
+  it('corrects the price of a received order and revalues the stock', async () => {
+    const c = await seedStore()
+    const a = await c.addVariant()
+    const id = await order(c, [{ variantId: a, quantity: 10, unitPriceMinor: 10_000 }])
+    await receive(c, id, [{ lineId: (await lineFor(id, a)).id, accepted: 10 }])
+    expect(await costOf(a)).toBe(10_000)
+    await expect(
+      edit(c, id, [{ variantId: a, quantity: 11, unitPriceMinor: 10_000 }]),
+    ).rejects.toMatchObject({ code: 'PO_LINES_LOCKED' })
+    await edit(c, id, [{ variantId: a, quantity: 10, unitPriceMinor: 12_000 }])
+    expect(await costOf(a)).toBe(12_000)
+  })
+})
+
 describe('store isolation', () => {
   it('will not put a charge, a split or a supplier from another store on an order', async () => {
     const mine = await seedStore('mine')

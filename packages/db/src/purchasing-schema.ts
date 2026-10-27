@@ -99,6 +99,14 @@ export const inboundShipment = pgTable(
     billOfEntryNo: text('bill_of_entry_no'),
     billOfEntryDate: date('bill_of_entry_date'),
     port: text('port'),
+    /** Who carries it (`fedex`, `dhl`, …, or free text) and their tracking number and page. */
+    carrier: text('carrier'),
+    trackingNumber: text('tracking_number'),
+    trackingUrl: text('tracking_url'),
+    /** When it should arrive: typed, or the carrier's date read from tracking. */
+    expectedAt: date('expected_at'),
+    /** Last time the carrier's tracking was read for `expectedAt`; null when typed. */
+    trackedAt: timestamp('tracked_at', { withTimezone: true }),
     arrivedAt: timestamp('arrived_at', { withTimezone: true }),
     status: text('status', { enum: INBOUND_SHIPMENT_STATUS_VALUES })
       .notNull()
@@ -123,6 +131,8 @@ export const purchaseOrder = pgTable(
     id: id(),
     storeId: storeId(),
     number: integer('number').notNull(),
+    /** The merchant's own name for the order ("Diwali restock"); the number stays. */
+    name: text('name'),
     /** Null on orders typed before suppliers existed; the name fields below are always set. */
     supplierId: uuid('supplier_id').references(() => supplier.id, { onDelete: 'set null' }),
     supplierName: text('supplier_name').notNull(),

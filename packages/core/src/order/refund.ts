@@ -1,10 +1,24 @@
-import { order, payment, refund } from '@commerce/db'
+import { customer, order, payment, refund } from '@commerce/db'
 import type { PaymentProvider } from '@commerce/payments'
 import { and, eq, ne, sum } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
-import { changeGiftCardBalance, GIFT_CARD_PROVIDER } from '../gift-cards/service'
+import { changeGiftCardBalance, GIFT_CARD_PROVIDER, issueGiftCard } from '../gift-cards/service'
 import { recomputeOrderStatuses } from './recompute'
+
+/**
+ * How money recorded by hand went back. `store_credit` issues a gift card to the customer for
+ * the amount instead of returning money; the rest only record what the merchant did.
+ */
+export const REFUND_METHODS = [
+  'upi',
+  'bank_transfer',
+  'cash',
+  'cheque',
+  'store_credit',
+  'other',
+] as const
+export type RefundMethod = (typeof REFUND_METHODS)[number]
 
 export type RefundInput = {
   paymentId: string
@@ -16,6 +30,15 @@ export type RefundInput = {
    * `manual`, like a cash on delivery refund. Gift card money still goes back onto its card.
    */
   manual?: boolean | undefined
+  /**
+   * How a refund recorded by hand went back (`REFUND_METHODS`). `store_credit` needs `secret`
+   * (gift card codes are stored encrypted) and returns the new card's id on the row.
+   */
+  method?: RefundMethod | undefined
+  /** Settings secret, for `store_credit`. */
+  secret?: string | undefined
+  /** Staff member, recorded on a store credit gift card. */
+  createdBy?: string | null | undefined
 }
 
 export class RefundNotAllowed extends CommerceError {
@@ -81,7 +104,33 @@ export async function refundPayment(
   }
 
   const toGiftCard = p.provider === GIFT_CARD_PROVIDER
-  const offline = OFFLINE_PROVIDERS.has(p.provider) || (input.manual === true && !toGiftCard)
+  const storeCredit = input.method === 'store_credit' && !toGiftCard
+  const offline =
+    OFFLINE_PROVIDERS.has(p.provider) || ((input.manual === true || storeCredit) && !toGiftCard)
+  const method = offline ? (input.method ?? null) : null
+  let giftCardId: string | null = null
+  if (storeCredit) {
+    if (!input.secret) throw new RefundNotAllowed('Store credit could not be issued')
+    const [o] = await ctx.tx.select().from(order).where(eq(order.id, p.orderId))
+    const [cu] = o?.customerId
+      ? await ctx.tx.select().from(customer).where(eq(customer.id, o.customerId))
+      : []
+    const issued = await issueGiftCard(
+      ctx,
+      {
+        valuePaise: input.amountPaise,
+        customerId: o?.customerId ?? null,
+        recipientEmail: o?.email ?? null,
+        recipientName: cu?.name ?? null,
+        note: `Store credit refund for order #${o?.number ?? ''}`,
+        createdBy: input.createdBy ?? null,
+        orderId: p.orderId,
+      },
+      input.secret,
+    )
+    if (!issued) throw new RefundNotAllowed('Store credit could not be issued')
+    giftCardId = issued.card.id
+  }
   let status: 'pending' | 'processed' | 'manual' = 'manual'
   let providerRefundId: string | null = null
   if (toGiftCard) {
@@ -112,6 +161,8 @@ export async function refundPayment(
       reason: input.reason ?? null,
       status,
       providerRefundId,
+      method,
+      giftCardId,
     })
     .returning()
   if (toGiftCard && row && p.providerPaymentId) {

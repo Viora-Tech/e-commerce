@@ -34,6 +34,19 @@ export default [
       confirm: 'ऑर्डर कैंसिल करें',
       keep: 'ऑर्डर रखें',
     },
+    courierOrders: {
+      heading: 'कूरियर ऐप',
+      status: {
+        pushed: 'वहाँ इंतज़ार में',
+        booked: 'बुक हो गया',
+        cancelled: 'वापस लिया',
+        failed: 'नहीं भेजा गया',
+      },
+      retry: 'फिर से भेजें',
+      retrying: 'भेज रहे हैं',
+      sent: (courier) => `${courier} को भेजा`,
+      refused: 'कूरियर ने स्वीकार नहीं किया। वजह देखकर फिर कोशिश करें।',
+    },
     refundDialog: {
       title: 'पेमेंट रिफ़ंड करें',
       body: (remaining) => `इस पेमेंट पर ${remaining} तक रिफ़ंड हो सकता है।`,
@@ -46,6 +59,22 @@ export default [
       full: 'बाकी पूरा रिफ़ंड',
       done: (amount) => `${amount} रिफ़ंड हो गया`,
       failed: 'रिफ़ंड नहीं हो पाया',
+      how: 'पैसे कैसे लौटेंगे',
+      original: (via) => `${via} में वापस`,
+      originalHint: 'गेटवे पैसे उसी कार्ड, UPI या बैंक में लौटाएगा जहाँ से आए थे।',
+      manual: 'दूसरे तरीके से भेज दिए',
+      manualHint: 'आपने पैसे खुद लौटाए। यहाँ बस तरीका दर्ज होगा।',
+      storeCredit: 'स्टोर क्रेडिट के रूप में',
+      storeCreditHint: 'इतनी रकम का गिफ़्ट कार्ड ग्राहक को ईमेल होगा।',
+      method: 'किससे भेजा',
+      methods: {
+        upi: 'UPI',
+        bank_transfer: 'बैंक ट्रांसफ़र',
+        cash: 'कैश',
+        cheque: 'चेक',
+        store_credit: 'स्टोर क्रेडिट',
+        other: 'अन्य',
+      },
     },
     pills: {
       payment: {

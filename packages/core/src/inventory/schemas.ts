@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { lenientPhone } from '../accounts/phone'
+import { INBOUND_CARRIER_IDS, type InboundCarrier } from './inbound-tracking'
 import {
   INBOUND_SHIPMENT_STATUSES,
   PURCHASE_CHARGE_KINDS,
@@ -90,6 +91,8 @@ export const PurchaseOrderInputSchema = z
     /** A saved supplier; its name, email and phone are copied onto the order. */
     supplierId: z.string().uuid().nullable().optional(),
     supplierName: z.string().trim().min(1).max(120),
+    /** The merchant's own name for the order ("Diwali restock"); the number stays. */
+    name: z.string().trim().max(120).optional(),
     supplierEmail: z.string().trim().email().optional().or(z.literal('')),
     supplierPhone: z.string().trim().max(20).optional(),
     locationId: z.string().uuid(),
@@ -152,6 +155,14 @@ export const InboundShipmentInputSchema = z.object({
   billOfEntryNo: optionalText(40),
   billOfEntryDate: DayOrNull,
   port: optionalText(80),
+  /** `INBOUND_CARRIERS` id; tracking number and page, and the date it should arrive. */
+  carrier: z
+    .enum(INBOUND_CARRIER_IDS as [InboundCarrier, ...InboundCarrier[]])
+    .nullable()
+    .optional(),
+  trackingNumber: optionalText(60),
+  trackingUrl: z.url().max(500).optional().or(z.literal('')),
+  expectedAt: DayOrNull,
   arrivedAt: z.coerce.date().nullable().optional(),
   status: z.enum(INBOUND_SHIPMENT_STATUSES).default('in_transit'),
   note: optionalText(2000),

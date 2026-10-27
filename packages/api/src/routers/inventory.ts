@@ -44,6 +44,7 @@ import {
   inventoryHistory,
   inventoryStats,
   listInventory,
+  STOCK_CHANGED_FILTERS,
   searchVariants,
 } from '../services/inventory.service'
 import { previewCosts } from '../services/landed-cost.service'
@@ -72,6 +73,8 @@ const listInput = z.object({
   stock: z.enum(['all', ...STOCK_FILTERS]).optional(),
   vendor: z.string().max(200).optional(),
   productType: z.string().max(200).optional(),
+  changed: z.enum(STOCK_CHANGED_FILTERS).optional(),
+  group: z.enum(['variant', 'product']).optional(),
   sort: z.enum(['product', 'available_asc', 'available_desc']).optional(),
   page: z.number().int().min(1).default(1),
   perPage: z.number().int().min(1).max(250).default(25),

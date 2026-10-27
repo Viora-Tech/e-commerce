@@ -1,5 +1,6 @@
 'use client'
 
+import { INBOUND_CARRIERS, type InboundCarrier, isInboundCarrier } from '@commerce/core/inventory'
 import { Save, Trash2, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
@@ -18,12 +19,13 @@ import SaveBar from '@/components/layout/save-bar'
 import OrderChip from '@/components/orders/order-chip'
 import DocumentsCard from '@/components/purchase-documents/documents-card'
 import { inboundShipmentFormContent } from '@/data/purchasing'
-import { useCopy } from '@/hooks/use-copy'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import ShipmentDetailsCard, { type ShipmentDraft } from './shipment-details-card'
 import ShipmentGlanceCard from './shipment-glance-card'
 import ShipmentOrdersCard from './shipment-orders-card'
+import ShipmentTrackingCard from './shipment-tracking-card'
 
 export type LoadedShipment = Awaited<ReturnType<typeof api.inboundShipments.get>>
 
@@ -40,6 +42,10 @@ const day = (value: Date | string | null) =>
 
 function draftFrom(s: LoadedShipment | null): ShipmentDraft {
   return {
+    carrier: (s?.carrier as InboundCarrier | null | undefined) ?? null,
+    trackingNumber: s?.trackingNumber ?? '',
+    trackingUrl: s?.trackingUrl ?? '',
+    expectedAt: s?.expectedAt ?? '',
     reference: s?.reference ?? '',
     billOfEntryNo: s?.billOfEntryNo ?? '',
     billOfEntryDate: s?.billOfEntryDate ?? '',
@@ -56,11 +62,13 @@ const LIST = routes.stock.inboundShipments()
 export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFormProps) {
   // Hooks
   const copy = useCopy(inboundShipmentFormContent)
+  const fmt = useFormat()
   const router = useRouter()
   const [d, setD] = useState<ShipmentDraft>(() => draftFrom(shipment))
   const [saved, setSaved] = useState(() => JSON.stringify(draftFrom(shipment)))
   const [busy, setBusy] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [tracking, setTracking] = useState(false)
 
   // Helpers
   const patch = (next: Partial<ShipmentDraft>) => setD((prev) => ({ ...prev, ...next }))
@@ -71,6 +79,10 @@ export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFor
     try {
       const id = await api.inboundShipments.save({
         id: shipment?.id,
+        carrier: d.carrier,
+        trackingNumber: d.trackingNumber.trim() || undefined,
+        trackingUrl: d.trackingUrl.trim(),
+        expectedAt: d.expectedAt || null,
         reference: d.reference.trim() || undefined,
         billOfEntryNo: d.billOfEntryNo.trim() || undefined,
         billOfEntryDate: d.billOfEntryDate || null,
@@ -87,6 +99,30 @@ export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFor
       toast.error(err instanceof Error ? err.message : copy.failed)
     } finally {
       setBusy(false)
+    }
+  }
+
+  const handleTrack = async () => {
+    if (!shipment) return
+    setTracking(true)
+    try {
+      const r = await api.inboundShipments.track({ id: shipment.id })
+      if (r.ok) {
+        toast.success(
+          r.expectedAt ? copy.tracking.updated(fmt.date(r.expectedAt)) : copy.tracking.noDate,
+        )
+        router.refresh()
+      } else if (r.reason === 'not_connected') {
+        const carrier =
+          r.carrier && isInboundCarrier(r.carrier) ? INBOUND_CARRIERS[r.carrier].label : ''
+        toast.error(copy.tracking.notConnected(carrier))
+      } else {
+        toast.error(copy.tracking.failed)
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : copy.tracking.failed)
+    } finally {
+      setTracking(false)
     }
   }
 
@@ -176,6 +212,14 @@ export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFor
         }
         side={
           <>
+            <ShipmentTrackingCard
+              draft={d}
+              trackedAt={shipment?.trackedAt ?? null}
+              canTrack={Boolean(shipment?.trackingNumber) && !dirty}
+              tracking={tracking}
+              onChange={patch}
+              onTrack={handleTrack}
+            />
             <NotesCard
               id="shipment-note"
               heading={copy.notes.heading}

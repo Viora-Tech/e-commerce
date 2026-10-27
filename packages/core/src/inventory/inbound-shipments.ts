@@ -6,6 +6,7 @@
 import { inboundShipment, newId, purchaseOrder, type StoreTx } from '@commerce/db'
 import { eq, sql } from 'drizzle-orm'
 import { lockCostingGroup, recost } from './costing'
+import { inboundTrackingUrl } from './inbound-tracking'
 import { InventoryError, nextDocumentNumber } from './levels'
 import type { InboundShipmentInput } from './schemas'
 
@@ -14,7 +15,12 @@ export async function saveInboundShipment(
   storeId: string,
   input: InboundShipmentInput,
 ): Promise<string> {
+  const trackingNumber = input.trackingNumber || null
   const fields = {
+    carrier: input.carrier ?? null,
+    trackingNumber,
+    trackingUrl: inboundTrackingUrl(input.carrier, trackingNumber, input.trackingUrl),
+    expectedAt: input.expectedAt ?? null,
     reference: input.reference || null,
     billOfEntryNo: input.billOfEntryNo || null,
     billOfEntryDate: input.billOfEntryDate ?? null,
@@ -36,9 +42,16 @@ export async function saveInboundShipment(
     await tx.insert(inboundShipment).values({ id, storeId, number, ...fields })
     return id
   }
+  const [before] = await tx
+    .select({ carrier: inboundShipment.carrier, trackingNumber: inboundShipment.trackingNumber })
+    .from(inboundShipment)
+    .where(eq(inboundShipment.id, input.id))
+  // A new tracking number has not been read yet.
+  const retracked =
+    before && (before.carrier !== fields.carrier || before.trackingNumber !== trackingNumber)
   const [row] = await tx
     .update(inboundShipment)
-    .set(fields)
+    .set(retracked ? { ...fields, trackedAt: null } : fields)
     .where(eq(inboundShipment.id, input.id))
     .returning({ id: inboundShipment.id })
   if (!row) {
