@@ -39,6 +39,7 @@ import {
   CartEmpty,
   CartNotOpen,
   CheckoutRuleViolation,
+  DiscountCodeRefused,
   NotLaunchedYet,
   ShippingRateUnavailable,
   ShippingUnavailable,
@@ -294,19 +295,21 @@ export function checkGiftCardRules(
 }
 
 /**
- * Decide the discount inside the transaction, from the rules as they are now.
- * A code that stopped working since the shopper typed it is dropped (the best
- * automatic offer, if any, takes its place); the order is never blocked over it.
+ * Decide the discount inside the transaction, from the rules as they are now. A code the
+ * shopper entered that does not work for this contact (one use per customer, customers only)
+ * stops the order with `DiscountCodeRefused`: dropping it quietly charged the full price while
+ * the summary still showed the discount (Razorpay asked for more than the page said).
  */
 const resolveDiscount: WorkflowStep<State> = {
   name: 'resolveDiscount',
   async run({ ctx, input, cartDiscountCode, lines }) {
     if (lines.some((l) => l.giftCard)) return { discount: null }
     const code = input.discountCode === undefined ? cartDiscountCode : input.discountCode
-    const { outcome } = await resolveCartDiscount(ctx, input.cartId, code, {
+    const { outcome, codeRejected } = await resolveCartDiscount(ctx, input.cartId, code, {
       email: input.checkout?.email,
       stateCode: input.checkout?.address?.stateCode,
     })
+    if (code && codeRejected) throw new DiscountCodeRefused(code, codeRejected, ctx.storeId)
     return { discount: outcome }
   },
 }

@@ -10,6 +10,7 @@ import {
   captureCartContact,
   confirmClientPayment,
   createCart,
+  DiscountCodeRefused,
   DiscountUnavailable,
   findRedeemableGiftCard,
   GiftCardError,
@@ -39,6 +40,7 @@ import { and, desc, eq, ne } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { discountFieldContent } from '@/data/cart'
 import { checkoutContent } from '@/data/checkout'
 import { readAttribution } from './attribution-cookie'
 import { clearCartId, readCartId, writeCartId } from './cart-cookie'
@@ -313,6 +315,14 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
       // Another checkout took the last use of the code; the next submit prices without it.
       if (err instanceof DiscountUnavailable)
         return { error: checkoutContent.errors.discountUnavailable }
+      // The code works for nobody with this email (one use each, customers only): say so, never charge more quietly.
+      if (err instanceof DiscountCodeRefused)
+        return {
+          error: checkoutContent.errors.discountRefused(
+            err.code,
+            discountFieldContent.errors[err.reason] ?? discountFieldContent.errors.invalid ?? '',
+          ),
+        }
       // Rates are the store's to set; the shopper can only change the address or re-pick.
       if (err instanceof ShippingUnavailable)
         return { error: checkoutContent.errors.noShipping(form.pincode) }

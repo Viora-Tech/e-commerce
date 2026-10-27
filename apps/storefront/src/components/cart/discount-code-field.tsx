@@ -81,6 +81,7 @@ export default function DiscountCodeField({ discount }: DiscountCodeFieldProps) 
               placeholder={content.placeholder}
               autoComplete="off"
               autoCapitalize="characters"
+              data-pending-code="discount"
               disabled={pending}
             />
           </label>
