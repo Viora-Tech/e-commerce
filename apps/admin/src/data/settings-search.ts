@@ -302,6 +302,12 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     keywords: ['domain', 'website address', 'url', 'dns', 'www', '.com', '.in'],
   },
   {
+    title: 'Markets',
+    where: 'Selling',
+    href: routes.settings.markets(),
+    keywords: ['international', 'countries', 'abroad', 'export', 'foreign currency', 'dollar'],
+  },
+  {
     title: 'AI',
     where: 'Team & advanced',
     href: '/settings/ai',

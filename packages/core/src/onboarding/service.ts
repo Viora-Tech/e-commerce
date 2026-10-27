@@ -16,6 +16,7 @@ import { PREINSTALLED_APPS } from '../automations/app'
 import { createCollection } from '../collections/service'
 import { requestDomainRoute } from '../domains/routes'
 import { CommerceError } from '../errors'
+import { ensurePrimaryMarket } from '../markets/service'
 import { listRoles, seedSystemRoles, upsertMember } from '../permissions/service'
 import { emptyStoreAddress, StoreAddressSchema } from '../settings/general'
 import { ensureMainTheme } from '../theme/library'
@@ -135,7 +136,7 @@ async function installStoreApps(tx: StoreTx, storeId: string, ids: string[]): Pr
 /**
  * Creates a store for a signed-in merchant: organization, owner member,
  * store row, primary domain, and the defaults that already have builders
- * (the main theme, a shipping zone). Mirrors what `packages/db/src/seed.ts`
+ * (the main theme, the primary market, a shipping zone). Mirrors what `packages/db/src/seed.ts`
  * does for the Waimers dev seed, but as a service any merchant can call.
  *
  * Resumable rather than one big transaction (the organization lives in
@@ -249,6 +250,8 @@ export async function createStore(input: CreateStoreInput): Promise<CreateStoreR
     })
     // A new merchant starts on the neutral Minimal look, never the Waimers one.
     await ensureMainTheme(tx, storeId, 'minimal')
+    // India in rupees: the market the storefront serves when no other one matches.
+    await ensurePrimaryMarket(tx, storeId)
     await seedWaimersShipping(tx, storeId)
     if (input.profile) await applyBusinessProfile(tx, storeId, input.profile)
     // Built-in apps every store starts with (Automations, like Shopify Flow), then any asked for.

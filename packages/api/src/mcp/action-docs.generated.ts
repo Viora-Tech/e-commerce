@@ -311,6 +311,14 @@ export const ACTION_DOCS: Record<string, string> = {
   'marketing.recommendations':
     'Growth overview recommendations: up to three rule-based next steps with their numbers.',
   'marketing.setup': 'Which channels can carry marketing for this store.',
+  'markets.create':
+    'Add a market: its countries, currency, languages, prices and how shoppers reach it.',
+  'markets.delete':
+    'Delete a market; one with orders is turned off instead, so its orders keep it.',
+  'markets.get': 'One market with its countries.',
+  'markets.list': 'Every market with its countries, the primary market (India) first.',
+  'markets.setEnabled': 'Turn a market on or off for shoppers; the primary market is always on.',
+  'markets.update': 'Change a market; the primary market only changes its name and languages.',
   'media.backgroundWork':
     'Images still processing and a running import: the "store may be slower" notice.',
   'media.confirm':

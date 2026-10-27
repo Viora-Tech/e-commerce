@@ -267,6 +267,7 @@ const NAMESPACE_TABLE: Record<string, string> = {
   media: 'media',
   staff: 'role',
   domains: 'store_domain',
+  markets: 'market',
   themes: 'theme',
   'themes.templates': 'theme_template',
   'themes.versions': 'theme_version',
