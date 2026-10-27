@@ -20,6 +20,7 @@ import { recordRtoForShipment } from '../returns/rto'
 import { shipmentDocumentsAsLabel } from './label-documents'
 import { storeShippingLabel } from './label-store'
 import { syncNdrFromTracking } from './ndr'
+import { courierOrderFor, markCourierOrderBooked } from './order-push'
 import {
   effectiveWeightGrams,
   parcelBoxPreset,
@@ -249,7 +250,12 @@ export async function createShipmentForOrder(
   const threshold = settings.policy.insuranceThresholdPaise
   const insured = options.insured ?? (threshold > 0 && valuePaise >= threshold)
 
+  // Sent to this courier earlier as a pending order (order push): book that one when the
+  // whole order ships, so the courier's panel does not end up with two.
+  const pushed =
+    !named || named.id === sole ? await courierOrderFor(ctx, o.id, provider.id) : undefined
   const result = await provider.createShipment({
+    ...(pushed ? { pushed } : {}),
     orderId: o.id,
     orderNumber: o.number,
     to: {
@@ -289,6 +295,7 @@ export async function createShipmentForOrder(
       : {}),
     ...(s?.gstin ? { exporterGstin: s.gstin } : {}),
   })
+  if (pushed) await markCourierOrderBooked(ctx, o.id, provider.id)
 
   /* The box packed, for the packing snapshot: the one named, else the box whose size the packer
      picked in the booking flow, else the parcel's own box (parcelBoxPreset). */

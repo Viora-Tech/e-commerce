@@ -72,7 +72,16 @@ export const inventoryContent = {
       { value: 'low', label: 'Low stock' },
       { value: 'out', label: 'Out of stock' },
     ] as { value: StockFilter; label: string }[],
+    changed: 'Stock changed',
+    changedOptions: [
+      { value: '1d', label: 'Today' },
+      { value: '7d', label: 'In the last 7 days' },
+      { value: '30d', label: 'In the last 30 days' },
+      { value: '90d', label: 'In the last 90 days' },
+      { value: 'stale', label: 'Not in 90 days' },
+    ],
   },
+  group: { label: 'Show', skus: 'SKUs', products: 'Products' },
   cell: {
     decrease: 'Remove one',
     increase: 'Add one',
@@ -200,6 +209,7 @@ export const purchaseOrdersContent = {
 export const purchaseOrderFormContent = {
   newTitle: 'Create purchase order',
   title: (n: number) => `Purchase order #PO${n}`,
+  named: (n: number, name: string) => `${name} · #PO${n}`,
   orderedOn: (day: string) => `ordered ${day}`,
   unitsReceived: (of: string) => `${of} units received`,
   back: 'Purchase orders',
@@ -208,6 +218,11 @@ export const purchaseOrderFormContent = {
     name: 'Supplier name',
     email: 'Email',
     phone: 'Phone',
+  },
+  name: {
+    label: 'Order name (optional)',
+    placeholder: 'Diwali restock',
+    hint: 'Your own name for this order. The number stays.',
   },
   destination: {
     heading: 'Destination',
@@ -250,10 +265,13 @@ export const purchaseOrderFormContent = {
   closed: 'Purchase order closed',
   delete: 'Delete',
   deleted: 'Purchase order deleted',
-  locked:
-    'Received, closed and cancelled purchase orders cannot be edited. Late bills can still be added as charges.',
+  locked: 'Cancelled purchase orders cannot be edited. Reopen it to make changes.',
   headerOnly:
-    'Products, prices and currency are locked once ordered. Supplier details, exchange rate, HSN codes and notes can still change.',
+    'Quantities and prices can change until the goods arrive; incoming stock follows. Currency and destination are fixed once ordered.',
+  correctOnly:
+    'The goods have arrived, so products and quantities are fixed. Unit prices and the exchange rate can still be corrected; received stock is revalued.',
+  inShipment: (n: number) =>
+    `This order is on inbound shipment #IS${n}. Remove it from the shipment to change products, quantities or prices.`,
   cancel: 'Cancel order',
   cancelled: 'Purchase order cancelled',
   reopen: 'Reopen',

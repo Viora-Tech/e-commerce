@@ -47,6 +47,7 @@ import {
 } from './form-state'
 import PoActions from './po-actions'
 import PoLinesCard from './po-lines-card'
+import PoNameCard from './po-name-card'
 import ReceiveDialog from './receive-dialog'
 import ShipmentLinkCard from './shipment-link-card'
 import SupplierCard from './supplier-card'
@@ -70,8 +71,11 @@ function initialForm(po: LoadedPurchaseOrder | null, locations: StoreLocation[])
   return emptyPoForm(home?.id ?? '')
 }
 
-const isFinished = (status: PurchaseOrderStatus | null | undefined) =>
-  status === 'received' || status === 'closed' || status === 'cancelled'
+const isFinished = (status: PurchaseOrderStatus | null | undefined) => status === 'cancelled'
+
+/** The goods are in: products and quantities are fixed, prices can still be corrected. */
+const hasArrived = (status: PurchaseOrderStatus | null | undefined) =>
+  status === 'received' || status === 'closed'
 
 const isPurchaseCurrency = (c: string): c is PurchaseCurrency =>
   (PURCHASE_CURRENCY_CODES as string[]).includes(c)
@@ -212,6 +216,17 @@ export default function PurchaseOrderForm({
   const status = po?.status ?? null
   const finished = isFinished(status)
   const draft = status === null || status === 'draft'
+  const arrivedAll = hasArrived(status)
+  const shipmentNumber = !draft && !arrivedAll ? (po?.shipment?.number ?? null) : null
+  const notice = finished
+    ? copy.locked
+    : arrivedAll
+      ? copy.correctOnly
+      : shipmentNumber !== null
+        ? copy.inShipment(shipmentNumber)
+        : draft
+          ? null
+          : copy.headerOnly
   const dirty = JSON.stringify(form) !== saved
   const nothingArrived = (po?.lines ?? []).every((l) => l.received + l.rejected === 0)
   const outstanding = (po?.lines ?? []).some((l) => remainingOf(l) > 0)
@@ -241,7 +256,9 @@ export default function PurchaseOrderForm({
         saving={busy}
       />
       <PageHeader
-        title={po ? copy.title(po.number) : copy.newTitle}
+        title={
+          po ? (po.name ? copy.named(po.number, po.name) : copy.title(po.number)) : copy.newTitle
+        }
         summary={summary}
         lead={{ kind: 'icon', node: <Package aria-hidden="true" /> }}
         badges={status ? <OrderChip kind="purchaseOrder" value={status} /> : null}
@@ -265,9 +282,7 @@ export default function PurchaseOrderForm({
           />
         }
       />
-      {finished || !draft ? (
-        <NoticeBar>{finished ? copy.locked : copy.headerOnly}</NoticeBar>
-      ) : null}
+      {notice ? <NoticeBar>{notice}</NoticeBar> : null}
       <PageColumns
         main={
           <>
@@ -283,7 +298,8 @@ export default function PurchaseOrderForm({
             <PoLinesCard
               lines={form.lines}
               currency={form.currency}
-              locked={!draft}
+              locked={finished || arrivedAll || shipmentNumber !== null}
+              pricesLocked={finished || shipmentNumber !== null}
               hsnLocked={finished}
               showReceived={!draft}
               onChange={(lines) => patch({ lines })}
@@ -305,6 +321,11 @@ export default function PurchaseOrderForm({
         }
         side={
           <>
+            <PoNameCard
+              value={form.name}
+              disabled={finished}
+              onChange={(name) => patch({ name })}
+            />
             <DestinationCard
               locations={locations}
               locationId={form.locationId}

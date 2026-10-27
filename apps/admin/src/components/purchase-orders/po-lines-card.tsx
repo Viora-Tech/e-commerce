@@ -21,8 +21,10 @@ import { addPickedLines, type PoLine, toCount } from './form-state'
 type PoLinesCardProps = {
   lines: PoLine[]
   currency: PurchaseCurrency
-  /** Products, quantities and prices are fixed once the order is placed. */
+  /** Products and quantities are fixed (goods arrived, on a shipment, or cancelled). */
   locked: boolean
+  /** Unit prices are fixed (on a shipment, or cancelled); after arrival they can be corrected. */
+  pricesLocked: boolean
   /** HSN codes stay editable until the order is finished. */
   hsnLocked: boolean
   /** Show how much of each line has arrived. */
@@ -49,6 +51,7 @@ export default function PoLinesCard({
   lines,
   currency,
   locked,
+  pricesLocked,
   hsnLocked,
   showReceived,
   onChange,
@@ -135,7 +138,7 @@ export default function PoLinesCard({
                 value={line.unitPrice}
                 inputMode="decimal"
                 placeholder="0"
-                disabled={locked}
+                disabled={pricesLocked}
                 aria-invalid={badPrice(line, currency) || undefined}
                 className="text-right tabular-nums"
                 onChange={(e) => patchLine(i, { unitPrice: e.target.value })}
@@ -153,7 +156,7 @@ export default function PoLinesCard({
               <span className="text-right text-body tabular-nums">
                 {showReceived ? arrived(line) : lineTotal(line)}
               </span>
-              {locked ? (
+              {locked || line.received + line.rejected > 0 ? (
                 <span />
               ) : (
                 <KitIconButton

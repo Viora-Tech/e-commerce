@@ -9,6 +9,7 @@ import {
   orderParcelsView,
   type PaymentProvider,
   parsePaymentSettings,
+  type RefundMethod,
   refundPayment,
   resolvePaymentProviders,
   UNFULFILLED_STATUSES,
@@ -501,12 +502,19 @@ export async function refundOrderPayment(
   storeId: string,
   registry: PaymentRegistry,
   secret: string,
-  input: { paymentId: string; amountPaise: number; reason?: string | undefined },
+  input: {
+    paymentId: string
+    amountPaise: number
+    reason?: string | undefined
+    manual?: boolean | undefined
+    method?: RefundMethod | undefined
+    createdBy?: string | null | undefined
+  },
 ) {
   const [p] = await tx.select().from(payment).where(eq(payment.id, input.paymentId))
   if (!p) return null
   const provider = await providerForPayment(tx, storeId, registry, secret, p.provider)
-  const row = await refundPayment({ tx, storeId }, provider, input)
+  const row = await refundPayment({ tx, storeId }, provider, { ...input, secret })
   // Not tagged with a return: this is a direct refund from the order page, so the
   // shopper gets the generic `refund_issued` message (see the outbox relay).
   if (row && row.status !== 'failed') {

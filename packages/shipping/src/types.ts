@@ -114,6 +114,17 @@ export type CreateShipmentInput = {
   dimensionsCm?: { length: number; width: number; height: number } | undefined
   /** The store's GSTIN, printed on an export's commercial invoice. */
   exporterGstin?: string | undefined
+  /**
+   * The order already sits at this courier as a pending order (`pushOrder`): book that one
+   * instead of creating a second order there.
+   */
+  pushed?: PushOrderResult | undefined
+}
+
+/** The courier's ids for an order sent to it without booking. */
+export type PushOrderResult = {
+  externalOrderId: string
+  externalShipmentId?: string | undefined
 }
 
 export type CreateShipmentResult = {
@@ -395,6 +406,14 @@ export type ShippingProvider = {
    */
   checkServiceability(query: ServiceabilityQuery): Promise<Serviceability>
   createShipment(input: CreateShipmentInput): Promise<CreateShipmentResult>
+  /**
+   * Send the order to the courier's panel as a pending order, without an AWB or pickup, so the
+   * merchant sees it there and books it there or here later. Only aggregators that keep
+   * unbooked orders (Shiprocket, RapidShyp) have it.
+   */
+  pushOrder?(input: CreateShipmentInput): Promise<PushOrderResult>
+  /** Take back a pending order sent with `pushOrder` (the order was cancelled here). */
+  cancelPushedOrder?(pushed: PushOrderResult): Promise<void>
   track(waybill: string): Promise<Tracking>
   /**
    * Cancel a booked consignment. Throw CourierError('rejected', ...) with the courier's reason

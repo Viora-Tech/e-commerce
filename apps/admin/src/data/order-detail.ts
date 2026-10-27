@@ -45,6 +45,19 @@ export const orderDetailContent = {
     confirm: 'Cancel order',
     keep: 'Keep order',
   },
+  courierOrders: {
+    heading: 'Courier apps',
+    status: {
+      pushed: 'Waiting there',
+      booked: 'Booked',
+      cancelled: 'Taken back',
+      failed: 'Not sent',
+    },
+    retry: 'Send again',
+    retrying: 'Sending',
+    sent: (courier: string) => `Sent to ${courier}`,
+    refused: 'The courier did not accept it. Check the reason and try again.',
+  },
   refundDialog: {
     title: 'Refund payment',
     body: (remaining: string) => `Up to ${remaining} can be refunded on this payment.`,
@@ -58,6 +71,22 @@ export const orderDetailContent = {
     full: 'Refund remaining',
     done: (amount: string) => `Refunded ${amount}`,
     failed: 'Refund failed',
+    how: 'How it goes back',
+    original: (via: string) => `Back to ${via}`,
+    originalHint: 'The gateway sends the money back to the card, UPI or bank it came from.',
+    manual: 'Already sent another way',
+    manualHint: 'You returned the money yourself. This records how.',
+    storeCredit: 'As store credit',
+    storeCreditHint: 'A gift card for this amount is emailed to the customer.',
+    method: 'Sent by',
+    methods: {
+      upi: 'UPI',
+      bank_transfer: 'Bank transfer',
+      cash: 'Cash',
+      cheque: 'Cheque',
+      store_credit: 'Store credit',
+      other: 'Other',
+    },
   },
   pills: {
     payment: {

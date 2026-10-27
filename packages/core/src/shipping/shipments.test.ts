@@ -1,5 +1,6 @@
 import {
   address,
+  courierOrder,
   createDb,
   order,
   orderLine,
@@ -16,6 +17,7 @@ import { FakeShippingProvider, type Tracking } from '@commerce/shipping'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { buildTemplateData } from '../notifications/deliver'
+import { pushPendingOrders } from './order-push'
 import { schedulePickup } from './pickup'
 import {
   builtInShippingRegistry,
@@ -506,5 +508,47 @@ describe('pickup requests', () => {
     )
     expect(retried.status).toBe('scheduled')
     expect(asked).toHaveLength(2)
+  })
+})
+
+describe('order push', () => {
+  it('sends a new order once as a pending order, then books that same order', async () => {
+    const { storeId, orderId } = await seedOrder()
+    const pushes: unknown[] = []
+    const bookings: { pushed?: unknown }[] = []
+    const courier = Object.assign(new FakeShippingProvider(), {
+      pushOrder: async (input: unknown) => {
+        pushes.push(input)
+        return { externalOrderId: 'SR-1', externalShipmentId: 'SH-1' }
+      },
+      createShipment: async (input: { pushed?: unknown }) => {
+        bookings.push(input)
+        return { waybill: 'WB9', providerRef: 'SH-1' }
+      },
+    })
+    const settings = parseShippingSettings({
+      enabled: ['fake'],
+      policy: {
+        originPincode: '131028',
+        warehouse: { name: 'HQ', line1: 'Plot 4', city: 'Sonipat', state: 'HR', phone: '9' },
+      },
+    })
+    const push = () =>
+      withStore(app, storeId, (tx) =>
+        pushPendingOrders({ storeId, tx }, [courier], settings, 'Waimers'),
+      )
+    expect(await push()).toEqual({ pushed: 1, failed: 0 })
+    expect(pushes[0]).toMatchObject({
+      orderNumber: 7,
+      paymentMode: 'cod',
+      to: { pincode: '560001' },
+    })
+    // Already sent: not sent again.
+    expect(await push()).toEqual({ pushed: 0, failed: 0 })
+
+    await withStore(app, storeId, (tx) => createShipmentForOrder({ storeId, tx }, courier, orderId))
+    expect(bookings[0]?.pushed).toEqual({ externalOrderId: 'SR-1', externalShipmentId: 'SH-1' })
+    const [row] = await owner.select().from(courierOrder).where(eq(courierOrder.orderId, orderId))
+    expect(row?.status).toBe('booked')
   })
 })

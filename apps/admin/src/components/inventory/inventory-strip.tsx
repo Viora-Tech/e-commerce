@@ -1,5 +1,6 @@
 'use client'
 
+import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import StatusChip from '@/components/layout/status-chip'
 import { inventoryContent, type ManualReasonValue } from '@/data/inventory'
 import { useCopy } from '@/hooks/use-copy'
@@ -13,6 +14,9 @@ type InventoryStripProps = {
   /** Hidden for members who can only read stock. */
   reason: ManualReasonValue | null
   onReasonChange: (reason: ManualReasonValue) => void
+  /** One row per SKU, or SKUs grouped under their product. */
+  byProduct: boolean
+  onByProductChange: (byProduct: boolean) => void
 }
 
 /** Location picker, the reason inline edits are logged with, then the stat tiles. */
@@ -22,9 +26,16 @@ export default function InventoryStrip({
   onLocationChange,
   reason,
   onReasonChange,
+  byProduct,
+  onByProductChange,
 }: InventoryStripProps) {
   // Hooks
   const copy = useCopy(inventoryContent)
+
+  // Event handlers
+  const handleGroupChange = (next: string[]) => {
+    if (next[0]) onByProductChange(next[0] === 'products')
+  }
 
   // Render logic
   const online = locations.find((l) => l.id === locationId)?.fulfilsOnlineOrders ?? false
@@ -46,19 +57,37 @@ export default function InventoryStrip({
           {online ? <StatusChip tone="info">{copy.defaultBadge}</StatusChip> : null}
         </div>
       </div>
-      {reason ? (
+      <div className="flex flex-wrap items-end gap-4">
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="inventory-reason" className="text-caption text-muted-foreground">
-            {copy.reason}
-          </label>
-          <ReasonSelect
-            id="inventory-reason"
-            value={reason}
-            onChange={onReasonChange}
-            className="w-50 bg-card"
-          />
+          <span id="inventory-group-label" className="text-caption text-muted-foreground">
+            {copy.group.label}
+          </span>
+          <ToggleGroup
+            aria-labelledby="inventory-group-label"
+            value={[byProduct ? 'products' : 'skus']}
+            onValueChange={handleGroupChange}
+            variant="outline"
+            spacing={0}
+            className="bg-card"
+          >
+            <ToggleGroupItem value="skus">{copy.group.skus}</ToggleGroupItem>
+            <ToggleGroupItem value="products">{copy.group.products}</ToggleGroupItem>
+          </ToggleGroup>
         </div>
-      ) : null}
+        {reason ? (
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="inventory-reason" className="text-caption text-muted-foreground">
+              {copy.reason}
+            </label>
+            <ReasonSelect
+              id="inventory-reason"
+              value={reason}
+              onChange={onReasonChange}
+              className="w-50 bg-card"
+            />
+          </div>
+        ) : null}
+      </div>
     </div>
   )
 }

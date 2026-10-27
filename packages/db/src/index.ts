@@ -39,6 +39,7 @@ export {
   storesWithOldAutomationRuns,
   storesWithOldPixelData,
   storesWithOpenShipments,
+  storesWithOrderPushCouriers,
   storesWithPendingCodChecks,
   storesWithPendingDomains,
   storesWithPendingManualOrders,

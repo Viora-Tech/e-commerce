@@ -20,6 +20,7 @@ import { orderChannel } from '@/lib/order-channel'
 import { routes } from '@/lib/routes'
 import CancelOrderDialog from './cancel-order-dialog'
 import CollectPaymentDialog from './collect-payment-dialog'
+import CourierOrdersCard from './courier-orders-card'
 import CustomerCard from './customer-card'
 import FulfilDialog from './fulfil-dialog'
 import ImportedOrderCard from './imported-order-card'
@@ -310,6 +311,12 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
             />
           ) : null}
           <CustomerCard order={order} />
+          <CourierOrdersCard
+            orderId={order.id}
+            rows={order.courierOrders}
+            canRetry={!readOnly && hasPermission(permissions.ORDERS_WRITE)}
+            onChanged={refresh}
+          />
           {readOnly ? null : (
             <ProfitCard
               orderId={order.id}

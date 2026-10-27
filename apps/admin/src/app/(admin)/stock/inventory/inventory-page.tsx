@@ -61,9 +61,22 @@ type Query = {
   stock: StockFilter | null
   vendor: string | null
   productType: string | null
+  changed: StockChanged | null
+  group: 'product' | null
 }
 
+/** "Stock changed" filter values; the API checks the same list. */
+const STOCK_CHANGED = ['1d', '7d', '30d', '90d', 'stale'] as const
+type StockChanged = (typeof STOCK_CHANGED)[number]
+
 const PER_PAGE = siteConfig.ui.rowsPerPage.default
+
+/** Variant ids that follow another SKU of the same product, in list order. */
+function continuedRows(rows: InventoryRow[]): Set<string> {
+  return new Set(
+    rows.filter((r, i) => rows[i - 1]?.productId === r.productId).map((r) => r.variantId),
+  )
+}
 
 function listFilters(locationId: string, q: Query) {
   return {
@@ -72,6 +85,8 @@ function listFilters(locationId: string, q: Query) {
     stock: q.stock ?? undefined,
     vendor: q.vendor ?? undefined,
     productType: q.productType ?? undefined,
+    changed: q.changed ?? undefined,
+    group: q.group ?? undefined,
   }
 }
 
@@ -104,7 +119,9 @@ function untouched(initial: InventoryInitial, locationId: string, q: Query) {
     q.query === initial.query.query &&
     !q.stock &&
     !q.vendor &&
-    !q.productType
+    !q.productType &&
+    !q.changed &&
+    !q.group
   )
 }
 
@@ -122,6 +139,8 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
       stock: parseAsStringLiteral(STOCK_FILTERS),
       vendor: parseAsString,
       productType: parseAsString,
+      changed: parseAsStringLiteral(STOCK_CHANGED),
+      group: parseAsStringLiteral(['product'] as const),
     },
     { shallow: true },
   )
@@ -239,6 +258,15 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
       anyLabel: copy.filters.any,
     },
     {
+      key: 'changed',
+      label: copy.filters.changed,
+      type: 'select',
+      options: copy.filters.changedOptions,
+      value: q.changed,
+      onChange: (next) => setQ({ changed: STOCK_CHANGED.find((c) => c === next) ?? null, page: 1 }),
+      anyLabel: copy.filters.any,
+    },
+    {
       key: 'vendor',
       label: copy.filters.vendor,
       type: 'select',
@@ -286,6 +314,8 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
           onLocationChange={(location) => setQ({ location, page: 1 })}
           reason={canEdit ? reason : null}
           onReasonChange={setReason}
+          byProduct={q.group === 'product'}
+          onByProductChange={(on) => setQ({ group: on ? 'product' : null, page: 1 })}
         />
       }
     >
@@ -296,6 +326,8 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
           canEdit,
           lowAt: stats.lowThreshold,
           onCommit: commitRow,
+          // Grouped: the product's name and image only on its first SKU.
+          continued: q.group === 'product' ? continuedRows(rows) : null,
         })}
         items={rows}
         getId={(r) => r.variantId}
@@ -317,7 +349,14 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() =>
-          setQ({ query: '', stock: null, vendor: null, productType: null, page: 1 })
+          setQ({
+            query: '',
+            stock: null,
+            vendor: null,
+            productType: null,
+            changed: null,
+            page: 1,
+          })
         }
         filters={(close) => (
           <FilterPanel

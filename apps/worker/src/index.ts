@@ -32,6 +32,7 @@ import { createMediaProcessWorker } from './media-process'
 import { createMemberDailySummary, DAILY_SUMMARY_EVERY_MS } from './member-daily-summary'
 import { createNotificationWorker } from './notifications'
 import { initSentry, reportError } from './observability'
+import { createOrderPusher, PUSH_EVERY_MS } from './order-push'
 import { createOutboxRelay, RELAY_EVERY_MS } from './outbox-relay'
 import { createPaymentFeeSync, PAYMENT_FEES_EVERY_MS } from './payment-fees'
 import { paymentWebhooks } from './payments'
@@ -86,6 +87,7 @@ const unpaidExpiry = createUnpaidOrderExpiry(redis, db, { settingsSecret: env.SE
 const preorderBalance = createPreorderBalanceJob(redis, db, { settingsSecret: env.SETTINGS_SECRET })
 const paymentFees = createPaymentFeeSync(redis, db, { settingsSecret: env.SETTINGS_SECRET })
 const tracker = createShippingTracker(redis, db, { settingsSecret: env.SETTINGS_SECRET })
+const orderPusher = createOrderPusher(redis, db, { settingsSecret: env.SETTINGS_SECRET })
 // Unset Dokploy keys: no routes are asked for and every route job is a no-op (added by hand).
 const dokploy = dokployConfigFrom(env)
 const domainTargets = { aRecord: env.STOREFRONT_A_RECORD, cnameTarget: env.STOREFRONT_CNAME_TARGET }
@@ -170,6 +172,7 @@ const watched = [
   [appEventWorker, 'app-events'],
   [appJobWorker, 'app-jobs'],
   [tracker.worker, 'shipping-tracker'],
+  [orderPusher.worker, 'order-push'],
   [unpaidExpiry.worker, 'unpaid-order-expiry'],
   [preorderBalance.worker, 'preorder-balance'],
   [paymentFees.worker, 'payment-fees'],
@@ -220,6 +223,11 @@ await tracker.queue.upsertJobScheduler(
   'track-open-shipments',
   { every: TRACK_EVERY_MS },
   { name: 'track' },
+)
+await orderPusher.queue.upsertJobScheduler(
+  'push-new-orders',
+  { every: PUSH_EVERY_MS },
+  { name: 'push' },
 )
 await unpaidExpiry.queue.upsertJobScheduler(
   'expire-unpaid-orders',
@@ -369,6 +377,8 @@ const shutdown = async () => {
   await appJobWorker.close()
   await tracker.worker.close()
   await tracker.queue.close()
+  await orderPusher.worker.close()
+  await orderPusher.queue.close()
   await unpaidExpiry.worker.close()
   await unpaidExpiry.queue.close()
   await preorderBalance.worker.close()

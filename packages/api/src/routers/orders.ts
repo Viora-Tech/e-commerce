@@ -2,9 +2,11 @@ import { settingsSecret } from '@commerce/config'
 import {
   CommerceError,
   CourierChargeInputSchema,
+  courierOrdersForOrder,
   deleteTestOrders,
+  deliverGiftCard,
+  giftCardChannels,
   InvalidOrderContact,
-  insertOutboxEvent,
   isIsoDay,
   MANUAL_PAYMENT_METHODS,
   ORDER_FULFILLMENT_STATUSES,
@@ -13,6 +15,7 @@ import {
   OrderNotFound,
   orderProfit,
   permissions,
+  REFUND_METHODS,
   setCourierCharge,
   updateOrderContact,
 } from '@commerce/core'
@@ -20,6 +23,7 @@ import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
+import { retryCourierPushForOrder } from '../services/courier-push.service'
 import {
   addOrderNote,
   getOrder,
@@ -127,7 +131,26 @@ export const ordersRouter = {
         customerOrderCount(context.tx, o.customerId),
         customerOrderIndex(context.tx, o.customerId, o.placedAt),
       ])
-      return { ...o, shipment, balance, customerOrders, customerOrderNumber }
+      // Where it was sent as a pending order (Shiprocket, RapidShyp), for the Shipping card.
+      const courierOrders = await courierOrdersForOrder(
+        { storeId: context.scope.storeId, tx: context.tx },
+        input.id,
+      )
+      return { ...o, shipment, balance, customerOrders, customerOrderNumber, courierOrders }
+    }),
+
+  /** Send the order to a courier's panel again after it refused (order push). */
+  retryCourierPush: can(permissions.ORDERS_WRITE)
+    .input(z.object({ orderId: z.uuid(), provider: z.string().min(1).max(40) }))
+    .handler(async ({ context, input }) => {
+      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
+      return retryCourierPushForOrder(
+        context.tx,
+        context.scope.storeId,
+        shipping,
+        settingsSecret(),
+        input,
+      )
     }),
 
   /** What the order earned: net sales less goods, courier, fees and RTO (order/profit.ts). */
@@ -394,25 +417,29 @@ export const ordersRouter = {
         paymentId: z.uuid(),
         amountPaise: z.number().int().positive(),
         reason: z.string().trim().max(500).optional(),
+        /** Record it as sent back by hand instead of asking the gateway. */
+        manual: z.boolean().optional(),
+        /** How it went back when recorded by hand; `store_credit` issues a gift card. */
+        method: z.enum(REFUND_METHODS).optional(),
       }),
     )
     .handler(async ({ context, input }) => {
       await assertNotImported(context.tx, { paymentId: input.paymentId })
-      const { payments } = await storeRegistries(context.tx, context.scope.storeId)
+      const { payments, notifications } = await storeRegistries(context.tx, context.scope.storeId)
       try {
+        // The service writes `refund.created` (the shopper's message, credit notes) itself.
         const r = await refundOrderPayment(
           context.tx,
           context.scope.storeId,
           payments,
           settingsSecret(),
-          input,
+          { ...input, createdBy: context.session.user.email },
         )
-        // Failed gateway refunds returned no money, so there is nothing to credit.
-        if (r && r.status !== 'failed') {
-          await insertOutboxEvent(context.tx, context.scope.storeId, 'refund.created', {
-            orderId: r.orderId,
-            refundId: r.id,
-          })
+        if (r?.giftCardId) {
+          // Store credit: email the new card's code to the shopper.
+          const ctx = { storeId: context.scope.storeId, tx: context.tx }
+          const channels = await giftCardChannels(ctx, notifications, settingsSecret())
+          await deliverGiftCard(ctx, r.giftCardId, { channels, secret: settingsSecret() })
         }
         return r
       } catch (err) {

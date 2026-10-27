@@ -51,6 +51,13 @@ export default function PaymentCard({
   const copy = useCopy(orderDetailContent)
   const fmt = useFormat()
 
+  // Helpers
+  /** How a refund recorded by hand went back ("UPI", "Store credit"), when it says. */
+  const refundMethod = (m: string | null) => {
+    const methods = copy.refundDialog.methods
+    return m && Object.hasOwn(methods, m) ? methods[m as keyof typeof methods] : null
+  }
+
   // Render logic
   const events = order.paymentEvents
   const multipleAttempts = order.payments.filter((p) => p.provider !== 'gift_card').length > 1
@@ -151,7 +158,9 @@ export default function PaymentCard({
                       {fmt.money(r.amountPaise)}
                     </span>
                     <span className="block truncate text-caption font-normal">
-                      {[fmt.when(r.createdAt), r.reason].filter(Boolean).join(', ')}
+                      {[fmt.when(r.createdAt), refundMethod(r.method), r.reason]
+                        .filter(Boolean)
+                        .join(', ')}
                     </span>
                   </span>
                   <StatusLabel kind="refund" value={r.status} size="sm" />

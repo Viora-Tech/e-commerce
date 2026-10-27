@@ -86,6 +86,7 @@ import {
   type NdrActionInput,
   type NdrActionResult,
   type ProviderField,
+  type PushOrderResult,
   type RateOption,
   type RateQuery,
   type RateQuote,
@@ -152,6 +153,13 @@ type WrapperResponse = {
   orderId?: string
   orderCreated?: boolean
   shipment?: WrapperShipment[]
+}
+
+type CreateOrderOnlyResponse = {
+  status?: string
+  remarks?: string
+  order_id?: string
+  shipment?: { shipmentId?: string | number; shipment_id?: string | number }[]
 }
 
 type AssignAwbResponse = {
@@ -520,11 +528,49 @@ export class RapidshypProvider implements ShippingProvider {
     return result.labelData?.[0]?.labelURL
   }
 
-  async createShipment(input: CreateShipmentInput): Promise<CreateShipmentResult> {
-    const order = await this.postJson<WrapperResponse>(
-      '/rapidshyp/apis/v1/wrapper',
+  /**
+   * Create Order only: the order shows in RapidShyp's panel without an AWB. Its response is
+   * documented as `{ status, remarks, order_id, shipment: [] }`; the shipment id is read when
+   * present, and booking later falls back to the order id we sent.
+   */
+  async pushOrder(input: CreateShipmentInput): Promise<PushOrderResult> {
+    const r = await this.postJson<CreateOrderOnlyResponse>(
+      '/rapidshyp/apis/v1/create_order',
       this.buildOrderPayload(input),
     )
+    const shipment = r.shipment?.[0]
+    const shipmentId = shipment?.shipmentId ?? shipment?.shipment_id
+    if (!r.order_id && !shipmentId) {
+      throw new CourierError(
+        'rejected',
+        this.id,
+        `RapidShyp rejected the order: ${r.remarks || 'no detail returned'}`,
+      )
+    }
+    return {
+      externalOrderId: String(r.order_id ?? input.orderId),
+      externalShipmentId: shipmentId != null ? String(shipmentId) : undefined,
+    }
+  }
+
+  /** The pending order goes the same way as a booked one: `cancel_order` by order id. */
+  async cancelPushedOrder(pushed: PushOrderResult): Promise<void> {
+    await this.cancel(pushed.externalOrderId)
+  }
+
+  async createShipment(input: CreateShipmentInput): Promise<CreateShipmentResult> {
+    const pushedShipment = input.pushed?.externalShipmentId
+    // Sent here earlier as a pending order: assign a courier to that shipment instead.
+    const order: WrapperResponse = pushedShipment
+      ? {
+          orderCreated: true,
+          orderId: input.pushed?.externalOrderId ?? input.orderId,
+          shipment: [{ shipmentId: pushedShipment }],
+        }
+      : await this.postJson<WrapperResponse>(
+          '/rapidshyp/apis/v1/wrapper',
+          this.buildOrderPayload(input),
+        )
     if (!order.orderCreated) {
       throw new CourierError(
         'rejected',
