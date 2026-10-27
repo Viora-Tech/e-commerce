@@ -2,9 +2,11 @@ import { settingsSecret } from '@commerce/config'
 import {
   CommerceError,
   CourierChargeInputSchema,
+  courierOrdersForOrder,
   deleteTestOrders,
+  deliverGiftCard,
+  giftCardChannels,
   InvalidOrderContact,
-  insertOutboxEvent,
   isIsoDay,
   MANUAL_PAYMENT_METHODS,
   ORDER_FULFILLMENT_STATUSES,
@@ -13,6 +15,7 @@ import {
   OrderNotFound,
   orderProfit,
   permissions,
+  REFUND_METHODS,
   setCourierCharge,
   updateOrderContact,
 } from '@commerce/core'
@@ -20,6 +23,7 @@ import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
+import { retryCourierPushForOrder } from '../services/courier-push.service'
 import {
   addOrderNote,
   getOrder,
@@ -44,11 +48,12 @@ import {
 import {
   bookShipment,
   cancelStoreShipment,
-  getShipmentForOrder,
   refreshShipmentTracking,
+  shipmentDetailsForOrder,
 } from '../services/shipping.service'
 import { assertNotImported } from './imported-order'
 import { draftAndAbandonedRoutes } from './order-drafts'
+import { orderEditRoutes } from './order-edit'
 import { orderListRoutes } from './order-list'
 import { orderMessageRoutes } from './order-messages'
 
@@ -119,13 +124,33 @@ export const ordersRouter = {
     .handler(async ({ context, input }) => {
       const o = await getOrder(context.tx, input.id)
       if (!o) return null
+      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
       const [shipment, balance, customerOrders, customerOrderNumber] = await Promise.all([
-        getShipmentForOrder(context.tx, input.id),
+        shipmentDetailsForOrder(context.tx, shipping, input.id),
         orderBalance(context.tx, context.scope.storeId, input.id, o.totalPaise),
         customerOrderCount(context.tx, o.customerId),
         customerOrderIndex(context.tx, o.customerId, o.placedAt),
       ])
-      return { ...o, shipment, balance, customerOrders, customerOrderNumber }
+      // Where it was sent as a pending order (Shiprocket, RapidShyp), for the Shipping card.
+      const courierOrders = await courierOrdersForOrder(
+        { storeId: context.scope.storeId, tx: context.tx },
+        input.id,
+      )
+      return { ...o, shipment, balance, customerOrders, customerOrderNumber, courierOrders }
+    }),
+
+  /** Send the order to a courier's panel again after it refused (order push). */
+  retryCourierPush: can(permissions.ORDERS_WRITE)
+    .input(z.object({ orderId: z.uuid(), provider: z.string().min(1).max(40) }))
+    .handler(async ({ context, input }) => {
+      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
+      return retryCourierPushForOrder(
+        context.tx,
+        context.scope.storeId,
+        shipping,
+        settingsSecret(),
+        input,
+      )
     }),
 
   /** What the order earned: net sales less goods, courier, fees and RTO (order/profit.ts). */
@@ -241,6 +266,23 @@ export const ordersRouter = {
           })
           .nullable(),
         alsoUpdateCustomer: z.boolean().default(false),
+        /** Left out keeps the order's billing; `address` null bills the shipping address. */
+        billing: z
+          .object({
+            address: z
+              .object({
+                name: z.string().trim().max(120),
+                line1: z.string().trim().max(200),
+                line2: z.string().trim().max(200).nullable().optional(),
+                city: z.string().trim().max(80),
+                stateCode: z.string().trim().max(2),
+                pincode: z.string().trim().max(6),
+              })
+              .nullable(),
+            businessName: z.string().trim().max(200).nullable(),
+            gstin: z.string().trim().max(20).nullable(),
+          })
+          .optional(),
       }),
     )
     .handler(async ({ context, input }) => {
@@ -274,6 +316,8 @@ export const ordersRouter = {
         providerId: z.string().min(1).optional(),
         /** The courier's service picked in the rate table (Delhivery Express, a Shiprocket carrier). */
         serviceId: z.string().min(1).max(64).optional(),
+        /** That service's name as the rate table showed it, kept for the shipment details view. */
+        serviceLabel: z.string().trim().min(1).max(80).optional(),
         /** The article number from the counter receipt, for a courier booked at its counter (India Post). */
         trackingNumber: z.string().trim().min(1).max(40).optional(),
         fulfillmentOrderId: z.guid().optional(),
@@ -322,7 +366,10 @@ export const ordersRouter = {
       )
     }),
 
-  /** Cancel a booked shipment with its courier. */
+  /**
+   * Cancel a booked shipment with its courier, before it is collected or put on a manifest. The
+   * order timeline records who did it, and the parcel can be booked again.
+   */
   cancelShipment: can(permissions.ORDERS_FULFIL)
     .input(z.object({ shipmentId: z.uuid() }))
     .handler(async ({ context, input }) => {
@@ -333,6 +380,7 @@ export const ordersRouter = {
         shipping,
         settingsSecret(),
         input.shipmentId,
+        context.session.user.email,
       )
     }),
 
@@ -369,25 +417,29 @@ export const ordersRouter = {
         paymentId: z.uuid(),
         amountPaise: z.number().int().positive(),
         reason: z.string().trim().max(500).optional(),
+        /** Record it as sent back by hand instead of asking the gateway. */
+        manual: z.boolean().optional(),
+        /** How it went back when recorded by hand; `store_credit` issues a gift card. */
+        method: z.enum(REFUND_METHODS).optional(),
       }),
     )
     .handler(async ({ context, input }) => {
       await assertNotImported(context.tx, { paymentId: input.paymentId })
-      const { payments } = await storeRegistries(context.tx, context.scope.storeId)
+      const { payments, notifications } = await storeRegistries(context.tx, context.scope.storeId)
       try {
+        // The service writes `refund.created` (the shopper's message, credit notes) itself.
         const r = await refundOrderPayment(
           context.tx,
           context.scope.storeId,
           payments,
           settingsSecret(),
-          input,
+          { ...input, createdBy: context.session.user.email },
         )
-        // Failed gateway refunds returned no money, so there is nothing to credit.
-        if (r && r.status !== 'failed') {
-          await insertOutboxEvent(context.tx, context.scope.storeId, 'refund.created', {
-            orderId: r.orderId,
-            refundId: r.id,
-          })
+        if (r?.giftCardId) {
+          // Store credit: email the new card's code to the shopper.
+          const ctx = { storeId: context.scope.storeId, tx: context.tx }
+          const channels = await giftCardChannels(ctx, notifications, settingsSecret())
+          await deliverGiftCard(ctx, r.giftCardId, { channels, secret: settingsSecret() })
         }
         return r
       } catch (err) {
@@ -410,4 +462,5 @@ export const ordersRouter = {
   ...orderListRoutes,
   ...orderMessageRoutes,
   ...draftAndAbandonedRoutes,
+  ...orderEditRoutes,
 }

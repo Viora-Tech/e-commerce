@@ -21,10 +21,14 @@ export type BookedShipment = {
   pickupRequested?: boolean
 }
 
-type DoneStepProps = { booked: BookedShipment }
+type DoneStepProps = {
+  booked: BookedShipment
+  /** Only the "booked" note: the page shows the shipment's details beside it. */
+  summaryOnly?: boolean
+}
 
 /** Step 4: the AWB, the label to print or download, and the pickup request. */
-export default function DoneStep({ booked }: DoneStepProps) {
+export default function DoneStep({ booked, summaryOnly = false }: DoneStepProps) {
   // Hooks
   const copy = useCopy(createShipmentContent.done)
   const pickupCopy = useCopy(createShipmentContent.pickup)
@@ -46,54 +50,58 @@ export default function DoneStep({ booked }: DoneStepProps) {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-hairline p-3">
-        <span className="flex items-center gap-1.5 text-body">
-          <span className="text-muted-foreground">{copy.awb}</span>
-          <code className="text-ink-strong">{booked.waybill}</code>
-          <CopyButton value={booked.waybill} what={copy.awb} />
-        </span>
-        <span className="flex flex-wrap gap-2">
-          {label ? (
-            <>
-              <Button
-                render={<a href={label} target="_blank" rel="noreferrer" />}
-                nativeButton={false}
-              >
-                <Printer aria-hidden />
-                {copy.printLabel}
-              </Button>
-              <Button
-                variant="outline"
-                render={<a href={label} download target="_blank" rel="noreferrer" />}
-                nativeButton={false}
-              >
-                <Download aria-hidden />
-                {copy.downloadLabel}
-              </Button>
-            </>
+      {summaryOnly ? null : (
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-hairline p-3">
+            <span className="flex items-center gap-1.5 text-body">
+              <span className="text-muted-foreground">{copy.awb}</span>
+              <code className="text-ink-strong">{booked.waybill}</code>
+              <CopyButton value={booked.waybill} what={copy.awb} visible />
+            </span>
+            <span className="flex flex-wrap gap-2">
+              {label ? (
+                <>
+                  <Button
+                    render={<a href={label} target="_blank" rel="noreferrer" />}
+                    nativeButton={false}
+                  >
+                    <Printer aria-hidden />
+                    {copy.printLabel}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    render={<a href={label} download target="_blank" rel="noreferrer" />}
+                    nativeButton={false}
+                  >
+                    <Download aria-hidden />
+                    {copy.downloadLabel}
+                  </Button>
+                </>
+              ) : null}
+              {booked.trackingUrl ? (
+                <Button
+                  variant="outline"
+                  render={<a href={booked.trackingUrl} target="_blank" rel="noreferrer" />}
+                  nativeButton={false}
+                >
+                  <ExternalLink aria-hidden />
+                  {copy.track}
+                </Button>
+              ) : null}
+            </span>
+          </div>
+          {!label && !booked.manual ? (
+            <p className="text-caption text-muted-foreground">{copy.noLabel}</p>
           ) : null}
-          {booked.trackingUrl ? (
-            <Button
-              variant="outline"
-              render={<a href={booked.trackingUrl} target="_blank" rel="noreferrer" />}
-              nativeButton={false}
-            >
-              <ExternalLink aria-hidden />
-              {copy.track}
-            </Button>
-          ) : null}
-        </span>
-      </div>
-      {!label && !booked.manual ? (
-        <p className="text-caption text-muted-foreground">{copy.noLabel}</p>
-      ) : null}
 
-      {booked.pickupRequested ? (
-        <p className="text-body text-muted-foreground">{pickupCopy.scheduled}</p>
-      ) : null}
-      {booked.canPickup && booked.shipmentId && !booked.pickupRequested ? (
-        <PickupForm shipmentIds={[booked.shipmentId]} />
-      ) : null}
+          {booked.pickupRequested ? (
+            <p className="text-body text-muted-foreground">{pickupCopy.scheduled}</p>
+          ) : null}
+          {booked.canPickup && booked.shipmentId && !booked.pickupRequested ? (
+            <PickupForm shipmentIds={[booked.shipmentId]} />
+          ) : null}
+        </>
+      )}
     </div>
   )
 }

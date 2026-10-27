@@ -8,6 +8,7 @@ import DataCard from '@/components/layout/data-card'
 import { articleFormContent } from '@/data/blog'
 import { useCopy } from '@/hooks/use-copy'
 import { formatDateTime } from '@/lib/format-date'
+import { fromLocalInput } from './form-state'
 
 type ArticleVisibilityCardProps = {
   status: ArticleStatus
@@ -34,9 +35,11 @@ export default function ArticleVisibilityCard({
   }
 
   // Render logic
+  // The field holds Indian wall time; read it as that instant, not the runtime zone's.
+  const publishedOn = fromLocalInput(publishedAt)
   const help =
     status === 'published'
-      ? copy.publishedHelp(publishedAt ? formatDateTime(publishedAt) : null)
+      ? copy.publishedHelp(publishedOn ? formatDateTime(publishedOn) : null)
       : status === 'scheduled'
         ? copy.scheduledHelp
         : copy.draftHelp

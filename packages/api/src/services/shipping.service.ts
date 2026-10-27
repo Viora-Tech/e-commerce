@@ -1,6 +1,7 @@
 import {
   applyTracking,
   type CreateShipmentOptions,
+  cancelBlock,
   cancelShipment,
   createShipmentForOrder,
   decryptShippingSettings,
@@ -11,14 +12,18 @@ import {
   parseShippingSettings,
   primaryShippingProvider,
   type RateLimitRule,
+  readShippingLabel,
   recordProviderActivity,
+  ShipmentNotCancellable,
   type ShippingRegistry,
   type ShippingSettings,
+  shipmentInManifest,
+  shipmentLabelUrl,
   shippingProviderById,
 } from '@commerce/core'
 import { getRegistries } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
-import { shipment, store } from '@commerce/db'
+import { shipment, shipmentPickup, store } from '@commerce/db'
 import { CourierError, describeCourierFailure, isValidPincode } from '@commerce/shipping'
 import { ORPCError } from '@orpc/server'
 import { desc, eq } from 'drizzle-orm'
@@ -37,7 +42,7 @@ export async function loadShippingSettings(
 }
 
 /** The order's latest shipment (a re-ship after RTO is newer than the parcel that came back). */
-export async function getShipmentForOrder(tx: StoreTx, orderId: string) {
+async function getShipmentForOrder(tx: StoreTx, orderId: string) {
   const [row] = await tx
     .select()
     .from(shipment)
@@ -201,8 +206,21 @@ const courierToRpc = (err: unknown): never => {
   if (err instanceof FulfillmentOnHold) {
     throw new ORPCError('PRECONDITION_FAILED', { message: err.message })
   }
+  if (err instanceof ShipmentNotCancellable) {
+    throw new ORPCError('PRECONDITION_FAILED', {
+      message: err.message,
+      data: { block: err.block },
+    })
+  }
   if (err instanceof CourierError) {
     const detail = err.kind === 'rejected' ? err.message : describeCourierFailure(err)
+    /* A refusal the admin explains with facts (the pickup location name sent) carries them. */
+    if (err.detail) {
+      throw new ORPCError('BAD_REQUEST', {
+        message: detail,
+        data: { ...err.detail, provider: err.provider },
+      })
+    }
     throw new ORPCError('BAD_REQUEST', { message: detail })
   }
   throw err
@@ -278,12 +296,21 @@ export async function refreshShipmentTracking(
   return applyTracking({ storeId, tx }, shipmentId, tracking)
 }
 
+/** Whether the courier app declares a cancel over its API (Shiprocket does not, today). */
+const courierCancels = (registry: ShippingRegistry, providerId: string): boolean =>
+  registry.get(providerId)?.capabilities.includes('cancel') ?? false
+
+/**
+ * Cancel a booked label with its courier: refused before pickup or manifest is over
+ * (`cancelBlock`), the order timeline names who did it, and the parcel can be booked again.
+ */
 export async function cancelStoreShipment(
   tx: StoreTx,
   storeId: string,
   registry: ShippingRegistry,
   secret: string,
   shipmentId: string,
+  author: string | null = null,
 ) {
   const [row] = await tx.select().from(shipment).where(eq(shipment.id, shipmentId))
   if (!row) throw new ORPCError('NOT_FOUND')
@@ -298,5 +325,97 @@ export async function cancelStoreShipment(
       message: `Courier ${row.provider} is no longer enabled.`,
     })
   }
-  return cancelShipment({ storeId, tx }, provider, shipmentId).catch(courierToRpc)
+  return cancelShipment({ storeId, tx }, provider, shipmentId, {
+    author,
+    courierCancels: courierCancels(registry, row.provider),
+  }).catch(courierToRpc)
+}
+
+/**
+ * One booked shipment as its details view shows it: the row with the label link the admin may
+ * open (never a courier link that needs the key), the courier's name, the pickup it was put on,
+ * and whether it can still be cancelled (and why not).
+ */
+async function describeShipment(
+  tx: StoreTx,
+  registry: ShippingRegistry,
+  row: typeof shipment.$inferSelect,
+) {
+  const [pickup] = row.pickupId
+    ? await tx
+        .select({
+          date: shipmentPickup.scheduledFor,
+          timeFrom: shipmentPickup.timeFrom,
+          status: shipmentPickup.status,
+        })
+        .from(shipmentPickup)
+        .where(eq(shipmentPickup.id, row.pickupId))
+    : []
+  const inManifest = row.status === 'created' ? await shipmentInManifest(tx, row.id) : false
+  return {
+    ...row,
+    labelUrl: shipmentLabelUrl(row),
+    providerLabel: registry.get(row.provider)?.label ?? row.provider,
+    pickup: pickup ?? null,
+    /* Not on a pickup yet, still at the store, and the courier takes requests: offer one. */
+    canRequestPickup:
+      !row.pickupId &&
+      row.status === 'created' &&
+      (registry.get(row.provider)?.capabilities.includes('pickup') ?? false),
+    cancelBlock: cancelBlock(row, {
+      inManifest,
+      courierCancels: courierCancels(registry, row.provider),
+    }),
+  }
+}
+
+export type ShipmentDetails = Awaited<ReturnType<typeof describeShipment>>
+
+/** The order's latest shipment as its details view shows it; null when it has none. */
+export async function shipmentDetailsForOrder(
+  tx: StoreTx,
+  registry: ShippingRegistry,
+  orderId: string,
+): Promise<ShipmentDetails | null> {
+  const row = await getShipmentForOrder(tx, orderId)
+  return row ? describeShipment(tx, registry, row) : null
+}
+
+/** One shipment by id as its details view shows it. */
+export async function shipmentDetails(
+  tx: StoreTx,
+  registry: ShippingRegistry,
+  shipmentId: string,
+): Promise<ShipmentDetails> {
+  const [row] = await tx.select().from(shipment).where(eq(shipment.id, shipmentId))
+  if (!row) throw new ORPCError('NOT_FOUND', { message: 'Shipment not found.' })
+  return describeShipment(tx, registry, row)
+}
+
+/**
+ * The label PDF behind the admin's `/api/shipments/<id>/label`: the copy kept in the store's
+ * private storage (Blue Dart, DTDC, DHL Express, FedEx), else the courier's own, fetched here
+ * server-side with the store's saved key (Delhivery's packing slip, including rows booked before
+ * this route existed). Null when neither has one.
+ */
+export async function shipmentLabelFile(
+  tx: StoreTx,
+  storeId: string,
+  registry: ShippingRegistry,
+  secret: string,
+  shipmentId: string,
+): Promise<Uint8Array | null> {
+  const [row] = await tx.select().from(shipment).where(eq(shipment.id, shipmentId))
+  if (!row) return null
+  const stored = await readShippingLabel({ storeId, tx }, shipmentId).catch(() => null)
+  if (stored) return stored
+  const provider = shippingProviderById(
+    registry,
+    await loadShippingSettings(tx, storeId),
+    secret,
+    row.provider,
+  )
+  if (!provider?.getLabel) return null
+  const label = await provider.getLabel(row.waybill).catch(courierToRpc)
+  return label.body
 }

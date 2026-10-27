@@ -18,6 +18,34 @@ export function storefrontOrigin(primaryHostname: string | null, fallback: strin
   return `https://${primaryHostname}`
 }
 
+/**
+ * `https://<subdomain>.<primary hostname>` — a store's branded, theme-free checkout origin
+ * (security audit D-01, phase B). Falls back to the store origin (`storefrontOrigin`) when the
+ * subdomain is unset (the `CHECKOUT_SUBDOMAIN` flag is off), when the store has no primary
+ * hostname, or in development (a localhost fallback is never branded). The caller still decides,
+ * per store, whether the branded host is actually provisioned; this only computes the origin.
+ */
+export function checkoutOrigin(
+  primaryHostname: string | null,
+  subdomain: string | null,
+  fallback: string,
+): string {
+  if (!subdomain || !primaryHostname || LOCAL.test(new URL(fallback).hostname)) {
+    return storefrontOrigin(primaryHostname, fallback)
+  }
+  return `https://${subdomain}.${primaryHostname}`
+}
+
+/** `checkoutOrigin` for a store, resolving its live primary hostname the same way as `storefrontOriginFor`. */
+export async function checkoutOriginFor(
+  tx: StoreTx,
+  storeId: string,
+  subdomain: string | null,
+  fallback: string,
+): Promise<string> {
+  return checkoutOrigin(await primaryStoreHostname(tx, storeId), subdomain, fallback)
+}
+
 /** The store's primary domain when it is live (`is_primary AND status = 'active'`), else null. */
 async function primaryStoreHostname(tx: StoreTx, storeId: string): Promise<string | null> {
   const [row] = await tx

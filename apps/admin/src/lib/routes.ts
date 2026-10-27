@@ -60,6 +60,8 @@ export const routes = {
     list: () => '/orders',
     detail: (orderId: string) => `/orders/${id(orderId)}`,
     ship: (orderId: string) => `/orders/${id(orderId)}/ship`,
+    /** Edit a placed order's items, shipping and discount (review, then save). */
+    edit: (orderId: string) => `/orders/${id(orderId)}/edit`,
     /** An order opened from Shipments: Create shipment until it is booked, then the order page
      *  at its shipment card. Under /orders/shipments so the sidebar keeps Shipments lit. */
     shipment: (orderId: string) => `/orders/shipments/${id(orderId)}`,

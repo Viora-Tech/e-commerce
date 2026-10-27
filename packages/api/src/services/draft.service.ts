@@ -4,15 +4,20 @@ import {
   CannotShipToState,
   CommerceError,
   captureCartContact,
+  checkDraftDiscountCode,
   convertDraft,
   createDraft,
+  DiscountUnavailable,
+  type DraftCodeInput,
   DraftEmpty,
   type DraftInput,
+  DraftInvalidGstin,
   type DraftListStatus,
   DraftNotEditable,
   deleteDraft,
   deleteDrafts,
   deliverCartRecovery,
+  duplicateOrderAsDraft,
   listAbandoned,
   listDrafts,
   markRecoverySent,
@@ -56,6 +61,15 @@ function draftErrorToRpc(err: unknown): never {
   }
   if (err instanceof DraftEmpty) {
     throw new ORPCError('BAD_REQUEST', { message: 'Add at least one product first' })
+  }
+  if (err instanceof DiscountUnavailable) {
+    throw new ORPCError('CONFLICT', {
+      message:
+        "The draft's discount code has no uses left. Remove the code and save the draft to place it.",
+    })
+  }
+  if (err instanceof DraftInvalidGstin) {
+    throw new ORPCError('BAD_REQUEST', { message: err.message, data: { field: 'billing.gstin' } })
   }
   if (err instanceof CannotShipToState) {
     throw new ORPCError('BAD_REQUEST', {
@@ -129,12 +143,17 @@ export async function getDraft(tx: StoreTx, id: string) {
   const [ship] = o.shippingAddressId
     ? await tx.select().from(address).where(eq(address.id, o.shippingAddressId))
     : []
+  const [bill] = o.billingAddressId
+    ? await tx.select().from(address).where(eq(address.id, o.billingAddressId))
+    : []
   return {
     ...o,
     lines,
     note: notes.find((n) => n.author === 'draft')?.body ?? '',
     customer: cust ?? null,
     shippingAddress: ship ?? null,
+    /** Null: billing is the shipping address. */
+    billingAddress: bill ?? null,
   }
 }
 
@@ -151,6 +170,21 @@ export async function saveDraft(
     }
     const created = await createDraft(ctxOf(tx, storeId), input.draft)
     return { id: created.id }
+  } catch (err) {
+    draftErrorToRpc(err)
+  }
+}
+
+/** The "Apply discount code" check on the draft editor; nothing is written. */
+export const checkStoreDraftDiscount = (tx: StoreTx, storeId: string, input: DraftCodeInput) =>
+  checkDraftDiscountCode(ctxOf(tx, storeId), input)
+
+/** "Duplicate order": a new draft from the order, opened in the draft editor. */
+export async function duplicateStoreOrder(tx: StoreTx, storeId: string, orderId: string) {
+  try {
+    const draft = await duplicateOrderAsDraft(ctxOf(tx, storeId), orderId)
+    if (!draft) throw new ORPCError('NOT_FOUND', { message: 'Order not found' })
+    return draft
   } catch (err) {
     draftErrorToRpc(err)
   }

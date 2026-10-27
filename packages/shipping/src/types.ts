@@ -114,6 +114,17 @@ export type CreateShipmentInput = {
   dimensionsCm?: { length: number; width: number; height: number } | undefined
   /** The store's GSTIN, printed on an export's commercial invoice. */
   exporterGstin?: string | undefined
+  /**
+   * The order already sits at this courier as a pending order (`pushOrder`): book that one
+   * instead of creating a second order there.
+   */
+  pushed?: PushOrderResult | undefined
+}
+
+/** The courier's ids for an order sent to it without booking. */
+export type PushOrderResult = {
+  externalOrderId: string
+  externalShipmentId?: string | undefined
 }
 
 export type CreateShipmentResult = {
@@ -139,6 +150,13 @@ export type CreateShipmentResult = {
    * keeps it exactly like `labelDocument`. Ignored when `labelUrl` or `labelDocument` is set.
    */
   documents?: ShipmentDocument[] | undefined
+  /**
+   * The courier serves the label only behind the merchant's API key (Delhivery's packing slip):
+   * there is no link a browser can open. The platform points `labelUrl` at the admin's own
+   * download route, which asks the adapter's `getLabel` server-side, so the key never reaches
+   * the browser. Ignored when `labelUrl`, `labelDocument` or `documents` is set.
+   */
+  labelViaProvider?: boolean | undefined
 }
 
 export type ShippingLabelDocument = {
@@ -360,6 +378,12 @@ export type ShippingProvider = {
    */
   readonly tracksManually?: boolean | undefined
   /**
+   * The pickup location (warehouse) name on the courier account, used when a booking names none
+   * (Delhivery's "Pickup location name" on its Connect page). A pickup request for such a parcel
+   * must name the same place, or the courier never links the two.
+   */
+  readonly defaultPickupLocationName?: string | undefined
+  /**
    * Optional: what the courier would charge for this parcel, or null when it
    * will not quote. Checkout prices shipping from the merchant's zones and
    * rates (Settings → Shipping → Shipping rates), so a courier without this
@@ -382,8 +406,25 @@ export type ShippingProvider = {
    */
   checkServiceability(query: ServiceabilityQuery): Promise<Serviceability>
   createShipment(input: CreateShipmentInput): Promise<CreateShipmentResult>
+  /**
+   * Send the order to the courier's panel as a pending order, without an AWB or pickup, so the
+   * merchant sees it there and books it there or here later. Only aggregators that keep
+   * unbooked orders (Shiprocket, RapidShyp) have it.
+   */
+  pushOrder?(input: CreateShipmentInput): Promise<PushOrderResult>
+  /** Take back a pending order sent with `pushOrder` (the order was cancelled here). */
+  cancelPushedOrder?(pushed: PushOrderResult): Promise<void>
   track(waybill: string): Promise<Tracking>
+  /**
+   * Cancel a booked consignment. Throw CourierError('rejected', ...) with the courier's reason
+   * when it refuses (already picked up, already cancelled), so the merchant sees why.
+   */
   cancel(waybill: string): Promise<void>
+  /**
+   * Present for a courier that serves its label only behind the API key (`labelViaProvider` at
+   * booking): the label PDF for this waybill, fetched server-side.
+   */
+  getLabel?(waybill: string): Promise<ShippingLabelDocument>
   /** Used by the admin settings page to tell the merchant their keys work. */
   verifyCredentials(): Promise<CredentialCheck>
   /** Present only when `capabilities` includes `pickup`. */

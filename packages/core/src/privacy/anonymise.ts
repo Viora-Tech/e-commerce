@@ -44,6 +44,10 @@ const INVOICE_RETENTION_YEARS = 8
 /** What erased text reads as wherever a value cannot be null. */
 const ERASED = 'Erased'
 
+/** An order's address snapshots: where it shipped, and where it was billed when that differs. */
+const snapshotsOf = (o: { shippingAddressId: string | null; billingAddressId: string | null }) =>
+  [o.shippingAddressId, o.billingAddressId].filter((v): v is string => Boolean(v))
+
 export type AnonymiseResult = {
   customerId: string
   /** Orders whose buyer name and addresses were kept for tax records. */
@@ -161,7 +165,12 @@ export async function anonymiseCustomer(
 
   // Orders: contact details go, invoice data stays inside the retention period.
   const orders = await tx
-    .select({ id: order.id, placedAt: order.placedAt, shippingAddressId: order.shippingAddressId })
+    .select({
+      id: order.id,
+      placedAt: order.placedAt,
+      shippingAddressId: order.shippingAddressId,
+      billingAddressId: order.billingAddressId,
+    })
     .from(order)
     .where(eq(order.customerId, id))
   const cutoff = retentionCutoff(now)
@@ -173,9 +182,9 @@ export async function anonymiseCustomer(
       .update(order)
       .set({ email: null, phone: null, customerNote: null, attribution: null })
       .where(eq(order.customerId, id))
-    const snapshotIds = orders.flatMap((o) => (o.shippingAddressId ? [o.shippingAddressId] : []))
+    const snapshotIds = orders.flatMap(snapshotsOf)
     if (snapshotIds.length > 0) {
-      // The courier phone on the delivery snapshot is not invoice data.
+      // The courier phone on the delivery (and billing) snapshot is not invoice data.
       await tx.update(address).set({ phone: '' }).where(inArray(address.id, snapshotIds))
     }
     const orderIds = orders.map((o) => o.id)
@@ -227,7 +236,7 @@ export async function anonymiseCustomer(
       .update(order)
       .set({ buyerGstin: null, buyerBusinessName: null })
       .where(and(eq(order.customerId, id), lt(order.placedAt, cutoff)))
-    const oldSnapshots = old.flatMap((o) => (o.shippingAddressId ? [o.shippingAddressId] : []))
+    const oldSnapshots = old.flatMap(snapshotsOf)
     if (oldSnapshots.length > 0) {
       await tx
         .update(address)

@@ -26,6 +26,8 @@ type VariantMatrixProps = {
   selected: number[]
   onSelectedChange: (next: number[]) => void
   onVariant: (index: number, patch: Partial<VariantRow>) => void
+  /** Files uploaded from a variant's images dialog join the product gallery. */
+  onAddMedia: (items: MediaItem[]) => void
   /** Fills one row's blank SKU from the product and its option values. */
   onGenerateSku: (index: number) => void
 }
@@ -44,6 +46,7 @@ export default function VariantMatrix({
   selected,
   onSelectedChange,
   onVariant,
+  onAddMedia,
   onGenerateSku,
 }: VariantMatrixProps) {
   // Hooks
@@ -103,9 +106,10 @@ export default function VariantMatrix({
                 <TableCell className={CELL}>
                   <VariantImagePicker
                     media={media}
-                    mediaId={v.mediaId}
+                    mediaIds={v.mediaIds}
                     label={title}
-                    onChange={(mediaId) => onVariant(i, { mediaId })}
+                    onChange={(mediaIds) => onVariant(i, { mediaIds })}
+                    onAddMedia={onAddMedia}
                   />
                 </TableCell>
                 <TableCell className={cn(CELL, 'font-medium text-ink-strong')}>{title}</TableCell>

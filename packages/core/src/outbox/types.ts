@@ -122,6 +122,12 @@ export type OutboxEventType =
   | 'pixel.connection_failed'
   /** COD & RTO app: a cash on delivery order waits for the shopper's confirm / cancel answer. */
   | 'order.cod_confirm_requested'
+  /**
+   * Staff edited a placed order's items, shipping or discount (`order/edit.ts`). No shopper
+   * message of its own (a balance request or a refund sends theirs); apps re-bill (GST invoices)
+   * and recompute (affiliate commission). Each edit is its own app job.
+   */
+  | 'order.edited'
 
 /**
  * `orderId` is required for every order-lifecycle type; `variantId` (and
@@ -307,6 +313,7 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   'pixel.connection_failed': null,
   // COD & RTO app: the confirm / cancel link (WhatsApp when the store has it, else email).
   'order.cod_confirm_requested': 'cod_confirm',
+  'order.edited': null,
 }
 
 /**
@@ -389,4 +396,5 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'shopify.app_uninstalled': null,
   'pixel.connection_failed': null,
   'order.cod_confirm_requested': null,
+  'order.edited': 'order.edited',
 }

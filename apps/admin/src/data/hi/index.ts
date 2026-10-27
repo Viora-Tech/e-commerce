@@ -30,6 +30,7 @@ import contentBlog from './content-blog'
 import contentFiles from './content-files'
 import createShipment from './create-shipment'
 import customData from './custom-data'
+import customerAddresses from './customer-addresses'
 import customers from './customers'
 import customersBulkEdit from './customers-bulk-edit'
 import customizeAi from './customize-ai'
@@ -72,6 +73,7 @@ import onboarding from './onboarding'
 import orderAppActions from './order-app-actions'
 import orderCards from './order-cards'
 import orderDetail from './order-detail'
+import orderEdit from './order-edit'
 import orders from './orders'
 import ordersBulk from './orders-bulk'
 import ordersBulkEdit from './orders-bulk-edit'
@@ -153,6 +155,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...contentFiles,
   ...createShipment,
   ...customData,
+  ...customerAddresses,
   ...customers,
   ...customersBulkEdit,
   ...customizeAi,
@@ -187,6 +190,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...orderAppActions,
   ...orderCards,
   ...orderDetail,
+  ...orderEdit,
   ...shopifyImportFiles,
   ...shopifyImportRun,
   ...shopifyImportSettings,

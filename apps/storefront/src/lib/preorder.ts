@@ -79,10 +79,12 @@ export function balanceView(
 ): BalanceView | null {
   const owed = o.checkoutPaidAt ? balanceOwed(o) : 0
   if (owed <= 0) return null
+  // An order edit's balance (no deposit) follows none of the pre-order deadlines or deposit rules.
+  const deposit = o.depositPaise !== null
   return {
     owedPaise: owed,
     paidPaise: o.totalPaise - owed,
-    payBy: balancePayBy(policy, o.balanceRequestedAt),
-    nonRefundableDays: depositIsNonRefundable(policy) ? policy.payWithinDays : null,
+    payBy: deposit ? balancePayBy(policy, o.balanceRequestedAt) : null,
+    nonRefundableDays: deposit && depositIsNonRefundable(policy) ? policy.payWithinDays : null,
   }
 }

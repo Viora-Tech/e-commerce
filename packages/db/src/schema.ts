@@ -451,6 +451,31 @@ export const variantOptionValue = pgTable('variant_option_value', {
 })
 
 /**
+ * A variant's own images, in order (Black shows its three photos). Every row points at media in
+ * the product's gallery; `variant.media_id` mirrors position 0, so the single-image readers
+ * (cart and order lines, feeds, catalogue sync, Liquid `variant.image`) keep working. Written
+ * only through `@commerce/core` catalog/variant-media.ts, which keeps the two in step.
+ */
+export const variantMedia = pgTable(
+  'variant_media',
+  {
+    id: id(),
+    storeId: storeId(),
+    variantId: uuid('variant_id')
+      .notNull()
+      .references(() => variant.id, { onDelete: 'cascade' }),
+    mediaId: uuid('media_id')
+      .notNull()
+      .references(() => media.id, { onDelete: 'cascade' }),
+    position: integer('position').notNull().default(0),
+  },
+  (t) => [
+    uniqueIndex('variant_media_unique').on(t.variantId, t.mediaId),
+    index('variant_media_media').on(t.mediaId),
+  ],
+)
+
+/**
  * SOURCE OF TRUTH: business, BUSINESS_PAYOUT_MODES, BUSINESS_ROUTE_STATUSES — WHAT one legal
  * entity (one PAN) selling through this store / WHY GST is registered per PAN per state, and a
  * warehouse may belong to a different legal business than the store's main one. Exactly one
@@ -853,13 +878,26 @@ export const customerAddress = pgTable(
     phone: text('phone').notNull(),
     /** Home, Office or Other on the checkout's address cards; null when the shopper never said. */
     label: text('label', { enum: CUSTOMER_ADDRESS_LABELS }),
+    /** The default shipping address (checkout and the storefront book call it "default"). */
     isDefault: boolean('is_default').notNull().default(false),
+    /**
+     * The default billing address. Off on every row means billing follows the default
+     * shipping address. At most one per customer.
+     */
+    isDefaultBilling: boolean('is_default_billing').notNull().default(false),
+    /** Company name for a billing address (the GST invoice bills to it); null for a person. */
+    businessName: text('business_name'),
+    /** A validated GSTIN (upper case, `validateGstin`) billed at this address; null for none. */
+    gstin: text('gstin'),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index('customer_address_customer').on(t.customerId),
     uniqueIndex('customer_address_one_default').on(t.customerId).where(sql`is_default`),
+    uniqueIndex('customer_address_one_default_billing')
+      .on(t.customerId)
+      .where(sql`is_default_billing`),
     check('customer_address_label_check', sql`${t.label} in (${oneOf(CUSTOMER_ADDRESS_LABELS)})`),
   ],
 )
@@ -955,6 +993,11 @@ export const order = pgTable(
     /** The shopper's note from checkout, when the store turned order notes on. */
     customerNote: text('customer_note'),
     shippingAddressId: uuid('shipping_address_id').references(() => address.id),
+    /**
+     * Where the bill goes when it is not the shipping address (draft orders, "Billing address
+     * is the same as shipping" unticked). Null: billing is the shipping address, as at checkout.
+     */
+    billingAddressId: uuid('billing_address_id').references(() => address.id),
     paymentMethod: text('payment_method'),
     /**
      * Paid through a gateway running on its test keys (Settings → Payments,
@@ -1149,6 +1192,12 @@ export type OrderImportMeta = {
   paymentMethod?: string | null
   cancelledAt?: string | null
   refundedPaise?: number | null
+  /**
+   * Set when staff took an imported order that was still open over ("Manage this order in
+   * Koomerce", `order/takeover.ts`): `imported_from` is cleared then, so the platform it came
+   * from is kept here. From then on it is worked like an order placed here.
+   */
+  takenOver?: { at: string; by: string; source: string } | null
 }
 
 export const orderLine = pgTable('order_line', {
@@ -1418,6 +1467,13 @@ export const refund = pgTable('refund', {
   reason: text('reason'),
   status: text('status', { enum: ['pending', 'processed', 'failed', 'manual'] }).notNull(),
   providerRefundId: text('provider_refund_id'),
+  /**
+   * How a refund recorded by hand went back (`REFUND_METHODS`: UPI, bank transfer, cash, store
+   * credit, …); null on gateway refunds and on manual ones recorded before this existed.
+   */
+  method: text('method'),
+  /** The gift card issued when the refund went back as store credit. */
+  giftCardId: uuid('gift_card_id'),
   createdAt: createdAt(),
 })
 
@@ -1538,6 +1594,14 @@ export const shipment = pgTable(
     courierChargePaise: integer('courier_charge_paise'),
     packingCostPaise: integer('packing_cost_paise'), // packing snapshot when booked or packed
     boxPresetId: text('box_preset_id'),
+    /** COD or prepaid as booked (the merchant can switch it from the order's own); null on older rows. */
+    paymentMode: text('payment_mode', { enum: ['cod', 'prepaid'] }),
+    /** What the courier collects at the door, as booked; 0 for prepaid, null on older rows. */
+    codAmountPaise: integer('cod_amount_paise'),
+    /** Where the courier collects it, as booked: its pickup location name, else the address name. */
+    pickupLocationName: text('pickup_location_name'),
+    /** The courier service booked ("Surface", "Express", an aggregator's carrier), when picked. */
+    serviceLabel: text('service_label'),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -1547,6 +1611,31 @@ export const shipment = pgTable(
     index('shipment_pickup_id').on(t.pickupId),
     index('shipment_fulfillment_order').on(t.fulfillmentOrderId),
   ],
+)
+
+/**
+ * An order sent to a courier app (Shiprocket, RapidShyp) as a pending order, without booking:
+ * the merchant books it there or here later. One row per order and courier; booking here reuses
+ * `externalOrderId`/`externalShipmentId` instead of creating a second order at the courier.
+ * Rules: @commerce/core shipping/order-push.ts.
+ */
+export const courierOrder = pgTable(
+  'courier_order',
+  {
+    id: id(),
+    storeId: storeId(),
+    orderId: uuid('order_id')
+      .notNull()
+      .references(() => order.id, { onDelete: 'cascade' }),
+    provider: text('provider').notNull(),
+    externalOrderId: text('external_order_id'),
+    externalShipmentId: text('external_shipment_id'),
+    status: text('status', { enum: ['pushed', 'failed', 'booked', 'cancelled'] }).notNull(),
+    error: text('error'),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('courier_order_order_provider').on(t.orderId, t.provider)],
 )
 
 /**
@@ -1565,6 +1654,8 @@ export const shipmentPickup = pgTable(
     timeFrom: text('time_from').notNull(),
     timeTo: text('time_to'),
     expectedPackageCount: integer('expected_package_count').notNull().default(0),
+    /** The courier pickup location (warehouse) asked to be collected from; null on older rows. */
+    pickupLocationName: text('pickup_location_name'),
     status: text('status', {
       enum: ['requested', 'scheduled', 'completed', 'failed'],
     })

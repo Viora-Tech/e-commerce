@@ -17,7 +17,14 @@ export const purchaseOrderColumns = (
     title: copy.columns.number,
     sortValue: (r) => r.number,
     hideable: false,
-    render: (r) => <span className="text-body-strong">{copy.number(r.number)}</span>,
+    render: (r) => (
+      <span className="flex min-w-0 flex-col">
+        <span className="text-body-strong">{copy.number(r.number)}</span>
+        {r.name ? (
+          <span className="truncate text-caption text-muted-foreground">{r.name}</span>
+        ) : null}
+      </span>
+    ),
   },
   {
     id: 'supplier',

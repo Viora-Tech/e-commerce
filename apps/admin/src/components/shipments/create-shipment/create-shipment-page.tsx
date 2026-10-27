@@ -19,9 +19,11 @@ import {
   trackingPayload,
 } from '@/components/orders/tracking-fields'
 import { createShipmentContent } from '@/data/create-shipment'
+import { shipmentDetailsContent } from '@/data/shipping'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
+import ShipmentDetailsLoader from '../shipment-details-loader'
 import { bookShipment } from './book-shipment'
 import CourierStep from './courier-step'
 import DoneStep, { type BookedShipment } from './done-step'
@@ -32,6 +34,7 @@ import {
   parsePackage,
   type ShipmentDraft,
 } from './flow-state'
+import NoPickupLocationAlert, { missingPickupLocation } from './no-pickup-location-alert'
 import PackageStep from './package-step'
 import PickupCard from './pickup-card'
 import { pickupReady, startingPickupPlan } from './pickup-plan'
@@ -60,6 +63,7 @@ const SHORT_DATE = { weekday: 'short', day: 'numeric', month: 'short' } as const
 export default function CreateShipmentPage({ orderId, back, courier }: CreateShipmentPageProps) {
   // Hooks
   const content = useCopy(createShipmentContent)
+  const detailsCopy = useCopy(shipmentDetailsContent)
   const fmt = useFormat()
   const router = useRouter()
   const [draft, setDraft] = useState<ShipmentDraft | null>(null)
@@ -73,12 +77,16 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
     recheck,
     needsPackage,
     failed: quoteFailed,
+    updating,
+    waitingForSize,
   } = useShipQuote(draft, parcelId, form, courier)
   const [pickup, setPickup] = useState(() => startingPickupPlan())
   const [wallets, setWallets] = useState<Wallets>([])
   const [tracking, setTracking] = useState<TrackingDraft>(EMPTY_TRACKING)
   const [busy, setBusy] = useState(false)
   const [booked, setBooked] = useState<BookedShipment | null>(null)
+  /* Delhivery refused the booking: no pickup location by the name sent (shown with the name). */
+  const [missingPlace, setMissingPlace] = useState<string | null>(null)
   /* The full order, loaded when the merchant edits the delivery address from this page. */
   const [editing, setEditing] = useState<OrderDetail | null>(null)
   const [revision, setRevision] = useState(0)
@@ -149,6 +157,7 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
       return
     }
     setBusy(true)
+    setMissingPlace(null)
     try {
       setBooked(
         await bookShipment({
@@ -167,7 +176,11 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
       )
       router.refresh()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      const place = missingPickupLocation(err)
+      if (place !== null) {
+        setMissingPlace(place)
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      } else toast.error(err instanceof Error ? err.message : String(err))
     } finally {
       setBusy(false)
     }
@@ -198,8 +211,11 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
   const route = page.routeValue(place?.city ?? place?.name ?? '—', order.city ?? '—')
   const canPickup = draft.couriers.find((c) => c.id === chosen?.providerId)?.hasPickup ?? false
   const pickupOn = !manual && pickup.ask && canPickup
+  /* A courier's price is only booked once it answers the package on screen. */
+  const pricesCurrent = manual || (!updating && !waitingForSize)
   const canBook =
     parsed !== null &&
+    pricesCurrent &&
     (manual || (chosen !== null && !chosen.problem)) &&
     (!pickupOn || pickupReady(pickup))
   const serviceable = quote?.options.some((o) => o.problem === null) ?? false
@@ -246,75 +262,96 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
         />
       }
       main={
-        <>
-          <RouteCard
-            from={place}
-            places={draft.pickupPlaces}
-            order={order}
-            serviceable={serviceable}
-            onPickupChange={handlePickupPlace}
-            onEditCustomer={() => void handleEditCustomer()}
-          />
-          {editing ? (
-            <EditOrderContactDialog
-              order={editing}
-              open
-              onClose={() => setEditing(null)}
-              onSaved={handleCustomerSaved}
-            />
-          ) : null}
-          <DataCard
-            title={
-              <span className="flex items-center gap-2">
-                {page.package}
-                <CountBadge n={content.package.itemCount(units)} tone="outline" />
-              </span>
-            }
-          >
-            <PackageStep
-              draft={draft}
+        booked ? (
+          /* Booked: the editing cards give way to the shipment as it now stands, read-only. */
+          <DataCard title={detailsCopy.heading}>
+            {booked.shipmentId ? (
+              <ShipmentDetailsLoader
+                shipmentId={booked.shipmentId}
+                onChanged={() => router.refresh()}
+              />
+            ) : (
+              <DoneStep booked={booked} />
+            )}
+          </DataCard>
+        ) : (
+          <>
+            {missingPlace !== null ? <NoPickupLocationAlert name={missingPlace} /> : null}
+            <RouteCard
+              from={place}
+              places={draft.pickupPlaces}
               order={order}
-              parcel={parcel}
-              form={form}
-              onChange={setForm}
-              onParcelChange={handleParcel}
-              inCard
-              chargedGrams={quote?.chargedWeightGrams}
+              serviceable={serviceable}
+              onPickupChange={handlePickupPlace}
+              onEditCustomer={() => void handleEditCustomer()}
             />
-          </DataCard>
-          <DataCard
-            id="choose-courier"
-            title={content.courier.heading}
-            subtitle={draft.couriers.length > 0 ? content.courier.help : content.courier.noCourier}
-            action={
-              draft.couriers.length > 0 ? (
-                <Button variant="ghost" size="sm" onClick={recheck}>
-                  <RefreshCw aria-hidden="true" />
-                  {content.courier.retry}
-                </Button>
-              ) : null
-            }
-          >
-            <CourierStep
-              inCard
-              quote={quote}
-              hasCouriers={draft.couriers.length > 0}
-              pick={pick}
-              onPick={setPick}
-              tracking={tracking}
-              onTrackingChange={setTracking}
-              onRetry={recheck}
-              needsPackage={needsPackage}
-              failed={quoteFailed}
-            />
-          </DataCard>
-          {manual ? null : <PickupCard plan={pickup} onChange={setPickup} canPickup={canPickup} />}
-        </>
+            {editing ? (
+              <EditOrderContactDialog
+                order={editing}
+                open
+                onClose={() => setEditing(null)}
+                onSaved={handleCustomerSaved}
+              />
+            ) : null}
+            <DataCard
+              title={
+                <span className="flex items-center gap-2">
+                  {page.package}
+                  <CountBadge n={content.package.itemCount(units)} tone="outline" />
+                </span>
+              }
+            >
+              <PackageStep
+                draft={draft}
+                order={order}
+                parcel={parcel}
+                form={form}
+                onChange={setForm}
+                onParcelChange={handleParcel}
+                inCard
+                chargedGrams={quote?.chargedWeightGrams}
+              />
+            </DataCard>
+            <DataCard
+              id="choose-courier"
+              title={content.courier.heading}
+              subtitle={
+                draft.couriers.length > 0 ? content.courier.help : content.courier.noCourier
+              }
+              action={
+                draft.couriers.length > 0 ? (
+                  <Button variant="ghost" size="sm" onClick={recheck}>
+                    <RefreshCw aria-hidden="true" />
+                    {content.courier.retry}
+                  </Button>
+                ) : null
+              }
+            >
+              <CourierStep
+                inCard
+                quote={quote}
+                hasCouriers={draft.couriers.length > 0}
+                pick={pick}
+                onPick={setPick}
+                tracking={tracking}
+                onTrackingChange={setTracking}
+                onRetry={recheck}
+                needsPackage={needsPackage}
+                failed={quoteFailed}
+                updating={updating}
+                waitingForSize={waitingForSize}
+              />
+            </DataCard>
+            {manual ? null : (
+              <PickupCard plan={pickup} onChange={setPickup} canPickup={canPickup} />
+            )}
+          </>
+        )
       }
       side={
         booked ? (
           <DataCard title={booked.manual ? content.done.manualHeading : content.done.heading}>
-            <DoneStep booked={booked} />
+            <DoneStep booked={booked} summaryOnly />
           </DataCard>
         ) : (
           <SummaryCard

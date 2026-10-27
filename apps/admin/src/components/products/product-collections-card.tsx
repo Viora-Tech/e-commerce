@@ -11,6 +11,7 @@ import DataCard from '@/components/layout/data-card'
 import { productCollectionsCardContent } from '@/data/collections'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { collectionIdsToSave } from './collection-pick'
 import ProductCollectionsField, { type CollectionOption } from './product-collections-field'
 
 type ProductCollectionsCardProps = {
@@ -60,11 +61,13 @@ export default function ProductCollectionsCard({
 
   // Event handlers
   const handleSave = async () => {
-    if (!productId) return
+    if (!productId || !loaded) return
     setBusy(true)
     try {
-      await api.collections.setForProduct({ productId, collectionIds: value })
-      setSaved(value)
+      const collectionIds = collectionIdsToSave(value, loaded.manual)
+      await api.collections.setForProduct({ productId, collectionIds })
+      setValue(collectionIds)
+      setSaved(collectionIds)
       toast.success(copy.saved)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.failed)

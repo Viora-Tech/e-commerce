@@ -32,6 +32,7 @@ import {
   parseBrowseSort,
   parsePage,
 } from './browse-params'
+import { searchCollections } from './search-collections'
 import { searchTerms } from './search-text'
 import { getSearchSynonyms, setSearchSynonyms } from './search-words'
 
@@ -297,8 +298,10 @@ describe('browseProducts', () => {
     expect(found.total).toBe(6)
     // Lexical's node keys are not searchable text.
     expect((await search('paragraph')).handles).toEqual(['other'])
-    // Every word must match, in any field.
-    expect((await search('pulsar wireless')).handles).toEqual(['pulsar-x2'])
+    // Every word matches in any field first; with so few, products with one of them follow.
+    const both = await search('pulsar wireless')
+    expect(both.handles[0]).toBe('pulsar-x2')
+    expect(both.handles).not.toContain('legacy')
     // Option values, as Search & Discovery matches variant titles.
     expect((await search('crimson')).handles).toEqual(['tee'])
   })
@@ -329,6 +332,71 @@ describe('browseProducts', () => {
     expect(await run(storeId, (tx) => suggestProducts(tx, 'keybord', 6, storeId))).toEqual([
       'mech-keyboard',
     ])
+  })
+
+  it('splits run-together words, relaxes thin multi-word searches, buyable first', async () => {
+    const [s] = await owner.insert(store).values({ slug: 'h', name: 'H' }).returning()
+    const storeId = s?.id as string
+    const pad = (handle: string, title: string, stock: number, tags: string[] = []) =>
+      seed(storeId, { handle, title, price: 100, stock, tags })
+    await pad('aria', 'Dysphoria Aria Glasspad', 0)
+    await pad('sayo', 'Dysphoria Sayo Glasspad', 0)
+    await pad('nana', 'Dysphoria Nana Glasspad', 2)
+    await pad('yuki', 'Yuki Aim Monokuro Glass Mousepad', 1, ['pad-xl'])
+    await pad('claw', 'Claw Aquila Mousepad', 1, ['pad-xl', 'surface-cloth'])
+    await pad('mouse', 'Wireless Mouse', 1)
+    // On pre-order: buyable though out of stock.
+    await owner.update(product).set({ preorderEnabled: true }).where(eq(product.handle, 'sayo'))
+    const search = (query: string, unavailable?: 'show' | 'last' | 'hide') =>
+      run(storeId, (tx) =>
+        browseProducts(tx, { ...base, query, sort: 'relevance', storeId, unavailable }),
+      )
+
+    // "glasspad" finds "Glass Mousepad" too (glass + pad in its own fields), after the titles
+    // holding the word itself; equally relevant ones a shopper can buy come first.
+    const glass = await search('glasspad')
+    expect(glass.handles).toEqual(['nana', 'sayo', 'aria', 'yuki'])
+    expect(glass.corrected).toBeNull()
+    // Sold-out last, or left out, as Shopify's `options[unavailable_products]`.
+    expect((await search('glasspad', 'last')).handles.at(-1)).toBe('aria')
+    expect((await search('glasspad', 'hide')).handles).toEqual(['nana', 'sayo', 'yuki'])
+
+    // Both words matched one product: products matching one of them follow it.
+    const aria = await search('dysphoria aria')
+    expect(aria.handles[0]).toBe('aria')
+    expect(aria.handles.slice(1).sort()).toEqual(['nana', 'sayo'])
+    expect(aria.total).toBe(3)
+    // Full matches first, however many: "Glass Mousepad" only has the second word.
+    expect((await search('dysphoria glasspad')).handles).toEqual(['nana', 'sayo', 'aria', 'yuki'])
+
+    // A typo is still corrected first, and the predictive search follows the same rules.
+    expect((await search('mousepd')).handles).toEqual(['claw', 'yuki'])
+    expect(await run(storeId, (tx) => suggestProducts(tx, 'glasspad', 6, storeId))).toEqual([
+      'nana',
+      'sayo',
+      'aria',
+      'yuki',
+    ])
+    expect(await run(storeId, (tx) => suggestProducts(tx, 'glasspad', 6, storeId, 'hide'))).toEqual(
+      ['nana', 'sayo', 'yuki'],
+    )
+  })
+
+  it('finds active collections holding every word, closest title first', async () => {
+    const [s] = await owner.insert(store).values({ slug: 'i', name: 'I' }).returning()
+    const storeId = s?.id as string
+    await owner.insert(collection).values([
+      { storeId, handle: 'glass-mousepads', title: 'Glasspads', status: 'active' },
+      { storeId, handle: 'premium-glass', title: 'Premium Glasspads 100%', status: 'active' },
+      { storeId, handle: 'old-glass', title: 'Old Glasspads', status: 'draft' },
+      { storeId, handle: 'mice', title: 'Mice', status: 'active' },
+    ])
+    const find = (q: string) =>
+      run(storeId, async (tx) => (await searchCollections(tx, q, 10)).map((c) => c.handle))
+    expect(await find('GLASSPAD')).toEqual(['glass-mousepads', 'premium-glass'])
+    expect(await find('premium glass')).toEqual(['premium-glass'])
+    expect(await find('100%')).toEqual(['premium-glass'])
+    expect(await find('_')).toEqual([])
   })
 
   it('matches a word’s synonyms, and keeps them when the preferences form saves', async () => {

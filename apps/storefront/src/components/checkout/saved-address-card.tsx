@@ -3,10 +3,11 @@
 import type { SavedAddress } from '@commerce/core'
 import { useEffect, useRef, useState } from 'react'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
+import RadioDot from '@/components/checkout/radio-dot'
 import { checkoutContent as content } from '@/data/checkout'
 import { INDIAN_STATES } from '@/data/indian-states'
-import { CK_LINK } from '@/lib/checkout-classes'
-import { displayPhone } from '@/lib/checkout-recap'
+import { CK_LINK, CK_PICKED, CK_UNPICKED } from '@/lib/checkout-classes'
+import { displayPhone } from '@/lib/display-phone'
 
 type SavedAddressCardProps = {
   address: SavedAddress
@@ -64,13 +65,9 @@ export default function SavedAddressCard({
 
   return (
     <div
-      className={`relative rounded-ck border bg-ck-field transition-[border-color,background-color,box-shadow] duration-150 has-[:focus-visible]:[box-shadow:0_0_0_3px_var(--ck-ring)] motion-reduce:transition-none ${
-        checked
-          ? 'border-ck-accent bg-ck-accent-soft [box-shadow:inset_0_0_0_1px_var(--ck-accent)]'
-          : 'border-ck-line hover:border-ck-muted/50'
-      }`}
+      className={`relative rounded-ck border transition-[border-color,background-color,box-shadow] duration-150 ease-out has-[:focus-visible]:[box-shadow:0_0_0_3px_var(--ck-ring)] motion-reduce:transition-none ${checked ? CK_PICKED : CK_UNPICKED}`}
     >
-      <label className="flex cursor-pointer items-start gap-3.5 py-4 ps-4 pe-24">
+      <label className="flex cursor-pointer items-start gap-3 py-3.5 ps-4 pe-24">
         <input
           type="radio"
           name="saved-address"
@@ -79,19 +76,12 @@ export default function SavedAddressCard({
           onChange={onSelect}
           className="peer sr-only"
         />
-        <span
-          aria-hidden="true"
-          className={`mt-0.5 flex size-[1.125rem] shrink-0 items-center justify-center rounded-full border transition-colors duration-150 motion-reduce:transition-none ${
-            checked ? 'border-ck-accent bg-ck-accent' : 'border-ck-muted/60 bg-ck-field'
-          }`}
-        >
-          <span
-            className={`size-1.5 rounded-full bg-ck-accent-ink ${checked ? 'opacity-100' : 'opacity-0'}`}
-          />
+        <span className="mt-0.5">
+          <RadioDot checked={checked} />
         </span>
         <span className="flex min-w-0 flex-1 flex-col gap-1">
           <span className="flex flex-wrap items-center gap-2">
-            <span className="text-[0.9375rem] leading-snug font-medium text-ck-ink">
+            <span className="text-[0.875rem] leading-snug font-semibold text-ck-ink">
               {address.name}
             </span>
             {tag ? (
@@ -100,7 +90,7 @@ export default function SavedAddressCard({
               </span>
             ) : null}
           </span>
-          <span className="text-[0.875rem] leading-snug text-ck-muted [overflow-wrap:anywhere]">
+          <span className="text-[0.8125rem] leading-snug text-ck-muted [overflow-wrap:anywhere]">
             {oneLine(address)}
           </span>
           <span className="text-[0.8125rem] text-ck-muted tabular-nums">
@@ -109,7 +99,7 @@ export default function SavedAddressCard({
           {checked && status ? (
             <span
               role="status"
-              className={`mt-1 flex items-center gap-1.5 text-[0.8125rem] ${status.ok ? 'text-ck-success' : 'text-ck-danger'}`}
+              className={`mt-1 flex items-center gap-1.5 text-[0.8125rem] font-medium transition-[opacity,translate] duration-200 ease-out starting:translate-y-1 starting:opacity-0 motion-reduce:starting:translate-y-0 ${status.ok ? 'text-ck-success' : 'text-ck-danger'}`}
             >
               <CheckoutIcon name={status.ok ? 'check' : 'alert'} className="size-3.5" />
               {status.text}

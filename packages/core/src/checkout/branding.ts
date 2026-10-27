@@ -84,6 +84,7 @@ export const CHECKOUT_LIGHT_SURFACE: Record<string, string> = {
   '--ck-field': '#FFFFFF',
   '--ck-soft': '#F5F5F5',
   '--ck-canvas': '#FAFAFA',
+  '--ck-success': '#1D8A50',
   '--ck-card-shadow':
     '0 0 0 1px rgb(0 0 0 / 0.06), 0 1px 2px rgb(0 0 0 / 0.06), 0 8px 24px rgb(0 0 0 / 0.06)',
 }

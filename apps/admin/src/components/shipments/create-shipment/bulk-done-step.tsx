@@ -2,8 +2,9 @@
 
 import { CircleCheck, Printer, TriangleAlert } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import CopyButton from '@/components/fields/copy-button'
 import { createShipmentContent } from '@/data/create-shipment'
-import { useCopy } from '@/hooks/use-copy'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
 import PickupForm from './pickup-form'
 
@@ -12,12 +13,16 @@ type BulkResult = Awaited<ReturnType<typeof api.shipments.bulkBook>>[number]
 type BulkDoneStepProps = {
   results: BulkResult[]
   numbers: Map<string, number>
+  /** The day a pickup was requested for right after booking; null offers the form instead. */
+  pickupDate?: string | null
 }
 
 /** Bulk step 4: booked or not, order by order, then all the labels and one pickup request. */
-export default function BulkDoneStep({ results, numbers }: BulkDoneStepProps) {
+export default function BulkDoneStep({ results, numbers, pickupDate = null }: BulkDoneStepProps) {
   // Hooks
   const copy = useCopy(createShipmentContent.done)
+  const pickupCopy = useCopy(createShipmentContent.pickup)
+  const fmt = useFormat()
 
   // Event handlers
   const handlePrintAll = () => {
@@ -56,10 +61,19 @@ export default function BulkDoneStep({ results, numbers }: BulkDoneStepProps) {
             <span className={r.ok ? 'text-muted-foreground' : 'text-danger'}>
               {r.ok ? copy.booked(r.waybill ?? '') : `${copy.failed}: ${r.error ?? ''}`}
             </span>
+            {r.ok && r.waybill ? <CopyButton value={r.waybill} what={copy.awb} visible /> : null}
           </li>
         ))}
       </ul>
-      {shipmentIds.length > 0 ? <PickupForm shipmentIds={shipmentIds} /> : null}
+      {pickupDate ? (
+        <p className="text-body text-muted-foreground">
+          {pickupCopy.requestedFor(
+            fmt.pattern(pickupDate, { weekday: 'short', day: 'numeric', month: 'short' }),
+          )}
+        </p>
+      ) : shipmentIds.length > 0 ? (
+        <PickupForm shipmentIds={shipmentIds} />
+      ) : null}
     </div>
   )
 }

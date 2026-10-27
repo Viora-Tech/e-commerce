@@ -42,6 +42,8 @@ import type { QueueLimits } from './fair'
 export const HEARTBEAT_QUEUE = '{system}-heartbeat'
 /** Repeat job that polls open shipments. Braces keep every key on one slot. */
 export const SHIPPING_TRACK_QUEUE = '{shipping}-track'
+/** Repeat job that sends new orders to Shiprocket / RapidShyp as pending orders. */
+export const ORDER_PUSH_QUEUE = '{shipping}-order-push'
 /** Repeat job that cancels online-payment orders left unpaid past the store's window. */
 export const UNPAID_EXPIRY_QUEUE = '{payments}-unpaid-expiry'
 /** Repeat job that requests, reminds and applies the unpaid rule for pre-order balances. */

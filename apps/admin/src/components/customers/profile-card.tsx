@@ -8,16 +8,23 @@ import KeyValueList from '@/components/layout/key-value-list'
 import { customerDetailContent } from '@/data/customers'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { telUrl } from '@/lib/customer-contact'
+import ContactPhonePrompt from './contact-phone-prompt'
 import type { CustomerDetail } from './customer-detail-types'
 import { day } from './customer-detail-types'
 
 type ProfileCardProps = {
   customer: CustomerDetail
   onEdit: () => void
+  /** The contact phone was taken from their order; reload the customer. */
+  onChanged: () => void
 }
 
-/** Contact details with copy buttons and one-tap WhatsApp and call. Addresses and consent have their own cards. */
-export default function ProfileCard({ customer, onEdit }: ProfileCardProps) {
+/**
+ * Contact details with copy buttons and one-tap WhatsApp and call. With no phone, offers the
+ * mobile from their latest order (one click) or "Add phone". Addresses and consent have their
+ * own cards.
+ */
+export default function ProfileCard({ customer, onEdit, onChanged }: ProfileCardProps) {
   // Hooks
   const copy = useCopy(customerDetailContent)
   const locale = useLocale()
@@ -45,19 +52,31 @@ export default function ProfileCard({ customer, onEdit }: ProfileCardProps) {
             value: customer.email,
             href: customer.email ? `mailto:${customer.email}` : undefined,
             copy: true,
+            truncate: true,
             hidden: !customer.email,
           },
           {
             label: c.phone,
-            value: customer.phone,
+            value: customer.phone || copy.contactPhone.missing,
             href: call ?? undefined,
-            copy: true,
-            hidden: !customer.phone,
+            copy: Boolean(customer.phone),
+            tone: customer.phone ? 'default' : 'muted',
           },
           { label: c.created, value: day(customer.createdAt, locale), copy: true },
         ]}
       />
-      <ContactActions phone={customer.phone} className="mt-3" />
+      {customer.phone ? (
+        <ContactActions phone={customer.phone} className="mt-3" />
+      ) : (
+        <div className="mt-3">
+          <ContactPhonePrompt
+            customerId={customer.id}
+            suggestion={customer.phoneSuggestion}
+            onAdd={onEdit}
+            onSaved={onChanged}
+          />
+        </div>
+      )}
     </DataCard>
   )
 }

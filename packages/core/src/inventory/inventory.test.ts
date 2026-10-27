@@ -237,7 +237,7 @@ describe('purchase order fixes', () => {
     expect(numbers).toEqual([1, 2, 3, 4, 5, 6])
   })
 
-  it('refuses to change lines or destination once ordered, but takes header edits', async () => {
+  it('refuses to change currency or destination once ordered, but takes line and header edits', async () => {
     const { storeId, variantId } = await seed()
     const loc = await withStore(app, storeId, (tx) => defaultLocationId(tx, storeId))
     const lines = [{ variantId, quantity: 4, unitPriceMinor: 50 }]
@@ -250,7 +250,9 @@ describe('purchase order fixes', () => {
           ...base,
           id,
           locationId: loc,
-          lines: [{ variantId, quantity: 9, unitPriceMinor: 50 }],
+          currency: 'USD',
+          fxRate: '83',
+          lines,
         }),
       ),
     ).rejects.toMatchObject({ code: 'PO_LINES_LOCKED' })
@@ -260,11 +262,16 @@ describe('purchase order fixes', () => {
         id,
         supplierName: 'Renamed',
         locationId: loc,
-        lines,
+        lines: [{ variantId, quantity: 9, unitPriceMinor: 50 }],
       }),
     )
     const [po] = await owner.select().from(purchaseOrder).where(eq(purchaseOrder.id, id))
     expect(po?.supplierName).toBe('Renamed')
+    const [line] = await owner
+      .select()
+      .from(purchaseOrderLine)
+      .where(eq(purchaseOrderLine.purchaseOrderId, id))
+    expect(line?.quantity).toBe(9)
   })
 
   it('rejects the same product twice', () => {

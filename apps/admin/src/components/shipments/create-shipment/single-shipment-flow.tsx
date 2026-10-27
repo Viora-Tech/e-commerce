@@ -132,6 +132,7 @@ export default function SingleShipmentFlow({
           orderId: order.orderId,
           providerId: chosen?.providerId,
           serviceId: chosen?.serviceId ?? undefined,
+          serviceLabel: chosen?.providerLabel || undefined,
           trackingNumber: chosen?.needsTrackingNumber ? typed.trackingNumber : undefined,
           fulfillmentOrderId: parcel.id ?? undefined,
           pickupLocationId: form.pickupLocationId,

@@ -1,5 +1,6 @@
 'use client'
 
+import { canEditOrder, canStaffCancel } from '@commerce/core/order-edit-rules'
 import { permissions } from '@commerce/core/permissions'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -17,7 +18,9 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { orderChannel } from '@/lib/order-channel'
 import { routes } from '@/lib/routes'
+import CancelOrderDialog from './cancel-order-dialog'
 import CollectPaymentDialog from './collect-payment-dialog'
+import CourierOrdersCard from './courier-orders-card'
 import CustomerCard from './customer-card'
 import FulfilDialog from './fulfil-dialog'
 import ImportedOrderCard from './imported-order-card'
@@ -48,6 +51,7 @@ import ShipmentPanel from './shipment-panel'
 import TagsCard from './tags-card'
 import TimelineCard from './timeline-card'
 import UnfulfilledCard from './unfulfilled-card'
+import { useDuplicateOrder } from './use-duplicate-order'
 import { useOrderAppActions } from './use-order-app-actions'
 
 type OrderViewProps = {
@@ -68,6 +72,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
   const router = useRouter()
   const { hasPermission } = usePermissions()
   const apps = useOrderAppActions(appActions, () => router.refresh())
+  const duplicateOrder = useDuplicateOrder()
   const automation = useRunAutomation('order', appCards.includes('automations'))
   const [busy, setBusy] = useState(false)
   const [refunding, setRefunding] = useState<OrderPayment | null>(null)
@@ -75,6 +80,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
   /** The hand-sent message whose "Review email" dialog is open. */
   const [reviewing, setReviewing] = useState<'balance_request' | 'payment_reminder' | null>(null)
   const [collecting, setCollecting] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
 
   // Helpers
   const refresh = () => router.refresh()
@@ -190,6 +196,9 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
   const awaitingTransfer = live && !order.checkoutPaidAt && order.paymentMethod === 'manual'
   const stepKind = nextStepKind(order, { readOnly, canCollect, canFulfil, awaitingTransfer })
   const canShip = !readOnly && readyToShip(order) && hasPermission(permissions.ORDERS_FULFIL)
+  // An imported order still open can be cancelled too (the server takes it over first).
+  const canCancel = canStaffCancel(order) && hasPermission(permissions.ORDERS_CANCEL)
+  const canEdit = canEditOrder(order) && hasPermission(permissions.ORDERS_WRITE)
 
   return (
     <OrderPageFrame
@@ -209,11 +218,19 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
               onRequestBalance={requestBalance}
               onShip={canShip ? handleShip : undefined}
               onCancelShipment={
-                shipmentId && ['fulfilled', 'shipped'].includes(order.fulfillmentStatus)
+                /* Only while the courier still takes the cancel (before pickup or manifest). */
+                shipmentId && order.shipment?.cancelBlock === null
                   ? handleCancelShipment
                   : undefined
               }
               onSendReminder={sendReminder}
+              onDuplicate={
+                duplicateOrder.allowed && !readOnly
+                  ? () => duplicateOrder.duplicate(order.id)
+                  : undefined
+              }
+              onCancel={canCancel ? () => setCancelling(true) : undefined}
+              onEdit={canEdit ? () => router.push(routes.orders.edit(order.id)) : undefined}
               orderNumber={order.number}
               customerEmail={order.email}
               appItems={[
@@ -243,7 +260,11 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
       }
       main={
         <>
-          <ImportedOrderCard order={order} />
+          <ImportedOrderCard
+            order={order}
+            canTakeOver={hasPermission(permissions.ORDERS_WRITE)}
+            onChanged={refresh}
+          />
           {readOnly ? null : <UnfulfilledCard order={order} onFulfil={() => setFulfilling(true)} />}
           {readOnly ? null : <ParcelsCard order={order} />}
           <LineItemsCard
@@ -267,7 +288,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
                 busy={busy}
                 onBook={handleShip}
                 onRefresh={handleRefreshTracking}
-                onCancel={handleCancelShipment}
+                onChanged={refresh}
               />
             </div>
           )}
@@ -290,6 +311,12 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
             />
           ) : null}
           <CustomerCard order={order} />
+          <CourierOrdersCard
+            orderId={order.id}
+            rows={order.courierOrders}
+            canRetry={!readOnly && hasPermission(permissions.ORDERS_WRITE)}
+            onChanged={refresh}
+          />
           {readOnly ? null : (
             <ProfitCard
               orderId={order.id}
@@ -323,6 +350,11 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
         template={reviewing ?? 'payment_reminder'}
         onSend={reviewing === 'balance_request' ? handleRequestBalance : handleSendReminder}
         onClose={() => setReviewing(null)}
+      />
+      <CancelOrderDialog
+        order={cancelling ? order : null}
+        onClose={() => setCancelling(false)}
+        onDone={closeAndRefresh(() => setCancelling(false))}
       />
       <RefundDialog
         payment={refunding}

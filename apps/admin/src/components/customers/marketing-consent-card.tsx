@@ -6,12 +6,14 @@ import { Download, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Label } from '@commerce/ui/shadcn/label'
 import { Switch } from '@commerce/ui/shadcn/switch'
-import { useState } from 'react'
+import { type ReactNode, useState } from 'react'
 import { toast } from 'sonner'
 import { saveFile } from '@/components/apps/gst-invoices/save-file'
 import DataCard from '@/components/layout/data-card'
 import LogRequestDialog from '@/components/privacy/log-request-dialog'
 import { CHANNEL_LABEL, consentCardContent as copy } from '@/data/customer-privacy'
+import { customerDetailContent } from '@/data/customers'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { formatDate } from '@/lib/format-date'
 
@@ -25,14 +27,22 @@ type MarketingConsentCardProps = {
   /** The switches as edited; the page's save bar records them. */
   value: Record<ConsentChannel, boolean>
   onChange: (channel: ConsentChannel, granted: boolean) => void
+  /** The customer has a contact phone; without one WhatsApp and SMS cannot be switched on. */
+  hasPhone: boolean
+  /** Shown under the phone channels when there is no phone: use the order's or add one. */
+  phonePrompt: ReactNode
 }
 
 const HISTORY_SHOWN = 5
 
+/** Channels that reach the customer's phone. */
+const PHONE_CHANNELS: readonly ConsentChannel[] = ['whatsapp', 'sms']
+
 /**
  * Per-channel marketing consent with its recent history, and the customer's privacy tools.
- * A channel shows only when the store can send on it, or the customer already said yes to it
- * (so that yes can still be withdrawn).
+ * Every channel shows (a store that does not send on one yet says so), so a customer's yes
+ * can be recorded or withdrawn. WhatsApp and SMS need a contact phone first; they stay off
+ * until staff add one, and are never switched on automatically.
  */
 export default function MarketingConsentCard({
   customerId,
@@ -40,8 +50,11 @@ export default function MarketingConsentCard({
   consent,
   value,
   onChange,
+  hasPhone,
+  phonePrompt,
 }: MarketingConsentCardProps) {
   // Hooks
+  const detail = useCopy(customerDetailContent)
   const [logging, setLogging] = useState(false)
 
   // Event handlers
@@ -62,32 +75,47 @@ export default function MarketingConsentCard({
     return `${copy.granted} ${copy.sources[last.source] ?? last.source}`
   }
 
+  /** Off and locked while there is no phone; a yes already given can still be withdrawn. */
+  const locked = (channel: ConsentChannel) =>
+    !hasPhone && PHONE_CHANNELS.includes(channel) && !value[channel]
+
   // Render logic
-  const channels = CONSENT_CHANNELS.filter(
-    (c) => consent.sendable.includes(c) || consent.channels[c],
-  )
   const recent = consent.history.slice(0, HISTORY_SHOWN)
 
   return (
     <DataCard title={copy.heading} className="rounded-xl">
       <p className="text-caption text-muted-foreground">{copy.body}</p>
       <div className="mt-3 flex flex-col gap-3">
-        {channels.map((channel) => (
+        {CONSENT_CHANNELS.map((channel) => (
           <div key={channel} className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 flex-col gap-0.5">
               <Label htmlFor={`consent-${channel}`} className="text-body">
                 {CHANNEL_LABEL[channel]}
               </Label>
               <span className="text-caption text-muted-foreground">{sourceLine(channel)}</span>
+              {consent.sendable.includes(channel) ? null : (
+                <span className="text-caption text-muted-foreground">
+                  {detail.contactPhone.notSendable}
+                </span>
+              )}
             </div>
             <Switch
               id={`consent-${channel}`}
               checked={value[channel]}
+              disabled={locked(channel)}
               onCheckedChange={(on) => onChange(channel, on)}
             />
           </div>
         ))}
       </div>
+      {hasPhone ? null : (
+        <div className="mt-3 flex flex-col gap-2 rounded-lg bg-muted p-3">
+          <p className="text-caption text-muted-foreground">
+            {detail.contactPhone.consentNeedsPhone}
+          </p>
+          {phonePrompt}
+        </div>
+      )}
       <p className="mt-3 text-caption text-muted-foreground">{copy.record}</p>
       {consent.unsubscribedAt ? (
         <p className="mt-2 text-caption text-muted-foreground">{copy.unsubscribed}</p>

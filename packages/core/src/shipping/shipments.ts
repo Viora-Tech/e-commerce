@@ -20,6 +20,7 @@ import { recordRtoForShipment } from '../returns/rto'
 import { shipmentDocumentsAsLabel } from './label-documents'
 import { storeShippingLabel } from './label-store'
 import { syncNdrFromTracking } from './ndr'
+import { courierOrderFor, markCourierOrderBooked } from './order-push'
 import {
   effectiveWeightGrams,
   parcelBoxPreset,
@@ -28,6 +29,8 @@ import {
 } from './parcel'
 import { defaultBoxPreset, parseShippingSettings } from './settings'
 import { shipFromFor } from './ship-from'
+import { rebookableParcels } from './shipment-cancel'
+import { storedLabelUrl } from './shipment-state'
 
 export type ShipmentRow = typeof shipment.$inferSelect
 
@@ -74,6 +77,8 @@ export type CreateShipmentOptions = {
   codAmountPaise?: number | undefined
   /** The courier service picked in the rate table (`CourierRateRow.serviceId`). */
   serviceId?: string | undefined
+  /** That service's name as the rate table showed it ("Surface"), kept for the details view. */
+  serviceLabel?: string | undefined
   /** The merchant's own tracking number, for a courier with `requiresTrackingNumber` (India Post). */
   trackingNumber?: string | undefined
   /** The box packed, picked in the booking flow; omitted, the parcel's own box (parcelBoxPreset). */
@@ -127,6 +132,15 @@ async function loadParcel(ctx: StoreContext, orderId: string, fulfillmentOrderId
   for (const u of units) {
     const left = u.quantity - u.fulfilledQuantity
     if (left > 0) unpacked.set(u.orderLineId, (unpacked.get(u.orderLineId) ?? 0) + left)
+  }
+  /* Everything is packed, but its label was cancelled and nothing replaced it: the packed units
+     are still waiting on the shelf, so the new booking carries them. */
+  if (unpacked.size === 0 && (await rebookableParcels(ctx.tx, orderId)).has(parcel.id)) {
+    for (const u of units) {
+      if (u.fulfilledQuantity > 0) {
+        unpacked.set(u.orderLineId, (unpacked.get(u.orderLineId) ?? 0) + u.fulfilledQuantity)
+      }
+    }
   }
   return { ...parcel, unpacked }
 }
@@ -236,7 +250,12 @@ export async function createShipmentForOrder(
   const threshold = settings.policy.insuranceThresholdPaise
   const insured = options.insured ?? (threshold > 0 && valuePaise >= threshold)
 
+  // Sent to this courier earlier as a pending order (order push): book that one when the
+  // whole order ships, so the courier's panel does not end up with two.
+  const pushed =
+    !named || named.id === sole ? await courierOrderFor(ctx, o.id, provider.id) : undefined
   const result = await provider.createShipment({
+    ...(pushed ? { pushed } : {}),
     orderId: o.id,
     orderNumber: o.number,
     to: {
@@ -276,6 +295,7 @@ export async function createShipmentForOrder(
       : {}),
     ...(s?.gstin ? { exporterGstin: s.gstin } : {}),
   })
+  if (pushed) await markCourierOrderBooked(ctx, o.id, provider.id)
 
   /* The box packed, for the packing snapshot: the one named, else the box whose size the packer
      picked in the booking flow, else the parcel's own box (parcelBoxPreset). */
@@ -292,17 +312,31 @@ export async function createShipmentForOrder(
       : undefined) ??
     parcelBoxPreset(lines, settings.boxPresets)
   // The consignment carries its parcel: the named one, or the order's only one.
+  const shipmentId = crypto.randomUUID()
   const [row] = await ctx.tx
     .insert(shipment)
     .values({
+      id: shipmentId,
       storeId: ctx.storeId,
       orderId: o.id,
       fulfillmentOrderId: parcelId,
       provider: provider.id,
       waybill: result.waybill,
       providerRef: result.providerRef ?? null,
-      labelUrl: result.labelUrl ?? null,
+      /* A label behind the courier's key (Delhivery) is served by the admin's own route, which
+         fetches it server-side; the courier's link would answer 401 in a browser. */
+      labelUrl:
+        result.labelUrl ??
+        (result.labelViaProvider && !result.labelDocument && !result.documents?.length
+          ? storedLabelUrl(shipmentId)
+          : null),
       trackingUrl: result.trackingUrl ?? null,
+      paymentMode,
+      codAmountPaise,
+      // What the courier was told: the location's own name, else its account default.
+      pickupLocationName:
+        shipFrom.pickupLocationName ?? provider.defaultPickupLocationName ?? shipFrom.address.name,
+      serviceLabel: options.serviceLabel?.trim() || null,
       weightGrams,
       lengthCm: parcelPackage?.lengthCm ?? null,
       widthCm: parcelPackage?.widthCm ?? null,
@@ -384,26 +418,6 @@ export async function applyTracking(
   // Raises or clears the delivery-problem flag from this same scan; see `syncNdrFromTracking`.
   const final = await syncNdrFromTracking(ctx, row, tracking)
   return { shipment: final, becameDelivered }
-}
-
-export async function cancelShipment(
-  ctx: StoreContext,
-  provider: ShippingProvider,
-  shipmentId: string,
-): Promise<ShipmentRow> {
-  const [row] = await ctx.tx.select().from(shipment).where(eq(shipment.id, shipmentId))
-  if (!row) throw new Error('shipment not found')
-  // Most couriers cancel by waybill; RapidShyp's cancel_order wants its own
-  // order id instead (stored as providerRef on create) - see
-  // packages/shipping-rapidshyp/src/rapidshyp.ts.
-  await provider.cancel(row.providerRef || row.waybill)
-  const [updated] = await ctx.tx
-    .update(shipment)
-    .set({ status: 'cancelled', updatedAt: new Date() })
-    .where(eq(shipment.id, shipmentId))
-    .returning()
-  await recomputeOrderStatuses(ctx, row.orderId)
-  return updated ?? row
 }
 
 /** Shipments still moving, for the tracking job. */

@@ -30,7 +30,7 @@ const f = content.fields
 const PHONE_INPUT = `${CK_INPUT} ${CK_INPUT_HEIGHT} rounded-s-none!`
 const PHONE_TRIGGER = `${CK_INPUT} ${CK_INPUT_HEIGHT} flex! w-auto! gap-1.5 rounded-e-none! border-e-0!`
 
-/** Email and mobile number. A signed-in shopper's email is theirs and not edited here. */
+/** Mobile number, then the email for the receipt. A signed-in shopper's email is theirs and not edited here. */
 export default function CheckoutContactFields({
   values,
   errors,
@@ -44,26 +44,12 @@ export default function CheckoutContactFields({
   const lockedEmail = Boolean(customer?.email)
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3 sm:gap-3.5">
       {customer ? (
         <p className="text-[0.875rem] text-ck-muted">
           {accountContent.checkout.signedInAs(customer.email ?? customer.phone ?? '')}
         </p>
       ) : null}
-      <CheckoutField
-        id={fieldId('email')}
-        label={emailOptional && !lockedEmail ? f.emailOptional : f.email}
-        type="email"
-        inputMode="email"
-        required={!emailOptional || lockedEmail}
-        autoComplete="email"
-        placeholder={f.emailPlaceholder}
-        value={values.email}
-        onChange={onField('email')}
-        onBlur={() => onLeave('email')}
-        readOnly={lockedEmail}
-        error={errors.email}
-      />
       <CheckoutField
         id={fieldId('phone')}
         label={f.phone}
@@ -88,6 +74,20 @@ export default function CheckoutContactFields({
             triggerClassName={PHONE_TRIGGER}
           />
         }
+      />
+      <CheckoutField
+        id={fieldId('email')}
+        label={emailOptional && !lockedEmail ? f.emailOptional : f.email}
+        type="email"
+        inputMode="email"
+        required={!emailOptional || lockedEmail}
+        autoComplete="email"
+        placeholder={f.emailPlaceholder}
+        value={values.email}
+        onChange={onField('email')}
+        onBlur={() => onLeave('email')}
+        readOnly={lockedEmail}
+        error={errors.email}
       />
     </div>
   )

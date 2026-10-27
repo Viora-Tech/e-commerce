@@ -84,7 +84,7 @@ export default function ParcelRow({ parcel, onSaved }: ParcelRowProps) {
         <span className="flex flex-wrap items-center gap-2 text-body font-medium text-ink-strong">
           {copy.parcels.order(parcel.orderNumber)}
           <code className="text-caption text-muted-foreground">{parcel.waybill}</code>
-          <CopyButton value={parcel.waybill} what={copy.parcels.copyNumber} />
+          <CopyButton value={parcel.waybill} what={copy.parcels.copyNumber} visible />
         </span>
         <span className="truncate text-caption text-muted-foreground">
           {to} · <RelativeTime value={parcel.updatedAt} />

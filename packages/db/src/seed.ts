@@ -16,6 +16,7 @@ import {
   store,
   storeDomain,
   variant,
+  variantMedia,
   variantOptionValue,
 } from './schema'
 
@@ -196,6 +197,15 @@ export async function seedDev(ownerUrl: string): Promise<void> {
           })
           .returning()
         if (!row) throw new Error('variant insert failed')
+        // The variant's own photos, in order; the first mirrors `variant.media_id`.
+        const own = [...new Set(v.images.flatMap((src) => mediaIds.get(src) ?? []))]
+        if (own.length) {
+          await db
+            .insert(variantMedia)
+            .values(
+              own.map((mediaId, position) => ({ storeId, variantId: row.id, mediaId, position })),
+            )
+        }
         await db
           .insert(inventoryLevel)
           .values({ storeId, variantId: row.id, onHand: (i * 7 + count * 3) % 11 })

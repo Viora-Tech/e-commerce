@@ -1,4 +1,5 @@
 import { customerDetailContent, customersContent, segmentsContent } from '@/data/customers'
+import { newCustomerContent } from '@/data/new-customer'
 import { translation, untranslated } from '@/lib/i18n'
 
 const DELETE_BLOCKED = (n: number) =>
@@ -191,6 +192,18 @@ export default [
       average: 'औसत ऑर्डर',
       firstOrder: 'पहला ऑर्डर',
     },
+    contactPhone: {
+      missing: 'कोई फ़ोन नंबर नहीं',
+      add: 'फ़ोन जोड़ें',
+      takeFromOrder: (phone: string) => `उनके आख़िरी ऑर्डर वाला ${phone} इस्तेमाल करें`,
+      takeFromAddress: (phone: string) => `उनके सेव पते वाला ${phone} इस्तेमाल करें`,
+      taken: (phone: string) => `उनके ऑर्डर वाला ${phone} किसी दूसरे ग्राहक का है।`,
+      openOther: 'वह ग्राहक खोलें',
+      saved: 'फ़ोन नंबर सेव हुआ',
+      failed: 'फ़ोन नंबर सेव नहीं हो पाया',
+      consentNeedsPhone: 'WhatsApp/SMS की सहमति पूछने के लिए फ़ोन नंबर जोड़ें।',
+      notSendable: 'आपके स्टोर में अभी सेट नहीं है',
+    },
     profile: {
       heading: 'संपर्क',
       name: 'नाम',
@@ -334,5 +347,31 @@ export default [
     businessValues: { true: 'बिज़नेस (GSTIN है)', false: 'व्यक्तिगत (GSTIN नहीं)' },
     orJoin: ' या ',
     valuePlaceholder: untranslated,
+  }),
+  translation(newCustomerContent, {
+    button: 'ग्राहक जोड़ें',
+    title: 'ग्राहक जोड़ें',
+    description: 'ईमेल या मोबाइल नंबर जोड़ें ताकि आप उनसे संपर्क कर सकें।',
+    name: 'नाम',
+    email: 'ईमेल',
+    phone: 'मोबाइल नंबर',
+    addAddress: 'पता जोड़ें',
+    addressHelp: 'ऊपर दिए नाम और मोबाइल नंबर के साथ उनका डिफ़ॉल्ट पता बनकर सेव होगा।',
+    consent: 'मार्केटिंग की मंज़ूरी',
+    consentHelp: 'वही चैनल चुनें जिसके लिए ग्राहक ने हाँ कहा है। हर बदलाव उनकी मंज़ूरी की हिस्ट्री में रहता है।',
+    note: 'नोट',
+    notePlaceholder: 'यह सिर्फ़ स्टाफ़ को दिखता है',
+    tags: 'टैग',
+    tagsPlaceholder: 'vip, wholesale',
+    tagsHelp: 'टैग को कॉमा से अलग करें।',
+    save: 'ग्राहक सेव करें',
+    cancel: 'रद्द करें',
+    saved: 'ग्राहक जुड़ गया',
+    failed: 'ग्राहक नहीं जुड़ पाया',
+    duplicate: {
+      email: 'इस ईमेल वाला ग्राहक पहले से है।',
+      phone: 'इस मोबाइल नंबर वाला ग्राहक पहले से है।',
+      open: 'वह ग्राहक खोलें',
+    },
   }),
 ]

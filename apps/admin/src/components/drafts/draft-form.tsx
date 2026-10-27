@@ -9,13 +9,16 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import DraftActionsCard from '@/components/drafts/draft-actions-card'
 import DraftAddressCard from '@/components/drafts/draft-address-card'
+import DraftBillingCard from '@/components/drafts/draft-billing-card'
 import DraftCustomerCard from '@/components/drafts/draft-customer-card'
 import {
   type DraftFormState,
+  draftIncompleteBilling,
   draftMissingAddress,
   draftToForm,
   emptyDraft,
   formToDraft,
+  savedCodeCheck,
 } from '@/components/drafts/draft-form-state'
 import DraftProductsCard from '@/components/drafts/draft-products-card'
 import DraftTotalsCard from '@/components/drafts/draft-totals-card'
@@ -143,7 +146,9 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
       ? copy.actions.saveFirst
       : draftMissingAddress(saved)
         ? copy.actions.needsAddress
-        : null
+        : draftIncompleteBilling(saved)
+          ? copy.actions.needsBilling
+          : null
   const convertButton = (
     <Button disabled={busy || convertHint !== null} onClick={handleConvert}>
       <CircleCheck aria-hidden="true" />
@@ -230,7 +235,13 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
         main={
           <>
             <DraftProductsCard lines={form.lines} onChange={(lines) => patch({ lines })} />
-            <DraftTotalsCard key={resetKey} form={form} tax={draftTax(draft)} onChange={patch} />
+            <DraftTotalsCard
+              key={resetKey}
+              form={form}
+              tax={draftTax(draft)}
+              savedCheck={savedCodeCheck(draft)}
+              onChange={patch}
+            />
             <DataCard title={copy.note.heading} bodyClassName="flex flex-col gap-3">
               <Textarea
                 value={form.note}
@@ -245,6 +256,7 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
           <>
             <DraftCustomerCard form={form} onChange={patch} />
             <DraftAddressCard address={form.address} onChange={(address) => patch({ address })} />
+            <DraftBillingCard form={form} onChange={patch} />
             <DraftActionsCard
               hint={convertHint}
               paymentMethod={form.paymentMethod}

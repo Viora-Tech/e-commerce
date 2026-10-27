@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
   ACCOUNTS_PREFIX,
+  checkoutHostname,
   INTERNAL_PREFIX,
   listingSearch,
   PASSWORD_PREFIX,
   primaryRedirect,
   routeForAccounts,
+  routeForCheckoutHost,
   routeForStore,
 } from './routing'
 
@@ -110,6 +112,40 @@ describe('routeForAccounts (platform login domain)', () => {
   })
 })
 
+describe('checkoutHostname', () => {
+  it('strips the configured subdomain to the store primary', () => {
+    expect(checkoutHostname('checkout.waimers.com', 'checkout')).toBe('waimers.com')
+    expect(checkoutHostname('checkout.shop.koomerce.app', 'checkout')).toBe('shop.koomerce.app')
+  })
+  it('is null when the flag is off or the host is not a checkout host', () => {
+    expect(checkoutHostname('waimers.com', 'checkout')).toBeNull()
+    expect(checkoutHostname('checkout.waimers.com', null)).toBeNull()
+    expect(checkoutHostname('checkout.', 'checkout')).toBeNull()
+    expect(checkoutHostname(null, 'checkout')).toBeNull()
+  })
+})
+
+describe('routeForCheckoutHost', () => {
+  it('serves only the hand-off entry and checkout pages', () => {
+    expect(routeForCheckoutHost('store-a', '/checkout')).toEqual({
+      kind: 'rewrite',
+      path: '/-s/store-a/checkout',
+    })
+    expect(routeForCheckoutHost('store-a', '/c/tok123')).toEqual({
+      kind: 'rewrite',
+      path: '/-s/store-a/c/tok123',
+    })
+    expect(routeForCheckoutHost('store-a', '/checkout/thank-you/42')).toMatchObject({
+      kind: 'rewrite',
+    })
+  })
+  it('passes assets and api through, and 404s everything else', () => {
+    expect(routeForCheckoutHost('store-a', '/_next/static/x.js')).toEqual({ kind: 'passthrough' })
+    expect(routeForCheckoutHost('store-a', '/products/mouse')).toEqual({ kind: 'forbidden' })
+    expect(routeForCheckoutHost('store-a', '/')).toEqual({ kind: 'forbidden' })
+  })
+})
+
 describe('listingSearch', () => {
   it('keeps filters, terms, sort and page in a stable order, drops the rest', () => {
     const params = new URLSearchParams(
@@ -119,5 +155,12 @@ describe('listingSearch', () => {
       'filter.p.m.custom.grip=Claw&filter.p.m.custom.grip=Palm&page=2&q=mouse&sort_by=price-ascending',
     )
     expect(listingSearch(new URLSearchParams('utm_source=x'))).toBe('')
+  })
+
+  it("keeps a search form's sold-out choice, not its other options", () => {
+    const params = new URLSearchParams(
+      'q=pad&options[prefix]=last&options[unavailable_products]=last&type=product',
+    )
+    expect(listingSearch(params)).toBe('options%5Bunavailable_products%5D=last&q=pad')
   })
 })

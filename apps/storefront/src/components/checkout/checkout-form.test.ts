@@ -29,19 +29,6 @@ vi.mock('@/lib/privacy-actions', () => ({
   verifyPhoneCodeAction: vi.fn(),
 }))
 vi.mock('@/lib/login-actions', () => ({}))
-// The courier never answers in a static render; a test can stand in for its answer.
-let courier: 'ok' | null = null
-vi.mock('@/lib/use-checkout-shipping', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/lib/use-checkout-shipping')>()
-  return {
-    ...actual,
-    useCheckoutShipping: (...args: Parameters<typeof actual.useCheckoutShipping>) => {
-      const quote = actual.useCheckoutShipping(...args)
-      return courier ? { ...quote, gate: courier } : quote
-    },
-  }
-})
-
 const { default: CheckoutForm } = await import('./checkout-form')
 
 const cart: CartView = {
@@ -129,54 +116,55 @@ describe('CheckoutForm', () => {
     expect(html.match(/<form/g)).toHaveLength(1)
   })
 
-  it('opens on Contact with a phone code first for a guest', () => {
-    expect(html).toContain('Sign in or create your account')
-    expect(html).toContain('aria-current="step"')
-    expect(html).toContain('id="checkout-send-code"')
-    expect(html).toContain('Send code')
-    expect(html).toContain('Check out as guest')
-    expect(html).toContain('Continue')
-    // The address and express pay wait until the shopper is known.
-    expect(html).not.toContain('checkout-pincode')
-    expect(html).not.toContain('Pay with UPI')
-    expect(html).not.toContain('value="cod"')
+  it('lays every card out on one page, in the order of the design', () => {
+    const at = (text: string) => html.indexOf(text)
+    for (const id of ['contact', 'address', 'shipping', 'payment']) {
+      expect(html).toContain(`id="checkout-section-${id}"`)
+    }
+    expect(at('Express checkout')).toBeGreaterThan(-1)
+    expect(at('Express checkout')).toBeLessThan(at('id="checkout-section-contact"'))
+    expect(at('id="checkout-section-contact"')).toBeLessThan(at('id="checkout-section-address"'))
+    expect(at('id="checkout-section-address"')).toBeLessThan(at('id="checkout-section-shipping"'))
+    expect(at('id="checkout-section-shipping"')).toBeLessThan(at('id="checkout-section-payment"'))
+    for (const heading of ['Contact', 'Delivery', 'Shipping', 'Payment']) {
+      expect(html).toContain(`>${heading}</h2>`)
+    }
+    // The stepped checkout's wizard is gone: no step headings, no Continue or Back.
+    expect(html).not.toContain('Where should we deliver?')
+    expect(html).not.toContain('aria-current="step"')
+    expect(html).not.toContain('Continue to delivery')
   })
 
-  it('offers the store methods, and no guest way when an account is required', () => {
-    const guest = render('', { signIn })
-    expect(guest).toContain('WhatsApp')
-    expect(guest).toContain('Use your email instead')
+  it('gives a guest the plain contact fields, with Sign in in the card heading', () => {
+    expect(html).toContain('for="checkout-phone"')
+    expect(html).toContain('for="checkout-email"')
+    expect(html).toContain('>Sign in</button>')
+    expect(html).not.toContain('id="checkout-send-code"')
+    // The PIN code comes first in Delivery, City and State after it.
+    expect(html.indexOf('for="checkout-pincode"')).toBeLessThan(html.indexOf('for="checkout-name"'))
+    expect(html.indexOf('for="checkout-name"')).toBeLessThan(html.indexOf('for="checkout-city"'))
+  })
+
+  it('asks for the code first when the store needs an account, with its methods', () => {
     const required = render('', { signIn: { ...signIn, checkout: 'account_required' } })
-    expect(required).not.toContain('Check out as guest')
+    expect(required).toContain('id="checkout-send-code"')
+    expect(required).toContain('WhatsApp')
     expect(required).toContain('This shop needs an account to check out.')
+    expect(required).not.toContain('Check out as guest')
+    expect(required).not.toContain('>Sign in</button>')
   })
 
-  it('takes a signed-in shopper straight to Address, their saved addresses as tagged cards', () => {
+  it('shows a signed-in shopper their details and saved addresses as tagged cards', () => {
     const page = render('', { customer, addresses: [address, office], signIn })
-    expect(page).toContain('Where should we deliver?')
-    expect(page).toContain('Change contact details')
+    expect(page).toContain('Signed in as asha@example.com')
     expect(page).toContain('Home')
     expect(page).toContain('Office')
     expect(page.match(/name="saved-address"/g)).toHaveLength(2)
     expect(page).toContain('Edit the address for Asha Verma')
     expect(page).toContain('Delete the address for Asha Verma')
     expect(page).toContain('Add new address')
-    // Express UPI waits for the courier's price too, not only a known shopper and address.
-    expect(page).not.toContain('Pay with UPI')
     expect(page).not.toContain('id="checkout-send-code"')
-    // The picked card's details are the form's; the PIN-first form is not open.
     expect(page).not.toContain('for="checkout-pincode"')
-  })
-
-  it('offers express UPI once the contact, the address and the shipping price are all known', () => {
-    courier = 'ok'
-    try {
-      expect(render('', { customer, addresses: [address], signIn })).toContain('Pay with UPI')
-      // A signed-in shopper still typing a new address gets no shortcut yet.
-      expect(render('', { customer, addresses: [], signIn })).not.toContain('Pay with UPI')
-    } finally {
-      courier = null
-    }
   })
 
   it('opens the PIN-first form for a signed-in shopper with no saved address', () => {
@@ -185,52 +173,73 @@ describe('CheckoutForm', () => {
     expect(page).toContain('Save this address as')
   })
 
-  it('keeps a guest who asks for a later step on Contact', () => {
-    expect(render('?step=payment')).toContain('Sign in or create your account')
-  })
-
-  it('shows a signed-in shopper their details on Contact when they go back to it', () => {
-    expect(render('?step=contact', { customer, addresses: [address], signIn })).toContain(
-      'Signed in as asha@example.com',
+  it('puts express UPI in its own card, waiting for the shipping option it will charge', () => {
+    expect(html).toContain('aria-label="Pay with Google Pay"')
+    expect(html).toContain('aria-label="Pay with PhonePe"')
+    expect(html).toContain('aria-label="Pay with Paytm"')
+    // No PIN code quoted yet: no shipping price, so the line says what is missing.
+    expect(html).toContain('Add your PIN code below to see shipping')
+    // Not inside Delivery any more.
+    expect(html.indexOf('Pay with Google Pay')).toBeLessThan(
+      html.indexOf('checkout-section-address'),
     )
   })
 
-  it('pays the exact amount on the payment step, UPI first, with the recap above', () => {
-    const pay = render('?step=payment', { customer, addresses: [address] })
-    expect(pay).toContain('How would you like to pay?')
-    expect(pay).toContain('Pay ₹7,499')
-    expect(pay.indexOf('value="decentro"')).toBeLessThan(pay.indexOf('value="cod"'))
-    expect(pay).toContain('Asha Verma, 14 Rajpath Colony, Jaipur 302001')
-    expect(pay).toContain('Change address')
-    expect(pay.match(/<form/g)).toHaveLength(1)
+  it('leaves express out when no way to pay takes UPI', () => {
+    const page = render('', { methods: [{ id: 'cod', label: 'Cash on delivery' }] })
+    expect(page).not.toContain('Express checkout')
   })
 
-  it('names the gateways that process the payment under Pay, and only there', () => {
+  it('opens the one page for old ?step= links, whatever they say', () => {
+    for (const at of [
+      '?step=payment',
+      '?step=shipping',
+      '?step=contact',
+      '?step=bogus',
+      '?step=',
+    ]) {
+      const page = render(at, { customer, addresses: [address] })
+      expect(page.match(/<form/g)).toHaveLength(1)
+      expect(page).toContain('id="checkout-section-contact"')
+      expect(page).toContain('id="checkout-section-payment"')
+    }
+    expect(render('?step=payment').match(/<form/g)).toHaveLength(1)
+  })
+
+  it('pays the exact amount, UPI first, from the summary and the phone bar', () => {
+    const pay = render('', { customer, addresses: [address] })
+    expect(pay.match(/Pay ₹7,499/g)?.length).toBeGreaterThanOrEqual(2)
+    expect(
+      pay.match(/type="submit"[^>]*form="checkout-form"|form="checkout-form"[^>]*type="submit"/g),
+    ).toHaveLength(2)
+    expect(pay.indexOf('value="decentro"')).toBeLessThan(pay.indexOf('value="cod"'))
+  })
+
+  it('names the gateways that process the payment under Pay', () => {
     const methods = [...props.methods, { id: 'razorpay', label: 'Razorpay', methods: ['upi'] }]
-    const pay = render('?step=payment', { customer, addresses: [address], methods })
-    expect(pay).toContain('Payments processed by Razorpay')
+    const pay = render('', { customer, addresses: [address], methods })
+    expect(pay).toContain('Payments by Razorpay')
     expect(pay.indexOf('value="decentro"')).toBeLessThan(pay.indexOf('value="razorpay"'))
     expect(pay.indexOf('value="razorpay"')).toBeLessThan(pay.indexOf('value="cod"'))
-    const ship = render('?step=shipping', { customer, addresses: [address], methods })
-    expect(ship).not.toContain('Payments processed by')
   })
 
-  it('shows the order summary on every step', () => {
-    for (const at of ['', '?step=shipping', '?step=payment']) {
-      const page = render(at, { customer, addresses: [address] })
-      expect(page).toContain('Wireless mouse')
-      expect(page).toContain('Order summary')
-    }
+  it('keeps the GST invoice box in the Payment card', () => {
+    expect(html.indexOf('Get a GST invoice for my business')).toBeGreaterThan(
+      html.indexOf('id="checkout-section-payment"'),
+    )
+  })
+
+  it('shows the order summary', () => {
+    const page = render('', { customer, addresses: [address] })
+    expect(page).toContain('Wireless mouse')
+    expect(page).toContain('Order summary')
   })
 
   it('labels every field and leaves validation to the inline checks', () => {
-    const shopper = { customer: { ...customer, email: null }, addresses: [] }
-    const contact = render('?step=contact', shopper)
-    const address = render('?step=address', { customer, addresses: [] })
-    expect(contact).toMatch(/novalidate/i)
-    for (const id of ['checkout-email', 'checkout-phone']) expect(contact).toContain(`for="${id}"`)
-    for (const id of ['checkout-pincode', 'checkout-name']) expect(address).toContain(`for="${id}"`)
-    expect(address.match(/<form/g)).toHaveLength(1)
+    expect(html).toMatch(/novalidate/i)
+    for (const id of ['checkout-email', 'checkout-phone', 'checkout-pincode', 'checkout-name']) {
+      expect(html).toContain(`for="${id}"`)
+    }
   })
 
   it('carries the branding as --ck-* properties, not the theme', () => {

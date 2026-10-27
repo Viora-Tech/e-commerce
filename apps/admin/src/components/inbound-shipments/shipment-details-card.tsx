@@ -1,5 +1,6 @@
 'use client'
 
+import type { InboundCarrier } from '@commerce/core/inventory'
 import { Field, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import OptionSelect from '@/components/landed-cost/option-select'
@@ -13,6 +14,12 @@ import {
 import { useCopy } from '@/hooks/use-copy'
 
 export type ShipmentDraft = {
+  /** `INBOUND_CARRIERS` id, or null when not set. */
+  carrier: InboundCarrier | null
+  trackingNumber: string
+  trackingUrl: string
+  /** yyyy-mm-dd or empty. */
+  expectedAt: string
   reference: string
   billOfEntryNo: string
   /** yyyy-mm-dd or empty, for the date inputs. */

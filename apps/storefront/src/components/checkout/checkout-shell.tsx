@@ -33,8 +33,8 @@ export default function CheckoutShell({
     <CheckoutBrand
       storeName={look.storeName}
       logoUrl={look.logoUrl}
-      backHref={backHref}
-      backLabel={backLabel}
+      href={backHref}
+      label={backLabel}
     />
   )
 

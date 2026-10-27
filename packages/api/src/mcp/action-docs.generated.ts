@@ -177,11 +177,18 @@ export const ACTION_DOCS: Record<string, string> = {
     'The same for a selection on the Customers list; each change keeps its own history row.',
   'customers.addAddress':
     "Add an address to the customer's book; the first one becomes their default.",
+  'customers.adoptContactPhone':
+    "Save the mobile from the customer's latest order (or saved address) as their contact phone, when they have none.",
+  'customers.create': 'Add a customer by hand ("Add customer" on the list).',
   'customers.export': 'Rows for a CSV export of the current filter; the browser builds the file.',
   'customers.lookupPincode':
     'City and state for a PIN code, from the same directory as Settings → Checkout\'s "PIN code first".',
   'customers.overview': 'Headline figures and the weekly series behind the Customer Overview card.',
   'customers.previewSegment': 'Live count and a sample for the rule builder.',
+  'customers.setDefaultAddress':
+    "Make one saved address the customer's default (the profile card shows it).",
+  'customers.setDefaultBillingAddress':
+    "Make one saved address the customer's default billing address (draft orders bill it).",
   'customers.sheet':
     'Rows for the Customers bulk-edit spreadsheet, in the order the ids were given.',
   'dashboard.analytics':
@@ -228,6 +235,10 @@ export const ACTION_DOCS: Record<string, string> = {
   'inboundShipments.attach': 'Put an order on this shipment (off any other); both are recosted.',
   'inboundShipments.costs':
     'Shared charges, their splits across every order in it, and landed cost per line.',
+  'inboundShipments.save':
+    'Saves; a new tracking number with a connected carrier also reads its expected date.',
+  'inboundShipments.track':
+    "Read the carrier's expected delivery date now (FedEx, DHL Express, … when connected).",
   'inbox.aiAvailable':
     'Whether the thread shows AI help (suggested replies, summary): AI set up and the assistant on.',
   'inbox.assign': 'Assigns to a team member (only they are notified), or unassigns.',
@@ -343,7 +354,12 @@ export const ACTION_DOCS: Record<string, string> = {
   'orders.abandonedStats':
     'Abandoned checkouts in a period: how many, their value, and how many were recovered.',
   'orders.addNote': "Add a staff note to the order's timeline.",
-  'orders.cancelShipment': 'Cancel a booked shipment with its courier.',
+  'orders.cancel':
+    '"Cancel order": a reason, restock on or off, tell the customer or not, and how the money goes back (original payment, recorded by hand, or not at all).',
+  'orders.cancelShipment':
+    'Cancel a booked shipment with its courier, before it is collected or put on a manifest.',
+  'orders.checkDraftDiscount':
+    "Check a store discount code against a draft's lines and customer with checkout's rules (dates, minimums, products and collections, eligibility, per-customer cap).",
   'orders.collectPayment': 'Record money collected outside a gateway; the order becomes paid.',
   'orders.convertDraft':
     'Place a draft as a real order: holds stock and records a pending payment for the chosen method.',
@@ -357,6 +373,12 @@ export const ACTION_DOCS: Record<string, string> = {
     '"Delete test orders": removes every order of this store paid on a gateway\'s test keys (is_test), with its dependent rows.',
   'orders.draftTiles':
     'The stat cards above the drafts list: open drafts, invoices sent, and their total value.',
+  'orders.duplicateOrder':
+    "Start a new draft from an existing order: same customer, address, lines at today's prices (archived products skipped and named), notes and shipping.",
+  'orders.edit':
+    'Save an order edit (add, remove, quantities, shipping, discount) on an open order not yet shipped.',
+  'orders.editPreview':
+    "The edit's review step: new lines and totals, and what is owed either way.",
   'orders.fulfil':
     'Pack some or all of the lines; the shopper is told once the parcel is complete.',
   'orders.get':
@@ -381,8 +403,12 @@ export const ACTION_DOCS: Record<string, string> = {
   'orders.refreshTracking': 'Fetch the latest tracking events for a shipment from its courier.',
   'orders.refund':
     'Send money back through the gateway (or record a cash/UPI refund); partial amounts allowed.',
+  'orders.refundOptions':
+    'How a refund on this order can go back: how much is left, and to the original payment or not.',
   'orders.requestBalance':
     "Ask the shopper for a deposit pre-order's balance: email and WhatsApp (when set up) with a signed pay link.",
+  'orders.retryCourierPush':
+    "Send the order to a courier's panel again after it refused (order push).",
   'orders.saveDraft':
     "Create a draft order (no id) or replace an existing draft's lines, customer and addresses.",
   'orders.sendInvoice': 'Email the shopper a pay link for the draft.',
@@ -397,6 +423,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'orders.stats': 'The order stats for the last 7 days, against the 7 days before.',
   'orders.tagMany':
     'The list\'s bulk "Add tags" / "Remove tags": every given tag on (or off) every order.',
+  'orders.takeOver':
+    '"Manage this order" (Imported card): an imported order that is still open becomes one worked here (ship, cancel, edit).',
   'orders.tiles': 'The stat cards above the Orders list.',
   'orders.toShipCount': 'How many orders are waiting to ship.',
   'orders.updateContact':
@@ -441,6 +469,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'products.save':
     'Full write from the product form: options, variants and inventory in one transaction.',
   'products.searchVariants': 'Variant picker for the draft order editor.',
+  'products.setVariantImages':
+    "Set one variant's images in order (first = the variant's main image); a file not yet in the product's gallery is added to it.",
   'products.stats': 'Tiles above the list.',
   'products.update': 'Small patches from the list page (bulk status).',
   'purchaseDocuments.apply': 'Apply what the merchant ticked on the review screen.',
@@ -494,10 +524,12 @@ export const ACTION_DOCS: Record<string, string> = {
     "Connection state for the app's pages: account, property, last sync, refresh cooldown.",
   'shipments.counts':
     'Rows per Shipments tab, plus "booked today" and "need attention" for the summary line.',
+  'shipments.get':
+    'One booked shipment for its details view: courier and service, AWB, status, COD or prepaid, package, pickup, the label link the admin may open, and whether it can still be cancelled (and why not).',
   'shipments.indiaPostLabel':
     'Our own India Post address label (Code 128 article number), as a PDF.',
   'shipments.label':
-    "A label the courier handed back as a PDF (Blue Dart, DTDC), kept in the store's private storage at booking.",
+    "A shipment's label PDF for the admin's /api/shipments/<id>/label route: the copy kept in the store's private storage (Blue Dart, DTDC, DHL Express, FedEx), else the courier's own, fetched server-side…",
   'shipments.prepare':
     "Create shipment, step 1: each order's parcels (items, weight, box, pickup place, COD) and the store's couriers, boxes and pickup places.",
   'shipments.quote':

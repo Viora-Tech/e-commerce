@@ -8,6 +8,26 @@ const valid = {
   WORKER_PORT: '4100',
 }
 
+describe('CHECKOUT_SUBDOMAIN', () => {
+  it('is undefined when absent or blank', () => {
+    expect(loadEnv(valid).CHECKOUT_SUBDOMAIN).toBeUndefined()
+    expect(loadEnv({ ...valid, CHECKOUT_SUBDOMAIN: '' }).CHECKOUT_SUBDOMAIN).toBeUndefined()
+  })
+  it('keeps a valid DNS label', () => {
+    expect(loadEnv({ ...valid, CHECKOUT_SUBDOMAIN: 'checkout' }).CHECKOUT_SUBDOMAIN).toBe(
+      'checkout',
+    )
+  })
+  it('rejects a value that is not a single DNS label', () => {
+    expect(() => loadEnv({ ...valid, CHECKOUT_SUBDOMAIN: 'pay.secure' })).toThrow(
+      /CHECKOUT_SUBDOMAIN/,
+    )
+    expect(() => loadEnv({ ...valid, CHECKOUT_SUBDOMAIN: 'has space' })).toThrow(
+      /CHECKOUT_SUBDOMAIN/,
+    )
+  })
+})
+
 describe('loadEnv', () => {
   it('parses a valid environment and coerces the port', () => {
     const env = loadEnv(valid)

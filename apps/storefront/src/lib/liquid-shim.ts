@@ -9,9 +9,11 @@
  * - `/cart/change.js`, `/cart/update.js`, `/cart/clear.js` → our cart page.
  * - `?section_id=` / `?sections=` (section rendering) → our renderer of the theme's
  *   own section (`/theme-actions/section`), so lazy tabs and carousels fill in.
- * - `/search/suggest` → an empty answer, so the theme falls back to its search page link.
- * - `/recommendations/products` → the theme's own section rendered with our related
- *   products (`/theme-actions/recommendations`); an empty answer when there are none.
+ * - `/search/suggest(.json)` → passed through untouched: our own predictive search answers it
+ *   in Shopify's shape (`lib/predictive-route.ts`), JSON or the theme's section with results.
+ * - `/recommendations/products(.json)` → passed through: our related products answer
+ *   in Shopify's shape (`lib/recommendations-route.ts`), JSON or the theme's section filled;
+ *   a failed answer reads as an empty row.
  * - `Shopify.customerPrivacy` (the theme's cookie banner) → our consent: whether to ask
  *   comes from our consent cookie, and the answer goes to `ConsentManager`
  *   (`commerce:consent` event), which stores it and loads the allowed tags.
@@ -93,14 +95,14 @@ const SHIM = `(function () {
     if (/^\\/cart\\/add(\\.js)?$/.test(path)) return addToCart(init);
     if (path === '/cart.js') return nativeFetch('/theme-actions/cart', { headers: { accept: 'application/json' } });
     if (/^\\/cart\\/(change|update|clear)(\\.js)?$/.test(path)) { location.href = '/cart'; return pending(); }
-    if (/^\\/search\\/suggest/.test(path)) {
-      return path.slice(-5) === '.json'
-        ? reply('{"resources":{"results":{"products":[],"collections":[],"pages":[],"articles":[],"queries":[]}}}', 'application/json')
-        : reply('', 'text/html');
-    }
+    if (/^\\/search\\/suggest/.test(path)) return nativeFetch(input, init);
     if (/^\\/recommendations\\/products/.test(path)) {
-      return nativeFetch('/theme-actions/recommendations' + url.search, { headers: { accept: 'text/html' } })
-        .then(function (res) { return res.ok ? res : reply('', 'text/html'); });
+      // Our route answers; a failure (unknown product, no such section) reads as an empty row.
+      var json = /\\.json$/.test(path) || !url.searchParams.get('section_id');
+      return nativeFetch(input, init).then(function (res) {
+        if (res.ok) return res;
+        return json ? reply('{"intent":"related","products":[]}', 'application/json') : reply('', 'text/html');
+      });
     }
     if (method === 'GET' && (url.searchParams.has('section_id') || url.searchParams.has('sections'))) {
       return nativeFetch(sectionUrl(url), init);

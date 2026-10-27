@@ -3,6 +3,7 @@
 import { msUntil } from '@commerce/dates'
 import { type ComponentType, type ReactNode, useEffect, useState } from 'react'
 import { mainProductContent as copy } from '../data/zero-drift/main-product'
+import { galleryForVariant, slideForVariant, variantImageUrls } from '../product-gallery-order'
 import { announceVariant } from '../product-variant-event'
 import {
   hasCopy,
@@ -62,10 +63,7 @@ function defaultVariant(product: ProductDetail) {
 
 /** The gallery slide showing a variant's own image, else the first. */
 function slideFor(product: ProductDetail, variant: ProductDetail['variants'][number] | undefined) {
-  return Math.max(
-    0,
-    product.images.findIndex((i) => i.url === variant?.imageUrl),
-  )
+  return slideForVariant(galleryForVariant(product.images, variant), variant)
 }
 
 // Port of sections/main-product.liquid: the gallery (snippets/product-gallery) beside the buy
@@ -106,8 +104,8 @@ export default function ProductView({
   const handlePick = (id: string) => {
     setVariantId(id)
     const v = product.variants.find((x) => x.id === id)
-    const idx = product.images.findIndex((i) => i.url === v?.imageUrl)
-    if (idx >= 0) setSlide(idx)
+    // A variant with its own images shows them first; one without keeps the slide on show.
+    if (variantImageUrls(v).length > 0) setSlide(slideFor(product, v))
     announceVariant({ productId: product.id, variantId: id })
   }
 
@@ -121,6 +119,7 @@ export default function ProductView({
   const noDispatch = isPreorder || launching || !variant?.purchasable
   const wa = whatsappHref(s.whatsappNumber, s.whatsappMessage, product.title, pageUrl)
   const stockBar = s.showStockBar && !launching && Boolean(variant)
+  const images = galleryForVariant(product.images, variant)
 
   return (
     <section className="section-product page-width">
@@ -139,7 +138,7 @@ export default function ProductView({
       >
         <div className="product-layout__gallery">
           <ProductGallery
-            images={product.images}
+            images={images}
             title={product.title}
             slide={slide}
             onSelect={setSlide}

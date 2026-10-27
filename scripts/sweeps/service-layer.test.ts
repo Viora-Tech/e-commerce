@@ -212,6 +212,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   { path: 'apps/worker/src/shipments-webhook.ts', exact: true, reason: WORKER },
   { path: 'apps/worker/src/shipping.ts', exact: true, reason: WORKER },
+  { path: 'apps/worker/src/order-push.ts', exact: true, reason: WORKER },
   { path: 'apps/worker/src/store-export.ts', exact: true, reason: WORKER },
   {
     path: 'packages/api/src/procedures/store.ts',
@@ -232,6 +233,7 @@ const ALLOWLIST: AllowEntry[] = [
   { path: 'packages/plugin-affiliates/src/creatives.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-affiliates/src/enrol.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-affiliates/src/commissions.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-affiliates/src/commission-edit.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-affiliates/src/emails.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-affiliates/src/match.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-affiliates/src/payouts.ts', exact: true, reason: PLUGIN },
@@ -260,6 +262,7 @@ const ALLOWLIST: AllowEntry[] = [
   { path: 'packages/plugin-gst-invoices/src/links.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-gst-invoices/src/next-number.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-gst-invoices/src/numbers.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-gst-invoices/src/order-edit.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-gst-invoices/src/parcels.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-gst-invoices/src/periods.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-gst-invoices/src/plugin.ts', exact: true, reason: PLUGIN },

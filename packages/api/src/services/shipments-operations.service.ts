@@ -28,7 +28,8 @@ import { loadShippingSettings } from './shipping.service'
 /**
  * Ask each courier to collect its own parcels: the shipments are grouped by the courier that
  * holds them and by the pickup location they leave from (the parcel's location name on the
- * courier, else Settings › Shipping's warehouse), one pickup request per group. Parcels shipped
+ * courier the booking used), one pickup request per group (joined when one is already scheduled
+ * for that place and day, see `schedulePickup`). Parcels shipped
  * by hand (a courier that is not connected) are left out.
  */
 export async function schedulePickupForStore(
@@ -45,6 +46,7 @@ export async function schedulePickupForStore(
       id: shipment.id,
       provider: shipment.provider,
       pickup: location.courierPickup,
+      booked: shipment.pickupLocationName,
     })
     .from(shipment)
     .leftJoin(fulfillmentOrder, eq(fulfillmentOrder.id, shipment.fulfillmentOrderId))
@@ -53,8 +55,13 @@ export async function schedulePickupForStore(
   const fallbackName = settings.policy.warehouse.name || 'Warehouse'
   const groups = new Map<string, { providerId: string; place: string; ids: string[] }>()
   for (const row of rows) {
-    if (!providers.some((p) => p.id === row.provider)) continue
-    const place = row.pickup?.pickupName || fallbackName
+    const provider = providers.find((p) => p.id === row.provider)
+    if (!provider) continue
+    /* The place the booking told the courier (kept on the shipment), else the parcel's location
+       name on the courier, else the courier account's own, else Settings › Shipping's: a pickup
+       for any other name never collects these waybills (they stay "Ready to Ship"). */
+    const place =
+      row.booked || row.pickup?.pickupName || provider.defaultPickupLocationName || fallbackName
     const key = `${row.provider}|${place}`
     const group = groups.get(key) ?? { providerId: row.provider, place, ids: [] }
     group.ids.push(row.id)

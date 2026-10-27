@@ -44,6 +44,11 @@ export class VariantDrop extends Drop {
   readonly image: ImageDrop | null
   readonly featured_image: ImageDrop | null
   readonly featured_media: ImageDrop | null
+  /**
+   * The variant's own images in order, first = `featured_media` (not a Shopify field: Shopify
+   * keeps one image per variant). Themes can show these first when the variant is picked.
+   */
+  readonly media: ImageDrop[]
   readonly weight: number
   readonly requires_shipping = true
   readonly taxable = true
@@ -71,9 +76,11 @@ export class VariantDrop extends Drop {
     this.option1 = v.options[0] ?? null
     this.option2 = v.options[1] ?? null
     this.option3 = v.options[2] ?? null
+    // Separate drops, so `variant | json` keeps each field (the filter skips repeated objects).
     this.image = imageDrop(v.image)
-    this.featured_image = this.image
-    this.featured_media = this.image
+    this.featured_image = imageDrop(v.image)
+    this.featured_media = imageDrop(v.image)
+    this.media = (v.media ?? []).map((m) => new ImageDrop(m))
     this.weight = v.weightGrams ?? 0
     this.url = `${productUrl}?variant=${v.id}`
     // We keep no extra fields on variants; their metafields read blank.

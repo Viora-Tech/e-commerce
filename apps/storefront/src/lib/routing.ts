@@ -42,6 +42,31 @@ export function routeForAccounts(pathname: string): Route {
   return { kind: 'rewrite', path: `${ACCOUNTS_PREFIX}${pathname}` }
 }
 
+/**
+ * A store's primary host when `host` is its branded checkout host (`<subdomain>.<primary>`, security
+ * audit D-01 phase B), else null. `subdomain` is `CHECKOUT_SUBDOMAIN`; unset → never a checkout host.
+ */
+export function checkoutHostname(host: string | null, subdomain: string | null): string | null {
+  if (!host || !subdomain) return null
+  const prefix = `${subdomain}.`
+  return host.startsWith(prefix) && host.length > prefix.length ? host.slice(prefix.length) : null
+}
+
+/**
+ * Route a request on a store's checkout host: only the `/c/<token>` hand-off entry and the checkout
+ * pages are served there; everything else is 404, so theme code has nothing to reach on this origin.
+ */
+export function routeForCheckoutHost(storeId: string, pathname: string): Route {
+  if (pathname.startsWith('/_next/') || pathname.startsWith('/api/')) return { kind: 'passthrough' }
+  const allowed =
+    pathname === '/c' ||
+    pathname.startsWith('/c/') ||
+    pathname === '/checkout' ||
+    pathname.startsWith('/checkout/')
+  if (!allowed) return { kind: 'forbidden' }
+  return { kind: 'rewrite', path: `${INTERNAL_PREFIX}/${storeId}${pathname}` }
+}
+
 /** Headers the proxy derives. Stripped from every incoming request so a client cannot forge them. */
 export const DERIVED_HEADERS = [
   'x-store-id',
@@ -54,10 +79,11 @@ export const DERIVED_HEADERS = [
 ] as const
 
 /** Listing params an imported theme's collection and search pages read; the rest is noise. */
-const LISTING_PARAM = /^(filter\.|q$|sort_by$|page$)/
+const LISTING_PARAM = /^(filter\.|q$|sort_by$|page$|options\[unavailable_products\]$)/
 
 /**
- * A request's listing params (`filter.*`, `q`, `sort_by`, `page`) in a stable order, for an
+ * A request's listing params (`filter.*`, `q`, `sort_by`, `page`, and a search form's
+ * `options[unavailable_products]`) in a stable order, for an
  * imported theme's collection and search pages and the cache key of their render; empty when
  * there are none. Tracking params never split the cache.
  */

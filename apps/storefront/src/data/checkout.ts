@@ -187,54 +187,20 @@ export const checkoutContent = {
   /** Beside a way to pay whose gateway runs on test keys (Settings → Payments, Test). */
   testMode: 'Test mode',
   testModeHint: 'No real money is charged.',
-  /** Step numbers read out with the heading, e.g. "Step 2 of 4". */
-  step: (n: number, of: number) => `Step ${n} of ${of}`,
-  stepDone: 'Complete',
-  /** The stepped checkout: Address → Shipping → Payment, contact at the top of Address. */
-  steps: {
-    label: { contact: 'Contact', address: 'Address', shipping: 'Delivery', payment: 'Payment' },
-    /** Gift cards are emailed: the first step only asks for contact and billing details. */
-    detailsLabel: 'Details',
-    progress: 'Checkout steps',
-    heading: {
-      contact: 'Sign in or create your account',
-      address: 'Where should we deliver?',
-      shipping: 'How would you like it delivered?',
-      payment: 'How would you like to pay?',
-    },
-    detailsHeading: 'Your details',
-    intro: {
-      address: 'Where your order goes, and who to call about it.',
-      details: 'Your gift card arrives by email. We need your contact and billing details.',
-      shipping: (place: string) => `Options and dates for ${place}.`,
-      shippingNoPlace: 'Pick how your order travels.',
-      payment: 'All payments are encrypted. Pick the way that is easiest for you.',
-    },
-    contactHeading: 'Contact',
-    addressHeading: 'Delivery address',
-    /** The primary button on a step that is not the last: named after the next step. */
-    continueTo: {
-      address: 'Continue',
-      shipping: 'Continue to delivery',
-      payment: 'Continue to payment',
-    },
-    back: 'Back',
-    goTo: (label: string) => `Go back to ${label}`,
-  },
-  /** The finished steps above the current one, each with a way back to it. */
-  recap: {
-    heading: 'Your details so far',
-    contact: 'Contact',
-    shipTo: 'Ship to',
-    billTo: 'Billing',
-    delivery: 'Delivery',
-    change: 'Change',
-    changeContact: 'Change contact details',
-    changeAddress: 'Change address',
-    changeDelivery: 'Change delivery method',
+  /** The one page's numbered cards (design: checkout-design Main and Mobile). */
+  sections: {
+    label: { contact: 'Contact', address: 'Delivery', shipping: 'Shipping', payment: 'Payment' },
+    /** Gift cards are emailed: the second card only asks for billing details. */
+    detailsLabel: 'Billing',
+    /** Read after a card's heading once its part is filled in. */
+    done: 'Complete',
+    signIn: 'Sign in',
+    /** Beside the Shipping heading: the PIN code the options are for. */
+    shippingTo: (pincode: string) => `To ${pincode}`,
+    paymentNote: 'Encrypted and secure',
   },
   /**
-   * Contact at the top of Address: a code to the shopper's mobile first (the store's own
+   * Contact: a code to the shopper's mobile first (the store's own
    * sign-in: SMS or WhatsApp, email, Google, Apple, Truecaller, passkeys). Signing in also
    * creates the account. Settings → Customer accounts decides whether a guest may skip it.
    */
@@ -250,12 +216,12 @@ export const checkoutContent = {
     verifying: 'Verifying…',
     resend: 'Send a new code',
     change: 'Change',
-    guest: 'Check out as guest',
+    guest: 'Check out as guest instead',
     signInInstead: 'Sign in with a code instead',
     required: 'This shop needs an account to check out. Signing in creates one.',
     optional: 'Signing in fills in your saved addresses. New here? It creates your account.',
-    needSignIn: 'Verify your mobile number, or check out as a guest, to continue.',
-    needSignInRequired: 'Verify your mobile number to continue.',
+    needSignIn: 'Verify your mobile number, or check out as a guest, to pay.',
+    needSignInRequired: 'Verify your mobile number to pay.',
   },
   /** Signed-in shoppers' saved addresses as cards, and the PIN-first form for a new one. */
   addressBook: {
@@ -279,6 +245,7 @@ export const checkoutContent = {
     deliversTo: (pincode: string) => `Delivers to ${pincode}`,
   },
   secure: 'Secure checkout',
+  policiesLabel: 'Policies',
   secureShort: 'Secure',
   itemCount: (n: number) => (n === 1 ? '1 item' : `${n} items`),
   /** The main gateway's option when the merchant chose which online methods to offer. */
@@ -292,6 +259,8 @@ export const checkoutContent = {
   } as Record<string, string>,
   /** The payment gateways by brand: a gateway's option is titled with it. */
   gatewayBrands: { razorpay: 'Razorpay', cashfree: 'Cashfree' } as Record<string, string>,
+  /** Decentro's UPI option wears its name chip too; it is not a card gateway. */
+  upiBrand: 'Decentro',
   /** What each way to pay is called and what it does, by provider. */
   methods: {
     upi: 'UPI',
@@ -304,24 +273,31 @@ export const checkoutContent = {
     manual: 'UPI or bank transfer to the shop',
     manualHint: 'We confirm your order once the money arrives',
   },
-  /** What opens under the picked way to pay (Figma Checkout / Payment). */
+  /** What opens under the picked way to pay. */
   methodPanel: {
-    upiHeading: 'Pay with any UPI app',
-    upiDesktop: 'Tap Pay to see a QR code. Scan it with any UPI app on your phone and approve.',
-    upiPhone: 'Tap Pay and pick your UPI app to approve. You come straight back here.',
-    appsLabel: 'Works with',
-    upiApps: ['GPay', 'PhonePe', 'Paytm', 'BHIM'],
-    gateway: (brand: string) => `Tap Pay to finish in ${brand}'s secure window.`,
-    processedBy: (brand: string) => `Processed by ${brand}`,
+    upi: (amount: string) =>
+      `Pay ${amount} straight from your bank with any UPI app. On a phone your app opens; on a computer you scan a QR code.`,
+    gateway: (takes: string, brand: string) => `${takes}. You finish on ${brand}'s secure screen.`,
+    /** The small marks under each way to pay. */
+    upiApps: ['GPay', 'PhonePe', 'Paytm'],
+    cardMarks: ['VISA', 'RuPay'],
+    upiMark: 'UPI',
   },
   /** Under the Pay button: the gateways that handle the money. */
   processors: (names: string[]) => `Payments processed by ${names.join(' · ')}`,
   express: {
     heading: 'Express checkout',
-    upi: 'Pay with UPI',
-    upiAmount: (amount: string) => `Pay ${amount} with UPI`,
-    or: 'Or fill in your details',
-    needDetails: 'Add your contact and delivery details below, then tap UPI again.',
+    /** The three app buttons; each pays by UPI and opens that app (or its QR) next. */
+    apps: { gpay: 'Google Pay', phonepe: 'PhonePe', paytm: 'Paytm' },
+    payWith: (app: string) => `Pay with ${app}`,
+    /** Under the buttons: what one tap pays, shipping included. */
+    total: (amount: string, shipping: string) => `Pays ${amount} by UPI, with ${shipping}.`,
+    totalOnly: (amount: string) => `Pays ${amount} by UPI.`,
+    shippingLine: (name: string, price: string) => `${name} shipping (${price})`,
+    freeShipping: 'free shipping',
+    noShippingYet: 'Add your PIN code below to see shipping, then pay in one tap.',
+    needDetails: 'Add your contact and delivery details below, then tap again.',
+    needShipping: 'Pick a shipping option below, then tap again.',
   },
   summary: 'Order summary',
   orderTotal: 'Order total',
@@ -354,6 +330,13 @@ export const checkoutContent = {
   placeOrderAmount: (amount: string) => `Place order · ${amount}`,
   processing: 'Processing…',
   help: { label: 'Need help? WhatsApp us', short: 'Help' },
+  /** Under the Pay button. */
+  payFootnote: (names: string[]) =>
+    names.length > 0
+      ? `Payments by ${names.join(' · ')} · We never see your card or UPI PIN`
+      : 'Payments by the store’s gateway · We never see your card or UPI PIN',
+  /** The summary's delivery box: "Delivers to 122001 by Thu, 29 Oct". */
+  deliversTo: { to: 'Delivers to', by: 'by' },
   assurance: {
     title: 'Secure payment',
     body: 'Encrypted by the payment provider. We never see your card or UPI PIN.',
@@ -365,20 +348,23 @@ export const checkoutContent = {
   },
   fields: {
     name: 'Full name',
-    email: 'Email',
+    email: 'Email for the receipt',
     phone: 'Mobile number',
     emailPlaceholder: 'you@example.com',
     phonePlaceholder: '98765 43210',
-    line1: 'Address',
-    line1Placeholder: 'House number, street, area',
-    line2: 'Apartment, landmark (optional)',
+    namePlaceholder: 'As on your ID',
+    line1: 'House number, street, area',
+    line1Placeholder: 'Flat 4B, Palm Residency, Sector 14',
+    line2: 'Landmark (optional)',
+    line2Placeholder: 'Near the metro',
     city: 'City',
     state: 'State',
     pincode: 'PIN code',
     pincodePlaceholder: '110001',
-    emailOptional: 'Email (optional)',
+    emailOptional: 'Email for the receipt (optional)',
     phoneHint: 'The courier calls this number on delivery.',
     gstin: 'GSTIN',
+    gstinPlaceholder: '06ABCDE1234F1Z5',
     gstinHint: 'For a GST invoice in your business name.',
     businessName: 'Business name',
     note: 'Order note (optional)',
@@ -401,9 +387,10 @@ export const checkoutContent = {
   },
   pincodeFirst: {
     finding: 'Finding your city…',
-    found: (city: string, state: string) => `${city}, ${state}. Change it below if needed.`,
+    found: (city: string, state: string) => `${city}, ${state}`,
+    foundBy: (city: string, state: string, by: string) => `${city}, ${state} · by ${by}`,
   },
-  business: 'Add a GSTIN for a business invoice',
+  business: 'Get a GST invoice for my business',
   minimumOrder: (min: string, missing: string) =>
     `The minimum order is ${min}. Add ${missing} more to check out.`,
   codRules: {
@@ -451,6 +438,7 @@ export const checkoutContent = {
     unserviceable: (pincode: string) => `We cannot deliver to ${pincode} yet. Try another address.`,
     codUnavailable:
       'Cash on delivery is not available for this PIN code. Pick another payment method.',
+    pickShipping: 'Pick a shipping option to pay.',
     noShipping: (pincode: string) => `We do not ship to ${pincode} yet. Try another address.`,
     cannotShipToState: "We can't deliver this item to your state yet.",
     rateChanged:

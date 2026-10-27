@@ -42,7 +42,8 @@ export type VariantRow = {
   packageLengthCm: number | null
   packageWidthCm: number | null
   packageHeightCm: number | null
-  mediaId: string | null
+  /** The variant's images in order, ids from the product gallery; the first is its main image. */
+  mediaIds: string[]
 }
 
 export type MediaItem = { id: string; url: string; alt: string | null; contentType: string | null }
@@ -113,7 +114,7 @@ export function emptyVariant(optionValues: string[], template?: VariantRow): Var
     packageLengthCm: template?.packageLengthCm ?? null,
     packageWidthCm: template?.packageWidthCm ?? null,
     packageHeightCm: template?.packageHeightCm ?? null,
-    mediaId: null,
+    mediaIds: [],
   }
 }
 
@@ -211,7 +212,7 @@ export function fromProduct(p: LoadedProduct): ProductFormState {
             packageLengthCm: v.packageLengthCm ?? null,
             packageWidthCm: v.packageWidthCm ?? null,
             packageHeightCm: v.packageHeightCm ?? null,
-            mediaId: v.mediaId,
+            mediaIds: v.mediaIds,
           })),
     media: p.images.map((i) => ({ id: i.id, url: i.url, alt: i.alt, contentType: i.contentType })),
     inventoryReason: 'correction',
@@ -392,7 +393,8 @@ export function toWrite(form: ProductFormState): ProductWrite {
       packageWidthCm: v.packageWidthCm,
       packageHeightCm: v.packageHeightCm,
       onHand: v.trackInventory ? (intOrNull(v.quantity) ?? 0) : undefined,
-      mediaId: v.mediaId,
+      mediaId: v.mediaIds[0] ?? null,
+      mediaIds: v.mediaIds,
     })),
   }
 }

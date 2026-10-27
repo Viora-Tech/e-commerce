@@ -1100,6 +1100,34 @@
       "when": 1792937044755,
       "tag": "0172_cod_rto_app",
       "breakpoints": true
+    },
+    {
+      "idx": 157,
+      "version": "7",
+      "when": 1793023470328,
+      "tag": "0173_shipment_booking_details",
+      "breakpoints": true
+    },
+    {
+      "idx": 158,
+      "version": "7",
+      "when": 1793031153597,
+      "tag": "0174_variant_media",
+      "breakpoints": true
+    },
+    {
+      "idx": 159,
+      "version": "7",
+      "when": 1793037620314,
+      "tag": "0175_billing_address",
+      "breakpoints": true
+    },
+    {
+      "idx": 160,
+      "version": "7",
+      "when": 1793078663491,
+      "tag": "0176_stock_orders_batch",
+      "breakpoints": true
     }
   ]
 }

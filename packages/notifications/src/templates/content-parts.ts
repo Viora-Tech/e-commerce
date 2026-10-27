@@ -20,26 +20,40 @@ const keepNote = (d: TemplateData): string =>
     ? ' If it is not paid in time the order is cancelled and the deposit is not refunded.'
     : ''
 
+/** The balance an order edit left (the store changed a paid order and the total went up). */
+const edited = (d: TemplateData): boolean => d.balance?.kind === 'edit'
+/** "pre-order #12" for a deposit pre-order, "order #12" for an edited order. */
+const orderRef = (d: TemplateData): string =>
+  `${edited(d) ? 'order' : 'pre-order'} #${d.orderNumber}`
+
 export const balanceTemplates = {
   balance_request: {
-    subject: (d) => `${d.storeName}: order #${d.orderNumber} is almost ready, balance due`,
-    heading: (d) => `Hi ${d.customerName}, your pre-order is nearly here`,
+    subject: (d) =>
+      edited(d)
+        ? `${d.storeName}: order #${d.orderNumber} was updated, ${d.balance?.dueLabel ?? ''} due`
+        : `${d.storeName}: order #${d.orderNumber} is almost ready, balance due`,
+    heading: (d) =>
+      edited(d)
+        ? `Hi ${d.customerName}, your order was updated`
+        : `Hi ${d.customerName}, your pre-order is nearly here`,
     intro: (d) =>
-      `You paid ${d.balance?.depositLabel ?? ''} up front for order #${d.orderNumber}. The balance of ${d.balance?.dueLabel ?? ''} is now due.${payBy(d)}${keepNote(d)}`,
+      edited(d)
+        ? `We changed order #${d.orderNumber} as agreed. You have paid ${d.balance?.depositLabel ?? ''} so far, and ${d.balance?.dueLabel ?? ''} more is now due.`
+        : `You paid ${d.balance?.depositLabel ?? ''} up front for order #${d.orderNumber}. The balance of ${d.balance?.dueLabel ?? ''} is now due.${payBy(d)}${keepNote(d)}`,
     outro: (d) =>
       d.actionUrl ? `Pay the balance here: ${d.actionUrl}` : 'Reply to this email to pay.',
     whatsapp: (d) =>
-      `${d.storeName}: balance of ${d.balance?.dueLabel ?? ''} is due for pre-order #${d.orderNumber}.${payBy(d)}${d.actionUrl ? ` Pay: ${d.actionUrl}` : ''}`,
+      `${d.storeName}: balance of ${d.balance?.dueLabel ?? ''} is due for ${orderRef(d)}.${payBy(d)}${d.actionUrl ? ` Pay: ${d.actionUrl}` : ''}`,
   },
   balance_reminder: {
     subject: (d) => `${d.storeName}: reminder, balance due for order #${d.orderNumber}`,
     heading: (d) => `Hi ${d.customerName}, a quick reminder`,
     intro: (d) =>
-      `The balance of ${d.balance?.dueLabel ?? ''} for pre-order #${d.orderNumber} is still due.${payBy(d)}${keepNote(d)}`,
+      `The balance of ${d.balance?.dueLabel ?? ''} for ${orderRef(d)} is still due.${payBy(d)}${keepNote(d)}`,
     outro: (d) =>
       d.actionUrl ? `Pay the balance here: ${d.actionUrl}` : 'Reply to this email to pay.',
     whatsapp: (d) =>
-      `Reminder from ${d.storeName}: ${d.balance?.dueLabel ?? ''} is still due for pre-order #${d.orderNumber}.${payBy(d)}${d.actionUrl ? ` Pay: ${d.actionUrl}` : ''}`,
+      `Reminder from ${d.storeName}: ${d.balance?.dueLabel ?? ''} is still due for ${orderRef(d)}.${payBy(d)}${d.actionUrl ? ` Pay: ${d.actionUrl}` : ''}`,
   },
   balance_received: {
     subject: (d) => `${d.storeName}: balance for order #${d.orderNumber} received`,
@@ -47,7 +61,7 @@ export const balanceTemplates = {
     intro: (d) => `Order #${d.orderNumber} is now paid in full (${d.totalLabel}).`,
     outro: () => 'We will message you again as soon as it ships.',
     whatsapp: (d) =>
-      `${d.storeName}: balance received, pre-order #${d.orderNumber} is paid in full. We will update you when it ships.`,
+      `${d.storeName}: balance received, ${orderRef(d)} is paid in full. We will update you when it ships.`,
   },
 } satisfies Record<'balance_request' | 'balance_reminder' | 'balance_received', TemplateCopy>
 

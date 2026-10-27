@@ -7,7 +7,15 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { SEO_FILES } from './data/seo'
 import { accountsHostname } from './lib/accounts-host'
 import { analyticsAllowed } from './lib/consent-cookie'
-import { forwardNonce, newNonce, scriptCsp, storefrontFrameAncestors } from './lib/csp'
+import {
+  forwardNonce,
+  ISOLATED_FRAME_ANCESTORS,
+  ISOLATION_HEADERS,
+  isIsolatedStorePath,
+  newNonce,
+  scriptCsp,
+  storefrontFrameAncestors,
+} from './lib/csp'
 import { db } from './lib/db'
 import { edgeCacheControl, isSharedPage } from './lib/edge-cache'
 import { ORDER_VIEW_COOKIE, ORDER_VIEW_MAX_AGE, orderTokenSwap } from './lib/order-token-swap'
@@ -15,11 +23,13 @@ import { noteVisit, WARM_USER_AGENT } from './lib/recent-pages'
 import { redirectFor } from './lib/redirects'
 import { noteReferral } from './lib/referral-landing'
 import {
+  checkoutHostname,
   DERIVED_HEADERS,
   listingSearch,
   PASSWORD_PREFIX,
   primaryRedirect,
   routeForAccounts,
+  routeForCheckoutHost,
   routeForStore,
 } from './lib/routing'
 
@@ -61,13 +71,19 @@ function visitorCountry(request: NextRequest): string | null {
  */
 export async function proxy(request: NextRequest) {
   const nonce = newNonce()
+  // Checkout and the shopper account (D-01) refuse all framing and carry the isolation headers;
+  // every other page keeps the self-plus-admin frame-ancestors the theme editor needs.
+  const isolated = isIsolatedStorePath(request.nextUrl.pathname)
   const csp = scriptCsp({
     nonce,
     dev: process.env.NODE_ENV !== 'production',
-    frameAncestors: storefrontFrameAncestors(process.env.ADMIN_URL),
+    frameAncestors: isolated
+      ? ISOLATED_FRAME_ANCESTORS
+      : storefrontFrameAncestors(process.env.ADMIN_URL),
   })
   const response = await routeRequest(request, (headers) => forwardNonce(headers, nonce, csp))
   response.headers.set(csp.name, csp.value)
+  if (isolated) for (const [name, value] of ISOLATION_HEADERS) response.headers.set(name, value)
   return response
 }
 
@@ -86,6 +102,24 @@ async function routeRequest(request: NextRequest, withNonce: (headers: Headers) 
     url.pathname = route.path
     return NextResponse.rewrite(url, { request: { headers } })
   }
+  // A store's branded checkout host (`<CHECKOUT_SUBDOMAIN>.<primary>`, D-01 phase B): resolve the
+  // store from its primary, and serve only the `/c` hand-off entry and the checkout pages there.
+  const checkoutBase = checkoutHostname(hostname, process.env.CHECKOUT_SUBDOMAIN?.trim() || null)
+  if (hostname && checkoutBase) {
+    const store = await resolve(checkoutBase)
+    if (!store) return new NextResponse('Not found', { status: 404 })
+    const route = routeForCheckoutHost(store.storeId, request.nextUrl.pathname)
+    if (route.kind === 'forbidden') return new NextResponse('Not found', { status: 404 })
+    const headers = new Headers(request.headers)
+    for (const h of DERIVED_HEADERS) headers.delete(h)
+    withNonce(headers)
+    headers.set('x-store-id', store.storeId)
+    if (route.kind === 'passthrough') return NextResponse.next({ request: { headers } })
+    const url = request.nextUrl.clone()
+    url.pathname = route.path
+    return NextResponse.rewrite(url, { request: { headers } })
+  }
+
   const hostRoute = hostname ? await resolve(hostname) : null
   if (!hostname || !hostRoute) {
     return new NextResponse(`No store is configured for ${hostname ?? 'this host'}.`, {

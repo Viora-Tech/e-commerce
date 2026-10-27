@@ -68,6 +68,7 @@ async function lockOrder(ctx: StoreContext, orderId: string) {
       status: order.status,
       balanceDuePaise: order.balanceDuePaise,
       balancePaidAt: order.balancePaidAt,
+      depositPaise: order.depositPaise,
     })
     .from(order)
     .where(eq(order.id, orderId))
@@ -80,13 +81,19 @@ async function lockOrder(ctx: StoreContext, orderId: string) {
   return { o, lines }
 }
 
-/** A deposit-mode pre-order with money still owed blocks fulfilment until the balance is paid. */
+/**
+ * A deposit-mode pre-order with money still owed blocks fulfilment until the balance is paid.
+ * A balance an order edit left on an order without a deposit (`deposit_paise` null) does not:
+ * the merchant asked for the extra and decides whether to ship first, as on Shopify.
+ */
 function assertNoBalanceDue(
   ctx: StoreContext,
   orderId: string,
-  o: { balanceDuePaise: number | null; balancePaidAt: Date | null } | undefined,
+  o:
+    | { balanceDuePaise: number | null; balancePaidAt: Date | null; depositPaise: number | null }
+    | undefined,
 ): void {
-  if (o && (o.balanceDuePaise ?? 0) > 0 && !o.balancePaidAt) {
+  if (o && o.depositPaise !== null && (o.balanceDuePaise ?? 0) > 0 && !o.balancePaidAt) {
     throw new BalanceDue(orderId, o.balanceDuePaise ?? 0, ctx.storeId)
   }
 }

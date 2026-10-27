@@ -78,7 +78,10 @@ describe('media', () => {
     )
     // An image is queued for the upload-time pipeline, not made ready immediately.
     expect(confirmed.status).toBe('processing')
-    expect((await call(appRouter.media.list, {}, { context: a.ctx })).total).toBe(0)
+    // ...and listed straight away, marked as still optimising (#811).
+    const listed = await call(appRouter.media.list, {}, { context: a.ctx })
+    expect(listed.total).toBe(1)
+    expect(listed.items[0]).toMatchObject({ id: ticket.mediaId, status: 'processing' })
 
     // Another store sees nothing and cannot touch it.
     expect((await call(appRouter.media.list, {}, { context: b.ctx })).total).toBe(0)

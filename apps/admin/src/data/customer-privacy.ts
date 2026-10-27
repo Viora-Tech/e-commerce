@@ -207,6 +207,7 @@ export const auditContent = {
     'consent.changed': 'changed marketing consent',
     'settings.saved': 'saved privacy settings',
     'account.deletion_requested': 'confirmed deleting their account with a code',
+    'contact.phone_added': 'saved the phone from their order as their contact number',
   } as Record<string, string>,
   status: (from: string, to: string) => `${from} to ${to}`,
   format: (format: string) => format.toUpperCase(),

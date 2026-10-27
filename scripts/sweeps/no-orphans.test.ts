@@ -18,6 +18,12 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/core/src/domains/origin.ts',
+    names: ['checkoutOrigin'],
+    reason:
+      'pure branded-checkout-origin builder, unit-tested and paired with checkoutOriginFor (which callers use); the storefront resolves origins via checkoutOriginFor, not this (security audit D-01 phase B)',
+  },
+  {
     file: 'packages/core/src/inbox/widget.ts',
     names: [
       'WIDGET_ICONS',
@@ -730,7 +736,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/order/drafts.ts',
-    names: ['DraftLineSchema', 'DraftAddressSchema'],
+    names: ['DraftLineSchema'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -1071,11 +1077,6 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'imported only by scripts/rotate-secrets.ts (scripts are not counted as importers)',
   },
   {
-    file: 'packages/plugin-affiliates/src/commissions.ts',
-    names: ['commissionForOrder'],
-    reason: 'used inside the module; exported for the flow tests that read one order’s commission',
-  },
-  {
     file: 'packages/plugin-forms/src/plugin.ts',
     names: ['formsPlugin'],
     reason: 'imported only by the root commerce.config.ts, like emiPlugin',
@@ -1084,6 +1085,11 @@ const ALLOWLIST: AllowEntry[] = [
     file: 'packages/core/src/catalog/search-text.ts',
     names: ['maxEdits', 'editDistance', 'correctTerm', 'synonymsOf'],
     reason: 'test-only: the steps of planSearch, tested one by one in search-text.test.ts',
+  },
+  {
+    file: 'packages/plugin-shopify-import/src/write-customers.ts',
+    names: ['contactPhoneOf'],
+    reason: 'test-only: the contact phone fallback (#810), tested in contact-phone.test.ts',
   },
   {
     file: 'packages/plugin-search/src/plugin.ts',

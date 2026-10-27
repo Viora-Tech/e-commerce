@@ -31,10 +31,25 @@ export async function mediaInStore(tx: StoreTx, ids: string[]): Promise<Set<stri
   return new Set(rows.map((r) => r.id))
 }
 
-/** Drops a variant image that is not this store's (a stale or foreign id), keeping the rest. */
-export function withKnownMedia<V extends { mediaId?: string | null | undefined }>(
-  variants: V[],
-  known: Set<string>,
-): V[] {
-  return variants.map((v) => (v.mediaId && !known.has(v.mediaId) ? { ...v, mediaId: null } : v))
+/**
+ * Drops variant images that are not this store's (a stale or foreign id), keeping the rest.
+ * With an ordered `mediaIds` list, the main image becomes its first known id.
+ */
+export function withKnownMedia<
+  V extends { mediaId?: string | null | undefined; mediaIds?: string[] | undefined },
+>(variants: V[], known: Set<string>): V[] {
+  return variants.map((v) => {
+    if (v.mediaIds !== undefined) {
+      const mediaIds = [...new Set(v.mediaIds.filter((id) => known.has(id)))]
+      return { ...v, mediaIds, mediaId: mediaIds[0] ?? null }
+    }
+    return v.mediaId && !known.has(v.mediaId) ? { ...v, mediaId: null } : v
+  })
+}
+
+/** Every variant image id a product write names, for one `mediaInStore` check. */
+export function variantMediaIds(
+  variants: { mediaId?: string | null | undefined; mediaIds?: string[] | undefined }[],
+): string[] {
+  return variants.flatMap((v) => [...(v.mediaId ? [v.mediaId] : []), ...(v.mediaIds ?? [])])
 }

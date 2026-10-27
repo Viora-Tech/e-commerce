@@ -4,8 +4,8 @@ import { OPEN_ATTEMPT_STATUSES } from '@commerce/core/order-status'
 import type { address, order, orderLine, payment } from '@commerce/db'
 import type { CheckoutSession } from '@commerce/payments'
 import type { ReactNode } from 'react'
+import CheckoutPageShell from '@/components/checkout/checkout-page-shell'
 import CheckoutParcels from '@/components/checkout/checkout-parcels'
-import CheckoutStepsShell from '@/components/checkout/checkout-steps-shell'
 import OrderDetails from '@/components/checkout/order-details'
 import OrderProgress from '@/components/checkout/order-progress'
 import OrderSummary from '@/components/checkout/order-summary'
@@ -50,6 +50,18 @@ type ThankYouTemplateProps = {
 
 /** Attempts still waiting on the shopper or the gateway. */
 const OPEN_STATUSES: ReadonlySet<string> = new Set(OPEN_ATTEMPT_STATUSES)
+
+/**
+ * While the status mark settles and its tick draws (`StatusMark`, 400ms), the headline and the
+ * two cards rise in one after another, 50ms apart: an 8px rise with a fade on the strong
+ * ease-out, the fade alone with reduced motion. CSS animations, so they play once when the page
+ * mounts and never on a re-render.
+ */
+const ENTER = [
+  'motion-safe:animate-[sf-rise_260ms_var(--ease-out)_140ms_both] motion-reduce:animate-[sf-fade_200ms_var(--ease-out)_140ms_both]',
+  'motion-safe:animate-[sf-rise_260ms_var(--ease-out)_190ms_both] motion-reduce:animate-[sf-fade_200ms_var(--ease-out)_190ms_both]',
+  'motion-safe:animate-[sf-rise_260ms_var(--ease-out)_240ms_both] motion-reduce:animate-[sf-fade_200ms_var(--ease-out)_240ms_both]',
+] as const
 
 /** The first card's line while the order still waits on its payment. */
 function pendingLine(failed: boolean, manual: boolean, qr: boolean, total: string): string {
@@ -133,7 +145,7 @@ export default function ThankYouTemplate({
   const trackLink = settled && !progress.end ? track : null
 
   return (
-    <CheckoutStepsShell
+    <CheckoutPageShell
       look={look}
       backHref="/"
       backLabel={content.continueShopping}
@@ -154,7 +166,7 @@ export default function ThankYouTemplate({
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-4">
           <StatusMark tone={failed ? 'failed' : awaiting ? 'pending' : 'confirmed'} />
-          <div className="flex flex-col gap-1">
+          <div className={`flex flex-col gap-1 ${ENTER[0]}`}>
             <p className="text-[0.875rem] font-medium text-ck-muted tabular-nums">
               {content.orderNumber(o.number)}
             </p>
@@ -168,7 +180,7 @@ export default function ThankYouTemplate({
           </div>
         </div>
 
-        <ThankYouCard id="order-status-heading" title={cardTitle}>
+        <ThankYouCard id="order-status-heading" title={cardTitle} className={ENTER[1]}>
           {line ? <p className="text-[0.9375rem] text-pretty text-ck-muted">{line}</p> : null}
           {settled && shipTo && progress.reached !== null ? (
             <OrderProgress reached={progress.reached} />
@@ -196,7 +208,11 @@ export default function ThankYouTemplate({
           ) : null}
         </ThankYouCard>
 
-        <ThankYouCard id="order-details-heading" title={content.details.heading}>
+        <ThankYouCard
+          id="order-details-heading"
+          title={content.details.heading}
+          className={ENTER[2]}
+        >
           <OrderDetails order={o} shipTo={shipTo} payment={pay} giftCards={giftCards} />
           <CheckoutParcels parcels={parcels} />
           {trackLink || links.length > 0 ? (
@@ -219,6 +235,6 @@ export default function ThankYouTemplate({
           ) : null}
         </ThankYouCard>
       </div>
-    </CheckoutStepsShell>
+    </CheckoutPageShell>
   )
 }

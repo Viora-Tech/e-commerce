@@ -55,7 +55,7 @@ export const SWAP_TABLE: readonly SwapRow[] = [
   {
     key: 'predictive_search',
     shopify: 'Predictive search (/search/suggest)',
-    ours: 'Our search page (/search); the search box keeps its look',
+    ours: 'Our search answers /search/suggest as Shopify does: results drop down as shoppers type',
     kind: 'replaced',
     detect: /predictive_search|search\/suggest/,
   },
@@ -133,7 +133,7 @@ export const SWAP_TABLE: readonly SwapRow[] = [
   {
     key: 'recommendations',
     shopify: 'Product recommendations (/recommendations/products)',
-    ours: 'Our related products: the same collection first, then the same product type and tags (in stock and published only)',
+    ours: 'Our related products: the same collection first, then the same product type, vendor and tags, then best sellers (in stock and published only)',
     kind: 'replaced',
     detect: /product_recommendations_url|recommendations\/products/,
   },

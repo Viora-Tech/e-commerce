@@ -1,5 +1,6 @@
 'use client'
 
+import type { MediaVariants } from '@commerce/core/media-loader'
 import { ImageIcon, Video } from '@commerce/ui/icons'
 import Link from 'next/link'
 import ActionMenu from '@/components/layout/action-menu'
@@ -8,6 +9,7 @@ import { mediaContent } from '@/data/media'
 import { useCopy } from '@/hooks/use-copy'
 import { contentTypeOf } from './file-meta'
 import type { MediaTileAction } from './media-tile'
+import { tileImageUrls } from './tile-sources'
 import type { PendingUpload } from './use-upload-queue'
 
 export type MediaFileRow = {
@@ -15,6 +17,8 @@ export type MediaFileRow = {
   url: string
   alt: string | null
   contentType: string | null
+  /** The pipeline's smaller copies; the 3rem thumbnail uses the smallest instead of the original. */
+  variants?: MediaVariants
   /** File name shown first; the alt text follows it when it says something else. */
   name: string
   /** "240 KB · Used on 2 products". */
@@ -40,8 +44,18 @@ export default function MediaFileRows({ rows, pending }: MediaFileRowsProps) {
       {pending.map((p) => (
         <li key={p.key} className="flex items-center gap-3 border-b border-line px-4 py-2.5">
           <span className="flex size-12 shrink-0 overflow-hidden rounded-md border bg-muted">
-            {/* biome-ignore lint/performance/noImgElement: object URL preview while uploading. */}
-            <img src={p.previewUrl} alt="" className="size-full object-cover opacity-50" />
+            {p.file.type.startsWith('video/') ? (
+              <video
+                src={p.previewUrl}
+                muted
+                playsInline
+                preload="metadata"
+                className="size-full object-cover opacity-50"
+              />
+            ) : (
+              /* biome-ignore lint/performance/noImgElement: object URL preview while uploading. */
+              <img src={p.previewUrl} alt="" className="size-full object-cover opacity-50" />
+            )}
           </span>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-body text-ink-strong">{p.name}</span>
@@ -63,7 +77,7 @@ export default function MediaFileRows({ rows, pending }: MediaFileRowsProps) {
                 <Video className="size-5 text-muted-foreground" aria-hidden />
               ) : (
                 <FallbackImage
-                  src={row.url}
+                  src={tileImageUrls(row, 320)[0]}
                   alt={row.alt ?? ''}
                   className="size-full object-cover"
                   fallback={<ImageIcon className="size-5 text-muted-foreground" aria-hidden />}

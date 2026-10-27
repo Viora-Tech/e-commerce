@@ -22,6 +22,10 @@ export const mediaContent = {
     remove: 'Remove from product',
     delete: 'Delete file',
     video: 'Video',
+    /** A stored image the worker has not optimised yet; it is usable already. */
+    optimising: 'Optimising',
+    /** Neither the optimised copy nor the original loaded (missing file, or a format browsers can't draw). */
+    cantShow: "Can't show this file",
   },
   altDialog: {
     title: 'Alt text',

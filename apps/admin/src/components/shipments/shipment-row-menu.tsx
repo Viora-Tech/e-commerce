@@ -1,17 +1,26 @@
 'use client'
 
-import { AppWindow, CancelCircle, Printer, RefreshCw, Truck } from '@commerce/ui/icons'
+import {
+  AppWindow,
+  CancelCircle,
+  PackageCheck,
+  Printer,
+  RefreshCw,
+  Truck,
+} from '@commerce/ui/icons'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import RowMenu from '@/components/table/row-menu'
 import { ordersContent } from '@/data/orders'
 import { shipmentActionsContent, shipmentsContent } from '@/data/shipments'
-import { shipmentPanelContent } from '@/data/shipping'
+import { shipmentDetailsContent, shipmentPanelContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import type { ShipmentRow } from './shipment-columns'
+import ShipmentDetailsLoader from './shipment-details-loader'
 
 type ShipmentRowMenuProps = {
   row: ShipmentRow
@@ -25,8 +34,9 @@ const CANCELLABLE = 'created'
 const SETTLED = ['delivered', 'rto', 'cancelled']
 
 /**
- * The ⋯ menu on a Shipments row: open the order, print the label, track the parcel, ask the
- * courier for fresh tracking, and cancel a booking that was not picked up yet (asks first).
+ * The ⋯ menu on a Shipments row: the shipment's details (in a centred dialog), open the order,
+ * print the label, track the parcel, ask the courier for fresh tracking, and cancel a booking
+ * that was not picked up yet (asks first; hidden for a courier that takes no cancellations).
  */
 export default function ShipmentRowMenu({ row, onChanged }: ShipmentRowMenuProps) {
   // Hooks
@@ -34,7 +44,9 @@ export default function ShipmentRowMenu({ row, onChanged }: ShipmentRowMenuProps
   const actions = useCopy(shipmentActionsContent)
   const list = useCopy(ordersContent)
   const panel = useCopy(shipmentPanelContent)
+  const details = useCopy(shipmentDetailsContent)
   const [confirmCancel, setConfirmCancel] = useState(false)
+  const [showDetails, setShowDetails] = useState(false)
 
   // Event handlers
   const handleRefresh = async () => {
@@ -67,13 +79,19 @@ export default function ShipmentRowMenu({ row, onChanged }: ShipmentRowMenuProps
     <>
       <RowMenu
         items={[
+          {
+            label: details.open,
+            icon: PackageCheck,
+            hidden: !booked,
+            onSelect: () => setShowDetails(true),
+          },
           { label: copy.menu.viewOrder, href: routes.orders.detail(row.orderId), icon: AppWindow },
           {
             label: copy.menu.label,
             href: row.labelUrl ?? undefined,
             icon: Printer,
             newTab: true,
-            hidden: !row.labelUrl,
+            hidden: !row.labelUrl || row.status === 'cancelled',
           },
           {
             label: copy.menu.track,
@@ -93,7 +111,7 @@ export default function ShipmentRowMenu({ row, onChanged }: ShipmentRowMenuProps
             icon: CancelCircle,
             destructive: true,
             separatorBefore: true,
-            hidden: row.status !== CANCELLABLE,
+            hidden: row.status !== CANCELLABLE || !row.courierCancels,
             onSelect: () => setConfirmCancel(true),
           },
         ]}
@@ -108,6 +126,22 @@ export default function ShipmentRowMenu({ row, onChanged }: ShipmentRowMenuProps
         stopPropagation
         onConfirm={handleCancel}
       />
+      {booked ? (
+        <Dialog open={showDetails} onOpenChange={setShowDetails}>
+          <DialogContent
+            className="max-h-[90dvh] overflow-y-auto sm:max-w-xl"
+            // Inside a clickable row: a click in the dialog must not open the row too.
+            onClick={(e) => e.stopPropagation()}
+          >
+            <DialogHeader>
+              <DialogTitle>{details.heading}</DialogTitle>
+            </DialogHeader>
+            {showDetails ? (
+              <ShipmentDetailsLoader shipmentId={row.id} onChanged={onChanged} />
+            ) : null}
+          </DialogContent>
+        </Dialog>
+      ) : null}
     </>
   )
 }

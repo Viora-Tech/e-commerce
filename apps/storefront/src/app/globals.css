@@ -94,9 +94,12 @@
   /* Focus rings as real properties: arbitrary box-shadow values cannot read @theme inline names. */
   --ck-ring: color-mix(in oklab, var(--ck-accent) 24%, transparent);
   --ck-danger-ring: color-mix(in oklab, var(--ck-danger) 14%, transparent);
-  /* The stepped checkout's summary card: a hairline lift in light mode, flat in dark. */
+  /* The summary card: a hairline lift in light mode, flat in dark. */
   --ck-card-shadow:
     0 0 0 1px rgb(0 0 0 / 0.06), 0 1px 2px rgb(0 0 0 / 0.06), 0 8px 24px rgb(0 0 0 / 0.06);
+  /* The one-page checkout's cards (Contact, Delivery, Shipping, Payment). */
+  --ck-section-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.06), 0 1px 2px rgb(0 0 0 / 0.06), 0 4px 12px rgb(0 0 0 / 0.04);
   color-scheme: light;
 }
 
@@ -113,6 +116,7 @@
   --ck-summary: color-mix(in oklab, var(--ck-summary-light) 8%, #0b0b0d);
   --ck-summary-ink: #ededee;
   --ck-card-shadow: none;
+  --ck-section-shadow: 0 0 0 1px var(--ck-line);
   color-scheme: dark;
 }
 
@@ -120,15 +124,36 @@
 @keyframes ck-settle {
   from {
     opacity: 0;
-    transform: scale(0.88);
+    transform: scale(0.9);
   }
 }
 
-/* The picked way to pay opening onto its details (PaymentMethods); transform and opacity only. */
-@keyframes ck-reveal {
+/* The thank-you tick drawing itself (StatusMark): a pathLength="1" path, dash offset 1 -> 0. */
+@keyframes ck-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+
+/* One-time entrances (the thank-you page's headline and cards, the error pages): an 8px rise
+   with a fade, and the fade alone for reduced motion. Transform and opacity only. */
+@keyframes sf-rise {
   from {
     opacity: 0;
-    transform: translateY(-4px);
+    transform: translateY(0.5rem);
+  }
+}
+
+@keyframes sf-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* City and State just filled in from the PIN code: a brief wash of the accent that fades out. */
+@keyframes ck-filled {
+  from {
+    background-color: color-mix(in oklab, var(--ck-accent) 14%, var(--ck-field));
   }
 }
 
@@ -151,6 +176,7 @@ body:has(.ck) {
     --ck-summary: color-mix(in oklab, var(--ck-summary-light) 8%, #0b0b0d);
     --ck-summary-ink: #ededee;
     --ck-card-shadow: none;
+    --ck-section-shadow: 0 0 0 1px var(--ck-line);
     color-scheme: dark;
   }
 }

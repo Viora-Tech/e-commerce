@@ -132,6 +132,61 @@ export const shippingSettingsContent = {
   },
 } as const
 
+/** The read-only details of a booked shipment: after booking, on the order, from Shipments. */
+export const shipmentDetailsContent = {
+  heading: 'Shipment details',
+  open: 'Shipment details',
+  loading: 'Loading the shipment…',
+  failed: 'Could not load this shipment.',
+  awb: 'AWB',
+  status: 'Status',
+  payment: 'Payment',
+  prepaid: 'Prepaid',
+  cod: (amount: string) => `Cash on delivery, collect ${amount}`,
+  codNoAmount: 'Cash on delivery',
+  package: 'Package',
+  weight: (kg: string) => `${kg} kg`,
+  size: (l: number, w: number, h: number) => `${l} × ${w} × ${h} cm`,
+  pickup: 'Pickup',
+  pickupOn: (date: string, time: string) => `Pickup requested for ${date}, from ${time}`,
+  noPickup:
+    'Not requested yet. Until it is, the parcel waits in the courier’s “Ready to Ship” list.',
+  requestPickup: 'Request pickup',
+  pickupFrom: 'Picked up from',
+  created: 'Booked',
+  printLabel: 'Print label',
+  track: 'Track',
+  cancel: 'Cancel shipment',
+  cancelTitle: 'Cancel this shipment?',
+  cancelBody: (courier: string, awb: string) =>
+    `${courier} cancels AWB ${awb}. The parcel stays packed and the order goes back to the list to book, so you can book it again with any courier.`,
+  cancelConfirm: 'Cancel shipment',
+  keep: 'Keep shipment',
+  cancelled: 'Shipment cancelled. You can book this order again.',
+  cancelFailed: 'Could not cancel the shipment.',
+  /** Why Cancel is not offered, by `cancelBlock`. */
+  blocked: {
+    not_supported:
+      'This courier does not take cancellations from here. Cancel it on the courier’s own site.',
+    cancelled: 'This shipment was cancelled. The order can be booked again.',
+    picked_up:
+      'The courier has collected this parcel, so it can no longer be cancelled. Ask the courier for a return (RTO) instead.',
+    settled: 'This parcel was delivered or returned, so there is nothing to cancel.',
+    in_manifest:
+      'This parcel is on a manifest you handed to the courier, so it can no longer be cancelled.',
+  } as Record<'not_supported' | 'cancelled' | 'picked_up' | 'settled' | 'in_manifest', string>,
+  /** Delhivery refused the booking: it has no pickup location by the name we sent. */
+  noPickupLocation: {
+    title: 'Delhivery has no pickup location by this name',
+    body: 'The booking used this pickup location name, and your Delhivery account has none spelled exactly like it:',
+    fix: 'Open Delhivery One, go to Settings → Pickup locations, and copy the name exactly. Paste it in Apps → Delhivery → Connect (Pickup location name), or on the location in Settings → Locations. Staging (test) accounts have their own pickup locations.',
+    openDelhivery: 'Open Delhivery One',
+    help: 'Delhivery help: pickup locations',
+    connect: 'Open Delhivery Connect',
+    name: 'Pickup location name',
+  },
+} as const
+
 export const shipmentPanelContent = {
   heading: 'Shipment',
   none: 'No shipment booked yet.',

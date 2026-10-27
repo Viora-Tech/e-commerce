@@ -3,6 +3,7 @@ import {
   parseBrowseFilters,
   parseBrowseSort,
   parsePage,
+  parseUnavailable,
   type SearchParamsInput,
 } from '@commerce/core/browse'
 import type { Metadata } from 'next'
@@ -40,20 +41,26 @@ export default async function SearchPage({ params, searchParams }: Params) {
   const filters = parseBrowseFilters(query)
   const sort = parseBrowseSort(query.sort_by, SEARCH_SORTS, 'relevance')
   const page = parsePage(query.page)
+  const unavailable = parseUnavailable(query['options[unavailable_products]'])
   // The same search is the same page for everyone: cached per store version.
   const { result, products } = q
-    ? await storeRead(storeId, `search|${digest([q, filters, sort, page])}`, async (tx) => {
-        const result = await browseProducts(tx, {
-          query: q,
-          storeId,
-          filters,
-          sort,
-          page,
-          perPage: SEARCH_PER_PAGE,
-        })
-        const products = await listCardProducts(tx, SEARCH_PER_PAGE, undefined, result.handles)
-        return { result, products }
-      })
+    ? await storeRead(
+        storeId,
+        `search|${digest([q, filters, sort, page, unavailable])}`,
+        async (tx) => {
+          const result = await browseProducts(tx, {
+            query: q,
+            storeId,
+            filters,
+            sort,
+            page,
+            perPage: SEARCH_PER_PAGE,
+            unavailable,
+          })
+          const products = await listCardProducts(tx, SEARCH_PER_PAGE, undefined, result.handles)
+          return { result, products }
+        },
+      )
     : { result: null, products: [] }
   return renderTemplate(storeId, 'search', {
     view: text(query.view) || undefined,

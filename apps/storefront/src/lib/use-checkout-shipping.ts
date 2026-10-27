@@ -1,7 +1,7 @@
 import type { CartView } from '@commerce/core'
 import { useState, useTransition } from 'react'
 import { isDigitalOnly } from '@/lib/checkout-preview'
-import type { GateState } from '@/lib/checkout-steps'
+import type { GateState } from '@/lib/checkout-sections'
 import { cleanPincode } from '@/lib/checkout-validation'
 import { retryOnce } from '@/lib/retry-once'
 import type { CheckoutShipping } from '@/lib/shipping'

@@ -1,6 +1,6 @@
 import type { DiscountInput } from '@commerce/core/discounts'
 import type { discountFormContent } from '@/data/discounts'
-import { type DiscountFormState, scopeIds, usesPerProduct } from './form-state'
+import { type DiscountFormState, fromLocalInput, scopeIds, usesPerProduct } from './form-state'
 
 export type FormErrors = Partial<
   Record<
@@ -27,12 +27,6 @@ const num = (s: string): number => Number.parseFloat(s)
 const rupeesToPaise = (s: string): number => Math.round(num(s) * 100)
 const whole = (s: string): number => Number.parseInt(s, 10)
 const positiveWhole = (s: string): boolean => Number.isInteger(num(s)) && whole(s) >= 1
-
-function fromLocalInput(s: string): Date | null {
-  if (!s) return null
-  const d = new Date(s)
-  return Number.isNaN(d.getTime()) ? null : d
-}
 
 /** A typed amount is usable: above zero, and at most 100 for a percent. */
 export function validAmount(

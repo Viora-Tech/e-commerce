@@ -46,7 +46,21 @@ type Draft = {
   phone: string
   address: AddressValue
   alsoUpdateCustomer: boolean
+  /** Bill the shipping address; unticked, `billingName` at `billingAddress`. */
+  billingSame: boolean
+  billingName: string
+  billingAddress: AddressValue
+  businessName: string
+  gstin: string
 }
+
+const addressValue = (a: NonNullable<OrderDetail['shippingAddress']>): AddressValue => ({
+  line1: a.line1,
+  line2: a.line2 ?? '',
+  city: a.city,
+  stateCode: a.stateCode,
+  pincode: a.pincode,
+})
 
 function draftFrom(order: OrderDetail): Draft {
   const a = order.shippingAddress
@@ -54,23 +68,20 @@ function draftFrom(order: OrderDetail): Draft {
     name: a?.name ?? order.customer?.name ?? '',
     email: order.email ?? '',
     phone: order.phone ?? a?.phone ?? '',
-    address: a
-      ? {
-          line1: a.line1,
-          line2: a.line2 ?? '',
-          city: a.city,
-          stateCode: a.stateCode,
-          pincode: a.pincode,
-        }
-      : EMPTY_ADDRESS,
+    address: a ? addressValue(a) : EMPTY_ADDRESS,
     alsoUpdateCustomer: false,
+    billingSame: order.billingAddress === null,
+    billingName: order.billingAddress?.name ?? '',
+    billingAddress: order.billingAddress ? addressValue(order.billingAddress) : EMPTY_ADDRESS,
+    businessName: order.buyerBusinessName ?? '',
+    gstin: order.buyerGstin ?? '',
   }
 }
 
 /**
- * This order's contact and shipping address, changed without leaving the
- * order page. Billing follows shipping. The customer's saved address changes
- * only when the merchant ticks the box.
+ * This order's contact, shipping address and billing (a separate address, the company and
+ * GSTIN for the GST invoice), changed without leaving the order page. The customer's saved
+ * address changes only when the merchant ticks the box.
  */
 export default function EditOrderContactDialog({
   order,
@@ -90,7 +101,25 @@ export default function EditOrderContactDialog({
     (v: Draft[K]) =>
       setDraft({ ...draft, [key]: v })
 
+  const trimmed = (a: AddressValue) => ({
+    line1: a.line1.trim(),
+    line2: a.line2.trim() || null,
+    city: a.city.trim(),
+    stateCode: a.stateCode,
+    pincode: a.pincode.trim(),
+  })
+
   // Event handlers
+  const handleBillingSame = (same: boolean) => {
+    // Unticking starts from the shipping address, so a different bill-to is a few edits away.
+    const blank = !draft.billingName && !draft.billingAddress.line1
+    setDraft({
+      ...draft,
+      billingSame: same,
+      ...(!same && blank ? { billingName: draft.name, billingAddress: draft.address } : {}),
+    })
+  }
+
   const handleOpenChange = (next: boolean) => {
     if (next) return
     setDraft(draftFrom(order))
@@ -108,16 +137,15 @@ export default function EditOrderContactDialog({
         name: draft.name.trim(),
         email: draft.email.trim() || null,
         phone: draft.phone.trim() || null,
-        address: hasAddress
-          ? {
-              line1: draft.address.line1.trim(),
-              line2: draft.address.line2.trim() || null,
-              city: draft.address.city.trim(),
-              stateCode: draft.address.stateCode,
-              pincode: draft.address.pincode.trim(),
-            }
-          : null,
+        address: hasAddress ? trimmed(draft.address) : null,
         alsoUpdateCustomer: canSaveToCustomer && draft.alsoUpdateCustomer,
+        billing: {
+          address: draft.billingSame
+            ? null
+            : { name: draft.billingName.trim(), ...trimmed(draft.billingAddress) },
+          businessName: draft.businessName.trim() || null,
+          gstin: draft.gstin.trim() || null,
+        },
       })
       toast.success(result.changed ? c.saved : c.unchanged)
       onSaved()
@@ -134,6 +162,11 @@ export default function EditOrderContactDialog({
   const c = copy.editContact
   const hasAddress = order.shippingAddress !== null || draft.address.line1.trim() !== ''
   const canSaveToCustomer = order.customer !== null && hasAddress
+  const billingErrors = Object.fromEntries(
+    Object.entries(errors)
+      .filter(([k]) => k.startsWith('billing.'))
+      .map(([k, v]) => [k.slice('billing.'.length), v]),
+  )
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -189,6 +222,65 @@ export default function EditOrderContactDialog({
               onChange={set('address')}
               errors={errors}
             />
+          </FieldSet>
+
+          <FieldSet>
+            <FieldLegend>{c.billing}</FieldLegend>
+            <Field orientation="horizontal">
+              <Checkbox
+                id="order-contact-billing-same"
+                checked={draft.billingSame}
+                onCheckedChange={(v) => handleBillingSame(v === true)}
+              />
+              <FieldLabel htmlFor="order-contact-billing-same">{c.billingSame}</FieldLabel>
+            </Field>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field>
+                <FieldLabel htmlFor="order-contact-business">{c.businessName}</FieldLabel>
+                <Input
+                  id="order-contact-business"
+                  autoComplete="organization"
+                  value={draft.businessName}
+                  onChange={(e) => set('businessName')(e.target.value)}
+                />
+              </Field>
+              <Field data-invalid={Boolean(errors.gstin)}>
+                <FieldLabel htmlFor="order-contact-gstin">{c.gstin}</FieldLabel>
+                <Input
+                  id="order-contact-gstin"
+                  className="font-mono uppercase"
+                  maxLength={15}
+                  aria-invalid={Boolean(errors.gstin) || undefined}
+                  value={draft.gstin}
+                  onChange={(e) => set('gstin')(e.target.value.toUpperCase().trim())}
+                />
+                {errors.gstin ? (
+                  <FieldError>{errors.gstin}</FieldError>
+                ) : (
+                  <FieldDescription>{c.gstinHelp}</FieldDescription>
+                )}
+              </Field>
+            </div>
+            {draft.billingSame ? null : (
+              <>
+                <Field data-invalid={Boolean(billingErrors.name)}>
+                  <FieldLabel htmlFor="order-billing-name">{c.name}</FieldLabel>
+                  <Input
+                    id="order-billing-name"
+                    autoComplete="billing name"
+                    value={draft.billingName}
+                    onChange={(e) => set('billingName')(e.target.value)}
+                  />
+                  {billingErrors.name ? <FieldError>{billingErrors.name}</FieldError> : null}
+                </Field>
+                <AddressFields
+                  idPrefix="order-billing"
+                  value={draft.billingAddress}
+                  onChange={set('billingAddress')}
+                  errors={billingErrors}
+                />
+              </>
+            )}
           </FieldSet>
 
           {canSaveToCustomer ? (

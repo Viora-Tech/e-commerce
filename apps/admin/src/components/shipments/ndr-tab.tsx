@@ -22,10 +22,13 @@ import {
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import CopyButton from '@/components/fields/copy-button'
 import DataCard from '@/components/layout/data-card'
 import RelativeTime from '@/components/layout/relative-time'
 import TableEmptyRow from '@/components/table/table-empty-row'
 import { shipmentsContent } from '@/data/shipments'
+import { shipmentDetailsContent } from '@/data/shipping'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type NdrRow = Awaited<ReturnType<typeof api.shipments.listNdr>>[number]
@@ -36,6 +39,7 @@ const copy = shipmentsContent.ndr
 /** Undelivered attempts waiting on a merchant decision: reattempt, re-address, or send it back. */
 export default function NdrTab() {
   // Hooks
+  const details = useCopy(shipmentDetailsContent)
   const [rows, setRows] = useState<NdrRow[]>([])
   const [dialog, setDialog] = useState<{ row: NdrRow; action: Action } | null>(null)
   const [name, setName] = useState('')
@@ -108,7 +112,12 @@ export default function NdrTab() {
                   #{r.orderNumber}
                 </Link>
               </TableCell>
-              <TableCell className="font-mono text-caption">{r.waybill}</TableCell>
+              <TableCell className="font-mono text-caption">
+                <span className="flex items-center gap-1">
+                  {r.waybill}
+                  <CopyButton value={r.waybill} what={details.awb} visible />
+                </span>
+              </TableCell>
               <TableCell className="max-w-xs truncate">{r.ndrReason}</TableCell>
               <TableCell>{r.ndrRaisedAt ? <RelativeTime value={r.ndrRaisedAt} /> : null}</TableCell>
               <TableCell>

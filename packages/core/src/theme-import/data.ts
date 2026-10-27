@@ -20,6 +20,7 @@ import {
   parseBrowseFilters,
   parseBrowseSort,
   parsePage,
+  parseUnavailable,
 } from '../catalog/browse-params'
 import { keyFromName } from '../metaobjects/validate'
 import { toNavLinks } from '../navigation/resolve'
@@ -261,17 +262,21 @@ export async function storeLiquidData(
     relatedProducts: (productId, limit, intent = 'related') =>
       once(`rel:${productId}:${limit}:${intent}`, async () => {
         const wanted = Math.min(Math.max(1, Math.trunc(limit) || 4), MAX_RECOMMENDATIONS)
-        // The merchant's picks first (Search & Discovery); complementary has nothing else.
+        // The merchant's picks first (Search & Discovery). Complementary is only the picks;
+        // with none picked it falls back to the related row so the theme's block still fills.
         const fields = (await loadMetafields(tx, 'product', [productId])).metafields[productId]
-        const picked = pickedRecommendationIds(fields ?? [], intent).filter(
-          (id) => id !== productId,
-        )
-        const auto = intent === 'related' ? await relatedProductIds(tx, productId) : []
-        const ids = [...new Set([...picked, ...auto])]
+        const pick = (i: typeof intent) =>
+          pickedRecommendationIds(fields ?? [], i).filter((id) => id !== productId)
+        const load = (chunk: string[]) => loadProducts(tx, chunk)
         // Sold-out products are dropped after loading (stock lives on the variants), so the
         // ranked list is read in chunks until enough are in stock: the closest matches (same
         // brand and kind) are often all sold out, and one fixed slice of them left the row empty.
-        return firstAvailable(ids, wanted, (chunk) => loadProducts(tx, chunk))
+        if (intent === 'complementary') {
+          const picked = await firstAvailable(pick('complementary'), wanted, load)
+          if (picked.length > 0) return picked
+        }
+        const ids = [...new Set([...pick('related'), ...(await relatedProductIds(tx, productId))])]
+        return firstAvailable(ids, wanted, load)
       }),
     menu: (handle) =>
       once(`m:${handle}`, async () => {
@@ -361,6 +366,8 @@ export async function storeLiquidData(
         sort: sort === 'manual' && !collectionId ? 'title-ascending' : sort,
         page: parsePage(first(query.page)),
         perPage,
+        // The theme's search form says where sold-out products go (`show`, `last`, `hide`).
+        unavailable: q ? parseUnavailable(query['options[unavailable_products]']) : 'show',
       })
       const byHandle = await productsByHandles(tx, result.handles)
       return {

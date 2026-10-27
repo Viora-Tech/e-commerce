@@ -62,6 +62,12 @@ export async function storesWithOpenShipments(db: Db): Promise<string[]> {
   return rows.map((r) => r.id)
 }
 
+/** Store ids with Shiprocket or RapidShyp enabled, for the order push job. SECURITY DEFINER backed. */
+export async function storesWithOrderPushCouriers(db: Db): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(sql`select stores_with_order_push_couriers() as id`)
+  return rows.map((r) => r.id)
+}
+
 /** Store ids with placed online-payment orders, for the unpaid-order expiry job. SECURITY DEFINER backed. */
 export async function storesWithUnpaidOnlineOrders(db: Db): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(

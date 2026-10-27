@@ -60,6 +60,8 @@ export type AppEvent =
   | 'order.cancelled'
   /** A shipment came back undelivered (RTO). */
   | 'order.rto'
+  /** Staff changed a placed order's items, shipping or discount; fires once per edit. */
+  | 'order.edited'
   | 'customer.created'
   | 'customer.updated'
 

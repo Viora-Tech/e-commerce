@@ -20,11 +20,12 @@ import { CommerceError } from '../errors'
 import { adjustStock, setStock } from '../inventory/levels'
 import { setProductMedia } from '../media/service'
 import { onHandleChange } from '../redirects/handle-change'
-import { mediaInStore, withKnownMedia } from '../store-scope'
+import { mediaInStore, variantMediaIds, withKnownMedia } from '../store-scope'
 import { noteProductEvent, noteProductsChanged } from './changes'
 import { preorderErrors, productRow, variantRow } from './product-rows'
 import type { InventoryReason, ProductWrite } from './schemas'
 import { slugify } from './slug'
+import { loadVariantMedia, nextVariantMedia, writeVariantMedia } from './variant-media'
 import {
   DEFAULT_VARIANT_TITLE,
   diffVariants,
@@ -74,10 +75,7 @@ export async function createProduct(
   const handle = await uniqueHandle(tx, write.handle ?? write.title)
   await tx.insert(product).values({ id, storeId, handle, ...productRow(write) })
   // A variant image must be this store's media; a foreign or stale id is dropped.
-  const known = await mediaInStore(
-    tx,
-    write.variants.flatMap((v) => (v.mediaId ? [v.mediaId] : [])),
-  )
+  const known = await mediaInStore(tx, variantMediaIds(write.variants))
   await setOptionsAndVariants(
     tx,
     storeId,
@@ -113,10 +111,7 @@ export async function updateProduct(
     .where(eq(product.id, id))
   await onHandleChange(tx, storeId, 'product', existing.handle, handle)
   // A variant image must be this store's media; a foreign or stale id is dropped.
-  const known = await mediaInStore(
-    tx,
-    write.variants.flatMap((v) => (v.mediaId ? [v.mediaId] : [])),
-  )
+  const known = await mediaInStore(tx, variantMediaIds(write.variants))
   await setOptionsAndVariants(
     tx,
     storeId,
@@ -150,6 +145,11 @@ export async function setOptionsAndVariants(
     .from(variant)
     .where(eq(variant.productId, productId))
   const diff = diffVariants(existing, variants)
+  // Each variant's current image list, so a write that sends only `mediaId` keeps the rest.
+  const images = await loadVariantMedia(
+    tx,
+    existing.map((e) => e.id),
+  )
 
   const link = async (variantId: string, input: VariantInput) => {
     await tx.delete(variantOptionValue).where(eq(variantOptionValue.variantId, variantId))
@@ -172,6 +172,8 @@ export async function setOptionsAndVariants(
         .set({ ...variantRow(input), position: position++, archivedAt: null })
         .where(eq(variant.id, upd.id))
       await link(upd.id, input)
+      const current = images.get(upd.id) ?? []
+      await writeVariantMedia(tx, storeId, upd.id, nextVariantMedia(input, current), current)
       if (input.onHand !== undefined) {
         await setOnHand(tx, storeId, upd.id, input.onHand, reason)
       }
@@ -188,6 +190,7 @@ export async function setOptionsAndVariants(
     })
     await tx.insert(inventoryLevel).values({ id: newId(), storeId, variantId: id, onHand: 0 })
     await link(id, input)
+    await writeVariantMedia(tx, storeId, id, nextVariantMedia(input, []), [])
     if (input.onHand) await setOnHand(tx, storeId, id, input.onHand, 'received')
   }
 

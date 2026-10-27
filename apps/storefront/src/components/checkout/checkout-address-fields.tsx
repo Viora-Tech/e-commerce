@@ -11,19 +11,17 @@ import { CK_LABEL } from '@/lib/checkout-classes'
 import { type CheckoutFieldErrors, cleanPincode, fieldId } from '@/lib/checkout-validation'
 import { lookupPincodeAction, type PincodePlaceView } from '@/lib/pincode-actions'
 
-type AddressKey = 'name' | 'line1' | 'line2' | 'city' | 'gstin' | 'businessName'
-type LeaveKey = 'name' | 'line1' | 'city' | 'pincode' | 'stateCode' | 'gstin'
+type AddressKey = 'name' | 'line1' | 'line2' | 'city'
+type LeaveKey = 'name' | 'line1' | 'city' | 'pincode' | 'stateCode'
 
 type CheckoutAddressFieldsProps = {
   values: Record<AddressKey | 'stateCode' | 'pincode' | 'label', string>
   errors: CheckoutFieldErrors
   digitalOnly: boolean
-  /** Settings → Checkout: business buyers can add a GSTIN. */
-  gstinEnabled: boolean
-  /** The shopper ticked "Add a GSTIN"; the parent clears the fields when they untick it. */
-  business: boolean
-  /** The courier's promise under the PIN code; why it cannot deliver shows in Delivery method. */
-  deliveryText: string | null
+  /** "Thu, 29 Oct": when the picked option arrives at this PIN code; null until quoted. */
+  deliveryBy: string | null
+  /** Why the courier cannot deliver here (shown in Shipping too), or null. */
+  unserviceable: string | null
   checking: boolean
   /** Signed-in shoppers tag the address Home, Office or Other for their address book. */
   onLabel?: ((label: string) => void) | null
@@ -31,7 +29,6 @@ type CheckoutAddressFieldsProps = {
   onLeave: (key: LeaveKey) => void
   onPincode: (pincode: string) => void
   onState: (stateCode: string) => void
-  onBusiness: (on: boolean) => void
   /** City and state found for the PIN code; the shopper can still change both. */
   onPlace: (place: PincodePlaceView, pincode: string) => void
 }
@@ -42,98 +39,123 @@ const isFullPincode = (v: string) => /^[1-9]\d{5}$/.test(cleanPincode(v))
 const stateName = (code: string) => INDIAN_STATES.find(([c]) => c === code)?.[1] ?? code
 
 /**
- * The delivery address, PIN code first: six digits fill in the city and state (still
- * editable) and the courier's answer shows right under it, before anything else is typed.
- * The GSTIN for a business invoice is optional, behind its own box. Saved addresses are
- * cards around this form (`checkout-address-book.tsx`).
+ * The Delivery card's fields, PIN code first (design): six digits fill in the city and state
+ * (still editable, soft grey with a brief highlight as they land) and a green line beside the
+ * PIN code says where and by when ("Gurugram, Haryana · by Thu, 29 Oct"), rising in over
+ * 200ms. Then the name, the street and the landmark. Saved addresses are cards around this
+ * form (`checkout-address-book.tsx`).
  */
 export default function CheckoutAddressFields({
   values,
   errors,
   digitalOnly,
-  gstinEnabled,
-  business,
-  deliveryText,
+  deliveryBy,
+  unserviceable,
   checking,
   onLabel = null,
   onField,
   onLeave,
   onPincode,
   onState,
-  onBusiness,
   onPlace,
 }: CheckoutAddressFieldsProps) {
   // Hooks
   const [finding, startFind] = useTransition()
-  const [found, setFound] = useState<string | null>(null)
+  /** The PIN code the city and state were filled in for, so the highlight follows it. */
+  const [filledFor, setFilledFor] = useState<string | null>(null)
   const latest = useRef('')
 
   // Event handlers
   const handlePincode = (e: React.ChangeEvent<HTMLInputElement>) => {
     const pincode = e.target.value
     latest.current = pincode
-    setFound(null)
+    setFilledFor(null)
     onPincode(pincode)
     if (digitalOnly || !isFullPincode(pincode)) return
     startFind(async () => {
       const place = await lookupPincodeAction(cleanPincode(pincode))
       // A slower answer for a PIN code the shopper has since changed is dropped.
       if (!place || latest.current !== pincode) return
-      setFound(content.pincodeFirst.found(place.city, stateName(place.stateCode)))
+      setFilledFor(cleanPincode(pincode))
       onPlace(place, pincode)
     })
   }
 
   // Render logic
   const busy = finding || checking
-  const status = errors.pincode
-    ? null
-    : finding
-      ? content.pincodeFirst.finding
-      : (deliveryText ?? found)
-  const pincodeField = (
-    <div className="flex flex-col gap-2">
-      <CheckoutField
-        id={fieldId('pincode')}
-        label={f.pincode}
-        required
-        inputMode="numeric"
-        autoComplete="postal-code"
-        maxLength={7}
-        placeholder={f.pincodePlaceholder}
-        value={values.pincode}
-        onChange={handlePincode}
-        onBlur={() => onLeave('pincode')}
-        error={errors.pincode}
-        trailing={
-          busy ? (
-            <CheckoutIcon
-              name="spinner"
-              className="size-4 animate-spin motion-reduce:animate-none"
-            />
-          ) : null
-        }
-      />
-      {status && !digitalOnly ? (
-        <p role="status" className="flex items-center gap-2 text-[0.8125rem] text-ck-muted">
-          <CheckoutIcon name="truck" className="size-4" />
-          {status}
-        </p>
-      ) : null}
-    </div>
-  )
+  const full = isFullPincode(values.pincode)
+  const filled = filledFor !== null && filledFor === cleanPincode(values.pincode)
+  const place =
+    full && values.city.trim() && values.stateCode
+      ? { city: values.city.trim(), state: stateName(values.stateCode) }
+      : null
+  const status: { text: string; tone: 'ok' | 'busy' | 'bad' } | null =
+    digitalOnly || errors.pincode || !full
+      ? null
+      : busy
+        ? { text: content.pincodeFirst.finding, tone: 'busy' }
+        : unserviceable
+          ? { text: unserviceable, tone: 'bad' }
+          : place
+            ? {
+                text: deliveryBy
+                  ? content.pincodeFirst.foundBy(place.city, place.state, deliveryBy)
+                  : content.pincodeFirst.found(place.city, place.state),
+                tone: 'ok',
+              }
+            : null
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3 sm:gap-3.5">
       {digitalOnly ? (
-        <p className="text-[0.875rem] text-ck-muted">{content.giftCardDelivery}</p>
+        <p className="text-[0.8125rem] text-ck-muted">{content.giftCardDelivery}</p>
       ) : null}
-      {pincodeField}
+      <div className="grid gap-3 sm:grid-cols-2 sm:items-end">
+        <CheckoutField
+          id={fieldId('pincode')}
+          label={f.pincode}
+          required
+          inputMode="numeric"
+          autoComplete="postal-code"
+          maxLength={7}
+          placeholder={f.pincodePlaceholder}
+          value={values.pincode}
+          onChange={handlePincode}
+          onBlur={() => onLeave('pincode')}
+          error={errors.pincode}
+          trailing={
+            busy ? (
+              <CheckoutIcon
+                name="spinner"
+                className="size-4 animate-spin motion-reduce:animate-none"
+              />
+            ) : null
+          }
+        />
+        <div
+          aria-live="polite"
+          className="-mt-1 empty:hidden sm:mt-0 sm:flex sm:h-11 sm:items-center"
+        >
+          {status ? (
+            <p
+              key={status.text}
+              className={`flex items-center gap-1.5 text-[0.75rem] font-medium transition-[opacity,translate] duration-200 ease-out starting:translate-y-1 starting:opacity-0 motion-reduce:starting:translate-y-0 sm:text-[0.8125rem] ${status.tone === 'ok' ? 'text-ck-success' : status.tone === 'bad' ? 'text-ck-danger' : 'text-ck-muted'}`}
+            >
+              <CheckoutIcon
+                name={status.tone === 'ok' ? 'check' : status.tone === 'bad' ? 'alert' : 'truck'}
+                className="size-3.5 shrink-0 sm:size-4"
+              />
+              {status.text}
+            </p>
+          ) : null}
+        </div>
+      </div>
       <CheckoutField
         id={fieldId('name')}
         label={f.name}
         required
         autoComplete="name"
+        placeholder={f.namePlaceholder}
         value={values.name}
         onChange={onField('name')}
         onBlur={() => onLeave('name')}
@@ -150,14 +172,17 @@ export default function CheckoutAddressFields({
         onBlur={() => onLeave('line1')}
         error={errors.line1}
       />
-      <CheckoutField
-        id="checkout-line2"
-        label={f.line2}
-        autoComplete="address-line2"
-        value={values.line2}
-        onChange={onField('line2')}
-      />
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
+        <div className="col-span-2 sm:col-span-1">
+          <CheckoutField
+            id="checkout-line2"
+            label={f.line2}
+            autoComplete="address-line2"
+            placeholder={f.line2Placeholder}
+            value={values.line2}
+            onChange={onField('line2')}
+          />
+        </div>
         <CheckoutField
           id={fieldId('city')}
           label={f.city}
@@ -167,6 +192,7 @@ export default function CheckoutAddressFields({
           onChange={onField('city')}
           onBlur={() => onLeave('city')}
           error={errors.city}
+          filled={filled}
         />
         <CheckoutSelect
           id={fieldId('stateCode')}
@@ -177,6 +203,7 @@ export default function CheckoutAddressFields({
           onChange={onState}
           onBlur={() => onLeave('stateCode')}
           error={errors.stateCode}
+          filled={filled}
         />
       </div>
       {onLabel && !digitalOnly ? (
@@ -186,7 +213,7 @@ export default function CheckoutAddressFields({
             {ADDRESS_LABELS.map((tag) => (
               <label
                 key={tag}
-                className="cursor-pointer rounded-full border border-ck-line bg-ck-field px-3.5 py-1.5 text-[0.8125rem] font-medium text-ck-ink transition-[border-color,background-color] duration-150 hover:border-ck-muted/50 has-[:checked]:border-ck-accent has-[:checked]:bg-ck-accent-soft has-[:focus-visible]:[box-shadow:0_0_0_3px_var(--ck-ring)] motion-reduce:transition-none"
+                className="cursor-pointer rounded-full border border-ck-line bg-ck-field px-3.5 py-1.5 text-[0.8125rem] font-medium text-ck-ink transition-[border-color,background-color] duration-150 ease-out hover:border-ck-muted/50 has-[:checked]:border-ck-accent has-[:checked]:bg-ck-accent-soft has-[:focus-visible]:[box-shadow:0_0_0_3px_var(--ck-ring)] motion-reduce:transition-none"
               >
                 <input
                   type="radio"
@@ -201,41 +228,6 @@ export default function CheckoutAddressFields({
             ))}
           </div>
         </fieldset>
-      ) : null}
-      {gstinEnabled ? (
-        <div className="flex flex-col gap-4">
-          <label className="flex w-fit cursor-pointer items-center gap-3 text-[0.875rem] text-ck-ink">
-            <input
-              type="checkbox"
-              checked={business}
-              onChange={(e) => onBusiness(e.target.checked)}
-              className="size-[1.125rem] cursor-pointer rounded accent-[var(--ck-accent)]"
-            />
-            {content.business}
-          </label>
-          {business ? (
-            <div className="grid gap-4 sm:grid-cols-2">
-              <CheckoutField
-                id={fieldId('gstin')}
-                label={f.gstin}
-                autoComplete="off"
-                maxLength={15}
-                value={values.gstin}
-                onChange={onField('gstin')}
-                onBlur={() => onLeave('gstin')}
-                error={errors.gstin}
-                hint={f.gstinHint}
-              />
-              <CheckoutField
-                id="checkout-business-name"
-                label={f.businessName}
-                autoComplete="organization"
-                value={values.businessName}
-                onChange={onField('businessName')}
-              />
-            </div>
-          ) : null}
-        </div>
       ) : null}
     </div>
   )

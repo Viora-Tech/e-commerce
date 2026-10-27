@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import StickySideColumn from './sticky-side-column'
 
 type ProoflyDetailPageProps = {
   /** `PageHeader`, plus any banner that belongs above the columns. */
@@ -22,11 +23,7 @@ export default function ProoflyDetailPage({
       {header}
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_23.5rem]">
         <div className="flex min-w-0 flex-col gap-6">{main}</div>
-        {side ? (
-          <div className="flex min-w-0 flex-col gap-6 lg:sticky lg:top-6 lg:-m-1 lg:max-h-[calc(100dvh-6rem)] lg:self-start [&>*]:shrink-0 lg:overflow-y-auto lg:p-1 no-scrollbar">
-            {side}
-          </div>
-        ) : null}
+        {side ? <StickySideColumn gap={6}>{side}</StickySideColumn> : null}
       </div>
       {children}
     </div>

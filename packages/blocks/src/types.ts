@@ -61,7 +61,10 @@ export type ProductDetail = {
     /** Can be added to cart right now: normal stock, or pre-order room beyond it. `available` alone undercounts a pre-order. */
     purchasable: boolean
     optionValueIds: string[]
+    /** The variant's main image (first of `imageUrls`). */
     imageUrl: string | null
+    /** The variant's own images in order; the gallery shows them first once it is picked. */
+    imageUrls?: string[] | undefined
   }[]
   /** Store-timezone instant the product goes on sale; null = already on sale. */
   launchAt?: string | null | undefined

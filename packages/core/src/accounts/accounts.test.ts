@@ -27,6 +27,7 @@ import {
   MAX_ADDRESSES,
   rememberCheckoutAddress,
   setDefaultAddress,
+  setDefaultBillingAddress,
   updateAddress,
 } from './addresses'
 import {
@@ -245,7 +246,68 @@ describe('storefront sign-in', () => {
   })
 })
 
+/** Where the bill goes by default: the billing default, else the shipping default. */
+const defaultBillingOf = (book: { isDefault: boolean; isDefaultBilling: boolean; id: string }[]) =>
+  book.find((a) => a.isDefaultBilling) ?? book.find((a) => a.isDefault) ?? null
+
 describe('address book', () => {
+  it('keeps one default billing address beside the shipping default, with a company and GSTIN', async () => {
+    const storeId = await makeStore('a')
+    const asha = (await signIn(storeId, 'asha@example.com')).customerId
+    const home = await run(storeId, (ctx) => createAddress(ctx, asha, HOME))
+    if (!home.ok) throw new Error('create failed')
+    // No billing default yet: billing follows the shipping default.
+    let book = await run(storeId, (ctx) => listAddresses(ctx, asha))
+    expect(defaultBillingOf(book)?.id).toBe(home.id)
+
+    const office = await run(storeId, (ctx) =>
+      createAddress(ctx, asha, {
+        ...HOME,
+        line1: '4 Park Street',
+        pincode: '700016',
+        stateCode: 'WB',
+        businessName: 'Rao Traders',
+        gstin: '19aapfu0939f1zs',
+        isDefaultBilling: true,
+      }),
+    )
+    if (!office.ok) throw new Error('create failed')
+    book = await run(storeId, (ctx) => listAddresses(ctx, asha))
+    expect(book).toMatchObject([
+      { id: home.id, isDefault: true, isDefaultBilling: false },
+      { id: office.id, isDefault: false, isDefaultBilling: true, gstin: '19AAPFU0939F1ZS' },
+    ])
+    expect(defaultBillingOf(book)?.id).toBe(office.id)
+
+    // A wrong GSTIN is refused on the field.
+    const bad = await run(storeId, (ctx) =>
+      updateAddress(ctx, asha, office.id, { ...HOME, gstin: '19AAPFU0939F1ZA' }),
+    )
+    expect(bad).toMatchObject({ ok: false, errors: { gstin: expect.stringMatching(/typo/) } })
+
+    // An edit that leaves the billing fields out keeps them (the storefront form has none).
+    await run(storeId, (ctx) =>
+      updateAddress(ctx, asha, office.id, { ...HOME, line1: '5 Park St' }),
+    )
+    book = await run(storeId, (ctx) => listAddresses(ctx, asha))
+    expect(book.find((a) => a.id === office.id)).toMatchObject({
+      line1: '5 Park St',
+      isDefaultBilling: true,
+      businessName: 'Rao Traders',
+    })
+
+    // Moving the billing default leaves exactly one; switching it off falls back to shipping.
+    expect(await run(storeId, (ctx) => setDefaultBillingAddress(ctx, asha, home.id))).toBe(true)
+    book = await run(storeId, (ctx) => listAddresses(ctx, asha))
+    expect(book.filter((a) => a.isDefaultBilling).map((a) => a.id)).toEqual([home.id])
+    await run(storeId, (ctx) =>
+      updateAddress(ctx, asha, home.id, { ...HOME, isDefaultBilling: false }),
+    )
+    book = await run(storeId, (ctx) => listAddresses(ctx, asha))
+    expect(book.some((a) => a.isDefaultBilling)).toBe(false)
+    expect(defaultBillingOf(book)?.id).toBe(home.id)
+  })
+
   it('adds, edits, defaults and deletes addresses for their owner only', async () => {
     const storeId = await makeStore('a')
     const asha = (await signIn(storeId, 'asha@example.com')).customerId

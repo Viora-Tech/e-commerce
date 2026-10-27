@@ -1,9 +1,12 @@
+import { loadEnv } from '@commerce/config'
 import {
+  checkoutOriginFor,
   getCart,
   listAddresses,
   publishedPolicyLinks,
   storeCheckoutLook,
   storeCheckoutSettings,
+  storefrontOriginFor,
 } from '@commerce/core'
 import { initiateCheckoutEventId } from '@commerce/core/pixels'
 import { redirect } from 'next/navigation'
@@ -11,6 +14,7 @@ import PixelTrack from '@/components/analytics/pixel-track'
 import CheckoutForm from '@/components/checkout/checkout-form'
 import { emiHintContent } from '@/data/product'
 import { readCartId } from '@/lib/cart-cookie'
+import { readCheckoutSession } from '@/lib/checkout-session'
 import { currentCustomer } from '@/lib/customer-session'
 import { cartDiscountView } from '@/lib/discount-view'
 import { storeEmiOffers } from '@/lib/emi-offers'
@@ -23,7 +27,23 @@ type Params = { params: Promise<{ storeId: string }> }
 
 export default async function CheckoutPage({ params }: Params) {
   const { storeId } = await params
-  const cartId = await readCartId()
+  // On the checkout origin the cart rides in the host-only checkout session; on the store origin it
+  // rides in the cart cookie. With a branded checkout origin configured (D-01 phase B) and no
+  // session yet, this is the store origin, so bounce through the hand-off rather than serve the
+  // checkout form where theme code lives — unless this store has no branded origin (same-origin).
+  const session = await readCheckoutSession()
+  if (!session) {
+    const subdomain = process.env.CHECKOUT_SUBDOMAIN?.trim()
+    if (subdomain) {
+      const env = loadEnv(process.env)
+      const { checkoutOrigin, storeOrigin } = await inStore(storeId, async (tx) => ({
+        storeOrigin: await storefrontOriginFor(tx, storeId, env.STOREFRONT_URL),
+        checkoutOrigin: await checkoutOriginFor(tx, storeId, subdomain, env.STOREFRONT_URL),
+      }))
+      if (checkoutOrigin !== storeOrigin) redirect('/checkout/start')
+    }
+  }
+  const cartId = session?.cartId ?? (await readCartId())
   const cart = cartId ? await inStore(storeId, (tx) => getCart({ storeId, tx }, cartId)) : null
   if (cart?.status !== 'open' || cart.lines.length === 0) redirect('/cart')
   // Settings → Customer accounts can require an account: the contact step then signs the

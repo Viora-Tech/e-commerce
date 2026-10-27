@@ -7,6 +7,7 @@ import {
   effectiveWeightGrams,
   heldParcels,
   orderParcelsView,
+  rebookableParcels,
   resolveParcelPackage,
   resolveParcelWeightGrams,
   resolveShippingProviders,
@@ -230,15 +231,31 @@ export async function prepareShipments(
     const all = await orderParcelsView(tx, o.id)
     // A held parcel (Hold fulfilment) waits for its release; booking it is refused anyway.
     const held = new Set((await heldParcels(tx, o.id)).map((p) => p.id))
-    const views = all.filter((p) => OPEN_PARCEL.has(p.status) && !held.has(p.id))
+    /* A parcel whose label was cancelled is packed but not on its way: it books again with
+       the units in its box (`rebookableParcels`). */
+    const rebook = await rebookableParcels(tx, o.id)
+    const views = all.filter(
+      (p) =>
+        (OPEN_PARCEL.has(p.status) || (p.status !== 'cancelled' && rebook.has(p.id))) &&
+        !held.has(p.id),
+    )
     // A parcel that is the whole order is worth the order; one of several, its own share.
     const live = all.filter((p) => p.status !== 'cancelled')
     for (const view of views) {
-      const picked = view.lines.flatMap((l) => {
+      const unpacked = view.lines.flatMap((l) => {
         const line = byLine.get(l.orderLineId)
         const quantity = l.quantity - l.fulfilledQuantity
         return line && quantity > 0 ? [{ line, quantity }] : []
       })
+      const picked =
+        unpacked.length > 0 || !rebook.has(view.id)
+          ? unpacked
+          : view.lines.flatMap((l) => {
+              const line = byLine.get(l.orderLineId)
+              return line && l.fulfilledQuantity > 0
+                ? [{ line, quantity: l.fulfilledQuantity }]
+                : []
+            })
       if (picked.length === 0) continue
       const from = await shipFromFor(tx, {
         taxOrigin: o.taxOrigin,
@@ -261,10 +278,18 @@ export async function prepareShipments(
     }
     // An order older than parcels ships whole: every unit still unpacked.
     if (all.length === 0) {
-      const picked = own.flatMap((line) => {
+      const unpacked = own.flatMap((line) => {
         const quantity = line.quantity - line.fulfilledQuantity
         return quantity > 0 && !line.giftCard ? [{ line, quantity }] : []
       })
+      const picked =
+        unpacked.length > 0 || !rebook.has(null)
+          ? unpacked
+          : own.flatMap((line) =>
+              line.fulfilledQuantity > 0 && !line.giftCard
+                ? [{ line, quantity: line.fulfilledQuantity }]
+                : [],
+            )
       if (picked.length > 0) {
         const from = await shipFromFor(tx, { taxOrigin: o.taxOrigin, settings, storeName })
         parcels.push(

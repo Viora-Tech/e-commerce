@@ -1,4 +1,5 @@
 import { discountType, perProductValues } from '@commerce/core/discounts'
+import { DEFAULT_TIME_ZONE, wallClock, zoneOffsetMs } from '@commerce/dates'
 import type { api } from '@/lib/api-client'
 
 export type LoadedDiscount = NonNullable<Awaited<ReturnType<typeof api.discounts.get>>>
@@ -60,12 +61,29 @@ export type DiscountFormState = {
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 
-/** `datetime-local` wants local wall time without the zone. */
+/**
+ * `datetime-local` wants wall time without the zone. It is the store's wall time
+ * (Asia/Kolkata), never the runtime's: the page is first rendered on the server (UTC), and a
+ * runtime-zone value shifted start and end times by 5:30 between server and browser.
+ */
 export function toLocalInput(d: Date | string | null): string {
   if (!d) return ''
   const date = new Date(d)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+  if (Number.isNaN(date.getTime())) return ''
+  // wallClock's UTC fields read the store zone's clock: "YYYY-MM-DDTHH:mm".
+  return wallClock(date, DEFAULT_TIME_ZONE).toISOString().slice(0, 16)
+}
+
+const LOCAL_INPUT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/
+
+/** The instant a `datetime-local` value means in the store's zone; null when blank or invalid. */
+export function fromLocalInput(s: string): Date | null {
+  const m = LOCAL_INPUT.exec(s)
+  if (!m) return null
+  const [, y, mo, d, h, mi] = m.map(Number) as [number, number, number, number, number, number]
+  const asUtc = new Date(Date.UTC(y, mo - 1, d, h, mi))
+  if (Number.isNaN(asUtc.getTime())) return null
+  return new Date(asUtc.getTime() - zoneOffsetMs(asUtc, DEFAULT_TIME_ZONE))
 }
 
 export function randomCode(length = 8): string {

@@ -36,4 +36,35 @@ describe('storefront proxy CSP', () => {
     expect(nonceOf(policy)).toBeTruthy()
     expect(nonceOf(policy)).not.toBe(nonceOf(b.headers.get('content-security-policy')))
   }, 60_000)
+
+  it('isolates checkout and account: no framing, and the isolation headers (D-01)', async () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    vi.stubEnv('ADMIN_URL', 'https://admin.waimers.in')
+    vi.stubEnv('DATABASE_URL', 'postgres://x:x@127.0.0.1:1/none')
+    vi.stubEnv('DATABASE_URL_OWNER', 'postgres://x:x@127.0.0.1:1/none')
+    vi.stubEnv('REDIS_URL', 'redis://127.0.0.1:1')
+    vi.stubEnv('ACCOUNTS_URL', 'https://accounts.waimers.store')
+    vi.stubEnv('SETTINGS_SECRET', 'test-only-production-secret-0123456789')
+    const { proxy } = await import('../proxy')
+    const at = (path: string) =>
+      proxy(new NextRequest(`https://shop.example${path}`, { headers: { host: 'shop.example' } }))
+
+    for (const path of ['/checkout', '/account/orders']) {
+      const res = await at(path)
+      const policy = res.headers.get('content-security-policy')
+      expect(policy).toContain("frame-ancestors 'none'")
+      expect(policy).not.toContain("'self' https://admin.waimers.in")
+      expect(res.headers.get('x-frame-options')).toBe('DENY')
+      expect(res.headers.get('cross-origin-opener-policy')).toBe('same-origin-allow-popups')
+      expect(res.headers.get('cross-origin-resource-policy')).toBe('same-origin')
+    }
+
+    // A normal storefront page is unchanged: still framable by self + the admin editor, no COOP.
+    const normal = await at('/products/shoe')
+    expect(normal.headers.get('content-security-policy')).toContain(
+      "frame-ancestors 'self' https://admin.waimers.in",
+    )
+    expect(normal.headers.get('x-frame-options')).toBeNull()
+    expect(normal.headers.get('cross-origin-opener-policy')).toBeNull()
+  }, 60_000)
 })

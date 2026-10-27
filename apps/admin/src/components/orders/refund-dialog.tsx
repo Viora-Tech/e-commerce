@@ -11,11 +11,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@commerce/ui/shadcn/dialog'
-import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
+import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { type FormEvent, useState } from 'react'
 import { toast } from 'sonner'
+import OptionSelect from '@/components/landed-cost/option-select'
 import { orderDetailContent } from '@/data/order-detail'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -31,6 +40,19 @@ type RefundDialogProps = {
 
 const OFFLINE = new Set(['cod', 'manual'])
 
+/** Back through the gateway, recorded as sent another way, or as a store credit gift card. */
+type Way = 'original' | 'manual' | 'store_credit'
+
+/** Ways to record money sent back by hand (store credit is its own choice). */
+const HAND_METHODS = ['upi', 'bank_transfer', 'cash', 'cheque', 'other'] as const
+type HandMethod = (typeof HAND_METHODS)[number]
+
+const PROVIDER_NAMES: Record<string, string> = {
+  razorpay: 'Razorpay',
+  cashfree: 'Cashfree',
+  decentro: 'Decentro',
+}
+
 export default function RefundDialog({
   payment,
   remainingPaise,
@@ -42,6 +64,8 @@ export default function RefundDialog({
   const fmt = useFormat()
   const [amount, setAmount] = useState('')
   const [reason, setReason] = useState('')
+  const [way, setWay] = useState<Way | null>(null)
+  const [method, setMethod] = useState<HandMethod>('upi')
   const [busy, setBusy] = useState(false)
 
   // Event handlers
@@ -54,10 +78,14 @@ export default function RefundDialog({
         paymentId: payment.id,
         amountPaise: paise,
         reason: reason.trim() || undefined,
+        manual: chosen === 'manual' || undefined,
+        method:
+          chosen === 'store_credit' ? 'store_credit' : chosen === 'manual' ? method : undefined,
       })
       toast.success(copy.refundDialog.done(fmt.money(paise)))
       setAmount('')
       setReason('')
+      setWay(null)
       onDone()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.refundDialog.failed)
@@ -68,8 +96,25 @@ export default function RefundDialog({
 
   // Render logic
   const paise = parseRupees(amount)
+  const r = copy.refundDialog
   const valid = paise !== null && paise > 0 && paise <= remainingPaise
   const offline = payment ? OFFLINE.has(payment.provider) : false
+  const giftCard = payment?.provider === 'gift_card'
+  const via = payment ? (PROVIDER_NAMES[payment.provider] ?? payment.provider) : ''
+  const ways: { id: Way; label: string; hint: string }[] = giftCard
+    ? []
+    : [
+        ...(offline
+          ? []
+          : [{ id: 'original' as const, label: r.original(via), hint: r.originalHint }]),
+        { id: 'manual', label: r.manual, hint: r.manualHint },
+        { id: 'store_credit', label: r.storeCredit, hint: r.storeCreditHint },
+      ]
+  const chosen: Way | null = giftCard ? null : (way ?? (offline ? 'manual' : 'original'))
+  const methodLabels = Object.fromEntries(HAND_METHODS.map((m) => [m, r.methods[m]])) as Record<
+    HandMethod,
+    string
+  >
 
   return (
     <Dialog open={payment !== null} onOpenChange={(open) => (!open ? onClose() : undefined)}>
@@ -104,6 +149,34 @@ export default function RefundDialog({
               </Button>
             </div>
           </Field>
+          {ways.length > 0 ? (
+            <FieldSet>
+              <FieldLegend variant="label">{r.how}</FieldLegend>
+              <RadioGroup value={chosen ?? ''} onValueChange={(v) => setWay(v as Way)}>
+                {ways.map((w) => (
+                  <Field key={w.id} orientation="horizontal">
+                    <RadioGroupItem id={`refund-way-${w.id}`} value={w.id} />
+                    <FieldContent>
+                      <FieldLabel htmlFor={`refund-way-${w.id}`}>{w.label}</FieldLabel>
+                      <FieldDescription>{w.hint}</FieldDescription>
+                    </FieldContent>
+                  </Field>
+                ))}
+              </RadioGroup>
+            </FieldSet>
+          ) : null}
+          {chosen === 'manual' ? (
+            <Field>
+              <FieldLabel htmlFor="refund-method">{r.method}</FieldLabel>
+              <OptionSelect
+                id="refund-method"
+                options={HAND_METHODS}
+                labels={methodLabels}
+                value={method}
+                onChange={setMethod}
+              />
+            </Field>
+          ) : null}
           <Field>
             <FieldLabel htmlFor="refund-reason">{copy.refundDialog.reason}</FieldLabel>
             <Textarea

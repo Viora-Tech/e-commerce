@@ -10,6 +10,7 @@ import {
   type StoreTx,
   sellableStock,
   variant,
+  variantMedia,
   variantOptionValue,
 } from '@commerce/db'
 import { and, asc, eq, inArray, isNull } from 'drizzle-orm'
@@ -41,6 +42,7 @@ export async function loadProducts(tx: StoreTx, ids: string[]): Promise<LiquidPr
         track: variant.trackInventory,
         onHand: sellableStock.onHand,
         reserved: sellableStock.reserved,
+        mediaId: variant.mediaId,
         imageUrl: media.url,
         position: variant.position,
         preorder: variant.preorderOverride,
@@ -84,6 +86,14 @@ export async function loadProducts(tx: StoreTx, ids: string[]): Promise<LiquidPr
       .orderBy(asc(collection.title)),
   ])
   const variantIds = variants.map((v) => v.id)
+  // Each variant's own images in order (first = `variant.featured_media`).
+  const variantImages = variantIds.length
+    ? await tx
+        .select({ variantId: variantMedia.variantId, mediaId: variantMedia.mediaId })
+        .from(variantMedia)
+        .where(inArray(variantMedia.variantId, variantIds))
+        .orderBy(asc(variantMedia.position))
+    : []
   const values = variantIds.length
     ? await tx
         .select({
@@ -116,6 +126,28 @@ export async function loadProducts(tx: StoreTx, ids: string[]): Promise<LiquidPr
         width: i.width,
         height: i.height,
       }))
+    const productVariants = variants.filter((v) => v.productId === id)
+    const listOf = (v: (typeof variants)[number]) => {
+      const listed = variantImages.filter((r) => r.variantId === v.id).map((r) => r.mediaId)
+      return listed.length ? listed : v.mediaId ? [v.mediaId] : []
+    }
+    // Themes that group gallery images by variant read `media.alt` as the option value
+    // (Shopify's "alt = colour" convention); an image with no alt of its own gets the value
+    // its variants share, else the product title.
+    const groupAlt = new Map<string, string>()
+    for (const img of imgs) {
+      if (images.find((i) => i.id === img.id && i.productId === id)?.alt) continue
+      const owners = productVariants.filter((v) => listOf(v).includes(img.id as string))
+      const opts = owners.map((v) => values.filter((x) => x.variantId === v.id).map((x) => x.value))
+      const first = opts[0]
+      const shared = first?.find((value, i) => opts.every((o) => o[i] === value))
+      if (shared) groupAlt.set(img.id as string, shared)
+    }
+    for (const img of imgs) {
+      const alt = groupAlt.get(img.id as string)
+      if (alt) img.alt = alt
+    }
+    const imageById = new Map(imgs.map((i) => [i.id as string, i]))
     const description = richTextHtml(p.description)
     return [
       {
@@ -131,26 +163,31 @@ export async function loadProducts(tx: StoreTx, ids: string[]): Promise<LiquidPr
         createdAt: p.createdAt,
         preorder: p.preorderEnabled,
         collectionHandles: memberships.filter((m) => m.productId === id).map((m) => m.handle),
-        variants: variants
-          .filter((v) => v.productId === id)
-          .map((v) => {
-            const qty = onHand(v)
-            // Pre-order variants sell with no stock, as Shopify's "continue selling" does.
-            const preorder = v.preorder?.enabled ?? p.preorderEnabled
-            return {
-              id: v.id,
-              title: v.title,
-              price: v.price,
-              compareAtPrice: v.mrp && v.mrp > v.price ? v.mrp : null,
-              available: qty > 0 || preorder,
-              inventoryQuantity: qty,
-              sku: v.sku,
-              barcode: v.barcode,
-              weightGrams: v.weight,
-              options: values.filter((x) => x.variantId === v.id).map((x) => x.value),
-              image: v.imageUrl ? { url: v.imageUrl, alt: p.title } : null,
-            }
-          }),
+        variants: productVariants.map((v) => {
+          const qty = onHand(v)
+          // Pre-order variants sell with no stock, as Shopify's "continue selling" does.
+          const preorder = v.preorder?.enabled ?? p.preorderEnabled
+          return {
+            id: v.id,
+            title: v.title,
+            price: v.price,
+            compareAtPrice: v.mrp && v.mrp > v.price ? v.mrp : null,
+            available: qty > 0 || preorder,
+            inventoryQuantity: qty,
+            sku: v.sku,
+            barcode: v.barcode,
+            weightGrams: v.weight,
+            options: values.filter((x) => x.variantId === v.id).map((x) => x.value),
+            image: v.imageUrl
+              ? (imageById.get(v.mediaId ?? '') ?? {
+                  id: v.mediaId ?? undefined,
+                  url: v.imageUrl,
+                  alt: p.title,
+                })
+              : null,
+            media: listOf(v).flatMap((mediaId) => imageById.get(mediaId) ?? []),
+          }
+        }),
       },
     ]
   })

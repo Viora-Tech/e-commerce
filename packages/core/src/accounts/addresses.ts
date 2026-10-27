@@ -14,7 +14,13 @@ export type SavedAddress = {
   phone: string
   /** Home, Office or Other; null when the shopper never tagged it. */
   label: AddressLabel | null
+  /** The default shipping address. */
   isDefault: boolean
+  /** The default billing address; when no row has it, billing follows the shipping default. */
+  isDefaultBilling: boolean
+  /** Company billed at this address, for GST invoices. */
+  businessName: string | null
+  gstin: string | null
 }
 
 export type AddressResult = { ok: true; id: string } | { ok: false; errors: Record<string, string> }
@@ -30,6 +36,9 @@ const columns = {
   phone: customerAddress.phone,
   label: customerAddress.label,
   isDefault: customerAddress.isDefault,
+  isDefaultBilling: customerAddress.isDefaultBilling,
+  businessName: customerAddress.businessName,
+  gstin: customerAddress.gstin,
 }
 
 /**
@@ -96,6 +105,23 @@ async function clearDefault(ctx: StoreContext, customerId: string, except?: stri
     )
 }
 
+async function clearDefaultBilling(
+  ctx: StoreContext,
+  customerId: string,
+  except?: string,
+): Promise<void> {
+  await ctx.tx
+    .update(customerAddress)
+    .set({ isDefaultBilling: false })
+    .where(
+      and(
+        eq(customerAddress.customerId, customerId),
+        eq(customerAddress.isDefaultBilling, true),
+        except ? ne(customerAddress.id, except) : undefined,
+      ),
+    )
+}
+
 async function countAddresses(ctx: StoreContext, customerId: string): Promise<number> {
   const rows = await ctx.tx
     .select({ id: customerAddress.id })
@@ -118,10 +144,18 @@ export async function createAddress(
   const count = await countAddresses(ctx, customerId)
   if (count >= MAX_ADDRESSES) return { ok: false, errors: { form: 'Address book is full' } }
   const isDefault = count === 0 || parsed.data.isDefault === true
+  const isDefaultBilling = parsed.data.isDefaultBilling === true
   if (isDefault) await clearDefault(ctx, customerId)
+  if (isDefaultBilling) await clearDefaultBilling(ctx, customerId)
   const [row] = await ctx.tx
     .insert(customerAddress)
-    .values({ storeId: ctx.storeId, customerId, ...toRow(parsed.data), isDefault })
+    .values({
+      storeId: ctx.storeId,
+      customerId,
+      ...toRow(parsed.data),
+      isDefault,
+      isDefaultBilling,
+    })
     .returning({ id: customerAddress.id })
   if (isDefault) await syncDefaultSnapshot(ctx, customerId)
   return { ok: true, id: row?.id as string }
@@ -138,10 +172,17 @@ function toRow(a: ParsedAddress) {
     phone: a.phone,
     // An edit that does not mention the tag keeps it (the account form has no tag field).
     ...(a.label === undefined ? {} : { label: a.label }),
+    // Same for the billing details: the storefront's form does not show them.
+    ...(a.businessName === undefined ? {} : { businessName: a.businessName }),
+    ...(a.gstin === undefined ? {} : { gstin: a.gstin }),
   }
 }
 
-/** Edit an address the customer owns. Unsetting the default is ignored: pick another instead. */
+/**
+ * Edit an address the customer owns. Unsetting the shipping default is ignored: pick another
+ * instead. The billing default can be switched off (billing then follows the shipping default);
+ * left out, it stays as it was.
+ */
 export async function updateAddress(
   ctx: StoreContext,
   customerId: string,
@@ -154,10 +195,12 @@ export async function updateAddress(
   const [existing] = await ctx.tx.select(columns).from(customerAddress).where(owned)
   if (!existing) return { ok: false, errors: { form: 'Address not found' } }
   const isDefault = existing.isDefault || parsed.data.isDefault === true
+  const isDefaultBilling = parsed.data.isDefaultBilling ?? existing.isDefaultBilling
   if (isDefault) await clearDefault(ctx, customerId, addressId)
+  if (isDefaultBilling) await clearDefaultBilling(ctx, customerId, addressId)
   await ctx.tx
     .update(customerAddress)
-    .set({ ...toRow(parsed.data), isDefault, updatedAt: new Date() })
+    .set({ ...toRow(parsed.data), isDefault, isDefaultBilling, updatedAt: new Date() })
     .where(owned)
   if (isDefault) await syncDefaultSnapshot(ctx, customerId)
   return { ok: true, id: addressId }
@@ -180,7 +223,30 @@ export async function setDefaultAddress(
   return true
 }
 
-/** Delete an address; when it was the default, the newest remaining one takes over. */
+/** Make one saved address the customer's default billing address. */
+export async function setDefaultBillingAddress(
+  ctx: StoreContext,
+  customerId: string,
+  addressId: string,
+): Promise<boolean> {
+  const owned = and(eq(customerAddress.id, addressId), eq(customerAddress.customerId, customerId))
+  const [existing] = await ctx.tx
+    .select({ id: customerAddress.id })
+    .from(customerAddress)
+    .where(owned)
+  if (!existing) return false
+  await clearDefaultBilling(ctx, customerId, addressId)
+  await ctx.tx
+    .update(customerAddress)
+    .set({ isDefaultBilling: true, updatedAt: new Date() })
+    .where(owned)
+  return true
+}
+
+/**
+ * Delete an address; when it was the shipping default, the newest remaining one takes over.
+ * A deleted billing default leaves billing to follow the shipping default.
+ */
 export async function deleteAddress(
   ctx: StoreContext,
   customerId: string,

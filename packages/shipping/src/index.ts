@@ -3,6 +3,7 @@ export {
   ASSUMED_WEIGHT_GRAMS,
   COURIER_TIMEOUT_MS,
   CourierError,
+  type CourierErrorDetail,
   type CourierErrorKind,
   courierFetch,
   courierJson,

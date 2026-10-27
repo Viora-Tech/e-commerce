@@ -39,9 +39,31 @@ export type InventoryQuery = {
   stock?: StockFilter | undefined
   vendor?: string | undefined
   productType?: string | undefined
+  /** When stock last changed at this location (`STOCK_CHANGED_FILTERS`). */
+  changed?: StockChangedFilter | undefined
+  /** `product`: a page is products, each with all its matching variants. */
+  group?: 'variant' | 'product' | undefined
   sort?: 'product' | 'available_asc' | 'available_desc' | undefined
   page: number
   perPage: number
+}
+
+/** "Stock changed" filter: within the last N days, or not for over 90 days (or never). */
+export const STOCK_CHANGED_FILTERS = ['1d', '7d', '30d', '90d', 'stale'] as const
+export type StockChangedFilter = (typeof STOCK_CHANGED_FILTERS)[number]
+
+const CHANGED_DAYS: Record<Exclude<StockChangedFilter, 'stale'>, number> = {
+  '1d': 1,
+  '7d': 7,
+  '30d': 30,
+  '90d': 90,
+}
+
+/** A stock change for this variant at the location within `days` days. */
+function changedWithin(locationId: string, days: number): SQL {
+  return sql`exists (select 1 from ${inventoryAdjustment} a where a.variant_id = ${variant.id}
+    and (a.location_id = ${locationId} or a.location_id is null)
+    and a.created_at >= now() - make_interval(days => ${days}))`
 }
 
 export type InventoryRow = {
@@ -84,6 +106,11 @@ function baseWhere(q: Omit<InventoryQuery, 'page' | 'perPage' | 'sort'>, low: nu
     q.stock === 'out' ? sql`${availableSql} <= 0` : undefined,
     q.stock === 'low' ? sql`${availableSql} > 0 and ${availableSql} <= ${low}` : undefined,
     q.stock === 'in' ? sql`${availableSql} > ${low}` : undefined,
+    q.changed === 'stale'
+      ? sql`not ${changedWithin(q.locationId, 90)}`
+      : q.changed
+        ? changedWithin(q.locationId, CHANGED_DAYS[q.changed])
+        : undefined,
   ]
   return and(...conditions) as SQL
 }
@@ -130,6 +157,7 @@ export async function listInventory(
 ): Promise<{ rows: InventoryRow[]; total: number }> {
   const low = await threshold(tx)
   const where = baseWhere(q, low)
+  if (q.group === 'product') return listInventoryByProduct(tx, q, where)
   const order =
     q.sort === 'available_asc'
       ? [asc(availableSql), asc(product.title)]
@@ -162,6 +190,68 @@ export async function listInventory(
     .innerJoin(product, eq(product.id, variant.productId))
     .leftJoin(inventoryLevel, joinLevel(q.locationId))
     .where(where)
+  const images = await imagesFor(tx, found)
+  return {
+    rows: found.map(({ mediaId: _m, ...r }) => ({
+      ...r,
+      available: r.onHand - r.committed,
+      imageUrl: images.get(r.variantId) ?? null,
+    })),
+    total: Number(total?.n ?? 0),
+  }
+}
+
+/**
+ * A page of products (A to Z) with every matching variant of each, so a product's SKUs sit
+ * together and are edited one by one. `total` counts products.
+ */
+async function listInventoryByProduct(
+  tx: StoreTx,
+  q: InventoryQuery,
+  where: SQL,
+): Promise<{ rows: InventoryRow[]; total: number }> {
+  const products = await tx
+    .selectDistinct({ id: product.id, title: product.title })
+    .from(variant)
+    .innerJoin(product, eq(product.id, variant.productId))
+    .leftJoin(inventoryLevel, joinLevel(q.locationId))
+    .where(where)
+    .orderBy(asc(product.title), asc(product.id))
+    .limit(q.perPage)
+    .offset((q.page - 1) * q.perPage)
+  const [total] = await tx
+    .select({ n: sql<number>`count(distinct ${product.id})`.mapWith(Number) })
+    .from(variant)
+    .innerJoin(product, eq(product.id, variant.productId))
+    .leftJoin(inventoryLevel, joinLevel(q.locationId))
+    .where(where)
+  if (products.length === 0) return { rows: [], total: Number(total?.n ?? 0) }
+  const found = await tx
+    .select({
+      variantId: variant.id,
+      productId: product.id,
+      productTitle: product.title,
+      variantTitle: variant.title,
+      sku: variant.sku,
+      mediaId: variant.mediaId,
+      costPaise: variant.costPaise,
+      onHand: onHandSql,
+      committed: reservedSql,
+      incoming: incomingSql,
+    })
+    .from(variant)
+    .innerJoin(product, eq(product.id, variant.productId))
+    .leftJoin(inventoryLevel, joinLevel(q.locationId))
+    .where(
+      and(
+        where,
+        inArray(
+          product.id,
+          products.map((p) => p.id),
+        ),
+      ),
+    )
+    .orderBy(asc(product.title), asc(product.id), asc(variant.position))
   const images = await imagesFor(tx, found)
   return {
     rows: found.map(({ mediaId: _m, ...r }) => ({

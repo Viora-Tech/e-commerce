@@ -1,3 +1,4 @@
+import { settingsSecret } from '@commerce/config'
 import {
   addPurchaseCharge,
   attachPurchaseOrder,
@@ -15,9 +16,12 @@ import {
   saveSupplier,
   updatePurchaseCharge,
 } from '@commerce/core'
+import { inboundTrackingCourier } from '@commerce/core/inventory'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
+import { storeRegistries } from '../services/apps.service'
+import { refreshInboundTracking } from '../services/inbound-tracking.service'
 import { previewCosts } from '../services/landed-cost.service'
 import {
   getInboundShipment,
@@ -89,11 +93,37 @@ export const inboundShipmentsRouter = {
       ),
     ),
 
+  /** Saves; a new tracking number with a connected carrier also reads its expected date. */
   save: can(permissions.INVENTORY_WRITE)
     .input(InboundShipmentInputSchema)
-    .handler(({ context, input }) =>
-      friendly(() => saveInboundShipment(context.tx, context.scope.storeId, input)),
-    ),
+    .handler(async ({ context, input }) => {
+      const id = await friendly(() => saveInboundShipment(context.tx, context.scope.storeId, input))
+      if (input.trackingNumber && inboundTrackingCourier(input.carrier)) {
+        const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
+        await refreshInboundTracking(
+          context.tx,
+          context.scope.storeId,
+          shipping,
+          settingsSecret(),
+          id,
+        )
+      }
+      return id
+    }),
+
+  /** Read the carrier's expected delivery date now (FedEx, DHL Express, … when connected). */
+  track: can(permissions.INVENTORY_WRITE)
+    .input(byId)
+    .handler(async ({ context, input }) => {
+      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
+      return refreshInboundTracking(
+        context.tx,
+        context.scope.storeId,
+        shipping,
+        settingsSecret(),
+        input.id,
+      )
+    }),
 
   delete: can(permissions.INVENTORY_WRITE)
     .input(byId)

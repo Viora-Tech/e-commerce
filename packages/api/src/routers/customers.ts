@@ -1,6 +1,8 @@
 import { settingsSecret } from '@commerce/config'
 import {
+  adoptContactPhone,
   createAddress,
+  createCustomer,
   customerExists,
   deleteAddress,
   GSTIN_MESSAGES,
@@ -8,7 +10,10 @@ import {
   permissions,
   recordCustomerChange,
   SEGMENT_FIELDS,
+  setDefaultAddress,
+  setDefaultBillingAddress,
   setMarketingConsent,
+  suggestContactPhone,
   updateAddress,
   validateGstin,
 } from '@commerce/core'
@@ -70,7 +75,14 @@ const AddressSchema = z.object({
   stateCode: z.string().max(2),
   pincode: z.string().max(10),
   phone: z.string().max(30),
+  /** The default shipping address. */
   isDefault: z.boolean().optional(),
+  /** The default billing address; left out keeps it as it is. */
+  isDefaultBilling: z.boolean().optional(),
+  /** Company billed at this address; blank clears it, left out keeps it. */
+  businessName: z.string().max(200).nullish(),
+  /** GSTIN billed at this address, checked like checkout's; blank clears it, left out keeps it. */
+  gstin: z.string().max(20).nullish(),
 })
 
 /**
@@ -146,13 +158,104 @@ export const customersRouter = {
       const found = await getCustomer(context.tx, input.id, settingsSecret())
       if (!found) return null
       const ctx = { tx: context.tx, storeId: context.scope.storeId }
-      return { ...found, addresses: await listAddresses(ctx, input.id) }
+      const [addresses, phoneSuggestion] = await Promise.all([
+        listAddresses(ctx, input.id),
+        found.phone ? null : suggestContactPhone(ctx, input.id, settingsSecret()),
+      ])
+      // A contact phone the staff could take from their latest order or address (one click).
+      return { ...found, addresses, phoneSuggestion }
+    }),
+
+  /**
+   * Save the mobile from the customer's latest order (or saved address) as their contact phone,
+   * when they have none. Worked out on the server, refused when another customer has it; consent
+   * is never switched on by this.
+   */
+  adoptContactPhone: can(permissions.CUSTOMERS_WRITE)
+    .input(z.object({ id: z.uuid() }))
+    .handler(async ({ context, input }) => {
+      const result = await adoptContactPhone(
+        { tx: context.tx, storeId: context.scope.storeId },
+        input.id,
+        {
+          secret: settingsSecret(),
+          actor: {
+            type: 'staff',
+            id: context.scope.userId,
+            label: context.session.user.name?.trim() || context.session.user.email,
+          },
+        },
+      )
+      if (result.ok) return { phone: result.phone, source: result.source }
+      if (result.reason === 'not_found') {
+        throw new ORPCError('NOT_FOUND', { message: 'Customer not found' })
+      }
+      if (result.reason === 'duplicate') {
+        throw new ORPCError('CONFLICT', {
+          message: 'Another customer already has this mobile number',
+          data: { field: 'phone', existingId: result.existingId },
+        })
+      }
+      throw new ORPCError('BAD_REQUEST', {
+        message:
+          result.reason === 'has_phone'
+            ? 'This customer already has a phone number'
+            : 'No mobile number on their orders or addresses',
+      })
     }),
 
   /** Rows for the Customers bulk-edit spreadsheet, in the order the ids were given. */
   sheet: can(permissions.CUSTOMERS_READ)
     .input(z.object({ ids: z.array(z.uuid()).min(1).max(5000) }))
     .handler(({ context, input }) => customerSheet(context.tx, input.ids, settingsSecret())),
+
+  /**
+   * Add a customer by hand ("Add customer" on the list). Needs an email or a mobile number;
+   * one another customer already has is refused with CONFLICT and who has it, never merged.
+   */
+  create: can(permissions.CUSTOMERS_WRITE)
+    .input(
+      z.object({
+        name: z.string().trim().max(200).optional(),
+        email: z.string().trim().max(254).optional(),
+        phone: lenientPhone(30).optional(),
+        note: z.string().trim().max(2000).optional(),
+        tags: z.array(z.string().trim().min(1).max(40)).max(50).optional(),
+        consent: z
+          .object({ email: z.boolean(), whatsapp: z.boolean(), sms: z.boolean() })
+          .partial()
+          .optional(),
+        address: AddressSchema.omit({ isDefault: true, isDefaultBilling: true }).optional(),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const result = await createCustomer(
+        { tx: context.tx, storeId: context.scope.storeId },
+        input,
+        {
+          secret: settingsSecret(),
+          actor: {
+            type: 'staff',
+            id: context.scope.userId,
+            label: context.session.user.name?.trim() || context.session.user.email,
+          },
+        },
+      )
+      if (result.ok) return { id: result.id }
+      if (result.reason === 'duplicate') {
+        throw new ORPCError('CONFLICT', {
+          message:
+            result.field === 'email'
+              ? 'A customer with this email already exists'
+              : 'A customer with this mobile number already exists',
+          data: { field: result.field, existingId: result.existingId },
+        })
+      }
+      throw new ORPCError('BAD_REQUEST', {
+        message: Object.values(result.errors)[0] ?? 'Check the customer details',
+        data: { errors: result.errors },
+      })
+    }),
 
   /** Add an address to the customer's book; the first one becomes their default. */
   addAddress: can(permissions.CUSTOMERS_WRITE)
@@ -169,6 +272,28 @@ export const customersRouter = {
       await assertCustomer(context.tx, input.customerId)
       const ctx = { tx: context.tx, storeId: context.scope.storeId }
       return unwrap(await updateAddress(ctx, input.customerId, input.addressId, input.address))
+    }),
+
+  /** Make one saved address the customer's default (the profile card shows it). */
+  setDefaultAddress: can(permissions.CUSTOMERS_WRITE)
+    .input(z.object({ customerId: z.uuid(), addressId: z.uuid() }))
+    .handler(async ({ context, input }) => {
+      await assertCustomer(context.tx, input.customerId)
+      const ctx = { tx: context.tx, storeId: context.scope.storeId }
+      const done = await setDefaultAddress(ctx, input.customerId, input.addressId)
+      if (!done) throw new ORPCError('NOT_FOUND', { message: 'Address not found' })
+      return { id: input.addressId }
+    }),
+
+  /** Make one saved address the customer's default billing address (draft orders bill it). */
+  setDefaultBillingAddress: can(permissions.CUSTOMERS_WRITE)
+    .input(z.object({ customerId: z.uuid(), addressId: z.uuid() }))
+    .handler(async ({ context, input }) => {
+      await assertCustomer(context.tx, input.customerId)
+      const ctx = { tx: context.tx, storeId: context.scope.storeId }
+      const done = await setDefaultBillingAddress(ctx, input.customerId, input.addressId)
+      if (!done) throw new ORPCError('NOT_FOUND', { message: 'Address not found' })
+      return { id: input.addressId }
     }),
 
   deleteAddress: can(permissions.CUSTOMERS_WRITE)

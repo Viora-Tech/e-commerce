@@ -9,6 +9,18 @@ export type SearchPlan = {
   terms: string[]
   /** Per term, the term and its synonyms; a product matches when each group has a hit. */
   groups: string[][]
+  /**
+   * Per term, the term run together from two catalogue words, split back ("glasspad" →
+   * "glass pad"): a product's own fields holding both words also count as a hit ("Glass
+   * Mousepad"), as Shopify's search finds them. Empty lists for terms that split no way.
+   */
+  splits: string[][]
+  /**
+   * `all` (the default): every term must match. `any`: a product matching some of the terms in
+   * its own fields is in too, ranked after the ones matching all of them, for a multi-word
+   * search whose every word found (almost) nothing together ("dysphoria aria").
+   */
+  mode: 'all' | 'any'
   /** The corrected query when any word was changed ("keybord" → "keyboard"), else null. */
   corrected: string | null
 }
@@ -81,6 +93,30 @@ export function correctTerm(term: string, vocabulary: VocabularyWord[]): string 
   return best && bestDistance <= allowed ? best.word : null
 }
 
+/** The shortest part a run-together word splits into ("pad"). */
+const MIN_SPLIT_PART = 3
+
+/**
+ * `term` read as two catalogue words written together, most-used split first, at most two:
+ * "glasspad" → ["glass pad"]. Words with digits (models, SKUs) and short words never split.
+ */
+function splitTerm(term: string, vocabulary: VocabularyWord[]): string[] {
+  if (term.length < MIN_SPLIT_PART * 2 || /[\d\s]/.test(term)) return []
+  const counts = new Map(vocabulary.map((v) => [v.word, v.count]))
+  const found: { phrase: string; score: number }[] = []
+  for (let i = MIN_SPLIT_PART; i <= term.length - MIN_SPLIT_PART; i++) {
+    const left = counts.get(term.slice(0, i))
+    const right = counts.get(term.slice(i))
+    if (left && right) {
+      found.push({ phrase: `${term.slice(0, i)} ${term.slice(i)}`, score: Math.min(left, right) })
+    }
+  }
+  return found
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 2)
+    .map((f) => f.phrase)
+}
+
 /** Lower-cased words, trimmed and de-duplicated, each group kept only with two or more words. */
 export function cleanSynonymGroups(groups: SynonymGroups): SynonymGroups {
   const out: SynonymGroups = []
@@ -101,18 +137,19 @@ export function synonymsOf(term: string, groups: SynonymGroups): string[] {
 }
 
 /**
- * The search for these words: a known word or one with synonyms is kept; any other word is
- * corrected to the nearest catalogue word when one is close. Each word then matches itself or
- * any of its synonyms.
+ * The search for these words: a known word or one with synonyms is kept; with `correct`, any
+ * other word is corrected to the nearest catalogue word when one is close. Each word then
+ * matches itself, any of its synonyms, or its two catalogue words when it runs two together.
  */
 export function planSearch(
   terms: string[],
   vocabulary: VocabularyWord[],
   synonyms: SynonymGroups,
+  correct = true,
 ): SearchPlan {
   let changed = false
   const fixed = terms.map((t) => {
-    if (synonymsOf(t, synonyms).length > 1) return t
+    if (!correct || synonymsOf(t, synonyms).length > 1) return t
     const c = correctTerm(t, vocabulary)
     if (!c || c === t) return t
     changed = true
@@ -121,6 +158,8 @@ export function planSearch(
   return {
     terms: fixed,
     groups: fixed.map((t) => synonymsOf(t, synonyms)),
+    splits: fixed.map((t) => splitTerm(t, vocabulary)),
     corrected: changed ? fixed.join(' ') : null,
+    mode: 'all',
   }
 }

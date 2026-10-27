@@ -11,9 +11,11 @@ import { z } from 'zod'
 import { can, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
 import {
+  checkStoreDraftDiscount,
   convertStoreDraft,
   draftEmail,
   draftTiles,
+  duplicateStoreOrder,
   getDraft,
   getStoreAbandoned,
   listStoreAbandoned,
@@ -59,6 +61,35 @@ export const draftAndAbandonedRoutes = {
   saveDraft: can(permissions.DRAFTS_WRITE)
     .input(z.object({ id: z.uuid().optional(), draft: DraftInputSchema }))
     .handler(({ context, input }) => saveDraft(context.tx, context.scope.storeId, input)),
+
+  /**
+   * Check a store discount code against a draft's lines and customer with checkout's rules
+   * (dates, minimums, products and collections, eligibility, per-customer cap). Nothing is
+   * saved; saving the draft with `discountCode` applies it.
+   */
+  checkDraftDiscount: can(permissions.DRAFTS_WRITE)
+    .input(
+      z.object({
+        code: z.string().trim().min(1).max(60),
+        lines: DraftInputSchema.shape.lines,
+        email: z.string().trim().max(200).nullish(),
+        stateCode: z.string().trim().max(3).nullish(),
+        shippingPaise: z.number().int().min(0).default(0),
+      }),
+    )
+    .handler(({ context, input }) =>
+      checkStoreDraftDiscount(context.tx, context.scope.storeId, input),
+    ),
+
+  /**
+   * Start a new draft from an existing order: same customer, address, lines at today's
+   * prices (archived products skipped and named), notes and shipping. Never places an order.
+   */
+  duplicateOrder: can(permissions.DRAFTS_WRITE)
+    .input(z.object({ id: z.uuid() }))
+    .handler(({ context, input }) =>
+      duplicateStoreOrder(context.tx, context.scope.storeId, input.id),
+    ),
 
   /** Delete one draft order; placed orders cannot be deleted this way. */
   deleteDraft: can(permissions.DRAFTS_WRITE)

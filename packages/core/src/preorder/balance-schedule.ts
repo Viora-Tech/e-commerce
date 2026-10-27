@@ -83,6 +83,9 @@ export async function balanceCandidates(ctx: StoreContext) {
         notInArray(order.status, ['cancelled', 'draft']),
         // The balance follows the deposit: nothing is asked before it is paid.
         isNotNull(order.checkoutPaidAt),
+        // Deposit pre-orders only: a balance an order edit left is the merchant's to chase,
+        // never reminded or cancelled by the pre-order rules (order/edit-settle.ts).
+        isNotNull(order.depositPaise),
       ),
     )
     .orderBy(asc(order.placedAt))

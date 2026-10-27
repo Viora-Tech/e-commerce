@@ -24,6 +24,7 @@ import {
   startingBulkPick,
 } from './flow-state'
 import FlowSteps, { type FlowStep } from './flow-steps'
+import { startingPickupPlan } from './pickup-plan'
 
 type BulkShipmentFlowProps = {
   draft: ShipmentDraft
@@ -54,6 +55,7 @@ export default function BulkShipmentFlow({
   const [providerId, setProviderId] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [results, setResults] = useState<BulkResult[] | null>(null)
+  const [pickupDate, setPickupDate] = useState<string | null>(null)
 
   // Helpers
   const askCouriers = async () => {
@@ -84,6 +86,24 @@ export default function BulkShipmentFlow({
     }
   }
 
+  /** The pickup day asked for, or null when the courier refused (the done step offers it again). */
+  const requestPickup = async (shipmentIds: string[]): Promise<string | null> => {
+    const plan = startingPickupPlan()
+    try {
+      const pickups = await api.shipments.schedulePickup({
+        shipmentIds,
+        date: plan.date,
+        timeFrom: plan.timeFrom,
+      })
+      const refused = pickups.find((p) => p.status === 'failed')
+      if (!refused) return plan.date
+      toast.error(refused.error || copy.pickup.notSupported)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : copy.pickup.notSupported)
+    }
+    return null
+  }
+
   // Event handlers
   const handleNext = () => {
     setStep('courier')
@@ -106,6 +126,11 @@ export default function BulkShipmentFlow({
       setResults([...booked, ...unbooked])
       setStep('done')
       onBooked()
+      /* Until the courier has a pickup request, these waybills sit in its "Ready to Ship":
+         ask once per courier and pickup location for the starting day (joined, not doubled,
+         when one is already open for that place and day). */
+      const shipmentIds = booked.flatMap((r) => (r.ok && r.shipmentId ? [r.shipmentId] : []))
+      if (shipmentIds.length > 0) setPickupDate(await requestPickup(shipmentIds))
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err))
     } finally {
@@ -158,7 +183,9 @@ export default function BulkShipmentFlow({
             />
           </div>
         ) : null}
-        {step === 'done' && results ? <BulkDoneStep results={results} numbers={numbers} /> : null}
+        {step === 'done' && results ? (
+          <BulkDoneStep results={results} numbers={numbers} pickupDate={pickupDate} />
+        ) : null}
       </div>
       <DialogFooter>
         {step === 'done' ? (

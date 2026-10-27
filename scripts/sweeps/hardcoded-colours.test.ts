@@ -40,6 +40,11 @@ const ALLOWLIST: AllowEntry[] = [
       "payment gateway name chips (Razorpay, Cashfree, PhonePe…) in each gateway's own brand colour, which the merchant's checkout branding should not restyle",
   },
   {
+    file: 'apps/storefront/src/components/checkout/payment-mark.tsx',
+    reason:
+      "UPI app and card network marks (Google Pay, PhonePe, Paytm, UPI, VISA, RuPay) on the checkout's Express buttons and payment cards, in each brand's own colours so shoppers recognise them; the merchant's checkout branding must not restyle them",
+  },
+  {
     file: 'apps/admin/src/components/mcp/mcp-client-logo.tsx',
     reason:
       "third-party brand marks (Claude, VS Code) drawn in each vendor's own brand colour, which no theme token should restyle",

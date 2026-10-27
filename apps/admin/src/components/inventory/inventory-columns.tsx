@@ -13,6 +13,8 @@ type ColumnOptions = {
   /** At or below this many available a row reads as low (the store's low-stock setting). */
   lowAt: number
   onCommit: (row: InventoryRow, delta: number) => Promise<boolean>
+  /** Grouped by product: SKUs after a product's first, drawn as indented variant rows. */
+  continued?: Set<string> | null
 }
 
 export function rowName(row: InventoryRow): string {
@@ -27,6 +29,7 @@ export function inventoryColumns({
   canEdit,
   lowAt,
   onCommit,
+  continued,
 }: ColumnOptions): ResourceColumnSpec<InventoryRow>[] {
   return [
     {
@@ -36,19 +39,24 @@ export function inventoryColumns({
       hideable: false,
       align: 'start',
       className: 'w-80 px-3 whitespace-normal',
-      render: (r) => (
-        <span className="flex items-center gap-3 text-left">
-          <ProductThumb url={r.imageUrl} />
-          <span className="flex min-w-0 flex-col">
-            <span className="line-clamp-1 text-body text-ink-strong">{r.productTitle}</span>
-            {r.variantTitle && r.variantTitle !== 'Default' ? (
-              <span className="line-clamp-1 text-caption text-muted-foreground">
-                {r.variantTitle}
-              </span>
-            ) : null}
+      render: (r) =>
+        continued?.has(r.variantId) ? (
+          <span className="block pl-13 text-left text-body text-muted-foreground">
+            {r.variantTitle}
           </span>
-        </span>
-      ),
+        ) : (
+          <span className="flex items-center gap-3 text-left">
+            <ProductThumb url={r.imageUrl} />
+            <span className="flex min-w-0 flex-col">
+              <span className="line-clamp-1 text-body text-ink-strong">{r.productTitle}</span>
+              {r.variantTitle && r.variantTitle !== 'Default' ? (
+                <span className="line-clamp-1 text-caption text-muted-foreground">
+                  {r.variantTitle}
+                </span>
+              ) : null}
+            </span>
+          </span>
+        ),
     },
     {
       id: 'sku',

@@ -50,6 +50,30 @@ export function discountColumns(copy: Copy, fmt: Formatters): ResourceColumnSpec
       render: (d) => <span className="tabular-nums">{copy.usedOf(d.usedCount, d.usageLimit)}</span>,
     },
     {
+      id: 'revenue',
+      title: copy.columns.revenue,
+      align: 'end',
+      sortValue: (d) => d.usage.revenuePaise,
+      render: (d) => <span className="tabular-nums">{fmt.money(d.usage.revenuePaise)}</span>,
+    },
+    {
+      id: 'given',
+      title: copy.columns.given,
+      align: 'end',
+      sortValue: (d) => d.usage.amountPaise,
+      render: (d) => <span className="tabular-nums">{fmt.money(d.usage.amountPaise)}</span>,
+    },
+    {
+      id: 'lastUsed',
+      title: copy.columns.lastUsed,
+      sortValue: (d) => (d.usage.lastUsedAt ? new Date(d.usage.lastUsedAt).getTime() : 0),
+      render: (d) => (
+        <span className="tabular-nums text-muted-foreground">
+          {d.usage.lastUsedAt ? fmt.date(d.usage.lastUsedAt) : copy.neverUsed}
+        </span>
+      ),
+    },
+    {
       id: 'dates',
       title: copy.columns.dates,
       sortValue: (d) => (d.startsAt ? new Date(d.startsAt).getTime() : 0),

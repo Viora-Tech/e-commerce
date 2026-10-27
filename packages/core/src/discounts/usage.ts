@@ -55,16 +55,30 @@ export async function recordDiscountUses(
 ): Promise<void> {
   const parts = applied.parts ?? [{ ...applied, amountPaise: order.discountPaise }]
   for (const part of parts) {
-    await claimDiscountUse(ctx, part.discount.id, order.email)
-    await ctx.tx.insert(discountUsage).values({
-      storeId: ctx.storeId,
-      discountId: part.discount.id,
-      orderId: order.id,
-      customerId: order.customerId,
-      email: order.email,
-      amountPaise: part.amountPaise,
-    })
+    await recordDiscountUse(ctx, part.discount.id, { ...order, discountPaise: part.amountPaise })
   }
+}
+
+/**
+ * Count and record one use of one discount on an order, under the same lock and limits as
+ * checkout: a draft order placed with a code (`convertDraft`) goes through here.
+ */
+export async function recordDiscountUse(
+  ctx: StoreContext,
+  discountId: string,
+  order: { id: string; customerId: string | null; email: string | null; discountPaise: number },
+): Promise<void> {
+  // Per-customer caps key on the lower-cased email, as `customerUsageCount` reads it.
+  const email = order.email?.toLowerCase() ?? null
+  await claimDiscountUse(ctx, discountId, email)
+  await ctx.tx.insert(discountUsage).values({
+    storeId: ctx.storeId,
+    discountId,
+    orderId: order.id,
+    customerId: order.customerId,
+    email,
+    amountPaise: order.discountPaise,
+  })
 }
 
 /** Undo `recordDiscountUses` for an order that is being rolled back. */
