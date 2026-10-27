@@ -47,7 +47,9 @@ ENV NODE_ENV=production
 # See apps/admin/Dockerfile's identical line for why this is here (fits the GitHub Actions
 # runner that builds this image).
 ENV NODE_OPTIONS=--max-old-space-size=3072
-RUN bun run build --filter=@commerce/storefront
+# Turbopack's build cache in a BuildKit cache mount: see apps/admin/Dockerfile's build step.
+RUN --mount=type=cache,id=commerce-storefront-next-cache,target=/repo/apps/storefront/.next/cache \
+  bun run build --filter=@commerce/storefront
 
 # --- Minimal runtime image ------------------------------------------------------------------
 FROM base AS runner

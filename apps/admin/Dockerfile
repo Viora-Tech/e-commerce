@@ -53,7 +53,11 @@ ENV NODE_OPTIONS=--max-old-space-size=3072
 # the Settings pages has to be known here (release.yml passes the repo variable of this name).
 # Left unset when empty so the code's own localhost fallback applies.
 ARG NEXT_PUBLIC_WORKER_URL
-RUN if [ -z "$NEXT_PUBLIC_WORKER_URL" ]; then unset NEXT_PUBLIC_WORKER_URL; fi \
+# `.next/cache` (Turbopack's build cache) lives in a BuildKit cache mount, so a rebuild on the
+# same machine starts warm and recompiles only what changed. The mount never enters the image;
+# `.next/standalone` and `.next/static` are written beside it and copied below as before.
+RUN --mount=type=cache,id=commerce-admin-next-cache,target=/repo/apps/admin/.next/cache \
+  if [ -z "$NEXT_PUBLIC_WORKER_URL" ]; then unset NEXT_PUBLIC_WORKER_URL; fi \
   && bun run build --filter=@commerce/admin
 
 # --- Minimal runtime image ------------------------------------------------------------------
