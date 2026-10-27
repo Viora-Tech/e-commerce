@@ -4,6 +4,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { readCartId } from '@/lib/cart-cookie'
 import { checkoutHandoffTarget } from '@/lib/checkout-handoff'
 import { currentCustomer } from '@/lib/customer-session'
+import { redirectTo } from '@/lib/redirect'
 import { withEvlog } from '@/lib/request-log'
 import { inStore } from '@/lib/store-context'
 
@@ -15,7 +16,7 @@ type Params = { params: Promise<{ storeId: string }> }
  * to `checkout.<primary>/c/<token>`; otherwise it falls back to same-origin `/checkout`. The cart
  * and customer never cross as cookies — only inside the short-lived signed token.
  */
-export const GET = withEvlog(async (request: NextRequest, { params }: Params) => {
+export const GET = withEvlog(async (_request: NextRequest, { params }: Params) => {
   const { storeId } = await params
   const env = loadEnv(process.env)
   const cartId = await readCartId()
@@ -37,6 +38,5 @@ export const GET = withEvlog(async (request: NextRequest, { params }: Params) =>
     storeOrigin,
     secret: settingsSecret(),
   })
-  const url = target.startsWith('http') ? target : new URL(target, request.url)
-  return NextResponse.redirect(url, 303)
+  return target.startsWith('http') ? NextResponse.redirect(target, 303) : redirectTo(target, 303)
 })
