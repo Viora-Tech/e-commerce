@@ -1,9 +1,9 @@
-/** SOURCE OF TRUTH: order contact edits — tests updateOrderContact's no-address path and store isolation */
-import { createDb, customer, order, orderNote, store, withStore } from '@commerce/db'
+/** SOURCE OF TRUTH: order contact edits — tests updateOrderContact's no-address path, billing edits and store isolation */
+import { address, createDb, customer, order, orderNote, store, withStore } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
-import { OrderNotFound, updateOrderContact } from './contact'
+import { InvalidOrderContact, OrderNotFound, updateOrderContact } from './contact'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
@@ -63,6 +63,71 @@ describe('updateOrderContact', () => {
     expect(o?.shippingAddressId).toBeNull()
     const [note] = await owner.select().from(orderNote).where(eq(orderNote.orderId, orderId))
     expect(note?.body).toBe('Name changed from Ravi to Ravi Iyer')
+  })
+
+  it('bills a separate address with a company and GSTIN, then back to the shipping address', async () => {
+    const { storeId, orderId } = await seed('a')
+    const edit = (billing: Parameters<typeof updateOrderContact>[1]['billing']) =>
+      withStore(app, storeId, (tx) =>
+        updateOrderContact(
+          { storeId, tx },
+          {
+            orderId,
+            name: 'Ravi',
+            email: 'ravi@a.in',
+            phone: '9876543210',
+            address: null,
+            alsoUpdateCustomer: false,
+            author: 'staff@a.in',
+            billing,
+          },
+        ),
+      )
+    await edit({
+      address: {
+        name: 'Mehta Traders',
+        line1: '12 MG Road',
+        city: 'Pune',
+        stateCode: 'MH',
+        pincode: '411001',
+      },
+      businessName: 'Mehta Traders',
+      gstin: '27aapfu0939f1zv',
+    })
+    const [billed] = await owner.select().from(order).where(eq(order.id, orderId))
+    expect(billed?.buyerGstin).toBe('27AAPFU0939F1ZV')
+    expect(billed?.buyerBusinessName).toBe('Mehta Traders')
+    const billId = billed?.billingAddressId as string
+    const [bill] = await owner.select().from(address).where(eq(address.id, billId))
+    expect(bill?.city).toBe('Pune')
+
+    await edit({ address: null, businessName: null, gstin: null })
+    const [back] = await owner.select().from(order).where(eq(order.id, orderId))
+    expect(back?.billingAddressId).toBeNull()
+    expect(back?.buyerGstin).toBeNull()
+    // The old billing snapshot is no one's any more.
+    expect(await owner.select().from(address).where(eq(address.id, billId))).toHaveLength(0)
+  })
+
+  it('rejects a GSTIN with a typo', async () => {
+    const { storeId, orderId } = await seed('a')
+    await expect(
+      withStore(app, storeId, (tx) =>
+        updateOrderContact(
+          { storeId, tx },
+          {
+            orderId,
+            name: 'Ravi',
+            email: null,
+            phone: null,
+            address: null,
+            alsoUpdateCustomer: false,
+            author: 'staff@a.in',
+            billing: { address: null, businessName: null, gstin: '27AAPFU0939F1ZX' },
+          },
+        ),
+      ),
+    ).rejects.toBeInstanceOf(InvalidOrderContact)
   })
 
   it("does not find another store's order", async () => {
