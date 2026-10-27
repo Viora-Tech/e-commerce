@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
   availableOf,
+  belowZeroAfter,
   clampReceipt,
   deltaToReach,
   NegativeStockError,
+  nameList,
   nextOnHand,
   purchaseOrderStatus,
   purchaseOrderTotals,
@@ -20,6 +22,23 @@ describe('stock maths', () => {
   it('refuses to take a tracked variant below zero', () => {
     expect(nextOnHand(5, -5, false)).toBe(0)
     expect(() => nextOnHand(5, -6, false)).toThrow(NegativeStockError)
+  })
+
+  it('names the rows a bulk adjust would take below zero', () => {
+    const rows = [
+      { label: 'A', onHand: 10, allowNegative: false },
+      { label: 'B', onHand: 3, allowNegative: false },
+      { label: 'C', onHand: 0, allowNegative: true },
+      { label: 'D', onHand: 4, allowNegative: false },
+    ]
+    expect(belowZeroAfter(rows, -4)).toEqual(['B'])
+    expect(belowZeroAfter(rows, -5)).toEqual(['B', 'D'])
+    expect(belowZeroAfter(rows, 2)).toEqual([])
+  })
+
+  it('shortens long name lists', () => {
+    expect(nameList(['A'])).toBe('A')
+    expect(nameList(['A', 'B', 'C'], 2)).toBe('A, B and 1 more')
   })
 
   it('lets an untracked variant go negative', () => {

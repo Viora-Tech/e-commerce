@@ -91,12 +91,15 @@ export const inventoryContent = {
     history: 'Stock history',
   },
   bulk: {
+    modeLabel: 'How to change stock',
+    modes: { set: 'Set to', adjust: 'Adjust by' },
     adjust: 'Adjust by',
     set: 'Set on hand to',
     title: (mode: 'adjust' | 'set', n: number) =>
       `${mode === 'adjust' ? 'Adjust' : 'Set'} stock for ${n} ${n === 1 ? 'SKU' : 'SKUs'}`,
     quantity: 'Quantity',
-    adjustHint: 'Use a negative number to remove stock.',
+    adjustHint:
+      'Every selected SKU changes by this amount at the chosen location. Use a negative number to remove stock.',
     setHint: 'Every selected SKU gets this on hand count at the chosen location.',
     reason: 'Reason',
     note: 'Note',
