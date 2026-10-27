@@ -457,8 +457,9 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/api/src/services/order-fulfil.service.ts',
-    names: ['customerName'],
-    reason: 'no external importer today — investigate before removing',
+    names: ['customerName', 'balanceOf'],
+    reason:
+      'no external importer today — customerName and balanceOf are used inside this file only (balanceOf by orderBalance); investigate before removing',
   },
   {
     file: 'packages/api/src/services/page.service.ts',
