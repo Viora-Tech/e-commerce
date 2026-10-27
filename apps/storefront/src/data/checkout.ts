@@ -174,6 +174,15 @@ export const payClientContent = {
   },
   tryAgain: 'Try again',
   back: 'Back to your order',
+  /** What closing the window means, under Try again. */
+  saved: 'Nothing was charged. Your order is held for a little while; pay now or come back to it.',
+  otherWays: 'See your order and other ways to pay',
+  continueShopping: 'Continue shopping',
+  paidWith: (provider: string) => `Paying with ${provider}`,
+  providers: {
+    razorpay: 'Razorpay: UPI, cards, netbanking',
+    cashfree: 'Cashfree: UPI, cards, netbanking',
+  } as Record<string, string>,
   secure: 'Payments are encrypted and handled by the payment provider.',
 } as const
 
@@ -445,6 +454,10 @@ export const checkoutContent = {
       'The shipping options for your order changed, so it was not placed. Pick a shipping method and place it again.',
     discountUnavailable:
       'That discount has just run out, so your order was not placed. Check the new total and place it again.',
+    discountNotApplied: (code: string) =>
+      `We applied ${code} for you. Check the new total, then tap Pay again.`,
+    discountRefused: (code: string, why: string) =>
+      `${code} can't be used on this order: ${why} Your order was not placed. Remove the code to pay the full price, or try another code.`,
     rateLimited: 'Too many attempts. Please wait a minute and try again.',
     contact: 'Check your contact details and try again.',
     minimumOrder: (missing: string) =>

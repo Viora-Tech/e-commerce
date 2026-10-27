@@ -3,6 +3,7 @@ import { resolveThemeVariantId } from '@commerce/core'
 import { addLineAction, cartCountAction } from '@/lib/cart-actions'
 import { submitContact } from '@/lib/contact-actions'
 import { renderStaticLiquidSection } from '@/lib/liquid-theme'
+import { localizationAction } from '@/lib/market-switch'
 import { subscribeAction } from '@/lib/newsletter-actions'
 import { recommendationsResponse } from '@/lib/recommendations-route'
 import { withEvlog } from '@/lib/request-log'
@@ -92,8 +93,8 @@ export const POST = withEvlog(async (req: Request, { params }: Params) => {
     const outcome = await submitContact(form, path)
     return backTo(req, outcome === 'posted' ? 'contact' : 'contact_error')
   }
-  // Localization is India only.
-  if (action === 'localization') return backTo(req, null)
+  // The theme's country and language selector: the shopper's market (`lib/market-switch.ts`).
+  if (action === 'localization') return localizationAction(req, storeId)
   return notFound()
 })
 

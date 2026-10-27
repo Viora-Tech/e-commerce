@@ -2,9 +2,11 @@ import { fulfillmentOrder, gstRegistration, newId, order, refund, store } from '
 import { sql } from 'drizzle-orm'
 import {
   check,
+  date,
   index,
   integer,
   jsonb,
+  numeric,
   pgTable,
   text,
   timestamp,
@@ -91,6 +93,8 @@ export const PDF_STATUSES = ['pending', 'ready', 'failed'] as const
  * number forever (it is reported in GSTR-1 Table 13) and is never reused.
  */
 export const INVOICE_STATUSES = ['draft', 'issued', 'cancelled'] as const
+/** Domestic GST, or a zero-rated export (under LUT, or with IGST paid). */
+export const INVOICE_SUPPLY_TYPES = ['domestic', 'export_lut', 'export_igst'] as const
 
 export const invoice = pgTable(
   'invoice',
@@ -124,6 +128,18 @@ export const invoice = pgTable(
     buyerGstin: text('buyer_gstin'),
     /** GST numeric state code of the place of supply, e.g. 27. */
     placeOfSupply: text('place_of_supply'),
+    /**
+     * Export (Markets): `domestic`, or a zero-rated export under the store's LUT (no IGST,
+     * the LUT ARN is printed) or with IGST paid. Mirrors `order.tax_regime` at issue.
+     */
+    supplyType: text('supply_type', { enum: INVOICE_SUPPLY_TYPES }).notNull().default('domestic'),
+    /** Export invoices: the buyer's currency and the CBIC rate used for the rupee value (Rule 34). */
+    currency: text('currency'),
+    exchangeRate: numeric('exchange_rate', { precision: 18, scale: 8 }),
+    /** Export invoices: the port and shipping bill (or CSB-V) the goods left under. */
+    portCode: text('port_code'),
+    shippingBillNo: text('shipping_bill_no'),
+    shippingBillDate: date('shipping_bill_date', { mode: 'string' }),
     taxablePaise: integer('taxable_paise').notNull(),
     cgstPaise: integer('cgst_paise').notNull(),
     sgstPaise: integer('sgst_paise').notNull(),
@@ -182,6 +198,11 @@ export const invoice = pgTable(
       )
       .where(sql`${t.refundId} is not null`),
     index('invoice_store_issued').on(t.storeId, t.issuedAt),
+    index('invoice_order').on(t.orderId),
+    check(
+      'invoice_supply_type_check',
+      sql`${t.supplyType} in ('domestic', 'export_lut', 'export_igst')`,
+    ),
   ],
 )
 

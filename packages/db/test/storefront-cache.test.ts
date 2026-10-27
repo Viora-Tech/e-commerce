@@ -2,7 +2,8 @@ import { sql } from 'drizzle-orm'
 import postgres from 'postgres'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { createDb } from '../src/client'
-import { navigationMenu, store } from '../src/schema'
+import { navigationMenu } from '../src/content-schema'
+import { store } from '../src/schema'
 import {
   listenStorefrontCache,
   parseStorefrontCachePayload,

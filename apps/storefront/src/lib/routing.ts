@@ -76,6 +76,14 @@ export const DERIVED_HEADERS = [
   'x-form-posted',
   'x-pathname',
   'x-listing',
+  // Markets (`lib/markets.ts` MARKET_HEADERS).
+  'x-market-id',
+  'x-market-currency',
+  'x-market-locale',
+  'x-market-country',
+  'x-market-prefix',
+  'x-market-countries',
+  'x-market-languages',
 ] as const
 
 /** Listing params an imported theme's collection and search pages read; the rest is noise. */

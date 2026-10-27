@@ -40,6 +40,16 @@ export function useLiquidHead(): LiquidHead | null {
 }
 
 /**
+ * An imported theme's Theme settings changed since the last save (`useImportedThemeSettings`),
+ * so the canvas renders its sections with them before Save. Empty when nothing changed.
+ */
+export const LiquidThemeSettingsContext = createContext<Record<string, unknown>>({})
+
+export function useLiquidThemeSettings(): Record<string, unknown> {
+  return useContext(LiquidThemeSettingsContext)
+}
+
+/**
  * The id of the theme Customize is editing, for what sits deep in Puck's overrides and talks to
  * the server about this theme ("My sections": saved per theme when they hold Liquid). Empty
  * outside the editor.
@@ -68,4 +78,28 @@ export const ImportedThemeContext = createContext<ImportedTheme | null>(null)
 
 export function useImportedTheme(): ImportedTheme | null {
   return useContext(ImportedThemeContext)
+}
+
+/** The imported section's block the inspector shows on its own (a click on its Layers row). */
+export type LiquidBlockFocus = { sectionId: string; blockId: string }
+
+/**
+ * An imported theme's editor fields by section type (`useLiquidTheme`), and which block of which
+ * section the inspector shows: picking a block in Layers opens its settings alone, Shopify-style,
+ * with a way back to its section. Empty for our own themes.
+ */
+export type LiquidBlocksState = {
+  fields: Record<string, Record<string, unknown>> | null
+  focus: LiquidBlockFocus | null
+  setFocus: (focus: LiquidBlockFocus | null) => void
+}
+
+export const LiquidBlocksContext = createContext<LiquidBlocksState>({
+  fields: null,
+  focus: null,
+  setFocus: () => {},
+})
+
+export function useLiquidBlocks(): LiquidBlocksState {
+  return useContext(LiquidBlocksContext)
 }

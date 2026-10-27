@@ -20,6 +20,8 @@ type CodeEntryProps = {
   hideEntry?: boolean
   /** Start as the field rather than the one-line link (the discount code, per the design). */
   defaultOpen?: boolean
+  /** Marks the field and its Apply button (`data-pending-code`), so Pay can find a code typed but not applied. */
+  kind?: string | undefined
   onCode: (code: string) => void
   onApply: () => void
 }
@@ -41,6 +43,7 @@ export default function CodeEntry({
   chips = null,
   hideEntry = false,
   defaultOpen = false,
+  kind,
   onCode,
   onApply,
 }: CodeEntryProps) {
@@ -78,6 +81,7 @@ export default function CodeEntry({
               autoComplete="off"
               autoCapitalize="characters"
               spellCheck={false}
+              data-pending-code={kind}
               disabled={pending}
               aria-invalid={error ? true : undefined}
               aria-describedby={error ? `${id}-error` : undefined}
@@ -87,6 +91,7 @@ export default function CodeEntry({
             <button
               type="button"
               onClick={onApply}
+              data-apply-code={kind}
               disabled={pending || !code.trim()}
               className="inline-flex h-10 shrink-0 items-center rounded-ck-button! border! border-ck-summary-line! bg-ck-summary-line! px-3.5 text-[0.8125rem]! font-semibold! text-ck-summary-ink! outline-none transition-[opacity,scale] duration-(--duration-press) ease-out focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)] active:scale-(--motion-press-scale) disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 max-lg:h-11"
             >

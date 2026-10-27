@@ -336,7 +336,8 @@ async function deleteBackInStockSignups(tx: StoreTx, where: SQL) {
   await tx.execute(sql`delete from back_in_stock_signup where ${where}`)
 }
 
-async function removeVariants(tx: StoreTx, ids: string[]) {
+/** Deletes variants, or archives the ones an order, cart or stock document still points at. */
+export async function removeVariants(tx: StoreTx, ids: string[]) {
   const referenced = new Set([
     ...(
       await tx
@@ -422,7 +423,18 @@ export async function deleteProduct(
       )[0]?.n
     : 0
   const onStockDocuments = (await stockDocumentVariants(tx, ids)).size
-  if (Number(referenced) > 0 || Number(carted) > 0 || onStockDocuments > 0) {
+  // Reviews (Reviews app, imported from Judge.me too) would go with the product (their foreign
+  // key cascades), so a reviewed product is archived instead and keeps them (schema review
+  // 2026-10-27). Raw SQL: core does not import plugin schemas; the table always exists.
+  const [reviewed] = await tx.execute<{ n: number }>(
+    sql`select count(*)::int as n from review where product_id = ${productId}`,
+  )
+  if (
+    Number(referenced) > 0 ||
+    Number(carted) > 0 ||
+    onStockDocuments > 0 ||
+    Number(reviewed?.n ?? 0) > 0
+  ) {
     await tx
       .update(product)
       .set({ status: 'archived', updatedAt: new Date() })

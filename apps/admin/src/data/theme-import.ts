@@ -16,7 +16,7 @@ export const themeImportContent = {
   /** The inspector of an imported section (Figma 698:92941). */
   inspector: {
     title: 'Imported from Shopify · Liquid',
-    body: 'Its settings come from the section’s schema. Layout and blocks can only change in code.',
+    body: 'Its settings come from the section’s schema. Add, hide and reorder its blocks in Layers; change its markup in code.',
     openCode: 'Open in Edit code',
   },
   dialog: {
@@ -70,10 +70,13 @@ export const themeImportContent = {
     chooseAnother: 'Choose another file',
   },
   editor: {
-    settingsTitle: 'Colours, fonts and layout come from your Shopify theme',
-    settingsBody:
-      'Our theme presets do not apply to an imported theme. Change its sections on the left; editing its own theme settings here comes next.',
+    settingsIntro:
+      'Your Shopify theme’s own settings: logo and favicon, colours, fonts, cart and more. Changes show on the canvas; Save keeps them.',
+    noSettings: 'This theme has no settings of its own. Change its sections on the left.',
     report: 'See the import report',
+    summaryEmpty: 'Nothing set',
+    schemes: (count: number) => (count === 1 ? '1 colour scheme' : `${count} colour schemes`),
+    scheme: (name: string) => `Colour scheme: ${name}`,
   },
   report: {
     title: 'Import report',
@@ -116,7 +119,7 @@ export const themeImportContent = {
       fonts: 'Fonts load from Google Fonts',
       hosted_images: 'Pictures copied into Files',
       payment_icons: 'Simple payment marks',
-      localization: 'India and rupees only',
+      localization: 'Lists your markets; prices stay in rupees for now',
       recommendations: 'Recommendations are empty for now',
       preorder: 'Pre-order uses our built-in pre-order',
       app_data:
@@ -166,7 +169,7 @@ export const themeImportContent = {
       payment_icons: { shopify: 'Payment icons', ours: 'Simple marks for your payment methods.' },
       localization: {
         shopify: 'Country and currency picker',
-        ours: 'India and rupees only for now.',
+        ours: 'Lists every country you sell to and switches market and language. Prices stay in rupees for now.',
       },
       recommendations: {
         shopify: 'Product recommendations',

@@ -194,6 +194,8 @@ export const marketingAutomationRun = pgTable(
   (t) => [
     check('marketing_run_status', sql`${t.status} in ('active','completed','converted','stopped')`),
     uniqueIndex('marketing_run_trigger').on(t.automationId, t.triggerKey),
+    index('marketing_run_customer').on(t.customerId),
+    index('marketing_run_order').on(t.orderId),
     index('marketing_run_due').on(t.storeId, t.status, t.nextAt),
   ],
 )

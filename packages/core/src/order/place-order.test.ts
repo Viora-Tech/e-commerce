@@ -12,6 +12,7 @@ import {
   payment,
   product,
   store,
+  storeCounter,
   variant,
   withStore,
 } from '@commerce/db'
@@ -23,6 +24,7 @@ import {
   CartEmpty,
   CartNotOpen,
   CheckoutRuleViolation,
+  DiscountCodeRefused,
   DiscountUnavailable,
   OutOfStock,
 } from '../errors'
@@ -129,8 +131,9 @@ describe('placeOrder', () => {
     expect(inv?.reserved).toBe(2)
     const [c] = await owner.select().from(cart).where(eq(cart.id, cartId))
     expect(c?.status).toBe('converted')
-    const [s] = await owner.select().from(store).where(eq(store.id, storeId))
-    expect(s?.nextOrderNumber).toBe(2)
+    // Numbers come from `store_counter` (0177), not the store row.
+    const [n] = await owner.select().from(storeCounter).where(eq(storeCounter.storeId, storeId))
+    expect(n?.value).toBe(2)
     expect(provider.calls).toEqual([`createPayment:${result.orderId}:999800`])
   })
 
@@ -179,7 +182,7 @@ describe('placeOrder', () => {
     expect(upi.calls).toEqual([`createPayment:${r2.orderId}:489902`])
   })
 
-  it('applies a discount code from the cart, records usage and drops a used-up code', async () => {
+  it('applies a discount code from the cart, records usage and refuses a used-up code', async () => {
     const first = await seed({ onHand: 10, quantity: 1 })
     const [d] = await owner
       .insert(discount)
@@ -218,7 +221,8 @@ describe('placeOrder', () => {
       .where(eq(discountUsage.orderId, r1.orderId))
     expect(usage).toHaveLength(1)
 
-    // Limit reached: the next cart with the same code is charged full price, not blocked.
+    // Limit reached: the next cart with the same code is refused, never charged the full price
+    // behind the shopper's back (the summary showed the discount).
     const [c2] = await owner
       .insert(cart)
       .values({ storeId: first.storeId, discountCode: 'LAUNCH10' })
@@ -231,12 +235,10 @@ describe('placeOrder', () => {
       quantity: 1,
       unitPricePaise: 499900,
     })
-    const r2 = await placeOrderAndPay(app, first.storeId, {
-      cartId: c2.id,
-      paymentProvider: provider,
-    })
-    const [o2] = await owner.select().from(order).where(eq(order.id, r2.orderId))
-    expect(o2).toMatchObject({ discountCode: null, discountPaise: 0, totalPaise: 499900 })
+    await expect(
+      placeOrderAndPay(app, first.storeId, { cartId: c2.id, paymentProvider: provider }),
+    ).rejects.toBeInstanceOf(DiscountCodeRefused)
+    expect(await owner.select().from(order).where(eq(order.cartId, c2.id))).toHaveLength(0)
   })
 
   it('applies the best automatic discount without a code', async () => {
@@ -577,7 +579,11 @@ describe('placeOrder discount limits under concurrency', () => {
     expect(orders.filter((o) => o.discountCode === 'DROP10')).toHaveLength(5)
     // Every other checkout either failed cleanly or (if it priced after the limit was hit) paid full price.
     for (const r of results) {
-      if (r.status === 'rejected') expect(r.reason).toBeInstanceOf(DiscountUnavailable)
+      // Lost the race for the last use, or found the use already taken: never placed at full price.
+      if (r.status === 'rejected')
+        expect(
+          r.reason instanceof DiscountUnavailable || r.reason instanceof DiscountCodeRefused,
+        ).toBe(true)
     }
     expect(orders.filter((o) => o.discountCode === null).every((o) => o.discountPaise === 0)).toBe(
       true,
@@ -604,7 +610,11 @@ describe('placeOrder discount limits under concurrency', () => {
     expect(usage).toHaveLength(1)
     expect(usage[0]?.email).toBe('shopper@example.com')
     for (const r of results) {
-      if (r.status === 'rejected') expect(r.reason).toBeInstanceOf(DiscountUnavailable)
+      // Lost the race for the last use, or found the use already taken: never placed at full price.
+      if (r.status === 'rejected')
+        expect(
+          r.reason instanceof DiscountUnavailable || r.reason instanceof DiscountCodeRefused,
+        ).toBe(true)
     }
   })
 })
@@ -641,8 +651,9 @@ describe('placeOrder lock and replay', () => {
     expect(provider.calls).toHaveLength(1)
     const [o] = await owner.select().from(order).where(eq(order.id, first.orderId))
     expect(o?.cartId).toBe(cartId)
-    const [s] = await owner.select().from(store).where(eq(store.id, storeId))
-    expect(s?.nextOrderNumber).toBe(2)
+    // Numbers come from `store_counter` (0177), not the store row.
+    const [n] = await owner.select().from(storeCounter).where(eq(storeCounter.storeId, storeId))
+    expect(n?.value).toBe(2)
   })
 
   it('the database refuses a second order for the same cart', async () => {

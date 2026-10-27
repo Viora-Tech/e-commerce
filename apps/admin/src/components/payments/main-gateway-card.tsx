@@ -11,8 +11,10 @@ import { useCopy, useFormat } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
 import GatewayActiveFooter from './gateway-active-footer'
 import GatewayLogo from './gateway-logo'
+import GatewayModeSwitch from './gateway-mode-switch'
 import GatewayProblem from './gateway-problem'
-import GatewaySwitches from './gateway-switches'
+import PaymentModeBadge from './payment-mode-badge'
+import TestModeBar from './test-mode-bar'
 import type { GatewayApp, GatewayStatus } from './types'
 
 type MainGatewayCardProps = {
@@ -25,8 +27,8 @@ type MainGatewayCardProps = {
   onChanged: () => void
   onTurnOnUpi: () => void
   /**
-   * `page`: the gateway's own page, Shopify style: the "Test mode" card and a red Deactivate
-   * sit under this card. `card` (Payments overview): the mode chip only; both live on that page.
+   * `page`: the gateway's own page, Shopify style: the Live/Test card and a red Deactivate
+   * sit under this card. `card` (Payments overview): both sit inside the card.
    */
   layout?: 'card' | 'page'
 }
@@ -78,11 +80,7 @@ export default function MainGatewayCard({
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-body font-semibold text-foreground">{primary.label}</p>
-              {primary.mode ? (
-                <StatusChip tone={primary.mode === 'live' ? 'success' : 'attention'}>
-                  {primary.mode === 'live' ? copy.live : copy.test}
-                </StatusChip>
-              ) : null}
+              <PaymentModeBadge mode={primary.mode} />
               {gateway && !gateway.connected ? (
                 <StatusChip tone="neutral">{activeCopy.off}</StatusChip>
               ) : null}
@@ -127,9 +125,7 @@ export default function MainGatewayCard({
           </div>
         </dl>
 
-        {primary.mode === 'test' ? (
-          <p className="text-caption text-muted-foreground">{copy.testHelp}</p>
-        ) : null}
+        {primary.mode === 'test' ? <TestModeBar variant="card" /> : null}
 
         {healthy ? null : (
           <ul className="flex flex-col gap-2">
@@ -144,6 +140,10 @@ export default function MainGatewayCard({
             ))}
           </ul>
         )}
+
+        {gateway && layout === 'card' ? (
+          <GatewayModeSwitch gateway={gateway} onChanged={onChanged} />
+        ) : null}
 
         {gateway && layout === 'card' ? (
           <GatewayActiveFooter
@@ -162,7 +162,7 @@ export default function MainGatewayCard({
   return (
     <>
       {card}
-      <GatewaySwitches gateway={gateway} onChanged={onChanged} />
+      <GatewayModeSwitch gateway={gateway} onChanged={onChanged} placement="page" />
       <GatewayActiveFooter
         gateway={gateway}
         name={primary.label}

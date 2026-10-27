@@ -239,3 +239,31 @@ describe('products.bulkEdit', () => {
     ).rejects.toBeTruthy()
   })
 })
+
+describe('products.removeVariants (bulk editor, #847)', () => {
+  it("deletes picked variants but never a product's last one", async () => {
+    const a = await merchant('rv-a@example.com', 'rv-a')
+    const { productId, sheet } = await seedProduct(a.ctx, 'Pad', ['PAD-1', 'PAD-2', 'PAD-3'])
+    const [r1, r2, r3] = sheet.rows.map((r) => r.variantId)
+
+    const all = await call(
+      appRouter.products.removeVariants,
+      { ids: [r1, r2, r3] as string[] },
+      { context: a.ctx },
+    )
+    expect(all).toEqual({ ok: false, blocked: [{ productId, title: 'Pad' }] })
+
+    const two = await call(
+      appRouter.products.removeVariants,
+      { ids: [r1, r2] as string[] },
+      { context: a.ctx },
+    )
+    expect(two).toEqual({ ok: true, removed: 2 })
+    const left = await call(
+      appRouter.products.bulkEditSheet,
+      { ids: [productId] },
+      { context: a.ctx },
+    )
+    expect(left.rows.map((r) => r.variantId)).toEqual([r3])
+  })
+})

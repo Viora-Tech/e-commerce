@@ -185,6 +185,11 @@ export type LiquidLayoutParts = {
   mainAttrs: Record<string, string>
   /** Google Fonts the theme's `font_face` calls asked for. */
   fonts: FontDrop[]
+  /**
+   * The theme's favicon (`<link rel="icon">` in its head, from `settings.favicon`): the head
+   * arrives inside `<body>`, where browsers ignore an icon, so the storefront writes it itself.
+   */
+  favicon: string | null
 }
 
 /** Longest attribute text read from `<html>`, `<body>` or `<main>`; real ones are a few hundred. */
@@ -229,6 +234,22 @@ function closeTag(html: string, name: string, from = 0): number {
   const re = new RegExp(`</${name}>`, 'gi')
   re.lastIndex = from
   return re.exec(html)?.index ?? -1
+}
+
+/** An icon's address the storefront may write into `href`: http(s), protocol-relative or a path. */
+const ICON_HREF = /^(?:https?:\/\/|\/)[^\s"'<>\\`]+$/i
+
+/** The first `<link rel="icon">` (or `shortcut icon`) in the head, as its `href`. */
+export function headFavicon(head: string): string | null {
+  let tag = openTag(head, 'link')
+  while (tag) {
+    const attrs = attrsOf(tag.attrs)
+    const rel = (attrs.rel ?? '').toLowerCase().split(/\s+/)
+    const href = (attrs.href ?? '').trim().replaceAll('&amp;', '&')
+    if (rel.includes('icon') && ICON_HREF.test(href)) return href
+    tag = openTag(head, 'link', tag.end)
+  }
+  return null
 }
 
 /** Head tags the storefront writes itself (SEO and the viewport): `<title>`, `<meta>`, canonical. */
@@ -276,6 +297,7 @@ export async function renderLiquidLayout(
     afterFooter: '',
     mainAttrs: {},
     fonts: [],
+    favicon: null,
   }
   if (!ctx.bundle.layout) return empty
   const runtime: EngineRuntime = {
@@ -319,6 +341,7 @@ export async function renderLiquidLayout(
     afterFooter: footerAt >= 0 ? body.slice(footerAt + MARK.footer.length) : '',
     mainAttrs: attrsOf(mainTag?.attrs ?? ''),
     fonts: [...ctx.runtime.fonts.values(), ...runtime.fonts.values()],
+    favicon: headFavicon(head),
   }
 }
 

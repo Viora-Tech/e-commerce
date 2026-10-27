@@ -52,6 +52,7 @@ import {
 import { cachedLiquidData } from './liquid-data-cache'
 import { deferThemeScripts } from './liquid-defer'
 import { belowTheFold } from './liquid-fold'
+import { liquidMarketFor } from './liquid-market'
 import { cartIsEmpty, requestCart } from './request-cart'
 import './search-engine'
 import { requestOrigin } from './seo'
@@ -120,6 +121,7 @@ const requestScope = cache(async (storeId: string) => {
   const preview = readPreview(storeId, h.get('x-theme-preview')) !== null
   return {
     origin: await requestOrigin(),
+    market: liquidMarketFor(h),
     path,
     listing,
     template,
@@ -219,6 +221,7 @@ async function createLiquidContext(
       ),
       nonce,
       experiments: scope.experiments,
+      market: scope.market.market,
     },
     assetBase: `/theme-assets/${themeId}`,
     shopifyHost: theme.shopifyHost,
@@ -300,6 +303,7 @@ function cacheScope(
     template: scope.template,
     postedForm: scope.postedForm,
     experiments: scope.experimentsKey,
+    market: scope.market.key,
   }
 }
 

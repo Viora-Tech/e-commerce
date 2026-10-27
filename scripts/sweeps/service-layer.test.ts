@@ -109,6 +109,12 @@ const ALLOWLIST: AllowEntry[] = [
   { path: 'apps/storefront/src/lib/emi-offers.ts', exact: true, reason: STOREFRONT_LIB },
   { path: 'apps/storefront/src/lib/forms-context.ts', exact: true, reason: STOREFRONT_LIB },
   { path: 'apps/storefront/src/lib/login-actions.ts', exact: true, reason: STOREFRONT_LIB },
+  {
+    path: 'apps/storefront/src/lib/market-switch.ts',
+    exact: true,
+    reason:
+      'the theme country selector form action reads the store markets — move behind a core service',
+  },
   { path: 'apps/storefront/src/lib/media-lookup.ts', exact: true, reason: STOREFRONT_LIB },
   { path: 'apps/storefront/src/lib/password-actions.ts', exact: true, reason: STOREFRONT_LIB },
   { path: 'apps/storefront/src/lib/payments.ts', exact: true, reason: STOREFRONT_LIB },

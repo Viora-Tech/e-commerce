@@ -155,6 +155,7 @@ export default [
       cancel: 'रद्द करें',
       saveFirst: 'पहले ड्राफ़्ट सेव करें',
       needsAddress: 'कन्वर्ट करने से पहले शिपिंग पता जोड़ें',
+      needsAddressParts: (parts: string) => `शिपिंग पते में अभी चाहिए: ${parts}`,
       needsBilling: "बिलिंग पता पूरा करें, या 'शिपिंग जैसा ही' पर टिक करें",
       open: 'खुला',
       invoiceSentStatus: 'इनवॉइस भेजा',

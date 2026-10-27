@@ -33,6 +33,24 @@ export function nextOnHand(current: number, delta: number, allowNegative: boolea
   return next
 }
 
+/**
+ * Which rows a bulk "Adjust by" would take below zero, in input order. Rows that
+ * sell regardless of stock (`allowNegative`) never count.
+ */
+export function belowZeroAfter(
+  rows: { label: string; onHand: number; allowNegative: boolean }[],
+  delta: number,
+): string[] {
+  return rows.filter((r) => !r.allowNegative && r.onHand + delta < 0).map((r) => r.label)
+}
+
+/** "A, B, C and 4 more" so a refusal names the SKUs without flooding the toast. */
+export function nameList(labels: string[], max = 5): string {
+  const shown = labels.slice(0, max).join(', ')
+  const rest = labels.length - max
+  return rest > 0 ? `${shown} and ${rest} more` : shown
+}
+
 /** Delta that turns `current` into `target`, for "Set to" edits. */
 export function deltaToReach(current: number, target: number): number {
   return target - current

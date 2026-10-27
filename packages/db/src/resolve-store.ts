@@ -189,6 +189,68 @@ export async function resolveHost(db: Db, hostname: string): Promise<HostRoute |
   }
 }
 
+/** One market as the storefront proxy routes it (`store_markets`, 0177). */
+export type StoreMarketRoute = {
+  id: string
+  handle: string
+  isPrimary: boolean
+  enabled: boolean
+  /** ISO 4217. */
+  currency: string
+  /** Default language (`en`). */
+  locale: string
+  /** Other languages offered. */
+  locales: string[]
+  /** URL prefix (`ae`, `en-us`); null for the primary market and domain-only markets. */
+  subfolder: string | null
+  /** A live domain only this market answers on; null when it has none. */
+  hostname: string | null
+  /** ISO 3166-1 countries in the market. */
+  countries: string[]
+}
+
+/**
+ * A store's markets with their countries and dedicated domain, before any store context exists
+ * (the storefront proxy), via the SECURITY DEFINER function `store_markets`.
+ */
+export async function storeMarkets(db: Db, storeId: string): Promise<StoreMarketRoute[]> {
+  const rows = await db.execute<{
+    id: string
+    handle: string
+    is_primary: boolean
+    enabled: boolean
+    currency: string
+    locale: string
+    locales: string[] | null
+    subfolder: string | null
+    hostname: string | null
+    countries: string[] | null
+  }>(sql`select * from store_markets(${storeId}::uuid)`)
+  return rows.map((r) => ({
+    id: r.id,
+    handle: r.handle,
+    isPrimary: r.is_primary,
+    enabled: r.enabled,
+    currency: r.currency,
+    locale: r.locale,
+    locales: r.locales ?? [],
+    subfolder: r.subfolder,
+    hostname: r.hostname,
+    countries: r.countries ?? [],
+  }))
+}
+
+/**
+ * Store ids with carts or logs past retention (old carts, dispatched outbox rows, old webhook
+ * payloads), for the worker's daily prune. SECURITY DEFINER backed (`stores_with_retention_due`, 0177).
+ */
+export async function storesWithRetentionDue(db: Db, at: Date): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(
+    sql`select stores_with_retention_due(${at.toISOString()}::timestamptz) as id`,
+  )
+  return rows.map((r) => r.id)
+}
+
 /** Store ids with custom domains awaiting DNS or a certificate, for the worker. SECURITY DEFINER backed. */
 export async function storesWithPendingDomains(db: Db): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(sql`select stores_with_pending_domains() as id`)

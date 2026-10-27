@@ -74,7 +74,7 @@ export async function createCart(ctx: StoreContext): Promise<string> {
  * Each product's first image, for lines whose variant has no image of its own (most imported
  * single-variant products): the cart, drawer and checkout show it like Shopify does.
  */
-async function productFirstImages(
+export async function productFirstImages(
   ctx: StoreContext,
   productIds: string[],
 ): Promise<Map<string, string>> {

@@ -5,13 +5,13 @@ import { LiquidDataCache } from './cache'
 import { MetaobjectsDrop, ShopMetafieldsDrop } from './custom-drops'
 import {
   imageDrop,
-  LIQUID_ROUTES,
   type LiquidCartData,
   type LiquidDataSource,
   type LiquidPolicyData,
 } from './drops'
 import { type EngineRuntime, newRenderBudget, type RenderBudget } from './engine'
 import { importedFileKey } from './filter-values'
+import { DEFAULT_LIQUID_MARKET, type LiquidMarket, liquidLocalization } from './localization'
 import { numericId } from './numeric-id'
 import {
   AllProductsDrop,
@@ -54,6 +54,8 @@ export type LiquidRequest = {
    * number, 0 for the control. Themes read `request.experiments['hero-test']`; empty without.
    */
   experiments?: Readonly<Record<string, number>> | undefined
+  /** The market and language the page renders in; India in English without one. */
+  market?: LiquidMarket | undefined
 }
 
 export type LiquidRenderOptions = {
@@ -241,6 +243,8 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
   const shop = data.shop
   // Content entries (metaobjects): the `metaobjects` global and `shop.metaobjects` are one object.
   const metaobjects = new MetaobjectsDrop(cache)
+  // The page's market and language: `localization`, `request.locale` and `routes`.
+  const loc = liquidLocalization(request.market ?? DEFAULT_LIQUID_MARKET, shop.currency)
   const globals: Record<string, unknown> = {
     _rt: runtime,
     settings,
@@ -256,10 +260,10 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
       money_format: options.moneyFormat ?? '₹{{amount}}',
       money_with_currency_format: `${options.moneyFormat ?? '₹{{amount}}'} INR`,
       description: shop.description,
-      locale: 'en',
+      locale: loc.locale.iso_code,
       enabled_currencies: [{ iso_code: shop.currency, symbol: '₹' }],
       enabled_payment_types: options.paymentTypes,
-      published_locales: [{ iso_code: 'en', name: 'English', primary: true }],
+      published_locales: loc.publishedLocales,
       ...shopPolicies(shop.policies),
       customer_accounts_enabled: true,
       customer_accounts_optional: true,
@@ -271,7 +275,7 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
       metaobjects,
       brand: { logo: null, colors: {}, short_description: shop.description },
     },
-    routes: LIQUID_ROUTES,
+    routes: loc.routes,
     request: {
       design_mode: request.designMode,
       visual_preview_mode: false,
@@ -279,21 +283,10 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
       path: request.path,
       host: request.host,
       origin: request.origin,
-      locale: { iso_code: 'en', name: 'English', primary: true, root_url: '/' },
+      locale: loc.locale,
       experiments: { ...request.experiments },
     },
-    localization: {
-      language: { iso_code: 'en', name: 'English', endonym_name: 'English', root_url: '/' },
-      country: {
-        iso_code: 'IN',
-        name: 'India',
-        currency: { iso_code: 'INR', symbol: '₹', name: 'Indian Rupee' },
-      },
-      available_languages: [{ iso_code: 'en', name: 'English', endonym_name: 'English' }],
-      available_countries: [
-        { iso_code: 'IN', name: 'India', currency: { iso_code: 'INR', symbol: '₹' } },
-      ],
-    },
+    localization: loc.localization,
     template: { name: request.template, suffix: null, directory: null },
     theme: { id: bundle.themeId, name: 'Imported theme', role: 'main' },
     collections: new CollectionsDrop(cache),

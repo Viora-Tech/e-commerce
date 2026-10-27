@@ -43,6 +43,7 @@ import type { AppliedGiftCard } from '@/lib/gift-card-actions'
 import type { CheckoutMethod } from '@/lib/payments'
 import type { CartDepositTerms } from '@/lib/preorder'
 import { isFullPincode, useCheckoutShipping } from '@/lib/use-checkout-shipping'
+import { applyPendingDiscountCode } from './pending-code'
 
 /** Settings → Customer accounts, as the Contact card needs it. */
 export type CheckoutSignIn = {
@@ -378,9 +379,13 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   const handlePayment = (id: string) => setForm((prev) => ({ ...prev, payment: id }))
   const handlePhone = (phone: string) => setForm((prev) => ({ ...prev, phone }))
   /* Enter in a field pays, like the Pay button. One form for the whole checkout. */
+  // A code typed but never applied is applied first; the shopper checks the new total (pending-code.ts).
+  const applyTypedCode = () =>
+    applyPendingDiscountCode((code) => setError(content.errors.discountNotApplied(code)))
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setExpressNote(null)
+    if (applyTypedCode()) return
     submit(payment)
   }
   /*
@@ -389,7 +394,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
    */
   const handleExpress = () => {
     const upiMethod = offered.find(takesUpi)
-    if (!upiMethod) return
+    if (!upiMethod || applyTypedCode()) return
     setForm((prev) => ({ ...prev, payment: upiMethod.id }))
     const placed = submit(upiMethod.id)
     setExpressNote(

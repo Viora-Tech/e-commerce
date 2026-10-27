@@ -482,13 +482,13 @@ export const customDataContent = {
 } as const
 
 export const metafieldsCardContent = {
-  heading: 'Extra fields',
+  heading: 'Extra fields (metafields)',
   empty: 'Add your own fields, like a care guide or warranty, to show more details.',
-  manage: 'Manage extra fields',
+  manage: 'Manage metafields',
   addField: 'Add a field',
   saveFirst: 'Save first, then fill in the extra fields.',
   variant: 'Variant',
-  variantHeading: 'Variant extra fields',
+  variantHeading: 'Variant metafields: each variant has its own values',
   save: 'Save extra fields',
   saving: 'Saving',
   saved: 'Extra fields saved',

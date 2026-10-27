@@ -149,6 +149,7 @@ export default [
       balance_due: 'बाकी रकम',
       completed: 'पूरे हुए',
       cancelled: 'कैंसिल',
+      payment_not_finished: 'पेमेंट अधूरा',
     },
     status: {
       draft: 'ड्राफ़्ट',

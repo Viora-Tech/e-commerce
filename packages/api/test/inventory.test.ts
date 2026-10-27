@@ -36,7 +36,7 @@ async function merchant(email: string, slug: string) {
   return { ctx, storeId: s?.id as string }
 }
 
-async function seedVariant(storeId: string, onHand: number) {
+async function seedVariant(storeId: string, onHand: number, sku = 'GP-1') {
   const productId = newId()
   await owner
     .insert(product)
@@ -48,7 +48,7 @@ async function seedVariant(storeId: string, onHand: number) {
     productId,
     title: 'Default',
     pricePaise: 250000,
-    sku: 'GP-1',
+    sku,
   })
   await owner.insert(inventoryLevel).values({ storeId, variantId, onHand })
   return variantId
@@ -95,6 +95,56 @@ describe('inventory router', () => {
 
     const stats = await call(appRouter.inventory.stats, { locationId }, { context: m.ctx })
     expect(stats).toMatchObject({ skus: 1, outOfStock: 0, lowStock: 1 })
+  })
+
+  it('bulk adjusts by a delta and refuses, naming SKUs, when any would go below zero', async () => {
+    const m = await merchant('bulk@example.com', 'inv-bulk')
+    const a = await seedVariant(m.storeId, 10, 'BULK-A')
+    const b = await seedVariant(m.storeId, 2, 'BULK-B')
+    const [loc] = await call(appRouter.inventory.locations, undefined, { context: m.ctx })
+    const locationId = loc?.id as string
+    const onHand = async () => {
+      const list = await call(appRouter.inventory.list, { locationId }, { context: m.ctx })
+      return Object.fromEntries(list.rows.map((r) => [r.sku, r.onHand]))
+    }
+
+    await expect(
+      call(
+        appRouter.inventory.bulkEdit,
+        { locationId, variantIds: [a, b], mode: 'adjust', value: -4, reason: 'damaged' },
+        { context: m.ctx },
+      ),
+    ).rejects.toThrow('Stock would go below zero for BULK-B')
+    expect(await onHand()).toEqual({ 'BULK-A': 10, 'BULK-B': 2 })
+
+    const res = await call(
+      appRouter.inventory.bulkEdit,
+      {
+        locationId,
+        variantIds: [a, b],
+        mode: 'adjust',
+        value: -2,
+        reason: 'damaged',
+        note: 'Water leak',
+      },
+      { context: m.ctx },
+    )
+    expect(res).toEqual({ updated: 2 })
+    expect(await onHand()).toEqual({ 'BULK-A': 8, 'BULK-B': 0 })
+
+    const history = await call(
+      appRouter.inventory.history,
+      { variantId: a, locationId },
+      { context: m.ctx },
+    )
+    expect(history[0]).toMatchObject({ delta: -2, reason: 'damaged', note: 'Water leak' })
+
+    await call(
+      appRouter.inventory.bulkEdit,
+      { locationId, variantIds: [a, b], mode: 'adjust', value: 5, reason: 'received' },
+      { context: m.ctx },
+    )
+    expect(await onHand()).toEqual({ 'BULK-A': 13, 'BULK-B': 5 })
   })
 
   it('runs a purchase order from draft to received', async () => {

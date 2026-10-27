@@ -20,7 +20,9 @@ export const liquidSectionConfig: ComponentConfig<SectionSettings> = {
   resolveFields: (data, { metadata }) => {
     const meta = metadata as SectionMetadata
     const type = typeof data.props.sectionType === 'string' ? data.props.sectionType : ''
-    return (meta.liquid?.fields[type] ?? {}) as Fields<SectionSettings>
+    // Blocks are edited in Customize's Layers tree, one at a time, as in Shopify's editor.
+    const { blocks: _blocks, ...settings } = meta.liquid?.fields[type] ?? {}
+    return settings as Fields<SectionSettings>
   },
   render: ({ puck, ...props }) => {
     const meta = (puck?.metadata ?? {}) as SectionMetadata

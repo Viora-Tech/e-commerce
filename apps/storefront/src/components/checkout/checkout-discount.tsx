@@ -74,6 +74,7 @@ export default function CheckoutDiscount({ discount }: CheckoutDiscountProps) {
 
   return (
     <CodeEntry
+      kind="discount"
       icon="tag"
       openLabel={checkoutContent.codes.discount}
       inputLabel={content.label}

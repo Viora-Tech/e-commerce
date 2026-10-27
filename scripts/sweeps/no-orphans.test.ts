@@ -329,6 +329,19 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'the shopper-paid-fee split behind recordPaymentCharges, exported for its unit test',
   },
   {
+    file: 'packages/db/src/market-schema.ts',
+    names: [
+      'MARKET_ROUNDING',
+      'MARKET_DUTIES',
+      'marketRegion',
+      'EXCHANGE_RATE_SOURCES',
+      'exchangeRate',
+      'TRANSLATABLE_RESOURCES',
+    ],
+    reason:
+      'Markets schema (0177); the storefront proxy, admin Markets settings and the exchange-rate job import them next',
+  },
+  {
     file: 'packages/db/src/finance-schema.ts',
     names: ['MONTHLY_EXPENSE_CATEGORIES'],
     reason: 'the table check list, exported so core monthly-expenses.test.ts checks it matches',
@@ -384,6 +397,17 @@ const ALLOWLIST: AllowEntry[] = [
     file: 'packages/core/src/theme-import/settings-values.ts',
     names: ['liquidSettingValue'],
     reason: 'one setting of liquidSettings, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/theme-import/theme-settings.ts',
+    names: ['cleanThemeSetting'],
+    reason:
+      'one setting of cleanThemeSettings (the Theme settings save), exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/theme-import/render.ts',
+    names: ['headFavicon'],
+    reason: "the favicon read behind renderLiquidLayout's `favicon`, exported for its unit test",
   },
   {
     file: 'packages/core/src/theme-import/schema.ts',
@@ -906,8 +930,14 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/db/src/schema.ts',
-    names: ['PAYMENT_STATUSES', 'METAFIELD_TYPES'],
+    names: ['PAYMENT_STATUSES'],
     reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/db/src/metafield-schema.ts',
+    names: ['METAFIELD_TYPES'],
+    reason:
+      'no external importer today — investigate before removing (moved from schema.ts in 0177)',
   },
   {
     file: 'packages/db/src/seed-back-in-stock.ts',

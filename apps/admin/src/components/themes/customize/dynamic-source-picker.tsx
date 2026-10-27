@@ -2,19 +2,24 @@
 
 import { optionsFor, type SettingKind, type SourceOption } from '@commerce/core/dynamic-sources'
 import type { TemplateKey } from '@commerce/core/theme'
-import { CheckIcon, DynamicSource, Search } from '@commerce/ui/icons'
+import { DynamicSource, Search, SearchX } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@commerce/ui/shadcn/dialog'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
-import { useEffect, useState } from 'react'
-import { dynamicSourcesContent as copy } from '@/data/dynamic-sources'
+import { type KeyboardEvent, useEffect, useId, useState } from 'react'
+import { dynamicSourcePickerContent } from '@/data/dynamic-sources'
+import { useCopy } from '@/hooks/use-copy'
+import { groupSources, sectionPaths, startsOpen } from '@/lib/dynamic-source-groups'
 import { loadCatalog, optionParts } from '@/lib/dynamic-sources'
+import DynamicSourcePickerGroup from './dynamic-source-picker-group'
 
 type DynamicSourcePickerProps = {
   kind: SettingKind
@@ -25,28 +30,14 @@ type DynamicSourcePickerProps = {
   onClose: () => void
 }
 
-type Group = { heading: string; items: { path: string; label: string }[] }
-
-/** Picker rows under one heading each: "Product", "Store", "FAQ › Shipping". */
-function groupOptions(options: readonly SourceOption[], query: string): Group[] {
-  const q = query.trim().toLowerCase()
-  const groups: Group[] = []
-  for (const option of options) {
-    const parts = optionParts(option)
-    const label = parts.at(-1) ?? option.path
-    const heading = parts.slice(0, -1).filter(Boolean).join(' › ')
-    if (q && !`${heading} ${label}`.toLowerCase().includes(q)) continue
-    const last = groups.at(-1)
-    if (last?.heading === heading) last.items.push({ path: option.path, label })
-    else groups.push({ heading, items: [{ path: option.path, label }] })
-  }
-  return groups
-}
+/** A row's own name: "Title", "Care instructions", "Answer". */
+const labelOf = (option: SourceOption) => optionParts(option).at(-1) || option.path
 
 /**
  * "Connect dynamic source": the store data this setting can show, one tap to
  * pick. Only sources of a fitting type are listed (an image setting sees image
- * sources only), grouped the way the merchant thinks of them.
+ * sources only), in folding sections per source type, searchable, and driven
+ * from the search box with the arrow keys and Enter.
  */
 export default function DynamicSourcePicker({
   kind,
@@ -56,87 +47,156 @@ export default function DynamicSourcePicker({
   onClose,
 }: DynamicSourcePickerProps) {
   // Hooks
+  const copy = useCopy(dynamicSourcePickerContent)
+  const baseId = useId()
   const [catalog, setCatalog] = useState<SourceOption[] | 'loading' | 'failed'>('loading')
   const [query, setQuery] = useState('')
+  const [folded, setFolded] = useState<Record<string, boolean>>({})
+  const [active, setActive] = useState<string | null>(current)
 
   useEffect(() => {
-    let active = true
+    let alive = true
     loadCatalog(template).then(
-      (next) => active && setCatalog(next),
-      () => active && setCatalog('failed'),
+      (next) => alive && setCatalog(next),
+      () => alive && setCatalog('failed'),
     )
     return () => {
-      active = false
+      alive = false
     }
   }, [template])
 
+  // Helpers
+  const idOf = (path: string) => `${baseId}-${path}`
+  const isOpen = (key: string) => {
+    if (query.trim()) return true
+    const section = all.find((s) => s.key === key)
+    return folded[key] ?? (section ? startsOpen(section, current, all.length) : true)
+  }
+  const moveTo = (path: string | undefined) => {
+    if (!path) return
+    setActive(path)
+    document.getElementById(idOf(path))?.scrollIntoView({ block: 'nearest' })
+  }
+
+  // Event handlers
+  const handleQuery = (next: string) => {
+    setQuery(next)
+    setActive(groupSources(options, labelOf, copy.sections, next).flatMap(sectionPaths)[0] ?? null)
+  }
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    const at = active ? visible.indexOf(active) : -1
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      moveTo(visible[Math.min(at + 1, visible.length - 1)])
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      moveTo(visible[Math.max(at - 1, 0)])
+    } else if (e.key === 'Home' && !query) {
+      e.preventDefault()
+      moveTo(visible[0])
+    } else if (e.key === 'End' && !query) {
+      e.preventDefault()
+      moveTo(visible.at(-1))
+    } else if (e.key === 'Enter' && active && at !== -1) {
+      e.preventDefault()
+      onPick(active)
+    }
+  }
+  const handleToggle = (key: string) => setFolded((f) => ({ ...f, [key]: !isOpen(key) }))
+
   // Render logic
   const options = Array.isArray(catalog) ? optionsFor(catalog, kind) : []
-  const groups = groupOptions(options, query)
+  const all = groupSources(options, labelOf, copy.sections)
+  const sections = groupSources(options, labelOf, copy.sections, query)
+  const visible = sections.filter((s) => isOpen(s.key)).flatMap(sectionPaths)
+  const activeId = active && visible.includes(active) ? idOf(active) : undefined
+  const listId = `${baseId}-list`
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex max-h-[85svh] flex-col gap-3 sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{copy.title}</DialogTitle>
-          <DialogDescription>{copy.intro[kind]}</DialogDescription>
-        </DialogHeader>
-        {options.length > 6 ? (
+      <DialogContent className="flex h-[min(85svh,40rem)] w-full flex-col gap-0 p-0 sm:max-w-xl">
+        <DialogHeader className="gap-3 border-b p-4">
+          <DialogTitle className="text-base font-medium">{copy.title}</DialogTitle>
+          <DialogDescription className="text-caption text-muted-foreground">
+            {copy.intro[kind]}
+          </DialogDescription>
           <div className="relative">
             <Search
               aria-hidden
-              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+              className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
             />
             <Input
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => handleQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
               placeholder={copy.search}
               aria-label={copy.search}
-              className="rounded-xl pl-9"
+              role="combobox"
+              aria-expanded
+              aria-controls={listId}
+              aria-activedescendant={activeId}
+              aria-autocomplete="list"
+              className="pl-8"
               autoFocus
             />
           </div>
-        ) : null}
-        <div className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1">
+        </DialogHeader>
+
+        <div id={listId} role="listbox" className="min-h-0 flex-1 overflow-y-auto p-2">
           {catalog === 'loading' ? (
-            <p className="flex items-center gap-2 py-6 text-body text-muted-foreground">
+            <p className="flex h-40 items-center justify-center gap-2 text-body text-muted-foreground">
               <Spinner />
               {copy.loading}
             </p>
           ) : catalog === 'failed' ? (
-            <p className="py-6 text-body text-destructive">{copy.failed}</p>
+            <p className="flex h-40 items-center justify-center text-body text-destructive">
+              {copy.failed}
+            </p>
           ) : options.length === 0 ? (
-            <div className="flex flex-col gap-1 py-6">
-              <p className="text-body text-foreground">{copy.empty}</p>
-              <p className="text-caption text-muted-foreground">{copy.emptyHelp}</p>
+            <div className="flex h-48 flex-col items-center justify-center gap-2 px-6 text-center">
+              <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                <DynamicSource aria-hidden className="size-5" />
+              </span>
+              <p className="text-body-strong text-foreground">{copy.empty}</p>
+              <p className="max-w-sm text-caption text-muted-foreground">{copy.emptyHelp}</p>
             </div>
-          ) : groups.length === 0 ? (
-            <p className="py-6 text-body text-muted-foreground">{copy.noMatch}</p>
+          ) : sections.length === 0 ? (
+            <div className="flex h-48 flex-col items-center justify-center gap-2 px-6 text-center">
+              <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                <SearchX aria-hidden className="size-5" />
+              </span>
+              <p className="text-body-strong text-foreground">{copy.noMatch(query.trim())}</p>
+              <p className="max-w-sm text-caption text-muted-foreground">{copy.noMatchHelp}</p>
+              <Button type="button" variant="ghost" size="sm" onClick={() => handleQuery('')}>
+                {copy.clear}
+              </Button>
+            </div>
           ) : (
-            groups.map((group) => (
-              <section key={group.heading} className="flex flex-col gap-0.5 pb-3">
-                <h3 className="px-2 pb-1 text-caption font-medium text-muted-foreground">
-                  {group.heading}
-                </h3>
-                {group.items.map((item) => (
-                  <button
-                    key={item.path}
-                    type="button"
-                    onClick={() => onPick(item.path)}
-                    aria-pressed={item.path === current}
-                    className="flex min-h-11 w-full items-center gap-2 rounded-lg px-2 text-left text-body text-foreground hover:bg-muted focus-visible:bg-muted focus-visible:outline-none"
-                  >
-                    <DynamicSource aria-hidden className="size-4 shrink-0 text-muted-foreground" />
-                    <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                    {item.path === current ? (
-                      <CheckIcon aria-hidden className="size-4 shrink-0 text-primary" />
-                    ) : null}
-                  </button>
-                ))}
-              </section>
-            ))
+            <div className="flex flex-col gap-1">
+              {sections.map((section) => (
+                <DynamicSourcePickerGroup
+                  key={section.key}
+                  section={section}
+                  open={isOpen(section.key)}
+                  query={query.trim()}
+                  current={current}
+                  active={active}
+                  idOf={idOf}
+                  onToggle={() => handleToggle(section.key)}
+                  onPick={onPick}
+                  onHover={setActive}
+                />
+              ))}
+            </div>
           )}
         </div>
+
+        <DialogFooter className="mx-0 mb-0 items-center gap-2 rounded-b-xl border-t bg-muted/50 px-4 py-3 sm:justify-between">
+          <span className="hidden text-caption text-muted-foreground sm:block">{copy.keys}</span>
+          <Button type="button" variant="outline" onClick={onClose}>
+            {copy.cancel}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

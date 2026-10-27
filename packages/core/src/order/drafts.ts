@@ -22,6 +22,7 @@ import { chargedGstRate, parseStoreTax } from '../tax/settings'
 import { DraftAddressSchema, DraftBillingSchema, writeAddress, writeBilling } from './draft-billing'
 import { draftMoney } from './draft-discount'
 import { createFulfillmentOrders } from './fulfillment-orders'
+import { takeOrderNumber } from './order-number'
 import { taxParcels } from './parcel-tax'
 import { recomputeOrderStatuses } from './recompute'
 import { routeAndReserve } from './routing-service'
@@ -132,15 +133,7 @@ async function resolveLines(ctx: StoreContext, lines: DraftInput['lines']) {
 }
 
 /** Draft numbers come from the same counter as orders, so a converted draft keeps its number. */
-async function nextNumber(ctx: StoreContext): Promise<number> {
-  const [s] = await ctx.tx
-    .update(store)
-    .set({ nextOrderNumber: sql`${store.nextOrderNumber} + 1` })
-    .where(eq(store.id, ctx.storeId))
-    .returning({ next: store.nextOrderNumber })
-  if (!s) throw new CommerceError('STORE_NOT_VISIBLE', `store ${ctx.storeId} not visible`)
-  return s.next - 1
-}
+const nextNumber = (ctx: StoreContext): Promise<number> => takeOrderNumber(ctx.tx, ctx.storeId)
 
 async function writeLines(ctx: StoreContext, orderId: string, input: DraftInput) {
   const lines = await resolveLines(ctx, input.lines)

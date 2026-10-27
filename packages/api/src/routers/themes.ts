@@ -15,6 +15,7 @@ import {
   publishTheme,
   renameTheme,
   restoreThemeVersion,
+  saveImportedThemeSettings,
   saveThemePacks,
   setThemeThumbnail,
   signThemePreviewToken,
@@ -37,6 +38,7 @@ import { storeRegistries } from '../services/apps.service'
 import { storageProviderFor } from '../services/media.service'
 import {
   importThemeZip,
+  liquidEditorHead,
   liquidEditorInfo,
   renderLiquidForEditor,
   themeImportReport,
@@ -71,6 +73,11 @@ const LiquidSectionInput = z.object({
   location: z.string().min(1).max(40),
   index: z.number().int().min(0).max(100),
 })
+
+/** Theme settings values by setting id (`settings_schema.json`); each is cleaned by its type. */
+const ThemeSettingValues = z
+  .record(z.string().min(1).max(100), z.unknown())
+  .refine((v) => Object.keys(v).length <= 500, 'Too many settings')
 
 /**
  * Imported Shopify themes: upload a zip (always a NEW unpublished theme), read its
@@ -121,9 +128,42 @@ const importRouter = {
 
   /** The canvas's HTML for imported sections, keyed by section id (scripts removed). */
   render: can(permissions.ONLINE_STORE_READ)
-    .input(z.object({ themeId: z.string().uuid(), sections: z.array(LiquidSectionInput).max(60) }))
+    .input(
+      z.object({
+        themeId: z.string().uuid(),
+        sections: z.array(LiquidSectionInput).max(60),
+        /** Unsaved Theme settings to preview in place of the saved ones. */
+        themeSettings: ThemeSettingValues.optional(),
+      }),
+    )
     .handler(({ context, input }) =>
-      renderLiquidForEditor(context.tx, context.scope.storeId, input.themeId, input.sections),
+      renderLiquidForEditor(
+        context.tx,
+        context.scope.storeId,
+        input.themeId,
+        input.sections,
+        input.themeSettings,
+      ),
+    ),
+
+  /** The theme's head for the canvas with unsaved Theme settings previewed (colours, fonts). */
+  head: can(permissions.ONLINE_STORE_READ)
+    .input(z.object({ themeId: z.string().uuid(), themeSettings: ThemeSettingValues }))
+    .handler(({ context, input }) =>
+      liquidEditorHead(context.tx, context.scope.storeId, input.themeId, input.themeSettings),
+    ),
+
+  /** Saves an imported theme's own Theme settings (favicon, colours, fonts…); returns the saved values. */
+  saveSettings: can(permissions.ONLINE_STORE_WRITE)
+    .input(z.object({ themeId: z.string().uuid(), values: ThemeSettingValues }))
+    .handler(({ context, input }) =>
+      libraryErrors(async () => ({
+        settings: await saveImportedThemeSettings(context.tx, {
+          themeId: input.themeId,
+          values: input.values,
+          by: savedBy(context),
+        }),
+      })),
     ),
 }
 

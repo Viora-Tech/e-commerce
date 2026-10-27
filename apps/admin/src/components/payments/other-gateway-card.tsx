@@ -10,7 +10,9 @@ import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
 import GatewayActiveFooter from './gateway-active-footer'
 import GatewayLogo from './gateway-logo'
-import GatewaySwitches from './gateway-switches'
+import GatewayModeSwitch from './gateway-mode-switch'
+import PaymentModeBadge from './payment-mode-badge'
+import TestModeBar from './test-mode-bar'
 import type { GatewayApp } from './types'
 
 type OtherGatewayCardProps = {
@@ -39,11 +41,7 @@ export default function OtherGatewayCard({
           <GatewayLogo id={gateway.id} monogram={monogramOf(gateway.id)} />
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
             <p className="text-body font-semibold text-foreground">{gateway.name}</p>
-            {gateway.mode ? (
-              <StatusChip tone={gateway.mode === 'live' ? 'success' : 'attention'}>
-                {gateway.mode === 'live' ? copy.live : copy.test}
-              </StatusChip>
-            ) : null}
+            <PaymentModeBadge mode={gateway.mode} />
             {gateway.connected ? null : <StatusChip tone="neutral">{modes.active.off}</StatusChip>}
           </div>
           <Button
@@ -54,7 +52,8 @@ export default function OtherGatewayCard({
             {copy.manage}
           </Button>
         </div>
-        <GatewaySwitches gateway={gateway} onChanged={onChanged} />
+        {gateway.mode === 'test' ? <TestModeBar variant="card" /> : null}
+        <GatewayModeSwitch gateway={gateway} onChanged={onChanged} />
         <GatewayActiveFooter
           gateway={gateway}
           name={gateway.name}

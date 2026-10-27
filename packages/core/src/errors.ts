@@ -52,6 +52,21 @@ export class DiscountUnavailable extends CommerceError {
   }
 }
 
+/**
+ * The code on the cart does not work for this checkout, found only now that the contact is known
+ * (one use per customer, a customer-only code, a segment). The order is not placed: the shopper
+ * saw the discount in the summary and must not be charged the full price without being told.
+ */
+export class DiscountCodeRefused extends CommerceError {
+  readonly code: string
+  readonly reason: string
+  constructor(code: string, reason: string, storeId?: string) {
+    super('DISCOUNT_CODE_REFUSED', `Discount code ${code} refused: ${reason}`, { storeId })
+    this.code = code
+    this.reason = reason
+  }
+}
+
 export class PaymentFailed extends CommerceError {
   constructor(provider: string, cause?: unknown, storeId?: string) {
     super('PAYMENT_FAILED', `Payment via ${provider} failed`, { storeId, cause })

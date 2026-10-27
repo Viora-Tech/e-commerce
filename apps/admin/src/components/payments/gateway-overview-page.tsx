@@ -17,6 +17,7 @@ import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import MainGatewayCard from './main-gateway-card'
+import TestModeBar from './test-mode-bar'
 import type { GatewayId, PaymentsSetup } from './types'
 
 type GatewayOverviewPageProps = {
@@ -60,6 +61,7 @@ export default function GatewayOverviewPage({ providerId }: GatewayOverviewPageP
   return (
     <div className="flex flex-col gap-4">
       <BackLink href={PAYMENTS_PAGE_HREF} label={copy.backToPayments} />
+      {gateway?.mode === 'test' ? <TestModeBar /> : null}
       {isMain ? (
         <MainGatewayCard
           primary={setup.primary}

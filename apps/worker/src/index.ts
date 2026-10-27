@@ -42,6 +42,7 @@ import { platformWebhooks } from './platform-webhooks'
 import { BALANCE_EVERY_MS, createPreorderBalanceJob } from './preorder-balance'
 import { createPurchaseDocumentWorker } from './purchase-documents'
 import { createConnection, createHeartbeat } from './queues'
+import { createRetentionPrune, RETENTION_SCHEDULE } from './retention'
 import { createReviewRequestSweep, REVIEW_REQUESTS_EVERY_MS } from './reviews'
 import { createSearchConsoleSweep, SEARCH_CONSOLE_EVERY_MS } from './search-console'
 import { createSenderEmailPoller, SENDER_CHECK_EVERY_MS } from './sender-email'
@@ -141,6 +142,7 @@ const billing = createBillingSweep(redis, db, {
 })
 const apiActivityPrune = createApiActivityPrune(redis, db)
 const automationsPrune = createAutomationsPrune(redis, db)
+const retentionPrune = createRetentionPrune(redis, db)
 const channelSync = createChannelSync(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
   adminUrl: env.ADMIN_URL,
@@ -203,6 +205,7 @@ const watched = [
   [billing.worker, 'billing-sweep'],
   [apiActivityPrune.worker, 'api-activity-prune'],
   [automationsPrune.worker, 'automations-prune'],
+  [retentionPrune.worker, 'retention-prune'],
   [channelSync.worker, 'channel-sync'],
 ] as const
 for (const [w, queueName] of watched) {
@@ -327,6 +330,10 @@ await apiActivityPrune.queue.upsertJobScheduler(
   { every: API_ACTIVITY_PRUNE_EVERY_MS },
   { name: 'prune' },
 )
+// Carts, outbox rows and webhook payloads past retention: 03:30 India time, when stores are quiet.
+await retentionPrune.queue.upsertJobScheduler('retention-prune', RETENTION_SCHEDULE, {
+  name: 'prune',
+})
 await channelSync.queue.upsertJobScheduler(
   'channel-sync-sweep',
   { every: CHANNEL_SYNC_EVERY_MS },
@@ -439,6 +446,8 @@ const shutdown = async () => {
   await apiActivityPrune.queue.close()
   await automationsPrune.worker.close()
   await automationsPrune.queue.close()
+  await retentionPrune.worker.close()
+  await retentionPrune.queue.close()
   await channelSync.worker.close()
   await channelSync.queue.close()
   await queue.close()

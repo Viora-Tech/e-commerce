@@ -39,6 +39,7 @@ import {
   CartEmpty,
   CartNotOpen,
   CheckoutRuleViolation,
+  DiscountCodeRefused,
   NotLaunchedYet,
   ShippingRateUnavailable,
   ShippingUnavailable,
@@ -65,6 +66,7 @@ import { computeOrderGst } from '../tax/gst'
 import { chargedGstRate, parseStoreTax, type StoreTaxSettings } from '../tax/settings'
 import { runWorkflow, type WorkflowLog, type WorkflowStep } from '../workflow/run'
 import { createFulfillmentOrders, deleteFulfillmentOrders } from './fulfillment-orders'
+import { takeOrderNumber } from './order-number'
 import { taxParcels } from './parcel-tax'
 import { recomputeOrderStatuses } from './recompute'
 import type { RoutedParcel } from './routing'
@@ -294,19 +296,21 @@ export function checkGiftCardRules(
 }
 
 /**
- * Decide the discount inside the transaction, from the rules as they are now.
- * A code that stopped working since the shopper typed it is dropped (the best
- * automatic offer, if any, takes its place); the order is never blocked over it.
+ * Decide the discount inside the transaction, from the rules as they are now. A code the
+ * shopper entered that does not work for this contact (one use per customer, customers only)
+ * stops the order with `DiscountCodeRefused`: dropping it quietly charged the full price while
+ * the summary still showed the discount (Razorpay asked for more than the page said).
  */
 const resolveDiscount: WorkflowStep<State> = {
   name: 'resolveDiscount',
   async run({ ctx, input, cartDiscountCode, lines }) {
     if (lines.some((l) => l.giftCard)) return { discount: null }
     const code = input.discountCode === undefined ? cartDiscountCode : input.discountCode
-    const { outcome } = await resolveCartDiscount(ctx, input.cartId, code, {
+    const { outcome, codeRejected } = await resolveCartDiscount(ctx, input.cartId, code, {
       email: input.checkout?.email,
       stateCode: input.checkout?.address?.stateCode,
     })
+    if (code && codeRejected) throw new DiscountCodeRefused(code, codeRejected, ctx.storeId)
     return { discount: outcome }
   },
 }
@@ -531,20 +535,20 @@ const createOrder: WorkflowStep<State> = {
       // Created or updated (the upsert does not say which); app consumers upsert either way.
       if (customerId) await recordCustomerChange(ctx.tx, ctx.storeId, customerId, 'updated')
     }
+    // The store's settings are only read here: the number comes from `store_counter`, so the
+    // checkout no longer holds the store row locked until it commits (0177).
     const [s] = await ctx.tx
-      .update(store)
-      .set({ nextOrderNumber: sql`${store.nextOrderNumber} + 1` })
-      .where(eq(store.id, ctx.storeId))
-      .returning({
-        next: store.nextOrderNumber,
+      .select({
         payments: store.payments,
         address: store.address,
         gstRatePercent: store.gstRatePercent,
         apps: store.apps,
       })
+      .from(store)
+      .where(eq(store.id, ctx.storeId))
     if (!s) throw new Error(`store ${ctx.storeId} not visible in context`)
     const storeTax = parseStoreTax(s.apps)
-    const orderNumber = s.next - 1
+    const orderNumber = await takeOrderNumber(ctx.tx, ctx.storeId)
     const subtotalPaise = sumPaise(lines)
     // Discount first, then the payment-method fee or discount on what is left.
     // Both are applied server-side here; the checkout preview is only a hint.

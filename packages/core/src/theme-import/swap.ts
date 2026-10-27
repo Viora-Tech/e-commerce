@@ -126,7 +126,7 @@ export const SWAP_TABLE: readonly SwapRow[] = [
   {
     key: 'localization',
     shopify: 'Country and currency selector',
-    ours: 'India and rupees only for now; the selector shows one choice',
+    ours: 'Your markets: the selector lists every country you sell to and switches market and language (prices stay in rupees for now)',
     kind: 'replaced',
     detect: /form\s+['"](localization|currency)['"]/,
   },

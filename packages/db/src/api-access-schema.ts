@@ -133,6 +133,7 @@ export const apiActivity = pgTable(
   },
   (t) => [
     index('api_activity_store').on(t.storeId, t.createdAt),
+    index('api_activity_grant').on(t.grantId),
     check(
       'api_activity_kind',
       sql`${t.kind} in ('read','change','approval','blocked','connected','revoked','expired')`,

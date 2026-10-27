@@ -40,79 +40,24 @@ import {
   count,
   desc,
   eq,
-  gt,
   gte,
   ilike,
   inArray,
-  isNull,
   lte,
   ne,
   notInArray,
   or,
-  type SQL,
   sql,
 } from 'drizzle-orm'
 
-export type { OrderStatus }
+export { ORDER_VIEWS, type OrderView, viewFilter } from './order-views'
 
-/** The tabs above the order list. */
-export const ORDER_VIEWS = [
-  'all',
-  'unpaid',
-  'unfulfilled',
-  'pending_upi',
-  'balance_due',
-  'completed',
-  'cancelled',
-] as const
-export type OrderView = (typeof ORDER_VIEWS)[number]
+import { type OrderView, viewFilter } from './order-views'
+
+export type { OrderStatus }
 
 /** Drafts live in the same table but are not orders yet; every list and tile hides them. */
 const notDraft = ne(order.status, 'draft')
-
-/**
- * What each tab shows. Unpaid and Unfulfilled are work still to do, so only
- * open orders count; Pending UPI is a manual transfer whose checkout amount
- * has not been matched yet.
- */
-/** A list tab's rows; Home's to-do counts use the same rule so their number matches the list they open. */
-export function viewFilter(view: OrderView): SQL | undefined {
-  switch (view) {
-    case 'unpaid':
-      return and(
-        eq(order.status, 'open'),
-        inArray(order.paymentStatus, [...UNPAID_PAYMENT_STATUSES]),
-      )
-    case 'unfulfilled':
-      // Imported history is a read-only record: nothing on it is left to ship.
-      return and(
-        eq(order.status, 'open'),
-        inArray(order.fulfillmentStatus, [...UNFULFILLED_STATUSES]),
-        isNull(order.importedFrom),
-      )
-    case 'pending_upi':
-      return and(
-        eq(order.status, 'open'),
-        isNull(order.checkoutPaidAt),
-        eq(order.paymentMethod, 'manual'),
-        isNull(order.importedFrom),
-      )
-    case 'balance_due':
-      // Deposit pre-orders whose balance is still owed (Home's "pre-orders waiting on balance").
-      return and(
-        gt(order.balanceDuePaise, 0),
-        isNull(order.balancePaidAt),
-        isNull(order.importedFrom),
-        ne(order.status, 'cancelled'),
-      )
-    case 'completed':
-      return eq(order.status, 'completed')
-    case 'cancelled':
-      return eq(order.status, 'cancelled')
-    default:
-      return undefined
-  }
-}
 
 /** "#1234" or "1234" is an order number; anything else is a name or an email. */
 export function orderNumberFromSearch(search: string): number | null {
@@ -152,7 +97,8 @@ function orderListWhere(input: OrderListFilters) {
   const byNumber = input.search ? orderNumberFromSearch(input.search) : null
   return and(
     notDraft,
-    input.view ? viewFilter(input.view) : undefined,
+    // A search finds any order, a checkout still waiting on payment too.
+    input.view ? viewFilter(input.view) : input.search ? undefined : viewFilter('all'),
     input.search
       ? or(
           ilike(order.email, `%${input.search}%`),

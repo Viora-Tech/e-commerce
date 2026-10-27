@@ -62,6 +62,7 @@ import { inboxLauncherOf } from '@/lib/inbox-launcher'
 import { chatLogoUrl } from '@/lib/inbox-logo'
 import { liquidShim } from '@/lib/liquid-shim'
 import { liquidLayoutFor, reactAttrs } from '@/lib/liquid-theme'
+import { MARKET_HEADERS } from '@/lib/markets'
 import { mediaByUrl } from '@/lib/media-lookup'
 import { subscribeAction } from '@/lib/newsletter-actions'
 import { storePixels } from '@/lib/pixels/pixels'
@@ -235,6 +236,8 @@ export default async function StoreLayout({ children, params }: Props) {
   // stylesheets, icon sprites, cart drawer and scripts around our <main>. Never around the
   // locked checkout, which then also skips the theme's header and footer (`liquidLayoutForPath`).
   const pathname = (await headers()).get('x-pathname') ?? '/'
+  // The page's language: its market's (`lib/markets.ts`).
+  const lang = (await headers()).get(MARKET_HEADERS.locale) ?? 'en'
   const themeId = preview?.themeId ?? (await liveThemeId(storeId))
   const themeLayout = themeId ? await liquidLayoutFor(storeId, themeId) : null
   const liquid = liquidLayoutForPath(themeLayout, pathname)
@@ -407,12 +410,14 @@ export default async function StoreLayout({ children, params }: Props) {
     // shopper is in counts as viewed on its pages (sections with an A/B test setting report
     // their own in `renderTemplate`).
     const tested = preview ? [] : Object.keys((await requestExperiments(storeId)).assignments)
+    const liquidFavicon = liquid.favicon ?? theme.brand.favicon?.url ?? null
     return (
-      <html lang="en" {...reactAttrs(liquid.htmlAttrs)} suppressHydrationWarning>
+      <html lang={lang} {...reactAttrs(liquid.htmlAttrs)} suppressHydrationWarning>
         <head>
           {sentryMeta}
           {liquid.fontsHref ? <link rel="stylesheet" href={liquid.fontsHref} /> : null}
-          {theme.brand.favicon ? <link rel="icon" href={theme.brand.favicon.url} /> : null}
+          {/* The theme's own favicon (Theme settings → Favicon) first: its head lands in <body>. */}
+          {liquidFavicon ? <link rel="icon" href={liquidFavicon} /> : null}
         </head>
         <body {...reactAttrs(liquid.bodyAttrs)} suppressHydrationWarning>
           <LiquidHtml
@@ -444,7 +449,7 @@ export default async function StoreLayout({ children, params }: Props) {
 
   return (
     <html
-      lang="en"
+      lang={lang}
       data-theme={htmlThemeAttr(mode)}
       className={themeFontVariables}
       {...themeRootAttrs(theme)}

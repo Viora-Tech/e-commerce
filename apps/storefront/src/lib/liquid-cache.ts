@@ -30,6 +30,8 @@ export type LiquidRenderScope = {
   postedForm: string | null
   /** The shopper's A/B test variations (`assignmentsKey`), blank when in none. */
   experiments?: string | undefined
+  /** The page's market, language and country (`liquidMarketFor`), blank in the store's own. */
+  market?: string | undefined
 }
 
 function scopeKey(scope: LiquidRenderScope): string {
@@ -42,6 +44,7 @@ function scopeKey(scope: LiquidRenderScope): string {
     scope.postedForm ?? '',
     // Only when set, so pages outside any experiment keep their cache keys.
     ...(scope.experiments ? [scope.experiments] : []),
+    ...(scope.market ? [`market:${scope.market}`] : []),
   ].join('|')
 }
 

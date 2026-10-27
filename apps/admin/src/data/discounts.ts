@@ -107,7 +107,7 @@ export const discountFormContent = {
     order: (n: number) => `#${n}`,
     off: (amount: string) => `${amount} off`,
     cancelled: 'Cancelled',
-    note: 'Test orders are left out. A cancelled order still counts as a use but adds no revenue.',
+    note: 'Test orders are left out. A cancelled order still counts as a use but adds no revenue. Each order keeps the amount it got; a changed value applies to new orders only.',
   },
   saveBar: { message: 'Unsaved changes', save: 'Save', discard: 'Discard' },
   toasts: {

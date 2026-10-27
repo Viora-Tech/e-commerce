@@ -7,13 +7,30 @@ export type PaymentModeId = 'test' | 'live'
 
 export const paymentModesContent = {
   testBar: {
-    title: 'Test mode — payments are not real',
+    title: 'Test mode — no real money moves',
     body: 'Shoppers see a "Test mode" badge at checkout. Orders paid now are marked Test and kept out of your reports and GST invoices.',
     banner: 'Test mode — payments are not real.',
     bannerLink: 'Payments settings',
+    /** The strip on a gateway's card. */
+    note: 'Test mode — no real money moves',
+    noteBody: 'Checkout uses your test keys. Orders are marked Test and kept out of your reports.',
   },
   mode: {
     label: 'Keys in use',
+    heading: 'Payments mode',
+    help: 'Live takes real payments. Test lets you try checkout without real money. Switching never deletes keys.',
+    badge: { live: 'Live', test: 'Test mode' } satisfies Record<PaymentModeId, string>,
+    keysLabel: (mode: PaymentModeId) => (mode === 'live' ? 'Live keys' : 'Test keys'),
+    status: {
+      'in-use': 'In use at checkout',
+      saved: 'Saved',
+      missing: 'Not added',
+    },
+    editKeys: (mode: PaymentModeId) => (mode === 'live' ? 'Edit live keys' : 'Edit test keys'),
+    blocked: (mode: PaymentModeId) =>
+      mode === 'live'
+        ? 'Add your live keys before going live. Checkout stays on your test keys until then.'
+        : 'Add your test keys before switching to test. Checkout stays on your live keys until then.',
     testHeading: 'Test mode',
     testHelp: 'See how payments and orders work on your store, without real money',
     test: 'Test',
@@ -53,6 +70,9 @@ export const paymentModesContent = {
     inactiveHelp: 'Off: shoppers do not see it at checkout. Its keys and settings are saved.',
   },
   keySet: {
+    pickerLabel: 'Keys for',
+    checkoutUses: (mode: PaymentModeId) =>
+      mode === 'live' ? 'Checkout uses your live keys.' : 'Checkout uses your test keys.',
     editing: (mode: PaymentModeId) =>
       mode === 'live' ? 'You are editing your live keys.' : 'You are editing your test keys.',
     waiting: (mode: PaymentModeId) =>

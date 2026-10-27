@@ -2,6 +2,7 @@ import { settingsSecret } from '@commerce/config'
 import {
   adjustStock,
   BulkStockEditSchema,
+  bulkAdjustStock,
   cancelPurchaseOrder,
   closePurchaseOrder,
   createLocation,
@@ -155,6 +156,17 @@ export const inventoryRouter = {
     .handler(({ context, input }) =>
       friendly(async () => {
         const { variantIds, ...edit } = input
+        if (edit.mode === 'adjust') {
+          const updated = await bulkAdjustStock(context.tx, {
+            storeId: context.scope.storeId,
+            locationId: edit.locationId,
+            variantIds,
+            delta: edit.value,
+            reason: edit.reason,
+            note: edit.note,
+          })
+          return { updated }
+        }
         for (const variantId of variantIds) {
           await applyEdit(context.tx, context.scope.storeId, { ...edit, variantId })
         }

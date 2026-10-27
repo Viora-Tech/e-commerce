@@ -4,13 +4,29 @@ import { translation } from '@/lib/i18n'
 export default [
   translation(paymentModesContent, {
     testBar: {
-      title: 'Test मोड — पेमेंट असली नहीं हैं',
+      title: 'Test मोड — कोई असली पैसा नहीं जाता',
       body: 'चेकआउट पर ग्राहकों को "Test mode" बैज दिखता है। अभी पेमेंट हुए ऑर्डर Test के रूप में मार्क होते हैं और आपकी रिपोर्ट व GST इनवॉइस में नहीं आते।',
       banner: 'Test मोड — पेमेंट असली नहीं हैं।',
       bannerLink: 'पेमेंट सेटिंग्स',
+      note: 'Test मोड — कोई असली पैसा नहीं जाता',
+      noteBody: 'चेकआउट आपकी test keys पर चलता है। ऑर्डर Test के रूप में मार्क होते हैं और रिपोर्ट में नहीं आते।',
     },
     mode: {
       label: 'इस्तेमाल हो रही keys',
+      heading: 'पेमेंट मोड',
+      help: 'Live में असली पेमेंट आते हैं। Test में आप असली पैसे के बिना चेकआउट आज़मा सकते हैं। बदलने से कोई key नहीं मिटती।',
+      badge: { live: 'Live', test: 'Test मोड' },
+      keysLabel: (mode: PaymentModeId) => (mode === 'live' ? 'Live keys' : 'Test keys'),
+      status: {
+        'in-use': 'चेकआउट पर इस्तेमाल हो रही हैं',
+        saved: 'सेव हैं',
+        missing: 'नहीं जोड़ी गईं',
+      },
+      editKeys: (mode: PaymentModeId) => (mode === 'live' ? 'Live keys बदलें' : 'Test keys बदलें'),
+      blocked: (mode: PaymentModeId) =>
+        mode === 'live'
+          ? 'Live करने से पहले अपनी live keys जोड़ें। तब तक चेकआउट test keys पर ही रहेगा।'
+          : 'Test पर जाने से पहले अपनी test keys जोड़ें। तब तक चेकआउट live keys पर ही रहेगा।',
       testHeading: 'टेस्ट मोड',
       testHelp: 'असली पैसे के बिना देखें कि आपके स्टोर पर पेमेंट और ऑर्डर कैसे काम करते हैं',
       test: 'Test',
@@ -50,6 +66,9 @@ export default [
       inactiveHelp: 'बंद: ग्राहकों को यह चेकआउट पर नहीं दिखता। इसकी keys और सेटिंग्स सेव हैं।',
     },
     keySet: {
+      pickerLabel: 'Keys किसके लिए',
+      checkoutUses: (mode: PaymentModeId) =>
+        mode === 'live' ? 'चेकआउट आपकी live keys पर चलता है।' : 'चेकआउट आपकी test keys पर चलता है।',
       editing: (mode: PaymentModeId) =>
         mode === 'live' ? 'आप अपनी live keys बदल रहे हैं।' : 'आप अपनी test keys बदल रहे हैं।',
       waiting: (mode: PaymentModeId) =>

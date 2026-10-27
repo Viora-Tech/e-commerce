@@ -27,6 +27,7 @@ import type { ProviderDef } from '@/components/settings/provider-settings-form'
 import { appsContent } from '@/data/apps'
 import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
+import { initialKeySetMode, keySetValues, withEditedKeySet } from './connect-key-sets'
 import ConnectModeSwitch, { type ModeSwitch } from './connect-mode-switch'
 import {
   type FieldValues,
@@ -143,7 +144,14 @@ export default function ProviderConnectPage<R extends TestOutcome>({
   // biome-ignore lint/correctness/useExhaustiveDependencies: load once per mount, like every settings page
   useEffect(() => {
     loadProviderSettings(kind).then((r) => {
-      const stored = { ...emptyValues, ...(r.settings.providers[providerId] ?? {}) }
+      const stored = mode?.keySets
+        ? keySetValues(
+            r.settings.providers,
+            providerId,
+            initialKeySetMode(r.settings.providers, providerId, window.location.search),
+            emptyValues,
+          )
+        : { ...emptyValues, ...(r.settings.providers[providerId] ?? {}) }
       const saved = prepare ? prepare(stored) : stored
       setProvider(r.available.find((p) => p.id === providerId) ?? null)
       setBlob(r.settings)
@@ -162,6 +170,16 @@ export default function ProviderConnectPage<R extends TestOutcome>({
 
   // Event handlers
   const handleOpen = () => setOpened(true)
+
+  /** Two key sets (Decentro): show the other mode's saved keys, unedited. */
+  const handleKeySet = (next: 'test' | 'live') => {
+    if (!blob) return
+    const stored = keySetValues(blob.providers, providerId, next, emptyValues)
+    const saved = prepare ? prepare(stored) : stored
+    setValues(saved)
+    setSnapshot(JSON.stringify(saved))
+    setTestState({ status: 'idle' })
+  }
 
   const handleTest = async () => {
     setTestState({ status: 'testing' })
@@ -188,13 +206,19 @@ export default function ProviderConnectPage<R extends TestOutcome>({
     setBusy(true)
     setError(null)
     try {
-      const next: SettingsBlob = {
-        ...blob,
-        enabled: [...new Set([...blob.enabled, providerId])],
-        providers: { ...blob.providers, [providerId]: values },
-      }
+      const editing = values.mode === 'live' ? 'live' : 'test'
+      const next: SettingsBlob = mode?.keySets
+        ? withEditedKeySet(blob, providerId, editing, values)
+        : {
+            ...blob,
+            enabled: [...new Set([...blob.enabled, providerId])],
+            providers: { ...blob.providers, [providerId]: values },
+          }
       const result = await saveProviderSettings(kind, next)
-      const saved = { ...emptyValues, ...(result?.providers[providerId] ?? values) }
+      const saved =
+        mode?.keySets && result
+          ? keySetValues(result.providers, providerId, editing, emptyValues)
+          : { ...emptyValues, ...(result?.providers[providerId] ?? values) }
       if (result) setBlob(result)
       setValues(saved)
       setSnapshot(JSON.stringify(saved))
@@ -303,6 +327,8 @@ export default function ProviderConnectPage<R extends TestOutcome>({
                     mode={mode}
                     values={values}
                     setField={setField}
+                    providers={blob?.providers ?? {}}
+                    onKeySet={handleKeySet}
                   />
                 ) : null}
 

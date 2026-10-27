@@ -56,11 +56,17 @@ function srcSet(variants: Record<string, { avif: string; webp: string }>, format
  * paints over it, with no JS and no extra DOM node. Malformed/undecodable
  * hashes (there should never be one, but a corrupt row is not worth a crash)
  * fall back to no placeholder rather than throwing.
+ *
+ * Not for a picture with transparency (a product cut out on no background): the blur stays
+ * under the loaded image and shows through its empty parts as a coloured halo (Waimers
+ * collection grid, 2026-10-27). ThumbHash marks transparency in bit 7 of its third byte; a PNG,
+ * WebP or GIF original whose hash came from a flattened copy is treated the same way.
  */
-function blurStyle(thumbhash: string | null | undefined): CSSProperties | undefined {
-  if (!thumbhash) return undefined
+function blurStyle(thumbhash: string | null | undefined, url: string): CSSProperties | undefined {
+  if (!thumbhash || /\.(png|webp|gif|svg)(\?|$)/i.test(url)) return undefined
   try {
     const bytes = Uint8Array.from(atob(thumbhash), (c) => c.charCodeAt(0))
+    if (((bytes[2] ?? 0) & 0x80) !== 0) return undefined
     const dataUrl = thumbHashToDataURL(bytes)
     return {
       backgroundImage: `url(${dataUrl})`,
@@ -100,7 +106,7 @@ export default function Picture({
 }: PictureProps) {
   // Render logic
   const variants = image.variants
-  const blur = placeholder ? blurStyle(image.thumbhash) : undefined
+  const blur = placeholder ? blurStyle(image.thumbhash, image.url) : undefined
   const style = blur || ownStyle ? { ...blur, ...ownStyle } : undefined
 
   // Early returns
