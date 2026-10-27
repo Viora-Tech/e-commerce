@@ -166,13 +166,12 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
   const remaining = refunding
     ? refunding.amountPaise - refundedTotal(order.refunds, refunding.id)
     : 0
-  // Imported history is a record: nothing on it can be collected, packed or refunded.
+  // Imported history is a record: nothing on it can be collected or packed. A refund can still be
+  // recorded by hand (the old platform took the money), never sent through a gateway here.
   const readOnly = Boolean(order.importedFrom)
-  const canRefund =
-    !readOnly &&
-    order.payments.some(
-      (p) => p.status === 'captured' && refundedTotal(order.refunds, p.id) < p.amountPaise,
-    )
+  const canRefund = order.payments.some(
+    (p) => p.status === 'captured' && refundedTotal(order.refunds, p.id) < p.amountPaise,
+  )
   const shipmentId = order.shipment?.id
   const live = order.status !== 'cancelled' && !readOnly
   const owed = order.balance.balancePaise
@@ -359,6 +358,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
       <RefundDialog
         payment={refunding}
         remainingPaise={remaining}
+        imported={readOnly}
         onClose={() => setRefunding(null)}
         onDone={closeAndRefresh(() => setRefunding(null))}
       />

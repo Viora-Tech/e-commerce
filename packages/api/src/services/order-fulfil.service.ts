@@ -80,6 +80,16 @@ export type OrderBalance = {
 }
 
 /** The money summary under the totals: paid by customer, and what is left. */
+/**
+ * What the customer still owes (positive) or is owed back (negative). A refund settles an
+ * overpayment (an edit that lowered the total) but never puts the customer back in debt: money
+ * sent back from the Refund button, without changing the order, leaves nothing to collect.
+ */
+export function balanceOf(totalPaise: number, capturedPaise: number, refundedPaise: number) {
+  const due = totalPaise - capturedPaise
+  return due >= 0 ? due : Math.min(0, due + refundedPaise)
+}
+
 export async function orderBalance(
   tx: StoreTx,
   storeId: string,
@@ -99,7 +109,7 @@ export async function orderBalance(
     capturedPaise,
     pendingPaise,
     refundedPaise: back,
-    balancePaise: totalPaise - capturedPaise + back,
+    balancePaise: balanceOf(totalPaise, capturedPaise, back),
   }
 }
 

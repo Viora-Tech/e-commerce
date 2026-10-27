@@ -71,6 +71,8 @@ export const orderDetailContent = {
     full: 'Refund remaining',
     done: (amount: string) => `Refunded ${amount}`,
     failed: 'Refund failed',
+    importedNote:
+      'This order was paid on your old store, so refund the money there (or by UPI or bank) and record it here, or give store credit.',
     how: 'How it goes back',
     original: (via: string) => `Back to ${via}`,
     originalHint: 'The gateway sends the money back to the card, UPI or bank it came from.',
