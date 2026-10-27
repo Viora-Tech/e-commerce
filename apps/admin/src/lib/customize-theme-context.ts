@@ -40,6 +40,16 @@ export function useLiquidHead(): LiquidHead | null {
 }
 
 /**
+ * An imported theme's Theme settings changed since the last save (`useImportedThemeSettings`),
+ * so the canvas renders its sections with them before Save. Empty when nothing changed.
+ */
+export const LiquidThemeSettingsContext = createContext<Record<string, unknown>>({})
+
+export function useLiquidThemeSettings(): Record<string, unknown> {
+  return useContext(LiquidThemeSettingsContext)
+}
+
+/**
  * The id of the theme Customize is editing, for what sits deep in Puck's overrides and talks to
  * the server about this theme ("My sections": saved per theme when they hold Liquid). Empty
  * outside the editor.

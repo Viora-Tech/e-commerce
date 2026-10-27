@@ -386,6 +386,17 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'one setting of liquidSettings, exported for its unit test',
   },
   {
+    file: 'packages/core/src/theme-import/theme-settings.ts',
+    names: ['cleanThemeSetting'],
+    reason:
+      'one setting of cleanThemeSettings (the Theme settings save), exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/theme-import/render.ts',
+    names: ['headFavicon'],
+    reason: "the favicon read behind renderLiquidLayout's `favicon`, exported for its unit test",
+  },
+  {
     file: 'packages/core/src/theme-import/schema.ts',
     names: ['stripJsonComments'],
     reason: 'the comment stripper behind parseThemeJson, exported for its unit test',

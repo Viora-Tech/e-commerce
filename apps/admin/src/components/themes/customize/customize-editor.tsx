@@ -10,7 +10,6 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { customizeContent } from '@/data/customize'
 import { themesContent } from '@/data/themes'
-import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { createCustomizeConfig } from '@/lib/customize-config'
 import {
@@ -33,6 +32,7 @@ import { CUSTOMIZE_OVERRIDES } from '@/lib/customize-overrides'
 import { previewMetadata } from '@/lib/customize-preview'
 import {
   LiquidHeadContext,
+  LiquidThemeSettingsContext,
   PreviewModeContext,
   ThemePreviewContext,
   useThemePacks,
@@ -40,6 +40,7 @@ import {
 import { DynamicSourceContext, scopeFor } from '@/lib/dynamic-sources'
 import { routes } from '@/lib/routes'
 import { useCustomizePreview } from '@/lib/use-customize-preview'
+import { useImportedThemeSettings } from '@/lib/use-imported-theme-settings'
 import { useLiquidTheme } from '@/lib/use-liquid-theme'
 import { partsOf, useTemplateDrafts } from '@/lib/use-template-drafts'
 import type { TemplateChange } from '@/lib/use-template-manager'
@@ -58,7 +59,6 @@ import ImportedThemeProvider from './imported-theme-provider'
 import ImportedThemeSettings from './imported-theme-settings'
 import LiquidCanvasSection from './liquid-canvas-section'
 import PagesPanel from './pages-panel'
-import PanelTitle from './panel-title'
 import PublishThemeDialog from './publish-theme-dialog'
 import ResourcePicker from './resource-picker'
 import SectionRemovedToast from './section-removed-toast'
@@ -106,7 +106,6 @@ export default function CustomizeEditor({
   // Hooks
   const [record, setRecord] = useState(theme)
   const [settings, setSettings] = useState(theme.settings)
-  const panels = useCopy(customizeContent.panels)
   const [ref, setRef] = useState<TemplateRef>({ key: initial.template, suffix: initial.suffix })
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [switching, setSwitching] = useState(false)
@@ -130,8 +129,10 @@ export default function CustomizeEditor({
   const [config] = useState(() => createCustomizeConfig(new Set(installedApps), themePacks))
   const drafts = useTemplateDrafts(record.id, () => toast.error(copy.draftFailed))
   const preview = useCustomizePreview(ref.key, initial.resource)
-  // An imported Shopify theme: section fields from each `{% schema %}`, its head for the canvas.
+  // An imported Shopify theme: section fields from each `{% schema %}`; its own Theme settings
+  // (`settings_schema.json`), kept by Save, and its head for the canvas with them in place.
   const liquidTheme = useLiquidTheme(record.id)
+  const importedSettings = useImportedThemeSettings(record.id, liquidTheme.info)
   // The Themes page's picture of this theme, retaken on Save of the home page.
   const thumbnail = useThemeThumbnail({
     themeId: record.id,
@@ -179,11 +180,11 @@ export default function CustomizeEditor({
   useEffect(() => {
     const settingsDirty = JSON.stringify(settings) !== JSON.stringify(record.settings)
     const warn = (event: BeforeUnloadEvent) => {
-      if (settingsDirty || drafts.pending()) event.preventDefault()
+      if (settingsDirty || importedSettings.dirty || drafts.pending()) event.preventDefault()
     }
     window.addEventListener('beforeunload', warn)
     return () => window.removeEventListener('beforeunload', warn)
-  }, [settings, record.settings])
+  }, [settings, record.settings, importedSettings.dirty])
 
   // Helpers
   /** Which group an imported section sits in (`section.location` in Liquid). */
@@ -226,6 +227,7 @@ export default function CustomizeEditor({
         setRecord(next)
         setSettings(next.settings)
       }
+      await importedSettings.save()
       setTemplatesDirty(false)
       toast.success(copy.saved, {
         description: record.role === 'main' ? copy.savedLive : copy.savedDraft,
@@ -248,6 +250,7 @@ export default function CustomizeEditor({
     await drafts.flush()
     await api.themes.templates.discard({ themeId: record.id })
     setSettings(record.settings)
+    importedSettings.discard()
     setTemplatesDirty(false)
     setNonce((n) => n + 1)
     toast.success(copy.discarded)
@@ -261,7 +264,7 @@ export default function CustomizeEditor({
 
   /** Makes this theme the live one, saving unsaved changes first. */
   const handlePublish = async () => {
-    if ((templatesDirty || settingsDirty) && !(await handleSave())) return
+    if ((templatesDirty || settingsDirty || importedSettings.dirty) && !(await handleSave())) return
     setPublishing(true)
     try {
       setRecord(await api.themes.publish({ id: record.id }))
@@ -327,14 +330,7 @@ export default function CustomizeEditor({
           },
         }
       : base
-  const liquidHead = liquidInfo
-    ? {
-        head: liquidInfo.head,
-        beforeHeader: liquidInfo.beforeHeader,
-        fontsHref: liquidInfo.fontsHref,
-        htmlAttrs: liquidInfo.htmlAttrs,
-      }
-    : null
+  const liquidHead = importedSettings.head
   const sourceScope = scopeFor(ref.key, preview.kind, preview.resourceId)
   // Keep showing the previously loaded template (dimmed via `switching`) while the
   // next one fetches, instead of unmounting the whole editor to a blank "Connecting" screen.
@@ -344,7 +340,7 @@ export default function CustomizeEditor({
     <CustomizeTopBar
       name={record.name}
       live={record.role === 'main'}
-      dirty={templatesDirty || settingsDirty}
+      dirty={templatesDirty || settingsDirty || importedSettings.dirty}
       saving={saving}
       publishing={publishing}
       canPublish={canPublish}
@@ -383,10 +379,12 @@ export default function CustomizeEditor({
   )
 
   const settingsPanel = liquidInfo ? (
-    <>
-      <PanelTitle title={panels.theme} />
-      <ImportedThemeSettings themeId={record.id} />
-    </>
+    <ImportedThemeSettings
+      themeId={record.id}
+      info={liquidInfo}
+      values={importedSettings.values}
+      onChange={importedSettings.onChange}
+    />
   ) : (
     <ThemePanel theme={settings} mode={mode} onChange={setSettings} onMode={setModePick} />
   )
@@ -417,44 +415,46 @@ export default function CustomizeEditor({
         >
           <ThemePreviewContext.Provider value={settings}>
             <LiquidHeadContext.Provider value={liquidHead}>
-              <ImportedThemeProvider info={liquidInfo ?? null} fields={liquidTheme.fields}>
-                <PreviewModeContext.Provider value={mode}>
-                  <DynamicSourceContext.Provider value={sourceScope}>
-                    <CustomizeHotkeys />
-                    <SectionRemovedToast />
-                    <CustomizeLayout
-                      topBar={topBar}
-                      settings={settingsPanel}
-                      apps={appsPanel}
-                      pages={
-                        <PagesPanel
-                          themeId={record.id}
-                          value={ref}
-                          alternates={alternates}
-                          onPick={handleTemplate}
-                          onCreate={handleCreateFor}
-                          onManaged={handleManaged}
-                        />
-                      }
-                      dock={
-                        <CanvasDock
-                          mode={mode}
-                          darkMode={settings.darkMode.enabled}
-                          onMode={setModePick}
-                        />
-                      }
-                      device={device}
-                      loading={switching}
-                      store={store}
-                      templateLabel={templateLabel(ref)}
-                      template={ref.key}
-                      previewResource={previewResource}
-                      aiEnabled={ai.assistant}
-                      theme={{ name: record.name, live: record.role === 'main' }}
-                    />
-                  </DynamicSourceContext.Provider>
-                </PreviewModeContext.Provider>
-              </ImportedThemeProvider>
+              <LiquidThemeSettingsContext.Provider value={importedSettings.changes}>
+                <ImportedThemeProvider info={liquidInfo ?? null} fields={liquidTheme.fields}>
+                  <PreviewModeContext.Provider value={mode}>
+                    <DynamicSourceContext.Provider value={sourceScope}>
+                      <CustomizeHotkeys />
+                      <SectionRemovedToast />
+                      <CustomizeLayout
+                        topBar={topBar}
+                        settings={settingsPanel}
+                        apps={appsPanel}
+                        pages={
+                          <PagesPanel
+                            themeId={record.id}
+                            value={ref}
+                            alternates={alternates}
+                            onPick={handleTemplate}
+                            onCreate={handleCreateFor}
+                            onManaged={handleManaged}
+                          />
+                        }
+                        dock={
+                          <CanvasDock
+                            mode={mode}
+                            darkMode={settings.darkMode.enabled}
+                            onMode={setModePick}
+                          />
+                        }
+                        device={device}
+                        loading={switching}
+                        store={store}
+                        templateLabel={templateLabel(ref)}
+                        template={ref.key}
+                        previewResource={previewResource}
+                        aiEnabled={ai.assistant}
+                        theme={{ name: record.name, live: record.role === 'main' }}
+                      />
+                    </DynamicSourceContext.Provider>
+                  </PreviewModeContext.Provider>
+                </ImportedThemeProvider>
+              </LiquidThemeSettingsContext.Provider>
             </LiquidHeadContext.Provider>
           </ThemePreviewContext.Provider>
         </Puck>
@@ -478,7 +478,7 @@ export default function CustomizeEditor({
         name={record.name}
         liveName={liveName}
         domain={store.domain}
-        dirty={templatesDirty || settingsDirty}
+        dirty={templatesDirty || settingsDirty || importedSettings.dirty}
         onOpenChange={setConfirmPublish}
         onConfirm={handlePublish}
       />

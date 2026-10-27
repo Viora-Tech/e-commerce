@@ -70,10 +70,13 @@ export const themeImportContent = {
     chooseAnother: 'Choose another file',
   },
   editor: {
-    settingsTitle: 'Colours, fonts and layout come from your Shopify theme',
-    settingsBody:
-      'Our theme presets do not apply to an imported theme. Change its sections on the left; editing its own theme settings here comes next.',
+    settingsIntro:
+      'Your Shopify theme’s own settings: logo and favicon, colours, fonts, cart and more. Changes show on the canvas; Save keeps them.',
+    noSettings: 'This theme has no settings of its own. Change its sections on the left.',
     report: 'See the import report',
+    summaryEmpty: 'Nothing set',
+    schemes: (count: number) => (count === 1 ? '1 colour scheme' : `${count} colour schemes`),
+    scheme: (name: string) => `Colour scheme: ${name}`,
   },
   report: {
     title: 'Import report',

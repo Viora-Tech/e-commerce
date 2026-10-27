@@ -174,6 +174,7 @@ const READ_PATHS = new Set([
   'shopifyImport.runs',
   'staff.invitations',
   'themes.code.read',
+  'themes.import.head',
   'themes.import.render',
   'themes.logo',
   'themes.packs',

@@ -210,7 +210,7 @@ export type LiquidFieldOptions = { colorSchemes?: string[] | undefined }
 const schemeLabel = (id: string) => id.replace(/[-_]+/g, ' ').replace(/^\w/, (c) => c.toUpperCase())
 
 /** One schema setting as an editor field, or null for label-only settings. */
-function settingField(
+export function settingField(
   setting: ShopifySetting,
   locale: Record<string, unknown>,
   options: LiquidFieldOptions = {},

@@ -2,6 +2,7 @@
 
 import type { LiquidSectionPlacement } from '@commerce/core/theme-import'
 import { useEffect, useRef, useState } from 'react'
+import { useLiquidThemeSettings } from '@/lib/customize-theme-context'
 import { renderLiquidCanvas } from '@/lib/liquid-canvas'
 
 type LiquidCanvasSectionProps = {
@@ -9,10 +10,18 @@ type LiquidCanvasSectionProps = {
   section: LiquidSectionPlacement
 }
 
-/** The section as a string, so the render effect re-runs only when its content changes. */
-function useContentKey(section: LiquidSectionPlacement): string {
-  return JSON.stringify(section)
+/**
+ * The section and the unsaved Theme settings as a string, so the render effect re-runs only
+ * when either changes.
+ */
+function useContentKey(
+  section: LiquidSectionPlacement,
+  themeSettings: Record<string, unknown>,
+): string {
+  return JSON.stringify({ section, themeSettings })
 }
+
+type ContentKey = { section: LiquidSectionPlacement; themeSettings: Record<string, unknown> }
 
 /** How long settings must stay still before the canvas asks for a fresh render. */
 const SETTLE_MS = 180
@@ -50,14 +59,16 @@ function playMutedVideos(box: HTMLElement): () => void {
  */
 export default function LiquidCanvasSection({ themeId, section }: LiquidCanvasSectionProps) {
   // Hooks
-  const key = useContentKey(section)
+  const themeSettings = useLiquidThemeSettings()
+  const key = useContentKey(section, themeSettings)
   const [html, setHtml] = useState<string | null>(null)
   const box = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     let active = true
     const timer = setTimeout(() => {
-      renderLiquidCanvas(themeId, JSON.parse(key) as LiquidSectionPlacement).then(
+      const content = JSON.parse(key) as ContentKey
+      renderLiquidCanvas(themeId, content.section, content.themeSettings).then(
         (next) => active && setHtml(next),
         () => active && setHtml(''),
       )

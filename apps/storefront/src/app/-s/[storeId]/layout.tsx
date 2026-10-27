@@ -407,12 +407,14 @@ export default async function StoreLayout({ children, params }: Props) {
     // shopper is in counts as viewed on its pages (sections with an A/B test setting report
     // their own in `renderTemplate`).
     const tested = preview ? [] : Object.keys((await requestExperiments(storeId)).assignments)
+    const liquidFavicon = liquid.favicon ?? theme.brand.favicon?.url ?? null
     return (
       <html lang="en" {...reactAttrs(liquid.htmlAttrs)} suppressHydrationWarning>
         <head>
           {sentryMeta}
           {liquid.fontsHref ? <link rel="stylesheet" href={liquid.fontsHref} /> : null}
-          {theme.brand.favicon ? <link rel="icon" href={theme.brand.favicon.url} /> : null}
+          {/* The theme's own favicon (Theme settings → Favicon) first: its head lands in <body>. */}
+          {liquidFavicon ? <link rel="icon" href={liquidFavicon} /> : null}
         </head>
         <body {...reactAttrs(liquid.bodyAttrs)} suppressHydrationWarning>
           <LiquidHtml
