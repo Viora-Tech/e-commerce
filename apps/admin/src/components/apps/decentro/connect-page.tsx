@@ -47,6 +47,7 @@ const mode: ModeSwitch = {
   read: (values) => (values.mode === 'live' ? 'live' : 'test'),
   write: (next, setField) => setField('mode', next),
   copy: copy.mode,
+  keySets: true,
 }
 
 /** Letters and digits only: Decentro refuses special characters in callback header values. */

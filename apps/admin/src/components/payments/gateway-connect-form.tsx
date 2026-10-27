@@ -7,7 +7,6 @@ import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
-import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import { useRouter } from 'next/navigation'
 import { useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -18,6 +17,7 @@ import { useCopy } from '@/hooks/use-copy'
 import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
 import GatewayGuide from './gateway-guide'
+import PaymentModeControl from './payment-mode-control'
 import RazorpayWebhookFields from './razorpay-webhook-fields'
 import type { GatewayId, PaymentsSetup } from './types'
 
@@ -117,12 +117,9 @@ export default function GatewayConnectForm({
     setTest({ status: 'idle' })
   }
 
-  const handleMode = (next: string[]) => {
-    const picked = next[0]
-    if (picked === 'test' || picked === 'live') {
-      setMode(picked)
-      setValues(initialValues(providerId, savedSet(providerId, setup, picked)))
-    }
+  const handleMode = (picked: Mode) => {
+    setMode(picked)
+    setValues(initialValues(providerId, savedSet(providerId, setup, picked)))
     setTest({ status: 'idle' })
   }
 
@@ -208,6 +205,7 @@ export default function GatewayConnectForm({
   const mismatch = detected !== null && detected !== mode
   const webhookUrl = setup.webhookUrls[providerId] ?? ''
   const oauth = providerId === 'razorpay' && setup.razorpayOAuth
+  const sets = gatewayKeySets(setup.settings.providers, providerId)
 
   const keyBoxes = (
     <FieldGroup>
@@ -260,23 +258,17 @@ export default function GatewayConnectForm({
 
   const modeBlock = (
     <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap items-center gap-3">
-        <span id={`${providerId}-mode-label`} className="text-body font-medium text-foreground">
-          {copy.mode.label}
-        </span>
-        <ToggleGroup
-          aria-labelledby={`${providerId}-mode-label`}
-          value={[mode]}
-          onValueChange={handleMode}
-          variant="outline"
-          spacing={0}
-        >
-          <ToggleGroupItem value="test">{copy.mode.test}</ToggleGroupItem>
-          <ToggleGroupItem value="live">{copy.mode.live}</ToggleGroupItem>
-        </ToggleGroup>
-      </div>
+      <PaymentModeControl
+        id={providerId}
+        label={keySetCopy.pickerLabel}
+        value={mode}
+        active={sets.active}
+        keys={{ test: !!sets.test, live: !!sets.live }}
+        onChange={handleMode}
+      />
       <p className="text-caption text-muted-foreground">
         {mode === 'test' ? copy.mode.testHelp : copy.mode.liveHelp} {keySetCopy.editing(mode)}
+        {sets.active ? ` ${keySetCopy.checkoutUses(sets.active)}` : null}
       </p>
     </div>
   )
