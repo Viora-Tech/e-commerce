@@ -69,3 +69,27 @@ export const ImportedThemeContext = createContext<ImportedTheme | null>(null)
 export function useImportedTheme(): ImportedTheme | null {
   return useContext(ImportedThemeContext)
 }
+
+/** The imported section's block the inspector shows on its own (a click on its Layers row). */
+export type LiquidBlockFocus = { sectionId: string; blockId: string }
+
+/**
+ * An imported theme's editor fields by section type (`useLiquidTheme`), and which block of which
+ * section the inspector shows: picking a block in Layers opens its settings alone, Shopify-style,
+ * with a way back to its section. Empty for our own themes.
+ */
+export type LiquidBlocksState = {
+  fields: Record<string, Record<string, unknown>> | null
+  focus: LiquidBlockFocus | null
+  setFocus: (focus: LiquidBlockFocus | null) => void
+}
+
+export const LiquidBlocksContext = createContext<LiquidBlocksState>({
+  fields: null,
+  focus: null,
+  setFocus: () => {},
+})
+
+export function useLiquidBlocks(): LiquidBlocksState {
+  return useContext(LiquidBlocksContext)
+}

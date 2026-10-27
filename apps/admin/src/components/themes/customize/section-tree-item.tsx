@@ -16,9 +16,22 @@ import {
   withBlockAdded,
   withBlockRemoved,
 } from '@/lib/customize-insert'
+import {
+  type LiquidBlockRow,
+  liquidBlockRows,
+  liquidBlockTypes,
+  liquidCanAddBlock,
+  withLiquidBlockAdded,
+  withLiquidBlockDuplicated,
+  withLiquidBlockRemoved,
+  withLiquidBlocksOrdered,
+  withLiquidBlockToggled,
+} from '@/lib/customize-liquid-tree'
 import { useCustomizePuck } from '@/lib/customize-puck'
 import { hasSlots, moveOutActions, slotZones } from '@/lib/customize-slots'
+import { useImportedTheme, useLiquidBlocks } from '@/lib/customize-theme-context'
 import AddSectionPopover from './add-section-popover'
+import LiquidSectionBlocks from './liquid-section-blocks'
 import SaveSectionDialog from './save-section-dialog'
 import SectionBlocks from './section-blocks'
 import SectionRow from './section-row'
@@ -68,6 +81,8 @@ export default function SectionTreeItem({
   const fields = useCustomizePuck((s) => s.config.components[section.type]?.fields)
   const getPuck = useGetPuck()
   const reducedMotion = useReducedMotion()
+  const importedTheme = useImportedTheme()
+  const liquidBlocks = useLiquidBlocks()
   // Containers start open, so what they hold is visible; sections with blocks start closed.
   const [open, setOpen] = useState(() => hasSlots(fields as SlotFields))
   const [savingCopy, setSavingCopy] = useState(false)
@@ -86,10 +101,40 @@ export default function SectionTreeItem({
     scrollToSection(section.props.id, reducedMotion === true)
   }
 
+  // An imported Shopify section keeps its blocks in `props.blocks`, typed by its schema.
+  const liquidSchemaOf = () =>
+    importedTheme &&
+    section.type === 'LiquidSection' &&
+    typeof section.props.sectionType === 'string'
+      ? importedTheme.schemas[section.props.sectionType]
+      : undefined
+
   // Event handlers
   const handleSelect = () => {
+    liquidBlocks.setFocus(null)
     select()
     setOpen(true)
+  }
+
+  const handleSelectLiquidBlock = (row: LiquidBlockRow) => {
+    select()
+    liquidBlocks.setFocus({ sectionId: section.props.id, blockId: row.id })
+  }
+
+  const handleAddLiquidBlock = (type: string) => {
+    if (!importedTheme) return
+    const next = withLiquidBlockAdded(section.props, type, liquidSchemaOf(), importedTheme)
+    replaceProps(next)
+    setOpen(true)
+    select()
+    const added = (next.blocks as { id: string }[]).at(-1)
+    if (added) liquidBlocks.setFocus({ sectionId: section.props.id, blockId: added.id })
+  }
+
+  const handleRemoveLiquidBlock = (blockIndex: number) => {
+    const removed = (section.props.blocks as { id: string }[] | undefined)?.[blockIndex]
+    if (removed && liquidBlocks.focus?.blockId === removed.id) liquidBlocks.setFocus(null)
+    replaceProps(withLiquidBlockRemoved(section.props, blockIndex))
   }
 
   const handleAddBlock = (key: string) => {
@@ -108,7 +153,15 @@ export default function SectionTreeItem({
     customizeContent.array.itemFallback,
   )
   const zones = slotZones(section.props, fields as SlotFields)
-  const hasBlocks = lists.length > 0 || zones.length > 0
+  const liquidSchema = liquidSchemaOf()
+  const liquidTypes =
+    liquidSchema && importedTheme ? liquidBlockTypes(liquidSchema, importedTheme) : []
+  const liquidRows = liquidSchema ? liquidBlockRows(section.props, liquidTypes) : []
+  const liquidCanAdd = liquidTypes.length > 0 && liquidCanAddBlock(section.props, liquidSchema)
+  const hasLiquid = liquidRows.length > 0 || liquidCanAdd
+  const hasBlocks = lists.length > 0 || zones.length > 0 || hasLiquid
+  const activeBlockId =
+    liquidBlocks.focus?.sectionId === section.props.id ? liquidBlocks.focus.blockId : null
   const moveOut = parentName
     ? () => {
         for (const action of moveOutActions(
@@ -173,6 +226,20 @@ export default function SectionTreeItem({
             transition={{ duration: reducedMotion ? 0 : 0.18, ease: 'easeOut' }}
             className="overflow-hidden"
           >
+            {hasLiquid ? (
+              <LiquidSectionBlocks
+                rows={liquidRows}
+                types={liquidTypes}
+                canAdd={liquidCanAdd}
+                activeId={activeBlockId}
+                onSelect={handleSelectLiquidBlock}
+                onAdd={handleAddLiquidBlock}
+                onToggleHidden={(i) => replaceProps(withLiquidBlockToggled(section.props, i))}
+                onDuplicate={(i) => replaceProps(withLiquidBlockDuplicated(section.props, i))}
+                onRemove={handleRemoveLiquidBlock}
+                onReorder={(ids) => replaceProps(withLiquidBlocksOrdered(section.props, ids))}
+              />
+            ) : null}
             {lists.length > 0 ? (
               <SectionBlocks
                 lists={lists}
