@@ -3,7 +3,7 @@
 import 'server-only'
 
 import { type CartGstPreview, previewCartGst } from '@commerce/core'
-import { readCartId } from './cart-cookie'
+import { checkoutCartId } from './checkout-context'
 import { requestStoreId } from './request-store'
 import { inStore } from './store-context'
 
@@ -19,7 +19,7 @@ export async function checkoutGstAction(input: {
   stateCode: string | null
 }): Promise<CartGstPreview | null> {
   const storeId = await requestStoreId()
-  const cartId = await readCartId()
+  const cartId = await checkoutCartId()
   if (!cartId) return null
   const total = Number.isFinite(input.totalPaise) ? Math.round(input.totalPaise) : 0
   const reduction = Number.isFinite(input.reductionPaise) ? Math.round(input.reductionPaise) : 0

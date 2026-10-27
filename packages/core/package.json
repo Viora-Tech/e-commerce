@@ -89,6 +89,8 @@
     "./policies": "./src/policies/client.ts",
     "./sales-channels": "./src/sales-channels/client.ts",
     "./checkout-settings": "./src/checkout/settings.ts",
+    "./checkout-handoff": "./src/checkout/handoff.ts",
+    "./checkout-redeem": "./src/checkout/redeem.ts",
     "./privacy": "./src/privacy/client.ts",
     "./customer-accounts": "./src/customer-accounts/client.ts",
     "./onboarding": "./src/onboarding/client.ts",

@@ -162,6 +162,17 @@ const shape = z.object({
    * in development (a localhost URL).
    */
   STOREFRONT_URL: z.string().url().default('http://localhost:3100'),
+  /**
+   * Branded, theme-free checkout origin subdomain (security audit D-01 phase B): when set (e.g.
+   * `checkout`), a store checks out on `<CHECKOUT_SUBDOMAIN>.<its primary host>` instead of
+   * `/checkout` on the store origin. Blank/unset keeps checkout same-origin (the default and the
+   * instant rollback). A single DNS label only.
+   */
+  CHECKOUT_SUBDOMAIN: optionalOrBlank(
+    z
+      .string()
+      .regex(/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/, 'CHECKOUT_SUBDOMAIN must be a single DNS label'),
+  ),
   /** Encrypts gateway credentials stored in store settings. */
   SETTINGS_SECRET: z.string().min(16).default(DEV_SETTINGS_SECRET),
   /**

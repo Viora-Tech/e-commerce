@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
   ACCOUNTS_PREFIX,
+  checkoutHostname,
   INTERNAL_PREFIX,
   listingSearch,
   PASSWORD_PREFIX,
   primaryRedirect,
   routeForAccounts,
+  routeForCheckoutHost,
   routeForStore,
 } from './routing'
 
@@ -107,6 +109,40 @@ describe('routeForAccounts (platform login domain)', () => {
     expect(routeForStore('store-a', `${ACCOUNTS_PREFIX}/oauth/google/start`)).toEqual({
       kind: 'forbidden',
     })
+  })
+})
+
+describe('checkoutHostname', () => {
+  it('strips the configured subdomain to the store primary', () => {
+    expect(checkoutHostname('checkout.waimers.com', 'checkout')).toBe('waimers.com')
+    expect(checkoutHostname('checkout.shop.koomerce.app', 'checkout')).toBe('shop.koomerce.app')
+  })
+  it('is null when the flag is off or the host is not a checkout host', () => {
+    expect(checkoutHostname('waimers.com', 'checkout')).toBeNull()
+    expect(checkoutHostname('checkout.waimers.com', null)).toBeNull()
+    expect(checkoutHostname('checkout.', 'checkout')).toBeNull()
+    expect(checkoutHostname(null, 'checkout')).toBeNull()
+  })
+})
+
+describe('routeForCheckoutHost', () => {
+  it('serves only the hand-off entry and checkout pages', () => {
+    expect(routeForCheckoutHost('store-a', '/checkout')).toEqual({
+      kind: 'rewrite',
+      path: '/-s/store-a/checkout',
+    })
+    expect(routeForCheckoutHost('store-a', '/c/tok123')).toEqual({
+      kind: 'rewrite',
+      path: '/-s/store-a/c/tok123',
+    })
+    expect(routeForCheckoutHost('store-a', '/checkout/thank-you/42')).toMatchObject({
+      kind: 'rewrite',
+    })
+  })
+  it('passes assets and api through, and 404s everything else', () => {
+    expect(routeForCheckoutHost('store-a', '/_next/static/x.js')).toEqual({ kind: 'passthrough' })
+    expect(routeForCheckoutHost('store-a', '/products/mouse')).toEqual({ kind: 'forbidden' })
+    expect(routeForCheckoutHost('store-a', '/')).toEqual({ kind: 'forbidden' })
   })
 })
 

@@ -42,6 +42,7 @@ import { redirect } from 'next/navigation'
 import { checkoutContent } from '@/data/checkout'
 import { readAttribution } from './attribution-cookie'
 import { clearCartId, readCartId, writeCartId } from './cart-cookie'
+import { checkoutCartId } from './checkout-context'
 import { currentCustomer } from './customer-session'
 import { db } from './db'
 import { hasChatCookie, postChatCartLine } from './inbox'
@@ -200,7 +201,7 @@ export async function captureContactAction(contact: {
   name?: string
 }) {
   const storeId = await requestStoreId()
-  const cartId = await readCartId()
+  const cartId = await checkoutCartId()
   if (!cartId) return
   await inStore(storeId, (tx) => captureCartContact({ storeId, tx }, cartId, contact))
 }
@@ -212,7 +213,7 @@ export async function captureContactAction(contact: {
  */
 export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutResult> {
   const storeId = await requestStoreId()
-  const cartId = await readCartId()
+  const cartId = await checkoutCartId()
   if (!cartId) redirect('/cart')
   const ip = clientIp(await headers())
   const [byCart, byIp] = await Promise.all([

@@ -88,7 +88,7 @@ export default async function CartContents({ storeId }: CartContentsProps) {
               <span>{formatPaise(total)}</span>
             </div>
             <p className="text-caption">{content.taxesAtCheckout}</p>
-            <a href="/checkout" className="btn btn--primary cart-summary__checkout">
+            <a href="/checkout/start" className="btn btn--primary cart-summary__checkout">
               {content.checkout}
               <Icon name="arrow-right" size={16} />
             </a>
