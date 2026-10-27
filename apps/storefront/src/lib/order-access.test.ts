@@ -24,6 +24,8 @@ vi.mock('@commerce/config', async (orig) => ({
 }))
 vi.mock('next/headers', () => ({
   headers: async () => new Headers({ 'x-store-id': 'store-1' }),
+  // No checkout-session cookie here: checkoutCartId (phase B) falls back to readCartId.
+  cookies: async () => ({ get: () => undefined }),
 }))
 vi.mock('next/cache', () => ({ revalidatePath: () => {} }))
 vi.mock('next/navigation', () => ({
