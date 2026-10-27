@@ -3,7 +3,6 @@
 import { Save } from '@commerce/ui/icons'
 import PhoneInput from '@commerce/ui/phone-input'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -11,8 +10,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@commerce/ui/shadcn/dialog'
-import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
+import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import { type FormEvent, useState } from 'react'
 import { toast } from 'sonner'
 import { customerAddressesContent } from '@/data/customer-addresses'
@@ -20,12 +27,15 @@ import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { fieldErrorsOf } from '@/lib/api-errors'
 import AddressFields, { type AddressValue, EMPTY_ADDRESS } from './address-fields'
+import { ADDRESS_ROLES, type AddressRole, flagsFor, roleOf } from './address-roles'
 import type { CustomerAddressRow } from './customer-detail-types'
 
 type CustomerAddressDialogProps = {
   customerId: string
   /** The address being edited; null adds a new one. `id` null is the order snapshot, saved as new. */
   address: CustomerAddressRow | null
+  /** What a new address is for (the card's "Add shipping/billing address" buttons). */
+  initialRole?: AddressRole | null
   onClose: () => void
   onSaved: () => void
 }
@@ -36,11 +46,10 @@ type Draft = {
   place: AddressValue
   businessName: string
   gstin: string
-  isDefault: boolean
-  isDefaultBilling: boolean
+  role: AddressRole | null
 }
 
-function draftFrom(a: CustomerAddressRow | null): Draft {
+function draftFrom(a: CustomerAddressRow | null, initialRole: AddressRole | null): Draft {
   if (!a) {
     return {
       name: '',
@@ -48,8 +57,7 @@ function draftFrom(a: CustomerAddressRow | null): Draft {
       place: EMPTY_ADDRESS,
       businessName: '',
       gstin: '',
-      isDefault: false,
-      isDefaultBilling: false,
+      role: initialRole,
     }
   }
   return {
@@ -64,25 +72,35 @@ function draftFrom(a: CustomerAddressRow | null): Draft {
     },
     businessName: a.businessName ?? '',
     gstin: a.gstin ?? '',
-    isDefault: a.isDefault,
-    isDefaultBilling: a.isDefaultBilling,
+    role: a.id ? roleOf(a) : initialRole,
   }
 }
 
-/** Add or change one address in the customer's book. Mounted only while open. */
+/**
+ * Add or change one address in the customer's book, and say what it is for: shipping, billing
+ * or both. Mounted only while open.
+ */
 export default function CustomerAddressDialog({
   customerId,
   address,
+  initialRole = null,
   onClose,
   onSaved,
 }: CustomerAddressDialogProps) {
   // Hooks
   const copy = useCopy(customerAddressesContent)
-  const [draft, setDraft] = useState<Draft>(() => draftFrom(address))
+  const [draft, setDraft] = useState<Draft>(() => draftFrom(address, initialRole))
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
 
   // Event handlers
+  const handleRole = (values: string[]) => {
+    const role = ADDRESS_ROLES.find((r) => r === values[0]) ?? null
+    // The shipping address keeps shipping until another address takes it over.
+    if (shippingLocked && role !== 'shipping' && role !== 'both') return
+    setDraft({ ...draft, role })
+  }
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setSaving(true)
@@ -97,8 +115,7 @@ export default function CustomerAddressDialog({
       pincode: draft.place.pincode,
       businessName: draft.businessName,
       gstin: draft.gstin,
-      isDefault: draft.isDefault,
-      isDefaultBilling: draft.isDefaultBilling,
+      ...flagsFor(draft.role),
     }
     try {
       if (address?.id) {
@@ -120,6 +137,9 @@ export default function CustomerAddressDialog({
   // Render logic
   const d = copy.dialog
   const editing = Boolean(address?.id)
+  const shippingLocked = Boolean(address?.id && address.isDefault)
+  const billsHere = draft.role === 'billing' || draft.role === 'both'
+  const roleHelp = d.role.help[draft.role ?? 'none']
 
   return (
     <Dialog open onOpenChange={(next) => !next && onClose()}>
@@ -128,6 +148,31 @@ export default function CustomerAddressDialog({
           <DialogHeader>
             <DialogTitle>{editing ? d.editTitle : d.addTitle}</DialogTitle>
           </DialogHeader>
+          <Field>
+            <FieldLabel id="customer-address-role-label">{d.role.label}</FieldLabel>
+            <ToggleGroup
+              aria-labelledby="customer-address-role-label"
+              value={draft.role ? [draft.role] : []}
+              onValueChange={handleRole}
+              variant="outline"
+              spacing={0}
+              className="w-full"
+            >
+              {ADDRESS_ROLES.map((r) => (
+                <ToggleGroupItem
+                  key={r}
+                  value={r}
+                  className="flex-1"
+                  disabled={shippingLocked && r === 'billing'}
+                >
+                  {d.role.options[r]}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+            <FieldDescription>
+              {shippingLocked ? `${roleHelp} ${d.role.lockedShipping}` : roleHelp}
+            </FieldDescription>
+          </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field data-invalid={Boolean(errors.name)}>
               <FieldLabel htmlFor="customer-address-name">{d.name}</FieldLabel>
@@ -156,56 +201,42 @@ export default function CustomerAddressDialog({
             onChange={(place) => setDraft({ ...draft, place })}
             errors={errors}
           />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field data-invalid={Boolean(errors.businessName)}>
-              <FieldLabel htmlFor="customer-address-business">{d.businessName}</FieldLabel>
-              <Input
-                id="customer-address-business"
-                autoComplete="organization"
-                value={draft.businessName}
-                onChange={(e) => setDraft({ ...draft, businessName: e.target.value })}
-              />
-              {errors.businessName ? <FieldError>{errors.businessName}</FieldError> : null}
-            </Field>
-            <Field data-invalid={Boolean(errors.gstin)}>
-              <FieldLabel htmlFor="customer-address-gstin">{d.gstin}</FieldLabel>
-              <Input
-                id="customer-address-gstin"
-                className="font-mono uppercase"
-                maxLength={15}
-                value={draft.gstin}
-                onChange={(e) => setDraft({ ...draft, gstin: e.target.value.toUpperCase() })}
-              />
-              {errors.gstin ? (
-                <FieldError>{errors.gstin}</FieldError>
-              ) : (
-                <FieldDescription>{d.gstinHelp}</FieldDescription>
-              )}
-            </Field>
-          </div>
-          <div className="flex flex-col gap-3">
-            {/* The shipping default cannot be switched off here: another address takes it over. */}
-            <Field orientation="horizontal" data-disabled={address?.isDefault || undefined}>
-              <Checkbox
-                id="customer-address-default"
-                checked={draft.isDefault}
-                disabled={address?.isDefault}
-                onCheckedChange={(v) => setDraft({ ...draft, isDefault: v === true })}
-              />
-              <FieldLabel htmlFor="customer-address-default">{copy.makeDefault}</FieldLabel>
-            </Field>
-            <Field orientation="horizontal">
-              <Checkbox
-                id="customer-address-default-billing"
-                checked={draft.isDefaultBilling}
-                onCheckedChange={(v) => setDraft({ ...draft, isDefaultBilling: v === true })}
-              />
-              <FieldLabel htmlFor="customer-address-default-billing">
-                {copy.makeDefaultBilling}
-              </FieldLabel>
-            </Field>
-            <p className="text-caption text-muted-foreground">{copy.defaultsHelp}</p>
-          </div>
+          {/* Company and GSTIN matter for the bill, so they stand out when the address bills. */}
+          <FieldSet
+            className={
+              billsHere ? 'gap-3 rounded-lg border border-border bg-muted/40 p-4' : 'gap-3'
+            }
+          >
+            <FieldLegend variant="label" className="mb-0">
+              {d.business.heading}
+            </FieldLegend>
+            <FieldDescription>
+              {billsHere ? d.business.billingHelp : d.business.shippingHelp}
+            </FieldDescription>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field data-invalid={Boolean(errors.businessName)}>
+                <FieldLabel htmlFor="customer-address-business">{d.businessName}</FieldLabel>
+                <Input
+                  id="customer-address-business"
+                  autoComplete="organization"
+                  value={draft.businessName}
+                  onChange={(e) => setDraft({ ...draft, businessName: e.target.value })}
+                />
+                {errors.businessName ? <FieldError>{errors.businessName}</FieldError> : null}
+              </Field>
+              <Field data-invalid={Boolean(errors.gstin)}>
+                <FieldLabel htmlFor="customer-address-gstin">{d.gstin}</FieldLabel>
+                <Input
+                  id="customer-address-gstin"
+                  className="font-mono uppercase"
+                  maxLength={15}
+                  value={draft.gstin}
+                  onChange={(e) => setDraft({ ...draft, gstin: e.target.value.toUpperCase() })}
+                />
+                {errors.gstin ? <FieldError>{errors.gstin}</FieldError> : null}
+              </Field>
+            </div>
+          </FieldSet>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
               {d.cancel}
