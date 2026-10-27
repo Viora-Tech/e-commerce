@@ -108,11 +108,6 @@ export default function EditOrderContactDialog({
     stateCode: a.stateCode,
     pincode: a.pincode.trim(),
   })
-  const billingErrors = Object.fromEntries(
-    Object.entries(errors)
-      .filter(([k]) => k.startsWith('billing.'))
-      .map(([k, v]) => [k.slice('billing.'.length), v]),
-  )
 
   // Event handlers
   const handleBillingSame = (same: boolean) => {
@@ -167,6 +162,11 @@ export default function EditOrderContactDialog({
   const c = copy.editContact
   const hasAddress = order.shippingAddress !== null || draft.address.line1.trim() !== ''
   const canSaveToCustomer = order.customer !== null && hasAddress
+  const billingErrors = Object.fromEntries(
+    Object.entries(errors)
+      .filter(([k]) => k.startsWith('billing.'))
+      .map(([k, v]) => [k.slice('billing.'.length), v]),
+  )
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
