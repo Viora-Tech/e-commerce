@@ -143,6 +143,19 @@ export async function storesWithOldPixelData(db: Db, now = new Date()): Promise<
   return rows.map((r) => r.id)
 }
 
+/**
+ * Every store that belongs to an organization, for the daily `{retention}-prune` (old carts,
+ * outbox rows and webhook payloads). The app role may read `organization`, and the SECURITY
+ * DEFINER `resolve_store_for_organization` maps each one to its store. Every store is visited;
+ * most nights a store has nothing past retention and its statements find nothing.
+ */
+export async function storesForRetention(db: Db): Promise<string[]> {
+  const rows = await db.execute<{ id: string | null }>(
+    sql`select resolve_store_for_organization(o.id) as id from organization o`,
+  )
+  return rows.flatMap((r) => (r.id ? [r.id] : []))
+}
+
 /** Store ids with baskets worth a recovery nudge, for the worker. SECURITY DEFINER backed. */
 export async function storesWithAbandonedCarts(db: Db, cutoff: Date): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(

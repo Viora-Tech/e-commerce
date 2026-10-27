@@ -26,6 +26,7 @@ export {
   resolveStoreForOrganization,
   storeIdForSlug,
   storesForPlatformAccount,
+  storesForRetention,
   storesWithAbandonedCarts,
   storesWithAutomationWork,
   storesWithBalanceDue,
