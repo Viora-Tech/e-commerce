@@ -15,6 +15,7 @@ import {
 import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
+import { variantImageUrls } from '../checkout/service'
 import { placeOrderAndPay } from '../order/place-order'
 import { CodPaymentProvider } from '../providers/cod'
 import { addToCart, createCart, getCart, setLineQuantity } from './cart'
@@ -88,6 +89,21 @@ describe('cart', () => {
       return getCart(ctx, cartId)
     })
     expect(view?.lines[0]?.imageUrl).toBe('https://cdn.test/front.jpg')
+  })
+
+  it("gives the order summary the product's first image when the variant has none", async () => {
+    const { storeId, productId, variantId } = await seed()
+    const [front] = await owner
+      .insert(media)
+      .values({ storeId, url: 'https://cdn.test/front.jpg', alt: null })
+      .returning()
+    await owner
+      .insert(productMedia)
+      .values({ storeId, productId, mediaId: front?.id as string, position: 0 })
+    const urls = await withStore(app, storeId, (tx) =>
+      variantImageUrls({ storeId, tx }, [variantId]),
+    )
+    expect(urls).toEqual({ [variantId]: 'https://cdn.test/front.jpg' })
   })
 
   it('checks out with cash on delivery: customer, address, snapshots, pending payment', async () => {
