@@ -18,6 +18,7 @@ import {
   draftToForm,
   emptyDraft,
   formToDraft,
+  missingAddressParts,
   savedCodeCheck,
 } from '@/components/drafts/draft-form-state'
 import DraftProductsCard from '@/components/drafts/draft-products-card'
@@ -67,6 +68,15 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
   const [sent, setSent] = useState(invoiceSent)
 
   // Helpers
+  const missingAddressHint = (f: typeof saved) => {
+    const parts = missingAddressParts(f.address, f.phone).map((p) =>
+      p === 'stateCode' ? copy.address.state : copy.address[p],
+    )
+    return parts.length
+      ? copy.actions.needsAddressParts(parts.join(', '))
+      : copy.actions.needsAddress
+  }
+
   const patch = (next: Partial<DraftFormState>) => setForm((f) => ({ ...f, ...next }))
 
   const persist = async () => {
@@ -145,7 +155,7 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
     !id || dirty
       ? copy.actions.saveFirst
       : draftMissingAddress(saved)
-        ? copy.actions.needsAddress
+        ? missingAddressHint(saved)
         : draftIncompleteBilling(saved)
           ? copy.actions.needsBilling
           : null

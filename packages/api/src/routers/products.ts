@@ -15,6 +15,7 @@ import {
   ProductWriteSchema,
   parseProductCsv,
   permissions,
+  removeVariantsById,
   STOCK_FILTERS,
   setVariantMedia,
   summariseImport,
@@ -170,6 +171,15 @@ export const productsRouter = {
         if (result.ok) await syncAutomaticCollections(context.tx, context.scope.storeId)
         return result
       })
+    }),
+
+  /** The bulk editor's "Delete variants": archived when history points at them, else deleted. */
+  removeVariants: can(permissions.PRODUCTS_WRITE)
+    .input(z.object({ ids: z.array(z.uuid()).min(1).max(BULK_EDIT_MAX) }))
+    .handler(async ({ context, input }) => {
+      const result = await removeVariantsById(context.tx, input.ids)
+      if (result.ok) await syncAutomaticCollections(context.tx, context.scope.storeId)
+      return result
     }),
 
   duplicate: can(permissions.PRODUCTS_WRITE)

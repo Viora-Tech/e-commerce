@@ -1,6 +1,6 @@
 'use client'
 
-import { Archive, Copy, ExternalLink, Eye, Package, Plus, Trash2 } from '@commerce/ui/icons'
+import { Archive, Copy, ExternalLink, Eye, Package, Plus, Save, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import ActionMenu, { type ActionItem } from '@/components/layout/action-menu'
 import FallbackImage from '@/components/layout/fallback-image'
@@ -18,7 +18,10 @@ type ProductHeaderProps = {
   /** No options: one variant, so the line reads "No options" rather than "1 variant". */
   single: boolean
   busy: boolean
+  /** Unsaved edits: Save is on. A new product can always be saved. */
+  dirty: boolean
   storefrontOrigin: string
+  onSave: () => void
   onDuplicate: () => void
   /** Archives the product, or brings an archived one back as a draft. */
   onArchive: () => void
@@ -28,13 +31,16 @@ type ProductHeaderProps = {
 }
 
 /** Figma product editor header (631:7713): photo, title and status, a one-line summary, Preview
- *  and More actions. Saving lives under the side column and on the save bar. */
+ *  and More actions, then Save at the top right (#850, #851: testers missed the save bar and the
+ *  side column's buttons). The save bar still appears at the bottom while there are edits. */
 export default function ProductHeader({
   product,
   form,
   single,
   busy,
+  dirty,
   storefrontOrigin,
+  onSave,
   onDuplicate,
   onArchive,
   onDelete,
@@ -47,6 +53,12 @@ export default function ProductHeader({
   // Render logic
   const s = copy.summary
   const archived = form.status === 'archived'
+  const saveButton = (
+    <Button disabled={busy || (Boolean(product) && !dirty)} onClick={onSave}>
+      <Save aria-hidden="true" />
+      {copy.saveBar.save}
+    </Button>
+  )
   const summary = product
     ? [
         single ? s.noOptions : s.variants(form.variants.length),
@@ -118,8 +130,11 @@ export default function ProductHeader({
                 ...appItems,
               ]}
             />
+            {saveButton}
           </>
-        ) : null
+        ) : (
+          saveButton
+        )
       }
     />
   )

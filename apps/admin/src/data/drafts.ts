@@ -163,6 +163,7 @@ export const draftEditorContent = {
     cancel: 'Cancel',
     saveFirst: 'Save the draft first',
     needsAddress: 'Add a shipping address before converting',
+    needsAddressParts: (parts: string) => `Shipping address still needs: ${parts}`,
     needsBilling: "Complete the billing address, or tick 'same as shipping'",
     open: 'Open',
     invoiceSentStatus: 'Invoice sent',

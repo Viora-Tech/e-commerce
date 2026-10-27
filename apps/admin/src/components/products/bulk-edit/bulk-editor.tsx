@@ -1,10 +1,11 @@
 'use client'
 
-import { CircleAlert, Pencil, Save } from '@commerce/ui/icons'
+import { CircleAlert, Pencil, Save, Trash2 } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import NoticeBar from '@/components/layout/notice-bar'
 import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
@@ -61,6 +62,8 @@ export default function BulkEditor({ sheet, productIds }: BulkEditorProps) {
   const [attempted, setAttempted] = useState(false)
   const [saving, setSaving] = useState(false)
   const { hidden, toggle } = useHiddenColumns()
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [confirmingRemove, setConfirmingRemove] = useState(false)
 
   // Helpers
   const label = (key: string) => {
@@ -100,6 +103,22 @@ export default function BulkEditor({ sheet, productIds }: BulkEditorProps) {
       toast.success(copy.toasts.undone)
     } catch {
       toast.error(copy.toasts.undoFailed)
+    }
+  }
+
+  const handleRemoveVariants = async () => {
+    const ids = [...selected]
+    try {
+      const result = await api.products.removeVariants({ ids })
+      if (!result.ok) {
+        toast.error(copy.removeVariants.keepOne(result.blocked.map((b) => b.title).join(', ')))
+        return
+      }
+      setSelected(new Set())
+      await reload()
+      toast.success(copy.removeVariants.done(result.removed))
+    } catch (err) {
+      toast.error(err instanceof Error && err.message ? err.message : copy.removeVariants.failed)
     }
   }
 
@@ -165,6 +184,17 @@ export default function BulkEditor({ sheet, productIds }: BulkEditorProps) {
               hasStock={sheet.locations.length > 0}
               onToggle={toggle}
             />
+            {selected.size > 0 ? (
+              <Button
+                variant="outline"
+                disabled={changed > 0 || saving}
+                title={changed > 0 ? copy.removeVariants.saveFirst : undefined}
+                onClick={() => setConfirmingRemove(true)}
+              >
+                <Trash2 aria-hidden="true" />
+                {copy.removeVariants.action(selected.size)}
+              </Button>
+            ) : null}
             <Button variant="outline" disabled={changed === 0 || saving} onClick={handleDiscard}>
               {copy.discard}
             </Button>
@@ -209,7 +239,18 @@ export default function BulkEditor({ sheet, productIds }: BulkEditorProps) {
         errors={errors}
         locations={sheet.locations}
         hidden={hidden}
+        selected={selected}
         onRowsChange={handleRowsChange}
+        onSelectedChange={setSelected}
+      />
+      <ConfirmDialog
+        open={confirmingRemove}
+        onOpenChange={setConfirmingRemove}
+        title={copy.removeVariants.title(selected.size)}
+        body={copy.removeVariants.body}
+        confirmLabel={copy.removeVariants.confirm}
+        tone="destructive"
+        onConfirm={handleRemoveVariants}
       />
     </div>
   )

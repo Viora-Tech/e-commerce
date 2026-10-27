@@ -64,11 +64,22 @@ export const ORDER_VIEWS = [
   'balance_due',
   'completed',
   'cancelled',
+  'payment_not_finished',
 ] as const
 export type OrderView = (typeof ORDER_VIEWS)[number]
 
 /** Drafts live in the same table but are not orders yet; every list and tile hides them. */
 const notDraft = ne(order.status, 'draft')
+
+/**
+ * A storefront checkout whose online payment was never finished (the shopper closed the
+ * gateway): open until the unpaid-order expiry cancels it. Shopify never makes these orders,
+ * so the list keeps them out of All, Unpaid, Unfulfilled and Cancelled and gives them their
+ * own tab (#849). COD and manual UPI orders are real orders and stay. Every part is non-null,
+ * so `not` of it is never null.
+ */
+const paymentNotFinished = sql`(${order.cartId} is not null and ${order.checkoutPaidAt} is null and ${order.importedFrom} is null and coalesce(${order.paymentMethod}, 'manual') not in ('cod', 'manual') and ${order.status} in ('open', 'cancelled'))`
+const paymentFinished = sql`not ${paymentNotFinished}`
 
 /**
  * What each tab shows. Unpaid and Unfulfilled are work still to do, so only
@@ -82,6 +93,7 @@ export function viewFilter(view: OrderView): SQL | undefined {
       return and(
         eq(order.status, 'open'),
         inArray(order.paymentStatus, [...UNPAID_PAYMENT_STATUSES]),
+        paymentFinished,
       )
     case 'unfulfilled':
       // Imported history is a read-only record: nothing on it is left to ship.
@@ -89,6 +101,7 @@ export function viewFilter(view: OrderView): SQL | undefined {
         eq(order.status, 'open'),
         inArray(order.fulfillmentStatus, [...UNFULFILLED_STATUSES]),
         isNull(order.importedFrom),
+        paymentFinished,
       )
     case 'pending_upi':
       return and(
@@ -108,9 +121,11 @@ export function viewFilter(view: OrderView): SQL | undefined {
     case 'completed':
       return eq(order.status, 'completed')
     case 'cancelled':
-      return eq(order.status, 'cancelled')
+      return and(eq(order.status, 'cancelled'), paymentFinished)
+    case 'payment_not_finished':
+      return paymentNotFinished
     default:
-      return undefined
+      return paymentFinished
   }
 }
 
@@ -152,7 +167,8 @@ function orderListWhere(input: OrderListFilters) {
   const byNumber = input.search ? orderNumberFromSearch(input.search) : null
   return and(
     notDraft,
-    input.view ? viewFilter(input.view) : undefined,
+    // A search finds any order, a checkout still waiting on payment too.
+    input.view ? viewFilter(input.view) : input.search ? undefined : viewFilter('all'),
     input.search
       ? or(
           ilike(order.email, `%${input.search}%`),
