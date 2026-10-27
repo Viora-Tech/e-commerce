@@ -30,7 +30,7 @@ export const fedexAppContent = {
       clientSecret: { label: 'Secret key', help: 'Shown next to the API key. Stored encrypted.' },
       accountNumber: {
         label: 'FedEx account number',
-        help: 'The 9-digit account shipments are billed to.',
+        help: 'The 9-digit account shipments are billed to. Only tracking parcels coming to you? Leave this and the origin empty: the API key and secret are enough.',
       },
       originPincode: {
         label: 'Origin PIN code',
