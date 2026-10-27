@@ -119,7 +119,7 @@ export const themeImportContent = {
       fonts: 'Fonts load from Google Fonts',
       hosted_images: 'Pictures copied into Files',
       payment_icons: 'Simple payment marks',
-      localization: 'India and rupees only',
+      localization: 'Lists your markets; prices stay in rupees for now',
       recommendations: 'Recommendations are empty for now',
       preorder: 'Pre-order uses our built-in pre-order',
       app_data:
@@ -169,7 +169,7 @@ export const themeImportContent = {
       payment_icons: { shopify: 'Payment icons', ours: 'Simple marks for your payment methods.' },
       localization: {
         shopify: 'Country and currency picker',
-        ours: 'India and rupees only for now.',
+        ours: 'Lists every country you sell to and switches market and language. Prices stay in rupees for now.',
       },
       recommendations: {
         shopify: 'Product recommendations',
