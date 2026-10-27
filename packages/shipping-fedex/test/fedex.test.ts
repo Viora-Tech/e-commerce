@@ -450,3 +450,34 @@ describe('fedexFactory', () => {
     ).toMatchObject({ ok: true, config: { mode: 'test', bookPickup: false } })
   })
 })
+
+describe('FedEx for tracking only', () => {
+  const trackingOnly = { ...config, accountNumber: '', originPincode: '', originCity: '' }
+
+  it('accepts just the key and secret, but not half an origin', () => {
+    expect(fedexFactory.validateConfig({ clientId: 'a', clientSecret: 'b' })).toMatchObject({
+      ok: true,
+      config: { accountNumber: '', originPincode: '', originCity: '' },
+    })
+    expect(
+      fedexFactory.validateConfig({ clientId: 'a', clientSecret: 'b', originPincode: '131028' }),
+    ).toMatchObject({ ok: false })
+  })
+
+  it('quotes nothing and refuses to book, without calling FedEx', async () => {
+    const f = fakeFetch({ 'POST /oauth/token': token })
+    const p = new FedexProvider({ ...trackingOnly, fetchImpl: f.impl })
+    const query = {
+      originPincode: '131028',
+      destinationPincode: '10001',
+      destinationCountry: 'US',
+      weightGrams: 500,
+      declaredValuePaise: 100000,
+      paymentMode: 'prepaid' as const,
+    }
+    expect(await p.quoteOptions(query)).toEqual([])
+    expect(await p.quoteRate(query)).toBeNull()
+    await expect(p.createShipment(exportShipment)).rejects.toThrow(/tracking only/)
+    expect(f.calls).toHaveLength(0)
+  })
+})

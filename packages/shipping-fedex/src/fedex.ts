@@ -64,6 +64,7 @@ export type FedexConfig = {
   /** The FedEx project's API key (OAuth client id). */
   clientId: string
   clientSecret: string
+  /** Empty when connected for tracking only (inbound shipments): no quotes or bookings then. */
   accountNumber: string
   originPincode: string
   originCity: string
@@ -75,6 +76,9 @@ export type FedexConfig = {
   fetchImpl?: typeof fetch | undefined
   now?: (() => Date) | undefined
 }
+
+const TRACKING_ONLY =
+  'FedEx is connected for tracking only. Add your account number and origin PIN code and city in Apps → FedEx → Connect to ship with it.'
 
 const QUICK_TIMEOUT_MS = 10_000
 const BOOKING_TIMEOUT_MS = 30_000
@@ -450,6 +454,11 @@ export class FedexProvider implements ShippingProvider {
     }
   }
 
+  /** Account number and origin are set: quotes and bookings work, not just tracking. */
+  private canShip(): boolean {
+    return this.config.accountNumber !== '' && this.config.originPincode !== ''
+  }
+
   async checkServiceability(query: ServiceabilityQuery): Promise<Serviceability> {
     const closed = (reason: string): Serviceability => ({
       provider: this.id,
@@ -463,6 +472,7 @@ export class FedexProvider implements ShippingProvider {
     if (isDomesticCountry(query.destinationCountry)) {
       return closed('FedEx ships from India to other countries only.')
     }
+    if (!this.canShip()) return closed(TRACKING_ONLY)
     const options = await this.quoteOptions({
       originPincode: query.originPincode,
       destinationPincode: query.destinationPincode,
@@ -486,7 +496,7 @@ export class FedexProvider implements ShippingProvider {
   }
 
   async quoteOptions(query: RateQuery): Promise<RateOption[]> {
-    if (isDomesticCountry(query.destinationCountry)) return []
+    if (isDomesticCountry(query.destinationCountry) || !this.canShip()) return []
     const details = await this.rates(query)
     return details.flatMap((d) => this.toOption(d) ?? [])
   }
@@ -634,6 +644,7 @@ export class FedexProvider implements ShippingProvider {
     if (input.paymentMode === 'cod') {
       throw new CourierError('rejected', this.id, 'FedEx exports cannot collect cash on delivery.')
     }
+    if (!this.canShip()) throw new CourierError('rejected', this.id, TRACKING_ONLY)
     const data = await this.call<ShipResponse>(
       'POST',
       '/ship/v1/shipments',
@@ -774,11 +785,10 @@ const fields: ProviderField[] = [
   {
     key: 'accountNumber',
     label: 'FedEx account number',
-    required: true,
-    help: 'The 9-digit account shipments are billed to.',
+    help: 'The 9-digit account shipments are billed to. Leave empty, with the origin, to use FedEx for tracking only.',
   },
-  { key: 'originPincode', label: 'Origin PIN code', required: true },
-  { key: 'originCity', label: 'Origin city', required: true },
+  { key: 'originPincode', label: 'Origin PIN code' },
+  { key: 'originCity', label: 'Origin city' },
   {
     key: 'iec',
     label: 'IEC (Importer-Exporter Code)',
@@ -802,10 +812,16 @@ export const fedexFactory: ShippingProviderFactory<FedexConfig> = {
     const errors: string[] = []
     if (!r.clientId?.trim()) errors.push('API key is required')
     if (!r.clientSecret?.trim()) errors.push('secret key is required')
-    if (!/^\d{9,12}$/.test(r.accountNumber?.trim() ?? ''))
-      errors.push('FedEx account number must be 9 digits')
-    if (!isValidPincode(r.originPincode?.trim())) errors.push('origin PIN code must be 6 digits')
-    if (!r.originCity?.trim()) errors.push('origin city is required')
+    const accountNumber = r.accountNumber?.trim() ?? ''
+    const originPincode = r.originPincode?.trim() ?? ''
+    const originCity = r.originCity?.trim() ?? ''
+    // All three empty = tracking only (inbound shipments). Any one given = shipping, so all three.
+    const shipping = accountNumber !== '' || originPincode !== '' || originCity !== ''
+    if (shipping) {
+      if (!/^\d{9,12}$/.test(accountNumber)) errors.push('FedEx account number must be 9 digits')
+      if (!isValidPincode(originPincode)) errors.push('origin PIN code must be 6 digits')
+      if (!originCity) errors.push('origin city is required')
+    }
     const iec = r.iec?.trim()
     if (iec && !/^[A-Z0-9]{10}$/i.test(iec)) errors.push('IEC must be 10 letters or digits')
     if (errors.length) return { ok: false, errors }
@@ -814,9 +830,9 @@ export const fedexFactory: ShippingProviderFactory<FedexConfig> = {
       config: {
         clientId: (r.clientId as string).trim(),
         clientSecret: r.clientSecret as string,
-        accountNumber: (r.accountNumber as string).trim(),
-        originPincode: (r.originPincode as string).trim(),
-        originCity: (r.originCity as string).trim(),
+        accountNumber,
+        originPincode,
+        originCity,
         iec: iec ? iec.toUpperCase() : undefined,
         mode: r.mode === 'live' ? 'live' : 'test',
         bookPickup: r.bookPickup !== 'false',

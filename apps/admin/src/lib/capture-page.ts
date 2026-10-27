@@ -18,15 +18,42 @@ function keep(node: Node): boolean {
   return node.tagName.toLowerCase() !== 'nextjs-portal'
 }
 
+/** Width asked of Next's image optimiser: one of its default sizes, plenty for a screenshot. */
+const PROXY_WIDTH = 640
+
+function isCrossOrigin(url: string): boolean {
+  try {
+    return new URL(url, window.location.href).origin !== window.location.origin
+  } catch {
+    return false
+  }
+}
+
+function asDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result))
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(blob)
+  })
+}
+
 /**
- * URLs on other hosts (the media CDN). An `<img>` loads them without CORS, and the CDN answers
- * those without `Access-Control-Allow-Origin` (it varies on `Origin`), so the library's
- * cache-first fetch reused that copy, failed CORS and drew an empty tile instead of the photo
- * (#804). A fresh request per picture gets the CORS headers.
+ * Pictures on other hosts (cdn.koomerce.app, cdn.shopify.com). Fetching them straight from the
+ * browser depends on the CDN's CORS answer, which an `<img>`'s earlier no-CORS load poisons in
+ * the cache, so tiles came out empty (#804, still seen after the cache bypass). They go through
+ * the admin's own `/_next/image` instead: same origin, so no CORS at all, and smaller. `false`
+ * hands the URL back to the library (same-origin files, hosts the optimiser does not allow).
  */
-function crossOrigin(): RegExp {
-  const host = window.location.host.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  return new RegExp(`^https?://(?!${host}/)`)
+async function fetchViaOptimiser(url: string): Promise<string | false> {
+  if (!/^https?:/.test(url) || !isCrossOrigin(url)) return false
+  try {
+    const res = await fetch(`/_next/image?url=${encodeURIComponent(url)}&w=${PROXY_WIDTH}&q=75`)
+    if (!res.ok) return false
+    return await asDataUrl(await res.blob())
+  } catch {
+    return false
+  }
 }
 
 /** Decoded size of a base64 data URL. */
@@ -57,7 +84,7 @@ export async function capturePage(): Promise<string | null> {
       height: window.innerHeight,
       backgroundColor: getComputedStyle(node).backgroundColor,
       filter: keep,
-      fetch: { bypassingCache: crossOrigin() },
+      fetchFn: fetchViaOptimiser,
     }
     const png = await domToPng(node, {
       ...options,
