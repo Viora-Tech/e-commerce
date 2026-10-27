@@ -239,7 +239,9 @@ html.has-cursor-fill .variant-picker__pill.is-hover-fill:not(.variant-picker__sw
   gap: var(--space-3);
 }
 
-.variant-picker__swatch {
+/* Doubled class: an imported theme's own `.variant-picker__pill` (Waimers: padding 0 16px,
+   height 40px) loads after this file and squeezed the 36px chip to a 2px sliver. */
+.variant-picker__pill.variant-picker__swatch {
   min-width: 0;
   width: 36px;
   height: 36px;
