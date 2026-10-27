@@ -15,6 +15,7 @@ import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import GatewayConnectForm from './gateway-connect-form'
+import TestModeBar from './test-mode-bar'
 import type { GatewayId, PaymentsSetup } from './types'
 
 type GatewayConnectPageProps = {
@@ -39,6 +40,7 @@ export default function GatewayConnectPage({ providerId }: GatewayConnectPagePro
 
   // Render logic
   const guide = guides[providerId]
+  const testMode = setup?.gateways.find((g) => g.id === providerId)?.mode === 'test'
 
   return (
     <div className="flex flex-col gap-4">
@@ -58,6 +60,7 @@ export default function GatewayConnectPage({ providerId }: GatewayConnectPagePro
           </Button>
         }
       />
+      {testMode ? <TestModeBar /> : null}
       {setup ? (
         <GatewayConnectForm
           providerId={providerId}
