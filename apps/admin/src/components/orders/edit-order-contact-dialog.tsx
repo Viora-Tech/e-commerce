@@ -160,11 +160,6 @@ export default function EditOrderContactDialog({
 
   // Render logic
   const c = copy.editContact
-  const billingErrors = Object.fromEntries(
-    Object.entries(errors)
-      .filter(([k]) => k.startsWith('billing.'))
-      .map(([k, v]) => [k.slice('billing.'.length), v]),
-  )
   const hasAddress = order.shippingAddress !== null || draft.address.line1.trim() !== ''
   const canSaveToCustomer = order.customer !== null && hasAddress
   const billingErrors = Object.fromEntries(
