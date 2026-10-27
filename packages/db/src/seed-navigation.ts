@@ -1,7 +1,7 @@
 import { eq, inArray } from 'drizzle-orm'
 import { createDb } from './client'
-import type { NavigationItem } from './schema'
-import { navigationMenu, store } from './schema'
+import { type NavigationItem, navigationMenu } from './content-schema'
+import { store } from './schema'
 
 /**
  * Storefront menus for the Waimers store, and the pointer saying which of them

@@ -466,6 +466,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'products.exportRows': 'Rows for the CSV the browser downloads, honouring the current filter.',
   'products.pick': 'Rows for the shared "Select products" dialog, variants included.',
   'products.previewImport': 'Dry run: parse the file and say what would change, writing nothing.',
+  'products.removeVariants':
+    'The bulk editor\'s "Delete variants": archived when history points at them, else deleted.',
   'products.save':
     'Full write from the product form: options, variants and inventory in one transaction.',
   'products.searchVariants': 'Variant picker for the draft order editor.',

@@ -197,7 +197,10 @@ export const purchaseOrderLine = pgTable(
     /** Paise those units added to inventory value; revaluation moves it to the new cost. */
     bookedCostPaise: bigint('booked_cost_paise', { mode: 'number' }).notNull().default(0),
   },
-  (t) => [index('purchase_order_line_order').on(t.purchaseOrderId)],
+  (t) => [
+    index('purchase_order_line_order').on(t.purchaseOrderId),
+    index('purchase_order_line_variant').on(t.variantId),
+  ],
 )
 
 export type ManualSplit = { lineId: string; amountPaise: number }

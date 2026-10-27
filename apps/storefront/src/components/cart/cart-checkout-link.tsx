@@ -1,6 +1,7 @@
 'use client'
 
 import type { MouseEvent, ReactNode } from 'react'
+import { typedDiscountCode } from '@/lib/pending-code'
 
 type CartCheckoutLinkProps = {
   className: string
@@ -14,9 +15,7 @@ type CartCheckoutLinkProps = {
 export default function CartCheckoutLink({ className, children }: CartCheckoutLinkProps) {
   // Event handlers
   const handleClick = (e: MouseEvent<HTMLAnchorElement>) => {
-    const code = document
-      .querySelector<HTMLInputElement>('[data-pending-code="discount"]')
-      ?.value.trim()
+    const code = typedDiscountCode()
     if (!code) return
     e.preventDefault()
     window.location.assign(`/checkout/start?discount=${encodeURIComponent(code)}`)
