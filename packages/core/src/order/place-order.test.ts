@@ -12,6 +12,7 @@ import {
   payment,
   product,
   store,
+  storeCounter,
   variant,
   withStore,
 } from '@commerce/db'
@@ -130,8 +131,9 @@ describe('placeOrder', () => {
     expect(inv?.reserved).toBe(2)
     const [c] = await owner.select().from(cart).where(eq(cart.id, cartId))
     expect(c?.status).toBe('converted')
-    const [s] = await owner.select().from(store).where(eq(store.id, storeId))
-    expect(s?.nextOrderNumber).toBe(2)
+    // Numbers come from `store_counter` (0177), not the store row.
+    const [n] = await owner.select().from(storeCounter).where(eq(storeCounter.storeId, storeId))
+    expect(n?.value).toBe(2)
     expect(provider.calls).toEqual([`createPayment:${result.orderId}:999800`])
   })
 
@@ -649,8 +651,9 @@ describe('placeOrder lock and replay', () => {
     expect(provider.calls).toHaveLength(1)
     const [o] = await owner.select().from(order).where(eq(order.id, first.orderId))
     expect(o?.cartId).toBe(cartId)
-    const [s] = await owner.select().from(store).where(eq(store.id, storeId))
-    expect(s?.nextOrderNumber).toBe(2)
+    // Numbers come from `store_counter` (0177), not the store row.
+    const [n] = await owner.select().from(storeCounter).where(eq(storeCounter.storeId, storeId))
+    expect(n?.value).toBe(2)
   })
 
   it('the database refuses a second order for the same cart', async () => {

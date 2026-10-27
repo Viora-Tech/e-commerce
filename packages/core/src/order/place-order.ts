@@ -66,6 +66,7 @@ import { computeOrderGst } from '../tax/gst'
 import { chargedGstRate, parseStoreTax, type StoreTaxSettings } from '../tax/settings'
 import { runWorkflow, type WorkflowLog, type WorkflowStep } from '../workflow/run'
 import { createFulfillmentOrders, deleteFulfillmentOrders } from './fulfillment-orders'
+import { takeOrderNumber } from './order-number'
 import { taxParcels } from './parcel-tax'
 import { recomputeOrderStatuses } from './recompute'
 import type { RoutedParcel } from './routing'
@@ -534,20 +535,20 @@ const createOrder: WorkflowStep<State> = {
       // Created or updated (the upsert does not say which); app consumers upsert either way.
       if (customerId) await recordCustomerChange(ctx.tx, ctx.storeId, customerId, 'updated')
     }
+    // The store's settings are only read here: the number comes from `store_counter`, so the
+    // checkout no longer holds the store row locked until it commits (0177).
     const [s] = await ctx.tx
-      .update(store)
-      .set({ nextOrderNumber: sql`${store.nextOrderNumber} + 1` })
-      .where(eq(store.id, ctx.storeId))
-      .returning({
-        next: store.nextOrderNumber,
+      .select({
         payments: store.payments,
         address: store.address,
         gstRatePercent: store.gstRatePercent,
         apps: store.apps,
       })
+      .from(store)
+      .where(eq(store.id, ctx.storeId))
     if (!s) throw new Error(`store ${ctx.storeId} not visible in context`)
     const storeTax = parseStoreTax(s.apps)
-    const orderNumber = s.next - 1
+    const orderNumber = await takeOrderNumber(ctx.tx, ctx.storeId)
     const subtotalPaise = sumPaise(lines)
     // Discount first, then the payment-method fee or discount on what is left.
     // Both are applied server-side here; the checkout preview is only a hint.

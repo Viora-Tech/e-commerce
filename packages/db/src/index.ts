@@ -6,11 +6,14 @@ export * from './automation-schema'
 export * from './billing-schema'
 export * from './channel-schema'
 export { createDb, type Db } from './client'
+export * from './content-schema'
 export { seedWaimersShipping } from './default-shipping'
 export { isUniqueViolation } from './errors'
 export * from './finance-schema'
 export * from './inbox-schema'
+export * from './market-schema'
 export * from './marketing-schema'
+export * from './metafield-schema'
 export * from './pixel-schema'
 export * from './privacy-schema'
 export * from './purchasing-schema'
@@ -24,7 +27,9 @@ export {
   resolveHost,
   resolveStore,
   resolveStoreForOrganization,
+  type StoreMarketRoute,
   storeIdForSlug,
+  storeMarkets,
   storesForPlatformAccount,
   storesWithAbandonedCarts,
   storesWithAutomationWork,
@@ -43,6 +48,7 @@ export {
   storesWithPendingCodChecks,
   storesWithPendingDomains,
   storesWithPendingManualOrders,
+  storesWithRetentionDue,
   storesWithSearchConsoleDue,
   storesWithSenderEmailChecks,
   storesWithStaleImportSnapshots,

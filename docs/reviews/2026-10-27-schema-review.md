@@ -1,8 +1,14 @@
 # Schema review, 27 Oct 2026 (with Markets)
 
 The owner asked for a review of the whole database schema, including what Markets (selling
-abroad, like Shopify Markets) needs. This is that review. Nothing here is built yet: the fixes
-and the Markets design wait for the owner's go-ahead (decisions at the end).
+abroad, like Shopify Markets) needs. This is that review.
+
+**Status (28 Oct):** the owner said "fix those things". Migration 0177 (see
+`docs/handoff/changes/2026-10-28-schema-integrity-markets.md`) does P0 items 1 and 2, P1 items 4
+and 5, P2 items 8 and 9 (by archiving), and the Markets schema for all three phases. The cart and
+log prune (P0 item 3, P1 item 6) is a separate worker PR. Still open: P1 item 7 (phone
+encryption: pick one approach), P2 items 10, 11 and 15, and 12 (the `store_secret` split). Items
+10 and 11 need a look at production data first. Items 13, 14 and 16 stay as they are.
 
 ## How it was checked
 

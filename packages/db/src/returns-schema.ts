@@ -10,7 +10,7 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core'
-import { newId, order, orderLine, store } from './schema'
+import { giftCard, newId, order, orderLine, shipment, store, variant } from './schema'
 
 /* Returns: a shopper's return request or a courier's RTO, and the order lines it covers. */
 
@@ -65,13 +65,15 @@ export const returnRequest = pgTable(
     refundAmountPaise: integer('refund_amount_paise'),
     /** Refund rows written for this return (one per payment the money went back to). */
     refundIds: uuid('refund_ids').array().notNull().default([]),
-    giftCardId: uuid('gift_card_id'),
+    giftCardId: uuid('gift_card_id').references(() => giftCard.id, { onDelete: 'set null' }),
     /** The draft order that sends the replacement for an exchange. */
-    exchangeOrderId: uuid('exchange_order_id'),
+    exchangeOrderId: uuid('exchange_order_id').references(() => order.id, { onDelete: 'set null' }),
     /** The new shipment when an RTO parcel is sent out again. */
-    reshipShipmentId: uuid('reship_shipment_id'),
+    reshipShipmentId: uuid('reship_shipment_id').references(() => shipment.id, {
+      onDelete: 'set null',
+    }),
     /** For RTO: the shipment that came back. */
-    shipmentId: uuid('shipment_id'),
+    shipmentId: uuid('shipment_id').references(() => shipment.id, { onDelete: 'set null' }),
     /** Put the items back in stock when received (defaults from the store policy). */
     restock: boolean('restock').notNull().default(true),
     restockedAt: timestamp('restocked_at', { withTimezone: true }),
@@ -133,7 +135,9 @@ export const returnRequestLine = pgTable(
     /** Units put back in stock so far; a second restock click moves nothing. */
     restockedQuantity: integer('restocked_quantity').notNull().default(0),
     /** The variant the shopper wants instead (an exchange for another size); null for money back. */
-    exchangeVariantId: uuid('exchange_variant_id'),
+    exchangeVariantId: uuid('exchange_variant_id').references(() => variant.id, {
+      onDelete: 'set null',
+    }),
   },
   (t) => [
     index('return_request_line_request').on(t.returnRequestId),

@@ -6,12 +6,14 @@
  */
 
 import {
+  bumpOrderNumberPast,
   deleteFulfillmentOrders,
   encryptCustomerPhone,
   importedOrderStatuses,
   phoneBlindIndex,
   recomputeOrderStatuses,
   SETTLED_PAYMENT_STATUSES,
+  takeOrderNumber,
 } from '@commerce/core'
 import {
   address,
@@ -23,7 +25,6 @@ import {
   payment,
   product,
   type StoreTx,
-  store,
   variant,
 } from '@commerce/db'
 import { and, eq, ilike, isNull, sql } from 'drizzle-orm'
@@ -209,22 +210,12 @@ async function existingOrder(tx: StoreTx, o: NOrder): Promise<Existing> {
   return byNumber ?? null
 }
 
-async function nextNumber(tx: StoreTx, storeId: string): Promise<number> {
-  const [row] = await tx
-    .update(store)
-    .set({ nextOrderNumber: sql`${store.nextOrderNumber} + 1` })
-    .where(eq(store.id, storeId))
-    .returning({ next: store.nextOrderNumber })
-  return (row?.next ?? 2) - 1
-}
+/** The store's next order number (`store_counter`, shared with checkout and drafts). */
+const nextNumber = (tx: StoreTx, storeId: string): Promise<number> => takeOrderNumber(tx, storeId)
 
 /** New orders continue after the highest imported number, as they did on Shopify. */
-async function bumpCounter(tx: StoreTx, storeId: string, number: number) {
-  await tx
-    .update(store)
-    .set({ nextOrderNumber: sql`greatest(${store.nextOrderNumber}, ${number + 1})` })
-    .where(eq(store.id, storeId))
-}
+const bumpCounter = (tx: StoreTx, storeId: string, number: number): Promise<void> =>
+  bumpOrderNumberPast(tx, storeId, number)
 
 type Outcome = {
   outcome: 'created' | 'updated' | 'skipped'

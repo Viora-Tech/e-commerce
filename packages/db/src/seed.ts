@@ -3,12 +3,12 @@ import { fileURLToPath } from 'node:url'
 import { eq } from 'drizzle-orm'
 import { member, organization, user } from './auth-schema'
 import { createDb } from './client'
+import { page } from './content-schema'
 import { seedWaimersShipping } from './default-shipping'
 import {
   inventoryLevel,
   media,
   newId,
-  page,
   product,
   productMedia,
   productOption,

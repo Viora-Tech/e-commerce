@@ -33,6 +33,9 @@ export const STOREFRONT_CACHE_TABLES = [
   'gst_registration',
   'inventory_level',
   'location',
+  // Markets (0177): which currency, language and prices a page shows.
+  'market',
+  'market_region',
   'media',
   'metafield',
   'metafield_definition',
@@ -56,6 +59,8 @@ export const STOREFRONT_CACHE_TABLES = [
   'theme_import',
   'theme_template',
   'theme_version',
+  // Content in other languages (Markets, 0177).
+  'translation',
   'url_redirect',
   'variant',
   'variant_media',
@@ -188,6 +193,7 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   shopify_import_run: ADMIN,
   short_link: 'short links redirect before any page renders',
   short_link_click_day: LOG,
+  store_counter: 'running numbers (the next order number); no page shows them',
   store_export: ADMIN,
   store_plan: ADMIN,
   store_invitation: ADMIN,

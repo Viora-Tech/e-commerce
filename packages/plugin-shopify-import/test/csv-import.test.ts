@@ -13,7 +13,7 @@ import {
   orderLine,
   payment,
   product,
-  store,
+  storeCounter,
   variant,
   withStore,
 } from '@commerce/db'
@@ -426,8 +426,9 @@ describe('CSV import runs', () => {
       stockBefore,
     )
     expect(await owner.select().from(notification)).toHaveLength(0)
-    const [s] = await owner.select().from(store).where(eq(store.id, storeId))
-    expect(s?.nextOrderNumber).toBe(1003)
+    // The counter (`store_counter`, 0177) moved past the imported numbers.
+    const [n] = await owner.select().from(storeCounter).where(eq(storeCounter.storeId, storeId))
+    expect(n?.value).toBe(1003)
 
     // Re-running updates in place.
     const again = await csvRun(storeId, storage, 'orders', 'orders.csv')

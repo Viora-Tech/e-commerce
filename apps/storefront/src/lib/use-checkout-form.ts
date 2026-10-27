@@ -43,6 +43,7 @@ import type { AppliedGiftCard } from '@/lib/gift-card-actions'
 import type { CheckoutMethod } from '@/lib/payments'
 import type { CartDepositTerms } from '@/lib/preorder'
 import { isFullPincode, useCheckoutShipping } from '@/lib/use-checkout-shipping'
+import { applyPendingDiscountCode } from './pending-code'
 
 /** Settings → Customer accounts, as the Contact card needs it. */
 export type CheckoutSignIn = {
@@ -378,19 +379,9 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   const handlePayment = (id: string) => setForm((prev) => ({ ...prev, payment: id }))
   const handlePhone = (phone: string) => setForm((prev) => ({ ...prev, phone }))
   /* Enter in a field pays, like the Pay button. One form for the whole checkout. */
-  /*
-   * A code typed but never applied: apply it and let the shopper see the new total first,
-   * instead of paying the full price while the code sits in the field. True when it did.
-   */
-  const applyTypedCode = () => {
-    const code = document
-      .querySelector<HTMLInputElement>('[data-pending-code="discount"]')
-      ?.value.trim()
-    if (!code) return false
-    document.querySelector<HTMLButtonElement>('[data-apply-code="discount"]')?.click()
-    setError(content.errors.discountNotApplied(code))
-    return true
-  }
+  // A code typed but never applied is applied first; the shopper checks the new total (pending-code.ts).
+  const applyTypedCode = () =>
+    applyPendingDiscountCode((code) => setError(content.errors.discountNotApplied(code)))
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setExpressNote(null)
