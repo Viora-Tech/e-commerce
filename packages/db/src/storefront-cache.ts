@@ -92,6 +92,7 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   channel_listing: LOG,
   contact_message: SHOPPER,
   cookie_consent: SHOPPER,
+  courier_order: ADMIN,
   courier_wallet_balance: ADMIN,
   customer: SHOPPER,
   customer_address: SHOPPER,
