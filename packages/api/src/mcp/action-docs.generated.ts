@@ -466,6 +466,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'products.exportRows': 'Rows for the CSV the browser downloads, honouring the current filter.',
   'products.pick': 'Rows for the shared "Select products" dialog, variants included.',
   'products.previewImport': 'Dry run: parse the file and say what would change, writing nothing.',
+  'products.removeVariants':
+    'The bulk editor\'s "Delete variants": archived when history points at them, else deleted.',
   'products.save':
     'Full write from the product form: options, variants and inventory in one transaction.',
   'products.searchVariants': 'Variant picker for the draft order editor.',
@@ -611,8 +613,12 @@ export const ACTION_DOCS: Record<string, string> = {
   'themes.customSections.list': 'The saved sections.',
   'themes.import.editor':
     "Schemas, labels and the theme's head for Customize; null for our own themes.",
+  'themes.import.head':
+    "The theme's head for the canvas with unsaved Theme settings previewed (colours, fonts).",
   'themes.import.render':
     "The canvas's HTML for imported sections, keyed by section id (scripts removed).",
+  'themes.import.saveSettings':
+    "Saves an imported theme's own Theme settings (favicon, colours, fonts…); returns the saved values.",
   'themes.logo': "The live theme's logo for the admin sidebar (every page load): one small read.",
   'themes.packs':
     "A theme's opt-in section packs (Zero Drift…): which pack sections its Customize Add menu offers.",

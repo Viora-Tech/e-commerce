@@ -1,6 +1,7 @@
 import { loadEnv, settingsSecret } from '@commerce/config'
 import {
   canvasSafeHtml,
+  cleanThemeSettings,
   createPageContext,
   googleFontsHref,
   importShopifyTheme,
@@ -12,9 +13,11 @@ import {
   sectionWrapper,
   storefrontOriginFor,
   storeLiquidData,
+  type ThemeBundle,
   ThemeImportError,
   ThemeLibraryError,
   themeImportFor,
+  themeSettingsById,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
@@ -79,9 +82,25 @@ export async function themeImportReport(tx: StoreTx, themeId: string) {
  */
 const stripScripts = canvasSafeHtml
 
-async function editorContext(tx: StoreTx, storeId: string, themeId: string) {
-  const bundle = await loadThemeBundle(tx, themeId)
-  if (!bundle) return null
+/** Unsaved Theme settings values over the saved ones (each cleaned), for the canvas to preview. */
+type ThemeSettingsDraft = Record<string, unknown> | undefined
+
+function withDraftSettings(bundle: ThemeBundle, draft: ThemeSettingsDraft): ThemeBundle {
+  if (!draft || Object.keys(draft).length === 0) return bundle
+  const schema = [...themeSettingsById(bundle.settingsSchema).values()]
+  // Same version: the parsed templates are reused, only the values differ.
+  return { ...bundle, settings: { ...bundle.settings, ...cleanThemeSettings(schema, draft) } }
+}
+
+async function editorContext(
+  tx: StoreTx,
+  storeId: string,
+  themeId: string,
+  draft?: ThemeSettingsDraft,
+) {
+  const saved = await loadThemeBundle(tx, themeId)
+  if (!saved) return null
+  const bundle = withDraftSettings(saved, draft)
   const record = await themeImportFor(tx, themeId)
   const url = await storefront(tx, storeId)
   return createPageContext({
@@ -121,11 +140,39 @@ export async function liquidEditorInfo(tx: StoreTx, storeId: string, themeId: st
   for (const [type, s] of ctx.bundle.sections) if (s.schema) schemas[type] = s.schema
   const blockSchemas: Record<string, ShopifySectionSchema> = {}
   for (const [type, s] of ctx.bundle.blocks) if (s.schema) blockSchemas[type] = s.schema
+  // Theme settings: the schema's groups and the saved value of each of its settings.
+  const settingValues: Record<string, unknown> = {}
+  for (const id of themeSettingsById(ctx.bundle.settingsSchema).keys()) {
+    if (id in ctx.bundle.settings) settingValues[id] = ctx.bundle.settings[id]
+  }
   return {
     schemas,
     blockSchemas,
     schemaLocale: ctx.bundle.schemaLocale,
     colorSchemes: Object.keys((ctx.bundle.settings.color_schemes ?? {}) as Record<string, unknown>),
+    settingsSchema: ctx.bundle.settingsSchema,
+    settingValues,
+    head: stripScripts(layout.head),
+    beforeHeader: stripScripts(layout.beforeHeader),
+    fontsHref: googleFontsHref(layout.fonts),
+    htmlAttrs: layout.htmlAttrs,
+  }
+}
+
+/**
+ * The theme's head for the canvas with unsaved Theme settings in place (its colours, fonts and
+ * CSS variables live there), so Customize previews them before Save. Null for our own themes.
+ */
+export async function liquidEditorHead(
+  tx: StoreTx,
+  storeId: string,
+  themeId: string,
+  draft: ThemeSettingsDraft,
+) {
+  const ctx = await editorContext(tx, storeId, themeId, draft)
+  if (!ctx) return null
+  const layout = await renderLiquidLayout(ctx)
+  return {
     head: stripScripts(layout.head),
     beforeHeader: stripScripts(layout.beforeHeader),
     fontsHref: googleFontsHref(layout.fonts),
@@ -139,8 +186,9 @@ export async function renderLiquidForEditor(
   storeId: string,
   themeId: string,
   sections: LiquidSectionInput[],
+  draft?: ThemeSettingsDraft,
 ): Promise<Record<string, string>> {
-  const ctx = await editorContext(tx, storeId, themeId)
+  const ctx = await editorContext(tx, storeId, themeId, draft)
   if (!ctx) return {}
   const out: Record<string, string> = {}
   for (const section of sections) {

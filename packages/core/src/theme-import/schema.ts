@@ -17,6 +17,8 @@ export type ShopifySetting = {
   content?: string | undefined
   limit?: number | undefined
   visible_if?: string | undefined
+  /** A `color_scheme_group`'s colours: the settings every scheme carries. */
+  definition?: ShopifySetting[] | undefined
 }
 
 export type ShopifyBlockSchema = {
