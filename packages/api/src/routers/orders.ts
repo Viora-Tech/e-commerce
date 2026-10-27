@@ -424,7 +424,10 @@ export const ordersRouter = {
       }),
     )
     .handler(async ({ context, input }) => {
-      await assertNotImported(context.tx, { paymentId: input.paymentId })
+      // An imported order's money was taken on the old platform: it can only be recorded here
+      // (by hand or as store credit), never sent back through a gateway.
+      const handOnly = input.manual === true || input.method === 'store_credit'
+      if (!handOnly) await assertNotImported(context.tx, { paymentId: input.paymentId })
       const { payments, notifications } = await storeRegistries(context.tx, context.scope.storeId)
       try {
         // The service writes `refund.created` (the shopper's message, credit notes) itself.
