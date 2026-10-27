@@ -28,6 +28,7 @@ export const ORDER_LIST_FILTERS = [
   'balance_due',
   'completed',
   'cancelled',
+  'payment_not_finished',
 ] as const
 export type OrderListFilter = (typeof ORDER_LIST_FILTERS)[number]
 
@@ -149,6 +150,7 @@ export const ordersContent = {
     balance_due: 'Balance due',
     completed: 'Completed',
     cancelled: 'Cancelled',
+    payment_not_finished: 'Payment not finished',
   } satisfies Record<OrderListFilter | 'all', string>,
   status: {
     draft: 'Draft',

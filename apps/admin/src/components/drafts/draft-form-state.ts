@@ -145,19 +145,40 @@ export function draftToForm(d: Draft): DraftFormState {
   }
 }
 
+/** The parts an address needs before an order can ship to it, in form order. */
+export type AddressPart = 'name' | 'line1' | 'city' | 'stateCode' | 'pincode' | 'phone'
+
+/**
+ * What the address still lacks. Its phone may be left blank when the customer's phone is
+ * filled in: that number is used (#844: the draft could not be converted because the phone
+ * was only typed in the Customer card).
+ */
+export function missingAddressParts(
+  a: DraftFormState['address'],
+  fallbackPhone = '',
+): AddressPart[] {
+  const missing: AddressPart[] = []
+  if (!a.name.trim()) missing.push('name')
+  if (!a.line1.trim()) missing.push('line1')
+  if (!a.city.trim()) missing.push('city')
+  if (!a.stateCode) missing.push('stateCode')
+  if (!/^\d{6}$/.test(a.pincode.trim())) missing.push('pincode')
+  if (!a.phone.trim() && !fallbackPhone.trim()) missing.push('phone')
+  return missing
+}
+
 /** Only an address with the required parts is sent; a half-typed one is dropped. */
-function addressPayload(a: DraftFormState['address']) {
-  const complete =
-    a.name && a.line1 && a.city && a.stateCode && /^\d{6}$/.test(a.pincode) && a.phone
-  if (!complete) return null
+function addressPayload(a: DraftFormState['address'], fallbackPhone = '') {
+  if (missingAddressParts(a, fallbackPhone).length > 0) return null
+  const phone = a.phone.trim() || fallbackPhone.trim()
   return {
     name: a.name,
     line1: a.line1,
     ...(a.line2 ? { line2: a.line2 } : {}),
     city: a.city,
     stateCode: a.stateCode,
-    pincode: a.pincode,
-    phone: a.phone,
+    pincode: a.pincode.trim(),
+    phone,
   }
 }
 
@@ -167,12 +188,13 @@ export const billingGstinInvalid = (f: DraftFormState): boolean =>
 
 /** "Same as shipping" is off and the billing address is not complete (or its GSTIN is wrong). */
 export const draftIncompleteBilling = (f: DraftFormState): boolean =>
-  !f.billingSameAsShipping && (addressPayload(f.billing) === null || billingGstinInvalid(f))
+  !f.billingSameAsShipping &&
+  (addressPayload(f.billing, f.phone) === null || billingGstinInvalid(f))
 
 /** What the draft says about billing: the same as shipping, a billing address, or nothing yet. */
 function billingPayload(f: DraftFormState) {
   if (f.billingSameAsShipping) return { billingSameAsShipping: true }
-  const place = addressPayload(f.billing)
+  const place = addressPayload(f.billing, f.phone)
   if (!place || billingGstinInvalid(f)) return {}
   return {
     billingSameAsShipping: false,
@@ -186,7 +208,7 @@ function billingPayload(f: DraftFormState) {
 
 /** Something in the draft ships, and there is no complete address to ship it to. */
 export const draftMissingAddress = (f: DraftFormState): boolean =>
-  f.lines.some((l) => !l.giftCard) && addressPayload(f.address) === null
+  f.lines.some((l) => !l.giftCard) && addressPayload(f.address, f.phone) === null
 
 export function formToDraft(f: DraftFormState) {
   return {
@@ -194,7 +216,7 @@ export function formToDraft(f: DraftFormState) {
     email: f.email || null,
     phone: f.phone || null,
     customerName: f.customerName || null,
-    shipping: addressPayload(f.address),
+    shipping: addressPayload(f.address, f.phone),
     ...billingPayload(f),
     lines: f.lines.map((l) => ({
       variantId: l.variantId,
@@ -226,7 +248,7 @@ export function savedCodeCheck(d: Draft | null): DraftCodeCheck | null {
 
 /** The shipping state a code is checked against: only a complete address has one, as on save. */
 export const draftStateCode = (f: DraftFormState): string | null =>
-  addressPayload(f.address)?.stateCode ?? null
+  addressPayload(f.address, f.phone)?.stateCode ?? null
 
 export const draftSubtotal = (lines: DraftLine[]): number =>
   lines.reduce((sum, l) => sum + l.quantity * l.unitPricePaise, 0)

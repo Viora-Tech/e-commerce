@@ -1,7 +1,12 @@
 'use client'
 
 import { type ClipboardEvent, useRef } from 'react'
-import { type CellKeyboardEvent, type CellKeyDownArgs, DataGrid } from 'react-data-grid'
+import {
+  type CellKeyboardEvent,
+  type CellKeyDownArgs,
+  DataGrid,
+  SelectColumn,
+} from 'react-data-grid'
 import 'react-data-grid/lib/styles.css'
 import { bulkEditContent } from '@/data/bulk-edit'
 import { useCopy } from '@/hooks/use-copy'
@@ -23,7 +28,10 @@ type BulkEditGridProps = {
   locations: SheetLocation[]
   /** Column keys switched off in the Columns menu. */
   hidden: Set<string>
+  /** Ticked rows (variant ids), for "Delete variants". */
+  selected: ReadonlySet<string>
   onRowsChange: (rows: GridRow[]) => void
+  onSelectedChange: (selected: Set<string>) => void
 }
 
 const ROW_HEIGHT = 40
@@ -39,7 +47,9 @@ export default function BulkEditGrid({
   errors,
   locations,
   hidden,
+  selected,
   onRowsChange,
+  onSelectedChange,
 }: BulkEditGridProps) {
   // Hooks
   const copy = useCopy(bulkEditContent)
@@ -121,7 +131,7 @@ export default function BulkEditGrid({
 
   // Render logic
   const keys = columnKeys(locations, hidden)
-  const columns = buildColumns(copy, locations, base, errors, hidden)
+  const columns = [SelectColumn, ...buildColumns(copy, locations, base, errors, hidden)]
 
   return (
     <div
@@ -133,6 +143,8 @@ export default function BulkEditGrid({
         columns={columns}
         rows={rows}
         rowKeyGetter={rowKey}
+        selectedRows={selected}
+        onSelectedRowsChange={onSelectedChange}
         rowHeight={ROW_HEIGHT}
         headerRowHeight={ROW_HEIGHT}
         defaultColumnOptions={{ resizable: true }}

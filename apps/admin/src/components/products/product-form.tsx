@@ -367,7 +367,9 @@ export default function ProductForm({
             form={form}
             single={single}
             busy={working}
+            dirty={isDirty}
             storefrontOrigin={storefrontOrigin}
+            onSave={() => void handleSave()}
             onDuplicate={handleDuplicate}
             onArchive={handleArchive}
             onDelete={() => setConfirmDelete(true)}

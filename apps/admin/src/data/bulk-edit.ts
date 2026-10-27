@@ -10,6 +10,16 @@ export const bulkEditContent = {
   save: 'Save',
   saving: 'Saving',
   discard: 'Discard',
+  removeVariants: {
+    action: (n: number) => (n === 1 ? 'Delete 1 variant' : `Delete ${n} variants`),
+    saveFirst: 'Save or discard your edits before deleting variants',
+    title: (n: number) => (n === 1 ? 'Delete this variant?' : `Delete ${n} variants?`),
+    body: 'Shoppers can no longer buy them. A variant that is on an order keeps its history and is archived instead.',
+    confirm: 'Delete',
+    done: (n: number) => (n === 1 ? 'Variant deleted' : `${n} variants deleted`),
+    keepOne: (titles: string) => `A product needs at least one variant. Keep one of: ${titles}`,
+    failed: 'Could not delete the variants',
+  },
   unsaved: (n: number) => `${n} ${n === 1 ? 'cell' : 'cells'} changed`,
   noChanges: 'Nothing changed yet',
   columns: {
