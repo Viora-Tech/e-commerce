@@ -34,6 +34,8 @@ type RefundDialogProps = {
   payment: OrderPayment | null
   /** Paise still refundable on `payment`. */
   remainingPaise: number
+  /** Imported from another platform: that platform took the money, so only by hand or store credit. */
+  imported?: boolean
   onClose: () => void
   onDone: () => void
 }
@@ -56,6 +58,7 @@ const PROVIDER_NAMES: Record<string, string> = {
 export default function RefundDialog({
   payment,
   remainingPaise,
+  imported = false,
   onClose,
   onDone,
 }: RefundDialogProps) {
@@ -104,13 +107,15 @@ export default function RefundDialog({
   const ways: { id: Way; label: string; hint: string }[] = giftCard
     ? []
     : [
-        ...(offline
+        ...(offline || imported
           ? []
           : [{ id: 'original' as const, label: r.original(via), hint: r.originalHint }]),
         { id: 'manual', label: r.manual, hint: r.manualHint },
         { id: 'store_credit', label: r.storeCredit, hint: r.storeCreditHint },
       ]
-  const chosen: Way | null = giftCard ? null : (way ?? (offline ? 'manual' : 'original'))
+  const chosen: Way | null = giftCard
+    ? null
+    : (way ?? (offline || imported ? 'manual' : 'original'))
   const methodLabels = Object.fromEntries(HAND_METHODS.map((m) => [m, r.methods[m]])) as Record<
     HandMethod,
     string
@@ -124,7 +129,7 @@ export default function RefundDialog({
             <DialogTitle>{copy.refundDialog.title}</DialogTitle>
             <DialogDescription>
               {copy.refundDialog.body(fmt.money(remainingPaise))}
-              {offline ? ` ${copy.refundDialog.manualNote}` : ''}
+              {imported ? ` ${r.importedNote}` : offline ? ` ${copy.refundDialog.manualNote}` : ''}
             </DialogDescription>
           </DialogHeader>
           <Field>
