@@ -8,6 +8,7 @@ import {
   MARKETING_CLICK_COOKIE,
   MARKETING_CLICK_MAX_AGE,
 } from '@/lib/attribution-cookie'
+import { redirectTo } from '@/lib/redirect'
 import { withEvlog } from '@/lib/request-log'
 import { inStore } from '@/lib/store-context'
 
@@ -24,10 +25,9 @@ export const GET = withEvlog(async (request: NextRequest, { params }: Params) =>
   const { token } = await params
   const storeId = (await headers()).get('x-store-id')
   const target = request.nextUrl.searchParams.get('u') ?? ''
-  const home = new URL('/', request.url)
   const payload = verifyClickToken(token, target, settingsSecret())
   if (!payload || !storeId || payload.storeId !== storeId || !/^https?:\/\//i.test(target)) {
-    return NextResponse.redirect(home)
+    return redirectTo('/')
   }
   let owner: { campaignId: string | null; automationId: string | null } | null = null
   try {
