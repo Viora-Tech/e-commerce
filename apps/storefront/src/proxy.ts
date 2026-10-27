@@ -2,7 +2,7 @@ import { loadEnv } from '@commerce/config'
 import { CONSENT_COOKIE } from '@commerce/core/preferences'
 import { withQuery } from '@commerce/core/redirects'
 import { THEME_PREVIEW_PARAM } from '@commerce/core/theme'
-import { type HostRoute, resolveHost } from '@commerce/db'
+import { type HostRoute, resolveHost, type StoreMarketRoute, storeMarkets } from '@commerce/db'
 import { type NextRequest, NextResponse } from 'next/server'
 import { SEO_FILES } from './data/seo'
 import { accountsHostname } from './lib/accounts-host'
@@ -18,6 +18,17 @@ import {
 } from './lib/csp'
 import { db } from './lib/db'
 import { edgeCacheControl, isSharedPage } from './lib/edge-cache'
+import {
+  MARKET_COOKIE,
+  MARKET_COOKIE_MAX_AGE,
+  type MarketPick,
+  marketHeaders,
+  marketPath,
+  marketRedirect,
+  pickMarket,
+  savedChoice,
+  withoutMarketSegment,
+} from './lib/markets'
 import { ORDER_VIEW_COOKIE, ORDER_VIEW_MAX_AGE, orderTokenSwap } from './lib/order-token-swap'
 import { noteVisit, WARM_USER_AGENT } from './lib/recent-pages'
 import { redirectFor } from './lib/redirects'
@@ -59,6 +70,14 @@ const resolve = createStoreResolver<HostRoute>({
   lookup: (hostname) => resolveHost(db(), hostname),
 })
 
+/**
+ * A store's markets, cached like hosts. A failed lookup (a database blip, or this storefront
+ * running before migration 0177) serves the primary market rather than failing the page.
+ */
+const marketsOf = createStoreResolver<StoreMarketRoute[]>({
+  lookup: (storeId) => storeMarkets(db(), storeId).catch(() => []),
+})
+
 /** Cloudflare's edge country, forwarded for region defaults. Absent when not behind Cloudflare. */
 function visitorCountry(request: NextRequest): string | null {
   const c = request.headers.get('cf-ipcountry')?.trim().toUpperCase()
@@ -73,7 +92,10 @@ export async function proxy(request: NextRequest) {
   const nonce = newNonce()
   // Checkout and the shopper account (D-01) refuse all framing and carry the isolation headers;
   // every other page keeps the self-plus-admin frame-ancestors the theme editor needs.
-  const isolated = isIsolatedStorePath(request.nextUrl.pathname)
+  // A market prefix (`/ae/checkout`) never loosens that.
+  const isolated =
+    isIsolatedStorePath(request.nextUrl.pathname) ||
+    isIsolatedStorePath(withoutMarketSegment(request.nextUrl.pathname))
   const csp = scriptCsp({
     nonce,
     dev: process.env.NODE_ENV !== 'production',
@@ -164,7 +186,20 @@ async function routeRequest(request: NextRequest, withNonce: (headers: Headers) 
     }
   }
 
-  const route = routeForStore(storeId, request.nextUrl.pathname)
+  // Markets (`lib/markets.ts`): the market, language and country this request is in. A prefix
+  // comes off the path before routing, so `/ae/products/x` renders `/products/x` in that market.
+  const markets = (await marketsOf(storeId)) ?? []
+  const pick = pickMarket({
+    markets,
+    hostname,
+    primaryHostname: hostRoute.primaryHostname,
+    pathname: request.nextUrl.pathname,
+    cookie: request.cookies.get(MARKET_COOKIE)?.value,
+  })
+  const moved = marketMove(request, pick)
+  if (moved) return moved
+
+  const route = routeForStore(storeId, pick.pathname)
   if (route.kind === 'forbidden') return new NextResponse('Not found', { status: 404 })
 
   // Never trust routing headers from the client; set only what the proxy derived.
@@ -174,11 +209,14 @@ async function routeRequest(request: NextRequest, withNonce: (headers: Headers) 
   headers.set('x-store-id', storeId)
   const country = visitorCountry(request)
   if (country) headers.set('x-visitor-country', country)
+  for (const [name, value] of marketHeaders(pick, markets, hostname, hostRoute.primaryHostname)) {
+    headers.set(name, value)
+  }
   // Imported Shopify themes read `form.posted_successfully?` after our form handlers
   // redirect back with `?form_posted=<type>` (lib/liquid-theme.ts).
   const posted = request.nextUrl.searchParams.get('form_posted')
   if (posted && /^[a-z_]{1,40}$/.test(posted)) headers.set('x-form-posted', posted)
-  headers.set('x-pathname', request.nextUrl.pathname)
+  headers.set('x-pathname', pick.pathname)
   const listing = listingSearch(request.nextUrl.searchParams)
   if (listing) headers.set('x-listing', listing)
 
@@ -187,9 +225,11 @@ async function routeRequest(request: NextRequest, withNonce: (headers: Headers) 
   // URL redirects (Content → Menus → URL redirects, imported Shopify paths) answer
   // before anything renders, so an old link never shows the password page first.
   if (request.method === 'GET' || request.method === 'HEAD') {
-    const target = await redirectFor(storeId, request.nextUrl.pathname)
+    const target = await redirectFor(storeId, pick.pathname)
     if (target) {
-      const to = new URL(withQuery(target, request.nextUrl.search), request.nextUrl)
+      // A redirect inside a market stays in it (`/ae/old` → `/ae/new`).
+      const inMarket = marketPath(pick.root.hostname ? '' : pick.root.prefix, target)
+      const to = new URL(withQuery(inMarket, request.nextUrl.search), request.nextUrl)
       return NextResponse.redirect(to, 301)
     }
   }
@@ -220,7 +260,7 @@ async function routeRequest(request: NextRequest, withNonce: (headers: Headers) 
   const lock = await storefrontLock(storeId)
   // robots.txt, sitemap.xml and llms.txt always reach their handlers, which answer
   // "stay out" themselves while the store is locked rather than serving the password page.
-  const seoFile = (SEO_FILES as readonly string[]).includes(request.nextUrl.pathname)
+  const seoFile = (SEO_FILES as readonly string[]).includes(pick.pathname)
   const locked =
     lock.enabled &&
     !seoFile &&
@@ -237,6 +277,22 @@ async function routeRequest(request: NextRequest, withNonce: (headers: Headers) 
       secure,
       path: '/',
       maxAge: PREVIEW_MAX_AGE,
+    })
+  }
+  // A market reached by its URL becomes the shopper's saved choice, so plain links keep it.
+  const saved = savedChoice(pick.market, pick.country, pick.locale)
+  if (
+    pick.via === 'prefix' &&
+    pick.market.id &&
+    pick.country &&
+    request.cookies.get(MARKET_COOKIE)?.value !== saved
+  ) {
+    response.cookies.set(MARKET_COOKIE, saved, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure,
+      path: '/',
+      maxAge: MARKET_COOKIE_MAX_AGE,
     })
   }
   // An affiliate's link (`?ref=`): the referral cookie and the click count, with or without
@@ -264,7 +320,7 @@ async function routeRequest(request: NextRequest, withNonce: (headers: Headers) 
   // (`lib/edge-cache.ts`); everything else keeps Next's private, no-store answer.
   const shared = edgeCacheControl({
     method: request.method,
-    pathname: request.nextUrl.pathname,
+    pathname: pick.pathname,
     cookieNames: request.cookies.getAll().map((c) => c.name),
     rsc: request.headers.has('rsc'),
     // A `?ref=` landing sets the referral cookie, so a cached copy must never answer it.
@@ -278,7 +334,7 @@ async function routeRequest(request: NextRequest, withNonce: (headers: Headers) 
     !preview &&
     !locked &&
     !request.headers.has('rsc') &&
-    isSharedPage(request.nextUrl.pathname) &&
+    isSharedPage(pick.pathname) &&
     request.headers.get('user-agent') !== WARM_USER_AGENT
   ) {
     noteVisit(storeId, {
@@ -288,6 +344,26 @@ async function routeRequest(request: NextRequest, withNonce: (headers: Headers) 
     })
   }
   return response
+}
+
+/**
+ * A browse page away from its market's own URL (`marketRedirect`). A prefix written another way
+ * moves for good (301); a saved choice only for this shopper (302, never stored by a cache), and
+ * only for a page load, so crawlers and the app's own fetches see what they asked for.
+ */
+function marketMove(request: NextRequest, pick: MarketPick): NextResponse | null {
+  if (request.method !== 'GET' && request.method !== 'HEAD') return null
+  if (request.headers.has('rsc')) return null
+  if (pick.via === 'cookie' && request.headers.get('sec-fetch-dest') !== 'document') return null
+  if (pick.via !== 'cookie' && pick.via !== 'prefix') return null
+  const to = marketRedirect(pick, request.nextUrl.search)
+  if (!to) return null
+  const moved = NextResponse.redirect(
+    new URL(to, request.nextUrl),
+    pick.via === 'prefix' ? 301 : 302,
+  )
+  if (pick.via === 'cookie') moved.headers.set('cache-control', 'private, no-store')
+  return moved
 }
 
 export const config = {

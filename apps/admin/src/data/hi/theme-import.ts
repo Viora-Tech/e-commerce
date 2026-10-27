@@ -118,7 +118,7 @@ export default [
         fonts: 'फ़ॉन्ट Google Fonts से आते हैं',
         hosted_images: 'तस्वीरें Files में कॉपी हुईं',
         payment_icons: 'पेमेंट के सादे निशान',
-        localization: 'सिर्फ़ भारत और रुपये',
+        localization: 'आपके बाज़ार दिखाता है; अभी दाम रुपये में',
         recommendations: 'सुझाव अभी ख़ाली हैं',
         preorder: 'प्री-ऑर्डर हमारी अपनी प्री-ऑर्डर सुविधा से',
         app_data: 'यह रिव्यू का डेटा (Judge.me) पढ़ता है; रिव्यू ऐप लगाने पर आपके रिव्यू दिखाता है',
@@ -159,7 +159,10 @@ export default [
         fonts: { shopify: 'Shopify फ़ॉन्ट', ours: 'वही फ़ॉन्ट Google Fonts से।' },
         hosted_images: { shopify: 'Shopify Files की तस्वीरें', ours: 'आपकी Files में कॉपी।' },
         payment_icons: { shopify: 'पेमेंट आइकन', ours: 'आपके पेमेंट तरीक़ों के सादे निशान।' },
-        localization: { shopify: 'देश और करेंसी चुनने का विकल्प', ours: 'अभी सिर्फ़ भारत और रुपये।' },
+        localization: {
+          shopify: 'देश और करेंसी चुनने का विकल्प',
+          ours: 'आप जिन देशों में बेचते हैं वे सब दिखाता है और बाज़ार व भाषा बदलता है। अभी दाम रुपये में ही रहेंगे।',
+        },
         recommendations: {
           shopify: 'प्रोडक्ट सुझाव',
           ours: 'अभी ख़ाली। हमारा मिलते-जुलते प्रोडक्ट वाला सेक्शन इसकी जगह ले सकता है।',
