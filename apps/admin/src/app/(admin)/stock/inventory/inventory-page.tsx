@@ -395,6 +395,7 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
         count={bulk?.ids.length ?? 0}
         busy={busy}
         onOpenChange={(open) => !open && setBulk(undefined)}
+        onModeChange={(mode) => setBulk((b) => b && { ...b, mode })}
         onApply={handleBulk}
       />
       <HistoryDialog

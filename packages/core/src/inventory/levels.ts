@@ -3,6 +3,7 @@ import {
   inventoryLevel,
   location,
   newId,
+  product,
   type StoreTx,
   variant,
 } from '@commerce/db'
@@ -12,7 +13,7 @@ import type { InventoryReason } from '../catalog/schemas'
 import { CommerceError } from '../errors'
 import { insertOutboxEvent } from '../outbox/write'
 import type { LocationInput } from './schemas'
-import { availableOf, NegativeStockError, nextOnHand } from './stock'
+import { availableOf, belowZeroAfter, NegativeStockError, nameList, nextOnHand } from './stock'
 import { watchStockCrossings } from './stock-events'
 
 export class InventoryError extends CommerceError {}
@@ -189,6 +190,63 @@ async function changeStock(tx: StoreTx, input: AdjustStockInput): Promise<number
     })
   }
   return next
+}
+
+/**
+ * "Adjust by" across many SKUs at one location, all or nothing. Checks every row
+ * first so a refusal names each SKU that would go below zero, then logs one
+ * stock-history entry per SKU through `adjustStock`.
+ */
+export async function bulkAdjustStock(
+  tx: StoreTx,
+  input: Omit<AdjustStockInput, 'variantId' | 'locationId'> & {
+    variantIds: string[]
+    locationId: string
+  },
+): Promise<number> {
+  const { variantIds: picked, ...edit } = input
+  const variantIds = [...new Set(picked)]
+  await assertVariants(tx, input.storeId, variantIds)
+  if (input.delta < 0) {
+    const rows = await tx
+      .select({
+        sku: variant.sku,
+        title: variant.title,
+        productTitle: product.title,
+        trackInventory: variant.trackInventory,
+        onHand: inventoryLevel.onHand,
+      })
+      .from(variant)
+      .innerJoin(product, eq(product.id, variant.productId))
+      .leftJoin(
+        inventoryLevel,
+        and(
+          eq(inventoryLevel.variantId, variant.id),
+          eq(inventoryLevel.locationId, input.locationId),
+        ),
+      )
+      .where(inArray(variant.id, variantIds))
+      .orderBy(asc(product.title), asc(variant.title))
+    const short = belowZeroAfter(
+      rows.map((r) => ({
+        label: r.sku || `${r.productTitle} / ${r.title}`,
+        onHand: r.onHand ?? 0,
+        allowNegative: !r.trackInventory,
+      })),
+      input.delta,
+    )
+    if (short.length > 0) {
+      throw new InventoryError(
+        'NEGATIVE_STOCK',
+        `Stock would go below zero for ${nameList(short)}`,
+        { storeId: input.storeId },
+      )
+    }
+  }
+  for (const variantId of variantIds) {
+    await adjustStock(tx, { ...edit, variantId })
+  }
+  return variantIds.length
 }
 
 /** Set on-hand to an absolute count, logged as the difference. */
