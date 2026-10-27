@@ -1,10 +1,11 @@
-/** SOURCE OF TRUTH: order contact edits — WHAT: changing an order's email, phone and shipping address from admin / WHY: one place that snapshots the new address, syncs the customer's book on request and logs the change */
+/** SOURCE OF TRUTH: order contact edits — WHAT: changing an order's email, phone, shipping address and billing (address, company, GSTIN) from admin / WHY: one place that snapshots the new address, syncs the customer's book on request and logs the change */
 import { address, customer, customerAddress, order, orderNote } from '@commerce/db'
 import { and, eq, sql } from 'drizzle-orm'
 import { createAddress, listAddresses, updateAddress } from '../accounts/addresses'
 import { AddressInputSchema, fieldErrors, normaliseMobile } from '../accounts/schemas'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
+import { GSTIN_MESSAGES, validateGstin } from '../tax/gstin'
 
 export class OrderNotFound extends CommerceError {
   constructor(orderId: string, storeId?: string) {
@@ -37,6 +38,25 @@ export type OrderContactInput = {
   } | null
   /** Also write the address to the customer's address book as their default. */
   alsoUpdateCustomer: boolean
+  /**
+   * Who the bill goes to. Left out keeps the order's billing as it is. `address` null bills the
+   * shipping address; the company and GSTIN print on the GST invoice either way. The billing
+   * phone is the contact phone.
+   */
+  billing?:
+    | {
+        address: {
+          name: string
+          line1: string
+          line2?: string | null | undefined
+          city: string
+          stateCode: string
+          pincode: string
+        } | null
+        businessName: string | null
+        gstin: string | null
+      }
+    | undefined
   /** Staff email, shown beside the timeline entry. */
   author: string
 }
@@ -61,7 +81,7 @@ const same = (a: string | null | undefined, b: string | null | undefined) =>
  * notes that start this way.
  */
 export const CONTACT_NOTE_PATTERN =
-  '^(Email changed from|Phone changed from|Name changed from|Name set to|Shipping address changed from|Shipping address set to)'
+  '^(Email changed from|Phone changed from|Name changed from|Name set to|Shipping address changed from|Shipping address set to|Billing address changed from|Billing address set to|Billing address is now the shipping address|GSTIN changed from|Company name changed from)'
 
 /**
  * Change who an order is for and where it goes, from the order page. The old
@@ -154,21 +174,17 @@ export async function updateOrderContact(ctx: StoreContext, input: OrderContactI
     }
   }
 
+  const billing = input.billing
+    ? await nextBilling(ctx, o, input.billing, input.phone ?? '', changes)
+    : null
+
   await ctx.tx
     .update(order)
-    .set({ email, phone, shippingAddressId })
+    .set({ email, phone, shippingAddressId, ...(billing ?? {}) })
     .where(eq(order.id, input.orderId))
-  if (before && shippingAddressId !== before.id) {
-    // The old snapshot is no one's any more (orders are its only reference, and invoices
-    // copy the address when they are issued); left behind it would outlive an erasure.
-    await ctx.tx
-      .delete(address)
-      .where(
-        and(
-          eq(address.id, before.id),
-          sql`not exists (select 1 from ${order} where ${order.shippingAddressId} = ${before.id})`,
-        ),
-      )
+  if (before && shippingAddressId !== before.id) await dropSnapshot(ctx, before.id)
+  if (billing && o.billingAddressId && billing.billingAddressId !== o.billingAddressId) {
+    await dropSnapshot(ctx, o.billingAddressId)
   }
 
   if (input.alsoUpdateCustomer && saved && o.customerId) {
@@ -186,6 +202,105 @@ export async function updateOrderContact(ctx: StoreContext, input: OrderContactI
   }
   const [after] = await ctx.tx.select().from(order).where(eq(order.id, input.orderId))
   return { order: after ?? null, changed: changes.length > 0 }
+}
+
+/**
+ * Drop an address snapshot no order points at any more (orders are its only reference, and
+ * invoices copy the address when they are issued); left behind it would outlive an erasure.
+ */
+async function dropSnapshot(ctx: StoreContext, id: string) {
+  await ctx.tx
+    .delete(address)
+    .where(
+      and(
+        eq(address.id, id),
+        sql`not exists (select 1 from ${order} where ${order.shippingAddressId} = ${id} or ${order.billingAddressId} = ${id})`,
+      ),
+    )
+}
+
+/**
+ * The order's billing columns after the edit, with what changed added to `changes`. A new
+ * billing address is a new snapshot; an unchanged one keeps its row. Field errors come back
+ * as `billing.<field>` (and `gstin`) so the dialog can tell them from the shipping ones.
+ */
+async function nextBilling(
+  ctx: StoreContext,
+  o: typeof order.$inferSelect,
+  input: NonNullable<OrderContactInput['billing']>,
+  phone: string,
+  changes: string[],
+) {
+  let gstin: string | null = null
+  if (input.gstin?.trim()) {
+    const check = validateGstin(input.gstin)
+    if (!check.ok) {
+      const message =
+        GSTIN_MESSAGES[check.reason as keyof typeof GSTIN_MESSAGES] ?? GSTIN_MESSAGES.shape
+      throw new InvalidOrderContact({ gstin: message }, ctx.storeId)
+    }
+    gstin = check.gstin
+  }
+  const businessName = input.businessName?.trim() || null
+  if (!same(o.buyerGstin, gstin)) {
+    changes.push(`GSTIN changed from ${o.buyerGstin || 'none'} to ${gstin || 'none'}`)
+  }
+  if (!same(o.buyerBusinessName, businessName)) {
+    changes.push(
+      `Company name changed from ${o.buyerBusinessName || 'none'} to ${businessName || 'none'}`,
+    )
+  }
+
+  const [before] = o.billingAddressId
+    ? await ctx.tx.select().from(address).where(eq(address.id, o.billingAddressId))
+    : []
+  let billingAddressId: string | null = null
+  if (input.address) {
+    const parsed = AddressInputSchema.safeParse({
+      ...input.address,
+      line2: input.address.line2 ?? undefined,
+      phone,
+    })
+    if (!parsed.success) {
+      const errors = Object.fromEntries(
+        Object.entries(fieldErrors(parsed.error)).map(([k, v]) => [`billing.${k}`, v]),
+      )
+      throw new InvalidOrderContact(errors, ctx.storeId)
+    }
+    const a = parsed.data
+    const toLine = oneLine({ ...a, line2: a.line2 ?? null })
+    const unchanged =
+      before &&
+      same(before.name, a.name) &&
+      same(before.phone, a.phone) &&
+      oneLine(before) === toLine
+    if (unchanged) {
+      billingAddressId = before.id
+    } else {
+      const [row] = await ctx.tx
+        .insert(address)
+        .values({
+          storeId: ctx.storeId,
+          name: a.name,
+          line1: a.line1,
+          line2: a.line2,
+          city: a.city,
+          stateCode: a.stateCode,
+          pincode: a.pincode,
+          phone: a.phone,
+        })
+        .returning({ id: address.id })
+      billingAddressId = row?.id ?? null
+      changes.push(
+        before
+          ? `Billing address changed from ${before.name}, ${oneLine(before)} to ${a.name}, ${toLine}`
+          : `Billing address set to ${a.name}, ${toLine}`,
+      )
+    }
+  } else if (before) {
+    changes.push('Billing address is now the shipping address')
+  }
+  return { billingAddressId, buyerGstin: gstin, buyerBusinessName: businessName }
 }
 
 /** Overwrite the customer's default saved address, or add it as the default when they have none. */

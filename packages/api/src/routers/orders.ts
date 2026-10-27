@@ -243,6 +243,23 @@ export const ordersRouter = {
           })
           .nullable(),
         alsoUpdateCustomer: z.boolean().default(false),
+        /** Left out keeps the order's billing; `address` null bills the shipping address. */
+        billing: z
+          .object({
+            address: z
+              .object({
+                name: z.string().trim().max(120),
+                line1: z.string().trim().max(200),
+                line2: z.string().trim().max(200).nullable().optional(),
+                city: z.string().trim().max(80),
+                stateCode: z.string().trim().max(2),
+                pincode: z.string().trim().max(6),
+              })
+              .nullable(),
+            businessName: z.string().trim().max(200).nullable(),
+            gstin: z.string().trim().max(20).nullable(),
+          })
+          .optional(),
       }),
     )
     .handler(async ({ context, input }) => {
