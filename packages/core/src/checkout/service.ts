@@ -1,6 +1,7 @@
 /** SOURCE OF TRUTH: checkout settings storage — WHAT: load and save Settings → Checkout (`store.preferences.checkout`) together with the cash on delivery fee, which stays the per-method fee on `store.payments.adjustments.cod` / WHY: one save must not overwrite other preferences or payment credentials, and the COD fee has one home that Settings → Payments and Settings → Checkout both edit */
 import { media, store, variant } from '@commerce/db'
 import { eq, inArray, sql } from 'drizzle-orm'
+import { productFirstImages } from '../cart/cart'
 import type { StoreContext } from '../context'
 import { type PaymentAdjustment, PaymentAdjustmentSchema } from '../payments/adjustments'
 import { parsePaymentSettings } from '../payments/settings'
@@ -74,11 +75,22 @@ export async function variantImageUrls(
 ): Promise<Record<string, string>> {
   if (variantIds.length === 0) return {}
   const rows = await ctx.tx
-    .select({ id: variant.id, url: media.url })
+    .select({ id: variant.id, productId: variant.productId, url: media.url })
     .from(variant)
-    .innerJoin(media, eq(media.id, variant.mediaId))
+    .leftJoin(media, eq(media.id, variant.mediaId))
     .where(inArray(variant.id, [...variantIds]))
-  return Object.fromEntries(rows.map((r) => [r.id, r.url]))
+  // A variant with no photo of its own shows its product's first one, as the cart does (the
+  // thank-you and pay pages showed a letter tile for such products, 2026-10-28).
+  const firsts = await productFirstImages(
+    ctx,
+    rows.filter((r) => !r.url).map((r) => r.productId),
+  )
+  return Object.fromEntries(
+    rows.flatMap((r) => {
+      const url = r.url ?? firsts.get(r.productId)
+      return url ? [[r.id, url]] : []
+    }),
+  )
 }
 
 /** What the locked checkout draws at the top: its branding, the store name, and a logo. */
