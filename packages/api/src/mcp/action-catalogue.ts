@@ -339,6 +339,7 @@ const NAMESPACE_AREA: Record<string, ApiArea> = {
   ai: 'settings',
   staff: 'settings',
   domains: 'settings',
+  markets: 'settings',
 }
 
 /** AI features that work on products rather than on settings. */

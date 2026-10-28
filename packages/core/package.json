@@ -60,6 +60,7 @@
     "./app-logos": "./src/apps/logos.ts",
     "./api-access": "./src/api-access/client.ts",
     "./marketing": "./src/marketing/client.ts",
+    "./markets": "./src/markets/client.ts",
     "./automations": "./src/automations/client.ts",
     "./inbox": "./src/inbox/client.ts",
     "./inbox-app": "./src/inbox/app.ts",

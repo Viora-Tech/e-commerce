@@ -8,6 +8,7 @@ import {
   CircleIcon,
   ArrowShrink02Icon as CornersIn,
   ArrowExpand01Icon as CornersOut,
+  EarthIcon,
   Flag02Icon,
   HighlighterIcon,
   KeyboardIcon as Keyboard,
@@ -73,3 +74,6 @@ export const Play = defineIcon(PlayIcon, 'Play')
 export const UserPlus = defineIcon(UserAdd01Icon, 'UserPlus')
 export const Tag = defineIcon(Tag01Icon, 'Tag')
 export const Unlink = defineIcon(Unlink01Icon, 'Unlink')
+
+/** The world: Settings → Markets (selling to other countries). */
+export const Earth = defineIcon(EarthIcon, 'Earth', 'duotone')

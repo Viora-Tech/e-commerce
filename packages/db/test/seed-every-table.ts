@@ -110,14 +110,27 @@ function allowedLiterals(checks: { table: string; def: string }[]): Map<string, 
   return out
 }
 
+const SEED_COUNTRIES = ['AE', 'US', 'GB', 'SG', 'AU', 'CA', 'DE', 'FR'] as const
+let seededCountries = 0
+let seededOrders = 0
+
 /**
- * Columns whose check constraint is a pattern rather than an `in (...)` list: a value of the
- * right shape. Keyed by `table.column`.
+ * Columns whose check constraint is a pattern rather than an `in (...)` list, or that must be
+ * unique: a value of the right shape. Keyed by `table.column`.
  */
-const PATTERNED: Record<string, () => string> = {
+const PATTERNED: Record<string, () => string | number> = {
   // `^[0-9]{10,20}$` (Pixels app, 0160).
   'pixel_connection.pixel_id': () =>
     `1${randomUUID().replace(/\D/g, '').padEnd(14, '0').slice(0, 14)}`,
+  // Markets (0177): ISO codes. A country sits in one market of a store, so each row takes the
+  // next one (never IN, which the primary market holds).
+  'market.currency': () => 'AED',
+  'market_region.country_code': () =>
+    SEED_COUNTRIES[seededCountries++ % SEED_COUNTRIES.length] ?? 'AE',
+  'translation.locale': () => 'ar',
+  // `order (store_id, number)` is unique since 0177: far above the numbers a new store hands
+  // out (#1, #2), so an order the walk creates never collides with a seeded one.
+  'order.number': () => 900_000 + ++seededOrders,
 }
 
 function valueFor(col: Column, table: string): unknown {

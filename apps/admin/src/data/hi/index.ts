@@ -64,6 +64,7 @@ import layout from './layout'
 import login from './login'
 import marketingAutomations from './marketing-automations'
 import marketingCampaigns from './marketing-campaigns'
+import markets from './markets'
 import mcp from './mcp'
 import meilisearch from './meilisearch'
 import metaobjects from './metaobjects'
@@ -185,6 +186,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...layout,
   ...marketingAutomations,
   ...marketingCampaigns,
+  ...markets,
   ...login,
   ...metaobjects,
   ...navigation,

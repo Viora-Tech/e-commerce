@@ -256,6 +256,7 @@ export const routes = {
     location: (locationId: string) => `/settings/locations/${id(locationId)}`,
     domains: () => '/settings/domains',
     domain: (domainId: string) => `/settings/domains/${id(domainId)}`,
+    markets: () => '/settings/markets',
     notifications: () => '/settings/notifications',
     policies: () => '/settings/policies',
     policy: (type: string) => `/settings/policies/${id(type)}`,

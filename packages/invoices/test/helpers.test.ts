@@ -25,7 +25,7 @@ import {
   type Series,
   sampleDocument,
 } from '../src'
-import { buildCreditNote } from '../src/document'
+import { buildCreditNote } from '../src/credit-note'
 import { documentLinkPath, signDocumentLink, verifyDocumentLink } from '../src/link'
 
 describe('words', () => {

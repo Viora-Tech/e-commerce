@@ -94,6 +94,10 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
     title: 'रिटर्न',
     body: 'ग्राहक कितने दिन में रिटर्न कर सकते हैं, कौन से कारण मंज़ूर हैं, और रिफ़ंड।',
   },
+  '/settings/markets': {
+    title: 'मार्केट',
+    body: 'जिन देशों में आप बेचते हैं, हर एक की अपनी करेंसी, भाषा और वेब पता।',
+  },
   '/settings/taxes': {
     title: 'GST और इनवॉइस',
     body: 'आपके GST नंबर, कीमतों में GST कैसे जुड़ता है, और इनवॉइस के नंबर कैसे बनते हैं।',

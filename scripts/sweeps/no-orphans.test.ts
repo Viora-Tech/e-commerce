@@ -330,16 +330,9 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/db/src/market-schema.ts',
-    names: [
-      'MARKET_ROUNDING',
-      'MARKET_DUTIES',
-      'marketRegion',
-      'EXCHANGE_RATE_SOURCES',
-      'exchangeRate',
-      'TRANSLATABLE_RESOURCES',
-    ],
+    names: ['EXCHANGE_RATE_SOURCES', 'exchangeRate', 'TRANSLATABLE_RESOURCES'],
     reason:
-      'Markets schema (0177); the storefront proxy, admin Markets settings and the exchange-rate job import them next',
+      'Markets schema (0177); the storefront translations and the exchange-rate job import them next',
   },
   {
     file: 'packages/db/src/finance-schema.ts',
@@ -1008,7 +1001,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/invoices/src/document.ts',
-    names: ['hsnFor', 'totalsOf', 'summariseByRate'],
+    names: ['hsnFor'],
     reason: 'no external importer today — investigate before removing',
   },
   {

@@ -75,6 +75,11 @@ export const DocumentLineSchema = z.object({
   totalPaise: paise,
   /** Shipping or a payment fee rather than goods; packing slips leave these out. */
   charge: z.boolean(),
+  /**
+   * The order line a goods line bills, so a credit note for a return credits exactly the units
+   * that came back. Absent on charges and on invoices issued before it was recorded.
+   */
+  orderLineId: z.string().optional(),
 })
 export type DocumentLine = z.infer<typeof DocumentLineSchema>
 
