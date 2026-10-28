@@ -47,6 +47,18 @@ const ListFiltersSchema = z.object({
   productType: z.string().trim().max(100).optional(),
   tag: z.string().trim().max(50).optional(),
   stock: z.enum(STOCK_FILTERS).optional(),
+  /** Any of these (the admin's multi-pick filters); the single fields above still work. */
+  vendors: z.array(z.string().trim().max(100)).max(50).optional(),
+  productTypes: z.array(z.string().trim().max(100)).max(50).optional(),
+  tags: z.array(z.string().trim().max(50)).max(50).optional(),
+  /** In any of these collections. */
+  collectionIds: z.array(z.uuid()).max(50).optional(),
+  /** Some live variant is priced in this range (paise, both ends included). */
+  priceMinPaise: z.number().int().min(0).optional(),
+  priceMaxPaise: z.number().int().min(0).optional(),
+  /** Created in [from, to). */
+  createdFrom: z.iso.datetime().optional(),
+  createdTo: z.iso.datetime().optional(),
   /** Exactly these products, e.g. the ones a discount already covers. */
   ids: z.array(z.uuid()).max(PAGE_SIZE_MAX).optional(),
 })

@@ -21,6 +21,13 @@ export const collectionsListContent = {
       emptyNote: 'Nothing inside yet',
     },
     tabs: { all: 'All', automatic: 'Automatic', manual: 'Manual', empty: 'Empty' },
+    filters: {
+      image: 'Has image',
+      minProducts: 'At least',
+      maxProducts: 'At most',
+      anyDate: 'Any time',
+      updatedOptions: { '7d': 'Last 7 days', '30d': 'Last 30 days', '90d': 'Last 90 days' },
+    },
     resource: { singular: 'collection', plural: 'collections' },
     search: 'Search collections',
     columns: {

@@ -1,7 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { type ProductStatus, STOCK_FILTERS } from '@commerce/core/catalog'
+import type { ProductStatus } from '@commerce/core/catalog'
 import { Download, Plus, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
@@ -28,16 +28,23 @@ import {
   FILTER_PANEL_CLASS,
   type FilterGroup,
   FilterPanel,
-  facetOptions,
 } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
 import { filterPanelContent } from '@/data/filter-panel'
-import { PRODUCT_STATUSES, productsListContent, type StockFilter } from '@/data/products'
+import { PRODUCT_STATUSES, productsListContent } from '@/data/products'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { type ListQuery, sameListQuery } from '@/lib/list-query'
 import { usePrimaryAction } from '@/lib/primary-action'
+import {
+  CLEAR_PRODUCT_FILTERS,
+  hasProductFilters,
+  PRODUCT_FILTER_PARAMS,
+  type ProductFilters,
+  productFilterGroups,
+  productFilterInput,
+} from '@/lib/product-list-filters'
 import { routes } from '@/lib/routes'
 
 type ListResult = Awaited<ReturnType<typeof api.products.list>>
@@ -65,11 +72,7 @@ type Query = {
   perPage: number
   query: string
   status: ProductStatus | null
-  vendor: string | null
-  productType: string | null
-  tag: string | null
-  stock: StockFilter | null
-}
+} & ProductFilters
 
 const DEFAULT_PER_PAGE = siteConfig.ui.rowsPerPage.default
 
@@ -77,15 +80,8 @@ function listInput(q: Query) {
   return {
     search: q.query || undefined,
     status: q.status ?? undefined,
-    vendor: q.vendor ?? undefined,
-    productType: q.productType ?? undefined,
-    tag: q.tag ?? undefined,
-    stock: q.stock ?? undefined,
+    ...productFilterInput(q),
   }
-}
-
-function hasFilters(q: Query) {
-  return Boolean(q.vendor || q.productType || q.tag || q.stock)
 }
 
 function ProductsContent({ initial }: { initial: ProductsInitial }) {
@@ -101,10 +97,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
       page: parseAsInteger.withDefault(1),
       perPage: parseAsInteger.withDefault(DEFAULT_PER_PAGE),
       status: parseAsStringLiteral(PRODUCT_STATUSES),
-      vendor: parseAsString,
-      productType: parseAsString,
-      tag: parseAsString,
-      stock: parseAsStringLiteral(STOCK_FILTERS),
+      ...PRODUCT_FILTER_PARAMS,
     },
     { shallow: true },
   )
@@ -127,7 +120,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
     // tab) the list is fetched again, so it never keeps another tab's rows.
     const firstRun = !hydrated.current
     hydrated.current = true
-    if (firstRun && sameQuery && !hasFilters(q) && q.perPage === DEFAULT_PER_PAGE) return
+    if (firstRun && sameQuery && !hasProductFilters(q) && q.perPage === DEFAULT_PER_PAGE) return
     let cancelled = false
     setLoading(true)
     api.products
@@ -207,44 +200,9 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
     draft: stats.draft,
     archived: Math.max(0, stats.total - stats.active - stats.draft),
   }
-  const groups: FilterGroup[] = [
-    {
-      key: 'vendor',
-      label: copy.filters.vendor,
-      type: 'select',
-      options: facetOptions(initial.facets.vendors),
-      value: q.vendor,
-      onChange: (vendor) => setQ({ vendor, page: 1 }),
-      anyLabel: copy.filters.any,
-    },
-    {
-      key: 'type',
-      label: copy.filters.productType,
-      type: 'select',
-      options: facetOptions(initial.facets.productTypes),
-      value: q.productType,
-      onChange: (productType) => setQ({ productType, page: 1 }),
-      anyLabel: copy.filters.any,
-    },
-    {
-      key: 'tag',
-      label: copy.filters.tag,
-      type: 'select',
-      options: facetOptions(initial.facets.tags),
-      value: q.tag,
-      onChange: (tag) => setQ({ tag, page: 1 }),
-      anyLabel: copy.filters.any,
-    },
-    {
-      key: 'stock',
-      label: copy.filters.stock,
-      type: 'select',
-      options: copy.filters.stockOptions,
-      value: q.stock,
-      onChange: (next) => setQ({ stock: STOCK_FILTERS.find((s) => s === next) ?? null, page: 1 }),
-      anyLabel: copy.filters.any,
-    },
-  ]
+  const groups: FilterGroup[] = productFilterGroups(q, copy.filters, initial.facets, (patch) =>
+    setQ({ ...patch, page: 1 }),
+  )
 
   return (
     <ProoflyListPage
@@ -255,17 +213,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
           stats={stats}
           stock={q.stock}
           status={q.status}
-          onSelect={(patch) =>
-            setQ({
-              stock: null,
-              status: null,
-              vendor: null,
-              productType: null,
-              tag: null,
-              ...patch,
-              page: 1,
-            })
-          }
+          onSelect={(patch) => setQ({ ...CLEAR_PRODUCT_FILTERS, status: null, ...patch, page: 1 })}
         />
       }
       actions={
@@ -315,17 +263,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
         loading={loading}
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
-        onClearAll={() =>
-          setQ({
-            query: '',
-            status: null,
-            vendor: null,
-            productType: null,
-            tag: null,
-            stock: null,
-            page: 1,
-          })
-        }
+        onClearAll={() => setQ({ ...CLEAR_PRODUCT_FILTERS, query: '', status: null, page: 1 })}
         filters={(close) => (
           <FilterPanel
             groups={groups}
