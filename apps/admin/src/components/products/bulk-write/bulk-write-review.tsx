@@ -83,7 +83,7 @@ export default function BulkWriteReview({ job, selected, onSelected }: BulkWrite
                             item.current.seoKeywords.includes(k.keyword) ? 'neutral' : 'info'
                           }
                         >
-                          {k.primary ? <StarIcon weight="fill" aria-hidden="true" /> : null}
+                          {k.primary ? <StarIcon fill="currentColor" aria-hidden="true" /> : null}
                           {k.keyword}
                         </Badge>
                       ))}
