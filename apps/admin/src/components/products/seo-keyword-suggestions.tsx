@@ -82,7 +82,7 @@ export default function SeoKeywordSuggestions({
                 </span>
                 {s.primary ? (
                   <>
-                    <StarIcon weight="fill" className="size-4 shrink-0 text-primary" />
+                    <StarIcon fill="currentColor" className="size-4 shrink-0 text-primary" />
                     <span className="sr-only">{copy.primary}</span>
                   </>
                 ) : null}
