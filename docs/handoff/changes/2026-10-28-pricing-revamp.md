@@ -16,11 +16,13 @@ plan: `docs/superpowers/plans/2026-10-28-pricing-revamp.md`; decisions: `memory-
 - **Plans:** Starter ₹499 / 50 orders / 1%, Growth ₹1,999 / 200 / 0.75%, Pro ₹4,999 / 500 / 0.5%
   (AI 8,000 credits), new **Scale** ₹14,999 / 2,000 / no fee ever. Own it unchanged, "Talk to us".
 - **Migrations:** `0178_scale_plan` (plan check constraints) and `0179_usage_bill` (`usage_bill`,
-  `store_plan.fair_use_notice_month`, `usage_bill_store`, `stores_with_paid_period`).
+  `store_plan.fair_use_notice_month`, `usage_bill_store`, `stores_with_paid_period`), and `0180_usage_bill_reminders` (`reminders_sent`, `stores_with_due_usage_bills`).
 - **Per-order fee:** `billing/usage-fee.ts` (pure), `usage-fee-service.ts` (inputs, estimate,
   CSV), `runUsageBilling` / `markUsageBillPaid` / `cancelUsageBill` in `billing/service.ts`, run
   by the hourly billing sweep and the outbox relay. Unpaid fee bills ride on the next plan bill
-  (`createPlanBill`); they never pause a store. Developer docs "Plans and billing" → "Per-order fees".
+  (`createPlanBill`, which claims them in one transaction and bills the plan alone if the fee
+  product is missing); a cancelled or replaced plan bill gives them back as owed. They never
+  pause a store; `runUsageReminders` emails them 3 and 7 days after billing. Developer docs "Plans and billing" → "Per-order fees".
 - **Fair use:** `billing/fair-use.ts`, same sweep; the storefront beacon now skips bots.
 - **Admin:** Plan & billing shows this month's fee estimate, a Per-order fee bills card (Pay,
   CSV), unpaid-fee and fair-use banners, fee and visit rows plus Scale in Compare plans; the
