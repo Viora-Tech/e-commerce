@@ -14,8 +14,8 @@ Prices exclude 18% GST. No free plan: every new store gets a 14-day trial at Gro
 | Fee per order after that | 1% | 0.75% | 0.5% | none, ever |
 | Fair-use visits / month | 25,000 | 1,00,000 | 5,00,000 | by hand |
 | AI credits / month | 500 | 3,000 | 8,000 | 15,000 |
-| Staff | 2 | 5 | 15 | 25 |
-| Storage | 2 GB | 10 GB | 50 GB | 100 GB |
+| Staff (owner included) | 1 | 3 | 10 | 25 |
+| Storage | 5 GB | 10 GB | 50 GB | 100 GB |
 | Shopify theme import | no | yes | yes | yes |
 | Included apps | Core only | + Reviews, Back in stock, Forms | All first-party apps | All first-party apps |
 | MCP & API, multiple locations | no | no | yes | yes |

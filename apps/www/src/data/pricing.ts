@@ -141,9 +141,9 @@ export const pricingContent = {
                 p.visitsPerMonth === null ? 'Fair use' : count(p.visitsPerMonth),
               ),
             },
-            { label: 'Staff accounts', values: ['2', '5', '15', '25'] },
+            { label: 'Staff accounts', values: ['1', '3', '10', '25'] },
             { label: `${brand} AI credits a month`, values: ['500', '3,000', '8,000', '15,000'] },
-            { label: 'Storage', values: ['2 GB', '10 GB', '50 GB', '100 GB'] },
+            { label: 'Storage', values: ['5 GB', '10 GB', '50 GB', '100 GB'] },
           ],
         },
         {

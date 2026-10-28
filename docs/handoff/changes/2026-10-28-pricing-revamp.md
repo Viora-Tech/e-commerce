@@ -15,6 +15,8 @@ plan: `docs/superpowers/plans/2026-10-28-pricing-revamp.md`; decisions: `memory-
 ## Pricing (owner, 2026-10-28)
 - **Plans:** Starter ₹499 / 50 orders / 1%, Growth ₹1,999 / 200 / 0.75%, Pro ₹4,999 / 500 / 0.5%
   (AI 8,000 credits), new **Scale** ₹14,999 / 2,000 / no fee ever. Own it unchanged, "Talk to us".
+- **Staff and storage** (owner, later on 28 Oct): staff 1 / 3 / 10 / 25, owner included;
+  storage 5 / 10 / 50 / 100 GB. Staff limits are shown, not enforced on invites.
 - **Migrations:** `0178_scale_plan` (plan check constraints) and `0179_usage_bill` (`usage_bill`,
   `store_plan.fair_use_notice_month`, `usage_bill_store`, `stores_with_paid_period`), and `0180_usage_bill_reminders` (`reminders_sent`, `stores_with_due_usage_bills`).
 - **Per-order fee:** `billing/usage-fee.ts` (pure), `usage-fee-service.ts` (inputs, estimate,
