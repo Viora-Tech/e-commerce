@@ -3,3 +3,4 @@
 export * from './apps'
 export * from './plans'
 export * from './regional-prices'
+export * from './usage-fee'
