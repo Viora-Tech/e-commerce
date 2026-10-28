@@ -1,5 +1,4 @@
 import type { FieldType, MeasureKind, MeasureUnit, PresetKey } from '@commerce/core/metaobjects'
-import type { Currency } from '@commerce/money'
 
 /*
  * Merchants see "Content types", "Entries" and "Extra fields"; the code, the API and the
@@ -83,8 +82,8 @@ export const fieldTypeContent: {
   },
 }
 
-/** Names of the currencies a money field can use. */
-export const currencyContent: Record<Currency, string> = {
+/** Names of the currencies a money field can use (`FIELD_CURRENCIES`). */
+export const currencyContent = {
   INR: 'Indian rupee (₹)',
   USD: 'US dollar ($)',
   EUR: 'Euro (€)',

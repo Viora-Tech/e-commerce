@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatMoney, formatNumber, fromMinor, toMinor } from '../src/index'
+import { formatMoney, formatNumber, fromMinor, isCurrency, toMinor } from '../src/index'
 
 describe('formatMoney', () => {
   it('formats INR with Indian digit grouping', () => {
@@ -76,5 +76,23 @@ describe('Hindi (hi-IN)', () => {
 
   it('puts the minus sign before the symbol', () => {
     expect(formatMoney(-2_50_000_00, 'INR', { ...hi, compact: true })).toBe('-₹2.5 लाख')
+  })
+})
+
+describe('market currencies', () => {
+  // Intl puts a no-break space between a code and the amount.
+  const plain = (s: string) => s.replace(/ /g, ' ')
+
+  it('formats each in its own decimals', () => {
+    expect(formatMoney(899, 'USD')).toBe('$8.99')
+    expect(plain(formatMoney(2350, 'AED'))).toBe('AED 23.50')
+    expect(plain(formatMoney(3670, 'KWD'))).toBe('KWD 3.670')
+    expect(formatMoney(1791, 'JPY')).toBe('¥1,791')
+  })
+
+  it('knows which codes it formats', () => {
+    expect(isCurrency('AED')).toBe(true)
+    expect(isCurrency('XYZ')).toBe(false)
+    expect(isCurrency('toString')).toBe(false)
   })
 })
