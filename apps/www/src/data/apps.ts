@@ -251,7 +251,7 @@ export const appsContent = {
   viewDocs: 'View docs',
   installHint: `Opens your ${us} admin. Sign in, pick your store, then agree to what the app can access.`,
   noStore: 'No store yet?',
-  joinWaitlist: 'Join the waitlist',
+  startFree: 'Start free',
   breadcrumb: 'Breadcrumb',
   does: 'What it does',
   showcase: 'What it adds to your store',

@@ -313,7 +313,7 @@ export const solutionsContent = {
   faqTitle: 'Questions',
   cta: {
     title: `Try ${growth.name} free for ${trial} days.`,
-    body: 'No card needed. Join the waitlist and we’ll set up your store with you.',
+    body: 'No card needed. Sign up in a minute and set up your store yourself, or ask us to help.',
   },
 }
 

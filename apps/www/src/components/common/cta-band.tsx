@@ -2,7 +2,7 @@ import { siteConfig } from '@commerce/config/site'
 import { Inbox } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { buttonVariants } from '@commerce/ui/shadcn/button'
-import JoinWaitlistButton from '../waitlist/join-waitlist-button'
+import StartFreeButton from './start-free-button'
 import PageContainer from './page-container'
 import Reveal from './reveal'
 import SplitReveal from './split-text'
@@ -41,7 +41,7 @@ export default function CtaBand({ title, body, emailLabel, inline = false }: Cta
           {body ? <p className="text-sm text-muted-foreground">{body}</p> : null}
         </div>
         <div className={cn('flex flex-col gap-3 sm:flex-row', inline ? 'sm:shrink-0' : null)}>
-          <JoinWaitlistButton size="lg" arrow />
+          <StartFreeButton size="lg" arrow />
           {emailLabel ? (
             <a
               href={`mailto:${siteConfig.contact.supportEmail}`}

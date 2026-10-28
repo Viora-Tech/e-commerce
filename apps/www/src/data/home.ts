@@ -30,8 +30,10 @@ export const homeContent = {
   hero: {
     pill: 'For everyone who sells · English and हिन्दी',
     titleLines: ['Run your store', 'in plain words.'],
-    subline: `Sell anything — physical products, subscriptions, digital downloads and services. Ask ${brand} AI anything, approve every change, take UPI-first payments and ship with the couriers you already use.`,
+    subline: `Sell physical products today, with subscriptions, digital downloads and services coming next. Ask ${brand} AI anything, approve every change, take UPI-first payments and ship with the couriers you already use.`,
     tourLinkHref: '#tour',
+    below: `Free for ${siteConfig.trialDays} days · no card needed`,
+    howItWorks: 'See how it works →',
     globeAlt: 'A dotted globe centred on India',
     floats: {
       ai: {
@@ -154,7 +156,8 @@ export const homeContent = {
     eyebrow: 'For everyone',
     title: 'Sell anything. To anyone.',
     subtitle:
-      'One store for whatever you make — things you ship, plans people renew, files they download and time they book.',
+      'One store for whatever you make. Things you ship work today; plans people renew, files they download and time they book are coming next.',
+    soon: 'Coming soon',
     cards: [
       {
         icon: 'package',
@@ -164,16 +167,19 @@ export const homeContent = {
       {
         icon: 'subscriptions',
         title: 'Subscriptions',
+        soon: true,
         body: 'Plans that renew every week or month, with reminders before each charge.',
       },
       {
         icon: 'downloads',
         title: 'Digital downloads',
+        soon: true,
         body: 'Courses, templates and files, delivered the moment payment lands.',
       },
       {
         icon: 'services',
         title: 'Services and bookings',
+        soon: true,
         body: 'Sell your time — sessions, classes and appointments with a slot picker.',
       },
     ],
@@ -348,6 +354,10 @@ export const homeContent = {
     title: 'Questions, answered.',
     items: [
       {
+        question: 'How do I start?',
+        answer: `Sign in with Google and create your store in a few minutes. Every store gets ${siteConfig.trialDays} days of Growth free, no card needed.`,
+      },
+      {
         question: 'Can I move my Shopify store?',
         answer:
           'Yes. Import your products, customers and orders, and upload your Shopify theme zip. We keep the look and run it on our own cart, checkout and couriers.',
@@ -362,6 +372,11 @@ export const homeContent = {
           'UPI first, then cards, EMI, netbanking and cash on delivery, through Razorpay, Cashfree or Decentro.',
       },
       {
+        question: 'How do I control cash on delivery?',
+        answer:
+          'Block COD for PIN codes that return too often, cap the order value COD is offered for, add a COD fee, and confirm COD orders on WhatsApp before you ship.',
+      },
+      {
         question: 'Which couriers can I use?',
         answer:
           'Delhivery, Shiprocket and RapidShyp. Compare rates and book a pickup from the order.',
@@ -374,7 +389,7 @@ export const homeContent = {
   },
   cta: {
     title: 'Run your store in plain words.',
-    body: 'Join the waitlist and we’ll set up your store with you.',
+    body: `Sign up in a minute and get ${siteConfig.trialDays} days of Growth free, no card needed.`,
     email: 'Email us',
   },
 }

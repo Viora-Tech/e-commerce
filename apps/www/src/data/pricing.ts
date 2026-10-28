@@ -1,8 +1,10 @@
 import { siteConfig } from '@commerce/config/site'
+import { PLAN_GST_PERCENT } from '@commerce/core/billing'
 
 const brand = siteConfig.brand.name
 const { starter, growth, pro } = siteConfig.plans
 const trial = siteConfig.trialDays
+const starterWithGst = Math.round(starter.monthlyInr * (1 + PLAN_GST_PERCENT / 100))
 
 export type PlanKey = 'starter' | 'growth' | 'pro'
 
@@ -63,11 +65,11 @@ export const pricingContent = {
   perMonth: '/month',
   perYear: '/year',
   gstNote: '+ 18% GST',
+  withGst: (amount: string, period: string) => `${amount}${period} with GST`,
   yearlyEquivalent: (perMonth: string) => `${perMonth}/month, billed yearly`,
   upTo: 'Up to',
   ordersAMonth: 'orders a month',
-  join: 'Join the waitlist',
-  joinShort: 'Join',
+  joinShort: 'Start',
   page: {
     eyebrow: 'Pricing',
     title: 'Pay for orders. Not a cut of every sale.',
@@ -155,8 +157,8 @@ export const pricingContent = {
         {
           icon: 'whatsapp',
           title: 'WhatsApp messages',
-          body: 'Order updates, COD confirmations and campaigns, from a prepaid wallet.',
-          price: 'Meta’s rate + 20%',
+          body: 'Order updates, COD confirmations and campaigns. Meta bills your own WhatsApp Business account directly.',
+          price: 'Meta’s rate, no markup',
         },
         {
           icon: 'seat',
@@ -181,7 +183,11 @@ export const pricingContent = {
           },
           {
             question: 'Is GST included in the price?',
-            answer: 'No. Prices are before GST; 18% GST is added on your bill, with a GST invoice.',
+            answer: `No. Prices are before GST; ${PLAN_GST_PERCENT}% GST is added on your bill, with a GST invoice. ${starter.name} is ₹${starterWithGst.toLocaleString('en-IN')} a month with GST.`,
+          },
+          {
+            question: `How does ${brand} make money if it takes 0%?`,
+            answer: `From plan fees, paid apps on ${starter.name} and ${growth.name}, and AI credit top-ups. Never from a cut of your sales.`,
           },
         ],
         [
@@ -193,7 +199,12 @@ export const pricingContent = {
           {
             question: 'What if I go over my limit?',
             answer:
-              'Your store keeps taking orders. We tell you before you reach it; extra orders cost ₹49 per 100 until you move up.',
+              'Your store keeps taking orders. Orders are counted per calendar month and reset on the 1st. We tell you before you reach the limit; extra orders cost ₹49 per 100 until you move up.',
+          },
+          {
+            question: 'Can I take my data with me?',
+            answer:
+              'Yes. Export your products, customers, orders and stock as CSV files from the admin any time. Your data is yours.',
           },
           {
             question: 'Do you offer yearly billing?',

@@ -1,9 +1,9 @@
 import { CheckIcon } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { pricingContent as copy, type Plan } from '@/data/pricing'
-import { formatInr } from '@/lib/pricing-math'
+import { formatInr, withGst } from '@/lib/pricing-math'
 import Reveal from '../common/reveal'
-import JoinWaitlistButton from '../waitlist/join-waitlist-button'
+import StartFreeButton from '../common/start-free-button'
 
 type PlanCardProps = {
   plan: Plan
@@ -66,6 +66,12 @@ export default function PlanCard({
           {yearly ? `${copy.yearlyEquivalent(formatInr(Math.round(plan.yearlyInr / 12)))} · ` : ''}
           {copy.gstNote}
         </p>
+        <p className="mt-1 text-xs font-medium text-foreground">
+          {copy.withGst(
+            formatInr(withGst(yearly ? plan.yearlyInr : plan.monthlyInr)),
+            yearly ? copy.perYear : copy.perMonth,
+          )}
+        </p>
         <p className="mt-3 text-sm text-foreground">{orders}</p>
       </div>
       <ul className="flex flex-1 flex-col gap-3 border-t border-border pt-5">
@@ -76,7 +82,7 @@ export default function PlanCard({
           </li>
         ))}
       </ul>
-      <JoinWaitlistButton variant={plan.popular ? 'cta' : 'outline'} size="lg" className="w-full" />
+      <StartFreeButton variant={plan.popular ? 'cta' : 'outline'} size="lg" className="w-full" />
     </Reveal>
   )
 }

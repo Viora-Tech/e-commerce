@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { siteContent } from '@/data/site'
 import BrandMark from '../common/brand-mark'
-import JoinWaitlistButton from '../waitlist/join-waitlist-button'
+import StartFreeButton from '../common/start-free-button'
 import MobileNav from './mobile-nav'
 import NavFrame from './nav-frame'
 
@@ -28,7 +28,7 @@ export default function SiteNav() {
         >
           {siteContent.signIn.label}
         </a>
-        <JoinWaitlistButton size="sm" />
+        <StartFreeButton size="sm" />
         <MobileNav />
       </div>
     </NavFrame>

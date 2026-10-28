@@ -1,6 +1,6 @@
 import { resetTurnstile } from './turnstile'
 
-export type FormKind = 'waitlist' | 'contact' | 'changelog'
+export type FormKind = 'contact' | 'changelog'
 export type SubmitResult = 'ok' | 'duplicate' | 'error'
 
 type Fields = Record<string, string | string[]>

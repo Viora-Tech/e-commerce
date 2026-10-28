@@ -1,3 +1,4 @@
+import { PLAN_GST_PERCENT } from '@commerce/core/billing'
 import { PLANS, type Plan } from '@/data/pricing'
 
 export const MIN_ORDERS = 50
@@ -32,6 +33,11 @@ const inr = new Intl.NumberFormat('en-IN', {
 
 export function formatInr(amount: number): string {
   return inr.format(amount)
+}
+
+/** What the seller actually pays: plan prices are shown before GST, which is added on the bill. */
+export function withGst(amount: number): number {
+  return Math.round(amount * (1 + PLAN_GST_PERCENT / 100))
 }
 
 export function formatCount(value: number): string {
