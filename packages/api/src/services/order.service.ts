@@ -43,6 +43,7 @@ import {
   gte,
   ilike,
   inArray,
+  lt,
   lte,
   ne,
   notInArray,
@@ -73,6 +74,8 @@ type OrderListFilters = {
   paymentStatus?: OrderPaymentStatus[] | undefined
   fulfillmentStatus?: OrderFulfillmentStatus[] | undefined
   placedFrom?: string | undefined
+  /** Placed before this time (the end of a custom date range). */
+  placedTo?: string | undefined
   paymentMethod?: 'cod' | 'prepaid' | undefined
   /** Has a consignment with this courier (`shipment.provider`). */
   courier?: string | undefined
@@ -127,6 +130,7 @@ function orderListWhere(input: OrderListFilters) {
       ? inArray(order.fulfillmentStatus, input.fulfillmentStatus)
       : undefined,
     input.placedFrom ? gte(order.placedAt, new Date(input.placedFrom)) : undefined,
+    input.placedTo ? lt(order.placedAt, new Date(input.placedTo)) : undefined,
     /* An order with no recorded method (imported history) is neither. */
     input.paymentMethod === 'cod'
       ? eq(order.paymentMethod, 'cod')

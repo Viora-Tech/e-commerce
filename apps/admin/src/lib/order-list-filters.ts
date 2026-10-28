@@ -1,7 +1,13 @@
 import type { OrderFulfillmentStatus, OrderPaymentStatus } from '@commerce/core/order-status'
 import { parseAsArrayOf, parseAsString, parseAsStringLiteral } from 'nuqs'
-import type { FilterGroup } from '@/components/table/filter-panel'
+import type { DateFilterValue, FilterGroup } from '@/components/table/filter-panel'
 import type { ordersContent } from '@/data/orders'
+import {
+  dateFilterBounds,
+  hasDateFilter,
+  NO_DATE_FILTER,
+  parseAsDateFilter,
+} from '@/lib/date-filter'
 
 /** The Orders filter panel (Figma "Orders · Filter"): what a merchant ticks, by group. */
 export const PAYMENT_FILTERS = ['paid', 'unpaid', 'partially_refunded', 'refund_needed'] as const
@@ -18,7 +24,8 @@ export type MethodFilter = (typeof METHOD_FILTERS)[number]
 export type OrderFilters = {
   payment: PaymentFilter[]
   fulfilment: FulfilmentFilter[]
-  date: DateFilter | null
+  /** A preset (`7d`) or a custom from–to (`lib/date-filter.ts`). */
+  date: DateFilterValue
   method: MethodFilter[]
   /** A courier id (`delhivery`) the order was sent with; null for any. */
   courier: string | null
@@ -52,14 +59,16 @@ const FULFILMENT_STATUSES: Record<FulfilmentFilter, OrderFulfillmentStatus[]> = 
 
 const DAYS: Record<Exclude<DateFilter, 'today'>, number> = { '7d': 7, '30d': 30, '90d': 90 }
 
-/** When the date filter starts: midnight today, or that many days back from now. */
-function placedFrom(date: DateFilter, now: Date): string {
+/** When a date preset starts: midnight today, or that many days back from now. */
+function presetStart(preset: string, now: Date): Date | null {
+  const date = DATE_FILTERS.find((d) => d === preset)
+  if (!date) return null
   if (date === 'today') {
     const start = new Date(now)
     start.setHours(0, 0, 0, 0)
-    return start.toISOString()
+    return start
   }
-  return new Date(now.getTime() - DAYS[date] * 86_400_000).toISOString()
+  return new Date(now.getTime() - DAYS[date] * 86_400_000)
 }
 
 /** True when any group has something ticked. */
@@ -67,7 +76,7 @@ export function hasOrderFilters(f: OrderFilters): boolean {
   return (
     f.payment.length > 0 ||
     f.fulfilment.length > 0 ||
-    f.date !== null ||
+    hasDateFilter(f.date) ||
     f.method.length > 0 ||
     f.courier !== null ||
     productText(f) !== null
@@ -77,13 +86,15 @@ export function hasOrderFilters(f: OrderFilters): boolean {
 /** The ticked boxes as `orders.list` input; both payment methods ticked means no method filter. */
 export function orderFilterInput(f: OrderFilters, now = new Date()) {
   const product = productText(f)
+  const placed = dateFilterBounds(f.date, presetStart, now)
   return {
     ...(product ? { product } : {}),
     ...(f.payment.length ? { paymentStatus: f.payment.flatMap((p) => PAYMENT_STATUSES[p]) } : {}),
     ...(f.fulfilment.length
       ? { fulfillmentStatus: f.fulfilment.flatMap((s) => FULFILMENT_STATUSES[s]) }
       : {}),
-    ...(f.date ? { placedFrom: placedFrom(f.date, now) } : {}),
+    ...(placed.from ? { placedFrom: placed.from } : {}),
+    ...(placed.to ? { placedTo: placed.to } : {}),
     ...(f.method.length === 1 && f.method[0] ? { paymentMethod: f.method[0] } : {}),
     ...(f.courier ? { courier: f.courier } : {}),
   }
@@ -138,10 +149,10 @@ export function orderFilterGroups(
     {
       key: 'date',
       label: copy.date,
-      type: 'select',
-      options: options(DATE_FILTERS, copy.dateOptions),
+      type: 'date',
+      presets: options(DATE_FILTERS, copy.dateOptions),
       value: f.date,
-      onChange: (next) => onChange({ date: DATE_FILTERS.find((d) => d === next) ?? null }),
+      onChange: (next) => onChange({ date: next }),
       anyLabel: copy.anyDate,
     },
     {
@@ -171,7 +182,7 @@ export function orderFilterGroups(
 export const NO_FILTERS: OrderFilters = {
   payment: [],
   fulfilment: [],
-  date: null,
+  date: NO_DATE_FILTER,
   method: [],
   courier: null,
   product: null,
@@ -181,7 +192,7 @@ export const NO_FILTERS: OrderFilters = {
 export const FILTER_PARAMS = {
   payment: parseAsArrayOf(parseAsStringLiteral(PAYMENT_FILTERS)).withDefault([]),
   fulfilment: parseAsArrayOf(parseAsStringLiteral(FULFILMENT_FILTERS)).withDefault([]),
-  date: parseAsStringLiteral(DATE_FILTERS),
+  date: parseAsDateFilter(DATE_FILTERS),
   method: parseAsArrayOf(parseAsStringLiteral(METHOD_FILTERS)).withDefault([]),
   courier: parseAsString,
   product: parseAsString,
