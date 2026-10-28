@@ -5,8 +5,8 @@ plan: `docs/superpowers/plans/2026-10-28-pricing-revamp.md`; decisions: `memory-
 
 ## From the MiroFish launch simulation (first commits)
 - **Open sign-up:** the waitlist is gone from the site; every "Start free" goes to the admin
-  sign-in. Prod compose defaults `MERCHANT_SIGNUP_MODE` to `open`. **At deploy, check the prod
-  `.env` doesn't set `invite`.**
+  sign-in. `MERCHANT_SIGNUP_MODE` now defaults to `open` in the app itself (prod runs as Dokploy
+  apps, so the compose default never applied); setting `invite` still closes it.
 - Honest copy: GST-inclusive price on plan cards, "Coming soon" on subscriptions, downloads and
   services, COD control and data-export FAQ answers, WhatsApp billed by Meta directly.
 - A sample GST tax invoice PDF on the GST invoicing page
