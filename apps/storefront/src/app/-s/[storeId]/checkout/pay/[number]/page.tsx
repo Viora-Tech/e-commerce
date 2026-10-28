@@ -13,6 +13,7 @@ import { notFound, redirect } from 'next/navigation'
 import CheckoutShell from '@/components/checkout/checkout-shell'
 import OrderSummary from '@/components/checkout/order-summary'
 import { payClientContent } from '@/data/checkout'
+import { withThemeLogo } from '@/lib/checkout-look'
 import { currentCustomer } from '@/lib/customer-session'
 import { orderPageToken } from '@/lib/order-view-cookie'
 import { inStore } from '@/lib/store-context'
@@ -65,7 +66,7 @@ export default async function PayPage({ params, searchParams }: Params) {
   if (session?.kind !== 'client') redirect(thankYou)
   return (
     <CheckoutShell
-      look={data.look}
+      look={await withThemeLogo(storeId, data.look)}
       backHref={thankYou}
       backLabel={payClientContent.back}
       summary={

@@ -83,8 +83,8 @@ export default function CheckoutSummary({
   return (
     <div className="flex flex-col gap-4.5">
       <div className="hidden items-center justify-between gap-4 lg:flex">
-        <h2 className={`${CK_HEADING} text-[1rem]! font-bold!`}>{content.summary}</h2>
-        <p className="flex h-6 items-center rounded-[0.5rem] bg-ck-summary-line px-2 font-mono text-[0.6875rem] font-medium tracking-[0.04em] text-ck-summary-muted uppercase">
+        <h2 className={`${CK_HEADING} text-[1.0625rem]!`}>{content.summary}</h2>
+        <p className="flex h-6 items-center rounded-[0.5rem] bg-ck-summary-line px-2 text-[0.75rem] font-medium text-ck-summary-muted tabular-nums">
           {content.itemCount(itemCount)}
         </p>
       </div>
@@ -154,7 +154,7 @@ export default function CheckoutSummary({
                 <span
                   key={updating ? 'updating' : totalPaise}
                   aria-live="polite"
-                  className="inline-block text-[1.25rem] font-extrabold tracking-[-0.02em] transition-[opacity,translate] duration-200 ease-out starting:translate-y-0.5 starting:opacity-0 motion-reduce:starting:translate-y-0 lg:text-[1.5rem]"
+                  className="inline-block text-[1.375rem] font-semibold tracking-[-0.025em] tabular-nums transition-[opacity,translate] duration-200 ease-out starting:translate-y-0.5 starting:opacity-0 motion-reduce:starting:translate-y-0 lg:text-[1.5rem]"
                 >
                   {updating ? shimmer : formatPaise(totalPaise)}
                 </span>

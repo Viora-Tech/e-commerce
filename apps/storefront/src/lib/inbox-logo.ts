@@ -1,5 +1,10 @@
 import 'server-only'
-import { liquidThemeLogoUrl, loadTemplate, parseCheckoutSettings } from '@commerce/core'
+import {
+  liquidThemeLogoUrl,
+  loadTemplate,
+  mainThemeId,
+  parseCheckoutSettings,
+} from '@commerce/core'
 import { importedTheme } from './liquid-theme'
 import { storeRead } from './store-cache'
 
@@ -30,6 +35,13 @@ async function liquidLogo(storeId: string, themeId: string): Promise<string | nu
     content as { type: string; props: Record<string, unknown> }[],
     theme.bundle,
   )
+}
+
+/** The live theme's own header logo when it is an imported Shopify theme, else null. */
+export async function liveLiquidLogoUrl(storeId: string): Promise<string | null> {
+  // The same cache entry the layout reads (`liveThemeId` in template-render).
+  const themeId = await storeRead(storeId, 'main-theme', (tx) => mainThemeId(tx))
+  return themeId ? liquidLogo(storeId, themeId) : null
 }
 
 /**

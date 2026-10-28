@@ -102,7 +102,7 @@ export default function DeliveryMethod({
                   <span className="flex flex-wrap items-center gap-2">
                     {o.name || content.delivery.standard}
                     {o.fastest ? (
-                      <span className="rounded-[0.3125rem] bg-ck-soft px-1.5 text-[0.625rem] leading-[1.125rem] font-semibold tracking-wide text-ck-muted uppercase">
+                      <span className="rounded-[0.3125rem] bg-ck-soft px-1.5 text-[0.75rem] leading-[1.25rem] font-medium text-ck-muted">
                         {content.delivery.fastest}
                       </span>
                     ) : null}
