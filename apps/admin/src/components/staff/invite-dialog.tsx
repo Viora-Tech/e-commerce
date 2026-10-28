@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
+import { ORPCError } from '@orpc/client'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import FormDialog from '@/components/layout/form-dialog'
@@ -25,6 +26,12 @@ type InviteDialogProps = {
   onOpenChange: (open: boolean) => void
   onInvited: () => void
 }
+
+/** The plan's staff accounts when the invite was refused for being over them. */
+const staffLimit = (err: unknown): { limit: number } | null =>
+  err instanceof ORPCError && err.data?.reason === 'staff_limit'
+    ? { limit: Number(err.data.limit) }
+    : null
 
 /** Sends a Better Auth invitation and records the role the person will hold. */
 export default function InviteDialog({ open, roles, onOpenChange, onInvited }: InviteDialogProps) {
@@ -52,7 +59,9 @@ export default function InviteDialog({ open, roles, onOpenChange, onInvited }: I
       onOpenChange(false)
       onInvited()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.invite.failed)
+      const seats = staffLimit(err)
+      if (seats) toast.error(copy.invite.limit(seats.limit), { description: copy.invite.limitHelp })
+      else toast.error(err instanceof Error ? err.message : copy.invite.failed)
     } finally {
       setSending(false)
     }

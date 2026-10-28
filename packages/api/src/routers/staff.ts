@@ -5,6 +5,7 @@ import {
   listMembers,
   permissions,
   recordInvitationRole,
+  staffSeats,
   upsertMember,
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
@@ -178,6 +179,14 @@ export const staffRouter = {
         throw new ORPCError('BAD_REQUEST', { message: 'Invite as administrator, then hand over' })
       }
       assertCanOffer(context.scope, target)
+      // Open invitations hold a seat too; resending one never needs a new seat.
+      const seats = await staffSeats(context.tx, context.scope.storeId)
+      if (seats.used >= seats.limit) {
+        throw new ORPCError('FORBIDDEN', {
+          message: `Your plan includes ${seats.limit} staff accounts, and they are all in use.`,
+          data: { reason: 'staff_limit', ...seats },
+        })
+      }
 
       const storeName = await storeNameOf(context.tx, context.scope.storeId)
       const { result: invitation, emailError } = await runInvite(
