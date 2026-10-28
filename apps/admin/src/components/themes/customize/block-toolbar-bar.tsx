@@ -47,11 +47,7 @@ const BAR =
 const CHIP =
   'inline-flex max-w-[14rem] items-center rounded-[0.3125rem] px-2 py-0.5 text-xs leading-[1.0625rem] font-medium whitespace-nowrap'
 
-/*
- * The `!` on colour and background: the bar sits inside the store's own page, and a theme's
- * unlayered `button { color; background }` (Glide's) beats Tailwind's layered utilities, which
- * drew the icons near-black on the dark glass (#906).
- */
+// `!`: the bar sits in the store's page, whose unlayered `button` styles beat Tailwind (#906).
 const TOOL =
   'flex size-6 shrink-0 items-center justify-center rounded-[0.375rem] border-0! bg-transparent! p-0! text-foreground/80! transition-colors duration-150 hover:bg-accent! hover:text-foreground! focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:pointer-events-none disabled:opacity-35 motion-reduce:transition-none'
 
