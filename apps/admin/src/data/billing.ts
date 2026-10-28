@@ -36,7 +36,17 @@ export const billingContent = {
     keep: 'Keep current plan',
     kept: 'You stay on your current plan',
     usageNote:
-      'Usage resets on the 1st of each month. Orders over the limit are never blocked; we ask you to move up a plan first.',
+      'Usage resets on the 1st of each month. Orders are never blocked: each one past your plan’s included orders carries a small fee, billed on the 1st.',
+    feeRate: (percent: string, orders: string) => `${percent}% per order after ${orders}`,
+    noFee: 'No per-order fee',
+  },
+  fees: {
+    heading: 'Per-order fees this month',
+    feeOrders: 'Orders with a fee',
+    estimate: 'Estimated fee so far',
+    carried: (amount: string) => `Includes ${amount} carried from earlier months.`,
+    trial: 'Orders during your free trial carry no fee.',
+    note: 'Billed on the 1st with a pay link. Under ₹100, it waits for the next month.',
   },
   usage: {
     orders: 'Orders this month',
@@ -49,7 +59,9 @@ export const billingContent = {
   },
   over: {
     upgrade: (plan: string) => `You are past this plan’s orders. Move to ${plan} for more room.`,
-    ownIt: 'You are past Pro’s orders. Own it gives you unlimited orders on your own server.',
+    ownIt:
+      'You are past Scale’s orders. Talk to us about fair use, or Own it for unlimited orders on your own server.',
+    fee: (percent: string) => `Each order from here carries a ${percent}% fee.`,
   },
   banners: {
     trial: (days: number) =>
@@ -61,6 +73,10 @@ export const billingContent = {
       'Your plan is paused because the last bill was not paid. Pay it to switch everything back on.',
     choose: 'Pick a plan',
     pay: 'Pay now',
+    unpaidFees: (amount: string) =>
+      `${amount} of per-order fees is unpaid. Nothing is paused; if it is still unpaid at your next renewal, it is added to that bill.`,
+    fairUse:
+      'Your store had more visits than this plan’s fair use two months running. Nothing is blocked. We will get in touch to find the right plan with you.',
   },
   payment: {
     heading: 'Payment method',
@@ -78,6 +94,7 @@ export const billingContent = {
     autopayStop: 'Turn off AutoPay',
     autopayStopped: 'AutoPay is off. Renewals come with a pay link again.',
     autopayFailed: 'Could not change AutoPay. Try again.',
+    autopayFees: 'Per-order fees always come as a pay link, even with AutoPay on.',
     invoiceEmail: 'Invoices go to',
     invoiceEmailHelp: 'Your store’s contact email (Settings → Store details).',
     notReady: `Paying for plans online is not switched on yet. Contact ${siteConfig.brand.name} to change plans.`,
@@ -111,6 +128,27 @@ export const billingContent = {
     empty: 'No invoices yet',
     emptyBody: 'Your first invoice shows up here once you pick a plan.',
   },
+  feeBills: {
+    heading: 'Per-order fee bills',
+    month: 'Month',
+    orders: 'Orders with a fee',
+    amount: 'Amount',
+    status: 'Status',
+    gst: '+ 18% GST',
+    states: {
+      carried: 'Carried over',
+      due: 'Due',
+      merged: 'Added to plan bill',
+      paid: 'Paid',
+      cancelled: 'Cancelled',
+    },
+    pay: 'Pay',
+    view: 'View',
+    csv: 'CSV',
+    csvFailed: 'Could not download that. Try again.',
+    empty: 'No per-order fees yet',
+    emptyBody: 'A month with orders past your plan’s included ones shows up here.',
+  },
   change: {
     heading: 'Downgrade or close',
     body: (plan: string, date: string) =>
@@ -133,7 +171,9 @@ export const billingContent = {
     failed: 'Could not start that plan. Try again.',
     scheduledToast: (plan: string) => `You move to ${plan} when this period ends`,
     rows: {
-      orders: 'Orders a month',
+      orders: 'Orders included a month',
+      fee: 'Fee per order after that',
+      visits: 'Visits a month (fair use)',
       staff: 'Staff accounts',
       storage: 'File storage',
       ai: 'AI',
@@ -151,7 +191,9 @@ export const billingContent = {
       title: 'Own it',
       body: `Run ${siteConfig.brand.name} on your own server with unlimited orders. One-time licence plus a small monthly fee for updates and support.`,
       action: 'Talk to us',
+      price: (licence: string, care: string) => `${licence} once + ${care} a month for care`,
     },
+    fairUse: 'Fair use',
   },
   loadFailed: 'Could not load your plan. Try again.',
 } as const

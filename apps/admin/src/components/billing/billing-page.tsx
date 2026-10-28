@@ -22,6 +22,7 @@ import AutopayRow, { type AutopayState } from './autopay-row'
 import BillsCard from './bills-card'
 import ComparePlansDialog from './compare-plans-dialog'
 import CurrentPlanCard from './current-plan-card'
+import UsageBillsCard from './usage-bills-card'
 
 type BillingPageProps = { view: PlanView; apps: BoughtApp[]; autopay: AutopayState }
 
@@ -117,6 +118,20 @@ export default function BillingPage({ view, apps, autopay }: BillingPageProps) {
           </AlertDescription>
         </Alert>
       ) : null}
+      {view.unpaidFees > 0 ? (
+        <Alert>
+          <CircleAlert />
+          <AlertDescription>
+            {copy.banners.unpaidFees(format.money(view.unpaidFees))}
+          </AlertDescription>
+        </Alert>
+      ) : null}
+      {view.fairUseNotice ? (
+        <Alert>
+          <InfoIcon />
+          <AlertDescription>{copy.banners.fairUse}</AlertDescription>
+        </Alert>
+      ) : null}
       <CurrentPlanCard
         view={view}
         onKeepPlan={handleKeepPlan}
@@ -131,6 +146,7 @@ export default function BillingPage({ view, apps, autopay }: BillingPageProps) {
       </DataCard>
       <AppsCard apps={apps} />
       <BillsCard bills={view.bills} />
+      <UsageBillsCard bills={view.usageBills} />
       {lower && view.status === 'active' && view.periodEnd && !view.nextPlan ? (
         <DataCard
           title={copy.change.heading}

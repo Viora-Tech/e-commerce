@@ -55,7 +55,7 @@ export default function AutopayRow({ autopay, billingReady }: AutopayRowProps) {
   const status = autopay.mandate?.status ?? null
   const line =
     status === 'active'
-      ? copy.payment.autopayOn
+      ? `${copy.payment.autopayOn} ${copy.payment.autopayFees}`
       : status === 'created'
         ? copy.payment.autopayPending
         : status === 'halted'
