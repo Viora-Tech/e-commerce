@@ -37,6 +37,12 @@ export type RefundInput = {
   method?: RefundMethod | undefined
   /** Settings secret, for `store_credit`. */
   secret?: string | undefined
+  /**
+   * With `store_credit`: the gift card already issued for it (one card for a return's credit
+   * spread over several payments). Recorded on the row; no new card, and a payment made from a
+   * gift card keeps its own card balance.
+   */
+  giftCardId?: string | undefined
   /** Staff member, recorded on a store credit gift card. */
   createdBy?: string | null | undefined
 }
@@ -103,13 +109,14 @@ export async function refundPayment(
     throw new RefundNotAllowed(`Only ${remaining} paise left to refund on this payment`)
   }
 
-  const toGiftCard = p.provider === GIFT_CARD_PROVIDER
+  const credited = input.method === 'store_credit' ? (input.giftCardId ?? null) : null
+  const toGiftCard = p.provider === GIFT_CARD_PROVIDER && credited === null
   const storeCredit = input.method === 'store_credit' && !toGiftCard
   const offline =
     OFFLINE_PROVIDERS.has(p.provider) || ((input.manual === true || storeCredit) && !toGiftCard)
   const method = offline ? (input.method ?? null) : null
-  let giftCardId: string | null = null
-  if (storeCredit) {
+  let giftCardId: string | null = credited
+  if (storeCredit && credited === null) {
     if (!input.secret) throw new RefundNotAllowed('Store credit could not be issued')
     const [o] = await ctx.tx.select().from(order).where(eq(order.id, p.orderId))
     const [cu] = o?.customerId

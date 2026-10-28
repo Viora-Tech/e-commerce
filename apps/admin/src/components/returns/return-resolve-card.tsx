@@ -3,10 +3,17 @@
 import { parseRupees } from '@commerce/money'
 import { CheckIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
+import {
+  Field,
+  FieldDescription,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import OptionSelect from '@/components/landed-cost/option-select'
 import DataCard from '@/components/layout/data-card'
 import { returnDetailContent } from '@/data/returns'
 import { api } from '@/lib/api-client'
@@ -17,9 +24,19 @@ import { type ReturnDetail, toRupees } from './return-types'
 
 type Outcome = 'refund' | 'credit' | 'exchange' | 'reship' | 'close'
 
+/** Back through the gateway, or recorded as paid back by hand. */
+type Way = 'original' | 'manual'
+
 type ReturnResolveCardProps = { detail: ReturnDetail; onChanged: () => void }
 
 const copy = returnDetailContent.resolve
+
+/** Ways to record money paid back by hand (store credit is its own outcome). */
+const HAND_METHODS = ['upi', 'bank_transfer', 'cash', 'cheque', 'other'] as const
+type HandMethod = (typeof HAND_METHODS)[number]
+
+/** Payments with no gateway to send money back through: cash on delivery, by hand, imported. */
+const NO_GATEWAY = new Set(['cod', 'manual', 'shopify'])
 
 /** What the merchant usually picks first: their policy for returns, sending again for an RTO. */
 function firstChoice(r: ReturnDetail): Outcome {
@@ -34,11 +51,15 @@ function firstChoice(r: ReturnDetail): Outcome {
 const isOutcome = (v: string): v is Outcome =>
   ['refund', 'credit', 'exchange', 'reship', 'close'].includes(v)
 
+const isWay = (v: string): v is Way => v === 'original' || v === 'manual'
+
 /** Settle a received return or RTO: refund, store credit, exchange, re-ship or close. */
 export default function ReturnResolveCard({ detail: r, onChanged }: ReturnResolveCardProps) {
   // Hooks
   const [outcome, setOutcome] = useState<Outcome>(() => firstChoice(r))
   const [amount, setAmount] = useState(() => toRupees(r.suggestedRefundPaise ?? 0))
+  const [way, setWay] = useState<Way | null>(null)
+  const [method, setMethod] = useState<HandMethod>('upi')
   const [busy, setBusy] = useState(false)
 
   // Helpers
@@ -59,10 +80,18 @@ export default function ReturnResolveCard({ detail: r, onChanged }: ReturnResolv
     if (isOutcome(v)) setOutcome(v)
   }
 
+  const handleWay = (v: string) => {
+    if (isWay(v)) setWay(v)
+  }
+
   const handleConfirm = () =>
     act(async () => {
       // Confirm is disabled until the amount parses (`validAmount`), so null never gets here.
       const amountPaise = paise ?? 0
+      if (outcome === 'refund' && byHand) {
+        await api.returns.refund({ id: r.id, amountPaise, method })
+        return copy.recorded(formatPaise(amountPaise), copy.handMethods[method])
+      }
       if (outcome === 'refund') {
         await api.returns.refund({ id: r.id, amountPaise })
         return copy.refunded(formatPaise(amountPaise))
@@ -90,6 +119,12 @@ export default function ReturnResolveCard({ detail: r, onChanged }: ReturnResolv
   const maxPaise = outcome === 'refund' ? r.refundablePaise : 20_000_000
   const validAmount = paise !== null && paise > 0 && paise <= maxPaise
   const suggestion = r.suggestedRefundPaise ?? 0
+  const hasGateway = r.refundable.some((p) => !NO_GATEWAY.has(p.provider))
+  const byHand = (way ?? (hasGateway ? 'original' : 'manual')) === 'manual'
+  const ways = [
+    ...(hasGateway ? [{ value: 'original', label: copy.original, hint: copy.originalHint }] : []),
+    { value: 'manual', label: copy.byHand, hint: copy.byHandHint },
+  ]
   const choices = [
     ...(r.refundablePaise > 0
       ? [{ value: 'refund', label: copy.refund, hint: copy.refundHint }]
@@ -101,7 +136,7 @@ export default function ReturnResolveCard({ detail: r, onChanged }: ReturnResolv
   ]
   const confirmLabel =
     outcome === 'refund'
-      ? copy.confirmRefund(formatPaise(validAmount ? paise : 0))
+      ? (byHand ? copy.confirmRecord : copy.confirmRefund)(formatPaise(validAmount ? paise : 0))
       : outcome === 'credit'
         ? copy.confirmCredit(formatPaise(validAmount ? paise : 0))
         : outcome === 'exchange'
@@ -144,6 +179,29 @@ export default function ReturnResolveCard({ detail: r, onChanged }: ReturnResolv
                 : copy.suggestion(formatPaise(suggestion))}
               {outcome === 'refund' ? ` ${copy.available(formatPaise(r.refundablePaise))}` : ''}
             </FieldDescription>
+          </Field>
+        ) : null}
+        {outcome === 'refund' ? (
+          <FieldSet>
+            <FieldLegend variant="label">{copy.how}</FieldLegend>
+            <ChoiceList
+              name="refund-way"
+              choices={ways}
+              value={byHand ? 'manual' : 'original'}
+              onChange={handleWay}
+            />
+          </FieldSet>
+        ) : null}
+        {outcome === 'refund' && byHand ? (
+          <Field className="max-w-sm">
+            <FieldLabel htmlFor="refund-method">{copy.method}</FieldLabel>
+            <OptionSelect
+              id="refund-method"
+              options={HAND_METHODS}
+              labels={copy.handMethods}
+              value={method}
+              onChange={setMethod}
+            />
           </Field>
         ) : null}
         <div>

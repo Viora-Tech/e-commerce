@@ -7,7 +7,7 @@ import type { StoreContext } from '../context'
 import { issueGiftCard } from '../gift-cards/service'
 import { adjustStock } from '../inventory/levels'
 import { createDraft } from '../order/drafts'
-import { refundedPaise, refundPayment } from '../order/refund'
+import { type RefundInput, type RefundMethod, refundedPaise, refundPayment } from '../order/refund'
 import { insertOutboxEvent } from '../outbox/write'
 import { createShipmentForOrder } from '../shipping/shipments'
 import { returnLabel } from './policy'
@@ -104,37 +104,58 @@ function assertResolvable(ctx: StoreContext, r: { status: string; number: number
   }
 }
 
+/** How money recorded by hand went back on a return; store credit is its own resolution. */
+export type HandRefundMethod = Exclude<RefundMethod, 'store_credit'>
+
 export type RefundReturnInput = {
   amountPaise: number
   /** The installed gateway for a payment's provider id; null when it is not connected. */
   providerFor: (providerId: string) => Promise<PaymentProvider | null>
+  /**
+   * Paid back by hand (UPI, bank transfer, cash): recorded with this method and no gateway call,
+   * like a refund recorded on the order page.
+   */
+  method?: HandRefundMethod | undefined
+}
+
+type LockedReturn = Awaited<ReturnType<typeof lockReturn>>
+type Refundable = Awaited<ReturnType<typeof refundablePayments>>
+
+/** Refuses an amount over what the order can still give back. */
+function assertCovered(ctx: StoreContext, payments: Refundable, amountPaise: number) {
+  const available = payments.reduce((s, p) => s + p.availablePaise, 0)
+  if (amountPaise > available) {
+    throw new ReturnNotAllowed('That is more than is left to refund on this order.', ctx.storeId)
+  }
 }
 
 /**
- * Give money back to the way the shopper paid, through the same refund path
- * as the order page (`refundPayment`), largest payment first. Full or partial.
+ * Spreads a return's money over the order's payments, largest first, through the order page's
+ * refund path (`refundPayment`), and raises `refund.created` tagged with the return for each
+ * refund that did not fail. The GST invoices plugin credits the returned units from it (CGST
+ * s.34), whether the money went back to the gateway, by hand or as store credit.
  */
-export async function refundReturn(ctx: StoreContext, id: string, input: RefundReturnInput) {
-  const r = await lockReturn(ctx, id)
-  assertResolvable(ctx, r)
-  if (!Number.isInteger(input.amountPaise) || input.amountPaise <= 0) {
-    throw new ReturnNotAllowed('Enter an amount to refund.', ctx.storeId)
-  }
-  const payments = await refundablePayments(ctx, r.orderId)
-  const available = payments.reduce((s, p) => s + p.availablePaise, 0)
-  if (input.amountPaise > available) {
-    throw new ReturnNotAllowed('That is more than is left to refund on this order.', ctx.storeId)
-  }
-  let left = input.amountPaise
+async function payBack(
+  ctx: StoreContext,
+  r: LockedReturn,
+  payments: Refundable,
+  amountPaise: number,
+  how: {
+    providerFor: (providerId: string) => Promise<PaymentProvider | null>
+    extra: Pick<RefundInput, 'manual' | 'method' | 'giftCardId'>
+  },
+): Promise<string[]> {
+  let left = amountPaise
   const refundIds: string[] = []
   const reason = `${r.kind === 'rto' ? 'RTO' : 'Return'} ${returnLabel(r.number)}`
   for (const p of payments) {
     if (left <= 0) break
     const amount = Math.min(left, p.availablePaise)
-    const row = await refundPayment(ctx, await input.providerFor(p.provider), {
+    const row = await refundPayment(ctx, await how.providerFor(p.provider), {
       paymentId: p.id,
       amountPaise: amount,
       reason,
+      ...how.extra,
     })
     if (row) {
       refundIds.push(row.id)
@@ -150,6 +171,33 @@ export async function refundReturn(ctx: StoreContext, id: string, input: RefundR
     }
     left -= amount
   }
+  return refundIds
+}
+
+const noGateway = async () => null
+
+/**
+ * Give money back to the way the shopper paid, through the same refund path
+ * as the order page (`refundPayment`), largest payment first. Full or partial.
+ * With `method`, the merchant paid it back by hand and it is only recorded.
+ */
+export async function refundReturn(ctx: StoreContext, id: string, input: RefundReturnInput) {
+  const r = await lockReturn(ctx, id)
+  assertResolvable(ctx, r)
+  if (!Number.isInteger(input.amountPaise) || input.amountPaise <= 0) {
+    throw new ReturnNotAllowed('Enter an amount to refund.', ctx.storeId)
+  }
+  const payments = await refundablePayments(ctx, r.orderId)
+  assertCovered(ctx, payments, input.amountPaise)
+  const refundIds = await payBack(
+    ctx,
+    r,
+    payments,
+    input.amountPaise,
+    input.method
+      ? { providerFor: noGateway, extra: { manual: true, method: input.method } }
+      : { providerFor: input.providerFor, extra: {} },
+  )
   const row = await updateReturnRow(ctx, id, {
     status: 'resolved',
     resolution: 'refund',
@@ -169,6 +217,9 @@ export async function refundReturn(ctx: StoreContext, id: string, input: RefundR
 /**
  * Give the money back as store credit: a gift card in the shopper's name, the
  * platform's existing gift card. Returns the code once so the caller can email it.
+ * The credit is recorded as a refund of the order's payments (method `store_credit`), so the
+ * same money cannot also be refunded, and the GST invoices plugin issues a credit note for the
+ * returned units: spending the card later is billed in full, as a gift card is.
  */
 export async function storeCreditReturn(
   ctx: StoreContext,
@@ -189,6 +240,8 @@ export async function storeCreditReturn(
       ctx.storeId,
     )
   }
+  const payments = await refundablePayments(ctx, r.orderId)
+  assertCovered(ctx, payments, input.amountPaise)
   const [o] = await ctx.tx.select().from(order).where(eq(order.id, r.orderId))
   if (!o) throw new ReturnNotAllowed('Order not found', ctx.storeId)
   const [cu] = o.customerId
@@ -208,10 +261,15 @@ export async function storeCreditReturn(
     input.secret,
   )
   if (!issued) throw new ReturnNotAllowed('The store credit could not be created.', ctx.storeId)
+  const refundIds = await payBack(ctx, r, payments, input.amountPaise, {
+    providerFor: noGateway,
+    extra: { method: 'store_credit', giftCardId: issued.card.id },
+  })
   const row = await updateReturnRow(ctx, id, {
     status: 'resolved',
     resolution: 'store_credit',
     refundAmountPaise: input.amountPaise,
+    refundIds,
     giftCardId: issued.card.id,
     resolvedAt: new Date(),
   })
