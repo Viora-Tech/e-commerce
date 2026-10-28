@@ -1,6 +1,6 @@
 'use client'
 
-import { formatStoreMoney } from '@commerce/money'
+import { formatPresentment, formatStoreMoney, type MarketPricing } from '@commerce/money'
 import { createContext, use } from 'react'
 
 /**
@@ -9,8 +9,23 @@ import { createContext, use } from 'react'
  */
 export const MoneyFormatContext = createContext<string | null>(null)
 
-/** Formats paise the way this store shows prices ("Rs. 6,499.00" or "₹6,499"). */
+/**
+ * The page's market when it shows another currency than rupees (Settings → Markets): every
+ * price converts with its rate, adjustment and rounding. Null shows rupees.
+ */
+export const MarketPricingContext = createContext<MarketPricing | null>(null)
+
+/**
+ * Formats paise the way this page shows prices: in the market's currency (`AED 23.50`), else
+ * the store's own format ("Rs. 6,499.00" or "₹6,499").
+ */
 export function useFormatPaise(): (paise: number) => string {
   const format = use(MoneyFormatContext)
-  return (paise) => formatStoreMoney(paise, format)
+  const pricing = use(MarketPricingContext)
+  return (paise) => (pricing ? formatPresentment(paise, pricing) : formatStoreMoney(paise, format))
+}
+
+/** The page's market pricing when it shows another currency; null for rupees. */
+export function useMarketPricing(): MarketPricing | null {
+  return use(MarketPricingContext)
 }

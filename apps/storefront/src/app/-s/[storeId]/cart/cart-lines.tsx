@@ -1,6 +1,6 @@
 'use client'
 
-import { formatPaise, QuantityInput } from '@commerce/blocks'
+import { QuantityInput, useFormatPaise } from '@commerce/blocks'
 import type { CartLineView } from '@commerce/core'
 import { useTransition } from 'react'
 import { cartContent as content } from '@/data/cart'
@@ -12,6 +12,7 @@ import { setQuantityAction } from '@/lib/cart-actions'
  */
 export default function CartLines({ lines }: { lines: CartLineView[] }) {
   // Hooks
+  const formatPaise = useFormatPaise()
   const [pending, start] = useTransition()
 
   // Helpers

@@ -28,6 +28,7 @@ export { default as Footer } from './components/footer'
 export { default as Header, type NavLink } from './components/header'
 export { default as HeroCarousel, type HeroSlide } from './components/hero-carousel'
 export { default as Icon } from './components/icon'
+export { default as Money } from './components/money'
 export { default as MoneyFormatProvider } from './components/money-format-provider'
 export { default as Pagination } from './components/pagination'
 export { default as Price } from './components/price'
@@ -47,7 +48,7 @@ export { default as StoreActionsProvider } from './components/store-actions-prov
 export { default as ThemeToggle } from './components/theme-toggle'
 export { type MenuCollection, type SearchShortcut, searchShortcuts } from './header-menu'
 export { formatPaise } from './money'
-export { useFormatPaise } from './money-format'
+export { useFormatPaise, useMarketPricing } from './money-format'
 export { type SectionExperiment, sectionExperimentGate } from './section-experiment'
 export {
   cleanCustomCss,

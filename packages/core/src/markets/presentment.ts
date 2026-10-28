@@ -1,64 +1,19 @@
-/** SOURCE OF TRUTH: MarketPricing, presentmentMinor, marketPricing
- * WHAT:  A rupee price in a market's currency, Shopify Markets style: rupees × the market's
- *        rate (its fixed rate, else the day's reference rate) × its price adjustment, then its
- *        rounding, as whole minor units of that currency (cents, fils). Pure, browser safe.
- * WHY:   Prices, reports and GST stay in paise; only what a shopper abroad sees (and, from
- *        M2, pays) is converted, by one rule on the storefront, cart and checkout.
+/** SOURCE OF TRUTH: marketPricing
+ * WHAT:  A market's pricing from its row and the latest reference rate. The conversion itself
+ *        (`MarketPricing`, `presentmentMinor`, `presentmentCents`, `formatPresentment`) lives in
+ *        @commerce/money, so the theme blocks (which do not depend on core) price with it too.
+ * WHY:   Prices, reports and GST stay in paise; only what a shopper abroad sees is converted.
  */
-import { CURRENCIES, isCurrency } from '@commerce/money'
+import type { MarketPricing, MarketRoundingRule } from '@commerce/money'
 
-export type MarketRoundingRule = 'none' | 'whole' | 'x99'
-
-/** How one market prices: what `presentmentMinor` needs. */
-export type MarketPricing = {
-  /** ISO 4217 code the shopper sees. */
-  currency: string
-  /** Units of `currency` per rupee. */
-  rate: number
-  /** Basis points on top of the converted price: +1000 is 10% above. */
-  adjustmentBp: number
-  rounding: MarketRoundingRule
-}
-
-/** Rupees as rupees: the primary market, or a market whose rate is not known yet. */
-export const RUPEE_PRICING: MarketPricing = {
-  currency: 'INR',
-  rate: 1,
-  adjustmentBp: 0,
-  rounding: 'none',
-}
-
-/** Decimal places of a currency's minor unit (ISO 4217); 2 when this package does not know it. */
-function minorDigits(currency: string): number {
-  return isCurrency(currency) ? CURRENCIES[currency].minorUnit : 2
-}
-
-/** True when prices show as stored, in rupees. */
-function isRupeePricing(p: MarketPricing): boolean {
-  return p.currency === 'INR' && p.rate === 1 && p.adjustmentBp === 0
-}
-
-/**
- * Paise in the market's currency, as whole minor units. Rounding comes last, after the rate
- * and the adjustment: `whole` to the nearest whole unit (14.27 → 14.00), `x99` up to the next
- * .99 (14.27 → 14.99, 14.00 → 14.99; whole units for a currency without decimals). Zero and
- * negative amounts (a discount line) keep their sign and are rounded by the same rule.
- */
-export function presentmentMinor(paise: number, p: MarketPricing): number {
-  if (isRupeePricing(p)) return paise
-  if (paise === 0) return 0
-  const sign = paise < 0 ? -1 : 1
-  const digits = minorDigits(p.currency)
-  const scale = 10 ** digits
-  const major = (Math.abs(paise) / 100) * p.rate * (1 + p.adjustmentBp / 10_000)
-  let units: number
-  if (p.rounding === 'whole') units = Math.round(major) * scale
-  else if (p.rounding === 'x99') {
-    // .99 of the unit: 1 cent off the next whole dollar, 10 fils off the next whole dinar.
-    units = digits === 0 ? Math.ceil(major) : (Math.floor(major + 1e-9) + 1) * scale - scale / 100
-  } else units = Math.round(major * scale)
-  return sign * Math.max(units, 0)
-}
+export {
+  formatPresentment,
+  type MarketPricing,
+  type MarketRoundingRule,
+  presentmentCents,
+  presentmentMinor,
+  RUPEE_PRICING,
+} from '@commerce/money'
 
 type MarketPricingInput = {
   currency: string
@@ -86,14 +41,4 @@ export function marketPricing(
     adjustmentBp: m.priceAdjustmentBp,
     rounding: m.rounding,
   }
-}
-
-/**
- * A price as Liquid holds money: hundredths of the market's currency (Shopify's subunit
- * amounts, also for dinars and yen), so a theme's `| money` and its scripts divide by 100.
- * Rupees stay paise.
- */
-export function presentmentCents(paise: number, p: MarketPricing | null): number {
-  if (!p || isRupeePricing(p)) return paise
-  return Math.round((presentmentMinor(paise, p) / 10 ** minorDigits(p.currency)) * 100)
 }

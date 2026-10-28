@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   formatMoney,
   formatNumber,
+  formatPresentment,
   fromMinor,
   isCurrency,
   moneyFormatOf,
@@ -111,5 +112,13 @@ describe('moneyFormatOf', () => {
     expect(moneyFormatOf('AED')).toBe('AED {{amount}}')
     expect(moneyFormatOf('JPY')).toBe('¥{{amount_no_decimals}}')
     expect(moneyFormatOf('INR')).toBe('₹{{amount}}')
+  })
+})
+
+describe('formatPresentment', () => {
+  it('formats paise in the market currency, rupees without one', () => {
+    const usd = { currency: 'USD', rate: 0.012, adjustmentBp: 0, rounding: 'none' } as const
+    expect(formatPresentment(64_900, usd)).toBe('$7.79')
+    expect(formatPresentment(64_900, null)).toBe('₹649')
   })
 })
