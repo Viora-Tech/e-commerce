@@ -2,10 +2,10 @@ import { siteConfig } from '@commerce/config/site'
 import { Inbox } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { buttonVariants } from '@commerce/ui/shadcn/button'
-import StartFreeButton from './start-free-button'
 import PageContainer from './page-container'
 import Reveal from './reveal'
 import SplitReveal from './split-text'
+import StartFreeButton from './start-free-button'
 
 type CtaBandProps = {
   title: string

@@ -9,7 +9,7 @@ type PlanCardProps = {
   plan: Plan
   /** Replaces the "Most popular" badge, e.g. "Recommended for you" on the pricing page. */
   badge?: string
-  /** "100 orders a month" on the home page; "Up to 100 orders a month" on the pricing page. */
+  /** "200 orders a month" on the home page; "Includes 200 orders a month" on the pricing page. */
   upTo?: boolean
   step?: number
   /** Monthly price, or the yearly price with its monthly equivalent. */
@@ -73,6 +73,9 @@ export default function PlanCard({
           )}
         </p>
         <p className="mt-3 text-sm text-foreground">{orders}</p>
+        <p className="text-sm text-muted-foreground">
+          {plan.feePercent > 0 ? copy.feeAfter(plan.feePercent) : copy.noFee}
+        </p>
       </div>
       <ul className="flex flex-1 flex-col gap-3 border-t border-border pt-5">
         {plan.features.map((feature) => (

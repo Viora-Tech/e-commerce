@@ -29,10 +29,10 @@ export const SOLUTIONS: readonly Solution[] = [
   {
     slug: 'shopify-alternative-india',
     metaTitle: 'Shopify alternative for India',
-    description: `${brand} is an e-commerce platform built for India: UPI-first checkout, GST invoices, Indian couriers and a Hindi admin, with 0% transaction fee. Move from Shopify with your theme.`,
+    description: `${brand} is an e-commerce platform built for India: UPI-first checkout, GST invoices, Indian couriers and a Hindi admin, from ₹${starter.monthlyInr.toLocaleString('en-IN')} a month. Move from Shopify with your theme.`,
     eyebrow: 'Shopify alternative',
     title: 'The Shopify alternative built for how India sells.',
-    lead: `Keep your Shopify look, bring your products, customers and orders, and run them on a store made for UPI, GST and Indian couriers. ${brand} takes 0% of your sales.`,
+    lead: `Keep your Shopify look, bring your products, customers and orders, and run them on a store made for UPI, GST and Indian couriers, at about half of what Shopify costs a store your size.`,
     points: [
       {
         title: 'Bring everything over',
@@ -48,7 +48,7 @@ export const SOLUTIONS: readonly Solution[] = [
       },
       {
         title: 'Pay for orders, not a cut',
-        body: `Plans start at ₹${starter.monthlyInr.toLocaleString('en-IN')} a month before GST, with 0% transaction fee. Your payment gateway’s own fee still applies.`,
+        body: `Plans start at ₹${starter.monthlyInr.toLocaleString('en-IN')} a month before GST. Past your plan’s included orders, a small per-order fee (none on ${siteConfig.plans.scale.name}), not Shopify’s 2% on every sale. Your payment gateway’s own fee still applies.`,
       },
     ],
     faq: [
@@ -63,7 +63,7 @@ export const SOLUTIONS: readonly Solution[] = [
       },
       {
         question: 'Do you charge a transaction fee?',
-        answer: `No. ${brand} takes 0% of your sales on every plan.`,
+        answer: `Only past your plan’s included orders: 0.5% to 1% of each order’s total, and none at all on Scale. Shopify charges 2% on every order on its Basic plan.`,
       },
     ],
     guide: {
@@ -157,7 +157,8 @@ export const SOLUTIONS: readonly Solution[] = [
       },
       {
         question: `Does ${brand} take a cut of payments?`,
-        answer: 'No. 0% transaction fee on every plan; only your gateway’s fee applies.',
+        answer:
+          'No. Payments go straight to your own gateway account. Past your plan’s included orders a small per-order fee is billed on the 1st, never taken from payments.',
       },
     ],
     guide: { label: 'Payments guide', href: `${docs}/merchant-guide/money-and-gst/payments` },

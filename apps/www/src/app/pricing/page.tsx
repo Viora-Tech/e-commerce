@@ -1,3 +1,4 @@
+import { siteConfig } from '@commerce/config/site'
 import CtaBand from '@/components/common/cta-band'
 import JsonLd from '@/components/common/json-ld'
 import PageContainer from '@/components/common/page-container'
@@ -15,8 +16,11 @@ const copy = pricingContent.page
 
 export const metadata = pageMetadata({
   title: 'Pricing',
-  description:
-    'Starter ₹499, Growth ₹1,499 and Pro ₹4,999 a month before GST, with 0% transaction fee. Plans by orders a month; every store starts with 14 days of Growth free.',
+  description: `${Object.values(siteConfig.plans)
+    .map((p) => `${p.name} ₹${p.monthlyInr.toLocaleString('en-IN')}`)
+    .join(
+      ', ',
+    )} a month before GST. A small fee per order only past your included orders, none on ${siteConfig.plans.scale.name}; every store starts with ${siteConfig.trialDays} days of Growth free.`,
   path: '/pricing',
 })
 

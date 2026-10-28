@@ -30,9 +30,15 @@ export const termsDoc: LegalDoc = {
     },
     {
       title: 'Plans and billing',
-      plain: ['Billed in advance, in rupees.', 'GST is added on the invoice.'],
+      plain: [
+        'Billed in advance in rupees, plus GST.',
+        'Past your included orders, a small fee per order, billed monthly.',
+      ],
       body: [
         'Paid plans are billed monthly or yearly, as you choose, in advance in INR, plus applicable GST.',
+        'Each plan includes a number of orders per calendar month (India time). Every further order placed while you are on a paid plan carries the plan’s per-order fee, a percentage of the order’s total as the buyer paid it, shipping and tax included. Cancelled orders, orders refunded in full before the bill is made, and test orders do not count; cash on delivery orders and partly refunded orders count in full. Orders during a free trial, or while a plan is unpaid or paused, carry no fee.',
+        'Per-order fees are billed once a month, on the 1st, for the month before, with a GST invoice. A month whose fees come to less than ₹100 is carried to the next month instead. A fee bill left unpaid does not pause your store; it is added to your next plan bill, and that bill’s payment terms then apply.',
+        'Each plan states a fair-use number of storefront visits a month. If your store is over it two months running, we will contact you to agree the right plan. We never block, slow down or charge for visits automatically.',
       ],
     },
     {

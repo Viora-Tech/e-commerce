@@ -16,7 +16,7 @@ export default function HomePricing() {
       <AmbientLight className="top-1/3 left-1/2 h-72 w-[48rem] max-w-full -translate-x-1/2" />
       <PageContainer className="flex flex-col items-center gap-12 md:gap-16">
         <SectionHeading eyebrow={copy.eyebrow} title={copy.title} subtitle={copy.subtitle} />
-        <div className="grid w-full gap-6 lg:grid-cols-3">
+        <div className="grid w-full gap-6 md:grid-cols-2 xl:grid-cols-4">
           {PLANS.map((plan, index) => (
             <PlanCard key={plan.key} plan={plan} step={index} />
           ))}

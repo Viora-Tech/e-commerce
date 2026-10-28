@@ -344,7 +344,7 @@ export const homeContent = {
   },
   pricing: {
     eyebrow: 'Pricing',
-    title: 'Pay for orders, not a cut of sales.',
+    title: 'A low plan. A small fee only as you grow.',
     subtitle: `Plans from ₹${siteConfig.plans.starter.monthlyInr.toLocaleString('en-IN')} a month, before GST. Every store starts with ${siteConfig.trialDays} days of Growth free.`,
     compare: 'Compare all plans',
     note: 'Prices before 18% GST. Yearly billing gets two months free.',

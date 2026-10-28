@@ -72,7 +72,11 @@ export default function CompareTable() {
             {copy.groups.map((group) => (
               <Fragment key={group.title}>
                 <tr>
-                  <th colSpan={4} scope="colgroup" className="px-2 pt-8 md:px-5 pb-2 text-left">
+                  <th
+                    colSpan={PLANS.length + 1}
+                    scope="colgroup"
+                    className="px-2 pt-8 md:px-5 pb-2 text-left"
+                  >
                     <span className="text-eyebrow">{group.title}</span>
                   </th>
                 </tr>
