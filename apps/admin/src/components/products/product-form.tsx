@@ -4,7 +4,7 @@ import type { ProductStatus } from '@commerce/core/catalog'
 import { CircleAlert } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { type ReactNode, useEffect, useState } from 'react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import type { ProductApp } from '@/apps/product-actions'
 import type { ProductSectionProps } from '@/apps/product-sections'
@@ -88,6 +88,10 @@ export default function ProductForm({
   const [form, setForm] = useState<ProductFormState>(() => initialForm(product))
   const [saved, setSaved] = useState(() => snapshot(initialForm(product)))
   const [busy, setBusy] = useState(false)
+  // The variant metafields grid's own save and whether it has edits (saved with the page, #894).
+  const variantFieldsSave = useRef<(() => Promise<boolean>) | null>(null)
+  const [variantFieldsDirty, setVariantFieldsDirty] = useState(false)
+  const [variantFieldsReset, setVariantFieldsReset] = useState(0)
   const [uploading, setUploading] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
   const [attempted, setAttempted] = useState(false)
@@ -186,7 +190,10 @@ export default function ProductForm({
       setForm(fresh)
       setSaved(snapshot(fresh))
       setRevision((r) => r + 1)
-      toast.success(product ? copy.toasts.saved : copy.toasts.created)
+      // Then each variant whose metafields changed; one that fails names its variant and stays
+      // unsaved (the save bar stays up), the product itself is saved.
+      const fieldsSaved = variantFieldsSave.current ? await variantFieldsSave.current() : true
+      if (fieldsSaved) toast.success(product ? copy.toasts.saved : copy.toasts.created)
       if (!product) router.replace(routes.products.detail(result.id))
       else router.refresh()
     } catch (err) {
@@ -204,6 +211,7 @@ export default function ProductForm({
     /* Restore the last saved snapshot, not the page prop: after a save the prop
        still holds the old product until the router refresh lands. */
     setForm(JSON.parse(saved) as ProductFormState)
+    setVariantFieldsReset((n) => n + 1)
     setAttempted(false)
     setServerError(null)
   }
@@ -246,7 +254,7 @@ export default function ProductForm({
   const savedVariants = form.variants.flatMap((v) =>
     v.id ? [{ id: v.id, label: v.optionValues.join(' / ') || form.title }] : [],
   )
-  const isDirty = snapshot(form) !== saved
+  const isDirty = snapshot(form) !== saved || variantFieldsDirty
   const errors = formErrors(copy, form)
   const showErrors = attempted
   const single = matrixOptions(form.options).length === 0
@@ -288,7 +296,14 @@ export default function ProductForm({
         onVariant={patchVariant}
         onAddMedia={addMedia}
       />
-      <VariantMetafieldsCard variants={savedVariants} />
+      <VariantMetafieldsCard
+        variants={savedVariants}
+        variantKey={savedVariants.map((v) => v.id).join(',')}
+        hasUnsaved={form.variants.some((v) => !v.id)}
+        saveRef={variantFieldsSave}
+        onDirtyChange={setVariantFieldsDirty}
+        resetSignal={variantFieldsReset}
+      />
       <DataCard title={copy.preorder.heading}>
         <ProductPreorderSection
           form={form}
