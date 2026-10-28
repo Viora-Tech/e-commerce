@@ -406,7 +406,11 @@ async function issuedSplit() {
     })
     .returning()
   let returns = 0
-  const refundOf = async (amountPaise: number, returnedLine?: number) => {
+  const refundOf = async (
+    amountPaise: number,
+    returnedLine?: number,
+    how: { method?: 'store_credit' | 'upi'; status?: 'manual' } = {},
+  ) => {
     const [r] = await owner
       .insert(refund)
       .values({
@@ -414,7 +418,8 @@ async function issuedSplit() {
         orderId: t.orderId,
         paymentId: pay?.id as string,
         amountPaise,
-        status: 'processed',
+        status: how.status ?? 'processed',
+        method: how.method ?? null,
       })
       .returning()
     if (returnedLine !== undefined) {
@@ -489,6 +494,21 @@ describe('credit notes per GSTIN', () => {
     ])
     expect(note.totals.totalPaise).toBe(30_000)
   })
+
+  it.each(['store_credit', 'upi'] as const)(
+    'credits a return settled by %s the same way: the returned unit only (#879)',
+    async (method) => {
+      const t = await issuedSplit()
+      const refundId = await t.refundOf(30_000, 1, { method, status: 'manual' })
+      await inStore(t.storeId, (tx) => issueCreditNotes(tx, t.storeId, refundId, { at }))
+      const [row] = await creditNotes(refundId)
+      const note = DocumentSnapshotSchema.parse(row?.snapshot)
+      expect(note.lines.map((l) => [l.orderLineId, l.quantity, l.charge])).toEqual([
+        [t.lineIds[1], 1, false],
+      ])
+      expect(note.totals.totalPaise).toBe(30_000)
+    },
+  )
 
   it('never credits an invoice past its total; the rest goes to the other GSTIN', async () => {
     const t = await issuedSplit()

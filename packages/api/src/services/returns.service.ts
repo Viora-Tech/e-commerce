@@ -8,6 +8,7 @@ import {
   exchangeWishes,
   getReturn,
   giftCardChannels,
+  type HandRefundMethod,
   listReturns,
   loadReturnPolicy,
   orderReturnState,
@@ -218,7 +219,10 @@ export const setStoreReturnCourierCost = (
   paise: number | null,
 ) => run(() => setReturnCourierCost({ storeId, tx }, id, paise))
 
-/** Refund to the original payment, through each gateway's own refund call. */
+/**
+ * Refund to the original payment, through each gateway's own refund call, or, with `method`,
+ * record money the merchant paid back by hand (UPI, bank transfer, cash).
+ */
 export const refundStoreReturn = (
   tx: StoreTx,
   storeId: string,
@@ -226,10 +230,12 @@ export const refundStoreReturn = (
   secret: string,
   id: string,
   amountPaise: number,
+  method?: HandRefundMethod,
 ) =>
   run(() =>
     refundReturn({ storeId, tx }, id, {
       amountPaise,
+      method,
       providerFor: (providerId) => providerForPayment(tx, storeId, registry, secret, providerId),
     }),
   )
