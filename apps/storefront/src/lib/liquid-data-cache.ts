@@ -6,7 +6,8 @@ import { CACHE_TTL_MS, cachedForStore, peekForStore, rememberForStore } from './
 /**
  * An imported theme's data reads (`LiquidDataSource`) through the render cache: what one
  * section loaded, the next section, page and request reuse until the store changes. Keys carry
- * the origin, since `shop` and links are built from it.
+ * the origin, since `shop` and links are built from it, and the market's pricing, since a market
+ * in another currency has its own prices (subfolder markets share the origin).
  */
 
 /**
@@ -45,8 +46,10 @@ export function cachedLiquidData(
   storeId: string,
   origin: string,
   source: LiquidDataSource,
+  /** `pricingKey` of the page's market; '' for rupees. */
+  pricing = '',
 ): LiquidDataSource {
-  const prefix = `liquid-data|${origin}|`
+  const prefix = `liquid-data|${origin}|${pricing ? `${pricing}|` : ''}`
   const read = <T>(key: string, load: () => Promise<T>) =>
     cachedForStore(storeId, `${prefix}${key}`, load)
   const { importedFiles, judgeme, products, collectionsProducts } = source

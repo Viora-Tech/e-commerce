@@ -87,3 +87,13 @@ export function marketPricing(
     rounding: m.rounding,
   }
 }
+
+/**
+ * A price as Liquid holds money: hundredths of the market's currency (Shopify's subunit
+ * amounts, also for dinars and yen), so a theme's `| money` and its scripts divide by 100.
+ * Rupees stay paise.
+ */
+export function presentmentCents(paise: number, p: MarketPricing | null): number {
+  if (!p || isRupeePricing(p)) return paise
+  return Math.round((presentmentMinor(paise, p) / 10 ** minorDigits(p.currency)) * 100)
+}

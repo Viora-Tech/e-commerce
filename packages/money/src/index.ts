@@ -334,3 +334,16 @@ export function formatStoreMoney(
     ? formatWithMoneyFormat(minor, format)
     : formatMoney(minor, currency)
 }
+
+/**
+ * A Shopify-style money format for a currency, read off how it formats (`${{amount}}`,
+ * `AED {{amount}}`, `¥{{amount_no_decimals}}`): what an imported theme's scripts format prices
+ * with when the page's market shows that currency instead of the store's own format.
+ */
+export function moneyFormatOf(currency: Currency): string {
+  const { minorUnit } = CURRENCIES[currency]
+  const tag = minorUnit === 0 ? '{{amount_no_decimals}}' : '{{amount}}'
+  return formatMoney(toMinor(1234.5, currency), currency, { showZeroDecimals: true })
+    .replace(/\d[\d.,'’\s ]*\d/, tag)
+    .replace(/ /g, ' ')
+}

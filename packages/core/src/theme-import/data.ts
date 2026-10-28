@@ -22,6 +22,7 @@ import {
   parsePage,
   parseUnavailable,
 } from '../catalog/browse-params'
+import type { MarketPricing } from '../markets/presentment'
 import { keyFromName } from '../metaobjects/validate'
 import { toNavLinks } from '../navigation/resolve'
 import { publishedPolicyLinks } from '../policies/service'
@@ -56,6 +57,8 @@ export type StoreLiquidDataOptions = {
   cart?: (() => Promise<LiquidCartData>) | undefined
   /** The Reviews app's data, when the store installed it (see `withReviewMetafields`). */
   reviews?: LiquidReviewsSource | undefined
+  /** The page's market when it shows another currency: prices and `shop.currency` in it. */
+  pricing?: MarketPricing | null | undefined
 }
 
 /**
@@ -146,6 +149,7 @@ export async function storeLiquidData(
     return next
   }
 
+  const pricing = options.pricing ?? null
   const [s] = await tx
     .select({
       name: store.name,
@@ -166,7 +170,7 @@ export async function storeLiquidData(
     phone: s?.phone ?? '',
     domain: options.host,
     url: options.origin,
-    currency: 'INR',
+    currency: pricing?.currency ?? 'INR',
     description: seo.description ?? '',
     policies: policyLinks.map((l) => ({ type: l.type, title: l.title, url: l.href })),
   }
@@ -209,9 +213,9 @@ export async function storeLiquidData(
           .select({ id: product.id })
           .from(product)
           .where(and(eq(product.handle, handle), eq(product.status, 'active')))
-        return row ? ((await loadProducts(tx, [row.id]))[0] ?? null) : null
+        return row ? ((await loadProducts(tx, [row.id], pricing))[0] ?? null) : null
       }),
-    products: (handles) => productsByHandles(tx, handles),
+    products: (handles) => productsByHandles(tx, handles, pricing),
     collection: async (handle) => {
       if (handle === 'all') {
         const [count] = await tx
@@ -242,6 +246,7 @@ export async function storeLiquidData(
           return loadProducts(
             tx,
             rows.map((r) => r.id),
+            pricing,
           )
         }
         const rows = await tx
@@ -255,9 +260,10 @@ export async function storeLiquidData(
         return loadProducts(
           tx,
           rows.map((r) => r.id),
+          pricing,
         )
       }),
-    collectionsProducts: (handles, limit) => collectionsProducts(tx, handles, limit),
+    collectionsProducts: (handles, limit) => collectionsProducts(tx, handles, limit, pricing),
     collections: collectionList,
     relatedProducts: (productId, limit, intent = 'related') =>
       once(`rel:${productId}:${limit}:${intent}`, async () => {
@@ -267,7 +273,7 @@ export async function storeLiquidData(
         const fields = (await loadMetafields(tx, 'product', [productId])).metafields[productId]
         const pick = (i: typeof intent) =>
           pickedRecommendationIds(fields ?? [], i).filter((id) => id !== productId)
-        const load = (chunk: string[]) => loadProducts(tx, chunk)
+        const load = (chunk: string[]) => loadProducts(tx, chunk, pricing)
         // Sold-out products are dropped after loading (stock lives on the variants), so the
         // ranked list is read in chunks until enough are in stock: the closest matches (same
         // brand and kind) are often all sold out, and one fixed slice of them left the row empty.
@@ -369,7 +375,7 @@ export async function storeLiquidData(
         // The theme's search form says where sold-out products go (`show`, `last`, `hide`).
         unavailable: q ? parseUnavailable(query['options[unavailable_products]']) : 'show',
       })
-      const byHandle = await productsByHandles(tx, result.handles)
+      const byHandle = await productsByHandles(tx, result.handles, pricing)
       return {
         products: result.handles.flatMap((h) => byHandle.get(h) ?? []),
         total: result.total,
