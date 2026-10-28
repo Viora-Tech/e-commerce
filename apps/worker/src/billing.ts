@@ -1,4 +1,10 @@
-import { resolveBillingEnv, runAppRenewals, runBillingSweep, runUsageBilling } from '@commerce/core'
+import {
+  resolveBillingEnv,
+  runAppRenewals,
+  runBillingSweep,
+  runFairUseCheck,
+  runUsageBilling,
+} from '@commerce/core'
 import type { Db } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
 import { BILLING_SWEEP_QUEUE, type IORedis, KEEP_FINISHED, Queue, Worker } from '@commerce/queue'
@@ -30,7 +36,10 @@ export function createBillingSweep(
       // Last month's per-order fees: does the work on the month's first run, a no-op after.
       const fees = await runUsageBilling(db, env)
       if (fees.billed || fees.carried) logger.info('fees billed', { area: 'billing', ...fees })
-      return { ...r, apps, fees }
+      // Two months over the plan's visits: a notice and an email, never a block.
+      const fairUse = await runFairUseCheck(db)
+      if (fairUse.noticed) logger.info('fair use noticed', { area: 'billing', ...fairUse })
+      return { ...r, apps, fees, fairUse }
     },
     { connection, concurrency: 1, ...KEEP_FINISHED },
   )

@@ -8,7 +8,7 @@ import { and, desc, eq, gt, gte, lt, ne } from 'drizzle-orm'
 import { type FeeOrder, type MonthFee, monthFee, type PaidPeriod } from './usage-fee'
 
 /** The IST calendar month `at` falls in, `YYYY-MM`. */
-export const monthOf = (at: Date): string => dayKey(at).slice(0, 7)
+export const billingMonth = (at: Date): string => dayKey(at).slice(0, 7)
 
 /** The month before `month` (`2026-01` → `2025-12`). */
 export function previousMonth(month: string): string {
@@ -84,7 +84,7 @@ export async function feeEstimate(
   storeId: string,
   now = new Date(),
 ): Promise<MonthFee & { carriedInPaise: number; month: string }> {
-  const month = monthOf(now)
+  const month = billingMonth(now)
   const [{ orders, periods }, carried] = await Promise.all([
     loadMonthFeeInputs(tx, storeId, month),
     carriedInPaise(tx, storeId),

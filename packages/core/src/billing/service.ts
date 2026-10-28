@@ -43,7 +43,7 @@ import {
 } from './plans'
 import { type PlanUsage, planUsage } from './usage'
 import { billable, monthFee } from './usage-fee'
-import { loadMonthFeeInputs, monthOf, monthRange, previousMonth } from './usage-fee-service'
+import { loadMonthFeeInputs, billingMonth, monthRange, previousMonth } from './usage-fee-service'
 
 const DAY_MS = 86_400_000
 
@@ -475,7 +475,7 @@ export async function runUsageBilling(
   now = new Date(),
 ): Promise<UsageBillingResult> {
   const result: UsageBillingResult = { stores: 0, billed: 0, carried: 0 }
-  const month = previousMonth(monthOf(now))
+  const month = previousMonth(billingMonth(now))
   const { start, end } = monthRange(month)
   const ids = await db.execute<{ id: string }>(
     sql`select stores_with_paid_period(${start.toISOString()}::timestamptz, ${end.toISOString()}::timestamptz) as id`,

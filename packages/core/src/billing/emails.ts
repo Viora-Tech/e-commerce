@@ -12,13 +12,16 @@ import type { PlatformCodeSender } from '../accounts/deliver-code'
 import { getPlatformEmail } from '../sender-email/platform'
 
 export type PlanBillEmail = {
-  kind: 'renewal' | 'overdue' | 'usage'
+  /** `fair_use`: two months over the plan's visits; nothing is owed (`amountPaise` 0). */
+  kind: 'renewal' | 'overdue' | 'usage' | 'fair_use'
   /** "Growth plan (monthly)", "Reviews app". */
   what: string
   amountPaise: number
   /** When the paid time ends (renewal) or ended (overdue). */
   due: Date
   url: string | null
+  /** Also send it here (Koomerce support, so a person can reach out). */
+  copyTo?: string
 }
 
 const dayLabel = (d: Date) => formatInZone(d, { day: 'numeric', month: 'short', year: 'numeric' })
@@ -31,7 +34,8 @@ export async function sendPlanBillEmail(
   platform?: PlatformCodeSender,
 ): Promise<'sent' | 'skipped' | 'refused'> {
   try {
-    if (!input.url) return 'skipped'
+    const url = input.url
+    if (!url) return 'skipped'
     const [s] = await withStore(db, storeId, (tx) =>
       tx
         .select({ name: store.name, email: store.contactEmail })
@@ -47,25 +51,28 @@ export async function sendPlanBillEmail(
       replyTo: undefined,
       using: 'platform',
     })
-    const r = await channel.send({
-      to: { email: s.email },
-      template: 'plan_bill',
-      data: {
-        storeName: s.name,
-        customerName: '',
-        totalLabel: '',
-        lines: [],
-        paymentMethodLabel: '',
-        actionUrl: input.url,
-        planBill: {
-          kind: input.kind,
-          what: input.what,
-          amountLabel: formatMoney(input.amountPaise, 'INR'),
-          dueLabel: dayLabel(input.due),
-          platformName: transport.fromName,
+    const send = (email: string) =>
+      channel.send({
+        to: { email },
+        template: 'plan_bill',
+        data: {
+          storeName: s.name,
+          customerName: '',
+          totalLabel: '',
+          lines: [],
+          paymentMethodLabel: '',
+          actionUrl: url,
+          planBill: {
+            kind: input.kind,
+            what: input.what,
+            amountLabel: formatMoney(input.amountPaise, 'INR'),
+            dueLabel: dayLabel(input.due),
+            platformName: transport.fromName,
+          },
         },
-      },
-    })
+      })
+    const r = await send(s.email)
+    if (input.copyTo) await send(input.copyTo)
     return r.ok ? 'sent' : 'refused'
   } catch {
     return 'refused'
@@ -73,6 +80,8 @@ export async function sendPlanBillEmail(
 }
 
 const PLAN_NAMES = { starter: 'Starter', growth: 'Growth', pro: 'Pro', scale: 'Scale' } as const
+
+export const planName = (plan: keyof typeof PLAN_NAMES): string => PLAN_NAMES[plan]
 
 export const planBillWhat = (plan: keyof typeof PLAN_NAMES, interval: 'month' | 'year') =>
   `${PLAN_NAMES[plan]} plan (${interval === 'year' ? 'yearly' : 'monthly'})`

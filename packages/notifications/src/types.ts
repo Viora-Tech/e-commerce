@@ -282,7 +282,7 @@ export type TemplateData = {
   planBill?:
     | {
         /** `usage`: the month's per-order fees, billed on the 1st (`dueLabel`: pay by). */
-        kind: 'new' | 'renewal' | 'overdue' | 'usage'
+        kind: 'new' | 'renewal' | 'overdue' | 'usage' | 'fair_use'
         /** "Growth plan (monthly)", "Reviews app", "Per-order fees for October 2026". */
         what: string
         amountLabel: string
