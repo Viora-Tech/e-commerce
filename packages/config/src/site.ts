@@ -29,6 +29,13 @@ export type SiteConfig = {
     whatsappGreeting: string
     phone: string
   }
+  /** The business behind the platform, as payment partners and the legal pages name it. */
+  company: {
+    legalName: string
+    /** Registered and operational address (the same place). */
+    address: string
+    gstin: string
+  }
   urls: {
     site: string
     /** The merchant admin (sign in, sign up). */
@@ -92,7 +99,12 @@ export const siteConfig: SiteConfig = {
     supportEmail: 'support@koomerce.app',
     whatsappNumber: '910000000000',
     whatsappGreeting: 'Hi, I need help with my store.',
-    phone: '+91 94168 74123',
+    phone: '+91 93550 74123',
+  },
+  company: {
+    legalName: 'Viora India (a sole proprietorship of Kuldeep Saini)',
+    address: '745/25, Saini Niwas, Gali Number 3, West Ram Nagar, Sonipat 131001, Haryana, India',
+    gstin: '06OIEPS3969E1ZM',
   },
   urls: {
     site: 'https://koomerce.app',

@@ -6,6 +6,9 @@ export const siteContent = {
   brand: siteConfig.brand.name,
   tagline: siteConfig.brand.tagline,
   supportEmail: siteConfig.contact.supportEmail,
+  phone: siteConfig.contact.phone,
+  legalName: siteConfig.company.legalName,
+  address: siteConfig.company.address,
   navLinks: [
     { label: 'Features', href: '/features' },
     { label: 'Pricing', href: '/pricing' },
