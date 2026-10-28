@@ -334,12 +334,6 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'Markets schema (0177); the storefront translations import them next',
   },
   {
-    file: 'packages/core/src/markets/presentment.ts',
-    names: ['RUPEE_PRICING', 'presentmentMinor'],
-    reason:
-      'Markets M1a: the storefront money filters, cart and checkout convert with them next (M1b/M1c)',
-  },
-  {
     file: 'packages/core/src/markets/rates.ts',
     names: ['parseEcbDaily', 'rupeeRates', 'latestRupeeRates'],
     reason:

@@ -441,6 +441,9 @@ export const checkoutContent = {
   depositNonRefundable: (days: number) =>
     `Pre-order deposits are non-refundable if the balance is not paid within ${days} days of our request.`,
   paidByGiftCard: 'Paid by gift card',
+  /** Under the summary on a market in another currency: Pay still charges rupees (Markets M2). */
+  chargedInRupees: (rupees: string, approx: string) =>
+    `You'll be charged ${rupees} (about ${approx}). Your bank converts it at its own rate.`,
   totalDue: 'To pay',
   codWithGiftCard: 'Not available with a gift card',
   errors: {

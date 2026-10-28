@@ -1,8 +1,7 @@
 'use client'
 
-import { formatPaise } from '@commerce/blocks'
+import { formatPaise, useFormatPaise, useMarketPricing } from '@commerce/blocks'
 import type { CartView } from '@commerce/core'
-import { formatSignedMoney } from '@commerce/money'
 import CheckoutDiscount from '@/components/checkout/checkout-discount'
 import GiftCardField from '@/components/checkout/gift-card-field'
 import SummaryLine from '@/components/checkout/summary-line'
@@ -41,9 +40,9 @@ type CheckoutSummaryProps = {
   updating: boolean
 }
 
-function shippingValue(row: ShippingRow): string {
+function shippingValue(row: ShippingRow, money: (paise: number) => string): string {
   if (row.kind === 'pending') return content.shippingPending
-  return row.paise === 0 ? content.shippingFree : formatPaise(row.paise)
+  return row.paise === 0 ? content.shippingFree : money(row.paise)
 }
 
 /**
@@ -70,6 +69,11 @@ export default function CheckoutSummary({
   notice = null,
   updating,
 }: CheckoutSummaryProps) {
+  // Hooks
+  // On a market in another currency (`/ae`) the summary reads in it; Pay still charges rupees.
+  const money = useFormatPaise()
+  const pricing = useMarketPricing()
+
   // Render logic
   const discountPaise = discount?.amountPaise ?? 0
   const itemCount = cart.lines.reduce((n, l) => n + l.quantity, 0)
@@ -100,6 +104,7 @@ export default function CheckoutSummary({
               linePaise={l.linePaise}
               imageUrl={l.imageUrl}
               preorder={l.preorder}
+              format={money}
             />
           ))}
         </ul>
@@ -116,13 +121,9 @@ export default function CheckoutSummary({
         )}
 
         <dl className="flex flex-col gap-2 border-t border-ck-summary-line pt-4">
-          <SummaryRow label={content.subtotal} value={formatPaise(cart.subtotalPaise)} />
+          <SummaryRow label={content.subtotal} value={money(cart.subtotalPaise)} />
           {discount?.label && discountPaise > 0 ? (
-            <SummaryRow
-              tone="saving"
-              label={discount.label}
-              value={`−${formatPaise(discountPaise)}`}
-            />
+            <SummaryRow tone="saving" label={discount.label} value={`−${money(discountPaise)}`} />
           ) : null}
           {shipping ? (
             <SummaryRow
@@ -131,11 +132,14 @@ export default function CheckoutSummary({
                   ? `${content.shipping} · ${shipping.name}`
                   : content.shipping
               }
-              value={updating ? shimmer : shippingValue(shipping)}
+              value={updating ? shimmer : shippingValue(shipping, money)}
             />
           ) : null}
           {adjustmentPaise !== 0 ? (
-            <SummaryRow label={adjustmentLabel} value={formatSignedMoney(adjustmentPaise)} />
+            <SummaryRow
+              label={adjustmentLabel}
+              value={`${adjustmentPaise < 0 ? '−' : '+'}${money(Math.abs(adjustmentPaise))}`}
+            />
           ) : null}
           <div className="mt-1! border-t border-ck-summary-line pt-3">
             <SummaryRow
@@ -145,7 +149,7 @@ export default function CheckoutSummary({
                   {content.total}
                   <span className="text-[0.75rem] font-normal text-ck-summary-muted">
                     {gstPaise && gstPaise > 0 && !updating
-                      ? content.taxesIncluded(formatPaise(gstPaise))
+                      ? content.taxesIncluded(money(gstPaise))
                       : content.taxes}
                   </span>
                 </span>
@@ -156,7 +160,7 @@ export default function CheckoutSummary({
                   aria-live="polite"
                   className="inline-block text-[1.375rem] font-semibold tracking-[-0.025em] tabular-nums transition-[opacity,translate] duration-200 ease-out starting:translate-y-0.5 starting:opacity-0 motion-reduce:starting:translate-y-0 lg:text-[1.5rem]"
                 >
-                  {updating ? shimmer : formatPaise(totalPaise)}
+                  {updating ? shimmer : money(totalPaise)}
                 </span>
               }
             />
@@ -166,19 +170,25 @@ export default function CheckoutSummary({
               key={c.code}
               tone="saving"
               label={content.paidByGiftCard}
-              value={`−${formatPaise(c.amountPaise)}`}
+              value={`−${money(c.amountPaise)}`}
             />
           ))}
           {giftCards.length > 0 ? (
-            <SummaryRow tone="total" label={content.totalDue} value={formatPaise(duePaise)} />
+            <SummaryRow tone="total" label={content.totalDue} value={money(duePaise)} />
           ) : null}
           {laterPaise > 0 ? (
             <>
-              <SummaryRow tone="total" label={content.dueToday} value={formatPaise(payNowPaise)} />
-              <SummaryRow tone="muted" label={content.dueLater} value={formatPaise(laterPaise)} />
+              <SummaryRow tone="total" label={content.dueToday} value={money(payNowPaise)} />
+              <SummaryRow tone="muted" label={content.dueLater} value={money(laterPaise)} />
             </>
           ) : null}
         </dl>
+
+        {pricing ? (
+          <p className="rounded-ck bg-ck-summary-line p-3 text-[0.8125rem] text-ck-summary-muted">
+            {content.chargedInRupees(formatPaise(payNowPaise), money(payNowPaise))}
+          </p>
+        ) : null}
 
         {emiMonthly || notice ? (
           <div className="flex flex-col gap-2 text-[0.8125rem] text-ck-summary-muted">

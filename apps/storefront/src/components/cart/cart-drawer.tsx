@@ -1,6 +1,6 @@
 'use client'
 
-import { CART_ADDED_EVENT, formatPaise, Icon } from '@commerce/blocks'
+import { CART_ADDED_EVENT, Icon, useFormatPaise } from '@commerce/blocks'
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { cartContent as content } from '@/data/cart'
 import { cartDrawerAction, setQuantityAction } from '@/lib/cart-actions'
@@ -23,6 +23,7 @@ const CLOSE_MS = 320
  */
 export default function CartDrawer({ freeShippingBar }: CartDrawerProps) {
   // Hooks
+  const formatPaise = useFormatPaise()
   const dialog = useRef<HTMLDialogElement>(null)
   const [data, setData] = useState<Drawer | null>(null)
   const [failed, setFailed] = useState(false)
