@@ -24,7 +24,7 @@ import {
   useTable,
 } from '@tanstack/react-table'
 import { useRouter } from 'next/navigation'
-import { type ReactNode, useState } from 'react'
+import { type CSSProperties, type ReactNode, useState } from 'react'
 import EmptyState from '@/components/layout/empty-state'
 import FloatingBar from '@/components/layout/floating-bar'
 import RowActionsCell from '@/components/table/row-actions-cell'
@@ -265,6 +265,9 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
   const selectedIds = Object.keys(rowSelection).filter((id) => rowSelection[id])
   const rows = table.getRowModel().rows
   const visibleCount = table.getVisibleLeafColumns().length
+  /* The grid never squeezes a column below ~8rem: on a phone it scrolls sideways instead of
+     letting dates, totals and pills run into each other (#895). */
+  const minWidth = { '--table-min-width': `${Math.max(40, visibleCount * 8)}rem` } as CSSProperties
   const isEmpty = !props.loading && props.items.length === 0
   /** A search or a filter is narrowing the list (so empty means "no results", not "none yet"). */
   const narrowed = props.query.length > 0 || (props.applied?.length ?? 0) > 0
@@ -310,7 +313,10 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
             </div>
           </div>
         ) : null}
-        <Table className="w-full min-w-[40rem] table-fixed border-separate border-spacing-0">
+        <Table
+          className="w-full min-w-(--table-min-width) table-fixed border-separate border-spacing-0"
+          style={minWidth}
+        >
           <TableHeader className="[&_tr]:border-0">
             {table.getHeaderGroups().map((hg) => (
               <TableRow key={hg.id} className="hover:bg-transparent">
