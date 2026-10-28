@@ -22,11 +22,13 @@ describe('markets client', () => {
     expect(isCountryCode('in')).toBe(false)
   })
 
-  it('claims the subfolder and each language form, or the primary market’s languages', () => {
+  it('claims the addresses the storefront proxy answers for a market', () => {
     expect(marketPaths(gulf)).toEqual(['ae', 'en-ae', 'ar-ae'])
-    expect(marketPaths(india)).toEqual(['en', 'hi'])
+    // The primary market's own language is the root; its others are `/<lang>`.
+    expect(marketPaths(india)).toEqual(['hi'])
     expect(marketPaths({ ...gulf, subfolder: null })).toEqual([])
-    expect(marketPaths({ ...gulf, subfolder: 'en-us' })).toEqual(['en-us'])
+    // A two-part subfolder's languages hang off its place: `/en-us` and `/ar-us`.
+    expect(marketPaths({ ...gulf, subfolder: 'en-us' })).toEqual(['en-us', 'ar-us'])
   })
 
   it('finds an address another market already answers on', () => {
@@ -35,7 +37,12 @@ describe('markets client', () => {
       market: gulf,
     })
     const germany = { ...gulf, subfolder: 'de', locales: [], name: 'Germany' }
-    expect(pathClash({ ...india, locales: ['hi', 'de'] }, [germany])?.market.name).toBe('Germany')
+    expect(pathClash({ ...india, locales: ['hi', 'de'] }, [germany])).toEqual({
+      path: 'de',
+      market: germany,
+    })
+    // Two subfolders with one place clash on a shared language address.
+    expect(pathClash({ ...gulf, subfolder: 'fr-ae', locales: [] }, [gulf])?.path).toBe('en-ae')
     expect(pathClash({ ...gulf, subfolder: 'us', locales: [] }, [gulf, india])).toBeNull()
   })
 

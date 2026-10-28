@@ -112,28 +112,30 @@ export type MarketPathInput = {
 }
 
 /**
- * The first path segments a market answers on the store's main domain: its subfolder and
- * `<lang>-<subfolder>` for each of its languages (`/ae`, `/ar-ae`), or `/<lang>` for the primary
- * market (`/hi`). A market reached by its own domain or by the shopper's choice claims none.
+ * The first path segments a market answers on the store's main domain, as the storefront proxy
+ * reads them (`apps/storefront/src/lib/markets.ts`): its subfolder, and `<lang>-<place>` for
+ * each of its languages, the place being the subfolder's last part (`/ae`, `/en-ae`, `/ar-ae`;
+ * `/en-us`, `/es-us`). The primary market answers `/<lang>` for its other languages (`/hi`). A
+ * market reached by its own domain or by the shopper's choice claims none here.
  */
 export function marketPaths(m: MarketPathInput): string[] {
-  const languages = [...new Set([m.locale, ...m.locales])]
-  if (m.isPrimary) return languages
+  if (m.isPrimary) return m.locales.filter((l) => l !== m.locale)
   if (!m.subfolder) return []
-  // `en-us` has no language form: `ar-en-us` could never be another market's subfolder.
-  if (m.subfolder.includes('-')) return [m.subfolder]
-  return [m.subfolder, ...languages.map((l) => `${l}-${m.subfolder}`)]
+  const place = m.subfolder.split('-').pop() ?? m.subfolder
+  return [...new Set([m.subfolder, ...[m.locale, ...m.locales].map((l) => `${l}-${place}`)])]
 }
 
-/** The first address `m` would share with one of `others`, with that market; null when none. */
+/**
+ * The first of `m`'s addresses (its subfolder first) that one of `others` already answers on,
+ * with that market; null when none.
+ */
 export function pathClash<T extends MarketPathInput>(
   m: MarketPathInput,
   others: readonly T[],
 ): { path: string; market: T } | null {
-  const mine = new Set(marketPaths(m))
-  for (const other of others) {
-    const path = marketPaths(other).find((p) => mine.has(p))
-    if (path) return { path, market: other }
+  for (const path of marketPaths(m)) {
+    const market = others.find((o) => marketPaths(o).includes(path))
+    if (market) return { path, market }
   }
   return null
 }

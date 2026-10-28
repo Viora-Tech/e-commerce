@@ -10,10 +10,12 @@ The admin side of Markets on the 0177 schema (`market`, `market_region`). No mig
   - ISO country codes, and a country in one market only. The error names the market that has
     it ("Saudi Arabia is already in the Gulf market").
   - A real ISO 4217 currency (`Intl.supportedValuesOf`).
-  - Subfolder format (`ae`, `en-us`) and uniqueness. A market's addresses on the main domain
-    must not clash: its subfolder and `<lang>-<subfolder>` for each of its languages (`/ae`,
-    `/en-ae`, `/ar-ae`), and `/<lang>` for the primary market's languages (`/hi`). Clashes are
-    refused in both directions.
+  - Subfolder format (`ae`, `en-us`) and uniqueness. The addresses markets answer on the main
+    domain must not clash. Those addresses are read exactly as the storefront proxy reads them
+    (`apps/storefront/src/lib/markets.ts`, #869): a market's subfolder, plus `<lang>-<place>`
+    for each of its languages, where the place is the subfolder's last part (`/ae`, `/en-ae`,
+    `/ar-ae`; `/en-us`, `/es-us`). The primary market answers `/<lang>` for each of its other
+    languages (`/hi`). Clashes are refused in both directions.
   - One way in: a subfolder or a domain, not both. The domain must be one of the store's own
     `active` domains (read under RLS), not the main one, not a redirect, and no other market's.
     It is only checked when it changes, so a domain that fails later does not block a rename.

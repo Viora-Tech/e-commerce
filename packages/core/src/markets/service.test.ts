@@ -136,7 +136,7 @@ describe('markets', () => {
     await expect(
       inStore(storeId, (ctx) => createMarket(ctx, { ...usa, subfolder: 'ar-ae' })),
     ).rejects.toThrow('/ar-ae already opens the Gulf market')
-    // The primary market answers on /en and /hi once Hindi is one of its languages.
+    // The primary market answers on /hi once Hindi is one of its languages.
     const [india] = await inStore(storeId, listMarkets)
     await inStore(storeId, (ctx) => updateMarket(ctx, { id: india?.id as string, locales: ['hi'] }))
     await expect(
