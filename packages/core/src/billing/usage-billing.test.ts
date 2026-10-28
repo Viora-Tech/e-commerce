@@ -7,6 +7,7 @@ import {
   planPayment,
   storePlan,
   usageBill,
+  withStore,
 } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
@@ -20,11 +21,15 @@ import {
 } from '../testing/usage-seed'
 import {
   type BillingEnv,
+  cancelPlanBill,
   cancelUsageBill,
+  choosePlan,
+  loadPlanView,
   markPlanBillPaid,
   markUsageBillPaid,
   runBillingSweep,
   runUsageBilling,
+  runUsageReminders,
 } from './service'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
@@ -46,9 +51,9 @@ const DEC = new Date('2026-11-30T18:30:00Z')
 const NOV_RUN = new Date('2026-10-31T19:00:00Z')
 const DEC_RUN = new Date('2026-11-30T19:00:00Z')
 
-async function billingEnv(): Promise<BillingEnv> {
+async function billingEnv(without: string[] = []): Promise<BillingEnv> {
   return {
-    salesStoreId: await seedSalesStore(owner),
+    salesStoreId: await seedSalesStore(owner, without),
     settingsSecret: 'test-secret-test-secret-test-secret',
     salesStorefrontUrl: 'https://sales.example.test',
   }
@@ -238,5 +243,120 @@ describe('unpaid fee bills and the next plan bill', () => {
     expect((await rows(id))[0]?.status).toBe('due')
     const [plan] = await owner.select({ status: storePlan.status }).from(storePlan)
     expect(plan?.status).toBe('active')
+  })
+})
+
+/** A Starter store with October paid and 60 orders of ₹2,000: a ₹200 fee bill on 1 Nov. */
+async function storeWithFeeBill(env: BillingEnv, slug = 'asha') {
+  const id = await seedStore(owner, slug)
+  await seedPaidPeriod(owner, id, 'starter', OCT, NOV)
+  await seedOrders(owner, id, ordersFrom(60, new Date('2026-10-05T06:00:00Z'), 2_00_000))
+  await runUsageBilling(app, env, NOV_RUN)
+  return id
+}
+
+const lineUnits = async (orderId: string) =>
+  (
+    await owner
+      .select({ unit: orderLine.unitPricePaise })
+      .from(orderLine)
+      .where(eq(orderLine.orderId, orderId))
+  )
+    .map((l) => l.unit)
+    .sort((a, b) => a - b)
+
+const duePlanOrder = async () =>
+  (await owner.select().from(planPayment).where(eq(planPayment.status, 'due')))[0]
+    ?.salesOrderId as string
+
+describe('fee bills never get lost or billed twice', () => {
+  it('a fee on a replaced renewal bill moves to the new plan bill', async () => {
+    const env = await billingEnv()
+    const id = await storeWithFeeBill(env)
+    await runBillingSweep(app, env, NOV_RUN)
+    const first = await duePlanOrder()
+    await choosePlan(app, id, { plan: 'growth', interval: 'month' }, env, NOV_RUN)
+    const second = await duePlanOrder()
+    expect(second).not.toBe(first)
+    expect(await lineUnits(second)).toEqual([20_000, 1_99_900])
+    expect((await rows(id))[0]).toMatchObject({ status: 'merged', mergedIntoSalesOrderId: second })
+  })
+
+  it('a cancelled plan bill gives its fees back as owed', async () => {
+    const env = await billingEnv()
+    const id = await storeWithFeeBill(env)
+    await runBillingSweep(app, env, NOV_RUN)
+    await cancelPlanBill(app, await duePlanOrder())
+    expect((await rows(id))[0]).toMatchObject({
+      status: 'due',
+      mergedIntoSalesOrderId: null,
+      salesOrderId: null,
+    })
+    const view = await withStore(app, id, (tx) => loadPlanView(tx, id, env, NOV_RUN))
+    expect(view.unpaidFees).toBe(20_000)
+  })
+
+  it('a fee already paid on its own link is not billed again', async () => {
+    const env = await billingEnv()
+    const id = await storeWithFeeBill(env)
+    const [fee] = await rows(id)
+    await owner
+      .update(order)
+      .set({ paymentStatus: 'paid' })
+      .where(eq(order.id, fee?.salesOrderId as string))
+    await runBillingSweep(app, env, NOV_RUN)
+    expect(await lineUnits(await duePlanOrder())).toEqual([49_900])
+    expect((await rows(id))[0]?.status).toBe('paid')
+    const [old] = await owner
+      .select({ status: order.status })
+      .from(order)
+      .where(eq(order.id, fee?.salesOrderId as string))
+    expect(old?.status).not.toBe('cancelled')
+  })
+
+  it('two sweeps at once place one fee order', async () => {
+    const env = await billingEnv()
+    const id = await seedStore(owner, 'asha')
+    await seedPaidPeriod(owner, id, 'starter', OCT, NOV)
+    await seedOrders(owner, id, ordersFrom(60, new Date('2026-10-05T06:00:00Z'), 2_00_000))
+    await Promise.all([runUsageBilling(app, env, NOV_RUN), runUsageBilling(app, env, NOV_RUN)])
+    const feeOrders = await owner
+      .select({ id: order.id })
+      .from(order)
+      // Only fee bills are placed on the sales store in this test.
+      .where(eq(order.storeId, env.salesStoreId as string))
+    expect(feeOrders).toHaveLength(1)
+    expect(await rows(id)).toHaveLength(1)
+  })
+
+  it('a missing fee product never blocks the renewal', async () => {
+    const env = await billingEnv(['usage-fee-carried'])
+    const id = await storeWithFeeBill(env)
+    await runBillingSweep(app, env, NOV_RUN)
+    expect(await lineUnits(await duePlanOrder())).toEqual([49_900])
+    expect((await rows(id))[0]?.status).toBe('due')
+  })
+
+  it('hides months with nothing to pay from the bills list', async () => {
+    const env = await billingEnv()
+    const id = await seedStore(owner, 'asha')
+    await seedPaidPeriod(owner, id, 'starter', OCT, NOV)
+    await seedOrders(owner, id, ordersFrom(10, new Date('2026-10-05T06:00:00Z')))
+    await runUsageBilling(app, env, NOV_RUN)
+    expect(await rows(id)).toHaveLength(1)
+    const view = await withStore(app, id, (tx) => loadPlanView(tx, id, env, NOV_RUN))
+    expect(view.usageBills).toEqual([])
+  })
+
+  it('reminds about an unpaid fee bill after 3 and 7 days, then stops', async () => {
+    const env = await billingEnv()
+    const id = await storeWithFeeBill(env)
+    const day = (n: number) => new Date(NOV_RUN.getTime() + n * 86_400_000)
+    expect((await runUsageReminders(app, env, day(1))).reminded).toBe(0)
+    expect((await runUsageReminders(app, env, day(3))).reminded).toBe(1)
+    expect((await runUsageReminders(app, env, day(4))).reminded).toBe(0)
+    expect((await runUsageReminders(app, env, day(7))).reminded).toBe(1)
+    expect((await runUsageReminders(app, env, day(20))).reminded).toBe(0)
+    expect((await rows(id))[0]?.remindersSent).toBe(2)
   })
 })

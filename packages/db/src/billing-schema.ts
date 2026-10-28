@@ -110,6 +110,8 @@ export const usageBill = pgTable(
     mergedIntoSalesOrderId: uuid('merged_into_sales_order_id'),
     status: text('status').$type<UsageBillStatus>().notNull(),
     paidAt: timestamp('paid_at', { withTimezone: true }),
+    /** Reminder emails sent while it is `due` (3 and 7 days after it was billed). */
+    remindersSent: integer('reminders_sent').notNull().default(0),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [

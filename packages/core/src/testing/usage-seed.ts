@@ -102,8 +102,8 @@ const SALES_SKUS: { sku: string; pricePaise: number }[] = [
   { sku: 'usage-fee-carried', pricePaise: 0 },
 ]
 
-/** A sales store with Razorpay on and every plan and fee SKU, as the platform runs it. */
-export async function seedSalesStore(owner: Db): Promise<string> {
+/** A sales store with Razorpay on and every plan and fee SKU (bar `without`), as the platform runs it. */
+export async function seedSalesStore(owner: Db, without: string[] = []): Promise<string> {
   const [s] = await owner
     .insert(store)
     .values({ slug: 'koomerce-sales', name: 'Koomerce', payments: { enabled: ['razorpay'] } })
@@ -115,7 +115,7 @@ export async function seedSalesStore(owner: Db): Promise<string> {
     .returning()
   if (!p) throw new Error('seed sales product')
   await owner.insert(variant).values(
-    SALES_SKUS.map((v) => ({
+    SALES_SKUS.filter((v) => !without.includes(v.sku)).map((v) => ({
       storeId: s.id,
       productId: p.id,
       title: v.sku,
