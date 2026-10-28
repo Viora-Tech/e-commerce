@@ -2,7 +2,7 @@ import { siteConfig } from '@commerce/config/site'
 import { type LegalDoc, sections } from './types'
 
 const brand = siteConfig.brand.name
-const company = 'Viora India (a sole proprietorship of Kuldeep Saini)'
+const company = siteConfig.company.legalName
 
 export const termsDoc: LegalDoc = {
   slug: 'terms',

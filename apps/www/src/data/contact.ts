@@ -3,7 +3,7 @@ import { siteConfig } from '@commerce/config/site'
 const docs = siteConfig.urls.docs
 
 export const contactContent = {
-  status: 'Support by email',
+  status: 'Support by email and phone',
   title: 'Talk to a human.',
   subtitle:
     'Moving from Shopify, choosing a plan or stuck on a setting — a real person on our team replies.',
@@ -14,7 +14,23 @@ export const contactContent = {
       body: `${siteConfig.contact.supportEmail} — we answer every email.`,
       cta: 'Write to us →',
     },
+    {
+      key: 'phone',
+      title: 'Phone',
+      body: `${siteConfig.contact.phone}, Monday to Saturday, 10 am to 7 pm IST.`,
+      cta: 'Call us →',
+    },
   ],
+  company: {
+    title: 'Business details',
+    rows: [
+      { label: 'Business', value: siteConfig.company.legalName },
+      { label: 'Registered and operational address', value: siteConfig.company.address },
+      { label: 'Phone', value: siteConfig.contact.phone },
+      { label: 'Email', value: siteConfig.contact.supportEmail },
+      { label: 'GSTIN', value: siteConfig.company.gstin },
+    ],
+  },
   form: {
     title: 'Send us a message',
     topicLabel: 'What’s it about?',

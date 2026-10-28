@@ -1,5 +1,5 @@
 import { siteConfig } from '@commerce/config/site'
-import { ArrowRight_ as ArrowRight, Inbox } from '@commerce/ui/icons'
+import { ArrowRight_ as ArrowRight, Inbox, Phone_ as Phone } from '@commerce/ui/icons'
 import PageContainer from '@/components/common/page-container'
 import SectionHeading from '@/components/common/section-heading'
 import SiteShell from '@/components/layout/site-shell'
@@ -16,10 +16,11 @@ export const metadata = pageMetadata({
 
 // Only channels that reach someone today. Sales and a booked call come back here once their
 // mailbox and booking link exist.
-const ICONS = { email: Inbox }
+const ICONS = { email: Inbox, phone: Phone }
 
 const HREFS = {
   email: `mailto:${siteConfig.contact.supportEmail}`,
+  phone: `tel:${siteConfig.contact.phone.replace(/\s/g, '')}`,
 }
 
 export default function ContactPage() {
@@ -55,6 +56,19 @@ export default function ContactPage() {
             )
           })}
         </ul>
+      </PageContainer>
+      <PageContainer as="section" className="pb-12">
+        <div className="surface-card mx-auto flex max-w-4xl flex-col gap-4 rounded-3xl p-6">
+          <h2 className="text-lg font-semibold text-foreground">{copy.company.title}</h2>
+          <dl className="grid gap-3 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)]">
+            {copy.company.rows.map((row) => (
+              <div key={row.label} className="contents">
+                <dt className="text-sm text-muted-foreground">{row.label}</dt>
+                <dd className="text-sm text-foreground">{row.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
       </PageContainer>
       <PageContainer as="section" className="pb-16">
         <ContactForm />
