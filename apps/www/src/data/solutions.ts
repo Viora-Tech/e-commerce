@@ -16,6 +16,8 @@ export type Solution = {
   points: readonly { title: string; body: string }[]
   faq: readonly { question: string; answer: string }[]
   guide: { label: string; href: string }
+  /** A real document to download, rendered by the product (apps/www/public/samples). */
+  sample?: { label: string; href: string }
   related: readonly string[]
 }
 
@@ -115,6 +117,10 @@ export const SOLUTIONS: readonly Solution[] = [
     guide: {
       label: 'GST invoices guide',
       href: `${docs}/merchant-guide/money-and-gst/gst-invoices`,
+    },
+    sample: {
+      label: 'Download a sample tax invoice (PDF)',
+      href: '/samples/sample-gst-tax-invoice.pdf',
     },
     related: ['upi-checkout', 'indian-couriers', 'shopify-alternative-india'],
   },

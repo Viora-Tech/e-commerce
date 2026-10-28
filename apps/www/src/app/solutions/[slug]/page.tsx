@@ -1,4 +1,4 @@
-import { ArrowRight_ as ArrowRight } from '@commerce/ui/icons'
+import { ArrowRight_ as ArrowRight, Download } from '@commerce/ui/icons'
 import { buttonVariants } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -75,7 +75,7 @@ export default async function SolutionPage({ params }: PageProps) {
             </li>
           ))}
         </ul>
-        <div className="mt-10 flex justify-center">
+        <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <a
             href={solution.guide.href}
             className={buttonVariants({ variant: 'outline', size: 'lg' })}
@@ -83,6 +83,16 @@ export default async function SolutionPage({ params }: PageProps) {
             <ArrowRight aria-hidden />
             {`${copy.readGuide}: ${solution.guide.label}`}
           </a>
+          {solution.sample ? (
+            <a
+              href={solution.sample.href}
+              download
+              className={buttonVariants({ variant: 'outline', size: 'lg' })}
+            >
+              <Download aria-hidden />
+              {solution.sample.label}
+            </a>
+          ) : null}
         </div>
       </PageContainer>
       <PageContainer as="section" className="flex flex-col items-center gap-10 py-16">
