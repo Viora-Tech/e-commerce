@@ -8,6 +8,8 @@ type SummaryLineProps = {
   linePaise: number
   imageUrl: string | null
   preorder?: boolean
+  /** How prices read: the checkout passes the market's (`useFormatPaise`); rupees by default. */
+  format?: ((paise: number) => string) | undefined
 }
 
 /** First letter of the product, drawn when a line has no image. */
@@ -21,6 +23,7 @@ export default function SummaryLine({
   linePaise,
   imageUrl,
   preorder = false,
+  format = formatPaise,
 }: SummaryLineProps) {
   return (
     <li className="flex items-center gap-3 lg:gap-3.5">
@@ -60,7 +63,7 @@ export default function SummaryLine({
         </p>
       </div>
       <p className="shrink-0 text-[0.8125rem] font-semibold tabular-nums lg:text-[0.875rem]">
-        {formatPaise(linePaise)}
+        {format(linePaise)}
       </p>
     </li>
   )

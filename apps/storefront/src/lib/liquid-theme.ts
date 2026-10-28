@@ -49,10 +49,13 @@ import {
   traceCartReads,
   withNonce,
 } from './liquid-cache'
+import { toLiquidCart } from './liquid-cart'
 import { cachedLiquidData } from './liquid-data-cache'
 import { deferThemeScripts } from './liquid-defer'
 import { belowTheFold } from './liquid-fold'
 import { liquidMarketFor } from './liquid-market'
+import { marketPricingFor, pricingKey } from './market-pricing'
+import { MARKET_HEADERS } from './markets'
 import { cartIsEmpty, requestCart } from './request-cart'
 import './search-engine'
 import { requestOrigin } from './seo'
@@ -72,28 +75,6 @@ import { readPreview } from './storefront-gate'
 
 /** Payment marks the theme's footer draws, from the methods this store offers. */
 const PAYMENT_TYPES = ['upi', 'visa', 'master', 'rupay', 'american_express']
-
-type CartView = NonNullable<Awaited<ReturnType<typeof getCart>>>
-
-/** A cart in the shape Liquid reads; an empty one without a cart. */
-function toLiquidCart(cart: CartView | null): LiquidCartData {
-  if (!cart) return { itemCount: 0, totalPrice: 0, items: [] }
-  return {
-    itemCount: cart.itemCount,
-    totalPrice: cart.subtotalPaise,
-    items: cart.lines.map((l) => ({
-      id: l.variantId,
-      quantity: l.quantity,
-      title: l.productTitle,
-      price: l.unitPricePaise,
-      linePrice: l.linePaise,
-      product: null,
-      variantTitle: l.variantTitle,
-      image: l.imageUrl ? { url: l.imageUrl, alt: l.productTitle } : null,
-      url: `/products/${l.productHandle}`,
-    })),
-  }
-}
 
 /** Shopify's `template.name` for a storefront path. */
 export function liquidTemplateFor(path: string): string {
@@ -122,6 +103,8 @@ const requestScope = cache(async (storeId: string) => {
   return {
     origin: await requestOrigin(),
     market: liquidMarketFor(h),
+    // The market's currency, rate and rounding when it shows another currency than rupees.
+    pricing: await marketPricingFor(storeId, h.get(MARKET_HEADERS.id)),
     path,
     listing,
     template,
@@ -204,10 +187,11 @@ async function createLiquidContext(
     origin: scope.origin,
     cart: async () => cart,
     reviews: await reviewsLiquidSource(tx, storeId),
+    pricing: scope.pricing,
   })
   return createPageContext({
     bundle: theme.bundle,
-    data: cachedLiquidData(storeId, scope.origin, data),
+    data: cachedLiquidData(storeId, scope.origin, data, pricingKey(scope.pricing)),
     request: {
       template: scope.template,
       path: scope.path,
@@ -279,7 +263,15 @@ export async function liquidContextFor(
   const scope = await requestScope(storeId)
   const cartId = await readCartId()
   const cart = cartId ? await getCart({ storeId, tx }, cartId) : null
-  return createLiquidContext(tx, storeId, themeId, theme, scope, toLiquidCart(cart), scope.nonce)
+  return createLiquidContext(
+    tx,
+    storeId,
+    themeId,
+    theme,
+    scope,
+    toLiquidCart(cart, scope.pricing),
+    scope.nonce,
+  )
 }
 
 /** Template key → the location Liquid sees (`section.location`). */
@@ -303,7 +295,8 @@ function cacheScope(
     template: scope.template,
     postedForm: scope.postedForm,
     experiments: scope.experimentsKey,
-    market: scope.market.key,
+    // Subfolder markets share the origin: their prices are their own pages.
+    market: [scope.market.key, pricingKey(scope.pricing)].filter(Boolean).join('|'),
   }
 }
 
@@ -369,7 +362,7 @@ export async function renderLiquidSections(
 
   // The cart is read before the transaction: a second connection taken inside one could wait
   // on a pool that busy requests have filled.
-  const cart = toLiquidCart(await requestCart(storeId))
+  const cart = toLiquidCart(await requestCart(storeId), scope.pricing)
   const rendered = await inStore(storeId, async (tx) => {
     const live = await tracedContext(tx, storeId, themeId, theme, scope, cart)
     const done: { p: (typeof placed)[number]; html: string; trace: RenderTrace }[] = []
@@ -435,7 +428,7 @@ export async function liquidLayoutFor(
     return layoutWithNonce(hit.layout, scope.nonce)
   }
 
-  const cart = toLiquidCart(await requestCart(storeId))
+  const cart = toLiquidCart(await requestCart(storeId), scope.pricing)
   const { layout, trace } = await inStore(storeId, async (tx) => {
     const live = await tracedContext(tx, storeId, themeId, theme, scope, cart)
     const trace = live.start()

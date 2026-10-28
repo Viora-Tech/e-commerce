@@ -1,4 +1,4 @@
-import { CURRENCIES, type Currency } from '@commerce/money'
+import type { Currency } from '@commerce/money'
 import { z } from 'zod'
 
 /**
@@ -95,8 +95,9 @@ export type MeasureKind = keyof typeof MEASURE_UNITS
 export type MeasureUnit = (typeof MEASURE_UNITS)[MeasureKind][number]
 export const MEASURE_KINDS = Object.keys(MEASURE_UNITS) as MeasureKind[]
 
-/** Currencies a money field can hold: the money module's list. */
-export const FIELD_CURRENCIES = Object.keys(CURRENCIES) as Currency[]
+/** Currencies a money field can hold (markets' other currencies are for prices, not fields). */
+export const FIELD_CURRENCIES = ['INR', 'USD', 'EUR'] as const satisfies readonly Currency[]
+export type FieldCurrency = (typeof FIELD_CURRENCIES)[number]
 
 /** A rating is out of 5 unless the field says otherwise. */
 export const DEFAULT_RATING_MAX = 5
@@ -127,7 +128,7 @@ const validationShape = {
   /** For lists: how many items at most; for groups, how many rows. */
   maxItems: z.number().int().min(1).max(250).optional(),
   /** For money: the currency amounts are in (INR when absent). */
-  currency: z.enum(FIELD_CURRENCIES as [Currency, ...Currency[]]).optional(),
+  currency: z.enum(FIELD_CURRENCIES).optional(),
   /** For measurements: weight, length or volume. A measurement field must have one. */
   measure: z.enum(MEASURE_KINDS as [MeasureKind, ...MeasureKind[]]).optional(),
   /** For ratings: the top of the scale (5 when absent). */

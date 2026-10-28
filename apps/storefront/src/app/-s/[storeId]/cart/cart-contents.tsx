@@ -1,4 +1,4 @@
-import { EmptyState, formatPaise, Icon } from '@commerce/blocks'
+import { EmptyState, Icon, Money } from '@commerce/blocks'
 import { getCart } from '@commerce/core'
 import CartCheckoutLink from '@/components/cart/cart-checkout-link'
 import DiscountCodeField from '@/components/cart/discount-code-field'
@@ -69,12 +69,16 @@ export default async function CartContents({ storeId }: CartContentsProps) {
             <DiscountCodeField discount={discount} />
             <div className="cart-summary__row">
               <span>{content.subtotal}</span>
-              <span>{formatPaise(cart.subtotalPaise)}</span>
+              <span>
+                <Money paise={cart.subtotalPaise} />
+              </span>
             </div>
             {discount?.label && discountPaise > 0 ? (
               <div className="cart-summary__row cart-summary__row--discount">
                 <span>{discount.label}</span>
-                <span>−{formatPaise(discountPaise)}</span>
+                <span>
+                  −<Money paise={discountPaise} />
+                </span>
               </div>
             ) : null}
             <div className="cart-summary__row">
@@ -86,7 +90,9 @@ export default async function CartContents({ storeId }: CartContentsProps) {
             ) : null}
             <div className="cart-summary__row cart-summary__row--total">
               <span>{content.total}</span>
-              <span>{formatPaise(total)}</span>
+              <span>
+                <Money paise={total} />
+              </span>
             </div>
             <p className="text-caption">{content.taxesAtCheckout}</p>
             <CartCheckoutLink className="btn btn--primary cart-summary__checkout">

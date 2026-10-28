@@ -171,9 +171,10 @@ export default function CanvasInsertLine({ document }: CanvasInsertLineProps) {
             onClick={handleInsert}
             aria-label={label}
             title={label}
+            // `!`: the store's unlayered `button` styles beat Tailwind here (#908).
             className={cn(
               UNZOOMED,
-              'pointer-events-auto relative flex h-6 items-center gap-1 rounded-full bg-[var(--admin-accent)] pr-2.5 pl-1.5 text-xs font-medium text-white shadow-md ring-2 ring-white transition-transform duration-150 hover:scale-105 motion-reduce:transition-none',
+              'pointer-events-auto relative m-0! flex h-6! w-auto! min-w-0! items-center gap-1 rounded-full! border-0! bg-[var(--admin-accent)]! pr-2.5! pl-1.5! text-xs! leading-none! font-medium! tracking-normal! whitespace-nowrap text-white! normal-case! shadow-md ring-2 ring-white transition-transform duration-150 hover:scale-105 motion-reduce:transition-none',
             )}
           >
             <Plus aria-hidden className="size-3.5" />

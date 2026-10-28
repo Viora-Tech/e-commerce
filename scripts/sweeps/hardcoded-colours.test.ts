@@ -50,6 +50,11 @@ const ALLOWLIST: AllowEntry[] = [
       "third-party brand marks (Claude, VS Code) drawn in each vendor's own brand colour, which no theme token should restyle",
   },
   {
+    file: 'packages/ui/src/brand/social-logos.tsx',
+    reason:
+      "Facebook, Instagram, WhatsApp, YouTube and Google marks in each brand's own colours (their brand guidelines require it), wherever the app shows them; no theme token should restyle them",
+  },
+  {
     file: 'apps/admin/src/components/settings/accent-wheel.tsx',
     reason:
       'the accent colour wheel paints the full hue spectrum with a white centre; it shows raw colours the merchant picks from, not themed UI',

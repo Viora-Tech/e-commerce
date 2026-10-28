@@ -113,6 +113,8 @@ export default [
     sortOldest: 'पुराने पहले',
     customView: 'कस्टम',
     filters: {
+      product: 'प्रोडक्ट',
+      productPlaceholder: 'प्रोडक्ट का नाम या SKU',
       payment: 'पेमेंट',
       fulfilment: 'डिलीवरी',
       date: 'तारीख',

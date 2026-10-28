@@ -8,14 +8,36 @@
  * strings here, at render time.
  */
 
-export type Currency = 'INR' | 'EUR' | 'USD'
+export type Currency =
+  | 'INR'
+  | 'EUR'
+  | 'USD'
+  | 'AED'
+  | 'GBP'
+  | 'SAR'
+  | 'QAR'
+  | 'KWD'
+  | 'OMR'
+  | 'BHD'
+  | 'SGD'
+  | 'AUD'
+  | 'CAD'
+  | 'MYR'
+  | 'NPR'
+  | 'LKR'
+  | 'BDT'
+  | 'JPY'
+  | 'CHF'
+  | 'NZD'
+  | 'HKD'
+  | 'ZAR'
 
 export type CurrencyMeta = {
   /** ISO 4217 code. */
   code: Currency
   /** Display symbol. */
   symbol: string
-  /** Number of minor units per major unit (2 for paise/cents on all three today). */
+  /** Decimal places of the minor unit (ISO 4217): 2 for paise and cents, 3 for Gulf dinars, 0 for yen. */
   minorUnit: number
   /** BCP 47 locale used when the caller doesn't pass one. */
   defaultLocale: string
@@ -31,6 +53,31 @@ export const CURRENCIES: Record<Currency, CurrencyMeta> = {
   INR: { code: 'INR', symbol: '₹', minorUnit: 2, defaultLocale: 'en-IN' },
   USD: { code: 'USD', symbol: '$', minorUnit: 2, defaultLocale: 'en-US' },
   EUR: { code: 'EUR', symbol: '€', minorUnit: 2, defaultLocale: 'en-IE' },
+  // Markets' currencies (`MARKET_CURRENCIES` in @commerce/core): what a shopper abroad sees.
+  AED: { code: 'AED', symbol: 'AED', minorUnit: 2, defaultLocale: 'en-AE' },
+  GBP: { code: 'GBP', symbol: '£', minorUnit: 2, defaultLocale: 'en-GB' },
+  SAR: { code: 'SAR', symbol: 'SAR', minorUnit: 2, defaultLocale: 'en-SA' },
+  QAR: { code: 'QAR', symbol: 'QAR', minorUnit: 2, defaultLocale: 'en-QA' },
+  KWD: { code: 'KWD', symbol: 'KWD', minorUnit: 3, defaultLocale: 'en-KW' },
+  OMR: { code: 'OMR', symbol: 'OMR', minorUnit: 3, defaultLocale: 'en-OM' },
+  BHD: { code: 'BHD', symbol: 'BHD', minorUnit: 3, defaultLocale: 'en-BH' },
+  SGD: { code: 'SGD', symbol: 'S$', minorUnit: 2, defaultLocale: 'en-SG' },
+  AUD: { code: 'AUD', symbol: 'A$', minorUnit: 2, defaultLocale: 'en-AU' },
+  CAD: { code: 'CAD', symbol: 'CA$', minorUnit: 2, defaultLocale: 'en-CA' },
+  MYR: { code: 'MYR', symbol: 'RM', minorUnit: 2, defaultLocale: 'en-MY' },
+  NPR: { code: 'NPR', symbol: 'Rs', minorUnit: 2, defaultLocale: 'en-NP' },
+  LKR: { code: 'LKR', symbol: 'Rs', minorUnit: 2, defaultLocale: 'en-LK' },
+  BDT: { code: 'BDT', symbol: '৳', minorUnit: 2, defaultLocale: 'en-BD' },
+  JPY: { code: 'JPY', symbol: '¥', minorUnit: 0, defaultLocale: 'en-JP' },
+  CHF: { code: 'CHF', symbol: 'CHF', minorUnit: 2, defaultLocale: 'de-CH' },
+  NZD: { code: 'NZD', symbol: 'NZ$', minorUnit: 2, defaultLocale: 'en-NZ' },
+  HKD: { code: 'HKD', symbol: 'HK$', minorUnit: 2, defaultLocale: 'en-HK' },
+  ZAR: { code: 'ZAR', symbol: 'R', minorUnit: 2, defaultLocale: 'en-ZA' },
+}
+
+/** True for a currency this package formats (an ISO 4217 code in `CURRENCIES`). */
+export function isCurrency(code: string): code is Currency {
+  return Object.hasOwn(CURRENCIES, code)
 }
 
 export const DEFAULT_CURRENCY: Currency = 'INR'
@@ -286,4 +333,94 @@ export function formatStoreMoney(
   return format && isMoneyFormat(format)
     ? formatWithMoneyFormat(minor, format)
     : formatMoney(minor, currency)
+}
+
+/**
+ * A Shopify-style money format for a currency, read off how it formats (`${{amount}}`,
+ * `AED {{amount}}`, `¥{{amount_no_decimals}}`): what an imported theme's scripts format prices
+ * with when the page's market shows that currency instead of the store's own format.
+ */
+export function moneyFormatOf(currency: Currency): string {
+  const { minorUnit } = CURRENCIES[currency]
+  const tag = minorUnit === 0 ? '{{amount_no_decimals}}' : '{{amount}}'
+  return formatMoney(toMinor(1234.5, currency), currency, { showZeroDecimals: true })
+    .replace(/\d[\d.,'’\s ]*\d/, tag)
+    .replace(/ /g, ' ')
+}
+
+/*
+ * Market prices (Settings → Markets): a rupee price in a market's currency, Shopify Markets
+ * style. Rupees × the market's rate (its fixed rate, else the day's reference rate) × its price
+ * adjustment, then its rounding. Prices, reports and GST stay in paise; only what a shopper
+ * abroad sees is converted, by this one rule on the store, cart and checkout. Market rows and
+ * reference rates are read in @commerce/core (`marketPricing`, `storeMarketPricing`).
+ */
+
+export type MarketRoundingRule = 'none' | 'whole' | 'x99'
+
+/** How one market prices: what `presentmentMinor` needs. */
+export type MarketPricing = {
+  /** ISO 4217 code the shopper sees. */
+  currency: string
+  /** Units of `currency` per rupee. */
+  rate: number
+  /** Basis points on top of the converted price: +1000 is 10% above. */
+  adjustmentBp: number
+  rounding: MarketRoundingRule
+}
+
+/** Rupees as rupees: the primary market, or a market whose rate is not known yet. */
+export const RUPEE_PRICING: MarketPricing = {
+  currency: 'INR',
+  rate: 1,
+  adjustmentBp: 0,
+  rounding: 'none',
+}
+
+/** Decimal places of a currency's minor unit (ISO 4217); 2 for a code not in `CURRENCIES`. */
+function minorDigits(currency: string): number {
+  return isCurrency(currency) ? CURRENCIES[currency].minorUnit : 2
+}
+
+/** True when prices show as stored, in rupees. */
+function isRupeePricing(p: MarketPricing): boolean {
+  return p.currency === 'INR' && p.rate === 1 && p.adjustmentBp === 0
+}
+
+/**
+ * Paise in the market's currency, as whole minor units. Rounding comes last, after the rate
+ * and the adjustment: `whole` to the nearest whole unit (14.27 → 14.00), `x99` up to the next
+ * .99 (14.27 → 14.99, 14.00 → 14.99; whole units for a currency without decimals). Zero and
+ * negative amounts (a discount line) keep their sign and are rounded by the same rule.
+ */
+export function presentmentMinor(paise: number, p: MarketPricing): number {
+  if (isRupeePricing(p)) return paise
+  if (paise === 0) return 0
+  const sign = paise < 0 ? -1 : 1
+  const digits = minorDigits(p.currency)
+  const scale = 10 ** digits
+  const major = (Math.abs(paise) / 100) * p.rate * (1 + p.adjustmentBp / 10_000)
+  let units: number
+  if (p.rounding === 'whole') units = Math.round(major) * scale
+  else if (p.rounding === 'x99') {
+    // .99 of the unit: 1 cent off the next whole dollar, 10 fils off the next whole dinar.
+    units = digits === 0 ? Math.ceil(major) : (Math.floor(major + 1e-9) + 1) * scale - scale / 100
+  } else units = Math.round(major * scale)
+  return sign * Math.max(units, 0)
+}
+
+/**
+ * A price as Liquid holds money: hundredths of the market's currency (Shopify's subunit
+ * amounts, also for dinars and yen), so a theme's `| money` and its scripts divide by 100.
+ * Rupees stay paise.
+ */
+export function presentmentCents(paise: number, p: MarketPricing | null): number {
+  if (!p || isRupeePricing(p)) return paise
+  return Math.round((presentmentMinor(paise, p) / 10 ** minorDigits(p.currency)) * 100)
+}
+
+/** Paise as a shopper in this market reads them (`AED 23.50`); rupees without a market. */
+export function formatPresentment(paise: number, p: MarketPricing | null): string {
+  if (!p || isRupeePricing(p) || !isCurrency(p.currency)) return formatMoney(paise, 'INR')
+  return formatMoney(presentmentMinor(paise, p), p.currency)
 }

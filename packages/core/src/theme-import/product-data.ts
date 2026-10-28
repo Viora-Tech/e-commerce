@@ -14,6 +14,7 @@ import {
   variantOptionValue,
 } from '@commerce/db'
 import { and, asc, eq, inArray, isNull } from 'drizzle-orm'
+import { type MarketPricing, presentmentCents } from '../markets/presentment'
 import type { LiquidImageData, LiquidProductData } from './drops'
 import { richTextHtml } from './rich-html'
 
@@ -22,7 +23,12 @@ const onHand = (v: { onHand: number | null; reserved: number | null; track: bool
   v.track ? Math.max(0, (v.onHand ?? 0) - (v.reserved ?? 0)) : 999
 
 /** Products by id, fully loaded (variants, options, images), in the order given. */
-export async function loadProducts(tx: StoreTx, ids: string[]): Promise<LiquidProductData[]> {
+export async function loadProducts(
+  tx: StoreTx,
+  ids: string[],
+  /** The page's market: prices in its currency (`presentmentCents`); null keeps rupees. */
+  pricing: MarketPricing | null = null,
+): Promise<LiquidProductData[]> {
   if (ids.length === 0) return []
   const [rows, variants, images, options, memberships] = await Promise.all([
     tx
@@ -170,8 +176,8 @@ export async function loadProducts(tx: StoreTx, ids: string[]): Promise<LiquidPr
           return {
             id: v.id,
             title: v.title,
-            price: v.price,
-            compareAtPrice: v.mrp && v.mrp > v.price ? v.mrp : null,
+            price: presentmentCents(v.price, pricing),
+            compareAtPrice: v.mrp && v.mrp > v.price ? presentmentCents(v.mrp, pricing) : null,
             available: qty > 0 || preorder,
             inventoryQuantity: qty,
             sku: v.sku,
@@ -197,6 +203,7 @@ export async function loadProducts(tx: StoreTx, ids: string[]): Promise<LiquidPr
 export async function productsByHandles(
   tx: StoreTx,
   handles: string[],
+  pricing: MarketPricing | null = null,
 ): Promise<Map<string, LiquidProductData>> {
   if (handles.length === 0) return new Map()
   const rows = await tx
@@ -206,6 +213,7 @@ export async function productsByHandles(
   const loaded = await loadProducts(
     tx,
     rows.map((r) => r.id),
+    pricing,
   )
   return new Map(loaded.map((p) => [p.handle, p]))
 }
@@ -218,6 +226,7 @@ export async function collectionsProducts(
   tx: StoreTx,
   handles: string[],
   limit: number,
+  pricing: MarketPricing | null = null,
 ): Promise<Map<string, LiquidProductData[]>> {
   const out = new Map<string, LiquidProductData[]>()
   const named = handles.filter((h) => h !== 'all')
@@ -249,7 +258,7 @@ export async function collectionsProducts(
       'all',
       all.map((r) => r.id),
     )
-  const loaded = await loadProducts(tx, [...new Set([...ids.values()].flat())])
+  const loaded = await loadProducts(tx, [...new Set([...ids.values()].flat())], pricing)
   const byId = new Map(loaded.map((p) => [p.id, p]))
   for (const handle of handles) {
     out.set(

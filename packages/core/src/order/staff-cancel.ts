@@ -34,11 +34,14 @@ export type StaffCancelInput = {
   /** How the money taken goes back (`refund-routes.ts`). */
   refund: RefundRoute
   author: string
+  /** For `store_credit`: the settings secret the gift card code is encrypted with. */
+  settingsSecret?: string | undefined
 }
 
 const ROUTE_WORDS: Record<RefundRoute, string> = {
   original: 'refunded to the original payment',
   manual: 'marked as refunded by hand',
+  store_credit: 'given back as store credit',
   none: 'not refunded',
 }
 
@@ -49,6 +52,8 @@ const CANCEL_NOTE = (input: {
   notifyCustomer: boolean
   refund: RefundRoute
   refundedPaise: number
+  /** Money taken that is still with the store after the cancel (chosen: no refund). */
+  keptPaise: number
 }) =>
   [
     'Order cancelled.',
@@ -56,7 +61,9 @@ const CANCEL_NOTE = (input: {
     input.restock ? 'Items restocked.' : 'Items not restocked.',
     input.refundedPaise > 0
       ? `${formatMoney(input.refundedPaise, 'INR', { showZeroDecimals: true })} ${ROUTE_WORDS[input.refund]}.`
-      : 'Nothing to refund.',
+      : input.keptPaise > 0
+        ? `Not refunded: ${formatMoney(input.keptPaise, 'INR', { showZeroDecimals: true })} left to refund.`
+        : 'Nothing to refund.',
     input.notifyCustomer ? 'Customer notified.' : 'Customer not notified.',
   ]
     .filter(Boolean)
@@ -109,11 +116,19 @@ export async function cancelOrderByStaff(
     route: input.refund,
     reason: input.reason?.trim() || 'Order cancelled',
     providers,
+    storeCredit:
+      input.refund === 'store_credit' && input.settingsSecret
+        ? { secret: input.settingsSecret, createdBy: input.author }
+        : undefined,
   })
   await ctx.tx.insert(orderNote).values({
     storeId: ctx.storeId,
     orderId: input.orderId,
-    body: CANCEL_NOTE({ ...input, refundedPaise }),
+    body: CANCEL_NOTE({
+      ...input,
+      refundedPaise,
+      keptPaise: input.refund === 'none' ? left.refundablePaise : 0,
+    }),
     author: input.author,
   })
   const [after] = await ctx.tx.select().from(order).where(eq(order.id, input.orderId))

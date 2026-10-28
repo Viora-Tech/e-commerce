@@ -92,8 +92,11 @@ export default function AssistantHost({ storeId }: AssistantHostProps) {
   // Render logic
   const page = pageContextFor(pathname).page
 
-  /* Desktop: the panel's column grows from 0 to 440px (and back) on the drawer curve, so the
-     page beside it narrows smoothly; on phones the wrapper is `contents` and the sheet slides. */
+  /* Wide screens (84rem+, room for a 440px column and a readable page): the panel's column grows
+     from 0 to 440px (and back) on the drawer curve, so the page beside it narrows smoothly.
+     Narrower (phones, laptops with the sidebar open) the wrapper is `contents` and the panel
+     slides up as a sheet over the page, centred and at most 40rem wide, so the page is never
+     squeezed into a thin column (#903). */
   return (
     <>
       <AnimatePresence initial={false}>
@@ -104,7 +107,7 @@ export default function AssistantHost({ storeId }: AssistantHostProps) {
             animate={{ width: '27.5rem' }}
             exit={{ width: 0 }}
             transition={reduced ? instant : DRAWER}
-            className="shrink-0 overflow-hidden max-md:contents"
+            className="shrink-0 overflow-hidden max-[84rem]:contents"
           >
             <AssistantPanel
               page={page}

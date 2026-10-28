@@ -169,7 +169,7 @@ export function moneyText(v: unknown): string | null {
   if (typeof v === 'number') return formatMoney(v, 'INR')
   const r = record(v)
   if (typeof r?.amount !== 'number') return null
-  const currency = FIELD_CURRENCIES.includes(r.currency as Currency)
+  const currency = (FIELD_CURRENCIES as readonly unknown[]).includes(r.currency)
     ? (r.currency as Currency)
     : 'INR'
   return formatMoney(r.amount, currency)

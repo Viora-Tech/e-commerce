@@ -24,6 +24,7 @@ import {
   createDomainRouteWorker,
   VERIFY_EVERY_MS,
 } from './domains'
+import { createFxRates, FX_RATES_SCHEDULE } from './fx-rates'
 import { createImportSnapshotCleanup, SNAPSHOT_CLEANUP_EVERY_MS } from './import-snapshots'
 import { createInboxAiReplyWorker } from './inbox-ai-reply'
 import { createMarketingWorker, MARKETING_TICK_MS, retireAbandonedSweep } from './marketing'
@@ -143,6 +144,7 @@ const billing = createBillingSweep(redis, db, {
 const apiActivityPrune = createApiActivityPrune(redis, db)
 const automationsPrune = createAutomationsPrune(redis, db)
 const retentionPrune = createRetentionPrune(redis, db)
+const fxRates = createFxRates(redis, db)
 const channelSync = createChannelSync(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
   adminUrl: env.ADMIN_URL,
@@ -206,6 +208,7 @@ const watched = [
   [apiActivityPrune.worker, 'api-activity-prune'],
   [automationsPrune.worker, 'automations-prune'],
   [retentionPrune.worker, 'retention-prune'],
+  [fxRates.worker, 'fx-rates'],
   [channelSync.worker, 'channel-sync'],
 ] as const
 for (const [w, queueName] of watched) {
@@ -334,6 +337,9 @@ await apiActivityPrune.queue.upsertJobScheduler(
 await retentionPrune.queue.upsertJobScheduler('retention-prune', RETENTION_SCHEDULE, {
   name: 'prune',
 })
+// Markets' reference exchange rates: 21:30 India time, after the ECB publishes; once now too.
+await fxRates.queue.upsertJobScheduler('fx-rates', FX_RATES_SCHEDULE, { name: 'refresh' })
+await fxRates.queue.add('refresh', {})
 await channelSync.queue.upsertJobScheduler(
   'channel-sync-sweep',
   { every: CHANNEL_SYNC_EVERY_MS },
@@ -448,6 +454,8 @@ const shutdown = async () => {
   await automationsPrune.queue.close()
   await retentionPrune.worker.close()
   await retentionPrune.queue.close()
+  await fxRates.worker.close()
+  await fxRates.queue.close()
   await channelSync.worker.close()
   await channelSync.queue.close()
   await queue.close()

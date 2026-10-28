@@ -145,6 +145,7 @@ export default function CancelOrderDialog({ order, onClose, onDone }: CancelOrde
               value={route}
               onChange={setRoute}
               idPrefix="cancel-refund"
+              storeCredit
             />
           ) : options ? (
             <p className="text-body text-muted-foreground">{copy.nothingToRefund}</p>

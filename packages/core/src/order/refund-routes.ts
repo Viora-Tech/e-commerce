@@ -1,18 +1,19 @@
 /** SOURCE OF TRUTH: REFUND_ROUTES, refundOptions, refundOrderAmount — WHAT: how money goes back when staff cancel or edit an order (the original gateway, recorded by hand, or not at all) and spreading one amount over the order's payments / WHY: cancel and edit offer the same choice and must refund the same way */
-import { payment } from '@commerce/db'
+import { customer, order, payment } from '@commerce/db'
 import type { PaymentProvider } from '@commerce/payments'
 import { and, eq, inArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
-import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
+import { GIFT_CARD_PROVIDER, issueGiftCard } from '../gift-cards/service'
 import { insertOutboxEvent } from '../outbox/write'
 import { RefundNotAllowed, refundedPaise, refundPayment } from './refund'
 
 /**
  * `original`: back through the gateway that took it (cash on delivery and manual payments are
  * recorded, gift cards go back onto the card). `manual`: the merchant sends it back themselves
- * and the refund is only recorded. `none`: nothing goes back.
+ * and the refund is only recorded. `store_credit`: one gift card for the amount, emailed to the
+ * shopper, recorded as the refund of each payment it covers. `none`: nothing goes back.
  */
-export const REFUND_ROUTES = ['original', 'manual', 'none'] as const
+export const REFUND_ROUTES = ['original', 'manual', 'store_credit', 'none'] as const
 export type RefundRoute = (typeof REFUND_ROUTES)[number]
 
 /** Settled outside any gateway: "original" only records them. */
@@ -48,6 +49,36 @@ async function heldPayments(ctx: StoreContext, orderId: string): Promise<Held[]>
       Number(a.provider === GIFT_CARD_PROVIDER) - Number(b.provider === GIFT_CARD_PROVIDER) ||
       b.remainingPaise - a.remainingPaise,
   )
+}
+
+/** Issues the store credit gift card for a refund of `amountPaise` on the order, to its shopper. */
+async function storeCreditCard(
+  ctx: StoreContext,
+  orderId: string,
+  amountPaise: number,
+  storeCredit: { secret: string; createdBy: string | null } | undefined,
+): Promise<string> {
+  if (!storeCredit) throw new RefundNotAllowed('Store credit could not be issued', ctx.storeId)
+  const [o] = await ctx.tx.select().from(order).where(eq(order.id, orderId))
+  if (!o) throw new RefundNotAllowed('Order not found', ctx.storeId)
+  const [cu] = o.customerId
+    ? await ctx.tx.select().from(customer).where(eq(customer.id, o.customerId))
+    : []
+  const issued = await issueGiftCard(
+    ctx,
+    {
+      valuePaise: amountPaise,
+      customerId: o.customerId,
+      recipientEmail: o.email,
+      recipientName: cu?.name ?? null,
+      note: `Store credit refund for order #${o.number}`,
+      createdBy: storeCredit.createdBy,
+      orderId: o.id,
+    },
+    storeCredit.secret,
+  )
+  if (!issued) throw new RefundNotAllowed('Store credit could not be issued', ctx.storeId)
+  return issued.card.id
 }
 
 /** True when this payment's money can go back the way it came, with the store's gateways. */
@@ -97,6 +128,8 @@ export async function refundOrderAmount(
     route: RefundRoute
     reason: string
     providers: readonly PaymentProvider[]
+    /** For `store_credit`: the settings secret (card codes are stored encrypted) and who issued it. */
+    storeCredit?: { secret: string; createdBy: string | null } | undefined
   },
 ): Promise<string[]> {
   if (input.route === 'none' || input.amountPaise <= 0) return []
@@ -122,6 +155,11 @@ export async function refundOrderAmount(
       )
     }
   }
+  // Store credit: one card for the whole amount, then each payment's share recorded against it.
+  const giftCardId =
+    input.route === 'store_credit'
+      ? await storeCreditCard(ctx, input.orderId, input.amountPaise, input.storeCredit)
+      : undefined
   const ids: string[] = []
   for (const { p, amountPaise } of plan) {
     const provider = input.providers.find((x) => x.id === p.provider) ?? null
@@ -130,6 +168,7 @@ export async function refundOrderAmount(
       amountPaise,
       reason: input.reason,
       manual: input.route === 'manual',
+      ...(giftCardId ? { method: 'store_credit' as const, giftCardId } : {}),
     })
     if (!row) continue
     ids.push(row.id)

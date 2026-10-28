@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { formatMoney, formatNumber, fromMinor, toMinor } from '../src/index'
+import {
+  formatMoney,
+  formatNumber,
+  formatPresentment,
+  fromMinor,
+  isCurrency,
+  moneyFormatOf,
+  toMinor,
+} from '../src/index'
 
 describe('formatMoney', () => {
   it('formats INR with Indian digit grouping', () => {
@@ -76,5 +84,41 @@ describe('Hindi (hi-IN)', () => {
 
   it('puts the minus sign before the symbol', () => {
     expect(formatMoney(-2_50_000_00, 'INR', { ...hi, compact: true })).toBe('-₹2.5 लाख')
+  })
+})
+
+describe('market currencies', () => {
+  // Intl puts a no-break space between a code and the amount.
+  const plain = (s: string) => s.replace(/ /g, ' ')
+
+  it('formats each in its own decimals', () => {
+    expect(formatMoney(899, 'USD')).toBe('$8.99')
+    expect(plain(formatMoney(2350, 'AED'))).toBe('AED 23.50')
+    expect(plain(formatMoney(3670, 'KWD'))).toBe('KWD 3.670')
+    expect(formatMoney(1791, 'JPY')).toBe('¥1,791')
+  })
+
+  it('knows which codes it formats', () => {
+    expect(isCurrency('AED')).toBe(true)
+    expect(isCurrency('XYZ')).toBe(false)
+    expect(isCurrency('toString')).toBe(false)
+  })
+})
+
+describe('moneyFormatOf', () => {
+  it('reads a Shopify-style format off each currency', () => {
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: a Shopify money format, not a template.
+    expect(moneyFormatOf('USD')).toBe('${{amount}}')
+    expect(moneyFormatOf('AED')).toBe('AED {{amount}}')
+    expect(moneyFormatOf('JPY')).toBe('¥{{amount_no_decimals}}')
+    expect(moneyFormatOf('INR')).toBe('₹{{amount}}')
+  })
+})
+
+describe('formatPresentment', () => {
+  it('formats paise in the market currency, rupees without one', () => {
+    const usd = { currency: 'USD', rate: 0.012, adjustmentBp: 0, rounding: 'none' } as const
+    expect(formatPresentment(64_900, usd)).toBe('$7.79')
+    expect(formatPresentment(64_900, null)).toBe('₹649')
   })
 })

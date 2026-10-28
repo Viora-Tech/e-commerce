@@ -3,6 +3,7 @@ import { resolveThemeVariantId } from '@commerce/core'
 import { addLineAction, cartCountAction } from '@/lib/cart-actions'
 import { submitContact } from '@/lib/contact-actions'
 import { renderStaticLiquidSection } from '@/lib/liquid-theme'
+import { requestPriceCents } from '@/lib/market-pricing'
 import { localizationAction } from '@/lib/market-switch'
 import { subscribeAction } from '@/lib/newsletter-actions'
 import { recommendationsResponse } from '@/lib/recommendations-route'
@@ -100,7 +101,14 @@ export const POST = withEvlog(async (req: Request, { params }: Params) => {
 
 export const GET = withEvlog(async (req: Request, { params }: Params) => {
   const { storeId, action } = await params
-  if (action === 'cart') return Response.json(await cartCountAction())
+  if (action === 'cart') {
+    // The total as the theme's Liquid prices are: the market's currency, in hundredths.
+    const cart = await cartCountAction()
+    return Response.json({
+      ...cart,
+      total_price: await requestPriceCents(storeId, cart.total_price),
+    })
+  }
   // Older pages' shim sent recommendations here; the store-domain route answers them now.
   if (action === 'recommendations') return recommendationsResponse(req, storeId, false)
   if (action === 'section') {
