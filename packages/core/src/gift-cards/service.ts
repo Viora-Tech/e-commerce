@@ -15,7 +15,7 @@ import type {
   NotificationRegistry,
   TemplateData,
 } from '@commerce/notifications'
-import { and, desc, eq, ilike, inArray, isNull, or, type SQL, sql } from 'drizzle-orm'
+import { and, desc, eq, gte, ilike, inArray, isNull, lt, lte, or, type SQL, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
 import { recomputeOrderStatuses } from '../order/recompute'
@@ -373,6 +373,17 @@ export async function updateGiftCard(
 export type GiftCardListFilter = {
   q?: string | undefined
   state?: GiftCardState | undefined
+  /** Issued by staff (`manual`) or bought at checkout (`purchase`); empty for both. */
+  source?: ('manual' | 'purchase')[] | undefined
+  /** Balance in paise, both ends included. */
+  minBalancePaise?: number | undefined
+  maxBalancePaise?: number | undefined
+  /** Expiry day (yyyy-mm-dd, the store's day), both ends included; never-expiring cards drop out. */
+  expiresFrom?: string | undefined
+  expiresTo?: string | undefined
+  /** Issued in [from, to), ISO times. */
+  createdFrom?: string | undefined
+  createdTo?: string | undefined
   limit?: number | undefined
   offset?: number | undefined
 }
@@ -414,6 +425,17 @@ export async function listGiftCards(ctx: StoreContext, filter: GiftCardListFilte
   const q = filter.q?.trim()
   const conds: (SQL | undefined)[] = [
     filter.state ? stateWhere(filter.state, today) : undefined,
+    filter.source?.length ? inArray(giftCard.source, filter.source) : undefined,
+    filter.minBalancePaise !== undefined
+      ? gte(giftCard.balancePaise, filter.minBalancePaise)
+      : undefined,
+    filter.maxBalancePaise !== undefined
+      ? lte(giftCard.balancePaise, filter.maxBalancePaise)
+      : undefined,
+    filter.expiresFrom ? gte(giftCard.expiresOn, filter.expiresFrom) : undefined,
+    filter.expiresTo ? lte(giftCard.expiresOn, filter.expiresTo) : undefined,
+    filter.createdFrom ? gte(giftCard.createdAt, new Date(filter.createdFrom)) : undefined,
+    filter.createdTo ? lt(giftCard.createdAt, new Date(filter.createdTo)) : undefined,
     q
       ? or(
           ilike(giftCard.lastCharacters, `%${normaliseGiftCardCode(q).slice(-4) || q}%`),

@@ -18,6 +18,13 @@ export default [
         emptyNote: 'अभी कुछ नहीं',
       },
       tabs: { all: 'सभी', automatic: 'ऑटोमैटिक', manual: 'मैन्युअल', empty: 'खाली' },
+      filters: {
+        image: 'इमेज है',
+        minProducts: 'कम से कम',
+        maxProducts: 'ज़्यादा से ज़्यादा',
+        anyDate: 'कभी भी',
+        updatedOptions: { '7d': 'पिछले 7 दिन', '30d': 'पिछले 30 दिन', '90d': 'पिछले 90 दिन' },
+      },
       resource: { singular: 'कलेक्शन', plural: 'कलेक्शन' },
       search: 'कलेक्शन खोजें',
       columns: {
