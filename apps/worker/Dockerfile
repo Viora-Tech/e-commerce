@@ -42,6 +42,10 @@ COPY --from=pruner /repo/out/full/ .
 # turbo prune only copies workspace packages, not root-only files — packages/core imports
 # this one by relative path (see apps/docs/content/developer-docs/building/plugins.mdx).
 COPY --from=pruner /repo/commerce.config.ts ./commerce.config.ts
+# The store data reset (scripts/reset-store-data.ts, dry run unless --apply), run by hand from a
+# Dokploy schedule with the worker's database settings. It sits in the worker app so it resolves
+# the worker's own packages: bun run /repo/apps/worker/ops/reset-store-data.ts --store <slug>
+COPY --from=pruner /repo/scripts/reset-store-data.ts ./apps/worker/ops/reset-store-data.ts
 
 # --- Minimal runtime image -------------------------------------------------------------------
 FROM installer AS runner
