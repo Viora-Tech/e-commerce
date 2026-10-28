@@ -1001,7 +1001,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/invoices/src/document.ts',
-    names: ['hsnFor', 'totalsOf', 'summariseByRate'],
+    names: ['hsnFor'],
     reason: 'no external importer today — investigate before removing',
   },
   {

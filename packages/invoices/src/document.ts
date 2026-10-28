@@ -23,6 +23,8 @@ export type SourceLine = {
   hsn: string | null
   /** Rate charged at checkout; null on older orders, which use the fallback rate. */
   ratePercent: number | null
+  /** The order line itself, recorded on the invoice line for credit notes on returns. */
+  orderLineId?: string | null | undefined
 }
 
 export type SourceOrder = {
@@ -174,6 +176,7 @@ export function buildDocument(input: BuildDocumentInput): DocumentSnapshot {
     ratePercent: rateOf(l),
     charge: false,
     netPaise: grosses[i] ?? 0,
+    ...(l.orderLineId ? { orderLineId: l.orderLineId } : {}),
   }))
   for (const g of groups) {
     const members = goodsDrafts.filter((d) => d.ratePercent === g.ratePercent)
@@ -292,13 +295,18 @@ function groupsFor(
 }
 
 /** Tax inside a tax-inclusive amount, as checkout computes it. */
-const inclusiveTax = (amountPaise: number, ratePercent: number) =>
+export const inclusiveTax = (amountPaise: number, ratePercent: number) =>
   amountPaise > 0 && ratePercent > 0
     ? Math.round((amountPaise * ratePercent) / (100 + ratePercent))
     : 0
 
 /** Spread one rate's tax over its lines by value, as CGST + SGST or IGST. */
-function applyTax(lines: DocumentLine[], taxPaise: number, sgstPaise: number, inter: boolean) {
+export function applyTax(
+  lines: DocumentLine[],
+  taxPaise: number,
+  sgstPaise: number,
+  inter: boolean,
+) {
   const taxes = allocatePaise(
     taxPaise,
     lines.map((l) => l.totalPaise),
@@ -312,76 +320,6 @@ function applyTax(lines: DocumentLine[], taxPaise: number, sgstPaise: number, in
     l.sgstPaise = sgst
     l.cgstPaise = inter ? 0 : tax - sgst
   })
-}
-
-export type CreditNoteInput = {
-  invoice: DocumentSnapshot
-  number: string
-  issuedAt: Date
-  amountPaise: number
-  reason: string | null
-}
-
-/**
- * A credit note against an invoice for a refund (CGST rule 53(1A)). The refund
- * is spread over the invoice lines by value and the tax inside it reversed at
- * each line's rate, in the invoice's CGST/SGST or IGST shape. A full refund
- * reverses the invoice line for line.
- */
-export function buildCreditNote(input: CreditNoteInput): DocumentSnapshot {
-  const { invoice } = input
-  const invoiceTotal = invoice.totals.totalPaise
-  const refund = Math.min(Math.max(0, input.amountPaise), invoiceTotal)
-  const full = refund === invoiceTotal
-  const lines = full ? invoice.lines.map((l) => ({ ...l })) : partialCreditLines(invoice, refund)
-  const totals = totalsOf(lines)
-  return {
-    ...invoice,
-    kind: 'credit_note',
-    number: input.number,
-    issuedAt: input.issuedAt.toISOString(),
-    order: { ...invoice.order, collectPaise: 0 },
-    advance: null,
-    original: { number: invoice.number ?? '', issuedAt: invoice.issuedAt },
-    einvoice: null,
-    reason: input.reason,
-    lines,
-    taxSummary: summariseByRate(lines),
-    hsnSummary: summariseByHsn(lines),
-    totals,
-    amountInWords: amountInWords(totals.totalPaise),
-  }
-}
-
-function partialCreditLines(invoice: DocumentSnapshot, refund: number): DocumentLine[] {
-  const nets = allocatePaise(
-    refund,
-    invoice.lines.map((l) => l.totalPaise),
-  )
-  const lines: DocumentLine[] = invoice.lines.map((l, i) => {
-    const net = nets[i] ?? 0
-    return {
-      ...l,
-      // A part refund credits value, not units: quantity 0 marks a value-only line.
-      quantity: 0,
-      unitPricePaise: net,
-      grossPaise: net,
-      discountPaise: 0,
-      taxablePaise: net,
-      cgstPaise: 0,
-      sgstPaise: 0,
-      igstPaise: 0,
-      totalPaise: net,
-    }
-  })
-  const rates = [...new Set(lines.map((l) => l.ratePercent))]
-  for (const rate of rates) {
-    const members = lines.filter((l) => l.ratePercent === rate)
-    const amount = members.reduce((a, l) => a + l.totalPaise, 0)
-    const tax = invoice.exportSupply?.mode === 'lut' ? 0 : inclusiveTax(amount, rate)
-    applyTax(members, tax, invoice.interState ? 0 : Math.floor(tax / 2), invoice.interState)
-  }
-  return lines.filter((l) => l.totalPaise > 0)
 }
 
 export function totalsOf(lines: readonly DocumentLine[]): DocumentTotals {

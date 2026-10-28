@@ -201,6 +201,104 @@ describe('buildCreditNote', () => {
   })
 })
 
+describe('buildCreditNote for a return (#872)', () => {
+  // A 12% kurta pair, an 18% diya set, shipping (at the principal 12%) and an order discount.
+  const lines: SourceLine[] = [
+    {
+      title: 'Kurta',
+      variantTitle: null,
+      sku: 'K',
+      quantity: 2,
+      unitPricePaise: 1_29_900,
+      hsn: '62059090',
+      ratePercent: 12,
+      orderLineId: 'line-kurta',
+    },
+    {
+      title: 'Diya set',
+      variantTitle: null,
+      sku: 'D',
+      quantity: 2,
+      unitPricePaise: 1_18_200,
+      hsn: '74181022',
+      ratePercent: 18,
+      orderLineId: 'line-diya',
+    },
+  ]
+  const invoice = buildDocument(
+    input({
+      lines,
+      order: {
+        ...input().order,
+        shippingPaise: 9_900,
+        discountPaise: 20_000,
+        totalPaise: 2 * 1_29_900 + 2 * 1_18_200 + 9_900 - 20_000,
+      },
+    }),
+  )
+  const diya = invoice.lines.find((l) => l.orderLineId === 'line-diya')
+  const note = (amountPaise: number, returned = [{ orderLineId: 'line-diya', quantity: 1 }]) =>
+    buildCreditNote({
+      invoice,
+      number: 'CN/25-26/0009',
+      issuedAt: new Date('2025-06-10T10:00:00Z'),
+      amountPaise,
+      reason: 'Returned',
+      returned,
+    })
+
+  it('records the order line on goods lines, not on charges', () => {
+    expect(invoice.lines.map((l) => l.orderLineId ?? null)).toEqual([
+      'line-kurta',
+      'line-diya',
+      null,
+    ])
+  })
+
+  it('credits only the returned units, at their own rate', () => {
+    const one = Math.round((diya?.totalPaise ?? 0) / 2)
+    const n = note(one)
+    expect(n.lines).toHaveLength(1)
+    expect(n.lines[0]).toMatchObject({ orderLineId: 'line-diya', quantity: 1, ratePercent: 18 })
+    expect(n.totals.totalPaise).toBe(one)
+    expect(n.taxSummary.map((r) => r.ratePercent)).toEqual([18])
+    expect(n.totals.igstPaise).toBe(Math.round((one * 18) / 118))
+  })
+
+  it('scales the returned units down when a fee is kept back', () => {
+    const n = note(50_000)
+    expect(n.lines.map((l) => [l.orderLineId, l.quantity])).toEqual([['line-diya', 1]])
+    expect(n.totals.totalPaise).toBe(50_000)
+  })
+
+  it('spreads what is refunded beyond the returned units over the other lines', () => {
+    const one = Math.round((diya?.totalPaise ?? 0) / 2)
+    const n = note(one + 5_000)
+    const returnedLine = n.lines.find((l) => l.orderLineId === 'line-diya')
+    expect(returnedLine?.quantity).toBe(1)
+    expect(n.totals.totalPaise).toBe(one + 5_000)
+    // The rest is value only.
+    expect(
+      n.lines.filter((l) => l.orderLineId !== 'line-diya').every((l) => l.quantity === 0),
+    ).toBe(true)
+  })
+
+  it('stays pro rata for a value-only refund or an invoice without order lines', () => {
+    const valueOnly = note(50_000, [])
+    expect(valueOnly.lines.length).toBeGreaterThan(1)
+    const old = { ...invoice, lines: invoice.lines.map(({ orderLineId: _, ...l }) => l) }
+    const fromOld = buildCreditNote({
+      invoice: old,
+      number: 'CN/25-26/0010',
+      issuedAt: new Date('2025-06-10T10:00:00Z'),
+      amountPaise: 50_000,
+      reason: null,
+      returned: [{ orderLineId: 'line-diya', quantity: 1 }],
+    })
+    expect(fromOld.lines.length).toBeGreaterThan(1)
+  })
+})
+
 describe('sampleDocument', () => {
   it('builds every kind from default settings', () => {
     for (const kind of [
@@ -216,7 +314,12 @@ describe('sampleDocument', () => {
         new Date('2025-06-01T00:00:00Z'),
       )
       expect(doc.kind).toBe(kind)
-      expect(doc.totals.totalPaise).toBe(kind === 'credit_note' ? 1_18_200 : 3_67_900)
+      if (kind === 'credit_note') {
+        // Only the returned diya set, at its own rate (#872).
+        expect(doc.lines.map((l) => [l.ratePercent, l.quantity])).toEqual([[18, 1]])
+      } else {
+        expect(doc.totals.totalPaise).toBe(3_67_900)
+      }
     }
   })
 })

@@ -1,4 +1,5 @@
-import { buildCreditNote, buildDocument } from './document'
+import { buildCreditNote } from './credit-note'
+import { buildDocument } from './document'
 import { financialYear } from './numbering'
 import { placeOf, sellerParty } from './parties'
 import { formatSeriesNumber, pickSeries } from './series'
@@ -16,6 +17,8 @@ export function sampleDocument(
   storeName: string,
   now: Date = new Date(),
 ): DocumentSnapshot {
+  // The diya set is the line the sample credit note returns.
+  const diya = '00000000-0000-4000-8000-0000000d1a00'
   const fy = financialYear(now)
   const numberFor = (kind: 'tax_invoice' | 'credit_note', seq: number) => {
     const series = pickSeries(settings.series, kind, { export: false, b2b: true })
@@ -48,6 +51,7 @@ export function sampleDocument(
         unitPricePaise: 1_29_900,
         hsn: '62059090',
         ratePercent: 12,
+        orderLineId: '00000000-0000-4000-8000-00000000c0a1',
       },
       {
         title: 'पीतल दीया सेट',
@@ -57,6 +61,7 @@ export function sampleDocument(
         unitPricePaise: 1_18_200,
         hsn: '74181022',
         ratePercent: 18,
+        orderLineId: diya,
       },
     ],
     seller: sellerParty(
@@ -87,11 +92,14 @@ export function sampleDocument(
     fallbackRatePercent: 18,
   })
   if (kind !== 'credit_note') return invoice
+  // The diya set comes back and is refunded at what it was billed (its share of the discount
+  // off), so the note credits that line alone, at 18%.
   return buildCreditNote({
     invoice,
     number: numberFor('credit_note', 3),
     issuedAt: now,
-    amountPaise: 1_18_200,
+    amountPaise: invoice.lines.find((l) => l.orderLineId === diya)?.totalPaise ?? 0,
     reason: 'Returned: Brass diya set arrived damaged',
+    returned: [{ orderLineId: diya, quantity: 1 }],
   })
 }
