@@ -1,4 +1,5 @@
 export * from './barcode'
+export * from './credit-note'
 export * from './document'
 export * from './gstr1'
 export * from './money'

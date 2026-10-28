@@ -477,6 +477,19 @@ describe('credit notes per GSTIN', () => {
     expect(rows.map((r) => [r.gstRegistrationId, r.totalPaise])).toEqual([[t.ka, 53_333]])
   })
 
+  it('credits the returned units themselves, not every line of the invoice (#872)', async () => {
+    const t = await issuedSplit()
+    const refundId = await t.refundOf(30_000, 1)
+    await inStore(t.storeId, (tx) => issueCreditNotes(tx, t.storeId, refundId, { at }))
+    const [row] = await creditNotes(refundId)
+    const note = DocumentSnapshotSchema.parse(row?.snapshot)
+    // Only the returned cap, one unit, no shipping or other goods.
+    expect(note.lines.map((l) => [l.orderLineId, l.quantity, l.charge])).toEqual([
+      [t.lineIds[1], 1, false],
+    ])
+    expect(note.totals.totalPaise).toBe(30_000)
+  })
+
   it('never credits an invoice past its total; the rest goes to the other GSTIN', async () => {
     const t = await issuedSplit()
     const refundId = await t.refundOf(60_000, 1)

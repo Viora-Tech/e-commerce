@@ -12,7 +12,7 @@ import {
 } from './issue'
 import { takeNumber } from './numbers'
 import { assertPeriodOpen } from './periods'
-import { allocateRefund, refundWeights } from './refund-allocation'
+import { allocateRefund, refundReturnedUnits, refundWeights } from './refund-allocation'
 import { documentIssuer } from './registration'
 import { invoice } from './schema'
 
@@ -90,6 +90,8 @@ export async function issueCreditNotes(
     )
   }
 
+  // A refund for a return credits the units that came back, on the invoice that billed them.
+  const returned = await refundReturnedUnits(tx, r.orderId, refundId)
   const out: { row: InvoiceRow; created: boolean }[] = []
   for (const original of invoices) {
     const amountPaise = amounts.get(original.id) ?? 0
@@ -122,6 +124,12 @@ export async function issueCreditNotes(
       issuedAt: at,
       amountPaise,
       reason: r.reason,
+      returned:
+        invoices.length === 1
+          ? returned.all
+          : original.fulfillmentOrderId
+            ? (returned.byParcel.get(original.fulfillmentOrderId) ?? [])
+            : [],
     })
     const row = await insertDocument(tx, storeId, doc, {
       refundId,

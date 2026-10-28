@@ -234,6 +234,7 @@ export async function orderSnapshot(
       unitPricePaise: l.unitPricePaise,
       hsn: l.lineHsn ?? l.variantHsn,
       ratePercent: l.rate,
+      orderLineId: l.id,
     })),
     seller: sellerFor(
       settings,

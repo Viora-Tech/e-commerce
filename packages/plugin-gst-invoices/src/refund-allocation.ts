@@ -55,17 +55,20 @@ export function allocateRefund(
   return given
 }
 
+/** Units of one order line a return sent back, at the price it was sold for. */
+export type ReturnedLine = { orderLineId: string; quantity: number; unitPricePaise: number }
+
 /**
- * The value of returned units each parcel sent, for a refund made for a return (the return
- * lists the refund in `refund_ids`). Empty for any other refund. A returned line's units are
- * taken from the parcels that packed it, first parcel first.
+ * The units a refund was made for: the return that lists the refund in `refund_ids`, all of
+ * them and split over the parcels that sent them (a returned line's units are taken from the
+ * parcels that packed it, first parcel first). Empty for any other refund.
  */
-export async function refundWeights(
+export async function refundReturnedUnits(
   tx: StoreTx,
   orderId: string,
   refundId: string,
-): Promise<Map<string, number>> {
-  const returned = await tx
+): Promise<{ all: ReturnedLine[]; byParcel: Map<string, ReturnedLine[]> }> {
+  const all = await tx
     .select({
       orderLineId: returnRequestLine.orderLineId,
       quantity: returnRequestLine.quantity,
@@ -80,8 +83,8 @@ export async function refundWeights(
         sql`${refundId}::uuid = any(${returnRequest.refundIds})`,
       ),
     )
-  const weights = new Map<string, number>()
-  if (returned.length === 0) return weights
+  const byParcel = new Map<string, ReturnedLine[]>()
+  if (all.length === 0) return { all, byParcel }
   const held = await tx
     .select({
       fulfillmentOrderId: fulfillmentOrderLine.fulfillmentOrderId,
@@ -92,18 +95,37 @@ export async function refundWeights(
     .innerJoin(fulfillmentOrder, eq(fulfillmentOrder.id, fulfillmentOrderLine.fulfillmentOrderId))
     .where(eq(fulfillmentOrder.orderId, orderId))
     .orderBy(asc(fulfillmentOrder.position), desc(fulfillmentOrderLine.fulfilledQuantity))
-  for (const r of returned) {
+  for (const r of all) {
     let units = r.quantity
     for (const h of held) {
       if (units <= 0) break
       if (h.orderLineId !== r.orderLineId || h.packed <= 0) continue
       const n = Math.min(units, h.packed)
-      weights.set(
-        h.fulfillmentOrderId,
-        (weights.get(h.fulfillmentOrderId) ?? 0) + n * r.unitPricePaise,
-      )
+      const lines = byParcel.get(h.fulfillmentOrderId) ?? []
+      lines.push({ ...r, quantity: n })
+      byParcel.set(h.fulfillmentOrderId, lines)
       units -= n
     }
+  }
+  return { all, byParcel }
+}
+
+/**
+ * The value of returned units each parcel sent, for a refund made for a return
+ * (`refundReturnedUnits`). Empty for any other refund.
+ */
+export async function refundWeights(
+  tx: StoreTx,
+  orderId: string,
+  refundId: string,
+): Promise<Map<string, number>> {
+  const { byParcel } = await refundReturnedUnits(tx, orderId, refundId)
+  const weights = new Map<string, number>()
+  for (const [parcel, lines] of byParcel) {
+    weights.set(
+      parcel,
+      lines.reduce((n, l) => n + l.quantity * l.unitPricePaise, 0),
+    )
   }
   return weights
 }
