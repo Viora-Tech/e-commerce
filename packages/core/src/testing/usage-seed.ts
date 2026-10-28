@@ -2,7 +2,16 @@
  * straight to the database / WHY: the fee, usage-bill and fair-use suites share one setup */
 
 import { randomUUID } from 'node:crypto'
-import { type Db, order, planPayment, type StorePlanId, store, storePlan } from '@commerce/db'
+import {
+  type Db,
+  order,
+  planPayment,
+  product,
+  type StorePlanId,
+  store,
+  storePlan,
+  variant,
+} from '@commerce/db'
 
 export async function seedStore(owner: Db, slug: string): Promise<string> {
   const [s] = await owner
@@ -82,3 +91,39 @@ export const ordersFrom = (n: number, from: Date, totalPaise = 1_00_000): SeedOr
     placedAt: new Date(from.getTime() + i * 60_000),
     totalPaise,
   }))
+
+/** The SKUs the platform sales store sells for plan, fee and carried bills in these tests. */
+const SALES_SKUS: { sku: string; pricePaise: number }[] = [
+  { sku: 'plan-starter-month', pricePaise: 49_900 },
+  { sku: 'plan-growth-month', pricePaise: 1_99_900 },
+  { sku: 'usage-fee-starter', pricePaise: 0 },
+  { sku: 'usage-fee-growth', pricePaise: 0 },
+  { sku: 'usage-fee-pro', pricePaise: 0 },
+  { sku: 'usage-fee-carried', pricePaise: 0 },
+]
+
+/** A sales store with Razorpay on and every plan and fee SKU, as the platform runs it. */
+export async function seedSalesStore(owner: Db): Promise<string> {
+  const [s] = await owner
+    .insert(store)
+    .values({ slug: 'koomerce-sales', name: 'Koomerce', payments: { enabled: ['razorpay'] } })
+    .returning()
+  if (!s) throw new Error('seed sales store')
+  const [p] = await owner
+    .insert(product)
+    .values({ storeId: s.id, handle: 'billing', title: 'Koomerce billing', status: 'active' })
+    .returning()
+  if (!p) throw new Error('seed sales product')
+  await owner.insert(variant).values(
+    SALES_SKUS.map((v) => ({
+      storeId: s.id,
+      productId: p.id,
+      title: v.sku,
+      sku: v.sku,
+      pricePaise: v.pricePaise,
+      // A bill ships nothing; the platform's plan products don't track stock.
+      trackInventory: false,
+    })),
+  )
+  return s.id
+}

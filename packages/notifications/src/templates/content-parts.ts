@@ -363,6 +363,8 @@ export const platformTemplates = {
         return `${b.amountLabel} for ${b.what} is still unpaid. Your paid time ended on ${b.dueLabel}; pay now to keep everything working.`
       if (b.kind === 'renewal')
         return `${b.what} renews on ${b.dueLabel}. Pay ${b.amountLabel} (including GST) by then to keep it running.`
+      if (b.kind === 'usage')
+        return `${b.what}: ${b.amountLabel} (including GST), for the orders past your plan's included ones. Please pay by ${b.dueLabel}. Nothing is paused while it waits; if it is still unpaid at your next renewal, it is added to that bill.`
       return `${b.amountLabel} (including GST) for ${b.what}. It starts as soon as the payment goes through.`
     },
     outro: (d) =>

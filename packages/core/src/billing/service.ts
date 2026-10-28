@@ -14,10 +14,11 @@ import {
   type StoreTx,
   store,
   storePlan,
+  usageBill,
   variant,
   withStore,
 } from '@commerce/db'
-import { and, desc, eq, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import { storefrontOriginFor } from '../domains/origin'
 import { CommerceError } from '../errors'
 import { convertDraft, createDraft } from '../order/drafts'
@@ -40,6 +41,8 @@ import {
   TRIAL_DAYS,
 } from './plans'
 import { type PlanUsage, planUsage } from './usage'
+import { billable, monthFee } from './usage-fee'
+import { loadMonthFeeInputs, monthOf, monthRange, previousMonth } from './usage-fee-service'
 
 const DAY_MS = 86_400_000
 
@@ -112,13 +115,17 @@ export type PlanView = {
   invoiceEmail: string | null
 }
 
-const billUrl = (env: BillingEnv, b: BillRow): string | null =>
+/** The signed order page on the sales store: pay while due, the invoice once paid. */
+export const salesOrderUrl = (env: BillingEnv, id: string, number: number): string | null =>
   env.salesStorefrontUrl
     ? `${env.salesStorefrontUrl.replace(/\/$/, '')}${thankYouPath(
-        b.salesOrderNumber,
-        orderViewToken(b.salesOrderId, env.settingsSecret),
+        number,
+        orderViewToken(id, env.settingsSecret),
       )}`
     : null
+
+const billUrl = (env: BillingEnv, b: BillRow): string | null =>
+  salesOrderUrl(env, b.salesOrderId, b.salesOrderNumber)
 
 const toBill = (env: BillingEnv, b: BillRow): PlanBill => ({
   id: b.id,
@@ -189,16 +196,19 @@ async function salesGateway(tx: StoreTx, salesStoreId: string): Promise<string |
   return enabled.find((id) => isGatewayProvider(id)) ?? null
 }
 
+/** One line of a sales order: the variant with `sku`, once; `unitPricePaise` sets a computed amount. */
+export type SalesLine = { sku: string; unitPricePaise?: number }
+
 /**
- * One bill as an order on the sales store: the variant with `sku`, a draft for the buying
- * store's name and email, converted to an open order with a payment attempt waiting. Plan
- * bills and app bills both go through here.
+ * One bill as an order on the sales store: the variants with each line's `sku`, a draft for
+ * the buying store's name and email, converted to an open order with a payment attempt
+ * waiting. Plan, app, credit and usage bills all go through here.
  */
 export async function placeSalesOrder(
   db: Db,
   env: BillingEnv,
   storeId: string,
-  input: { sku: string; note: (buyer: string) => string },
+  input: { lines: SalesLine[]; note: (buyer: string) => string },
 ): Promise<{ id: string; number: number; totalPaise: number }> {
   const salesStoreId = env.salesStoreId
   if (!salesStoreId) throw new BillingNotReady('no_sales_store')
@@ -212,15 +222,23 @@ export async function placeSalesOrder(
   // A GST-registered store gets a B2B invoice it can claim input credit on.
   const gst = buyer?.gstin ? validateGstin(buyer.gstin) : null
   return withStore(db, salesStoreId, async (tx) => {
-    const v = await variantBySku(tx, input.sku)
-    if (!v) throw new BillingNotReady('no_plan_product')
+    const lines = []
+    for (const line of input.lines) {
+      const v = await variantBySku(tx, line.sku)
+      if (!v) throw new BillingNotReady('no_plan_product')
+      lines.push({
+        variantId: v.id,
+        quantity: 1,
+        ...(line.unitPricePaise === undefined ? {} : { unitPricePaise: line.unitPricePaise }),
+      })
+    }
     const gateway = await salesGateway(tx, salesStoreId)
     if (!gateway) throw new BillingNotReady('no_gateway')
     const ctx = { storeId: salesStoreId, tx }
     const draft = await createDraft(ctx, {
       email: buyer?.email ?? null,
       customerName: buyer?.name ?? null,
-      lines: [{ variantId: v.id, quantity: 1 }],
+      lines,
       discountPaise: 0,
       shippingPaise: 0,
       note: input.note(buyer?.name ?? storeId),
@@ -259,7 +277,7 @@ export async function createPlanBill(
 ): Promise<PlanBill> {
   const periodEnd = addInterval(input.periodStart, input.interval)
   const sale = await placeSalesOrder(db, env, storeId, {
-    sku: planSku(input.plan, input.interval),
+    lines: [{ sku: planSku(input.plan, input.interval) }],
     note: (buyer) =>
       `${siteConfig.brand.name} ${input.plan} (${input.interval}) for ${buyer}, store ${storeId}`,
   })
@@ -384,6 +402,163 @@ export async function cancelPlanBill(db: Db, salesOrderId: string): Promise<void
       .update(planPayment)
       .set({ status: 'cancelled' })
       .where(and(eq(planPayment.salesOrderId, salesOrderId), eq(planPayment.status, 'due'))),
+  )
+}
+
+/** The sales-store SKU a fee line is billed on: one per plan rate, and one for carried fees. */
+export const usageFeeSku = (plan: PlanId | 'carried'): string => `usage-fee-${plan}`
+
+/** "October 2026" for the bill and its email. */
+const monthLabel = (month: string): string =>
+  new Date(`${month}-15T00:00:00Z`).toLocaleString('en-IN', {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })
+
+export type UsageBillingResult = { stores: number; billed: number; carried: number }
+
+/**
+ * The 1st's per-order fee bill for the month that just ended, for every store that had paid
+ * plan time in it. Runs with the hourly sweep and is idempotent: a store and month get one
+ * `usage_bill` row, so later runs skip it. Under ₹100 (with what was carried in) the month is
+ * recorded as `carried`; otherwise one order on the sales store, a line per plan rate plus one
+ * for carried fees, and an email with the pay link. Never changes a store's plan status.
+ */
+export async function runUsageBilling(
+  db: Db,
+  env: BillingEnv,
+  now = new Date(),
+): Promise<UsageBillingResult> {
+  const result: UsageBillingResult = { stores: 0, billed: 0, carried: 0 }
+  const month = previousMonth(monthOf(now))
+  const { start, end } = monthRange(month)
+  const ids = await db.execute<{ id: string }>(
+    sql`select stores_with_paid_period(${start.toISOString()}::timestamptz, ${end.toISOString()}::timestamptz) as id`,
+  )
+  for (const { id: storeId } of ids) {
+    result.stores++
+    const input = await withStore(db, storeId, async (tx) => {
+      const [done] = await tx
+        .select({ id: usageBill.id })
+        .from(usageBill)
+        .where(and(eq(usageBill.storeId, storeId), eq(usageBill.month, month)))
+      if (done) return null
+      const carried = await tx
+        .select({ id: usageBill.id, totalPaise: usageBill.totalPaise })
+        .from(usageBill)
+        .where(and(eq(usageBill.storeId, storeId), eq(usageBill.status, 'carried')))
+      const { orders, periods } = await loadMonthFeeInputs(tx, storeId, month)
+      return { fee: monthFee(orders, periods), carried }
+    })
+    if (!input) continue
+    const carriedIn = input.carried.reduce((n, c) => n + c.totalPaise, 0)
+    const { bill, totalPaise } = billable(input.fee.feePaise, carriedIn)
+    let sale: { id: string; number: number; totalPaise: number } | null = null
+    if (bill) {
+      try {
+        sale = await placeSalesOrder(db, env, storeId, {
+          lines: [
+            ...input.fee.lines.map((l) => ({
+              sku: usageFeeSku(l.plan),
+              unitPricePaise: l.feePaise,
+            })),
+            ...(carriedIn > 0 ? [{ sku: usageFeeSku('carried'), unitPricePaise: carriedIn }] : []),
+          ],
+          note: (buyer) =>
+            `${siteConfig.brand.name} per-order fees ${month} for ${buyer}, store ${storeId}`,
+        })
+      } catch (err) {
+        // Not set up yet: no row, so the next run tries again.
+        if (err instanceof BillingNotReady) continue
+        throw err
+      }
+    }
+    const written = await withStore(db, storeId, async (tx) => {
+      const [row] = await tx
+        .insert(usageBill)
+        .values({
+          storeId,
+          month,
+          ordersCounted: input.fee.ordersCounted,
+          feeOrders: input.fee.feeOrders,
+          feePaise: input.fee.feePaise,
+          carriedInPaise: carriedIn,
+          totalPaise,
+          lines: input.fee.lines,
+          salesOrderId: sale?.id ?? null,
+          salesOrderNumber: sale?.number ?? null,
+          status: sale ? 'due' : 'carried',
+        })
+        .onConflictDoNothing({ target: [usageBill.storeId, usageBill.month] })
+        .returning({ id: usageBill.id })
+      if (row && input.carried.length > 0)
+        await tx
+          .update(usageBill)
+          .set({ status: 'merged' })
+          .where(
+            inArray(
+              usageBill.id,
+              input.carried.map((c) => c.id),
+            ),
+          )
+      return Boolean(row)
+    })
+    if (!written) continue
+    if (!sale) {
+      result.carried++
+      continue
+    }
+    result.billed++
+    await sendPlanBillEmail(db, storeId, {
+      kind: 'usage',
+      what: `Per-order fees for ${monthLabel(month)}`,
+      amountPaise: sale.totalPaise,
+      due: new Date(now.getTime() + GRACE_DAYS * DAY_MS),
+      url: salesOrderUrl(env, sale.id, sale.number),
+    })
+  }
+  return result
+}
+
+/** The store a fee bill's sales order belongs to (its own order, or the plan bill it joined). */
+async function usageBillStore(db: Db, salesOrderId: string): Promise<string | null> {
+  const rows = await db.execute<{ id: string | null }>(
+    sql`select usage_bill_store(${salesOrderId}::uuid) as id`,
+  )
+  return rows[0]?.id ?? null
+}
+
+/** The sales store's `order.paid` hook for a fee bill. Safe to run twice. */
+export async function markUsageBillPaid(
+  db: Db,
+  salesOrderId: string,
+  now = new Date(),
+): Promise<{ storeId: string } | null> {
+  const storeId = await usageBillStore(db, salesOrderId)
+  if (!storeId) return null
+  const updated = await withStore(db, storeId, (tx) =>
+    tx
+      .update(usageBill)
+      .set({ status: 'paid', paidAt: now })
+      .where(and(eq(usageBill.salesOrderId, salesOrderId), eq(usageBill.status, 'due')))
+      .returning({ id: usageBill.id }),
+  )
+  return updated.length > 0 ? { storeId } : null
+}
+
+/**
+ * The sales store cancelled or fully refunded a fee bill's order. Only a `due` bill turns
+ * `cancelled`: a bill already added to a plan bill (`merged`) stays owed through that one.
+ */
+export async function cancelUsageBill(db: Db, salesOrderId: string): Promise<void> {
+  const storeId = await usageBillStore(db, salesOrderId)
+  if (!storeId) return
+  await withStore(db, storeId, (tx) =>
+    tx
+      .update(usageBill)
+      .set({ status: 'cancelled' })
+      .where(and(eq(usageBill.salesOrderId, salesOrderId), eq(usageBill.status, 'due'))),
   )
 }
 

@@ -12,7 +12,7 @@ import type { PlatformCodeSender } from '../accounts/deliver-code'
 import { getPlatformEmail } from '../sender-email/platform'
 
 export type PlanBillEmail = {
-  kind: 'renewal' | 'overdue'
+  kind: 'renewal' | 'overdue' | 'usage'
   /** "Growth plan (monthly)", "Reviews app". */
   what: string
   amountPaise: number
