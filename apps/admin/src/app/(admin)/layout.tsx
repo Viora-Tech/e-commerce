@@ -88,7 +88,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             ? {
                 used: plan.used,
                 limit: plan.limit,
-                feePercent: feePercent(plan.feeBasisPoints),
+                // Trial orders carry no fee, so the card warns only once the store is paying.
+                feePercent: plan.status === 'trialing' ? '0' : feePercent(plan.feeBasisPoints),
                 // "More room on Growth plan": the next plan up (none past Scale).
                 planName: nextUp ? billingContent.plans[nextUp].name : null,
               }

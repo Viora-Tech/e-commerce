@@ -130,7 +130,7 @@ export default [
       states: {
         carried: 'अगले महीने में जुड़ा',
         due: 'बाकी',
-        merged: 'प्लान बिल में जुड़ा',
+        merged: 'बाद के बिल में जुड़ा',
         paid: 'भरा गया',
         cancelled: 'रद्द',
       },

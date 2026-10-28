@@ -142,6 +142,10 @@ describe('runUsageBilling', () => {
         totalPaise: 11_000,
       },
     ])
+    // Paying November's bill settles the October fees it carried.
+    const [, nov] = await rows(id)
+    await markUsageBillPaid(app, nov?.salesOrderId as string, DEC_RUN)
+    expect((await rows(id)).map((r) => r.status)).toEqual(['paid', 'paid'])
   })
 
   it('keeps a carried amount when the next month has no fee', async () => {
@@ -191,14 +195,17 @@ describe('unpaid fee bills and the next plan bill', () => {
   it('adds an unpaid usage bill to the renewal and settles it when paid', async () => {
     const env = await billingEnv()
     const id = await seedStore(owner, 'asha')
-    await seedPaidPeriod(owner, id, 'starter', OCT, NOV)
+    // Paid to 6 Nov: the 1st's run (sweep first, as the worker runs it) bills no renewal yet.
+    const renews = new Date(NOV.getTime() + 5 * 86_400_000)
+    await seedPaidPeriod(owner, id, 'starter', OCT, renews)
     await seedOrders(owner, id, ordersFrom(60, new Date('2026-10-05T06:00:00Z'), 2_00_000))
+    await runBillingSweep(app, env, NOV_RUN)
     await runUsageBilling(app, env, NOV_RUN)
     const [fee] = await rows(id)
     expect(fee?.status).toBe('due')
 
-    // The period ended, so the sweep bills the renewal and the fee rides on it.
-    await runBillingSweep(app, env, NOV_RUN)
+    // Three days before the period ends the sweep bills the renewal, and the unpaid fee rides on it.
+    await runBillingSweep(app, env, new Date(renews.getTime() - 2 * 86_400_000))
     const [renewal] = await owner.select().from(planPayment).where(eq(planPayment.status, 'due'))
     const planOrder = renewal?.salesOrderId as string
     const lines = await owner

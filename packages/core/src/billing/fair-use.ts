@@ -3,6 +3,7 @@
  * Koomerce reaching out. Nothing is ever blocked, slowed or billed by this.
  */
 import { siteConfig } from '@commerce/config/site'
+import { dayKey } from '@commerce/dates'
 import { type Db, marketingSession, type StoreTx, storePlan, withStore } from '@commerce/db'
 import { and, count, eq, gte, lt, sql } from 'drizzle-orm'
 import { planName, sendPlanBillEmail } from './emails'
@@ -22,6 +23,9 @@ export async function monthVisits(tx: StoreTx, month: string): Promise<number> {
   return row?.n ?? 0
 }
 
+/** Days at the start of a month the check runs on. */
+const FAIR_USE_CHECK_DAYS = 3
+
 /** Over fair use: both of the last two months above the plan's visits. Scale is judged by hand. */
 export function overFairUse(plan: PlanId, lastTwo: [number, number]): boolean {
   const limit = PLANS[plan].visitsPerMonth
@@ -37,6 +41,9 @@ export async function runFairUseCheck(
   db: Db,
   now = new Date(),
 ): Promise<{ checked: number; noticed: number }> {
+  // Only finished months are judged, so the hourly sweep counts on the first few days of a
+  // month (a missed day is caught by the next) and skips the scan the rest of the month.
+  if (Number(dayKey(now).slice(8, 10)) > FAIR_USE_CHECK_DAYS) return { checked: 0, noticed: 0 }
   const last = previousMonth(billingMonth(now))
   const before = previousMonth(last)
   const from = monthRange(before).start
