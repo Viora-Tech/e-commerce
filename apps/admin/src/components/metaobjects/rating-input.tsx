@@ -52,7 +52,7 @@ export default function RatingInput({ id, value, rules, onChange }: RatingInputP
                 full || half ? 'text-warning' : 'text-muted-foreground',
               )}
             >
-              {half ? <StarHalfIcon /> : <StarIcon weight={full ? 'fill' : 'regular'} />}
+              {half ? <StarHalfIcon /> : <StarIcon fill={full ? 'currentColor' : 'none'} />}
             </button>
           )
         })}

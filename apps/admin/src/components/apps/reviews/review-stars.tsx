@@ -1,4 +1,4 @@
-import { StarHalfIcon, StarIcon } from '@commerce/ui/icons'
+import { StarIcon } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 
 type ReviewStarsProps = {
@@ -13,7 +13,11 @@ type ReviewStarsProps = {
 const STEPS = [1, 2, 3, 4, 5]
 const SIZE = { sm: '[&_svg]:size-3.5', md: '[&_svg]:size-4.5' } as const
 
-/** A row of five stars in the warning (amber) tone; empty ones in muted ink. */
+/**
+ * A row of five filled stars in the warning (amber) tone; empty ones in muted ink. The icon set
+ * only has outline glyphs (`weight` just thickens the line), so stars are filled with
+ * `fill="currentColor"`, and a half star is the amber star clipped to its left half.
+ */
 export default function ReviewStars({ value, label, size = 'sm', className }: ReviewStarsProps) {
   // Render logic
   const rounded = Math.round(value * 2) / 2
@@ -28,8 +32,19 @@ export default function ReviewStars({ value, label, size = 'sm', className }: Re
         const full = rounded >= n
         const half = !full && rounded >= n - 0.5
         return (
-          <span key={n} className={full || half ? 'text-warning' : 'text-muted-foreground/40'}>
-            {half ? <StarHalfIcon aria-hidden /> : <StarIcon weight="fill" aria-hidden />}
+          <span
+            key={n}
+            className={cn(
+              'relative inline-flex',
+              full ? 'text-warning' : 'text-muted-foreground/40',
+            )}
+          >
+            <StarIcon fill="currentColor" aria-hidden />
+            {half ? (
+              <span className="absolute inset-y-0 left-0 flex w-1/2 overflow-hidden text-warning">
+                <StarIcon fill="currentColor" aria-hidden />
+              </span>
+            ) : null}
           </span>
         )
       })}

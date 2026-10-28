@@ -251,6 +251,21 @@ async function seed(opts: { delivered?: Date | null; paid?: boolean } = {}) {
 const inStore = <T>(storeId: string, fn: (ctx: StoreContext) => Promise<T>) =>
   withStore(app, storeId, (tx) => fn({ storeId, tx }))
 
+/** A merchant-opened return of one unit, approved and received (not restocked: damaged). */
+async function receivedReturn(storeId: string, orderId: string, orderLineId: string) {
+  const r = await inStore(storeId, (ctx) =>
+    requestReturn(ctx, {
+      orderId,
+      lines: [{ orderLineId, quantity: 1 }],
+      reason: 'damaged',
+      requestedBy: 'merchant',
+    }),
+  )
+  await inStore(storeId, (ctx) => approveReturn(ctx, r.id))
+  await inStore(storeId, (ctx) => receiveReturn(ctx, r.id, { condition: 'damaged' }))
+  return r
+}
+
 const onHand = async (variantId: string) =>
   (await owner.select().from(inventoryLevel).where(eq(inventoryLevel.variantId, variantId)))[0]
     ?.onHand
@@ -440,6 +455,57 @@ describe('customer return, start to finish', () => {
     })
     const listed = await inStore(s.storeId, (ctx) => listReturns(ctx, { search: 'R-2' }))
     expect(listed.items.map((i) => i.label)).toEqual(['R-2'])
+  })
+
+  it('records store credit as a refund of the payment, with one gift card (#879)', async () => {
+    const s = await seed()
+    const r = await receivedReturn(s.storeId, s.orderId, s.lineId)
+    const credit = await inStore(s.storeId, (ctx) =>
+      storeCreditReturn(ctx, r.id, { amountPaise: 100000, secret: SECRET }),
+    )
+    const rows = await owner.select().from(refund).where(eq(refund.orderId, s.orderId))
+    expect(rows).toEqual([
+      expect.objectContaining({
+        amountPaise: 100000,
+        method: 'store_credit',
+        status: 'manual',
+        giftCardId: credit.giftCardId,
+      }),
+    ])
+    expect(credit.row.refundIds).toEqual([rows[0]?.id])
+    expect(await owner.select().from(giftCard).where(eq(giftCard.storeId, s.storeId))).toHaveLength(
+      1,
+    )
+    // Tagged with the return: the GST invoices plugin credits the returned unit from it.
+    const created = await events(s.storeId, 'refund.created')
+    expect(created.map((e) => e.payload)).toEqual([
+      { orderId: s.orderId, refundId: rows[0]?.id, returnId: r.id },
+    ])
+  })
+
+  it('records a refund paid back by hand without the gateway; no credit is left after it', async () => {
+    const s = await seed()
+    await owner
+      .update(payment)
+      .set({ provider: 'razorpay', providerPaymentId: 'pay_1' })
+      .where(eq(payment.orderId, s.orderId))
+    const a = await receivedReturn(s.storeId, s.orderId, s.lineId)
+    const providerFor = async () => {
+      throw new Error('the gateway must not be asked')
+    }
+    const done = await inStore(s.storeId, (ctx) =>
+      refundReturn(ctx, a.id, { amountPaise: 200000, providerFor, method: 'upi' }),
+    )
+    expect(done).toMatchObject({ status: 'resolved', resolution: 'refund' })
+    const [row] = await owner.select().from(refund).where(eq(refund.orderId, s.orderId))
+    expect(row).toMatchObject({ amountPaise: 200000, method: 'upi', status: 'manual' })
+    // Everything paid is back, so store credit for the other unit would pay twice.
+    const b = await receivedReturn(s.storeId, s.orderId, s.lineId)
+    await expect(
+      inStore(s.storeId, (ctx) =>
+        storeCreditReturn(ctx, b.id, { amountPaise: 100000, secret: SECRET }),
+      ),
+    ).rejects.toThrow(/left to refund/)
   })
 
   it('keeps one store from reading another store’s returns', async () => {

@@ -1,5 +1,5 @@
 import { settingsSecret } from '@commerce/config'
-import { permissions, RETURN_REASONS, RETURN_STATUSES } from '@commerce/core'
+import { permissions, REFUND_METHODS, RETURN_REASONS, RETURN_STATUSES } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
@@ -141,7 +141,14 @@ export const returnsRouter = {
     .handler(({ context, input }) => closeStoreReturn(context.tx, context.scope.storeId, input.id)),
 
   refund: can(permissions.ORDERS_REFUND)
-    .input(z.object({ id: z.uuid(), amountPaise: z.number().int().positive() }))
+    .input(
+      z.object({
+        id: z.uuid(),
+        amountPaise: z.number().int().positive(),
+        /** Paid back by hand (UPI, bank transfer, cash): recorded, no gateway call. */
+        method: z.enum(REFUND_METHODS).exclude(['store_credit']).optional(),
+      }),
+    )
     .handler(async ({ context, input }) => {
       const { payments } = await storeRegistries(context.tx, context.scope.storeId)
       return refundStoreReturn(
@@ -151,6 +158,7 @@ export const returnsRouter = {
         settingsSecret(),
         input.id,
         input.amountPaise,
+        input.method,
       )
     }),
 

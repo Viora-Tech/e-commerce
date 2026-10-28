@@ -168,7 +168,7 @@ export default function SeoKeywordsCard({ productId, form, aiOn, onChange }: Seo
                 title={i === 0 ? copy.primaryHint : copy.makePrimary}
                 className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-primary disabled:text-primary"
               >
-                <StarIcon weight={i === 0 ? 'fill' : 'regular'} className="size-4" />
+                <StarIcon fill={i === 0 ? 'currentColor' : 'none'} className="size-4" />
                 <span className="sr-only">{i === 0 ? copy.primary : copy.makePrimary}</span>
               </button>
               <span className="min-w-0 flex-1 truncate text-body text-foreground">{keyword}</span>

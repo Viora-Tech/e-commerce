@@ -81,11 +81,16 @@ Otherwise select **Put back in stock** when you are ready.
 
 ### Give the money back, or send a replacement
 
-- **Refund**: full or part of the amount, back to the way the customer paid (Razorpay,
-  Cashfree, Decentro, or a UPI or bank transfer you send yourself). The amount is filled in
-  for you.
+- **Refund**: full or part of the amount. The amount is filled in for you. Then choose how
+  it goes back:
+  - **Back the way they paid** sends it through Razorpay, Cashfree or Decentro.
+  - **Paid back by hand** is for money you sent yourself (UPI, bank transfer, cash or
+    cheque). Koomerce only records it, with how you paid.
+
+  An imported or cash on delivery order can only be paid back by hand.
 - **Store credit**: a gift card for the amount, emailed to the customer, which they use at
-  checkout next time.
+  checkout next time. It counts as money back, so it comes off what the order can still
+  refund.
 - **Exchange**: we make a free draft order with the same items for the same address. Open it
   under **Orders → Drafts**, check it and turn it into an order to ship it. When you do, the
   customer is told their exchange is on its way, with the new order number and a link to it.
@@ -141,7 +146,7 @@ numbers, so it is worth checking your checkout and confirmation messages.
 | The customer does not see **Return or exchange** | The order is not delivered yet, the window has passed, or returns are off. | Check **Settings → Returns**. You can still open a return for them from the order page. |
 | The courier pickup option is missing | No connected courier supports reverse pickups. | Connect Delhivery or Shiprocket in **Apps**, or use **Ask the customer to send it**. |
 | Shiprocket says it created the return but gave no courier | Shiprocket could not pick a courier for that PIN code. | Open the return in Shiprocket and assign a courier there. |
-| Refund button says "more than is left to refund" | Part of the money was already refunded from the order page. | Enter a smaller amount. |
+| Refund or store credit says "more than is left to refund" | Part of the money was already refunded or given as store credit. | Enter a smaller amount. |
 
 ## FAQ
 
@@ -165,6 +170,19 @@ window is open.
 
 Refunds to UPI and cards usually show in 5 to 7 working days, depending on their bank. Store
 credit is instant.
+
+</FaqItem>
+
+<FaqItem question="Do I pay GST twice when a customer spends their store credit?">
+
+No. With the **GST invoices** app, a return settled with a refund, a refund paid by hand or
+store credit gets a credit note for the returned items, at their own GST rate. That takes the
+first sale back. When the customer later spends the store credit, that order is billed in
+full, because the gift card is how they pay. So you pay GST once, on what they kept.
+
+Example: a ₹1,000 item comes back as ₹1,000 store credit, and the customer then buys a
+₹1,500 item with it. The credit note takes ₹1,000 off, the new bill adds ₹1,500, and you
+pay GST on the ₹500 difference.
 
 </FaqItem>
 
