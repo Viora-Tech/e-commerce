@@ -487,7 +487,12 @@ export const metafieldsCardContent = {
   addField: 'Add a field',
   saveFirst: 'Save first, then fill in the extra fields.',
   variant: 'Variant',
-  variantHeading: 'Variant metafields: each variant has its own values',
+  variantHeading: 'Variant metafields',
+  /** Under the heading of the variant grid on the product page. */
+  variantHelp: 'Each variant has its own values. Saved with the page’s Save changes.',
+  /** Shown while some variants are new: they get a row once the product is saved. */
+  variantNewLater: 'Variants you just added get a row after you save.',
+  variantSaveFailed: (variant: string) => `Could not save the fields of ${variant}.`,
   save: 'Save extra fields',
   saving: 'Saving',
   saved: 'Extra fields saved',
