@@ -14,6 +14,7 @@ import PixelTrack from '@/components/analytics/pixel-track'
 import CheckoutForm from '@/components/checkout/checkout-form'
 import { emiHintContent } from '@/data/product'
 import { readCartId } from '@/lib/cart-cookie'
+import { withThemeLogo } from '@/lib/checkout-look'
 import { readCheckoutSession } from '@/lib/checkout-session'
 import { currentCustomer } from '@/lib/customer-session'
 import { cartDiscountView } from '@/lib/discount-view'
@@ -58,7 +59,9 @@ export default async function CheckoutPage({ params }: Params) {
       inStore(storeId, (tx) => cartDepositTerms(tx, storeId, cart.id)),
       inStore(storeId, (tx) => storeCheckoutSettings({ tx, storeId })),
       inStore(storeId, (tx) => publishedPolicyLinks({ tx, storeId })),
-      inStore(storeId, (tx) => storeCheckoutLook({ tx, storeId })),
+      inStore(storeId, (tx) => storeCheckoutLook({ tx, storeId })).then((l) =>
+        withThemeLogo(storeId, l),
+      ),
       inStore(storeId, (tx) => storeEmiOffers(tx, storeId)),
     ])
   // The EMI line under the total: the EMI app's own minimum once installed, else the older hint's.

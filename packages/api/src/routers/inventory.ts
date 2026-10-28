@@ -74,6 +74,15 @@ const listInput = z.object({
   stock: z.enum(['all', ...STOCK_FILTERS]).optional(),
   vendor: z.string().max(200).optional(),
   productType: z.string().max(200).optional(),
+  /** Any of these (the admin's multi-pick filters); the single fields above still work. */
+  vendors: z.array(z.string().max(200)).max(50).optional(),
+  productTypes: z.array(z.string().max(200)).max(50).optional(),
+  tags: z.array(z.string().max(50)).max(50).optional(),
+  collectionIds: z.array(z.uuid()).max(50).optional(),
+  productStatus: z
+    .array(z.enum(['active', 'draft']))
+    .max(2)
+    .optional(),
   changed: z.enum(STOCK_CHANGED_FILTERS).optional(),
   group: z.enum(['variant', 'product']).optional(),
   sort: z.enum(['product', 'available_asc', 'available_desc']).optional(),

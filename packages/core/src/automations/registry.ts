@@ -29,10 +29,15 @@ const executors = new Map<string, ActionExecutor>()
 /**
  * Register an action's server half under its catalogue id. Built-ins register from
  * `actions/index.ts` (imported by `server.ts`); a second registration of one id throws so two
- * files can never both own an action.
+ * files can never both own an action. `replace` is for the built-ins re-registering themselves:
+ * the dev server re-runs `actions/index.ts` on hot reload while this map lives on, and the newest
+ * code should win instead of the page crashing.
  */
-export function registerActionExecutor<C>(executor: ActionExecutor<C>): void {
-  if (executors.has(executor.id)) {
+export function registerActionExecutor<C>(
+  executor: ActionExecutor<C>,
+  opts: { replace?: boolean } = {},
+): void {
+  if (executors.has(executor.id) && !opts.replace) {
     throw new Error(`automation action "${executor.id}" registered twice`)
   }
   executors.set(executor.id, executor as unknown as ActionExecutor)

@@ -13,6 +13,7 @@ import InvoicePay from '@/components/checkout/invoice-pay'
 import SummaryLine from '@/components/checkout/summary-line'
 import { invoiceContent as content } from '@/data/checkout'
 import { CK_HEADING } from '@/lib/checkout-classes'
+import { withThemeLogo } from '@/lib/checkout-look'
 import { inStore } from '@/lib/store-context'
 
 type Params = { params: Promise<{ storeId: string; token: string }> }
@@ -33,7 +34,10 @@ export default async function InvoicePage({ params }: Params) {
   if (data && !data.payable)
     redirect(thankYouPath(data.number, orderViewToken(data.id, settingsSecret())))
 
-  const look = await inStore(storeId, (tx) => storeCheckoutLook({ tx, storeId }))
+  const look = await withThemeLogo(
+    storeId,
+    await inStore(storeId, (tx) => storeCheckoutLook({ tx, storeId })),
+  )
   return (
     <CheckoutShell look={look} backHref="/" backLabel={content.back}>
       {data?.payable ? (

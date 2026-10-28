@@ -66,6 +66,13 @@ export const inventoryContent = {
     stock: 'Stock',
     vendor: 'Vendor',
     productType: 'Product type',
+    tag: 'Tag',
+    collection: 'Collection',
+    productStatus: 'Product status',
+    productStatusOptions: [
+      { value: 'active', label: 'Active' },
+      { value: 'draft', label: 'Draft' },
+    ],
     any: 'Any',
     stockOptions: [
       { value: 'in', label: 'In stock' },

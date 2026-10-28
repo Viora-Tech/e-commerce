@@ -13,6 +13,7 @@ import {
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import {
+  collection,
   inventoryLevel,
   media,
   primarySellingLevel,
@@ -25,7 +26,7 @@ import {
   variant,
   variantOptionValue,
 } from '@commerce/db'
-import { and, asc, count, desc, eq, ilike, inArray, isNull, or, sql } from 'drizzle-orm'
+import { and, asc, count, desc, eq, gte, ilike, inArray, isNull, lt, or, sql } from 'drizzle-orm'
 
 // Services are the only code that runs queries. They receive a store-scoped tx.
 
@@ -60,6 +61,14 @@ export type ProductListInput = {
   tag?: string | undefined
   stock?: ProductStockFilter | undefined
   ids?: string[] | undefined
+  vendors?: string[] | undefined
+  productTypes?: string[] | undefined
+  tags?: string[] | undefined
+  collectionIds?: string[] | undefined
+  priceMinPaise?: number | undefined
+  priceMaxPaise?: number | undefined
+  createdFrom?: string | undefined
+  createdTo?: string | undefined
   /** Ids only: the export route reuses the current filter without paging. */
   idsOnly?: boolean | undefined
 }
@@ -73,6 +82,11 @@ function listWhere(input: ProductListInput, lowThreshold: number) {
           ilike(product.title, `%${input.search}%`),
           ilike(product.productType, `%${input.search}%`),
           ilike(product.vendor, `%${input.search}%`),
+          sql`exists (
+            select 1 from variant v
+            where v.product_id = ${product.id} and v.archived_at is null
+              and v.sku ilike ${`%${input.search}%`}
+          )`,
         )
       : undefined,
     input.ids ? inArray(product.id, input.ids) : undefined,
@@ -80,6 +94,26 @@ function listWhere(input: ProductListInput, lowThreshold: number) {
     input.vendor ? eq(product.vendor, input.vendor) : undefined,
     input.productType ? eq(product.productType, input.productType) : undefined,
     input.tag ? sql`${input.tag} = ANY(${product.tags})` : undefined,
+    input.vendors?.length ? inArray(product.vendor, input.vendors) : undefined,
+    input.productTypes?.length ? inArray(product.productType, input.productTypes) : undefined,
+    input.tags?.length ? sql`${product.tags} && ${sql.param(input.tags)}::text[]` : undefined,
+    input.collectionIds?.length
+      ? sql`exists (
+          select 1 from collection_product cp
+          where cp.product_id = ${product.id}
+            and cp.collection_id = any(${sql.param(input.collectionIds)}::uuid[])
+        )`
+      : undefined,
+    input.priceMinPaise !== undefined || input.priceMaxPaise !== undefined
+      ? sql`exists (
+          select 1 from variant v
+          where v.product_id = ${product.id} and v.archived_at is null
+            and v.price_paise >= ${input.priceMinPaise ?? 0}
+            and v.price_paise <= ${input.priceMaxPaise ?? 2_147_483_647}
+        )`
+      : undefined,
+    input.createdFrom ? gte(product.createdAt, new Date(input.createdFrom)) : undefined,
+    input.createdTo ? lt(product.createdAt, new Date(input.createdTo)) : undefined,
     input.stock
       ? sql`(
           select coalesce(sum(greatest(0, il.on_hand - il.reserved)), 0)
@@ -279,6 +313,10 @@ export async function productFacets(tx: StoreTx, storeId: string) {
     .from(productOptionValue)
     .innerJoin(productOption, eq(productOption.id, productOptionValue.optionId))
     .orderBy(asc(productOption.name), asc(productOptionValue.position))
+  const collections = await tx
+    .select({ id: collection.id, title: collection.title })
+    .from(collection)
+    .orderBy(asc(collection.title))
   const [storeRow] = await tx
     .select({
       gstRatePercent: store.gstRatePercent,
@@ -294,6 +332,8 @@ export async function productFacets(tx: StoreTx, storeId: string) {
     productTypes: uniq(rows.map((r) => r.productType)),
     tags: uniq(rows.flatMap((r) => r.tags)),
     options: optionFacets(optionRows),
+    /** For the list's Collection filter. */
+    collections,
     gst: {
       ratePercent: storeRow?.gstRatePercent ?? DEFAULT_GST_RATE_PERCENT,
       composition: storeRow ? parseStoreTax(storeRow.apps).composition : false,

@@ -61,7 +61,7 @@ import { orderMessageRoutes } from './order-messages'
 const change = z.enum(ORDER_MARKS)
 
 export const ordersRouter = {
-  /** Orders, a page at a time, by list tab, status, payment, fulfilment, date or a search. */
+  /** Orders, a page at a time, by list tab, status, payment, fulfilment, date, product or a search. */
   list: can(permissions.ORDERS_READ)
     .input(
       z.object({
@@ -75,10 +75,13 @@ export const ordersRouter = {
         fulfillmentStatus: z.array(z.enum(ORDER_FULFILLMENT_STATUSES)).max(10).optional(),
         /** Placed at or after this moment (the filter panel's Date). */
         placedFrom: z.iso.datetime().optional(),
+        placedTo: z.iso.datetime().optional(),
         /** Cash on delivery, or anything paid up front. */
         paymentMethod: z.enum(['cod', 'prepaid']).optional(),
         /** Sent with this courier (the filter panel's Courier). */
         courier: z.string().trim().min(1).max(60).optional(),
+        /** Has a line whose product title, variant title or SKU contains this (the panel's Product). */
+        product: z.string().trim().min(1).max(SEARCH_MAX).optional(),
       }),
     )
     .handler(({ context, input }) => listOrders(context.tx, input)),
@@ -92,8 +95,10 @@ export const ordersRouter = {
         paymentStatus: z.array(z.enum(ORDER_PAYMENT_STATUSES)).max(10).optional(),
         fulfillmentStatus: z.array(z.enum(ORDER_FULFILLMENT_STATUSES)).max(10).optional(),
         placedFrom: z.iso.datetime().optional(),
+        placedTo: z.iso.datetime().optional(),
         paymentMethod: z.enum(['cod', 'prepaid']).optional(),
         courier: z.string().trim().min(1).max(60).optional(),
+        product: z.string().trim().min(1).max(SEARCH_MAX).optional(),
       }),
     )
     .handler(({ context, input }) => listOrderIds(context.tx, input)),

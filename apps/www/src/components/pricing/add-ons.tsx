@@ -1,9 +1,4 @@
-import {
-  AiIcon,
-  Phone_ as Phone,
-  Users_ as Users,
-  WhatsappLogo_ as WhatsappLogo,
-} from '@commerce/ui/icons'
+import { AiIcon, Phone_ as Phone, Users_ as Users, WhatsappLogo } from '@commerce/ui/icons'
 import type { ComponentType } from 'react'
 import { pricingContent } from '@/data/pricing'
 import IconBadge from '../common/icon-badge'

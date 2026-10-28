@@ -1,4 +1,4 @@
-import { CheckIcon, WhatsappLogo_ as WhatsappLogo } from '@commerce/ui/icons'
+import { CheckIcon, WhatsappLogo } from '@commerce/ui/icons'
 import { homeContent } from '@/data/home'
 import BentoTile from './bento-tile'
 

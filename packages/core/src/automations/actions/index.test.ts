@@ -1,7 +1,7 @@
 /** SOURCE OF TRUTH: built-in executor registration tests (actions/index.ts) — WHAT: one executor per catalogue action, tag planning and order-update template rules / WHY: a missing executor must fail here, not in a run. */
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { BUILTIN_ACTION_IDS } from '../builtin-actions'
-import { actionExecutor, resetActionExecutorsForTest } from '../registry'
+import { actionExecutor, registerActionExecutor, resetActionExecutorsForTest } from '../registry'
 import { builtinExecutors, missingBuiltinExecutors, registerBuiltinActions } from './index'
 import { isOrderUpdateTemplate } from './order-update'
 import { type BuiltinActionDeps, planTags } from './shared'
@@ -26,6 +26,21 @@ describe('registration', () => {
     registerBuiltinActions(deps)
     registerBuiltinActions(deps)
     for (const id of BUILTIN_ACTION_IDS) expect(actionExecutor(id)?.id).toBe(id)
+  })
+
+  it('survives a hot reload: a fresh copy of this module re-registers over the old one', async () => {
+    registerBuiltinActions(deps)
+    vi.resetModules()
+    // The re-run module's `registered` flag starts false while the registry keeps its map.
+    const fresh = await import('./index')
+    expect(() => fresh.registerBuiltinActions(deps)).not.toThrow()
+  })
+
+  it('still refuses a second, different owner of one action id', () => {
+    const [first] = builtinExecutors(async () => deps)
+    if (!first) throw new Error('no executors')
+    registerActionExecutor(first)
+    expect(() => registerActionExecutor(first)).toThrow('registered twice')
   })
 })
 

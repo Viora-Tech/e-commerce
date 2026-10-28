@@ -15,7 +15,7 @@ type BlockToolbarMoreProps = {
 const copy = customizeContent.toolbar
 
 const ITEM =
-  'flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-xs text-popover-foreground transition-colors duration-150 hover:bg-accent focus-visible:bg-accent focus-visible:outline-none motion-reduce:transition-none'
+  'flex h-8 w-full items-center gap-2 rounded-md border-0! bg-transparent! px-2 text-left text-xs text-popover-foreground! transition-colors duration-150 hover:bg-accent! focus-visible:bg-accent! focus-visible:outline-none motion-reduce:transition-none'
 
 /**
  * The toolbar's "more" button and its small menu: hide or show the block on the page, and
@@ -62,7 +62,7 @@ export default function BlockToolbarMore({
         aria-expanded={open}
         aria-label={copy.more(label)}
         title={copy.more(label)}
-        className="flex size-6 shrink-0 items-center justify-center rounded-[0.375rem] text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-expanded:bg-accent aria-expanded:text-foreground motion-reduce:transition-none"
+        className="flex size-6 shrink-0 items-center justify-center rounded-[0.375rem] border-0! bg-transparent! p-0! text-foreground/80! transition-colors duration-150 hover:bg-accent! hover:text-foreground! focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-expanded:bg-accent! aria-expanded:text-foreground! motion-reduce:transition-none"
       >
         <MoreHorizontal aria-hidden weight="regular" className="size-3.5" />
       </button>

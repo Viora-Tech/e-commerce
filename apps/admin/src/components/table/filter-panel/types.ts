@@ -1,5 +1,8 @@
 export type FilterOption = { value: string; label: string }
 
+/** The date preset that shows the From and To fields. */
+export const DATE_CUSTOM = 'custom'
+
 type GroupBase = {
   key: string
   label: string
@@ -38,7 +41,55 @@ export type RangeGroup = GroupBase & {
   format?: (value: string) => string
 }
 
-export type FilterGroup = ChecksGroup | SelectGroup | RangeGroup
+/** Free text the rows must contain ("pd170"); empty = no filter. The chip shows it as typed. */
+export type TextGroup = GroupBase & {
+  type: 'text'
+  value: string
+  onChange: (next: string) => void
+  placeholder?: string
+}
+
+/** Several values out of a long list (vendors, tags, states), found by typing; [] = no filter. */
+export type MultiGroup = GroupBase & {
+  type: 'multi'
+  options: readonly FilterOption[]
+  value: string[]
+  onChange: (next: string[]) => void
+  /** The search box's placeholder (default: the panel's "Search"). */
+  searchPlaceholder?: string
+}
+
+/**
+ * A date range: one of the group's presets ("Last 7 days") or a custom from–to (`DATE_CUSTOM`),
+ * as yyyy-mm-dd in the store's day. Both empty and no preset = no filter.
+ */
+export type DateFilterValue = { preset: string | null; from: string; to: string }
+
+export type DateGroup = GroupBase & {
+  type: 'date'
+  presets: readonly FilterOption[]
+  value: DateFilterValue
+  onChange: (next: DateFilterValue) => void
+  anyLabel: string
+}
+
+/** Yes, no or either (`null`): GST number given, has photos, subscribed. */
+export type BooleanGroup = GroupBase & {
+  type: 'boolean'
+  value: boolean | null
+  onChange: (next: boolean | null) => void
+  yesLabel?: string
+  noLabel?: string
+}
+
+export type FilterGroup =
+  | ChecksGroup
+  | SelectGroup
+  | RangeGroup
+  | TextGroup
+  | MultiGroup
+  | DateGroup
+  | BooleanGroup
 
 /** Plain strings (vendors, tags) as options whose label is the value. */
 export function facetOptions(values: string[]): FilterOption[] {

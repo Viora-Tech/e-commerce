@@ -155,7 +155,7 @@ export default function CheckoutForm(props: CheckoutFormProps) {
           ) : null}
           {pay}
           {footnote ? (
-            <p className="text-center text-[0.6875rem] text-ck-summary-muted">{footnote}</p>
+            <p className="text-center text-[0.75rem] text-ck-summary-muted">{footnote}</p>
           ) : null}
         </>
       }
@@ -163,7 +163,7 @@ export default function CheckoutForm(props: CheckoutFormProps) {
         <>
           {pay}
           {footnote ? (
-            <p className="text-center text-[0.625rem] text-ck-muted">{footnote}</p>
+            <p className="text-center text-[0.6875rem] text-ck-muted">{footnote}</p>
           ) : null}
         </>
       }

@@ -9,6 +9,7 @@ import CheckoutBalance from '@/components/checkout/checkout-balance'
 import CheckoutShell from '@/components/checkout/checkout-shell'
 import { balanceContent as content } from '@/data/checkout'
 import { CK_HEADING } from '@/lib/checkout-classes'
+import { withThemeLogo } from '@/lib/checkout-look'
 import { balanceView, storePreorderPolicy } from '@/lib/preorder'
 import { inStore } from '@/lib/store-context'
 
@@ -53,7 +54,10 @@ export default async function PayBalancePage({ params }: Params) {
     redirect(thankYouPath(data.number, orderViewToken(data.orderId, secret)))
   }
 
-  const look = await inStore(storeId, (tx) => storeCheckoutLook({ tx, storeId }))
+  const look = await withThemeLogo(
+    storeId,
+    await inStore(storeId, (tx) => storeCheckoutLook({ tx, storeId })),
+  )
   return (
     <CheckoutShell look={look} backHref="/" backLabel={content.back}>
       {data?.balance ? (

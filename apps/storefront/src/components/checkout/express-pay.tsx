@@ -1,7 +1,7 @@
 import CheckoutIcon from '@/components/checkout/checkout-icon'
 import PaymentMark, { type PaymentMarkName } from '@/components/checkout/payment-mark'
 import { checkoutContent as content } from '@/data/checkout'
-import { CK_CARD } from '@/lib/checkout-classes'
+import { CK_CARD, CK_HEADING } from '@/lib/checkout-classes'
 
 type ExpressPayProps = {
   /** Under the buttons: what one tap pays, with which shipping ("Pays ₹648 by UPI, with Standard shipping (₹49)."). */
@@ -38,7 +38,7 @@ export default function ExpressPay({ line, pending, disabled, message, onPay }: 
     >
       <h2
         id="checkout-express-title"
-        className="font-mono! text-[0.625rem]! font-medium! tracking-[0.08em]! text-ck-muted! uppercase! sm:text-[0.6875rem]!"
+        className={`${CK_HEADING} text-[0.875rem]! sm:text-[0.9375rem]!`}
       >
         {copy.heading}
       </h2>

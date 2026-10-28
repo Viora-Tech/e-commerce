@@ -62,6 +62,7 @@ import { inboxLauncherOf } from '@/lib/inbox-launcher'
 import { chatLogoUrl } from '@/lib/inbox-logo'
 import { liquidShim } from '@/lib/liquid-shim'
 import { liquidLayoutFor, reactAttrs } from '@/lib/liquid-theme'
+import { requestMarketPricing } from '@/lib/market-pricing'
 import { MARKET_HEADERS } from '@/lib/markets'
 import { mediaByUrl } from '@/lib/media-lookup'
 import { subscribeAction } from '@/lib/newsletter-actions'
@@ -239,6 +240,8 @@ export default async function StoreLayout({ children, params }: Props) {
   // The page's language: its market's (`lib/markets.ts`).
   const lang = (await headers()).get(MARKET_HEADERS.locale) ?? 'en'
   const themeId = preview?.themeId ?? (await liveThemeId(storeId))
+  // A market in another currency (`/ae`): every price block shows its prices (Settings → Markets).
+  const pricing = await requestMarketPricing(storeId)
   const themeLayout = themeId ? await liquidLayoutFor(storeId, themeId) : null
   const liquid = liquidLayoutForPath(themeLayout, pathname)
   const themeChrome = liquid !== null || themeLayout === null
@@ -426,7 +429,7 @@ export default async function StoreLayout({ children, params }: Props) {
           {previewName && !preview?.inFrame ? <PreviewBar themeName={previewName} /> : null}
           <LiquidHtml html={liquid.beforeHeader} />
           {/* React sections inside the theme (cards, product, search) read the store's price format. */}
-          <MoneyFormatProvider format={current.moneyFormat}>
+          <MoneyFormatProvider format={current.moneyFormat} pricing={pricing}>
             {header}
             <main id="MainContent" tabIndex={-1} {...reactAttrs(liquid.mainAttrs)}>
               {page}
@@ -466,7 +469,7 @@ export default async function StoreLayout({ children, params }: Props) {
       </head>
       <body>
         {/* Prices in blocks (cards, product, search) read the store's format. */}
-        <MoneyFormatProvider format={current.moneyFormat}>
+        <MoneyFormatProvider format={current.moneyFormat} pricing={pricing}>
           {previewName && !preview?.inFrame ? <PreviewBar themeName={previewName} /> : null}
           <StoreChrome>{header}</StoreChrome>
           <main id="MainContent">

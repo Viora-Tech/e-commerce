@@ -185,3 +185,6 @@ export function currencyForCountry(country: string): string | null {
   )
   return hit?.[0] ?? null
 }
+
+// A rupee price in a market's currency (pure, browser safe).
+export * from './presentment'

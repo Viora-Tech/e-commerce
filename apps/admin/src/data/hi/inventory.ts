@@ -68,6 +68,13 @@ export default [
       stock: 'स्टॉक',
       vendor: 'सप्लायर',
       productType: 'प्रोडक्ट का प्रकार',
+      tag: 'टैग',
+      collection: 'कलेक्शन',
+      productStatus: 'प्रोडक्ट स्टेटस',
+      productStatusOptions: [
+        { value: 'active', label: 'चालू' },
+        { value: 'draft', label: 'ड्राफ़्ट' },
+      ],
       any: 'कोई भी',
       stockOptions: [
         { value: 'in', label: 'स्टॉक में' },

@@ -1,6 +1,31 @@
 import type { AppliedFilter } from '@/components/table/resource-table/toolbar'
 import type { filterPanelContent } from '@/data/filter-panel'
-import type { FilterGroup, FilterOption, RangeGroup, RangePatch } from './types'
+import {
+  DATE_CUSTOM,
+  type DateGroup,
+  type FilterGroup,
+  type FilterOption,
+  type RangeGroup,
+  type RangePatch,
+} from './types'
+
+const NO_DATE = { preset: null, from: '', to: '' }
+
+/** A date chip: the preset's name, or the custom range ("1 Oct–28 Oct" as typed, yyyy-mm-dd). */
+function dateLabel(group: DateGroup, copy: PanelCopy): string | null {
+  const { preset, from, to } = group.value
+  if (preset && preset !== DATE_CUSTOM) return optionLabel(group.presets, preset)
+  if (from && to) return copy.range.between(from, to)
+  if (from) return copy.range.atLeast(from)
+  if (to) return copy.range.atMost(to)
+  return null
+}
+
+/** The first two values, then "+3". */
+function listLabel(labels: string[], copy: PanelCopy): string {
+  const head = labels.slice(0, 2).join(', ')
+  return labels.length > 2 ? `${head} ${copy.more(labels.length - 2)}` : head
+}
 
 type PanelCopy = typeof filterPanelContent
 
@@ -46,6 +71,37 @@ function chipFor(group: FilterGroup, copy: PanelCopy): AppliedFilter | null {
       onRemove: () => group.onChange(null),
     }
   }
+  if (group.type === 'text') {
+    const text = group.value.trim()
+    if (!text) return null
+    return { key: group.key, field: group.label, label: text, onRemove: () => group.onChange('') }
+  }
+  if (group.type === 'multi') {
+    if (group.value.length === 0) return null
+    return {
+      key: group.key,
+      field: group.label,
+      label: listLabel(
+        group.value.map((v) => optionLabel(group.options, v)),
+        copy,
+      ),
+      onRemove: () => group.onChange([]),
+    }
+  }
+  if (group.type === 'date') {
+    const label = dateLabel(group, copy)
+    if (label === null) return null
+    return { key: group.key, field: group.label, label, onRemove: () => group.onChange(NO_DATE) }
+  }
+  if (group.type === 'boolean') {
+    if (group.value === null) return null
+    return {
+      key: group.key,
+      field: group.label,
+      label: group.value ? (group.yesLabel ?? copy.yes) : (group.noLabel ?? copy.no),
+      onRemove: () => group.onChange(null),
+    }
+  }
   const label = rangeLabel(group, copy)
   if (label === null) return null
   return {
@@ -64,8 +120,10 @@ export function appliedFromGroups(groups: FilterGroup[], copy: PanelCopy): Appli
 /** Resets every group (the panel's Clear all). */
 export function clearGroups(groups: FilterGroup[]): void {
   for (const g of groups) {
-    if (g.type === 'checks') g.onChange([])
-    else if (g.type === 'select') g.onChange(null)
+    if (g.type === 'checks' || g.type === 'multi') g.onChange([])
+    else if (g.type === 'select' || g.type === 'boolean') g.onChange(null)
+    else if (g.type === 'text') g.onChange('')
+    else if (g.type === 'date') g.onChange(NO_DATE)
     else g.onChange(emptyRange(g))
   }
 }

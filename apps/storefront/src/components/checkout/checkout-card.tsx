@@ -42,12 +42,12 @@ export default function CheckoutCard({
       <div className="flex min-h-6 items-center justify-between gap-4">
         <h2
           id={headingId}
-          className={`${CK_HEADING} flex items-center gap-2 text-[0.9375rem]! font-bold! sm:gap-2.5 sm:text-[1rem]!`}
+          className={`${CK_HEADING} flex items-center gap-2 text-[0.9375rem]! sm:gap-2.5 sm:text-[1.0625rem]!`}
         >
           {number === null ? null : (
             <span
               aria-hidden="true"
-              className={`grid size-[1.375rem] shrink-0 place-items-center rounded-[0.4375rem] font-mono text-[0.6875rem] font-medium transition-[background-color] duration-200 ease-out motion-reduce:transition-none sm:size-6 sm:rounded-[0.5rem] sm:text-[0.75rem] ${done ? 'bg-ck-success text-ck-bg' : 'bg-ck-button text-ck-button-ink'}`}
+              className={`grid size-[1.375rem] shrink-0 place-items-center rounded-[0.4375rem] text-[0.75rem] font-semibold tabular-nums transition-[background-color] duration-200 ease-out motion-reduce:transition-none sm:size-6 sm:rounded-[0.5rem] sm:text-[0.75rem] ${done ? 'bg-ck-success text-ck-bg' : 'bg-ck-button text-ck-button-ink'}`}
             >
               <span
                 className={`col-start-1 row-start-1 transition-[opacity,scale] duration-200 ease-out motion-reduce:scale-100 ${done ? 'scale-[0.6] opacity-0' : 'scale-100 opacity-100'}`}

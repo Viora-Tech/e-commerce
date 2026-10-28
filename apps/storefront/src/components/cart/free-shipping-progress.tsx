@@ -1,4 +1,6 @@
-import { formatPaise } from '@commerce/blocks'
+'use client'
+
+import { useFormatPaise } from '@commerce/blocks'
 import { cartContent as content } from '@/data/cart'
 
 type FreeShippingProgressProps = {
@@ -13,6 +15,9 @@ export default function FreeShippingProgress({
   thresholdPaise,
   totalPaise,
 }: FreeShippingProgressProps) {
+  // Hooks
+  const formatPaise = useFormatPaise()
+
   // Render logic
   const remaining = Math.max(0, thresholdPaise - totalPaise)
   const percent = thresholdPaise > 0 ? Math.min(100, (totalPaise / thresholdPaise) * 100) : 100

@@ -5,6 +5,7 @@ import {
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import {
+  collection,
   inventoryAdjustment,
   inventoryLevel,
   media,
@@ -39,6 +40,12 @@ export type InventoryQuery = {
   stock?: StockFilter | undefined
   vendor?: string | undefined
   productType?: string | undefined
+  vendors?: string[] | undefined
+  productTypes?: string[] | undefined
+  tags?: string[] | undefined
+  collectionIds?: string[] | undefined
+  /** Archived products never show here, so active and draft. */
+  productStatus?: ('active' | 'draft')[] | undefined
   /** When stock last changed at this location (`STOCK_CHANGED_FILTERS`). */
   changed?: StockChangedFilter | undefined
   /** `product`: a page is products, each with all its matching variants. */
@@ -103,6 +110,17 @@ function baseWhere(q: Omit<InventoryQuery, 'page' | 'perPage' | 'sort'>, low: nu
       : undefined,
     q.vendor ? eq(product.vendor, q.vendor) : undefined,
     q.productType ? eq(product.productType, q.productType) : undefined,
+    q.vendors?.length ? inArray(product.vendor, q.vendors) : undefined,
+    q.productTypes?.length ? inArray(product.productType, q.productTypes) : undefined,
+    q.tags?.length ? sql`${product.tags} && ${sql.param(q.tags)}::text[]` : undefined,
+    q.collectionIds?.length
+      ? sql`exists (
+          select 1 from collection_product cp
+          where cp.product_id = ${product.id}
+            and cp.collection_id = any(${sql.param(q.collectionIds)}::uuid[])
+        )`
+      : undefined,
+    q.productStatus?.length ? inArray(product.status, q.productStatus) : undefined,
     q.stock === 'out' ? sql`${availableSql} <= 0` : undefined,
     q.stock === 'low' ? sql`${availableSql} > 0 and ${availableSql} <= ${low}` : undefined,
     q.stock === 'in' ? sql`${availableSql} > ${low}` : undefined,
@@ -326,7 +344,7 @@ export async function inventoryHistory(
     .limit(100)
 }
 
-/** Distinct vendors and types for the filter popover. */
+/** Distinct vendors, types and tags, and the collections, for the filter popover. */
 export async function inventoryFacets(tx: StoreTx) {
   const vendors = await tx
     .selectDistinct({ v: product.vendor })
@@ -340,9 +358,20 @@ export async function inventoryFacets(tx: StoreTx) {
       and(notSystemTest, sql`${product.productType} is not null and ${product.productType} <> ''`),
     )
     .orderBy(asc(product.productType))
+  const tags = await tx
+    .selectDistinct({ t: sql<string>`unnest(${product.tags})` })
+    .from(product)
+    .where(notSystemTest)
+    .orderBy(sql`1`)
+  const collections = await tx
+    .select({ id: collection.id, title: collection.title })
+    .from(collection)
+    .orderBy(asc(collection.title))
   return {
     vendors: vendors.map((r) => r.v as string),
     types: types.map((r) => r.t as string),
+    tags: tags.map((r) => r.t).filter(Boolean),
+    collections,
   }
 }
 

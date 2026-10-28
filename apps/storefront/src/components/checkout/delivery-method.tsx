@@ -1,6 +1,6 @@
 'use client'
 
-import { formatPaise } from '@commerce/blocks'
+import { useFormatPaise } from '@commerce/blocks'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
 import CheckoutParcels from '@/components/checkout/checkout-parcels'
 import OptionCard from '@/components/checkout/option-card'
@@ -17,8 +17,6 @@ type DeliveryMethodProps = {
   estimate: string | null
   onSelect: (id: string) => void
 }
-
-const price = (paise: number): string => (paise === 0 ? content.shippingFree : formatPaise(paise))
 
 /**
  * The Shipping card's options (design: radio cards with the option's name, the date it
@@ -38,6 +36,12 @@ export default function DeliveryMethod({
   estimate,
   onSelect,
 }: DeliveryMethodProps) {
+  // Hooks
+  const money = useFormatPaise()
+
+  // Derived state
+  const price = (paise: number): string => (paise === 0 ? content.shippingFree : money(paise))
+
   // Early returns
   if (checking || !shipping) {
     return (
@@ -102,7 +106,7 @@ export default function DeliveryMethod({
                   <span className="flex flex-wrap items-center gap-2">
                     {o.name || content.delivery.standard}
                     {o.fastest ? (
-                      <span className="rounded-[0.3125rem] bg-ck-soft px-1.5 text-[0.625rem] leading-[1.125rem] font-semibold tracking-wide text-ck-muted uppercase">
+                      <span className="rounded-[0.3125rem] bg-ck-soft px-1.5 text-[0.75rem] leading-[1.25rem] font-medium text-ck-muted">
                         {content.delivery.fastest}
                       </span>
                     ) : null}

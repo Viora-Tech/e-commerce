@@ -1,5 +1,6 @@
 /** SOURCE OF TRUTH: the Liquid page context — WHAT: what one request renders with: the request and render options, the Shopify globals (shop, settings, routes, request, localization, collections, linklists, metaobjects, cart...) and our routes and cart in Shopify's shape / WHY: every section on a page shares one context, so they all see the same data and cost one set of loads */
 
+import { CURRENCIES, type Currency, isCurrency, moneyFormatOf } from '@commerce/money'
 import { type EngineEntry, engineFor, type ThemeBundle, usesFileUrl } from './bundle'
 import { LiquidDataCache } from './cache'
 import { MetaobjectsDrop, ShopMetafieldsDrop } from './custom-drops'
@@ -221,6 +222,10 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
   const settings = await themeSettingsFor(bundle, cache)
   const resource = await resourceGlobals(request, cache)
   const importedFiles = usesFileUrl(bundle) ? await data.importedFiles?.() : undefined
+  // A market in another currency prices in it (`storeLiquidData` converted the amounts, still in
+  // hundredths), and formats them its own way instead of the store's rupee format.
+  const currency = isCurrency(data.shop.currency) ? data.shop.currency : 'INR'
+  const moneyFormat = currency === 'INR' ? options.moneyFormat : moneyFormatOf(currency)
   const runtime: EngineRuntime = {
     assetUrl: (file) => {
       const clean = file.replace(/^\/+/, '')
@@ -229,8 +234,8 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
     },
     assetText: bundle.assetText,
     locale: bundle.locale,
-    currency: 'INR',
-    moneyFormat: options.moneyFormat,
+    currency,
+    moneyFormat,
     fonts: new Map(),
     nonce: request.nonce,
     shopifyHost: options.shopifyHost,
@@ -257,11 +262,11 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
       url: shop.url,
       secure_url: shop.url,
       currency: shop.currency,
-      money_format: options.moneyFormat ?? '₹{{amount}}',
-      money_with_currency_format: `${options.moneyFormat ?? '₹{{amount}}'} INR`,
+      money_format: moneyFormat ?? '₹{{amount}}',
+      money_with_currency_format: `${moneyFormat ?? '₹{{amount}}'} ${currency}`,
       description: shop.description,
       locale: loc.locale.iso_code,
-      enabled_currencies: [{ iso_code: shop.currency, symbol: '₹' }],
+      enabled_currencies: [{ iso_code: currency, symbol: CURRENCIES[currency].symbol }],
       enabled_payment_types: options.paymentTypes,
       published_locales: loc.publishedLocales,
       ...shopPolicies(shop.policies),
@@ -295,7 +300,7 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
     blogs: new BlogsDrop(cache),
     pages: new PagesDrop(cache),
     metaobjects,
-    cart: cartDrop(cart, cache),
+    cart: cartDrop(cart, cache, currency),
     customer: null,
     content_for_header: '',
     content_for_index: '',
@@ -343,7 +348,11 @@ function shopPolicies(policies: LiquidPolicyData[]): Record<string, unknown> {
   }
 }
 
-function cartDrop(cart: LiquidCartData, cache: LiquidDataCache): Record<string, unknown> {
+function cartDrop(
+  cart: LiquidCartData,
+  cache: LiquidDataCache,
+  currency: Currency,
+): Record<string, unknown> {
   return {
     item_count: cart.itemCount,
     total_price: cart.totalPrice,
@@ -351,7 +360,7 @@ function cartDrop(cart: LiquidCartData, cache: LiquidDataCache): Record<string, 
     original_total_price: cart.totalPrice,
     total_discount: 0,
     total_weight: 0,
-    currency: { iso_code: 'INR', symbol: '₹' },
+    currency: { iso_code: currency, symbol: CURRENCIES[currency].symbol },
     note: '',
     attributes: {},
     cart_level_discount_applications: [],

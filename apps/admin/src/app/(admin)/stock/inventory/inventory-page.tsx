@@ -6,7 +6,13 @@ import { permissions } from '@commerce/core/permissions'
 import { Clock, Download, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
-import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
+import {
+  parseAsArrayOf,
+  parseAsInteger,
+  parseAsString,
+  parseAsStringLiteral,
+  useQueryStates,
+} from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import AddLocationDialog from '@/components/inventory/add-location-dialog'
@@ -59,8 +65,12 @@ type Query = {
   perPage: number
   query: string
   stock: StockFilter | null
-  vendor: string | null
-  productType: string | null
+  vendor: string[]
+  productType: string[]
+  tag: string[]
+  /** Collection ids. */
+  collection: string[]
+  productStatus: ProductStatusFilter[]
   changed: StockChanged | null
   group: 'product' | null
 }
@@ -68,6 +78,24 @@ type Query = {
 /** "Stock changed" filter values; the API checks the same list. */
 const STOCK_CHANGED = ['1d', '7d', '30d', '90d', 'stale'] as const
 type StockChanged = (typeof STOCK_CHANGED)[number]
+
+/** Archived products never list here, so the Product status filter has two values. */
+const PRODUCT_STATUS_FILTERS = ['active', 'draft'] as const
+type ProductStatusFilter = (typeof PRODUCT_STATUS_FILTERS)[number]
+
+/** A multi-pick in the URL; module scope so the empty default keeps one identity. */
+const parseAsPicks = parseAsArrayOf(parseAsString).withDefault([])
+
+/** Every panel filter cleared, as a URL patch. */
+const CLEAR_FILTERS = {
+  stock: null,
+  vendor: null,
+  productType: null,
+  tag: null,
+  collection: null,
+  productStatus: null,
+  changed: null,
+}
 
 const PER_PAGE = siteConfig.ui.rowsPerPage.default
 
@@ -83,8 +111,11 @@ function listFilters(locationId: string, q: Query) {
     locationId,
     search: q.query || undefined,
     stock: q.stock ?? undefined,
-    vendor: q.vendor ?? undefined,
-    productType: q.productType ?? undefined,
+    vendors: q.vendor.length ? q.vendor : undefined,
+    productTypes: q.productType.length ? q.productType : undefined,
+    tags: q.tag.length ? q.tag : undefined,
+    collectionIds: q.collection.length ? q.collection : undefined,
+    productStatus: q.productStatus.length ? q.productStatus : undefined,
     changed: q.changed ?? undefined,
     group: q.group ?? undefined,
   }
@@ -118,8 +149,11 @@ function untouched(initial: InventoryInitial, locationId: string, q: Query) {
     q.perPage === PER_PAGE &&
     q.query === initial.query.query &&
     !q.stock &&
-    !q.vendor &&
-    !q.productType &&
+    q.vendor.length === 0 &&
+    q.productType.length === 0 &&
+    q.tag.length === 0 &&
+    q.collection.length === 0 &&
+    q.productStatus.length === 0 &&
     !q.changed &&
     !q.group
   )
@@ -137,8 +171,11 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
       page: parseAsInteger.withDefault(1),
       perPage: parseAsInteger.withDefault(PER_PAGE),
       stock: parseAsStringLiteral(STOCK_FILTERS),
-      vendor: parseAsString,
-      productType: parseAsString,
+      vendor: parseAsPicks,
+      productType: parseAsPicks,
+      tag: parseAsPicks,
+      collection: parseAsPicks,
+      productStatus: parseAsArrayOf(parseAsStringLiteral(PRODUCT_STATUS_FILTERS)).withDefault([]),
       changed: parseAsStringLiteral(STOCK_CHANGED),
       group: parseAsStringLiteral(['product'] as const),
     },
@@ -267,22 +304,48 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
       anyLabel: copy.filters.any,
     },
     {
+      key: 'collection',
+      label: copy.filters.collection,
+      type: 'multi',
+      options: initial.facets.collections.map((c) => ({ value: c.id, label: c.title })),
+      value: q.collection,
+      onChange: (collection) => setQ({ collection, page: 1 }),
+    },
+    {
       key: 'vendor',
       label: copy.filters.vendor,
-      type: 'select',
+      type: 'multi',
       options: facetOptions(initial.facets.vendors),
       value: q.vendor,
       onChange: (vendor) => setQ({ vendor, page: 1 }),
-      anyLabel: copy.filters.any,
     },
     {
       key: 'type',
       label: copy.filters.productType,
-      type: 'select',
+      type: 'multi',
       options: facetOptions(initial.facets.types),
       value: q.productType,
       onChange: (productType) => setQ({ productType, page: 1 }),
-      anyLabel: copy.filters.any,
+    },
+    {
+      key: 'tag',
+      label: copy.filters.tag,
+      type: 'multi',
+      options: facetOptions(initial.facets.tags),
+      value: q.tag,
+      onChange: (tag) => setQ({ tag, page: 1 }),
+    },
+    {
+      key: 'productStatus',
+      label: copy.filters.productStatus,
+      type: 'checks',
+      options: copy.filters.productStatusOptions,
+      value: q.productStatus,
+      onChange: (next) =>
+        setQ({
+          productStatus: PRODUCT_STATUS_FILTERS.filter((s) => next.includes(s)),
+          page: 1,
+        }),
     },
   ]
   const applied = appliedFromGroups(groups, panelCopy)
@@ -348,16 +411,7 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
         loading={loading}
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
-        onClearAll={() =>
-          setQ({
-            query: '',
-            stock: null,
-            vendor: null,
-            productType: null,
-            changed: null,
-            page: 1,
-          })
-        }
+        onClearAll={() => setQ({ ...CLEAR_FILTERS, query: '', page: 1 })}
         filters={(close) => (
           <FilterPanel
             groups={groups}

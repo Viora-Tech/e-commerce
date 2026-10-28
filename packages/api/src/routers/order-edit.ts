@@ -13,6 +13,8 @@ import {
 } from '../services/order-edit.service'
 
 const refundRoute = z.enum(REFUND_ROUTES)
+/** An edit's refund: store credit is offered on cancel only for now. */
+const editRefundRoute = refundRoute.exclude(['store_credit'])
 
 /** Money going back is its own grant (`orders.refund`), on top of cancelling or editing. */
 function assertCanRefund(
@@ -63,12 +65,13 @@ export const orderEditRoutes = {
     )
     .handler(async ({ context, input }) => {
       assertCanRefund(context.scope, input.refund)
-      return cancelStoreOrder(
-        context.tx,
-        context.scope.storeId,
-        await paymentsDeps(context.tx, context.scope.storeId),
-        { ...input, author: context.session.user.email },
-      )
+      const deps = await paymentsDeps(context.tx, context.scope.storeId)
+      return cancelStoreOrder(context.tx, context.scope.storeId, deps, {
+        ...input,
+        author: context.session.user.email,
+        // Store credit issues a gift card, whose code is stored encrypted.
+        settingsSecret: deps.secret,
+      })
     }),
 
   /**
@@ -106,7 +109,7 @@ export const orderEditRoutes = {
   edit: can(permissions.ORDERS_WRITE)
     .input(
       OrderEditSchema.extend({
-        refund: refundRoute,
+        refund: editRefundRoute,
         requestPayment: z.boolean(),
         note: z.string().trim().max(500).optional(),
       }),
