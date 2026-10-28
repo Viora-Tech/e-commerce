@@ -12,7 +12,9 @@ import {
   mediaNeighbours,
   mediaUsage,
   mediaUsedIn,
+  onPlatformStorage,
   permissions,
+  storageRoom,
   UploadIntentSchema,
   updateMedia,
 } from '@commerce/core'
@@ -21,7 +23,7 @@ import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
-import { storageProviderFor } from '../services/media.service'
+import { loadStorageSettings, storageProviderFor } from '../services/media.service'
 
 export const mediaRouter = {
   /** Step 1 of an upload: reserve the row and get a presigned request for the browser. */
@@ -35,6 +37,18 @@ export const mediaRouter = {
         storage,
         settingsSecret(),
       )
+      // Files already stored are never touched; only a new upload past the plan's GB is
+      // refused, and only on the platform's bucket (one the merchant connected is theirs).
+      const settings = await loadStorageSettings(context.tx, context.scope.storeId)
+      if (onPlatformStorage(settings, process.env)) {
+        const room = await storageRoom(context.tx, context.scope.storeId)
+        if (room.usedBytes + input.size > room.limitBytes) {
+          throw new ORPCError('FORBIDDEN', {
+            message: `Your plan includes ${room.limitBytes / 1024 ** 3} GB of file storage, and it is full.`,
+            data: { reason: 'storage_limit', ...room },
+          })
+        }
+      }
       try {
         return await createUploadIntent(context.tx, context.scope.storeId, provider, input)
       } catch (err) {

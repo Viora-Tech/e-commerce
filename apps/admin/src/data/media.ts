@@ -41,6 +41,8 @@ export const mediaContent = {
     size: (name: string, mb: number) => `${name} is over ${mb} MB.`,
     upload: (name: string) => `Could not upload ${name}. Check the storage settings and try again.`,
     generic: 'Something went wrong with the upload.',
+    storageFull: (gb: number) =>
+      `Your plan's ${gb} GB of file storage is full. Delete files you no longer use, or move up a plan in Settings → Plan & billing.`,
   },
   toasts: {
     uploaded: (n: number) => (n === 1 ? '1 file uploaded' : `${n} files uploaded`),
