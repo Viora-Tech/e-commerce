@@ -22,6 +22,17 @@ export type OrderFilters = {
   method: MethodFilter[]
   /** A courier id (`delhivery`) the order was sent with; null for any. */
   courier: string | null
+  /** Text a line's product title, variant or SKU contains ("pd170"); null for any product. */
+  product: string | null
+}
+
+/** The longest Product filter the API takes (its `SEARCH_MAX`). */
+const PRODUCT_MAX = 200
+
+/** The Product filter as sent: trimmed, and null when only spaces were typed. */
+function productText(f: OrderFilters): string | null {
+  const text = f.product?.trim().slice(0, PRODUCT_MAX)
+  return text ? text : null
 }
 
 /* One ticked box can stand for several stored statuses ("Unpaid" includes authorised and part paid). */
@@ -58,13 +69,16 @@ export function hasOrderFilters(f: OrderFilters): boolean {
     f.fulfilment.length > 0 ||
     f.date !== null ||
     f.method.length > 0 ||
-    f.courier !== null
+    f.courier !== null ||
+    productText(f) !== null
   )
 }
 
 /** The ticked boxes as `orders.list` input; both payment methods ticked means no method filter. */
 export function orderFilterInput(f: OrderFilters, now = new Date()) {
+  const product = productText(f)
   return {
+    ...(product ? { product } : {}),
     ...(f.payment.length ? { paymentStatus: f.payment.flatMap((p) => PAYMENT_STATUSES[p]) } : {}),
     ...(f.fulfilment.length
       ? { fulfillmentStatus: f.fulfilment.flatMap((s) => FULFILMENT_STATUSES[s]) }
@@ -97,6 +111,14 @@ export function orderFilterGroups(
   couriers: readonly string[] = [],
 ): FilterGroup[] {
   return [
+    {
+      key: 'product',
+      label: copy.product,
+      type: 'text',
+      value: f.product ?? '',
+      onChange: (next) => onChange({ product: next ? next : null }),
+      placeholder: copy.productPlaceholder,
+    },
     {
       key: 'payment',
       label: copy.payment,
@@ -152,6 +174,7 @@ export const NO_FILTERS: OrderFilters = {
   date: null,
   method: [],
   courier: null,
+  product: null,
 }
 
 /* Module scope, so the empty defaults keep one identity and the list effect runs once per change. */
@@ -161,4 +184,5 @@ export const FILTER_PARAMS = {
   date: parseAsStringLiteral(DATE_FILTERS),
   method: parseAsArrayOf(parseAsStringLiteral(METHOD_FILTERS)).withDefault([]),
   courier: parseAsString,
+  product: parseAsString,
 }

@@ -38,7 +38,15 @@ export type RangeGroup = GroupBase & {
   format?: (value: string) => string
 }
 
-export type FilterGroup = ChecksGroup | SelectGroup | RangeGroup
+/** Free text the rows must contain ("pd170"); empty = no filter. The chip shows it as typed. */
+export type TextGroup = GroupBase & {
+  type: 'text'
+  value: string
+  onChange: (next: string) => void
+  placeholder?: string
+}
+
+export type FilterGroup = ChecksGroup | SelectGroup | RangeGroup | TextGroup
 
 /** Plain strings (vendors, tags) as options whose label is the value. */
 export function facetOptions(values: string[]): FilterOption[] {

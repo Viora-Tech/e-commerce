@@ -138,6 +138,69 @@ describe('order list tabs and filters on the split statuses', () => {
     ).rejects.toThrow()
   })
 
+  it('filters by product (line title or SKU), combined with the other filters (#884)', async () => {
+    const m = await merchant('product@example.com', 'product')
+    await seedOrders(m.storeId)
+    const [p] = await owner
+      .insert(product)
+      .values({ storeId: m.storeId, handle: 'mouse', title: 'Pulsar Mouse' })
+      .returning()
+    const [v] = await owner
+      .insert(variant)
+      .values({
+        storeId: m.storeId,
+        productId: p?.id as string,
+        title: 'Black',
+        sku: 'PD170-BLK',
+        pricePaise: 1000,
+      })
+      .returning()
+    const orders = await owner.select().from(order).where(eq(order.storeId, m.storeId))
+    const idOf = (n: number) => orders.find((o) => o.number === n)?.id as string
+    // Orders 1 (unfulfilled), 2 (fulfilled) and 7 (partly fulfilled) sold the mouse; 3 sold a 50% off pad.
+    const line = (n: number, title: string) => ({
+      storeId: m.storeId,
+      orderId: idOf(n),
+      variantId: v?.id as string,
+      title,
+      quantity: 1,
+      unitPricePaise: 1000,
+    })
+    await owner
+      .insert(orderLine)
+      .values([
+        line(1, 'Pulsar Mouse'),
+        line(2, 'Pulsar Mouse'),
+        line(7, 'Pulsar Mouse'),
+        line(3, '50% off pad'),
+      ])
+    // The SKU on the variant matches every line on it; the title only its own lines.
+    expect(await numbers(m, { product: 'pd170' })).toEqual([1, 2, 3, 7])
+    expect(await numbers(m, { product: 'pulsar' })).toEqual([1, 2, 7])
+    expect(
+      await numbers(m, {
+        product: 'pulsar',
+        fulfillmentStatus: ['unfulfilled', 'partially_fulfilled'],
+      }),
+    ).toEqual([1, 7])
+    expect(
+      await numbers(m, {
+        product: 'pulsar',
+        fulfillmentStatus: ['unfulfilled', 'partially_fulfilled'],
+        paymentMethod: 'cod',
+      }),
+    ).toEqual([1])
+    // A typed % is a percent sign, not a wildcard.
+    expect(await numbers(m, { product: '50%' })).toEqual([3])
+    expect(await numbers(m, { product: '%' })).toEqual([3])
+    const ids = await call(
+      appRouter.orders.ids,
+      { product: 'pulsar', fulfillmentStatus: ['unfulfilled'] },
+      { context: m.ctx },
+    )
+    expect(ids).toEqual([idOf(1)])
+  })
+
   it('search finds an order by its number, with or without the #, never a draft', async () => {
     const m = await merchant('number@example.com', 'number')
     await seedOrders(m.storeId)

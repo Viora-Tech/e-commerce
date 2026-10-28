@@ -76,6 +76,21 @@ type OrderListFilters = {
   paymentMethod?: 'cod' | 'prepaid' | undefined
   /** Has a consignment with this courier (`shipment.provider`). */
   courier?: string | undefined
+  /** Has a line whose product title, variant title or SKU contains this ("pd170"). */
+  product?: string | undefined
+}
+
+/** `%`, `_` and `\` typed into a filter match themselves, not as LIKE wildcards. */
+const escapeLike = (q: string) => q.replace(/[\\%_]/g, (c) => `\\${c}`)
+
+/** The Product filter: a line of the order is this product (title as sold, or the variant's SKU). */
+function hasProductLine(text: string) {
+  const pattern = `%${escapeLike(text)}%`
+  return sql`exists (
+    select 1 from ${orderLine} ol
+    left join ${variant} v on v.id = ol.variant_id
+    where ol.order_id = ${order.id}
+      and (ol.title ilike ${pattern} or ol.variant_title ilike ${pattern} or v.sku ilike ${pattern}))`
 }
 
 /** The most ids "Select all" takes at once; bulk actions above this would need a background job. */
@@ -121,6 +136,7 @@ function orderListWhere(input: OrderListFilters) {
     input.courier
       ? sql`exists (select 1 from ${shipment} s where s.order_id = ${order.id} and s.provider = ${input.courier})`
       : undefined,
+    input.product ? hasProductLine(input.product) : undefined,
   )
 }
 
@@ -135,18 +151,7 @@ export async function orderCouriers(tx: StoreTx): Promise<string[]> {
 
 export async function listOrders(
   tx: StoreTx,
-  input: {
-    page: number
-    perPage: number
-    search?: string | undefined
-    view?: OrderView | undefined
-    status?: OrderStatus | undefined
-    paymentStatus?: OrderPaymentStatus[] | undefined
-    fulfillmentStatus?: OrderFulfillmentStatus[] | undefined
-    placedFrom?: string | undefined
-    paymentMethod?: 'cod' | 'prepaid' | undefined
-    courier?: string | undefined
-  },
+  input: OrderListFilters & { page: number; perPage: number },
 ) {
   const where = orderListWhere(input)
   const base = tx

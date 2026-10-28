@@ -396,7 +396,7 @@ export const ACTION_DOCS: Record<string, string> = {
   'orders.ids':
     'Every order id the list\'s filters match (the table\'s "Select all N orders"), up to 5,000.',
   'orders.list':
-    'Orders, a page at a time, by list tab, status, payment, fulfilment, date or a search.',
+    'Orders, a page at a time, by list tab, status, payment, fulfilment, date, product or a search.',
   'orders.listAbandoned':
     'Abandoned checkouts from recent days, a page at a time, by recovery status or a search.',
   'orders.listDrafts': 'Draft orders, a page at a time, filtered by status or a search.',
