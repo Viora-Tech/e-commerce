@@ -28,6 +28,23 @@ describe('order list filters (#884)', () => {
     })
   })
 
+  it('sends a custom date range as placedFrom and placedTo', () => {
+    const f: OrderFilters = {
+      ...NO_FILTERS,
+      date: { preset: 'custom', from: '2026-10-01', to: '2026-10-28' },
+    }
+    expect(hasOrderFilters(f)).toBe(true)
+    const input = orderFilterInput(f, NOW)
+    expect(input.placedFrom).toBeDefined()
+    expect(input.placedTo).toBeDefined()
+    expect(new Date(input.placedTo as string).getTime()).toBeGreaterThan(
+      new Date(input.placedFrom as string).getTime(),
+    )
+    // A preset still sends only its start.
+    const week = orderFilterInput({ ...NO_FILTERS, date: { preset: '7d', from: '', to: '' } }, NOW)
+    expect(week).toEqual({ placedFrom: '2026-10-21T12:00:00.000Z' })
+  })
+
   it('treats a Product filter of only spaces as no filter', () => {
     const f: OrderFilters = { ...NO_FILTERS, product: '   ' }
     expect(hasOrderFilters(f)).toBe(false)
