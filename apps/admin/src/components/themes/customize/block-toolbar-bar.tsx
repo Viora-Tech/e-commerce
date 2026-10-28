@@ -47,8 +47,9 @@ const BAR =
 const CHIP =
   'inline-flex max-w-[14rem] items-center rounded-[0.3125rem] px-2 py-0.5 text-xs leading-[1.0625rem] font-medium whitespace-nowrap'
 
+// `!`: the bar sits in the store's page, whose unlayered `button` styles beat Tailwind (#906).
 const TOOL =
-  'flex size-6 shrink-0 items-center justify-center rounded-[0.375rem] text-foreground/80 transition-colors duration-150 hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:pointer-events-none disabled:opacity-35 motion-reduce:transition-none'
+  'flex size-6 shrink-0 items-center justify-center rounded-[0.375rem] border-0! bg-transparent! p-0! text-foreground/80! transition-colors duration-150 hover:bg-accent! hover:text-foreground! focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:pointer-events-none disabled:opacity-35 motion-reduce:transition-none'
 
 const SEPARATOR = 'mx-0.5 h-4 w-px shrink-0 bg-border'
 
@@ -250,7 +251,7 @@ export default function BlockToolbarBar({
                     onClick={handleRemove}
                     aria-label={copy.tree.remove(label)}
                     title={copy.tree.remove(label)}
-                    className={cn(TOOL, 'hover:bg-danger-soft hover:text-danger')}
+                    className={cn(TOOL, 'hover:bg-danger-soft! hover:text-danger!')}
                   >
                     <Trash2 aria-hidden weight="regular" className="size-3.5" />
                   </button>
@@ -262,7 +263,7 @@ export default function BlockToolbarBar({
                 onClick={() => requestAskAi({ blockId: componentId, label })}
                 aria-label={copy.toolbar.askAi(label)}
                 title={copy.toolbar.askAi(label)}
-                className={cn(TOOL, 'hover:text-primary')}
+                className={cn(TOOL, 'hover:text-primary!')}
               >
                 <AiIcon aria-hidden weight="regular" className="size-3.5" />
               </button>
