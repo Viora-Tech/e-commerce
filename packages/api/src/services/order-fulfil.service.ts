@@ -97,8 +97,10 @@ export async function orderBalance(
   totalPaise: number,
 ): Promise<OrderBalance> {
   const rows = await tx.select().from(payment).where(eq(payment.orderId, orderId))
+  // A payment refunded in full is `refunded`, but it was taken: it still counts as received
+  // (the refund is `refundedPaise`), or a cancelled, refunded order reads as owing its total.
   const capturedPaise = rows
-    .filter((p) => p.status === 'captured')
+    .filter((p) => p.status === 'captured' || p.status === 'refunded')
     .reduce((sum, p) => sum + p.amountPaise, 0)
   const pendingPaise = rows
     .filter((p) => p.status === 'pending')

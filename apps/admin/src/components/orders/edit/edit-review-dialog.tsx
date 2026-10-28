@@ -65,7 +65,8 @@ export default function EditReviewDialog({ input, onClose, onSaved }: EditReview
   const fmt = useFormat()
   const [preview, setPreview] = useState<OrderEditPreview | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [route, setRoute] = useState<RefundRoute>('none')
+  // The edit offers no store credit yet (the field leaves it out; the API refuses it).
+  const [route, setRoute] = useState<Exclude<RefundRoute, 'store_credit'>>('none')
   const [requestPayment, setRequestPayment] = useState(true)
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
@@ -169,7 +170,7 @@ export default function EditReviewDialog({ input, onClose, onSaved }: EditReview
                 options={preview.refund}
                 amountPaise={owedBack}
                 value={route}
-                onChange={setRoute}
+                onChange={(r) => setRoute(r === 'store_credit' ? 'none' : r)}
                 idPrefix="edit-refund"
               />
             ) : null}
