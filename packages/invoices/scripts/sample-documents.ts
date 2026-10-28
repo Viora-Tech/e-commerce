@@ -12,10 +12,10 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { gstinCheckChar } from '@commerce/core/gstin'
-import { InvoiceSettingsSchema } from '../src/settings'
-import { sampleDocument } from '../src/sample'
-import type { DocumentKind } from '../src/snapshot'
 import { renderDocumentToBuffer } from '../src/pdf/render'
+import { sampleDocument } from '../src/sample'
+import { InvoiceSettingsSchema } from '../src/settings'
+import type { DocumentKind } from '../src/snapshot'
 
 const OUT_DIR = join(import.meta.dir, '..', '..', '..', 'apps', 'www', 'public', 'samples')
 const STORE = 'Sample Store (not a real business)'
@@ -41,7 +41,11 @@ const FILES: readonly { kind: DocumentKind; name: string }[] = [
 mkdirSync(OUT_DIR, { recursive: true })
 for (const { kind, name } of FILES) {
   const doc = sampleDocument(settings, kind, STORE)
-  const bytes = await renderDocumentToBuffer({ doc, settings, assets: { logo: null, signature: null } })
+  const bytes = await renderDocumentToBuffer({
+    doc,
+    settings,
+    assets: { logo: null, signature: null },
+  })
   writeFileSync(join(OUT_DIR, name), bytes)
   console.log(`wrote ${name} (${Math.round(bytes.length / 1024)} KB)`)
 }

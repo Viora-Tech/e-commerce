@@ -59,7 +59,10 @@ export const aiSettings = pgTable(
   },
   (t) => [
     uniqueIndex('ai_settings_store').on(t.storeId),
-    check('ai_settings_plan_check', sql`${t.plan} in ('free', 'starter', 'growth', 'pro', 'scale')`),
+    check(
+      'ai_settings_plan_check',
+      sql`${t.plan} in ('free', 'starter', 'growth', 'pro', 'scale')`,
+    ),
     check('ai_settings_writing_quality_check', sql`${t.writingQuality} in ('standard', 'best')`),
   ],
 )
