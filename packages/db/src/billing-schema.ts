@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm'
 import {
+  boolean,
   check,
   index,
   integer,
@@ -56,6 +57,11 @@ export const storePlan = pgTable(
      * fair-use visits; the admin shows a notice while it is last month. Nothing is blocked.
      */
     fairUseNoticeMonth: text('fair_use_notice_month'),
+    /**
+     * Koomerce's own stores (Waimers): Scale's features with no limits, fees, bills or fair-use
+     * notices. Set only by `bun run platform:unlimited`, never by a merchant.
+     */
+    unlimited: boolean('unlimited').notNull().default(false),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

@@ -4,7 +4,8 @@ import { and, count, eq } from 'drizzle-orm'
 import { PLANS, type PlanId } from './plans'
 import { ensureStorePlan } from './service'
 
-export type StaffSeats = { plan: PlanId; used: number; limit: number }
+/** `limit` null: an unlimited store (Koomerce's own). */
+export type StaffSeats = { plan: PlanId; used: number; limit: number | null }
 
 /**
  * Active members (the owner too) plus open invitations, which hold a seat until they are
@@ -28,6 +29,6 @@ export async function staffSeats(tx: StoreTx, storeId: string): Promise<StaffSea
   return {
     plan: plan.plan,
     used: (members?.n ?? 0) + (invites?.n ?? 0),
-    limit: PLANS[plan.plan].staff,
+    limit: plan.unlimited ? null : PLANS[plan.plan].staff,
   }
 }

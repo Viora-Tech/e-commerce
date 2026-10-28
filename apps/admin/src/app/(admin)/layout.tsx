@@ -84,7 +84,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         channels={channels}
         navCounts={navCounts}
         usage={
-          active && plan
+          active && plan && !plan.unlimited
             ? {
                 used: plan.used,
                 limit: plan.limit,

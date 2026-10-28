@@ -68,6 +68,16 @@ export class BillingNotReady extends CommerceError {
   }
 }
 
+/** An unlimited store (Koomerce's own) has no plan to pick or bill. */
+export class UnlimitedPlan extends CommerceError {
+  constructor() {
+    super(
+      'UNLIMITED_PLAN',
+      'This store is on an unlimited plan; there is nothing to choose or pay.',
+    )
+  }
+}
+
 type StorePlanRow = typeof storePlan.$inferSelect
 type BillRow = typeof planPayment.$inferSelect
 
@@ -108,6 +118,8 @@ export type PlanBill = {
 
 export type PlanView = {
   plan: PlanId
+  /** Koomerce's own store: no limits, fees or bills; the page shows no plan choice. */
+  unlimited: boolean
   interval: BillingInterval
   status: StorePlanRow['status']
   trialEndsAt: Date | null
@@ -217,6 +229,7 @@ export async function loadPlanView(
   )
   return {
     plan: row.plan,
+    unlimited: row.unlimited,
     interval: row.interval,
     status: row.status,
     trialEndsAt: row.trialEndsAt,
@@ -481,6 +494,7 @@ export async function choosePlan(
   now = new Date(),
 ): Promise<{ bill: PlanBill | null; scheduled: boolean }> {
   const row = await withStore(db, storeId, (tx) => ensureStorePlan(tx, storeId, now))
+  if (row.unlimited) throw new UnlimitedPlan()
   const cheaper =
     planRank(input.plan) < planRank(row.plan) ||
     (input.plan === row.plan && input.interval === 'month' && row.interval === 'year')
@@ -826,7 +840,8 @@ export async function runBillingSweep(
         .where(and(eq(planPayment.storeId, storeId), eq(planPayment.status, 'due')))
       return { row: r, open: Boolean(o) }
     })
-    if (!row) continue
+    // Koomerce's own unlimited stores are never billed, made due or paused.
+    if (!row || row.unlimited) continue
     // Never paid (a trial that ran out): its time ends with the trial.
     const ends = row.periodEnd ?? row.trialEndsAt
     if (!ends) continue

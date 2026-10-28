@@ -22,6 +22,7 @@ import AutopayRow, { type AutopayState } from './autopay-row'
 import BillsCard from './bills-card'
 import ComparePlansDialog from './compare-plans-dialog'
 import CurrentPlanCard from './current-plan-card'
+import UnlimitedPlanCard from './unlimited-plan-card'
 import UsageBillsCard from './usage-bills-card'
 
 type BillingPageProps = { view: PlanView; apps: BoughtApp[]; autopay: AutopayState }
@@ -83,6 +84,16 @@ export default function BillingPage({ view, apps, autopay }: BillingPageProps) {
               text: trialDays > 0 ? copy.banners.trial(trialDays) : copy.banners.trialOver,
             }
           : null
+
+  // A Koomerce store: nothing to choose, pay or downgrade; its apps still show.
+  if (view.unlimited)
+    return (
+      <div className="flex w-full flex-col gap-5 px-4 py-6 md:px-8">
+        <PageHeader title={copy.title} subtitle={copy.subtitle} back={SETTINGS_BACK} />
+        <UnlimitedPlanCard view={view} />
+        <AppsCard apps={apps} />
+      </div>
+    )
 
   return (
     <div className="flex w-full flex-col gap-5 px-4 py-6 md:px-8">

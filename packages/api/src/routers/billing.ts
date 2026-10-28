@@ -21,6 +21,7 @@ import {
   startAutopay,
   stopAppRenewal,
   storeAppAccess,
+  UnlimitedPlan,
   usageBillCsv,
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
@@ -137,6 +138,8 @@ export const billingRouter = {
     return {
       plan: row.plan,
       status: row.status,
+      // Koomerce's own store: no allowance, so the sidebar shows no usage card.
+      unlimited: row.unlimited,
       used: usage.orders,
       limit: PLANS[row.plan].orders,
       // What each order past `limit` costs: the sidebar's "Each further order: 1%".
@@ -166,6 +169,7 @@ export const billingRouter = {
         if (err instanceof BillingNotReady) {
           throw new ORPCError('PRECONDITION_FAILED', { message: NOT_READY[err.reason] })
         }
+        if (err instanceof UnlimitedPlan) throw new ORPCError('CONFLICT', { message: err.message })
         throw err
       }
     }),

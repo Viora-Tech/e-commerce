@@ -6,7 +6,7 @@
 import { dayKey } from '@commerce/dates'
 import type { ModelTier } from './features'
 
-export const AI_PLANS = ['free', 'starter', 'growth', 'pro', 'scale'] as const
+export const AI_PLANS = ['free', 'starter', 'growth', 'pro', 'scale', 'internal'] as const
 export type AiPlan = (typeof AI_PLANS)[number]
 
 /** What a new store gets until billing sets another plan. */
@@ -30,6 +30,8 @@ export const PLAN_QUOTAS: Record<AiPlan, AiQuota> = {
   growth: { credits: 3_000, calls: 5_000, tokens: 30_000_000 },
   pro: { credits: 8_000, calls: null, tokens: null },
   scale: { credits: 15_000, calls: null, tokens: null },
+  /** Koomerce's own unlimited stores: a safety cap (about ₹5,000 at full use), not a plan. */
+  internal: { credits: 50_000, calls: null, tokens: null },
 }
 
 /** `credits` are whole credits used (fractions kept). */

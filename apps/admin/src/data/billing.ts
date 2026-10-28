@@ -40,6 +40,11 @@ export const billingContent = {
     feeRate: (percent: string, orders: string) => `${percent}% per order after ${orders}`,
     noFee: 'No per-order fee',
   },
+  unlimited: {
+    name: 'Unlimited',
+    line: 'A Koomerce store: no limits, per-order fees or bills.',
+    aiCap: (used: string, cap: string) => `${used} of ${cap} (safety cap)`,
+  },
   fees: {
     heading: 'Per-order fees this month',
     feeOrders: 'Orders with a fee',
