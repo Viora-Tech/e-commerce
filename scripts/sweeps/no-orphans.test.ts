@@ -330,9 +330,20 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/db/src/market-schema.ts',
-    names: ['EXCHANGE_RATE_SOURCES', 'exchangeRate', 'TRANSLATABLE_RESOURCES'],
+    names: ['EXCHANGE_RATE_SOURCES', 'TRANSLATABLE_RESOURCES'],
+    reason: 'Markets schema (0177); the storefront translations import them next',
+  },
+  {
+    file: 'packages/core/src/markets/presentment.ts',
+    names: ['RUPEE_PRICING', 'presentmentMinor'],
     reason:
-      'Markets schema (0177); the storefront translations and the exchange-rate job import them next',
+      'Markets M1a: the storefront money filters, cart and checkout convert with them next (M1b/M1c)',
+  },
+  {
+    file: 'packages/core/src/markets/rates.ts',
+    names: ['parseEcbDaily', 'rupeeRates', 'latestRupeeRates', 'storeMarketPricing'],
+    reason:
+      'Markets M1a: rates.test.ts reads the ECB file rules; the storefront reads market pricing next (M1b)',
   },
   {
     file: 'packages/db/src/finance-schema.ts',
