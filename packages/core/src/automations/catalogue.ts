@@ -191,7 +191,7 @@ export function actionFitsSubject(a: ActionDescriptor, subject: SubjectType): bo
   return a.subjects === 'any' || a.subjects.includes(subject)
 }
 
-const TIER_RANK: Record<AutomationPlanTier, number> = { starter: 0, growth: 1, pro: 2 }
+const TIER_RANK: Record<AutomationPlanTier, number> = { starter: 0, growth: 1, pro: 2, scale: 3 }
 /** True when a store on `plan` may use a piece of `tier`. */
 export const tierAllows = (plan: AutomationPlanTier, tier: AutomationPlanTier): boolean =>
   TIER_RANK[plan] >= TIER_RANK[tier]

@@ -41,7 +41,7 @@ const toTopup = (env: BillingEnv, r: TopupRow): AiTopupBill => ({
 /** "Buy 1,000 credits": the pay link; an earlier unpaid top-up is dropped. */
 export async function buyAiCredits(db: Db, storeId: string, env: BillingEnv): Promise<AiTopupBill> {
   const sale = await placeSalesOrder(db, env, storeId, {
-    sku: AI_CREDIT_PACK.sku,
+    lines: [{ sku: AI_CREDIT_PACK.sku }],
     note: (buyer) =>
       `${siteConfig.brand.name} AI credits (${AI_CREDIT_PACK.credits}) for ${buyer}, store ${storeId}`,
   })

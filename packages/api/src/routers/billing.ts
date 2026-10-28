@@ -21,6 +21,7 @@ import {
   startAutopay,
   stopAppRenewal,
   storeAppAccess,
+  usageBillCsv,
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
@@ -133,8 +134,24 @@ export const billingRouter = {
   usage: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
     const row = await ensureStorePlan(context.tx, context.scope.storeId)
     const usage = await planUsage(context.tx)
-    return { plan: row.plan, status: row.status, used: usage.orders, limit: PLANS[row.plan].orders }
+    return {
+      plan: row.plan,
+      status: row.status,
+      used: usage.orders,
+      limit: PLANS[row.plan].orders,
+      // What each order past `limit` costs: the sidebar's "Each further order: 1%".
+      feeBasisPoints: PLANS[row.plan].feeBasisPoints,
+    }
   }),
+
+  /** A usage bill's "Download CSV": each order of that month that carried a fee. */
+  usageBillCsv: can(permissions.SETTINGS_READ)
+    .input(z.object({ id: z.uuid() }))
+    .handler(async ({ context, input }) => {
+      const file = await usageBillCsv(context.tx, context.scope.storeId, input.id)
+      if (!file) throw new ORPCError('NOT_FOUND', { message: 'That bill was not found.' })
+      return file
+    }),
 
   /** Pick a plan: billed now (pay link) or, for a downgrade, scheduled for the period end. */
   choose: can(permissions.BILLING_MANAGE)

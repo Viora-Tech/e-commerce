@@ -22,3 +22,6 @@ export const ownItContactUrl = (): string =>
   `https://wa.me/${siteConfig.contact.whatsappNumber}?text=${encodeURIComponent(
     `Hi, I would like to know about owning ${siteConfig.brand.name} (Own it).`,
   )}`
+
+/** A fee in basis points as the percent people read: 100 → "1", 75 → "0.75". */
+export const feePercent = (basisPoints: number): string => String(basisPoints / 100)

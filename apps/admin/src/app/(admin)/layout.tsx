@@ -9,6 +9,7 @@ import PaymentsTestBanner from '@/components/layout/payments-test-banner'
 import { billingContent } from '@/data/billing'
 import { appEntryHref } from '@/lib/apps-gallery'
 import { getSession } from '@/lib/auth'
+import { feePercent } from '@/lib/billing'
 import { REQUEST_PATH_HEADER } from '@/lib/csp'
 import { routes, safeNext } from '@/lib/routes'
 import {
@@ -64,6 +65,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   // The sidebar's brand mark reuses the storefront theme's logo when the store has set one.
   const logoUrl = active ? logo : null
   const storeOptions = orgs.map((o) => ({ id: o.id, name: o.name, slug: o.slug }))
+  const nextUp = plan ? nextPlanUp(plan.plan) : null
 
   return (
     <>
@@ -86,8 +88,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             ? {
                 used: plan.used,
                 limit: plan.limit,
-                // "More room on Growth plan": the next plan up (Pro has no bigger plan).
-                planName: billingContent.plans[nextPlanUp(plan.plan) ?? plan.plan].name,
+                feePercent: feePercent(plan.feeBasisPoints),
+                // "More room on Growth plan": the next plan up (none past Scale).
+                planName: nextUp ? billingContent.plans[nextUp].name : null,
               }
             : undefined
         }

@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { buildDemoStore, demoStoreContent as copy, DEMO_EXAMPLES } from '@/data/demo-store'
+import { siteContent } from '@/data/site'
 import { ctaClass } from '@/lib/cta'
 import { loadGsap, prefersReducedMotion } from '@/lib/gsap'
-import { useWaitlist } from '../../waitlist/waitlist-context'
 import { useHeroDemo } from './hero-demo-context'
 import OrderArcs, { type ArcPoint } from './order-arcs'
 import StorefrontCard from './storefront-card'
@@ -25,7 +25,6 @@ export default function StoreBuildDemo() {
   // Hooks
   const { phase, text, runId, skip, skipId, finish, reducedMotion, sectionRef, globeApiRef } =
     useHeroDemo()
-  const { openWaitlist } = useWaitlist()
   const wrapperRef = useRef<HTMLDivElement>(null)
   const timelineRef = useRef<{ progress: (value: number) => unknown; kill: () => void } | null>(
     null,
@@ -174,13 +173,9 @@ export default function StoreBuildDemo() {
           data-cta
           className="mt-3 flex flex-col items-center gap-2 group-data-[armed=true]/demo:opacity-0"
         >
-          <button
-            type="button"
-            className={ctaClass('md', 'w-full')}
-            onClick={() => openWaitlist({ sell: text })}
-          >
+          <a href={siteContent.startFree.href} className={ctaClass('md', 'w-full')}>
             {copy.startStore} →
-          </button>
+          </a>
           <p className="text-[0.6875rem] text-muted-foreground">{store.note}</p>
         </div>
       </div>

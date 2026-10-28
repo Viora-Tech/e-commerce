@@ -67,7 +67,7 @@ export default [
         heading: 'इस महीने',
         help: (resetsOn) => `आपकी लिमिट ${resetsOn} को फिर से शुरू होगी।`,
         plan: 'प्लान',
-        plans: { free: 'फ़्री', starter: 'स्टार्टर', growth: 'ग्रोथ', pro: 'प्रो' },
+        plans: { free: 'फ़्री', starter: 'स्टार्टर', growth: 'ग्रोथ', pro: 'प्रो', scale: 'स्केल' },
         requests: 'AI रिक्वेस्ट',
         credits: 'AI क्रेडिट',
         creditsHelp: 'हर जवाब या लिखाई कुछ क्रेडिट लेती है, इस पर निर्भर कि AI कितना पढ़ता और लिखता है।',

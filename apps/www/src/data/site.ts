@@ -12,8 +12,9 @@ export const siteContent = {
     { label: 'Apps', href: '/apps' },
     { label: 'Docs', href: docs },
   ],
-  signIn: { label: 'Sign in', href: `${siteConfig.urls.admin}/sign-in` },
-  joinWaitlist: 'Join the waitlist',
+  signIn: { label: 'Sign in', href: `${siteConfig.urls.admin}/login` },
+  // Sign-in creates the account; the admin then walks a new merchant through creating a store.
+  startFree: { label: 'Start free', href: `${siteConfig.urls.admin}/login` },
   openMenu: 'Open menu',
   closeMenu: 'Close menu',
   footerColumns: [

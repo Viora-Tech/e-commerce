@@ -75,7 +75,7 @@ export const ACTION_RISKS = ['safe', 'customer', 'sensitive'] as const
 export type ActionRisk = (typeof ACTION_RISKS)[number]
 
 /** Lowest plan a piece is available on (owner, 2026-10-23: HTTP and plugin actions Growth+). */
-export type AutomationPlanTier = 'starter' | 'growth' | 'pro'
+export type AutomationPlanTier = 'starter' | 'growth' | 'pro' | 'scale'
 
 /** Where a trigger's events come from. */
 export const TRIGGER_SOURCES = ['outbox', 'sweep', 'schedule', 'manual', 'plugin'] as const

@@ -203,6 +203,8 @@ export default [
       title: 'इस महीने के ऑर्डर',
       of: (used, limit) => `${limit} में से ${used}`,
       moreRoom: (plan) => `${plan} प्लान में ज़्यादा जगह`,
+      nearLimit: (left) => `${left} शामिल ऑर्डर बाकी`,
+      feeAfter: (percent) => `हर अगला ऑर्डर: उसकी कुल रकम का ${percent}%`,
     },
     account: 'अकाउंट',
     menu: {

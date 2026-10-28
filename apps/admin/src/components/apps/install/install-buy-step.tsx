@@ -21,7 +21,7 @@ type InstallBuyStepProps = {
   onCancel: () => void
 }
 
-const PLAN_NAMES = { starter: 'Starter', growth: 'Growth', pro: 'Pro' } as const
+const PLAN_NAMES = { starter: 'Starter', growth: 'Growth', pro: 'Pro', scale: 'Scale' } as const
 
 /**
  * A paid app the plan does not include: its monthly price, then the pay link. Paying installs

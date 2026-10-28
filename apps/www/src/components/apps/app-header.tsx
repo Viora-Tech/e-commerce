@@ -3,6 +3,7 @@ import KoomerceMark from '@commerce/ui/brand'
 import { ChevronRight } from '@commerce/ui/icons'
 import Link from 'next/link'
 import { categoryCopy, categoryPath, appsContent as copy, maker, priceIncluded } from '@/data/apps'
+import { siteContent } from '@/data/site'
 import PageContainer from '../common/page-container'
 import AppTile from './app-tile'
 import InstallActions from './install-actions'
@@ -78,12 +79,12 @@ export default function AppHeader({ app, actionsId }: AppHeaderProps) {
           <InstallActions id={app.id} guide={app.guide} />
           <p className="max-w-xs text-xs text-pretty text-muted-foreground lg:text-right">
             {copy.installHint}{' '}
-            <Link
-              href="/waitlist"
+            <a
+              href={siteContent.startFree.href}
               className="font-medium text-foreground underline decoration-border underline-offset-4 hover:decoration-foreground"
             >
-              {copy.noStore} {copy.joinWaitlist}
-            </Link>
+              {copy.noStore} {copy.startFree}
+            </a>
           </p>
         </div>
       </div>

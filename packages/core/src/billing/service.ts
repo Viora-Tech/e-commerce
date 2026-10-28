@@ -14,13 +14,15 @@ import {
   type StoreTx,
   store,
   storePlan,
+  usageBill,
   variant,
   withStore,
 } from '@commerce/db'
-import { and, desc, eq, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import { storefrontOriginFor } from '../domains/origin'
 import { CommerceError } from '../errors'
 import { convertDraft, createDraft } from '../order/drafts'
+import { cancelOrder } from '../order/status'
 import { createPaymentAttempt } from '../payments/attempts'
 import { isGatewayProvider } from '../payments/methods'
 import { parsePaymentSettings } from '../payments/settings'
@@ -32,13 +34,23 @@ import {
   addInterval,
   type BillingInterval,
   GRACE_DAYS,
+  PLAN_GST_PERCENT,
   PLANS,
   type PlanId,
+  planRank,
   planSku,
   RENEW_AHEAD_DAYS,
   TRIAL_DAYS,
 } from './plans'
 import { type PlanUsage, planUsage } from './usage'
+import { billable, monthFee } from './usage-fee'
+import {
+  billingMonth,
+  feeEstimate,
+  loadMonthFeeInputs,
+  monthRange,
+  previousMonth,
+} from './usage-fee-service'
 
 const DAY_MS = 86_400_000
 
@@ -109,15 +121,39 @@ export type PlanView = {
   billingReady: boolean
   /** Where invoices go: the store's contact email. */
   invoiceEmail: string | null
+  /** This month's per-order fees so far, and what earlier months carried in. */
+  fees: Awaited<ReturnType<typeof feeEstimate>>
+  /** The last 12 months of per-order fee bills, newest first. */
+  usageBills: UsageBillView[]
+  /** Fee bills still waiting for payment, in paise (the banner). */
+  unpaidFees: number
+  /** Last month closed two months running over the plan's fair-use visits. */
+  fairUseNotice: boolean
 }
 
-const billUrl = (env: BillingEnv, b: BillRow): string | null =>
+export type UsageBillView = {
+  id: string
+  month: string
+  ordersCounted: number
+  feeOrders: number
+  totalPaise: number
+  status: (typeof usageBill.$inferSelect)['status']
+  paidAt: Date | null
+  /** The signed order page while it has its own order; null when carried or merged. */
+  url: string | null
+}
+
+/** The signed order page on the sales store: pay while due, the invoice once paid. */
+export const salesOrderUrl = (env: BillingEnv, id: string, number: number): string | null =>
   env.salesStorefrontUrl
     ? `${env.salesStorefrontUrl.replace(/\/$/, '')}${thankYouPath(
-        b.salesOrderNumber,
-        orderViewToken(b.salesOrderId, env.settingsSecret),
+        number,
+        orderViewToken(id, env.settingsSecret),
       )}`
     : null
+
+const billUrl = (env: BillingEnv, b: BillRow): string | null =>
+  salesOrderUrl(env, b.salesOrderId, b.salesOrderNumber)
 
 const toBill = (env: BillingEnv, b: BillRow): PlanBill => ({
   id: b.id,
@@ -140,7 +176,7 @@ export async function loadPlanView(
   now = new Date(),
 ): Promise<PlanView> {
   const row = await ensureStorePlan(tx, storeId, now)
-  const [usage, bills, [contact]] = await Promise.all([
+  const [usage, bills, [contact], fees, feeBills] = await Promise.all([
     planUsage(tx, now),
     tx
       .select()
@@ -149,8 +185,36 @@ export async function loadPlanView(
       .orderBy(desc(planPayment.createdAt))
       .limit(24),
     tx.select({ email: store.contactEmail }).from(store).where(eq(store.id, storeId)),
+    feeEstimate(tx, storeId, now),
+    tx
+      .select()
+      .from(usageBill)
+      // A month with nothing to pay is kept (it closes the month) but not listed.
+      .where(
+        and(
+          eq(usageBill.storeId, storeId),
+          sql`not (${usageBill.status} = 'carried' and ${usageBill.totalPaise} = 0)`,
+        ),
+      )
+      .orderBy(desc(usageBill.month))
+      .limit(12),
   ])
   const shown = bills.map((b) => toBill(env, b))
+  const usageBills = feeBills.map(
+    (b): UsageBillView => ({
+      id: b.id,
+      month: b.month,
+      ordersCounted: b.ordersCounted,
+      feeOrders: b.feeOrders,
+      totalPaise: b.totalPaise,
+      status: b.status,
+      paidAt: b.paidAt,
+      url:
+        b.salesOrderId && b.salesOrderNumber !== null && b.status !== 'merged'
+          ? salesOrderUrl(env, b.salesOrderId, b.salesOrderNumber)
+          : null,
+    }),
+  )
   return {
     plan: row.plan,
     interval: row.interval,
@@ -164,6 +228,10 @@ export async function loadPlanView(
     due: shown.find((b) => b.status === 'due') ?? null,
     billingReady: Boolean(env.salesStoreId && env.salesStorefrontUrl),
     invoiceEmail: contact?.email ?? null,
+    fees,
+    usageBills,
+    unpaidFees: feeBills.filter((b) => b.status === 'due').reduce((n, b) => n + b.totalPaise, 0),
+    fairUseNotice: row.fairUseNoticeMonth === previousMonth(billingMonth(now)),
   }
 }
 
@@ -188,16 +256,19 @@ async function salesGateway(tx: StoreTx, salesStoreId: string): Promise<string |
   return enabled.find((id) => isGatewayProvider(id)) ?? null
 }
 
+/** One line of a sales order: the variant with `sku`, once; `unitPricePaise` sets a computed amount. */
+export type SalesLine = { sku: string; unitPricePaise?: number }
+
 /**
- * One bill as an order on the sales store: the variant with `sku`, a draft for the buying
- * store's name and email, converted to an open order with a payment attempt waiting. Plan
- * bills and app bills both go through here.
+ * One bill as an order on the sales store: the variants with each line's `sku`, a draft for
+ * the buying store's name and email, converted to an open order with a payment attempt
+ * waiting. Plan, app, credit and usage bills all go through here.
  */
 export async function placeSalesOrder(
   db: Db,
   env: BillingEnv,
   storeId: string,
-  input: { sku: string; note: (buyer: string) => string },
+  input: { lines: SalesLine[]; note: (buyer: string) => string },
 ): Promise<{ id: string; number: number; totalPaise: number }> {
   const salesStoreId = env.salesStoreId
   if (!salesStoreId) throw new BillingNotReady('no_sales_store')
@@ -211,15 +282,23 @@ export async function placeSalesOrder(
   // A GST-registered store gets a B2B invoice it can claim input credit on.
   const gst = buyer?.gstin ? validateGstin(buyer.gstin) : null
   return withStore(db, salesStoreId, async (tx) => {
-    const v = await variantBySku(tx, input.sku)
-    if (!v) throw new BillingNotReady('no_plan_product')
+    const lines = []
+    for (const line of input.lines) {
+      const v = await variantBySku(tx, line.sku)
+      if (!v) throw new BillingNotReady('no_plan_product')
+      lines.push({
+        variantId: v.id,
+        quantity: 1,
+        ...(line.unitPricePaise === undefined ? {} : { unitPricePaise: line.unitPricePaise }),
+      })
+    }
     const gateway = await salesGateway(tx, salesStoreId)
     if (!gateway) throw new BillingNotReady('no_gateway')
     const ctx = { storeId: salesStoreId, tx }
     const draft = await createDraft(ctx, {
       email: buyer?.email ?? null,
       customerName: buyer?.name ?? null,
-      lines: [{ variantId: v.id, quantity: 1 }],
+      lines,
       discountPaise: 0,
       shippingPaise: 0,
       note: input.note(buyer?.name ?? storeId),
@@ -246,9 +325,45 @@ export async function placeSalesOrder(
 }
 
 /**
+ * Fees that rode on plan bills which no longer count (cancelled, or replaced by a new bill) are
+ * owed again. Their own orders were cancelled when they joined, so they have no pay link until
+ * the next plan bill collects them.
+ */
+async function releaseMergedFees(tx: StoreTx, planOrderIds: string[]): Promise<void> {
+  if (planOrderIds.length === 0) return
+  await tx
+    .update(usageBill)
+    .set({
+      status: 'due',
+      mergedIntoSalesOrderId: null,
+      salesOrderId: null,
+      salesOrderNumber: null,
+    })
+    .where(
+      and(inArray(usageBill.mergedIntoSalesOrderId, planOrderIds), eq(usageBill.status, 'merged')),
+    )
+}
+
+/** Whether a sales-store order has been paid (a fee bill paid on its own link). */
+async function salesOrderPaid(db: Db, env: BillingEnv, orderId: string): Promise<boolean> {
+  const salesStoreId = env.salesStoreId
+  if (!salesStoreId) return false
+  const [o] = await withStore(db, salesStoreId, (tx) =>
+    tx.select({ paid: order.paymentStatus }).from(order).where(eq(order.id, orderId)),
+  )
+  return o?.paid === 'paid'
+}
+
+/**
  * Creates the order that pays for one period of `plan` on the sales store (a draft turned into
  * an open order with a payment attempt waiting), and records it as this store's due bill.
- * Any earlier unpaid bill is cancelled first, so a store never owes two at once.
+ * Any earlier unpaid bill is cancelled first, so a store never owes two at once. Unpaid
+ * per-order fee bills ride along as one more line: they turn `merged` and their own orders are
+ * cancelled, so the plan bill's due and paused rules now cover them (owner, 2026-10-28).
+ *
+ * The fees are claimed in one transaction first, so a fee paid on its own link at the same
+ * moment is settled, not billed twice; fees on the bill being replaced move to this one; and a
+ * missing fee product only drops the fee line, never the renewal.
  */
 export async function createPlanBill(
   db: Db,
@@ -257,11 +372,62 @@ export async function createPlanBill(
   env: BillingEnv,
 ): Promise<PlanBill> {
   const periodEnd = addInterval(input.periodStart, input.interval)
-  const sale = await placeSalesOrder(db, env, storeId, {
-    sku: planSku(input.plan, input.interval),
-    note: (buyer) =>
-      `${siteConfig.brand.name} ${input.plan} (${input.interval}) for ${buyer}, store ${storeId}`,
+  const claimed = await withStore(db, storeId, async (tx) => {
+    const replaced = await tx
+      .select({ id: planPayment.salesOrderId })
+      .from(planPayment)
+      .where(and(eq(planPayment.storeId, storeId), eq(planPayment.status, 'due')))
+    await releaseMergedFees(
+      tx,
+      replaced.map((r) => r.id),
+    )
+    return tx
+      .update(usageBill)
+      .set({ status: 'merged', mergedIntoSalesOrderId: null })
+      .where(and(eq(usageBill.storeId, storeId), eq(usageBill.status, 'due')))
+      .returning({
+        id: usageBill.id,
+        totalPaise: usageBill.totalPaise,
+        salesOrderId: usageBill.salesOrderId,
+      })
   })
+  const owed: typeof claimed = []
+  const paidAlready: string[] = []
+  for (const f of claimed) {
+    if (f.salesOrderId && (await salesOrderPaid(db, env, f.salesOrderId))) paidAlready.push(f.id)
+    else owed.push(f)
+  }
+  const setFees = (ids: string[], set: Partial<typeof usageBill.$inferInsert>) =>
+    ids.length === 0
+      ? Promise.resolve()
+      : withStore(db, storeId, async (tx) => {
+          await tx.update(usageBill).set(set).where(inArray(usageBill.id, ids))
+        })
+  await setFees(paidAlready, { status: 'paid', paidAt: new Date() })
+  const owedIds = owed.map((f) => f.id)
+  const feesPaise = owed.reduce((n, f) => n + f.totalPaise, 0)
+  const placeBill = (withFees: boolean) =>
+    placeSalesOrder(db, env, storeId, {
+      lines: [
+        { sku: planSku(input.plan, input.interval) },
+        ...(withFees ? [{ sku: usageFeeSku('carried'), unitPricePaise: feesPaise }] : []),
+      ],
+      note: (buyer) =>
+        `${siteConfig.brand.name} ${input.plan} (${input.interval}) for ${buyer}, store ${storeId}`,
+    })
+  let withFees = feesPaise > 0
+  let sale: Awaited<ReturnType<typeof placeSalesOrder>>
+  try {
+    sale = await placeBill(withFees)
+  } catch (err) {
+    // The fees stay owed on their own bills, with the pay links they had.
+    await setFees(owedIds, { status: 'due', mergedIntoSalesOrderId: null })
+    const noFeeProduct =
+      withFees && err instanceof BillingNotReady && err.reason === 'no_plan_product'
+    if (!noFeeProduct) throw err
+    withFees = false
+    sale = await placeBill(false)
+  }
 
   const bill = await withStore(db, storeId, async (tx) => {
     await tx
@@ -283,8 +449,23 @@ export async function createPlanBill(
       })
       .returning()
     if (!row) throw new Error('plan bill insert returned nothing')
+    if (withFees)
+      await tx
+        .update(usageBill)
+        .set({ mergedIntoSalesOrderId: sale.id })
+        .where(inArray(usageBill.id, owedIds))
     return row
   })
+  // Their old pay links stop working; `cancelUsageBill` leaves a merged bill as it is.
+  const salesStoreId = env.salesStoreId
+  if (salesStoreId && withFees)
+    for (const f of owed) {
+      if (!f.salesOrderId) continue
+      const orderId = f.salesOrderId
+      await withStore(db, salesStoreId, (tx) =>
+        cancelOrder({ storeId: salesStoreId, tx }, orderId, { notifyCustomer: false }),
+      )
+    }
   return toBill(env, bill)
 }
 
@@ -301,7 +482,7 @@ export async function choosePlan(
 ): Promise<{ bill: PlanBill | null; scheduled: boolean }> {
   const row = await withStore(db, storeId, (tx) => ensureStorePlan(tx, storeId, now))
   const cheaper =
-    PLANS[input.plan].pricePaise.month < PLANS[row.plan].pricePaise.month ||
+    planRank(input.plan) < planRank(row.plan) ||
     (input.plan === row.plan && input.interval === 'month' && row.interval === 'year')
   if (row.status === 'active' && cheaper && row.periodEnd && row.periodEnd > now) {
     await withStore(db, storeId, (tx) =>
@@ -367,6 +548,13 @@ export async function markPlanBillPaid(
       .update(aiSettings)
       .set({ plan: PLANS[bill.plan].ai })
       .where(eq(aiSettings.storeId, storeId))
+    // Per-order fees that rode on this bill are paid with it.
+    await tx
+      .update(usageBill)
+      .set({ status: 'paid', paidAt: now })
+      .where(
+        and(eq(usageBill.mergedIntoSalesOrderId, salesOrderId), eq(usageBill.status, 'merged')),
+      )
   })
   return { storeId }
 }
@@ -378,11 +566,229 @@ export async function cancelPlanBill(db: Db, salesOrderId: string): Promise<void
   )
   const storeId = rows[0]?.id
   if (!storeId) return
-  await withStore(db, storeId, (tx) =>
-    tx
+  await withStore(db, storeId, async (tx) => {
+    const cancelled = await tx
       .update(planPayment)
       .set({ status: 'cancelled' })
-      .where(and(eq(planPayment.salesOrderId, salesOrderId), eq(planPayment.status, 'due'))),
+      .where(and(eq(planPayment.salesOrderId, salesOrderId), eq(planPayment.status, 'due')))
+      .returning({ id: planPayment.id })
+    // Fees that rode on it are owed again; the next plan bill collects them.
+    if (cancelled.length > 0) await releaseMergedFees(tx, [salesOrderId])
+  })
+}
+
+/** The sales-store SKU a fee line is billed on: one per plan rate, and one for carried fees. */
+export const usageFeeSku = (plan: PlanId | 'carried'): string => `usage-fee-${plan}`
+
+/** "October 2026" for the bill and its email. */
+const monthLabel = (month: string): string =>
+  new Date(`${month}-15T00:00:00Z`).toLocaleString('en-IN', {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })
+
+export type UsageBillingResult = { stores: number; billed: number; carried: number }
+
+/**
+ * The 1st's per-order fee bill for the month that just ended, for every store that had paid
+ * plan time in it. Runs with the hourly sweep and is idempotent: a store and month get one
+ * `usage_bill` row, written first as a claim (the unique index lets one sweep win when two
+ * overlap), so later runs skip it. Under ₹100 (with what was carried in) the month is recorded
+ * as `carried`; otherwise one order on the sales store, a line per plan rate plus one for
+ * carried fees, and an email with the pay link. Never changes a store's plan status.
+ */
+export async function runUsageBilling(
+  db: Db,
+  env: BillingEnv,
+  now = new Date(),
+): Promise<UsageBillingResult> {
+  const result: UsageBillingResult = { stores: 0, billed: 0, carried: 0 }
+  const month = previousMonth(billingMonth(now))
+  const { start, end } = monthRange(month)
+  const ids = await db.execute<{ id: string }>(
+    sql`select stores_with_paid_period(${start.toISOString()}::timestamptz, ${end.toISOString()}::timestamptz) as id`,
+  )
+  for (const { id: storeId } of ids) {
+    result.stores++
+    const claim = await withStore(db, storeId, async (tx) => {
+      const [done] = await tx
+        .select({ id: usageBill.id })
+        .from(usageBill)
+        .where(and(eq(usageBill.storeId, storeId), eq(usageBill.month, month)))
+      if (done) return null
+      const carried = await tx
+        .select({ id: usageBill.id, totalPaise: usageBill.totalPaise })
+        .from(usageBill)
+        .where(and(eq(usageBill.storeId, storeId), eq(usageBill.status, 'carried')))
+      const { orders, periods } = await loadMonthFeeInputs(tx, storeId, month)
+      const fee = monthFee(orders, periods)
+      const carriedIn = carried.reduce((n, c) => n + c.totalPaise, 0)
+      const { bill, totalPaise } = billable(fee.feePaise, carriedIn)
+      const [row] = await tx
+        .insert(usageBill)
+        .values({
+          storeId,
+          month,
+          ordersCounted: fee.ordersCounted,
+          feeOrders: fee.feeOrders,
+          feePaise: fee.feePaise,
+          carriedInPaise: carriedIn,
+          totalPaise,
+          lines: fee.lines,
+          status: bill ? 'due' : 'carried',
+          createdAt: now,
+        })
+        .onConflictDoNothing({ target: [usageBill.storeId, usageBill.month] })
+        .returning({ id: usageBill.id })
+      if (!row) return null
+      const carriedIds = carried.map((c) => c.id)
+      // A carried month folds in now; a billed one once its order exists.
+      if (!bill && carriedIds.length > 0)
+        await tx
+          .update(usageBill)
+          .set({ status: 'merged' })
+          .where(inArray(usageBill.id, carriedIds))
+      return { id: row.id, bill, fee, carriedIn, carriedIds }
+    })
+    if (!claim) continue
+    if (!claim.bill) {
+      result.carried++
+      continue
+    }
+    let sale: Awaited<ReturnType<typeof placeSalesOrder>>
+    try {
+      sale = await placeSalesOrder(db, env, storeId, {
+        lines: [
+          ...claim.fee.lines.map((l) => ({
+            sku: usageFeeSku(l.plan),
+            unitPricePaise: l.feePaise,
+          })),
+          ...(claim.carriedIn > 0
+            ? [{ sku: usageFeeSku('carried'), unitPricePaise: claim.carriedIn }]
+            : []),
+        ],
+        note: (buyer) =>
+          `${siteConfig.brand.name} per-order fees ${month} for ${buyer}, store ${storeId}`,
+      })
+    } catch (err) {
+      // No order: drop the claim so the next run tries again.
+      await withStore(db, storeId, (tx) => tx.delete(usageBill).where(eq(usageBill.id, claim.id)))
+      if (err instanceof BillingNotReady) continue
+      throw err
+    }
+    await withStore(db, storeId, async (tx) => {
+      await tx
+        .update(usageBill)
+        .set({ salesOrderId: sale.id, salesOrderNumber: sale.number })
+        .where(eq(usageBill.id, claim.id))
+      if (claim.carriedIds.length > 0)
+        await tx
+          .update(usageBill)
+          .set({ status: 'merged' })
+          .where(inArray(usageBill.id, claim.carriedIds))
+    })
+    result.billed++
+    await sendPlanBillEmail(db, storeId, {
+      kind: 'usage',
+      what: `Per-order fees for ${monthLabel(month)}`,
+      amountPaise: sale.totalPaise,
+      due: new Date(now.getTime() + GRACE_DAYS * DAY_MS),
+      url: salesOrderUrl(env, sale.id, sale.number),
+    })
+  }
+  return result
+}
+
+/** Days after billing that an unpaid fee bill is reminded about, one email each. */
+const USAGE_REMINDER_DAYS = [3, 7] as const
+
+/**
+ * Reminder emails for fee bills still `due` with a pay link: 3 and 7 days after they were
+ * billed. Nothing is paused; an unpaid fee joins the next plan bill.
+ */
+export async function runUsageReminders(
+  db: Db,
+  env: BillingEnv,
+  now = new Date(),
+): Promise<{ reminded: number }> {
+  const result = { reminded: 0 }
+  const ids = await db.execute<{ id: string }>(sql`select stores_with_due_usage_bills() as id`)
+  for (const { id: storeId } of ids) {
+    const due = await withStore(db, storeId, async (tx) => {
+      const rows = await tx
+        .select()
+        .from(usageBill)
+        .where(and(eq(usageBill.storeId, storeId), eq(usageBill.status, 'due')))
+      const out: (typeof rows)[number][] = []
+      for (const b of rows) {
+        const after = USAGE_REMINDER_DAYS[b.remindersSent]
+        if (!b.salesOrderId || after === undefined) continue
+        if (now.getTime() - b.createdAt.getTime() < after * DAY_MS) continue
+        // The guard on the old count keeps two sweeps from sending the same reminder.
+        const [won] = await tx
+          .update(usageBill)
+          .set({ remindersSent: b.remindersSent + 1 })
+          .where(and(eq(usageBill.id, b.id), eq(usageBill.remindersSent, b.remindersSent)))
+          .returning({ id: usageBill.id })
+        if (won) out.push(b)
+      }
+      return out
+    })
+    for (const b of due) {
+      if (!b.salesOrderId || b.salesOrderNumber === null) continue
+      result.reminded++
+      await sendPlanBillEmail(db, storeId, {
+        kind: 'usage',
+        what: `Per-order fees for ${monthLabel(b.month)}`,
+        // The bill's own order added GST on the sales store; the row keeps the amount before it.
+        amountPaise: Math.round((b.totalPaise * (100 + PLAN_GST_PERCENT)) / 100),
+        due: new Date(b.createdAt.getTime() + GRACE_DAYS * DAY_MS),
+        url: salesOrderUrl(env, b.salesOrderId, b.salesOrderNumber),
+      })
+    }
+  }
+  return result
+}
+
+/** The store a fee bill's sales order belongs to (its own order, or the plan bill it joined). */
+async function usageBillStore(db: Db, salesOrderId: string): Promise<string | null> {
+  const rows = await db.execute<{ id: string | null }>(
+    sql`select usage_bill_store(${salesOrderId}::uuid) as id`,
+  )
+  return rows[0]?.id ?? null
+}
+
+/** The sales store's `order.paid` hook for a fee bill. Safe to run twice. */
+export async function markUsageBillPaid(
+  db: Db,
+  salesOrderId: string,
+  now = new Date(),
+): Promise<{ storeId: string } | null> {
+  const storeId = await usageBillStore(db, salesOrderId)
+  if (!storeId) return null
+  const updated = await withStore(db, storeId, (tx) =>
+    tx
+      .update(usageBill)
+      .set({ status: 'paid', paidAt: now })
+      .where(and(eq(usageBill.salesOrderId, salesOrderId), eq(usageBill.status, 'due')))
+      .returning({ id: usageBill.id }),
+  )
+  return updated.length > 0 ? { storeId } : null
+}
+
+/**
+ * The sales store cancelled or fully refunded a fee bill's order. Only a `due` bill turns
+ * `cancelled`: a bill already added to a plan bill (`merged`) stays owed through that one.
+ */
+export async function cancelUsageBill(db: Db, salesOrderId: string): Promise<void> {
+  const storeId = await usageBillStore(db, salesOrderId)
+  if (!storeId) return
+  await withStore(db, storeId, (tx) =>
+    tx
+      .update(usageBill)
+      .set({ status: 'cancelled' })
+      .where(and(eq(usageBill.salesOrderId, salesOrderId), eq(usageBill.status, 'due'))),
   )
 }
 

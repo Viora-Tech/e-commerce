@@ -264,6 +264,8 @@ export const navigationContent = {
     title: 'Orders this month',
     of: (used: string, limit: string) => `${used} of ${limit}`,
     moreRoom: (plan: string) => `More room on ${plan} plan`,
+    nearLimit: (left: string) => `${left} included orders left`,
+    feeAfter: (percent: string) => `Each further order: ${percent}% of its total`,
   },
   account: 'Account',
   menu: {

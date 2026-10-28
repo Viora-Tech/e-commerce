@@ -70,7 +70,7 @@ export const aiContent = {
       heading: 'This month',
       help: (resetsOn: string) => `Your allowance starts again on ${resetsOn}.`,
       plan: 'Plan',
-      plans: { free: 'Free', starter: 'Starter', growth: 'Growth', pro: 'Pro' },
+      plans: { free: 'Free', starter: 'Starter', growth: 'Growth', pro: 'Pro', scale: 'Scale' },
       requests: 'AI requests',
       credits: 'AI credits',
       creditsHelp:

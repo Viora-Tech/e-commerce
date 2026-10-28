@@ -7,6 +7,7 @@ import { recommendedPlan } from '@/lib/pricing-math'
 import PageContainer from '../common/page-container'
 import BillingToggle, { type Billing } from './billing-toggle'
 import OrdersCalculator from './orders-calculator'
+import OwnItBand from './own-it-band'
 import PlanCard from './plan-card'
 import SavingsCard from './savings-card'
 
@@ -15,7 +16,7 @@ const copy = pricingContent.page
 const INITIAL_ORDERS = 200
 const INITIAL_AOV = 1200
 
-/** The interactive part of the pricing page: billing toggle, order slider, savings and the plan cards. */
+/** The interactive part of the pricing page: billing toggle, order slider, monthly cost, plan cards and Own it. */
 export default function PricingExplorer() {
   // Hooks
   const [billing, setBilling] = useState<Billing>('monthly')
@@ -23,7 +24,7 @@ export default function PricingExplorer() {
   const [aov, setAov] = useState(INITIAL_AOV)
 
   // Render logic
-  const recommended = recommendedPlan(orders)
+  const recommended = recommendedPlan(orders, aov)
 
   return (
     <>
@@ -46,7 +47,7 @@ export default function PricingExplorer() {
         </div>
       </PageContainer>
       <PageContainer className="mt-12 md:mt-16">
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
           {PLANS.map((plan, index) => (
             <PlanCard
               key={plan.key}
@@ -64,6 +65,7 @@ export default function PricingExplorer() {
             />
           ))}
         </div>
+        <OwnItBand />
       </PageContainer>
     </>
   )

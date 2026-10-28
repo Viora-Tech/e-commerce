@@ -202,6 +202,7 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   theme_file_version: LOG,
   transfer: ADMIN,
   transfer_line: ADMIN,
+  usage_bill: ADMIN,
 }
 
 /** Parses a notification payload; null for anything that is not one of ours. */

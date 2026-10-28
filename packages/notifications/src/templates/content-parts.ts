@@ -351,11 +351,17 @@ export const platformTemplates = {
   },
   plan_bill: {
     subject: (d) =>
-      d.planBill?.kind === 'overdue'
-        ? `Your ${d.planBill.platformName} bill for ${d.storeName} is overdue`
-        : `Your ${d.planBill?.platformName ?? siteConfig.brand.name} bill for ${d.storeName}: ${d.planBill?.amountLabel ?? ''}`,
+      d.planBill?.kind === 'fair_use'
+        ? `${d.storeName} is past its plan's fair-use visits`
+        : d.planBill?.kind === 'overdue'
+          ? `Your ${d.planBill.platformName} bill for ${d.storeName} is overdue`
+          : `Your ${d.planBill?.platformName ?? siteConfig.brand.name} bill for ${d.storeName}: ${d.planBill?.amountLabel ?? ''}`,
     heading: (d) =>
-      d.planBill?.kind === 'overdue' ? 'Your bill is overdue' : 'Your bill is ready',
+      d.planBill?.kind === 'fair_use'
+        ? 'Your store is busier than its plan'
+        : d.planBill?.kind === 'overdue'
+          ? 'Your bill is overdue'
+          : 'Your bill is ready',
     intro: (d) => {
       const b = d.planBill
       if (!b) return ''
@@ -363,10 +369,16 @@ export const platformTemplates = {
         return `${b.amountLabel} for ${b.what} is still unpaid. Your paid time ended on ${b.dueLabel}; pay now to keep everything working.`
       if (b.kind === 'renewal')
         return `${b.what} renews on ${b.dueLabel}. Pay ${b.amountLabel} (including GST) by then to keep it running.`
+      if (b.kind === 'fair_use')
+        return `Your store had more visits than the ${b.what} allows, two months running. Nothing is blocked or charged. Someone from ${b.platformName} will get in touch to find the right plan with you.`
+      if (b.kind === 'usage')
+        return `${b.what}: ${b.amountLabel} (including GST), for the orders past your plan's included ones. Please pay by ${b.dueLabel}. Nothing is paused while it waits; if it is still unpaid at your next renewal, it is added to that bill.`
       return `${b.amountLabel} (including GST) for ${b.what}. It starts as soon as the payment goes through.`
     },
     outro: (d) =>
-      `${d.actionUrl ? `Pay here: ${d.actionUrl}. ` : ''}Pay with UPI, card or netbanking. Your GST invoice comes by email once it is paid. Questions? Write to ${siteConfig.contact.supportEmail}.`,
+      d.planBill?.kind === 'fair_use'
+        ? `${d.actionUrl ? `See your plan: ${d.actionUrl}. ` : ''}Questions? Write to ${siteConfig.contact.supportEmail}.`
+        : `${d.actionUrl ? `Pay here: ${d.actionUrl}. ` : ''}Pay with UPI, card or netbanking. Your GST invoice comes by email once it is paid. Questions? Write to ${siteConfig.contact.supportEmail}.`,
     whatsapp: (d) =>
       `${d.storeName}: ${d.planBill?.amountLabel ?? ''} due for ${d.planBill?.what ?? 'your plan'}.${d.actionUrl ? ` Pay: ${d.actionUrl}` : ''}`,
   },

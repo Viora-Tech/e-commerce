@@ -3,6 +3,7 @@ import {
   check,
   index,
   integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
@@ -17,7 +18,7 @@ import { newId, store } from './schema'
  * and its checkout takes the money; these tables only remember which order paid for what.
  */
 
-const STORE_PLANS = ['starter', 'growth', 'pro'] as const
+const STORE_PLANS = ['starter', 'growth', 'pro', 'scale'] as const
 export type StorePlanId = (typeof STORE_PLANS)[number]
 
 const PLAN_INTERVALS = ['month', 'year'] as const
@@ -50,17 +51,75 @@ export const storePlan = pgTable(
     periodEnd: timestamp('period_end', { withTimezone: true }),
     /** A downgrade the owner asked for, applied when the current period ends. */
     nextPlan: text('next_plan').$type<StorePlanId>(),
+    /**
+     * The last finished month (`YYYY-MM`) that closed two months running over the plan's
+     * fair-use visits; the admin shows a notice while it is last month. Nothing is blocked.
+     */
+    fairUseNoticeMonth: text('fair_use_notice_month'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     uniqueIndex('store_plan_store').on(t.storeId),
-    check('store_plan_plan', sql`${t.plan} in ('starter','growth','pro')`),
+    check('store_plan_plan', sql`${t.plan} in ('starter','growth','pro','scale')`),
     check('store_plan_interval', sql`${t.interval} in ('month','year')`),
     check(
       'store_plan_status',
       sql`${t.status} in ('trialing','active','due','paused','cancelled')`,
     ),
+  ],
+)
+
+/**
+ * `carried`: under ₹100, added to the next month instead of billed. `due`: billed, waiting.
+ * `merged`: a carried month taken into the next bill, or an unpaid bill added to the next plan
+ * bill (`mergedIntoSalesOrderId`). `paid`, `cancelled` as for plan bills.
+ */
+const USAGE_BILL_STATUSES = ['carried', 'due', 'merged', 'paid', 'cancelled'] as const
+export type UsageBillStatus = (typeof USAGE_BILL_STATUSES)[number]
+
+/** One plan rate's share of a month's fee (`packages/core/src/billing/usage-fee.ts` FeeLine). */
+export type UsageBillLine = {
+  plan: StorePlanId
+  basisPoints: number
+  orders: number
+  feePaise: number
+}
+
+/**
+ * One month of per-order fees for one store: what was counted, and the order on the sales store
+ * that bills it (none when the month was carried). One row per store and month.
+ */
+export const usageBill = pgTable(
+  'usage_bill',
+  {
+    id: id(),
+    storeId: storeId(),
+    /** `YYYY-MM`, the IST calendar month the orders were placed in. */
+    month: text('month').notNull(),
+    ordersCounted: integer('orders_counted').notNull(),
+    feeOrders: integer('fee_orders').notNull(),
+    feePaise: integer('fee_paise').notNull(),
+    carriedInPaise: integer('carried_in_paise').notNull().default(0),
+    totalPaise: integer('total_paise').notNull(),
+    lines: jsonb('lines').$type<UsageBillLine[]>().notNull().default([]),
+    /** The order on the sales store (another store, so no foreign key). */
+    salesOrderId: uuid('sales_order_id'),
+    salesOrderNumber: integer('sales_order_number'),
+    /** The plan bill's sales order an unpaid usage bill was added to. */
+    mergedIntoSalesOrderId: uuid('merged_into_sales_order_id'),
+    status: text('status').$type<UsageBillStatus>().notNull(),
+    paidAt: timestamp('paid_at', { withTimezone: true }),
+    /** Reminder emails sent while it is `due` (3 and 7 days after it was billed). */
+    remindersSent: integer('reminders_sent').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('usage_bill_month').on(t.storeId, t.month),
+    uniqueIndex('usage_bill_order').on(t.salesOrderId),
+    index('usage_bill_store').on(t.storeId, t.createdAt),
+    index('usage_bill_merged').on(t.mergedIntoSalesOrderId),
+    check('usage_bill_status', sql`${t.status} in ('carried','due','merged','paid','cancelled')`),
   ],
 )
 

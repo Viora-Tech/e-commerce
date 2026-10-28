@@ -36,7 +36,14 @@ export default function SellAnything() {
                 <IconBadge className="mb-3">
                   <Icon aria-hidden className="size-5" />
                 </IconBadge>
-                <h3 className="text-lg font-semibold text-foreground">{card.title}</h3>
+                <h3 className="flex flex-wrap items-center gap-2 text-lg font-semibold text-foreground">
+                  {card.title}
+                  {'soon' in card && card.soon ? (
+                    <span className="rounded-full border border-border px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                      {copy.soon}
+                    </span>
+                  ) : null}
+                </h3>
                 <p className="text-sm text-muted-foreground">{card.body}</p>
               </Reveal>
             )
