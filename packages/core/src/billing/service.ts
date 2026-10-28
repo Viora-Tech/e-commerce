@@ -22,6 +22,7 @@ import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import { storefrontOriginFor } from '../domains/origin'
 import { CommerceError } from '../errors'
 import { convertDraft, createDraft } from '../order/drafts'
+import { cancelOrder } from '../order/status'
 import { createPaymentAttempt } from '../payments/attempts'
 import { isGatewayProvider } from '../payments/methods'
 import { parsePaymentSettings } from '../payments/settings'
@@ -267,7 +268,9 @@ export async function placeSalesOrder(
 /**
  * Creates the order that pays for one period of `plan` on the sales store (a draft turned into
  * an open order with a payment attempt waiting), and records it as this store's due bill.
- * Any earlier unpaid bill is cancelled first, so a store never owes two at once.
+ * Any earlier unpaid bill is cancelled first, so a store never owes two at once. Unpaid
+ * per-order fee bills ride along as one more line: they turn `merged` and their own orders are
+ * cancelled, so the plan bill's due and paused rules now cover them (owner, 2026-10-28).
  */
 export async function createPlanBill(
   db: Db,
@@ -276,8 +279,22 @@ export async function createPlanBill(
   env: BillingEnv,
 ): Promise<PlanBill> {
   const periodEnd = addInterval(input.periodStart, input.interval)
+  const unpaidFees = await withStore(db, storeId, (tx) =>
+    tx
+      .select({
+        id: usageBill.id,
+        totalPaise: usageBill.totalPaise,
+        salesOrderId: usageBill.salesOrderId,
+      })
+      .from(usageBill)
+      .where(and(eq(usageBill.storeId, storeId), eq(usageBill.status, 'due'))),
+  )
+  const feesPaise = unpaidFees.reduce((n, f) => n + f.totalPaise, 0)
   const sale = await placeSalesOrder(db, env, storeId, {
-    lines: [{ sku: planSku(input.plan, input.interval) }],
+    lines: [
+      { sku: planSku(input.plan, input.interval) },
+      ...(feesPaise > 0 ? [{ sku: usageFeeSku('carried'), unitPricePaise: feesPaise }] : []),
+    ],
     note: (buyer) =>
       `${siteConfig.brand.name} ${input.plan} (${input.interval}) for ${buyer}, store ${storeId}`,
   })
@@ -302,8 +319,28 @@ export async function createPlanBill(
       })
       .returning()
     if (!row) throw new Error('plan bill insert returned nothing')
+    if (unpaidFees.length > 0)
+      await tx
+        .update(usageBill)
+        .set({ status: 'merged', mergedIntoSalesOrderId: sale.id })
+        .where(
+          inArray(
+            usageBill.id,
+            unpaidFees.map((f) => f.id),
+          ),
+        )
     return row
   })
+  // Their old pay links stop working; `cancelUsageBill` leaves a merged bill as it is.
+  const salesStoreId = env.salesStoreId
+  if (salesStoreId)
+    for (const f of unpaidFees) {
+      if (!f.salesOrderId) continue
+      const orderId = f.salesOrderId
+      await withStore(db, salesStoreId, (tx) =>
+        cancelOrder({ storeId: salesStoreId, tx }, orderId, { notifyCustomer: false }),
+      )
+    }
   return toBill(env, bill)
 }
 
@@ -386,6 +423,13 @@ export async function markPlanBillPaid(
       .update(aiSettings)
       .set({ plan: PLANS[bill.plan].ai })
       .where(eq(aiSettings.storeId, storeId))
+    // Per-order fees that rode on this bill are paid with it.
+    await tx
+      .update(usageBill)
+      .set({ status: 'paid', paidAt: now })
+      .where(
+        and(eq(usageBill.mergedIntoSalesOrderId, salesOrderId), eq(usageBill.status, 'merged')),
+      )
   })
   return { storeId }
 }

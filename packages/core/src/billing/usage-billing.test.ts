@@ -1,5 +1,13 @@
 /** SOURCE OF TRUTH: monthly usage bill tests — WHAT: the 1st's per-order fee bill, carry-forward, pay and cancel / WHY: a store must be billed once, only for real orders in paid time */
-import { createDb, order, orderLine, storePlan, usageBill } from '@commerce/db'
+import {
+  autopayMandate,
+  createDb,
+  order,
+  orderLine,
+  planPayment,
+  storePlan,
+  usageBill,
+} from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
@@ -10,7 +18,14 @@ import {
   seedSalesStore,
   seedStore,
 } from '../testing/usage-seed'
-import { type BillingEnv, cancelUsageBill, markUsageBillPaid, runUsageBilling } from './service'
+import {
+  type BillingEnv,
+  cancelUsageBill,
+  markPlanBillPaid,
+  markUsageBillPaid,
+  runBillingSweep,
+  runUsageBilling,
+} from './service'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
@@ -164,5 +179,64 @@ describe('runUsageBilling', () => {
     const plans = await owner.select({ status: storePlan.status }).from(storePlan)
     expect(plans.map((p) => p.status)).toEqual(['active', 'active'])
     expect(await markUsageBillPaid(app, crypto.randomUUID())).toBeNull()
+  })
+})
+
+describe('unpaid fee bills and the next plan bill', () => {
+  it('adds an unpaid usage bill to the renewal and settles it when paid', async () => {
+    const env = await billingEnv()
+    const id = await seedStore(owner, 'asha')
+    await seedPaidPeriod(owner, id, 'starter', OCT, NOV)
+    await seedOrders(owner, id, ordersFrom(60, new Date('2026-10-05T06:00:00Z'), 2_00_000))
+    await runUsageBilling(app, env, NOV_RUN)
+    const [fee] = await rows(id)
+    expect(fee?.status).toBe('due')
+
+    // The period ended, so the sweep bills the renewal and the fee rides on it.
+    await runBillingSweep(app, env, NOV_RUN)
+    const [renewal] = await owner.select().from(planPayment).where(eq(planPayment.status, 'due'))
+    const planOrder = renewal?.salesOrderId as string
+    const lines = await owner
+      .select({ unit: orderLine.unitPricePaise })
+      .from(orderLine)
+      .where(eq(orderLine.orderId, planOrder))
+    expect(lines.map((l) => l.unit).sort((a, b) => a - b)).toEqual([20_000, 49_900])
+    expect((await rows(id))[0]).toMatchObject({
+      status: 'merged',
+      mergedIntoSalesOrderId: planOrder,
+    })
+    const [old] = await owner
+      .select({ status: order.status })
+      .from(order)
+      .where(eq(order.id, fee?.salesOrderId as string))
+    expect(old?.status).toBe('cancelled')
+
+    // The old order's cancel hook leaves the merged bill owed through the plan bill.
+    await cancelUsageBill(app, fee?.salesOrderId as string)
+    expect((await rows(id))[0]?.status).toBe('merged')
+
+    await markPlanBillPaid(app, planOrder, NOV_RUN)
+    expect((await rows(id))[0]).toMatchObject({ status: 'paid', paidAt: NOV_RUN })
+  })
+
+  it("an AutoPay store's usage bill stays due and the plan keeps its status", async () => {
+    const env = await billingEnv()
+    const id = await seedStore(owner, 'asha')
+    // Renews two days after the fee bill: inside the sweep's billing window.
+    const renews = new Date(NOV.getTime() + 2 * 86_400_000)
+    await seedPaidPeriod(owner, id, 'starter', OCT, renews)
+    await owner.insert(autopayMandate).values({
+      storeId: id,
+      plan: 'starter',
+      interval: 'month',
+      subscriptionId: 'sub_test',
+      status: 'active',
+    })
+    await seedOrders(owner, id, ordersFrom(60, new Date('2026-10-05T06:00:00Z'), 2_00_000))
+    await runUsageBilling(app, env, NOV_RUN)
+    await runBillingSweep(app, env, NOV_RUN)
+    expect((await rows(id))[0]?.status).toBe('due')
+    const [plan] = await owner.select({ status: storePlan.status }).from(storePlan)
+    expect(plan?.status).toBe('active')
   })
 })
