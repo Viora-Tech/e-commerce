@@ -180,6 +180,9 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   review_request: SHOPPER,
   role: ADMIN,
   role_permission: ADMIN,
+  // The changes a rollout applies (theme, discounts, checkout) write their own tables, which notify.
+  rollout: ADMIN,
+  rollout_change: ADMIN,
   saved_report: ADMIN,
   search_console_row: ADMIN,
   sender_email: ADMIN,

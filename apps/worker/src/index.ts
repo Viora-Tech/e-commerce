@@ -45,6 +45,7 @@ import { createPurchaseDocumentWorker } from './purchase-documents'
 import { createConnection, createHeartbeat } from './queues'
 import { createRetentionPrune, RETENTION_SCHEDULE } from './retention'
 import { createReviewRequestSweep, REVIEW_REQUESTS_EVERY_MS } from './reviews'
+import { createRolloutsTick, ROLLOUTS_EVERY_MS } from './rollouts'
 import { createSearchConsoleSweep, SEARCH_CONSOLE_EVERY_MS } from './search-console'
 import { createSenderEmailPoller, SENDER_CHECK_EVERY_MS } from './sender-email'
 import { shipmentWebhooks } from './shipments-webhook'
@@ -144,6 +145,7 @@ const billing = createBillingSweep(redis, db, {
 const apiActivityPrune = createApiActivityPrune(redis, db)
 const automationsPrune = createAutomationsPrune(redis, db)
 const retentionPrune = createRetentionPrune(redis, db)
+const rolloutsTick = createRolloutsTick(redis, db)
 const fxRates = createFxRates(redis, db)
 const channelSync = createChannelSync(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
@@ -208,6 +210,7 @@ const watched = [
   [apiActivityPrune.worker, 'api-activity-prune'],
   [automationsPrune.worker, 'automations-prune'],
   [retentionPrune.worker, 'retention-prune'],
+  [rolloutsTick.worker, 'rollouts-tick'],
   [fxRates.worker, 'fx-rates'],
   [channelSync.worker, 'channel-sync'],
 ] as const
@@ -337,6 +340,12 @@ await apiActivityPrune.queue.upsertJobScheduler(
 await retentionPrune.queue.upsertJobScheduler('retention-prune', RETENTION_SCHEDULE, {
   name: 'prune',
 })
+// Rollouts due to start or end (Markets → Rollouts): every minute.
+await rolloutsTick.queue.upsertJobScheduler(
+  'rollouts-tick',
+  { every: ROLLOUTS_EVERY_MS },
+  { name: 'tick' },
+)
 // Markets' reference exchange rates: 21:30 India time, after the ECB publishes; once now too.
 await fxRates.queue.upsertJobScheduler('fx-rates', FX_RATES_SCHEDULE, { name: 'refresh' })
 await fxRates.queue.add('refresh', {})
@@ -454,6 +463,8 @@ const shutdown = async () => {
   await automationsPrune.queue.close()
   await retentionPrune.worker.close()
   await retentionPrune.queue.close()
+  await rolloutsTick.worker.close()
+  await rolloutsTick.queue.close()
   await fxRates.worker.close()
   await fxRates.queue.close()
   await channelSync.worker.close()
