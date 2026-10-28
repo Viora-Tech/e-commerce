@@ -101,6 +101,14 @@ A top-up (`AI_CREDIT_PACK`: 1,000 credits for ₹199, SKU `ai-credits-1000`) is 
 
 Update `TIER_PRICES_INR` whenever the model or its price changes.
 
+## Unlimited stores
+
+Koomerce's own stores (Waimers) run on an unlimited plan: `store_plan.unlimited`, set only with
+`bun run platform:unlimited <slug>` (`--off` to undo; `setStoreUnlimited` in
+`core/billing/unlimited.ts`). The store keeps Scale's features with no staff or storage limit, no
+per-order fee, no renewals, due or pause, and no fair-use notice; `choosePlan` refuses with
+`UnlimitedPlan`. AI moves to the `internal` tier, a 50,000-credit monthly safety cap.
+
 ## Bill emails and GSTIN
 
 - The billing sweep emails the store's contact email (platform template `plan_bill`, `sendPlanBillEmail`) when it bills a plan or app renewal, and once when a plan goes overdue.

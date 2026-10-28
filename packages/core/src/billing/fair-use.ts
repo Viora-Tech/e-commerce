@@ -56,7 +56,7 @@ export async function runFairUseCheck(
     result.checked++
     const noticed = await withStore(db, storeId, async (tx) => {
       const [plan] = await tx.select().from(storePlan).where(eq(storePlan.storeId, storeId))
-      if (!plan || plan.fairUseNoticeMonth === last) return null
+      if (!plan || plan.unlimited || plan.fairUseNoticeMonth === last) return null
       const visits: [number, number] = [await monthVisits(tx, before), await monthVisits(tx, last)]
       if (!overFairUse(plan.plan, visits)) return null
       await tx

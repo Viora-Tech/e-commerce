@@ -42,7 +42,7 @@ export const mediaRouter = {
       const settings = await loadStorageSettings(context.tx, context.scope.storeId)
       if (onPlatformStorage(settings, process.env)) {
         const room = await storageRoom(context.tx, context.scope.storeId)
-        if (room.usedBytes + input.size > room.limitBytes) {
+        if (room.limitBytes !== null && room.usedBytes + input.size > room.limitBytes) {
           throw new ORPCError('FORBIDDEN', {
             message: `Your plan includes ${room.limitBytes / 1024 ** 3} GB of file storage, and it is full.`,
             data: { reason: 'storage_limit', ...room },

@@ -5,7 +5,8 @@ import type { StorageSettings } from '../media/settings'
 import { PLANS, type PlanId } from './plans'
 import { ensureStorePlan } from './service'
 
-export type StorageRoom = { plan: PlanId; usedBytes: number; limitBytes: number }
+/** `limitBytes` null: an unlimited store (Koomerce's own). */
+export type StorageRoom = { plan: PlanId; usedBytes: number; limitBytes: number | null }
 
 const GB = 1024 ** 3
 
@@ -19,7 +20,7 @@ export async function storageRoom(tx: StoreTx, storeId: string): Promise<Storage
   return {
     plan: plan.plan,
     usedBytes: Number(row?.bytes ?? 0),
-    limitBytes: PLANS[plan.plan].storageGb * GB,
+    limitBytes: plan.unlimited ? null : PLANS[plan.plan].storageGb * GB,
   }
 }
 

@@ -3,7 +3,7 @@
  * billing page read the same rows. Which orders count: spec 2026-10-28 "The per-order fee".
  */
 import { dayKey, dayStart, formatInZone, startOfMonth } from '@commerce/dates'
-import { order, planPayment, type StoreTx, usageBill } from '@commerce/db'
+import { order, planPayment, type StoreTx, storePlan, usageBill } from '@commerce/db'
 import { and, desc, eq, gt, gte, lt, ne } from 'drizzle-orm'
 import { csvCell } from '../privacy/export'
 import { planName } from './emails'
@@ -27,7 +27,8 @@ export function monthRange(month: string): { start: Date; end: Date } {
 /**
  * The month's orders that can carry a fee: placed, not cancelled, not test-mode, not refunded
  * in full (judged now, when the bill is made). COD and part refunds count, whole. Plus the paid
- * plan periods overlapping the month, which decide each order's plan.
+ * plan periods overlapping the month, which decide each order's plan. An unlimited store
+ * (Koomerce's own) has none, so it never carries a fee.
  */
 export async function loadMonthFeeInputs(
   tx: StoreTx,
@@ -35,7 +36,11 @@ export async function loadMonthFeeInputs(
   month: string,
 ): Promise<{ orders: FeeOrder[]; periods: PaidPeriod[] }> {
   const { start, end } = monthRange(month)
-  const [orders, periods] = await Promise.all([
+  const [[plan], orders, periods] = await Promise.all([
+    tx
+      .select({ unlimited: storePlan.unlimited })
+      .from(storePlan)
+      .where(eq(storePlan.storeId, storeId)),
     tx
       .select({
         id: order.id,
@@ -71,7 +76,7 @@ export async function loadMonthFeeInputs(
         ),
       ),
   ])
-  return { orders, periods }
+  return { orders, periods: plan?.unlimited ? [] : periods }
 }
 
 /** Fees waiting from earlier months: the store's carried row, if any. */
