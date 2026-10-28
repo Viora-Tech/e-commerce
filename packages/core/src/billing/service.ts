@@ -34,6 +34,7 @@ import {
   GRACE_DAYS,
   PLANS,
   type PlanId,
+  planRank,
   planSku,
   RENEW_AHEAD_DAYS,
   TRIAL_DAYS,
@@ -301,7 +302,7 @@ export async function choosePlan(
 ): Promise<{ bill: PlanBill | null; scheduled: boolean }> {
   const row = await withStore(db, storeId, (tx) => ensureStorePlan(tx, storeId, now))
   const cheaper =
-    PLANS[input.plan].pricePaise.month < PLANS[row.plan].pricePaise.month ||
+    planRank(input.plan) < planRank(row.plan) ||
     (input.plan === row.plan && input.interval === 'month' && row.interval === 'year')
   if (row.status === 'active' && cheaper && row.periodEnd && row.periodEnd > now) {
     await withStore(db, storeId, (tx) =>

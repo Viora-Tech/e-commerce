@@ -1135,6 +1135,13 @@
       "when": 1793126086185,
       "tag": "0177_schema_integrity_markets",
       "breakpoints": true
+    },
+    {
+      "idx": 162,
+      "version": "7",
+      "when": 1793173307971,
+      "tag": "0178_scale_plan",
+      "breakpoints": true
     }
   ]
 }

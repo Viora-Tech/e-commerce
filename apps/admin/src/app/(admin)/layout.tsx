@@ -86,7 +86,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             ? {
                 used: plan.used,
                 limit: plan.limit,
-                // "More room on Growth plan": the next plan up (Pro has no bigger plan).
+                // "More room on Growth plan": the next plan up (Scale has no bigger plan).
                 planName: billingContent.plans[nextPlanUp(plan.plan) ?? plan.plan].name,
               }
             : undefined

@@ -17,7 +17,7 @@ import { newId, store } from './schema'
  * and its checkout takes the money; these tables only remember which order paid for what.
  */
 
-const STORE_PLANS = ['starter', 'growth', 'pro'] as const
+const STORE_PLANS = ['starter', 'growth', 'pro', 'scale'] as const
 export type StorePlanId = (typeof STORE_PLANS)[number]
 
 const PLAN_INTERVALS = ['month', 'year'] as const
@@ -55,7 +55,7 @@ export const storePlan = pgTable(
   },
   (t) => [
     uniqueIndex('store_plan_store').on(t.storeId),
-    check('store_plan_plan', sql`${t.plan} in ('starter','growth','pro')`),
+    check('store_plan_plan', sql`${t.plan} in ('starter','growth','pro','scale')`),
     check('store_plan_interval', sql`${t.interval} in ('month','year')`),
     check(
       'store_plan_status',

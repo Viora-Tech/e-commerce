@@ -1,21 +1,29 @@
 /** SOURCE OF TRUTH: Koomerce plans — WHAT each plan includes and costs / WHY one place for the
  * Plan & billing page, Compare plans, the sidebar usage card and the billing service. Prices are
- * the owner's decision of 2026-10-18 (memory-bank/pricing.md), before GST. Pure, client-safe.
+ * the owner's decision of 2026-10-28 (docs/superpowers/specs/2026-10-28-pricing-revamp-design.md,
+ * memory-bank/pricing.md), before GST. Pure, client-safe.
  */
 
-export const PLAN_IDS = ['starter', 'growth', 'pro'] as const
+export const PLAN_IDS = ['starter', 'growth', 'pro', 'scale'] as const
 export type PlanId = (typeof PLAN_IDS)[number]
 export type BillingInterval = 'month' | 'year'
 
 /** The AI plan (packages/ai plans.ts) each store plan grants; AI quotas live there. */
-export type PlanAiTier = 'starter' | 'growth' | 'pro'
+export type PlanAiTier = 'starter' | 'growth' | 'pro' | 'scale'
 
 export type PlanDefinition = {
   id: PlanId
   /** Before GST, in paise. Yearly is two months free. */
   pricePaise: Record<BillingInterval, number>
-  /** Orders a month before the upgrade prompt; orders are never blocked. */
+  /**
+   * Orders a month the plan includes; every order after that carries `feeBasisPoints` of its
+   * total (billed on the 1st, `usage-fee.ts`). Orders are never blocked.
+   */
   orders: number
+  /** The per-order fee after the included orders, in hundredths of a percent (100 = 1%). */
+  feeBasisPoints: number
+  /** Fair-use storefront visits a month; null is judged by hand (Scale). Never blocks. */
+  visitsPerMonth: number | null
   staff: number
   storageGb: number
   ai: PlanAiTier
@@ -40,6 +48,8 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     id: 'starter',
     pricePaise: { month: 49_900, year: 4_99_000 },
     orders: 50,
+    feeBasisPoints: 100,
+    visitsPerMonth: 25_000,
     staff: 2,
     storageGb: 2,
     ai: 'starter',
@@ -54,8 +64,10 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
   },
   growth: {
     id: 'growth',
-    pricePaise: { month: 1_49_900, year: 14_99_000 },
+    pricePaise: { month: 1_99_900, year: 19_99_000 },
     orders: 200,
+    feeBasisPoints: 75,
+    visitsPerMonth: 100_000,
     staff: 5,
     storageGb: 10,
     ai: 'growth',
@@ -71,10 +83,31 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
   pro: {
     id: 'pro',
     pricePaise: { month: 4_99_900, year: 49_99_000 },
-    orders: 1000,
+    orders: 500,
+    feeBasisPoints: 50,
+    visitsPerMonth: 500_000,
     staff: 15,
     storageGb: 50,
     ai: 'pro',
+    automations: { activeWorkflows: null, runsPerMonth: 200_000, connectors: true },
+    features: {
+      shopifyTheme: true,
+      mcpApi: true,
+      multiLocation: true,
+      allApps: true,
+      support: 'priority',
+    },
+  },
+  scale: {
+    id: 'scale',
+    pricePaise: { month: 14_99_900, year: 1_49_99_000 },
+    // No fee past the included orders either: the price is sized for 2,000, then fair use.
+    orders: 2000,
+    feeBasisPoints: 0,
+    visitsPerMonth: null,
+    staff: 25,
+    storageGb: 100,
+    ai: 'scale',
     automations: { activeWorkflows: null, runsPerMonth: 200_000, connectors: true },
     features: {
       shopifyTheme: true,
@@ -115,6 +148,8 @@ export function addInterval(from: Date, interval: BillingInterval): Date {
   return d
 }
 
-/** Next plan up, for the over-the-limit nudge; null on Pro (Own it is the next step). */
-export const nextPlanUp = (plan: PlanId): PlanId | null =>
-  plan === 'starter' ? 'growth' : plan === 'growth' ? 'pro' : null
+/** A plan's place in the ladder, Starter 0 to Scale 3: what upgrade and downgrade compare. */
+export const planRank = (plan: PlanId): number => PLAN_IDS.indexOf(plan)
+
+/** Next plan up, for the over-the-limit nudge; null on Scale (Own it is the next step). */
+export const nextPlanUp = (plan: PlanId): PlanId | null => PLAN_IDS[planRank(plan) + 1] ?? null

@@ -72,7 +72,7 @@ export async function sendPlanBillEmail(
   }
 }
 
-const PLAN_NAMES = { starter: 'Starter', growth: 'Growth', pro: 'Pro' } as const
+const PLAN_NAMES = { starter: 'Starter', growth: 'Growth', pro: 'Pro', scale: 'Scale' } as const
 
 export const planBillWhat = (plan: keyof typeof PLAN_NAMES, interval: 'month' | 'year') =>
   `${PLAN_NAMES[plan]} plan (${interval === 'year' ? 'yearly' : 'monthly'})`

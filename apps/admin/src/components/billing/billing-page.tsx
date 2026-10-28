@@ -1,7 +1,7 @@
 'use client'
 
 import type { PlanView } from '@commerce/core'
-import type { BillingInterval, PlanId } from '@commerce/core/billing'
+import { type BillingInterval, PLAN_IDS, type PlanId, planRank } from '@commerce/core/billing'
 import { CircleAlert, CreditCard, InfoIcon } from '@commerce/ui/icons'
 import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
@@ -64,8 +64,7 @@ export default function BillingPage({ view, apps, autopay }: BillingPageProps) {
 
   // Render logic
   const trialDays = daysUntil(view.trialEndsAt)
-  const lower: PlanId | null =
-    view.plan === 'pro' ? 'growth' : view.plan === 'growth' ? 'starter' : null
+  const lower: PlanId | null = PLAN_IDS[planRank(view.plan) - 1] ?? null
   const banner =
     view.status === 'paused'
       ? { tone: 'danger' as const, text: copy.banners.paused }
