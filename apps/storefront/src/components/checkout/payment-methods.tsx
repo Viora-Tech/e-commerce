@@ -114,7 +114,7 @@ export default function PaymentMethods({
                     {m.test ? (
                       <span
                         title={content.testModeHint}
-                        className="rounded-full border border-ck-line bg-ck-bg px-2 py-0.5 text-[0.625rem] font-semibold tracking-wide text-ck-muted uppercase"
+                        className="rounded-full border border-ck-line bg-ck-bg px-2 py-0.5 text-[0.75rem] font-medium text-ck-muted"
                       >
                         {content.testMode}
                       </span>

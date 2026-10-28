@@ -85,7 +85,7 @@ export default function SavedAddressCard({
               {address.name}
             </span>
             {tag ? (
-              <span className="rounded-full bg-ck-ink px-2 text-[0.6875rem] leading-5 font-semibold tracking-wide text-ck-bg uppercase">
+              <span className="rounded-full bg-ck-ink px-2 text-[0.75rem] leading-5 font-medium text-ck-bg">
                 {tag}
               </span>
             ) : null}

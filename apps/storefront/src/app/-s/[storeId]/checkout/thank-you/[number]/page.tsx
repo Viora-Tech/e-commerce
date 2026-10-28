@@ -23,6 +23,7 @@ import ExperimentBeacon from '@/components/analytics/experiment-beacon'
 import PixelTrack from '@/components/analytics/pixel-track'
 import CheckoutBalance from '@/components/checkout/checkout-balance'
 import ThankYouTemplate from '@/components/checkout/thank-you'
+import { withThemeLogo } from '@/lib/checkout-look'
 import { currentCustomer } from '@/lib/customer-session'
 import { db } from '@/lib/db'
 import { experimentsEnabled, requestExperiments } from '@/lib/experiments'
@@ -172,7 +173,7 @@ export default async function ThankYouPage({ params, searchParams }: Params) {
         giftCards={data.giftCards}
         links={links}
         payPath={buildPayPath(data.order.number, payToken)}
-        look={data.look}
+        look={await withThemeLogo(storeId, data.look)}
         images={data.images}
         shipTo={data.shipTo}
         parcels={data.parcels}

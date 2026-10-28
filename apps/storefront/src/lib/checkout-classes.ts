@@ -44,7 +44,7 @@ export const CK_INPUT_HEIGHT = 'h-11'
  * `--motion-press-scale` (0.97, 1 under reduced motion) in 140ms ease-out.
  */
 export const CK_BUTTON_PRIMARY =
-  'inline-flex h-13 w-full items-center justify-center gap-2 rounded-ck-button! bg-ck-button! px-5 text-[0.9375rem]! font-bold! text-ck-button-ink! [box-shadow:0_1px_2px_rgb(0_0_0/0.08),inset_0_1px_0_rgb(255_255_255/0.08)] outline-none touch-manipulation transition-[filter,scale,box-shadow] duration-(--duration-press) ease-out hover:brightness-[1.08] active:scale-(--motion-press-scale) focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)] disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:brightness-100 disabled:active:scale-100'
+  'inline-flex h-13 w-full items-center justify-center gap-2 rounded-ck-button! bg-ck-button! px-5 text-[1rem]! font-semibold! tracking-[-0.006em]! text-ck-button-ink! [box-shadow:0_1px_2px_rgb(0_0_0/0.08),inset_0_1px_0_rgb(255_255_255/0.08)] outline-none touch-manipulation transition-[filter,scale,box-shadow] duration-(--duration-press) ease-out hover:brightness-[1.08] active:scale-(--motion-press-scale) focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)] disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:brightness-100 disabled:active:scale-100'
 
 /** Quieter actions: Continue shopping, Download invoice, Other UPI app. */
 export const CK_BUTTON_SECONDARY =

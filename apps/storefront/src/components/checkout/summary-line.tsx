@@ -40,7 +40,7 @@ export default function SummaryLine({
         </div>
         <span
           aria-hidden="true"
-          className="absolute -top-[0.4375rem] -right-[0.4375rem] flex h-5 min-w-5 items-center justify-center rounded-[0.375rem] bg-ck-summary-ink px-1 font-mono text-[0.6875rem] font-medium text-ck-summary tabular-nums"
+          className="absolute -top-[0.4375rem] -right-[0.4375rem] flex h-5 min-w-5 items-center justify-center rounded-[0.375rem] bg-ck-summary-ink px-1 text-[0.6875rem] font-semibold text-ck-summary tabular-nums"
         >
           {quantity}
         </span>
@@ -53,13 +53,13 @@ export default function SummaryLine({
           {variant ? <span>{variant}</span> : null}
           <span className="sr-only">{content.quantity(quantity)}</span>
           {preorder ? (
-            <span className="rounded-full border border-ck-summary-line px-2 text-[0.6875rem] leading-[1.125rem] font-medium tracking-wide uppercase">
+            <span className="rounded-full border border-ck-summary-line px-2 text-[0.75rem] leading-[1.25rem] font-medium">
               {content.preorder}
             </span>
           ) : null}
         </p>
       </div>
-      <p className="shrink-0 text-[0.8125rem] font-bold tabular-nums lg:text-[0.875rem]">
+      <p className="shrink-0 text-[0.8125rem] font-semibold tabular-nums lg:text-[0.875rem]">
         {formatPaise(linePaise)}
       </p>
     </li>

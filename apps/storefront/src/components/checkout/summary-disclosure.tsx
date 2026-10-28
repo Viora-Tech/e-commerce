@@ -67,7 +67,7 @@ export default function SummaryDisclosure({
             className="h-4 w-16 animate-pulse rounded bg-ck-summary-line motion-reduce:animate-none"
           />
         ) : (
-          <span className="text-[1.0625rem] font-extrabold tracking-[-0.01em] tabular-nums">
+          <span className="text-[1.0625rem] font-semibold tracking-[-0.015em] tabular-nums">
             {totalLabel}
           </span>
         )}

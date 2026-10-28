@@ -22,10 +22,10 @@ export default function CheckoutBrand({ storeName, logoUrl, href, label }: Check
         <img
           src={logoUrl}
           alt={storeName}
-          className="h-7! w-auto! max-w-[10rem] object-contain object-left"
+          className="h-8! w-auto! max-w-[11rem] object-contain object-left sm:h-9! sm:max-w-[12rem]"
         />
       ) : (
-        <span className="truncate text-[1rem] font-extrabold tracking-[0.02em] sm:text-[1.125rem]">
+        <span className="truncate text-[1.125rem] font-semibold tracking-[-0.02em] sm:text-[1.25rem]">
           {storeName || content.title}
         </span>
       )}

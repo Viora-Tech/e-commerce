@@ -52,14 +52,14 @@ export default function OptionCard({
           {title}
         </span>
         {description ? (
-          <span className="text-[0.6875rem] leading-snug text-ck-muted sm:text-[0.75rem]">
+          <span className="text-[0.75rem] leading-snug text-ck-muted sm:text-[0.8125rem]">
             {description}
           </span>
         ) : null}
         {note ? <span className="text-[0.75rem] leading-snug text-ck-danger">{note}</span> : null}
       </span>
       {meta ? (
-        <span className="shrink-0 text-right text-[0.8125rem] font-bold tabular-nums text-ck-ink sm:text-[0.875rem]">
+        <span className="shrink-0 text-right text-[0.8125rem] font-semibold tabular-nums text-ck-ink sm:text-[0.875rem]">
           {meta}
         </span>
       ) : null}
