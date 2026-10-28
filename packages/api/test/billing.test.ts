@@ -1,7 +1,18 @@
 import { createMerchantAuth } from '@commerce/auth'
-import { createDb, order, planPayment, store, storePlan, usageBill } from '@commerce/db'
+import {
+  createDb,
+  order,
+  planPayment,
+  role,
+  rolePermission,
+  store,
+  storeMember,
+  storePlan,
+  usageBill,
+} from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { call } from '@orpc/server'
+import { and, eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type { ApiContext } from '../src/context'
 import { appRouter } from '../src/routers/_app'
@@ -33,7 +44,41 @@ async function merchant(email: string, slug: string) {
     .values({ slug, name: slug, organizationId: org?.id as string })
     .returning()
   const ctx: ApiContext = { db: app, auth, headers, notifications: { add: async () => undefined } }
-  return { ctx, storeId: s?.id as string }
+  return { ctx, storeId: s?.id as string, orgId: org?.id as string }
+}
+
+/** A second member of `m`'s store on a custom role that holds only `perms`. */
+async function memberWith(m: { storeId: string; orgId: string }, email: string, perms: string[]) {
+  await auth.api.sendVerificationOTP({ body: { email, type: 'sign-in' } })
+  const res = await auth.api.signInEmailOTP({
+    body: { email, otp: sent.at(-1)?.otp as string },
+    asResponse: true,
+  })
+  const headers = new Headers({ cookie: res.headers.get('set-cookie') ?? '' })
+  const userId = (await auth.api.getSession({ headers }))?.user.id as string
+  await auth.api.addMember({ body: { userId, role: 'member', organizationId: m.orgId } })
+  await auth.api.setActiveOrganization({ headers, body: { organizationId: m.orgId } })
+  const [r] = await owner
+    .insert(role)
+    .values({ storeId: m.storeId, name: 'Bookkeeper', slug: 'bookkeeper' })
+    .returning()
+  await owner
+    .insert(rolePermission)
+    .values(
+      perms.map((permission) => ({ storeId: m.storeId, roleId: r?.id as string, permission })),
+    )
+  const [existing] = await owner
+    .select()
+    .from(storeMember)
+    .where(and(eq(storeMember.storeId, m.storeId), eq(storeMember.userId, userId)))
+  if (existing)
+    await owner
+      .update(storeMember)
+      .set({ roleId: r?.id as string })
+      .where(eq(storeMember.id, existing.id))
+  else
+    await owner.insert(storeMember).values({ storeId: m.storeId, userId, roleId: r?.id as string })
+  return { db: app, auth, headers, notifications: { add: async () => undefined } } as ApiContext
 }
 
 beforeEach(async () => {
@@ -138,5 +183,10 @@ describe('billing router', () => {
     await expect(
       call(appRouter.billing.usageBillCsv, { id: bill?.id as string }, { context: b.ctx }),
     ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+    // It lists order numbers and totals: a member who can't see orders can't download it.
+    const bookkeeper = await memberWith(a, 'books@example.com', ['settings.read'])
+    await expect(
+      call(appRouter.billing.usageBillCsv, { id: bill?.id as string }, { context: bookkeeper }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
   })
 })

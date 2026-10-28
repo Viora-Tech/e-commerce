@@ -148,6 +148,9 @@ export const billingRouter = {
   usageBillCsv: can(permissions.SETTINGS_READ)
     .input(z.object({ id: z.uuid() }))
     .handler(async ({ context, input }) => {
+      // It lists order numbers and totals, so it needs the orders read grain as well.
+      if (!context.scope.can(permissions.ORDERS_READ))
+        throw new ORPCError('FORBIDDEN', { message: 'You cannot see orders in this store.' })
       const file = await usageBillCsv(context.tx, context.scope.storeId, input.id)
       if (!file) throw new ORPCError('NOT_FOUND', { message: 'That bill was not found.' })
       return file

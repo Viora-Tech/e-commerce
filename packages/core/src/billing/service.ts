@@ -685,7 +685,7 @@ export async function runUsageBilling(
       if (claim.carriedIds.length > 0)
         await tx
           .update(usageBill)
-          .set({ status: 'merged' })
+          .set({ status: 'merged', mergedIntoSalesOrderId: sale.id })
           .where(inArray(usageBill.id, claim.carriedIds))
     })
     result.billed++
@@ -767,13 +767,22 @@ export async function markUsageBillPaid(
 ): Promise<{ storeId: string } | null> {
   const storeId = await usageBillStore(db, salesOrderId)
   if (!storeId) return null
-  const updated = await withStore(db, storeId, (tx) =>
-    tx
+  const updated = await withStore(db, storeId, async (tx) => {
+    const paid = await tx
       .update(usageBill)
       .set({ status: 'paid', paidAt: now })
       .where(and(eq(usageBill.salesOrderId, salesOrderId), eq(usageBill.status, 'due')))
-      .returning({ id: usageBill.id }),
-  )
+      .returning({ id: usageBill.id })
+    // Earlier months it carried are paid with it.
+    if (paid.length > 0)
+      await tx
+        .update(usageBill)
+        .set({ status: 'paid', paidAt: now })
+        .where(
+          and(eq(usageBill.mergedIntoSalesOrderId, salesOrderId), eq(usageBill.status, 'merged')),
+        )
+    return paid
+  })
   return updated.length > 0 ? { storeId } : null
 }
 

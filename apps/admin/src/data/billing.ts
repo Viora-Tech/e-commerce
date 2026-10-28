@@ -138,7 +138,7 @@ export const billingContent = {
     states: {
       carried: 'Carried over',
       due: 'Due',
-      merged: 'Added to plan bill',
+      merged: 'Added to a later bill',
       paid: 'Paid',
       cancelled: 'Cancelled',
     },

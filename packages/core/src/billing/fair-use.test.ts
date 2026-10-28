@@ -52,6 +52,18 @@ describe('runFairUseCheck', () => {
     expect(plan).toMatchObject({ fairUseNoticeMonth: '2026-10', status: 'active' })
   })
 
+  it('only counts visits in the first days of a month', async () => {
+    const id = await seedStore(owner, 'asha')
+    await seedPaidPeriod(owner, id, 'starter', SEP, DEC)
+    await seedSessions(id, '2026-09-10', 25_001)
+    await seedSessions(id, '2026-10-10', 25_001)
+    // 12 Nov in India: last month was judged on the 1st, nothing to count now.
+    expect(await runFairUseCheck(app, new Date('2026-11-12T06:00:00Z'))).toEqual({
+      checked: 0,
+      noticed: 0,
+    })
+  })
+
   it('ignores a store over for one month only', async () => {
     const id = await seedStore(owner, 'asha')
     await seedPaidPeriod(owner, id, 'starter', SEP, DEC)
