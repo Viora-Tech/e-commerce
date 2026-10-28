@@ -3,7 +3,7 @@ import { createDb, usageBill, withStore } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { ordersFrom, seedOrders, seedPaidPeriod, seedStore } from '../testing/usage-seed'
-import { feeEstimate, loadMonthFeeInputs, billingMonth, previousMonth } from './usage-fee-service'
+import { billingMonth, feeEstimate, loadMonthFeeInputs, previousMonth } from './usage-fee-service'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)

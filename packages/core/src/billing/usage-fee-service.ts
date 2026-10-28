@@ -2,10 +2,12 @@
  * for one store, and this month's running estimate / WHY the monthly usage bill and the Plan &
  * billing page read the same rows. Which orders count: spec 2026-10-28 "The per-order fee".
  */
-import { dayKey, dayStart, startOfMonth } from '@commerce/dates'
+import { dayKey, dayStart, formatInZone, startOfMonth } from '@commerce/dates'
 import { order, planPayment, type StoreTx, usageBill } from '@commerce/db'
 import { and, desc, eq, gt, gte, lt, ne } from 'drizzle-orm'
-import { type FeeOrder, type MonthFee, monthFee, type PaidPeriod } from './usage-fee'
+import { csvCell } from '../privacy/export'
+import { planName } from './emails'
+import { type FeeOrder, feeOrderRows, type MonthFee, monthFee, type PaidPeriod } from './usage-fee'
 
 /** The IST calendar month `at` falls in, `YYYY-MM`. */
 export const billingMonth = (at: Date): string => dayKey(at).slice(0, 7)
@@ -35,7 +37,12 @@ export async function loadMonthFeeInputs(
   const { start, end } = monthRange(month)
   const [orders, periods] = await Promise.all([
     tx
-      .select({ id: order.id, placedAt: order.placedAt, totalPaise: order.totalPaise })
+      .select({
+        id: order.id,
+        number: order.number,
+        placedAt: order.placedAt,
+        totalPaise: order.totalPaise,
+      })
       .from(order)
       .where(
         and(
@@ -90,4 +97,46 @@ export async function feeEstimate(
     carriedInPaise(tx, storeId),
   ])
   return { ...monthFee(orders, periods), carriedInPaise: carried, month }
+}
+
+const rupees = (paise: number) => (paise / 100).toFixed(2)
+
+/**
+ * "Download CSV" on a usage bill: each order of that month that carried a fee, worked out from
+ * the orders as they are now (a later full refund drops out here too). Null when the bill is
+ * not this store's.
+ */
+export async function usageBillCsv(
+  tx: StoreTx,
+  storeId: string,
+  billId: string,
+): Promise<{ filename: string; csv: string } | null> {
+  const [bill] = await tx
+    .select({ month: usageBill.month })
+    .from(usageBill)
+    .where(and(eq(usageBill.storeId, storeId), eq(usageBill.id, billId)))
+  if (!bill) return null
+  const { orders, periods } = await loadMonthFeeInputs(tx, storeId, bill.month)
+  const rows = feeOrderRows(orders, periods).map((r) =>
+    [
+      `#${r.number ?? ''}`,
+      formatInZone(r.placedAt, {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      }),
+      rupees(r.totalPaise),
+      planName(r.plan),
+      rupees(r.feePaise),
+    ]
+      .map(csvCell)
+      .join(','),
+  )
+  return {
+    filename: `per-order-fees-${bill.month}.csv`,
+    csv: `${['Order,Placed at,Order total (₹),Plan,Fee (₹)', ...rows].join('\n')}\n`,
+  }
 }

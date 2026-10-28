@@ -1,6 +1,6 @@
 /** SOURCE OF TRUTH: per-order fee tests — WHAT: which orders carry the fee and how much / WHY: a bill must never charge an order the store didn't really get */
 import { describe, expect, it } from 'vitest'
-import { billable, type FeeOrder, monthFee, type PaidPeriod } from './usage-fee'
+import { billable, type FeeOrder, feeOrderRows, monthFee, type PaidPeriod } from './usage-fee'
 
 const oct = (day: number, hour = 10) => new Date(Date.UTC(2026, 9, day, hour))
 const month: PaidPeriod[] = [
@@ -79,5 +79,15 @@ describe('billable', () => {
     expect(billable(4_000, 5_000)).toEqual({ bill: false, totalPaise: 9_000 })
     expect(billable(4_000, 6_000)).toEqual({ bill: true, totalPaise: 10_000 })
     expect(billable(0, 6_000)).toEqual({ bill: false, totalPaise: 6_000 })
+  })
+})
+
+describe('feeOrderRows', () => {
+  it('lists each order that carried a fee, with its plan and fee', () => {
+    const list = orders(52, 1_00_000)
+    expect(feeOrderRows(list, month)).toEqual([
+      { ...list[50], plan: 'starter', feePaise: 1_000 },
+      { ...list[51], plan: 'starter', feePaise: 1_000 },
+    ])
   })
 })

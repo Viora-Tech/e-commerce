@@ -43,7 +43,13 @@ import {
 } from './plans'
 import { type PlanUsage, planUsage } from './usage'
 import { billable, monthFee } from './usage-fee'
-import { loadMonthFeeInputs, billingMonth, monthRange, previousMonth } from './usage-fee-service'
+import {
+  billingMonth,
+  feeEstimate,
+  loadMonthFeeInputs,
+  monthRange,
+  previousMonth,
+} from './usage-fee-service'
 
 const DAY_MS = 86_400_000
 
@@ -114,6 +120,26 @@ export type PlanView = {
   billingReady: boolean
   /** Where invoices go: the store's contact email. */
   invoiceEmail: string | null
+  /** This month's per-order fees so far, and what earlier months carried in. */
+  fees: Awaited<ReturnType<typeof feeEstimate>>
+  /** The last 12 months of per-order fee bills, newest first. */
+  usageBills: UsageBillView[]
+  /** Fee bills still waiting for payment, in paise (the banner). */
+  unpaidFees: number
+  /** Last month closed two months running over the plan's fair-use visits. */
+  fairUseNotice: boolean
+}
+
+export type UsageBillView = {
+  id: string
+  month: string
+  ordersCounted: number
+  feeOrders: number
+  totalPaise: number
+  status: (typeof usageBill.$inferSelect)['status']
+  paidAt: Date | null
+  /** The signed order page while it has its own order; null when carried or merged. */
+  url: string | null
 }
 
 /** The signed order page on the sales store: pay while due, the invoice once paid. */
@@ -149,7 +175,7 @@ export async function loadPlanView(
   now = new Date(),
 ): Promise<PlanView> {
   const row = await ensureStorePlan(tx, storeId, now)
-  const [usage, bills, [contact]] = await Promise.all([
+  const [usage, bills, [contact], fees, feeBills] = await Promise.all([
     planUsage(tx, now),
     tx
       .select()
@@ -158,8 +184,30 @@ export async function loadPlanView(
       .orderBy(desc(planPayment.createdAt))
       .limit(24),
     tx.select({ email: store.contactEmail }).from(store).where(eq(store.id, storeId)),
+    feeEstimate(tx, storeId, now),
+    tx
+      .select()
+      .from(usageBill)
+      .where(eq(usageBill.storeId, storeId))
+      .orderBy(desc(usageBill.month))
+      .limit(12),
   ])
   const shown = bills.map((b) => toBill(env, b))
+  const usageBills = feeBills.map(
+    (b): UsageBillView => ({
+      id: b.id,
+      month: b.month,
+      ordersCounted: b.ordersCounted,
+      feeOrders: b.feeOrders,
+      totalPaise: b.totalPaise,
+      status: b.status,
+      paidAt: b.paidAt,
+      url:
+        b.salesOrderId && b.salesOrderNumber !== null && b.status !== 'merged'
+          ? salesOrderUrl(env, b.salesOrderId, b.salesOrderNumber)
+          : null,
+    }),
+  )
   return {
     plan: row.plan,
     interval: row.interval,
@@ -173,6 +221,10 @@ export async function loadPlanView(
     due: shown.find((b) => b.status === 'due') ?? null,
     billingReady: Boolean(env.salesStoreId && env.salesStorefrontUrl),
     invoiceEmail: contact?.email ?? null,
+    fees,
+    usageBills,
+    unpaidFees: feeBills.filter((b) => b.status === 'due').reduce((n, b) => n + b.totalPaise, 0),
+    fairUseNotice: row.fairUseNoticeMonth === previousMonth(billingMonth(now)),
   }
 }
 

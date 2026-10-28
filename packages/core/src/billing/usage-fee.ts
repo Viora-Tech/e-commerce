@@ -6,7 +6,7 @@
 import { PLAN_IDS, PLANS, type PlanId } from './plans'
 
 /** One order as the fee sees it: when it was placed and what the buyer paid. */
-export type FeeOrder = { id: string; placedAt: Date; totalPaise: number }
+export type FeeOrder = { id: string; placedAt: Date; totalPaise: number; number?: number }
 /** A paid plan period, `[start, end)`. */
 export type PaidPeriod = { plan: PlanId; start: Date; end: Date }
 export type FeeLine = { plan: PlanId; basisPoints: number; orders: number; feePaise: number }
@@ -33,14 +33,17 @@ function periodAt(periods: PaidPeriod[], at: Date): PaidPeriod | null {
   return found
 }
 
+/** One order that carried a fee: the order, the plan whose rate applied, and its fee. */
+export type FeeRow = FeeOrder & { plan: PlanId; feePaise: number }
+
 /**
- * The month's fee. Orders are taken in the order they were placed; the k-th counted order
- * carries its plan's fee when k is past that plan's included orders, so an upgrade brings the
- * new included count from that moment on. Each order's fee is rounded to the paisa.
+ * The orders that carry a fee. Orders are taken in the order they were placed; the k-th
+ * counted order carries its plan's fee when k is past that plan's included orders, so an
+ * upgrade brings the new included count from that moment on. Each fee is rounded to the paisa.
  */
-export function monthFee(orders: FeeOrder[], periods: PaidPeriod[]): MonthFee {
+function walk(orders: FeeOrder[], periods: PaidPeriod[]): { counted: number; rows: FeeRow[] } {
   const sorted = [...orders].sort((a, b) => a.placedAt.getTime() - b.placedAt.getTime())
-  const byPlan = new Map<PlanId, FeeLine>()
+  const rows: FeeRow[] = []
   let counted = 0
   for (const o of sorted) {
     const period = periodAt(periods, o.placedAt)
@@ -48,20 +51,37 @@ export function monthFee(orders: FeeOrder[], periods: PaidPeriod[]): MonthFee {
     counted++
     const plan = PLANS[period.plan]
     if (counted <= plan.orders || plan.feeBasisPoints === 0) continue
-    const line = byPlan.get(plan.id) ?? {
+    rows.push({
+      ...o,
       plan: plan.id,
-      basisPoints: plan.feeBasisPoints,
-      orders: 0,
-      feePaise: 0,
-    }
-    line.orders++
-    line.feePaise += Math.round((o.totalPaise * plan.feeBasisPoints) / 10_000)
-    byPlan.set(plan.id, line)
+      feePaise: Math.round((o.totalPaise * plan.feeBasisPoints) / 10_000),
+    })
   }
-  const lines = PLAN_IDS.flatMap((id) => byPlan.get(id) ?? [])
+  return { counted, rows }
+}
+
+/** Each order that carried a fee, for the usage bill's CSV. */
+export const feeOrderRows = (orders: FeeOrder[], periods: PaidPeriod[]): FeeRow[] =>
+  walk(orders, periods).rows
+
+/** The month's fee, one line per plan rate that applied. */
+export function monthFee(orders: FeeOrder[], periods: PaidPeriod[]): MonthFee {
+  const { counted, rows } = walk(orders, periods)
+  const lines = PLAN_IDS.flatMap((id): FeeLine[] => {
+    const mine = rows.filter((r) => r.plan === id)
+    if (mine.length === 0) return []
+    return [
+      {
+        plan: id,
+        basisPoints: PLANS[id].feeBasisPoints,
+        orders: mine.length,
+        feePaise: mine.reduce((n, r) => n + r.feePaise, 0),
+      },
+    ]
+  })
   return {
     ordersCounted: counted,
-    feeOrders: lines.reduce((n, l) => n + l.orders, 0),
+    feeOrders: rows.length,
     lines,
     feePaise: lines.reduce((n, l) => n + l.feePaise, 0),
   }
