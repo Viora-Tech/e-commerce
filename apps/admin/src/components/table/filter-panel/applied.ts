@@ -46,6 +46,11 @@ function chipFor(group: FilterGroup, copy: PanelCopy): AppliedFilter | null {
       onRemove: () => group.onChange(null),
     }
   }
+  if (group.type === 'text') {
+    const text = group.value.trim()
+    if (!text) return null
+    return { key: group.key, field: group.label, label: text, onRemove: () => group.onChange('') }
+  }
   const label = rangeLabel(group, copy)
   if (label === null) return null
   return {
@@ -66,6 +71,7 @@ export function clearGroups(groups: FilterGroup[]): void {
   for (const g of groups) {
     if (g.type === 'checks') g.onChange([])
     else if (g.type === 'select') g.onChange(null)
+    else if (g.type === 'text') g.onChange('')
     else g.onChange(emptyRange(g))
   }
 }

@@ -88,7 +88,18 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   const router = useRouter()
   usePrimaryAction(routes.orders.drafts())
   const [
-    { page, query, status, perPage: rawPerPage, payment, fulfilment, date, method, courier },
+    {
+      page,
+      query,
+      status,
+      perPage: rawPerPage,
+      payment,
+      fulfilment,
+      date,
+      method,
+      courier,
+      product,
+    },
     setQ,
   ] = useQueryStates(
     {
@@ -126,7 +137,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
     // tab) the list is fetched again, so it never keeps another tab's rows.
     const firstRun = !hydrated.current
     hydrated.current = true
-    const f: OrderFiltersValue = { payment, fulfilment, date, method, courier }
+    const f: OrderFiltersValue = { payment, fulfilment, date, method, courier, product }
     if (
       firstRun &&
       perPage === initial.perPage &&
@@ -159,6 +170,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
     date,
     method,
     courier,
+    product,
     initial.query,
     initial.perPage,
   ])
@@ -171,6 +183,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
       date,
       method,
       courier,
+      product,
     })
     setItems(r.items)
     setTotal(r.total)
@@ -205,7 +218,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   const tagSuggestions = [...new Set(items.flatMap((o) => o.tags ?? []))]
   const perPage = parseRowsPerPage(rawPerPage)
   const columns = orderColumns(copy, fmt)
-  const filters: OrderFiltersValue = { payment, fulfilment, date, method, courier }
+  const filters: OrderFiltersValue = { payment, fulfilment, date, method, courier, product }
   const filtered = hasOrderFilters(filters)
   const groups = orderFilterGroups(filters, copy.filters, setFilters, couriers)
   const searching = query.length > 0 || status !== null || filtered

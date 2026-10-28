@@ -6,6 +6,7 @@ import { useCopy } from '@/hooks/use-copy'
 import ChecksSection from './checks-section'
 import RangeSection from './range-section'
 import SelectSection from './select-section'
+import TextSection from './text-section'
 import type { FilterGroup } from './types'
 
 type FilterPanelProps = {
@@ -25,6 +26,7 @@ export const FILTER_PANEL_CLASS = 'w-72 p-0'
 function GroupControl({ group }: SectionProps) {
   if (group.type === 'checks') return <ChecksSection group={group} />
   if (group.type === 'select') return <SelectSection group={group} />
+  if (group.type === 'text') return <TextSection group={group} />
   return <RangeSection group={group} />
 }
 

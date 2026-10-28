@@ -7,5 +7,6 @@ export type {
   RangeGroup,
   RangePatch,
   SelectGroup,
+  TextGroup,
 } from './types'
 export { facetOptions } from './types'
