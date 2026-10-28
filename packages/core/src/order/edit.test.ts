@@ -4,6 +4,7 @@ import {
   createDb,
   fulfillmentOrder,
   fulfillmentOrderLine,
+  giftCard,
   inventoryLevel,
   order,
   orderLine,
@@ -257,6 +258,51 @@ describe('cancelOrderByStaff', () => {
     expect(await level(black)).toEqual({ onHand: 10, reserved: 0 })
     const [r] = await owner.select().from(refund).where(eq(refund.orderId, id))
     expect(r).toMatchObject({ status: 'manual', amountPaise: 200000 })
+  })
+
+  it('gives the money back as store credit: one gift card, recorded as the refund', async () => {
+    const { storeId, black } = await seed()
+    const id = await placed(storeId, black)
+    const g = gateway()
+    await withStore(app, storeId, (tx) =>
+      cancelOrderByStaff(
+        { storeId, tx },
+        {
+          orderId: id,
+          restock: true,
+          notifyCustomer: false,
+          refund: 'store_credit',
+          author: STAFF,
+          settingsSecret: 'test-secret-test-secret-test-secret',
+        },
+        [g],
+      ),
+    )
+    expect(g.calls).toEqual([])
+    const rows = await owner.select().from(refund).where(eq(refund.orderId, id))
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({ method: 'store_credit', status: 'manual', amountPaise: 200000 })
+    const [card] = await owner.select().from(giftCard).where(eq(giftCard.orderId, id))
+    expect(card).toMatchObject({ initialValuePaise: 200000, balancePaise: 200000 })
+    expect(rows[0]?.giftCardId).toBe(card?.id)
+    expect((await orderRow(id)).paymentStatus).toBe('refunded')
+    const notes = await owner.select().from(orderNote).where(eq(orderNote.orderId, id))
+    expect(notes.at(-1)?.body).toContain('given back as store credit')
+  })
+
+  it('says what was kept when the merchant chooses no refund', async () => {
+    const { storeId, black } = await seed()
+    const id = await placed(storeId, black)
+    await withStore(app, storeId, (tx) =>
+      cancelOrderByStaff(
+        { storeId, tx },
+        { orderId: id, restock: true, notifyCustomer: false, refund: 'none', author: STAFF },
+        [gateway()],
+      ),
+    )
+    const notes = await owner.select().from(orderNote).where(eq(orderNote.orderId, id))
+    expect(notes.at(-1)?.body).toContain('Not refunded: ₹2,000.00 left to refund.')
+    expect(notes.at(-1)?.body).not.toContain('Nothing to refund')
   })
 
   it('puts an imported order’s items back on sale when restock is on', async () => {

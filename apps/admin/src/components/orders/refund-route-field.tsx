@@ -17,6 +17,8 @@ type RefundRouteFieldProps = {
   onChange: (route: RefundRoute) => void
   /** Prefix for the radio ids, so two of these never share one. */
   idPrefix: string
+  /** Offer store credit (a gift card for the amount): on cancel, not yet on edit. */
+  storeCredit?: boolean | undefined
 }
 
 /**
@@ -29,6 +31,7 @@ export default function RefundRouteField({
   value,
   onChange,
   idPrefix,
+  storeCredit = false,
 }: RefundRouteFieldProps) {
   // Hooks
   const copy = useCopy(refundRouteContent)
@@ -40,6 +43,9 @@ export default function RefundRouteField({
   const routes: { id: RefundRoute; label: string; hint: string }[] = [
     ...(options?.original
       ? [{ id: 'original' as const, label: copy.original(via), hint: copy.originalHint }]
+      : []),
+    ...(storeCredit
+      ? [{ id: 'store_credit' as const, label: copy.storeCredit, hint: copy.storeCreditHint }]
       : []),
     { id: 'manual', label: copy.manual, hint: copy.manualHint },
     { id: 'none', label: copy.none, hint: copy.noneHint },
