@@ -40,9 +40,15 @@ const inStore = <T>(storeId: string, fn: (ctx: StoreContext) => Promise<T>) =>
   withStore(app, storeId, (tx) => fn({ storeId, tx }))
 
 async function seed() {
+  // The order below is inserted as #1, so new orders and drafts continue from #2, as they
+  // would after checkout took #1 (the counter starts from `next_order_number`, migration 0177).
   const [s] = await owner
     .insert(store)
-    .values({ slug: `x-${Math.random().toString(36).slice(2)}`, name: 'Waimers' })
+    .values({
+      slug: `x-${Math.random().toString(36).slice(2)}`,
+      name: 'Waimers',
+      nextOrderNumber: 2,
+    })
     .returning()
   if (!s) throw new Error('seed')
   const [cu] = await owner
