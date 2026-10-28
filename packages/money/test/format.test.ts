@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { formatMoney, formatNumber, fromMinor, isCurrency, toMinor } from '../src/index'
+import {
+  formatMoney,
+  formatNumber,
+  fromMinor,
+  isCurrency,
+  moneyFormatOf,
+  toMinor,
+} from '../src/index'
 
 describe('formatMoney', () => {
   it('formats INR with Indian digit grouping', () => {
@@ -94,5 +101,15 @@ describe('market currencies', () => {
     expect(isCurrency('AED')).toBe(true)
     expect(isCurrency('XYZ')).toBe(false)
     expect(isCurrency('toString')).toBe(false)
+  })
+})
+
+describe('moneyFormatOf', () => {
+  it('reads a Shopify-style format off each currency', () => {
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: a Shopify money format, not a template.
+    expect(moneyFormatOf('USD')).toBe('${{amount}}')
+    expect(moneyFormatOf('AED')).toBe('AED {{amount}}')
+    expect(moneyFormatOf('JPY')).toBe('¥{{amount_no_decimals}}')
+    expect(moneyFormatOf('INR')).toBe('₹{{amount}}')
   })
 })

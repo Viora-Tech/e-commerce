@@ -341,7 +341,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/markets/rates.ts',
-    names: ['parseEcbDaily', 'rupeeRates', 'latestRupeeRates', 'storeMarketPricing'],
+    names: ['parseEcbDaily', 'rupeeRates', 'latestRupeeRates'],
     reason:
       'Markets M1a: rates.test.ts reads the ECB file rules; the storefront reads market pricing next (M1b)',
   },
