@@ -32,6 +32,7 @@ import { inboxRouter } from './inbox'
 import { inventoryRouter, purchaseOrdersRouter, transfersRouter } from './inventory'
 import { invitationsRouter } from './invitations'
 import { marketingRouter } from './marketing'
+import { marketsRouter } from './markets'
 import { mediaRouter } from './media'
 import { meilisearchRouter } from './meilisearch'
 import { metaobjectsRouter } from './metaobjects'
@@ -137,6 +138,7 @@ export const appRouter = {
   media: mediaRouter,
   staff: staffRouter,
   domains: domainsRouter,
+  markets: marketsRouter,
   invitations: invitationsRouter,
   onboarding: onboardingRouter,
   bugReports: bugReportsRouter,
