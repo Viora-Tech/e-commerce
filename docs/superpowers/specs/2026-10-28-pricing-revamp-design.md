@@ -148,11 +148,17 @@ This is removed everywhere: code comments, the site, docs and `memory-bank/prici
 | | Starter | Growth | Pro | Scale |
 |---|---|---|---|---|
 | Price | ₹499 | ₹1,999 | ₹4,999 | ₹14,999 |
-| AI fully used | ₹50 | ₹300 | ₹800 | ₹1,500 |
+| AI credits fully used (1 credit = ₹0.10 of model cost, `packages/ai/src/plans.ts`) | ₹50 | ₹300 | ₹800 | ₹1,500 |
 | Server share (estimate: one ₹2,000 server per ~50 stores; Scale gets more) | ₹40 | ₹80 | ₹150 | ₹600 |
 | Payment fee on our bill (~2%) | ₹10 | ₹40 | ₹100 | ₹300 |
-| Storage + email | ₹15 | ₹35 | ₹110 | ₹250 |
-| **Kept** | **₹384 (77%)** | **₹1,544 (77%)** | **₹3,839 (77%)** | **₹12,349 (82%)** |
+| Cloudflare R2 storage, quota full ($0.015/GB-month: 2 / 10 / 50 / 100 GB) | ₹3 | ₹13 | ₹64 | ₹128 |
+| Cloudflare R2 reads at full visits (~15 images a visit, 10% missing the CDN cache, $0.36/million) | ₹1 | ₹5 | ₹23 | ₹46 |
+| Email (SES, $0.10 per 1,000; order emails plus one campaign to 10,000 people) | ₹5 | ₹10 | ₹90 | ₹170 |
+| **Kept** | **₹390 (78%)** | **₹1,551 (78%)** | **₹3,772 (75%)** | **₹12,255 (82%)** |
+
+- AI was already priced at cost: credits are measured in ₹ of model cost, so a store that uses all its credits costs exactly the number above, whichever model ran.
+- Top-ups (₹199 for 1,000 credits = ₹100 of model cost) keep 50%.
+- R2 has no egress charge, and media variants are made on our own server (sharp), not with Cloudflare Images. R2's free tier (10 GB and 10 million reads a month across all stores) covers the first stores entirely.
 
 Servers cost about ₹3,000 a month, so Koomerce covers them from about 5 paying stores, before any per-order fees.
 
