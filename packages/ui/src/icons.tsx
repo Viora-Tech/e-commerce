@@ -73,11 +73,9 @@ import {
   FilterIcon as Funnel,
   GiftIcon as Gift,
   Globe02Icon as GlobeSimple,
-  GoogleIcon as GoogleLogo,
   Home01Icon as House,
   Image01Icon as Image,
   InformationCircleIcon as Info,
-  InstagramIcon as InstagramLogo,
   Link01Icon as LinkSimple,
   LeftToRightListBulletIcon as ListBullets,
   Search01Icon as MagnifyingGlass,
@@ -127,10 +125,8 @@ import {
   Video01Icon as Video,
   Alert02Icon as Warning,
   AlertCircleIcon as WarningCircle,
-  WhatsappIcon as WhatsappLogo,
   WifiOff01Icon as WifiSlash,
   Cancel01Icon as X,
-  YoutubeIcon as YoutubeLogo,
 } from '@hugeicons/core-free-icons'
 import { defineIcon, type IconComponent } from './lib/icon'
 
@@ -192,19 +188,16 @@ export const MessageSquare = defineIcon(Huge.Message01Icon, 'MessageSquare', 'du
 export const Send = defineIcon(PaperPlaneTilt, 'Send', 'duotone')
 export const TrendingUp = defineIcon(Huge.ChartUpIcon, 'TrendingUp', 'duotone')
 
-/* Brand marks for the Growth "sales by source" table: recognisable logos, no other use of the mark. */
-export const InstagramLogo_ = defineIcon(InstagramLogo, 'InstagramLogo', 'duotone')
-export { InstagramLogo_ as InstagramLogo }
-export const FacebookLogo_ = defineIcon(Huge.Facebook01Icon, 'FacebookLogo', 'duotone')
-export { FacebookLogo_ as FacebookLogo }
-export const YoutubeLogo_ = defineIcon(YoutubeLogo, 'YoutubeLogo', 'duotone')
-export { YoutubeLogo_ as YoutubeLogo }
-export const GoogleLogo_ = defineIcon(GoogleLogo, 'GoogleLogo', 'duotone')
-export { GoogleLogo_ as GoogleLogo }
+/* Brand marks (sources, channels, WhatsApp actions, sign-in): the real logos in their colours. */
+export {
+  FacebookLogo,
+  GoogleLogo,
+  InstagramLogo,
+  WhatsappLogo,
+  YoutubeLogo,
+} from './brand/social-logos'
 export const Phone_ = defineIcon(Phone, 'Phone', 'duotone')
 export { Phone_ as Phone }
-export const WhatsappLogo_ = defineIcon(WhatsappLogo, 'WhatsappLogo', 'duotone')
-export { WhatsappLogo_ as WhatsappLogo }
 
 /* Sales channels: AI agents that sell the catalog, and the nav glyphs for the two sections. */
 export const ChatGptLogo = defineIcon(Huge.ChatGptIcon, 'ChatGptLogo', 'duotone')

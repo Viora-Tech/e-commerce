@@ -208,3 +208,8 @@ Candidate projects, with verified licences and what to take from each: [`docs/op
   Shadowfax, Umami, WhatsApp and Xpressbees, same terms. The single-colour SVGs are from Simple Icons
   (CC0 1.0, https://simpleicons.org), filled with each brand's colour; the others are the companies'
   own site icons or their Wikimedia Commons logo files.
+- Also in `packages/ui/src/brand/social-logos.tsx` (`FacebookLogo`, `InstagramLogo`, `WhatsappLogo`,
+  `YoutubeLogo`, `GoogleLogo` in `@commerce/ui/icons`): the Facebook, Instagram, WhatsApp and
+  YouTube marks are Simple Icons 16.33.0 paths (CC0 1.0), copied by script and drawn in each brand's
+  colour (Instagram in its gradient); Google's four-colour "G" is its published sign-in mark. Same
+  trademark terms as above.
