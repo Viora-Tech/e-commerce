@@ -59,6 +59,7 @@ const config: NextConfig = {
     '@commerce/core',
     '@commerce/config',
     '@commerce/blocks',
+    '@commerce/phone',
     '@commerce/payments',
     '@commerce/payments-cashfree',
     '@commerce/payments-decentro',

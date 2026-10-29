@@ -11,9 +11,11 @@ Branch `fix/admin-phone-zero`. No migration.
   `99999 99999`; UK (`07911 123456`), France and others whose format needs the 0 keep it.
 - **Why a package:** `@commerce/ui` and `@commerce/blocks` share no runtime workspace package
   (`config` is server env code, `core` is server-heavy), and neither should depend on the other.
-  The storefront fix (#932) has the same helper inline in `store-phone-input.tsx`; once both PRs
-  merge, blocks switches to `@commerce/phone` and the inline copy goes.
-- `apps/admin/next.config.ts` lists `@commerce/phone` in `transpilePackages`.
+  The storefront field (`packages/blocks/src/components/store-phone-input.tsx`, fixed inline in
+  #932) now imports the same `phoneInputMetadata`; its inline copy and its direct
+  `libphonenumber-js` dependency are gone, and blocks lists `@commerce/phone` instead.
+- `apps/admin/next.config.ts` and `apps/storefront/next.config.ts` list `@commerce/phone` in
+  `transpilePackages`.
 - `packages/ui/vitest.config.ts` now compiles JSX (`oxc` automatic runtime, as in admin), so a
   test can render ui components.
 - Tests: `packages/phone/test/index.test.ts` (India no 0, UK/FR/US unchanged, typed 0 still
