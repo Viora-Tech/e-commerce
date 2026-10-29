@@ -15,6 +15,7 @@ export default {
   'sales-channels': 'Sales channels (Meta, Google, ChatGPT)',
   'platform-apps': 'Platform apps (Meta, Shopify, Google)',
   billing: 'Plans and billing',
+  'gst-returns': 'GST returns (GSTR-1, GSTR-3B)',
   'media-pipeline': 'Image pipeline',
   'live-globe': 'Live view globe',
   experiments: 'A/B tests (GrowthBook)',

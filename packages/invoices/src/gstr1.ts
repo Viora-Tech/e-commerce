@@ -19,6 +19,8 @@ export type Gstr1Invoice = {
   totalPaise: number
   taxSummary: TaxRow[]
   lines: DocumentLine[]
+  /** A bill of supply under the composition scheme (not reported in GSTR-1). */
+  composition?: boolean
   /** Table 6A: with (WPAY) or without (WOPAY) payment of IGST. */
   export: {
     type: 'WPAY' | 'WOPAY'
@@ -49,6 +51,7 @@ export function gstr1Invoice(doc: DocumentSnapshot): Gstr1Invoice {
     totalPaise: doc.totals.totalPaise,
     taxSummary: doc.taxSummary,
     lines: doc.lines,
+    composition: doc.composition,
     export: doc.exportSupply
       ? {
           type: doc.exportSupply.mode === 'igst' ? 'WPAY' : 'WOPAY',

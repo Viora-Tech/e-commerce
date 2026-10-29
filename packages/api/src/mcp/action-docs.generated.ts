@@ -231,6 +231,10 @@ export const ACTION_DOCS: Record<string, string> = {
   'gstInvoices.queue.issue':
     'Review, Issue: numbers are assigned here and never change afterwards.',
   'gstInvoices.queue.preview': 'The numbers a batch would get, in the order it would get them.',
+  'gstInvoices.returns.gstr1Csv': 'The GSTR-1 totals per table, as a CSV for Excel.',
+  'gstInvoices.returns.gstr1Json': 'The GSTR-1 JSON for the portal\'s "Prepare offline → Upload".',
+  'gstInvoices.returns.gstr3b': 'GSTR-3B 3.1 and 3.2 as a CSV or a one-page PDF.',
+  'gstInvoices.returns.summary': 'Totals, warnings and the GSTR-3B figures for the Returns tab.',
   'gstInvoices.seriesNext':
     'The next number each series will print this financial year, for the settings preview.',
   'gstInvoices.snapshot': 'Snapshot of a document, for the admin to show what was printed.',

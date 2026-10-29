@@ -2,6 +2,8 @@ import type { StoreTx } from '@commerce/db'
 import {
   buildGstr1,
   DocumentSnapshotSchema,
+  type Gstr1CreditNote,
+  type Gstr1Document,
   type Gstr1Export,
   gstr1CreditNote,
   gstr1Invoice,
@@ -111,18 +113,22 @@ export async function documentsByIds(tx: StoreTx, ids: readonly string[]) {
     .orderBy(invoice.issuedAt)
 }
 
+type InvoiceRow = typeof invoice.$inferSelect
+
 /**
- * One GSTIN's GSTR-1 CSVs for documents issued in [from, to): GSTR-1 is filed
- * per GSTIN. Credit notes are paired with their invoice even when it was
- * issued in an earlier period. `gstRegistrationId` null is a store without a
- * registration.
+ * Everything one GSTIN's GSTR-1 for [from, to) is built from: the numbered documents dated in
+ * it (cancelled ones too, for Table 13), its live invoices, and its credit notes paired with
+ * the invoice each reverses, even when that invoice is from an earlier period. A note is paired
+ * by the invoice number it prints, falling back to the order's invoice; notes with no invoice
+ * are returned as orphans rather than dropped silently. `gstRegistrationId` null is a store
+ * without a registration.
  */
-export async function gstr1ForPeriod(
+export async function gstr1Inputs(
   tx: StoreTx,
   from: Date,
   to: Date,
   gstRegistrationId: string | null,
-): Promise<Gstr1Export> {
+) {
   const inPeriod = await tx
     .select()
     .from(invoice)
@@ -137,9 +143,9 @@ export async function gstr1ForPeriod(
     )
     .orderBy(invoice.invoiceDate, invoice.seq)
   const live = inPeriod.filter((r) => r.status === 'issued')
-  const invoices = live.filter((r) => r.kind === 'tax_invoice')
-  const notes = live.filter((r) => r.kind === 'credit_note')
-  const orderIds = [...new Set(notes.map((n) => n.orderId))]
+  const invoiceRows = live.filter((r) => r.kind === 'tax_invoice')
+  const noteRows = live.filter((r) => r.kind === 'credit_note')
+  const orderIds = [...new Set(noteRows.map((n) => n.orderId))]
   const originals = orderIds.length
     ? await tx
         .select()
@@ -152,20 +158,30 @@ export async function gstr1ForPeriod(
           ),
         )
     : []
-  const byOrder = new Map(originals.map((o) => [o.orderId, o]))
   const snap = (raw: unknown) => DocumentSnapshotSchema.parse(raw)
-  return buildGstr1(
-    invoices.map((r) => gstr1Invoice(snap(r.snapshot))),
-    notes.flatMap((n) => {
-      const orig = byOrder.get(n.orderId)
-      return orig ? [gstr1CreditNote(snap(n.snapshot), snap(orig.snapshot))] : []
-    }),
+  const originalOf = (note: InvoiceRow, printed: string | null) => {
+    const ofOrder = originals.filter((o) => o.orderId === note.orderId)
+    return (printed ? ofOrder.find((o) => o.number === printed) : undefined) ?? ofOrder[0]
+  }
+  const creditNotes: { row: InvoiceRow; note: Gstr1CreditNote }[] = []
+  const orphans: InvoiceRow[] = []
+  for (const n of noteRows) {
+    const s = snap(n.snapshot)
+    const orig = originalOf(n, s.original?.number ?? null)
+    if (orig) creditNotes.push({ row: n, note: gstr1CreditNote(s, snap(orig.snapshot)) })
+    else orphans.push(n)
+  }
+  return {
+    inPeriod,
+    invoices: invoiceRows.map((row) => ({ row, invoice: gstr1Invoice(snap(row.snapshot)) })),
+    creditNotes,
+    orphans,
     // Table 13 counts every number used, cancelled ones included.
-    inPeriod.flatMap((r) =>
+    documents: inPeriod.flatMap((r): Gstr1Document[] =>
       r.number && r.seq !== null
         ? [
             {
-              kind: r.kind as 'tax_invoice' | 'credit_note' | 'receipt_voucher' | 'refund_voucher',
+              kind: r.kind as Gstr1Document['kind'],
               series: r.seriesId ?? r.kind,
               number: r.number,
               seq: r.seq,
@@ -174,5 +190,20 @@ export async function gstr1ForPeriod(
           ]
         : [],
     ),
+  }
+}
+
+/** One GSTIN's GSTR-1 CSVs for documents issued in [from, to): GSTR-1 is filed per GSTIN. */
+export async function gstr1ForPeriod(
+  tx: StoreTx,
+  from: Date,
+  to: Date,
+  gstRegistrationId: string | null,
+): Promise<Gstr1Export> {
+  const inputs = await gstr1Inputs(tx, from, to, gstRegistrationId)
+  return buildGstr1(
+    inputs.invoices.map((i) => i.invoice),
+    inputs.creditNotes.map((n) => n.note),
+    inputs.documents,
   )
 }
