@@ -14,15 +14,30 @@
  * change an MCP client proposed may be decided by the member who connected it, the store owner,
  * or any member whose role holds the action's permission; it always runs as the approver.
  *
+ * Role approvals: when the deciding member's role ticks "Needs approval" for the action's
+ * permission, Approve does not run it but hands it to Approvals (`needsApprover`). A change a
+ * member makes in the admin or through the API with such a tick lands there directly
+ * (`queueForApprover`, from the store procedure). From then on only a different member who may
+ * approve it (`canApprove`) can approve it; the asker can only withdraw it.
+ *
  * Nothing here is reachable by the model: it only ever creates `proposed` rows.
  */
 import { ASSISTANT_LIMITS } from '@commerce/ai'
 import type { StoreContext } from '@commerce/core'
-import { type AiActionStatus, aiAction, authSchema, type StoreTx } from '@commerce/db'
+import { isPermission, type Permission } from '@commerce/core/permissions'
+import {
+  type AiActionSource,
+  type AiActionStatus,
+  aiAction,
+  authSchema,
+  type StoreTx,
+} from '@commerce/db'
 import { ORPCError } from '@orpc/server'
-import { and, desc, eq, inArray, lt } from 'drizzle-orm'
-import type { StoreScope } from '../../../procedures'
-import { ApproverNotAllowed, ProposalProblem } from './actions/resolve'
+import { and, desc, eq, gte, inArray, isNull, lt, ne } from 'drizzle-orm'
+import { canApprove, mustAsk } from '../../../procedures/approval-rules'
+import type { StoreScope } from '../../../procedures/store'
+import { adminAction, queuedAdminAction } from './actions/admin-action'
+import { ApproverNotAllowed, NeedsApprover, ProposalProblem } from './actions/resolve'
 import type { ActionEnv, ActionPreview, EditField } from './actions/types'
 import { actionFor, undoerFor } from './registry'
 
@@ -35,6 +50,9 @@ type Outcome = {
   message?: string
   href?: string | null
   by?: string
+  /** The member confirmed their own AI client's change (MCP): confirming the AI, not approving
+   *  someone else's request. */
+  confirmedAi?: boolean
   undoMessage?: string
   undoneByEmail?: string
 }
@@ -42,7 +60,7 @@ type Outcome = {
 export type ActionView = {
   id: string
   tool: string
-  source: 'assistant' | 'bulkWriter' | 'mcp'
+  source: AiActionSource
   status: AiActionStatus
   summary: string
   preview: ActionPreview
@@ -54,8 +72,15 @@ export type ActionView = {
   canUndo: boolean
   /** Who approved or cancelled it (email), once someone did. */
   by: string | null
+  /** The asker confirmed their own AI client's change (MCP), rather than someone approving it. */
+  confirmedAi: boolean
   /** The member who asked for it: in the AI bar, or by connecting the MCP client. */
   requestedBy: string | null
+  requestedById: string
+  /** Waits in Approvals for a different member (the asker's role ticks "Needs approval"). */
+  needsApprover: boolean
+  /** The permission it needs, when known. */
+  permission: string | null
   createdAt: Date
   expiresAt: Date
   executedAt: Date | null
@@ -92,7 +117,11 @@ function viewOf(row: Row, requestedBy: string | null, now: Date): ActionView {
     href: outcome.href ?? null,
     canUndo: row.status === 'executed' && row.undo !== null,
     by: outcome.by ?? null,
+    confirmedAi: outcome.confirmedAi === true,
     requestedBy,
+    requestedById: row.userId,
+    needsApprover: row.needsApprover,
+    permission: row.permission,
     createdAt: row.createdAt,
     expiresAt: row.expiresAt,
     executedAt: row.executedAt,
@@ -125,6 +154,67 @@ async function oneView(tx: StoreTx, row: Row, now: Date): Promise<ActionView> {
 }
 
 const ttlMs = ASSISTANT_LIMITS.proposalTtlMinutes * 60_000
+/** A change waiting for another member gets longer than one the asker reviews on the spot. */
+export const APPROVAL_TTL_DAYS = 7
+const approvalTtlMs = APPROVAL_TTL_DAYS * 24 * 60 * 60_000
+
+const asPermission = (value: string | null | undefined): Permission | null =>
+  value && isPermission(value) ? value : null
+
+/** The permission a logged action needs: recorded on the row, else the action's own. */
+const permissionOf = (row: Row): Permission | null =>
+  asPermission(row.permission) ?? asPermission(undoerFor(row.tool)?.permission)
+
+/**
+ * A change a member made (admin, MCP, API) that their role sends for approval: stored as a
+ * `runAdminAction` waiting in Approvals, with the permission that held it back. Runs nothing.
+ */
+export async function queueForApprover(
+  tx: StoreTx,
+  input: {
+    storeId: string
+    userId: string
+    source: AiActionSource
+    path: string
+    input: unknown
+    permission: Permission
+    now: Date
+  },
+): Promise<ActionView> {
+  const raw = { path: input.path, input: input.input }
+  const proposal = queuedAdminAction(input.path, input.input)
+  const [row] = await tx
+    .insert(aiAction)
+    .values({
+      storeId: input.storeId,
+      userId: input.userId,
+      source: input.source,
+      tool: adminAction.tool,
+      summary: proposal.summary,
+      input: { raw, resolved: proposal.resolved } satisfies Stored,
+      preview: proposal.preview,
+      needsApprover: true,
+      permission: input.permission,
+      expiresAt: new Date(input.now.getTime() + approvalTtlMs),
+    })
+    .returning()
+  return oneView(tx, row as Row, input.now)
+}
+
+/** Hands an open proposal to Approvals: from now on a different member must approve it. */
+async function sendToApprover(env: ActionEnv, id: string, permission: Permission | null) {
+  const [updated] = await env.tx
+    .update(aiAction)
+    .set({
+      needsApprover: true,
+      permission,
+      expiresAt: new Date(env.now.getTime() + approvalTtlMs),
+      updatedAt: env.now,
+    })
+    .where(eq(aiAction.id, id))
+    .returning()
+  return oneView(env.tx, updated as Row, env.now)
+}
 
 /** Validates a propose tool's input and stores it as a proposal. Changes nothing else. */
 export async function proposeAction(
@@ -155,10 +245,16 @@ export async function proposeAction(
 }
 
 /**
- * An open proposal the caller may decide, or a plain refusal. The assistant's proposals are the
- * asker's alone. An MCP client's may also be decided by the owner or a member whose role holds
- * the action's permission; for `runAdminAction` (no permission of its own) the admin procedure
- * checks the approver's role when it runs, and only the owner may edit or cancel it for someone.
+ * An open proposal the caller may decide, or a plain refusal.
+ *
+ * Waiting in Approvals (`needsApprover`): never the asker's to approve or edit, only to
+ * withdraw; anyone else must pass `canApprove` for its permission.
+ *
+ * Otherwise: the assistant's proposals are the asker's alone. An MCP client's may also be
+ * decided by the owner or a member whose role holds the action's permission; for
+ * `runAdminAction` (no permission of its own) the admin procedure checks the approver's role
+ * when it runs, and only the owner may edit or cancel it for someone.
+ *
  * An expired one is refused with a message that says so (the refusal rolls the request back, so
  * the row itself is marked expired by the next Activity load).
  */
@@ -166,11 +262,21 @@ async function openFor(
   env: ActionEnv,
   scope: StoreScope,
   id: string,
-  intent: 'approve' | 'decide',
+  intent: 'approve' | 'edit' | 'cancel',
 ): Promise<Row> {
   const [row] = await env.tx.select().from(aiAction).where(eq(aiAction.id, id)).for('update')
   if (!row) throw new ORPCError('NOT_FOUND', { message: 'That AI action was not found.' })
-  if (row.userId !== env.userId) {
+  if (row.needsApprover) {
+    if (row.userId === env.userId) {
+      if (intent !== 'cancel') {
+        throw new ORPCError('FORBIDDEN', {
+          message: 'You asked for this change, so a different member has to approve it.',
+        })
+      }
+    } else if (!canApprove(scope, permissionOf(row))) {
+      throw new ORPCError('FORBIDDEN', { message: 'Your role cannot approve this change.' })
+    }
+  } else if (row.userId !== env.userId) {
     if (row.source !== 'mcp') {
       throw new ORPCError('FORBIDDEN', {
         message: 'Only the person who asked the assistant for this change can approve it.',
@@ -224,7 +330,7 @@ export async function reviseAction(
   id: string,
   changes: Record<string, string | number | null>,
 ): Promise<ActionView> {
-  const row = await openFor(env, scope, id, 'decide')
+  const row = await openFor(env, scope, id, 'edit')
   const definition = actionFor(row.tool)
   const stored = row.input as Stored
   if (!definition) throw new ORPCError('BAD_REQUEST', { message: 'Unknown AI action.' })
@@ -262,7 +368,8 @@ export async function reviseAction(
 /**
  * Approve: runs the exact change the merchant saw, as them and with their permission, all or
  * nothing. A role that may not make the change is refused and the proposal stays open, so
- * someone who may can still approve it.
+ * someone who may can still approve it. A role that ticks "Needs approval" for it hands it to
+ * Approvals instead (the owner never does).
  */
 export async function approveAction(
   env: ActionEnv,
@@ -270,7 +377,12 @@ export async function approveAction(
   id: string,
 ): Promise<ActionView> {
   const row = await openFor(env, scope, id, 'approve')
+  // A role without the grant is refused outright; one with it but ticked hands it on.
   requirePermission(scope, row.tool)
+  const permission = permissionOf(row)
+  if (!row.needsApprover && permission && mustAsk(scope, permission)) {
+    return sendToApprover(env, id, permission)
+  }
   const definition = actionFor(row.tool)
   if (!definition) throw new ORPCError('BAD_REQUEST', { message: 'Unknown AI action.' })
   const stored = row.input as Stored
@@ -282,7 +394,13 @@ export async function approveAction(
       .update(aiAction)
       .set({
         status: 'executed',
-        result: { ...done.result, message: done.message, href: done.href, by: env.email },
+        result: {
+          ...done.result,
+          message: done.message,
+          href: done.href,
+          by: env.email,
+          ...(row.source === 'mcp' && row.userId === env.userId ? { confirmedAi: true } : {}),
+        },
         undo: done.undo ?? null,
         approvedBy: env.userId,
         approvedAt: env.now,
@@ -295,6 +413,10 @@ export async function approveAction(
   } catch (err) {
     if (err instanceof ApproverNotAllowed) {
       throw new ORPCError('FORBIDDEN', { message: err.message })
+    }
+    // The admin action's own permission is one this member's role sends for approval.
+    if (err instanceof NeedsApprover && !row.needsApprover) {
+      return sendToApprover(env, id, asPermission(err.permission))
     }
     const message =
       err instanceof ProposalProblem
@@ -322,7 +444,7 @@ export async function cancelAction(
   scope: StoreScope,
   id: string,
 ): Promise<ActionView> {
-  await openFor(env, scope, id, 'decide')
+  await openFor(env, scope, id, 'cancel')
   const [updated] = await env.tx
     .update(aiAction)
     .set({ status: 'cancelled', result: { by: env.email }, updatedAt: env.now })
@@ -400,4 +522,97 @@ export async function listActivity(
     items: await viewsOf(ctx.tx, rows.slice(0, input.perPage), now),
     hasMore: rows.length > input.perPage,
   }
+}
+
+/** Settings → Approvals: changes waiting for a different member, and recent expired ones. */
+export async function listWaitingApprovals(
+  ctx: StoreContext,
+  now: Date = new Date(),
+): Promise<ActionView[]> {
+  const rows = await ctx.tx
+    .select()
+    .from(aiAction)
+    .where(
+      and(
+        eq(aiAction.needsApprover, true),
+        inArray(aiAction.status, ['proposed', 'expired']),
+        gte(aiAction.expiresAt, new Date(now.getTime() - approvalTtlMs)),
+      ),
+    )
+    .orderBy(desc(aiAction.createdAt))
+    .limit(200)
+  return viewsOf(ctx.tx, rows, now)
+}
+
+/**
+ * Settings → Approvals → Your requests: what the member sent for approval in the last 30 days
+ * and what became of it. Opening it marks the decided ones seen (the nav badge clears).
+ */
+export async function listMyRequests(
+  ctx: StoreContext,
+  userId: string,
+  now: Date = new Date(),
+): Promise<ActionView[]> {
+  const rows = await ctx.tx
+    .select()
+    .from(aiAction)
+    .where(
+      and(
+        eq(aiAction.needsApprover, true),
+        eq(aiAction.userId, userId),
+        gte(aiAction.createdAt, new Date(now.getTime() - 30 * 24 * 60 * 60_000)),
+      ),
+    )
+    .orderBy(desc(aiAction.createdAt))
+    .limit(100)
+  await ctx.tx
+    .update(aiAction)
+    .set({ outcomeSeenAt: now })
+    .where(
+      and(
+        eq(aiAction.needsApprover, true),
+        eq(aiAction.userId, userId),
+        ne(aiAction.status, 'proposed'),
+        isNull(aiAction.outcomeSeenAt),
+      ),
+    )
+  return viewsOf(ctx.tx, rows, now)
+}
+
+/**
+ * The nav badge: changes this member could approve now, and decisions on their own requests
+ * they have not seen yet (how a requester hears the outcome).
+ */
+export async function approvalCounts(
+  ctx: StoreContext,
+  scope: StoreScope,
+  now: Date = new Date(),
+): Promise<{ waiting: number; outcomes: number }> {
+  const rows = await ctx.tx
+    .select({
+      userId: aiAction.userId,
+      status: aiAction.status,
+      tool: aiAction.tool,
+      permission: aiAction.permission,
+      expiresAt: aiAction.expiresAt,
+      outcomeSeenAt: aiAction.outcomeSeenAt,
+    })
+    .from(aiAction)
+    .where(
+      and(
+        eq(aiAction.needsApprover, true),
+        gte(aiAction.createdAt, new Date(now.getTime() - 30 * 24 * 60 * 60_000)),
+      ),
+    )
+  let waiting = 0
+  let outcomes = 0
+  for (const r of rows) {
+    const open = r.status === 'proposed' && r.expiresAt.getTime() > now.getTime()
+    if (r.userId === scope.userId) {
+      if (!open && r.status !== 'proposed' && !r.outcomeSeenAt) outcomes++
+    } else if (open && canApprove(scope, permissionOf(r as Row))) {
+      waiting++
+    }
+  }
+  return { waiting, outcomes }
 }

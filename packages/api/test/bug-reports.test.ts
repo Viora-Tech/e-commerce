@@ -1,6 +1,11 @@
 import { readFileSync, rmSync } from 'node:fs'
 import { createMerchantAuth } from '@commerce/auth'
-import { createMemoryRateLimitStore, localStoragePath, type RateLimitStore } from '@commerce/core'
+import {
+  createMemoryRateLimitStore,
+  localStoragePath,
+  type RateLimitStore,
+  scrubSecrets,
+} from '@commerce/core'
 import { createDb, role, store, storeMember } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { call } from '@orpc/server'
@@ -8,11 +13,7 @@ import { and, eq } from 'drizzle-orm'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ApiContext } from '../src/context'
 import { appRouter } from '../src/routers/_app'
-import {
-  BUG_REPORT_RULE,
-  githubIssueProblem,
-  scrubSecrets,
-} from '../src/services/bug-report.service'
+import { BUG_REPORT_RULE, githubIssueProblem } from '../src/services/bug-report.service'
 
 /**
  * "Report a bug" (test server only): any signed-in member files a GitHub issue. These tests
@@ -223,6 +224,48 @@ describe('bugReports.create', () => {
     expect(result.number).toBe(123)
     expect(sentIssue().body.body).toContain('helper@example.com')
     expect(sentIssue().body.body).toContain('Staff')
+  })
+
+  it('keeps each report for My reports: own reports for staff, the whole store for the owner', async () => {
+    enable()
+    const a = await merchant('owner@example.com', 'bugs-a')
+    const helper = await staff(a.storeId, a.organizationId, a.headers)
+    await call(appRouter.bugReports.create, report, { context: ctx(a.headers) })
+    await call(
+      appRouter.bugReports.create,
+      { ...report, summary: 'Helper: token=abc123 breaks' },
+      { context: ctx(helper) },
+    )
+
+    const mine = await call(appRouter.bugReports.list, { scope: 'mine' }, { context: ctx(helper) })
+    expect(mine.canSeeStore).toBe(false)
+    expect(mine.reports).toHaveLength(1)
+    expect(mine.reports[0]).toMatchObject({
+      title: 'Helper: token=[redacted] breaks',
+      status: 'received',
+      githubIssueNumber: 124,
+      page: '/products/abc?tab=pricing',
+      mine: true,
+      unread: false,
+    })
+    await expect(
+      call(appRouter.bugReports.list, { scope: 'store' }, { context: ctx(helper) }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+
+    const store = await call(
+      appRouter.bugReports.list,
+      { scope: 'store' },
+      { context: ctx(a.headers) },
+    )
+    expect(store.canSeeStore).toBe(true)
+    expect(store.reports).toHaveLength(2)
+
+    expect(
+      await call(appRouter.bugReports.unreadCount, undefined, { context: ctx(helper) }),
+    ).toEqual({ count: 0 })
+    expect(await call(appRouter.bugReports.markSeen, undefined, { context: ctx(helper) })).toEqual({
+      ok: true,
+    })
   })
 
   it('without a token (development) logs the would-be issue and never calls GitHub', async () => {

@@ -1,9 +1,14 @@
 import type { StoreTx } from '@commerce/db'
-import { role, rolePermission, storeMember } from '@commerce/db'
+import { role, roleApproval, rolePermission, storeMember } from '@commerce/db'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import { roleHasPendingInvitations } from './invitations'
 import { isSystemRoleSlug, roleSlug, SYSTEM_ROLES } from './roles'
-import { type Permission, sanitisePermissions } from './statement'
+import {
+  canNeedApproval,
+  DEFAULT_APPROVAL_PERMISSIONS,
+  type Permission,
+  sanitisePermissions,
+} from './statement'
 
 export type StoreRole = {
   id: string
@@ -12,6 +17,8 @@ export type StoreRole = {
   description: string | null
   isSystem: boolean
   permissions: Permission[]
+  /** "Needs approval" ticks: these actions wait in Approvals when a member on the role does them. */
+  needsApproval: Permission[]
   memberCount: number
 }
 
@@ -34,6 +41,8 @@ export type MemberAccess = {
   roleName: string
   isOwner: boolean
   permissions: Permission[]
+  /** The role's "Needs approval" ticks; always empty for the owner. */
+  needsApproval: Permission[]
 }
 
 /**
@@ -46,23 +55,58 @@ export async function seedSystemRoles(tx: StoreTx, storeId: string): Promise<voi
       .select({ id: role.id })
       .from(role)
       .where(and(eq(role.storeId, storeId), eq(role.slug, spec.slug)))
-    const roleId =
-      existing[0]?.id ??
-      (
-        await tx
-          .insert(role)
-          .values({
-            storeId,
-            name: spec.name,
-            slug: spec.slug,
-            description: spec.description,
-            isSystem: true,
-          })
-          .returning({ id: role.id })
-      )[0]?.id
+    const created = existing[0]
+      ? undefined
+      : (
+          await tx
+            .insert(role)
+            .values({
+              storeId,
+              name: spec.name,
+              slug: spec.slug,
+              description: spec.description,
+              isSystem: true,
+            })
+            .returning({ id: role.id })
+        )[0]?.id
+    const roleId = existing[0]?.id ?? created
     if (!roleId) continue
     await writePermissions(tx, storeId, roleId, spec.permissions)
+    // Only a new role gets the default ticks: the owner may have changed an existing one's.
+    if (created && spec.slug !== 'owner') {
+      await writeApprovals(tx, storeId, created, DEFAULT_APPROVAL_PERMISSIONS)
+    }
   }
+}
+
+/** Replaces a role's "Needs approval" ticks with exactly `next` (change grains only). */
+export async function writeApprovals(
+  tx: StoreTx,
+  storeId: string,
+  roleId: string,
+  next: readonly string[],
+): Promise<Permission[]> {
+  const clean = sanitisePermissions(next).filter(canNeedApproval)
+  await tx.delete(roleApproval).where(eq(roleApproval.roleId, roleId))
+  if (clean.length > 0) {
+    await tx
+      .insert(roleApproval)
+      .values(clean.map((permission) => ({ storeId, roleId, permission })))
+  }
+  return clean
+}
+
+/** Settings → Roles: the owner changes which actions a role sends for approval. */
+export async function saveRoleApprovals(
+  tx: StoreTx,
+  storeId: string,
+  roleId: string,
+  next: readonly string[],
+): Promise<Permission[]> {
+  const [row] = await tx.select().from(role).where(eq(role.id, roleId))
+  if (!row || row.storeId !== storeId) throw new Error('Role not found')
+  if (row.slug === 'owner') throw new Error('The owner never needs approval')
+  return writeApprovals(tx, storeId, roleId, next)
 }
 
 /** Replaces a role's grants with exactly `next`, ignoring anything off-statement. */
@@ -102,6 +146,10 @@ export async function listRoles(tx: StoreTx, storeId: string): Promise<StoreRole
     .select({ roleId: rolePermission.roleId, permission: rolePermission.permission })
     .from(rolePermission)
     .where(inArray(rolePermission.roleId, ids))
+  const ticks = await tx
+    .select({ roleId: roleApproval.roleId, permission: roleApproval.permission })
+    .from(roleApproval)
+    .where(inArray(roleApproval.roleId, ids))
   const counts = await tx
     .select({ roleId: storeMember.roleId, count: sql<number>`count(*)::int` })
     .from(storeMember)
@@ -115,10 +163,14 @@ export async function listRoles(tx: StoreTx, storeId: string): Promise<StoreRole
     byRole.set(g.roleId, list)
   }
   const countByRole = new Map(counts.map((c) => [c.roleId, c.count]))
+  const ticksByRole = new Map<string, string[]>()
+  for (const t of ticks)
+    ticksByRole.set(t.roleId, [...(ticksByRole.get(t.roleId) ?? []), t.permission])
 
   return rows.map((r) => ({
     ...r,
     permissions: sanitisePermissions(byRole.get(r.id) ?? []),
+    needsApproval: r.slug === 'owner' ? [] : sanitisePermissions(ticksByRole.get(r.id) ?? []),
     memberCount: countByRole.get(r.id) ?? 0,
   }))
 }
@@ -157,14 +209,22 @@ export async function memberAccess(
     .select({ permission: rolePermission.permission })
     .from(rolePermission)
     .where(eq(rolePermission.roleId, row.roleId))
+  const isOwner = row.roleSlug === 'owner'
+  const ticks = isOwner
+    ? []
+    : await tx
+        .select({ permission: roleApproval.permission })
+        .from(roleApproval)
+        .where(eq(roleApproval.roleId, row.roleId))
 
   return {
     memberId: row.memberId,
     roleId: row.roleId,
     roleSlug: row.roleSlug,
     roleName: row.roleName,
-    isOwner: row.roleSlug === 'owner',
+    isOwner,
     permissions: sanitisePermissions(grants.map((g) => g.permission)),
+    needsApproval: sanitisePermissions(ticks.map((t) => t.permission)),
   }
 }
 
@@ -266,6 +326,7 @@ export async function saveRole(tx: StoreTx, input: SaveRoleInput): Promise<strin
   const id = created[0]?.id
   if (!id) throw new Error('Could not create the role')
   await writePermissions(tx, input.storeId, id, input.permissions)
+  await writeApprovals(tx, input.storeId, id, DEFAULT_APPROVAL_PERMISSIONS)
   return id
 }
 

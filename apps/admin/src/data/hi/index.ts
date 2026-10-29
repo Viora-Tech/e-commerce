@@ -8,6 +8,7 @@ import affiliates from './affiliates'
 import ai from './ai'
 import analytics from './analytics'
 import appInstall from './app-install'
+import approvals from './approvals'
 import apps from './apps'
 import assistant from './assistant'
 import automationRecords from './automation-records'
@@ -86,6 +87,7 @@ import paymentModes from './payment-modes'
 import payments from './payments'
 import paymentsSetup from './payments-setup'
 import pixels from './pixels'
+import platform from './platform'
 import productForm from './product-form'
 import productPage from './product-page'
 import products from './products'
@@ -151,6 +153,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...billing,
   ...bluedart,
   ...mcp,
+  ...approvals,
   ...bugReport,
   ...bulkActions,
   ...bulkEdit,
@@ -216,6 +219,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...paymentModes,
   ...paymentsSetup,
   ...pixels,
+  ...platform,
   ...razorpayWebsites,
   ...collections,
   ...commandPalette,

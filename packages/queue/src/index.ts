@@ -82,6 +82,8 @@ export const SEARCH_CONSOLE_SWEEP_QUEUE = '{search-console}-sweep'
 export const BILLING_SWEEP_QUEUE = '{billing}-sweep'
 /** Daily: MCP & API activity older than 90 days is deleted. */
 export const API_ACTIVITY_PRUNE_QUEUE = '{api}-activity-prune'
+/** Every 15 minutes (with a GitHub token): open bug reports re-read from their GitHub issues. */
+export const BUG_REPORT_SYNC_QUEUE = '{bug-reports}-sync'
 
 /**
  * Worker concurrency and the per-store cap for every queue that carries store jobs (see
@@ -355,6 +357,7 @@ export { Queue, Worker } from 'bullmq'
 export type { default as IORedis } from 'ioredis'
 export * from './cache'
 export * from './fair'
+export * from './health'
 export { inboxHub, inboxPublisher } from './inbox'
 export { redisRateLimiter } from './rate-limit'
 export * from './visitors'

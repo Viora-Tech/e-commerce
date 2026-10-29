@@ -13,6 +13,7 @@ import { feePercent } from '@/lib/billing'
 import { REQUEST_PATH_HEADER } from '@/lib/csp'
 import { routes, safeNext } from '@/lib/routes'
 import {
+  approvalsBadgeCount,
   inboxUnreadCount,
   listApps,
   listStores,
@@ -37,7 +38,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   // Everything else needs only the session, so it is read at once rather than one after
   // another. Store calls for a stale active id answer "no store" on their own and are dropped
   // below unless that store is one of the member's.
-  const [orgs, apps, logo, storefrontUrl, toShip, plan, testMode] = await Promise.all([
+  const [orgs, apps, logo, storefrontUrl, toShip, plan, testMode, approvals] = await Promise.all([
     listStores(),
     activeId ? listApps().catch(() => []) : [],
     activeId ? liveLogoUrl() : null,
@@ -45,6 +46,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     activeId ? ordersToShipCount() : null,
     activeId ? planUsageSummary() : null,
     activeId ? paymentsTestMode() : false,
+    activeId ? approvalsBadgeCount() : null,
   ])
   // No store at all yet: send them to create one, which shows the invite-only
   // screen instead of the wizard when they are not allowed to sign up.
@@ -61,6 +63,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const navCounts: Record<string, number> = {
     ...(active && toShip ? { [routes.orders.list()]: toShip } : {}),
     ...(inboxUnread ? { [routes.salesChannels.inboxConversations()]: inboxUnread } : {}),
+    // Waiting approvals and unseen outcomes of the member's own requests.
+    ...(active && approvals ? { [routes.settings.home()]: approvals } : {}),
   }
   // The sidebar's brand mark reuses the storefront theme's logo when the store has set one.
   const logoUrl = active ? logo : null

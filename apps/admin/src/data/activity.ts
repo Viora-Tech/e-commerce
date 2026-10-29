@@ -54,4 +54,10 @@ export const activityContent = {
     refund_needed: (number: number) => `Refund due on order #${number}`,
     return: (number: number) => `Return R-${number} requested`,
   },
+  /** Your own bug report, fixed or live (Account → My reports). */
+  bugReport: {
+    fixed: (title: string) => `Fixed: ${title}`,
+    live: (title: string) => `Fix is live: ${title}`,
+    detail: { fixed: 'In the next update', live: 'Your bug report' },
+  },
 }

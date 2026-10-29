@@ -93,6 +93,12 @@ const bugReportShape = {
     .string()
     .regex(/^[\w.-]+\/[\w.-]+$/)
     .default('Viora-Tech/e-commerce'),
+  /**
+   * The secret of the repository's webhook (`<ADMIN_URL>/api/github/webhook`; events: Issues,
+   * Issue comments, Pushes, Pull requests). Each delivery's `X-Hub-Signature-256` is checked
+   * with it; unset, the route answers 404 and only the worker's poll moves report statuses.
+   */
+  GITHUB_WEBHOOK_SECRET: z.string().min(16).optional(),
   /** The commit this build runs, shown on each bug report. Unset: SENTRY_RELEASE, then "unknown". */
   SOURCE_COMMIT: z.string().min(1).optional(),
 }
@@ -106,6 +112,20 @@ const platformDomains = z
       .split(',')
       .map((d) => d.trim().toLowerCase())
       .filter(Boolean),
+  )
+
+/**
+ * Comma-separated emails of the people who run Koomerce (VIORA INDIA staff); only they may open
+ * the platform console (`/platform`). Blank or unset: nobody, the console answers "not found".
+ */
+const platformAdminEmails = z
+  .string()
+  .default('')
+  .transform((s) =>
+    s
+      .split(',')
+      .map((e) => e.trim().toLowerCase())
+      .filter((e) => e.includes('@')),
   )
 
 /** SETTINGS_SECRET's development default. Public, so production refuses it (see `schema`). */
@@ -231,6 +251,7 @@ const shape = z.object({
   /** Hostname a subdomain's CNAME must point at. */
   STOREFRONT_CNAME_TARGET: z.string().min(3).default('shops.waimers.localhost'),
   PLATFORM_DOMAINS: platformDomains,
+  PLATFORM_ADMIN_EMAILS: platformAdminEmails,
   /**
    * Automatic HTTPS routes for custom domains (worker only). With all three set, a custom
    * domain whose DNS is verified is added to the storefront app in Dokploy (https, Let's

@@ -14,6 +14,9 @@ import {
 import type { StoreTx } from '@commerce/db'
 import { organizationMembership, withStore } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
+import { approvalKind, isReadPath } from '../mcp/action-catalogue'
+import { queueForApprover } from '../services/ai/assistant/service'
+import { mustAsk } from './approval-rules'
 import { memberProcedure, type SessionContext } from './base'
 import { remember } from './request-memo'
 
@@ -28,11 +31,16 @@ export type StoreScope = {
   roleName: string
   isOwner: boolean
   permissions: Permission[]
+  /** The role's "Needs approval" ticks (empty for the owner). */
+  needsApproval: Permission[]
   /** Owners pass everything; everyone else must hold the grant. */
   can: (permission: Permission) => boolean
 }
 
-type Access = Pick<StoreScope, 'roleId' | 'roleSlug' | 'roleName' | 'isOwner' | 'permissions'>
+type Access = Pick<
+  StoreScope,
+  'roleId' | 'roleSlug' | 'roleName' | 'isOwner' | 'permissions' | 'needsApproval'
+>
 
 /** "orders.refund" reads as "refund orders" in the message a merchant sees. */
 function describe(permission: Permission): string {
@@ -47,6 +55,7 @@ function accessOf(found: MemberAccess): Access {
     roleName: found.roleName,
     isOwner: found.isOwner,
     permissions: found.permissions,
+    needsApproval: found.needsApproval,
   }
 }
 
@@ -90,6 +99,7 @@ async function resolveAccess(
         roleName: invitedRole.name,
         isOwner: invitedRole.slug === 'owner',
         permissions: invitedRole.permissions,
+        needsApproval: invitedRole.needsApproval,
       }
     }
   }
@@ -104,6 +114,7 @@ async function resolveAccess(
     roleName: target.name,
     isOwner: target.slug === 'owner',
     permissions: target.permissions,
+    needsApproval: target.needsApproval,
   }
 }
 
@@ -194,7 +205,7 @@ function report(context: SessionContext, storeId: string, error: unknown): never
  * the next request (a page's parallel calls share one read through `context.memo`).
  */
 function storeProcedureWith(required?: Permission | readonly Permission[]) {
-  return memberProcedure.use(async ({ context, next, path }) => {
+  return memberProcedure.use(async ({ context, next, path }, input) => {
     const member = await findMembership(context)
     context.log.set({ storeId: member.storeId })
     // Work that must wait until the transaction has committed (realtime publishes): a
@@ -206,6 +217,13 @@ function storeProcedureWith(required?: Permission | readonly Permission[]) {
     const result = await withStore(context.db, member.storeId, async (tx: StoreTx) => {
       const scope = await scopeFor(context, tx, member, required)
       context.log.set({ role: scope.roleSlug })
+      const waits = waitsForApproval(scope, path, required, input)
+      if (waits) {
+        // An approver running the change for someone: `approveAction` records who must approve.
+        if (context.approvalReplay) throw approvalQueued(null, waits)
+        const id = await queue(context, tx, scope, path.join('.'), waits, input)
+        return { [QUEUED]: id }
+      }
       try {
         const out = await next({ context: { scope, tx, afterCommit } })
         await logTokenCall(context, tx, member.storeId, path, required)
@@ -221,8 +239,93 @@ function storeProcedureWith(required?: Permission | readonly Permission[]) {
         context.reportError?.(error, { storeId: member.storeId })
       }
     }
+    // Queued for approval: the row is committed, and the caller hears it never ran.
+    if (result && typeof result === 'object' && QUEUED in result) {
+      throw approvalQueued((result as { [QUEUED]: string })[QUEUED], null)
+    }
     return result
   })
+}
+
+const QUEUED = Symbol('queued for approval')
+
+/** Code a caller (admin pages, MCP, the API) reads as "sent for approval, nothing changed yet". */
+export const APPROVAL_QUEUED = 'APPROVAL_QUEUED'
+
+function approvalQueued(id: string | null, permission: Permission | null) {
+  return new ORPCError(APPROVAL_QUEUED, {
+    status: 403,
+    message:
+      'Sent for approval: your role needs approval for this. It runs once a member who can approve it does so in Settings → Approvals.',
+    data: { approvalId: id, permission },
+  })
+}
+
+/**
+ * The permission whose "Needs approval" tick holds this call back, or null when it runs now:
+ * a change (the catalogue's write or sensitive, never a read) behind one `can(permission)` that
+ * the member's role ticks. The owner never waits. A people-only path (a browser hand-off, a
+ * token, deciding approvals) or a file upload cannot wait, so it is refused.
+ *
+ * Gaps, by design: `canAny` and `canDetached` procedures are not held back (no single
+ * permission to tick), nor a server-side `call()` without a path.
+ */
+function waitsForApproval(
+  scope: StoreScope,
+  path: readonly string[],
+  required: Permission | readonly Permission[] | undefined,
+  input: unknown,
+): Permission | null {
+  if (typeof required !== 'string' || !mustAsk(scope, required)) return null
+  const dotted = path.join('.')
+  // A server-side `call()` without a path (admin pages reading data) cannot be classified or
+  // queued; every request from the browser, MCP or the API carries its path.
+  if (!dotted || isReadPath(dotted)) return null
+  if (!approvalKind(dotted) || hasFile(input)) {
+    throw new ORPCError('FORBIDDEN', {
+      message: `Your role needs approval for ${describe(required)}, and this cannot wait for it. Ask a member who can approve it to do it.`,
+    })
+  }
+  return required
+}
+
+const hasFile = (value: unknown): boolean =>
+  value instanceof Blob ||
+  (value !== null &&
+    typeof value === 'object' &&
+    Object.values(value as Record<string, unknown>).some(hasFile))
+
+/** Stores the call in Approvals for a different member to approve. */
+async function queue(
+  context: SessionContext,
+  tx: StoreTx,
+  scope: StoreScope,
+  path: string,
+  permission: Permission,
+  input: unknown,
+): Promise<string> {
+  const token = context.apiPrincipal
+  const view = await queueForApprover(tx, {
+    storeId: scope.storeId,
+    userId: scope.userId,
+    source: token ? (token.kind === 'oauth' ? 'mcp' : 'api') : 'admin',
+    path,
+    input,
+    permission,
+    now: new Date(),
+  })
+  if (token) {
+    await recordApiActivity(tx, scope.storeId, {
+      grantId: token.grantId,
+      kind: 'approval',
+      tool: path,
+      summary: `${token.name} asked to run ${path} → waiting approval`,
+      detail: `${token.userName} · their role needs approval for ${describe(permission)}`,
+      aiActionId: view.id,
+      at: new Date(),
+    })
+  }
+  return view.id
 }
 
 /** Runs after the store transaction commits; failures are reported, never thrown. */

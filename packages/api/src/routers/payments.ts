@@ -81,7 +81,7 @@ export const paymentsRouter = {
   }),
 
   /** "Shoppers can pay with": on/off and order. Checkout follows. */
-  saveMethods: can(permissions.SETTINGS_MANAGE)
+  saveMethods: can(permissions.PAYMENTS_MANAGE)
     .input(z.object({ methods: z.array(CheckoutMethodSchema).max(12) }))
     .handler(async ({ context, input }) => {
       const { payments } = await storeRegistries(context.tx, context.scope.storeId)
@@ -96,7 +96,7 @@ export const paymentsRouter = {
     }),
 
   /** Save pasted keys and make that gateway the main way to get paid. */
-  connect: can(permissions.SETTINGS_MANAGE)
+  connect: can(permissions.PAYMENTS_MANAGE)
     .input(
       z.object({
         providerId: z.enum(KEY_GATEWAYS),
@@ -155,7 +155,7 @@ export const paymentsRouter = {
    * checkout uses, never deleting one. Going live runs the read-only key check
    * first, so it shares the test-connection rate limit.
    */
-  switchMode: can(permissions.SETTINGS_MANAGE)
+  switchMode: can(permissions.PAYMENTS_MANAGE)
     .input(z.object({ providerId: z.enum(MODE_GATEWAY_IDS), mode: ModeSchema }))
     .handler(async ({ context, input }) => {
       const limit = await checkRateLimit(
@@ -179,7 +179,7 @@ export const paymentsRouter = {
     }),
 
   /** The Active/Inactive switch: off leaves checkout at once, keys and settings kept. */
-  setActive: can(permissions.SETTINGS_MANAGE)
+  setActive: can(permissions.PAYMENTS_MANAGE)
     .input(z.object({ providerId: z.enum(MODE_GATEWAY_IDS), active: z.boolean() }))
     .handler(async ({ context, input }) => {
       const { payments } = await storeRegistries(context.tx, context.scope.storeId)
@@ -204,13 +204,13 @@ export const paymentsRouter = {
   })),
 
   /** The health line's "Fix" for payment updates on a Connect Razorpay account. */
-  fixWebhook: can(permissions.SETTINGS_MANAGE).handler(async ({ context }) => {
+  fixWebhook: can(permissions.PAYMENTS_MANAGE).handler(async ({ context }) => {
     const { payments } = await storeRegistries(context.tx, context.scope.storeId)
     return fixRazorpayWebhook(context.tx, context.scope.storeId, payments, paymentsEnv())
   }),
 
   /** Where "Connect Razorpay" sends the merchant. Off unless the OAuth app is configured. */
-  razorpayOAuthStart: can(permissions.SETTINGS_MANAGE)
+  razorpayOAuthStart: can(permissions.PAYMENTS_MANAGE)
     .input(z.object({ mode: z.enum(['test', 'live']) }))
     .handler(({ context, input }) => {
       const app = razorpayOAuthApp(process.env)
@@ -228,7 +228,7 @@ export const paymentsRouter = {
     }),
 
   /** The OAuth callback route hands the code here; the state must be this store's, and fresh. */
-  razorpayOAuthComplete: can(permissions.SETTINGS_MANAGE)
+  razorpayOAuthComplete: can(permissions.PAYMENTS_MANAGE)
     .input(z.object({ code: z.string().min(1).max(2000), state: z.string().min(1).max(2000) }))
     .handler(async ({ context, input }) => {
       const app = razorpayOAuthApp(process.env)

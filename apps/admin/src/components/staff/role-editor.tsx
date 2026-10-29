@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
 import SettingsCard from '@/components/settings/settings-card'
 import PermissionSwitches from '@/components/staff/permission-switches'
+import RoleApprovalsCard from '@/components/staff/role-approvals-card'
 import { staffContent } from '@/data/staff'
 import { useCopy } from '@/hooks/use-copy'
 import { refreshPermissions, usePermissions } from '@/hooks/use-permissions'
@@ -21,6 +22,9 @@ export type EditableRole = {
   description: string | null
   isSystem: boolean
   permissions: Permission[]
+  slug?: string
+  /** "Needs approval" ticks; absent while the role is new (it starts with the defaults). */
+  needsApproval?: Permission[]
 }
 
 type RoleEditorProps = {
@@ -36,7 +40,7 @@ export default function RoleEditor({ initial }: RoleEditorProps) {
   // Hooks
   const copy = useCopy(staffContent)
   const router = useRouter()
-  const { hasPermission } = usePermissions()
+  const { member, hasPermission } = usePermissions()
   const [name, setName] = useState(initial?.name ?? '')
   const [description, setDescription] = useState(initial?.description ?? '')
   const [granted, setGranted] = useState<Permission[]>(initial?.permissions ?? [])
@@ -116,6 +120,14 @@ export default function RoleEditor({ initial }: RoleEditorProps) {
       <SettingsCard title={copy.roleForm.permissions}>
         <PermissionSwitches value={granted} disabled={readOnly} onChange={setGranted} />
       </SettingsCard>
+      {initial && initial.slug !== 'owner' ? (
+        <RoleApprovalsCard
+          roleId={initial.id}
+          granted={initial.permissions}
+          initial={initial.needsApproval ?? []}
+          editable={member?.isOwner === true}
+        />
+      ) : null}
     </div>
   )
 }

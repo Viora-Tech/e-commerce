@@ -338,6 +338,17 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
     storeAddress: undefined,
     emailChange: { newEmail: 'a•••@gmail.com' },
   },
+  bug_report_update: {
+    ...base,
+    storeName: 'Waimers',
+    orderNumber: undefined,
+    lines: [],
+    taxBreakdown: undefined,
+    totalLabel: '',
+    storeAddress: undefined,
+    bugReport: { title: 'Save button does nothing on the product page', status: 'fixed' },
+    actionUrl: 'https://admin.example.com/account/bug-reports',
+  },
   purchase_order: {
     ...base,
     customerName: '',

@@ -142,6 +142,10 @@ export const accountContent = {
         label: 'App or integration error',
         help: 'When a connected app or courier stops working.',
       },
+      bugReports: {
+        label: 'Your bug reports',
+        help: 'When a bug you reported is fixed, and when the fix is live.',
+      },
     },
     summaryTime: 'Send at',
     hourLabel: (hour: number) =>

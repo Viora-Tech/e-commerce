@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { siteConfig } from '@commerce/config/site'
-import { CommerceError, type RateLimitRule } from '@commerce/core'
+import { CommerceError, type RateLimitRule, recordBugReport, scrubSecrets } from '@commerce/core'
 import { formatInZone } from '@commerce/dates'
 import { type Db, type StoreTx, withStore } from '@commerce/db'
 import type { StorageProvider } from '@commerce/storage'
@@ -29,44 +29,6 @@ const SCREENSHOT_MAX_BYTES = 2 * 1024 * 1024
 /** The longest data URL a 2 MB image makes (base64 is 4 characters per 3 bytes). */
 export const SCREENSHOT_DATA_URL_MAX =
   'data:image/jpeg;base64,'.length + Math.ceil(SCREENSHOT_MAX_BYTES / 3) * 4
-
-const REDACTED = '[redacted]'
-
-/** `Bearer <token>` anywhere (headers pasted into a report, fetch errors). */
-const BEARER = /\bBearer\s+[A-Za-z0-9\-._~+/]+=*/gi
-
-/** `key=value` / `"apiKey": "value"` where the name says secret. Keeps the name, drops the value. */
-const SECRET_PAIR =
-  /(["']?\b[\w-]*(?:token|secret|passw(?:or)?d|pwd|key|otp|signature|session|cookie|credential|auth)[\w-]*["']?\s*[:=]\s*["']?)([^\s"'&,;)}\]<>[]+)/gi
-
-/** A six-digit code with "code", "OTP" or "PIN" just before it... */
-const CODE_AFTER_WORD = /\b(code|otp|pin)\b([^\d\n]{0,20}?)\b\d{6}\b/gi
-/** ...or just after it ("123456 is your login code"). */
-const CODE_BEFORE_WORD = /\b\d{6}\b(?=[^\d\n]{0,20}\b(?:code|otp|pin)\b)/gi
-
-/** Longer than 32 characters of hex: hashes, signatures, raw keys. */
-const LONG_HEX = /\b[0-9a-fA-F]{33,}\b/g
-/** Longer than 32 base64-ish characters. Only redacted when it mixes upper, lower and digits. */
-const LONG_BASE64 = /[A-Za-z0-9+/_-]{33,}={0,2}/g
-
-function looksRandom(s: string): boolean {
-  return /[0-9]/.test(s) && /[a-z]/.test(s) && /[A-Z]/.test(s)
-}
-
-/**
- * Removes what looks like a credential from free text: `key=value` pairs whose name says
- * token/secret/password/key, `Bearer` tokens, six-digit codes next to "code"/"OTP", and long
- * hex or mixed-case base64 runs. Slugs, ids, order numbers and prose survive.
- */
-export function scrubSecrets(text: string): string {
-  return text
-    .replace(BEARER, `Bearer ${REDACTED}`)
-    .replace(SECRET_PAIR, (_all, name: string) => `${name}${REDACTED}`)
-    .replace(CODE_AFTER_WORD, (_all, word: string, gap: string) => `${word}${gap}${REDACTED}`)
-    .replace(CODE_BEFORE_WORD, REDACTED)
-    .replace(LONG_HEX, REDACTED)
-    .replace(LONG_BASE64, (run) => (looksRandom(run) ? REDACTED : run))
-}
 
 /** What the browser sends (already length-checked by the router). */
 export type BugReportInput = {
@@ -291,4 +253,32 @@ export async function fileGithubIssue(input: {
     throw new GithubIssueError(res.status)
   }
   return { number: json.number, url: json.html_url }
+}
+
+/**
+ * Keeps the report beside its issue (Account → My reports follows it from here). The text is
+ * the scrubbed text GitHub got; `issue` is null when no token sent it anywhere.
+ */
+export async function saveBugReport(
+  db: Db,
+  storeId: string,
+  input: BugReportInput & {
+    reporter: { id: string; name: string; email: string }
+    screenshotUrl: string | null
+    issue: { number: number; url: string } | null
+  },
+): Promise<string> {
+  return withStore(db, storeId, (tx) =>
+    recordBugReport(tx, storeId, {
+      reporterUserId: input.reporter.id,
+      reporterEmail: input.reporter.email,
+      reporterName: input.reporter.name,
+      title: scrubSecrets(input.summary.trim()),
+      description: scrubSecrets(input.details?.trim() ?? ''),
+      page: scrubSecrets(input.path),
+      screenshotUrl: input.screenshotUrl,
+      githubIssueNumber: input.issue?.number ?? null,
+      githubIssueUrl: input.issue?.url ?? null,
+    }),
+  )
 }

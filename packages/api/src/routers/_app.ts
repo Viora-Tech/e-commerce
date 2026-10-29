@@ -6,6 +6,7 @@ import { aiRouter } from './ai'
 import { analyticsRouter } from './analytics'
 import { apiAccessRouter } from './api-access'
 import { appearanceRouter } from './appearance'
+import { approvalsRouter } from './approvals'
 import { appsRouter } from './apps'
 import { automationsRouter } from './automations'
 import { backInStockRouter } from './back-in-stock'
@@ -45,6 +46,7 @@ import { ordersRouter } from './orders'
 import { pagesRouter } from './pages'
 import { paymentsRouter } from './payments'
 import { pixelsRouter } from './pixels'
+import { platformRouter } from './platform'
 import { platformAppsRouter } from './platform-apps'
 import { policiesRouter } from './policies'
 import { productsRouter } from './products'
@@ -138,6 +140,7 @@ export const appRouter = {
   dashboard: dashboardRouter,
   analytics: analyticsRouter,
   ai: aiRouter,
+  approvals: approvalsRouter,
   media: mediaRouter,
   staff: staffRouter,
   domains: domainsRouter,
@@ -146,6 +149,7 @@ export const appRouter = {
   invitations: invitationsRouter,
   onboarding: onboardingRouter,
   bugReports: bugReportsRouter,
+  platform: platformRouter,
 }
 
 export type AppRouter = typeof appRouter

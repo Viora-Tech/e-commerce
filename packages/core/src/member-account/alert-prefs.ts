@@ -8,6 +8,7 @@ export const MEMBER_ALERTS = [
   'paymentProblem',
   'dailySummary',
   'appErrors',
+  'bugReports',
 ] as const
 
 export type MemberAlert = (typeof MEMBER_ALERTS)[number]
@@ -35,7 +36,8 @@ const byEmail: AlertSwitches = { email: true, whatsapp: false }
 /**
  * Before a member has saved anything: the owner hears about new orders, payment problems and
  * app errors by email; everyone else starts quiet, so a store with ten staff does not send ten
- * copies of every order. The daily summary is opt-in for all.
+ * copies of every order. The daily summary is opt-in for all. News on a bug the member reported
+ * themselves reaches everyone by email: it is only ever about their own report.
  */
 function defaultMemberAlertPrefs(isOwner: boolean): MemberAlertPrefs {
   const owner = isOwner ? byEmail : off
@@ -45,6 +47,7 @@ function defaultMemberAlertPrefs(isOwner: boolean): MemberAlertPrefs {
     paymentProblem: owner,
     dailySummary: { ...off, hour: DAILY_SUMMARY_DEFAULT_HOUR, lastSentOn: null },
     appErrors: owner,
+    bugReports: byEmail,
   }
 }
 
@@ -57,6 +60,8 @@ export const MemberAlertPrefsInputSchema = z.object({
   paymentProblem: switches,
   dailySummary: switches.extend({ hour: z.number().int().min(0).max(23) }),
   appErrors: switches,
+  /** Missing in prefs saved before it existed (and from older clients): the default. */
+  bugReports: switches.default(byEmail),
 })
 
 export type MemberAlertPrefsInput = z.infer<typeof MemberAlertPrefsInputSchema>

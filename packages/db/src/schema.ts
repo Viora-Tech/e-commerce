@@ -2434,6 +2434,25 @@ export const rolePermission = pgTable(
 )
 
 /**
+ * "Needs approval" on a role: a member on this role who does an action needing `permission`
+ * has it queued in Approvals (an `ai_action` row) for a different member to approve, from any
+ * surface (admin, AI assistant, MCP, API). Kept apart from `role_permission` because the
+ * built-in roles' grants are fixed and re-seeded, while the owner can change any role's ticks.
+ */
+export const roleApproval = pgTable(
+  'role_approval',
+  {
+    id: id(),
+    storeId: storeId(),
+    roleId: uuid('role_id')
+      .notNull()
+      .references(() => role.id, { onDelete: 'cascade' }),
+    permission: text('permission').notNull(),
+  },
+  (t) => [uniqueIndex('role_approval_role_permission').on(t.roleId, t.permission)],
+)
+
+/**
  * Authorisation record for a member of this store. Better Auth still owns
  * sign-in and the organization membership; this row decides what they may do.
  */

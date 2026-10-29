@@ -197,6 +197,12 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
         icon: UserCog,
       },
       {
+        href: routes.settings.approvals(),
+        title: 'Approvals',
+        body: 'Changes waiting for approval from a different member, and your own requests.',
+        icon: ShieldCheck,
+      },
+      {
         href: routes.settings.ai(),
         title: 'AI',
         body: 'Write with AI and Ask your store: what you used this month, and turning them on.',

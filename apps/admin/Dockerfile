@@ -51,7 +51,7 @@ ENV NODE_ENV=production
 # Caps the build's own heap growth so it fails with a clear OOM instead of the runner killing
 # the job (GitHub's standard runner for private repos has ~7 GB RAM; building this used ~7 GB
 # uncapped, which is why builds moved off the 8 GB server).
-ENV NODE_OPTIONS=--max-old-space-size=3072
+ENV NODE_OPTIONS=--max-old-space-size=6144
 # Next inlines NEXT_PUBLIC_* into the browser bundle at build time, so the worker URL shown on
 # the Settings pages has to be known here (release.yml passes the repo variable of this name).
 # Left unset when empty so the code's own localhost fallback applies.

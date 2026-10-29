@@ -93,7 +93,7 @@ export default function McpPage({ overview, grants, serverUrl }: McpPageProps) {
         serverUrl={serverUrl}
       />
       <McpConnectGuide serverUrl={serverUrl} onCreateToken={() => setCreating(true)} />
-      <McpConnectedApps apps={apps} settings={saved} onDisconnect={setRevoking} />
+      <McpConnectedApps apps={apps} onDisconnect={setRevoking} />
       <McpPermissionsCard settings={settings} onSettings={setSettings} />
       <McpTokensCard
         tokens={grants.tokens}

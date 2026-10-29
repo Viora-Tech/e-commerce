@@ -139,7 +139,11 @@ x-app-env: &app-env
   BUG_REPORTS_ENABLED: ${BUG_REPORTS_ENABLED:-false}
   GITHUB_ISSUES_TOKEN: ${GITHUB_ISSUES_TOKEN:-}
   GITHUB_ISSUES_REPO: ${GITHUB_ISSUES_REPO:-}
+  # Secret of the GitHub webhook that moves report statuses (My reports). Unset: route off.
+  GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-}
   SOURCE_COMMIT: ${SOURCE_COMMIT:-${IMAGE_TAG:-}}
+  # Platform console (/platform): comma-separated staff emails. Blank: nobody can open it.
+  PLATFORM_ADMIN_EMAILS: ${PLATFORM_ADMIN_EMAILS:-}
   NODE_ENV: production
   # V8 heap cap, sized under each service's mem_limit (below) so the process fails fast with a
   # clear OOM inside its own container instead of the kernel OOM-killer picking a victim among

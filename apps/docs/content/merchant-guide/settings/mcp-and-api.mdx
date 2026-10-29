@@ -8,9 +8,11 @@ description: Connect Claude, Claude Code, ChatGPT, Cursor, VS Code or any MCP ap
 **Settings → MCP & API** lets AI apps work with your store. You can ask Claude about yesterday's
 orders, or let Cursor read your products while it builds a theme. Each app acts as the person who
 connected it, so it can never do more than that person's role allows. It can use every action the
-admin has, from fulfilling an order to editing a theme, and every change waits for your approval
-unless you turn that off. Refunds, cancellations, deletes and money, staff, billing and domain
-settings always wait.
+admin has, from fulfilling an order to editing a theme. Changes run straight away with that
+person's role, unless their role has **Needs approval** ticked for that action (see
+[Staff & roles](/merchant-guide/settings/staff#needs-approval)): then it waits in
+**Settings → Approvals**. Refunds, cancellations, deletes and money, staff, billing and domain
+settings always wait for a person to click in the admin, even when the owner connected the app.
 
 The page reads top to bottom:
 
@@ -18,7 +20,7 @@ The page reads top to bottom:
    came, and your store's **MCP server URL** with a copy button.
 2. **Connect an AI app:** a step-by-step guide for each app.
 3. **Connected AI apps:** every app that is connected right now.
-4. **Permissions & approvals:** the rules in plain words, and three switches.
+4. **Permissions & approvals:** the rules in plain words, and two switches.
 5. **API tokens:** tokens for scripts, servers and apps that cannot sign in.
 6. **Activity:** a link to everything apps and tokens did.
 
@@ -98,13 +100,14 @@ A connected app gets three kinds of tools:
 
 - **Quick reads** such as `findProducts`, `orderDetails`, `salesSummary` and `lowStock` answer
   straight away.
-- **Proposals** such as `proposeProductUpdate`, `proposeDiscount` and `proposeCollection` draft a
-  change for you to approve.
+- **Proposals** such as `proposeProductUpdate`, `proposeDiscount` and `proposeCollection` make a
+  change straight away with your role (or send it to Approvals when your role needs approval).
 - **Every admin action:** `searchActions` finds an action, `describeAction` shows its inputs and
   whether it waits for approval, and `runAction` runs it.
 
-The rules, in plain words: reads run right away; changes follow **Changes need approval**;
-sensitive actions always wait for approval; and an app can never sign in as you, create or revoke
+The rules, in plain words: reads run right away; changes run with the connecting person's role,
+and wait in **Settings → Approvals** when that role needs approval for them; sensitive actions
+always wait for a person in the admin; and an app can never sign in as you, create or revoke
 tokens, or approve its own changes.
 
 If you connected an app before this update, reconnect it (or restart it) so it loads every action.
@@ -116,7 +119,7 @@ The list shows every app that signed in and every API token that has been used:
 - **App:** the name the app gave when it connected (for example "Claude", "Claude Code" or
   "Cursor"), and how it connects: **Signed in with OAuth** or **API token**.
 - **Connected by:** the person it acts for, their role, and the date.
-- **Can do:** the areas it can read and change, and whether changes need approval.
+- **Can do:** the areas it can read and change.
 - **Last used:** when it last made a request.
 
 Click **Disconnect** (or **Revoke** for a token) and confirm. It stops working right away. Changes
@@ -131,21 +134,22 @@ connect it again from the app.
 The card first says, in plain words, what happens right now:
 
 - Reads run right away.
-- Changes wait in AI approvals, run at once, or are off, depending on the switches.
-- Sensitive actions always wait for approval.
+- Changes run at once with the connecting person's role (or wait in Approvals when their role
+  needs approval for them), or are off.
+- Sensitive actions always wait for a person in the admin.
 - Whether apps can read customer details.
 
-Three switches apply to every app that signs in. Click **Save** after changing them.
+Two switches apply to every app that signs in. Click **Save** after changing them.
 
 | Switch | On | Off |
 |---|---|---|
 | **Allow AI apps to make changes** | Apps can use any admin action your role allows, in the areas you ticked | Apps can only read |
-| **Changes need approval** (recommended) | Every change waits in AI approvals until you approve it | Changes happen as soon as the app asks, except sensitive ones (below) |
 | **Let apps read customer details** | Apps can see names, phone numbers and addresses | Off by default; orders still show the city |
 
 ### Sensitive actions always wait
 
-Some actions wait for your approval even when **Changes need approval** is off: refunds and store
+Some actions always wait for a person to click in the admin, even when the owner connected the
+app and even when the role does not need approval: refunds and store
 credit, cancellations, anything that deletes or removes, gift card balances, payment gateway keys
 and payment settings, staff, roles and invitations, billing and your plan, domains, deleting or
 exporting the store, and the MCP & API settings themselves. An app can never sign in as you,
@@ -162,8 +166,11 @@ approval".
 3. Click **Approve**, **Edit** or **Cancel**.
 
 Waiting changes also appear in **Settings → AI → Activity** with a **Review** button, and show
-who asked for them. The person who connected the app, the store owner, or anyone whose role can
-make that change may approve or cancel it. The change runs as the person who approves it: if
+who asked for them. The person who connected the app (including the owner) may confirm their own
+app's sensitive action: that is confirming the AI, and the card records it as such. The store
+owner, or anyone whose role can make that change, may also approve or cancel it. If the
+approver's own role needs approval for that action, approving sends it to
+**Settings → Approvals** for a different member instead. The change runs as the person who approves it: if
 their role cannot do it, approving is refused, nothing changes, and the change keeps waiting for
 someone who can. Activity records who approved it.
 
@@ -185,8 +192,8 @@ permissions apply.
 3. Click **Create token**. Copy the token **now**: it is shown only once, with the header and the
    Claude Code command ready to paste. Keep it in your server's secret settings, never in code.
 
-A token acts as you, limited to the areas you ticked. Unlike apps that sign in, a token's changes
-happen at once and do not wait for approval. A token can never refund or cancel, change staff or
+A token acts as you, limited to the areas you ticked. Its changes happen at once with your role;
+when your role needs approval for one, it waits in **Settings → Approvals** instead. A token can never refund or cancel, change staff or
 billing, or change payment, domain or MCP & API settings; with the **Settings** area it can change
 other settings, such as shipping or taxes. Click **Revoke** on a token to stop it.
 
