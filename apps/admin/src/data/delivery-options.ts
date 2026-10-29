@@ -51,6 +51,19 @@ export const deliveryOptionsContent = {
     contract: 'Insured per your courier contract',
     rate: (percent: string, min: string | null) =>
       min ? `${percent}% (min ${min})` : `${percent}%`,
+    health: {
+      noCalls: 'No checkout has asked it in the last day',
+      line: (rate: string, typical: string | null, calls: number) =>
+        `${rate} answered${typical ? ` · typically ${typical}` : ''} · last ${calls} checkout calls`,
+      ms: (ms: number) => `${ms} ms`,
+      lastError: (when: string, message: string) => `Last error ${when}: ${message}`,
+      skipped: 'Skipped',
+      skippedHelp: (since: string) =>
+        `Checkout stopped asking it at ${since} after 3 failures in a minute, and tries again 5 minutes later. Saved prices up to 7 days old stand in meanwhile.`,
+      backup: (backup: number, total: number) =>
+        `${backup} of ${total} checkouts in the last 24 hours fell back to your zone rates.`,
+      noCheckouts: 'No checkout has used the app in the last 24 hours.',
+    },
   },
   routeDialog: {
     addTitle: 'Route setting',

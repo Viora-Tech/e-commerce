@@ -10,11 +10,14 @@ import StatusChip from '@/components/layout/status-chip'
 import SettingsCard from '@/components/settings/settings-card'
 import { deliveryOptionsContent } from '@/data/delivery-options'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import AppHealthLine from './app-health-line'
 import { carrierName, channelLabel, type Overview } from './format'
 import RouteSettingDialog, { type RouteSettingTarget } from './route-setting-dialog'
 
 type RoutesCardProps = {
   apps: Overview['apps']
+  /** What checkout recorded: each app's recent calls and breaker, and the backup share. */
+  health: Overview['health']
   settings: RouteSetting[]
   /** Routes the apps answered for the last Try a PIN. */
   seen: Route[]
@@ -31,7 +34,7 @@ function settingLabel(key: string, copy: typeof deliveryOptionsContent, seen: Ro
 }
 
 /** The connected courier apps, the merchant's route settings, and the routes last answered. */
-export default function RoutesCard({ apps, settings, seen, onChanged }: RoutesCardProps) {
+export default function RoutesCard({ apps, health, settings, seen, onChanged }: RoutesCardProps) {
   // Hooks
   const copy = useCopy(deliveryOptionsContent)
   const fmt = useFormat()
@@ -68,21 +71,31 @@ export default function RoutesCard({ apps, settings, seen, onChanged }: RoutesCa
           <AppStoreLink category="shipping">{r.connect}</AppStoreLink>
         </div>
       ) : (
-        <ul className="flex flex-wrap gap-2">
-          {apps.map((a) => (
-            <li
-              key={a.id}
-              className="flex items-center gap-2 rounded-lg border border-hairline px-3 py-2 text-body"
-            >
-              <span className="font-medium text-ink-strong">{a.label}</span>
-              <StatusChip tone="success">{r.connected}</StatusChip>
-              <span className="text-caption text-muted-foreground">
-                {a.channel === 'aggregator' ? r.aggregator : r.direct} ·{' '}
-                {a.prices ? r.prices : r.noPrice}
-              </span>
-            </li>
-          ))}
-        </ul>
+        <div className="flex flex-col gap-2">
+          <ul className="flex flex-col gap-2">
+            {apps.map((a) => (
+              <li
+                key={a.id}
+                className="flex flex-col gap-1 rounded-lg border border-hairline px-3 py-2 text-body"
+              >
+                <span className="flex flex-wrap items-center gap-2">
+                  <span className="font-medium text-ink-strong">{a.label}</span>
+                  <StatusChip tone="success">{r.connected}</StatusChip>
+                  <span className="text-caption text-muted-foreground">
+                    {a.channel === 'aggregator' ? r.aggregator : r.direct} ·{' '}
+                    {a.prices ? r.prices : r.noPrice}
+                  </span>
+                </span>
+                <AppHealthLine health={health.apps.find((h) => h.providerId === a.id)} />
+              </li>
+            ))}
+          </ul>
+          <p className="text-caption text-muted-foreground">
+            {health.checkouts24h > 0
+              ? r.health.backup(health.backup24h, health.checkouts24h)
+              : r.health.noCheckouts}
+          </p>
+        </div>
       )}
 
       <div className="flex flex-col gap-2">

@@ -57,6 +57,7 @@ export default function DeliveryOptionsOverviewPage() {
       <RulesCard rules={overview.rules} options={overview.options} onChanged={reload} />
       <RoutesCard
         apps={overview.apps}
+        health={overview.health}
         settings={overview.routeSettings}
         seen={tried?.routes ?? []}
         onChanged={reload}

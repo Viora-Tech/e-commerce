@@ -8,7 +8,7 @@ description: How checkout turns the connected courier apps into Standard and Exp
 The **Delivery options** app (`delivery-options`, built-in, manifest in
 `packages/core/src/shipping/delivery-options/app.ts`) shows courier-backed delivery options at
 checkout. Design: `docs/superpowers/specs/2026-10-29-delivery-options-design.md`. This page is
-phase P1 as built.
+phases P1 and P2 (resilience and margin) as built.
 
 ## Where the code is
 
@@ -18,7 +18,9 @@ phase P1 as built.
 | `routes.ts` | Route identity (`providerId:serviceId`), carrier names ("Bluedart Air" → Blue Dart), Surface vs Express, selector matching, route settings, insurance price |
 | `rules.ts` | Which rules a cart matches per option, and the pool they leave (intersect; nothing in common → the highest-placed rule wins) |
 | `resolve.ts` | `resolveDeliveryOptions(input)`: the pure engine. Pool → drop with reasons → pick by strategy (or a rule's default) → price. Standard picked again for COD. Backup. Trace |
-| `quotes.ts` | `gatherProviderAnswers`: every domestic app in parallel, 800 ms checkout deadline each, cache by app, origin>PIN, 500 g slab and value bucket (6 h). Late answers still land in the cache |
+| `quotes.ts` | `gatherProviderAnswers`: every domestic app in parallel, 800 ms checkout deadline each, cache by app, origin>PIN, 500 g slab and value bucket (fresh 6 h, kept 7 days for stale-while-revalidate). Late answers still land in the cache |
+| `health.ts` | Circuit breaker per store and app, each app's recent live calls, the hourly checkout and backup counters, and `deliveryHealth` for the app page |
+| `margin.ts` | `shippingMargin`: shipping charged against courier cost plus insurance. Pure; the admin imports it as `@commerce/core/delivery-margin` |
 | `checkout.ts` | `quoteDelivery` (gather + resolve), the quote snapshot shape, `orderDeliveryFor` (the choice → price charged + `OrderDeliveryRoute`) |
 | `service.ts` | Tables: load the config, save/reorder options and rules, route settings; cart and product rule facts |
 | `booking.ts` | The saved route among Create shipment's rate rows, why it cannot be booked, and the fallback |
@@ -72,6 +74,43 @@ For each enabled option:
   markup, courier cost, promised dates and quote source.
 - COD with a prepaid-only option throws `CheckoutRuleViolation('cod_prepaid_only_option')`.
 
+## Resilience (P2)
+
+The cache, breaker and health all go through one store, `QuoteCache` (= `HealthStore`):
+`get`/`set` plus optional `incr`, `push` (capped list) and `list`. The storefront and the admin
+build it with `deliveryQuoteCache(redis)` from `@commerce/queue`. A store without the optional
+calls (tests, a plain JSON cache) has no breaker and no health; nothing else changes.
+
+- **Stale-while-revalidate.** A cache entry is `{ at, answer }` under
+  `{shipping}:delivery-quote:v2:…` for 7 days. Under 6 h old it is used as is. Older, the app is
+  asked live within the 800 ms deadline; if that misses or fails, the stale answer is used
+  (`source: 'cache'`, `stale: true`, `error` says why the live call was not used) and the live
+  call keeps running and rewrites the entry when it lands. `cacheOnly` (place order without a
+  snapshot) takes stale entries too and never calls a courier.
+- **Circuit breaker.** Each live call that throws or misses the deadline counts towards
+  `{shipping}:delivery-breaker-fails:<store>:<app>` (a 60 s window). The third opens
+  `{shipping}:delivery-breaker:<store>:<app>` for 5 minutes (`{ since, error }`); while it is
+  open the app is not asked and its stale answer (if any) stands in, else it is `failed` with
+  `Skipped since …`. The breaker is per app, not per route: one app's call answers for all its
+  routes, so that is the unit that fails.
+- **Health.** Every live call is pushed to `{shipping}:delivery-health:<store>:<app>` (last 50,
+  24 h): `{ at, ok, ms, error }`. `checkoutDelivery` counts each fresh quote (not the insurance
+  re-ask) in hourly `delivery-quotes` and, when `onBackup(result)` (`status: 'none'` or a
+  `backup` option), `delivery-backup` counters (25 h). `deliveryOptions.overview` returns
+  `health` (per app: calls, success rate, median latency, last error, skipped since; and
+  checkouts / backup in the last 24 h) from `ApiContext.deliveryHealth`. Try a PIN uses no cache
+  and records nothing.
+
+## Order page (P2)
+
+`DeliveryRouteCard` (`apps/admin/src/components/orders/delivery-route-card.tsx`) shows
+`order.shipping.delivery`: option, carrier, service and app, insured, promised dates. An order
+with `quoteSource: 'backup'` (or no route) carries the **Placed on backup** chip. Staff with
+`analytics.read` also see the shipping margin: `order.shipping_paise` against the latest
+shipment's `courier_charge_paise` (else the route's `courierCostPaise` from checkout) plus the
+insurance charged when insured. No migration: all of it is in the order's `shipping` JSONB and
+the shipment row.
+
 ## Booking
 
 - `quoteShipments` marks the saved route's row `chosenAtCheckout` and returns `checkout` (what
@@ -96,7 +135,8 @@ account.
 
 `resolve.test.ts` (strategies, filtering, the Glasspads and Mice rules, mixed carts, ₹10
 round-up, Express prepaid only, fallback), `quotes.test.ts` (deadline, cache, cache-only, with
-mocked courier clients), `booking.test.ts` and the booking case in `shipments.test.ts`, the
+mocked courier clients), `health.test.ts` (breaker on errors and missed deadlines,
+stale-while-revalidate, health line, backup share, shipping margin), `booking.test.ts` and the booking case in `shipments.test.ts`, the
 admin `flow-state.test.ts` and the storefront `checkout-preview.test.ts`.
 
 ## Related guides
