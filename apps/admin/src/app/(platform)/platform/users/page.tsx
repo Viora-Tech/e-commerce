@@ -14,7 +14,8 @@ import RelativeTime from '@/components/layout/relative-time'
 import StatusChip from '@/components/layout/status-chip'
 import PlatformFilters from '@/components/platform/platform-filters'
 import PlatformPager from '@/components/platform/platform-pager'
-import { platformContent as copy } from '@/data/platform'
+import { platformContent } from '@/data/platform'
+import { getCopy } from '@/lib/copy-server'
 import { appRouter, call } from '@/lib/api'
 import { platformCallOptions } from '@/lib/platform-access'
 import { pageParam, textParam } from '@/lib/platform-params'
@@ -32,6 +33,7 @@ export default async function PlatformUsersPage({ searchParams }: UsersPageProps
     { search: q, page },
     await platformCallOptions(),
   )
+  const copy = await getCopy(platformContent)
   const t = copy.users
   const base = routes.platform.users()
 

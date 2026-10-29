@@ -73,7 +73,7 @@ export const platformAuditEvent = pgTable(
  * The platform console's access log (`/platform`, Koomerce staff only): one row per page or
  * API read a staff member made, with the store it looked into when there is one. No
  * `store_id` (the console is cross-store and the row must outlive a store) and no grant to the
- * app role at all: the console writes and reads it on the owner connection (migration 0175).
+ * app role at all: the console writes and reads it on the owner connection (migration 0186).
  */
 export const platformAccessLog = pgTable(
   'platform_access_log',

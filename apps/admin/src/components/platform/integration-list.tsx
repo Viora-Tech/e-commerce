@@ -1,6 +1,7 @@
 import type { PlatformIntegration } from '@commerce/core'
 import StatusChip from '@/components/layout/status-chip'
-import { platformContent as copy } from '@/data/platform'
+import { platformContent } from '@/data/platform'
+import { getCopy } from '@/lib/copy-server'
 
 type IntegrationListProps = {
   label: string
@@ -8,7 +9,8 @@ type IntegrationListProps = {
 }
 
 /** One integration group on the console's store page: each provider on, set up but off, or off. */
-export default function IntegrationList({ label, items }: IntegrationListProps) {
+export default async function IntegrationList({ label, items }: IntegrationListProps) {
+  const copy = await getCopy(platformContent)
   // Render logic
   const t = copy.store
 

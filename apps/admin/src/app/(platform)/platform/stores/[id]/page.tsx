@@ -11,7 +11,8 @@ import RelativeTime from '@/components/layout/relative-time'
 import StatusChip from '@/components/layout/status-chip'
 import IntegrationList from '@/components/platform/integration-list'
 import { billingContent } from '@/data/billing'
-import { platformContent as copy } from '@/data/platform'
+import { platformContent } from '@/data/platform'
+import { getCopy } from '@/lib/copy-server'
 import { appRouter, call } from '@/lib/api'
 import { formatPaise } from '@/lib/money'
 import { platformCallOptions } from '@/lib/platform-access'
@@ -30,6 +31,7 @@ export default async function PlatformStorePage({ params }: StorePageProps) {
   if (!id) notFound()
   const d = await call(appRouter.platform.stores.get, { id }, options).catch(() => null)
   if (!d) notFound()
+  const copy = await getCopy(platformContent)
   const t = copy.store
   const primary = d.domains.find((x) => x.isPrimary) ?? d.domains[0]
   const storefront = storefrontHref(primary?.hostname)

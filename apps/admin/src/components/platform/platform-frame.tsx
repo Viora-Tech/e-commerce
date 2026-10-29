@@ -3,7 +3,6 @@
 import { siteConfig } from '@commerce/config/site'
 import {
   ArrowLeft,
-  BugIcon,
   ClipboardList,
   Home,
   ShieldCheck,
@@ -15,7 +14,8 @@ import { Toaster } from '@commerce/ui/shadcn/sonner'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
-import { platformContent as copy } from '@/data/platform'
+import { platformContent } from '@/data/platform'
+import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
 
 type PlatformFrameProps = {
@@ -25,11 +25,10 @@ type PlatformFrameProps = {
 }
 
 const NAV = [
-  { href: routes.platform.overview(), label: copy.nav.overview, icon: Home, exact: true },
-  { href: routes.platform.stores(), label: copy.nav.stores, icon: Store, exact: false },
-  { href: routes.platform.users(), label: copy.nav.users, icon: Users, exact: false },
-  { href: routes.platform.audit(), label: copy.nav.audit, icon: ClipboardList, exact: false },
-  { href: routes.platform.reports(), label: copy.nav.reports, icon: BugIcon, exact: false },
+  { href: routes.platform.overview(), key: 'overview', icon: Home, exact: true },
+  { href: routes.platform.stores(), key: 'stores', icon: Store, exact: false },
+  { href: routes.platform.users(), key: 'users', icon: Users, exact: false },
+  { href: routes.platform.audit(), key: 'audit', icon: ClipboardList, exact: false },
 ] as const
 
 const ROW =
@@ -46,6 +45,7 @@ function isActive(pathname: string, href: string, exact: boolean): boolean {
 export default function PlatformFrame({ email, children }: PlatformFrameProps) {
   // Hooks
   const pathname = usePathname()
+  const copy = useCopy(platformContent)
 
   // Render logic
   const links = NAV.map((item) => {
@@ -59,7 +59,7 @@ export default function PlatformFrame({ email, children }: PlatformFrameProps) {
         className={cn(ROW, active && 'bg-sidebar-accent font-medium')}
       >
         <Icon />
-        <span className="truncate">{item.label}</span>
+        <span className="truncate">{copy.nav[item.key]}</span>
       </Link>
     )
   })

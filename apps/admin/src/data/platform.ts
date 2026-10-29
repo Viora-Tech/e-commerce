@@ -1,4 +1,4 @@
-/** The platform staff console (`/platform`): navigation, Overview, Stores, Users and Audit log. English only. */
+/** The platform staff console (`/platform`): navigation, Overview, Stores, Users and Audit log. Hindi: `data/hi/platform.ts`. */
 export const platformContent = {
   brand: 'Platform console',
   tagline: 'Staff console',
@@ -9,7 +9,6 @@ export const platformContent = {
     stores: 'Stores',
     users: 'Users',
     audit: 'Audit log',
-    reports: 'Reports',
   },
   notice: 'Every page you open here is written to the audit log.',
   dash: '—',
@@ -57,7 +56,6 @@ export const platformContent = {
     reportsTitle: 'Bug reports',
     openReports: 'Open reports',
     reportsUnavailable: 'Not available (no GitHub token on this server).',
-    viewReports: 'View reports',
   },
   stores: {
     title: 'Stores',

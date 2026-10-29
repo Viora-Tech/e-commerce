@@ -6,7 +6,7 @@ title: Platform console
 
 `/platform` in the admin is the console for the people who run the platform (VIORA INDIA staff),
 separate from any merchant's store admin. Phase 1 is read-only: Overview, Stores (list and
-detail), Users and Audit log, plus a Reports nav item for bug reports.
+detail), Users and Audit log. Copy is in `data/platform.ts`, Hindi in `data/hi/platform.ts`.
 
 ## Who gets in
 
@@ -45,11 +45,13 @@ sharding-readiness rule "no query joins across stores" (Architecture, section 3)
 
 ## Audit log
 
-Every `platform.*` read writes one row to **`platform_access_log`** (migration 0175): actor id
-and email, action (`overview.read`, `stores.list`, `stores.detail`, `users.list`, `audit.list`,
-`reports.*`), the store looked into (`store_id_ref`) and the filter used (never row data). The
+Every `platform.*` data read writes one row to **`platform_access_log`** (migration 0186): actor
+id and email, action (`overview.read`, `stores.list`, `stores.detail`, `users.list`,
+`audit.list`), the store looked into (`store_id_ref`) and the filter used (never row data). The
 table has no `store_id` and no grant to the app role: tenant requests can neither read nor forge
-it. Handlers log with `context.platform.audit(action, { storeId, target })`.
+it. Handlers log with `context.platform.audit(action, { storeId, target })` after the read and
+before returning, so a failed log write means no data goes back. `platform.whoami` (the guard
+check every page makes, which returns only the caller's own id and email) is not logged.
 
 The Audit log page reads that table and, read-only, `platform_audit_event` (store exports and
 deletions).

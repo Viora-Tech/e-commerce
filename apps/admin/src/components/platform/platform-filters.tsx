@@ -2,7 +2,8 @@ import { Search } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import Link from 'next/link'
-import { platformContent as copy } from '@/data/platform'
+import { platformContent } from '@/data/platform'
+import { getCopy } from '@/lib/copy-server'
 
 type FilterField = {
   name: string
@@ -24,12 +25,13 @@ type PlatformFiltersProps = {
 }
 
 /** The console's filter row: a plain GET form, so it works before any script loads. */
-export default function PlatformFilters({
+export default async function PlatformFilters({
   action,
   fields,
   keep = {},
   clearHref,
 }: PlatformFiltersProps) {
+  const copy = await getCopy(platformContent)
   // Render logic
   const hidden = Object.entries(keep).filter(([, v]) => v !== undefined && v !== '')
   const filtered = fields.some((f) => f.value)

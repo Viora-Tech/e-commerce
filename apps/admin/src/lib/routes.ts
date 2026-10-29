@@ -293,7 +293,6 @@ export const routes = {
     store: (storeId: string) => `/platform/stores/${id(storeId)}`,
     users: () => '/platform/users',
     audit: () => '/platform/audit',
-    reports: () => '/platform/reports',
   },
 
   dev: {

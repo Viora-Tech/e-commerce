@@ -7,7 +7,6 @@ import {
   TableHeader,
   TableRow,
 } from '@commerce/ui/shadcn/table'
-import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
 import KeyValueList from '@/components/layout/key-value-list'
 import PageBody from '@/components/layout/page-body'
@@ -15,7 +14,8 @@ import PageHeader from '@/components/layout/page-header'
 import RelativeTime from '@/components/layout/relative-time'
 import StatTile from '@/components/layout/stat-tile'
 import { billingContent } from '@/data/billing'
-import { platformContent as copy } from '@/data/platform'
+import { platformContent } from '@/data/platform'
+import { getCopy } from '@/lib/copy-server'
 import { appRouter, call } from '@/lib/api'
 import { formatPaise } from '@/lib/money'
 import { platformCallOptions } from '@/lib/platform-access'
@@ -24,6 +24,7 @@ import { routes } from '@/lib/routes'
 /** Platform console → Overview: the whole platform at a glance (staff only). */
 export default async function PlatformOverviewPage() {
   const o = await call(appRouter.platform.overview, undefined, await platformCallOptions())
+  const copy = await getCopy(platformContent)
   const t = copy.overview
   const windows = [
     { label: t.today, w: o.sales.today },
@@ -94,17 +95,7 @@ export default async function PlatformOverviewPage() {
           />
         </DataCard>
 
-        <DataCard
-          title={t.reportsTitle}
-          action={
-            <Link
-              href={routes.platform.reports()}
-              className="text-body text-foreground underline underline-offset-4"
-            >
-              {t.viewReports}
-            </Link>
-          }
-        >
+        <DataCard title={t.reportsTitle}>
           <KeyValueList
             variant="grid"
             rows={[

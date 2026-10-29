@@ -23,6 +23,7 @@ import {
   recordPlatformAccess,
   sessionUsedPasskey,
 } from './access'
+import { PLANS } from '../billing/plans'
 import { listPlatformAudit } from './audit'
 import { platformOverview } from './overview'
 import { likePattern, listPlatformStores, platformStoreDetail } from './stores'
@@ -209,11 +210,11 @@ describe('overview', () => {
     expect(o.sales.today).toEqual({ orders: 1, gmvPaise: 1000_00 })
     expect(o.sales.days7).toEqual({ orders: 2, gmvPaise: 1500_00 })
     expect(o.sales.days30).toEqual({ orders: 3, gmvPaise: 1700_00 })
-    expect(o.subscriptions.mrrPaise).toBe(1_49_900)
+    expect(o.subscriptions.mrrPaise).toBe(PLANS.growth.pricePaise.month)
     expect(o.subscriptions.plans.find((p) => p.plan === 'growth')).toEqual({
       plan: 'growth',
       stores: 1,
-      mrrPaise: 1_49_900,
+      mrrPaise: PLANS.growth.pricePaise.month,
     })
     expect(o.payments).toEqual({ billsDue: 1, billsOverdue: 1, autopayHalted: 0 })
     expect(o.outbox.pending).toBe(2)

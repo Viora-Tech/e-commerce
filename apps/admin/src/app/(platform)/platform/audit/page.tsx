@@ -15,7 +15,8 @@ import RelativeTime from '@/components/layout/relative-time'
 import PlatformFilters from '@/components/platform/platform-filters'
 import PlatformPager from '@/components/platform/platform-pager'
 import PlatformTabs from '@/components/platform/platform-tabs'
-import { platformContent as copy } from '@/data/platform'
+import { platformContent } from '@/data/platform'
+import { getCopy } from '@/lib/copy-server'
 import { appRouter, call } from '@/lib/api'
 import { platformCallOptions } from '@/lib/platform-access'
 import {
@@ -51,6 +52,7 @@ export default async function PlatformAuditPage({ searchParams }: AuditPageProps
     },
     await platformCallOptions(),
   )
+  const copy = await getCopy(platformContent)
   const t = copy.audit
   const base = routes.platform.audit()
   const filters = { store, actor, from: fromDay, to: toDay }

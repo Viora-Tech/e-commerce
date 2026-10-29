@@ -12,7 +12,6 @@ import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { platformProcedure, SEARCH_MAX } from '../procedures'
 import { openBugReportCount } from '../services/platform.service'
-import { platformReportsRouter } from './platform-reports'
 
 /** Page numbers the console's lists accept; far beyond any real page count. */
 const PAGE_MAX_NUMBER = 10_000
@@ -101,7 +100,4 @@ export const platformRouter = {
         return result
       }),
   },
-
-  /** Bug reports (`/platform/reports`), owned by the bug-report work. */
-  reports: platformReportsRouter,
 }
