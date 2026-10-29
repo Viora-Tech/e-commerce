@@ -25,7 +25,7 @@ export const contactContent = {
     title: 'Business details',
     rows: [
       { label: 'Business', value: siteConfig.company.legalName },
-      { label: 'Registered and operational address', value: siteConfig.company.address },
+      { label: 'Based in', value: siteConfig.company.publicAddress },
       { label: 'Phone', value: siteConfig.contact.phone },
       { label: 'Email', value: siteConfig.contact.supportEmail },
       { label: 'GSTIN', value: siteConfig.company.gstin },

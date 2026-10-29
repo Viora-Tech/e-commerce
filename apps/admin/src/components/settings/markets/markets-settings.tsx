@@ -2,8 +2,9 @@
 
 import type { DomainView, MarketView } from '@commerce/core'
 import { permissions } from '@commerce/core/permissions'
-import { Earth, Plus } from '@commerce/ui/icons'
+import { Clock, Earth, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -16,6 +17,7 @@ import { SETTINGS_BACK } from '@/data/settings'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import MarketDialog from './market-dialog'
 import MarketRow from './market-row'
 
@@ -88,6 +90,21 @@ export default function MarketsSettings({ markets, domains }: MarketsSettingsPro
       {copy.add}
     </Button>
   ) : null
+  const headerActions = (
+    <>
+      {hasPermission(permissions.ROLLOUTS_READ) ? (
+        <Button
+          variant="outline"
+          nativeButton={false}
+          render={<Link href={routes.settings.rollouts()} />}
+        >
+          <Clock aria-hidden="true" />
+          {copy.rollouts}
+        </Button>
+      ) : null}
+      {addButton}
+    </>
+  )
 
   return (
     <div className="flex flex-col gap-6">
@@ -95,7 +112,7 @@ export default function MarketsSettings({ markets, domains }: MarketsSettingsPro
         title={copy.title}
         subtitle={copy.intro}
         back={SETTINGS_BACK}
-        actions={addButton}
+        actions={headerActions}
       />
       <SettingsTable
         heading={copy.listTitle}

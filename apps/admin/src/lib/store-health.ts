@@ -30,7 +30,7 @@ export function healthLink(issue: HealthIssue): HealthLink {
     case 'variants_no_weight':
       return products('missing=weight')
     case 'products_no_price':
-      return products('priceMax=0')
+      return products('missing=price')
     case 'products_no_image':
       return products('missing=image')
     case 'no_payment_method':

@@ -15,6 +15,7 @@ export const sampleTemplateData: TemplateData = {
       imageUrl: 'https://placehold.co/80x80/f2f2f2/141414?text=%20',
     },
   ],
+  shipping: { label: 'Bluedart', amount: '₹49' },
   taxBreakdown: [
     { label: 'CGST (9%)', amount: '₹22' },
     { label: 'SGST (9%)', amount: '₹27' },

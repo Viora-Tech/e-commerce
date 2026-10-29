@@ -1,0 +1,81 @@
+---
+title: GST returns (GSTR-1, GSTR-3B)
+description: How the GST invoices app builds the GSTR-1 portal JSON and the GSTR-3B outward tables per GSTIN and month.
+---
+
+# GST returns (GSTR-1, GSTR-3B)
+
+The GST invoices app's **Returns** tab builds one GSTIN's month from its issued documents. It
+never talks to the GST portal: the merchant uploads the JSON and types GSTR-3B in.
+
+## Where the code is
+
+| Piece | File |
+| --- | --- |
+| GSTR-1 JSON builder (pure) | `packages/invoices/src/gstr1-json.ts` (`buildGstr1Json`, `docIssue`) |
+| GSTR-3B from the GSTR-1, totals, CSVs (pure) | `packages/invoices/src/gstr3b.ts` |
+| Warnings (pure) | `packages/invoices/src/gst-return-checks.ts` |
+| 3B PDF | `packages/invoices/src/gstr3b-pdf/gstr3b-pdf.tsx`, `renderGstr3bToBuffer` |
+| Loading a month | `packages/plugin-gst-invoices/src/reports.ts` (`gstr1Inputs`), `returns.ts` (`gstReturn`) |
+| API | `packages/api/src/routers/gst-invoices-returns.ts`: `gstInvoices.returns.summary`, `.gstr1Json`, `.gstr1Csv`, `.gstr3b` (all `orders.read`) |
+| Admin | `apps/admin/src/components/apps/gst-invoices/returns-page.tsx` and siblings |
+
+The older per-table CSV zip (`gstInvoices.gstr1`, `buildGstr1` in `gstr1.ts`) stays for CAs who
+import into the offline tool.
+
+## What a month is
+
+Documents of the GSTIN whose `invoice_date` falls in the IST calendar month (`periodRange`).
+Tax invoices and credit notes that are `issued` feed the tables; every numbered document,
+cancelled ones too, feeds Table 13. A credit note is paired with the invoice it prints
+(`snapshot.original.number`), else the order's invoice, even from an earlier month. A note with
+no invoice is an `orphan_credit_note` warning, not silently dropped.
+
+## Classification
+
+`gstr1Bucket`: export → `exp`; buyer GSTIN → `b2b`; inter-state and invoice value over
+`B2CL_THRESHOLD_PAISE` (₹1 lakh from 1 Aug 2024, Notification 12/2024-CT) → `b2cl`; the rest
+`b2cs`. Credit notes follow their invoice's bucket: `b2b` → `cdnr`, `b2cl` → `cdnur` (`B2CL`),
+export → `cdnur` (`EXPWP`/`EXPWOP`), `b2cs` → netted into the B2CS row (the portal has no note
+table for B2C small). Rate-0 rows go to Table 8 (`nil`, as `nil_amt`: snapshots do not tell
+nil-rated from exempt). Intra/inter state comes from the snapshot's `interState`, the place of
+supply from `placeOfSupply.gstCode` (the GSTIN's own state when missing).
+
+## JSON shape followed
+
+GSTN publishes no formal JSON schema for the upload. The builder follows the file the Returns
+Offline Tool 3.x writes (`version: "GST3.2.1"`, `hash: "hash"`) with the Phase-III changes
+in force from the May 2025 return period:
+
+- `gstin`, `fp` (`MMYYYY`); dates `dd-mm-yyyy` in IST.
+- `b2b[] { ctin, inv[] { inum, idt, val, pos, rchrg: "N", inv_typ: "R", itms[] { num, itm_det { rt, txval, iamt, camt, samt, csamt } } } }`
+- `b2cl[] { pos, inv[] { inum, idt, val, itms[] { num, itm_det { rt, txval, iamt, csamt } } } }`
+- `b2cs[] { sply_ty: INTRA|INTER, pos, typ: "OE", rt, txval, iamt, camt, samt, csamt }`
+- `exp[] { exp_typ: WPAY|WOPAY, inv[] { inum, idt, val, sbpcode?, sbnum?, sbdt?, itms[] { txval, rt, iamt, csamt } } }`
+- `cdnr[] { ctin, nt[] { ntty: "C", nt_num, nt_dt, val, pos, rchrg, inv_typ, itms[] } }` (the
+  post-2020 form, no original invoice number)
+- `cdnur[] { typ: B2CL|EXPWP|EXPWOP, ntty, nt_num, nt_dt, val, pos (B2CL only), itms[] }`
+- `nil { inv[] { sply_ty: INTRB2B|INTRAB2B|INTRB2C|INTRAB2C, nil_amt, expt_amt, ngsup_amt } }`
+- `hsn { hsn_b2b[], hsn_b2c[] }`, rows `{ hsn_sc (first key), num, desc, uqc, qty, rt, txval, iamt, camt, samt, csamt }`;
+  no total value column. B2B rows are invoices and notes to registered buyers; B2C is everything
+  else, exports included. SAC codes (`99…`) get `uqc: "NA"`, `qty: 0`. A quantity that nets
+  below zero is sent as 0 (the portal refuses negatives) and warned about.
+- `doc_issue { doc_det[] { doc_num, docs[] { num, from, to, totnum, cancel, net_issue } } }`,
+  `doc_num` 1 invoices, 5 credit notes, 6 receipt vouchers, 8 refund vouchers; one `docs` row
+  per numbering series.
+
+Empty tables are left out, as the offline tool does. Amounts are summed in integer paise and
+turned into rupees once, so they carry two decimals exactly; tax is the per-line amount printed
+on the invoice, never recomputed.
+
+## GSTR-3B
+
+`buildGstr3b` reads the GSTR-1 JSON, so the two returns cannot disagree: 3.1(a) is B2B + B2CL
++ B2CS − CDNR − CDNUR(B2CL); 3.1(b) is EXP − CDNUR(EXP); 3.1(c) is Table 8; 3.2 is B2CL +
+B2CS inter-state − CDNUR(B2CL) by place of supply. No Table 4: purchase GST is not tracked.
+
+## Tests
+
+`packages/invoices/test/gst-returns.test.ts` (one hand-worked month covering every table) and
+`packages/api/test/gst-returns.test.ts` (issued invoices on the local database, the files, and
+the permission and app-installed gates).

@@ -140,6 +140,8 @@ x-app-env: &app-env
   GITHUB_ISSUES_TOKEN: ${GITHUB_ISSUES_TOKEN:-}
   GITHUB_ISSUES_REPO: ${GITHUB_ISSUES_REPO:-}
   SOURCE_COMMIT: ${SOURCE_COMMIT:-${IMAGE_TAG:-}}
+  # Platform console (/platform): comma-separated staff emails. Blank: nobody can open it.
+  PLATFORM_ADMIN_EMAILS: ${PLATFORM_ADMIN_EMAILS:-}
   NODE_ENV: production
   # V8 heap cap, sized under each service's mem_limit (below) so the process fails fast with a
   # clear OOM inside its own container instead of the kernel OOM-killer picking a victim among

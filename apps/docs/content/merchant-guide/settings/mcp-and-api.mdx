@@ -161,9 +161,14 @@ approval".
    action you see its name, what it does, and every value the app sent.
 3. Click **Approve**, **Edit** or **Cancel**.
 
-Waiting changes also appear in **Settings → AI → Activity** with a **Review** button. Only the
-person who connected the app can approve its changes, and the change runs as them: if their role
-cannot do it, approving fails and nothing changes.
+Waiting changes also appear in **Settings → AI → Activity** with a **Review** button, and show
+who asked for them. The person who connected the app, the store owner, or anyone whose role can
+make that change may approve or cancel it. The change runs as the person who approves it: if
+their role cannot do it, approving is refused, nothing changes, and the change keeps waiting for
+someone who can. Activity records who approved it.
+
+A waiting change expires after a while. Once it has, the row says **Expired** and approving it
+does nothing; ask the app to suggest it again.
 
 Files an app asks for, such as a shipping label or an invoice, come back as a download link that
 works for 10 minutes.

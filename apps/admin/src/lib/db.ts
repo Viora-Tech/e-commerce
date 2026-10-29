@@ -11,3 +11,18 @@ export function db(): Db {
   }
   return g.__commerceDb
 }
+
+const owner = globalThis as unknown as { __commerceOwnerDb?: Db }
+
+/**
+ * The OWNER connection, for the platform console (`platform.*`) only: it sees every store.
+ * A small pool of its own; every console query on it runs read-only (`platformRead`). Never
+ * hand it to store procedures, the bearer-token API or MCP.
+ */
+export function ownerDb(): Db {
+  if (!owner.__commerceOwnerDb) {
+    const env = loadEnv(process.env)
+    owner.__commerceOwnerDb = createDb(env.DATABASE_URL_OWNER, { max: 2 })
+  }
+  return owner.__commerceOwnerDb
+}

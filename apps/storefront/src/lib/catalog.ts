@@ -149,7 +149,13 @@ export async function listCardProducts(
     })
     .from(variant)
     .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
-    .where(and(inArray(variant.productId, ids), isNull(variant.archivedAt)))
+    .where(
+      and(
+        inArray(variant.productId, ids),
+        isNull(variant.archivedAt),
+        eq(variant.hiddenOnStore, false),
+      ),
+    )
 
   const images = await tx
     .select({
@@ -255,7 +261,14 @@ export async function getProductByHandle(
     .from(variant)
     .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
     .leftJoin(media, eq(media.id, variant.mediaId))
-    .where(and(eq(variant.productId, p.id), isNull(variant.archivedAt)))
+    // Hidden variants (#934) never reach the storefront: no option, price or add-to-cart.
+    .where(
+      and(
+        eq(variant.productId, p.id),
+        isNull(variant.archivedAt),
+        eq(variant.hiddenOnStore, false),
+      ),
+    )
     .orderBy(asc(variant.position))
   const vids = vs.map((v) => v.id)
   const links =
@@ -281,9 +294,23 @@ export async function getProductByHandle(
     return listed.length > 0 ? listed : v.imageUrl ? [v.imageUrl] : []
   }
 
+  // An option value only hidden variants use (#934) is not offered. A product whose variants
+  // carry no option values (one default variant) keeps its options as they are.
+  const usedValueIds = new Set(links.map((l) => l.optionValueId))
+  const shownValue = (id: string) => usedValueIds.has(id) || (links.length === 0 && vs.length > 0)
+
   // A variant listed without a price (#913) is shown but never sold.
   const purchasable = (v: (typeof vs)[number]) =>
     v.pricePaise != null && purchasableFor(p, v, launched)
+
+  // Pre-order units left under the limit, beyond stock (#939); null when unlimited or off.
+  const preorderRoom = (v: (typeof vs)[number]): number | null => {
+    if (!v.trackInventory) return null
+    const settings = resolvePreorderSettings(p, v.preorderOverride)
+    if (!settings.enabled || settings.limit == null) return null
+    const committed = Math.max(0, (v.reserved ?? 0) - (v.onHand ?? 0))
+    return Math.max(0, settings.limit - committed)
+  }
 
   const firstVariant = vs.find((v) => purchasable(v)) ?? vs[0]
   const preorderSettings = firstVariant
@@ -314,11 +341,15 @@ export async function getProductByHandle(
               : null,
         }
       : null,
-    options: options.map((o) => ({
-      id: o.id,
-      name: o.name,
-      values: values.filter((v) => v.optionId === o.id).map((v) => ({ id: v.id, value: v.value })),
-    })),
+    options: options
+      .map((o) => ({
+        id: o.id,
+        name: o.name,
+        values: values
+          .filter((v) => v.optionId === o.id && shownValue(v.id))
+          .map((v) => ({ id: v.id, value: v.value })),
+      }))
+      .filter((o) => o.values.length > 0),
     variants: vs.map((v) => ({
       id: v.id,
       title: v.title,
@@ -327,6 +358,7 @@ export async function getProductByHandle(
       mrpPaise: v.mrpPaise,
       available: availableFor(v),
       purchasable: purchasable(v),
+      preorderRoom: preorderRoom(v),
       optionValueIds: links.filter((l) => l.variantId === v.id).map((l) => l.optionValueId),
       imageUrl: v.imageUrl,
       imageUrls: imageUrlsOf(v),

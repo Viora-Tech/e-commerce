@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./testing": "./src/testing/index.ts",
+    "./errors": "./src/errors.ts",
     "./outbox-types": "./src/outbox/types.ts",
     "./emi": "./src/payments/emi.ts",
     "./adjustments": "./src/payments/adjustments.ts",
@@ -43,6 +44,7 @@
     "./consent": "./src/online-store/consent.ts",
     "./blog": "./src/blog/client.ts",
     "./browse": "./src/catalog/browse-params.ts",
+    "./filter-config": "./src/catalog/filter-config.ts",
     "./search": "./src/catalog/search-limits.ts",
     "./accounts": "./src/accounts/schemas.ts",
     "./account-patterns": "./src/accounts/patterns.ts",
@@ -56,6 +58,7 @@
     "./search-console": "./src/search-console/insights.ts",
     "./analytics-query": "./src/analytics-query/index.ts",
     "./billing": "./src/billing/client.ts",
+    "./platform": "./src/platform/client.ts",
     "./app-catalogue": "./src/apps/catalogue.ts",
     "./app-logos": "./src/apps/logos.ts",
     "./api-access": "./src/api-access/client.ts",

@@ -184,7 +184,10 @@ export const aiRouter = {
       runAssistant({ ...context, email: context.session.user.email }, input, signal),
     ),
 
-  /** Approve on a proposal card: runs it with the caller's permission for that action. */
+  /**
+   * Approve on a proposal card: runs it as the caller, with their permission for that action.
+   * The asker's own proposal, or (from an MCP client) the owner's or a permitted member's.
+   */
   approveAction: canAny(APPROVE_PERMISSIONS)
     .input(ActionId)
     .handler(async ({ context, input }) =>
@@ -204,13 +207,15 @@ export const aiRouter = {
     )
     .handler(({ context, input }) =>
       problemToBadRequest(async () =>
-        reviseAction(await actionEnv(context), input.id, input.changes),
+        reviseAction(await actionEnv(context), context.scope, input.id, input.changes),
       ),
     ),
 
   cancelAction: canAny(APPROVE_PERMISSIONS)
     .input(ActionId)
-    .handler(async ({ context, input }) => cancelAction(await actionEnv(context), input.id)),
+    .handler(async ({ context, input }) =>
+      cancelAction(await actionEnv(context), context.scope, input.id),
+    ),
 
   /** Undo from the card or Settings → AI → Activity, with the action's own permission. */
   undoAction: canAny(ACTION_PERMISSIONS)

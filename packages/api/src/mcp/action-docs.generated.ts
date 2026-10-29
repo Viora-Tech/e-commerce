@@ -57,7 +57,7 @@ export const ACTION_DOCS: Record<string, string> = {
   'ai.activity': 'Settings → AI → Activity: every AI action in the store, newest first.',
   'ai.applyBulk': 'Applies the reviewed suggestions to products; logged in Activity with an undo.',
   'ai.approveAction':
-    "Approve on a proposal card: runs it with the caller's permission for that action.",
+    'Approve on a proposal card: runs it as the caller, with their permission for that action.',
   'ai.assistant': 'The AI bar on every admin page: a streamed answer (oRPC event iterator).',
   'ai.bulkWrite':
     'Bulk "Write with AI" on the products list: starts a worker run, returns its progress.',
@@ -240,6 +240,10 @@ export const ACTION_DOCS: Record<string, string> = {
   'gstInvoices.queue.issue':
     'Review, Issue: numbers are assigned here and never change afterwards.',
   'gstInvoices.queue.preview': 'The numbers a batch would get, in the order it would get them.',
+  'gstInvoices.returns.gstr1Csv': 'The GSTR-1 totals per table, as a CSV for Excel.',
+  'gstInvoices.returns.gstr1Json': 'The GSTR-1 JSON for the portal\'s "Prepare offline → Upload".',
+  'gstInvoices.returns.gstr3b': 'GSTR-3B 3.1 and 3.2 as a CSV or a one-page PDF.',
+  'gstInvoices.returns.summary': 'Totals, warnings and the GSTR-3B figures for the Returns tab.',
   'gstInvoices.seriesNext':
     'The next number each series will print this financial year, for the settings preview.',
   'gstInvoices.snapshot': 'Snapshot of a document, for the admin to show what was printed.',
@@ -502,6 +506,8 @@ export const ACTION_DOCS: Record<string, string> = {
     "Set one variant's images in order (first = the variant's main image); a file not yet in the product's gallery is added to it.",
   'products.stats': 'Tiles above the list.',
   'products.update': 'Small patches from the list page (bulk status).',
+  'products.updateVariant':
+    'Patch one variant: price, MRP, SKU, stock, or hide it on the storefront (hiddenOnStore).',
   'purchaseDocuments.apply': 'Apply what the merchant ticked on the review screen.',
   'purchaseDocuments.download': 'The file itself, for the preview and the download button.',
   'purchaseDocuments.read': 'Read (or read again) with AI, in the worker.',
@@ -531,6 +537,26 @@ export const ACTION_DOCS: Record<string, string> = {
   'reviews.reply': "The store's public reply; the first one emails the customer.",
   'reviews.setStatus': 'Approve (publish), hide, or move back to waiting, one or many.',
   'reviews.writeReply': '"Write with AI" on the reply box: a suggestion only.',
+  'rollouts.archive': 'Keep a rollout that is not running for the record only.',
+  'rollouts.checkConflicts':
+    'Clashes with other rollouts before saving: block refuses the save, warn is shown with it.',
+  'rollouts.create': 'Save a new rollout: a draft without a start or changes, scheduled with both.',
+  'rollouts.delete': 'Delete a rollout that is not running, with its changes.',
+  'rollouts.end':
+    'End a running event now: roll back what it changed, or keep its changes for good.',
+  'rollouts.get': 'One rollout with its changes, when it runs and why its last start failed.',
+  'rollouts.holds':
+    'Which unended rollout holds each theme, each discount and the checkout branding.',
+  'rollouts.list': 'Every rollout with its changes, the newest first; statuses narrows the list.',
+  'rollouts.listDiscounts':
+    'Discounts by title or code, a page at a time: what a rollout can switch on or off.',
+  'rollouts.listThemes': 'The theme library, the live theme first: what a rollout can publish.',
+  'rollouts.pause': 'Roll a running event back early; resume applies it again.',
+  'rollouts.resume': "Apply a paused event's changes again until its end.",
+  'rollouts.startNow':
+    "Apply a rollout's changes now instead of at its start; a launch ends at once.",
+  'rollouts.update':
+    'Change a draft or scheduled rollout; a running event changes only its name and end.',
   'salesChannels.connect':
     '"Connect": a URL to sign in at Meta or Google, the channel joining a platform the store already connected, or (no platform app yet) a request.',
   'salesChannels.saveOpenAiFeed':
@@ -539,6 +565,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'One social channel, and whether Connect signs in to the platform now or sends a request.',
   'salesChannels.syncNow':
     '"Sync now": the platform gets this store\'s catalog again within a minute.',
+  'search.filters.get':
+    "The store's filter settings (null: the default filters) and what it can filter by.",
   'searchConsole.connectComplete':
     "The OAuth callback route hands the code here; the state must be this store's, and fresh.",
   'searchConsole.connectStart': 'Where "Connect Google Search Console" sends the merchant.',

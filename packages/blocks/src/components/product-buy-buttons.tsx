@@ -52,20 +52,33 @@ export default function ProductBuyButtons({
   const reduceMotion = useReducedMotion()
 
   // Helpers
+  // The most the picker allows: stock, or on a pre-order with a limit the stock plus the room left.
+  const quantityCap = (): number | undefined => {
+    if (!variant) return undefined
+    if (isPreorder) {
+      return variant.preorderRoom == null
+        ? undefined
+        : Math.max(1, variant.available + variant.preorderRoom)
+    }
+    return variant.available > 0 && variant.available < 999 ? variant.available : undefined
+  }
+  // A quantity picked on another variant never goes past this one's cap.
+  const pickedQuantity = () => Math.min(quantity, quantityCap() ?? quantity)
+
   const reportAdd = (variantId: string, pricePaise: number | null) =>
     trackCommerce({
       name: 'AddToCart',
       productId: product.id,
       variantId,
-      valuePaise: (pricePaise ?? 0) * quantity,
-      numItems: quantity,
+      valuePaise: (pricePaise ?? 0) * pickedQuantity(),
+      numItems: pickedQuantity(),
     })
 
   // Event handlers
   const handleAdd = () => {
     if (!variant || !onAddToCart) return
     startTransition(async () => {
-      await onAddToCart(variant.id, quantity)
+      await onAddToCart(variant.id, pickedQuantity())
       reportAdd(variant.id, variant.pricePaise)
       announceCartAdded()
       setAdded(true)
@@ -76,7 +89,7 @@ export default function ProductBuyButtons({
   const handleBuyNow = () => {
     if (!variant || !onAddToCart) return
     startTransition(async () => {
-      await onAddToCart(variant.id, quantity)
+      await onAddToCart(variant.id, pickedQuantity())
       reportAdd(variant.id, variant.pricePaise)
       window.location.assign('/checkout')
     })
@@ -118,8 +131,11 @@ export default function ProductBuyButtons({
   const unitsLeft = variant?.available ?? 0
   const lowStock = !isPreorder && !stockBarShown && unitsLeft > 0 && unitsLeft <= 5
   const updatesHref = isPreorder && preorderLink ? safeHref(preorderLink) : null
-  // A plain sale (not a launch countdown or a pre-order) gets the quantity and Buy it now.
-  const buyable = Boolean(variant?.purchasable) && !launching && !isPreorder && !unpriced
+  // A plain sale (not a launch countdown or a pre-order) gets Buy it now; a pre-order gets the
+  // quantity too (#939), capped at the stock and pre-order room left when the limit is set.
+  const sellable = Boolean(variant?.purchasable) && !launching && !unpriced
+  const buyable = sellable && !isPreorder
+  const maxQuantity = quantityCap()
 
   return (
     <div className="product-info__buy">
@@ -172,11 +188,11 @@ export default function ProductBuyButtons({
       ) : (
         <div className="buy-buttons" data-buy-buttons>
           <div className="buy-buttons__row">
-            {buyable ? (
+            {sellable ? (
               <QuantityInput
-                value={quantity}
+                value={pickedQuantity()}
                 onChange={setQuantity}
-                max={variant?.available && variant.available < 999 ? variant.available : undefined}
+                max={maxQuantity}
                 disabled={pending}
                 className="buy-buttons__quantity"
               />

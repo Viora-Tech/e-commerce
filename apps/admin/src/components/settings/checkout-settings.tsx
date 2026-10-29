@@ -1,6 +1,6 @@
 'use client'
 
-import type { CheckoutSettingsView, PaymentAdjustment } from '@commerce/core'
+import type { CheckoutSettingsView, PaymentAdjustment, RolloutHold } from '@commerce/core'
 import type { CheckoutSettings as Settings } from '@commerce/core/checkout-settings'
 import { Field, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
@@ -12,6 +12,7 @@ import ChoiceList from '@/components/returns/choice-list'
 import CheckoutBrandingSettings from '@/components/settings/checkout-branding-settings'
 import CheckoutToggleRow from '@/components/settings/checkout-toggle-row'
 import CodRulesCard from '@/components/settings/cod-rules-card'
+import RolloutHoldChip from '@/components/settings/rollouts/rollout-hold-chip'
 import RupeeInput from '@/components/settings/rupee-input'
 import SectionTabs from '@/components/settings/section-tabs'
 import SettingsSection from '@/components/settings/settings-section'
@@ -40,8 +41,15 @@ export default function CheckoutSettings() {
   const [saved, setSaved] = useState<string | null>(null)
   const [codKey, setCodKey] = useState(0)
   const [busy, setBusy] = useState(false)
+  // The rollout that will replace the branding ("In rollout: Diwali sale"), when one does.
+  const [hold, setHold] = useState<RolloutHold | null>(null)
 
   useEffect(() => {
+    // Members without Rollouts: read just see no chip.
+    api.rollouts
+      .holds()
+      .then((h) => setHold(h.checkout))
+      .catch(() => undefined)
     api.checkoutSettings.get().then((v) => {
       setLoaded(v)
       setForm(formOf(v))
@@ -161,7 +169,12 @@ export default function CheckoutSettings() {
               onFee={(codFee) => setForm((f) => (f ? { ...f, codFee } : f))}
             />
           </SettingsSection>
-          <SettingsSection id={brandingCopy.tabs.branding.id}>
+          <SettingsSection id={brandingCopy.tabs.branding.id} className="flex flex-col gap-3">
+            {hold ? (
+              <div>
+                <RolloutHoldChip hold={hold} />
+              </div>
+            ) : null}
             <CheckoutBrandingSettings
               branding={s.branding}
               gstin={s.gstin}

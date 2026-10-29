@@ -321,6 +321,13 @@ export default [
       today: 'आज',
       yesterday: 'कल',
       openApproval: 'मंज़ूरी खोलें',
+      approvalStatus: {
+        executed: 'मंज़ूर हुआ',
+        failed: 'मंज़ूर हुआ, पर नहीं हो पाया',
+        cancelled: 'रद्द',
+        expired: 'मंज़ूरी से पहले समय खत्म: कुछ नहीं बदला',
+        undone: 'मंज़ूर हुआ, बाद में वापस लिया',
+      },
       loadOlder: 'पुरानी गतिविधि देखें',
       loading: 'लोड हो रहा है…',
       empty: 'अभी कुछ नहीं',

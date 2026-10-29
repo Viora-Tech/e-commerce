@@ -27,7 +27,14 @@ export async function loadStoreIndex(tx: StoreTx): Promise<StoreIndex> {
         fromPaise: min(variant.pricePaise),
       })
       .from(product)
-      .leftJoin(variant, and(eq(variant.productId, product.id), isNull(variant.archivedAt)))
+      .leftJoin(
+        variant,
+        and(
+          eq(variant.productId, product.id),
+          isNull(variant.archivedAt),
+          eq(variant.hiddenOnStore, false),
+        ),
+      )
       .where(eq(product.status, 'active'))
       .groupBy(product.id)
       .orderBy(asc(product.title)),

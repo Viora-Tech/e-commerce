@@ -10,6 +10,7 @@ import { productFormContent } from '@/data/product-form'
 import { rupees } from '@/data/products'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { type Facets, margin, type VariantRow } from './form-state'
+import ZeroPriceWarning from './zero-price-warning'
 
 type ProductPricingSectionProps = {
   variant: VariantRow
@@ -98,6 +99,7 @@ export default function ProductPricingSection({
             value={variant.price}
             onChange={(price) => onVariant({ price })}
           />
+          <ZeroPriceWarning variant={variant} />
         </KitField>
         <KitField
           label={`${copy.mrp} ${copy.mrpOptional}`}

@@ -4,6 +4,7 @@ export const marketsContent = {
   intro:
     'Sell to shoppers abroad in their own currency and language. India stays your primary market: your prices, GST and reports remain in rupees.',
   add: 'Add market',
+  rollouts: 'Rollouts',
   listTitle: 'Your markets',
   columns: {
     market: 'Market',

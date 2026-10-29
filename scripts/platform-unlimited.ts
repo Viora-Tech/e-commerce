@@ -6,6 +6,9 @@
  *   bun run platform:unlimited waimers
  *   bun run platform:unlimited waimers --off
  *
+ * In the worker container (copied to apps/worker/ops/ by apps/worker/Dockerfile), from
+ * /repo/apps/worker: bun ops/platform-unlimited.ts waimers
+ *
  * On: Scale's features with no limits on orders, staff or storage, no per-order fee, no bills
  * or renewals, no fair-use notices, and AI capped at 50,000 credits a month as a safety net.
  * See core `billing/unlimited.ts`.

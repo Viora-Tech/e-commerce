@@ -101,7 +101,13 @@ export async function buildChannelCatalog(
       })
       .from(variant)
       .leftJoin(media, eq(media.id, variant.mediaId))
-      .where(and(inArray(variant.productId, ids), isNull(variant.archivedAt)))
+      .where(
+        and(
+          inArray(variant.productId, ids),
+          isNull(variant.archivedAt),
+          eq(variant.hiddenOnStore, false),
+        ),
+      )
       .orderBy(asc(variant.position)),
     tx
       .select({ productId: productMedia.productId, url: media.url })

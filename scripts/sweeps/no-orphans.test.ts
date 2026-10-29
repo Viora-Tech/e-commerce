@@ -1010,7 +1010,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/invoices/src/gstr1.ts',
-    names: ['B2CL_THRESHOLD_PAISE', 'gstr1Bucket', 'documentsIssued'],
+    names: ['B2CL_THRESHOLD_PAISE', 'documentsIssued'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -1159,7 +1159,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/plugin-gst-invoices/src/periods.ts',
-    names: ['periodOf', 'periodRange', 'getPeriod'],
+    names: ['periodOf'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -1463,6 +1463,11 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'exported for its unit test; no other importer today',
   },
   {
+    file: 'packages/invoices/src/gstr3b-pdf/gstr3b-pdf.tsx',
+    names: ['Gstr3bPdf'],
+    reason: 'rendered through gstr3bElement; the default export follows the component rule',
+  },
+  {
     file: 'packages/invoices/src/purchase-order/purchase-order-pdf.tsx',
     names: ['PurchaseOrderPdf'],
     reason: 'no external importer today — investigate before removing',
@@ -1545,11 +1550,6 @@ const ALLOWLIST: AllowEntry[] = [
   {
     file: 'packages/core/src/billing/credits-service.ts',
     names: ['listAiTopups'],
-    reason: 'no external importer today — billing API not wired into the admin yet',
-  },
-  {
-    file: 'packages/core/src/billing/plans.ts',
-    names: ['PLAN_GST_PERCENT', 'isPlanId'],
     reason: 'no external importer today — billing API not wired into the admin yet',
   },
   {

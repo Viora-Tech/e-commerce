@@ -79,9 +79,9 @@ export default function AutopilotProposalRow({
       ) : null}
       <p className="text-caption text-muted-foreground">{meta.join(' · ')}</p>
       {waiting ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <Button disabled={busy} onClick={onApprove}>
-            {p.kind === 'automation' ? copy.turnOn : copy.approve}
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Button variant="ghost" disabled={busy} onClick={onDismiss}>
+            {copy.dismiss}
           </Button>
           {p.campaignId && p.campaign ? (
             <Button
@@ -92,8 +92,8 @@ export default function AutopilotProposalRow({
               {copy.open}
             </Button>
           ) : null}
-          <Button variant="ghost" disabled={busy} onClick={onDismiss}>
-            {copy.dismiss}
+          <Button disabled={busy} onClick={onApprove}>
+            {p.kind === 'automation' ? copy.turnOn : copy.approve}
           </Button>
         </div>
       ) : null}

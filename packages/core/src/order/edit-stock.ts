@@ -10,6 +10,8 @@ import {
 import { and, asc, desc, eq, ne, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { StoreAddressSchema } from '../settings/general'
+import type { OrderGst } from '../tax/gst'
+import { mergeOrderGst } from '../tax/parcel-gst'
 import { chargedGstRate, parseStoreTax } from '../tax/settings'
 import { releaseCommittedStock } from './committed-stock'
 import { createFulfillmentOrders } from './fulfillment-orders'
@@ -177,20 +179,67 @@ export async function settleEditedParcels(ctx: StoreContext, orderId: string): P
     .where(and(eq(fulfillmentOrder.orderId, orderId), ne(fulfillmentOrder.status, 'cancelled')))
 }
 
+type ParcelRow = {
+  id: string
+  locationId: string
+  status: string
+  subtotalPaise: number | null
+  discountPaise: number | null
+  adjustmentPaise: number | null
+  shippingPaise: number | null
+  totalPaise: number | null
+  taxBreakdown: unknown
+}
+
+const isGst = (v: unknown): v is OrderGst =>
+  typeof v === 'object' && v !== null && Array.isArray((v as OrderGst).byRate)
+
+/**
+ * A packed parcel the edit did not reprice keeps its money: it has gone out (or is ready to)
+ * with its invoice and amount to collect, and an edit after shipping must not move them.
+ */
+const frozen = (p: ParcelRow, lineIds: readonly string[], repriced: ReadonlySet<string>) =>
+  p.status === 'fulfilled' &&
+  p.subtotalPaise !== null &&
+  p.discountPaise !== null &&
+  p.adjustmentPaise !== null &&
+  p.shippingPaise !== null &&
+  p.totalPaise !== null &&
+  isGst(p.taxBreakdown) &&
+  !lineIds.some((id) => repriced.has(id))
+
 /**
  * Work the order's GST out again from its live parcels, as checkout does (`taxParcels`), and
  * store each parcel's share and the order's sum. Lines keep the rate they were charged at; an
- * order with no goods parcels (gift cards only) keeps its tax.
+ * order with no goods parcels (gift cards only) keeps its tax. When some parcels are packed and
+ * untouched (an edit after shipping), they keep their shares and the rest of the order's
+ * discount, fee and shipping is shared over the other parcels, so the parcel that left still
+ * matches its invoice; when the rest cannot carry it (nothing else open, or the charges went
+ * below what the packed parcels hold), every parcel is worked out again.
  */
-export async function retaxOrder(ctx: StoreContext, orderId: string): Promise<void> {
+export async function retaxOrder(
+  ctx: StoreContext,
+  orderId: string,
+  opts: { repriced?: ReadonlySet<string> } = {},
+): Promise<void> {
   const [o] = await ctx.tx.select().from(order).where(eq(order.id, orderId))
   if (!o) return
-  const parcels = await ctx.tx
-    .select({ id: fulfillmentOrder.id, locationId: fulfillmentOrder.locationId })
+  const all: ParcelRow[] = await ctx.tx
+    .select({
+      id: fulfillmentOrder.id,
+      locationId: fulfillmentOrder.locationId,
+      status: fulfillmentOrder.status,
+      subtotalPaise: fulfillmentOrder.subtotalPaise,
+      discountPaise: fulfillmentOrder.discountPaise,
+      adjustmentPaise: fulfillmentOrder.adjustmentPaise,
+      shippingPaise: fulfillmentOrder.shippingPaise,
+      totalPaise: fulfillmentOrder.totalPaise,
+      taxBreakdown: fulfillmentOrder.taxBreakdown,
+    })
     .from(fulfillmentOrder)
     .where(and(eq(fulfillmentOrder.orderId, orderId), ne(fulfillmentOrder.status, 'cancelled')))
     .orderBy(asc(fulfillmentOrder.position))
-  if (parcels.length === 0) return
+  if (all.length === 0) return
   const parcelLines = await ctx.tx
     .select({
       fulfillmentOrderId: fulfillmentOrderLine.fulfillmentOrderId,
@@ -202,6 +251,29 @@ export async function retaxOrder(ctx: StoreContext, orderId: string): Promise<vo
     .where(eq(fulfillmentOrder.orderId, orderId))
   const lines = await ctx.tx.select().from(orderLine).where(eq(orderLine.orderId, orderId))
   const byId = new Map(lines.map((l) => [l.id, l]))
+  const repriced = opts.repriced ?? new Set<string>()
+  const linesOf = (id: string) =>
+    parcelLines.filter((l) => l.fulfillmentOrderId === id).map((l) => l.orderLineId)
+  const kept = all.filter((p) => frozen(p, linesOf(p.id), repriced))
+  const sum = (key: 'discountPaise' | 'adjustmentPaise' | 'shippingPaise') =>
+    kept.reduce((n, p) => n + (p[key] ?? 0), 0)
+  const rest = {
+    discountPaise: o.discountPaise - sum('discountPaise'),
+    adjustmentPaise: o.paymentAdjustmentPaise - sum('adjustmentPaise'),
+    shippingPaise: o.shippingPaise - sum('shippingPaise'),
+  }
+  const restGross = parcelLines
+    .filter((l) => !kept.some((p) => p.id === l.fulfillmentOrderId))
+    .reduce((n, l) => n + l.quantity * (byId.get(l.orderLineId)?.unitPricePaise ?? 0), 0)
+  const split =
+    kept.length > 0 &&
+    kept.length < all.length &&
+    rest.discountPaise >= 0 &&
+    rest.discountPaise <= restGross &&
+    rest.shippingPaise >= 0 &&
+    (rest.adjustmentPaise === 0 ||
+      Math.sign(rest.adjustmentPaise) === Math.sign(o.paymentAdjustmentPaise))
+  const parcels = split ? all.filter((p) => !kept.includes(p)) : all
   const [s] = await ctx.tx
     .select({ address: store.address, gstRatePercent: store.gstRatePercent, apps: store.apps })
     .from(store)
@@ -234,9 +306,9 @@ export async function retaxOrder(ctx: StoreContext, orderId: string): Promise<vo
             : (line.gstRatePercent ?? chargedGstRate(s?.gstRatePercent ?? 18, storeTax)),
       }
     },
-    discountPaise: o.discountPaise,
-    adjustmentPaise: o.paymentAdjustmentPaise,
-    shippingPaise: o.shippingPaise,
+    discountPaise: split ? rest.discountPaise : o.discountPaise,
+    adjustmentPaise: split ? rest.adjustmentPaise : o.paymentAdjustmentPaise,
+    shippingPaise: split ? rest.shippingPaise : o.shippingPaise,
     shipToState: shipTo?.stateCode ?? null,
     storeState: storeAddress.success ? storeAddress.data.state : null,
   })
@@ -249,10 +321,14 @@ export async function retaxOrder(ctx: StoreContext, orderId: string): Promise<vo
         .where(eq(fulfillmentOrder.id, p.id))
     }
   }
-  if (billed.tax) {
+  const tax =
+    billed.tax && split
+      ? mergeOrderGst([...kept.map((p) => p.taxBreakdown as OrderGst), billed.tax])
+      : billed.tax
+  if (tax) {
     await ctx.tx
       .update(order)
-      .set({ taxPaise: billed.tax.taxPaise, taxBreakdown: billed.tax })
+      .set({ taxPaise: tax.taxPaise, taxBreakdown: tax })
       .where(eq(order.id, orderId))
   }
 }

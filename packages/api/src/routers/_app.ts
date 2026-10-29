@@ -44,6 +44,7 @@ import { ordersRouter } from './orders'
 import { pagesRouter } from './pages'
 import { paymentsRouter } from './payments'
 import { pixelsRouter } from './pixels'
+import { platformRouter } from './platform'
 import { platformAppsRouter } from './platform-apps'
 import { policiesRouter } from './policies'
 import { productsRouter } from './products'
@@ -53,6 +54,7 @@ import { inboundShipmentsRouter, purchaseChargesRouter, suppliersRouter } from '
 import { redirectsRouter } from './redirects'
 import { returnsRouter } from './returns'
 import { reviewsRouter } from './reviews'
+import { rolloutsRouter } from './rollouts'
 import { salesChannelsRouter } from './sales-channels'
 import { searchRouter } from './search'
 import { searchConsoleRouter } from './search-console'
@@ -139,9 +141,11 @@ export const appRouter = {
   staff: staffRouter,
   domains: domainsRouter,
   markets: marketsRouter,
+  rollouts: rolloutsRouter,
   invitations: invitationsRouter,
   onboarding: onboardingRouter,
   bugReports: bugReportsRouter,
+  platform: platformRouter,
 }
 
 export type AppRouter = typeof appRouter

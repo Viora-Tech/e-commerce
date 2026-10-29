@@ -41,7 +41,7 @@ export async function ruleProducts(
          Spell the aliases out, as media's usedBy does. */
       pricePaise: sql<
         number | null
-      >`(select min(v.price_paise) from variant v where v.product_id = product.id and v.archived_at is null)`,
+      >`(select min(v.price_paise) from variant v where v.product_id = product.id and v.archived_at is null and v.hidden_on_store = false)`,
     })
     .from(product)
     .where(eq(product.status, 'active'))

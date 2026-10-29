@@ -601,6 +601,29 @@ same way as the Growth overview's `outcomes`. Pure rules: `@commerce/core/market
 | `0116_payment_fees` | `payment.fee_tax_paise`, `method_detail`, `fee_checked_at`, the `payment_fee_unknown` index, `stores_with_unknown_payment_fees()` |
 
 
+### Rollouts
+
+`0184_rollouts` (`rollout-schema.ts`, design `docs/superpowers/specs/2026-10-28-rollouts-r1-design.md`):
+Shopify's Markets → Rollouts. `rollout` (name, `kind` `launch` | `event`, `status` `draft` |
+`scheduled` | `active` | `paused` | `ended` | `archived`, `starts_at`, `ends_at` (events),
+`end_action` `rollback` | `apply`, `started_at`, `ended_at`, `error` (why the last start failed))
+and `rollout_change` (`kind` `theme` | `checkout_branding` | `discount`, `target_id` (theme or
+discount id, null for the branding), `value` (the branding, or `{ status }` for a discount),
+`previous` (what it replaced, filled at the start), `applied_at`). Partial unique indexes keep one
+theme and one branding change per rollout and each discount once; overlaps between rollouts are
+checked in `rolloutConflicts`. Both end in `apply_store_rls()`.
+
+- Service: `packages/core/src/rollouts/` (`service.ts` lifecycle, `changes.ts` apply and revert,
+  `targets.ts` the admin's pickers and the "In rollout" chips, `job.ts` the tick). Starting
+  applies every change in the caller's transaction or none; a revert only touches what still shows
+  the rollout's value, so hand edits made during an event survive.
+- Worker: `{rollouts}-tick` every minute over `stores_with_rollouts_due(now)` (SECURITY DEFINER),
+  one transaction per rollout; a rollout that cannot start goes back to `draft` with `error`.
+- API: `rollouts` router behind `rollouts.read` / `rollouts.manage` (the migration grants both
+  to system admins and roles with `settings.manage`, and read to roles with `settings.read`).
+  MCP area `settings`; `rollouts.end` and `rollouts.delete` are sensitive.
+- Admin: Settings → Markets → Rollouts (`/settings/markets/rollouts`).
+
 ### Status columns are text with a CHECK
 
 Status columns are `text` with a fixed value list and a CHECK constraint, not Postgres enums,

@@ -1,5 +1,5 @@
-import type { StoreTx } from '@commerce/db'
-import { type SQL, sql } from 'drizzle-orm'
+import { type StoreTx, store } from '@commerce/db'
+import { eq, type SQL, sql } from 'drizzle-orm'
 import { FILTERABLE_FIELD_TYPES } from '../metaobjects/schemas'
 import {
   type BrowseFilters,
@@ -7,6 +7,7 @@ import {
   EMPTY_FILTERS,
   type UnavailableProducts,
 } from './browse-params'
+import { configMetafieldKeys, readFilterConfig, type StorefrontFilterConfig } from './filter-config'
 import { engineProductIds } from './search-engine'
 import { bestPlan, rankedClauses, searchClauses } from './search-sql'
 import { type SearchPlan, searchTerms } from './search-text'
@@ -59,6 +60,11 @@ export type BrowseResult = {
    * for "Showing results for …"; null when the shopper's own words were used.
    */
   corrected: string | null
+  /**
+   * The store's filter settings (which groups, in what order), null when it has none and the
+   * default filters apply. Read with the listing when the input names the store.
+   */
+  filterConfig: StorefrontFilterConfig | null
 }
 
 export type BrowseInput = {
@@ -111,11 +117,11 @@ function baseQuery(
     select p.id, p.handle, p.title, p.created_at, p.product_type, p.vendor, p.tags, p.is_gift_card,
       ${input.collectionId ? sql`cp.position` : sql`0`} as position,
       ${relevance} as relevance,
-      (select min(v.price_paise) from variant v where v.product_id = p.id and v.archived_at is null) as min_price,
+      (select min(v.price_paise) from variant v where v.product_id = p.id and v.archived_at is null and v.hidden_on_store = false) as min_price,
       exists (
         select 1 from variant v
         left join inventory_level il on il.variant_id = v.id and il.fulfils_online
-        where v.product_id = p.id and v.archived_at is null
+        where v.product_id = p.id and v.archived_at is null and v.hidden_on_store = false
           and (not v.track_inventory or coalesce(il.on_hand, 0) - coalesce(il.reserved, 0) > 0)
       ) as in_stock,
       p.preorder_enabled
@@ -139,20 +145,29 @@ const fieldValues = sql`lateral (
 const MAX_FIELD_VALUES = 100
 
 /**
- * Which product extra fields can filter (reads `d`, the definition): the ones marked "Use as
- * filter" once any field in the store is marked; until then every field of a filterable type,
- * and `metafieldFacets` keeps the ones whose values read as a filter.
+ * Which product extra fields can filter (reads `d`, the definition). With filter settings, the
+ * fields they name. Without: the ones marked "Use as filter" once any field in the store is
+ * marked; until then every field of a filterable type, and `metafieldFacets` keeps the ones whose
+ * values read as a filter.
  */
-const filterField = sql`d.storefront_access and d.owner_type = 'product'
-  and d.type in ${inList([...FILTERABLE_FIELD_TYPES])}
+function filterField(keys: string[] | null): SQL {
+  const common = sql`d.storefront_access and d.owner_type = 'product'
+  and d.type in ${inList([...FILTERABLE_FIELD_TYPES])}`
+  if (keys) {
+    return keys.length > 0
+      ? sql`${common} and (d.namespace || '.' || d.key) in ${inList(keys)}`
+      : sql`false`
+  }
+  return sql`${common}
   and (d.filterable or not exists (
     select 1 from metafield_definition fd where fd.owner_type = 'product' and fd.filterable
   ))`
+}
 
 /** Without marked fields: a guessed filter has repeating values, not one spec line apiece. */
 const GUESS = { maxValues: 25, maxLength: 60, perValue: 1.5 }
 
-function filterWhere(f: BrowseFilters): SQL {
+function filterWhere(f: BrowseFilters, fieldKeys: string[] | null): SQL {
   const parts: SQL[] = [sql`true`]
   if (f.available !== null) parts.push(f.available ? sql`b.in_stock` : sql`not b.in_stock`)
   if (f.giftCard !== null) parts.push(f.giftCard ? sql`b.is_gift_card` : sql`not b.is_gift_card`)
@@ -163,23 +178,29 @@ function filterWhere(f: BrowseFilters): SQL {
   if (f.tags.length) {
     parts.push(sql`exists (select 1 from unnest(b.tags) t where t in ${inList(f.tags)})`)
   }
+  for (const [prefix, values] of Object.entries(f.tagGroups)) {
+    const tags = values.map((v) => `${prefix}-${v}`.toLowerCase())
+    parts.push(sql`exists (select 1 from unnest(b.tags) t where lower(t) in ${inList(tags)})`)
+  }
   for (const [name, values] of Object.entries(f.options)) {
     parts.push(sql`exists (
       select 1 from variant v
       join variant_option_value vov on vov.variant_id = v.id
       join product_option_value pov on pov.id = vov.option_value_id
       join product_option po on po.id = pov.option_id
-      where v.product_id = b.id and v.archived_at is null
+      where v.product_id = b.id and v.archived_at is null and v.hidden_on_store = false
         and lower(po.name) = ${name} and pov.value in ${inList(values)}
     )`)
   }
   for (const [field, values] of Object.entries(f.metafields)) {
+    // A field the settings no longer name is ignored, not an empty listing.
+    if (fieldKeys && !fieldKeys.includes(field)) continue
     const [namespace = '', key = ''] = field.split('.')
     parts.push(sql`exists (
       select 1 from metafield m
       join metafield_definition d on d.id = m.definition_id
       cross join ${fieldValues}
-      where m.owner_type = 'product' and m.owner_id = b.id and ${filterField}
+      where m.owner_type = 'product' and m.owner_id = b.id and ${filterField(fieldKeys)}
         and d.namespace = ${namespace} and d.key = ${key} and v.value in ${inList(values)}
     )`)
   }
@@ -202,8 +223,8 @@ type FieldRow = {
  * is marked "Use as filter" (an imported store before anyone ticked one), a field shows when its
  * values read as a filter: 2 to 25 short values that repeat across products.
  */
-export function metafieldFacets(rows: FieldRow[]): MetafieldFacet[] {
-  const marked = rows.some((r) => r.flagged)
+export function metafieldFacets(rows: FieldRow[], chosen = false): MetafieldFacet[] {
+  const marked = chosen || rows.some((r) => r.flagged)
   const guessed = (f: MetafieldFacet) => {
     const n = f.values.length
     const products = f.values.reduce((sum, v) => sum + v.count, 0)
@@ -288,26 +309,49 @@ async function rankedFor(tx: StoreTx, storeId: string | undefined, query: string
  * multi-word search finds very little).
  */
 export async function browseProducts(tx: StoreTx, input: BrowseInput): Promise<BrowseResult> {
+  const filterConfig = input.storeId ? await getFilterConfig(tx, input.storeId) : null
+  const fieldKeys = configMetafieldKeys(filterConfig)
   const ranked = await rankedFor(tx, input.storeId, input.query)
-  if (ranked) return { ...(await runBrowse(tx, input, ranked, null)), corrected: null }
+  if (ranked) {
+    return {
+      ...(await runBrowse(tx, input, fieldKeys, ranked, null)),
+      corrected: null,
+      filterConfig,
+    }
+  }
   const words = await searchWordsFor(tx, input.storeId, input.query)
-  if (!words) return { ...(await runBrowse(tx, input, null, null)), corrected: null }
+  if (!words) {
+    return { ...(await runBrowse(tx, input, fieldKeys, null, null)), corrected: null, filterConfig }
+  }
   const { result, corrected } = await bestPlan(words, async (plan) => {
-    const listing = await runBrowse(tx, input, null, plan)
+    const listing = await runBrowse(tx, input, fieldKeys, null, plan)
     return { listing, found: listing.total }
   })
-  return { ...result.listing, corrected }
+  return { ...result.listing, corrected, filterConfig }
+}
+
+/** The store's filter settings (`store.preferences.storefrontFilters`), null for the default. */
+export async function getFilterConfig(
+  tx: StoreTx,
+  storeId: string,
+): Promise<StorefrontFilterConfig | null> {
+  const [row] = await tx
+    .select({ config: sql<unknown>`${store.preferences} -> 'storefrontFilters'` })
+    .from(store)
+    .where(eq(store.id, storeId))
+  return readFilterConfig(row?.config)
 }
 
 async function runBrowse(
   tx: StoreTx,
   input: BrowseInput,
+  fieldKeys: string[] | null,
   ranked: string[] | null,
   plan: SearchPlan | null,
-): Promise<Omit<BrowseResult, 'corrected'>> {
+): Promise<Omit<BrowseResult, 'corrected' | 'filterConfig'>> {
   const base = baseQuery(input, ranked, plan)
   const unavailable = input.unavailable ?? 'show'
-  const filters = filterWhere(input.filters)
+  const filters = filterWhere(input.filters, fieldKeys)
   const where = unavailable === 'hide' ? sql`${filters} and ${SELLABLE}` : filters
   const offset = (Math.max(1, input.page) - 1) * input.perPage
 
@@ -341,7 +385,7 @@ async function runBrowse(
     select lower(po.name) as key, min(po.name) as name, pov.value, count(distinct b.id) as n,
       min(po.position) as opos, min(pov.position) as vpos
     from b
-    join variant v on v.product_id = b.id and v.archived_at is null
+    join variant v on v.product_id = b.id and v.archived_at is null and v.hidden_on_store = false
     join variant_option_value vov on vov.variant_id = v.id
     join product_option_value pov on pov.id = vov.option_value_id
     join product_option po on po.id = pov.option_id
@@ -355,7 +399,7 @@ async function runBrowse(
       v.value, count(distinct b.id) as n, min(d.position) as pos, bool_or(d.filterable) as flagged
     from b
     join metafield m on m.owner_type = 'product' and m.owner_id = b.id
-    join metafield_definition d on d.id = m.definition_id and ${filterField}
+    join metafield_definition d on d.id = m.definition_id and ${filterField(fieldKeys)}
     cross join ${fieldValues}
     where v.value <> ''
     group by d.namespace, d.key, v.value
@@ -400,6 +444,7 @@ async function runBrowse(
           count: num(r.n),
           flagged: r.flagged === true,
         })),
+        fieldKeys !== null,
       ),
     },
   }

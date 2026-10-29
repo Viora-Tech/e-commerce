@@ -19,6 +19,7 @@ import { productFormContent } from '@/data/product-form'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { margin, type VariantRow } from './form-state'
 import WeightInput from './weight-input'
+import ZeroPriceWarning from './zero-price-warning'
 
 type VariantEditFieldsProps = {
   draft: VariantRow
@@ -80,6 +81,7 @@ export default function VariantEditFields({
             />
           </KitField>
         </div>
+        <ZeroPriceWarning variant={draft} />
         {profit ? (
           <p className="flex items-center gap-2 rounded-md border border-success/30 bg-success-soft px-3 py-2 text-body text-success">
             <TrendingUp className="size-4 shrink-0" aria-hidden="true" />
@@ -150,6 +152,22 @@ export default function VariantEditFields({
               onCheckedChange={(trackInventory) => onPatch({ trackInventory })}
             />
           </div>
+        </div>
+      </Group>
+
+      <Group title={copy.visibility}>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-0.5">
+            <label htmlFor="edit-variant-hidden" className="text-body text-foreground">
+              {copy.hide}
+            </label>
+            <p className="text-caption text-muted-foreground">{copy.hideHelp}</p>
+          </div>
+          <Switch
+            id="edit-variant-hidden"
+            checked={draft.hiddenOnStore}
+            onCheckedChange={(hiddenOnStore) => onPatch({ hiddenOnStore })}
+          />
         </div>
       </Group>
 

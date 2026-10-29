@@ -16,8 +16,9 @@ limits.
 - Test: `packages/core/src/billing/unlimited.test.ts`.
 
 ## At release
-After the deploy runs the migration, run once in the worker container:
-`bun run platform:unlimited waimers`.
+After the deploy runs the migration, run once in the worker container, from `/repo/apps/worker`
+(the image has no root `package.json` script; the file ships at `ops/`, #953):
+`bun ops/platform-unlimited.ts waimers`. Locally it stays `bun run platform:unlimited waimers`.
 
 ## Migration order
 Rollouts (`feat/rollouts-r1`) also adds a `0181_`. Whichever lands on `origin/dev` second

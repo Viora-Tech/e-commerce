@@ -257,6 +257,9 @@ export const routes = {
     domains: () => '/settings/domains',
     domain: (domainId: string) => `/settings/domains/${id(domainId)}`,
     markets: () => '/settings/markets',
+    rollouts: () => '/settings/markets/rollouts',
+    newRollout: () => '/settings/markets/rollouts/new',
+    rollout: (rolloutId: string) => `/settings/markets/rollouts/${id(rolloutId)}`,
     notifications: () => '/settings/notifications',
     policies: () => '/settings/policies',
     /** Setups that break or hurt checkout and orders, each with a link to fix it. */
@@ -281,6 +284,15 @@ export const routes = {
     billing: () => '/settings/billing',
     /** Settings → MCP & API; `activity` is its full activity log. */
     mcp: (page?: 'activity') => (page ? `/settings/mcp/${page}` : '/settings/mcp'),
+  },
+
+  /** The Koomerce staff console (`src/app/(platform)`), outside any store. */
+  platform: {
+    overview: () => '/platform',
+    stores: () => '/platform/stores',
+    store: (storeId: string) => `/platform/stores/${id(storeId)}`,
+    users: () => '/platform/users',
+    audit: () => '/platform/audit',
   },
 
   dev: {

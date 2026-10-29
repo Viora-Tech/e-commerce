@@ -268,7 +268,9 @@ export class CollectionDrop extends Drop {
   /** Shopify's filter objects (`liquid-filters.ts`); none off the collection's own page. */
   get filters(): LiquidFilter[] {
     const l = this.#listed()
-    return l ? liquidFilters(l.facets, l.filters, { path: this.url, sort: l.sort }) : []
+    return l
+      ? liquidFilters(l.facets, l.filters, { path: this.url, sort: l.sort }, l.filterConfig)
+      : []
   }
   get products(): ProductDrop[] {
     if (this.#products) return this.#products
@@ -569,6 +571,13 @@ export class SearchDrop extends Drop {
   }
   get filters(): LiquidFilter[] {
     const l = this.performed ? this.#listed() : null
-    return l ? liquidFilters(l.facets, l.filters, { path: '/search', q: l.q, sort: l.sort }) : []
+    return l
+      ? liquidFilters(
+          l.facets,
+          l.filters,
+          { path: '/search', q: l.q, sort: l.sort },
+          l.filterConfig,
+        )
+      : []
   }
 }

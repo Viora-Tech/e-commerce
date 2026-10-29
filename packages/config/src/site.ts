@@ -32,8 +32,10 @@ export type SiteConfig = {
   /** The business behind the platform, as payment partners and the legal pages name it. */
   company: {
     legalName: string
-    /** Registered and operational address (the same place). */
+    /** Registered and operational address (the same place): GST invoices only. */
     address: string
+    /** What the public website shows. */
+    publicAddress: string
     gstin: string
   }
   urls: {
@@ -103,7 +105,10 @@ export const siteConfig: SiteConfig = {
   },
   company: {
     legalName: 'Viora India (a sole proprietorship of Kuldeep Saini)',
+    /** Registered address: GST invoices only, never shown on the site (it is also the owner's home). */
     address: '745/25, Saini Niwas, Gali Number 3, West Ram Nagar, Sonipat 131001, Haryana, India',
+    /** What the website shows: the city only (owner, 2026-10-29). */
+    publicAddress: 'Sonipat, Haryana, India',
     gstin: '06OIEPS3969E1ZM',
   },
   urls: {

@@ -70,9 +70,8 @@ export function totalRows(
   }
 
   rows.push({
-    label: order.shippingRateName
-      ? `${copy.items.shipping} (${order.shippingRateName})`
-      : copy.items.shipping,
+    // The rate's own name ("Bluedart") when it has one, like the discount's label above.
+    label: order.shippingRateName || copy.items.shipping,
     value: fmt.money(order.shippingPaise),
   })
 

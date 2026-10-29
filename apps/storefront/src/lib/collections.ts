@@ -183,7 +183,13 @@ export async function listCollectionProducts(
     })
     .from(variant)
     .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
-    .where(and(inArray(variant.productId, ids), isNull(variant.archivedAt)))
+    .where(
+      and(
+        inArray(variant.productId, ids),
+        isNull(variant.archivedAt),
+        eq(variant.hiddenOnStore, false),
+      ),
+    )
   const images = await tx
     .select({
       productId: productMedia.productId,
