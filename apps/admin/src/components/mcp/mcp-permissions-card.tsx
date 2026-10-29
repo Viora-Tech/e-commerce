@@ -14,7 +14,8 @@ type McpPermissionsCardProps = {
 
 /**
  * "Permissions & approvals": the rules in plain words as they stand right now (reads run, changes
- * follow the approval switch, sensitive ones always wait), then the three switches.
+ * run with the member's role and its "Needs approval" ticks, sensitive ones always wait), then
+ * the two switches.
  */
 export default function McpPermissionsCard({ settings, onSettings }: McpPermissionsCardProps) {
   // Hooks
@@ -24,11 +25,7 @@ export default function McpPermissionsCard({ settings, onSettings }: McpPermissi
   const rules = copy.permissions.rules
   const lines = [
     rules.reads,
-    settings.allowChanges
-      ? settings.requireApproval
-        ? rules.changesApproval
-        : rules.changesDirect
-      : rules.changesOff,
+    settings.allowChanges ? rules.changesDirect : rules.changesOff,
     rules.sensitive,
     settings.readCustomers ? rules.customersOn : rules.customersOff,
   ]
@@ -49,13 +46,6 @@ export default function McpPermissionsCard({ settings, onSettings }: McpPermissi
         description={copy.switches.allowChangesHelp}
         checked={settings.allowChanges}
         onChange={(on) => onSettings({ ...settings, allowChanges: on })}
-      />
-      <SettingsToggleRow
-        id="mcp-require-approval"
-        label={copy.switches.requireApproval}
-        description={copy.switches.requireApprovalHelp}
-        checked={settings.requireApproval}
-        onChange={(on) => onSettings({ ...settings, requireApproval: on })}
       />
       <SettingsToggleRow
         id="mcp-read-customers"

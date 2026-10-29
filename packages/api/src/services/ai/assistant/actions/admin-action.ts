@@ -1,20 +1,22 @@
 /**
- * `runAdminAction`: an admin procedure an MCP client asked to run (`runAction`) that waits for
- * approval, either a change while "Changes need approval" is on or a sensitive action, which
- * always waits. The card shows the action's name, what it does and its input as plain rows.
+ * `runAdminAction`: an admin procedure that waits for a person: a sensitive action an MCP client
+ * asked to run (`runAction`), or any change a member's role sends for approval ("Needs approval",
+ * queued by the store procedure from the admin, MCP or the API: `queued`). The card shows the action's name, what it does and its input as plain rows.
  * Approve calls the procedure as the approving member through the admin's own middleware, so
  * their role decides exactly as if they had clicked it in the admin. No undo.
  */
 import { call, ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import {
+  type ActionKind,
+  approvalKind,
   describePath,
   humanName,
   kindForInput,
   procedureAt,
   sensitiveNote,
 } from '../../../../mcp/action-catalogue'
-import { ApproverNotAllowed, ProposalProblem } from './resolve'
+import { ApproverNotAllowed, NeedsApprover, ProposalProblem } from './resolve'
 import { defineAction, type PreviewRow } from './types'
 
 const Input = z.object({
@@ -22,7 +24,8 @@ const Input = z.object({
   input: z.unknown(),
 })
 type Raw = z.infer<typeof Input>
-type Resolved = { path: string; input: unknown }
+/** `queued`: held back by a role's "Needs approval" tick, so any classified change may run. */
+type Resolved = { path: string; input: unknown; queued?: boolean }
 
 /** Rows the card shows; the rest are counted. */
 const MAX_ROWS = 30
@@ -76,6 +79,40 @@ function brief(output: unknown): unknown {
   return text.length > MAX_RESULT ? `${text.slice(0, MAX_RESULT)}…` : output
 }
 
+/** The card for a call: its name, what it does and its input as rows. */
+function proposalOf(raw: Raw, kind: ActionKind, queued: boolean) {
+  const name = humanName(raw.path)
+  const { rows, more } = inputRows(raw.input)
+  const note = kind === 'sensitive' ? sensitiveNote(raw.path) : null
+  return {
+    summary: name,
+    resolved: { path: raw.path, input: raw.input, ...(queued ? { queued } : {}) },
+    preview: {
+      title: name,
+      lines: [
+        { label: 'Action', value: raw.path },
+        { label: 'What it does', value: describePath(raw.path) },
+      ],
+      rows,
+      more,
+      count: 1,
+      undoable: false,
+      notes: [
+        'Runs as you, with what your role allows, when you approve.',
+        ...(queued ? ["The asker's role needs approval for this."] : []),
+        ...(note ? [`Sensitive (${note}): always waits for approval.`] : []),
+      ],
+    },
+  }
+}
+
+/** A change a member's role sends for approval, from the store procedure (never the model). */
+export function queuedAdminAction(path: string, input: unknown) {
+  const kind = approvalKind(path)
+  if (!kind) throw new ProposalProblem(`${path} cannot wait for approval.`)
+  return proposalOf({ path, input }, kind, true)
+}
+
 export const adminAction = defineAction<Raw, Resolved>({
   tool: 'runAdminAction',
   permission: null,
@@ -85,39 +122,20 @@ export const adminAction = defineAction<Raw, Resolved>({
   propose: async (_env, raw) => {
     const kind = kindForInput(raw.path, raw.input)
     if (!kind) throw new ProposalProblem(`There is no admin action called ${raw.path}.`)
-    const name = humanName(raw.path)
-    const { rows, more } = inputRows(raw.input)
-    const note = kind === 'sensitive' ? sensitiveNote(raw.path) : null
-    return {
-      summary: name,
-      resolved: { path: raw.path, input: raw.input },
-      preview: {
-        title: name,
-        lines: [
-          { label: 'Action', value: raw.path },
-          { label: 'What it does', value: describePath(raw.path) },
-        ],
-        rows,
-        more,
-        count: 1,
-        undoable: false,
-        notes: [
-          'Runs as you, with what your role allows, when you approve.',
-          ...(note ? [`Sensitive (${note}): always waits for approval.`] : []),
-        ],
-      },
-    }
+    return proposalOf(raw, kind, false)
   },
   execute: async (env, resolved) => {
     if (!env.api) throw new ProposalProblem('Approve this in the admin while signed in.')
     // Imported here: the router imports this registry, so a static import would be a cycle.
     const { appRouter } = await import('../../../../routers/_app')
     const procedure = procedureAt(appRouter, resolved.path)
-    if (!procedure || !kindForInput(resolved.path, resolved.input))
-      throw new ProposalProblem('That admin action is no longer available.')
+    const kind = resolved.queued
+      ? approvalKind(resolved.path)
+      : kindForInput(resolved.path, resolved.input)
+    if (!procedure || !kind) throw new ProposalProblem('That admin action is no longer available.')
     try {
       const output = await call(procedure, resolved.input, {
-        context: { ...env.api, apiPrincipal: undefined },
+        context: { ...env.api, apiPrincipal: undefined, approvalReplay: true },
         path: resolved.path.split('.'),
       })
       return {
@@ -127,6 +145,10 @@ export const adminAction = defineAction<Raw, Resolved>({
         undo: null,
       }
     } catch (err) {
+      if (err instanceof ORPCError && err.code === 'APPROVAL_QUEUED') {
+        const data = err.data as { permission?: string | null } | undefined
+        throw new NeedsApprover(data?.permission ?? null)
+      }
       if (err instanceof ORPCError && err.code === 'FORBIDDEN') {
         throw new ApproverNotAllowed(err.message)
       }

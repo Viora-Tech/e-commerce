@@ -56,6 +56,9 @@ export type ApiContext = {
    *  token allows. Store procedures then run as that member, capped by the token's areas;
    *  account and other session-only procedures refuse it (`procedures/base.ts`). */
   apiPrincipal?: ApiPrincipal | undefined
+  /** Set while an approved change runs as the approver (`runAdminAction`): a "Needs approval"
+   *  tick that would hold it back is reported to `approveAction` instead of queuing it again. */
+  approvalReplay?: boolean | undefined
   /** Inbox realtime: publishes to Redis pub/sub after a write commits. Absent in tests: nothing is published (clients catch up by replay or polling). */
   inboxPublisher?: PubSubPublisher | undefined
   /** `fetch` for GitHub's issues API ("Report a bug"). Absent: the global fetch. Tests pass a fake so they never reach GitHub. */

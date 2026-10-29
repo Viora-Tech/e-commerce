@@ -1,7 +1,6 @@
 'use client'
 
 import type { ApiGrantView } from '@commerce/core'
-import type { McpSettings } from '@commerce/core/api-access'
 import { AiIcon } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
@@ -25,7 +24,6 @@ import TwoLines from './two-lines'
 type McpConnectedAppsProps = {
   /** Apps that signed in (OAuth) and API tokens that have been used, newest first. */
   apps: ApiGrantView[]
-  settings: McpSettings
   onDisconnect: (grant: ApiGrantView) => void
 }
 
@@ -33,14 +31,14 @@ type McpConnectedAppsProps = {
  * "Connected AI apps": every live connection, whichever way it connects. Apps that signed in
  * show their registered name (Claude, Claude Code, Cursorâ€¦); a token shows its own name.
  */
-export default function McpConnectedApps({ apps, settings, onDisconnect }: McpConnectedAppsProps) {
+export default function McpConnectedApps({ apps, onDisconnect }: McpConnectedAppsProps) {
   // Hooks
   const copy = useCopy(mcpContent)
   const format = useFormat()
 
   // Helpers
   const canDo = (g: ApiGrantView) => {
-    if (g.kind === 'oauth') return clientCanDo(copy, g.scopes, settings.requireApproval)
+    if (g.kind === 'oauth') return clientCanDo(copy, g.scopes)
     const s = tokenScopes(copy, g.scopes)
     return { first: s.first, second: `${s.second} Â· ${copy.connected.tokenRuns}` }
   }

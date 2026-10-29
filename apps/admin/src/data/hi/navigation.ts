@@ -138,6 +138,10 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
     title: 'स्टाफ़',
     body: 'कौन इस स्टोर में साइन इन कर सकता है और क्या-क्या कर सकता है।',
   },
+  '/settings/approvals': {
+    title: 'मंज़ूरियाँ',
+    body: 'किसी दूसरे मेंबर की मंज़ूरी का इंतज़ार कर रहे बदलाव, और आपके अपने अनुरोध।',
+  },
   '/settings/ai': {
     title: 'AI',
     body: 'AI से लिखें और अपने स्टोर से पूछें: इस महीने कितना इस्तेमाल हुआ, और इन्हें चालू करना।',

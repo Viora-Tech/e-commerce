@@ -19,7 +19,8 @@ member's role, read fresh from the database, and by the grant's areas (`products
 `settings`, each `read` or `write`). Mapping areas to permissions: `permissionsForScopes` in
 `@commerce/core/api-access`. Write never includes refunds, cancels, product or customer deletes,
 staff or billing: a call that runs at once cannot do those. An MCP client can still ask for them
-through `runAction`; they wait in AI approvals and run as the member who approves.
+through `runAction`; they wait in AI approvals and run as the member who approves, even when the
+member is the owner (the safety floor for AI clients).
 
 Secrets are stored only as SHA-256 hashes. Before a store is known, lookups go through SECURITY
 DEFINER functions (migration `0130`): `api_grant_for_access`, `api_grant_for_refresh`,
@@ -54,10 +55,11 @@ grant's permissions:
 - **Read tools** (`READ_TOOL_PERMISSION`), plus `customerDetails`, which answers only while
   *Let clients read customer details* is on.
 - **Change tools** (`ACTIONS`), listed only while *Allow AI clients to make changes* is on. A
-  call runs `proposeAction` with `source: 'mcp'`. The proposal waits in AI approvals for the
-  member who connected the client, the owner, or a member whose role holds the action's
-  permission (`openFor` in `services/ai/assistant/service.ts`). With *Changes need approval* off, `approveAction` runs at
-  once with the grant's permissions.
+  call runs `proposeAction` with `source: 'mcp'` and then `approveAction` at once with the grant's
+  permissions and the member's role (`grantScope` in `tools.ts`). When the role ticks
+  *Needs approval* for the action's permission, `approveAction` hands it to Approvals instead
+  (`needsApprover`, see "Role approvals" below). The store-wide *Changes need approval* switch
+  was retired in migration `0188`.
 
 Adding an assistant tool adds it to MCP too; nothing else to wire.
 
@@ -68,7 +70,7 @@ Three more tools reach the whole admin router (`admin-actions.ts`), always liste
 | Tool | What |
 |---|---|
 | `searchActions({ query, area? })` | Up to 20 procedures in the grant's areas: `path` (`orders.fulfil`), one line, `kind`, `area` |
-| `describeAction({ path })` | Input JSON Schema (from the procedure's Zod input), output hint, `kind`, `needsApproval` (`no` / `yes` / `always` / `blocked`) |
+| `describeAction({ path })` | Input JSON Schema (from the procedure's Zod input), output hint, `kind`, `needsApproval` (`no` / `always` / `blocked`; a role's tick still queues a `no`) |
 | `runAction({ path, input })` | Runs it, or queues it for approval |
 
 The catalogue is walked from `appRouter` at runtime (`routerProcedures`), so a new procedure is
@@ -85,8 +87,8 @@ such as `overview`, `label`, `pdf`) is a **read**, a name starting with
 | Kind | Runs |
 |---|---|
 | read | at once |
-| write | at once while *Changes need approval* is off, else queued |
-| sensitive | always queued: refunds, store credit, cancellations, deletes and removes, gift card money, payment gateway keys and settings, staff and roles, billing, domains, store export and deletion, MCP & API settings. `orders.setStatus` to `cancelled` and `products.bulk` deleting are sensitive by input |
+| write | at once with the member's role (queued in Approvals when the role ticks *Needs approval*) |
+| sensitive | always queued for a person in the admin, even for the owner: refunds, store credit, cancellations, deletes and removes, gift card money, payment gateway keys and settings, staff and roles, billing, domains, store export and deletion, MCP & API settings. `orders.setStatus` to `cancelled` and `products.bulk` deleting are sensitive by input |
 | excluded | never listed or run: `account.*`, `me`, `onboarding.*`, `invitations.*`, `bugReports.*`, creating or revoking tokens, approving, editing, cancelling or undoing AI actions, the AI bar itself, browser hand-offs (Razorpay and Google sign-in, media uploads) |
 
 Each router namespace maps to one grant area (`NAMESPACE_AREA`). Reads need the area, anything
@@ -112,7 +114,40 @@ waiting (`ApproverNotAllowed`), any other error marks it failed with that messag
 the asker, the owner or a member with the action's permission (for `runAdminAction`, whose
 permission only the procedure knows, any member may try to approve and the procedure decides;
 editing or cancelling it for someone else is the owner's). Expired proposals read as `expired`
-and are refused with a message saying so. `approvedBy` and `result.by` record the approver.
+and are refused with a message saying so. `approvedBy` and `result.by` record the approver; when
+the connecting member confirms their own client's sensitive action, `result.confirmedAi` is set
+(the view's `confirmedAi`), so it reads as confirming the AI rather than an approval.
+
+## Role approvals
+
+A role may tick *Needs approval* on any change permission (`role_approval`, migration `0188`;
+only the owner edits ticks, `staff.saveRoleApprovals`). Defaults for new stores and roles:
+`DEFAULT_APPROVAL_PERMISSIONS` in `@commerce/core/permissions` (refund, cancel, product and
+customer delete, discounts, `payments.manage`, billing, staff invite and manage). Payment keys
+and payouts moved from `settings.manage` to `payments.manage` (granted to every role that had
+`settings.manage`; `settings.manage` is not ticked).
+
+The queue lives in one place, `storeProcedureWith` (`procedures/store.ts`). For a procedure
+behind one `can(permission)` that the member's role ticks (`mustAsk`; never the owner), a call
+the catalogue classifies as write or sensitive (`approvalKind`, which also classifies admin-only
+namespaces such as `staff`) is stored as a `runAdminAction` row with `needsApprover`,
+`permission` and `source` `admin` / `mcp` / `api`, and the caller gets an `APPROVAL_QUEUED`
+error (`data.approvalId`). The admin's API client rewrites its message to "Sent for approval"
+(`apps/admin/src/lib/api-client.ts`), so every page's existing error display says so. MCP's
+`runAction` turns it into a "Waiting for approval" answer.
+
+Who approves (`canApprove` in `procedures/approval-rules.ts`): the owner, or a member with
+`approvals.manage` who holds the permission and whose role does not tick it; never the asker
+(`openFor`), who may only withdraw. Approving replays the call as the approver with
+`approvalReplay` set, so a tick on the approver's side cannot queue it twice. Queued rows expire
+after `APPROVAL_TTL_DAYS` (7). `approvals.waiting` / `mine` / `counts` back Settings → Approvals
+and its nav count; opening *Your requests* marks decided outcomes seen.
+
+Gaps, by design:
+- Reads are never queued, nor `canAny` / `canDetached` procedures (no single permission to tick),
+  nor a server-side `call()` without a path.
+- People-only paths (catalogue exclusions: browser hand-offs, tokens, deciding approvals) and
+  file uploads cannot wait: a ticked one is refused with `FORBIDDEN`.
 
 ## The token API
 
@@ -151,5 +186,5 @@ curl -X POST https://admin.koomerce.app/api/v1/products/list \
 
 `mcp-action-catalogue.test.ts` covers the classification, exclusions and that every namespace has
 an area; `mcp-actions.test.ts` covers search and describe, grant and role refusals, approval
-routing (setting on and off, sensitive always), approval running as the approver, activity rows,
+routing (role ticks, sensitive always, even for the owner), approval running as the approver, activity rows,
 file links and truncation.
