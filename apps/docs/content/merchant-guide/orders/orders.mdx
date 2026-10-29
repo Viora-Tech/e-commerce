@@ -169,6 +169,17 @@ apps ask for these one at a time, so copy and paste them field by field.
 **Copy all** copies them in one go, one per line, in the order courier apps ask for them: name,
 phone, address, city, state, PIN code.
 
+### Chat with the customer on WhatsApp
+
+Select **WhatsApp** on the card to chat from your own WhatsApp. Pick a message (**Payment
+link**, **Order confirmation**, **Shipping update** with the tracking link, or **Blank**), change
+the words if you like, then select **Open WhatsApp**. WhatsApp (the app or WhatsApp Web) opens
+with the message typed in; nothing goes until you press send there. This needs no WhatsApp
+connection, and it works the same on draft orders (**More actions → WhatsApp**), abandoned
+checkouts (**Abandoned cart** message with the recovery link) and the customer page. Each chat
+you open is noted on the order's or customer's **Timeline**, for example "Opened WhatsApp chat
+(payment link)".
+
 ### Change the customer's details on an order
 
 Select **Edit** on the card. You can change the **Name**, **Email** and **Mobile number** and
@@ -226,8 +237,9 @@ due** until the rest comes in, and its Payment status is **Partially paid**.
 
 For manual transfers, select **Send payment reminder** if the shopper forgets. When WhatsApp is
 connected (Apps → Messages), choose **Send by** Email, WhatsApp or Both; WhatsApp sends your
-approved `payment_reminder` template with the payment link. Without WhatsApp connected, **Open in
-WhatsApp** opens a chat with the reminder typed in, so you can send it from your own number. Each
+approved `payment_reminder` template with the payment link. Whenever the order has a phone,
+**Open in WhatsApp** also opens a chat with the reminder typed in, connected or not, so you can
+send it from your own number. Each
 reminder shows on the order's timeline. You can also
 have unpaid transfer orders cancel themselves after a set number of hours; the shopper gets an
 email 12 hours before that happens.

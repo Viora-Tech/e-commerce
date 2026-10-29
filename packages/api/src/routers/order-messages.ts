@@ -2,6 +2,7 @@ import { loadEnv, settingsSecret } from '@commerce/config'
 import {
   CommerceError,
   noteChatPaymentReminder,
+  noteWhatsappChat,
   ORDER_PREVIEW_TEMPLATES,
   permissions,
   previewOrderMessage,
@@ -10,6 +11,8 @@ import {
   requestBalance,
   sendManualPaymentReminder,
   storeNotificationChannels,
+  WHATSAPP_CHAT_TEMPLATES,
+  whatsappChatContext,
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
@@ -121,8 +124,8 @@ export const orderMessageRoutes = {
     }),
 
   /**
-   * The merchant opened the payment reminder in their own WhatsApp (store without a WhatsApp
-   * channel): records it on the order timeline. Nothing is sent from the platform.
+   * The merchant opened the payment reminder in their own WhatsApp (a wa.me chat, connected or
+   * not): records it on the order timeline. Nothing is sent from the platform.
    */
   notePaymentReminderChat: can(permissions.ORDERS_WRITE)
     .input(z.object({ orderId: z.uuid() }))
@@ -131,6 +134,43 @@ export const orderMessageRoutes = {
         { storeId: context.scope.storeId, tx: context.tx },
         input.orderId,
         { author: context.session.user.email },
+      )
+      return { noted }
+    }),
+
+  /**
+   * "WhatsApp" click to chat on an order, draft or abandoned checkout: the phone, names and
+   * signed links the admin types the chat from. Works with no WhatsApp channel connected.
+   */
+  whatsappChat: can(permissions.ORDERS_READ)
+    .input(z.object({ kind: z.enum(['order', 'checkout']), id: z.uuid() }))
+    .handler(async ({ context, input }) => {
+      const chat = await whatsappChatContext(
+        { storeId: context.scope.storeId, tx: context.tx },
+        input,
+        { storefrontUrl: loadEnv(process.env).STOREFRONT_URL, settingsSecret: settingsSecret() },
+      )
+      if (!chat) throw new ORPCError('NOT_FOUND', { message: 'Not found' })
+      return chat
+    }),
+
+  /**
+   * The merchant opened a click-to-chat WhatsApp: "Opened WhatsApp chat (<message>)" on the
+   * order's timeline (a checkout's: its customer's, when signed in). Nothing is sent from here.
+   */
+  noteWhatsappChat: can(permissions.ORDERS_WRITE)
+    .input(
+      z.object({
+        kind: z.enum(['order', 'checkout']),
+        id: z.uuid(),
+        template: z.enum(WHATSAPP_CHAT_TEMPLATES),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const noted = await noteWhatsappChat(
+        { storeId: context.scope.storeId, tx: context.tx },
+        { kind: input.kind, id: input.id },
+        { template: input.template, author: context.session.user.email },
       )
       return { noted }
     }),

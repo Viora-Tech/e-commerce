@@ -113,7 +113,7 @@ export async function seedDemoDrafts(ownerUrl: string, opts: { clean?: boolean }
     }
     if (opts.clean) return
 
-    const variants = await db
+    const rows = await db
       .select({
         id: variant.id,
         title: variant.title,
@@ -132,7 +132,11 @@ export async function seedDemoDrafts(ownerUrl: string, opts: { clean?: boolean }
           sql`${inventoryLevel.onHand} - ${inventoryLevel.reserved} > 0`,
         ),
       )
-    if (variants.length === 0) throw new Error('no in-stock variants to draft')
+    // A variant without a price (#929) cannot be sold, so it never goes in a demo draft.
+    const variants = rows.flatMap((v) =>
+      v.pricePaise === null ? [] : [{ ...v, pricePaise: v.pricePaise }],
+    )
+    if (variants.length === 0) throw new Error('no in-stock, priced variants to draft')
 
     const r = rng(20260922)
     const customers = await db
