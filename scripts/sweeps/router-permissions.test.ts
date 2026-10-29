@@ -57,6 +57,19 @@ const ALLOWLIST: AllowEntry[] = [
   },
   { site: 'staff.ts: me (storeProcedure)', reason: "the caller's own resolved role" },
   {
+    site: 'staff.ts: saveRoleApprovals (storeProcedure)',
+    reason: 'owner-only, checked in the handler (scope.isOwner)',
+  },
+  {
+    site: 'approvals.ts: waiting (storeProcedure)',
+    reason: 'filtered per item by canApprove(); never the requester',
+  },
+  { site: 'approvals.ts: mine (storeProcedure)', reason: "the caller's own requests only" },
+  {
+    site: 'approvals.ts: counts (storeProcedure)',
+    reason: "badge counts for the caller's own queue",
+  },
+  {
     site: 'store.ts: origin (storeProcedure)',
     reason: "the store's public web address, which every shopper already sees",
   },
