@@ -1586,6 +1586,15 @@ html:not(.has-cursor-fill) .share-row__copy:hover {
   color: var(--color-ink-light);
 }
 
+/* The pre-order note under the button (#936), as Essential Pre-Order prints it on Shopify:
+   muted body text, the merchant's line breaks kept. */
+.product-info__preorder-note {
+  margin: var(--space-3) 0 0;
+  color: var(--color-ink-light);
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
 /* ------------------------------------------------------------------ */
 /* Assurance list (theme block `assurance`)                            */
 /*                                                                     */

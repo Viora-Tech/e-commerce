@@ -1,9 +1,20 @@
-import { cart, cartLine, media, product, productMedia, sellableStock, variant } from '@commerce/db'
+import {
+  cart,
+  cartLine,
+  media,
+  product,
+  productMedia,
+  sellableStock,
+  store,
+  variant,
+} from '@commerce/db'
 import { and, asc, eq, inArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CartNotOpen, NotLaunchedYet, OutOfStock, PriceNotSet, VariantHidden } from '../errors'
 import { isLaunched } from '../preorder/launch'
-import { resolvePreorderSettings } from '../preorder/settings'
+import { preorderNoteText } from '../preorder/note'
+import { resolvePreorderSettings, resolveShipDate } from '../preorder/settings'
+import { parsePreorderStoreSettings } from '../preorder/store-settings'
 
 export type CartLineView = {
   id: string
@@ -20,6 +31,8 @@ export type CartLineView = {
   giftCard: boolean
   /** Sold under pre-order rules; the storefront shows the ship date and badge for this line. */
   preorder: boolean
+  /** The pre-order note (#936), ship date filled in; null when the line is no pre-order or has none. */
+  preorderNote?: string | null | undefined
 }
 
 export type CartView = {
@@ -147,6 +160,7 @@ export async function getCart(ctx: StoreContext, cartId: string): Promise<CartVi
       preorderShipsInDays: product.preorderShipsInDays,
       preorderLimit: product.preorderLimit,
       preorderButtonLabel: product.preorderButtonLabel,
+      preorderNote: product.preorderNote,
       preorderPaymentMode: product.preorderPaymentMode,
       preorderDepositPaise: product.preorderDepositPaise,
       preorderDepositPercent: product.preorderDepositPercent,
@@ -161,6 +175,24 @@ export async function getCart(ctx: StoreContext, cartId: string): Promise<CartVi
     ctx,
     rows.filter((r) => !r.imageUrl).map((r) => r.productId),
   )
+  const storeNote = rows.some((r) => r.preorder)
+    ? parsePreorderStoreSettings(
+        (
+          await ctx.tx
+            .select({ preorder: store.preorder })
+            .from(store)
+            .where(eq(store.id, ctx.storeId))
+        )[0]?.preorder,
+      ).note
+    : null
+  const noteOf = (r: (typeof rows)[number]) =>
+    r.preorder
+      ? preorderNoteText({
+          productNote: r.preorderNote,
+          storeNote,
+          shipDate: resolveShipDate(resolvePreorderSettings(r, r.preorderOverride)),
+        })
+      : null
   const lines: CartLineView[] = rows.map((r) => ({
     id: r.id,
     variantId: r.variantId,
@@ -174,6 +206,7 @@ export async function getCart(ctx: StoreContext, cartId: string): Promise<CartVi
     imageUrl: r.imageUrl ?? firstImages.get(r.productId) ?? null,
     giftCard: r.giftCard,
     preorder: r.preorder,
+    preorderNote: noteOf(r),
   }))
   return {
     id: c.id,
@@ -207,6 +240,17 @@ export async function addToCart(
   const unitPricePaise = v.pricePaise
   if (unitPricePaise == null) throw new PriceNotSet(variantId, ctx.storeId)
   const preorder = resolvePreorderSettings(p, v.preorderOverride).enabled
+  // Sold out and not on pre-order (the product has none, or this variant does not allow it,
+  // #962): the product page crosses it out, and the cart refuses it too.
+  if (!preorder && v.trackInventory && !p.isGiftCard) {
+    const [stock] = await ctx.tx
+      .select({ onHand: sellableStock.onHand, reserved: sellableStock.reserved })
+      .from(sellableStock)
+      .where(eq(sellableStock.variantId, variantId))
+    if (Math.max(0, (stock?.onHand ?? 0) - (stock?.reserved ?? 0)) < 1) {
+      throw new OutOfStock(variantId, ctx.storeId)
+    }
+  }
   const [existing] = await ctx.tx
     .select()
     .from(cartLine)

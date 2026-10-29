@@ -11,6 +11,7 @@ import {
   loadStoreStorageSettings,
   NotificationSettingsSchema,
   PaymentSettingsSchema,
+  PREORDER_NOTE_MAX,
   PreorderStoreSettingsSchema,
   parseNotificationSettings,
   parsePaymentSettings,
@@ -271,7 +272,28 @@ export const storeRouter = {
   updatePreorder: can(permissions.SETTINGS_MANAGE)
     .input(PreorderStoreSettingsSchema)
     .handler(async ({ context, input }) => {
-      const saved = await updateStorePreorder(context.tx, context.scope.storeId, input)
+      // The note has its own card and call (`updatePreorderNote`): this one never changes it.
+      const current = parsePreorderStoreSettings(
+        (await getStore(context.tx, context.scope.storeId))?.preorder,
+      )
+      const saved = await updateStorePreorder(context.tx, context.scope.storeId, {
+        ...input,
+        note: current.note,
+      })
+      return parsePreorderStoreSettings(saved?.preorder)
+    }),
+
+  /** The store's default pre-order note (#936), for pre-order products without their own. */
+  updatePreorderNote: can(permissions.SETTINGS_MANAGE)
+    .input(z.object({ note: z.string().trim().max(PREORDER_NOTE_MAX).nullable() }))
+    .handler(async ({ context, input }) => {
+      const current = parsePreorderStoreSettings(
+        (await getStore(context.tx, context.scope.storeId))?.preorder,
+      )
+      const saved = await updateStorePreorder(context.tx, context.scope.storeId, {
+        ...current,
+        note: input.note || null,
+      })
       return parsePreorderStoreSettings(saved?.preorder)
     }),
 

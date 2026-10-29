@@ -31,6 +31,8 @@ export type VariantRow = {
   trackInventory: boolean
   /** Hidden on the storefront, kept in admin (#934). */
   hiddenOnStore: boolean
+  /** Sells on pre-order once out of stock, while the product is on pre-order (default on). */
+  preorderAllowed: boolean
   quantity: string
   /** As typed, in `weightUnit`; saved as whole grams. */
   weight: string
@@ -80,6 +82,8 @@ export type ProductFormState = {
   preorderShipsInDays: string
   preorderLimit: string
   preorderButtonLabel: string
+  /** Blank uses the store's default note. */
+  preorderNote: string
   preorderPaymentMode: 'full' | 'fixed' | 'percentage'
   preorderDeposit: string
   preorderDepositPercent: string
@@ -107,6 +111,7 @@ export function emptyVariant(optionValues: string[], template?: VariantRow): Var
     taxable: template?.taxable ?? true,
     trackInventory: template?.trackInventory ?? true,
     hiddenOnStore: false,
+    preorderAllowed: template?.preorderAllowed ?? true,
     quantity: '0',
     weight: template?.weight ?? '',
     weightUnit: template?.weightUnit ?? DEFAULT_WEIGHT_UNIT,
@@ -144,6 +149,7 @@ export function emptyForm(): ProductFormState {
     preorderShipsInDays: '',
     preorderLimit: '',
     preorderButtonLabel: 'Pre-order',
+    preorderNote: '',
     preorderPaymentMode: 'full',
     preorderDeposit: '',
     preorderDepositPercent: '',
@@ -179,6 +185,7 @@ export function fromProduct(p: LoadedProduct): ProductFormState {
     preorderShipsInDays: p.preorderShipsInDays == null ? '' : String(p.preorderShipsInDays),
     preorderLimit: p.preorderLimit == null ? '' : String(p.preorderLimit),
     preorderButtonLabel: p.preorderButtonLabel || 'Pre-order',
+    preorderNote: p.preorderNote ?? '',
     preorderPaymentMode: p.preorderPaymentMode,
     preorderDeposit: rupees.toField(p.preorderDepositPaise),
     preorderDepositPercent:
@@ -206,6 +213,7 @@ export function fromProduct(p: LoadedProduct): ProductFormState {
             taxable: v.taxable,
             trackInventory: v.trackInventory,
             hiddenOnStore: v.hiddenOnStore,
+            preorderAllowed: v.preorderAllowed,
             quantity: String(v.onHand ?? 0),
             weight: fromGrams(v.weightGrams, v.weightUnit ?? DEFAULT_WEIGHT_UNIT),
             weightUnit: v.weightUnit ?? DEFAULT_WEIGHT_UNIT,
@@ -365,6 +373,7 @@ export function toWrite(form: ProductFormState): ProductWrite {
     preorderShipsInDays: intOrNull(form.preorderShipsInDays),
     preorderLimit: intOrNull(form.preorderLimit),
     preorderButtonLabel: form.preorderButtonLabel.trim() || 'Pre-order',
+    preorderNote: form.preorderNote.trim() || null,
     preorderPaymentMode: form.preorderPaymentMode,
     preorderDepositPaise: rupees.toPaise(form.preorderDeposit),
     preorderDepositPercent: intOrNull(form.preorderDepositPercent),
@@ -389,6 +398,7 @@ export function toWrite(form: ProductFormState): ProductWrite {
       taxable: v.taxable,
       trackInventory: v.trackInventory,
       hiddenOnStore: v.hiddenOnStore,
+      preorderAllowed: v.preorderAllowed,
       weightGrams: toGrams(v.weight, v.weightUnit),
       weightUnit: v.weightUnit,
       hsCode: v.hsCode.trim() || null,

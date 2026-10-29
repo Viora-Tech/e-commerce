@@ -237,6 +237,7 @@ export async function getProduct(tx: StoreTx, id: string) {
       taxable: variant.taxable,
       trackInventory: variant.trackInventory,
       hiddenOnStore: variant.hiddenOnStore,
+      preorderOverride: variant.preorderOverride,
       weightGrams: variant.weightGrams,
       weightUnit: variant.weightUnit,
       hsCode: variant.hsCode,
@@ -301,8 +302,10 @@ export async function getProduct(tx: StoreTx, id: string) {
       name: o.name,
       values: values.filter((v) => v.optionId === o.id).map((v) => ({ id: v.id, value: v.value })),
     })),
-    variants: variants.map((v) => ({
+    variants: variants.map(({ preorderOverride, ...v }) => ({
       ...v,
+      /** The variant's "Allow pre-order" switch (on unless its override turns it off). */
+      preorderAllowed: preorderOverride?.enabled !== false,
       /** The variant's images in order; the first is `mediaId`. */
       mediaIds: variantImages.get(v.id) ?? (v.mediaId ? [v.mediaId] : []),
       /** Values in option order, so the form can rebuild the matrix row. */

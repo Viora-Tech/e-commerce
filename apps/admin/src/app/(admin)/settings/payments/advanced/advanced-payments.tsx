@@ -7,6 +7,7 @@ import UpiCompare from '@/components/payments/upi-compare'
 import ManualTransferFields from '@/components/settings/manual-transfer-fields'
 import PaymentAdjustmentFields from '@/components/settings/payment-adjustment-fields'
 import PreorderBalanceSettings from '@/components/settings/preorder-balance-settings'
+import PreorderNoteSettings from '@/components/settings/preorder-note-settings'
 import ProviderSettingsForm, {
   type ProviderDef,
 } from '@/components/settings/provider-settings-form'
@@ -105,7 +106,8 @@ function footer(
         />
       </SettingsSection>
       {/* Saved on its own (store.preorder), not with the payment methods above. */}
-      <SettingsSection id={preorders?.id ?? 'section-preorders'}>
+      <SettingsSection id={preorders?.id ?? 'section-preorders'} className="flex flex-col gap-4">
+        <PreorderNoteSettings />
         <PreorderBalanceSettings />
       </SettingsSection>
     </>

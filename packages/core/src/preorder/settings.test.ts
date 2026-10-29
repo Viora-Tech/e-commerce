@@ -6,6 +6,8 @@ import {
   resolvePreorderSettings,
   resolveShipDate,
   validateDepositAgainstPrice,
+  variantAllowsPreorder,
+  withPreorderAllowed,
 } from './settings'
 
 const product: ProductPreorderRow = {
@@ -44,6 +46,27 @@ describe('resolvePreorderSettings', () => {
 
   it('an override can turn pre-order off for one variant', () => {
     expect(resolvePreorderSettings(product, { enabled: false }).enabled).toBe(false)
+  })
+
+  // #962: pre-order is per variant, the product's switch AND the variant's "Allow pre-order".
+  it('a variant cannot turn pre-order on for a product that has it off', () => {
+    const off = { ...product, preorderEnabled: false }
+    expect(resolvePreorderSettings(off, { enabled: true }).enabled).toBe(false)
+    expect(resolvePreorderSettings(off).enabled).toBe(false)
+  })
+})
+
+describe("the variant's Allow pre-order switch", () => {
+  it('is on unless the override turns it off', () => {
+    expect(variantAllowsPreorder(null)).toBe(true)
+    expect(variantAllowsPreorder({ limit: 3 })).toBe(true)
+    expect(variantAllowsPreorder({ enabled: false })).toBe(false)
+  })
+
+  it('stores off as enabled: false and on as no override, keeping other keys', () => {
+    expect(withPreorderAllowed(null, false)).toEqual({ enabled: false })
+    expect(withPreorderAllowed({ enabled: false }, true)).toBeNull()
+    expect(withPreorderAllowed({ enabled: false, limit: 3 }, true)).toEqual({ limit: 3 })
   })
 })
 

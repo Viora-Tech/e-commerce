@@ -238,6 +238,7 @@ export async function buildTemplateData(
       variantTitle: orderLine.variantTitle,
       quantity: orderLine.quantity,
       unitPricePaise: orderLine.unitPricePaise,
+      preorderNote: orderLine.preorderNote,
       productId: variant.productId,
       variantImage: media.url,
     })
@@ -280,6 +281,7 @@ export async function buildTemplateData(
         priceLabel: formatMoney(l.quantity * l.unitPricePaise),
         imageUrl:
           l.variantImage ?? images.find((i) => i.productId === l.productId)?.url ?? undefined,
+        ...(l.preorderNote ? { note: l.preorderNote } : {}),
       })),
       // Named after the rate ("Bluedart"), so an edit that changed the rate shows the new one.
       shipping:
