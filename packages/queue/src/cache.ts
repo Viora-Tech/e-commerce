@@ -28,14 +28,14 @@ export const serviceabilityKey = (storeId: string, provider: string, pincode: st
   `{shipping}:serviceability:${storeId}:${provider}:${pincode}`
 
 /** Add one; the key expires `ttlSeconds` after its first count. */
-export async function cacheIncr(redis: IORedis, key: string, ttlSeconds: number): Promise<number> {
+async function cacheIncr(redis: IORedis, key: string, ttlSeconds: number): Promise<number> {
   const n = await redis.incr(key)
   if (n === 1) await redis.expire(key, ttlSeconds)
   return n
 }
 
 /** Newest first, keeping the latest `keep` entries. */
-export async function cachePush(
+async function cachePush(
   redis: IORedis,
   key: string,
   value: unknown,
@@ -50,7 +50,7 @@ export async function cachePush(
     .exec()
 }
 
-export async function cacheList<T>(redis: IORedis, key: string): Promise<T[]> {
+async function cacheList<T>(redis: IORedis, key: string): Promise<T[]> {
   const raw = await redis.lrange(key, 0, -1)
   return raw.flatMap((r) => {
     try {
