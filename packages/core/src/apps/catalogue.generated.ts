@@ -1888,4 +1888,58 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     themeBlocks: [],
     credits: [],
   },
+  {
+    id: 'delivery-options',
+    name: 'Delivery options',
+    kind: 'builtin',
+    category: 'shipping',
+    company: null,
+    description:
+      'Show Standard and Express at checkout from the couriers you connected: the real courier, arrival date and price for each PIN code, with product rules.',
+    tagline: 'Your connected couriers, as delivery choices at checkout.',
+    highlights: [
+      'Standard (cheapest) and Express (fastest) cards with the courier and arrival date',
+      'Price = courier cost + your markup + insurance, rounded up to the next ₹10',
+      'Product and collection rules: "Glasspads ship with Delhivery only"',
+      'Express is prepaid only; Standard keeps cash on delivery',
+      'Couriers down? Checkout still shows Standard at your shipping rate',
+      'The order saves the exact route, and Create shipment books it',
+    ],
+    guide: '/merchant-guide/apps/delivery-options',
+    worksWith: [
+      'Delhivery, Blue Dart, DTDC and the other courier apps',
+      'Shiprocket and RapidShyp (each carrier they offer is a route)',
+      'Settings → Shipping rates, as the Standard backup',
+      'Create shipment and bulk booking',
+    ],
+    screenshots: [],
+    keywords: [
+      'delivery options',
+      'express delivery',
+      'shipping rates',
+      'carrier calculated',
+      'courier',
+      'checkout',
+    ],
+    faq: [],
+    icon: 'Truck',
+    access: {
+      resources: [
+        {
+          resource: 'orders',
+          level: 'read-write',
+          why: 'Saves the route the shopper picked on the order',
+        },
+        {
+          resource: 'products',
+          level: 'read',
+          why: 'Reads collections and tags for product route rules',
+        },
+      ],
+      shares: [],
+    },
+    adminPages: ['Overview'],
+    themeBlocks: [],
+    credits: [],
+  },
 ]

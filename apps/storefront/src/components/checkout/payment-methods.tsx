@@ -127,8 +127,12 @@ export default function PaymentMethods({
                       ))}
                     </span>
                   ) : null}
-                  {blocked && codNote ? (
-                    <span className="text-[0.75rem] leading-snug text-ck-danger">{codNote}</span>
+                  {m.id === 'cod' && codNote ? (
+                    <span
+                      className={`text-[0.75rem] leading-snug ${blocked ? 'text-ck-danger' : 'text-ck-muted'}`}
+                    >
+                      {codNote}
+                    </span>
                   ) : null}
                 </span>
                 {adjustment ? (

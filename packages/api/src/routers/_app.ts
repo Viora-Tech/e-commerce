@@ -21,6 +21,7 @@ import { customerAccountsRouter } from './customer-accounts'
 import { customerPrivacyRouter } from './customer-privacy'
 import { customersRouter } from './customers'
 import { dashboardRouter } from './dashboard'
+import { deliveryOptionsRouter } from './delivery-options'
 import { discountsRouter } from './discounts'
 import { domainsRouter } from './domains'
 import { emiRouter } from './emi'
@@ -122,6 +123,7 @@ export const appRouter = {
   affiliates: affiliatesRouter,
   pixels: pixelsRouter,
   codRto: codRtoRouter,
+  deliveryOptions: deliveryOptionsRouter,
   platformApps: platformAppsRouter,
   backInStock: backInStockRouter,
   emi: emiRouter,

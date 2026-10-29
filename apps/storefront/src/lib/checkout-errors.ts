@@ -59,5 +59,7 @@ function checkoutRuleMessage(err: CheckoutRuleViolation, pincode: string): strin
       return e.stateMismatch(pincode)
     case 'cod_high_risk':
       return e.codHighRisk
+    case 'cod_prepaid_only_option':
+      return e.codPrepaidOnlyOption
   }
 }

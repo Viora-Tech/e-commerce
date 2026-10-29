@@ -9,7 +9,6 @@
 import { computeDeliveryEstimate, type DispatchPolicy } from '@commerce/shipping'
 import type { ShippingRateOption } from '../rates'
 import type { DeliveryConfig, DeliveryOption, RouteSelector } from './config'
-import { type CartItemFacts, matchingRules, poolAllows, type RulePool, rulePool } from './rules'
 import {
   insurancePrice,
   type ProviderAnswer,
@@ -17,6 +16,7 @@ import {
   routesFromAnswers,
   selectorMatches,
 } from './routes'
+import { type CartItemFacts, matchingRules, poolAllows, type RulePool, rulePool } from './rules'
 
 export type ZoneQuote =
   | { kind: 'not_configured' }
@@ -155,13 +155,18 @@ export type OptionTrace = {
   hidden: 'no_route' | 'couriers_down' | 'no_zone_rate' | 'disabled' | null
 }
 
-export type ResolveResult = {
+export type DeliveryResolveResult = {
   /** `unserviceable`: every route truly said no. `none`: nothing to show (use zone rates). */
   status: 'options' | 'unserviceable' | 'none'
   options: ResolvedOption[]
   trace: {
     options: OptionTrace[]
-    providers: Array<Pick<ProviderAnswer, 'providerId' | 'providerLabel' | 'status' | 'source' | 'ms' | 'error' | 'serviceable'>>
+    providers: Array<
+      Pick<
+        ProviderAnswer,
+        'providerId' | 'providerLabel' | 'status' | 'source' | 'ms' | 'error' | 'serviceable'
+      >
+    >
   }
 }
 
@@ -185,7 +190,12 @@ const summary = (r: Route): RouteSummary => ({
   source: r.source,
 })
 
-type Dated = { earliest: string | null; latest: string | null; estimated: boolean; transitMax: number }
+type Dated = {
+  earliest: string | null
+  latest: string | null
+  estimated: boolean
+  transitMax: number
+}
 
 function datesFor(route: Route | null, option: DeliveryOption, input: ResolveInput): Dated {
   const { policy, now } = input
@@ -209,7 +219,12 @@ function datesFor(route: Route | null, option: DeliveryOption, input: ResolveInp
       maxTransitDays: max + eta.processingDays + eta.bufferDays,
       policy,
     })
-    return { earliest: e.earliestDate, latest: e.latestDate, estimated: !fixed && !known, transitMax: max }
+    return {
+      earliest: e.earliestDate,
+      latest: e.latestDate,
+      estimated: !fixed && !known,
+      transitMax: max,
+    }
   } catch {
     // A calendar with no working days cannot produce a date; the card shows none.
     return { earliest: null, latest: null, estimated: !fixed && !known, transitMax: max }
@@ -230,7 +245,9 @@ function priceRoute(
   const p = option.price
   const zoneRate = p.source === 'zone' ? cheapestZoneRate(input.zone) : null
   const markup = p.markupPaise + Math.ceil((base * p.markupPercent) / 100)
-  const raw = zoneRate ? zoneRate.listPricePaise + (insurance ?? 0) : base + markup + (insurance ?? 0)
+  const raw = zoneRate
+    ? zoneRate.listPricePaise + (insurance ?? 0)
+    : base + markup + (insurance ?? 0)
   let list = roundUpToTenRupees(raw)
   if (p.minPaise != null) list = Math.max(list, p.minPaise)
   if (p.maxPaise != null) list = Math.min(list, p.maxPaise)
@@ -375,7 +392,8 @@ function alternativesFor(
       fits.filter((c) => selectorMatches(c.route, sel) && c.route.key !== winnerKey),
       option,
     )
-    if (best && !out.some((p) => p.route.key === best.winner.route.key)) out.push(best.winner.priced)
+    if (best && !out.some((p) => p.route.key === best.winner.route.key))
+      out.push(best.winner.priced)
   }
   return out
 }
@@ -410,7 +428,7 @@ function traceRoute(
 
 const asRef = (r: { id: string; name: string }) => ({ id: r.id, name: r.name })
 
-export function resolveDeliveryOptions(input: ResolveInput): ResolveResult {
+export function resolveDeliveryOptions(input: ResolveInput): DeliveryResolveResult {
   const { config, cart, answers } = input
   const routes = routesFromAnswers(answers, config.routeSettings, cart.weightGrams)
   const anyFailed = answers.length === 0 || answers.some((a) => a.status === 'failed')
@@ -460,14 +478,19 @@ export function resolveDeliveryOptions(input: ResolveInput): ResolveResult {
          courier failed and no answered route is serviceable. Express then hides; Standard
          falls back to the store's zone rate with no route saved. */
       const down = anyFailed && !candidates.some((r) => r.serviceable && poolAllows(pool, r))
-      const backup = down && option.speed === 'standard' ? backupOption(option, input, codAllowed) : null
+      const backup =
+        down && option.speed === 'standard' ? backupOption(option, input, codAllowed) : null
       if (backup) {
         options.push(backup)
         traces.push({ ...trace, why: { kind: 'backup' } })
       } else {
         traces.push({
           ...trace,
-          hidden: down ? (option.speed === 'standard' ? 'no_zone_rate' : 'couriers_down') : 'no_route',
+          hidden: down
+            ? option.speed === 'standard'
+              ? 'no_zone_rate'
+              : 'couriers_down'
+            : 'no_route',
         })
       }
       continue
@@ -497,7 +520,12 @@ export function resolveDeliveryOptions(input: ResolveInput): ResolveResult {
       etaEstimated: pick.etaEstimated,
       codAllowed: codAllowed && codPick !== null,
       cod: codPick?.winner.priced ?? null,
-      insurance: { offered: offered && !required, required, on: insured, pricePaise: pick.insurancePaise },
+      insurance: {
+        offered: offered && !required,
+        required,
+        on: insured,
+        pricePaise: pick.insurancePaise,
+      },
       backupRate: null,
     })
     traces.push({ ...trace, winner: winner.route.key, why })

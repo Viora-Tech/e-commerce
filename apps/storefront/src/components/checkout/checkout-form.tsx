@@ -224,6 +224,10 @@ export default function CheckoutForm(props: CheckoutFormProps) {
               unserviceable={ck.unserviceable}
               estimate={ck.deliveryText}
               onSelect={ck.handleRate}
+              routeKey={ck.routeKey}
+              onRoute={ck.handleRoute}
+              insurance={ck.insurance}
+              onInsurance={ck.handleInsurance}
             />
           </CheckoutCard>
         )}

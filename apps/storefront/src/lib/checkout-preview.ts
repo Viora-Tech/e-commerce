@@ -155,7 +155,10 @@ export function checkoutTotals(input: CheckoutTotalsInput) {
     pincode: input.pincode,
     orderValuePaise: ruleSubtotal + shippingPaise,
   })
+  // Delivery options app: Express (any prepaid-only option) refuses cash on delivery.
+  const optionPrepaid = rate?.delivery?.codAllowed === false
   const codBlocked =
+    optionPrepaid ||
     (delivery?.ok === true && delivery.serviceable && !delivery.codAvailable) ||
     (giftCards.length > 0 && !coveredByCardsBefore(giftCards, discounted + shippingPaise)) ||
     !codRule.allowed
@@ -168,17 +171,28 @@ export function checkoutTotals(input: CheckoutTotalsInput) {
     rate,
   )
   const { adjustmentPaise, totalPaise: goodsPaise } = applyPaymentAdjustment(discounted, adjustment)
-  const totalPaise = goodsPaise + shippingPaise
+  // Standard's COD route can cost more than its prepaid one: paying on delivery charges that.
+  const codShippingPaise = rate?.delivery?.codPricePaise ?? null
+  const chargedShippingPaise =
+    payment === 'cod' && codShippingPaise !== null && !digitalOnly
+      ? codShippingPaise
+      : shippingPaise
+  const totalPaise = goodsPaise + chargedShippingPaise
   const { rows: cardRows, duePaise } = spendCards(giftCards, totalPaise)
   const coveredByCards = giftCards.length > 0 && duePaise === 0
+  const codExtraPaise = codShippingPaise === null ? 0 : codShippingPaise - shippingPaise
   const codNote =
     giftCards.length > 0 && !coveredByCards
       ? content.codWithGiftCard
-      : codRule.allowed
-        ? null
-        : codRule.reason === 'blocked_pincode'
-          ? content.codRules.blockedPincode
-          : content.codRules.overLimit(formatMoney(codRule.limitPaise ?? 0))
+      : optionPrepaid
+        ? content.delivery.codPrepaidOnly(rate?.delivery?.optionName ?? '')
+        : codRule.allowed
+          ? codExtraPaise > 0 && rate?.delivery?.codCarrier
+            ? content.delivery.codRoute(formatMoney(codExtraPaise), rate.delivery.codCarrier)
+            : null
+          : codRule.reason === 'blocked_pincode'
+            ? content.codRules.blockedPincode
+            : content.codRules.overLimit(formatMoney(codRule.limitPaise ?? 0))
   return {
     digitalOnly,
     offered,
