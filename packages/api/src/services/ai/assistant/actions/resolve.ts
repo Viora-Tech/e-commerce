@@ -18,6 +18,16 @@ export class ProposalProblem extends CommerceError {
   }
 }
 
+/**
+ * The approving member's role may not make this change. Approve refuses and leaves the proposal
+ * open, so a member whose role allows it can still approve it.
+ */
+export class ApproverNotAllowed extends CommerceError {
+  constructor(message: string) {
+    super('AI_APPROVER_NOT_ALLOWED', message)
+  }
+}
+
 export const MAX_ITEMS = ASSISTANT_LIMITS.maxItemsPerAction
 
 export function rupees(env: Pick<ActionEnv, 'store'>, paise: number): string {

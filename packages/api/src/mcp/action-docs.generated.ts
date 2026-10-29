@@ -57,7 +57,7 @@ export const ACTION_DOCS: Record<string, string> = {
   'ai.activity': 'Settings → AI → Activity: every AI action in the store, newest first.',
   'ai.applyBulk': 'Applies the reviewed suggestions to products; logged in Activity with an undo.',
   'ai.approveAction':
-    "Approve on a proposal card: runs it with the caller's permission for that action.",
+    'Approve on a proposal card: runs it as the caller, with their permission for that action.',
   'ai.assistant': 'The AI bar on every admin page: a streamed answer (oRPC event iterator).',
   'ai.bulkWrite':
     'Bulk "Write with AI" on the products list: starts a worker run, returns its progress.',
