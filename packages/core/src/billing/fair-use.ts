@@ -14,7 +14,7 @@ import { billingMonth, monthRange, previousMonth } from './usage-fee-service'
  * Storefront visits (sessions) started in an IST month. Sessions only count shoppers who
  * accepted analytics, and bots start none, so this undercounts: fine for a soft limit.
  */
-export async function monthVisits(tx: StoreTx, month: string): Promise<number> {
+async function monthVisits(tx: StoreTx, month: string): Promise<number> {
   const { start, end } = monthRange(month)
   const [row] = await tx
     .select({ n: count() })

@@ -1,12 +1,12 @@
 import { siteConfig } from '@commerce/config/site'
 import { OWN_IT_PRICES, PLAN_GST_PERCENT, type PlanId } from '@commerce/core/billing'
+import { formatMoney } from '@commerce/money'
 
 const brand = siteConfig.brand.name
 const { starter, growth, pro, scale } = siteConfig.plans
 const trial = siteConfig.trialDays
 const starterWithGst = Math.round(starter.monthlyInr * (1 + PLAN_GST_PERCENT / 100))
 const ownIt = OWN_IT_PRICES.india
-const inr = (rupees: number) => `₹${rupees.toLocaleString('en-IN')}`
 const count = (n: number) => n.toLocaleString('en-IN')
 /** The paid plans' fee rates, lowest to highest: "0.5–1%". */
 const feeRange = `${pro.feePercent}–${starter.feePercent}%`
@@ -258,7 +258,7 @@ export const pricingContent = {
     ownIt: {
       title: 'Own it',
       body: `Run ${brand} on your own server: no per-order fee, unlimited orders, one brand per licence.`,
-      price: `${inr(ownIt.licence / 100)} once + ${inr(ownIt.carePerMonth / 100)} a month for updates and support`,
+      price: `${formatMoney(ownIt.licence, ownIt.currency)} once + ${formatMoney(ownIt.carePerMonth, ownIt.currency)} a month for updates and support`,
       setup: 'Setup on your server ₹7,500, if you want us to do it.',
       action: 'Talk to us',
       href: '/contact',

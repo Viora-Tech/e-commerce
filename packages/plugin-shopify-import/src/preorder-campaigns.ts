@@ -31,7 +31,7 @@ const unescapeAttr = (value: string): string =>
   value.replace(/&(quot|amp|lt|gt|apos|#39|#x27);/g, (_m, name: string) => ENTITIES[name] ?? '')
 
 /** The numeric id at the end of a Shopify gid (`gid://shopify/ProductVariant/123` → `123`). */
-export const shopifyNumericId = (id: string | null): string | null =>
+const shopifyNumericId = (id: string | null): string | null =>
   id ? (/(\d+)$/.exec(id)?.[1] ?? null) : null
 
 /** Variant id → its campaign's message, from a storefront page's Essential Pre-Order data. */

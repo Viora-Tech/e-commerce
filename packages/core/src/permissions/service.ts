@@ -80,7 +80,7 @@ export async function seedSystemRoles(tx: StoreTx, storeId: string): Promise<voi
 }
 
 /** Replaces a role's "Needs approval" ticks with exactly `next` (change grains only). */
-export async function writeApprovals(
+async function writeApprovals(
   tx: StoreTx,
   storeId: string,
   roleId: string,

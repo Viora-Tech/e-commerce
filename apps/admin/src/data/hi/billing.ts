@@ -41,7 +41,7 @@ export default [
     },
     unlimited: {
       name: 'अनलिमिटेड',
-      line: 'Koomerce का अपना स्टोर: कोई लिमिट, प्रति-ऑर्डर फ़ीस या बिल नहीं।',
+      line: `${siteConfig.brand.name} का अपना स्टोर: कोई लिमिट, प्रति-ऑर्डर फ़ीस या बिल नहीं।`,
       aiCap: (used, cap) => `${cap} में से ${used} (सुरक्षा सीमा)`,
     },
     fees: {

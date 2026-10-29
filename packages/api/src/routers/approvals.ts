@@ -12,7 +12,7 @@ import {
   approvalCounts,
   listMyRequests,
   listWaitingApprovals,
-} from '../services/ai/assistant/service'
+} from '../services/ai/assistant/activity'
 
 export const approvalsRouter = {
   /** Waiting changes this member may decide, and recently expired ones (marked expired). */

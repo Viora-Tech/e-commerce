@@ -22,7 +22,7 @@ export type MonthFee = {
 }
 
 /** Fees under ₹100 (with what was carried in) wait for the next month instead of a bill. */
-export const USAGE_BILL_MIN_PAISE = 10_000
+const USAGE_BILL_MIN_PAISE = 10_000
 
 /** The period covering `at`; after an upgrade two overlap, and the later one wins. */
 function periodAt(periods: PaidPeriod[], at: Date): PaidPeriod | null {

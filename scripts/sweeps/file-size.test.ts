@@ -32,7 +32,6 @@ const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
   'packages/api/src/routers/store.ts': { lines: 524, reason: SPLIT },
   'packages/api/src/services/analytics-reports.ts': { lines: 554, reason: SPLIT },
   'packages/api/src/services/dashboard.service.ts': { lines: 1027, reason: SPLIT },
-  'packages/api/src/services/customer.service.ts': { lines: 509, reason: SPLIT },
   'packages/api/src/services/payments-setup.service.ts': {
     lines: 626,
     reason:
@@ -47,16 +46,20 @@ const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
     reason: 'API keys plus the OAuth server for MCP clients — split OAuth into its own module',
   },
   'packages/core/src/billing/service.ts': {
-    lines: 502,
+    lines: 932,
     reason:
-      'plan billing: checkout, renewals and allowances — split renewals into their own module',
+      'plan bills plus the per-order fee bills and the billing sweep — split usage-fee billing into its own module (#973)',
   },
   'packages/core/src/gift-cards/service.ts': { lines: 705, reason: SPLIT },
   'packages/core/src/marketing/automations.ts': { lines: 837, reason: SPLIT },
   'packages/core/src/marketing/campaigns.ts': { lines: 508, reason: SPLIT },
   'packages/core/src/metaobjects/service.ts': { lines: 768, reason: SPLIT },
   'packages/core/src/notifications/deliver.ts': { lines: 609, reason: SPLIT },
-  'packages/core/src/order/place-order.ts': { lines: 1044, reason: SPLIT },
+  'packages/core/src/order/place-order.ts': {
+    lines: 1137,
+    reason:
+      'checkout: gift-card rules, payment adjustments, customer upsert and the cart lock around placeOrder — split into sibling modules (#973)',
+  },
   'packages/core/src/returns/service.ts': { lines: 763, reason: SPLIT },
   'packages/core/src/theme-code/files.ts': { lines: 550, reason: SPLIT },
   'packages/core/src/theme-import/resource-drops.ts': {
@@ -83,10 +86,6 @@ const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
     reason: 'one gateway adapter implementing the whole provider contract',
   },
   'packages/plugin-gst-invoices/src/issue.ts': { lines: 529, reason: SPLIT },
-  'packages/plugin-shopify-import/src/shopify-api.ts': {
-    lines: 957,
-    reason: 'Shopify GraphQL queries and their typed answers',
-  },
   'packages/shipping-delhivery/src/delhivery.ts': {
     lines: 831,
     reason: 'one courier adapter implementing the whole provider contract',
