@@ -86,6 +86,12 @@ export const ACTION_DOCS: Record<string, string> = {
   'analytics.updateSavedQuery':
     'Saves a custom query\'s edited text over the saved one ("Save" on a saved query).',
   'apiAccess.createToken': 'The plain token is in this answer only; the store keeps a hash.',
+  'approvals.counts':
+    'The nav badge: waiting for this member, plus unseen outcomes of their own requests.',
+  'approvals.mine':
+    "The member's own requests and their outcomes; opening it clears the outcome badge.",
+  'approvals.waiting':
+    'Waiting changes this member may decide, and recently expired ones (marked expired).',
   'apps.connectForm':
     'The fields of the install flow\'s "Connect account" step, or null when the app connects on its own page.',
   'apps.disconnect':
@@ -640,6 +646,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'Creates the Better Auth invitation (which sends the email) and records the role the person will hold, so they appear on the team page straight away.',
   'staff.me': 'What the signed-in member may do.',
   'staff.resendInvitation': 'Sends the invitation email again with a fresh expiry.',
+  'staff.saveRoleApprovals':
+    'Settings → Roles: which of a role\'s actions wait in Approvals ("Needs approval").',
   'store.estimateDelivery':
     '"Try a PIN" on the settings page: the exact answer the storefront would give.',
   'store.getGeneral': 'Store details for Settings › General.',
