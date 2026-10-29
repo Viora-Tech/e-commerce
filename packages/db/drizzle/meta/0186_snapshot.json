@@ -1,6 +1,6 @@
 {
-  "id": "f05a34b2-1b95-495c-be5e-894771ee698a",
-  "prevId": "f984972e-89b7-445a-9e73-6bac3a57c42b",
+  "id": "6006a435-20c9-4db7-97d9-3b54ec0ec663",
+  "prevId": "13a035c8-48fc-4e13-9336-2397b897d37a",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -9361,6 +9361,13 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
+        },
+        "hidden_on_store": {
+          "name": "hidden_on_store",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         },
         "preorder_override": {
           "name": "preorder_override",

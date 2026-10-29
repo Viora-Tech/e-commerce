@@ -162,7 +162,7 @@ export type ProductHealthFacts = {
   variantsNoWeight: number
   /** The active products those variants belong to. */
   productsNoWeight: number
-  /** Active products with a live variant priced at ₹0 (gift cards left out). */
+  /** Active products with a variant shoppers can see priced at ₹0 (gift cards and hidden variants left out). */
   productsNoPrice: number
   /** Active products without a single image. */
   productsNoImage: number

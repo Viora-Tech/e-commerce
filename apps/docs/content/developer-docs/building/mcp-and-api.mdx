@@ -55,7 +55,8 @@ grant's permissions:
   *Let clients read customer details* is on.
 - **Change tools** (`ACTIONS`), listed only while *Allow AI clients to make changes* is on. A
   call runs `proposeAction` with `source: 'mcp'`. The proposal waits in AI approvals for the
-  member who connected the client. With *Changes need approval* off, `approveAction` runs at
+  member who connected the client, the owner, or a member whose role holds the action's
+  permission (`openFor` in `services/ai/assistant/service.ts`). With *Changes need approval* off, `approveAction` runs at
   once with the grant's permissions.
 
 Adding an assistant tool adds it to MCP too; nothing else to wire.
@@ -104,9 +105,14 @@ opening it re-checks the grant (`principalForGrant`) and re-runs the read.
 (`services/ai/assistant/actions/admin-action.ts`, not offered as a tool of its own). Its card
 shows the action's name, what it does and every input value as a row. Approve runs the procedure
 with the approver's own request context (`ActionEnv.api`), so the procedure's middleware checks
-the approver's role; a refusal marks the action failed with that message. `ai.approveAction`,
-`reviseAction` and `cancelAction` are open to any member with a role (`APPROVE_PERMISSIONS`);
-each still only touches the caller's own proposal.
+the approver's role; a `FORBIDDEN` refusal is returned to the approver and leaves the action
+waiting (`ApproverNotAllowed`), any other error marks it failed with that message.
+`ai.approveAction`, `reviseAction` and `cancelAction` are open to any member with a role
+(`APPROVE_PERMISSIONS`). An assistant proposal is the asker's alone; an MCP one may be approved by
+the asker, the owner or a member with the action's permission (for `runAdminAction`, whose
+permission only the procedure knows, any member may try to approve and the procedure decides;
+editing or cancelling it for someone else is the owner's). Expired proposals read as `expired`
+and are refused with a message saying so. `approvedBy` and `result.by` record the approver.
 
 ## The token API
 

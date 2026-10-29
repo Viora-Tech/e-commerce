@@ -1,0 +1,1 @@
+ALTER TABLE "variant" ADD COLUMN "hidden_on_store" boolean DEFAULT false NOT NULL;

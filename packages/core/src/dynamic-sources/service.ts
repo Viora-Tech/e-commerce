@@ -185,7 +185,13 @@ async function productValues(tx: StoreTx, productId: string, fields: Set<string>
     const variants = await tx
       .select({ price: variant.pricePaise, mrp: variant.mrpPaise })
       .from(variant)
-      .where(and(eq(variant.productId, productId), isNull(variant.archivedAt)))
+      .where(
+        and(
+          eq(variant.productId, productId),
+          isNull(variant.archivedAt),
+          eq(variant.hiddenOnStore, false),
+        ),
+      )
       .orderBy(asc(variant.position))
     // Variants listed without a price (#913) do not take part.
     const cheapest = variants.reduce<{ price: number; mrp: number | null } | null>(

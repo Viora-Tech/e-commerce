@@ -571,7 +571,7 @@ describe('an order edit (reviseForOrderEdit)', () => {
       .set({ totalPaise: 103_333 })
       .where(eq(fulfillmentOrder.id, ka?.id as string))
     const r = await inStore(t.storeId, (tx) => reviseForOrderEdit(tx, t.storeId, t.orderId))
-    expect(r).toMatchObject({ cancelled: ['INV/25-26/0001'], locked: [], reissue: true })
+    expect(r).toMatchObject({ cancelled: ['INV/25-26/0001'], locked: [], reissue: 'paid' })
     const rows = await invoicesOf(t.orderId)
     expect(rows.map((x) => x.status)).toEqual(['issued', 'cancelled'])
     expect(rows[1]?.cancelReason).toContain('Order edited')
@@ -601,6 +601,43 @@ describe('an order edit (reviseForOrderEdit)', () => {
     await inStore(t.storeId, (tx) => enqueueOrderParcels(tx, t.storeId, t.orderId, 'manual', at))
     const r = await inStore(t.storeId, (tx) => reviseForOrderEdit(tx, t.storeId, t.orderId))
     expect(r.regenerated).toBe(2)
-    expect(r.reissue).toBe(false)
+    expect(r.reissue).toBeNull()
+  })
+
+  it('re-issues an invoice that names the old shipping rate (the edit changed it)', async () => {
+    const t = await seed()
+    await addParcels(t, split(t))
+    await issued(t)
+    await owner.update(order).set({ shippingRateName: 'Bluedart' }).where(eq(order.id, t.orderId))
+    const r = await inStore(t.storeId, (tx) => reviseForOrderEdit(tx, t.storeId, t.orderId))
+    // Only the parcel carrying shipping prints its name; both bill the same amounts as before.
+    const rows = await invoicesOf(t.orderId)
+    const carried = rows.filter((x) =>
+      (x.snapshot as { lines: { description: string }[] }).lines.some((l) =>
+        l.description.startsWith('Shipping charges'),
+      ),
+    )
+    expect(r.cancelled).toHaveLength(carried.length)
+    expect(r.cancelled.length).toBeGreaterThan(0)
+    expect(r.reissue).toBe('paid')
+    for (const x of carried) {
+      expect(x.status).toBe('cancelled')
+      expect(x.cancelReason).toContain('shipping or discount name')
+    }
+  })
+
+  it('keeps a filed invoice with the old shipping name and reports it', async () => {
+    const t = await seed()
+    await addParcels(t, split(t))
+    await issued(t)
+    await owner
+      .update(invoice)
+      .set({ reportedPeriod: '062025' })
+      .where(eq(invoice.orderId, t.orderId))
+    await owner.update(order).set({ shippingRateName: 'Bluedart' }).where(eq(order.id, t.orderId))
+    const r = await inStore(t.storeId, (tx) => reviseForOrderEdit(tx, t.storeId, t.orderId))
+    expect(r.cancelled).toEqual([])
+    expect(r.locked).toEqual([])
+    expect(r.oldNames.length).toBeGreaterThan(0)
   })
 })

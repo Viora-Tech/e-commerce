@@ -57,7 +57,7 @@ export const ACTION_DOCS: Record<string, string> = {
   'ai.activity': 'Settings → AI → Activity: every AI action in the store, newest first.',
   'ai.applyBulk': 'Applies the reviewed suggestions to products; logged in Activity with an undo.',
   'ai.approveAction':
-    "Approve on a proposal card: runs it with the caller's permission for that action.",
+    'Approve on a proposal card: runs it as the caller, with their permission for that action.',
   'ai.assistant': 'The AI bar on every admin page: a streamed answer (oRPC event iterator).',
   'ai.bulkWrite':
     'Bulk "Write with AI" on the products list: starts a worker run, returns its progress.',
@@ -506,6 +506,8 @@ export const ACTION_DOCS: Record<string, string> = {
     "Set one variant's images in order (first = the variant's main image); a file not yet in the product's gallery is added to it.",
   'products.stats': 'Tiles above the list.',
   'products.update': 'Small patches from the list page (bulk status).',
+  'products.updateVariant':
+    'Patch one variant: price, MRP, SKU, stock, or hide it on the storefront (hiddenOnStore).',
   'purchaseDocuments.apply': 'Apply what the merchant ticked on the review screen.',
   'purchaseDocuments.download': 'The file itself, for the preview and the download button.',
   'purchaseDocuments.read': 'Read (or read again) with AI, in the worker.',

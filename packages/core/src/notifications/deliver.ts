@@ -281,6 +281,11 @@ export async function buildTemplateData(
         imageUrl:
           l.variantImage ?? images.find((i) => i.productId === l.productId)?.url ?? undefined,
       })),
+      // Named after the rate ("Bluedart"), so an edit that changed the rate shows the new one.
+      shipping:
+        o.shippingPaise > 0
+          ? { label: o.shippingRateName || 'Shipping', amount: formatMoney(o.shippingPaise) }
+          : undefined,
       taxBreakdown: taxLines(o),
       ...(parcels ? { parcels } : {}),
       paymentMethodLabel: PAYMENT_LABELS[method] ?? method,

@@ -324,6 +324,14 @@ export const mcpContent = {
     today: 'Today',
     yesterday: 'Yesterday',
     openApproval: 'Open approval',
+    /** What became of a change that waited for approval. */
+    approvalStatus: {
+      executed: 'Approved',
+      failed: 'Approved, but it did not work',
+      cancelled: 'Cancelled',
+      expired: 'Expired before anyone approved it: nothing changed',
+      undone: 'Approved, later undone',
+    } as Record<string, string>,
     loadOlder: 'Load older activity',
     loading: 'Loading…',
     empty: 'Nothing yet',

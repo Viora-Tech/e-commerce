@@ -5,27 +5,19 @@ import 'server-only'
 import { settingsSecret } from '@commerce/config'
 import {
   addToCart,
-  CannotShipToState,
-  CheckoutRuleViolation,
   captureCartContact,
   confirmClientPayment,
   createCart,
-  DiscountCodeRefused,
-  DiscountUnavailable,
   findRedeemableGiftCard,
-  GiftCardError,
   getCart,
   onOrderPlaced,
   orderViewToken,
   PaymentNotRetryable,
   type PlaceOrderResult,
-  PriceNotSet,
   payPath,
   placeOrderAndPay,
   rememberCheckoutAddress,
   retryAndStartPayment,
-  ShippingRateUnavailable,
-  ShippingUnavailable,
   setCartAttribution,
   setLineQuantity,
   syncOpenQrAttempt,
@@ -34,18 +26,17 @@ import {
 import { CONSENT_COOKIE, currentConsent, decodeConsent } from '@commerce/core/consent'
 import { collectorStore, withdrawCartMarketingConsent } from '@commerce/core/pixels/server'
 import { type ParcelDeliveryEstimate, payment } from '@commerce/db'
-import { formatMoney } from '@commerce/money'
 import { logger } from '@commerce/observability/logging'
 import type { ClientConfirmation } from '@commerce/payments'
 import { and, desc, eq, ne } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { discountFieldContent } from '@/data/cart'
 import { checkoutContent } from '@/data/checkout'
 import { readAttribution } from './attribution-cookie'
 import { clearCartId, readCartId, writeCartId } from './cart-cookie'
 import { checkoutCartId } from './checkout-context'
+import { checkoutErrorMessage } from './checkout-errors'
 import { currentCustomer } from './customer-session'
 import { db } from './db'
 import { hasChatCookie, postChatCartLine } from './inbox'
@@ -311,32 +302,9 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
       }),
     )
     .catch((err: unknown) => {
-      // Gift card rules (spent elsewhere, COD for the rest, a card in a mixed basket) are the shopper's to fix.
-      if (err instanceof GiftCardError) return { error: err.message }
-      // Another checkout took the last use of the code; the next submit prices without it.
-      if (err instanceof DiscountUnavailable)
-        return { error: checkoutContent.errors.discountUnavailable }
-      // The code works for nobody with this email (one use each, customers only): say so, never charge more quietly.
-      if (err instanceof DiscountCodeRefused)
-        return {
-          error: checkoutContent.errors.discountRefused(
-            err.code,
-            discountFieldContent.errors[err.reason] ?? discountFieldContent.errors.invalid ?? '',
-          ),
-        }
-      // Rates are the store's to set; the shopper can only change the address or re-pick.
-      if (err instanceof ShippingUnavailable)
-        return { error: checkoutContent.errors.noShipping(form.pincode) }
-      // Only a composition-scheme warehouse holds it, and those cannot ship to another state.
-      if (err instanceof CannotShipToState)
-        return { error: checkoutContent.errors.cannotShipToState }
-      if (err instanceof PriceNotSet) return { error: checkoutContent.errors.priceNotSet }
-      if (err instanceof ShippingRateUnavailable)
-        return { error: checkoutContent.errors.rateChanged }
-      // Settings → Checkout, re-checked by placeOrder whatever the form showed.
-      if (err instanceof CheckoutRuleViolation)
-        return { error: checkoutRuleMessage(err, form.pincode) }
-      throw err
+      const refused = checkoutErrorMessage(err, form.pincode)
+      if (refused === null) throw err
+      return { error: refused }
     })
   if ('error' in placed) return { error: placed.error }
   const result = placed
@@ -366,25 +334,6 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
   // This only wakes the relay so they go out in ~1s instead of up to 5s.
   await nudgeOutbox(storeId)
   await redirectAfterCheckout(result)
-}
-
-/** The shopper-facing reason a checkout rule refused the order. */
-function checkoutRuleMessage(err: CheckoutRuleViolation, pincode: string): string {
-  const e = checkoutContent.errors
-  switch (err.rule) {
-    case 'contact':
-      return Object.values(err.fields)[0] ?? e.contact
-    case 'minimum_order':
-      return e.minimumOrder(formatMoney(err.amountPaise ?? 0))
-    case 'cod_blocked_pincode':
-      return e.codUnavailable
-    case 'cod_over_limit':
-      return e.codOverLimit(formatMoney(err.amountPaise ?? 0))
-    case 'state_mismatch':
-      return e.stateMismatch(pincode)
-    case 'cod_high_risk':
-      return e.codHighRisk
-  }
 }
 
 /** Open the gateway, or go straight to the thank-you page (which offers a retry when the gateway failed). */

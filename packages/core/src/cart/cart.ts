@@ -1,7 +1,7 @@
 import { cart, cartLine, media, product, productMedia, sellableStock, variant } from '@commerce/db'
 import { and, asc, eq, inArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
-import { CartNotOpen, NotLaunchedYet, OutOfStock, PriceNotSet } from '../errors'
+import { CartNotOpen, NotLaunchedYet, OutOfStock, PriceNotSet, VariantHidden } from '../errors'
 import { isLaunched } from '../preorder/launch'
 import { resolvePreorderSettings } from '../preorder/settings'
 
@@ -201,6 +201,7 @@ export async function addToCart(
     .where(eq(variant.id, variantId))
   if (!row) throw new Error(`variant ${variantId} not found`)
   const { variant: v, product: p } = row
+  if (v.hiddenOnStore) throw new VariantHidden(variantId, ctx.storeId)
   if (!isLaunched(p.launchAt)) throw new NotLaunchedYet(variantId, p.launchAt as Date, ctx.storeId)
   // Listed before its price was confirmed (#913): on show, never sold, so no ₹0 line.
   const unitPricePaise = v.pricePaise

@@ -96,6 +96,8 @@ export const inventoryContent = {
     collapse: (name: string) => `Hide variants of ${name}`,
     expandAll: 'Expand all',
     collapseAll: 'Collapse all',
+    /** Chip on a SKU (or a product whose SKUs all are) hidden on the storefront (#934). */
+    hidden: 'Hidden',
   },
   cell: {
     decrease: 'Remove one',

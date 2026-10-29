@@ -5,7 +5,7 @@ const brand = siteConfig.brand.name
 const domain = siteConfig.brand.domain
 const support = siteConfig.contact.supportEmail
 const company = siteConfig.company.legalName
-const address = siteConfig.company.address
+const address = siteConfig.company.publicAddress
 const grievanceEmail = 'grievance@koomerce.app'
 
 export const privacyDoc: LegalDoc = {
@@ -144,7 +144,7 @@ export const privacyDoc: LegalDoc = {
       title: 'Grievance officer',
       plain: ['A named person handles complaints.', 'We reply within a fixed time.'],
       body: [
-        `Under the DPDP Act, 2023 and the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021, our grievance officer is Kuldeep Saini, ${grievanceEmail}, ${address}. We acknowledge a complaint within 24 hours and resolve it within 15 days, and never later than the 90 days the DPDP Rules allow.`,
+        `Under the DPDP Act, 2023 and the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021, our grievance officer is Kuldeep Saini, ${grievanceEmail}, based in ${address}. We acknowledge a complaint within 24 hours and resolve it within 15 days, and never later than the 90 days the DPDP Rules allow.`,
       ],
       callout: {
         title: 'Not happy with our answer?',
