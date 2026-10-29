@@ -22,7 +22,7 @@ import { appRouter } from '../src/routers/_app'
 
 /*
  * Settings → MCP & API end to end against the test database: an AI client registers, signs in
- * with PKCE, lists and calls tools, proposes a change that waits in AI approvals; access tokens
+ * with PKCE, lists and calls tools, makes changes with the member's role; access tokens
  * act as their member capped to their areas; nothing crosses to another store.
  */
 
@@ -177,7 +177,7 @@ describe('MCP over OAuth', () => {
     )
   })
 
-  it('signs in with PKCE, lists only granted tools, reads, and proposes changes for approval', async () => {
+  it('signs in with PKCE, lists only granted tools, reads, and changes with the role', async () => {
     const m = await merchant('asha@example.com', 'asha')
     await seedProduct(m.storeId, 'Glide Mouse')
     const t = await connect(m)
@@ -211,27 +211,28 @@ describe('MCP over OAuth', () => {
     })
     expect(blocked.body?.result.isError).toBe(true)
 
-    const proposed = await rpc(m.slug, t.access_token, 'tools/call', {
+    // The owner never needs approval: an ordinary change runs at once, as the AI bar's would.
+    const made = await rpc(m.slug, t.access_token, 'tools/call', {
       name: 'proposeDiscount',
       arguments: { code: 'MCP10', type: 'percent', value: 10 },
     })
-    expect(proposed.body?.result.isError).toBe(false)
+    expect(made.body?.result.isError).toBe(false)
     const [action] = await owner.select().from(aiAction).where(eq(aiAction.storeId, m.storeId))
-    expect(action).toMatchObject({ source: 'mcp', status: 'proposed', userId: m.userId })
-    expect(await owner.select().from(discount).where(eq(discount.storeId, m.storeId))).toEqual([])
+    expect(action).toMatchObject({ source: 'mcp', status: 'executed', userId: m.userId })
+    expect(await owner.select().from(discount).where(eq(discount.storeId, m.storeId))).toHaveLength(
+      1,
+    )
 
     const log = await call(appRouter.apiAccess.activity, { filter: 'all' }, { context: m.ctx })
     const kinds = log.items.map((i) => i.kind)
-    expect(kinds).toEqual(expect.arrayContaining(['connected', 'read', 'blocked', 'approval']))
-    expect(log.items.find((i) => i.kind === 'approval')?.approvalId).toBe(action?.id)
-    expect(log.counts.approval).toBe(1)
+    expect(kinds).toEqual(expect.arrayContaining(['connected', 'read', 'blocked', 'change']))
   })
 
-  it('runs a change at once when approval is off, and reads customers when allowed', async () => {
+  it('runs a change at once, and reads customers when allowed', async () => {
     const m = await merchant('asha@example.com', 'asha')
     await call(
       appRouter.apiAccess.saveSettings,
-      { allowChanges: true, requireApproval: false, readCustomers: true },
+      { allowChanges: true, readCustomers: true },
       { context: m.ctx },
     )
     const t = await connect(m)
@@ -257,7 +258,7 @@ describe('MCP over OAuth', () => {
     const m = await merchant('asha@example.com', 'asha')
     await call(
       appRouter.apiAccess.saveSettings,
-      { allowChanges: false, requireApproval: true, readCustomers: false },
+      { allowChanges: false, readCustomers: false },
       { context: m.ctx },
     )
     const t = await connect(m)

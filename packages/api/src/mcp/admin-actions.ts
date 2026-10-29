@@ -5,8 +5,9 @@
  *
  * A call runs as the member who connected the client, through the admin's own middleware
  * (`apiPrincipal` on the context): their role, capped to the grant's areas, decides. Reads run
- * at once; changes follow "Changes need approval"; sensitive actions always wait in AI approvals
- * as a `runAdminAction` and run as the member who approves them. What counts as which, and what
+ * at once; changes run with the member's role (a role's "Needs approval" tick queues them in
+ * Approvals); sensitive actions always wait in AI approvals as a `runAdminAction`, even for the
+ * owner, and run as the member who approves them. What counts as which, and what
  * is never offered, is `action-catalogue.ts`.
  */
 import { siteConfig } from '@commerce/config/site'
@@ -15,6 +16,7 @@ import { aiStoreFacts } from '@commerce/core/ai-runtime'
 import { withStore } from '@commerce/db'
 import { type AnyProcedure, call, ORPCError } from '@orpc/server'
 import { z } from 'zod'
+import { APPROVAL_QUEUED } from '../procedures'
 import { appRouter } from '../routers/_app'
 import { ProposalProblem } from '../services/ai/assistant/actions/resolve'
 import { proposeAction } from '../services/ai/assistant/service'
@@ -83,9 +85,7 @@ const RunInput = z.object({
 export function adminActionTools(env: McpEnv): McpTool[] {
   const changes = !env.settings.allowChanges
     ? 'Changes are off for this store, so only reads run.'
-    : env.settings.requireApproval
-      ? `Changes wait for approval in ${brand} before they happen.`
-      : `Changes run at once, except sensitive ones (refunds, cancellations, deletes, payment, staff, billing and domain settings), which always wait for approval in ${brand}.`
+    : `Changes run at once with the member's role, unless their role needs approval for one (then it waits in Approvals in ${brand}). Sensitive ones (refunds, cancellations, deletes, payment, staff, billing and domain settings) always wait for a person in ${brand}.`
   return [
     {
       name: 'searchActions',
@@ -112,11 +112,11 @@ export function adminActionTools(env: McpEnv): McpTool[] {
 const fail = (text: string): McpCallResult => ({ text, data: null, isError: true })
 
 /** What a client needs to know before running: will it wait, or is it blocked? */
-function approvalOf(env: McpEnv, kind: ActionKind): 'no' | 'yes' | 'always' | 'blocked' {
+function approvalOf(env: McpEnv, kind: ActionKind): 'no' | 'always' | 'blocked' {
   if (kind === 'read') return 'no'
   if (!env.settings.allowChanges) return 'blocked'
   if (kind === 'sensitive') return 'always'
-  return env.settings.requireApproval ? 'yes' : 'no'
+  return 'no'
 }
 
 /** Null when the grant reaches this entry for this kind of call, else why not. */
@@ -262,6 +262,15 @@ async function runNow(env: McpEnv, entry: Entry, input: unknown): Promise<McpCal
     ])
     return shape(env, entry, input, output)
   } catch (err) {
+    // The member's role needs approval for it: the store procedure queued it and logged it.
+    if (err instanceof ORPCError && err.code === APPROVAL_QUEUED) {
+      const id = (err.data as { approvalId?: string | null } | undefined)?.approvalId ?? null
+      return {
+        text: `Waiting for approval: ${entry.name}. The member's role needs approval for this, so it runs once a different member approves it in ${brand} (Settings → Approvals), and changes nothing until then.`,
+        data: { id, status: 'proposed', path: entry.path },
+        isError: false,
+      }
+    }
     const message =
       err instanceof ORPCError
         ? err.message

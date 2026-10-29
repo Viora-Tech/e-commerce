@@ -14,6 +14,8 @@ export {
 export {
   type Action,
   ALL_PERMISSIONS,
+  canNeedApproval,
+  DEFAULT_APPROVAL_PERMISSIONS,
   isPermission,
   type Permission,
   permission,

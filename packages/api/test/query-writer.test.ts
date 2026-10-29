@@ -85,6 +85,7 @@ describe('refineQuery', () => {
       roleName: 'Owner',
       isOwner: true,
       permissions: [],
+      needsApproval: [],
       can: () => true,
     }
   }

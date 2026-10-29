@@ -262,6 +262,7 @@ export default function AdminSidebar({
           label={navGroupName(SETTINGS_GROUP, locale)}
           items={localizeNavItems([SETTINGS_NAV], locale)}
           pathname={pathname}
+          counts={navCounts}
         />
       </SidebarContent>
 

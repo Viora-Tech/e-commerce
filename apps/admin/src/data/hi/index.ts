@@ -8,6 +8,7 @@ import affiliates from './affiliates'
 import ai from './ai'
 import analytics from './analytics'
 import appInstall from './app-install'
+import approvals from './approvals'
 import apps from './apps'
 import assistant from './assistant'
 import automationRecords from './automation-records'
@@ -151,6 +152,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...billing,
   ...bluedart,
   ...mcp,
+  ...approvals,
   ...bugReport,
   ...bulkActions,
   ...bulkEdit,

@@ -5,9 +5,9 @@
  * `searchActions` / `describeAction` / `runAction`, which reach every other admin action
  * (`admin-actions.ts`).
  *
- * Reads run straight away. A change is proposed exactly as the AI bar proposes it: it waits in
- * AI approvals for the member who connected the client, or runs at once when "Changes need
- * approval" is off. Every call leaves a row in Settings → MCP & API → Activity.
+ * Reads run straight away. A change runs at once with the connecting member's role, capped by
+ * the connection's areas; when their role ticks "Needs approval" for it, it waits in Approvals
+ * for a different member instead. Every call leaves a row in Settings → MCP & API → Activity.
  */
 import type { AiRuntime, AiTool, AiToolSet } from '@commerce/ai'
 import { settingsSecret } from '@commerce/config'
@@ -15,6 +15,7 @@ import { siteConfig } from '@commerce/config/site'
 import {
   type ApiPrincipal,
   type McpSettings,
+  memberAccess,
   permissions,
   recordApiActivity,
   recordApiRead,
@@ -144,17 +145,21 @@ export function listMcpTools(env: McpEnv, toolEnv: ToolEnv): McpTool[] {
     .filter((a) => can(env, a.permission))
     .map((a) => ({
       name: a.tool,
-      description: env.settings.requireApproval
-        ? `${a.description} The change waits for the store's approval in ${siteConfig.brand.name} before it happens.`
-        : a.description,
+      description: `${a.description} Runs at once with the member's role, unless their role needs approval for it: then it waits in Approvals in ${siteConfig.brand.name}.`,
       input: a.input,
       readOnly: false,
     }))
   return [...reads, ...changes, ...actions]
 }
 
-/** A member scope for approving at once (`requireApproval` off): the grant's own permissions. */
-function grantScope(p: ApiPrincipal): StoreScope {
+/**
+ * The member as the grant sees them: the grant's permissions (role ∩ areas) and the role's own
+ * "Needs approval" ticks, so a ticked change waits in Approvals.
+ */
+function grantScope(
+  p: ApiPrincipal,
+  access: { isOwner: boolean; needsApproval: StoreScope['needsApproval'] },
+): StoreScope {
   return {
     storeId: p.storeId,
     organizationId: p.organizationId,
@@ -163,8 +168,9 @@ function grantScope(p: ApiPrincipal): StoreScope {
     roleId: '',
     roleSlug: 'api',
     roleName: p.name,
-    isOwner: false,
+    isOwner: access.isOwner,
     permissions: p.permissions,
+    needsApproval: access.needsApproval,
     can: (permission) => p.permissions.includes(permission),
   }
 }
@@ -266,39 +272,42 @@ export async function callMcpTool(
         flagged: taint.flagged,
         source: 'mcp',
       })
-      if (!env.settings.requireApproval) {
-        const done = await approveAction(actionEnv, grantScope(p), view.id)
-        const ok = done.status === 'executed'
+      const access = await memberAccess(tx, p.storeId, p.userId)
+      const scope = grantScope(p, {
+        isOwner: access?.isOwner ?? false,
+        needsApproval: access?.needsApproval ?? [],
+      })
+      const done = await approveAction(actionEnv, scope, view.id)
+      if (done.status === 'proposed') {
         await recordApiActivity(tx, p.storeId, {
           grantId: p.grantId,
-          kind: ok ? 'change' : 'blocked',
+          kind: 'approval',
           tool: name,
-          summary: `${p.name}: ${ok ? (done.message ?? done.summary) : done.summary}`,
-          detail: ok
-            ? `${p.userName} · ran without approval`
-            : (done.error ?? 'Nothing was changed'),
-          aiActionId: done.id,
+          summary: `${p.name} proposed: ${view.summary} → waiting approval`,
+          detail: `${p.userName} · their role needs approval for this; a different member approves it in Approvals`,
+          aiActionId: view.id,
           at: env.now(),
         })
         return {
-          text: ok ? (done.message ?? 'Done.') : (done.error ?? 'The change could not be made.'),
-          data: { id: done.id, status: done.status },
-          isError: !ok,
+          text: `Waiting for approval: ${view.summary}. The member's role needs approval for this, so it runs once a different member approves it in ${siteConfig.brand.name} (Settings → Approvals), and changes nothing until then.`,
+          data: { id: view.id, status: view.status, preview: view.preview },
+          isError: false,
         }
       }
+      const ok = done.status === 'executed'
       await recordApiActivity(tx, p.storeId, {
         grantId: p.grantId,
-        kind: 'approval',
+        kind: ok ? 'change' : 'blocked',
         tool: name,
-        summary: `${p.name} proposed: ${view.summary} → waiting approval`,
-        detail: `${p.userName} · open AI approvals in ${siteConfig.brand.name} to approve it`,
-        aiActionId: view.id,
+        summary: `${p.name}: ${ok ? (done.message ?? done.summary) : done.summary}`,
+        detail: ok ? `${p.userName} · ran with their role` : (done.error ?? 'Nothing was changed'),
+        aiActionId: done.id,
         at: env.now(),
       })
       return {
-        text: `Proposed: ${view.summary}. It waits for approval in ${siteConfig.brand.name} (AI approvals) and changes nothing until then.`,
-        data: { id: view.id, status: view.status, preview: view.preview },
-        isError: false,
+        text: ok ? (done.message ?? 'Done.') : (done.error ?? 'The change could not be made.'),
+        data: { id: done.id, status: done.status },
+        isError: !ok,
       }
     })
   } catch (err) {

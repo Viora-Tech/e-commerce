@@ -282,6 +282,8 @@ export const routes = {
     newRole: () => '/settings/staff/roles/new',
     role: (roleId: string) => `/settings/staff/roles/${id(roleId)}`,
     ai: () => '/settings/ai',
+    /** Changes waiting for a different member's approval, and your own requests. */
+    approvals: () => '/settings/approvals',
     appearance: () => '/settings/appearance',
     billing: () => '/settings/billing',
     /** Settings → MCP & API; `activity` is its full activity log. */

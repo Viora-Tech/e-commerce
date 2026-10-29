@@ -57,7 +57,7 @@ export default function ApprovalDialog({ actionId, onClose, onChange }: Approval
         <DialogHeader>
           <DialogTitle>{copy.activity.openApproval}</DialogTitle>
           <DialogDescription className="sr-only">
-            {copy.switches.requireApprovalHelp}
+            {copy.permissions.rules.sensitive}
           </DialogDescription>
         </DialogHeader>
         {failed ? (

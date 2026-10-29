@@ -27,10 +27,11 @@ export const isApiArea = (v: unknown): v is ApiArea =>
   typeof v === 'string' && (API_AREAS as readonly string[]).includes(v)
 
 /**
- * What each area unlocks for a call that runs at once (an access token, or an MCP change while
- * "Changes need approval" is off). Write never reaches money or deletion: refunds, cancellations,
- * product or customer deletes, staff and billing need a person. An MCP client can still ask for
- * those, but they always wait in AI approvals and run as the member who approves them
+ * What each area unlocks for a call that runs at once (an access token or an MCP client), always
+ * capped by the member's own role, whose "Needs approval" ticks still queue a change. Write never
+ * reaches money or deletion: refunds, cancellations, product or customer deletes, payment keys,
+ * staff and billing need a person. An MCP client can still ask for those, but they always wait
+ * for a person in the admin and run as the member who approves them
  * (`packages/api/src/mcp/action-catalogue.ts`).
  */
 const AREA_PERMISSIONS: Record<ApiArea, Record<ApiAccess, Permission[]>> = {
@@ -97,8 +98,6 @@ export const DEFAULT_CLIENT_SCOPES: ApiScopes = {
 export const McpSettingsSchema = z.object({
   /** Off: clients can only read. */
   allowChanges: z.boolean().catch(true),
-  /** On: every change waits in AI approvals. Off: a change runs as soon as the client asks. */
-  requireApproval: z.boolean().catch(true),
   /** Names, phone numbers and addresses. Off: orders still show the city. */
   readCustomers: z.boolean().catch(false),
 })
