@@ -11,6 +11,7 @@ import { discount, type RolloutChangeKind, rolloutChange, store, theme } from '@
 import { and, eq, sql } from 'drizzle-orm'
 import { CheckoutBrandingSchema } from '../checkout/branding'
 import type { StoreContext } from '../context'
+import { CommerceError } from '../errors'
 import { publishTheme } from '../theme/library'
 import { mainThemeId } from '../theme/templates'
 
@@ -24,10 +25,9 @@ export type StoredRolloutChange = {
 }
 
 /** A change that cannot be applied now, with the reason the merchant reads. */
-export class RolloutChangeError extends Error {
+export class RolloutChangeError extends CommerceError {
   constructor(message: string) {
-    super(message)
-    this.name = 'RolloutChangeError'
+    super('ROLLOUT_CHANGE', message)
   }
 }
 

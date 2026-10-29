@@ -13,7 +13,7 @@ import { v7 as uuidv7 } from 'uuid'
 import { store } from './schema'
 
 /*
- * Rollouts (0181): Shopify Markets → Rollouts. A set of store changes (the live theme, the
+ * Rollouts (0182): Shopify Markets → Rollouts. A set of store changes (the live theme, the
  * checkout branding, discounts on or off) that go live at a set time, for good (launch) or for
  * a period that rolls back by itself (event). Design: docs/superpowers/specs/2026-10-28-rollouts-r1-design.md.
  */
@@ -53,7 +53,7 @@ export const ROLLOUT_END_ACTIONS = ['rollback', 'apply'] as const
 export type RolloutEndAction = (typeof ROLLOUT_END_ACTIONS)[number]
 
 /** The live theme, the checkout branding, or one discount's status. */
-export const ROLLOUT_CHANGE_KINDS = ['theme', 'checkout_branding', 'discount'] as const
+const ROLLOUT_CHANGE_KINDS = ['theme', 'checkout_branding', 'discount'] as const
 export type RolloutChangeKind = (typeof ROLLOUT_CHANGE_KINDS)[number]
 
 /**

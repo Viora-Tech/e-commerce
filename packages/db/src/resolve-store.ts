@@ -253,7 +253,7 @@ export async function storesWithRetentionDue(db: Db, at: Date): Promise<string[]
 
 /**
  * Store ids with a rollout due: scheduled and its start reached, or an active event past its end,
- * for the worker's tick. SECURITY DEFINER backed (`stores_with_rollouts_due`, 0181).
+ * for the worker's tick. SECURITY DEFINER backed (`stores_with_rollouts_due`, 0182).
  */
 export async function storesWithRolloutsDue(db: Db, at: Date): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(

@@ -10,8 +10,6 @@
  */
 import {
   discount,
-  ROLLOUT_END_ACTIONS,
-  ROLLOUT_KINDS,
   type RolloutEndAction,
   type RolloutKind,
   type RolloutStatus,
@@ -19,80 +17,19 @@ import {
   rolloutChange,
   theme,
 } from '@commerce/db'
-import { and, asc, desc, eq, inArray, ne } from 'drizzle-orm'
-import { z } from 'zod'
-import { CheckoutBrandingSchema } from '../checkout/branding'
+import { and, eq, inArray, ne } from 'drizzle-orm'
+import type { z } from 'zod'
 import type { StoreContext } from '../context'
-import { CommerceError } from '../errors'
 import {
   applyRolloutChange,
   RolloutChangeError,
   revertRolloutChange,
   type StoredRolloutChange,
 } from './changes'
+import { RolloutError, type RolloutSaveInput, RolloutSaveSchema } from './schema'
+import { type ChangeRow, changesOf, getRollout, mustGet, type RolloutView, UNENDED } from './views'
 
-/** Most discounts one rollout switches (Shopify's limit). */
-export const MAX_ROLLOUT_DISCOUNTS = 250
-
-export class RolloutError extends CommerceError {
-  constructor(
-    code: 'ROLLOUT_NOT_FOUND' | 'ROLLOUT_INVALID' | 'ROLLOUT_CONFLICT' | 'ROLLOUT_STATE',
-    message: string,
-    storeId?: string,
-  ) {
-    super(code, message, { storeId })
-  }
-}
-
-const ChangeSchema = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('theme'), themeId: z.uuid() }),
-  z.object({ kind: z.literal('checkout_branding'), branding: CheckoutBrandingSchema }),
-  z.object({
-    kind: z.literal('discount'),
-    discountId: z.uuid(),
-    status: z.enum(['active', 'disabled']),
-  }),
-])
-export type RolloutChangeInput = z.input<typeof ChangeSchema>
-
-export const RolloutSaveSchema = z.object({
-  name: z.string().trim().min(1).max(120),
-  kind: z.enum(ROLLOUT_KINDS).default('launch'),
-  startsAt: z.coerce.date().nullable().default(null),
-  endsAt: z.coerce.date().nullable().default(null),
-  endAction: z.enum(ROLLOUT_END_ACTIONS).default('rollback'),
-  changes: z
-    .array(ChangeSchema)
-    .max(MAX_ROLLOUT_DISCOUNTS + 2)
-    .default([]),
-})
-export type RolloutSaveInput = z.input<typeof RolloutSaveSchema>
-
-export type RolloutChangeView =
-  | { id: string; kind: 'theme'; themeId: string; applied: boolean }
-  | { id: string; kind: 'checkout_branding'; branding: unknown; applied: boolean }
-  | {
-      id: string
-      kind: 'discount'
-      discountId: string
-      status: 'active' | 'disabled'
-      applied: boolean
-    }
-
-export type RolloutView = {
-  id: string
-  name: string
-  kind: RolloutKind
-  status: RolloutStatus
-  startsAt: Date | null
-  endsAt: Date | null
-  endAction: RolloutEndAction
-  startedAt: Date | null
-  endedAt: Date | null
-  error: string | null
-  changes: RolloutChangeView[]
-  createdAt: Date
-}
+export { getRollout, listRollouts, type RolloutChangeView, type RolloutView } from './views'
 
 /** A clash with another rollout: `block` stops the save, `warn` is shown with it. */
 export type RolloutConflict = {
@@ -100,78 +37,6 @@ export type RolloutConflict = {
   rolloutId: string
   rolloutName: string
   message: string
-}
-
-/** Rollouts not yet over: they hold their theme, branding and discounts. */
-const UNENDED: RolloutStatus[] = ['draft', 'scheduled', 'active', 'paused']
-
-type RolloutRow = typeof rollout.$inferSelect
-type ChangeRow = typeof rolloutChange.$inferSelect
-
-function changeView(c: ChangeRow): RolloutChangeView {
-  const applied = c.appliedAt !== null
-  if (c.kind === 'theme') return { id: c.id, kind: 'theme', themeId: c.targetId as string, applied }
-  if (c.kind === 'checkout_branding') {
-    return { id: c.id, kind: 'checkout_branding', branding: c.value, applied }
-  }
-  const status = (c.value as { status?: string })?.status === 'disabled' ? 'disabled' : 'active'
-  return { id: c.id, kind: 'discount', discountId: c.targetId as string, status, applied }
-}
-
-function view(r: RolloutRow, changes: ChangeRow[]): RolloutView {
-  return {
-    id: r.id,
-    name: r.name,
-    kind: r.kind,
-    status: r.status,
-    startsAt: r.startsAt,
-    endsAt: r.endsAt,
-    endAction: r.endAction,
-    startedAt: r.startedAt,
-    endedAt: r.endedAt,
-    error: r.error,
-    changes: changes.filter((c) => c.rolloutId === r.id).map(changeView),
-    createdAt: r.createdAt,
-  }
-}
-
-async function changesOf(ctx: StoreContext, ids: string[]): Promise<ChangeRow[]> {
-  if (ids.length === 0) return []
-  return ctx.tx
-    .select()
-    .from(rolloutChange)
-    .where(inArray(rolloutChange.rolloutId, ids))
-    .orderBy(asc(rolloutChange.createdAt))
-}
-
-/** The rollout; `lock` holds its row until the transaction ends, so two ticks never apply it twice. */
-async function mustGet(ctx: StoreContext, id: string, lock = false): Promise<RolloutRow> {
-  const q = ctx.tx.select().from(rollout).where(eq(rollout.id, id))
-  const [r] = lock ? await q.for('update') : await q
-  if (!r) throw new RolloutError('ROLLOUT_NOT_FOUND', 'Rollout not found', ctx.storeId)
-  return r
-}
-
-/** Every rollout, the newest first; `statuses` narrows the list (the page's filter). */
-export async function listRollouts(
-  ctx: StoreContext,
-  statuses: RolloutStatus[] = [],
-): Promise<RolloutView[]> {
-  const rows = await ctx.tx
-    .select()
-    .from(rollout)
-    .where(statuses.length ? inArray(rollout.status, statuses) : undefined)
-    .orderBy(desc(rollout.createdAt))
-  const changes = await changesOf(
-    ctx,
-    rows.map((r) => r.id),
-  )
-  return rows.map((r) => view(r, changes))
-}
-
-export async function getRollout(ctx: StoreContext, id: string): Promise<RolloutView> {
-  const r = await mustGet(ctx, id)
-  return view(r, await changesOf(ctx, [r.id]))
 }
 
 type Parsed = z.output<typeof RolloutSaveSchema>

@@ -60,3 +60,25 @@ $$;
 REVOKE ALL ON FUNCTION stores_with_rollouts_due(timestamptz) FROM PUBLIC;
 --> statement-breakpoint
 GRANT EXECUTE ON FUNCTION stores_with_rollouts_due(timestamptz) TO app;
+
+--> statement-breakpoint
+-- The new `rollouts` permission: system admins get all of it; a role that changes settings can
+-- manage rollouts, and one that reads settings can see them. Owners hold every permission.
+INSERT INTO "role_permission" ("id", "store_id", "role_id", "permission")
+SELECT gen_random_uuid(), r."store_id", r."id", p.permission
+FROM "role" r
+CROSS JOIN (VALUES ('rollouts.read'), ('rollouts.manage')) AS p(permission)
+WHERE r."slug" <> 'owner' AND ((r."is_system" AND r."slug" = 'admin') OR EXISTS (
+  SELECT 1 FROM "role_permission" rp
+  WHERE rp."role_id" = r."id" AND rp."permission" = 'settings.manage'
+))
+ON CONFLICT ("role_id", "permission") DO NOTHING;
+--> statement-breakpoint
+INSERT INTO "role_permission" ("id", "store_id", "role_id", "permission")
+SELECT gen_random_uuid(), r."store_id", r."id", 'rollouts.read'
+FROM "role" r
+WHERE r."slug" <> 'owner' AND EXISTS (
+  SELECT 1 FROM "role_permission" rp
+  WHERE rp."role_id" = r."id" AND rp."permission" = 'settings.read'
+)
+ON CONFLICT ("role_id", "permission") DO NOTHING;

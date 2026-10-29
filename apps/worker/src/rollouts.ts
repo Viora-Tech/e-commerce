@@ -1,9 +1,7 @@
-import { ROLLOUTS_QUEUE, runRolloutsTick } from '@commerce/core'
+import { ROLLOUTS_EVERY_MS, ROLLOUTS_QUEUE, runRolloutsTick } from '@commerce/core'
 import type { Db } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
 import { type IORedis, KEEP_FINISHED, Queue, Worker } from '@commerce/queue'
-
-export { ROLLOUTS_EVERY_MS } from '@commerce/core'
 
 /**
  * Every minute: scheduled rollouts whose time came start, and events whose end passed roll back
@@ -24,4 +22,9 @@ export function createRolloutsTick(connection: IORedis, db: Db) {
     { connection, concurrency: 1, ...KEEP_FINISHED },
   )
   return { queue, worker }
+}
+
+/** Rollouts due to start or end (Markets → Rollouts): checked every minute. */
+export async function scheduleRolloutsTick(queue: Queue): Promise<void> {
+  await queue.upsertJobScheduler('rollouts-tick', { every: ROLLOUTS_EVERY_MS }, { name: 'tick' })
 }

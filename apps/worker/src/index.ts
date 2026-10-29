@@ -45,7 +45,7 @@ import { createPurchaseDocumentWorker } from './purchase-documents'
 import { createConnection, createHeartbeat } from './queues'
 import { createRetentionPrune, RETENTION_SCHEDULE } from './retention'
 import { createReviewRequestSweep, REVIEW_REQUESTS_EVERY_MS } from './reviews'
-import { createRolloutsTick, ROLLOUTS_EVERY_MS } from './rollouts'
+import { createRolloutsTick, scheduleRolloutsTick } from './rollouts'
 import { createSearchConsoleSweep, SEARCH_CONSOLE_EVERY_MS } from './search-console'
 import { createSenderEmailPoller, SENDER_CHECK_EVERY_MS } from './sender-email'
 import { shipmentWebhooks } from './shipments-webhook'
@@ -340,12 +340,7 @@ await apiActivityPrune.queue.upsertJobScheduler(
 await retentionPrune.queue.upsertJobScheduler('retention-prune', RETENTION_SCHEDULE, {
   name: 'prune',
 })
-// Rollouts due to start or end (Markets → Rollouts): every minute.
-await rolloutsTick.queue.upsertJobScheduler(
-  'rollouts-tick',
-  { every: ROLLOUTS_EVERY_MS },
-  { name: 'tick' },
-)
+await scheduleRolloutsTick(rolloutsTick.queue)
 // Markets' reference exchange rates: 21:30 India time, after the ECB publishes; once now too.
 await fxRates.queue.upsertJobScheduler('fx-rates', FX_RATES_SCHEDULE, { name: 'refresh' })
 await fxRates.queue.add('refresh', {})

@@ -53,6 +53,7 @@ import { inboundShipmentsRouter, purchaseChargesRouter, suppliersRouter } from '
 import { redirectsRouter } from './redirects'
 import { returnsRouter } from './returns'
 import { reviewsRouter } from './reviews'
+import { rolloutsRouter } from './rollouts'
 import { salesChannelsRouter } from './sales-channels'
 import { searchRouter } from './search'
 import { searchConsoleRouter } from './search-console'
@@ -139,6 +140,7 @@ export const appRouter = {
   staff: staffRouter,
   domains: domainsRouter,
   markets: marketsRouter,
+  rollouts: rolloutsRouter,
   invitations: invitationsRouter,
   onboarding: onboardingRouter,
   bugReports: bugReportsRouter,

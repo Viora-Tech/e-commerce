@@ -21,6 +21,7 @@ export const statement = {
   online_store: ['read', 'write', 'publish'],
   apps: ['manage'],
   settings: ['read', 'manage'],
+  rollouts: ['read', 'manage'],
   staff: ['read', 'invite', 'manage'],
   billing: ['manage'],
 } as const
@@ -87,6 +88,13 @@ export const permissions = {
   APPS_MANAGE: permission('apps', 'manage'),
   SETTINGS_READ: permission('settings', 'read'),
   SETTINGS_MANAGE: permission('settings', 'manage'),
+  /** See Markets → Rollouts: scheduled launches and events. */
+  ROLLOUTS_READ: permission('rollouts', 'read'),
+  /**
+   * Create, schedule, start, pause, end and delete rollouts. A rollout publishes themes, changes
+   * the checkout and switches discounts when it runs, so grant it with those in mind.
+   */
+  ROLLOUTS_MANAGE: permission('rollouts', 'manage'),
   STAFF_READ: permission('staff', 'read'),
   STAFF_INVITE: permission('staff', 'invite'),
   STAFF_MANAGE: permission('staff', 'manage'),
@@ -134,6 +142,11 @@ export const RESOURCE_METADATA: { [R in Resource]: ResourceMeta } = {
   },
   apps: { label: 'Apps', description: 'Install and uninstall apps for this store.' },
   settings: { label: 'Settings', description: 'View store settings and change them.' },
+  rollouts: {
+    label: 'Rollouts',
+    description:
+      'View scheduled launches and events, and create, start, pause and end them (they change the theme, checkout and discounts).',
+  },
   staff: { label: 'Staff', description: 'View the team, invite people and manage roles.' },
   billing: { label: 'Billing', description: 'Manage the subscription and payment method.' },
 } as const

@@ -1,4 +1,4 @@
-/** SOURCE OF TRUTH: rollout tests — WHAT: saving (draft or scheduled, validation, conflicts), starting (every change in one go, launch ends at once, a deleted theme fails cleanly), ending (roll back or keep), pause and resume, edits made by hand during an event survive the roll back, the worker tick, store isolation / WHY: a sale weekend must start and end on time and leave the store exactly as the merchant expects */
+/** SOURCE OF TRUTH: rollout tests — WHAT: saving (draft or scheduled, validation, conflicts), starting (every change in one go, launch ends at once, a deleted theme fails cleanly), ending (roll back or keep), pause and resume, edits made by hand during an event survive the roll back, the worker tick, store isolation, what the admin pages read (labels, holds, picker lists) / WHY: a sale weekend must start and end on time and leave the store exactly as the merchant expects */
 import { createDb, discount, rollout, store, theme, withStore } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
@@ -6,18 +6,19 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type { StoreContext } from '../context'
 import { defaultTheme } from '../theme/schema'
 import { runRolloutsTick } from './job'
+import { RolloutError, type RolloutSaveInput } from './schema'
 import {
   createRollout,
   deleteRollout,
   endRollout,
   getRollout,
   pauseRollout,
-  RolloutError,
   resumeRollout,
   rolloutConflicts,
   startRollout,
   updateRollout,
 } from './service'
+import { rolloutDiscountOptions, rolloutHolds, rolloutThemeOptions } from './targets'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
@@ -104,19 +105,18 @@ const accent = (storeId: string) =>
     return (s?.p as { checkout?: { branding?: { accent?: string } } })?.checkout?.branding?.accent
   })
 
-const diwali = (s: Awaited<ReturnType<typeof seed>>) =>
-  ({
-    name: 'Diwali sale',
-    kind: 'event',
-    startsAt: at(0),
-    endsAt: at(72),
-    changes: [
-      { kind: 'theme', themeId: s.sale },
-      { kind: 'checkout_branding', branding: { accent: '#E8590C', button: '#E8590C' } },
-      { kind: 'discount', discountId: s.on, status: 'active' },
-      { kind: 'discount', discountId: s.off, status: 'disabled' },
-    ],
-  }) as const
+const diwali = (s: Awaited<ReturnType<typeof seed>>): RolloutSaveInput => ({
+  name: 'Diwali sale',
+  kind: 'event',
+  startsAt: at(0),
+  endsAt: at(72),
+  changes: [
+    { kind: 'theme', themeId: s.sale },
+    { kind: 'checkout_branding', branding: { accent: '#E8590C', button: '#E8590C' } },
+    { kind: 'discount', discountId: s.on, status: 'active' },
+    { kind: 'discount', discountId: s.off, status: 'disabled' },
+  ],
+})
 
 describe('saving', () => {
   it('is a draft without a start, scheduled with a start and changes', async () => {
@@ -289,5 +289,47 @@ describe('the worker tick', () => {
     expect(row?.status).toBe('draft')
     expect(row?.error).toContain('deleted')
     expect(await runRolloutsTick(app, at(2))).toMatchObject({ stores: 0 })
+  })
+})
+
+describe('what the admin shows', () => {
+  it('labels each change and names the rollout holding each theme, discount and the checkout', async () => {
+    const s = await seed()
+    const r = await inStore(s.storeId, (ctx) => createRollout(ctx, diwali(s)))
+    const labels = r.changes.map((c) => ('label' in c ? c.label : null))
+    expect(labels).toEqual(['Diwali', null, 'DIWALI10', 'WELCOME'])
+
+    const holds = await inStore(s.storeId, rolloutHolds)
+    const hold = { id: r.id, name: 'Diwali sale', status: 'scheduled' }
+    expect(holds.themes).toEqual({ [s.sale]: hold })
+    expect(holds.discounts).toEqual({ [s.on]: hold, [s.off]: hold })
+    expect(holds.checkout).toEqual(hold)
+
+    // An ended rollout holds nothing.
+    await inStore(s.storeId, (ctx) => startRollout(ctx, r.id, at(0)))
+    await inStore(s.storeId, (ctx) => endRollout(ctx, r.id, 'rollback', at(1)))
+    expect(await inStore(s.storeId, rolloutHolds)).toEqual({
+      themes: {},
+      discounts: {},
+      checkout: null,
+    })
+  })
+
+  it('lists themes live first and finds discounts by title or code, in this store only', async () => {
+    const s = await seed()
+    await seed('other')
+    const themes = await inStore(s.storeId, rolloutThemeOptions)
+    expect(themes.map((t) => [t.name, t.live])).toEqual([
+      ['Everyday', true],
+      ['Diwali', false],
+    ])
+    const all = await inStore(s.storeId, (ctx) =>
+      rolloutDiscountOptions(ctx, { page: 1, perPage: 30 }),
+    )
+    expect(all.total).toBe(2)
+    const found = await inStore(s.storeId, (ctx) =>
+      rolloutDiscountOptions(ctx, { page: 1, perPage: 30, search: 'diwali' }),
+    )
+    expect(found).toMatchObject({ total: 1, items: [{ id: s.on, status: 'disabled' }] })
   })
 })
