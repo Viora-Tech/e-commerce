@@ -141,7 +141,13 @@ export const inventoryRouter = {
     .use(heavy('export'))
     .input(listInput.omit({ page: true, perPage: true }))
     .handler(async ({ context, input }) => {
-      const { rows } = await listInventory(context.tx, { ...input, page: 1, perPage: 5000 })
+      // Always by SKU: the cap stays 5000 lines, and SKU order already keeps a product together.
+      const { rows } = await listInventory(context.tx, {
+        ...input,
+        group: 'variant',
+        page: 1,
+        perPage: 5000,
+      })
       return rows
     }),
 

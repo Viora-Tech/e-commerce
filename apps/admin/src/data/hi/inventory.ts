@@ -91,6 +91,13 @@ export default [
       ],
     },
     group: { label: 'दिखाएं', skus: 'SKU', products: 'प्रोडक्ट' },
+    tree: {
+      variants: (n: number) => `${n} वेरिएंट`,
+      expand: (name: string) => `${name} के वेरिएंट दिखाएं`,
+      collapse: (name: string) => `${name} के वेरिएंट छिपाएं`,
+      expandAll: 'सब खोलें',
+      collapseAll: 'सब बंद करें',
+    },
     cell: {
       decrease: 'एक घटाएँ',
       increase: 'एक बढ़ाएँ',

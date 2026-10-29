@@ -89,6 +89,14 @@ export const inventoryContent = {
     ],
   },
   group: { label: 'Show', skus: 'SKUs', products: 'Products' },
+  /** Products view: one row per product, its SKUs folded underneath. */
+  tree: {
+    variants: (n: number) => `${n} variants`,
+    expand: (name: string) => `Show variants of ${name}`,
+    collapse: (name: string) => `Hide variants of ${name}`,
+    expandAll: 'Expand all',
+    collapseAll: 'Collapse all',
+  },
   cell: {
     decrease: 'Remove one',
     increase: 'Add one',
