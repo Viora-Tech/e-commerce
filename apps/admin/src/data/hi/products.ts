@@ -52,6 +52,11 @@ export default [
         { value: 'low', label: 'स्टॉक कम है' },
         { value: 'out', label: 'स्टॉक खत्म' },
       ],
+      missing: 'कमी',
+      missingOptions: [
+        { value: 'weight', label: 'वज़न नहीं' },
+        { value: 'image', label: 'फ़ोटो नहीं' },
+      ],
     },
     status: { active: 'चालू', draft: 'ड्राफ़्ट', archived: 'आर्काइव' },
     columns: {

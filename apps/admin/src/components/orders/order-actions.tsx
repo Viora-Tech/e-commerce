@@ -8,6 +8,7 @@ import {
   CircleCheck,
   Copy,
   FileEdit,
+  FileText,
   Package,
   PackageCheck,
   Pencil,
@@ -59,6 +60,8 @@ type OrderActionsProps = {
   onCancel?: (() => void) | undefined
   /** Opens the order edit page; undefined when the order cannot be edited. */
   onEdit?: (() => void) | undefined
+  /** Where the order's invoices are on the page ("View invoices"); undefined hides it. */
+  invoicesHref?: string | undefined
   /** The order's number, for "Copy order number". */
   orderNumber?: number | undefined
   /** The customer's email, for "Orders from this customer". */
@@ -86,6 +89,7 @@ export default function OrderActions({
   onDuplicate,
   onCancel,
   onEdit,
+  invoicesHref,
   orderNumber,
   customerEmail,
   appItems = [],
@@ -141,6 +145,12 @@ export default function OrderActions({
           <ChevronRightIcon aria-hidden="true" />
         </Button>
       </div>
+      {onEdit ? (
+        <Button variant="outline" title={editCopy.action} disabled={busy} onClick={onEdit}>
+          <Pencil aria-hidden="true" />
+          {editCopy.short}
+        </Button>
+      ) : null}
       <Button variant="outline" title={copy.actions.print} onClick={() => window.print()}>
         <Printer aria-hidden="true" />
         {copy.actions.printShort}
@@ -157,11 +167,10 @@ export default function OrderActions({
             onSelect: () => menuMove && onMove(menuMove.to),
           },
           {
-            label: editCopy.action,
-            icon: Pencil,
-            hidden: !onEdit,
-            disabled: busy,
-            onSelect: onEdit,
+            label: copy.actions.invoices,
+            icon: FileText,
+            hidden: !invoicesHref,
+            href: invoicesHref,
           },
           {
             label: appCopy.createShipment,

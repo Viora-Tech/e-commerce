@@ -6,7 +6,6 @@ import './globals.css'
 import CursorLight from '@/components/common/cursor-light'
 import JsonLd from '@/components/common/json-ld'
 import ConsentProvider from '@/components/consent/consent-provider'
-import WaitlistProvider from '@/components/waitlist/waitlist-provider'
 import { organizationLd, websiteLd } from '@/lib/seo'
 
 export const metadata: Metadata = {
@@ -83,9 +82,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
           Skip to content
         </a>
         <CursorLight />
-        <WaitlistProvider>
-          <ConsentProvider>{children}</ConsentProvider>
-        </WaitlistProvider>
+        <ConsentProvider>{children}</ConsentProvider>
       </body>
     </html>
   )

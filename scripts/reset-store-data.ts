@@ -66,6 +66,7 @@ const WIPE = [
   'gift_card_transaction',
   // Customers
   'customer',
+  'customer_note',
   'customer_address',
   'customer_identity',
   'customer_login_code',

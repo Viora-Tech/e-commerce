@@ -112,7 +112,7 @@ type ProductForLd = {
     id: string
     title: string
     sku: string | null
-    pricePaise: number
+    pricePaise: number | null
     available: number
     purchasable?: boolean | undefined
   }[]
@@ -129,7 +129,11 @@ type ProductForLd = {
  */
 export function productGraph(p: ProductForLd, origin: string, currency: string, storeName: string) {
   const url = `${origin}/products/${p.handle}`
-  const offers = p.variants.map((v) => ({
+  // Variants listed without a price (#913) have no offer to make yet.
+  const priced = p.variants.flatMap((v) =>
+    v.pricePaise == null ? [] : [{ ...v, pricePaise: v.pricePaise }],
+  )
+  const offers = priced.map((v) => ({
     '@type': 'Offer',
     url,
     ...(p.variants.length > 1 ? { name: v.title } : {}),
@@ -145,7 +149,7 @@ export function productGraph(p: ProductForLd, origin: string, currency: string, 
     itemCondition: 'https://schema.org/NewCondition',
     seller: { '@id': `${origin}/#organization` },
   }))
-  const prices = p.variants.map((v) => v.pricePaise)
+  const prices = priced.map((v) => v.pricePaise)
   return {
     '@context': 'https://schema.org',
     '@graph': [
@@ -159,16 +163,18 @@ export function productGraph(p: ProductForLd, origin: string, currency: string, 
         brand: { '@type': 'Brand', name: p.vendor || storeName },
         ...(p.variants.length === 1 && p.variants[0]?.sku ? { sku: p.variants[0].sku } : {}),
         offers:
-          offers.length > 1
-            ? {
-                '@type': 'AggregateOffer',
-                priceCurrency: currency,
-                lowPrice: paiseToAmount(Math.min(...prices)),
-                highPrice: paiseToAmount(Math.max(...prices)),
-                offerCount: offers.length,
-                offers,
-              }
-            : offers[0],
+          offers.length === 0
+            ? undefined
+            : offers.length > 1
+              ? {
+                  '@type': 'AggregateOffer',
+                  priceCurrency: currency,
+                  lowPrice: paiseToAmount(Math.min(...prices)),
+                  highPrice: paiseToAmount(Math.max(...prices)),
+                  offerCount: offers.length,
+                  offers,
+                }
+              : offers[0],
         ...(p.rating && p.rating.count > 0
           ? {
               aggregateRating: {

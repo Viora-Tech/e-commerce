@@ -1,5 +1,13 @@
 import { createMerchantAuth, type SendInvite } from '@commerce/auth'
-import { authSchema, createDb, role, store, storeInvitation, storeMember } from '@commerce/db'
+import {
+  authSchema,
+  createDb,
+  role,
+  store,
+  storeInvitation,
+  storeMember,
+  storePlan,
+} from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { call } from '@orpc/server'
 import { and, eq } from 'drizzle-orm'
@@ -403,6 +411,32 @@ describe('pending invitations', () => {
     await expect(
       call(appRouter.staff.resendInvitation, { id: other.id }, { context: ctx(helper) }),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+  })
+  it("refuses an invite past the plan's staff accounts; open invites hold a seat", async () => {
+    const shop = await storeWithOwner('seats@example.com', 'seats-a')
+    const staffRole = await roleId(shop.storeId, 'staff')
+    const invite = (email: string) =>
+      call(appRouter.staff.invite, { email, roleId: staffRole }, { context: ctx(shop.headers) })
+    // A new store tries Growth: 3 accounts, the owner holding one.
+    await invite('one@example.com')
+    const second = await invite('two@example.com')
+    await expect(invite('three@example.com')).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+      data: { reason: 'staff_limit', limit: 3, used: 3 },
+    })
+    // Cancelling an invite frees its seat; resending one never needs a new seat.
+    await call(appRouter.staff.cancelInvitation, { id: second.id }, { context: ctx(shop.headers) })
+    const third = await invite('three@example.com')
+    await call(appRouter.staff.resendInvitation, { id: third.id }, { context: ctx(shop.headers) })
+
+    // Starter is the owner alone.
+    await owner
+      .update(storePlan)
+      .set({ plan: 'starter', status: 'active' })
+      .where(eq(storePlan.storeId, shop.storeId))
+    await expect(invite('four@example.com')).rejects.toMatchObject({
+      data: { reason: 'staff_limit', limit: 1 },
+    })
   })
 })
 

@@ -9,10 +9,13 @@ export const metadata: Metadata = { title: 'Purchase orders' }
 
 type Props = { searchParams: Promise<SearchParams> }
 
+/** Suppliers offered in the filter panel: the API's largest page, A to Z. */
+const PICKER_ROWS = 100
+
 export default async function Page({ searchParams }: Props) {
   const query = parseListQuery(await searchParams, PURCHASE_ORDER_STATUSES)
   const context = await serverContext()
-  const [result, counts] = await Promise.all([
+  const [result, counts, suppliers, locations] = await Promise.all([
     call(
       appRouter.purchaseOrders.list,
       {
@@ -24,7 +27,13 @@ export default async function Page({ searchParams }: Props) {
       { context },
     ),
     call(appRouter.purchaseOrders.counts, undefined, { context }),
+    call(appRouter.suppliers.list, { page: 1, perPage: PICKER_ROWS }, { context }),
+    call(appRouter.inventory.locations, undefined, { context }),
   ])
+  const facets = {
+    suppliers: suppliers.rows.map((s) => ({ id: s.id, name: s.name })),
+    locations: locations.map((l) => ({ id: l.id, name: l.name })),
+  }
 
-  return <PurchaseOrdersPage initial={{ query, result, counts }} />
+  return <PurchaseOrdersPage initial={{ query, result, counts, facets }} />
 }

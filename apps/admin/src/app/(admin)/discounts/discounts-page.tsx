@@ -13,11 +13,25 @@ import { discountColumns } from '@/components/discounts/discount-columns'
 import DiscountRowMenu from '@/components/discounts/discount-row-menu'
 import DiscountTiles, { type DiscountStats } from '@/components/discounts/discount-tiles'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
+import {
+  appliedFromGroups,
+  clearGroups,
+  FILTER_PANEL_CLASS,
+  FilterPanel,
+} from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
 import { DISCOUNT_LIFECYCLES, type DiscountLifecycle, discountsContent } from '@/data/discounts'
+import { filterPanelContent } from '@/data/filter-panel'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import {
+  CLEAR_DISCOUNT_FILTERS,
+  DISCOUNT_FILTER_PARAMS,
+  discountFilterGroups,
+  discountFilterInput,
+  hasDiscountFilters,
+} from '@/lib/discount-list-filters'
 import { type ListQuery, sameListQuery } from '@/lib/list-query'
 import { usePrimaryAction } from '@/lib/primary-action'
 import { routes } from '@/lib/routes'
@@ -37,14 +51,16 @@ const DEFAULT_PER_PAGE = siteConfig.ui.rowsPerPage.default
 function DiscountsContent({ initial }: { initial: DiscountsInitial }) {
   // Hooks
   const copy = useCopy(discountsContent)
+  const panelCopy = useCopy(filterPanelContent)
   const fmt = useFormat()
   usePrimaryAction(routes.discounts.new())
-  const [{ page, perPage, query, status }, setQ] = useQueryStates(
+  const [q, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
       page: parseAsInteger.withDefault(1),
       perPage: parseAsInteger.withDefault(DEFAULT_PER_PAGE),
       status: parseAsStringLiteral(DISCOUNT_LIFECYCLES),
+      ...DISCOUNT_FILTER_PARAMS,
     },
     { shallow: true },
   )
@@ -63,14 +79,21 @@ function DiscountsContent({ initial }: { initial: DiscountsInitial }) {
     if (
       reload === 0 &&
       firstRun &&
-      sameListQuery({ page, query, status }, initial.query) &&
-      perPage === DEFAULT_PER_PAGE
+      sameListQuery({ page: q.page, query: q.query, status: q.status }, initial.query) &&
+      q.perPage === DEFAULT_PER_PAGE &&
+      !hasDiscountFilters(q)
     )
       return
     let cancelled = false
     setLoading(true)
     api.discounts
-      .list({ page, perPage, search: query || undefined, lifecycle: status ?? undefined })
+      .list({
+        page: q.page,
+        perPage: q.perPage,
+        search: q.query || undefined,
+        lifecycle: q.status ?? undefined,
+        ...discountFilterInput(q),
+      })
       .then((r) => {
         if (cancelled) return
         setItems(r.items)
@@ -80,10 +103,13 @@ function DiscountsContent({ initial }: { initial: DiscountsInitial }) {
     return () => {
       cancelled = true
     }
-  }, [page, perPage, query, status, initial.query, reload])
+  }, [q, initial.query, reload])
 
   // Render logic
   const { stats } = initial
+  const groups = discountFilterGroups(q, copy.filters, (patch) => setQ({ ...patch, page: 1 }))
+  const applied = appliedFromGroups(groups, panelCopy)
+  const filtered = applied.length > 0 || q.query.length > 0
 
   return (
     <ProoflyListPage
@@ -92,7 +118,7 @@ function DiscountsContent({ initial }: { initial: DiscountsInitial }) {
       stats={
         <DiscountTiles
           stats={stats}
-          status={status}
+          status={q.status}
           onSelect={(next) => setQ({ status: next, page: 1 })}
         />
       }
@@ -122,12 +148,21 @@ function DiscountsContent({ initial }: { initial: DiscountsInitial }) {
           <DiscountRowMenu discount={d} onChanged={() => setReload((n) => n + 1)} />
         )}
         loading={loading}
-        query={query}
+        query={q.query}
         onQueryChange={(next) => setQ({ query: next, page: 1 })}
-        onClearAll={() => setQ({ query: '', status: null, page: 1 })}
+        onClearAll={() => setQ({ ...CLEAR_DISCOUNT_FILTERS, query: '', status: null, page: 1 })}
+        filters={(close) => (
+          <FilterPanel
+            groups={groups}
+            onClear={() => clearGroups(groups)}
+            footer={{ label: panelCopy.show(total), onDone: close }}
+          />
+        )}
+        filtersClassName={FILTER_PANEL_CLASS}
+        applied={applied}
         views={
           <ViewSelect
-            value={status}
+            value={q.status}
             onChange={(next) => setQ({ status: next, page: 1 })}
             options={[
               { value: null, label: copy.tabs.all, count: initial.allCount },
@@ -139,8 +174,8 @@ function DiscountsContent({ initial }: { initial: DiscountsInitial }) {
             ]}
           />
         }
-        page={page}
-        perPage={perPage}
+        page={q.page}
+        perPage={q.perPage}
         onPerPageChange={(next) => setQ({ perPage: next, page: 1 })}
         total={total}
         onPageChange={(next) => setQ({ page: next })}
@@ -148,16 +183,20 @@ function DiscountsContent({ initial }: { initial: DiscountsInitial }) {
         bulkActions={(ids, clear) => (
           <DiscountBulkActions ids={ids} clear={clear} onChanged={() => setReload((n) => n + 1)} />
         )}
-        empty={{
-          heading: copy.empty.heading,
-          body: copy.empty.body,
-          action: (
-            <Button render={<Link href={routes.discounts.new()} />} nativeButton={false}>
-              <Plus />
-              {copy.create}
-            </Button>
-          ),
-        }}
+        empty={
+          filtered
+            ? copy.noResults
+            : {
+                heading: copy.empty.heading,
+                body: copy.empty.body,
+                action: (
+                  <Button render={<Link href={routes.discounts.new()} />} nativeButton={false}>
+                    <Plus />
+                    {copy.create}
+                  </Button>
+                ),
+              }
+        }
       />
     </ProoflyListPage>
   )

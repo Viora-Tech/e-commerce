@@ -4,6 +4,7 @@ import { translation } from '@/lib/i18n'
 export default [
   translation(selectProductsContent, {
     title: 'प्रोडक्ट चुनें',
+    noPrice: 'अभी कीमत नहीं',
     search: 'प्रोडक्ट खोजें',
     searchLabel: 'नाम या SKU से प्रोडक्ट खोजें',
     collection: 'कलेक्शन',

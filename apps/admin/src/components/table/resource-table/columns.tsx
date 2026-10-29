@@ -99,11 +99,14 @@ export function selectionColumn<T extends RowData>(): ResourceColumn<T> {
         />
       </span>
     ),
+    // A tree row's own box ticks its sub rows (it is never selected itself): full when they all
+    // are, a dash when some are.
     cell: ({ row }) => (
       <span className="flex items-center">
         <Checkbox
           className="size-4"
-          checked={row.getIsSelected()}
+          checked={row.subRows.length ? row.getIsAllSubRowsSelected() : row.getIsSelected()}
+          indeterminate={row.subRows.length > 0 && row.getIsSomeSelected()}
           onCheckedChange={(value) => row.toggleSelected(!!value)}
           onClick={(e) => e.stopPropagation()}
           aria-label={tableContent.selectRow}

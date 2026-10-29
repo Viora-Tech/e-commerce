@@ -53,10 +53,13 @@ export const orderTakeoverContent = {
 
 export const orderEditContent = {
   action: 'Edit order',
+  short: 'Edit',
+  /** A variant listed without a price yet (#913): the line starts at ₹0 for you to type one. */
+  noPrice: 'No price yet',
   pageTitle: (n: number) => `Edit order #${n}`,
   back: (n: number) => `Order #${n}`,
   intro:
-    'Add or remove items, change quantities, shipping or discount. Nothing changes until you review and save.',
+    'Add or remove items, change quantities, prices, shipping or discount. Nothing changes until you review and save.',
   items: 'Items',
   search: 'Search products to add',
   searching: 'Searching…',
@@ -72,6 +75,10 @@ export const orderEditContent = {
   charges: 'Shipping and discount',
   shipping: 'Shipping',
   discount: 'Discount',
+  shippingLabel: 'Shipping label',
+  shippingLabelPlaceholder: 'e.g. Bluedart',
+  discountLabel: 'Discount reason',
+  discountLabelPlaceholder: 'e.g. UPI discount',
   summary: 'Summary',
   subtotal: 'Subtotal',
   total: 'New total',
@@ -105,5 +112,8 @@ export const orderEditContent = {
     changed: (name: string, from: number, to: number) => `${name}: ${from} → ${to}`,
     shipping: (from: string, to: string) => `Shipping ${from} → ${to}`,
     discount: (from: string, to: string) => `Discount ${from} → ${to}`,
+    price: (name: string, from: string, to: string) => `${name}: price ${from} → ${to}`,
+    shippingLabel: (to: string) => (to ? `Shipping label: ${to}` : 'Shipping label removed'),
+    discountLabel: (to: string) => (to ? `Discount reason: ${to}` : 'Discount reason removed'),
   },
 } as const

@@ -143,7 +143,7 @@ export async function seedDemoOrders(ownerUrl: string, opts: { clean?: boolean }
       return
     }
 
-    const variants = await db
+    const rows = await db
       .select({
         id: variant.id,
         title: variant.title,
@@ -162,7 +162,11 @@ export async function seedDemoOrders(ownerUrl: string, opts: { clean?: boolean }
           sql`${inventoryLevel.onHand} - ${inventoryLevel.reserved} > 0`,
         ),
       )
-    if (variants.length === 0) throw new Error('no in-stock variants to order')
+    // A variant without a price (#929) cannot be sold, so it never goes in a demo order.
+    const variants = rows.flatMap((v) =>
+      v.pricePaise === null ? [] : [{ ...v, pricePaise: v.pricePaise }],
+    )
+    if (variants.length === 0) throw new Error('no in-stock, priced variants to order')
 
     const r = rng(20260921)
     const customerIds = new Map<string, string>()

@@ -88,6 +88,7 @@
     "./cod-rto": "./src/cod-rto/client.ts",
     "./cod-rto-app": "./src/cod-rto/app.ts",
     "./policies": "./src/policies/client.ts",
+    "./store-health": "./src/store-health/checks.ts",
     "./sales-channels": "./src/sales-channels/client.ts",
     "./checkout-settings": "./src/checkout/settings.ts",
     "./checkout-handoff": "./src/checkout/handoff.ts",

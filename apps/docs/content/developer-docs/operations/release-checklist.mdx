@@ -9,6 +9,33 @@ deployed and **before** opening the `dev` → `main` release PR. Unit tests chec
 its own; this checks the whole flow on a real server, real DNS, real email and real storage,
 which is where the 2026-10-05 bugs hid (issues #255–#266).
 
+## First: the checkout smoke test
+
+Before anything else, run the scripted checkout from your machine against the store you are about
+to release (the live store, the test server's store or a local storefront):
+
+```bash
+bun run smoke:checkout -- --base https://waimers.koomerce.app
+```
+
+It walks a guest, on a desktop and a phone viewport, through: home, a collection, a search, a
+misspelt search, a product's **Add to cart**, the cart (line with image and price), then checkout:
+cookies, any popup, guest contact (`success@simulator.amazonses.com`, `9999999999`), and the
+address with PIN **131001** (Haryana) and **400001** (Maharashtra). For each PIN the city and state
+must fill in and **Shipping** must show at least one option; "We do not ship to …" or "We cannot
+deliver to …" fails it (the 21 Oct bug, which only showed at that step). It stops when **Payment**
+lists a way to pay and never presses Pay, so no order is placed.
+
+It prints a pass/fail table and exits non-zero on any failure, with full-page screenshots of each
+failed step in a temp folder (the path is printed). Options: `--viewport desktop|phone`,
+`--query <word>` (search word; default: a word from an in-stock product), `--pin 744101:AN` (also
+check a PIN a shopper reported). A failing row blocks the release like any row below.
+
+First run on a machine: `bunx playwright install chromium-headless-shell`. It runs on Node, not
+Bun: Bun on Windows cannot drive Playwright's browser pipe and the launch hangs.
+
+## Manual checklist
+
 Click through each row. Tick it only if the **Expect** column is exactly what you saw. A failing
 row becomes a GitHub issue (label `bug` + `test-server`) and blocks the release.
 

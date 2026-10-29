@@ -45,6 +45,7 @@ import ParcelsCard from './parcels-card'
 import PaymentCard from './payment-card'
 import ProfitCard from './profit-card'
 import RefundDialog from './refund-dialog'
+import type { SendChannel } from './reminder-channel-picker'
 import SalesChannelCard from './sales-channel-card'
 import SendMessageDialog, { type CustomMessage } from './send-message-dialog'
 import ShipmentPanel from './shipment-panel'
@@ -53,6 +54,10 @@ import TimelineCard from './timeline-card'
 import UnfulfilledCard from './unfulfilled-card'
 import { useDuplicateOrder } from './use-duplicate-order'
 import { useOrderAppActions } from './use-order-app-actions'
+
+/** The GST invoices app's card, drawn high in the side column and linked from "More actions". */
+const INVOICES_APP = 'gst-invoices'
+const INVOICES_ANCHOR = 'order-invoices'
 
 type OrderViewProps = {
   order: OrderDetail
@@ -83,6 +88,10 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
   const [cancelling, setCancelling] = useState(false)
 
   // Helpers
+  const appCard = (id: string) => {
+    const Card = ADMIN_APPS[id]?.OrderCard
+    return Card ? <Card key={id} orderId={order.id} /> : null
+  }
   const refresh = () => router.refresh()
   const openRefund = () => setRefunding(payment?.status === 'captured' ? payment : null)
   const closeAndRefresh = (close: () => void) => () => {
@@ -120,10 +129,10 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
       setBusy(false)
     }
   }
-  const handleSendReminder = async (custom?: CustomMessage) => {
+  const handleSendReminder = async (custom?: CustomMessage, channel?: SendChannel) => {
     setBusy(true)
     try {
-      await api.orders.sendPaymentReminder({ orderId: order.id, custom })
+      await api.orders.sendPaymentReminder({ orderId: order.id, custom, channel })
       toast.success(copy.payment.transfer.sentToast)
       refresh()
     } catch (err) {
@@ -131,6 +140,10 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
     } finally {
       setBusy(false)
     }
+  }
+  /** The merchant opened the reminder in their own WhatsApp: put it on the timeline. */
+  const handleReminderChat = () => {
+    void api.orders.notePaymentReminderChat({ orderId: order.id }).then(refresh, () => undefined)
   }
   /** Courier calls can fail; the message is the app's wording from the API, shown as a toast. */
   const handleCourier = async <T,>(run: () => Promise<T>, done: (result: T) => string) => {
@@ -230,6 +243,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
               }
               onCancel={canCancel ? () => setCancelling(true) : undefined}
               onEdit={canEdit ? () => router.push(routes.orders.edit(order.id)) : undefined}
+              invoicesHref={appCards.includes(INVOICES_APP) ? `#${INVOICES_ANCHOR}` : undefined}
               orderNumber={order.number}
               customerEmail={order.email}
               appItems={[
@@ -270,6 +284,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
             order={order}
             payment={pay}
             unfulfilledShown={!readOnly && order.status !== 'cancelled'}
+            editHref={canEdit ? routes.orders.edit(order.id) : undefined}
           />
           <PaymentCard
             order={order}
@@ -310,6 +325,12 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
             />
           ) : null}
           <CustomerCard order={order} />
+          {/* Invoices sit right under the customer, where staff look for them (issue 920). */}
+          {appCards.includes(INVOICES_APP) ? (
+            <div id={INVOICES_ANCHOR} className="scroll-mt-6">
+              {appCard(INVOICES_APP)}
+            </div>
+          ) : null}
           <CourierOrdersCard
             orderId={order.id}
             rows={order.courierOrders}
@@ -329,10 +350,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
               }
             />
           )}
-          {appCards.map((id) => {
-            const Card = ADMIN_APPS[id]?.OrderCard
-            return Card ? <Card key={id} orderId={order.id} /> : null
-          })}
+          {appCards.filter((id) => id !== INVOICES_APP).map(appCard)}
           <TagsCard orderId={order.id} tags={order.tags} onChanged={refresh} />
         </>
       }
@@ -348,6 +366,9 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
         orderId={reviewing ? order.id : null}
         template={reviewing ?? 'payment_reminder'}
         onSend={reviewing === 'balance_request' ? handleRequestBalance : handleSendReminder}
+        chooseChannel={
+          reviewing === 'payment_reminder' ? { onChatOpened: handleReminderChat } : undefined
+        }
         onClose={() => setReviewing(null)}
       />
       <CancelOrderDialog

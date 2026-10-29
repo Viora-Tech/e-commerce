@@ -22,17 +22,9 @@ const ALLOWLIST: AllowEntry[] = [
       'bulk-edit spreadsheet rows: matches "Select all" (SELECT_ALL_MAX 5000), a read, not a bulk write',
   },
   {
-    site: 'packages/api/src/routers/orders.ts: ids.max(10)',
-    reason: 'the orders.ids (Select all) procedure: its status filter lists hold a few enum values',
-  },
-  {
     site: 'packages/api/src/routers/order-list.ts: ids.max(5000)',
     reason:
       'bulk-edit spreadsheet rows: matches "Select all" (SELECT_ALL_MAX 5000), a read, not a bulk write',
-  },
-  {
-    site: 'packages/api/src/routers/orders.ts: ids.max(60)',
-    reason: 'the orders.ids (Select all) procedure: its courier filter is a name, not a search box',
   },
   {
     site: 'packages/api/src/routers/themes.ts: page.max(60)',

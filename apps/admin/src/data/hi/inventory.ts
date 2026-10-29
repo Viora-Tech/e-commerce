@@ -4,6 +4,7 @@ import {
   purchaseOrderBulkContent,
   purchaseOrderFormContent,
   purchaseOrdersContent,
+  transfersContent,
 } from '@/data/inventory'
 import { translation } from '@/lib/i18n'
 
@@ -91,6 +92,13 @@ export default [
       ],
     },
     group: { label: 'दिखाएं', skus: 'SKU', products: 'प्रोडक्ट' },
+    tree: {
+      variants: (n: number) => `${n} वेरिएंट`,
+      expand: (name: string) => `${name} के वेरिएंट दिखाएं`,
+      collapse: (name: string) => `${name} के वेरिएंट छिपाएं`,
+      expandAll: 'सब खोलें',
+      collapseAll: 'सब बंद करें',
+    },
     cell: {
       decrease: 'एक घटाएँ',
       increase: 'एक बढ़ाएँ',
@@ -182,6 +190,17 @@ export default [
     number: (n: number) => `#PO${n}`,
     receivedOf: (received: number, units: number) => `${units} में से ${received}`,
     none: 'कोई नहीं',
+    filters: {
+      status: 'स्थिति',
+      supplier: 'सप्लायर',
+      destination: 'कहाँ पहुँचेगा',
+      expected: 'कब तक आएगा',
+      created: 'कब बना',
+    },
+    noResults: {
+      heading: 'इन फ़िल्टर से कोई परचेज़ ऑर्डर नहीं मिला',
+      body: 'कोई और सर्च आज़माएँ या फ़िल्टर हटाएँ।',
+    },
     empty: {
       heading: 'कोई परचेज़ ऑर्डर नहीं',
       body: 'परचेज़ ऑर्डर बताते हैं कि आपने सप्लायर से क्या मँगाया और क्या पहुँचा, ताकि आने वाला स्टॉक पहुँचने से पहले दिखे।',
@@ -321,6 +340,42 @@ export default [
       body: 'जो माल अभी नहीं आया वह आने वाले स्टॉक में नहीं दिखेगा। आया हुआ स्टॉक बना रहेगा। ड्राफ़्ट और पहले से पूरे हो चुके ऑर्डर छोड़ दिए जाएंगे।',
       confirm: 'ऑर्डर बंद करें',
       cancel: 'रहने दें',
+    },
+  }),
+  translation(transfersContent, {
+    heading: 'ट्रांसफ़र',
+    summary: 'आपकी लोकेशन के बीच भेजा गया स्टॉक',
+    resource: { singular: 'ट्रांसफ़र', plural: 'ट्रांसफ़र' },
+    create: 'ट्रांसफ़र बनाएं',
+    status: { draft: 'ड्राफ़्ट', in_transit: 'रास्ते में', received: 'पहुँच गया' },
+    tabs: { all: 'सभी' },
+    columns: {
+      number: 'ट्रांसफ़र',
+      from: 'कहाँ से',
+      to: 'कहाँ तक',
+      status: 'स्थिति',
+      units: 'यूनिट',
+      created: 'कब बना',
+    },
+    number: (n) => `#T${n}`,
+    filters: {
+      status: 'स्थिति',
+      origin: 'कहाँ से',
+      destination: 'कहाँ तक',
+      created: 'कब बना',
+      received: 'कब पहुँचा',
+    },
+    noResults: {
+      heading: 'इन फ़िल्टर से कोई ट्रांसफ़र नहीं मिला',
+      body: 'कोई और सर्च आज़माएँ या फ़िल्टर हटाएँ।',
+    },
+    single: {
+      heading: 'ट्रांसफ़र से स्टॉक एक लोकेशन से दूसरी में जाता है',
+      body: 'आपकी एक ही लोकेशन है, इसलिए अभी स्टॉक भेजने की कोई जगह नहीं। ट्रांसफ़र शुरू करने के लिए गोदाम, दुकान या पार्टनर लोकेशन जोड़ें।',
+    },
+    empty: {
+      heading: 'कोई ट्रांसफ़र नहीं',
+      body: 'ट्रांसफ़र लोकेशन के बीच जाते स्टॉक को दर्ज करते हैं, ताकि दोनों तरफ़ की गिनती सही रहे।',
     },
   }),
 ]

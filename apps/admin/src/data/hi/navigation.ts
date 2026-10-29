@@ -118,6 +118,10 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
     title: 'प्राइवेसी और डेटा रिक्वेस्ट',
     body: 'कुकी बैनर, मार्केटिंग की सहमति, और ग्राहकों का अपना डेटा मांगना या मिटवाना।',
   },
+  '/settings/store-health': {
+    title: 'स्टोर की सेहत',
+    body: 'वे सेटिंग जो चेकआउट और ऑर्डर बिगाड़ेंगी, हर एक के साथ ठीक करने का लिंक।',
+  },
   '/settings/policies': {
     title: 'पॉलिसी',
     body: 'रिफ़ंड, प्राइवेसी, शर्तें, शिपिंग और संपर्क पेज, तैयार टेम्पलेट से।',
@@ -203,6 +207,8 @@ export default [
       title: 'इस महीने के ऑर्डर',
       of: (used, limit) => `${limit} में से ${used}`,
       moreRoom: (plan) => `${plan} प्लान में ज़्यादा जगह`,
+      nearLimit: (left) => `${left} शामिल ऑर्डर बाकी`,
+      feeAfter: (percent) => `हर अगला ऑर्डर: उसकी कुल रकम का ${percent}%`,
     },
     account: 'अकाउंट',
     menu: {

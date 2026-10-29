@@ -120,6 +120,17 @@ describe('buildDocument', () => {
     }
   })
 
+  it('prints what the shipping is and what the discount is for (issue 919)', () => {
+    const base = input()
+    const doc = buildDocument({
+      ...base,
+      order: { ...base.order, shippingLabel: 'Bluedart', discountLabel: ' UPI discount ' },
+    })
+    expect(doc.lines.at(-1)?.description).toBe('Shipping charges (Bluedart)')
+    expect(doc.discountLabel).toBe('UPI discount')
+    expect(doc.totals.totalPaise).toBe(280_000)
+  })
+
   it('splits intra-state tax into CGST and SGST with the odd paisa on CGST', () => {
     const doc = buildDocument(input({ state: 'HR' }))
     expect(doc.interState).toBe(false)

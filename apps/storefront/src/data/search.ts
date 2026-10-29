@@ -17,6 +17,8 @@ export const searchContent = {
   searchInstead: (query: string) => `No results for "${query}".`,
   browseCollections: 'Browse collections',
   soldOut: 'Sold out',
+  /** A product listed before its price is set (#913). */
+  priceComingSoon: 'Price coming soon',
   predictive: {
     products: 'Products',
     viewAll: (q: string) => `Search for "${q}"`,

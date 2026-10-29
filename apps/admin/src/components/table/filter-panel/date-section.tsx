@@ -45,24 +45,26 @@ export default function DateSection({ group }: DateSectionProps) {
       </NativeSelect>
       {custom ? (
         <div className="flex gap-2">
-          <label className="flex min-w-0 flex-1 flex-col gap-1">
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
             <span className="text-xs text-muted-foreground">{copy.from}</span>
             <Input
               type="date"
+              aria-label={copy.from}
               value={group.value.from}
               max={group.value.to || undefined}
               onChange={(e) => group.onChange({ ...group.value, from: e.target.value })}
             />
-          </label>
-          <label className="flex min-w-0 flex-1 flex-col gap-1">
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
             <span className="text-xs text-muted-foreground">{copy.to}</span>
             <Input
               type="date"
+              aria-label={copy.to}
               value={group.value.to}
               min={group.value.from || undefined}
               onChange={(e) => group.onChange({ ...group.value, to: e.target.value })}
             />
-          </label>
+          </div>
         </div>
       ) : null}
     </div>

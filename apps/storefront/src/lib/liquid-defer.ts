@@ -11,7 +11,13 @@
  * placeholders, and `window.__commerceBootTheme` (`lib/liquid-shim.ts`) runs them in document
  * order once React has hydrated (`components/theme/liquid-boot.tsx`). Classic inline scripts
  * (setting the `js` class, theme settings JSON) still run where they are, as on Shopify; data
- * scripts (`application/json`, `ld+json`) are left alone.
+ * scripts (`application/json`, `ld+json`) are left alone, except an empty `ld+json` one (Shopify's
+ * `structured_data` filter renders nothing here, as our own JSON-LD covers the page), which
+ * search engines report as unparsable structured data.
+ *
+ * The "print stylesheet, then all" pattern (`<link media="print" onload="this.media='all'">`)
+ * loses its inline `onload`: our CSP blocks inline event handlers, so the browser logged a CSP
+ * error on every page. The link is marked `data-theme-promote` and the shim switches it on.
  */
 
 /** The placeholder type: not JavaScript, so the browser neither runs nor CSP-checks it. */
@@ -19,6 +25,10 @@ export const DEFERRED_TYPE = 'text/x-theme-deferred'
 
 const SCRIPT = /<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi
 const ATTR = /([^\s=/>]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+)))?/g
+const LINK = /<link\b([^>]*)>/gi
+const PROMOTE = /this\.media\s*=\s*['"]all['"]/
+/** The attribute the shim (`lib/liquid-shim.ts`) looks for to switch a print stylesheet on. */
+export const PROMOTE_ATTR = 'data-theme-promote'
 
 function attributes(source: string): Map<string, string> {
   const out = new Map<string, string>()
@@ -39,11 +49,27 @@ function isDeferred(attrs: Map<string, string>): boolean {
   return attrs.has('src') && (attrs.has('defer') || attrs.has('async'))
 }
 
+/** A `<link media="print" onload="this.media='all'">` without the handler, marked for the shim. */
+function promotableSheets(html: string): string {
+  if (!html.includes('onload')) return html
+  return html.replace(LINK, (whole, rawAttrs: string) => {
+    const attrs = attributes(rawAttrs)
+    if (!PROMOTE.test(attrs.get('onload') ?? '') || attrs.get('media') !== 'print') return whole
+    const kept = [...attrs.entries()]
+      .filter(([name]) => name !== 'onload')
+      .map(([name, value]) => (value === '' ? name : `${name}="${attrValue(value)}"`))
+    return `<link ${[...kept, PROMOTE_ATTR].join(' ')}>`
+  })
+}
+
 /** Rendered theme HTML with its deferred and module scripts parked until React has hydrated. */
 export function deferThemeScripts(html: string): string {
-  if (!html.includes('<script')) return html
-  return html.replace(SCRIPT, (whole, rawAttrs: string, body: string) => {
+  const sheets = promotableSheets(html)
+  if (!sheets.includes('<script')) return sheets
+  return sheets.replace(SCRIPT, (whole, rawAttrs: string, body: string) => {
     const attrs = attributes(rawAttrs)
+    const type = (attrs.get('type') ?? '').trim().toLowerCase()
+    if (type === 'application/ld+json' && body.trim() === '') return ''
     if (!isDeferred(attrs)) return whole
     const kept = [...attrs.entries()]
       .filter(([name]) => name !== 'type' && name !== 'src' && name !== 'defer' && name !== 'async')

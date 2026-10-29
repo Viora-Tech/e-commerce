@@ -67,6 +67,8 @@ export const draftsContent = {
 
 export const draftEditorContent = {
   newTitle: 'Create draft order',
+  /** A variant listed without a price yet (#913): the line starts at ₹0 for you to type one. */
+  noPrice: 'No price yet',
   editTitle: (n: number) => `Draft #${n}`,
   subtitle: {
     for: (name: string) => `For ${name}`,
@@ -97,6 +99,7 @@ export const draftEditorContent = {
     phone: 'Phone',
     clear: 'Clear customer',
     help: 'The invoice goes to this email address.',
+    matched: (name: string) => `Saved customer found: filled in ${name}'s details`,
   },
   address: {
     heading: 'Shipping address',

@@ -32,7 +32,6 @@ const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
   'packages/api/src/routers/store.ts': { lines: 524, reason: SPLIT },
   'packages/api/src/services/analytics-reports.ts': { lines: 554, reason: SPLIT },
   'packages/api/src/services/dashboard.service.ts': { lines: 1027, reason: SPLIT },
-  'packages/api/src/services/order.service.ts': { lines: 527, reason: SPLIT },
   'packages/api/src/services/customer.service.ts': { lines: 509, reason: SPLIT },
   'packages/api/src/services/payments-setup.service.ts': {
     lines: 626,

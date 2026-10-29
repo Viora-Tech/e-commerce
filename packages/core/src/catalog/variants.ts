@@ -15,7 +15,8 @@ export type VariantInput = {
   optionValues: string[]
   sku?: string | null | undefined
   barcode?: string | null | undefined
-  pricePaise: number
+  /** Null: the price is not confirmed yet, so the variant cannot be bought. */
+  pricePaise: number | null
   mrpPaise?: number | null | undefined
   costPaise?: number | null | undefined
   taxable?: boolean | undefined
@@ -123,4 +124,15 @@ export function variantErrors(options: OptionInput[], variants: VariantInput[]):
   }
   if (variants.length === 0) errors.push('A product needs at least one variant')
   return errors
+}
+
+/**
+ * Lowest and highest of the variants' prices, skipping any listed without one yet (#913).
+ * Null when none has a price.
+ */
+export function priceRange(
+  prices: readonly (number | null)[],
+): { min: number; max: number } | null {
+  const set = prices.filter((p): p is number => p != null)
+  return set.length ? { min: Math.min(...set), max: Math.max(...set) } : null
 }

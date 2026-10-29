@@ -8,19 +8,33 @@ import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import CustomerAvatar from '@/components/customers/customer-avatar'
+import { draftColumns } from '@/components/drafts/draft-columns'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import StatStrip from '@/components/layout/stat-strip'
-import StatusChip from '@/components/layout/status-chip'
 import SendMessageDialog, { type CustomMessage } from '@/components/orders/send-message-dialog'
-import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
+import {
+  appliedFromGroups,
+  clearGroups,
+  FILTER_PANEL_CLASS,
+  FilterPanel,
+} from '@/components/table/filter-panel'
+import ResourceTable from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
 import ViewSelect from '@/components/table/view-select'
 import { DRAFT_LIST_FILTERS, type DraftListFilter, draftsContent } from '@/data/drafts'
+import { filterPanelContent } from '@/data/filter-panel'
+import { draftFiltersContent } from '@/data/order-list-filters'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import type { Formatters } from '@/lib/format'
+import {
+  CLEAR_DRAFT_FILTERS,
+  DRAFT_FILTER_PARAMS,
+  type DraftFilters,
+  draftFilterGroups,
+  draftFilterInput,
+  hasDraftFilters,
+} from '@/lib/draft-list-filters'
 import { type ListQuery, sameListQuery } from '@/lib/list-query'
 import { usePrimaryAction } from '@/lib/primary-action'
 import { routes } from '@/lib/routes'
@@ -28,6 +42,7 @@ import { parseRowsPerPage } from '@/lib/rows-per-page'
 
 type ListResult = Awaited<ReturnType<typeof api.orders.listDrafts>>
 type Item = ListResult['items'][number]
+type Query = ListQuery<DraftListFilter> & DraftFilters
 
 export type DraftsInitial = {
   query: ListQuery<DraftListFilter>
@@ -36,87 +51,30 @@ export type DraftsInitial = {
   tiles: Awaited<ReturnType<typeof api.orders.draftTiles>>
 }
 
-function draftColumns(copy: typeof draftsContent, fmt: Formatters): ResourceColumnSpec<Item>[] {
-  return [
-    {
-      id: 'number',
-      title: copy.columns.number,
-      sortValue: (d) => d.number,
-      hideable: false,
-      className: 'w-24',
-      render: (d) => <span className="font-medium tabular-nums">#{d.number}</span>,
-    },
-    {
-      id: 'customer',
-      title: copy.columns.customer,
-      sortValue: (d) => d.customerName ?? d.email ?? '',
-      render: (d) =>
-        d.customerName || d.email ? (
-          <span className="flex min-w-0 items-center gap-3">
-            <CustomerAvatar
-              name={d.customerName}
-              email={d.email}
-              className="size-6 bg-muted font-medium text-foreground"
-            />
-            <span className="truncate text-body text-ink-strong">{d.customerName ?? d.email}</span>
-          </span>
-        ) : (
-          <span className="flex items-center gap-3 text-muted-foreground">
-            <span
-              aria-hidden="true"
-              className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"
-            >
-              –
-            </span>
-            {copy.guest}
-          </span>
-        ),
-    },
-    {
-      id: 'items',
-      title: copy.columns.items,
-      sortValue: (d) => d.lineCount,
-      render: (d) => <span className="tabular-nums">{copy.itemCount(d.lineCount)}</span>,
-    },
-    {
-      id: 'total',
-      title: copy.columns.total,
-      sortValue: (d) => d.totalPaise,
-      align: 'end',
-      render: (d) => <span className="font-medium tabular-nums">{fmt.money(d.totalPaise)}</span>,
-    },
-    {
-      id: 'created',
-      title: copy.columns.created,
-      sortValue: (d) => new Date(d.createdAt).getTime(),
-      sortLabels: { desc: copy.sortNewest, asc: copy.sortOldest },
-      render: (d) => <span className="tabular-nums">{fmt.when(d.createdAt)}</span>,
-    },
-    {
-      id: 'status',
-      title: copy.columns.status,
-      align: 'center',
-      render: (d) =>
-        d.invoiceSentAt ? (
-          <StatusChip tone="attention">{copy.status.invoiceSent}</StatusChip>
-        ) : (
-          <StatusChip tone="info">{copy.status.open}</StatusChip>
-        ),
-    },
-  ]
+function fetchDrafts(q: Query, perPage: number) {
+  return api.orders.listDrafts({
+    page: q.page,
+    perPage,
+    search: q.query || undefined,
+    status: q.status ?? undefined,
+    ...draftFilterInput(q),
+  })
 }
 
 function DraftsContent({ initial }: { initial: DraftsInitial }) {
   // Hooks
   const copy = useCopy(draftsContent)
+  const filterCopy = useCopy(draftFiltersContent)
+  const panelCopy = useCopy(filterPanelContent)
   const fmt = useFormat()
   usePrimaryAction(routes.orders.newDraft())
-  const [{ page, query, status, perPage: rawPerPage }, setQ] = useQueryStates(
+  const [q, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
       status: parseAsStringLiteral(DRAFT_LIST_FILTERS),
       page: parseAsInteger.withDefault(1),
       perPage: parseAsInteger.withDefault(initial.perPage),
+      ...DRAFT_FILTER_PARAMS,
     },
     { shallow: true },
   )
@@ -133,7 +91,7 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
   const hydrated = useRef(false)
 
   useEffect(() => {
-    const size = parseRowsPerPage(rawPerPage)
+    const size = parseRowsPerPage(q.perPage)
     // The server's first page is used once; after any change (including back to the first
     // tab) the list is fetched again, so it never keeps another tab's rows.
     const firstRun = !hydrated.current
@@ -141,13 +99,13 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
     if (
       firstRun &&
       size === initial.perPage &&
-      sameListQuery({ page, query, status }, initial.query)
+      !hasDraftFilters(q) &&
+      sameListQuery({ page: q.page, query: q.query, status: q.status }, initial.query)
     )
       return
     let cancelled = false
     setLoading(true)
-    api.orders
-      .listDrafts({ page, perPage: size, search: query || undefined, status: status ?? undefined })
+    fetchDrafts(q, size)
       .then((r) => {
         if (cancelled) return
         setItems(r.items)
@@ -157,17 +115,12 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
     return () => {
       cancelled = true
     }
-  }, [page, query, status, rawPerPage, initial.query, initial.perPage])
+  }, [q, initial.query, initial.perPage])
 
   // Helpers
   const refresh = async () => {
     const [r, t] = await Promise.all([
-      api.orders.listDrafts({
-        page,
-        perPage: parseRowsPerPage(rawPerPage),
-        search: query || undefined,
-        status: status ?? undefined,
-      }),
+      fetchDrafts(q, parseRowsPerPage(q.perPage)),
       api.orders.draftTiles(),
     ])
     setItems(r.items)
@@ -214,7 +167,10 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
   }
 
   // Render logic
-  const perPage = parseRowsPerPage(rawPerPage)
+  const { page, query, status } = q
+  const perPage = parseRowsPerPage(q.perPage)
+  const filtered = hasDraftFilters(q)
+  const groups = draftFilterGroups(q, filterCopy, (patch) => setQ({ ...patch, page: 1 }))
 
   return (
     <ProoflyListPage
@@ -312,7 +268,16 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
         defaultSort={{ id: 'created', desc: true }}
         query={query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
-        onClearAll={() => setQ({ query: '', status: null, page: 1 })}
+        onClearAll={() => setQ({ ...CLEAR_DRAFT_FILTERS, query: '', status: null, page: 1 })}
+        filters={(close) => (
+          <FilterPanel
+            groups={groups}
+            onClear={() => clearGroups(groups)}
+            footer={{ label: filterCopy.show(total), onDone: close }}
+          />
+        )}
+        filtersClassName={FILTER_PANEL_CLASS}
+        applied={appliedFromGroups(groups, panelCopy)}
         views={
           <ViewSelect<DraftListFilter | null>
             label={copy.viewLabel}
@@ -331,7 +296,11 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
         total={total}
         onPageChange={(page) => setQ({ page })}
         onPerPageChange={(n) => setQ({ perPage: n, page: 1 })}
-        empty={query ? { heading: copy.noResults } : { heading: copy.empty, body: copy.intro }}
+        empty={
+          query || filtered
+            ? { heading: copy.noResults }
+            : { heading: copy.empty, body: copy.intro }
+        }
       />
       <SendMessageDialog
         orderId={invoicing}

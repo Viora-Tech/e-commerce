@@ -223,6 +223,8 @@ export async function orderSnapshot(
       discountPaise: parcel ? parcel.discountPaise : o.discountPaise,
       paymentAdjustmentPaise: parcel ? parcel.paymentAdjustmentPaise : o.paymentAdjustmentPaise,
       paymentAdjustmentLabel: o.paymentAdjustmentLabel,
+      shippingLabel: o.shippingRateName,
+      discountLabel: o.discountLabel,
       totalPaise: parcel ? parcel.totalPaise : o.totalPaise,
       taxBreakdown: parcel ? parcel.taxBreakdown : o.taxBreakdown,
     },

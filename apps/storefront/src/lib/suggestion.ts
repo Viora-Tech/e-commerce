@@ -3,7 +3,8 @@ export type Suggestion = {
   handle: string
   title: string
   vendor: string | null
-  pricePaise: number
+  /** Null: listed before its price is set (#913). */
+  pricePaise: number | null
   mrpPaise: number | null
   available: boolean
   image: { url: string; alt: string | null } | null

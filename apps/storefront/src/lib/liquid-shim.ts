@@ -20,8 +20,9 @@
  * - The theme's deferred and module scripts (parked by `lib/liquid-defer.ts`) →
  *   `window.__commerceBootTheme()`, called once React has hydrated (`liquid-boot.tsx`):
  *   runs them in document order, each external file once, so no theme script edits markup
- *   React is still hydrating. Inline `onload` handlers (blocked by our CSP) on the common
- *   "print stylesheet, then all" pattern are replayed here too.
+ *   React is still hydrating. The common "print stylesheet, then all" pattern is switched on
+ *   here too: `lib/liquid-defer.ts` swaps its inline `onload` (blocked by our CSP) for
+ *   `data-theme-promote`.
  * - Sections below the fold (`lib/liquid-fold.ts`): their parked scripts (`data-theme-near`)
  *   run once the rest have, when the section comes within a screen of the viewport, and an
  *   autoplaying video (`data-theme-autoplay`) starts then.
@@ -137,8 +138,9 @@ const SHIM = `(function () {
     });
   }
   function promoteSheets() {
-    document.querySelectorAll('link[rel="stylesheet"][media="print"][onload]').forEach(function (link) {
-      if (!/this\\.media\\s*=\\s*'all'/.test(link.getAttribute('onload') || '')) return;
+    // [onload]: a layout cached before the server started marking the link.
+    document.querySelectorAll('link[rel="stylesheet"][media="print"][data-theme-promote], link[rel="stylesheet"][media="print"][onload]').forEach(function (link) {
+      if (!link.hasAttribute('data-theme-promote') && !/this\\.media\\s*=\\s*'all'/.test(link.getAttribute('onload') || '')) return;
       var promote = function () { link.media = 'all'; };
       if (link.sheet) promote(); else link.addEventListener('load', promote, { once: true });
     });

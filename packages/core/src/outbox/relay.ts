@@ -6,7 +6,12 @@ import { type AutomationTriggerQueue, triggerJobId } from '../automations/engine
 import { AUTOMATION_OUTBOX_TYPES } from '../automations/engine/trigger'
 import { cancelAppBill, markAppBillPaid } from '../billing/app-service'
 import { cancelAiTopup, markAiTopupPaid } from '../billing/credits-service'
-import { cancelPlanBill, markPlanBillPaid } from '../billing/service'
+import {
+  cancelPlanBill,
+  cancelUsageBill,
+  markPlanBillPaid,
+  markUsageBillPaid,
+} from '../billing/service'
 import { type DomainRouteQueue, ROUTE_JOB_ATTEMPTS, ROUTE_JOB_BACKOFF_MS } from '../domains/routes'
 import { enqueueNotification, type NotificationQueue } from '../notifications/enqueue'
 import { inviteForPaidPlanOrder, revokePlanInvitesForOrder } from '../onboarding/plan-invites'
@@ -112,6 +117,7 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
       returnId: payload.returnId,
       refundId: payload.refundId,
       custom: payload.custom,
+      requires: payload.requires,
     })
   }
   const appEvent = OUTBOX_APP_EVENT[type]
@@ -144,6 +150,9 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
     // A renewal or plan change bought from Settings → Plan & billing moves that store onto the plan.
     const billed = await markPlanBillPaid(deps.db, payload.orderId as string)
     if (billed) deps.log?.(`plan order ${payload.orderId}: plan active for store ${billed.storeId}`)
+    // A month's per-order fees (or a plan bill that carried them, see createPlanBill).
+    const fees = await markUsageBillPaid(deps.db, payload.orderId as string)
+    if (fees) deps.log?.(`fee order ${payload.orderId}: paid for store ${fees.storeId}`)
     // A paid app bought in the App Store: its month starts and the app is installed.
     const app = await markAppBillPaid(deps.db, payload.orderId as string)
     if (app) deps.log?.(`app order ${payload.orderId}: ${app.pluginId} on for store ${app.storeId}`)
@@ -159,6 +168,7 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
     payload.orderId
   ) {
     await cancelPlanBill(deps.db, payload.orderId)
+    await cancelUsageBill(deps.db, payload.orderId)
     await cancelAppBill(deps.db, payload.orderId)
     await cancelAiTopup(deps.db, payload.orderId)
     const r = await revokePlanInvitesForOrder(deps.db, {

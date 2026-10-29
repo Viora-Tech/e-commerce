@@ -28,7 +28,7 @@ import {
   type RateQuery,
 } from '@commerce/shipping'
 import { ORPCError } from '@orpc/server'
-import { and, count, desc, eq, gte, ilike, inArray, or, sql } from 'drizzle-orm'
+import { and, count, desc, eq, gte, ilike, inArray, lt, ne, or, sql } from 'drizzle-orm'
 import { loadShippingSettings, noteShipmentBooked } from './shipping.service'
 
 export const courierToRpc = (err: unknown): never => {
@@ -127,9 +127,18 @@ export type ShipmentListFilter = {
   perPage: number
   search?: string | undefined
   status?: string[] | undefined
-  ndrStatus?: string[] | undefined
+  ndrStatus?: ShipmentNdrFilter[] | undefined
   provider?: string | undefined
+  /** Booked at or after / before these moments (the filter panel's Booked). */
+  bookedFrom?: string | undefined
+  bookedTo?: string | undefined
+  /** The order is cash on delivery, or paid up front. */
+  paymentMethod?: 'cod' | 'prepaid' | undefined
 }
+
+/** A shipment's delivery-problem (NDR) states, as stored. */
+export const SHIPMENT_NDR_STATUSES = ['none', 'pending', 'action_taken', 'resolved'] as const
+export type ShipmentNdrFilter = (typeof SHIPMENT_NDR_STATUSES)[number]
 
 /** The Shipments workspace's list: every shipment with its order number, filterable and searchable. */
 export async function listShipments(
@@ -149,8 +158,16 @@ export async function listShipments(
         )
       : undefined,
     input.status?.length ? inArray(shipment.status, input.status as never[]) : undefined,
-    input.ndrStatus?.length ? inArray(shipment.ndrStatus, input.ndrStatus as never[]) : undefined,
+    input.ndrStatus?.length ? inArray(shipment.ndrStatus, input.ndrStatus) : undefined,
     input.provider ? eq(shipment.provider, input.provider) : undefined,
+    input.bookedFrom ? gte(shipment.createdAt, new Date(input.bookedFrom)) : undefined,
+    input.bookedTo ? lt(shipment.createdAt, new Date(input.bookedTo)) : undefined,
+    /* An order with no recorded method (imported history) is neither. */
+    input.paymentMethod === 'cod'
+      ? eq(order.paymentMethod, 'cod')
+      : input.paymentMethod === 'prepaid'
+        ? ne(order.paymentMethod, 'cod')
+        : undefined,
   )
   const base = tx
     .select({

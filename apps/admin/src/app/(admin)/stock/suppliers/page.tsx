@@ -12,15 +12,18 @@ type Props = { searchParams: Promise<SearchParams> }
 export default async function Page({ searchParams }: Props) {
   const query = parseListQuery(await searchParams, [] as const)
   const context = await serverContext()
-  const result = await call(
-    appRouter.suppliers.list,
-    {
-      page: query.page,
-      perPage: siteConfig.ui.rowsPerPage.default,
-      search: query.query || undefined,
-    },
-    { context },
-  )
+  const [result, facets] = await Promise.all([
+    call(
+      appRouter.suppliers.list,
+      {
+        page: query.page,
+        perPage: siteConfig.ui.rowsPerPage.default,
+        search: query.query || undefined,
+      },
+      { context },
+    ),
+    call(appRouter.suppliers.facets, undefined, { context }),
+  ])
 
-  return <SuppliersPage initial={{ query, result }} />
+  return <SuppliersPage initial={{ query, result, facets }} />
 }

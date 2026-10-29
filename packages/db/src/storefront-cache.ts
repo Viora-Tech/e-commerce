@@ -104,6 +104,7 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   customer_identity: SHOPPER,
   customer_login_code: SHOPPER,
   customer_login_ticket: SHOPPER,
+  customer_note: ADMIN,
   customer_otp: SHOPPER,
   customer_passkey: SHOPPER,
   customer_segment: ADMIN,
@@ -202,6 +203,7 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   theme_file_version: LOG,
   transfer: ADMIN,
   transfer_line: ADMIN,
+  usage_bill: ADMIN,
 }
 
 /** Parses a notification payload; null for anything that is not one of ours. */

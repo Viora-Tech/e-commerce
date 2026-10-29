@@ -32,9 +32,13 @@ describe('checkQuota', () => {
     ).toEqual({ ok: false, reason: 'tokens' })
   })
 
-  it('gives Pro 15,000 credits and no call or token cap', () => {
-    expect(checkQuota('pro', used(1_000_000, 1_000_000_000, 14_999))).toEqual({ ok: true })
-    expect(checkQuota('pro', used(1, 0, 15_000))).toEqual({ ok: false, reason: 'credits' })
+  it('gives Pro 8,000 credits and no call or token cap', () => {
+    expect(checkQuota('pro', used(1_000_000, 1_000_000_000, 7_999))).toEqual({ ok: true })
+    expect(checkQuota('pro', used(1, 0, 8_000))).toEqual({ ok: false, reason: 'credits' })
+  })
+
+  it('gives Scale 15,000 credits and no call or token cap', () => {
+    expect(PLAN_QUOTAS.scale).toEqual({ credits: 15_000, calls: null, tokens: null })
   })
 })
 

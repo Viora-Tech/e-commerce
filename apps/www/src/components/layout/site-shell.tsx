@@ -4,7 +4,7 @@ import SiteNav from './site-nav'
 
 type SiteShellProps = { children: ReactNode }
 
-/** Nav + page + footer. The providers (waitlist, cookie consent) live in the root layout. */
+/** Nav + page + footer. The cookie-consent provider lives in the root layout. */
 export default function SiteShell({ children }: SiteShellProps) {
   return (
     <>

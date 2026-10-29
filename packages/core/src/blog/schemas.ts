@@ -53,6 +53,14 @@ export const ArticleListSchema = z.object({
   status: z.enum(['all', 'published', 'scheduled', 'draft']).default('all'),
   blogId: z.uuid().optional(),
   tag: z.string().trim().max(40).optional(),
+  /** The admin's filter panel; arrays are "any of" and combine with the tab and search. */
+  blogIds: z.array(z.uuid()).max(50).optional(),
+  tags: z.array(z.string().trim().max(40)).max(50).optional(),
+  authors: z.array(z.string().trim().max(200)).max(50).optional(),
+  /** Published (or scheduled) for [from, to); ISO times. */
+  publishedFrom: z.iso.datetime().optional(),
+  publishedTo: z.iso.datetime().optional(),
+  hasImage: z.boolean().optional(),
 })
 export type ArticleList = z.infer<typeof ArticleListSchema>
 

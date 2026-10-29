@@ -376,7 +376,8 @@ export function toWrite(form: ProductFormState): ProductWrite {
     variants: form.variants.map((v) => ({
       id: v.id,
       optionValues: v.optionValues,
-      pricePaise: rupees.toPaise(v.price) ?? 0,
+      // Blank lists the variant before its price is confirmed (#913): shown, never sold.
+      pricePaise: rupees.toPaise(v.price),
       mrpPaise: rupees.toPaise(v.mrp),
       costPaise: rupees.toPaise(v.cost),
       sku: v.sku.trim() || null,
@@ -414,9 +415,10 @@ export function formErrors(copy: typeof productFormContent, form: ProductFormSta
   const empty = form.options.find((o) => !o.values.some((v) => v.trim()))
   if (empty)
     errors.variants = copy.errors.optionNeedsValue(empty.name.trim() || copy.errors.newOption)
-  const bad = form.variants.find((v) => rupees.toPaise(v.price) == null)
+  // A blank price is fine (#913: listed before pricing is confirmed); a typed one must read.
+  const bad = form.variants.find((v) => v.price.trim() !== '' && rupees.toPaise(v.price) == null)
   if (bad && !errors.variants)
-    errors.variants = copy.errors.priceMissing(variantTitle(bad.optionValues))
+    errors.variants = copy.errors.priceInvalid(variantTitle(bad.optionValues))
   const dims = form.variants.map((v) => [v.packageLengthCm, v.packageWidthCm, v.packageHeightCm])
   if (dims.some((d) => d.some((n) => n != null) && d.some((n) => n == null))) {
     errors.package = copy.shipping.packageIncomplete

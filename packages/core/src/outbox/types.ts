@@ -140,6 +140,8 @@ export type OutboxPayload = {
   orderId?: string | undefined
   /** A hand-sent message's edited subject and note (invoice, balance request, reminder). */
   custom?: CustomMessage | undefined
+  /** A hand-sent message limited to one channel: `email` or `phone` (WhatsApp). Unset: every channel. */
+  requires?: 'email' | 'phone' | undefined
   refundId?: string | undefined
   variantId?: string | undefined
   locationId?: string | undefined

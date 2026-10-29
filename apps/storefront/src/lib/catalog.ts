@@ -36,6 +36,19 @@ function availableFor(v: {
   return Math.max(0, (v.onHand ?? 0) - (v.reserved ?? 0))
 }
 
+/** The card's "from" variant: the cheapest one with a price. Null when none has one yet (#913). */
+export function cheapestPriced<T extends { pricePaise: number | null }>(
+  vs: readonly T[],
+): (T & { pricePaise: number }) | null {
+  let best: (T & { pricePaise: number }) | null = null
+  for (const v of vs) {
+    const price = v.pricePaise
+    if (price != null && (best === null || price < best.pricePaise))
+      best = { ...v, pricePaise: price }
+  }
+  return best
+}
+
 type StockRow = {
   onHand: number | null
   reserved: number | null
@@ -155,21 +168,18 @@ export async function listCardProducts(
 
   return products.map((p) => {
     const vs = variants.filter((v) => v.productId === p.id)
-    const cheapest = vs.reduce<(typeof vs)[number] | null>(
-      (m, v) => (m === null || v.pricePaise < m.pricePaise ? v : m),
-      null,
-    )
+    const cheapest = cheapestPriced(vs)
     return {
       id: p.id,
       handle: p.handle,
       title: p.title,
       vendor: p.vendor,
       productType: p.productType,
-      pricePaise: cheapest?.pricePaise ?? 0,
+      pricePaise: cheapest?.pricePaise ?? null,
       mrpPaise: cheapest?.mrpPaise ?? null,
       available: vs.reduce((n, v) => n + availableFor(v), 0),
-      // Quick add needs no choice only when there is one variant to add.
-      quickAddVariantId: vs.length === 1 ? (vs[0]?.id ?? null) : null,
+      // Quick add needs no choice only when there is one priced variant to add.
+      quickAddVariantId: vs.length === 1 && cheapest ? (vs[0]?.id ?? null) : null,
       preorder: cardPreorder(p, vs),
       rating: ratings.get(p.id) ?? null,
       images: images
@@ -271,7 +281,9 @@ export async function getProductByHandle(
     return listed.length > 0 ? listed : v.imageUrl ? [v.imageUrl] : []
   }
 
-  const purchasable = (v: (typeof vs)[number]) => purchasableFor(p, v, launched)
+  // A variant listed without a price (#913) is shown but never sold.
+  const purchasable = (v: (typeof vs)[number]) =>
+    v.pricePaise != null && purchasableFor(p, v, launched)
 
   const firstVariant = vs.find((v) => purchasable(v)) ?? vs[0]
   const preorderSettings = firstVariant
@@ -295,7 +307,7 @@ export async function getProductByHandle(
           buttonLabel: preorderSettings.buttonLabel,
           shipDate: shipDate ? shipDate.toISOString() : null,
           depositPreview:
-            firstVariant && preorderSettings.paymentMode !== 'full'
+            firstVariant?.pricePaise != null && preorderSettings.paymentMode !== 'full'
               ? depositPreview(
                   computeDepositFromSettings(firstVariant.pricePaise, preorderSettings),
                 )

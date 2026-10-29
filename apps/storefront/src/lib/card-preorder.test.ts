@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { cardPreorder } from './catalog'
+import { cardPreorder, cheapestPriced } from './catalog'
+
+describe('cheapestPriced (the card price)', () => {
+  it('skips variants without a price and is null when none has one (#913)', () => {
+    expect(
+      cheapestPriced([{ pricePaise: null }, { pricePaise: 900 }, { pricePaise: 500 }]),
+    ).toEqual({ pricePaise: 500 })
+    expect(cheapestPriced([{ pricePaise: null }])).toBeNull()
+  })
+})
 
 const product = (over: Partial<Parameters<typeof cardPreorder>[0]> = {}) => ({
   launchAt: null,

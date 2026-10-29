@@ -15,8 +15,15 @@ import { purchaseOrderColumns } from '@/components/purchase-orders/purchase-orde
 import PurchaseOrderTiles, {
   type PurchaseOrderCounts,
 } from '@/components/purchase-orders/purchase-order-tiles'
+import {
+  appliedFromGroups,
+  clearGroups,
+  FILTER_PANEL_CLASS,
+  FilterPanel,
+} from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
+import { filterPanelContent } from '@/data/filter-panel'
 import {
   PURCHASE_ORDER_STATUSES,
   type PurchaseOrderStatus,
@@ -26,6 +33,14 @@ import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { type ListQuery, sameListQuery } from '@/lib/list-query'
 import { usePrimaryAction } from '@/lib/primary-action'
+import {
+  CLEAR_PURCHASE_ORDER_FILTERS,
+  hasPurchaseOrderFilters,
+  PURCHASE_ORDER_FILTER_PARAMS,
+  type PurchaseOrderFilters,
+  purchaseOrderFilterGroups,
+  purchaseOrderFilterInput,
+} from '@/lib/purchase-order-list-filters'
 import { routes } from '@/lib/routes'
 
 type ListResult = Awaited<ReturnType<typeof api.purchaseOrders.list>>
@@ -35,6 +50,18 @@ export type PurchaseOrdersInitial = {
   query: ListQuery<PurchaseOrderStatus>
   result: ListResult
   counts: PurchaseOrderCounts
+  /** The filter panel's supplier and destination pickers. */
+  facets: {
+    suppliers: { id: string; name: string }[]
+    locations: { id: string; name: string }[]
+  }
+}
+
+type Query = PurchaseOrderFilters & {
+  page: number
+  perPage: number
+  query: string
+  status: PurchaseOrderStatus | null
 }
 
 const PER_PAGE = siteConfig.ui.rowsPerPage.default
@@ -44,9 +71,20 @@ function allCount(c: PurchaseOrderCounts): number {
   return c.draft + c.open + c.received + c.closed + c.cancelled
 }
 
+function listInput(q: Query) {
+  return {
+    page: q.page,
+    perPage: q.perPage,
+    search: q.query || undefined,
+    status: q.status ?? undefined,
+    ...purchaseOrderFilterInput(q),
+  }
+}
+
 function PurchaseOrdersContent({ initial }: { initial: PurchaseOrdersInitial }) {
   // Hooks
   const copy = useCopy(purchaseOrdersContent)
+  const panelCopy = useCopy(filterPanelContent)
   const fmt = useFormat()
   usePrimaryAction(NEW_HREF)
   const [q, setQ] = useQueryStates(
@@ -55,6 +93,7 @@ function PurchaseOrdersContent({ initial }: { initial: PurchaseOrdersInitial }) 
       page: parseAsInteger.withDefault(1),
       perPage: parseAsInteger.withDefault(PER_PAGE),
       status: parseAsStringLiteral(PURCHASE_ORDER_STATUSES),
+      ...PURCHASE_ORDER_FILTER_PARAMS,
     },
     { shallow: true },
   )
@@ -69,16 +108,17 @@ function PurchaseOrdersContent({ initial }: { initial: PurchaseOrdersInitial }) 
     // tab) the list is fetched again, so it never keeps another tab's rows.
     const firstRun = !hydrated.current
     hydrated.current = true
-    if (firstRun && sameListQuery(q, initial.query) && q.perPage === PER_PAGE) return
+    if (
+      firstRun &&
+      sameListQuery(q, initial.query) &&
+      q.perPage === PER_PAGE &&
+      !hasPurchaseOrderFilters(q)
+    )
+      return
     let cancelled = false
     setLoading(true)
     api.purchaseOrders
-      .list({
-        page: q.page,
-        perPage: q.perPage,
-        search: q.query || undefined,
-        status: q.status ?? undefined,
-      })
+      .list(listInput(q))
       .then((r) => {
         if (cancelled) return
         setRows(r.rows)
@@ -92,17 +132,29 @@ function PurchaseOrdersContent({ initial }: { initial: PurchaseOrdersInitial }) 
 
   // Helpers
   const refresh = async () => {
-    const r = await api.purchaseOrders.list({
-      page: q.page,
-      perPage: q.perPage,
-      search: q.query || undefined,
-      status: q.status ?? undefined,
-    })
+    const r = await api.purchaseOrders.list(listInput(q))
     setRows(r.rows)
     setTotal(r.total)
   }
 
   // Render logic
+  const groups = purchaseOrderFilterGroups(
+    q,
+    copy.filters,
+    copy.status,
+    panelCopy,
+    initial.facets,
+    (patch) => setQ({ ...patch, page: 1 }),
+  )
+  const applied = appliedFromGroups(groups, panelCopy)
+  const filtered = applied.length > 0 || q.query.length > 0
+  const newButton = (
+    <Button render={<Link href={NEW_HREF} />} nativeButton={false}>
+      <Plus />
+      {copy.create}
+    </Button>
+  )
+
   return (
     <ProoflyListPage
       title={copy.heading}
@@ -143,7 +195,18 @@ function PurchaseOrdersContent({ initial }: { initial: PurchaseOrdersInitial }) 
         loading={loading}
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
-        onClearAll={() => setQ({ query: '', status: null, page: 1 })}
+        onClearAll={() =>
+          setQ({ ...CLEAR_PURCHASE_ORDER_FILTERS, query: '', status: null, page: 1 })
+        }
+        filters={(close) => (
+          <FilterPanel
+            groups={groups}
+            onClear={() => clearGroups(groups)}
+            footer={{ label: panelCopy.show(total), onDone: close }}
+          />
+        )}
+        filtersClassName={FILTER_PANEL_CLASS}
+        applied={applied}
         views={
           <ViewSelect
             value={q.status}
@@ -159,16 +222,11 @@ function PurchaseOrdersContent({ initial }: { initial: PurchaseOrdersInitial }) 
         onPerPageChange={(perPage) => setQ({ perPage, page: 1 })}
         total={total}
         onPageChange={(page) => setQ({ page })}
-        empty={{
-          heading: copy.empty.heading,
-          body: copy.empty.body,
-          action: (
-            <Button render={<Link href={NEW_HREF} />} nativeButton={false}>
-              <Plus />
-              {copy.create}
-            </Button>
-          ),
-        }}
+        empty={
+          filtered
+            ? copy.noResults
+            : { heading: copy.empty.heading, body: copy.empty.body, action: newButton }
+        }
       />
     </ProoflyListPage>
   )

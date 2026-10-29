@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import { homeContent } from '@/data/home'
-import { waitlistContent } from '@/data/waitlist'
 import AmbientLight from '../common/ambient-light'
 import HeroBackdrop from './hero-backdrop'
 import HeroGlobe from './hero-demo/hero-globe'
@@ -42,9 +41,9 @@ export default function Hero() {
         <div className="flex w-full flex-col items-center gap-3">
           <HeroPrompt />
           <p className="flex items-center gap-4 text-xs text-muted-foreground">
-            <span>{waitlistContent.hero.below}</span>
+            <span>{copy.below}</span>
             <Link href={copy.tourLinkHref} className="link-slide text-foreground">
-              {waitlistContent.hero.howItWorks}
+              {copy.howItWorks}
             </Link>
           </p>
         </div>

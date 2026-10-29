@@ -3,7 +3,7 @@ import { Fragment } from 'react'
 import { PLANS, pricingContent } from '@/data/pricing'
 import PageContainer from '../common/page-container'
 import SectionHeading from '../common/section-heading'
-import JoinWaitlistButton from '../waitlist/join-waitlist-button'
+import StartFreeButton from '../common/start-free-button'
 
 const copy = pricingContent.page.compare
 
@@ -61,9 +61,9 @@ export default function CompareTable() {
                   className={`glass-bar px-2 py-3 md:px-5 md:py-4 text-center font-medium text-foreground ${index === PLANS.length - 1 ? 'rounded-r-2xl' : ''}`}
                 >
                   <span className="block md:mr-3 md:inline">{plan.name}</span>
-                  <JoinWaitlistButton variant="outline" className="h-8 px-3 text-sm">
+                  <StartFreeButton variant="outline" className="h-8 px-3 text-sm">
                     {pricingContent.joinShort}
-                  </JoinWaitlistButton>
+                  </StartFreeButton>
                 </th>
               ))}
             </tr>
@@ -72,7 +72,11 @@ export default function CompareTable() {
             {copy.groups.map((group) => (
               <Fragment key={group.title}>
                 <tr>
-                  <th colSpan={4} scope="colgroup" className="px-2 pt-8 md:px-5 pb-2 text-left">
+                  <th
+                    colSpan={PLANS.length + 1}
+                    scope="colgroup"
+                    className="px-2 pt-8 md:px-5 pb-2 text-left"
+                  >
                     <span className="text-eyebrow">{group.title}</span>
                   </th>
                 </tr>

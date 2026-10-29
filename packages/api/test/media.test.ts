@@ -5,6 +5,7 @@ import { createProduct, localStoragePath } from '@commerce/core'
 import { createDb, media, store, withStore } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { call } from '@orpc/server'
+import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type { ApiContext } from '../src/context'
 import { appRouter } from '../src/routers/_app'
@@ -124,6 +125,41 @@ describe('media', () => {
     )
     await call(appRouter.media.delete, { id: ticket.mediaId }, { context: a.ctx })
     expect(await owner.select().from(media)).toHaveLength(0)
+  })
+
+  it("refuses a new upload past the plan's storage, except into the merchant's own bucket", async () => {
+    const a = await merchant('full@example.com', 'store-full')
+    // A trial counts as Growth: 10 GB. Fill it to within about 2.4 MB.
+    await owner.insert(media).values(
+      Array.from({ length: 5 }, (_, i) => ({
+        storeId: a.storeId,
+        url: `https://cdn.example.com/${i}.png`,
+        key: `stores/${a.storeId}/media/${i}.png`,
+        contentType: 'image/png',
+        size: 2_147_000_000,
+        status: 'ready' as const,
+      })),
+    )
+    const presign = (size: number) =>
+      call(
+        appRouter.media.presign,
+        { filename: 'x.png', contentType: 'image/png', size },
+        { context: a.ctx },
+      )
+    await expect(presign(1_000_000)).resolves.toMatchObject({ mediaId: expect.any(String) })
+    await expect(presign(3_000_000)).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+      data: { reason: 'storage_limit', limitBytes: 10 * 1024 ** 3 },
+    })
+
+    // A bucket the merchant connected is theirs to pay for: no plan limit there.
+    await owner
+      .update(store)
+      .set({
+        storage: { enabled: ['r2'], providers: { r2: { bucket: 'their-own' } }, migration: null },
+      })
+      .where(eq(store.id, a.storeId))
+    await expect(presign(3_000_000)).resolves.toMatchObject({ mediaId: expect.any(String) })
   })
 
   it('rejects files that are not images or mp4 with a 400', async () => {

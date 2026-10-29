@@ -108,8 +108,10 @@ orders**, **Unpaid**, **Unfulfilled**, **Pending UPI**, **Completed** and **Canc
 days start on **Pending UPI** (money to check) and **Unfulfilled** (parcels to pack).
 
 To narrow the list further, open the filter button beside the search box and combine as many
-filters as you need: **Product** (part of a product name or SKU), **Payment**, **Fulfilment**,
-**Date**, **Payment method** and **Courier**. Every filter applies together, so **Product**
+filters as you need: **Product** (part of a product name or SKU), **Collection** (orders with a
+product from that collection), **Payment**, **Fulfilment**, **Date**, **Order value** (a min and
+max in rupees), **Payment method**, **Channel** (where the visit came from), **Tags**, **Discount
+code**, **Return status** and **Courier**. Every filter applies together, so **Product**
 `pd170` with **Fulfilment** Unfulfilled shows only the PD170 orders still to pack. **Date**
 offers Today and the last 7, 30 or 90 days, or **Custom range** with your own **From** and **To**
 dates (either can stay empty, and the To day counts in full). The filters also work together with
@@ -167,6 +169,17 @@ apps ask for these one at a time, so copy and paste them field by field.
 **Copy all** copies them in one go, one per line, in the order courier apps ask for them: name,
 phone, address, city, state, PIN code.
 
+### Chat with the customer on WhatsApp
+
+Select **WhatsApp** on the card to chat from your own WhatsApp. Pick a message (**Payment
+link**, **Order confirmation**, **Shipping update** with the tracking link, or **Blank**), change
+the words if you like, then select **Open WhatsApp**. WhatsApp (the app or WhatsApp Web) opens
+with the message typed in; nothing goes until you press send there. This needs no WhatsApp
+connection, and it works the same on draft orders (**More actions → WhatsApp**), abandoned
+checkouts (**Abandoned cart** message with the recovery link) and the customer page. Each chat
+you open is noted on the order's or customer's **Timeline**, for example "Opened WhatsApp chat
+(payment link)".
+
 ### Change the customer's details on an order
 
 Select **Edit** on the card. You can change the **Name**, **Email** and **Mobile number** and
@@ -222,7 +235,12 @@ due** until the rest comes in, and its Payment status is **Partially paid**.
 | Where the order waits | Nowhere, it's marked paid in seconds | The **Pending UPI** tab |
 | Setup | Razorpay connected, QR method on | Your UPI ID and bank details in Payments |
 
-For manual transfers, select **Send payment reminder** if the shopper forgets. You can also
+For manual transfers, select **Send payment reminder** if the shopper forgets. When WhatsApp is
+connected (Apps → Messages), choose **Send by** Email, WhatsApp or Both; WhatsApp sends your
+approved `payment_reminder` template with the payment link. Whenever the order has a phone,
+**Open in WhatsApp** also opens a chat with the reminder typed in, connected or not, so you can
+send it from your own number. Each
+reminder shows on the order's timeline. You can also
 have unpaid transfer orders cancel themselves after a set number of hours; the shopper gets an
 email 12 hours before that happens.
 

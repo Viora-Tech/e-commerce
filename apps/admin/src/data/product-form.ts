@@ -49,7 +49,10 @@ export const productFormContent = {
     /** Inline validation from `formErrors` in components/products/form-state.ts. */
     optionNeedsValue: (option: string) => `Add at least one value to ${option}`,
     newOption: 'the new option',
-    priceMissing: (variant: string) => `Price is missing for ${variant}`,
+    priceInvalid: (variant: string) =>
+      `Enter the price for ${variant} as a number, or leave it blank`,
+    /** Toast when Save stops on a field, wherever on the page the button was. */
+    fixBeforeSave: 'Fix the highlighted fields, then save again',
     depositMissing: 'Enter a deposit amount',
     depositTooHigh: 'The deposit must be less than the price',
     depositPercent: 'Enter a percentage between 1 and 99',
@@ -166,6 +169,9 @@ export const productFormContent = {
     currency: 'INR',
     mrp: 'Compare at price',
     mrpOptional: '(optional)',
+    /** Under the price field: a blank price is allowed (#913). */
+    priceHelp:
+      'Leave it blank to list the product before the price is confirmed. Shoppers see "Price coming soon" and cannot buy it yet.',
     /** Trailing figure in the compare-at field, the frame's "Sale=" slot. */
     saving: (amount: string) => `Save ${amount}`,
     mrpBelowPrice: 'Keep it above the product price so the saving reads right.',
@@ -257,6 +263,28 @@ export const productFormContent = {
     maxOptions: 'Up to 3 options',
     count: (n: number) => `${n} variant${n === 1 ? '' : 's'}`,
     columns: { variant: 'Variant', price: 'Price', mrp: 'MRP', sku: 'SKU', available: 'Available' },
+    /** Price cell of a variant listed without a price (#913). */
+    noPrice: 'No price yet',
+    unlimited: 'Unlimited',
+    edit: 'Edit',
+    editVariant: (title: string) => `Edit ${title}`,
+    /** The centred dialog that edits one variant's details (#914). */
+    dialog: {
+      title: (title: string) => `Edit variant: ${title}`,
+      description:
+        'Price, stock, tax and shipping for this variant. Save the product to keep the changes.',
+      pricing: 'Pricing',
+      inventory: 'Inventory',
+      tax: 'Tax',
+      shipping: 'Shipping',
+      track: 'Track quantity',
+      trackHelp: 'Off sells it without counting stock.',
+      previous: 'Previous variant',
+      next: 'Next variant',
+      position: (n: string, of: string) => `${n} of ${of}`,
+      cancel: 'Cancel',
+      done: 'Done',
+    },
     footer: {
       stockAcross: (units: number, n: number) =>
         `${units} in stock across ${n} variant${n === 1 ? '' : 's'}`,
@@ -317,6 +345,9 @@ export const productFormContent = {
       'The box this product ships in. Shipment booking uses it instead of the store default box.',
     packageManage: 'Add or edit named boxes in Settings, Shipping & delivery.',
     packageAllVariants: 'Applies to every variant of this product.',
+    /** With options, weight and customs move into each variant's Edit dialog. */
+    perVariant:
+      'Weight, HSN code, GST rate and country of origin are set on each variant. Open a variant under Variants to edit them.',
     packageStoreDefault: "Use the store's default box",
     packageCustom: 'Custom size',
     packageOption: (name: string, l: number, w: number, h: number) =>

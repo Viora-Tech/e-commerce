@@ -52,12 +52,12 @@ export default function ProductBuyButtons({
   const reduceMotion = useReducedMotion()
 
   // Helpers
-  const reportAdd = (variantId: string, pricePaise: number) =>
+  const reportAdd = (variantId: string, pricePaise: number | null) =>
     trackCommerce({
       name: 'AddToCart',
       productId: product.id,
       variantId,
-      valuePaise: pricePaise * quantity,
+      valuePaise: (pricePaise ?? 0) * quantity,
       numItems: quantity,
     })
 
@@ -86,18 +86,23 @@ export default function ProductBuyButtons({
   const launching = countdown > 0
   const preorder = product.preorder
   const deposit = isPreorder ? preorder?.depositPreview : null
+  // Listed before its price is set (#913): not sold, and not "sold out" either.
+  const unpriced = variant != null && variant.pricePaise == null
   const buyLabel = launching
     ? ui.launchingIn(formatCountdown(countdown))
-    : !variant?.purchasable
-      ? ui.soldOut
-      : added
-        ? ui.added
-        : isPreorder
-          ? (preorder?.buttonLabel ?? ui.preorderLabel)
-          : ui.addToCart
+    : unpriced
+      ? ui.priceComingSoon
+      : !variant?.purchasable
+        ? ui.soldOut
+        : added
+          ? ui.added
+          : isPreorder
+            ? (preorder?.buttonLabel ?? ui.preorderLabel)
+            : ui.addToCart
   // Sold out and not on pre-order: the panel takes the buy buttons' place (the theme's
   // snippets/product-notify), with the back-in-stock form when the app is installed.
-  const soldOut = Boolean(variant) && !variant?.purchasable && !isPreorder && !launching
+  const soldOut =
+    Boolean(variant) && !variant?.purchasable && !isPreorder && !launching && !unpriced
   const allSoldOut = soldOut && product.variants.every((v) => !v.purchasable)
   const notify = soldOut && variant && NotifyMe && notifyMeProps ? variant.id : null
   const availability = isPreorder
@@ -109,9 +114,12 @@ export default function ProductBuyButtons({
         : variant.available > 5
           ? ui.inStockShips
           : ui.onlyLeft(variant.available)
+  // "Only 3 left" is the one availability line that reads as urgent (red); the rest are status.
+  const unitsLeft = variant?.available ?? 0
+  const lowStock = !isPreorder && !stockBarShown && unitsLeft > 0 && unitsLeft <= 5
   const updatesHref = isPreorder && preorderLink ? safeHref(preorderLink) : null
   // A plain sale (not a launch countdown or a pre-order) gets the quantity and Buy it now.
-  const buyable = Boolean(variant?.purchasable) && !launching && !isPreorder
+  const buyable = Boolean(variant?.purchasable) && !launching && !isPreorder && !unpriced
 
   return (
     <div className="product-info__buy">
@@ -176,7 +184,7 @@ export default function ProductBuyButtons({
             <button
               type="button"
               className={`btn ${buyable ? 'btn--secondary' : 'btn--primary'} buy-buttons__submit${pending ? ' is-loading' : ''}${isPreorder ? ' buy-buttons__submit--preorder' : ''}`}
-              disabled={!variant?.purchasable || launching || pending || !onAddToCart}
+              disabled={!variant?.purchasable || unpriced || launching || pending || !onAddToCart}
               onClick={handleAdd}
             >
               <span className="btn__label">{buyLabel}</span>
@@ -200,7 +208,11 @@ export default function ProductBuyButtons({
         </div>
       )}
       {!launching && variant && availability ? (
-        <p className="buy-buttons__availability text-small">{availability}</p>
+        <p
+          className={`buy-buttons__availability text-small${lowStock ? ' buy-buttons__availability--low' : ''}`}
+        >
+          {availability}
+        </p>
       ) : null}
       {updatesHref ? (
         <a href={updatesHref} className="product-info__preorder-link text-small">

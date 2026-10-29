@@ -35,15 +35,18 @@
     "media:rehost": "bun run --cwd apps/worker --env-file=../../.env src/media-rehost.ts",
     "rotate-secrets": "bun scripts/rotate-secrets.ts",
     "platform:invite": "bun scripts/platform-invite.ts",
+    "platform:unlimited": "bun scripts/platform-unlimited.ts",
     "backfill-phone-encryption": "bun scripts/backfill-phone-encryption.ts",
     "infra:up": "docker compose up -d --wait",
     "infra:down": "docker compose down",
-    "code-map": "bun scripts/code-map.ts"
+    "code-map": "bun scripts/code-map.ts",
+    "smoke:checkout": "node --no-warnings scripts/smoke/checkout-smoke.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.14",
     "@shadcn/lint": "^0.2.0",
     "oxlint": "^1.87.0",
+    "playwright": "1.63.0",
     "turbo": "^2.11.2",
     "typescript": "~5.9.3",
     "vitest": "^4.1.11"

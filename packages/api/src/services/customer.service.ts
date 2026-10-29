@@ -10,8 +10,8 @@ import {
   type SegmentCustomer,
 } from '@commerce/core'
 import type { CustomerSegmentRules, StoreTx } from '@commerce/db'
-import { customer, customerSegment, notification, order } from '@commerce/db'
-import { and, asc, count, desc, eq, gte, ilike, inArray, lte, ne, or, sql } from 'drizzle-orm'
+import { customer, customerNote, customerSegment, notification, order } from '@commerce/db'
+import { and, asc, count, desc, eq, gte, ilike, inArray, lt, lte, ne, or, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import type { VisitorSource } from '../context'
 import { conversionRate, istIsoDate, startOfIstDay } from './analytics-buckets'
@@ -44,6 +44,19 @@ export type CustomerFilters = {
   tag?: string | undefined
   /** Business (B2B) customers: true keeps those with a saved GSTIN, false those without. */
   business?: boolean | undefined
+  /** Any of these state codes (the admin's multi-pick); `stateCode` above still works. */
+  stateCodes?: string[] | undefined
+  /** Has any of these tags. */
+  tags?: string[] | undefined
+  maxOrders?: number | undefined
+  /** Opted in (true) or not (false) to SMS or WhatsApp marketing. */
+  acceptsSms?: boolean | undefined
+  acceptsWhatsapp?: boolean | undefined
+  /** Created, or last ordered, in [from, to); ISO times. */
+  createdFrom?: string | undefined
+  createdTo?: string | undefined
+  lastOrderFrom?: string | undefined
+  lastOrderTo?: string | undefined
 }
 
 export type CustomerQuery = {
@@ -154,6 +167,17 @@ function filterWhere(input: CustomerQuery, now: Date, secret: string) {
       : input.business
         ? hasGstinSql
         : sql`not ${hasGstinSql}`,
+    input.stateCodes?.length
+      ? sql`upper(${stateSql}) = any(${sql.param(input.stateCodes.map((code) => code.toUpperCase()))}::text[])`
+      : undefined,
+    input.tags?.length ? sql`${c.tags} && ${sql.param(input.tags)}::text[]` : undefined,
+    input.maxOrders !== undefined ? sql`${orderCountSql} <= ${input.maxOrders}` : undefined,
+    input.acceptsSms !== undefined ? eq(c.acceptsSms, input.acceptsSms) : undefined,
+    input.acceptsWhatsapp !== undefined ? eq(c.acceptsWhatsapp, input.acceptsWhatsapp) : undefined,
+    input.createdFrom ? gte(c.createdAt, new Date(input.createdFrom)) : undefined,
+    input.createdTo ? lt(c.createdAt, new Date(input.createdTo)) : undefined,
+    input.lastOrderFrom ? sql`${lastOrderSql} >= ${input.lastOrderFrom}::timestamptz` : undefined,
+    input.lastOrderTo ? sql`${lastOrderSql} < ${input.lastOrderTo}::timestamptz` : undefined,
   )
 }
 
@@ -332,7 +356,7 @@ export async function getCustomer(tx: StoreTx, id: string, secret: string) {
   const [raw] = await tx.select().from(customer).where(eq(customer.id, id))
   if (!raw) return null
   const row = { ...raw, phone: decryptCustomerPhone(raw.phone, secret) }
-  const [orders, sent] = await Promise.all([
+  const [orders, sent, notes] = await Promise.all([
     tx
       .select({
         id: order.id,
@@ -363,6 +387,12 @@ export async function getCustomer(tx: StoreTx, id: string, secret: string) {
           .orderBy(desc(notification.createdAt))
           .limit(50)
       : Promise.resolve([]),
+    tx
+      .select({ id: customerNote.id, body: customerNote.body, createdAt: customerNote.createdAt })
+      .from(customerNote)
+      .where(eq(customerNote.customerId, id))
+      .orderBy(desc(customerNote.createdAt))
+      .limit(50),
   ])
   // The list still shows test-mode orders; the totals leave them out.
   const real = orders.filter((o) => !o.isTest)
@@ -373,6 +403,8 @@ export async function getCustomer(tx: StoreTx, id: string, secret: string) {
     ...customerFields,
     orders,
     notifications: sent,
+    /** Staff actions on them, such as an opened WhatsApp chat. */
+    notes,
     totals: {
       orderCount: real.length,
       spentPaise,

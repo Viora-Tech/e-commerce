@@ -15,7 +15,7 @@ type ProductLayoutFieldProps = {
   initial: ProductLayout
 }
 
-/** "Layout: Settings · Tabs": how the product edit page shows its sections. Saved in this browser. */
+/** "Layout: One page · Settings · Tabs": how the product edit page shows its sections. Saved in this browser. */
 export default function ProductLayoutField({ initial }: ProductLayoutFieldProps) {
   // Hooks
   const { productLayout: copy } = useCopy(appearanceContent)
@@ -38,6 +38,9 @@ export default function ProductLayoutField({ initial }: ProductLayoutFieldProps)
       variant="outline"
       spacing={0}
     >
+      <ToggleGroupItem value="page" className="px-3">
+        {copy.page}
+      </ToggleGroupItem>
       <ToggleGroupItem value="settings" className="px-3">
         {copy.settings}
       </ToggleGroupItem>

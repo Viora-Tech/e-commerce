@@ -128,7 +128,10 @@ export function totalsRows(doc: DocumentSnapshot, view: TemplateView) {
   const rows: { label: string; value: string }[] = []
   if (view.fields.discount && t.discountPaise > 0) {
     rows.push({ label: 'Gross', value: formatAmount(t.grossPaise) })
-    rows.push({ label: 'Discount', value: `-${formatAmount(t.discountPaise)}` })
+    rows.push({
+      label: doc.discountLabel ? `Discount (${doc.discountLabel})` : 'Discount',
+      value: `-${formatAmount(t.discountPaise)}`,
+    })
   }
   if (view.taxDocument) {
     rows.push({ label: 'Taxable value', value: formatAmount(t.taxablePaise) })

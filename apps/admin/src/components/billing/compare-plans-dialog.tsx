@@ -1,7 +1,13 @@
 'use client'
 
 import { PLAN_QUOTAS } from '@commerce/ai/client'
-import { type BillingInterval, PLAN_IDS, PLANS, type PlanId } from '@commerce/core/billing'
+import {
+  type BillingInterval,
+  OWN_IT_PRICES,
+  PLAN_IDS,
+  PLANS,
+  type PlanId,
+} from '@commerce/core/billing'
 import { CheckIcon, MinusIcon } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
@@ -16,7 +22,7 @@ import { useState } from 'react'
 import PillTabs from '@/components/layout/pill-tabs'
 import { billingContent } from '@/data/billing'
 import { useCopy, useFormat } from '@/hooks/use-copy'
-import { ownItContactUrl } from '@/lib/billing'
+import { feePercent, ownItContactUrl } from '@/lib/billing'
 
 type ComparePlansDialogProps = {
   open: boolean
@@ -29,7 +35,7 @@ type ComparePlansDialogProps = {
   onChoose: (plan: PlanId, interval: BillingInterval) => void
 }
 
-/** Figma "Compare plans": Starter, Growth and Pro side by side, monthly or yearly, then Own it. */
+/** Figma "Compare plans": Starter to Scale side by side, monthly or yearly, then Own it. */
 export default function ComparePlansDialog({
   open,
   onOpenChange,
@@ -54,8 +60,18 @@ export default function ComparePlansDialog({
 
   // Render logic
   const d = copy.dialog
+  const ownIt = OWN_IT_PRICES.india
   const rows: { id: string; label: string; cell: (p: PlanId) => React.ReactNode }[] = [
     { id: 'orders', label: d.rows.orders, cell: (p) => format.number(PLANS[p].orders) },
+    { id: 'fee', label: d.rows.fee, cell: (p) => `${feePercent(PLANS[p].feeBasisPoints)}%` },
+    {
+      id: 'visits',
+      label: d.rows.visits,
+      cell: (p) => {
+        const visits = PLANS[p].visitsPerMonth
+        return visits === null ? d.fairUse : format.number(visits)
+      },
+    },
     { id: 'staff', label: d.rows.staff, cell: (p) => format.number(PLANS[p].staff) },
     {
       id: 'storage',
@@ -80,7 +96,7 @@ export default function ComparePlansDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="max-w-6xl">
         <DialogHeader>
           <DialogTitle>{d.title}</DialogTitle>
           <DialogDescription>{d.subtitle}</DialogDescription>
@@ -94,7 +110,7 @@ export default function ComparePlansDialog({
             { value: 'year', label: `${copy.interval.year} · ${copy.yearlySaving}` },
           ]}
         />
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {PLAN_IDS.map((p) => {
             const isCurrent = paid && p === current && interval === currentInterval
             const price = PLANS[p].pricePaise[interval]
@@ -140,6 +156,9 @@ export default function ComparePlansDialog({
           <div className="flex max-w-xl flex-col gap-1">
             <h3 className="text-card-title text-ink-strong">{d.ownIt.title}</h3>
             <p className="text-caption text-muted-foreground">{d.ownIt.body}</p>
+            <p className="text-body font-medium text-ink-strong tabular-nums">
+              {d.ownIt.price(format.money(ownIt.licence), format.money(ownIt.carePerMonth))}
+            </p>
           </div>
           <Button
             variant="outline"

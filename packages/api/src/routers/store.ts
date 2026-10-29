@@ -57,7 +57,6 @@ import {
   updateStoreShipping,
   verifyShippingCredentials,
 } from '../services/shipping.service'
-
 import {
   getStore,
   presentStore,
@@ -67,6 +66,7 @@ import {
   updateStorePreferences,
   updateStorePreorder,
 } from '../services/store.service'
+import { storeHealth } from '../services/store-health.service'
 
 const previousSecrets = () => parsePreviousSecrets(loadEnv(process.env).SETTINGS_SECRET_PREVIOUS)
 
@@ -137,6 +137,11 @@ export const storeRouter = {
     .handler(({ context, input }) =>
       settingsChecklist(context.tx, context.scope.storeId, input?.after),
     ),
+
+  /** Store health: setups that break or hurt checkout and orders, worst first, with counts. */
+  health: can(permissions.SETTINGS_READ).handler(({ context }) =>
+    storeHealth(context.tx, context.scope.storeId),
+  ),
 
   /** Store details for Settings › General. */
   getGeneral: can(permissions.SETTINGS_READ).handler(async ({ context }) => {

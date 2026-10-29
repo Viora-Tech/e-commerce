@@ -4,8 +4,8 @@ import { type LegalDoc, sections } from './types'
 const brand = siteConfig.brand.name
 const domain = siteConfig.brand.domain
 const support = siteConfig.contact.supportEmail
-const company = 'Viora India (a sole proprietorship of Kuldeep Saini)'
-const address = '745/25, Saini Niwas, Gali Number 3, Sonipat 131001, Haryana, India'
+const company = siteConfig.company.legalName
+const address = siteConfig.company.address
 const grievanceEmail = 'grievance@koomerce.app'
 
 export const privacyDoc: LegalDoc = {

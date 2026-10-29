@@ -187,8 +187,10 @@ async function productValues(tx: StoreTx, productId: string, fields: Set<string>
       .from(variant)
       .where(and(eq(variant.productId, productId), isNull(variant.archivedAt)))
       .orderBy(asc(variant.position))
-    const cheapest = variants.reduce<(typeof variants)[number] | null>(
-      (best, v) => (!best || v.price < best.price ? v : best),
+    // Variants listed without a price (#913) do not take part.
+    const cheapest = variants.reduce<{ price: number; mrp: number | null } | null>(
+      (best, v) =>
+        v.price != null && (!best || v.price < best.price) ? { price: v.price, mrp: v.mrp } : best,
       null,
     )
     const now = Date.now()

@@ -5,11 +5,14 @@ import type {
   OrderPaymentStatus,
   OrderStatus,
 } from '@commerce/core/order-status'
+import { CHANNEL_LABELS } from '@/data/growth'
 import type {
+  ChannelFilter,
   DateFilter,
   FulfilmentFilter,
   MethodFilter,
   PaymentFilter,
+  ReturnFilter,
 } from '@/lib/order-list-filters'
 
 /** The order moves live in core (`ORDER_MARKS`); re-exported for the admin's order screens. */
@@ -120,6 +123,14 @@ export const ordersContent = {
     method: 'Payment method',
     courier: 'Courier',
     anyCourier: 'Any courier',
+    collection: 'Collection',
+    total: 'Order value',
+    totalMin: 'Min value',
+    totalMax: 'Max value',
+    channel: 'Channel',
+    tags: 'Tags',
+    discount: 'Discount code',
+    returns: 'Return status',
     show: (n: number) => `Show ${n} ${n === 1 ? 'order' : 'orders'}`,
     paymentOptions: {
       paid: 'Paid',
@@ -143,6 +154,15 @@ export const ordersContent = {
       MethodFilter,
       string
     >,
+    /** The Channel column's names, so a filter and the column read the same. */
+    channelOptions: CHANNEL_LABELS satisfies Record<ChannelFilter, string>,
+    returnOptions: {
+      none: 'No return',
+      requested: 'Return asked for',
+      in_progress: 'Return on the way',
+      done: 'Returned',
+      declined: 'Return declined',
+    } satisfies Record<ReturnFilter, string>,
   },
   tabs: {
     all: 'All orders',
@@ -279,6 +299,12 @@ export const sendMessageContent = {
   noContact: 'No email or phone on this order',
   email: 'Email',
   whatsapp: 'WhatsApp',
+  both: 'Both',
+  sendBy: 'Send by',
+  chatHint:
+    'WhatsApp is not connected to your store, so it cannot send this for you. Open it in your own WhatsApp and press send there.',
+  chatHintConnected: 'Or open it in your own WhatsApp to type it yourself and press send there.',
+  openChat: 'Open in WhatsApp',
   frameTitle: 'Email preview',
   cancel: 'Cancel',
   templates: {

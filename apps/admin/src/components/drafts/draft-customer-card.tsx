@@ -5,6 +5,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import {
   addressToForm,
   type DraftFormState,
@@ -22,17 +23,27 @@ type DraftCustomerCardProps = {
 
 type Customer = Awaited<ReturnType<typeof api.customers.list>>['items'][number]
 
-type SavedAddress = NonNullable<Awaited<ReturnType<typeof api.customers.get>>>['addresses'][number]
+type Found = NonNullable<Awaited<ReturnType<typeof api.customers.get>>>
+
+type SavedAddress = Found['addresses'][number]
 
 /**
  * The draft's addresses from the customer's book: shipping from their default shipping address,
  * billing from their default billing one (else it follows shipping). A billing default that is
- * another address, or carries a company or GSTIN, fills the billing card; nothing saved, nothing
- * changes.
+ * another address, or carries a company or GSTIN, fills the billing card. A guest who checked out
+ * without saving an address book still has the address of their last order
+ * (`customer.default_address`), which fills shipping; nothing saved, nothing changes.
  */
-function addressesFrom(book: readonly SavedAddress[]): Partial<DraftFormState> {
+function addressesFrom(found: Found): Partial<DraftFormState> {
+  const book: readonly SavedAddress[] = found.addresses
   const ship = book.find((a) => a.isDefault) ?? book[0]
-  if (!ship) return {}
+  if (!ship) {
+    const last = found.defaultAddress
+    if (!last?.line1) return {}
+    return {
+      address: addressToForm({ ...last, line2: last.line2 ?? null, phone: last.phone ?? '' }),
+    }
+  }
   const bill = book.find((a) => a.isDefaultBilling) ?? ship
   const separate = bill.id !== ship.id || Boolean(bill.gstin || bill.businessName)
   return {
@@ -82,7 +93,26 @@ export default function DraftCustomerCard({ form, onChange }: DraftCustomerCardP
     setResults([])
     // Their saved addresses follow; a failed lookup leaves the address cards as they were.
     const found = await api.customers.get({ id: c.id }).catch(() => null)
-    if (found) onChange(addressesFrom(found.addresses))
+    if (found) onChange(addressesFrom(found))
+  }
+
+  /* An email typed by hand that belongs to a saved customer links them (issue 916): blank name
+     and phone fill in, and an empty shipping address takes theirs. Typed details stay. */
+  const handleEmailBlur = async () => {
+    const email = form.email.trim().toLowerCase()
+    if (form.customerId || !email.includes('@')) return
+    const list = await api.customers.list({ page: 1, perPage: 6, search: email }).catch(() => null)
+    const c = list?.items.find((x) => x.email?.toLowerCase() === email)
+    if (!c) return
+    onChange({
+      customerId: c.id,
+      customerName: form.customerName.trim() || (c.name ?? ''),
+      phone: form.phone.trim() || (c.phone ?? ''),
+    })
+    toast.success(copy.customer.matched(c.name ?? c.email ?? email))
+    if (form.address.line1.trim()) return
+    const found = await api.customers.get({ id: c.id }).catch(() => null)
+    if (found) onChange(addressesFrom(found))
   }
 
   const handleClear = () => {
@@ -149,6 +179,7 @@ export default function DraftCustomerCard({ form, onChange }: DraftCustomerCardP
           type="email"
           value={form.email}
           onChange={(e) => onChange({ email: e.target.value })}
+          onBlur={handleEmailBlur}
         />
         <p className="text-caption text-muted-foreground">{copy.customer.help}</p>
       </Field>

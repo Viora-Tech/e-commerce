@@ -141,7 +141,13 @@ export const inventoryRouter = {
     .use(heavy('export'))
     .input(listInput.omit({ page: true, perPage: true }))
     .handler(async ({ context, input }) => {
-      const { rows } = await listInventory(context.tx, { ...input, page: 1, perPage: 5000 })
+      // Always by SKU: the cap stays 5000 lines, and SKU order already keeps a product together.
+      const { rows } = await listInventory(context.tx, {
+        ...input,
+        group: 'variant',
+        page: 1,
+        perPage: 5000,
+      })
       return rows
     }),
 
@@ -204,6 +210,17 @@ export const purchaseOrdersRouter = {
         search: z.string().trim().max(SEARCH_MAX).optional(),
         page: z.number().int().min(1).default(1),
         perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(25),
+        /** The admin's filter panel; each combines with the tab (`status`) and search. */
+        statuses: z
+          .array(z.enum(PURCHASE_ORDER_STATUSES))
+          .max(PURCHASE_ORDER_STATUSES.length)
+          .optional(),
+        supplierIds: z.array(z.uuid()).max(50).optional(),
+        locationIds: z.array(z.uuid()).max(50).optional(),
+        expectedFrom: z.iso.datetime().optional(),
+        expectedTo: z.iso.datetime().optional(),
+        createdFrom: z.iso.datetime().optional(),
+        createdTo: z.iso.datetime().optional(),
       }),
     )
     .handler(({ context, input }) => listPurchaseOrders(context.tx, input)),
@@ -313,6 +330,17 @@ export const transfersRouter = {
         search: z.string().trim().max(SEARCH_MAX).optional(),
         page: z.number().int().min(1).default(1),
         perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(25),
+        /** The admin's filter panel; each combines with the tab (`status`) and search. */
+        statuses: z
+          .array(z.enum(['draft', 'in_transit', 'received']))
+          .max(3)
+          .optional(),
+        fromLocationIds: z.array(z.uuid()).max(50).optional(),
+        toLocationIds: z.array(z.uuid()).max(50).optional(),
+        createdFrom: z.iso.datetime().optional(),
+        createdTo: z.iso.datetime().optional(),
+        receivedFrom: z.iso.datetime().optional(),
+        receivedTo: z.iso.datetime().optional(),
       }),
     )
     .handler(({ context, input }) => listTransfers(context.tx, input)),

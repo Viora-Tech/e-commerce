@@ -5,12 +5,22 @@ import { CommerceError } from '../errors'
 /** Most lines one edit adds; an order page is not a bulk import. */
 const EDIT_ADD_MAX = 50
 const QTY_MAX = 9999
+const LABEL_MAX = 120
 
 export const OrderEditSchema = z.object({
   orderId: z.uuid(),
-  /** New quantities for lines already on the order; 0 removes the line. */
+  /**
+   * New quantities for lines already on the order (0 removes the line), and optionally a new
+   * unit price; an omitted price keeps the line's.
+   */
   lines: z
-    .array(z.object({ lineId: z.uuid(), quantity: z.number().int().min(0).max(QTY_MAX) }))
+    .array(
+      z.object({
+        lineId: z.uuid(),
+        quantity: z.number().int().min(0).max(QTY_MAX),
+        unitPricePaise: z.number().int().min(0).max(1_000_000_000).optional(),
+      }),
+    )
     .max(200)
     .default([]),
   /** Items to add, at the catalogue price unless the merchant sets one. */
@@ -28,6 +38,10 @@ export const OrderEditSchema = z.object({
   shippingPaise: z.number().int().min(0).max(100_000_000).optional(),
   /** The new order discount; omitted keeps it. Never more than the subtotal. */
   discountPaise: z.number().int().min(0).max(1_000_000_000).optional(),
+  /** What the discount is for ("UPI discount"); omitted keeps it, empty clears it. */
+  discountLabel: z.string().trim().max(LABEL_MAX).nullish(),
+  /** What the shipping is ("Bluedart"); omitted keeps it, empty clears it. */
+  shippingLabel: z.string().trim().max(LABEL_MAX).nullish(),
 })
 export type OrderEditInput = z.input<typeof OrderEditSchema>
 export type OrderEdit = z.output<typeof OrderEditSchema>
@@ -43,6 +57,7 @@ export class OrderEditRefused extends CommerceError {
     | 'no_change'
     | 'awaiting_payment'
     | 'returned_line'
+    | 'no_price'
   constructor(reason: OrderEditRefused['reason'], message: string, storeId?: string) {
     super('ORDER_EDIT_REFUSED', message, { storeId })
     this.reason = reason
@@ -64,7 +79,8 @@ export type EditVariant = {
   id: string
   title: string
   variantTitle: string
-  pricePaise: number
+  /** Null: listed without a price yet (#913); the edit must type one in. */
+  pricePaise: number | null
   giftCard: boolean
 }
 
@@ -77,6 +93,12 @@ export type EditTotals = {
   totalPaise: number
 }
 
+/** The words beside the discount and shipping (`order.discount_label`, `order.shipping_rate_name`). */
+export type EditLabels = {
+  discountLabel: string | null
+  shippingLabel: string | null
+}
+
 export type EditLineChange = 'same' | 'changed' | 'removed' | 'added'
 
 export type PlannedLine = {
@@ -86,6 +108,7 @@ export type PlannedLine = {
   title: string | null
   variantTitle: string | null
   unitPricePaise: number
+  unitPriceBefore: number
   quantityBefore: number
   quantity: number
   fulfilledQuantity: number
@@ -103,15 +126,21 @@ export type EditPlan = {
    */
   differencePaise: number
   paidPaise: number
+  labels: { before: EditLabels; after: EditLabels }
 }
 
 const sumLines = (lines: readonly { quantity: number; unitPricePaise: number }[]) =>
   lines.reduce((sum, l) => sum + l.quantity * l.unitPricePaise, 0)
 
+/** A label as typed: undefined keeps the old one, blank clears it. */
+const nextLabel = (typed: string | null | undefined, before: string | null): string | null =>
+  typed === undefined ? before : typed?.trim() || null
+
 /**
  * The order as it would be after the edit. Refuses a line taken below what was already packed,
  * a gift card line changed (vouchers are issued on payment), a line or variant that is not this
- * order's, an edit that changes nothing, and an order left with no items.
+ * order's, an edit that changes nothing, and an order left with no items. A line's unit price can
+ * change too (issues 917, 918); the subtotal moves by the difference like any other change.
  */
 export function planOrderEdit(input: {
   edit: OrderEdit
@@ -119,17 +148,20 @@ export function planOrderEdit(input: {
   variants: readonly EditVariant[]
   before: EditTotals
   paidPaise: number
+  labels?: EditLabels
 }): EditPlan {
   const { edit, current } = input
-  const changes = new Map(edit.lines.map((l) => [l.lineId, l.quantity]))
+  const changes = new Map(edit.lines.map((l) => [l.lineId, l]))
   for (const id of changes.keys()) {
     if (!current.some((l) => l.id === id)) {
       throw new OrderEditRefused('unknown_line', `Line ${id} is not on this order`)
     }
   }
   const lines: PlannedLine[] = current.map((l) => {
-    const next = changes.get(l.id) ?? l.quantity
-    if (next !== l.quantity && l.giftCard) {
+    const asked = changes.get(l.id)
+    const next = asked?.quantity ?? l.quantity
+    const price = asked?.unitPricePaise ?? l.unitPricePaise
+    if ((next !== l.quantity || price !== l.unitPricePaise) && l.giftCard) {
       throw new OrderEditRefused('gift_card', 'Gift card lines cannot be changed')
     }
     if (next < l.fulfilledQuantity) {
@@ -143,11 +175,17 @@ export function planOrderEdit(input: {
       variantId: l.variantId,
       title: l.title,
       variantTitle: l.variantTitle,
-      unitPricePaise: l.unitPricePaise,
+      unitPricePaise: next === 0 ? l.unitPricePaise : price,
+      unitPriceBefore: l.unitPricePaise,
       quantityBefore: l.quantity,
       quantity: next,
       fulfilledQuantity: l.fulfilledQuantity,
-      change: next === l.quantity ? 'same' : next === 0 ? 'removed' : 'changed',
+      change:
+        next === 0
+          ? 'removed'
+          : next === l.quantity && price === l.unitPricePaise
+            ? 'same'
+            : 'changed',
     }
   })
   for (const a of edit.add) {
@@ -156,12 +194,16 @@ export function planOrderEdit(input: {
       throw new OrderEditRefused('unknown_variant', `Variant ${a.variantId} is not for sale here`)
     if (v.giftCard)
       throw new OrderEditRefused('gift_card', 'Gift cards cannot be added to an order')
+    const unitPricePaise = a.unitPricePaise ?? v.pricePaise
+    if (unitPricePaise == null)
+      throw new OrderEditRefused('no_price', `${v.title} has no price yet. Type one in to add it.`)
     lines.push({
       lineId: null,
       variantId: v.id,
       title: v.title,
       variantTitle: v.variantTitle,
-      unitPricePaise: a.unitPricePaise ?? v.pricePaise,
+      unitPricePaise,
+      unitPriceBefore: unitPricePaise,
       quantityBefore: 0,
       quantity: a.quantity,
       fulfilledQuantity: 0,
@@ -191,10 +233,17 @@ export function planOrderEdit(input: {
         (shippingPaise - before.shippingPaise),
     ),
   }
+  const labelsBefore = input.labels ?? { discountLabel: null, shippingLabel: null }
+  const labelsAfter: EditLabels = {
+    discountLabel: nextLabel(edit.discountLabel, labelsBefore.discountLabel),
+    shippingLabel: nextLabel(edit.shippingLabel, labelsBefore.shippingLabel),
+  }
   const changed =
     lines.some((l) => l.change !== 'same') ||
     after.shippingPaise !== input.before.shippingPaise ||
-    after.discountPaise !== input.before.discountPaise
+    after.discountPaise !== input.before.discountPaise ||
+    labelsAfter.discountLabel !== labelsBefore.discountLabel ||
+    labelsAfter.shippingLabel !== labelsBefore.shippingLabel
   if (!changed) throw new OrderEditRefused('no_change', 'Nothing was changed')
   return {
     lines,
@@ -202,5 +251,6 @@ export function planOrderEdit(input: {
     after,
     differencePaise: after.totalPaise - input.paidPaise,
     paidPaise: input.paidPaise,
+    labels: { before: labelsBefore, after: labelsAfter },
   }
 }

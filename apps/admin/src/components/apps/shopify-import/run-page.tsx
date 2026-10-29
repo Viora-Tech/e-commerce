@@ -10,6 +10,7 @@ import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import RunFilesCard from './run-files-card'
 import RunHeaderCard from './run-header-card'
+import RunHealthCard from './run-health-card'
 import RunIssuesCard from './run-issues-card'
 import RunLeftCard from './run-left-card'
 import RunPreflight from './run-preflight'
@@ -88,6 +89,8 @@ export default function RunPage({ params }: AppPageProps) {
 
   // Render logic
   const previewDone = run.dryRun && run.status === 'completed'
+  // A real import that finished: check what it left (Store health).
+  const importDone = !run.dryRun && run.status === 'completed'
   const source = run.mode === 'csv' ? home.source.csv(run.fileName) : home.source.api
   const reuse = run.snapshotUse
     ? copy.usingPreview(fmt.dateTime(run.snapshotUse.takenAt), run.snapshotUse.changes)
@@ -113,6 +116,7 @@ export default function RunPage({ params }: AppPageProps) {
         onStopped={handleStopped}
       />
       <RunStatTiles run={run} />
+      {importDone ? <RunHealthCard key={String(run.updatedAt)} /> : null}
       {previewDone ? <RunPreflight resources={run.resources} mode={run.mode} /> : null}
       <RunTypeGrid run={run} />
       <RunFilesCard run={run} />

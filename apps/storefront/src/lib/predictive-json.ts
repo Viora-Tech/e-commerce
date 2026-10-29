@@ -60,7 +60,10 @@ export function predictiveJson(r: PredictiveResults, p: PredictiveParams) {
           const url = image
             ? (image.variants?.['640']?.webp ?? image.variants?.['320']?.webp ?? image.url)
             : null
-          const compareAt = c.mrpPaise && c.mrpPaise > c.pricePaise ? rupees(c.mrpPaise) : '0.00'
+          // Listed without a price yet (#913): Shopify's fields want a number, and it is not for sale.
+          const price = c.pricePaise ?? 0
+          const compareAt =
+            c.pricePaise != null && c.mrpPaise && c.mrpPaise > price ? rupees(c.mrpPaise) : '0.00'
           return {
             id: numericId(c.id),
             handle: c.handle,
@@ -69,10 +72,10 @@ export function predictiveJson(r: PredictiveResults, p: PredictiveParams) {
             vendor: c.vendor ?? '',
             type: c.productType ?? '',
             // A pre-order still sells past zero stock.
-            available: c.available > 0 || Boolean(c.preorder),
-            price: rupees(c.pricePaise),
-            price_min: rupees(c.pricePaise),
-            price_max: rupees(c.pricePaise),
+            available: c.pricePaise != null && (c.available > 0 || Boolean(c.preorder)),
+            price: rupees(price),
+            price_min: rupees(price),
+            price_max: rupees(price),
             compare_at_price_min: compareAt,
             compare_at_price_max: compareAt,
             image: url,

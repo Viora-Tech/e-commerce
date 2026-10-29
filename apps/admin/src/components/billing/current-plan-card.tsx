@@ -9,7 +9,7 @@ import DataCard from '@/components/layout/data-card'
 import StatusChip from '@/components/layout/status-chip'
 import { billingContent } from '@/data/billing'
 import { useCopy, useFormat } from '@/hooks/use-copy'
-import { bytesToGb, daysUntil, usageShare } from '@/lib/billing'
+import { bytesToGb, daysUntil, feePercent, usageShare } from '@/lib/billing'
 
 type CurrentPlanCardProps = {
   view: PlanView
@@ -37,6 +37,8 @@ export default function CurrentPlanCard({ view, onKeepPlan, onCompare }: Current
   const price = plan.pricePaise[view.interval]
   const ai = PLAN_QUOTAS[plan.ai]
   const overOrders = view.usage.orders > plan.orders
+  const percent = feePercent(plan.feeBasisPoints)
+  const fees = view.fees
   const up = nextPlanUp(view.plan)
   const line =
     view.status === 'trialing' && view.trialEndsAt
@@ -63,7 +65,12 @@ export default function CurrentPlanCard({ view, onKeepPlan, onCompare }: Current
             </StatusChip>
           </div>
           <span className="text-caption text-muted-foreground">
-            {[format.number(plan.orders), copy.usage.orders.toLowerCase(), line]
+            {[
+              plan.feeBasisPoints > 0
+                ? copy.current.feeRate(percent, format.number(plan.orders))
+                : copy.current.noFee,
+              line,
+            ]
               .filter(Boolean)
               .join(' · ')}
           </span>
@@ -118,9 +125,40 @@ export default function CurrentPlanCard({ view, onKeepPlan, onCompare }: Current
           <Progress value={usageShare(view.usage.storageBytes, plan.storageGb * 1024 ** 3)} />
         </div>
       </div>
+      {plan.feeBasisPoints > 0 ? (
+        <div className="flex flex-col gap-2 rounded-md border border-border px-3 py-3">
+          <span className="text-body font-medium text-ink-strong">{copy.fees.heading}</span>
+          <div className="flex items-center justify-between gap-2 text-body">
+            <span className="text-muted-foreground">{copy.fees.feeOrders}</span>
+            <span className="tabular-nums">{format.number(fees.feeOrders)}</span>
+          </div>
+          <div className="flex items-center justify-between gap-2 text-body">
+            <span className="text-muted-foreground">{copy.fees.estimate}</span>
+            <span className="font-medium text-ink-strong tabular-nums">
+              {format.money(fees.feePaise + fees.carriedInPaise)}
+            </span>
+          </div>
+          <p className="text-caption text-muted-foreground">
+            {[
+              fees.carriedInPaise > 0 ? copy.fees.carried(format.money(fees.carriedInPaise)) : null,
+              view.status === 'trialing' ? copy.fees.trial : null,
+              copy.fees.note,
+            ]
+              .filter(Boolean)
+              .join(' ')}
+          </p>
+        </div>
+      ) : null}
       {overOrders ? (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-warning/30 bg-warning-soft px-3 py-2 text-body">
-          <span>{up ? copy.over.upgrade(copy.plans[up].name) : copy.over.ownIt}</span>
+          <span>
+            {[
+              plan.feeBasisPoints > 0 && view.status !== 'trialing' ? copy.over.fee(percent) : null,
+              up ? copy.over.upgrade(copy.plans[up].name) : copy.over.ownIt,
+            ]
+              .filter(Boolean)
+              .join(' ')}
+          </span>
           <KitButton variant="secondary" onClick={onCompare}>
             {copy.compare}
           </KitButton>

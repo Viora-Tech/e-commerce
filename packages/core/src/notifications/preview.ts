@@ -53,15 +53,20 @@ export async function previewOrderMessage(
   const defaultSubject = input.custom?.subject
     ? (await renderEmail(input.template, built.data)).subject
     : email.subject
+  const chat = messageDef(input.template)?.channels.includes('whatsapp')
+    ? renderWhatsapp(input.template, data).text
+    : null
   return {
     to: built.to,
     subject: email.subject,
     defaultSubject,
     html: email.html,
-    whatsapp:
-      opts.whatsapp && messageDef(input.template)?.channels.includes('whatsapp')
-        ? renderWhatsapp(input.template, data).text
-        : null,
+    whatsapp: opts.whatsapp ? chat : null,
+    /**
+     * The same WhatsApp text for "Open in WhatsApp": the merchant's own wa.me chat, sent by hand.
+     * Always there (WhatsApp connected or not), so click to chat never depends on the channel.
+     */
+    chatText: chat,
     /** Off in Settings → Notifications: sending does nothing, so the dialog says so. */
     on: await messageOn(ctx, input.template),
   }
@@ -91,6 +96,8 @@ export async function previewCartRecovery(
     defaultSubject,
     html: email.html,
     whatsapp: opts.whatsapp ? renderWhatsapp(template, data).text : null,
+    // "Open in WhatsApp" with the reminder typed in, connected or not.
+    chatText: renderWhatsapp(template, data).text,
     on: true,
   }
 }

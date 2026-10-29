@@ -1,5 +1,11 @@
 import { settingsSecret } from '@commerce/config'
-import { permissions, REFUND_METHODS, RETURN_REASONS, RETURN_STATUSES } from '@commerce/core'
+import {
+  permissions,
+  REFUND_METHODS,
+  RETURN_REASONS,
+  RETURN_RESOLUTIONS,
+  RETURN_STATUSES,
+} from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
@@ -46,6 +52,11 @@ export const returnsRouter = {
         status: z.array(z.enum(RETURN_STATUSES)).max(7).optional(),
         kind: z.enum(['return', 'rto']).optional(),
         search: z.string().trim().max(SEARCH_MAX).optional(),
+        /** The filter panel's Reason, Outcome and Asked on. */
+        reasons: z.array(z.enum(RETURN_REASONS)).max(RETURN_REASONS.length).optional(),
+        resolutions: z.array(z.enum(RETURN_RESOLUTIONS)).max(RETURN_RESOLUTIONS.length).optional(),
+        requestedFrom: z.iso.datetime().optional(),
+        requestedTo: z.iso.datetime().optional(),
       }),
     )
     .handler(({ context, input }) => listStoreReturns(context.tx, context.scope.storeId, input)),

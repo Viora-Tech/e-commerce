@@ -118,7 +118,7 @@ export default function SelectProductsRow({
                 {v.available > 0 ? copy.inStock(v.available) : copy.outOfStock}
               </span>
               <span className="w-32 text-right text-foreground tabular-nums">
-                {fmt.money(v.pricePaise)}
+                {v.pricePaise == null ? copy.noPrice : fmt.money(v.pricePaise)}
               </span>
               <span className="size-6 shrink-0" />
             </li>

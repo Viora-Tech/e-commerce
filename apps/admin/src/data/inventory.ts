@@ -89,6 +89,14 @@ export const inventoryContent = {
     ],
   },
   group: { label: 'Show', skus: 'SKUs', products: 'Products' },
+  /** Products view: one row per product, its SKUs folded underneath. */
+  tree: {
+    variants: (n: number) => `${n} variants`,
+    expand: (name: string) => `Show variants of ${name}`,
+    collapse: (name: string) => `Hide variants of ${name}`,
+    expandAll: 'Expand all',
+    collapseAll: 'Collapse all',
+  },
   cell: {
     decrease: 'Remove one',
     increase: 'Add one',
@@ -210,6 +218,17 @@ export const purchaseOrdersContent = {
   receivedOf: (received: number, units: number) => `${received} of ${units}`,
   billsIn: (currency: string) => `Bills in ${currency}`,
   none: 'None',
+  filters: {
+    status: 'Status',
+    supplier: 'Supplier',
+    destination: 'Destination',
+    expected: 'Expected',
+    created: 'Created',
+  },
+  noResults: {
+    heading: 'No purchase orders match these filters',
+    body: 'Try a different search or clear the filters.',
+  },
   empty: {
     heading: 'No purchase orders',
     body: 'Purchase orders track what you have ordered from suppliers and what has arrived, so incoming stock shows before it lands.',
@@ -364,6 +383,17 @@ export const transfersContent = {
     created: 'Created',
   },
   number: (n: number) => `#T${n}`,
+  filters: {
+    status: 'Status',
+    origin: 'Origin',
+    destination: 'Destination',
+    created: 'Created',
+    received: 'Received',
+  },
+  noResults: {
+    heading: 'No transfers match these filters',
+    body: 'Try a different search or clear the filters.',
+  },
   single: {
     heading: 'Transfers move stock between locations',
     body: 'You have one location, so there is nowhere to move stock to yet. Add a warehouse, shop or partner location to start transferring.',

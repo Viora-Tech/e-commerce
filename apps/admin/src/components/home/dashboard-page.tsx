@@ -1,5 +1,6 @@
 import type { DashboardChartsData, DashboardSummary, HomeAnalytics } from '@commerce/api'
 import type { HomeMetric } from '@commerce/core/home-metrics'
+import type { StoreHealthReport } from '@commerce/core/store-health'
 import PageBody from '@/components/layout/page-body'
 import BackgroundWorkNotice from '@/components/media/background-work-notice'
 import LocalStorageWarning from '@/components/media/local-storage-warning'
@@ -18,6 +19,7 @@ import LiveNow from './live-now'
 import MoreNumbers from './more-numbers'
 import SalesGoalRing from './sales-goal-ring'
 import SalesHero from './sales-hero'
+import StoreHealthCard from './store-health-card'
 import Suggestions from './suggestions'
 import TodoCards from './todo-cards'
 
@@ -33,6 +35,8 @@ type DashboardPageProps = {
   signals: HomeSignals | null
   /** Carts left behind this week; null when the member cannot read orders. */
   abandoned: { carts: number; valuePaise: number } | null
+  /** Store health; null when the member cannot read settings (the card hides). */
+  health: StoreHealthReport | null
 }
 
 /**
@@ -48,6 +52,7 @@ export default function DashboardPage({
   assistant = false,
   signals,
   abandoned,
+  health,
 }: DashboardPageProps) {
   return (
     <PageBody width="frame" className="mx-auto max-w-[68rem] gap-10 md:pt-5">
@@ -77,6 +82,11 @@ export default function DashboardPage({
       {signals ? (
         <HomeEnter index={3}>
           <FinishSetup productCount={summary.report.products} signals={signals} />
+        </HomeEnter>
+      ) : null}
+      {health ? (
+        <HomeEnter index={3}>
+          <StoreHealthCard report={health} />
         </HomeEnter>
       ) : null}
       <HomeEnter index={4}>

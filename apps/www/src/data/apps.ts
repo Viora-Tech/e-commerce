@@ -145,7 +145,7 @@ export function priceText(price: CataloguePrice): string {
   return `Included in ${planName(price.includedFrom)} and up. On a smaller plan, ${formatInr(price.pricePaise / 100)} a month + GST.`
 }
 
-const PLAN_ORDER = ['starter', 'growth', 'pro'] as const
+const PLAN_ORDER = ['starter', 'growth', 'pro', 'scale'] as const
 
 /** The pricing card's rows: each plan and what the app costs on it. */
 export function priceRows(price: CataloguePrice): { plan: string; value: string }[] {
@@ -251,7 +251,7 @@ export const appsContent = {
   viewDocs: 'View docs',
   installHint: `Opens your ${us} admin. Sign in, pick your store, then agree to what the app can access.`,
   noStore: 'No store yet?',
-  joinWaitlist: 'Join the waitlist',
+  startFree: 'Start free',
   breadcrumb: 'Breadcrumb',
   does: 'What it does',
   showcase: 'What it adds to your store',
