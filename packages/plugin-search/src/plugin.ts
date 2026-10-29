@@ -5,7 +5,7 @@ export const SEARCH_ID = 'search'
 /**
  * Search & discovery: Shopify's app of the same name, on our own search. Every store's search
  * already forgives typos ("keybord") in @commerce/core; this app adds the merchant's controls,
- * starting with synonyms. No search server to run (Meilisearch stays an optional connection
+ * synonyms and the storefront filters (which groups collection and search pages show). No search server to run (Meilisearch stays an optional connection
  * for very large catalogues; see docs/open-source-radar.md).
  */
 export const searchPlugin = definePlugin({
@@ -15,15 +15,16 @@ export const searchPlugin = definePlugin({
   kind: 'builtin',
   category: 'search',
   description:
-    'Tune your store’s search: words that mean the same thing, so shoppers find what they mean.',
+    'Tune your store’s search and filters: words that mean the same thing, and the filters shoppers see on collection and search pages.',
   listing: {
     tagline: 'Words that mean the same thing, so shoppers find what they mean.',
     highlights: [
       'Synonyms for your store search',
+      'Choose the filters on collection and search pages, from options, product fields or tags',
       'Works with the built-in search and Meilisearch',
     ],
     worksWith: ['The Meilisearch app'],
-    keywords: ['search', 'synonyms'],
+    keywords: ['search', 'synonyms', 'filters'],
     faq: [
       {
         question: 'Do I need Meilisearch for this?',
@@ -41,6 +42,9 @@ export const searchPlugin = definePlugin({
   provides: {},
   admin: {
     icon: 'Search',
-    pages: [{ path: '', title: 'Synonyms', navLabel: 'Synonyms', icon: 'Search' }],
+    pages: [
+      { path: '', title: 'Synonyms', navLabel: 'Synonyms', icon: 'Search' },
+      { path: 'filters', title: 'Filters', navLabel: 'Filters', icon: 'Filter' },
+    ],
   },
 })

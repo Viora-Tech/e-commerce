@@ -9,6 +9,7 @@ import {
   filterEntries,
   hasActiveFilters,
 } from '@commerce/core/browse'
+import { type StorefrontFilterConfig, tagValueLabel } from '@commerce/core/filter-config'
 import Link from 'next/link'
 import CollectionGrid from '@/components/collections/collection-grid'
 import { browseContent as copy } from '@/data/browse'
@@ -23,6 +24,8 @@ type BrowseResultsProps = {
   products: CardProduct[]
   total: number
   facets: BrowseFacets
+  /** The store's filter settings; null for the default filters. */
+  filterConfig: StorefrontFilterConfig | null
   filters: BrowseFilters
   sort: BrowseSort
   /** Omitted from URLs when it is the listing's own default. */
@@ -39,6 +42,7 @@ type BrowseResultsProps = {
 function chipLabel(kind: string, value: string, f: BrowseFilters, facets: BrowseFacets): string {
   if (kind === 'available') return copy.chip.available(value)
   if (kind === 'giftCard') return copy.chip.giftCard(value)
+  if (kind.startsWith('tagGroup:')) return tagValueLabel(value)
   // A yes/no extra field reads `1` / `0` in the URL; the chip names the field.
   const field = facets.metafields.find((m) => kind === `metafield:${m.key}`)
   if (field?.type === 'boolean') return `${field.name}: ${value === '1' ? copy.yes : copy.no}`
@@ -62,6 +66,7 @@ export default function BrowseResults({
   products,
   total,
   facets,
+  filterConfig,
   filters,
   sort,
   defaultSort,
@@ -88,6 +93,7 @@ export default function BrowseResults({
       q={q}
       sort={sortParam()}
       facets={facets}
+      config={filterConfig}
       filters={filters}
       idPrefix={idPrefix}
     />

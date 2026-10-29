@@ -43,6 +43,7 @@
     "./consent": "./src/online-store/consent.ts",
     "./blog": "./src/blog/client.ts",
     "./browse": "./src/catalog/browse-params.ts",
+    "./filter-config": "./src/catalog/filter-config.ts",
     "./search": "./src/catalog/search-limits.ts",
     "./accounts": "./src/accounts/schemas.ts",
     "./account-patterns": "./src/accounts/patterns.ts",

@@ -1,8 +1,14 @@
 'use client'
 
 import { Icon, useFormatPaise } from '@commerce/blocks'
-import type { BrowseFacets, FacetValue } from '@commerce/core'
-import { type BrowseFilters, FILTER_PARAM } from '@commerce/core/browse'
+import type { BrowseFacets } from '@commerce/core'
+import { type BrowseFilters, FILTER_PARAM, pickedValues } from '@commerce/core/browse'
+import {
+  type FilterSource,
+  type ResolvedFilterGroup,
+  resolveFilterGroups,
+  type StorefrontFilterConfig,
+} from '@commerce/core/filter-config'
 import { useRouter } from 'next/navigation'
 import { useRef } from 'react'
 import { browseContent as copy } from '@/data/browse'
@@ -14,6 +20,8 @@ type FilterFormProps = {
   /** Non-default sort to keep; null when the listing's default is in force. */
   sort: string | null
   facets: BrowseFacets
+  /** The store's filter settings: which groups show, in what order; null for the default. */
+  config: StorefrontFilterConfig | null
   filters: BrowseFilters
   /** Keeps ids unique when the form renders twice (sidebar and drawer). */
   idPrefix: string
@@ -30,6 +38,24 @@ function urlFor(form: HTMLFormElement): string {
   return qs ? `${form.getAttribute('action')}?${qs}` : (form.getAttribute('action') ?? '')
 }
 
+/** The drawer's name for a group the merchant did not name. */
+const DEFAULT_TITLE: Partial<Record<FilterSource, string>> = {
+  availability: copy.availability,
+  giftCard: copy.kind,
+  price: copy.price,
+  productType: copy.productType,
+  vendor: copy.vendor,
+  tags: copy.tag,
+}
+
+/** Labels for values that are codes in the URL (`1` / `0`). */
+function valueLabel(g: ResolvedFilterGroup, value: string): string | undefined {
+  if (g.source === 'availability') return value === '1' ? copy.inStock : copy.outOfStock
+  if (g.source === 'giftCard') return value === '1' ? copy.kindGiftCards : copy.kindProducts
+  if (g.type === 'boolean') return value === '1' ? copy.yes : copy.no
+  return undefined
+}
+
 /**
  * Facet filters as a plain GET form, so it works before (or without) JavaScript;
  * once hydrated, every tick navigates straight away and Apply is only needed for
@@ -40,6 +66,7 @@ export default function FilterForm({
   q,
   sort,
   facets,
+  config,
   filters,
   idPrefix,
 }: FilterFormProps) {
@@ -62,154 +89,68 @@ export default function FilterForm({
 
   // Render logic
   const id = (s: string) => `${idPrefix}-${s}`
-  const checks = (
-    name: string,
-    values: (FacetValue & { label?: string })[],
-    picked: string[],
-    key: string,
-  ) =>
-    values.map((v) => (
+  const checks = (g: ResolvedFilterGroup, picked: string[]) =>
+    g.values.map((v) => (
       <label
-        key={`${key}-${v.value}`}
+        key={`${g.id}-${v.value}`}
         className="flex cursor-pointer items-center gap-3 py-1 text-small text-ink"
       >
         <input
           type="checkbox"
-          name={name}
+          name={g.param}
           value={v.value}
           defaultChecked={picked.includes(v.value)}
           className="size-4 accent-[var(--color-ink)]"
         />
-        <span className="flex-1">{v.label ?? v.value}</span>
+        <span className="flex-1">{v.label ?? valueLabel(g, v.value) ?? v.value}</span>
         <span className="text-small text-muted">({v.count})</span>
       </label>
     ))
-  const groups: { key: string; title: string; body: React.ReactNode; open: boolean }[] = []
-  if (facets.inStock + facets.outOfStock > 0) {
-    groups.push({
-      key: 'availability',
-      title: copy.availability,
-      open: filters.available !== null,
-      body: checks(
-        FILTER_PARAM.available,
-        [
-          { value: '1', count: facets.inStock, label: copy.inStock },
-          { value: '0', count: facets.outOfStock, label: copy.outOfStock },
-        ],
-        filters.available === null ? [] : [filters.available ? '1' : '0'],
-        'avail',
-      ),
-    })
-  }
-  // Gift cards next to products: a kind filter, so a shopper can find (or skip) them.
-  if (facets.giftCards > 0 && facets.products > 0) {
-    groups.push({
-      key: 'kind',
-      title: copy.kind,
-      open: filters.giftCard !== null,
-      body: checks(
-        FILTER_PARAM.giftCard,
-        [
-          { value: '0', count: facets.products, label: copy.kindProducts },
-          { value: '1', count: facets.giftCards, label: copy.kindGiftCards },
-        ],
-        filters.giftCard === null ? [] : [filters.giftCard ? '1' : '0'],
-        'kind',
-      ),
-    })
-  }
-  if (facets.priceMax !== null && facets.priceMax > 0) {
-    groups.push({
-      key: 'price',
-      title: copy.price,
-      open: filters.priceMin !== null || filters.priceMax !== null,
-      body: (
-        <div className="flex flex-col gap-2">
-          <p className="text-small text-muted">{copy.priceRange(formatPaise(facets.priceMax))}</p>
-          <div className="flex items-center gap-3">
-            <label className="field min-w-0 flex-1" htmlFor={id('min')}>
-              <span className="field__label text-small">{copy.priceFrom}</span>
-              <input
-                id={id('min')}
-                className="field__input w-full min-w-0"
-                type="number"
-                min={0}
-                inputMode="numeric"
-                name={FILTER_PARAM.priceMin}
-                placeholder="0"
-                defaultValue={filters.priceMin === null ? '' : filters.priceMin / 100}
-              />
-            </label>
-            <label className="field min-w-0 flex-1" htmlFor={id('max')}>
-              <span className="field__label text-small">{copy.priceTo}</span>
-              <input
-                id={id('max')}
-                className="field__input w-full min-w-0"
-                type="number"
-                min={0}
-                inputMode="numeric"
-                name={FILTER_PARAM.priceMax}
-                placeholder={String(Math.ceil(facets.priceMax / 100))}
-                defaultValue={filters.priceMax === null ? '' : filters.priceMax / 100}
-              />
-            </label>
-          </div>
-        </div>
-      ),
-    })
-  }
-  for (const o of facets.options) {
-    groups.push({
-      key: `option-${o.key}`,
-      title: o.name,
-      open: (filters.options[o.key]?.length ?? 0) > 0,
-      body: checks(
-        `${FILTER_PARAM.optionPrefix}${o.key}`,
-        o.values,
-        filters.options[o.key] ?? [],
-        o.key,
-      ),
-    })
-  }
-  for (const m of facets.metafields) {
-    groups.push({
-      key: `metafield-${m.key}`,
-      title: m.name,
-      open: (filters.metafields[m.key]?.length ?? 0) > 0,
-      body: checks(
-        `${FILTER_PARAM.metafieldPrefix}${m.key}`,
-        m.type === 'boolean'
-          ? m.values.map((v) => ({ ...v, label: v.value === '1' ? copy.yes : copy.no }))
-          : m.values,
-        filters.metafields[m.key] ?? [],
-        m.key,
-      ),
-    })
-  }
-  if (facets.productTypes.length > 1) {
-    groups.push({
-      key: 'type',
-      title: copy.productType,
-      open: filters.productTypes.length > 0,
-      body: checks(FILTER_PARAM.productType, facets.productTypes, filters.productTypes, 'type'),
-    })
-  }
-  if (facets.vendors.length > 1) {
-    groups.push({
-      key: 'vendor',
-      title: copy.vendor,
-      open: filters.vendors.length > 0,
-      body: checks(FILTER_PARAM.vendor, facets.vendors, filters.vendors, 'vendor'),
-    })
-  }
-  if (facets.tags.length > 0) {
-    groups.push({
-      key: 'tag',
-      title: copy.tag,
-      open: filters.tags.length > 0,
-      body: checks(FILTER_PARAM.tag, facets.tags.slice(0, 30), filters.tags, 'tag'),
-    })
-  }
+  const priceBody = (priceMax: number) => (
+    <div className="flex flex-col gap-2">
+      <p className="text-small text-muted">{copy.priceRange(formatPaise(priceMax))}</p>
+      <div className="flex items-center gap-3">
+        <label className="field min-w-0 flex-1" htmlFor={id('min')}>
+          <span className="field__label text-small">{copy.priceFrom}</span>
+          <input
+            id={id('min')}
+            className="field__input w-full min-w-0"
+            type="number"
+            min={0}
+            inputMode="numeric"
+            name={FILTER_PARAM.priceMin}
+            placeholder="0"
+            defaultValue={filters.priceMin === null ? '' : filters.priceMin / 100}
+          />
+        </label>
+        <label className="field min-w-0 flex-1" htmlFor={id('max')}>
+          <span className="field__label text-small">{copy.priceTo}</span>
+          <input
+            id={id('max')}
+            className="field__input w-full min-w-0"
+            type="number"
+            min={0}
+            inputMode="numeric"
+            name={FILTER_PARAM.priceMax}
+            placeholder={String(Math.ceil(priceMax / 100))}
+            defaultValue={filters.priceMax === null ? '' : filters.priceMax / 100}
+          />
+        </label>
+      </div>
+    </div>
+  )
+  const groups = resolveFilterGroups(facets, config, 'theme').map((g) => {
+    const picked = pickedValues(filters, g.slot)
+    const price = g.type === 'price_range'
+    return {
+      key: g.id,
+      title: g.label ?? DEFAULT_TITLE[g.source] ?? g.id,
+      open:
+        g.source === 'availability' ||
+        (price ? filters.priceMin !== null || filters.priceMax !== null : picked.length > 0),
+      body: price ? priceBody(g.priceMax ?? 0) : checks(g, picked),
+    }
+  })
 
   return (
     <form
@@ -223,11 +164,7 @@ export default function FilterForm({
       {q ? <input type="hidden" name="q" value={q} /> : null}
       {sort ? <input type="hidden" name="sort_by" value={sort} /> : null}
       {groups.map((g) => (
-        <details
-          key={g.key}
-          open={g.open || g.key === 'availability'}
-          className="group border-b border-line py-4"
-        >
+        <details key={g.key} open={g.open} className="group border-b border-line py-4">
           <summary className="flex cursor-pointer list-none items-center justify-between text-body font-medium text-ink [&::-webkit-details-marker]:hidden">
             {g.title}
             <span aria-hidden="true" className="transition-transform group-open:rotate-180">

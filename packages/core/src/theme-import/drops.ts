@@ -2,6 +2,7 @@
 import { Drop } from 'liquidjs'
 import type { BrowseFacets } from '../catalog/browse'
 import type { BrowseFilters, BrowseSort } from '../catalog/browse-params'
+import type { StorefrontFilterConfig } from '../catalog/filter-config'
 import type { FieldType, MeasureKind } from '../metaobjects/schemas'
 import { numericId } from './numeric-id'
 
@@ -185,6 +186,8 @@ export type LiquidBrowseData = {
   products: LiquidProductData[]
   total: number
   facets: BrowseFacets
+  /** The store's filter settings; null (or left out) draws the default filters. */
+  filterConfig?: StorefrontFilterConfig | null | undefined
   filters: BrowseFilters
   sort: BrowseSort
   q: string

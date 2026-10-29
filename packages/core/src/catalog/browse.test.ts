@@ -32,6 +32,8 @@ import {
   parseBrowseSort,
   parsePage,
 } from './browse-params'
+import { resolveFilterGroups } from './filter-config'
+import { filterSources, setFilterConfig } from './filter-settings'
 import { searchCollections } from './search-collections'
 import { searchTerms } from './search-text'
 import { getSearchSynonyms, setSearchSynonyms } from './search-words'
@@ -653,5 +655,118 @@ describe('extra field filters', () => {
     await run(storeId, (tx) => markMetafieldsFilterable(tx, [sensor.id]))
     const marked = await run(storeId, (tx) => browseProducts(tx, base))
     expect(marked.facets.metafields.map((m) => m.key)).toEqual(['custom.sensor'])
+  })
+})
+
+describe('storefront filter settings', () => {
+  const field = (name: string, type: 'single_line_text', more = {}) => ({
+    ownerType: 'product' as const,
+    name,
+    namespace: 'custom',
+    type,
+    list: false,
+    validations: {},
+    storefrontAccess: true,
+    ...more,
+  })
+
+  it('filters by tag groups and only the fields the settings name, in their order', async () => {
+    const [s] = await owner.insert(store).values({ slug: 'fs', name: 'FS' }).returning()
+    const storeId = s?.id as string
+    const a = await seed(storeId, {
+      handle: 'alpha',
+      price: 100_00,
+      stock: 1,
+      tags: ['hand-large', 'weight-light'],
+      sizes: ['S', 'M'],
+    })
+    const b = await seed(storeId, {
+      handle: 'beta',
+      price: 100_00,
+      stock: 1,
+      tags: ['hand-small', 'weight-ultralight'],
+    })
+    await seed(storeId, { handle: 'gamma', price: 100_00, stock: 1, tags: ['Hand-Large'] })
+    await run(storeId, async (tx) => {
+      const grip = await createMetafieldDefinition(tx, storeId, field('Grip', 'single_line_text'))
+      const marked = await createMetafieldDefinition(
+        tx,
+        storeId,
+        field('Marked', 'single_line_text', { filterable: true }),
+      )
+      await setMetafields(tx, storeId, {
+        ownerType: 'product',
+        ownerId: a.productId,
+        values: { [grip.id]: 'Claw', [marked.id]: 'x' },
+      })
+      await setMetafields(tx, storeId, {
+        ownerType: 'product',
+        ownerId: b.productId,
+        values: { [grip.id]: 'Palm', [marked.id]: 'y' },
+      })
+    })
+
+    // No settings: today's filters, the marked field only.
+    const before = await run(storeId, (tx) => browseProducts(tx, { ...base, storeId }))
+    expect(before.filterConfig).toBeNull()
+    expect(before.facets.metafields.map((m) => m.key)).toEqual(['custom.marked'])
+
+    await run(storeId, (tx) =>
+      setFilterConfig(tx, storeId, {
+        groups: [
+          { source: 'tagGroup', key: 'hand', label: 'Hand size' },
+          { source: 'metafield', key: 'custom.grip' },
+          { source: 'availability' },
+          { source: 'tagGroup', key: 'hand' },
+        ],
+      }),
+    )
+    const all = await run(storeId, (tx) => browseProducts(tx, { ...base, storeId }))
+    expect(all.filterConfig?.groups).toHaveLength(3)
+    expect(all.facets.metafields.map((m) => m.key)).toEqual(['custom.grip'])
+    const groups = resolveFilterGroups(all.facets, all.filterConfig, 'theme')
+    expect(groups.map((g) => [g.label, g.param])).toEqual([
+      ['Hand size', 'filter.p.tag.hand'],
+      ['Grip', 'filter.p.m.custom.grip'],
+      [null, 'filter.v.availability'],
+    ])
+    expect(groups[0]?.values).toEqual([
+      { value: 'large', count: 2, label: 'Large' },
+      { value: 'small', count: 1, label: 'Small' },
+    ])
+
+    const large = await run(storeId, (tx) =>
+      browseProducts(tx, {
+        ...base,
+        storeId,
+        filters: parseBrowseFilters({ 'filter.p.tag.hand': 'large' }),
+      }),
+    )
+    expect(large.handles).toEqual(['alpha', 'gamma'])
+    const claw = await run(storeId, (tx) =>
+      browseProducts(tx, {
+        ...base,
+        storeId,
+        filters: parseBrowseFilters({
+          'filter.p.tag.hand': ['large', 'small'],
+          'filter.p.m.custom.grip': 'Claw',
+          // A field the settings no longer name is ignored, not an empty page.
+          'filter.p.m.custom.marked': 'y',
+        }),
+      }),
+    )
+    expect(claw.handles).toEqual(['alpha'])
+
+    const sources = await run(storeId, (tx) => filterSources(tx))
+    expect(sources.tagGroups.map((g) => g.prefix)).toEqual(['hand', 'weight'])
+    expect(sources.options.map((o) => o.key)).toEqual(['size'])
+    expect(sources.metafields.map((m) => [m.key, m.products, m.marked])).toEqual([
+      ['custom.grip', 2, false],
+      ['custom.marked', 2, true],
+    ])
+
+    await run(storeId, (tx) => setFilterConfig(tx, storeId, null))
+    const reset = await run(storeId, (tx) => browseProducts(tx, { ...base, storeId }))
+    expect(reset.filterConfig).toBeNull()
   })
 })
