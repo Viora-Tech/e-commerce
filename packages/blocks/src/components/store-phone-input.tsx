@@ -1,7 +1,6 @@
 'use client'
 
-import type { MetadataJson } from 'libphonenumber-js/core'
-import metadata from 'libphonenumber-js/min/metadata'
+import { phoneInputMetadata } from '@commerce/phone'
 import { useEffect, useId, useRef, useState } from 'react'
 import PhoneNumberInput, {
   type Country,
@@ -40,31 +39,6 @@ const DEFAULT_LOOK =
   'border border-line bg-surface text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent aria-invalid:border-danger disabled:opacity-60'
 const DEFAULT_INPUT = `${DEFAULT_LOOK} px-3 py-3`
 const DEFAULT_TRIGGER = `${DEFAULT_LOOK} border-e-0 px-3`
-
-/**
- * The numbering metadata without the trunk prefix where a country's national format only
- * optionally writes it. The picker fills the number box from `formatNational()`, which writes an
- * Indian mobile as "098765 43210", so a restored or prefilled "+919876543210" showed a 0 the
- * shopper never typed (#926). Countries whose national format needs the 0 (UK "07911 123456")
- * keep it, and a 0 the shopper types is still read as the trunk prefix.
- */
-function withoutOptionalTrunkPrefix(meta: MetadataJson): MetadataJson {
-  const countries = Object.fromEntries(
-    Object.entries(meta.countries).map(([code, plan]) => {
-      // Format rows: [pattern, format, leading digits, prefix formatting rule, prefix optional, ...].
-      const formats = (plan as unknown[])[4]
-      if (!Array.isArray(formats)) return [code, plan]
-      const next = [...(plan as unknown[])]
-      next[4] = formats.map((f: unknown[]) =>
-        f[4] && typeof f[3] === 'string' ? [f[0], f[1], f[2], '$1', ...f.slice(4)] : f,
-      )
-      return [code, next]
-    }),
-  )
-  return { ...meta, countries } as MetadataJson
-}
-
-const METADATA = withoutOptionalTrunkPrefix(metadata)
 
 /** Stored text -> the E.164 the input needs; keeps a half typed "+91 98" so typing is not undone. */
 function toInputValue(
@@ -314,7 +288,7 @@ export default function StorePhoneInput({
       onBlur={() => onBlur?.()}
       defaultCountry={initial}
       {...(countries ? { countries } : {})}
-      metadata={METADATA}
+      metadata={phoneInputMetadata}
       labels={labels}
       disabled={disabled ?? false}
       smartCaret={false}
