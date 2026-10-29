@@ -9,7 +9,7 @@ export type PlatformActor = { userId: string; email: string }
 /** One console read for the access log. */
 export type PlatformAccessEntry = {
   actor: PlatformActor
-  /** `overview.read`, `stores.list`, `stores.detail`, `users.list`, `audit.list`, `reports.list`… */
+  /** `overview.read`, `stores.list`, `stores.detail`, `users.list`, `audit.list` */
   action: string
   /** The store looked into, when the read was about one. */
   storeId?: string | null | undefined

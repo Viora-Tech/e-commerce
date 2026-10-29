@@ -15,11 +15,10 @@ import RelativeTime from '@/components/layout/relative-time'
 import StatTile from '@/components/layout/stat-tile'
 import { billingContent } from '@/data/billing'
 import { platformContent } from '@/data/platform'
-import { getCopy } from '@/lib/copy-server'
 import { appRouter, call } from '@/lib/api'
+import { getCopy } from '@/lib/copy-server'
 import { formatPaise } from '@/lib/money'
 import { platformCallOptions } from '@/lib/platform-access'
-import { routes } from '@/lib/routes'
 
 /** Platform console → Overview: the whole platform at a glance (staff only). */
 export default async function PlatformOverviewPage() {

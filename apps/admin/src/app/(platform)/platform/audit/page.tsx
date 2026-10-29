@@ -16,8 +16,8 @@ import PlatformFilters from '@/components/platform/platform-filters'
 import PlatformPager from '@/components/platform/platform-pager'
 import PlatformTabs from '@/components/platform/platform-tabs'
 import { platformContent } from '@/data/platform'
-import { getCopy } from '@/lib/copy-server'
 import { appRouter, call } from '@/lib/api'
+import { getCopy } from '@/lib/copy-server'
 import { platformCallOptions } from '@/lib/platform-access'
 import {
   dayParam,

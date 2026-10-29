@@ -1,14 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import {
-  ArrowLeft,
-  ClipboardList,
-  Home,
-  ShieldCheck,
-  Store,
-  Users,
-} from '@commerce/ui/icons'
+import { ArrowLeft, ClipboardList, Home, ShieldCheck, Store, Users } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Toaster } from '@commerce/ui/shadcn/sonner'
 import Link from 'next/link'

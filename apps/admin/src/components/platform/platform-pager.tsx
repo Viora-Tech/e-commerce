@@ -19,7 +19,13 @@ const EDGE =
   'inline-flex h-8 items-center gap-1 rounded-lg border border-border bg-card px-2.5 text-body text-foreground shadow-input transition-[background-color] hover:bg-muted [&_svg]:size-4'
 
 /** "26–50 of 112" with Previous and Next links, under a console list. */
-export default async function PlatformPager({ base, params, page, pageSize, total }: PlatformPagerProps) {
+export default async function PlatformPager({
+  base,
+  params,
+  page,
+  pageSize,
+  total,
+}: PlatformPagerProps) {
   const copy = await getCopy(platformContent)
   // Early returns
   if (total === 0) return null

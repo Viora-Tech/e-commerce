@@ -1553,11 +1553,6 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'no external importer today — billing API not wired into the admin yet',
   },
   {
-    file: 'packages/core/src/billing/plans.ts',
-    names: ['PLAN_GST_PERCENT'],
-    reason: 'no external importer today — billing API not wired into the admin yet',
-  },
-  {
     file: 'packages/core/src/billing/service.ts',
     names: ['orderAllowance'],
     reason: 'no external importer today — billing API not wired into the admin yet',
