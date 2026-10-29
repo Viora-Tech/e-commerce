@@ -185,7 +185,7 @@ export default [
       'ऑर्डर का भुगतान होते ही पैकर को WhatsApp मैसेज।',
     'automations.template.remind-unpaid-orders.name': 'बिना भुगतान वाले ऑर्डर की याद',
     'automations.template.remind-unpaid-orders.description':
-      'हर सुबह, 3 दिन बाद भी बिना भुगतान वाले ऑर्डर (UPI और बैंक ट्रांसफ़र, COD नहीं) के लिए भुगतान की याद ईमेल करें।',
+      'हर सुबह, 3 दिन बाद भी बिना भुगतान वाले ऑर्डर (UPI और बैंक ट्रांसफ़र, COD नहीं) के लिए भुगतान की याद ईमेल से भेजें, और WhatsApp जुड़ा हो तो WhatsApp पर भी।',
     'automations.template.cancel-unconfirmed-cod.name': 'पक्के न हुए COD ऑर्डर रद्द करें',
     'automations.template.cancel-unconfirmed-cod.description':
       '48 घंटे में पक्के न हुए COD ऑर्डर रद्द होते हैं, हर एक आपकी मंज़ूरी के बाद।',

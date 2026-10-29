@@ -20,6 +20,8 @@ export type NotificationJob = {
   refundId?: string | undefined
   /** A hand-sent message's edited subject and note. */
   custom?: CustomMessage | undefined
+  /** Only the channels that need this recipient field (a reminder sent by email or WhatsApp only). */
+  requires?: 'email' | 'phone' | undefined
   /** For newsletter_confirm: the pending `newsletter_signup`. */
   signupId?: string | undefined
   /** For contact_message: the `contact_message` row (Forms app). */

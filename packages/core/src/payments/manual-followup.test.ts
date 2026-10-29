@@ -24,6 +24,7 @@ import { ManualPaymentProvider } from '../providers/manual'
 import { applyPaymentStatus } from './confirm'
 import {
   nextManualStep,
+  noteChatPaymentReminder,
   PaymentNotPending,
   ReminderTooSoon,
   runManualFollowUp,
@@ -200,6 +201,141 @@ describe('merchant payment reminder', () => {
       .where(eq(order.id, orderId))
     await owner.delete(notification)
     expect(await run()).toEqual([])
+  })
+})
+
+describe('reminder channel', () => {
+  it('sends "both" on WhatsApp alone when the order has no email', async () => {
+    const shop = await seedStore('a')
+    const orderId = await transferOrder(shop)
+    await owner.update(order).set({ email: null }).where(eq(order.id, orderId))
+    await withStore(app, shop.storeId, (tx) =>
+      sendManualPaymentReminder({ storeId: shop.storeId, tx }, orderId, {
+        whatsapp: true,
+        now: hoursAfter(1),
+      }),
+    )
+    const [row] = (await owner.select().from(outboxEvent)).filter(
+      (e) => e.type === 'order.payment_reminder',
+    )
+    expect(row?.payload).toMatchObject({ requires: 'phone' })
+  })
+
+  it('leaves "both" open to every channel when the order has an email and a phone', async () => {
+    const shop = await seedStore('a')
+    const orderId = await transferOrder(shop)
+    await withStore(app, shop.storeId, (tx) =>
+      sendManualPaymentReminder({ storeId: shop.storeId, tx }, orderId, {
+        whatsapp: true,
+        now: hoursAfter(1),
+      }),
+    )
+    const [row] = (await owner.select().from(outboxEvent)).filter(
+      (e) => e.type === 'order.payment_reminder',
+    )
+    expect(row?.payload).not.toHaveProperty('requires')
+    const notes = await owner.select().from(orderNote).where(eq(orderNote.orderId, orderId))
+    expect(notes.map((n) => n.body)).toEqual([
+      'Payment reminder sent to the customer by email and WhatsApp.',
+    ])
+  })
+
+  it('queues a WhatsApp-only reminder and says so on the timeline', async () => {
+    const shop = await seedStore('a')
+    const orderId = await transferOrder(shop)
+    await withStore(app, shop.storeId, (tx) =>
+      sendManualPaymentReminder({ storeId: shop.storeId, tx }, orderId, {
+        author: 'owner@a.test',
+        channel: 'whatsapp',
+        whatsapp: true,
+        now: hoursAfter(1),
+      }),
+    )
+    const rows = (await owner.select().from(outboxEvent)).filter(
+      (e) => e.type === 'order.payment_reminder',
+    )
+    expect(rows.map((r) => r.payload)).toEqual([
+      expect.objectContaining({ orderId, requires: 'phone' }),
+    ])
+    const notes = await owner.select().from(orderNote).where(eq(orderNote.orderId, orderId))
+    expect(notes.map((n) => n.body)).toEqual(['Payment reminder sent to the customer on WhatsApp.'])
+  })
+
+  it('sends "both" by email only when the store has no WhatsApp', async () => {
+    const shop = await seedStore('a')
+    const orderId = await transferOrder(shop)
+    await withStore(app, shop.storeId, (tx) =>
+      sendManualPaymentReminder({ storeId: shop.storeId, tx }, orderId, {
+        channel: 'both',
+        whatsapp: false,
+        now: hoursAfter(1),
+      }),
+    )
+    const [row] = (await owner.select().from(outboxEvent)).filter(
+      (e) => e.type === 'order.payment_reminder',
+    )
+    expect(row?.payload).toMatchObject({ requires: 'email' })
+    const notes = await owner.select().from(orderNote).where(eq(orderNote.orderId, orderId))
+    expect(notes.map((n) => n.body)).toEqual(['Payment reminder sent to the customer by email.'])
+  })
+
+  it('refuses WhatsApp without a WhatsApp channel, and uses up nothing', async () => {
+    const shop = await seedStore('a')
+    const orderId = await transferOrder(shop)
+    await expect(
+      withStore(app, shop.storeId, (tx) =>
+        sendManualPaymentReminder({ storeId: shop.storeId, tx }, orderId, {
+          channel: 'whatsapp',
+          whatsapp: false,
+          now: hoursAfter(1),
+        }),
+      ),
+    ).rejects.toMatchObject({ code: 'REMINDER_NO_RECIPIENT' })
+    expect((await orderRow(orderId))?.paymentReminderSentAt).toBeNull()
+    expect(await events(orderId)).not.toContain('order.payment_reminder')
+  })
+
+  it('delivers a WhatsApp-only reminder on the phone channel alone', async () => {
+    const shop = await seedStore('a')
+    const orderId = await transferOrder(shop)
+    const email = recorder('mail', 'email')
+    const phone = recorder('wa', 'phone')
+    const sent = await withStore(app, shop.storeId, (tx) =>
+      deliverNotification(
+        { storeId: shop.storeId, tx },
+        { orderId, template: 'payment_reminder' },
+        {
+          registry: builtInNotificationRegistry(),
+          settingsSecret: 'x',
+          storefrontUrl: 'https://shop.test',
+          channels: [email, phone],
+          requires: 'phone',
+        },
+      ),
+    )
+    expect(sent).toEqual([{ channel: 'wa', to: '919876543210', ok: true }])
+    expect(email.sent).toEqual([])
+    expect(phone.sent[0]?.data.orderUrl).toMatch(/^https:\/\/shop\.test\//)
+  })
+
+  it("notes a reminder sent from the merchant's own WhatsApp, but not on a paid order", async () => {
+    const shop = await seedStore('a')
+    const orderId = await transferOrder(shop)
+    const note = () =>
+      withStore(app, shop.storeId, (tx) =>
+        noteChatPaymentReminder({ storeId: shop.storeId, tx }, orderId, { author: 'owner@a.test' }),
+      )
+    expect(await note()).toBe(true)
+    expect((await orderRow(orderId))?.paymentReminderSentAt).toBeNull()
+    await owner
+      .update(order)
+      .set({ paymentStatus: 'paid', checkoutPaidAt: new Date() })
+      .where(eq(order.id, orderId))
+    expect(await note()).toBe(false)
+    const notes = await owner.select().from(orderNote).where(eq(orderNote.orderId, orderId))
+    expect(notes.map((n) => n.body)).toEqual([
+      'Payment reminder opened in WhatsApp to send from your own number.',
+    ])
   })
 })
 

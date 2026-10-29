@@ -139,6 +139,8 @@ export const ACTION_DOCS: Record<string, string> = {
     '"Turn on UPI AutoPay" for the current plan: the page where the owner approves the mandate.',
   'billing.stopApp': '"Stop renewing": the app keeps working until its paid month ends.',
   'billing.usage': 'The sidebar\'s "Orders this month · 142 of 200": cheap, on every page.',
+  'billing.usageBillCsv':
+    'A usage bill\'s "Download CSV": each order of that month that carried a fee.',
   'billing.view': "Settings → Plan & billing: the plan, this month's usage, bills and the one due.",
   'blog.blogs': 'Blogs with post counts; creates "News" the first time a store has none.',
   'blog.defaults': 'Prefills for a new post: the signed-in staff member as author.',
@@ -402,6 +404,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'orders.listDrafts': 'Draft orders, a page at a time, filtered by status or a search.',
   'orders.neighbours':
     'Order numbers either side of this one, for the arrows in the detail header.',
+  'orders.notePaymentReminderChat':
+    'The merchant opened the payment reminder in their own WhatsApp (store without a WhatsApp channel): records it on the order timeline.',
   'orders.previewMessage':
     'The email (and WhatsApp text) a hand-sent message would carry for this order, filled with the order\'s own details, for the "Review email" dialog before Send.',
   'orders.previewRecovery':
@@ -423,7 +427,7 @@ export const ACTION_DOCS: Record<string, string> = {
   'orders.sendInvoices':
     'The list\'s bulk "Send invoices": each selected draft with an email gets its pay link.',
   'orders.sendPaymentReminder':
-    '"Send payment reminder" on an unpaid UPI / bank transfer order: email, and WhatsApp when set up, with the QR and bank details.',
+    '"Send payment reminder" on an unpaid UPI / bank transfer order: by email, WhatsApp (when set up) or both (the default), with the QR and bank details.',
   'orders.sendRecovery': 'Email the shopper a reminder with a link back to their abandoned cart.',
   'orders.setCourierCharge': 'What the courier charged for a consignment, typed by the merchant.',
   'orders.setStatus': '"Mark as paid / fulfilled / delivered", or cancel.',

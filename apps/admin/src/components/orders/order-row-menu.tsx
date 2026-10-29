@@ -14,6 +14,7 @@ import { toast } from 'sonner'
 import TagInput from '@/components/fields/tag-input'
 import type { ActionItem } from '@/components/layout/action-menu'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
+import type { SendChannel } from '@/components/orders/reminder-channel-picker'
 import SendMessageDialog, { type CustomMessage } from '@/components/orders/send-message-dialog'
 import { useDuplicateOrder } from '@/components/orders/use-duplicate-order'
 import RowMenu from '@/components/table/row-menu'
@@ -86,9 +87,9 @@ export default function OrderRowMenu({
     }
   }
 
-  const handleSendReminder = async (custom: CustomMessage | undefined) => {
+  const handleSendReminder = async (custom: CustomMessage | undefined, channel?: SendChannel) => {
     try {
-      await api.orders.sendPaymentReminder({ orderId: order.id, custom })
+      await api.orders.sendPaymentReminder({ orderId: order.id, custom, channel })
       toast.success(detail.payment.transfer.sentToast)
       onChanged()
     } catch (err) {
@@ -99,6 +100,10 @@ export default function OrderRowMenu({
   const handleCopyNumber = async () => {
     await navigator.clipboard.writeText(`#${order.number}`).catch(() => undefined)
     toast.success(list.row.numberCopied)
+  }
+
+  const handleReminderChat = () => {
+    void api.orders.notePaymentReminderChat({ orderId: order.id }).then(onChanged, () => undefined)
   }
 
   const handleCancelOrder = async () => {
@@ -269,6 +274,7 @@ export default function OrderRowMenu({
         template="payment_reminder"
         stopPropagation
         onSend={handleSendReminder}
+        chooseChannel={{ onChatOpened: handleReminderChat }}
         onClose={() => setDialog(null)}
       />
     </>

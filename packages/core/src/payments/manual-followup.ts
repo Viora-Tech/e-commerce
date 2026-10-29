@@ -51,6 +51,56 @@ export class ReminderTooSoon extends CommerceError {
   }
 }
 
+/**
+ * Where a payment reminder goes: email, WhatsApp, or both. WhatsApp sends the store's approved
+ * `payment_reminder` template through its WhatsApp channel (Meta Cloud API).
+ */
+export type ReminderChannel = 'email' | 'whatsapp' | 'both'
+export const REMINDER_CHANNELS = [
+  'email',
+  'whatsapp',
+  'both',
+] as const satisfies readonly ReminderChannel[]
+
+/** The recipient field delivery limits a reminder to (`DeliverOptions.requires`); none for both. */
+function reminderRequires(channel: ReminderChannel): 'email' | 'phone' | undefined {
+  if (channel === 'email') return 'email'
+  if (channel === 'whatsapp') return 'phone'
+  return undefined
+}
+
+class ReminderNoRecipient extends CommerceError {
+  constructor(channel: ReminderChannel, storeId?: string) {
+    super(
+      'REMINDER_NO_RECIPIENT',
+      channel === 'whatsapp'
+        ? 'WhatsApp is not set up for this store, or the order has no phone number'
+        : channel === 'email'
+          ? 'This order has no email address to send a reminder to'
+          : 'This order has no email address or phone number',
+      { storeId },
+    )
+  }
+}
+
+/**
+ * The channels a reminder really goes on: the merchant's choice narrowed to what the order has
+ * (an email, a phone) and the store has (a WhatsApp channel). Null when nothing is left, e.g.
+ * WhatsApp chosen for an order without a phone.
+ */
+function reminderChannelFor(
+  channel: ReminderChannel,
+  to: { email: string | null; phone: string | null },
+  whatsappConnected: boolean,
+): ReminderChannel | null {
+  const email = Boolean(to.email?.trim())
+  const phone = whatsappConnected && Boolean(to.phone?.replace(/\D/g, ''))
+  if (channel === 'email') return email ? 'email' : null
+  if (channel === 'whatsapp') return phone ? 'whatsapp' : null
+  if (email && phone) return 'both'
+  return email ? 'email' : phone ? 'whatsapp' : null
+}
+
 const stillWaiting = (orderId: string) =>
   and(
     eq(order.id, orderId),
@@ -61,7 +111,7 @@ const stillWaiting = (orderId: string) =>
   )
 
 /**
- * The merchant's "Send payment reminder": email, and WhatsApp when set up,
+ * The merchant's "Send payment reminder": email, WhatsApp (when set up) or both,
  * linking the QR and bank details. One conditional update both enforces the
  * 6-hour limit and records the send, so two quick clicks send one.
  */
@@ -73,9 +123,21 @@ export async function sendManualPaymentReminder(
     now?: Date | undefined
     /** The merchant's edited subject and note from the "Review email" dialog. */
     custom?: CustomMessage | undefined
+    /** Email, WhatsApp or both (the default: every channel the store has). */
+    channel?: ReminderChannel | undefined
+    /** The store has a WhatsApp channel set up. Defaults to true; delivery skips what is missing. */
+    whatsapp?: boolean | undefined
   } = {},
 ): Promise<{ sentAt: Date }> {
   const now = opts.now ?? new Date()
+  const [contact] = await ctx.tx
+    .select({ email: order.email, phone: order.phone })
+    .from(order)
+    .where(stillWaiting(orderId))
+  if (!contact) throw new PaymentNotPending(orderId, ctx.storeId)
+  const chosen = opts.channel ?? 'both'
+  const channel = reminderChannelFor(chosen, contact, opts.whatsapp ?? true)
+  if (!channel) throw new ReminderNoRecipient(chosen, ctx.storeId)
   const cutoff = new Date(now.getTime() - REMINDER_EVERY_HOURS * HOUR_MS)
   const [moved] = await ctx.tx
     .update(order)
@@ -102,17 +164,49 @@ export async function sendManualPaymentReminder(
   await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.payment_reminder', {
     orderId,
     custom: opts.custom,
+    requires: reminderRequires(channel),
   })
   await ctx.tx.insert(orderNote).values({
     storeId: ctx.storeId,
     orderId,
-    body: REMINDER_NOTE,
+    body: REMINDER_NOTE(channel),
     author: opts.author ?? 'system',
   })
   return { sentAt: now }
 }
 
-export const REMINDER_NOTE = 'Payment reminder sent to the customer.'
+/**
+ * The merchant opened the reminder in their own WhatsApp (a wa.me chat link, for a store
+ * without a WhatsApp channel) to send it by hand: only the timeline line, nothing is sent from
+ * here and the 6-hour limit is untouched. False when the order no longer waits for a transfer.
+ */
+export async function noteChatPaymentReminder(
+  ctx: StoreContext,
+  orderId: string,
+  opts: { author?: string | undefined } = {},
+): Promise<boolean> {
+  const [o] = await ctx.tx.select({ id: order.id }).from(order).where(stillWaiting(orderId))
+  if (!o) return false
+  await ctx.tx.insert(orderNote).values({
+    storeId: ctx.storeId,
+    orderId,
+    body: CHAT_REMINDER_NOTE,
+    author: opts.author ?? 'system',
+  })
+  return true
+}
+
+const CHAT_REMINDER_NOTE = 'Payment reminder opened in WhatsApp to send from your own number.'
+
+const REMINDER_BY: Record<ReminderChannel, string> = {
+  email: 'by email',
+  whatsapp: 'on WhatsApp',
+  both: 'by email and WhatsApp',
+}
+
+/** The order timeline line for a reminder; `automatic` for the store's daily reminder workflow. */
+export const REMINDER_NOTE = (channel: ReminderChannel, automatic = false) =>
+  `${automatic ? 'Automatic payment' : 'Payment'} reminder sent to the customer ${REMINDER_BY[channel]}.`
 
 export const CANCEL_NOTICE_NOTE = (at: Date) =>
   `Will be cancelled automatically on ${at.toLocaleString('en-IN', {

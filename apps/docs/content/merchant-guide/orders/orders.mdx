@@ -222,7 +222,11 @@ due** until the rest comes in, and its Payment status is **Partially paid**.
 | Where the order waits | Nowhere, it's marked paid in seconds | The **Pending UPI** tab |
 | Setup | Razorpay connected, QR method on | Your UPI ID and bank details in Payments |
 
-For manual transfers, select **Send payment reminder** if the shopper forgets. You can also
+For manual transfers, select **Send payment reminder** if the shopper forgets. When WhatsApp is
+connected (Apps → Messages), choose **Send by** Email, WhatsApp or Both; WhatsApp sends your
+approved `payment_reminder` template with the payment link. Without WhatsApp connected, **Open in
+WhatsApp** opens a chat with the reminder typed in, so you can send it from your own number. Each
+reminder shows on the order's timeline. You can also
 have unpaid transfer orders cancel themselves after a set number of hours; the shopper gets an
 email 12 hours before that happens.
 

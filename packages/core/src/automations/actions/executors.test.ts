@@ -658,6 +658,56 @@ describe('messages', () => {
     })
   })
 
+  it('queues the automatic payment reminder for WhatsApp when the order has only a phone, and notes it on the timeline', async () => {
+    const ex = executors()
+    await inStore(orderSubject({ email: null }), async (w) => {
+      const r = await run(ex, 'customer.send_order_update', w, {
+        channel: 'email',
+        template: 'payment_reminder',
+      })
+      expect(r.summary).toBe('Queued the payment_reminder WhatsApp to 9876543210')
+      const rows = await w.tx
+        .select()
+        .from(outboxEvent)
+        .where(eq(outboxEvent.type, 'automation.order_update'))
+      expect(rows.map((x) => x.payload)).toEqual([
+        expect.objectContaining({ notificationTemplate: 'payment_reminder' }),
+      ])
+      const notes = await w.tx.select().from(orderNote).where(eq(orderNote.orderId, w.subject.id))
+      expect(notes.map((n) => n.body)).toEqual([
+        'Automatic payment reminder sent to the customer on WhatsApp.',
+      ])
+    })
+  })
+
+  it('notes an automatic reminder that goes by email and WhatsApp', async () => {
+    const ex = executors()
+    await inStore(orderSubject(), async (w) => {
+      const r = await run(ex, 'customer.send_order_update', w, {
+        channel: 'email',
+        template: 'payment_reminder',
+      })
+      expect(r.summary).toBe(
+        'Queued the payment_reminder email and WhatsApp to asha@example.com, 9876543210',
+      )
+      const notes = await w.tx.select().from(orderNote).where(eq(orderNote.orderId, w.subject.id))
+      expect(notes.map((n) => n.body)).toEqual([
+        'Automatic payment reminder sent to the customer by email and WhatsApp.',
+      ])
+    })
+  })
+
+  it('skips an order with neither an email nor a phone', async () => {
+    const ex = executors()
+    await inStore(orderSubject({ email: null, phone: null }), async (w) => {
+      const r = await run(ex, 'customer.send_order_update', w, {
+        channel: 'email',
+        template: 'payment_reminder',
+      })
+      expect(r).toMatchObject({ noop: true, output: { skipped: 'no_recipient' } })
+    })
+  })
+
   it('alerts staff by email once per step', async () => {
     const ex = executors()
     await inStore(orderSubject(), async (w) => {

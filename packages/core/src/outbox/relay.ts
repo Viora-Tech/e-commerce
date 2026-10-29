@@ -117,6 +117,7 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
       returnId: payload.returnId,
       refundId: payload.refundId,
       custom: payload.custom,
+      requires: payload.requires,
     })
   }
   const appEvent = OUTBOX_APP_EVENT[type]

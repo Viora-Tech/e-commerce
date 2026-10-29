@@ -279,6 +279,11 @@ export const sendMessageContent = {
   noContact: 'No email or phone on this order',
   email: 'Email',
   whatsapp: 'WhatsApp',
+  both: 'Both',
+  sendBy: 'Send by',
+  chatHint:
+    'WhatsApp is not connected to your store, so it cannot send this for you. Open it in your own WhatsApp and press send there.',
+  openChat: 'Open in WhatsApp',
   frameTitle: 'Email preview',
   cancel: 'Cancel',
   templates: {
