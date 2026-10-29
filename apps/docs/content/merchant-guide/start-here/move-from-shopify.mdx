@@ -157,6 +157,14 @@ If you connect your own app instead, give it these read scopes in the Shopify De
 purchase option (a selling plan named like "Pre-order") arrive with pre-order switched on.
 Without it the products still import, and the run says pre-orders were left out.
 
+Pre-order is brought over per variant too. A variant set to **Continue selling when out of
+stock** keeps selling as a pre-order; one that stops at zero arrives with **Allow pre-order**
+off, so it shows crossed out once sold out, as on Shopify. A store using **Essential Pre-Order**
+also brings its campaigns over (read from your storefront, no extra scope): the variants in a
+campaign sell as pre-orders and the product takes the campaign's message as its **Pre-order
+note**. Check the note afterwards: a fixed date in it ("end of November 2026") does not move
+when you change the ship date, `{ship_month}` does.
+
 The last two are for **Store settings** (shipping rates and policies). An app connected before
 they were added keeps working: add them in the Dev Dashboard, release a new version, then press
 **Reconnect** on the part that asks for them.

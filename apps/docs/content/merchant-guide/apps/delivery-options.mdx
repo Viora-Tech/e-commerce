@@ -1,0 +1,102 @@
+---
+title: Delivery options
+description: Show Standard and Express at checkout from the couriers you connected, with the real courier, arrival date and price for each PIN code, and product rules like "Glasspads ship with Delhivery only".
+---
+
+# Delivery options
+
+Delivery options is a built-in app, free on every plan. Install it from the [App store](/merchant-guide/apps/app-store). It turns the courier apps you already connected ([Couriers](/merchant-guide/apps/couriers): Delhivery, Shiprocket, RapidShyp, Blue Dart, DTDC and the rest) into the choices your customers see at checkout:
+
+```
+( ) Standard · Delhivery     Arrives Mon 3 Nov – Wed 5 Nov     Free
+(•) Express · Blue Dart      Arrives Fri 31 Oct                ₹150
+    Cash on delivery not available with this option
+
+[x] Insure this shipment (+₹40)
+```
+
+Without the app (or with the app but no options), checkout shows your **Shipping rates** exactly as before.
+
+## Routes
+
+A **route** is one courier through one app: Delhivery direct (its own app), or Blue Dart through Shiprocket. Each route has its own price, transit time, cash on delivery and insurance. Direct Delhivery is usually the cheapest way to send with Delhivery; an aggregator usually costs more for the same courier.
+
+The customer always sees the **courier** ("Blue Dart"), never the aggregator ("Shiprocket").
+
+The **Routes** card lists your connected courier apps. To see every route they offer for a PIN code, run **Try a PIN** (below): the routes appear in the Routes card, and **Edit** on a row sets that route up.
+
+### Route settings
+
+No courier API says whether a route insures your parcel, so you tell the app:
+
+| Setting | What it does |
+| --- | --- |
+| **Insures parcels** | Default: Delhivery direct and every aggregator route insure; Blue Dart direct, DTDC direct and the rest do not. Change it when your contract says otherwise. |
+| **Insurance rate** | % of the order value, with an optional minimum ₹. Used when the courier's quote does not list insurance itself. |
+| **Cost card** | First 500 g, each further 500 g and a COD fee, for couriers that give no live price (Blue Dart, DTDC and Shadowfax direct). Without one, such a route cannot back an option. |
+| **Use this route at checkout** | Turn a route off without disconnecting the app. |
+
+You can save a setting for one exact route, or for a courier through a channel ("Delhivery, direct", "Blue Dart, any aggregator").
+
+<Callout type="warning">
+**Insurance rates start empty.** Until you fill in a rate, an insured option adds ₹0 for insurance and the app page shows a warning. Insurance itself is whatever your courier account provides (Shiprocket's "Secure shipment", Delhivery's contract): the app does not turn it on at the courier.
+</Callout>
+
+## Delivery options
+
+Each option is one card at checkout. **Add Standard and Express** creates the usual pair:
+
+- **Standard**: picks the **cheapest** route (a tie goes to the direct route). Cash on delivery is allowed.
+- **Express**: picks the **fastest** route (a tie goes to the cheaper one). Express is always **prepaid only**.
+
+Open an option to change:
+
+| Card | Settings |
+| --- | --- |
+| Name and display | The card's name and an optional line under it |
+| Routes and strategy | Speed (Standard or Express), cheapest or fastest, **prefer a direct route when it costs at most ₹X more**, and which routes it may use |
+| Price | Courier cost + your markup (₹ and/or %) + insurance, **rounded up to the next ₹10**; or your Shipping rates. Free above an order value, a minimum and a maximum |
+| Insurance | On by default (the customer can untick it), optionally only above an order value |
+| Arrival | The courier's transit time or fixed days, buffer days, processing days, and a limit that hides slower routes |
+| Cash on delivery | Allowed or prepaid only |
+
+### Cash on delivery on Standard
+
+The customer picks shipping before payment, so Standard is worked out twice: once for prepaid and once for cash on delivery (routes without COD left out). If paying on delivery ships with a different route at a different price, the Payment step says so: "Cash on delivery: +₹30, ships with Delhivery", and that route is what the order books.
+
+## Product route rules
+
+Rules decide which routes some products may use, before any option picks one:
+
+- **Glasspads** (collection) → all options → Delhivery only. Standard becomes Delhivery Surface, Express becomes Delhivery Express.
+- **Mice** (collection) → Express → Delhivery Express by default, with **Blue Dart Air** as a choice the customer can switch to. Standard is untouched.
+
+A rule targets products, collections, product tags or product types; applies to all options or some; lists the allowed routes (courier, channel, speed); and can name a **default** and **alternatives** (shown as choices under the option, each with its own date and price). **Always insured** hides the insurance checkbox.
+
+**Mixed carts:** the app keeps the routes every matching rule allows. When nothing is common, **the rule higher in the list wins** (reorder with the arrows). Put the protective rule (Glasspads, insured) above the convenience one (Mice).
+
+## Try a PIN
+
+Type a PIN code, an order value and weight, and optionally pick products. **Try** shows the cards exactly as checkout would, and under each option every route's quote: cost, insurance, arrival date, COD, live or cache (and how long the courier took), which were dropped and why, which won and why ("cheapest", "direct preferred within ₹10", "default of rule Glasspads"), and which rules applied.
+
+## When couriers are down
+
+Checkout never waits more than about a second on couriers. If none of an option's couriers answer in time:
+
+- **Express** is hidden: a date nobody checked is worse than no option.
+- **Standard** shows at your **Shipping rate** with your usual transit days. The order saves no route and books with your courier rule (product route rules still apply).
+
+"We don't deliver to this PIN code" shows only when every courier truly said no.
+
+## Booking
+
+The order saves the exact route the customer's price came from (for example **Blue Dart Air via Shiprocket**, insured). On the order:
+
+- **Create shipment** opens with that route picked and marked **Chosen at checkout**, with what the customer paid. You can still pick another row on purpose; the order's timeline then notes which route you booked instead.
+- If that route cannot be booked any more (app disconnected, PIN no longer served), the dialog says why and names the next route that still fits (product rules, insurance, COD, speed).
+- **Bulk booking** books each order on its own route, through its own app. Orders whose route fails are not swapped to another courier: they come back as "Needs a decision" for you to book from the order.
+- The AWB, label and tracking come from the route's app, and the shipment records the carrier (Blue Dart) as well as the app (Shiprocket).
+
+## Related guides
+
+<RelatedGuides ids={['shipping', 'shipments', 'apps']} />

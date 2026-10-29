@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { PREORDER_NOTE_MAX } from './note'
 
 /*
  * Store-wide rules for collecting a deposit pre-order's balance. Stored on
@@ -28,6 +29,12 @@ export const PreorderStoreSettingsSchema = z.object({
    */
   unpaidAction: z.enum(UNPAID_BALANCE_ACTIONS).default('none'),
   payWithinDays: z.number().int().min(1).max(90).default(10),
+  /**
+   * The note under the pre-order button, in the cart and at checkout, and on the order email
+   * (#936), for every pre-order product without its own (`product.preorder_note`). May use
+   * `{ship_date}` / `{ship_month}` (see `./note.ts`). Null: no note.
+   */
+  note: z.string().trim().max(PREORDER_NOTE_MAX).nullable().default(null),
 })
 export type PreorderStoreSettings = z.infer<typeof PreorderStoreSettingsSchema>
 
@@ -36,6 +43,7 @@ export const defaultPreorderStoreSettings: PreorderStoreSettings = {
   reminderDays: [3, 6],
   unpaidAction: 'none',
   payWithinDays: 10,
+  note: null,
 }
 
 export function parsePreorderStoreSettings(raw: unknown): PreorderStoreSettings {

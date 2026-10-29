@@ -117,6 +117,16 @@ export default [
         help: 'पहले डाकघर में पार्सल बुक करें, फिर रसीद पर लिखा नंबर डालें, जैसे EE123456785IN।',
         invalid: 'यह आर्टिकल नंबर सही नहीं बैठता। रसीद से मिलाकर देखें।',
       },
+      chosenAtCheckout: 'चेकआउट पर चुना गया',
+      checkout: {
+        paid: (option, route, price) => `ग्राहक ने ${option} · ${route} चुना और शिपिंग के ${price} दिए।`,
+        insured: 'बीमा सहित',
+        failed: (route, reason) => `${route} बुक नहीं हो सकता: ${reason}`,
+        notOffered: 'यह कूरियर ऐप अब इसे नहीं देता',
+        fallback: (route) =>
+          `अगला सबसे अच्छा जो अब भी फ़िट है: ${route}। कीमत देखें, फिर बुक करें या कोई और चुनें।`,
+        noFallback: 'कोई और जुड़ा हुआ रूट इस ऑर्डर पर फ़िट नहीं होता। कोई पंक्ति चुनें, या खुद भेजें।',
+      },
     },
     bulkCourier: {
       mode: 'कूरियर कैसे चुनें',
@@ -128,6 +138,7 @@ export default [
       canTake: (n, total) => `${total} में से ${n} ले सकता है`,
       columns: { order: 'ऑर्डर', courier: 'कूरियर', price: 'कीमत', delivery: 'डिलीवरी' },
       noCourierFor: 'कोई कूरियर नहीं ले सकता',
+      routeFailed: (route) => `फ़ैसला चाहिए: ${route} बुक नहीं हो सकता। ऑर्डर पेज से बुक करें।`,
     },
     review: {
       heading: 'जाँचें और बुक करें',

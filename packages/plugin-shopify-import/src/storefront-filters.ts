@@ -9,7 +9,7 @@
 import type { ShopifyClient } from './shopify-client'
 
 /** How long the storefront may take to answer before the import goes on without it. */
-const STOREFRONT_TIMEOUT_MS = 15_000
+export const STOREFRONT_TIMEOUT_MS = 15_000
 
 /** `namespace.key` of every metafield filter a page's HTML names, as Shopify writes them. */
 export function filterKeysFromHtml(html: string): Set<string> {
@@ -21,7 +21,7 @@ export function filterKeysFromHtml(html: string): Set<string> {
 }
 
 /** `https://<host>` of the store's primary domain (its own domain once connected), else null. */
-async function primaryOrigin(client: ShopifyClient): Promise<string | null> {
+export async function primaryOrigin(client: ShopifyClient): Promise<string | null> {
   try {
     const data = await client.query<{ shop: { primaryDomain: { url: string } | null } }>(
       `{ shop { primaryDomain { url } } }`,

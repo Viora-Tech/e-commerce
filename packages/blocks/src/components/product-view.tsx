@@ -3,6 +3,7 @@
 import { msUntil } from '@commerce/dates'
 import { type ComponentType, type ReactNode, useEffect, useState } from 'react'
 import { mainProductContent as copy } from '../data/zero-drift/main-product'
+import { variantOnPreorder } from '../preorder-state'
 import { galleryForVariant, slideForVariant, variantImageUrls } from '../product-gallery-order'
 import { announceVariant } from '../product-variant-event'
 import {
@@ -113,7 +114,7 @@ export default function ProductView({
   const s = settings ?? mainProductSettings()
   const variant = product.variants.find((v) => v.id === variantId) ?? defaultVariant(product)
   const launching = countdown > 0
-  const isPreorder = Boolean(product.preorder?.enabled) && (!variant || variant.available <= 0)
+  const isPreorder = variantOnPreorder(product, variant)
   // A pre-order, a drop not out yet or a sold-out variant cannot be dispatched, so the
   // blocks promising dispatch stand down around it (the theme's pdp_no_dispatch).
   const noDispatch = isPreorder || launching || !variant?.purchasable

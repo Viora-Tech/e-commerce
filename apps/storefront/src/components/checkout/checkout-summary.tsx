@@ -104,6 +104,7 @@ export default function CheckoutSummary({
               linePaise={l.linePaise}
               imageUrl={l.imageUrl}
               preorder={l.preorder}
+              preorderNote={l.preorderNote}
               format={money}
             />
           ))}

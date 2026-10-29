@@ -8,6 +8,7 @@ import {
 } from '@commerce/core/checkout-settings'
 import { formatMoney } from '@commerce/money'
 import { checkoutContent as content } from '@/data/checkout'
+import { deliveryOptionsContent as appCopy } from '@/data/delivery-options'
 import type { AppliedGiftCard } from '@/lib/gift-card-actions'
 import type { CheckoutMethod } from '@/lib/payments'
 import type { CheckoutRate, CheckoutShipping } from '@/lib/shipping'
@@ -155,7 +156,10 @@ export function checkoutTotals(input: CheckoutTotalsInput) {
     pincode: input.pincode,
     orderValuePaise: ruleSubtotal + shippingPaise,
   })
+  // Delivery options app: Express (any prepaid-only option) refuses cash on delivery.
+  const optionPrepaid = rate?.delivery?.codAllowed === false
   const codBlocked =
+    optionPrepaid ||
     (delivery?.ok === true && delivery.serviceable && !delivery.codAvailable) ||
     (giftCards.length > 0 && !coveredByCardsBefore(giftCards, discounted + shippingPaise)) ||
     !codRule.allowed
@@ -168,17 +172,28 @@ export function checkoutTotals(input: CheckoutTotalsInput) {
     rate,
   )
   const { adjustmentPaise, totalPaise: goodsPaise } = applyPaymentAdjustment(discounted, adjustment)
-  const totalPaise = goodsPaise + shippingPaise
+  // Standard's COD route can cost more than its prepaid one: paying on delivery charges that.
+  const codShippingPaise = rate?.delivery?.codPricePaise ?? null
+  const chargedShippingPaise =
+    payment === 'cod' && codShippingPaise !== null && !digitalOnly
+      ? codShippingPaise
+      : shippingPaise
+  const totalPaise = goodsPaise + chargedShippingPaise
   const { rows: cardRows, duePaise } = spendCards(giftCards, totalPaise)
   const coveredByCards = giftCards.length > 0 && duePaise === 0
+  const codExtraPaise = codShippingPaise === null ? 0 : codShippingPaise - shippingPaise
   const codNote =
     giftCards.length > 0 && !coveredByCards
       ? content.codWithGiftCard
-      : codRule.allowed
-        ? null
-        : codRule.reason === 'blocked_pincode'
-          ? content.codRules.blockedPincode
-          : content.codRules.overLimit(formatMoney(codRule.limitPaise ?? 0))
+      : optionPrepaid
+        ? appCopy.codPrepaidOnly(rate?.delivery?.optionName ?? '')
+        : codRule.allowed
+          ? codExtraPaise > 0 && rate?.delivery?.codCarrier
+            ? appCopy.codRoute(formatMoney(codExtraPaise), rate.delivery.codCarrier)
+            : null
+          : codRule.reason === 'blocked_pincode'
+            ? content.codRules.blockedPincode
+            : content.codRules.overLimit(formatMoney(codRule.limitPaise ?? 0))
   return {
     digitalOnly,
     offered,
@@ -258,9 +273,12 @@ export function shippingRow(
   digitalOnly: boolean,
   s: CheckoutShipping | null,
   rate: CheckoutRate | undefined,
+  /** Paying on delivery ships Standard's COD route at its own price (Delivery options app). */
+  payment?: string,
 ): ShippingRow | null {
   if (digitalOnly) return null
   if (s?.rates.kind === 'free') return { kind: 'price', paise: 0, name: null }
   if (!rate) return { kind: 'pending' }
-  return { kind: 'price', paise: rate.pricePaise, name: rate.name }
+  const cod = payment === 'cod' ? (rate.delivery?.codPricePaise ?? null) : null
+  return { kind: 'price', paise: cod ?? rate.pricePaise, name: rate.name }
 }

@@ -44,6 +44,19 @@ export const paymentsSettingsContent = {
     saved: 'Pre-order settings saved',
     saveFailed: 'Could not save pre-order settings',
   },
+  /** The store's default pre-order note (#936). */
+  preorderNote: {
+    heading: 'Pre-order note',
+    intro:
+      'Shown under the pre-order button, in the cart, at checkout and on the order email, for every pre-order product without a note of its own.',
+    label: 'Note',
+    help: "{ship_date} becomes the product's expected ship date (30 November 2026), {ship_month} its month (November 2026). A note that uses them is not shown on a product with no ship date. Leave blank for no note.",
+    placeholder:
+      'This product is on pre-order and will arrive around the end of {ship_month}. Pre-orders cannot be cancelled and are non-refundable.',
+    save: 'Save',
+    saved: 'Pre-order note saved',
+    saveFailed: 'Could not save the pre-order note',
+  },
   adjustment: {
     heading: 'Fee or discount',
     typeLabel: 'Type',

@@ -63,6 +63,11 @@ export type ProductDetail = {
     /** Can be added to cart right now: normal stock, or pre-order room beyond it. `available` alone undercounts a pre-order. */
     purchasable: boolean
     /**
+     * Sells on pre-order once out of stock: the product has pre-order on and this variant allows
+     * it. Absent (older data, the editor's samples) follows `product.preorder.enabled`.
+     */
+    preorder?: boolean | undefined
+    /**
      * Units that can still be pre-ordered beyond `available` when the variant sells on pre-order
      * with a limit; null or absent when there is no limit. The quantity picker's cap is
      * `available + preorderRoom`.
@@ -82,6 +87,11 @@ export type ProductDetail = {
         buttonLabel: string
         /** ISO date; null when neither an absolute date nor "ships in N days" is set. */
         shipDate: string | null
+        /**
+         * The pre-order note under the button (#936), ship date already filled in; null or
+         * absent when the product and the store have none.
+         */
+        note?: string | null | undefined
         /** "Pay ₹X now, ₹Y later" preview at the selected variant's price; null in `full` mode. */
         depositPreview: { payNowPaise: number; payLaterPaise: number } | null
         /**

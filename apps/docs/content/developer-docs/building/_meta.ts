@@ -24,4 +24,5 @@ export default {
   'customer-privacy': 'Customer privacy and accounts',
   'shopper-login': 'Shopper login options',
   'custom-domains': 'Custom domains',
+  'delivery-options': 'Delivery options engine',
 }

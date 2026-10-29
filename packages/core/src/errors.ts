@@ -168,6 +168,8 @@ export class CheckoutRuleViolation extends CommerceError {
     | 'state_mismatch'
     /** COD & RTO app: the store refuses cash on delivery for high-risk orders. */
     | 'cod_high_risk'
+    /** Delivery options app: the picked option (Express) is prepaid only. */
+    | 'cod_prepaid_only_option'
   readonly fields: Readonly<Record<string, string>>
   /** Minimum order: what is still missing. COD limit: the limit. In paise. */
   readonly amountPaise: number | null

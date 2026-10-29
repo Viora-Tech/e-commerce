@@ -91,6 +91,7 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   autopay_mandate: ADMIN,
   back_in_stock_signup: SHOPPER,
   back_in_stock_usage: LOG,
+  bug_report: ADMIN,
   cart: SHOPPER,
   cart_line: SHOPPER,
   channel_connection: ADMIN,
@@ -98,6 +99,10 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   contact_message: SHOPPER,
   cookie_consent: SHOPPER,
   courier_order: ADMIN,
+  // Delivery options app (0190): read live by checkout, which is never cached.
+  delivery_option: ADMIN,
+  delivery_route_rule: ADMIN,
+  delivery_route_setting: ADMIN,
   courier_wallet_balance: ADMIN,
   customer: SHOPPER,
   customer_address: SHOPPER,
@@ -180,6 +185,7 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   return_request_line: SHOPPER,
   review_request: SHOPPER,
   role: ADMIN,
+  role_approval: ADMIN,
   role_permission: ADMIN,
   // The changes a rollout applies (theme, discounts, checkout) write their own tables, which notify.
   rollout: ADMIN,

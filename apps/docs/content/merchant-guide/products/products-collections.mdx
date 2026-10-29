@@ -152,6 +152,23 @@ Open **More settings → Pre-order & launch** on a product:
   Asia/Kolkata). Pair it with the **Pre-order countdown** block in the
   [editor](/merchant-guide/online-store/website-builder#app-blocks).
 - **Hide from collections until launch** keeps it off category pages until then.
+- **Pre-order note**: the line under the pre-order button ("This product is on pre-order and
+  will arrive around the end of November 2026. Pre-orders cannot be cancelled."). It also shows
+  in the cart, at checkout, on the thank-you page and in the order email. `{ship_date}` becomes
+  the expected ship date (30 November 2026) and `{ship_month}` its month (November 2026). Leave
+  it blank to use the store's note from **Settings → Payments → Advanced → Pre-orders**.
+
+### Pre-order per variant
+
+Pre-order is switched on for the product, then each variant decides. Open a variant (**Edit**
+in the variants table) and turn **Allow pre-order** off for one you can't get more of: once it
+sells out it shows crossed out on the product page and can't be added to the cart. The others
+keep selling as pre-orders. Variants with **Allow pre-order** off carry a **No pre-order** chip
+in the table. This is different from **Hide on store**: a hidden variant is not shown at all,
+a variant without pre-order is shown crossed out when sold out.
+
+On the product page a value is crossed out when it can't be bought with the other values
+picked, as Shopify themes do: with Black picked, a model that has no Black is crossed out too.
 
 ## Import and export
 

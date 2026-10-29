@@ -179,6 +179,10 @@ export async function cartWeightGrams(ctx: StoreContext, cartId: string): Promis
 export type CartShippingQuote = ShippingQuote & {
   /** True when the discount in force makes shipping free (every option is then ₹0). */
   freeShippingDiscount: boolean
+  /** The value (after the discount) and weight the rates were priced on; null when nothing ships. */
+  measure?: ShippingCartMeasure | null | undefined
+  /** Shipping after the discount in force (a free-shipping discount and its cap). */
+  afterDiscount?: ((shippingPaise: number) => number) | undefined
 }
 
 /**
@@ -222,7 +226,10 @@ export async function quoteCartShipping(
   }
   const quote = quoteShipping(await loadRateZones(ctx.tx), to, measure)
   const free = outcome?.freeShipping === true
-  if (quote.kind !== 'rates' || !free) return { ...quote, freeShippingDiscount: free }
+  const afterDiscount = (paise: number) => applyDiscount(0, paise, outcome).shippingPaise
+  if (quote.kind !== 'rates' || !free) {
+    return { ...quote, freeShippingDiscount: free, measure, afterDiscount }
+  }
   // A rate above the discount's "exclude rates over" cap keeps its price (applyDiscount).
   return {
     kind: 'rates',
@@ -231,5 +238,7 @@ export async function quoteCartShipping(
       pricePaise: applyDiscount(0, o.pricePaise, outcome).shippingPaise,
     })),
     freeShippingDiscount: true,
+    measure,
+    afterDiscount,
   }
 }

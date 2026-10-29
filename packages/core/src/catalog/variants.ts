@@ -23,6 +23,8 @@ export type VariantInput = {
   trackInventory?: boolean | undefined
   /** Hidden on the storefront, kept in admin (#934). Undefined leaves it as it is. */
   hiddenOnStore?: boolean | undefined
+  /** Sells on pre-order when the product does (default). False: sold out stays sold out. Undefined leaves it. */
+  preorderAllowed?: boolean | undefined
   weightGrams?: number | null | undefined
   /** Display unit for the weight on the product page; null shows kilograms. */
   weightUnit?: 'g' | 'kg' | 'lb' | 'oz' | null | undefined

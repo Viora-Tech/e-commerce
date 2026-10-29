@@ -91,6 +91,8 @@
     "./return-reasons": "./src/returns/reasons.ts",
     "./cod-rto": "./src/cod-rto/client.ts",
     "./cod-rto-app": "./src/cod-rto/app.ts",
+    "./delivery-options": "./src/shipping/delivery-options/config.ts",
+    "./delivery-options-app": "./src/shipping/delivery-options/app.ts",
     "./policies": "./src/policies/client.ts",
     "./store-health": "./src/store-health/checks.ts",
     "./sales-channels": "./src/sales-channels/client.ts",

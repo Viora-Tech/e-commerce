@@ -13,6 +13,7 @@ import { parseCustomersCsv } from './csv-customers'
 import { parseOrdersCsv } from './csv-orders'
 import { parseProductsCsv } from './csv-products'
 import { FilesTally } from './file-usage'
+import { applyPreorderCampaigns, storefrontPreorderCampaigns } from './preorder-campaigns'
 import { createReferenceResolver } from './references'
 import { errorMessage, type ImportContext, WRITE_BATCH_SIZE } from './runtime'
 import type { ImportResource } from './schema'
@@ -269,6 +270,10 @@ export async function runApi(
   // Products before collections (membership) and orders (line matching); customers before orders.
   if (wanted('products')) {
     ctx.log('Asking Shopify to prepare your products…')
+    // Essential Pre-Order's campaigns (per-variant pre-order and its message), off the storefront.
+    const campaigns = await storefrontPreorderCampaigns(client)
+    if (campaigns.size > 0)
+      ctx.log(`Found ${campaigns.size} variants in the store's pre-order campaigns`)
     const products = read<NProduct>({
       resource: 'products',
       idOf: productSourceId,
@@ -281,6 +286,7 @@ export async function runApi(
       ctx,
       'products',
       noting(products, (p) => {
+        applyPreorderCampaigns(p, campaigns)
         ctx.fileUsage.product(p)
         written.add(localHandle(p.handle))
       }),

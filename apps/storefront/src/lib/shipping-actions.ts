@@ -31,12 +31,20 @@ export async function estimateDeliveryAction(pincode: string): Promise<DeliveryE
 }
 
 /** Checkout: the courier's answer and the shipping choices for the cart in the cookie. */
-export async function checkoutShippingAction(to: {
-  pincode: string
-  stateCode: string
-}): Promise<CheckoutShipping | null> {
+export async function checkoutShippingAction(
+  to: { pincode: string; stateCode: string },
+  /** Delivery options app: the insurance tick, and the quote to reuse the answers of. */
+  opts: { declineInsurance?: boolean; quoteId?: string | null } = {},
+): Promise<CheckoutShipping | null> {
   const storeId = await requestStoreId()
   const cartId = await checkoutCartId()
   if (!cartId) return null
-  return inStore(storeId, (tx) => checkoutShipping(tx, storeId, cartId, to))
+  const quoteId =
+    typeof opts.quoteId === 'string' && /^[0-9a-f-]{36}$/.test(opts.quoteId) ? opts.quoteId : null
+  return inStore(storeId, (tx) =>
+    checkoutShipping(tx, storeId, cartId, to, {
+      declineInsurance: opts.declineInsurance === true,
+      quoteId,
+    }),
+  )
 }

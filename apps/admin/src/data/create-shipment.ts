@@ -119,6 +119,18 @@ export const createShipmentContent = {
       help: 'Book the parcel at the post office first, then type the number from the receipt, like EE123456785IN.',
       invalid: 'That article number does not add up. Check it against the receipt.',
     },
+    /** Delivery options app: the route the shopper paid for at checkout. */
+    chosenAtCheckout: 'Chosen at checkout',
+    checkout: {
+      paid: (option: string, route: string, price: string) =>
+        `Shopper picked ${option} · ${route} and paid ${price} for shipping.`,
+      insured: 'Insured',
+      failed: (route: string, reason: string) => `${route} can't be booked: ${reason}`,
+      notOffered: 'this courier app no longer offers it',
+      fallback: (route: string) =>
+        `Next best that still fits: ${route}. Check its price, then book it or pick another row.`,
+      noFallback: 'No other connected route fits this order. Pick a row, or ship it yourself.',
+    },
   },
   bulkCourier: {
     mode: 'How to pick couriers',
@@ -130,6 +142,9 @@ export const createShipmentContent = {
     canTake: (n: number, total: number) => `Can take ${n} of ${total}`,
     columns: { order: 'Order', courier: 'Courier', price: 'Price', delivery: 'Delivery' },
     noCourierFor: 'No courier can take it',
+    /** Delivery options app: the order's own route failed; book it from its page instead. */
+    routeFailed: (route: string) =>
+      `Needs a decision: ${route} can't be booked. Book it from the order.`,
   },
   review: {
     heading: 'Check and book',

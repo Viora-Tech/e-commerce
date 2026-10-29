@@ -1,5 +1,6 @@
 import { automationsPlugin } from '@commerce/core/automations-app'
 import { codRtoPlugin } from '@commerce/core/cod-rto-app'
+import { deliveryOptionsPlugin } from '@commerce/core/delivery-options-app'
 import { inboxPlugin } from '@commerce/core/inbox-app'
 import { pixelsPlugin } from '@commerce/core/pixels-app'
 import { sesPlugin } from '@commerce/notifications-ses'
@@ -78,5 +79,6 @@ export default defineConfig({
     pixelsPlugin,
     inboxPlugin,
     codRtoPlugin,
+    deliveryOptionsPlugin,
   ],
 })

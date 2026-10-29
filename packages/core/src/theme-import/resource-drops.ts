@@ -34,7 +34,8 @@ export class VariantDrop extends Drop {
   readonly available: boolean
   readonly inventory_quantity: number
   readonly inventory_management: string
-  readonly inventory_policy = 'deny'
+  /** `continue` on a variant that sells on pre-order, else `deny` (#962). */
+  readonly inventory_policy: 'continue' | 'deny'
   readonly sku: string
   readonly barcode: string
   readonly options: string[]
@@ -70,6 +71,7 @@ export class VariantDrop extends Drop {
     this.available = v.available
     this.inventory_quantity = v.inventoryQuantity
     this.inventory_management = 'shopify'
+    this.inventory_policy = v.preorder ? 'continue' : 'deny'
     this.sku = v.sku ?? ''
     this.barcode = v.barcode ?? ''
     this.options = v.options

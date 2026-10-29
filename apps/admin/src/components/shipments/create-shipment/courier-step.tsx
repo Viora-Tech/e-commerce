@@ -13,6 +13,7 @@ import TrackingFields, { type TrackingDraft } from '@/components/orders/tracking
 import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
+import CheckoutRouteNote from './checkout-route-note'
 import { groupCounts } from './courier-groups'
 import CourierOption from './courier-option'
 import { MANUAL, type ParcelQuote } from './flow-state'
@@ -118,6 +119,7 @@ export default function CourierStep({
             {updating ? copy.courier.updating : copy.courier.finishSize}
           </p>
         ) : null}
+        {quote?.checkout ? <CheckoutRouteNote quote={quote} /> : null}
         {groups.length > 0 ? (
           <div className="flex flex-wrap items-center gap-2">
             {[{ group: null, count: quote?.options.length ?? 0 }, ...groups].map((g) => (

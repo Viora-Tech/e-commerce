@@ -3,6 +3,7 @@
 import { Input } from '@commerce/ui/shadcn/input'
 import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
 import { Switch } from '@commerce/ui/shadcn/switch'
+import { Textarea } from '@commerce/ui/shadcn/textarea'
 import MoneyInput from '@/components/fields/money-input'
 import KitField from '@/components/kit/kit-field'
 import { productFormContent } from '@/data/product-form'
@@ -17,7 +18,7 @@ type ProductPreorderSectionProps = {
   onPatch: (patch: Partial<ProductFormState>) => void
 }
 
-/** Frame: pre-order toggle, ship date, limit and button label, then payment mode, then the launch countdown. */
+/** Frame: pre-order toggle, ship date, limit and button label, the note, then payment mode, then the launch countdown. */
 export default function ProductPreorderSection({
   form,
   depositError,
@@ -93,6 +94,17 @@ export default function ProductPreorderSection({
               />
             </KitField>
           </div>
+
+          <KitField label={copy.note} htmlFor="preorder-note" help={copy.noteHelp}>
+            <Textarea
+              id="preorder-note"
+              rows={3}
+              maxLength={500}
+              placeholder={copy.notePlaceholder}
+              value={form.preorderNote}
+              onChange={(e) => onPatch({ preorderNote: e.target.value })}
+            />
+          </KitField>
 
           <KitField label={copy.paymentMode} help={depositError}>
             <RadioGroup
