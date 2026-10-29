@@ -166,6 +166,8 @@ export const DocumentSnapshotSchema = z.object({
   /** Rule 53(1A)(d): the invoice a credit note is against. */
   original: z.object({ number: z.string(), issuedAt: z.string() }).nullable(),
   reason: z.string().nullable(),
+  /** What the order discount is for ("UPI discount"); absent on older snapshots. */
+  discountLabel: z.string().nullish(),
   seller: PartySchema,
   buyer: PartySchema,
   shipTo: PartySchema.nullable(),

@@ -28,6 +28,7 @@ export const orderDetailContent = {
     print: 'Print packing slip',
     printShort: 'Print',
     more: 'More actions',
+    invoices: 'View invoices',
   },
   duplicate: {
     action: 'Duplicate order',

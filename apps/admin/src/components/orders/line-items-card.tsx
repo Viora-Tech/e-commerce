@@ -1,7 +1,10 @@
-import { PackageCheck } from '@commerce/ui/icons'
+import { PackageCheck, Pencil } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
+import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
 import TotalsList, { type TotalsLine } from '@/components/layout/totals-list'
 import { orderDetailContent } from '@/data/order-detail'
+import { orderEditContent } from '@/data/order-edit'
 import type { StatusValue } from '@/data/status'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import OrderChip from './order-chip'
@@ -16,6 +19,8 @@ type LineItemsCardProps = {
   /** False when the Unfulfilled section is not drawn (cancelled or imported orders), so
    *  the lines still waiting show here instead; each line is shown exactly once. */
   unfulfilledShown: boolean
+  /** Where "Edit order" goes (change items, prices, shipping, discount); undefined hides it. */
+  editHref?: string | undefined
 }
 
 /**
@@ -23,9 +28,15 @@ type LineItemsCardProps = {
  * lines as a grey "Fulfilled" group, lines not shown elsewhere, then the order summary
  * (totals, the GST split and what was settled).
  */
-export default function LineItemsCard({ order, payment, unfulfilledShown }: LineItemsCardProps) {
+export default function LineItemsCard({
+  order,
+  payment,
+  unfulfilledShown,
+  editHref,
+}: LineItemsCardProps) {
   // Hooks
   const copy = useCopy(orderDetailContent)
+  const editCopy = useCopy(orderEditContent)
   const fmt = useFormat()
 
   // Render logic
@@ -61,7 +72,23 @@ export default function LineItemsCard({ order, payment, unfulfilledShown }: Line
       ) : null}
       {/* Figma "Orders / Order detail" › Payment: the payment pill in the header, what the order
           costs (subtotal, discount, shipping, the GST split), a rule, then what was settled. */}
-      <DataCard title={copy.payment.heading} icon={<OrderChip kind="payment" value={payment} />}>
+      <DataCard
+        title={copy.payment.heading}
+        icon={<OrderChip kind="payment" value={payment} />}
+        action={
+          editHref ? (
+            <Button
+              variant="outline"
+              size="sm"
+              nativeButton={false}
+              render={<Link href={editHref} />}
+            >
+              <Pencil aria-hidden="true" />
+              {editCopy.action}
+            </Button>
+          ) : undefined
+        }
+      >
         <TotalsList lines={lines} />
       </DataCard>
     </>

@@ -5,6 +5,7 @@ import { canEditOrder } from '@commerce/core/order-edit-rules'
 import { Pencil } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
+import { Input } from '@commerce/ui/shadcn/input'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import DraftMoneyInput from '@/components/drafts/draft-money-input'
@@ -25,9 +26,16 @@ type OrderEditPageProps = {
   order: OrderDetail
 }
 
+/** As long as the server keeps (`OrderEditSchema`). */
+const LABEL_MAX = 120
+
+/** "Shipping (Bluedart)": the row name with what the merchant typed beside it. */
+const withLabel = (name: string, label: string) =>
+  label.trim() ? `${name} (${label.trim()})` : name
+
 /**
- * `/orders/<id>/edit`: Shopify-style order editing on a full page. Items, quantities, shipping
- * and discount on the left, the running summary on the right; "Review changes" opens the review
+ * `/orders/<id>/edit`: Shopify-style order editing on a full page. Items, quantities, prices,
+ * shipping and discount (each with a label) on the left, the running summary on the right; "Review changes" opens the review
  * dialog, which works the difference out on the server and saves.
  */
 export default function OrderEditPage({ order }: OrderEditPageProps) {
@@ -81,12 +89,32 @@ export default function OrderEditPage({ order }: OrderEditPageProps) {
                   />
                 </Field>
                 <Field>
+                  <FieldLabel htmlFor="edit-shipping-label">{copy.shippingLabel}</FieldLabel>
+                  <Input
+                    id="edit-shipping-label"
+                    value={state.shippingLabel}
+                    maxLength={LABEL_MAX}
+                    placeholder={copy.shippingLabelPlaceholder}
+                    onChange={(e) => patch({ shippingLabel: e.target.value })}
+                  />
+                </Field>
+                <Field>
                   <FieldLabel htmlFor="edit-discount">{copy.discount}</FieldLabel>
                   <DraftMoneyInput
                     id="edit-discount"
                     valuePaise={state.discountPaise}
                     onChangePaise={(discountPaise) => patch({ discountPaise })}
                     className="tabular-nums"
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="edit-discount-label">{copy.discountLabel}</FieldLabel>
+                  <Input
+                    id="edit-discount-label"
+                    value={state.discountLabel}
+                    maxLength={LABEL_MAX}
+                    placeholder={copy.discountLabelPlaceholder}
+                    onChange={(e) => patch({ discountLabel: e.target.value })}
                   />
                 </Field>
               </DataCard>
@@ -113,9 +141,12 @@ export default function OrderEditPage({ order }: OrderEditPageProps) {
               <KeyValueList
                 rows={[
                   { label: copy.subtotal, value: fmt.money(totals.subtotalPaise) },
-                  { label: copy.shipping, value: fmt.money(totals.shippingPaise) },
                   {
-                    label: copy.discount,
+                    label: withLabel(copy.shipping, state.shippingLabel),
+                    value: fmt.money(totals.shippingPaise),
+                  },
+                  {
+                    label: withLabel(copy.discount, state.discountLabel),
                     value: `−${fmt.money(totals.discountPaise)}`,
                     hidden: totals.discountPaise === 0,
                   },

@@ -13,7 +13,7 @@ import { useCopy } from '@/hooks/use-copy'
 import { formatPaise } from '@/lib/money'
 import type { OrderDetail } from '../order-detail-types'
 import EditAddSearch from './edit-add-search'
-import { type EditState, lineName, quantityOf, type VariantResult } from './edit-state'
+import { type EditState, lineName, priceOf, quantityOf, type VariantResult } from './edit-state'
 
 type EditLinesCardProps = {
   order: OrderDetail
@@ -23,7 +23,7 @@ type EditLinesCardProps = {
 
 const toCount = (value: string, min: number) => Math.max(min, Number.parseInt(value, 10) || min)
 
-/** The order's items as they would be: change quantities, remove, undo, and add new ones. */
+/** The order's items as they would be: change quantities and prices, remove, undo, and add new ones. */
 export default function EditLinesCard({ order, state, onChange }: EditLinesCardProps) {
   // Hooks
   const copy = useCopy(orderEditContent)
@@ -31,6 +31,10 @@ export default function EditLinesCard({ order, state, onChange }: EditLinesCardP
   // Event handlers
   const handleQuantity = (lineId: string, quantity: number) => {
     onChange({ quantities: { ...state.quantities, [lineId]: quantity } })
+  }
+
+  const handlePrice = (lineId: string, unitPricePaise: number) => {
+    onChange({ prices: { ...state.prices, [lineId]: unitPricePaise } })
   }
 
   const handleAdd = (v: VariantResult) => {
@@ -74,6 +78,7 @@ export default function EditLinesCard({ order, state, onChange }: EditLinesCardP
       <ul className="flex flex-col divide-y divide-line">
         {order.lines.map((l) => {
           const quantity = quantityOf(state, l)
+          const price = priceOf(state, l)
           const removed = quantity === 0
           const packed = l.fulfilledQuantity
           return (
@@ -93,20 +98,30 @@ export default function EditLinesCard({ order, state, onChange }: EditLinesCardP
                 removed ? (
                   <StatusChip tone="neutral">{copy.removed}</StatusChip>
                 ) : (
-                  <Input
-                    aria-label={copy.quantity}
-                    type="number"
-                    min={Math.max(1, packed)}
-                    value={quantity}
-                    disabled={l.giftCard}
-                    onChange={(e) =>
-                      handleQuantity(l.id, toCount(e.target.value, Math.max(1, packed)))
-                    }
-                    className="w-20 text-right tabular-nums"
-                  />
+                  <>
+                    <Input
+                      aria-label={copy.quantity}
+                      type="number"
+                      min={Math.max(1, packed)}
+                      value={quantity}
+                      disabled={l.giftCard}
+                      onChange={(e) =>
+                        handleQuantity(l.id, toCount(e.target.value, Math.max(1, packed)))
+                      }
+                      className="w-20 text-right tabular-nums"
+                    />
+                    {l.giftCard ? null : (
+                      <DraftMoneyInput
+                        aria-label={copy.price}
+                        valuePaise={price}
+                        onChangePaise={(paise) => handlePrice(l.id, paise)}
+                        className="w-28 text-right tabular-nums"
+                      />
+                    )}
+                  </>
                 )
               }
-              amount={formatPaise(quantity * l.unitPricePaise)}
+              amount={formatPaise(quantity * price)}
               aside={
                 l.giftCard || packed > 0 ? (
                   <span className="size-9" />
