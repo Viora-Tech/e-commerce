@@ -1,3 +1,4 @@
+import { normaliseMobile } from '@commerce/core/accounts'
 import { describe, expect, it } from 'vitest'
 import { checkoutFieldErrors, cleanPincode, fieldOrder } from './checkout-validation'
 
@@ -59,5 +60,25 @@ describe('checkoutFieldErrors', () => {
   it('orders fields the way the form shows them', () => {
     expect(fieldOrder(true).slice(0, 3)).toEqual(['phone', 'email', 'pincode'])
     expect(fieldOrder(false).at(-2)).toBe('pincode')
+  })
+})
+
+// #926: every way a mobile is written passes and is saved as the same ten digits (+91 implied).
+describe('checkout phone', () => {
+  it.each([
+    '9999999999',
+    '+919999999999',
+    '919999999999',
+    '09999999999',
+    '+91 99999 99999',
+    '+91-99999-99999',
+    '099999 99999',
+  ])('accepts %s', (phone) => {
+    expect(checkoutFieldErrors({ ...valid, phone }, rules)).toEqual({})
+    expect(normaliseMobile(phone)).toBe('9999999999')
+  })
+
+  it.each(['999999999', '99999999999', '+449999999999', '0123456789'])('rejects %s', (phone) => {
+    expect(checkoutFieldErrors({ ...valid, phone }, rules).phone).toBeDefined()
   })
 })
