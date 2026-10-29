@@ -105,7 +105,10 @@ Update `TIER_PRICES_INR` whenever the model or its price changes.
 
 Koomerce's own stores (Waimers) run on an unlimited plan: `store_plan.unlimited`, set only with
 `bun run platform:unlimited <slug>` (`--off` to undo; `setStoreUnlimited` in
-`core/billing/unlimited.ts`). The store keeps Scale's features with no staff or storage limit, no
+`core/billing/unlimited.ts`). On the server, run it in the worker container from
+`/repo/apps/worker`: `bun ops/platform-unlimited.ts <slug>` (see
+[Deployment](/developer-docs/operations/deployment#12-ops-scripts-in-the-worker)). The store
+keeps Scale's features with no staff or storage limit, no
 per-order fee, no renewals, due or pause, and no fair-use notice; `choosePlan` refuses with
 `UnlimitedPlan`. AI moves to the `internal` tier, a 50,000-credit monthly safety cap.
 
