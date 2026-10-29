@@ -33,7 +33,18 @@ export const blogListContent = {
   tabs: { all: 'All', published: 'Published', scheduled: 'Scheduled', draft: 'Drafts' },
   status,
   scheduledFor: (when: string) => `Scheduled ${when}`,
-  filters: { blog: 'Blog', tag: 'Tag', any: 'Any' },
+  filters: {
+    blog: 'Blog',
+    tag: 'Tag',
+    any: 'Any',
+    author: 'Author',
+    published: 'Published',
+    image: 'Has a featured image',
+  },
+  noResults: {
+    heading: 'No posts match these filters',
+    body: 'Try a different search or clear the filters.',
+  },
   bulk: {
     publish: 'Publish',
     unpublish: 'Unpublish',

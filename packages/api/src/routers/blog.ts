@@ -1,6 +1,7 @@
 import {
   ArticleListSchema,
   ArticleWriteSchema,
+  articleAuthors,
   articleCounts,
   articleTags,
   BlogWriteSchema,
@@ -71,6 +72,9 @@ export const blogRouter = {
   counts: read().handler(({ context }) => articleCounts(context.tx)),
 
   tags: read().handler(({ context }) => articleTags(context.tx)),
+
+  /** Author names on posts, for the list's author filter. */
+  authors: read().handler(({ context }) => articleAuthors(context.tx)),
 
   get: read()
     .input(z.object({ id: z.uuid() }))

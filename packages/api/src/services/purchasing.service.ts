@@ -7,21 +7,63 @@ import {
   purchaseOrderLine,
   supplier,
 } from '@commerce/db'
-import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
+import { and, asc, count, desc, eq, gte, ilike, inArray, lt, or, sql } from 'drizzle-orm'
 
 // Services are the only code that runs queries. They receive a store-scoped tx.
 
 type Page = { page: number; perPage: number }
 
-export async function listSuppliers(tx: StoreTx, q: Page & { search?: string | undefined }) {
+/** The Suppliers filter panel; arrays are "any of", each part combines with search. */
+export type SupplierListFilters = {
+  countries?: string[] | undefined
+  currencies?: string[] | undefined
+  hasGstin?: boolean | undefined
+  /** Has at least one purchase order (true) or none (false). */
+  hasOrders?: boolean | undefined
+}
+
+/* The outer column is named in full: drizzle prints it bare in a one-table select, and a bare
+   `id` would bind to the subquery's own table. */
+const supplierHasOrders = sql`exists (select 1 from ${purchaseOrder} po where po.supplier_id = "supplier"."id")`
+
+function supplierFiltersWhere(f: SupplierListFilters) {
+  const hasGstin = sql`coalesce(${supplier.gstin}, '') <> ''`
+  return and(
+    f.countries?.length ? inArray(supplier.country, f.countries) : undefined,
+    f.currencies?.length ? inArray(supplier.currency, f.currencies) : undefined,
+    f.hasGstin === undefined ? undefined : f.hasGstin ? hasGstin : sql`not ${hasGstin}`,
+    f.hasOrders === undefined
+      ? undefined
+      : f.hasOrders
+        ? supplierHasOrders
+        : sql`not ${supplierHasOrders}`,
+  )
+}
+
+/** The countries and currencies suppliers use, for the list's filter pickers. */
+export async function supplierFacets(tx: StoreTx) {
+  const [countries, currencies] = await Promise.all([
+    tx.selectDistinct({ v: supplier.country }).from(supplier).orderBy(asc(supplier.country)),
+    tx.selectDistinct({ v: supplier.currency }).from(supplier).orderBy(asc(supplier.currency)),
+  ])
+  return { countries: countries.map((r) => r.v), currencies: currencies.map((r) => r.v) }
+}
+
+export async function listSuppliers(
+  tx: StoreTx,
+  q: Page & { search?: string | undefined } & SupplierListFilters,
+) {
   const term = q.search?.trim()
-  const where = term
-    ? or(
-        ilike(supplier.name, `%${term}%`),
-        ilike(supplier.gstin, `%${term}%`),
-        ilike(supplier.email, `%${term}%`),
-      )
-    : undefined
+  const where = and(
+    term
+      ? or(
+          ilike(supplier.name, `%${term}%`),
+          ilike(supplier.gstin, `%${term}%`),
+          ilike(supplier.email, `%${term}%`),
+        )
+      : undefined,
+    supplierFiltersWhere(q),
+  )
   const rows = await tx
     .select({
       id: supplier.id,
@@ -73,16 +115,42 @@ export async function getSupplier(tx: StoreTx, id: string) {
   return { ...row, orders }
 }
 
+/** The Inbound shipments filter panel; arrays are "any of", each part combines with the others. */
+export type InboundShipmentListFilters = {
+  statuses?: InboundShipmentStatus[] | undefined
+  /** Expected in [from, to); ISO times. The expected day starts at midnight India time. */
+  expectedFrom?: string | undefined
+  expectedTo?: string | undefined
+  /** Arrived in [from, to); ISO times. */
+  arrivedFrom?: string | undefined
+  arrivedTo?: string | undefined
+  hasBillOfEntry?: boolean | undefined
+}
+
+function inboundFiltersWhere(f: InboundShipmentListFilters) {
+  const expectedDay = sql`(${inboundShipment.expectedAt}::timestamp at time zone 'Asia/Kolkata')`
+  const hasBoe = sql`coalesce(${inboundShipment.billOfEntryNo}, '') <> ''`
+  return and(
+    f.statuses?.length ? inArray(inboundShipment.status, f.statuses) : undefined,
+    f.expectedFrom ? sql`${expectedDay} >= ${f.expectedFrom}::timestamptz` : undefined,
+    f.expectedTo ? sql`${expectedDay} < ${f.expectedTo}::timestamptz` : undefined,
+    f.arrivedFrom ? gte(inboundShipment.arrivedAt, new Date(f.arrivedFrom)) : undefined,
+    f.arrivedTo ? lt(inboundShipment.arrivedAt, new Date(f.arrivedTo)) : undefined,
+    f.hasBillOfEntry === undefined ? undefined : f.hasBillOfEntry ? hasBoe : sql`not ${hasBoe}`,
+  )
+}
+
 export async function listInboundShipments(
   tx: StoreTx,
   q: Page & {
     status?: InboundShipmentStatus | 'all' | undefined
     search?: string | undefined
-  },
+  } & InboundShipmentListFilters,
 ) {
   const term = q.search?.trim()
   const where = and(
     q.status && q.status !== 'all' ? eq(inboundShipment.status, q.status) : undefined,
+    inboundFiltersWhere(q),
     term
       ? or(
           ilike(inboundShipment.reference, `%${term}%`),

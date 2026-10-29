@@ -6,9 +6,12 @@ import {
   desc,
   eq,
   gt,
+  gte,
   ilike,
   inArray,
   isNotNull,
+  isNull,
+  lt,
   lte,
   ne,
   or,
@@ -289,6 +292,16 @@ export async function listArticles(tx: StoreTx, input: ArticleList, now: Date = 
     statusFilter(input.status, now),
     input.blogId ? eq(article.blogId, input.blogId) : undefined,
     input.tag ? sql`${input.tag} = any(${article.tags})` : undefined,
+    input.blogIds?.length ? inArray(article.blogId, input.blogIds) : undefined,
+    input.tags?.length ? or(...input.tags.map((t) => sql`${t} = any(${article.tags})`)) : undefined,
+    input.authors?.length ? inArray(article.author, input.authors) : undefined,
+    input.publishedFrom ? gte(article.publishedAt, new Date(input.publishedFrom)) : undefined,
+    input.publishedTo ? lt(article.publishedAt, new Date(input.publishedTo)) : undefined,
+    input.hasImage === undefined
+      ? undefined
+      : input.hasImage
+        ? isNotNull(article.imageMediaId)
+        : isNull(article.imageMediaId),
     input.query
       ? or(ilike(article.title, `%${input.query}%`), ilike(article.author, `%${input.query}%`))
       : undefined,
@@ -361,4 +374,14 @@ export async function articleTags(tx: StoreTx): Promise<string[]> {
     sql`select distinct unnest(${article.tags}) as tag from ${article} order by 1`,
   )
   return rows.map((r) => r.tag)
+}
+
+/** Every author name on a post, for the list's author filter. */
+export async function articleAuthors(tx: StoreTx): Promise<string[]> {
+  const rows = await tx
+    .selectDistinct({ author: article.author })
+    .from(article)
+    .where(ne(article.author, ''))
+    .orderBy(asc(article.author))
+  return rows.map((r) => r.author)
 }

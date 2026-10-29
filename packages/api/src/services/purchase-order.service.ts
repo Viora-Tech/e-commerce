@@ -12,7 +12,7 @@ import {
   supplier,
   variant,
 } from '@commerce/db'
-import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
+import { and, asc, count, desc, eq, gte, ilike, inArray, lt, or, sql } from 'drizzle-orm'
 
 // Services are the only code that runs queries. They receive a store-scoped tx.
 
@@ -55,6 +55,31 @@ type LineMoney = { quantity: number; unitPriceMinor: number }
 const goodsOf = (po: OrderMoney, l: LineMoney) =>
   convertToPaise(l.quantity * l.unitPriceMinor, po.currency, po.fxRate)
 
+/** The list's filter panel; arrays are "any of", each part combines with the tab and search. */
+export type PurchaseOrderListFilters = {
+  statuses?: PurchaseOrderStatus[] | undefined
+  supplierIds?: string[] | undefined
+  locationIds?: string[] | undefined
+  /** Expected arrival in [from, to); ISO times. */
+  expectedFrom?: string | undefined
+  expectedTo?: string | undefined
+  /** Created in [from, to); ISO times. */
+  createdFrom?: string | undefined
+  createdTo?: string | undefined
+}
+
+function purchaseOrderFiltersWhere(f: PurchaseOrderListFilters) {
+  return and(
+    f.statuses?.length ? inArray(purchaseOrder.status, f.statuses) : undefined,
+    f.supplierIds?.length ? inArray(purchaseOrder.supplierId, f.supplierIds) : undefined,
+    f.locationIds?.length ? inArray(purchaseOrder.locationId, f.locationIds) : undefined,
+    f.expectedFrom ? gte(purchaseOrder.expectedAt, new Date(f.expectedFrom)) : undefined,
+    f.expectedTo ? lt(purchaseOrder.expectedAt, new Date(f.expectedTo)) : undefined,
+    f.createdFrom ? gte(purchaseOrder.createdAt, new Date(f.createdFrom)) : undefined,
+    f.createdTo ? lt(purchaseOrder.createdAt, new Date(f.createdTo)) : undefined,
+  )
+}
+
 export async function listPurchaseOrders(
   tx: StoreTx,
   q: {
@@ -62,7 +87,7 @@ export async function listPurchaseOrders(
     search?: string | undefined
     page: number
     perPage: number
-  },
+  } & PurchaseOrderListFilters,
 ) {
   const term = q.search?.trim()
   const number = term ? purchaseOrderNumberFromSearch(term) : null
@@ -75,6 +100,7 @@ export async function listPurchaseOrders(
           number === null ? undefined : eq(purchaseOrder.number, number),
         )
       : undefined,
+    purchaseOrderFiltersWhere(q),
   )
   const orders = await tx
     .select({

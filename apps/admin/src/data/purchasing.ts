@@ -28,6 +28,16 @@ export const suppliersContent = {
     orders: 'Purchase orders',
   },
   none: 'None',
+  filters: {
+    country: 'Country',
+    currency: 'Bills in',
+    gstin: 'Has a GSTIN',
+    orders: 'Has purchase orders',
+  },
+  noResults: {
+    heading: 'No suppliers match these filters',
+    body: 'Try a different search or clear the filters.',
+  },
   empty: {
     heading: 'No suppliers yet',
     body: 'Save the people you buy stock from once, then pick them on every purchase order.',
@@ -133,6 +143,16 @@ export const inboundShipmentsContent = {
     arrived: 'Arrived',
   },
   none: 'None',
+  filters: {
+    status: 'Status',
+    expected: 'Expected',
+    arrived: 'Arrived',
+    billOfEntry: 'Has a Bill of Entry',
+  },
+  noResults: {
+    heading: 'No inbound shipments match these filters',
+    body: 'Try a different search or clear the filters.',
+  },
   empty: {
     heading: 'No inbound shipments',
     body: 'An inbound shipment groups the purchase orders that came in one container or Bill of Entry, so their freight and customs split across all of them.',

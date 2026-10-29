@@ -22,7 +22,7 @@ export default async function Page({ searchParams }: Props) {
   const query = parseListQuery(sp, ARTICLE_TABS)
   const perPage = parsePerPage(sp)
   const context = await serverContext()
-  const [blogs, result, counts, tags] = await Promise.all([
+  const [blogs, result, counts, tags, authors] = await Promise.all([
     call(appRouter.blog.blogs, undefined, { context }),
     call(
       appRouter.blog.list,
@@ -36,11 +36,12 @@ export default async function Page({ searchParams }: Props) {
     ),
     call(appRouter.blog.counts, undefined, { context }),
     call(appRouter.blog.tags, undefined, { context }),
+    call(appRouter.blog.authors, undefined, { context }),
   ])
 
   return (
     <BlogPostsPage
-      initial={{ query, perPage, result, counts, blogs, tags }}
+      initial={{ query, perPage, result, counts, blogs, tags, authors }}
       storefrontOrigin={await storefrontOrigin()}
     />
   )

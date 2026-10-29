@@ -27,7 +27,18 @@ export default [
     tabs: { all: 'सभी', published: 'चालू', scheduled: 'तय समय पर', draft: 'ड्राफ़्ट' },
     status: { published: 'चालू', scheduled: 'तय समय पर', draft: 'ड्राफ़्ट' },
     scheduledFor: (when) => `${when} को चालू होगा`,
-    filters: { blog: 'ब्लॉग', tag: 'टैग', any: 'कोई भी' },
+    filters: {
+      blog: 'ब्लॉग',
+      tag: 'टैग',
+      any: 'कोई भी',
+      author: 'लेखक',
+      published: 'कब छपा',
+      image: 'मुख्य फ़ोटो है',
+    },
+    noResults: {
+      heading: 'इन फ़िल्टर से कोई पोस्ट नहीं मिली',
+      body: 'कोई और सर्च आज़माएँ या फ़िल्टर हटाएँ।',
+    },
     bulk: {
       publish: 'चालू करें',
       unpublish: 'ड्राफ़्ट में भेजें',

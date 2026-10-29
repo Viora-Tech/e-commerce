@@ -53,6 +53,12 @@ export default [
         yes: 'फ़ोटो वाले',
         no: 'बिना फ़ोटो',
         ratingValue: (n) => `${n} स्टार`,
+        source: 'कहाँ से',
+        sources: { storefront: 'आपका स्टोर', judgeme: 'Judge.me से इंपोर्ट' },
+        verified: 'पक्का ख़रीदार',
+        featured: 'फ़ीचर्ड',
+        replied: 'जवाब दिया',
+        created: 'लिखा गया',
       },
       bulk: {
         approve: 'मंज़ूर करें',

@@ -9,18 +9,49 @@ import { Suspense, useEffect, useState } from 'react'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import { supplierColumns } from '@/components/suppliers/supplier-columns'
 import DeleteRowMenu from '@/components/table/delete-row-menu'
+import {
+  appliedFromGroups,
+  clearGroups,
+  FILTER_PANEL_CLASS,
+  FilterPanel,
+} from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
+import { filterPanelContent } from '@/data/filter-panel'
 import { supplierFormContent, suppliersContent } from '@/data/purchasing'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import type { ListQuery } from '@/lib/list-query'
 import { usePrimaryAction } from '@/lib/primary-action'
 import { routes } from '@/lib/routes'
+import {
+  CLEAR_SUPPLIER_FILTERS,
+  hasSupplierFilters,
+  SUPPLIER_FILTER_PARAMS,
+  type SupplierFilters,
+  supplierFilterGroups,
+  supplierFilterInput,
+} from '@/lib/supplier-list-filters'
 
 type SuppliersResult = Awaited<ReturnType<typeof api.suppliers.list>>
 
 /** First page rendered on the server so the table never paints empty. */
-export type SuppliersInitial = { query: ListQuery<never>; result: SuppliersResult }
+export type SuppliersInitial = {
+  query: ListQuery<never>
+  result: SuppliersResult
+  /** Countries and currencies in use, for the filter pickers. */
+  facets: { countries: string[]; currencies: string[] }
+}
+
+type Query = SupplierFilters & { page: number; perPage: number; query: string }
+
+function listInput(q: Query) {
+  return {
+    page: q.page,
+    perPage: q.perPage,
+    search: q.query || undefined,
+    ...supplierFilterInput(q),
+  }
+}
 
 const ROWS = siteConfig.ui.rowsPerPage.default
 const ADD_HREF = routes.stock.newSupplier()
@@ -29,12 +60,14 @@ function SuppliersContent({ initial }: { initial: SuppliersInitial }) {
   // Hooks
   const copy = useCopy(suppliersContent)
   const form = useCopy(supplierFormContent)
+  const panelCopy = useCopy(filterPanelContent)
   usePrimaryAction(ADD_HREF)
   const [state, setState] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
       page: parseAsInteger.withDefault(1),
       perPage: parseAsInteger.withDefault(ROWS),
+      ...SUPPLIER_FILTER_PARAMS,
     },
     { shallow: true },
   )
@@ -45,12 +78,13 @@ function SuppliersContent({ initial }: { initial: SuppliersInitial }) {
     const unchanged =
       state.page === initial.query.page &&
       state.query === initial.query.query &&
-      state.perPage === ROWS
+      state.perPage === ROWS &&
+      !hasSupplierFilters(state)
     if (unchanged) return
     let stale = false
     setLoading(true)
     api.suppliers
-      .list({ page: state.page, perPage: state.perPage, search: state.query || undefined })
+      .list(listInput(state))
       .then((next) => !stale && setResult(next))
       .finally(() => !stale && setLoading(false))
     return () => {
@@ -60,16 +94,15 @@ function SuppliersContent({ initial }: { initial: SuppliersInitial }) {
 
   // Helpers
   const refresh = async () => {
-    setResult(
-      await api.suppliers.list({
-        page: state.page,
-        perPage: state.perPage,
-        search: state.query || undefined,
-      }),
-    )
+    setResult(await api.suppliers.list(listInput(state)))
   }
 
   // Render logic
+  const groups = supplierFilterGroups(state, copy.filters, initial.facets, (patch) =>
+    setState({ ...patch, page: 1 }),
+  )
+  const applied = appliedFromGroups(groups, panelCopy)
+  const filtered = applied.length > 0 || state.query.length > 0
   const addButton = (
     <Button render={<Link href={ADD_HREF} />} nativeButton={false}>
       <Plus />
@@ -99,13 +132,26 @@ function SuppliersContent({ initial }: { initial: SuppliersInitial }) {
         selectable={false}
         query={state.query}
         onQueryChange={(query) => setState({ query, page: 1 })}
-        onClearAll={() => setState({ query: '', page: 1 })}
+        onClearAll={() => setState({ ...CLEAR_SUPPLIER_FILTERS, query: '', page: 1 })}
+        filters={(close) => (
+          <FilterPanel
+            groups={groups}
+            onClear={() => clearGroups(groups)}
+            footer={{ label: panelCopy.show(result.total), onDone: close }}
+          />
+        )}
+        filtersClassName={FILTER_PANEL_CLASS}
+        applied={applied}
         page={state.page}
         perPage={state.perPage}
         onPerPageChange={(perPage) => setState({ perPage, page: 1 })}
         total={result.total}
         onPageChange={(page) => setState({ page })}
-        empty={{ heading: copy.empty.heading, body: copy.empty.body, action: addButton }}
+        empty={
+          filtered
+            ? copy.noResults
+            : { heading: copy.empty.heading, body: copy.empty.body, action: addButton }
+        }
       />
     </ProoflyListPage>
   )
