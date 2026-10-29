@@ -297,6 +297,7 @@ export const productsRouter = {
       }
     }),
 
+  /** Patch one variant: price, MRP, SKU, stock, or hide it on the storefront (`hiddenOnStore`). */
   updateVariant: can(permissions.INVENTORY_WRITE)
     .input(
       z.object({
@@ -305,6 +306,8 @@ export const productsRouter = {
         mrpPaise: z.number().int().min(0).nullable().optional(),
         sku: z.string().max(100).nullable().optional(),
         onHand: z.number().int().min(0).optional(),
+        /** Hidden variants are never shown or sold on the storefront, but stay in admin (#934). */
+        hiddenOnStore: z.boolean().optional(),
       }),
     )
     .handler(({ context, input: { id, ...patch } }) => updateVariant(context.tx, id, patch)),

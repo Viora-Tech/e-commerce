@@ -70,6 +70,25 @@ Set each variant's price, MRP, SKU and quantity in the table, or tick rows and u
 price**, **Set quantity** or **SKU prefix** for many at once (a prefix of `KUR` gives
 `KUR-M-INDIGO`). **Suggest SKUs** fills any blank SKU from the title and the variant.
 
+#### Hide a variant instead of deleting it
+
+To stop selling one variant but keep it, select **Edit** on its row and turn on **Hide on
+store** under **Visibility**. Shoppers no longer see it: it drops out of the option picker,
+quick add, collection and search prices, and Google and Meta feeds, and it can't be added to a
+cart or checked out. It stays in admin, in past orders and in reports, with a **Hidden** chip in
+the variants table and on the **Inventory** page. Turn the switch off to sell it again.
+
+A Shopify import hides the variants Shopify itself would not sell at ₹0 (the "unavailable"
+leftovers). A CSV file has no such column, so check those variants yourself after a CSV import.
+
+#### Variants priced at ₹0
+
+₹0 is a valid price, for free gifts and samples, so nothing stops you saving it and shoppers can
+check out at ₹0. To make sure it is on purpose, a visible variant at ₹0 shows **Price is ₹0,
+shoppers can get this free** on the product page, and **Store health** lists the products that
+have one. On **Products**, filter by **Missing** → **Price (₹0 on store)** to see them all.
+Hidden variants never count.
+
 <Screenshot
   name="Variants table"
   caption="Add product → Variants card with options Size (S, M, L) and Colour (Indigo, Rust), showing the 6 generated variants with Price ₹1,499, MRP ₹1,999, SKU and Available columns filled."
@@ -175,6 +194,7 @@ first**...), fill the **Search engine listing**, and set **Status** to **Active*
 | Product isn't on my store | **Status** is **Draft** or **Archived**. | Set **Status** to **Active** and save. |
 | Shows "Out of stock" but I have stock | **Track quantity** is on and the variant's quantity is 0. | Set the quantity on that variant, or turn **Track quantity** off. |
 | Missing from an automatic collection | It doesn't match every condition (or any, depending on the setting). | Check the product's tag, type, vendor or price against the conditions. |
+| A colour or size is missing on my store | That variant has **Hide on store** turned on. | Open the variant from the variants table and turn **Hide on store** off. |
 | Can't buy a pre-order product yet | **Launches at** is in the future. | Clear **Launches at** to sell right away. |
 | CSV import skipped rows | Rows with no handle or bad values. | Fix the rows shown under **Rows skipped** and import again; re-importing is safe. |
 

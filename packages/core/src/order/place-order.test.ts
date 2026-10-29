@@ -28,6 +28,7 @@ import {
   DiscountUnavailable,
   OutOfStock,
   PriceNotSet,
+  VariantHidden,
 } from '../errors'
 import { setCartAttribution } from '../marketing/sessions'
 import { FakePaymentProvider, type PaymentProvider } from '../providers/payment'
@@ -437,6 +438,17 @@ describe('placeOrder', () => {
     await expect(
       placeOrderAndPay(app, storeId, { cartId, paymentProvider: provider }),
     ).rejects.toBeInstanceOf(PriceNotSet)
+    expect(await owner.select().from(order)).toEqual([])
+    expect(provider.calls).toEqual([])
+  })
+
+  it('refuses a cart whose item was hidden on the storefront after it was added (#934)', async () => {
+    const { storeId, cartId, variantId } = await seed({ onHand: 5, quantity: 1 })
+    await owner.update(variant).set({ hiddenOnStore: true }).where(eq(variant.id, variantId))
+    const provider = new FakePaymentProvider({ mode: 'capture' })
+    await expect(
+      placeOrderAndPay(app, storeId, { cartId, paymentProvider: provider }),
+    ).rejects.toBeInstanceOf(VariantHidden)
     expect(await owner.select().from(order)).toEqual([])
     expect(provider.calls).toEqual([])
   })

@@ -63,6 +63,7 @@ export const productsListContent = {
     missingOptions: [
       { value: 'weight', label: 'No weight' },
       { value: 'image', label: 'No image' },
+      { value: 'price', label: 'Price (₹0 on store)' },
     ],
   },
   status: { active: 'Active', draft: 'Draft', archived: 'Archived' } satisfies Record<

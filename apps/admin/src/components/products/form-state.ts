@@ -29,6 +29,8 @@ export type VariantRow = {
   barcode: string
   taxable: boolean
   trackInventory: boolean
+  /** Hidden on the storefront, kept in admin (#934). */
+  hiddenOnStore: boolean
   quantity: string
   /** As typed, in `weightUnit`; saved as whole grams. */
   weight: string
@@ -104,6 +106,7 @@ export function emptyVariant(optionValues: string[], template?: VariantRow): Var
     barcode: '',
     taxable: template?.taxable ?? true,
     trackInventory: template?.trackInventory ?? true,
+    hiddenOnStore: false,
     quantity: '0',
     weight: template?.weight ?? '',
     weightUnit: template?.weightUnit ?? DEFAULT_WEIGHT_UNIT,
@@ -202,6 +205,7 @@ export function fromProduct(p: LoadedProduct): ProductFormState {
             barcode: v.barcode ?? '',
             taxable: v.taxable,
             trackInventory: v.trackInventory,
+            hiddenOnStore: v.hiddenOnStore,
             quantity: String(v.onHand ?? 0),
             weight: fromGrams(v.weightGrams, v.weightUnit ?? DEFAULT_WEIGHT_UNIT),
             weightUnit: v.weightUnit ?? DEFAULT_WEIGHT_UNIT,
@@ -384,6 +388,7 @@ export function toWrite(form: ProductFormState): ProductWrite {
       barcode: v.barcode.trim() || null,
       taxable: v.taxable,
       trackInventory: v.trackInventory,
+      hiddenOnStore: v.hiddenOnStore,
       weightGrams: toGrams(v.weight, v.weightUnit),
       weightUnit: v.weightUnit,
       hsCode: v.hsCode.trim() || null,

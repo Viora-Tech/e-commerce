@@ -32,6 +32,8 @@ export const VariantInputSchema = z.object({
   costPaise: paise.nullable().optional(),
   taxable: z.boolean().optional(),
   trackInventory: z.boolean().optional(),
+  /** Hidden on the storefront, kept in admin (#934). Undefined leaves the variant as it is. */
+  hiddenOnStore: z.boolean().optional(),
   weightGrams: z.number().int().min(0).max(1_000_000).nullable().optional(),
   /** Unit the product page shows the weight in; grams stay the source of truth. Null shows kg. */
   weightUnit: WeightUnitSchema.nullable().optional(),

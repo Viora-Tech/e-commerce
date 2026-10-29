@@ -44,6 +44,7 @@ import {
   PriceNotSet,
   ShippingRateUnavailable,
   ShippingUnavailable,
+  VariantHidden,
 } from '../errors'
 import {
   GIFT_CARD_PROVIDER,
@@ -204,6 +205,7 @@ const loadCart: WorkflowStep<State> = {
         quantity: cartLine.quantity,
         unitPricePaise: cartLine.unitPricePaise,
         variantPricePaise: variant.pricePaise,
+        hiddenOnStore: variant.hiddenOnStore,
         title: product.title,
         variantTitle: variant.title,
         gstRatePercent: variant.gstRatePercent,
@@ -231,6 +233,9 @@ const loadCart: WorkflowStep<State> = {
     // The cart snapshots the price, but a price withdrawn since (#913) stops the order.
     const unpriced = rows.find((r) => r.variantPricePaise == null)
     if (unpriced) throw new PriceNotSet(unpriced.variantId, ctx.storeId)
+    // Hidden after it went into the cart (#934): the shopper can no longer buy it.
+    const hidden = rows.find((r) => r.hiddenOnStore)
+    if (hidden) throw new VariantHidden(hidden.variantId, ctx.storeId)
     const lines: Line[] = rows.map((r) => ({
       variantId: r.variantId,
       quantity: r.quantity,

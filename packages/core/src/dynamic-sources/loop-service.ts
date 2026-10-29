@@ -163,7 +163,13 @@ export async function previewCollectionProducts(
         mrp: min(variant.mrpPaise),
       })
       .from(variant)
-      .where(and(inArray(variant.productId, ids), isNull(variant.archivedAt)))
+      .where(
+        and(
+          inArray(variant.productId, ids),
+          isNull(variant.archivedAt),
+          eq(variant.hiddenOnStore, false),
+        ),
+      )
       .groupBy(variant.productId),
     tx
       .select({

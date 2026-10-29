@@ -1188,7 +1188,14 @@
     {
       "idx": 169,
       "version": "7",
-      "when": 1793272336154,
+      "when": 1793265327455,
+      "tag": "0185_variant_hidden_on_store",
+      "breakpoints": true
+    },
+    {
+      "idx": 170,
+      "version": "7",
+      "when": 1793276633114,
       "tag": "0187_bug_report",
       "breakpoints": true
     }

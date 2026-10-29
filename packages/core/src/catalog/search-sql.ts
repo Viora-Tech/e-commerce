@@ -25,7 +25,7 @@ const fieldMatch = (pattern: string): SQL => sql`(
   p.title ilike ${pattern} or p.vendor ilike ${pattern} or p.product_type ilike ${pattern}
   or p.handle ilike ${pattern}
   or exists (select 1 from unnest(p.tags) t where t ilike ${pattern})
-  or exists (select 1 from variant sv where sv.product_id = p.id and sv.archived_at is null and sv.sku ilike ${pattern})
+  or exists (select 1 from variant sv where sv.product_id = p.id and sv.archived_at is null and sv.hidden_on_store = false and sv.sku ilike ${pattern})
   or exists (
     select 1 from product_option spo join product_option_value spov on spov.option_id = spo.id
     where spo.product_id = p.id and spov.value ilike ${pattern}

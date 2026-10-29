@@ -127,6 +127,14 @@ function listWhere(input: ProductListInput, lowThreshold: number) {
     input.missing === 'image'
       ? sql`not exists (select 1 from product_media pm where pm.product_id = ${product.id})`
       : undefined,
+    // A variant shoppers can see at ₹0 (#934): Store health's "priced at ₹0" check.
+    input.missing === 'price'
+      ? sql`${product.isGiftCard} = false and exists (
+          select 1 from variant v
+          where v.product_id = ${product.id} and v.archived_at is null
+            and v.hidden_on_store = false and v.price_paise = 0
+        )`
+      : undefined,
     input.stock
       ? sql`(
           select coalesce(sum(greatest(0, il.on_hand - il.reserved)), 0)
@@ -228,6 +236,7 @@ export async function getProduct(tx: StoreTx, id: string) {
       costPaise: variant.costPaise,
       taxable: variant.taxable,
       trackInventory: variant.trackInventory,
+      hiddenOnStore: variant.hiddenOnStore,
       weightGrams: variant.weightGrams,
       weightUnit: variant.weightUnit,
       hsCode: variant.hsCode,
@@ -402,6 +411,7 @@ export type VariantPatch = {
   mrpPaise?: number | null | undefined
   sku?: string | null | undefined
   onHand?: number | undefined
+  hiddenOnStore?: boolean | undefined
 }
 
 export async function updateVariant(tx: StoreTx, id: string, patch: VariantPatch) {
