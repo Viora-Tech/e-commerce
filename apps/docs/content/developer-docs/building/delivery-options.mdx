@@ -82,6 +82,8 @@ For each enabled option:
   courier rule picks.
 - `createShipmentForOrder` passes `insured` to the adapter (`CreateShipmentInput.insured`) and
   stores `shipment.carrier`; `applyTracking` stores `delivered_at` from the delivered scan.
+- Booking a different route than the saved one (on purpose) adds an order note through
+  `noteOffRoute` (`booking.ts`), shown on the order timeline.
 
 <Callout type="warning">
 No adapter sends an insurance field yet: none is confirmed in the Delhivery, Shiprocket or

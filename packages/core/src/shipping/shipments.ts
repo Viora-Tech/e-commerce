@@ -17,6 +17,7 @@ import { ensureFulfillmentOrders, soleFulfillmentOrder } from '../order/fulfillm
 import { recomputeOrderStatuses } from '../order/recompute'
 import { insertOutboxEvent } from '../outbox/write'
 import { recordRtoForShipment } from '../returns/rto'
+import { noteOffRoute } from './delivery-options/booking'
 import { bookedCarrier } from './delivery-options/routes'
 import { shipmentDocumentsAsLabel } from './label-documents'
 import { storeShippingLabel } from './label-store'
@@ -312,6 +313,7 @@ export async function createShipmentForOrder(
     ...(s?.gstin ? { exporterGstin: s.gstin } : {}),
   })
   if (pushed) await markCourierOrderBooked(ctx, o.id, provider.id)
+  if (route && !onRoute) await noteOffRoute(ctx, o.id, route, provider.label, options.serviceLabel)
 
   /* The box packed, for the packing snapshot: the one named, else the box whose size the packer
      picked in the booking flow, else the parcel's own box (parcelBoxPreset). */

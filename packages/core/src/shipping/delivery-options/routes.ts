@@ -62,7 +62,9 @@ export function directCarrier(
 ): { key: string; name: string } {
   const key = DIRECT_CARRIER[providerId]
   const known = CARRIERS.find((c) => c.key === (key ?? providerId))
-  return known ? { key: known.key, name: known.name } : normaliseCarrier(providerLabel || providerId)
+  return known
+    ? { key: known.key, name: known.name }
+    : normaliseCarrier(providerLabel || providerId)
 }
 
 const EXPRESS = /express|\bair\b|apex|priority|premium|next\s*day|same\s*day/i

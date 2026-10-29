@@ -10,10 +10,12 @@ import {
   type OrderShippingSnapshot,
   order,
   orderLine,
+  orderNote,
   type StoreTx,
   variant,
 } from '@commerce/db'
 import { eq } from 'drizzle-orm'
+import type { StoreContext } from '../../context'
 import type { CourierRateRow } from '../courier-rates'
 import type { DeliveryOption, RouteSetting } from './config'
 import { type ProviderAnswer, type Route, routeKey, routesFromAnswers } from './routes'
@@ -148,4 +150,25 @@ export function bookingPlan(
     fallbackKey: saved && !chosenOk ? (ranked[0]?.optionKey ?? null) : null,
     allowedKeys: allowed.map((c) => c.row.optionKey),
   }
+}
+
+/**
+ * The merchant booked another route on purpose (another row in Create shipment, or a courier
+ * picked for the order in bulk): the order's timeline says which, against the route the shopper
+ * paid for, so shipping cost and promise questions have an answer later.
+ */
+export async function noteOffRoute(
+  ctx: StoreContext,
+  orderId: string,
+  route: NonNullable<OrderDeliveryRoute['route']>,
+  bookedWith: string,
+  bookedService: string | undefined,
+): Promise<void> {
+  const booked = [bookedService?.trim(), `via ${bookedWith}`].filter(Boolean).join(' ')
+  await ctx.tx.insert(orderNote).values({
+    storeId: ctx.storeId,
+    orderId,
+    body: `Booked ${booked} instead of the route chosen at checkout: ${route.carrier} ${route.serviceLabel} via ${route.providerId}.`,
+    author: null,
+  })
 }

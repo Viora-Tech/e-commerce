@@ -18,7 +18,8 @@ Developer docs: "Delivery options engine"; merchant guide: Apps → Delivery opt
   price on the Payment step, Standard-only backup when couriers are down.
 - Booking: Create shipment preselects the saved route ("Chosen at checkout") and shows the reason
   and fallback when it cannot be booked; bulk books each order's own route, failures come back as
-  "Needs a decision". Orders on backup still follow product route rules.
+  "Needs a decision". Orders on backup still follow product route rules. Booking another route
+  on purpose writes an order timeline note ("Booked … instead of the route chosen at checkout: …").
 - Admin: Apps → Delivery options (routes + route setting dialog, options, product route rules
   dialog, Try a PIN with the full trace), option page `/apps/delivery-options/options/[id]`.
 
@@ -34,7 +35,7 @@ Developer docs: "Delivery options engine"; merchant guide: Apps → Delivery opt
 - `pushOrder` does not yet pass the chosen courier to Shiprocket's pending order.
 - The order page shows the option and courier via the shipping line ("Express · Blue Dart"), not
   the full "via Shiprocket · insured · promised" thread; Settings → Shipping has no "app is on"
-  line yet. Booked-route-differs-from-order-route is visible only by comparing shipment and order.
+  line yet.
 - P2 items (stale-while-revalidate, circuit breaker, health line, backup marker on the order,
   margin) are not started.
 

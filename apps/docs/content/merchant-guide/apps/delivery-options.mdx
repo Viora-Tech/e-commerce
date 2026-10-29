@@ -92,7 +92,7 @@ Checkout never waits more than about a second on couriers. If none of an option'
 
 The order saves the exact route the customer's price came from (for example **Blue Dart Air via Shiprocket**, insured). On the order:
 
-- **Create shipment** opens with that route picked and marked **Chosen at checkout**, with what the customer paid. You can still pick another row on purpose.
+- **Create shipment** opens with that route picked and marked **Chosen at checkout**, with what the customer paid. You can still pick another row on purpose; the order's timeline then notes which route you booked instead.
 - If that route cannot be booked any more (app disconnected, PIN no longer served), the dialog says why and names the next route that still fits (product rules, insurance, COD, speed).
 - **Bulk booking** books each order on its own route, through its own app. Orders whose route fails are not swapped to another courier: they come back as "Needs a decision" for you to book from the order.
 - The AWB, label and tracking come from the route's app, and the shipment records the carrier (Blue Dart) as well as the app (Shiprocket).
