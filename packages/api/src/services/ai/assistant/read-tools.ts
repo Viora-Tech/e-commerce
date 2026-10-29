@@ -156,7 +156,10 @@ export function readTools(env: ToolEnv): AiToolSet {
                 { label: 'Status', value: row.status },
                 ...variants.map((v) => ({
                   label: v.title === 'Default' ? 'Price' : `Price, ${safeTitle(env, v.title)}`,
-                  value: `${money(env, v.price)}${v.mrp ? ` (MRP ${money(env, v.mrp)})` : ''}`,
+                  value:
+                    v.price == null
+                      ? 'not set yet'
+                      : `${money(env, v.price)}${v.mrp ? ` (MRP ${money(env, v.mrp)})` : ''}`,
                 })),
                 { label: 'In stock', value: String(stock?.n ?? 0) },
                 { label: 'Tags', value: guarded(env, row.tags.join(', '), 300) || 'none' },

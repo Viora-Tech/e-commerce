@@ -1,6 +1,8 @@
 /** Frame "Dialog · Select products" (295:11538): the shared product picker. */
 export const selectProductsContent = {
   title: 'Select products',
+  /** A variant listed without a price yet (#913). */
+  noPrice: 'No price yet',
   search: 'Search products',
   searchLabel: 'Search products by name or SKU',
   collection: 'Collection',

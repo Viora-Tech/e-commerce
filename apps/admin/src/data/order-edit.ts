@@ -54,6 +54,8 @@ export const orderTakeoverContent = {
 export const orderEditContent = {
   action: 'Edit order',
   short: 'Edit',
+  /** A variant listed without a price yet (#913): the line starts at ₹0 for you to type one. */
+  noPrice: 'No price yet',
   pageTitle: (n: number) => `Edit order #${n}`,
   back: (n: number) => `Order #${n}`,
   intro:

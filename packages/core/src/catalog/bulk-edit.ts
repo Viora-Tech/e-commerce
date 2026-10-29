@@ -187,7 +187,7 @@ export async function bulkEdit(
     if (!cur) continue
     const price = r.variant?.pricePaise ?? cur.pricePaise
     const mrp = r.variant && 'mrpPaise' in r.variant ? r.variant.mrpPaise : cur.mrpPaise
-    if (mrp != null && mrp < price) {
+    if (mrp != null && price != null && mrp < price) {
       fail(r.variantId, 'mrpPaise', 'Compare-at price must not be below the price')
     }
     const hs = r.variant && 'hsCode' in r.variant ? r.variant.hsCode : undefined

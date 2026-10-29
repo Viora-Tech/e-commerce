@@ -59,6 +59,7 @@ export default [
   }),
   translation(draftEditorContent, {
     newTitle: 'ड्राफ़्ट ऑर्डर बनाएँ',
+    noPrice: 'अभी कीमत नहीं',
     editTitle: (n: number) => `ड्राफ़्ट #${n}`,
     subtitle: {
       for: (name: string) => `${name} के लिए`,

@@ -16,7 +16,8 @@ export type SheetRow = {
   templateSuffix: string | null
   collectionIds: string[]
   variantTitle: string
-  pricePaise: number
+  /** Null: listed without a price yet (#913). */
+  pricePaise: number | null
   mrpPaise: number | null
   costPaise: number | null
   sku: string | null

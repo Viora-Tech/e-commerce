@@ -91,7 +91,7 @@ export default function ProductPricingSection({
   return (
     <div className="flex flex-col gap-4">
       <div className="grid gap-4 md:grid-cols-2">
-        <KitField label={copy.price} htmlFor="variant-price" required>
+        <KitField label={copy.price} htmlFor="variant-price" help={copy.priceHelp}>
           <MoneyInput
             size="kit"
             id="variant-price"

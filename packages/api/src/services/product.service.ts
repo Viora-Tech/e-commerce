@@ -8,6 +8,7 @@ import {
   onHandleChange,
   type ProductMissingFilter,
   parseStoreTax,
+  priceRange,
   type StockFilter,
   storeLowStockThreshold,
   watchStockCrossings,
@@ -205,8 +206,8 @@ export async function listProducts(
         preorderEnabled: r.preorderEnabled,
         launchAt: r.launchAt,
         variantCount: vs.length,
-        minPricePaise: vs.length ? Math.min(...vs.map((v) => v.pricePaise)) : null,
-        maxPricePaise: vs.length ? Math.max(...vs.map((v) => v.pricePaise)) : null,
+        minPricePaise: priceRange(vs.map((v) => v.pricePaise))?.min ?? null,
+        maxPricePaise: priceRange(vs.map((v) => v.pricePaise))?.max ?? null,
         available: vs.reduce((n, v) => n + Math.max(0, (v.onHand ?? 0) - (v.reserved ?? 0)), 0),
       }
     }),

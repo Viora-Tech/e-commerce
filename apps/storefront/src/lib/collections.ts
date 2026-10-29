@@ -13,7 +13,7 @@ import {
 } from '@commerce/db'
 import type { RichTextValue } from '@commerce/richtext'
 import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
-import { cardPreorder, cardRatings, listCardProducts } from './catalog'
+import { cardPreorder, cardRatings, cheapestPriced, listCardProducts } from './catalog'
 
 export type CollectionDetail = {
   id: string
@@ -200,21 +200,18 @@ export async function listCollectionProducts(
 
   const items = rows.map((p) => {
     const vs = variants.filter((v) => v.productId === p.id)
-    const cheapest = vs.reduce<(typeof vs)[number] | null>(
-      (m, v) => (m === null || v.pricePaise < m.pricePaise ? v : m),
-      null,
-    )
+    const cheapest = cheapestPriced(vs)
     return {
       id: p.id,
       handle: p.handle,
       title: p.title,
       vendor: p.vendor,
       productType: p.productType,
-      pricePaise: cheapest?.pricePaise ?? 0,
+      pricePaise: cheapest?.pricePaise ?? null,
       mrpPaise: cheapest?.mrpPaise ?? null,
       available: vs.reduce((n, v) => n + availableFor(v), 0),
-      // Quick add needs no choice only when there is one variant to add.
-      quickAddVariantId: vs.length === 1 ? (vs[0]?.id ?? null) : null,
+      // Quick add needs no choice only when there is one priced variant to add.
+      quickAddVariantId: vs.length === 1 && cheapest ? (vs[0]?.id ?? null) : null,
       preorder: cardPreorder(p, vs),
       rating: ratings.get(p.id) ?? null,
       images: images
@@ -228,8 +225,14 @@ export async function listCollectionProducts(
     }
   })
 
-  if (options.sort === 'price_asc') items.sort((a, b) => a.pricePaise - b.pricePaise)
-  if (options.sort === 'price_desc') items.sort((a, b) => b.pricePaise - a.pricePaise)
+  // Products without a price yet (#913) sort last either way.
+  const priceOf = (p: CardProduct, missing: number) => p.pricePaise ?? missing
+  if (options.sort === 'price_asc') {
+    items.sort((a, b) => priceOf(a, Infinity) - priceOf(b, Infinity))
+  }
+  if (options.sort === 'price_desc') {
+    items.sort((a, b) => priceOf(b, -Infinity) - priceOf(a, -Infinity))
+  }
   return { items, total }
 }
 

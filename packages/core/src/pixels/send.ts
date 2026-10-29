@@ -178,7 +178,8 @@ async function storefrontEvent(
       .select({ id: variant.id, pricePaise: variant.pricePaise })
       .from(variant)
       .where(eq(variant.id, job.variantId))
-    if (v) contents = [{ id: v.id, quantity: 1, itemPricePaise: v.pricePaise }]
+    // A variant listed without a price (#913) reports no value rather than ₹0.
+    if (v?.pricePaise != null) contents = [{ id: v.id, quantity: 1, itemPricePaise: v.pricePaise }]
   }
   const valuePaise =
     contents.length > 0 ? contents.reduce((n, c) => n + c.quantity * c.itemPricePaise, 0) : null

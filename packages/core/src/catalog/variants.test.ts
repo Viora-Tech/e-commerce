@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { buildMatrix, diffVariants, variantErrors, variantTitle } from './variants'
+import { buildMatrix, diffVariants, priceRange, variantErrors, variantTitle } from './variants'
+
+describe('priceRange', () => {
+  it('skips variants without a price and is null when none has one (#913)', () => {
+    expect(priceRange([500, null, 200])).toEqual({ min: 200, max: 500 })
+    expect(priceRange([null, null])).toBeNull()
+    expect(priceRange([])).toBeNull()
+  })
+})
 
 const v = (optionValues: string[], id?: string) => ({ id, optionValues, pricePaise: 100 })
 

@@ -29,7 +29,8 @@ export type LoopProduct = {
   title: string
   vendor: string | null
   productType: string | null
-  pricePaise: number
+  /** Null when no variant has a price yet (#913). */
+  pricePaise: number | null
   mrpPaise: number | null
   images: { url: string; alt: string | null }[]
 }
@@ -44,7 +45,8 @@ function productRow(p: LoopProduct): LoopRow {
   const values: Record<keyof typeof LOOP_PRODUCT_FIELDS, unknown> = {
     title: p.title,
     price: p.pricePaise,
-    compare_at_price: p.mrpPaise && p.mrpPaise > p.pricePaise ? p.mrpPaise : null,
+    compare_at_price:
+      p.pricePaise != null && p.mrpPaise && p.mrpPaise > p.pricePaise ? p.mrpPaise : null,
     vendor: p.vendor,
     type: p.productType,
     featured_image: image ? { url: image.url, alt: image.alt ?? p.title } : null,
@@ -183,7 +185,7 @@ export async function previewCollectionProducts(
       title: r.title,
       vendor: r.vendor,
       productType: r.productType,
-      pricePaise: price?.price ?? 0,
+      pricePaise: price?.price ?? null,
       mrpPaise: price?.mrp ?? null,
       images: image ? [{ url: image.url, alt: image.alt }] : [],
     }

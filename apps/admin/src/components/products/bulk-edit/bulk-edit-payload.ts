@@ -41,7 +41,8 @@ function productPatch(
 
 function variantPatch(r: GridRow, changed: (key: string) => boolean): VariantPatch {
   const variant: VariantPatch = {}
-  if (changed('price')) variant.pricePaise = parsePaise(r.price) ?? 0
+  // A cleared price lists the variant without one (#913), never at ₹0.
+  if (changed('price')) variant.pricePaise = parsePaise(r.price)
   if (changed('mrp')) variant.mrpPaise = parsePaise(r.mrp)
   if (changed('cost')) variant.costPaise = parsePaise(r.cost)
   if (changed('sku')) variant.sku = blank(r.sku)

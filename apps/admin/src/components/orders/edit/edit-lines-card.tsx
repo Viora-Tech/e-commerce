@@ -53,7 +53,8 @@ export default function EditLinesCard({ order, state, onChange }: EditLinesCardP
               sku: v.sku,
               imageUrl: v.imageUrl,
               quantity: 1,
-              unitPricePaise: v.pricePaise,
+              // No price yet (#913): starts at nothing for the merchant to type one in.
+              unitPricePaise: v.pricePaise ?? 0,
             },
           ],
     })

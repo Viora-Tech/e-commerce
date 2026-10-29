@@ -72,6 +72,19 @@ describe('JSON-LD', () => {
     expect(crumbs.itemListElement.at(-1).item).toBe('https://waimers.in/products/veil')
   })
 
+  it('makes no offer for a variant listed without a price (#913)', () => {
+    const pending = { id: 'v3', title: 'Blue', sku: null, pricePaise: null, available: 4 }
+    const [mixed] = parsed(
+      productGraph({ ...product, variants: [...product.variants, pending] }, origin, 'INR', 'W'),
+    )['@graph']
+    expect(mixed.offers.offerCount).toBe(2)
+    expect(mixed.offers.lowPrice).toBe('7499.00')
+    const [none] = parsed(productGraph({ ...product, variants: [pending] }, origin, 'INR', 'W'))[
+      '@graph'
+    ]
+    expect(none.offers).toBeUndefined()
+  })
+
   it('uses a single Offer, and the store as brand, for a one-variant product', () => {
     const one = { ...product, vendor: null, variants: [product.variants[0] as never] }
     const [p] = parsed(productGraph(one, origin, 'INR', 'Waimers'))['@graph']

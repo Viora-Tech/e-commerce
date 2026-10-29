@@ -56,6 +56,7 @@ export default [
   translation(orderEditContent, {
     action: 'ऑर्डर बदलें',
     short: 'बदलें',
+    noPrice: 'अभी कीमत नहीं',
     pageTitle: (n) => `ऑर्डर #${n} बदलें`,
     back: (n) => `ऑर्डर #${n}`,
     intro: 'आइटम जोड़ें या हटाएं, मात्रा, कीमत, शिपिंग या डिस्काउंट बदलें। रिव्यू करके सेव करने तक कुछ नहीं बदलता।',

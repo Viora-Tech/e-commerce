@@ -428,7 +428,7 @@ export const variant = pgTable(
     sku: text('sku'),
     barcode: text('barcode'),
     title: text('title').notNull(),
-    pricePaise: integer('price_paise').notNull(),
+    pricePaise: integer('price_paise'),
     mrpPaise: integer('mrp_paise'),
     /** What the merchant paid; never shown to shoppers. */
     costPaise: integer('cost_paise'),
