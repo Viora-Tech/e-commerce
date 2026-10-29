@@ -189,6 +189,18 @@ describe('My reports', () => {
     )
     expect(all).toHaveLength(2)
   })
+
+  it('never shows one store’s reports in another (row-level security)', async () => {
+    await seed()
+    const [other] = await owner.insert(store).values({ slug: 'o', name: 'Other' }).returning()
+    if (!other) throw new Error('seed')
+    const seen = await withStore(app, other.id, (tx) => tx.select().from(bugReport))
+    expect(seen).toEqual([])
+    const listed = await withStore(app, other.id, (tx) =>
+      listBugReports(tx, { userId: 'u-owner', scope: 'store' }),
+    )
+    expect(listed).toEqual([])
+  })
 })
 
 describe('GitHub webhook', () => {
