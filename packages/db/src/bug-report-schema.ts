@@ -10,7 +10,7 @@ import { newId, store } from './schema'
  */
 
 /** received → in_progress → fixed (merged into dev) → live (released to main); or wont_fix. */
-export const BUG_REPORT_STATUSES = ['received', 'in_progress', 'fixed', 'live', 'wont_fix'] as const
+const BUG_REPORT_STATUSES = ['received', 'in_progress', 'fixed', 'live', 'wont_fix'] as const
 export type BugReportStatus = (typeof BUG_REPORT_STATUSES)[number]
 
 const at = (name: string) => timestamp(name, { withTimezone: true })

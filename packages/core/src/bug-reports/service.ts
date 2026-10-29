@@ -12,7 +12,7 @@ import {
 } from './client'
 
 /** Most reports one list returns. */
-export const BUG_REPORT_LIST_MAX = 100
+const BUG_REPORT_LIST_MAX = 100
 
 export type NewBugReport = {
   reporterUserId: string
@@ -47,7 +47,7 @@ function isUnread(r: Pick<Row, 'statusChangedAt' | 'reporterSeenAt' | 'createdAt
   return r.statusChangedAt > (r.reporterSeenAt ?? r.createdAt)
 }
 
-export function toBugReportView(r: Row, userId: string | null): BugReportView {
+function toBugReportView(r: Row, userId: string | null): BugReportView {
   const mine = userId !== null && r.reporterUserId === userId
   return {
     id: r.id,
@@ -94,7 +94,10 @@ export async function countUnreadBugReports(tx: StoreTx, userId: string): Promis
     .where(
       and(
         eq(bugReport.reporterUserId, userId),
-        gt(bugReport.statusChangedAt, sql`coalesce(${bugReport.reporterSeenAt}, ${bugReport.createdAt})`),
+        gt(
+          bugReport.statusChangedAt,
+          sql`coalesce(${bugReport.reporterSeenAt}, ${bugReport.createdAt})`,
+        ),
       ),
     )
   return row?.n ?? 0
@@ -194,14 +197,8 @@ export async function patchBugReport(
   return row ?? null
 }
 
-/** One report row by id (the store's RLS scopes it). */
-export async function bugReportById(tx: StoreTx, id: string): Promise<Row | null> {
-  const [row] = await tx.select().from(bugReport).where(eq(bugReport.id, id))
-  return row ?? null
-}
-
-/** The store's name, for the platform console's list. */
-export async function bugReportStoreName(tx: StoreTx, storeId: string): Promise<string> {
+/** The store's name, for the reporter's email. */
+async function bugReportStoreName(tx: StoreTx, storeId: string): Promise<string> {
   const [row] = await tx.select({ name: store.name }).from(store).where(eq(store.id, storeId))
   return row?.name ?? 'Unknown store'
 }
@@ -214,8 +211,8 @@ export type BugReportEmailOptions = {
 
 /**
  * Emails the reporter that their report is fixed or live, through the platform email account,
- * only when they keep "App errors" email alerts on for this store (owners default on, staff
- * off) and are still a member. Best effort: false when nothing went.
+ * only when they keep "Your bug reports" email on in Account → Notifications for this store (on
+ * by default) and are still a member. Best effort: false when nothing went.
  */
 export async function emailBugReportUpdate(
   tx: StoreTx,
@@ -231,7 +228,7 @@ export async function emailBugReportUpdate(
     report.reporterUserId,
     access.isOwner,
   )
-  if (!prefs.appErrors.email) return false
+  if (!prefs.bugReports.email) return false
   const transport = (opts.platform ?? getPlatformEmail()).transport
   if (!transport) return false
   const channel = transport.channel({

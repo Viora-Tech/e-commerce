@@ -31,7 +31,9 @@ type Form = MemberAlertPrefsInput
 type Channel = 'email' | 'whatsapp'
 
 /** Alerts the worker sends today; the rest are saved for when their senders land. */
-const WIRED: ReadonlySet<string> = new Set(['newOrder', 'dailySummary'])
+const WIRED: ReadonlySet<string> = new Set(['newOrder', 'dailySummary', 'bugReports'])
+/** Alerts sent only by email: bug report news goes from the platform, not the store's WhatsApp. */
+const EMAIL_ONLY: ReadonlySet<string> = new Set(['bugReports'])
 const HOURS = Array.from({ length: 24 }, (_, h) => h)
 
 /** The saved prefs as the form edits them (`lastSentOn` is the server's). */
@@ -122,6 +124,8 @@ export default function NotificationsPage() {
     loaded !== null &&
     form !== null &&
     JSON.stringify(form) !== JSON.stringify(formOf(loaded.prefs))
+  // "Your bug reports" only where this server takes bug reports.
+  const shownAlerts = MEMBER_ALERTS.filter((alert) => alert !== 'bugReports' || loaded?.bugReports)
   const channels: Channel[] = loaded?.whatsappAvailable ? ['email', 'whatsapp'] : ['email']
   const hourItems = Object.fromEntries(HOURS.map((h) => [String(h), hourLabel(h)]))
 
@@ -150,7 +154,7 @@ export default function NotificationsPage() {
           </div>
         ) : (
           <ul className="flex flex-col">
-            {MEMBER_ALERTS.map((alert) => (
+            {shownAlerts.map((alert) => (
               <li
                 key={alert}
                 className="flex flex-col gap-3 border-b border-hairline py-4 first:pt-0 last:border-b-0 last:pb-0 md:flex-row md:items-center md:gap-6"
@@ -188,21 +192,23 @@ export default function NotificationsPage() {
                       </Select>
                     </div>
                   ) : null}
-                  {channels.map((channel) => (
-                    <Label
-                      key={channel}
-                      htmlFor={`alert-${alert}-${channel}`}
-                      className="flex items-center gap-2 text-body font-normal text-ink-strong"
-                    >
-                      <Switch
-                        id={`alert-${alert}-${channel}`}
-                        checked={form[alert][channel]}
-                        onCheckedChange={(on) => handleSwitch(alert, channel, on)}
-                        disabled={channel === 'whatsapp' && !loaded.hasPhone}
-                      />
-                      {copy.channels[channel]}
-                    </Label>
-                  ))}
+                  {channels
+                    .filter((channel) => channel === 'email' || !EMAIL_ONLY.has(alert))
+                    .map((channel) => (
+                      <Label
+                        key={channel}
+                        htmlFor={`alert-${alert}-${channel}`}
+                        className="flex items-center gap-2 text-body font-normal text-ink-strong"
+                      >
+                        <Switch
+                          id={`alert-${alert}-${channel}`}
+                          checked={form[alert][channel]}
+                          onCheckedChange={(on) => handleSwitch(alert, channel, on)}
+                          disabled={channel === 'whatsapp' && !loaded.hasPhone}
+                        />
+                        {copy.channels[channel]}
+                      </Label>
+                    ))}
                 </div>
               </li>
             ))}

@@ -11,11 +11,6 @@ export const activityRouter = {
     permissions.INVENTORY_READ,
     permissions.CONTENT_READ,
   ]).handler(({ context }) =>
-    loadActivityFeed(
-      context.tx,
-      context.scope.storeId,
-      context.scope.can,
-      context.session.user.id,
-    ),
+    loadActivityFeed(context.tx, context.scope.storeId, context.scope.can, context.session.user.id),
   ),
 }

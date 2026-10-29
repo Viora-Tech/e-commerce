@@ -355,11 +355,6 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'the column enums; landed-cost.test.ts checks core keeps the same lists',
   },
   {
-    file: 'packages/api/src/services/bug-report.service.ts',
-    names: ['scrubSecrets'],
-    reason: 'the redaction rule behind buildBugIssue, exported for its unit test',
-  },
-  {
     file: 'packages/core/src/theme-import/bundle.ts',
     names: ['nonceThemeScripts'],
     reason:

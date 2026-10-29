@@ -1,6 +1,7 @@
 'use client'
 
-import { BugIcon, LogOut, Settings, Store } from '@commerce/ui/icons'
+import { BugIcon, ClipboardList, LogOut, Settings, Store } from '@commerce/ui/icons'
+import { cn } from '@commerce/ui/lib/utils'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +20,7 @@ import { bugReportContent } from '@/data/bug-report'
 import { navigationContent } from '@/data/navigation'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
+import { useUnreadBugReports } from '@/hooks/use-unread-bug-reports'
 import { authClient } from '@/lib/auth-client'
 import { openBugReport } from '@/lib/bug-report-events'
 import { routes } from '@/lib/routes'
@@ -27,7 +29,7 @@ import TopBarTip from './top-bar-tip'
 
 type UserMenuProps = {
   user: { name: string; email: string; image?: string | null }
-  /** Adds "Report a bug" (test server only). */
+  /** Adds "Report a bug" and "My reports", with a dot when a report has news (test server only). */
   bugReports: boolean
   /** The button that opens the menu: its look is the caller's. */
   trigger: ReactNode
@@ -66,6 +68,7 @@ export default function UserMenu({
   const accountCopy = useCopy(accountContent)
   const router = useRouter()
   const { member } = usePermissions()
+  const unreadReports = useUnreadBugReports(bugReports)
 
   // Event handlers
   const handleSignOut = async () => {
@@ -81,8 +84,21 @@ export default function UserMenu({
   /* The go-to keys (G A, G ,) shown beside their rows, as in Figma. */
   const goKeys: Record<string, string> = { account: 'G A' }
   const triggerButton = (
-    <DropdownMenuTrigger aria-label={triggerLabel} className={triggerClassName}>
+    <DropdownMenuTrigger
+      aria-label={
+        unreadReports > 0
+          ? `${triggerLabel}, ${bugCopy.myReportsUnread(unreadReports)}`
+          : triggerLabel
+      }
+      className={cn(triggerClassName, unreadReports > 0 && 'relative')}
+    >
       {trigger}
+      {unreadReports > 0 ? (
+        <span
+          aria-hidden="true"
+          className="absolute top-0.5 right-0.5 size-2 rounded-full bg-info ring-2 ring-card"
+        />
+      ) : null}
     </DropdownMenuTrigger>
   )
 
@@ -141,10 +157,23 @@ export default function UserMenu({
           </>
         ) : null}
         {bugReports ? (
-          <DropdownMenuItem onClick={openBugReport}>
-            <BugIcon className="size-4" />
-            {bugCopy.open}
-          </DropdownMenuItem>
+          <>
+            <DropdownMenuItem onClick={openBugReport}>
+              <BugIcon className="size-4" />
+              {bugCopy.open}
+            </DropdownMenuItem>
+            <DropdownMenuItem render={<Link href={routes.account.bugReports()} />}>
+              <ClipboardList className="size-4" />
+              {bugCopy.myReports}
+              {unreadReports > 0 ? (
+                <span
+                  role="img"
+                  aria-label={bugCopy.myReportsUnread(unreadReports)}
+                  className="ml-auto size-2 rounded-full bg-info"
+                />
+              ) : null}
+            </DropdownMenuItem>
+          </>
         ) : null}
         <DropdownMenuItem onClick={handleSignOut}>
           <LogOut className="size-4" />

@@ -1,11 +1,6 @@
 import { resolve } from 'node:path'
 import { loadEnv } from '@commerce/config'
-import {
-  bugReportSyncDeps,
-  createRedisRateLimitStore,
-  dokployConfigFrom,
-  platformRoots,
-} from '@commerce/core'
+import { createRedisRateLimitStore, dokployConfigFrom, platformRoots } from '@commerce/core'
 import { createDb } from '@commerce/db'
 import { reportWorkerFailures } from '@commerce/observability'
 import { flushLogs, initLogging, logger, logWorkerJobs } from '@commerce/observability/logging'
@@ -21,7 +16,7 @@ import { AUTOMATIONS_TICK_MS, createAutomationsWorker } from './automations'
 import { AUTOMATION_PRUNE_EVERY_MS, createAutomationsPrune } from './automations-prune'
 import { createBackInStockWorker } from './back-in-stock'
 import { BILLING_EVERY_MS, createBillingSweep } from './billing'
-import { BUG_REPORT_SYNC_EVERY_MS, createBugReportSync } from './bug-report-sync'
+import { createBugReportSync } from './bug-report-sync'
 import { CHANNEL_SYNC_EVERY_MS, createChannelSync } from './channel-sync'
 import {
   CERTIFICATE_EVERY_MS,
@@ -149,15 +144,7 @@ const billing = createBillingSweep(redis, db, {
   storefrontUrl: env.STOREFRONT_URL,
 })
 const apiActivityPrune = createApiActivityPrune(redis, db)
-// "Report a bug" statuses: the webhook moves them; this poll catches what it missed (token only).
-const bugReportDeps = bugReportSyncDeps({
-  token: env.GITHUB_ISSUES_TOKEN,
-  repo: env.GITHUB_ISSUES_REPO,
-  adminUrl: env.ADMIN_URL,
-})
-const bugReportSync = bugReportDeps.github
-  ? createBugReportSync(redis, db, { ...bugReportDeps, github: bugReportDeps.github })
-  : null
+const bugReportSync = await createBugReportSync(redis, db, env)
 const automationsPrune = createAutomationsPrune(redis, db)
 const retentionPrune = createRetentionPrune(redis, db)
 const rolloutsTick = createRolloutsTick(redis, db)
@@ -232,10 +219,6 @@ const watched = [
 for (const [w, queueName] of watched) {
   reportWorkerFailures(w, queueName, reportError)
   logWorkerJobs(w, queueName)
-}
-if (bugReportSync) {
-  reportWorkerFailures(bugReportSync.worker, 'bug-report-sync', reportError)
-  logWorkerJobs(bugReportSync.worker, 'bug-report-sync')
 }
 // Finished jobs kept from before KEEP_FINISHED; in the background so start-up does not wait.
 trimFinishedJobs(
@@ -363,11 +346,6 @@ await scheduleRolloutsTick(rolloutsTick.queue)
 // Markets' reference exchange rates: 21:30 India time, after the ECB publishes; once now too.
 await fxRates.queue.upsertJobScheduler('fx-rates', FX_RATES_SCHEDULE, { name: 'refresh' })
 await fxRates.queue.add('refresh', {})
-await bugReportSync?.queue.upsertJobScheduler(
-  'bug-report-sync',
-  { every: BUG_REPORT_SYNC_EVERY_MS },
-  { name: 'poll' },
-)
 await channelSync.queue.upsertJobScheduler(
   'channel-sync-sweep',
   { every: CHANNEL_SYNC_EVERY_MS },
@@ -478,8 +456,7 @@ const shutdown = async () => {
   await billing.queue.close()
   await apiActivityPrune.worker.close()
   await apiActivityPrune.queue.close()
-  await bugReportSync?.worker.close()
-  await bugReportSync?.queue.close()
+  await bugReportSync?.close()
   await automationsPrune.worker.close()
   await automationsPrune.queue.close()
   await retentionPrune.worker.close()

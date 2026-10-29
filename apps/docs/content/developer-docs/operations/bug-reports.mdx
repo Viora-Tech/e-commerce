@@ -77,8 +77,9 @@ server console instead, and the toast says so.
 GitHub → Settings → Developer settings → Fine-grained tokens → Generate:
 
 - **Resource owner**: Viora-Tech. **Repository access**: only `Viora-Tech/e-commerce`.
-- **Permissions**: Repository → **Issues: Read and write**. Nothing else (Metadata: read is
-  added automatically). No code, no pull requests, no admin.
+- **Permissions**: Repository → **Issues: Read and write** and **Contents: Read** (the status
+  sync reads which commit closed an issue and whether it reached `main`). Nothing else
+  (Metadata: read is added automatically). No writing code, no pull requests, no admin.
 - Set an expiry and note it; when it expires reports fail with "GitHub did not take the report".
 
 Only the labels `bug` and `test-server` are sent: GitHub refuses a label that does not exist.
@@ -89,6 +90,99 @@ Screenshots can show store data: customer names, order totals, addresses. That i
 is for the **test server only** (keep `BUG_REPORTS_ENABLED` off on the live server) and the dialog
 says "It may show store details". The screenshot link is unguessable but public to anyone who has
 it, and the issue lives in a private repository. Members can untick the screenshot before sending.
+
+## Report status (Account → My reports)
+
+Every report is also saved in the store's `bug_report` table (migration `0187_bug_report`) beside
+its issue number, so the reporter can follow it in the admin without access to the private repo.
+GitHub stays where the team works; the admin only reads the outcome.
+
+| Status | Set when |
+| --- | --- |
+| `received` | The report is filed |
+| `in_progress` | The issue gets the `in-progress` label, or a closed issue is reopened |
+| `fixed` | The issue is closed as completed (normally by a fix PR merged into `dev` that says `Fixes #n`) |
+| `live` | The commit that closed it is in `main` (a release went out). An issue closed by hand goes live with the next push to `main` |
+| `wont_fix` | The issue is closed as *not planned*, or gets the `wontfix` label |
+
+`live` never steps back to `fixed`, and a reopen always wins. The rules are pure functions in
+`packages/core/src/bug-reports/sync.ts` (`nextBugReportStatus`, `statusFromIssue`).
+
+**The team's reply.** The latest comment by an OWNER, MEMBER or COLLABORATOR is shown to the
+reporter, secrets scrubbed, at most 4000 characters. Start a comment with `internal:` to keep it
+between the team. Editing a comment updates the reply; deleting it, or editing it to start with
+`internal:`, clears it.
+
+### How the status gets here
+
+```mermaid
+flowchart LR
+  gh["GitHub repo"] -- "webhook (signed)" --> route["admin /api/github/webhook"]
+  route --> verify["X-Hub-Signature-256 check"]
+  verify --> apply["handleGithubWebhook<br/>(core bug-reports/github-sync.ts)"]
+  poll["worker: bug-report-sync<br/>every 15 min"] -- "REST, token" --> gh
+  poll --> apply2["pollBugReports"]
+  apply --> db[("bug_report<br/>(store RLS)")]
+  apply2 --> db
+  db --> page["My reports, menu dot, bell"]
+  db --> mail["Email to the reporter<br/>(fixed, live)"]
+```
+
+- **Webhook** (`apps/admin/src/app/api/github/webhook/route.ts`): every delivery's
+  `X-Hub-Signature-256` is an HMAC-SHA256 of the raw body with `GITHUB_WEBHOOK_SECRET`, compared
+  in constant time; a missing or wrong signature gets 401 and changes nothing. With no secret set
+  the route answers 404. Deliveries from any repository other than `GITHUB_ISSUES_REPO` are
+  ignored, repeats of a delivery id are skipped, and the route is rate limited.
+- **Poll** (`apps/worker/src/bug-report-sync.ts`): only with `GITHUB_ISSUES_TOKEN`. Every 15
+  minutes it re-reads up to 40 open reports' issues that were not synced in the last 10 minutes,
+  so a missed webhook catches up. A 401 or 403 stops the run.
+- Every change is idempotent: the same status twice is a no-op, so retries, the poll and the
+  webhook never double-notify.
+- **The token** is read from `GITHUB_ISSUES_TOKEN` and lives only inside the GitHub client
+  (`packages/core/src/bug-reports/github.ts`). Its errors carry the HTTP status only; the token
+  is never logged or returned.
+
+### Store isolation
+
+`bug_report` has a `store_id` and gets the usual row-level security (`apply_store_rls()`), so
+every read and write runs inside `withStore` and a store only ever sees its own reports. The
+webhook names an issue, not a store: two `SECURITY DEFINER` functions return only store ids
+(`bug_report_stores_for_issue`, `stores_with_bug_reports`), and each store's rows are then read
+under that store's RLS. In the admin a member sees their own reports; the owner can also list
+the whole store's (`bugReports.list` with `scope: 'store'`).
+
+### Telling the reporter
+
+- **My reports** (`/account/bug-reports`, linked from the account menu) lists the reports and
+  marks changed ones **New**. The account menu shows a dot while a report has news
+  (`bugReports.unreadCount`, re-asked every 5 minutes); opening the page calls
+  `bugReports.markSeen`.
+- **The bell** lists the member's own reports that turned fixed or live this week.
+- **Email** (`bug_report_update`, from the platform email account) when a report turns fixed or
+  live, only while the member keeps **Your bug reports → Email** on in Account → Notifications
+  (`bugReports` in the member alert prefs; on by default for everyone, since it is only about
+  their own report). Email only: the store's WhatsApp number is not used for platform messages.
+
+### Webhook setup (test server)
+
+1. Make a secret: `openssl rand -hex 32`. Set it as `GITHUB_WEBHOOK_SECRET` on the **admin** app
+   in Dokploy (one key at a time). Set `ADMIN_URL` there and on the worker too, for the email's
+   button.
+2. GitHub → the repository → Settings → Webhooks → Add webhook:
+   - **Payload URL**: `<ADMIN_URL>/api/github/webhook`
+   - **Content type**: `application/json`
+   - **Secret**: the same value
+   - **Events**: *Let me select individual events* → **Issues**, **Issue comments**, **Pushes**,
+     **Pull requests**.
+3. GitHub sends a ping; the route answers `ok` with change `ignore`. "Recent Deliveries" shows a
+   401 if the secrets differ.
+
+The worker needs `GITHUB_ISSUES_TOKEN` (and `GITHUB_ISSUES_REPO` if not the default) for the poll.
+
+### Not built yet
+
+A staff page to set a status and reply from the admin (`/platform/reports`) waits for the staff
+console (PR #952). Until then, reply and change status on GitHub; the admin follows.
 
 ## Where reports go next
 

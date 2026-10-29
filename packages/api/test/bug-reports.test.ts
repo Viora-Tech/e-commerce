@@ -226,6 +226,48 @@ describe('bugReports.create', () => {
     expect(sentIssue().body.body).toContain('Staff')
   })
 
+  it('keeps each report for My reports: own reports for staff, the whole store for the owner', async () => {
+    enable()
+    const a = await merchant('owner@example.com', 'bugs-a')
+    const helper = await staff(a.storeId, a.organizationId, a.headers)
+    await call(appRouter.bugReports.create, report, { context: ctx(a.headers) })
+    await call(
+      appRouter.bugReports.create,
+      { ...report, summary: 'Helper: token=abc123 breaks' },
+      { context: ctx(helper) },
+    )
+
+    const mine = await call(appRouter.bugReports.list, { scope: 'mine' }, { context: ctx(helper) })
+    expect(mine.canSeeStore).toBe(false)
+    expect(mine.reports).toHaveLength(1)
+    expect(mine.reports[0]).toMatchObject({
+      title: 'Helper: token=[redacted] breaks',
+      status: 'received',
+      githubIssueNumber: 124,
+      page: '/products/abc?tab=pricing',
+      mine: true,
+      unread: false,
+    })
+    await expect(
+      call(appRouter.bugReports.list, { scope: 'store' }, { context: ctx(helper) }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+
+    const store = await call(
+      appRouter.bugReports.list,
+      { scope: 'store' },
+      { context: ctx(a.headers) },
+    )
+    expect(store.canSeeStore).toBe(true)
+    expect(store.reports).toHaveLength(2)
+
+    expect(
+      await call(appRouter.bugReports.unreadCount, undefined, { context: ctx(helper) }),
+    ).toEqual({ count: 0 })
+    expect(await call(appRouter.bugReports.markSeen, undefined, { context: ctx(helper) })).toEqual({
+      ok: true,
+    })
+  })
+
   it('without a token (development) logs the would-be issue and never calls GitHub', async () => {
     enable(null)
     const log = vi.spyOn(console, 'info').mockImplementation(() => undefined)

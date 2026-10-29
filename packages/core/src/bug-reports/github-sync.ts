@@ -1,12 +1,9 @@
-/** SOURCE OF TRUTH: bug report sync with GitHub — WHAT: applies a webhook delivery to the reports filed as that issue (in whichever store), marks fixed reports live once their fix reaches main, polls open issues as a fallback, and writes the platform console's status and reply back to GitHub / WHY: GitHub is where the team works; the reporter reads the result in the admin. Every step is idempotent (same status twice is a no-op), so retried deliveries and the poll never double-notify */
+/** SOURCE OF TRUTH: bug report sync with GitHub — WHAT: applies a webhook delivery to the reports filed as that issue (in whichever store), marks fixed reports live once their fix reaches main, and polls open issues as a fallback / WHY: GitHub is where the team works; the reporter reads the result in the admin. Every step is idempotent (same status twice is a no-op), so retried deliveries and the poll never double-notify */
 import { bugReportStoresForIssue, type Db, storesWithBugReports, withStore } from '@commerce/db'
-import type { BugReportStatus } from './client'
-import { scrubSecrets } from './scrub'
 import { GithubApiError, type GithubClient, githubClient } from './github'
 import {
   type BugReportEmailOptions,
   type BugReportPatch,
-  bugReportById,
   bugReportsForIssue,
   emailBugReportUpdate,
   openBugReports,
@@ -14,14 +11,12 @@ import {
 } from './service'
 import {
   type GithubChange,
-  IN_PROGRESS_LABEL,
   latestVisibleReply,
   nextBugReportStatus,
   RELEASE_BRANCH,
   readGithubEvent,
   statusFromIssue,
   verifyGithubSignature,
-  WONT_FIX_LABEL,
 } from './sync'
 
 export type BugReportSyncDeps = {
@@ -154,7 +149,7 @@ async function applyReply(
  * push's own commit list answers most without a call; otherwise GitHub's compare does (capped).
  * A report closed by hand (no fix commit) counts as shipped by the first release after it closed.
  */
-export async function markReleasedBugReports(
+async function markReleasedBugReports(
   db: Db,
   release: { head: string; commits: string[] },
   deps: BugReportSyncDeps,
@@ -194,7 +189,7 @@ export async function markReleasedBugReports(
 }
 
 /** Applies one webhook delivery (already signature-checked and read by `readGithubEvent`). */
-export async function applyGithubChange(
+async function applyGithubChange(
   db: Db,
   change: GithubChange,
   deps: BugReportSyncDeps,
@@ -285,81 +280,6 @@ export async function pollBugReports(
     }
   }
   return out
-}
-
-/** What the platform console may change on one report. */
-export type PlatformBugReportUpdate = {
-  storeId: string
-  id: string
-  status?: BugReportStatus
-  /** Posted as a comment on the issue and shown to the reporter as the latest reply. */
-  reply?: string
-}
-
-/** The GitHub calls that put an issue in the state `status` means. */
-async function writeStatusToGithub(
-  github: GithubClient,
-  issue: number,
-  status: BugReportStatus,
-): Promise<void> {
-  if (status === 'received' || status === 'in_progress') {
-    await github.removeLabel(issue, WONT_FIX_LABEL)
-    if (status === 'in_progress') await github.addLabels(issue, [IN_PROGRESS_LABEL])
-    else await github.removeLabel(issue, IN_PROGRESS_LABEL)
-    await github.setState(issue, 'open', 'reopened')
-    return
-  }
-  if (status === 'wont_fix') {
-    await github.addLabels(issue, [WONT_FIX_LABEL])
-    await github.setState(issue, 'closed', 'not_planned')
-    return
-  }
-  // fixed and live both mean "closed as completed"; live itself is ours, not GitHub's.
-  await github.removeLabel(issue, WONT_FIX_LABEL)
-  await github.setState(issue, 'closed', 'completed')
-}
-
-/**
- * Platform console: sets a report's status and/or posts a reply. GitHub first (comment, close,
- * reopen, labels), then the database, so a GitHub refusal changes nothing here. The webhook
- * echo of the same change is a no-op. Returns null when the report does not exist.
- */
-export async function updateBugReportFromPlatform(
-  db: Db,
-  input: PlatformBugReportUpdate,
-  deps: BugReportSyncDeps,
-): Promise<SyncResult | null> {
-  const row = await withStore(db, input.storeId, (tx) => bugReportById(tx, input.id))
-  if (!row) return null
-  const now = deps.now?.() ?? new Date()
-  const issue = row.githubIssueNumber
-  const patch: BugReportPatch = {}
-  const reply = input.reply?.trim()
-  if (reply) {
-    let commentId: string | null = null
-    let at = now
-    if (deps.github && issue !== null) {
-      const c = await deps.github.comment(issue, reply)
-      commentId = String(c.id)
-      at = new Date(c.createdAt)
-    }
-    patch.staffReply = scrubSecrets(reply)
-    patch.staffReplyAt = at
-    patch.staffReplyCommentId = commentId
-  }
-  if (input.status && input.status !== row.status) {
-    if (deps.github && issue !== null) await writeStatusToGithub(deps.github, issue, input.status)
-    patch.status = input.status
-    if (input.status === 'fixed') patch.closedAt = now
-    if (input.status === 'live') patch.liveAt = now
-    if (input.status === 'received' || input.status === 'in_progress') {
-      patch.closedAt = null
-      patch.liveAt = null
-      patch.fixCommitSha = null
-    }
-  }
-  if (Object.keys(patch).length === 0) return NONE
-  return writeChange(db, input.storeId, row.id, patch, deps)
 }
 
 export type GithubWebhookOutcome =

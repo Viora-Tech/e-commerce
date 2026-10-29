@@ -9,7 +9,7 @@ export const ACTION_DOCS: Record<string, string> = {
   'account.leaveStore':
     "Leaves a store: Better Auth drops the membership (and clears it as the active store), then the member's staff row goes.",
   'account.notifications':
-    "Notifications: the member's own alerts for the store they are in, whether the store can send WhatsApp, and whether they gave a mobile for it.",
+    'Notifications: the member\'s own alerts for the store they are in, whether the store can send WhatsApp, whether they gave a mobile for it, and whether this server takes bug reports (the "Your bug repo…',
   'account.requestEmailChange':
     'Change email, step 1: Better Auth emails a code to the NEW address.',
   'account.revokeOtherSessions': 'Signs every other device out; this browser stays signed in.',
@@ -152,6 +152,11 @@ export const ACTION_DOCS: Record<string, string> = {
   'blog.recent': 'Newest visible posts as cards, for the "Blog posts" block in the page editor.',
   'bugReports.create':
     'Any signed-in member, staff included (no permission): files one GitHub issue with what they typed, the page, the store, who they are and an optional screenshot.',
+  'bugReports.list':
+    "My reports: the member's own reports in this store, newest first; with scope: 'store' every report filed in the store, for the owner only.",
+  'bugReports.markSeen': "Opening My reports marks the member's own reports as seen.",
+  'bugReports.unreadCount':
+    "How many of the member's own reports changed since they last opened My reports (the menu's dot).",
   'businessGst.reorderLocations': 'The order checkout tries locations in.',
   'businessGst.setLocationPickup':
     "Couriers collect from this location's address (Settings › Locations), or not.",

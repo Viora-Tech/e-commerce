@@ -110,7 +110,8 @@ export type TemplateId =
   /**
    * PLATFORM message to a TEAM MEMBER who filed a bug report ("Report a bug"): the team fixed it
    * (it ships in the next update) or the fix is live. `bugReport` says which; `actionUrl` opens
-   * Account → My reports. Sent only when the member keeps "App errors" email alerts on. Email only.
+   * Account → My reports. Sent only when the member keeps "Your bug reports" email on
+   * (Account → Notifications; on by default). Email only.
    */
   | 'bug_report_update'
   /**

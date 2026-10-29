@@ -1,11 +1,14 @@
-/** SOURCE OF TRUTH: GitHub client for bug report status — WHAT: the few GitHub REST calls the report sync and the platform console make (read an issue, its comments and the commit that closed it, check a commit reached main, comment, close, reopen, label) / WHY: `fetch` is injected so tests never reach GitHub, and the token never leaves this module in an error */
+/** SOURCE OF TRUTH: GitHub client for bug report status — WHAT: the few GitHub REST calls the report sync makes (read an issue, its comments and the commit that closed it, check a commit reached main); read-only / WHY: `fetch` is injected so tests never reach GitHub, and the token never leaves this module in an error */
 import { siteConfig } from '@commerce/config/site'
 import { CommerceError } from '../errors'
 
 /** GitHub refused or could not be reached. Carries the HTTP status only, never the token. */
 export class GithubApiError extends CommerceError {
   constructor(readonly status: number | null) {
-    super('BUG_REPORT_GITHUB_API', status ? `GitHub answered ${status}` : 'GitHub could not be reached')
+    super(
+      'BUG_REPORT_GITHUB_API',
+      status ? `GitHub answered ${status}` : 'GitHub could not be reached',
+    )
   }
 }
 
@@ -84,9 +87,7 @@ export function githubClient(opts: GithubClientOptions) {
     },
 
     async comments(number: number): Promise<GithubComment[]> {
-      const rows = (await request(
-        `/issues/${number}/comments?per_page=${COMMENTS_PER_PAGE}`,
-      )) as {
+      const rows = (await request(`/issues/${number}/comments?per_page=${COMMENTS_PER_PAGE}`)) as {
         id: number
         body?: string | null
         author_association?: string
@@ -118,41 +119,6 @@ export function githubClient(opts: GithubClientOptions) {
         `/compare/${encodeURIComponent(sha)}...${encodeURIComponent(ref)}`,
       )) as { status?: string }
       return j.status === 'ahead' || j.status === 'identical'
-    },
-
-    async comment(number: number, body: string): Promise<{ id: number; createdAt: string }> {
-      const j = (await request(`/issues/${number}/comments`, {
-        method: 'POST',
-        body: { body },
-      })) as { id: number; created_at: string }
-      return { id: j.id, createdAt: j.created_at }
-    },
-
-    async setState(
-      number: number,
-      state: 'open' | 'closed',
-      stateReason?: 'completed' | 'not_planned' | 'reopened',
-    ): Promise<void> {
-      await request(`/issues/${number}`, {
-        method: 'PATCH',
-        body: stateReason ? { state, state_reason: stateReason } : { state },
-      })
-    },
-
-    async addLabels(number: number, labels: string[]): Promise<void> {
-      await request(`/issues/${number}/labels`, { method: 'POST', body: { labels } })
-    },
-
-    /** Removes a label; a label the issue does not have is fine. */
-    async removeLabel(number: number, label: string): Promise<void> {
-      try {
-        await request(`/issues/${number}/labels/${encodeURIComponent(label)}`, {
-          method: 'DELETE',
-        })
-      } catch (err) {
-        if (err instanceof GithubApiError && err.status === 404) return
-        throw err
-      }
     },
   }
 }

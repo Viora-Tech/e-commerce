@@ -4,8 +4,8 @@ import type { BugReportStatus } from './client'
 import { scrubSecrets } from './scrub'
 
 /** The label that marks an issue as being worked on, and the one that marks it won't-fix. */
-export const IN_PROGRESS_LABEL = 'in-progress'
-export const WONT_FIX_LABEL = 'wontfix'
+const IN_PROGRESS_LABEL = 'in-progress'
+const WONT_FIX_LABEL = 'wontfix'
 
 /** The branch a release lands on: a fix is "live" once its commit is in this branch's history. */
 export const RELEASE_BRANCH = 'main'
@@ -17,7 +17,7 @@ const INTERNAL_PREFIX = /^\s*internal\s*:/i
 const MAINTAINER_ASSOCIATIONS = new Set(['OWNER', 'MEMBER', 'COLLABORATOR'])
 
 /** Longest reply shown in the admin; GitHub comments can be far longer. */
-export const BUG_REPLY_MAX = 4000
+const BUG_REPLY_MAX = 4000
 
 /**
  * `X-Hub-Signature-256: sha256=<hex HMAC of the raw body>`. Constant-time; false for a missing,
@@ -71,7 +71,7 @@ const str = (v: unknown): string | null => (typeof v === 'string' ? v : null)
 const num = (v: unknown): number | null => (typeof v === 'number' ? v : null)
 
 /** The team's comment as the reporter will read it, or null when it must not be shown. */
-export function visibleReply(body: string, authorAssociation: string): string | null {
+function visibleReply(body: string, authorAssociation: string): string | null {
   if (!MAINTAINER_ASSOCIATIONS.has(authorAssociation)) return null
   if (INTERNAL_PREFIX.test(body)) return null
   const text = scrubSecrets(body.trim())
