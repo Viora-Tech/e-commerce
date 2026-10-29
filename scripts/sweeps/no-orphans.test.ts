@@ -1575,6 +1575,17 @@ const ALLOWLIST: AllowEntry[] = [
       'the crossed-out value rule behind ProductVariantPicker, exported for preorder-per-variant.test.tsx',
   },
   {
+    file: 'packages/core/src/shipping/delivery-options/health.ts',
+    names: ['BREAKER_FAILURES', 'onBackup'],
+    reason:
+      'the circuit-breaker threshold and the backup rule behind recordCheckoutQuote, exported for health.test.ts',
+  },
+  {
+    file: 'packages/core/src/shipping/delivery-options/quotes.ts',
+    names: ['DELIVERY_QUOTE_FRESH_MS'],
+    reason: 'how long a cached quote counts as fresh, exported for health.test.ts',
+  },
+  {
     file: 'packages/core/src/billing/fair-use.ts',
     names: ['overFairUse'],
     reason: 'the two-month visit rule behind runFairUseCheck, exported for its unit test',
