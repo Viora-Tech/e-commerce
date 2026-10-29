@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./testing": "./src/testing/index.ts",
+    "./errors": "./src/errors.ts",
     "./outbox-types": "./src/outbox/types.ts",
     "./emi": "./src/payments/emi.ts",
     "./adjustments": "./src/payments/adjustments.ts",

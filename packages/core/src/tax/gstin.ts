@@ -105,3 +105,9 @@ export function panFromGstin(gstin: string): string {
 export function gstinState(gstin: string): string | null {
   return BY_GST_CODE[gstin.slice(0, 2)] ?? null
 }
+
+/** The state a two-digit GST state code stands for ("27" → "Maharashtra"); "" when unknown. */
+export function gstStateName(gstCode: string): string {
+  const state = BY_GST_CODE[gstCode]
+  return state ? (INDIAN_STATE_NAMES[state] ?? '') : ''
+}

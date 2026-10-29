@@ -277,6 +277,7 @@ const ALLOWLIST: AllowEntry[] = [
   { path: 'packages/plugin-gst-invoices/src/registration.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-gst-invoices/src/render.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-gst-invoices/src/reports.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-gst-invoices/src/returns.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-gst-invoices/src/schema.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-gst-invoices/src/vouchers.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-shopify-import/src/app-webhooks.ts', exact: true, reason: PLUGIN },

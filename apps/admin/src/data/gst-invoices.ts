@@ -233,23 +233,6 @@ export const gstInvoicesContent = {
       series: 'Series',
     },
   },
-  returns: {
-    title: 'Returns',
-    subtitle:
-      'GSTR-1 exports per month, one GST number at a time. Mark a month filed once you file it: its invoices can then only be corrected by credit notes. Close a month to stop issuing or backdating into it.',
-    month: 'Month',
-    status: 'Status',
-    filed: 'GSTR-1 filed',
-    closed: 'Closed',
-    open: 'Open',
-    export: 'Export GSTR-1',
-    markFiled: 'Mark filed',
-    unmarkFiled: 'Mark not filed',
-    close: 'Close period',
-    reopen: 'Reopen',
-    note: 'After a month is filed, correct it with credit notes or amendments in a later return. Same-month fixes before GSTR-3B can go in GSTR-1A.',
-    failed: 'Could not complete that',
-  },
   orderCard: {
     title: 'Invoices',
     all: 'All invoices',
@@ -318,4 +301,117 @@ export const gstNumberPickerContent = {
   option: (state: string, gstin: string) => `${state} · ${gstin}`,
   main: '(main)',
   cancelled: '(cancelled)',
+} as const
+
+/** The Returns tab: one GST number's GSTR-1 and GSTR-3B for a month, and the filing switches. */
+export const gstReturnsContent = {
+  title: 'Returns',
+  subtitle:
+    'GSTR-1 and GSTR-3B for one GST number and month. Download the GSTR-1 file for the portal, copy the GSTR-3B figures, then mark the month filed.',
+  monthLabel: 'Month',
+  loading: 'Working out the return',
+  failed: 'Could not complete that',
+  filedOn: (date: string) => `Marked filed on ${date}`,
+  notFiled: 'Not marked filed yet',
+  downloads: {
+    title: 'Downloads',
+    json: 'GSTR-1 JSON',
+    jsonHelp: 'Upload on the GST portal: Returns › GSTR-1 › Prepare offline › Upload.',
+    summaryCsv: 'GSTR-1 summary (CSV)',
+    tableCsvs: 'GSTR-1 tables (CSV zip)',
+    gstr3bCsv: 'GSTR-3B (CSV)',
+    gstr3bPdf: 'GSTR-3B (PDF)',
+  },
+  warnings: {
+    title: 'Check before you upload',
+    none: 'Nothing to fix. Every invoice has an HSN code and every B2B buyer a valid GSTIN.',
+    more: (n: number) => `and ${n} more`,
+    codes: {
+      missing_hsn: 'Invoices with a missing or short HSN code (the portal needs at least 4 digits)',
+      invalid_buyer_gstin:
+        'B2B invoices whose buyer GSTIN is not valid: the portal will reject them',
+      business_without_gstin:
+        'Billed to a business name with no GSTIN: reported as sales to consumers. Add the GSTIN on the order before the invoice is reported if the buyer is registered',
+      bad_document_number:
+        'Document numbers the portal will not take (16 characters at most: letters, digits, / and -)',
+      bad_rate: 'Invoices with a GST rate the portal has no row for',
+      cancelled:
+        'Cancelled this month: counted as cancelled in the document summary, left out of every other table. Delete them on the portal if you uploaded them earlier',
+      cancelled_after_filing:
+        'Cancelled after the month was marked filed: amend or delete them on the portal',
+      orphan_credit_note:
+        'Credit notes whose invoice could not be found: they are left out of the return, add them on the portal',
+      negative_b2cs:
+        'B2C small rows below zero after credit notes (place of supply and rate): check them on the portal',
+      negative_hsn_quantity:
+        'HSN codes with more units returned than sold this month: reported with quantity 0',
+      composition:
+        'Bills of supply under the composition scheme: composition dealers file CMP-08 and GSTR-4, not GSTR-1',
+    },
+  },
+  gstr1: {
+    title: 'GSTR-1',
+    table: 'Table',
+    documents: 'Documents',
+    taxable: 'Taxable value',
+    igst: 'IGST',
+    cgst: 'CGST',
+    sgst: 'SGST',
+    empty: 'No invoices or credit notes this month.',
+    tables: {
+      b2b: '4A B2B invoices',
+      b2cl: '5 B2C large (inter-state over ₹1 lakh)',
+      b2cs: '7 B2C small (net of credit notes)',
+      exp: '6A Exports',
+      cdnr: '9B Credit notes, registered',
+      cdnur: '9B Credit notes, unregistered',
+      nil: '8 Nil rated',
+      hsn: '12 HSN summary (rows)',
+    } as Record<string, string>,
+    docsTitle: '13 Documents issued',
+    docTypes: {
+      1: 'Invoices for outward supply',
+      5: 'Credit notes',
+      6: 'Receipt vouchers',
+      8: 'Refund vouchers',
+    } as Record<number, string>,
+    from: 'From',
+    to: 'To',
+    total: 'Total',
+    cancelled: 'Cancelled',
+    net: 'Net issued',
+  },
+  gstr3b: {
+    title: 'GSTR-3B',
+    subtitle: 'Type these into the portal. Worked out from this month’s GSTR-1, so the two agree.',
+    nature: 'Nature of supplies',
+    cess: 'Cess',
+    rows: {
+      outwardTaxable:
+        '3.1(a) Outward taxable supplies (other than zero rated, nil rated and exempted)',
+      zeroRated: '3.1(b) Outward taxable supplies (zero rated)',
+      nilExempt: '3.1(c) Other outward supplies (nil rated, exempted)',
+    },
+    interStateTitle: '3.2 Inter-state supplies to unregistered persons',
+    interStateNote:
+      'The portal fills 3.2 from your GSTR-1 and does not let you edit it; check it matches.',
+    placeOfSupply: 'Place of supply',
+    noneInterState: 'No inter-state sales to unregistered buyers this month.',
+    noItc:
+      'Input tax credit (Table 4) is not included: the store does not record the GST on your purchases. Take it from your GSTR-2B.',
+  },
+  periods: {
+    title: 'Filing status',
+    month: 'Month',
+    status: 'Status',
+    filed: 'GSTR-1 filed',
+    closed: 'Closed',
+    open: 'Open',
+    view: 'View',
+    markFiled: 'Mark filed',
+    unmarkFiled: 'Mark not filed',
+    close: 'Close period',
+    reopen: 'Reopen',
+    note: 'Mark a month filed once you file it: its invoices can then only be corrected by credit notes or amendments in a later return. Same-month fixes before GSTR-3B can go in GSTR-1A. Close a month to stop issuing or backdating into it.',
+  },
 } as const
