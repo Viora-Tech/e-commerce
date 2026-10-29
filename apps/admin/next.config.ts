@@ -87,6 +87,7 @@ const config: NextConfig = {
     '@commerce/api',
     '@commerce/auth',
     '@commerce/ui',
+    '@commerce/phone',
     '@commerce/storage',
     '@commerce/invoices',
     '@commerce/plugin-emi',
