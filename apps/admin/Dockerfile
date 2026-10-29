@@ -26,7 +26,10 @@ COPY --from=pruner /repo/out/json/ .
 # must travel with the pruned tree so bun applies them during install.
 COPY --from=pruner /repo/out/bun.lock ./bun.lock
 COPY patches ./patches
-RUN bun install --frozen-lockfile
+# bun's download cache lives in a BuildKit cache mount, so a lockfile change only downloads the
+# new packages. `copyfile` writes real files into node_modules (bun's default hardlinks can't
+# cross into the mount), so the image holds the same files as before and not the cache itself.
+RUN --mount=type=cache,id=commerce-bun-install-cache,sharing=locked,target=/root/.bun/install/cache   bun install --frozen-lockfile --backend=copyfile --cache-dir=/root/.bun/install/cache
 
 # --- Build with the full pruned source ------------------------------------------------------
 FROM installer AS builder
@@ -55,8 +58,11 @@ ENV NODE_OPTIONS=--max-old-space-size=3072
 ARG NEXT_PUBLIC_WORKER_URL
 # `.next/cache` (Turbopack's build cache) lives in a BuildKit cache mount, so a rebuild on the
 # same machine starts warm and recompiles only what changed. The mount never enters the image;
-# `.next/standalone` and `.next/static` are written beside it and copied below as before.
-RUN --mount=type=cache,id=commerce-admin-next-cache,target=/repo/apps/admin/.next/cache \
+# `.next/standalone` and `.next/static` are written beside it and copied below as before. One
+# cache per platform (an amd64 and an arm64 build don't share compiled output), and `locked` so
+# two builds at once wait rather than write the same cache. On a fresh CI runner it starts empty.
+ARG TARGETPLATFORM
+RUN --mount=type=cache,id=commerce-admin-next-cache-$TARGETPLATFORM,sharing=locked,target=/repo/apps/admin/.next/cache \
   if [ -z "$NEXT_PUBLIC_WORKER_URL" ]; then unset NEXT_PUBLIC_WORKER_URL; fi \
   && bun run build --filter=@commerce/admin
 
