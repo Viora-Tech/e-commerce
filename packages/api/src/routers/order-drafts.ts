@@ -1,5 +1,6 @@
 import { loadEnv, settingsSecret } from '@commerce/config'
 import {
+  ABANDONED_CONTACTS,
   ABANDONED_LIST_STATUSES,
   DRAFT_LIST_STATUSES,
   DraftInputSchema,
@@ -45,6 +46,12 @@ export const draftAndAbandonedRoutes = {
         perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(25),
         search: z.string().trim().max(SEARCH_MAX).optional(),
         status: z.enum(DRAFT_LIST_STATUSES).optional(),
+        /** Created at or after / before these moments (the filter panel's Created). */
+        createdFrom: z.iso.datetime().optional(),
+        createdTo: z.iso.datetime().optional(),
+        /** Draft total at least / at most, in paise. */
+        totalMinPaise: z.number().int().min(0).optional(),
+        totalMaxPaise: z.number().int().min(0).optional(),
       }),
     )
     .handler(({ context, input }) => listStoreDrafts(context.tx, context.scope.storeId, input)),
@@ -161,6 +168,14 @@ export const draftAndAbandonedRoutes = {
         sinceDays: z.number().int().min(1).max(90).default(30),
         status: z.enum(ABANDONED_LIST_STATUSES).optional(),
         search: z.string().trim().max(SEARCH_MAX).optional(),
+        /** Last active at or after / before these moments; `from` replaces `sinceDays`. */
+        activeFrom: z.iso.datetime().optional(),
+        activeTo: z.iso.datetime().optional(),
+        /** Cart value at least / at most, in paise. */
+        valueMinPaise: z.number().int().min(0).optional(),
+        valueMaxPaise: z.number().int().min(0).optional(),
+        /** Left an email, a phone number, or both. */
+        contact: z.enum(ABANDONED_CONTACTS).optional(),
       }),
     )
     .handler(({ context, input }) => listStoreAbandoned(context.tx, context.scope.storeId, input)),

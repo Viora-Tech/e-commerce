@@ -23,6 +23,7 @@ import {
   bulkBookShipments,
   listReadyToShip,
   listShipments,
+  SHIPMENT_NDR_STATUSES,
   shipmentCounts,
 } from '../services/shipments-workspace.service'
 import { shipmentDetails, shipmentLabelFile } from '../services/shipping.service'
@@ -58,8 +59,16 @@ export const shipmentsRouter = {
         perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(25),
         search: z.string().trim().max(SEARCH_MAX).optional(),
         status: z.array(z.string()).optional(),
-        ndrStatus: z.array(z.string()).optional(),
-        provider: z.string().optional(),
+        /** The filter panel's Delivery problem: the shipments' NDR states. */
+        ndrStatus: z
+          .array(z.enum(SHIPMENT_NDR_STATUSES))
+          .max(SHIPMENT_NDR_STATUSES.length)
+          .optional(),
+        /** The filter panel's Courier. */
+        provider: z.string().trim().min(1).max(60).optional(),
+        bookedFrom: z.iso.datetime().optional(),
+        bookedTo: z.iso.datetime().optional(),
+        paymentMethod: z.enum(['cod', 'prepaid']).optional(),
       }),
     )
     .handler(async ({ context, input }) => {

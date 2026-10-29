@@ -1,5 +1,5 @@
 import {
-  type AbandonedListStatus,
+  type AbandonedListFilters,
   abandonedStats,
   CannotShipToState,
   CommerceError,
@@ -13,7 +13,7 @@ import {
   DraftEmpty,
   type DraftInput,
   DraftInvalidGstin,
-  type DraftListStatus,
+  type DraftListFilters,
   DraftNotEditable,
   deleteDraft,
   deleteDrafts,
@@ -90,12 +90,7 @@ function draftErrorToRpc(err: unknown): never {
 export const listStoreDrafts = (
   tx: StoreTx,
   storeId: string,
-  input: {
-    page: number
-    perPage: number
-    search?: string | undefined
-    status?: DraftListStatus | undefined
-  },
+  input: DraftListFilters & { page: number; perPage: number },
 ) => listDrafts(ctxOf(tx, storeId), input)
 
 /** The stat cards above the drafts list: open drafts, invoices sent, and what they add up to. */
@@ -266,13 +261,7 @@ export async function recordInvoiceSent(tx: StoreTx, storeId: string, orderId: s
 export const listStoreAbandoned = (
   tx: StoreTx,
   storeId: string,
-  input: {
-    page: number
-    perPage: number
-    sinceDays?: number | undefined
-    status?: AbandonedListStatus | undefined
-    search?: string | undefined
-  },
+  input: AbandonedListFilters & { page: number; perPage: number },
 ) => listAbandoned(ctxOf(tx, storeId), input)
 
 export const storeAbandonedStats = (tx: StoreTx, storeId: string, days?: number) =>

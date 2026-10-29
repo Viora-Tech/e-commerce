@@ -76,6 +76,7 @@ import orderAppActions from './order-app-actions'
 import orderCards from './order-cards'
 import orderDetail from './order-detail'
 import orderEdit from './order-edit'
+import orderListFilters from './order-list-filters'
 import orders from './orders'
 import ordersBulk from './orders-bulk'
 import ordersBulkEdit from './orders-bulk-edit'
@@ -195,6 +196,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...orderCards,
   ...orderDetail,
   ...orderEdit,
+  ...orderListFilters,
   ...shopifyImportFiles,
   ...shopifyImportRun,
   ...shopifyImportSettings,

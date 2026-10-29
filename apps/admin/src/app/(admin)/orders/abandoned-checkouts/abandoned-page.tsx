@@ -10,6 +10,12 @@ import AbandonedTiles, { type AbandonedStats } from '@/components/abandoned/aban
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import SendMessageDialog, { type CustomMessage } from '@/components/orders/send-message-dialog'
+import {
+  appliedFromGroups,
+  clearGroups,
+  FILTER_PANEL_CLASS,
+  FilterPanel,
+} from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
 import ViewSelect from '@/components/table/view-select'
@@ -19,7 +25,17 @@ import {
   abandonedBulkContent,
   abandonedContent,
 } from '@/data/drafts'
+import { filterPanelContent } from '@/data/filter-panel'
+import { abandonedFiltersContent } from '@/data/order-list-filters'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import {
+  ABANDONED_FILTER_PARAMS,
+  type AbandonedFilters,
+  abandonedFilterGroups,
+  abandonedFilterInput,
+  CLEAR_ABANDONED_FILTERS,
+  hasAbandonedFilters,
+} from '@/lib/abandoned-list-filters'
 import { api } from '@/lib/api-client'
 import { type ListQuery, sameListQuery } from '@/lib/list-query'
 import { routes } from '@/lib/routes'
@@ -38,6 +54,20 @@ export type AbandonedInitial = {
   counts: AbandonedStats
 }
 
+type Query = ListQuery<AbandonedListFilter> & AbandonedFilters
+
+/** The list looks 30 days back unless the Last active filter says otherwise. */
+function fetchAbandoned(q: Query, perPage: number) {
+  return api.orders.listAbandoned({
+    page: q.page,
+    perPage,
+    sinceDays: 30,
+    status: q.status ?? undefined,
+    search: q.query || undefined,
+    ...abandonedFilterInput(q),
+  })
+}
+
 /** A recovery can go out: the shopper left an email and has not bought the cart since. */
 const recoverable = (c: Item) => !c.recovered && Boolean(c.email)
 
@@ -48,13 +78,16 @@ function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
   // Hooks
   const copy = useCopy(abandonedContent)
   const bulkCopy = useCopy(abandonedBulkContent)
+  const filterCopy = useCopy(abandonedFiltersContent)
+  const panelCopy = useCopy(filterPanelContent)
   const fmt = useFormat()
-  const [{ page, query, status, perPage: rawPerPage }, setQ] = useQueryStates(
+  const [q, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
       status: parseAsStringLiteral(ABANDONED_LIST_FILTERS),
       page: parseAsInteger.withDefault(1),
       perPage: parseAsInteger.withDefault(initial.perPage),
+      ...ABANDONED_FILTER_PARAMS,
     },
     { shallow: true },
   )
@@ -70,7 +103,7 @@ function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
   const hydrated = useRef(false)
 
   useEffect(() => {
-    const size = parseRowsPerPage(rawPerPage)
+    const size = parseRowsPerPage(q.perPage)
     // The server's first page is used once; after any change (including back to the first
     // tab) the list is fetched again, so it never keeps another tab's rows.
     const firstRun = !hydrated.current
@@ -78,19 +111,13 @@ function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
     if (
       firstRun &&
       size === initial.perPage &&
-      sameListQuery({ page, query, status }, initial.query)
+      !hasAbandonedFilters(q) &&
+      sameListQuery({ page: q.page, query: q.query, status: q.status }, initial.query)
     )
       return
     let cancelled = false
     setLoading(true)
-    api.orders
-      .listAbandoned({
-        page,
-        perPage: size,
-        sinceDays: 30,
-        status: status ?? undefined,
-        search: query || undefined,
-      })
+    fetchAbandoned(q, size)
       .then((r) => {
         if (cancelled) return
         setItems(r.items)
@@ -100,7 +127,7 @@ function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
     return () => {
       cancelled = true
     }
-  }, [page, query, status, rawPerPage, initial.query, initial.perPage])
+  }, [q, initial.query, initial.perPage])
 
   // Helpers
   /** Sends one recovery per cart, ten at a time; a refusal never stops the rest. */
@@ -166,7 +193,10 @@ function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
   }
 
   // Render logic
-  const perPage = parseRowsPerPage(rawPerPage)
+  const { page, query, status } = q
+  const perPage = parseRowsPerPage(q.perPage)
+  const filtered = hasAbandonedFilters(q)
+  const groups = abandonedFilterGroups(q, filterCopy, (patch) => setQ({ ...patch, page: 1 }))
   const columns = abandonedColumns(copy, fmt)
 
   return (
@@ -217,7 +247,16 @@ function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
         )}
         query={query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
-        onClearAll={() => setQ({ query: '', status: null, page: 1 })}
+        onClearAll={() => setQ({ ...CLEAR_ABANDONED_FILTERS, query: '', status: null, page: 1 })}
+        filters={(close) => (
+          <FilterPanel
+            groups={groups}
+            onClear={() => clearGroups(groups)}
+            footer={{ label: filterCopy.show(total), onDone: close }}
+          />
+        )}
+        filtersClassName={FILTER_PANEL_CLASS}
+        applied={appliedFromGroups(groups, panelCopy)}
         views={
           <ViewSelect<AbandonedListFilter | null>
             label={copy.viewLabel}
@@ -245,7 +284,7 @@ function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
         total={total}
         onPageChange={(page) => setQ({ page })}
         onPerPageChange={(n) => setQ({ perPage: n, page: 1 })}
-        empty={{ heading: copy.empty, body: copy.intro }}
+        empty={filtered ? { heading: copy.empty } : { heading: copy.empty, body: copy.intro }}
       />
       {bulk ? (
         <ConfirmDialog

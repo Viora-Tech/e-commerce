@@ -15,7 +15,7 @@ import {
   variant,
 } from '@commerce/db'
 import { ASSUMED_WEIGHT_GRAMS, type ShippingProvider, type Tracking } from '@commerce/shipping'
-import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
 import { adjustStock } from '../inventory/levels'
@@ -658,98 +658,8 @@ export async function setReturnCourierCost(ctx: StoreContext, id: string, paise:
   return setReturn(ctx, id, { courierCostPaise: paise })
 }
 
+export { listReturns, type ReturnListFilter, returnCounts } from './list'
 export { setReturn as updateReturnRow }
-
-export type ReturnListFilter = {
-  page?: number | undefined
-  perPage?: number | undefined
-  status?: ReturnStatus[] | undefined
-  kind?: 'return' | 'rto' | undefined
-  search?: string | undefined
-}
-
-/** The admin Returns list: newest first, with the order and customer it belongs to. */
-export async function listReturns(ctx: StoreContext, filter: ReturnListFilter = {}) {
-  const page = Math.max(1, filter.page ?? 1)
-  const perPage = Math.min(100, Math.max(1, filter.perPage ?? 25))
-  const conds = [eq(returnRequest.storeId, ctx.storeId)]
-  if (filter.status?.length) conds.push(inArray(returnRequest.status, filter.status))
-  if (filter.kind) conds.push(eq(returnRequest.kind, filter.kind))
-  const q = filter.search?.trim().replace(/^#|^r-/i, '')
-  if (q) {
-    const n = Number(q)
-    const text = `%${q}%`
-    const match = or(
-      ilike(order.email, text),
-      ilike(customer.name, text),
-      ...(Number.isInteger(n) && n > 0 ? [eq(order.number, n), eq(returnRequest.number, n)] : []),
-    )
-    if (match) conds.push(match)
-  }
-  const where = and(...conds)
-  const [rows, [total]] = await Promise.all([
-    ctx.tx
-      .select({
-        id: returnRequest.id,
-        number: returnRequest.number,
-        kind: returnRequest.kind,
-        status: returnRequest.status,
-        resolution: returnRequest.resolution,
-        reason: returnRequest.reason,
-        requestedAt: returnRequest.requestedAt,
-        orderId: order.id,
-        orderNumber: order.number,
-        email: order.email,
-        customerName: customer.name,
-        items: sql<number>`(select coalesce(sum(${returnRequestLine.quantity}), 0)::int from ${returnRequestLine} where ${returnRequestLine.returnRequestId} = ${returnRequest.id})`,
-        valuePaise: sql<number>`(select coalesce(sum(${returnRequestLine.quantity} * ${orderLine.unitPricePaise}), 0)::int from ${returnRequestLine} join ${orderLine} on ${orderLine.id} = ${returnRequestLine.orderLineId} where ${returnRequestLine.returnRequestId} = ${returnRequest.id})`,
-      })
-      .from(returnRequest)
-      .innerJoin(order, eq(order.id, returnRequest.orderId))
-      .leftJoin(customer, eq(customer.id, order.customerId))
-      .where(where)
-      .orderBy(desc(returnRequest.requestedAt))
-      .limit(perPage)
-      .offset((page - 1) * perPage),
-    ctx.tx
-      .select({ n: count() })
-      .from(returnRequest)
-      .innerJoin(order, eq(order.id, returnRequest.orderId))
-      .leftJoin(customer, eq(customer.id, order.customerId))
-      .where(where),
-  ])
-  return {
-    items: rows.map((r) => ({
-      ...r,
-      label: returnLabel(r.number),
-      items: Number(r.items),
-      valuePaise: Number(r.valuePaise),
-    })),
-    total: Number(total?.n ?? 0),
-    page,
-    perPage,
-  }
-}
-
-/** Counts for the Returns tabs. */
-export async function returnCounts(ctx: StoreContext) {
-  const rows = await ctx.tx
-    .select({ status: returnRequest.status, kind: returnRequest.kind, n: count() })
-    .from(returnRequest)
-    .where(eq(returnRequest.storeId, ctx.storeId))
-    .groupBy(returnRequest.status, returnRequest.kind)
-  const sum = (pred: (r: (typeof rows)[number]) => boolean) =>
-    rows.filter(pred).reduce((s, r) => s + Number(r.n), 0)
-  return {
-    all: sum(() => true),
-    requested: sum((r) => r.status === 'requested'),
-    inProgress: sum((r) => r.status === 'approved' || r.status === 'in_transit'),
-    received: sum((r) => r.status === 'received'),
-    rto: sum((r) => r.kind === 'rto'),
-    /** RTO parcels back with the merchant, waiting for restock and a refund or re-ship. */
-    rtoOpen: sum((r) => r.kind === 'rto' && r.status === 'received'),
-  }
-}
 
 /** One return with its lines and the order around it, for the admin detail page. */
 export async function getReturn(ctx: StoreContext, id: string) {

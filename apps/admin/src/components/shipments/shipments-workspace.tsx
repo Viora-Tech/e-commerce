@@ -18,13 +18,29 @@ import EmptyState from '@/components/layout/empty-state'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import StatusChip from '@/components/layout/status-chip'
 import BookByNumberDialog from '@/components/shipments/book-by-number-dialog'
+import {
+  appliedFromGroups,
+  clearGroups,
+  FILTER_PANEL_CLASS,
+  FilterPanel,
+} from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
+import { filterPanelContent } from '@/data/filter-panel'
+import { shipmentFiltersContent } from '@/data/order-list-filters'
 import { shipmentsContent } from '@/data/shipments'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import { parseRowsPerPage } from '@/lib/rows-per-page'
+import {
+  CLEAR_SHIPMENT_FILTERS,
+  hasShipmentFilters,
+  SHIPMENT_FILTER_PARAMS,
+  type ShipmentFilters,
+  shipmentFilterGroups,
+  shipmentFilterInput,
+} from '@/lib/shipment-list-filters'
 import CreateShipmentDialog from './create-shipment/create-shipment-dialog'
 import {
   rowFromOrder,
@@ -39,14 +55,22 @@ import WalletStrip from './wallet-strip'
 type Counts = Awaited<ReturnType<typeof api.shipments.counts>>
 type Wallets = Awaited<ReturnType<typeof api.shipments.wallets>>
 
-/** One tab's page of rows: orders to book, or shipments in the tab's statuses. */
-async function fetchTab(tab: ShipmentTab, page: number, perPage: number, query: string) {
-  const search = query || undefined
-  if (tab === 'toBook') {
-    const r = await api.shipments.readyToShip({ page, perPage, search })
+type Query = { tab: ShipmentTab; page: number; query: string } & ShipmentFilters
+
+/** One tab's page of rows: orders to book, or shipments in the tab's statuses and the panel's filters. */
+async function fetchTab(q: Query, perPage: number) {
+  const search = q.query || undefined
+  if (q.tab === 'toBook') {
+    const r = await api.shipments.readyToShip({ page: q.page, perPage, search })
     return { items: r.items.map(rowFromOrder), total: r.total }
   }
-  const r = await api.shipments.list({ page, perPage, search, status: SHIPMENT_TAB_STATUSES[tab] })
+  const r = await api.shipments.list({
+    page: q.page,
+    perPage,
+    search,
+    status: SHIPMENT_TAB_STATUSES[q.tab],
+    ...shipmentFilterInput(q),
+  })
   return { items: r.items.map(rowFromShipment), total: r.total }
 }
 
@@ -62,14 +86,17 @@ async function fetchWallets(): Promise<Wallets> {
 function ShipmentsContent() {
   // Hooks
   const copy = useCopy(shipmentsContent)
+  const filterCopy = useCopy(shipmentFiltersContent)
+  const panelCopy = useCopy(filterPanelContent)
   const router = useRouter()
   const fmt = useFormat()
-  const [{ tab, query, page, perPage: rawPerPage }, setQ] = useQueryStates(
+  const [q, setQ] = useQueryStates(
     {
       tab: parseAsStringLiteral(SHIPMENT_TABS).withDefault('toBook'),
       query: parseAsString.withDefault(''),
       page: parseAsInteger.withDefault(1),
       perPage: parseAsInteger,
+      ...SHIPMENT_FILTER_PARAMS,
     },
     { shallow: true },
   )
@@ -82,6 +109,8 @@ function ShipmentsContent() {
     labels: new Map(),
     enabled: [],
   })
+  /** Couriers this store's shipments went with: the Courier filter's options. */
+  const [usedCouriers, setUsedCouriers] = useState<string[]>([])
   const [selected, setSelected] = useState<string[]>([])
   const [booking, setBooking] = useState<string[]>([])
   const [byNumber, setByNumber] = useState(false)
@@ -91,6 +120,10 @@ function ShipmentsContent() {
     if (reloadKey < 0) return
     let live = true
     api.shipments.counts().then((c) => live && setCounts(c))
+    api.orders.couriers().then(
+      (c) => live && setUsedCouriers(c),
+      () => undefined,
+    )
     fetchWallets()
       .then((w) => live && setWallets(w))
       .catch(() => live && setWallets([]))
@@ -110,7 +143,7 @@ function ShipmentsContent() {
     if (reloadKey < 0) return
     let live = true
     setLoading(true)
-    fetchTab(tab, page, parseRowsPerPage(rawPerPage), query)
+    fetchTab(q, parseRowsPerPage(q.perPage))
       .then((r) => {
         if (!live) return
         setRows(r.items)
@@ -120,7 +153,7 @@ function ShipmentsContent() {
     return () => {
       live = false
     }
-  }, [tab, page, rawPerPage, query, reloadKey])
+  }, [q, reloadKey])
 
   // Helpers
   const courierName = (id: string) => couriers.labels.get(id) ?? id
@@ -128,7 +161,8 @@ function ShipmentsContent() {
   // Event handlers
   const handleTab = (next: ShipmentTab) => {
     setSelected([])
-    setQ({ tab: next, page: 1 })
+    // To book lists orders, which the shipment filters don't apply to.
+    setQ({ tab: next, page: 1, ...(next === 'toBook' ? CLEAR_SHIPMENT_FILTERS : {}) })
   }
   const handleBooked = () => {
     setSelected([])
@@ -151,6 +185,14 @@ function ShipmentsContent() {
   }
 
   // Render logic
+  const { tab, query, page } = q
+  const groups = shipmentFilterGroups(
+    q,
+    filterCopy,
+    (patch) => setQ({ ...patch, page: 1 }),
+    usedCouriers.map((id) => ({ id, label: courierName(id) })),
+  )
+  const filterable = tab !== 'toBook'
   const toBookCourier =
     couriers.enabled.length === 1 && couriers.enabled[0]
       ? courierName(couriers.enabled[0])
@@ -263,7 +305,21 @@ function ShipmentsContent() {
             )}
             loading={loading}
             query={query}
-            onQueryChange={(q) => setQ({ query: q, page: 1 })}
+            onQueryChange={(next) => setQ({ query: next, page: 1 })}
+            onClearAll={() => setQ({ ...CLEAR_SHIPMENT_FILTERS, query: '', page: 1 })}
+            {...(filterable
+              ? {
+                  filters: (close: () => void) => (
+                    <FilterPanel
+                      groups={groups}
+                      onClear={() => clearGroups(groups)}
+                      footer={{ label: filterCopy.show(total), onDone: close }}
+                    />
+                  ),
+                  filtersClassName: FILTER_PANEL_CLASS,
+                  applied: appliedFromGroups(groups, panelCopy),
+                }
+              : {})}
             views={
               <ViewSelect<ShipmentTab>
                 label={copy.viewLabel}
@@ -278,7 +334,7 @@ function ShipmentsContent() {
               />
             }
             page={page}
-            perPage={parseRowsPerPage(rawPerPage)}
+            perPage={parseRowsPerPage(q.perPage)}
             total={total}
             onPageChange={(p) => setQ({ page: p })}
             onPerPageChange={(n) => setQ({ perPage: n, page: 1 })}
@@ -298,7 +354,9 @@ function ShipmentsContent() {
                 />
               )
             }
-            empty={{ heading: copy.empty[tab] }}
+            empty={{
+              heading: filterable && hasShipmentFilters(q) ? filterCopy.noResults : copy.empty[tab],
+            }}
           />
         </>
       )}

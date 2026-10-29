@@ -389,6 +389,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'Save an order edit (add, remove, quantities, shipping, discount) on an open order not yet shipped.',
   'orders.editPreview':
     "The edit's review step: new lines and totals, and what is owed either way.",
+  'orders.facets':
+    'What the Orders filter panel offers: tags, discount codes, couriers and collections in use.',
   'orders.fulfil':
     'Pack some or all of the lines; the shopper is told once the parcel is complete.',
   'orders.get':

@@ -10,7 +10,7 @@ import {
   store,
   variant,
 } from '@commerce/db'
-import { and, desc, eq, inArray, sql } from 'drizzle-orm'
+import { and, desc, eq, gte, inArray, lt, lte, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import type { StoreContext } from '../context'
 import { recordDiscountUse } from '../discounts/usage'
@@ -223,14 +223,20 @@ async function setDraftNote(ctx: StoreContext, orderId: string, body: string) {
 export const DRAFT_LIST_STATUSES = ['open', 'invoice_sent'] as const
 export type DraftListStatus = (typeof DRAFT_LIST_STATUSES)[number]
 
+/** The drafts list's filter panel: created window and total, both ends optional. */
+export type DraftListFilters = {
+  search?: string | undefined
+  status?: DraftListStatus | undefined
+  createdFrom?: string | undefined
+  /** Created before this time (the end of a custom date range). */
+  createdTo?: string | undefined
+  totalMinPaise?: number | undefined
+  totalMaxPaise?: number | undefined
+}
+
 export async function listDrafts(
   ctx: StoreContext,
-  input: {
-    page: number
-    perPage: number
-    search?: string | undefined
-    status?: DraftListStatus | undefined
-  },
+  input: DraftListFilters & { page: number; perPage: number },
 ): Promise<{ items: DraftListItem[]; total: number }> {
   const search = input.search?.trim()
   const invoiceSent = sql`exists (
@@ -243,6 +249,11 @@ export async function listDrafts(
     search
       ? sql`(${order.email} ilike ${`%${search}%`} or ${customer.name} ilike ${`%${search}%`} or cast(${order.number} as text) like ${`%${search}%`})`
       : undefined,
+    /* A draft's creation time is kept in placed_at until it converts. */
+    input.createdFrom ? gte(order.placedAt, new Date(input.createdFrom)) : undefined,
+    input.createdTo ? lt(order.placedAt, new Date(input.createdTo)) : undefined,
+    input.totalMinPaise !== undefined ? gte(order.totalPaise, input.totalMinPaise) : undefined,
+    input.totalMaxPaise !== undefined ? lte(order.totalPaise, input.totalMaxPaise) : undefined,
   )
   const [countRow] = await ctx.tx
     .select({ total: sql<number>`count(*)::int` })

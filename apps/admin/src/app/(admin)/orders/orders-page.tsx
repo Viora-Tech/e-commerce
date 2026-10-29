@@ -40,7 +40,9 @@ import {
   FILTER_PARAMS,
   hasOrderFilters,
   NO_FILTERS,
-  type OrderFilters as OrderFiltersValue,
+  NO_ORDER_FACETS,
+  type OrderFacets,
+  type OrderFilters,
   orderFilterGroups,
   orderFilterInput,
 } from '@/lib/order-list-filters'
@@ -68,15 +70,16 @@ export type OrdersInitial = {
   counts: { all: number; unpaid: number; unfulfilled: number; pendingUpi: number }
 }
 
-type Query = ListQuery<OrderListFilter>
+/** The page's URL state: tab, search, page and every panel filter. */
+type Query = ListQuery<OrderListFilter> & OrderFilters
 
-function fetchOrders(q: Query, perPage: number, f: OrderFiltersValue) {
+function fetchOrders(q: Query, perPage: number) {
   return api.orders.list({
     page: q.page,
     perPage,
     search: q.query || undefined,
     ...orderListFilter(q.status),
-    ...orderFilterInput(f),
+    ...orderFilterInput(q),
   })
 }
 
@@ -87,21 +90,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   const fmt = useFormat()
   const router = useRouter()
   usePrimaryAction(routes.orders.drafts())
-  const [
-    {
-      page,
-      query,
-      status,
-      perPage: rawPerPage,
-      payment,
-      fulfilment,
-      date,
-      method,
-      courier,
-      product,
-    },
-    setQ,
-  ] = useQueryStates(
+  const [q, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
       page: parseAsInteger.withDefault(1),
@@ -116,7 +105,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   const [total, setTotal] = useState(initial.result.total)
   const [loading, setLoading] = useState(false)
   const [failed, setFailed] = useState(false)
-  const [couriers, setCouriers] = useState<string[]>([])
+  const [facets, setFacets] = useState<OrderFacets>(NO_ORDER_FACETS)
   const [testOrders, setTestOrders] = useState(initial.result.testOrders)
   const [askDeleteTests, setAskDeleteTests] = useState(false)
   const [bulkRequest, setBulkRequest] = useState<OrdersBulkRequest | null>(null)
@@ -126,29 +115,28 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
     reload().catch(() => setFailed(true))
   })
 
-  // The Courier filter lists only couriers the store's orders actually went with.
+  // The panel lists only tags, codes, couriers and collections the store actually uses.
   useEffect(() => {
-    api.orders.couriers().then(setCouriers, () => undefined)
+    api.orders.facets().then(setFacets, () => undefined)
   }, [])
 
   useEffect(() => {
-    const perPage = parseRowsPerPage(rawPerPage)
+    const perPage = parseRowsPerPage(q.perPage)
     // The server's first page is used once; after any change (including back to the first
     // tab) the list is fetched again, so it never keeps another tab's rows.
     const firstRun = !hydrated.current
     hydrated.current = true
-    const f: OrderFiltersValue = { payment, fulfilment, date, method, courier, product }
     if (
       firstRun &&
       perPage === initial.perPage &&
-      !hasOrderFilters(f) &&
-      sameListQuery({ page, query, status }, initial.query)
+      !hasOrderFilters(q) &&
+      sameListQuery({ page: q.page, query: q.query, status: q.status }, initial.query)
     )
       return
     let cancelled = false
     setLoading(true)
     setFailed(false)
-    fetchOrders({ page, query, status }, perPage, f)
+    fetchOrders(q, perPage)
       .then((r) => {
         if (cancelled) return
         setItems(r.items)
@@ -160,38 +148,18 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
     return () => {
       cancelled = true
     }
-  }, [
-    page,
-    query,
-    status,
-    rawPerPage,
-    payment,
-    fulfilment,
-    date,
-    method,
-    courier,
-    product,
-    initial.query,
-    initial.perPage,
-  ])
+  }, [q, initial.query, initial.perPage])
 
   // Helpers
   const reload = async () => {
-    const r = await fetchOrders({ page, query, status }, parseRowsPerPage(rawPerPage), {
-      payment,
-      fulfilment,
-      date,
-      method,
-      courier,
-      product,
-    })
+    const r = await fetchOrders(q, parseRowsPerPage(q.perPage))
     setItems(r.items)
     setTotal(r.total)
     setTestOrders(r.testOrders)
   }
 
   // Event handlers
-  const setFilters = (patch: Partial<OrderFiltersValue>) => setQ({ ...patch, page: 1 })
+  const setFilters = (patch: Partial<OrderFilters>) => setQ({ ...patch, page: 1 })
   const handleTestsDeleted = () => {
     // The tiles and tab counts come from the server render; the rows are fetched again here.
     router.refresh()
@@ -216,11 +184,11 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   // Render logic
   /** Tags already on the loaded orders, offered while adding tags from a row. */
   const tagSuggestions = [...new Set(items.flatMap((o) => o.tags ?? []))]
-  const perPage = parseRowsPerPage(rawPerPage)
+  const perPage = parseRowsPerPage(q.perPage)
   const columns = orderColumns(copy, fmt)
-  const filters: OrderFiltersValue = { payment, fulfilment, date, method, courier, product }
-  const filtered = hasOrderFilters(filters)
-  const groups = orderFilterGroups(filters, copy.filters, setFilters, couriers)
+  const { page, query, status } = q
+  const filtered = hasOrderFilters(q)
+  const groups = orderFilterGroups(q, copy.filters, setFilters, facets)
   const searching = query.length > 0 || status !== null || filtered
   const tabCounts: Partial<Record<OrderListFilter, number>> = {
     unpaid: initial.counts.unpaid,
@@ -336,7 +304,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
           api.orders.ids({
             search: query || undefined,
             ...orderListFilter(status),
-            ...orderFilterInput(filters),
+            ...orderFilterInput(q),
           })
         }
         bulkActions={(ids, clear) => (

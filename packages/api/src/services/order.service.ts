@@ -2,8 +2,6 @@ import {
   changeOrderStatus,
   insertOutboxEvent,
   notTestOrder,
-  type OrderFulfillmentStatus,
-  type OrderPaymentStatus,
   type OrderStatus,
   type OrderStatusChange,
   orderParcelsView,
@@ -29,72 +27,28 @@ import {
   paymentEvent,
   productMedia,
   refund,
-  shipment,
   store,
   variant,
 } from '@commerce/db'
 import type { PaymentRegistry } from '@commerce/payments'
-import {
-  and,
-  asc,
-  count,
-  desc,
-  eq,
-  gte,
-  ilike,
-  inArray,
-  lt,
-  lte,
-  ne,
-  notInArray,
-  or,
-  sql,
-} from 'drizzle-orm'
+import { and, asc, count, desc, eq, gte, inArray, lte, ne, notInArray, or, sql } from 'drizzle-orm'
 
 export { ORDER_VIEWS, type OrderView, viewFilter } from './order-views'
 
-import { type OrderView, viewFilter } from './order-views'
+import { viewFilter } from './order-views'
 
+export {
+  ORDER_CHANNEL_FILTERS,
+  ORDER_RETURN_FILTERS,
+  type OrderChannelFilter,
+  type OrderReturnFilter,
+  orderCouriers,
+  orderFacets,
+  orderNumberFromSearch,
+} from './order-list-where'
 export type { OrderStatus }
 
-/** Drafts live in the same table but are not orders yet; every list and tile hides them. */
-const notDraft = ne(order.status, 'draft')
-
-/** "#1234" or "1234" is an order number; anything else is a name or an email. */
-export function orderNumberFromSearch(search: string): number | null {
-  const match = /^#?(\d{1,9})$/.exec(search.trim())
-  return match ? Number(match[1]) : null
-}
-
-/** The Orders list's filters (search, view and the filter panel), shared by the list and its ids. */
-type OrderListFilters = {
-  search?: string | undefined
-  view?: OrderView | undefined
-  status?: OrderStatus | undefined
-  paymentStatus?: OrderPaymentStatus[] | undefined
-  fulfillmentStatus?: OrderFulfillmentStatus[] | undefined
-  placedFrom?: string | undefined
-  /** Placed before this time (the end of a custom date range). */
-  placedTo?: string | undefined
-  paymentMethod?: 'cod' | 'prepaid' | undefined
-  /** Has a consignment with this courier (`shipment.provider`). */
-  courier?: string | undefined
-  /** Has a line whose product title, variant title or SKU contains this ("pd170"). */
-  product?: string | undefined
-}
-
-/** `%`, `_` and `\` typed into a filter match themselves, not as LIKE wildcards. */
-const escapeLike = (q: string) => q.replace(/[\\%_]/g, (c) => `\\${c}`)
-
-/** The Product filter: a line of the order is this product (title as sold, or the variant's SKU). */
-function hasProductLine(text: string) {
-  const pattern = `%${escapeLike(text)}%`
-  return sql`exists (
-    select 1 from ${orderLine} ol
-    left join ${variant} v on v.id = ol.variant_id
-    where ol.order_id = ${order.id}
-      and (ol.title ilike ${pattern} or ol.variant_title ilike ${pattern} or v.sku ilike ${pattern}))`
-}
+import { notDraft, type OrderListFilters, orderListWhere } from './order-list-where'
 
 /** The most ids "Select all" takes at once; bulk actions above this would need a background job. */
 const SELECT_ALL_MAX = 5000
@@ -109,48 +63,6 @@ export async function listOrderIds(tx: StoreTx, input: OrderListFilters): Promis
     .orderBy(desc(order.placedAt))
     .limit(SELECT_ALL_MAX)
   return rows.map((r) => r.id)
-}
-
-function orderListWhere(input: OrderListFilters) {
-  const byNumber = input.search ? orderNumberFromSearch(input.search) : null
-  return and(
-    notDraft,
-    // A search finds any order, a checkout still waiting on payment too.
-    input.view ? viewFilter(input.view) : input.search ? undefined : viewFilter('all'),
-    input.search
-      ? or(
-          ilike(order.email, `%${input.search}%`),
-          ilike(customer.name, `%${input.search}%`),
-          byNumber === null ? undefined : eq(order.number, byNumber),
-        )
-      : undefined,
-    input.status ? eq(order.status, input.status) : undefined,
-    input.paymentStatus?.length ? inArray(order.paymentStatus, input.paymentStatus) : undefined,
-    input.fulfillmentStatus?.length
-      ? inArray(order.fulfillmentStatus, input.fulfillmentStatus)
-      : undefined,
-    input.placedFrom ? gte(order.placedAt, new Date(input.placedFrom)) : undefined,
-    input.placedTo ? lt(order.placedAt, new Date(input.placedTo)) : undefined,
-    /* An order with no recorded method (imported history) is neither. */
-    input.paymentMethod === 'cod'
-      ? eq(order.paymentMethod, 'cod')
-      : input.paymentMethod === 'prepaid'
-        ? ne(order.paymentMethod, 'cod')
-        : undefined,
-    input.courier
-      ? sql`exists (select 1 from ${shipment} s where s.order_id = ${order.id} and s.provider = ${input.courier})`
-      : undefined,
-    input.product ? hasProductLine(input.product) : undefined,
-  )
-}
-
-/** The couriers this store's orders went with, for the filter panel's Courier select. */
-export async function orderCouriers(tx: StoreTx): Promise<string[]> {
-  const rows = await tx
-    .selectDistinct({ provider: shipment.provider })
-    .from(shipment)
-    .orderBy(shipment.provider)
-  return rows.map((r) => r.provider)
 }
 
 export async function listOrders(
