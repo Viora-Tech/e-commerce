@@ -80,6 +80,8 @@ export type InventoryRow = {
   variantTitle: string
   sku: string | null
   imageUrl: string | null
+  /** The product's cover, for the one row a product gets in the Products view. */
+  productImageUrl: string | null
   onHand: number
   committed: number
   available: number
@@ -137,12 +139,13 @@ function joinLevel(locationId: string) {
   return and(eq(inventoryLevel.variantId, variant.id), eq(inventoryLevel.locationId, locationId))
 }
 
+/** Each variant's own image (else its product's cover), and each product's cover. */
 async function imagesFor(
   tx: StoreTx,
   rows: { variantId: string; productId: string; mediaId: string | null }[],
-): Promise<Map<string, string>> {
+): Promise<{ byVariant: Map<string, string>; byProduct: Map<string, string> }> {
   const out = new Map<string, string>()
-  if (rows.length === 0) return out
+  if (rows.length === 0) return { byVariant: out, byProduct: new Map() }
   const variantMedia = rows.map((r) => r.mediaId).filter((id): id is string => id !== null)
   const own = variantMedia.length
     ? await tx
@@ -166,7 +169,7 @@ async function imagesFor(
     const url = (r.mediaId && ownById.get(r.mediaId)) || coverByProduct.get(r.productId)
     if (url) out.set(r.variantId, url)
   }
-  return out
+  return { byVariant: out, byProduct: coverByProduct }
 }
 
 export async function listInventory(
@@ -213,7 +216,8 @@ export async function listInventory(
     rows: found.map(({ mediaId: _m, ...r }) => ({
       ...r,
       available: r.onHand - r.committed,
-      imageUrl: images.get(r.variantId) ?? null,
+      imageUrl: images.byVariant.get(r.variantId) ?? null,
+      productImageUrl: images.byProduct.get(r.productId) ?? null,
     })),
     total: Number(total?.n ?? 0),
   }
@@ -275,7 +279,8 @@ async function listInventoryByProduct(
     rows: found.map(({ mediaId: _m, ...r }) => ({
       ...r,
       available: r.onHand - r.committed,
-      imageUrl: images.get(r.variantId) ?? null,
+      imageUrl: images.byVariant.get(r.variantId) ?? null,
+      productImageUrl: images.byProduct.get(r.productId) ?? null,
     })),
     total: Number(total?.n ?? 0),
   }
@@ -421,6 +426,6 @@ export async function searchVariants(
   return found.map(({ mediaId: _m, ...r }) => ({
     ...r,
     available: r.onHand - r.committed,
-    imageUrl: images.get(r.variantId) ?? null,
+    imageUrl: images.byVariant.get(r.variantId) ?? null,
   }))
 }

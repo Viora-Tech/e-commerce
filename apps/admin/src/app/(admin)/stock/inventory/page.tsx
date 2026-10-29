@@ -19,6 +19,7 @@ export default async function Page({ searchParams }: Props) {
     locations.find((l) => l.fulfilsOnlineOrders) ??
     locations[0]
   const locationId = location?.id as string
+  const group = sp.group === 'variant' ? 'variant' : 'product'
   const [result, stats, facets] = await Promise.all([
     call(
       appRouter.inventory.list,
@@ -27,6 +28,7 @@ export default async function Page({ searchParams }: Props) {
         page: query.page,
         perPage: siteConfig.ui.rowsPerPage.default,
         search: query.query || undefined,
+        group,
       },
       { context },
     ),
@@ -34,5 +36,5 @@ export default async function Page({ searchParams }: Props) {
     call(appRouter.inventory.facets, undefined, { context }),
   ])
 
-  return <InventoryPage initial={{ query, locationId, locations, result, stats, facets }} />
+  return <InventoryPage initial={{ query, locationId, group, locations, result, stats, facets }} />
 }

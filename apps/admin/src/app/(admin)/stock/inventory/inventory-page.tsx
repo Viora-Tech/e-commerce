@@ -1,7 +1,6 @@
 'use client'
 
-import { siteConfig } from '@commerce/config/site'
-import { STOCK_FILTERS, type StockFilter } from '@commerce/core/catalog'
+import { STOCK_FILTERS } from '@commerce/core/catalog'
 import { permissions } from '@commerce/core/permissions'
 import { Clock, Download, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
@@ -27,6 +26,12 @@ import {
 } from '@/components/inventory/inventory-columns'
 import InventoryStrip from '@/components/inventory/inventory-strip'
 import InventoryTiles, { type InventoryStats } from '@/components/inventory/inventory-tiles'
+import {
+  expandAll,
+  groupByProduct,
+  type InventoryLine,
+  isProductLine,
+} from '@/components/inventory/inventory-tree'
 import type { StoreLocation } from '@/components/inventory/location-select'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import {
@@ -46,6 +51,17 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import type { ListQuery } from '@/lib/list-query'
 import { routes } from '@/lib/routes'
+import {
+  CLEAR_FILTERS,
+  INVENTORY_GROUPS,
+  type InventoryGroup,
+  type InventoryQuery,
+  listFilters,
+  PER_PAGE,
+  PRODUCT_STATUS_FILTERS,
+  parseAsPicks,
+  STOCK_CHANGED,
+} from './inventory-query'
 
 type ListResult = Awaited<ReturnType<typeof api.inventory.list>>
 type Facets = Awaited<ReturnType<typeof api.inventory.facets>>
@@ -54,75 +70,16 @@ type Facets = Awaited<ReturnType<typeof api.inventory.facets>>
 export type InventoryInitial = {
   query: ListQuery<never>
   locationId: string
+  /** The view the first page was read in (`?group=`, Products unless SKUs was asked for). */
+  group: InventoryGroup
   locations: StoreLocation[]
   result: ListResult
   stats: InventoryStats
   facets: Facets
 }
 
-type Query = {
-  page: number
-  perPage: number
-  query: string
-  stock: StockFilter | null
-  vendor: string[]
-  productType: string[]
-  tag: string[]
-  /** Collection ids. */
-  collection: string[]
-  productStatus: ProductStatusFilter[]
-  changed: StockChanged | null
-  group: 'product' | null
-}
-
-/** "Stock changed" filter values; the API checks the same list. */
-const STOCK_CHANGED = ['1d', '7d', '30d', '90d', 'stale'] as const
-type StockChanged = (typeof STOCK_CHANGED)[number]
-
-/** Archived products never list here, so the Product status filter has two values. */
-const PRODUCT_STATUS_FILTERS = ['active', 'draft'] as const
-type ProductStatusFilter = (typeof PRODUCT_STATUS_FILTERS)[number]
-
-/** A multi-pick in the URL; module scope so the empty default keeps one identity. */
-const parseAsPicks = parseAsArrayOf(parseAsString).withDefault([])
-
-/** Every panel filter cleared, as a URL patch. */
-const CLEAR_FILTERS = {
-  stock: null,
-  vendor: null,
-  productType: null,
-  tag: null,
-  collection: null,
-  productStatus: null,
-  changed: null,
-}
-
-const PER_PAGE = siteConfig.ui.rowsPerPage.default
-
-/** Variant ids that follow another SKU of the same product, in list order. */
-function continuedRows(rows: InventoryRow[]): Set<string> {
-  return new Set(
-    rows.filter((r, i) => rows[i - 1]?.productId === r.productId).map((r) => r.variantId),
-  )
-}
-
-function listFilters(locationId: string, q: Query) {
-  return {
-    locationId,
-    search: q.query || undefined,
-    stock: q.stock ?? undefined,
-    vendors: q.vendor.length ? q.vendor : undefined,
-    productTypes: q.productType.length ? q.productType : undefined,
-    tags: q.tag.length ? q.tag : undefined,
-    collectionIds: q.collection.length ? q.collection : undefined,
-    productStatus: q.productStatus.length ? q.productStatus : undefined,
-    changed: q.changed ?? undefined,
-    group: q.group ?? undefined,
-  }
-}
-
 /** One page of rows plus the tiles for the same location. */
-function fetchPage(locationId: string, q: Query) {
+function fetchPage(locationId: string, q: InventoryQuery) {
   return Promise.all([
     api.inventory.list({ ...listFilters(locationId, q), page: q.page, perPage: q.perPage }),
     api.inventory.stats({ locationId }),
@@ -142,7 +99,7 @@ function emptyState(copy: typeof inventoryContent) {
   }
 }
 
-function untouched(initial: InventoryInitial, locationId: string, q: Query) {
+function untouched(initial: InventoryInitial, locationId: string, q: InventoryQuery) {
   return (
     locationId === initial.locationId &&
     q.page === initial.query.page &&
@@ -155,7 +112,7 @@ function untouched(initial: InventoryInitial, locationId: string, q: Query) {
     q.collection.length === 0 &&
     q.productStatus.length === 0 &&
     !q.changed &&
-    !q.group
+    q.group === initial.group
   )
 }
 
@@ -177,7 +134,7 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
       collection: parseAsPicks,
       productStatus: parseAsArrayOf(parseAsStringLiteral(PRODUCT_STATUS_FILTERS)).withDefault([]),
       changed: parseAsStringLiteral(STOCK_CHANGED),
-      group: parseAsStringLiteral(['product'] as const),
+      group: parseAsStringLiteral(INVENTORY_GROUPS).withDefault('product'),
     },
     { shallow: true },
   )
@@ -191,6 +148,8 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
   const [bulk, setBulk] = useState<{ mode: 'adjust' | 'set'; ids: string[]; clear: () => void }>()
   const [history, setHistory] = useState<InventoryRow | null>(null)
   const [addingLocation, setAddingLocation] = useState(false)
+  /** Products view: the product lines folded open (local, kept across refreshes). */
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     const locationId = q.location ?? initial.locationId
@@ -283,6 +242,10 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
 
   // Render logic
   const locationId = currentLocation()
+  const byProduct = q.group === 'product'
+  const lines: InventoryLine[] = byProduct ? groupByProduct(rows) : rows
+  const foldable = lines.some(isProductLine)
+  const allOpen = foldable && lines.filter(isProductLine).every((l) => expanded[l.variantId])
   const canEdit = hasPermission(permissions.INVENTORY_WRITE)
   const groups: FilterGroup[] = [
     {
@@ -377,8 +340,10 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
           onLocationChange={(location) => setQ({ location, page: 1 })}
           reason={canEdit ? reason : null}
           onReasonChange={setReason}
-          byProduct={q.group === 'product'}
-          onByProductChange={(on) => setQ({ group: on ? 'product' : null, page: 1 })}
+          byProduct={byProduct}
+          onByProductChange={(on) => setQ({ group: on ? 'product' : 'variant', page: 1 })}
+          allExpanded={byProduct && foldable ? allOpen : null}
+          onExpandAll={(open) => setExpanded(expandAll(lines, open))}
         />
       }
     >
@@ -389,25 +354,36 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
           canEdit,
           lowAt: stats.lowThreshold,
           onCommit: commitRow,
-          // Grouped: the product's name and image only on its first SKU.
-          continued: q.group === 'product' ? continuedRows(rows) : null,
+          tree: byProduct
+            ? {
+                expanded,
+                onToggle: (id) => setExpanded({ ...expanded, [id]: !expanded[id] }),
+              }
+            : null,
         })}
-        items={rows}
+        items={lines}
         getId={(r) => r.variantId}
-        rowActions={(r) => (
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={copy.cell.history}
-            title={copy.cell.history}
-            onClick={(e) => {
-              e.stopPropagation()
-              setHistory(r)
-            }}
-          >
-            <Clock aria-hidden="true" />
-          </Button>
-        )}
+        tree={
+          byProduct
+            ? { getSubRows: (r) => r.variants, expanded, onExpandedChange: setExpanded }
+            : undefined
+        }
+        rowActions={(r) =>
+          isProductLine(r) ? null : (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={copy.cell.history}
+              title={copy.cell.history}
+              onClick={(e) => {
+                e.stopPropagation()
+                setHistory(r)
+              }}
+            >
+              <Clock aria-hidden="true" />
+            </Button>
+          )
+        }
         loading={loading}
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}

@@ -1,5 +1,7 @@
 'use client'
 
+import { ChevronsUpDown } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import StatusChip from '@/components/layout/status-chip'
 import { inventoryContent, type ManualReasonValue } from '@/data/inventory'
@@ -14,9 +16,12 @@ type InventoryStripProps = {
   /** Hidden for members who can only read stock. */
   reason: ManualReasonValue | null
   onReasonChange: (reason: ManualReasonValue) => void
-  /** One row per SKU, or SKUs grouped under their product. */
+  /** One row per SKU, or one per product with its SKUs folded under it. */
   byProduct: boolean
   onByProductChange: (byProduct: boolean) => void
+  /** Products view with something to fold: whether every product is open. Null hides the button. */
+  allExpanded: boolean | null
+  onExpandAll: (open: boolean) => void
 }
 
 /** Location picker, the reason inline edits are logged with, then the stat tiles. */
@@ -28,6 +33,8 @@ export default function InventoryStrip({
   onReasonChange,
   byProduct,
   onByProductChange,
+  allExpanded,
+  onExpandAll,
 }: InventoryStripProps) {
   // Hooks
   const copy = useCopy(inventoryContent)
@@ -74,6 +81,12 @@ export default function InventoryStrip({
             <ToggleGroupItem value="products">{copy.group.products}</ToggleGroupItem>
           </ToggleGroup>
         </div>
+        {allExpanded !== null ? (
+          <Button variant="outline" className="bg-card" onClick={() => onExpandAll(!allExpanded)}>
+            <ChevronsUpDown strokeWidth={1.6} aria-hidden />
+            {allExpanded ? copy.tree.collapseAll : copy.tree.expandAll}
+          </Button>
+        ) : null}
         {reason ? (
           <div className="flex flex-col gap-1.5">
             <label htmlFor="inventory-reason" className="text-caption text-muted-foreground">
