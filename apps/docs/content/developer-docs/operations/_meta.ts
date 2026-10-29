@@ -7,4 +7,5 @@ export default {
   'key-rotation': 'Key rotation',
   'release-checklist': 'Release checklist',
   'bug-reports': 'Bug reports',
+  'platform-console': 'Platform console',
 }

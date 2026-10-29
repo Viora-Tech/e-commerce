@@ -1,6 +1,6 @@
 import { appRouter } from '@commerce/api'
 import { RPCHandler } from '@orpc/server/fetch'
-import { apiHost } from '@/lib/api'
+import { apiHost, platformHost } from '@/lib/api'
 import { isCrossOriginBrowserRequest } from '@/lib/request-site'
 
 const handler = new RPCHandler(appRouter)
@@ -13,7 +13,7 @@ async function handle(request: Request) {
   }
   const { response } = await handler.handle(request, {
     prefix: '/api/rpc',
-    context: { ...apiHost(), headers: request.headers },
+    context: { ...apiHost(), ...platformHost(), headers: request.headers },
   })
   return response ?? new Response('Not found', { status: 404 })
 }

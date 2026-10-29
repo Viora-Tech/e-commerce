@@ -286,6 +286,15 @@ export const routes = {
     mcp: (page?: 'activity') => (page ? `/settings/mcp/${page}` : '/settings/mcp'),
   },
 
+  /** The Koomerce staff console (`src/app/(platform)`), outside any store. */
+  platform: {
+    overview: () => '/platform',
+    stores: () => '/platform/stores',
+    store: (storeId: string) => `/platform/stores/${id(storeId)}`,
+    users: () => '/platform/users',
+    audit: () => '/platform/audit',
+  },
+
   dev: {
     editor: () => '/dev/editor',
     emails: () => '/dev/emails',
