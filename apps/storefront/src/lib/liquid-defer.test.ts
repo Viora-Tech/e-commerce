@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFERRED_TYPE, deferThemeScripts } from './liquid-defer'
+import { DEFERRED_TYPE, deferThemeScripts, PROMOTE_ATTR } from './liquid-defer'
 import { liquidShim } from './liquid-shim'
 
 describe('deferThemeScripts', () => {
@@ -37,7 +37,44 @@ describe('deferThemeScripts', () => {
   })
 })
 
+describe('what our CSP and search engines would refuse', () => {
+  it('drops the blocked inline onload of a print stylesheet and marks it for the shim', () => {
+    const html = [
+      `<link\n  rel="stylesheet"\n  media="print"\n  onload="this.media='all';this.onload=null"\n  href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP&display=swap"\n>`,
+      '<noscript><link rel="stylesheet" href="/x.css"></noscript>',
+    ].join('')
+    expect(deferThemeScripts(html)).toBe(
+      [
+        `<link rel="stylesheet" media="print" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP&amp;display=swap" ${PROMOTE_ATTR}>`,
+        '<noscript><link rel="stylesheet" href="/x.css"></noscript>',
+      ].join(''),
+    )
+  })
+
+  it('leaves other onload handlers and screen stylesheets alone', () => {
+    const html = [
+      `<link rel="stylesheet" media="all" onload="this.media='all'" href="/a.css">`,
+      `<link rel="stylesheet" media="print" onload="track()" href="/b.css">`,
+    ].join('')
+    expect(deferThemeScripts(html)).toBe(html)
+  })
+
+  it('removes an empty JSON-LD script and keeps a filled one', () => {
+    const html = [
+      '<script nonce="n1" type="application/ld+json">\n    \n  </script>',
+      '<script type="application/ld+json">{"@type":"Product"}</script>',
+    ].join('')
+    expect(deferThemeScripts(html)).toBe(
+      '<script type="application/ld+json">{"@type":"Product"}</script>',
+    )
+  })
+})
+
 describe('the shim’s boot', () => {
+  it('switches on the marked print stylesheets', () => {
+    expect(liquidShim({ askConsent: false })).toContain(`[${PROMOTE_ATTR}]`)
+  })
+
   it('carries the boot and its stylesheet regular expression into the page script', () => {
     const shim = liquidShim({ askConsent: false })
     expect(shim).toContain('window.__commerceBootTheme')
