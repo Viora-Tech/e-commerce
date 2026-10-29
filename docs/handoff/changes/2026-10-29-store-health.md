@@ -29,3 +29,6 @@ never told; this check tells them.
 - **Products list:** new "Missing" filter (`?missing=weight|image`, `products.list` input
   `missing`). ₹0 products link to `?status=active&priceMax=0`.
 - Copy: `apps/admin/src/data/store-health.ts`, Hindi in `data/hi/store-health.ts`.
+- Tests: `packages/core/src/store-health/checks.test.ts` (each check) and
+  `packages/api/test/store-health.test.ts` (database: the 21-Oct Waimers zones, product gaps, a
+  test-mode gateway, uncovered states, and the Products `missing` filter).
