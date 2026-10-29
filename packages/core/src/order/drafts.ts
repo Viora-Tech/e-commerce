@@ -10,11 +10,11 @@ import {
   store,
   variant,
 } from '@commerce/db'
-import { and, desc, eq, inArray, sql } from 'drizzle-orm'
+import { and, desc, eq, gte, inArray, lt, lte, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import type { StoreContext } from '../context'
 import { recordDiscountUse } from '../discounts/usage'
-import { CommerceError } from '../errors'
+import { CommerceError, PriceNotSet } from '../errors'
 import { announceExchangeOrder } from '../returns/notify'
 import { StoreAddressSchema } from '../settings/general'
 import { assertCustomerInStore } from '../store-scope'
@@ -120,12 +120,15 @@ async function resolveLines(ctx: StoreContext, lines: DraftInput['lines']) {
     if (!v) {
       throw new CommerceError('VARIANT_NOT_FOUND', `Variant ${l.variantId} is not in this store`)
     }
+    // A variant listed without a price (#913) needs the line's own price typed in.
+    const unitPricePaise = l.unitPricePaise ?? v.pricePaise
+    if (unitPricePaise == null) throw new PriceNotSet(l.variantId, ctx.storeId)
     return {
       variantId: l.variantId,
       title: v.productTitle,
       variantTitle: v.title,
       quantity: l.quantity,
-      unitPricePaise: l.unitPricePaise ?? v.pricePaise,
+      unitPricePaise,
       // Snapshotted like checkout does, so routing, GST and card issue treat it as digital.
       giftCard: v.giftCard,
     }
@@ -223,14 +226,20 @@ async function setDraftNote(ctx: StoreContext, orderId: string, body: string) {
 export const DRAFT_LIST_STATUSES = ['open', 'invoice_sent'] as const
 export type DraftListStatus = (typeof DRAFT_LIST_STATUSES)[number]
 
+/** The drafts list's filter panel: created window and total, both ends optional. */
+export type DraftListFilters = {
+  search?: string | undefined
+  status?: DraftListStatus | undefined
+  createdFrom?: string | undefined
+  /** Created before this time (the end of a custom date range). */
+  createdTo?: string | undefined
+  totalMinPaise?: number | undefined
+  totalMaxPaise?: number | undefined
+}
+
 export async function listDrafts(
   ctx: StoreContext,
-  input: {
-    page: number
-    perPage: number
-    search?: string | undefined
-    status?: DraftListStatus | undefined
-  },
+  input: DraftListFilters & { page: number; perPage: number },
 ): Promise<{ items: DraftListItem[]; total: number }> {
   const search = input.search?.trim()
   const invoiceSent = sql`exists (
@@ -243,6 +252,11 @@ export async function listDrafts(
     search
       ? sql`(${order.email} ilike ${`%${search}%`} or ${customer.name} ilike ${`%${search}%`} or cast(${order.number} as text) like ${`%${search}%`})`
       : undefined,
+    /* A draft's creation time is kept in placed_at until it converts. */
+    input.createdFrom ? gte(order.placedAt, new Date(input.createdFrom)) : undefined,
+    input.createdTo ? lt(order.placedAt, new Date(input.createdTo)) : undefined,
+    input.totalMinPaise !== undefined ? gte(order.totalPaise, input.totalMinPaise) : undefined,
+    input.totalMaxPaise !== undefined ? lte(order.totalPaise, input.totalMaxPaise) : undefined,
   )
   const [countRow] = await ctx.tx
     .select({ total: sql<number>`count(*)::int` })

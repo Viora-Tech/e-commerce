@@ -84,7 +84,7 @@ export default function DraftProductsCard({ lines, onChange }: DraftProductsCard
               variantTitle: r.variantTitle,
               sku: r.sku,
               quantity: 1,
-              unitPricePaise: r.pricePaise,
+              unitPricePaise: r.pricePaise ?? 0,
               imageUrl: r.imageUrl,
               giftCard: r.giftCard,
             },
@@ -131,6 +131,7 @@ export default function DraftProductsCard({ lines, onChange }: DraftProductsCard
                   <ResultButton
                     label={g.title}
                     result={g.variants[0] as Result}
+                    noPrice={copy.noPrice}
                     onAdd={handleAdd}
                   />
                 </li>
@@ -143,6 +144,7 @@ export default function DraftProductsCard({ lines, onChange }: DraftProductsCard
                         <ResultButton
                           label={isDefault(r.variantTitle) ? r.title : r.variantTitle}
                           result={r}
+                          noPrice={copy.noPrice}
                           onAdd={handleAdd}
                           inset
                         />
@@ -209,11 +211,13 @@ export default function DraftProductsCard({ lines, onChange }: DraftProductsCard
 function ResultButton({
   label,
   result,
+  noPrice,
   onAdd,
   inset = false,
 }: {
   label: string
   result: Result
+  noPrice: string
   onAdd: (r: Result) => void
   inset?: boolean
 }) {
@@ -233,7 +237,7 @@ function ResultButton({
         </span>
       ) : null}
       <span className="shrink-0 text-body text-muted-foreground tabular-nums">
-        {formatPaise(result.pricePaise)}
+        {result.pricePaise == null ? noPrice : formatPaise(result.pricePaise)}
       </span>
     </button>
   )

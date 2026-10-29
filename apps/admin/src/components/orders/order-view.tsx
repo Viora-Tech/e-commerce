@@ -45,6 +45,7 @@ import ParcelsCard from './parcels-card'
 import PaymentCard from './payment-card'
 import ProfitCard from './profit-card'
 import RefundDialog from './refund-dialog'
+import type { SendChannel } from './reminder-channel-picker'
 import SalesChannelCard from './sales-channel-card'
 import SendMessageDialog, { type CustomMessage } from './send-message-dialog'
 import ShipmentPanel from './shipment-panel'
@@ -128,10 +129,10 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
       setBusy(false)
     }
   }
-  const handleSendReminder = async (custom?: CustomMessage) => {
+  const handleSendReminder = async (custom?: CustomMessage, channel?: SendChannel) => {
     setBusy(true)
     try {
-      await api.orders.sendPaymentReminder({ orderId: order.id, custom })
+      await api.orders.sendPaymentReminder({ orderId: order.id, custom, channel })
       toast.success(copy.payment.transfer.sentToast)
       refresh()
     } catch (err) {
@@ -139,6 +140,10 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
     } finally {
       setBusy(false)
     }
+  }
+  /** The merchant opened the reminder in their own WhatsApp: put it on the timeline. */
+  const handleReminderChat = () => {
+    void api.orders.notePaymentReminderChat({ orderId: order.id }).then(refresh, () => undefined)
   }
   /** Courier calls can fail; the message is the app's wording from the API, shown as a toast. */
   const handleCourier = async <T,>(run: () => Promise<T>, done: (result: T) => string) => {
@@ -361,6 +366,9 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
         orderId={reviewing ? order.id : null}
         template={reviewing ?? 'payment_reminder'}
         onSend={reviewing === 'balance_request' ? handleRequestBalance : handleSendReminder}
+        chooseChannel={
+          reviewing === 'payment_reminder' ? { onChatOpened: handleReminderChat } : undefined
+        }
         onClose={() => setReviewing(null)}
       />
       <CancelOrderDialog

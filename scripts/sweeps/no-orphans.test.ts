@@ -799,7 +799,6 @@ const ALLOWLIST: AllowEntry[] = [
       'REMINDER_EVERY_HOURS',
       'CANCEL_NOTICE_HOURS',
       'PaymentNotPending',
-      'REMINDER_NOTE',
       'CANCEL_NOTICE_NOTE',
       'MANUAL_CANCELLED_NOTE',
       'nextManualStep',

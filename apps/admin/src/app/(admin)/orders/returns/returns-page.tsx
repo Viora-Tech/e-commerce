@@ -12,14 +12,30 @@ import ReturnsListDialogs, {
   listActions,
   type ReturnsListRequest,
 } from '@/components/returns/returns-list-dialogs'
+import {
+  appliedFromGroups,
+  clearGroups,
+  FILTER_PANEL_CLASS,
+  FilterPanel,
+} from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
 import ViewSelect from '@/components/table/view-select'
+import { filterPanelContent } from '@/data/filter-panel'
+import { returnFiltersContent } from '@/data/order-list-filters'
 import { returnDetailContent, returnListActionsContent, returnsContent } from '@/data/returns'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { type ListQuery, sameListQuery } from '@/lib/list-query'
 import { RETURN_LIST_FILTERS, type ReturnListFilter, returnListFilter } from '@/lib/return-filter'
+import {
+  CLEAR_RETURN_FILTERS,
+  hasReturnFilters,
+  RETURN_FILTER_PARAMS,
+  type ReturnFilters,
+  returnFilterGroups,
+  returnFilterInput,
+} from '@/lib/return-list-filters'
 import { routes } from '@/lib/routes'
 import { parseRowsPerPage } from '@/lib/rows-per-page'
 
@@ -34,12 +50,13 @@ export type ReturnsInitial = {
   counts: Counts
 }
 
-function fetchReturns(q: ListQuery<ReturnListFilter>, perPage: number) {
+function fetchReturns(q: ListQuery<ReturnListFilter> & ReturnFilters, perPage: number) {
   return api.returns.list({
     page: q.page,
     perPage,
     search: q.query || undefined,
     ...returnListFilter(q.status),
+    ...returnFilterInput(q),
   })
 }
 
@@ -48,14 +65,17 @@ function ReturnsContent({ initial }: { initial: ReturnsInitial }) {
   const copy = useCopy(returnsContent)
   const detail = useCopy(returnDetailContent)
   const actions = useCopy(returnListActionsContent)
+  const filterCopy = useCopy(returnFiltersContent)
+  const panelCopy = useCopy(filterPanelContent)
   const router = useRouter()
   const fmt = useFormat()
-  const [{ page, query, status, perPage: rawPerPage }, setQ] = useQueryStates(
+  const [q, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
       page: parseAsInteger.withDefault(1),
       status: parseAsStringLiteral(RETURN_LIST_FILTERS),
       perPage: parseAsInteger.withDefault(initial.perPage),
+      ...RETURN_FILTER_PARAMS,
     },
     { shallow: true },
   )
@@ -67,7 +87,7 @@ function ReturnsContent({ initial }: { initial: ReturnsInitial }) {
   const hydrated = useRef(false)
 
   useEffect(() => {
-    const size = parseRowsPerPage(rawPerPage)
+    const size = parseRowsPerPage(q.perPage)
     // The server's first page is used once; after any change (including back to the first
     // tab) the list is fetched again, so it never keeps another tab's rows.
     const firstRun = !hydrated.current
@@ -75,12 +95,13 @@ function ReturnsContent({ initial }: { initial: ReturnsInitial }) {
     if (
       firstRun &&
       size === initial.perPage &&
-      sameListQuery({ page, query, status }, initial.query)
+      !hasReturnFilters(q) &&
+      sameListQuery({ page: q.page, query: q.query, status: q.status }, initial.query)
     )
       return
     let cancelled = false
     setLoading(true)
-    fetchReturns({ page, query, status }, size)
+    fetchReturns(q, size)
       .then((r) => {
         if (cancelled) return
         setItems(r.items)
@@ -90,11 +111,11 @@ function ReturnsContent({ initial }: { initial: ReturnsInitial }) {
     return () => {
       cancelled = true
     }
-  }, [page, query, status, rawPerPage, initial.query, initial.perPage])
+  }, [q, initial.query, initial.perPage])
 
   // Helpers
   const reload = async () => {
-    const r = await fetchReturns({ page, query, status }, parseRowsPerPage(rawPerPage))
+    const r = await fetchReturns(q, parseRowsPerPage(q.perPage))
     setItems(r.items)
     setTotal(r.total)
     // The tab counts and the summary line come from the server render.
@@ -110,7 +131,9 @@ function ReturnsContent({ initial }: { initial: ReturnsInitial }) {
   }
 
   // Render logic
-  const perPage = parseRowsPerPage(rawPerPage)
+  const { page, query, status } = q
+  const perPage = parseRowsPerPage(q.perPage)
+  const groups = returnFilterGroups(q, filterCopy, (patch) => setQ({ ...patch, page: 1 }))
   const c = initial.counts
   const counts: Record<ReturnListFilter, number | undefined> = {
     requested: c.requested,
@@ -201,7 +224,16 @@ function ReturnsContent({ initial }: { initial: ReturnsInitial }) {
         loading={loading}
         query={query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
-        onClearAll={() => setQ({ query: '', status: null, page: 1 })}
+        onClearAll={() => setQ({ ...CLEAR_RETURN_FILTERS, query: '', status: null, page: 1 })}
+        filters={(close) => (
+          <FilterPanel
+            groups={groups}
+            onClear={() => clearGroups(groups)}
+            footer={{ label: filterCopy.show(total), onDone: close }}
+          />
+        )}
+        filtersClassName={FILTER_PANEL_CLASS}
+        applied={appliedFromGroups(groups, panelCopy)}
         views={
           <ViewSelect<ReturnListFilter | null>
             label={copy.viewLabel}

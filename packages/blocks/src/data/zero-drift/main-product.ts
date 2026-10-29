@@ -146,6 +146,8 @@ export const mainProductContent = {
     buyNow: 'Buy it now',
     added: 'Added',
     soldOut: 'Sold out',
+    /** The buy button while the variant has no price yet (#913); it stays disabled. */
+    priceComingSoon: 'Price coming soon',
     viewCart: 'View cart',
     launchingIn: (countdown: string) => `Launching in ${countdown}`,
     launches: 'Launches',

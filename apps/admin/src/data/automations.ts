@@ -190,7 +190,7 @@ export const automationPiecesContent: Record<string, string> = {
     'Send your packer a WhatsApp message when an order is paid.',
   'automations.template.remind-unpaid-orders.name': 'Remind unpaid orders',
   'automations.template.remind-unpaid-orders.description':
-    'Every morning, email a payment reminder for orders still unpaid after 3 days (UPI and bank transfer, not COD).',
+    'Every morning, send a payment reminder by email, and on WhatsApp when it is connected, for orders still unpaid after 3 days (UPI and bank transfer, not COD).',
   'automations.template.cancel-unconfirmed-cod.name': 'Cancel unconfirmed COD orders',
   'automations.template.cancel-unconfirmed-cod.description':
     'COD orders not confirmed in 48 hours are cancelled, after you approve each one.',

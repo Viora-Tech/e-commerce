@@ -151,13 +151,6 @@ export default function VariantsCard({
     })
   }
 
-  const handleGenerateSku = (index: number) => {
-    const row = variants[index]
-    if (!row) return
-    const taken = variants.filter((_, j) => j !== index).map((v) => v.sku)
-    onVariant(index, { sku: generateSku(title, row.optionValues, taken) })
-  }
-
   // Render logic
   const hasOptions = options.length > 0
   const hasMatrix = matrixOptions(options).length > 0
@@ -264,13 +257,13 @@ export default function VariantsCard({
       ) : null}
       {hasMatrix ? (
         <VariantMatrix
+          productTitle={title}
           variants={variants}
           media={media}
           selected={selected}
           onSelectedChange={setSelected}
           onVariant={onVariant}
           onAddMedia={onAddMedia}
-          onGenerateSku={handleGenerateSku}
         />
       ) : null}
       <ConfirmDialog

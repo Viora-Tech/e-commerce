@@ -22,7 +22,8 @@ export default function HeroChip({ product, style, hasHeading, lowStockThreshold
   const href = `/products/${product.handle}`
   const soldOut = product.available <= 0
   const lowStock = !soldOut && product.available <= lowStockThreshold
-  const hasPrice = product.pricePaise > 0
+  const pricePaise =
+    product.pricePaise != null && product.pricePaise > 0 ? product.pricePaise : null
   const thumb = product.images.find((i) => i.url)
   const tone = soldOut ? 'out' : lowStock ? 'low' : 'in'
   const stockLabel = soldOut ? copy.soldOut : lowStock ? copy.lowStock : copy.inStock
@@ -47,7 +48,7 @@ export default function HeroChip({ product, style, hasHeading, lowStockThreshold
       <span className="hero-carousel__bar-text">
         <span className="hero-carousel__bar-title">{product.title}</span>
         <span className="hero-carousel__bar-meta">
-          {soldOut ? copy.soldOut : hasPrice ? formatPaise(product.pricePaise) : null}
+          {soldOut ? copy.soldOut : pricePaise != null ? formatPaise(pricePaise) : null}
         </span>
       </span>
       <span className="hero-carousel__bar-cta">
@@ -75,7 +76,7 @@ export default function HeroChip({ product, style, hasHeading, lowStockThreshold
             {!inline || !hasHeading ? (
               <span className="hero-carousel__chip-title text-small">{product.title}</span>
             ) : null}
-            {!inline && hasPrice ? (
+            {!inline && pricePaise != null ? (
               <Price pricePaise={product.pricePaise} mrpPaise={product.mrpPaise} />
             ) : null}
           </span>

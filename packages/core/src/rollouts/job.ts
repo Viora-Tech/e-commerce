@@ -1,4 +1,4 @@
-/** SOURCE OF TRUTH: Rollouts tick — WHAT: every minute, for each store with a rollout due (`stores_with_rollouts_due`, 0182), start the scheduled rollouts whose time came and end the events whose end passed (by their end action), each in its own transaction / WHY: a sale goes live and ends on time with nobody clicking; one rollout failing (its theme was deleted) never stops the others, and it says why on its page */
+/** SOURCE OF TRUTH: Rollouts tick — WHAT: every minute, for each store with a rollout due (`stores_with_rollouts_due`, 0183), start the scheduled rollouts whose time came and end the events whose end passed (by their end action), each in its own transaction / WHY: a sale goes live and ends on time with nobody clicking; one rollout failing (its theme was deleted) never stops the others, and it says why on its page */
 import { type Db, rollout, storesWithRolloutsDue, withStore } from '@commerce/db'
 import { and, eq, lte, or } from 'drizzle-orm'
 import { RolloutError } from './schema'

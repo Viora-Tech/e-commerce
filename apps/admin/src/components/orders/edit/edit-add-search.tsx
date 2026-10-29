@@ -87,7 +87,7 @@ export default function EditAddSearch({ onAdd }: EditAddSearchProps) {
                   </span>
                 ) : null}
                 <span className="shrink-0 text-body text-muted-foreground tabular-nums">
-                  {formatPaise(r.pricePaise)}
+                  {r.pricePaise == null ? copy.noPrice : formatPaise(r.pricePaise)}
                 </span>
               </button>
             </li>

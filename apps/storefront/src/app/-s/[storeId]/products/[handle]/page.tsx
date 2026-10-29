@@ -237,7 +237,7 @@ export default async function ProductPage({ params, searchParams }: Params) {
           name: 'ViewContent',
           productId: product.id,
           variantId: variant?.id,
-          valuePaise: variant?.pricePaise,
+          valuePaise: variant?.pricePaise ?? undefined,
         }}
       />
       {page}

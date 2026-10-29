@@ -88,6 +88,21 @@ describe('relayStoreOutbox', () => {
     expect(rows[0]?.dispatchedAt).not.toBeNull()
   })
 
+  it("carries a reminder's one-channel choice onto its notification job", async () => {
+    const storeId = await seedStore('relay-reminder')
+    const orderId = crypto.randomUUID()
+    await withStore(app, storeId, (tx) =>
+      insertOutboxEvent(tx, storeId, 'order.payment_reminder', { orderId, requires: 'phone' }),
+    )
+    const notifications = fakeQueue<{ storeId: string; orderId: string; template: string }>()
+    await relayStoreOutbox({ db: app, plugins, notifications: notifications.queue }, storeId)
+    expect(notifications.calls[0]?.data).toMatchObject({
+      orderId,
+      template: 'payment_reminder',
+      requires: 'phone',
+    })
+  })
+
   it('two concurrent relay ticks for the same store never double-dispatch a row', async () => {
     const storeId = await seedStore('relay-concurrent')
     for (let i = 0; i < 5; i += 1) {

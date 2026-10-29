@@ -64,6 +64,12 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
         icon: Store,
       },
       {
+        href: routes.settings.storeHealth(),
+        title: 'Store health',
+        body: 'Setups that will break or hurt checkout and orders, each with a link to fix it.',
+        icon: ShieldCheck,
+      },
+      {
         href: routes.settings.domains(),
         title: 'Domains',
         body: 'The website addresses your shop opens on.',

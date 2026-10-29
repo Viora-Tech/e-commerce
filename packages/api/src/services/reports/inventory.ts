@@ -15,7 +15,8 @@ type LevelFact = {
   productTitle: string
   variantTitle: string
   sku: string | null
-  pricePaise: number
+  /** Null: listed without a price yet (#913); counts as nothing in retail value. */
+  pricePaise: number | null
   costPaise: number | null
   trackInventory: boolean
   locationId: string | null
@@ -80,7 +81,7 @@ export const inventoryBuilders: Record<string, ReportBuilder> = {
       available: sumOf(group, (l) => l.onHand - l.reserved),
       incoming: sumOf(group, (l) => l.incoming),
       costValue: sumOf(group, (l) => Math.max(0, l.onHand) * (l.costPaise ?? 0)),
-      retailValue: sumOf(group, (l) => Math.max(0, l.onHand) * l.pricePaise),
+      retailValue: sumOf(group, (l) => Math.max(0, l.onHand) * (l.pricePaise ?? 0)),
     })
     return {
       rows: [...groupBy(levels, (l) => l.locationId ?? '')]

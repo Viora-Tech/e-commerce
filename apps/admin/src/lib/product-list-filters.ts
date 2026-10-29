@@ -1,4 +1,8 @@
-import { STOCK_FILTERS } from '@commerce/core/catalog'
+import {
+  PRODUCT_MISSING_FILTERS,
+  type ProductMissingFilter,
+  STOCK_FILTERS,
+} from '@commerce/core/catalog'
 import { parseRupees } from '@commerce/money'
 import { parseAsArrayOf, parseAsString, parseAsStringLiteral } from 'nuqs'
 import {
@@ -29,6 +33,8 @@ export type ProductFilters = {
   /** Collection ids. */
   collection: string[]
   stock: StockFilter | null
+  /** A live variant without a weight, or no image (Store health links here). */
+  missing: ProductMissingFilter | null
   /** Rupees as typed; empty for no bound. */
   priceMin: string
   priceMax: string
@@ -41,6 +47,7 @@ export const NO_PRODUCT_FILTERS: ProductFilters = {
   tag: [],
   collection: [],
   stock: null,
+  missing: null,
   priceMin: '',
   priceMax: '',
   created: NO_DATE_FILTER,
@@ -54,6 +61,7 @@ export const PRODUCT_FILTER_PARAMS = {
   tag: parseAsArrayOf(parseAsString).withDefault([]),
   collection: parseAsArrayOf(parseAsString).withDefault([]),
   stock: parseAsStringLiteral(STOCK_FILTERS),
+  missing: parseAsStringLiteral(PRODUCT_MISSING_FILTERS),
   priceMin: parseAsString.withDefault(''),
   priceMax: parseAsString.withDefault(''),
   created: parseAsDateFilter(CREATED_FILTERS),
@@ -66,6 +74,7 @@ export const CLEAR_PRODUCT_FILTERS = {
   tag: null,
   collection: null,
   stock: null,
+  missing: null,
   priceMin: null,
   priceMax: null,
   created: null,
@@ -83,6 +92,7 @@ export function hasProductFilters(f: ProductFilters): boolean {
     f.tag.length > 0 ||
     f.collection.length > 0 ||
     f.stock !== null ||
+    f.missing !== null ||
     parseRupees(f.priceMin) !== null ||
     parseRupees(f.priceMax) !== null ||
     hasDateFilter(f.created)
@@ -100,6 +110,7 @@ export function productFilterInput(f: ProductFilters, now = new Date()) {
     ...(f.tag.length ? { tags: f.tag } : {}),
     ...(f.collection.length ? { collectionIds: f.collection } : {}),
     ...(f.stock ? { stock: f.stock } : {}),
+    ...(f.missing ? { missing: f.missing } : {}),
     ...(min !== null ? { priceMinPaise: Math.max(0, min) } : {}),
     ...(max !== null ? { priceMaxPaise: Math.max(0, max) } : {}),
     ...(created.from ? { createdFrom: created.from } : {}),
@@ -161,6 +172,16 @@ export function productFilterGroups(
       options: copy.stockOptions,
       value: f.stock,
       onChange: (next) => onChange({ stock: STOCK_FILTERS.find((s) => s === next) ?? null }),
+      anyLabel: copy.any,
+    },
+    {
+      key: 'missing',
+      label: copy.missing,
+      type: 'select',
+      options: copy.missingOptions,
+      value: f.missing,
+      onChange: (next) =>
+        onChange({ missing: PRODUCT_MISSING_FILTERS.find((m) => m === next) ?? null }),
       anyLabel: copy.any,
     },
     {

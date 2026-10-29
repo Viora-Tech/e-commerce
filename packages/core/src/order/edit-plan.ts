@@ -57,6 +57,7 @@ export class OrderEditRefused extends CommerceError {
     | 'no_change'
     | 'awaiting_payment'
     | 'returned_line'
+    | 'no_price'
   constructor(reason: OrderEditRefused['reason'], message: string, storeId?: string) {
     super('ORDER_EDIT_REFUSED', message, { storeId })
     this.reason = reason
@@ -78,7 +79,8 @@ export type EditVariant = {
   id: string
   title: string
   variantTitle: string
-  pricePaise: number
+  /** Null: listed without a price yet (#913); the edit must type one in. */
+  pricePaise: number | null
   giftCard: boolean
 }
 
@@ -192,13 +194,16 @@ export function planOrderEdit(input: {
       throw new OrderEditRefused('unknown_variant', `Variant ${a.variantId} is not for sale here`)
     if (v.giftCard)
       throw new OrderEditRefused('gift_card', 'Gift cards cannot be added to an order')
+    const unitPricePaise = a.unitPricePaise ?? v.pricePaise
+    if (unitPricePaise == null)
+      throw new OrderEditRefused('no_price', `${v.title} has no price yet. Type one in to add it.`)
     lines.push({
       lineId: null,
       variantId: v.id,
       title: v.title,
       variantTitle: v.variantTitle,
-      unitPricePaise: a.unitPricePaise ?? v.pricePaise,
-      unitPriceBefore: a.unitPricePaise ?? v.pricePaise,
+      unitPricePaise,
+      unitPriceBefore: unitPricePaise,
       quantityBefore: 0,
       quantity: a.quantity,
       fulfilledQuantity: 0,

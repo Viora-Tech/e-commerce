@@ -55,6 +55,12 @@ export const reviewsContent = {
       yes: 'With photos',
       no: 'Without photos',
       ratingValue: (n: number) => `${n} stars`,
+      source: 'Source',
+      sources: { storefront: 'Your store', judgeme: 'Judge.me import' },
+      verified: 'Verified buyer',
+      featured: 'Featured',
+      replied: 'Replied',
+      created: 'Written',
     },
     bulk: {
       approve: 'Approve',

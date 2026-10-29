@@ -27,6 +27,7 @@ import {
   DiscountCodeRefused,
   DiscountUnavailable,
   OutOfStock,
+  PriceNotSet,
 } from '../errors'
 import { setCartAttribution } from '../marketing/sessions'
 import { FakePaymentProvider, type PaymentProvider } from '../providers/payment'
@@ -63,7 +64,7 @@ async function seed(opts: { onHand: number; quantity: number }): Promise<Seed> {
     cartId: c.id,
     variantId: v.id,
     quantity: opts.quantity,
-    unitPricePaise: v.pricePaise,
+    unitPricePaise: 499900,
   })
   return { storeId: s.id, cartId: c.id, variantId: v.id }
 }
@@ -426,6 +427,17 @@ describe('placeOrder', () => {
       .from(inventoryLevel)
       .where(eq(inventoryLevel.variantId, variantId))
     expect(inv?.reserved).toBe(0)
+    expect(provider.calls).toEqual([])
+  })
+
+  it('refuses a cart whose item lost its price after it was added (#913)', async () => {
+    const { storeId, cartId, variantId } = await seed({ onHand: 5, quantity: 1 })
+    await owner.update(variant).set({ pricePaise: null }).where(eq(variant.id, variantId))
+    const provider = new FakePaymentProvider({ mode: 'capture' })
+    await expect(
+      placeOrderAndPay(app, storeId, { cartId, paymentProvider: provider }),
+    ).rejects.toBeInstanceOf(PriceNotSet)
+    expect(await owner.select().from(order)).toEqual([])
     expect(provider.calls).toEqual([])
   })
 

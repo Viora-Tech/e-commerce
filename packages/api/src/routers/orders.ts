@@ -29,8 +29,11 @@ import {
   getOrder,
   listOrderIds,
   listOrders,
+  ORDER_CHANNEL_FILTERS,
+  ORDER_RETURN_FILTERS,
   ORDER_VIEWS,
   orderCouriers,
+  orderFacets,
   orderStats,
   orderTiles,
   readyToShipCount,
@@ -60,51 +63,59 @@ import { orderMessageRoutes } from './order-messages'
 /** What "Mark as" on the order page records; the statuses are then derived. */
 const change = z.enum(ORDER_MARKS)
 
+/** The Orders list's tab, search and filter panel, shared by the list and "Select all". */
+const listFilters = z.object({
+  search: z.string().trim().max(SEARCH_MAX).optional(),
+  /** The list tab. */
+  view: z.enum(ORDER_VIEWS).optional(),
+  paymentStatus: z.array(z.enum(ORDER_PAYMENT_STATUSES)).max(10).optional(),
+  fulfillmentStatus: z.array(z.enum(ORDER_FULFILLMENT_STATUSES)).max(10).optional(),
+  /** Placed at or after this moment (the filter panel's Date). */
+  placedFrom: z.iso.datetime().optional(),
+  placedTo: z.iso.datetime().optional(),
+  /** Cash on delivery, or anything paid up front. */
+  paymentMethod: z.enum(['cod', 'prepaid']).optional(),
+  /** Sent with this courier (the filter panel's Courier). */
+  courier: z.string().trim().min(1).max(60).optional(),
+  /** Has a line whose product title, variant title or SKU contains this (the panel's Product). */
+  product: z.string().trim().min(1).max(SEARCH_MAX).optional(),
+  /** Carries any of these tags. */
+  tags: z.array(z.string().trim().min(1).max(40)).max(50).optional(),
+  /** Came from any of these marketing channels (`untracked`: no attribution recorded). */
+  channels: z.array(z.enum(ORDER_CHANNEL_FILTERS)).max(ORDER_CHANNEL_FILTERS.length).optional(),
+  /** Order total at least / at most, in paise. */
+  totalMinPaise: z.number().int().min(0).optional(),
+  totalMaxPaise: z.number().int().min(0).optional(),
+  /** Used any of these discount codes (any case). */
+  discountCodes: z.array(z.string().trim().min(1).max(60)).max(50).optional(),
+  /** Where the order's returns stand (`none`: never had one). */
+  returnStatus: z.array(z.enum(ORDER_RETURN_FILTERS)).max(ORDER_RETURN_FILTERS.length).optional(),
+  /** Has a line whose product is in any of these collections (#886). */
+  collectionIds: z.array(z.uuid()).max(50).optional(),
+})
+
 export const ordersRouter = {
   /** Orders, a page at a time, by list tab, status, payment, fulfilment, date, product or a search. */
   list: can(permissions.ORDERS_READ)
     .input(
-      z.object({
+      listFilters.extend({
         page: z.number().int().min(1).default(1),
         perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(25),
-        search: z.string().trim().max(SEARCH_MAX).optional(),
-        /** The list tab. */
-        view: z.enum(ORDER_VIEWS).optional(),
         status: z.enum(['open', 'completed', 'cancelled']).optional(),
-        paymentStatus: z.array(z.enum(ORDER_PAYMENT_STATUSES)).max(10).optional(),
-        fulfillmentStatus: z.array(z.enum(ORDER_FULFILLMENT_STATUSES)).max(10).optional(),
-        /** Placed at or after this moment (the filter panel's Date). */
-        placedFrom: z.iso.datetime().optional(),
-        placedTo: z.iso.datetime().optional(),
-        /** Cash on delivery, or anything paid up front. */
-        paymentMethod: z.enum(['cod', 'prepaid']).optional(),
-        /** Sent with this courier (the filter panel's Courier). */
-        courier: z.string().trim().min(1).max(60).optional(),
-        /** Has a line whose product title, variant title or SKU contains this (the panel's Product). */
-        product: z.string().trim().min(1).max(SEARCH_MAX).optional(),
       }),
     )
     .handler(({ context, input }) => listOrders(context.tx, input)),
 
   /** Every order id the list's filters match (the table's "Select all N orders"), up to 5,000. */
   ids: can(permissions.ORDERS_READ)
-    .input(
-      z.object({
-        search: z.string().trim().max(SEARCH_MAX).optional(),
-        view: z.enum(ORDER_VIEWS).optional(),
-        paymentStatus: z.array(z.enum(ORDER_PAYMENT_STATUSES)).max(10).optional(),
-        fulfillmentStatus: z.array(z.enum(ORDER_FULFILLMENT_STATUSES)).max(10).optional(),
-        placedFrom: z.iso.datetime().optional(),
-        placedTo: z.iso.datetime().optional(),
-        paymentMethod: z.enum(['cod', 'prepaid']).optional(),
-        courier: z.string().trim().min(1).max(60).optional(),
-        product: z.string().trim().min(1).max(SEARCH_MAX).optional(),
-      }),
-    )
+    .input(listFilters)
     .handler(({ context, input }) => listOrderIds(context.tx, input)),
 
   /** The couriers the store's orders went with (the filter panel's Courier select). */
   couriers: can(permissions.ORDERS_READ).handler(({ context }) => orderCouriers(context.tx)),
+
+  /** What the Orders filter panel offers: tags, discount codes, couriers and collections in use. */
+  facets: can(permissions.ORDERS_READ).handler(({ context }) => orderFacets(context.tx)),
 
   /**
    * "Delete test orders": removes every order of this store paid on a gateway's test keys

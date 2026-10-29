@@ -21,6 +21,8 @@ import PillTabs from '@/components/layout/pill-tabs'
 import { sendMessageContent } from '@/data/orders'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { whatsappUrl } from '@/lib/customer-contact'
+import ReminderChannelPicker, { type SendChannel } from './reminder-channel-picker'
 
 /** Order messages, plus the abandoned checkout reminder (whose id is the cart's). */
 type Template = Parameters<typeof api.orders.previewMessage>[0]['template'] | 'checkout_recovery'
@@ -34,8 +36,16 @@ type SendMessageDialogProps = {
   /** The order (or draft, or the cart for checkout_recovery) the message is about; null closes it. */
   orderId: string | null
   template: Template
-  /** Sends the message for real with the edits; the dialog closes once it resolves. */
-  onSend: (custom: CustomMessage | undefined) => Promise<void>
+  /**
+   * Sends the message for real with the edits; the dialog closes once it resolves. `channel` is
+   * set only when the merchant could choose (`chooseChannel`, the store can email and WhatsApp).
+   */
+  onSend: (custom: CustomMessage | undefined, channel?: SendChannel) => Promise<void>
+  /**
+   * Payment reminders: "Send by" Email / WhatsApp / Both, or "Open in WhatsApp" (the merchant's
+   * own chat) when the store has no WhatsApp channel; `onChatOpened` records that on the order.
+   */
+  chooseChannel?: { onChatOpened: () => void } | undefined
   onClose: () => void
   /** For a dialog opened from a clickable table row: clicks inside must not open the row. */
   stopPropagation?: boolean
@@ -52,6 +62,12 @@ function loadPreview(
 ): Promise<Preview> {
   if (template === 'checkout_recovery') return api.orders.previewRecovery({ cartId: id, custom })
   return api.orders.previewMessage({ orderId: id, template, custom })
+}
+
+/** A wa.me chat to the order's phone with the message typed in, or null without a usable phone. */
+function chatLink(phone: string | null | undefined, text: string | null): string | null {
+  const base = whatsappUrl(phone)
+  return base && text ? `${base}?text=${encodeURIComponent(text)}` : null
 }
 
 /** The edits worth sending: blank fields are left out so the template's words stay. */
@@ -72,6 +88,7 @@ export default function SendMessageDialog({
   template,
   onSend,
   onClose,
+  chooseChannel,
   stopPropagation = false,
 }: SendMessageDialogProps) {
   // Hooks
@@ -83,6 +100,7 @@ export default function SendMessageDialog({
   const [sending, setSending] = useState(false)
   const [subject, setSubject] = useState('')
   const [message, setMessage] = useState('')
+  const [channel, setChannel] = useState<SendChannel>('both')
 
   // Each opening (orderId goes null → id) starts from the template's own words.
   useEffect(() => {
@@ -90,6 +108,7 @@ export default function SendMessageDialog({
     setPreview(null)
     setFailed(false)
     setTab('email')
+    setChannel('both')
     setSubject('')
     setMessage('')
   }, [orderId])
@@ -119,10 +138,17 @@ export default function SendMessageDialog({
   }, [orderId, template, subject, message])
 
   // Event handlers
+  const handleChannel = (next: SendChannel) => {
+    setChannel(next)
+    if (next !== 'both') setTab(next)
+  }
   const handleSend = async () => {
     setSending(true)
     try {
-      await onSend(customOf(subject === preview?.defaultSubject ? '' : subject, message))
+      await onSend(
+        customOf(subject === preview?.defaultSubject ? '' : subject, message),
+        choosing ? channel : undefined,
+      )
       onClose()
     } finally {
       setSending(false)
@@ -131,7 +157,15 @@ export default function SendMessageDialog({
 
   // Render logic
   const t = copy.templates[template]
-  const to = [preview?.to.email, preview?.whatsapp ? preview.to.phone : undefined]
+  const canEmail = Boolean(preview?.to.email)
+  const canWhatsapp = Boolean(preview?.whatsapp && preview.to.phone)
+  const choosing = Boolean(chooseChannel) && canEmail && canWhatsapp
+  const sendsEmail = !choosing || channel !== 'whatsapp'
+  const sendsWhatsapp = !choosing || channel !== 'email'
+  const to = [
+    sendsEmail ? preview?.to.email : undefined,
+    sendsWhatsapp && preview?.whatsapp ? preview.to.phone : undefined,
+  ]
     .filter(Boolean)
     .join(' · ')
 
@@ -161,6 +195,16 @@ export default function SendMessageDialog({
                 {copy.off}
               </p>
             )}
+            {chooseChannel ? (
+              <ReminderChannelPicker
+                channel={channel}
+                onChange={handleChannel}
+                canEmail={canEmail}
+                canWhatsapp={canWhatsapp}
+                chatHref={chatLink(preview.to.phone, preview.chatText)}
+                onChatOpened={chooseChannel.onChatOpened}
+              />
+            ) : null}
             <div className="flex flex-col gap-1.5">
               <Label>{copy.to}</Label>
               <p className="truncate rounded-md border border-border bg-muted px-3 py-2 text-body text-foreground">

@@ -138,58 +138,72 @@ export default function ShippingCard({
   return (
     <DataCard title={copy.heading}>
       <FieldGroup>
+        {/* With options these are per variant, in each variant's Edit dialog (#914). */}
+        {singleVariant ? null : (
+          <p className="text-body text-muted-foreground">{copy.perVariant}</p>
+        )}
         {/* Figma 283:14681 Shipping: label and help on the left, a 330px control on the right. */}
-        <SettingsRow label={copy.weight} description={copy.weightHelp} htmlFor="variant-weight">
-          <WeightInput
-            id="variant-weight"
-            weight={variant.weight}
-            unit={variant.weightUnit}
-            onChange={onChange}
-          />
-        </SettingsRow>
-        <SettingsRow label={copy.hsCode} description={copy.hsCodeHelp} htmlFor="variant-hs">
-          <Input
-            size="lg"
-            id="variant-hs"
-            value={variant.hsCode}
-            onChange={(e) => onChange({ hsCode: e.target.value })}
-            autoComplete="off"
-            inputMode="numeric"
-            className="md:max-w-[20.75rem]"
-          />
-        </SettingsRow>
-        <SettingsRow label={copy.gstRate} description={copy.gstRateHelp} htmlFor="variant-gst">
-          <Input
-            size="lg"
-            id="variant-gst"
-            value={variant.gstRate}
-            onChange={(e) => onChange({ gstRate: e.target.value.replace(/\D/g, '').slice(0, 2) })}
-            autoComplete="off"
-            inputMode="numeric"
-            className="md:max-w-[20.75rem]"
-          />
-        </SettingsRow>
-        <SettingsRow label={copy.country} description={copy.countryHelp} htmlFor="variant-origin">
-          <Select
-            items={items}
-            value={variant.countryOfOrigin || NONE}
-            onValueChange={(next) =>
-              onChange({ countryOfOrigin: next === NONE ? '' : String(next) })
-            }
-          >
-            <SelectTrigger size="lg" id="variant-origin" className="w-full md:max-w-[20.75rem]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={NONE}>{copy.countryPlaceholder}</SelectItem>
-              {COUNTRIES.map((country) => (
-                <SelectItem key={country.code} value={country.code}>
-                  {country.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </SettingsRow>
+        {singleVariant ? (
+          <>
+            <SettingsRow label={copy.weight} description={copy.weightHelp} htmlFor="variant-weight">
+              <WeightInput
+                id="variant-weight"
+                weight={variant.weight}
+                unit={variant.weightUnit}
+                onChange={onChange}
+              />
+            </SettingsRow>
+            <SettingsRow label={copy.hsCode} description={copy.hsCodeHelp} htmlFor="variant-hs">
+              <Input
+                size="lg"
+                id="variant-hs"
+                value={variant.hsCode}
+                onChange={(e) => onChange({ hsCode: e.target.value })}
+                autoComplete="off"
+                inputMode="numeric"
+                className="md:max-w-[20.75rem]"
+              />
+            </SettingsRow>
+            <SettingsRow label={copy.gstRate} description={copy.gstRateHelp} htmlFor="variant-gst">
+              <Input
+                size="lg"
+                id="variant-gst"
+                value={variant.gstRate}
+                onChange={(e) =>
+                  onChange({ gstRate: e.target.value.replace(/\D/g, '').slice(0, 2) })
+                }
+                autoComplete="off"
+                inputMode="numeric"
+                className="md:max-w-[20.75rem]"
+              />
+            </SettingsRow>
+            <SettingsRow
+              label={copy.country}
+              description={copy.countryHelp}
+              htmlFor="variant-origin"
+            >
+              <Select
+                items={items}
+                value={variant.countryOfOrigin || NONE}
+                onValueChange={(next) =>
+                  onChange({ countryOfOrigin: next === NONE ? '' : String(next) })
+                }
+              >
+                <SelectTrigger size="lg" id="variant-origin" className="w-full md:max-w-[20.75rem]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>{copy.countryPlaceholder}</SelectItem>
+                  {COUNTRIES.map((country) => (
+                    <SelectItem key={country.code} value={country.code}>
+                      {country.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </SettingsRow>
+          </>
+        ) : null}
         <SettingsRow label={copy.package} description={copy.packageHelp} htmlFor="variant-package">
           <Select
             items={packageItems}

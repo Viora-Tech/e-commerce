@@ -1,5 +1,5 @@
 /** SOURCE OF TRUTH: "Send order update" automation action — WHAT: tells the shopper about their own order without marketing consent, but only with an order email template (sent through `deliverNotification`, once per template per order) or a WhatsApp template the provider lists as an approved UTILITY one, only to the order's own contact, only on order subjects / WHY: owner answer Q4: the consent-free half of customer messaging must never carry marketing. Server-only. Design §8.4. */
-import { order, outboxEvent, type StoreTx } from '@commerce/db'
+import { order, orderNote, outboxEvent, type StoreTx } from '@commerce/db'
 import type { ChannelTemplate, NotificationChannel } from '@commerce/notifications'
 import { and, eq, sql } from 'drizzle-orm'
 import { normalisePhone } from '../../marketing/audience'
@@ -7,6 +7,8 @@ import { marketingChannels, prepareMarketingWhatsapp } from '../../marketing/sen
 import type { WhatsappTemplateRef } from '../../marketing/whatsapp'
 import { messageDef } from '../../notifications/messages'
 import { insertOutboxEvent } from '../../outbox/write'
+import { REMINDER_NOTE } from '../../payments/manual-followup'
+import { storeNotificationChannels } from '../../sender-email/channels'
 import { type ActionContext, type ActionExecutor, AutomationActionError } from '../executor'
 import { fill, mergeValues, notConnected, skipped } from './messages'
 import { messageExecutor, type Planned } from './outbound'
@@ -36,6 +38,27 @@ const ORDER_UPDATE_TEMPLATES: ReadonlySet<string> = new Set([
 export const isOrderUpdateTemplate = (id: string): boolean =>
   ORDER_UPDATE_TEMPLATES.has(id) &&
   (messageDef(id)?.group === 'orders' || id === 'payment_reminder')
+
+/**
+ * Whether the order message also goes on WhatsApp: the order has a phone and the store has a
+ * WhatsApp channel, so delivery sends that channel's approved template of the same name (an
+ * unpaid order's daily reminder reaches a shopper who left no email).
+ */
+async function alsoWhatsapp(
+  tx: StoreTx,
+  storeId: string,
+  deps: Awaited<ReturnType<DepsFor>>,
+  phone: string | null,
+): Promise<boolean> {
+  if (!normalisePhone(phone)) return false
+  const channels =
+    deps.channels ??
+    (await storeNotificationChannels(tx, storeId, {
+      registry: deps.registry,
+      settingsSecret: deps.settingsSecret,
+    }))
+  return channels.some((c) => c.requires === 'phone')
+}
 
 /** The approved UTILITY template on the channel, or why it may not be used. */
 async function utilityTemplate(
@@ -86,7 +109,8 @@ export function orderUpdate(depsFor: DepsFor): ActionExecutor<OrderUpdateConfig>
             retryable: false,
           })
         }
-        if (!o.email)
+        const whatsapp = await alsoWhatsapp(tx, ctx.storeId, deps, o.phone)
+        if (!o.email && !whatsapp)
           return { kind: 'result', result: skipped('The order has no email', 'no_recipient') }
         // Once per template per order, however many runs ask (a daily reminder workflow finds
         // the same unpaid order again tomorrow).
@@ -113,11 +137,27 @@ export function orderUpdate(depsFor: DepsFor): ActionExecutor<OrderUpdateConfig>
           orderId: o.id,
           notificationTemplate: config.template,
         })
+        const via = o.email ? (whatsapp ? 'both' : 'email') : 'whatsapp'
+        // Each reminder shows on the order's timeline, like one the merchant sends by hand.
+        if (config.template === 'payment_reminder') {
+          await tx.insert(orderNote).values({
+            storeId: ctx.storeId,
+            orderId: o.id,
+            body: REMINDER_NOTE(via, true),
+            author: 'system',
+          })
+        }
+        const to = [o.email, whatsapp ? o.phone : null].filter(Boolean).join(', ')
         return {
           kind: 'result',
           result: {
-            summary: `Queued the ${config.template} email to ${o.email}`,
-            output: { to: o.email, template: config.template },
+            summary:
+              via === 'email'
+                ? `Queued the ${config.template} email to ${to}`
+                : via === 'both'
+                  ? `Queued the ${config.template} email and WhatsApp to ${to}`
+                  : `Queued the ${config.template} WhatsApp to ${to}`,
+            output: { to, template: config.template },
           },
         }
       }
@@ -171,8 +211,14 @@ export function orderUpdate(depsFor: DepsFor): ActionExecutor<OrderUpdateConfig>
         if (!isOrderUpdateTemplate(config.template)) {
           return { summary: `${config.template} is not an order message`, wouldRun: false }
         }
-        return o.email
-          ? { summary: `Would email ${o.email} the ${config.template} message`, wouldRun: true }
+        if (o.email) {
+          return {
+            summary: `Would email ${o.email} the ${config.template} message`,
+            wouldRun: true,
+          }
+        }
+        return (await alsoWhatsapp(tx, ctx.storeId, deps, o.phone))
+          ? { summary: `Would WhatsApp the ${config.template} message`, wouldRun: true }
           : { summary: 'The order has no email', wouldRun: false }
       }
       if (!normalisePhone(o.phone)) return { summary: 'The order has no phone', wouldRun: false }

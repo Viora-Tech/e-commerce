@@ -3,6 +3,7 @@ import abandonedDetail from './abandoned-detail'
 import account from './account'
 import activity from './activity'
 import affiliateCreatives from './affiliate-creatives'
+import affiliateFilters from './affiliate-filters'
 import affiliates from './affiliates'
 import ai from './ai'
 import analytics from './analytics'
@@ -76,6 +77,7 @@ import orderAppActions from './order-app-actions'
 import orderCards from './order-cards'
 import orderDetail from './order-detail'
 import orderEdit from './order-edit'
+import orderListFilters from './order-list-filters'
 import orders from './orders'
 import ordersBulk from './orders-bulk'
 import ordersBulkEdit from './orders-bulk-edit'
@@ -115,6 +117,7 @@ import staffInvites from './staff-invites'
 import states from './states'
 import storageWarning from './storage-warning'
 import storeData from './store-data'
+import storeHealth from './store-health'
 import table from './table'
 import themeCode from './theme-code'
 import themeImport from './theme-import'
@@ -133,6 +136,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...account,
   ...affiliates,
   ...affiliateCreatives,
+  ...affiliateFilters,
   ...appInstall,
   ...apps,
   ...abandonedDetail,
@@ -197,6 +201,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...orderCards,
   ...orderDetail,
   ...orderEdit,
+  ...orderListFilters,
   ...shopifyImportFiles,
   ...shopifyImportRun,
   ...shopifyImportSettings,
@@ -235,6 +240,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...staffInvites,
   ...states,
   ...storeData,
+  ...storeHealth,
   ...storageWarning,
   ...table,
   ...themeCode,

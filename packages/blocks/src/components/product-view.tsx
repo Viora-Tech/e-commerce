@@ -162,13 +162,18 @@ export default function ProductView({
             <div className="product-info__price product-info__price--large">
               <Price pricePaise={variant.pricePaise} mrpPaise={variant.mrpPaise} percentBadge />
               <p className="product-info__tax-note">{copy.ui.inclusiveOfTaxes}</p>
-              {UnderPrice ? <UnderPrice pricePaise={variant.pricePaise} /> : null}
+              {UnderPrice && variant.pricePaise != null ? (
+                <UnderPrice pricePaise={variant.pricePaise} />
+              ) : null}
             </div>
           ) : null}
-          {s.showPaymentSignals && !launching && hasCopy(s.paymentNote) ? (
+          {s.showPaymentSignals &&
+          !launching &&
+          variant?.pricePaise != null &&
+          hasCopy(s.paymentNote) ? (
             <ProductPaymentSignals
               note={s.paymentNote}
-              pricePaise={variant?.pricePaise ?? 0}
+              pricePaise={variant.pricePaise}
               upiPercent={s.upiPercent}
               heading={s.offerHeading}
               body={s.offerBody}

@@ -2,52 +2,87 @@
 
 import { siteConfig } from '@commerce/config/site'
 import { Button } from '@commerce/ui/shadcn/button'
-import { useEffect, useState } from 'react'
+import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs'
+import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import {
   type CommissionRow,
   commissionColumns,
 } from '@/components/apps/affiliates/commission-columns'
 import PageHeader from '@/components/layout/page-header'
+import {
+  appliedFromGroups,
+  clearGroups,
+  FILTER_PANEL_CLASS,
+  FilterPanel,
+} from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
+import { affiliateFiltersContent } from '@/data/affiliate-filters'
 import { affiliatesContent } from '@/data/affiliates'
+import { filterPanelContent } from '@/data/filter-panel'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import {
+  CLEAR_COMMISSION_FILTERS,
+  COMMISSION_FILTER_PARAMS,
+  commissionFilterGroups,
+  commissionFilterInput,
+} from '@/lib/affiliate-list-filters'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 
+type Affiliate = { id: string; name: string }
+
 /** The commissions ledger: every order an affiliate brought and where its commission stands. */
 export default function CommissionsList() {
+  return (
+    <Suspense>
+      <CommissionsTable />
+    </Suspense>
+  )
+}
+
+function CommissionsTable() {
   // Hooks
   const copy = useCopy(affiliatesContent)
+  const filtersCopy = useCopy(affiliateFiltersContent)
+  const panelCopy = useCopy(filterPanelContent)
   const f = useFormat()
+  const [q, setQ] = useQueryStates(
+    {
+      query: parseAsString.withDefault(''),
+      page: parseAsInteger.withDefault(1),
+      perPage: parseAsInteger.withDefault(siteConfig.ui.rowsPerPage.default),
+      ...COMMISSION_FILTER_PARAMS,
+    },
+    { shallow: true },
+  )
   const [rows, setRows] = useState<CommissionRow[] | null>(null)
-  const [query, setQuery] = useState('')
-  const [page, setPage] = useState(1)
-  const [perPage, setPerPage] = useState<number>(siteConfig.ui.rowsPerPage.default)
+  const [affiliates, setAffiliates] = useState<Affiliate[]>([])
   const [reload, setReload] = useState(0)
   const [busy, setBusy] = useState(false)
 
+  // Search and filters run on the server; paging stays in the browser (newest 1000 matches).
   // biome-ignore lint/correctness/useExhaustiveDependencies: `reload` re-runs the load after a change
   useEffect(() => {
     let cancelled = false
-    api.affiliates.commissions.list().then((r) => {
-      if (!cancelled) setRows(r)
-    })
+    api.affiliates.commissions
+      .list({ search: q.query || undefined, ...commissionFilterInput(q) })
+      .then((r) => {
+        if (!cancelled) setRows(r)
+      })
     return () => {
       cancelled = true
     }
-  }, [reload])
+  }, [q, reload])
+  useEffect(() => {
+    api.affiliates
+      .list()
+      .then((all) => setAffiliates(all.map((a) => ({ id: a.id, name: a.name || a.code }))))
+      .catch(() => undefined)
+  }, [])
 
   // Event handlers
   const handleChanged = () => setReload((n) => n + 1)
-  const handleQuery = (next: string) => {
-    setQuery(next)
-    setPage(1)
-  }
-  const handlePerPage = (next: number) => {
-    setPerPage(next)
-    setPage(1)
-  }
   const handleApproveDue = async () => {
     setBusy(true)
     try {
@@ -62,15 +97,13 @@ export default function CommissionsList() {
   }
 
   // Render logic
-  const needle = query.trim().toLowerCase()
-  const matching = (rows ?? []).filter(
-    (r) =>
-      !needle ||
-      [String(r.orderNumber), r.affiliateName, r.affiliateCode].some((v) =>
-        v.toLowerCase().includes(needle),
-      ),
+  const matching = rows ?? []
+  const visible = matching.slice((q.page - 1) * q.perPage, q.page * q.perPage)
+  const groups = commissionFilterGroups(q, copy, filtersCopy, panelCopy, affiliates, (patch) =>
+    setQ({ ...patch, page: 1 }),
   )
-  const visible = matching.slice((page - 1) * perPage, page * perPage)
+  const applied = appliedFromGroups(groups, panelCopy)
+  const filtered = applied.length > 0 || q.query.length > 0
 
   return (
     <div className="flex flex-col gap-5">
@@ -91,14 +124,24 @@ export default function CommissionsList() {
         href={(r) => routes.orders.detail(r.orderId)}
         selectable={false}
         loading={rows === null}
-        query={query}
-        onQueryChange={handleQuery}
-        page={page}
-        perPage={perPage}
+        query={q.query}
+        onQueryChange={(query) => setQ({ query, page: 1 })}
+        onClearAll={() => setQ({ ...CLEAR_COMMISSION_FILTERS, query: '', page: 1 })}
+        filters={(close) => (
+          <FilterPanel
+            groups={groups}
+            onClear={() => clearGroups(groups)}
+            footer={{ label: panelCopy.show(matching.length), onDone: close }}
+          />
+        )}
+        filtersClassName={FILTER_PANEL_CLASS}
+        applied={applied}
+        page={q.page}
+        perPage={q.perPage}
         total={matching.length}
-        onPageChange={setPage}
-        onPerPageChange={handlePerPage}
-        empty={{ heading: copy.commissions.empty }}
+        onPageChange={(page) => setQ({ page })}
+        onPerPageChange={(perPage) => setQ({ perPage, page: 1 })}
+        empty={filtered ? filtersCopy.commissions.noResults : { heading: copy.commissions.empty }}
       />
     </div>
   )

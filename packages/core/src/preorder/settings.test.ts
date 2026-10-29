@@ -71,6 +71,11 @@ describe('resolveShipDate', () => {
 })
 
 describe('validateDepositAgainstPrice', () => {
+  it('waits for a price before comparing a fixed deposit (#913)', () => {
+    expect(validateDepositAgainstPrice('fixed', 50000, null)).toBeNull()
+    expect(validateDepositAgainstPrice('fixed', null, null)).toMatch(/needs an amount/)
+  })
+
   it('rejects a fixed deposit equal to or above the price', () => {
     expect(validateDepositAgainstPrice('fixed', 50000, 50000)).toMatch(/less than/)
     expect(validateDepositAgainstPrice('fixed', 60000, 50000)).toMatch(/less than/)

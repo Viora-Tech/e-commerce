@@ -1,11 +1,13 @@
 import { settingsSecret } from '@commerce/config'
 import { permissions } from '@commerce/core'
 import {
+  AFFILIATE_STATUSES,
   affiliateTotals,
   applyAsAffiliate,
   approveAffiliate,
   approveDueCommissions,
   archiveProgram,
+  COMMISSION_STATUSES,
   CommissionRuleSchema,
   cancelPayout,
   clearReview,
@@ -43,9 +45,37 @@ import {
 } from '@commerce/plugin-affiliates/server'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { BULK_MAX, can } from '../procedures'
+import { BULK_MAX, can, SEARCH_MAX } from '../procedures'
 
 import { affiliateExtrasRouter, program, refusal } from './affiliates-extras'
+
+/** The Affiliates list's search and filter panel. */
+const AffiliateListInput = z.object({
+  search: z.string().trim().max(SEARCH_MAX).optional(),
+  statuses: z.array(z.enum(AFFILIATE_STATUSES)).max(AFFILIATE_STATUSES.length).optional(),
+  programIds: z.array(z.uuid()).max(50).optional(),
+  joinedFrom: z.iso.datetime().optional(),
+  joinedTo: z.iso.datetime().optional(),
+  /** Earned (approved and paid commission), both ends included. */
+  minEarnedPaise: z.number().int().min(0).optional(),
+  maxEarnedPaise: z.number().int().min(0).optional(),
+})
+
+/** The Commissions list's search and filter panel. */
+const CommissionListInput = z.object({
+  search: z.string().trim().max(SEARCH_MAX).optional(),
+  statuses: z.array(z.enum(COMMISSION_STATUSES)).max(COMMISSION_STATUSES.length).optional(),
+  sources: z
+    .array(z.enum(['link', 'coupon', 'lifetime']))
+    .max(3)
+    .optional(),
+  affiliateIds: z.array(z.uuid()).max(50).optional(),
+  placedFrom: z.iso.datetime().optional(),
+  placedTo: z.iso.datetime().optional(),
+  minCommissionPaise: z.number().int().min(0).optional(),
+  maxCommissionPaise: z.number().int().min(0).optional(),
+  flagged: z.boolean().optional(),
+})
 
 /** What the admin shows of an affiliate: never the encrypted payout details. */
 function publicAffiliate(a: NonNullable<Awaited<ReturnType<typeof getAffiliate>>>) {
@@ -164,24 +194,38 @@ export const affiliatesRouter = {
         return { ok: true }
       }),
   },
-  list: can(permissions.MARKETING_READ).handler(async ({ context }) => {
-    await program(context)
-    const [rows, totals, programs] = await Promise.all([
-      listAffiliates(context.tx),
-      totalsByAffiliate(context.tx),
-      listPrograms(context.tx, context.scope.storeId),
-    ])
-    const fallback = programs.find((p) => p.isDefault)
-    const nameOf = (id: string | null) =>
-      (programs.find((p) => p.id === id) ?? fallback)?.name ?? ''
-    return rows.map((a) => ({
-      ...publicAffiliate(a),
-      programName: nameOf(a.programId),
-      orders: totals.get(a.id)?.orders ?? 0,
-      earnedPaise: totals.get(a.id)?.earnedPaise ?? 0,
-      pendingPaise: totals.get(a.id)?.pendingPaise ?? 0,
-    }))
-  }),
+  /** Every affiliate (up to 1000), searched and filtered here; the admin pages in the browser. */
+  list: can(permissions.MARKETING_READ)
+    .input(AffiliateListInput.optional())
+    .handler(async ({ context, input }) => {
+      await program(context)
+      const f = input ?? {}
+      const programs = await listPrograms(context.tx, context.scope.storeId)
+      const fallback = programs.find((p) => p.isDefault)
+      const [rows, totals] = await Promise.all([
+        listAffiliates(context.tx, {
+          ...f,
+          // No program of their own means the default one.
+          withoutProgram: fallback !== undefined && (f.programIds ?? []).includes(fallback.id),
+        }),
+        totalsByAffiliate(context.tx),
+      ])
+      const nameOf = (id: string | null) =>
+        (programs.find((p) => p.id === id) ?? fallback)?.name ?? ''
+      return rows
+        .map((a) => ({
+          ...publicAffiliate(a),
+          programName: nameOf(a.programId),
+          orders: totals.get(a.id)?.orders ?? 0,
+          earnedPaise: totals.get(a.id)?.earnedPaise ?? 0,
+          pendingPaise: totals.get(a.id)?.pendingPaise ?? 0,
+        }))
+        .filter(
+          (a) =>
+            (f.minEarnedPaise === undefined || a.earnedPaise >= f.minEarnedPaise) &&
+            (f.maxEarnedPaise === undefined || a.earnedPaise <= f.maxEarnedPaise),
+        )
+    }),
   get: can(permissions.MARKETING_READ)
     .input(Id)
     .handler(async ({ context, input }) => {
@@ -325,10 +369,13 @@ export const affiliatesRouter = {
       return { ok: true }
     }),
   commissions: {
-    list: can(permissions.MARKETING_READ).handler(async ({ context }) => {
-      await program(context)
-      return commissionLedger(context.tx)
-    }),
+    /** The newest 1000 that match the search and filter panel; the admin pages in the browser. */
+    list: can(permissions.MARKETING_READ)
+      .input(CommissionListInput.optional())
+      .handler(async ({ context, input }) => {
+        await program(context)
+        return commissionLedger(context.tx, input ?? {})
+      }),
     /** Clear a fraud flag (back to pending) or refuse a commission. */
     decide: can(permissions.MARKETING_WRITE)
       .input(z.object({ id: z.uuid(), decision: z.enum(['clear', 'reverse']) }))

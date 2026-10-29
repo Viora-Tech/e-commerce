@@ -82,6 +82,7 @@ const READ_NAMES = new Set([
   'grants',
   'gstNumbers',
   'gstr1',
+  'health',
   'history',
   'ids',
   'indiaPostLabel',

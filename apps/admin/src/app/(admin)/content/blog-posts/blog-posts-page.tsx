@@ -18,7 +18,6 @@ import {
   appliedFromGroups,
   clearGroups,
   FILTER_PANEL_CLASS,
-  type FilterGroup,
   FilterPanel,
 } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
@@ -27,6 +26,14 @@ import { ARTICLE_TABS, type ArticleTab, blogListContent } from '@/data/blog'
 import { filterPanelContent } from '@/data/filter-panel'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import {
+  BLOG_POST_FILTER_PARAMS,
+  type BlogPostFilters,
+  blogPostFilterGroups,
+  blogPostFilterInput,
+  CLEAR_BLOG_POST_FILTERS,
+  hasBlogPostFilters,
+} from '@/lib/blog-post-list-filters'
 import { type ListQuery, sameListQuery } from '@/lib/list-query'
 import { usePrimaryAction } from '@/lib/primary-action'
 import { routes } from '@/lib/routes'
@@ -43,15 +50,14 @@ export type BlogPostsInitial = {
   counts: Counts
   blogs: Blogs
   tags: string[]
+  authors: string[]
 }
 
-type Query = {
+type Query = BlogPostFilters & {
   page: number
   perPage: number
   query: string
   status: ArticleTab | null
-  blog: string | null
-  tag: string | null
 }
 
 type BlogPostsPageProps = { initial: BlogPostsInitial; storefrontOrigin: string }
@@ -64,8 +70,7 @@ function listInput(q: Query) {
     perPage: q.perPage,
     query: q.query || undefined,
     status: q.status ?? ('all' as const),
-    blogId: q.blog ?? undefined,
-    tag: q.tag ?? undefined,
+    ...blogPostFilterInput(q),
   }
 }
 
@@ -81,8 +86,7 @@ function BlogPostsContent({ initial, storefrontOrigin }: BlogPostsPageProps) {
       page: parseAsInteger.withDefault(1),
       perPage: parseAsInteger.withDefault(siteConfig.ui.rowsPerPage.default),
       status: parseAsStringLiteral(ARTICLE_TABS),
-      blog: parseAsString,
-      tag: parseAsString,
+      ...BLOG_POST_FILTER_PARAMS,
     },
     { shallow: true },
   )
@@ -96,7 +100,7 @@ function BlogPostsContent({ initial, storefrontOrigin }: BlogPostsPageProps) {
     const same =
       sameListQuery({ page: q.page, query: q.query, status: q.status }, initial.query) &&
       q.perPage === initial.perPage
-    if (same && !q.blog && !q.tag) {
+    if (same && !hasBlogPostFilters(q)) {
       setResult(initial.result)
       return
     }
@@ -148,27 +152,11 @@ function BlogPostsContent({ initial, storefrontOrigin }: BlogPostsPageProps) {
   }
 
   // Render logic
-  const blogOptions = initial.blogs.map((b) => ({ value: b.id, label: b.title }))
-  const groups: FilterGroup[] = [
-    {
-      key: 'blog',
-      label: copy.filters.blog,
-      type: 'select',
-      options: blogOptions,
-      value: q.blog,
-      onChange: (blog) => setQ({ blog, page: 1 }),
-      anyLabel: copy.filters.any,
-    },
-    {
-      key: 'tag',
-      label: copy.filters.tag,
-      type: 'select',
-      options: initial.tags.map((t) => ({ value: t, label: t })),
-      value: q.tag,
-      onChange: (tag) => setQ({ tag, page: 1 }),
-      anyLabel: copy.filters.any,
-    },
-  ]
+  const groups = blogPostFilterGroups(q, copy.filters, panelCopy, initial, (patch) =>
+    setQ({ ...patch, page: 1 }),
+  )
+  const applied = appliedFromGroups(groups, panelCopy)
+  const filtered = applied.length > 0 || q.query.length > 0
 
   return (
     <ProoflyListPage
@@ -211,7 +199,7 @@ function BlogPostsContent({ initial, storefrontOrigin }: BlogPostsPageProps) {
         loading={loading}
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
-        onClearAll={() => setQ({ query: '', status: null, blog: null, tag: null, page: 1 })}
+        onClearAll={() => setQ({ ...CLEAR_BLOG_POST_FILTERS, query: '', status: null, page: 1 })}
         filters={(close) => (
           <FilterPanel
             groups={groups}
@@ -220,7 +208,7 @@ function BlogPostsContent({ initial, storefrontOrigin }: BlogPostsPageProps) {
           />
         )}
         filtersClassName={FILTER_PANEL_CLASS}
-        applied={appliedFromGroups(groups, panelCopy)}
+        applied={applied}
         views={
           <ViewSelect
             value={q.status}
@@ -256,16 +244,23 @@ function BlogPostsContent({ initial, storefrontOrigin }: BlogPostsPageProps) {
             onDelete={() => setDeleting({ ids, clear })}
           />
         )}
-        empty={{
-          heading: copy.empty.heading,
-          body: copy.empty.body,
-          action: (
-            <Button nativeButton={false} render={<Link href={routes.content.newBlogPost()} />}>
-              <Pencil strokeWidth={1.6} />
-              {copy.add}
-            </Button>
-          ),
-        }}
+        empty={
+          filtered
+            ? copy.noResults
+            : {
+                heading: copy.empty.heading,
+                body: copy.empty.body,
+                action: (
+                  <Button
+                    nativeButton={false}
+                    render={<Link href={routes.content.newBlogPost()} />}
+                  >
+                    <Pencil strokeWidth={1.6} />
+                    {copy.add}
+                  </Button>
+                ),
+              }
+        }
       />
 
       <ConfirmDialog

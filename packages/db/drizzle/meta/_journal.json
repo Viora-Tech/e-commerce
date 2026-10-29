@@ -1167,8 +1167,15 @@
     {
       "idx": 166,
       "version": "7",
-      "when": 1793252497650,
-      "tag": "0182_rollouts",
+      "when": 1793250377196,
+      "tag": "0182_variant_price_optional",
+      "breakpoints": true
+    },
+    {
+      "idx": 167,
+      "version": "7",
+      "when": 1793256945584,
+      "tag": "0183_rollouts",
       "breakpoints": true
     }
   ]

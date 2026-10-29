@@ -49,6 +49,7 @@ const PAGE_TITLES: [prefix: string, title: string][] = [
   ['/sales-channels/inbox/settings', 'Inbox settings'],
   ['/settings', 'Settings'],
   ['/settings/store', 'Store details'],
+  ['/settings/store-health', 'Store health'],
   ['/settings/payments', 'Payments'],
   ['/settings/shipping', 'Shipping & delivery'],
   ['/settings/notifications', 'Notifications'],
