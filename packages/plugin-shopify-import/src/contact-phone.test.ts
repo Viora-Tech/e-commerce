@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { mapCustomer } from './shopify-api'
+import { mapCustomer } from './api-customers'
 import { contactPhoneOf } from './write-customers'
 
 const gCustomer = (phone: string | null, addressPhone: string | null) => ({

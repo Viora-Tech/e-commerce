@@ -12,6 +12,7 @@
   "dependencies": {
     "@commerce/config": "workspace:*",
     "@commerce/core": "workspace:*",
+    "@commerce/money": "workspace:*",
     "@commerce/ui": "workspace:*",
     "gsap": "3.15.0",
     "next": "16.4.2",

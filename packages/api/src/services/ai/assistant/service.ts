@@ -23,147 +23,29 @@
  * Nothing here is reachable by the model: it only ever creates `proposed` rows.
  */
 import { ASSISTANT_LIMITS } from '@commerce/ai'
-import type { StoreContext } from '@commerce/core'
-import { isPermission, type Permission } from '@commerce/core/permissions'
-import {
-  type AiActionSource,
-  type AiActionStatus,
-  aiAction,
-  authSchema,
-  type StoreTx,
-} from '@commerce/db'
+import type { Permission } from '@commerce/core/permissions'
+import { type AiActionSource, aiAction, type StoreTx } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
-import { and, desc, eq, gte, inArray, isNull, lt, ne } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { canApprove, mustAsk } from '../../../procedures/approval-rules'
 import type { StoreScope } from '../../../procedures/store'
 import { adminAction, queuedAdminAction } from './actions/admin-action'
 import { ApproverNotAllowed, NeedsApprover, ProposalProblem } from './actions/resolve'
-import type { ActionEnv, ActionPreview, EditField } from './actions/types'
+import type { ActionEnv, EditField } from './actions/types'
 import { actionFor, undoerFor } from './registry'
-
-type Stored = {
-  raw: Record<string, unknown>
-  resolved: unknown
-}
-
-type Outcome = {
-  message?: string
-  href?: string | null
-  by?: string
-  /** The member confirmed their own AI client's change (MCP): confirming the AI, not approving
-   *  someone else's request. */
-  confirmedAi?: boolean
-  undoMessage?: string
-  undoneByEmail?: string
-}
-
-export type ActionView = {
-  id: string
-  tool: string
-  source: AiActionSource
-  status: AiActionStatus
-  summary: string
-  preview: ActionPreview
-  editable: EditField[]
-  flagged: boolean
-  error: string | null
-  message: string | null
-  href: string | null
-  canUndo: boolean
-  /** Who approved or cancelled it (email), once someone did. */
-  by: string | null
-  /** The asker confirmed their own AI client's change (MCP), rather than someone approving it. */
-  confirmedAi: boolean
-  /** The member who asked for it: in the AI bar, or by connecting the MCP client. */
-  requestedBy: string | null
-  requestedById: string
-  /** Waits in Approvals for a different member (the asker's role ticks "Needs approval"). */
-  needsApprover: boolean
-  /** The permission it needs, when known. */
-  permission: string | null
-  createdAt: Date
-  expiresAt: Date
-  executedAt: Date | null
-  undoneAt: Date | null
-  undoMessage: string | null
-}
-
-type Row = typeof aiAction.$inferSelect
-
-/** A proposal past its expiry reads as expired even before a list marks it so. */
-const statusAt = (row: Row, now: Date): AiActionStatus =>
-  row.status === 'proposed' && row.expiresAt.getTime() <= now.getTime() ? 'expired' : row.status
-
-function viewOf(row: Row, requestedBy: string | null, now: Date): ActionView {
-  const stored = row.input as Partial<Stored>
-  const outcome = (row.result ?? {}) as Outcome
-  const definition = actionFor(row.tool)
-  const status = statusAt(row, now)
-  const editable =
-    status === 'proposed' && definition && stored.raw
-      ? definition.editFields(stored.raw as never)
-      : []
-  return {
-    id: row.id,
-    tool: row.tool,
-    source: row.source,
-    status,
-    summary: row.summary,
-    preview: row.preview as ActionPreview,
-    editable,
-    flagged: row.flagged,
-    error: row.error,
-    message: outcome.message ?? null,
-    href: outcome.href ?? null,
-    canUndo: row.status === 'executed' && row.undo !== null,
-    by: outcome.by ?? null,
-    confirmedAi: outcome.confirmedAi === true,
-    requestedBy,
-    requestedById: row.userId,
-    needsApprover: row.needsApprover,
-    permission: row.permission,
-    createdAt: row.createdAt,
-    expiresAt: row.expiresAt,
-    executedAt: row.executedAt,
-    undoneAt: row.undoneAt,
-    undoMessage: outcome.undoMessage ?? null,
-  }
-}
-
-/** Members' names by id, for "asked by" on the cards and in Activity. */
-async function namesOf(tx: StoreTx, userIds: string[]): Promise<Map<string, string>> {
-  if (!userIds.length) return new Map()
-  const rows = await tx
-    .select({ id: authSchema.user.id, name: authSchema.user.name, email: authSchema.user.email })
-    .from(authSchema.user)
-    .where(inArray(authSchema.user.id, [...new Set(userIds)]))
-  return new Map(rows.map((r) => [r.id, r.name?.trim() || r.email]))
-}
-
-async function viewsOf(tx: StoreTx, rows: Row[], now: Date): Promise<ActionView[]> {
-  const names = await namesOf(
-    tx,
-    rows.map((r) => r.userId),
-  )
-  return rows.map((r) => viewOf(r, names.get(r.userId) ?? null, now))
-}
-
-async function oneView(tx: StoreTx, row: Row, now: Date): Promise<ActionView> {
-  const [view] = await viewsOf(tx, [row], now)
-  return view as ActionView
-}
+import {
+  type ActionView,
+  approvalTtlMs,
+  asPermission,
+  type Outcome,
+  oneView,
+  permissionOf,
+  type Row,
+  type Stored,
+  statusAt,
+} from './views'
 
 const ttlMs = ASSISTANT_LIMITS.proposalTtlMinutes * 60_000
-/** A change waiting for another member gets longer than one the asker reviews on the spot. */
-export const APPROVAL_TTL_DAYS = 7
-const approvalTtlMs = APPROVAL_TTL_DAYS * 24 * 60 * 60_000
-
-const asPermission = (value: string | null | undefined): Permission | null =>
-  value && isPermission(value) ? value : null
-
-/** The permission a logged action needs: recorded on the row, else the action's own. */
-const permissionOf = (row: Row): Permission | null =>
-  asPermission(row.permission) ?? asPermission(undoerFor(row.tool)?.permission)
 
 /**
  * A change a member made (admin, MCP, API) that their role sends for approval: stored as a
@@ -488,131 +370,4 @@ export async function undoAction(
     if (err instanceof ProposalProblem) throw new ORPCError('CONFLICT', { message: err.message })
     throw err
   }
-}
-
-/** One action, for "Open approval" (Settings → MCP & API → Activity). Null when it is gone. */
-export async function getAction(
-  ctx: StoreContext,
-  id: string,
-  now: Date = new Date(),
-): Promise<ActionView | null> {
-  const [row] = await ctx.tx.select().from(aiAction).where(eq(aiAction.id, id))
-  return row ? oneView(ctx.tx, row, now) : null
-}
-
-export type ActivityPage = { items: ActionView[]; hasMore: boolean }
-
-/** Settings → AI → Activity: the store's AI actions, newest first, including ones still waiting for approval. */
-export async function listActivity(
-  ctx: StoreContext,
-  input: { page: number; perPage: number },
-  now: Date = new Date(),
-): Promise<ActivityPage> {
-  await ctx.tx
-    .update(aiAction)
-    .set({ status: 'expired', updatedAt: now })
-    .where(and(eq(aiAction.status, 'proposed'), lt(aiAction.expiresAt, now)))
-  const rows = await ctx.tx
-    .select()
-    .from(aiAction)
-    .orderBy(desc(aiAction.createdAt))
-    .limit(input.perPage + 1)
-    .offset((input.page - 1) * input.perPage)
-  return {
-    items: await viewsOf(ctx.tx, rows.slice(0, input.perPage), now),
-    hasMore: rows.length > input.perPage,
-  }
-}
-
-/** Settings → Approvals: changes waiting for a different member, and recent expired ones. */
-export async function listWaitingApprovals(
-  ctx: StoreContext,
-  now: Date = new Date(),
-): Promise<ActionView[]> {
-  const rows = await ctx.tx
-    .select()
-    .from(aiAction)
-    .where(
-      and(
-        eq(aiAction.needsApprover, true),
-        inArray(aiAction.status, ['proposed', 'expired']),
-        gte(aiAction.expiresAt, new Date(now.getTime() - approvalTtlMs)),
-      ),
-    )
-    .orderBy(desc(aiAction.createdAt))
-    .limit(200)
-  return viewsOf(ctx.tx, rows, now)
-}
-
-/**
- * Settings → Approvals → Your requests: what the member sent for approval in the last 30 days
- * and what became of it. Opening it marks the decided ones seen (the nav badge clears).
- */
-export async function listMyRequests(
-  ctx: StoreContext,
-  userId: string,
-  now: Date = new Date(),
-): Promise<ActionView[]> {
-  const rows = await ctx.tx
-    .select()
-    .from(aiAction)
-    .where(
-      and(
-        eq(aiAction.needsApprover, true),
-        eq(aiAction.userId, userId),
-        gte(aiAction.createdAt, new Date(now.getTime() - 30 * 24 * 60 * 60_000)),
-      ),
-    )
-    .orderBy(desc(aiAction.createdAt))
-    .limit(100)
-  await ctx.tx
-    .update(aiAction)
-    .set({ outcomeSeenAt: now })
-    .where(
-      and(
-        eq(aiAction.needsApprover, true),
-        eq(aiAction.userId, userId),
-        ne(aiAction.status, 'proposed'),
-        isNull(aiAction.outcomeSeenAt),
-      ),
-    )
-  return viewsOf(ctx.tx, rows, now)
-}
-
-/**
- * The nav badge: changes this member could approve now, and decisions on their own requests
- * they have not seen yet (how a requester hears the outcome).
- */
-export async function approvalCounts(
-  ctx: StoreContext,
-  scope: StoreScope,
-  now: Date = new Date(),
-): Promise<{ waiting: number; outcomes: number }> {
-  const rows = await ctx.tx
-    .select({
-      userId: aiAction.userId,
-      status: aiAction.status,
-      tool: aiAction.tool,
-      permission: aiAction.permission,
-      expiresAt: aiAction.expiresAt,
-      outcomeSeenAt: aiAction.outcomeSeenAt,
-    })
-    .from(aiAction)
-    .where(
-      and(
-        eq(aiAction.needsApprover, true),
-        gte(aiAction.createdAt, new Date(now.getTime() - 30 * 24 * 60 * 60_000)),
-      ),
-    )
-  let waiting = 0
-  let outcomes = 0
-  for (const r of rows) {
-    const open = r.status === 'proposed' && r.expiresAt.getTime() > now.getTime()
-    if (r.userId === scope.userId) {
-      if (!open && r.status !== 'proposed' && !r.outcomeSeenAt) outcomes++
-    } else if (open && canApprove(scope, permissionOf(r as Row))) {
-      waiting++
-    }
-  }
-  return { waiting, outcomes }
 }

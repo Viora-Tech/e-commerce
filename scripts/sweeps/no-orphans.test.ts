@@ -472,7 +472,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/plugin-shopify-import/src/shopify-api.ts',
-    names: ['PRODUCTS_BULK_QUERY', 'CUSTOMERS_BULK_QUERY', 'ORDERS_BULK_QUERY'],
+    names: ['PRODUCTS_BULK_QUERY'],
     reason:
       'from #180; used in this file only, exported for inspection, investigate before removing',
   },
@@ -644,11 +644,6 @@ const ALLOWLIST: AllowEntry[] = [
   {
     file: 'packages/core/src/domains/service.ts',
     names: ['DOMAIN_PROVIDERS'],
-    reason: 'no external importer today — investigate before removing',
-  },
-  {
-    file: 'packages/core/src/errors.ts',
-    names: ['PaymentFailed', 'PreorderLimitReached'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -1228,25 +1223,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/plugin-shopify-import/src/shopify-api.ts',
-    names: [
-      'SHOP_QUERY',
-      'PRODUCTS_QUERY',
-      'PRODUCT_VARIANTS_QUERY',
-      'mapVariant',
-      'mapProduct',
-      'COLLECTIONS_QUERY',
-      'COLLECTION_PRODUCTS_QUERY',
-      'mapRules',
-      'CUSTOMERS_QUERY',
-      'mapAddress',
-      'mapCustomer',
-      'ORDERS_QUERY',
-      'mapOrder',
-      'PAGES_QUERY',
-      'ARTICLES_QUERY',
-      'MENUS_QUERY',
-      'REDIRECTS_QUERY',
-    ],
+    names: ['SHOP_QUERY', 'PRODUCTS_QUERY', 'PRODUCT_VARIANTS_QUERY', 'mapVariant', 'mapProduct'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -1375,11 +1352,6 @@ const ALLOWLIST: AllowEntry[] = [
     file: 'packages/api/src/services/growth-outcomes.service.ts',
     names: ['isEarned', 'outcomeTotals'],
     reason: 'exported for its unit test; no other importer today',
-  },
-  {
-    file: 'packages/api/src/services/order.service.ts',
-    names: ['orderNumberFromSearch'],
-    reason: 'no external importer today — investigate before removing',
   },
   {
     file: 'packages/api/src/services/short-links.service.ts',
@@ -1595,6 +1567,50 @@ const ALLOWLIST: AllowEntry[] = [
     file: 'packages/plugin-shopify-import/src/storefront-filters.ts',
     names: ['filterKeysFromHtml'],
     reason: 'the filter-key parser behind storefrontFilterKeys, exported for its unit test',
+  },
+  {
+    file: 'packages/blocks/src/components/product-variant-picker.tsx',
+    names: ['valueUnavailable'],
+    reason:
+      'the crossed-out value rule behind ProductVariantPicker, exported for preorder-per-variant.test.tsx',
+  },
+  {
+    file: 'packages/core/src/billing/fair-use.ts',
+    names: ['overFairUse'],
+    reason: 'the two-month visit rule behind runFairUseCheck, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/billing/regional-prices.ts',
+    names: ['REGIONAL_PRICING_LIVE', 'regionForCountry', 'regionalPrice'],
+    reason:
+      'owner-agreed prices outside India (2026-10-28), read once a non-Indian gateway can bill them; REGIONAL_PRICING_LIVE is the switch (only OWN_IT_PRICES is read today)',
+  },
+  {
+    file: 'packages/core/src/billing/unlimited.ts',
+    names: ['setStoreUnlimited'],
+    reason:
+      'used by scripts/platform-unlimited.ts (bun run platform:unlimited); scripts are not counted',
+  },
+  {
+    file: 'packages/core/src/testing/usage-seed.ts',
+    names: ['seedStore', 'seedPaidPeriod', 'seedOrders', 'ordersFrom', 'seedSalesStore'],
+    reason: 'test seeds shared by the fee, usage-bill, fair-use and unlimited suites',
+  },
+  {
+    file: 'packages/plugin-shopify-import/src/preorder-campaigns.ts',
+    names: ['preorderCampaignsFromHtml'],
+    reason: 'the campaign parser behind the pre-order import, exported for preorder-policy.test.ts',
+  },
+  {
+    file: 'packages/plugin-shopify-import/src/api-customers.ts',
+    names: ['mapCustomer'],
+    reason: 'the customer mapper behind fetchCustomers, exported for contact-phone.test.ts',
+  },
+  {
+    file: 'packages/plugin-shopify-import/src/write-products.ts',
+    names: ['preorderAllowedFrom'],
+    reason:
+      'the per-variant pre-order rule behind the product writer, exported for preorder-policy.test.ts',
   },
 ]
 

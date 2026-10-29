@@ -27,6 +27,7 @@ import type { StoreScope } from '../procedures'
 import { BULK_MAX, can, canAny, canDetached, PAGE_SIZE_MAX, storeProcedure } from '../procedures'
 import { ProposalProblem } from '../services/ai/assistant/actions/resolve'
 import type { ActionEnv } from '../services/ai/assistant/actions/types'
+import { getAction, listActivity } from '../services/ai/assistant/activity'
 import { runAssistant } from '../services/ai/assistant/assistant'
 import {
   ACTION_PERMISSIONS,
@@ -36,8 +37,6 @@ import {
 import {
   approveAction,
   cancelAction,
-  getAction,
-  listActivity,
   reviseAction,
   undoAction,
 } from '../services/ai/assistant/service'

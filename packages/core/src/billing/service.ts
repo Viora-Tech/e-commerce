@@ -5,6 +5,7 @@
  */
 
 import { siteConfig } from '@commerce/config/site'
+import { formatInZone } from '@commerce/dates'
 import {
   aiSettings,
   type Db,
@@ -156,7 +157,7 @@ export type UsageBillView = {
 }
 
 /** The signed order page on the sales store: pay while due, the invoice once paid. */
-export const salesOrderUrl = (env: BillingEnv, id: string, number: number): string | null =>
+const salesOrderUrl = (env: BillingEnv, id: string, number: number): string | null =>
   env.salesStorefrontUrl
     ? `${env.salesStorefrontUrl.replace(/\/$/, '')}${thankYouPath(
         number,
@@ -592,15 +593,11 @@ export async function cancelPlanBill(db: Db, salesOrderId: string): Promise<void
 }
 
 /** The sales-store SKU a fee line is billed on: one per plan rate, and one for carried fees. */
-export const usageFeeSku = (plan: PlanId | 'carried'): string => `usage-fee-${plan}`
+const usageFeeSku = (plan: PlanId | 'carried'): string => `usage-fee-${plan}`
 
 /** "October 2026" for the bill and its email. */
 const monthLabel = (month: string): string =>
-  new Date(`${month}-15T00:00:00Z`).toLocaleString('en-IN', {
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  })
+  formatInZone(`${month}-15T00:00:00Z`, { month: 'long', year: 'numeric' }, { timeZone: 'UTC' })
 
 export type UsageBillingResult = { stores: number; billed: number; carried: number }
 

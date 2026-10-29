@@ -2,6 +2,7 @@
  * straight to the database / WHY: the fee, usage-bill and fair-use suites share one setup */
 
 import { randomUUID } from 'node:crypto'
+import { siteConfig } from '@commerce/config/site'
 import {
   type Db,
   order,
@@ -106,12 +107,21 @@ const SALES_SKUS: { sku: string; pricePaise: number }[] = [
 export async function seedSalesStore(owner: Db, without: string[] = []): Promise<string> {
   const [s] = await owner
     .insert(store)
-    .values({ slug: 'koomerce-sales', name: 'Koomerce', payments: { enabled: ['razorpay'] } })
+    .values({
+      slug: 'koomerce-sales',
+      name: siteConfig.brand.name,
+      payments: { enabled: ['razorpay'] },
+    })
     .returning()
   if (!s) throw new Error('seed sales store')
   const [p] = await owner
     .insert(product)
-    .values({ storeId: s.id, handle: 'billing', title: 'Koomerce billing', status: 'active' })
+    .values({
+      storeId: s.id,
+      handle: 'billing',
+      title: `${siteConfig.brand.name} billing`,
+      status: 'active',
+    })
     .returning()
   if (!p) throw new Error('seed sales product')
   await owner.insert(variant).values(

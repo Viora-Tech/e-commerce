@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: pre-order note — WHAT: the line printed under a pre-order button, with ship-date placeholders / WHY: one text for storefront, checkout and emails (#936) */
 import { formatInZone } from '@commerce/dates'
 
 /*

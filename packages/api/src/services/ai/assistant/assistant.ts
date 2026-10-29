@@ -32,8 +32,9 @@ import { ProposalProblem } from './actions/resolve'
 import { pageLine } from './page-context'
 import { readTools } from './read-tools'
 import { ACTIONS, READ_TOOL_PERMISSION } from './registry'
-import { type ActionView, proposeAction } from './service'
+import { proposeAction } from './service'
 import { freshTaint, type Taint } from './taint'
+import type { ActionView } from './views'
 
 export type AssistantInput = {
   message: string
