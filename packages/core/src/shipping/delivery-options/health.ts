@@ -20,8 +20,8 @@ export type HealthStore = {
 }
 
 export const BREAKER_FAILURES = 3
-export const BREAKER_WINDOW_SECONDS = 60
-export const BREAKER_OPEN_SECONDS = 5 * 60
+const BREAKER_WINDOW_SECONDS = 60
+const BREAKER_OPEN_SECONDS = 5 * 60
 /** Live calls kept per app for the health line. */
 const HEALTH_KEEP = 50
 const HEALTH_TTL_SECONDS = 24 * 3600
