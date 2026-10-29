@@ -114,6 +114,9 @@ export default function ProductBuyButtons({
         : variant.available > 5
           ? ui.inStockShips
           : ui.onlyLeft(variant.available)
+  // "Only 3 left" is the one availability line that reads as urgent (red); the rest are status.
+  const unitsLeft = variant?.available ?? 0
+  const lowStock = !isPreorder && !stockBarShown && unitsLeft > 0 && unitsLeft <= 5
   const updatesHref = isPreorder && preorderLink ? safeHref(preorderLink) : null
   // A plain sale (not a launch countdown or a pre-order) gets the quantity and Buy it now.
   const buyable = Boolean(variant?.purchasable) && !launching && !isPreorder && !unpriced
@@ -205,7 +208,11 @@ export default function ProductBuyButtons({
         </div>
       )}
       {!launching && variant && availability ? (
-        <p className="buy-buttons__availability text-small">{availability}</p>
+        <p
+          className={`buy-buttons__availability text-small${lowStock ? ' buy-buttons__availability--low' : ''}`}
+        >
+          {availability}
+        </p>
       ) : null}
       {updatesHref ? (
         <a href={updatesHref} className="product-info__preorder-link text-small">

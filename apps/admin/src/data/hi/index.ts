@@ -123,6 +123,7 @@ import themeCode from './theme-code'
 import themeImport from './theme-import'
 import themes from './themes'
 import umami from './umami'
+import whatsappChat from './whatsapp-chat'
 import whatsappSignup from './whatsapp-signup'
 import xpressbees from './xpressbees'
 
@@ -258,4 +259,5 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...shadowfax,
   ...growthbook,
   ...whatsappSignup,
+  ...whatsappChat,
 ]

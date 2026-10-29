@@ -13,7 +13,7 @@ import { v7 as uuidv7 } from 'uuid'
 import { store } from './schema'
 
 /*
- * Rollouts (0183): Shopify Markets → Rollouts. A set of store changes (the live theme, the
+ * Rollouts (0184): Shopify Markets → Rollouts. A set of store changes (the live theme, the
  * checkout branding, discounts on or off) that go live at a set time, for good (launch) or for
  * a period that rolls back by itself (event). Design: docs/superpowers/specs/2026-10-28-rollouts-r1-design.md.
  */

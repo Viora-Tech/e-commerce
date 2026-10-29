@@ -1,5 +1,6 @@
 'use client'
 
+import { phoneInputMetadata } from '@commerce/phone'
 import { useEffect, useId, useRef, useState } from 'react'
 import PhoneNumberInput, {
   type Country,
@@ -287,6 +288,7 @@ export default function StorePhoneInput({
       onBlur={() => onBlur?.()}
       defaultCountry={initial}
       {...(countries ? { countries } : {})}
+      metadata={phoneInputMetadata}
       labels={labels}
       disabled={disabled ?? false}
       smartCaret={false}

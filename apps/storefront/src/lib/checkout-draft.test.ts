@@ -1,3 +1,4 @@
+import { normaliseMobile } from '@commerce/core/accounts'
 import { describe, expect, it } from 'vitest'
 import { type CheckoutDraft, parseDraft, serialiseDraft } from './checkout-draft'
 
@@ -57,4 +58,19 @@ describe('checkout draft', () => {
     )
     expect(parsed?.form).not.toHaveProperty('isAdmin')
   })
+})
+
+// #926: the phone a reload restores is exactly what was typed, and still reads as the same mobile.
+describe('checkout draft phone', () => {
+  it.each(['9999999999', '+919999999999', '09999999999', '+91 99999 99999', '99999-99999'])(
+    'keeps %s as typed and as the same ten digits',
+    (phone) => {
+      const restored = parseDraft(
+        serialiseDraft('cart_1', { ...draft, form: { ...draft.form, phone } }),
+        'cart_1',
+      )
+      expect(restored?.form.phone).toBe(phone)
+      expect(normaliseMobile(restored?.form.phone ?? '')).toBe('9999999999')
+    },
+  )
 })

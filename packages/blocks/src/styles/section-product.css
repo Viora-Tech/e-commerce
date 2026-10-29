@@ -322,10 +322,19 @@ html.has-cursor-fill .variant-picker__pill.is-hover-fill:not(.variant-picker__sw
   gap: var(--space-3);
 }
 
-.buy-buttons__availability,
 .buy-buttons__error {
   color: var(--color-danger);
-  font-size: 14px;
+  font-size: 0.875rem;
+}
+
+/* A status line, not an error: only the last few units read as urgent. */
+.buy-buttons__availability {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.buy-buttons__availability--low {
+  color: var(--color-danger);
 }
 
 .buy-buttons__row {

@@ -1,0 +1,23 @@
+{
+  "name": "@commerce/phone",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Phone picker metadata shared by the admin and storefront phone inputs. Client-safe.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "libphonenumber-js": "^1.13.15"
+  },
+  "devDependencies": {
+    "@commerce/config": "workspace:*",
+    "@types/node": "^22.20.4",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.11"
+  }
+}

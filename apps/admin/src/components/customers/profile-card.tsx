@@ -66,7 +66,11 @@ export default function ProfileCard({ customer, onEdit, onChanged }: ProfileCard
         ]}
       />
       {customer.phone ? (
-        <ContactActions phone={customer.phone} className="mt-3" />
+        <ContactActions
+          phone={customer.phone}
+          className="mt-3"
+          chat={{ target: { kind: 'customer', id: customer.id }, onOpened: onChanged }}
+        />
       ) : (
         <div className="mt-3">
           <ContactPhonePrompt

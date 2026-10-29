@@ -1,5 +1,5 @@
 {
-  "id": "6ba9a68b-c567-4e2c-abac-f72ffc39bce6",
+  "id": "408d2c77-7d17-4bcb-8207-37a8e7259f3e",
   "prevId": "72363b79-5c09-442c-a2a9-e4f1d878b7df",
   "version": "7",
   "dialect": "postgresql",
@@ -1882,6 +1882,105 @@
             "id"
           ],
           "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.customer_note": {
+      "name": "customer_note",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "store_id": {
+          "name": "store_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "body": {
+          "name": "body",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "author": {
+          "name": "author",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "customer_note_customer": {
+          "name": "customer_note_customer",
+          "columns": [
+            {
+              "expression": "customer_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "customer_note_store_id_store_id_fk": {
+          "name": "customer_note_store_id_store_id_fk",
+          "tableFrom": "customer_note",
+          "tableTo": "store",
+          "columnsFrom": [
+            "store_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "customer_note_customer_id_customer_id_fk": {
+          "name": "customer_note_customer_id_customer_id_fk",
+          "tableFrom": "customer_note",
+          "tableTo": "customer",
+          "columnsFrom": [
+            "customer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -18850,390 +18949,6 @@
         "pixel_event_log_error_length": {
           "name": "pixel_event_log_error_length",
           "value": "\"pixel_event_log\".\"error\" is null or length(\"pixel_event_log\".\"error\") <= 500"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.rollout": {
-      "name": "rollout",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "store_id": {
-          "name": "store_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "kind": {
-          "name": "kind",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'launch'"
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'draft'"
-        },
-        "starts_at": {
-          "name": "starts_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "ends_at": {
-          "name": "ends_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "end_action": {
-          "name": "end_action",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'rollback'"
-        },
-        "started_at": {
-          "name": "started_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "ended_at": {
-          "name": "ended_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "error": {
-          "name": "error",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "rollout_due": {
-          "name": "rollout_due",
-          "columns": [
-            {
-              "expression": "status",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "starts_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "ends_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "rollout_store": {
-          "name": "rollout_store",
-          "columns": [
-            {
-              "expression": "store_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "status",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "rollout_store_id_store_id_fk": {
-          "name": "rollout_store_id_store_id_fk",
-          "tableFrom": "rollout",
-          "tableTo": "store",
-          "columnsFrom": [
-            "store_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "rollout_kind": {
-          "name": "rollout_kind",
-          "value": "\"rollout\".\"kind\" in ('launch', 'event')"
-        },
-        "rollout_status": {
-          "name": "rollout_status",
-          "value": "\"rollout\".\"status\" in ('draft', 'scheduled', 'active', 'paused', 'ended', 'archived')"
-        },
-        "rollout_end_action": {
-          "name": "rollout_end_action",
-          "value": "\"rollout\".\"end_action\" in ('rollback', 'apply')"
-        },
-        "rollout_event_end": {
-          "name": "rollout_event_end",
-          "value": "\"rollout\".\"kind\" <> 'event' or \"rollout\".\"ends_at\" is null or \"rollout\".\"starts_at\" is null or \"rollout\".\"ends_at\" > \"rollout\".\"starts_at\""
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.rollout_change": {
-      "name": "rollout_change",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "store_id": {
-          "name": "store_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "rollout_id": {
-          "name": "rollout_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "kind": {
-          "name": "kind",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "target_id": {
-          "name": "target_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "value": {
-          "name": "value",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'::jsonb"
-        },
-        "previous": {
-          "name": "previous",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "applied_at": {
-          "name": "applied_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "rollout_change_rollout": {
-          "name": "rollout_change_rollout",
-          "columns": [
-            {
-              "expression": "rollout_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "rollout_change_target": {
-          "name": "rollout_change_target",
-          "columns": [
-            {
-              "expression": "store_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "kind",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "target_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "rollout_change_one_branding": {
-          "name": "rollout_change_one_branding",
-          "columns": [
-            {
-              "expression": "rollout_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"rollout_change\".\"kind\" = 'checkout_branding'",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "rollout_change_one_theme": {
-          "name": "rollout_change_one_theme",
-          "columns": [
-            {
-              "expression": "rollout_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"rollout_change\".\"kind\" = 'theme'",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "rollout_change_discount_once": {
-          "name": "rollout_change_discount_once",
-          "columns": [
-            {
-              "expression": "rollout_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "target_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"rollout_change\".\"kind\" = 'discount'",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "rollout_change_store_id_store_id_fk": {
-          "name": "rollout_change_store_id_store_id_fk",
-          "tableFrom": "rollout_change",
-          "tableTo": "store",
-          "columnsFrom": [
-            "store_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "rollout_change_rollout_id_rollout_id_fk": {
-          "name": "rollout_change_rollout_id_rollout_id_fk",
-          "tableFrom": "rollout_change",
-          "tableTo": "rollout",
-          "columnsFrom": [
-            "rollout_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "rollout_change_kind": {
-          "name": "rollout_change_kind",
-          "value": "\"rollout_change\".\"kind\" in ('theme', 'checkout_branding', 'discount')"
-        },
-        "rollout_change_target": {
-          "name": "rollout_change_target",
-          "value": "(\"rollout_change\".\"kind\" = 'checkout_branding') = (\"rollout_change\".\"target_id\" is null)"
         }
       },
       "isRLSEnabled": false
