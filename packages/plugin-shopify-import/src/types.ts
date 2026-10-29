@@ -41,6 +41,11 @@ export type NVariant = {
    * pre-order apps switch on; undefined when the source did not say (a CSV without the column).
    */
   sellsOutOfStock?: boolean | undefined
+  /**
+   * Shopify cannot sell it (`availableForSale: false`) and its price is ₹0: the "unavailable"
+   * variants Shopify kept at ₹0 (#934). Imported hidden; undefined when the source cannot tell (CSV).
+   */
+  hiddenOnStore?: boolean | undefined
 }
 
 export type NProduct = {

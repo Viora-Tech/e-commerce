@@ -111,6 +111,19 @@ export class PriceNotSet extends CommerceError {
   }
 }
 
+/**
+ * The variant is hidden on the storefront (#934): staff can still use it in drafts and order edits,
+ * but a shopper's cart and checkout cannot.
+ */
+export class VariantHidden extends CommerceError {
+  readonly variantId: string
+
+  constructor(variantId: string, storeId?: string) {
+    super('VARIANT_HIDDEN', `Variant ${variantId} is hidden on the storefront`, { storeId })
+    this.variantId = variantId
+  }
+}
+
 /** A product's `launchAt` has not passed: nothing can be added to cart or ordered yet. */
 export class NotLaunchedYet extends CommerceError {
   constructor(variantId: string, launchAt: Date, storeId?: string) {

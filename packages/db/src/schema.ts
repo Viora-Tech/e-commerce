@@ -458,6 +458,11 @@ export const variant = pgTable(
      * the matrix archives it so old orders keep their titles and prices.
      */
     archivedAt: timestamp('archived_at', { withTimezone: true }),
+    /**
+     * Hidden on the storefront (#934): never shown, priced or sold there (our themes, imported
+     * themes, feeds, search), but it stays in admin, orders and history. Shopify's "unavailable".
+     */
+    hiddenOnStore: boolean('hidden_on_store').notNull().default(false),
     /** Partial override of the product's pre-order settings; null inherits every field. */
     preorderOverride: jsonb('preorder_override').$type<VariantPreorderOverride>(),
     /** Kept current by the `touch_updated_at` trigger (0177), so no write path can forget it. */

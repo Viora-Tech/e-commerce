@@ -192,6 +192,7 @@ class Resolver {
             and(
               inArray(variant.id, list),
               isNull(variant.archivedAt),
+              eq(variant.hiddenOnStore, false),
               eq(product.status, 'active'),
             ),
           ),

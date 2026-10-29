@@ -79,6 +79,8 @@ export type InventoryRow = {
   productTitle: string
   variantTitle: string
   sku: string | null
+  /** Hidden on the storefront (#934): the tree shows a "Hidden" chip. */
+  hiddenOnStore: boolean
   imageUrl: string | null
   /** The product's cover, for the one row a product gets in the Products view. */
   productImageUrl: string | null
@@ -192,6 +194,7 @@ export async function listInventory(
       productTitle: product.title,
       variantTitle: variant.title,
       sku: variant.sku,
+      hiddenOnStore: variant.hiddenOnStore,
       mediaId: variant.mediaId,
       costPaise: variant.costPaise,
       onHand: onHandSql,
@@ -255,6 +258,7 @@ async function listInventoryByProduct(
       productTitle: product.title,
       variantTitle: variant.title,
       sku: variant.sku,
+      hiddenOnStore: variant.hiddenOnStore,
       mediaId: variant.mediaId,
       costPaise: variant.costPaise,
       onHand: onHandSql,
@@ -393,6 +397,7 @@ export async function searchVariants(
       productTitle: product.title,
       variantTitle: variant.title,
       sku: variant.sku,
+      hiddenOnStore: variant.hiddenOnStore,
       mediaId: variant.mediaId,
       costPaise: variant.costPaise,
       onHand: onHandSql,

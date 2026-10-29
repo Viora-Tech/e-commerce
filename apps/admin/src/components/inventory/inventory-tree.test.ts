@@ -9,6 +9,7 @@ function row(productId: string, variantId: string, available: number, extra = {}
     productTitle: `Product ${productId}`,
     variantTitle: `Variant ${variantId}`,
     sku: `SKU-${variantId}`,
+    hiddenOnStore: false,
     imageUrl: `https://img/${variantId}.jpg`,
     productImageUrl: `https://img/${productId}.jpg`,
     onHand: available + 1,
@@ -21,6 +22,17 @@ function row(productId: string, variantId: string, available: number, extra = {}
 }
 
 describe('groupByProduct', () => {
+  it('reads a product line hidden only when every SKU under it is (#934)', () => {
+    const some = groupByProduct([row('p1', 'a', 1, { hiddenOnStore: true }), row('p1', 'b', 1)])
+    expect(some[0]?.hiddenOnStore).toBe(false)
+    expect(some[0]?.variants?.[0]?.hiddenOnStore).toBe(true)
+    const all = groupByProduct([
+      row('p1', 'a', 1, { hiddenOnStore: true }),
+      row('p1', 'b', 1, { hiddenOnStore: true }),
+    ])
+    expect(all[0]?.hiddenOnStore).toBe(true)
+  })
+
   it('makes one summed line per multi-SKU product with its SKUs nested in order', () => {
     const lines = groupByProduct([row('p1', 'a', 3), row('p1', 'b', 5), row('p1', 'c', -1)])
     expect(lines).toHaveLength(1)

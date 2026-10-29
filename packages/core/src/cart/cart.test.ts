@@ -16,7 +16,7 @@ import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { variantImageUrls } from '../checkout/service'
-import { PriceNotSet } from '../errors'
+import { PriceNotSet, VariantHidden } from '../errors'
 import { placeOrderAndPay } from '../order/place-order'
 import { CodPaymentProvider } from '../providers/cod'
 import { addToCart, createCart, getCart, setLineQuantity } from './cart'
@@ -80,6 +80,23 @@ describe('cart', () => {
       return (await getCart(ctx, cartId))?.lines
     })
     expect(lines).toEqual([])
+  })
+
+  it('refuses a variant hidden on the storefront, but sells a visible ₹0 one (#934)', async () => {
+    const { storeId, variantId } = await seed()
+    await owner
+      .update(variant)
+      .set({ hiddenOnStore: true, pricePaise: 0 })
+      .where(eq(variant.id, variantId))
+    const lines = await withStore(app, storeId, async (tx) => {
+      const ctx = { storeId, tx }
+      const cartId = await createCart(ctx)
+      await expect(addToCart(ctx, cartId, variantId, 1)).rejects.toBeInstanceOf(VariantHidden)
+      await owner.update(variant).set({ hiddenOnStore: false }).where(eq(variant.id, variantId))
+      await addToCart(ctx, cartId, variantId, 1)
+      return (await getCart(ctx, cartId))?.lines
+    })
+    expect(lines?.map((l) => l.unitPricePaise)).toEqual([0])
   })
 
   it("shows the product's first image on a line whose variant has none", async () => {

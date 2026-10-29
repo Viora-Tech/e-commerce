@@ -73,7 +73,7 @@ export const storeHealthContent = {
     products_no_price: {
       title: (products: number) =>
         `${plural(products, 'active product is', 'active products are')} priced at ₹0`,
-      body: 'Shoppers can order them for free. Set a price, or make the product a draft.',
+      body: 'Shoppers can order them for free. If that is not meant, set a price or hide the variant on the store.',
       fix: 'Show products',
     },
     products_no_image: {

@@ -98,6 +98,7 @@ export default [
       collapse: (name: string) => `${name} के वेरिएंट छिपाएं`,
       expandAll: 'सब खोलें',
       collapseAll: 'सब बंद करें',
+      hidden: 'छिपा हुआ',
     },
     cell: {
       decrease: 'एक घटाएँ',

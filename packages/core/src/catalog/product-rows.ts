@@ -62,6 +62,8 @@ export function variantRow(input: VariantInput) {
     taxable: input.taxable ?? true,
     trackInventory: input.trackInventory ?? true,
     weightGrams: input.weightGrams ?? null,
+    // Writers that do not know the setting (imports, bulk tools) keep the merchant's choice.
+    ...(input.hiddenOnStore === undefined ? {} : { hiddenOnStore: input.hiddenOnStore }),
     // Writers that never show the unit (imports, bulk tools) leave the merchant's choice alone.
     ...(input.weightUnit === undefined ? {} : { weightUnit: input.weightUnit }),
     hsCode: input.hsCode ?? null,

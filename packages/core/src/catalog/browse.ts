@@ -117,11 +117,11 @@ function baseQuery(
     select p.id, p.handle, p.title, p.created_at, p.product_type, p.vendor, p.tags, p.is_gift_card,
       ${input.collectionId ? sql`cp.position` : sql`0`} as position,
       ${relevance} as relevance,
-      (select min(v.price_paise) from variant v where v.product_id = p.id and v.archived_at is null) as min_price,
+      (select min(v.price_paise) from variant v where v.product_id = p.id and v.archived_at is null and v.hidden_on_store = false) as min_price,
       exists (
         select 1 from variant v
         left join inventory_level il on il.variant_id = v.id and il.fulfils_online
-        where v.product_id = p.id and v.archived_at is null
+        where v.product_id = p.id and v.archived_at is null and v.hidden_on_store = false
           and (not v.track_inventory or coalesce(il.on_hand, 0) - coalesce(il.reserved, 0) > 0)
       ) as in_stock,
       p.preorder_enabled
@@ -188,7 +188,7 @@ function filterWhere(f: BrowseFilters, fieldKeys: string[] | null): SQL {
       join variant_option_value vov on vov.variant_id = v.id
       join product_option_value pov on pov.id = vov.option_value_id
       join product_option po on po.id = pov.option_id
-      where v.product_id = b.id and v.archived_at is null
+      where v.product_id = b.id and v.archived_at is null and v.hidden_on_store = false
         and lower(po.name) = ${name} and pov.value in ${inList(values)}
     )`)
   }
@@ -385,7 +385,7 @@ async function runBrowse(
     select lower(po.name) as key, min(po.name) as name, pov.value, count(distinct b.id) as n,
       min(po.position) as opos, min(pov.position) as vpos
     from b
-    join variant v on v.product_id = b.id and v.archived_at is null
+    join variant v on v.product_id = b.id and v.archived_at is null and v.hidden_on_store = false
     join variant_option_value vov on vov.variant_id = v.id
     join product_option_value pov on pov.id = vov.option_value_id
     join product_option po on po.id = pov.option_id
