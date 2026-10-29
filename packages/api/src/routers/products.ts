@@ -11,6 +11,7 @@ import {
   HandleSchema,
   InvalidProduct,
   importProducts,
+  PRODUCT_MISSING_FILTERS,
   ProductStatusSchema,
   ProductWriteSchema,
   parseProductCsv,
@@ -47,6 +48,8 @@ const ListFiltersSchema = z.object({
   productType: z.string().trim().max(100).optional(),
   tag: z.string().trim().max(50).optional(),
   stock: z.enum(STOCK_FILTERS).optional(),
+  /** A live variant has no weight, or the product has no image (Store health's links). */
+  missing: z.enum(PRODUCT_MISSING_FILTERS).optional(),
   /** Any of these (the admin's multi-pick filters); the single fields above still work. */
   vendors: z.array(z.string().trim().max(100)).max(50).optional(),
   productTypes: z.array(z.string().trim().max(100)).max(50).optional(),

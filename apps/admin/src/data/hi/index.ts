@@ -3,6 +3,7 @@ import abandonedDetail from './abandoned-detail'
 import account from './account'
 import activity from './activity'
 import affiliateCreatives from './affiliate-creatives'
+import affiliateFilters from './affiliate-filters'
 import affiliates from './affiliates'
 import ai from './ai'
 import analytics from './analytics'
@@ -115,11 +116,13 @@ import staffInvites from './staff-invites'
 import states from './states'
 import storageWarning from './storage-warning'
 import storeData from './store-data'
+import storeHealth from './store-health'
 import table from './table'
 import themeCode from './theme-code'
 import themeImport from './theme-import'
 import themes from './themes'
 import umami from './umami'
+import whatsappChat from './whatsapp-chat'
 import whatsappSignup from './whatsapp-signup'
 import xpressbees from './xpressbees'
 
@@ -133,6 +136,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...account,
   ...affiliates,
   ...affiliateCreatives,
+  ...affiliateFilters,
   ...appInstall,
   ...apps,
   ...abandonedDetail,
@@ -235,6 +239,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...staffInvites,
   ...states,
   ...storeData,
+  ...storeHealth,
   ...storageWarning,
   ...table,
   ...themeCode,
@@ -252,4 +257,5 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...shadowfax,
   ...growthbook,
   ...whatsappSignup,
+  ...whatsappChat,
 ]

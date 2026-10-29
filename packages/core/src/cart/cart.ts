@@ -1,7 +1,7 @@
 import { cart, cartLine, media, product, productMedia, sellableStock, variant } from '@commerce/db'
 import { and, asc, eq, inArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
-import { CartNotOpen, NotLaunchedYet } from '../errors'
+import { CartNotOpen, NotLaunchedYet, PriceNotSet } from '../errors'
 import { isLaunched } from '../preorder/launch'
 import { resolvePreorderSettings } from '../preorder/settings'
 
@@ -170,6 +170,9 @@ export async function addToCart(
   if (!row) throw new Error(`variant ${variantId} not found`)
   const { variant: v, product: p } = row
   if (!isLaunched(p.launchAt)) throw new NotLaunchedYet(variantId, p.launchAt as Date, ctx.storeId)
+  // Listed before its price was confirmed (#913): on show, never sold, so no ₹0 line.
+  const unitPricePaise = v.pricePaise
+  if (unitPricePaise == null) throw new PriceNotSet(variantId, ctx.storeId)
   const preorder = resolvePreorderSettings(p, v.preorderOverride).enabled
   const [existing] = await ctx.tx
     .select()
@@ -178,7 +181,7 @@ export async function addToCart(
   if (existing) {
     await ctx.tx
       .update(cartLine)
-      .set({ quantity: existing.quantity + quantity, unitPricePaise: v.pricePaise, preorder })
+      .set({ quantity: existing.quantity + quantity, unitPricePaise, preorder })
       .where(eq(cartLine.id, existing.id))
   } else {
     await ctx.tx.insert(cartLine).values({
@@ -186,7 +189,7 @@ export async function addToCart(
       cartId,
       variantId,
       quantity,
-      unitPricePaise: v.pricePaise,
+      unitPricePaise,
       preorder,
     })
   }

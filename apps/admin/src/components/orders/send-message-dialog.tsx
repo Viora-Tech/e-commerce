@@ -21,7 +21,7 @@ import PillTabs from '@/components/layout/pill-tabs'
 import { sendMessageContent } from '@/data/orders'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { whatsappUrl } from '@/lib/customer-contact'
+import { whatsappChatUrl } from '@/lib/customer-contact'
 import ReminderChannelPicker, { type SendChannel } from './reminder-channel-picker'
 
 /** Order messages, plus the abandoned checkout reminder (whose id is the cart's). */
@@ -62,12 +62,6 @@ function loadPreview(
 ): Promise<Preview> {
   if (template === 'checkout_recovery') return api.orders.previewRecovery({ cartId: id, custom })
   return api.orders.previewMessage({ orderId: id, template, custom })
-}
-
-/** A wa.me chat to the order's phone with the message typed in, or null without a usable phone. */
-function chatLink(phone: string | null | undefined, text: string | null): string | null {
-  const base = whatsappUrl(phone)
-  return base && text ? `${base}?text=${encodeURIComponent(text)}` : null
 }
 
 /** The edits worth sending: blank fields are left out so the template's words stay. */
@@ -201,7 +195,9 @@ export default function SendMessageDialog({
                 onChange={handleChannel}
                 canEmail={canEmail}
                 canWhatsapp={canWhatsapp}
-                chatHref={chatLink(preview.to.phone, preview.chatText)}
+                chatHref={
+                  preview.chatText ? whatsappChatUrl(preview.to.phone, preview.chatText) : null
+                }
                 onChatOpened={chooseChannel.onChatOpened}
               />
             ) : null}

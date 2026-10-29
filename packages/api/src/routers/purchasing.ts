@@ -28,6 +28,7 @@ import {
   getSupplier,
   listInboundShipments,
   listSuppliers,
+  supplierFacets,
 } from '../services/purchasing.service'
 import { friendly } from './inventory'
 
@@ -39,8 +40,21 @@ const byId = z.object({ id: z.uuid() })
 
 export const suppliersRouter = {
   list: can(permissions.INVENTORY_READ)
-    .input(z.object({ search: z.string().trim().max(SEARCH_MAX).optional(), ...page }))
+    .input(
+      z.object({
+        search: z.string().trim().max(SEARCH_MAX).optional(),
+        ...page,
+        /** The admin's filter panel; each combines with search. */
+        countries: z.array(z.string().trim().max(2)).max(50).optional(),
+        currencies: z.array(z.string().trim().max(3)).max(50).optional(),
+        hasGstin: z.boolean().optional(),
+        hasOrders: z.boolean().optional(),
+      }),
+    )
     .handler(({ context, input }) => listSuppliers(context.tx, input)),
+
+  /** The countries and currencies in use, for the list's filter pickers. */
+  facets: can(permissions.INVENTORY_READ).handler(({ context }) => supplierFacets(context.tx)),
 
   get: can(permissions.INVENTORY_READ)
     .input(byId)
@@ -70,6 +84,16 @@ export const inboundShipmentsRouter = {
         status: z.enum(['all', ...INBOUND_SHIPMENT_STATUSES]).optional(),
         search: z.string().trim().max(SEARCH_MAX).optional(),
         ...page,
+        /** The admin's filter panel; each combines with the tab (`status`) and search. */
+        statuses: z
+          .array(z.enum(INBOUND_SHIPMENT_STATUSES))
+          .max(INBOUND_SHIPMENT_STATUSES.length)
+          .optional(),
+        expectedFrom: z.iso.datetime().optional(),
+        expectedTo: z.iso.datetime().optional(),
+        arrivedFrom: z.iso.datetime().optional(),
+        arrivedTo: z.iso.datetime().optional(),
+        hasBillOfEntry: z.boolean().optional(),
       }),
     )
     .handler(({ context, input }) => listInboundShipments(context.tx, input)),

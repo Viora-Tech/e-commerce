@@ -9,8 +9,8 @@ import ProductImagePlaceholder from './product-image-placeholder'
 const saleLabel = (percent: number) => `−${percent}%`
 
 /** Whole-percent saving against MRP, or null when the product is not discounted. */
-function salePercent(pricePaise: number, mrpPaise: number | null): number | null {
-  if (!mrpPaise || mrpPaise <= pricePaise) return null
+function salePercent(pricePaise: number | null, mrpPaise: number | null): number | null {
+  if (pricePaise == null || !mrpPaise || mrpPaise <= pricePaise) return null
   return Math.round(((mrpPaise - pricePaise) / mrpPaise) * 100)
 }
 

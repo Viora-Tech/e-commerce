@@ -41,6 +41,7 @@ import {
   CheckoutRuleViolation,
   DiscountCodeRefused,
   NotLaunchedYet,
+  PriceNotSet,
   ShippingRateUnavailable,
   ShippingUnavailable,
 } from '../errors'
@@ -202,6 +203,7 @@ const loadCart: WorkflowStep<State> = {
         variantId: cartLine.variantId,
         quantity: cartLine.quantity,
         unitPricePaise: cartLine.unitPricePaise,
+        variantPricePaise: variant.pricePaise,
         title: product.title,
         variantTitle: variant.title,
         gstRatePercent: variant.gstRatePercent,
@@ -226,6 +228,9 @@ const loadCart: WorkflowStep<State> = {
       .innerJoin(product, eq(product.id, variant.productId))
       .where(eq(cartLine.cartId, input.cartId))
     if (rows.length === 0) throw new CartEmpty(input.cartId, ctx.storeId)
+    // The cart snapshots the price, but a price withdrawn since (#913) stops the order.
+    const unpriced = rows.find((r) => r.variantPricePaise == null)
+    if (unpriced) throw new PriceNotSet(unpriced.variantId, ctx.storeId)
     const lines: Line[] = rows.map((r) => ({
       variantId: r.variantId,
       quantity: r.quantity,

@@ -26,7 +26,8 @@ export const VariantInputSchema = z.object({
   optionValues: z.array(z.string().trim().min(1).max(100)).max(3),
   sku: z.string().trim().max(100).nullable().optional(),
   barcode: z.string().trim().max(100).nullable().optional(),
-  pricePaise: paise,
+  /** Null lists the variant before its price is confirmed: shown, never sold (#913). */
+  pricePaise: paise.nullable(),
   mrpPaise: paise.nullable().optional(),
   costPaise: paise.nullable().optional(),
   taxable: z.boolean().optional(),

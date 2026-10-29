@@ -1,4 +1,4 @@
-import { settingsSecret } from '@commerce/config'
+import { loadEnv, settingsSecret } from '@commerce/config'
 import {
   adoptContactPhone,
   createAddress,
@@ -7,6 +7,7 @@ import {
   deleteAddress,
   GSTIN_MESSAGES,
   listAddresses,
+  noteWhatsappChat,
   permissions,
   recordCustomerChange,
   SEGMENT_FIELDS,
@@ -16,6 +17,8 @@ import {
   suggestContactPhone,
   updateAddress,
   validateGstin,
+  WHATSAPP_CHAT_TEMPLATES,
+  whatsappChatContext,
 } from '@commerce/core'
 import { lenientPhone } from '@commerce/core/phone'
 import { loadPincodeDirectory } from '@commerce/shipping/pincode-directory'
@@ -213,6 +216,34 @@ export const customersRouter = {
             ? 'This customer already has a phone number'
             : 'No mobile number on their orders or addresses',
       })
+    }),
+
+  /**
+   * "WhatsApp" click to chat from the customer page: their phone and name, plus their latest
+   * order's links for the order and shipping messages. No WhatsApp channel needed.
+   */
+  whatsappChat: can(permissions.CUSTOMERS_READ)
+    .input(z.object({ id: z.uuid() }))
+    .handler(async ({ context, input }) => {
+      const chat = await whatsappChatContext(
+        { storeId: context.scope.storeId, tx: context.tx },
+        { kind: 'customer', id: input.id },
+        { storefrontUrl: loadEnv(process.env).STOREFRONT_URL, settingsSecret: settingsSecret() },
+      )
+      if (!chat) throw new ORPCError('NOT_FOUND', { message: 'Customer not found' })
+      return chat
+    }),
+
+  /** The merchant opened a click-to-chat WhatsApp: the line goes on the customer's Timeline. */
+  noteWhatsappChat: can(permissions.CUSTOMERS_WRITE)
+    .input(z.object({ id: z.uuid(), template: z.enum(WHATSAPP_CHAT_TEMPLATES) }))
+    .handler(async ({ context, input }) => {
+      const noted = await noteWhatsappChat(
+        { storeId: context.scope.storeId, tx: context.tx },
+        { kind: 'customer', id: input.id },
+        { template: input.template, author: context.session.user.email },
+      )
+      return { noted }
     }),
 
   /** Rows for the Customers bulk-edit spreadsheet, in the order the ids were given. */

@@ -19,6 +19,7 @@ import {
   orderViewToken,
   PaymentNotRetryable,
   type PlaceOrderResult,
+  PriceNotSet,
   payPath,
   placeOrderAndPay,
   rememberCheckoutAddress,
@@ -329,6 +330,7 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
       // Only a composition-scheme warehouse holds it, and those cannot ship to another state.
       if (err instanceof CannotShipToState)
         return { error: checkoutContent.errors.cannotShipToState }
+      if (err instanceof PriceNotSet) return { error: checkoutContent.errors.priceNotSet }
       if (err instanceof ShippingRateUnavailable)
         return { error: checkoutContent.errors.rateChanged }
       // Settings → Checkout, re-checked by placeOrder whatever the form showed.

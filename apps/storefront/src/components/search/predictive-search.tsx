@@ -184,8 +184,10 @@ export default function PredictiveSearch({
                           <span className="flex min-w-0 flex-1 flex-col">
                             <span className="truncate text-body font-medium">{r.title}</span>
                             <span className="text-small text-muted">
-                              {formatPaise(r.pricePaise)}
-                              {r.mrpPaise && r.mrpPaise > r.pricePaise ? (
+                              {r.pricePaise == null
+                                ? copy.priceComingSoon
+                                : formatPaise(r.pricePaise)}
+                              {r.pricePaise != null && r.mrpPaise && r.mrpPaise > r.pricePaise ? (
                                 <s className="ml-2">{formatPaise(r.mrpPaise)}</s>
                               ) : null}
                               {r.available ? null : ` · ${copy.soldOut}`}

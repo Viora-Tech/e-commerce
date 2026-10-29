@@ -47,7 +47,7 @@ import ProductPreorderSection from './product-preorder-section'
 import ProductSeoPanel from './product-seo-panel'
 import ProductSide from './product-side'
 import { type ProductTabId, tabFromParam, tabsFor, tabsWithErrors } from './product-tab-list'
-import ProductTabs from './product-tabs'
+import ProductTabs, { panelDomId } from './product-tabs'
 import { saveErrorMessage } from './save-error'
 import ShippingCard from './shipping-card'
 import StockHistoryCard from './stock-history-card'
@@ -76,7 +76,7 @@ export default function ProductForm({
   facets,
   storefrontOrigin,
   aiWriter = false,
-  layout = 'tabs',
+  layout = 'page',
   apps = [],
 }: ProductFormProps) {
   // Hooks
@@ -113,6 +113,15 @@ export default function ProductForm({
     window.addEventListener('beforeunload', warn)
     return () => window.removeEventListener('beforeunload', warn)
   }, [form, saved])
+
+  /* One page: a link to a section (?tab=shipping) scrolls to it once the page is drawn. */
+  useEffect(() => {
+    if (layout !== 'page') return
+    const tab = new URLSearchParams(window.location.search).get('tab')
+    if (!tab) return
+    const single = matrixOptions(initialForm(product).options).length === 0
+    document.getElementById(panelDomId(tabFromParam(tab, single)))?.scrollIntoView()
+  }, [layout, product])
 
   // Helpers
   const patch = (p: Partial<ProductFormState>) => setForm((f) => ({ ...f, ...p }))
@@ -160,6 +169,12 @@ export default function ProductForm({
     const params = new URLSearchParams(window.location.search)
     params.set('tab', id)
     const url = `${window.location.pathname}?${params}`
+    // One page (#914): every section is in view already, so jump to it rather than switch.
+    if (layout === 'page') {
+      window.history.replaceState(null, '', url)
+      document.getElementById(panelDomId(id))?.scrollIntoView({ behavior: 'smooth' })
+      return
+    }
     if (replace) window.history.replaceState(null, '', url)
     else window.history.pushState(null, '', url)
   }
@@ -178,6 +193,8 @@ export default function ProductForm({
     if (Object.keys(found).length) {
       const failing = tabsWithErrors(found, matrixOptions(next.options).length === 0)[0]
       if (failing) handleSelectTab(failing, true)
+      // Said out loud too: the button pressed may be far from the field (the side column's Save).
+      toast.error(copy.errors.fixBeforeSave)
       return
     }
     if (status) setForm(next)
@@ -197,7 +214,10 @@ export default function ProductForm({
       if (!product) router.replace(routes.products.detail(result.id))
       else router.refresh()
     } catch (err) {
-      setServerError(saveErrorMessage(copy, err))
+      const message = saveErrorMessage(copy, err)
+      setServerError(message)
+      // The banner sits above the page; a save from the bottom of the side column never saw it.
+      toast.error(message)
     } finally {
       setBusy(false)
     }
@@ -263,7 +283,10 @@ export default function ProductForm({
     (v, i) => v.quantity !== savedForm.variants[i]?.quantity,
   )
   const working = busy || uploading
-  const tabIds = tabsFor(single)
+  // One page leaves out an empty More section (no installed app adds one).
+  const tabIds = tabsFor(single).filter(
+    (id) => layout !== 'page' || id !== 'more' || productAppSections(apps).length > 0,
+  )
   const activeTab = tabFromParam(searchParams.get('tab'), single)
   const failing = new Set<ProductTabId>(showErrors ? tabsWithErrors(errors, single) : [])
   const checklist = productChecklist(copy, fmt, form, errors, single, {
@@ -315,14 +338,15 @@ export default function ProductForm({
     </>
   )
   const panels: Partial<Record<ProductTabId, ReactNode>> = {
+    // Title and description first, then the photos (#914, Shopify's order).
     overview: (
       <>
+        {mainCard('details')}
         <ProductImageCard
           items={form.media}
           onChange={(update) => setForm((f) => ({ ...f, media: update(f.media) }))}
           onUploading={setUploading}
         />
-        {mainCard('details')}
         {/* Extra fields stay in view, not inside "More" (#296: nobody found them there). */}
         <MetafieldsCard ownerType="product" ownerId={product?.id ?? null} />
       </>

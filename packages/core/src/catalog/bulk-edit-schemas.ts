@@ -37,7 +37,8 @@ export const BulkEditProductPatchSchema = z
 
 export const BulkEditVariantPatchSchema = z
   .object({
-    pricePaise: paise,
+    /** Null clears the price: listed, not sold, until one is set (#913). */
+    pricePaise: paise.nullable(),
     /** Compare-at price. */
     mrpPaise: paise.nullable(),
     costPaise: paise.nullable(),

@@ -12,6 +12,7 @@ import {
   reconcileVariants,
   stockOf,
   suggestSku,
+  toWrite,
   type VariantRow,
 } from './form-state'
 
@@ -194,5 +195,24 @@ describe('fromProduct', () => {
     const form = fromProduct(imported)
     expect(form.variants).toHaveLength(1)
     expect(form.variants[0]?.optionValues).toEqual([])
+  })
+})
+
+describe('a product without a price (#913)', () => {
+  const titled = (price: string) => ({
+    ...emptyForm(),
+    title: 'Pre-listed pad',
+    status: 'active' as const,
+    variants: [variant([], { price })],
+  })
+
+  it('saves with the price left blank, draft or active, and sends no price', () => {
+    expect(formErrors(productFormContent, titled(''))).toEqual({})
+    expect(toWrite(titled('')).variants[0]?.pricePaise).toBeNull()
+    expect(toWrite(titled('499')).variants[0]?.pricePaise).toBe(49900)
+  })
+
+  it('still stops a price that is typed but not a number', () => {
+    expect(formErrors(productFormContent, titled('abc')).variants).toMatch(/as a number/)
   })
 })

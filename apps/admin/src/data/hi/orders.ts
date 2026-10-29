@@ -344,6 +344,7 @@ export default [
     sendBy: 'कैसे भेजें',
     chatHint:
       'आपके स्टोर से WhatsApp जुड़ा नहीं है, इसलिए यह अपने आप नहीं जा सकता। इसे अपने WhatsApp में खोलें और वहाँ भेजें दबाएँ।',
+    chatHintConnected: 'या इसे अपने WhatsApp में खोलें, खुद लिखें और वहाँ भेजें दबाएँ।',
     openChat: 'WhatsApp में खोलें',
     frameTitle: 'ईमेल प्रीव्यू',
     cancel: 'रद्द करें',

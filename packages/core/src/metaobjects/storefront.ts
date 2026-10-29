@@ -37,7 +37,8 @@ export type ResolvedVariant = {
   id: string
   title: string
   sku: string | null
-  price: number
+  /** Null: listed without a price yet (#913). */
+  price: number | null
   productHandle: string
   productTitle: string
 }

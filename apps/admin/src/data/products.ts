@@ -59,6 +59,11 @@ export const productsListContent = {
       { value: 'low', label: 'Low stock' },
       { value: 'out', label: 'Out of stock' },
     ],
+    missing: 'Missing',
+    missingOptions: [
+      { value: 'weight', label: 'No weight' },
+      { value: 'image', label: 'No image' },
+    ],
   },
   status: { active: 'Active', draft: 'Draft', archived: 'Archived' } satisfies Record<
     ProductStatus,

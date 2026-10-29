@@ -119,7 +119,9 @@ export async function listGiftCardProducts(ctx: StoreContext) {
     .orderBy(asc(variant.pricePaise))
   return products.map((p) => ({
     ...p,
-    denominationsPaise: variants.filter((v) => v.productId === p.id).map((v) => v.pricePaise),
+    denominationsPaise: variants.flatMap((v) =>
+      v.productId === p.id && v.pricePaise != null ? [v.pricePaise] : [],
+    ),
   }))
 }
 

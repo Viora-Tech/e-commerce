@@ -145,7 +145,7 @@ export type ExportRow = {
   variantTitle: string
   sku: string | null
   barcode: string | null
-  pricePaise: number
+  pricePaise: number | null
   mrpPaise: number | null
   costPaise: number | null
   weightGrams: number | null

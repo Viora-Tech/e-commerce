@@ -303,6 +303,7 @@ export const sendMessageContent = {
   sendBy: 'Send by',
   chatHint:
     'WhatsApp is not connected to your store, so it cannot send this for you. Open it in your own WhatsApp and press send there.',
+  chatHintConnected: 'Or open it in your own WhatsApp to type it yourself and press send there.',
   openChat: 'Open in WhatsApp',
   frameTitle: 'Email preview',
   cancel: 'Cancel',

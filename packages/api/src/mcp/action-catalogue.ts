@@ -85,6 +85,7 @@ const READ_NAMES = new Set([
   'gstr1Csv',
   'gstr1Json',
   'gstr3b',
+  'health',
   'history',
   'ids',
   'indiaPostLabel',

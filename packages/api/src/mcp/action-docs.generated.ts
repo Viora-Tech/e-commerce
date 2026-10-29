@@ -28,8 +28,12 @@ export const ACTION_DOCS: Record<string, string> = {
   'affiliates.commissions.approveDue':
     'Approves every commission whose hold is over now, instead of waiting for the hourly pass.',
   'affiliates.commissions.decide': 'Clear a fraud flag (back to pending) or refuse a commission.',
+  'affiliates.commissions.list':
+    'The newest 1000 that match the search and filter panel; the admin pages in the browser.',
   'affiliates.decideCode': "Approve or decline an affiliate's request for their own code.",
   'affiliates.ledgerCsv': "The commissions ledger as CSV, for the merchant's books.",
+  'affiliates.list':
+    'Every affiliate (up to 1000), searched and filtered here; the admin pages in the browser.',
   'affiliates.overview':
     'Sales from affiliates, money owed, the best affiliates and who is waiting to be paid.',
   'affiliates.payouts.exportCsv':
@@ -142,6 +146,7 @@ export const ACTION_DOCS: Record<string, string> = {
   'billing.usageBillCsv':
     'A usage bill\'s "Download CSV": each order of that month that carried a fee.',
   'billing.view': "Settings → Plan & billing: the plan, this month's usage, bills and the one due.",
+  'blog.authors': "Author names on posts, for the list's author filter.",
   'blog.blogs': 'Blogs with post counts; creates "News" the first time a store has none.',
   'blog.defaults': 'Prefills for a new post: the signed-in staff member as author.',
   'blog.recent': 'Newest visible posts as cards, for the "Blog posts" block in the page editor.',
@@ -185,6 +190,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'customers.export': 'Rows for a CSV export of the current filter; the browser builds the file.',
   'customers.lookupPincode':
     'City and state for a PIN code, from the same directory as Settings → Checkout\'s "PIN code first".',
+  'customers.noteWhatsappChat':
+    "The merchant opened a click-to-chat WhatsApp: the line goes on the customer's Timeline.",
   'customers.overview': 'Headline figures and the weekly series behind the Customer Overview card.',
   'customers.previewSegment': 'Live count and a sample for the rule builder.',
   'customers.setDefaultAddress':
@@ -193,6 +200,8 @@ export const ACTION_DOCS: Record<string, string> = {
     "Make one saved address the customer's default billing address (draft orders bill it).",
   'customers.sheet':
     'Rows for the Customers bulk-edit spreadsheet, in the order the ids were given.',
+  'customers.whatsappChat':
+    '"WhatsApp" click to chat from the customer page: their phone and name, plus their latest order\'s links for the order and shipping messages.',
   'dashboard.analytics':
     "Home's analytics card for any date range (Figma 580:692): every tile metric, with comparison.",
   'dashboard.charts':
@@ -411,7 +420,9 @@ export const ACTION_DOCS: Record<string, string> = {
   'orders.neighbours':
     'Order numbers either side of this one, for the arrows in the detail header.',
   'orders.notePaymentReminderChat':
-    'The merchant opened the payment reminder in their own WhatsApp (store without a WhatsApp channel): records it on the order timeline.',
+    'The merchant opened the payment reminder in their own WhatsApp (a wa.me chat, connected or not): records it on the order timeline.',
+  'orders.noteWhatsappChat':
+    "The merchant opened a click-to-chat WhatsApp: \"Opened WhatsApp chat (<message>)\" on the order's timeline (a checkout's: its customer's, when signed in).",
   'orders.previewMessage':
     'The email (and WhatsApp text) a hand-sent message would carry for this order, filled with the order\'s own details, for the "Review email" dialog before Send.',
   'orders.previewRecovery':
@@ -447,6 +458,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'orders.toShipCount': 'How many orders are waiting to ship.',
   'orders.updateContact':
     "\"Edit\" on the order page's customer card: this order's contact and shipping address, optionally copied to the customer's saved address.",
+  'orders.whatsappChat':
+    '"WhatsApp" click to chat on an order, draft or abandoned checkout: the phone, names and signed links the admin types the chat from.',
   'payments.connect': 'Save pasted keys and make that gateway the main way to get paid.',
   'payments.fixWebhook':
     'The health line\'s "Fix" for payment updates on a Connect Razorpay account.',
@@ -612,6 +625,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'store.getStorage':
     'Storage settings with secrets masked, plus the providers this deployment can offer.',
   'store.getTheme': "The live theme's settings.",
+  'store.health':
+    'Store health: setups that break or hurt checkout and orders, worst first, with counts.',
   'store.migrateStorage':
     '"Move existing files to <connection>": queues the worker job; see packages/core/src/media/migrate.ts.',
   'store.origin':
@@ -626,6 +641,7 @@ export const ACTION_DOCS: Record<string, string> = {
   'store.testStorageConnection': 'A storage Connect page\'s "Test connection" button (e.g.',
   'store.updatePayments': 'Save payment settings.',
   'store.updateTheme': "Saves the live theme's settings.",
+  'suppliers.facets': "The countries and currencies in use, for the list's filter pickers.",
   'themes.createBlank':
     '"Start from scratch": base settings and empty templates, nothing from the live theme.',
   'themes.customSections.list': 'The saved sections.',

@@ -12,7 +12,6 @@ import {
   appliedFromGroups,
   clearGroups,
   FILTER_PANEL_CLASS,
-  type FilterGroup,
   FilterPanel,
 } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
@@ -21,6 +20,12 @@ import { filterPanelContent } from '@/data/filter-panel'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import {
+  CLEAR_REVIEW_FILTERS,
+  REVIEW_FILTER_PARAMS,
+  reviewFilterGroups,
+  reviewFilterInput,
+} from '@/lib/review-list-filters'
 import { routes } from '@/lib/routes'
 import AskReviewsButton from './ask-reviews-button'
 import DeleteReviewsDialog from './delete-reviews-dialog'
@@ -51,9 +56,7 @@ function ReviewsList() {
       query: parseAsString.withDefault(''),
       page: parseAsInteger.withDefault(1),
       status: parseAsStringLiteral(STATUSES),
-      rating: parseAsInteger,
-      product: parseAsString,
-      photos: parseAsStringLiteral(['yes', 'no'] as const),
+      ...REVIEW_FILTER_PARAMS,
     },
     { shallow: true },
   )
@@ -74,9 +77,7 @@ function ReviewsList() {
         perPage,
         q: q.query || undefined,
         status: q.status ?? undefined,
-        rating: q.rating ?? undefined,
-        productId: q.product ?? undefined,
-        hasPhotos: q.photos === null ? undefined : q.photos === 'yes',
+        ...reviewFilterInput(q),
       })
       .then((r) => !cancelled && setResult(r))
       .catch((err: unknown) => toast.error(err instanceof Error ? err.message : copy.list.failed))
@@ -84,7 +85,7 @@ function ReviewsList() {
     return () => {
       cancelled = true
     }
-  }, [q.page, q.query, q.status, q.rating, q.product, q.photos, perPage, version, copy.list.failed])
+  }, [q, perPage, version, copy.list.failed])
   useEffect(() => {
     api.reviews
       .products()
@@ -119,39 +120,9 @@ function ReviewsList() {
     average: null,
     withPhotos: 0,
   }
-  const f = copy.list.filters
-  const groups: FilterGroup[] = [
-    {
-      key: 'rating',
-      label: f.rating,
-      type: 'select',
-      options: [5, 4, 3, 2, 1].map((n) => ({ value: String(n), label: f.ratingValue(n) })),
-      value: q.rating ? String(q.rating) : null,
-      onChange: (next) => setQ({ rating: next ? Number(next) : null, page: 1 }),
-      anyLabel: f.any,
-    },
-    {
-      key: 'product',
-      label: f.product,
-      type: 'select',
-      options: products.map((p) => ({ value: p.id, label: p.title })),
-      value: q.product,
-      onChange: (product) => setQ({ product, page: 1 }),
-      anyLabel: f.any,
-    },
-    {
-      key: 'photos',
-      label: f.photos,
-      type: 'select',
-      options: [
-        { value: 'yes', label: f.yes },
-        { value: 'no', label: f.no },
-      ],
-      value: q.photos,
-      onChange: (next) => setQ({ photos: next === 'yes' || next === 'no' ? next : null, page: 1 }),
-      anyLabel: f.any,
-    },
-  ]
+  const groups = reviewFilterGroups(q, copy.list.filters, panelCopy, products, (patch) =>
+    setQ({ ...patch, page: 1 }),
+  )
   const applied = appliedFromGroups(groups, panelCopy)
   const filtered = applied.length > 0 || q.query !== '' || q.status !== null
 
@@ -200,9 +171,7 @@ function ReviewsList() {
         loading={loading && !result}
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
-        onClearAll={() =>
-          setQ({ query: '', status: null, rating: null, product: null, photos: null, page: 1 })
-        }
+        onClearAll={() => setQ({ ...CLEAR_REVIEW_FILTERS, query: '', status: null, page: 1 })}
         views={
           <ViewSelect
             value={q.status}

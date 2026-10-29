@@ -428,7 +428,7 @@ export const variant = pgTable(
     sku: text('sku'),
     barcode: text('barcode'),
     title: text('title').notNull(),
-    pricePaise: integer('price_paise').notNull(),
+    pricePaise: integer('price_paise'),
     mrpPaise: integer('mrp_paise'),
     /** What the merchant paid; never shown to shoppers. */
     costPaise: integer('cost_paise'),
@@ -1640,6 +1640,23 @@ export const orderNote = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index('order_note_order').on(t.orderId, t.createdAt)],
+)
+
+/** Staff actions on a customer (an opened WhatsApp chat); their Timeline shows them. */
+export const customerNote = pgTable(
+  'customer_note',
+  {
+    id: id(),
+    storeId: storeId(),
+    customerId: uuid('customer_id')
+      .notNull()
+      .references(() => customer.id, { onDelete: 'cascade' }),
+    body: text('body').notNull(),
+    /** Email of the staff member who did it. */
+    author: text('author'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('customer_note_customer').on(t.customerId, t.createdAt)],
 )
 
 /** Every gateway webhook, stored before it is processed so retries cannot double-apply. */
