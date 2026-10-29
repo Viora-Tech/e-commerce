@@ -394,31 +394,58 @@ The admin shows health on the app page (last error per app, breaker open since, 
 checkouts on backup in the last 24 h), and an order placed on backup is marked so in the
 order's shipping card.
 
-## From checkout to order, shipment and label
-1. **Order**: the snapshot records the option, the exact route, insurance, promised dates and
-   the route's quoted cost. The order page shows "Express · Blue Dart Air via Shiprocket ·
-   promised by Fri 31 Oct · insured" (the merchant sees the channel, the shopper never does).
-2. **Create shipment** (order page, Shipments workspace, bulk) **books exactly that route**:
-   the saved `providerId` + `serviceId`, with `insured` from the order. The rate table shows it
-   preselected with "Chosen at checkout" and its cost against what the shopper paid. `courierRule`
-   is not consulted for app orders.
-3. **If the route fails at booking** (no longer connected, no longer serves the PIN, lost COD,
-   the API refused), the dialog shows the reason ("Blue Dart Air via Shiprocket: pincode not
-   serviceable") and a **fallback**: the next route by the option's strategy among those that
-   still fit the order's constraints (product rule pool, insurance, COD, same or faster speed),
-   with its cost difference ("₹20 more than charged"). The merchant confirms it or picks another
-   row. Bulk booking puts such orders in a "Needs a decision" list with the same fallback, never
-   books a different route silently.
-4. **Aggregators**: for Shiprocket and RapidShyp, `pushOrder` already sends new orders as
-   pending orders. It passes the chosen carrier where the API takes one, so the aggregator's
-   panel shows the right courier too.
-5. **Label**: unchanged. The courier prints it. Our packing slip and the order list show the
-   option name and promised date, so the packer knows which parcels go out first. The
-   Shipments "To book" tab sorts Express first and flags any whose cut-off is about to pass.
-6. **After delivery** (P4): promised vs delivered date per route and option feeds a small
-   report, and can later re-rank `fastest` with real data instead of the courier's claim.
-7. **Profit**: `courierCostPaise` + insurance against the shipping charged gives shipping margin
-   per order (ties into the parked profit plan, `profit-build-plan`).
+## End to end: one route from quote to delivery
+The route the shopper's option was quoted on (courier + channel + service, for example
+**Blue Dart Air via Shiprocket**) is the one thread through the whole cycle. Every step below
+uses that same route; nothing re-picks a courier along the way.
+
+```
+Checkout quote ──► Order ──► Create shipment / bulk ──► AWB + label ──► Tracking ──► Delivered
+ route R chosen    saves R    books R through R's app    from R's app    from R's app  vs promise
+```
+
+Worked example: Express, Mice, PIN 400001, insured, prepaid.
+
+| Step | What happens | Where it lives |
+| --- | --- | --- |
+| 1. Quote | Shiprocket answers Blue Dart Air (₹128, Thu 30 Oct, insures); Delhivery direct answers `E` (₹102, Fri 31 Oct). The shopper picks the Blue Dart Air sub-choice: ₹128 + markup + insurance → ₹180 | Quote snapshot (Redis, 30 min), trace |
+| 2. Order | `placeOrder` reads the snapshot and saves route R = `shiprocket` · `serviceId` (Shiprocket `courier_company_id`) · carrier Blue Dart · "Bluedart Air", plus `insured`, `courierCostPaise`, promised dates, `pickedBy: shopper` | `OrderShippingSnapshot` |
+| 3. Push (aggregators) | `pushOrder` sends the order to Shiprocket as a pending order with R's courier where the API takes one, so Shiprocket's panel shows Blue Dart too | Shiprocket |
+| 4. Book | Create shipment (order page, Shipments workspace) and **bulk booking** both call R's app, here the Shiprocket adapter, with R's `serviceId` (Shiprocket `courier_id`, RapidShyp `courier_code` via `assignAwb`, Delhivery `S`/`E`, Blue Dart product code) and `insured`. Never Blue Dart direct, never another channel for the same courier. `courierRule` is not consulted for app orders | `createShipment` on R's adapter |
+| 5. AWB + label | The AWB, label and tracking link come back **from R's app** (Shiprocket issues the Blue Dart AWB and label). Saved on the shipment: `provider` = R's app, `waybill`, `providerRef`, `labelUrl`, `trackingUrl`, `serviceLabel`, `insured`, `courierChargePaise` (the booking's own charge) | `shipment` row |
+| 6. Tracking | Status updates come **through R's app**: its webhook (`handleShipmentWebhook` with that provider) and the worker's poll (`provider.track(waybill)` in `apps/worker/src/shipping.ts`) both resolve the provider from `shipment.provider`, so a Blue Dart parcel booked via Shiprocket is tracked via Shiprocket. NDR and RTO follow the same app | `shipment.status`, `tracking`, NDR fields |
+| 7. Delivered vs promised | The delivered scan's date is compared with the order's `promisedEarliest`/`promisedLatest`, per route and option (P4 report). Booking charge vs `courierCostPaise` vs shipping charged gives the margin | Order + shipment |
+
+Rules for each step:
+- **Booking matches the quote.** The rate table opens with R preselected and marked "Chosen at
+  checkout", showing R's live cost against what the shopper paid. The merchant can still pick
+  another row on purpose; that is recorded (`bookedRoute` ≠ order route) and shown on the order.
+- **Bulk booking** applies the same thing to every selected order: each books its own saved
+  route, through its own app. Orders whose route fails go to a "Needs a decision" list instead
+  of being booked on a different route silently.
+- **If R fails at booking** (app disconnected, PIN no longer served, COD lost, API refused), the
+  dialog shows the reason ("Blue Dart Air via Shiprocket: pincode not serviceable") and a
+  **fallback**: the next route by the option's strategy among those that still fit the order
+  (product rule pool, insurance, COD, same or faster speed), with its cost difference ("₹20 more
+  than charged"). The merchant confirms it or picks another row. The fallback route then owns
+  the AWB, label and tracking from step 5 on.
+- **Orders placed on backup** (couriers were down, no route saved) book with `courierRule`, with
+  the product route rules applied (Glasspads still only Delhivery).
+- **Label and packing**: the courier's label is unchanged. Our packing slip and the order list
+  show the option name, courier and promised date, so the packer knows which parcels go first.
+  The Shipments "To book" tab sorts Express first and flags any whose cut-off is about to pass.
+- **Order page** shows the whole thread: "Express · Blue Dart Air via Shiprocket · insured ·
+  promised Thu 30 Oct · AWB 1234… · In transit" (the merchant sees the channel, the shopper
+  never does; the shopper's tracking page shows "Blue Dart").
+- **Learning (P4)**: promised vs delivered per route can later re-rank `fastest` with real data
+  instead of the courier's claim.
+- **Profit**: booking charge (or `courierCostPaise`) + insurance against the shipping charged
+  gives shipping margin per order (ties into the parked profit plan, `profit-build-plan`).
+
+Gaps to close in P1 for this to hold: adapters send the insurance flag at booking where the API
+takes one; the shipment row gains a `carrier` field (today only `provider` and `serviceLabel`),
+so tracking and reports can say "Blue Dart" for a Shiprocket booking; and a `deliveredAt`
+(today the delivered date is only inside the `tracking` payload) for the promise report.
 
 ## Admin UI
 Full pages and centred dialogs only, no right drawers. Card footer buttons sit on the right.
@@ -468,8 +495,9 @@ Blue Dart Air first.
 - Checkout: "Express · Blue Dart" cards, sub-choices, insurance checkbox, Express prepaid only,
   backup (Standard at zone rate, Express hidden). Live price cache by slab and the quote
   snapshot read by `placeOrder`.
-- Order snapshot with the exact route. Create shipment and bulk book that route; failure shows
-  the reason and the fallback. Adapters send the insurance flag where the API takes one.
+- The end-to-end thread: order saves the exact route; Create shipment and bulk book it through
+  the route's own app; AWB, label and tracking come from that app; failure shows the reason and
+  the fallback. Adapters send the insurance flag; shipment gains `carrier` and `deliveredAt`.
 - App page: Routes card and dialog, options list and page, product route rules, Try a PIN with
   the full trace.
 - Result for Waimers: Standard (cheapest, COD) + Express (fastest, prepaid), Glasspads always on
@@ -510,8 +538,9 @@ Blue Dart Air first.
 7. **COD**: Express and faster are prepaid only; COD stays on Standard.
 8. **No same-day or next-day** at launch.
 9. **Couriers down or slow**: only Standard at the existing zone rate; Express hidden.
-10. **Booking**: the order saves the exact route; Create shipment books it; on failure, show the
-    reason and the fallback.
+10. **Booking**: the order saves the exact route; Create shipment and bulk booking book it through
+    that route's app, which issues the AWB and label and carries tracking; on failure, show the
+    reason and the fallback. (End to end section.)
 11. **Admin**: Try a PIN shows every route's quote, the winner and why; full pages and dialogs
     only.
 12. **Phases**: product route rules moved into P1.
