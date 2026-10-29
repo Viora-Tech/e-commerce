@@ -1,5 +1,5 @@
 import { type DiscountInput, discountType, normaliseCode } from '@commerce/core'
-import type { StoreTx } from '@commerce/db'
+import type { DiscountType, StoreTx } from '@commerce/db'
 import { discount, discountUsage, order } from '@commerce/db'
 import {
   and,
@@ -11,6 +11,7 @@ import {
   inArray,
   isNotNull,
   isNull,
+  lt,
   lte,
   max,
   or,
@@ -160,6 +161,44 @@ function lifecycleWhere(lifecycle: DiscountLifecycle | undefined, now: Date) {
   }
 }
 
+/** The list's filter panel; arrays are "any of", each part combines with the others. */
+export type DiscountListFilters = {
+  lifecycles?: DiscountLifecycle[] | undefined
+  types?: DiscountType[] | undefined
+  kinds?: ('code' | 'automatic')[] | undefined
+  /** Runs at some point in [from, to); ISO times. */
+  activeFrom?: string | undefined
+  activeTo?: string | undefined
+  usedMin?: number | undefined
+  usedMax?: number | undefined
+  limitReached?: boolean | undefined
+}
+
+function filtersWhere(f: DiscountListFilters, now: Date) {
+  const limitReached = and(
+    isNotNull(discount.usageLimit),
+    gte(discount.usedCount, discount.usageLimit),
+  )
+  return and(
+    f.lifecycles?.length ? or(...f.lifecycles.map((l) => lifecycleWhere(l, now))) : undefined,
+    f.types?.length ? inArray(discount.type, f.types) : undefined,
+    f.kinds?.length ? inArray(discount.kind, f.kinds) : undefined,
+    f.activeTo
+      ? or(isNull(discount.startsAt), lt(discount.startsAt, new Date(f.activeTo)))
+      : undefined,
+    f.activeFrom
+      ? or(isNull(discount.endsAt), gte(discount.endsAt, new Date(f.activeFrom)))
+      : undefined,
+    f.usedMin !== undefined ? gte(discount.usedCount, f.usedMin) : undefined,
+    f.usedMax !== undefined ? lte(discount.usedCount, f.usedMax) : undefined,
+    f.limitReached === undefined
+      ? undefined
+      : f.limitReached
+        ? limitReached
+        : sql`not coalesce(${limitReached}, false)`,
+  )
+}
+
 export async function listDiscounts(
   tx: StoreTx,
   input: {
@@ -167,7 +206,7 @@ export async function listDiscounts(
     perPage: number
     search?: string | undefined
     lifecycle?: DiscountLifecycle | undefined
-  },
+  } & DiscountListFilters,
   now = new Date(),
 ): Promise<{ items: DiscountListItem[]; total: number }> {
   const where = and(
@@ -175,6 +214,7 @@ export async function listDiscounts(
       ? or(ilike(discount.title, `%${input.search}%`), ilike(discount.code, `%${input.search}%`))
       : undefined,
     lifecycleWhere(input.lifecycle, now),
+    filtersWhere(input, now),
   )
   const [countRow] = await tx.select({ total: count() }).from(discount).where(where)
   const rows = await tx

@@ -58,6 +58,26 @@ export default [
       dates: 'चालू तारीखें',
     },
     neverUsed: 'कभी नहीं',
+    filters: {
+      status: 'स्थिति',
+      lifecycles: { active: 'चालू', scheduled: 'शेड्यूल', expired: 'खत्म', disabled: 'बंद' },
+      type: 'प्रकार',
+      types: {
+        products: 'प्रोडक्ट पर छूट',
+        order: 'ऑर्डर पर छूट',
+        bxgy: 'X खरीदें, Y पाएं',
+        shipping: 'फ्री शिपिंग',
+      },
+      method: 'तरीका',
+      kinds: { code: 'डिस्काउंट कोड', automatic: 'अपने-आप' },
+      active: 'चालू तारीख़ें',
+      anyDate: 'कोई भी तारीख़',
+      activeOptions: { '7d': 'पिछले 7 दिन', '30d': 'पिछले 30 दिन', '90d': 'पिछले 90 दिन' },
+      used: 'कितनी बार इस्तेमाल',
+      usedMin: 'कम से कम',
+      usedMax: 'ज़्यादा से ज़्यादा',
+      limitReached: 'इस्तेमाल की सीमा पूरी',
+    },
     kind: { code: 'कोड', automatic: 'अपने-आप' },
     lifecycle: { active: 'चालू', scheduled: 'शेड्यूल', expired: 'खत्म', disabled: 'बंद' },
     usedOf: (used, limit) => (limit === null ? `${used}` : `${used} / ${limit}`),
@@ -69,6 +89,10 @@ export default [
     empty: {
       heading: 'अभी कोई डिस्काउंट नहीं',
       body: 'डिस्काउंट कोड और अपने-आप लगने वाले ऑफ़र: प्रतिशत छूट, तय रकम या फ्री शिपिंग, चेकआउट पर लागू।',
+    },
+    noResults: {
+      heading: 'इन फ़िल्टर से कोई डिस्काउंट नहीं मिला',
+      body: 'कोई और सर्च आज़माएँ या फ़िल्टर हटाएँ।',
     },
     index: {
       heading: 'कोई डिस्काउंट नहीं',
