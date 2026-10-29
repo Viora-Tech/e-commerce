@@ -169,6 +169,19 @@ export default function VariantEditFields({
             onCheckedChange={(hiddenOnStore) => onPatch({ hiddenOnStore })}
           />
         </div>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-0.5">
+            <label htmlFor="edit-variant-preorder" className="text-body text-foreground">
+              {copy.preorder}
+            </label>
+            <p className="text-caption text-muted-foreground">{copy.preorderHelp}</p>
+          </div>
+          <Switch
+            id="edit-variant-preorder"
+            checked={draft.preorderAllowed}
+            onCheckedChange={(preorderAllowed) => onPatch({ preorderAllowed })}
+          />
+        </div>
       </Group>
 
       <Group title={copy.tax}>

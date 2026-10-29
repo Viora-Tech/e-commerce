@@ -59,6 +59,20 @@ export function preorderFrom(variants: NProduct['variants']): boolean | undefine
   return known.some((v) => v.sellsOutOfStock && v.trackInventory)
 }
 
+/**
+ * A variant's "Allow pre-order" (#962) on a product that sells on pre-order: Shopify's policy is
+ * per variant, so a tracked variant that stops at zero (`deny`) is sold out there and crossed
+ * out here. Untracked variants never run out. Undefined (left as it is) when the product is not
+ * on pre-order by its variants' policy, or the source does not say.
+ */
+export function preorderAllowedFrom(
+  variants: NProduct['variants'],
+  v: NProduct['variants'][number],
+): boolean | undefined {
+  if (preorderFrom(variants) !== true || v.sellsOutOfStock === undefined) return undefined
+  return v.sellsOutOfStock || !v.trackInventory
+}
+
 const existingProduct = (ctx: ImportContext, p: NProduct) =>
   ctx.inStore((tx) => matchProduct(tx, p))
 
@@ -114,6 +128,7 @@ function toWrite(
       .filter(Boolean)
       .map((value) => ({ value: value.slice(0, 100) }))
   const preorder = preorderFrom(p.variants)
+  const allowed = (v: NProduct['variants'][number]) => preorderAllowedFrom(p.variants, v)
   return {
     title: p.title.slice(0, 200),
     handle: localHandle(p.handle),
@@ -126,6 +141,8 @@ function toWrite(
     // A CSV row has no template column (undefined): the product keeps the one it has.
     ...(p.templateSuffix === undefined ? {} : { templateSuffix: p.templateSuffix }),
     ...(preorder === undefined ? {} : { preorderEnabled: preorder }),
+    // The pre-order app's message (#936); a product in no campaign keeps the note it has.
+    ...(p.preorderNote === undefined ? {} : { preorderNote: p.preorderNote.slice(0, 500) }),
     status: p.status,
     inventoryReason: 'correction',
     options: p.optionNames.map((name, i) => ({ name: name.slice(0, 50), values: values(i) })),
@@ -142,6 +159,7 @@ function toWrite(
       hsCode: v.hsCode,
       // Only ever hides: a variant the merchant hid by hand stays hidden on re-import.
       ...(v.hiddenOnStore ? { hiddenOnStore: true } : {}),
+      ...(allowed(v) === undefined ? {} : { preorderAllowed: allowed(v) }),
       mediaId: v.imageSrc ? (hosted.get(v.imageSrc) ?? null) : null,
       // Unknown stock: new variants start at zero, existing ones keep what they have.
       ...(v.onHand !== null ? { onHand: v.onHand } : isNew ? { onHand: 0 } : {}),

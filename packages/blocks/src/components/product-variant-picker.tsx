@@ -27,6 +27,27 @@ function variantFor(product: ProductDetail, current: Variant | undefined, valueI
 }
 
 /**
+ * A value is crossed out when no variant that can be bought carries it together with the values
+ * picked in the other options, as Shopify themes draw it: with Black picked, a model that comes
+ * in no Black is crossed out, and so is one whose Black is sold out with no pre-order (#962).
+ * Picking it still works and switches to a variant that has it (`variantFor`).
+ */
+export function valueUnavailable(
+  product: ProductDetail,
+  option: ProductDetail['options'][number],
+  selected: ReadonlySet<string>,
+  valueId: string,
+): boolean {
+  const others = [...selected].filter((id) => !option.values.some((v) => v.id === id))
+  return !product.variants.some(
+    (v) =>
+      v.purchasable &&
+      v.optionValueIds.includes(valueId) &&
+      others.every((id) => v.optionValueIds.includes(id)),
+  )
+}
+
+/**
  * Round image swatches for an option when each of its values has its own variant image (a
  * colour option with a photo per colour), as the theme's swatch picker; null keeps pills.
  * Values sharing one image (a size, in a product whose images follow colour) are not swatches.
@@ -49,7 +70,7 @@ export function swatchImages(
 // Port of snippets/variant-picker.liquid: one fieldset per option, the radio before its
 // label (the theme CSS styles the checked one as `radio:checked + label`), pills, or round
 // image swatches when each value has its own variant image (`swatchImages`). A value is
-// marked unavailable when no variant carrying it can be bought.
+// crossed out when it cannot be bought with the other values picked (`valueUnavailable`).
 export default function ProductVariantPicker({
   product,
   variant,
@@ -77,9 +98,7 @@ export default function ProductVariantPicker({
               className={`variant-picker__values${swatches ? ' variant-picker__values--swatch' : ''}`}
             >
               {o.values.map((val) => {
-                const unavailable = !product.variants.some(
-                  (v) => v.purchasable && v.optionValueIds.includes(val.id),
-                )
+                const unavailable = valueUnavailable(product, o, selected, val.id)
                 const inputId = `variant-${o.id}-${val.id}`
                 const image = swatches?.get(val.id)
                 return (

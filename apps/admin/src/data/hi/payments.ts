@@ -46,6 +46,18 @@ export default [
       saved: 'प्री-ऑर्डर सेटिंग सेव हो गई',
       saveFailed: 'प्री-ऑर्डर सेटिंग सेव नहीं हो पाई',
     },
+    preorderNote: {
+      heading: 'प्री-ऑर्डर नोट',
+      intro:
+        'प्री-ऑर्डर बटन के नीचे, कार्ट में, चेकआउट पर और ऑर्डर ईमेल में दिखता है, हर उस प्री-ऑर्डर प्रोडक्ट के लिए जिसका अपना नोट नहीं है।',
+      label: 'नोट',
+      help: '{ship_date} की जगह प्रोडक्ट के भेजने की अनुमानित तारीख (30 November 2026) और {ship_month} की जगह महीना (November 2026) आएगा। इनका इस्तेमाल करने वाला नोट बिना तारीख वाले प्रोडक्ट पर नहीं दिखेगा। कोई नोट न चाहिए तो खाली छोड़ें।',
+      placeholder:
+        'This product is on pre-order and will arrive around the end of {ship_month}. Pre-orders cannot be cancelled and are non-refundable.',
+      save: 'सेव करें',
+      saved: 'प्री-ऑर्डर नोट सेव हो गया',
+      saveFailed: 'प्री-ऑर्डर नोट सेव नहीं हो पाया',
+    },
     adjustment: {
       heading: 'फ़ीस या डिस्काउंट',
       typeLabel: 'किस तरह का',

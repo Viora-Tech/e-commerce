@@ -267,6 +267,8 @@ export const productFormContent = {
     noPrice: 'No price yet',
     /** Chip on a variant hidden on the storefront (#934). */
     hidden: 'Hidden',
+    /** Chip on a variant whose "Allow pre-order" is off: crossed out on the store once sold out. */
+    noPreorder: 'No pre-order',
     /** A visible variant priced ₹0 (#934): allowed (free items), but staff should know. */
     zeroPrice: 'Price is ₹0, shoppers can get this free',
     unlimited: 'Unlimited',
@@ -287,6 +289,9 @@ export const productFormContent = {
       hide: 'Hide on store',
       hideHelp:
         "Shoppers can't see, pick or buy it. It stays here, in orders and in reports. Use it instead of deleting.",
+      preorder: 'Allow pre-order',
+      preorderHelp:
+        'When the product is on pre-order, this variant keeps selling after it runs out. Off: once sold out it shows crossed out and cannot be bought.',
       previous: 'Previous variant',
       next: 'Next variant',
       position: (n: string, of: string) => `${n} of ${of}`,
@@ -378,6 +383,10 @@ export const productFormContent = {
     limit: 'Pre-order quantity limit',
     limitHelp: 'Leave blank for no limit.',
     buttonLabel: 'Pre-order button label',
+    note: 'Pre-order note',
+    noteHelp:
+      'Shown under the button, in the cart, at checkout and on the order email. {ship_date} becomes the expected ship date (30 November 2026), {ship_month} the month (November 2026). Leave blank to use the store default from Settings, Payments.',
+    notePlaceholder: 'This product is on pre-order and will arrive around the end of {ship_month}.',
     paymentMode: 'Payment',
     paymentModeFull: 'Charge in full',
     paymentModeFixed: 'Fixed deposit (₹)',

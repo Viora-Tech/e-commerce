@@ -66,6 +66,11 @@ export type NProduct = {
   templateSuffix?: string | null
   /** Shopify gift card product; undefined (a CSV that does not say) leaves the flag as it is. */
   isGiftCard?: boolean | undefined
+  /**
+   * The pre-order message a Shopify pre-order app prints under the button (Essential Pre-Order's
+   * campaign, #936); undefined when no campaign names the product, which leaves ours as it is.
+   */
+  preorderNote?: string | undefined
   row?: number | undefined
 }
 

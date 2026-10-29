@@ -140,7 +140,7 @@ export const SWAP_TABLE: readonly SwapRow[] = [
   {
     key: 'preorder',
     shopify: 'Pre-order apps (selling plans named "Pre-order")',
-    ours: 'Our built-in pre-order: products set to pre-order show as pre-order in the theme',
+    ours: 'Our built-in pre-order: products set to pre-order show as pre-order in the theme (per variant), with the pre-order note under the buy button',
     kind: 'replaced',
     detect: /selling_plan_groups|preorder/,
   },

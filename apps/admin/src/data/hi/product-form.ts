@@ -249,6 +249,7 @@ export default [
       },
       noPrice: 'अभी कीमत नहीं',
       hidden: 'छिपा हुआ',
+      noPreorder: 'प्री-ऑर्डर नहीं',
       zeroPrice: 'कीमत ₹0 है, ग्राहक इसे मुफ़्त में ले सकते हैं',
       unlimited: 'असीमित',
       edit: 'बदलें',
@@ -266,6 +267,9 @@ export default [
         hide: 'स्टोर पर छिपाएं',
         hideHelp:
           'ग्राहक इसे देख, चुन या खरीद नहीं सकते। यह यहां, ऑर्डर और रिपोर्ट में बना रहता है। डिलीट करने की जगह इसे इस्तेमाल करें।',
+        preorder: 'प्री-ऑर्डर की अनुमति दें',
+        preorderHelp:
+          'प्रोडक्ट प्री-ऑर्डर पर हो तो यह वेरिएंट स्टॉक खत्म होने के बाद भी बिकता रहेगा। बंद: स्टॉक खत्म होने पर यह कटा हुआ दिखेगा और खरीदा नहीं जा सकेगा।',
         previous: 'पिछला वेरिएंट',
         next: 'अगला वेरिएंट',
         position: (n, of) => `${of} में से ${n}`,
@@ -352,6 +356,11 @@ export default [
       limit: 'प्री-ऑर्डर की लिमिट',
       limitHelp: 'कोई लिमिट न रखनी हो तो खाली छोड़ें।',
       buttonLabel: 'प्री-ऑर्डर बटन का टेक्स्ट',
+      note: 'प्री-ऑर्डर नोट',
+      noteHelp:
+        'बटन के नीचे, कार्ट में, चेकआउट पर और ऑर्डर ईमेल में दिखेगा। {ship_date} की जगह भेजने की अनुमानित तारीख (30 November 2026) और {ship_month} की जगह महीना (November 2026) आएगा। खाली छोड़ें तो Settings, Payments का स्टोर वाला नोट लगेगा।',
+      notePlaceholder:
+        'This product is on pre-order and will arrive around the end of {ship_month}.',
       paymentMode: 'पेमेंट',
       paymentModeFull: 'पूरा पेमेंट लें',
       paymentModeFixed: 'तय एडवांस (₹)',

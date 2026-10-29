@@ -1032,6 +1032,15 @@
   width: fit-content;
 }
 
+/* The pre-order note (#936) under the badge: what the shopper agrees to before paying. */
+.cart-line__preorder-note {
+  margin: 0.25rem 0 0;
+  color: var(--color-ink-light);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  white-space: pre-line;
+}
+
 
 /* ------------------------------------------------------------------ */
 /* Figma Pages · Cart (704:117993)                                      */

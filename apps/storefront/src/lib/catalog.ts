@@ -5,6 +5,7 @@ import {
   depositPreview,
   isLaunched,
   type ProductPreorderRow,
+  preorderNoteText,
   resolvePreorderSettings,
   resolveShipDate,
 } from '@commerce/core/preorder'
@@ -203,6 +204,8 @@ export async function listCardProducts(
 export async function getProductByHandle(
   tx: StoreTx,
   handle: string,
+  /** The store's default pre-order note (`store.preorder.note`), for a product without its own. */
+  storeNote: string | null = null,
 ): Promise<ProductDetail | null> {
   const [p] = await tx
     .select()
@@ -312,10 +315,15 @@ export async function getProductByHandle(
     return Math.max(0, settings.limit - committed)
   }
 
-  const firstVariant = vs.find((v) => purchasable(v)) ?? vs[0]
-  const preorderSettings = firstVariant
-    ? resolvePreorderSettings(p, firstVariant.preorderOverride)
-    : resolvePreorderSettings(p)
+  // Pre-order is per variant (product on AND the variant allows it): the product's pre-order
+  // details come from the first variant that sells on pre-order, so one in-stock variant without
+  // it does not hide them from the rest.
+  const preorderOf = (v: (typeof vs)[number]) => resolvePreorderSettings(p, v.preorderOverride)
+  const firstVariant =
+    vs.find((v) => purchasable(v) && preorderOf(v).enabled) ??
+    vs.find((v) => purchasable(v)) ??
+    vs[0]
+  const preorderSettings = firstVariant ? preorderOf(firstVariant) : resolvePreorderSettings(p)
   const shipDate = preorderSettings.enabled ? resolveShipDate(preorderSettings) : null
 
   return {
@@ -333,6 +341,7 @@ export async function getProductByHandle(
           enabled: true,
           buttonLabel: preorderSettings.buttonLabel,
           shipDate: shipDate ? shipDate.toISOString() : null,
+          note: preorderNoteText({ productNote: p.preorderNote, storeNote, shipDate }),
           depositPreview:
             firstVariant?.pricePaise != null && preorderSettings.paymentMode !== 'full'
               ? depositPreview(
@@ -358,6 +367,7 @@ export async function getProductByHandle(
       mrpPaise: v.mrpPaise,
       available: availableFor(v),
       purchasable: purchasable(v),
+      preorder: preorderOf(v).enabled,
       preorderRoom: preorderRoom(v),
       optionValueIds: links.filter((l) => l.variantId === v.id).map((l) => l.optionValueId),
       imageUrl: v.imageUrl,

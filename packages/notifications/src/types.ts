@@ -151,7 +151,14 @@ export type TemplateData = {
   orderNumber?: number | undefined
   customerName: string
   totalLabel: string
-  lines: { title: string; quantity: number; priceLabel: string; imageUrl?: string | undefined }[]
+  lines: {
+    title: string
+    quantity: number
+    priceLabel: string
+    imageUrl?: string | undefined
+    /** A pre-order line's note as the shopper saw it at checkout (#936). */
+    note?: string | undefined
+  }[]
   /**
    * The shipping row above the total, labelled with the rate's name ("Bluedart") when the order
    * has one. Omitted when nothing was charged for shipping.

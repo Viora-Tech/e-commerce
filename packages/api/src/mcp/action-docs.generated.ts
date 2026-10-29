@@ -669,6 +669,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'Each courier Connect page\'s "Test connection" button (see courierConnectionTest).',
   'store.testStorageConnection': 'A storage Connect page\'s "Test connection" button (e.g.',
   'store.updatePayments': 'Save payment settings.',
+  'store.updatePreorderNote':
+    "The store's default pre-order note (#936), for pre-order products without their own.",
   'store.updateTheme': "Saves the live theme's settings.",
   'suppliers.facets': "The countries and currencies in use, for the list's filter pickers.",
   'themes.createBlank':

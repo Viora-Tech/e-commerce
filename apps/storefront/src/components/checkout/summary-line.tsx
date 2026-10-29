@@ -8,6 +8,8 @@ type SummaryLineProps = {
   linePaise: number
   imageUrl: string | null
   preorder?: boolean
+  /** The pre-order note (#936), under the title; null for none. */
+  preorderNote?: string | null | undefined
   /** How prices read: the checkout passes the market's (`useFormatPaise`); rupees by default. */
   format?: ((paise: number) => string) | undefined
 }
@@ -23,6 +25,7 @@ export default function SummaryLine({
   linePaise,
   imageUrl,
   preorder = false,
+  preorderNote = null,
   format = formatPaise,
 }: SummaryLineProps) {
   return (
@@ -61,6 +64,11 @@ export default function SummaryLine({
             </span>
           ) : null}
         </p>
+        {preorderNote ? (
+          <p className="text-[0.75rem] leading-snug whitespace-pre-line text-ck-summary-muted">
+            {preorderNote}
+          </p>
+        ) : null}
       </div>
       <p className="shrink-0 text-[0.8125rem] font-semibold tabular-nums lg:text-[0.875rem]">
         {format(linePaise)}

@@ -141,6 +141,11 @@ export default function VariantMatrix({
                         {variantsCopy.hidden}
                       </StatusChip>
                     ) : null}
+                    {v.preorderAllowed ? null : (
+                      <StatusChip tone="neutral" variant="outline">
+                        {variantsCopy.noPreorder}
+                      </StatusChip>
+                    )}
                   </span>
                 </TableCell>
                 <TableCell className={CELL}>
