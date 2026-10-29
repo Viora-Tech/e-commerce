@@ -38,6 +38,12 @@ describe('productFilterInput', () => {
       createdFrom: new Date(NOW.getTime() - 7 * 86_400_000).toISOString(),
     })
   })
+
+  it('sends the Missing filter that Store health links to', () => {
+    const f = { ...NO_PRODUCT_FILTERS, missing: 'weight' as const }
+    expect(productFilterInput(f, NOW)).toEqual({ missing: 'weight' })
+    expect(hasProductFilters(f)).toBe(true)
+  })
 })
 
 describe('collectionMatcher', () => {

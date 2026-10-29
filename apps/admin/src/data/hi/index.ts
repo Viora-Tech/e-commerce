@@ -115,6 +115,7 @@ import staffInvites from './staff-invites'
 import states from './states'
 import storageWarning from './storage-warning'
 import storeData from './store-data'
+import storeHealth from './store-health'
 import table from './table'
 import themeCode from './theme-code'
 import themeImport from './theme-import'
@@ -235,6 +236,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...staffInvites,
   ...states,
   ...storeData,
+  ...storeHealth,
   ...storageWarning,
   ...table,
   ...themeCode,

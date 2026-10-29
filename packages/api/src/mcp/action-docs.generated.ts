@@ -608,6 +608,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'store.getStorage':
     'Storage settings with secrets masked, plus the providers this deployment can offer.',
   'store.getTheme': "The live theme's settings.",
+  'store.health':
+    'Store health: setups that break or hurt checkout and orders, worst first, with counts.',
   'store.migrateStorage':
     '"Move existing files to <connection>": queues the worker job; see packages/core/src/media/migrate.ts.',
   'store.origin':

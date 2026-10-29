@@ -389,6 +389,12 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
       'week starts',
     ],
   },
+  {
+    title: 'Store health',
+    where: 'Store',
+    href: routes.settings.storeHealth(),
+    keywords: ['health', 'problems', 'issues', 'check', 'broken', 'checkout', 'fix', 'setup'],
+  },
   // Customers
   {
     title: 'Policies',

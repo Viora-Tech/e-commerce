@@ -259,6 +259,8 @@ export const routes = {
     markets: () => '/settings/markets',
     notifications: () => '/settings/notifications',
     policies: () => '/settings/policies',
+    /** Setups that break or hurt checkout and orders, each with a link to fix it. */
+    storeHealth: () => '/settings/store-health',
     policy: (type: string) => `/settings/policies/${id(type)}`,
     privacy: () => '/settings/privacy',
     privacyBanner: () => '/settings/privacy#banner',
