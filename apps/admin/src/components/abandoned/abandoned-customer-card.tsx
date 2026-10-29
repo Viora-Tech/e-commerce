@@ -1,3 +1,4 @@
+import ContactActions from '@/components/layout/contact-actions'
 import DataCard from '@/components/layout/data-card'
 import KeyValueList from '@/components/layout/key-value-list'
 import { abandonedDetailContent } from '@/data/abandoned-detail'
@@ -23,6 +24,11 @@ export default function AbandonedCustomerCard({ checkout }: AbandonedCustomerCar
   return (
     <DataCard title={copy.heading}>
       <KeyValueList rows={rows} variant="grid" />
+      <ContactActions
+        phone={checkout.phone}
+        className="mt-3"
+        chat={{ target: { kind: 'checkout', id: checkout.id } }}
+      />
     </DataCard>
   )
 }

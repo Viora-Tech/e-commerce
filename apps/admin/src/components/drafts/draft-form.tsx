@@ -1,6 +1,6 @@
 'use client'
 
-import { CircleCheck, FileEdit, Send, Trash2 } from '@commerce/ui/icons'
+import { CircleCheck, FileEdit, Send, Trash2, WhatsappLogo } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
@@ -31,8 +31,10 @@ import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import StatusChip from '@/components/layout/status-chip'
+import WhatsappChatDialog from '@/components/layout/whatsapp-chat-dialog'
 import SendMessageDialog, { type CustomMessage } from '@/components/orders/send-message-dialog'
 import { draftEditorContent, draftsContent } from '@/data/drafts'
+import { whatsappChatContent } from '@/data/whatsapp-chat'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
@@ -57,6 +59,7 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
   const copy = useCopy(draftEditorContent)
   const list = useCopy(draftsContent)
   const fmt = useFormat()
+  const chatCopy = useCopy(whatsappChatContent)
   const [id, setId] = useState<string | null>(draft?.id ?? null)
   const [number, setNumber] = useState<number | null>(draft?.number ?? null)
   const [saved, setSaved] = useState<DraftFormState>(draft ? draftToForm(draft) : emptyDraft())
@@ -64,6 +67,7 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
   const [busy, setBusy] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [reviewing, setReviewing] = useState(false)
+  const [chatting, setChatting] = useState(false)
   const [resetKey, setResetKey] = useState(0)
   const [sent, setSent] = useState(invoiceSent)
 
@@ -221,6 +225,12 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
               disabled={busy}
               items={[
                 {
+                  label: chatCopy.action,
+                  icon: WhatsappLogo,
+                  hidden: !id || dirty || !saved.phone.trim(),
+                  onSelect: () => setChatting(true),
+                },
+                {
                   label: copy.actions.delete,
                   icon: Trash2,
                   destructive: true,
@@ -280,6 +290,12 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
         template="draft_invoice"
         onSend={handleSendInvoice}
         onClose={() => setReviewing(false)}
+      />
+      <WhatsappChatDialog
+        open={chatting && id !== null}
+        kind="order"
+        id={id ?? ''}
+        onClose={() => setChatting(false)}
       />
       <ConfirmDialog
         open={confirmDelete}

@@ -10,7 +10,7 @@ import {
   type SegmentCustomer,
 } from '@commerce/core'
 import type { CustomerSegmentRules, StoreTx } from '@commerce/db'
-import { customer, customerSegment, notification, order } from '@commerce/db'
+import { customer, customerNote, customerSegment, notification, order } from '@commerce/db'
 import { and, asc, count, desc, eq, gte, ilike, inArray, lt, lte, ne, or, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import type { VisitorSource } from '../context'
@@ -356,7 +356,7 @@ export async function getCustomer(tx: StoreTx, id: string, secret: string) {
   const [raw] = await tx.select().from(customer).where(eq(customer.id, id))
   if (!raw) return null
   const row = { ...raw, phone: decryptCustomerPhone(raw.phone, secret) }
-  const [orders, sent] = await Promise.all([
+  const [orders, sent, notes] = await Promise.all([
     tx
       .select({
         id: order.id,
@@ -387,6 +387,12 @@ export async function getCustomer(tx: StoreTx, id: string, secret: string) {
           .orderBy(desc(notification.createdAt))
           .limit(50)
       : Promise.resolve([]),
+    tx
+      .select({ id: customerNote.id, body: customerNote.body, createdAt: customerNote.createdAt })
+      .from(customerNote)
+      .where(eq(customerNote.customerId, id))
+      .orderBy(desc(customerNote.createdAt))
+      .limit(50),
   ])
   // The list still shows test-mode orders; the totals leave them out.
   const real = orders.filter((o) => !o.isTest)
@@ -397,6 +403,8 @@ export async function getCustomer(tx: StoreTx, id: string, secret: string) {
     ...customerFields,
     orders,
     notifications: sent,
+    /** Staff actions on them, such as an opened WhatsApp chat. */
+    notes,
     totals: {
       orderCount: real.length,
       spentPaise,

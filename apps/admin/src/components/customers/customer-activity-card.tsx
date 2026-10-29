@@ -19,7 +19,8 @@ type CustomerActivityCardProps = {
 const SHOWN = 6
 
 /**
- * The Timeline card: orders they placed and messages the store sent, newest first. Cart and
+ * The Timeline card: orders they placed, messages the store sent and staff notes (an opened
+ * WhatsApp chat), newest first. Cart and
  * campaign events join it when the store records them.
  */
 export default function CustomerActivityCard({ customer }: CustomerActivityCardProps) {
@@ -30,6 +31,7 @@ export default function CustomerActivityCard({ customer }: CustomerActivityCardP
   // Helpers
   const describe = (e: ActivityEvent): string => {
     if (e.kind === 'order') return copy.activity.placed(e.number, formatPaise(e.totalPaise))
+    if (e.kind === 'note') return e.body
     const what = copy.timeline.template[e.template] ?? e.template
     const channel = CHANNEL_LABEL[e.channel as keyof typeof CHANNEL_LABEL] ?? e.channel
     return e.failed ? copy.activity.failed(what) : copy.activity.sent(what, channel)

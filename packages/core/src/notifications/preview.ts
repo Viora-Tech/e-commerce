@@ -63,10 +63,10 @@ export async function previewOrderMessage(
     html: email.html,
     whatsapp: opts.whatsapp ? chat : null,
     /**
-     * The same WhatsApp text for a store without a WhatsApp channel, so the merchant can open it
-     * in their own WhatsApp (a wa.me chat) and send it by hand. Null when WhatsApp sends it.
+     * The same WhatsApp text for "Open in WhatsApp": the merchant's own wa.me chat, sent by hand.
+     * Always there (WhatsApp connected or not), so click to chat never depends on the channel.
      */
-    chatText: opts.whatsapp ? null : chat,
+    chatText: chat,
     /** Off in Settings → Notifications: sending does nothing, so the dialog says so. */
     on: await messageOn(ctx, input.template),
   }
@@ -96,8 +96,8 @@ export async function previewCartRecovery(
     defaultSubject,
     html: email.html,
     whatsapp: opts.whatsapp ? renderWhatsapp(template, data).text : null,
-    // A checkout reminder has no hand-sent chat option.
-    chatText: null,
+    // "Open in WhatsApp" with the reminder typed in, connected or not.
+    chatText: renderWhatsapp(template, data).text,
     on: true,
   }
 }
