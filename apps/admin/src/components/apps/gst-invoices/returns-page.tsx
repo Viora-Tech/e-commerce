@@ -1,170 +1,71 @@
 'use client'
 
-import { formatInZone, IST_OFFSET_MS } from '@commerce/dates'
-import { Download } from '@commerce/ui/icons'
-import { Button } from '@commerce/ui/shadcn/button'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@commerce/ui/shadcn/table'
-import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@commerce/ui/shadcn/select'
+import { useState } from 'react'
 import PageHeader from '@/components/layout/page-header'
-import StatusChip from '@/components/layout/status-chip'
-import { gstInvoicesContent } from '@/data/gst-invoices'
-import { api } from '@/lib/api-client'
+import { gstReturnsContent } from '@/data/gst-invoices'
+import { useCopy } from '@/hooks/use-copy'
 import GstNumberPicker from './gst-number-picker'
-import { saveFile } from './save-file'
-import { CELL, HEAD } from './table-classes'
+import PeriodsTable from './periods-table'
+import { monthLabel, recentMonths } from './return-months'
+import ReturnSummary from './return-summary'
 
-type Period = Awaited<ReturnType<typeof api.gstInvoices.periods.list>>[number]
-
-const copy = gstInvoicesContent.returns
-const MONTHS_SHOWN = 12
-
-/** The last twelve `YYYY-MM` months, newest first, in IST. */
-function recentMonths(now = new Date()): string[] {
-  const ist = new Date(now.getTime() + IST_OFFSET_MS)
-  return Array.from({ length: MONTHS_SHOWN }, (_, i) => {
-    const d = new Date(Date.UTC(ist.getUTCFullYear(), ist.getUTCMonth() - i, 1))
-    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
-  })
-}
-
-function monthRange(period: string) {
-  const [y, m] = period.split('-').map(Number) as [number, number]
-  return {
-    from: new Date(Date.UTC(y, m - 1, 1) - IST_OFFSET_MS),
-    to: new Date(Date.UTC(y, m, 1) - IST_OFFSET_MS),
-  }
-}
-
-const monthLabel = (period: string) =>
-  formatInZone(
-    monthRange(period).to.getTime() - 86_400_000,
-    { month: 'long', year: 'numeric' },
-    { timeZone: 'UTC' },
-  )
-
-/** GSTR-1 per month, with the filed and closed switches that lock a period. */
+/**
+ * The Returns tab: pick a GST number and month, check the warnings, download the GSTR-1 JSON
+ * for the portal and copy the GSTR-3B figures; below, the filed and closed switches per month.
+ */
 export default function ReturnsPage() {
   // Hooks
-  const [periods, setPeriods] = useState<Period[]>([])
-  const [busy, setBusy] = useState<string | null>(null)
-  // GSTR-1 is filed per GST number; undefined is the store's main one.
+  const copy = useCopy(gstReturnsContent)
+  // Returns are filed per GST number; undefined is the store's main one.
   const [gst, setGst] = useState<string | undefined>(undefined)
-
-  useEffect(() => {
-    let cancelled = false
-    api.gstInvoices.periods.list({ gstRegistrationId: gst }).then((p) => {
-      if (!cancelled) setPeriods(p)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [gst])
-
-  // Helpers
-  const run = async (key: string, fn: () => Promise<unknown>) => {
-    setBusy(key)
-    try {
-      await fn()
-      setPeriods(await api.gstInvoices.periods.list({ gstRegistrationId: gst }))
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
-    } finally {
-      setBusy(null)
-    }
-  }
+  // Last month by default: the one due for filing.
+  const [period, setPeriod] = useState(() => recentMonths()[1] ?? recentMonths()[0] ?? '')
+  const [reloadKey, setReloadKey] = useState(0)
 
   // Event handlers
-  const handleExport = (period: string) =>
-    run(`x-${period}`, async () =>
-      saveFile(await api.gstInvoices.gstr1({ ...monthRange(period), gstRegistrationId: gst })),
-    )
-  const handleFiled = (period: string, filed: boolean) =>
-    run(`f-${period}`, () =>
-      api.gstInvoices.periods.setFiled({ period, filed, gstRegistrationId: gst }),
-    )
-  const handleClosed = (period: string, closed: boolean) =>
-    run(`c-${period}`, () =>
-      api.gstInvoices.periods.setClosed({ period, closed, gstRegistrationId: gst }),
-    )
+  const handleChanged = () => setReloadKey((k) => k + 1)
+  const handlePeriod = (next: string) => {
+    setPeriod(next)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   // Render logic
-  const byPeriod = new Map(periods.map((p) => [p.period, p]))
+  const months = recentMonths()
+  const items = Object.fromEntries(months.map((m) => [m, monthLabel(m)]))
 
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
         title={copy.title}
         summary={copy.subtitle}
-        actions={<GstNumberPicker value={gst} onChange={setGst} />}
+        actions={
+          <span className="flex flex-wrap items-center gap-2">
+            <GstNumberPicker value={gst} onChange={setGst} />
+            <Select items={items} value={period} onValueChange={(v) => v && setPeriod(String(v))}>
+              <SelectTrigger aria-label={copy.monthLabel} className="min-w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {months.map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {monthLabel(m)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </span>
+        }
       />
-      <div className="overflow-hidden rounded-xl surface-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className={HEAD}>{copy.month}</TableHead>
-              <TableHead className={`${HEAD} text-center`}>{copy.status}</TableHead>
-              <TableHead className={`${HEAD} text-right`} />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {recentMonths().map((m) => {
-              const p = byPeriod.get(m)
-              const filed = Boolean(p?.gstr1FiledAt)
-              const closed = Boolean(p?.closedAt)
-              return (
-                <TableRow key={m}>
-                  <TableCell className={`${CELL} font-medium`}>{monthLabel(m)}</TableCell>
-                  <TableCell className={`${CELL} text-center`}>
-                    <StatusChip tone={filed || closed ? 'neutral' : 'attention'}>
-                      {[filed ? copy.filed : null, closed ? copy.closed : null]
-                        .filter(Boolean)
-                        .join(', ') || copy.open}
-                    </StatusChip>
-                  </TableCell>
-                  <TableCell className={CELL}>
-                    <span className="flex flex-wrap justify-end gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={busy !== null}
-                        onClick={() => handleExport(m)}
-                      >
-                        <Download />
-                        {copy.export}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={busy !== null}
-                        onClick={() => handleFiled(m, !filed)}
-                      >
-                        {filed ? copy.unmarkFiled : copy.markFiled}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={busy !== null}
-                        onClick={() => handleClosed(m, !closed)}
-                      >
-                        {closed ? copy.reopen : copy.close}
-                      </Button>
-                    </span>
-                  </TableCell>
-                </TableRow>
-              )
-            })}
-          </TableBody>
-        </Table>
-        <p className="border-t border-line p-4 text-caption text-muted-foreground">{copy.note}</p>
-      </div>
+      {/* Remounted when the month is marked filed or reopened, so it reads the month again. */}
+      <ReturnSummary key={`${gst}-${period}-${reloadKey}`} gst={gst} period={period} />
+      <PeriodsTable gst={gst} selected={period} onSelect={handlePeriod} onChanged={handleChanged} />
     </div>
   )
 }

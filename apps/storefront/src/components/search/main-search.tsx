@@ -109,6 +109,7 @@ export default function MainSearch({
             products={products}
             total={result.total}
             facets={result.facets}
+            filterConfig={result.filterConfig}
             filters={filters}
             sort={sort}
             defaultSort="relevance"

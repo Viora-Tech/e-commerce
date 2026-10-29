@@ -81,6 +81,8 @@ export default async function CollectionPage({ params, searchParams }: Params) {
     const sort = parseBrowseSort(query.sort_by ?? legacy, COLLECTION_SORTS, defaultSort)
     const result = await browseProducts(tx, {
       collectionId: found.id || undefined,
+      // Names the store, so its filter settings come with the listing.
+      storeId,
       filters,
       sort,
       page,

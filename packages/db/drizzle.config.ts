@@ -18,6 +18,7 @@ export default defineConfig({
     './src/marketing-schema.ts',
     './src/metafield-schema.ts',
     './src/pixel-schema.ts',
+    './src/rollout-schema.ts',
     './src/privacy-schema.ts',
     './src/purchasing-schema.ts',
     './src/returns-schema.ts',

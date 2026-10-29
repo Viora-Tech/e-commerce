@@ -65,3 +65,29 @@ describe('the availability line under the buy buttons', () => {
     ])
   })
 })
+
+const buttons = (v: Variant, isPreorder: boolean) =>
+  renderToStaticMarkup(
+    createElement(ProductBuyButtons, {
+      product: product(v),
+      variant: v,
+      countdown: 0,
+      isPreorder,
+      onAddToCart: async () => {},
+      stockBarShown: false,
+      preorderLink: null,
+    }),
+  )
+
+// #939: a pre-order page had no quantity picker and sold one at a time.
+describe('the quantity picker on a pre-order', () => {
+  it('shows, capped at stock plus the pre-order room when there is a limit', () => {
+    const limited = buttons({ ...variant(1), preorderRoom: 4 }, true)
+    expect(limited).toContain('quantity-input')
+    expect(limited).toMatch(/max="5"/)
+    expect(limited).not.toContain('buy-buttons__buy-now')
+    const unlimited = buttons({ ...variant(0), preorderRoom: null }, true)
+    expect(unlimited).toContain('quantity-input')
+    expect(unlimited).not.toMatch(/max="/)
+  })
+})

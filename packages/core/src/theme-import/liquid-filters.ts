@@ -1,6 +1,18 @@
-/** SOURCE OF TRUTH: Shopify's storefront filter objects for imported themes — WHAT: `collection.filters` and `search.filters` (filter and filter_value: label, param_name, type, values with counts, active, url_to_add / url_to_remove, price ranges) built from our catalogue facets and the request's filters / WHY: a Liquid theme's own collection and search pages draw their filter drawer from these; with them empty the drawer was blank, and the links they build land on our browse params (`filter.p.m.<namespace>.<key>`, Shopify's shape) */
-import type { BrowseFacets, FacetValue } from '../catalog/browse'
-import { type BrowseFilters, browseHref, FILTER_PARAM } from '../catalog/browse-params'
+/** SOURCE OF TRUTH: Shopify's storefront filter objects for imported themes — WHAT: `collection.filters` and `search.filters` (filter and filter_value: label, param_name, type, values with counts, active, url_to_add / url_to_remove, price ranges) built from our catalogue facets, the store's filter settings and the request's filters / WHY: a Liquid theme's own collection and search pages draw their filter drawer from these; with them empty the drawer was blank, and the links they build land on our browse params (`filter.p.m.<namespace>.<key>`, Shopify's shape) */
+import type { BrowseFacets } from '../catalog/browse'
+import {
+  type BrowseFilters,
+  browseHref,
+  FILTER_PARAM,
+  pickedValues,
+  withValues,
+} from '../catalog/browse-params'
+import {
+  type FilterSource,
+  type ResolvedFilterGroup,
+  resolveFilterGroups,
+  type StorefrontFilterConfig,
+} from '../catalog/filter-config'
 
 export type LiquidFilterValue = {
   label: string
@@ -50,61 +62,46 @@ const LABELS = {
   no: 'No',
 }
 
-/** One filter's picked values in `BrowseFilters`, read and written back. */
-type Slot = {
-  get: (f: BrowseFilters) => string[]
-  set: (f: BrowseFilters, values: string[]) => BrowseFilters
+/** The drawer's name for a group the merchant did not name. */
+const DEFAULT_LABEL: Partial<Record<FilterSource, string>> = {
+  availability: LABELS.availability,
+  price: LABELS.price,
+  productType: LABELS.productType,
+  vendor: LABELS.vendor,
+  giftCard: 'Product kind',
+  tags: 'Tags',
 }
 
-const availability: Slot = {
-  get: (f) => (f.available === null ? [] : [f.available ? '1' : '0']),
-  set: (f, values) => ({
-    ...f,
-    available: values.length === 1 ? values[0] === '1' : null,
-  }),
+/** Value labels for groups whose values are codes (`1` / `0`). */
+function valueLabel(g: ResolvedFilterGroup, value: string): string | undefined {
+  if (g.source === 'availability') return value === '1' ? LABELS.inStock : LABELS.outOfStock
+  if (g.source === 'giftCard') return value === '1' ? 'Gift cards' : 'Products'
+  if (g.type === 'boolean') return value === '1' ? LABELS.yes : LABELS.no
+  return undefined
 }
-
-const keyed = (field: 'options' | 'metafields', key: string): Slot => ({
-  get: (f) => f[field][key] ?? [],
-  set: (f, values) => {
-    const next = { ...f[field] }
-    if (values.length > 0) next[key] = values
-    else delete next[key]
-    return { ...f, [field]: next }
-  },
-})
-
-const listed = (field: 'productTypes' | 'vendors'): Slot => ({
-  get: (f) => f[field],
-  set: (f, values) => ({ ...f, [field]: values }),
-})
 
 function listFilter(
   page: LiquidFilterPage,
   filters: BrowseFilters,
-  spec: {
-    label: string
-    param: string
-    type: 'list' | 'boolean'
-    slot: Slot
-    values: (FacetValue & { label?: string })[]
-  },
+  g: ResolvedFilterGroup,
 ): LiquidFilter {
   const href = (f: BrowseFilters) =>
     browseHref(page.path, { q: page.q, filters: f, sort: page.sort ?? null })
-  const picked = spec.slot.get(filters)
-  const values = spec.values.map((v): LiquidFilterValue => {
+  const picked = pickedValues(filters, g.slot)
+  const type = g.type === 'boolean' ? 'boolean' : 'list'
+  const values = g.values.map((v): LiquidFilterValue => {
     const active = picked.includes(v.value)
     return {
-      label: v.label ?? v.value,
+      label: v.label ?? valueLabel(g, v.value) ?? v.value,
       value: v.value,
-      param_name: spec.param,
+      param_name: g.param,
       count: v.count,
       active,
-      url_to_add: href(spec.slot.set(filters, active ? picked : [...picked, v.value])),
+      url_to_add: href(withValues(filters, g.slot, active ? picked : [...picked, v.value])),
       url_to_remove: href(
-        spec.slot.set(
+        withValues(
           filters,
+          g.slot,
           picked.filter((x) => x !== v.value),
         ),
       ),
@@ -113,16 +110,16 @@ function listFilter(
     }
   })
   return {
-    label: spec.label,
-    param_name: spec.param,
-    type: spec.type,
+    label: g.label ?? DEFAULT_LABEL[g.source] ?? g.id,
+    param_name: g.param,
+    type,
     presentation: 'text',
     operator: 'OR',
     values,
     active_values: values.filter((v) => v.active),
     inactive_values: values.filter((v) => !v.active),
-    url_to_remove: href(spec.slot.set(filters, [])),
-    ...(spec.type === 'boolean'
+    url_to_remove: href(withValues(filters, g.slot, [])),
+    ...(type === 'boolean'
       ? {
           true_value: values.find((v) => v.value === '1'),
           false_value: values.find((v) => v.value === '0'),
@@ -132,34 +129,21 @@ function listFilter(
 }
 
 /**
- * Shopify's `filters` for a listing: availability, price, each option, then the product extra
- * fields marked "Use as filter", then type and brand when the listing has more than one.
+ * Shopify's `filters` for a listing, in the order the store's filter settings give. Without
+ * settings, Shopify's defaults: availability, price, each option, then the product extra fields
+ * marked "Use as filter", then type and brand when the listing has more than one.
  */
 export function liquidFilters(
   facets: BrowseFacets,
   filters: BrowseFilters,
   page: LiquidFilterPage,
+  config: StorefrontFilterConfig | null = null,
 ): LiquidFilter[] {
-  const out: LiquidFilter[] = []
-  if (facets.inStock + facets.outOfStock > 0) {
-    out.push(
-      listFilter(page, filters, {
-        label: LABELS.availability,
-        param: FILTER_PARAM.available,
-        type: 'list',
-        slot: availability,
-        values: [
-          { value: '1', count: facets.inStock, label: LABELS.inStock },
-          { value: '0', count: facets.outOfStock, label: LABELS.outOfStock },
-        ],
-      }),
-    )
-  }
-  if (facets.priceMax !== null && facets.priceMax > 0) {
-    const withoutPrice = { ...filters, priceMin: null, priceMax: null }
-    out.push({
-      label: LABELS.price,
-      param_name: 'filter.v.price',
+  return resolveFilterGroups(facets, config, 'liquid').map((g) => {
+    if (g.type !== 'price_range') return listFilter(page, filters, g)
+    return {
+      label: g.label ?? LABELS.price,
+      param_name: g.param,
       type: 'price_range',
       presentation: 'text',
       operator: 'OR',
@@ -168,61 +152,13 @@ export function liquidFilters(
       inactive_values: [],
       url_to_remove: browseHref(page.path, {
         q: page.q,
-        filters: withoutPrice,
+        filters: withValues(filters, g.slot, []),
         sort: page.sort ?? null,
       }),
       // Paise, the subunit `| money` reads, as Shopify's cents.
       min_value: { param_name: FILTER_PARAM.priceMin, value: filters.priceMin },
       max_value: { param_name: FILTER_PARAM.priceMax, value: filters.priceMax },
-      range_max: facets.priceMax,
-    })
-  }
-  for (const o of facets.options) {
-    out.push(
-      listFilter(page, filters, {
-        label: o.name,
-        param: `${FILTER_PARAM.optionPrefix}${o.key}`,
-        type: 'list',
-        slot: keyed('options', o.key),
-        values: o.values,
-      }),
-    )
-  }
-  for (const m of facets.metafields) {
-    out.push(
-      listFilter(page, filters, {
-        label: m.name,
-        param: `${FILTER_PARAM.metafieldPrefix}${m.key}`,
-        type: m.type,
-        slot: keyed('metafields', m.key),
-        values:
-          m.type === 'boolean'
-            ? m.values.map((v) => ({ ...v, label: v.value === '1' ? LABELS.yes : LABELS.no }))
-            : m.values,
-      }),
-    )
-  }
-  if (facets.productTypes.length > 1) {
-    out.push(
-      listFilter(page, filters, {
-        label: LABELS.productType,
-        param: FILTER_PARAM.productType,
-        type: 'list',
-        slot: listed('productTypes'),
-        values: facets.productTypes,
-      }),
-    )
-  }
-  if (facets.vendors.length > 1) {
-    out.push(
-      listFilter(page, filters, {
-        label: LABELS.vendor,
-        param: FILTER_PARAM.vendor,
-        type: 'list',
-        slot: listed('vendors'),
-        values: facets.vendors,
-      }),
-    )
-  }
-  return out
+      range_max: g.priceMax,
+    }
+  })
 }

@@ -10,6 +10,7 @@ import { type PurchaseOrderSheet, poSheetText } from '@commerce/core/inventory'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { zipSync } from 'fflate'
 import { PDFDocument } from 'pdf-lib'
+import { type Gstr3bSheet, gstr3bElement } from '../gstr3b-pdf/gstr3b-pdf'
 import { purchaseOrderElement } from '../purchase-order/purchase-order-pdf'
 import { documentElement, type TemplateProps } from '../templates'
 import { fontStack, registerFonts } from './fonts'
@@ -44,6 +45,14 @@ export async function renderPurchaseOrderToBuffer(sheet: PurchaseOrderSheet): Pr
   registerFonts((file) => join(dir, file))
   const fontFamily = fontStack('inter', poSheetText(sheet))
   const buf = await renderToBuffer(purchaseOrderElement(sheet, fontFamily))
+  return new Uint8Array(buf)
+}
+
+/** The month's GSTR-3B outward-supply tables, to keep beside the portal. */
+export async function renderGstr3bToBuffer(sheet: Gstr3bSheet): Promise<Uint8Array> {
+  const dir = fontsDir()
+  registerFonts((file) => join(dir, file))
+  const buf = await renderToBuffer(gstr3bElement(sheet, fontStack('inter', sheet.legalName)))
   return new Uint8Array(buf)
 }
 

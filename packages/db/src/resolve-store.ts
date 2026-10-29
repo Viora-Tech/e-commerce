@@ -251,6 +251,17 @@ export async function storesWithRetentionDue(db: Db, at: Date): Promise<string[]
   return rows.map((r) => r.id)
 }
 
+/**
+ * Store ids with a rollout due: scheduled and its start reached, or an active event past its end,
+ * for the worker's tick. SECURITY DEFINER backed (`stores_with_rollouts_due`, 0184).
+ */
+export async function storesWithRolloutsDue(db: Db, at: Date): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(
+    sql`select stores_with_rollouts_due(${at.toISOString()}::timestamptz) as id`,
+  )
+  return rows.map((r) => r.id)
+}
+
 /** Store ids with custom domains awaiting DNS or a certificate, for the worker. SECURITY DEFINER backed. */
 export async function storesWithPendingDomains(db: Db): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(sql`select stores_with_pending_domains() as id`)

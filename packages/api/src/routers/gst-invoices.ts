@@ -48,6 +48,7 @@ import {
   requireInstalled,
 } from './gst-invoices-context'
 import { addToQueue, generateInvoice } from './gst-invoices-order-actions'
+import { returnsProcedures } from './gst-invoices-returns'
 
 const IssueBatch = z.object({
   items: z
@@ -295,6 +296,9 @@ export const gstInvoicesRouter = {
         return { ok: true }
       }),
   },
+
+  /** The Returns tab: GSTR-1 JSON and the GSTR-3B summary per GSTIN and month. */
+  returns: returnsProcedures,
 
   /** The next number each series will print this financial year, for the settings preview. */
   seriesNext: can(permissions.SETTINGS_READ)

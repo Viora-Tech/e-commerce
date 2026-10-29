@@ -257,6 +257,9 @@ export const routes = {
     domains: () => '/settings/domains',
     domain: (domainId: string) => `/settings/domains/${id(domainId)}`,
     markets: () => '/settings/markets',
+    rollouts: () => '/settings/markets/rollouts',
+    newRollout: () => '/settings/markets/rollouts/new',
+    rollout: (rolloutId: string) => `/settings/markets/rollouts/${id(rolloutId)}`,
     notifications: () => '/settings/notifications',
     policies: () => '/settings/policies',
     /** Setups that break or hurt checkout and orders, each with a link to fix it. */

@@ -96,8 +96,10 @@ import razorpayWebsites from './razorpay-websites'
 import resourcePicker from './resource-picker'
 import returns from './returns'
 import reviews from './reviews'
+import rollouts from './rollouts'
 import searchApp from './search-app'
 import searchConsole from './search-console'
+import searchFilters from './search-filters'
 import selectProducts from './select-products'
 import seoKeywords from './seo-keywords'
 import seoReport from './seo-report'
@@ -192,6 +194,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...marketingAutomations,
   ...marketingCampaigns,
   ...markets,
+  ...rollouts,
   ...login,
   ...metaobjects,
   ...navigation,
@@ -246,6 +249,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...themeImport,
   ...themes,
   ...searchApp,
+  ...searchFilters,
   ...searchConsole,
   ...seoReport,
   ...seoKeywords,

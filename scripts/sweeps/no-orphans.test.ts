@@ -1010,7 +1010,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/invoices/src/gstr1.ts',
-    names: ['B2CL_THRESHOLD_PAISE', 'gstr1Bucket', 'documentsIssued'],
+    names: ['B2CL_THRESHOLD_PAISE', 'documentsIssued'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -1159,7 +1159,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/plugin-gst-invoices/src/periods.ts',
-    names: ['periodOf', 'periodRange', 'getPeriod'],
+    names: ['periodOf'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -1461,6 +1461,11 @@ const ALLOWLIST: AllowEntry[] = [
     file: 'packages/db/src/theme-schema.ts',
     names: ['THEME_TEMPLATE_KINDS'],
     reason: 'exported for its unit test; no other importer today',
+  },
+  {
+    file: 'packages/invoices/src/gstr3b-pdf/gstr3b-pdf.tsx',
+    names: ['Gstr3bPdf'],
+    reason: 'rendered through gstr3bElement; the default export follows the component rule',
   },
   {
     file: 'packages/invoices/src/purchase-order/purchase-order-pdf.tsx',

@@ -1,5 +1,7 @@
+import type { RolloutHold } from '@commerce/core'
 import { describeDiscountValue } from '@commerce/core/discounts'
 import OrderChip from '@/components/orders/order-chip'
+import RolloutHoldChip from '@/components/settings/rollouts/rollout-hold-chip'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import type { discountsContent } from '@/data/discounts'
 import type { api } from '@/lib/api-client'
@@ -22,7 +24,11 @@ function datesLabel(item: DiscountRow, copy: Copy, fmt: Formatters): string {
 }
 
 /** Columns of the discount list (Figma "Marketing / Discounts"). */
-export function discountColumns(copy: Copy, fmt: Formatters): ResourceColumnSpec<DiscountRow>[] {
+export function discountColumns(
+  copy: Copy,
+  fmt: Formatters,
+  holds: Record<string, RolloutHold> = {},
+): ResourceColumnSpec<DiscountRow>[] {
   return [
     {
       id: 'title',
@@ -37,6 +43,11 @@ export function discountColumns(copy: Copy, fmt: Formatters): ResourceColumnSpec
           <span className="text-caption text-muted-foreground">
             {d.code ? <span className="uppercase">{d.code}</span> : copy.kind.automatic}
           </span>
+          {holds[d.id] ? (
+            <span className="mt-1">
+              <RolloutHoldChip hold={holds[d.id]} />
+            </span>
+          ) : null}
         </span>
       ),
     },

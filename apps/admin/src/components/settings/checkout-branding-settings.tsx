@@ -24,12 +24,13 @@ import SettingsCard from './settings-card'
 
 type CheckoutBrandingSettingsProps = {
   branding: CheckoutBranding
-  gstin: boolean
+  gstin?: boolean
   orderNotes: boolean
   storeName: string
   onBranding: (patch: Partial<CheckoutBranding>) => void
-  onGstin: (on: boolean) => void
-  onOrderNotes: (on: boolean) => void
+  /** Leave out (with `onOrderNotes`) where only the branding changes, as in a rollout. */
+  onGstin?: (on: boolean) => void
+  onOrderNotes?: (on: boolean) => void
 }
 
 /**
@@ -162,20 +163,24 @@ export default function CheckoutBrandingSettings({
 
         <SettingsCard id="gstin" title={copy.shown.heading}>
           <FieldGroup>
-            <CheckoutToggleRow
-              id="checkout-gstin"
-              label={copy.shown.gstin}
-              hint={copy.shown.gstinHint}
-              checked={gstin}
-              onChange={onGstin}
-            />
-            <CheckoutToggleRow
-              id="checkout-notes"
-              label={copy.shown.notes}
-              hint={copy.shown.notesHint}
-              checked={orderNotes}
-              onChange={onOrderNotes}
-            />
+            {onGstin ? (
+              <CheckoutToggleRow
+                id="checkout-gstin"
+                label={copy.shown.gstin}
+                hint={copy.shown.gstinHint}
+                checked={gstin ?? false}
+                onChange={onGstin}
+              />
+            ) : null}
+            {onOrderNotes ? (
+              <CheckoutToggleRow
+                id="checkout-notes"
+                label={copy.shown.notes}
+                hint={copy.shown.notesHint}
+                checked={orderNotes}
+                onChange={onOrderNotes}
+              />
+            ) : null}
             <CheckoutToggleRow
               id="checkout-trust"
               label={copy.shown.trust}

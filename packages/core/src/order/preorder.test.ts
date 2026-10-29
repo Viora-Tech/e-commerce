@@ -14,6 +14,7 @@ import {
 import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
+import { addToCart, getCart, setLineQuantity } from '../cart/cart'
 import { NotLaunchedYet, OutOfStock } from '../errors'
 import { FakePaymentProvider } from '../providers/payment'
 import { fulfilOrderLines } from './fulfil'
@@ -142,6 +143,45 @@ describe('pre-order purchasing beyond stock', () => {
       placeOrder({ storeId, tx }, { cartId, paymentProvider: new FakePaymentProvider() }),
     )
     expect(result.orderId).toBeTruthy()
+  })
+})
+
+describe('pre-order quantity in the cart (#939)', () => {
+  it('caps a line at stock plus the pre-order room, adding and setting', async () => {
+    const storeId = await seedStore()
+    const { variantId } = await seedProduct(storeId, {
+      onHand: 1,
+      preorderEnabled: true,
+      preorderLimit: 3,
+    })
+    const [c] = await owner.insert(cart).values({ storeId }).returning()
+    const cartId = c?.id as string
+    const lines = await withStore(app, storeId, async (tx) => {
+      const ctx = { storeId, tx }
+      await addToCart(ctx, cartId, variantId, 2)
+      await addToCart(ctx, cartId, variantId, 5)
+      const first = (await getCart(ctx, cartId))?.lines ?? []
+      await setLineQuantity(ctx, cartId, first[0]?.id as string, 10)
+      const capped = (await getCart(ctx, cartId))?.lines ?? []
+      await setLineQuantity(ctx, cartId, first[0]?.id as string, 2)
+      const lowered = (await getCart(ctx, cartId))?.lines ?? []
+      return { first, capped, lowered }
+    })
+    expect(lines.first.map((l) => [l.quantity, l.available])).toEqual([[4, 4]])
+    expect(lines.capped[0]?.quantity).toBe(4)
+    expect(lines.lowered[0]?.quantity).toBe(2)
+  })
+
+  it('leaves an unlimited pre-order uncapped', async () => {
+    const storeId = await seedStore()
+    const { variantId } = await seedProduct(storeId, { onHand: 0, preorderEnabled: true })
+    const [c] = await owner.insert(cart).values({ storeId }).returning()
+    const cartId = c?.id as string
+    const quantity = await withStore(app, storeId, async (tx) => {
+      await addToCart({ storeId, tx }, cartId, variantId, 25)
+      return (await getCart({ storeId, tx }, cartId))?.lines[0]?.quantity
+    })
+    expect(quantity).toBe(25)
   })
 })
 

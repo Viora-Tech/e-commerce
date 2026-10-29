@@ -1,7 +1,11 @@
 import {
+  filterSources,
+  getFilterConfig,
   getSearchSynonyms,
   permissions,
+  StorefrontFilterConfigSchema,
   SynonymGroupsSchema,
+  setFilterConfig,
   setSearchSynonyms,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
@@ -22,7 +26,7 @@ async function requireInstalled(context: Ctx) {
   }
 }
 
-/** The Search & discovery app: the built-in search's synonym groups. */
+/** The Search & discovery app: the built-in search's synonym groups and the storefront filters. */
 export const searchRouter = {
   synonyms: {
     get: can(permissions.ONLINE_STORE_READ).handler(async ({ context }) => {
@@ -34,6 +38,21 @@ export const searchRouter = {
       .handler(async ({ context, input }) => {
         await requireInstalled(context)
         return setSearchSynonyms(context.tx, context.scope.storeId, input.groups)
+      }),
+  },
+  filters: {
+    /** The store's filter settings (null: the default filters) and what it can filter by. */
+    get: can(permissions.ONLINE_STORE_READ).handler(async ({ context }) => {
+      await requireInstalled(context)
+      const config = await getFilterConfig(context.tx, context.scope.storeId)
+      const sources = await filterSources(context.tx)
+      return { config, sources }
+    }),
+    set: can(permissions.ONLINE_STORE_WRITE)
+      .input(z.object({ config: StorefrontFilterConfigSchema.nullable() }))
+      .handler(async ({ context, input }) => {
+        await requireInstalled(context)
+        return setFilterConfig(context.tx, context.scope.storeId, input.config)
       }),
   },
 }

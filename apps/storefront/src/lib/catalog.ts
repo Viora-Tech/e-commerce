@@ -303,6 +303,15 @@ export async function getProductByHandle(
   const purchasable = (v: (typeof vs)[number]) =>
     v.pricePaise != null && purchasableFor(p, v, launched)
 
+  // Pre-order units left under the limit, beyond stock (#939); null when unlimited or off.
+  const preorderRoom = (v: (typeof vs)[number]): number | null => {
+    if (!v.trackInventory) return null
+    const settings = resolvePreorderSettings(p, v.preorderOverride)
+    if (!settings.enabled || settings.limit == null) return null
+    const committed = Math.max(0, (v.reserved ?? 0) - (v.onHand ?? 0))
+    return Math.max(0, settings.limit - committed)
+  }
+
   const firstVariant = vs.find((v) => purchasable(v)) ?? vs[0]
   const preorderSettings = firstVariant
     ? resolvePreorderSettings(p, firstVariant.preorderOverride)
@@ -349,6 +358,7 @@ export async function getProductByHandle(
       mrpPaise: v.mrpPaise,
       available: availableFor(v),
       purchasable: purchasable(v),
+      preorderRoom: preorderRoom(v),
       optionValueIds: links.filter((l) => l.variantId === v.id).map((l) => l.optionValueId),
       imageUrl: v.imageUrl,
       imageUrls: imageUrlsOf(v),

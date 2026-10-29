@@ -89,6 +89,7 @@ export default function MainCollection({
         products={products}
         total={result.total}
         facets={result.facets}
+        filterConfig={result.filterConfig}
         filters={filters}
         sort={sort}
         defaultSort={defaultSort}

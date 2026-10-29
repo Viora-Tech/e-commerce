@@ -1,7 +1,7 @@
 import { cart, cartLine, media, product, productMedia, sellableStock, variant } from '@commerce/db'
 import { and, asc, eq, inArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
-import { CartNotOpen, NotLaunchedYet, PriceNotSet, VariantHidden } from '../errors'
+import { CartNotOpen, NotLaunchedYet, OutOfStock, PriceNotSet, VariantHidden } from '../errors'
 import { isLaunched } from '../preorder/launch'
 import { resolvePreorderSettings } from '../preorder/settings'
 
@@ -62,6 +62,38 @@ function lineAvailable(r: AvailabilityRow): number {
   if (settings.limit == null) return 999
   const committed = Math.max(0, (r.reserved ?? 0) - (r.onHand ?? 0))
   return stock + Math.max(0, settings.limit - committed)
+}
+
+/**
+ * The most of a variant one cart line may hold while it sells on pre-order with a limit (#939):
+ * the stock left plus the pre-order room. Null when nothing caps it here (no pre-order, no limit,
+ * untracked or a gift card); `placeOrder`'s reservation still checks plain stock.
+ */
+async function preorderCap(ctx: StoreContext, variantId: string): Promise<number | null> {
+  const [r] = await ctx.tx
+    .select({
+      trackInventory: variant.trackInventory,
+      giftCard: product.isGiftCard,
+      onHand: sellableStock.onHand,
+      reserved: sellableStock.reserved,
+      preorderOverride: variant.preorderOverride,
+      preorderEnabled: product.preorderEnabled,
+      preorderShipDate: product.preorderShipDate,
+      preorderShipsInDays: product.preorderShipsInDays,
+      preorderLimit: product.preorderLimit,
+      preorderButtonLabel: product.preorderButtonLabel,
+      preorderPaymentMode: product.preorderPaymentMode,
+      preorderDepositPaise: product.preorderDepositPaise,
+      preorderDepositPercent: product.preorderDepositPercent,
+    })
+    .from(variant)
+    .innerJoin(product, eq(product.id, variant.productId))
+    .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
+    .where(eq(variant.id, variantId))
+  if (!r?.trackInventory || r.giftCard) return null
+  const settings = resolvePreorderSettings(r, r.preorderOverride)
+  if (!settings.enabled || settings.limit == null) return null
+  return lineAvailable(r)
 }
 
 export async function createCart(ctx: StoreContext): Promise<string> {
@@ -179,17 +211,23 @@ export async function addToCart(
     .select()
     .from(cartLine)
     .where(and(eq(cartLine.cartId, cartId), eq(cartLine.variantId, variantId)))
+  // A pre-order with a limit holds no more than the stock and pre-order room left (#939).
+  const cap = preorder ? await preorderCap(ctx, variantId) : null
+  const wanted = (existing?.quantity ?? 0) + quantity
+  const next = cap === null ? wanted : Math.min(wanted, cap)
   if (existing) {
+    // Already at the limit: the line stays as it is.
     await ctx.tx
       .update(cartLine)
-      .set({ quantity: existing.quantity + quantity, unitPricePaise, preorder })
+      .set({ quantity: Math.max(existing.quantity, next), unitPricePaise, preorder })
       .where(eq(cartLine.id, existing.id))
   } else {
+    if (next < 1) throw new OutOfStock(variantId, ctx.storeId)
     await ctx.tx.insert(cartLine).values({
       storeId: ctx.storeId,
       cartId,
       variantId,
-      quantity,
+      quantity: next,
       unitPricePaise,
       preorder,
     })
@@ -206,8 +244,15 @@ export async function setLineQuantity(
     await ctx.tx.delete(cartLine).where(and(eq(cartLine.id, lineId), eq(cartLine.cartId, cartId)))
     return
   }
+  const [line] = await ctx.tx
+    .select({ variantId: cartLine.variantId, preorder: cartLine.preorder })
+    .from(cartLine)
+    .where(and(eq(cartLine.id, lineId), eq(cartLine.cartId, cartId)))
+  if (!line) return
+  // A pre-order line stops at its limit (#939), as the product page's stepper does.
+  const cap = line.preorder ? await preorderCap(ctx, line.variantId) : null
   await ctx.tx
     .update(cartLine)
-    .set({ quantity })
+    .set({ quantity: cap === null ? quantity : Math.max(1, Math.min(quantity, cap)) })
     .where(and(eq(cartLine.id, lineId), eq(cartLine.cartId, cartId)))
 }

@@ -1,0 +1,89 @@
+---
+title: GST returns
+description: Download your monthly GSTR-1 file for the GST portal and copy the GSTR-3B figures, one GST number at a time.
+---
+
+# GST returns
+
+The **Returns** page of the GST invoices app works out your monthly returns from the invoices
+and credit notes you issued: the **GSTR-1** file you upload on the GST portal, and the
+**GSTR-3B** figures you type in.
+
+<Callout type="info">
+  Nothing is filed for you. You (or your CA) still upload the file and submit the returns on
+  gst.gov.in with your own login and OTP.
+</Callout>
+
+## Open it
+
+**Apps** › **GST invoices** › **Returns**. At the top:
+
+- **GST number**: shown when your store has more than one. Each GST number files its own
+  returns, so pick one at a time.
+- **Month**: last month is picked for you, since that is the one due.
+
+## Check before you upload
+
+The **Check before you upload** card lists anything the portal would reject or that you
+should know about, with the invoice numbers:
+
+- **Missing or short HSN code**: the portal needs at least 4 digits (6 if your turnover was
+  over ₹5 crore). Add it to the product, then issue a credit note and a fresh invoice if the
+  invoice already went out.
+- **B2B invoice with an invalid buyer GSTIN**: the portal rejects it. Fix the GSTIN.
+- **Business name with no GSTIN**: the order named a company but gave no GSTIN, so it is
+  reported as a sale to a consumer. If the buyer is registered, add the GSTIN on the order
+  before the month is filed.
+- **Cancelled this month**: counted as cancelled in the document summary (Table 13), left out
+  of every other table. If you uploaded them to the portal earlier, delete them there.
+- **Cancelled after the month was marked filed**: amend or delete them on the portal.
+- **Credit notes whose invoice could not be found**: left out of the file; add them on the
+  portal by hand.
+- **Composition scheme**: composition dealers file CMP-08 and GSTR-4, not GSTR-1.
+
+## GSTR-1
+
+The **GSTR-1** card shows each table with its documents and amounts:
+
+| Table | What goes in it |
+| --- | --- |
+| 4A B2B | Invoices to a buyer with a GSTIN |
+| 5 B2C large | Inter-state sales to unregistered buyers over ₹1 lakh |
+| 6A Exports | Export invoices, with or without IGST |
+| 7 B2C small | Every other sale to consumers, by state and rate, less their credit notes |
+| 8 Nil rated | Items at 0% GST |
+| 9B Credit notes | Credit notes against B2B invoices (registered) and B2C large or export invoices (unregistered) |
+| 12 HSN summary | Every HSN code and rate, split B2B and B2C, less credit notes |
+| 13 Documents issued | First and last number, total and cancelled, per series |
+
+Downloads:
+
+- **GSTR-1 JSON**: upload it on the portal: **Returns** › **GSTR-1** › **Prepare offline** ›
+  **Upload**. Check the summary the portal shows matches this page, then submit.
+- **GSTR-1 summary (CSV)**: the totals per table, to open in Excel or send your CA.
+- **GSTR-1 tables (CSV zip)**: one CSV per table in the offline tool's layout, if your CA
+  prefers to import them into the offline tool.
+
+## GSTR-3B
+
+The **GSTR-3B** card is laid out like the portal's tiles, worked out from the same GSTR-1 so
+the two always agree:
+
+- **3.1(a)** outward taxable supplies: taxable value, IGST, CGST and SGST, after credit notes.
+- **3.1(b)** zero rated: exports.
+- **3.1(c)** nil rated and exempted.
+- **3.2** inter-state sales to unregistered buyers, by state. The portal now fills 3.2 from
+  your GSTR-1 and does not let you edit it, so just check it matches.
+
+Download it as **CSV** or **PDF** to keep beside the portal.
+
+<Callout type="warning">
+  Input tax credit (Table 4) is not included: the store does not record the GST on your
+  purchases. Take it from your GSTR-2B on the portal.
+</Callout>
+
+## After you file
+
+Under **Filing status**, select **Mark filed** for the month. Its invoices can then only be
+corrected by a credit note, or an amendment in a later return. **Close period** stops anyone
+issuing or backdating an invoice into that month.
