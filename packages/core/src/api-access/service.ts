@@ -11,6 +11,7 @@
  */
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
 import {
+  type AiActionStatus,
   type ApiActivityKind,
   type ApiGrantKind,
   aiAction,
@@ -314,6 +315,11 @@ export type ApiActivityView = {
   detail: string | null
   /** The approval a change waits in, while it is still open. */
   approvalId: string | null
+  /**
+   * Where the AI action behind the row stands now (`expired` once its time ran out, even
+   * before Activity marks it), so a "waiting approval" row does not read as still waiting.
+   */
+  approvalStatus: AiActionStatus | null
   createdAt: Date
 }
 
@@ -360,6 +366,7 @@ export async function listApiActivity(
         detail: apiActivity.detail,
         aiActionId: apiActivity.aiActionId,
         approval: aiAction.status,
+        approvalExpiresAt: aiAction.expiresAt,
         createdAt: apiActivity.createdAt,
       })
       .from(apiActivity)
@@ -378,14 +385,21 @@ export async function listApiActivity(
   const page = rows.slice(0, q.limit)
   const last = page.at(-1)
   return {
-    items: page.map((r) => ({
-      id: r.id,
-      kind: r.kind,
-      summary: r.summary,
-      detail: r.detail,
-      approvalId: r.aiActionId && r.approval === 'proposed' ? r.aiActionId : null,
-      createdAt: r.createdAt,
-    })),
+    items: page.map((r) => {
+      const approvalStatus: AiActionStatus | null =
+        r.approval === 'proposed' && r.approvalExpiresAt && r.approvalExpiresAt <= now
+          ? 'expired'
+          : r.approval
+      return {
+        id: r.id,
+        kind: r.kind,
+        summary: r.summary,
+        detail: r.detail,
+        approvalId: r.aiActionId && approvalStatus === 'proposed' ? r.aiActionId : null,
+        approvalStatus,
+        createdAt: r.createdAt,
+      }
+    }),
     counts: {
       all: [...by.values()].reduce((t, n) => t + n, 0),
       read: sum(FILTER_KINDS.read),

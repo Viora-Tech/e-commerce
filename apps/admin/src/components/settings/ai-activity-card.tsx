@@ -50,6 +50,14 @@ export default function AiActivityCard() {
       .catch(() => setFailed(true))
   }, [page])
 
+  // Helpers
+  const decidedBy = (item: Item) => {
+    if (!item.by) return null
+    return item.status === 'cancelled'
+      ? copy.activity.cancelledBy(item.by)
+      : copy.activity.approvedBy(item.by)
+  }
+
   // Event handlers
   const handleUndo = async (id: string) => {
     setUndoing(id)
@@ -93,7 +101,8 @@ export default function AiActivityCard() {
                     {[
                       copy.activity.sources[item.source] ?? item.source,
                       fmt.when(item.executedAt ?? item.createdAt),
-                      item.by ? copy.activity.by(item.by) : null,
+                      item.requestedBy ? copy.activity.askedBy(item.requestedBy) : null,
+                      decidedBy(item),
                     ]
                       .filter(Boolean)
                       .join(' · ')}

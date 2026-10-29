@@ -3,21 +3,26 @@
  *
  *   model calls a propose tool → `proposeAction` validates and stores it as `proposed`
  *   merchant clicks Edit       → `reviseAction` re-runs the proposal with their changes
- *   merchant clicks Approve    → `approveAction` checks it is theirs, still open, and that
- *                                their role holds the action's permission, then runs it in
- *                                a savepoint inside their RLS transaction
+ *   merchant clicks Approve    → `approveAction` checks they may decide it (`openFor`), that it
+ *                                is still open, and that their role holds the action's
+ *                                permission, then runs it as them in a savepoint inside their
+ *                                RLS transaction
  *   merchant clicks Cancel     → `cancelAction`
  *   Activity → Undo            → `undoAction` (same permission check)
+ *
+ * Who decides: the assistant's own proposals belong to the member who asked in the AI bar. A
+ * change an MCP client proposed may be decided by the member who connected it, the store owner,
+ * or any member whose role holds the action's permission; it always runs as the approver.
  *
  * Nothing here is reachable by the model: it only ever creates `proposed` rows.
  */
 import { ASSISTANT_LIMITS } from '@commerce/ai'
 import type { StoreContext } from '@commerce/core'
-import { type AiActionStatus, aiAction } from '@commerce/db'
+import { type AiActionStatus, aiAction, authSchema, type StoreTx } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
-import { and, desc, eq, lt } from 'drizzle-orm'
+import { and, desc, eq, inArray, lt } from 'drizzle-orm'
 import type { StoreScope } from '../../../procedures'
-import { ProposalProblem } from './actions/resolve'
+import { ApproverNotAllowed, ProposalProblem } from './actions/resolve'
 import type { ActionEnv, ActionPreview, EditField } from './actions/types'
 import { actionFor, undoerFor } from './registry'
 
@@ -47,7 +52,10 @@ export type ActionView = {
   message: string | null
   href: string | null
   canUndo: boolean
+  /** Who approved or cancelled it (email), once someone did. */
   by: string | null
+  /** The member who asked for it: in the AI bar, or by connecting the MCP client. */
+  requestedBy: string | null
   createdAt: Date
   expiresAt: Date
   executedAt: Date | null
@@ -57,19 +65,24 @@ export type ActionView = {
 
 type Row = typeof aiAction.$inferSelect
 
-function viewOf(row: Row): ActionView {
+/** A proposal past its expiry reads as expired even before a list marks it so. */
+const statusAt = (row: Row, now: Date): AiActionStatus =>
+  row.status === 'proposed' && row.expiresAt.getTime() <= now.getTime() ? 'expired' : row.status
+
+function viewOf(row: Row, requestedBy: string | null, now: Date): ActionView {
   const stored = row.input as Partial<Stored>
   const outcome = (row.result ?? {}) as Outcome
   const definition = actionFor(row.tool)
+  const status = statusAt(row, now)
   const editable =
-    row.status === 'proposed' && definition && stored.raw
+    status === 'proposed' && definition && stored.raw
       ? definition.editFields(stored.raw as never)
       : []
   return {
     id: row.id,
     tool: row.tool,
     source: row.source,
-    status: row.status,
+    status,
     summary: row.summary,
     preview: row.preview as ActionPreview,
     editable,
@@ -79,12 +92,36 @@ function viewOf(row: Row): ActionView {
     href: outcome.href ?? null,
     canUndo: row.status === 'executed' && row.undo !== null,
     by: outcome.by ?? null,
+    requestedBy,
     createdAt: row.createdAt,
     expiresAt: row.expiresAt,
     executedAt: row.executedAt,
     undoneAt: row.undoneAt,
     undoMessage: outcome.undoMessage ?? null,
   }
+}
+
+/** Members' names by id, for "asked by" on the cards and in Activity. */
+async function namesOf(tx: StoreTx, userIds: string[]): Promise<Map<string, string>> {
+  if (!userIds.length) return new Map()
+  const rows = await tx
+    .select({ id: authSchema.user.id, name: authSchema.user.name, email: authSchema.user.email })
+    .from(authSchema.user)
+    .where(inArray(authSchema.user.id, [...new Set(userIds)]))
+  return new Map(rows.map((r) => [r.id, r.name?.trim() || r.email]))
+}
+
+async function viewsOf(tx: StoreTx, rows: Row[], now: Date): Promise<ActionView[]> {
+  const names = await namesOf(
+    tx,
+    rows.map((r) => r.userId),
+  )
+  return rows.map((r) => viewOf(r, names.get(r.userId) ?? null, now))
+}
+
+async function oneView(tx: StoreTx, row: Row, now: Date): Promise<ActionView> {
+  const [view] = await viewsOf(tx, [row], now)
+  return view as ActionView
 }
 
 const ttlMs = ASSISTANT_LIMITS.proposalTtlMinutes * 60_000
@@ -114,28 +151,47 @@ export async function proposeAction(
       expiresAt: new Date(env.now.getTime() + ttlMs),
     })
     .returning()
-  return viewOf(row as Row)
+  return oneView(env.tx, row as Row, env.now)
 }
 
-/** The caller's own open proposal, or a plain refusal. Expired ones are marked on the way. */
-async function ownOpen(env: ActionEnv, id: string): Promise<Row> {
-  const [row] = await env.tx.select().from(aiAction).where(eq(aiAction.id, id))
+/**
+ * An open proposal the caller may decide, or a plain refusal. The assistant's proposals are the
+ * asker's alone. An MCP client's may also be decided by the owner or a member whose role holds
+ * the action's permission; for `runAdminAction` (no permission of its own) the admin procedure
+ * checks the approver's role when it runs, and only the owner may edit or cancel it for someone.
+ * An expired one is refused with a message that says so (the refusal rolls the request back, so
+ * the row itself is marked expired by the next Activity load).
+ */
+async function openFor(
+  env: ActionEnv,
+  scope: StoreScope,
+  id: string,
+  intent: 'approve' | 'decide',
+): Promise<Row> {
+  const [row] = await env.tx.select().from(aiAction).where(eq(aiAction.id, id)).for('update')
   if (!row) throw new ORPCError('NOT_FOUND', { message: 'That AI action was not found.' })
   if (row.userId !== env.userId) {
-    throw new ORPCError('FORBIDDEN', {
-      message: 'Only the person who asked for this change can approve it.',
-    })
+    if (row.source !== 'mcp') {
+      throw new ORPCError('FORBIDDEN', {
+        message: 'Only the person who asked the assistant for this change can approve it.',
+      })
+    }
+    const permission = undoerFor(row.tool)?.permission ?? null
+    const allowed =
+      scope.isOwner || (permission === null ? intent === 'approve' : scope.can(permission))
+    if (!allowed) {
+      throw new ORPCError('FORBIDDEN', { message: 'Your role does not allow this change.' })
+    }
   }
-  if (row.status === 'proposed' && row.expiresAt.getTime() <= env.now.getTime()) {
-    await env.tx
-      .update(aiAction)
-      .set({ status: 'expired', updatedAt: env.now })
-      .where(eq(aiAction.id, id))
+  const status = statusAt(row, env.now)
+  if (status === 'expired') {
+    const again =
+      row.source === 'mcp' ? 'Ask the AI app to propose it again.' : 'Ask the assistant again.'
     throw new ORPCError('CONFLICT', {
-      message: 'This suggestion expired. Ask the assistant again.',
+      message: `This request expired, so nothing was changed. ${again}`,
     })
   }
-  if (row.status !== 'proposed') {
+  if (status !== 'proposed') {
     throw new ORPCError('CONFLICT', { message: 'This suggestion was already handled.' })
   }
   return row
@@ -164,10 +220,11 @@ const coerce = (field: EditField | undefined, value: unknown) => {
 /** Edit on the card: the merchant's changes go through the same checks as the model's input. */
 export async function reviseAction(
   env: ActionEnv,
+  scope: StoreScope,
   id: string,
   changes: Record<string, string | number | null>,
 ): Promise<ActionView> {
-  const row = await ownOpen(env, id)
+  const row = await openFor(env, scope, id, 'decide')
   const definition = actionFor(row.tool)
   const stored = row.input as Stored
   if (!definition) throw new ORPCError('BAD_REQUEST', { message: 'Unknown AI action.' })
@@ -199,16 +256,20 @@ export async function reviseAction(
     })
     .where(eq(aiAction.id, id))
     .returning()
-  return viewOf(updated as Row)
+  return oneView(env.tx, updated as Row, env.now)
 }
 
-/** Approve: runs the exact change the merchant saw, with their permission, all or nothing. */
+/**
+ * Approve: runs the exact change the merchant saw, as them and with their permission, all or
+ * nothing. A role that may not make the change is refused and the proposal stays open, so
+ * someone who may can still approve it.
+ */
 export async function approveAction(
   env: ActionEnv,
   scope: StoreScope,
   id: string,
 ): Promise<ActionView> {
-  const row = await ownOpen(env, id)
+  const row = await openFor(env, scope, id, 'approve')
   requirePermission(scope, row.tool)
   const definition = actionFor(row.tool)
   if (!definition) throw new ORPCError('BAD_REQUEST', { message: 'Unknown AI action.' })
@@ -230,8 +291,11 @@ export async function approveAction(
       })
       .where(eq(aiAction.id, id))
       .returning()
-    return viewOf(updated as Row)
+    return oneView(env.tx, updated as Row, env.now)
   } catch (err) {
+    if (err instanceof ApproverNotAllowed) {
+      throw new ORPCError('FORBIDDEN', { message: err.message })
+    }
     const message =
       err instanceof ProposalProblem
         ? err.message
@@ -248,18 +312,23 @@ export async function approveAction(
       })
       .where(eq(aiAction.id, id))
       .returning()
-    return viewOf(updated as Row)
+    return oneView(env.tx, updated as Row, env.now)
   }
 }
 
-export async function cancelAction(env: ActionEnv, id: string): Promise<ActionView> {
-  await ownOpen(env, id)
+/** Cancel (reject): records who did it as `by`. */
+export async function cancelAction(
+  env: ActionEnv,
+  scope: StoreScope,
+  id: string,
+): Promise<ActionView> {
+  await openFor(env, scope, id, 'decide')
   const [updated] = await env.tx
     .update(aiAction)
-    .set({ status: 'cancelled', updatedAt: env.now })
+    .set({ status: 'cancelled', result: { by: env.email }, updatedAt: env.now })
     .where(eq(aiAction.id, id))
     .returning()
-  return viewOf(updated as Row)
+  return oneView(env.tx, updated as Row, env.now)
 }
 
 /** Undo from Activity (or the card): any member whose role holds the action's permission. */
@@ -292,7 +361,7 @@ export async function undoAction(
       })
       .where(eq(aiAction.id, id))
       .returning()
-    return viewOf(updated as Row)
+    return oneView(env.tx, updated as Row, env.now)
   } catch (err) {
     if (err instanceof ProposalProblem) throw new ORPCError('CONFLICT', { message: err.message })
     throw err
@@ -300,9 +369,13 @@ export async function undoAction(
 }
 
 /** One action, for "Open approval" (Settings → MCP & API → Activity). Null when it is gone. */
-export async function getAction(ctx: StoreContext, id: string): Promise<ActionView | null> {
+export async function getAction(
+  ctx: StoreContext,
+  id: string,
+  now: Date = new Date(),
+): Promise<ActionView | null> {
   const [row] = await ctx.tx.select().from(aiAction).where(eq(aiAction.id, id))
-  return row ? viewOf(row) : null
+  return row ? oneView(ctx.tx, row, now) : null
 }
 
 export type ActivityPage = { items: ActionView[]; hasMore: boolean }
@@ -324,7 +397,7 @@ export async function listActivity(
     .limit(input.perPage + 1)
     .offset((input.page - 1) * input.perPage)
   return {
-    items: rows.slice(0, input.perPage).map(viewOf),
+    items: await viewsOf(ctx.tx, rows.slice(0, input.perPage), now),
     hasMore: rows.length > input.perPage,
   }
 }
