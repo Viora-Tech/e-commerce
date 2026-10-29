@@ -8,7 +8,7 @@ export const siteContent = {
   supportEmail: siteConfig.contact.supportEmail,
   phone: siteConfig.contact.phone,
   legalName: siteConfig.company.legalName,
-  address: siteConfig.company.address,
+  address: siteConfig.company.publicAddress,
   navLinks: [
     { label: 'Features', href: '/features' },
     { label: 'Pricing', href: '/pricing' },

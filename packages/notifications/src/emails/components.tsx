@@ -128,16 +128,18 @@ export type TaxLine = { label: string; amount: string }
 /** Totals block: an optional GST split above the bold grand total. */
 export function TotalsBlock({
   totalLabel,
+  shipping,
   taxBreakdown,
 }: {
   totalLabel: string
+  shipping?: TaxLine | undefined
   taxBreakdown?: TaxLine[] | undefined
 }) {
   return (
     <Section
       style={{ margin: '0 0 8px', paddingTop: '8px', borderTop: `1px solid ${theme.border}` }}
     >
-      {(taxBreakdown ?? []).map((t) => (
+      {[...(shipping ? [shipping] : []), ...(taxBreakdown ?? [])].map((t) => (
         <Row key={t.label} style={{ padding: '2px 0' }}>
           <Column>
             <Text style={{ fontSize: '12px', color: theme.muted, margin: 0 }}>{t.label}</Text>

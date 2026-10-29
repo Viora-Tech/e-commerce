@@ -90,7 +90,8 @@ export const ACTION_PERMISSIONS: readonly Permission[] = [
 
 /**
  * Approve, Edit and Cancel: a `runAdminAction` may need any permission, so any member with a
- * role may reach them. Each still allows only the member's own proposal (`ownOpen`) and checks
- * the action's permission (or, for `runAdminAction`, the admin procedure checks it).
+ * role may reach them. Each still checks who may decide the proposal (`openFor`: the asker,
+ * or for an MCP client's the owner or a member with the action's permission) and the action's
+ * permission (or, for `runAdminAction`, the admin procedure checks it).
  */
 export const APPROVE_PERMISSIONS: readonly Permission[] = ALL_PERMISSIONS

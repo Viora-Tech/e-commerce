@@ -14,7 +14,7 @@ import {
   procedureAt,
   sensitiveNote,
 } from '../../../../mcp/action-catalogue'
-import { ProposalProblem } from './resolve'
+import { ApproverNotAllowed, ProposalProblem } from './resolve'
 import { defineAction, type PreviewRow } from './types'
 
 const Input = z.object({
@@ -127,6 +127,9 @@ export const adminAction = defineAction<Raw, Resolved>({
         undo: null,
       }
     } catch (err) {
+      if (err instanceof ORPCError && err.code === 'FORBIDDEN') {
+        throw new ApproverNotAllowed(err.message)
+      }
       if (err instanceof ORPCError) throw new ProposalProblem(err.message)
       throw err
     }

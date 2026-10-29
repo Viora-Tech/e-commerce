@@ -47,6 +47,14 @@ kept in the GitHub Actions cache (one scope per image):
 Each is tagged with the full commit sha and `latest`. The compose file runs
 `${IMAGE_TAG:-latest}`, with `pull_policy: always` so a redeploy really fetches the new `latest`.
 
+The admin, storefront and worker Dockerfiles also keep two BuildKit cache mounts: bun's download
+cache (`commerce-bun-install-cache`, shared) and, for admin and storefront, Next's `.next/cache`
+(`commerce-<app>-next-cache-<platform>`), where Turbopack keeps its build cache. A rebuild on the
+same machine then downloads only new packages and recompiles only what changed. Cache mounts never
+enter an image; the standalone output is copied exactly as before. They are not saved to the
+GitHub Actions cache, so a fresh runner starts cold. To clear them locally:
+`docker builder prune --filter type=exec.cachemount`.
+
 ## Branches: `dev` and `main`
 
 | Branch | What goes in | Deployed to |
@@ -352,6 +360,24 @@ reports zero values left, then remove `SETTINGS_SECRET_PREVIOUS` and redeploy on
 - **Backups**: the nightly `backup` service (or Dokploy Scheduled Job — see Backups doc) logs
   each run; check it's actually landing new objects in R2 periodically, not just that the
   container is "running".
+
+## 12. Ops scripts in the worker
+
+Scripts that need the production database settings run by hand in the worker container. The
+worker image is pruned to the worker's packages, so `apps/worker/Dockerfile` copies each script
+from `scripts/` into `/repo/apps/worker/ops/`, where its imports resolve against the worker's own
+dependencies. There are no root `package.json` scripts in the image: run the file with `bun`
+from `/repo/apps/worker` (a Dokploy schedule on the worker, or `docker exec -it <worker> sh`).
+
+| Script | Command (from `/repo/apps/worker`) |
+| --- | --- |
+| Store data reset (`scripts/reset-store-data.ts`) | `bun ops/reset-store-data.ts --store <slug>` (dry run; `--apply` deletes) |
+| Unlimited plan (`scripts/platform-unlimited.ts`) | `bun ops/platform-unlimited.ts <slug>` (`--off` to undo) |
+| Gateway fee backfill (`apps/worker/src/payment-fees-backfill.ts`) | `bun src/payment-fees-backfill.ts [--store id] [--days 90]` |
+
+A new script for the worker must import only packages `apps/worker/package.json` depends on,
+and needs its own `COPY` line next to the others. Restore and key rotation run from the `tasks`
+image instead (sections 9 and 10), which carries the whole repo.
 
 ## What's next
 
