@@ -1,12 +1,9 @@
-/**
- * How the product edit page lays out its sections: every section on one scrolling page ("page",
- * Shopify's product page, #914), a vertical sub-nav ("settings") or a tab strip ("tabs").
- */
-export const PRODUCT_LAYOUTS = ['page', 'tabs', 'settings'] as const
+/** How the product edit page lays out its sections: a vertical sub-nav ("settings") or a tab strip ("tabs"). */
+export const PRODUCT_LAYOUTS = ['tabs', 'settings'] as const
 
 export type ProductLayout = (typeof PRODUCT_LAYOUTS)[number]
 
-export const DEFAULT_PRODUCT_LAYOUT: ProductLayout = 'page'
+export const DEFAULT_PRODUCT_LAYOUT: ProductLayout = 'tabs'
 
 /** Per-member preference, set under Account › Appearance and read by the product page on the server. */
 export const PRODUCT_LAYOUT_COOKIE = 'admin_product_layout'
