@@ -47,6 +47,14 @@ kept in the GitHub Actions cache (one scope per image):
 Each is tagged with the full commit sha and `latest`. The compose file runs
 `${IMAGE_TAG:-latest}`, with `pull_policy: always` so a redeploy really fetches the new `latest`.
 
+The admin, storefront and worker Dockerfiles also keep two BuildKit cache mounts: bun's download
+cache (`commerce-bun-install-cache`, shared) and, for admin and storefront, Next's `.next/cache`
+(`commerce-<app>-next-cache-<platform>`), where Turbopack keeps its build cache. A rebuild on the
+same machine then downloads only new packages and recompiles only what changed. Cache mounts never
+enter an image; the standalone output is copied exactly as before. They are not saved to the
+GitHub Actions cache, so a fresh runner starts cold. To clear them locally:
+`docker builder prune --filter type=exec.cachemount`.
+
 ## Branches: `dev` and `main`
 
 | Branch | What goes in | Deployed to |

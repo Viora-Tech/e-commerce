@@ -23,7 +23,8 @@ FROM base AS installer
 COPY --from=pruner /repo/out/json/ .
 COPY --from=pruner /repo/out/bun.lock ./bun.lock
 COPY patches ./patches
-RUN bun install --frozen-lockfile
+# bun's download cache in a BuildKit cache mount: see apps/admin/Dockerfile's install step.
+RUN --mount=type=cache,id=commerce-bun-install-cache,sharing=locked,target=/root/.bun/install/cache \n  bun install --frozen-lockfile --backend=copyfile --cache-dir=/root/.bun/install/cache
 
 # --- Build with the full pruned source ------------------------------------------------------
 FROM installer AS builder
@@ -47,7 +48,10 @@ ENV NODE_ENV=production
 # See apps/admin/Dockerfile's identical line for why this is here (fits the GitHub Actions
 # runner that builds this image).
 ENV NODE_OPTIONS=--max-old-space-size=3072
-RUN bun run build --filter=@commerce/storefront
+# Turbopack's build cache in a BuildKit cache mount: see apps/admin/Dockerfile's build step.
+ARG TARGETPLATFORM
+RUN --mount=type=cache,id=commerce-storefront-next-cache-$TARGETPLATFORM,sharing=locked,target=/repo/apps/storefront/.next/cache \
+  bun run build --filter=@commerce/storefront
 
 # --- Minimal runtime image ------------------------------------------------------------------
 FROM base AS runner

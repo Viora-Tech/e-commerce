@@ -37,7 +37,9 @@ COPY --from=pruner /repo/out/json/ .
 # the pruned tree so bun applies them during install.
 COPY --from=pruner /repo/out/bun.lock ./bun.lock
 COPY patches ./patches
-RUN bun install --frozen-lockfile --production
+# bun's download cache in a BuildKit cache mount: see apps/admin/Dockerfile's install step.
+# This image runs from this stage, so before this the cache itself shipped in the worker image.
+RUN --mount=type=cache,id=commerce-bun-install-cache,sharing=locked,target=/root/.bun/install/cache \n  bun install --frozen-lockfile --production --backend=copyfile --cache-dir=/root/.bun/install/cache
 COPY --from=pruner /repo/out/full/ .
 # turbo prune only copies workspace packages, not root-only files — packages/core imports
 # this one by relative path (see apps/docs/content/developer-docs/building/plugins.mdx).
