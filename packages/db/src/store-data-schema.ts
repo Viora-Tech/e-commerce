@@ -68,3 +68,30 @@ export const platformAuditEvent = pgTable(
   },
   (t) => [index('platform_audit_event_subject').on(t.subjectStoreId, t.createdAt)],
 )
+
+/**
+ * The platform console's access log (`/platform`, Koomerce staff only): one row per page or
+ * API read a staff member made, with the store it looked into when there is one. No
+ * `store_id` (the console is cross-store and the row must outlive a store) and no grant to the
+ * app role at all: the console writes and reads it on the owner connection (migration 0186).
+ */
+export const platformAccessLog = pgTable(
+  'platform_access_log',
+  {
+    id: uuid('id').primaryKey().$defaultFn(newId),
+    actorUserId: text('actor_user_id').notNull(),
+    actorEmail: text('actor_email').notNull(),
+    /** `overview.read`, `stores.list`, `stores.detail`, `users.list`, `audit.list`, … */
+    action: text('action').notNull(),
+    /** The store looked into, when the read was about one. Not a foreign key. */
+    storeId: uuid('store_id_ref'),
+    /** What was read inside it, or the search used (`q=waimers`, `page=2`). */
+    target: text('target'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('platform_access_log_created').on(t.createdAt),
+    index('platform_access_log_store').on(t.storeId, t.createdAt),
+    index('platform_access_log_actor').on(t.actorEmail, t.createdAt),
+  ],
+)

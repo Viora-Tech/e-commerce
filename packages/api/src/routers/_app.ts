@@ -44,6 +44,7 @@ import { ordersRouter } from './orders'
 import { pagesRouter } from './pages'
 import { paymentsRouter } from './payments'
 import { pixelsRouter } from './pixels'
+import { platformRouter } from './platform'
 import { platformAppsRouter } from './platform-apps'
 import { policiesRouter } from './policies'
 import { productsRouter } from './products'
@@ -144,6 +145,7 @@ export const appRouter = {
   invitations: invitationsRouter,
   onboarding: onboardingRouter,
   bugReports: bugReportsRouter,
+  platform: platformRouter,
 }
 
 export type AppRouter = typeof appRouter

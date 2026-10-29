@@ -85,6 +85,7 @@ import paymentModes from './payment-modes'
 import payments from './payments'
 import paymentsSetup from './payments-setup'
 import pixels from './pixels'
+import platform from './platform'
 import productForm from './product-form'
 import productPage from './product-page'
 import products from './products'
@@ -214,6 +215,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...paymentModes,
   ...paymentsSetup,
   ...pixels,
+  ...platform,
   ...razorpayWebsites,
   ...collections,
   ...commandPalette,
