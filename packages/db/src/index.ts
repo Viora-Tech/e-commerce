@@ -58,6 +58,7 @@ export {
   storesWithUnpaidOnlineOrders,
   storesWithUnroutedPlatformDomains,
 } from './resolve-store'
+export * from './delivery-schema'
 export * from './returns-schema'
 export * from './rollout-schema'
 export * from './schema'

@@ -1776,6 +1776,10 @@ export const shipment = pgTable(
     pickupLocationName: text('pickup_location_name'),
     /** The courier service booked ("Surface", "Express", an aggregator's carrier), when picked. */
     serviceLabel: text('service_label'),
+    /** The carrier that delivers it ("Blue Dart" for a Shiprocket booking); null on older rows. */
+    carrier: text('carrier'),
+    /** When the courier's delivered scan landed; null until then (and on older rows). */
+    deliveredAt: timestamp('delivered_at', { withTimezone: true }),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -2014,6 +2018,39 @@ export type OrderShippingSnapshot = {
   codSurchargePaise: number | null
   minTransitDays: number | null
   maxTransitDays: number | null
+  /** Delivery options app: the option and the exact route the price was quoted on. */
+  delivery?: OrderDeliveryRoute | undefined
+}
+
+/**
+ * The Delivery options app's thread from checkout to booking: Create shipment and bulk booking
+ * book `route` through its own app, which issues the AWB and label and carries tracking. On a
+ * delivery option order `rateId` is the option's id and `zoneId`/`zoneName` are empty unless
+ * it was placed on backup (the zone rate charged).
+ */
+export type OrderDeliveryRoute = {
+  optionId: string
+  optionName: string
+  /** Null when the order was placed on backup (couriers down): no route was saved. */
+  route: {
+    key: string
+    providerId: string
+    channel: 'direct' | 'aggregator'
+    carrier: string
+    serviceId: string
+    serviceLabel: string
+  } | null
+  /** `strategy`, `rule:<id>`, `shopper` (a sub-choice) or `backup`. */
+  pickedBy: string
+  insured: boolean
+  insurancePaise: number | null
+  markupPaise: number
+  /** What the route quoted, before markup and insurance. */
+  courierCostPaise: number | null
+  /** "YYYY-MM-DD". */
+  promisedEarliest: string | null
+  promisedLatest: string | null
+  quoteSource: 'live' | 'cache' | 'backup'
 }
 
 export type DiscountKind = 'code' | 'automatic'
