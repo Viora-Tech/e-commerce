@@ -1,6 +1,6 @@
 # WhatsApp click to chat everywhere
 
-Branch `feat/whatsapp-click-to-chat`. **Migration `0182_customer_note`** (new `customer_note`
+Branch `feat/whatsapp-click-to-chat`. **Migration `0183_customer_note`** (after #929's `0182_variant_price_optional`; merge after #929) (new `customer_note`
 table, RLS applied, cascades with the customer).
 
 Two separate WhatsApp features now:
