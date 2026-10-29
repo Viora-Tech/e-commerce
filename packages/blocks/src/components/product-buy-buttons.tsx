@@ -118,8 +118,13 @@ export default function ProductBuyButtons({
     Boolean(variant) && !variant?.purchasable && !isPreorder && !launching && !unpriced
   const allSoldOut = soldOut && product.variants.every((v) => !v.purchasable)
   const notify = soldOut && variant && NotifyMe && notifyMeProps ? variant.id : null
+  // The store's pre-order note (#936) says it all under the button, as Shopify's pre-order apps
+  // do; "Available for pre-order" stands in only when there is none.
+  const preorderNote = isPreorder && !launching ? (preorder?.note ?? null) : null
   const availability = isPreorder
-    ? ui.availablePreorder
+    ? preorderNote
+      ? ''
+      : ui.availablePreorder
     : !variant || variant.available <= 0
       ? ''
       : stockBarShown
@@ -223,6 +228,9 @@ export default function ProductBuyButtons({
           ) : null}
         </div>
       )}
+      {preorderNote ? (
+        <p className="product-info__preorder-note text-small">{preorderNote}</p>
+      ) : null}
       {!launching && variant && availability ? (
         <p
           className={`buy-buttons__availability text-small${lowStock ? ' buy-buttons__availability--low' : ''}`}

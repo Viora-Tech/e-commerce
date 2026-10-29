@@ -11,7 +11,8 @@ const gVariant = (price: string, availableForSale: boolean | undefined) => ({
   taxable: true,
   inventoryQuantity: 0,
   inventoryPolicy: 'DENY' as const,
-  availableForSale,
+  // Left out entirely when undefined, as an older snapshot without the field has it.
+  ...(availableForSale === undefined ? {} : { availableForSale }),
   selectedOptions: [{ name: 'Colour', value: 'Red' }],
   image: null,
   inventoryItem: { tracked: true, harmonizedSystemCode: null, unitCost: null, measurement: null },

@@ -113,6 +113,18 @@ export function ItemsTable({ lines }: { lines: Line[] }) {
             <Text style={{ fontSize: '12px', color: theme.muted, margin: '2px 0 0' }}>
               Qty {line.quantity}
             </Text>
+            {line.note ? (
+              <Text
+                style={{
+                  fontSize: '12px',
+                  color: theme.muted,
+                  margin: '4px 0 0',
+                  whiteSpace: 'pre-line',
+                }}
+              >
+                {line.note}
+              </Text>
+            ) : null}
           </Column>
           <Column style={{ verticalAlign: 'top', textAlign: 'right', width: '90px' }}>
             <Text style={{ fontSize: '13px', color: theme.ink, margin: 0 }}>{line.priceLabel}</Text>

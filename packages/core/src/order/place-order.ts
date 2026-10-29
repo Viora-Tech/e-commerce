@@ -61,7 +61,9 @@ import { parsePaymentSettings } from '../payments/settings'
 import type { PaymentRowStatus } from '../payments/transitions'
 import { computeDepositFromSettings } from '../preorder/deposit'
 import { isLaunched } from '../preorder/launch'
+import { preorderNoteText } from '../preorder/note'
 import { resolvePreorderSettings, resolveShipDate } from '../preorder/settings'
+import { parsePreorderStoreSettings } from '../preorder/store-settings'
 import { StoreAddressSchema } from '../settings/general'
 import { type OrderDeliveryInput, priceOrderDelivery } from '../shipping/delivery-options/order'
 import { quoteShipping, type ShippingRateOption } from '../shipping/rates'
@@ -161,6 +163,8 @@ type Line = {
   launchAt: Date | null
   /** Resolved pre-order settings (product merged with the variant's override, if any). */
   preorder: ReturnType<typeof resolvePreorderSettings>
+  /** The product's own pre-order note (#936); null falls back to the store's. */
+  preorderNote: string | null
 }
 
 type State = {
@@ -229,6 +233,7 @@ const loadCart: WorkflowStep<State> = {
         preorderShipsInDays: product.preorderShipsInDays,
         preorderLimit: product.preorderLimit,
         preorderButtonLabel: product.preorderButtonLabel,
+        preorderNote: product.preorderNote,
         preorderPaymentMode: product.preorderPaymentMode,
         preorderDepositPaise: product.preorderDepositPaise,
         preorderDepositPercent: product.preorderDepositPercent,
@@ -258,6 +263,7 @@ const loadCart: WorkflowStep<State> = {
       costPaise: r.costPaise,
       launchAt: r.launchAt,
       preorder: resolvePreorderSettings(r, r.preorderOverride),
+      preorderNote: r.preorderNote,
     }))
     checkGiftCardRules(lines, input, ctx.storeId)
     return {
@@ -572,10 +578,12 @@ const createOrder: WorkflowStep<State> = {
         address: store.address,
         gstRatePercent: store.gstRatePercent,
         apps: store.apps,
+        preorder: store.preorder,
       })
       .from(store)
       .where(eq(store.id, ctx.storeId))
     if (!s) throw new Error(`store ${ctx.storeId} not visible in context`)
+    const storePreorderNote = parsePreorderStoreSettings(s.preorder).note
     const storeTax = parseStoreTax(s.apps)
     const orderNumber = await takeOrderNumber(ctx.tx, ctx.storeId)
     const subtotalPaise = sumPaise(lines)
@@ -746,6 +754,15 @@ const createOrder: WorkflowStep<State> = {
         costAtSalePaise: l.giftCard ? null : l.costPaise,
         preorderShipDate:
           l.preorder.enabled && !l.giftCard ? resolveShipDate(l.preorder, new Date()) : null,
+        // The note the shopper agreed to, kept as it read at the sale for the email and order pages.
+        preorderNote:
+          l.preorder.enabled && !l.giftCard
+            ? preorderNoteText({
+                productNote: l.preorderNote,
+                storeNote: storePreorderNote,
+                shipDate: resolveShipDate(l.preorder, new Date()),
+              })
+            : null,
       })),
     )
     // The parcels routing chose, where reserveStock holds their stock.

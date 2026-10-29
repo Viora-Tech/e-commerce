@@ -47,10 +47,16 @@ describe('cardPreorder (the product page rule, on cards)', () => {
     expect(cardPreorder(product({ preorderLimit: 2 }), [variant(0, 2)])).toBeNull()
   })
 
-  it("uses the variant's own pre-order switch and label", () => {
-    const on = { enabled: true, buttonLabel: 'Reserve now' }
+  it("uses the variant's own label, and its switch only narrows the product's (#962)", () => {
+    const label = { buttonLabel: 'Reserve now' }
+    expect(cardPreorder(product(), [{ ...variant(0), preorderOverride: label }])).toEqual({
+      buttonLabel: 'Reserve now',
+    })
+    const on = { enabled: true }
     expect(
       cardPreorder(product({ preorderEnabled: false }), [{ ...variant(0), preorderOverride: on }]),
-    ).toEqual({ buttonLabel: 'Reserve now' })
+    ).toBeNull()
+    const off = { enabled: false }
+    expect(cardPreorder(product(), [{ ...variant(0), preorderOverride: off }])).toBeNull()
   })
 })

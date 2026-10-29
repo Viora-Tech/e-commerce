@@ -40,6 +40,7 @@ export default function CartLines({ lines }: { lines: CartLineView[] }) {
             {l.preorder ? (
               <span className="cart-line__preorder-badge">{content.preorder}</span>
             ) : null}
+            {l.preorderNote ? <p className="cart-line__preorder-note">{l.preorderNote}</p> : null}
             <div className="cart-line__actions">
               <QuantityInput
                 value={l.quantity}

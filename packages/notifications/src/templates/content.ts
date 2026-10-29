@@ -255,7 +255,8 @@ export const sharedContent = {
   giftCardCode: 'Gift card code',
   giftCardBalance: 'Balance',
   giftCardMessage: 'Message',
-  lineText: (l: TemplateData['lines'][number]) => `${l.title} x${l.quantity}, ${l.priceLabel}`,
+  lineText: (l: TemplateData['lines'][number]) =>
+    `${l.title} x${l.quantity}, ${l.priceLabel}${l.note ? ` (${l.note.replace(/\s+/g, ' ')})` : ''}`,
   footer: (d: TemplateData) =>
     `Sent by ${d.storeName}. Reply to this email if anything looks wrong.`,
   parcels: {

@@ -15,6 +15,7 @@ import {
 } from '@commerce/db'
 import { and, asc, eq, inArray, isNull } from 'drizzle-orm'
 import { type MarketPricing, presentmentCents } from '../markets/presentment'
+import { variantAllowsPreorder } from '../preorder/settings'
 import type { LiquidImageData, LiquidProductData } from './drops'
 import { richTextHtml } from './rich-html'
 
@@ -185,8 +186,10 @@ export async function loadProducts(
         collectionHandles: memberships.filter((m) => m.productId === id).map((m) => m.handle),
         variants: productVariants.map((v) => {
           const qty = onHand(v)
-          // Pre-order variants sell with no stock, as Shopify's "continue selling" does.
-          const preorder = v.preorder?.enabled ?? p.preorderEnabled
+          // Pre-order variants sell with no stock, as Shopify's "continue selling" does: the
+          // product has pre-order on and the variant allows it (#962), else sold out, which the
+          // theme draws crossed out.
+          const preorder = p.preorderEnabled && variantAllowsPreorder(v.preorder)
           // Listed without a price (#913): Liquid needs a number, and the variant is not for sale.
           const price = v.price
           return {
@@ -197,6 +200,7 @@ export async function loadProducts(
               price != null && v.mrp && v.mrp > price ? presentmentCents(v.mrp, pricing) : null,
             available: price != null && (qty > 0 || preorder),
             inventoryQuantity: qty,
+            preorder,
             sku: v.sku,
             barcode: v.barcode,
             weightGrams: v.weight,

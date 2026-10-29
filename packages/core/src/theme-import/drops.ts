@@ -23,6 +23,8 @@ export type LiquidVariantData = {
   compareAtPrice: number | null
   available: boolean
   inventoryQuantity: number
+  /** Sells past zero on pre-order (Shopify's `inventory_policy: continue`, #962). */
+  preorder?: boolean | undefined
   sku: string | null
   barcode: string | null
   options: string[]

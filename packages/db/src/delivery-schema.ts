@@ -13,7 +13,7 @@ import { v7 as uuidv7 } from 'uuid'
 import { store } from './schema'
 
 /*
- * Delivery options app (0189): the choices a shopper sees at checkout, built from the courier
+ * Delivery options app (0190): the choices a shopper sees at checkout, built from the courier
  * apps the store connected. Design: docs/superpowers/specs/2026-10-29-delivery-options-design.md.
  * The option and rule bodies are JSONB validated by zod in core
  * (`packages/core/src/shipping/delivery-options/config.ts`); they change rarely.

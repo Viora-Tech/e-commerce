@@ -39,6 +39,11 @@ export type ProductPreorderRow = {
  * means "inherit" for the nullable fields, same as leaving the key out
  * (a variant override can only narrow or replace, never explicitly clear a
  * product-level date/limit while pre-order stays on).
+ *
+ * `enabled` only narrows: a variant sells on pre-order when the product has pre-order on AND
+ * the variant allows it (`enabled: false` is the variant's "Allow pre-order" switch turned off,
+ * Shopify's per-variant "Continue selling when out of stock"). A variant cannot switch pre-order
+ * on for a product that has it off.
  */
 export function resolvePreorderSettings(
   product: ProductPreorderRow,
@@ -56,7 +61,7 @@ export function resolvePreorderSettings(
   }
   if (!override) return base
   return {
-    enabled: override.enabled ?? base.enabled,
+    enabled: base.enabled && override.enabled !== false,
     shipDate: override.shipDate !== undefined ? parseDate(override.shipDate) : base.shipDate,
     shipsInDays: override.shipsInDays !== undefined ? override.shipsInDays : base.shipsInDays,
     limit: override.limit !== undefined ? override.limit : base.limit,
@@ -66,6 +71,23 @@ export function resolvePreorderSettings(
     depositPercent:
       override.depositPercent !== undefined ? override.depositPercent : base.depositPercent,
   }
+}
+
+/** The variant's "Allow pre-order" switch: on unless its override turns it off (the default). */
+export const variantAllowsPreorder = (override?: VariantPreorderOverride | null): boolean =>
+  override?.enabled !== false
+
+/**
+ * The override to store for an "Allow pre-order" choice, keeping any other keys it holds.
+ * Allowed drops the key (inherit the product); null when nothing is left to override.
+ */
+export function withPreorderAllowed(
+  override: VariantPreorderOverride | null | undefined,
+  allowed: boolean,
+): VariantPreorderOverride | null {
+  const { enabled: _enabled, ...rest } = override ?? {}
+  const next: VariantPreorderOverride = allowed ? rest : { ...rest, enabled: false }
+  return Object.keys(next).length > 0 ? next : null
 }
 
 function parseDate(value: string | null): Date | null {

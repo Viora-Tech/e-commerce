@@ -1,6 +1,6 @@
 # Delivery options at checkout, P1 (routes, options, product route rules)
 
-Branch `feat/delivery-options-p1`, migration **0189** (`0189_delivery_options`). Design:
+Branch `feat/delivery-options-p1`, migration **0190** (`0190_delivery_options`). Design:
 `docs/superpowers/specs/2026-10-29-delivery-options-design.md` (carried over from PR #956).
 Developer docs: "Delivery options engine"; merchant guide: Apps → Delivery options.
 

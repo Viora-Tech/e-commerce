@@ -1,10 +1,16 @@
-import { mainProductSettings, ProductView, ReviewsWidget } from '@commerce/blocks'
+import {
+  mainProductSettings,
+  ProductView,
+  ReviewsWidget,
+  variantOnPreorder,
+} from '@commerce/blocks'
 import { loadProductPageExtras } from '@commerce/core'
 import {
   depositIsNonRefundable,
   type PreorderStoreSettings,
   parsePreorderStoreSettings,
 } from '@commerce/core/preorder'
+import { numericId } from '@commerce/core/theme-import'
 import { store } from '@commerce/db'
 import { emiOfferFor } from '@commerce/plugin-emi/offer'
 import { parseRichText, richTextToPlainText } from '@commerce/richtext'
@@ -22,6 +28,7 @@ import RecentlyViewed from '@/components/product/recently-viewed'
 import RecordView from '@/components/product/record-view'
 import RelatedProducts from '@/components/product/related-products'
 import LiquidAppBlock from '@/components/theme/liquid-app-block'
+import LiquidPreorderNote from '@/components/theme/liquid-preorder-note'
 import { notifyMeAction } from '@/lib/back-in-stock-actions'
 import { backInStockContext } from '@/lib/back-in-stock-context'
 import { addLineAction } from '@/lib/cart-actions'
@@ -45,6 +52,23 @@ type Params = {
   searchParams: Promise<{ view?: string; review?: string }>
 }
 
+/**
+ * The pre-order note per variant that sells on pre-order, for an imported theme's buy button
+ * (#936), keyed by the numeric id its Liquid writes and by the UUID.
+ */
+function liquidPreorderNotes(product: ProductDetail): Record<string, string> {
+  const note = product.preorder?.note
+  if (!note) return {}
+  return Object.fromEntries(
+    product.variants
+      .filter((v) => variantOnPreorder(product, v))
+      .flatMap((v) => [
+        [String(numericId(v.id)), note],
+        [v.id, note],
+      ]),
+  )
+}
+
 const limitOf = (value: unknown) => (typeof value === 'number' ? value : 4)
 const headingOf = (value: unknown) => (typeof value === 'string' ? value : '')
 
@@ -60,16 +84,15 @@ function withDepositPolicy(product: ProductDetail, policy: PreorderStoreSettings
 /** One load per store version (and per request), shared by the metadata and the page. */
 const loadProduct = cache((storeId: string, handle: string) =>
   storeRead(storeId, `product-page|${handle}`, async (tx) => {
-    const found = await getProductByHandle(tx, handle)
+    const [s] = await tx
+      .select({ name: store.name, currency: store.currency, preorder: store.preorder })
+      .from(store)
+      .where(eq(store.id, storeId))
+    const policy = parsePreorderStoreSettings(s?.preorder)
+    const found = await getProductByHandle(tx, handle, policy.note)
     if (!found) return null
-    const [seo, [s]] = await Promise.all([
-      getProductSeo(tx, found.id),
-      tx
-        .select({ name: store.name, currency: store.currency, preorder: store.preorder })
-        .from(store)
-        .where(eq(store.id, storeId)),
-    ])
-    const product = withDepositPolicy(found, parsePreorderStoreSettings(s?.preorder))
+    const seo = await getProductSeo(tx, found.id)
+    const product = withDepositPolicy(found, policy)
     const text = richTextToPlainText(parseRichText(product.description))
     return {
       product,
@@ -135,7 +158,7 @@ export default async function ProductPage({ params, searchParams }: Params) {
   const bis = await storeRead(storeId, 'back-in-stock', (tx) => backInStockContext(tx, storeId))
   const policies = await storeRead(storeId, 'policy-panels', (tx) => policyPanels(tx))
   const variant = defaultVariant(product)
-  const isPreorder = Boolean(product.preorder?.enabled) && (!variant || variant.available <= 0)
+  const isPreorder = variantOnPreorder(product, variant)
   const schema = productGraph(
     {
       ...product,
@@ -242,6 +265,8 @@ export default async function ProductPage({ params, searchParams }: Params) {
       />
       {page}
       {/* An imported theme's Judge.me review widget (an app block) draws our Reviews app here. */}
+      {/* An imported theme's buy button gets the pre-order note its Shopify app printed. */}
+      {product.preorder?.note ? <LiquidPreorderNote notes={liquidPreorderNotes(product)} /> : null}
       {reviews ? (
         <LiquidAppBlock slot="reviews">
           <ReviewsWidget context={reviews.widget} />

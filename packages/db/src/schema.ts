@@ -139,6 +139,11 @@ export const product = pgTable(
     /** Null = unlimited pre-order units beyond stock. */
     preorderLimit: integer('preorder_limit'),
     preorderButtonLabel: text('preorder_button_label').notNull().default('Pre-order'),
+    /**
+     * The note under the pre-order button, in the cart, at checkout and on the order email
+     * (#936); null uses the store's default (`store.preorder.note`). May use `{ship_date}`.
+     */
+    preorderNote: text('preorder_note'),
     preorderPaymentMode: text('preorder_payment_mode', { enum: ['full', 'fixed', 'percentage'] })
       .notNull()
       .default('full'),
@@ -170,11 +175,12 @@ export const product = pgTable(
 /**
  * Optional per-variant override of the product's pre-order settings; any key
  * left out inherits the product's value. See `@commerce/core/preorder` for
- * the merge (`resolvePreorderSettings`). Not yet exposed in the admin UI
- * (product-level settings only in this PR); the column exists so a later PR
- * can add per-variant editing without another migration.
+ * the merge (`resolvePreorderSettings`). The admin edits `enabled: false` only, the
+ * variant's "Allow pre-order" switch (a variant sells on pre-order when the product has it on
+ * and the variant allows it); the other keys are not exposed yet.
  */
 export type VariantPreorderOverride = {
+  /** False: this variant never sells on pre-order. Cannot turn pre-order on by itself. */
   enabled?: boolean
   shipDate?: string | null
   shipsInDays?: number | null
@@ -1351,6 +1357,8 @@ export const orderLine = pgTable(
     preorder: boolean('preorder').notNull().default(false),
     /** Expected ship date shown on the order/email; resolved from the product's settings at order time. */
     preorderShipDate: timestamp('preorder_ship_date', { withTimezone: true }),
+    /** The pre-order note as it read when the order was placed (#936), for the email and order pages. */
+    preorderNote: text('preorder_note'),
     /**
      * What one unit cost the store when it sold: the variant's weighted average cost
      * (`variant.cost_paise`, landed cost) at placement. Profit reads this, never today's cost.

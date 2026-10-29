@@ -40,6 +40,8 @@ export default function OrderSummary({ order: o, lines, images, giftCards }: Ord
               quantity={l.quantity}
               linePaise={l.quantity * l.unitPricePaise}
               imageUrl={l.variantId ? (images[l.variantId] ?? null) : null}
+              preorder={l.preorder}
+              preorderNote={l.preorder ? l.preorderNote : null}
             />
           ))}
         </ul>

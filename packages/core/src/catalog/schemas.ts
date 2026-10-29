@@ -34,6 +34,8 @@ export const VariantInputSchema = z.object({
   trackInventory: z.boolean().optional(),
   /** Hidden on the storefront, kept in admin (#934). Undefined leaves the variant as it is. */
   hiddenOnStore: z.boolean().optional(),
+  /** "Allow pre-order" when the product is on pre-order (default on). Undefined leaves it as it is. */
+  preorderAllowed: z.boolean().optional(),
   weightGrams: z.number().int().min(0).max(1_000_000).nullable().optional(),
   /** Unit the product page shows the weight in; grams stay the source of truth. Null shows kg. */
   weightUnit: WeightUnitSchema.nullable().optional(),
@@ -101,6 +103,8 @@ export const ProductFieldsSchema = z
     preorderShipsInDays: z.number().int().min(0).max(3650).nullable().optional(),
     preorderLimit: z.number().int().min(1).max(1_000_000).nullable().optional(),
     preorderButtonLabel: z.string().trim().min(1).max(60).optional(),
+    /** Note under the pre-order button (#936); blank uses the store's default. Undefined leaves it. */
+    preorderNote: z.string().trim().max(500).nullable().optional(),
     preorderPaymentMode: PreorderPaymentModeSchema.optional(),
     preorderDepositPaise: paise.nullable().optional(),
     preorderDepositPercent: z.number().int().min(1).max(99).nullable().optional(),

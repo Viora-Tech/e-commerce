@@ -1,5 +1,5 @@
 /** SOURCE OF TRUTH: product and variant row mapping — WHAT: how a ProductWrite / VariantInput becomes the columns saved, plus the pre-order deposit check / WHY: create and update share one mapping, so a field is never written by one and forgotten by the other */
-import { validateDepositAgainstPrice } from '../preorder/settings'
+import { validateDepositAgainstPrice, withPreorderAllowed } from '../preorder/settings'
 import type { ProductWrite } from './schemas'
 import { type VariantInput, variantTitle } from './variants'
 
@@ -28,6 +28,8 @@ export function productRow(fields: ProductFields) {
     preorderShipDate: fields.preorderShipDate ?? null,
     preorderShipsInDays: fields.preorderShipsInDays ?? null,
     preorderLimit: fields.preorderLimit ?? null,
+    // Writers that never show the note (imports, bulk tools) keep the merchant's.
+    ...(fields.preorderNote === undefined ? {} : { preorderNote: fields.preorderNote || null }),
     preorderButtonLabel: fields.preorderButtonLabel || 'Pre-order',
     preorderPaymentMode: fields.preorderPaymentMode ?? 'full',
     preorderDepositPaise: fields.preorderDepositPaise ?? null,
@@ -64,6 +66,10 @@ export function variantRow(input: VariantInput) {
     weightGrams: input.weightGrams ?? null,
     // Writers that do not know the setting (imports, bulk tools) keep the merchant's choice.
     ...(input.hiddenOnStore === undefined ? {} : { hiddenOnStore: input.hiddenOnStore }),
+    // The variant's "Allow pre-order" switch is the only override key the admin edits.
+    ...(input.preorderAllowed === undefined
+      ? {}
+      : { preorderOverride: withPreorderAllowed(null, input.preorderAllowed) }),
     // Writers that never show the unit (imports, bulk tools) leave the merchant's choice alone.
     ...(input.weightUnit === undefined ? {} : { weightUnit: input.weightUnit }),
     hsCode: input.hsCode ?? null,

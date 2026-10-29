@@ -185,6 +185,79 @@ describe('pre-order quantity in the cart (#939)', () => {
   })
 })
 
+describe('pre-order per variant (#962) and its note (#936)', () => {
+  /** A pre-order product with a second, sold-out variant whose "Allow pre-order" is off. */
+  async function seedBlockedVariant(storeId: string) {
+    const seeded = await seedProduct(storeId, { onHand: 0, preorderEnabled: true })
+    await owner
+      .update(product)
+      .set({ preorderShipDate: new Date('2026-11-30T04:30:00Z') })
+      .where(eq(product.id, seeded.productId))
+    const [blocked] = await owner
+      .insert(variant)
+      .values({
+        storeId,
+        productId: seeded.productId,
+        title: 'X1 SE',
+        pricePaise: 100000,
+        preorderOverride: { enabled: false },
+      })
+      .returning()
+    if (!blocked) throw new Error('seed')
+    await owner.insert(inventoryLevel).values({ storeId, variantId: blocked.id, onHand: 0 })
+    return { ...seeded, blockedId: blocked.id }
+  }
+
+  it('refuses a sold-out variant that does not allow pre-order, in the cart', async () => {
+    const storeId = await seedStore()
+    const { variantId, blockedId } = await seedBlockedVariant(storeId)
+    const [c] = await owner.insert(cart).values({ storeId }).returning()
+    const cartId = c?.id as string
+    await expect(
+      withStore(app, storeId, (tx) => addToCart({ storeId, tx }, cartId, blockedId, 1)),
+    ).rejects.toThrow(OutOfStock)
+    // Its sibling still sells on pre-order.
+    const lines = await withStore(app, storeId, async (tx) => {
+      await addToCart({ storeId, tx }, cartId, variantId, 1)
+      return (await getCart({ storeId, tx }, cartId))?.lines ?? []
+    })
+    expect(lines.map((l) => [l.variantId, l.preorder])).toEqual([[variantId, true]])
+  })
+
+  it('refuses it at checkout too, even from a cart line written past the cart', async () => {
+    const storeId = await seedStore()
+    const { blockedId } = await seedBlockedVariant(storeId)
+    const cartId = await seedCart(storeId, blockedId, 1, 100000)
+    await expect(
+      withStore(app, storeId, (tx) =>
+        placeOrder({ storeId, tx }, { cartId, paymentProvider: new FakePaymentProvider() }),
+      ),
+    ).rejects.toThrow(OutOfStock)
+  })
+
+  it("keeps the store's note with the ship date filled in on the cart line and the order line", async () => {
+    const storeId = await seedStore()
+    await owner
+      .update(store)
+      .set({ preorder: { note: 'Arrives around the end of {ship_month}. Non-refundable.' } })
+      .where(eq(store.id, storeId))
+    const { variantId } = await seedBlockedVariant(storeId)
+    const [c] = await owner.insert(cart).values({ storeId }).returning()
+    const cartId = c?.id as string
+    const note = 'Arrives around the end of November 2026. Non-refundable.'
+    const cartNote = await withStore(app, storeId, async (tx) => {
+      await addToCart({ storeId, tx }, cartId, variantId, 1)
+      return (await getCart({ storeId, tx }, cartId))?.lines[0]?.preorderNote
+    })
+    expect(cartNote).toBe(note)
+    const { orderId } = await withStore(app, storeId, (tx) =>
+      placeOrder({ storeId, tx }, { cartId, paymentProvider: new FakePaymentProvider() }),
+    )
+    const [line] = await owner.select().from(orderLine).where(eq(orderLine.orderId, orderId))
+    expect(line?.preorderNote).toBe(note)
+  })
+})
+
 describe('pre-order deposits', () => {
   it('charges only the fixed deposit and records the balance due', async () => {
     const storeId = await seedStore()
