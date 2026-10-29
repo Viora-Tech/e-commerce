@@ -26,6 +26,7 @@ export type TransactionalEmailProps = {
   outro: string
   lines: TemplateData['lines']
   totalLabel?: string | undefined
+  shipping?: TaxLine | undefined
   taxBreakdown?: TaxLine[] | undefined
   /** "Ships in 2 parcels", already in words. */
   parcels?: ParcelsBlockProps | undefined
@@ -53,6 +54,7 @@ export function TransactionalEmail({
   outro,
   lines,
   totalLabel,
+  shipping,
   taxBreakdown,
   parcels,
   giftCard,
@@ -87,7 +89,7 @@ export function TransactionalEmail({
       ) : null}
       {lines.length > 0 ? <ItemsTable lines={lines} /> : null}
       {lines.length > 0 && totalLabel ? (
-        <TotalsBlock totalLabel={totalLabel} taxBreakdown={taxBreakdown} />
+        <TotalsBlock totalLabel={totalLabel} shipping={shipping} taxBreakdown={taxBreakdown} />
       ) : null}
       {parcels ? <ParcelsBlock {...parcels} /> : null}
       <Body>{outro}</Body>

@@ -1,4 +1,4 @@
-/** SOURCE OF TRUTH: previewOrderEdit, editOrder — WHAT: Shopify-style editing of a placed order that has not shipped (add, remove, quantity, price, shipping, discount and their labels) and settling the difference / WHY: staff fix orders after payment without cancelling and re-placing them */
+/** SOURCE OF TRUTH: previewOrderEdit, editOrder — WHAT: Shopify-style editing of an open order, shipped or not (add, remove, quantity, price, shipping, discount and their labels) and settling the difference / WHY: staff fix orders after payment without cancelling and re-placing them */
 
 import { siteConfig } from '@commerce/config/site'
 import {
@@ -26,7 +26,7 @@ import {
   type PlannedLine,
   planOrderEdit,
 } from './edit-plan'
-import { canEditOrder } from './edit-rules'
+import { canEditOrder, editsAfterShipping } from './edit-rules'
 import { type EditSettlement, settleEditMoney } from './edit-settle'
 import {
   type AddedUnits,
@@ -52,7 +52,7 @@ async function loadForEdit(ctx: StoreContext, edit: OrderEdit, lock: boolean) {
       'not_editable',
       o?.importedFrom
         ? `This order was imported. Manage it in ${siteConfig.brand.name} first, then edit it.`
-        : 'Only an open order that has not been shipped can be edited',
+        : 'Only an open order can be edited',
       ctx.storeId,
     )
   }
@@ -150,7 +150,12 @@ const rupees = (paise: number) => formatMoney(paise, 'INR', { showZeroDecimals: 
 const quoted = (label: string | null) => (label ? `"${label}"` : 'none')
 
 /** The timeline line for an edit: what changed, the new total, and how the difference was settled. */
-function editNote(plan: EditPlan, settlement: EditSettlement, note?: string): string {
+function editNote(
+  plan: EditPlan,
+  settlement: EditSettlement,
+  note: string | undefined,
+  afterShipping: boolean,
+): string {
   const parts: string[] = []
   for (const l of plan.lines) {
     if (l.change === 'added') parts.push(`added ${l.quantity} × ${qty(l)}`)
@@ -191,7 +196,7 @@ function editNote(plan: EditPlan, settlement: EditSettlement, note?: string): st
             ? `${rupees(settlement.amountPaise)} owed back, not refunded.`
             : ''
   return [
-    `Order edited: ${parts.join(', ')}.`,
+    `Order edited${afterShipping ? ' after shipping (the shipment was not changed)' : ''}: ${parts.join(', ')}.`,
     `Total ${rupees(plan.before.totalPaise)} → ${rupees(plan.after.totalPaise)}.`,
     money,
     note?.trim() ? `Note: ${note.trim()}` : '',
@@ -202,7 +207,7 @@ function editNote(plan: EditPlan, settlement: EditSettlement, note?: string): st
 
 /**
  * Save an edit. Under the order's row lock: lines change (a removed line goes, nothing packed
- * can go), stock follows (units taken off are released where their parcel holds them, units
+ * can go: a shipped unit comes back through a return), stock follows (units taken off are released where their parcel holds them, units
  * added are routed and held like a checkout, so OutOfStock refuses the whole edit), parcels and
  * GST are worked out again, totals move by the difference, then the difference is settled
  * (`edit-settle.ts`: a payment request, or a refund the chosen way). The timeline records it and
@@ -238,15 +243,17 @@ export async function editOrder(
   const storeTax = parseStoreTax(s?.apps)
   const byLine = new Map(lines.map((l) => [l.id, l]))
   const added: AddedUnits[] = []
+  const repriced = new Set<string>()
   for (const l of plan.lines) {
     if (l.change === 'same') continue
     if (l.lineId) {
       const line = byLine.get(l.lineId)
       if (!line) continue
       const remove = l.quantity === 0
-      const repriced = !remove && l.unitPricePaise !== line.unitPricePaise
+      const newPrice = !remove && l.unitPricePaise !== line.unitPricePaise
+      if (newPrice) repriced.add(line.id)
       // A line on a return was refunded at its price: removing or repricing it would not add up.
-      if (remove || repriced) {
+      if (remove || newPrice) {
         const [returned] = await ctx.tx
           .select({ id: returnRequestLine.id })
           .from(returnRequestLine)
@@ -316,7 +323,7 @@ export async function editOrder(
       shippingRateName: plan.labels.after.shippingLabel,
     })
     .where(eq(order.id, o.id))
-  await retaxOrder(ctx, o.id)
+  await retaxOrder(ctx, o.id, { repriced })
   const settlement = await settleEditMoney(ctx, {
     order: { ...o, totalPaise: plan.after.totalPaise },
     plan,
@@ -328,7 +335,7 @@ export async function editOrder(
   await ctx.tx.insert(orderNote).values({
     storeId: ctx.storeId,
     orderId: o.id,
-    body: editNote(plan, settlement, opts.note),
+    body: editNote(plan, settlement, opts.note, editsAfterShipping(o)),
     author: opts.author,
   })
   await recomputeOrderStatuses(ctx, o.id)

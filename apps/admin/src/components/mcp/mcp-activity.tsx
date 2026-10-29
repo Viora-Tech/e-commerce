@@ -55,6 +55,13 @@ export default function McpActivityTab() {
       .catch(() => setFailed(true))
   }, [filter, reload])
 
+  // Helpers
+  /** What became of a change that waited for approval: approved, cancelled, expired. */
+  const resolution = (item: Item) =>
+    item.kind === 'approval' && item.approvalStatus && item.approvalStatus !== 'proposed'
+      ? (copy.activity.approvalStatus[item.approvalStatus] ?? null)
+      : null
+
   // Event handlers
   const handleMore = async () => {
     if (!next) return
@@ -136,9 +143,17 @@ export default function McpActivityTab() {
                     />
                     <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                       <p className="text-body break-words text-ink-strong">{item.summary}</p>
-                      {item.detail || item.approvalId ? (
+                      {item.detail || item.approvalId || resolution(item) ? (
                         <p className="text-caption text-muted-foreground">
                           {item.detail}
+                          {resolution(item) ? (
+                            <>
+                              {item.detail ? ' · ' : null}
+                              <span className="font-medium text-ink-strong">
+                                {resolution(item)}
+                              </span>
+                            </>
+                          ) : null}
                           {item.approvalId ? (
                             <>
                               {item.detail ? ' · ' : null}

@@ -595,6 +595,91 @@ describe('editOrder', () => {
     ).rejects.toMatchObject({ reason: 'no_change' })
   })
 
+  it('edits a shipped order: the sent parcel keeps its money, added items go in a new parcel', async () => {
+    const { storeId, black, white } = await seed()
+    const id = await withStore(app, storeId, async (tx) => {
+      const ctx = { storeId, tx }
+      const d = await createDraft(ctx, {
+        email: 'raj@example.in',
+        shipping,
+        lines: [{ variantId: black, quantity: 2 }],
+        discountPaise: 0,
+        shippingPaise: 10000,
+      })
+      await convertDraft(ctx, d.id, { paymentMethod: 'fake' })
+      await tx
+        .update(payment)
+        .set({ status: 'captured', providerPaymentId: 'pay_1', provider: 'fake' })
+        .where(eq(payment.orderId, d.id))
+      return d.id
+    })
+    // Packed and handed over: every unit fulfilled, the parcel closed.
+    await owner.update(orderLine).set({ fulfilledQuantity: 2 }).where(eq(orderLine.orderId, id))
+    await owner.update(fulfillmentOrderLine).set({ fulfilledQuantity: 2 })
+    await owner
+      .update(fulfillmentOrder)
+      .set({ status: 'fulfilled' })
+      .where(eq(fulfillmentOrder.orderId, id))
+    await withStore(app, storeId, (tx) => recomputeOrderStatuses({ storeId, tx }, id))
+    expect((await orderRow(id)).fulfillmentStatus).toBe('fulfilled')
+    const [sent] = await owner
+      .select()
+      .from(fulfillmentOrder)
+      .where(eq(fulfillmentOrder.orderId, id))
+    const [line] = await owner.select().from(orderLine).where(eq(orderLine.orderId, id))
+
+    // Below what was sent is still refused: that is a return.
+    await expect(
+      withStore(app, storeId, (tx) =>
+        previewOrderEdit(
+          { storeId, tx },
+          edit({ orderId: id, lines: [{ lineId: line?.id, quantity: 1 }] }),
+          [],
+        ),
+      ),
+    ).rejects.toMatchObject({ reason: 'fulfilled_line' })
+
+    await withStore(app, storeId, (tx) =>
+      editOrder(
+        { storeId, tx },
+        edit({ orderId: id, add: [{ variantId: white, quantity: 1 }] }),
+        { refund: 'none', requestPayment: false, author: STAFF },
+        [gateway()],
+      ),
+    )
+    const o = await orderRow(id)
+    expect(o.totalPaise).toBe(260000)
+    const parcels = await owner
+      .select()
+      .from(fulfillmentOrder)
+      .where(eq(fulfillmentOrder.orderId, id))
+    const kept = parcels.find((p) => p.id === sent?.id)
+    const fresh = parcels.find((p) => p.id !== sent?.id)
+    // The sent parcel still bills what went out with it, shipping included.
+    expect(kept).toMatchObject({
+      status: 'fulfilled',
+      totalPaise: sent?.totalPaise,
+      shippingPaise: sent?.shippingPaise,
+      taxPaise: sent?.taxPaise,
+    })
+    expect(fresh).toMatchObject({ status: 'open', totalPaise: 50000, shippingPaise: 0 })
+    expect(o.taxPaise).toBe((kept?.taxPaise ?? 0) + (fresh?.taxPaise ?? 0))
+    expect(await level(white)).toEqual({ onHand: 4, reserved: 1 })
+    const notes = await owner.select().from(orderNote).where(eq(orderNote.orderId, id))
+    expect(notes.some((n) => n.body.startsWith('Order edited after shipping'))).toBe(true)
+  })
+
+  it('refuses a completed order', async () => {
+    const { storeId, black } = await seed()
+    const id = await placed(storeId, black)
+    await owner.update(order).set({ status: 'completed' }).where(eq(order.id, id))
+    await expect(
+      withStore(app, storeId, (tx) =>
+        previewOrderEdit({ storeId, tx }, edit({ orderId: id, shippingLabel: 'Bluedart' }), []),
+      ),
+    ).rejects.toMatchObject({ reason: 'not_editable' })
+  })
+
   it('refuses an imported order until it is taken over', async () => {
     const { storeId, black, white } = await seed()
     const id = await imported(storeId, black)

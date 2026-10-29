@@ -21,11 +21,14 @@ import { orderEditContent } from '@/data/order-edit'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import RefundRouteField from '../refund-route-field'
+import EditShippedAlert from './edit-shipped-alert'
 import { lineName } from './edit-state'
 
 type EditReviewDialogProps = {
   /** The edit to review; null keeps the dialog closed. */
   input: OrderEditInput | null
+  /** The order has shipped: the warning repeats above Save. */
+  shipped: boolean
   onClose: () => void
   onSaved: () => void
 }
@@ -72,7 +75,12 @@ function changeList(
  * The edit's review step (centred dialog): what changes, the new total against what was paid,
  * and how the difference is settled (a payment link, or a refund), then Save.
  */
-export default function EditReviewDialog({ input, onClose, onSaved }: EditReviewDialogProps) {
+export default function EditReviewDialog({
+  input,
+  shipped,
+  onClose,
+  onSaved,
+}: EditReviewDialogProps) {
   // Hooks
   const copy = useCopy(orderEditContent)
   const fmt = useFormat()
@@ -147,6 +155,7 @@ export default function EditReviewDialog({ input, onClose, onSaved }: EditReview
         </DialogHeader>
         {preview ? (
           <div className="flex flex-col gap-5">
+            {shipped ? <EditShippedAlert /> : null}
             <ul className="flex list-disc flex-col gap-1 pl-5 text-body">
               {changes.map((c) => (
                 <li key={c}>{c}</li>

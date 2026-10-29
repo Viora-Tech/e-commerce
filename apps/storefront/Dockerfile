@@ -24,7 +24,8 @@ COPY --from=pruner /repo/out/json/ .
 COPY --from=pruner /repo/out/bun.lock ./bun.lock
 COPY patches ./patches
 # bun's download cache in a BuildKit cache mount: see apps/admin/Dockerfile's install step.
-RUN --mount=type=cache,id=commerce-bun-install-cache,sharing=locked,target=/root/.bun/install/cache \n  bun install --frozen-lockfile --backend=copyfile --cache-dir=/root/.bun/install/cache
+RUN --mount=type=cache,id=commerce-bun-install-cache,sharing=locked,target=/root/.bun/install/cache \
+  bun install --frozen-lockfile --backend=copyfile --cache-dir=/root/.bun/install/cache
 
 # --- Build with the full pruned source ------------------------------------------------------
 FROM installer AS builder

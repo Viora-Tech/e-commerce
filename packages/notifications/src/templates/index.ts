@@ -303,6 +303,7 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
         ? [
             `${shared.itemsHeading}:`,
             ...lines.map((l) => `- ${l}`),
+            ...(d.shipping ? [`${d.shipping.label}: ${d.shipping.amount}`] : []),
             `${shared.totalLabel}: ${d.totalLabel}`,
           ]
         : []),
@@ -333,6 +334,7 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
       outro: c.outro(d),
       lines: gc ? [] : d.lines,
       totalLabel: gc ? undefined : d.totalLabel,
+      shipping: gc ? undefined : d.shipping,
       taxBreakdown: gc ? undefined : d.taxBreakdown,
       parcels: gc ? undefined : parcelsBlock(d),
       giftCard: gc,

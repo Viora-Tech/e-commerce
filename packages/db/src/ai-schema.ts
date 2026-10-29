@@ -105,7 +105,8 @@ export const aiAction = pgTable(
     storeId: uuid('store_id')
       .notNull()
       .references(() => store.id),
-    /** The member whose message led to the proposal; only they can approve it. */
+    /** The member whose message (or MCP connection) led to the proposal. The assistant's are
+     *  theirs alone to approve; an MCP client's the owner or a permitted member may approve. */
     userId: text('user_id').notNull(),
     /** `assistant` (the AI bar), `bulkWriter` (applying a bulk AI run) or `mcp` (an AI client
      *  connected in Settings → MCP & API). */

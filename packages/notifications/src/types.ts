@@ -151,6 +151,11 @@ export type TemplateData = {
   customerName: string
   totalLabel: string
   lines: { title: string; quantity: number; priceLabel: string; imageUrl?: string | undefined }[]
+  /**
+   * The shipping row above the total, labelled with the rate's name ("Bluedart") when the order
+   * has one. Omitted when nothing was charged for shipping.
+   */
+  shipping?: { label: string; amount: string } | undefined
   /** GST split shown above the total, e.g. CGST/SGST or IGST rows. Omit to show only the total. */
   taxBreakdown?: { label: string; amount: string }[] | undefined
   /**

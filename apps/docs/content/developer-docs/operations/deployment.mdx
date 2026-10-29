@@ -361,6 +361,24 @@ reports zero values left, then remove `SETTINGS_SECRET_PREVIOUS` and redeploy on
   each run; check it's actually landing new objects in R2 periodically, not just that the
   container is "running".
 
+## 12. Ops scripts in the worker
+
+Scripts that need the production database settings run by hand in the worker container. The
+worker image is pruned to the worker's packages, so `apps/worker/Dockerfile` copies each script
+from `scripts/` into `/repo/apps/worker/ops/`, where its imports resolve against the worker's own
+dependencies. There are no root `package.json` scripts in the image: run the file with `bun`
+from `/repo/apps/worker` (a Dokploy schedule on the worker, or `docker exec -it <worker> sh`).
+
+| Script | Command (from `/repo/apps/worker`) |
+| --- | --- |
+| Store data reset (`scripts/reset-store-data.ts`) | `bun ops/reset-store-data.ts --store <slug>` (dry run; `--apply` deletes) |
+| Unlimited plan (`scripts/platform-unlimited.ts`) | `bun ops/platform-unlimited.ts <slug>` (`--off` to undo) |
+| Gateway fee backfill (`apps/worker/src/payment-fees-backfill.ts`) | `bun src/payment-fees-backfill.ts [--store id] [--days 90]` |
+
+A new script for the worker must import only packages `apps/worker/package.json` depends on,
+and needs its own `COPY` line next to the others. Restore and key rotation run from the `tasks`
+image instead (sections 9 and 10), which carries the whole repo.
+
 ## What's next
 
 This covers one server, one region, images built in GitHub Actions and pulled by Dokploy. It

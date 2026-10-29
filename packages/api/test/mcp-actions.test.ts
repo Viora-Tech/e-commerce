@@ -339,14 +339,103 @@ describe('MCP admin actions', () => {
     const st = await connect(s, { discounts: 'write' })
     await tool(s.slug, st, 'runAction', { path: 'discounts.create', input: discountInput })
     const [pending] = await owner.select().from(aiAction).where(eq(aiAction.storeId, m.storeId))
-    const done = await call(
-      appRouter.ai.approveAction,
-      { id: pending?.id as string },
-      { context: s.ctx },
-    )
-    expect(done.status).toBe('failed')
-    expect(done.error).toMatch(/role does not allow/i)
+    const id = pending?.id as string
+    // The staff member who connected cannot make it: refused, and it keeps waiting.
+    await expect(
+      call(appRouter.ai.approveAction, { id }, { context: s.ctx }),
+    ).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+      message: expect.stringMatching(/permission|role/i),
+    })
     expect(await owner.select().from(discount).where(eq(discount.storeId, m.storeId))).toEqual([])
+    const [still] = await owner.select().from(aiAction).where(eq(aiAction.id, id))
+    expect(still?.status).toBe('proposed')
+  })
+
+  it("lets the owner approve another member's MCP proposal, as the owner", async () => {
+    const m = await merchant('asha@example.com', 'asha')
+    const s = await staffOf(m)
+    const st = await connect(s, { discounts: 'write' })
+    await tool(s.slug, st, 'runAction', { path: 'discounts.create', input: discountInput })
+    const [pending] = await owner.select().from(aiAction).where(eq(aiAction.storeId, m.storeId))
+    const id = pending?.id as string
+    expect(pending?.userId).toBe(s.userId)
+
+    const card = await call(appRouter.ai.action, { id }, { context: m.ctx })
+    expect(card.status).toBe('proposed')
+    expect(card.requestedBy).toBeTruthy()
+    expect(card.by).toBeNull()
+
+    const done = await call(appRouter.ai.approveAction, { id }, { context: m.ctx })
+    expect(done.status).toBe('executed')
+    expect(done.by).toBe('asha@example.com')
+    expect(done.requestedBy).toBe(card.requestedBy)
+    const [row] = await owner.select().from(aiAction).where(eq(aiAction.id, id))
+    expect(row).toMatchObject({ status: 'executed', approvedBy: m.userId, userId: s.userId })
+    const [made] = await owner.select().from(discount).where(eq(discount.storeId, m.storeId))
+    expect(made?.code).toBe('MCP10')
+
+    const log = await call(appRouter.apiAccess.activity, { filter: 'approval' }, { context: m.ctx })
+    expect(log.items[0]).toMatchObject({ approvalId: null, approvalStatus: 'executed' })
+  })
+
+  it("refuses a member whose role lacks the permission, and keeps others' assistant cards theirs", async () => {
+    const m = await merchant('asha@example.com', 'asha')
+    const s = await staffOf(m)
+    const t = await connect(m, { discounts: 'write' })
+    await tool(m.slug, t, 'runAction', { path: 'discounts.create', input: discountInput })
+    const [pending] = await owner.select().from(aiAction).where(eq(aiAction.storeId, m.storeId))
+    const id = pending?.id as string
+
+    // Staff holds no discount writes: approving is refused by the admin middleware, and only
+    // the owner may cancel or edit it for the member who asked.
+    await expect(
+      call(appRouter.ai.approveAction, { id }, { context: s.ctx }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    await expect(call(appRouter.ai.cancelAction, { id }, { context: s.ctx })).rejects.toMatchObject(
+      { code: 'FORBIDDEN' },
+    )
+    expect(await owner.select().from(discount).where(eq(discount.storeId, m.storeId))).toEqual([])
+    const [still] = await owner.select().from(aiAction).where(eq(aiAction.id, id))
+    expect(still).toMatchObject({ status: 'proposed', approvedBy: null })
+
+    // An AI bar proposal stays the asker's own, even for the owner.
+    await owner
+      .update(aiAction)
+      .set({ source: 'assistant', userId: s.userId })
+      .where(eq(aiAction.id, id))
+    await expect(
+      call(appRouter.ai.approveAction, { id }, { context: m.ctx }),
+    ).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+      message: expect.stringMatching(/asked the assistant/),
+    })
+  })
+
+  it('refuses an expired proposal with a clear message, and shows it as expired', async () => {
+    const m = await merchant('asha@example.com', 'asha')
+    const s = await staffOf(m)
+    const st = await connect(s, { discounts: 'write' })
+    await tool(s.slug, st, 'runAction', { path: 'discounts.create', input: discountInput })
+    const [pending] = await owner.select().from(aiAction).where(eq(aiAction.storeId, m.storeId))
+    const id = pending?.id as string
+    await owner
+      .update(aiAction)
+      .set({ expiresAt: new Date(Date.now() - 60_000) })
+      .where(eq(aiAction.id, id))
+
+    await expect(
+      call(appRouter.ai.approveAction, { id }, { context: m.ctx }),
+    ).rejects.toMatchObject({ code: 'CONFLICT', message: expect.stringMatching(/expired/) })
+    expect(await owner.select().from(discount).where(eq(discount.storeId, m.storeId))).toEqual([])
+
+    const card = await call(appRouter.ai.action, { id }, { context: m.ctx })
+    expect(card).toMatchObject({ status: 'expired', editable: [] })
+    const log = await call(appRouter.apiAccess.activity, { filter: 'approval' }, { context: m.ctx })
+    expect(log.items[0]).toMatchObject({ approvalId: null, approvalStatus: 'expired' })
+    const list = await call(appRouter.ai.activity, {}, { context: m.ctx })
+    expect(list.items[0]).toMatchObject({ id, status: 'expired' })
+    expect(list.items[0]?.requestedBy).toBeTruthy()
   })
 
   it('answers files with a signed link, and cuts long answers', async () => {

@@ -109,6 +109,11 @@ export default function ActionCard({ action, onChange }: ActionCardProps) {
               {action.preview.undoable ? copy.card.willUndo : copy.card.noUndo}
             </p>
           ) : null}
+          {action.source === 'mcp' && action.requestedBy ? (
+            <p className="text-caption text-muted-foreground">
+              {copy.card.askedBy(action.requestedBy)}
+            </p>
+          ) : null}
         </div>
         <StatusChip tone={BADGE[action.status] ?? 'neutral'}>
           {copy.card.status[action.status] ?? action.status}
@@ -147,9 +152,8 @@ export default function ActionCard({ action, onChange }: ActionCardProps) {
 
       {open && !editing ? (
         <footer className="flex flex-wrap items-center justify-end gap-2 border-border border-t bg-muted/30 px-4 py-2.5">
-          <KitButton variant="primary" onClick={handleApprove} disabled={busy !== null}>
-            {busy === 'approve' ? <Spinner /> : null}
-            {copy.card.approve}
+          <KitButton variant="link" onClick={handleCancel} disabled={busy !== null}>
+            {copy.card.cancel}
           </KitButton>
           {action.editable.length ? (
             <KitButton
@@ -160,13 +164,9 @@ export default function ActionCard({ action, onChange }: ActionCardProps) {
               {copy.card.edit}
             </KitButton>
           ) : null}
-          <KitButton
-            variant="link"
-            onClick={handleCancel}
-            disabled={busy !== null}
-            className="ml-auto"
-          >
-            {copy.card.cancel}
+          <KitButton variant="primary" onClick={handleApprove} disabled={busy !== null}>
+            {busy === 'approve' ? <Spinner /> : null}
+            {copy.card.approve}
           </KitButton>
         </footer>
       ) : null}
@@ -192,6 +192,13 @@ export default function ActionCard({ action, onChange }: ActionCardProps) {
               {copy.card.undo}
             </KitButton>
           ) : null}
+        </footer>
+      ) : null}
+
+      {action.status === 'expired' ? (
+        <footer className="flex items-center gap-1.5 border-border border-t bg-muted/30 px-4 py-2.5 text-caption text-muted-foreground">
+          <CircleAlert className="size-4 shrink-0" aria-hidden="true" />
+          {copy.card.expired}
         </footer>
       ) : null}
 

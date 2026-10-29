@@ -39,15 +39,19 @@ COPY --from=pruner /repo/out/bun.lock ./bun.lock
 COPY patches ./patches
 # bun's download cache in a BuildKit cache mount: see apps/admin/Dockerfile's install step.
 # This image runs from this stage, so before this the cache itself shipped in the worker image.
-RUN --mount=type=cache,id=commerce-bun-install-cache,sharing=locked,target=/root/.bun/install/cache \n  bun install --frozen-lockfile --production --backend=copyfile --cache-dir=/root/.bun/install/cache
+RUN --mount=type=cache,id=commerce-bun-install-cache,sharing=locked,target=/root/.bun/install/cache \
+  bun install --frozen-lockfile --production --backend=copyfile --cache-dir=/root/.bun/install/cache
 COPY --from=pruner /repo/out/full/ .
 # turbo prune only copies workspace packages, not root-only files — packages/core imports
 # this one by relative path (see apps/docs/content/developer-docs/building/plugins.mdx).
 COPY --from=pruner /repo/commerce.config.ts ./commerce.config.ts
-# The store data reset (scripts/reset-store-data.ts, dry run unless --apply), run by hand from a
-# Dokploy schedule with the worker's database settings. It sits in the worker app so it resolves
-# the worker's own packages: bun run /repo/apps/worker/ops/reset-store-data.ts --store <slug>
+# Ops scripts run by hand in the worker container with its database settings. They sit in the
+# worker app so they resolve the worker's own packages (every import must be a worker dependency).
+# From /repo/apps/worker:
+#   bun ops/reset-store-data.ts --store <slug>     store data reset, dry run unless --apply
+#   bun ops/platform-unlimited.ts <slug>           unlimited plan for Koomerce's own store (--off)
 COPY --from=pruner /repo/scripts/reset-store-data.ts ./apps/worker/ops/reset-store-data.ts
+COPY --from=pruner /repo/scripts/platform-unlimited.ts ./apps/worker/ops/platform-unlimited.ts
 
 # --- Minimal runtime image -------------------------------------------------------------------
 FROM installer AS runner
