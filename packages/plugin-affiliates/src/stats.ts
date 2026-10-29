@@ -1,6 +1,19 @@
 /** SOURCE OF TRUTH: affiliate reporting — WHAT: the overview, per-affiliate totals and the commissions ledger / WHY: the admin pages and the storefront portal show the same figures */
 import { order, orderLine, product, type StoreTx, variant } from '@commerce/db'
-import { and, desc, eq, sql } from 'drizzle-orm'
+import {
+  and,
+  desc,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  isNotNull,
+  isNull,
+  lt,
+  lte,
+  or,
+  sql,
+} from 'drizzle-orm'
 import { affiliate, affiliateClickDay, affiliateCommission } from './schema'
 import type { CommissionStatus } from './settings'
 
@@ -111,10 +124,53 @@ export type LedgerRow = {
   payoutId: string | null
 }
 
-/** Newest first; optionally one affiliate's. */
+/** The Commissions list's search and filter panel; arrays are "any of", each part combines. */
+export type CommissionListFilters = {
+  /** Order number, affiliate name or code. */
+  search?: string | undefined
+  statuses?: CommissionStatus[] | undefined
+  sources?: LedgerRow['source'][] | undefined
+  affiliateIds?: string[] | undefined
+  /** Order placed in [from, to); ISO times. */
+  placedFrom?: string | undefined
+  placedTo?: string | undefined
+  /** Commission in paise, both ends included. */
+  minCommissionPaise?: number | undefined
+  maxCommissionPaise?: number | undefined
+  /** Held by a fraud check (true) or not (false). */
+  flagged?: boolean | undefined
+}
+
+function ledgerFiltersWhere(f: CommissionListFilters) {
+  const term = f.search?.trim()
+  const number = term?.replace(/^#/, '')
+  const c = affiliateCommission
+  return and(
+    term
+      ? or(
+          ilike(affiliate.name, `%${term}%`),
+          ilike(affiliate.code, `%${term}%`),
+          number && /^\d{1,9}$/.test(number) ? eq(order.number, Number(number)) : undefined,
+        )
+      : undefined,
+    f.statuses?.length ? inArray(c.status, f.statuses) : undefined,
+    f.sources?.length ? inArray(c.source, f.sources) : undefined,
+    f.affiliateIds?.length ? inArray(c.affiliateId, f.affiliateIds) : undefined,
+    f.placedFrom ? gte(c.placedAt, new Date(f.placedFrom)) : undefined,
+    f.placedTo ? lt(c.placedAt, new Date(f.placedTo)) : undefined,
+    f.minCommissionPaise !== undefined ? gte(c.commissionPaise, f.minCommissionPaise) : undefined,
+    f.maxCommissionPaise !== undefined ? lte(c.commissionPaise, f.maxCommissionPaise) : undefined,
+    f.flagged === undefined ? undefined : f.flagged ? isNotNull(c.flag) : isNull(c.flag),
+  )
+}
+
+/** Newest first; optionally one affiliate's, or filtered by the Commissions list. */
 export async function commissionLedger(
   tx: StoreTx,
-  opts: { affiliateId?: string | undefined; limit?: number | undefined } = {},
+  opts: {
+    affiliateId?: string | undefined
+    limit?: number | undefined
+  } & CommissionListFilters = {},
 ): Promise<LedgerRow[]> {
   return tx
     .select({
@@ -139,7 +195,10 @@ export async function commissionLedger(
     .innerJoin(affiliate, eq(affiliate.id, affiliateCommission.affiliateId))
     .innerJoin(order, eq(order.id, affiliateCommission.orderId))
     .where(
-      and(opts.affiliateId ? eq(affiliateCommission.affiliateId, opts.affiliateId) : undefined),
+      and(
+        opts.affiliateId ? eq(affiliateCommission.affiliateId, opts.affiliateId) : undefined,
+        ledgerFiltersWhere(opts),
+      ),
     )
     .orderBy(desc(affiliateCommission.placedAt))
     .limit(opts.limit ?? 1000)

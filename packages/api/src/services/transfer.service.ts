@@ -1,18 +1,58 @@
 import type { StoreTx } from '@commerce/db'
 import { location, transfer, transferLine } from '@commerce/db'
-import { aliasedTable, and, asc, count, desc, eq, ilike, or, sql } from 'drizzle-orm'
+import {
+  aliasedTable,
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  lt,
+  or,
+  sql,
+} from 'drizzle-orm'
 import { lineDetails } from './purchase-order.service'
 
 // Services are the only code that runs queries. They receive a store-scoped tx.
 
+type TransferStatus = 'draft' | 'in_transit' | 'received'
+
+/** The list's filter panel; arrays are "any of", each part combines with the tab and search. */
+export type TransferListFilters = {
+  statuses?: TransferStatus[] | undefined
+  fromLocationIds?: string[] | undefined
+  toLocationIds?: string[] | undefined
+  /** Created in [from, to); ISO times. */
+  createdFrom?: string | undefined
+  createdTo?: string | undefined
+  /** Received in [from, to); ISO times. */
+  receivedFrom?: string | undefined
+  receivedTo?: string | undefined
+}
+
+function transferFiltersWhere(f: TransferListFilters) {
+  return and(
+    f.statuses?.length ? inArray(transfer.status, f.statuses) : undefined,
+    f.fromLocationIds?.length ? inArray(transfer.fromLocationId, f.fromLocationIds) : undefined,
+    f.toLocationIds?.length ? inArray(transfer.toLocationId, f.toLocationIds) : undefined,
+    f.createdFrom ? gte(transfer.createdAt, new Date(f.createdFrom)) : undefined,
+    f.createdTo ? lt(transfer.createdAt, new Date(f.createdTo)) : undefined,
+    f.receivedFrom ? gte(transfer.receivedAt, new Date(f.receivedFrom)) : undefined,
+    f.receivedTo ? lt(transfer.receivedAt, new Date(f.receivedTo)) : undefined,
+  )
+}
+
 export async function listTransfers(
   tx: StoreTx,
   q: {
-    status?: 'all' | 'draft' | 'in_transit' | 'received' | undefined
+    status?: 'all' | TransferStatus | undefined
     search?: string | undefined
     page: number
     perPage: number
-  },
+  } & TransferListFilters,
 ) {
   const from = aliasedTable(location, 'from_location')
   const to = aliasedTable(location, 'to_location')
@@ -26,6 +66,7 @@ export async function listTransfers(
           sql`${transfer.number}::text = ${term.replace(/^#?T?/i, '')}`,
         )
       : undefined,
+    transferFiltersWhere(q),
   )
   const rows = await tx
     .select({

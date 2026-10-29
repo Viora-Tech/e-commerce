@@ -28,8 +28,12 @@ export const ACTION_DOCS: Record<string, string> = {
   'affiliates.commissions.approveDue':
     'Approves every commission whose hold is over now, instead of waiting for the hourly pass.',
   'affiliates.commissions.decide': 'Clear a fraud flag (back to pending) or refuse a commission.',
+  'affiliates.commissions.list':
+    'The newest 1000 that match the search and filter panel; the admin pages in the browser.',
   'affiliates.decideCode': "Approve or decline an affiliate's request for their own code.",
   'affiliates.ledgerCsv': "The commissions ledger as CSV, for the merchant's books.",
+  'affiliates.list':
+    'Every affiliate (up to 1000), searched and filtered here; the admin pages in the browser.',
   'affiliates.overview':
     'Sales from affiliates, money owed, the best affiliates and who is waiting to be paid.',
   'affiliates.payouts.exportCsv':
@@ -139,7 +143,10 @@ export const ACTION_DOCS: Record<string, string> = {
     '"Turn on UPI AutoPay" for the current plan: the page where the owner approves the mandate.',
   'billing.stopApp': '"Stop renewing": the app keeps working until its paid month ends.',
   'billing.usage': 'The sidebar\'s "Orders this month · 142 of 200": cheap, on every page.',
+  'billing.usageBillCsv':
+    'A usage bill\'s "Download CSV": each order of that month that carried a fee.',
   'billing.view': "Settings → Plan & billing: the plan, this month's usage, bills and the one due.",
+  'blog.authors': "Author names on posts, for the list's author filter.",
   'blog.blogs': 'Blogs with post counts; creates "News" the first time a store has none.',
   'blog.defaults': 'Prefills for a new post: the signed-in staff member as author.',
   'blog.recent': 'Newest visible posts as cards, for the "Blog posts" block in the page editor.',
@@ -616,6 +623,7 @@ export const ACTION_DOCS: Record<string, string> = {
   'store.testStorageConnection': 'A storage Connect page\'s "Test connection" button (e.g.',
   'store.updatePayments': 'Save payment settings.',
   'store.updateTheme': "Saves the live theme's settings.",
+  'suppliers.facets': "The countries and currencies in use, for the list's filter pickers.",
   'themes.createBlank':
     '"Start from scratch": base settings and empty templates, nothing from the live theme.',
   'themes.customSections.list': 'The saved sections.',

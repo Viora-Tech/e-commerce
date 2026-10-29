@@ -3,6 +3,7 @@ import abandonedDetail from './abandoned-detail'
 import account from './account'
 import activity from './activity'
 import affiliateCreatives from './affiliate-creatives'
+import affiliateFilters from './affiliate-filters'
 import affiliates from './affiliates'
 import ai from './ai'
 import analytics from './analytics'
@@ -132,6 +133,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...account,
   ...affiliates,
   ...affiliateCreatives,
+  ...affiliateFilters,
   ...appInstall,
   ...apps,
   ...abandonedDetail,

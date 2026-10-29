@@ -18,6 +18,9 @@ export const filterPanelContent = {
   custom: 'Custom range',
   from: 'From',
   to: 'To',
+  /** A date group's "no filter" choice and the usual look-back presets. */
+  anyDate: 'Any date',
+  lastDays: { '7d': 'Last 7 days', '30d': 'Last 30 days', '90d': 'Last 90 days' },
   /** A range chip's value: both ends, or one open end. */
   range: {
     between: (from: string, to: string) => `${from}–${to}`,

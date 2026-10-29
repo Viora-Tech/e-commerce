@@ -11,6 +11,7 @@ import {
   loadReviewsSettings,
   previewJudgemeImport,
   REPLY_MAX,
+  REVIEW_SOURCES,
   REVIEW_STATUSES,
   REVIEWS_ID,
   ReviewsSettingsSchema,
@@ -59,6 +60,15 @@ export const reviewsRouter = {
         rating: z.number().int().min(1).max(5).optional(),
         productId: z.uuid().optional(),
         hasPhotos: z.boolean().optional(),
+        /** The admin's filter panel; each combines with the tab (`status`) and search. */
+        ratings: z.array(z.number().int().min(1).max(5)).max(5).optional(),
+        productIds: z.array(z.uuid()).max(BULK_MAX).optional(),
+        sources: z.array(z.enum(REVIEW_SOURCES)).max(REVIEW_SOURCES.length).optional(),
+        verifiedBuyer: z.boolean().optional(),
+        featured: z.boolean().optional(),
+        replied: z.boolean().optional(),
+        createdFrom: z.iso.datetime().optional(),
+        createdTo: z.iso.datetime().optional(),
       }),
     )
     .handler(async ({ context, input }) => {

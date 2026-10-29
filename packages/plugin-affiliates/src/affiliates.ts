@@ -3,7 +3,7 @@ import { decryptSecret, encryptSecret, insertOutboxEvent, phoneBlindIndex } from
 import { slugify } from '@commerce/core/catalog'
 import { validateGstin } from '@commerce/core/gstin'
 import { discount, type StoreTx } from '@commerce/db'
-import { and, desc, eq, sql } from 'drizzle-orm'
+import { and, desc, eq, gte, ilike, inArray, isNull, lt, or, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { blockedKinds, fraudIndex, payoutKeys, refreshReview } from './blocklist'
 import { ensureCoupon, linkCodeIs, recordCode } from './codes'
@@ -255,9 +255,53 @@ export async function affiliateForCustomer(
   return row ?? null
 }
 
-/** Newest first; the admin list filters and pages in the browser, like Forms. */
-export function listAffiliates(tx: StoreTx, limit = 1000): Promise<AffiliateRow[]> {
-  return tx.select().from(affiliate).orderBy(desc(affiliate.createdAt)).limit(limit)
+/** The admin list's search and filter panel; arrays are "any of", each part combines. */
+export type AffiliateListFilters = {
+  search?: string | undefined
+  statuses?: AffiliateStatus[] | undefined
+  programIds?: string[] | undefined
+  /** Also match affiliates on no program of their own (they earn on the default one). */
+  withoutProgram?: boolean | undefined
+  /** Joined in [from, to); ISO times. */
+  joinedFrom?: string | undefined
+  joinedTo?: string | undefined
+}
+
+/** Newest first, filtered here; the admin list pages in the browser, like Forms. */
+export function listAffiliates(
+  tx: StoreTx,
+  filters: AffiliateListFilters = {},
+  limit = 1000,
+): Promise<AffiliateRow[]> {
+  const term = filters.search?.trim()
+  const programs = filters.programIds?.length
+    ? or(
+        inArray(affiliate.programId, filters.programIds),
+        filters.withoutProgram ? isNull(affiliate.programId) : undefined,
+      )
+    : undefined
+  return tx
+    .select()
+    .from(affiliate)
+    .where(
+      and(
+        term
+          ? or(
+              ilike(affiliate.name, `%${term}%`),
+              ilike(affiliate.email, `%${term}%`),
+              ilike(affiliate.code, `%${term}%`),
+              ilike(affiliate.couponCode, `%${term}%`),
+              ilike(affiliate.social, `%${term}%`),
+            )
+          : undefined,
+        filters.statuses?.length ? inArray(affiliate.status, filters.statuses) : undefined,
+        programs,
+        filters.joinedFrom ? gte(affiliate.createdAt, new Date(filters.joinedFrom)) : undefined,
+        filters.joinedTo ? lt(affiliate.createdAt, new Date(filters.joinedTo)) : undefined,
+      ),
+    )
+    .orderBy(desc(affiliate.createdAt))
+    .limit(limit)
 }
 
 /** Counts a click on an approved affiliate's link. Unknown or paused codes count nothing. */

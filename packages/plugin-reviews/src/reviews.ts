@@ -9,20 +9,13 @@ import {
   type StoreTx,
   variant,
 } from '@commerce/db'
-import { and, desc, eq, exists, ilike, inArray, isNull, or, type SQL, sql } from 'drizzle-orm'
+import { and, desc, eq, exists, inArray, isNull, or, sql } from 'drizzle-orm'
+import { hasPhotosSql, type ReviewListInput, reviewListWhere } from './review-list-where'
 import { type ReviewStatus, review, reviewMedia, reviewRequest } from './schema'
 
-export type ReviewRow = typeof review.$inferSelect
+export type { ReviewListInput } from './review-list-where'
 
-export type ReviewListInput = {
-  page: number
-  perPage: number
-  q?: string | undefined
-  status?: ReviewStatus | undefined
-  rating?: number | undefined
-  productId?: string | undefined
-  hasPhotos?: boolean | undefined
-}
+export type ReviewRow = typeof review.$inferSelect
 
 /*
  * Correlated subqueries name the outer column in full (`"product"."id"`): drizzle prints a
@@ -35,33 +28,12 @@ const coverOf = () =>
   sql<string | null>`(select m.url from ${productMedia} pm join ${media} m on m.id = pm.media_id
     where pm.product_id = "product"."id" order by pm.position asc limit 1)`
 
-const hasPhotosSql = sql<boolean>`exists (select 1 from ${reviewMedia} rm where rm.review_id = "review"."id")`
-
-function listWhere(input: ReviewListInput): SQL | undefined {
-  const q = input.q?.trim()
-  return and(
-    input.status ? eq(review.status, input.status) : undefined,
-    input.rating ? eq(review.rating, input.rating) : undefined,
-    input.productId ? eq(review.productId, input.productId) : undefined,
-    input.hasPhotos === true ? hasPhotosSql : undefined,
-    input.hasPhotos === false ? sql`not ${hasPhotosSql}` : undefined,
-    q
-      ? or(
-          ilike(review.title, `%${q}%`),
-          ilike(review.body, `%${q}%`),
-          ilike(review.reviewerName, `%${q}%`),
-          ilike(product.title, `%${q}%`),
-        )
-      : undefined,
-  )
-}
-
 /**
  * One admin page of reviews, newest first, with the product (none on a store review) and
  * whether it has photos.
  */
 export async function listReviews(tx: StoreTx, input: ReviewListInput) {
-  const where = listWhere(input)
+  const where = reviewListWhere(input)
   const rows = await tx
     .select({
       id: review.id,
