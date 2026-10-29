@@ -53,15 +53,20 @@ export async function previewOrderMessage(
   const defaultSubject = input.custom?.subject
     ? (await renderEmail(input.template, built.data)).subject
     : email.subject
+  const chat = messageDef(input.template)?.channels.includes('whatsapp')
+    ? renderWhatsapp(input.template, data).text
+    : null
   return {
     to: built.to,
     subject: email.subject,
     defaultSubject,
     html: email.html,
-    whatsapp:
-      opts.whatsapp && messageDef(input.template)?.channels.includes('whatsapp')
-        ? renderWhatsapp(input.template, data).text
-        : null,
+    whatsapp: opts.whatsapp ? chat : null,
+    /**
+     * The same WhatsApp text for a store without a WhatsApp channel, so the merchant can open it
+     * in their own WhatsApp (a wa.me chat) and send it by hand. Null when WhatsApp sends it.
+     */
+    chatText: opts.whatsapp ? null : chat,
     /** Off in Settings → Notifications: sending does nothing, so the dialog says so. */
     on: await messageOn(ctx, input.template),
   }
@@ -91,6 +96,8 @@ export async function previewCartRecovery(
     defaultSubject,
     html: email.html,
     whatsapp: opts.whatsapp ? renderWhatsapp(template, data).text : null,
+    // A checkout reminder has no hand-sent chat option.
+    chatText: null,
     on: true,
   }
 }

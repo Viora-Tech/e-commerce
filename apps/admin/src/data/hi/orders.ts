@@ -310,6 +310,11 @@ export default [
     noContact: 'इस ऑर्डर पर कोई ईमेल या फ़ोन नहीं है',
     email: 'ईमेल',
     whatsapp: 'WhatsApp',
+    both: 'दोनों',
+    sendBy: 'कैसे भेजें',
+    chatHint:
+      'आपके स्टोर से WhatsApp जुड़ा नहीं है, इसलिए यह अपने आप नहीं जा सकता। इसे अपने WhatsApp में खोलें और वहाँ भेजें दबाएँ।',
+    openChat: 'WhatsApp में खोलें',
     frameTitle: 'ईमेल प्रीव्यू',
     cancel: 'रद्द करें',
     templates: {
