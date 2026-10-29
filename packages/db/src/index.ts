@@ -56,6 +56,7 @@ export {
   storesWithRolloutsDue,
   storesWithSearchConsoleDue,
   storesWithSenderEmailChecks,
+  storesWithShopifyConnections,
   storesWithStaleImportSnapshots,
   storesWithUndispatchedOutboxEvents,
   storesWithUnknownPaymentFees,

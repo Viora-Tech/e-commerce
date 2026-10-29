@@ -225,6 +225,33 @@ export const refreshAppToken = (
     fetchImpl,
   )
 
+/**
+ * A non-expiring offline token → an expiring one and its refresh token (Shopify's token
+ * exchange; required for public apps from 1 Jan 2027). No merchant session is needed. Shopify
+ * retires the old token on success; repeating the call with it within seven days returns the
+ * same pair, so a lost response can be recovered.
+ * https://shopify.dev/docs/apps/build/authentication-authorization/migrate-to-expiring-offline-access-tokens
+ */
+export const migrateAppToken = (
+  app: ShopifyApp,
+  shop: string,
+  nonExpiringToken: string,
+  fetchImpl: typeof fetch = fetch,
+) =>
+  tokenCall(
+    shop,
+    {
+      client_id: app.clientId,
+      client_secret: app.clientSecret,
+      grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
+      subject_token: nonExpiringToken,
+      subject_token_type: 'urn:shopify:params:oauth:token-type:offline-access-token',
+      requested_token_type: 'urn:shopify:params:oauth:token-type:offline-access-token',
+      expiring: '1',
+    },
+    fetchImpl,
+  )
+
 /* ---------- a launch grant, claimed after sign-in ---------- */
 
 const GRANT_TTL_MS = 30 * 60_000
