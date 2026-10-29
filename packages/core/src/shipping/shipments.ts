@@ -17,6 +17,7 @@ import { ensureFulfillmentOrders, soleFulfillmentOrder } from '../order/fulfillm
 import { recomputeOrderStatuses } from '../order/recompute'
 import { insertOutboxEvent } from '../outbox/write'
 import { recordRtoForShipment } from '../returns/rto'
+import { AGGREGATOR_PROVIDERS, directCarrier, normaliseCarrier } from './delivery-options/routes'
 import { shipmentDocumentsAsLabel } from './label-documents'
 import { storeShippingLabel } from './label-store'
 import { syncNdrFromTracking } from './ndr'
@@ -79,6 +80,8 @@ export type CreateShipmentOptions = {
   serviceId?: string | undefined
   /** That service's name as the rate table showed it ("Surface"), kept for the details view. */
   serviceLabel?: string | undefined
+  /** The carrier behind the service ("Blue Dart" for a Shiprocket booking); worked out when omitted. */
+  carrier?: string | undefined
   /** The merchant's own tracking number, for a courier with `requiresTrackingNumber` (India Post). */
   trackingNumber?: string | undefined
   /** The box packed, picked in the booking flow; omitted, the parcel's own box (parcelBoxPreset). */
@@ -248,7 +251,25 @@ export async function createShipmentForOrder(
   const paymentMode = options.paymentMode ?? (o.paymentMethod === 'cod' ? 'cod' : 'prepaid')
   const codAmountPaise = paymentMode === 'cod' ? (options.codAmountPaise ?? valuePaise) : 0
   const threshold = settings.policy.insuranceThresholdPaise
-  const insured = options.insured ?? (threshold > 0 && valuePaise >= threshold)
+  // The Delivery options app's route: what the shopper paid for (insured or not) and who carries it.
+  const route = o.shipping?.delivery?.route ?? null
+  const onRoute =
+    route !== null &&
+    route.providerId === provider.id &&
+    route.serviceId === (options.serviceId ?? '')
+  const insured =
+    options.insured ??
+    ((onRoute && o.shipping?.delivery?.insured === true) ||
+      (threshold > 0 && valuePaise >= threshold))
+  const carrier =
+    options.carrier?.trim() ||
+    (onRoute
+      ? route.carrier
+      : AGGREGATOR_PROVIDERS.has(provider.id)
+        ? options.serviceLabel
+          ? normaliseCarrier(options.serviceLabel).name
+          : null
+        : directCarrier(provider.id, provider.label).name)
 
   // Sent to this courier earlier as a pending order (order push): book that one when the
   // whole order ships, so the courier's panel does not end up with two.
@@ -281,6 +302,7 @@ export async function createShipmentForOrder(
     paymentMode,
     codAmountPaise,
     valuePaise,
+    insured,
     weightGrams,
     ...(options.serviceId ? { serviceId: options.serviceId } : {}),
     ...(options.trackingNumber ? { trackingNumber: options.trackingNumber } : {}),
@@ -337,6 +359,7 @@ export async function createShipmentForOrder(
       pickupLocationName:
         shipFrom.pickupLocationName ?? provider.defaultPickupLocationName ?? shipFrom.address.name,
       serviceLabel: options.serviceLabel?.trim() || null,
+      carrier,
       weightGrams,
       lengthCm: parcelPackage?.lengthCm ?? null,
       widthCm: parcelPackage?.widthCm ?? null,
@@ -381,6 +404,13 @@ export async function createShipmentForOrder(
   return booked
 }
 
+/** When the delivered scan happened, from the courier's events; now when it gave no time. */
+function deliveredAt(tracking: Tracking): Date {
+  const at = tracking.events.filter((e) => e.status === 'delivered').at(-1)?.at
+  const d = at ? new Date(at) : new Date()
+  return Number.isNaN(d.getTime()) ? new Date() : d
+}
+
 /** Store a fresh Tracking answer; flips the order to delivered when the courier says so. */
 export async function applyTracking(
   ctx: StoreContext,
@@ -395,6 +425,10 @@ export async function applyTracking(
       status: tracking.status,
       tracking,
       trackingUrl: tracking.trackingUrl ?? before.trackingUrl,
+      // The delivered scan's time, for promised-vs-delivered (the latest delivered event).
+      ...(tracking.status === 'delivered' && !before.deliveredAt
+        ? { deliveredAt: deliveredAt(tracking) }
+        : {}),
       updatedAt: new Date(),
     })
     .where(eq(shipment.id, shipmentId))

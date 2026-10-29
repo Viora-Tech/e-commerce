@@ -70,6 +70,9 @@ export default function CourierOption({ row, selected, onSelect }: CourierOption
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="flex flex-wrap items-center gap-1.5">
             <span className="font-medium text-ink-strong">{row.providerLabel}</span>
+            {row.chosenAtCheckout ? (
+              <StatusChip tone="attention">{copy.chosenAtCheckout}</StatusChip>
+            ) : null}
             {row.badges.includes('recommended') ? (
               <StatusChip tone="info">{copy.recommended}</StatusChip>
             ) : null}

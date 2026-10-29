@@ -1,4 +1,8 @@
 import {
+  activeDeliveryConfig,
+  assignBadges,
+  bookingContext,
+  bookingPlan,
   bulkCreateShipments,
   chooseCourier,
   compareCourierRates,
@@ -392,7 +396,8 @@ export async function bulkBookShipments(
 
   /* Single-courier stores skip rate comparison - there is nothing to choose between, unless
      the merchant picked one of its services (Surface or Express) per order. */
-  if (providers.length === 1 && !input.serviceOverrides) {
+  const appOn = (await activeDeliveryConfig(tx, storeId)) !== null
+  if (providers.length === 1 && !input.serviceOverrides && !appOn) {
     return bulkCreateShipments(
       { storeId, tx },
       providers[0] as (typeof providers)[0],
@@ -414,11 +419,46 @@ export async function bulkBookShipments(
     waybill?: string
     labelUrl?: string | null
     error?: string
+    /** Delivery options app: the route the shopper paid for could not be booked; the merchant
+     *  picks the courier for this order in Create shipment instead of a silent swap. */
+    needsDecision?: boolean
   }> = []
 
   for (const o of contexts) {
+    const overrideId = input.courierOverrides?.[o.orderId]
+    const app = overrideId ? null : await bookingContext(tx, storeId, o.orderId)
+    const route = app?.delivery?.route ?? null
+    if (route) {
+      // Delivery options app: book exactly the route the shopper paid for, through its own app.
+      const label = `${route.serviceLabel} (${route.providerId})`
+      const provider = providers.find((p) => p.id === route.providerId)
+      if (!provider) {
+        results.push({
+          orderId: o.orderId,
+          ok: false,
+          needsDecision: true,
+          error: `${label}: this courier app is no longer connected.`,
+        })
+        continue
+      }
+      try {
+        const row = await createShipmentForOrder({ storeId, tx }, provider, o.orderId, {
+          weightGrams: input.weightGrams,
+          dimensionsCm: input.dimensionsCm,
+          insured: input.insured ?? app?.delivery?.insured,
+          serviceId: route.serviceId || undefined,
+          serviceLabel: route.serviceLabel,
+          carrier: route.carrier,
+        })
+        await noteShipmentBooked(tx, storeId, row.provider, o.orderId)
+        results.push({ orderId: o.orderId, ok: true, shipmentId: row.id, waybill: row.waybill, labelUrl: row.labelUrl })
+      } catch (err) {
+        const reason = err instanceof CourierError ? describeCourierFailure(err) : err instanceof Error ? err.message : String(err)
+        results.push({ orderId: o.orderId, ok: false, needsDecision: true, error: `${label}: ${reason}` })
+      }
+      continue
+    }
     try {
-      const overrideId = input.courierOverrides?.[o.orderId]
       let provider = overrideId ? providers.find((p) => p.id === overrideId) : undefined
       if (!provider) {
         const query: RateQuery = {
@@ -430,10 +470,24 @@ export async function bulkBookShipments(
           destinationCountry: o.country,
           destinationCity: o.city,
         }
-        const options = await compareCourierRates(providers, query)
+        const compared = await compareCourierRates(providers, query)
+        /* Orders on backup or zone rates still follow the product route rules (Glasspads only
+           with Delhivery): the store's courier rule picks among the routes they allow. */
+        const allowed = app?.rules.length
+          ? new Set(bookingPlan(compared, app, { insured: false }).allowedKeys)
+          : null
+        const options = allowed
+          ? assignBadges(compared.filter((r) => allowed.has(r.optionKey)))
+          : compared
+        const ruleProviders = allowed
+          ? providers.filter((p) => options.some((r) => r.providerId === p.id))
+          : providers
+        if (ruleProviders.length === 0) {
+          throw new Error('No connected courier fits this order's product route rules.')
+        }
         provider =
-          chooseCourier(options, providers, settings.courierRule, { stateCode: o.stateCode }) ??
-          providers[0]
+          chooseCourier(options, ruleProviders, settings.courierRule, { stateCode: o.stateCode }) ??
+          ruleProviders[0]
       }
       const row = await createShipmentForOrder(
         { storeId, tx },

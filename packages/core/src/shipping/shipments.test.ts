@@ -552,3 +552,70 @@ describe('order push', () => {
     expect(row?.status).toBe('booked')
   })
 })
+
+describe('delivery options: booking the route saved at checkout', () => {
+  it('books the saved service, keeps its insurance and records the carrier', async () => {
+    const { storeId, orderId } = await seedOrder()
+    await owner
+      .update(order)
+      .set({
+        shipping: {
+          rateId: 'opt-express',
+          rateName: 'Express · Blue Dart',
+          zoneId: '',
+          zoneName: '',
+          listPricePaise: 18000,
+          pricePaise: 18000,
+          codSurchargePaise: null,
+          minTransitDays: null,
+          maxTransitDays: null,
+          delivery: {
+            optionId: 'opt-express',
+            optionName: 'Express',
+            route: {
+              key: 'fake:20',
+              providerId: 'fake',
+              channel: 'aggregator',
+              carrier: 'Blue Dart',
+              serviceId: '20',
+              serviceLabel: 'Bluedart Air',
+            },
+            pickedBy: 'shopper',
+            insured: true,
+            insurancePaise: 4000,
+            markupPaise: 0,
+            courierCostPaise: 12800,
+            promisedEarliest: '2026-10-30',
+            promisedLatest: '2026-10-30',
+            quoteSource: 'live',
+          },
+        },
+      })
+      .where(eq(order.id, orderId))
+    const captured: Array<Record<string, unknown>> = []
+    const spy = Object.assign(new FakeShippingProvider(), {
+      createShipment: async (input: Record<string, unknown>) => {
+        captured.push(input)
+        return { waybill: 'BD1', providerRef: 'BD1' }
+      },
+    })
+    const row = await withStore(app, storeId, (tx) =>
+      createShipmentForOrder({ storeId, tx }, spy, orderId, {
+        serviceId: '20',
+        serviceLabel: 'Bluedart Air',
+      }),
+    )
+    expect(captured[0]).toMatchObject({ serviceId: '20', insured: true })
+    expect(row).toMatchObject({ provider: 'fake', carrier: 'Blue Dart', insured: true })
+
+    // The delivered scan's time is kept for promised vs delivered.
+    const tracked = await withStore(app, storeId, (tx) =>
+      applyTracking({ storeId, tx }, row.id, {
+        waybill: 'BD1',
+        status: 'delivered',
+        events: [{ at: '2026-10-30T09:15:00Z', status: 'delivered', description: 'Delivered' }],
+      }),
+    )
+    expect(tracked.shipment.deliveredAt?.toISOString()).toBe('2026-10-30T09:15:00.000Z')
+  })
+})

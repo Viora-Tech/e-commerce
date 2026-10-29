@@ -61,6 +61,11 @@ export type CourierRateRow = {
   badges: Array<'cheapest' | 'fastest' | 'recommended'>
   /** Booked at the courier's counter (India Post): the merchant types the tracking number. */
   needsTrackingNumber?: boolean | undefined
+  /** The service and the carrier behind it, as the courier named them (aggregators). */
+  serviceLabel?: string | null | undefined
+  carrier?: string | null | undefined
+  /** Delivery options app: the exact route the shopper's price was quoted on. */
+  chosenAtCheckout?: boolean | undefined
 }
 
 /**
@@ -140,6 +145,8 @@ async function quoteEveryService(
       providerName: provider.label,
       providerLabel: rateOptionLabel(provider.label, o),
       serviceId: o.serviceId,
+      serviceLabel: o.serviceLabel,
+      carrier: o.carrier,
       charges: o.charges,
       chargeableWeightGrams: o.chargeableWeightGrams,
       pricePaise: o.pricePaise,
@@ -222,7 +229,7 @@ async function quoteSingle(provider: ShippingProvider, query: RateQuery): Promis
 
 /** Cheapest and fastest among the couriers that can take the parcel; recommended is the
  *  cheapest priced one, else the fastest, else the first courier that can take it. */
-function assignBadges(rows: CourierRateRow[]): CourierRateRow[] {
+export function assignBadges(rows: CourierRateRow[]): CourierRateRow[] {
   const bookable = rows.filter((r) => r.problem === null)
   const priced = bookable.filter((r) => r.pricePaise !== null)
   const cheapest = priced.length
