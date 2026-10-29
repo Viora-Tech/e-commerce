@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { cart, cartLine } from '@commerce/db'
-import { and, desc, eq, gte, isNotNull, isNull, lt, or, sql } from 'drizzle-orm'
+import { and, desc, eq, gte, isNotNull, isNull, lt, or, type SQL, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 
 /**
@@ -56,6 +56,25 @@ const firstTitle = sql<
 >`(select p.title from cart_line cl join variant v on v.id = cl.variant_id join product p on p.id = v.product_id where cl.cart_id = cart.id order by cl.id limit 1)`
 const subtotal = sql<number>`(select coalesce(sum(cl.quantity * cl.unit_price_paise), 0)::int from cart_line cl where cl.cart_id = cart.id)`
 
+/** The abandoned list's Contact filter: the shopper left an email, a phone number, or both. */
+export const ABANDONED_CONTACTS = ['email', 'phone', 'both'] as const
+export type AbandonedContact = (typeof ABANDONED_CONTACTS)[number]
+
+/** The abandoned list's tab, search and filter panel. */
+export type AbandonedListFilters = {
+  /** How far back the list looks when no `activeFrom` is given (default 30 days). */
+  sinceDays?: number | undefined
+  now?: Date | undefined
+  status?: AbandonedListStatus | undefined
+  search?: string | undefined
+  /** Last active at or after this moment; replaces the `sinceDays` window. */
+  activeFrom?: string | undefined
+  activeTo?: string | undefined
+  valueMinPaise?: number | undefined
+  valueMaxPaise?: number | undefined
+  contact?: AbandonedContact | undefined
+}
+
 /** Carts with a contact, at least one line and no activity for the grace period. */
 function abandonedWhere(now: Date, since: Date) {
   return and(
@@ -66,22 +85,30 @@ function abandonedWhere(now: Date, since: Date) {
   )
 }
 
+/** The filter panel's conditions on top of the window. */
+function abandonedFilterWhere(input: AbandonedListFilters): (SQL | undefined)[] {
+  const { contact } = input
+  return [
+    input.activeTo ? lt(cart.updatedAt, new Date(input.activeTo)) : undefined,
+    input.valueMinPaise !== undefined ? sql`${subtotal} >= ${input.valueMinPaise}` : undefined,
+    input.valueMaxPaise !== undefined ? sql`${subtotal} <= ${input.valueMaxPaise}` : undefined,
+    contact === 'email' || contact === 'both' ? isNotNull(cart.email) : undefined,
+    contact === 'phone' || contact === 'both' ? isNotNull(cart.phone) : undefined,
+  ]
+}
+
 export async function listAbandoned(
   ctx: StoreContext,
-  input: {
-    page: number
-    perPage: number
-    sinceDays?: number | undefined
-    now?: Date | undefined
-    status?: AbandonedListStatus | undefined
-    search?: string | undefined
-  },
+  input: AbandonedListFilters & { page: number; perPage: number },
 ): Promise<{ items: AbandonedCart[]; total: number }> {
   const now = input.now ?? new Date()
-  const since = new Date(now.getTime() - (input.sinceDays ?? 30) * 86_400_000)
+  const since = input.activeFrom
+    ? new Date(input.activeFrom)
+    : new Date(now.getTime() - (input.sinceDays ?? 30) * 86_400_000)
   const search = input.search?.trim()
   const where = and(
     abandonedWhere(now, since),
+    ...abandonedFilterWhere(input),
     input.status === 'recovered' ? eq(cart.status, 'converted') : undefined,
     input.status === 'not_recovered' ? sql`${cart.status} <> 'converted'` : undefined,
     input.status === 'reminder_sent'

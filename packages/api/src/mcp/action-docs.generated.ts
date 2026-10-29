@@ -139,6 +139,8 @@ export const ACTION_DOCS: Record<string, string> = {
     '"Turn on UPI AutoPay" for the current plan: the page where the owner approves the mandate.',
   'billing.stopApp': '"Stop renewing": the app keeps working until its paid month ends.',
   'billing.usage': 'The sidebar\'s "Orders this month · 142 of 200": cheap, on every page.',
+  'billing.usageBillCsv':
+    'A usage bill\'s "Download CSV": each order of that month that carried a fee.',
   'billing.view': "Settings → Plan & billing: the plan, this month's usage, bills and the one due.",
   'blog.blogs': 'Blogs with post counts; creates "News" the first time a store has none.',
   'blog.defaults': 'Prefills for a new post: the signed-in staff member as author.',
@@ -387,6 +389,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'Save an order edit (add, remove, quantities, shipping, discount) on an open order not yet shipped.',
   'orders.editPreview':
     "The edit's review step: new lines and totals, and what is owed either way.",
+  'orders.facets':
+    'What the Orders filter panel offers: tags, discount codes, couriers and collections in use.',
   'orders.fulfil':
     'Pack some or all of the lines; the shopper is told once the parcel is complete.',
   'orders.get':

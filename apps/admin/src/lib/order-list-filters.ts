@@ -1,6 +1,11 @@
+import { MARKETING_CHANNELS } from '@commerce/core/marketing'
 import type { OrderFulfillmentStatus, OrderPaymentStatus } from '@commerce/core/order-status'
 import { parseAsArrayOf, parseAsString, parseAsStringLiteral } from 'nuqs'
-import type { DateFilterValue, FilterGroup } from '@/components/table/filter-panel'
+import {
+  type DateFilterValue,
+  type FilterGroup,
+  facetOptions,
+} from '@/components/table/filter-panel'
 import type { ordersContent } from '@/data/orders'
 import {
   dateFilterBounds,
@@ -8,6 +13,7 @@ import {
   NO_DATE_FILTER,
   parseAsDateFilter,
 } from '@/lib/date-filter'
+import { moneyRangeGroup, paiseBound } from '@/lib/list-filter-groups'
 
 /** The Orders filter panel (Figma "Orders · Filter"): what a merchant ticks, by group. */
 export const PAYMENT_FILTERS = ['paid', 'unpaid', 'partially_refunded', 'refund_needed'] as const
@@ -15,11 +21,17 @@ export const FULFILMENT_FILTERS = ['unfulfilled', 'shipped', 'delivered', 'retur
 export const DATE_FILTERS = ['today', '7d', '30d', '90d'] as const
 /** Stored payment methods are gateway names, so the panel splits only cash on delivery from prepaid. */
 export const METHOD_FILTERS = ['cod', 'prepaid'] as const
+/** Where the visit came from (`order.attribution`); `untracked` is an order with none recorded. */
+export const CHANNEL_FILTERS = [...MARKETING_CHANNELS, 'untracked'] as const
+/** Where the order's customer returns stand; `none` is an order nobody asked to return. */
+export const RETURN_FILTERS = ['none', 'requested', 'in_progress', 'done', 'declined'] as const
 
 export type PaymentFilter = (typeof PAYMENT_FILTERS)[number]
 export type FulfilmentFilter = (typeof FULFILMENT_FILTERS)[number]
 export type DateFilter = (typeof DATE_FILTERS)[number]
 export type MethodFilter = (typeof METHOD_FILTERS)[number]
+export type ChannelFilter = (typeof CHANNEL_FILTERS)[number]
+export type ReturnFilter = (typeof RETURN_FILTERS)[number]
 
 export type OrderFilters = {
   payment: PaymentFilter[]
@@ -31,6 +43,32 @@ export type OrderFilters = {
   courier: string | null
   /** Text a line's product title, variant or SKU contains ("pd170"); null for any product. */
   product: string | null
+  /** Any of these tags; arrays below are "any of", empty for no filter. */
+  tag: string[]
+  channel: ChannelFilter[]
+  /** Order value in rupees as typed; empty for no bound. */
+  totalMin: string
+  totalMax: string
+  /** Discount codes, as the facets list them (upper case). */
+  discount: string[]
+  returns: ReturnFilter[]
+  /** Collection ids: orders with a product from any of them (#886). */
+  collection: string[]
+}
+
+/** What the store's orders use, so the panel lists only values that can match. */
+export type OrderFacets = {
+  tags: readonly string[]
+  discountCodes: readonly string[]
+  couriers: readonly string[]
+  collections: readonly { id: string; title: string }[]
+}
+
+export const NO_ORDER_FACETS: OrderFacets = {
+  tags: [],
+  discountCodes: [],
+  couriers: [],
+  collections: [],
 }
 
 /** The longest Product filter the API takes (its `SEARCH_MAX`). */
@@ -79,7 +117,14 @@ export function hasOrderFilters(f: OrderFilters): boolean {
     hasDateFilter(f.date) ||
     f.method.length > 0 ||
     f.courier !== null ||
-    productText(f) !== null
+    productText(f) !== null ||
+    f.tag.length > 0 ||
+    f.channel.length > 0 ||
+    paiseBound(f.totalMin) !== null ||
+    paiseBound(f.totalMax) !== null ||
+    f.discount.length > 0 ||
+    f.returns.length > 0 ||
+    f.collection.length > 0
   )
 }
 
@@ -87,6 +132,8 @@ export function hasOrderFilters(f: OrderFilters): boolean {
 export function orderFilterInput(f: OrderFilters, now = new Date()) {
   const product = productText(f)
   const placed = dateFilterBounds(f.date, presetStart, now)
+  const min = paiseBound(f.totalMin)
+  const max = paiseBound(f.totalMax)
   return {
     ...(product ? { product } : {}),
     ...(f.payment.length ? { paymentStatus: f.payment.flatMap((p) => PAYMENT_STATUSES[p]) } : {}),
@@ -97,6 +144,13 @@ export function orderFilterInput(f: OrderFilters, now = new Date()) {
     ...(placed.to ? { placedTo: placed.to } : {}),
     ...(f.method.length === 1 && f.method[0] ? { paymentMethod: f.method[0] } : {}),
     ...(f.courier ? { courier: f.courier } : {}),
+    ...(f.tag.length ? { tags: f.tag } : {}),
+    ...(f.channel.length ? { channels: f.channel } : {}),
+    ...(min !== null ? { totalMinPaise: min } : {}),
+    ...(max !== null ? { totalMaxPaise: max } : {}),
+    ...(f.discount.length ? { discountCodes: f.discount } : {}),
+    ...(f.returns.length ? { returnStatus: f.returns } : {}),
+    ...(f.collection.length ? { collectionIds: f.collection } : {}),
   }
 }
 
@@ -113,13 +167,18 @@ function options<K extends string>(keys: readonly K[], labels: Record<K, string>
   return keys.map((k) => ({ value: k, label: labels[k] }))
 }
 
+/** A group that lists the store's own values, left out while the store has none. */
+function whenAny(values: readonly unknown[], group: FilterGroup): FilterGroup[] {
+  return values.length ? [group] : []
+}
+
 /** The panel's groups (Figma "Orders · Filter"); the chips and Clear all come from the same list. */
 export function orderFilterGroups(
   f: OrderFilters,
   copy: (typeof ordersContent)['filters'],
   onChange: (patch: Partial<OrderFilters>) => void,
-  /** The couriers the store's orders went with; the Courier select shows only with some. */
-  couriers: readonly string[] = [],
+  /** Tags, codes, couriers and collections the store's orders use (`orders.facets`). */
+  facets: OrderFacets = NO_ORDER_FACETS,
 ): FilterGroup[] {
   return [
     {
@@ -130,6 +189,14 @@ export function orderFilterGroups(
       onChange: (next) => onChange({ product: next ? next : null }),
       placeholder: copy.productPlaceholder,
     },
+    ...whenAny(facets.collections, {
+      key: 'collection',
+      label: copy.collection,
+      type: 'multi',
+      options: facets.collections.map((c) => ({ value: c.id, label: c.title })),
+      value: f.collection,
+      onChange: (collection) => onChange({ collection }),
+    }),
     {
       key: 'payment',
       label: copy.payment,
@@ -155,6 +222,19 @@ export function orderFilterGroups(
       onChange: (next) => onChange({ date: next }),
       anyLabel: copy.anyDate,
     },
+    moneyRangeGroup({
+      key: 'total',
+      label: copy.total,
+      from: f.totalMin,
+      to: f.totalMax,
+      fromLabel: copy.totalMin,
+      toLabel: copy.totalMax,
+      onChange: ({ from, to }) =>
+        onChange({
+          ...(from === undefined ? {} : { totalMin: from }),
+          ...(to === undefined ? {} : { totalMax: to }),
+        }),
+    }),
     {
       key: 'method',
       label: copy.method,
@@ -163,19 +243,47 @@ export function orderFilterGroups(
       value: f.method,
       onChange: (next) => onChange({ method: pick(METHOD_FILTERS, next) }),
     },
-    ...(couriers.length
-      ? [
-          {
-            key: 'courier',
-            label: copy.courier,
-            type: 'select' as const,
-            options: couriers.map((c) => ({ value: c, label: courierName(c) })),
-            value: f.courier,
-            onChange: (next: string | null) => onChange({ courier: next }),
-            anyLabel: copy.anyCourier,
-          },
-        ]
-      : []),
+    {
+      key: 'channel',
+      label: copy.channel,
+      type: 'multi',
+      options: options(CHANNEL_FILTERS, copy.channelOptions),
+      value: f.channel,
+      onChange: (next) => onChange({ channel: pick(CHANNEL_FILTERS, next) }),
+    },
+    ...whenAny(facets.tags, {
+      key: 'tag',
+      label: copy.tags,
+      type: 'multi',
+      options: facetOptions([...facets.tags]),
+      value: f.tag,
+      onChange: (tag) => onChange({ tag }),
+    }),
+    ...whenAny(facets.discountCodes, {
+      key: 'discount',
+      label: copy.discount,
+      type: 'multi',
+      options: facetOptions([...facets.discountCodes]),
+      value: f.discount,
+      onChange: (discount) => onChange({ discount }),
+    }),
+    {
+      key: 'returns',
+      label: copy.returns,
+      type: 'checks',
+      options: options(RETURN_FILTERS, copy.returnOptions),
+      value: f.returns,
+      onChange: (next) => onChange({ returns: pick(RETURN_FILTERS, next) }),
+    },
+    ...whenAny(facets.couriers, {
+      key: 'courier',
+      label: copy.courier,
+      type: 'select',
+      options: facets.couriers.map((c) => ({ value: c, label: courierName(c) })),
+      value: f.courier,
+      onChange: (next) => onChange({ courier: next }),
+      anyLabel: copy.anyCourier,
+    }),
   ]
 }
 
@@ -186,6 +294,13 @@ export const NO_FILTERS: OrderFilters = {
   method: [],
   courier: null,
   product: null,
+  tag: [],
+  channel: [],
+  totalMin: '',
+  totalMax: '',
+  discount: [],
+  returns: [],
+  collection: [],
 }
 
 /* Module scope, so the empty defaults keep one identity and the list effect runs once per change. */
@@ -196,4 +311,11 @@ export const FILTER_PARAMS = {
   method: parseAsArrayOf(parseAsStringLiteral(METHOD_FILTERS)).withDefault([]),
   courier: parseAsString,
   product: parseAsString,
+  tag: parseAsArrayOf(parseAsString).withDefault([]),
+  channel: parseAsArrayOf(parseAsStringLiteral(CHANNEL_FILTERS)).withDefault([]),
+  totalMin: parseAsString.withDefault(''),
+  totalMax: parseAsString.withDefault(''),
+  discount: parseAsArrayOf(parseAsString).withDefault([]),
+  returns: parseAsArrayOf(parseAsStringLiteral(RETURN_FILTERS)).withDefault([]),
+  collection: parseAsArrayOf(parseAsString).withDefault([]),
 }
