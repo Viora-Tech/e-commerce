@@ -101,6 +101,16 @@ export class ShippingRateUnavailable extends CommerceError {
   }
 }
 
+/** The variant is listed without a price (#913): it shows on the storefront but cannot be bought. */
+export class PriceNotSet extends CommerceError {
+  readonly variantId: string
+
+  constructor(variantId: string, storeId?: string) {
+    super('PRICE_NOT_SET', `Variant ${variantId} has no price yet`, { storeId })
+    this.variantId = variantId
+  }
+}
+
 /** A product's `launchAt` has not passed: nothing can be added to cart or ordered yet. */
 export class NotLaunchedYet extends CommerceError {
   constructor(variantId: string, launchAt: Date, storeId?: string) {

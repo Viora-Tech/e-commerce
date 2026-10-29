@@ -1163,6 +1163,13 @@
       "when": 1793212230927,
       "tag": "0181_unlimited_store",
       "breakpoints": true
+    },
+    {
+      "idx": 166,
+      "version": "7",
+      "when": 1793250377196,
+      "tag": "0182_variant_price_optional",
+      "breakpoints": true
     }
   ]
 }

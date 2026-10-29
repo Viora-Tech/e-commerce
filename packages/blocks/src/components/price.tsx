@@ -1,5 +1,6 @@
 'use client'
 
+import { priceContent as copy } from '../data/price'
 import { useFormatPaise } from '../money-format'
 
 // Port of snippets/price.liquid, as Figma Store / Price (691:85138): the price (in the sale
@@ -9,7 +10,8 @@ export default function Price({
   mrpPaise,
   percentBadge = false,
 }: {
-  pricePaise: number
+  /** Null: the merchant listed the item before setting a price (#913). */
+  pricePaise: number | null
   mrpPaise: number | null
   /** The product page's "−17%" tag after the saving. */
   percentBadge?: boolean | undefined
@@ -17,10 +19,18 @@ export default function Price({
   // Hooks
   const formatPaise = useFormatPaise()
 
-  // Derived state
-  const onSale = mrpPaise != null && mrpPaise > pricePaise
+  // Early returns
+  if (pricePaise == null) {
+    return (
+      <div className="price">
+        <span className="price__current">{copy.comingSoon}</span>
+      </div>
+    )
+  }
 
   // Render logic
+  const onSale = mrpPaise != null && mrpPaise > pricePaise
+
   return (
     <div className={`price${onSale ? ' price--on-sale' : ''}`}>
       <span className="price__current">{formatPaise(pricePaise)}</span>

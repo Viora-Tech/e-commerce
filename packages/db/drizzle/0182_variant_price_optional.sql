@@ -1,0 +1,1 @@
+ALTER TABLE "variant" ALTER COLUMN "price_paise" DROP NOT NULL;

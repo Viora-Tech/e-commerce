@@ -125,7 +125,7 @@ async function seed() {
         variantTitle: 'Default',
         quantity: 1,
         fulfilledQuantity: 1,
-        unitPricePaise: v.pricePaise,
+        unitPricePaise: v.pricePaise ?? 0,
       })),
     )
     .returning()

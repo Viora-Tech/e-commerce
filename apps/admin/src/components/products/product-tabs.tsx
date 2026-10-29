@@ -51,14 +51,16 @@ function tabDomId(id: string): string {
   return `product-tab-${id}`
 }
 
-function panelDomId(id: string): string {
+/** The panel's element id; in the one-page layout "On this page" scrolls to it. */
+export function panelDomId(id: string): string {
   return `product-panel-${id}`
 }
 
 /**
- * The product page's left column as real tabs: one tablist (a strip or a vertical rail, same
- * definitions) and one panel per tab. Every panel stays mounted and the inactive ones are
- * `hidden`, so cards keep their own state while you switch.
+ * The product page's left column. "page" (the default, #914) stacks every section on one
+ * scrolling page, Shopify's product page. "tabs" and "settings" are real tabs: one tablist (a
+ * strip or a vertical rail, same definitions) and one panel per tab. Every panel stays mounted
+ * and the inactive ones are `hidden`, so cards keep their own state while you switch.
  */
 export default function ProductTabs({
   label,
@@ -82,6 +84,24 @@ export default function ProductTabs({
     event.preventDefault()
     onSelect(target.id, true)
     document.getElementById(tabDomId(target.id))?.focus()
+  }
+
+  // Early returns
+  if (layout === 'page') {
+    return (
+      <div className="flex min-w-0 flex-col gap-6">
+        {tabs.map((t) => (
+          <section
+            key={t.id}
+            id={panelDomId(t.id)}
+            aria-label={t.label}
+            className="flex min-w-0 scroll-mt-28 flex-col gap-6"
+          >
+            {panels[t.id]}
+          </section>
+        ))}
+      </div>
+    )
   }
 
   // Render logic

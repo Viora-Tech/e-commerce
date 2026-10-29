@@ -14,7 +14,7 @@ import { and, desc, eq, gte, inArray, lt, lte, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import type { StoreContext } from '../context'
 import { recordDiscountUse } from '../discounts/usage'
-import { CommerceError } from '../errors'
+import { CommerceError, PriceNotSet } from '../errors'
 import { announceExchangeOrder } from '../returns/notify'
 import { StoreAddressSchema } from '../settings/general'
 import { assertCustomerInStore } from '../store-scope'
@@ -120,12 +120,15 @@ async function resolveLines(ctx: StoreContext, lines: DraftInput['lines']) {
     if (!v) {
       throw new CommerceError('VARIANT_NOT_FOUND', `Variant ${l.variantId} is not in this store`)
     }
+    // A variant listed without a price (#913) needs the line's own price typed in.
+    const unitPricePaise = l.unitPricePaise ?? v.pricePaise
+    if (unitPricePaise == null) throw new PriceNotSet(l.variantId, ctx.storeId)
     return {
       variantId: l.variantId,
       title: v.productTitle,
       variantTitle: v.title,
       quantity: l.quantity,
-      unitPricePaise: l.unitPricePaise ?? v.pricePaise,
+      unitPricePaise,
       // Snapshotted like checkout does, so routing, GST and card issue treat it as digital.
       giftCard: v.giftCard,
     }

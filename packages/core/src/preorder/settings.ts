@@ -116,15 +116,18 @@ export const PreorderSettingsInputSchema = z
  * Validate a deposit amount against the variant's price: the deposit must be
  * strictly less than the price (otherwise there is nothing left to defer, and
  * "full" is the correct mode). Percent is validated by the schema (1-99); this
- * only re-checks the fixed-amount case, which depends on the price.
+ * only re-checks the fixed-amount case, which depends on the price. A variant with no price yet
+ * cannot be bought, so the comparison waits until it has one.
  */
 export function validateDepositAgainstPrice(
   paymentMode: PreorderPaymentMode,
   depositPaise: number | null,
-  pricePaise: number,
+  pricePaise: number | null,
 ): string | null {
   if (paymentMode !== 'fixed') return null
   if (depositPaise == null) return 'A fixed deposit needs an amount'
-  if (depositPaise >= pricePaise) return 'The deposit must be less than the price'
+  if (pricePaise != null && depositPaise >= pricePaise) {
+    return 'The deposit must be less than the price'
+  }
   return null
 }

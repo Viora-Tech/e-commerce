@@ -109,6 +109,21 @@ describe('createProduct', () => {
     expect(adj).toEqual([expect.objectContaining({ delta: 5, reason: 'received' })])
   })
 
+  it('saves a variant with no price yet, draft or active (#913)', async () => {
+    const storeId = await seedStore()
+    const id = await withStore(app, storeId, (tx) =>
+      createProduct(tx, storeId, {
+        title: 'Unpriced pad',
+        status: 'active',
+        options: [],
+        variants: [{ optionValues: [], pricePaise: null }],
+      }),
+    )
+    const { p, vs } = await load(storeId, id)
+    expect(p?.status).toBe('active')
+    expect(vs.map((v) => v.pricePaise)).toEqual([null])
+  })
+
   it('rejects an inconsistent matrix', async () => {
     const storeId = await seedStore()
     await expect(

@@ -16,6 +16,7 @@ import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { variantImageUrls } from '../checkout/service'
+import { PriceNotSet } from '../errors'
 import { placeOrderAndPay } from '../order/place-order'
 import { CodPaymentProvider } from '../providers/cod'
 import { addToCart, createCart, getCart, setLineQuantity } from './cart'
@@ -67,6 +68,18 @@ describe('cart', () => {
       return getCart(ctx, cartId)
     })
     expect(view?.lines).toEqual([])
+  })
+
+  it('refuses a variant listed without a price, so no ₹0 line is made (#913)', async () => {
+    const { storeId, variantId } = await seed()
+    await owner.update(variant).set({ pricePaise: null }).where(eq(variant.id, variantId))
+    const lines = await withStore(app, storeId, async (tx) => {
+      const ctx = { storeId, tx }
+      const cartId = await createCart(ctx)
+      await expect(addToCart(ctx, cartId, variantId, 1)).rejects.toBeInstanceOf(PriceNotSet)
+      return (await getCart(ctx, cartId))?.lines
+    })
+    expect(lines).toEqual([])
   })
 
   it("shows the product's first image on a line whose variant has none", async () => {

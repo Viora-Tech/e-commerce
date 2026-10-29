@@ -131,7 +131,8 @@ export async function buildChannelCatalog(
   const items: ChannelItem[] = []
   for (const v of variants) {
     const p = byProduct.get(v.productId)
-    if (!p) continue
+    // Feeds need a price, so a variant listed without one (#913) stays out until it has one.
+    if (!p || v.pricePaise == null) continue
     const gallery = imagesOf.get(p.id) ?? []
     const own = v.imageUrl ? absolute(v.imageUrl, opts.origin) : null
     const qty = v.trackInventory ? Math.max(0, available.get(v.id) ?? 0) : null

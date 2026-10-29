@@ -21,7 +21,8 @@ export type CardProduct = {
   title: string
   vendor: string | null
   productType: string | null
-  pricePaise: number
+  /** The cheapest priced variant; null when no variant has a price yet ("Price coming soon"). */
+  pricePaise: number | null
   mrpPaise: number | null
   available: number
   images: MediaImage[]
@@ -55,7 +56,8 @@ export type ProductDetail = {
     id: string
     title: string
     sku: string | null
-    pricePaise: number
+    /** Null: listed before the price is confirmed; shown as "Price coming soon", never purchasable. */
+    pricePaise: number | null
     mrpPaise: number | null
     available: number
     /** Can be added to cart right now: normal stock, or pre-order room beyond it. `available` alone undercounts a pre-order. */

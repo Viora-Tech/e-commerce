@@ -143,6 +143,8 @@ export const priceChangeAction = defineAction<Raw, Resolved>({
     }
     let capped = 0
     const changes: Change[] = rows.flatMap((r) => {
+      // A variant listed without a price yet (#913) has nothing to scale.
+      if (r.price == null) return []
       let after = newPrice(r.price, raw.percent, raw.rounding)
       if (r.mrp && after > r.mrp) {
         after = r.mrp

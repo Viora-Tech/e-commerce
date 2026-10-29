@@ -1,10 +1,10 @@
 'use client'
 
 import { variantTitle } from '@commerce/core/catalog'
+import { Pencil } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
-import { Input } from '@commerce/ui/shadcn/input'
 import {
   Table,
   TableBody,
@@ -13,14 +13,18 @@ import {
   TableHeader,
   TableRow,
 } from '@commerce/ui/shadcn/table'
-import MoneyInput from '@/components/fields/money-input'
+import { useState } from 'react'
 import { productFormContent } from '@/data/product-form'
+import { rupees } from '@/data/products'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { bestMargin } from '@/lib/variant-margin'
 import type { MediaItem, VariantRow } from './form-state'
+import VariantEditDialog from './variant-edit-dialog'
 import VariantImagePicker from './variant-image-picker'
 
 type VariantMatrixProps = {
+  /** The product's title, the stem of a generated SKU. */
+  productTitle: string
   variants: VariantRow[]
   media: MediaItem[]
   selected: number[]
@@ -28,8 +32,6 @@ type VariantMatrixProps = {
   onVariant: (index: number, patch: Partial<VariantRow>) => void
   /** Files uploaded from a variant's images dialog join the product gallery. */
   onAddMedia: (items: MediaItem[]) => void
-  /** Fills one row's blank SKU from the product and its option values. */
-  onGenerateSku: (index: number) => void
 }
 
 /** Same grid as ResourceTable: white 40px header on a hairline, rows on lighter hairlines. */
@@ -39,23 +41,27 @@ const CELL = 'border-b border-line px-3 py-2 text-body first:pl-5 last:pr-5'
 
 const rowKey = (v: VariantRow) => v.id ?? variantTitle(v.optionValues)
 
-/** One row per option combination, selectable so prices can be set in bulk. */
+/**
+ * One row per option combination: its image, title and SKU, price and stock at a glance. Rows
+ * are selectable for bulk edits; a row's details open in a centred dialog (#914).
+ */
 export default function VariantMatrix({
+  productTitle,
   variants,
   media,
   selected,
   onSelectedChange,
   onVariant,
   onAddMedia,
-  onGenerateSku,
 }: VariantMatrixProps) {
   // Hooks
   const {
-    variants: { columns: copy, footer },
+    variants: { columns: copy, footer, ...variantsCopy },
     variantBulk: bulkCopy,
-    inventory: inventoryCopy,
   } = useCopy(productFormContent)
   const fmt = useFormat()
+  /** The row whose dialog is open. */
+  const [editing, setEditing] = useState<number | null>(null)
 
   // Event handlers
   const handleToggleAll = (checked: boolean) => {
@@ -73,7 +79,7 @@ export default function VariantMatrix({
 
   return (
     <div className="overflow-x-auto">
-      <Table className="min-w-[44rem] border-separate border-spacing-0">
+      <Table className="min-w-[36rem] border-separate border-spacing-0">
         <TableHeader className="[&_tr]:border-0">
           <TableRow className="hover:bg-transparent">
             <TableHead className={cn(HEAD, 'w-10')}>
@@ -85,17 +91,19 @@ export default function VariantMatrix({
             </TableHead>
             <TableHead className={cn(HEAD, 'w-16')}>{bulkCopy.image}</TableHead>
             <TableHead className={HEAD}>{copy.variant}</TableHead>
-            <TableHead className={cn(HEAD, 'w-36')}>{copy.price}</TableHead>
-            <TableHead className={cn(HEAD, 'w-36')}>{copy.mrp}</TableHead>
-            <TableHead className={cn(HEAD, 'w-56')}>{copy.sku}</TableHead>
+            <TableHead className={cn(HEAD, 'w-32')}>{copy.price}</TableHead>
             <TableHead className={cn(HEAD, 'w-28')}>{copy.available}</TableHead>
+            <TableHead className={cn(HEAD, 'w-24')}>
+              <span className="sr-only">{variantsCopy.edit}</span>
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {variants.map((v, i) => {
             const title = variantTitle(v.optionValues)
+            const paise = rupees.toPaise(v.price)
             return (
-              <TableRow key={rowKey(v)} className="border-0 hover:bg-transparent">
+              <TableRow key={rowKey(v)} className="border-0 hover:bg-muted/40">
                 <TableCell className={CELL}>
                   <Checkbox
                     aria-label={bulkCopy.selectOne(title)}
@@ -112,52 +120,41 @@ export default function VariantMatrix({
                     onAddMedia={onAddMedia}
                   />
                 </TableCell>
-                <TableCell className={cn(CELL, 'font-medium text-ink-strong')}>{title}</TableCell>
                 <TableCell className={CELL}>
-                  <MoneyInput
-                    aria-label={`${copy.price} ${title}`}
-                    value={v.price}
-                    onChange={(price) => onVariant(i, { price })}
-                  />
+                  <button
+                    type="button"
+                    onClick={() => setEditing(i)}
+                    className="flex min-w-0 flex-col text-left focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                  >
+                    <span className="truncate font-medium text-ink-strong hover:underline">
+                      {title}
+                    </span>
+                    {v.sku.trim() ? (
+                      <span className="truncate text-caption text-muted-foreground">{v.sku}</span>
+                    ) : null}
+                  </button>
                 </TableCell>
-                <TableCell className={CELL}>
-                  <MoneyInput
-                    aria-label={`${copy.mrp} ${title}`}
-                    value={v.mrp}
-                    onChange={(mrp) => onVariant(i, { mrp })}
-                  />
+                <TableCell className={cn(CELL, 'tabular-nums')}>
+                  {paise == null ? (
+                    <span className="text-muted-foreground">{variantsCopy.noPrice}</span>
+                  ) : (
+                    fmt.money(paise)
+                  )}
                 </TableCell>
-                <TableCell className={CELL}>
-                  <div className="flex items-center gap-1">
-                    <Input
-                      aria-label={`${copy.sku} ${title}`}
-                      value={v.sku}
-                      onChange={(e) => onVariant(i, { sku: e.target.value })}
-                      autoComplete="off"
-                    />
-                    {v.sku.trim() ? null : (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="shrink-0"
-                        onClick={() => onGenerateSku(i)}
-                        title={inventoryCopy.skuGenerateHelp}
-                        aria-label={`${inventoryCopy.skuGenerate} ${copy.sku} ${title}`}
-                      >
-                        {inventoryCopy.skuGenerate}
-                      </Button>
-                    )}
-                  </div>
+                <TableCell className={cn(CELL, 'tabular-nums')}>
+                  {v.trackInventory ? fmt.number(Number(v.quantity) || 0) : variantsCopy.unlimited}
                 </TableCell>
-                <TableCell className={CELL}>
-                  <MoneyInput
-                    aria-label={`${copy.available} ${title}`}
-                    currency={false}
-                    value={v.quantity}
-                    disabled={!v.trackInventory}
-                    onChange={(quantity) => onVariant(i, { quantity })}
-                  />
+                <TableCell className={cn(CELL, 'text-right')}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEditing(i)}
+                    aria-label={variantsCopy.editVariant(title)}
+                  >
+                    <Pencil aria-hidden="true" />
+                    {variantsCopy.edit}
+                  </Button>
                 </TableCell>
               </TableRow>
             )
@@ -176,6 +173,17 @@ export default function VariantMatrix({
           </span>
         ) : null}
       </div>
+      {editing !== null ? (
+        <VariantEditDialog
+          key={editing}
+          productTitle={productTitle}
+          variants={variants}
+          index={editing}
+          onSave={onVariant}
+          onMove={setEditing}
+          onClose={() => setEditing(null)}
+        />
+      ) : null}
     </div>
   )
 }

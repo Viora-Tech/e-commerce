@@ -1,4 +1,4 @@
-import { notSystemTest } from '@commerce/core'
+import { notSystemTest, priceRange } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { media, product, productMedia, sellableStock, variant } from '@commerce/db'
 import { and, asc, eq, ilike, inArray, isNull, ne, or, sql } from 'drizzle-orm'
@@ -13,7 +13,8 @@ export type VariantSearchRow = {
   title: string
   variantTitle: string
   sku: string | null
-  pricePaise: number
+  /** Null: listed without a price yet (#913); the draft line needs one typed in. */
+  pricePaise: number | null
   imageUrl: string | null
   /** A gift card: digital, so a draft of only these needs no shipping address. */
   giftCard: boolean
@@ -81,7 +82,8 @@ export type PickProductVariant = {
   id: string
   title: string
   sku: string | null
-  pricePaise: number
+  /** Null: listed without a price yet (#913). */
+  pricePaise: number | null
   /** The variant's cost (weighted average landed cost); a purchase order in rupees starts from it. */
   costPaise: number | null
   available: number
@@ -181,8 +183,8 @@ export async function pickProducts(
     return {
       ...r,
       sku: vs[0]?.sku ?? null,
-      pricePaiseMin: vs.length ? Math.min(...vs.map((v) => v.pricePaise)) : null,
-      pricePaiseMax: vs.length ? Math.max(...vs.map((v) => v.pricePaise)) : null,
+      pricePaiseMin: priceRange(vs.map((v) => v.pricePaise))?.min ?? null,
+      pricePaiseMax: priceRange(vs.map((v) => v.pricePaise))?.max ?? null,
       available: vs.reduce((n, v) => n + v.available, 0),
       variants: vs,
     }

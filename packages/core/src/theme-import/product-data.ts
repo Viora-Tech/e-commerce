@@ -173,12 +173,15 @@ export async function loadProducts(
           const qty = onHand(v)
           // Pre-order variants sell with no stock, as Shopify's "continue selling" does.
           const preorder = v.preorder?.enabled ?? p.preorderEnabled
+          // Listed without a price (#913): Liquid needs a number, and the variant is not for sale.
+          const price = v.price
           return {
             id: v.id,
             title: v.title,
-            price: presentmentCents(v.price, pricing),
-            compareAtPrice: v.mrp && v.mrp > v.price ? presentmentCents(v.mrp, pricing) : null,
-            available: qty > 0 || preorder,
+            price: price == null ? 0 : presentmentCents(price, pricing),
+            compareAtPrice:
+              price != null && v.mrp && v.mrp > price ? presentmentCents(v.mrp, pricing) : null,
+            available: price != null && (qty > 0 || preorder),
             inventoryQuantity: qty,
             sku: v.sku,
             barcode: v.barcode,
