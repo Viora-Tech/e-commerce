@@ -49,6 +49,16 @@ export const giftCardsRouter = {
       z.object({
         q: z.string().trim().max(SEARCH_MAX).optional(),
         state: z.enum(STATES).optional(),
+        source: z
+          .array(z.enum(['manual', 'purchase']))
+          .max(2)
+          .optional(),
+        minBalancePaise: z.number().int().min(0).optional(),
+        maxBalancePaise: z.number().int().min(0).optional(),
+        expiresFrom: z.iso.date().optional(),
+        expiresTo: z.iso.date().optional(),
+        createdFrom: z.iso.datetime().optional(),
+        createdTo: z.iso.datetime().optional(),
         page: z.number().int().min(1).default(1),
         perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(50),
       }),
@@ -59,6 +69,13 @@ export const giftCardsRouter = {
         {
           q: input.q,
           state: input.state,
+          source: input.source,
+          minBalancePaise: input.minBalancePaise,
+          maxBalancePaise: input.maxBalancePaise,
+          expiresFrom: input.expiresFrom,
+          expiresTo: input.expiresTo,
+          createdFrom: input.createdFrom,
+          createdTo: input.createdTo,
           limit: input.perPage,
           offset: (input.page - 1) * input.perPage,
         },

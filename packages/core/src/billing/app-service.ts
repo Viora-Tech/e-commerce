@@ -114,7 +114,7 @@ async function createAppBill(
   env: BillingEnv,
 ): Promise<AppBill> {
   const sale = await placeSalesOrder(db, env, storeId, {
-    sku: appSku(input.pluginId),
+    lines: [{ sku: appSku(input.pluginId) }],
     note: (buyer) =>
       `${siteConfig.brand.name} app ${input.pluginId} for ${buyer}, store ${storeId}`,
   })

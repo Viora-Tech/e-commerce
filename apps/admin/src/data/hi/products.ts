@@ -39,6 +39,13 @@ export default [
       productType: 'प्रोडक्ट टाइप',
       tag: 'टैग',
       stock: 'स्टॉक',
+      collection: 'कलेक्शन',
+      price: 'कीमत',
+      priceMin: 'कम से कम कीमत',
+      priceMax: 'ज़्यादा से ज़्यादा कीमत',
+      created: 'बनाया गया',
+      anyDate: 'कोई भी तारीख',
+      createdOptions: { '7d': 'पिछले 7 दिन', '30d': 'पिछले 30 दिन', '90d': 'पिछले 90 दिन' },
       any: 'कोई भी',
       stockOptions: [
         { value: 'in', label: 'स्टॉक में' },

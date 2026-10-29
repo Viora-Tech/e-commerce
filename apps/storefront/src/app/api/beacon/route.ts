@@ -9,6 +9,7 @@ import {
   recordMarketingSession,
   setCartAttribution,
 } from '@commerce/core'
+import { isBotUserAgent } from '@commerce/core/marketing'
 import { CONSENT_COOKIE } from '@commerce/core/preferences'
 import { logger } from '@commerce/observability/logging'
 import { recordVisit, sharedRedis } from '@commerce/queue'
@@ -130,7 +131,9 @@ export const POST = withEvlog(async (request: Request) => {
   const cartId = await readCartId()
   try {
     await inStore(storeId, async (tx) => {
-      await recordMarketingSession(tx, storeId, { visitorId, attribution: current })
+      // A bot is no visit: it would count against the plan's fair-use visits for nothing.
+      if (!isBotUserAgent(h.get('user-agent')))
+        await recordMarketingSession(tx, storeId, { visitorId, attribution: current })
       if (cartId) await setCartAttribution(tx, cartId, picked)
       // Affiliate link clicks are counted by the proxy, consent or not (`lib/referral-landing.ts`).
     })

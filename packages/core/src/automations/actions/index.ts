@@ -35,12 +35,16 @@ let registered = false
 
 /**
  * Registers every built-in executor once per process (the worker and the API call it). The
- * worker passes its settings secret and storefront URL; without them the env is read.
+ * worker passes its settings secret and storefront URL; without them the env is read. A hot
+ * reload re-runs this module (so `registered` starts false again) while the registry keeps its
+ * map: the built-ins replace their own earlier registration rather than throw.
  */
 export function registerBuiltinActions(host: ActionHost = {}): void {
   if (registered) return
   registered = true
-  for (const executor of builtinExecutors(depsResolver(host))) registerActionExecutor(executor)
+  for (const executor of builtinExecutors(depsResolver(host))) {
+    registerActionExecutor(executor, { replace: true })
+  }
 }
 
 /** Ids with no executor; empty when the catalogue and `actions/**` agree (asserted in tests). */

@@ -18,6 +18,14 @@ export default function SiteFooter() {
             <a href={`mailto:${siteContent.supportEmail}`} className={`${LINK_CLASS} break-all`}>
               {siteContent.supportEmail}
             </a>
+            <a href={`tel:${siteContent.phone.replace(/\s/g, '')}`} className={LINK_CLASS}>
+              {siteContent.phone}
+            </a>
+            <address className="text-sm not-italic text-muted-foreground">
+              {siteContent.legalName}
+              <br />
+              {siteContent.address}
+            </address>
           </div>
           <div className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3 lg:grid-cols-5 lg:gap-x-12">
             {siteContent.footerColumns.map((column) => (

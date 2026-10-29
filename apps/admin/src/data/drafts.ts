@@ -97,6 +97,7 @@ export const draftEditorContent = {
     phone: 'Phone',
     clear: 'Clear customer',
     help: 'The invoice goes to this email address.',
+    matched: (name: string) => `Saved customer found: filled in ${name}'s details`,
   },
   address: {
     heading: 'Shipping address',

@@ -46,6 +46,13 @@ export const productsListContent = {
     productType: 'Product type',
     tag: 'Tag',
     stock: 'Stock',
+    collection: 'Collection',
+    price: 'Price',
+    priceMin: 'Min price',
+    priceMax: 'Max price',
+    created: 'Created',
+    anyDate: 'Any date',
+    createdOptions: { '7d': 'Last 7 days', '30d': 'Last 30 days', '90d': 'Last 90 days' },
     any: 'Any',
     stockOptions: [
       { value: 'in', label: 'In stock' },

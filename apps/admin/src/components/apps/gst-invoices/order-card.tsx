@@ -90,12 +90,17 @@ export default function OrderCard({ orderId }: OrderCardProps) {
     <DataCard
       title={copy.title}
       action={
-        <Link
-          href={`${APP}/settings`}
-          className="text-caption text-muted-foreground hover:text-foreground"
-        >
-          {copy.settings}
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href={`${APP}/invoices`} className="text-caption font-medium hover:underline">
+            {copy.all}
+          </Link>
+          <Link
+            href={`${APP}/settings`}
+            className="text-caption text-muted-foreground hover:text-foreground"
+          >
+            {copy.settings}
+          </Link>
+        </div>
       }
     >
       <div className="flex flex-col gap-3">

@@ -11,13 +11,26 @@ import { collectionListColumns } from '@/components/collections/collection-list-
 import CollectionTiles, { type CollectionTab } from '@/components/collections/collection-tiles'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
+import {
+  appliedFromGroups,
+  clearGroups,
+  FILTER_PANEL_CLASS,
+  FilterPanel,
+} from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
 import ViewSelect from '@/components/table/view-select'
 import { bulkActionsContent } from '@/data/bulk-actions'
 import { collectionFormContent, collectionsListContent } from '@/data/collections'
+import { filterPanelContent } from '@/data/filter-panel'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import {
+  CLEAR_COLLECTION_FILTERS,
+  COLLECTION_FILTER_PARAMS,
+  collectionFilterGroups,
+  collectionMatcher,
+} from '@/lib/collection-list-filters'
 import { usePrimaryAction } from '@/lib/primary-action'
 import { routes } from '@/lib/routes'
 import { runBatched, toastOutcome } from '@/lib/run-batched'
@@ -45,6 +58,7 @@ function CollectionsContent({ initial }: { initial: CollectionsInitial }) {
   const copy = useCopy(collectionsListContent)
   const { delete: deleteCopy } = useCopy(collectionFormContent)
   const fmt = useFormat()
+  const panelCopy = useCopy(filterPanelContent)
   usePrimaryAction(routes.products.newCollection())
   const [q, setQ] = useQueryStates(
     {
@@ -52,6 +66,7 @@ function CollectionsContent({ initial }: { initial: CollectionsInitial }) {
       tab: parseAsStringLiteral(TABS),
       page: parseAsInteger.withDefault(1),
       perPage: parseAsInteger.withDefault(siteConfig.ui.rowsPerPage.default),
+      ...COLLECTION_FILTER_PARAMS,
     },
     { shallow: true },
   )
@@ -93,9 +108,16 @@ function CollectionsContent({ initial }: { initial: CollectionsInitial }) {
     empty: rows.filter((r) => r.productCount === 0).length,
   }
   const needle = q.query.trim().toLowerCase()
+  const matches = collectionMatcher(q)
   const matching = rows.filter(
-    (r) => inTab(r, q.tab) && (needle === '' || r.title.toLowerCase().includes(needle)),
+    (r) =>
+      inTab(r, q.tab) &&
+      matches(r) &&
+      (needle === '' ||
+        r.title.toLowerCase().includes(needle) ||
+        r.handle.toLowerCase().includes(needle)),
   )
+  const groups = collectionFilterGroups(q, copy.list, (patch) => setQ({ ...patch, page: 1 }))
   const pageRows = matching.slice((q.page - 1) * q.perPage, q.page * q.perPage)
 
   return (
@@ -149,7 +171,16 @@ function CollectionsContent({ initial }: { initial: CollectionsInitial }) {
         )}
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
-        onClearAll={() => setQ({ query: '', tab: null, page: 1 })}
+        onClearAll={() => setQ({ ...CLEAR_COLLECTION_FILTERS, query: '', tab: null, page: 1 })}
+        filters={(close) => (
+          <FilterPanel
+            groups={groups}
+            onClear={() => clearGroups(groups)}
+            footer={{ label: panelCopy.show(matching.length), onDone: close }}
+          />
+        )}
+        filtersClassName={FILTER_PANEL_CLASS}
+        applied={appliedFromGroups(groups, panelCopy)}
         views={
           <ViewSelect
             value={q.tab}

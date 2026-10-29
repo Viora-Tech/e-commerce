@@ -25,6 +25,8 @@ type FieldInputProps = {
   value: unknown
   error?: string | undefined
   onChange: (value: unknown) => void
+  /** In a grid whose column header names the field: the label is only read out, not shown. */
+  hideLabel?: boolean | undefined
 }
 
 const KIND: Partial<Record<FieldType, ReferenceKind>> = {
@@ -48,7 +50,13 @@ function asItems(value: unknown): unknown[] {
 }
 
 /** The right input for a metaobject field or metafield, with its label, help and error. */
-export default function FieldInput({ rule, value, error, onChange }: FieldInputProps) {
+export default function FieldInput({
+  rule,
+  value,
+  error,
+  onChange,
+  hideLabel = false,
+}: FieldInputProps) {
   // Hooks
   const id = useId()
   const copy = useCopy(fieldInputContent)
@@ -80,7 +88,7 @@ export default function FieldInput({ rule, value, error, onChange }: FieldInputP
 
   return (
     <Field data-invalid={Boolean(error)}>
-      <FieldLabel htmlFor={id}>
+      <FieldLabel htmlFor={id} className={hideLabel ? 'sr-only' : undefined}>
         {rule.name}
         {rule.required ? (
           <span className="text-caption font-normal text-muted-foreground">{required}</span>

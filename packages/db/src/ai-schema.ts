@@ -36,7 +36,7 @@ import { newId, product, store } from './schema'
  * suggestion until the merchant reviews and applies it.
  */
 
-const AI_PLAN_VALUES = ['free', 'starter', 'growth', 'pro'] as const
+const AI_PLAN_VALUES = ['free', 'starter', 'growth', 'pro', 'scale', 'internal'] as const
 
 export const aiSettings = pgTable(
   'ai_settings',
@@ -59,7 +59,10 @@ export const aiSettings = pgTable(
   },
   (t) => [
     uniqueIndex('ai_settings_store').on(t.storeId),
-    check('ai_settings_plan_check', sql`${t.plan} in ('free', 'starter', 'growth', 'pro')`),
+    check(
+      'ai_settings_plan_check',
+      sql`${t.plan} in ('free', 'starter', 'growth', 'pro', 'scale', 'internal')`,
+    ),
     check('ai_settings_writing_quality_check', sql`${t.writingQuality} in ('standard', 'best')`),
   ],
 )

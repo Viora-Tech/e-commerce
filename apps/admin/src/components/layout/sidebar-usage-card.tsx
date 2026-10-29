@@ -7,7 +7,13 @@ import { useCopy, useFormat } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
 import { SIDEBAR_BLOCK } from '@/lib/sidebar-motion'
 
-export type SidebarUsage = { used: number; limit: number; planName: string }
+/** `feePercent` is charged on each order past `limit` (0 on Scale); `planName` is the next plan up, null on Scale. */
+export type SidebarUsage = {
+  used: number
+  limit: number
+  feePercent: string
+  planName: string | null
+}
 
 type SidebarUsageCardProps = {
   usage: SidebarUsage
@@ -21,6 +27,14 @@ export default function SidebarUsageCard({ usage }: SidebarUsageCardProps) {
 
   // Render logic
   const percent = usage.limit > 0 ? Math.min(100, Math.round((usage.used / usage.limit) * 100)) : 0
+  // At 80% of the included orders the card warns; from 100% it says what each order costs.
+  const charges = usage.feePercent !== '0'
+  const warning =
+    !charges || percent < 80
+      ? null
+      : usage.used >= usage.limit
+        ? copy.usage.feeAfter(usage.feePercent)
+        : copy.usage.nearLimit(format.number(usage.limit - usage.used))
 
   return (
     <div className={`flex flex-col gap-0.5 ${SIDEBAR_BLOCK}`}>
@@ -40,14 +54,19 @@ export default function SidebarUsageCard({ usage }: SidebarUsageCardProps) {
         <p className="text-xs text-muted-foreground tabular-nums">
           {copy.usage.of(format.number(usage.used), format.number(usage.limit))}
         </p>
+        {warning ? (
+          <p className="text-xs text-warning-foreground dark:text-warning">{warning}</p>
+        ) : null}
       </div>
-      <Link
-        href={routes.settings.billing()}
-        className="flex h-7 items-center gap-1.5 rounded-sm pt-2 pb-1 pl-2 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        <ChevronUpIcon className="size-3.5 shrink-0" aria-hidden />
-        {copy.usage.moreRoom(usage.planName)}
-      </Link>
+      {usage.planName ? (
+        <Link
+          href={routes.settings.billing()}
+          className="flex h-7 items-center gap-1.5 rounded-sm pt-2 pb-1 pl-2 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <ChevronUpIcon className="size-3.5 shrink-0" aria-hidden />
+          {copy.usage.moreRoom(usage.planName)}
+        </Link>
+      ) : null}
     </div>
   )
 }

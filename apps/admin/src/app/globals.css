@@ -15,15 +15,20 @@
 @source "../../../../packages/ui/src/**/*.{ts,tsx}";
 @source "../../../../packages/blocks/src/**/*.tsx";
 
-/* Thin auto-hiding scrollbar; base styling, not a component. */
+/*
+ * Thin, theme-coloured scrollbars with no arrow buttons; base styling, not a component.
+ * Chrome (121+) and Firefox read the standard properties, and once they are set Chrome ignores
+ * ::-webkit-scrollbar, so `thin` is what keeps menus from showing the thick default bar (#892).
+ * Safari still reads the WebKit rules below.
+ */
 @layer base {
   * {
-    scrollbar-width: auto;
+    scrollbar-width: thin;
     scrollbar-color: var(--scrollbar-thumb) transparent;
   }
   *::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
+    width: 6px;
+    height: 6px;
   }
   *::-webkit-scrollbar-track {
     background: transparent;
@@ -31,12 +36,9 @@
   *::-webkit-scrollbar-thumb {
     background-color: var(--scrollbar-thumb);
     border-radius: 10px;
-    visibility: hidden;
   }
-  *:active::-webkit-scrollbar-thumb,
-  *:focus::-webkit-scrollbar-thumb,
-  *:hover::-webkit-scrollbar-thumb {
-    visibility: visible;
+  *::-webkit-scrollbar-button {
+    display: none;
   }
 }
 

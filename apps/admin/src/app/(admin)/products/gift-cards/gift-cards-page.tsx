@@ -21,9 +21,25 @@ import EmptyState from '@/components/layout/empty-state'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import RelativeTime from '@/components/layout/relative-time'
 import OrderChip from '@/components/orders/order-chip'
+import {
+  appliedFromGroups,
+  clearGroups,
+  FILTER_PANEL_CLASS,
+  FilterPanel,
+} from '@/components/table/filter-panel'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
+import { filterPanelContent } from '@/data/filter-panel'
 import { GIFT_CARD_STATES, type GiftCardStateFilter, giftCardsContent } from '@/data/gift-cards'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import {
+  CLEAR_GIFT_CARD_FILTERS,
+  GIFT_CARD_FILTER_PARAMS,
+  type GiftCardFilters,
+  giftCardFilterGroups,
+  giftCardFilterInput,
+  hasGiftCardFilters,
+} from '@/lib/gift-card-list-filters'
 import { type ListQuery, sameListQuery } from '@/lib/list-query'
 import { formatPaise } from '@/lib/money'
 import { usePrimaryAction } from '@/lib/primary-action'
@@ -50,12 +66,13 @@ const PER_PAGE = siteConfig.ui.rowsPerPage.default
 const asDate = (d: Date | string) =>
   typeof d === 'string' && d.length === 10 ? new Date(`${d}T00:00:00`) : new Date(d)
 
-function fetchCards(q: Query & { perPage: number }) {
+function fetchCards(q: Query & GiftCardFilters & { perPage: number }) {
   return api.giftCards.list({
     page: q.page,
     perPage: q.perPage,
     q: q.query || undefined,
     state: q.status ?? undefined,
+    ...giftCardFilterInput(q),
   })
 }
 
@@ -134,12 +151,14 @@ const columns: ResourceColumnSpec<Item>[] = [
 function GiftCardsContent({ initial }: { initial: GiftCardsInitial }) {
   // Hooks
   usePrimaryAction(routes.products.newGiftCard())
-  const [{ page, perPage, query, status }, setQ] = useQueryStates(
+  const panelCopy = useCopy(filterPanelContent)
+  const [q, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
       page: parseAsInteger.withDefault(1),
       perPage: parseAsInteger.withDefault(PER_PAGE),
       status: parseAsStringLiteral(GIFT_CARD_STATES),
+      ...GIFT_CARD_FILTER_PARAMS,
     },
     { shallow: true },
   )
@@ -154,21 +173,26 @@ function GiftCardsContent({ initial }: { initial: GiftCardsInitial }) {
     // tab) the list is fetched again, so it never keeps another tab's rows.
     const firstRun = !hydrated.current
     hydrated.current = true
-    if (firstRun && sameListQuery({ page, query, status }, initial.query) && perPage === PER_PAGE)
+    if (
+      firstRun &&
+      sameListQuery({ page: q.page, query: q.query, status: q.status }, initial.query) &&
+      q.perPage === PER_PAGE &&
+      !hasGiftCardFilters(q)
+    )
       return
     let cancelled = false
     setLoading(true)
-    fetchCards({ page, perPage, query, status })
+    fetchCards(q)
       .then((r) => !cancelled && setResult(r))
       .finally(() => !cancelled && setLoading(false))
     return () => {
       cancelled = true
     }
-  }, [page, perPage, query, status, initial.query])
+  }, [q, initial.query])
 
   // Helpers
   const refresh = async () => {
-    setResult(await fetchCards({ page, perPage, query, status }))
+    setResult(await fetchCards(q))
   }
 
   // Event handlers
@@ -178,6 +202,7 @@ function GiftCardsContent({ initial }: { initial: GiftCardsInitial }) {
 
   // Render logic
   const fresh = initial.allCount === 0 && products.length === 0
+  const groups = giftCardFilterGroups(q, copy.filters, (patch) => setQ({ ...patch, page: 1 }))
   const actions = (
     <div className="flex items-center gap-2">
       <Button variant="outline" onClick={() => setProductOpen(true)}>
@@ -246,18 +271,27 @@ function GiftCardsContent({ initial }: { initial: GiftCardsInitial }) {
             />
           )}
           loading={loading}
-          query={query}
+          query={q.query}
           onQueryChange={(query) => setQ({ query, page: 1 })}
-          onClearAll={() => setQ({ query: '', status: null, page: 1 })}
+          onClearAll={() => setQ({ ...CLEAR_GIFT_CARD_FILTERS, query: '', status: null, page: 1 })}
+          filters={(close) => (
+            <FilterPanel
+              groups={groups}
+              onClear={() => clearGroups(groups)}
+              footer={{ label: panelCopy.show(result.total), onDone: close }}
+            />
+          )}
+          filtersClassName={FILTER_PANEL_CLASS}
+          applied={appliedFromGroups(groups, panelCopy)}
           views={
             <GiftCardStateTabs
-              value={status}
+              value={q.status}
               allCount={initial.allCount}
               onChange={(s) => setQ({ status: s, page: 1 })}
             />
           }
-          page={page}
-          perPage={perPage}
+          page={q.page}
+          perPage={q.perPage}
           onPerPageChange={(next) => setQ({ perPage: next, page: 1 })}
           total={result.total}
           onPageChange={(page) => setQ({ page })}

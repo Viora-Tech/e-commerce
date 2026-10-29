@@ -6,14 +6,18 @@ export const siteContent = {
   brand: siteConfig.brand.name,
   tagline: siteConfig.brand.tagline,
   supportEmail: siteConfig.contact.supportEmail,
+  phone: siteConfig.contact.phone,
+  legalName: siteConfig.company.legalName,
+  address: siteConfig.company.address,
   navLinks: [
     { label: 'Features', href: '/features' },
     { label: 'Pricing', href: '/pricing' },
     { label: 'Apps', href: '/apps' },
     { label: 'Docs', href: docs },
   ],
-  signIn: { label: 'Sign in', href: `${siteConfig.urls.admin}/sign-in` },
-  joinWaitlist: 'Join the waitlist',
+  signIn: { label: 'Sign in', href: `${siteConfig.urls.admin}/login` },
+  // Sign-in creates the account; the admin then walks a new merchant through creating a store.
+  startFree: { label: 'Start free', href: `${siteConfig.urls.admin}/login` },
   openMenu: 'Open menu',
   closeMenu: 'Close menu',
   footerColumns: [

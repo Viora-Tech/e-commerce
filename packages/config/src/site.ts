@@ -29,6 +29,13 @@ export type SiteConfig = {
     whatsappGreeting: string
     phone: string
   }
+  /** The business behind the platform, as payment partners and the legal pages name it. */
+  company: {
+    legalName: string
+    /** Registered and operational address (the same place). */
+    address: string
+    gstin: string
+  }
   urls: {
     site: string
     /** The merchant admin (sign in, sign up). */
@@ -62,11 +69,19 @@ export type SiteConfig = {
   }
   /**
    * Plans as the landing site shows them, before GST. Mirrors `packages/core/src/billing/plans.ts`
-   * (memory-bank/pricing.md, decided 2026-10-18); change both together.
+   * (memory-bank/pricing.md, decided 2026-10-28); change both together. `feePercent` is charged
+   * on each order's total after `ordersPerMonth`; `visitsPerMonth` is fair use (null: by hand).
    */
   plans: Record<
-    'starter' | 'growth' | 'pro',
-    { name: string; ordersPerMonth: number; monthlyInr: number; yearlyInr: number }
+    'starter' | 'growth' | 'pro' | 'scale',
+    {
+      name: string
+      ordersPerMonth: number
+      monthlyInr: number
+      yearlyInr: number
+      feePercent: number
+      visitsPerMonth: number | null
+    }
   >
   /** Days of Growth every new store gets, no card asked. */
   trialDays: number
@@ -84,7 +99,12 @@ export const siteConfig: SiteConfig = {
     supportEmail: 'support@koomerce.app',
     whatsappNumber: '910000000000',
     whatsappGreeting: 'Hi, I need help with my store.',
-    phone: '+91 94168 74123',
+    phone: '+91 93550 74123',
+  },
+  company: {
+    legalName: 'Viora India (a sole proprietorship of Kuldeep Saini)',
+    address: '745/25, Saini Niwas, Gali Number 3, West Ram Nagar, Sonipat 131001, Haryana, India',
+    gstin: '06OIEPS3969E1ZM',
   },
   urls: {
     site: 'https://koomerce.app',
@@ -110,9 +130,38 @@ export const siteConfig: SiteConfig = {
     toastMs: { default: 4000, success: 3000, error: 6000 },
   },
   plans: {
-    starter: { name: 'Starter', ordersPerMonth: 50, monthlyInr: 499, yearlyInr: 4990 },
-    growth: { name: 'Growth', ordersPerMonth: 200, monthlyInr: 1499, yearlyInr: 14990 },
-    pro: { name: 'Pro', ordersPerMonth: 1000, monthlyInr: 4999, yearlyInr: 49990 },
+    starter: {
+      name: 'Starter',
+      ordersPerMonth: 50,
+      monthlyInr: 499,
+      yearlyInr: 4990,
+      feePercent: 1,
+      visitsPerMonth: 25_000,
+    },
+    growth: {
+      name: 'Growth',
+      ordersPerMonth: 200,
+      monthlyInr: 1999,
+      yearlyInr: 19990,
+      feePercent: 0.75,
+      visitsPerMonth: 100_000,
+    },
+    pro: {
+      name: 'Pro',
+      ordersPerMonth: 500,
+      monthlyInr: 4999,
+      yearlyInr: 49990,
+      feePercent: 0.5,
+      visitsPerMonth: 500_000,
+    },
+    scale: {
+      name: 'Scale',
+      ordersPerMonth: 2000,
+      monthlyInr: 14999,
+      yearlyInr: 149990,
+      feePercent: 0,
+      visitsPerMonth: null,
+    },
   },
   trialDays: 14,
   social: {

@@ -4,6 +4,7 @@ import {
   createDb,
   fulfillmentOrder,
   fulfillmentOrderLine,
+  giftCard,
   inventoryLevel,
   order,
   orderLine,
@@ -259,6 +260,51 @@ describe('cancelOrderByStaff', () => {
     expect(r).toMatchObject({ status: 'manual', amountPaise: 200000 })
   })
 
+  it('gives the money back as store credit: one gift card, recorded as the refund', async () => {
+    const { storeId, black } = await seed()
+    const id = await placed(storeId, black)
+    const g = gateway()
+    await withStore(app, storeId, (tx) =>
+      cancelOrderByStaff(
+        { storeId, tx },
+        {
+          orderId: id,
+          restock: true,
+          notifyCustomer: false,
+          refund: 'store_credit',
+          author: STAFF,
+          settingsSecret: 'test-secret-test-secret-test-secret',
+        },
+        [g],
+      ),
+    )
+    expect(g.calls).toEqual([])
+    const rows = await owner.select().from(refund).where(eq(refund.orderId, id))
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({ method: 'store_credit', status: 'manual', amountPaise: 200000 })
+    const [card] = await owner.select().from(giftCard).where(eq(giftCard.orderId, id))
+    expect(card).toMatchObject({ initialValuePaise: 200000, balancePaise: 200000 })
+    expect(rows[0]?.giftCardId).toBe(card?.id)
+    expect((await orderRow(id)).paymentStatus).toBe('refunded')
+    const notes = await owner.select().from(orderNote).where(eq(orderNote.orderId, id))
+    expect(notes.at(-1)?.body).toContain('given back as store credit')
+  })
+
+  it('says what was kept when the merchant chooses no refund', async () => {
+    const { storeId, black } = await seed()
+    const id = await placed(storeId, black)
+    await withStore(app, storeId, (tx) =>
+      cancelOrderByStaff(
+        { storeId, tx },
+        { orderId: id, restock: true, notifyCustomer: false, refund: 'none', author: STAFF },
+        [gateway()],
+      ),
+    )
+    const notes = await owner.select().from(orderNote).where(eq(orderNote.orderId, id))
+    expect(notes.at(-1)?.body).toContain('Not refunded: ₹2,000.00 left to refund.')
+    expect(notes.at(-1)?.body).not.toContain('Nothing to refund')
+  })
+
   it('puts an imported order’s items back on sale when restock is on', async () => {
     const { storeId, black } = await seed()
     const id = await imported(storeId, black)
@@ -451,6 +497,102 @@ describe('editOrder', () => {
       .where(and(eq(payment.orderId, id)))
     expect(p?.amountPaise).toBe(250000)
     expect((await orderRow(id)).balanceDuePaise).toBeNull()
+  })
+
+  it('reprices an existing line and labels shipping and discount (issues 917, 918, 919)', async () => {
+    const { storeId, black } = await seed()
+    const id = await placed(storeId, black)
+    const [line] = await owner.select().from(orderLine).where(eq(orderLine.orderId, id))
+    const input = edit({
+      orderId: id,
+      lines: [{ lineId: line?.id, quantity: 2, unitPricePaise: 80000 }],
+      shippingPaise: 9900,
+      shippingLabel: 'Bluedart',
+      discountPaise: 5000,
+      discountLabel: ' UPI discount ',
+    })
+    const preview = await withStore(app, storeId, (tx) =>
+      previewOrderEdit({ storeId, tx }, input, [gateway()]),
+    )
+    // 2 × ₹800 − ₹50 + ₹99 = ₹1,649 against ₹2,000 paid: ₹351 owed back.
+    expect(preview.after).toMatchObject({ subtotalPaise: 160000, totalPaise: 164900 })
+    expect(preview.differencePaise).toBe(-35100)
+    expect(preview.lines[0]).toMatchObject({
+      change: 'changed',
+      unitPriceBefore: 100000,
+      unitPricePaise: 80000,
+    })
+    const r = await withStore(app, storeId, (tx) =>
+      editOrder(
+        { storeId, tx },
+        input,
+        { refund: 'manual', requestPayment: false, author: STAFF },
+        [gateway()],
+      ),
+    )
+    expect(r.settlement).toMatchObject({ kind: 'refunded', amountPaise: 35100 })
+    const o = await orderRow(id)
+    expect(o).toMatchObject({
+      subtotalPaise: 160000,
+      discountPaise: 5000,
+      shippingPaise: 9900,
+      totalPaise: 164900,
+      discountLabel: 'UPI discount',
+      shippingRateName: 'Bluedart',
+    })
+    // GST follows the new price: 18% inside ₹1,649.
+    expect(o.taxPaise).toBe(Math.round((164900 * 18) / 118))
+    const [after] = await owner.select().from(orderLine).where(eq(orderLine.orderId, id))
+    expect(after).toMatchObject({ quantity: 2, unitPricePaise: 80000 })
+    // Same quantity: no stock moved.
+    expect(await level(black)).toEqual({ onHand: 10, reserved: 2 })
+    const [rf] = await owner.select().from(refund).where(eq(refund.orderId, id))
+    expect(rf).toMatchObject({ status: 'manual', amountPaise: 35100 })
+    const notes = await owner.select().from(orderNote).where(eq(orderNote.orderId, id))
+    const body = notes.map((n) => n.body).join(' ')
+    expect(body).toContain('Glasspad (Black) price ₹1,000.00 → ₹800.00')
+    expect(body).toContain('shipping label none → "Bluedart"')
+    expect(body).toContain('discount label none → "UPI discount"')
+  })
+
+  it('raises a price: the customer owes the difference as a balance', async () => {
+    const { storeId, black } = await seed()
+    const id = await placed(storeId, black)
+    const [line] = await owner.select().from(orderLine).where(eq(orderLine.orderId, id))
+    const r = await withStore(app, storeId, (tx) =>
+      editOrder(
+        { storeId, tx },
+        edit({ orderId: id, lines: [{ lineId: line?.id, quantity: 2, unitPricePaise: 125000 }] }),
+        { refund: 'none', requestPayment: false, author: STAFF },
+        [gateway()],
+      ),
+    )
+    expect(r.settlement).toMatchObject({ kind: 'owed', amountPaise: 50000 })
+    const o = await orderRow(id)
+    expect(o).toMatchObject({ totalPaise: 250000, balanceDuePaise: 50000 })
+    expect(o.paymentStatus).toBe('partially_paid')
+  })
+
+  it('saves a label on its own; the money stays as it was', async () => {
+    const { storeId, black } = await seed()
+    const id = await placed(storeId, black)
+    const r = await withStore(app, storeId, (tx) =>
+      editOrder(
+        { storeId, tx },
+        edit({ orderId: id, shippingLabel: 'Bluedart' }),
+        { refund: 'none', requestPayment: false, author: STAFF },
+        [],
+      ),
+    )
+    expect(r.settlement.kind).toBe('none')
+    const o = await orderRow(id)
+    expect(o).toMatchObject({ totalPaise: 200000, shippingRateName: 'Bluedart' })
+    // The same label again is no change.
+    await expect(
+      withStore(app, storeId, (tx) =>
+        previewOrderEdit({ storeId, tx }, edit({ orderId: id, shippingLabel: 'Bluedart' }), []),
+      ),
+    ).rejects.toMatchObject({ reason: 'no_change' })
   })
 
   it('refuses an imported order until it is taken over', async () => {

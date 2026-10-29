@@ -128,7 +128,7 @@ const PATTERNED: Record<string, () => string | number> = {
   'market_region.country_code': () =>
     SEED_COUNTRIES[seededCountries++ % SEED_COUNTRIES.length] ?? 'AE',
   'translation.locale': () => 'ar',
-  // Rollouts (0181): a theme or discount change needs a target id; the checkout one has none.
+  // Rollouts (0182): a theme or discount change needs a target id; the checkout one has none.
   'rollout_change.kind': () => 'checkout_branding',
   // `order (store_id, number)` is unique since 0177: far above the numbers a new store hands
   // out (#1, #2), so an order the walk creates never collides with a seeded one.

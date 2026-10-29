@@ -40,6 +40,10 @@ export const staffContent = {
     cancel: 'Cancel',
     sent: (email: string) => `Invitation sent to ${email}`,
     failed: 'Could not send the invitation',
+    limit: (n: number) =>
+      n === 1 ? 'Your plan includes 1 staff account' : `Your plan includes ${n} staff accounts`,
+    limitHelp:
+      'They are all in use, open invites included. Cancel an invite, remove a member, or move up a plan in Settings → Plan & billing.',
   },
   roles: {
     heading: 'Roles',

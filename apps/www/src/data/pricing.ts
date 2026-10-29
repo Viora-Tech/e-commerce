@@ -1,18 +1,29 @@
 import { siteConfig } from '@commerce/config/site'
+import { OWN_IT_PRICES, PLAN_GST_PERCENT, type PlanId } from '@commerce/core/billing'
 
 const brand = siteConfig.brand.name
-const { starter, growth, pro } = siteConfig.plans
+const { starter, growth, pro, scale } = siteConfig.plans
 const trial = siteConfig.trialDays
+const starterWithGst = Math.round(starter.monthlyInr * (1 + PLAN_GST_PERCENT / 100))
+const ownIt = OWN_IT_PRICES.india
+const inr = (rupees: number) => `₹${rupees.toLocaleString('en-IN')}`
+const count = (n: number) => n.toLocaleString('en-IN')
+/** The paid plans' fee rates, lowest to highest: "0.5–1%". */
+const feeRange = `${pro.feePercent}–${starter.feePercent}%`
 
-export type PlanKey = 'starter' | 'growth' | 'pro'
+export type PlanKey = PlanId
 
 export type Plan = {
   key: PlanKey
   name: string
+  /** Included a month; each order after that carries `feePercent` of its total. */
   ordersPerMonth: number
   /** Before GST. Yearly is two months free. */
   monthlyInr: number
   yearlyInr: number
+  feePercent: number
+  /** Fair use; null is judged by hand. */
+  visitsPerMonth: number | null
   features: readonly string[]
   popular: boolean
 }
@@ -49,6 +60,17 @@ export const PLANS: readonly Plan[] = [
       `Everything in ${growth.name}`,
       'Every first-party app included',
       'MCP & API, multiple locations',
+      `${brand} AI, 8,000 credits a month`,
+    ],
+  },
+  {
+    key: 'scale',
+    ...scale,
+    popular: false,
+    features: [
+      `Everything in ${pro.name}`,
+      'No per-order fee, ever',
+      '25 staff accounts, 100 GB storage',
       `${brand} AI, 15,000 credits a month`,
     ],
   },
@@ -63,20 +85,22 @@ export const pricingContent = {
   perMonth: '/month',
   perYear: '/year',
   gstNote: '+ 18% GST',
+  withGst: (amount: string, period: string) => `${amount}${period} with GST`,
   yearlyEquivalent: (perMonth: string) => `${perMonth}/month, billed yearly`,
-  upTo: 'Up to',
+  upTo: 'Includes',
   ordersAMonth: 'orders a month',
-  join: 'Join the waitlist',
-  joinShort: 'Join',
+  feeAfter: (percent: number) => `Then ${percent}% per order`,
+  noFee: 'No per-order fee',
+  joinShort: 'Start',
   page: {
     eyebrow: 'Pricing',
-    title: 'Pay for orders. Not a cut of every sale.',
-    subtitle: `Plans by orders a month, no percentage of your revenue. Every store starts with ${trial} days of Growth, no card needed.`,
+    title: 'A low plan. A small fee only as you grow.',
+    subtitle: `Every plan includes orders each month. Past them, a small fee per order; on ${scale.name}, none at all. Every store starts with ${trial} days of Growth, no card needed.`,
     monthly: 'Monthly',
     yearly: 'Yearly',
     save: '2 months free',
     billingLabel: 'Billing period',
-    feePill: '0% transaction fee',
+    feePill: `0% fee on ${scale.name}`,
     calculator: {
       title: 'Find your plan',
       orders: 'Orders a month',
@@ -90,53 +114,64 @@ export const pricingContent = {
         { value: 2000, at: 'left-full' },
       ],
       aov: 'Average order value',
-      recommended: 'Recommended for you:',
-      keepLabel: 'What you keep',
-      platformFee: '~2% platform fee',
-      thisPlatform: brand,
-      zero: '₹0',
+      recommended: 'Cheapest plan for you:',
+      costLabel: 'What you pay a month',
+      planPrice: (plan: string) => `${plan} plan`,
+      perOrderFee: 'Per-order fees',
+      twoPercent: 'A 2% fee on the same sales',
+      breakdown: (sales: string, orders: string, aov: string) =>
+        `On ${sales} in sales (${orders} orders × ${aov}), before 18% GST.`,
       illustrative: 'Illustrative only. Your payment gateway’s own fee still applies.',
     },
     compare: {
       eyebrow: 'Compare',
       title: 'Every plan, side by side.',
-      subtitle: 'Prices before 18% GST. Orders over the limit are never blocked.',
+      subtitle: 'Prices before 18% GST. Orders are never blocked.',
       plan: 'Plan',
       sticky: 'Sticks while you scroll',
       groups: [
         {
           title: 'Usage',
           rows: [
-            { label: 'Orders a month', values: ['50', '200', '1,000'] },
-            { label: 'Staff accounts', values: ['2', '5', '15'] },
-            { label: `${brand} AI credits a month`, values: ['500', '3,000', '15,000'] },
-            { label: 'Storage', values: ['2 GB', '10 GB', '50 GB'] },
+            { label: 'Orders included a month', values: PLANS.map((p) => count(p.ordersPerMonth)) },
+            { label: 'Fee per order after that', values: PLANS.map((p) => `${p.feePercent}%`) },
+            {
+              label: 'Visits a month (fair use)',
+              values: PLANS.map((p) =>
+                p.visitsPerMonth === null ? 'Fair use' : count(p.visitsPerMonth),
+              ),
+            },
+            { label: 'Staff accounts', values: ['1', '3', '10', '25'] },
+            { label: `${brand} AI credits a month`, values: ['500', '3,000', '8,000', '15,000'] },
+            { label: 'Storage', values: ['5 GB', '10 GB', '50 GB', '100 GB'] },
           ],
         },
         {
           title: 'Store',
           rows: [
-            { label: 'Online store and checkout', values: [true, true, true] },
-            { label: 'Custom domain', values: [true, true, true] },
-            { label: 'Shopify theme import', values: [false, true, true] },
-            { label: 'Hindi admin', values: [true, true, true] },
+            { label: 'Online store and checkout', values: [true, true, true, true] },
+            { label: 'Custom domain', values: [true, true, true, true] },
+            { label: 'Shopify theme import', values: [false, true, true, true] },
+            { label: 'Hindi admin', values: [true, true, true, true] },
           ],
         },
         {
           title: 'Selling',
           rows: [
-            { label: 'UPI, cards, EMI and COD', values: [true, true, true] },
-            { label: 'GST invoices', values: [true, true, true] },
-            { label: 'Indian couriers', values: [true, true, true] },
-            { label: 'Reviews, Back in stock and Forms', values: [false, true, true] },
-            { label: 'Every first-party app', values: [false, false, true] },
-            { label: 'MCP & API', values: [false, false, true] },
-            { label: 'Multiple locations', values: [false, false, true] },
+            { label: 'UPI, cards, EMI and COD', values: [true, true, true, true] },
+            { label: 'GST invoices', values: [true, true, true, true] },
+            { label: 'Indian couriers', values: [true, true, true, true] },
+            { label: 'Reviews, Back in stock and Forms', values: [false, true, true, true] },
+            { label: 'Every first-party app', values: [false, false, true, true] },
+            { label: 'MCP & API', values: [false, false, true, true] },
+            { label: 'Multiple locations', values: [false, false, true, true] },
           ],
         },
         {
           title: 'Support',
-          rows: [{ label: 'Support', values: ['Email', 'Email and WhatsApp', 'Priority'] }],
+          rows: [
+            { label: 'Support', values: ['Email', 'Email and WhatsApp', 'Priority', 'Priority'] },
+          ],
         },
       ],
       included: 'Included',
@@ -155,14 +190,14 @@ export const pricingContent = {
         {
           icon: 'whatsapp',
           title: 'WhatsApp messages',
-          body: 'Order updates, COD confirmations and campaigns, from a prepaid wallet.',
-          price: 'Meta’s rate + 20%',
+          body: 'Order updates, COD confirmations and campaigns. Meta bills your own WhatsApp Business account directly.',
+          price: 'Meta’s rate, no markup',
         },
         {
           icon: 'seat',
-          title: 'Extra orders',
-          body: 'Orders are never blocked. Past your limit, until you move up a plan.',
-          price: '₹49 per 100 orders',
+          title: 'Orders past your plan',
+          body: `Never blocked. A small fee on each order after your included ones, billed on the 1st. None on ${scale.name}.`,
+          price: `${feeRange} per order`,
         },
       ],
     },
@@ -173,15 +208,24 @@ export const pricingContent = {
         [
           {
             question: 'What counts as an order?',
-            answer: 'Every checkout that completes on your store, whatever the payment method.',
+            answer:
+              'Every order placed on your store, cash on delivery included. Cancelled orders, orders refunded in full and test orders do not count.',
           },
           {
-            question: 'Do you take a cut of my sales?',
-            answer: `No. ${brand} takes 0% of your sales on every plan. Your payment gateway’s own fee still applies.`,
+            question: 'Is there a fee on my sales?',
+            answer: `Only past your plan’s included orders: ${starter.feePercent}% on ${starter.name}, ${growth.feePercent}% on ${growth.name} and ${pro.feePercent}% on ${pro.name}, of each order’s total. ${scale.name} has no per-order fee at all. Your payment gateway’s own fee still applies.`,
+          },
+          {
+            question: 'How is the per-order fee billed?',
+            answer: `Orders are counted per calendar month. On the 1st you get one bill for last month’s fees, with a pay link and a GST invoice; under ₹100, it waits for the next month. Orders during your free trial carry no fee. Your admin shows the running total all month.`,
           },
           {
             question: 'Is GST included in the price?',
-            answer: 'No. Prices are before GST; 18% GST is added on your bill, with a GST invoice.',
+            answer: `No. Prices are before GST; ${PLAN_GST_PERCENT}% GST is added on your bill, with a GST invoice. ${starter.name} is ₹${starterWithGst.toLocaleString('en-IN')} a month with GST.`,
+          },
+          {
+            question: `How does ${brand} make money?`,
+            answer: `From plan prices, the small per-order fee past your included orders, paid apps on ${starter.name} and ${growth.name}, and AI credit top-ups.`,
           },
         ],
         [
@@ -191,9 +235,18 @@ export const pricingContent = {
               'Yes. Move up or down any time from Settings; the change applies to your next period.',
           },
           {
-            question: 'What if I go over my limit?',
+            question: 'What if I go over my included orders?',
             answer:
-              'Your store keeps taking orders. We tell you before you reach it; extra orders cost ₹49 per 100 until you move up.',
+              'Your store keeps taking orders. Each one after that carries your plan’s fee, and we tell you at 80% and 100% of your included orders. When a bigger plan works out cheaper, the calculator above shows it.',
+          },
+          {
+            question: 'What does fair use of visits mean?',
+            answer: `Each plan suits a number of storefront visits a month (${count(starter.visitsPerMonth ?? 0)} on ${starter.name}). If a store goes past it two months running, we get in touch to find the right plan. Nothing is ever blocked or slowed.`,
+          },
+          {
+            question: 'Can I take my data with me?',
+            answer:
+              'Yes. Export your products, customers, orders and stock as CSV files from the admin any time. Your data is yours.',
           },
           {
             question: 'Do you offer yearly billing?',
@@ -201,6 +254,14 @@ export const pricingContent = {
           },
         ],
       ],
+    },
+    ownIt: {
+      title: 'Own it',
+      body: `Run ${brand} on your own server: no per-order fee, unlimited orders, one brand per licence.`,
+      price: `${inr(ownIt.licence / 100)} once + ${inr(ownIt.carePerMonth / 100)} a month for updates and support`,
+      setup: 'Setup on your server ₹7,500, if you want us to do it.',
+      action: 'Talk to us',
+      href: '/contact',
     },
     cta: {
       title: `Try Growth free for ${trial} days.`,

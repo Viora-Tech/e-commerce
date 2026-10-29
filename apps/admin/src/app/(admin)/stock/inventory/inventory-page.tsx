@@ -1,12 +1,17 @@
 'use client'
 
-import { siteConfig } from '@commerce/config/site'
-import { STOCK_FILTERS, type StockFilter } from '@commerce/core/catalog'
+import { STOCK_FILTERS } from '@commerce/core/catalog'
 import { permissions } from '@commerce/core/permissions'
 import { Clock, Download, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
-import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
+import {
+  parseAsArrayOf,
+  parseAsInteger,
+  parseAsString,
+  parseAsStringLiteral,
+  useQueryStates,
+} from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import AddLocationDialog from '@/components/inventory/add-location-dialog'
@@ -21,6 +26,12 @@ import {
 } from '@/components/inventory/inventory-columns'
 import InventoryStrip from '@/components/inventory/inventory-strip'
 import InventoryTiles, { type InventoryStats } from '@/components/inventory/inventory-tiles'
+import {
+  expandAll,
+  groupByProduct,
+  type InventoryLine,
+  isProductLine,
+} from '@/components/inventory/inventory-tree'
 import type { StoreLocation } from '@/components/inventory/location-select'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import {
@@ -40,6 +51,17 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import type { ListQuery } from '@/lib/list-query'
 import { routes } from '@/lib/routes'
+import {
+  CLEAR_FILTERS,
+  INVENTORY_GROUPS,
+  type InventoryGroup,
+  type InventoryQuery,
+  listFilters,
+  PER_PAGE,
+  PRODUCT_STATUS_FILTERS,
+  parseAsPicks,
+  STOCK_CHANGED,
+} from './inventory-query'
 
 type ListResult = Awaited<ReturnType<typeof api.inventory.list>>
 type Facets = Awaited<ReturnType<typeof api.inventory.facets>>
@@ -48,50 +70,16 @@ type Facets = Awaited<ReturnType<typeof api.inventory.facets>>
 export type InventoryInitial = {
   query: ListQuery<never>
   locationId: string
+  /** The view the first page was read in (`?group=`, Products unless SKUs was asked for). */
+  group: InventoryGroup
   locations: StoreLocation[]
   result: ListResult
   stats: InventoryStats
   facets: Facets
 }
 
-type Query = {
-  page: number
-  perPage: number
-  query: string
-  stock: StockFilter | null
-  vendor: string | null
-  productType: string | null
-  changed: StockChanged | null
-  group: 'product' | null
-}
-
-/** "Stock changed" filter values; the API checks the same list. */
-const STOCK_CHANGED = ['1d', '7d', '30d', '90d', 'stale'] as const
-type StockChanged = (typeof STOCK_CHANGED)[number]
-
-const PER_PAGE = siteConfig.ui.rowsPerPage.default
-
-/** Variant ids that follow another SKU of the same product, in list order. */
-function continuedRows(rows: InventoryRow[]): Set<string> {
-  return new Set(
-    rows.filter((r, i) => rows[i - 1]?.productId === r.productId).map((r) => r.variantId),
-  )
-}
-
-function listFilters(locationId: string, q: Query) {
-  return {
-    locationId,
-    search: q.query || undefined,
-    stock: q.stock ?? undefined,
-    vendor: q.vendor ?? undefined,
-    productType: q.productType ?? undefined,
-    changed: q.changed ?? undefined,
-    group: q.group ?? undefined,
-  }
-}
-
 /** One page of rows plus the tiles for the same location. */
-function fetchPage(locationId: string, q: Query) {
+function fetchPage(locationId: string, q: InventoryQuery) {
   return Promise.all([
     api.inventory.list({ ...listFilters(locationId, q), page: q.page, perPage: q.perPage }),
     api.inventory.stats({ locationId }),
@@ -111,17 +99,20 @@ function emptyState(copy: typeof inventoryContent) {
   }
 }
 
-function untouched(initial: InventoryInitial, locationId: string, q: Query) {
+function untouched(initial: InventoryInitial, locationId: string, q: InventoryQuery) {
   return (
     locationId === initial.locationId &&
     q.page === initial.query.page &&
     q.perPage === PER_PAGE &&
     q.query === initial.query.query &&
     !q.stock &&
-    !q.vendor &&
-    !q.productType &&
+    q.vendor.length === 0 &&
+    q.productType.length === 0 &&
+    q.tag.length === 0 &&
+    q.collection.length === 0 &&
+    q.productStatus.length === 0 &&
     !q.changed &&
-    !q.group
+    q.group === initial.group
   )
 }
 
@@ -137,10 +128,13 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
       page: parseAsInteger.withDefault(1),
       perPage: parseAsInteger.withDefault(PER_PAGE),
       stock: parseAsStringLiteral(STOCK_FILTERS),
-      vendor: parseAsString,
-      productType: parseAsString,
+      vendor: parseAsPicks,
+      productType: parseAsPicks,
+      tag: parseAsPicks,
+      collection: parseAsPicks,
+      productStatus: parseAsArrayOf(parseAsStringLiteral(PRODUCT_STATUS_FILTERS)).withDefault([]),
       changed: parseAsStringLiteral(STOCK_CHANGED),
-      group: parseAsStringLiteral(['product'] as const),
+      group: parseAsStringLiteral(INVENTORY_GROUPS).withDefault('product'),
     },
     { shallow: true },
   )
@@ -154,6 +148,8 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
   const [bulk, setBulk] = useState<{ mode: 'adjust' | 'set'; ids: string[]; clear: () => void }>()
   const [history, setHistory] = useState<InventoryRow | null>(null)
   const [addingLocation, setAddingLocation] = useState(false)
+  /** Products view: the product lines folded open (local, kept across refreshes). */
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     const locationId = q.location ?? initial.locationId
@@ -246,6 +242,10 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
 
   // Render logic
   const locationId = currentLocation()
+  const byProduct = q.group === 'product'
+  const lines: InventoryLine[] = byProduct ? groupByProduct(rows) : rows
+  const foldable = lines.some(isProductLine)
+  const allOpen = foldable && lines.filter(isProductLine).every((l) => expanded[l.variantId])
   const canEdit = hasPermission(permissions.INVENTORY_WRITE)
   const groups: FilterGroup[] = [
     {
@@ -267,22 +267,48 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
       anyLabel: copy.filters.any,
     },
     {
+      key: 'collection',
+      label: copy.filters.collection,
+      type: 'multi',
+      options: initial.facets.collections.map((c) => ({ value: c.id, label: c.title })),
+      value: q.collection,
+      onChange: (collection) => setQ({ collection, page: 1 }),
+    },
+    {
       key: 'vendor',
       label: copy.filters.vendor,
-      type: 'select',
+      type: 'multi',
       options: facetOptions(initial.facets.vendors),
       value: q.vendor,
       onChange: (vendor) => setQ({ vendor, page: 1 }),
-      anyLabel: copy.filters.any,
     },
     {
       key: 'type',
       label: copy.filters.productType,
-      type: 'select',
+      type: 'multi',
       options: facetOptions(initial.facets.types),
       value: q.productType,
       onChange: (productType) => setQ({ productType, page: 1 }),
-      anyLabel: copy.filters.any,
+    },
+    {
+      key: 'tag',
+      label: copy.filters.tag,
+      type: 'multi',
+      options: facetOptions(initial.facets.tags),
+      value: q.tag,
+      onChange: (tag) => setQ({ tag, page: 1 }),
+    },
+    {
+      key: 'productStatus',
+      label: copy.filters.productStatus,
+      type: 'checks',
+      options: copy.filters.productStatusOptions,
+      value: q.productStatus,
+      onChange: (next) =>
+        setQ({
+          productStatus: PRODUCT_STATUS_FILTERS.filter((s) => next.includes(s)),
+          page: 1,
+        }),
     },
   ]
   const applied = appliedFromGroups(groups, panelCopy)
@@ -314,8 +340,10 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
           onLocationChange={(location) => setQ({ location, page: 1 })}
           reason={canEdit ? reason : null}
           onReasonChange={setReason}
-          byProduct={q.group === 'product'}
-          onByProductChange={(on) => setQ({ group: on ? 'product' : null, page: 1 })}
+          byProduct={byProduct}
+          onByProductChange={(on) => setQ({ group: on ? 'product' : 'variant', page: 1 })}
+          allExpanded={byProduct && foldable ? allOpen : null}
+          onExpandAll={(open) => setExpanded(expandAll(lines, open))}
         />
       }
     >
@@ -326,38 +354,40 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
           canEdit,
           lowAt: stats.lowThreshold,
           onCommit: commitRow,
-          // Grouped: the product's name and image only on its first SKU.
-          continued: q.group === 'product' ? continuedRows(rows) : null,
+          tree: byProduct
+            ? {
+                expanded,
+                onToggle: (id) => setExpanded({ ...expanded, [id]: !expanded[id] }),
+              }
+            : null,
         })}
-        items={rows}
+        items={lines}
         getId={(r) => r.variantId}
-        rowActions={(r) => (
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={copy.cell.history}
-            title={copy.cell.history}
-            onClick={(e) => {
-              e.stopPropagation()
-              setHistory(r)
-            }}
-          >
-            <Clock aria-hidden="true" />
-          </Button>
-        )}
+        tree={
+          byProduct
+            ? { getSubRows: (r) => r.variants, expanded, onExpandedChange: setExpanded }
+            : undefined
+        }
+        rowActions={(r) =>
+          isProductLine(r) ? null : (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={copy.cell.history}
+              title={copy.cell.history}
+              onClick={(e) => {
+                e.stopPropagation()
+                setHistory(r)
+              }}
+            >
+              <Clock aria-hidden="true" />
+            </Button>
+          )
+        }
         loading={loading}
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
-        onClearAll={() =>
-          setQ({
-            query: '',
-            stock: null,
-            vendor: null,
-            productType: null,
-            changed: null,
-            page: 1,
-          })
-        }
+        onClearAll={() => setQ({ ...CLEAR_FILTERS, query: '', page: 1 })}
         filters={(close) => (
           <FilterPanel
             groups={groups}

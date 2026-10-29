@@ -1,7 +1,7 @@
 'use client'
 
 import type { PlanView } from '@commerce/core'
-import type { BillingInterval, PlanId } from '@commerce/core/billing'
+import { type BillingInterval, PLAN_IDS, type PlanId, planRank } from '@commerce/core/billing'
 import { CircleAlert, CreditCard, InfoIcon } from '@commerce/ui/icons'
 import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
@@ -22,6 +22,8 @@ import AutopayRow, { type AutopayState } from './autopay-row'
 import BillsCard from './bills-card'
 import ComparePlansDialog from './compare-plans-dialog'
 import CurrentPlanCard from './current-plan-card'
+import UnlimitedPlanCard from './unlimited-plan-card'
+import UsageBillsCard from './usage-bills-card'
 
 type BillingPageProps = { view: PlanView; apps: BoughtApp[]; autopay: AutopayState }
 
@@ -64,8 +66,7 @@ export default function BillingPage({ view, apps, autopay }: BillingPageProps) {
 
   // Render logic
   const trialDays = daysUntil(view.trialEndsAt)
-  const lower: PlanId | null =
-    view.plan === 'pro' ? 'growth' : view.plan === 'growth' ? 'starter' : null
+  const lower: PlanId | null = PLAN_IDS[planRank(view.plan) - 1] ?? null
   const banner =
     view.status === 'paused'
       ? { tone: 'danger' as const, text: copy.banners.paused }
@@ -83,6 +84,16 @@ export default function BillingPage({ view, apps, autopay }: BillingPageProps) {
               text: trialDays > 0 ? copy.banners.trial(trialDays) : copy.banners.trialOver,
             }
           : null
+
+  // A Koomerce store: nothing to choose, pay or downgrade; its apps still show.
+  if (view.unlimited)
+    return (
+      <div className="flex w-full flex-col gap-5 px-4 py-6 md:px-8">
+        <PageHeader title={copy.title} subtitle={copy.subtitle} back={SETTINGS_BACK} />
+        <UnlimitedPlanCard view={view} />
+        <AppsCard apps={apps} />
+      </div>
+    )
 
   return (
     <div className="flex w-full flex-col gap-5 px-4 py-6 md:px-8">
@@ -118,6 +129,20 @@ export default function BillingPage({ view, apps, autopay }: BillingPageProps) {
           </AlertDescription>
         </Alert>
       ) : null}
+      {view.unpaidFees > 0 ? (
+        <Alert>
+          <CircleAlert />
+          <AlertDescription>
+            {copy.banners.unpaidFees(format.money(view.unpaidFees))}
+          </AlertDescription>
+        </Alert>
+      ) : null}
+      {view.fairUseNotice ? (
+        <Alert>
+          <InfoIcon />
+          <AlertDescription>{copy.banners.fairUse}</AlertDescription>
+        </Alert>
+      ) : null}
       <CurrentPlanCard
         view={view}
         onKeepPlan={handleKeepPlan}
@@ -132,6 +157,7 @@ export default function BillingPage({ view, apps, autopay }: BillingPageProps) {
       </DataCard>
       <AppsCard apps={apps} />
       <BillsCard bills={view.bills} />
+      <UsageBillsCard bills={view.usageBills} />
       {lower && view.status === 'active' && view.periodEnd && !view.nextPlan ? (
         <DataCard
           title={copy.change.heading}

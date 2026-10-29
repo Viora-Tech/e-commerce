@@ -17,8 +17,7 @@ import { faqLd, softwareLd } from '@/lib/seo'
 
 export const metadata = pageMetadata({
   title: `${siteConfig.brand.name}: AI e-commerce platform for Indian brands`,
-  description:
-    'Run your online store in plain words. UPI-first checkout, GST invoices, Delhivery, Shiprocket and RapidShyp, Shopify theme import and an admin in English and Hindi. 0% transaction fee.',
+  description: `Run your online store in plain words. UPI-first checkout, GST invoices, Delhivery, Shiprocket and RapidShyp, Shopify theme import and an admin in English and Hindi. Plans from ₹${siteConfig.plans.starter.monthlyInr.toLocaleString('en-IN')} a month.`,
   path: '/',
 })
 

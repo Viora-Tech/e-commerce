@@ -1,15 +1,15 @@
 import { CheckIcon } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { pricingContent as copy, type Plan } from '@/data/pricing'
-import { formatInr } from '@/lib/pricing-math'
+import { formatInr, withGst } from '@/lib/pricing-math'
 import Reveal from '../common/reveal'
-import JoinWaitlistButton from '../waitlist/join-waitlist-button'
+import StartFreeButton from '../common/start-free-button'
 
 type PlanCardProps = {
   plan: Plan
   /** Replaces the "Most popular" badge, e.g. "Recommended for you" on the pricing page. */
   badge?: string
-  /** "100 orders a month" on the home page; "Up to 100 orders a month" on the pricing page. */
+  /** "200 orders a month" on the home page; "Includes 200 orders a month" on the pricing page. */
   upTo?: boolean
   step?: number
   /** Monthly price, or the yearly price with its monthly equivalent. */
@@ -66,7 +66,16 @@ export default function PlanCard({
           {yearly ? `${copy.yearlyEquivalent(formatInr(Math.round(plan.yearlyInr / 12)))} · ` : ''}
           {copy.gstNote}
         </p>
+        <p className="mt-1 text-xs font-medium text-foreground">
+          {copy.withGst(
+            formatInr(withGst(yearly ? plan.yearlyInr : plan.monthlyInr)),
+            yearly ? copy.perYear : copy.perMonth,
+          )}
+        </p>
         <p className="mt-3 text-sm text-foreground">{orders}</p>
+        <p className="text-sm text-muted-foreground">
+          {plan.feePercent > 0 ? copy.feeAfter(plan.feePercent) : copy.noFee}
+        </p>
       </div>
       <ul className="flex flex-1 flex-col gap-3 border-t border-border pt-5">
         {plan.features.map((feature) => (
@@ -76,7 +85,7 @@ export default function PlanCard({
           </li>
         ))}
       </ul>
-      <JoinWaitlistButton variant={plan.popular ? 'cta' : 'outline'} size="lg" className="w-full" />
+      <StartFreeButton variant={plan.popular ? 'cta' : 'outline'} size="lg" className="w-full" />
     </Reveal>
   )
 }

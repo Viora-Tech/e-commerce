@@ -7,8 +7,8 @@
  * one-time-code login) and land on /onboarding instead of "invite-only for
  * now" - access is granted by matching their signed-in email to a live
  * invite, not by the link's token, so the link is a convenience, not a
- * secret to guard closely. Only matters when MERCHANT_SIGNUP_MODE=invite
- * (the default); with MERCHANT_SIGNUP_MODE=open anyone can already sign up.
+ * secret to guard closely. Only matters when MERCHANT_SIGNUP_MODE=invite;
+ * with MERCHANT_SIGNUP_MODE=open (the default) anyone can already sign up.
  *
  *   bun run platform:invite owner@example.com
  *

@@ -307,9 +307,13 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
           <ViewSelect<OrderListFilter | null>
             label={copy.viewLabel}
             value={status}
-            onChange={(s) => setQ({ status: s, ...NO_FILTERS, page: 1 })}
+            onChange={(s) => setQ({ status: s, page: 1 })}
             formatCount={fmt.number}
-            custom={filtered ? { label: copy.customView, count: total } : undefined}
+            custom={
+              filtered
+                ? { label: status ? copy.tabs[status] : copy.customView, count: total }
+                : undefined
+            }
             options={[
               { value: null, label: copy.tabs.all, count: initial.counts.all },
               ...ORDER_LIST_FILTERS.map((s) => {

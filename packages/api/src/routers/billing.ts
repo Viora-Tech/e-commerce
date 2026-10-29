@@ -21,6 +21,8 @@ import {
   startAutopay,
   stopAppRenewal,
   storeAppAccess,
+  UnlimitedPlan,
+  usageBillCsv,
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
@@ -133,8 +135,29 @@ export const billingRouter = {
   usage: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
     const row = await ensureStorePlan(context.tx, context.scope.storeId)
     const usage = await planUsage(context.tx)
-    return { plan: row.plan, status: row.status, used: usage.orders, limit: PLANS[row.plan].orders }
+    return {
+      plan: row.plan,
+      status: row.status,
+      // Koomerce's own store: no allowance, so the sidebar shows no usage card.
+      unlimited: row.unlimited,
+      used: usage.orders,
+      limit: PLANS[row.plan].orders,
+      // What each order past `limit` costs: the sidebar's "Each further order: 1%".
+      feeBasisPoints: PLANS[row.plan].feeBasisPoints,
+    }
   }),
+
+  /** A usage bill's "Download CSV": each order of that month that carried a fee. */
+  usageBillCsv: can(permissions.SETTINGS_READ)
+    .input(z.object({ id: z.uuid() }))
+    .handler(async ({ context, input }) => {
+      // It lists order numbers and totals, so it needs the orders read grain as well.
+      if (!context.scope.can(permissions.ORDERS_READ))
+        throw new ORPCError('FORBIDDEN', { message: 'You cannot see orders in this store.' })
+      const file = await usageBillCsv(context.tx, context.scope.storeId, input.id)
+      if (!file) throw new ORPCError('NOT_FOUND', { message: 'That bill was not found.' })
+      return file
+    }),
 
   /** Pick a plan: billed now (pay link) or, for a downgrade, scheduled for the period end. */
   choose: can(permissions.BILLING_MANAGE)
@@ -146,6 +169,7 @@ export const billingRouter = {
         if (err instanceof BillingNotReady) {
           throw new ORPCError('PRECONDITION_FAILED', { message: NOT_READY[err.reason] })
         }
+        if (err instanceof UnlimitedPlan) throw new ORPCError('CONFLICT', { message: err.message })
         throw err
       }
     }),

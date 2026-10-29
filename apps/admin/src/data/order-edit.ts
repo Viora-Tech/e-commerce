@@ -8,6 +8,9 @@ export const refundRouteContent = {
   originalHint: 'The money goes back the way the customer paid.',
   manual: 'Mark as refunded by hand',
   manualHint: 'You send the money yourself (UPI, bank transfer, cash). Only recorded here.',
+  storeCredit: 'Store credit',
+  storeCreditHint:
+    'A gift card for the amount is emailed to the customer to use on their next order.',
   none: 'No refund',
   noneHint: 'Nothing goes back now. You can refund later from the payment card.',
   unavailable:
@@ -50,10 +53,11 @@ export const orderTakeoverContent = {
 
 export const orderEditContent = {
   action: 'Edit order',
+  short: 'Edit',
   pageTitle: (n: number) => `Edit order #${n}`,
   back: (n: number) => `Order #${n}`,
   intro:
-    'Add or remove items, change quantities, shipping or discount. Nothing changes until you review and save.',
+    'Add or remove items, change quantities, prices, shipping or discount. Nothing changes until you review and save.',
   items: 'Items',
   search: 'Search products to add',
   searching: 'Searching…',
@@ -69,6 +73,10 @@ export const orderEditContent = {
   charges: 'Shipping and discount',
   shipping: 'Shipping',
   discount: 'Discount',
+  shippingLabel: 'Shipping label',
+  shippingLabelPlaceholder: 'e.g. Bluedart',
+  discountLabel: 'Discount reason',
+  discountLabelPlaceholder: 'e.g. UPI discount',
   summary: 'Summary',
   subtotal: 'Subtotal',
   total: 'New total',
@@ -102,5 +110,8 @@ export const orderEditContent = {
     changed: (name: string, from: number, to: number) => `${name}: ${from} → ${to}`,
     shipping: (from: string, to: string) => `Shipping ${from} → ${to}`,
     discount: (from: string, to: string) => `Discount ${from} → ${to}`,
+    price: (name: string, from: string, to: string) => `${name}: price ${from} → ${to}`,
+    shippingLabel: (to: string) => (to ? `Shipping label: ${to}` : 'Shipping label removed'),
+    discountLabel: (to: string) => (to ? `Discount reason: ${to}` : 'Discount reason removed'),
   },
 } as const

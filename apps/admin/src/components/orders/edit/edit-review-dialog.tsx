@@ -30,7 +30,7 @@ type EditReviewDialogProps = {
   onSaved: () => void
 }
 
-/** One line per change, in the order the editor shows them: items, then shipping and discount. */
+/** One line per change, in the order the editor shows them: items, then shipping, discount and their labels. */
 function changeList(
   p: OrderEditPreview,
   words: (typeof orderEditContent)['changes'],
@@ -40,10 +40,17 @@ function changeList(
     const name = lineName(l.title, l.variantTitle)
     if (l.change === 'added') return [words.added(l.quantity, name)]
     if (l.change === 'removed') return [words.removed(name)]
-    if (l.change === 'changed') return [words.changed(name, l.quantityBefore, l.quantity)]
-    return []
+    if (l.change !== 'changed') return []
+    return [
+      ...(l.quantity !== l.quantityBefore
+        ? [words.changed(name, l.quantityBefore, l.quantity)]
+        : []),
+      ...(l.unitPricePaise !== l.unitPriceBefore
+        ? [words.price(name, money(l.unitPriceBefore), money(l.unitPricePaise))]
+        : []),
+    ]
   })
-  const { before, after } = p
+  const { before, after, labels } = p
   return [
     ...items,
     ...(after.shippingPaise !== before.shippingPaise
@@ -51,6 +58,12 @@ function changeList(
       : []),
     ...(after.discountPaise !== before.discountPaise
       ? [words.discount(money(before.discountPaise), money(after.discountPaise))]
+      : []),
+    ...(labels.after.shippingLabel !== labels.before.shippingLabel
+      ? [words.shippingLabel(labels.after.shippingLabel ?? '')]
+      : []),
+    ...(labels.after.discountLabel !== labels.before.discountLabel
+      ? [words.discountLabel(labels.after.discountLabel ?? '')]
       : []),
   ]
 }
@@ -65,7 +78,8 @@ export default function EditReviewDialog({ input, onClose, onSaved }: EditReview
   const fmt = useFormat()
   const [preview, setPreview] = useState<OrderEditPreview | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [route, setRoute] = useState<RefundRoute>('none')
+  // The edit offers no store credit yet (the field leaves it out; the API refuses it).
+  const [route, setRoute] = useState<Exclude<RefundRoute, 'store_credit'>>('none')
   const [requestPayment, setRequestPayment] = useState(true)
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
@@ -169,7 +183,7 @@ export default function EditReviewDialog({ input, onClose, onSaved }: EditReview
                 options={preview.refund}
                 amountPaise={owedBack}
                 value={route}
-                onChange={setRoute}
+                onChange={(r) => setRoute(r === 'store_credit' ? 'none' : r)}
                 idPrefix="edit-refund"
               />
             ) : null}

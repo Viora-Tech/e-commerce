@@ -35,6 +35,7 @@
     "media:rehost": "bun run --cwd apps/worker --env-file=../../.env src/media-rehost.ts",
     "rotate-secrets": "bun scripts/rotate-secrets.ts",
     "platform:invite": "bun scripts/platform-invite.ts",
+    "platform:unlimited": "bun scripts/platform-unlimited.ts",
     "backfill-phone-encryption": "bun scripts/backfill-phone-encryption.ts",
     "infra:up": "docker compose up -d --wait",
     "infra:down": "docker compose down",

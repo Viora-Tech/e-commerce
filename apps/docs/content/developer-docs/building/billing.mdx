@@ -37,6 +37,37 @@ The worker's hourly `{billing}-sweep` (`runBillingSweep`, `stores_with_plan_due`
 
 It is off while `PLATFORM_SALES_STORE_ID` is unset.
 
+## Per-order fees
+
+Each plan includes `PLANS[plan].orders` orders a month; every order after that carries
+`feeBasisPoints` of its total (100 / 75 / 50 / 0, Scale charges none). The rules are in
+`docs/superpowers/specs/2026-10-28-pricing-revamp-design.md`.
+
+- **Pure maths:** `monthFee(orders, periods)` and `feeOrderRows` in `billing/usage-fee.ts`. Only
+  orders inside a **paid** `plan_payment` period count, so trial, grace and paused days carry no
+  fee, and each order's rate is the period covering it (after an upgrade, the later one).
+- **Inputs:** `loadMonthFeeInputs(tx, storeId, 'YYYY-MM')` in `billing/usage-fee-service.ts`
+  (not draft, not cancelled, not test, not `refunded`). `feeEstimate` is this month so far for
+  Plan & billing.
+- **Bills:** `usage_bill` (migration `0179`), one row per store and month. `runUsageBilling`
+  runs in the hourly sweep and bills last month once (`stores_with_paid_period`). Under ₹100
+  (`USAGE_BILL_MIN_PAISE`, with what was carried in) the row is `carried`; otherwise a sales
+  order with one `usage-fee-<plan>` line per rate plus `usage-fee-carried`, each with a computed
+  `unitPricePaise`.
+- **Paid / cancelled:** the relay calls `markUsageBillPaid` / `cancelUsageBill`
+  (`usage_bill_store`). An unpaid fee bill never changes `store_plan.status`: `createPlanBill`
+  adds every `due` fee bill to the next plan bill as a `usage-fee-carried` line, marks them
+  `merged` and cancels their own orders; paying the plan bill pays them.
+- **AutoPay** charges a fixed amount, so fee bills stay pay links.
+
+`runFairUseCheck` (same sweep) compares the two finished months' `marketing_session` counts with
+`visitsPerMonth`; two months over sets `store_plan.fair_use_notice_month` and emails the owner
+and support. Nothing is blocked. The beacon starts no session for a bot user agent.
+
+The pricing page's calculator uses `monthlyCost` / `bestPlan` (`billing/cost-estimate.ts`).
+Prices outside India are stored in `billing/regional-prices.ts` and stay off
+(`REGIONAL_PRICING_LIVE = false`) until a non-Indian gateway exists.
+
 ## Paid apps
 
 `APP_PRICING` (`@commerce/core/billing`) lists each paid first-party app, the plan that includes
@@ -69,6 +100,14 @@ A top-up (`AI_CREDIT_PACK`: 1,000 credits for ₹199, SKU `ai-credits-1000`) is 
 `ai_credit_topup` row (migration `0133`). On `order.paid`, `markAiTopupPaid` adds the credits.
 
 Update `TIER_PRICES_INR` whenever the model or its price changes.
+
+## Unlimited stores
+
+Koomerce's own stores (Waimers) run on an unlimited plan: `store_plan.unlimited`, set only with
+`bun run platform:unlimited <slug>` (`--off` to undo; `setStoreUnlimited` in
+`core/billing/unlimited.ts`). The store keeps Scale's features with no staff or storage limit, no
+per-order fee, no renewals, due or pause, and no fair-use notice; `choosePlan` refuses with
+`UnlimitedPlan`. AI moves to the `internal` tier, a 50,000-credit monthly safety cap.
 
 ## Bill emails and GSTIN
 

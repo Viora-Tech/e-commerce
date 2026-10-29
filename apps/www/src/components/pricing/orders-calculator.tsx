@@ -27,7 +27,7 @@ export default function OrdersCalculator({
   onAovChange,
 }: OrdersCalculatorProps) {
   // Render logic
-  const plan = recommendedPlan(orders)
+  const plan = recommendedPlan(orders, aov)
 
   return (
     <div className="surface-card flex flex-col gap-6 rounded-3xl p-6 md:p-8">

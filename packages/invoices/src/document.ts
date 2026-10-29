@@ -38,6 +38,10 @@ export type SourceOrder = {
   discountPaise: number
   paymentAdjustmentPaise: number
   paymentAdjustmentLabel: string | null
+  /** What the shipping is ("Bluedart"), printed beside "Shipping charges". */
+  shippingLabel?: string | null | undefined
+  /** What the discount is for ("UPI discount"), printed beside the discount total. */
+  discountLabel?: string | null | undefined
   totalPaise: number
   /** `order.tax_breakdown` as stored; read defensively since older rows lack `byRate`. */
   taxBreakdown: unknown
@@ -156,7 +160,10 @@ export function buildDocument(input: BuildDocumentInput): DocumentSnapshot {
       charge: true,
       netPaise: amount,
     })
-  if (order.shippingPaise > 0) charge('Shipping charges', order.shippingPaise)
+  if (order.shippingPaise > 0) {
+    const label = order.shippingLabel?.trim()
+    charge(label ? `Shipping charges (${label})` : 'Shipping charges', order.shippingPaise)
+  }
   if (order.paymentAdjustmentPaise > 0) {
     charge(order.paymentAdjustmentLabel || 'Payment fee', order.paymentAdjustmentPaise)
   }
@@ -239,6 +246,7 @@ export function buildDocument(input: BuildDocumentInput): DocumentSnapshot {
     advance: null,
     original: null,
     reason: null,
+    discountLabel: order.discountLabel?.trim() || null,
     seller: input.seller,
     buyer: input.buyer,
     shipTo: input.shipTo,

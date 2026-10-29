@@ -1,9 +1,11 @@
 import { formatNumber } from '@commerce/money'
-import ProductThumb from '@/components/products/product-thumb'
+import { cn } from '@commerce/ui/lib/utils'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import type { inventoryContent } from '@/data/inventory'
 import type { api } from '@/lib/api-client'
 import AvailableCell from './available-cell'
+import type { InventoryLine } from './inventory-tree'
+import ProductLineCell from './product-line-cell'
 
 export type InventoryRow = Awaited<ReturnType<typeof api.inventory.list>>['rows'][number]
 
@@ -13,8 +15,23 @@ type ColumnOptions = {
   /** At or below this many available a row reads as low (the store's low-stock setting). */
   lowAt: number
   onCommit: (row: InventoryRow, delta: number) => Promise<boolean>
-  /** Grouped by product: SKUs after a product's first, drawn as indented variant rows. */
-  continued?: Set<string> | null
+  /** Products view: which product lines are open, and how to fold one. Null in the SKUs view. */
+  tree?: { expanded: Record<string, boolean>; onToggle: (lineId: string) => void } | null
+}
+
+/** A product line's summed count: read only, its SKUs are edited one by one. */
+function total(n: number, lowAt?: number) {
+  return (
+    <span
+      className={cn(
+        'tabular-nums',
+        lowAt !== undefined && n <= 0 && 'text-destructive',
+        lowAt !== undefined && n > 0 && n <= lowAt && 'text-warning',
+      )}
+    >
+      {formatNumber(n)}
+    </span>
+  )
 }
 
 export function rowName(row: InventoryRow): string {
@@ -29,8 +46,8 @@ export function inventoryColumns({
   canEdit,
   lowAt,
   onCommit,
-  continued,
-}: ColumnOptions): ResourceColumnSpec<InventoryRow>[] {
+  tree,
+}: ColumnOptions): ResourceColumnSpec<InventoryLine>[] {
   return [
     {
       id: 'product',
@@ -39,31 +56,27 @@ export function inventoryColumns({
       hideable: false,
       align: 'start',
       className: 'w-80 px-3 whitespace-normal',
-      render: (r) =>
-        continued?.has(r.variantId) ? (
-          <span className="block pl-13 text-left text-body text-muted-foreground">
-            {r.variantTitle}
-          </span>
-        ) : (
-          <span className="flex items-center gap-3 text-left">
-            <ProductThumb url={r.imageUrl} />
-            <span className="flex min-w-0 flex-col">
-              <span className="line-clamp-1 text-body text-ink-strong">{r.productTitle}</span>
-              {r.variantTitle && r.variantTitle !== 'Default' ? (
-                <span className="line-clamp-1 text-caption text-muted-foreground">
-                  {r.variantTitle}
-                </span>
-              ) : null}
-            </span>
-          </span>
-        ),
+      render: (r) => (
+        <ProductLineCell
+          line={r}
+          copy={copy}
+          tree={
+            tree
+              ? {
+                  open: tree.expanded[r.variantId] === true,
+                  onToggle: () => tree.onToggle(r.variantId),
+                }
+              : null
+          }
+        />
+      ),
     },
     {
       id: 'sku',
       title: copy.columns.sku,
       sortValue: (r) => r.sku ?? '',
       render: (r) =>
-        r.sku ? (
+        r.variants ? null : r.sku ? (
           <span className="block max-w-56 truncate text-muted-foreground" title={r.sku}>
             {r.sku}
           </span>
@@ -78,36 +91,39 @@ export function inventoryColumns({
       sortValue: (r) => r.available,
       hideable: false,
       className: 'w-44',
-      render: (r) => (
-        <AvailableCell
-          name={rowName(r)}
-          available={r.available}
-          lowAt={lowAt}
-          disabled={!canEdit}
-          onCommit={(delta) => onCommit(r, delta)}
-        />
-      ),
+      render: (r) =>
+        r.variants ? (
+          total(r.available, lowAt)
+        ) : (
+          <AvailableCell
+            name={rowName(r)}
+            available={r.available}
+            lowAt={lowAt}
+            disabled={!canEdit}
+            onCommit={(delta) => onCommit(r, delta)}
+          />
+        ),
     },
     {
       id: 'committed',
       align: 'center',
       title: copy.columns.committed,
       sortValue: (r) => r.committed,
-      render: (r) => <span className="tabular-nums">{formatNumber(r.committed)}</span>,
+      render: (r) => total(r.committed),
     },
     {
       id: 'incoming',
       align: 'center',
       title: copy.columns.incoming,
       sortValue: (r) => r.incoming,
-      render: (r) => <span className="tabular-nums">{formatNumber(r.incoming)}</span>,
+      render: (r) => total(r.incoming),
     },
     {
       id: 'onHand',
       align: 'center',
       title: copy.columns.onHand,
       sortValue: (r) => r.onHand,
-      render: (r) => <span className="tabular-nums">{formatNumber(r.onHand)}</span>,
+      render: (r) => total(r.onHand),
     },
   ]
 }

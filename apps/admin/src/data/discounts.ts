@@ -59,6 +59,31 @@ export const discountsContent = {
     lastUsed: 'Last used',
     dates: 'Active dates',
   },
+  filters: {
+    status: 'Status',
+    lifecycles: {
+      active: 'Active',
+      scheduled: 'Scheduled',
+      expired: 'Expired',
+      disabled: 'Disabled',
+    } satisfies Record<DiscountLifecycle, string>,
+    type: 'Type',
+    types: {
+      products: 'Amount off products',
+      order: 'Amount off order',
+      bxgy: 'Buy X get Y',
+      shipping: 'Free shipping',
+    },
+    method: 'Method',
+    kinds: { code: 'Discount code', automatic: 'Automatic' },
+    active: 'Active dates',
+    anyDate: 'Any date',
+    activeOptions: { '7d': 'Last 7 days', '30d': 'Last 30 days', '90d': 'Last 90 days' },
+    used: 'Times used',
+    usedMin: 'At least',
+    usedMax: 'At most',
+    limitReached: 'Usage limit reached',
+  },
   neverUsed: 'Never',
   kind: { code: 'Code', automatic: 'Automatic' },
   lifecycle: {
@@ -77,6 +102,10 @@ export const discountsContent = {
   empty: {
     heading: 'No discounts yet',
     body: 'Discount codes and automatic offers: a percentage off, a fixed amount or free shipping, applied at checkout.',
+  },
+  noResults: {
+    heading: 'No discounts match these filters',
+    body: 'Try a different search or clear the filters.',
   },
   index: {
     heading: 'No discounts',

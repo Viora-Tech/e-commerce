@@ -17,6 +17,7 @@ import {
   type ColumnOrderState,
   type ColumnVisibilityState,
   createColumnHelper,
+  type ExpandedState,
   type RowData,
   type RowSelectionState,
   type SortingState,
@@ -24,7 +25,7 @@ import {
   useTable,
 } from '@tanstack/react-table'
 import { useRouter } from 'next/navigation'
-import { type ReactNode, useState } from 'react'
+import { type CSSProperties, type ReactNode, useState } from 'react'
 import EmptyState from '@/components/layout/empty-state'
 import FloatingBar from '@/components/layout/floating-bar'
 import RowActionsCell from '@/components/table/row-actions-cell'
@@ -111,6 +112,18 @@ export type ResourceTableProps<T extends RowData> = {
   defaultSort?: { id: string; desc: boolean } | undefined
   /** Columns that start hidden; the columns menu can show them. */
   defaultHidden?: string[] | undefined
+  /**
+   * A tree table (Inventory's Products view): rows with sub rows fold them underneath. A click
+   * on such a row toggles it; sorting keeps sub rows under their row; ticking it ticks its sub
+   * rows, and only rows without sub rows are ever in the selection.
+   */
+  tree?:
+    | {
+        getSubRows: (item: T) => T[] | undefined
+        expanded: Record<string, boolean>
+        onExpandedChange: (expanded: Record<string, boolean>) => void
+      }
+    | undefined
 }
 
 const SKELETON_ROWS = 6
@@ -132,6 +145,18 @@ function useRowSelection(
     const resolved = typeof next === 'function' ? next(value) : next
     if (controlled) controlled.onChange(Object.keys(resolved).filter((id) => resolved[id]))
     else setOwn(resolved)
+  }
+  return [value, set] as const
+}
+
+/** The table's expanded rows: the page's own (`tree`), as TanStack state. */
+function useExpanded<T extends RowData>(tree: ResourceTableProps<T>['tree']) {
+  const value: ExpandedState = tree?.expanded ?? {}
+  const set = (next: Updater<ExpandedState>, expandable: () => string[]) => {
+    const resolved = typeof next === 'function' ? next(value) : next
+    tree?.onExpandedChange(
+      resolved === true ? Object.fromEntries(expandable().map((id) => [id, true])) : resolved,
+    )
   }
   return [value, set] as const
 }
@@ -218,17 +243,32 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
   const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([])
   const [rowSelection, setRowSelection] = useRowSelection(props.selection)
   const [selectingAll, setSelectingAll] = useState(false)
+  const [expanded, setExpanded] = useExpanded(props.tree)
   const table = useTable({
     features: resourceTableFeatures,
     data: props.items,
     columns: tableColumns(props),
     getRowId: (row) => props.getId(row),
-    enableRowSelection: props.selectable ?? true,
+    getSubRows: props.tree?.getSubRows,
+    // In a tree only the leaves are selected; a parent's box ticks them (see `selectionColumn`).
+    enableRowSelection:
+      props.tree && (props.selectable ?? true)
+        ? (row) => row.subRows.length === 0
+        : (props.selectable ?? true),
+    // The page owns the expanded rows; a refresh after an edit keeps them open.
+    autoResetExpanded: false,
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
     onColumnOrderChange: setColumnOrder,
     onRowSelectionChange: setRowSelection,
-    state: { sorting, columnVisibility, columnOrder, rowSelection },
+    onExpandedChange: (next) =>
+      setExpanded(next, () =>
+        table
+          .getCoreRowModel()
+          .flatRows.filter((r) => r.subRows.length > 0)
+          .map((r) => r.id),
+      ),
+    state: { sorting, columnVisibility, columnOrder, rowSelection, expanded },
   })
 
   // Helpers
@@ -265,6 +305,9 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
   const selectedIds = Object.keys(rowSelection).filter((id) => rowSelection[id])
   const rows = table.getRowModel().rows
   const visibleCount = table.getVisibleLeafColumns().length
+  /* The grid never squeezes a column below ~8rem: on a phone it scrolls sideways instead of
+     letting dates, totals and pills run into each other (#895). */
+  const minWidth = { '--table-min-width': `${Math.max(40, visibleCount * 8)}rem` } as CSSProperties
   const isEmpty = !props.loading && props.items.length === 0
   /** A search or a filter is narrowing the list (so empty means "no results", not "none yet"). */
   const narrowed = props.query.length > 0 || (props.applied?.length ?? 0) > 0
@@ -310,7 +353,10 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
             </div>
           </div>
         ) : null}
-        <Table className="w-full min-w-[40rem] table-fixed border-separate border-spacing-0">
+        <Table
+          className="w-full min-w-(--table-min-width) table-fixed border-separate border-spacing-0"
+          style={minWidth}
+        >
           <TableHeader className="[&_tr]:border-0">
             {table.getHeaderGroups().map((hg) => (
               <TableRow key={hg.id} className="hover:bg-transparent">
@@ -341,15 +387,22 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
                 ))
               : rows.map((row) => {
                   const target = props.href?.(row.original)
+                  const folds = Boolean(props.tree) && row.getCanExpand()
                   return (
                     <TableRow
                       key={row.id}
                       data-state={row.getIsSelected() ? 'selected' : undefined}
                       className={cn(
                         'group/row border-0 tabular-nums transition-colors duration-150 hover:bg-row-hover data-[state=selected]:bg-primary-soft motion-reduce:transition-none',
-                        target && 'cursor-pointer',
+                        (target || folds) && 'cursor-pointer',
                       )}
-                      onClick={target ? () => router.push(target) : undefined}
+                      onClick={
+                        target
+                          ? () => router.push(target)
+                          : folds
+                            ? () => row.toggleExpanded()
+                            : undefined
+                      }
                     >
                       {row.getVisibleCells().map((cell) => {
                         const meta = cell.column.columnDef.meta as CellMeta | undefined

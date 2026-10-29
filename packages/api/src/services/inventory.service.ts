@@ -5,6 +5,7 @@ import {
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import {
+  collection,
   inventoryAdjustment,
   inventoryLevel,
   media,
@@ -39,6 +40,12 @@ export type InventoryQuery = {
   stock?: StockFilter | undefined
   vendor?: string | undefined
   productType?: string | undefined
+  vendors?: string[] | undefined
+  productTypes?: string[] | undefined
+  tags?: string[] | undefined
+  collectionIds?: string[] | undefined
+  /** Archived products never show here, so active and draft. */
+  productStatus?: ('active' | 'draft')[] | undefined
   /** When stock last changed at this location (`STOCK_CHANGED_FILTERS`). */
   changed?: StockChangedFilter | undefined
   /** `product`: a page is products, each with all its matching variants. */
@@ -73,6 +80,8 @@ export type InventoryRow = {
   variantTitle: string
   sku: string | null
   imageUrl: string | null
+  /** The product's cover, for the one row a product gets in the Products view. */
+  productImageUrl: string | null
   onHand: number
   committed: number
   available: number
@@ -103,6 +112,17 @@ function baseWhere(q: Omit<InventoryQuery, 'page' | 'perPage' | 'sort'>, low: nu
       : undefined,
     q.vendor ? eq(product.vendor, q.vendor) : undefined,
     q.productType ? eq(product.productType, q.productType) : undefined,
+    q.vendors?.length ? inArray(product.vendor, q.vendors) : undefined,
+    q.productTypes?.length ? inArray(product.productType, q.productTypes) : undefined,
+    q.tags?.length ? sql`${product.tags} && ${sql.param(q.tags)}::text[]` : undefined,
+    q.collectionIds?.length
+      ? sql`exists (
+          select 1 from collection_product cp
+          where cp.product_id = ${product.id}
+            and cp.collection_id = any(${sql.param(q.collectionIds)}::uuid[])
+        )`
+      : undefined,
+    q.productStatus?.length ? inArray(product.status, q.productStatus) : undefined,
     q.stock === 'out' ? sql`${availableSql} <= 0` : undefined,
     q.stock === 'low' ? sql`${availableSql} > 0 and ${availableSql} <= ${low}` : undefined,
     q.stock === 'in' ? sql`${availableSql} > ${low}` : undefined,
@@ -119,12 +139,13 @@ function joinLevel(locationId: string) {
   return and(eq(inventoryLevel.variantId, variant.id), eq(inventoryLevel.locationId, locationId))
 }
 
+/** Each variant's own image (else its product's cover), and each product's cover. */
 async function imagesFor(
   tx: StoreTx,
   rows: { variantId: string; productId: string; mediaId: string | null }[],
-): Promise<Map<string, string>> {
+): Promise<{ byVariant: Map<string, string>; byProduct: Map<string, string> }> {
   const out = new Map<string, string>()
-  if (rows.length === 0) return out
+  if (rows.length === 0) return { byVariant: out, byProduct: new Map() }
   const variantMedia = rows.map((r) => r.mediaId).filter((id): id is string => id !== null)
   const own = variantMedia.length
     ? await tx
@@ -148,7 +169,7 @@ async function imagesFor(
     const url = (r.mediaId && ownById.get(r.mediaId)) || coverByProduct.get(r.productId)
     if (url) out.set(r.variantId, url)
   }
-  return out
+  return { byVariant: out, byProduct: coverByProduct }
 }
 
 export async function listInventory(
@@ -195,7 +216,8 @@ export async function listInventory(
     rows: found.map(({ mediaId: _m, ...r }) => ({
       ...r,
       available: r.onHand - r.committed,
-      imageUrl: images.get(r.variantId) ?? null,
+      imageUrl: images.byVariant.get(r.variantId) ?? null,
+      productImageUrl: images.byProduct.get(r.productId) ?? null,
     })),
     total: Number(total?.n ?? 0),
   }
@@ -257,7 +279,8 @@ async function listInventoryByProduct(
     rows: found.map(({ mediaId: _m, ...r }) => ({
       ...r,
       available: r.onHand - r.committed,
-      imageUrl: images.get(r.variantId) ?? null,
+      imageUrl: images.byVariant.get(r.variantId) ?? null,
+      productImageUrl: images.byProduct.get(r.productId) ?? null,
     })),
     total: Number(total?.n ?? 0),
   }
@@ -326,7 +349,7 @@ export async function inventoryHistory(
     .limit(100)
 }
 
-/** Distinct vendors and types for the filter popover. */
+/** Distinct vendors, types and tags, and the collections, for the filter popover. */
 export async function inventoryFacets(tx: StoreTx) {
   const vendors = await tx
     .selectDistinct({ v: product.vendor })
@@ -340,9 +363,20 @@ export async function inventoryFacets(tx: StoreTx) {
       and(notSystemTest, sql`${product.productType} is not null and ${product.productType} <> ''`),
     )
     .orderBy(asc(product.productType))
+  const tags = await tx
+    .selectDistinct({ t: sql<string>`unnest(${product.tags})` })
+    .from(product)
+    .where(notSystemTest)
+    .orderBy(sql`1`)
+  const collections = await tx
+    .select({ id: collection.id, title: collection.title })
+    .from(collection)
+    .orderBy(asc(collection.title))
   return {
     vendors: vendors.map((r) => r.v as string),
     types: types.map((r) => r.t as string),
+    tags: tags.map((r) => r.t).filter(Boolean),
+    collections,
   }
 }
 
@@ -392,6 +426,6 @@ export async function searchVariants(
   return found.map(({ mediaId: _m, ...r }) => ({
     ...r,
     available: r.onHand - r.committed,
-    imageUrl: images.get(r.variantId) ?? null,
+    imageUrl: images.byVariant.get(r.variantId) ?? null,
   }))
 }

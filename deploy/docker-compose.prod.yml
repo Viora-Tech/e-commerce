@@ -54,7 +54,7 @@ x-app-env: &app-env
   # Branded checkout origin label (security audit D-01 phase B): blank = same-origin checkout
   # (today's behaviour), else checkout serves on <CHECKOUT_SUBDOMAIN>.<store primary host>.
   CHECKOUT_SUBDOMAIN: ${CHECKOUT_SUBDOMAIN:-}
-  MERCHANT_SIGNUP_MODE: ${MERCHANT_SIGNUP_MODE:-invite}
+  MERCHANT_SIGNUP_MODE: ${MERCHANT_SIGNUP_MODE:-open}
   # Merchant "Continue with Google" on the admin login page; both blank hides the button.
   MERCHANT_GOOGLE_CLIENT_ID: ${MERCHANT_GOOGLE_CLIENT_ID:-}
   MERCHANT_GOOGLE_CLIENT_SECRET: ${MERCHANT_GOOGLE_CLIENT_SECRET:-}

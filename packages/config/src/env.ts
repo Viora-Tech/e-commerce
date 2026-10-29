@@ -258,12 +258,13 @@ const shape = z.object({
   /** Dev seed: this email becomes owner of the seeded Waimers store. */
   SEED_OWNER_EMAIL: z.string().email().optional(),
   /**
-   * Who may sign up and create their own store. `invite` (default): only
-   * emails with a live `bun run platform:invite <email>` invite. `open`:
-   * anyone who signs in with no store yet can create one. Never affects
+   * Who may sign up and create their own store. `open` (default since
+   * 2026-10-28): anyone who signs in with no store yet can create one.
+   * `invite`: only emails with a live `bun run platform:invite <email>`
+   * invite. Never affects
    * staff invitations to an existing store, which always work.
    */
-  MERCHANT_SIGNUP_MODE: z.enum(['invite', 'open']).default('invite'),
+  MERCHANT_SIGNUP_MODE: z.enum(['invite', 'open']).default('open'),
   /**
    * "Continue with Google" for merchants and staff on the admin login page (a Google Cloud
    * OAuth web client). Both set turns the button on; either blank hides it

@@ -68,6 +68,13 @@ export default [
       stock: 'स्टॉक',
       vendor: 'सप्लायर',
       productType: 'प्रोडक्ट का प्रकार',
+      tag: 'टैग',
+      collection: 'कलेक्शन',
+      productStatus: 'प्रोडक्ट स्टेटस',
+      productStatusOptions: [
+        { value: 'active', label: 'चालू' },
+        { value: 'draft', label: 'ड्राफ़्ट' },
+      ],
       any: 'कोई भी',
       stockOptions: [
         { value: 'in', label: 'स्टॉक में' },
@@ -84,6 +91,13 @@ export default [
       ],
     },
     group: { label: 'दिखाएं', skus: 'SKU', products: 'प्रोडक्ट' },
+    tree: {
+      variants: (n: number) => `${n} वेरिएंट`,
+      expand: (name: string) => `${name} के वेरिएंट दिखाएं`,
+      collapse: (name: string) => `${name} के वेरिएंट छिपाएं`,
+      expandAll: 'सब खोलें',
+      collapseAll: 'सब बंद करें',
+    },
     cell: {
       decrease: 'एक घटाएँ',
       increase: 'एक बढ़ाएँ',

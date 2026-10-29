@@ -1,4 +1,5 @@
 import { ALLOWED_CONTENT_TYPES, maxUploadBytesFor } from '@commerce/storage/keys'
+import { ORPCError } from '@orpc/client'
 import { mediaContent } from '@/data/media'
 import { api } from '@/lib/api-client'
 
@@ -12,6 +13,7 @@ export type UploadedMedia = {
 export type UploadProgress = (fraction: number) => void
 
 const MB = 1024 * 1024
+const GB = 1024 * MB
 
 /** Client-side gate so a wrong file fails before any network call; same limits as the server. */
 export function rejectReason(file: File): string | null {
@@ -65,12 +67,13 @@ export async function uploadFile(file: File, onProgress?: UploadProgress): Promi
   const reason = rejectReason(file)
   if (reason) throw new Error(reason)
   const dims = await imageDimensions(file)
-  const ticket = await api.media.presign({
-    filename: file.name,
-    contentType: file.type,
-    size: file.size,
-    ...dims,
-  })
+  const ticket = await api.media
+    .presign({ filename: file.name, contentType: file.type, size: file.size, ...dims })
+    .catch((err: unknown) => {
+      if (err instanceof ORPCError && err.data?.reason === 'storage_limit')
+        throw new Error(mediaContent.errors.storageFull(Number(err.data.limitBytes) / GB))
+      throw err
+    })
   try {
     await put(ticket.upload.url, ticket.upload.headers, file, onProgress)
   } catch {

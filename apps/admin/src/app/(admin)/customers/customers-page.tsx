@@ -40,18 +40,19 @@ import { newCustomerContent } from '@/data/new-customer'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { downloadCsv, toCsv } from '@/lib/csv'
+import {
+  CLEAR_CUSTOMER_FILTERS,
+  CUSTOMER_FILTER_PARAMS,
+  type CustomerFilters,
+  customerFilterGroups,
+  customerFilterInput,
+  hasCustomerFilters,
+  segmentRulesFromFilters,
+} from '@/lib/customer-list-filters'
 import { type ListQuery, sameListQuery } from '@/lib/list-query'
 import { formatPaise } from '@/lib/money'
 import { usePrimaryAction } from '@/lib/primary-action'
 import { routes } from '@/lib/routes'
-import {
-  type CustomerFilterState,
-  customerFilterGroups,
-  customerFilterInput,
-  EMPTY_CUSTOMER_FILTERS,
-  hasCustomerFilters,
-  segmentRulesFromFilters,
-} from './customer-filter-state'
 
 type ListResult = Awaited<ReturnType<typeof api.customers.list>>
 
@@ -98,7 +99,7 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
   const panelCopy = useCopy(filterPanelContent)
   const router = useRouter()
   const newCopy = useCopy(newCustomerContent)
-  const [{ page, perPage, query, status, new: adding }, setQ] = useQueryStates(
+  const [q, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
       page: parseAsInteger.withDefault(1),
@@ -106,11 +107,11 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
       status: parseAsStringLiteral(CUSTOMER_SEGMENTS),
       /** `?new=1` opens "Add customer" (the `N` shortcut lands here). */
       new: parseAsBoolean,
+      ...CUSTOMER_FILTER_PARAMS,
     },
     { shallow: true },
   )
   usePrimaryAction(NEW_CUSTOMER_HREF)
-  const [filters, setFilters] = useState<CustomerFilterState>(EMPTY_CUSTOMER_FILTERS)
   const [items, setItems] = useState<CustomerRow[]>(initial.result.items)
   const [total, setTotal] = useState(initial.result.total)
   const [loading, setLoading] = useState(false)
@@ -132,9 +133,9 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
 
   useEffect(() => {
     const untouched =
-      sameListQuery({ page, query, status }, initial.query) &&
-      perPage === initial.perPage &&
-      !hasCustomerFilters(filters) &&
+      sameListQuery({ page: q.page, query: q.query, status: q.status }, initial.query) &&
+      q.perPage === initial.perPage &&
+      !hasCustomerFilters(q) &&
       reloadKey === 0
     // The server's first page is used once; after any change (including back to the first
     // tab) the list is fetched again, so it never keeps another tab's rows.
@@ -146,11 +147,11 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
     setFailed(false)
     api.customers
       .list({
-        page,
-        perPage,
-        search: query || undefined,
-        segment: status ?? undefined,
-        ...customerFilterInput(filters),
+        page: q.page,
+        perPage: q.perPage,
+        search: q.query || undefined,
+        segment: q.status ?? undefined,
+        ...customerFilterInput(q),
       })
       .then((r) => {
         if (cancelled) return
@@ -162,26 +163,20 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
     return () => {
       cancelled = true
     }
-  }, [page, perPage, query, status, filters, initial.query, initial.perPage, reloadKey])
+  }, [q, initial.query, initial.perPage, reloadKey])
 
   // Helpers
-  const patchFilters = (patch: Partial<CustomerFilterState>) => {
-    setFilters((f) => ({ ...f, ...patch }))
-    setQ({ page: 1 })
-  }
+  const patchFilters = (patch: Partial<CustomerFilters>) => setQ({ ...patch, page: 1 })
 
   // Event handlers
-  const handleClearAll = () => {
-    setFilters(EMPTY_CUSTOMER_FILTERS)
-    setQ({ query: '', status: null, page: 1 })
-  }
+  const handleClearAll = () => setQ({ ...CLEAR_CUSTOMER_FILTERS, query: '', status: null, page: 1 })
 
   const handleExportAll = async () => {
     try {
       const rows = await api.customers.export({
-        search: query || undefined,
-        segment: status ?? undefined,
-        ...customerFilterInput(filters),
+        search: q.query || undefined,
+        segment: q.status ?? undefined,
+        ...customerFilterInput(q),
       })
       exportRows(rows, copy.exported)
     } catch {
@@ -221,11 +216,11 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
 
   // Render logic
   const columns = customerColumns(copy)
-  const groups = customerFilterGroups(filters, initial.tags, patchFilters)
+  const groups = customerFilterGroups(q, copy.filters, initial.tags, patchFilters)
   const applied = appliedFromGroups(groups, panelCopy)
-  const filtered = applied.length > 0 || query.length > 0
+  const filtered = applied.length > 0 || q.query.length > 0
   const segmentHref = `${routes.customers.newSegment()}?rules=${encodeURIComponent(
-    JSON.stringify(segmentRulesFromFilters(filters, status)),
+    JSON.stringify(segmentRulesFromFilters(q, q.status)),
   )}`
   const summary =
     initial.stats.total === 0
@@ -270,7 +265,7 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
       />
       <CustomerTiles
         stats={initial.stats}
-        active={status}
+        active={q.status}
         onSelect={(s) => setQ({ status: s, page: 1 })}
       />
       {failed ? (
@@ -298,8 +293,8 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
             />
           )}
           loading={loading}
-          query={query}
-          onQueryChange={(q) => setQ({ query: q, page: 1 })}
+          query={q.query}
+          onQueryChange={(next) => setQ({ query: next, page: 1 })}
           onClearAll={handleClearAll}
           filters={(close) => (
             <FilterPanel
@@ -312,7 +307,7 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
           applied={applied}
           views={
             <ViewSelect
-              value={status}
+              value={q.status}
               onChange={(s) => setQ({ status: s, page: 1 })}
               options={[
                 { value: null, label: copy.tabs.all, count: initial.allCount },
@@ -320,8 +315,8 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
               ]}
             />
           }
-          page={page}
-          perPage={perPage}
+          page={q.page}
+          perPage={q.perPage}
           total={total}
           onPageChange={(p) => setQ({ page: p })}
           onPerPageChange={(n) => setQ({ perPage: n, page: 1 })}
@@ -351,7 +346,7 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
           empty={filtered ? copy.noResults : copy.empty}
         />
       )}
-      {adding ? <NewCustomerDialog onClose={() => setQ({ new: null })} /> : null}
+      {q.new ? <NewCustomerDialog onClose={() => setQ({ new: null })} /> : null}
       <TagCustomersDialog
         ids={tagIds}
         action={tagAction}

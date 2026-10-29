@@ -201,6 +201,28 @@ describe('order list tabs and filters on the split statuses', () => {
     expect(ids).toEqual([idOf(1)])
   })
 
+  it('filters by a placed-at window, both ends, combined with a status', async () => {
+    const m = await merchant('dates@example.com', 'dates')
+    await seedOrders(m.storeId)
+    const day = (d: number) => new Date(Date.UTC(2026, 9, d, 6))
+    for (const [n, d] of [
+      [1, 1],
+      [2, 10],
+      [3, 20],
+      [4, 25],
+      [7, 28],
+    ] as const) {
+      await owner
+        .update(order)
+        .set({ placedAt: day(d) })
+        .where(eq(order.number, n))
+    }
+    const window = { placedFrom: day(5).toISOString(), placedTo: day(26).toISOString() }
+    expect(await numbers(m, window)).toEqual([2, 3, 4])
+    expect(await numbers(m, { placedTo: day(15).toISOString() })).toEqual([1, 2])
+    expect(await numbers(m, { ...window, paymentStatus: ['unpaid'] })).toEqual([3])
+  })
+
   it('search finds an order by its number, with or without the #, never a draft', async () => {
     const m = await merchant('number@example.com', 'number')
     await seedOrders(m.storeId)

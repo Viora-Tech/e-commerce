@@ -97,6 +97,69 @@ describe('inventory router', () => {
     expect(stats).toMatchObject({ skus: 1, outOfStock: 0, lowStock: 1 })
   })
 
+  it('pages the Products view by product, never splitting a product across pages', async () => {
+    const m = await merchant('tree@example.com', 'inv-tree')
+    const seedProduct = async (title: string, stock: number[]) => {
+      const productId = newId()
+      await owner
+        .insert(product)
+        .values({ id: productId, storeId: m.storeId, title, handle: `p-${productId}` })
+      for (const [i, onHand] of stock.entries()) {
+        const variantId = newId()
+        await owner.insert(variant).values({
+          id: variantId,
+          storeId: m.storeId,
+          productId,
+          title: `Size ${i + 1}`,
+          position: i,
+          pricePaise: 1000,
+          sku: `${title}-${i + 1}`,
+        })
+        await owner.insert(inventoryLevel).values({ storeId: m.storeId, variantId, onHand })
+      }
+    }
+    await seedProduct('Apex', [1, 2, 3])
+    await seedProduct('Saturn Pro', [4, 5, 6, 7])
+    await seedProduct('Zed', [9])
+    const [loc] = await call(appRouter.inventory.locations, undefined, { context: m.ctx })
+    const locationId = loc?.id as string
+    const page = (n: number) =>
+      call(
+        appRouter.inventory.list,
+        { locationId, group: 'product', page: n, perPage: 2 },
+        { context: m.ctx },
+      )
+
+    const first = await page(1)
+    expect(first.total).toBe(3)
+    expect(first.rows.map((r) => r.sku)).toEqual([
+      'Apex-1',
+      'Apex-2',
+      'Apex-3',
+      'Saturn Pro-1',
+      'Saturn Pro-2',
+      'Saturn Pro-3',
+      'Saturn Pro-4',
+    ])
+    const second = await page(2)
+    expect(second.rows.map((r) => r.sku)).toEqual(['Zed-1'])
+
+    const skus = await call(
+      appRouter.inventory.list,
+      { locationId, group: 'variant', page: 1, perPage: 2 },
+      { context: m.ctx },
+    )
+    expect(skus.total).toBe(8)
+    expect(skus.rows).toHaveLength(2)
+
+    const exported = await call(
+      appRouter.inventory.exportRows,
+      { locationId, group: 'product' },
+      { context: m.ctx },
+    )
+    expect(exported).toHaveLength(8)
+  })
+
   it('bulk adjusts by a delta and refuses, naming SKUs, when any would go below zero', async () => {
     const m = await merchant('bulk@example.com', 'inv-bulk')
     const a = await seedVariant(m.storeId, 10, 'BULK-A')
