@@ -120,8 +120,9 @@ async function onRefund(ctx: AppHookContext, orderId: string, refundId: string) 
 
 /**
  * Staff edited the order (`order.edited`): queued invoices follow it, an issued one that now
- * bills too little is cancelled and issued again (or reported when it is filed), and parcels the
- * edit added are invoiced by the paid rule like any. Removed items are credited by their refund.
+ * bills too little or names the old shipping rate is cancelled and issued again (or reported when
+ * it is filed), and parcels the edit added are invoiced by the paid rule like any (an unpaid order
+ * edited after dispatch: the dispatch rule). Removed items are credited by their refund.
  */
 async function onOrderEdited(ctx: AppHookContext, orderId: string) {
   const r = await ctx.inStore((tx) => reviseForOrderEdit(tx, ctx.storeId, orderId))
@@ -135,7 +136,12 @@ async function onOrderEdited(ctx: AppHookContext, orderId: string) {
       `Invoice ${r.locked.join(', ')} is filed; issue the items added to the order by hand`,
     )
   }
-  if (r.reissue) await onOrderEvent(ctx, orderId, 'paid')
+  if (r.oldNames.length) {
+    ctx.reportActivity?.(
+      `Invoice ${r.oldNames.join(', ')} is filed or credited, so it keeps the old shipping or discount name`,
+    )
+  }
+  if (r.reissue) await onOrderEvent(ctx, orderId, r.reissue)
 }
 
 /** The PDFs an order email carries: issued documents only, per the "attach to email" switches. */

@@ -1,7 +1,7 @@
 'use client'
 
 import type { OrderEditInput } from '@commerce/core'
-import { canEditOrder } from '@commerce/core/order-edit-rules'
+import { canEditOrder, editsAfterShipping } from '@commerce/core/order-edit-rules'
 import { Pencil } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
@@ -20,6 +20,7 @@ import { routes } from '@/lib/routes'
 import type { OrderDetail } from '../order-detail-types'
 import EditLinesCard from './edit-lines-card'
 import EditReviewDialog from './edit-review-dialog'
+import EditShippedAlert from './edit-shipped-alert'
 import { type EditState, editInput, isDirty, localTotals, startState } from './edit-state'
 
 type OrderEditPageProps = {
@@ -29,14 +30,15 @@ type OrderEditPageProps = {
 /** As long as the server keeps (`OrderEditSchema`). */
 const LABEL_MAX = 120
 
-/** "Shipping (Bluedart)": the row name with what the merchant typed beside it. */
+/** "Discount (UPI discount)": the row name with what the merchant typed beside it. */
 const withLabel = (name: string, label: string) =>
   label.trim() ? `${name} (${label.trim()})` : name
 
 /**
  * `/orders/<id>/edit`: Shopify-style order editing on a full page. Items, quantities, prices,
  * shipping and discount (each with a label) on the left, the running summary on the right; "Review changes" opens the review
- * dialog, which works the difference out on the server and saves.
+ * dialog, which works the difference out on the server and saves. A shipped order can be edited
+ * too, under a warning that the shipment stays as it is.
  */
 export default function OrderEditPage({ order }: OrderEditPageProps) {
   // Hooks
@@ -59,6 +61,9 @@ export default function OrderEditPage({ order }: OrderEditPageProps) {
   // Render logic
   const backHref = routes.orders.detail(order.id)
   const editable = canEditOrder(order)
+  // Packed or on its way (a booked shipment counts even while other items wait to be packed).
+  const shipped =
+    editsAfterShipping(order) || (order.shipment !== null && order.shipment.status !== 'cancelled')
   const dirty = isDirty(order, state)
   const totals = localTotals(order, state)
   const paid = order.balance.capturedPaise - order.balance.refundedPaise
@@ -73,6 +78,7 @@ export default function OrderEditPage({ order }: OrderEditPageProps) {
         back={{ label: copy.back(order.number), href: backHref }}
         lead={{ kind: 'icon', node: <Pencil aria-hidden="true" /> }}
       />
+      {editable && shipped ? <EditShippedAlert /> : null}
       {editable ? (
         <PageColumns
           main={
@@ -142,7 +148,8 @@ export default function OrderEditPage({ order }: OrderEditPageProps) {
                 rows={[
                   { label: copy.subtotal, value: fmt.money(totals.subtotalPaise) },
                   {
-                    label: withLabel(copy.shipping, state.shippingLabel),
+                    // The rate's own name when it has one, as the order page and invoice show it.
+                    label: state.shippingLabel.trim() || copy.shipping,
                     value: fmt.money(totals.shippingPaise),
                   },
                   {
@@ -175,6 +182,7 @@ export default function OrderEditPage({ order }: OrderEditPageProps) {
       )}
       <EditReviewDialog
         input={reviewing}
+        shipped={shipped}
         onClose={() => setReviewing(null)}
         onSaved={handleSaved}
       />

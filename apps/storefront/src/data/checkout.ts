@@ -108,7 +108,8 @@ export const thankYouContent = {
   subtotal: 'Subtotal',
   discount: 'Discount',
   shipping: 'Shipping',
-  shippingRow: (rate: string | null) => (rate ? `Shipping (${rate})` : 'Shipping'),
+  /** The rate's own name ("Bluedart") when the order has one, else "Shipping". */
+  shippingRow: (rate: string | null) => rate || 'Shipping',
   shippingFree: 'Free',
   total: 'Total',
   quantity: (n: number) => `Qty ${n}`,

@@ -75,7 +75,7 @@ export const orderEditContent = {
   charges: 'Shipping and discount',
   shipping: 'Shipping',
   discount: 'Discount',
-  shippingLabel: 'Shipping label',
+  shippingLabel: 'Shipping rate name',
   shippingLabelPlaceholder: 'e.g. Bluedart',
   discountLabel: 'Discount reason',
   discountLabelPlaceholder: 'e.g. UPI discount',
@@ -106,6 +106,8 @@ export const orderEditContent = {
   saved: 'Order updated',
   failed: 'Could not update the order',
   notEditable: 'This order can no longer be edited.',
+  shippedTitle: 'This order has shipped',
+  shippedBody: "Changes won't update the shipment; create a new shipment or return if needed.",
   changes: {
     added: (n: number, name: string) => `Add ${n} × ${name}`,
     removed: (name: string) => `Remove ${name}`,
@@ -113,7 +115,8 @@ export const orderEditContent = {
     shipping: (from: string, to: string) => `Shipping ${from} → ${to}`,
     discount: (from: string, to: string) => `Discount ${from} → ${to}`,
     price: (name: string, from: string, to: string) => `${name}: price ${from} → ${to}`,
-    shippingLabel: (to: string) => (to ? `Shipping label: ${to}` : 'Shipping label removed'),
+    shippingLabel: (to: string) =>
+      to ? `Shipping rate name: ${to}` : 'Shipping rate name removed',
     discountLabel: (to: string) => (to ? `Discount reason: ${to}` : 'Discount reason removed'),
   },
 } as const
