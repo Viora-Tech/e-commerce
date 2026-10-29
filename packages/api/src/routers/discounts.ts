@@ -15,6 +15,7 @@ import {
 } from '../services/discount.service'
 
 const LIFECYCLES = ['active', 'scheduled', 'expired', 'disabled'] as const
+const TYPES = ['products', 'order', 'bxgy', 'shipping'] as const
 
 function surfaceCodeClash<T>(work: () => Promise<T>): Promise<T> {
   return work().catch((err: unknown) => {
@@ -33,6 +34,21 @@ export const discountsRouter = {
         perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(25),
         search: z.string().trim().max(SEARCH_MAX).optional(),
         lifecycle: z.enum(LIFECYCLES).optional(),
+        /** The admin's filter panel; each combines with the tab (`lifecycle`) and search. */
+        lifecycles: z.array(z.enum(LIFECYCLES)).max(LIFECYCLES.length).optional(),
+        types: z.array(z.enum(TYPES)).max(TYPES.length).optional(),
+        kinds: z
+          .array(z.enum(['code', 'automatic']))
+          .max(2)
+          .optional(),
+        /** Runs at some point in [from, to): starts before `to`, ends at or after `from`. */
+        activeFrom: z.iso.datetime().optional(),
+        activeTo: z.iso.datetime().optional(),
+        /** Times used, both ends included. */
+        usedMin: z.number().int().min(0).optional(),
+        usedMax: z.number().int().min(0).optional(),
+        /** Has used up its total limit (true), or has room or no limit (false). */
+        limitReached: z.boolean().optional(),
       }),
     )
     .handler(({ context, input }) => listDiscounts(context.tx, input)),

@@ -51,6 +51,17 @@ const FiltersSchema = z.object({
   tag: z.string().trim().min(1).max(40).optional(),
   /** Business (B2B) customers, i.e. those with a saved GSTIN. */
   business: z.boolean().optional(),
+  /** Any of these (the admin's multi-pick filters); the single fields above still work. */
+  stateCodes: z.array(z.string().trim().length(2)).max(40).optional(),
+  tags: z.array(z.string().trim().min(1).max(40)).max(50).optional(),
+  maxOrders: z.number().int().min(0).optional(),
+  acceptsSms: z.boolean().optional(),
+  acceptsWhatsapp: z.boolean().optional(),
+  /** Created, or last ordered, in [from, to). */
+  createdFrom: z.iso.datetime().optional(),
+  createdTo: z.iso.datetime().optional(),
+  lastOrderFrom: z.iso.datetime().optional(),
+  lastOrderTo: z.iso.datetime().optional(),
 })
 
 const RulesSchema = z.object({
