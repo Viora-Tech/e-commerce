@@ -190,7 +190,11 @@ export default function CustomerCard({ order }: CustomerCardProps) {
             <p className="text-xs text-muted-foreground">{c.copyAllHint}</p>
           </div>
         ) : null}
-        <ContactActions phone={phone} layout="grid" />
+        <ContactActions
+          phone={phone}
+          layout="grid"
+          chat={{ target: { kind: 'order', id: order.id }, onOpened: () => router.refresh() }}
+        />
       </div>
 
       {editing ? (

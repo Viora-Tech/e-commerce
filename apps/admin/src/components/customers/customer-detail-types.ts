@@ -51,8 +51,9 @@ export type ActivityEvent =
       channel: string
       failed: boolean
     }
+  | { id: string; kind: 'note'; at: Date | string; body: string }
 
-/** Orders placed and messages sent, newest first: everything the data records about them. */
+/** Orders placed, messages sent and staff notes, newest first: everything recorded about them. */
 export function activityFor(customer: CustomerDetail): ActivityEvent[] {
   const orders = customer.orders.map(
     (o): ActivityEvent => ({
@@ -73,7 +74,10 @@ export function activityFor(customer: CustomerDetail): ActivityEvent[] {
       failed: m.status === 'failed',
     }),
   )
-  return [...orders, ...messages].sort(
+  const notes = customer.notes.map(
+    (n): ActivityEvent => ({ id: `note-${n.id}`, kind: 'note', at: n.createdAt, body: n.body }),
+  )
+  return [...orders, ...messages, ...notes].sort(
     (a, b) => new Date(b.at).getTime() - new Date(a.at).getTime(),
   )
 }
