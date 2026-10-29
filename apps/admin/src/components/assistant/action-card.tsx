@@ -152,9 +152,8 @@ export default function ActionCard({ action, onChange }: ActionCardProps) {
 
       {open && !editing ? (
         <footer className="flex flex-wrap items-center justify-end gap-2 border-border border-t bg-muted/30 px-4 py-2.5">
-          <KitButton variant="primary" onClick={handleApprove} disabled={busy !== null}>
-            {busy === 'approve' ? <Spinner /> : null}
-            {copy.card.approve}
+          <KitButton variant="link" onClick={handleCancel} disabled={busy !== null}>
+            {copy.card.cancel}
           </KitButton>
           {action.editable.length ? (
             <KitButton
@@ -165,13 +164,9 @@ export default function ActionCard({ action, onChange }: ActionCardProps) {
               {copy.card.edit}
             </KitButton>
           ) : null}
-          <KitButton
-            variant="link"
-            onClick={handleCancel}
-            disabled={busy !== null}
-            className="ml-auto"
-          >
-            {copy.card.cancel}
+          <KitButton variant="primary" onClick={handleApprove} disabled={busy !== null}>
+            {busy === 'approve' ? <Spinner /> : null}
+            {copy.card.approve}
           </KitButton>
         </footer>
       ) : null}
