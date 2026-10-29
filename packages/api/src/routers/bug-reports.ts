@@ -1,14 +1,17 @@
 import { loadEnv } from '@commerce/config'
 import {
   checkRateLimit,
+  countUnreadBugReports,
   createMemoryRateLimitStore,
+  listBugReports,
+  markBugReportsSeen,
   rateLimitKey,
   retryAfterSeconds,
 } from '@commerce/core'
 import { logger } from '@commerce/observability/logging'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { storeProcedureDetached } from '../procedures'
+import { storeProcedure, storeProcedureDetached } from '../procedures'
 import {
   appCommit,
   BUG_DETAILS_MAX,
@@ -24,6 +27,7 @@ import {
   githubIssueProblem,
   InvalidScreenshot,
   SCREENSHOT_DATA_URL_MAX,
+  saveBugReport,
   uploadScreenshot,
 } from '../services/bug-report.service'
 
@@ -92,10 +96,19 @@ export const bugReportsRouter = {
       screenshotUrl,
     })
 
+    const save = (filed: { number: number; url: string } | null) =>
+      saveBugReport(context.db, storeId, {
+        ...input,
+        reporter: { id: user.id, name: user.name, email: user.email },
+        screenshotUrl,
+        issue: filed,
+      })
+
     if (!env.GITHUB_ISSUES_TOKEN) {
       console.info(
         `[bug report] No GITHUB_ISSUES_TOKEN, so this was not sent to ${env.GITHUB_ISSUES_REPO}:\n# ${issue.title}\n\n${issue.body}\n`,
       )
+      await save(null)
       return { number: null, url: null, logged: true }
     }
 
@@ -106,6 +119,7 @@ export const bugReportsRouter = {
         repo: env.GITHUB_ISSUES_REPO,
         issue,
       })
+      await save(filed)
       return { ...filed, logged: false }
     } catch (err) {
       if (err instanceof GithubIssueError) {
@@ -122,5 +136,36 @@ export const bugReportsRouter = {
       }
       throw err
     }
+  }),
+
+  /**
+   * My reports: the member's own reports in this store, newest first; with `scope: 'store'`
+   * every report filed in the store, for the owner only. Self-scoped, so no permission.
+   */
+  list: storeProcedure
+    .input(z.object({ scope: z.enum(['mine', 'store']).default('mine') }))
+    .handler(async ({ context, input }) => {
+      // "All reports from this store" shows other members' reports: owner-only by definition.
+      if (input.scope === 'store' && !context.scope.isOwner) {
+        throw new ORPCError('FORBIDDEN', { message: 'Only the store owner can see every report.' })
+      }
+      return {
+        reports: await listBugReports(context.tx, {
+          userId: context.scope.userId,
+          scope: input.scope,
+        }),
+        canSeeStore: context.scope.isOwner,
+      }
+    }),
+
+  /** How many of the member's own reports changed since they last opened My reports (the menu's dot). */
+  unreadCount: storeProcedure.handler(async ({ context }) => ({
+    count: await countUnreadBugReports(context.tx, context.scope.userId),
+  })),
+
+  /** Opening My reports marks the member's own reports as seen. */
+  markSeen: storeProcedure.handler(async ({ context }) => {
+    await markBugReportsSeen(context.tx, context.scope.userId)
+    return { ok: true }
   }),
 }

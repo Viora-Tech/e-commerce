@@ -108,6 +108,12 @@ export type TemplateId =
    */
   | 'plan_bill'
   /**
+   * PLATFORM message to a TEAM MEMBER who filed a bug report ("Report a bug"): the team fixed it
+   * (it ships in the next update) or the fix is live. `bugReport` says which; `actionUrl` opens
+   * Account → My reports. Sent only when the member keeps "App errors" email alerts on. Email only.
+   */
+  | 'bug_report_update'
+  /**
    * To a SUPPLIER: the store's purchase order, with the PDF attached. Sent from the admin's
    * "Email to supplier" through the store's own sender email. Email only.
    */
@@ -278,6 +284,8 @@ export type TemplateData = {
   /** For email_changed: the new sign-in address, masked ("a•••@gmail.com"). */
   emailChange?: { newEmail: string } | undefined
   /** For staff_invite: who sent it, the role offered and the platform's own name (PLATFORM_EMAIL_NAME). */
+  /** For bug_report_update: the report's title and where it got to. */
+  bugReport?: { title: string; status: 'fixed' | 'live' } | undefined
   /** For plan_bill: what the bill is for, how much, and by when. */
   planBill?:
     | {

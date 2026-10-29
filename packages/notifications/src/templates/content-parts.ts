@@ -382,8 +382,24 @@ export const platformTemplates = {
     whatsapp: (d) =>
       `${d.storeName}: ${d.planBill?.amountLabel ?? ''} due for ${d.planBill?.what ?? 'your plan'}.${d.actionUrl ? ` Pay: ${d.actionUrl}` : ''}`,
   },
+  bug_report_update: {
+    subject: (d) =>
+      d.bugReport?.status === 'live'
+        ? `Fixed and live: ${d.bugReport.title}`
+        : `Fixed in the next update: ${d.bugReport?.title ?? 'your bug report'}`,
+    heading: (d) =>
+      d.bugReport?.status === 'live' ? 'Your bug report is fixed' : 'We fixed your bug report',
+    intro: (d) =>
+      d.bugReport?.status === 'live'
+        ? `The fix for "${d.bugReport.title}" is now live in ${d.storeName}. Thanks for telling us.`
+        : `We fixed "${d.bugReport?.title ?? 'your report'}". It reaches ${d.storeName} with the next update.`,
+    outro: (d) =>
+      `${d.actionUrl ? `See all your reports: ${d.actionUrl}. ` : ''}You get these because App errors email alerts are on (Account → Notifications).`,
+    whatsapp: (d) =>
+      `${d.storeName}: your bug report "${d.bugReport?.title ?? ''}" is ${d.bugReport?.status === 'live' ? 'fixed and live' : 'fixed, live with the next update'}.`,
+  },
 } satisfies Record<
-  'staff_invite' | 'email_change_code' | 'email_changed' | 'plan_bill',
+  'staff_invite' | 'email_change_code' | 'email_changed' | 'plan_bill' | 'bug_report_update',
   TemplateCopy
 >
 

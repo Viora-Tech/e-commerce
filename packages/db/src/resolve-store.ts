@@ -399,3 +399,22 @@ export async function storesForPlatformAccount(
   )
   return rows.map((r) => r.id)
 }
+
+/** Stores holding a report filed as this GitHub issue, for the GitHub webhook. SECURITY DEFINER backed. */
+export async function bugReportStoresForIssue(db: Db, issueNumber: number): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(
+    sql`select bug_report_stores_for_issue(${issueNumber}::int) as id`,
+  )
+  return rows.map((r) => r.id)
+}
+
+/**
+ * Stores with bug reports: all of them (the platform console), or with `openOnly` those whose
+ * GitHub issue may still change (the worker's poll, the "live" check). SECURITY DEFINER backed.
+ */
+export async function storesWithBugReports(db: Db, openOnly: boolean): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(
+    sql`select stores_with_bug_reports(${openOnly}::boolean) as id`,
+  )
+  return rows.map((r) => r.id)
+}

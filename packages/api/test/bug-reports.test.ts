@@ -1,6 +1,11 @@
 import { readFileSync, rmSync } from 'node:fs'
 import { createMerchantAuth } from '@commerce/auth'
-import { createMemoryRateLimitStore, localStoragePath, type RateLimitStore } from '@commerce/core'
+import {
+  createMemoryRateLimitStore,
+  localStoragePath,
+  type RateLimitStore,
+  scrubSecrets,
+} from '@commerce/core'
 import { createDb, role, store, storeMember } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { call } from '@orpc/server'
@@ -8,11 +13,7 @@ import { and, eq } from 'drizzle-orm'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ApiContext } from '../src/context'
 import { appRouter } from '../src/routers/_app'
-import {
-  BUG_REPORT_RULE,
-  githubIssueProblem,
-  scrubSecrets,
-} from '../src/services/bug-report.service'
+import { BUG_REPORT_RULE, githubIssueProblem } from '../src/services/bug-report.service'
 
 /**
  * "Report a bug" (test server only): any signed-in member files a GitHub issue. These tests

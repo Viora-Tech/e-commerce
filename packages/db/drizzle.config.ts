@@ -9,6 +9,7 @@ export default defineConfig({
     './src/app-schema.ts',
     './src/automation-schema.ts',
     './src/billing-schema.ts',
+    './src/bug-report-schema.ts',
     './src/channel-schema.ts',
     './src/content-schema.ts',
     './src/finance-schema.ts',

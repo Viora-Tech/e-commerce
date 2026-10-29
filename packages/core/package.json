@@ -58,6 +58,7 @@
     "./search-console": "./src/search-console/insights.ts",
     "./analytics-query": "./src/analytics-query/index.ts",
     "./billing": "./src/billing/client.ts",
+    "./bug-reports": "./src/bug-reports/client.ts",
     "./app-catalogue": "./src/apps/catalogue.ts",
     "./app-logos": "./src/apps/logos.ts",
     "./api-access": "./src/api-access/client.ts",
