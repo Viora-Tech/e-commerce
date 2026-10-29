@@ -34,12 +34,14 @@ export default async function Home() {
       { context },
     ),
     call(appRouter.dashboard.tiles, undefined, { context }),
+    // Needs settings.read: without it the Store health card just hides.
+    call(appRouter.store.health, undefined, { context }).catch(() => null),
   ])
   if (!(await memberP)) {
     readsP.catch(() => {})
     redirect('/select-store')
   }
-  const [summary, charts, session, ai, apps, abandoned, analytics, tiles] = await readsP
+  const [summary, charts, session, ai, apps, abandoned, analytics, tiles, health] = await readsP
   const { fallbackName } = (await getCopy(homeContent)).briefing
   const firstName = (session?.user.name ?? fallbackName).trim().split(/\s+/)[0] ?? fallbackName
   return (
@@ -51,6 +53,7 @@ export default async function Home() {
       assistant={ai?.assistant ?? false}
       signals={apps ? homeSignals(apps, await paymentsTestMode()) : null}
       abandoned={abandoned}
+      health={health}
     />
   )
 }

@@ -6,6 +6,7 @@ import {
   noteProductsChanged,
   notSystemTest,
   onHandleChange,
+  type ProductMissingFilter,
   parseStoreTax,
   type StockFilter,
   storeLowStockThreshold,
@@ -60,6 +61,7 @@ export type ProductListInput = {
   productType?: string | undefined
   tag?: string | undefined
   stock?: ProductStockFilter | undefined
+  missing?: ProductMissingFilter | undefined
   ids?: string[] | undefined
   vendors?: string[] | undefined
   productTypes?: string[] | undefined
@@ -114,6 +116,16 @@ function listWhere(input: ProductListInput, lowThreshold: number) {
       : undefined,
     input.createdFrom ? gte(product.createdAt, new Date(input.createdFrom)) : undefined,
     input.createdTo ? lt(product.createdAt, new Date(input.createdTo)) : undefined,
+    input.missing === 'weight'
+      ? sql`${product.isGiftCard} = false and exists (
+          select 1 from variant v
+          where v.product_id = ${product.id} and v.archived_at is null
+            and coalesce(v.weight_grams, 0) = 0
+        )`
+      : undefined,
+    input.missing === 'image'
+      ? sql`not exists (select 1 from product_media pm where pm.product_id = ${product.id})`
+      : undefined,
     input.stock
       ? sql`(
           select coalesce(sum(greatest(0, il.on_hand - il.reserved)), 0)
