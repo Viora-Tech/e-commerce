@@ -38,6 +38,7 @@ import customizeAi from './customize-ai'
 import customizeAppEmbeds from './customize-app-embeds'
 import dateRange from './date-range'
 import dates from './dates'
+import deliveryOptions from './delivery-options'
 import dhlExpress from './dhl-express'
 import discounts from './discounts'
 import domains from './domains'
@@ -156,6 +157,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...businessGst,
   ...checkoutSettings,
   ...codRto,
+  ...deliveryOptions,
   ...common,
   ...resourcePicker,
   ...connectAside,

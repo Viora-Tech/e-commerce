@@ -5,7 +5,13 @@
  * Express, matches route selectors and applies the merchant's per-route settings / WHY: the
  * engine, Try a PIN and booking all need the same idea of "which route is this". Pure.
  */
-import { type CostCard, carrierSettingKey, type DeliverySpeed, type RouteSelector, type RouteSetting } from './config'
+import {
+  type CostCard,
+  carrierSettingKey,
+  type DeliverySpeed,
+  type RouteSelector,
+  type RouteSetting,
+} from './config'
 
 /** Couriers that resell other couriers. Their services name the carrier behind them. */
 export const AGGREGATOR_PROVIDERS: ReadonlySet<string> = new Set(['shiprocket', 'rapidshyp'])
@@ -51,7 +57,10 @@ export function normaliseCarrier(raw: string): { key: string; name: string } {
 }
 
 /** The carrier a direct courier app delivers with. */
-export function directCarrier(providerId: string, providerLabel: string): { key: string; name: string } {
+export function directCarrier(
+  providerId: string,
+  providerLabel: string,
+): { key: string; name: string } {
   const key = DIRECT_CARRIER[providerId]
   const known = CARRIERS.find((c) => c.key === (key ?? providerId))
   return known ? { key: known.key, name: known.name } : normaliseCarrier(providerLabel)
@@ -61,7 +70,11 @@ const EXPRESS = /express|\bair\b|apex|priority|premium|next\s*day|same\s*day/i
 
 /** Surface or Express, read from the service name with the carrier's own name taken out
  *  ("Ecom Express Surface" is Surface). Delhivery's direct modes are `S` and `E`. */
-export function serviceSpeed(serviceId: string, serviceLabel: string, carrierName: string): DeliverySpeed {
+export function serviceSpeed(
+  serviceId: string,
+  serviceLabel: string,
+  carrierName: string,
+): DeliverySpeed {
   if (serviceId === 'E') return 'express'
   if (serviceId === 'S') return 'standard'
   const label = serviceLabel.replace(new RegExp(carrierName.replace(/\s+/g, '\\s*'), 'ig'), ' ')
@@ -133,15 +146,20 @@ export type Route = {
   ms: number | null
 }
 
-export const routeKey = (providerId: string, serviceId: string): string => `${providerId}:${serviceId}`
+export const routeKey = (providerId: string, serviceId: string): string =>
+  `${providerId}:${serviceId}`
 
 /** Does the selector mean this route? */
-export function selectorMatches(route: Pick<Route, 'carrierKey' | 'channel' | 'providerId' | 'speed' | 'serviceId'>, sel: RouteSelector): boolean {
+export function selectorMatches(
+  route: Pick<Route, 'carrierKey' | 'channel' | 'providerId' | 'speed' | 'serviceId'>,
+  sel: RouteSelector,
+): boolean {
   if (sel.carrier !== 'any' && sel.carrier !== route.carrierKey) return false
   const ch = sel.channel ?? 'any'
   if (ch === 'direct' && route.channel !== 'direct') return false
   if (ch === 'aggregator' && route.channel !== 'aggregator') return false
-  if (ch !== 'any' && ch !== 'direct' && ch !== 'aggregator' && ch !== route.providerId) return false
+  if (ch !== 'any' && ch !== 'direct' && ch !== 'aggregator' && ch !== route.providerId)
+    return false
   if (sel.speed && sel.speed !== 'any' && sel.speed !== route.speed) return false
   if (sel.serviceId && sel.serviceId !== route.serviceId) return false
   return true
@@ -171,7 +189,10 @@ function settingsFor(
   return keys.flatMap((k) => settings.filter((s) => s.key === k))
 }
 
-const firstSet = <T>(list: RouteSetting[], pick: (s: RouteSetting) => T | null | undefined): T | null => {
+const firstSet = <T>(
+  list: RouteSetting[],
+  pick: (s: RouteSetting) => T | null | undefined,
+): T | null => {
   for (const s of list) {
     const v = pick(s)
     if (v !== null && v !== undefined) return v
@@ -180,7 +201,8 @@ const firstSet = <T>(list: RouteSetting[], pick: (s: RouteSetting) => T | null |
 }
 
 /** Weight the courier bills: whole 500 g steps. */
-export const halfKgSteps = (weightGrams: number): number => Math.max(1, Math.ceil(weightGrams / 500))
+export const halfKgSteps = (weightGrams: number): number =>
+  Math.max(1, Math.ceil(weightGrams / 500))
 
 /** A cost card's price for a parcel: first 500 g, then each further 500 g; COD adds its fee. */
 export function costCardPrice(card: CostCard, weightGrams: number, cod: boolean): number {
@@ -223,7 +245,11 @@ export function routesFromAnswers(
             serviceId: s.serviceId,
             serviceLabel: s.serviceLabel,
             speed: serviceSpeed(s.serviceId, s.serviceLabel, carrier.name),
-            costPaise: live ? less(s.pricePaise) : card ? costCardPrice(card, weightGrams, false) : null,
+            costPaise: live
+              ? less(s.pricePaise)
+              : card
+                ? costCardPrice(card, weightGrams, false)
+                : null,
             codCostPaise: live
               ? less(s.codPricePaise)
               : card

@@ -73,7 +73,13 @@ export function poolAllows(pool: RulePool, route: Route): boolean {
 export function rulePool(matching: readonly RouteRule[], candidates: readonly Route[]): RulePool {
   const top = matching[0]
   if (!top) {
-    return { applied: [], overruled: [], defaultRoute: null, alternatives: [], insuranceRequired: false }
+    return {
+      applied: [],
+      overruled: [],
+      defaultRoute: null,
+      alternatives: [],
+      insuranceRequired: false,
+    }
   }
   const common = candidates.some((route) => matching.every((r) => allows(r, route)))
   const applied = common ? [...matching] : [top]
@@ -81,8 +87,9 @@ export function rulePool(matching: readonly RouteRule[], candidates: readonly Ro
   return {
     applied,
     overruled: common ? [] : matching.slice(1),
-    defaultRoute:
-      withDefault?.defaultRoute ? { selector: withDefault.defaultRoute, ruleId: withDefault.id } : null,
+    defaultRoute: withDefault?.defaultRoute
+      ? { selector: withDefault.defaultRoute, ruleId: withDefault.id }
+      : null,
     alternatives: top.alternatives,
     insuranceRequired: applied.some((r) => r.insurance === 'required'),
   }

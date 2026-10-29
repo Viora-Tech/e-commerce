@@ -48,7 +48,10 @@ export function valueBucket(valuePaise: number): string {
 export const deliveryQuoteKey = (
   storeId: string,
   providerId: string,
-  q: Pick<CheckoutQuoteQuery, 'originPincode' | 'destinationPincode' | 'weightGrams' | 'valuePaise'>,
+  q: Pick<
+    CheckoutQuoteQuery,
+    'originPincode' | 'destinationPincode' | 'weightGrams' | 'valuePaise'
+  >,
 ): string =>
   `{shipping}:delivery-quote:v1:${storeId}:${providerId}:${q.originPincode}>${q.destinationPincode}:${halfKgSteps(q.weightGrams) * 500}g:${valueBucket(q.valuePaise)}`
 
@@ -58,7 +61,10 @@ const insuranceLine = (o: RateOption): number | null => {
 }
 
 /** One app's answer, all its calls at once. Throws when nothing at all answered. */
-async function askProvider(provider: ShippingProvider, q: CheckoutQuoteQuery): Promise<CachedAnswer> {
+async function askProvider(
+  provider: ShippingProvider,
+  q: CheckoutQuoteQuery,
+): Promise<CachedAnswer> {
   const rate = (paymentMode: 'prepaid' | 'cod'): RateQuery => ({
     originPincode: q.originPincode,
     destinationPincode: q.destinationPincode,
@@ -154,14 +160,25 @@ export async function gatherProviderAnswers(
       const base = { providerId: provider.id, providerLabel: provider.label }
       const key = deliveryQuoteKey(opts.storeId, provider.id, query)
       const cached = opts.cache ? await opts.cache.get<CachedAnswer>(key).catch(() => null) : null
-      if (cached) return { ...base, ...cached, status: 'ok', source: 'cache', ms: null, error: null }
+      if (cached)
+        return { ...base, ...cached, status: 'ok', source: 'cache', ms: null, error: null }
       if (opts.cacheOnly) {
-        return { ...base, status: 'failed', source: 'cache', ms: null, error: 'No cached answer', serviceable: null, services: [] }
+        return {
+          ...base,
+          status: 'failed',
+          source: 'cache',
+          ms: null,
+          error: 'No cached answer',
+          serviceable: null,
+          services: [],
+        }
       }
       const started = Date.now()
       const work = askProvider(provider, query)
       // Late or not, a real answer is remembered for the next shopper.
-      work.then((answer) => opts.cache?.set(key, answer, DELIVERY_QUOTE_TTL_SECONDS)).catch(() => undefined)
+      work
+        .then((answer) => opts.cache?.set(key, answer, DELIVERY_QUOTE_TTL_SECONDS))
+        .catch(() => undefined)
       let timer: ReturnType<typeof setTimeout> | undefined
       const late = new Promise<typeof TIMED_OUT>((resolve) => {
         timer = setTimeout(() => resolve(TIMED_OUT), deadline)
@@ -169,11 +186,34 @@ export async function gatherProviderAnswers(
       try {
         const answer = await Promise.race([work, late])
         if (answer === TIMED_OUT) {
-          return { ...base, status: 'failed', source: 'live', ms: null, error: `No answer within ${deadline} ms`, serviceable: null, services: [] }
+          return {
+            ...base,
+            status: 'failed',
+            source: 'live',
+            ms: null,
+            error: `No answer within ${deadline} ms`,
+            serviceable: null,
+            services: [],
+          }
         }
-        return { ...base, ...answer, status: 'ok', source: 'live', ms: Date.now() - started, error: null }
+        return {
+          ...base,
+          ...answer,
+          status: 'ok',
+          source: 'live',
+          ms: Date.now() - started,
+          error: null,
+        }
       } catch (err) {
-        return { ...base, status: 'failed', source: 'live', ms: Date.now() - started, error: describeCourierFailure(err), serviceable: null, services: [] }
+        return {
+          ...base,
+          status: 'failed',
+          source: 'live',
+          ms: Date.now() - started,
+          error: describeCourierFailure(err),
+          serviceable: null,
+          services: [],
+        }
       } finally {
         clearTimeout(timer)
       }

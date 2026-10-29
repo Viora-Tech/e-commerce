@@ -451,10 +451,26 @@ export async function bulkBookShipments(
           carrier: route.carrier,
         })
         await noteShipmentBooked(tx, storeId, row.provider, o.orderId)
-        results.push({ orderId: o.orderId, ok: true, shipmentId: row.id, waybill: row.waybill, labelUrl: row.labelUrl })
+        results.push({
+          orderId: o.orderId,
+          ok: true,
+          shipmentId: row.id,
+          waybill: row.waybill,
+          labelUrl: row.labelUrl,
+        })
       } catch (err) {
-        const reason = err instanceof CourierError ? describeCourierFailure(err) : err instanceof Error ? err.message : String(err)
-        results.push({ orderId: o.orderId, ok: false, needsDecision: true, error: `${label}: ${reason}` })
+        const reason =
+          err instanceof CourierError
+            ? describeCourierFailure(err)
+            : err instanceof Error
+              ? err.message
+              : String(err)
+        results.push({
+          orderId: o.orderId,
+          ok: false,
+          needsDecision: true,
+          error: `${label}: ${reason}`,
+        })
       }
       continue
     }
@@ -483,7 +499,7 @@ export async function bulkBookShipments(
           ? providers.filter((p) => options.some((r) => r.providerId === p.id))
           : providers
         if (ruleProviders.length === 0) {
-          throw new Error('No connected courier fits this order's product route rules.')
+          throw new Error("No connected courier fits this order's product route rules.")
         }
         provider =
           chooseCourier(options, ruleProviders, settings.courierRule, { stateCode: o.stateCode }) ??

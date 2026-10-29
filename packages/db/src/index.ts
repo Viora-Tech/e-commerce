@@ -8,6 +8,7 @@ export * from './channel-schema'
 export { createDb, type Db } from './client'
 export * from './content-schema'
 export { seedWaimersShipping } from './default-shipping'
+export * from './delivery-schema'
 export { isUniqueViolation } from './errors'
 export * from './finance-schema'
 export * from './inbox-schema'
@@ -58,7 +59,6 @@ export {
   storesWithUnpaidOnlineOrders,
   storesWithUnroutedPlatformDomains,
 } from './resolve-store'
-export * from './delivery-schema'
 export * from './returns-schema'
 export * from './rollout-schema'
 export * from './schema'
