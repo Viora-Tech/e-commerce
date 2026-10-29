@@ -30,7 +30,7 @@ type EditReviewDialogProps = {
   onSaved: () => void
 }
 
-/** One line per change, in the order the editor shows them: items, then shipping and discount. */
+/** One line per change, in the order the editor shows them: items, then shipping, discount and their labels. */
 function changeList(
   p: OrderEditPreview,
   words: (typeof orderEditContent)['changes'],
@@ -40,10 +40,17 @@ function changeList(
     const name = lineName(l.title, l.variantTitle)
     if (l.change === 'added') return [words.added(l.quantity, name)]
     if (l.change === 'removed') return [words.removed(name)]
-    if (l.change === 'changed') return [words.changed(name, l.quantityBefore, l.quantity)]
-    return []
+    if (l.change !== 'changed') return []
+    return [
+      ...(l.quantity !== l.quantityBefore
+        ? [words.changed(name, l.quantityBefore, l.quantity)]
+        : []),
+      ...(l.unitPricePaise !== l.unitPriceBefore
+        ? [words.price(name, money(l.unitPriceBefore), money(l.unitPricePaise))]
+        : []),
+    ]
   })
-  const { before, after } = p
+  const { before, after, labels } = p
   return [
     ...items,
     ...(after.shippingPaise !== before.shippingPaise
@@ -51,6 +58,12 @@ function changeList(
       : []),
     ...(after.discountPaise !== before.discountPaise
       ? [words.discount(money(before.discountPaise), money(after.discountPaise))]
+      : []),
+    ...(labels.after.shippingLabel !== labels.before.shippingLabel
+      ? [words.shippingLabel(labels.after.shippingLabel ?? '')]
+      : []),
+    ...(labels.after.discountLabel !== labels.before.discountLabel
+      ? [words.discountLabel(labels.after.discountLabel ?? '')]
       : []),
   ]
 }

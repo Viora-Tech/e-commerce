@@ -54,6 +54,10 @@ import UnfulfilledCard from './unfulfilled-card'
 import { useDuplicateOrder } from './use-duplicate-order'
 import { useOrderAppActions } from './use-order-app-actions'
 
+/** The GST invoices app's card, drawn high in the side column and linked from "More actions". */
+const INVOICES_APP = 'gst-invoices'
+const INVOICES_ANCHOR = 'order-invoices'
+
 type OrderViewProps = {
   order: OrderDetail
   /** Installed apps that add a card to this page, by plugin id. */
@@ -83,6 +87,10 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
   const [cancelling, setCancelling] = useState(false)
 
   // Helpers
+  const appCard = (id: string) => {
+    const Card = ADMIN_APPS[id]?.OrderCard
+    return Card ? <Card key={id} orderId={order.id} /> : null
+  }
   const refresh = () => router.refresh()
   const openRefund = () => setRefunding(payment?.status === 'captured' ? payment : null)
   const closeAndRefresh = (close: () => void) => () => {
@@ -230,6 +238,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
               }
               onCancel={canCancel ? () => setCancelling(true) : undefined}
               onEdit={canEdit ? () => router.push(routes.orders.edit(order.id)) : undefined}
+              invoicesHref={appCards.includes(INVOICES_APP) ? `#${INVOICES_ANCHOR}` : undefined}
               orderNumber={order.number}
               customerEmail={order.email}
               appItems={[
@@ -270,6 +279,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
             order={order}
             payment={pay}
             unfulfilledShown={!readOnly && order.status !== 'cancelled'}
+            editHref={canEdit ? routes.orders.edit(order.id) : undefined}
           />
           <PaymentCard
             order={order}
@@ -310,6 +320,12 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
             />
           ) : null}
           <CustomerCard order={order} />
+          {/* Invoices sit right under the customer, where staff look for them (issue 920). */}
+          {appCards.includes(INVOICES_APP) ? (
+            <div id={INVOICES_ANCHOR} className="scroll-mt-6">
+              {appCard(INVOICES_APP)}
+            </div>
+          ) : null}
           <CourierOrdersCard
             orderId={order.id}
             rows={order.courierOrders}
@@ -329,10 +345,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
               }
             />
           )}
-          {appCards.map((id) => {
-            const Card = ADMIN_APPS[id]?.OrderCard
-            return Card ? <Card key={id} orderId={order.id} /> : null
-          })}
+          {appCards.filter((id) => id !== INVOICES_APP).map(appCard)}
           <TagsCard orderId={order.id} tags={order.tags} onChanged={refresh} />
         </>
       }

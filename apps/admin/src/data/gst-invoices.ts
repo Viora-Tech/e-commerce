@@ -251,7 +251,8 @@ export const gstInvoicesContent = {
     failed: 'Could not complete that',
   },
   orderCard: {
-    title: 'GST documents',
+    title: 'Invoices',
+    all: 'All invoices',
     empty: 'No invoice for this order yet. Add it to the queue below to generate one.',
     queue: 'Add to invoice queue',
     openQueue: 'Open queue',

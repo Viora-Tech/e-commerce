@@ -1,4 +1,4 @@
-/** SOURCE OF TRUTH: previewOrderEdit, editOrder — WHAT: Shopify-style editing of a placed order that has not shipped (add, remove, quantity, shipping, discount) and settling the difference / WHY: staff fix orders after payment without cancelling and re-placing them */
+/** SOURCE OF TRUTH: previewOrderEdit, editOrder — WHAT: Shopify-style editing of a placed order that has not shipped (add, remove, quantity, price, shipping, discount and their labels) and settling the difference / WHY: staff fix orders after payment without cancelling and re-placing them */
 
 import { siteConfig } from '@commerce/config/site'
 import {
@@ -97,6 +97,7 @@ async function loadForEdit(ctx: StoreContext, edit: OrderEdit, lock: boolean) {
     variants,
     before,
     paidPaise,
+    labels: { discountLabel: o.discountLabel, shippingLabel: o.shippingRateName },
   })
   return { o, lines, variants, payments, plan }
 }
@@ -146,13 +147,21 @@ const qty = (l: PlannedLine) =>
 
 const rupees = (paise: number) => formatMoney(paise, 'INR', { showZeroDecimals: true })
 
+const quoted = (label: string | null) => (label ? `"${label}"` : 'none')
+
 /** The timeline line for an edit: what changed, the new total, and how the difference was settled. */
 function editNote(plan: EditPlan, settlement: EditSettlement, note?: string): string {
   const parts: string[] = []
   for (const l of plan.lines) {
     if (l.change === 'added') parts.push(`added ${l.quantity} × ${qty(l)}`)
     if (l.change === 'removed') parts.push(`removed ${qty(l)}`)
-    if (l.change === 'changed') parts.push(`${qty(l)} ${l.quantityBefore} → ${l.quantity}`)
+    if (l.change !== 'changed') continue
+    if (l.quantity !== l.quantityBefore) {
+      parts.push(`${qty(l)} ${l.quantityBefore} → ${l.quantity}`)
+    }
+    if (l.unitPricePaise !== l.unitPriceBefore) {
+      parts.push(`${qty(l)} price ${rupees(l.unitPriceBefore)} → ${rupees(l.unitPricePaise)}`)
+    }
   }
   if (plan.after.shippingPaise !== plan.before.shippingPaise) {
     parts.push(
@@ -163,6 +172,13 @@ function editNote(plan: EditPlan, settlement: EditSettlement, note?: string): st
     parts.push(
       `discount ${rupees(plan.before.discountPaise)} → ${rupees(plan.after.discountPaise)}`,
     )
+  }
+  const { before: lb, after: la } = plan.labels
+  if (la.shippingLabel !== lb.shippingLabel) {
+    parts.push(`shipping label ${quoted(lb.shippingLabel)} → ${quoted(la.shippingLabel)}`)
+  }
+  if (la.discountLabel !== lb.discountLabel) {
+    parts.push(`discount label ${quoted(lb.discountLabel)} → ${quoted(la.discountLabel)}`)
   }
   const money =
     settlement.kind === 'requested'
@@ -228,7 +244,9 @@ export async function editOrder(
       const line = byLine.get(l.lineId)
       if (!line) continue
       const remove = l.quantity === 0
-      if (remove) {
+      const repriced = !remove && l.unitPricePaise !== line.unitPricePaise
+      // A line on a return was refunded at its price: removing or repricing it would not add up.
+      if (remove || repriced) {
         const [returned] = await ctx.tx
           .select({ id: returnRequestLine.id })
           .from(returnRequestLine)
@@ -237,7 +255,7 @@ export async function editOrder(
         if (returned) {
           throw new OrderEditRefused(
             'returned_line',
-            `${qty(l)} is on a return and cannot be removed`,
+            `${qty(l)} is on a return and cannot be ${remove ? 'removed' : 'repriced'}`,
           )
         }
       }
@@ -249,7 +267,7 @@ export async function editOrder(
           quantity: line.quantity - l.quantity,
           remove,
         })
-      } else if (!line.giftCard) {
+      } else if (l.quantity > line.quantity && !line.giftCard) {
         added.push({
           orderLineId: line.id,
           variantId: line.variantId,
@@ -260,7 +278,7 @@ export async function editOrder(
       else
         await ctx.tx
           .update(orderLine)
-          .set({ quantity: l.quantity })
+          .set({ quantity: l.quantity, unitPricePaise: l.unitPricePaise })
           .where(eq(orderLine.id, line.id))
       continue
     }
@@ -294,6 +312,8 @@ export async function editOrder(
       discountPaise: plan.after.discountPaise,
       shippingPaise: plan.after.shippingPaise,
       totalPaise: plan.after.totalPaise,
+      discountLabel: plan.labels.after.discountLabel,
+      shippingRateName: plan.labels.after.shippingLabel,
     })
     .where(eq(order.id, o.id))
   await retaxOrder(ctx, o.id)

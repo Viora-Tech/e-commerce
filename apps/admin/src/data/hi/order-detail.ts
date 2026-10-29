@@ -20,6 +20,7 @@ export default [
       print: 'पैकिंग स्लिप प्रिंट करें',
       printShort: 'प्रिंट',
       more: 'और विकल्प',
+      invoices: 'इनवॉइस देखें',
     },
     duplicate: {
       action: 'ऑर्डर की कॉपी बनाएँ',
