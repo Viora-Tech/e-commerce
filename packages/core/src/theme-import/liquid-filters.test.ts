@@ -21,7 +21,11 @@ const FACETS: BrowseFacets = {
     { value: 'Pulsar', count: 2 },
     { value: 'Lamzu', count: 2 },
   ],
-  tags: [{ value: 'new', count: 1 }],
+  tags: [
+    { value: 'new', count: 1 },
+    { value: 'hand-large', count: 2 },
+    { value: 'hand-small', count: 1 },
+  ],
   options: [],
   metafields: [
     {
@@ -169,6 +173,37 @@ async function renderPage(
   })
   return { html: html.trim(), calls }
 }
+
+describe('liquidFilters with the store’s filter settings', () => {
+  it('draws the chosen groups in order, tag groups with their own params', () => {
+    const filters = liquidFilters(
+      FACETS,
+      { ...EMPTY_FILTERS, tagGroups: { hand: ['large'] } },
+      { path: '/collections/all' },
+      {
+        groups: [
+          { source: 'tagGroup', key: 'hand', label: 'Hand size' },
+          { source: 'metafield', key: 'custom.filter_grip' },
+          { source: 'availability' },
+        ],
+      },
+    )
+    expect(filters.map((f) => [f.label, f.param_name])).toEqual([
+      ['Hand size', 'filter.p.tag.hand'],
+      ['Grip', 'filter.p.m.custom.filter_grip'],
+      ['Availability', 'filter.v.availability'],
+    ])
+    const hand = filters[0]
+    expect(hand?.values.map((v) => [v.label, v.active])).toEqual([
+      ['Large', true],
+      ['Small', false],
+    ])
+    expect(hand?.values[1]?.url_to_add).toBe(
+      '/collections/all?filter.p.tag.hand=large&filter.p.tag.hand=small',
+    )
+    expect(hand?.url_to_remove).toBe('/collections/all')
+  })
+})
 
 describe('collection.filters and search on their pages', () => {
   it("filters the collection's own products and draws its filters", async () => {

@@ -380,6 +380,7 @@ export async function storeLiquidData(
         products: result.handles.flatMap((h) => byHandle.get(h) ?? []),
         total: result.total,
         facets: result.facets,
+        filterConfig: result.filterConfig,
         filters,
         sort,
         q,

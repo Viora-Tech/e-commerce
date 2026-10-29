@@ -12,6 +12,7 @@ export default {
   umami: 'Umami',
   growthbook: 'A/B tests (GrowthBook)',
   'google-search-console': 'Google Search Console',
+  'search-and-discovery': 'Search & discovery',
   meilisearch: 'Meilisearch search',
   inbox: 'Inbox',
   chatwoot: 'Chatwoot',

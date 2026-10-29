@@ -1607,16 +1607,17 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     category: 'search',
     company: null,
     description:
-      'Tune your store’s search: words that mean the same thing, so shoppers find what they mean.',
+      'Tune your store’s search and filters: words that mean the same thing, and the filters shoppers see on collection and search pages.',
     tagline: 'Words that mean the same thing, so shoppers find what they mean.',
     highlights: [
       'Synonyms for your store search',
+      'Choose the filters on collection and search pages, from options, product fields or tags',
       'Works with the built-in search and Meilisearch',
     ],
     guide: null,
     worksWith: ['The Meilisearch app'],
     screenshots: [],
-    keywords: ['search', 'synonyms'],
+    keywords: ['search', 'synonyms', 'filters'],
     faq: [
       {
         question: 'Do I need Meilisearch for this?',
@@ -1635,7 +1636,7 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
       ],
       shares: [],
     },
-    adminPages: ['Synonyms'],
+    adminPages: ['Synonyms', 'Filters'],
     themeBlocks: [],
     credits: [],
   },

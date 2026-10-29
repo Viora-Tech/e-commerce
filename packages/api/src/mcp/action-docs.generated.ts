@@ -563,6 +563,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'One social channel, and whether Connect signs in to the platform now or sends a request.',
   'salesChannels.syncNow':
     '"Sync now": the platform gets this store\'s catalog again within a minute.',
+  'search.filters.get':
+    "The store's filter settings (null: the default filters) and what it can filter by.",
   'searchConsole.connectComplete':
     "The OAuth callback route hands the code here; the state must be this store's, and fresh.",
   'searchConsole.connectStart': 'Where "Connect Google Search Console" sends the merchant.',

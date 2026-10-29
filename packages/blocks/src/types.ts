@@ -62,6 +62,12 @@ export type ProductDetail = {
     available: number
     /** Can be added to cart right now: normal stock, or pre-order room beyond it. `available` alone undercounts a pre-order. */
     purchasable: boolean
+    /**
+     * Units that can still be pre-ordered beyond `available` when the variant sells on pre-order
+     * with a limit; null or absent when there is no limit. The quantity picker's cap is
+     * `available + preorderRoom`.
+     */
+    preorderRoom?: number | null | undefined
     optionValueIds: string[]
     /** The variant's main image (first of `imageUrls`). */
     imageUrl: string | null
