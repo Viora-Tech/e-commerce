@@ -1,5 +1,6 @@
 'use client'
 
+import type { RolloutHold } from '@commerce/core'
 import type { ThemePackId } from '@commerce/core/theme'
 import { Copy, Plus, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
@@ -29,6 +30,8 @@ type ThemesLibraryProps = {
   canPublish: boolean
   /** Shows the "Section packs" card below the import callout: owners and administrators. */
   canManagePacks?: boolean
+  /** The unended rollout that will publish each theme, by theme id ("In rollout: Diwali sale"). */
+  holds?: Record<string, RolloutHold>
 }
 
 /** Live first, then the library by last saved, as the server orders them. */
@@ -64,6 +67,7 @@ export default function ThemesLibrary({
   origin,
   canPublish,
   canManagePacks = false,
+  holds = {},
 }: ThemesLibraryProps) {
   // Hooks
   const [themes, setThemes] = useState(initial)
@@ -224,6 +228,7 @@ export default function ThemesLibrary({
               <ThemeLibraryRow
                 key={t.id}
                 theme={t}
+                hold={holds[t.id]}
                 busy={busy}
                 canPublish={canPublish}
                 onPublish={() => handlePublish(t)}

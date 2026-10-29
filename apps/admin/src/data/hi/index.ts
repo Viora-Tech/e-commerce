@@ -96,6 +96,7 @@ import razorpayWebsites from './razorpay-websites'
 import resourcePicker from './resource-picker'
 import returns from './returns'
 import reviews from './reviews'
+import rollouts from './rollouts'
 import searchApp from './search-app'
 import searchConsole from './search-console'
 import selectProducts from './select-products'
@@ -192,6 +193,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...marketingAutomations,
   ...marketingCampaigns,
   ...markets,
+  ...rollouts,
   ...login,
   ...metaobjects,
   ...navigation,

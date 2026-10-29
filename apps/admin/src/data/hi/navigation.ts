@@ -98,6 +98,10 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
     title: 'मार्केट',
     body: 'जिन देशों में आप बेचते हैं, हर एक की अपनी करेंसी, भाषा और वेब पता।',
   },
+  '/settings/markets/rollouts': {
+    title: 'रोलआउट',
+    body: 'थीम, चेकआउट और डिस्काउंट के बदलाव जो तय समय पर लाइव होते हैं, जैसे सेल वाला वीकेंड।',
+  },
   '/settings/taxes': {
     title: 'GST और इनवॉइस',
     body: 'आपके GST नंबर, कीमतों में GST कैसे जुड़ता है, और इनवॉइस के नंबर कैसे बनते हैं।',

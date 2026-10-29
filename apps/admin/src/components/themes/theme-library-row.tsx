@@ -1,9 +1,11 @@
 'use client'
 
+import type { RolloutHold } from '@commerce/core'
 import { Globe } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import StatusChip from '@/components/layout/status-chip'
+import RolloutHoldChip from '@/components/settings/rollouts/rollout-hold-chip'
 import { themeImportContent } from '@/data/theme-import'
 import { themesContent } from '@/data/themes'
 import { useCopy } from '@/hooks/use-copy'
@@ -15,6 +17,8 @@ import { savedLine, type ThemeItem } from './theme-types'
 
 type ThemeLibraryRowProps = {
   theme: ThemeItem
+  /** The unended rollout that will publish this theme. */
+  hold?: RolloutHold | undefined
   busy: boolean
   canPublish: boolean
   onPublish: () => void
@@ -30,6 +34,7 @@ const ACTIONS = ['duplicate', 'rename', 'versions', 'download', 'delete'] as con
  */
 export default function ThemeLibraryRow({
   theme,
+  hold,
   busy,
   canPublish,
   onPublish,
@@ -64,6 +69,7 @@ export default function ThemeLibraryRow({
           ) : (
             <StatusChip>{copy.preset}</StatusChip>
           )}
+          <RolloutHoldChip hold={hold} />
           {theme.hasDraft ? (
             <StatusChip tone="attention">
               <span title={copy.unsavedHelp}>{copy.unsaved}</span>

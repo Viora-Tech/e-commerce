@@ -128,6 +128,8 @@ const PATTERNED: Record<string, () => string | number> = {
   'market_region.country_code': () =>
     SEED_COUNTRIES[seededCountries++ % SEED_COUNTRIES.length] ?? 'AE',
   'translation.locale': () => 'ar',
+  // Rollouts (0184): a theme or discount change needs a target id; the checkout one has none.
+  'rollout_change.kind': () => 'checkout_branding',
   // `order (store_id, number)` is unique since 0177: far above the numbers a new store hands
   // out (#1, #2), so an order the walk creates never collides with a seeded one.
   'order.number': () => 900_000 + ++seededOrders,
@@ -214,6 +216,8 @@ export async function seedEveryTable(
       let value: unknown
       if (storeScoped && col.name === 'store_id') value = storeId
       else if (fk) value = await parentId(fk)
+      // A value chosen for this column wins over the first literal its check allows.
+      else if (PATTERNED[`${table}.${col.name}`]) value = valueFor(col, table)
       else if (literals.has(`${table}.${col.name}`)) value = literals.get(`${table}.${col.name}`)
       else if (col.notNull && !col.hasDefault) value = valueFor(col, table)
       else if (col.name === 'id' && !col.hasDefault) value = valueFor(col, table)

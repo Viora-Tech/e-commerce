@@ -10,6 +10,7 @@ export default {
   checkout: 'Checkout',
   shipping: 'Shipping & delivery',
   returns: 'Returns',
+  rollouts: 'Rollouts',
   '-- taxes': { type: 'separator', title: 'Taxes & GST' },
   taxes: 'GST & invoices',
   costs: 'Costs for profit',

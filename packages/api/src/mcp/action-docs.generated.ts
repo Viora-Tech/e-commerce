@@ -531,6 +531,26 @@ export const ACTION_DOCS: Record<string, string> = {
   'reviews.reply': "The store's public reply; the first one emails the customer.",
   'reviews.setStatus': 'Approve (publish), hide, or move back to waiting, one or many.',
   'reviews.writeReply': '"Write with AI" on the reply box: a suggestion only.',
+  'rollouts.archive': 'Keep a rollout that is not running for the record only.',
+  'rollouts.checkConflicts':
+    'Clashes with other rollouts before saving: block refuses the save, warn is shown with it.',
+  'rollouts.create': 'Save a new rollout: a draft without a start or changes, scheduled with both.',
+  'rollouts.delete': 'Delete a rollout that is not running, with its changes.',
+  'rollouts.end':
+    'End a running event now: roll back what it changed, or keep its changes for good.',
+  'rollouts.get': 'One rollout with its changes, when it runs and why its last start failed.',
+  'rollouts.holds':
+    'Which unended rollout holds each theme, each discount and the checkout branding.',
+  'rollouts.list': 'Every rollout with its changes, the newest first; statuses narrows the list.',
+  'rollouts.listDiscounts':
+    'Discounts by title or code, a page at a time: what a rollout can switch on or off.',
+  'rollouts.listThemes': 'The theme library, the live theme first: what a rollout can publish.',
+  'rollouts.pause': 'Roll a running event back early; resume applies it again.',
+  'rollouts.resume': "Apply a paused event's changes again until its end.",
+  'rollouts.startNow':
+    "Apply a rollout's changes now instead of at its start; a launch ends at once.",
+  'rollouts.update':
+    'Change a draft or scheduled rollout; a running event changes only its name and end.',
   'salesChannels.connect':
     '"Connect": a URL to sign in at Meta or Google, the channel joining a platform the store already connected, or (no platform app yet) a request.',
   'salesChannels.saveOpenAiFeed':

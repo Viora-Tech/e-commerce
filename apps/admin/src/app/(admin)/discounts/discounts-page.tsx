@@ -1,6 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
+import type { RolloutHold } from '@commerce/core'
 import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
@@ -44,6 +45,8 @@ export type DiscountsInitial = {
   result: ListResult
   stats: DiscountStats
   allCount: number
+  /** The unended rollout that switches each discount, by id; empty without Rollouts: read. */
+  holds: Record<string, RolloutHold>
 }
 
 const DEFAULT_PER_PAGE = siteConfig.ui.rowsPerPage.default
@@ -140,7 +143,7 @@ function DiscountsContent({ initial }: { initial: DiscountsInitial }) {
     >
       <ResourceTable
         resourceName={copy.resource}
-        columns={discountColumns(copy, fmt)}
+        columns={discountColumns(copy, fmt, initial.holds)}
         items={items}
         getId={(d) => d.id}
         href={(d) => routes.discounts.detail(d.id)}

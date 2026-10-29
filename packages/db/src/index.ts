@@ -49,6 +49,7 @@ export {
   storesWithPendingDomains,
   storesWithPendingManualOrders,
   storesWithRetentionDue,
+  storesWithRolloutsDue,
   storesWithSearchConsoleDue,
   storesWithSenderEmailChecks,
   storesWithStaleImportSnapshots,
@@ -58,6 +59,7 @@ export {
   storesWithUnroutedPlatformDomains,
 } from './resolve-store'
 export * from './returns-schema'
+export * from './rollout-schema'
 export * from './schema'
 export * from './search-console-schema'
 export * from './shopper-login-schema'

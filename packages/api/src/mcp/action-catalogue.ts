@@ -151,6 +151,7 @@ const READ_NAMES = new Set([
 /** Reads whose name says otherwise. */
 const READ_PATHS = new Set([
   'payments.setup',
+  'rollouts.holds',
   'payments.testMode',
   'gstInvoices.bulkDownload',
   'inbox.sync',
@@ -258,6 +259,8 @@ const SENSITIVE_PATHS: Record<string, string> = {
   'automations.setStatus': 'switches a workflow on or off',
   'automations.runNow': 'runs a workflow on records now',
   'automations.runs.retry': 'runs a workflow step again',
+  'rollouts.end':
+    'ends a running sale: rolls the theme, checkout and discounts back, or keeps them',
 }
 
 /** Writes that turn sensitive for some inputs. */
@@ -341,6 +344,7 @@ const NAMESPACE_AREA: Record<string, ApiArea> = {
   staff: 'settings',
   domains: 'settings',
   markets: 'settings',
+  rollouts: 'settings',
 }
 
 /** AI features that work on products rather than on settings. */
