@@ -1,4 +1,4 @@
-import { bugReportContent } from '@/data/bug-report'
+import { bugReportContent, myBugReportsContent } from '@/data/bug-report'
 import { translation } from '@/lib/i18n'
 
 export default [
@@ -21,5 +21,37 @@ export default [
     view: 'देखें',
     logged: 'धन्यवाद। सर्वर लॉग में सेव हो गया (इस सर्वर पर GitHub टोकन नहीं है)।',
     failed: 'रिपोर्ट नहीं भेजी जा सकी। एक मिनट बाद फिर कोशिश करें।',
+    myReports: 'मेरी रिपोर्ट',
+    myReportsUnread: (n) => (n === 1 ? '1 रिपोर्ट पर नई जानकारी है' : `${n} रिपोर्ट पर नई जानकारी है`),
+  }),
+  translation(myBugReportsContent, {
+    title: 'मेरी रिपोर्ट',
+    intro: 'इस स्टोर से आपने जो गड़बड़ियां बताईं, और हमारी टीम ने हर एक पर क्या किया।',
+    scope: { mine: 'मेरी रिपोर्ट', store: 'इस स्टोर की सभी रिपोर्ट' },
+    status: {
+      received: 'मिल गई',
+      in_progress: 'ठीक की जा रही है',
+      fixed: 'ठीक हो गई – अगले अपडेट में',
+      live: 'लाइव',
+      wont_fix: 'ठीक नहीं की जाएगी',
+    },
+    reported: (when) => `${when} बताई गई`,
+    reportedBy: (name, when) => `${name} ने ${when} बताई`,
+    issue: (n) => `#${n}`,
+    page: 'पेज',
+    reply: 'हमारी टीम का जवाब',
+    replyAt: (when) => `${when} जवाब दिया`,
+    noReply: 'अभी कोई जवाब नहीं। कोई खबर होगी तो हम यहां लिखेंगे।',
+    updated: 'नया',
+    screenshot: 'स्क्रीनशॉट',
+    screenshotAlt: (title) => `"${title}" के साथ भेजा गया स्क्रीनशॉट`,
+    closeScreenshot: 'बंद करें',
+    empty: {
+      title: 'अभी कोई रिपोर्ट नहीं',
+      body: 'जब कुछ काम न करे, तो अपने अकाउंट मेन्यू में "गड़बड़ी बताएं" चुनें। आप उसे यहां देख सकते हैं।',
+    },
+    reportBug: 'गड़बड़ी बताएं',
+    loadFailed: 'आपकी रिपोर्ट लोड नहीं हो सकीं।',
+    retry: 'फिर कोशिश करें',
   }),
 ]

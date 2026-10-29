@@ -54,6 +54,8 @@ export const routes = {
     stores: () => '/account/stores',
     language: () => '/account/language',
     appearance: () => '/account/appearance',
+    /** "Report a bug" reports and what happened to each (test server only). */
+    bugReports: () => '/account/bug-reports',
   },
 
   orders: {

@@ -41,6 +41,13 @@ const ALLOWLIST: AllowEntry[] = [
   { site: 'dashboard.ts: tiles (storeProcedure)', reason: OWN_MEMBER },
   { site: 'dashboard.ts: setTiles (storeProcedure)', reason: OWN_MEMBER },
   {
+    site: 'bug-reports.ts: list (storeProcedure)',
+    reason:
+      "the member's own bug reports; the whole store's only for the owner, checked in the handler (scope.isOwner)",
+  },
+  { site: 'bug-reports.ts: unreadCount (storeProcedure)', reason: OWN_MEMBER },
+  { site: 'bug-reports.ts: markSeen (storeProcedure)', reason: OWN_MEMBER },
+  {
     site: 'appearance.ts: setStoreDefault (storeProcedure)',
     reason: 'owner-only, checked in the handler (scope.isOwner): not a grain in the roles model',
   },
