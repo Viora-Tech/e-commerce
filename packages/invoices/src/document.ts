@@ -108,6 +108,12 @@ type Group = {
   sgstPaise: number
 }
 
+/** The shipping line on a document: "Shipping charges (Bluedart)", the rate's name beside it. */
+export function shippingChargeDescription(label: string | null | undefined): string {
+  const name = label?.trim()
+  return name ? `Shipping charges (${name})` : 'Shipping charges'
+}
+
 /**
  * The document for an order, reconciled to the paisa with what the shopper
  * was charged. Prices are tax inclusive, so tax is extracted from each line
@@ -161,8 +167,7 @@ export function buildDocument(input: BuildDocumentInput): DocumentSnapshot {
       netPaise: amount,
     })
   if (order.shippingPaise > 0) {
-    const label = order.shippingLabel?.trim()
-    charge(label ? `Shipping charges (${label})` : 'Shipping charges', order.shippingPaise)
+    charge(shippingChargeDescription(order.shippingLabel), order.shippingPaise)
   }
   if (order.paymentAdjustmentPaise > 0) {
     charge(order.paymentAdjustmentLabel || 'Payment fee', order.paymentAdjustmentPaise)
