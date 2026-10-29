@@ -1,0 +1,104 @@
+---
+title: Delivery options engine
+description: How checkout turns the connected courier apps into Standard and Express cards, prices them from a quote snapshot at place order, and books the saved route.
+---
+
+# Delivery options engine
+
+The **Delivery options** app (`delivery-options`, built-in, manifest in
+`packages/core/src/shipping/delivery-options/app.ts`) shows courier-backed delivery options at
+checkout. Design: `docs/superpowers/specs/2026-10-29-delivery-options-design.md`. This page is
+phase P1 as built.
+
+## Where the code is
+
+| File (`packages/core/src/shipping/delivery-options/`) | What it does |
+| --- | --- |
+| `config.ts` | zod schemas: option, product route rule, route setting, route selector. Pure; the admin imports it as `@commerce/core/delivery-options` |
+| `routes.ts` | Route identity (`providerId:serviceId`), carrier names ("Bluedart Air" → Blue Dart), Surface vs Express, selector matching, route settings, insurance price |
+| `rules.ts` | Which rules a cart matches per option, and the pool they leave (intersect; nothing in common → the highest-placed rule wins) |
+| `resolve.ts` | `resolveDeliveryOptions(input)`: the pure engine. Pool → drop with reasons → pick by strategy (or a rule's default) → price. Standard picked again for COD. Backup. Trace |
+| `quotes.ts` | `gatherProviderAnswers`: every domestic app in parallel, 800 ms checkout deadline each, cache by app, origin>PIN, 500 g slab and value bucket (6 h). Late answers still land in the cache |
+| `checkout.ts` | `quoteDelivery` (gather + resolve), the quote snapshot shape, `orderDeliveryFor` (the choice → price charged + `OrderDeliveryRoute`) |
+| `service.ts` | Tables: load the config, save/reorder options and rules, route settings; cart and product rule facts |
+| `booking.ts` | The saved route among Create shipment's rate rows, why it cannot be booked, and the fallback |
+| `admin.ts` | App page overview and Try a PIN |
+
+Tables (migration `0190_delivery_options`): `delivery_option` and `delivery_route_rule` (name,
+position, `config` JSONB validated by the schemas), `delivery_route_setting` (key, insures,
+`insurance_bps`, `insurance_min_paise`, `cost_card`, enabled). `shipment` gained `carrier` and
+`delivered_at`. All store-scoped with RLS.
+
+## The engine
+
+```ts
+resolveDeliveryOptions({ config, cart, answers, zone, policy, now, declineInsurance })
+  → { status: 'options' | 'unserviceable' | 'none', options: ResolvedOption[], trace }
+```
+
+For each enabled option:
+
+1. **Candidates**: routes the option allows (`any`, `allow`, `exclude` selectors) with its speed.
+2. **Rule pool**: the enabled rules the cart's items match for this option (`rules.ts`).
+3. **Drop**, first reason wins: `not_allowed`, `wrong_speed`, `rule`, `disabled`,
+   `not_serviceable`, `no_price` (no live price and no cost card), `no_insurance` (insurance on
+   and the route does not insure), `no_cod` (COD pick only), `over_max_eta`.
+4. **Pick**: the rule's default route when it fits; else `cheapest` (cost to the store incl.
+   insurance; tie → direct) or `fastest` (latest arrival; a real ETA beats an estimate; then
+   cheapest). `preferDirectWithinPaise` swaps an aggregator winner for a direct route within ₹X
+   (same date for `fastest`).
+5. **Price**: `roundUpToTenRupees(cost + markup + insurance)`, then min/max caps, then
+   free-above. Insurance is the quote's own insurance line, else the route setting's % with its
+   minimum, else ₹0 (reported as `null`, and the admin warns).
+6. **COD**: Standard (and only a standard option with COD allowed) is picked a second time
+   with `cod: true`; Express is always prepaid only.
+7. **Backup**: no fitting route, a courier failed and no answered route was serviceable →
+   Express hides, Standard shows the cheapest zone rate (`source: 'backup'`, no route).
+
+## Checkout and place order
+
+- `apps/storefront/src/lib/delivery-options.ts` runs the engine when the app is installed with
+  an enabled option, writes the **quote snapshot** to Redis for 30 minutes
+  (`{shipping}:delivery-snapshot:<store>:<quoteId>`: the courier answers, the cart key, the PIN,
+  the config version and every price shown), and maps options onto `CheckoutRate` cards with
+  `delivery` extras (COD, sub-choices, list price).
+- Unticking insurance asks again with the same `quoteId`: the snapshot's answers are re-used,
+  no courier is called, and the new prices are added to `shown`.
+- Pay sends `shippingRate` (the option id) and `deliveryQuote` (`quoteId`, `routeKey`,
+  `insured`). `deliveryForOrder` reads the snapshot (or, if it is gone or the cart changed,
+  cache-only answers) and `placeOrder` re-runs the engine on those answers inside its
+  transaction, without any courier call, charging `min(now, shown)`. The order's
+  `shipping.delivery` (`OrderDeliveryRoute`) records the option, route, `pickedBy`, insurance,
+  markup, courier cost, promised dates and quote source.
+- COD with a prepaid-only option throws `CheckoutRuleViolation('cod_prepaid_only_option')`.
+
+## Booking
+
+- `quoteShipments` marks the saved route's row `chosenAtCheckout` and returns `checkout` (what
+  the shopper paid, the problem when the route cannot be booked, the fallback key).
+- `bulkBookShipments` books an order with a saved route through that route's provider and
+  `serviceId`; a failure is returned with `needsDecision: true` instead of another courier.
+  Orders without a route filter the rate rows through the product rules before the store's
+  courier rule picks.
+- `createShipmentForOrder` passes `insured` to the adapter (`CreateShipmentInput.insured`) and
+  stores `shipment.carrier`; `applyTracking` stores `delivered_at` from the delivered scan.
+- Booking a different route than the saved one (on purpose) adds an order note through
+  `noteOffRoute` (`booking.ts`), shown on the order timeline.
+
+<Callout type="warning">
+No adapter sends an insurance field yet: none is confirmed in the Delhivery, Shiprocket or
+RapidShyp docs the adapters were written against, and insurance on those accounts is a
+contract or account setting. Add the field in the adapter once confirmed against a live
+account.
+</Callout>
+
+## Tests
+
+`resolve.test.ts` (strategies, filtering, the Glasspads and Mice rules, mixed carts, ₹10
+round-up, Express prepaid only, fallback), `quotes.test.ts` (deadline, cache, cache-only, with
+mocked courier clients), `booking.test.ts` and the booking case in `shipments.test.ts`, the
+admin `flow-state.test.ts` and the storefront `checkout-preview.test.ts`.
+
+## Related guides
+
+<RelatedGuides ids={['plugins', 'data-model', 'request-flow']} />

@@ -1,5 +1,7 @@
 import {
   type BoxPreset,
+  bookingContext,
+  bookingPlan,
   type CourierRateRow,
   compareCourierRates,
   datedCourierRows,
@@ -362,6 +364,23 @@ export type QuoteResult = {
   chargedWeightGrams: number
   originPincode: string
   options: CourierRateRow[]
+  /**
+   * Delivery options app: the option and route the shopper paid for. Its row is marked
+   * `chosenAtCheckout`; when it cannot be booked, `problem` says why and `fallbackKey` names
+   * the next route that still fits (product rules, insurance, COD, speed). Null otherwise.
+   */
+  checkout: {
+    optionName: string
+    carrier: string
+    serviceLabel: string
+    providerId: string
+    insured: boolean
+    /** What the shopper paid for shipping. */
+    chargedPaise: number
+    chosenKey: string | null
+    problem: string | null
+    fallbackKey: string | null
+  } | null
 }
 
 /**
@@ -390,6 +409,7 @@ export async function quoteShipments(
       pincode: address.pincode,
       country: address.country,
       city: address.city,
+      shippingPaise: order.shippingPaise,
     })
     .from(order)
     .innerJoin(address, eq(address.id, order.shippingAddressId))
@@ -431,12 +451,39 @@ export async function quoteShipments(
         destinationCity: o.city,
         ...(r.dimensionsCm ? { dimensionsCm: r.dimensionsCm } : {}),
       })
+      const dated = datedCourierRows(options, policy, now)
+      const app = await bookingContext(tx, storeId, o.id)
+      const saved = app?.delivery
+      if (!app || !saved?.route) {
+        return {
+          orderId: o.id,
+          fulfillmentOrderId: r.fulfillmentOrderId ?? null,
+          chargedWeightGrams,
+          originPincode: from.address.pincode,
+          options: dated,
+          checkout: null,
+        }
+      }
+      const plan = bookingPlan(dated, app, { insured: saved.insured })
       return {
         orderId: o.id,
         fulfillmentOrderId: r.fulfillmentOrderId ?? null,
         chargedWeightGrams,
         originPincode: from.address.pincode,
-        options: datedCourierRows(options, policy, now),
+        options: dated.map((row) =>
+          row.optionKey === plan.chosenKey ? { ...row, chosenAtCheckout: true } : row,
+        ),
+        checkout: {
+          optionName: saved.optionName,
+          carrier: saved.route.carrier,
+          serviceLabel: saved.route.serviceLabel,
+          providerId: saved.route.providerId,
+          insured: saved.insured,
+          chargedPaise: o.shippingPaise,
+          chosenKey: plan.chosenKey,
+          problem: plan.chosenProblem,
+          fallbackKey: plan.fallbackKey,
+        },
       }
     }),
   )

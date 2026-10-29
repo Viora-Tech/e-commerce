@@ -15,6 +15,7 @@ import {
 import { formatMoney } from '@commerce/money'
 import { discountFieldContent } from '@/data/cart'
 import { checkoutContent } from '@/data/checkout'
+import { deliveryOptionsContent } from '@/data/delivery-options'
 
 /** The form's error for a refused order, or null when the error is not the shopper's to fix. */
 export function checkoutErrorMessage(err: unknown, pincode: string): string | null {
@@ -59,5 +60,7 @@ function checkoutRuleMessage(err: CheckoutRuleViolation, pincode: string): strin
       return e.stateMismatch(pincode)
     case 'cod_high_risk':
       return e.codHighRisk
+    case 'cod_prepaid_only_option':
+      return deliveryOptionsContent.codPrepaidOnlyOption
   }
 }

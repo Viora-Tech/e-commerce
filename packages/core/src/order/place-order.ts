@@ -6,6 +6,7 @@ import {
   type Db,
   type MarketingAttribution,
   newId,
+  type OrderDeliveryRoute,
   order,
   orderLine,
   type ParcelDeliveryEstimate,
@@ -64,6 +65,7 @@ import { preorderNoteText } from '../preorder/note'
 import { resolvePreorderSettings, resolveShipDate } from '../preorder/settings'
 import { parsePreorderStoreSettings } from '../preorder/store-settings'
 import { StoreAddressSchema } from '../settings/general'
+import { type OrderDeliveryInput, priceOrderDelivery } from '../shipping/delivery-options/order'
 import { quoteShipping, type ShippingRateOption } from '../shipping/rates'
 import { loadRateZones } from '../shipping/rates-service'
 import { computeOrderGst } from '../tax/gst'
@@ -117,6 +119,8 @@ export type PlaceOrderInput = {
    * applies throws `ShippingRateUnavailable`. Omitted: the cheapest that applies.
    */
   shippingRateId?: string | null | undefined
+  /** Delivery options app: the choice and the quote snapshot's answers (`priceOrderDelivery`). */
+  delivery?: OrderDeliveryInput | undefined
 }
 export type PlaceOrderResult = {
   orderId: string
@@ -175,6 +179,10 @@ type State = {
   discount: ResolvedDiscount | null
   /** The rate charged; null when nothing ships or the store has no rates. */
   shipping: ShippingRateOption | null
+  /** Delivery options app: the option and route saved on the order; null on zone rates. */
+  delivery: OrderDeliveryRoute | null
+  /** The zone rate behind a delivery option placed on backup, for `order.shipping_rate_id`. */
+  backupRateId: string | null
   /** Contact fields as Settings → Checkout allows them; null without checkout details. */
   contact: CheckoutContact | null
   /** Where the goods ship from, by line index (`key`); empty for gift cards only. */
@@ -351,6 +359,15 @@ const resolveShipping: WorkflowStep<State> = {
         weightGrams: lines.reduce((sum, l) => sum + l.quantity * (l.weightGrams ?? 0), 0),
       },
     )
+    const fromApp = input.delivery
+      ? await priceOrderDelivery(ctx, input.delivery, {
+          lines,
+          valuePaise: discountedSubtotalPaise,
+          zone: quote,
+          payment: input.paymentProvider.id === 'cod' ? 'cod' : 'prepaid',
+        })
+      : null
+    if (fromApp) return fromApp
     if (quote.kind === 'not_configured') return { shipping: null }
     if (quote.kind === 'no_rates') throw new ShippingUnavailable(to.pincode, ctx.storeId)
     const wanted = input.shippingRateId
@@ -465,6 +482,8 @@ const createOrder: WorkflowStep<State> = {
     cartAttribution,
     cartTracking,
     shipping,
+    delivery,
+    backupRateId,
     contact,
     risk,
   }) {
@@ -666,7 +685,8 @@ const createOrder: WorkflowStep<State> = {
         gstRegistrationId: origin.gstRegistrationId,
         taxOrigin: origin,
         shippingPaise,
-        shippingRateId: shipping?.rateId ?? null,
+        // A delivery option has no rate row: only a backup order points at its zone rate.
+        shippingRateId: delivery ? backupRateId : (shipping?.rateId ?? null),
         shippingRateName: shipping?.name ?? null,
         shipping: shipping
           ? {
@@ -679,6 +699,7 @@ const createOrder: WorkflowStep<State> = {
               codSurchargePaise: shipping.codSurchargePaise,
               minTransitDays: shipping.minTransitDays,
               maxTransitDays: shipping.maxTransitDays,
+              ...(delivery ? { delivery } : {}),
             }
           : null,
         paymentAdjustmentPaise: adjustmentPaise,
@@ -1034,6 +1055,8 @@ export async function placeOrder(
       cartTracking: null,
       discount: null,
       shipping: null,
+      delivery: null,
+      backupRateId: null,
       contact: null,
       parcels: [],
       reserved: [],

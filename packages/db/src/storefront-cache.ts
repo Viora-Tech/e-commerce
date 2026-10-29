@@ -98,6 +98,10 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   contact_message: SHOPPER,
   cookie_consent: SHOPPER,
   courier_order: ADMIN,
+  // Delivery options app (0190): read live by checkout, which is never cached.
+  delivery_option: ADMIN,
+  delivery_route_rule: ADMIN,
+  delivery_route_setting: ADMIN,
   courier_wallet_balance: ADMIN,
   customer: SHOPPER,
   customer_address: SHOPPER,

@@ -98,6 +98,11 @@ export type CreateShipmentInput = {
   codAmountPaise: number
   /** Declared value for insurance and customs, in paise. */
   valuePaise: number
+  /**
+   * The merchant (or the Delivery options app's route) wants this parcel insured. Adapters whose
+   * API takes an insurance flag send it; the rest ignore it (the courier contract decides).
+   */
+  insured?: boolean | undefined
   weightGrams: number
   /**
    * The service picked from `quoteOptions` (`RateOption.serviceId`): Delhivery's mode, an

@@ -39,6 +39,7 @@ import { checkoutCartId } from './checkout-context'
 import { checkoutErrorMessage } from './checkout-errors'
 import { currentCustomer } from './customer-session'
 import { db } from './db'
+import { deliveryForOrder } from './delivery-options'
 import { hasChatCookie, postChatCartLine } from './inbox'
 import { accessibleOrderId } from './order-access'
 import { redirectToOrderPage } from './order-view-cookie'
@@ -173,6 +174,11 @@ export type CheckoutForm = {
   giftCards?: string[]
   /** The shipping rate picked in the summary; re-priced on the server. */
   shippingRate?: string
+  /**
+   * Delivery options app: the quote the cards came from, the sub-choice ("Blue Dart Air") and
+   * the insurance tick. Priced on the server from the quote snapshot, never from the client.
+   */
+  deliveryQuote?: { quoteId: string; routeKey: string | null; insured: boolean }
   /** Business buyer's GSTIN and name, when the store shows the field (Settings → Checkout). */
   gstin?: string
   businessName?: string
@@ -246,7 +252,29 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
 
   /** The delivery window each warehouse's parcel was shown with, stored on the order's parcels. */
   let deliveryEstimates: Record<string, ParcelDeliveryEstimate> = {}
-  if (!digitalOnly) {
+  /* Delivery options app: the snapshot's courier answers price the order (placeOrder checks the
+     option still covers the PIN code and refuses COD on a prepaid-only option). */
+  const to = { pincode: form.pincode, stateCode: form.stateCode }
+  const appQuote = form.deliveryQuote
+  const delivery =
+    !digitalOnly && appQuote && form.shippingRate
+      ? await inStore(storeId, (tx) =>
+          deliveryForOrder(tx, storeId, cartId, to, {
+            quoteId: typeof appQuote.quoteId === 'string' ? appQuote.quoteId : null,
+            optionId: form.shippingRate as string,
+            routeKey: typeof appQuote.routeKey === 'string' ? appQuote.routeKey : null,
+            insured: appQuote.insured !== false,
+          }),
+        )
+      : null
+  if (!digitalOnly && delivery) {
+    const parcels = await inStore(storeId, (tx) => checkoutParcels(tx, storeId, cartId, to)).catch(
+      () => [],
+    )
+    deliveryEstimates = Object.fromEntries(
+      parcels.flatMap((p) => (p.estimate ? [[p.locationId, p.estimate] as const] : [])),
+    )
+  } else if (!digitalOnly) {
     // The courier's word on the destination, never the client's. A cached answer makes this cheap.
     const delivery = await inStore(storeId, (tx) => estimateForPincode(tx, storeId, form.pincode))
     if (!delivery.ok) return { error: delivery.error }
@@ -281,7 +309,9 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
         cartId,
         paymentProvider: provider,
         giftCardIds,
-        shippingRateId: form.shippingRate || null,
+        // A delivery option id is not a rate row: the app prices it instead.
+        shippingRateId: delivery ? null : form.shippingRate || null,
+        ...(delivery ? { delivery } : {}),
         deliveryEstimates,
         secret: settingsSecret(),
         checkout: {

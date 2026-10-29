@@ -214,6 +214,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'dashboard.summary':
     'Stat windows, weekly report, recent orders, top products, live visitors and quick lists for the home page.',
   'dashboard.tiles': 'Which metric this member keeps in each Home tile (Customize).',
+  'deliveryOptions.tryPin':
+    "Try a PIN: the cards checkout would show, every route's quote, and why.",
   'domains.connect':
     'Connect a custom domain (and optionally its www twin as a redirect); starts pending.',
   'domains.list': 'Every hostname this store answers on, with the records each still needs.',

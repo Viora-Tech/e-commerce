@@ -239,6 +239,7 @@ describe('bulk', () => {
       fulfillmentOrderId: 'p1',
       chargedWeightGrams: 500,
       originPincode: '302001',
+      checkout: null,
       options: [
         row({ providerId: 'delhivery', minTransitDays: 2, badges: ['fastest'] }),
         row({ providerId: 'shiprocket', pricePaise: 6000, badges: ['cheapest', 'recommended'] }),
@@ -249,6 +250,7 @@ describe('bulk', () => {
       fulfillmentOrderId: 'p2',
       chargedWeightGrams: 500,
       originPincode: '302001',
+      checkout: null,
       options: [
         row({ providerId: 'delhivery', problem: 'not_serviceable' }),
         row({
@@ -335,5 +337,54 @@ describe('bulk', () => {
       o1: 'delhivery',
       o2: 'shiprocket',
     })
+  })
+})
+
+describe('delivery options: the route chosen at checkout', () => {
+  const checkout = {
+    optionName: 'Express',
+    carrier: 'Blue Dart',
+    serviceLabel: 'Bluedart Air',
+    providerId: 'shiprocket',
+    insured: true,
+    chargedPaise: 18000,
+    chosenKey: 'shiprocket:20',
+    problem: null,
+    fallbackKey: null,
+  }
+
+  it('step 2 starts on the chosen route, not the recommended one', () => {
+    const options = [
+      row({ providerId: 'delhivery', badges: ['cheapest', 'recommended'] }),
+      row({ providerId: 'shiprocket', serviceId: '20', chosenAtCheckout: true }),
+    ]
+    expect(startingPick(options)).toBe('shiprocket:20')
+  })
+
+  it('bulk books each order on its own route, whatever the mode, and leaves a failed one undecided', () => {
+    const quotes: ParcelQuote[] = [
+      {
+        orderId: 'o1',
+        fulfillmentOrderId: 'p1',
+        chargedWeightGrams: 500,
+        originPincode: '302001',
+        checkout,
+        options: [
+          row({ providerId: 'delhivery', badges: ['cheapest'] }),
+          row({ providerId: 'shiprocket', serviceId: '20', chosenAtCheckout: true }),
+        ],
+      },
+      {
+        orderId: 'o2',
+        fulfillmentOrderId: 'p2',
+        chargedWeightGrams: 500,
+        originPincode: '302001',
+        checkout: { ...checkout, chosenKey: null, problem: 'pincode not serviceable' },
+        options: [row({ providerId: 'delhivery', badges: ['cheapest'] })],
+      },
+    ]
+    const picks = bulkPicks(quotes, 'cheapest', null)
+    expect(picks.o1?.optionKey).toBe('shiprocket:20')
+    expect(picks.o2).toBeNull()
   })
 })

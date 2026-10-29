@@ -40,6 +40,7 @@ export const APP_ICONS: Readonly<Record<string, string>> = {
   automations: '/app-icons/automations.svg',
   'back-in-stock': '/app-icons/back-in-stock.svg',
   'cod-rto': '/app-icons/cod-rto.svg',
+  'delivery-options': '/app-icons/delivery-options.svg',
   'emi-pay-later': '/app-icons/emi-pay-later.svg',
   forms: '/app-icons/forms.svg',
   'gst-invoices': '/app-icons/gst-invoices.svg',

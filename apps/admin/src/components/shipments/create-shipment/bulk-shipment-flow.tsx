@@ -122,7 +122,13 @@ export default function BulkShipmentFlow({
       })
       const unbooked = rows
         .filter((r) => !r.row)
-        .map((r) => ({ orderId: r.orderId, ok: false, error: copy.bulkCourier.noCourierFor }))
+        .map((r) => ({
+          orderId: r.orderId,
+          ok: false,
+          error: r.checkout
+            ? copy.bulkCourier.routeFailed(`${r.checkout.carrier} ${r.checkout.serviceLabel}`)
+            : copy.bulkCourier.noCourierFor,
+        }))
       setResults([...booked, ...unbooked])
       setStep('done')
       onBooked()
@@ -148,6 +154,7 @@ export default function BulkShipmentFlow({
     orderId: q.orderId,
     orderNumber: numbers.get(q.orderId) ?? 0,
     row: picked[q.orderId] ?? null,
+    checkout: q.checkout,
   }))
   const bookable = rows.filter((r) => r.row).length
 

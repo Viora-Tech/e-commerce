@@ -34,6 +34,8 @@ import DecentroConnectPage from '@/components/apps/decentro/connect-page'
 import DecentroOverviewPage from '@/components/apps/decentro/overview-page'
 import DelhiveryConnectPage from '@/components/apps/delhivery/connect-page'
 import DelhiveryOverviewPage from '@/components/apps/delhivery/overview-page'
+import DeliveryOptionPage from '@/components/apps/delivery-options/option-page'
+import DeliveryOptionsOverviewPage from '@/components/apps/delivery-options/overview-page'
 import DhlExpressConnectPage from '@/components/apps/dhl-express/connect-page'
 import DhlExpressOverviewPage from '@/components/apps/dhl-express/overview-page'
 import DtdcConnectPage from '@/components/apps/dtdc/connect-page'
@@ -178,6 +180,12 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       settings: CodRtoSettingsPage,
     },
     OrderCard: CodRtoOrderCard,
+  },
+  'delivery-options': {
+    pages: {
+      '': DeliveryOptionsOverviewPage,
+      'options/[id]': DeliveryOptionPage,
+    },
   },
   decentro: {
     pages: {

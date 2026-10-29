@@ -155,10 +155,13 @@ function cheapestOf(rows: CourierRateRow[]): CourierRateRow | null {
   return priced.reduce((a, b) => ((b.pricePaise as number) < (a.pricePaise as number) ? b : a))
 }
 
-/** The pick step 2 starts on: the courier the merchant came for (a courier app's Create
- *  shipment) when it can take the parcel, its recommended or cheapest service; else the
+/** The pick step 2 starts on: the route the shopper paid for at checkout (Delivery options
+ *  app) when it can still be booked; else the courier the merchant came for (a courier app's
+ *  Create shipment) when it can take the parcel, its recommended or cheapest service; else the
  *  recommended courier, else the first that can take it, else shipping it yourself. */
 export function startingPick(options: CourierRateRow[], preferred?: string | null): string {
+  const chosen = options.find((o) => o.chosenAtCheckout && isBookable(o))
+  if (chosen) return chosen.optionKey
   const mine = preferred ? options.filter((o) => o.providerId === preferred && isBookable(o)) : []
   const preferredPick = mine.find((o) => o.badges.includes('recommended')) ?? cheapestOf(mine)
   if (preferredPick) return preferredPick.optionKey
@@ -257,6 +260,12 @@ export function bulkPicks(
   const picks: Record<string, CourierRateRow | null> = {}
   for (const q of quotes) {
     const bookable = q.options.filter(isBookable)
+    /* Delivery options app: an order books the route its shopper paid for, whatever the mode;
+       when that route fails it waits for the merchant's decision instead of another courier. */
+    if (q.checkout) {
+      picks[q.orderId] = bookable.find((o) => o.chosenAtCheckout) ?? null
+      continue
+    }
     const row =
       mode === 'one'
         ? cheapestOf(bookable.filter((o) => o.providerId === providerId))

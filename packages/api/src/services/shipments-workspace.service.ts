@@ -1,4 +1,6 @@
 import {
+  activeDeliveryConfig,
+  bookingContext,
   bulkCreateShipments,
   chooseCourier,
   compareCourierRates,
@@ -29,6 +31,7 @@ import {
 } from '@commerce/shipping'
 import { ORPCError } from '@orpc/server'
 import { and, count, desc, eq, gte, ilike, inArray, lt, ne, or, sql } from 'drizzle-orm'
+import { bookSavedRoute, ruleAllowedRows } from './delivery-booking.service'
 import { loadShippingSettings, noteShipmentBooked } from './shipping.service'
 
 export const courierToRpc = (err: unknown): never => {
@@ -392,7 +395,8 @@ export async function bulkBookShipments(
 
   /* Single-courier stores skip rate comparison - there is nothing to choose between, unless
      the merchant picked one of its services (Surface or Express) per order. */
-  if (providers.length === 1 && !input.serviceOverrides) {
+  const appOn = (await activeDeliveryConfig(tx, storeId)) !== null
+  if (providers.length === 1 && !input.serviceOverrides && !appOn) {
     return bulkCreateShipments(
       { storeId, tx },
       providers[0] as (typeof providers)[0],
@@ -414,11 +418,26 @@ export async function bulkBookShipments(
     waybill?: string
     labelUrl?: string | null
     error?: string
+    /** Delivery options app: the route the shopper paid for could not be booked; the merchant
+     *  picks the courier for this order in Create shipment instead of a silent swap. */
+    needsDecision?: boolean
   }> = []
 
   for (const o of contexts) {
+    const overrideId = input.courierOverrides?.[o.orderId]
+    const app = overrideId ? null : await bookingContext(tx, storeId, o.orderId)
+    if (app?.delivery?.route) {
+      const { weightGrams, dimensionsCm, insured } = input
+      results.push(
+        await bookSavedRoute(tx, storeId, providers, o.orderId, app, {
+          weightGrams,
+          dimensionsCm,
+          insured,
+        }),
+      )
+      continue
+    }
     try {
-      const overrideId = input.courierOverrides?.[o.orderId]
       let provider = overrideId ? providers.find((p) => p.id === overrideId) : undefined
       if (!provider) {
         const query: RateQuery = {
@@ -430,10 +449,11 @@ export async function bulkBookShipments(
           destinationCountry: o.country,
           destinationCity: o.city,
         }
-        const options = await compareCourierRates(providers, query)
+        const compared = await compareCourierRates(providers, query)
+        const { options, providers: ruleProviders } = ruleAllowedRows(compared, providers, app)
         provider =
-          chooseCourier(options, providers, settings.courierRule, { stateCode: o.stateCode }) ??
-          providers[0]
+          chooseCourier(options, ruleProviders, settings.courierRule, { stateCode: o.stateCode }) ??
+          ruleProviders[0]
       }
       const row = await createShipmentForOrder(
         { storeId, tx },

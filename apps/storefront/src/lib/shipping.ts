@@ -31,6 +31,14 @@ import {
   parsePincode,
 } from '@commerce/shipping'
 import { eq } from 'drizzle-orm'
+import {
+  type CheckoutDelivery,
+  cardExtras,
+  checkoutDelivery,
+  type DeliveryCardExtras,
+  deliveryDateRange,
+  deliveryArrives as optionArrives,
+} from './delivery-options'
 import { itemTitle, parcelFrom, type ShopperParcel } from './parcels'
 import { arrivalLabel, fastestRate, type RateWindow, rateWindow } from './rate-dates'
 
@@ -130,6 +138,8 @@ export type CheckoutRate = {
   arrives: string | null
   /** The option that arrives first, when the options do not all arrive together. */
   fastest: boolean
+  /** Delivery options app: COD, the sub-choices and the struck-through price of this card. */
+  delivery?: DeliveryCardExtras | undefined
 }
 
 export type CheckoutShipping = {
@@ -143,6 +153,8 @@ export type CheckoutShipping = {
   parcels: ShopperParcel[]
   /** The courier's (or the store's default) arrival for this PIN code, for free shipping. */
   arrives: string | null
+  /** Delivery options app: the quote Pay prices from, and the insurance checkbox. */
+  deliveryQuote?: Pick<CheckoutDelivery, 'quoteId' | 'insurance'> | undefined
 }
 
 /** The options as cards: each with its window (`rateWindow`), its date line and the fastest flag. */
@@ -198,7 +210,10 @@ export async function checkoutShipping(
   storeId: string,
   cartId: string,
   to: { pincode: string; stateCode: string },
+  opts: { declineInsurance?: boolean | undefined; quoteId?: string | null | undefined } = {},
 ): Promise<CheckoutShipping> {
+  const fromApp = await deliveryOptionsShipping(tx, storeId, cartId, to, opts)
+  if (fromApp) return fromApp
   const delivery = await estimateForPincode(tx, storeId, to.pincode)
   if (!delivery.ok || !delivery.serviceable) {
     return { delivery, rates: { kind: 'none' }, parcels: [], arrives: null }
@@ -217,6 +232,67 @@ export async function checkoutShipping(
     parcels,
     arrives,
     rates: { kind: 'rates', options: datedRates(quote.options, settings, delivery, now) },
+  }
+}
+
+/**
+ * The Delivery options app's cards (courier, dates, price per option), or null when the app is
+ * off or had nothing to show (couriers down with no zone rate: the zone rates path decides).
+ */
+async function deliveryOptionsShipping(
+  tx: StoreTx,
+  storeId: string,
+  cartId: string,
+  to: { pincode: string; stateCode: string },
+  opts: { declineInsurance?: boolean | undefined; quoteId?: string | null | undefined },
+): Promise<CheckoutShipping | null> {
+  const app = await checkoutDelivery(tx, storeId, cartId, to, opts)
+  if (!app || app.delivery.status === 'none') return null
+  const settings = await loadShippingSettings(tx, storeId)
+  const policy = toShippingPolicy(settings)
+  const now = new Date()
+  const { delivery: quote, zone } = app
+  const options = quote.options
+  /* The courier summary the rest of checkout reads (serviceable, COD at all): from the routes,
+     not from one courier. */
+  const delivery = await estimateDelivery({
+    pincode: to.pincode,
+    policy,
+    provider: null,
+    now,
+    cached: {
+      provider: 'delivery-options',
+      serviceable: quote.status === 'options',
+      codAvailable: options.some((o) => o.codAllowed),
+      prepaidAvailable: true,
+      minTransitDays: null,
+      maxTransitDays: null,
+      reason: null,
+    },
+  })
+  if (quote.status === 'unserviceable')
+    return { delivery, rates: { kind: 'none' }, parcels: [], arrives: null }
+  const split = await checkoutParcels(tx, storeId, cartId, to)
+  const afterDiscount = zone.afterDiscount ?? ((p: number) => p)
+  const latest = options.map((o) => o.latest ?? '9999')
+  const first = [...latest].sort()[0]
+  const fastestAlone = latest.filter((l) => l === first).length === 1 && options.length > 1
+  const rates: CheckoutRate[] = options.map((o, i) => ({
+    id: o.optionId,
+    name: o.title,
+    pricePaise: afterDiscount(o.pricePaise),
+    dateRange: deliveryDateRange(o),
+    codSurchargePaise: null,
+    arrives: optionArrives(o, policy, now),
+    fastest: fastestAlone && latest[i] === first,
+    delivery: cardExtras(o, policy, now, afterDiscount),
+  }))
+  return {
+    delivery,
+    rates: { kind: 'rates', options: rates },
+    parcels: split.length > 1 ? split : [],
+    arrives: rates[0]?.arrives ?? null,
+    deliveryQuote: { quoteId: quote.quoteId, insurance: quote.insurance },
   }
 }
 
