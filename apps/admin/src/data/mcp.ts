@@ -150,7 +150,7 @@ export const mcpContent = {
         },
         {
           title: 'Proposals',
-          body: 'proposeProductUpdate, proposeDiscount, proposeCollection and others draft a change for you to approve.',
+          body: 'proposeProductUpdate, proposeDiscount, proposeCollection and others make a change with your role, or send it for approval when your role needs it.',
         },
         {
           title: 'Every admin action',
@@ -159,7 +159,10 @@ export const mcpContent = {
       ] as GuideStep[],
       rules: [
         { title: 'Reads', body: 'Run right away.' },
-        { title: 'Changes', body: 'Follow "Changes need approval" below.' },
+        {
+          title: 'Changes',
+          body: "Run with the connecting member's role, or wait in Settings → Approvals when their role needs approval.",
+        },
         {
           title: 'Sensitive',
           body: 'Refunds, cancellations, deletes, and payment, staff, billing and domain settings always wait for approval.',
@@ -201,8 +204,8 @@ export const mcpContent = {
     rules: {
       reads: 'Reads run right away.',
       changesOff: 'Changes are off, so apps can only read.',
-      changesApproval: 'Changes wait in AI approvals until someone approves them.',
-      changesDirect: 'Changes run as soon as the app asks.',
+      changesDirect:
+        'Changes run as soon as the app asks, with your role. Anything your role needs approval for waits in Settings → Approvals.',
       sensitive:
         'Sensitive actions always wait for approval: refunds, cancellations, deletes, and payment, staff, billing and domain settings.',
       customersOn: 'Apps can read customer names, phone numbers and addresses.',
@@ -213,9 +216,6 @@ export const mcpContent = {
     allowChanges: 'Allow AI apps to make changes',
     allowChangesHelp:
       'When off, apps can only read. Turn on to let them use any admin action your role allows, from products and orders to themes and settings.',
-    requireApproval: `Changes need approval in ${brand}`,
-    requireApprovalHelp:
-      'Every change waits in AI approvals until you or a staff member approves it. Recommended. Refunds, cancellations, deletes, and payment, staff, billing and domain settings always wait, even when this is off.',
     readCustomers: 'Let apps read customer details',
     readCustomersHelp:
       'Names, phone numbers and addresses. Off by default; orders still show the city.',
@@ -246,7 +246,6 @@ export const mcpContent = {
     readWrite: 'Read & write',
     readOnly: 'Read only',
     propose: (areas: string) => `Run ${areas} actions`,
-    needsApproval: 'needs approval',
     sensitiveApproval: 'sensitive ones need approval',
   },
   areas: {
@@ -270,7 +269,7 @@ export const mcpContent = {
     canAccess: 'Can access',
     expires: 'Expires',
     expiry: { 30: 'In 30 days', 90: 'In 90 days', 365: 'In 1 year', never: 'Never' },
-    note: 'Tokens act at once and cannot run sensitive settings actions. Apps that sign in follow "Changes need approval", and their sensitive actions always wait.',
+    note: 'Tokens act at once with your role and cannot run sensitive settings actions. A change your role needs approval for waits in Settings → Approvals. Apps that sign in work the same way, and their sensitive actions always wait for a person.',
     cancel: 'Cancel',
     create: 'Create token',
     creating: 'Creating…',
@@ -344,7 +343,7 @@ export const mcpContent = {
       `${client} will act as you (${member}) and never do more than your role allows.`,
     signedInAs: (email: string) => `Signed in as ${email}`,
     canAccess: (client: string) => `What ${client} can do`,
-    approvalNote: `Refunds, cancellations, deletes, and payment, staff and billing settings always wait for approval in ${brand}. Other changes do too, unless your store turned approval off.`,
+    approvalNote: `Refunds, cancellations, deletes, and payment, staff and billing settings always wait for a person to approve them in ${brand}. Other changes run with your role, unless your role needs approval for them.`,
     allow: 'Allow',
     deny: 'Deny',
     working: 'One moment…',

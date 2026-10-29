@@ -46,6 +46,33 @@ When nobody is waiting, the list says "No pending invites".
   Administrator roles have it; the Staff role does not.
 - Nobody but the owner can invite someone to a role with more access than their own.
 
+## Needs approval
+
+Every role except the owner has a **Needs approval** card in **Settings → Staff → Roles**. Tick an
+action there and a member on that role who does it, from the admin, the AI assistant, an AI app
+(MCP) or an API token, does not change anything: the change waits in **Settings → Approvals** and
+they see "Sent for approval". Only the owner can change the ticks.
+
+New stores and new roles start with these ticked: refunding and cancelling orders, deleting
+products and customers, discounts, payment gateways and payout keys (**Payments**), billing,
+inviting staff and managing roles. Other settings are not ticked.
+
+Who can approve a waiting change:
+
+- The owner, always. The owner's own changes never wait.
+- A different member whose role has the **Approvals** permission and can make that change, and
+  whose own role does not tick it. The Administrator role has **Approvals**.
+- Never the person who asked. They can only withdraw it.
+
+**Settings → Approvals** lists what waits for you, with who asked, from where and when, with
+**Reject** on the left and **Approve** on the right. Approving runs the change as you. A waiting
+change expires after 7 days and is marked **Expired**; nothing changed. Under **Your requests**
+you see what you sent and what became of it, and the Settings menu shows a count until you look.
+
+A few things cannot wait, such as a browser sign-in to Razorpay, a file upload or creating an API
+token: if your role needs approval for them, they are refused and the owner (or an approver) has
+to do them.
+
 ## How many people
 
 Your plan includes a number of staff accounts, you included: Starter 1, Growth 3 (also during

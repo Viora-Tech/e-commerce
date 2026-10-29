@@ -5,6 +5,7 @@ import { cn } from '@commerce/ui/lib/utils'
 import { motion, useReducedMotion } from 'motion/react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import {
   SETTINGS_GROUPS,
   SETTINGS_HOME,
@@ -12,9 +13,11 @@ import {
   settingsContent,
 } from '@/data/settings'
 import { useCopy, useLocale } from '@/hooks/use-copy'
+import { api } from '@/lib/api-client'
 import type { Locale } from '@/lib/i18n'
 import { instant, pill } from '@/lib/motion'
 import { pageName } from '@/lib/page-names'
+import { routes } from '@/lib/routes'
 import SettingsSearch from './settings-search'
 
 const FOCUS =
@@ -51,6 +54,16 @@ export default function SettingsNav() {
   const locale = useLocale()
   const pathname = usePathname()
   const reduced = useReducedMotion()
+  const [approvals, setApprovals] = useState(0)
+
+  // Approvals waiting for this member, plus outcomes of their own requests they have not seen.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-read when the page changes
+  useEffect(() => {
+    api.approvals
+      .counts()
+      .then((c) => setApprovals(c.waiting + c.outcomes))
+      .catch(() => setApprovals(0))
+  }, [pathname])
 
   // Render logic
   const slide = reduced ? instant : pill
@@ -90,6 +103,7 @@ export default function SettingsNav() {
                   pathname={pathname}
                   locale={locale}
                   slide={slide}
+                  count={section.href === routes.settings.approvals() ? approvals : 0}
                 />
               ))}
             </ul>
@@ -105,9 +119,10 @@ type NavTabProps = {
   pathname: string
   locale: Locale
   slide: typeof pill
+  count?: number
 }
 
-function NavTab({ section, pathname, locale, slide }: NavTabProps) {
+function NavTab({ section, pathname, locale, slide, count = 0 }: NavTabProps) {
   // Render logic
   const active = isTabActive(pathname, section.href)
 
@@ -128,6 +143,11 @@ function NavTab({ section, pathname, locale, slide }: NavTabProps) {
         ) : null}
         <section.icon aria-hidden="true" />
         <span className="min-w-0 truncate">{pageName(section.href, section.title, locale)}</span>
+        {count > 0 ? (
+          <span className="ml-auto rounded-full bg-primary px-1.5 text-caption text-primary-foreground tabular-nums">
+            {count}
+          </span>
+        ) : null}
       </Link>
     </li>
   )

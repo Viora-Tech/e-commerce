@@ -16,6 +16,7 @@ import { AUTOMATIONS_TICK_MS, createAutomationsWorker } from './automations'
 import { AUTOMATION_PRUNE_EVERY_MS, createAutomationsPrune } from './automations-prune'
 import { createBackInStockWorker } from './back-in-stock'
 import { BILLING_EVERY_MS, createBillingSweep } from './billing'
+import { createBugReportSync } from './bug-report-sync'
 import { CHANNEL_SYNC_EVERY_MS, createChannelSync } from './channel-sync'
 import {
   CERTIFICATE_EVERY_MS,
@@ -143,6 +144,7 @@ const billing = createBillingSweep(redis, db, {
   storefrontUrl: env.STOREFRONT_URL,
 })
 const apiActivityPrune = createApiActivityPrune(redis, db)
+const bugReportSync = await createBugReportSync(redis, db, env)
 const automationsPrune = createAutomationsPrune(redis, db)
 const retentionPrune = createRetentionPrune(redis, db)
 const rolloutsTick = createRolloutsTick(redis, db)
@@ -454,6 +456,7 @@ const shutdown = async () => {
   await billing.queue.close()
   await apiActivityPrune.worker.close()
   await apiActivityPrune.queue.close()
+  await bugReportSync?.close()
   await automationsPrune.worker.close()
   await automationsPrune.queue.close()
   await retentionPrune.worker.close()

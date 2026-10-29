@@ -12,6 +12,7 @@ import {
   variant,
 } from '@commerce/db'
 import { and, desc, eq, gte, ne, sql } from 'drizzle-orm'
+import { recentlyFixedBugReports } from '../bug-reports/service'
 import { storeLowStockThreshold } from '../catalog/stock-threshold'
 import { notSystemTest } from '../catalog/system-test'
 import { type Permission, permissions } from '../permissions/statement'
@@ -44,6 +45,8 @@ export type ActivityEvent =
       amountPaise: number
     }
   | { kind: 'return'; id: string; at: string; number: number }
+  /** The member's own bug report turned fixed (ships next update) or live. */
+  | { kind: 'bug_report'; id: string; at: string; title: string; status: 'fixed' | 'live' }
 
 export type ActivityFeed = {
   attention: ActivityAttention
@@ -167,14 +170,25 @@ async function inboxUnread(tx: StoreTx): Promise<number> {
   return row?.n ?? 0
 }
 
+async function bugReportEvents(tx: StoreTx, userId: string): Promise<ActivityEvent[]> {
+  const rows = await recentlyFixedBugReports(tx, userId, since())
+  return rows.flatMap((r) =>
+    r.status === 'fixed' || r.status === 'live'
+      ? [{ kind: 'bug_report' as const, id: r.id, at: r.at, title: r.title, status: r.status }]
+      : [],
+  )
+}
+
 /**
  * The bell's contents for one member: `can` is their role's check, so a member who may not
- * see orders gets no order events or refund counts, and so on.
+ * see orders gets no order events or refund counts, and so on. With `userId`, the member's own
+ * bug reports that were fixed or went live this week are listed too.
  */
 export async function loadActivityFeed(
   tx: StoreTx,
   storeId: string,
   can: (permission: Permission) => boolean,
+  userId?: string,
 ): Promise<ActivityFeed> {
   const orders = can(permissions.ORDERS_READ)
   const stock = can(permissions.INVENTORY_READ)
@@ -187,10 +201,12 @@ export async function loadActivityFeed(
     inboxUnread: can(permissions.INBOX_READ) ? await inboxUnread(tx) : 0,
     ...(stock ? await stockCounts(tx, storeId) : { outOfStock: 0, lowStock: 0 }),
   }
-  const events = orders
+  const storeEvents = orders
     ? [...(await orderEvents(tx)), ...(await refundEvents(tx)), ...(await returnEvents(tx))]
-        .sort((a, b) => b.at.localeCompare(a.at))
-        .slice(0, ACTIVITY_MAX)
     : []
+  const ownEvents = userId ? await bugReportEvents(tx, userId) : []
+  const events = [...storeEvents, ...ownEvents]
+    .sort((a, b) => b.at.localeCompare(a.at))
+    .slice(0, ACTIVITY_MAX)
   return { attention, events }
 }

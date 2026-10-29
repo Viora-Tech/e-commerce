@@ -21,9 +21,11 @@ export const statement = {
   online_store: ['read', 'write', 'publish'],
   apps: ['manage'],
   settings: ['read', 'manage'],
+  payments: ['manage'],
   rollouts: ['read', 'manage'],
   staff: ['read', 'invite', 'manage'],
   billing: ['manage'],
+  approvals: ['manage'],
 } as const
 
 export type Resource = keyof typeof statement
@@ -88,6 +90,8 @@ export const permissions = {
   APPS_MANAGE: permission('apps', 'manage'),
   SETTINGS_READ: permission('settings', 'read'),
   SETTINGS_MANAGE: permission('settings', 'manage'),
+  /** Payment gateways and payout keys (Settings → Payments): money, so split from settings. */
+  PAYMENTS_MANAGE: permission('payments', 'manage'),
   /** See Markets → Rollouts: scheduled launches and events. */
   ROLLOUTS_READ: permission('rollouts', 'read'),
   /**
@@ -99,6 +103,11 @@ export const permissions = {
   STAFF_INVITE: permission('staff', 'invite'),
   STAFF_MANAGE: permission('staff', 'manage'),
   BILLING_MANAGE: permission('billing', 'manage'),
+  /**
+   * Approve or reject another member's change that their role sends for approval ("Needs
+   * approval" on a role). Only for permissions the approver holds without that tick.
+   */
+  APPROVALS_MANAGE: permission('approvals', 'manage'),
 } as const
 
 type ResourceMeta = { label: string; description: string }
@@ -142,6 +151,10 @@ export const RESOURCE_METADATA: { [R in Resource]: ResourceMeta } = {
   },
   apps: { label: 'Apps', description: 'Install and uninstall apps for this store.' },
   settings: { label: 'Settings', description: 'View store settings and change them.' },
+  payments: {
+    label: 'Payments',
+    description: 'Connect payment gateways and change their keys and payout details.',
+  },
   rollouts: {
     label: 'Rollouts',
     description:
@@ -149,6 +162,10 @@ export const RESOURCE_METADATA: { [R in Resource]: ResourceMeta } = {
   },
   staff: { label: 'Staff', description: 'View the team, invite people and manage roles.' },
   billing: { label: 'Billing', description: 'Manage the subscription and payment method.' },
+  approvals: {
+    label: 'Approvals',
+    description: "Approve or reject other members' changes that their role sends for approval.",
+  },
 } as const
 
 /** Every permission string, in statement order. Owners hold all of these. */
@@ -169,4 +186,26 @@ export function sanitisePermissions(values: readonly string[]): Permission[] {
   const seen = new Set<Permission>()
   for (const v of values) if (isPermission(v)) seen.add(v)
   return ALL_PERMISSIONS.filter((p) => seen.has(p))
+}
+
+/**
+ * The "Needs approval" ticks every non-owner role starts with: money, deletion, payment keys,
+ * billing, staff and roles, and discounts. A ticked action a member does is queued in Approvals
+ * instead of running. Read grains are never ticked.
+ */
+export const DEFAULT_APPROVAL_PERMISSIONS: Permission[] = [
+  permissions.ORDERS_REFUND,
+  permissions.ORDERS_CANCEL,
+  permissions.PRODUCTS_DELETE,
+  permissions.CUSTOMERS_DELETE,
+  permissions.DISCOUNTS_WRITE,
+  permissions.PAYMENTS_MANAGE,
+  permissions.STAFF_INVITE,
+  permissions.STAFF_MANAGE,
+  permissions.BILLING_MANAGE,
+]
+
+/** Ticks can only sit on grains that change something (approving itself never waits). */
+export function canNeedApproval(permission: Permission): boolean {
+  return !permission.endsWith('.read') && permission !== permissions.APPROVALS_MANAGE
 }

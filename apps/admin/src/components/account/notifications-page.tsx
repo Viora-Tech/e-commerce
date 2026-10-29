@@ -31,7 +31,7 @@ type Form = MemberAlertPrefsInput
 type Channel = 'email' | 'whatsapp'
 
 /** Alerts the worker sends today; the rest are saved for when their senders land. */
-const WIRED: ReadonlySet<string> = new Set(['newOrder', 'dailySummary'])
+const WIRED: ReadonlySet<string> = new Set(['newOrder', 'dailySummary', 'bugReports'])
 const HOURS = Array.from({ length: 24 }, (_, h) => h)
 
 /** The saved prefs as the form edits them (`lastSentOn` is the server's). */
@@ -122,6 +122,8 @@ export default function NotificationsPage() {
     loaded !== null &&
     form !== null &&
     JSON.stringify(form) !== JSON.stringify(formOf(loaded.prefs))
+  // "Your bug reports" only where this server takes bug reports.
+  const shownAlerts = MEMBER_ALERTS.filter((alert) => alert !== 'bugReports' || loaded?.bugReports)
   const channels: Channel[] = loaded?.whatsappAvailable ? ['email', 'whatsapp'] : ['email']
   const hourItems = Object.fromEntries(HOURS.map((h) => [String(h), hourLabel(h)]))
 
@@ -150,7 +152,7 @@ export default function NotificationsPage() {
           </div>
         ) : (
           <ul className="flex flex-col">
-            {MEMBER_ALERTS.map((alert) => (
+            {shownAlerts.map((alert) => (
               <li
                 key={alert}
                 className="flex flex-col gap-3 border-b border-hairline py-4 first:pt-0 last:border-b-0 last:pb-0 md:flex-row md:items-center md:gap-6"

@@ -27,6 +27,16 @@ export const ordersToShipCount = cache(async () =>
   ),
 )
 
+/**
+ * Settings → Approvals, for the sidebar count: changes waiting for this member's approval plus
+ * decisions on their own requests they have not opened yet; null when it cannot be read.
+ */
+export const approvalsBadgeCount = cache(async () =>
+  call(appRouter.approvals.counts, undefined, { context: await serverContext() })
+    .then((c) => c.waiting + c.outcomes)
+    .catch(() => null),
+)
+
 /** Open Inbox conversations with unread shopper messages, for the sidebar count; null without access. */
 export const inboxUnreadCount = cache(async () =>
   call(appRouter.inbox.counts, undefined, { context: await serverContext() })

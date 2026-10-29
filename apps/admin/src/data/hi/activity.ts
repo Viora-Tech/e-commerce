@@ -54,5 +54,10 @@ export default [
       refund_needed: (number: number) => `ऑर्डर #${number} पर रिफ़ंड बाकी`,
       return: (number: number) => `रिटर्न R-${number} की रिक्वेस्ट आई`,
     },
+    bugReport: {
+      fixed: (title: string) => `ठीक हो गई: ${title}`,
+      live: (title: string) => `सुधार लाइव है: ${title}`,
+      detail: { fixed: 'अगले अपडेट में', live: 'आपकी गड़बड़ी रिपोर्ट' },
+    },
   }),
 ]

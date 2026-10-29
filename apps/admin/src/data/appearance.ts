@@ -66,9 +66,8 @@ export const appearanceContent = {
     heading: 'Product page layout',
     body: 'How a product shows its sections when you edit it.',
     label: 'Layout',
-    page: 'One page',
     settings: 'Settings',
     tabs: 'Tabs',
-    help: 'One page shows every section, top to bottom. Settings puts the sections in a list on the left. Tabs puts them in a row on top.',
+    help: 'Settings puts the sections in a list on the left. Tabs puts them in a row on top.',
   },
 }

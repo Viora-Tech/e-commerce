@@ -28,6 +28,13 @@ export class ApproverNotAllowed extends CommerceError {
   }
 }
 
+/** The approving member's role ticks "Needs approval" for what this action needs. */
+export class NeedsApprover extends CommerceError {
+  constructor(readonly permission: string | null) {
+    super('AI_NEEDS_APPROVER', 'Your role sends this change for approval.')
+  }
+}
+
 export const MAX_ITEMS = ASSISTANT_LIMITS.maxItemsPerAction
 
 export function rupees(env: Pick<ActionEnv, 'store'>, paise: number): string {

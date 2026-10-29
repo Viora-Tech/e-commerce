@@ -93,6 +93,12 @@ const bugReportShape = {
     .string()
     .regex(/^[\w.-]+\/[\w.-]+$/)
     .default('Viora-Tech/e-commerce'),
+  /**
+   * The secret of the repository's webhook (`<ADMIN_URL>/api/github/webhook`; events: Issues,
+   * Issue comments, Pushes, Pull requests). Each delivery's `X-Hub-Signature-256` is checked
+   * with it; unset, the route answers 404 and only the worker's poll moves report statuses.
+   */
+  GITHUB_WEBHOOK_SECRET: z.string().min(16).optional(),
   /** The commit this build runs, shown on each bug report. Unset: SENTRY_RELEASE, then "unknown". */
   SOURCE_COMMIT: z.string().min(1).optional(),
 }

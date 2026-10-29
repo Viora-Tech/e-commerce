@@ -98,6 +98,8 @@ const AI_ACTION_STATUSES = [
 ] as const
 export type AiActionStatus = (typeof AI_ACTION_STATUSES)[number]
 
+export type AiActionSource = 'assistant' | 'bulkWriter' | 'mcp' | 'admin' | 'api'
+
 export const aiAction = pgTable(
   'ai_action',
   {
@@ -108,12 +110,10 @@ export const aiAction = pgTable(
     /** The member whose message (or MCP connection) led to the proposal. The assistant's are
      *  theirs alone to approve; an MCP client's the owner or a permitted member may approve. */
     userId: text('user_id').notNull(),
-    /** `assistant` (the AI bar), `bulkWriter` (applying a bulk AI run) or `mcp` (an AI client
-     *  connected in Settings → MCP & API). */
-    source: text('source')
-      .$type<'assistant' | 'bulkWriter' | 'mcp'>()
-      .notNull()
-      .default('assistant'),
+    /** `assistant` (the AI bar), `bulkWriter` (applying a bulk AI run), `mcp` (an AI client
+     *  connected in Settings → MCP & API), `admin` (a member's own click in the admin) or `api`
+     *  (an access token); the last two only ever wait for a role's "Needs approval". */
+    source: text('source').$type<AiActionSource>().notNull().default('assistant'),
     /** The assistant tool, e.g. `proposeDiscount`. */
     tool: text('tool').notNull(),
     status: text('status').$type<AiActionStatus>().notNull().default('proposed'),
@@ -129,6 +129,15 @@ export const aiAction = pgTable(
     error: text('error'),
     /** Proposed after the assistant read store text that looked like instructions to the AI. */
     flagged: boolean('flagged').notNull().default(false),
+    /**
+     * The asker's role ticks "Needs approval" for this action: a different member who may
+     * approve it (Approvals) must, never the asker. Shown in the Approvals queue.
+     */
+    needsApprover: boolean('needs_approver').notNull().default(false),
+    /** The permission the action needs, when known (a queued admin action records it). */
+    permission: text('permission'),
+    /** When the asker opened Approvals after it was decided: unseen outcomes badge the nav. */
+    outcomeSeenAt: timestamp('outcome_seen_at', { withTimezone: true }),
     approvedBy: text('approved_by'),
     approvedAt: timestamp('approved_at', { withTimezone: true }),
     executedAt: timestamp('executed_at', { withTimezone: true }),
@@ -144,7 +153,11 @@ export const aiAction = pgTable(
       'ai_action_status_check',
       sql`${t.status} in ('proposed', 'executed', 'failed', 'cancelled', 'expired', 'undone')`,
     ),
-    check('ai_action_source_check', sql`${t.source} in ('assistant', 'bulkWriter', 'mcp')`),
+    check(
+      'ai_action_source_check',
+      sql`${t.source} in ('assistant', 'bulkWriter', 'mcp', 'admin', 'api')`,
+    ),
+    index('ai_action_store_waiting').on(t.storeId, t.needsApprover, t.status),
   ],
 )
 

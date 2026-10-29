@@ -3,6 +3,7 @@
 import type { ActivityAttention, ActivityEvent, ActivityFeed } from '@commerce/core'
 import {
   Bell,
+  BugIcon,
   CircleAlert,
   type IconComponent,
   ImageIcon,
@@ -56,6 +57,7 @@ const EVENT_TAB: Record<ActivityEvent['kind'], Tab> = {
   order: 'orders',
   refund_needed: 'payments',
   return: 'orders',
+  bug_report: 'all',
 }
 
 /** A line shows under the picked tab, and always under All. */
@@ -103,11 +105,13 @@ const EVENT: Record<ActivityEvent['kind'], { icon: IconComponent; tone: Tone }> 
   order: { icon: ShoppingBag, tone: 'success' },
   refund_needed: { icon: ReceiptIcon, tone: 'danger' },
   return: { icon: Undo, tone: 'info' },
+  bug_report: { icon: BugIcon, tone: 'success' },
 }
 
 function eventHref(e: ActivityEvent): string {
   if (e.kind === 'order') return routes.orders.detail(e.id)
   if (e.kind === 'refund_needed') return routes.orders.detail(e.orderId)
+  if (e.kind === 'bug_report') return routes.account.bugReports()
   return routes.orders.returnDetail(e.id)
 }
 
@@ -178,7 +182,12 @@ export default function ActivityBell({ memberKey, className }: ActivityBellProps
       ? format.money(e.totalPaise)
       : e.kind === 'refund_needed'
         ? format.money(e.amountPaise)
-        : null
+        : e.kind === 'bug_report'
+          ? copy.bugReport.detail[e.status]
+          : null
+
+  const eventTitle = (e: ActivityEvent) =>
+    e.kind === 'bug_report' ? copy.bugReport[e.status](e.title) : copy.event[e.kind](e.number)
 
   // Event handlers
   const handleOpenChange = (next: boolean) => {
@@ -325,7 +334,7 @@ export default function ActivityBell({ memberKey, className }: ActivityBellProps
                   href={eventHref(e)}
                   icon={EVENT[e.kind].icon}
                   tone={EVENT[e.kind].tone}
-                  title={copy.event[e.kind](e.number)}
+                  title={eventTitle(e)}
                   detail={eventDetail(e)}
                   aside={<RelativeTime value={e.at} className="whitespace-nowrap" />}
                   unread={e.at > seen}

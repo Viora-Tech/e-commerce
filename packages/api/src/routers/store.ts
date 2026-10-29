@@ -236,7 +236,7 @@ export const storeRouter = {
    * Save payment settings. A masked secret value (••••1234) means "unchanged":
    * the stored encrypted value is kept. Anything else is encrypted before saving.
    */
-  updatePayments: can(permissions.SETTINGS_MANAGE)
+  updatePayments: can(permissions.PAYMENTS_MANAGE)
     .input(PaymentSettingsSchema)
     .handler(async ({ context, input }) => {
       const current = parsePaymentSettings(

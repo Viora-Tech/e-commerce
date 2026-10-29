@@ -4,6 +4,7 @@ export * from './app-schema'
 export * as authSchema from './auth-schema'
 export * from './automation-schema'
 export * from './billing-schema'
+export * from './bug-report-schema'
 export * from './channel-schema'
 export { createDb, type Db } from './client'
 export * from './content-schema'
@@ -21,6 +22,7 @@ export {
   apiAuthCodeStore,
   apiGrantForAccess,
   apiGrantForRefresh,
+  bugReportStoresForIssue,
   type HostRoute,
   isStoreSlugTaken,
   organizationMembership,
@@ -34,6 +36,7 @@ export {
   storesWithAbandonedCarts,
   storesWithAutomationWork,
   storesWithBalanceDue,
+  storesWithBugReports,
   storesWithCertificateChecks,
   storesWithChannelConnections,
   storesWithDueAffiliateCommissions,

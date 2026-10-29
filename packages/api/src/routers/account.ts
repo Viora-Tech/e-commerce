@@ -308,7 +308,8 @@ export const accountRouter = {
 
   /**
    * Notifications: the member's own alerts for the store they are in, whether the store can
-   * send WhatsApp, and whether they gave a mobile for it.
+   * send WhatsApp, whether they gave a mobile for it, and whether this server takes bug reports
+   * (the "Your bug reports" row shows only then).
    */
   notifications: storeProcedure.handler(async ({ context }) => {
     const { storeId, userId, isOwner } = context.scope
@@ -316,7 +317,13 @@ export const accountRouter = {
     const whatsappAvailable = await storeHasWhatsapp(context.tx, storeId, settingsSecret())
     const profile = await memberProfile(context.db, userId)
     const storeName = (await storeNameOf(context.tx, storeId)) ?? ''
-    return { storeName, prefs, whatsappAvailable, hasPhone: Boolean(profile?.phone) }
+    return {
+      storeName,
+      prefs,
+      whatsappAvailable,
+      hasPhone: Boolean(profile?.phone),
+      bugReports: loadEnv(process.env).BUG_REPORTS_ENABLED,
+    }
   }),
 
   /** Saves the member's own alerts for this store, on their own staff row only. */

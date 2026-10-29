@@ -3,8 +3,9 @@
  * `runAction`, and how each one is treated:
  *
  *   read       runs at once
- *   write      follows Settings → MCP & API → "Changes need approval"
- *   sensitive  always waits in AI approvals and runs as the member who approves it
+ *   write      runs at once with the member's role (a role's "Needs approval" tick queues it)
+ *   sensitive  always waits for a person in the admin (AI approvals) and runs as the member
+ *              who approves it, even for the owner: store text an AI reads can carry orders
  *   excluded   never listed, never run (sign-in and sessions, tokens, platform and cross-store)
  *
  * The explicit tables below win; otherwise a name that starts with a read verb is a read, a
@@ -193,6 +194,7 @@ const EXCLUDED_NAMESPACES: Record<string, string> = {
   invitations: 'accepting an invitation to another store (cross-store)',
   bugReports: 'files issues with the platform team (internal)',
   platform: 'the platform staff console (cross-store, staff only)',
+  approvals: "deciding other members' changes (people only)",
 }
 
 /** Single procedures no client may see. */
@@ -391,6 +393,11 @@ export function areaOf(path: string): ApiArea | null {
 /** How a procedure is treated, before looking at its input. Excluded paths are `null`. */
 export function classifyAction(path: string): ActionKind | null {
   if (exclusionReason(path)) return null
+  return kindByName(path)
+}
+
+/** `classifyAction` without the exclusions: the explicit tables, then the name. */
+function kindByName(path: string): ActionKind {
   if (READ_PATHS.has(path)) return 'read'
   if (SENSITIVE_PATHS[path]) return 'sensitive'
   const name = nameOf(path)
@@ -398,6 +405,22 @@ export function classifyAction(path: string): ActionKind | null {
   if (SENSITIVE_NAMESPACES[namespaceOf(path)]) return 'sensitive'
   if (SENSITIVE_PREFIXES.some((w) => startsWithWord(name, w))) return 'sensitive'
   return 'write'
+}
+
+/**
+ * How a role's "Needs approval" tick treats a call from any surface (admin, assistant, MCP,
+ * API): by the same rules as `classifyAction`, but admin-only paths no MCP area covers yet
+ * (staff, for one) are classified too, so they can wait in Approvals. Null for the people-only
+ * exclusions (sign-in, tokens, browser hand-offs, deciding approvals), which cannot wait.
+ */
+export function approvalKind(path: string): ActionKind | null {
+  if (EXCLUDED_NAMESPACES[namespaceOf(path)] || EXCLUDED_PATHS[path]) return null
+  return kindByName(path)
+}
+
+/** True when a procedure only reads, excluded ones too: a tick never holds back a read. */
+export function isReadPath(path: string): boolean {
+  return kindByName(path) === 'read'
 }
 
 /** The kind for this exact call: some writes turn sensitive for some inputs. */

@@ -54,6 +54,8 @@ export const routes = {
     stores: () => '/account/stores',
     language: () => '/account/language',
     appearance: () => '/account/appearance',
+    /** "Report a bug" reports and what happened to each (test server only). */
+    bugReports: () => '/account/bug-reports',
   },
 
   orders: {
@@ -280,6 +282,8 @@ export const routes = {
     newRole: () => '/settings/staff/roles/new',
     role: (roleId: string) => `/settings/staff/roles/${id(roleId)}`,
     ai: () => '/settings/ai',
+    /** Changes waiting for a different member's approval, and your own requests. */
+    approvals: () => '/settings/approvals',
     appearance: () => '/settings/appearance',
     billing: () => '/settings/billing',
     /** Settings → MCP & API; `activity` is its full activity log. */

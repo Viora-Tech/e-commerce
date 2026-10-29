@@ -5,6 +5,7 @@ import {
   listMembers,
   permissions,
   recordInvitationRole,
+  saveRoleApprovals,
   staffSeats,
   upsertMember,
 } from '@commerce/core'
@@ -63,6 +64,7 @@ export const staffRouter = {
     roleSlug: context.scope.roleSlug,
     isOwner: context.scope.isOwner,
     permissions: context.scope.permissions,
+    needsApproval: context.scope.needsApproval,
   })),
 
   members: can(permissions.STAFF_READ).handler(async ({ context }) => {
@@ -99,6 +101,29 @@ export const staffRouter = {
           input,
         )
         return { id }
+      } catch (err) {
+        throw new ORPCError('BAD_REQUEST', { message: (err as Error).message })
+      }
+    }),
+
+  /**
+   * Settings → Roles: which of a role's actions wait in Approvals ("Needs approval"). Owner
+   * only, so nobody can untick their own role's approvals (and so it never waits for approval).
+   */
+  saveRoleApprovals: storeProcedure
+    .input(z.object({ roleId: z.uuid(), permissions: z.array(z.string()).max(200) }))
+    .handler(async ({ context, input }) => {
+      if (!context.scope.isOwner) {
+        throw new ORPCError('FORBIDDEN', { message: 'Only the owner can change approvals' })
+      }
+      try {
+        const needsApproval = await saveRoleApprovals(
+          context.tx,
+          context.scope.storeId,
+          input.roleId,
+          input.permissions,
+        )
+        return { needsApproval }
       } catch (err) {
         throw new ORPCError('BAD_REQUEST', { message: (err as Error).message })
       }
