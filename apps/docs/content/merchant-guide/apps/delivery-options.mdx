@@ -23,7 +23,9 @@ A **route** is one courier through one app: Delhivery direct (its own app), or B
 
 The customer always sees the **courier** ("Blue Dart"), never the aggregator ("Shiprocket").
 
-The **Routes** card lists your connected courier apps. To see every route they offer for a PIN code, run **Try a PIN** (below): the routes appear in the Routes card, and **Edit** on a row sets that route up.
+The **Routes** card lists your connected courier apps. Under each app, a health line shows how checkout's calls to it went over the last day: the share that answered, how long it typically takes, and its last error. A **Skipped** chip means the app failed 3 times within a minute, so checkout stopped asking it for 5 minutes (see [When couriers are down](#when-couriers-are-down)). Under the apps, a line says how many checkouts in the last 24 hours fell back to your Shipping rates.
+
+To see every route they offer for a PIN code, run **Try a PIN** (below): the routes appear in the Routes card, and **Edit** on a row sets that route up.
 
 ### Route settings
 
@@ -81,10 +83,12 @@ Type a PIN code, an order value and weight, and optionally pick products. **Try*
 
 ## When couriers are down
 
-Checkout never waits more than about a second on couriers. If none of an option's couriers answer in time:
+Checkout never waits more than about a second on couriers. The app remembers each courier's answer for a PIN code, weight and order value: for 6 hours it is used straight away, and for up to 7 days it stands in whenever the courier does not answer in time (while the app asks it again in the background for the next customer). A courier app that fails 3 times within a minute is skipped for 5 minutes, so an outage does not slow checkout.
+
+If none of an option's couriers answer in time and none has a saved answer:
 
 - **Express** is hidden: a date nobody checked is worse than no option.
-- **Standard** shows at your **Shipping rate** with your usual transit days. The order saves no route and books with your courier rule (product route rules still apply).
+- **Standard** shows at your **Shipping rate** with your usual transit days. The order saves no route and books with your courier rule (product route rules still apply). The order page marks it **Placed on backup**.
 
 "We don't deliver to this PIN code" shows only when every courier truly said no.
 
@@ -96,6 +100,12 @@ The order saves the exact route the customer's price came from (for example **Bl
 - If that route cannot be booked any more (app disconnected, PIN no longer served), the dialog says why and names the next route that still fits (product rules, insurance, COD, speed).
 - **Bulk booking** books each order on its own route, through its own app. Orders whose route fails are not swapped to another courier: they come back as "Needs a decision" for you to book from the order.
 - The AWB, label and tracking come from the route's app, and the shipment records the carrier (Blue Dart) as well as the app (Shiprocket).
+
+## On the order
+
+Orders placed through the app have a **Delivery option** card: the option and courier ("Express · Blue Dart"), the service and app ("Bluedart Air via Shiprocket"), whether it is insured, and the promised dates. **Placed on backup** shows when couriers were down at checkout.
+
+If you can see profit, the card also shows the **shipping margin**: what the customer paid for shipping, less the courier cost and the insurance. The courier cost is the booking's own charge once the parcel is booked (or the one you type in the Profit card), and the price the courier quoted at checkout before that. A negative margin is shown in red.
 
 ## Related guides
 

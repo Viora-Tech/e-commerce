@@ -16,6 +16,7 @@ import {
   quoteCartShipping,
   quoteDelivery,
   type ResolvedOption,
+  recordCheckoutQuote,
   resolveDeliveryOptions,
   resolveShippingProviders,
   shownPrices,
@@ -23,7 +24,7 @@ import {
 } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
-import { cacheGet, cacheSet, sharedRedis } from '@commerce/queue'
+import { cacheGet, cacheSet, deliveryQuoteCache, sharedRedis } from '@commerce/queue'
 import { formatDeliveryRange } from '@commerce/shipping'
 import { deliveryOptionsContent } from '@/data/delivery-options'
 import { arrivalLabel } from './rate-dates'
@@ -38,13 +39,8 @@ import { loadShippingSettings } from './shipping'
 
 const env = () => loadEnv(process.env)
 
-function redisCache(): QuoteCache {
-  const redis = sharedRedis(env().REDIS_URL)
-  return {
-    get: (key) => cacheGet(redis, key),
-    set: (key, value, ttl) => cacheSet(redis, key, value, ttl),
-  }
-}
+/** Quotes, the circuit breaker and each app's health, on the shared Redis. */
+const redisCache = (): QuoteCache => deliveryQuoteCache(sharedRedis(env().REDIS_URL))
 
 /** One sub-choice under an option card ("Blue Dart Air"). */
 export type DeliveryChoiceCard = {
@@ -202,6 +198,8 @@ export async function checkoutDelivery(
           ...zone.measure,
         },
       })
+  // For the app page's "share of checkouts on backup"; a repeat ask (insurance tick) is not counted.
+  if (!reuse) void recordCheckoutQuote(redisCache(), storeId, result)
   const quoteId = reuse?.quoteId ?? crypto.randomUUID()
   const snapshot: DeliveryQuoteSnapshot = {
     quoteId,
