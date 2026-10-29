@@ -139,18 +139,18 @@ export async function loadProductSources(
   const rows = await tx.execute<Row>(sql`
     select p.id, p.handle, p.title, p.vendor, p.product_type, p.tags, p.description, p.created_at,
       (select array_agg(distinct v.sku) from variant v
-        where v.product_id = p.id and v.archived_at is null and coalesce(v.sku, '') <> '') as skus,
+        where v.product_id = p.id and v.archived_at is null and v.hidden_on_store = false and coalesce(v.sku, '') <> '') as skus,
       (select array_agg(distinct pov.value) from product_option po
         join product_option_value pov on pov.option_id = po.id
         where po.product_id = p.id and lower(po.name) <> 'title') as option_values,
       (select array_agg(c.handle) from collection_product cp
         join collection c on c.id = cp.collection_id where cp.product_id = p.id) as collections,
-      (select min(v.price_paise) from variant v where v.product_id = p.id and v.archived_at is null) as min_price,
-      (select max(v.price_paise) from variant v where v.product_id = p.id and v.archived_at is null) as max_price,
+      (select min(v.price_paise) from variant v where v.product_id = p.id and v.archived_at is null and v.hidden_on_store = false) as min_price,
+      (select max(v.price_paise) from variant v where v.product_id = p.id and v.archived_at is null and v.hidden_on_store = false) as max_price,
       exists (
         select 1 from variant v
         left join inventory_level il on il.variant_id = v.id and il.fulfils_online
-        where v.product_id = p.id and v.archived_at is null
+        where v.product_id = p.id and v.archived_at is null and v.hidden_on_store = false
           and (not v.track_inventory or coalesce(il.on_hand, 0) - coalesce(il.reserved, 0) > 0)
       ) as available,
       (select m.url from product_media pm join media m on m.id = pm.media_id

@@ -455,6 +455,8 @@ export const checkoutContent = {
     cannotShipToState: "We can't deliver this item to your state yet.",
     priceNotSet:
       'An item in your cart is not for sale yet, so your order was not placed. Remove it and try again.',
+    variantHidden:
+      'An item in your cart is no longer available, so your order was not placed. Remove it and try again.',
     rateChanged:
       'The shipping options for your order changed, so it was not placed. Pick a shipping method and place it again.',
     discountUnavailable:

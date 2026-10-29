@@ -140,6 +140,8 @@ function toWrite(
       trackInventory: v.trackInventory,
       weightGrams: v.weightGrams,
       hsCode: v.hsCode,
+      // Only ever hides: a variant the merchant hid by hand stays hidden on re-import.
+      ...(v.hiddenOnStore ? { hiddenOnStore: true } : {}),
       mediaId: v.imageSrc ? (hosted.get(v.imageSrc) ?? null) : null,
       // Unknown stock: new variants start at zero, existing ones keep what they have.
       ...(v.onHand !== null ? { onHand: v.onHand } : isNew ? { onHand: 0 } : {}),

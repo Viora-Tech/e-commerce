@@ -265,6 +265,10 @@ export const productFormContent = {
     columns: { variant: 'Variant', price: 'Price', mrp: 'MRP', sku: 'SKU', available: 'Available' },
     /** Price cell of a variant listed without a price (#913). */
     noPrice: 'No price yet',
+    /** Chip on a variant hidden on the storefront (#934). */
+    hidden: 'Hidden',
+    /** A visible variant priced ₹0 (#934): allowed (free items), but staff should know. */
+    zeroPrice: 'Price is ₹0, shoppers can get this free',
     unlimited: 'Unlimited',
     edit: 'Edit',
     editVariant: (title: string) => `Edit ${title}`,
@@ -279,6 +283,10 @@ export const productFormContent = {
       shipping: 'Shipping',
       track: 'Track quantity',
       trackHelp: 'Off sells it without counting stock.',
+      visibility: 'Visibility',
+      hide: 'Hide on store',
+      hideHelp:
+        "Shoppers can't see, pick or buy it. It stays here, in orders and in reports. Use it instead of deleting.",
       previous: 'Previous variant',
       next: 'Next variant',
       position: (n: string, of: string) => `${n} of ${of}`,

@@ -14,6 +14,7 @@ import {
   TableRow,
 } from '@commerce/ui/shadcn/table'
 import { useState } from 'react'
+import StatusChip from '@/components/layout/status-chip'
 import { productFormContent } from '@/data/product-form'
 import { rupees } from '@/data/products'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -21,6 +22,7 @@ import { bestMargin } from '@/lib/variant-margin'
 import type { MediaItem, VariantRow } from './form-state'
 import VariantEditDialog from './variant-edit-dialog'
 import VariantImagePicker from './variant-image-picker'
+import ZeroPriceWarning from './zero-price-warning'
 
 type VariantMatrixProps = {
   /** The product's title, the stem of a generated SKU. */
@@ -126,8 +128,15 @@ export default function VariantMatrix({
                     onClick={() => setEditing(i)}
                     className="flex min-w-0 flex-col text-left focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                   >
-                    <span className="truncate font-medium text-ink-strong hover:underline">
-                      {title}
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="truncate font-medium text-ink-strong hover:underline">
+                        {title}
+                      </span>
+                      {v.hiddenOnStore ? (
+                        <StatusChip tone="neutral" variant="outline">
+                          {variantsCopy.hidden}
+                        </StatusChip>
+                      ) : null}
                     </span>
                     {v.sku.trim() ? (
                       <span className="truncate text-caption text-muted-foreground">{v.sku}</span>
@@ -140,6 +149,7 @@ export default function VariantMatrix({
                   ) : (
                     fmt.money(paise)
                   )}
+                  <ZeroPriceWarning variant={v} className="mt-0.5" />
                 </TableCell>
                 <TableCell className={cn(CELL, 'tabular-nums')}>
                   {v.trackInventory ? fmt.number(Number(v.quantity) || 0) : variantsCopy.unlimited}

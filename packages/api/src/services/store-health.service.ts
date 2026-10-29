@@ -58,7 +58,15 @@ async function productFacts(tx: StoreTx) {
     .select({ products: countDistinct(variant.productId) })
     .from(variant)
     .innerJoin(product, eq(product.id, variant.productId))
-    .where(and(sellable, isNull(variant.archivedAt), eq(variant.pricePaise, 0)))
+    // Hidden variants (#934) never reach shoppers, so their ₹0 is not a problem.
+    .where(
+      and(
+        sellable,
+        isNull(variant.archivedAt),
+        eq(variant.hiddenOnStore, false),
+        eq(variant.pricePaise, 0),
+      ),
+    )
   const [image] = await tx
     .select({ products: count() })
     .from(product)

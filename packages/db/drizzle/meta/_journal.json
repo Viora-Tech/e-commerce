@@ -1177,6 +1177,13 @@
       "when": 1793255533683,
       "tag": "0183_customer_note",
       "breakpoints": true
+    },
+    {
+      "idx": 168,
+      "version": "7",
+      "when": 1793260565582,
+      "tag": "0185_variant_hidden_on_store",
+      "breakpoints": true
     }
   ]
 }

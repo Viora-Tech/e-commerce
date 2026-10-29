@@ -56,7 +56,13 @@ export async function loadProducts(
       .from(variant)
       .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
       .leftJoin(media, eq(media.id, variant.mediaId))
-      .where(and(inArray(variant.productId, ids), isNull(variant.archivedAt)))
+      .where(
+        and(
+          inArray(variant.productId, ids),
+          isNull(variant.archivedAt),
+          eq(variant.hiddenOnStore, false),
+        ),
+      )
       .orderBy(asc(variant.position)),
     tx
       .select({
@@ -133,6 +139,12 @@ export async function loadProducts(
         height: i.height,
       }))
     const productVariants = variants.filter((v) => v.productId === id)
+    // A value only hidden variants use (#934) is not offered; a product whose variants carry no
+    // option values keeps its options as they are.
+    const variantValues = values.filter((x) => productVariants.some((v) => v.id === x.variantId))
+    const shownValue = (value: string) =>
+      variantValues.some((x) => x.value === value) ||
+      (variantValues.length === 0 && productVariants.length > 0)
     const listOf = (v: (typeof variants)[number]) => {
       const listed = variantImages.filter((r) => r.variantId === v.id).map((r) => r.mediaId)
       return listed.length ? listed : v.mediaId ? [v.mediaId] : []
@@ -165,7 +177,9 @@ export async function loadProducts(
         type: p.productType ?? '',
         tags: p.tags,
         images: imgs,
-        options: [...opts].map(([name, vals]) => ({ name, values: vals })),
+        options: [...opts]
+          .map(([name, vals]) => ({ name, values: vals.filter(shownValue) }))
+          .filter((o) => o.values.length > 0),
         createdAt: p.createdAt,
         preorder: p.preorderEnabled,
         collectionHandles: memberships.filter((m) => m.productId === id).map((m) => m.handle),

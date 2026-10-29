@@ -1,5 +1,6 @@
 import { ChevronRight } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
+import StatusChip from '@/components/layout/status-chip'
 import ProductThumb from '@/components/products/product-thumb'
 import type { inventoryContent } from '@/data/inventory'
 import type { InventoryLine } from './inventory-tree'
@@ -62,13 +63,20 @@ export default function ProductLineCell({ line, copy, tree }: ProductLineCellPro
       ) : null}
       <ProductThumb url={line.imageUrl} />
       <span className="flex min-w-0 flex-col pl-1">
-        <span
-          className={cn(
-            'line-clamp-1 text-body',
-            line.nested ? 'text-foreground' : 'text-ink-strong',
-          )}
-        >
-          {line.nested ? line.variantTitle : line.productTitle}
+        <span className="flex min-w-0 items-center gap-2">
+          <span
+            className={cn(
+              'line-clamp-1 text-body',
+              line.nested ? 'text-foreground' : 'text-ink-strong',
+            )}
+          >
+            {line.nested ? line.variantTitle : line.productTitle}
+          </span>
+          {line.hiddenOnStore ? (
+            <StatusChip tone="neutral" variant="outline">
+              {copy.tree.hidden}
+            </StatusChip>
+          ) : null}
         </span>
         {subtitle ? (
           <span className="line-clamp-1 text-caption text-muted-foreground">{subtitle}</span>

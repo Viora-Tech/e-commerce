@@ -44,6 +44,8 @@ export function groupByProduct(rows: InventoryRow[]): InventoryLine[] {
       sku: null,
       imageUrl: first.productImageUrl ?? first.imageUrl,
       costPaise: null,
+      // The product line reads hidden only when every SKU under it is.
+      hiddenOnStore: skus.every((r) => r.hiddenOnStore),
       onHand: sum((r) => r.onHand),
       committed: sum((r) => r.committed),
       available: sum((r) => r.available),

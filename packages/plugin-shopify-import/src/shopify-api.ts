@@ -51,7 +51,7 @@ export async function fetchShopAndScopes(
 
 /* ---------------------------------------------------------------- products */
 
-const VARIANT_FIELDS = `id title sku barcode price compareAtPrice taxable inventoryQuantity inventoryPolicy
+const VARIANT_FIELDS = `id title sku barcode price compareAtPrice taxable inventoryQuantity inventoryPolicy availableForSale
   selectedOptions { name value } image { url }
   inventoryItem { tracked harmonizedSystemCode unitCost { amount } measurement { weight { unit value } } }`
 
@@ -91,6 +91,8 @@ type GVariant = {
   inventoryQuantity: number | null
   /** `CONTINUE` keeps selling at zero stock: how Shopify pre-order apps sell past stock. */
   inventoryPolicy?: 'DENY' | 'CONTINUE' | null
+  /** False when Shopify will not sell it (sold out with "stop selling", or unavailable). */
+  availableForSale?: boolean | null
   selectedOptions: { name: string; value: string }[]
   image: { url: string } | null
   inventoryItem: {
@@ -170,6 +172,9 @@ export function mapVariant(
     hsCode: hsnDigits(v.inventoryItem?.harmonizedSystemCode) ?? productHsn,
     imageSrc: v.image?.url ?? null,
     sellsOutOfStock: v.inventoryPolicy === 'CONTINUE',
+    // A sold-out variant with a real price stays visible as sold out; only the ₹0 ones Shopify
+    // would not sell are the "unavailable" leftovers (#934).
+    hiddenOnStore: v.availableForSale === false && (rupees(v.price) ?? 0) === 0,
   }
 }
 

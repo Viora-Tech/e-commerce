@@ -182,6 +182,7 @@ async function load(ctx: Ctx, refs: Refs): Promise<Loaded> {
             and(
               inArray(variant.id, ids(refs.variant)),
               isNull(variant.archivedAt),
+              eq(variant.hiddenOnStore, false),
               eq(product.status, 'active'),
             ),
           )

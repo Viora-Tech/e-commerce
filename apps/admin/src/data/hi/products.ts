@@ -56,6 +56,7 @@ export default [
       missingOptions: [
         { value: 'weight', label: 'वज़न नहीं' },
         { value: 'image', label: 'फ़ोटो नहीं' },
+        { value: 'price', label: 'कीमत (स्टोर पर ₹0)' },
       ],
     },
     status: { active: 'चालू', draft: 'ड्राफ़्ट', archived: 'आर्काइव' },

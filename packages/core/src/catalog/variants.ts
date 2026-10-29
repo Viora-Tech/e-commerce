@@ -21,6 +21,8 @@ export type VariantInput = {
   costPaise?: number | null | undefined
   taxable?: boolean | undefined
   trackInventory?: boolean | undefined
+  /** Hidden on the storefront, kept in admin (#934). Undefined leaves it as it is. */
+  hiddenOnStore?: boolean | undefined
   weightGrams?: number | null | undefined
   /** Display unit for the weight on the product page; null shows kilograms. */
   weightUnit?: 'g' | 'kg' | 'lb' | 'oz' | null | undefined
