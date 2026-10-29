@@ -408,6 +408,12 @@ export async function bugReportStoresForIssue(db: Db, issueNumber: number): Prom
   return rows.map((r) => r.id)
 }
 
+/** Stores with a Shopify connection, for the token sweep. SECURITY DEFINER backed. */
+export async function storesWithShopifyConnections(db: Db): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(sql`select stores_with_shopify_connections() as id`)
+  return rows.map((r) => r.id)
+}
+
 /**
  * Stores with bug reports: all of them (the platform console), or with `openOnly` those whose
  * GitHub issue may still change (the worker's poll, the "live" check). SECURITY DEFINER backed.

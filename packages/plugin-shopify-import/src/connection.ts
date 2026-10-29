@@ -10,7 +10,9 @@
  *    refreshed automatically, here and mid-run on a 401.
  *  - `app`: the platform's own Shopify app (`app-install.ts`), installed through Shopify's
  *    authorization code grant. An expiring offline token plus its refresh token, refreshed
- *    the same way before it lapses.
+ *    the same way before it lapses. An older install holds a non-expiring token (no
+ *    `expiresAt`); `migrateSavedAppToken` swaps it for an expiring one on first use and in the
+ *    worker's daily sweep, since Shopify stops accepting non-expiring tokens in 2027.
  *
  * Both shapes live in the same `access_token` column as encrypted JSON, so no
  * migration was needed to add the new mode.
@@ -18,7 +20,13 @@
 import { decryptSecret, encryptSecret } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { eq } from 'drizzle-orm'
-import { type AppToken, refreshAppToken, type ShopifyApp, shopifyAppFromEnv } from './app-install'
+import {
+  type AppToken,
+  migrateAppToken,
+  refreshAppToken,
+  type ShopifyApp,
+  shopifyAppFromEnv,
+} from './app-install'
 import type { AuthMode, ScopeCheck } from './client'
 import { ALL_SCOPE_HANDLES, type ScopeHandle } from './client'
 import { fetchClientCredentialsToken, isExpiring } from './oauth'
@@ -135,6 +143,45 @@ async function refreshAppCredential(
   return token.accessToken
 }
 
+export type TokenMigration = 'migrated' | 'not_needed' | 'failed'
+
+/**
+ * Swaps the Koomerce app's non-expiring offline token for an expiring one and saves the new
+ * pair. Anything else (another mode, an already-expiring token, no app configured) is left as
+ * is. On failure the old token is kept, since Shopify still accepts it until April 2027, and
+ * the next use or sweep tries again; a repeat within seven days returns the same pair.
+ */
+export async function migrateSavedAppToken(
+  tx: StoreTx,
+  secret: string,
+  app: ShopifyApp | null = shopifyAppFromEnv(process.env),
+  fetchImpl: typeof fetch = fetch,
+): Promise<TokenMigration> {
+  const [row] = await tx.select().from(shopifyConnection).limit(1)
+  if (!row || !app) return 'not_needed'
+  const cred = decodeCredential(row.accessToken, secret)
+  if (cred.mode !== 'app' || cred.expiresAt) return 'not_needed'
+  let token: AppToken
+  try {
+    token = await migrateAppToken(app, row.shopDomain, cred.accessToken, fetchImpl)
+  } catch {
+    return 'failed'
+  }
+  if (!token.expiresAt || !token.refreshToken) return 'failed'
+  const next: Credential = {
+    mode: 'app',
+    accessToken: token.accessToken,
+    expiresAt: token.expiresAt,
+    refreshToken: token.refreshToken,
+    refreshExpiresAt: token.refreshExpiresAt,
+  }
+  await tx
+    .update(shopifyConnection)
+    .set({ accessToken: encodeCredential(next, secret), updatedAt: new Date() })
+    .where(eq(shopifyConnection.id, row.id))
+  return 'migrated'
+}
+
 /** Re-reads the row, exchanges a fresh token if needed, and persists it. Safe to call repeatedly. */
 async function refreshSavedToken(
   tx: StoreTx,
@@ -179,8 +226,19 @@ export async function clientFor(
   if (!row) return null
   const { inStore, app: appOpt, ...clientOpts } = opts
   const app = appOpt === undefined ? shopifyAppFromEnv(process.env) : appOpt
-  const cred = decodeCredential(row.accessToken, secret)
+  let cred = decodeCredential(row.accessToken, secret)
   const fetchImpl = clientOpts.fetch ?? fetch
+  if (cred.mode === 'app' && !cred.expiresAt && app) {
+    const migrated = inStore
+      ? await inStore((tx2) => migrateSavedAppToken(tx2, secret, app, fetchImpl))
+      : await migrateSavedAppToken(tx, secret, app, fetchImpl)
+    if (migrated === 'migrated') {
+      const [fresh] = inStore
+        ? await inStore((tx2) => tx2.select().from(shopifyConnection).limit(1))
+        : await tx.select().from(shopifyConnection).limit(1)
+      if (fresh) cred = decodeCredential(fresh.accessToken, secret)
+    }
+  }
   if (cred.mode === 'legacy') {
     return new ShopifyClient({
       shopDomain: row.shopDomain,

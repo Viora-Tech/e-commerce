@@ -51,6 +51,7 @@ import { createSearchConsoleSweep, SEARCH_CONSOLE_EVERY_MS } from './search-cons
 import { createSenderEmailPoller, SENDER_CHECK_EVERY_MS } from './sender-email'
 import { shipmentWebhooks } from './shipments-webhook'
 import { createShippingTracker, TRACK_EVERY_MS } from './shipping'
+import { createShopifyTokenSweep, SHOPIFY_TOKEN_SWEEP_EVERY_MS } from './shopify-token-sweep'
 import { createStoreExportWorker } from './store-export'
 
 /* The local storage provider writes relative to the admin app, which serves
@@ -144,6 +145,9 @@ const billing = createBillingSweep(redis, db, {
   storefrontUrl: env.STOREFRONT_URL,
 })
 const apiActivityPrune = createApiActivityPrune(redis, db)
+const shopifyTokenSweep = createShopifyTokenSweep(redis, db, {
+  settingsSecret: env.SETTINGS_SECRET,
+})
 const bugReportSync = await createBugReportSync(redis, db, env)
 const automationsPrune = createAutomationsPrune(redis, db)
 const retentionPrune = createRetentionPrune(redis, db)
@@ -210,6 +214,7 @@ const watched = [
   [searchConsole.worker, 'search-console-sweep'],
   [billing.worker, 'billing-sweep'],
   [apiActivityPrune.worker, 'api-activity-prune'],
+  [shopifyTokenSweep.worker, 'shopify-token-sweep'],
   [automationsPrune.worker, 'automations-prune'],
   [retentionPrune.worker, 'retention-prune'],
   [rolloutsTick.worker, 'rollouts-tick'],
@@ -338,6 +343,11 @@ await apiActivityPrune.queue.upsertJobScheduler(
   { every: API_ACTIVITY_PRUNE_EVERY_MS },
   { name: 'prune' },
 )
+await shopifyTokenSweep.queue.upsertJobScheduler(
+  'shopify-token-sweep',
+  { every: SHOPIFY_TOKEN_SWEEP_EVERY_MS },
+  { name: 'sweep' },
+)
 // Carts, outbox rows and webhook payloads past retention: 03:30 India time, when stores are quiet.
 await retentionPrune.queue.upsertJobScheduler('retention-prune', RETENTION_SCHEDULE, {
   name: 'prune',
@@ -456,6 +466,8 @@ const shutdown = async () => {
   await billing.queue.close()
   await apiActivityPrune.worker.close()
   await apiActivityPrune.queue.close()
+  await shopifyTokenSweep.worker.close()
+  await shopifyTokenSweep.queue.close()
   await bugReportSync?.close()
   await automationsPrune.worker.close()
   await automationsPrune.queue.close()

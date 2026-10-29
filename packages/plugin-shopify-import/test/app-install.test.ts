@@ -17,7 +17,7 @@ import {
 } from '../src/app-install'
 import { handleShopifyAppWebhook } from '../src/app-webhooks'
 import { ALL_SCOPE_HANDLES } from '../src/client'
-import { clientFor, connectApp, getConnection } from '../src/connection'
+import { clientFor, connectApp, getConnection, migrateSavedAppToken } from '../src/connection'
 import { app, json, owner, SECRET, seedStore } from './helpers'
 
 const APP = { clientId: 'koomerce-client', clientSecret: 'koomerce-secret' }
@@ -183,6 +183,132 @@ describe('an app connection', () => {
     await withStore(app, storeId, (tx) => clientFor(tx, SECRET, { fetch: fake, app: APP }))
     await withStore(app, storeId, (tx) => clientFor(tx, SECRET, { fetch: fake, app: APP }))
     expect(tokenCalls.map((b) => b.get('refresh_token'))).toEqual(['shprt_first', 'shprt_third'])
+  })
+
+  it('swaps a non-expiring token for an expiring one once, on first use', async () => {
+    const storeId = await seedStore()
+    const tokenCalls: URLSearchParams[] = []
+    const fake = (async (url: string | URL | Request, init?: RequestInit) => {
+      if (String(url).endsWith('/admin/oauth/access_token')) {
+        tokenCalls.push(new URLSearchParams(String(init?.body)))
+        return json({
+          access_token: 'shpat_expiring',
+          expires_in: 3600,
+          refresh_token: 'shprt_new',
+          refresh_token_expires_in: 7_776_000,
+        })
+      }
+      return json({ data: { shop: { name: 'Asha', myshopifyDomain: SHOP } } })
+    }) as typeof fetch
+    await withStore(app, storeId, (tx) =>
+      connectApp(
+        tx,
+        storeId,
+        SHOP,
+        {
+          accessToken: 'shpat_forever',
+          scope: '',
+          expiresAt: null,
+          refreshToken: null,
+          refreshExpiresAt: null,
+        },
+        SECRET,
+        fake,
+      ),
+    )
+
+    await withStore(app, storeId, (tx) => clientFor(tx, SECRET, { fetch: fake, app: APP }))
+    expect(tokenCalls).toHaveLength(1)
+    const body = tokenCalls[0]
+    expect(body?.get('grant_type')).toBe('urn:ietf:params:oauth:grant-type:token-exchange')
+    expect(body?.get('subject_token')).toBe('shpat_forever')
+    expect(body?.get('subject_token_type')).toBe(
+      'urn:shopify:params:oauth:token-type:offline-access-token',
+    )
+    expect(body?.get('requested_token_type')).toBe(
+      'urn:shopify:params:oauth:token-type:offline-access-token',
+    )
+    expect(body?.get('expiring')).toBe('1')
+    expect(body?.get('client_id')).toBe(APP.clientId)
+
+    // Saved as an expiring token: later clients neither swap again nor refresh yet.
+    const again = await withStore(app, storeId, (tx) => migrateSavedAppToken(tx, SECRET, APP, fake))
+    expect(again).toBe('not_needed')
+    await withStore(app, storeId, (tx) => clientFor(tx, SECRET, { fetch: fake, app: APP }))
+    expect(tokenCalls).toHaveLength(1)
+  })
+
+  it('keeps the old token when Shopify refuses the swap, and tries again later', async () => {
+    const storeId = await seedStore()
+    let swaps = 0
+    const refusing = (async (url: string | URL | Request) => {
+      if (String(url).endsWith('/admin/oauth/access_token')) {
+        swaps++
+        return json({ error: 'invalid_subject_token' }, { status: 400 })
+      }
+      return json({ data: { shop: { name: 'Asha', myshopifyDomain: SHOP } } })
+    }) as typeof fetch
+    await withStore(app, storeId, (tx) =>
+      connectApp(
+        tx,
+        storeId,
+        SHOP,
+        {
+          accessToken: 'shpat_forever',
+          scope: '',
+          expiresAt: null,
+          refreshToken: null,
+          refreshExpiresAt: null,
+        },
+        SECRET,
+        refusing,
+      ),
+    )
+    const first = await withStore(app, storeId, (tx) =>
+      migrateSavedAppToken(tx, SECRET, APP, refusing),
+    )
+    expect(first).toBe('failed')
+    // The import still runs on the old token.
+    const client = await withStore(app, storeId, (tx) =>
+      clientFor(tx, SECRET, { fetch: refusing, app: APP }),
+    )
+    expect(client).not.toBeNull()
+    expect(swaps).toBe(2)
+    const view = await withStore(app, storeId, (tx) => getConnection(tx, SECRET))
+    expect(view?.tokenHint).toBe('shpat_••••ever')
+  })
+
+  it('leaves an expiring token and a store without the app alone', async () => {
+    const storeId = await seedStore()
+    const never = (async () => {
+      throw new Error('no call expected')
+    }) as unknown as typeof fetch
+    expect(
+      await withStore(app, storeId, (tx) => migrateSavedAppToken(tx, SECRET, APP, never)),
+    ).toBe('not_needed')
+    await withStore(app, storeId, (tx) =>
+      connectApp(
+        tx,
+        storeId,
+        SHOP,
+        {
+          accessToken: 'shpat_hour',
+          scope: '',
+          expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
+          refreshToken: 'shprt_x',
+          refreshExpiresAt: null,
+        },
+        SECRET,
+        (async () =>
+          json({ data: { shop: { name: 'Asha', myshopifyDomain: SHOP } } })) as typeof fetch,
+      ),
+    )
+    expect(
+      await withStore(app, storeId, (tx) => migrateSavedAppToken(tx, SECRET, APP, never)),
+    ).toBe('not_needed')
+    expect(
+      await withStore(app, storeId, (tx) => migrateSavedAppToken(tx, SECRET, null, never)),
+    ).toBe('not_needed')
   })
 
   it('goes when the merchant uninstalls the app, with an event for automations', async () => {

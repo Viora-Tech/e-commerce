@@ -87,6 +87,15 @@ the Facebook user is linked for the deletion callbacks. Graph version: `META_GRA
   `hmac`, the state for this signed-in store, the shop matching, then the code exchange with
   `expiring=1` (about an hour of access and a 90-day refresh token). Saved as connection mode
   `app`; `clientFor` refreshes before expiry and saves the new refresh token every time.
+- Older installs hold a non-expiring offline token (`expiresAt` null). Shopify de-lists public
+  apps that still use them from 1 Jan 2027 and rejects them from 1 Apr 2027.
+  `migrateSavedAppToken` swaps one for an expiring pair with Shopify's token exchange
+  (`grant_type=urn:ietf:params:oauth:grant-type:token-exchange`, `subject_token_type` and
+  `requested_token_type` both `urn:shopify:params:oauth:token-type:offline-access-token`,
+  `expiring=1`). It runs on first use in `clientFor` and in the worker's daily
+  `shopify-token-sweep` (stores from `stores_with_shopify_connections()`, migration 0191). A
+  failed swap keeps the old token and is retried next time; a repeat within seven days returns
+  the same pair.
 - Webhooks: `app/uninstalled` and `shop/redact` drop the shop's access from every store linked to
   it (imported data stays); `customers/data_request` and `customers/redact` are acknowledged
   (the app keeps no copy of Shopify customers outside the merchant's own store).
