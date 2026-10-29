@@ -106,7 +106,7 @@ export default function VariantMatrix({
             <TableHead className={cn(HEAD, 'w-36')}>{copy.price}</TableHead>
             <TableHead className={cn(HEAD, 'w-36')}>{copy.mrp}</TableHead>
             <TableHead className={cn(HEAD, 'w-56')}>{copy.sku}</TableHead>
-            <TableHead className={cn(HEAD, 'w-28')}>{copy.available}</TableHead>
+            <TableHead className={cn(HEAD, 'w-28 text-center')}>{copy.available}</TableHead>
             <TableHead className={cn(HEAD, 'w-24')}>
               <span className="sr-only">{variantsCopy.edit}</span>
             </TableHead>
@@ -185,6 +185,7 @@ export default function VariantMatrix({
                   <MoneyInput
                     aria-label={`${copy.available} ${title}`}
                     currency={false}
+                    className="[&_input]:text-center"
                     value={v.quantity}
                     disabled={!v.trackInventory}
                     onChange={(quantity) => onVariant(i, { quantity })}
