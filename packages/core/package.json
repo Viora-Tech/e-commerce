@@ -93,6 +93,7 @@
     "./cod-rto-app": "./src/cod-rto/app.ts",
     "./delivery-options": "./src/shipping/delivery-options/config.ts",
     "./delivery-options-app": "./src/shipping/delivery-options/app.ts",
+    "./delivery-margin": "./src/shipping/delivery-options/margin.ts",
     "./policies": "./src/policies/client.ts",
     "./store-health": "./src/store-health/checks.ts",
     "./sales-channels": "./src/sales-channels/client.ts",

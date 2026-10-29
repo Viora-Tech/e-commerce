@@ -2,15 +2,13 @@ import {
   decryptCustomerPhone,
   deleteMetafieldsOf,
   encryptCustomerPhone,
-  evaluateSegment,
   normalisePhoneDigits,
   noteCustomerTagsChanged,
   notTestOrder,
   phoneBlindIndex,
-  type SegmentCustomer,
 } from '@commerce/core'
-import type { CustomerSegmentRules, StoreTx } from '@commerce/db'
-import { customer, customerNote, customerSegment, notification, order } from '@commerce/db'
+import type { StoreTx } from '@commerce/db'
+import { customer, customerNote, notification, order } from '@commerce/db'
 import { and, asc, count, desc, eq, gte, ilike, inArray, lt, lte, ne, or, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import type { VisitorSource } from '../context'
@@ -179,18 +177,6 @@ function filterWhere(input: CustomerQuery, now: Date, secret: string) {
     input.lastOrderFrom ? sql`${lastOrderSql} >= ${input.lastOrderFrom}::timestamptz` : undefined,
     input.lastOrderTo ? sql`${lastOrderSql} < ${input.lastOrderTo}::timestamptz` : undefined,
   )
-}
-
-function toSegmentCustomer(item: CustomerListItem): SegmentCustomer {
-  return {
-    spentPaise: item.spentPaise,
-    orderCount: item.orderCount,
-    stateCode: item.stateCode,
-    tags: item.tags,
-    lastOrderAt: item.lastOrderAt,
-    acceptsMarketing: item.acceptsMarketing,
-    hasGstin: item.hasGstin,
-  }
 }
 
 /** Decrypts the SELECTION-shaped `phone` in place; passes plaintext (not-yet-backfilled) rows through. */
@@ -500,57 +486,6 @@ export async function customerTags(tx: StoreTx): Promise<string[]> {
     .select({ tag: sql<string>`distinct unnest(${customer.tags})` })
     .from(customer)
   return rows.map((r) => r.tag).sort()
-}
-
-export async function listSegments(tx: StoreTx, secret: string, now = new Date()) {
-  const [segments, everyone] = await Promise.all([
-    tx.select().from(customerSegment).orderBy(asc(customerSegment.name)),
-    listAllCustomers(tx, {}, secret, now),
-  ])
-  return segments.map((s) => ({
-    ...s,
-    customerCount: everyone.filter((cu) => evaluateSegment(toSegmentCustomer(cu), s.rules, now))
-      .length,
-  }))
-}
-
-export async function getSegment(tx: StoreTx, id: string) {
-  const [row] = await tx.select().from(customerSegment).where(eq(customerSegment.id, id))
-  return row ?? null
-}
-
-export async function saveSegment(
-  tx: StoreTx,
-  input: { id?: string | undefined; name: string; rules: CustomerSegmentRules; storeId: string },
-) {
-  if (input.id) {
-    const [row] = await tx
-      .update(customerSegment)
-      .set({ name: input.name, rules: input.rules, updatedAt: new Date() })
-      .where(eq(customerSegment.id, input.id))
-      .returning()
-    return row ?? null
-  }
-  const [row] = await tx
-    .insert(customerSegment)
-    .values({ storeId: input.storeId, name: input.name, rules: input.rules })
-    .returning()
-  return row ?? null
-}
-
-export async function deleteSegment(tx: StoreTx, id: string) {
-  await tx.delete(customerSegment).where(eq(customerSegment.id, id))
-}
-
-/** Customers matching a rule set; drives the builder preview and the segment page. */
-export async function listSegmentCustomers(
-  tx: StoreTx,
-  rules: CustomerSegmentRules,
-  secret: string,
-  now = new Date(),
-) {
-  const everyone = await listAllCustomers(tx, {}, secret, now)
-  return everyone.filter((cu) => evaluateSegment(toSegmentCustomer(cu), rules, now))
 }
 
 /** Customers whose last order predates the window; the win-back building block. */

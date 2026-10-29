@@ -258,6 +258,12 @@ const ALLOWLIST: AllowEntry[] = [
   { path: 'packages/plugin-reviews/src/judgeme.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-reviews/src/photos.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-reviews/src/requests.ts', exact: true, reason: PLUGIN },
+  {
+    path: 'packages/plugin-reviews/src/review-list-where.ts',
+    exact: true,
+    reason:
+      "the Reviews list's WHERE builder, split out of reviews.ts (filters F5); same plugin-owned review tables, which packages/core cannot import",
+  },
   { path: 'packages/plugin-reviews/src/reviews.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-reviews/src/schema.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-reviews/src/store-settings.ts', exact: true, reason: PLUGIN },

@@ -42,7 +42,7 @@ export const billingContent = {
   },
   unlimited: {
     name: 'Unlimited',
-    line: 'A Koomerce store: no limits, per-order fees or bills.',
+    line: `A ${siteConfig.brand.name} store: no limits, per-order fees or bills.`,
     aiCap: (used: string, cap: string) => `${used} of ${cap} (safety cap)`,
   },
   fees: {

@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: pre-order note tests — product note beats store default, ship-date placeholders, store settings parsing (#936) */
 import { describe, expect, it } from 'vitest'
 import { preorderNoteText } from './note'
 import { PreorderStoreSettingsSchema, parsePreorderStoreSettings } from './store-settings'

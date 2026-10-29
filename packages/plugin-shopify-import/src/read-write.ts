@@ -5,7 +5,11 @@
  */
 import { syncAutomaticCollections } from '@commerce/core'
 import type { StorageProvider } from '@commerce/storage'
+import { fetchCollections } from './api-collections'
+import { fetchArticles, fetchMenus, fetchPages, fetchRedirects } from './api-content'
+import { fetchCustomers } from './api-customers'
 import { fetchFiles } from './api-files'
+import { fetchOrders } from './api-orders'
 import { stockRefresher } from './api-stock'
 import { REQUIRED_SCOPES } from './client'
 import { mapLimit } from './concurrency'
@@ -17,17 +21,7 @@ import { applyPreorderCampaigns, storefrontPreorderCampaigns } from './preorder-
 import { createReferenceResolver } from './references'
 import { errorMessage, type ImportContext, WRITE_BATCH_SIZE } from './runtime'
 import type { ImportResource } from './schema'
-import {
-  fetchArticles,
-  fetchCollections,
-  fetchCustomers,
-  fetchMenus,
-  fetchOrders,
-  fetchPages,
-  fetchPreorderProductIds,
-  fetchProducts,
-  fetchRedirects,
-} from './shopify-api'
+import { fetchPreorderProductIds, fetchProducts } from './shopify-api'
 import { type ShopifyClient, ShopifyError } from './shopify-client'
 import type { ReadSpec, SnapshotSession } from './snapshot'
 import type { KeepTest } from './status'

@@ -111,7 +111,10 @@ export type ProviderAnswer = {
   source: 'live' | 'cache'
   /** How long the live call took; null from cache or when it timed out. */
   ms: number | null
+  /** Why it failed; on a stale cached answer, why the live call was not used. */
   error: string | null
+  /** A cached answer past its 6 h, used because the live call missed or the app is skipped. */
+  stale?: boolean | undefined
   /** The PIN code answer; null when serviceability did not answer. */
   serviceable: boolean | null
   services: QuotedService[]

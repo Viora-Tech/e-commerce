@@ -53,6 +53,18 @@ export default [
       notSet: 'भरा नहीं',
       contract: 'आपके कूरियर कॉन्ट्रैक्ट के अनुसार बीमा',
       rate: (percent, min) => (min ? `${percent}% (न्यूनतम ${min})` : `${percent}%`),
+      health: {
+        noCalls: 'पिछले एक दिन में किसी चेकआउट ने इससे नहीं पूछा',
+        line: (rate, typical, calls) =>
+          `${rate} जवाब मिले${typical ? ` · आम तौर पर ${typical}` : ''} · पिछली ${calls} चेकआउट कॉल`,
+        ms: (ms) => `${ms} ms`,
+        lastError: (when, message) => `आखिरी गड़बड़ी ${when}: ${message}`,
+        skipped: 'छोड़ा गया',
+        skippedHelp: (since) =>
+          `एक मिनट में 3 बार फ़ेल होने पर चेकआउट ने ${since} से इससे पूछना बंद किया है, और 5 मिनट बाद फिर पूछेगा। तब तक 7 दिन तक पुरानी सेव कीमतें काम आती हैं।`,
+        backup: (backup, total) => `पिछले 24 घंटों में ${total} में से ${backup} चेकआउट आपके ज़ोन रेट पर गए।`,
+        noCheckouts: 'पिछले 24 घंटों में किसी चेकआउट ने ऐप का इस्तेमाल नहीं किया।',
+      },
     },
     routeDialog: {
       addTitle: 'रूट सेटिंग',

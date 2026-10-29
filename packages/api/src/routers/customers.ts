@@ -30,17 +30,19 @@ import {
   customerStats,
   customerTags,
   deleteCustomer,
-  deleteSegment,
   getCustomer,
-  getSegment,
   listAllCustomers,
   listCustomers,
-  listSegmentCustomers,
-  listSegments,
-  saveSegment,
   tagCustomers,
   updateCustomer,
 } from '../services/customer.service'
+import {
+  deleteSegment,
+  getSegment,
+  listSegmentCustomers,
+  listSegments,
+  saveSegment,
+} from '../services/customer-segment.service'
 import { customerSheet } from '../services/customer-sheet.service'
 
 const FiltersSchema = z.object({

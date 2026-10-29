@@ -80,7 +80,7 @@ export async function loadMonthFeeInputs(
 }
 
 /** Fees waiting from earlier months: the store's carried row, if any. */
-export async function carriedInPaise(tx: StoreTx, storeId: string): Promise<number> {
+async function carriedInPaise(tx: StoreTx, storeId: string): Promise<number> {
   const [row] = await tx
     .select({ totalPaise: usageBill.totalPaise })
     .from(usageBill)

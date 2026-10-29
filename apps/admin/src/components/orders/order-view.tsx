@@ -22,6 +22,7 @@ import CancelOrderDialog from './cancel-order-dialog'
 import CollectPaymentDialog from './collect-payment-dialog'
 import CourierOrdersCard from './courier-orders-card'
 import CustomerCard from './customer-card'
+import DeliveryRouteCard from './delivery-route-card'
 import FulfilDialog from './fulfil-dialog'
 import ImportedOrderCard from './imported-order-card'
 import LineItemsCard from './line-items-card'
@@ -337,6 +338,14 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
             canRetry={!readOnly && hasPermission(permissions.ORDERS_WRITE)}
             onChanged={refresh}
           />
+          {order.shipping?.delivery ? (
+            <DeliveryRouteCard
+              delivery={order.shipping.delivery}
+              chargedPaise={order.shippingPaise}
+              bookingChargePaise={order.shipment?.courierChargePaise ?? null}
+              showMargin={hasPermission(permissions.ANALYTICS_READ)}
+            />
+          ) : null}
           {readOnly ? null : (
             <ProfitCard
               orderId={order.id}

@@ -1,10 +1,12 @@
 import { settingsSecret } from '@commerce/config'
 import {
   addPresetOptions,
+  type DeliveryHealth,
   DeliveryOptionInputSchema,
   deleteDeliveryOption,
   deleteRouteRule,
   deleteRouteSetting,
+  deliveryHealth,
   deliveryOptionsInstalled,
   deliveryOverview,
   loadDeliveryConfig,
@@ -27,6 +29,8 @@ import { storeRegistries } from '../services/apps.service'
 import { loadShippingSettings } from '../services/shipping.service'
 
 type Ctx = { tx: StoreTx; scope: { storeId: string } }
+
+const NO_HEALTH: DeliveryHealth = { apps: [], checkouts24h: 0, backup24h: 0 }
 
 async function requireInstalled(context: Ctx) {
   if (!(await deliveryOptionsInstalled(context.tx, context.scope.storeId))) {
@@ -59,7 +63,16 @@ export const deliveryOptionsRouter = {
   overview: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
     await requireInstalled(context)
     const { providers } = await providersOf(context)
-    return deliveryOverview(context.tx, providers)
+    const overview = await deliveryOverview(context.tx, providers)
+    // What checkout recorded: each app's recent calls and breaker, and the backup share.
+    const health = context.deliveryHealth
+      ? await deliveryHealth(
+          context.deliveryHealth,
+          context.scope.storeId,
+          overview.apps.map((a) => a.id),
+        ).catch(() => NO_HEALTH)
+      : NO_HEALTH
+    return { ...overview, health }
   }),
 
   option: can(permissions.SETTINGS_READ)

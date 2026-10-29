@@ -5,6 +5,7 @@ import type {
   AppEventQueue,
   AppJobQueue,
   ChannelSyncQueue,
+  HealthStore,
   MediaProcessQueue,
   NotificationQueue,
   PlatformCodeSender,
@@ -69,6 +70,9 @@ export type ApiContext = {
   platformDb?: Db | undefined
   /** Platform staff emails. Absent: `PLATFORM_ADMIN_EMAILS` from the environment. Tests pass a list. */
   platformStaff?: readonly string[] | undefined
+  /** The Delivery options app's courier health (breaker, recent calls, backup share) in Redis,
+   *  as checkout writes it. Absent (tests, the bearer-token API): the app page shows no health line. */
+  deliveryHealth?: HealthStore | undefined
   /** Background job counts per worker queue, for the console's Overview. Absent: not shown. */
   queueHealth?: (() => Promise<QueueHealth[]>) | undefined
 }

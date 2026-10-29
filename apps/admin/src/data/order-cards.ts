@@ -63,3 +63,23 @@ export const profitCardContent = {
   courierInvalid: 'Type an amount in rupees, like 65 or 65.50.',
   failed: 'Could not save',
 }
+
+/** The order page's Delivery option card: the route chosen at checkout, backup, shipping margin. */
+export const deliveryRouteCardContent = {
+  title: 'Delivery option',
+  via: (service: string, app: string) => `${service} via ${app}`,
+  insured: 'Insured',
+  promised: (range: string) => `Promised ${range}`,
+  backupTag: 'Placed on backup',
+  backupHelp:
+    'Couriers did not answer at checkout, so this order was charged your zone rate and saved no route. Book it with your courier rules; product route rules still apply.',
+  charged: 'Shipping charged',
+  courier: 'Courier',
+  courierFrom: {
+    booking: 'from the booking',
+    quote: 'quoted at checkout',
+  },
+  insurance: 'Insurance',
+  margin: 'Shipping margin',
+  marginUnknown: 'The margin shows once the parcel is booked and its courier charge is known.',
+}

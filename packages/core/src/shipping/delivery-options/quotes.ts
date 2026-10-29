@@ -3,6 +3,8 @@
  * within the checkout deadline, and remembers the answers by weight slab and value bucket /
  * WHY: checkout must never wait more than about a second on couriers, and one slow app must
  * never blank the Shipping step. A late answer still lands in the cache for the next shopper.
+ * An answer older than 6 h is stale: it is asked again live, and used (up to 7 days old) when
+ * the live call misses its deadline or fails. An app whose breaker is open is not asked.
  * The cache is passed in (the storefront gives Redis) so core stays free of a Redis client.
  */
 import {
@@ -14,17 +16,18 @@ import {
   type ShippingProvider,
   servesDestination,
 } from '@commerce/shipping'
+import { breakerOpen, type HealthStore, recordCourierCall } from './health'
 import { halfKgSteps, type ProviderAnswer, type QuotedService } from './routes'
 
 /** Per call at checkout. Booking keeps the adapters' own 6 s timeout. */
 const CHECKOUT_COURIER_DEADLINE_MS = 800
-/** Live prices and serviceability, per app, origin>PIN, slab and value bucket. */
-const DELIVERY_QUOTE_TTL_SECONDS = 6 * 3600
+/** Live prices and serviceability, per app, origin>PIN, slab and value bucket: fresh for 6 h. */
+export const DELIVERY_QUOTE_FRESH_MS = 6 * 3600 * 1000
+/** Kept (stale-while-revalidate) for 7 days, for when the live call misses its deadline. */
+const DELIVERY_QUOTE_TTL_SECONDS = 7 * 24 * 3600
 
-export type QuoteCache = {
-  get<T>(key: string): Promise<T | null>
-  set(key: string, value: unknown, ttlSeconds: number): Promise<void>
-}
+/** Redis, as the storefront gives it: JSON get/set plus the breaker and health calls. */
+export type QuoteCache = HealthStore
 
 export type CheckoutQuoteQuery = {
   originPincode: string
@@ -36,6 +39,8 @@ export type CheckoutQuoteQuery = {
 }
 
 type CachedAnswer = Pick<ProviderAnswer, 'serviceable' | 'services'>
+/** What the cache holds: the answer and when it was asked (epoch ms). */
+type CachedEntry = { at: number; answer: CachedAnswer }
 
 /** COD charges and insurance depend on value: ₹0–2k, ₹2–5k, ₹5k+. */
 export function valueBucket(valuePaise: number): string {
@@ -52,7 +57,7 @@ export const deliveryQuoteKey = (
     'originPincode' | 'destinationPincode' | 'weightGrams' | 'valuePaise'
   >,
 ): string =>
-  `{shipping}:delivery-quote:v1:${storeId}:${providerId}:${q.originPincode}>${q.destinationPincode}:${halfKgSteps(q.weightGrams) * 500}g:${valueBucket(q.valuePaise)}`
+  `{shipping}:delivery-quote:v2:${storeId}:${providerId}:${q.originPincode}>${q.destinationPincode}:${halfKgSteps(q.weightGrams) * 500}g:${valueBucket(q.valuePaise)}`
 
 const insuranceLine = (o: RateOption): number | null => {
   const lines = o.charges.filter((c) => c.kind === 'insurance')
@@ -137,10 +142,12 @@ async function askProvider(
 const TIMED_OUT = Symbol('timed out')
 
 /**
- * Every domestic app's answer for this PIN code, in parallel. Each is read from the cache,
- * else asked live within `deadlineMs`; a miss is `failed` (never "not serviceable"), and the
- * call keeps running so its answer is cached when it lands. `cacheOnly` (placing an order
- * without a quote snapshot) never calls a courier.
+ * Every domestic app's answer for this PIN code, in parallel. A fresh cached answer is used
+ * as is; otherwise the app is asked live within `deadlineMs`, and when that misses (or the
+ * app's breaker is open) a stale cached answer stands in, else the app is `failed` (never "not
+ * serviceable"). The live call keeps running so its answer is cached when it lands.
+ * `cacheOnly` (placing an order without a quote snapshot) never calls a courier and takes any
+ * cached answer, stale or not.
  */
 export async function gatherProviderAnswers(
   providers: readonly ShippingProvider[],
@@ -150,34 +157,55 @@ export async function gatherProviderAnswers(
     cache?: QuoteCache | null | undefined
     deadlineMs?: number | undefined
     cacheOnly?: boolean | undefined
+    /** Epoch ms; tests pass a clock. */
+    now?: (() => number) | undefined
   },
 ): Promise<ProviderAnswer[]> {
   const deadline = opts.deadlineMs ?? CHECKOUT_COURIER_DEADLINE_MS
+  const now = opts.now ?? Date.now
+  const cache = opts.cache ?? null
   const domestic = providers.filter((p) => servesDestination(p, 'IN') && !p.requiresTrackingNumber)
   return Promise.all(
     domestic.map(async (provider): Promise<ProviderAnswer> => {
       const base = { providerId: provider.id, providerLabel: provider.label }
       const key = deliveryQuoteKey(opts.storeId, provider.id, query)
-      const cached = opts.cache ? await opts.cache.get<CachedAnswer>(key).catch(() => null) : null
-      if (cached)
-        return { ...base, ...cached, status: 'ok', source: 'cache', ms: null, error: null }
-      if (opts.cacheOnly) {
-        return {
-          ...base,
-          status: 'failed',
-          source: 'cache',
-          ms: null,
-          error: 'No cached answer',
-          serviceable: null,
-          services: [],
-        }
+      const failed = (error: string, ms: number | null = null): ProviderAnswer => ({
+        ...base,
+        status: 'failed',
+        source: opts.cacheOnly ? 'cache' : 'live',
+        ms,
+        error,
+        serviceable: null,
+        services: [],
+      })
+      const [entry, open] = await Promise.all([
+        cache ? cache.get<CachedEntry>(key).catch(() => null) : null,
+        cache && !opts.cacheOnly ? breakerOpen(cache, opts.storeId, provider.id) : null,
+      ])
+      const fromCache = (stale: boolean, why: string | null): ProviderAnswer | null =>
+        entry?.answer
+          ? { ...base, ...entry.answer, status: 'ok', source: 'cache', ms: null, error: why, stale }
+          : null
+      if (entry?.answer && now() - entry.at < DELIVERY_QUOTE_FRESH_MS) {
+        return fromCache(false, null) as ProviderAnswer
       }
-      const started = Date.now()
+      if (opts.cacheOnly) return fromCache(true, null) ?? failed('No cached answer')
+      if (open) {
+        const why = `Skipped since ${open.since}: failing`
+        return fromCache(true, why) ?? failed(why)
+      }
+      const started = now()
       const work = askProvider(provider, query)
-      // Late or not, a real answer is remembered for the next shopper.
+      // Late or not, a real answer is remembered for the next shopper (the background refresh).
       work
-        .then((answer) => opts.cache?.set(key, answer, DELIVERY_QUOTE_TTL_SECONDS))
+        .then((answer) =>
+          cache?.set(key, { at: now(), answer } satisfies CachedEntry, DELIVERY_QUOTE_TTL_SECONDS),
+        )
         .catch(() => undefined)
+      const record = (ok: boolean, ms: number | null, error: string | null) => {
+        if (cache)
+          void recordCourierCall(cache, opts.storeId, provider.id, { at: started, ok, ms, error })
+      }
       let timer: ReturnType<typeof setTimeout> | undefined
       const late = new Promise<typeof TIMED_OUT>((resolve) => {
         timer = setTimeout(() => resolve(TIMED_OUT), deadline)
@@ -185,34 +213,18 @@ export async function gatherProviderAnswers(
       try {
         const answer = await Promise.race([work, late])
         if (answer === TIMED_OUT) {
-          return {
-            ...base,
-            status: 'failed',
-            source: 'live',
-            ms: null,
-            error: `No answer within ${deadline} ms`,
-            serviceable: null,
-            services: [],
-          }
+          const why = `No answer within ${deadline} ms`
+          record(false, null, why)
+          return fromCache(true, why) ?? failed(why)
         }
-        return {
-          ...base,
-          ...answer,
-          status: 'ok',
-          source: 'live',
-          ms: Date.now() - started,
-          error: null,
-        }
+        const ms = now() - started
+        record(true, ms, null)
+        return { ...base, ...answer, status: 'ok', source: 'live', ms, error: null }
       } catch (err) {
-        return {
-          ...base,
-          status: 'failed',
-          source: 'live',
-          ms: Date.now() - started,
-          error: describeCourierFailure(err),
-          serviceable: null,
-          services: [],
-        }
+        const ms = now() - started
+        const why = describeCourierFailure(err)
+        record(false, ms, why)
+        return fromCache(true, why) ?? failed(why, ms)
       } finally {
         clearTimeout(timer)
       }
