@@ -129,3 +129,52 @@ describe('checkoutTotals', () => {
     expect(t.payNowPaise).toBe(0)
   })
 })
+
+describe('checkoutTotals with the Delivery options app', () => {
+  const base = {
+    cart: cart(),
+    methods: [decentro, cod],
+    settings: defaultCheckoutSettings,
+    discountPaise: 0,
+    shipping: null,
+    giftCards: [],
+    pincode: '110001',
+    laterPaise: 0,
+  }
+  const card = (over: Record<string, unknown> = {}) => ({
+    id: 'opt',
+    name: 'Standard · DTDC',
+    pricePaise: 6000,
+    dateRange: null,
+    codSurchargePaise: null,
+    arrives: null,
+    fastest: false,
+    delivery: {
+      codAllowed: true,
+      codPricePaise: 9000,
+      codCarrier: 'Delhivery',
+      listPricePaise: 6000,
+      choices: [],
+      optionName: 'Standard',
+      ...over,
+    },
+  })
+
+  it('Express is prepaid only: cash on delivery is greyed out with the reason', () => {
+    const rate = card({ codAllowed: false, codPricePaise: null, optionName: 'Express' })
+    const t = checkoutTotals({ ...base, rate, picked: 'cod' })
+    expect(t.codBlocked).toBe(true)
+    expect(t.payment).toBe('decentro')
+    expect(t.codNote).toBe('Not available with Express delivery')
+  })
+
+  it("paying on delivery charges Standard's COD route and says so", () => {
+    const t = checkoutTotals({ ...base, rate: card(), picked: 'cod' })
+    expect(t.codBlocked).toBe(false)
+    expect(t.totalPaise).toBe(499_900 + 9000)
+    expect(t.codNote).toBe('Cash on delivery: +₹30, ships with Delhivery')
+    expect(checkoutTotals({ ...base, rate: card(), picked: 'decentro' }).totalPaise).toBe(
+      499_900 + 6000,
+    )
+  })
+})

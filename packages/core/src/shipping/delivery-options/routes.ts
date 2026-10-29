@@ -1,5 +1,4 @@
-/**
- * SOURCE OF TRUTH: delivery routes — WHAT: a route is one courier × channel × service (Delhivery
+/** SOURCE OF TRUTH: delivery routes — WHAT: a route is one courier × channel × service (Delhivery
  * Express direct, Blue Dart Air via Shiprocket); this file turns what the connected apps
  * answered for a PIN code into routes, names the carrier the shopper sees, tells Surface from
  * Express, matches route selectors and applies the merchant's per-route settings / WHY: the
@@ -167,7 +166,7 @@ export function selectorMatches(
 
 /** The owner's facts (29 Oct): Delhivery direct insures; Blue Dart and DTDC direct do not;
  *  aggregator routes insure through the aggregator. Unknown direct couriers: not insured. */
-export function seededInsures(channel: Route['channel'], carrierKey: string): boolean {
+function seededInsures(channel: Route['channel'], carrierKey: string): boolean {
   if (channel === 'aggregator') return true
   return carrierKey === 'delhivery'
 }
@@ -205,7 +204,7 @@ export const halfKgSteps = (weightGrams: number): number =>
   Math.max(1, Math.ceil(weightGrams / 500))
 
 /** A cost card's price for a parcel: first 500 g, then each further 500 g; COD adds its fee. */
-export function costCardPrice(card: CostCard, weightGrams: number, cod: boolean): number {
+function costCardPrice(card: CostCard, weightGrams: number, cod: boolean): number {
   const price = card.firstHalfKgPaise + (halfKgSteps(weightGrams) - 1) * card.extraHalfKgPaise
   return cod ? price + card.codFeePaise : price
 }
@@ -282,4 +281,14 @@ export function insurancePrice(route: Route, orderValuePaise: number): number | 
   if (route.insurancePercent === null && route.insuranceMinPaise === null) return null
   const byPercent = Math.ceil((orderValuePaise * (route.insurancePercent ?? 0)) / 100)
   return Math.max(byPercent, route.insuranceMinPaise ?? 0)
+}
+
+/** The carrier a booking delivers with: a direct courier's own, or the one behind an
+ *  aggregator's service ("Bluedart Air" → Blue Dart); null when an aggregator named none. */
+export function bookedCarrier(
+  provider: { id: string; label: string },
+  serviceLabel: string | null | undefined,
+): string | null {
+  if (!AGGREGATOR_PROVIDERS.has(provider.id)) return directCarrier(provider.id, provider.label).name
+  return serviceLabel ? normaliseCarrier(serviceLabel).name : null
 }

@@ -22,12 +22,7 @@ export const CARRIERS: ReadonlyArray<{ key: string; name: string }> = [
 export const carrierName = (key: string, anyCourier: string): string =>
   key === 'any' ? anyCourier : (CARRIERS.find((c) => c.key === key)?.name ?? key)
 
-/** Rupees typed in a field ↔ paise. Empty stays null. */
-export function toPaise(rupees: string): number | null {
-  const n = Number(rupees.trim())
-  return rupees.trim() === '' || !Number.isFinite(n) || n < 0 ? null : Math.round(n * 100)
-}
-
+/** Paise shown in a rupee field (`parseRupees` from @commerce/money reads it back). */
 export const toRupees = (paise: number | null | undefined): string =>
   paise == null ? '' : String(paise / 100)
 

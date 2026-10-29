@@ -1,5 +1,4 @@
-/**
- * SOURCE OF TRUTH: the Delivery options app page's data — WHAT: what the app page shows (the
+/** SOURCE OF TRUTH: the Delivery options app page's data — WHAT: what the app page shows (the
  * connected courier apps, options, rules, route settings and warnings), the routes the apps
  * answer for a PIN code, and Try a PIN (the cards exactly as checkout would draw them, plus
  * every route's quote and why each won or lost) / WHY: the merchant must see the outcome of
@@ -13,7 +12,7 @@ import { loadRateZones } from '../rates-service'
 import { type ShippingSettings, toShippingPolicy } from '../settings'
 import { quoteDelivery } from './checkout'
 import type { DeliveryConfig } from './config'
-import type { DeliveryResolveResult } from './resolve'
+import type { DeliveryResolveResult } from './resolve-types'
 import { AGGREGATOR_PROVIDERS, type Route, routesFromAnswers } from './routes'
 import { loadDeliveryConfig, productFacts } from './service'
 
@@ -35,7 +34,7 @@ export type DeliveryOverview = DeliveryConfig & {
 }
 
 /** The connected domestic courier apps checkout would ask. */
-export function connectedApps(providers: readonly ShippingProvider[]): ConnectedApp[] {
+function connectedApps(providers: readonly ShippingProvider[]): ConnectedApp[] {
   return providers
     .filter((p) => servesDestination(p, 'IN') && !p.requiresTrackingNumber)
     .map((p) => ({
@@ -51,7 +50,7 @@ export function connectedApps(providers: readonly ShippingProvider[]): Connected
  * an insurance rate yet (owner, 29 Oct: Shiprocket and RapidShyp insurance is on, the cost is
  * not known), so insurance is charged at ₹0 until the rate is filled in.
  */
-export function deliveryWarnings(
+function deliveryWarnings(
   config: DeliveryConfig,
   apps: readonly ConnectedApp[],
 ): DeliveryWarning[] {

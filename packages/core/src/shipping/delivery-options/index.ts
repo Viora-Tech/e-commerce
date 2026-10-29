@@ -1,9 +1,13 @@
+/** SOURCE OF TRUTH: the Delivery options app barrel — WHAT: re-exports the engine, quotes, settings, booking and admin helpers / WHY: `@commerce/core` exposes them in one place. */
 export * from './admin'
 export * from './booking'
 export * from './checkout'
 export * from './config'
+export * from './order'
+export * from './price'
 export * from './quotes'
 export * from './resolve'
+export * from './resolve-types'
 export * from './routes'
 export * from './rules'
 export * from './service'

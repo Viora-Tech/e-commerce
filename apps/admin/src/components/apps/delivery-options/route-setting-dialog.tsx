@@ -1,6 +1,7 @@
 'use client'
 
 import { carrierSettingKey, type RouteSetting } from '@commerce/core/delivery-options'
+import { parseRupees } from '@commerce/money'
 import { Save, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
@@ -25,7 +26,7 @@ import SettingsToggleRow from '@/components/settings/settings-toggle-row'
 import { deliveryOptionsContent } from '@/data/delivery-options'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { CARRIERS, toNumber, toPaise, toRupees } from './format'
+import { CARRIERS, toNumber, toRupees } from './format'
 
 export type RouteSettingTarget =
   /** An exact route from Try a PIN, by key, with its name. */
@@ -114,20 +115,20 @@ export default function RouteSettingDialog({
 
   // Event handlers
   const handleSave = () => {
-    const first = toPaise(draft.first)
+    const first = parseRupees(draft.first)
     return run(() =>
       api.deliveryOptions.saveRouteSetting({
         key: keyOf(),
         insures: draft.insures === 'default' ? null : draft.insures === 'yes',
         insurancePercent: toNumber(draft.percent),
-        insuranceMinPaise: toPaise(draft.min),
+        insuranceMinPaise: parseRupees(draft.min),
         costCard:
           first === null
             ? null
             : {
                 firstHalfKgPaise: first,
-                extraHalfKgPaise: toPaise(draft.extra) ?? 0,
-                codFeePaise: toPaise(draft.cod) ?? 0,
+                extraHalfKgPaise: parseRupees(draft.extra) ?? 0,
+                codFeePaise: parseRupees(draft.cod) ?? 0,
               },
         enabled: draft.enabled,
       }),

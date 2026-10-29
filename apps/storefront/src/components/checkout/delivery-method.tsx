@@ -6,6 +6,7 @@ import CheckoutParcels from '@/components/checkout/checkout-parcels'
 import DeliveryRouteChoices from '@/components/checkout/delivery-route-choices'
 import OptionCard from '@/components/checkout/option-card'
 import { checkoutContent as content } from '@/data/checkout'
+import { deliveryOptionsContent as appCopy } from '@/data/delivery-options'
 import type { CheckoutRate, CheckoutShipping } from '@/lib/shipping'
 
 type DeliveryMethodProps = {
@@ -144,7 +145,7 @@ export default function DeliveryMethod({
                     (o.dateRange ? content.rateDelivery(o.dateRange) : null)
                   }
                   meta={sub ? price(sub.pricePaise) : meta(o)}
-                  note={o.delivery && !o.delivery.codAllowed ? content.delivery.prepaidOnly : null}
+                  note={o.delivery && !o.delivery.codAllowed ? appCopy.prepaidOnly : null}
                 />
                 {picked && choices.length > 1 && onRoute ? (
                   <DeliveryRouteChoices
@@ -167,7 +168,7 @@ export default function DeliveryMethod({
             onChange={(e) => onInsurance(e.target.checked)}
             className="size-4 cursor-pointer rounded accent-[var(--ck-accent)]"
           />
-          {content.delivery.insure(insurance.pricePaise ? money(insurance.pricePaise) : null)}
+          {appCopy.insure(insurance.pricePaise ? money(insurance.pricePaise) : null)}
         </label>
       ) : null}
       <CheckoutParcels parcels={shipping.parcels} />

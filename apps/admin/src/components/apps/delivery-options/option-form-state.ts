@@ -5,7 +5,8 @@ import {
   type OptionRoutes,
   type RouteSelector,
 } from '@commerce/core/delivery-options'
-import { toNumber, toPaise, toRupees } from './format'
+import { parseRupees } from '@commerce/money'
+import { toNumber, toRupees } from './format'
 
 /** The option page as typed: numbers stay strings so "12." survives. */
 export type OptionForm = {
@@ -81,17 +82,17 @@ export function inputOf(f: OptionForm): DeliveryOptionInput {
     description: f.description.trim() || null,
     speed: f.speed,
     strategy: f.strategy,
-    preferDirectWithinPaise: toPaise(f.preferDirect),
+    preferDirectWithinPaise: parseRupees(f.preferDirect),
     routes,
     price: {
       source: f.priceSource,
-      markupPaise: toPaise(f.markup) ?? 0,
+      markupPaise: parseRupees(f.markup) ?? 0,
       markupPercent: toNumber(f.markupPercent) ?? 0,
-      freeAbovePaise: toPaise(f.freeAbove),
-      minPaise: toPaise(f.min),
-      maxPaise: toPaise(f.max),
+      freeAbovePaise: parseRupees(f.freeAbove),
+      minPaise: parseRupees(f.min),
+      maxPaise: parseRupees(f.max),
     },
-    insurance: { default: f.insurance, onlyAbovePaise: toPaise(f.insuranceAbove) },
+    insurance: { default: f.insurance, onlyAbovePaise: parseRupees(f.insuranceAbove) },
     eta: {
       source: f.etaSource,
       fixedMinDays: whole(f.fixedMin),

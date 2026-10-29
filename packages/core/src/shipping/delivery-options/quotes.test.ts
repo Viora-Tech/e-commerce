@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: checkout courier quote tests — WHAT: parallel asks, the deadline, the cache and cache-only, with mocked courier clients / WHY: checkout must never wait on a slow courier. */
 import type { RateOption, ShippingProvider } from '@commerce/shipping'
 import { describe, expect, it, vi } from 'vitest'
 import { deliveryQuoteKey, gatherProviderAnswers, type QuoteCache, valueBucket } from './quotes'

@@ -114,11 +114,13 @@ export function useCheckoutShipping(cart: CartView, onNoCod: () => void) {
     rate,
     rateId,
     setRateId: pickRate,
-    routeKey,
-    setRouteKey,
-    insurance: quote?.insurance ?? null,
-    toggleInsurance,
-    deliveryChoice,
+    /** Delivery options app: the sub-choice and the insurance tick under the cards. */
+    app: { routeKey, setRouteKey, insurance: quote?.insurance ?? null, toggleInsurance },
+    /** What Pay sends about shipping: the picked rate, and the app's choice when it is on. */
+    formFields: {
+      ...(rateId ? { shippingRate: rateId } : {}),
+      ...(deliveryChoice ? { deliveryQuote: deliveryChoice } : {}),
+    },
     unserviceable,
     gate,
     checkPincode,

@@ -1,5 +1,4 @@
-/**
- * SOURCE OF TRUTH: booking a delivery option order — WHAT: reads the route saved on an order,
+/** SOURCE OF TRUTH: booking a delivery option order — WHAT: reads the route saved on an order,
  * finds it among the Create shipment rate rows (marked "Chosen at checkout"), says why it
  * cannot be booked when it cannot, and names the fallback: the next route by the option's
  * strategy among those that still fit (product rule pool, insurance, COD, same or faster
@@ -22,7 +21,7 @@ import { matchingRules, poolAllows, type RulePool, rulePool } from './rules'
 import { activeDeliveryConfig, productFacts } from './service'
 
 /** The route an order saved at checkout, if it was placed with the Delivery options app. */
-export function orderDeliveryRoute(
+function orderDeliveryRoute(
   shipping: OrderShippingSnapshot | null | undefined,
 ): OrderDeliveryRoute | null {
   return shipping?.delivery ?? null

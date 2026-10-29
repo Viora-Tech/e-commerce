@@ -426,19 +426,6 @@ export const checkoutContent = {
     /** On the option that arrives first, when the options do not all arrive together. */
     fastest: 'Fastest',
     digital: 'Delivered by email',
-    /** Delivery options app: a route without a courier ETA. */
-    usually: (min: number, max: number) =>
-      min === max ? `Usually ${min} days` : `Usually ${min}–${max} days`,
-    /** Under an option that refuses cash on delivery (Express). */
-    prepaidOnly: 'Cash on delivery not available with this option',
-    /** The insurance checkbox under the options. */
-    insure: (price: string | null) =>
-      price ? `Insure this shipment (+${price})` : 'Insure this shipment',
-    /** The Payment step, when cash on delivery ships another route at another price. */
-    codRoute: (extra: string, carrier: string) =>
-      `Cash on delivery: +${extra}, ships with ${carrier}`,
-    /** The Payment step, when the picked delivery option is prepaid only. */
-    codPrepaidOnly: (option: string) => `Not available with ${option} delivery`,
   },
   /** When one order ships from more than one warehouse. */
   parcels: {
@@ -487,8 +474,6 @@ export const checkoutContent = {
       `Cash on delivery is available on orders up to ${limit}. Please pay online.`,
     codHighRisk:
       'Cash on delivery is not available for this order. Please pay online, it only takes a moment.',
-    codPrepaidOnlyOption:
-      'The delivery option you picked is prepaid only. Pay online, or pick Standard delivery to pay on delivery.',
     stateMismatch: (pincode: string) =>
       `The state you picked does not match PIN code ${pincode}. Check the state and the PIN code, then try again.`,
   },

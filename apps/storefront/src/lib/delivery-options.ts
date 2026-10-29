@@ -4,6 +4,7 @@ import {
   activeDeliveryConfig,
   cartItemFacts,
   cartKeyOf,
+  cartLineKeys,
   DELIVERY_SNAPSHOT_TTL_SECONDS,
   type DeliveryChoice,
   type DeliveryQuoteSnapshot,
@@ -21,11 +22,10 @@ import {
   toShippingPolicy,
 } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
-import { cartLine, type StoreTx, variant } from '@commerce/db'
+import type { StoreTx } from '@commerce/db'
 import { cacheGet, cacheSet, sharedRedis } from '@commerce/queue'
 import { formatDeliveryRange } from '@commerce/shipping'
-import { eq } from 'drizzle-orm'
-import { checkoutContent } from '@/data/checkout'
+import { deliveryOptionsContent } from '@/data/delivery-options'
 import { arrivalLabel } from './rate-dates'
 import { loadShippingSettings } from './shipping'
 
@@ -88,7 +88,7 @@ export function deliveryArrives(
   now: Date,
 ): string | null {
   if (dates.etaEstimated) {
-    return checkoutContent.delivery.usually(
+    return deliveryOptionsContent.usually(
       policy.defaultMinTransitDays,
       policy.defaultMaxTransitDays,
     )
@@ -129,16 +129,6 @@ export function cardExtras(
   }
 }
 
-type CartLineRow = { variantId: string; quantity: number }
-
-async function cartLines(tx: StoreTx, cartId: string): Promise<CartLineRow[]> {
-  return tx
-    .select({ variantId: cartLine.variantId, quantity: cartLine.quantity })
-    .from(cartLine)
-    .innerJoin(variant, eq(variant.id, cartLine.variantId))
-    .where(eq(cartLine.cartId, cartId))
-}
-
 async function readSnapshot(
   storeId: string,
   quoteId: string,
@@ -170,7 +160,7 @@ export async function checkoutDelivery(
   if (!zone.measure) return null
   const settings = await loadShippingSettings(tx, storeId)
   const policy = toShippingPolicy(settings)
-  const lines = await cartLines(tx, cartId)
+  const lines = await cartLineKeys(tx, cartId)
   const cartKey = cartKeyOf(lines, zone.measure.valuePaise)
   const previous = opts.quoteId ? await readSnapshot(storeId, opts.quoteId) : null
   const reuse =
@@ -266,7 +256,7 @@ export async function deliveryForOrder(
   const { quoteId, ...picked } = choice
   const snapshot = quoteId ? await readSnapshot(storeId, quoteId) : null
   const zone = await quoteCartShipping({ storeId, tx }, cartId, to)
-  const lines = await cartLines(tx, cartId)
+  const lines = await cartLineKeys(tx, cartId)
   const cartKey = zone.measure ? cartKeyOf(lines, zone.measure.valuePaise) : ''
   if (snapshot && snapshot.cartKey === cartKey && snapshot.pincode === to.pincode) {
     return { choice: picked, answers: snapshot.answers, shown: snapshot.shown }

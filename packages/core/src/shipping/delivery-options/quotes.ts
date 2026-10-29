@@ -1,5 +1,4 @@
-/**
- * SOURCE OF TRUTH: checkout's courier questions — WHAT: asks every connected domestic courier
+/** SOURCE OF TRUTH: checkout's courier questions — WHAT: asks every connected domestic courier
  * app for a PIN code at once (its services, prices for prepaid and COD, serviceability), each
  * within the checkout deadline, and remembers the answers by weight slab and value bucket /
  * WHY: checkout must never wait more than about a second on couriers, and one slow app must
@@ -18,9 +17,9 @@ import {
 import { halfKgSteps, type ProviderAnswer, type QuotedService } from './routes'
 
 /** Per call at checkout. Booking keeps the adapters' own 6 s timeout. */
-export const CHECKOUT_COURIER_DEADLINE_MS = 800
+const CHECKOUT_COURIER_DEADLINE_MS = 800
 /** Live prices and serviceability, per app, origin>PIN, slab and value bucket. */
-export const DELIVERY_QUOTE_TTL_SECONDS = 6 * 3600
+const DELIVERY_QUOTE_TTL_SECONDS = 6 * 3600
 
 export type QuoteCache = {
   get<T>(key: string): Promise<T | null>

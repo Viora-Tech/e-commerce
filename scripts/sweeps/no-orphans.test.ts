@@ -18,6 +18,30 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/core/src/shipping/delivery-options/price.ts',
+    names: ['roundUpToTenRupees'],
+    reason:
+      'Delivery options engine (P1): pure helper used inside the engine and unit-tested on its own (delivery-options tests); no other module needs it',
+  },
+  {
+    file: 'packages/core/src/shipping/delivery-options/routes.ts',
+    names: ['normaliseCarrier', 'directCarrier', 'serviceSpeed'],
+    reason:
+      'Delivery options engine (P1): pure helper used inside the engine and unit-tested on its own (delivery-options tests); no other module needs it',
+  },
+  {
+    file: 'packages/core/src/shipping/delivery-options/quotes.ts',
+    names: ['valueBucket', 'deliveryQuoteKey'],
+    reason:
+      'Delivery options engine (P1): pure helper used inside the engine and unit-tested on its own (delivery-options tests); no other module needs it',
+  },
+  {
+    file: 'packages/core/src/shipping/delivery-options/booking.ts',
+    names: ['rowRoute'],
+    reason:
+      'Delivery options engine (P1): pure helper used inside the engine and unit-tested on its own (delivery-options tests); no other module needs it',
+  },
+  {
     file: 'packages/core/src/domains/origin.ts',
     names: ['checkoutOrigin'],
     reason:

@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: delivery option booking tests — WHAT: the saved route among the rate rows, its failure reason and fallback, product rules for orders without a route / WHY: booking must match what the shopper paid for. */
 import { describe, expect, it } from 'vitest'
 import type { CourierRateRow } from '../courier-rates'
 import { type BookingContext, bookingPlan, rowRoute } from './booking'

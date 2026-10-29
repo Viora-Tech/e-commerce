@@ -22,7 +22,7 @@ import {
 import type { StoreTx } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can } from '../procedures'
+import { BULK_MAX, can } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
 import { loadShippingSettings } from '../services/shipping.service'
 
@@ -91,7 +91,7 @@ export const deliveryOptionsRouter = {
     }),
 
   reorderOptions: can(permissions.SETTINGS_MANAGE)
-    .input(z.object({ ids: z.array(z.uuid()).max(20) }))
+    .input(z.object({ ids: z.array(z.uuid()).max(BULK_MAX) }))
     .handler(async ({ context, input }) => {
       await requireInstalled(context)
       await reorderDeliveryOptions(context.tx, input.ids)
@@ -119,7 +119,7 @@ export const deliveryOptionsRouter = {
     }),
 
   reorderRules: can(permissions.SETTINGS_MANAGE)
-    .input(z.object({ ids: z.array(z.uuid()).max(100) }))
+    .input(z.object({ ids: z.array(z.uuid()).max(BULK_MAX) }))
     .handler(async ({ context, input }) => {
       await requireInstalled(context)
       await reorderRouteRules(context.tx, input.ids)
@@ -151,7 +151,7 @@ export const deliveryOptionsRouter = {
           .regex(/^[1-9]\d{5}$/),
         valuePaise: z.number().int().min(0).max(100_000_000),
         weightGrams: z.number().int().min(1).max(100_000),
-        productIds: z.array(z.uuid()).max(50).default([]),
+        productIds: z.array(z.uuid()).max(BULK_MAX).default([]),
         declineInsurance: z.boolean().default(false),
       }),
     )

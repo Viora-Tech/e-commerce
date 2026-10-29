@@ -17,7 +17,7 @@ import { ensureFulfillmentOrders, soleFulfillmentOrder } from '../order/fulfillm
 import { recomputeOrderStatuses } from '../order/recompute'
 import { insertOutboxEvent } from '../outbox/write'
 import { recordRtoForShipment } from '../returns/rto'
-import { AGGREGATOR_PROVIDERS, directCarrier, normaliseCarrier } from './delivery-options/routes'
+import { bookedCarrier } from './delivery-options/routes'
 import { shipmentDocumentsAsLabel } from './label-documents'
 import { storeShippingLabel } from './label-store'
 import { syncNdrFromTracking } from './ndr'
@@ -263,13 +263,7 @@ export async function createShipmentForOrder(
       (threshold > 0 && valuePaise >= threshold))
   const carrier =
     options.carrier?.trim() ||
-    (onRoute
-      ? route.carrier
-      : AGGREGATOR_PROVIDERS.has(provider.id)
-        ? options.serviceLabel
-          ? normaliseCarrier(options.serviceLabel).name
-          : null
-        : directCarrier(provider.id, provider.label).name)
+    (onRoute ? route.carrier : bookedCarrier(provider, options.serviceLabel))
 
   // Sent to this courier earlier as a pending order (order push): book that one when the
   // whole order ships, so the courier's panel does not end up with two.

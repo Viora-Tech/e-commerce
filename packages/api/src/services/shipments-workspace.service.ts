@@ -1,8 +1,6 @@
 import {
   activeDeliveryConfig,
-  assignBadges,
   bookingContext,
-  bookingPlan,
   bulkCreateShipments,
   chooseCourier,
   compareCourierRates,
@@ -33,6 +31,7 @@ import {
 } from '@commerce/shipping'
 import { ORPCError } from '@orpc/server'
 import { and, count, desc, eq, gte, ilike, inArray, lt, ne, or, sql } from 'drizzle-orm'
+import { bookSavedRoute, ruleAllowedRows } from './delivery-booking.service'
 import { loadShippingSettings, noteShipmentBooked } from './shipping.service'
 
 export const courierToRpc = (err: unknown): never => {
@@ -427,51 +426,15 @@ export async function bulkBookShipments(
   for (const o of contexts) {
     const overrideId = input.courierOverrides?.[o.orderId]
     const app = overrideId ? null : await bookingContext(tx, storeId, o.orderId)
-    const route = app?.delivery?.route ?? null
-    if (route) {
-      // Delivery options app: book exactly the route the shopper paid for, through its own app.
-      const label = `${route.serviceLabel} (${route.providerId})`
-      const provider = providers.find((p) => p.id === route.providerId)
-      if (!provider) {
-        results.push({
-          orderId: o.orderId,
-          ok: false,
-          needsDecision: true,
-          error: `${label}: this courier app is no longer connected.`,
-        })
-        continue
-      }
-      try {
-        const row = await createShipmentForOrder({ storeId, tx }, provider, o.orderId, {
-          weightGrams: input.weightGrams,
-          dimensionsCm: input.dimensionsCm,
-          insured: input.insured ?? app?.delivery?.insured,
-          serviceId: route.serviceId || undefined,
-          serviceLabel: route.serviceLabel,
-          carrier: route.carrier,
-        })
-        await noteShipmentBooked(tx, storeId, row.provider, o.orderId)
-        results.push({
-          orderId: o.orderId,
-          ok: true,
-          shipmentId: row.id,
-          waybill: row.waybill,
-          labelUrl: row.labelUrl,
-        })
-      } catch (err) {
-        const reason =
-          err instanceof CourierError
-            ? describeCourierFailure(err)
-            : err instanceof Error
-              ? err.message
-              : String(err)
-        results.push({
-          orderId: o.orderId,
-          ok: false,
-          needsDecision: true,
-          error: `${label}: ${reason}`,
-        })
-      }
+    if (app?.delivery?.route) {
+      const { weightGrams, dimensionsCm, insured } = input
+      results.push(
+        await bookSavedRoute(tx, storeId, providers, o.orderId, app, {
+          weightGrams,
+          dimensionsCm,
+          insured,
+        }),
+      )
       continue
     }
     try {
@@ -487,20 +450,7 @@ export async function bulkBookShipments(
           destinationCity: o.city,
         }
         const compared = await compareCourierRates(providers, query)
-        /* Orders on backup or zone rates still follow the product route rules (Glasspads only
-           with Delhivery): the store's courier rule picks among the routes they allow. */
-        const allowed = app?.rules.length
-          ? new Set(bookingPlan(compared, app, { insured: false }).allowedKeys)
-          : null
-        const options = allowed
-          ? assignBadges(compared.filter((r) => allowed.has(r.optionKey)))
-          : compared
-        const ruleProviders = allowed
-          ? providers.filter((p) => options.some((r) => r.providerId === p.id))
-          : providers
-        if (ruleProviders.length === 0) {
-          throw new Error("No connected courier fits this order's product route rules.")
-        }
+        const { options, providers: ruleProviders } = ruleAllowedRows(compared, providers, app)
         provider =
           chooseCourier(options, ruleProviders, settings.courierRule, { stateCode: o.stateCode }) ??
           ruleProviders[0]

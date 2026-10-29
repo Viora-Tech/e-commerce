@@ -1,5 +1,6 @@
 'use client'
 
+import { parseRupees } from '@commerce/money'
 import { Search } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
@@ -16,7 +17,7 @@ import { deliveryOptionsContent } from '@/data/delivery-options'
 import { discountFormContent } from '@/data/discounts'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { type TryPinResult, toPaise } from './format'
+import type { TryPinResult } from './format'
 import TryPinCards from './try-pin-cards'
 import TryPinTrace from './try-pin-trace'
 
@@ -46,7 +47,7 @@ export default function TryPinCard({ result, onResult }: TryPinCardProps) {
       onResult(
         await api.deliveryOptions.tryPin({
           pincode: pincode.trim(),
-          valuePaise: toPaise(value) ?? 0,
+          valuePaise: parseRupees(value) ?? 0,
           weightGrams: Math.max(1, Math.round(Number(weight) || 500)),
           productIds,
           declineInsurance,

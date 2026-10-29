@@ -8,6 +8,7 @@ export default {
   'back-in-stock': 'Back in stock',
   affiliates: 'Affiliates',
   'cod-rto': 'COD & RTO',
+  'delivery-options': 'Delivery options',
   pixels: 'Pixels (Meta pixel)',
   umami: 'Umami',
   growthbook: 'A/B tests (GrowthBook)',

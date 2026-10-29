@@ -125,7 +125,7 @@ export default function CheckoutForm(props: CheckoutFormProps) {
             adjustmentLabel={
               totals.adjustment?.label || content.adjustmentFallback(totals.adjustmentPaise)
             }
-            shipping={shippingRow(digitalOnly, shipping, rate)}
+            shipping={shippingRow(digitalOnly, shipping, rate, ck.totals.payment)}
             totalPaise={totals.totalPaise}
             gstPaise={gstPaise}
             cardRows={totals.cardRows}
@@ -219,15 +219,15 @@ export default function CheckoutForm(props: CheckoutFormProps) {
             <DeliveryMethod
               shipping={shipping}
               rates={ck.rates}
-              selectedId={ck.rateId}
+              selectedId={ck.deliveryApp.rateId}
               checking={ck.checking}
               unserviceable={ck.unserviceable}
               estimate={ck.deliveryText}
               onSelect={ck.handleRate}
-              routeKey={ck.routeKey}
-              onRoute={ck.handleRoute}
-              insurance={ck.insurance}
-              onInsurance={ck.handleInsurance}
+              routeKey={ck.deliveryApp.routeKey}
+              onRoute={ck.deliveryApp.setRouteKey}
+              insurance={ck.deliveryApp.insurance}
+              onInsurance={ck.deliveryApp.toggleInsurance}
             />
           </CheckoutCard>
         )}

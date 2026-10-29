@@ -1,5 +1,4 @@
-/**
- * SOURCE OF TRUTH: product and collection route rules for a cart — WHAT: which rules a cart's
+/** SOURCE OF TRUTH: product and collection route rules for a cart — WHAT: which rules a cart's
  * items match for one delivery option, and the route pool they leave (intersect every matching
  * rule; when nothing is common, the highest-placed rule wins) / WHY: "Glasspads ship with
  * Delhivery only" must decide the allowed routes before any option picks one. Pure.
@@ -17,7 +16,7 @@ export type CartItemFacts = {
 
 const lower = (s: string) => s.trim().toLowerCase()
 
-export function ruleMatchesItem(rule: RouteRule, item: CartItemFacts): boolean {
+function ruleMatchesItem(rule: RouteRule, item: CartItemFacts): boolean {
   const values = rule.target.values
   switch (rule.target.kind) {
     case 'products':

@@ -63,13 +63,9 @@ import { computeDepositFromSettings } from '../preorder/deposit'
 import { isLaunched } from '../preorder/launch'
 import { resolvePreorderSettings, resolveShipDate } from '../preorder/settings'
 import { StoreAddressSchema } from '../settings/general'
-import { type DeliveryChoice, orderDeliveryFor } from '../shipping/delivery-options/checkout'
-import { resolveDeliveryOptions } from '../shipping/delivery-options/resolve'
-import type { ProviderAnswer } from '../shipping/delivery-options/routes'
-import { activeDeliveryConfig, cartItemFacts } from '../shipping/delivery-options/service'
+import { type OrderDeliveryInput, priceOrderDelivery } from '../shipping/delivery-options/order'
 import { quoteShipping, type ShippingRateOption } from '../shipping/rates'
 import { loadRateZones } from '../shipping/rates-service'
-import { parseShippingSettings, toShippingPolicy } from '../shipping/settings'
 import { computeOrderGst } from '../tax/gst'
 import { chargedGstRate, parseStoreTax, type StoreTaxSettings } from '../tax/settings'
 import { runWorkflow, type WorkflowLog, type WorkflowStep } from '../workflow/run'
@@ -121,19 +117,8 @@ export type PlaceOrderInput = {
    * applies throws `ShippingRateUnavailable`. Omitted: the cheapest that applies.
    */
   shippingRateId?: string | null | undefined
-  /**
-   * Delivery options app: the shopper's option (and sub-choice and insurance tick) with the
-   * courier answers checkout priced it from (the quote snapshot, or answers read from cache
-   * only). Re-priced here from those answers without calling a courier, and never above what
-   * the snapshot says was shown. Omitted, or the app off: zone rates, as before.
-   */
-  delivery?:
-    | {
-        choice: DeliveryChoice
-        answers: ProviderAnswer[]
-        shown: Record<string, number> | null
-      }
-    | undefined
+  /** Delivery options app: the choice and the quote snapshot's answers (`priceOrderDelivery`). */
+  delivery?: OrderDeliveryInput | undefined
 }
 export type PlaceOrderResult = {
   orderId: string
@@ -368,10 +353,15 @@ const resolveShipping: WorkflowStep<State> = {
         weightGrams: lines.reduce((sum, l) => sum + l.quantity * (l.weightGrams ?? 0), 0),
       },
     )
-    if (input.delivery) {
-      const picked = await deliveryShipping(ctx, input, lines, discountedSubtotalPaise, quote)
-      if (picked) return picked
-    }
+    const fromApp = input.delivery
+      ? await priceOrderDelivery(ctx, input.delivery, {
+          lines,
+          valuePaise: discountedSubtotalPaise,
+          zone: quote,
+          payment: input.paymentProvider.id === 'cod' ? 'cod' : 'prepaid',
+        })
+      : null
+    if (fromApp) return fromApp
     if (quote.kind === 'not_configured') return { shipping: null }
     if (quote.kind === 'no_rates') throw new ShippingUnavailable(to.pincode, ctx.storeId)
     const wanted = input.shippingRateId
@@ -379,53 +369,6 @@ const resolveShipping: WorkflowStep<State> = {
     if (!picked) throw new ShippingRateUnavailable(wanted ?? 'none', ctx.storeId)
     return { shipping: picked }
   },
-}
-
-/**
- * The Delivery options app's price and route for the shopper's choice, from the answers the
- * quote was made with. Null when the app is off (zone rates price the order instead).
- */
-async function deliveryShipping(
-  ctx: StoreContext,
-  input: PlaceOrderInput,
-  lines: Line[],
-  valuePaise: number,
-  zone: ReturnType<typeof quoteShipping>,
-): Promise<Pick<State, 'shipping' | 'delivery' | 'backupRateId'> | null> {
-  const delivery = input.delivery
-  if (!delivery) return null
-  const config = await activeDeliveryConfig(ctx.tx, ctx.storeId)
-  if (!config) return null
-  const [s] = await ctx.tx
-    .select({ shipping: store.shipping })
-    .from(store)
-    .where(eq(store.id, ctx.storeId))
-  const policy = toShippingPolicy(parseShippingSettings(s?.shipping))
-  const result = resolveDeliveryOptions({
-    config,
-    cart: {
-      valuePaise,
-      weightGrams: lines.reduce((sum, l) => sum + l.quantity * (l.weightGrams ?? 0), 0),
-      items: await cartItemFacts(
-        ctx.tx,
-        lines.map((l) => l.variantId),
-      ),
-    },
-    answers: delivery.answers,
-    zone,
-    policy,
-    now: new Date(),
-    declineInsurance: !delivery.choice.insured,
-  })
-  const payment = input.paymentProvider.id === 'cod' ? 'cod' : 'prepaid'
-  const out = orderDeliveryFor(result, delivery.choice, payment, delivery.shown, config)
-  if (!out.ok) {
-    if (out.problem === 'prepaid_only') {
-      throw new CheckoutRuleViolation('cod_prepaid_only_option', { storeId: ctx.storeId })
-    }
-    throw new ShippingRateUnavailable(delivery.choice.optionId, ctx.storeId)
-  }
-  return { shipping: out.shipping, delivery: out.delivery, backupRateId: out.backupRateId }
 }
 
 /**

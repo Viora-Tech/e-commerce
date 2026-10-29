@@ -133,28 +133,14 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   const [settled, setSettled] = useState(false)
 
   // The courier cannot collect cash here: move off cash on delivery to the first online method.
-  const {
-    checking,
-    shipping,
-    rates,
-    rate,
-    rateId,
-    setRateId,
-    routeKey,
-    setRouteKey,
-    insurance,
-    toggleInsurance,
-    deliveryChoice,
-    unserviceable,
-    checkPincode,
-    gate,
-  } = useCheckoutShipping(cart, () =>
+  const ship = useCheckoutShipping(cart, () =>
     setForm((prev) =>
       prev.payment === 'cod'
         ? { ...prev, payment: methods.find((m) => m.id !== 'cod')?.id ?? prev.payment }
         : prev,
     ),
   )
+  const { checking, shipping, rates, rate, rateId, setRateId, unserviceable, checkPincode } = ship
 
   // Read back this tab's draft (a reload keeps the details), then quote the
   // address the page opened with: the draft's, or the account's prefilled one.
@@ -234,7 +220,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   const gates: SectionGates = {
     contact: contactReady && contactFieldsOk ? 'ok' : 'blocked',
     address: contactReady && wrongFields.length === 0 && editingId === null ? 'ok' : 'blocked',
-    shipping: gate,
+    shipping: ship.gate,
   }
   const sections = sectionsFor(digitalOnly)
   /** Each card's own work, for the tick on its number; Delivery does not wait on Contact. */
@@ -291,8 +277,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
         pincode: cleanPincode(form.pincode),
         payment: paymentId,
         giftCards: giftCards.map((c) => c.code),
-        ...(rateId ? { shippingRate: rateId } : {}),
-        ...(deliveryChoice ? { deliveryQuote: deliveryChoice } : {}),
+        ...ship.formFields,
       })
       if (r?.error) setError(r.error)
     })
@@ -456,14 +441,8 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     business,
     shipping,
     rates,
-    // Paying on delivery ships Standard's COD route, at its own price (Delivery options app).
-    rate:
-      totals.payment === 'cod' && rate?.delivery?.codPricePaise != null
-        ? { ...rate, pricePaise: rate.delivery.codPricePaise }
-        : rate,
-    rateId,
-    routeKey,
-    insurance,
+    rate,
+    deliveryApp: { ...ship.app, rateId },
     checking,
     pending,
     updating,
@@ -510,8 +489,6 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     handleDeleteAddress,
     handleLabel,
     handleRate: setRateId,
-    handleRoute: setRouteKey,
-    handleInsurance: toggleInsurance,
     handleSubmit,
     handleExpress,
     handleGiftCardApply,

@@ -1,5 +1,4 @@
-/**
- * SOURCE OF TRUTH: the Delivery options app's settings shapes — WHAT: zod schemas for a
+/** SOURCE OF TRUTH: the Delivery options app's settings shapes — WHAT: zod schemas for a
  * delivery option (Standard, Express), a product or collection route rule and a per-route
  * setting (insures, insurance rate, cost card), plus the route selector both use / WHY: the
  * admin forms, the API, the database rows and the pure engine (`resolve.ts`) must agree on one

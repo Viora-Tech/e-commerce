@@ -1,11 +1,11 @@
-/**
- * SOURCE OF TRUTH: the Delivery options app's stored settings — WHAT: loads a store's options,
+/** SOURCE OF TRUTH: the Delivery options app's stored settings — WHAT: loads a store's options,
  * product route rules and route settings for the engine, saves and reorders them, and reads
  * the rule facts (collections, tags, type) of the products in a cart / WHY: checkout, place
  * order, booking, Try a PIN and the admin pages read and write the same rows the same way.
  */
 import { createHash } from 'node:crypto'
 import {
+  cartLine,
   collectionProduct,
   deliveryOption,
   deliveryRouteRule,
@@ -199,6 +199,17 @@ export async function saveRouteSetting(
 
 export async function deleteRouteSetting(tx: StoreTx, key: string): Promise<void> {
   await tx.delete(deliveryRouteSetting).where(eq(deliveryRouteSetting.key, key))
+}
+
+/** A cart's lines as the quote snapshot keys them: variant and quantity. */
+export async function cartLineKeys(
+  tx: StoreTx,
+  cartId: string,
+): Promise<Array<{ variantId: string; quantity: number }>> {
+  return tx
+    .select({ variantId: cartLine.variantId, quantity: cartLine.quantity })
+    .from(cartLine)
+    .where(eq(cartLine.cartId, cartId))
 }
 
 /** What the route rules match on, for each product behind these variants. */

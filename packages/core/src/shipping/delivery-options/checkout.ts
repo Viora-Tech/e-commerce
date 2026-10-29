@@ -1,5 +1,4 @@
-/**
- * SOURCE OF TRUTH: delivery options at checkout and at place order — WHAT: `quoteDelivery`
+/** SOURCE OF TRUTH: delivery options at checkout and at place order — WHAT: `quoteDelivery`
  * gathers the courier answers and runs the engine for a cart and address; the quote snapshot
  * (what was asked, what was answered, what the shopper was shown) is what `placeOrder` prices
  * from; `orderDeliveryFor` turns the shopper's choice into the price charged and the route
@@ -11,13 +10,8 @@ import type { ShippingProvider } from '@commerce/shipping'
 import type { ShippingRateOption } from '../rates'
 import type { DeliveryConfig } from './config'
 import { type CheckoutQuoteQuery, gatherProviderAnswers, type QuoteCache } from './quotes'
-import {
-  chosenRoute,
-  type DeliveryResolveResult,
-  type ResolvedOption,
-  type ResolveInput,
-  resolveDeliveryOptions,
-} from './resolve'
+import { chosenRoute, resolveDeliveryOptions } from './resolve'
+import type { DeliveryResolveResult, ResolvedOption, ResolveInput } from './resolve-types'
 import type { ProviderAnswer } from './routes'
 
 /** How long checkout's computed options stay good for `placeOrder`. */
@@ -43,7 +37,7 @@ export type DeliveryChoice = {
   insured: boolean
 }
 
-export const choiceKey = (
+const choiceKey = (
   optionId: string,
   routeKey: string | null,
   insured: boolean,

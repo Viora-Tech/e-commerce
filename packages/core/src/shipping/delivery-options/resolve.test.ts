@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: delivery options engine tests — WHAT: strategies, route filtering, the Glasspads and Mice rules, mixed carts, ₹10 round-up, Express prepaid only, fallback / WHY: the owner's P1 rules must keep holding. */
 import { describe, expect, it } from 'vitest'
 import {
   type DeliveryConfig,
@@ -6,12 +7,9 @@ import {
   type RouteRule,
   RouteRuleInputSchema,
 } from './config'
-import {
-  chosenRoute,
-  type ResolveInput,
-  resolveDeliveryOptions,
-  roundUpToTenRupees,
-} from './resolve'
+import { roundUpToTenRupees } from './price'
+import { chosenRoute, resolveDeliveryOptions } from './resolve'
+import type { ResolveInput } from './resolve-types'
 import type { ProviderAnswer, QuotedService } from './routes'
 import type { CartItemFacts } from './rules'
 
