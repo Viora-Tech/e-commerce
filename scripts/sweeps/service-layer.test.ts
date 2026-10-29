@@ -149,6 +149,7 @@ const ALLOWLIST: AllowEntry[] = [
   { path: 'apps/storefront/src/lib/chat-track-actions.ts', exact: true, reason: STOREFRONT_LIB },
   { path: 'apps/storefront/src/lib/related.ts', exact: true, reason: STOREFRONT_LIB },
   { path: 'apps/worker/src/api-activity.ts', exact: true, reason: WORKER },
+  { path: 'apps/worker/src/shopify-token-sweep.ts', exact: true, reason: WORKER },
   { path: 'apps/worker/src/channel-sync.ts', exact: true, reason: WORKER },
   {
     path: 'apps/worker/src/media-rehost.ts',
