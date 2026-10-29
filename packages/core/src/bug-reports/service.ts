@@ -1,5 +1,6 @@
-/** SOURCE OF TRUTH: bug report records — WHAT: stores each "Report a bug" report beside its GitHub issue, lists a member's own reports (or the store's, for owners) with an unread mark, and applies status and reply changes from GitHub with the reporter's email / WHY: reports hold customer details, so the reporter follows their report here instead of on a public GitHub repo */
-import { bugReport, type StoreTx, store } from '@commerce/db'
+/** SOURCE OF TRUTH: bug report records — WHAT: stores each "Report a bug" report beside its GitHub issue, lists a member's own reports (or the store's, for owners) with an unread mark, and applies status and reply changes from GitHub with the reporter's email or WhatsApp / WHY: reports hold customer details, so the reporter follows their report here instead of on a public GitHub repo */
+import { authSchema, bugReport, notification, type StoreTx, store } from '@commerce/db'
+import type { NotificationChannel, TemplateData } from '@commerce/notifications'
 import { and, desc, eq, gt, inArray, isNotNull, sql } from 'drizzle-orm'
 import { loadMemberAlertPrefs } from '../member-account/alerts'
 import { memberAccess } from '../permissions/service'
@@ -203,53 +204,90 @@ async function bugReportStoreName(tx: StoreTx, storeId: string): Promise<string>
   return row?.name ?? 'Unknown store'
 }
 
-export type BugReportEmailOptions = {
+export type BugReportNotifyOptions = {
   /** `ADMIN_URL`, for the "See my reports" button. */
   adminUrl: string
   platform?: Pick<PlatformEmail, 'transport'>
+  /**
+   * The store's notification channels (its installed apps' registry); the WhatsApp one carries
+   * the message. Missing: email only (tests, or an app without plugins loaded).
+   */
+  storeChannels?: ((tx: StoreTx, storeId: string) => Promise<NotificationChannel[]>) | undefined
+}
+
+/** The reporter's mobile (Account → Profile), digits only as WhatsApp wants it; null without one. */
+async function reporterPhone(tx: StoreTx, userId: string): Promise<string | null> {
+  const [row] = await tx
+    .select({ phone: authSchema.user.phone })
+    .from(authSchema.user)
+    .where(eq(authSchema.user.id, userId))
+  return row?.phone ? row.phone.replace(/^\+/, '') : null
 }
 
 /**
- * Emails the reporter that their report is fixed or live, through the platform email account,
- * only when they keep "Your bug reports" email on in Account → Notifications for this store (on
- * by default) and are still a member. Best effort: false when nothing went.
+ * Tells the reporter their report is fixed or live, on the channels they keep on under "Your
+ * bug reports" in Account → Notifications for this store (email on by default): email through
+ * the platform email account, WhatsApp to their mobile through the store's WhatsApp (only when
+ * the store has one and they gave a mobile; logged like the store's other sends). Only while
+ * they are still a member. Best effort: the number of messages that went.
  */
-export async function emailBugReportUpdate(
+export async function notifyBugReportUpdate(
   tx: StoreTx,
   report: Pick<Row, 'storeId' | 'reporterUserId' | 'reporterEmail' | 'title' | 'status'>,
-  opts: BugReportEmailOptions,
-): Promise<boolean> {
-  if (report.status !== 'fixed' && report.status !== 'live') return false
+  opts: BugReportNotifyOptions,
+): Promise<number> {
+  if (report.status !== 'fixed' && report.status !== 'live') return 0
   const access = await memberAccess(tx, report.storeId, report.reporterUserId)
-  if (!access) return false
-  const prefs = await loadMemberAlertPrefs(
+  if (!access) return 0
+  const { bugReports: on } = await loadMemberAlertPrefs(
     tx,
     report.storeId,
     report.reporterUserId,
     access.isOwner,
   )
-  if (!prefs.bugReports.email) return false
-  const transport = (opts.platform ?? getPlatformEmail()).transport
-  if (!transport) return false
-  const channel = transport.channel({
-    fromEmail: transport.fromEmail,
-    fromName: transport.fromName,
-    replyTo: undefined,
-    using: 'platform',
-  })
-  const storeName = await bugReportStoreName(tx, report.storeId)
-  const r = await channel.send({
-    to: { email: report.reporterEmail },
-    template: 'bug_report_update',
-    data: {
-      customerName: '',
-      totalLabel: '',
-      lines: [],
-      paymentMethodLabel: '',
-      storeName,
-      bugReport: { title: report.title, status: report.status },
-      actionUrl: `${opts.adminUrl.replace(/\/+$/, '')}/account/bug-reports`,
-    },
-  })
-  return r.ok
+  if (!on.email && !on.whatsapp) return 0
+  const data: TemplateData = {
+    customerName: '',
+    totalLabel: '',
+    lines: [],
+    paymentMethodLabel: '',
+    storeName: await bugReportStoreName(tx, report.storeId),
+    bugReport: { title: report.title, status: report.status },
+    actionUrl: `${opts.adminUrl.replace(/\/+$/, '')}/account/bug-reports`,
+  }
+  let sent = 0
+  const transport = on.email ? (opts.platform ?? getPlatformEmail()).transport : null
+  if (transport) {
+    const channel = transport.channel({
+      fromEmail: transport.fromEmail,
+      fromName: transport.fromName,
+      replyTo: undefined,
+      using: 'platform',
+    })
+    const r = await channel.send({
+      to: { email: report.reporterEmail },
+      template: 'bug_report_update',
+      data,
+    })
+    if (r.ok) sent++
+  }
+  const phone =
+    on.whatsapp && opts.storeChannels ? await reporterPhone(tx, report.reporterUserId) : null
+  if (phone && opts.storeChannels) {
+    const channels = await opts.storeChannels(tx, report.storeId)
+    for (const channel of channels.filter((c) => c.requires === 'phone')) {
+      const r = await channel.send({ to: { phone }, template: 'bug_report_update', data })
+      await tx.insert(notification).values({
+        storeId: report.storeId,
+        channel: channel.id,
+        template: 'bug_report_update',
+        to: phone,
+        status: r.ok ? 'sent' : 'failed',
+        providerRef: r.ok ? r.providerRef : null,
+        error: r.ok ? null : r.error,
+      })
+      if (r.ok) sent++
+    }
+  }
+  return sent
 }

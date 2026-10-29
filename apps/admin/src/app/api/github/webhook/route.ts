@@ -5,7 +5,9 @@ import {
   createMemoryRateLimitStore,
   handleGithubWebhook,
   type RateLimitRule,
+  storeNotificationChannels,
 } from '@commerce/core'
+import { registriesForStore } from '@commerce/core/registries'
 import { logger } from '@commerce/observability/logging'
 import { db } from '@/lib/db'
 
@@ -51,6 +53,12 @@ export async function POST(request: Request) {
         token: env.GITHUB_ISSUES_TOKEN,
         repo: env.GITHUB_ISSUES_REPO,
         adminUrl: env.ADMIN_URL,
+        // The reporter's WhatsApp goes through the store's own WhatsApp channel.
+        storeChannels: async (tx, storeId) =>
+          storeNotificationChannels(tx, storeId, {
+            registry: (await registriesForStore(tx, storeId)).notifications,
+            settingsSecret: env.SETTINGS_SECRET,
+          }),
       }),
     },
   )

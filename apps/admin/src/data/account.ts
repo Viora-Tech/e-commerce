@@ -144,7 +144,7 @@ export const accountContent = {
       },
       bugReports: {
         label: 'Your bug reports',
-        help: 'When a bug you reported is fixed, and when the fix is live. By email.',
+        help: 'When a bug you reported is fixed, and when the fix is live.',
       },
     },
     summaryTime: 'Send at',

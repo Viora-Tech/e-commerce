@@ -56,7 +56,12 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
     case 'email_changed':
       return [d.storeName, d.emailChange?.newEmail ?? '-']
     case 'bug_report_update':
-      return [d.storeName, d.bugReport?.title ?? '-', d.bugReport?.status ?? '-']
+      return [
+        d.storeName,
+        d.bugReport?.title ?? '-',
+        d.bugReport?.status === 'live' ? 'fixed and live' : 'fixed, live with the next update',
+        d.actionUrl ?? '-',
+      ]
     case 'login_link':
     case 'newsletter_confirm':
     case 'staff_invite':

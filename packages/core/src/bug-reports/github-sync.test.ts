@@ -1,6 +1,14 @@
-/** SOURCE OF TRUTH: bug report status tests — WHAT: a report is stored when filed, GitHub webhook deliveries and the poll move its status and reply idempotently, a release to main marks fixes live, and the reporter's unread dot, bell and email follow / WHY: the reporter only sees the admin, so it must agree with GitHub without double-notifying */
+/** SOURCE OF TRUTH: bug report status tests — WHAT: a report is stored when filed, GitHub webhook deliveries and the poll move its status and reply idempotently, a release to main marks fixes live, and the reporter's unread dot, bell, email and WhatsApp follow the reporter's choice / WHY: the reporter only sees the admin, so it must agree with GitHub without double-notifying */
 import { createHmac } from 'node:crypto'
-import { authSchema, bugReport, createDb, store, storeMember, withStore } from '@commerce/db'
+import {
+  authSchema,
+  bugReport,
+  createDb,
+  notification,
+  store,
+  storeMember,
+  withStore,
+} from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import type { Message, NotificationChannel } from '@commerce/notifications'
 import { and, eq } from 'drizzle-orm'
@@ -102,7 +110,7 @@ function fakeEmail() {
   }
   return {
     sent,
-    email: {
+    notify: {
       adminUrl: 'https://admin.example.com',
       platform: {
         transport: {
@@ -189,7 +197,7 @@ describe('GitHub webhook', () => {
     const out = await deliver(
       'issues',
       { action: 'closed', issue: { number: 12, state_reason: 'completed' } },
-      { github: null, email: null },
+      { github: null, notify: null },
       'not-the-real-secret-value',
     )
     expect(out).toEqual({ ok: false, reason: 'bad_signature' })
@@ -200,7 +208,7 @@ describe('GitHub webhook', () => {
     const { storeId, staffReport } = await seed()
     const gh = fakeGithub()
     gh.state.closingCommit = 'fix-sha-1'
-    const deps = { github: gh.github, email: null }
+    const deps = { github: gh.github, notify: null }
 
     await deliver(
       'issues',
@@ -236,7 +244,7 @@ describe('GitHub webhook', () => {
 
   it('closed as not planned or labelled wontfix is won’t fix; reopening is in progress', async () => {
     const { storeId, staffReport, ownerReport } = await seed()
-    const deps = { github: null, email: null }
+    const deps = { github: null, notify: null }
     await deliver(
       'issues',
       { action: 'closed', issue: { number: 12, state_reason: 'not_planned' } },
@@ -255,7 +263,7 @@ describe('GitHub webhook', () => {
 
   it('shows the team’s latest public comment, never an internal one, and clears it on delete', async () => {
     const { storeId, staffReport } = await seed()
-    const deps = { github: null, email: null }
+    const deps = { github: null, notify: null }
     const comment = (action: string, id: number, body: string, at: string, who = 'MEMBER') =>
       deliver(
         'issue_comment',
@@ -285,7 +293,7 @@ describe('GitHub webhook', () => {
     const { storeId, staffReport, ownerReport } = await seed()
     const gh = fakeGithub()
     const mail = fakeEmail()
-    const deps = { github: gh.github, email: mail.email }
+    const deps = { github: gh.github, notify: mail.notify }
 
     gh.state.closingCommit = 'fix-12'
     await deliver('issues', { action: 'closed', issue: { number: 12 } }, deps)
@@ -338,11 +346,62 @@ describe('GitHub webhook', () => {
     await deliver(
       'issues',
       { action: 'closed', issue: { number: 12 } },
-      { github: null, email: mail.email },
+      { github: null, notify: mail.notify },
     )
     expect(mail.sent).toEqual([])
     expect((await row(storeId, staffReport)).status).toBe('fixed')
     expect((await row(storeId, staffReport)).fixCommitSha).toBeNull()
+  })
+
+  it('sends WhatsApp through the store’s channel when the reporter chose it and gave a mobile', async () => {
+    const { storeId } = await seed()
+    await owner
+      .update(storeMember)
+      .set({
+        notificationPrefs: {
+          ...parseMemberAlertPrefs(null, false),
+          bugReports: { email: false, whatsapp: true },
+        },
+      })
+      .where(and(eq(storeMember.storeId, storeId), eq(storeMember.userId, 'u-staff')))
+    const chats: Message[] = []
+    const whatsapp: NotificationChannel = {
+      id: 'whatsapp',
+      label: 'WhatsApp',
+      requires: 'phone',
+      async send(m) {
+        chats.push(m)
+        return { ok: true, providerRef: 'wamid-1' }
+      },
+    }
+    const mail = fakeEmail()
+    const deps = {
+      github: null,
+      notify: { ...mail.notify, storeChannels: async () => [whatsapp] },
+    }
+
+    // No mobile on the profile yet: nothing goes on WhatsApp, and email is off.
+    await deliver('issues', { action: 'closed', issue: { number: 12 } }, deps)
+    expect(chats).toEqual([])
+
+    await owner
+      .update(authSchema.user)
+      .set({ phone: '+919876543210' })
+      .where(eq(authSchema.user.id, 'u-staff'))
+    await deliver('issues', { action: 'reopened', issue: { number: 12 } }, deps)
+    const out = await deliver('issues', { action: 'closed', issue: { number: 12 } }, deps)
+    expect(out).toMatchObject({ ok: true, updated: 1, notified: 1 })
+    expect(chats).toHaveLength(1)
+    expect(chats[0]).toMatchObject({
+      to: { phone: '919876543210' },
+      template: 'bug_report_update',
+      data: { bugReport: { status: 'fixed' } },
+    })
+    expect(mail.sent).toEqual([])
+    const logged = await withStore(owner, storeId, (tx) =>
+      tx.select().from(notification).where(eq(notification.template, 'bug_report_update')),
+    )
+    expect(logged).toMatchObject([{ channel: 'whatsapp', to: '919876543210', status: 'sent' }])
   })
 })
 
@@ -367,7 +426,7 @@ describe('poll', () => {
         updated_at: '2026-10-26T11:00:00Z',
       },
     ]
-    const deps = { github: gh.github, email: null }
+    const deps = { github: gh.github, notify: null }
 
     const out = await pollBugReports(app, deps, { budget: 1, minAgeMs: 10 * 60_000 })
     expect(out).toMatchObject({ checked: 1, failed: 0, stopped: false })

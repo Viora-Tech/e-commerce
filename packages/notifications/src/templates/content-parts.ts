@@ -394,7 +394,7 @@ export const platformTemplates = {
         ? `The fix for "${d.bugReport.title}" is now live in ${d.storeName}. Thanks for telling us.`
         : `We fixed "${d.bugReport?.title ?? 'your report'}". It reaches ${d.storeName} with the next update.`,
     outro: (d) =>
-      `${d.actionUrl ? `See all your reports: ${d.actionUrl}. ` : ''}You get these because "Your bug reports" email is on in Account → Notifications.`,
+      `${d.actionUrl ? `See all your reports: ${d.actionUrl}. ` : ''}You get these because "Your bug reports" is on in Account → Notifications.`,
     whatsapp: (d) =>
       `${d.storeName}: your bug report "${d.bugReport?.title ?? ''}" is ${d.bugReport?.status === 'live' ? 'fixed and live' : 'fixed, live with the next update'}.`,
   },

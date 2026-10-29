@@ -125,7 +125,7 @@ flowchart LR
   apply --> db[("bug_report<br/>(store RLS)")]
   apply2 --> db
   db --> page["My reports, menu dot, bell"]
-  db --> mail["Email to the reporter<br/>(fixed, live)"]
+  db --> mail["Email / WhatsApp to the reporter<br/>(fixed, live)"]
 ```
 
 - **Webhook** (`apps/admin/src/app/api/github/webhook/route.ts`): every delivery's
@@ -158,10 +158,17 @@ the whole store's (`bugReports.list` with `scope: 'store'`).
   (`bugReports.unreadCount`, re-asked every 5 minutes); opening the page calls
   `bugReports.markSeen`.
 - **The bell** lists the member's own reports that turned fixed or live this week.
-- **Email** (`bug_report_update`, from the platform email account) when a report turns fixed or
-  live, only while the member keeps **Your bug reports → Email** on in Account → Notifications
-  (`bugReports` in the member alert prefs; on by default for everyone, since it is only about
-  their own report). Email only: the store's WhatsApp number is not used for platform messages.
+- **Email and WhatsApp** (`bug_report_update`) when a report turns fixed or live, on the
+  channels the member keeps on under **Your bug reports** in Account → Notifications
+  (`bugReports` in the member alert prefs). Email is on by default for everyone, since it is only
+  about their own report; WhatsApp is opt-in. Email goes from the platform email account.
+  WhatsApp goes to the member's Profile mobile through the **store's** WhatsApp channel, so it
+  needs the store to have WhatsApp set up and an approved Meta template named
+  `bug_report_update` with four body placeholders: store name, report title, where it got to
+  ("fixed and live" or "fixed, live with the next update") and the My reports link. Each
+  WhatsApp send is logged in the store's `notification` table like its other messages. The
+  sync passes the store's channels in (`storeChannels` on `bugReportSyncDeps`); without them it
+  sends email only. Nothing goes once the reporter has left the store.
 
 ### Webhook setup (test server)
 

@@ -2,10 +2,10 @@
 import { bugReportStoresForIssue, type Db, storesWithBugReports, withStore } from '@commerce/db'
 import { GithubApiError, type GithubClient, githubClient } from './github'
 import {
-  type BugReportEmailOptions,
+  type BugReportNotifyOptions,
   type BugReportPatch,
   bugReportsForIssue,
-  emailBugReportUpdate,
+  notifyBugReportUpdate,
   openBugReports,
   patchBugReport,
 } from './service'
@@ -22,26 +22,28 @@ import {
 export type BugReportSyncDeps = {
   /** Null without GITHUB_ISSUES_TOKEN: webhook changes still apply, nothing is read back. */
   github: GithubClient | null
-  /** Null skips the reporter's email (tests, or no ADMIN_URL). */
-  email: BugReportEmailOptions | null
+  /** Null skips telling the reporter (tests, or no ADMIN_URL). */
+  notify: BugReportNotifyOptions | null
   now?: () => Date
 }
 
 /**
  * The sync's outside world from the apps' settings: a GitHub client when GITHUB_ISSUES_TOKEN
- * is set, the reporter's email with ADMIN_URL. `fetch` is injectable for tests.
+ * is set, telling the reporter with ADMIN_URL (WhatsApp too when the app passes the store's
+ * channels). `fetch` is injectable for tests.
  */
 export function bugReportSyncDeps(cfg: {
   token: string | undefined
   repo: string
   adminUrl: string | undefined
+  storeChannels?: BugReportNotifyOptions['storeChannels']
   fetch?: typeof fetch
 }): BugReportSyncDeps {
   return {
     github: cfg.token
       ? githubClient({ fetch: cfg.fetch ?? fetch, token: cfg.token, repo: cfg.repo })
       : null,
-    email: cfg.adminUrl ? { adminUrl: cfg.adminUrl } : null,
+    notify: cfg.adminUrl ? { adminUrl: cfg.adminUrl, storeChannels: cfg.storeChannels } : null,
   }
 }
 
@@ -57,7 +59,7 @@ const add = (a: SyncResult, b: SyncResult): SyncResult => ({
 /** Commit lookups and compare calls one release may make: enough for a release's fixes. */
 const RELEASE_COMPARE_MAX = 30
 
-/** One write; when the status became fixed or live, the reporter's email (if they opted in). */
+/** One write; when the status became fixed or live, the reporter's email or WhatsApp (as they chose). */
 async function writeChange(
   db: Db,
   storeId: string,
@@ -68,10 +70,9 @@ async function writeChange(
   return withStore(db, storeId, async (tx) => {
     const row = await patchBugReport(tx, id, patch, deps.now?.() ?? new Date())
     if (!row) return NONE
-    const notify =
-      deps.email && patch.status !== undefined && (row.status === 'fixed' || row.status === 'live')
-    const sent = notify && deps.email ? await emailBugReportUpdate(tx, row, deps.email) : false
-    return { updated: 1, notified: sent ? 1 : 0 }
+    const changed = patch.status !== undefined && (row.status === 'fixed' || row.status === 'live')
+    const sent = changed && deps.notify ? await notifyBugReportUpdate(tx, row, deps.notify) : 0
+    return { updated: 1, notified: sent }
   })
 }
 

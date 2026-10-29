@@ -32,8 +32,6 @@ type Channel = 'email' | 'whatsapp'
 
 /** Alerts the worker sends today; the rest are saved for when their senders land. */
 const WIRED: ReadonlySet<string> = new Set(['newOrder', 'dailySummary', 'bugReports'])
-/** Alerts sent only by email: bug report news goes from the platform, not the store's WhatsApp. */
-const EMAIL_ONLY: ReadonlySet<string> = new Set(['bugReports'])
 const HOURS = Array.from({ length: 24 }, (_, h) => h)
 
 /** The saved prefs as the form edits them (`lastSentOn` is the server's). */
@@ -192,23 +190,21 @@ export default function NotificationsPage() {
                       </Select>
                     </div>
                   ) : null}
-                  {channels
-                    .filter((channel) => channel === 'email' || !EMAIL_ONLY.has(alert))
-                    .map((channel) => (
-                      <Label
-                        key={channel}
-                        htmlFor={`alert-${alert}-${channel}`}
-                        className="flex items-center gap-2 text-body font-normal text-ink-strong"
-                      >
-                        <Switch
-                          id={`alert-${alert}-${channel}`}
-                          checked={form[alert][channel]}
-                          onCheckedChange={(on) => handleSwitch(alert, channel, on)}
-                          disabled={channel === 'whatsapp' && !loaded.hasPhone}
-                        />
-                        {copy.channels[channel]}
-                      </Label>
-                    ))}
+                  {channels.map((channel) => (
+                    <Label
+                      key={channel}
+                      htmlFor={`alert-${alert}-${channel}`}
+                      className="flex items-center gap-2 text-body font-normal text-ink-strong"
+                    >
+                      <Switch
+                        id={`alert-${alert}-${channel}`}
+                        checked={form[alert][channel]}
+                        onCheckedChange={(on) => handleSwitch(alert, channel, on)}
+                        disabled={channel === 'whatsapp' && !loaded.hasPhone}
+                      />
+                      {copy.channels[channel]}
+                    </Label>
+                  ))}
                 </div>
               </li>
             ))}
