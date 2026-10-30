@@ -354,6 +354,16 @@ export type ImportStatus = {
   lastImportAt: string | null
   /** A preview under 24 hours old: the next import reads its copy instead of Shopify. */
   freshPreview: { runId: string; takenAt: string } | null
+  /**
+   * The import or preview queued or running now (newest first). Its numbers are still
+   * moving, so the page says so and links to it instead of offering another import.
+   */
+  running: {
+    runId: string
+    preview: boolean
+    status: Extract<RunStatus, 'queued' | 'running'>
+    startedAt: string
+  } | null
 }
 
 /** Which mode a saved connection authenticates with. */

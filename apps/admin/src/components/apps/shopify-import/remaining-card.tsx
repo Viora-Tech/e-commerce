@@ -53,6 +53,7 @@ type Row = {
 
 const base = shopifyImportContent.base
 const ROWS_LOADING = 6
+const RUNNING_REFRESH_MS = 8000
 
 function actionOf(r: ResourceStatus): Row['action'] {
   // Shopify's number is not known: a preview counts it (never "Done" without one).
@@ -110,19 +111,28 @@ export default function RemainingCard({ connected }: RemainingCardProps) {
   const [status, setStatus] = useState<ImportStatus | null | undefined>(undefined)
   const [busy, setBusy] = useState<string | null>(null)
 
-  // Counted once per page load; the server also caches Shopify's counts for a few minutes.
+  // Counted once per page load (the server caches Shopify's counts for a few minutes), and
+  // again every few seconds while a run is in flight, so the card follows it to the end.
   useEffect(() => {
     let live = true
-    api.shopifyImport
-      .status()
-      .then((next) => {
-        if (live) setStatus(next)
-      })
-      .catch(() => {
-        if (live) setStatus(null)
-      })
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const load = () => {
+      api.shopifyImport
+        .status()
+        .then((next) => {
+          if (!live) return
+          setStatus(next)
+          if (next.running) timer = setTimeout(load, RUNNING_REFRESH_MS)
+        })
+        .catch(() => {
+          // A failed refresh keeps the numbers already shown.
+          if (live) setStatus((prev) => (prev === undefined ? null : prev))
+        })
+    }
+    load()
     return () => {
       live = false
+      clearTimeout(timer)
     }
   }, [])
 
@@ -199,11 +209,23 @@ export default function RemainingCard({ connected }: RemainingCardProps) {
 
   // Render logic
   const previewAt = rows.find((r) => r.countedFrom === 'preview' && r.countedAt)?.countedAt ?? null
-  const facts = [
-    status?.lastImportAt ? copy.lastImport(fmt.when(status.lastImportAt)) : copy.nothingYet,
-    status?.freshPreview ? copy.previewReused(fmt.when(status.freshPreview.takenAt)) : null,
-    previewAt ? copy.fromPreview(fmt.date(previewAt)) : null,
-  ].filter((f): f is string => Boolean(f))
+  // Still loading: no "Nothing imported yet" before the history is known.
+  const facts = status
+    ? [
+        status.lastImportAt ? copy.lastImport(fmt.when(status.lastImportAt)) : copy.nothingYet,
+        status.freshPreview ? copy.previewReused(fmt.when(status.freshPreview.takenAt)) : null,
+        previewAt ? copy.fromPreview(fmt.date(previewAt)) : null,
+      ].filter((f): f is string => Boolean(f))
+    : []
+  // A run in flight: its numbers are still moving, and the server refuses a second one.
+  const running = status?.running ?? null
+  const runningText = running
+    ? running.status === 'queued'
+      ? copy.running.queued
+      : running.preview
+        ? copy.running.preview
+        : copy.running.import
+    : null
 
   // "Everything is here" only when every count was checked and none is missing.
   const done = allChecked && remaining.length === 0
@@ -228,7 +250,13 @@ export default function RemainingCard({ connected }: RemainingCardProps) {
               everything ? 'preview' : undefined,
             )
           }
-          disabled={!status || done || (!everything && remaining.length === 0) || busy !== null}
+          disabled={
+            !status ||
+            running !== null ||
+            done ||
+            (!everything && remaining.length === 0) ||
+            busy !== null
+          }
         >
           {busy === 'all' ? <Spinner /> : null}
           {headerLabel}
@@ -237,6 +265,20 @@ export default function RemainingCard({ connected }: RemainingCardProps) {
     >
       <div className="mb-3 flex flex-col gap-1.5 px-5 in-data-[layout=sections]:px-4 md:in-data-[layout=sections]:px-6">
         <p className="text-body text-muted-foreground">{copy.subtitle}</p>
+        {running && runningText ? (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-lg bg-muted px-3 py-2">
+            <Spinner className="text-muted-foreground" />
+            <p className="flex-1 text-body text-ink-strong">{runningText}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              nativeButton={false}
+              render={<Link href={`${base}/runs/${running.runId}`} />}
+            >
+              {copy.running.action}
+            </Button>
+          </div>
+        ) : null}
         <ul className="flex flex-col gap-0.5 text-caption text-muted-foreground">
           {facts.map((f) => (
             <li key={f}>{f}</li>
@@ -296,7 +338,7 @@ export default function RemainingCard({ connected }: RemainingCardProps) {
                         label={row.label}
                         variant="ghost"
                         loading={busy === row.key}
-                        disabled={busy !== null}
+                        disabled={busy !== null || running !== null}
                         contentClassName="w-auto"
                         items={[
                           {

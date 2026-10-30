@@ -70,6 +70,11 @@ export const shopifyImportContent = {
     },
     source: { csv: (file: string | null) => file ?? 'CSV file', api: 'Shopify store' },
     failedNoReason: 'Stopped before finishing. Open it to see why.',
+    progress: (processed: number, total: number) =>
+      total > 0
+        ? `${processed.toLocaleString('en-IN')} of ${total.toLocaleString('en-IN')} so far`
+        : 'Starting…',
+    loadFailed: 'Couldn’t load the import history. Retrying…',
     preview: 'Preview',
     empty: {
       heading: 'No imports yet',
@@ -373,6 +378,12 @@ export const shopifyImportContent = {
       `Numbers Shopify doesn’t count for us are from the ${when} preview`,
     lastImport: (when: string) => `Last import ${when}`,
     nothingYet: 'Nothing imported yet',
+    running: {
+      import: 'An import is running. These numbers update when it finishes.',
+      preview: 'A preview is running. These numbers update when it finishes.',
+      queued: 'An import is waiting to start. These numbers update when it finishes.',
+      action: 'View progress',
+    },
     previewReused: (when: string) =>
       `The preview from ${when} will be reused, so the next import starts faster.`,
     started: 'Import started',

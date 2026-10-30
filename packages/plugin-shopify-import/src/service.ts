@@ -148,7 +148,7 @@ const STOP_GRACE_MS = 60_000
  * `RUN_STALE_MS` (a lost failure event), and mark stopped those asked to stop
  * more than `STOP_GRACE_MS` ago that their worker never acknowledged.
  */
-async function failStaleRuns(tx: StoreTx, now = new Date()): Promise<void> {
+export async function failStaleRuns(tx: StoreTx, now = new Date()): Promise<void> {
   await tx
     .update(importRun)
     .set({ status: 'cancelled', finishedAt: now, updatedAt: now })
