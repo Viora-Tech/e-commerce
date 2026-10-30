@@ -10,16 +10,16 @@ describe('searchSettings', () => {
   it('finds pages by the short forms shop owners type', () => {
     expect(first('UPI')?.href).toBe('/settings/payments')
     expect(first('cod')?.href).toBe('/settings/checkout#cod')
-    expect(first('GST')?.href).toBe('/settings/taxes')
-    expect(first('invoice number')?.href).toBe('/settings/taxes?tab=invoices#invoice-numbers')
+    expect(first('GST')?.href).toBe('/settings/taxes?open=gst-numbers')
+    expect(first('invoice number')?.href).toBe('/settings/taxes?open=invoice-numbers')
     expect(first('irn')?.where).toBe('Taxes & GST › GST & invoices')
     expect(first('whatsapp')?.where).toBe('Messages › Notifications')
   })
 
   it('finds GST numbers (once Business and GST) on the Taxes & GST page, and Locations', () => {
-    expect(first('PAN')?.href).toBe('/settings/taxes')
-    expect(first('gst rate')?.href).toBe('/settings/taxes?tab=tax-rules')
-    expect(first('inclusive')?.href).toBe('/settings/taxes?tab=tax-rules#charging')
+    expect(first('PAN')?.href).toBe('/settings/taxes?open=gst-numbers')
+    expect(first('gst rate')?.href).toBe('/settings/taxes?open=registration')
+    expect(first('inclusive')?.href).toBe('/settings/taxes?open=charging')
     expect(first('godown')?.href).toBe('/settings/locations')
   })
 

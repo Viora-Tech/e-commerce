@@ -10,10 +10,8 @@ import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
 import SettingsCard from '@/components/settings/settings-card'
-import SettingsTable from '@/components/settings/settings-table'
-import SettingsTableCell from '@/components/settings/settings-table-cell'
-import SettingsTableRow from '@/components/settings/settings-table-row'
-import RowActionsCell from '@/components/table/row-actions-cell'
+import SettingsLinkRow from '@/components/settings/settings-link-row'
+import SettingsList from '@/components/settings/settings-list'
 import { domainsContent as copy } from '@/data/domains'
 import { SETTINGS_BACK } from '@/data/settings'
 import { usePermissions } from '@/hooks/use-permissions'
@@ -29,6 +27,17 @@ type DomainsSettingsProps = {
 function trafficLabel(d: DomainView): string {
   if (d.isPrimary) return copy.list.isPrimary
   return d.redirectToPrimary ? copy.list.redirects : copy.list.serves
+}
+
+/** The quiet line under a domain: what kind it is, what to do next, and how it serves traffic. */
+function domainLine(d: DomainView): string {
+  return [
+    d.kind === 'platform' ? copy.list.platform : null,
+    d.kind === 'custom' && d.status === 'pending' ? copy.list.addRecords : null,
+    d.isPrimary ? null : trafficLabel(d),
+  ]
+    .filter(Boolean)
+    .join(' · ')
 }
 
 /** Settings → Domains: the primary domain, every hostname, and connecting a new one. */
@@ -83,73 +92,47 @@ export default function DomainsSettings({ domains }: DomainsSettingsProps) {
         ) : null}
       </SettingsCard>
 
-      <SettingsTable
+      <SettingsList
         heading={copy.list.heading}
-        actions
-        total={domains.length}
-        columns={[
-          { label: copy.list.columns.domain },
-          { label: copy.list.columns.status, center: true },
-          { label: copy.list.columns.traffic, className: 'hidden sm:table-cell' },
-        ]}
         after={
           hasCustom ? null : (
-            <div className="border-line border-t">
-              <EmptyState
-                heading={copy.empty.heading}
-                body={copy.empty.body}
-                icon={Globe}
-                action={
-                  canManage ? (
-                    <Button variant="outline" onClick={() => setConnectOpen(true)}>
-                      {copy.empty.action}
-                    </Button>
-                  ) : undefined
-                }
-              />
-            </div>
+            <EmptyState
+              heading={copy.empty.heading}
+              body={copy.empty.body}
+              icon={Globe}
+              action={
+                canManage ? (
+                  <Button variant="outline" onClick={() => setConnectOpen(true)}>
+                    {copy.empty.action}
+                  </Button>
+                ) : undefined
+              }
+            />
           )
         }
       >
         {domains.map((d) => (
-          <SettingsTableRow key={d.id}>
-            <SettingsTableCell>
-              <div className="flex min-w-0 flex-col">
-                <span className="flex items-center gap-2 font-semibold text-ink-strong">
+          <li key={d.id}>
+            <SettingsLinkRow
+              href={routes.settings.domain(d.id)}
+              title={
+                <>
                   <span className="truncate">{d.hostname}</span>
                   {d.isPrimary ? <StatusChip>{copy.list.isPrimary}</StatusChip> : null}
-                </span>
-                {d.kind === 'platform' ? (
-                  <span className="text-caption text-muted-foreground">{copy.list.platform}</span>
-                ) : null}
-                {d.kind === 'custom' && d.status === 'pending' ? (
-                  <span className="flex flex-wrap items-center gap-x-2 text-caption text-muted-foreground">
-                    {copy.list.addRecords}
-                    <Link
-                      href={routes.settings.domain(d.id)}
-                      className="font-medium text-ink-strong underline underline-offset-2"
-                    >
-                      {copy.list.viewRecords}
-                    </Link>
-                  </span>
-                ) : null}
-                {d.sslStatus === 'failed' && d.error ? (
-                  <span className="text-caption text-destructive">{d.error}</span>
-                ) : null}
-              </div>
-            </SettingsTableCell>
-            <SettingsTableCell center>
-              <DomainStatusBadge domain={d} />
-            </SettingsTableCell>
-            <SettingsTableCell className="hidden text-muted-foreground sm:table-cell">
-              {trafficLabel(d)}
-            </SettingsTableCell>
-            <SettingsTableCell className="w-16 p-0 last:pr-2 md:last:pr-2">
-              <RowActionsCell href={routes.settings.domain(d.id)} />
-            </SettingsTableCell>
-          </SettingsTableRow>
+                </>
+              }
+              description={
+                d.sslStatus === 'failed' && d.error ? (
+                  <span className="text-destructive">{d.error}</span>
+                ) : (
+                  domainLine(d) || undefined
+                )
+              }
+              value={<DomainStatusBadge domain={d} />}
+            />
+          </li>
         ))}
-      </SettingsTable>
+      </SettingsList>
 
       <ConnectDomainDialog open={connectOpen} onOpenChange={setConnectOpen} />
       <ChangePrimaryDialog

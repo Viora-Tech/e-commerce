@@ -139,7 +139,7 @@ export default function LocationDetail({ location, registrations }: LocationDeta
               <Button
                 variant="outline"
                 size="sm"
-                render={<Link href={routes.settings.taxes()} />}
+                render={<Link href={`${routes.settings.taxes()}?open=gst-numbers`} />}
                 nativeButton={false}
               >
                 <Plus aria-hidden="true" />
