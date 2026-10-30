@@ -4,6 +4,7 @@ import {
   ReviewsWidget,
   variantOnPreorder,
 } from '@commerce/blocks'
+import { seoSnippet } from '@commerce/core/catalog'
 import { loadProductPageExtras } from '@commerce/core'
 import {
   depositIsNonRefundable,
@@ -97,7 +98,7 @@ const loadProduct = cache((storeId: string, handle: string) =>
     return {
       product,
       title: seo?.seoTitle || product.title,
-      description: metaDescription(seo?.seoDescription || text),
+      description: metaDescription(seo?.seoDescription || seoSnippet(text)),
       storeName: s?.name ?? '',
       currency: s?.currency ?? 'INR',
     }
