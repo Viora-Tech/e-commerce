@@ -6,11 +6,13 @@
  */
 import {
   addRegistration,
+  createMarket,
   createMetafieldDefinition,
   createShippingZone,
   defaultRegistrationGstin,
   listBusinessGst,
   listLocations,
+  listMarkets,
   listMetafieldDefinitions,
   listPolicies,
   listShippingZones,
@@ -19,6 +21,7 @@ import {
   saveLocationDetails,
   savePolicy,
   saveStoreProfile,
+  setMarketEnabled,
   updateShippingZone,
 } from '@commerce/core'
 import { PREFERENCE_LIMITS, parsePreferences } from '@commerce/core/preferences'
@@ -47,6 +50,7 @@ import {
   type SettingsOp,
 } from './settings-plan'
 import { planFields, planPolicies } from './settings-plan-content'
+import { planMarkets } from './settings-plan-markets'
 import { planSegments } from './settings-plan-segments'
 import { planPackages, planShipping } from './settings-plan-shipping'
 
@@ -140,6 +144,11 @@ async function loadLocal(
     segments: (await tx.select({ name: customerSegment.name }).from(customerSegment)).map(
       (r) => r.name,
     ),
+    markets: (await listMarkets(ctx)).map((m) => ({
+      name: m.name,
+      isPrimary: m.isPrimary,
+      countries: m.countries,
+    })),
     fields: fields.map((f) => ({
       id: f.id,
       ownerType: f.ownerType,
@@ -200,6 +209,11 @@ function planPart(part: SettingsPart, source: SettingsSource, local: LocalSettin
       const r = source.policies
       if (!r) return ready(part, { items: [], ops: [] })
       return r.ok ? ready(part, planPolicies(r.data, local)) : unread(part, r)
+    }
+    case 'markets': {
+      const r = source.markets
+      if (!r) return ready(part, { items: [], ops: [] })
+      return r.ok ? ready(part, planMarkets(r.data, local.markets)) : unread(part, r)
     }
     case 'segments': {
       const r = source.segments
@@ -280,6 +294,13 @@ async function apply(tx: StoreTx, storeId: string, op: SettingsOp): Promise<void
         .values({ storeId, name: op.name, rules: op.rules })
         .onConflictDoNothing()
       return
+    case 'market': {
+      const { enabled, ...write } = op.write
+      const created = await createMarket(ctx, write)
+      // A Shopify draft comes over switched off: shoppers see nothing until it is turned on.
+      if (!enabled) await setMarketEnabled(ctx, { id: created.id, enabled: false })
+      return
+    }
     case 'zone': {
       const zone = op.id
         ? await updateShippingZone(tx, storeId, op.id, op.write)

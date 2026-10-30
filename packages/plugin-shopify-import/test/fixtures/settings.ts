@@ -293,6 +293,52 @@ export const SEGMENTS = {
   },
 }
 
+const market = (
+  id: number,
+  name: string,
+  status: 'ACTIVE' | 'DRAFT',
+  codes: string[],
+  currency: string,
+  subfolder: string | null,
+  adjustment: { type: string; value: number } | null = null,
+) => ({
+  id: `gid://shopify/Market/${id}`,
+  name,
+  status,
+  conditions: { regionsCondition: { regions: { nodes: codes.map((code) => ({ code })) } } },
+  currencySettings: { baseCurrency: { currencyCode: currency } },
+  webPresences: {
+    nodes: [
+      {
+        subfolderSuffix: subfolder,
+        defaultLocale: { locale: 'en' },
+        alternateLocales: [{ locale: 'fr' }, { locale: 'xx' }],
+      },
+    ],
+  },
+  catalogs: { nodes: adjustment ? [{ priceList: { parent: { adjustment } } }] : [] },
+})
+
+/** Waimers' markets on Shopify: India live, the rest drafts (audit #114). */
+export const MARKETS = {
+  markets: {
+    pageInfo,
+    nodes: [
+      market(1, 'India', 'ACTIVE', ['IN'], 'INR', null),
+      market(2, 'United States', 'DRAFT', ['US'], 'USD', 'us', {
+        type: 'PERCENTAGE_INCREASE',
+        value: 10,
+      }),
+      market(3, 'European Union', 'DRAFT', ['DE', 'FR', 'IT'], 'EUR', 'eu'),
+      market(4, 'United Kingdom', 'DRAFT', ['GB'], 'GBP', 'en-gb', {
+        type: 'PERCENTAGE_DECREASE',
+        value: 5,
+      }),
+      market(5, 'Canada', 'DRAFT', ['CA'], 'CAD', null),
+    ],
+  },
+}
+
 /** A fake Admin API for the settings queries; `deny` lists the operations the token may not read. */
 export function settingsShopify(deny: readonly string[] = [], log: string[] = []): typeof fetch {
   return (async (_input: string | URL | Request, init?: RequestInit) => {
@@ -300,21 +346,23 @@ export function settingsShopify(deny: readonly string[] = [], log: string[] = []
       query: string
       variables: { ownerType?: string; id?: string }
     }
-    const op = query.includes('segments(')
-      ? 'segments'
-      : query.includes('shopPolicies')
-        ? 'policies'
-        : query.includes('metafields(first')
-          ? 'shopFields'
-          : query.includes('locations(')
-            ? 'locations'
-            : query.includes('deliveryProfiles(')
-              ? 'profiles'
-              : query.includes('deliveryProfile(')
-                ? 'zones'
-                : query.includes('metafieldDefinitions(')
-                  ? `fields:${variables.ownerType}`
-                  : 'shop'
+    const op = query.includes('markets(')
+      ? 'markets'
+      : query.includes('segments(')
+        ? 'segments'
+        : query.includes('shopPolicies')
+          ? 'policies'
+          : query.includes('metafields(first')
+            ? 'shopFields'
+            : query.includes('locations(')
+              ? 'locations'
+              : query.includes('deliveryProfiles(')
+                ? 'profiles'
+                : query.includes('deliveryProfile(')
+                  ? 'zones'
+                  : query.includes('metafieldDefinitions(')
+                    ? `fields:${variables.ownerType}`
+                    : 'shop'
     log.push(variables.id ? `${op}:${variables.id}` : op)
     if (deny.some((d) => op === d || op.startsWith(`${d}:`))) {
       return new Response(
@@ -331,6 +379,7 @@ export function settingsShopify(deny: readonly string[] = [], log: string[] = []
     if (op === 'zones') return json(PROFILE_ZONES)
     if (op === 'policies') return json(POLICIES)
     if (op === 'segments') return json(SEGMENTS)
+    if (op === 'markets') return json(MARKETS)
     const owner = variables.ownerType ?? ''
     return json({ metafieldDefinitions: { pageInfo, nodes: FIELD_DEFINITIONS[owner] ?? [] } })
   }) as typeof fetch

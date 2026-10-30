@@ -79,6 +79,10 @@ export const shopifyImportSettingsContent = {
       title: 'Customer segments',
       body: 'Your saved customer groups, rebuilt from their rules: tags, orders, amount spent, email subscription and last order. Ones that use other filters are listed for you to make here.',
     },
+    markets: {
+      title: 'Markets',
+      body: 'Your markets for other countries, with their currency, languages, subfolder and price adjustment. Drafts on Shopify come over switched off. India stays your primary market.',
+    },
   } satisfies Record<SettingsPart, { title: string; body: string }>,
   state: {
     ready: 'Changes to bring over',
@@ -123,6 +127,7 @@ export const shopifyImportSettingsContent = {
     policy: 'Policy',
     field: 'Extra field',
     segment: 'Customer segment',
+    market: 'Market',
   } satisfies Record<SettingsSubject, string>,
   owners: {
     product: 'Products',
@@ -193,6 +198,10 @@ export const shopifyImportSettingsContent = {
       `Extra fields on ${v.name.toLowerCase()} could not be read: ${v.detail}`,
     segment_rule: (v: ReasonValues) =>
       `${v.name} uses a filter that has no match here (${v.detail}). Make it in Customers › Segments.`,
+    market_countries: (v: ReasonValues) =>
+      `${v.name} has no country we know, so it was not brought over. Make it in Markets.`,
+    market_country_taken: (v: ReasonValues) =>
+      `Another market here already sells to ${v.detail}, so ${v.name} was not brought over. Change it in Markets.`,
   } satisfies Record<SettingsReason, (v: ReasonValues) => string>,
   fixHref: {
     store: '/settings/store',
@@ -203,5 +212,6 @@ export const shopifyImportSettingsContent = {
     policies: '/settings/policies',
     fields: '/settings/custom-data',
     segments: '/customers/segments',
+    markets: '/markets',
   } satisfies Record<SettingsPart, string>,
 } as const

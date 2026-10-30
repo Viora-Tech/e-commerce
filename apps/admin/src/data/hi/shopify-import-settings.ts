@@ -66,6 +66,10 @@ export default [
         title: 'ग्राहक सेगमेंट',
         body: 'आपके सेव किए ग्राहक ग्रुप, उनके नियमों से दोबारा बने: टैग, ऑर्डर, खर्च, ईमेल सब्सक्रिप्शन और आख़िरी ऑर्डर। दूसरे फ़िल्टर वाले यहाँ बनाने के लिए दिखाए जाते हैं।',
       },
+      markets: {
+        title: 'मार्केट',
+        body: 'दूसरे देशों के आपके मार्केट, उनकी करेंसी, भाषा, सबफ़ोल्डर और कीमत में बदलाव के साथ। Shopify के ड्राफ़्ट यहाँ बंद आते हैं। भारत आपका मुख्य मार्केट रहता है।',
+      },
     },
     state: {
       ready: 'लाने लायक बदलाव',
@@ -110,6 +114,7 @@ export default [
       policy: 'पॉलिसी',
       field: 'एक्स्ट्रा फ़ील्ड',
       segment: 'ग्राहक सेगमेंट',
+      market: 'मार्केट',
     },
     owners: {
       product: 'प्रोडक्ट',
@@ -171,6 +176,10 @@ export default [
       owner_access: (v) => `${v.name} के एक्स्ट्रा फ़ील्ड पढ़े नहीं जा सके: ${v.detail}`,
       segment_rule: (v) =>
         `${v.name} में ऐसा फ़िल्टर है जो यहाँ नहीं है (${v.detail})। इसे Customers › Segments में बनाएँ।`,
+      market_countries: (v) =>
+        `${v.name} में कोई जाना-पहचाना देश नहीं है, इसलिए नहीं लाया गया। इसे Markets में बनाएँ।`,
+      market_country_taken: (v) =>
+        `${v.detail} पहले से यहाँ के दूसरे मार्केट में है, इसलिए ${v.name} नहीं लाया गया। इसे Markets में बदलें।`,
     },
     fixHref: {
       store: '/settings/store',
@@ -181,6 +190,7 @@ export default [
       policies: '/settings/policies',
       fields: '/settings/custom-data',
       segments: '/customers/segments',
+      markets: '/markets',
     },
   }),
 ]

@@ -10,6 +10,7 @@ import { cleanMoneyFormat } from '@commerce/money'
 import { definitionsOf } from './api-metafields'
 import { mapFieldDefinition } from './api-metaobjects'
 import type { SettingsPart } from './settings-client'
+import type { NMarket } from './settings-plan-markets'
 import type { NSegment } from './settings-plan-segments'
 import { type ShopifyClient, ShopifyError } from './shopify-client'
 import type { NFieldDefinition } from './types'
@@ -112,6 +113,7 @@ export type SettingsSource = {
   policies: Read<NPolicy[]> | null
   fields: { owner: FieldOwner; read: Read<NOwnerDefinition[]> }[] | null
   segments: Read<NSegment[]> | null
+  markets: Read<NMarket[]> | null
 }
 
 /* ----------------------------------------------------------------- helpers */
@@ -480,6 +482,83 @@ async function fetchSegments(client: ShopifyClient): Promise<NSegment[]> {
   return out
 }
 
+// Markets as Shopify has had them since 2025-04: status, conditions and web presences.
+const MARKETS_QUERY = `query Markets($cursor: String) {
+  markets(first: 50, after: $cursor) {
+    pageInfo { hasNextPage endCursor }
+    nodes {
+      id name status
+      conditions { regionsCondition { regions(first: 250) { nodes { ... on MarketRegionCountry { code } } } } }
+      currencySettings { baseCurrency { currencyCode } }
+      webPresences(first: 1) { nodes { subfolderSuffix defaultLocale { locale } alternateLocales { locale } } }
+      catalogs(first: 1) { nodes { priceList { parent { adjustment { type value } } } } }
+    }
+  }
+}`
+
+type GMarket = {
+  id: string
+  name: string
+  status: string
+  conditions: {
+    regionsCondition: { regions: { nodes: { code?: string | null }[] } } | null
+  } | null
+  currencySettings: { baseCurrency: { currencyCode: string } | null } | null
+  webPresences: {
+    nodes: {
+      subfolderSuffix: string | null
+      defaultLocale: { locale: string } | null
+      alternateLocales: { locale: string }[] | null
+    }[]
+  } | null
+  catalogs: {
+    nodes: {
+      priceList: { parent: { adjustment: { type: string; value: number } | null } | null } | null
+    }[]
+  } | null
+}
+
+/** A price list adjustment as basis points: `PERCENTAGE_DECREASE` 5 is −500. */
+function adjustmentBp(a: { type: string; value: number } | null | undefined): number {
+  if (!a || !Number.isFinite(a.value)) return 0
+  const bp = Math.round(a.value * 100)
+  return a.type === 'PERCENTAGE_DECREASE' ? -bp : bp
+}
+
+function mapMarket(m: GMarket): NMarket {
+  const web = m.webPresences?.nodes[0]
+  return {
+    sourceId: m.id,
+    name: m.name,
+    active: m.status === 'ACTIVE',
+    countries: (m.conditions?.regionsCondition?.regions.nodes ?? []).flatMap((r) =>
+      r.code ? [r.code] : [],
+    ),
+    currency: m.currencySettings?.baseCurrency?.currencyCode ?? null,
+    locale: web?.defaultLocale?.locale ?? null,
+    locales: (web?.alternateLocales ?? []).map((l) => l.locale),
+    subfolder: web?.subfolderSuffix ?? null,
+    adjustmentBp: adjustmentBp(m.catalogs?.nodes[0]?.priceList?.parent?.adjustment),
+  }
+}
+
+async function fetchMarkets(client: ShopifyClient): Promise<NMarket[]> {
+  const out: NMarket[] = []
+  let cursor: string | null = null
+  for (let page = 0; page < 10; page++) {
+    const data: {
+      markets: {
+        pageInfo: { hasNextPage: boolean; endCursor: string | null }
+        nodes: GMarket[]
+      }
+    } = await client.query(MARKETS_QUERY, { cursor }, 50)
+    out.push(...data.markets.nodes.map(mapMarket))
+    if (!data.markets.pageInfo.hasNextPage) break
+    cursor = data.markets.pageInfo.endCursor
+  }
+  return out
+}
+
 async function fetchOwnerDefinitions(
   client: ShopifyClient,
   owner: FieldOwner,
@@ -513,5 +592,6 @@ export async function fetchSettingsSource(
     }
   }
   const segments = wants('segments') ? await read(() => fetchSegments(client)) : null
-  return { shop, locations, profiles, policies, fields, segments }
+  const markets = wants('markets') ? await read(() => fetchMarkets(client)) : null
+  return { shop, locations, profiles, policies, fields, segments, markets }
 }

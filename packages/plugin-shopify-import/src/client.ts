@@ -225,6 +225,8 @@ export const ALL_SCOPE_HANDLES = [
   'read_legal_policies',
   /** Pre-orders: Shopify's purchase options (selling plan groups). Optional. */
   'read_purchase_options',
+  /** Store settings: markets for other countries (audit #114). Optional. */
+  'read_markets',
 ] as const
 export type ScopeHandle = (typeof ALL_SCOPE_HANDLES)[number]
 

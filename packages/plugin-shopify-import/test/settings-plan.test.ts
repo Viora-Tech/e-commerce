@@ -16,6 +16,7 @@ import {
   type SettingsOp,
 } from '../src/settings-plan'
 import { planFields, planPolicies } from '../src/settings-plan-content'
+import { planMarkets } from '../src/settings-plan-markets'
 import { planSegments, segmentRules } from '../src/settings-plan-segments'
 import { planShipping } from '../src/settings-plan-shipping'
 import { ShopifyClient } from '../src/shopify-client'
@@ -73,6 +74,7 @@ function emptyLocal(): LocalSettings {
     })),
     fields: [],
     segments: [],
+    markets: [{ name: 'India', isPrimary: true, countries: ['IN'] }],
     mapped: { locations: new Map(), zones: new Map(), fields: new Map(), contentTypes: new Map() },
   }
 }
@@ -102,6 +104,12 @@ function applyToLocal(local: LocalSettings, ops: SettingsOp[]): LocalSettings {
       }
     }
     if (op.kind === 'segment') next.segments = [...next.segments, op.name]
+    if (op.kind === 'market') {
+      next.markets = [
+        ...next.markets,
+        { name: op.write.name, isPrimary: false, countries: op.write.countries },
+      ]
+    }
     if (op.kind === 'location') {
       const id = op.id ?? `loc-${++n}`
       const at = next.locations.findIndex((l) => l.id === id)
@@ -592,5 +600,56 @@ describe('customer segments (audit #87)', () => {
         },
       },
     ])
+  })
+})
+
+describe('markets (audit #114)', () => {
+  it('brings Shopify drafts over switched off and leaves India to the primary market', async () => {
+    const source = await read()
+    expect(source.markets?.ok).toBe(true)
+    const markets = source.markets?.ok ? source.markets.data : []
+    const plan = planMarkets(markets, [
+      { name: 'India', isPrimary: true, countries: ['IN'] },
+      { name: 'North America', isPrimary: false, countries: ['CA'] },
+    ])
+    expect(plan.items.map((i) => [i.name, i.action, i.reason ?? null])).toEqual([
+      ['India', 'same', null],
+      ['United States', 'create', null],
+      ['European Union', 'create', null],
+      ['United Kingdom', 'create', null],
+      ['Canada', 'manual', 'market_country_taken'],
+    ])
+    expect(plan.ops[0]).toEqual({
+      kind: 'market',
+      write: {
+        name: 'United States',
+        countries: ['US'],
+        currency: 'USD',
+        locale: 'en',
+        locales: ['fr'],
+        subfolder: 'us',
+        priceAdjustmentBp: 1000,
+        enabled: false,
+      },
+    })
+    const uk = plan.ops[2]
+    expect(uk?.kind === 'market' && uk.write.subfolder).toBe('en-gb')
+    expect(uk?.kind === 'market' && uk.write.priceAdjustmentBp).toBe(-500)
+  })
+
+  it('changes nothing the second time', async () => {
+    const source = await read()
+    const markets = source.markets?.ok ? source.markets.data : []
+    const local = [{ name: 'India', isPrimary: true, countries: ['IN'] }]
+    const first = planMarkets(markets, local)
+    const after = [
+      ...local,
+      ...first.ops.flatMap((op) =>
+        op.kind === 'market'
+          ? [{ name: op.write.name, isPrimary: false, countries: op.write.countries }]
+          : [],
+      ),
+    ]
+    expect(planMarkets(markets, after).ops).toEqual([])
   })
 })

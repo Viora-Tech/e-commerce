@@ -232,6 +232,7 @@ export const shopifyImportContent = {
       read_shipping: 'Read shipping zones and rates',
       read_legal_policies: 'Read store policies',
       read_purchase_options: 'Read pre-orders (purchase options)',
+      read_markets: 'Read markets',
     } satisfies Record<ScopeHandle, string>,
     chooseHeading: 'What to import',
     chooseHelp:

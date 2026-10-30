@@ -22,6 +22,7 @@ import { normalisePhone } from '@commerce/core/phone'
 import type { NLocation, NSettingsAddress, NShopSettings } from './api-settings'
 import type { RichText } from './html'
 import type { SettingsItem } from './settings-client'
+import type { LocalMarket, MarketWrite } from './settings-plan-markets'
 
 /* ------------------------------------------------------------ what is here */
 
@@ -77,6 +78,7 @@ export type LocalSettings = {
   policies: LocalPolicy[]
   /** Names of the customer segments here. */
   segments: string[]
+  markets: LocalMarket[]
   fields: LocalField[]
   /** Shopify id → our id from earlier imports. */
   mapped: {
@@ -108,6 +110,8 @@ export type SettingsOp =
   | { kind: 'zone'; id: string | null; sourceId: string; write: ShippingZoneWrite }
   | { kind: 'policy'; type: PolicyType; title: string; body: RichText; published: boolean }
   | { kind: 'field'; sourceId: string; write: MetafieldDefinitionWrite }
+  /** A Shopify market for other countries (settings-plan-markets). */
+  | { kind: 'market'; write: MarketWrite }
   /** Remember a match that needed no change, so a rename on either side keeps it matched. */
   | { kind: 'map'; resource: string; sourceId: string; localId: string }
 

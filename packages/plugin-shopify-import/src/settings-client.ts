@@ -17,6 +17,7 @@ export const SETTINGS_PARTS = [
   'policies',
   'fields',
   'segments',
+  'markets',
 ] as const
 export type SettingsPart = (typeof SETTINGS_PARTS)[number]
 
@@ -31,6 +32,7 @@ export const SETTINGS_PART_SCOPES: Record<SettingsPart, ScopeHandle[]> = {
   policies: ['read_legal_policies'],
   fields: ['read_products'],
   segments: ['read_customers'],
+  markets: ['read_markets'],
 }
 
 /** What one line of the plan is about. */
@@ -55,6 +57,7 @@ const SETTINGS_SUBJECTS = [
   'policy',
   'field',
   'segment',
+  'market',
 ] as const
 export type SettingsSubject = (typeof SETTINGS_SUBJECTS)[number]
 
@@ -115,6 +118,10 @@ const SETTINGS_REASONS = [
   'owner_access',
   /** A segment filter with no condition here (location, products bought, AND with OR…). */
   'segment_rule',
+  /** A market with no country we know. */
+  'market_countries',
+  /** Another market here already sells to some of its countries (`detail`). */
+  'market_country_taken',
 ] as const
 export type SettingsReason = (typeof SETTINGS_REASONS)[number]
 
