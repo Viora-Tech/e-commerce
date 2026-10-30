@@ -1,7 +1,10 @@
 import type { OverviewChannel } from '@commerce/api'
+import Link from 'next/link'
+import type { MouseEvent } from 'react'
 import CustomerAvatar from '@/components/customers/customer-avatar'
 import StatusChip from '@/components/layout/status-chip'
 import OrderChip from '@/components/orders/order-chip'
+import OrderLinesPopover from '@/components/orders/order-lines-popover'
 import { orderStage } from '@/components/orders/order-stage'
 import ProductThumb from '@/components/products/product-thumb'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
@@ -10,8 +13,20 @@ import { ordersContent } from '@/data/orders'
 import { useCopy } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
 import type { Formatters } from '@/lib/format'
+import { routes } from '@/lib/routes'
 
 type Item = Awaited<ReturnType<typeof api.orders.list>>['items'][number]
+
+/* A link inside a row: the row's own click (which navigates) must not also run. Ctrl/Cmd-click
+   then opens a new tab only, and a plain click is handled by the link alone. */
+function stopRowClick(e: MouseEvent) {
+  e.stopPropagation()
+}
+
+/** A tracking link typed by hand is linked only when it is a web address. */
+function webUrl(url: string | null): string | null {
+  return url && /^https?:\/\//i.test(url) ? url : null
+}
 
 /* Figma "Table / Cell · Avatar": a 24px muted initials disc, the customer's name 14/20 medium
    and their email 12/16 muted beneath (owner: a Customer column of its own). */
@@ -55,7 +70,13 @@ function ProductCell({ item }: { item: Item }) {
           {item.firstLineTitle ?? copy.guest}
         </span>
         {extra > 0 ? (
-          <span className="block text-xs text-muted-foreground">{copy.moreLines(extra)}</span>
+          <span className="block">
+            <OrderLinesPopover
+              orderId={item.id}
+              lineCount={item.lineCount}
+              label={copy.moreLines(extra)}
+            />
+          </span>
         ) : null}
       </span>
     </span>
@@ -79,15 +100,18 @@ export function orderColumns(
       render: (o) => (
         <span className="inline-flex items-center gap-1.5">
           {/* Cancelled reads as gone at a glance, like Shopify's struck-through rows (audit #6). */}
-          <span
+          {/* A real link (#1008): middle-click and Ctrl-click open the order in a new tab. */}
+          <Link
+            href={routes.orders.detail(o.id)}
+            onClick={stopRowClick}
             className={
               o.status === 'cancelled'
-                ? 'text-body font-medium text-muted-foreground line-through tabular-nums'
-                : 'text-body font-medium text-ink-strong tabular-nums'
+                ? 'rounded-sm text-body font-medium text-muted-foreground line-through tabular-nums hover:underline'
+                : 'rounded-sm text-body font-medium text-ink-strong tabular-nums hover:underline'
             }
           >
             #{o.number}
-          </span>
+          </Link>
           {o.isTest ? (
             <span title={copy.testChipHint}>
               <StatusChip tone="attention">{copy.testChip}</StatusChip>
@@ -212,7 +236,22 @@ export function orderColumns(
       sortValue: (o) => o.deliveryStatus ?? '',
       render: (o) =>
         o.deliveryStatus ? (
-          <OrderChip kind="shipment" value={o.deliveryStatus} />
+          webUrl(o.trackingUrl) ? (
+            // The courier's tracking page, in a new tab (#1008); middle-click works too.
+            <a
+              href={webUrl(o.trackingUrl) ?? undefined}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={copy.trackDelivery}
+              aria-label={copy.trackDelivery}
+              onClick={stopRowClick}
+              className="inline-flex rounded-full hover:opacity-80"
+            >
+              <OrderChip kind="shipment" value={o.deliveryStatus} />
+            </a>
+          ) : (
+            <OrderChip kind="shipment" value={o.deliveryStatus} />
+          )
         ) : (
           // Fulfilled by hand (no courier booking) is not "not shipped": it went, untracked.
           <span className="text-muted-foreground">

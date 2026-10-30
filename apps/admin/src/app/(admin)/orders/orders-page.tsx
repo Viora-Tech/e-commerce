@@ -42,9 +42,12 @@ import {
 import { usePrimaryAction } from '@/lib/primary-action'
 import { routes } from '@/lib/routes'
 import { parseRowsPerPage } from '@/lib/rows-per-page'
+import { runBatched } from '@/lib/run-batched'
 
-/** How many orders a bulk action updates at once. */
-const BULK_BATCH = 10
+/** The API refused this one order for a reason that is a skip, not a failure. */
+function isBadRequest(err: unknown): boolean {
+  return (err as { code?: unknown } | null)?.code === 'BAD_REQUEST'
+}
 
 type ListResult = Awaited<ReturnType<typeof api.orders.list>>
 type Item = ListResult['items'][number]
@@ -158,18 +161,34 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
     reload().catch(() => setFailed(true))
   }
   const handleBulkSetStatus = async (ids: string[], mark: OrderMark, clear: () => void) => {
-    try {
-      /* "Select all" can hand over thousands of ids: ten requests at a time, never all at once. */
-      for (let i = 0; i < ids.length; i += BULK_BATCH) {
-        await Promise.all(
-          ids.slice(i, i + BULK_BATCH).map((id) => api.orders.setStatus({ id, status: mark })),
-        )
+    /* Cancelled and imported orders on screen cannot take a mark: skipped without a call. */
+    const loaded = new Map(items.map((o) => [o.id, o]))
+    const due = ids.filter((id) => {
+      const o = loaded.get(id)
+      return !o || mark === 'cancelled' || (o.status !== 'cancelled' && !o.importedFrom)
+    })
+    let skipped = ids.length - due.length
+    let updated = 0
+    /* "Select all" can hand over thousands of ids: ten requests at a time, never all at once. */
+    const { failed } = await runBatched(due, async (id) => {
+      try {
+        await api.orders.setStatus({ id, status: mark })
+        updated += 1
+      } catch (err) {
+        // The API refuses a locked (cancelled, imported) order with BAD_REQUEST: a skip.
+        if (!isBadRequest(err)) throw err
+        skipped += 1
       }
-      toast.success(copy.bulk.updated(ids.length, copy.marks[mark]))
+    })
+    if (failed > 0 && updated === 0) toast.error(copy.bulk.failed)
+    else if (failed > 0) toast.warning(copy.bulk.partlyFailed(updated, failed))
+    else if (updated === 0) toast.info(copy.bulk.noneUpdated(skipped))
+    else if (skipped > 0)
+      toast.success(copy.bulk.updatedSkipped(updated, copy.marks[mark], skipped))
+    else toast.success(copy.bulk.updated(updated, copy.marks[mark]))
+    if (updated > 0) {
       clear()
-      await reload()
-    } catch {
-      toast.error(copy.bulk.failed)
+      await reload().catch(() => setFailed(true))
     }
   }
 
@@ -250,7 +269,8 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
         )}
         loading={loading}
         defaultSort={{ id: 'date', desc: true }}
-        defaultHidden={['fulfilment', 'channel', 'tags', 'items', 'delivery', 'phone', 'city']}
+        // Delivery and Tags show on the row by default (#1007); the rest stay in the columns menu.
+        defaultHidden={['fulfilment', 'channel', 'items', 'phone', 'city']}
         query={query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ query: '', status: null, ...NO_FILTERS, page: 1 })}

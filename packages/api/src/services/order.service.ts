@@ -103,6 +103,10 @@ export async function listOrders(
       deliveryStatus: sql<string | null>`(
         select s.status from shipment s where s.order_id = ${order.id}
         order by s.created_at desc limit 1)`,
+      /* The same shipment's tracking page: the Delivery chip links to it (#1008). */
+      trackingUrl: sql<string | null>`(
+        select s.tracking_url from shipment s where s.order_id = ${order.id}
+        order by s.created_at desc limit 1)`,
       shipCity: sql<
         string | null
       >`(select a.city from ${address} a where a.id = ${order.shippingAddressId})`,
@@ -135,6 +139,29 @@ export async function listOrders(
     tx.select({ n: count() }).from(order).where(eq(order.isTest, true)),
   ])
   return { items, total: countRow?.total ?? 0, testOrders: testRow?.n ?? 0 }
+}
+
+/** Most lines the list's items popover shows; the order page has the rest. */
+const LINE_PEEK_MAX = 20
+
+/** An order's lines with a picture each: the Orders list's items popover (#1008). */
+export async function listOrderLinePeek(tx: StoreTx, orderId: string) {
+  return tx
+    .select({
+      id: orderLine.id,
+      title: orderLine.title,
+      variantTitle: orderLine.variantTitle,
+      quantity: orderLine.quantity,
+      image: sql<string | null>`coalesce(${media.url}, (
+        select m.url from ${productMedia} pm join ${media} m on m.id = pm.media_id
+        where pm.product_id = ${variant.productId} order by pm.position limit 1))`,
+    })
+    .from(orderLine)
+    .leftJoin(variant, eq(variant.id, orderLine.variantId))
+    .leftJoin(media, eq(media.id, variant.mediaId))
+    .where(eq(orderLine.orderId, orderId))
+    .orderBy(asc(orderLine.id))
+    .limit(LINE_PEEK_MAX)
 }
 
 export type OrderTiles = {

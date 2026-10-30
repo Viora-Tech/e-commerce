@@ -29,6 +29,7 @@ import {
   captureOrderPayment,
   getOrder,
   listOrderIds,
+  listOrderLinePeek,
   listOrders,
   ORDER_CHANNEL_FILTERS,
   ORDER_RETURN_FILTERS,
@@ -111,6 +112,11 @@ export const ordersRouter = {
   ids: can(permissions.ORDERS_READ)
     .input(listFilters)
     .handler(({ context, input }) => listOrderIds(context.tx, input)),
+
+  /** An order's lines with pictures, for the list's items popover (up to 20). */
+  linePeek: can(permissions.ORDERS_READ)
+    .input(z.object({ id: z.uuid() }))
+    .handler(({ context, input }) => listOrderLinePeek(context.tx, input.id)),
 
   /** The couriers the store's orders went with (the filter panel's Courier select). */
   couriers: can(permissions.ORDERS_READ).handler(({ context }) => orderCouriers(context.tx)),

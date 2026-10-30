@@ -239,10 +239,24 @@ export default [
       fulfilment: 'भेजने की स्थिति',
     },
     moreLines: (n) => `+${n} और`,
+    linePeek: {
+      open: (n) => `सभी ${n} आइटम देखें`,
+      title: (n) => `${n} आइटम`,
+      loading: 'आइटम लोड हो रहे हैं…',
+      failed: 'आइटम लोड नहीं हो पाए',
+      untitled: 'बिना नाम का आइटम',
+      quantity: (n) => `× ${n}`,
+      more: 'सभी आइटम देखने के लिए ऑर्डर खोलें',
+    },
+    trackDelivery: 'ट्रैकिंग नए टैब में खोलें',
     bulk: {
       markAs: 'मार्क करें',
       bulkEdit: 'एक साथ बदलें',
       updated: (n, status) => `${n} ऑर्डर "${status}" मार्क किए गए`,
+      updatedSkipped: (n, status, skipped) =>
+        `${n} ऑर्डर "${status}" मार्क किए गए, ${skipped} छोड़े गए (कैंसल या इम्पोर्ट किए हुए)`,
+      partlyFailed: (n, failed) => `${n} अपडेट हुए, ${failed} अपडेट नहीं हो पाए। उन्हें फिर से कोशिश करें।`,
+      noneUpdated: (skipped) => `${skipped} ऑर्डर छोड़े गए: कैंसल या इम्पोर्ट किए हुए ऑर्डर नहीं बदलते`,
       failed: 'ऑर्डर अपडेट नहीं हो पाए',
       cancelTitle: (n) => `${n} ऑर्डर कैंसल करें?`,
       cancelBody:

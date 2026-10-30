@@ -234,10 +234,31 @@ export const ordersContent = {
     fulfilment: 'Fulfilment status',
   },
   moreLines: (n: number) => `+${n} more`,
+  /** The arrow by "+n more": a popover with the order's items (#1008). */
+  linePeek: {
+    open: (n: number) => `Show the ${n} items`,
+    title: (n: number) => (n === 1 ? '1 item' : `${n} items`),
+    loading: 'Loading items…',
+    failed: 'Could not load the items',
+    untitled: 'Untitled item',
+    quantity: (n: number) => `× ${n}`,
+    more: 'Open the order to see every item',
+  },
+  /** The Delivery chip when its shipment has a tracking page. */
+  trackDelivery: 'Open tracking in a new tab',
   bulk: {
     markAs: 'Mark as',
     bulkEdit: 'Bulk edit',
     updated: (n: number, status: string) => `${n} marked ${status.toLowerCase()}`,
+    /** Some were cancelled, imported or otherwise could not take the change. */
+    updatedSkipped: (n: number, status: string, skipped: number) =>
+      `${n} marked ${status.toLowerCase()}, ${skipped} skipped (cancelled or imported)`,
+    partlyFailed: (n: number, failed: number) =>
+      `${n} updated, ${failed} could not be updated. Try those again.`,
+    noneUpdated: (skipped: number) =>
+      skipped === 1
+        ? '1 order skipped: cancelled or imported orders cannot change'
+        : `${skipped} orders skipped: cancelled or imported orders cannot change`,
     failed: 'Could not update orders',
     cancelTitle: (n: number) => (n === 1 ? 'Cancel 1 order?' : `Cancel ${n} orders?`),
     cancelBody:
