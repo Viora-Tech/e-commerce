@@ -172,7 +172,7 @@ export const ordersContent = {
     balance_due: 'Balance due',
     completed: 'Completed',
     cancelled: 'Cancelled',
-    payment_not_finished: 'Payment not finished',
+    payment_not_finished: 'Payment pending',
   } satisfies Record<OrderListFilter | 'all', string>,
   status: {
     draft: 'Draft',

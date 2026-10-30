@@ -18,10 +18,11 @@ export type OrderView = (typeof ORDER_VIEWS)[number]
 
 /**
  * A storefront checkout whose online payment was never finished (the shopper closed the
- * gateway): open until the unpaid-order expiry cancels it. Shopify never makes these orders,
- * so the list keeps them out of All, Unpaid, Unfulfilled and Cancelled and gives them their
- * own tab (#849). COD and manual UPI orders are real orders and stay. Every part is non-null,
- * so `not` of it is never null.
+ * gateway): open until the unpaid-order expiry cancels it. They stay out of Unpaid and
+ * Unfulfilled (work to do; Home's counts) and have their own tab (#849). All and Cancelled show
+ * them as unpaid orders, so an order the customer page lists is never missing from All Orders
+ * (#1001, #997). COD and manual UPI orders are real orders. Every part is non-null, so `not`
+ * of it is never null.
  */
 const paymentNotFinished = sql`(${order.cartId} is not null and ${order.checkoutPaidAt} is null and ${order.importedFrom} is null and coalesce(${order.paymentMethod}, 'manual') not in ('cod', 'manual') and ${order.status} in ('open', 'cancelled'))`
 const paymentFinished = sql`not ${paymentNotFinished}`
@@ -66,10 +67,10 @@ export function viewFilter(view: OrderView): SQL | undefined {
     case 'completed':
       return eq(order.status, 'completed')
     case 'cancelled':
-      return and(eq(order.status, 'cancelled'), paymentFinished)
+      return eq(order.status, 'cancelled')
     case 'payment_not_finished':
       return paymentNotFinished
     default:
-      return paymentFinished
+      return undefined
   }
 }
