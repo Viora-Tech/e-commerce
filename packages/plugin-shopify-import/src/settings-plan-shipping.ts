@@ -321,7 +321,12 @@ export function planShipping(
 
 /* ------------------------------------------------------------------ packages */
 
-/** Shopify keeps saved packages to itself (no Admin API read), so this part only says so. */
+/**
+ * Shopify keeps saved packages to itself, so this part only says so. Checked again for Admin
+ * API 2026-10 (audit #162): there are `shippingPackageUpdate`/`Delete`/`MakeDefault` mutations
+ * and a write-only `shippingPackageId` on inventory measurements, but no query that lists a
+ * shop's packages or reads their sizes.
+ */
 export const planPackages = (): PartPlan => ({
   items: [{ action: 'manual', subject: 'packages', reason: 'packages_not_shared' }],
   ops: [],

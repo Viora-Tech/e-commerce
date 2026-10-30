@@ -25,3 +25,12 @@ tsc, vitest, lint, builds. Run them on `dev`.
   courier estimate by PIN code), so no shopper can enter an address abroad yet. That needs a
   country field, a foreign postcode/region form, skipping the PIN check and courier estimate
   abroad. The engine and `placeOrder` are ready for it.
+
+## #162 Packages
+
+- Settings › Shipping › **Packages** (the "Your boxes" card, renamed) already held named boxes
+  with size, weight, cost and a main box. Added a **Type** (`kind`: box, envelope, soft package;
+  `BoxPresetSchema`, default `box`, so saved boxes read as boxes). An envelope keeps 1 cm height.
+- Shopify import: Admin API 2026-10 still has no query that lists saved packages (only
+  update/delete/make-default mutations and a write-only `shippingPackageId`), so
+  `packages_not_shared` stays; its copy now points at Packages.

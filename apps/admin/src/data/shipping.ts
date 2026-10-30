@@ -58,12 +58,14 @@ export const shippingSettingsContent = {
     fallbackLabel: 'For every other state',
   },
   boxPresets: {
-    heading: 'Your boxes',
+    heading: 'Packages',
     intro:
-      'The boxes you pack orders in. Your main box fills in the size and weight when you book a courier, so you do not type them every time.',
+      'The boxes, envelopes and soft packages you pack orders in. Your main box fills in the size and weight when you book a courier, so you do not type them every time.',
     empty: 'No boxes yet. Add the box you use most.',
     name: 'Name',
     namePlaceholder: 'Small box',
+    kind: 'Type',
+    kinds: { box: 'Box', envelope: 'Envelope', soft_package: 'Soft package' },
     length: 'Length (cm)',
     width: 'Width (cm)',
     height: 'Height (cm)',

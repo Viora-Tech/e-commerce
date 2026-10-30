@@ -177,7 +177,7 @@ export default [
         `${v.name} ऑर्डर की रकम और वज़न दोनों पर निर्भर है। यहाँ रेट इनमें से एक पर चलते हैं।`,
       rate_currency: (v) => `${v.name} की कीमत ${v.detail} में है।`,
       packages_not_shared: () =>
-        'Shopify सेव किए पैकेज ऐप्स को नहीं देता। अपने बॉक्स साइज़ Settings › Shipping में जोड़ें।',
+        'Shopify सेव किए पैकेज ऐप्स को नहीं देता। अपने बॉक्स और लिफ़ाफ़े Settings › Shipping › Packages में जोड़ें।',
       policy_type: (v) => `${v.name} के लिए यहाँ कोई पेज नहीं है। ज़रूरत हो तो इसे किसी पेज में कॉपी करें।`,
       policy_images: (v) => `${v.name} की ${num(Number(v.detail) || 0)} फ़ोटो छोड़ दी गईं।`,
       field_type: (v) => `${v.name} एक ${v.detail} फ़ील्ड है, जिसका यहाँ कोई मेल नहीं है।`,

@@ -194,7 +194,7 @@ export const shopifyImportSettingsContent = {
       `${v.name} depends on order value and weight at once. Rates here use one or the other.`,
     rate_currency: (v: ReasonValues) => `${v.name} is priced in ${v.detail}.`,
     packages_not_shared: () =>
-      'Shopify does not share saved packages with apps. Add your box sizes in Settings › Shipping.',
+      'Shopify does not share saved packages with apps. Add your boxes and envelopes in Settings › Shipping › Packages.',
     policy_type: (v: ReasonValues) =>
       `${v.name} has no page here. Copy it into a page if you need it.`,
     policy_images: (v: ReasonValues) =>

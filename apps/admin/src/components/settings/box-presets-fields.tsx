@@ -1,11 +1,12 @@
 'use client'
 
-import type { BoxPreset } from '@commerce/core'
+import type { BoxPreset, PackageKind } from '@commerce/core'
 import { parseRupees } from '@commerce/money'
 import { Package, Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
+import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import { shippingSettingsContent } from '@/data/shipping'
@@ -19,6 +20,7 @@ type BoxPresetsFieldsProps = {
 const blankBox = (): BoxPreset => ({
   id: crypto.randomUUID(),
   name: '',
+  kind: 'box',
   lengthCm: 20,
   widthCm: 15,
   heightCm: 10,
@@ -26,6 +28,12 @@ const blankBox = (): BoxPreset => ({
   isDefault: false,
   costPaise: null,
 })
+
+/** The package types in the order the menu lists them (`PACKAGE_KINDS` in core). */
+const KINDS: readonly PackageKind[] = ['box', 'envelope', 'soft_package']
+
+/** An envelope is flat: its height is kept at 1 cm and not asked for. */
+const FLAT_CM = 1
 
 /** Typed rupees as paise; blank (or not a number) is "no cost set". */
 const costOf = (text: string): number | null => (text.trim() ? parseRupees(text) : null)
@@ -55,6 +63,10 @@ export default function BoxPresetsFields({ value, onChange }: BoxPresetsFieldsPr
     onChange((value ?? []).map((b) => (b.id === id ? { ...b, ...patch } : b)))
   }
 
+  const handleKind = (id: string, kind: PackageKind) => {
+    handlePatch(id, kind === 'envelope' ? { kind, heightCm: FLAT_CM } : { kind })
+  }
+
   const handleMakeDefault = (id: string) => {
     onChange((value ?? []).map((b) => ({ ...b, isDefault: b.id === id })))
   }
@@ -74,7 +86,7 @@ export default function BoxPresetsFields({ value, onChange }: BoxPresetsFieldsPr
             {boxes.map((box) => (
               <div
                 key={box.id}
-                className="grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-[1.5fr_1fr_1fr_1fr_1fr_1fr_auto] sm:items-end"
+                className="grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-[1.5fr_1.2fr_1fr_1fr_1fr_1fr_1fr_auto] sm:items-end"
               >
                 <Field>
                   <FieldLabel htmlFor={`box-name-${box.id}`}>{copy.name}</FieldLabel>
@@ -84,6 +96,21 @@ export default function BoxPresetsFields({ value, onChange }: BoxPresetsFieldsPr
                     value={box.name}
                     onChange={(e) => handlePatch(box.id, { name: e.target.value })}
                   />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor={`box-kind-${box.id}`}>{copy.kind}</FieldLabel>
+                  <NativeSelect
+                    id={`box-kind-${box.id}`}
+                    className="w-full"
+                    value={box.kind}
+                    onChange={(e) => handleKind(box.id, e.target.value as PackageKind)}
+                  >
+                    {KINDS.map((k) => (
+                      <NativeSelectOption key={k} value={k}>
+                        {copy.kinds[k]}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
                 </Field>
                 <Field>
                   <FieldLabel htmlFor={`box-length-${box.id}`}>{copy.length}</FieldLabel>
@@ -109,6 +136,7 @@ export default function BoxPresetsFields({ value, onChange }: BoxPresetsFieldsPr
                     id={`box-height-${box.id}`}
                     type="number"
                     value={box.heightCm}
+                    disabled={box.kind === 'envelope'}
                     onChange={(e) => handlePatch(box.id, { heightCm: Number(e.target.value) })}
                   />
                 </Field>
