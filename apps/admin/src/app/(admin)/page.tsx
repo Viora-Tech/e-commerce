@@ -37,12 +37,14 @@ export default async function Home() {
     call(appRouter.store.health, undefined, { context }).catch(() => null),
     // Smart cards (#101) are a nice-to-have: any failure just leaves the set-up ideas.
     call(appRouter.dashboard.cards, undefined, { context }).catch(() => null),
+    // Which to-dos the store hid; on failure every to-do shows and "Edit to-dos" hides.
+    call(appRouter.dashboard.todos, undefined, { context }).catch(() => null),
   ])
   if (!(await memberP)) {
     readsP.catch(() => {})
     redirect('/select-store')
   }
-  const [summary, charts, session, ai, apps, analytics, tiles, health, cards] = await readsP
+  const [summary, charts, session, ai, apps, analytics, tiles, health, cards, todos] = await readsP
   const { fallbackName } = (await getCopy(homeContent)).briefing
   const firstName = (session?.user.name ?? fallbackName).trim().split(/\s+/)[0] ?? fallbackName
   return (
@@ -55,6 +57,7 @@ export default async function Home() {
       signals={apps ? homeSignals(apps, await paymentsTestMode()) : null}
       health={health}
       cards={cards}
+      hiddenTodos={todos?.hidden ?? null}
     />
   )
 }

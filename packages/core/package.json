@@ -84,6 +84,7 @@
     "./admin-accent": "./src/admin-accent/accent.ts",
     "./home-cards": "./src/home-cards/rules.ts",
     "./home-metrics": "./src/home-metrics/metrics.ts",
+    "./home-todos": "./src/home-todos/todos.ts",
     "./shipping-rates": "./src/shipping/rates.ts",
     "./local-options": "./src/shipping/local-options.ts",
     "./document-templates": "./src/documents/templates.ts",

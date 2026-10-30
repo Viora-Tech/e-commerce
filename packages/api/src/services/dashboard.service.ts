@@ -17,8 +17,10 @@ import {
   media,
   order,
   orderLine,
+  preorderCampaign,
   product,
   productMedia,
+  returnRequest,
   sellableStock,
   store,
   variant,
@@ -182,6 +184,12 @@ export type DashboardSummary = {
     gstQueued: { count: number; href: string } | null
     lowStock: { count: number; href: string }
     preorderBalanceDue: { count: number; href: string }
+    /** Open orders still owed money (the Unpaid tab: COD, pending gateway or bank payments). */
+    unpaid: { count: number; href: string }
+    /** Active pre-order campaigns whose ship date falls in the next 7 days. */
+    preorderShipSoon: { count: number; href: string }
+    /** Return requests waiting for the merchant to approve or reject (the Requested tab). */
+    returnsToReview: { count: number; href: string }
     failedDeliveries: { count: number; href: string } | null
   }
   /** Plain-language insight ingredients; the component turns these into sentences. */
@@ -749,6 +757,21 @@ export async function dashboardSummary(
     .select({ n: count() })
     .from(order)
     .where(and(viewFilter('balance_due'), ne(order.status, 'draft')))
+  const [unpaidRow] = await tx.select({ n: count() }).from(order).where(viewFilter('unpaid'))
+  const [preorderShipSoonRow] = await tx
+    .select({ n: count() })
+    .from(preorderCampaign)
+    .where(
+      and(
+        eq(preorderCampaign.status, 'active'),
+        gte(preorderCampaign.shipDate, now),
+        lt(preorderCampaign.shipDate, new Date(now.getTime() + 7 * DAY_MS)),
+      ),
+    )
+  const [returnsToReviewRow] = await tx
+    .select({ n: count() })
+    .from(returnRequest)
+    .where(eq(returnRequest.status, 'requested'))
   let gstQueued: { count: number; href: string } | null = null
   let dispatch: DashboardSummary['dispatch'] = null
   if (opts.storeId) {
@@ -929,6 +952,12 @@ export async function dashboardSummary(
       preorderBalanceDue: {
         count: preorderBalanceDueRow?.n ?? 0,
         href: '/orders?status=balance_due',
+      },
+      unpaid: { count: unpaidRow?.n ?? 0, href: '/orders?status=unpaid' },
+      preorderShipSoon: { count: preorderShipSoonRow?.n ?? 0, href: '/products/preorders' },
+      returnsToReview: {
+        count: returnsToReviewRow?.n ?? 0,
+        href: '/orders/returns?status=requested',
       },
       failedDeliveries: null,
     },

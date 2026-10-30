@@ -1,10 +1,14 @@
 import type { DashboardSummary } from '@commerce/api'
+import type { HomeTodo } from '@commerce/core/home-todos'
 import {
   CircleCheckIcon,
   Clock,
+  CreditCard,
   type IconComponent,
+  Package,
   QrCodeIcon,
   ReceiptIcon,
+  RotateCcw,
   Truck,
   WarningIcon,
 } from '@commerce/ui/icons'
@@ -15,10 +19,17 @@ import SectionHead from '@/components/layout/section-head'
 import StatusChip from '@/components/layout/status-chip'
 import { homeContent, homePageContent } from '@/data/home'
 import { getCopy } from '@/lib/copy-server'
+import EditTodosDialog from './edit-todos-dialog'
 
 type TodoCardsProps = {
   needsYou: DashboardSummary['needsYou']
+  /** To-dos this store hid with "Edit to-dos"; null when the setting could not be read. */
+  hidden: HomeTodo[] | null
 }
+
+type Queue = { count: number; href: string } | null
+
+type RowCopy = { label: (n: number) => string; help: string; cta: string }
 
 type Row = {
   key: string
@@ -43,80 +54,84 @@ function waitingBadge(
   return days >= 1 ? waiting(days) : undefined
 }
 
-/** Live rows only: a zero-count queue has nothing to act on. */
+/** Each to-do's queue and its copy, in the order the cards show. */
+function queues(
+  needsYou: TodoCardsProps['needsYou'],
+  c: (typeof homeContent)['needsYou']['rows'],
+): { key: HomeTodo; icon: IconComponent; queue: Queue; copy: RowCopy; badge?: string }[] {
+  const ship = needsYou.ordersToShip
+  const shipBadge = waitingBadge(ship.oldestAt, c.ordersToShip.waiting)
+  return [
+    {
+      key: 'ship',
+      icon: Truck,
+      queue: ship,
+      copy: c.ordersToShip,
+      ...(shipBadge ? { badge: shipBadge } : {}),
+    },
+    { key: 'unpaid', icon: CreditCard, queue: needsYou.unpaid, copy: c.unpaid },
+    { key: 'upi', icon: QrCodeIcon, queue: needsYou.upiToVerify, copy: c.upiToVerify },
+    { key: 'balance', icon: Clock, queue: needsYou.preorderBalanceDue, copy: c.preorderBalanceDue },
+    {
+      key: 'preorderShip',
+      icon: Package,
+      queue: needsYou.preorderShipSoon,
+      copy: c.preorderShipSoon,
+    },
+    { key: 'returns', icon: RotateCcw, queue: needsYou.returnsToReview, copy: c.returnsToReview },
+    { key: 'gst', icon: ReceiptIcon, queue: needsYou.gstQueued, copy: c.gstQueued },
+    { key: 'stock', icon: WarningIcon, queue: needsYou.lowStock, copy: c.lowStock },
+  ]
+}
+
+/** Live rows only: a hidden to-do or a zero-count queue has nothing to show. */
 function buildRows(
   needsYou: TodoCardsProps['needsYou'],
   c: (typeof homeContent)['needsYou']['rows'],
+  hidden: HomeTodo[],
 ): Row[] {
-  const rows: Row[] = []
-  if (needsYou.ordersToShip.count > 0) {
-    rows.push({
-      key: 'ship',
-      icon: Truck,
-      label: c.ordersToShip.label(needsYou.ordersToShip.count),
-      help: c.ordersToShip.help,
-      cta: c.ordersToShip.cta,
-      href: needsYou.ordersToShip.href,
-      badge: waitingBadge(needsYou.ordersToShip.oldestAt, c.ordersToShip.waiting),
-    })
-  }
-  if (needsYou.upiToVerify.count > 0) {
-    rows.push({
-      key: 'upi',
-      icon: QrCodeIcon,
-      label: c.upiToVerify.label(needsYou.upiToVerify.count),
-      help: c.upiToVerify.help,
-      cta: c.upiToVerify.cta,
-      href: needsYou.upiToVerify.href,
-    })
-  }
-  if (needsYou.gstQueued && needsYou.gstQueued.count > 0) {
-    rows.push({
-      key: 'gst',
-      icon: ReceiptIcon,
-      label: c.gstQueued.label(needsYou.gstQueued.count),
-      help: c.gstQueued.help,
-      cta: c.gstQueued.cta,
-      href: needsYou.gstQueued.href,
-    })
-  }
-  if (needsYou.lowStock.count > 0) {
-    rows.push({
-      key: 'stock',
-      icon: WarningIcon,
-      label: c.lowStock.label(needsYou.lowStock.count),
-      help: c.lowStock.help,
-      cta: c.lowStock.cta,
-      href: needsYou.lowStock.href,
-    })
-  }
-  if (needsYou.preorderBalanceDue.count > 0) {
-    rows.push({
-      key: 'balance',
-      icon: Clock,
-      label: c.preorderBalanceDue.label(needsYou.preorderBalanceDue.count),
-      help: c.preorderBalanceDue.help,
-      cta: c.preorderBalanceDue.cta,
-      href: needsYou.preorderBalanceDue.href,
-    })
-  }
-  return rows
+  return queues(needsYou, c).flatMap(({ key, icon, queue, copy, badge }) =>
+    queue && queue.count > 0 && !hidden.includes(key)
+      ? [
+          {
+            key,
+            icon,
+            label: copy.label(queue.count),
+            help: copy.help,
+            cta: copy.cta,
+            href: queue.href,
+            badge,
+          },
+        ]
+      : [],
+  )
 }
 
 /**
- * "To do": one card per real, actionable queue (orders to ship, UPI payments to check, GST
- * invoices to issue, low stock, pre-order balances due), each with its action button. Nothing
- * to do shows one calm "all caught up" card instead of an empty row.
+ * "To do": one card per real, actionable queue (orders to ship, payments to collect, UPI
+ * payments to check, pre-order balances and shipments, returns, GST invoices, low stock), each
+ * with its action button. The store picks which ones show ("Edit to-dos", #1006). Nothing to do
+ * shows one calm "all caught up" card instead of an empty row.
  */
-export default async function TodoCards({ needsYou }: TodoCardsProps) {
+export default async function TodoCards({ needsYou, hidden }: TodoCardsProps) {
   // Render logic
   const c = (await getCopy(homeContent)).needsYou
   const page = (await getCopy(homePageContent)).todo
-  const rows = buildRows(needsYou, c.rows)
+  const rows = buildRows(needsYou, c.rows, hidden ?? [])
 
   return (
     <section className="flex flex-col gap-3.5">
-      <SectionHead title={page.title} aside={rows.length > 0 ? page.count(rows.length) : null} />
+      <SectionHead
+        title={page.title}
+        action={
+          <div className="flex items-center gap-3">
+            {rows.length > 0 ? (
+              <span className="text-body text-muted-foreground">{page.count(rows.length)}</span>
+            ) : null}
+            {hidden ? <EditTodosDialog hidden={hidden} /> : null}
+          </div>
+        }
+      />
       {rows.length === 0 ? (
         <div className="flex items-center gap-3 rounded-lg surface-card p-4">
           <IconBadge icon={CircleCheckIcon} tone="success" />

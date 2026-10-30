@@ -60,6 +60,24 @@ export const homePageContent = {
   todo: {
     title: 'To do',
     count: (n: number) => `${n} need you`,
+    edit: 'Edit to-dos',
+    editTitle: 'Edit to-dos',
+    editBody:
+      'Pick which to-dos show on Home. A ticked one shows only when there is something to do.',
+    names: {
+      ship: 'Orders to ship',
+      unpaid: 'Payments to collect',
+      upi: 'UPI payments to check',
+      balance: 'Pre-order balances due',
+      preorderShip: 'Pre-orders shipping this week',
+      returns: 'Returns to review',
+      gst: 'GST invoices to issue',
+      stock: 'Products to restock',
+    },
+    cancel: 'Cancel',
+    save: 'Save',
+    saved: 'To-dos updated',
+    saveFailed: 'Could not save your to-dos. Try again.',
   },
   sales: {
     title: 'Sales today',
@@ -267,6 +285,25 @@ export const homeContent = {
             : `${n} pre-orders are waiting on their balance`,
         help: 'The deposit is in; the rest is not.',
         cta: 'View pre-orders',
+      },
+      unpaid: {
+        label: (n: number) =>
+          n === 1 ? 'Collect payment for 1 order' : `Collect payment for ${n} orders`,
+        help: 'Open orders that are not paid yet, cash on delivery included.',
+        cta: 'View unpaid',
+      },
+      preorderShipSoon: {
+        label: (n: number) =>
+          n === 1
+            ? '1 pre-order campaign ships this week'
+            : `${n} pre-order campaigns ship this week`,
+        help: 'Get the stock in and ready to send.',
+        cta: 'View campaigns',
+      },
+      returnsToReview: {
+        label: (n: number) => (n === 1 ? 'Review 1 return' : `Review ${n} returns`),
+        help: 'Customers asked to return; approve or reject.',
+        cta: 'Review returns',
       },
       failedDeliveries: {
         label: (n: number) => (n === 1 ? '1 delivery failed' : `${n} deliveries failed`),
