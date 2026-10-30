@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import MarketsSettings from '@/components/settings/markets/markets-settings'
+import MarketsList from '@/components/markets/markets-list'
 import { appRouter, call, serverContext } from '@/lib/api'
 
 export const metadata: Metadata = { title: 'Markets' }
@@ -10,5 +10,5 @@ export default async function Page() {
     call(appRouter.markets.list, undefined, { context }),
     call(appRouter.domains.list, undefined, { context }),
   ])
-  return <MarketsSettings markets={markets} domains={domains} />
+  return <MarketsList markets={markets} domains={domains} />
 }

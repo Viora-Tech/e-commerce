@@ -38,7 +38,7 @@ export default function RolloutConflictsBanner({ conflicts }: RolloutConflictsBa
               {c.message}{' '}
               {c.rolloutId ? (
                 <Link
-                  href={routes.settings.rollout(c.rolloutId)}
+                  href={routes.rollouts.detail(c.rolloutId)}
                   className="font-medium text-foreground underline underline-offset-4"
                 >
                   {copy.open(c.rolloutName)}

@@ -2,26 +2,23 @@
 
 import type { DomainView, MarketView } from '@commerce/core'
 import { permissions } from '@commerce/core/permissions'
-import { Clock, Earth, Plus } from '@commerce/ui/icons'
+import { Earth, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import EmptyState from '@/components/layout/empty-state'
-import PageHeader from '@/components/layout/page-header'
+import ProoflyListPage from '@/components/layout/proofly-list-page'
 import SettingsTable from '@/components/settings/settings-table'
 import { marketsContent } from '@/data/markets'
-import { SETTINGS_BACK } from '@/data/settings'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
-import { routes } from '@/lib/routes'
 import MarketDialog from './market-dialog'
 import MarketRow from './market-row'
 
-type MarketsSettingsProps = {
+type MarketsListProps = {
   /** Every market, the primary one (India) first. */
   markets: MarketView[]
   domains: DomainView[]
@@ -31,10 +28,10 @@ type MarketsSettingsProps = {
 type Editing = { market: MarketView | null } | null
 
 /**
- * Settings › Markets (Shopify Markets style): the primary market first, then each market with
+ * Markets (Shopify Markets style, a top-level page): the primary market first, then each market with
  * its countries, currency, languages and the address shoppers reach it on.
  */
-export default function MarketsSettings({ markets, domains }: MarketsSettingsProps) {
+export default function MarketsList({ markets, domains }: MarketsListProps) {
   // Hooks
   const copy = useCopy(marketsContent)
   const router = useRouter()
@@ -90,30 +87,9 @@ export default function MarketsSettings({ markets, domains }: MarketsSettingsPro
       {copy.add}
     </Button>
   ) : null
-  const headerActions = (
-    <>
-      {hasPermission(permissions.ROLLOUTS_READ) ? (
-        <Button
-          variant="outline"
-          nativeButton={false}
-          render={<Link href={routes.settings.rollouts()} />}
-        >
-          <Clock aria-hidden="true" />
-          {copy.rollouts}
-        </Button>
-      ) : null}
-      {addButton}
-    </>
-  )
 
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader
-        title={copy.title}
-        subtitle={copy.intro}
-        back={SETTINGS_BACK}
-        actions={headerActions}
-      />
+    <ProoflyListPage title={copy.title} summary={copy.intro} actions={addButton}>
       <SettingsTable
         heading={copy.listTitle}
         columns={[
@@ -176,6 +152,6 @@ export default function MarketsSettings({ markets, domains }: MarketsSettingsPro
         tone="destructive"
         onConfirm={handleDelete}
       />
-    </div>
+    </ProoflyListPage>
   )
 }

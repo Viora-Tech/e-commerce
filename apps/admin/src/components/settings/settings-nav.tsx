@@ -41,8 +41,8 @@ function isTabActive(pathname: string, href: string): boolean {
   // The settings home only lights up on itself, not on every page under it.
   if (href === SETTINGS_HOME.href) return pathname === href
   if (pathname !== href && !pathname.startsWith(`${href}/`)) return false
-  // A page under another tab's address belongs to that tab only: Rollouts lives at
-  // /settings/markets/rollouts, and Markets lit up with it (audit #116).
+  // A page under another tab's address belongs to that tab only, so a parent tab does not light
+  // up with it (audit #116).
   return !SETTINGS_GROUPS.some((g) =>
     g.sections.some(
       (s) =>

@@ -48,6 +48,8 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
   '/growth/automations': { title: 'ऑटोमेशन' },
   '/growth/links': { title: 'ट्रैकिंग लिंक' },
   '/discounts': { title: 'डिस्काउंट' },
+  '/markets': { title: 'मार्केट' },
+  '/rollouts': { title: 'रोलआउट' },
   '/online-store': { title: 'ऑनलाइन स्टोर' },
   '/online-store/themes': { title: 'थीम' },
   '/online-store/pages': { title: 'पेज' },
@@ -93,14 +95,6 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
   '/settings/returns': {
     title: 'रिटर्न',
     body: 'ग्राहक कितने दिन में रिटर्न कर सकते हैं, कौन से कारण मंज़ूर हैं, और रिफ़ंड।',
-  },
-  '/settings/markets': {
-    title: 'मार्केट',
-    body: 'जिन देशों में आप बेचते हैं, हर एक की अपनी करेंसी, भाषा और वेब पता।',
-  },
-  '/settings/markets/rollouts': {
-    title: 'रोलआउट',
-    body: 'थीम, चेकआउट और डिस्काउंट के बदलाव जो तय समय पर लाइव होते हैं, जैसे सेल वाला वीकेंड।',
   },
   '/settings/taxes': {
     title: 'GST और इनवॉइस',

@@ -1,10 +1,9 @@
-/** Copy for Settings › Markets: the countries the store sells to, each in its own currency and language. */
+/** Copy for Markets (top-level page): the countries the store sells to, each in its own currency and language. */
 export const marketsContent = {
   title: 'Markets',
   intro:
     'Sell to shoppers abroad in their own currency and language. India stays your primary market: your prices, GST and reports remain in rupees.',
   add: 'Add market',
-  rollouts: 'Rollouts',
   listTitle: 'Your markets',
   columns: {
     market: 'Market',

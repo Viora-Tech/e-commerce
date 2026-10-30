@@ -59,7 +59,7 @@ export default function RolloutActions({ rollout: r, dirty }: RolloutActionsProp
     run(() => api.rollouts.archive({ id: r.id }), copy.toasts.archived).catch(() => undefined)
   const handleDelete = async () => {
     await run(() => api.rollouts.delete({ id: r.id }), copy.toasts.deleted)
-    router.push(routes.settings.rollouts())
+    router.push(routes.rollouts.list())
   }
 
   // Render logic

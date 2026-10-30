@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
+import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { rolloutsContent } from '@/data/rollouts'
@@ -79,7 +80,7 @@ export default function RolloutForm({ rollout, data }: RolloutFormProps) {
         const created = await api.rollouts.create(input)
         setSaved(JSON.stringify(form))
         toast.success(copy.toasts.created)
-        router.replace(routes.settings.rollout(created.id))
+        router.replace(routes.rollouts.detail(created.id))
         return
       }
       const fresh = await api.rollouts.update({ ...input, id: rollout.id })
@@ -143,7 +144,8 @@ export default function RolloutForm({ rollout, data }: RolloutFormProps) {
       : copy.meta
 
   return (
-    <div className="flex flex-col gap-4">
+    // One form column, centred at the width it had beside the Settings nav.
+    <PageBody className="mx-auto max-w-[52rem] gap-4">
       <SaveBar
         open={dirty && canManage && !ended}
         message={copy.saveBar.message}
@@ -156,7 +158,7 @@ export default function RolloutForm({ rollout, data }: RolloutFormProps) {
       <PageHeader
         title={rollout ? rollout.name : copy.newTitle}
         subtitle={subtitle}
-        back={{ label: listTitle, href: routes.settings.rollouts() }}
+        back={{ label: listTitle, href: routes.rollouts.list() }}
         badges={rollout ? <RolloutStatusChip status={rollout.status} /> : undefined}
         actions={headerActions}
       />
@@ -250,6 +252,6 @@ export default function RolloutForm({ rollout, data }: RolloutFormProps) {
         onClose={() => setAdding(false)}
         onAdd={handleAdd}
       />
-    </div>
+    </PageBody>
   )
 }

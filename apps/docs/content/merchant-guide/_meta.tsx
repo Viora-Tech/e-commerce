@@ -1,7 +1,9 @@
 import {
   ChartBar,
+  ClockCountdown,
   FolderOpen,
   GearSix,
+  GlobeHemisphereWest,
   HouseSimple,
   Lifebuoy,
   Package,
@@ -32,6 +34,8 @@ export default {
   analytics: { title: <NavTitle icon={<ChartBar weight="light" />}>Analytics</NavTitle> },
   growth: { title: <NavTitle icon={<TrendUp weight="light" />}>Growth</NavTitle> },
   discounts: { title: <NavTitle icon={<SealPercent weight="light" />}>Discounts</NavTitle> },
+  markets: { title: <NavTitle icon={<GlobeHemisphereWest weight="light" />}>Markets</NavTitle> },
+  rollouts: { title: <NavTitle icon={<ClockCountdown weight="light" />}>Rollouts</NavTitle> },
   'online-store': { title: <NavTitle icon={<Storefront weight="light" />}>Online store</NavTitle> },
   'sales-channels': {
     title: <NavTitle icon={<ShareNetwork weight="light" />}>Sales channels</NavTitle>,

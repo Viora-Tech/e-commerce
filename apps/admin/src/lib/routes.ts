@@ -190,6 +190,18 @@ export const routes = {
     detail: (discountId: string) => `/discounts/${id(discountId)}`,
   },
 
+  /** The countries the store sells to (top-level, like Shopify; was under Settings). */
+  markets: {
+    list: () => '/markets',
+  },
+
+  /** Store changes that go live at a set time (top-level; was Settings › Markets › Rollouts). */
+  rollouts: {
+    list: () => '/rollouts',
+    new: () => '/rollouts/new',
+    detail: (rolloutId: string) => `/rollouts/${id(rolloutId)}`,
+  },
+
   onlineStore: {
     home: () => '/online-store',
     themes: () => '/online-store/themes',
@@ -258,10 +270,6 @@ export const routes = {
     location: (locationId: string) => `/settings/locations/${id(locationId)}`,
     domains: () => '/settings/domains',
     domain: (domainId: string) => `/settings/domains/${id(domainId)}`,
-    markets: () => '/settings/markets',
-    rollouts: () => '/settings/markets/rollouts',
-    newRollout: () => '/settings/markets/rollouts/new',
-    rollout: (rolloutId: string) => `/settings/markets/rollouts/${id(rolloutId)}`,
     notifications: () => '/settings/notifications',
     policies: () => '/settings/policies',
     /** Setups that break or hurt checkout and orders, each with a link to fix it. */

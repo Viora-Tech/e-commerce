@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import RolloutsList from '@/components/settings/rollouts/rollouts-list'
+import RolloutsList from '@/components/rollouts/rollouts-list'
 import { appRouter, call, serverContext } from '@/lib/api'
 
 export const metadata: Metadata = { title: 'Rollouts' }

@@ -22,7 +22,7 @@ export default function RolloutHoldChip({ hold }: RolloutHoldChipProps) {
 
   return (
     <Link
-      href={routes.settings.rollout(hold.id)}
+      href={routes.rollouts.detail(hold.id)}
       onClick={(e) => e.stopPropagation()}
       className="rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
     >

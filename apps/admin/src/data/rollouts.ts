@@ -1,9 +1,8 @@
-/** Copy for Settings › Markets › Rollouts: store changes that go live at a set time, for good or for a sale. */
+/** Copy for Rollouts (top-level page): store changes that go live at a set time, for good or for a sale. */
 export const rolloutsContent = {
   title: 'Rollouts',
   intro:
     'Prepare a new theme, checkout look or discounts ahead of time and let them go live on their own. A launch keeps its changes; an event, like a Diwali sale, ends by itself and puts the store back.',
-  back: 'Markets',
   create: 'Create rollout',
   listTitle: 'Your rollouts',
   filters: {

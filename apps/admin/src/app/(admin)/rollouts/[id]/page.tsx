@@ -1,5 +1,5 @@
 import { notFound, redirect } from 'next/navigation'
-import RolloutForm from '@/components/settings/rollouts/rollout-form'
+import RolloutForm from '@/components/rollouts/rollout-form'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { routes } from '@/lib/routes'
 import { orNoStore } from '@/lib/store-guard'

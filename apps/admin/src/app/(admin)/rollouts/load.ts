@@ -1,4 +1,4 @@
-import type { RolloutPageData } from '@/components/settings/rollouts/rollout-page-data'
+import type { RolloutPageData } from '@/components/rollouts/rollout-page-data'
 import { appRouter, call, type serverContext } from '@/lib/api'
 
 type Context = Awaited<ReturnType<typeof serverContext>>

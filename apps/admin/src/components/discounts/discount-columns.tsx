@@ -1,7 +1,7 @@
 import type { RolloutHold } from '@commerce/core'
 import { describeDiscountValue } from '@commerce/core/discounts'
 import OrderChip from '@/components/orders/order-chip'
-import RolloutHoldChip from '@/components/settings/rollouts/rollout-hold-chip'
+import RolloutHoldChip from '@/components/rollouts/rollout-hold-chip'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import type { discountsContent } from '@/data/discounts'
 import type { api } from '@/lib/api-client'

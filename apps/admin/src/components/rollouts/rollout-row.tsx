@@ -25,7 +25,7 @@ export default function RolloutRow({ rollout: r }: RolloutRowProps) {
       <SettingsTableCell>
         <div className="flex min-w-0 flex-col">
           <Link
-            href={routes.settings.rollout(r.id)}
+            href={routes.rollouts.detail(r.id)}
             className="truncate font-semibold text-ink-strong hover:underline focus-visible:underline focus-visible:outline-none"
           >
             {r.name}

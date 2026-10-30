@@ -7,8 +7,8 @@ import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useState } from 'react'
 import EmptyState from '@/components/layout/empty-state'
-import PageHeader from '@/components/layout/page-header'
 import PillTabs from '@/components/layout/pill-tabs'
+import ProoflyListPage from '@/components/layout/proofly-list-page'
 import SettingsTable from '@/components/settings/settings-table'
 import { rolloutsContent } from '@/data/rollouts'
 import { useCopy } from '@/hooks/use-copy'
@@ -25,7 +25,7 @@ const FILTERS = ['active', 'scheduled', 'draft', 'paused', 'ended'] as const
 type Filter = (typeof FILTERS)[number] | null
 
 /**
- * Settings › Markets › Rollouts (Shopify's): every launch and event with what it changes, when
+ * Rollouts (Shopify's, a top-level page): every launch and event with what it changes, when
  * it runs and its status, filtered by status.
  */
 export default function RolloutsList({ rollouts }: RolloutsListProps) {
@@ -46,20 +46,14 @@ export default function RolloutsList({ rollouts }: RolloutsListProps) {
     })),
   ]
   const createButton = canManage ? (
-    <Button nativeButton={false} render={<Link href={routes.settings.newRollout()} />}>
+    <Button nativeButton={false} render={<Link href={routes.rollouts.new()} />}>
       <Plus aria-hidden="true" />
       {copy.create}
     </Button>
   ) : null
 
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader
-        title={copy.title}
-        subtitle={copy.intro}
-        back={{ label: copy.back, href: routes.settings.markets() }}
-        actions={createButton}
-      />
+    <ProoflyListPage title={copy.title} summary={copy.intro} actions={createButton}>
       {rollouts.length === 0 ? (
         <EmptyState
           variant="page"
@@ -95,6 +89,6 @@ export default function RolloutsList({ rollouts }: RolloutsListProps) {
           </SettingsTable>
         </div>
       )}
-    </div>
+    </ProoflyListPage>
   )
 }

@@ -17,6 +17,8 @@ const LISTS: Record<string, string> = {
   discounts: 'the Discounts page',
   customers: 'the Customers list',
   analytics: 'Analytics',
+  markets: 'the Markets page (countries the store sells to)',
+  rollouts: 'the Rollouts page (scheduled theme, checkout and discount changes)',
   settings: 'Settings',
   other: 'a page of the admin',
 }

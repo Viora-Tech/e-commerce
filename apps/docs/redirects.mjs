@@ -51,6 +51,8 @@ export const movedPages = [
   ['/merchant-guide/reference/glossary', '/merchant-guide/help/glossary'],
   // Older moves, kept working.
   ['/merchant-guide/settings/business-and-gst', '/merchant-guide/settings/taxes'],
+  // Rollouts left Settings for the main sidebar (October 30, 2026).
+  ['/merchant-guide/settings/rollouts', '/merchant-guide/rollouts'],
 
   // Developer docs, regrouped into four groups.
   ['/developer-docs/building/architecture', '/developer-docs/getting-started/architecture'],

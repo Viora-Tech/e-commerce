@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import RolloutForm from '@/components/settings/rollouts/rollout-form'
+import RolloutForm from '@/components/rollouts/rollout-form'
 import { serverContext } from '@/lib/api'
 import { loadRolloutPage } from '../load'
 

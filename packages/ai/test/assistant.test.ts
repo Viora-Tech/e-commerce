@@ -88,6 +88,8 @@ describe('page context', () => {
     expect(pageContextFor('/orders/drafts')).toEqual({ page: 'orders', entityId: null })
     expect(pageContextFor(`/customers/${id}/`)).toEqual({ page: 'customer', entityId: id })
     expect(pageContextFor('/settings/ai')).toEqual({ page: 'settings', entityId: null })
+    expect(pageContextFor('/markets')).toEqual({ page: 'markets', entityId: null })
+    expect(pageContextFor(`/rollouts/${id}`)).toEqual({ page: 'rollouts', entityId: null })
     expect(pageContextFor('/online-store/themes')).toEqual({ page: 'other', entityId: null })
   })
 })

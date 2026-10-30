@@ -301,11 +301,18 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     href: '/settings/domains',
     keywords: ['domain', 'website address', 'url', 'dns', 'www', '.com', '.in'],
   },
+  // Markets and Rollouts are top-level pages now; settings search still finds them.
   {
     title: 'Markets',
-    where: 'Selling',
-    href: routes.settings.markets(),
+    where: 'Markets',
+    href: routes.markets.list(),
     keywords: ['international', 'countries', 'abroad', 'export', 'foreign currency', 'dollar'],
+  },
+  {
+    title: 'Rollouts',
+    where: 'Rollouts',
+    href: routes.rollouts.list(),
+    keywords: ['rollout', 'scheduled changes', 'schedule theme', 'sale weekend', 'event'],
   },
   {
     title: 'AI',
