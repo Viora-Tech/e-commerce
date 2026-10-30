@@ -43,6 +43,25 @@ Admin audit findings #54, #56, #63 and #91. Pushed straight to `dev`, one commit
 - "1 to fix: No HS code" and the GST app's Edit both focus `#product-hs` directly.
 - Not changed: the bulk editor still edits variant HSN/GST (they act as per-variant overrides).
 
+## #91 Files: folders, alt text column, readable names
+
+- Migration `0206_media_folders`: `media_folder` (one level, name unique per store ignoring
+  case, store RLS), `media.folder_id` (set null if a folder ever goes), `media.name`.
+- Core `media/folders.ts`: list (with counts), create, rename, delete (refused while the folder
+  holds any file), move files in or out. API: `media.folders`, `createFolder`, `renameFolder`,
+  `deleteFolder`, `moveToFolder`; `media.list` takes `folderId`.
+- Content › Files: folder chips above the table (`?folder=<id>`), New folder, Rename/Delete on
+  the open folder's ⋯ (dialogs, no drawers), "Move to folder" on every file's ⋯. An upload made
+  while a folder is open goes into it. The file picker gets a Folder filter once a folder exists.
+- List view: an alt text column edited in place (Enter or leaving the field saves).
+- Readable names: new uploads keep the uploaded file's name in `media.name`; older and imported
+  files show a name read from the key (timestamps, hashes and "original" dropped; a key that
+  leaves only "image" shows the alt text). `key` and `url` never change. Search and "Name" sort
+  include `media.name`. Pure logic tested in `components/media/file-meta.test.ts` and
+  `packages/core/src/media/display-name.test.ts`.
+- Left out: moving many files at once (one file per move), nested folders, renaming a file's
+  display name from the UI (the API takes `name` on `media.update`).
+
 ## How to test
 
 - Product with 3 × 5 options: chips, group by Size, search "red", tick a group, bulk-set a price.
@@ -51,4 +70,8 @@ Admin audit findings #54, #56, #63 and #91. Pushed straight to `dev`, one commit
 - Product with 15 variants and no HSN: "No HS code" → lands in the HSN field; type it once,
   save; place an order and issue the invoice: the HSN prints. Turn on "Different per variant",
   set one variant's HSN, save, check that variant's invoice line.
-- Run `bun run db:migrate` (0204) before testing.
+- Files: make a folder, move two files into it, open it, upload a file (lands in it), try to
+  delete it (refused), move the files out, delete it. In the list view, type alt text and press
+  Enter. A Shopify-imported file shows a readable name. Open any image field's picker: Folder
+  filter.
+- Run `bun run db:migrate` (0204, 0206) before testing.

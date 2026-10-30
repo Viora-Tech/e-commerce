@@ -8,7 +8,8 @@ import { toast } from 'sonner'
 import { mediaContent } from '@/data/media'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { extLabel, filenameFrom, formatMediaSize, type MediaItem } from './media-pick-types'
+import { displayName } from './file-meta'
+import { extLabel, formatMediaSize, type MediaItem } from './media-pick-types'
 import MediaThumb from './media-thumb'
 
 type MediaPickDetailsProps = {
@@ -58,7 +59,7 @@ export default function MediaPickDetails({ item, onAltSaved }: MediaPickDetailsP
   }
 
   // Render logic
-  const name = filenameFrom(item.key) || item.alt || item.url.split('/').pop()?.split('?')[0]
+  const name = displayName(item) || item.url.split('/').pop()?.split('?')[0]
   const meta = [extLabel(item), formatMediaSize(item.size)].filter(Boolean).join(' · ')
   const changed = (alt.trim() || null) !== (item.alt ?? null)
 

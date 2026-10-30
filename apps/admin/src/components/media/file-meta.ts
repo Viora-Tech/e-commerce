@@ -21,6 +21,49 @@ export function fileName(key: string): string {
   return last.replace(ID_PREFIX, '')
 }
 
+/** Words a stored name is often left with that say nothing about the file. */
+const GENERIC = new Set(['image', 'img', 'file', 'photo', 'picture', 'video'])
+
+/** A long run of digits (a timestamp) or a hash-like token mixing letters and digits. */
+const isNoise = (token: string) =>
+  /^\d{6,}$/.test(token) ||
+  (token.length >= 8 && /\d/.test(token) && /^[a-z0-9]+$/i.test(token)) ||
+  token.toLowerCase() === 'original'
+
+/**
+ * A readable name from a storage key, for files saved before names were kept (#91):
+ * "…/<id>-1789453878-a1b2c3d4e5-red-mouse-pad-original.jpg" → "Red mouse pad". Null when
+ * nothing readable is left.
+ */
+export function readableKeyName(key: string): string | null {
+  const stem = fileName(key).replace(/\.[a-z0-9]{1,5}$/i, '')
+  const words = stem
+    .split(/[-_\s]+/)
+    .filter((t) => t && !isNoise(t))
+    .join(' ')
+    .trim()
+  return words ? words.charAt(0).toUpperCase() + words.slice(1) : null
+}
+
+/**
+ * What Files calls a file (#91): the saved name (the uploaded file's own, or a rename), else one
+ * read from its key; a key that leaves only "image" gives way to the alt text. The key and URL
+ * never change.
+ */
+export function displayName(file: {
+  name?: string | null | undefined
+  key: string | null
+  alt: string | null
+  url?: string | undefined
+}): string {
+  const saved = file.name?.trim()
+  if (saved) return saved
+  const fromKey = readableKeyName(file.key ?? file.url ?? '')
+  const alt = file.alt?.trim()
+  if (alt && (!fromKey || GENERIC.has(fromKey.toLowerCase()))) return alt
+  return fromKey ?? (file.key ? fileName(file.key) : '')
+}
+
 /** "JPG", "PNG", "MP4": the short type label under a file. */
 export function fileKind(contentType: string | null): string {
   const sub = contentType?.split('/')[1]?.split('+')[0]

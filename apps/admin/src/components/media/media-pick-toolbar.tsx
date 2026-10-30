@@ -12,6 +12,7 @@ import {
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import { mediaContent } from '@/data/media'
 import { useCopy } from '@/hooks/use-copy'
+import type { MediaFolder } from './use-media-folders'
 
 export type MediaSortKey = 'newest' | 'oldest' | 'name' | 'size'
 export type MediaFileTypeFilter = 'all' | 'image' | 'video'
@@ -27,6 +28,11 @@ type MediaPickToolbarProps = {
   fileType: MediaFileTypeFilter
   size: MediaSizeFilter
   used: MediaUsedFilter
+  /** Files folders (#91); the folder filter shows once the store has one. */
+  folders: MediaFolder[]
+  /** Folder id, or `all`. */
+  folder: string
+  onFolder: (value: string) => void
   view: MediaViewMode
   onQuery: (value: string) => void
   onSort: (value: MediaSortKey) => void
@@ -44,6 +50,9 @@ export default function MediaPickToolbar({
   fileType,
   size,
   used,
+  folders,
+  folder,
+  onFolder,
   view,
   onQuery,
   onSort,
@@ -53,7 +62,7 @@ export default function MediaPickToolbar({
   onView,
 }: MediaPickToolbarProps) {
   // Hooks
-  const { picker: copy } = useCopy(mediaContent)
+  const { picker: copy, folders: folderCopy } = useCopy(mediaContent)
   const SORT_ITEMS = {
     newest: copy.sort.newest,
     oldest: copy.sort.oldest,
@@ -71,6 +80,10 @@ export default function MediaPickToolbar({
     medium: copy.filters.size.medium,
     large: copy.filters.size.large,
   }
+  const FOLDER_ITEMS: Record<string, string> = Object.fromEntries([
+    ['all', folderCopy.all],
+    ...folders.map((f) => [f.id, f.name]),
+  ])
   const USED_ITEMS = {
     all: copy.filters.used.all,
     used: copy.filters.used.used,
@@ -157,6 +170,24 @@ export default function MediaPickToolbar({
               ))}
             </SelectContent>
           </Select>
+          {folders.length > 0 ? (
+            <Select
+              items={FOLDER_ITEMS}
+              value={folder}
+              onValueChange={(v) => typeof v === 'string' && onFolder(v)}
+            >
+              <SelectTrigger size="sm" aria-label={folderCopy.filter}>
+                <SelectValue placeholder={folderCopy.filter} />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(FOLDER_ITEMS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : null}
           <Select
             items={USED_ITEMS}
             value={used}

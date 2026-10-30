@@ -12,6 +12,7 @@ import { and, asc, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { pruneVariantMedia, syncFeaturedMedia, variantsUsingMedia } from '../catalog/variant-media'
 import { CommerceError } from '../errors'
+import { uploadedName } from './display-name'
 import { memberAccess } from '../permissions/service'
 import { permissions } from '../permissions/statement'
 import { mediaUseCount } from './references'
@@ -72,6 +73,8 @@ export async function createUploadIntent(
     provider: provider.id,
     contentType: input.contentType,
     size: input.size,
+    /* The name the merchant's file had, for Files to show instead of the key (#91). */
+    name: uploadedName(input.filename),
     width: input.width ?? null,
     height: input.height ?? null,
     status: 'pending',
@@ -218,6 +221,8 @@ export type MediaListInput = {
   fileType?: MediaFileType | undefined
   size?: MediaSizeBucket | undefined
   used?: MediaUsedFilter | undefined
+  /** Only files in this folder (#91); absent lists every folder. */
+  folderId?: string | undefined
 }
 
 const SIZE_BUCKETS: Record<MediaSizeBucket, [number, number | null]> = {
@@ -232,6 +237,9 @@ export const libraryColumns = {
   url: media.url,
   key: media.key,
   alt: media.alt,
+  /* Saved display name (#91); null shows a name read from the key (`displayNameOf`). */
+  name: media.name,
+  folderId: media.folderId,
   contentType: media.contentType,
   size: media.size,
   width: media.width,
@@ -252,13 +260,18 @@ export const libraryColumns = {
  * (see `setProductMedia`), so it is listed straight away. Listing only `ready` rows made a fresh
  * upload vanish from Files until the worker got to it (#811).
  */
-export function libraryWhere(input: Pick<MediaListInput, 'search' | 'fileType'>) {
+export function libraryWhere(input: Pick<MediaListInput, 'search' | 'fileType' | 'folderId'>) {
   return and(
     inArray(media.status, USABLE_MEDIA_STATUSES),
     input.search
-      ? or(ilike(media.alt, `%${input.search}%`), ilike(media.key, `%${input.search}%`))
+      ? or(
+          ilike(media.alt, `%${input.search}%`),
+          ilike(media.key, `%${input.search}%`),
+          ilike(media.name, `%${input.search}%`),
+        )
       : undefined,
     input.fileType ? fileTypeWhere(input.fileType) : undefined,
+    input.folderId ? eq(media.folderId, input.folderId) : undefined,
   )
 }
 
@@ -276,7 +289,7 @@ export async function listMedia(tx: StoreTx, input: MediaListInput) {
     input.sort === 'oldest'
       ? [asc(media.createdAt), asc(media.id)]
       : input.sort === 'name'
-        ? [asc(media.key), asc(media.id)]
+        ? [asc(sql`coalesce(${media.name}, ${media.key})`), asc(media.id)]
         : input.sort === 'size'
           ? [desc(media.size), desc(media.id)]
           : [desc(media.createdAt), desc(media.id)]
@@ -291,8 +304,22 @@ export async function listMedia(tx: StoreTx, input: MediaListInput) {
   return { items: rows, total: countRow?.n ?? 0 }
 }
 
-export async function updateMedia(tx: StoreTx, id: string, patch: { alt?: string | null }) {
-  const [row] = await tx.update(media).set(patch).where(eq(media.id, id)).returning()
+export async function updateMedia(
+  tx: StoreTx,
+  id: string,
+  patch: { alt?: string | null | undefined; name?: string | null | undefined },
+) {
+  const set = {
+    ...(patch.alt === undefined ? {} : { alt: patch.alt }),
+    /* A blank name goes back to the one read from the key. */
+    ...(patch.name === undefined ? {} : { name: patch.name?.trim() || null }),
+  }
+  if (Object.keys(set).length === 0) {
+    const [same] = await tx.select().from(media).where(eq(media.id, id))
+    if (!same) throw new CommerceError('NOT_FOUND', `Media ${id} not found`)
+    return same
+  }
+  const [row] = await tx.update(media).set(set).where(eq(media.id, id)).returning()
   if (!row) throw new CommerceError('NOT_FOUND', `Media ${id} not found`)
   return row
 }

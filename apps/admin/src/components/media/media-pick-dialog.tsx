@@ -29,6 +29,7 @@ import MediaPickToolbar, {
   type MediaViewMode,
 } from './media-pick-toolbar'
 import { type MediaItem, matchesMediaQuery, type PickedMedia, pickedFrom } from './media-pick-types'
+import { useMediaFolders } from './use-media-folders'
 import { useUploadQueue } from './use-upload-queue'
 
 export type { MediaItem, PickedMedia } from './media-pick-types'
@@ -67,6 +68,8 @@ type FetchArgs = {
   fileType: MediaFileTypeFilter
   size: MediaSizeFilter
   used: MediaUsedFilter
+  /** Folder id (#91), or `all`. */
+  folder: string
 }
 
 /** Pure wrapper around `api.media.list` so it can sit above the component, clear of hook-ordering rules. */
@@ -79,6 +82,7 @@ function fetchMediaPage(args: FetchArgs) {
     fileType: args.fileType === 'all' ? undefined : args.fileType,
     size: args.size === 'all' ? undefined : args.size,
     used: args.used === 'all' ? undefined : args.used,
+    folderId: args.folder === 'all' ? undefined : args.folder,
   })
 }
 
@@ -112,12 +116,14 @@ export default function MediaPickDialog({
   const [sizeFilter, setSizeFilter] = useState<MediaSizeFilter>('all')
   const [used, setUsed] = useState<MediaUsedFilter>('all')
   const [view, setView] = useState<MediaViewMode>('grid')
+  const [folder, setFolder] = useState('all')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [dragOver, setDragOver] = useState(false)
   const [urlOpen, setUrlOpen] = useState(false)
   const [urlValue, setUrlValue] = useState('')
   const [urlBusy, setUrlBusy] = useState(false)
   const [recent, setRecent] = useState<MediaItem[]>([])
+  const { folders } = useMediaFolders(open && fixedItems === undefined)
   const inputRef = useRef<HTMLInputElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const queue = useUploadQueue((done) => {
@@ -151,7 +157,7 @@ export default function MediaPickDialog({
     const handle = setTimeout(
       () => {
         setLoading(true)
-        fetchMediaPage({ page: 1, query, sort, fileType, size: sizeFilter, used })
+        fetchMediaPage({ page: 1, query, sort, fileType, size: sizeFilter, used, folder })
           .then((r) => {
             setItems(r.items)
             setTotal(r.total)
@@ -162,7 +168,7 @@ export default function MediaPickDialog({
       query ? 250 : 0,
     )
     return () => clearTimeout(handle)
-  }, [open, fixedItems, query, sort, fileType, sizeFilter, used])
+  }, [open, fixedItems, query, sort, fileType, sizeFilter, used, folder])
 
   useEffect(() => {
     if (!open || fixedItems !== undefined) return
@@ -174,7 +180,15 @@ export default function MediaPickDialog({
         if (!entries[0]?.isIntersecting || !hasMore || loading || loadingMore) return
         const nextPage = page + 1
         setLoadingMore(true)
-        fetchMediaPage({ page: nextPage, query, sort, fileType, size: sizeFilter, used })
+        fetchMediaPage({
+          page: nextPage,
+          query,
+          sort,
+          fileType,
+          size: sizeFilter,
+          used,
+          folder,
+        })
           .then((r) => {
             setItems((list) => [...list, ...r.items])
             setTotal(r.total)
@@ -199,6 +213,7 @@ export default function MediaPickDialog({
     fileType,
     sizeFilter,
     used,
+    folder,
   ])
 
   // Event handlers
@@ -312,6 +327,9 @@ export default function MediaPickDialog({
             fileType={fileType}
             size={sizeFilter}
             used={used}
+            folders={folders}
+            folder={folder}
+            onFolder={setFolder}
             view={view}
             onQuery={setQuery}
             onSort={setSort}

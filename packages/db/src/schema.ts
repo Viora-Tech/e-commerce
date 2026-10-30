@@ -227,6 +227,21 @@ export const productOptionValue = pgTable(
 )
 
 /**
+ * A folder in Content › Files (#91). One level, no nesting; a file sits in at most one, and a
+ * folder can only be deleted once it is empty. Names are unique per store, ignoring case.
+ */
+export const mediaFolder = pgTable(
+  'media_folder',
+  {
+    id: id(),
+    storeId: storeId(),
+    name: text('name').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex('media_folder_store_name').on(t.storeId, sql`lower(${t.name})`)],
+)
+
+/**
  * Uploaded once, referenced anywhere (products, variants, pages). Rows are
  * created `pending` when the browser asks for a presigned upload and become
  * `ready` on confirm; a nightly sweep can drop stale pending rows. `key` is
@@ -246,6 +261,14 @@ export const media = pgTable(
     /** Bytes as declared at presign time; updated to the real size on confirm and again after processing. */
     size: integer('size'),
     alt: text('alt'),
+    /**
+     * Readable name shown in Files (#91): the uploaded file's own name, or what the merchant
+     * renamed it to. Null on older and imported rows, which show a name read from `key`.
+     * Never changes `key` or `url`.
+     */
+    name: text('name'),
+    /** Folder in Files; null is "no folder" (#91). */
+    folderId: uuid('folder_id').references(() => mediaFolder.id, { onDelete: 'set null' }),
     width: integer('width'),
     height: integer('height'),
     /**
@@ -272,7 +295,10 @@ export const media = pgTable(
     processError: text('process_error'),
     createdAt: createdAt(),
   },
-  (t) => [index('media_store_created').on(t.storeId, t.createdAt)],
+  (t) => [
+    index('media_store_created').on(t.storeId, t.createdAt),
+    index('media_in_folder').on(t.folderId),
+  ],
 )
 
 export const productMedia = pgTable(

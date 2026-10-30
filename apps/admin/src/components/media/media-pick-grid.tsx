@@ -7,9 +7,9 @@ import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import type { CSSProperties, KeyboardEvent } from 'react'
 import { mediaContent } from '@/data/media'
 import { useCopy } from '@/hooks/use-copy'
+import { displayName } from './file-meta'
 import {
   extLabel,
-  filenameFrom,
   formatMediaSize,
   isVideoMedia,
   type MediaItem,
@@ -105,7 +105,7 @@ export default function MediaPickGrid({
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-body">
-                    {item.alt || filenameFrom(item.key) || copy.title}
+                    {displayName(item) || copy.title}
                   </span>
                   <span className="block text-caption text-muted-foreground">
                     {[extLabel(item), formatMediaSize(item.size)].filter(Boolean).join(' · ')}
@@ -187,7 +187,7 @@ export default function MediaPickGrid({
               onClick={() => onToggle(item.id)}
               onDoubleClick={() => handleDoubleClick(item.id)}
               aria-pressed={active}
-              aria-label={item.alt || filenameFrom(item.key)}
+              aria-label={displayName(item)}
               className={cn(
                 'group relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg border bg-muted p-2 motion-press focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 active ? 'bg-accent ring-2 ring-primary' : 'hover:shadow-card-hover',
@@ -214,7 +214,7 @@ export default function MediaPickGrid({
             </button>
             <div className="px-0.5">
               <p className="truncate text-caption text-foreground">
-                {item.alt || filenameFrom(item.key) || copy.title}
+                {displayName(item) || copy.title}
               </p>
               <p className="text-caption text-muted-foreground">{extLabel(item)}</p>
             </div>

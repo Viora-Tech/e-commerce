@@ -28,7 +28,7 @@ import { api } from '@/lib/api-client'
 import { formatDateTime } from '@/lib/format-date'
 import { isEditableImage } from '@/lib/image-edit'
 import { routes } from '@/lib/routes'
-import { contentTypeOf, fileKind, fileName, formatBytes } from './file-meta'
+import { contentTypeOf, displayName, fileKind, formatBytes } from './file-meta'
 import ImageEditorDialog from './image-editor-dialog'
 import MediaFileAlt from './media-file-alt'
 import MediaFileLink from './media-file-link'
@@ -71,7 +71,7 @@ export default function MediaFilePage({ file, usedIn, neighbours, filter }: Medi
   }
 
   // Render logic
-  const name = file.key ? fileName(file.key) : (file.alt ?? copy.title)
+  const name = displayName(file) || copy.title
   const type = contentTypeOf(file.contentType, file.key ?? file.url)
   const kind = type?.startsWith('image/')
     ? 'image'
