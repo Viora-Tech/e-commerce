@@ -112,6 +112,7 @@ import selectProducts from './select-products'
 import seoKeywords from './seo-keywords'
 import seoReport from './seo-report'
 import settings from './settings'
+import settingsRows from './settings-rows'
 import shadowfax from './shadowfax'
 import shipments from './shipments'
 import shipping from './shipping'
@@ -248,6 +249,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...reviewTools,
   ...reviews,
   ...settings,
+  ...settingsRows,
   ...shipments,
   ...shipping,
   ...shippingRates,

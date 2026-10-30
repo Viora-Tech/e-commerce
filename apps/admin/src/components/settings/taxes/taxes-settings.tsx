@@ -1,15 +1,18 @@
 'use client'
 
+import { financialYear, formatSeriesNumber } from '@commerce/invoices'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { useEffect, useRef, useState } from 'react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import SaveBar from '@/components/layout/save-bar'
+import { settingsRowsContent } from '@/data/settings-rows'
 import { taxesContent as copy } from '@/data/taxes'
+import { useCopy } from '@/hooks/use-copy'
 import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
-import { useActiveSection } from '../section-tabs'
-import SettingsSection from '../settings-section'
+import SettingsDrill from '../settings-drill'
+import SettingsDrillPanel from '../settings-drill-panel'
 import ChargingCard from './charging-card'
 import EinvoiceCard from './einvoice-card'
 import GstExplainer from './gst-explainer'
@@ -18,10 +21,12 @@ import RegistrationCard from './registration-card'
 import { formOf, type TaxesFormState, type TaxesView, validateTaxes } from './taxes-form'
 
 type TaxesSettingsProps = {
-  /** Changes when GST numbers change on the first tab: the GSTIN shown here is reloaded. */
+  /** Changes when GST numbers change: the GSTIN shown here is reloaded. */
   refreshKey: string
-  /** The tab that holds the GST numbers; nothing of this form shows on it but the save bar. */
-  gstTab: string
+  /** How many GST numbers the store has, for the GST numbers row. */
+  gstCount: number
+  /** The GST numbers detail (businesses and registrations), owned by the page. */
+  gstNumbers: ReactNode
   /** Tells the page header whether there is something to save, and how to save it. */
   onSaveState: (state: TaxesSaveState) => void
 }
@@ -29,6 +34,18 @@ type TaxesSettingsProps = {
 export type TaxesSaveState = { dirty: boolean; busy: boolean; save: () => void }
 
 const same = (a: TaxesFormState, b: TaxesFormState) => JSON.stringify(a) === JSON.stringify(b)
+
+/** The row whose detail holds the field a validation error is keyed by. */
+function rowOfError(key: string): string {
+  if (key.startsWith('numbering.')) return 'invoice-numbers'
+  if (key === 'gstRatePercent' || key === 'defaultHsn') return 'charging'
+  return 'registration'
+}
+
+/** A row's value, or "Needs a fix" while a field in its detail fails validation. */
+function orFix(broken: Set<string>, id: string, value: string, needsFix: string): string {
+  return broken.has(id) ? needsFix : value
+}
 
 function LoadingCards() {
   return (
@@ -45,14 +62,19 @@ function LoadingCards() {
 }
 
 /**
- * The Tax rules tab (registration, how GST is charged, a short explainer) and the Invoice numbers
- * tab (numbering, e-invoicing) of Settings › Taxes & GST. It stays mounted on every tab so one
- * save bar covers both and a half-made change survives a tab switch.
+ * The rows of Settings › Taxes & GST (#147): GST numbers, registration, how GST is charged (with
+ * a short explainer), invoice numbers and e-invoicing. The form lives above the row details, so
+ * one save bar covers them all and a half-made change survives going back to the list.
  */
-export default function TaxesSettings({ refreshKey, gstTab, onSaveState }: TaxesSettingsProps) {
+export default function TaxesSettings({
+  refreshKey,
+  gstCount,
+  gstNumbers,
+  onSaveState,
+}: TaxesSettingsProps) {
   // Hooks
+  const rowsCopy = useCopy(settingsRowsContent)
   const announceSetup = useSetupNext()
-  const active = useActiveSection()
   const [view, setView] = useState<TaxesView | null>(null)
   const [form, setForm] = useState<TaxesFormState | null>(null)
   const [busy, setBusy] = useState(false)
@@ -114,6 +136,54 @@ export default function TaxesSettings({ refreshKey, gstTab, onSaveState }: Taxes
   // Render logic
   const dirty = form !== null && view !== null && !same(form, formOf(view))
   const errors = form && view && attempted ? validateTaxes(form, view.numbering.lowest) : {}
+  const broken = new Set(Object.keys(errors).map(rowOfError))
+  const t = rowsCopy.taxes
+  const nextNumber = Number(form?.numbering.nextNumber ?? 0)
+  const rows =
+    form && view
+      ? [
+          { id: 'gst-numbers', title: t.gstNumbers, value: t.gstCount(gstCount) },
+          {
+            id: 'registration',
+            title: t.registration,
+            value: orFix(
+              broken,
+              'registration',
+              form.legalName || form.gstin || t.notRegistered,
+              rowsCopy.needsFix,
+            ),
+          },
+          {
+            id: 'charging',
+            title: t.charging,
+            value: orFix(
+              broken,
+              'charging',
+              form.composition ? t.composition : t.rate(form.gstRatePercent, form.pricesIncludeGst),
+              rowsCopy.needsFix,
+            ),
+          },
+          {
+            id: 'invoice-numbers',
+            title: t.invoices,
+            value: orFix(
+              broken,
+              'invoice-numbers',
+              t.invoiceNext(
+                formatSeriesNumber(
+                  { pattern: form.numbering.prefix.toUpperCase(), pad: view.numbering.pad },
+                  financialYear(new Date()),
+                  Number.isInteger(nextNumber) && nextNumber > 0
+                    ? nextNumber
+                    : view.numbering.lowest,
+                ),
+              ),
+              rowsCopy.needsFix,
+            ),
+          },
+          { id: 'e-invoice', title: t.einvoice, value: t.einvoiceValue },
+        ]
+      : []
 
   return (
     <div className="flex flex-col gap-4">
@@ -126,25 +196,28 @@ export default function TaxesSettings({ refreshKey, gstTab, onSaveState }: Taxes
         onDiscard={handleDiscard}
         saving={busy}
       />
-      {active === gstTab ? null : !form || !view ? (
+      {!form || !view ? (
         <LoadingCards />
       ) : (
-        <>
-          <SettingsSection id="tax-rules" className="flex flex-col gap-4">
+        <SettingsDrill rows={rows} backLabel={t.back}>
+          <SettingsDrillPanel id="gst-numbers">{gstNumbers}</SettingsDrillPanel>
+          <SettingsDrillPanel id="registration">
             <RegistrationCard
               form={form}
               errors={errors}
               onPatch={patch}
               managed={view.gstinManaged}
             />
+          </SettingsDrillPanel>
+          <SettingsDrillPanel id="charging">
             <ChargingCard form={form} errors={errors} onPatch={patch} />
             <GstExplainer
               ratePercent={form.gstRatePercent}
               inclusive={form.pricesIncludeGst}
               composition={form.composition}
             />
-          </SettingsSection>
-          <SettingsSection id="invoices" className="flex flex-col gap-4">
+          </SettingsDrillPanel>
+          <SettingsDrillPanel id="invoice-numbers">
             <NumberingCard
               numbering={form.numbering}
               lowest={view.numbering.lowest}
@@ -153,9 +226,11 @@ export default function TaxesSettings({ refreshKey, gstTab, onSaveState }: Taxes
               errors={errors}
               onChange={(numbering) => patch({ numbering })}
             />
+          </SettingsDrillPanel>
+          <SettingsDrillPanel id="e-invoice">
             <EinvoiceCard />
-          </SettingsSection>
-        </>
+          </SettingsDrillPanel>
+        </SettingsDrill>
       )}
     </div>
   )

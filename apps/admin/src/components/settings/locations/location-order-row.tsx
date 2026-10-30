@@ -5,8 +5,6 @@ import { DragHandle, sortTransition } from '@commerce/ui/sortable'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { ReactNode } from 'react'
-import SettingsTableCell from '@/components/settings/settings-table-cell'
-import SettingsTableRow from '@/components/settings/settings-table-row'
 
 type LocationOrderRowProps = {
   id: string
@@ -20,8 +18,8 @@ type LocationOrderRowProps = {
 }
 
 /**
- * A location's row in the locations table, dragged by the grip in its first cell to change the
- * order checkout tries locations in.
+ * A location's row in the locations list, dragged by the grip at its start to change the order
+ * checkout tries locations in.
  */
 export default function LocationOrderRow({
   id,
@@ -43,13 +41,13 @@ export default function LocationOrderRow({
   const style = { transform: CSS.Translate.toString(transform), transition }
 
   return (
-    <SettingsTableRow
+    <li
       ref={setNodeRef}
       style={style}
-      className={cn('relative', drag.isDragging && 'z-10 bg-card shadow-popover')}
+      className={cn('relative flex items-center', drag.isDragging && 'z-10 bg-card shadow-popover')}
     >
       {sortable ? (
-        <SettingsTableCell>
+        <span className="shrink-0 pl-3">
           <DragHandle
             ref={setActivatorNodeRef}
             label={handleLabel}
@@ -57,9 +55,9 @@ export default function LocationOrderRow({
             {...attributes}
             {...listeners}
           />
-        </SettingsTableCell>
+        </span>
       ) : null}
       {children}
-    </SettingsTableRow>
+    </li>
   )
 }

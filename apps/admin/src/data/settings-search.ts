@@ -61,7 +61,7 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'GST numbers',
     where: 'Taxes & GST › GST & invoices',
-    href: '/settings/taxes',
+    href: '/settings/taxes?open=gst-numbers',
     keywords: [
       'gst',
       'gstin',
@@ -81,25 +81,25 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'Tax rules: GST rate and legal name',
     where: 'Taxes & GST › GST & invoices',
-    href: '/settings/taxes?tab=tax-rules',
+    href: '/settings/taxes?open=registration',
     keywords: ['tax rate', 'gst rate', 'legal name', 'registered address', 'tax rules'],
   },
   {
     title: 'Prices include GST',
     where: 'Taxes & GST › GST & invoices',
-    href: '/settings/taxes?tab=tax-rules#charging',
+    href: '/settings/taxes?open=charging',
     keywords: ['inclusive', 'exclusive', 'mrp', 'tax included', 'hsn', 'composition', 'rate'],
   },
   {
     title: 'Invoice numbers',
     where: 'Taxes & GST › GST & invoices',
-    href: '/settings/taxes?tab=invoices#invoice-numbers',
+    href: '/settings/taxes?open=invoice-numbers',
     keywords: ['invoice', 'invoice number', 'prefix', 'series', 'financial year', 'bill number'],
   },
   {
     title: 'E-invoicing (IRN)',
     where: 'Taxes & GST › GST & invoices',
-    href: '/settings/taxes?tab=invoices#e-invoice',
+    href: '/settings/taxes?open=e-invoice',
     keywords: ['e-invoice', 'einvoice', 'irn', 'irp', 'qr code', 'e invoice'],
   },
   // Store › Locations & warehouses

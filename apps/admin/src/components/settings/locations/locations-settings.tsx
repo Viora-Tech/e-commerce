@@ -20,9 +20,8 @@ import { toast } from 'sonner'
 import AddLocationDialog from '@/components/inventory/add-location-dialog'
 import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
-import SettingsTable from '@/components/settings/settings-table'
-import SettingsTableCell from '@/components/settings/settings-table-cell'
-import RowActionsCell from '@/components/table/row-actions-cell'
+import SettingsLinkRow from '@/components/settings/settings-link-row'
+import SettingsList from '@/components/settings/settings-list'
 import { businessGstContent } from '@/data/business-gst'
 import { reorderLabels } from '@/data/common'
 import { SETTINGS_BACK } from '@/data/settings'
@@ -122,19 +121,7 @@ export default function LocationsSettings({ view }: LocationsSettingsProps) {
         }
         back={SETTINGS_BACK}
       />
-      <SettingsTable
-        heading={copy.heading}
-        actions
-        total={view.locations.length}
-        columns={[
-          ...(canManage ? [{ label: copy.columns.order, className: 'w-14' }] : []),
-          { label: copy.columns.name },
-          { label: copy.columns.ships, className: 'hidden sm:table-cell' },
-          { label: copy.columns.state, className: 'hidden lg:table-cell' },
-          { label: copy.columns.billsUnder },
-          { label: copy.columns.pickup, className: 'hidden 2xl:table-cell' },
-        ]}
-      >
+      <SettingsList heading={copy.heading}>
         <DndContext
           id={dndId}
           sensors={sensors}
@@ -156,45 +143,40 @@ export default function LocationsSettings({ view }: LocationsSettingsProps) {
                 disabled={moving}
                 reduced={prefersReducedMotion === true}
               >
-                <SettingsTableCell>
-                  <span className="flex flex-wrap items-center gap-2 font-semibold text-ink-strong">
-                    {l.name}
-                    {l.isDefault ? <StatusChip>{copy.defaultBadge}</StatusChip> : null}
-                  </span>
-                </SettingsTableCell>
-                <SettingsTableCell className="hidden sm:table-cell">
-                  {l.fulfilsOnlineOrders ? (
-                    <StatusChip tone="info">{copy.ships}</StatusChip>
-                  ) : (
-                    <StatusChip>{copy.stockOnly}</StatusChip>
-                  )}
-                </SettingsTableCell>
-                <SettingsTableCell className="hidden text-muted-foreground lg:table-cell">
-                  {l.stateName ?? copy.noState}
-                </SettingsTableCell>
-                <SettingsTableCell>
-                  {l.stateUnregistered ? (
-                    <span className="flex items-center gap-1.5 text-caption text-warning-foreground dark:text-warning">
-                      <TriangleAlert aria-hidden="true" className="size-4 shrink-0" />
-                      {copy.unregistered(l.stateName ?? '')}
-                    </span>
-                  ) : (
-                    <span className="font-mono text-muted-foreground">
-                      {gstinOf(l) ?? copy.notChosen}
-                    </span>
-                  )}
-                </SettingsTableCell>
-                <SettingsTableCell className="hidden text-muted-foreground 2xl:table-cell">
-                  {pickupOf(l)}
-                </SettingsTableCell>
-                <SettingsTableCell className="w-16 p-0 last:pr-2 md:last:pr-2">
-                  <RowActionsCell href={routes.settings.location(l.id)} />
-                </SettingsTableCell>
+                <SettingsLinkRow
+                  href={routes.settings.location(l.id)}
+                  className={canManage ? 'pl-2' : undefined}
+                  title={
+                    <>
+                      {l.name}
+                      {l.isDefault ? <StatusChip>{copy.defaultBadge}</StatusChip> : null}
+                      {l.fulfilsOnlineOrders ? (
+                        <StatusChip tone="info">{copy.ships}</StatusChip>
+                      ) : (
+                        <StatusChip>{copy.stockOnly}</StatusChip>
+                      )}
+                    </>
+                  }
+                  description={
+                    l.stateUnregistered ? (
+                      <span className="inline-flex items-center gap-1.5 text-warning-foreground dark:text-warning">
+                        <TriangleAlert aria-hidden="true" className="size-3.5 shrink-0" />
+                        {copy.unregistered(l.stateName ?? '')}
+                      </span>
+                    ) : (
+                      [
+                        l.stateName ?? copy.noState,
+                        `${copy.columns.billsUnder}: ${gstinOf(l) ?? copy.notChosen}`,
+                        pickupOf(l),
+                      ].join(' · ')
+                    )
+                  }
+                />
               </LocationOrderRow>
             ))}
           </SortableContext>
         </DndContext>
-      </SettingsTable>
+      </SettingsList>
       <LocationsRoutingCard maxParcels={view.maxParcels} canManage={canManage} />
       <AddLocationDialog open={adding} onOpenChange={setAdding} onCreated={handleCreated} />
     </div>

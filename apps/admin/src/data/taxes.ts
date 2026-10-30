@@ -17,7 +17,7 @@ export const taxesContent = {
     gstinHelp:
       'Your 15-character GST number, like 06AAACW1234A1Z5. It is printed on your invoices.',
     registeredIn: (state: string) => `Registered in ${state}`,
-    managed: 'Your default GST number. Add or change GST numbers on the GST numbers tab.',
+    managed: 'Your default GST number. Add or change them under GST numbers.',
     manage: 'Manage GST numbers',
     legalName: 'Registered legal name',
     legalNameHelp: 'The name on your GST certificate. It can differ from your shop name.',
