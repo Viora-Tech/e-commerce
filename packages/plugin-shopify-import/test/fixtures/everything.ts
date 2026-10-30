@@ -1,5 +1,5 @@
 /**
- * Admin GraphQL answers for the "import everything" resources (2025-07
+ * Admin GraphQL answers for the "import everything" resources (2026-10
  * shapes): Files, metaobject definitions and entries, product and collection
  * metafields, discounts and gift cards. Ids line up with `graphql.ts`
  * (Product/1 aria-headset, Product/2 keycaps, Collection/1 audio,

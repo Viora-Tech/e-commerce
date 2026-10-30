@@ -4,7 +4,15 @@
  * retries on 429 and 5xx. No SDK, so tests can hand it a fake `fetch`.
  */
 
-export const SHOPIFY_API_VERSION = '2025-07'
+/**
+ * 2026-10 (from 2025-07, which Shopify no longer serves). Every importer query was validated
+ * against the 2026-10 schema on 2026-10-31; none uses a removed field. Still deprecated but
+ * working there: `Customer.email/phone/emailMarketingConsent/smsMarketingConsent`,
+ * `ProductVariant.barcode/image`, `Collection.ruleSet`, `codeDiscountNode`. Bulk changes are in
+ * `bulk.ts`. Purchase orders need 2026-10 or later:
+ * https://shopify.dev/changelog/purchase-order-read-api
+ */
+export const SHOPIFY_API_VERSION = '2026-10'
 
 export class ShopifyError extends Error {
   constructor(

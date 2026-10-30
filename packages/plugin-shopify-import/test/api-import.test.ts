@@ -130,7 +130,7 @@ describe('Shopify connection', () => {
   it('verifies the token, stores it encrypted and shows only a hint', async () => {
     const log: FetchLog = []
     const storeId = await connected(fakeFetch(shopify, log))
-    expect(log[0]?.url).toBe('https://waimers.myshopify.com/admin/api/2025-07/graphql.json')
+    expect(log[0]?.url).toBe('https://waimers.myshopify.com/admin/api/2026-10/graphql.json')
     const [row] = await owner.select().from(shopifyConnection)
     expect(row?.accessToken).not.toContain('shpat_')
     expect(row?.accessToken.startsWith('v2.')).toBe(true)

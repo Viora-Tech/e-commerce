@@ -1,5 +1,5 @@
 /**
- * Admin GraphQL responses shaped like Shopify's (2025-07), keyed by operation
+ * Admin GraphQL responses shaped like Shopify's (2026-10), keyed by operation
  * name and page cursor. Two product pages exercise pagination; the second
  * product's variants run past the first page to exercise the nested fetch.
  */

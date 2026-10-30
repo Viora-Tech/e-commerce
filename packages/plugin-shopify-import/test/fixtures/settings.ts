@@ -1,5 +1,5 @@
 /**
- * Admin GraphQL answers for Store settings, shaped like Shopify's (2025-07): a shop in
+ * Admin GraphQL answers for Store settings, shaped like Shopify's (2026-10): a shop in
  * Bengaluru with two locations and an app's fulfilment location, a general shipping
  * profile (flat, price bands, free over ₹999, weight bands in kilograms, a carrier rate,
  * an international zone) plus a product-specific profile, five policies and extra
