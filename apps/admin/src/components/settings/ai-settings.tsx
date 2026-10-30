@@ -184,15 +184,18 @@ export default function AiSettings() {
                 </p>
               ) : null}
             </div>
-            <Button
-              variant="outline"
-              className="self-end"
-              loading={buying}
-              onClick={handleBuyCredits}
-            >
-              <CreditCard aria-hidden="true" />
-              {copy.settings.usage.buy(fmt.money(AI_CREDIT_PACK.pricePaise))}
-            </Button>
+            {/* No limit, nothing to top up: the Unlimited plan offered "Buy 1,000 credits" (#176). */}
+            {loaded.quota.credits === null ? null : (
+              <Button
+                variant="outline"
+                className="self-end"
+                loading={buying}
+                onClick={handleBuyCredits}
+              >
+                <CreditCard aria-hidden="true" />
+                {copy.settings.usage.buy(fmt.money(AI_CREDIT_PACK.pricePaise))}
+              </Button>
+            )}
           </DataCard>
           <SettingsCard
             title={copy.settings.features.heading}
