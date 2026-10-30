@@ -28,6 +28,7 @@ import { dhlExpressPlugin } from '@commerce/shipping-dhl-express'
 import { dtdcPlugin } from '@commerce/shipping-dtdc'
 import { ekartPlugin } from '@commerce/shipping-ekart'
 import { fedexPlugin } from '@commerce/shipping-fedex'
+import { shipglobalPlugin } from '@commerce/shipping-shipglobal'
 import { indiaPostPlugin } from '@commerce/shipping-indiapost'
 import { rapidshypPlugin } from '@commerce/shipping-rapidshyp'
 import { shadowfaxPlugin } from '@commerce/shipping-shadowfax'
@@ -58,6 +59,7 @@ export default defineConfig({
     shadowfaxPlugin,
     dhlExpressPlugin,
     fedexPlugin,
+    shipglobalPlugin,
     sesPlugin,
     whatsappPlugin,
     r2Plugin,

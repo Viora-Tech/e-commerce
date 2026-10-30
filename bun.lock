@@ -39,6 +39,7 @@
         "@commerce/shipping-indiapost": "workspace:*",
         "@commerce/shipping-rapidshyp": "workspace:*",
         "@commerce/shipping-shadowfax": "workspace:*",
+        "@commerce/shipping-shipglobal": "workspace:*",
         "@commerce/shipping-shiprocket": "workspace:*",
         "@commerce/shipping-xpressbees": "workspace:*",
         "@commerce/storage-r2": "workspace:*",
@@ -90,6 +91,7 @@
         "@commerce/shipping-delhivery": "workspace:*",
         "@commerce/shipping-dhl-express": "workspace:*",
         "@commerce/shipping-fedex": "workspace:*",
+        "@commerce/shipping-shipglobal": "workspace:*",
         "@commerce/shipping-shiprocket": "workspace:*",
         "@commerce/storage": "workspace:*",
         "@commerce/ui": "workspace:*",
@@ -1219,6 +1221,20 @@
         "react": "^19.0.0",
       },
     },
+    "packages/shipping-shipglobal": {
+      "name": "@commerce/shipping-shipglobal",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/plugins": "workspace:*",
+        "@commerce/shipping": "workspace:*",
+      },
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
+      },
+    },
     "packages/shipping-shiprocket": {
       "name": "@commerce/shipping-shiprocket",
       "version": "0.0.0",
@@ -1660,6 +1676,8 @@
     "@commerce/shipping-rapidshyp": ["@commerce/shipping-rapidshyp@workspace:packages/shipping-rapidshyp"],
 
     "@commerce/shipping-shadowfax": ["@commerce/shipping-shadowfax@workspace:packages/shipping-shadowfax"],
+
+    "@commerce/shipping-shipglobal": ["@commerce/shipping-shipglobal@workspace:packages/shipping-shipglobal"],
 
     "@commerce/shipping-shiprocket": ["@commerce/shipping-shiprocket@workspace:packages/shipping-shiprocket"],
 

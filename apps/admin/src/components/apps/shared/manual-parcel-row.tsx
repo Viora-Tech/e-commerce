@@ -1,6 +1,5 @@
 'use client'
 
-import { INDIA_POST_TRACKING_PAGE } from '@commerce/shipping-indiapost/client'
 import { ExternalLink, Printer, Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
@@ -10,8 +9,6 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import CopyButton from '@/components/fields/copy-button'
 import RelativeTime from '@/components/layout/relative-time'
-import { indiaPostAppContent } from '@/data/india-post'
-import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 export type Parcel = {
@@ -26,8 +23,29 @@ export type Parcel = {
   updatedAt: Date | string
 }
 
-type ParcelRowProps = {
+/** The parcels card's words; each app passes its own, already localised. */
+export type ManualParcelsCopy = {
+  heading: string
+  help: string
+  empty: string
+  loadFailed: string
+  order: (n: number) => string
+  status: string
+  update: string
+  saving: string
+  saved: string
+  track: string
+  trackHelp: string
+  label: string
+  copyNumber: string
+  statuses: Record<string, string>
+}
+
+type ManualParcelRowProps = {
   parcel: Parcel
+  copy: ManualParcelsCopy
+  /** The courier's public tracker, opened in a new tab. */
+  trackingPage: string
   onSaved: () => void
 }
 
@@ -48,11 +66,15 @@ const STATUSES: readonly ManualStatus[] = [
   'rto',
 ]
 
-/** One parcel: who it goes to, its article number, label, a link to India Post's tracker and
- *  the status the merchant read there. */
-export default function ParcelRow({ parcel, onSaved }: ParcelRowProps) {
+/** One parcel of a courier with no tracking feed (India Post, ShipGlobal): who it goes to,
+ *  its number, label, a link to the courier's tracker and the status the merchant read there. */
+export default function ManualParcelRow({
+  parcel,
+  copy,
+  trackingPage,
+  onSaved,
+}: ManualParcelRowProps) {
   // Hooks
-  const copy = useCopy(indiaPostAppContent)
   const [status, setStatus] = useState(parcel.status as ManualStatus)
   const [saving, setSaving] = useState(false)
 
@@ -63,9 +85,9 @@ export default function ParcelRow({ parcel, onSaved }: ParcelRowProps) {
       await api.shipments.recordStatus({
         shipmentId: parcel.id,
         status,
-        description: copy.parcels.statuses[status] ?? status,
+        description: copy.statuses[status] ?? status,
       })
-      toast.success(copy.parcels.saved)
+      toast.success(copy.saved)
       onSaved()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err))
@@ -82,9 +104,9 @@ export default function ParcelRow({ parcel, onSaved }: ParcelRowProps) {
     <li className="flex flex-col gap-3 py-3 first:pt-0 last:pb-0 md:flex-row md:items-center md:justify-between">
       <div className="flex min-w-0 flex-col gap-0.5">
         <span className="flex flex-wrap items-center gap-2 text-body font-medium text-ink-strong">
-          {copy.parcels.order(parcel.orderNumber)}
+          {copy.order(parcel.orderNumber)}
           <code className="text-caption text-muted-foreground">{parcel.waybill}</code>
-          <CopyButton value={parcel.waybill} what={copy.parcels.copyNumber} visible />
+          <CopyButton value={parcel.waybill} what={copy.copyNumber} visible />
         </span>
         <span className="truncate text-caption text-muted-foreground">
           {to} · <RelativeTime value={parcel.updatedAt} />
@@ -93,19 +115,19 @@ export default function ParcelRow({ parcel, onSaved }: ParcelRowProps) {
       <div className="flex flex-wrap items-center gap-2">
         <NativeSelect
           size="sm"
-          aria-label={copy.parcels.status}
+          aria-label={copy.status}
           value={status}
           onChange={(e) => setStatus(e.target.value as ManualStatus)}
         >
           {STATUSES.map((s) => (
             <NativeSelectOption key={s} value={s}>
-              {copy.parcels.statuses[s] ?? s}
+              {copy.statuses[s] ?? s}
             </NativeSelectOption>
           ))}
         </NativeSelect>
         <Button size="sm" onClick={handleSave} disabled={!changed || saving}>
           {saving ? <Spinner /> : <Save aria-hidden="true" />}
-          {saving ? copy.parcels.saving : copy.parcels.update}
+          {saving ? copy.saving : copy.update}
         </Button>
         {parcel.labelUrl ? (
           <Button
@@ -115,18 +137,18 @@ export default function ParcelRow({ parcel, onSaved }: ParcelRowProps) {
             render={<Link href={parcel.labelUrl} />}
           >
             <Printer aria-hidden="true" />
-            {copy.parcels.label}
+            {copy.label}
           </Button>
         ) : null}
         <Button
           size="sm"
           variant="ghost"
           nativeButton={false}
-          title={copy.parcels.trackHelp}
-          render={<a href={INDIA_POST_TRACKING_PAGE} target="_blank" rel="noreferrer" />}
+          title={copy.trackHelp}
+          render={<a href={trackingPage} target="_blank" rel="noreferrer" />}
         >
           <ExternalLink aria-hidden="true" />
-          {copy.parcels.track}
+          {copy.track}
         </Button>
       </div>
     </li>

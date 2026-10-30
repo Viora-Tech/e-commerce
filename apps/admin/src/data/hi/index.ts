@@ -120,6 +120,7 @@ import seoReport from './seo-report'
 import settings from './settings'
 import settingsRows from './settings-rows'
 import shadowfax from './shadowfax'
+import shipglobal from './shipglobal'
 import shipments from './shipments'
 import shipping from './shipping'
 import shippingRates from './shipping-rates'
@@ -191,6 +192,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...dates,
   ...dhlExpress,
   ...fedex,
+  ...shipglobal,
   ...giftCards,
   ...drafts,
   ...domains,

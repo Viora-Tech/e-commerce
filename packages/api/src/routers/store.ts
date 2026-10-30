@@ -402,6 +402,7 @@ export const storeRouter = {
   testShadowfaxConnection: courierConnectionTest('shadowfax'),
   testDhlExpressConnection: courierConnectionTest('dhl-express'),
   testFedexConnection: courierConnectionTest('fedex'),
+  testShipglobalConnection: courierConnectionTest('shipglobal'),
 
   /**
    * The Decentro Connect page's "Test connection": the form's values (a

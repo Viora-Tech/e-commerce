@@ -47,6 +47,7 @@
         "@commerce/shipping-fedex#build",
         "@commerce/shipping-rapidshyp#build",
         "@commerce/shipping-shadowfax#build",
+        "@commerce/shipping-shipglobal#build",
         "@commerce/shipping-shiprocket#build",
         "@commerce/shipping-xpressbees#build",
         "@commerce/storage-r2#build",

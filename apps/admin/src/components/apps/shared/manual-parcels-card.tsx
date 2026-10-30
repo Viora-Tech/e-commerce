@@ -3,18 +3,27 @@
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
-import { indiaPostAppContent } from '@/data/india-post'
-import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import ParcelRow, { type Parcel } from './parcel-row'
+import ManualParcelRow, { type ManualParcelsCopy, type Parcel } from './manual-parcel-row'
+
+type ManualParcelsCardProps = {
+  /** The courier app whose parcels are listed. */
+  providerId: string
+  copy: ManualParcelsCopy
+  trackingPage: string
+}
 
 /** Statuses still moving; a delivered, returned or cancelled parcel leaves the list. */
 const OPEN = ['created', 'picked_up', 'in_transit', 'out_for_delivery']
 
-/** India Post parcels on the way, newest first, each with its status control. */
-export default function ParcelsCard() {
+/** The parcels on the way with a courier that sends no tracking (India Post, ShipGlobal),
+ *  newest first, each with its status control. */
+export default function ManualParcelsCard({
+  providerId,
+  copy,
+  trackingPage,
+}: ManualParcelsCardProps) {
   // Hooks
-  const copy = useCopy(indiaPostAppContent)
   const [parcels, setParcels] = useState<Parcel[] | null>(null)
   const [failed, setFailed] = useState(false)
   const [revision, setRevision] = useState(0)
@@ -22,19 +31,19 @@ export default function ParcelsCard() {
   useEffect(() => {
     let live = true
     api.shipments
-      .list({ provider: 'india-post', status: OPEN, perPage: 50 })
+      .list({ provider: providerId, status: OPEN, perPage: 50 })
       .then((r) => live && setParcels(r.items))
       .catch(() => live && setFailed(true))
     return () => {
       live = false
     }
-  }, [revision])
+  }, [revision, providerId])
 
   // Early returns
   if (failed) {
     return (
-      <DataCard title={copy.parcels.heading}>
-        <p className="text-body text-muted-foreground">{copy.parcels.loadFailed}</p>
+      <DataCard title={copy.heading}>
+        <p className="text-body text-muted-foreground">{copy.loadFailed}</p>
       </DataCard>
     )
   }
@@ -45,17 +54,23 @@ export default function ParcelsCard() {
       <Spinner />
     </p>
   ) : parcels.length === 0 ? (
-    <p className="text-body text-muted-foreground">{copy.parcels.empty}</p>
+    <p className="text-body text-muted-foreground">{copy.empty}</p>
   ) : (
     <ul className="flex flex-col divide-y divide-hairline">
       {parcels.map((p) => (
-        <ParcelRow key={p.id} parcel={p} onSaved={() => setRevision((n) => n + 1)} />
+        <ManualParcelRow
+          key={p.id}
+          parcel={p}
+          copy={copy}
+          trackingPage={trackingPage}
+          onSaved={() => setRevision((n) => n + 1)}
+        />
       ))}
     </ul>
   )
 
   return (
-    <DataCard title={copy.parcels.heading} subtitle={copy.parcels.help} count={parcels?.length}>
+    <DataCard title={copy.heading} subtitle={copy.help} count={parcels?.length}>
       {body}
     </DataCard>
   )

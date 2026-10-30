@@ -88,6 +88,7 @@
     "@commerce/shipping-indiapost": "workspace:*",
     "@commerce/shipping-rapidshyp": "workspace:*",
     "@commerce/shipping-shadowfax": "workspace:*",
+    "@commerce/shipping-shipglobal": "workspace:*",
     "@commerce/shipping-shiprocket": "workspace:*",
     "@commerce/shipping-xpressbees": "workspace:*",
     "@commerce/storage-r2": "workspace:*",

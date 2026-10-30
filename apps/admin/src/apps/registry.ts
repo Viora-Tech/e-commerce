@@ -87,6 +87,8 @@ import SearchConsoleSettings from '@/components/apps/search-console/settings-pag
 import SearchConsoleSitemaps from '@/components/apps/search-console/sitemaps-page'
 import ShadowfaxConnectPage from '@/components/apps/shadowfax/connect-page'
 import ShadowfaxOverviewPage from '@/components/apps/shadowfax/overview-page'
+import ShipglobalConnectPage from '@/components/apps/shipglobal/connect-page'
+import ShipglobalOverviewPage from '@/components/apps/shipglobal/overview-page'
 import ShiprocketConnectPage from '@/components/apps/shiprocket/connect-page'
 import ShiprocketOverviewPage from '@/components/apps/shiprocket/overview-page'
 import ConnectHeaderButton from '@/components/apps/shopify-import/connect-header-button'
@@ -264,6 +266,12 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
     pages: {
       '': FedexOverviewPage,
       connect: FedexConnectPage,
+    },
+  },
+  shipglobal: {
+    pages: {
+      '': ShipglobalOverviewPage,
+      connect: ShipglobalConnectPage,
     },
   },
   'gst-invoices': {
