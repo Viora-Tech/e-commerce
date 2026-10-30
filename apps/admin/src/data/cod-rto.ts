@@ -43,6 +43,12 @@ export const codRtoContent = {
     riskTitle: 'Open orders by risk',
     riskHelp: 'Orders not shipped yet, by their RTO risk score.',
     viewRisky: 'See risky orders',
+    unscored: (n: number) =>
+      `${n} open ${n === 1 ? 'order has' : 'orders have'} no score yet: imported, or placed before the app.`,
+    scoreOpen: 'Score them',
+    scoring: 'Scoring…',
+    scored: (n: number, left: number) =>
+      left > 0 ? `Scored ${n}. ${left} left, press again.` : `Scored ${n}.`,
     pincodesTitle: 'PIN codes with the most RTO',
     pincodesEmpty: 'No parcel came back in this period.',
     columns: {

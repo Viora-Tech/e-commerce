@@ -46,6 +46,11 @@ export default [
       riskTitle: 'जोखिम के हिसाब से खुले ऑर्डर',
       riskHelp: 'जो ऑर्डर अभी शिप नहीं हुए, उनके RTO जोखिम स्कोर के हिसाब से।',
       viewRisky: 'जोखिम वाले ऑर्डर देखें',
+      unscored: (n: number) => `${n} खुले ऑर्डर का अभी कोई स्कोर नहीं है: इम्पोर्ट हुए, या ऐप से पहले के।`,
+      scoreOpen: 'स्कोर करें',
+      scoring: 'स्कोर हो रहा है…',
+      scored: (n: number, left: number) =>
+        left > 0 ? `${n} स्कोर हुए। ${left} बाकी, फिर से दबाएँ।` : `${n} स्कोर हुए।`,
       pincodesTitle: 'सबसे ज़्यादा RTO वाले पिन कोड',
       pincodesEmpty: 'इस दौरान कोई पार्सल वापस नहीं आया।',
       columns: { pincode: 'पिन कोड', city: 'शहर', shipments: 'शिपमेंट', rto: 'RTO', rate: 'दर' },

@@ -8,6 +8,7 @@ import {
   permissions,
   RISK_ORDER_FILTERS,
   rescoreOrder,
+  scoreOpenOrders,
   returnReasonsReport,
   saveCodRtoSettings,
 } from '@commerce/core'
@@ -85,6 +86,12 @@ export const codRtoRouter = {
       await requireInstalled(context)
       return rescoreOrder(ctxOf(context), input.orderId)
     }),
+
+  /** "Score open orders": open orders with no score (imported ones), up to a batch per press. */
+  scoreOpen: can(permissions.ORDERS_WRITE).handler(async ({ context }) => {
+    await requireInstalled(context)
+    return scoreOpenOrders(ctxOf(context))
+  }),
 
   /** "Confirmed by phone": the merchant called the shopper. */
   markConfirmed: can(permissions.ORDERS_WRITE)
