@@ -106,7 +106,7 @@ export default function LiveNow({ initial }: LiveNowProps) {
             {copy.visitors(visitors)}
           </p>
           <p className="text-[0.8125rem] leading-[1.1875rem] font-medium text-foreground">
-            {copy.today(copy.ordersWord(data.today.ordersCount), fmt.money(data.today.salesPaise))}
+            {copy.today(copy.ordersWord(data.today.ordersCount), fmt.moneyWhole(data.today.salesPaise))}
           </p>
           {cities.length > 0 ? (
             <ul className="mt-1.5 flex flex-wrap gap-1.5">

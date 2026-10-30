@@ -1,7 +1,7 @@
 import { Card } from '@commerce/ui/shadcn/card'
 import KitProgress from '@/components/kit/kit-progress'
 import { formatRate } from '@/lib/analytics-range'
-import { formatPaise } from '@/lib/money'
+import { formatPaiseWhole } from '@/lib/money'
 
 export type BreakdownRow = {
   key: string
@@ -39,7 +39,7 @@ export default function BreakdownCard({ title, rows, empty }: BreakdownCardProps
                   ) : null}
                 </span>
                 <span className="shrink-0 text-kit-body text-ink-strong tabular-nums">
-                  {formatPaise(row.revenuePaise)}
+                  {formatPaiseWhole(row.revenuePaise)}
                 </span>
               </div>
               <div className="flex items-center gap-3">

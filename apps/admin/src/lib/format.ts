@@ -8,7 +8,7 @@ import {
   formatWhen,
 } from '@/lib/format-date'
 import { INTL_LOCALE, type Locale } from '@/lib/i18n'
-import { formatCompact, formatPaise, formatPaiseCompact } from '@/lib/money'
+import { formatCompact, formatPaise, formatPaiseCompact, formatPaiseWhole } from '@/lib/money'
 import { DEFAULT_REGION, type Region, regionValue, weekStartsOn } from '@/lib/region'
 
 /**
@@ -25,6 +25,8 @@ export type Formatters = {
   /** `en-IN` or `hi-IN`, for any `Intl` formatter a component still builds itself. */
   intl: string
   money: (paise: number) => string
+  /** A total or average across orders, in whole units: ₹2,76,370 (never ₹2,76,370.18). */
+  moneyWhole: (paise: number) => string
   moneyCompact: (paise: number) => string
   number: (n: number) => string
   compact: (n: number) => string
@@ -45,6 +47,7 @@ function build(locale: Locale, region: Region): Formatters {
     weekStartsOn: weekStartsOn(region),
     intl: INTL_LOCALE[locale],
     money: (paise) => formatPaise(paise, locale),
+    moneyWhole: (paise) => formatPaiseWhole(paise, locale),
     moneyCompact: (paise) => formatPaiseCompact(paise, locale),
     number: (n) => formatNumber(n, { locale: INTL_LOCALE[locale] }),
     compact: (n) => formatCompact(n, locale),

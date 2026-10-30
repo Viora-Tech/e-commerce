@@ -18,7 +18,7 @@ import { CHANNEL_LABELS, growthOverviewContent } from '@/data/growth'
 import { growthSplitContent } from '@/data/growth-report'
 import { useCopy } from '@/hooks/use-copy'
 import { formatRate } from '@/lib/analytics-range'
-import { formatPaise } from '@/lib/money'
+import { formatPaiseWhole } from '@/lib/money'
 import SplitCell from './split-cell'
 
 type ChannelTableCardProps = { rows: ChannelRow[] }
@@ -91,7 +91,7 @@ export default function ChannelTableCard({ rows }: ChannelTableCardProps) {
                   {formatNumber(row.orders)}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
-                  {formatPaise(row.salesPaise)}
+                  {formatPaiseWhole(row.salesPaise)}
                 </TableCell>
                 <TableCell className="text-right">
                   <SplitCell salesPaise={row.split.newSalesPaise} orders={row.split.newOrders} />

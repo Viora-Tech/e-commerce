@@ -7,6 +7,11 @@ export function formatPaise(paise: number, locale: Locale = 'en'): string {
   return formatMoney(paise, 'INR', { locale: INTL_LOCALE[locale] })
 }
 
+/** A total or average across orders in whole units: ₹2,76,370 (never ₹2,76,370.18). */
+export function formatPaiseWhole(paise: number, locale: Locale = 'en'): string {
+  return formatMoney(paise, 'INR', { whole: true, locale: INTL_LOCALE[locale] })
+}
+
 /** ₹1.2L / ₹35K (Hindi: ₹1.2 लाख / ₹35 हज़ार) — for stat tiles and chart axes. */
 export function formatPaiseCompact(paise: number, locale: Locale = 'en'): string {
   return formatMoney(paise, 'INR', { compact: true, locale: INTL_LOCALE[locale] })

@@ -94,6 +94,12 @@ export type FormatMoneyOptions = {
    * `compact` is true (compact always caps at 1 fraction digit).
    */
   showZeroDecimals?: boolean
+  /**
+   * Round to the currency's whole major unit and show no decimals: totals and averages
+   * across many orders (₹2,76,370, $1,204). Uses the currency's own minor unit, so it is
+   * right for every currency. Ignored when `compact` is true.
+   */
+  whole?: boolean
 }
 
 /**
@@ -193,15 +199,16 @@ export function formatMoney(
     }).format(major)
   }
 
-  const isWhole = Number.isInteger(major)
-  const fractionDigits = opts.showZeroDecimals || !isWhole ? meta.minorUnit : 0
+  const value = opts.whole ? Math.round(major) : major
+  const isWhole = Number.isInteger(value)
+  const fractionDigits = !opts.whole && (opts.showZeroDecimals || !isWhole) ? meta.minorUnit : 0
 
   return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: meta.code,
     minimumFractionDigits: fractionDigits,
     maximumFractionDigits: fractionDigits,
-  }).format(major)
+  }).format(value)
 }
 
 /** Format a plain (unitless) number with the currency's locale digit grouping. */

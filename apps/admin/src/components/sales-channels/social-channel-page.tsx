@@ -207,7 +207,7 @@ export default function SocialChannelPage({ data, issues }: SocialChannelPagePro
           {
             id: 'revenue',
             label: copy.stats.revenue(name),
-            value: format.money(totals.revenuePaise),
+            value: format.moneyWhole(totals.revenuePaise),
             trend: percent(totals.revenuePaise, totals.prevRevenuePaise),
             trendNote: shared.vsLast,
           },
@@ -275,7 +275,7 @@ export default function SocialChannelPage({ data, issues }: SocialChannelPagePro
           </DataCard>
           <ChartCard
             title={copy.salesHeading(name)}
-            subtitle={copy.salesSub(format.money(totals.revenuePaise))}
+            subtitle={copy.salesSub(format.moneyWhole(totals.revenuePaise))}
             periods={[
               {
                 id: '30d',

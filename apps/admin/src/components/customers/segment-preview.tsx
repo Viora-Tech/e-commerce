@@ -7,7 +7,7 @@ import DataCard from '@/components/layout/data-card'
 import { customersContent, segmentsContent } from '@/data/customers'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { formatPaise } from '@/lib/money'
+import { formatPaiseWhole } from '@/lib/money'
 import { routes } from '@/lib/routes'
 import CustomerAvatar from './customer-avatar'
 
@@ -72,7 +72,7 @@ export default function SegmentPreview({ rules }: SegmentPreviewProps) {
                     {c.email ?? ''}
                   </span>
                 </span>
-                <span className="text-body tabular-nums">{formatPaise(c.spentPaise)}</span>
+                <span className="text-body tabular-nums">{formatPaiseWhole(c.spentPaise)}</span>
               </Link>
             </li>
           ))}
