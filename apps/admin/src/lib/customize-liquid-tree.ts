@@ -33,6 +33,11 @@ const TITLE_KEYS = ['heading', 'title', 'text', 'label', 'name', 'caption', 'sub
 /** Not words a person would call the block by: links, colours, Shopify references, numbers. */
 const NOT_A_NAME = /^(https?:|shopify:\/\/|\/|#[0-9a-f]{3,8}$|rgba?\(|[\d\s.,%px-]+$)/i
 
+/** A select option's value, not words: `full_bleed`, `left`, `image-first`. */
+const OPTION_VALUE = /^[a-z0-9]+(?:[_-][a-z0-9]+)*$/
+
+const isName = (t: string) => t !== '' && !NOT_A_NAME.test(t) && !OPTION_VALUE.test(t)
+
 /**
  * Any other text the block carries, in its settings' order: Shopify names a block by its first
  * text setting whatever its id, so a hero's "Video slide, Video slide…" read "Victory Season
@@ -42,7 +47,7 @@ function firstText(settings: Record<string, unknown> | undefined): string | unde
   for (const v of Object.values(settings ?? {})) {
     if (typeof v !== 'string') continue
     const t = stripTags(v)
-    if (t.length >= 3 && t.length <= 120 && !NOT_A_NAME.test(t)) return t
+    if (t.length >= 3 && t.length <= 120 && isName(t)) return t
   }
   return undefined
 }
@@ -92,7 +97,7 @@ export function liquidBlockRows(
       TITLE_KEYS.map((k) => item.settings?.[k])
         .filter((v): v is string => typeof v === 'string')
         .map(stripTags)
-        .find((v) => v !== '') ?? firstText(item.settings)
+        .find(isName) ?? firstText(item.settings)
     return {
       index,
       id: item.id,
