@@ -14,7 +14,6 @@ import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { type FormEvent, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
-import ScrollSection from '@/components/layout/scroll-section'
 import Timeline from '@/components/layout/timeline'
 import { notificationsSettingsContent } from '@/data/notifications'
 import { orderDetailContent } from '@/data/order-detail'
@@ -97,14 +96,11 @@ export default function TimelineCard({ order, onChanged }: TimelineCardProps) {
         </div>
       </form>
 
-      <ScrollSection
-        id={`order-timeline-${order.id}`}
-        label={copy.timeline.heading}
-        maxHeight="min(32rem, 65vh)"
-        className="mt-4 [--detail-header-height:0rem]"
-      >
+      {/* One list in the page, like Shopify: no scroll box of its own with "Scroll for more" and
+          "Show all" inside the card (audit #18). */}
+      <div className="mt-4">
         <Timeline groups={groups} />
-      </ScrollSection>
+      </div>
     </DataCard>
   )
 }
