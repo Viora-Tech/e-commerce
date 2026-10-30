@@ -1,3 +1,4 @@
+import { isFresh, stepUpAgeMs } from '@commerce/auth'
 import {
   forgetInvitation,
   invitationRoleForUser,
@@ -14,7 +15,7 @@ import {
 import type { StoreTx } from '@commerce/db'
 import { organizationMembership, withStore } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
-import { approvalKind, isReadPath } from '../mcp/action-catalogue'
+import { approvalKind, isReadPath, kindForInput } from '../mcp/action-catalogue'
 import { queueForApprover } from '../services/ai/assistant/service'
 import { mustAsk } from './approval-rules'
 import { memberProcedure, type SessionContext } from './base'
@@ -224,6 +225,10 @@ function storeProcedureWith(required?: Permission | readonly Permission[]) {
         const id = await queue(context, tx, scope, path.join('.'), waits, input)
         return { [QUEUED]: id }
       }
+      // Runs now (the owner, or a role that does not need approval): a sensitive action also
+      // needs a recent step-up when enforcement is on. Checked here, after approval, so a role
+      // that would queue is never also asked to step up.
+      await requireStepUp(context, path, input)
       try {
         const out = await next({ context: { scope, tx, afterCommit } })
         await logTokenCall(context, tx, member.storeId, path, required)
@@ -259,6 +264,37 @@ function approvalQueued(id: string | null, permission: Permission | null) {
       'Sent for approval: your role needs approval for this. It runs once a member who can approve it does so in Settings → Approvals.',
     data: { approvalId: id, permission },
   })
+}
+
+/** Code the admin reads as "re-verify first": it opens the step-up dialog and retries the call. */
+export const STEP_UP_REQUIRED = 'STEP_UP_REQUIRED'
+
+function stepUpRequired(path: string) {
+  return new ORPCError(STEP_UP_REQUIRED, {
+    status: 403,
+    message: "Confirm it's you to continue — this action needs a recent sign-in check.",
+    data: { path },
+  })
+}
+
+/**
+ * Step-up gate (A5), on calls that run now (never queued): when enforcement is on, a sensitive
+ * action from a real browser session is refused unless that session re-verified within the
+ * window. Access tokens and MCP carry no session to step up, so they are never gated here — the
+ * MCP surface already holds sensitive actions for a person's approval. The freshness stamp is
+ * read straight from the session row (`stepUpAgeMs`), not from the cookie-cached `getSession`.
+ */
+async function requireStepUp(
+  context: SessionContext,
+  path: readonly string[],
+  input: unknown,
+): Promise<void> {
+  if (!context.stepUpEnforce || context.apiPrincipal) return
+  const dotted = path.join('.')
+  if (!dotted || kindForInput(dotted, input) !== 'sensitive') return
+  const age = await stepUpAgeMs(context.db, context.session.sessionId)
+  if (isFresh(age)) return
+  throw stepUpRequired(dotted)
 }
 
 /**

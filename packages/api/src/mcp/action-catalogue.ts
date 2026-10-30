@@ -190,6 +190,7 @@ const READ_PATHS = new Set([
 const EXCLUDED_NAMESPACES: Record<string, string> = {
   account: "the member's own sign-in, sessions and account deletion",
   me: "the member's own session",
+  reauth: "the member's own step-up re-verification (people only)",
   onboarding: 'creating a new store (cross-store)',
   invitations: 'accepting an invitation to another store (cross-store)',
   bugReports: 'files issues with the platform team (internal)',

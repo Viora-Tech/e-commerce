@@ -49,6 +49,10 @@ export function apiHost() {
     deliveryHealth: deliveryQuoteCache(sharedRedis(loadEnv(process.env).REDIS_URL)),
     inboxPublisher: inboxPublisher(loadEnv(process.env).REDIS_URL),
     reportError,
+    // Step-up re-auth (A5). Off by default; task 4 flips STEP_UP_ENFORCE on once the admin
+    // dialog ships. The passkey rpID/origin is pinned to the admin's own URL, not the request.
+    stepUpEnforce: process.env.STEP_UP_ENFORCE === 'true',
+    appUrl: loadEnv(process.env).ADMIN_URL,
   }
 }
 
