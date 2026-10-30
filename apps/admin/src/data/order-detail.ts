@@ -14,6 +14,16 @@ export const orderDetailContent = {
   back: 'Orders',
   title: (n: number) => `Order #${n}`,
   placed: (when: string) => `Placed ${when}`,
+  /** #1007: archived orders sit only under the list's Archived tab. */
+  archive: {
+    action: 'Archive order',
+    notice: (when: string) =>
+      `Archived ${when}. It is off the working tabs and shows only under Archived.`,
+    unarchive: 'Unarchive',
+    archived: 'Order archived',
+    unarchived: 'Order unarchived',
+    failed: 'Could not change the order. Try again.',
+  },
   paidVia: 'Payment',
   previous: 'Previous order',
   next: 'Next order',

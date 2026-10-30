@@ -32,6 +32,7 @@ export const ORDER_LIST_FILTERS = [
   'completed',
   'cancelled',
   'payment_not_finished',
+  'archived',
 ] as const
 export type OrderListFilter = (typeof ORDER_LIST_FILTERS)[number]
 
@@ -173,6 +174,7 @@ export const ordersContent = {
     completed: 'Completed',
     cancelled: 'Cancelled',
     payment_not_finished: 'Payment pending',
+    archived: 'Archived',
   } satisfies Record<OrderListFilter | 'all', string>,
   status: {
     draft: 'Draft',
@@ -244,6 +246,8 @@ export const ordersContent = {
     quantity: (n: number) => `× ${n}`,
     more: 'Open the order to see every item',
   },
+  /** On an archived order's row (search and the Archived tab). */
+  archivedChip: 'Archived',
   /** The Delivery chip when its shipment has a tracking page. */
   trackDelivery: 'Open tracking in a new tab',
   bulk: {

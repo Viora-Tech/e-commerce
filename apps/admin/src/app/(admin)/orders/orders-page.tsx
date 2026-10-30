@@ -24,6 +24,7 @@ import {
   ordersContent,
   PENDING_UPI,
 } from '@/data/orders'
+import { ordersBulkContent } from '@/data/orders-bulk'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { type ListQuery, sameListQuery } from '@/lib/list-query'
@@ -43,6 +44,9 @@ import { usePrimaryAction } from '@/lib/primary-action'
 import { routes } from '@/lib/routes'
 import { parseRowsPerPage } from '@/lib/rows-per-page'
 import { runBatched } from '@/lib/run-batched'
+
+/** Most ids one `orders.archiveMany` call takes (the API's BULK_MAX). */
+const ARCHIVE_CHUNK = 200
 
 /** The API refused this one order for a reason that is a skip, not a failure. */
 function isBadRequest(err: unknown): boolean {
@@ -82,6 +86,7 @@ function fetchOrders(q: Query, perPage: number) {
 function OrdersContent({ initial }: { initial: OrdersInitial }) {
   // Hooks
   const copy = useCopy(ordersContent)
+  const bulkCopy = useCopy(ordersBulkContent)
   const fmt = useFormat()
   const router = useRouter()
   usePrimaryAction(routes.orders.drafts())
@@ -189,6 +194,28 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
     if (updated > 0) {
       clear()
       await reload().catch(() => setFailed(true))
+    }
+  }
+
+  const handleBulkArchive = async (ids: string[], archived: boolean, clear: () => void) => {
+    try {
+      let updated = 0
+      let skipped = 0
+      for (let i = 0; i < ids.length; i += ARCHIVE_CHUNK) {
+        const r = await api.orders.archiveMany({ ids: ids.slice(i, i + ARCHIVE_CHUNK), archived })
+        updated += r.updated
+        skipped += r.skipped
+      }
+      const summary = archived
+        ? bulkCopy.archived(updated, skipped)
+        : bulkCopy.unarchived(updated, skipped)
+      if (updated > 0) toast.success(summary)
+      else toast.info(summary)
+      clear()
+      router.refresh()
+      await reload().catch(() => setFailed(true))
+    } catch {
+      toast.error(bulkCopy.archiveFailed)
     }
   }
 
@@ -317,6 +344,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
           <OrdersBulkActions
             ids={ids}
             onMark={(i, m) => handleBulkSetStatus(i, m, clear)}
+            onArchive={(i, archived) => handleBulkArchive(i, archived, clear)}
             onRequest={(kind, i) => setBulkRequest({ kind, ids: i, clear })}
             appActions={initial.appActions}
             automations={initial.automations}

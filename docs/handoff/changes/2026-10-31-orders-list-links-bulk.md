@@ -1,6 +1,7 @@
-# Orders list: real links, items popover, tracking chip, bulk mark skips (#1008, part of #1007)
+# Orders list: real links, items popover, tracking chip, bulk mark skips, archive (#1008, #1007)
 
-Pushed straight to `dev` (branch `agent/orders-list`). No migration.
+Pushed straight to `dev` (branch `agent/orders-list`). **Migration `0211_order_archive`** (adds
+nullable `order.archived_at`, no backfill): run `db:migrate` on the test server and on prod at release.
 
 - **Order number is a link** (`lib/order-columns.tsx`, `next/link`): middle-click or Ctrl-click
   opens the order in a new tab; a plain click on the row still opens it in the same tab. The
@@ -17,11 +18,16 @@ Pushed straight to `dev` (branch `agent/orders-list`). No migration.
   without a call, the API's BAD_REQUEST refusals count as skipped, real failures as failed;
   one toast reports updated / skipped / failed. Before, one cancelled order failed the batch.
 
+- **Archive / Unarchive** (#1007): `order.archived_at`, core `setOrdersArchived`
+  (`packages/core/src/order/archive.ts`), `orders.archiveMany` (ORDERS_WRITE, up to 200 ids a
+  call). Bulk bar More actions has Archive orders / Unarchive orders (toast reports already
+  archived / not archived as skipped). Every list tab and Ready to ship / Home to-do counts leave
+  archived orders out (`viewFilter` in `order-views.ts`); a new **Archived** tab lists them; a
+  search with no tab still finds them, with an "Archived" chip on the row. The order page shows a
+  notice with Unarchive, and More actions has Archive order. Sales tiles still count them.
+
 ## Left out of #1007
 
-- **Archive / Unarchive**: orders have no archive concept yet (no `orders.archived_at`, no
-  service, no route). Needs a migration, a core service, a bulk route, a list filter and a
-  detail banner. Waiting on the owner.
 - **Mark as unfulfilled**: no safe service path exists (it would have to undo packed lines and
   shipments). Not built.
 - **Change fulfilment location**: out of scope (owner). **Print invoices** already existed in
@@ -32,4 +38,6 @@ Pushed straight to `dev` (branch `agent/orders-list`). No migration.
 On `/orders`: middle-click an order number (new tab), Ctrl-click (new tab, current tab stays),
 plain click a row (same tab). On a row with 2+ items click "+n more ⌄". On a shipped order with
 a courier tracking link, middle-click the Delivery chip. Select a cancelled plus an open
-unfulfilled order and Mark as > Fulfilled: one updated, one skipped in the toast.
+unfulfilled order and Mark as > Fulfilled: one updated, one skipped in the toast. After the
+migration: select two orders, More actions > Archive orders; they leave All and show under the
+Archived tab and on their page with Unarchive.

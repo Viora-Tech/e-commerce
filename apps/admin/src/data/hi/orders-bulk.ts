@@ -28,6 +28,13 @@ export default [
     printTooMany: (max) => `एक बार में ज़्यादा से ज़्यादा ${max} पैकिंग स्लिप प्रिंट करें`,
     printPickList: 'पिक लिस्ट प्रिंट करें',
     printInvoices: 'इनवॉइस प्रिंट करें',
+    archive: 'ऑर्डर आर्काइव करें',
+    unarchive: 'ऑर्डर आर्काइव से निकालें',
+    archived: (n, skipped) =>
+      `${n} ऑर्डर आर्काइव हुए` + (skipped > 0 ? `, ${skipped} पहले से आर्काइव थे` : ''),
+    unarchived: (n, skipped) =>
+      `${n} ऑर्डर आर्काइव से निकाले` + (skipped > 0 ? `, ${skipped} आर्काइव में नहीं थे` : ''),
+    archiveFailed: 'ऑर्डर नहीं बदल पाए। फिर से कोशिश करें।',
     csv: {
       order: 'ऑर्डर',
       date: 'तारीख',

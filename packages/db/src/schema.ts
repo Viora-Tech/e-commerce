@@ -1342,6 +1342,11 @@ export const order = pgTable(
     checkoutPaidAt: timestamp('checkout_paid_at', { withTimezone: true }),
     /** When the merchant marked the order delivered by hand; courier deliveries come from `shipment`. */
     deliveredAt: timestamp('delivered_at', { withTimezone: true }),
+    /**
+     * Archived by the merchant (#1007): a record kept off the default list views, shown under
+     * the "Archived" view. Nothing else about the order changes; unarchiving clears it.
+     */
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
     subtotalPaise: integer('subtotal_paise').notNull(),
     shippingPaise: integer('shipping_paise').notNull().default(0),
     /** The shipping rate charged, as it was at checkout. Null before shipping rates existed. */

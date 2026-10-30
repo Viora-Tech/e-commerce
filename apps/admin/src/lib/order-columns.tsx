@@ -112,6 +112,7 @@ export function orderColumns(
           >
             #{o.number}
           </Link>
+          {o.archivedAt ? <StatusChip>{copy.archivedChip}</StatusChip> : null}
           {o.isTest ? (
             <span title={copy.testChipHint}>
               <StatusChip tone="attention">{copy.testChip}</StatusChip>

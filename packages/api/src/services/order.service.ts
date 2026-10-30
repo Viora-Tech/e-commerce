@@ -34,7 +34,21 @@ import {
   variant,
 } from '@commerce/db'
 import type { PaymentRegistry } from '@commerce/payments'
-import { and, asc, count, desc, eq, gte, inArray, lte, ne, notInArray, or, sql } from 'drizzle-orm'
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNull,
+  lte,
+  ne,
+  notInArray,
+  or,
+  sql,
+} from 'drizzle-orm'
 
 export { ORDER_VIEWS, type OrderView, viewFilter } from './order-views'
 
@@ -93,6 +107,7 @@ export async function listOrders(
       /* The Channel and Tags columns (Figma "State · Columns open"): where the visit came from. */
       channel: sql<string | null>`${order.attribution}->>'channel'`,
       tags: order.tags,
+      archivedAt: order.archivedAt,
       /* Frame 5:2353 shows the first product with its picture; the rest is a count. */
       firstLineTitle: sql<string | null>`(
         select ol.title from ${orderLine} ol where ol.order_id = ${order.id}
@@ -179,6 +194,7 @@ export type OrderTiles = {
 const readyToShipWhere = () =>
   and(
     eq(order.status, 'open'),
+    isNull(order.archivedAt),
     inArray(order.fulfillmentStatus, [...UNFULFILLED_STATUSES]),
     or(
       notInArray(order.paymentStatus, [...UNPAID_PAYMENT_STATUSES]),

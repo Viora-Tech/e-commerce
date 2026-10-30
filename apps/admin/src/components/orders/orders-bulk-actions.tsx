@@ -32,6 +32,8 @@ import { useOrderAppActions } from './use-order-app-actions'
 type OrdersBulkActionsProps = {
   ids: string[]
   onMark: (ids: string[], mark: OrderMark) => void
+  /** Archive (true) or unarchive (false) the selected orders. */
+  onArchive: (ids: string[], archived: boolean) => void
   /** Tags and payment reminders ask first: the page opens their dialog for these ids. */
   onRequest: (kind: OrdersBulkRequest['kind'], ids: string[]) => void
   /** Installed apps' order actions; those placed on the bulk bar show in its More actions. */
@@ -49,13 +51,14 @@ const SHEET_CHUNK = 5000
 
 /**
  * Buttons for the selected orders: open them in the bulk-edit sheet, mark them all, and in
- * More actions add or remove tags, send payment reminders, export a CSV, print packing slips,
+ * More actions add or remove tags, archive or unarchive them, send payment reminders, export a CSV, print packing slips,
  * or run an installed app's action on them (a courier's Create shipment opens the bulk
  * shipment dialog with that courier picked).
  */
 export default function OrdersBulkActions({
   ids,
   onMark,
+  onArchive,
   onRequest,
   appActions = [],
   onAppActionDone,
@@ -117,6 +120,8 @@ export default function OrdersBulkActions({
   const moreItems: ActionItem[] = [
     { label: bulkCopy.addTags, onSelect: () => onRequest('addTags', ids) },
     { label: bulkCopy.removeTags, onSelect: () => onRequest('removeTags', ids) },
+    { label: bulkCopy.archive, separatorBefore: true, onSelect: () => onArchive(ids, true) },
+    { label: bulkCopy.unarchive, onSelect: () => onArchive(ids, false) },
     {
       label: bulkCopy.remind,
       icon: Bell,

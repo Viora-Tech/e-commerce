@@ -1,7 +1,7 @@
 /** SOURCE OF TRUTH: the Orders list's tabs — WHAT: which orders each tab (and Home's to-do counts) shows / WHY: one rule for the list, its counts and the dashboard */
 import { UNFULFILLED_STATUSES, UNPAID_PAYMENT_STATUSES } from '@commerce/core'
 import { order } from '@commerce/db'
-import { and, eq, gt, inArray, isNull, ne, type SQL, sql } from 'drizzle-orm'
+import { and, eq, gt, inArray, isNotNull, isNull, ne, type SQL, sql } from 'drizzle-orm'
 
 /** The tabs above the order list. */
 export const ORDER_VIEWS = [
@@ -13,6 +13,7 @@ export const ORDER_VIEWS = [
   'completed',
   'cancelled',
   'payment_not_finished',
+  'archived',
 ] as const
 export type OrderView = (typeof ORDER_VIEWS)[number]
 
@@ -32,8 +33,16 @@ const paymentFinished = sql`not ${paymentNotFinished}`
  * open orders count; Pending UPI is a manual transfer whose checkout amount
  * has not been matched yet.
  */
+/** Archived orders (#1007) sit only under the Archived tab; every other tab leaves them out. */
+const notArchived = isNull(order.archivedAt)
+
 /** A list tab's rows; Home's to-do counts use the same rule so their number matches the list they open. */
 export function viewFilter(view: OrderView): SQL | undefined {
+  if (view === 'archived') return isNotNull(order.archivedAt)
+  return and(notArchived, tabFilter(view))
+}
+
+function tabFilter(view: Exclude<OrderView, 'archived'>): SQL | undefined {
   switch (view) {
     case 'unpaid':
       return and(

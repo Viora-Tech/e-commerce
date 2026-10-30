@@ -182,6 +182,7 @@ export default [
       completed: 'पूरे हुए',
       cancelled: 'कैंसिल',
       payment_not_finished: 'पेमेंट पेंडिंग',
+      archived: 'आर्काइव',
     },
     status: {
       draft: 'ड्राफ़्ट',
@@ -248,6 +249,7 @@ export default [
       quantity: (n) => `× ${n}`,
       more: 'सभी आइटम देखने के लिए ऑर्डर खोलें',
     },
+    archivedChip: 'आर्काइव',
     trackDelivery: 'ट्रैकिंग नए टैब में खोलें',
     bulk: {
       markAs: 'मार्क करें',

@@ -28,6 +28,7 @@ import FulfilDialog from './fulfil-dialog'
 import ImportedOrderCard from './imported-order-card'
 import LineItemsCard from './line-items-card'
 import OrderActions from './order-actions'
+import OrderArchivedNotice from './order-archived-notice'
 import {
   isOfflineMethod,
   type OrderDetail,
@@ -117,6 +118,18 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
       refresh()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : listCopy.bulk.failed)
+    } finally {
+      setBusy(false)
+    }
+  }
+  const handleArchive = async (archived: boolean) => {
+    setBusy(true)
+    try {
+      await api.orders.archiveMany({ ids: [order.id], archived })
+      toast.success(archived ? copy.archive.archived : copy.archive.unarchived)
+      refresh()
+    } catch {
+      toast.error(copy.archive.failed)
     } finally {
       setBusy(false)
     }
@@ -244,6 +257,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
   // An imported order still open can be cancelled too (the server takes it over first).
   const canCancel = canStaffCancel(order) && hasPermission(permissions.ORDERS_CANCEL)
   const canEdit = canEditOrder(order) && hasPermission(permissions.ORDERS_WRITE)
+  const canArchive = hasPermission(permissions.ORDERS_WRITE)
   const canCapture = live && hasPermission(permissions.ORDERS_REFUND)
 
   return (
@@ -285,6 +299,9 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
               appItems={[
                 ...automation.items([order.id], { runsLink: true }),
                 ...apps.items('detail', order, [order.id]),
+                ...(canArchive && !order.archivedAt
+                  ? [{ label: copy.archive.action, onSelect: () => handleArchive(true) }]
+                  : []),
               ]}
               readOnly={readOnly}
               previousId={n?.previous?.id}
@@ -309,6 +326,13 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
       }
       main={
         <>
+          {order.archivedAt ? (
+            <OrderArchivedNotice
+              archivedAt={order.archivedAt}
+              busy={busy}
+              onUnarchive={canArchive ? () => handleArchive(false) : undefined}
+            />
+          ) : null}
           <ImportedOrderCard
             order={order}
             canTakeOver={hasPermission(permissions.ORDERS_WRITE)}

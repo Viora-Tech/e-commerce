@@ -25,6 +25,16 @@ export const ordersBulkContent = {
   printTooMany: (max: number) => `Print up to ${max} packing slips at a time`,
   printPickList: 'Print pick list',
   printInvoices: 'Print invoices',
+  /** #1007: off the working tabs (All, Unfulfilled…) into Archived, or back. */
+  archive: 'Archive orders',
+  unarchive: 'Unarchive orders',
+  archived: (n: number, skipped: number) =>
+    `${n} ${n === 1 ? 'order' : 'orders'} archived` +
+    (skipped > 0 ? `, ${skipped} already archived` : ''),
+  unarchived: (n: number, skipped: number) =>
+    `${n} ${n === 1 ? 'order' : 'orders'} unarchived` +
+    (skipped > 0 ? `, ${skipped} were not archived` : ''),
+  archiveFailed: 'Could not change the orders. Try again.',
   csv: {
     order: 'Order',
     date: 'Date',
