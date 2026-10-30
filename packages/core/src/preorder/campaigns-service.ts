@@ -318,7 +318,7 @@ export async function preorderOverview(ctx: StoreContext, now = new Date()): Pro
       })
       .from(orderLine)
       .innerJoin(order, eq(order.id, orderLine.orderId))
-      .where(and(eq(orderLine.preorder, true), countedOrder, gte(order.createdAt, since))),
+      .where(and(eq(orderLine.preorder, true), countedOrder, gte(order.placedAt, since))),
     campaignSummaries(tx),
     tx
       .select({

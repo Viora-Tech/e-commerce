@@ -1,4 +1,5 @@
 import {
+  CUSTOM_ITEM_HANDLE,
   capturePayment,
   changeOrderStatus,
   insertOutboxEvent,
@@ -26,6 +27,7 @@ import {
   orderNote,
   payment,
   paymentEvent,
+  product,
   productMedia,
   refund,
   store,
@@ -298,6 +300,7 @@ async function withThumbnails(tx: StoreTx, lines: Line[]) {
     .select({
       variantId: variant.id,
       productId: variant.productId,
+      handle: product.handle,
       sku: variant.sku,
       variantImage: media.url,
       productImage: sql<string | null>`(
@@ -305,6 +308,7 @@ async function withThumbnails(tx: StoreTx, lines: Line[]) {
         where pm.product_id = ${variant.productId} order by pm.position limit 1)`,
     })
     .from(variant)
+    .innerJoin(product, eq(product.id, variant.productId))
     .leftJoin(media, eq(media.id, variant.mediaId))
     .where(inArray(variant.id, ids))
   const byId = new Map(rows.map((r) => [r.variantId, r]))
@@ -312,7 +316,8 @@ async function withThumbnails(tx: StoreTx, lines: Line[]) {
     const v = byId.get(l.variantId)
     return {
       ...l,
-      productId: v?.productId ?? null,
+      // A draft's custom item sits on a hidden product: no "View product" link to it.
+      productId: v && v.handle !== CUSTOM_ITEM_HANDLE ? v.productId : null,
       sku: v?.sku ?? null,
       imageUrl: v?.variantImage ?? v?.productImage ?? null,
     }
