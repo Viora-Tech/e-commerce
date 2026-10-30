@@ -15,7 +15,7 @@ export default [
     clearSort: 'क्रम हटाएं',
     more: 'और',
     clearFilters: 'सब हटाएं',
-    addFilter: 'फ़िल्टर जोड़ें',
+    searchMore: 'खोजें',
     filterIs: (field) => `${field}:`,
     view: 'देखें',
     toggleColumns: 'कॉलम दिखाएं/छिपाएं',

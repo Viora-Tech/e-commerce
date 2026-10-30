@@ -12,7 +12,8 @@ export const tableContent = {
   clearSort: 'Clear sort',
   more: 'More',
   clearFilters: 'Clear all',
-  addFilter: 'Add filter',
+  /** The search bar's placeholder once filter pills sit in it. */
+  searchMore: 'Search',
   /** An applied-filter chip: "Payment is" before the bold value. */
   filterIs: (field: string) => `${field} is`,
   view: 'View',

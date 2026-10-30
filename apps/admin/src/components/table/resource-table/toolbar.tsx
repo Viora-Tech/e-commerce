@@ -1,6 +1,6 @@
 'use client'
 
-import { Plus, Search, SlidersHorizontal } from '@commerce/ui/icons'
+import { Search, SlidersHorizontal } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import type { ReactTable, RowData } from '@tanstack/react-table'
 import { type ReactNode, useState } from 'react'
@@ -90,16 +90,36 @@ export default function ResourceTableToolbar<T extends RowData>({
           </>
         ) : null}
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <label className="flex h-8 min-w-0 flex-1 items-center gap-2 rounded-sm px-2 transition-colors focus-within:bg-muted/50">
+          {/* One "Search and filter" bar, as Shopify does it: the applied filters sit inside it as
+              pills ("Payment is Paid ×") before the text, not in a second row under it. A pill
+              reopens its own small popover; the Filter button adds another. */}
+          <div className="flex min-h-8 min-w-0 flex-1 flex-wrap items-center gap-1.5 rounded-sm px-2 py-0.5 transition-colors focus-within:bg-muted/50">
             <Search className="size-4 shrink-0 text-muted-foreground" />
+            {chips.map((g) => (
+              <FilterChip
+                key={g.key}
+                group={g}
+                open={openKey === g.key}
+                onOpenChange={(open) => handleChipOpen(g.key, open)}
+              />
+            ))}
+            {appliedCount >= 2 ? (
+              <button
+                type="button"
+                onClick={() => clearGroups(filterGroups)}
+                className="inline-flex h-7 shrink-0 items-center rounded-sm px-1.5 text-body font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                {tableCopy.clearFilters}
+              </button>
+            ) : null}
             <input
               value={query}
               onChange={(e) => onQueryChange(e.target.value)}
-              placeholder={tableCopy.search(plural)}
+              placeholder={chips.length > 0 ? tableCopy.searchMore : tableCopy.search(plural)}
               aria-label={tableCopy.search(plural)}
-              className="min-w-0 flex-1 bg-transparent text-[0.8125rem] leading-[1.1875rem] text-foreground outline-none placeholder:text-muted-foreground"
+              className="h-7 min-w-32 flex-1 bg-transparent text-[0.8125rem] leading-[1.1875rem] text-foreground outline-none placeholder:text-muted-foreground"
             />
-          </label>
+          </div>
           {filterGroups.length > 0 ? (
             <FilterMenu
               groups={filterGroups}
@@ -131,38 +151,6 @@ export default function ResourceTableToolbar<T extends RowData>({
           </div>
         </div>
       </div>
-      {/* Applied filters, Shopify-style: one pill per filter ("Payment is Paid ×") under the
-          search. A pill reopens its own small popover; "Add filter", then "Clear all" for 2+. */}
-      {chips.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-2 border-border border-t px-3 py-2.5">
-          {chips.map((g) => (
-            <FilterChip
-              key={g.key}
-              group={g}
-              open={openKey === g.key}
-              onOpenChange={(open) => handleChipOpen(g.key, open)}
-            />
-          ))}
-          <FilterMenu
-            groups={filterGroups}
-            onPick={setOpenKey}
-            className="inline-flex h-7 items-center gap-1.5 rounded-sm px-2 text-body font-medium text-foreground transition-colors hover:bg-muted data-[popup-open]:bg-muted [&_svg]:size-4"
-            label={tableCopy.addFilter}
-          >
-            <Plus aria-hidden="true" />
-            {tableCopy.addFilter}
-          </FilterMenu>
-          {appliedCount >= 2 ? (
-            <button
-              type="button"
-              onClick={() => clearGroups(filterGroups)}
-              className="inline-flex h-7 items-center rounded-sm px-2 text-body font-medium text-foreground transition-colors hover:bg-muted"
-            >
-              {tableCopy.clearFilters}
-            </button>
-          ) : null}
-        </div>
-      ) : null}
     </div>
   )
 }

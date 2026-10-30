@@ -28,3 +28,6 @@ filter Shopify-style, one filter at a time:
 
 Not browser-tested (owner's PC busy): check the chip popover opening after picking from the menu,
 on Orders and on a phone width.
+
+- Later: the chips sit inside the "Search and filter" bar itself, before the text (Shopify
+  style), not in a second row; the Filter button adds one. "Add filter" copy removed.
