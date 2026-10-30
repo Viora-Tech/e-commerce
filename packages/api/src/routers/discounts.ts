@@ -15,7 +15,7 @@ import {
 } from '../services/discount.service'
 
 const LIFECYCLES = ['active', 'scheduled', 'expired', 'disabled'] as const
-const TYPES = ['products', 'order', 'bxgy', 'shipping'] as const
+const TYPES = ['products', 'order', 'bxgy', 'shipping', 'combo'] as const
 
 function surfaceCodeClash<T>(work: () => Promise<T>): Promise<T> {
   return work().catch((err: unknown) => {

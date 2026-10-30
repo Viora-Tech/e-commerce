@@ -2,6 +2,7 @@ import type {
   DiscountAppliesTo,
   DiscountBxgy,
   DiscountCombinesWith,
+  DiscountCombo,
   DiscountEligibility,
   DiscountKind,
   DiscountMethod,
@@ -9,6 +10,7 @@ import type {
   DiscountType,
 } from '@commerce/db'
 import { bxgyAmount } from './bxgy'
+import { comboAmount } from './combo'
 
 /** The subset of a `discount` row the evaluator needs; the DB row satisfies it directly. */
 export type DiscountRule = {
@@ -34,6 +36,8 @@ export type DiscountRule = {
   /** Minimum items in the cart (eligible items for a products discount). */
   minQuantity?: number | null | undefined
   bxgy?: DiscountBxgy | null | undefined
+  /** Combo deal: Combo 1..N, each a set of items with its own discount. */
+  combos?: DiscountCombo[] | null | undefined
   /** Free shipping only to these state codes; empty or missing means everywhere. */
   shippingStates?: string[] | undefined
   /** Free shipping skips rates above this price. */
@@ -52,6 +56,8 @@ export type DiscountRule = {
 
 export type DiscountCartLine = {
   productId: string
+  /** The exact variant; combo deals made of variants match on it. */
+  variantId?: string | undefined
   /** Collections the product belongs to (`collection_product`); `loadDiscountCart` fills it. */
   collectionIds?: string[]
   quantity: number
@@ -137,14 +143,17 @@ export function discountType(d: Pick<DiscountRule, 'type' | 'method' | 'appliesT
   return d.appliesTo === 'all' ? 'order' : 'products'
 }
 
-/** The class a discount stacks as: buy X get Y counts as a product discount, like Shopify. */
+/**
+ * The class a discount stacks as: buy X get Y counts as a product discount, like Shopify, and
+ * so does a combo deal (it prices sets of products).
+ */
 export type DiscountClass = keyof DiscountCombinesWith
 
 export function discountClass(
   d: Pick<DiscountRule, 'type' | 'method' | 'appliesTo'>,
 ): DiscountClass {
   const t = discountType(d)
-  return t === 'bxgy' ? 'products' : t
+  return t === 'bxgy' || t === 'combo' ? 'products' : t
 }
 
 /** Whether the shopper may use it; unknown shoppers (no email yet) are let through for now. */
@@ -231,6 +240,12 @@ export function evaluateDiscount(
     return { ok: true, discount: d, amountPaise, freeShipping: false, label: d.title }
   }
 
+  if (type === 'combo') {
+    const amountPaise = Math.min(comboAmount(cart.lines, d.combos ?? []).amountPaise, total)
+    if (amountPaise <= 0) return reject('no_eligible_items')
+    return { ok: true, discount: d, amountPaise, freeShipping: false, label: d.title }
+  }
+
   // Order and shipping discounts cover the whole cart (`appliesTo` is `all` for them).
   const lines = eligibleLines(cart, d)
   if (d.minQuantity != null && itemCount(lines) < d.minQuantity) return reject('min_quantity')
@@ -300,8 +315,12 @@ const rupeeText = (paise: number): string => {
  */
 export function describeDiscountValue(
   d: Pick<DiscountRule, 'method' | 'value'> &
-    Partial<Pick<DiscountRule, 'appliesTo' | 'productValues' | 'type'>>,
+    Partial<Pick<DiscountRule, 'appliesTo' | 'productValues' | 'type' | 'combos'>>,
 ): string {
+  if (d.type === 'combo') {
+    const n = d.combos?.length ?? 0
+    return n === 1 ? '1 combo' : `${n} combos`
+  }
   if (d.method === 'free_shipping') return 'Free shipping'
   if (d.type === 'bxgy') {
     const off =

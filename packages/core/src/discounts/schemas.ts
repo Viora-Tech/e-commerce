@@ -4,8 +4,11 @@ export const DiscountKindSchema = z.enum(['code', 'automatic'])
 export const DiscountMethodSchema = z.enum(['percent', 'fixed', 'free_shipping'])
 export const DiscountAppliesToSchema = z.enum(['all', 'products', 'collections'])
 export const DiscountStatusSchema = z.enum(['active', 'disabled'])
-/** Shopify's four types: amount off products, amount off order, buy X get Y, free shipping. */
-const DiscountTypeSchema = z.enum(['products', 'order', 'bxgy', 'shipping'])
+/**
+ * Shopify's four types (amount off products, amount off order, buy X get Y, free shipping)
+ * plus combo deals.
+ */
+const DiscountTypeSchema = z.enum(['products', 'order', 'bxgy', 'shipping', 'combo'])
 const DiscountEligibilitySchema = z.enum(['all', 'segments', 'customers'])
 
 const DiscountCombinesWithSchema = z.object({
@@ -13,6 +16,8 @@ const DiscountCombinesWithSchema = z.object({
   order: z.boolean().default(false),
   shipping: z.boolean().default(false),
 })
+
+const PERCENT_RANGE = 'Percent must be between 0.01 and 100'
 
 const scopeSchema = z.object({
   appliesTo: z.enum(['products', 'collections']),
@@ -30,6 +35,35 @@ const DiscountBxgySchema = z.object({
   maxUsesPerOrder: z.number().int().min(1).max(10_000).nullable(),
 })
 
+/** Most combos one combo deal holds, and most items in one combo. */
+export const MAX_COMBOS = 20
+export const MAX_COMBO_ITEMS = 20
+
+/** One combo: a set of products or variants with quantities, and its own discount. */
+const DiscountComboSchema = z
+  .object({
+    scope: z.enum(['products', 'variants']),
+    items: z
+      .array(z.object({ id: z.uuid(), quantity: z.number().int().min(1).max(1_000) }))
+      .min(1, 'Pick at least one item')
+      .max(MAX_COMBO_ITEMS),
+    /** `price`: what the whole set costs; `percent`: off the set; `fixed`: amount off the set. */
+    method: z.enum(['price', 'percent', 'fixed']),
+    /** Minor units for `price` and `fixed`, basis points for `percent`. */
+    value: z.number().int().min(0).max(1_000_000_000),
+  })
+  .superRefine((c, ctx) => {
+    if (new Set(c.items.map((i) => i.id)).size !== c.items.length) {
+      ctx.addIssue({ code: 'custom', path: ['items'], message: 'Each item once per combo' })
+    }
+    if (c.method === 'percent' && (c.value < 1 || c.value > 10_000)) {
+      ctx.addIssue({ code: 'custom', path: ['value'], message: PERCENT_RANGE })
+    }
+    if (c.method !== 'percent' && c.value < 1) {
+      ctx.addIssue({ code: 'custom', path: ['value'], message: 'Enter an amount' })
+    }
+  })
+
 /** Codes: letters, digits and hyphens, stored upper-case. */
 export const DiscountCodeSchema = z
   .string()
@@ -40,8 +74,6 @@ export const DiscountCodeSchema = z
   .transform((s) => s.toUpperCase())
 
 const limit = z.number().int().min(1).max(1_000_000).nullable()
-
-const PERCENT_RANGE = 'Percent must be between 0.01 and 100'
 
 /**
  * A per-product discount: product-scoped, percent or fixed, one value above zero for
@@ -86,6 +118,7 @@ function checkType(
     method: string
     appliesTo: string
     bxgy?: z.infer<typeof DiscountBxgySchema> | null | undefined
+    combos?: z.infer<typeof DiscountComboSchema>[] | null | undefined
   },
   ctx: z.RefinementCtx,
 ): void {
@@ -104,6 +137,9 @@ function checkType(
   }
   if (d.type === 'products' && d.appliesTo === 'all') {
     ctx.addIssue({ code: 'custom', path: ['appliesTo'], message: 'Pick products or collections' })
+  }
+  if (d.type === 'combo' && (!d.combos || d.combos.length === 0)) {
+    ctx.addIssue({ code: 'custom', path: ['combos'], message: 'Add at least one combo' })
   }
   if (d.type === 'bxgy') {
     if (!d.bxgy) {
@@ -141,6 +177,8 @@ export const DiscountInputSchema = z
       .nullable()
       .optional(),
     bxgy: DiscountBxgySchema.nullable().optional(),
+    /** Combo deal: Combo 1..N. Only for type `combo`, which keeps `value` at 0. */
+    combos: z.array(DiscountComboSchema).max(MAX_COMBOS).nullable().optional(),
     /** Free shipping: only to these state codes (empty: every state). */
     shippingStates: z.array(z.string().trim().min(2).max(3)).max(40).default([]),
     /** Free shipping: rates above this price are charged in full. */
@@ -166,7 +204,7 @@ export const DiscountInputSchema = z
     const perProduct = d.productValues ? Object.entries(d.productValues) : []
     if (perProduct.length > 0) {
       checkProductValues(d, perProduct, ctx)
-    } else {
+    } else if (d.type !== 'combo') {
       if (d.method === 'percent' && (d.value < 1 || d.value > 10_000)) {
         ctx.addIssue({ code: 'custom', path: ['value'], message: PERCENT_RANGE })
       }

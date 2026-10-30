@@ -28,7 +28,7 @@ type MethodCardProps = {
 }
 
 const KINDS = ['code', 'automatic'] as const
-const TYPES = ['products', 'order', 'bxgy', 'shipping'] as const
+const TYPES = ['products', 'order', 'bxgy', 'shipping', 'combo'] as const
 
 export default function MethodCard({
   form,

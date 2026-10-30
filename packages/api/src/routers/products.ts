@@ -116,12 +116,14 @@ export const productsRouter = {
     )
     .handler(({ context, input }) => pickProducts(context.tx, input)),
 
-  /** Variant picker for the draft order editor. */
+  /** Variant picker for the draft order editor and combo deals. */
   searchVariants: can(permissions.PRODUCTS_READ)
     .input(
       z.object({
         search: z.string().trim().max(SEARCH_MAX).optional(),
         limit: z.number().int().min(1).max(50).default(20),
+        /** Only these variants (a saved combo deal's picks). */
+        ids: z.array(z.uuid()).max(50).optional(),
       }),
     )
     .handler(({ context, input }) => searchVariants(context.tx, input)),

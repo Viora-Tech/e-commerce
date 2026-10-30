@@ -1,14 +1,27 @@
 import { discountType, perProductValues } from '@commerce/core/discounts'
 import { DEFAULT_TIME_ZONE, wallClock, zoneOffsetMs } from '@commerce/dates'
+import { fromMinor } from '@commerce/money'
 import type { api } from '@/lib/api-client'
 
 export type LoadedDiscount = NonNullable<Awaited<ReturnType<typeof api.discounts.get>>>
 
-export type DiscountType = 'products' | 'order' | 'bxgy' | 'shipping'
+export type DiscountType = 'products' | 'order' | 'bxgy' | 'shipping' | 'combo'
 export type ItemScope = 'products' | 'collections'
 
+/** One combo of a combo deal as typed: its items, their quantities and its discount. */
+export type ComboFormRow = {
+  scope: 'products' | 'variants'
+  ids: string[]
+  /** Quantity as typed, keyed by product or variant id; blank reads as 1. */
+  quantities: Record<string, string>
+  /** A price for the whole set, a percentage off it, or an amount off it. */
+  method: 'price' | 'percent' | 'fixed'
+  /** Rupees or percent as typed; converted on save. */
+  value: string
+}
+
 export type DiscountFormState = {
-  /** Shopify's four types; picked when the discount is created. */
+  /** Shopify's four types plus combo deals; picked when the discount is created. */
   type: DiscountType
   title: string
   kind: 'code' | 'automatic'
@@ -38,6 +51,8 @@ export type DiscountFormState = {
   getsMode: 'free' | 'percent' | 'fixed'
   limitPerOrder: boolean
   maxUsesPerOrder: string
+  /** Combo deal: Combo 1..N. */
+  combos: ComboFormRow[]
   /** Free shipping: every state or the ticked ones, and the rate cap. */
   allStates: boolean
   shippingStates: string[]
@@ -58,6 +73,14 @@ export type DiscountFormState = {
   endsAt: string
   status: 'active' | 'disabled'
 }
+
+export const emptyCombo = (): ComboFormRow => ({
+  scope: 'products',
+  ids: [],
+  quantities: {},
+  method: 'price',
+  value: '',
+})
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 
@@ -116,6 +139,7 @@ export function emptyForm(type: DiscountType = 'products'): DiscountFormState {
     getsMode: 'free',
     limitPerOrder: false,
     maxUsesPerOrder: '',
+    combos: [emptyCombo()],
     allStates: true,
     shippingStates: [],
     excludeRates: false,
@@ -181,6 +205,17 @@ export function fromDiscount(d: LoadedDiscount): DiscountFormState {
               : ('percent' as const),
           limitPerOrder: bxgy.maxUsesPerOrder !== null,
           maxUsesPerOrder: bxgy.maxUsesPerOrder === null ? '' : String(bxgy.maxUsesPerOrder),
+        }
+      : {}),
+    ...(type === 'combo' && d.combos?.length
+      ? {
+          combos: d.combos.map((c) => ({
+            scope: c.scope,
+            ids: c.items.map((i) => i.id),
+            quantities: Object.fromEntries(c.items.map((i) => [i.id, String(i.quantity)])),
+            method: c.method,
+            value: c.method === 'percent' ? typed(c.value) : String(fromMinor(c.value)),
+          })),
         }
       : {}),
     allStates: d.shippingStates.length === 0,

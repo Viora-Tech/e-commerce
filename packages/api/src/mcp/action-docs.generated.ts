@@ -547,7 +547,7 @@ export const ACTION_DOCS: Record<string, string> = {
     'The bulk editor\'s "Delete variants": archived when history points at them, else deleted.',
   'products.save':
     'Full write from the product form: options, variants and inventory in one transaction.',
-  'products.searchVariants': 'Variant picker for the draft order editor.',
+  'products.searchVariants': 'Variant picker for the draft order editor and combo deals.',
   'products.setVariantImages':
     "Set one variant's images in order (first = the variant's main image); a file not yet in the product's gallery is added to it.",
   'products.stats': 'Tiles above the list.',

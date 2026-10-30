@@ -1,5 +1,5 @@
 import { type DiscountInput, discountType, normaliseCode } from '@commerce/core'
-import type { DiscountType, StoreTx } from '@commerce/db'
+import type { DiscountCombo, DiscountType, StoreTx } from '@commerce/db'
 import { discount, discountUsage, order } from '@commerce/db'
 import {
   and,
@@ -169,6 +169,9 @@ export type DiscountListItem = {
   appliesTo: 'all' | 'products' | 'collections'
   /** Set when the discount takes a different amount off each product. */
   productValues: Record<string, number> | null
+  type: DiscountType
+  /** Combo deal: its combos, for the Value column ("3 combos"); null for other types. */
+  combos: DiscountCombo[] | null
   usedCount: number
   usageLimit: number | null
   startsAt: Date | null
@@ -298,6 +301,8 @@ export async function listDiscounts(
       value: r.value,
       appliesTo: r.appliesTo,
       productValues: r.productValues,
+      type: r.type,
+      combos: r.combos,
       usedCount: r.usedCount,
       usageLimit: r.usageLimit,
       startsAt: r.startsAt,
@@ -360,8 +365,9 @@ function toRow(storeId: string, input: DiscountInput) {
     kind: input.kind,
     code: input.kind === 'code' && input.code ? normaliseCode(input.code) : null,
     method: input.method,
-    // A per-product discount keeps its amounts in product_values; the single value is unused.
-    value: input.method === 'free_shipping' || productValues ? 0 : input.value,
+    // A per-product discount keeps its amounts in product_values and a combo deal on each
+    // combo; the single value is unused.
+    value: input.method === 'free_shipping' || productValues || type === 'combo' ? 0 : input.value,
     minSubtotalPaise: input.minSubtotalPaise ?? null,
     minQuantity: input.minQuantity ?? null,
     appliesTo: input.appliesTo,
@@ -369,6 +375,7 @@ function toRow(storeId: string, input: DiscountInput) {
     productValues,
     type,
     bxgy: type === 'bxgy' ? (input.bxgy ?? null) : null,
+    combos: type === 'combo' ? (input.combos ?? null) : null,
     shippingStates: type === 'shipping' ? input.shippingStates : [],
     maxShippingPaise: type === 'shipping' ? (input.maxShippingPaise ?? null) : null,
     customerEligibility: input.customerEligibility,

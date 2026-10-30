@@ -2144,8 +2144,11 @@ export type DiscountKind = 'code' | 'automatic'
 export type DiscountMethod = 'percent' | 'fixed' | 'free_shipping'
 export type DiscountAppliesTo = 'all' | 'products' | 'collections'
 export type DiscountStatus = 'active' | 'disabled'
-/** Shopify's four discount types; `method` still says what a products/order/bxgy discount gives. */
-export type DiscountType = 'products' | 'order' | 'bxgy' | 'shipping'
+/**
+ * Shopify's four discount types plus combo deals; `method` still says what a products/order/bxgy
+ * discount gives (a combo keeps its own discount on each combo).
+ */
+export type DiscountType = 'products' | 'order' | 'bxgy' | 'shipping' | 'combo'
 export type DiscountEligibility = 'all' | 'segments' | 'customers'
 /** Which other discount classes this one may stack with at checkout. */
 export type DiscountCombinesWith = { products: boolean; order: boolean; shipping: boolean }
@@ -2164,6 +2167,18 @@ export type DiscountBxgy = {
   }
   gets: { quantity: number; appliesTo: 'products' | 'collections'; ids: string[] }
   maxUsesPerOrder: number | null
+}
+
+/**
+ * One combo of a combo deal: a set of products (any variant) or of exact variants, each with
+ * the quantity the set needs, and what the full set costs or takes off. `value` is the combo
+ * price in minor units for `price`, basis points for `percent`, minor units off for `fixed`.
+ */
+export type DiscountCombo = {
+  scope: 'products' | 'variants'
+  items: { id: string; quantity: number }[]
+  method: 'price' | 'percent' | 'fixed'
+  value: number
 }
 
 /**
@@ -2197,6 +2212,8 @@ export const discount = pgTable(
     productValues: jsonb('product_values').$type<Record<string, number>>(),
     /** Buy X get Y settings; only for type `bxgy`. */
     bxgy: jsonb('bxgy').$type<DiscountBxgy>(),
+    /** Combo deal: Combo 1..N; only for type `combo`. */
+    combos: jsonb('combos').$type<DiscountCombo[]>(),
     /** Free shipping only to these Indian state codes; empty means every state. */
     shippingStates: jsonb('shipping_states').$type<string[]>().notNull().default([]),
     /** Free shipping skips rates above this price; null means any rate. */

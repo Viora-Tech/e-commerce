@@ -100,6 +100,7 @@ export async function checkDraftDiscountCode(
       ? [
           {
             productId: v.productId,
+            variantId: l.variantId,
             quantity: l.quantity,
             // No price yet (#913) counts as nothing until the line is given one.
             unitPricePaise: l.unitPricePaise ?? v.pricePaise ?? 0,

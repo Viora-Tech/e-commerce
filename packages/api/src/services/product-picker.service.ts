@@ -23,14 +23,25 @@ export type VariantSearchRow = {
 /**
  * Variant picker for the draft order editor: one row per sellable variant. `limit` caps the
  * number of matching *products*; every live variant of each one comes back, so a product with
- * many options is never cut off part way through its variants.
+ * many options is never cut off part way through its variants. With `ids`, only those
+ * variants come back (a saved combo deal showing its picks).
  */
 export async function searchVariants(
   tx: StoreTx,
-  input: { search?: string | undefined; limit?: number | undefined },
+  input: {
+    search?: string | undefined
+    limit?: number | undefined
+    ids?: string[] | undefined
+  },
 ): Promise<VariantSearchRow[]> {
   const search = input.search?.trim()
-  const live = and(isNull(variant.archivedAt), ne(product.status, 'archived'), notSystemTest)
+  const only = input.ids?.length ? inArray(variant.id, input.ids) : undefined
+  const live = and(
+    isNull(variant.archivedAt),
+    ne(product.status, 'archived'),
+    notSystemTest,
+    only,
+  )
   const matches = await tx
     .selectDistinct({ id: product.id, title: product.title })
     .from(variant)

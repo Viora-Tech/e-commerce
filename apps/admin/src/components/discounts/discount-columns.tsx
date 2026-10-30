@@ -58,7 +58,7 @@ export function discountColumns(
       // over Type (#996).
       render: (d) => (
         <span className="line-clamp-2 block max-w-48 whitespace-normal">
-          {describeDiscountValue(d)}
+          {d.type === 'combo' ? copy.comboCount(d.combos?.length ?? 0) : describeDiscountValue(d)}
         </span>
       ),
     },

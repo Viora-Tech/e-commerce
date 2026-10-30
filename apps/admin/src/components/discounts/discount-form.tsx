@@ -19,6 +19,7 @@ import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import BxgyCard from './bxgy-card'
 import CombinationsCard from './combinations-card'
+import CombosCard from './combos-card'
 import DatesCard from './dates-card'
 import DiscountStatusCard from './discount-status-card'
 import EligibilityCard from './eligibility-card'
@@ -233,10 +234,13 @@ export default function DiscountForm({ discount }: DiscountFormProps) {
             />
           ) : null}
           {form.type === 'bxgy' ? <BxgyCard form={form} errors={errors} onChange={patch} /> : null}
+          {form.type === 'combo' ? (
+            <CombosCard form={form} error={errors.combos} onChange={patch} />
+          ) : null}
           {form.type === 'shipping' ? (
             <ShippingCard form={form} error={errors.states} onChange={patch} />
           ) : null}
-          {form.type === 'bxgy' ? null : (
+          {form.type === 'bxgy' || form.type === 'combo' ? null : (
             <MinimumCard form={form} error={errors.minimum} onChange={patch} />
           )}
           <EligibilityCard form={form} error={errors.eligibility} onChange={patch} />

@@ -59,6 +59,20 @@ function scopeLines(copy: Copy, form: DiscountFormState, input: DiscountInput): 
     if (maxUsesPerOrder) lines.push(copy.perOrder(maxUsesPerOrder))
     return lines
   }
+  if (form.type === 'combo') {
+    const lines = (input.combos ?? []).map((c, i) => {
+      const valid = Number.isFinite(c.value) && c.value > 0
+      const how =
+        c.method === 'price'
+          ? copy.comboPrice(valid ? formatPaise(c.value) : '…')
+          : copy.comboOff(
+              valid ? (c.method === 'percent' ? `${c.value / 100}%` : formatPaise(c.value)) : '…',
+            )
+      return copy.combo(i + 1, c.items.reduce((n, it) => n + it.quantity, 0), how)
+    })
+    lines.push(copy.comboEach)
+    return lines
+  }
   if (form.type === 'shipping') {
     const lines = [form.allStates ? copy.allStates : copy.someStates(form.shippingStates.length)]
     if (input.maxShippingPaise) lines.push(copy.rateCap(formatPaise(input.maxShippingPaise)))
@@ -77,7 +91,7 @@ function detailLines(
   const lines = scopeLines(copy, form, input)
   if (input.minSubtotalPaise) lines.push(copy.minimum(formatPaise(input.minSubtotalPaise)))
   else if (input.minQuantity) lines.push(copy.minQuantity(input.minQuantity))
-  else if (form.type !== 'bxgy') lines.push(copy.noMinimum)
+  else if (form.type !== 'bxgy' && form.type !== 'combo') lines.push(copy.noMinimum)
   lines.push(
     form.eligibility === 'segments'
       ? copy.forSegments(form.segmentIds.length)
@@ -106,7 +120,7 @@ export default function SummaryCard({ form, discount }: SummaryCardProps) {
   const title = form.title.trim() || copy.untitled
   const code =
     form.kind === 'automatic' ? copy.automatic : form.code.trim().toUpperCase() || copy.noCode
-  const valueText = form.type === 'bxgy' ? null : describeValue(input)
+  const valueText = form.type === 'bxgy' || form.type === 'combo' ? null : describeValue(input)
 
   return (
     <DataCard title={copy.heading} bodyClassName="flex flex-col gap-4">
@@ -124,8 +138,9 @@ export default function SummaryCard({ form, discount }: SummaryCardProps) {
       <div>
         <p className="text-caption">{copy.details}</p>
         <ul className="list-disc pl-4 text-body">
-          {detailLines(copy, form, discount).map((line) => (
-            <li key={line}>{line}</li>
+          {detailLines(copy, form, discount).map((line, i) => (
+            // Two combos can read the same, so the position keeps keys apart.
+            <li key={`${i}-${line}`}>{line}</li>
           ))}
         </ul>
       </div>

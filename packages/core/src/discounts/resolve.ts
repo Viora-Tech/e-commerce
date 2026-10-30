@@ -47,6 +47,7 @@ export async function loadDiscountCart(ctx: StoreContext, cartId: string): Promi
   const rows = await ctx.tx
     .select({
       productId: variant.productId,
+      variantId: cartLine.variantId,
       quantity: cartLine.quantity,
       unitPricePaise: cartLine.unitPricePaise,
     })
@@ -62,7 +63,12 @@ export async function loadDiscountCart(ctx: StoreContext, cartId: string): Promi
  */
 export async function withCollections(
   ctx: StoreContext,
-  rows: { productId: string; quantity: number; unitPricePaise: number }[],
+  rows: {
+    productId: string
+    variantId?: string | undefined
+    quantity: number
+    unitPricePaise: number
+  }[],
   shippingPaise = 0,
 ): Promise<DiscountCart> {
   const collectionsByProduct = await productCollections(ctx, [
