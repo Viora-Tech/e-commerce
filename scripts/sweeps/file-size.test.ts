@@ -51,20 +51,15 @@ const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
       'the worker entry wires every queue, worker, schedule and shutdown in one place; a jobs registry would split it',
   },
   'packages/core/src/billing/service.ts': {
-    lines: 932,
+    lines: 716,
     reason:
-      'plan bills plus the per-order fee bills and the billing sweep — split usage-fee billing into its own module (#973)',
+      'plan bills, the sales-store order behind every bill and the billing sweep (fee bills moved out in #973)',
   },
   'packages/core/src/gift-cards/service.ts': { lines: 705, reason: SPLIT },
   'packages/core/src/marketing/automations.ts': { lines: 837, reason: SPLIT },
   'packages/core/src/marketing/campaigns.ts': { lines: 508, reason: SPLIT },
   'packages/core/src/metaobjects/service.ts': { lines: 768, reason: SPLIT },
   'packages/core/src/notifications/deliver.ts': { lines: 609, reason: SPLIT },
-  'packages/core/src/order/place-order.ts': {
-    lines: 1137,
-    reason:
-      'checkout: gift-card rules, payment adjustments, customer upsert and the cart lock around placeOrder — split into sibling modules (#973)',
-  },
   'packages/core/src/returns/service.ts': { lines: 763, reason: SPLIT },
   'packages/core/src/theme-code/files.ts': { lines: 550, reason: SPLIT },
   'packages/core/src/theme-import/resource-drops.ts': {
