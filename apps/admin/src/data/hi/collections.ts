@@ -1,4 +1,8 @@
-import { collectionDetailContent, collectionsListContent } from '@/data/collections'
+import {
+  collectionDetailContent,
+  collectionsListContent,
+  productCollectionsContent,
+} from '@/data/collections'
 import { translation } from '@/lib/i18n'
 
 export default [
@@ -199,6 +203,24 @@ export default [
           `${title} ${total} में से ${position} नंबर पर रखा गया`,
         cancelled: (title: string) => `${title} को खिसकाना रद्द हुआ`,
       },
+    },
+  }),
+  translation(productCollectionsContent, {
+    label: 'कलेक्शन',
+    help: 'वे मैन्युअल कलेक्शन जिनमें यह प्रोडक्ट है।',
+    none: 'किसी कलेक्शन में नहीं',
+    placeholder: 'किसी कलेक्शन में जोड़ें',
+    create: {
+      action: 'कलेक्शन बनाएं',
+      title: 'नया कलेक्शन बनाएं',
+      body: 'मैन्युअल कलेक्शन: इसके प्रोडक्ट आप चुनते हैं। इमेज, विवरण और SEO बाद में कलेक्शन पेज पर जोड़ें।',
+      name: 'टाइटल',
+      placeholder: 'समर सेल',
+      save: 'बनाएं',
+      cancel: 'रद्द करें',
+      created: (title) => `कलेक्शन "${title}" बन गया। इस प्रोडक्ट को जोड़ने के लिए सेव करें।`,
+      createdNew: (title) => `कलेक्शन "${title}" बन गया`,
+      failed: 'कलेक्शन नहीं बन पाया',
     },
   }),
 ]

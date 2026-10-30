@@ -216,6 +216,19 @@ export const productCollectionsContent = {
   help: 'Manual collections this product belongs to.',
   none: 'Not in any collection',
   placeholder: 'Add to a collection',
+  /** "Create collection" inside the picker (#982): a manual collection, picked right away. */
+  create: {
+    action: 'Create collection',
+    title: 'Create a collection',
+    body: 'A manual collection: you choose its products. Add an image, description and SEO later on the collection page.',
+    name: 'Title',
+    placeholder: 'Summer sale',
+    save: 'Create',
+    cancel: 'Cancel',
+    created: (title: string) => `Collection "${title}" created. Save to add this product.`,
+    createdNew: (title: string) => `Collection "${title}" created`,
+    failed: 'Could not create the collection',
+  },
 } as const
 
 /** Standalone collections card on the product form (frame: organisation). */

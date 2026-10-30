@@ -8,7 +8,7 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
-import { productCollectionsCardContent } from '@/data/collections'
+import { productCollectionsCardContent, productCollectionsContent } from '@/data/collections'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { collectionIdsToSave } from './collection-pick'
@@ -41,6 +41,7 @@ export default function ProductCollectionsCard({
 }: ProductCollectionsCardProps) {
   // Hooks
   const copy = useCopy(productCollectionsCardContent)
+  const fieldCopy = useCopy(productCollectionsContent)
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [value, setValue] = useState<string[]>([])
   const [saved, setSaved] = useState<string[]>([])
@@ -103,6 +104,18 @@ export default function ProductCollectionsCard({
     if (!productId) onPendingChange?.(next)
   }
 
+  /** A collection made in the picker (#982): offered from now on and picked for this product. */
+  const handleCreated = (collection: CollectionOption) => {
+    if (!loaded) return
+    setLoaded({ ...loaded, manual: [...loaded.manual, collection] })
+    handlePick([...value, collection.id])
+    toast.success(
+      productId
+        ? fieldCopy.create.created(collection.title)
+        : fieldCopy.create.createdNew(collection.title),
+    )
+  }
+
   // Render logic
   const dirty = JSON.stringify(value) !== JSON.stringify(saved)
 
@@ -123,7 +136,12 @@ export default function ProductCollectionsCard({
         <Skeleton className="h-16 w-full" />
       ) : (
         <>
-          <ProductCollectionsField options={loaded.manual} value={value} onChange={handlePick} />
+          <ProductCollectionsField
+            options={loaded.manual}
+            value={value}
+            onChange={handlePick}
+            onCreated={handleCreated}
+          />
           <div className="flex flex-col gap-1.5">
             <FieldLabel>{copy.automaticLabel}</FieldLabel>
             {loaded.automatic.length > 0 ? (
