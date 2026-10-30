@@ -6,6 +6,7 @@ import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import type { discountsContent } from '@/data/discounts'
 import type { api } from '@/lib/api-client'
 import type { Formatters } from '@/lib/format'
+import { combinationsLabel, discountListSummary, eligibilityLabel } from './discount-list-summary'
 
 export type DiscountRow = Awaited<ReturnType<typeof api.discounts.list>>['items'][number]
 
@@ -22,6 +23,9 @@ function datesLabel(item: DiscountRow, copy: Copy, fmt: Formatters): string {
   if (to) return copy.until(to)
   return copy.ongoing
 }
+
+/** Columns the list starts with hidden; the View menu turns them on. */
+export const DISCOUNT_HIDDEN_COLUMNS = ['eligibility', 'combinations']
 
 /** Columns of the discount list (Figma "Marketing / Discounts"). */
 export function discountColumns(
@@ -42,6 +46,9 @@ export function discountColumns(
           <span className="text-ink-strong">{d.title}</span>
           <span className="text-caption text-muted-foreground">
             {d.code ? <span className="uppercase">{d.code}</span> : copy.kind.automatic}
+          </span>
+          <span className="line-clamp-2 text-caption text-muted-foreground">
+            {discountListSummary(d, copy, fmt.money)}
           </span>
           {holds[d.id] ? (
             <span className="mt-1">
@@ -99,6 +106,20 @@ export function discountColumns(
       title: copy.columns.dates,
       sortValue: (d) => (d.startsAt ? new Date(d.startsAt).getTime() : 0),
       render: (d) => <span className="tabular-nums">{datesLabel(d, copy, fmt)}</span>,
+    },
+    {
+      id: 'eligibility',
+      title: copy.columns.eligibility,
+      render: (d) => eligibilityLabel(d, copy),
+    },
+    {
+      id: 'combinations',
+      title: copy.columns.combinations,
+      render: (d) => (
+        <span className="line-clamp-2 block max-w-48 whitespace-normal">
+          {combinationsLabel(d, copy)}
+        </span>
+      ),
     },
     {
       id: 'status',

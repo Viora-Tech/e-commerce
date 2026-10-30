@@ -1,5 +1,12 @@
 import { type DiscountInput, discountType, normaliseCode } from '@commerce/core'
-import type { DiscountCombo, DiscountType, StoreTx } from '@commerce/db'
+import type {
+  DiscountBxgy,
+  DiscountCombinesWith,
+  DiscountCombo,
+  DiscountEligibility,
+  DiscountType,
+  StoreTx,
+} from '@commerce/db'
 import { discount, discountUsage, order } from '@commerce/db'
 import {
   and,
@@ -172,6 +179,20 @@ export type DiscountListItem = {
   type: DiscountType
   /** Combo deal: its combos, for the Value column ("3 combos"); null for other types. */
   combos: DiscountCombo[] | null
+  /** How many products or collections `appliesTo` narrows to (0 for `all`). */
+  appliesToCount: number
+  minSubtotalPaise: number | null
+  minQuantity: number | null
+  /** Buy X get Y settings, for the list's one-line summary; null for other types. */
+  bxgy: DiscountBxgy | null
+  /** Free shipping: how many states it is limited to (0 = every state) and its rate cap. */
+  shippingStateCount: number
+  maxShippingPaise: number | null
+  customerEligibility: DiscountEligibility
+  /** Segments or customers picked, per `customerEligibility`. */
+  eligibleCount: number
+  combinesWith: DiscountCombinesWith
+  usagePerCustomer: number | null
   usedCount: number
   usageLimit: number | null
   startsAt: Date | null
@@ -303,6 +324,16 @@ export async function listDiscounts(
       productValues: r.productValues,
       type: r.type,
       combos: r.combos,
+      appliesToCount: r.appliesTo === 'all' ? 0 : r.appliesToIds.length,
+      minSubtotalPaise: r.minSubtotalPaise,
+      minQuantity: r.minQuantity,
+      bxgy: r.bxgy,
+      shippingStateCount: r.shippingStates.length,
+      maxShippingPaise: r.maxShippingPaise,
+      customerEligibility: r.customerEligibility,
+      eligibleCount: r.customerEligibility === 'all' ? 0 : r.eligibleIds.length,
+      combinesWith: r.combinesWith,
+      usagePerCustomer: r.usagePerCustomer,
       usedCount: r.usedCount,
       usageLimit: r.usageLimit,
       startsAt: r.startsAt,

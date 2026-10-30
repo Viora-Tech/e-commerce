@@ -10,7 +10,7 @@ import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import DiscountBulkActions from '@/components/discounts/discount-bulk-actions'
-import { discountColumns } from '@/components/discounts/discount-columns'
+import { DISCOUNT_HIDDEN_COLUMNS, discountColumns } from '@/components/discounts/discount-columns'
 import DiscountRowMenu from '@/components/discounts/discount-row-menu'
 import DiscountTiles, { type DiscountStats } from '@/components/discounts/discount-tiles'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
@@ -139,6 +139,7 @@ function DiscountsContent({ initial }: { initial: DiscountsInitial }) {
       <ResourceTable
         resourceName={copy.resource}
         columns={discountColumns(copy, fmt, initial.holds)}
+        defaultHidden={DISCOUNT_HIDDEN_COLUMNS}
         items={items}
         getId={(d) => d.id}
         href={(d) => routes.discounts.detail(d.id)}

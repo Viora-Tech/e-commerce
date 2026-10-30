@@ -16,12 +16,52 @@ export const discountsContent = {
     scheduled: 'Scheduled',
     expired: 'Expired',
     usedThisMonth: 'Orders with a discount (30 days)',
-    now: 'Right now',
+    activeNote: 'Running now',
+    scheduledNote: 'Start later',
+    expiredNote: 'Ended',
     month: 'Last 30 days',
   },
   row: { edit: 'Edit discount', copyCode: 'Copy code', codeCopied: 'Code copied' },
   /** Value column for a combo deal. */
   comboCount: (n: number) => `${n} combo${n === 1 ? '' : 's'}`,
+  /** The one line under each discount's title (Shopify's list summary). */
+  listSummary: {
+    separator: ' • ',
+    onProducts: (value: string, n: number) =>
+      `${value} on ${n} ${n === 1 ? 'product' : 'products'}`,
+    onCollections: (value: string, n: number) =>
+      `${value} on ${n} ${n === 1 ? 'collection' : 'collections'}`,
+    onAllProducts: (value: string) => `${value} on all products`,
+    onOrder: (value: string) => `${value} on the entire order`,
+    buyGet: (buys: number, gets: number, how: string) =>
+      `Buy ${buys} ${buys === 1 ? 'item' : 'items'}, get ${gets} ${how}`,
+    spendGet: (amount: string, gets: number, how: string) => `Spend ${amount}, get ${gets} ${how}`,
+    getsFree: 'free',
+    getsOff: (value: string) => `at ${value.toLowerCase()}`,
+    shippingAll: 'Free shipping to all states',
+    shippingStates: (n: number) => `Free shipping to ${n} ${n === 1 ? 'state' : 'states'}`,
+    rateCap: (amount: string) => `on rates up to ${amount}`,
+    combos: (n: number) => `${n} combo${n === 1 ? '' : 's'}`,
+    minimum: (amount: string) => `Minimum purchase of ${amount}`,
+    minQuantity: (n: number) => `Minimum ${n} ${n === 1 ? 'item' : 'items'}`,
+    oncePerOrder: 'Applies once per order',
+    perOrder: (n: number) => `Up to ${n} times per order`,
+    onePerCustomer: 'One use per customer',
+    perCustomer: (n: number) => `${n} uses per customer`,
+    totalLimit: (n: number) => `Limited to ${n} ${n === 1 ? 'use' : 'uses'}`,
+  },
+  /** Eligibility column. */
+  eligibility: {
+    all: 'All customers',
+    segments: (n: number) => `${n} ${n === 1 ? 'segment' : 'segments'}`,
+    customers: (n: number) => `${n} ${n === 1 ? 'customer' : 'customers'}`,
+  },
+  /** Combinations column. */
+  combinations: {
+    names: { products: 'product', order: 'order', shipping: 'shipping' },
+    with: (names: string) => `${names.charAt(0).toUpperCase()}${names.slice(1)} discounts`,
+    none: "Doesn't combine",
+  },
   bulk: {
     pause: 'Pause',
     resume: 'Resume',
@@ -60,6 +100,8 @@ export const discountsContent = {
     given: 'Discount given',
     lastUsed: 'Last used',
     dates: 'Active dates',
+    eligibility: 'Eligibility',
+    combinations: 'Combinations',
   },
   filters: {
     status: 'Status',
