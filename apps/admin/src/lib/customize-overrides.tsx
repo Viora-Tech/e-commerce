@@ -28,7 +28,7 @@ type FieldOverride<C extends ComponentType<any>> = ComponentProps<C>
 function SettingHelp({ field }: { field: unknown }) {
   const help = (field as { metadata?: { help?: unknown } } | null)?.metadata?.help
   return typeof help === 'string' && help ? (
-    <p className="-mt-1 text-caption text-muted-foreground">{help}</p>
+    <p className="mt-1.5 text-caption text-muted-foreground">{help}</p>
   ) : null
 }
 

@@ -75,6 +75,28 @@ describe('imported section blocks in Layers', () => {
     expect(rows[0]).toMatchObject({ title: 'Lofree Hyzen', typeName: 'Video slide' })
   })
 
+  it('never names a block by a select value like full_bleed', () => {
+    const types = liquidBlockTypes(schema, theme)
+    const rows = liquidBlockRows(
+      {
+        ...props,
+        blocks: [
+          {
+            id: 'v',
+            type: 'video',
+            settings: {
+              layout: 'full_bleed',
+              align: 'left',
+              video: 'shopify://files/videos/a.mp4',
+            },
+          },
+        ],
+      },
+      types,
+    )
+    expect(rows[0]).toMatchObject({ title: 'Video slide', typeName: null })
+  })
+
   it('adds a block from its schema defaults, up to max_blocks', () => {
     const next = withLiquidBlockAdded(props, 'slide', schema, theme)
     const added = (next.blocks as { id: string; type: string; settings: unknown }[])[2]
