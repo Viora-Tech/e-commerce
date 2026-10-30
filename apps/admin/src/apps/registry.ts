@@ -72,7 +72,11 @@ import ReviewDetail from '@/components/apps/reviews/review-detail'
 import ReviewsPage from '@/components/apps/reviews/reviews-page'
 import ReviewsSettingsPage from '@/components/apps/reviews/settings-page'
 import S3ConnectPage from '@/components/apps/s3/connect-page'
+import SearchBoostsPage from '@/components/apps/search/boosts-page'
 import SearchFiltersPage from '@/components/apps/search/filters-page'
+import SearchOverviewPage from '@/components/apps/search/overview-page'
+import SearchRecommendationEditor from '@/components/apps/search/recommendation-editor'
+import SearchRecommendationsPage from '@/components/apps/search/recommendations-page'
 import SearchSynonymsPage from '@/components/apps/search/synonyms-page'
 import SearchConsoleAlmostPageOne from '@/components/apps/search-console/almost-page-one-page'
 import SearchConsoleLosingTraffic from '@/components/apps/search-console/losing-traffic-page'
@@ -231,8 +235,12 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
   },
   search: {
     pages: {
-      '': SearchSynonymsPage,
+      '': SearchOverviewPage,
+      synonyms: SearchSynonymsPage,
       filters: SearchFiltersPage,
+      boosts: SearchBoostsPage,
+      recommendations: SearchRecommendationsPage,
+      'recommendations/[productId]': SearchRecommendationEditor,
     },
   },
   'google-search-console': {

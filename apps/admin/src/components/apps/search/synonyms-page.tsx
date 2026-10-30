@@ -5,6 +5,7 @@ import { parseSynonymLines, synonymLines } from '@commerce/plugin-search'
 import { Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
+import { useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
@@ -14,18 +15,31 @@ import { searchAppContent } from '@/data/search-app'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
+/**
+ * The groups as text, with a new line started for `add` (the Overview's "Add synonym" on a
+ * search) unless a group already holds it.
+ */
+function withNewLine(groups: string[][], add: string): string {
+  const text = synonymLines(groups)
+  const word = add.trim().toLowerCase()
+  if (!word || groups.some((g) => g.includes(word))) return text
+  return `${text ? `${text}\n` : ''}${word}, `
+}
+
 /** The Search & discovery app's Synonyms page: one group of same-meaning words per line. */
 export default function SynonymsPage() {
   // Hooks
   const copy = useCopy(searchAppContent)
+  const add = useSearchParams().get('add') ?? ''
   const [saved, setSaved] = useState<string[][] | null>(null)
   const [text, setText] = useState('')
   const [saving, setSaving] = useState(false)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the shortcut's word is read once, on load.
   useEffect(() => {
     api.search.synonyms.get().then((groups) => {
       setSaved(groups)
-      setText(synonymLines(groups))
+      setText(withNewLine(groups, add))
     })
   }, [])
 

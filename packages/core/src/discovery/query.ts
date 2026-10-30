@@ -9,6 +9,9 @@ export const LINK_WINDOW_MINUTES = 30
 /** Search and recommendation events are deleted after this many days. */
 export const DISCOVERY_RETENTION_DAYS = 90
 
+/** Picks per product and row, at most (Shopify's recommendations answer up to 10). */
+export const MAX_PICKED_RECOMMENDATIONS = 10
+
 export const DISCOVERY_SOURCES = ['search', 'related', 'complementary'] as const
 export type DiscoverySource = (typeof DISCOVERY_SOURCES)[number]
 

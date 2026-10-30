@@ -112,6 +112,7 @@ import reviews from './reviews'
 import rollouts from './rollouts'
 import searchApp from './search-app'
 import searchConsole from './search-console'
+import searchDiscovery from './search-discovery'
 import searchFilters from './search-filters'
 import selectProducts from './select-products'
 import seoKeywords from './seo-keywords'
@@ -277,6 +278,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...themeImport,
   ...themes,
   ...searchApp,
+  ...searchDiscovery,
   ...searchFilters,
   ...searchConsole,
   ...seoReport,

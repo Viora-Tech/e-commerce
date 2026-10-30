@@ -27,6 +27,7 @@ import {
   type DiscoveryOverview,
   type DiscoverySource,
   LINK_WINDOW_MINUTES,
+  MAX_PICKED_RECOMMENDATIONS,
   loggableQuery,
   normaliseSearchQuery,
   type RecommendationIntentKind,
@@ -300,9 +301,6 @@ export async function setSearchPins(
 
 // --- Picked recommendations ------------------------------------------------------------------
 
-/** Picks per product and row, at most (Shopify's recommendations answer up to 10). */
-export const MAX_PICKED_RECOMMENDATIONS = 10
-
 export type PickedRecommendations = Record<RecommendationIntentKind, PinnedProduct[]>
 
 /** A product's picked recommendations for both rows, in order. */
@@ -328,6 +326,18 @@ export async function getProductRecommendations(
     out[intent].push({ id: r.id, title: r.title, handle: r.handle, status: r.status })
   }
   return out
+}
+
+/** The product a Recommendations editor opens on; null when it is not in the store. */
+export async function recommendationTarget(
+  tx: StoreTx,
+  productId: string,
+): Promise<PinnedProduct | null> {
+  const [row] = await tx
+    .select({ id: product.id, title: product.title, handle: product.handle, status: product.status })
+    .from(product)
+    .where(eq(product.id, productId))
+  return row ?? null
 }
 
 /** Replaces one row's picks for a product. The product itself and unknown ids are dropped. */
