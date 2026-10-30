@@ -90,6 +90,8 @@ type OrderRow = {
   customerId: string | null
   email: string | null
   paymentMethod: string | null
+  /** Placed through a tracked storefront session; only these convert sessions (audit #95). */
+  tracked: boolean
 }
 
 async function ordersIn(tx: StoreTx, from: Date, to: Date): Promise<OrderRow[]> {
@@ -101,6 +103,7 @@ async function ordersIn(tx: StoreTx, from: Date, to: Date): Promise<OrderRow[]> 
       customerId: order.customerId,
       email: order.email,
       paymentMethod: order.paymentMethod,
+      tracked: sql<boolean>`(${order.attribution}->>'channel') is not null`,
     })
     .from(order)
     .where(and(counted, gte(order.placedAt, from), lt(order.placedAt, to)))
@@ -180,6 +183,14 @@ export async function analyticsOverview(
     current.map((r) => ({ at: r.placedAt })),
     range.days,
   )
+  // Sessions are only counted on this storefront, so only orders placed through one convert
+  // them: imported history (101 orders vs 19 sessions) read as "100% conversion" (audit #95).
+  const trackedNow = current.filter((r) => r.tracked)
+  const trackedPrev = previous.filter((r) => r.tracked).length
+  const trackedByDay = bucketByDay(
+    trackedNow.map((r) => ({ at: r.placedAt })),
+    range.days,
+  )
   const returningByDay = bucketByDay(
     current.filter((r) => returning.has(r.id)).map((r) => ({ at: r.placedAt })),
     range.days,
@@ -209,13 +220,13 @@ export async function analyticsOverview(
     },
     {
       id: 'conversion',
-      value: conversionRate(current.length, sessionTotal),
-      previous: conversionRate(previous.length, sessionsPrev),
+      value: conversionRate(trackedNow.length, sessionTotal),
+      previous: conversionRate(trackedPrev, sessionsPrev),
       delta: delta(
-        conversionRate(current.length, sessionTotal),
-        conversionRate(previous.length, sessionsPrev),
+        conversionRate(trackedNow.length, sessionTotal),
+        conversionRate(trackedPrev, sessionsPrev),
       ),
-      series: ordersByDay.map((o, i) => conversionRate(o, sessionsPerDay[i] ?? 0)),
+      series: trackedByDay.map((o, i) => conversionRate(o, sessionsPerDay[i] ?? 0)),
     },
     {
       id: 'aov',
@@ -326,7 +337,7 @@ export async function analyticsOverview(
       sessions: sessionTotal,
       carts: cartsRow?.n ?? 0,
       checkouts: checkoutRow?.n ?? 0,
-      orders: current.length,
+      orders: trackedNow.length,
     }),
   }
 }

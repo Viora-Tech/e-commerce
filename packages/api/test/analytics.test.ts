@@ -118,6 +118,7 @@ describe('analytics.overview', () => {
         paymentMethod: 'razorpay',
         placedAt: hoursAgo(2),
         shippingAddressId: addr?.id,
+        attribution: { channel: 'direct' },
       },
       {
         ...base,
@@ -127,6 +128,7 @@ describe('analytics.overview', () => {
         paymentMethod: 'cod',
         placedAt: daysAgo(2),
         shippingAddressId: addr?.id,
+        attribution: { channel: 'direct' },
       },
       { ...base, number: 3, totalPaise: 90000, status: 'cancelled', placedAt: daysAgo(3) },
       { ...base, number: 4, totalPaise: 40000, status: 'draft', placedAt: daysAgo(1) },
@@ -171,6 +173,7 @@ describe('analytics.overview', () => {
     ])
     expect(kpi('sessions')?.value).toBe(4)
     expect(kpi('sessions')?.previous).toBe(1)
+    // Both orders came through a tracked session; an imported order would not count.
     expect(kpi('conversion')?.value).toBeCloseTo(2 / 4)
     expect(kpi('aov')?.value).toBe(80000)
     expect(week.range.days).toHaveLength(7)

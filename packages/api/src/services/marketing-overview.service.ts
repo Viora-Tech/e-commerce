@@ -221,17 +221,22 @@ function sourceRows(sessions: SessionRow[], orders: AttributedOrder[]): SourceRo
   }
   for (const s of sessions) get(normalizeSource(s)).sessions += 1
   let totalSales = 0
+  // Only orders that came through a tracked session convert sessions (as the KPI tile counts
+  // them); imported history landed in "Direct" and showed "100% conversion" (audit #104).
+  const trackedBySource = new Map<SourceKey, number>()
   for (const o of orders) {
-    const row = get(normalizeSource(o))
+    const source = normalizeSource(o)
+    const row = get(source)
     row.orders += 1
     row.salesPaise += o.totalPaise
     addToSplit(row.split, o)
     totalSales += o.totalPaise
+    if (o.channel !== null) trackedBySource.set(source, (trackedBySource.get(source) ?? 0) + 1)
   }
   return [...by.values()]
     .map((r) => ({
       ...r,
-      conversion: conversionRate(r.orders, r.sessions),
+      conversion: conversionRate(trackedBySource.get(r.source) ?? 0, r.sessions),
       shareOfSales: totalSales > 0 ? r.salesPaise / totalSales : 0,
     }))
     .sort((a, b) => b.salesPaise - a.salesPaise || b.sessions - a.sessions)
