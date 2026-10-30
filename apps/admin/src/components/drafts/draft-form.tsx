@@ -310,7 +310,7 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
         body={copy.actions.deleteBody}
         confirmLabel={copy.actions.delete}
         cancelLabel={copy.actions.cancel}
-        tone="default"
+        tone="destructive"
         onConfirm={handleDelete}
       />
     </PageBody>
