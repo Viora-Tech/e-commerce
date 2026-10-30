@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/too
 import Link from 'next/link'
 import { useState } from 'react'
 import EmptyState from '@/components/layout/empty-state'
+import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { metaobjectListContent } from '@/data/metaobjects'
@@ -72,6 +73,7 @@ export default function DefinitionsPage({ definitions }: DefinitionsPageProps) {
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState<number>(siteConfig.ui.rowsPerPage.default)
+  const [view, setView] = useState<'own' | 'shopify'>('own')
 
   // Event handlers
   const handleQuery = (next: string) => {
@@ -87,9 +89,13 @@ export default function DefinitionsPage({ definitions }: DefinitionsPageProps) {
   // Render logic
   const columns = columnsFor(copy, fmt)
   const q = query.trim().toLowerCase()
+  // Imported Shopify taxonomy types (46 of them at Waimers) crowded out the store's own (#93).
+  const fromShopify = (type: string) => type.startsWith('shopify')
+  const inView = definitions.filter((d) => fromShopify(d.type) === (view === 'shopify'))
+  const shopifyCount = definitions.filter((d) => fromShopify(d.type)).length
   const matching = q
-    ? definitions.filter((d) => d.name.toLowerCase().includes(q) || d.type.includes(q))
-    : definitions
+    ? inView.filter((d) => d.name.toLowerCase().includes(q) || d.type.includes(q))
+    : inView
   const shown = matching.slice((page - 1) * perPage, page * perPage)
   const entries = definitions.reduce((n, d) => n + d.entries, 0)
   const addButton = (
@@ -150,6 +156,25 @@ export default function DefinitionsPage({ definitions }: DefinitionsPageProps) {
           getId={(d) => d.id}
           href={(d) => entriesPath(d.type)}
           selectable={false}
+          views={
+            shopifyCount > 0 ? (
+              <PillTabs<'own' | 'shopify'>
+                value={view}
+                onChange={(v) => {
+                  setView(v)
+                  setPage(1)
+                }}
+                tabs={[
+                  {
+                    value: 'own',
+                    label: copy.views.own,
+                    count: definitions.length - shopifyCount,
+                  },
+                  { value: 'shopify', label: copy.views.shopify, count: shopifyCount },
+                ]}
+              />
+            ) : undefined
+          }
           query={query}
           onQueryChange={handleQuery}
           page={page}
