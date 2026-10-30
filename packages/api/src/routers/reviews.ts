@@ -2,6 +2,7 @@ import { CommerceError, enqueueAppJob, permissions } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import {
   askForRecentReviews,
+  askPastOrders,
   COPY_PHOTOS_JOB,
   deleteReviews,
   getReview,
@@ -10,6 +11,7 @@ import {
   listReviews,
   loadReviewsSettings,
   previewJudgemeImport,
+  previewPastOrders,
   REPLY_MAX,
   REVIEW_SOURCES,
   REVIEW_STATUSES,
@@ -48,7 +50,27 @@ function notFound(err: unknown): never {
   throw err
 }
 
+/** A plain CommerceError from the past-orders tools, as the API's error. */
+function askError(err: unknown): never {
+  if (err instanceof CommerceError && err.code === 'REVIEW_EMAILS_OFF') {
+    throw new ORPCError('PRECONDITION_FAILED', { message: err.message })
+  }
+  if (err instanceof CommerceError && err.code === 'REVIEW_RANGE_INVALID') {
+    throw new ORPCError('BAD_REQUEST', { message: err.message })
+  }
+  throw err
+}
+
 const Ids = z.object({ ids: z.array(z.uuid()).min(1).max(BULK_MAX) })
+/** The merchant's date range, start of the first day to end of the last, in their time zone. */
+const PastRange = z.object({
+  from: z.iso.datetime({ offset: true }),
+  to: z.iso.datetime({ offset: true }),
+})
+const pastRange = (input: z.infer<typeof PastRange>) => ({
+  from: new Date(input.from),
+  to: new Date(input.to),
+})
 const Csv = z.string().min(1).max(JUDGEME_MAX_BYTES)
 
 export const reviewsRouter = {
@@ -147,6 +169,26 @@ export const reviewsRouter = {
       throw err
     }
   }),
+
+  /** "Request reviews from past orders": how many delivered orders in the range would be asked. */
+  pastOrdersPreview: can(permissions.PRODUCTS_WRITE)
+    .input(PastRange)
+    .handler(async ({ context, input }) => {
+      await requireInstalled(context)
+      const settings = await loadReviewsSettings(context.tx, context.scope.storeId)
+      return previewPastOrders(context.tx, settings, pastRange(input)).catch(askError)
+    }),
+
+  /** Plans the requests the preview counted, a batch an hour, after any still waiting. */
+  askPastOrders: can(permissions.PRODUCTS_WRITE)
+    .input(PastRange)
+    .handler(async ({ context, input }) => {
+      await requireInstalled(context)
+      const settings = await loadReviewsSettings(context.tx, context.scope.storeId)
+      return askPastOrders(context.tx, context.scope.storeId, settings, pastRange(input)).catch(
+        askError,
+      )
+    }),
 
   /**
    * The published reviews a Reviews theme section draws, for the theme editor's canvas (the

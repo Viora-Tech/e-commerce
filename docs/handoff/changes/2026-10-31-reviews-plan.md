@@ -18,3 +18,15 @@ Follows the widgets step (`2026-10-30-reviews-widgets.md`). Migration **0197_rev
   already in `notifications-whatsapp`). Opting out (stop link) now covers the email and the phone.
 - Admin: Settings › "Send requests by" select (copy `data/review-tools.ts`, Hindi in `data/hi/review-tools.ts`).
 - Tests: `packages/plugin-reviews/src/settings.test.ts`, WhatsApp case in `test/requests.test.ts`.
+
+## 2. Request reviews from past orders
+
+- "Ask for reviews" on the Reviews page now opens a dialog with a delivery date range (default
+  the last 60 days), a live count of the orders that would be asked and how long sending takes.
+- `packages/plugin-reviews/src/past-orders.ts`: delivered orders in the range (by `delivered_at`,
+  else `placed_at`) reachable on the store's channel, with no review and no earlier request,
+  newest first, at most `PAST_ORDERS_MAX` (2000) per run. Rate limit: requests are due
+  `PAST_ORDERS_PER_HOUR` (200) orders an hour, starting after any requests an earlier run still
+  has waiting. API `reviews.pastOrdersPreview` / `reviews.askPastOrders` (PRODUCTS_WRITE).
+  The old `reviews.ask` (60 days, all at once) stays for compatibility; the admin no longer calls it.
+- Tests: `packages/plugin-reviews/test/past-orders.test.ts`.

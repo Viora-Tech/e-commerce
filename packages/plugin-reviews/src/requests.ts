@@ -302,7 +302,7 @@ export async function askForRecentReviews(
       and(
         inArray(order.fulfillmentStatus, ['delivered', 'partially_delivered']),
         gt(order.placedAt, new Date(now.getTime() - ASK_LOOKBACK_DAYS * DAY)),
-        isNotNull(order.email),
+        or(isNotNull(order.email), isNotNull(order.phone)),
       ),
     )
     .limit(1000)

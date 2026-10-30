@@ -23,6 +23,15 @@ export type ReviewSort = (typeof REVIEW_SORTS)[number]
 export const REQUEST_CHANNELS = ['email', 'whatsapp', 'both'] as const
 export type RequestChannel = (typeof REQUEST_CHANNELS)[number]
 
+/** Most orders one "Request reviews from past orders" run asks; run it again for more. */
+export const PAST_ORDERS_MAX = 2000
+
+/** Requests from one run go out at most this many orders an hour, so a big list trickles out. */
+export const PAST_ORDERS_PER_HOUR = 200
+
+/** The widest date range one run may cover. */
+export const PAST_ORDERS_MAX_DAYS = 366
+
 /** The most photos one review may carry. */
 export const MAX_REVIEW_PHOTOS = 5
 

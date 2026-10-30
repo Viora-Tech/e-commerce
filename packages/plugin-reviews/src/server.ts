@@ -1,6 +1,7 @@
 /** Services for the API router, the storefront and the worker. Server only. */
 export * from './judgeme'
 export * from './liquid'
+export * from './past-orders'
 export * from './photos'
 export * from './plugin'
 export * from './requests'
