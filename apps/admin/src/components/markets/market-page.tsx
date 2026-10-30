@@ -48,6 +48,22 @@ function percent(bp: number): string {
   return `${bp < 0 ? '−' : '+'}${Number.isInteger(value) ? value : value.toFixed(1)}%`
 }
 
+/** A row's text: its name, its value, and for the catalog row the note that Catalogs are coming. */
+function rowBody(row: HubRow, clickable: boolean, note: string | null) {
+  return (
+    <>
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="font-medium text-ink-strong">{row.label}</span>
+        <span className="truncate text-caption text-muted-foreground">{row.value}</span>
+        {note ? <span className="text-caption text-muted-foreground/80">{note}</span> : null}
+      </span>
+      {clickable ? (
+        <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+      ) : null}
+    </>
+  )
+}
+
 /**
  * A market's own page, like Shopify's: the switch that shows it to shoppers at the top, then one
  * row per setting with its current value. A row opens just its part of the market dialog, or the
@@ -169,20 +185,6 @@ export default function MarketPage({ market, markets, domains }: MarketPageProps
       href: routes.settings.policies(),
     },
   ]
-  const body = (row: HubRow, clickable: boolean) => (
-    <>
-      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="font-medium text-ink-strong">{row.label}</span>
-        <span className="truncate text-caption text-muted-foreground">{row.value}</span>
-        {row.key === 'catalog' ? (
-          <span className="text-caption text-muted-foreground/80">{h.catalogSoon}</span>
-        ) : null}
-      </span>
-      {clickable ? (
-        <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
-      ) : null}
-    </>
-  )
 
   return (
     <ProoflyDetailPage
@@ -227,7 +229,7 @@ export default function MarketPage({ market, markets, domains }: MarketPageProps
               <li key={row.key}>
                 {row.href ? (
                   <Link href={row.href} className={ROW}>
-                    {body(row, true)}
+                    {rowBody(row, true, row.key === 'catalog' ? h.catalogSoon : null)}
                   </Link>
                 ) : row.part && canManage ? (
                   <button
@@ -236,11 +238,11 @@ export default function MarketPage({ market, markets, domains }: MarketPageProps
                     aria-label={h.open(row.label)}
                     onClick={() => setPart(row.part ?? null)}
                   >
-                    {body(row, true)}
+                    {rowBody(row, true, row.key === 'catalog' ? h.catalogSoon : null)}
                   </button>
                 ) : (
                   <div className="flex min-w-0 items-center gap-4 px-4 py-3.5">
-                    {body(row, false)}
+                    {rowBody(row, false, row.key === 'catalog' ? h.catalogSoon : null)}
                   </div>
                 )}
               </li>

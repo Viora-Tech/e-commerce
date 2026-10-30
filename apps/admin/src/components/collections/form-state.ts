@@ -102,3 +102,20 @@ export function toWrite(form: CollectionFormState): CollectionWrite {
     productIds: form.kind === 'manual' ? form.products.map((p) => p.id) : undefined,
   }
 }
+
+/**
+ * `products` with `id` moved to `position` (1 is first), the rest keeping their order. A position
+ * past either end is clamped. Lets a product cross pages, which dragging cannot (audit #67).
+ */
+export function moveToPosition<T extends { id: string }>(
+  products: T[],
+  id: string,
+  position: number,
+): T[] {
+  const from = products.findIndex((p) => p.id === id)
+  if (from === -1) return products
+  const item = products[from] as T
+  const rest = products.filter((p) => p.id !== id)
+  const to = Math.min(Math.max(Math.round(position) - 1, 0), rest.length)
+  return [...rest.slice(0, to), item, ...rest.slice(to)]
+}

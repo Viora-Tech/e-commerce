@@ -71,6 +71,7 @@ export default function MarketDialog({
 
   // Helpers
   const patch = (next: Partial<MarketForm>) => setForm((f) => ({ ...f, ...next }))
+  const shows = (p: MarketPart) => part === 'all' || part === p
   // Empty fields only count once the merchant has tried to save.
   const problemsOf = (missing: boolean) =>
     formProblems(
@@ -116,7 +117,6 @@ export default function MarketDialog({
   // Render logic
   const d = copy.dialog
   const isPrimary = market?.isPrimary ?? false
-  const shows = (p: MarketPart) => part === 'all' || part === p
   const others = otherMarkets(markets, market)
   const shown = problemsOf(tried)
   const taken = Object.fromEntries(others.flatMap((m) => m.countries.map((c) => [c, m.name])))

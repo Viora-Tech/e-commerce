@@ -9,6 +9,7 @@ import {
 import { Plus, Search } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 
+import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import {
   Select,
@@ -20,6 +21,7 @@ import {
 import { SortableList } from '@commerce/ui/sortable'
 import { useState } from 'react'
 import DataCard from '@/components/layout/data-card'
+import FormDialog from '@/components/layout/form-dialog'
 import SelectProductsDialog, {
   type PickedProducts,
 } from '@/components/products/select-products-dialog'
@@ -27,7 +29,7 @@ import ResourceTablePagination from '@/components/table/resource-table/paginatio
 import { collectionDetailContent, SORT_LABELS } from '@/data/collections'
 import { useCopy } from '@/hooks/use-copy'
 import CollectionProductRow, { COLLECTION_PRODUCT_GRID } from './collection-product-row'
-import type { PickedProduct } from './form-state'
+import { moveToPosition, type PickedProduct } from './form-state'
 
 type CollectionProductsCardProps = {
   kind: CollectionKind
@@ -77,6 +79,9 @@ export default function CollectionProductsCard({
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState<number>(siteConfig.ui.rowsPerPage.default)
   const [adding, setAdding] = useState(false)
+  const [moving, setMoving] = useState<PickedProduct | null>(null)
+  const [moveTo, setMoveTo] = useState('')
+  const [moveTried, setMoveTried] = useState(false)
 
   // Event handlers
   const handleAdd = (picked: PickedProducts) => {
@@ -85,6 +90,22 @@ export default function CollectionProductsCard({
   }
 
   const handleRemove = (id: string) => onProducts(products.filter((p) => p.id !== id))
+
+  const handleMoveOpen = (p: PickedProduct) => {
+    setMoving(p)
+    setMoveTo(String(products.findIndex((x) => x.id === p.id) + 1))
+    setMoveTried(false)
+  }
+
+  const handleMove = () => {
+    setMoveTried(true)
+    const position = Number(moveTo)
+    if (!moving || !Number.isInteger(position) || position < 1 || position > products.length) {
+      return
+    }
+    onProducts(moveToPosition(products, moving.id, position))
+    setMoving(null)
+  }
 
   // Render logic
   const manual = kind === 'manual'
@@ -95,6 +116,9 @@ export default function CollectionProductsCard({
   const start = (page - 1) * perPage
   const rows = shown.slice(start, start + perPage)
   const draggable = manual && sortOrder === 'manual' && needle === ''
+  const moveValue = Number(moveTo)
+  const moveInvalid =
+    moveTried && (!Number.isInteger(moveValue) || moveValue < 1 || moveValue > products.length)
   const sortItems = Object.fromEntries(COLLECTION_SORTS.map((s) => [s, SORT_LABELS[s]]))
   const emptyHeading =
     needle !== '' ? copy.emptySearch : manual ? copy.emptyManual : copy.emptyAutomatic
@@ -182,7 +206,13 @@ export default function CollectionProductsCard({
           labels={copy.sortLabels}
           className="divide-y divide-line"
           renderItem={(p, { handle }) => (
-            <CollectionProductRow product={p} handle={handle} onRemove={() => handleRemove(p.id)} />
+            <CollectionProductRow
+              product={p}
+              handle={handle}
+              position={start + rows.indexOf(p) + 1}
+              onMove={() => handleMoveOpen(p)}
+              onRemove={() => handleRemove(p.id)}
+            />
           )}
         />
       ) : (
@@ -207,6 +237,37 @@ export default function CollectionProductsCard({
           setPage(1)
         }}
       />
+      {moving ? (
+        <FormDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setMoving(null)
+          }}
+          title={copy.move.title(moving.title)}
+          submitLabel={copy.move.submit}
+          onSubmit={handleMove}
+        >
+          <Field data-invalid={moveInvalid ? true : undefined}>
+            <FieldLabel htmlFor="collection-move-to">{copy.move.label}</FieldLabel>
+            <Input
+              id="collection-move-to"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={products.length}
+              value={moveTo}
+              aria-invalid={moveInvalid ? true : undefined}
+              onChange={(e) => setMoveTo(e.target.value)}
+              className="w-28"
+            />
+            {moveInvalid ? (
+              <FieldError>{copy.move.invalid(products.length)}</FieldError>
+            ) : (
+              <FieldDescription>{copy.move.help(products.length)}</FieldDescription>
+            )}
+          </Field>
+        </FormDialog>
+      ) : null}
       {manual ? (
         <SelectProductsDialog
           open={adding}
