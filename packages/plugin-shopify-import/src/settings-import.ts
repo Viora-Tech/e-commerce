@@ -22,7 +22,7 @@ import {
   updateShippingZone,
 } from '@commerce/core'
 import { PREFERENCE_LIMITS, parsePreferences } from '@commerce/core/preferences'
-import { type StoreTx, store } from '@commerce/db'
+import { customerSegment, type StoreTx, store } from '@commerce/db'
 import { eq } from 'drizzle-orm'
 import { fetchSettingsSource, type Read, type SettingsSource } from './api-settings'
 import { type ClientForOptions, clientFor } from './connection'
@@ -47,6 +47,7 @@ import {
   type SettingsOp,
 } from './settings-plan'
 import { planFields, planPolicies } from './settings-plan-content'
+import { planSegments } from './settings-plan-segments'
 import { planPackages, planShipping } from './settings-plan-shipping'
 
 type PlannedPart = SettingsPartPlan & { ops: SettingsOp[] }
@@ -136,6 +137,9 @@ async function loadLocal(
       body: p.body,
       published: p.published,
     })),
+    segments: (await tx.select({ name: customerSegment.name }).from(customerSegment)).map(
+      (r) => r.name,
+    ),
     fields: fields.map((f) => ({
       id: f.id,
       ownerType: f.ownerType,
@@ -196,6 +200,11 @@ function planPart(part: SettingsPart, source: SettingsSource, local: LocalSettin
       const r = source.policies
       if (!r) return ready(part, { items: [], ops: [] })
       return r.ok ? ready(part, planPolicies(r.data, local)) : unread(part, r)
+    }
+    case 'segments': {
+      const r = source.segments
+      if (!r) return ready(part, { items: [], ops: [] })
+      return r.ok ? ready(part, planSegments(r.data, local)) : unread(part, r)
     }
     case 'fields': {
       const reads = source.fields ?? []
@@ -264,6 +273,13 @@ async function apply(tx: StoreTx, storeId: string, op: SettingsOp): Promise<void
       return
     case 'seo':
       return saveHomeSeo(tx, storeId, op)
+    case 'segment':
+      // The name is unique per store; one made here meanwhile is kept as it is.
+      await tx
+        .insert(customerSegment)
+        .values({ storeId, name: op.name, rules: op.rules })
+        .onConflictDoNothing()
+      return
     case 'zone': {
       const zone = op.id
         ? await updateShippingZone(tx, storeId, op.id, op.write)

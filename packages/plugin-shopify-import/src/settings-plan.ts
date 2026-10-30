@@ -2,7 +2,8 @@
  * Store settings: what Shopify has against what this store has, part by part. Pure:
  * it takes what `api-settings.ts` read and what `settings-import.ts` loaded, and returns
  * the lines the merchant sees plus the writes that make them true. Planning the same
- * input twice gives the same answer, and planning after an import gives only `same`
+ * input twice gives the same answer, and planning after an import type { SegmentRules } from '@commerce/core'
+import gives only `same`
  * lines, which is what makes a second import change nothing. This file holds the shared
  * shapes plus store details, tax and locations; shipping (`settings-plan-shipping.ts`)
  * and policies and extra fields (`settings-plan-content.ts`) sit beside it.
@@ -74,6 +75,8 @@ export type LocalSettings = {
   locations: LocalLocation[]
   zones: LocalZone[]
   policies: LocalPolicy[]
+  /** Names of the customer segments here. */
+  segments: string[]
   fields: LocalField[]
   /** Shopify id → our id from earlier imports. */
   mapped: {
@@ -98,6 +101,8 @@ export type SettingsOp =
   | { kind: 'profile'; patch: StoreProfilePatch }
   | { kind: 'location'; id: string | null; sourceId: string | null; details: LocationDetails }
   | { kind: 'gstin'; gstin: string }
+  /** A customer segment from Shopify's query (settings-plan-segments). */
+  | { kind: 'segment'; name: string; rules: SegmentRules }
   /** Home page title / meta description for search results (only the parts given). */
   | { kind: 'seo'; title?: string | undefined; description?: string | undefined }
   | { kind: 'zone'; id: string | null; sourceId: string; write: ShippingZoneWrite }

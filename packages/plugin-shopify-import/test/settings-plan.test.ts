@@ -16,6 +16,7 @@ import {
   type SettingsOp,
 } from '../src/settings-plan'
 import { planFields, planPolicies } from '../src/settings-plan-content'
+import { planSegments, segmentRules } from '../src/settings-plan-segments'
 import { planShipping } from '../src/settings-plan-shipping'
 import { ShopifyClient } from '../src/shopify-client'
 import { settingsShopify } from './fixtures/settings'
@@ -71,6 +72,7 @@ function emptyLocal(): LocalSettings {
       published: false,
     })),
     fields: [],
+    segments: [],
     mapped: { locations: new Map(), zones: new Map(), fields: new Map(), contentTypes: new Map() },
   }
 }
@@ -532,5 +534,51 @@ describe('running it again', () => {
     // Matches are remembered, so a later rename on either side keeps them paired.
     expect(after.mapped.locations.size).toBe(2)
     expect(after.mapped.zones.size).toBe(2)
+  })
+})
+
+describe('customer segments (audit #87)', () => {
+  it('turns Shopify segment queries into our conditions', () => {
+    expect(segmentRules("customer_tags CONTAINS 'vip' AND number_of_orders >= 2")).toEqual({
+      match: 'all',
+      conditions: [
+        { field: 'tag', op: 'contains', value: 'vip' },
+        { field: 'orders', op: 'gte', value: '2' },
+      ],
+    })
+    expect(segmentRules('amount_spent > 1000 OR last_order_date > -30d')).toEqual({
+      match: 'any',
+      conditions: [
+        { field: 'spend', op: 'gte', value: '100001' },
+        { field: 'last_order_days', op: 'lte', value: '30' },
+      ],
+    })
+    expect(segmentRules("email_subscription_status != 'SUBSCRIBED'")?.conditions).toEqual([
+      { field: 'marketing', op: 'eq', value: 'false' },
+    ])
+    // A filter we cannot express, or AND mixed with OR: left for the merchant, never half-imported.
+    expect(segmentRules("customer_cities CONTAINS 'IN-HR-Sonipat'")).toBeNull()
+    expect(segmentRules("customer_tags CONTAINS 'a' AND number_of_orders >= 1 OR amount_spent > 5")).toBeNull()
+  })
+
+  it('creates the ones it can, keeps same-named ones, lists the rest', async () => {
+    const source = await read()
+    expect(source.segments?.ok).toBe(true)
+    const plan = planSegments(source.segments?.ok ? source.segments.data : [], {
+      ...emptyLocal(),
+      segments: ['Email subscribers'],
+    })
+    expect(plan.items.map((i) => [i.name, i.action])).toEqual([
+      ['Restock list: Mio', 'create'],
+      ['Email subscribers', 'same'],
+      ['Bought TenZ', 'manual'],
+    ])
+    expect(plan.ops).toEqual([
+      {
+        kind: 'segment',
+        name: 'Restock list: Mio',
+        rules: { match: 'all', conditions: [{ field: 'tag', op: 'contains', value: 'restock-dysphoria-mio' }] },
+      },
+    ])
   })
 })

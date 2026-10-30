@@ -4,6 +4,7 @@
  * definitions, mapped onto small shapes the planner (`settings-plan.ts`) reads.
  * Each part is read on its own, so a scope the connection lacks fails only that part.
  */
+import type { NSegment } from './settings-plan-segments'
 import { validateGstin } from '@commerce/core/gstin'
 import { cleanMoneyFormat } from '@commerce/money'
 import { definitionsOf } from './api-metafields'
@@ -109,6 +110,7 @@ export type SettingsSource = {
   profiles: Read<NDeliveryProfile[]> | null
   policies: Read<NPolicy[]> | null
   fields: { owner: FieldOwner; read: Read<NOwnerDefinition[]> }[] | null
+  segments: Read<NSegment[]> | null
 }
 
 /* ----------------------------------------------------------------- helpers */
@@ -454,6 +456,30 @@ async function fetchPolicies(client: ShopifyClient): Promise<NPolicy[]> {
   return data.shop.shopPolicies.map((p) => ({ type: p.type, title: p.title.trim(), body: p.body }))
 }
 
+const SEGMENTS_QUERY = `query Segments($cursor: String) {
+  segments(first: 100, after: $cursor) {
+    pageInfo { hasNextPage endCursor }
+    nodes { id name query }
+  }
+}`
+
+async function fetchSegments(client: ShopifyClient): Promise<NSegment[]> {
+  const out: NSegment[] = []
+  let cursor: string | null = null
+  for (let page = 0; page < 20; page++) {
+    const data: {
+      segments: {
+        pageInfo: { hasNextPage: boolean; endCursor: string | null }
+        nodes: { id: string; name: string; query: string }[]
+      }
+    } = await client.query(SEGMENTS_QUERY, { cursor }, 10)
+    for (const n of data.segments.nodes) out.push({ sourceId: n.id, name: n.name, query: n.query })
+    if (!data.segments.pageInfo.hasNextPage) break
+    cursor = data.segments.pageInfo.endCursor
+  }
+  return out
+}
+
 async function fetchOwnerDefinitions(
   client: ShopifyClient,
   owner: FieldOwner,
@@ -486,5 +512,6 @@ export async function fetchSettingsSource(
       fields.push({ owner, read: await read(() => fetchOwnerDefinitions(client, owner)) })
     }
   }
-  return { shop, locations, profiles, policies, fields }
+  const segments = wants('segments') ? await read(() => fetchSegments(client)) : null
+  return { shop, locations, profiles, policies, fields, segments }
 }

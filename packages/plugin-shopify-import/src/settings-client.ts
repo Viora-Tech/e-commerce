@@ -16,6 +16,7 @@ export const SETTINGS_PARTS = [
   'packages',
   'policies',
   'fields',
+  'segments',
 ] as const
 export type SettingsPart = (typeof SETTINGS_PARTS)[number]
 
@@ -29,6 +30,7 @@ export const SETTINGS_PART_SCOPES: Record<SettingsPart, ScopeHandle[]> = {
   packages: [],
   policies: ['read_legal_policies'],
   fields: ['read_products'],
+  segments: ['read_customers'],
 }
 
 /** What one line of the plan is about. */
@@ -52,6 +54,7 @@ const SETTINGS_SUBJECTS = [
   'packages',
   'policy',
   'field',
+  'segment',
 ] as const
 export type SettingsSubject = (typeof SETTINGS_SUBJECTS)[number]
 
@@ -110,6 +113,8 @@ const SETTINGS_REASONS = [
   'field_exists',
   /** The connection may not read one kind of extra field (customers or orders). */
   'owner_access',
+  /** A segment filter with no condition here (location, products bought, AND with OR…). */
+  'segment_rule',
 ] as const
 export type SettingsReason = (typeof SETTINGS_REASONS)[number]
 
