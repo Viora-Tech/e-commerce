@@ -98,7 +98,7 @@ const AssistantInput = z.object({
       /** On a list: the ids of the rows ticked now (resolved under RLS like `entityId`). */
       selectedIds: z.array(z.uuid()).max(ASSISTANT_MAX_SELECTED).default([]),
     })
-    .default({ page: 'other', entityId: null }),
+    .default({ page: 'other', entityId: null, selectedIds: [] }),
   language: z.enum(['en', 'hi']).default('en'),
   /**
    * In the theme editor: the open page's outline (sections, simple settings, current values),

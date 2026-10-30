@@ -159,7 +159,6 @@ export default function AutomationsPage({ automations }: AutomationsPageProps) {
             </Card>
           ))}
         </div>
-        <p className="text-caption text-muted-foreground">{copy.browseNote}</p>
       </section>
     </ProoflyListPage>
   )
