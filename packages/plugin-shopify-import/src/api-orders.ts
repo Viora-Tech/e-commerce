@@ -66,6 +66,20 @@ type GOrder = {
   }
 }
 
+/**
+ * Our subtotal is before the discount (the discount is its own line, taken off it); Shopify's
+ * `subtotalPrice` is already after it, so the order page took ₹460 off twice on #2369 (₹15,349
+ * item, "Subtotal ₹14,889, Discount −₹460, Total ₹14,889"). The lines at their original prices
+ * give the subtotal before discounts; with no lines, Shopify's subtotal plus its discounts (audit #11).
+ */
+function subtotalBeforeDiscounts(o: GOrder): number {
+  const lines = o.lineItems.nodes
+  if (lines.length > 0) {
+    return lines.reduce((n, l) => n + l.quantity * money(l.originalUnitPriceSet), 0)
+  }
+  return money(o.subtotalPriceSet) + money(o.totalDiscountsSet)
+}
+
 function mapOrder(o: GOrder): NOrder {
   const digits = o.name.match(/\d+/g)
   const number = digits ? Number(digits.join('')) : null
@@ -81,7 +95,7 @@ function mapOrder(o: GOrder): NOrder {
     financialStatus: o.displayFinancialStatus?.toLowerCase() ?? null,
     fulfillmentStatus: o.displayFulfillmentStatus?.toLowerCase() ?? null,
     currency: o.currencyCode,
-    subtotalPaise: money(o.subtotalPriceSet),
+    subtotalPaise: subtotalBeforeDiscounts(o),
     shippingPaise: money(o.totalShippingPriceSet),
     taxPaise: money(o.totalTaxSet),
     totalPaise: money(o.totalPriceSet),
