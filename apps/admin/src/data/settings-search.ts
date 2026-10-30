@@ -493,7 +493,7 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'Cookie banner',
     where: 'Customers › Privacy & data requests',
-    href: '/settings/privacy#banner',
+    href: '/settings/privacy?open=banner',
     keywords: ['cookie', 'cookies', 'consent banner', 'tracking consent', 'pixel consent'],
   },
   {

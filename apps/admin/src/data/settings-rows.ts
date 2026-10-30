@@ -61,4 +61,26 @@ export const settingsRowsContent = {
     original: 'How they paid',
     storeCredit: 'Store credit',
   },
+
+  privacy: {
+    back: 'Privacy & data requests',
+    banner: 'Cookie banner',
+    bannerValue: (version: number, total: number) =>
+      `Version ${version} · ${total} answers in 30 days`,
+    requests: 'Data requests',
+    requestsValue: (open: number, overdue: number) =>
+      open === 0 ? 'None open' : overdue > 0 ? `${open} open, ${overdue} late` : `${open} open`,
+    grievance: 'Grievance officer',
+    accounts: 'Customer accounts',
+    accountsValue: 'Deleting an account',
+  },
+
+  staff: {
+    members: 'Members',
+    membersValue: (n: number) => (n === 1 ? '1 person' : `${n} people`),
+    invites: 'Pending invites',
+    invitesValue: (n: number) => (n === 0 ? 'None' : `${n} waiting`),
+    roles: 'Roles',
+    rolesValue: (n: number) => (n === 1 ? '1 role' : `${n} roles`),
+  },
 } as const

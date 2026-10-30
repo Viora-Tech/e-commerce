@@ -294,7 +294,7 @@ export const routes = {
     storeHealth: () => '/settings/store-health',
     policy: (type: string) => `/settings/policies/${id(type)}`,
     privacy: () => '/settings/privacy',
-    privacyBanner: () => '/settings/privacy#banner',
+    privacyBanner: () => '/settings/privacy?open=banner',
     privacyRequests: () => '/settings/privacy/requests',
     privacyRequest: (requestId: string) => `/settings/privacy/requests/${id(requestId)}`,
     customerAccounts: () => '/settings/customer-accounts',
@@ -303,8 +303,8 @@ export const routes = {
     customDataOwner: (slug: string) => `/settings/custom-data/${id(slug)}`,
     returns: () => '/settings/returns',
     staff: () => '/settings/staff',
-    /** Settings → Staff on its Roles tab. */
-    staffRoles: () => '/settings/staff?tab=section-roles',
+    /** Settings → Staff with its Roles row open. */
+    staffRoles: () => '/settings/staff?open=roles',
     newRole: () => '/settings/staff/roles/new',
     role: (roleId: string) => `/settings/staff/roles/${id(roleId)}`,
     ai: () => '/settings/ai',

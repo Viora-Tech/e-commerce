@@ -59,5 +59,26 @@ export default [
       original: 'जैसे पेमेंट किया',
       storeCredit: 'स्टोर क्रेडिट',
     },
+
+    privacy: {
+      back: 'प्राइवेसी और डेटा रिक्वेस्ट',
+      banner: 'कुकी बैनर',
+      bannerValue: (version, total) => `वर्ज़न ${version} · 30 दिन में ${total} जवाब`,
+      requests: 'डेटा रिक्वेस्ट',
+      requestsValue: (open, overdue) =>
+        open === 0 ? 'कोई खुली नहीं' : overdue > 0 ? `${open} खुली, ${overdue} देर से` : `${open} खुली`,
+      grievance: 'ग्रीवेंस ऑफ़िसर',
+      accounts: 'ग्राहक अकाउंट',
+      accountsValue: 'अकाउंट डिलीट करना',
+    },
+
+    staff: {
+      members: 'मेंबर',
+      membersValue: (n) => `${n} लोग`,
+      invites: 'बाकी इनवाइट',
+      invitesValue: (n) => (n === 0 ? 'कोई नहीं' : `${n} बाकी`),
+      roles: 'रोल',
+      rolesValue: (n) => `${n} रोल`,
+    },
   }),
 ]

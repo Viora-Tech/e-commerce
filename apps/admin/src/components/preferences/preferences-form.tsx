@@ -230,7 +230,7 @@ export default function PreferencesForm({ initial, storefrontOrigin }: Preferenc
               <Button
                 variant="outline"
                 className="self-end"
-                render={<Link href="/settings/privacy#banner" />}
+                render={<Link href="/settings/privacy?open=banner" />}
                 nativeButton={false}
               >
                 {copy.privacy.link}

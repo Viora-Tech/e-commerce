@@ -25,7 +25,7 @@ describe('searchSettings', () => {
 
   it('sends store details, privacy, files and personal preferences to their new homes', () => {
     expect(first('store name')?.href).toBe('/settings/store#store-details')
-    expect(first('cookie')?.href).toBe('/settings/privacy#banner')
+    expect(first('cookie')?.href).toBe('/settings/privacy?open=banner')
     expect(first('data request')?.href).toBe('/settings/privacy/requests')
     expect(first('r2')?.href).toBe('/content/files/storage')
     expect(first('dark mode')?.href).toBe('/settings/appearance')
