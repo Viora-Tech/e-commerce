@@ -20,6 +20,7 @@ import {
 export const ENGINE_TRIGGER: Record<AutomationTrigger, string> = {
   checkout_abandoned: 'checkout.abandoned',
   cart_abandoned: 'cart.abandoned',
+  browse_abandoned: 'browse.abandoned',
   customer_subscribed: 'customer.subscribed',
   first_order: 'customer.first_order',
   customer_lapsed: 'customer.lapsed',
@@ -30,6 +31,8 @@ export const ENGINE_TRIGGER: Record<AutomationTrigger, string> = {
 export const ENGINE_SUBJECT: Record<AutomationTrigger, Extract<SubjectType, string>> = {
   checkout_abandoned: 'cart',
   cart_abandoned: 'cart',
+  // About the shopper (customer conditions apply); the product rides in `trigger_data`.
+  browse_abandoned: 'customer',
   customer_subscribed: 'customer',
   first_order: 'order',
   customer_lapsed: 'customer',
@@ -128,6 +131,8 @@ function triggerConfig(trigger: AutomationTrigger, settings: unknown): Record<st
       return { afterMinutes: s.afterMinutes ?? 60 }
     case 'cart_abandoned':
       return { afterMinutes: s.afterMinutes ?? 120 }
+    case 'browse_abandoned':
+      return { afterMinutes: s.afterMinutes ?? 240 }
     case 'customer_lapsed':
       return { lapsedDays: s.lapsedDays ?? 90 }
     case 'first_order':

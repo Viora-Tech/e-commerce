@@ -9,11 +9,12 @@ import {
   recordMarketingSession,
   setCartAttribution,
 } from '@commerce/core'
-import { isBotUserAgent } from '@commerce/core/marketing'
+import { isBotUserAgent, productHandleFromHref } from '@commerce/core/marketing'
 import { CONSENT_COOKIE } from '@commerce/core/preferences'
 import { logger } from '@commerce/observability/logging'
 import { recordVisit, sharedRedis } from '@commerce/queue'
 import { cookies, headers } from 'next/headers'
+import { after } from 'next/server'
 import {
   ATTRIBUTION_COOKIE,
   ATTRIBUTION_MAX_AGE,
@@ -26,6 +27,8 @@ import {
 } from '@/lib/attribution-cookie'
 import { readCartId } from '@/lib/cart-cookie'
 import { analyticsAllowed } from '@/lib/consent-cookie'
+import { CUSTOMER_COOKIE } from '@/lib/customer-session'
+import { recordShopperProductView } from '@/lib/product-view'
 import { withEvlog } from '@/lib/request-log'
 import { inStore } from '@/lib/store-context'
 import { parseVisitorId, VISITOR_COOKIE, VISITOR_COOKIE_MAX_AGE } from '@/lib/visitor-cookie'
@@ -101,6 +104,20 @@ export const POST = withEvlog(async (request: Request) => {
   await recordVisit(sharedRedis(loadEnv(process.env).REDIS_URL), storeId, visitorId)
 
   const { href, referrer } = await readBody(request)
+  // Browse abandonment: a known shopper's product page view, written after the response.
+  const viewedHandle = isBotUserAgent(h.get('user-agent')) ? null : productHandleFromHref(href)
+  if (viewedHandle) {
+    const customerToken = jar.get(CUSTOMER_COOKIE)?.value ?? null
+    const viewCartId = await readCartId()
+    after(() =>
+      recordShopperProductView({
+        storeId,
+        handle: viewedHandle,
+        customerToken,
+        cartId: viewCartId,
+      }),
+    )
+  }
   const click = decodeMarketingClick(jar.get(MARKETING_CLICK_COOKIE)?.value)
   const linkId = decodeLinkClick(jar.get(LINK_CLICK_COOKIE)?.value)
   const inSession = Boolean(jar.get(SESSION_COOKIE)?.value)

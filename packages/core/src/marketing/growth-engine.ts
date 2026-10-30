@@ -13,6 +13,8 @@ import { notTestCartContact } from '../cart/test-contact'
 import { decryptCustomerPhone } from '../customers/phone-crypto'
 import { SEND_WHATSAPP_ACTION } from './automation-engine-map'
 import { CONVERSION_WINDOW_DAYS } from './automations'
+import { dueBrowseViews } from './browse'
+import { BROWSE_DEFAULT_AFTER_MINUTES, browseKey } from './browse-rules'
 
 const ABANDONED_LOOKBACK_DAYS = 7
 const DAY_MS = 86_400_000
@@ -40,7 +42,12 @@ export type GrowthTriggerEvent = {
 export type StartRuns = (event: GrowthTriggerEvent) => Promise<{ started: unknown[] }>
 
 /** Triggers the sweep owns. Growth origin or not: any On workflow with them is swept. */
-export const SWEEP_TRIGGERS = ['checkout.abandoned', 'cart.abandoned', 'customer.lapsed'] as const
+export const SWEEP_TRIGGERS = [
+  'checkout.abandoned',
+  'cart.abandoned',
+  'browse.abandoned',
+  'customer.lapsed',
+] as const
 
 async function sweepWorkflows(tx: StoreTx, triggerType: (typeof SWEEP_TRIGGERS)[number]) {
   return tx
@@ -175,6 +182,33 @@ export async function growthSweep(
     }
   }
 
+  for (const wf of await sweepWorkflows(tx, 'browse.abandoned')) {
+    const after = configNumber(wf.definition, 'afterMinutes', BROWSE_DEFAULT_AFTER_MINUTES)
+    const views = await dueBrowseViews(tx, {
+      afterMinutes: after,
+      now,
+      secret,
+      // One run per shopper and product a week, per workflow.
+      ran: (prefix, since) => sql`exists (
+        select 1 from automation_run r
+        where r.workflow_id = ${wf.id}
+          and starts_with(r.trigger_key, ${prefix})
+          and r.started_at > ${since.toISOString()}::timestamptz)`,
+    })
+    for (const v of views) {
+      const r = await start({
+        triggerIds: ['browse.abandoned'],
+        key: browseKey(v.customerId, v.productId, v.viewedAt),
+        subject: { type: 'customer', id: v.customerId },
+        data: { customerId: v.customerId, productId: v.productId },
+        cause: null,
+        contact: { customerId: v.customerId, email: v.email, phone: v.phone, name: v.name },
+        workflowIds: [wf.id],
+      })
+      started += r.started.length
+    }
+  }
+
   const lapsedWorkflows = await sweepWorkflows(tx, 'customer.lapsed')
   if (lapsedWorkflows.length > 0) {
     // The latest order decides; an imported latest order never enrols (imported history
@@ -292,6 +326,7 @@ export async function growthExitCheck(
 const CONVERTING_TRIGGERS = [
   'checkout.abandoned',
   'cart.abandoned',
+  'browse.abandoned',
   'customer.subscribed',
   'customer.lapsed',
 ] as const

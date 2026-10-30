@@ -13,7 +13,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core'
 import { automationRun } from './automation-schema'
-import { cart, customer, customerSegment, newId, order, store } from './schema'
+import { cart, customer, customerSegment, newId, order, product, store } from './schema'
 
 /*
  * Marketing: sessions with their channel, email and WhatsApp campaigns, and
@@ -189,6 +189,8 @@ export const marketingAutomationRun = pgTable(
     /** Why a run stopped early, e.g. `condition` or `unsubscribed`. */
     stopReason: text('stop_reason'),
     convertedOrderId: uuid('converted_order_id').references(() => order.id),
+    /** Browse abandonment (0201): the product the shopper looked at. No key: products go. */
+    productId: uuid('product_id'),
     startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
     finishedAt: timestamp('finished_at', { withTimezone: true }),
   },
@@ -198,6 +200,32 @@ export const marketingAutomationRun = pgTable(
     index('marketing_run_customer').on(t.customerId),
     index('marketing_run_order').on(t.orderId),
     index('marketing_run_due').on(t.storeId, t.status, t.nextAt),
+  ],
+)
+
+/**
+ * Browse abandonment (audit #183): the last time a known shopper (signed in, or a basket whose
+ * email or phone is a customer we have) looked at a product page. One row per shopper and
+ * product, moved forward on each view (at most every few minutes), written by the storefront's
+ * page-view beacon after analytics consent. The "Browse abandoned" sweep reads it.
+ */
+export const productView = pgTable(
+  'product_view',
+  {
+    id: id(),
+    storeId: storeId(),
+    customerId: uuid('customer_id')
+      .notNull()
+      .references(() => customer.id, { onDelete: 'cascade' }),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => product.id, { onDelete: 'cascade' }),
+    viewedAt: timestamp('viewed_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('product_view_shopper_product').on(t.storeId, t.customerId, t.productId),
+    /** The sweep reads views from the last week, oldest first. */
+    index('product_view_store_viewed').on(t.storeId, t.viewedAt),
   ],
 )
 

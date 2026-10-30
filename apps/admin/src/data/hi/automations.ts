@@ -31,6 +31,7 @@ export default [
     'automations.trigger.inventory.out': 'स्टॉक खत्म',
     'automations.trigger.checkout.abandoned': 'चेकआउट अधूरा छोड़ा',
     'automations.trigger.cart.abandoned': 'कार्ट अधूरा छोड़ा',
+    'automations.trigger.browse.abandoned': 'प्रोडक्ट देखकर छोड़ा',
     'automations.trigger.schedule': 'तय समय पर',
     'automations.trigger.manual.order': 'किसी ऑर्डर पर चलाएँ',
     'automations.trigger.manual.customer': 'किसी ग्राहक पर चलाएँ',

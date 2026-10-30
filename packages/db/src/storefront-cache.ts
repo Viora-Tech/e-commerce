@@ -149,6 +149,8 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   marketing_email_template: ADMIN,
   marketing_message: SHOPPER,
   marketing_session: SHOPPER,
+  // Browse abandonment (0201): which products a known shopper looked at; no page shows it.
+  product_view: SHOPPER,
   member_push_subscription: ADMIN,
   newsletter_signup: SHOPPER,
   notification: SHOPPER,

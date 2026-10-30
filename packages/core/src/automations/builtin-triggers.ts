@@ -15,6 +15,15 @@ const AfterMinutes = z.object({
     .max(7 * 24 * 60)
     .default(60),
 })
+/** Browse abandonment waits longer by default: a shopper often comes back within hours. */
+const AfterBrowseMinutes = z.object({
+  afterMinutes: z
+    .number()
+    .int()
+    .min(15)
+    .max(7 * 24 * 60)
+    .default(240),
+})
 const ScheduleConfig = z.object({
   every: z.enum(['hour', 'day', 'week']),
   /** IST, `HH:MM`, for day and week. */
@@ -55,6 +64,7 @@ export const BUILTIN_TRIGGER_IDS = [
   'inventory.out',
   'checkout.abandoned',
   'cart.abandoned',
+  'browse.abandoned',
   'schedule',
   'manual.order',
   'manual.customer',
@@ -211,6 +221,19 @@ export const BUILTIN_TRIGGERS: readonly TriggerDescriptor[] = [
     source: 'sweep',
     group: 'marketing',
     configSchema: AfterMinutes,
+    configFields: [{ key: 'afterMinutes', type: 'minutes', labelKey: 'automations.field.after' }],
+    planTier: 'starter',
+    marketing: true,
+  },
+  {
+    // A known shopper viewed a product and did not add it to the cart (audit #183). The run is
+    // about the customer; the product is in `trigger_data.productId`.
+    id: 'browse.abandoned',
+    labelKey: 'automations.trigger.browse.abandoned',
+    subject: 'customer',
+    source: 'sweep',
+    group: 'marketing',
+    configSchema: AfterBrowseMinutes,
     configFields: [{ key: 'afterMinutes', type: 'minutes', labelKey: 'automations.field.after' }],
     planTier: 'starter',
     marketing: true,

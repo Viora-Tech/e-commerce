@@ -96,6 +96,10 @@ export const MERGE_TAGS = [
   'checkout_url',
   'cart_total',
   'order_number',
+  /** Browse abandonment: the product the shopper looked at. */
+  'product_title',
+  'product_url',
+  'product_price',
 ] as const
 export type MergeTag = (typeof MERGE_TAGS)[number]
 export type MergeValues = Partial<Record<MergeTag, string>>

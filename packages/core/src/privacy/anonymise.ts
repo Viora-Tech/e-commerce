@@ -19,6 +19,7 @@ import {
   notification,
   order,
   orderNote,
+  productView,
   returnRequest,
   shipment,
   shipmentWebhookEvent,
@@ -150,6 +151,8 @@ export async function anonymiseCustomer(
   // Every way back in goes too: provider links, passkeys and login tickets in flight.
   await tx.delete(customerIdentity).where(eq(customerIdentity.customerId, id))
   await tx.delete(customerPasskey).where(eq(customerPasskey.customerId, id))
+  // Browse abandonment: which products they looked at.
+  await tx.delete(productView).where(eq(productView.customerId, id))
   await tx.delete(customerLoginTicket).where(eq(customerLoginTicket.customerId, id))
   if (cu.email) await tx.delete(customerLoginTicket).where(eq(customerLoginTicket.email, cu.email))
   if (cu.email) await tx.delete(customerLoginCode).where(eq(customerLoginCode.email, cu.email))

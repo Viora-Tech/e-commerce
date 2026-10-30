@@ -167,7 +167,12 @@ export async function cutoverStoreToEngine(tx: StoreTx, storeId: string): Promis
             cursor: m.cursor,
             nextAt: r.nextAt,
             metered: false,
-            triggerData: { migratedFrom: 'marketing_automation_run', stepIndex: r.stepIndex },
+            triggerData: {
+              migratedFrom: 'marketing_automation_run',
+              stepIndex: r.stepIndex,
+              // Browse abandonment: the product its email is about.
+              ...(r.productId ? { productId: r.productId } : {}),
+            },
             customerId: r.customerId,
             cartId: r.cartId,
             orderId: r.orderId,

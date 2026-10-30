@@ -97,6 +97,9 @@ export const emailBuilderContent = {
     checkout_url: 'Checkout link',
     cart_total: 'Cart total',
     order_number: 'Order number',
+    product_title: 'Viewed product',
+    product_url: 'Viewed product link',
+    product_price: 'Viewed product price',
     unsubscribe_url: 'Unsubscribe link',
   } satisfies Record<DesignMergeTag, string>,
 } as const

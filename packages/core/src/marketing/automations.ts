@@ -12,6 +12,8 @@ import { formatMoney } from '@commerce/money'
 import { and, asc, desc, eq, inArray, isNull, lte, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { recoveryUrl } from '../cart/abandoned'
+import { dueBrowseViews, productFacts } from './browse'
+import { BROWSE_DEFAULT_AFTER_MINUTES, browseKey } from './browse-rules'
 import { decryptCustomerPhone } from '../customers/phone-crypto'
 import { insertOutboxEvent } from '../outbox/write'
 import { hasMarketingConsent } from '../privacy/client'
@@ -210,6 +212,8 @@ type Enrolment = {
   customerId?: string | null | undefined
   cartId?: string | null | undefined
   orderId?: string | null | undefined
+  /** Browse abandonment: the product looked at. */
+  productId?: string | null | undefined
   email?: string | null | undefined
   phone?: string | null | undefined
   name?: string | null | undefined
@@ -239,6 +243,7 @@ async function enrol(
       customerId: e.customerId ?? null,
       cartId: e.cartId ?? null,
       orderId: e.orderId ?? null,
+      productId: e.productId ?? null,
       email: e.email?.trim().toLowerCase() || null,
       phone: e.phone ?? null,
       name: e.name ?? null,
@@ -341,6 +346,40 @@ export async function enrolDue(
       ) {
         enrolled += 1
       }
+    }
+  }
+
+  for (const a of await activeAutomations(tx, 'browse_abandoned')) {
+    const after = parseAutomationSettings(a.settings).afterMinutes ?? BROWSE_DEFAULT_AFTER_MINUTES
+    const views = await dueBrowseViews(tx, {
+      afterMinutes: after,
+      now,
+      secret,
+      // One nudge per shopper and product a week, per automation.
+      ran: (prefix, since) => sql`exists (
+        select 1 from marketing_automation_run r
+        where r.automation_id = ${a.id}
+          and starts_with(r.trigger_key, ${prefix})
+          and r.started_at > ${since.toISOString()}::timestamptz)`,
+    })
+    for (const v of views) {
+      if (
+        await enrol(
+          tx,
+          storeId,
+          a,
+          {
+            triggerKey: browseKey(v.customerId, v.productId, v.viewedAt),
+            customerId: v.customerId,
+            productId: v.productId,
+            email: v.email,
+            phone: v.phone,
+            name: v.name,
+          },
+          now,
+        )
+      )
+        enrolled += 1
     }
   }
 
@@ -679,6 +718,7 @@ export async function processDueRuns(
         : deps.storefrontUrl,
       cart_total: cartInfo ? formatMoney(cartInfo.totalPaise) : o ? formatMoney(o.totalPaise) : '',
       order_number: o ? `#${o.number}` : '',
+      ...(run.productId ? await productFacts(tx, run.productId, deps.storefrontUrl) : {}),
     }
 
     const sentBefore = sent

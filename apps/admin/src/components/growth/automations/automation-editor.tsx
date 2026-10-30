@@ -9,6 +9,7 @@ import {
   parseAutomationSettings,
   parseAutomationSteps,
   TRIGGER_HAS_CART,
+  TRIGGER_QUIET_MINUTES,
 } from '@commerce/core/marketing'
 import { formatNumber } from '@commerce/money'
 import { ArrowRight, ChevronLeftIcon, CircleAlert, Save, Trash2, X } from '@commerce/ui/icons'
@@ -155,8 +156,10 @@ export default function AutomationEditor({
   const selectedStep = form.steps[selectedIndex]
   const current = selectedStep || selected === 'end' ? selected : 'trigger'
   const dirty = JSON.stringify(form) !== saved
-  // Basket triggers fire once the basket has been quiet this long, so steps count from there.
-  const triggerDelay = TRIGGER_HAS_CART[trigger] ? (form.settings.afterMinutes ?? 60) : 0
+  // Basket and browse triggers fire once the shopper has been quiet this long, so steps count
+  // from there.
+  const quietDefault = TRIGGER_QUIET_MINUTES[trigger]
+  const triggerDelay = quietDefault === null ? 0 : (form.settings.afterMinutes ?? quietDefault)
   const s = automation.stats
   const tiles = [
     { label: copy.tiles.runs, value: formatNumber(s.runs) },

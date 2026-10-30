@@ -29,6 +29,7 @@ export const automationPiecesContent: Record<string, string> = {
   'automations.trigger.inventory.out': 'Out of stock',
   'automations.trigger.checkout.abandoned': 'Checkout abandoned',
   'automations.trigger.cart.abandoned': 'Cart abandoned',
+  'automations.trigger.browse.abandoned': 'Browse abandoned',
   'automations.trigger.schedule': 'Scheduled time',
   'automations.trigger.manual.order': 'Run on an order',
   'automations.trigger.manual.customer': 'Run on a customer',

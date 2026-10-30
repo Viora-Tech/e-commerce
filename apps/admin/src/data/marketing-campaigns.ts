@@ -245,6 +245,9 @@ export const MERGE_TAG_LABELS: Record<MergeTag, string> = {
   checkout_url: 'Checkout link',
   cart_total: 'Cart total',
   order_number: 'Order number',
+  product_title: 'Viewed product',
+  product_url: 'Viewed product link',
+  product_price: 'Viewed product price',
 }
 
 export const campaignReportContent = {
