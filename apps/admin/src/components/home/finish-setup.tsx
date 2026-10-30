@@ -26,8 +26,9 @@ type Step = {
 }
 
 /**
- * Three set-up cards (products, payments, shipping), always shown; done ones are ticked.
- * A done card is ticked and quiet; an open one links to where it gets done.
+ * Three set-up cards (products, payments, shipping), shown while any is still open; done ones
+ * are ticked and quiet, an open one links to where it gets done. Once all three are done the
+ * section goes away (#1005).
  */
 export default async function FinishSetup({ productCount, signals }: FinishSetupProps) {
   // Render logic
@@ -62,8 +63,9 @@ export default async function FinishSetup({ productCount, signals }: FinishSetup
       external: true,
     },
   ]
-  // Always shown (Figma 224:584); finished steps stay, ticked.
+  // Finished steps stay, ticked, while another is still open (Figma 224:584).
   const doneCount = steps.filter((s) => s.done).length
+  if (doneCount === steps.length) return null
 
   return (
     <section className="flex flex-col gap-3.5">
