@@ -313,7 +313,8 @@ export async function writePage(ctx: ImportContext, p: NPage) {
           seoDescription: clip(p.seoDescription, 400),
           publishedAt: p.published ? (p.publishedAt ? new Date(p.publishedAt) : new Date()) : null,
           templateSuffix: p.templateSuffix,
-          updatedAt: new Date(),
+          // Shopify's last edit, so the list reads "19 Sept", not the day of the move (audit #132).
+          updatedAt: p.updatedAt ? new Date(p.updatedAt) : new Date(),
         }
         let id = existing
         if (id) await tx.update(page).set(fields).where(eq(page.id, id))

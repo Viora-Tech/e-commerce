@@ -175,6 +175,8 @@ export type NPage = {
   seoDescription: string | null
   published: boolean
   publishedAt: string | null
+  /** When it last changed on the old platform; the pages list shows it (not the import time). */
+  updatedAt?: string | null | undefined
   /** Alternate template (`page.<suffix>`); null is the default. */
   templateSuffix: string | null
 }
