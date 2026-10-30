@@ -120,4 +120,9 @@ export const settingsRowsContent = {
     count: (n: number) => (n === 0 ? 'None yet' : String(n)),
     downgradeTo: (plan: string) => `Move to ${plan}`,
   },
+
+  approvals: {
+    waitingValue: (n: number) => (n === 0 ? 'Nothing waiting' : `${n} waiting`),
+    mineValue: (n: number) => (n === 0 ? 'None in 30 days' : `${n} in 30 days`),
+  },
 } as const

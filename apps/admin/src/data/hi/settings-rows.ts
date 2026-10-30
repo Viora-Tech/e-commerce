@@ -116,5 +116,10 @@ export default [
       count: (n) => (n === 0 ? 'अभी कोई नहीं' : String(n)),
       downgradeTo: (plan) => `${plan} पर जाएँ`,
     },
+
+    approvals: {
+      waitingValue: (n) => (n === 0 ? 'कुछ बाकी नहीं' : `${n} बाकी`),
+      mineValue: (n) => (n === 0 ? '30 दिन में कोई नहीं' : `30 दिन में ${n}`),
+    },
   }),
 ]
