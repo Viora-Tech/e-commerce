@@ -72,7 +72,7 @@ export default function VariantsCard({
   /** Option index to group by; `undefined` until the merchant picks, then the default applies. */
   const [groupChoice, setGroupChoice] = useState<number | null | undefined>(undefined)
   /** Group values opened to their variants. */
-  const [open, setOpen] = useState<string[]>([])
+  const [openGroups, setOpenGroups] = useState<string[]>([])
 
   // Helpers
   /** Applies an options edit, asking first when it would remove variants that still hold stock. */
@@ -97,7 +97,7 @@ export default function VariantsCard({
     propose(options.filter((_, j) => j !== i))
     setEditing(null)
     setGroupChoice(undefined)
-    setOpen([])
+    setOpenGroups([])
   }
 
   const handleValues = (i: number, values: string[]) =>
@@ -111,11 +111,13 @@ export default function VariantsCard({
 
   const handleGroupBy = (next: number | null) => {
     setGroupChoice(next)
-    setOpen([])
+    setOpenGroups([])
   }
 
   const handleToggleGroup = (value: string) =>
-    setOpen((now) => (now.includes(value) ? now.filter((v) => v !== value) : [...now, value]))
+    setOpenGroups((now) =>
+      now.includes(value) ? now.filter((v) => v !== value) : [...now, value],
+    )
 
   const handleBulkApply = ({ price, quantity, skuPrefix }: VariantBulkPatch) => {
     for (const index of selected) {
@@ -150,7 +152,7 @@ export default function VariantsCard({
   const picked =
     groupChoice === undefined ? defaultGroupBy(built.length, variants.length) : groupChoice
   const groupBy = picked != null && picked < built.length && built.length >= 2 ? picked : null
-  const lines = matrixLines(variants, { query, groupBy, open })
+  const lines = matrixLines(variants, { query, groupBy, open: openGroups })
 
   return (
     <DataCard
