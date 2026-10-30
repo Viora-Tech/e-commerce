@@ -67,6 +67,8 @@ export const pagesListContent = {
   tabs: { all: 'All', live: 'Published', hidden: 'Hidden' },
   columns: { title: 'Title', template: 'Template', visibility: 'Visibility', updated: 'Updated' },
   template: { default: 'Default page' },
+  /** Refund, privacy, terms, shipping and contact pages: Settings › Policies edits them (#133). */
+  policy: 'Policy',
   visibility: { live: 'Published', hidden: 'Hidden' },
   empty: {
     heading: 'No pages yet',
