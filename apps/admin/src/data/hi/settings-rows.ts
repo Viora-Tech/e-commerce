@@ -80,5 +80,15 @@ export default [
       roles: 'रोल',
       rolesValue: (n) => `${n} रोल`,
     },
+
+    ai: {
+      usage: 'इस महीने का इस्तेमाल',
+      features: 'AI फ़ीचर',
+      featuresValue: (on, total, quality) => `${total} में से ${on} चालू · ${quality}`,
+      privacy: 'AI क्या देखता है',
+      privacyValue: 'आपका डेटा आपका ही रहता है',
+      activity: 'AI की गतिविधि',
+      activityValue: 'हर बदलाव, Undo के साथ',
+    },
   }),
 ]

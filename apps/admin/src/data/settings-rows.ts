@@ -83,4 +83,15 @@ export const settingsRowsContent = {
     roles: 'Roles',
     rolesValue: (n: number) => (n === 1 ? '1 role' : `${n} roles`),
   },
+
+  ai: {
+    usage: 'This month’s use',
+    features: 'AI features',
+    featuresValue: (on: number, total: number, quality: string) =>
+      `${on} of ${total} on · ${quality}`,
+    privacy: 'What AI sees',
+    privacyValue: 'Your data stays yours',
+    activity: 'AI activity',
+    activityValue: 'Every change, with Undo',
+  },
 } as const

@@ -21,10 +21,13 @@ import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { aiContent } from '@/data/ai'
 import { SETTINGS_BACK, settingsContent } from '@/data/settings'
+import { settingsRowsContent } from '@/data/settings-rows'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import AiActivityCard from './ai-activity-card'
 import SettingsCard from './settings-card'
+import SettingsDrill from './settings-drill'
+import SettingsDrillPanel from './settings-drill-panel'
 import SettingsRow from './settings-row'
 import SettingsToggleRow from './settings-toggle-row'
 
@@ -48,12 +51,14 @@ function countTone(used: number, limit: number | null): string {
 }
 
 /**
- * Settings → AI: this month's AI use against the plan, the feature switches and writing quality,
- * what data is sent, and the Activity log of every change the AI made (with Undo).
+ * Settings → AI, Shopify-style (#147): rows for this month's AI use against the plan, the
+ * feature switches and writing quality, what data is sent, and the Activity log of every change
+ * the AI made (with Undo), each opening in place (`?open=`).
  */
 export default function AiSettings() {
   // Hooks
   const copy = useCopy(aiContent)
+  const rowsCopy = useCopy(settingsRowsContent)
   const settingsCopy = useCopy(settingsContent)
   const fmt = useFormat()
   const [loaded, setLoaded] = useState<Loaded | null>(null)
@@ -120,6 +125,24 @@ export default function AiSettings() {
       quality !== loaded.writingQuality)
   const usage = loaded?.usage
   const credits = usage ? Math.ceil(usage.total.credits) : 0
+  const a = rowsCopy.ai
+  const rows =
+    loaded && features
+      ? [
+          { id: 'usage', title: a.usage, value: meter(credits, loaded.quota.credits) },
+          {
+            id: 'features',
+            title: a.features,
+            value: a.featuresValue(
+              AI_FEATURES.filter((f) => features[f]).length,
+              AI_FEATURES.length,
+              copy.settings.quality[quality],
+            ),
+          },
+          { id: 'privacy', title: a.privacy, value: a.privacyValue },
+          { id: 'activity', title: a.activity, value: a.activityValue },
+        ]
+      : []
 
   return (
     <div className="flex flex-col gap-4">
@@ -153,107 +176,121 @@ export default function AiSettings() {
               <AlertDescription>{copy.settings.off.body}</AlertDescription>
             </Alert>
           )}
-          <DataCard
-            title={
-              <>
-                {copy.settings.usage.heading}
-                <Badge variant="neutral">
-                  {copy.settings.usage.plan}: {copy.settings.usage.plans[loaded.plan]}
-                </Badge>
-              </>
-            }
-            subtitle={copy.settings.usage.help(
-              fmt.pattern(nextMonthStart(usage.month), { day: 'numeric', month: 'long' }),
-            )}
-            bodyClassName="flex flex-col gap-5"
-          >
-            <div className="flex flex-col gap-1.5">
-              <div className="flex flex-wrap items-center justify-between gap-2 text-body">
-                <span className="text-ink-strong">{copy.settings.usage.credits}</span>
-                <span className={`tabular-nums ${countTone(credits, loaded.quota.credits)}`}>
-                  {meter(credits, loaded.quota.credits)}
-                </span>
-              </div>
-              <Progress value={share(credits, loaded.quota.credits)} />
-              <p className="text-caption text-muted-foreground">
-                {copy.settings.usage.creditsHelp}
-              </p>
-              {loaded.extraCredits > 0 ? (
-                <p className="text-caption text-foreground">
-                  {copy.settings.usage.extra(fmt.number(Math.floor(loaded.extraCredits)))}
-                </p>
-              ) : null}
-            </div>
-            {/* No limit, nothing to top up: the Unlimited plan offered "Buy 1,000 credits" (#176). */}
-            {loaded.quota.credits === null ? null : (
-              <Button
-                variant="outline"
-                className="self-end"
-                loading={buying}
-                onClick={handleBuyCredits}
+          <SettingsDrill rows={rows} backLabel={copy.settings.title}>
+            <SettingsDrillPanel id="usage">
+              <DataCard
+                title={
+                  <>
+                    {copy.settings.usage.heading}
+                    <Badge variant="neutral">
+                      {copy.settings.usage.plan}: {copy.settings.usage.plans[loaded.plan]}
+                    </Badge>
+                  </>
+                }
+                subtitle={copy.settings.usage.help(
+                  fmt.pattern(nextMonthStart(usage.month), { day: 'numeric', month: 'long' }),
+                )}
+                bodyClassName="flex flex-col gap-5"
               >
-                <CreditCard aria-hidden="true" />
-                {copy.settings.usage.buy(fmt.money(AI_CREDIT_PACK.pricePaise))}
-              </Button>
-            )}
-          </DataCard>
-          <SettingsCard
-            title={copy.settings.features.heading}
-            description={copy.settings.features.help}
-          >
-            {AI_FEATURES.map((feature) => (
-              <SettingsToggleRow
-                key={feature}
-                id={`ai-${feature}`}
-                label={copy.settings.features[feature].label}
-                description={copy.settings.features[feature].help}
-                checked={features[feature]}
-                onChange={(on) => setFeatures({ ...features, [feature]: on })}
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-body">
+                    <span className="text-ink-strong">{copy.settings.usage.credits}</span>
+                    <span className={`tabular-nums ${countTone(credits, loaded.quota.credits)}`}>
+                      {meter(credits, loaded.quota.credits)}
+                    </span>
+                  </div>
+                  <Progress value={share(credits, loaded.quota.credits)} />
+                  <p className="text-caption text-muted-foreground">
+                    {copy.settings.usage.creditsHelp}
+                  </p>
+                  {loaded.extraCredits > 0 ? (
+                    <p className="text-caption text-foreground">
+                      {copy.settings.usage.extra(fmt.number(Math.floor(loaded.extraCredits)))}
+                    </p>
+                  ) : null}
+                </div>
+                {/* No limit, nothing to top up: the Unlimited plan offered "Buy 1,000 credits" (#176). */}
+                {loaded.quota.credits === null ? null : (
+                  <Button
+                    variant="outline"
+                    className="self-end"
+                    loading={buying}
+                    onClick={handleBuyCredits}
+                  >
+                    <CreditCard aria-hidden="true" />
+                    {copy.settings.usage.buy(fmt.money(AI_CREDIT_PACK.pricePaise))}
+                  </Button>
+                )}
+              </DataCard>
+            </SettingsDrillPanel>
+            <SettingsDrillPanel id="features">
+              <SettingsCard
+                title={copy.settings.features.heading}
+                description={copy.settings.features.help}
               >
-                <span className="text-caption text-muted-foreground tabular-nums">
-                  {copy.settings.usage.requestCount(usage.byFeature[feature].calls)}
-                </span>
-              </SettingsToggleRow>
-            ))}
-            <SettingsRow
-              label={copy.settings.quality.label}
-              description={copy.settings.quality.help}
-            >
-              <RadioGroup
-                value={quality}
-                onValueChange={(v) => setQuality(v as WritingQuality)}
-                className="flex flex-wrap gap-4"
-              >
-                {WRITING_QUALITIES.map((q) => (
-                  <label key={q} htmlFor={`ai-quality-${q}`} className="flex items-center gap-2">
-                    <RadioGroupItem id={`ai-quality-${q}`} value={q} />
-                    <span className="text-body">{copy.settings.quality[q]}</span>
-                  </label>
+                {AI_FEATURES.map((feature) => (
+                  <SettingsToggleRow
+                    key={feature}
+                    id={`ai-${feature}`}
+                    label={copy.settings.features[feature].label}
+                    description={copy.settings.features[feature].help}
+                    checked={features[feature]}
+                    onChange={(on) => setFeatures({ ...features, [feature]: on })}
+                  >
+                    <span className="text-caption text-muted-foreground tabular-nums">
+                      {copy.settings.usage.requestCount(usage.byFeature[feature].calls)}
+                    </span>
+                  </SettingsToggleRow>
                 ))}
-              </RadioGroup>
-            </SettingsRow>
-          </SettingsCard>
-          <DataCard
-            title={
-              <>
-                <ShieldCheck className="size-5 text-primary" aria-hidden="true" />
-                {copy.settings.privacy.heading}
-              </>
-            }
-            bodyClassName="flex flex-col gap-3"
-          >
-            <ul className="flex list-disc flex-col gap-1.5 pl-5 text-body text-ink-strong">
-              {copy.settings.privacy.lines.map((line) => (
-                <li key={line}>{line}</li>
-              ))}
-            </ul>
-            {loaded.configured ? (
-              <p className="text-caption text-muted-foreground">
-                {copy.settings.privacy.model(loaded.models.fast, loaded.models.strong)}
-              </p>
-            ) : null}
-          </DataCard>
-          <AiActivityCard />
+                <SettingsRow
+                  label={copy.settings.quality.label}
+                  description={copy.settings.quality.help}
+                >
+                  <RadioGroup
+                    value={quality}
+                    onValueChange={(v) => setQuality(v as WritingQuality)}
+                    className="flex flex-wrap gap-4"
+                  >
+                    {WRITING_QUALITIES.map((q) => (
+                      <label
+                        key={q}
+                        htmlFor={`ai-quality-${q}`}
+                        className="flex items-center gap-2"
+                      >
+                        <RadioGroupItem id={`ai-quality-${q}`} value={q} />
+                        <span className="text-body">{copy.settings.quality[q]}</span>
+                      </label>
+                    ))}
+                  </RadioGroup>
+                </SettingsRow>
+              </SettingsCard>
+            </SettingsDrillPanel>
+            <SettingsDrillPanel id="privacy">
+              <DataCard
+                title={
+                  <>
+                    <ShieldCheck className="size-5 text-primary" aria-hidden="true" />
+                    {copy.settings.privacy.heading}
+                  </>
+                }
+                bodyClassName="flex flex-col gap-3"
+              >
+                <ul className="flex list-disc flex-col gap-1.5 pl-5 text-body text-ink-strong">
+                  {copy.settings.privacy.lines.map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+                {loaded.configured ? (
+                  <p className="text-caption text-muted-foreground">
+                    {copy.settings.privacy.model(loaded.models.fast, loaded.models.strong)}
+                  </p>
+                ) : null}
+              </DataCard>
+            </SettingsDrillPanel>
+            <SettingsDrillPanel id="activity">
+              <AiActivityCard />
+            </SettingsDrillPanel>
+          </SettingsDrill>
         </>
       )}
     </div>
