@@ -26,9 +26,11 @@ import {
 import { permissions } from '@commerce/core'
 import { formatInZone } from '@commerce/dates'
 import { withStore } from '@commerce/db'
+import { z } from 'zod'
 import { type AiCallContext, finishAiCall, type StartedAiCall, startAiCall } from '../guard'
 import { type Fact, storeTools, type ToolEnv } from '../store-tools'
 import { ProposalProblem } from './actions/resolve'
+import { type FoundImage, findImages } from './find-images'
 import { pageLine } from './page-context'
 import { readTools } from './read-tools'
 import { ACTIONS, READ_TOOL_PERMISSION } from './registry'
@@ -139,13 +141,38 @@ function toolsFor(
   return { ...allowedReads, ...proposes }
 }
 
-/** The theme editor's tool: checks an edit against this message's outline and drafts it. */
+const FindImagesInput = z.object({
+  query: z
+    .string()
+    .trim()
+    .min(1)
+    .max(80)
+    .describe(
+      'A product or collection name, or a word in it, e.g. "Dysphoria Maki" or "glasspad".',
+    ),
+})
+
+/**
+ * The theme editor's tools: `findImages` looks up the store's own pictures and links, and
+ * `proposeThemeEdit` checks an edit against this message's outline and drafts it.
+ */
 function themeEditTool(
   outline: ThemeOutline,
   taint: Taint,
   edits: Map<string, ThemeEditView>,
+  lookup: (query: string) => Promise<FoundImage[]>,
 ): AiToolSet {
   return {
+    findImages: defineAiTool({
+      description:
+        "Find the store's products and collections by name, each with its main picture (imageUrl) and its storefront link. Use the imageUrl for an image setting and the link for a button or url setting in proposeThemeEdit.",
+      input: FindImagesInput,
+      risk: 'read',
+      run: async (input: z.infer<typeof FindImagesInput>) => {
+        const found = await lookup(input.query)
+        return found.length ? { results: found } : { results: [], note: 'Nothing by that name.' }
+      },
+    }),
     proposeThemeEdit: defineAiTool({
       description:
         'Draft a change to settings of sections or blocks on the page open in the theme editor (text, links, checkboxes, numbers, choices). Use the ids and setting keys from the page outline. Nothing changes until the merchant applies it in the editor.',
@@ -185,7 +212,11 @@ export async function runAssistant(
   const canEditTheme = Boolean(outline) && context.scope.can(permissions.ONLINE_STORE_WRITE)
   const tools = {
     ...toolsFor(context, call, taint, proposals),
-    ...(outline && canEditTheme ? themeEditTool(outline, taint, themeEdits) : {}),
+    ...(outline && canEditTheme
+      ? themeEditTool(outline, taint, themeEdits, (query) =>
+          withStore(context.db, call.runtime.storeId, (tx) => findImages(tx, query)),
+        )
+      : {}),
   }
   const guarded = outline ? themeOutlineForPrompt(outline) : null
   // Page text that read like orders to the AI was hidden; later proposals carry the warning.

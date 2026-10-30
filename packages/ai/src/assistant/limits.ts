@@ -77,11 +77,11 @@ export function pageContextFor(pathname: string): AssistantPageContext {
   }
   if (path.startsWith('/discounts')) return { page: 'discounts', entityId: null }
   if (path.startsWith('/analytics')) return { page: 'analytics', entityId: null }
-  if (path === '/markets' || path.startsWith('/markets/'))
-    return { page: 'markets', entityId: null }
-  if (path === '/rollouts' || path.startsWith('/rollouts/')) {
+  if (path === '/markets/rollouts' || path.startsWith('/markets/rollouts/')) {
     return { page: 'rollouts', entityId: null }
   }
+  if (path === '/markets' || path.startsWith('/markets/'))
+    return { page: 'markets', entityId: null }
   if (path.startsWith('/settings')) return { page: 'settings', entityId: null }
   return { page: 'other', entityId: null }
 }

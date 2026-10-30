@@ -7,7 +7,6 @@ import {
   BarChart3,
   Blocks,
   Boxes,
-  Clock,
   Earth,
   FolderOpen,
   Home,
@@ -170,18 +169,14 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: BadgePercent,
         permission: permissions.DISCOUNTS_READ,
       },
-      // Top-level like Shopify's Markets (owner, 2026-10-30, audit #113); they were in Settings.
+      // Top-level like Shopify's Markets, with Rollouts beneath it (owner, 2026-10-30, audit
+      // #113); both were in Settings.
       {
         href: routes.markets.list(),
         label: 'Markets',
         icon: Earth,
         permission: permissions.SETTINGS_READ,
-      },
-      {
-        href: routes.rollouts.list(),
-        label: 'Rollouts',
-        icon: Clock,
-        permission: permissions.ROLLOUTS_READ,
+        children: [{ href: routes.rollouts.list(), label: 'Rollouts' }],
       },
     ],
   },

@@ -20,8 +20,12 @@ export const THEME_OUTLINE_LIMITS = {
   maxValue: 200,
   /** Choices listed for one select setting. */
   maxOptions: 30,
-  /** Characters of the whole outline as JSON; settings go first, then sections, to fit. */
-  maxSize: 12_000,
+  /**
+   * Characters of the whole outline as JSON; settings go first, then sections, to fit. A long
+   * imported home page (Waimers' has 20+ sections) lost every lower section's settings at
+   * 12,000, so the AI said the newsletter had "no editable settings".
+   */
+  maxSize: 32_000,
   /** Changes in one proposed theme edit, and the longest new value. */
   maxEdits: 20,
   maxEditValue: 2000,
@@ -36,6 +40,8 @@ export const THEME_SETTING_KINDS = [
   'checkbox',
   'number',
   'select',
+  /** A picture: the value is its URL (`findImages` gives the store's own), '' for none. */
+  'image',
 ] as const
 export type ThemeSettingKind = (typeof THEME_SETTING_KINDS)[number]
 
@@ -208,7 +214,7 @@ export const ThemeEditInput = z.object({
         value: z
           .union([z.string().max(L.maxEditValue), z.number(), z.boolean()])
           .describe(
-            'The new value: text for text, textarea, richtext (plain text), url and select settings; true or false for checkbox; a number for number.',
+            'The new value: text for text, textarea, richtext (plain text), url and select settings; true or false for checkbox; a number for number; an image URL from findImages for image.',
           ),
       }),
     )
@@ -240,6 +246,7 @@ export type ThemeEditView = {
 }
 
 const SAFE_URL = /^(\/|#|https?:\/\/|mailto:|tel:|shopify:\/\/)/i
+const IMAGE_URL = /^(\/|https:\/\/)\S+$/i
 
 /** Why `value` cannot go into a setting of this kind, or the value to store. */
 function checkValue(
@@ -260,6 +267,11 @@ function checkValue(
       return value === '' || (SAFE_URL.test(value) && !/\s/.test(value))
         ? { ok: true, value }
         : mismatch('a link starting with /, https:// or mailto:')
+    case 'image':
+      if (typeof value !== 'string') return mismatch('an image URL')
+      return value === '' || IMAGE_URL.test(value)
+        ? { ok: true, value }
+        : mismatch('an image URL from findImages (https://… or /…)')
     case 'checkbox':
       return typeof value === 'boolean' ? { ok: true, value } : mismatch('true or false')
     case 'number': {

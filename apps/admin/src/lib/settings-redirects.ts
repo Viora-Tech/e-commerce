@@ -22,6 +22,9 @@ export const SETTINGS_REDIRECTS: SettingsRedirect[] = [
   { source: '/settings/files', destination: '/content/files/storage' },
   // Markets and Rollouts left Settings for the main sidebar (October 30, 2026, audit #113).
   { source: '/settings/markets', destination: '/markets' },
-  { source: '/settings/markets/rollouts', destination: '/rollouts' },
-  { source: '/settings/markets/rollouts/:path*', destination: '/rollouts/:path*' },
+  { source: '/settings/markets/rollouts', destination: '/markets/rollouts' },
+  { source: '/settings/markets/rollouts/:path*', destination: '/markets/rollouts/:path*' },
+  // Rollouts sat at /rollouts for a few hours on 30 Oct before joining the Markets group.
+  { source: '/rollouts', destination: '/markets/rollouts' },
+  { source: '/rollouts/:path*', destination: '/markets/rollouts/:path*' },
 ]

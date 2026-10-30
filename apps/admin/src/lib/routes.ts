@@ -195,11 +195,11 @@ export const routes = {
     list: () => '/markets',
   },
 
-  /** Store changes that go live at a set time (top-level; was Settings › Markets › Rollouts). */
+  /** Store changes that go live at a set time: under Markets, as in Shopify (Markets › Rollouts). */
   rollouts: {
-    list: () => '/rollouts',
-    new: () => '/rollouts/new',
-    detail: (rolloutId: string) => `/rollouts/${id(rolloutId)}`,
+    list: () => '/markets/rollouts',
+    new: () => '/markets/rollouts/new',
+    detail: (rolloutId: string) => `/markets/rollouts/${id(rolloutId)}`,
   },
 
   onlineStore: {

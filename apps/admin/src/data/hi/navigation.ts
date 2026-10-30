@@ -49,7 +49,7 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
   '/growth/links': { title: 'ट्रैकिंग लिंक' },
   '/discounts': { title: 'डिस्काउंट' },
   '/markets': { title: 'मार्केट' },
-  '/rollouts': { title: 'रोलआउट' },
+  '/markets/rollouts': { title: 'रोलआउट' },
   '/online-store': { title: 'ऑनलाइन स्टोर' },
   '/online-store/themes': { title: 'थीम' },
   '/online-store/pages': { title: 'पेज' },

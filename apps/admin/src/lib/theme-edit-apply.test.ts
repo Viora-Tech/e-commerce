@@ -2,7 +2,7 @@ import type { ThemeEditChange } from '@commerce/ai/client'
 import type { TemplateSection } from '@commerce/core/theme'
 import { describe, expect, it } from 'vitest'
 import { type CustomizeDoc, FOOTER_ZONE, HEADER_ZONE } from './customize-doc'
-import { applyThemeEdits, storedValue, textToHtml } from './theme-edit-apply'
+import { applyThemeEdits, storedValue, textToHtml, withChange } from './theme-edit-apply'
 
 const section = (type: string, props: Record<string, unknown>) =>
   ({ type, props }) as unknown as TemplateSection
@@ -122,5 +122,29 @@ describe('applyThemeEdits', () => {
       'Removed-1',
     ])
     expect(result.doc.zones[FOOTER_ZONE]?.[0]?.props).toMatchObject({ copyright: '© 2026 Glide' })
+  })
+})
+
+describe('withChange', () => {
+  it('sets a picture as { url, alt }, keeping alt and dropping the old focal point', () => {
+    const before = { image: { url: '/old.jpg', alt: 'Pad', focal: { x: 0.2, y: 0.4 } } }
+    const after = withChange(before, { setting: 'image', kind: 'image', value: '/new.jpg' })
+    expect(after.image).toEqual({ url: '/new.jpg', alt: 'Pad' })
+  })
+
+  it('turns an imported string picture into { url, alt }', () => {
+    const after = withChange(
+      { image: 'shopify://shop_images/a.jpg' },
+      { setting: 'image', kind: 'image', value: 'https://cdn.example.com/b.jpg' },
+    )
+    expect(after.image).toEqual({ url: 'https://cdn.example.com/b.jpg', alt: '' })
+  })
+
+  it('writes button.href into the button object and keeps its label', () => {
+    const after = withChange(
+      { button: { label: 'Shop now', href: '/collections/all' } },
+      { setting: 'button.href', kind: 'url', value: '/products/maki' },
+    )
+    expect(after.button).toEqual({ label: 'Shop now', href: '/products/maki' })
   })
 })

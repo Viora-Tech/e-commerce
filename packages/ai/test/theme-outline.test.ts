@@ -94,10 +94,17 @@ describe('outline schema', () => {
     if (hero?.settings[0]) hero.settings[0].value = 'x'.repeat(THEME_OUTLINE_LIMITS.maxValue + 1)
     expect(ThemeOutlineSchema.safeParse(long).success).toBe(false)
     const huge = outline()
+    // Each section well over 1,000 characters, 50 of them: past maxSize however it is set.
     huge.sections = Array.from({ length: 50 }, (_, i) => ({
       ...(outline().sections[1] as ThemeOutline['sections'][number]),
       id: `Hero-${i}`,
       label: 'L'.repeat(120),
+      settings: Array.from({ length: 6 }, (_, j) => ({
+        key: `text_${j}`,
+        label: 'Text',
+        kind: 'text' as const,
+        value: 'v'.repeat(THEME_OUTLINE_LIMITS.maxValue),
+      })),
     }))
     expect(ThemeOutlineSchema.safeParse(huge).success).toBe(false)
   })

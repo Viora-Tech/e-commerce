@@ -57,8 +57,10 @@ describe('settings redirects', () => {
       '/settings/account': '/account',
       '/settings/files': '/content/files/storage',
       '/settings/markets': '/markets',
-      '/settings/markets/rollouts': '/rollouts',
-      '/settings/markets/rollouts/:path*': '/rollouts/:path*',
+      '/settings/markets/rollouts': '/markets/rollouts',
+      '/settings/markets/rollouts/:path*': '/markets/rollouts/:path*',
+      '/rollouts': '/markets/rollouts',
+      '/rollouts/:path*': '/markets/rollouts/:path*',
     })
   })
 
