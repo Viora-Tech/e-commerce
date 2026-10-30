@@ -66,7 +66,7 @@ export type SiteConfig = {
     relativeDayWords: { today: string; yesterday: string }
   }
   ui: {
-    rowsPerPage: { options: readonly [10, 25, 50, 100]; default: 10 }
+    rowsPerPage: { options: readonly [10, 25, 50, 100]; default: 50 }
     toastMs: { default: number; success: number; error: number }
   }
   /**
@@ -131,7 +131,8 @@ export const siteConfig: SiteConfig = {
     relativeDayWords: { today: 'Today', yesterday: 'Yesterday' },
   },
   ui: {
-    rowsPerPage: { options: [10, 25, 50, 100], default: 10 },
+    // 50 like Shopify: 10 made 1,357 orders 136 pages and 2,808 files 281 (audit #4, #89).
+    rowsPerPage: { options: [10, 25, 50, 100], default: 50 },
     toastMs: { default: 4000, success: 3000, error: 6000 },
   },
   plans: {
