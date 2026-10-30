@@ -2,7 +2,7 @@
 
 import type { ExpenseVersion } from '@commerce/core/expenses'
 import { permissions } from '@commerce/core/permissions'
-import { Pencil, Plus, Trash2 } from '@commerce/ui/icons'
+import { Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
@@ -11,9 +11,8 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import StatStrip from '@/components/layout/stat-strip'
-import SettingsTable from '@/components/settings/settings-table'
-import SettingsTableCell from '@/components/settings/settings-table-cell'
-import SettingsTableRow from '@/components/settings/settings-table-row'
+import SettingsLinkRow from '@/components/settings/settings-link-row'
+import SettingsList from '@/components/settings/settings-list'
 import { monthlyExpensesContent } from '@/data/monthly-expenses'
 import { SETTINGS_BACK } from '@/data/settings'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -115,53 +114,34 @@ export default function MonthlyExpensesSettings() {
               },
             ]}
           />
-          <SettingsTable
+          <SettingsList
             heading={copy.listTitle}
             description={view.gstClaimable ? copy.gst.claimable : copy.gst.notClaimable}
-            columns={[
-              { label: copy.columns.name },
-              { label: copy.columns.category, className: 'hidden md:table-cell' },
-              { label: copy.columns.amount },
-              { label: copy.columns.months, className: 'hidden sm:table-cell' },
-            ]}
-            actions={canManage}
             after={view.expenses.length === 0 ? <EmptyState heading={copy.empty} /> : undefined}
           >
             {view.expenses.map((e) => (
-              <SettingsTableRow key={e.id}>
-                <SettingsTableCell>{e.name}</SettingsTableCell>
-                <SettingsTableCell className="hidden md:table-cell">
-                  {copy.categories[e.category]}
-                </SettingsTableCell>
-                <SettingsTableCell>{fmt.money(e.amountPaise)}</SettingsTableCell>
-                <SettingsTableCell className="hidden sm:table-cell">
-                  {monthsOf(e)}
-                </SettingsTableCell>
+              <li key={e.id} className="flex items-center">
+                <SettingsLinkRow
+                  onClick={canManage ? () => setEditing({ expense: e }) : undefined}
+                  title={e.name}
+                  description={`${copy.categories[e.category]} · ${monthsOf(e)}`}
+                  value={<span className="tabular-nums">{fmt.money(e.amountPaise)}</span>}
+                />
                 {canManage ? (
-                  <SettingsTableCell className="text-right">
-                    <span className="inline-flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label={copy.edit}
-                        onClick={() => setEditing({ expense: e })}
-                      >
-                        <Pencil className="size-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label={copy.delete}
-                        onClick={() => setDeleting(e)}
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
-                    </span>
-                  </SettingsTableCell>
+                  <span className="shrink-0 pr-3">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={copy.delete}
+                      onClick={() => setDeleting(e)}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </span>
                 ) : null}
-              </SettingsTableRow>
+              </li>
             ))}
-          </SettingsTable>
+          </SettingsList>
         </>
       )}
       {editing ? (

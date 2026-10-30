@@ -17,9 +17,12 @@ import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import SettingsCard from '@/components/settings/settings-card'
+import SettingsDrill from '@/components/settings/settings-drill'
+import SettingsDrillPanel from '@/components/settings/settings-drill-panel'
 import { profitCostsContent } from '@/data/profit-costs'
 import { SETTINGS_BACK, settingsContent } from '@/data/settings'
-import { useCopy } from '@/hooks/use-copy'
+import { settingsRowsContent } from '@/data/settings-rows'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import FeeRateRow, { type FeeRateText } from './fee-rate-row'
@@ -48,6 +51,19 @@ function toRate(text: FeeRateText): FeeRate | null | undefined {
   return { percentBps: Math.round(percent * 100), fixedPaise: fixed }
 }
 
+const filled = (text: FeeRateText) => Boolean(text.percent.trim() || text.fixed.trim())
+
+/** A rate as the row shows it: "2%", "₹30" or "2% + ₹30"; null when blank. */
+function rateLine(text: FeeRateText, money: (paise: number) => string): string | null {
+  const fixed = text.fixed.trim() ? parseRupees(text.fixed) : null
+  const parts = [
+    text.percent.trim() ? `${text.percent.trim()}%` : null,
+    fixed ? money(fixed) : null,
+  ]
+  const line = parts.filter(Boolean).join(' + ')
+  return line || null
+}
+
 const methodsText = (fees: ProfitCostSettings['methodFees']) =>
   Object.fromEntries(METHOD_RATE_IDS.map((id) => [id, toText(fees[id])])) as Form['methods']
 
@@ -59,12 +75,15 @@ const formOf = (view: View): Form => ({
 })
 
 /**
- * Settings › Costs for profit: the fee rates used until the gateway reports the actual fee,
- * by how the customer paid, by gateway, and the courier's cash on delivery fee.
+ * Settings › Costs for profit, Shopify-style (#147): rows for the fee rates used until the
+ * gateway reports the actual fee (by how the customer paid, by gateway), the default delivery
+ * cost and the courier's cash on delivery fee, each opening in place (`?open=`).
  */
 export default function CostsSettings() {
   // Hooks
   const copy = useCopy(profitCostsContent)
+  const rowsCopy = useCopy(settingsRowsContent)
+  const fmt = useFormat()
   const { general } = useCopy(settingsContent)
   const { hasPermission } = usePermissions()
   const [view, setView] = useState<View | null>(null)
@@ -147,6 +166,51 @@ export default function CostsSettings() {
   const canManage = hasPermission(permissions.SETTINGS_MANAGE)
   const dirty = !!view && !!form && JSON.stringify(form) !== JSON.stringify(formOf(view))
   const gstNote = view?.gstClaimable ? copy.gst.claimable : copy.gst.notClaimable
+  const deliveryPaise = form ? parseRupees(form.delivery) : null
+  const rows =
+    view && form
+      ? [
+          ...(view.methodRatesOn
+            ? [
+                {
+                  id: 'methods',
+                  title: copy.methods.heading,
+                  value: rowsCopy.costs.ratesSet(
+                    METHOD_RATE_IDS.filter((id) => filled(form.methods[id])).length,
+                    METHOD_RATE_IDS.length,
+                  ),
+                },
+              ]
+            : []),
+          {
+            id: 'gateways',
+            title: copy.gateways.heading,
+            value:
+              view.gateways.length === 0
+                ? rowsCopy.costs.noGateways
+                : rowsCopy.costs.ratesSet(
+                    view.gateways.filter((id) =>
+                      filled(form.gateways[id] ?? { percent: '', fixed: '' }),
+                    ).length,
+                    view.gateways.length,
+                  ),
+          },
+          {
+            id: 'delivery',
+            title: copy.delivery.heading,
+            value: deliveryPaise === null ? rowsCopy.needsFix : fmt.money(deliveryPaise),
+          },
+          ...(view.codOn
+            ? [
+                {
+                  id: 'cod-fee',
+                  title: copy.cod.heading,
+                  value: rateLine(form.cod, fmt.money) ?? rowsCopy.notSet,
+                },
+              ]
+            : []),
+        ]
+      : []
 
   return (
     <div className="flex flex-col gap-6">
@@ -168,87 +232,95 @@ export default function CostsSettings() {
       {!view || !form ? (
         <Skeleton className="h-64 w-full rounded-2xl" />
       ) : (
-        <>
+        <SettingsDrill rows={rows} backLabel={copy.title}>
           {view.methodRatesOn ? (
-            <SettingsCard title={copy.methods.heading} description={copy.methods.help}>
-              {METHOD_RATE_IDS.map((id) => (
-                <FeeRateRow
-                  key={id}
-                  id={`fee-method-${id}`}
-                  label={nameOf(id)}
-                  value={form.methods[id]}
+            <SettingsDrillPanel id="methods">
+              <SettingsCard title={copy.methods.heading} description={copy.methods.help}>
+                {METHOD_RATE_IDS.map((id) => (
+                  <FeeRateRow
+                    key={id}
+                    id={`fee-method-${id}`}
+                    label={nameOf(id)}
+                    value={form.methods[id]}
+                    disabled={!canManage || busy}
+                    onChange={(value) =>
+                      setForm((f) => (f ? { ...f, methods: { ...f.methods, [id]: value } } : f))
+                    }
+                  />
+                ))}
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
+                  <p className="text-caption text-muted-foreground">{gstNote}</p>
+                  {canManage ? (
+                    <Button variant="outline" onClick={handleStandardRates} disabled={busy}>
+                      {copy.methods.reset}
+                    </Button>
+                  ) : null}
+                </div>
+              </SettingsCard>
+            </SettingsDrillPanel>
+          ) : null}
+          <SettingsDrillPanel id="gateways">
+            <SettingsCard title={copy.gateways.heading} description={copy.gateways.help}>
+              {view.gateways.length === 0 ? (
+                <p className="text-body text-muted-foreground">{copy.gateways.none}</p>
+              ) : (
+                view.gateways.map((id) => (
+                  <FeeRateRow
+                    key={id}
+                    id={`fee-${id}`}
+                    label={nameOf(id)}
+                    value={form.gateways[id] ?? { percent: '', fixed: '' }}
+                    disabled={!canManage || busy}
+                    onChange={(value) =>
+                      setForm((f) => (f ? { ...f, gateways: { ...f.gateways, [id]: value } } : f))
+                    }
+                  />
+                ))
+              )}
+              {view.methodRatesOn ? null : (
+                <p className="pt-4 text-caption text-muted-foreground">{gstNote}</p>
+              )}
+            </SettingsCard>
+          </SettingsDrillPanel>
+          <SettingsDrillPanel id="delivery">
+            <SettingsCard
+              id="delivery-cost"
+              title={copy.delivery.heading}
+              description={copy.delivery.help}
+            >
+              <div className="flex flex-col gap-1">
+                <label htmlFor="default-delivery" className="text-caption text-muted-foreground">
+                  {copy.delivery.label}
+                </label>
+                <Input
+                  size="lg"
+                  id="default-delivery"
+                  inputMode="decimal"
+                  className="w-36"
+                  value={form.delivery}
                   disabled={!canManage || busy}
-                  onChange={(value) =>
-                    setForm((f) => (f ? { ...f, methods: { ...f.methods, [id]: value } } : f))
-                  }
+                  onChange={(e) => setForm((f) => (f ? { ...f, delivery: e.target.value } : f))}
                 />
-              ))}
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
-                <p className="text-caption text-muted-foreground">{gstNote}</p>
-                {canManage ? (
-                  <Button variant="outline" onClick={handleStandardRates} disabled={busy}>
-                    {copy.methods.reset}
-                  </Button>
-                ) : null}
+                <p className="text-caption text-muted-foreground">
+                  {view.gstClaimable ? copy.delivery.gstClaimable : copy.delivery.gstNotClaimable}
+                </p>
               </div>
             </SettingsCard>
-          ) : null}
-          <SettingsCard title={copy.gateways.heading} description={copy.gateways.help}>
-            {view.gateways.length === 0 ? (
-              <p className="text-body text-muted-foreground">{copy.gateways.none}</p>
-            ) : (
-              view.gateways.map((id) => (
-                <FeeRateRow
-                  key={id}
-                  id={`fee-${id}`}
-                  label={nameOf(id)}
-                  value={form.gateways[id] ?? { percent: '', fixed: '' }}
-                  disabled={!canManage || busy}
-                  onChange={(value) =>
-                    setForm((f) => (f ? { ...f, gateways: { ...f.gateways, [id]: value } } : f))
-                  }
-                />
-              ))
-            )}
-            {view.methodRatesOn ? null : (
-              <p className="pt-4 text-caption text-muted-foreground">{gstNote}</p>
-            )}
-          </SettingsCard>
-          <SettingsCard
-            id="delivery"
-            title={copy.delivery.heading}
-            description={copy.delivery.help}
-          >
-            <div className="flex flex-col gap-1">
-              <label htmlFor="default-delivery" className="text-caption text-muted-foreground">
-                {copy.delivery.label}
-              </label>
-              <Input
-                size="lg"
-                id="default-delivery"
-                inputMode="decimal"
-                className="w-36"
-                value={form.delivery}
-                disabled={!canManage || busy}
-                onChange={(e) => setForm((f) => (f ? { ...f, delivery: e.target.value } : f))}
-              />
-              <p className="text-caption text-muted-foreground">
-                {view.gstClaimable ? copy.delivery.gstClaimable : copy.delivery.gstNotClaimable}
-              </p>
-            </div>
-          </SettingsCard>
+          </SettingsDrillPanel>
           {view.codOn ? (
-            <SettingsCard id="cod-fee" title={copy.cod.heading} description={copy.cod.help}>
-              <FeeRateRow
-                id="fee-cod"
-                label={copy.cod.label}
-                value={form.cod}
-                disabled={!canManage || busy}
-                onChange={(cod) => setForm((f) => (f ? { ...f, cod } : f))}
-              />
-            </SettingsCard>
+            <SettingsDrillPanel id="cod-fee">
+              <SettingsCard title={copy.cod.heading} description={copy.cod.help}>
+                <FeeRateRow
+                  id="fee-cod"
+                  label={copy.cod.label}
+                  value={form.cod}
+                  disabled={!canManage || busy}
+                  onChange={(cod) => setForm((f) => (f ? { ...f, cod } : f))}
+                />
+              </SettingsCard>
+            </SettingsDrillPanel>
           ) : null}
-        </>
+        </SettingsDrill>
       )}
     </div>
   )

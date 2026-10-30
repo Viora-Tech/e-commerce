@@ -449,7 +449,7 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'Cash on delivery fee',
     where: 'Taxes & GST › Costs for profit',
-    href: `${routes.settings.costs()}#cod-fee`,
+    href: `${routes.settings.costs()}?open=cod-fee`,
     keywords: ['cod', 'cash on delivery', 'cod fee', 'cod charges', 'courier cod fee'],
   },
   {

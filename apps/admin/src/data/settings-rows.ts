@@ -94,4 +94,9 @@ export const settingsRowsContent = {
     activity: 'AI activity',
     activityValue: 'Every change, with Undo',
   },
+
+  costs: {
+    ratesSet: (n: number, total: number) => `${n} of ${total} set`,
+    noGateways: 'No gateways yet',
+  },
 } as const

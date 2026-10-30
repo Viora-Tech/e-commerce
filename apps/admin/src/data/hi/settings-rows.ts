@@ -90,5 +90,10 @@ export default [
       activity: 'AI की गतिविधि',
       activityValue: 'हर बदलाव, Undo के साथ',
     },
+
+    costs: {
+      ratesSet: (n, total) => `${total} में से ${n} भरे`,
+      noGateways: 'अभी कोई गेटवे नहीं',
+    },
   }),
 ]
