@@ -38,6 +38,11 @@ export function productRow(fields: ProductFields) {
     preorderDepositPaise: fields.preorderDepositPaise ?? null,
     preorderDepositPercent: fields.preorderDepositPercent ?? null,
     preorderHideFromCollectionsUntilLaunch: fields.preorderHideFromCollectionsUntilLaunch ?? false,
+    // Writers that never show campaigns (imports, bulk tools) keep the product's.
+    ...(fields.preorderCampaignId === undefined
+      ? {}
+      : { preorderCampaignId: fields.preorderCampaignId }),
+    ...(fields.preorderOwn === undefined ? {} : { preorderOwn: [...new Set(fields.preorderOwn)] }),
     launchAt: fields.launchAt ?? null,
     updatedAt: new Date(),
   }

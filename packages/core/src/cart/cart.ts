@@ -2,6 +2,7 @@ import {
   cart,
   cartLine,
   media,
+  preorderCampaign,
   product,
   productMedia,
   sellableStock,
@@ -18,10 +19,26 @@ import {
   NotLaunchedYet,
   NotSoldInMarket,
   OutOfStock,
+  PreorderMixedCart,
   PriceNotSet,
   VariantHidden,
 } from '../errors'
 import { unsoldInMarket } from '../markets/catalogs'
+import {
+  type CampaignColours,
+  campaignApplies,
+  campaignColours,
+  campaignLineIsPreorder,
+  campaignNoteSource,
+  mixedCartVerdict,
+  type PreorderCampaignTerms,
+  preorderUnitPrice,
+} from '../preorder/campaigns'
+import {
+  availableAtLocations,
+  campaignsByIds,
+  cartPrimaryMarketId,
+} from '../preorder/campaigns-service'
 import { isLaunched } from '../preorder/launch'
 import { preorderNoteText } from '../preorder/note'
 import { resolvePreorderSettings, resolveShipDate } from '../preorder/settings'
@@ -46,6 +63,10 @@ export type CartLineView = {
   preorder: boolean
   /** The pre-order note (#936), ship date filled in; null when the line is no pre-order or has none. */
   preorderNote?: string | null | undefined
+  /** The pre-order campaign's badge text on a pre-order line (#144); null without one. */
+  preorderBadge?: string | null | undefined
+  /** The campaign's colours (hex, checked); null keys use the theme's. */
+  preorderColours?: CampaignColours | null | undefined
 }
 
 export type CartView = {
@@ -72,6 +93,7 @@ type AvailabilityRow = {
   preorderPaymentMode: 'full' | 'fixed' | 'percentage'
   preorderDepositPaise: number | null
   preorderDepositPercent: number | null
+  preorderOwn?: string[] | null
 }
 
 /**
@@ -80,10 +102,10 @@ type AvailabilityRow = {
  * hint for the quantity stepper; `placeOrder`'s `reserveStock` is the actual
  * server-side check.
  */
-function lineAvailable(r: AvailabilityRow): number {
+function lineAvailable(r: AvailabilityRow, campaign?: PreorderCampaignTerms | null): number {
   if (!r.trackInventory || r.giftCard) return 999
   const stock = Math.max(0, (r.onHand ?? 0) - (r.reserved ?? 0))
-  const settings = resolvePreorderSettings(r, r.preorderOverride)
+  const settings = resolvePreorderSettings(r, r.preorderOverride, campaign)
   if (!settings.enabled) return stock
   if (settings.limit == null) return 999
   const committed = Math.max(0, (r.reserved ?? 0) - (r.onHand ?? 0))
@@ -95,7 +117,11 @@ function lineAvailable(r: AvailabilityRow): number {
  * the stock left plus the pre-order room. Null when nothing caps it here (no pre-order, no limit,
  * untracked or a gift card); `placeOrder`'s reservation still checks plain stock.
  */
-async function preorderCap(ctx: StoreContext, variantId: string): Promise<number | null> {
+async function preorderCap(
+  ctx: StoreContext,
+  variantId: string,
+  campaign: PreorderCampaignTerms | null,
+): Promise<number | null> {
   const [r] = await ctx.tx
     .select({
       trackInventory: variant.trackInventory,
@@ -111,15 +137,109 @@ async function preorderCap(ctx: StoreContext, variantId: string): Promise<number
       preorderPaymentMode: product.preorderPaymentMode,
       preorderDepositPaise: product.preorderDepositPaise,
       preorderDepositPercent: product.preorderDepositPercent,
+      preorderOwn: product.preorderOwn,
     })
     .from(variant)
     .innerJoin(product, eq(product.id, variant.productId))
     .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
     .where(eq(variant.id, variantId))
   if (!r?.trackInventory || r.giftCard) return null
-  const settings = resolvePreorderSettings(r, r.preorderOverride)
+  const settings = resolvePreorderSettings(r, r.preorderOverride, campaign)
   if (!settings.enabled || settings.limit == null) return null
-  return lineAvailable(r)
+  return lineAvailable(r, campaign)
+}
+
+/** An active campaign as the cart sees it; paused or deleted ones are none. */
+const activeOf = (
+  campaigns: ReadonlyMap<string, PreorderCampaignTerms>,
+  id: string | null | undefined,
+): PreorderCampaignTerms | null => {
+  const c = id ? campaigns.get(id) : undefined
+  return c?.status === 'active' ? c : null
+}
+
+/**
+ * The product's campaign when it applies to this cart (#143): active, on the online store and
+ * in the cart's market (a cart without one is in the primary market). Null otherwise: the
+ * product sells by its own pre-order settings.
+ */
+async function applicableCampaign(
+  ctx: StoreContext,
+  campaignId: string | null,
+  marketId: string | null,
+): Promise<PreorderCampaignTerms | null> {
+  if (!campaignId) return null
+  const c = (await campaignsByIds(ctx.tx, [campaignId])).get(campaignId)
+  if (!c) return null
+  const primaryMarketId =
+    c.marketIds.length > 0 && !marketId ? await cartPrimaryMarketId(ctx.tx) : null
+  return campaignApplies(c, { marketId, primaryMarketId, channel: 'online_store' }) ? c : null
+}
+
+/** Stock free to sell for this variant: at the campaign's locations when it names some. */
+async function freeStock(
+  ctx: StoreContext,
+  variantId: string,
+  campaign: PreorderCampaignTerms | null,
+): Promise<number> {
+  if (campaign && campaign.locationIds.length > 0) {
+    const at = await availableAtLocations(ctx.tx, [variantId], campaign.locationIds)
+    return at.get(variantId) ?? 0
+  }
+  const [stock] = await ctx.tx
+    .select({ onHand: sellableStock.onHand, reserved: sellableStock.reserved })
+    .from(sellableStock)
+    .where(eq(sellableStock.variantId, variantId))
+  return Math.max(0, (stock?.onHand ?? 0) - (stock?.reserved ?? 0))
+}
+
+/**
+ * Mixed carts (#143): a campaign that keeps its pre-orders apart refuses a cart where they
+ * would sit beside in-stock goods, whichever of the two is added last.
+ */
+async function checkMixedCart(
+  ctx: StoreContext,
+  cartId: string,
+  added: {
+    variantId: string
+    preorder: boolean
+    giftCard: boolean
+    campaign: PreorderCampaignTerms | null
+  },
+): Promise<void> {
+  const others = await ctx.tx
+    .select({
+      preorder: cartLine.preorder,
+      giftCard: product.isGiftCard,
+      status: preorderCampaign.status,
+      mixedCart: preorderCampaign.mixedCart,
+      name: preorderCampaign.name,
+      content: preorderCampaign.content,
+    })
+    .from(cartLine)
+    .innerJoin(variant, eq(variant.id, cartLine.variantId))
+    .innerJoin(product, eq(product.id, variant.productId))
+    .leftJoin(preorderCampaign, eq(preorderCampaign.id, cartLine.preorderCampaignId))
+    .where(and(eq(cartLine.cartId, cartId), ne(cartLine.variantId, added.variantId)))
+  const verdict = mixedCartVerdict([
+    ...others.map((o) => ({
+      preorder: o.preorder,
+      giftCard: o.giftCard,
+      mixedCart: o.preorder && o.status === 'active' ? o.mixedCart : null,
+      blockMessage: o.content?.blockMessage ?? null,
+      campaignName: o.name,
+    })),
+    {
+      preorder: added.preorder,
+      giftCard: added.giftCard,
+      mixedCart: added.preorder && added.campaign ? added.campaign.mixedCart : null,
+      blockMessage: added.campaign?.content.blockMessage ?? null,
+      campaignName: added.campaign?.name ?? null,
+    },
+  ])
+  if (verdict.kind === 'blocked') {
+    throw new PreorderMixedCart(verdict.message, verdict.campaignName, ctx.storeId)
+  }
 }
 
 /** Settings → Checkout → Cart limit (#156). */
@@ -204,6 +324,7 @@ export async function getCart(ctx: StoreContext, cartId: string): Promise<CartVi
       quantity: cartLine.quantity,
       unitPricePaise: cartLine.unitPricePaise,
       preorder: cartLine.preorder,
+      campaignId: cartLine.preorderCampaignId,
       productId: product.id,
       productHandle: product.handle,
       productTitle: product.title,
@@ -223,6 +344,7 @@ export async function getCart(ctx: StoreContext, cartId: string): Promise<CartVi
       preorderPaymentMode: product.preorderPaymentMode,
       preorderDepositPaise: product.preorderDepositPaise,
       preorderDepositPercent: product.preorderDepositPercent,
+      preorderOwn: product.preorderOwn,
     })
     .from(cartLine)
     .innerJoin(variant, eq(variant.id, cartLine.variantId))
@@ -230,6 +352,12 @@ export async function getCart(ctx: StoreContext, cartId: string): Promise<CartVi
     .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
     .leftJoin(media, eq(media.id, variant.mediaId))
     .where(eq(cartLine.cartId, cartId))
+  // Each line's campaign as it was added under (#142); a paused one no longer shapes it.
+  const campaigns = await campaignsByIds(
+    ctx.tx,
+    rows.map((r) => r.campaignId),
+  )
+  const campaignOf = (r: (typeof rows)[number]) => activeOf(campaigns, r.campaignId)
   const firstImages = await productFirstImages(
     ctx,
     rows.filter((r) => !r.imageUrl).map((r) => r.productId),
@@ -247,11 +375,20 @@ export async function getCart(ctx: StoreContext, cartId: string): Promise<CartVi
   const noteOf = (r: (typeof rows)[number]) =>
     r.preorder
       ? preorderNoteText({
-          productNote: r.preorderNote,
+          productNote: campaignNoteSource({
+            productNote: r.preorderNote,
+            own: r.preorderOwn,
+            campaign: campaignOf(r),
+            place: 'cart',
+          }),
           storeNote,
-          shipDate: resolveShipDate(resolvePreorderSettings(r, r.preorderOverride)),
+          shipDate: resolveShipDate(resolvePreorderSettings(r, r.preorderOverride, campaignOf(r))),
         })
       : null
+  const badgeOf = (r: (typeof rows)[number]) => {
+    const c = r.preorder ? campaignOf(r) : null
+    return c?.content.badgeText?.trim() || null
+  }
   // Cart limit (#156): the stepper stops at what the store allows of each product.
   const limit = rows.length > 0 ? await storeCartLimit(ctx) : null
   const roomOf = (r: (typeof rows)[number]) => {
@@ -272,11 +409,13 @@ export async function getCart(ctx: StoreContext, cartId: string): Promise<CartVi
     quantity: r.quantity,
     unitPricePaise: r.unitPricePaise,
     linePaise: r.quantity * r.unitPricePaise,
-    available: Math.min(lineAvailable(r), roomOf(r) ?? Number.POSITIVE_INFINITY),
+    available: Math.min(lineAvailable(r, campaignOf(r)), roomOf(r) ?? Number.POSITIVE_INFINITY),
     imageUrl: r.imageUrl ?? firstImages.get(r.productId) ?? null,
     giftCard: r.giftCard,
     preorder: r.preorder,
     preorderNote: noteOf(r),
+    preorderBadge: badgeOf(r),
+    preorderColours: badgeOf(r) ? campaignColours(campaignOf(r)?.design) : null,
   }))
   return {
     id: c.id,
@@ -319,27 +458,40 @@ export async function addToCart(
   }
   if (!isLaunched(p.launchAt)) throw new NotLaunchedYet(variantId, p.launchAt as Date, ctx.storeId)
   // Listed before its price was confirmed (#913): on show, never sold, so no ₹0 line.
-  const unitPricePaise = v.pricePaise
-  if (unitPricePaise == null) throw new PriceNotSet(variantId, ctx.storeId)
-  const preorder = resolvePreorderSettings(p, v.preorderOverride).enabled
-  // Sold out and not on pre-order (the product has none, or this variant does not allow it,
-  // #962): the product page crosses it out, and the cart refuses it too.
-  if (!preorder && v.trackInventory && !p.isGiftCard) {
-    const [stock] = await ctx.tx
-      .select({ onHand: sellableStock.onHand, reserved: sellableStock.reserved })
-      .from(sellableStock)
-      .where(eq(sellableStock.variantId, variantId))
-    if (Math.max(0, (stock?.onHand ?? 0) - (stock?.reserved ?? 0)) < 1) {
-      throw new OutOfStock(variantId, ctx.storeId)
-    }
-  }
+  const listPricePaise = v.pricePaise
+  if (listPricePaise == null) throw new PriceNotSet(variantId, ctx.storeId)
   const [existing] = await ctx.tx
     .select()
     .from(cartLine)
     .where(and(eq(cartLine.cartId, cartId), eq(cartLine.variantId, variantId)))
-  // A pre-order with a limit holds no more than the stock and pre-order room left (#939).
-  const cap = preorder ? await preorderCap(ctx, variantId) : null
   const wanted = (existing?.quantity ?? 0) + quantity
+  // A campaign that applies here (#142, #143) supplies the pre-order settings; the product's
+  // own settings otherwise.
+  const campaign = await applicableCampaign(ctx, p.preorderCampaignId, marketId ?? null)
+  const enabled = resolvePreorderSettings(p, v.preorderOverride, campaign).enabled
+  const tracked = v.trackInventory && !p.isGiftCard
+  // Under a campaign a line is a pre-order only when the stock that counts cannot cover it;
+  // outside one, pre-order on is a pre-order (the older rule).
+  const preorder =
+    enabled && campaign
+      ? campaignLineIsPreorder({
+          tracked,
+          available: tracked ? await freeStock(ctx, variantId, campaign) : 0,
+          quantity: wanted,
+        })
+      : enabled
+  // Sold out and not on pre-order (the product has none, or this variant does not allow it,
+  // #962): the product page crosses it out, and the cart refuses it too.
+  if (!enabled && tracked && (await freeStock(ctx, variantId, null)) < 1) {
+    throw new OutOfStock(variantId, ctx.storeId)
+  }
+  await checkMixedCart(ctx, cartId, { variantId, preorder, giftCard: p.isGiftCard, campaign })
+  // The campaign's pre-order discount prices the line while it is a pre-order.
+  const unitPricePaise =
+    preorder && campaign ? preorderUnitPrice(listPricePaise, campaign) : listPricePaise
+  const preorderCampaignId = campaign?.id ?? null
+  // A pre-order with a limit holds no more than the stock and pre-order room left (#939).
+  const cap = enabled ? await preorderCap(ctx, variantId, campaign) : null
   const capped = cap === null ? wanted : Math.min(wanted, cap)
   // Cart limit (#156): never more of one product than the store allows per cart.
   const room = await limitRoom(ctx, cartId, { productId: p.id, variantId, giftCard: p.isGiftCard })
@@ -352,7 +504,12 @@ export async function addToCart(
     // Already at the limit: the line stays as it is.
     await ctx.tx
       .update(cartLine)
-      .set({ quantity: Math.max(existing.quantity, next), unitPricePaise, preorder })
+      .set({
+        quantity: Math.max(existing.quantity, next),
+        unitPricePaise,
+        preorder,
+        preorderCampaignId,
+      })
       .where(eq(cartLine.id, existing.id))
   } else {
     if (next < 1) throw new OutOfStock(variantId, ctx.storeId)
@@ -363,6 +520,7 @@ export async function addToCart(
       quantity: next,
       unitPricePaise,
       preorder,
+      preorderCampaignId,
     })
   }
 }
@@ -381,6 +539,7 @@ export async function setLineQuantity(
     .select({
       variantId: cartLine.variantId,
       preorder: cartLine.preorder,
+      campaignId: cartLine.preorderCampaignId,
       productId: variant.productId,
       giftCard: product.isGiftCard,
     })
@@ -390,7 +549,8 @@ export async function setLineQuantity(
     .where(and(eq(cartLine.id, lineId), eq(cartLine.cartId, cartId)))
   if (!line) return
   // A pre-order line stops at its limit (#939), as the product page's stepper does.
-  const cap = line.preorder ? await preorderCap(ctx, line.variantId) : null
+  const campaign = activeOf(await campaignsByIds(ctx.tx, [line.campaignId]), line.campaignId)
+  const cap = line.preorder ? await preorderCap(ctx, line.variantId, campaign) : null
   // And every line at the store's cart limit (#156).
   const room = await limitRoom(ctx, cartId, line)
   const most = Math.min(cap ?? Number.POSITIVE_INFINITY, room ?? Number.POSITIVE_INFINITY)

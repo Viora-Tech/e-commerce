@@ -167,6 +167,7 @@ const READ_PATHS = new Set([
   'apps.testConnection',
   'collections.products',
   'giftCards.products',
+  'preorders.overview',
   'reviews.products',
   'marketing.emailBrand',
   'marketing.setup',
@@ -285,6 +286,7 @@ const SENSITIVE_WHEN: Record<string, { note: string; when: (input: unknown) => b
 const NAMESPACE_AREA: Record<string, ApiArea> = {
   products: 'products',
   collections: 'products',
+  preorders: 'products',
   reviews: 'products',
   orders: 'orders',
   returns: 'orders',

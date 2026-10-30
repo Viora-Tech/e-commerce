@@ -6,6 +6,7 @@ import {
   inventoryLevel,
   newId,
   orderLine,
+  preorderCampaign,
   product,
   productMedia,
   productOption,
@@ -60,6 +61,16 @@ export async function uniqueHandle(tx: StoreTx, base: string, exceptId?: string)
   }
 }
 
+/** A campaign id this store cannot see (another store's, or deleted) is dropped, as unknown media is. */
+async function withKnownCampaign(tx: StoreTx, write: ProductWrite): Promise<ProductWrite> {
+  if (!write.preorderCampaignId) return write
+  const [c] = await tx
+    .select({ id: preorderCampaign.id })
+    .from(preorderCampaign)
+    .where(eq(preorderCampaign.id, write.preorderCampaignId))
+  return c ? write : { ...write, preorderCampaignId: null }
+}
+
 /** Product writes from an import (CSV, Shopify) start no automations (`noteProductEvent`). */
 export type ProductWriteOptions = { imported?: boolean | undefined }
 
@@ -71,6 +82,7 @@ export async function createProduct(
 ) {
   const errors = [...variantErrors(write.options, write.variants), ...preorderErrors(write)]
   if (errors.length) throw new InvalidProduct(errors)
+  write = await withKnownCampaign(tx, write)
   const id = newId()
   const handle = await uniqueHandle(tx, write.handle ?? write.title)
   await tx.insert(product).values({ id, storeId, handle, ...productRow(write) })
@@ -99,6 +111,7 @@ export async function updateProduct(
 ) {
   const errors = [...variantErrors(write.options, write.variants), ...preorderErrors(write)]
   if (errors.length) throw new InvalidProduct(errors)
+  write = await withKnownCampaign(tx, write)
   const [existing] = await tx
     .select({ id: product.id, handle: product.handle })
     .from(product)

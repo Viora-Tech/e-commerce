@@ -227,3 +227,23 @@ export class CheckoutRuleViolation extends CommerceError {
     this.amountPaise = opts.amountPaise ?? null
   }
 }
+
+/**
+ * A pre-order campaign keeps its pre-orders apart from in-stock goods (`mixed_cart: 'block'`,
+ * #143): the cart or checkout refuses the mix. `shopperMessage` is the campaign's own words,
+ * null when it has none (the storefront then says it in its own).
+ */
+export class PreorderMixedCart extends CommerceError {
+  readonly shopperMessage: string | null
+  readonly campaignName: string | null
+
+  constructor(shopperMessage: string | null, campaignName: string | null, storeId?: string) {
+    super(
+      'PREORDER_MIXED_CART',
+      shopperMessage ?? 'Pre-orders must be checked out on their own, without in-stock items',
+      { storeId },
+    )
+    this.shopperMessage = shopperMessage
+    this.campaignName = campaignName
+  }
+}

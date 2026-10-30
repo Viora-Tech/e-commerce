@@ -1,5 +1,6 @@
 import type { VariantPreorderOverride } from '@commerce/db'
 import { z } from 'zod'
+import { ownFields, type PreorderCampaignTerms } from './campaigns'
 
 /**
  * Pre-order settings as stored on `product` (and optionally overridden per
@@ -20,6 +21,8 @@ export type PreorderSettings = {
   paymentMode: PreorderPaymentMode
   depositPaise: number | null
   depositPercent: number | null
+  /** The campaign these settings came from (Products › Pre-orders); absent outside one. */
+  campaignId?: string | null | undefined
 }
 
 export type ProductPreorderRow = {
@@ -31,6 +34,31 @@ export type ProductPreorderRow = {
   preorderPaymentMode: PreorderPaymentMode
   preorderDepositPaise: number | null
   preorderDepositPercent: number | null
+  /** In a campaign, the settings the product keeps its own (`PREORDER_OWN_FIELDS`). */
+  preorderOwn?: readonly string[] | null | undefined
+}
+
+/**
+ * A product in a campaign that applies: pre-order is on, and each setting comes from the
+ * campaign unless the product keeps it as its own (`preorder_own`). A blank campaign button
+ * text keeps the product's label.
+ */
+function campaignBase(product: ProductPreorderRow, c: PreorderCampaignTerms): PreorderSettings {
+  const own = ownFields(product.preorderOwn)
+  const keeps = (field: (typeof own)[number]) => own.includes(field)
+  return {
+    enabled: true,
+    shipDate: keeps('shipping') ? product.preorderShipDate : c.shipDate,
+    shipsInDays: keeps('shipping') ? product.preorderShipsInDays : c.shipsInDays,
+    limit: keeps('limit') ? product.preorderLimit : c.limit,
+    buttonLabel: keeps('button')
+      ? product.preorderButtonLabel
+      : c.content.buttonText?.trim() || product.preorderButtonLabel,
+    paymentMode: keeps('payment') ? product.preorderPaymentMode : c.paymentMode,
+    depositPaise: keeps('payment') ? product.preorderDepositPaise : c.depositPaise,
+    depositPercent: keeps('payment') ? product.preorderDepositPercent : c.depositPercent,
+    campaignId: c.id,
+  }
 }
 
 /**
@@ -48,8 +76,10 @@ export type ProductPreorderRow = {
 export function resolvePreorderSettings(
   product: ProductPreorderRow,
   override?: VariantPreorderOverride | null,
+  /** The product's campaign, only when it applies here (`campaignApplies`). */
+  campaign?: PreorderCampaignTerms | null,
 ): PreorderSettings {
-  const base: PreorderSettings = {
+  const base: PreorderSettings = campaign ? campaignBase(product, campaign) : {
     enabled: product.preorderEnabled,
     shipDate: product.preorderShipDate,
     shipsInDays: product.preorderShipsInDays,
@@ -61,6 +91,7 @@ export function resolvePreorderSettings(
   }
   if (!override) return base
   return {
+    ...(base.campaignId ? { campaignId: base.campaignId } : {}),
     enabled: base.enabled && override.enabled !== false,
     shipDate: override.shipDate !== undefined ? parseDate(override.shipDate) : base.shipDate,
     shipsInDays: override.shipsInDays !== undefined ? override.shipsInDays : base.shipsInDays,

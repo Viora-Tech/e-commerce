@@ -356,7 +356,12 @@ function metaItem(item: ChannelItem) {
     item_group_id: item.groupId,
     title: item.title,
     description: item.description,
-    availability: item.availability === 'in_stock' ? 'in stock' : 'out of stock',
+    availability:
+      item.availability === 'in_stock'
+        ? 'in stock'
+        : item.availability === 'preorder'
+          ? 'preorder'
+          : 'out of stock',
     condition: 'new',
     price: priceText(item.mrpPaise ?? item.pricePaise),
     ...(item.mrpPaise ? { sale_price: priceText(item.pricePaise) } : {}),

@@ -542,6 +542,9 @@ export const ACTION_DOCS: Record<string, string> = {
     'Whether Embedded Signup is set up here, what the SDK needs, and the linked account.',
   'policies.template':
     "A policy's template filled from the store as it is now; the editor shows it, nothing is saved.",
+  'preorders.campaigns.delete': 'Its products sell by their own pre-order settings again.',
+  'preorders.overview':
+    'Last 30 days, every pre-order product with its limit, every campaign with its sales.',
   'products.adjustments': "Stock movements for the product form's inventory history.",
   'products.bulk': 'One action over many products: status, tags or delete.',
   'products.bulkEdit':

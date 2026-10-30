@@ -1,5 +1,6 @@
 import { SEO_KEYWORD_LENGTH_MAX, SEO_KEYWORDS_MAX } from '@commerce/ai/client'
 import { z } from 'zod'
+import { PREORDER_OWN_FIELDS } from '../preorder/campaigns'
 
 export const ProductStatusSchema = z.enum(['draft', 'active', 'archived'])
 export type ProductStatus = z.infer<typeof ProductStatusSchema>
@@ -112,6 +113,10 @@ export const ProductFieldsSchema = z
     preorderDepositPaise: paise.nullable().optional(),
     preorderDepositPercent: z.number().int().min(1).max(99).nullable().optional(),
     preorderHideFromCollectionsUntilLaunch: z.boolean().optional(),
+    /** Pre-order campaign the product sells under (Products › Pre-orders); undefined leaves it. */
+    preorderCampaignId: z.uuid().nullable().optional(),
+    /** In a campaign, the settings it keeps its own; undefined leaves them. */
+    preorderOwn: z.array(z.enum(PREORDER_OWN_FIELDS)).max(PREORDER_OWN_FIELDS.length).optional(),
     /** Store-timezone instant the product goes on sale; null = always on sale. */
     launchAt: z.coerce.date().nullable().optional(),
   })

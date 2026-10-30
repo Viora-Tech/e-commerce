@@ -168,7 +168,12 @@ function googleInput(item: ChannelItem) {
       link: item.link,
       ...(item.imageLink ? { imageLink: item.imageLink } : {}),
       ...(item.additionalImages.length ? { additionalImageLinks: item.additionalImages } : {}),
-      availability: item.availability === 'in_stock' ? 'IN_STOCK' : 'OUT_OF_STOCK',
+      availability:
+        item.availability === 'in_stock'
+          ? 'IN_STOCK'
+          : item.availability === 'preorder'
+            ? 'PREORDER'
+            : 'OUT_OF_STOCK',
       condition: 'NEW',
       price: micros(item.mrpPaise ?? item.pricePaise),
       ...(item.mrpPaise ? { salePrice: micros(item.pricePaise) } : {}),

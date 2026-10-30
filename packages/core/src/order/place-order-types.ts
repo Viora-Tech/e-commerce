@@ -17,6 +17,7 @@ import type { ResolvedDiscount } from '../discounts/resolve'
 import type { GiftCardRedemption } from '../gift-cards/service'
 import type { FallbackTry } from '../payments/fallback'
 import type { PaymentRowStatus } from '../payments/transitions'
+import type { PreorderCampaignTerms } from '../preorder/campaigns'
 import type { resolvePreorderSettings } from '../preorder/settings'
 import type { OrderDeliveryInput } from '../shipping/delivery-options/order'
 import type { ShippingRateOption } from '../shipping/rates'
@@ -131,8 +132,13 @@ export type Line = {
   launchAt: Date | null
   /** Resolved pre-order settings (product merged with the variant's override, if any). */
   preorder: ReturnType<typeof resolvePreorderSettings>
-  /** The product's own pre-order note (#936); null falls back to the store's. */
+  /**
+   * The note to keep on the order line (#936): the product's own, or its campaign's order note
+   * (#144); null falls back to the store's.
+   */
   preorderNote: string | null
+  /** The pre-order campaign the line sells under (#142); absent outside one. */
+  preorderCampaign?: Pick<PreorderCampaignTerms, 'id' | 'name' | 'mixedCart' | 'content'> | null
 }
 
 export type State = {

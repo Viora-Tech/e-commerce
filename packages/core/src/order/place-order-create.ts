@@ -251,6 +251,9 @@ export const createOrder: WorkflowStep<State> = {
         hsCode: l.giftCard ? null : l.hsCode,
         giftCard: l.giftCard,
         preorder: l.preorder.enabled && !l.giftCard,
+        // Products › Pre-orders counts a campaign's orders and revenue from this (#141).
+        preorderCampaignId:
+          l.preorder.enabled && !l.giftCard ? (l.preorderCampaign?.id ?? null) : null,
         // What the unit cost the store as it sold: profit never reads today's cost.
         costAtSalePaise: l.giftCard ? null : l.costPaise,
         preorderShipDate:

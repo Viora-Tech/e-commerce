@@ -51,6 +51,7 @@ import { pixelsRouter } from './pixels'
 import { platformRouter } from './platform'
 import { platformAppsRouter } from './platform-apps'
 import { policiesRouter } from './policies'
+import { preordersRouter } from './preorders'
 import { productsRouter } from './products'
 import { profitCostsRouter } from './profit-costs'
 import { purchaseDocumentsRouter } from './purchase-documents'
@@ -119,6 +120,7 @@ export const appRouter = {
   automations: automationsRouter,
   shortLinks: shortLinksRouter,
   giftCards: giftCardsRouter,
+  preorders: preordersRouter,
   apps: appsRouter,
   gstInvoices: gstInvoicesRouter,
   taxes: taxesRouter,

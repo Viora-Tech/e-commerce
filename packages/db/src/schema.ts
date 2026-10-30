@@ -157,6 +157,19 @@ export const product = pgTable(
     preorderDepositPaise: integer('preorder_deposit_paise'),
     /** Deposit percent (1-99) when `preorderPaymentMode` is `percentage`. */
     preorderDepositPercent: integer('preorder_deposit_percent'),
+    /**
+     * Pre-order campaign the product sells under (Products › Pre-orders): its ship date, limit,
+     * button, payment, discount and cart rules apply while the campaign is active. Null: the
+     * product's own pre-order settings above, as before campaigns.
+     */
+    preorderCampaignId: uuid('preorder_campaign_id').references(() => preorderCampaign.id, {
+      onDelete: 'set null',
+    }),
+    /**
+     * In a campaign, the settings this product keeps its own (`PREORDER_OWN_FIELDS`:
+     * `shipping`, `limit`, `button`, `payment`, `note`); every other one follows the campaign.
+     */
+    preorderOwn: text('preorder_own').array().notNull().default([]),
     /** Launch-gated products are hidden from collection/browse listings until `launchAt`, if set. */
     preorderHideFromCollectionsUntilLaunch: boolean('preorder_hide_until_launch')
       .notNull()
@@ -175,6 +188,9 @@ export const product = pgTable(
        inserted, so two saves at once could both take one (schema review 2026-10-27). */
     uniqueIndex('product_store_handle').on(t.storeId, t.handle),
     index('product_store_status').on(t.storeId, t.status, t.createdAt),
+    index('product_preorder_campaign')
+      .on(t.preorderCampaignId)
+      .where(sql`${t.preorderCampaignId} is not null`),
   ],
 )
 
@@ -196,6 +212,106 @@ export type VariantPreorderOverride = {
   depositPaise?: number | null
   depositPercent?: number | null
 }
+
+/** How a cart holding a campaign's pre-order beside in-stock goods is handled (#143). */
+export const PREORDER_MIXED_CART = ['together', 'split', 'block'] as const
+export type PreorderMixedCart = (typeof PREORDER_MIXED_CART)[number]
+/** What happens to a campaign item added in stock that sold out before checkout. */
+export const PREORDER_SOLD_OUT_IN_CART = ['preorder', 'block'] as const
+export type PreorderSoldOutInCart = (typeof PREORDER_SOLD_OUT_IN_CART)[number]
+/** Where a campaign sells as a pre-order: the storefront's cart and checkout, and the catalog feeds. */
+export const PREORDER_CAMPAIGN_CHANNELS = ['online_store', 'social', 'ai_agents'] as const
+export type PreorderCampaignChannel = (typeof PREORDER_CAMPAIGN_CHANNELS)[number]
+export const PREORDER_DISCOUNT_TYPES = ['none', 'percentage', 'fixed'] as const
+export type PreorderDiscountType = (typeof PREORDER_DISCOUNT_TYPES)[number]
+
+/** A campaign's words (Content tab); blank keys use the product's or the store's. */
+export type PreorderCampaignContent = {
+  buttonText?: string | undefined
+  badgeText?: string | undefined
+  /** Under the button on the product page; may use `{ship_date}` / `{ship_month}`. */
+  productNote?: string | undefined
+  /** On the cart line. */
+  cartLineText?: string | undefined
+  /** Kept on the order line, for the order page and emails. */
+  orderNote?: string | undefined
+  /** Shown when the cart refuses a mixed basket (`mixedCart: 'block'`). */
+  blockMessage?: string | undefined
+}
+
+/** A campaign's colours (Design tab), `#rrggbb`; blank keys use the theme's. */
+export type PreorderCampaignDesign = {
+  buttonBackground?: string | undefined
+  buttonText?: string | undefined
+  badgeBackground?: string | undefined
+  badgeText?: string | undefined
+}
+
+/**
+ * SOURCE OF TRUTH: preorderCampaign
+ * WHAT:  One pre-order rule set for many products (Products › Pre-orders), as Essential
+ *        Pre-Order's campaigns: ship date, limit, payment and button for every product in it
+ *        (`product.preorder_campaign_id`), plus a pre-order discount, where it applies (markets,
+ *        stock locations, channels), the cart rules and its storefront words and colours.
+ * WHY:   A launch of ten products is one setting, not ten. A product keeps any setting it marks
+ *        as its own (`product.preorder_own`); see `resolvePreorderSettings`.
+ */
+export const preorderCampaign = pgTable(
+  'preorder_campaign',
+  {
+    id: id(),
+    storeId: storeId(),
+    name: text('name').notNull(),
+    /** A paused campaign is kept, and its products sell by their own settings again. */
+    status: text('status', { enum: ['active', 'paused'] })
+      .notNull()
+      .default('active'),
+    shipDate: timestamp('ship_date', { withTimezone: true }),
+    shipsInDays: integer('ships_in_days'),
+    /** Pre-order units per variant beyond stock; null = unlimited. */
+    limit: integer('limit'),
+    paymentMode: text('payment_mode', { enum: ['full', 'fixed', 'percentage'] })
+      .notNull()
+      .default('full'),
+    depositPaise: integer('deposit_paise'),
+    depositPercent: integer('deposit_percent'),
+    /** Off while on pre-order: a percent (1-90) or an amount in paise per unit. */
+    discountType: text('discount_type', { enum: PREORDER_DISCOUNT_TYPES })
+      .notNull()
+      .default('none'),
+    discountValue: integer('discount_value'),
+    /** Markets it applies in; empty = every market. */
+    marketIds: uuid('market_ids').array().notNull().default([]),
+    /** Stock locations that decide "sold out" for it; empty = every selling location. */
+    locationIds: uuid('location_ids').array().notNull().default([]),
+    channels: text('channels')
+      .array()
+      .$type<PreorderCampaignChannel[]>()
+      .notNull()
+      .default(['online_store', 'social', 'ai_agents']),
+    mixedCart: text('mixed_cart', { enum: PREORDER_MIXED_CART }).notNull().default('split'),
+    soldOutInCart: text('sold_out_in_cart', { enum: PREORDER_SOLD_OUT_IN_CART })
+      .notNull()
+      .default('preorder'),
+    content: jsonb('content').$type<PreorderCampaignContent>().notNull().default({}),
+    design: jsonb('design').$type<PreorderCampaignDesign>().notNull().default({}),
+    /** Where an imported campaign came from (`shopify:<selling plan group id>`), so a re-import updates it. */
+    sourceId: text('source_id'),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('preorder_campaign_store').on(t.storeId, t.createdAt),
+    uniqueIndex('preorder_campaign_source')
+      .on(t.storeId, t.sourceId)
+      .where(sql`${t.sourceId} is not null`),
+    check(
+      'preorder_campaign_deposit_percent',
+      sql`${t.depositPercent} is null or (${t.depositPercent} between 1 and 99)`,
+    ),
+    check('preorder_campaign_discount', sql`${t.discountValue} is null or ${t.discountValue} >= 0`),
+  ],
+)
 
 /** Structured options: Colour / Size. A variant is one combination of values. */
 export const productOption = pgTable(
@@ -1125,6 +1241,13 @@ export const cartLine = pgTable(
     unitPricePaise: integer('unit_price_paise').notNull(),
     /** Snapshot of the variant's pre-order state when the line was added; re-checked at checkout. */
     preorder: boolean('preorder').notNull().default(false),
+    /**
+     * The pre-order campaign the line was added under: its discount priced the line, and its
+     * cart rules and words apply to it. Re-checked at checkout (`placeOrder`).
+     */
+    preorderCampaignId: uuid('preorder_campaign_id').references(() => preorderCampaign.id, {
+      onDelete: 'set null',
+    }),
   },
   (t) => [
     /* Every storefront page reads the cart for the header count (layout `requestCart`). */
@@ -1434,6 +1557,10 @@ export const orderLine = pgTable(
     preorderShipDate: timestamp('preorder_ship_date', { withTimezone: true }),
     /** The pre-order note as it read when the order was placed (#936), for the email and order pages. */
     preorderNote: text('preorder_note'),
+    /** The pre-order campaign the line sold under; Products › Pre-orders counts its orders and revenue. */
+    preorderCampaignId: uuid('preorder_campaign_id').references(() => preorderCampaign.id, {
+      onDelete: 'set null',
+    }),
     /**
      * What one unit cost the store when it sold: the variant's weighted average cost
      * (`variant.cost_paise`, landed cost) at placement. Profit reads this, never today's cost.
@@ -1449,6 +1576,9 @@ export const orderLine = pgTable(
     /* Every order page, invoice, parcel and profit report reads lines by order. */
     index('order_line_order').on(t.orderId),
     index('order_line_variant').on(t.variantId),
+    index('order_line_preorder_campaign')
+      .on(t.preorderCampaignId)
+      .where(sql`${t.preorderCampaignId} is not null`),
   ],
 )
 
