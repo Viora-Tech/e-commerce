@@ -53,6 +53,7 @@ export const PRODUCTS_QUERY = `query Products($cursor: String, $query: String) {
     ${PAGE_INFO}
     nodes {
       id handle title descriptionHtml vendor productType tags status templateSuffix publishedAt isGiftCard
+      category { id }
       seo { title description }
       options { name position }
       hsn: metafield(namespace: "custom", key: "hsn") { value }
@@ -96,6 +97,8 @@ type GProduct = {
   descriptionHtml: string | null
   vendor: string | null
   productType: string | null
+  /** Shopify Standard Product Taxonomy: `gid://shopify/TaxonomyCategory/el-2-6-4`. */
+  category?: { id: string } | null
   tags: string[]
   status: 'ACTIVE' | 'DRAFT' | 'ARCHIVED'
   /** When it went on the Online Store; null while it is not on that sales channel. */
@@ -206,6 +209,8 @@ export function mapProduct(p: GProduct, variants: GVariant[], onlineStore = fals
     bodyHtml: p.descriptionHtml || null,
     vendor: p.vendor || null,
     productType: p.productType || null,
+    // Same taxonomy ids as ours (`el-2-6-4`): decides where Meta and Google list it (audit #52).
+    categoryId: p.category?.id.split('/').pop() || null,
     tags: p.tags,
     status: productStatus(p, onlineStore),
     seoTitle: p.seo?.title || null,
@@ -231,6 +236,7 @@ export const PRODUCTS_BULK_QUERY = `{
     edges {
       node {
         id handle title descriptionHtml vendor productType tags status templateSuffix publishedAt isGiftCard
+      category { id }
         seo { title description }
         options { name position }
         hsn: metafield(namespace: "custom", key: "hsn") { value }

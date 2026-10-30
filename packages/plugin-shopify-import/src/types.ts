@@ -55,6 +55,8 @@ export type NProduct = {
   bodyHtml: string | null
   vendor: string | null
   productType: string | null
+  /** Shopify taxonomy category id (`el-2-6-4`), the same ids as ours; absent from CSV exports. */
+  categoryId?: string | null | undefined
   tags: string[]
   status: 'active' | 'draft' | 'archived'
   seoTitle: string | null
