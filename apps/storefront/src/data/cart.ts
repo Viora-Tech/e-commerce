@@ -53,6 +53,7 @@ export const discountFieldContent = {
     limit_reached: 'That code has reached its usage limit.',
     min_quantity: 'Add more items to use that code.',
     not_eligible: 'That code is not available for your account.',
+    first_order_only: 'That code is for first orders only, and you have ordered with us before.',
   } as Record<string, string>,
   rejected: (code: string) => `${code} no longer applies and was removed.`,
 } as const

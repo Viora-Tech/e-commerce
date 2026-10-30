@@ -20,6 +20,8 @@ export type DiscountSummaryInput = {
   maxShippingPaise: number | null
   usageLimit: number | null
   usagePerCustomer: number | null
+  /** Shown in the line only for "first-time buyers only". */
+  customerEligibility?: 'all' | 'segments' | 'customers' | 'first_time' | undefined
 }
 
 const CLASSES = ['products', 'order', 'shipping'] as const
@@ -72,14 +74,19 @@ export function discountListSummary(
     parts.push(d.usagePerCustomer === 1 ? s.onePerCustomer : s.perCustomer(d.usagePerCustomer))
   }
   if (d.usageLimit) parts.push(s.totalLimit(d.usageLimit))
+  if (d.customerEligibility === 'first_time') parts.push(s.firstTime)
   return parts.join(s.separator)
 }
 
-/** The Eligibility column: "All customers", "3 segments", "12 customers". */
+/** The Eligibility column: "All customers", "3 segments", "12 customers", "First-time buyers". */
 export function eligibilityLabel(
-  d: { customerEligibility: 'all' | 'segments' | 'customers'; eligibleCount: number },
+  d: {
+    customerEligibility: 'all' | 'segments' | 'customers' | 'first_time'
+    eligibleCount: number
+  },
   copy: Copy,
 ): string {
+  if (d.customerEligibility === 'first_time') return copy.eligibility.firstTime
   if (d.customerEligibility === 'segments') return copy.eligibility.segments(d.eligibleCount)
   if (d.customerEligibility === 'customers') return copy.eligibility.customers(d.eligibleCount)
   return copy.eligibility.all

@@ -16,7 +16,7 @@ type EligibilityCardProps = {
   onChange: (patch: Partial<DiscountFormState>) => void
 }
 
-/** Shopify's customer eligibility: everyone, picked segments, or picked customers. */
+/** Customer eligibility: everyone, picked segments or customers, or first-time buyers only. */
 export default function EligibilityCard({ form, error, onChange }: EligibilityCardProps) {
   // Hooks
   const { eligibility: copy } = useCopy(discountFormContent)
@@ -26,7 +26,8 @@ export default function EligibilityCard({ form, error, onChange }: EligibilityCa
     onChange(kind === 'segments' ? { segmentIds: ids } : { customerIds: ids })
 
   // Render logic
-  const kind: PeopleKind | null = form.eligibility === 'all' ? null : form.eligibility
+  const kind: PeopleKind | null =
+    form.eligibility === 'segments' || form.eligibility === 'customers' ? form.eligibility : null
 
   return (
     <DataCard title={copy.heading}>
@@ -39,6 +40,12 @@ export default function EligibilityCard({ form, error, onChange }: EligibilityCa
           <RadioOption id="who-all" value="all" label={copy.all} />
           <RadioOption id="who-segments" value="segments" label={copy.segments} />
           <RadioOption id="who-customers" value="customers" label={copy.customers} />
+          <RadioOption
+            id="who-first-time"
+            value="first_time"
+            label={copy.firstTime}
+            help={copy.firstTimeHelp}
+          />
         </RadioGroup>
         {kind ? (
           <Field data-invalid={error ? true : undefined}>

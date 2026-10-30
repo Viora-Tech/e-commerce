@@ -61,7 +61,7 @@ export type DiscountFormState = {
   minimum: 'none' | 'amount' | 'quantity'
   minSubtotal: string
   minQuantity: string
-  eligibility: 'all' | 'segments' | 'customers'
+  eligibility: 'all' | 'segments' | 'customers' | 'first_time'
   segmentIds: string[]
   customerIds: string[]
   combinesWith: { products: boolean; order: boolean; shipping: boolean }

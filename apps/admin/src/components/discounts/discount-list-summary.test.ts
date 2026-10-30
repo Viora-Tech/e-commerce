@@ -35,6 +35,12 @@ describe('discountListSummary', () => {
     expect(summary({ appliesToCount: 1 })).toBe('₹200 off on 1 product')
   })
 
+  it('ends with first-time buyers when only they can use it', () => {
+    expect(summary({ customerEligibility: 'first_time', usagePerCustomer: 1 })).toBe(
+      '₹200 off on 18 products • One use per customer • First-time buyers',
+    )
+  })
+
   it('reads collections, every product and the whole order', () => {
     expect(summary({ appliesTo: 'collections', appliesToCount: 2 })).toBe(
       '₹200 off on 2 collections',
@@ -117,6 +123,9 @@ describe('eligibilityLabel', () => {
     )
     expect(eligibilityLabel({ customerEligibility: 'customers', eligibleCount: 1 }, copy)).toBe(
       '1 customer',
+    )
+    expect(eligibilityLabel({ customerEligibility: 'first_time', eligibleCount: 0 }, copy)).toBe(
+      'First-time buyers',
     )
   })
 })

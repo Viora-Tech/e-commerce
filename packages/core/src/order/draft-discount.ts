@@ -53,6 +53,7 @@ const REJECTION_TEXT: Record<CodeRejection, string> = {
   min_subtotal: 'the order is below the minimum for this code',
   min_quantity: 'the order has fewer items than this code needs',
   not_eligible: 'this customer is not eligible for this code',
+  first_order_only: 'this code is for first-time buyers, and this customer has ordered before',
   limit_reached: 'this code has reached its usage limit',
 }
 

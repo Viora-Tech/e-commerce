@@ -78,6 +78,11 @@ export type DiscountContext = {
    * segments they are in. Left out (the cart, before an email) the eligibility check waits.
    */
   customer?: { id: string | null; segmentIds: string[] } | undefined
+  /**
+   * "First-time buyers only": false when the shopper (by customer, email or phone) already has
+   * a paid order (`firstOrderFor`). Left out, before checkout knows who it is, the check waits.
+   */
+  firstOrder?: boolean | undefined
   /** Delivery state code once an address is known; free shipping limited to states reads it. */
   stateCode?: string | null | undefined
   /** Already taken off by product discounts it combines with; an order discount works on the rest. */
@@ -93,6 +98,8 @@ export type DiscountRejection =
   | 'min_subtotal'
   | 'min_quantity'
   | 'customer_not_eligible'
+  /** "First-time buyers only", and this shopper has ordered before. */
+  | 'not_first_order'
   | 'region'
   | 'no_eligible_items'
 
@@ -159,6 +166,7 @@ export function discountClass(
 /** Whether the shopper may use it; unknown shoppers (no email yet) are let through for now. */
 function customerAllowed(d: DiscountRule, ctx: DiscountContext): boolean {
   const who = d.customerEligibility ?? 'all'
+  if (who === 'first_time') return ctx.firstOrder !== false
   if (who === 'all' || !ctx.customer) return true
   const ids = new Set(d.eligibleIds ?? [])
   if (who === 'customers') return ctx.customer.id !== null && ids.has(ctx.customer.id)
@@ -226,7 +234,10 @@ export function evaluateDiscount(
   if (d.usagePerCustomer !== null && (ctx.customerUses ?? 0) >= d.usagePerCustomer) {
     return reject('customer_limit')
   }
-  if (!customerAllowed(d, ctx)) return reject('customer_not_eligible')
+  if (!customerAllowed(d, ctx)) {
+    const firstTime = d.customerEligibility === 'first_time'
+    return reject(firstTime ? 'not_first_order' : 'customer_not_eligible')
+  }
 
   const type = discountType(d)
   const total = subtotalPaise(cart.lines)

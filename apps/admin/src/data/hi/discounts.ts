@@ -42,11 +42,13 @@ export default [
       onePerCustomer: 'हर ग्राहक एक बार',
       perCustomer: (n) => `हर ग्राहक ${n} बार`,
       totalLimit: (n) => `कुल ${n} बार तक`,
+      firstTime: 'पहली बार खरीदने वाले',
     },
     eligibility: {
       all: 'सभी ग्राहक',
       segments: (n) => `${n} सेगमेंट`,
       customers: (n) => `${n} ग्राहक`,
+      firstTime: 'पहली बार खरीदने वाले',
     },
     combinations: {
       names: { products: 'प्रोडक्ट', order: 'ऑर्डर', shipping: 'शिपिंग' },
@@ -316,6 +318,9 @@ export default [
       all: 'सभी ग्राहक',
       segments: 'चुने हुए ग्राहक सेगमेंट',
       customers: 'चुने हुए ग्राहक',
+      firstTime: 'सिर्फ़ पहली बार खरीदने वाले',
+      firstTimeHelp:
+        'सिर्फ़ वे ग्राहक जिनका पहले कोई पेड ऑर्डर नहीं है, चेकआउट पर उनके ईमेल या फ़ोन नंबर से जांचा जाता है। रद्द और टेस्ट ऑर्डर नहीं गिने जाते।',
       checkedAt: 'ग्राहक के साइन इन करने या चेकआउट पर ईमेल डालने पर जांचा जाता है।',
       segmentPicker: 'ग्राहक सेगमेंट चुनें',
       customerPicker: 'ग्राहक चुनें',
@@ -386,6 +391,7 @@ export default [
       forEveryone: 'सभी ग्राहकों के लिए',
       forSegments: (n) => `${n} सेगमेंट के लिए`,
       forCustomers: (n) => `${n} ग्राहकों के लिए`,
+      forFirstTime: 'पहली बार खरीदने वालों के लिए',
       combines: (list) => `${list} के साथ लग सकता है`,
       combinesNone: 'दूसरे डिस्काउंट के साथ नहीं लगता',
       combineNames: { products: 'प्रोडक्ट', order: 'ऑर्डर', shipping: 'शिपिंग' },

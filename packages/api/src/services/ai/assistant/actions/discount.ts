@@ -51,6 +51,10 @@ const Input = z.object({
   products: z.array(z.string().max(200)).max(50).default([]).describe('Product titles or handles.'),
   minimumOrderRupees: z.number().min(0).max(10_000_000).optional(),
   usageLimit: z.number().int().min(1).max(1_000_000).optional().describe('Total uses allowed.'),
+  firstTimeOnly: z
+    .boolean()
+    .default(false)
+    .describe('True for a welcome code: only shoppers with no earlier paid order can use it.'),
   startsOn: z
     .string()
     .optional()
@@ -162,6 +166,7 @@ export const discountAction = defineAction<Raw, Resolved>({
       appliesTo: raw.appliesTo,
       appliesToIds: targets.ids,
       usageLimit: raw.usageLimit ?? null,
+      customerEligibility: raw.firstTimeOnly ? 'first_time' : 'all',
       startsAt,
       endsAt,
       status: 'active',
@@ -194,7 +199,7 @@ export const discountAction = defineAction<Raw, Resolved>({
           },
           { label: 'Active', value: when.charAt(0).toUpperCase() + when.slice(1) },
           // Every setting, defaults too, so the merchant approves what will exist (audit #193).
-          { label: 'Customers', value: 'All customers' },
+          { label: 'Customers', value: raw.firstTimeOnly ? 'First-time buyers' : 'All customers' },
           {
             label: 'Minimum order',
             value: raw.minimumOrderRupees ? rupees(env, toMinor(raw.minimumOrderRupees)) : 'None',

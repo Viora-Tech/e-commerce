@@ -9,7 +9,7 @@ export const DiscountStatusSchema = z.enum(['active', 'disabled'])
  * plus combo deals.
  */
 const DiscountTypeSchema = z.enum(['products', 'order', 'bxgy', 'shipping', 'combo'])
-const DiscountEligibilitySchema = z.enum(['all', 'segments', 'customers'])
+const DiscountEligibilitySchema = z.enum(['all', 'segments', 'customers', 'first_time'])
 
 const DiscountCombinesWithSchema = z.object({
   products: z.boolean().default(false),
@@ -219,7 +219,8 @@ export const DiscountInputSchema = z
       ctx.addIssue({ code: 'custom', path: ['endsAt'], message: 'End must be after start' })
     }
     checkType(d, ctx)
-    if (d.customerEligibility !== 'all' && d.eligibleIds.length === 0) {
+    const picked = d.customerEligibility === 'segments' || d.customerEligibility === 'customers'
+    if (picked && d.eligibleIds.length === 0) {
       const message =
         d.customerEligibility === 'segments'
           ? 'Pick at least one segment'

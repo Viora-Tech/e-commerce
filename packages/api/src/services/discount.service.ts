@@ -331,7 +331,7 @@ export async function listDiscounts(
       shippingStateCount: r.shippingStates.length,
       maxShippingPaise: r.maxShippingPaise,
       customerEligibility: r.customerEligibility,
-      eligibleCount: r.customerEligibility === 'all' ? 0 : r.eligibleIds.length,
+      eligibleCount: listsIds(r.customerEligibility) ? r.eligibleIds.length : 0,
       combinesWith: r.combinesWith,
       usagePerCustomer: r.usagePerCustomer,
       usedCount: r.usedCount,
@@ -379,6 +379,9 @@ export async function getDiscount(tx: StoreTx, id: string) {
 }
 
 /** The per-product map to store: only for product-scoped percent or fixed discounts. */
+/** Segments and specific customers keep their picked ids; everyone and first-time buyers none. */
+const listsIds = (e: DiscountEligibility): boolean => e === 'segments' || e === 'customers'
+
 function productValuesOf(input: DiscountInput): Record<string, number> | null {
   if (input.appliesTo !== 'products' || input.method === 'free_shipping') return null
   const map = input.productValues
@@ -410,7 +413,7 @@ function toRow(storeId: string, input: DiscountInput) {
     shippingStates: type === 'shipping' ? input.shippingStates : [],
     maxShippingPaise: type === 'shipping' ? (input.maxShippingPaise ?? null) : null,
     customerEligibility: input.customerEligibility,
-    eligibleIds: input.customerEligibility === 'all' ? [] : input.eligibleIds,
+    eligibleIds: listsIds(input.customerEligibility) ? input.eligibleIds : [],
     combinesWith: input.combinesWith,
     usageLimit: input.usageLimit ?? null,
     usagePerCustomer: input.usagePerCustomer ?? null,

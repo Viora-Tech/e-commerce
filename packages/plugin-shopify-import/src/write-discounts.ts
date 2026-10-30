@@ -193,7 +193,10 @@ async function writeOne(
       appliesToIds: input.appliesTo === 'all' ? [] : input.appliesToIds,
       productValues: input.productValues ?? null,
       customerEligibility: input.customerEligibility,
-      eligibleIds: input.customerEligibility === 'all' ? [] : input.eligibleIds,
+      eligibleIds:
+        input.customerEligibility === 'segments' || input.customerEligibility === 'customers'
+          ? input.eligibleIds
+          : [],
       usageLimit: input.usageLimit ?? null,
       usagePerCustomer: input.usagePerCustomer ?? null,
       usedCount: used,

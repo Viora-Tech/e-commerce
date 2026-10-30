@@ -2367,7 +2367,8 @@ export type DiscountStatus = 'active' | 'disabled'
  * discount gives (a combo keeps its own discount on each combo).
  */
 export type DiscountType = 'products' | 'order' | 'bxgy' | 'shipping' | 'combo'
-export type DiscountEligibility = 'all' | 'segments' | 'customers'
+/** `first_time`: only a shopper with no earlier paid order (`discounts/eligibility.ts`). */
+export type DiscountEligibility = 'all' | 'segments' | 'customers' | 'first_time'
 /** Which other discount classes this one may stack with at checkout. */
 export type DiscountCombinesWith = { products: boolean; order: boolean; shipping: boolean }
 /**

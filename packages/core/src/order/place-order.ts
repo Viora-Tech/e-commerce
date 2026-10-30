@@ -301,6 +301,7 @@ const resolveDiscount: WorkflowStep<State> = {
     const code = input.discountCode === undefined ? cartDiscountCode : input.discountCode
     const { outcome, codeRejected } = await resolveCartDiscount(ctx, input.cartId, code, {
       email: input.checkout?.email,
+      phone: input.checkout?.phone,
       stateCode: input.checkout?.address?.stateCode,
     })
     if (code && codeRejected) throw new DiscountCodeRefused(code, codeRejected, ctx.storeId)

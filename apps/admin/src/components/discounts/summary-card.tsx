@@ -101,7 +101,9 @@ function detailLines(
       ? copy.forSegments(form.segmentIds.length)
       : form.eligibility === 'customers'
         ? copy.forCustomers(form.customerIds.length)
-        : copy.forEveryone,
+        : form.eligibility === 'first_time'
+          ? copy.forFirstTime
+          : copy.forEveryone,
   )
   lines.push(copy.usesLeft(discount?.usedCount ?? 0, input.usageLimit ?? null))
   if (form.onePerCustomer) lines.push(copy.onePerCustomer)

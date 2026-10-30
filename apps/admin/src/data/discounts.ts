@@ -49,12 +49,14 @@ export const discountsContent = {
     onePerCustomer: 'One use per customer',
     perCustomer: (n: number) => `${n} uses per customer`,
     totalLimit: (n: number) => `Limited to ${n} ${n === 1 ? 'use' : 'uses'}`,
+    firstTime: 'First-time buyers',
   },
   /** Eligibility column. */
   eligibility: {
     all: 'All customers',
     segments: (n: number) => `${n} ${n === 1 ? 'segment' : 'segments'}`,
     customers: (n: number) => `${n} ${n === 1 ? 'customer' : 'customers'}`,
+    firstTime: 'First-time buyers',
   },
   /** Combinations column. */
   combinations: {
@@ -337,6 +339,9 @@ export const discountFormContent = {
     all: 'All customers',
     segments: 'Specific customer segments',
     customers: 'Specific customers',
+    firstTime: 'First-time buyers only',
+    firstTimeHelp:
+      'Only shoppers with no earlier paid order, found by their email or phone number at checkout. Cancelled and test orders do not count.',
     checkedAt: 'Checked once the shopper signs in or enters their email at checkout.',
     segmentPicker: 'Choose customer segments',
     customerPicker: 'Choose customers',
@@ -408,6 +413,7 @@ export const discountFormContent = {
     forEveryone: 'For all customers',
     forSegments: (n: number) => `For ${n} segment${n === 1 ? '' : 's'}`,
     forCustomers: (n: number) => `For ${n} customer${n === 1 ? '' : 's'}`,
+    forFirstTime: 'For first-time buyers',
     combines: (list: string) => `Combines with ${list}`,
     combinesNone: "Can't combine with other discounts",
     combineNames: { products: 'product', order: 'order', shipping: 'shipping' },

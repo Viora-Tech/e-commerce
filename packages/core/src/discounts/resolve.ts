@@ -2,7 +2,7 @@ import { cart, cartLine, collectionProduct, discount, discountUsage, variant } f
 import { and, count, eq, inArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { combineDiscounts } from './combine'
-import { shopperFor } from './eligibility'
+import { firstOrderFor, shopperFor } from './eligibility'
 import {
   type DiscountCart,
   type DiscountContext,
@@ -21,11 +21,15 @@ export type CodeRejection =
   | 'min_subtotal'
   | 'min_quantity'
   | 'not_eligible'
+  /** "First-time buyers only", and this shopper has a paid order already. */
+  | 'first_order_only'
   | 'limit_reached'
 
 /** Who is checking out, as far as the caller knows. */
 export type DiscountShopper = {
   email?: string | null | undefined
+  /** The checkout's phone: "first-time buyers only" also finds earlier orders by it. */
+  phone?: string | null | undefined
   /** Delivery state code, once an address is entered. */
   stateCode?: string | null | undefined
   now?: Date
@@ -143,6 +147,8 @@ function toCodeRejection(reason: Exclude<DiscountOutcome, { ok: true }>['reason'
       return 'min_quantity'
     case 'customer_not_eligible':
       return 'not_eligible'
+    case 'not_first_order':
+      return 'first_order_only'
     case 'usage_limit':
     case 'customer_limit':
       return 'limit_reached'
@@ -161,11 +167,13 @@ async function contextFor(
   rule: DiscountRule,
   opts: DiscountShopper,
   customer: DiscountContext['customer'],
+  firstOrder: boolean | undefined,
 ): Promise<DiscountContext> {
   return {
     now: opts.now,
     customerUses: await customerUsageCount(ctx, rule.id, opts.email),
     customer,
+    firstOrder,
     stateCode: opts.stateCode,
   }
 }
@@ -193,11 +201,13 @@ export async function checkCodeOn(
 ): Promise<CodeCheck> {
   const rule = await findDiscountByCode(ctx, code)
   if (!rule) return { ok: false, reason: 'invalid' }
-  const [dc, customer] = await Promise.all([
+  const [dc, customer, firstOrder] = await Promise.all([
     loadCart(),
     shopperFor(ctx.tx, opts.email, [rule], opts.now),
+    firstOrderFor(ctx.tx, opts, [rule]),
   ])
-  const outcome = evaluateDiscount(dc, rule, await contextFor(ctx, rule, opts, customer))
+  const context = await contextFor(ctx, rule, opts, customer, firstOrder)
+  const outcome = evaluateDiscount(dc, rule, context)
   if (!outcome.ok) return { ok: false, reason: toCodeRejection(outcome.reason) }
   return { ok: true, outcome }
 }
@@ -222,13 +232,16 @@ export async function resolveCartDiscount(
     return { outcome: null, codeRejected: code ? 'invalid' : null }
   }
   const rules = codeRule ? [codeRule, ...automatic] : automatic
-  const [dc, customer] = await Promise.all([
+  const [dc, customer, firstOrder] = await Promise.all([
     loadDiscountCart(ctx, cartId),
     shopperFor(ctx.tx, opts.email, rules, opts.now),
+    firstOrderFor(ctx.tx, opts, rules),
   ])
   // Per-customer caps need a usage count per rule; evaluate one at a time.
   const contexts = new Map<string, DiscountContext>()
-  for (const rule of rules) contexts.set(rule.id, await contextFor(ctx, rule, opts, customer))
+  for (const rule of rules) {
+    contexts.set(rule.id, await contextFor(ctx, rule, opts, customer, firstOrder))
+  }
   const evaluate = (rule: DiscountRule) => evaluateDiscount(dc, rule, contexts.get(rule.id))
 
   let codeOutcome: ResolvedDiscount | null = null
