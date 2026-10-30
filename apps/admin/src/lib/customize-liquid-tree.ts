@@ -30,6 +30,23 @@ export type LiquidBlockType = { type: string; name: string }
 /** Settings read as the block's own words, in order of preference. */
 const TITLE_KEYS = ['heading', 'title', 'text', 'label', 'name', 'caption', 'subheading']
 
+/** Not words a person would call the block by: links, colours, Shopify references, numbers. */
+const NOT_A_NAME = /^(https?:|shopify:\/\/|\/|#[0-9a-f]{3,8}$|rgba?\(|[\d\s.,%px-]+$)/i
+
+/**
+ * Any other text the block carries, in its settings' order: Shopify names a block by its first
+ * text setting whatever its id, so a hero's "Video slide, Video slide…" read "Victory Season
+ * Sale", "Lofree Hyzen" there (audit #126).
+ */
+function firstText(settings: Record<string, unknown> | undefined): string | undefined {
+  for (const v of Object.values(settings ?? {})) {
+    if (typeof v !== 'string') continue
+    const t = stripTags(v)
+    if (t.length >= 3 && t.length <= 120 && !NOT_A_NAME.test(t)) return t
+  }
+  return undefined
+}
+
 const itemsOf = (props: Record<string, unknown>): LiquidBlockItem[] =>
   Array.isArray(props.blocks) ? (props.blocks as LiquidBlockItem[]) : []
 
@@ -71,10 +88,11 @@ export function liquidBlockRows(
   const names = new Map(types.map((t) => [t.type, t.name]))
   return itemsOf(props).map((item, index) => {
     const typeName = names.get(item.type) ?? item.type
-    const text = TITLE_KEYS.map((k) => item.settings?.[k])
-      .filter((v): v is string => typeof v === 'string')
-      .map(stripTags)
-      .find((v) => v !== '')
+    const text =
+      TITLE_KEYS.map((k) => item.settings?.[k])
+        .filter((v): v is string => typeof v === 'string')
+        .map(stripTags)
+        .find((v) => v !== '') ?? firstText(item.settings)
     return {
       index,
       id: item.id,
