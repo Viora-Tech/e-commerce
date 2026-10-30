@@ -19,6 +19,7 @@ import { announceExchangeOrder } from '../returns/notify'
 import { StoreAddressSchema } from '../settings/general'
 import { assertCustomerInStore } from '../store-scope'
 import { chargedGstRate, parseStoreTax } from '../tax/settings'
+import { CustomItemSchema, ensureCustomItemVariant } from './custom-item'
 import { DraftAddressSchema, DraftBillingSchema, writeAddress, writeBilling } from './draft-billing'
 import { draftMoney } from './draft-discount'
 import { createFulfillmentOrders } from './fulfillment-orders'
@@ -54,12 +55,19 @@ export class DraftNeedsShippingAddress extends CommerceError {
   }
 }
 
-export const DraftLineSchema = z.object({
-  variantId: z.uuid(),
-  quantity: z.number().int().min(1).max(999),
-  /** Overrides the variant price for this draft only; blank keeps the catalogue price. */
-  unitPricePaise: z.number().int().min(0).optional(),
-})
+export const DraftLineSchema = z
+  .object({
+    /** The catalogue variant; absent on a custom item. */
+    variantId: z.uuid().optional(),
+    /** A one-off item not in the catalogue (its own title and price); replaces `variantId`. */
+    custom: CustomItemSchema.optional(),
+    quantity: z.number().int().min(1).max(999),
+    /** Overrides the variant price for this draft only; blank keeps the catalogue price. */
+    unitPricePaise: z.number().int().min(0).optional(),
+  })
+  .refine((l) => (l.custom ? !l.variantId && l.unitPricePaise !== undefined : !!l.variantId), {
+    message: 'A line is a catalogue variant, or a custom item with its own price',
+  })
 
 export const DraftInputSchema = z.object({
   customerId: z.uuid().nullish(),
@@ -99,25 +107,49 @@ export type DraftListItem = {
 
 const DRAFT_TAG = 'draft'
 
-/** Line snapshot at the catalogue's current price, or the merchant's override. */
-async function resolveLines(ctx: StoreContext, lines: DraftInput['lines']) {
+/**
+ * Line snapshot at the catalogue's current price, or the merchant's override. The variant's GST
+ * rate and HSN are snapshotted as checkout does (untaxed variants at 0), so converting bills the
+ * line at its own rate rather than the store default. A custom item is booked against the hidden
+ * "Custom item" variant with its own title, rate (store default, or 0 when untaxed) and HSN.
+ */
+export async function resolveLines(ctx: StoreContext, lines: DraftInput['lines']) {
   if (lines.length === 0) return []
-  const ids = [...new Set(lines.map((l) => l.variantId))]
-  const rows = await ctx.tx
-    .select({
-      id: variant.id,
-      title: variant.title,
-      pricePaise: variant.pricePaise,
-      productTitle: product.title,
-      giftCard: product.isGiftCard,
-    })
-    .from(variant)
-    .innerJoin(product, eq(product.id, variant.productId))
-    .where(inArray(variant.id, ids))
+  const customVariantId = lines.some((l) => l.custom) ? await ensureCustomItemVariant(ctx) : null
+  const ids = [...new Set(lines.flatMap((l) => (l.variantId ? [l.variantId] : [])))]
+  const rows =
+    ids.length === 0
+      ? []
+      : await ctx.tx
+          .select({
+            id: variant.id,
+            title: variant.title,
+            pricePaise: variant.pricePaise,
+            taxable: variant.taxable,
+            gstRatePercent: variant.gstRatePercent,
+            hsCode: variant.hsCode,
+            productTitle: product.title,
+            giftCard: product.isGiftCard,
+          })
+          .from(variant)
+          .innerJoin(product, eq(product.id, variant.productId))
+          .where(inArray(variant.id, ids))
   const byId = new Map(rows.map((r) => [r.id, r]))
   return lines.map((l) => {
-    const v = byId.get(l.variantId)
-    if (!v) {
+    if (l.custom && customVariantId) {
+      return {
+        variantId: customVariantId,
+        title: l.custom.title,
+        variantTitle: null,
+        quantity: l.quantity,
+        unitPricePaise: l.unitPricePaise ?? 0,
+        giftCard: false,
+        gstRatePercent: l.custom.taxable ? null : 0,
+        hsCode: l.custom.hsCode || null,
+      }
+    }
+    const v = l.variantId ? byId.get(l.variantId) : undefined
+    if (!v || !l.variantId) {
       throw new CommerceError('VARIANT_NOT_FOUND', `Variant ${l.variantId} is not in this store`)
     }
     // A variant listed without a price (#913) needs the line's own price typed in.
@@ -126,11 +158,13 @@ async function resolveLines(ctx: StoreContext, lines: DraftInput['lines']) {
     return {
       variantId: l.variantId,
       title: v.productTitle,
-      variantTitle: v.title,
+      variantTitle: v.title as string | null,
       quantity: l.quantity,
       unitPricePaise,
       // Snapshotted like checkout does, so routing, GST and card issue treat it as digital.
       giftCard: v.giftCard,
+      gstRatePercent: v.taxable ? v.gstRatePercent : 0,
+      hsCode: v.hsCode,
     }
   })
 }

@@ -72,7 +72,7 @@ export function TransactionalEmail({
     >
       <Eyebrow>{eyebrow}</Eyebrow>
       <Heading>{heading}</Heading>
-      <Body>{intro}</Body>
+      {intro ? <Body>{intro}</Body> : null}
       {note
         ?.split(/\n+/)
         .filter(Boolean)
@@ -92,7 +92,7 @@ export function TransactionalEmail({
         <TotalsBlock totalLabel={totalLabel} shipping={shipping} taxBreakdown={taxBreakdown} />
       ) : null}
       {parcels ? <ParcelsBlock {...parcels} /> : null}
-      <Body>{outro}</Body>
+      {outro ? <Body>{outro}</Body> : null}
       {primaryAction ? (
         <PrimaryButton href={primaryAction.url}>{primaryAction.label}</PrimaryButton>
       ) : null}

@@ -61,7 +61,7 @@ export default function CustomerOrdersCard({ customer }: CustomerOrdersCardProps
           action={
             <Button
               variant="outline"
-              render={<Link href={routes.orders.newDraft()} />}
+              render={<Link href={routes.orders.newDraft(customer.id)} />}
               nativeButton={false}
             >
               <Plus />

@@ -93,6 +93,8 @@ export type PickProductRow = {
   id: string
   title: string
   status: ProductStatus
+  /** A gift card: digital, so a draft of only these needs no shipping address. */
+  giftCard: boolean
   imageUrl: string | null
   sku: string | null
   pricePaiseMin: number | null
@@ -120,6 +122,7 @@ export async function pickProducts(
       id: product.id,
       title: product.title,
       status: product.status,
+      giftCard: product.isGiftCard,
       imageUrl: sql<string | null>`(
         select m.url from ${productMedia} pm join ${media} m on m.id = pm.media_id
         where pm.product_id = product.id order by pm.position limit 1)`,

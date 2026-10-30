@@ -41,7 +41,12 @@ import { routes } from '@/lib/routes'
 
 type Draft = NonNullable<Awaited<ReturnType<typeof api.orders.getDraft>>>
 
-type DraftFormProps = { draft: Draft | null; invoiceSent?: boolean }
+type DraftFormProps = {
+  draft: Draft | null
+  invoiceSent?: boolean
+  /** A new draft's starting fields (a customer already picked); unsaved until Save. */
+  initial?: DraftFormState | undefined
+}
 
 /** The GST already inside a saved draft's prices, when it recorded a rate. */
 function draftTax(draft: Draft | null) {
@@ -53,7 +58,7 @@ function draftTax(draft: Draft | null) {
 const message = (err: unknown, fallback: string) =>
   err instanceof Error && err.message ? err.message : fallback
 
-export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps) {
+export default function DraftForm({ draft, invoiceSent = false, initial }: DraftFormProps) {
   // Hooks
   const router = useRouter()
   const copy = useCopy(draftEditorContent)
@@ -63,7 +68,7 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
   const [id, setId] = useState<string | null>(draft?.id ?? null)
   const [number, setNumber] = useState<number | null>(draft?.number ?? null)
   const [saved, setSaved] = useState<DraftFormState>(draft ? draftToForm(draft) : emptyDraft())
-  const [form, setForm] = useState<DraftFormState>(saved)
+  const [form, setForm] = useState<DraftFormState>(initial ?? saved)
   const [busy, setBusy] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [reviewing, setReviewing] = useState(false)

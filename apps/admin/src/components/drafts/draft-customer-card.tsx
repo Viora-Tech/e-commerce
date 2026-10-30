@@ -6,11 +6,7 @@ import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import {
-  addressToForm,
-  type DraftFormState,
-  EMPTY_BILLING,
-} from '@/components/drafts/draft-form-state'
+import { addressesFrom, type DraftFormState } from '@/components/drafts/draft-form-state'
 import DataCard from '@/components/layout/data-card'
 import { draftEditorContent } from '@/data/drafts'
 import { useCopy } from '@/hooks/use-copy'
@@ -22,38 +18,6 @@ type DraftCustomerCardProps = {
 }
 
 type Customer = Awaited<ReturnType<typeof api.customers.list>>['items'][number]
-
-type Found = NonNullable<Awaited<ReturnType<typeof api.customers.get>>>
-
-type SavedAddress = Found['addresses'][number]
-
-/**
- * The draft's addresses from the customer's book: shipping from their default shipping address,
- * billing from their default billing one (else it follows shipping). A billing default that is
- * another address, or carries a company or GSTIN, fills the billing card. A guest who checked out
- * without saving an address book still has the address of their last order
- * (`customer.default_address`), which fills shipping; nothing saved, nothing changes.
- */
-function addressesFrom(found: Found): Partial<DraftFormState> {
-  const book: readonly SavedAddress[] = found.addresses
-  const ship = book.find((a) => a.isDefault) ?? book[0]
-  if (!ship) {
-    const last = found.defaultAddress
-    if (!last?.line1) return {}
-    return {
-      address: addressToForm({ ...last, line2: last.line2 ?? null, phone: last.phone ?? '' }),
-    }
-  }
-  const bill = book.find((a) => a.isDefaultBilling) ?? ship
-  const separate = bill.id !== ship.id || Boolean(bill.gstin || bill.businessName)
-  return {
-    address: addressToForm(ship),
-    billingSameAsShipping: !separate,
-    billing: separate
-      ? { ...addressToForm(bill), businessName: bill.businessName ?? '', gstin: bill.gstin ?? '' }
-      : { ...EMPTY_BILLING },
-  }
-}
 
 const SEARCH_DEBOUNCE_MS = 250
 

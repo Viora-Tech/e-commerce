@@ -5,6 +5,7 @@ import {
   type DraftCodeCheck,
   type DraftFormState,
   draftStateCode,
+  linePayload,
 } from '@/components/drafts/draft-form-state'
 import { api } from '@/lib/api-client'
 
@@ -13,11 +14,7 @@ const CHECK_DELAY_MS = 400
 /** What a code is checked against: the lines, the customer's email, the state and shipping. */
 function codeRequest(form: DraftFormState) {
   return {
-    lines: form.lines.map((l) => ({
-      variantId: l.variantId,
-      quantity: l.quantity,
-      unitPricePaise: l.unitPricePaise,
-    })),
+    lines: form.lines.map(linePayload),
     email: form.email || null,
     stateCode: draftStateCode(form),
     shippingPaise: form.shippingPaise,

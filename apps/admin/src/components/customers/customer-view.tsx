@@ -22,7 +22,7 @@ import CustomerHeader from './customer-header'
 import CustomerNextStep from './customer-next-step'
 import CustomerNoteCard from './customer-note-card'
 import CustomerOrdersCard from './customer-orders-card'
-import CustomerStatsCard from './customer-stats-card'
+import CustomerSummaryStrip from './customer-summary-strip'
 import CustomerTagsCard from './customer-tags-card'
 import EditCustomerDialog from './edit-customer-dialog'
 import MarketingConsentCard, { type ConsentWithChannels } from './marketing-consent-card'
@@ -180,6 +180,7 @@ export default function CustomerView({
         onEdit={() => setEditing(true)}
         automations={appCards.includes('automations')}
       />
+      <CustomerSummaryStrip customer={customer} />
       {step ? <CustomerNextStep customer={customer} step={step} /> : null}
       <PageColumns
         main={
@@ -231,7 +232,6 @@ export default function CustomerView({
               tags={draft.tags}
               onChange={(tags) => setDraft((d) => ({ ...d, tags }))}
             />
-            <CustomerStatsCard customer={customer} />
             <MetafieldsCard ownerType="customer" ownerId={customer.id} hideWhenEmpty />
           </>
         }

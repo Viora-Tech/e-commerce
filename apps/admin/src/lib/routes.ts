@@ -71,7 +71,9 @@ export const routes = {
     /** Packing slips for these orders, one per page, printed straight away. */
     packingSlips: (orderIds: string[]) => `/orders/packing-slips?ids=${orderIds.map(id).join(',')}`,
     drafts: () => '/orders/drafts',
-    newDraft: () => '/orders/drafts/new',
+    /** With a customer: the draft starts with them filled in ("Create order" on their page). */
+    newDraft: (customerId?: string) =>
+      customerId ? `/orders/drafts/new?customer=${id(customerId)}` : '/orders/drafts/new',
     draft: (draftId: string) => `/orders/drafts/${id(draftId)}`,
     abandonedCheckouts: () => '/orders/abandoned-checkouts',
     abandonedCheckout: (cartId: string) => `/orders/abandoned-checkouts/${id(cartId)}`,

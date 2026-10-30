@@ -146,6 +146,10 @@ export const notificationsSettingsContent = {
       name: 'Copy of an invoice',
       when: 'When you email an invoice or credit note from an order.',
     },
+    customer_message: {
+      name: 'Email to a customer',
+      when: 'When you write to a customer from their page with "Email customer".',
+    },
     purchase_order: {
       name: 'Purchase order to a supplier',
       when: 'When you email a purchase order to its supplier.',

@@ -1,7 +1,8 @@
 'use client'
 
-import { Pencil, Send, Trash2 } from '@commerce/ui/icons'
+import { Pencil, Plus, Send, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -20,6 +21,7 @@ import { routes } from '@/lib/routes'
 import CustomerAvatar from './customer-avatar'
 import type { CustomerDetail } from './customer-detail-types'
 import { day } from './customer-detail-types'
+import CustomerEmailDialog from './customer-email-dialog'
 
 type CustomerHeaderProps = {
   customer: CustomerDetail
@@ -43,6 +45,7 @@ export default function CustomerHeader({
   const automation = useRunAutomation('customer', automations)
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [emailing, setEmailing] = useState(false)
 
   // Event handlers
   const handleDelete = async () => {
@@ -104,15 +107,19 @@ export default function CustomerHeader({
         actions={
           <>
             {customer.email ? (
-              <Button
-                variant="outline"
-                render={<a href={`mailto:${customer.email}`} />}
-                nativeButton={false}
-              >
+              <Button variant="outline" onClick={() => setEmailing(true)}>
                 <Send />
                 {copy.actions.email}
               </Button>
             ) : null}
+            {/* A draft with this customer, their email, phone and saved addresses filled in (#81). */}
+            <Button
+              render={<Link href={routes.orders.newDraft(customer.id)} />}
+              nativeButton={false}
+            >
+              <Plus />
+              {copy.actions.createOrder}
+            </Button>
             <ActionMenu
               label={copy.actions.more}
               trigger="button"
@@ -140,6 +147,15 @@ export default function CustomerHeader({
         busy={busy}
         onConfirm={handleDelete}
       />
+      {customer.email ? (
+        <CustomerEmailDialog
+          open={emailing}
+          onOpenChange={setEmailing}
+          customerId={customer.id}
+          email={customer.email}
+          onSent={() => router.refresh()}
+        />
+      ) : null}
       <RunAutomationDialog
         subjectType="customer"
         ids={automation.target}

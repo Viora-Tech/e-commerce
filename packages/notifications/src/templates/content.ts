@@ -82,6 +82,14 @@ export const templateContent: Record<TemplateId, TemplateCopy> = {
     whatsapp: (d) =>
       `${d.storeName}: your ${d.documentLabel ?? 'invoice'} for order #${d.orderNumber}.${d.links?.[0] ? ` Download: ${d.links[0].url}` : ''}`,
   },
+  // The merchant's subject and message ride on `custom`; the message prints under the greeting.
+  customer_message: {
+    subject: (d) => `A message from ${d.storeName}`,
+    heading: (d) => (d.customerName ? `Hi ${d.customerName}` : 'Hi'),
+    intro: () => '',
+    outro: () => '',
+    whatsapp: (d) => `${d.storeName}: ${d.custom?.message ?? ''}`,
+  },
   login_code: {
     subject: (d) => `${d.code} is your ${d.storeName} sign-in code`,
     heading: () => 'Your sign-in code',

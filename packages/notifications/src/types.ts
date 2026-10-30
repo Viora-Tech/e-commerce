@@ -22,6 +22,8 @@ export type TemplateId =
   | 'checkout_recovery'
   /** A copy of an order document (invoice, credit note) sent on request, with the file attached. */
   | 'document_copy'
+  /** A plain email the merchant writes to one customer from the customer page (`custom` subject and message). Email only. */
+  | 'customer_message'
   /** Storefront account sign-in code. Sent straight away, never queued: it lives ten minutes. */
   | 'login_code'
   /** Confirms a shopper's own account deletion. Sent straight away, like `login_code`. Email only; phone channels send `login_code`. */

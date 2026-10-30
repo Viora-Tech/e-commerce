@@ -96,6 +96,8 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
       ]
     case 'contact_message':
       return [d.storeName, d.contactMessage?.name || '-']
+    case 'customer_message':
+      return [d.storeName, d.custom?.message || '-']
     case 'affiliate_application':
       return [d.storeName, d.affiliate?.name || '-']
     case 'review_request':

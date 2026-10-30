@@ -135,6 +135,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'automations.update':
     'Saves the name, description or draft; the live version keeps running until Publish.',
   'automations.usage': "Monthly runs and active workflows against the plan's limits.",
+  'backInStock.signups.importRestockTags':
+    '"Bring over restock tags": Shopify restock-app customer tags become waiting signups.',
   'billing.apps':
     "Paid apps: what each one costs on this plan, bought months, and the store's app bills.",
   'billing.autopay': "UPI AutoPay: whether it can be turned on here, and the store's mandate.",
@@ -172,6 +174,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'chatwoot.settings.test': 'Reads the profile and inboxes with the saved token; creates nothing.',
   'codRto.forOrder': "The order page's card.",
   'codRto.markConfirmed': '"Confirmed by phone": the merchant called the shopper.',
+  'codRto.scoreOpen':
+    '"Score open orders": open orders with no score (imported ones), up to a batch per press.',
   'collections.forProduct':
     "Manual collections a product sits in, for the product form's organisation card.",
   'collections.preview': 'Live "matches N products" while the merchant writes rules.',
@@ -205,6 +209,8 @@ export const ACTION_DOCS: Record<string, string> = {
     "The merchant opened a click-to-chat WhatsApp: the line goes on the customer's Timeline.",
   'customers.overview': 'Headline figures and the weekly series behind the Customer Overview card.',
   'customers.previewSegment': 'Live count and a sample for the rule builder.',
+  'customers.sendEmail':
+    "\"Email customer\": a plain email with the merchant's subject and message, sent through the store's email channels, listed under the customer's messages and noted on their timeline.",
   'customers.setDefaultAddress':
     "Make one saved address the customer's default (the profile card shows it).",
   'customers.setDefaultBillingAddress':
@@ -415,6 +421,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'Save an order edit (add, remove, quantities, shipping, discount) on an open order not yet shipped.',
   'orders.editPreview':
     "The edit's review step: new lines and totals, and what is owed either way.",
+  'orders.estimateDraftGst':
+    "The GST inside a draft's total as converting would bill it (each line's rate, the discount spread over the lines, shipping with the goods).",
   'orders.facets':
     'What the Orders filter panel offers: tags, discount codes, couriers and collections in use.',
   'orders.fulfil':
@@ -534,6 +542,13 @@ export const ACTION_DOCS: Record<string, string> = {
     "Email the PDF to the supplier through the store's sender email; optionally mark a draft ordered.",
   'purchaseOrders.pdf': 'The purchase order as a PDF for the supplier: print it or save it.',
   'purchaseOrders.reopen': 'Undo a close or a cancel.',
+  'reauth.passkeyOptions':
+    'WebAuthn options for a passkey step-up; the challenge is kept server-side on the session.',
+  'reauth.sendOtp': "Mail a fresh step-up code to the member's own address.",
+  'reauth.status':
+    'What the dialog needs: which factor to offer, and whether a step-up is even needed now.',
+  'reauth.verify':
+    'Verify an OTP or a passkey answer; on success the session is stamped re-authenticated.',
   'redirects.exportCsv': "Every redirect as Shopify's two-column CSV (Redirect from, Redirect to).",
   'redirects.importCsv': 'Add or update redirects from a CSV.',
   'returns.create': "Open a return on the shopper's behalf.",
@@ -549,6 +564,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'reviews.products': "Products that have reviews, for the list's product filter.",
   'reviews.reply': "The store's public reply; the first one emails the customer.",
   'reviews.setStatus': 'Approve (publish), hide, or move back to waiting, one or many.',
+  'reviews.widgets':
+    "The published reviews a Reviews theme section draws, for the theme editor's canvas (the storefront reads the same query itself).",
   'reviews.writeReply': '"Write with AI" on the reply box: a suggestion only.',
   'rollouts.archive': 'Keep a rollout that is not running for the record only.',
   'rollouts.checkConflicts':

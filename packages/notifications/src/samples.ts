@@ -67,6 +67,17 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
     documentLabel: 'tax invoice INV/25-26/0007',
     links: [{ label: 'Download tax invoice', url: 'https://waimers.example/docs/inv-7.pdf' }],
   },
+  customer_message: {
+    ...base,
+    orderNumber: undefined,
+    lines: [],
+    taxBreakdown: undefined,
+    totalLabel: '',
+    custom: {
+      subject: 'Your mousepad is back in stock',
+      message: 'Hi Asha, the large Maboroshi pad you asked about is back. Shall I keep one aside?',
+    },
+  },
   login_code: {
     ...base,
     orderNumber: undefined,

@@ -30,6 +30,8 @@ type SelectProductsDialogProps = {
   addedProductIds?: string[]
   /** Pins the list to one collection and hides that filter. */
   collectionId?: string
+  /** The search the dialog opens with (what was typed in the field that opened it). */
+  initialSearch?: string
   onConfirm: (picked: PickedProducts) => void
 }
 
@@ -49,6 +51,7 @@ export default function SelectProductsDialog({
   onOpenChange,
   addedProductIds = [],
   collectionId,
+  initialSearch = '',
   onConfirm,
 }: SelectProductsDialogProps) {
   // Hooks
@@ -63,10 +66,11 @@ export default function SelectProductsDialog({
   const [collections, setCollections] = useState<{ id: string; title: string }[]>([])
   const [types, setTypes] = useState<string[]>([])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the search is read when the dialog opens, not followed while it is open.
   useEffect(() => {
     if (!open) return
     setPicked(new Map())
-    setRequest(INITIAL)
+    setRequest({ ...INITIAL, search: initialSearch })
     setSelectedOnly(false)
     void api.collections.list().then(setCollections)
     void api.products.facets().then((f) => setTypes(f.productTypes))
