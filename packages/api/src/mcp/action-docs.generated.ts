@@ -239,6 +239,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'dashboard.summary':
     'Stat windows, weekly report, recent orders, top products, live visitors and quick lists for the home page.',
   'dashboard.tiles': 'Which metric this member keeps in each Home tile (Customize).',
+  'dashboard.todos':
+    'Which to-do cards this store hides on Home ("Edit to-dos"); one setting for the whole store.',
   'deliveryOptions.tryPin':
     "Try a PIN: the cards checkout would show, every route's quote, and why.",
   'documents.templates':
@@ -429,6 +431,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'orders.abandonedStats':
     'Abandoned checkouts in a period: how many, their value, and how many were recovered.',
   'orders.addNote': "Add a staff note to the order's timeline.",
+  'orders.archiveMany':
+    'The list\'s bulk "Archive" / "Unarchive" (#1007): off the working tabs, or back onto them.',
   'orders.cancel':
     '"Cancel order": a reason, restock on or off, tell the customer or not, and how the money goes back (original payment, recorded by hand, or not at all).',
   'orders.cancelShipment':
@@ -468,6 +472,7 @@ export const ACTION_DOCS: Record<string, string> = {
   'orders.getDraft': 'One draft order with its lines, customer, addresses and totals.',
   'orders.ids':
     'Every order id the list\'s filters match (the table\'s "Select all N orders"), up to 5,000.',
+  'orders.linePeek': "An order's lines with pictures, for the list's items popover (up to 20).",
   'orders.list':
     'Orders, a page at a time, by list tab, status, payment, fulfilment, date, product or a search.',
   'orders.listAbandoned':
