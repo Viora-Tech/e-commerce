@@ -154,7 +154,8 @@ export function mapVariant(
     taxable: v.taxable,
     trackInventory: v.inventoryItem?.tracked ?? true,
     weightGrams: weight ? Math.round(weight.value * (GRAMS[weight.unit] ?? 1)) : null,
-    onHand: v.inventoryItem?.tracked === false ? null : Math.max(0, v.inventoryQuantity ?? 0),
+    // Negative on Shopify means sold beyond stock (pre-orders still owed): kept as is (audit #53).
+    onHand: v.inventoryItem?.tracked === false ? null : (v.inventoryQuantity ?? 0),
     hsCode: hsnDigits(v.inventoryItem?.harmonizedSystemCode) ?? productHsn,
     imageSrc: v.image?.url ?? null,
     sellsOutOfStock: v.inventoryPolicy === 'CONTINUE',

@@ -203,7 +203,12 @@ export function storeTools(env: ToolEnv): AiToolSet {
                   r.variantTitle && r.variantTitle !== 'Default'
                     ? `${safeTitle(env, r.title)} (${safeTitle(env, r.variantTitle)})`
                     : safeTitle(env, r.title),
-                value: r.available <= 0 ? 'out of stock' : `${r.available} left`,
+                value:
+                  r.available < 0
+                    ? `oversold by ${-r.available} (owed to buyers)`
+                    : r.available === 0
+                      ? 'out of stock'
+                      : `${r.available} left`,
               })),
             ],
           }
