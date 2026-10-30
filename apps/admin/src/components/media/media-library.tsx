@@ -369,7 +369,11 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
                       />
                     ) : (
                       /* biome-ignore lint/performance/noImgElement: object URL preview while uploading. */
-                      <img src={p.previewUrl} alt="" className="size-full object-cover opacity-50" />
+                      <img
+                        src={p.previewUrl}
+                        alt=""
+                        className="size-full object-cover opacity-50"
+                      />
                     )}
                     <span className="absolute inset-x-0 bottom-0 bg-card/90 px-2 py-1 text-center text-caption">
                       {p.error

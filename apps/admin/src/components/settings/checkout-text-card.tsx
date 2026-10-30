@@ -6,8 +6,8 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { checkoutRulesContent } from '@/data/checkout-rules'
 import { useCopy } from '@/hooks/use-copy'
-import SettingsCard from './settings-card'
 import CheckoutTextDialog from './checkout-text-dialog'
+import SettingsCard from './settings-card'
 
 type CheckoutTextCardProps = {
   text: CheckoutText

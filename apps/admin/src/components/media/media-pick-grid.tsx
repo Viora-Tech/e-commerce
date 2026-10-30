@@ -8,12 +8,7 @@ import type { CSSProperties, KeyboardEvent } from 'react'
 import { mediaContent } from '@/data/media'
 import { useCopy } from '@/hooks/use-copy'
 import { displayName } from './file-meta'
-import {
-  extLabel,
-  formatMediaSize,
-  isVideoMedia,
-  type MediaItem,
-} from './media-pick-types'
+import { extLabel, formatMediaSize, isVideoMedia, type MediaItem } from './media-pick-types'
 import MediaThumb from './media-thumb'
 import type { PendingUpload } from './use-upload-queue'
 

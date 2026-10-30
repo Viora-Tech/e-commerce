@@ -88,6 +88,11 @@ export default function NewMarketPartDialog({
     onApply(draft, catalog === ALL ? null : catalog)
   }
 
+  const catalogLabel = (id: string) =>
+    id === ALL
+      ? copy.newPage.catalogAll
+      : (catalogs.find((c) => c.id === id)?.name ?? copy.newPage.catalogAll)
+
   // Render logic
   const d = copy.dialog
   const n = copy.newPage
@@ -98,8 +103,6 @@ export default function NewMarketPartDialog({
   )
     ? MARKET_CURRENCIES
     : [draft.currency, ...MARKET_CURRENCIES]
-  const catalogLabel = (id: string) =>
-    id === ALL ? n.catalogAll : (catalogs.find((c) => c.id === id)?.name ?? n.catalogAll)
 
   return (
     <FormDialog

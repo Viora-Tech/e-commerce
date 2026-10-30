@@ -63,7 +63,8 @@ const draftOf = (rule: PaymentMethodRule | null): Draft => ({
 /** A blank box is no condition; anything else is rupees, as paise. */
 const paiseOf = (text: string): number | null => (text.trim() ? (parseRupees(text) ?? null) : null)
 
-const newId = (): string => `rule_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
+const newId = (): string =>
+  `rule_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
 
 /**
  * Add or edit one payment rule (#150): what it hides, then when (total above or below, PIN
@@ -148,6 +149,7 @@ export default function PaymentRuleDialog({
             <FieldLabel>{copy.methods}</FieldLabel>
             <div className="flex flex-col gap-2">
               {methods.map((m) => (
+                // biome-ignore lint/a11y/noLabelWithoutControl: the Checkbox inside is the control
                 <label key={m.id} className="flex items-center gap-2 text-body">
                   <Checkbox
                     checked={draft.methods.includes(m.id)}

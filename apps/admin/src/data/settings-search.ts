@@ -138,7 +138,14 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     title: 'Payment method customizations',
     where: 'Selling › Payments',
     href: '/settings/payments?open=rules',
-    keywords: ['hide cod', 'payment rules', 'rto', 'customization', 'customisation', 'hide payment'],
+    keywords: [
+      'hide cod',
+      'payment rules',
+      'rto',
+      'customization',
+      'customisation',
+      'hide payment',
+    ],
   },
   {
     title: 'Payment capture',

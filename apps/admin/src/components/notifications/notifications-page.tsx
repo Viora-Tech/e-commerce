@@ -170,7 +170,7 @@ export default function NotificationsPage() {
   const r = rowsCopy.notifications
   const customerMessages = data.messages.filter((m) => m.group !== 'you')
   const channels = [emailOn ? r.email : null, whatsappOn ? r.whatsapp : null].filter(
-    (c): c is string => c !== null,
+    (c) => c !== null,
   )
   const drillRows = [
     { id: 'messages', title: r.customers, value: countOn(customerMessages, r.countOn) },

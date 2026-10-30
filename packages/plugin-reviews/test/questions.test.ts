@@ -1,6 +1,6 @@
 import { outboxEvent, withStore } from '@commerce/db'
-import { eq } from 'drizzle-orm'
 import { resetDb } from '@commerce/db/test'
+import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import {
   answerQuestion,

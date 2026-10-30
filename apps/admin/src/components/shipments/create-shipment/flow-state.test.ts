@@ -79,6 +79,7 @@ const draft = (over: Partial<ShipmentDraft> = {}): ShipmentDraft => ({
     {
       id: 'mailer',
       name: 'Small mailer',
+      kind: 'box',
       lengthCm: 25,
       widthCm: 20,
       heightCm: 5,

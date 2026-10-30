@@ -123,7 +123,8 @@ export const marketsContent = {
     },
     catalogAll: 'All products',
     catalogLabel: 'Catalog',
-    catalogHelp: 'Which products it sells and at what prices. Catalogs are made in Markets › Catalogs.',
+    catalogHelp:
+      'Which products it sells and at what prices. Catalogs are made in Markets › Catalogs.',
     discounts: (n: number | null) =>
       n === null ? 'All eligible discounts' : `All eligible discounts (${n} active)`,
     discountsNote: 'Discounts set to every market apply here. Limit one on its own page.',
@@ -134,7 +135,8 @@ export const marketsContent = {
     cancel: 'Cancel',
     apply: 'Done',
     change: (what: string) => `Change ${what.toLowerCase()}`,
-    catalogFailed: 'The market was created, but its catalog could not be set. Set it on the market page.',
+    catalogFailed:
+      'The market was created, but its catalog could not be set. Set it on the market page.',
   },
   confirmDelete: {
     title: (name: string) => `Delete ${name}?`,

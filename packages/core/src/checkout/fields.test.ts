@@ -22,9 +22,9 @@ describe('checkout form fields (#154)', () => {
       name: 'Enter your first name',
       lastName: 'Enter your last name',
     })
-    expect(addressFieldErrors(fields({ name: 'split' }), { name: 'Asha', lastName: 'Verma' })).toEqual(
-      {},
-    )
+    expect(
+      addressFieldErrors(fields({ name: 'split' }), { name: 'Asha', lastName: 'Verma' }),
+    ).toEqual({})
   })
 
   it('requires line 2 and the company name only when the store says so', () => {

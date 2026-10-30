@@ -60,10 +60,7 @@ describe('variantTax and missingHsCode', () => {
 })
 
 describe('toWrite with product tax', () => {
-  const variants = [
-    { ...emptyVariant(['S']), hsCode: '8473', gstRate: '5' },
-    emptyVariant(['M']),
-  ]
+  const variants = [{ ...emptyVariant(['S']), hsCode: '8473', gstRate: '5' }, emptyVariant(['M'])]
 
   it('sends the product value and clears variant values unless per-variant', () => {
     const write = toWrite({

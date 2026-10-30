@@ -139,8 +139,7 @@ export default function CheckoutSettings() {
           {
             id: 'content',
             title: rules.rows.content,
-            value:
-              textEdits > 0 ? rules.rows.contentEdited(textEdits) : rules.rows.contentDefault,
+            value: textEdits > 0 ? rules.rows.contentEdited(textEdits) : rules.rows.contentDefault,
           },
           { id: 'branding', title: r.branding, value: r.brandingValue },
         ]

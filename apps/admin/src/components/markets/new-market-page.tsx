@@ -69,9 +69,7 @@ export default function NewMarketPage({
   // Hooks
   const copy = useCopy(marketsContent)
   const router = useRouter()
-  const [form, setForm] = useState<MarketForm>(() =>
-    startingForm(markets.find((m) => m.isPrimary)),
-  )
+  const [form, setForm] = useState<MarketForm>(() => startingForm(markets.find((m) => m.isPrimary)))
   const [catalogId, setCatalogId] = useState<string | null>(null)
   const [part, setPart] = useState<NewMarketPart | null>(null)
   const [tried, setTried] = useState(false)
@@ -111,6 +109,8 @@ export default function NewMarketPage({
     }
   }
 
+  const languageName = (code: string) => copy.languages[code] ?? code
+
   // Render logic
   const n = copy.newPage
   const d = copy.dialog
@@ -120,7 +120,6 @@ export default function NewMarketPage({
   const storeCurrency = primary?.currency ?? 'INR'
   const primaryHost = domains.find((dm) => dm.isPrimary)?.hostname ?? ''
   const taken = Object.fromEntries(markets.flatMap((m) => m.countries.map((c) => [c, m.name])))
-  const languageName = (code: string) => copy.languages[code] ?? code
   const baseLanguages = primary ? [primary.locale, ...primary.locales] : ['en']
   const languages = [form.locale, ...form.locales]
   const catalog = catalogs.find((c) => c.id === catalogId) ?? null

@@ -1,12 +1,12 @@
 import { cart, cartLine, type Db, order, product, store, variant, withStore } from '@commerce/db'
 import { eq } from 'drizzle-orm'
+import { effectiveGstRatePercent, effectiveHsCode } from '../catalog/effective-tax'
 import {
   cartLimitBreach,
   checkCheckoutRules,
   checkoutRuleSubtotalPaise,
   parseCheckoutSettings,
 } from '../checkout/settings'
-import { effectiveGstRatePercent, effectiveHsCode } from '../catalog/effective-tax'
 import { assessCheckoutRisk } from '../cod-rto/risk'
 import type { StoreContext } from '../context'
 import { applyDiscount } from '../discounts/evaluate'

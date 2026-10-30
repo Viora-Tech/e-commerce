@@ -417,8 +417,7 @@ export function toWrite(form: ProductFormState): ProductWrite {
       // variant's own value wins and a blank one uses the product's.
       hsCode: form.tax.perVariant ? v.hsCode.trim() || null : null,
       countryOfOrigin: v.countryOfOrigin.trim() || null,
-      gstRatePercent:
-        form.tax.perVariant && v.gstRate.trim() !== '' ? Number(v.gstRate) : null,
+      gstRatePercent: form.tax.perVariant && v.gstRate.trim() !== '' ? Number(v.gstRate) : null,
       boxPresetId: v.boxPresetId,
       packageLengthCm: v.packageLengthCm,
       packageWidthCm: v.packageWidthCm,

@@ -43,7 +43,8 @@ export type CheckoutTextLanguage = (typeof CHECKOUT_TEXT_LANGUAGES)[number]
 /** Longest override; a label or a short hint, never a paragraph. */
 export const CHECKOUT_TEXT_MAX = 200
 
-const isKey = (k: string): k is CheckoutTextKey => (CHECKOUT_TEXT_KEYS as readonly string[]).includes(k)
+const isKey = (k: string): k is CheckoutTextKey =>
+  (CHECKOUT_TEXT_KEYS as readonly string[]).includes(k)
 
 /** One language's overrides: known keys only, trimmed, blanks dropped (blank means "our default"). */
 const OverridesSchema = z

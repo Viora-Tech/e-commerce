@@ -33,7 +33,7 @@ export function paymentRows(
     setup.manualMethods.upi.on ? copy.manualKinds.upi : null,
     setup.manualMethods.bank.on ? copy.manualKinds.bank : null,
     methods.some((m) => m.id === 'cod' && m.on) ? copy.manualKinds.cod : null,
-  ].filter((x): x is string => x !== null)
+  ].filter((x) => x !== null)
   const manualCapture = setup.gateways
     .filter((g) => setup.capture[g.id]?.mode === 'manual')
     .map((g) => g.name)

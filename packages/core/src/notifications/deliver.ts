@@ -564,7 +564,7 @@ async function stillPaymentPending(ctx: StoreContext, orderId: string): Promise<
     })
     .from(order)
     .where(eq(order.id, orderId))
-  if (!o || o.status !== 'open' || o.checkoutPaidAt || o.importedFrom || !o.cartId) return false
+  if (o?.status !== 'open' || o.checkoutPaidAt || o.importedFrom || !o.cartId) return false
   return !OFFLINE_METHODS.has(o.paymentMethod ?? 'manual')
 }
 

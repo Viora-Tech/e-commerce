@@ -46,6 +46,8 @@ describe('add-to-cart limit (#156)', () => {
 
   it('refuses limits out of range', () => {
     expect(CartLimitSchema.safeParse({ maxPerProduct: -1 }).success).toBe(false)
-    expect(CartLimitSchema.safeParse({ overrides: [{ productId: P1, max: 0 }] }).success).toBe(false)
+    expect(CartLimitSchema.safeParse({ overrides: [{ productId: P1, max: 0 }] }).success).toBe(
+      false,
+    )
   })
 })

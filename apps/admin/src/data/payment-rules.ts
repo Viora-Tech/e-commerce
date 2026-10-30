@@ -31,7 +31,8 @@ export const paymentRulesContent = {
     above: (amount: string) => `total above ${amount}`,
     below: (amount: string) => `total below ${amount}`,
     pincodes: (n: number) => (n === 1 ? '1 PIN code' : `${n} PIN codes`),
-    products: (n: number) => (n === 1 ? '1 product in the cart' : `any of ${n} products in the cart`),
+    products: (n: number) =>
+      n === 1 ? '1 product in the cart' : `any of ${n} products in the cart`,
   },
   dialog: {
     addTitle: 'Add payment rule',

@@ -76,7 +76,10 @@ export function addressFieldErrors(
 export function joinedName(fields: Pick<CheckoutFields, 'name'>, input: AddressFieldInput): string {
   const first = (input.name ?? '').trim()
   if (fields.name !== 'split') return first.slice(0, NAME_MAX * 2)
-  return [first, (input.lastName ?? '').trim()].filter(Boolean).join(' ').slice(0, NAME_MAX * 2)
+  return [first, (input.lastName ?? '').trim()]
+    .filter(Boolean)
+    .join(' ')
+    .slice(0, NAME_MAX * 2)
 }
 
 /**

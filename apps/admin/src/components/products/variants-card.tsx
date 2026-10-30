@@ -21,8 +21,8 @@ import {
   type VariantRow,
 } from './form-state'
 import OptionChip from './option-chip'
-import type { ProductTax } from './product-tax'
 import OptionEditor from './option-editor'
+import type { ProductTax } from './product-tax'
 import { generateSku } from './sku'
 import VariantBulkBar, { type VariantBulkPatch } from './variant-bulk-bar'
 import { defaultGroupBy, matrixLines } from './variant-groups'
@@ -115,9 +115,7 @@ export default function VariantsCard({
   }
 
   const handleToggleGroup = (value: string) =>
-    setOpenGroups((now) =>
-      now.includes(value) ? now.filter((v) => v !== value) : [...now, value],
-    )
+    setOpenGroups((now) => (now.includes(value) ? now.filter((v) => v !== value) : [...now, value]))
 
   const handleBulkApply = ({ price, quantity, skuPrefix }: VariantBulkPatch) => {
     for (const index of selected) {

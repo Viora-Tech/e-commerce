@@ -33,7 +33,9 @@ export const PaymentMethodRuleSchema = z.object({
 export type PaymentMethodRule = z.infer<typeof PaymentMethodRuleSchema>
 export type PaymentMethodRuleInput = z.input<typeof PaymentMethodRuleSchema>
 
-export const PaymentMethodRulesSchema = z.array(PaymentMethodRuleSchema).max(METHOD_RULE_LIMITS.rules)
+export const PaymentMethodRulesSchema = z
+  .array(PaymentMethodRuleSchema)
+  .max(METHOD_RULE_LIMITS.rules)
 
 export type MethodRuleOrder = {
   /** Items that are not gift cards, after the discount, plus shipping. */
@@ -48,8 +50,10 @@ function conditionResults(rule: PaymentMethodRule, order: MethodRuleOrder): bool
   const out: boolean[] = []
   if (rule.totalAbovePaise !== null) out.push(order.orderValuePaise > rule.totalAbovePaise)
   if (rule.totalBelowPaise !== null) out.push(order.orderValuePaise < rule.totalBelowPaise)
-  if (rule.pincodes.length > 0) out.push(rule.pincodes.includes(order.pincode.replace(/[\s-]/g, '')))
-  if (rule.productIds.length > 0) out.push(order.productIds.some((id) => rule.productIds.includes(id)))
+  if (rule.pincodes.length > 0)
+    out.push(rule.pincodes.includes(order.pincode.replace(/[\s-]/g, '')))
+  if (rule.productIds.length > 0)
+    out.push(order.productIds.some((id) => rule.productIds.includes(id)))
   return out
 }
 

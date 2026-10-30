@@ -15,17 +15,22 @@ export const checkoutRulesContent = {
     cartLimit: 'Cart limit',
     noLimit: 'No limit',
     limitValue: (n: number) => `Up to ${n} of each product`,
-    overrides: (n: number) => (n === 1 ? '1 product with its own limit' : `${n} products with their own limit`),
+    overrides: (n: number) =>
+      n === 1 ? '1 product with its own limit' : `${n} products with their own limit`,
     content: 'Checkout content',
     contentDefault: 'Our default wording',
     contentEdited: (n: number) => (n === 1 ? '1 text changed' : `${n} texts changed`),
   },
   fields: {
     heading: 'Form fields',
-    description: 'What shoppers fill in under Delivery. We check the same rules when the order is placed.',
+    description:
+      'What shoppers fill in under Delivery. We check the same rules when the order is placed.',
     name: 'Customer name',
     nameChoices: {
-      full: { label: 'One field: full name', hint: 'Quickest. Most Indian shoppers type their name in one go.' },
+      full: {
+        label: 'One field: full name',
+        hint: 'Quickest. Most Indian shoppers type their name in one go.',
+      },
       split: { label: 'First name and last name', hint: 'Two fields, both required.' },
     },
     company: 'Company name',

@@ -214,7 +214,9 @@ export default function VariantEditFields({
                   size="kit"
                   id="edit-variant-gst"
                   value={draft.gstRate}
-                  placeholder={tax.gstRate.trim() ? copy.fromProduct(tax.gstRate.trim()) : undefined}
+                  placeholder={
+                    tax.gstRate.trim() ? copy.fromProduct(tax.gstRate.trim()) : undefined
+                  }
                   onChange={(e) =>
                     onPatch({ gstRate: e.target.value.replace(/\D/g, '').slice(0, 2) })
                   }

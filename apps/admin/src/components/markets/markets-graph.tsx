@@ -36,13 +36,15 @@ export default function MarketsGraph({ markets, domains, catalogs, defaults }: M
   // Hooks
   const copy = useCopy(marketsContent)
 
+  // Helpers
+  const languageName = (code: string) => copy.languages[code] ?? code
+  const catalogName = (id: string) => catalogs.find((c) => c.id === id)?.name ?? null
+
   // Render logic
   const g = copy.graph
   const primary = markets.find((m) => m.isPrimary)
   const others = markets.filter((m) => !m.isPrimary)
   const primaryHost = domains.find((d) => d.isPrimary)?.hostname ?? ''
-  const languageName = (code: string) => copy.languages[code] ?? code
-  const catalogName = (id: string) => catalogs.find((c) => c.id === id)?.name ?? null
   const currency = primary?.currency ?? 'INR'
   const defaultRows = [
     { key: 'domain', label: g.rows.domain, value: primaryHost || copy.choice },
@@ -97,7 +99,12 @@ export default function MarketsGraph({ markets, domains, catalogs, defaults }: M
         <>
           {/* The lines: only beside each other, where the cards sit in rows of equal height. */}
           <div aria-hidden="true" className="hidden w-20 shrink-0 text-line lg:block">
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="size-full">
+            <svg
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
+              className="size-full"
+              role="presentation"
+            >
               {others.map((m, i) => (
                 <path
                   key={m.id}

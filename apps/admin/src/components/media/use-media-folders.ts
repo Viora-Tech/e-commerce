@@ -12,6 +12,7 @@ export function useMediaFolders(enabled = true) {
   const [folders, setFolders] = useState<MediaFolder[]>([])
   const [revision, setRevision] = useState(0)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `revision` re-runs the load after a change
   useEffect(() => {
     if (!enabled) return
     let cancelled = false
