@@ -75,6 +75,7 @@ import { createFulfillmentOrders, deleteFulfillmentOrders } from './fulfillment-
 import { takeOrderNumber } from './order-number'
 import { taxParcels } from './parcel-tax'
 import { recomputeOrderStatuses } from './recompute'
+import { setMarketingConsents } from '../privacy/marketing-consent'
 import type { RoutedParcel } from './routing'
 import { type ReservedUnits, releaseReserved, routeAndReserve } from './routing-service'
 
@@ -89,6 +90,11 @@ export type CheckoutDetails = {
   businessName?: string | null | undefined
   /** Kept only when the store turned order notes on. */
   note?: string | null | undefined
+  /**
+   * The shopper ticked "Email me news and offers" / "Send me offers on WhatsApp" (audit #153).
+   * A tick grants consent (source `checkout`); no tick never takes an earlier consent away.
+   */
+  marketing?: { email?: boolean | undefined; whatsapp?: boolean | undefined } | undefined
 }
 
 export type PlaceOrderInput = {
@@ -569,6 +575,17 @@ const createOrder: WorkflowStep<State> = {
       }
       // Created or updated (the upsert does not say which); app consumers upsert either way.
       if (customerId) await recordCustomerChange(ctx.tx, ctx.storeId, customerId, 'updated')
+      if (customerId && (co.marketing?.email || co.marketing?.whatsapp)) {
+        await setMarketingConsents(
+          ctx,
+          customerId,
+          {
+            email: email && co.marketing.email ? true : undefined,
+            whatsapp: co.marketing.whatsapp ? true : undefined,
+          },
+          { source: 'checkout', actor: { type: 'customer', id: customerId } },
+        )
+      }
     }
     // The store's settings are only read here: the number comes from `store_counter`, so the
     // checkout no longer holds the store row locked until it commits (0177).

@@ -186,6 +186,8 @@ export type CheckoutForm = {
   note?: string
   /** Home, Office or Other: the tag a signed-in shopper's new address is saved with. */
   label?: string
+  /** The marketing ticks under Contact; unticked sends nothing. */
+  marketing?: { email: boolean; whatsapp: boolean }
 }
 
 export type CheckoutResult = { error: string } | undefined
@@ -321,6 +323,7 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
           gstin: form.gstin ?? null,
           businessName: form.businessName ?? null,
           note: form.note ?? null,
+          marketing: form.marketing,
           address: {
             line1: form.line1,
             ...(form.line2 ? { line2: form.line2 } : {}),

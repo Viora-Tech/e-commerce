@@ -324,6 +324,11 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     setBusiness(on)
     if (!on) setForm((prev) => ({ ...prev, gstin: '', businessName: '' }))
   }
+  const handleMarketing = (channel: 'email' | 'whatsapp', on: boolean) =>
+    setForm((prev) => ({
+      ...prev,
+      marketing: { email: false, whatsapp: false, ...prev.marketing, [channel]: on },
+    }))
   const handleGuest = (on: boolean) => {
     setGuest(on)
     setAttempted(false)
@@ -480,6 +485,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     handlePickAddress,
     handleLeave,
     handleBusiness,
+    handleMarketing,
     handlePayment,
     handlePhone,
     handleGuest,

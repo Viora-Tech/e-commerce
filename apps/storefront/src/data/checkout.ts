@@ -188,6 +188,11 @@ export const payClientContent = {
 } as const
 
 export const checkoutContent = {
+  /** The marketing ticks under Contact; never ticked for the shopper. */
+  marketing: {
+    email: 'Email me news and offers',
+    whatsapp: 'Send me offers on WhatsApp',
+  },
   title: 'Checkout',
   backToCart: 'Back to cart',
   contact: 'Contact',
