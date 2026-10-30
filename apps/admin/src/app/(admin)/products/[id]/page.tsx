@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import { notFound, redirect } from 'next/navigation'
 import ProductForm from '@/components/products/product-form'
@@ -9,6 +10,14 @@ import { orNoStore } from '@/lib/store-guard'
 import { storefrontOrigin } from '@/lib/storefront-origin'
 
 type Params = { params: Promise<{ id: string }> }
+
+/** The product's name in the browser tab, not "Admin". */
+export async function generateMetadata({ params }: Params): Promise<Metadata> {
+  const { id } = await params
+  const context = await serverContext()
+  const product = await call(appRouter.products.get, { id }, { context }).catch(() => null)
+  return { title: product?.title || 'Product' }
+}
 
 export default async function ProductEditPage({ params }: Params) {
   const { id } = await params

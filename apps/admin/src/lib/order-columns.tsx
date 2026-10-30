@@ -214,7 +214,10 @@ export function orderColumns(
         o.deliveryStatus ? (
           <OrderChip kind="shipment" value={o.deliveryStatus} />
         ) : (
-          <span className="text-muted-foreground">{copy.noDelivery}</span>
+          // Fulfilled by hand (no courier booking) is not "not shipped": it went, untracked.
+          <span className="text-muted-foreground">
+            {o.fulfillmentStatus === 'unfulfilled' ? copy.noDelivery : copy.noTracking}
+          </span>
         ),
     },
     {
