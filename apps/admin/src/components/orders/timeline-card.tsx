@@ -16,6 +16,7 @@ import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
 import ScrollSection from '@/components/layout/scroll-section'
 import Timeline from '@/components/layout/timeline'
+import { notificationsSettingsContent } from '@/data/notifications'
 import { orderDetailContent } from '@/data/order-detail'
 import { shipmentPanelContent } from '@/data/shipping'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -42,6 +43,7 @@ export default function TimelineCard({ order, onChanged }: TimelineCardProps) {
   // Hooks
   const copy = useCopy(orderDetailContent)
   const shipping = useCopy(shipmentPanelContent)
+  const names = useCopy(notificationsSettingsContent)
   const fmt = useFormat()
   const [note, setNote] = useState('')
   const [saving, setSaving] = useState(false)
@@ -63,7 +65,7 @@ export default function TimelineCard({ order, onChanged }: TimelineCardProps) {
   }
 
   // Render logic
-  const days = groupByDay(buildEntries(order, copy, shipping, fmt), fmt)
+  const days = groupByDay(buildEntries(order, copy, shipping, fmt, names), fmt)
   const groups = days.map((day) => ({
     key: day.key,
     label: day.label,

@@ -234,7 +234,35 @@ export const notificationsSettingsContent = {
       name: 'Daily summary (team)',
       when: 'Once a day, at the hour each team member chose in Account → Notifications.',
     },
+    account_deletion_code: {
+      name: 'Account deletion code',
+      when: 'When a shopper asks to delete their account; the code confirms it is them.',
+    },
+    affiliate_application: {
+      name: 'New affiliate application (team)',
+      when: 'When someone applies to your affiliate programme (Affiliates app).',
+    },
+    staff_invite: { name: 'Team invitation', when: 'When you invite someone to your team.' },
+    email_change_code: {
+      name: 'Email change code',
+      when: 'When a team member changes their sign-in email.',
+    },
+    email_changed: { name: 'Email changed', when: 'After a team member’s sign-in email changes.' },
+    plan_bill: { name: 'Plan bill', when: 'When your Koomerce plan is billed.' },
+    bug_report_update: {
+      name: 'Bug report update',
+      when: 'When a bug you reported is updated.',
+    },
   } as Record<string, { name: string; when: string }>,
+  /** How a message went, in words: the timeline says "sent by email", never `platform_email`. */
+  channels: {
+    email: 'email',
+    platform_email: 'email',
+    mail: 'email',
+    whatsapp: 'WhatsApp',
+    sms: 'SMS',
+    log: 'test log',
+  } as Record<string, string>,
 
   channelNames: { email: 'Email', whatsapp: 'WhatsApp' } satisfies Record<ChannelId, string>,
 
