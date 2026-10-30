@@ -97,7 +97,7 @@ describe('chip labels', () => {
 describe('clearGroup', () => {
   it('empties only the one group', () => {
     const changes: unknown[] = []
-    clearGroup({ ...totalGroup('5', '9'), onChange: (p) => changes.push(p) })
+    clearGroup({ ...totalGroup('5', '9'), onChange: (p: unknown) => changes.push(p) })
     clearGroup({
       key: 'min',
       label: 'Orders',
