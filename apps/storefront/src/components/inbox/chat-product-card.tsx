@@ -23,9 +23,10 @@ export default function ChatProductCard({ product, compact }: ChatProductCardPro
     if (!product.variantId || state === 'adding') return
     setState('adding')
     try {
-      await addLineAction(product.variantId, 1)
-      announceCartAdded()
-      setState('added')
+      // Refused (a pre-order campaign keeping pre-orders apart, #143): nothing was added.
+      const refused = await addLineAction(product.variantId, 1)
+      if (!refused) announceCartAdded()
+      setState(refused ? 'idle' : 'added')
     } catch {
       setState('idle')
     }

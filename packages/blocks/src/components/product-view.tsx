@@ -12,6 +12,7 @@ import {
   mainProductSettings,
   whatsappHref,
 } from '../sections/main-product-settings'
+import type { AddToCart } from '../store-actions'
 import type { ProductDetail } from '../types'
 import Breadcrumbs from './breadcrumbs'
 import Price from './price'
@@ -34,7 +35,7 @@ type ProductViewProps = {
   product: ProductDetail
   /** Shipping and Returns panels from the store's published policies (`showPolicyPanels`). */
   policyPanels?: PolicyPanel[] | undefined
-  onAddToCart?: ((variantId: string, quantity: number) => Promise<void>) | undefined
+  onAddToCart?: AddToCart | undefined
   /** Rendered below the price with the selected variant's price (EMI hint, offers). */
   UnderPrice?: ComponentType<{ pricePaise: number }> | undefined
   /** Rendered under the buy buttons (delivery estimate). */

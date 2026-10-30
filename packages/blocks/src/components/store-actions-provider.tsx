@@ -11,8 +11,9 @@ export default function StoreActionsProvider({
   // Every add from a card tells the cart drawer, which opens when the theme uses one.
   const add = addToCart
     ? async (variantId: string, quantity: number) => {
-        await addToCart(variantId, quantity)
-        announceCartAdded()
+        const refused = await addToCart(variantId, quantity)
+        if (!refused) announceCartAdded()
+        return refused
       }
     : undefined
   return <StoreActionsContext value={{ addToCart: add }}>{children}</StoreActionsContext>

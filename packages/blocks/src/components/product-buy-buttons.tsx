@@ -1,11 +1,11 @@
 'use client'
 
 import { formatCountdown, formatInZone } from '@commerce/dates'
-import { type ComponentType, useState, useTransition } from 'react'
+import { type ComponentType, type CSSProperties, useState, useTransition } from 'react'
 import { mainProductContent as copy } from '../data/zero-drift/main-product'
 import { useFormatPaise } from '../money-format'
 import { safeHref } from '../slot-types'
-import { announceCartAdded, trackCommerce } from '../store-actions'
+import { type AddToCart, announceCartAdded, trackCommerce } from '../store-actions'
 import type { ProductDetail } from '../types'
 import { useReducedMotion } from '../use-reduced-motion'
 import Icon from './icon'
@@ -17,7 +17,7 @@ type ProductBuyButtonsProps = {
   /** Milliseconds until launch; above zero the button is locked with a countdown. */
   countdown: number
   isPreorder: boolean
-  onAddToCart?: ((variantId: string, quantity: number) => Promise<void>) | undefined
+  onAddToCart?: AddToCart | undefined
   NotifyMe?: ComponentType<{ variantId: string; whatsappEnabled: boolean }> | undefined
   notifyMeProps?: { whatsappEnabled: boolean } | undefined
   /** With the stock bar on, the in-stock lines are its job; this keeps only sold-out/pre-order. */
@@ -49,6 +49,8 @@ export default function ProductBuyButtons({
   const [pending, startTransition] = useTransition()
   const [added, setAdded] = useState(false)
   const [quantity, setQuantity] = useState(1)
+  // Why the cart refused the add (a pre-order campaign keeping pre-orders apart, #143).
+  const [refusal, setRefusal] = useState<string | null>(null)
   // Set once Buy it now heads to checkout: the button stays off while the page changes, so a
   // second click on a slow load does not add the item again.
   const [leaving, setLeaving] = useState(false)
@@ -80,8 +82,13 @@ export default function ProductBuyButtons({
   // Event handlers
   const handleAdd = () => {
     if (!variant || !onAddToCart) return
+    setRefusal(null)
     startTransition(async () => {
-      await onAddToCart(variant.id, pickedQuantity())
+      const refused = await onAddToCart(variant.id, pickedQuantity())
+      if (refused) {
+        setRefusal(refused.error)
+        return
+      }
       reportAdd(variant.id, variant.pricePaise)
       announceCartAdded()
       setAdded(true)
@@ -92,9 +99,15 @@ export default function ProductBuyButtons({
   const handleBuyNow = () => {
     if (!variant || !onAddToCart || leaving) return
     setLeaving(true)
+    setRefusal(null)
     startTransition(async () => {
       try {
-        await onAddToCart(variant.id, pickedQuantity())
+        const refused = await onAddToCart(variant.id, pickedQuantity())
+        if (refused) {
+          setLeaving(false)
+          setRefusal(refused.error)
+          return
+        }
       } catch (err) {
         setLeaving(false)
         throw err
@@ -159,6 +172,35 @@ export default function ProductBuyButtons({
   const sellable = Boolean(variant?.purchasable) && !launching && !unpriced
   const buyable = sellable && !isPreorder
   const maxQuantity = quantityCap()
+  // A pre-order campaign's words and colours (#144); the theme's own without one.
+  const colours = isPreorder ? (preorder?.colours ?? null) : null
+  const badgeText = isPreorder ? (preorder?.badgeText ?? null) : null
+  const preorderPrice = isPreorder ? (preorder?.preorderPricePaise ?? null) : null
+  const buttonStyle =
+    colours && (colours.buttonBackground || colours.buttonText)
+      ? ({
+          ...(colours.buttonBackground
+            ? { '--preorder-button-bg': colours.buttonBackground }
+            : {}),
+          ...(colours.buttonText ? { '--preorder-button-text': colours.buttonText } : {}),
+        } as CSSProperties)
+      : undefined
+  const buttonColourClass = [
+    colours?.buttonBackground ? 'bg-(--preorder-button-bg) border-(--preorder-button-bg)' : '',
+    colours?.buttonText ? 'text-(--preorder-button-text)' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+  const badgeStyle = {
+    ...(colours?.badgeBackground ? { '--preorder-badge-bg': colours.badgeBackground } : {}),
+    ...(colours?.badgeText ? { '--preorder-badge-text': colours.badgeText } : {}),
+  } as CSSProperties
+  const badgeColourClass = [
+    colours?.badgeBackground ? 'bg-(--preorder-badge-bg)' : '',
+    colours?.badgeText ? 'text-(--preorder-badge-text)' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
 
   return (
     <div className="product-info__buy">
@@ -169,6 +211,19 @@ export default function ProductBuyButtons({
         >
           {ui.launches}{' '}
           {formatInZone(product.launchAt as string, { dateStyle: 'medium', timeStyle: 'short' })}
+        </p>
+      ) : null}
+      {badgeText ? (
+        <span
+          className={`status-chip product-info__preorder-badge ${badgeColourClass}`}
+          style={badgeStyle}
+        >
+          {badgeText}
+        </span>
+      ) : null}
+      {preorderPrice != null ? (
+        <p className="product-info__preorder-price text-small">
+          {ui.preorderPrice(formatPaise(preorderPrice))}
         </p>
       ) : null}
       {isPreorder && preorder?.shipDate ? (
@@ -229,7 +284,8 @@ export default function ProductBuyButtons({
             ) : null}
             <button
               type="button"
-              className={`btn ${buyable ? 'btn--secondary' : 'btn--primary'} buy-buttons__submit${pending ? ' is-loading' : ''}${isPreorder ? ' buy-buttons__submit--preorder' : ''}`}
+              className={`btn ${buyable ? 'btn--secondary' : 'btn--primary'} buy-buttons__submit${pending ? ' is-loading' : ''}${isPreorder ? ' buy-buttons__submit--preorder' : ''} ${buttonColourClass}`}
+              style={buttonStyle}
               disabled={!variant?.purchasable || unpriced || launching || pending || !onAddToCart}
               onClick={handleAdd}
             >
@@ -250,6 +306,11 @@ export default function ProductBuyButtons({
             <a href="/cart" className="buy-buttons__view-cart text-small">
               {ui.viewCart}
             </a>
+          ) : null}
+          {refusal ? (
+            <p className="buy-buttons__refusal text-small" role="alert">
+              {refusal}
+            </p>
           ) : null}
         </div>
       )}

@@ -16,9 +16,11 @@ import type { RichTextValue } from '@commerce/richtext'
 import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import {
   cardPreorder,
+  campaignFor,
   cardRatings,
   cheapestPriced,
   listCardProducts,
+  storefrontCampaigns,
   variantPrices,
 } from './catalog'
 
@@ -172,6 +174,8 @@ export async function listCollectionProducts(
       preorderPaymentMode: product.preorderPaymentMode,
       preorderDepositPaise: product.preorderDepositPaise,
       preorderDepositPercent: product.preorderDepositPercent,
+      preorderOwn: product.preorderOwn,
+      preorderCampaignId: product.preorderCampaignId,
     })
     .from(collectionProduct)
     .innerJoin(product, eq(product.id, collectionProduct.productId))
@@ -215,6 +219,10 @@ export async function listCollectionProducts(
     .where(and(inArray(productMedia.productId, ids), sql`${productMedia.position} < 2`))
     .orderBy(asc(productMedia.position))
   const ratings = await cardRatings(tx, ids)
+  const campaigns = await storefrontCampaigns(
+    tx,
+    rows.map((r) => r.preorderCampaignId),
+  )
 
   const items = rows.map((p) => {
     const vs = variants.filter((v) => v.productId === p.id)
@@ -231,7 +239,7 @@ export async function listCollectionProducts(
       // Quick add needs no choice only when there is one priced variant to add.
       quickAddVariantId: vs.length === 1 && cheapest ? (vs[0]?.id ?? null) : null,
       variantPrices: variantPrices(vs),
-      preorder: cardPreorder(p, vs),
+      preorder: cardPreorder(p, vs, campaignFor(campaigns, p)),
       rating: ratings.get(p.id) ?? null,
       images: images
         .filter((i) => i.productId === p.id)

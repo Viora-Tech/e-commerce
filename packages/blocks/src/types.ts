@@ -109,6 +109,20 @@ export type ProductDetail = {
          * this many days of being requested; the product page says so up front.
          */
         nonRefundableDepositDays?: number | null | undefined
+        /** The pre-order campaign's badge (#144), shown beside the button; absent without one. */
+        badgeText?: string | null | undefined
+        /** The campaign's price per unit while on pre-order, after its discount; absent without one. */
+        preorderPricePaise?: number | null | undefined
+        /** The campaign's colours (hex, already checked); null keys keep the theme's. */
+        colours?:
+          | {
+              buttonBackground: string | null
+              buttonText: string | null
+              badgeBackground: string | null
+              badgeText: string | null
+            }
+          | null
+          | undefined
       }
     | null
     | undefined

@@ -13,6 +13,7 @@ import {
   type SettingsKind,
   sectionSettingsField,
 } from '../section-settings'
+import type { AddToCart } from '../store-actions'
 import type { ProductDetail } from '../types'
 import { SCHEMES } from './framed'
 import { inlineText } from './inline-fields'
@@ -80,7 +81,7 @@ export type SectionMetadata = {
    * those buttons stay inert.
    */
   productActions?:
-    | { addToCart?: ((variantId: string, quantity: number) => Promise<void>) | undefined }
+    | { addToCart?: AddToCart | undefined }
     | undefined
 }
 

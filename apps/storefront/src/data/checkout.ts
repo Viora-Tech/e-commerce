@@ -497,6 +497,8 @@ export const checkoutContent = {
     rateLimited: 'Too many attempts. Please wait a minute and try again.',
     cartLimit: (title: string, max: number) =>
       `You can buy up to ${max} of ${title || 'this item'} in one order. Lower the quantity in your cart and try again.`,
+    preorderMixedCart:
+      'Pre-orders in your cart ship on their own. Check out the pre-order separately from your other items.',
     paymentMethodHidden:
       'That way to pay is not available for this order. Pick another payment method.',
     contact: 'Check your contact details and try again.',

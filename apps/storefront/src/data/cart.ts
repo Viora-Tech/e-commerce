@@ -4,6 +4,9 @@ export const cartContent = {
   itemCount: (n: number) => `${n} ${n === 1 ? 'item' : 'items'}`,
   remove: 'Remove',
   preorder: 'Pre-order',
+  /** A pre-order campaign keeps its pre-orders apart from in-stock items (#143). */
+  preorderMixedCart:
+    'Pre-orders ship on their own. Check out your cart first, or remove the in-stock items, then add this.',
   continueShopping: 'Continue shopping',
   paymentMethods: 'Ways to pay',
   payments: ['UPI', 'Cards', 'Cash on delivery', 'EMI'],

@@ -14,6 +14,7 @@ import {
   orderViewToken,
   PaymentNotRetryable,
   type PlaceOrderResult,
+  PreorderMixedCart,
   payPath,
   placeOrderAndPay,
   rememberCheckoutAddress,
@@ -32,6 +33,7 @@ import { and, desc, eq, ne } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { cartContent } from '@/data/cart'
 import { checkoutContent } from '@/data/checkout'
 import { readAttribution } from './attribution-cookie'
 import { clearCartId, readCartId, writeCartId } from './cart-cookie'
@@ -60,26 +62,42 @@ const QR_CHECK_ORDER_RULE = { limit: 8, windowMs: 60_000 }
 
 /** Server actions for the cart. The store id comes from the request's hostname, never the client. */
 
-export async function addLineAction(variantId: string, quantity: number) {
+/**
+ * Add to cart. A refusal the shopper can act on comes back as `{ error }` (server action errors
+ * lose their words in production): a pre-order campaign that keeps its pre-orders apart (#143).
+ */
+export async function addLineAction(
+  variantId: string,
+  quantity: number,
+): Promise<{ error: string } | undefined> {
   const storeId = await requestStoreId()
   const existing = await readCartId()
   const attribution = await readAttribution()
   // The market this page is in: the cart keeps it, and its catalog decides what may go in.
   const marketId = await requestMarketId()
-  const cartId = await inStore(storeId, async (tx) => {
-    const ctx = { storeId, tx }
-    let id = existing
-    const current = id ? await getCart(ctx, id) : null
-    if (current?.status !== 'open') {
-      id = await createCart(ctx)
-      await setCartAttribution(tx, id, attribution)
+  let cartId: string
+  try {
+    cartId = await inStore(storeId, async (tx) => {
+      const ctx = { storeId, tx }
+      let id = existing
+      const current = id ? await getCart(ctx, id) : null
+      if (current?.status !== 'open') {
+        id = await createCart(ctx)
+        await setCartAttribution(tx, id, attribution)
+      }
+      await addToCart(ctx, id as string, variantId, Math.max(1, quantity), { marketId })
+      return id as string
+    })
+  } catch (err) {
+    if (err instanceof PreorderMixedCart) {
+      return { error: err.shopperMessage ?? cartContent.preorderMixedCart }
     }
-    await addToCart(ctx, id as string, variantId, Math.max(1, quantity), { marketId })
-    return id as string
-  })
+    throw err
+  }
   if (cartId !== existing) await writeCartId(cartId)
   await chatCartLine(storeId, cartId, 'add', variantId, Math.max(1, quantity))
   revalidatePath('/', 'layout')
+  return undefined
 }
 
 /** The cart line as Inbox shows it (title from the cart itself), only for a browser that chatted. */

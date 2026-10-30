@@ -3,12 +3,21 @@
 import { createContext, use } from 'react'
 
 /**
+ * Adds a line to the shopper's cart. A refusal the shopper can act on (a pre-order campaign
+ * that keeps pre-orders apart, #143) comes back as `{ error }` to show by the button.
+ */
+export type AddToCart = (
+  variantId: string,
+  quantity: number,
+) => Promise<{ error: string } | undefined>
+
+/**
  * What the storefront lets a card do for the shopper (a server action under the hood). The
  * admin canvas provides nothing, so a card's buttons there are a picture and never write.
  */
 export type StoreActions = {
   /** Adds one line to the shopper's cart; the header's count refreshes with the layout. */
-  addToCart?: ((variantId: string, quantity: number) => Promise<void>) | undefined
+  addToCart?: AddToCart | undefined
 }
 
 export const StoreActionsContext = createContext<StoreActions>({})

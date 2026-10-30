@@ -67,7 +67,8 @@ export const POST = withEvlog(async (req: Request, { params }: Params) => {
         // Themes post the whole-number id they were shown; our cart wants the variant's UUID.
         const variantId = await inStore(storeId, (tx) => resolveThemeVariantId(tx, line.id))
         if (!variantId) throw new Error('unknown variant')
-        await addLineAction(variantId, Math.min(line.quantity, 99))
+        const refused = await addLineAction(variantId, Math.min(line.quantity, 99))
+        if (refused) throw new Error(refused.error)
       }
     } catch {
       return wantsJson(req)

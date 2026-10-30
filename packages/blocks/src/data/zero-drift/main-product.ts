@@ -152,6 +152,7 @@ export const mainProductContent = {
     launchingIn: (countdown: string) => `Launching in ${countdown}`,
     launches: 'Launches',
     expectedToShip: 'Expected to ship',
+    preorderPrice: (price: string) => `Pre-order price ${price}`,
     deposit: (now: string, later: string) => `Pay ${now} now, ${later} later`,
     nonRefundable: (days: number) =>
       `The deposit is non-refundable if the balance is not paid within ${days} days of our request.`,
