@@ -1,4 +1,7 @@
+import { formatMoney } from '@commerce/money'
+import { ChevronRight } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
+import type { ReactNode } from 'react'
 import { type Column, renderTextEditor } from 'react-data-grid'
 import type { bulkEditContent } from '@/data/bulk-edit'
 import {
@@ -8,8 +11,10 @@ import {
   errorKey,
   type GridRow,
   isDirty,
+  parsePaise,
   STOCK_PREFIX,
 } from './bulk-edit-model'
+import { isBlankInView, isViewEditable, type ViewRow } from './bulk-edit-view'
 import BulkSelectEditor from './bulk-select-editor'
 
 type Copy = typeof bulkEditContent
@@ -93,10 +98,19 @@ function afterMoney(keys: string[]): number {
   return Math.min(at, keys.length)
 }
 
+/** Expand state for the product rows (#985). */
+export type ExpandControl = {
+  expanded: ReadonlySet<string>
+  onToggle: (productId: string) => void
+}
+
+const MONEY_KEYS = new Set(['price', 'mrp', 'cost'])
+
 /**
  * The grid's columns, in sheet order: product cells (the first one frozen), variant cells, then
- * one stock column per location. Cells that differ from the saved sheet get the soft accent
- * wash; cells with a validation problem get the danger wash and the message as a tooltip.
+ * one stock column per location. A product with several variants is one row that expands to its
+ * variants. Cells that differ from the saved sheet get the soft accent wash; cells with a
+ * validation problem get the danger wash.
  */
 export function buildColumns(
   copy: Copy,
@@ -104,7 +118,8 @@ export function buildColumns(
   base: Map<string, GridRow>,
   errors: CellErrors,
   hidden: Set<string>,
-): Column<GridRow>[] {
+  expand: ExpandControl,
+): Column<ViewRow>[] {
   const c = copy.columns as Record<string, string | ((location: string) => string)>
   const stock: ColumnDef[] = hidden.has(STOCK_GROUP_KEY)
     ? []
@@ -123,28 +138,74 @@ export function buildColumns(
       : String(c[s.key]),
     width: s.width,
     frozen: s.key === 'title',
-    editable: !s.readOnly,
+    editable: (row: ViewRow) => !s.readOnly && isViewEditable(row, s.key),
     renderEditCell: SELECT_KEYS.has(s.key) ? BulkSelectEditor : renderTextEditor,
-    renderCell: renderCellOf(copy, s.key),
-    cellClass: (row) =>
-      cn(
+    renderCell: ({ row }) => renderViewCell(copy, s.key, row, expand),
+    cellClass: (row) => {
+      const blank = isBlankInView(row, s.key)
+      const dirty = row.members.some((m) => isDirty(m, base.get(m.variantId), s.key))
+      const bad = row.members.some((m) => errors.has(errorKey(m.variantId, s.key)))
+      return cn(
         'text-body',
         NUMERIC.has(s.key) || s.key.startsWith(STOCK_PREFIX) ? 'text-end tabular-nums' : '',
-        s.readOnly ? 'bg-muted text-muted-foreground' : '',
-        isDirty(row, base.get(row.variantId), s.key) ? 'bg-primary-soft' : '',
-        errors.has(errorKey(row.variantId, s.key)) ? 'bg-danger-soft text-danger' : '',
-      ),
+        s.readOnly || !isViewEditable(row, s.key) ? 'bg-muted text-muted-foreground' : '',
+        !blank && dirty ? 'bg-primary-soft' : '',
+        !blank && bad ? 'bg-danger-soft text-danger' : '',
+      )
+    },
   }))
 }
 
-/** Select cells show their label, not the stored word. */
-function renderCellOf(copy: Copy, key: string): Column<GridRow>['renderCell'] {
-  if (key === 'status')
-    return ({ row }) => copy.statuses[row.status as keyof typeof copy.statuses] ?? row.status
+/** A product row's money cell whose variants differ: their range, like "₹999 – ₹1,299". */
+function mixedText(copy: Copy, key: string, row: ViewRow): string {
+  if (!MONEY_KEYS.has(key)) return copy.view.mixed
+  const amounts = row.members.map((m) => parsePaise(cellValue(m, key)))
+  const known = amounts.filter((a): a is number => a !== null && !Number.isNaN(a))
+  if (known.length === 0) return copy.view.mixed
+  const low = Math.min(...known)
+  const high = Math.max(...known)
+  return low === high ? formatMoney(low) : `${formatMoney(low)} – ${formatMoney(high)}`
+}
+
+/** Select cells show their label, not the stored word; product rows show their variants. */
+function renderViewCell(copy: Copy, key: string, row: ViewRow, expand: ExpandControl): ReactNode {
+  if (isBlankInView(row, key)) return null
+  if (key === 'title' && row.viewKind === 'variant') {
+    return <span className="pl-6 text-muted-foreground">{row.variantTitle}</span>
+  }
+  if (key === 'title' && row.viewKind === 'product') {
+    const open = expand.expanded.has(row.productId)
+    return (
+      <span className="flex min-w-0 items-center gap-1">
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-label={open ? copy.view.collapse(row.title) : copy.view.expand(row.title)}
+          onClick={(e) => {
+            e.stopPropagation()
+            expand.onToggle(row.productId)
+          }}
+          className="-ml-1 inline-flex size-6 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+        >
+          <ChevronRight
+            aria-hidden="true"
+            className={cn('size-4 transition-[rotate] duration-150 ease-out', open && 'rotate-90')}
+          />
+        </button>
+        <span className="truncate">{row.title}</span>
+      </span>
+    )
+  }
+  if (key === 'variantTitle' && row.viewKind === 'product') {
+    return <span className="text-muted-foreground">{copy.view.variants(row.members.length)}</span>
+  }
+  if (row.mixedKeys.includes(key)) {
+    return <span className="text-muted-foreground">{mixedText(copy, key, row)}</span>
+  }
+  if (key === 'status') return copy.statuses[row.status as keyof typeof copy.statuses] ?? row.status
   if ((BOOLEAN_COLUMNS as readonly string[]).includes(key))
-    return ({ row }) =>
-      copy.yesNo[cellValue(row, key) as keyof typeof copy.yesNo] ?? cellValue(row, key)
-  return undefined
+    return copy.yesNo[cellValue(row, key) as keyof typeof copy.yesNo] ?? cellValue(row, key)
+  return cellValue(row, key)
 }
 
 /** Every shown column key in sheet order, for paste, fill and Ctrl+D to count across. */

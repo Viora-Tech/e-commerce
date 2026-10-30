@@ -1,6 +1,6 @@
 'use client'
 
-import { CircleAlert, Pencil, Save, Trash2 } from '@commerce/ui/icons'
+import { ChevronsUpDown, CircleAlert, Layers, Pencil, Save, Trash2 } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
@@ -27,7 +27,15 @@ import {
   toGridRow,
 } from './bulk-edit-model'
 import { toBulkRows } from './bulk-edit-payload'
+import { applyToRows, type SetAllChange } from './bulk-edit-set-all'
 import { validateRows } from './bulk-edit-validate'
+import {
+  buildView,
+  expandableProductIds,
+  selectedVariantIds,
+  tickedVariantRows,
+} from './bulk-edit-view'
+import BulkSetAllDialog from './bulk-set-all-dialog'
 import { useHiddenColumns } from './use-hidden-columns'
 
 export type BulkEditSheet = {
@@ -64,6 +72,8 @@ export default function BulkEditor({ sheet, productIds }: BulkEditorProps) {
   const { hidden, toggle } = useHiddenColumns()
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [confirmingRemove, setConfirmingRemove] = useState(false)
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [setAllOpen, setSetAllOpen] = useState(false)
 
   // Helpers
   const label = (key: string) => {
@@ -106,8 +116,19 @@ export default function BulkEditor({ sheet, productIds }: BulkEditorProps) {
     }
   }
 
+  const handleSetAll = (change: SetAllChange, onlySelected: boolean) => {
+    const only = onlySelected ? new Set(selectedVariantIds(view, selected)) : null
+    setRows(applyToRows(rows, change, only))
+    setServerErrors(new Map())
+    setSetAllOpen(false)
+    toast.success(copy.setAll.applied)
+  }
+
+  const handleExpandAll = () =>
+    setExpanded(allOpen ? new Set() : new Set(expandableProductIds(rows)))
+
   const handleRemoveVariants = async () => {
-    const ids = [...selected]
+    const ids = removable
     try {
       const result = await api.products.removeVariants({ ids })
       if (!result.ok) {
@@ -167,6 +188,10 @@ export default function BulkEditor({ sheet, productIds }: BulkEditorProps) {
   const changed = dirtyCount(rows, base, keys)
   const products = new Set(rows.map((r) => r.productId)).size
   const shown = attempted || serverErrors.size > 0 ? [...errors] : []
+  const view = buildView(rows, expanded)
+  const removable = tickedVariantRows(view, selected)
+  const expandable = expandableProductIds(rows)
+  const allOpen = expandable.length > 0 && expandable.every((id) => expanded.has(id))
   return (
     <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-8 md:pt-5 md:pb-8">
       <PageHeader
@@ -184,7 +209,17 @@ export default function BulkEditor({ sheet, productIds }: BulkEditorProps) {
               hasStock={sheet.locations.length > 0}
               onToggle={toggle}
             />
-            {selected.size > 0 ? (
+            {expandable.length > 0 ? (
+              <Button variant="outline" onClick={handleExpandAll}>
+                <ChevronsUpDown aria-hidden="true" />
+                {allOpen ? copy.view.collapseAll : copy.view.expandAll}
+              </Button>
+            ) : null}
+            <Button variant="outline" disabled={saving} onClick={() => setSetAllOpen(true)}>
+              <Layers aria-hidden="true" />
+              {copy.setAll.trigger}
+            </Button>
+            {removable.length > 0 ? (
               <Button
                 variant="outline"
                 disabled={changed > 0 || saving}
@@ -192,7 +227,7 @@ export default function BulkEditor({ sheet, productIds }: BulkEditorProps) {
                 onClick={() => setConfirmingRemove(true)}
               >
                 <Trash2 aria-hidden="true" />
-                {copy.removeVariants.action(selected.size)}
+                {copy.removeVariants.action(removable.length)}
               </Button>
             ) : null}
             <Button variant="outline" disabled={changed === 0 || saving} onClick={handleDiscard}>
@@ -240,13 +275,22 @@ export default function BulkEditor({ sheet, productIds }: BulkEditorProps) {
         locations={sheet.locations}
         hidden={hidden}
         selected={selected}
+        expanded={expanded}
+        onExpandedChange={setExpanded}
         onRowsChange={handleRowsChange}
         onSelectedChange={setSelected}
+      />
+      <BulkSetAllDialog
+        open={setAllOpen}
+        total={rows.length}
+        selectedCount={selectedVariantIds(view, selected).length}
+        onOpenChange={setSetAllOpen}
+        onApply={handleSetAll}
       />
       <ConfirmDialog
         open={confirmingRemove}
         onOpenChange={setConfirmingRemove}
-        title={copy.removeVariants.title(selected.size)}
+        title={copy.removeVariants.title(removable.length)}
         body={copy.removeVariants.body}
         confirmLabel={copy.removeVariants.confirm}
         tone="destructive"
