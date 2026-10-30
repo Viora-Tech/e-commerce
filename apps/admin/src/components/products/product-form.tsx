@@ -13,6 +13,7 @@ import { useRunAutomation } from '@/components/automations/records/use-run-autom
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
+import LeaveGuard from '@/components/layout/leave-guard'
 import SaveBar from '@/components/layout/save-bar'
 import MetafieldsCard from '@/components/metaobjects/metafields-card'
 import { productFormContent } from '@/data/product-form'
@@ -373,6 +374,8 @@ export default function ProductForm({
     <ProoflyDetailPage
       header={
         <>
+          {/* A new product has no save bar yet; its typed title still asks before it is lost (#202). */}
+          <LeaveGuard when={!product && isDirty} />
           <SaveBar
             open={Boolean(product) && isDirty}
             message={copy.saveBar.message}

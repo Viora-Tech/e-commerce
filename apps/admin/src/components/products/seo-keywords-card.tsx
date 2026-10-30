@@ -22,6 +22,7 @@ import { toast } from 'sonner'
 import KitButton from '@/components/kit/kit-button'
 import DataCard from '@/components/layout/data-card'
 
+import LeaveGuard from '@/components/layout/leave-guard'
 import { rupees } from '@/data/products'
 import { seoKeywordsContent } from '@/data/seo-keywords'
 import { useCopy } from '@/hooks/use-copy'
@@ -113,7 +114,10 @@ export default function SeoKeywordsCard({ productId, form, aiOn, onChange }: Seo
   const needsTitle = form.title.trim().length === 0
 
   return (
-    <DataCard
+    <>
+      {/* Suggestions still open: the ticks are not on the product yet (audit #64). */}
+      <LeaveGuard when={suggestions !== null} />
+      <DataCard
       title={copy.heading}
       subtitle={copy.intro}
       action={
@@ -207,6 +211,7 @@ export default function SeoKeywordsCard({ productId, form, aiOn, onChange }: Seo
         </div>
         {full ? <FieldDescription>{copy.full(SEO_KEYWORDS_MAX)}</FieldDescription> : null}
       </Field>
-    </DataCard>
+      </DataCard>
+    </>
   )
 }

@@ -3,6 +3,7 @@
 import { Pencil } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import FloatingBar from './floating-bar'
+import LeaveGuard from './leave-guard'
 
 type SaveBarProps = {
   /** Render while the form is dirty; the bar slides in and out on change. */
@@ -30,7 +31,9 @@ export default function SaveBar({
   saving = false,
 }: SaveBarProps) {
   return (
-    <FloatingBar open={open}>
+    <>
+      <LeaveGuard when={open && !saving} />
+      <FloatingBar open={open}>
       <Pencil className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
       <span className="text-caption font-medium whitespace-nowrap text-foreground">{message}</span>
       <Button
@@ -46,6 +49,7 @@ export default function SaveBar({
       <Button type="button" size="sm" className="rounded-full" onClick={onSave} loading={saving}>
         {saveLabel}
       </Button>
-    </FloatingBar>
+      </FloatingBar>
+    </>
   )
 }

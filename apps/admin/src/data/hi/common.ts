@@ -2,6 +2,7 @@ import {
   contactContent,
   copyButtonContent,
   dialogContent,
+  leaveGuardContent,
   reorderLabels,
   requiredMarkContent,
   validationContent,
@@ -16,6 +17,12 @@ export default [
   translation(dialogContent, {
     cancel: 'रद्द करें',
     close: 'बंद करें',
+  }),
+  translation(leaveGuardContent, {
+    title: 'बिना सेव किए जाएँ?',
+    body: 'इस पेज पर आपके बदलाव अभी सेव नहीं हुए। अभी जाने पर वे खो जाएँगे।',
+    leave: 'पेज छोड़ें',
+    stay: 'बदलाव जारी रखें',
   }),
   translation(requiredMarkContent, {
     required: 'ज़रूरी',
