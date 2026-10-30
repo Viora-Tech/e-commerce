@@ -1,15 +1,21 @@
 'use client'
 
-import { Plus, Search, SlidersHorizontal, X } from '@commerce/ui/icons'
+import { Plus, Search, SlidersHorizontal } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
-import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/popover'
 import type { ReactTable, RowData } from '@tanstack/react-table'
-import { type ComponentProps, type ReactNode, useState } from 'react'
-import CountBadge from '@/components/layout/count-badge'
+import { type ReactNode, useState } from 'react'
+import {
+  chipGroups,
+  clearGroups,
+  type FilterGroup,
+  hasFilter,
+} from '@/components/table/filter-panel'
 import { tableContent } from '@/data/table'
 import { useCopy } from '@/hooks/use-copy'
 import ColumnsMenu from './columns-menu'
 import type { ResourceTableFeatures } from './features'
+import FilterChip from './filter-chip'
+import FilterMenu from './filter-menu'
 import SortMenu from './sort-menu'
 
 export type AppliedFilter = {
@@ -20,9 +26,6 @@ export type AppliedFilter = {
   onRemove: () => void
 }
 
-/** The filter popover's body; a function gets a `close` for a "Show results" button. */
-export type FilterPanel = ReactNode | ((close: () => void) => ReactNode)
-
 type ToolbarProps<T extends RowData> = {
   table: ReactTable<ResourceTableFeatures, T>
   plural: string
@@ -30,11 +33,8 @@ type ToolbarProps<T extends RowData> = {
   onQueryChange: (q: string) => void
   /** The "View" dropdown (Figma Table / View select), drawn first with a divider after it. */
   views?: ReactNode
-  /** Filter controls (selects, date pickers) shown in the filter popover. */
-  filters?: FilterPanel
-  filtersClassName?: string | undefined
-  applied?: AppliedFilter[]
-  onClearAll?: () => void
+  /** The list's filters: picked from the Filter menu, each shown as a chip with its own popover. */
+  filterGroups?: FilterGroup[] | undefined
   /** Human-readable column titles for the columns menu, by column id. */
   columnTitles: Record<string, string>
   /** The sort menu's names per column, and its order (Figma "State · Sort open"). */
@@ -59,10 +59,7 @@ export default function ResourceTableToolbar<T extends RowData>({
   query,
   onQueryChange,
   views,
-  filters,
-  filtersClassName,
-  applied = [],
-  onClearAll,
+  filterGroups = [],
   columnTitles,
   sortTitles,
   sortOrder,
@@ -72,11 +69,16 @@ export default function ResourceTableToolbar<T extends RowData>({
 }: ToolbarProps<T>) {
   // Hooks
   const tableCopy = useCopy(tableContent)
-  const [filtersOpen, setFiltersOpen] = useState(false)
+  // The chip whose popover is open; a filter just picked from the menu shows while still empty.
+  const [openKey, setOpenKey] = useState<string | null>(null)
+
+  // Event handlers
+  const handleChipOpen = (key: string, open: boolean) => setOpenKey(open ? key : null)
 
   // Render logic
   const hideable = table.getAllColumns().filter((c) => c.getCanHide())
-  const hasApplied = applied.length > 0 || query.length > 0
+  const chips = chipGroups(filterGroups, openKey)
+  const appliedCount = chips.filter(hasFilter).length
 
   return (
     <div className="flex flex-col border-border border-b">
@@ -98,19 +100,16 @@ export default function ResourceTableToolbar<T extends RowData>({
               className="min-w-0 flex-1 bg-transparent text-[0.8125rem] leading-[1.1875rem] text-foreground outline-none placeholder:text-muted-foreground"
             />
           </label>
-          {filters ? (
-            <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
-              <PopoverTrigger
-                render={<ToolbarButton className="min-w-8 px-2" aria-label={tableCopy.filter} />}
-                nativeButton
-              >
-                <SlidersHorizontal />
-                {applied.length > 0 ? <CountBadge n={applied.length} tone="inverse" /> : null}
-              </PopoverTrigger>
-              <PopoverContent align="end" className={filtersClassName ?? 'w-64'}>
-                {typeof filters === 'function' ? filters(() => setFiltersOpen(false)) : filters}
-              </PopoverContent>
-            </Popover>
+          {filterGroups.length > 0 ? (
+            <FilterMenu
+              groups={filterGroups}
+              onPick={setOpenKey}
+              className={cn(CONTROL, 'min-w-8 px-2')}
+              label={tableCopy.filter}
+            >
+              <SlidersHorizontal />
+              <span className="hidden sm:inline">{tableCopy.filter}</span>
+            </FilterMenu>
           ) : null}
           <div className="ml-auto flex items-center gap-1">
             <SortMenu
@@ -132,52 +131,38 @@ export default function ResourceTableToolbar<T extends RowData>({
           </div>
         </div>
       </div>
-      {/* Figma "Applied filters": a row under the search, split by a hairline. Each chip is a
-          pill reading "Payment is Unpaid" with a remove ×, then "Add filter" and "Clear all". */}
-      {hasApplied && onClearAll ? (
+      {/* Applied filters, Shopify-style: one pill per filter ("Payment is Paid ×") under the
+          search. A pill reopens its own small popover; "Add filter", then "Clear all" for 2+. */}
+      {chips.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2 border-border border-t px-3 py-2.5">
-          {applied.map((f) => (
-            <span
-              key={f.key}
-              className="inline-flex h-7 items-center gap-1 rounded-full border border-border bg-muted/60 pr-1 pl-2.5 text-xs text-foreground"
-            >
-              {f.field ? (
-                <span className="text-muted-foreground">{tableCopy.filterIs(f.field)}</span>
-              ) : null}
-              <span className="font-medium">{f.label}</span>
-              <button
-                type="button"
-                onClick={f.onRemove}
-                className="flex size-5 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
-                aria-label={tableCopy.removeFilter(f.label)}
-              >
-                <X className="size-3" />
-              </button>
-            </span>
+          {chips.map((g) => (
+            <FilterChip
+              key={g.key}
+              group={g}
+              open={openKey === g.key}
+              onOpenChange={(open) => handleChipOpen(g.key, open)}
+            />
           ))}
-          {filters ? (
+          <FilterMenu
+            groups={filterGroups}
+            onPick={setOpenKey}
+            className="inline-flex h-7 items-center gap-1.5 rounded-sm px-2 text-body font-medium text-foreground transition-colors hover:bg-muted data-[popup-open]:bg-muted [&_svg]:size-4"
+            label={tableCopy.addFilter}
+          >
+            <Plus aria-hidden="true" />
+            {tableCopy.addFilter}
+          </FilterMenu>
+          {appliedCount >= 2 ? (
             <button
               type="button"
-              onClick={() => setFiltersOpen(true)}
-              className="inline-flex h-7 items-center gap-1.5 rounded-sm px-2 text-body font-medium text-foreground transition-colors hover:bg-muted [&_svg]:size-4"
+              onClick={() => clearGroups(filterGroups)}
+              className="inline-flex h-7 items-center rounded-sm px-2 text-body font-medium text-foreground transition-colors hover:bg-muted"
             >
-              <Plus aria-hidden="true" />
-              {tableCopy.addFilter}
+              {tableCopy.clearFilters}
             </button>
           ) : null}
-          <button
-            type="button"
-            onClick={onClearAll}
-            className="inline-flex h-7 items-center rounded-sm px-2 text-body font-medium text-foreground transition-colors hover:bg-muted"
-          >
-            {tableCopy.clearFilters}
-          </button>
         </div>
       ) : null}
     </div>
   )
-}
-
-function ToolbarButton({ className, ...props }: ComponentProps<'button'>) {
-  return <button type="button" className={cn(CONTROL, className)} {...props} />
 }

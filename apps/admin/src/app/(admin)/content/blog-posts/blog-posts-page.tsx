@@ -14,12 +14,7 @@ import { articleColumns } from '@/components/blog/article-columns'
 import ArticleRowMenu from '@/components/blog/article-row-menu'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
-import {
-  appliedFromGroups,
-  clearGroups,
-  FILTER_PANEL_CLASS,
-  FilterPanel,
-} from '@/components/table/filter-panel'
+import { appliedFromGroups } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
 import { ARTICLE_TABS, type ArticleTab, blogListContent } from '@/data/blog'
@@ -200,15 +195,7 @@ function BlogPostsContent({ initial, storefrontOrigin }: BlogPostsPageProps) {
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ ...CLEAR_BLOG_POST_FILTERS, query: '', status: null, page: 1 })}
-        filters={(close) => (
-          <FilterPanel
-            groups={groups}
-            onClear={() => clearGroups(groups)}
-            footer={{ label: panelCopy.show(result.total), onDone: close }}
-          />
-        )}
-        filtersClassName={FILTER_PANEL_CLASS}
-        applied={applied}
+        filterGroups={groups}
         views={
           <ViewSelect
             value={q.status}

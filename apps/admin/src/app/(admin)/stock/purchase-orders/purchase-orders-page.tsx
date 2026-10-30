@@ -15,12 +15,7 @@ import { purchaseOrderColumns } from '@/components/purchase-orders/purchase-orde
 import PurchaseOrderTiles, {
   type PurchaseOrderCounts,
 } from '@/components/purchase-orders/purchase-order-tiles'
-import {
-  appliedFromGroups,
-  clearGroups,
-  FILTER_PANEL_CLASS,
-  FilterPanel,
-} from '@/components/table/filter-panel'
+import { appliedFromGroups } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
 import { filterPanelContent } from '@/data/filter-panel'
@@ -198,15 +193,7 @@ function PurchaseOrdersContent({ initial }: { initial: PurchaseOrdersInitial }) 
         onClearAll={() =>
           setQ({ ...CLEAR_PURCHASE_ORDER_FILTERS, query: '', status: null, page: 1 })
         }
-        filters={(close) => (
-          <FilterPanel
-            groups={groups}
-            onClear={() => clearGroups(groups)}
-            footer={{ label: panelCopy.show(total), onDone: close }}
-          />
-        )}
-        filtersClassName={FILTER_PANEL_CLASS}
-        applied={applied}
+        filterGroups={groups}
         views={
           <ViewSelect
             value={q.status}

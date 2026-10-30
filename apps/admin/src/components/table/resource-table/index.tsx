@@ -28,6 +28,7 @@ import { useRouter } from 'next/navigation'
 import { type CSSProperties, type ReactNode, useState } from 'react'
 import EmptyState from '@/components/layout/empty-state'
 import FloatingBar from '@/components/layout/floating-bar'
+import { type FilterGroup, hasFilter } from '@/components/table/filter-panel'
 import RowActionsCell from '@/components/table/row-actions-cell'
 import { tableContent } from '@/data/table'
 import { useCopy } from '@/hooks/use-copy'
@@ -41,7 +42,7 @@ import {
 import { type ResourceTableFeatures, resourceTableFeatures } from './features'
 import ResourceTablePagination from './pagination'
 import SelectionBar from './selection-bar'
-import ResourceTableToolbar, { type AppliedFilter, type FilterPanel } from './toolbar'
+import ResourceTableToolbar, { type AppliedFilter } from './toolbar'
 
 export type { AppliedFilter, ResourceColumnSpec }
 
@@ -62,10 +63,11 @@ export type ResourceTableProps<T extends RowData> = {
    * There are no pill tabs on tables, so every list looks the same.
    */
   views?: ReactNode
-  /** Filter controls rendered as a popover from the filter icon button. */
-  filters?: FilterPanel
-  /** Size and padding of the filter popover (default: 16rem, padded). */
-  filtersClassName?: string | undefined
+  /**
+   * The list's filters (`lib/*-list-filters.ts` groups). The toolbar's Filter menu lists them;
+   * each applied one shows as a chip with its own popover. URL params stay the source of truth.
+   */
+  filterGroups?: FilterGroup[] | undefined | undefined
   applied?: AppliedFilter[]
   onClearAll?: () => void
   page: number
@@ -309,7 +311,7 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
   const minWidth = { '--table-min-width': `${Math.max(40, visibleCount * 8)}rem` } as CSSProperties
   const isEmpty = !props.loading && props.items.length === 0
   /** A search or a filter is narrowing the list (so empty means "no results", not "none yet"). */
-  const narrowed = props.query.length > 0 || (props.applied?.length ?? 0) > 0
+  const narrowed = props.query.length > 0 || (props.filterGroups ?? []).some(hasFilter)
   /* While rows are ticked the header row turns into the selection bar (beside the checkbox). */
   const selecting = selectedIds.length > 0 && Boolean(props.bulkActions)
 
@@ -321,10 +323,7 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
         query={props.query}
         onQueryChange={props.onQueryChange}
         views={props.views}
-        filters={props.filters}
-        filtersClassName={props.filtersClassName}
-        applied={props.applied}
-        onClearAll={props.onClearAll}
+        filterGroups={props.filterGroups}
         columnTitles={columnTitles}
         sortTitles={sortTitles}
         sortOrder={sortOrder}

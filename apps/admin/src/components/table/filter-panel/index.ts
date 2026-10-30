@@ -1,5 +1,12 @@
-export { appliedFromGroups, clearGroups } from './applied'
-export { default as FilterPanel, FILTER_PANEL_CLASS } from './filter-panel'
+export {
+  appliedFromGroups,
+  chipFor,
+  chipGroups,
+  clearGroup,
+  clearGroups,
+  hasFilter,
+} from './applied'
+export { default as FilterControl } from './filter-control'
 export type {
   BooleanGroup,
   ChecksGroup,

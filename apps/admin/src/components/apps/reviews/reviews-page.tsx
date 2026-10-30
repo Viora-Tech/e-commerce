@@ -8,12 +8,7 @@ import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } f
 import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
-import {
-  appliedFromGroups,
-  clearGroups,
-  FILTER_PANEL_CLASS,
-  FilterPanel,
-} from '@/components/table/filter-panel'
+import { appliedFromGroups } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
 import { filterPanelContent } from '@/data/filter-panel'
@@ -182,15 +177,7 @@ function ReviewsList() {
             ]}
           />
         }
-        filters={(close) => (
-          <FilterPanel
-            groups={groups}
-            onClear={() => clearGroups(groups)}
-            footer={{ label: panelCopy.show(result?.total ?? 0), onDone: close }}
-          />
-        )}
-        filtersClassName={FILTER_PANEL_CLASS}
-        applied={applied}
+        filterGroups={groups}
         page={q.page}
         perPage={perPage}
         onPerPageChange={(next) => {

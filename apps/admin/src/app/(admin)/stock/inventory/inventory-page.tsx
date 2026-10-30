@@ -34,14 +34,7 @@ import {
 } from '@/components/inventory/inventory-tree'
 import type { StoreLocation } from '@/components/inventory/location-select'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
-import {
-  appliedFromGroups,
-  clearGroups,
-  FILTER_PANEL_CLASS,
-  type FilterGroup,
-  FilterPanel,
-  facetOptions,
-} from '@/components/table/filter-panel'
+import { appliedFromGroups, type FilterGroup, facetOptions } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
 import { filterPanelContent } from '@/data/filter-panel'
@@ -388,15 +381,7 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ ...CLEAR_FILTERS, query: '', page: 1 })}
-        filters={(close) => (
-          <FilterPanel
-            groups={groups}
-            onClear={() => clearGroups(groups)}
-            footer={{ label: panelCopy.show(total), onDone: close }}
-          />
-        )}
-        filtersClassName={FILTER_PANEL_CLASS}
-        applied={applied}
+        filterGroups={groups}
         views={
           <ViewSelect
             value={q.stock === 'out' || q.stock === 'low' ? q.stock : null}

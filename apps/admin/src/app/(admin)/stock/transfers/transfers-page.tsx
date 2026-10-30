@@ -13,12 +13,7 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 import AddLocationDialog from '@/components/inventory/add-location-dialog'
 import type { StoreLocation } from '@/components/inventory/location-select'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
-import {
-  appliedFromGroups,
-  clearGroups,
-  FILTER_PANEL_CLASS,
-  FilterPanel,
-} from '@/components/table/filter-panel'
+import { appliedFromGroups } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
 import SingleLocation from '@/components/transfers/single-location'
@@ -183,15 +178,7 @@ function TransfersContent({ initial }: { initial: TransfersInitial }) {
           query={q.query}
           onQueryChange={(query) => setQ({ query, page: 1 })}
           onClearAll={() => setQ({ ...CLEAR_TRANSFER_FILTERS, query: '', status: null, page: 1 })}
-          filters={(close) => (
-            <FilterPanel
-              groups={groups}
-              onClear={() => clearGroups(groups)}
-              footer={{ label: panelCopy.show(total), onDone: close }}
-            />
-          )}
-          filtersClassName={FILTER_PANEL_CLASS}
-          applied={applied}
+          filterGroups={groups}
           views={
             <ViewSelect
               value={q.status}

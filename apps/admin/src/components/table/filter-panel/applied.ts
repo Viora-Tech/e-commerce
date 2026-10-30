@@ -1,3 +1,4 @@
+import { formatMoney, parseRupees } from '@commerce/money'
 import type { AppliedFilter } from '@/components/table/resource-table/toolbar'
 import type { filterPanelContent } from '@/data/filter-panel'
 import {
@@ -35,7 +36,7 @@ function optionLabel(options: readonly FilterOption[], value: string): string {
 
 function bound(group: RangeGroup, value: string): string {
   if (group.format) return group.format(value)
-  return group.input === 'money' ? `₹${value}` : value
+  return group.input === 'money' ? formatMoney(parseRupees(value) ?? 0) : value
 }
 
 function rangeLabel(group: RangeGroup, copy: PanelCopy): string | null {
@@ -52,7 +53,7 @@ function emptyRange(group: RangeGroup): RangePatch {
 }
 
 /** The chip for one group, or null while the group holds no filter. */
-function chipFor(group: FilterGroup, copy: PanelCopy): AppliedFilter | null {
+export function chipFor(group: FilterGroup, copy: PanelCopy): AppliedFilter | null {
   if (group.type === 'checks') {
     if (group.value.length === 0) return null
     return {
@@ -117,13 +118,36 @@ export function appliedFromGroups(groups: FilterGroup[], copy: PanelCopy): Appli
   return groups.flatMap((g) => chipFor(g, copy) ?? [])
 }
 
-/** Resets every group (the panel's Clear all). */
-export function clearGroups(groups: FilterGroup[]): void {
-  for (const g of groups) {
-    if (g.type === 'checks' || g.type === 'multi') g.onChange([])
-    else if (g.type === 'select' || g.type === 'boolean') g.onChange(null)
-    else if (g.type === 'text') g.onChange('')
-    else if (g.type === 'date') g.onChange(NO_DATE)
-    else g.onChange(emptyRange(g))
+/** The group holds a filter, so it shows as a chip. */
+export function hasFilter(group: FilterGroup): boolean {
+  if (group.type === 'checks' || group.type === 'multi') return group.value.length > 0
+  if (group.type === 'select' || group.type === 'boolean') return group.value !== null
+  if (group.type === 'text') return group.value.trim() !== ''
+  if (group.type === 'date') {
+    const { preset, from, to } = group.value
+    return (preset !== null && preset !== DATE_CUSTOM) || from !== '' || to !== ''
   }
+  return group.from !== '' || (group.to ?? '') !== ''
+}
+
+/**
+ * The chips the toolbar draws, in the list's own order: every group holding a filter, plus
+ * `picked` (just chosen from the Filter menu, its popover open) while it is still empty.
+ */
+export function chipGroups(groups: FilterGroup[], picked: string | null): FilterGroup[] {
+  return groups.filter((g) => g.key === picked || hasFilter(g))
+}
+
+/** Empties one group (a chip's ×, or Clear in its popover). */
+export function clearGroup(group: FilterGroup): void {
+  if (group.type === 'checks' || group.type === 'multi') group.onChange([])
+  else if (group.type === 'select' || group.type === 'boolean') group.onChange(null)
+  else if (group.type === 'text') group.onChange('')
+  else if (group.type === 'date') group.onChange(NO_DATE)
+  else group.onChange(emptyRange(group))
+}
+
+/** Resets every group (Clear all). */
+export function clearGroups(groups: FilterGroup[]): void {
+  for (const g of groups) clearGroup(g)
 }

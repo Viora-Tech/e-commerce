@@ -18,14 +18,7 @@ import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import StatusChip from '@/components/layout/status-chip'
 import BookByNumberDialog from '@/components/shipments/book-by-number-dialog'
-import {
-  appliedFromGroups,
-  clearGroups,
-  FILTER_PANEL_CLASS,
-  FilterPanel,
-} from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
-import { filterPanelContent } from '@/data/filter-panel'
 import { shipmentFiltersContent } from '@/data/order-list-filters'
 import { shipmentsContent } from '@/data/shipments'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -86,7 +79,6 @@ function ShipmentsContent() {
   // Hooks
   const copy = useCopy(shipmentsContent)
   const filterCopy = useCopy(shipmentFiltersContent)
-  const panelCopy = useCopy(filterPanelContent)
   const router = useRouter()
   const fmt = useFormat()
   const [q, setQ] = useQueryStates(
@@ -304,19 +296,7 @@ function ShipmentsContent() {
             query={query}
             onQueryChange={(next) => setQ({ query: next, page: 1 })}
             onClearAll={() => setQ({ ...CLEAR_SHIPMENT_FILTERS, query: '', page: 1 })}
-            {...(filterable
-              ? {
-                  filters: (close: () => void) => (
-                    <FilterPanel
-                      groups={groups}
-                      onClear={() => clearGroups(groups)}
-                      footer={{ label: filterCopy.show(total), onDone: close }}
-                    />
-                  ),
-                  filtersClassName: FILTER_PANEL_CLASS,
-                  applied: appliedFromGroups(groups, panelCopy),
-                }
-              : {})}
+            {...(filterable ? { filterGroups: groups } : {})}
             views={
               // The shipping pipeline in plain sight (To book → … → RTO), not behind a dropdown
               // (audit #39).

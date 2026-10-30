@@ -24,12 +24,7 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import PageState from '@/components/states/page-state'
-import {
-  appliedFromGroups,
-  clearGroups,
-  FILTER_PANEL_CLASS,
-  FilterPanel,
-} from '@/components/table/filter-panel'
+import { appliedFromGroups } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
 import { CHANNEL_LABEL } from '@/data/customer-privacy'
@@ -296,15 +291,7 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
           query={q.query}
           onQueryChange={(next) => setQ({ query: next, page: 1 })}
           onClearAll={handleClearAll}
-          filters={(close) => (
-            <FilterPanel
-              groups={groups}
-              onClear={() => clearGroups(groups)}
-              footer={{ label: panelCopy.show(total), onDone: close }}
-            />
-          )}
-          filtersClassName={FILTER_PANEL_CLASS}
-          applied={applied}
+          filterGroups={groups}
           views={
             <ViewSelect
               value={q.status}

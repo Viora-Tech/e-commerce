@@ -14,17 +14,10 @@ import EmptyState from '@/components/layout/empty-state'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import StatStrip from '@/components/layout/stat-strip'
 import SendMessageDialog, { type CustomMessage } from '@/components/orders/send-message-dialog'
-import {
-  appliedFromGroups,
-  clearGroups,
-  FILTER_PANEL_CLASS,
-  FilterPanel,
-} from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
 import ViewSelect from '@/components/table/view-select'
 import { DRAFT_LIST_FILTERS, type DraftListFilter, draftsContent } from '@/data/drafts'
-import { filterPanelContent } from '@/data/filter-panel'
 import { draftFiltersContent } from '@/data/order-list-filters'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -66,7 +59,6 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
   // Hooks
   const copy = useCopy(draftsContent)
   const filterCopy = useCopy(draftFiltersContent)
-  const panelCopy = useCopy(filterPanelContent)
   const fmt = useFormat()
   usePrimaryAction(routes.orders.newDraft())
   const [q, setQ] = useQueryStates(
@@ -288,15 +280,7 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
           query={query}
           onQueryChange={(query) => setQ({ query, page: 1 })}
           onClearAll={() => setQ({ ...CLEAR_DRAFT_FILTERS, query: '', status: null, page: 1 })}
-          filters={(close) => (
-            <FilterPanel
-              groups={groups}
-              onClear={() => clearGroups(groups)}
-              footer={{ label: filterCopy.show(total), onDone: close }}
-            />
-          )}
-          filtersClassName={FILTER_PANEL_CLASS}
-          applied={appliedFromGroups(groups, panelCopy)}
+          filterGroups={groups}
           views={
             <ViewSelect<DraftListFilter | null>
               label={copy.viewLabel}

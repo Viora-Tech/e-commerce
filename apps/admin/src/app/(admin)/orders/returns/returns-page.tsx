@@ -12,16 +12,9 @@ import ReturnsListDialogs, {
   listActions,
   type ReturnsListRequest,
 } from '@/components/returns/returns-list-dialogs'
-import {
-  appliedFromGroups,
-  clearGroups,
-  FILTER_PANEL_CLASS,
-  FilterPanel,
-} from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
 import ViewSelect from '@/components/table/view-select'
-import { filterPanelContent } from '@/data/filter-panel'
 import { returnFiltersContent } from '@/data/order-list-filters'
 import { returnDetailContent, returnListActionsContent, returnsContent } from '@/data/returns'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -66,7 +59,6 @@ function ReturnsContent({ initial }: { initial: ReturnsInitial }) {
   const detail = useCopy(returnDetailContent)
   const actions = useCopy(returnListActionsContent)
   const filterCopy = useCopy(returnFiltersContent)
-  const panelCopy = useCopy(filterPanelContent)
   const router = useRouter()
   const fmt = useFormat()
   const [q, setQ] = useQueryStates(
@@ -225,15 +217,7 @@ function ReturnsContent({ initial }: { initial: ReturnsInitial }) {
         query={query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ ...CLEAR_RETURN_FILTERS, query: '', status: null, page: 1 })}
-        filters={(close) => (
-          <FilterPanel
-            groups={groups}
-            onClear={() => clearGroups(groups)}
-            footer={{ label: filterCopy.show(total), onDone: close }}
-          />
-        )}
-        filtersClassName={FILTER_PANEL_CLASS}
-        applied={appliedFromGroups(groups, panelCopy)}
+        filterGroups={groups}
         views={
           <ViewSelect<ReturnListFilter | null>
             label={copy.viewLabel}

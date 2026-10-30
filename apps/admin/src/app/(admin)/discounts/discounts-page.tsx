@@ -14,12 +14,7 @@ import { discountColumns } from '@/components/discounts/discount-columns'
 import DiscountRowMenu from '@/components/discounts/discount-row-menu'
 import DiscountTiles, { type DiscountStats } from '@/components/discounts/discount-tiles'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
-import {
-  appliedFromGroups,
-  clearGroups,
-  FILTER_PANEL_CLASS,
-  FilterPanel,
-} from '@/components/table/filter-panel'
+import { appliedFromGroups } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
 import { DISCOUNT_LIFECYCLES, type DiscountLifecycle, discountsContent } from '@/data/discounts'
@@ -154,15 +149,7 @@ function DiscountsContent({ initial }: { initial: DiscountsInitial }) {
         query={q.query}
         onQueryChange={(next) => setQ({ query: next, page: 1 })}
         onClearAll={() => setQ({ ...CLEAR_DISCOUNT_FILTERS, query: '', status: null, page: 1 })}
-        filters={(close) => (
-          <FilterPanel
-            groups={groups}
-            onClear={() => clearGroups(groups)}
-            footer={{ label: panelCopy.show(total), onDone: close }}
-          />
-        )}
-        filtersClassName={FILTER_PANEL_CLASS}
-        applied={applied}
+        filterGroups={groups}
         views={
           <ViewSelect
             value={q.status}

@@ -261,6 +261,8 @@ export const automationsContent = {
     marketing: 'Marketing',
     originField: 'Made in',
     originAutomations: 'Automations',
+    /** The Made in filter's no-filter choice. */
+    originAny: 'Anywhere',
     backToGrowth: 'Back to Growth',
     never: 'Never',
     problem: 'Turned off',

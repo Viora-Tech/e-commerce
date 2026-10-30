@@ -15,15 +15,8 @@ import OrdersHeaderActions from '@/components/orders/orders-header-actions'
 import OrdersTiles, { type OrderTilesData } from '@/components/orders/orders-tiles'
 import { useOrderAppActions } from '@/components/orders/use-order-app-actions'
 import InlineState from '@/components/states/inline-state'
-import {
-  appliedFromGroups,
-  clearGroups,
-  FILTER_PANEL_CLASS,
-  FilterPanel,
-} from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
-import { filterPanelContent } from '@/data/filter-panel'
 import {
   ORDER_LIST_FILTERS,
   type OrderListFilter,
@@ -86,7 +79,6 @@ function fetchOrders(q: Query, perPage: number) {
 function OrdersContent({ initial }: { initial: OrdersInitial }) {
   // Hooks
   const copy = useCopy(ordersContent)
-  const panelCopy = useCopy(filterPanelContent)
   const fmt = useFormat()
   const router = useRouter()
   usePrimaryAction(routes.orders.drafts())
@@ -262,15 +254,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
         query={query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ query: '', status: null, ...NO_FILTERS, page: 1 })}
-        filters={(close) => (
-          <FilterPanel
-            groups={groups}
-            onClear={() => clearGroups(groups)}
-            footer={{ label: copy.filters.show(total), onDone: close }}
-          />
-        )}
-        filtersClassName={FILTER_PANEL_CLASS}
-        applied={appliedFromGroups(groups, panelCopy)}
+        filterGroups={groups}
         views={
           <ViewSelect<OrderListFilter | null>
             label={copy.viewLabel}

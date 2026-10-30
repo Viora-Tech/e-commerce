@@ -10,12 +10,7 @@ import {
   commissionColumns,
 } from '@/components/apps/affiliates/commission-columns'
 import PageHeader from '@/components/layout/page-header'
-import {
-  appliedFromGroups,
-  clearGroups,
-  FILTER_PANEL_CLASS,
-  FilterPanel,
-} from '@/components/table/filter-panel'
+import { appliedFromGroups } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import { affiliateFiltersContent } from '@/data/affiliate-filters'
 import { affiliatesContent } from '@/data/affiliates'
@@ -127,15 +122,7 @@ function CommissionsTable() {
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ ...CLEAR_COMMISSION_FILTERS, query: '', page: 1 })}
-        filters={(close) => (
-          <FilterPanel
-            groups={groups}
-            onClear={() => clearGroups(groups)}
-            footer={{ label: panelCopy.show(matching.length), onDone: close }}
-          />
-        )}
-        filtersClassName={FILTER_PANEL_CLASS}
-        applied={applied}
+        filterGroups={groups}
         page={q.page}
         perPage={q.perPage}
         total={matching.length}

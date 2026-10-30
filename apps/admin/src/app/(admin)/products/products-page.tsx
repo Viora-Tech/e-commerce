@@ -22,16 +22,9 @@ import ProductBulkMore from '@/components/products/product-bulk-more'
 import { productColumns } from '@/components/products/product-columns'
 import ProductRowMenu from '@/components/products/product-row-menu'
 import ProductTiles from '@/components/products/product-tiles'
-import {
-  appliedFromGroups,
-  clearGroups,
-  FILTER_PANEL_CLASS,
-  type FilterGroup,
-  FilterPanel,
-} from '@/components/table/filter-panel'
+import type { FilterGroup } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
-import { filterPanelContent } from '@/data/filter-panel'
 import { PRODUCT_STATUSES, productsListContent } from '@/data/products'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -87,7 +80,6 @@ function listInput(q: Query) {
 function ProductsContent({ initial }: { initial: ProductsInitial }) {
   // Hooks
   const copy = useCopy(productsListContent)
-  const panelCopy = useCopy(filterPanelContent)
   const fmt = useFormat()
   usePrimaryAction(routes.products.new())
   const router = useRouter()
@@ -264,15 +256,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ ...CLEAR_PRODUCT_FILTERS, query: '', status: null, page: 1 })}
-        filters={(close) => (
-          <FilterPanel
-            groups={groups}
-            onClear={() => clearGroups(groups)}
-            footer={{ label: panelCopy.show(total), onDone: close }}
-          />
-        )}
-        filtersClassName={FILTER_PANEL_CLASS}
-        applied={appliedFromGroups(groups, panelCopy)}
+        filterGroups={groups}
         views={
           <ViewSelect
             value={q.status}

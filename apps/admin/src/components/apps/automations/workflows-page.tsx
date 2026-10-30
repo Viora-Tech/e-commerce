@@ -9,6 +9,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import EmptyState from '@/components/layout/empty-state'
+import type { FilterGroup } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
 import { automationPiecesContent, automationsContent } from '@/data/automations'
@@ -91,16 +92,25 @@ export default function WorkflowsPage() {
   const copy = all.list
   const rows = items ?? []
   const origin = originOf(searchParams)
-  const applied = origin
-    ? [
-        {
-          key: 'origin',
-          field: copy.originField,
-          label: origin === 'growth' ? copy.marketing : copy.originAutomations,
-          onRemove: () => router.push(automationRoutes.workflows()),
-        },
-      ]
-    : undefined
+  const filterGroups: FilterGroup[] = [
+    {
+      key: 'origin',
+      type: 'select',
+      label: copy.originField,
+      options: [
+        { value: 'growth', label: copy.marketing },
+        { value: 'automations', label: copy.originAutomations },
+      ],
+      value: origin ?? null,
+      onChange: (next) =>
+        router.push(
+          automationRoutes.workflows(
+            next === 'growth' || next === 'automations' ? next : undefined,
+          ),
+        ),
+      anyLabel: copy.originAny,
+    },
+  ]
   const q = query.trim().toLowerCase()
   const filtered = rows.filter(
     (w) => (!view || viewOf(w) === view) && (!q || w.name.toLowerCase().includes(q)),
@@ -164,7 +174,7 @@ export default function WorkflowsPage() {
             setQuery(next)
             setPage(1)
           }}
-          applied={applied}
+          filterGroups={filterGroups}
           onClearAll={() => {
             if (origin) router.push(automationRoutes.workflows())
             setQuery('')

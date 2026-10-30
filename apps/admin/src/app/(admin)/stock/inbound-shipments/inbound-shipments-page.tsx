@@ -9,12 +9,7 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 import { inboundShipmentColumns } from '@/components/inbound-shipments/shipment-columns'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import DeleteRowMenu from '@/components/table/delete-row-menu'
-import {
-  appliedFromGroups,
-  clearGroups,
-  FILTER_PANEL_CLASS,
-  FilterPanel,
-} from '@/components/table/filter-panel'
+import { appliedFromGroups } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
 import { filterPanelContent } from '@/data/filter-panel'
@@ -154,15 +149,7 @@ function InboundShipmentsContent({ initial }: { initial: InboundShipmentsInitial
         onClearAll={() =>
           setState({ ...CLEAR_INBOUND_SHIPMENT_FILTERS, query: '', status: null, page: 1 })
         }
-        filters={(close) => (
-          <FilterPanel
-            groups={groups}
-            onClear={() => clearGroups(groups)}
-            footer={{ label: panelCopy.show(result.total), onDone: close }}
-          />
-        )}
-        filtersClassName={FILTER_PANEL_CLASS}
-        applied={applied}
+        filterGroups={groups}
         views={
           <ViewSelect
             value={state.status}
