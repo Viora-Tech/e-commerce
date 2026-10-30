@@ -35,6 +35,8 @@ type OrderRowMenuProps = {
     paymentMethod: string | null
     fulfillmentStatus: string | null
     tags: string[] | null
+    /** A read-only import: shipping, moves and cancel happen on its page, after taking it over. */
+    importedFrom?: string | null
   }
   /** The row's own items (open, new tab, same customer). */
   items: readonly ActionItem[]
@@ -153,7 +155,9 @@ export default function OrderRowMenu({
   }
 
   // Render logic
-  const open = order.status === 'open'
+  // The order page asks to take an import over before shipping or cancelling it; the row menu
+  // follows the same rule instead of offering those straight away (audit #47).
+  const open = order.status === 'open' && !order.importedFrom
   const current = order.tags ?? []
   const fulfilment = order.fulfillmentStatus ?? 'unfulfilled'
   const canShip =
@@ -162,8 +166,10 @@ export default function OrderRowMenu({
     (PAID.includes(order.paymentStatus) || order.paymentMethod === 'cod')
   const canCancelShipment = open && BOOKED.includes(fulfilment)
   const cancellable = open && fulfilment !== 'delivered'
-  const move = nextOrderMove(order.status, order.paymentStatus, order.fulfillmentStatus)
-  const remindable = canRemindToPay(order)
+  const move = order.importedFrom
+    ? null
+    : nextOrderMove(order.status, order.paymentStatus, order.fulfillmentStatus)
+  const remindable = !order.importedFrom && canRemindToPay(order)
 
   const tagging = dialog === 'addTags' || dialog === 'removeTags'
 

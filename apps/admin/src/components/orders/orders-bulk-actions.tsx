@@ -10,6 +10,7 @@ import {
 } from '@commerce/ui/shadcn/dropdown-menu'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { toast } from 'sonner'
 import type { OrderActionGroup } from '@/apps/order-actions'
 import RunAutomationDialog from '@/components/automations/records/run-automation-dialog'
@@ -69,6 +70,7 @@ export default function OrdersBulkActions({
   const automation = useRunAutomation('order', automations)
   /* The dialog stays open on its Booked step; the list reloads once the merchant closes it. */
   const [booked, setBooked] = useState(false)
+  const [confirmCancel, setConfirmCancel] = useState(false)
   const [exporting, setExporting] = useState(false)
 
   // Event handlers
@@ -141,7 +143,12 @@ export default function OrdersBulkActions({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
           {ORDER_MARKS.map((s) => (
-            <DropdownMenuItem key={s} onClick={() => onMark(ids, s)}>
+            // Cancelling many orders asks first; one click used to do it (audit #48).
+            <DropdownMenuItem
+              key={s}
+              variant={s === 'cancelled' ? 'destructive' : 'default'}
+              onClick={() => (s === 'cancelled' ? setConfirmCancel(true) : onMark(ids, s))}
+            >
               {copy.marks[s]}
             </DropdownMenuItem>
           ))}
@@ -154,6 +161,19 @@ export default function OrdersBulkActions({
         items={moreItems}
         disabled={apps.busy}
         triggerClassName="h-8 rounded-sm px-3"
+      />
+      <ConfirmDialog
+        open={confirmCancel}
+        onOpenChange={setConfirmCancel}
+        title={copy.bulk.cancelTitle(ids.length)}
+        body={copy.bulk.cancelBody}
+        confirmLabel={copy.bulk.cancelConfirm}
+        cancelLabel={copy.bulk.keep}
+        tone="destructive"
+        onConfirm={() => {
+          setConfirmCancel(false)
+          onMark(ids, 'cancelled')
+        }}
       />
       <CreateShipmentDialog
         orderIds={apps.shipping?.orderIds ?? []}

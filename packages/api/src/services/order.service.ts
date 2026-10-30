@@ -79,6 +79,8 @@ export async function listOrders(
       paymentStatus: order.paymentStatus,
       fulfillmentStatus: order.fulfillmentStatus,
       paymentMethod: order.paymentMethod,
+      /** Set while it is a read-only import; the row menu then offers only safe items (#47). */
+      importedFrom: order.importedFrom,
       totalPaise: order.totalPaise,
       email: order.email,
       customerName: customer.name,
