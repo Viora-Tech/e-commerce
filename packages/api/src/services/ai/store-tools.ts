@@ -8,7 +8,7 @@
  */
 import { type AiRuntime, type AiToolSet, defineAiTool, guardData } from '@commerce/ai'
 import { abandonedStats, notSystemTest, notTestOrder, UNFULFILLED_STATUSES } from '@commerce/core'
-import { formatInZone } from '@commerce/dates'
+import { dayKey, formatInZone } from '@commerce/dates'
 import {
   type Db,
   marketingSession,
@@ -24,12 +24,27 @@ import {
 import { type Currency, formatMoney } from '@commerce/money'
 import { and, asc, desc, eq, gte, inArray, lt, lte, ne, sql, sum } from 'drizzle-orm'
 import { z } from 'zod'
+import {
+  type AnswerTable,
+  answerTable,
+  DAILY_MAX_DAYS,
+  daysFrom,
+  fillSeries,
+  monthsFrom,
+  salesSeriesQuery,
+  topProductsQuery,
+  windowDays,
+} from './answer-table'
 import type { Taint } from './assistant/taint'
 import type { StoreFacts } from './guard'
 import { periodInput, resolvePeriod } from './periods'
 
 export type Fact = { label: string; value: string }
-export type ToolOutput = { facts: Fact[] }
+/** `table`: the rows behind the facts, for the admin only (taken off before the model reads it). */
+export type ToolOutput = { facts: Fact[]; table?: AnswerTable }
+
+/** The custom query runs in India time; a store elsewhere gets a snapshot instead. */
+const QUERY_TIME_ZONE = 'Asia/Kolkata'
 
 const DAY_MS = 86_400_000
 /** Sales answers leave out drafts and test-mode orders (gateway test keys, no real money). */
@@ -127,6 +142,52 @@ async function salesWindow(tx: StoreTx, from: Date, to: Date) {
 
 type SalesWindow = Awaited<ReturnType<typeof salesWindow>>
 
+/**
+ * Sales per day (per month past two months) for `salesSummary`'s table and line: what shoppers
+ * paid on orders not cancelled, and how many, with empty days at zero.
+ */
+async function salesSeries(
+  tx: StoreTx,
+  env: ToolEnv,
+  from: Date,
+  to: Date,
+): Promise<AnswerTable | undefined> {
+  const range = windowDays(from, to, env.store.timezone)
+  const days = daysFrom(range.from, range.to)
+  if (days.length < 2) return undefined
+  const by = days.length > DAILY_MAX_DAYS ? 'month' : 'day'
+  const bucket = sql<string>`to_char(${order.placedAt} at time zone ${env.store.timezone}, ${by === 'day' ? 'YYYY-MM-DD' : 'YYYY-MM'})`
+  const found = await tx
+    .select({
+      bucket,
+      totalSales: sql<number>`coalesce(sum(${order.totalPaise}), 0)::bigint`.mapWith(Number),
+      orders: sql<number>`count(*)::int`,
+    })
+    .from(order)
+    .where(and(live, gte(order.placedAt, from), lt(order.placedAt, to)))
+    // By position: the bucket's time zone is a bound parameter, so naming it twice would not match.
+    .groupBy(sql`1`)
+  return answerTable({
+    columns: [
+      { id: by, kind: by === 'day' ? 'date' : 'month' },
+      { id: 'totalSales', kind: 'money' },
+      { id: 'orders', kind: 'count' },
+    ],
+    rows: fillSeries(
+      by,
+      by === 'day' ? days : monthsFrom(range.from, range.to),
+      found.map((f) => ({
+        bucket: f.bucket,
+        values: { totalSales: f.totalSales, orders: f.orders },
+      })),
+      ['totalSales', 'orders'],
+    ),
+    chart: { kind: 'line', x: by, y: 'totalSales' },
+    query: env.store.timezone === QUERY_TIME_ZONE ? salesSeriesQuery(range, by) : null,
+    range,
+  })
+}
+
 /** Orders from tracked visits per visit; sessions are only counted on this storefront. */
 const conversionText = (w: SalesWindow) =>
   w.sessions > 0
@@ -146,6 +207,7 @@ export function storeTools(env: ToolEnv): AiToolSet {
           const p = resolvePeriod(input, env.now(), env.store.timezone)
           const cur = await salesWindow(tx, p.from, p.to)
           const prev = await salesWindow(tx, p.prevFrom, p.prevTo)
+          const table = await salesSeries(tx, env, p.from, p.to)
           const change = pct(cur.net, prev.net)
           const period = p.label
           const both = (now: string, then: string) => `${now} (the same length before: ${then})`
@@ -191,6 +253,7 @@ export function storeTools(env: ToolEnv): AiToolSet {
                 value: both(conversionText(cur), conversionText(prev)),
               },
             ],
+            ...(table ? { table } : {}),
           }
         }),
     }),
@@ -226,11 +289,27 @@ export function storeTools(env: ToolEnv): AiToolSet {
             return {
               facts: [{ label: `Sold in ${p.label}`, value: 'nothing yet' }],
             }
+          const range = windowDays(p.from, p.to, env.store.timezone)
+          const titles = rows.map((r) => safeTitle(env, r.title))
           return {
             facts: rows.map((r, i) => ({
-              label: `${i + 1}. ${safeTitle(env, r.title)}`,
+              label: `${i + 1}. ${titles[i]}`,
               value: `${r.units} sold, ${money(env, r.revenue)}`,
             })),
+            table: answerTable({
+              columns: [
+                { id: 'product', kind: 'text' },
+                { id: 'units', kind: 'count' },
+                { id: 'grossSales', kind: 'money' },
+              ],
+              rows: rows.map((r, i) => ({
+                values: { product: titles[i] ?? '', units: r.units, grossSales: r.revenue },
+              })),
+              chart: { kind: 'bar', x: 'product', y: 'units' },
+              query:
+                env.store.timezone === QUERY_TIME_ZONE ? topProductsQuery(range, input.limit) : null,
+              range,
+            }),
           }
         }),
     }),
@@ -269,14 +348,31 @@ export function storeTools(env: ToolEnv): AiToolSet {
             .innerJoin(product, eq(product.id, variant.productId))
             .where(where)
           const total = count?.n ?? 0
+          const named = rows.map((r) => ({
+            ...r,
+            title: safeTitle(env, r.title),
+            variantTitle:
+              r.variantTitle && r.variantTitle !== 'Default' ? safeTitle(env, r.variantTitle) : '',
+          }))
           return {
+            ...(named.length
+              ? {
+                  table: answerTable({
+                    columns: [
+                      { id: 'product', kind: 'text' },
+                      { id: 'variant', kind: 'text' },
+                      { id: 'available', kind: 'count' },
+                    ],
+                    rows: named.map((r) => ({
+                      values: { product: r.title, variant: r.variantTitle, available: r.available },
+                    })),
+                  }),
+                }
+              : {}),
             facts: [
               { label: `Variants at ${input.threshold} or fewer`, value: String(total) },
-              ...rows.map((r) => ({
-                label:
-                  r.variantTitle && r.variantTitle !== 'Default'
-                    ? `${safeTitle(env, r.title)} (${safeTitle(env, r.variantTitle)})`
-                    : safeTitle(env, r.title),
+              ...named.map((r) => ({
+                label: r.variantTitle ? `${r.title} (${r.variantTitle})` : r.title,
                 value:
                   r.available < 0
                     ? `oversold by ${-r.available} (owed to buyers)`
@@ -324,6 +420,23 @@ export function storeTools(env: ToolEnv): AiToolSet {
           const value = rows.reduce((n, r) => n + r.totalPaise, 0)
           const oldest = rows[0] as (typeof rows)[number]
           return {
+            table: answerTable({
+              columns: [
+                { id: 'order', kind: 'text' },
+                { id: 'placed', kind: 'date' },
+                { id: 'amount', kind: 'money' },
+                { id: 'paymentStatus', kind: 'label' },
+              ],
+              rows: rows.map((r) => ({
+                key: String(r.number),
+                values: {
+                  order: `#${r.number}`,
+                  placed: dayKey(r.placedAt, env.store.timezone),
+                  amount: r.totalPaise,
+                  paymentStatus: r.paymentStatus,
+                },
+              })),
+            }),
             facts: [
               {
                 label,

@@ -97,17 +97,22 @@ function historyOf(turns: AssistantTurn[]) {
  * The assistant's conversation for this tab and store: kept in sessionStorage, streamed in
  * from `ai.assistant`, with the change cards updated in place as the merchant acts on them.
  */
-export function useAssistant(storeId: string | null) {
+export function useAssistant(
+  storeId: string | null,
+  /** `persist: false`: a page's own ask box (Reports), kept in memory only. */
+  options: { persist?: boolean } = {},
+) {
+  const persist = options.persist ?? true
   // The bar renders nothing until AI status arrives in the browser, so reading storage on the
   // first render cannot mismatch the server's HTML. A store switch reloads the admin.
   const [turns, setTurns] = useState<AssistantTurn[]>(() =>
-    typeof window === 'undefined' ? [] : load(storeId),
+    typeof window === 'undefined' || !persist ? [] : load(storeId),
   )
   const controller = useRef<AbortController | null>(null)
 
   useEffect(() => {
-    save(storeId, turns)
-  }, [storeId, turns])
+    if (persist) save(storeId, turns)
+  }, [persist, storeId, turns])
 
   const update = (id: string, fn: (turn: AssistantTurn) => AssistantTurn) =>
     setTurns((all) => all.map((t) => (t.id === id ? fn(t) : t)))

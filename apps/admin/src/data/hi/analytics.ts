@@ -217,6 +217,11 @@ export default [
         marketing: 'मार्केटिंग',
       },
       columns: {
+        order: 'ऑर्डर',
+        placed: 'ऑर्डर की तारीख',
+        price: 'कीमत',
+        handle: 'हैंडल',
+        collection: 'कलेक्शन',
         day: 'दिन',
         product: 'प्रोडक्ट',
         variant: 'वेरिएंट',
@@ -414,6 +419,14 @@ export default [
       compareLabel: 'तुलना',
       chartType: { bars: 'बार', line: 'लाइन' },
       details: 'ब्यौरा',
+      answer: {
+        title: 'AI जवाब',
+        snapshot: (when: string) =>
+          `${when} के AI जवाब की कॉपी। आंकड़े अपडेट नहीं होते, क्योंकि यह जवाब कस्टम क्वेरी में नहीं लिखा जा सकता।`,
+        asked: (question: string) => `आपने पूछा: "${question}"`,
+        empty: 'दिखाने के लिए कोई AI जवाब नहीं है। रिपोर्ट पेज या AI बार में पूछें, फिर "रिपोर्ट की तरह खोलें" चुनें।',
+        saveHelp: 'सेव की गई रिपोर्ट में कॉपी की तरह सेव होगी। आंकड़े जैसे थे वैसे ही रहेंगे।',
+      },
     },
     live: {
       title: 'लाइव व्यू',

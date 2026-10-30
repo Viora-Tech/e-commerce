@@ -6,7 +6,6 @@ import { Card } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import AskAiCard from '@/components/home/ask-ai-card'
 import KitButton from '@/components/kit/kit-button'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
@@ -16,6 +15,7 @@ import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import ReportNameDialog from './report-name-dialog'
+import ReportsAsk from './reports-ask'
 import SavedReportCard from './saved-report-card'
 
 type Saved = Awaited<ReturnType<typeof api.analytics.savedReports>>[number]
@@ -30,8 +30,8 @@ type ReportsHomeProps = {
 const CATEGORIES = Object.keys(analyticsContent.reports.categories) as ReportCategory[]
 
 /**
- * Analytics → Reports (Figma "Marketing / Reports home"): an ask box that hands the question to
- * the platform AI (read-only), the reports the merchant saved, and the ready-made reports by topic.
+ * Analytics → Reports (Figma "Marketing / Reports home"): an ask box whose answers, tables and
+ * charts show on this page (read-only), the reports the merchant saved, and the ready-made reports by topic.
  */
 export default function ReportsHome({ reports, saved: initialSaved, assistant }: ReportsHomeProps) {
   // Hooks
@@ -79,14 +79,7 @@ export default function ReportsHome({ reports, saved: initialSaved, assistant }:
             </KitButton>
           }
         />
-        <AskAiCard
-          enabled={assistant}
-          placeholder={c.home.askPlaceholder}
-          label={c.home.askLabel}
-          chips={c.home.chips}
-          chipsLabel={c.home.try}
-          note={assistant ? c.home.readOnly : c.home.aiOff}
-        />
+        <ReportsAsk enabled={assistant} />
       </div>
       <section className="flex flex-col gap-3">
         <SectionHead title={c.saved.title} intro={c.saved.subtitle} />

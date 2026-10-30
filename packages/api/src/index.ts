@@ -37,6 +37,14 @@ export type {
   AnalyticsLive,
   AnalyticsOverview,
 } from './services/analytics.service'
+export { ANSWER_REPORT_SLUG, parseSnapshot } from './services/ai/answer-table'
+export type {
+  AnswerChart,
+  AnswerColumn,
+  AnswerSnapshot,
+  AnswerTable,
+  CallInput,
+} from './services/ai/answer-table'
 export type {
   ProfitInsights,
   ReportChartPoint,

@@ -177,6 +177,8 @@ export const routes = {
     reports: () => '/analytics/reports',
     report: (slug: string) => `/analytics/reports/${id(slug)}`,
     query: () => '/analytics/reports/query',
+    /** An AI answer's table as a report (a snapshot, or a saved one with `?saved=`). */
+    answer: () => '/analytics/reports/answer',
   },
 
   growth: {

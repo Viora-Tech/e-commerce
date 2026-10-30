@@ -36,10 +36,12 @@ import {
   sum,
 } from 'drizzle-orm'
 import { z } from 'zod'
+import { type AnswerTable, answerTable } from '../answer-table'
 import { day, type Fact, money, read, safeTitle, type ToolEnv } from '../store-tools'
 import { findCollections, oneProduct, ProposalProblem } from './actions/resolve'
 
-export type ReadOutput = { facts: Fact[]; shared?: string[] }
+/** `table`: the rows for the admin only; the assistant takes it off before the model reads it. */
+export type ReadOutput = { facts: Fact[]; shared?: string[]; table?: AnswerTable }
 
 function guarded(env: ToolEnv, text: string | null | undefined, max = 400): string {
   const g = guardData(text, max)
@@ -110,15 +112,39 @@ export function readTools(env: ToolEnv): AiToolSet {
             .from(product)
             .where(and(...where))
           if (!rows.length) return { facts: [{ label: 'Products found', value: 'none' }] }
+          const titles = rows.map((r) => safeTitle(env, r.title))
+          const price = (r: (typeof rows)[number]) =>
+            r.low === r.high
+              ? money(env, r.low ?? 0)
+              : `${money(env, r.low ?? 0)} to ${money(env, r.high ?? 0)}`
           return {
+            table: answerTable({
+              columns: [
+                { id: 'product', kind: 'text' },
+                { id: 'handle', kind: 'text' },
+                { id: 'price', kind: 'text' },
+                { id: 'available', kind: 'count' },
+                { id: 'status', kind: 'label' },
+              ],
+              rows: rows.map((r, i) => ({
+                key: r.handle,
+                values: {
+                  product: titles[i] ?? '',
+                  handle: r.handle,
+                  price: price(r),
+                  available: r.stock,
+                  status: r.status,
+                },
+              })),
+            }),
             facts: [
               {
                 label: 'Products found',
                 value: `${total?.n ?? rows.length}${(total?.n ?? 0) > rows.length ? ` (showing ${rows.length})` : ''}`,
               },
-              ...rows.map((r) => ({
-                label: safeTitle(env, r.title),
-                value: `handle ${r.handle}, ${r.low === r.high ? money(env, r.low ?? 0) : `${money(env, r.low ?? 0)} to ${money(env, r.high ?? 0)}`}, ${r.stock} in stock, ${r.status}`,
+              ...rows.map((r, i) => ({
+                label: titles[i] ?? '',
+                value: `handle ${r.handle}, ${price(r)}, ${r.stock} in stock, ${r.status}`,
               })),
             ],
           }
@@ -203,9 +229,27 @@ export function readTools(env: ToolEnv): AiToolSet {
             .orderBy(asc(collection.title))
             .limit(40)
           if (!rows.length) return { facts: [{ label: 'Collections', value: 'none yet' }] }
+          const titles = rows.map((r) => safeTitle(env, r.title))
           return {
-            facts: rows.map((r) => ({
-              label: safeTitle(env, r.title),
+            table: answerTable({
+              columns: [
+                { id: 'collection', kind: 'text' },
+                { id: 'handle', kind: 'text' },
+                { id: 'products', kind: 'count' },
+                { id: 'status', kind: 'label' },
+              ],
+              rows: rows.map((r, i) => ({
+                key: r.handle,
+                values: {
+                  collection: titles[i] ?? '',
+                  handle: r.handle,
+                  products: r.products,
+                  status: r.status,
+                },
+              })),
+            }),
+            facts: rows.map((r, i) => ({
+              label: titles[i] ?? '',
               value: `handle ${r.handle}, ${r.kind}, ${r.products} products${r.status === 'draft' ? ', hidden' : ''}`,
             })),
           }

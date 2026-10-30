@@ -25,6 +25,8 @@ type AskAiCardProps = {
   chipsLabel?: string | undefined
   /** A quiet line under the questions ("Read-only…"). */
   note?: string | undefined
+  /** Answer on the page instead of in the AI bar (Reports); gets the question. */
+  onAsk?: ((question: string) => void) | undefined
 }
 
 /**
@@ -40,6 +42,7 @@ export default function AskAiCard({
   chips: pageChips,
   chipsLabel,
   note,
+  onAsk,
 }: AskAiCardProps) {
   // Hooks
   const copy = useCopy(homePageContent)
@@ -61,6 +64,10 @@ export default function AskAiCard({
   const handleAsk = (text?: string) => {
     if (!enabled) {
       router.push(routes.settings.ai())
+      return
+    }
+    if (onAsk) {
+      if (text) onAsk(text)
       return
     }
     openAssistant(text)

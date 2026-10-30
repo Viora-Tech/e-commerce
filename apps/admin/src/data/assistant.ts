@@ -93,6 +93,50 @@ export const assistantContent = {
     orderDetails: 'the order',
   } as Record<string, string>,
 
+  /** A table and chart under an answer (#192), straight from the store's numbers. */
+  table: {
+    label: (what: string) => `Table: ${what}`,
+    rows: (n: number) => (n === 1 ? '1 row' : `${n} rows`),
+    open: 'Open as report',
+    live: 'Opens as a custom query, so the numbers stay up to date.',
+    snapshot: 'Opens as a snapshot: these numbers will not update.',
+  },
+
+  /** "Show query": which lookup ran and with what, in plain words. */
+  query: {
+    show: 'Show query',
+    hide: 'Hide query',
+    ran: (what: string) => `Looked up ${what}`,
+    noInputs: 'with the usual settings',
+    inputs: {
+      period: 'Period',
+      days: 'Days',
+      from: 'From',
+      to: 'To',
+      limit: 'How many',
+      threshold: 'Stock at or below',
+      olderThanDays: 'Waiting more than (days)',
+      search: 'Search',
+      tag: 'Tag',
+      collection: 'Collection',
+      product: 'Product',
+      number: 'Order number',
+      query: 'Search',
+      sectionId: 'Section',
+    } as Record<string, string>,
+    periods: {
+      days: 'last N days',
+      today: 'today',
+      yesterday: 'yesterday',
+      this_week: 'this week',
+      last_week: 'last week',
+      this_month: 'this month',
+      last_month: 'last month',
+      this_year: 'this year',
+      custom: 'chosen dates',
+    } as Record<string, string>,
+  },
+
   card: {
     approve: 'Approve',
     edit: 'Edit',

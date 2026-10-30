@@ -86,6 +86,48 @@ export default [
       orderDetails: 'ऑर्डर',
     },
 
+    table: {
+      label: (what: string) => `टेबल: ${what}`,
+      rows: (n: number) => `${n} पंक्तियां`,
+      open: 'रिपोर्ट की तरह खोलें',
+      live: 'कस्टम क्वेरी की तरह खुलेगा, आंकड़े ताज़ा रहेंगे।',
+      snapshot: 'कॉपी की तरह खुलेगा: ये आंकड़े अपडेट नहीं होंगे।',
+    },
+
+    query: {
+      show: 'क्वेरी दिखाएं',
+      hide: 'क्वेरी छिपाएं',
+      ran: (what: string) => `${what} देखा गया`,
+      noInputs: 'सामान्य सेटिंग के साथ',
+      inputs: {
+        period: 'समय',
+        days: 'दिन',
+        from: 'से',
+        to: 'तक',
+        limit: 'कितने',
+        threshold: 'इतना या कम स्टॉक',
+        olderThanDays: 'इतने दिन से ज़्यादा इंतज़ार',
+        search: 'खोज',
+        tag: 'टैग',
+        collection: 'कलेक्शन',
+        product: 'प्रोडक्ट',
+        number: 'ऑर्डर नंबर',
+        query: 'खोज',
+        sectionId: 'सेक्शन',
+      },
+      periods: {
+        days: 'पिछले N दिन',
+        today: 'आज',
+        yesterday: 'कल',
+        this_week: 'इस हफ़्ते',
+        last_week: 'पिछले हफ़्ते',
+        this_month: 'इस महीने',
+        last_month: 'पिछले महीने',
+        this_year: 'इस साल',
+        custom: 'चुनी गई तारीखें',
+      },
+    },
+
     card: {
       approve: 'मंज़ूर करें',
       edit: 'बदलें',

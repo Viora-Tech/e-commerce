@@ -28,6 +28,7 @@ import { permissions } from '@commerce/core'
 import { formatInZone } from '@commerce/dates'
 import { withStore } from '@commerce/db'
 import { z } from 'zod'
+import { type AnswerTable, type CallInput, callInputs, detachTable } from '../answer-table'
 import { type AiCallContext, finishAiCall, type StartedAiCall, startAiCall } from '../guard'
 import { type Fact, storeTools, type ToolEnv } from '../store-tools'
 import { ProposalProblem } from './actions/resolve'
@@ -58,6 +59,10 @@ export type AssistantEvent =
       facts: Fact[]
       /** Personal details the tool sent to the AI (only `orderDetails`: a first name). */
       shared: string[]
+      /** What the model asked the tool, for "Show query". */
+      inputs: CallInput[]
+      /** The tool's rows, straight from the tool (never written by the model). */
+      table: AnswerTable | null
     }
   | { type: 'proposal'; action: ActionView }
   /** A drafted theme edit for the open editor page; the browser applies it, the API never writes it. */
@@ -66,6 +71,9 @@ export type AssistantEvent =
   | { type: 'done' }
 
 type Session = AiCallContext & { email: string }
+
+/** One read tool call: what it was asked and the table it kept back from the model. */
+type ReadCall = { input: unknown; table: AnswerTable | null }
 
 const FAILED = 'Sorry, I could not answer that just now. Please try again in a moment.'
 
@@ -82,12 +90,34 @@ function factsOf(output: unknown): { facts: Fact[]; shared: string[] } {
   return { facts, shared }
 }
 
+/**
+ * A read tool whose table goes to the admin, not the model: the output keeps its facts and a
+ * `ref` to find the call again in the answer's events.
+ */
+function keepingTables(tools: AiToolSet, calls: Map<string, ReadCall>): AiToolSet {
+  return Object.fromEntries(
+    Object.entries(tools).map(([name, t]) => [
+      name,
+      {
+        ...t,
+        run: async (input: unknown, runtime: Parameters<typeof t.run>[1]) => {
+          const ref = randomUUID().slice(0, 8)
+          const { modelOutput, table } = detachTable(await t.run(input, runtime), ref)
+          calls.set(ref, { input, table })
+          return modelOutput
+        },
+      },
+    ]),
+  )
+}
+
 /** The member's tools: read tools and propose tools their role allows. */
 function toolsFor(
   context: Session,
   call: StartedAiCall,
   taint: Taint,
   proposals: Map<string, ActionView>,
+  calls: Map<string, ReadCall>,
 ): AiToolSet {
   const env: ToolEnv = { db: context.db, store: call.store, now: () => new Date(), taint }
   const reads = { ...storeTools(env), ...readTools(env) }
@@ -139,7 +169,7 @@ function toolsFor(
         }),
       ]),
   )
-  return { ...allowedReads, ...proposes }
+  return { ...keepingTables(allowedReads, calls), ...proposes }
 }
 
 const SectionSettingsInput = z.object({
@@ -227,10 +257,11 @@ export async function runAssistant(
   const taint = freshTaint()
   const proposals = new Map<string, ActionView>()
   const themeEdits = new Map<string, ThemeEditView>()
+  const calls = new Map<string, ReadCall>()
   const outline = input.page.page === 'theme-editor' ? input.theme : undefined
   const canEditTheme = Boolean(outline) && context.scope.can(permissions.ONLINE_STORE_WRITE)
   const tools = {
-    ...toolsFor(context, call, taint, proposals),
+    ...toolsFor(context, call, taint, proposals, calls),
     ...(outline && canEditTheme
       ? themeEditTool(outline, taint, themeEdits, (query) =>
           withStore(context.db, call.runtime.storeId, (tx) => findImages(tx, query)),
@@ -283,6 +314,8 @@ export async function runAssistant(
           if (event.name in ACTIONS || event.name === 'proposeThemeEdit') continue
           const { facts, shared } =
             event.status === 'done' ? factsOf(event.output) : { facts: [], shared: [] }
+          const ref = (event.output as { ref?: unknown } | null)?.ref
+          const read = typeof ref === 'string' ? calls.get(ref) : undefined
           yield {
             type: 'source',
             id: event.id,
@@ -290,6 +323,8 @@ export async function runAssistant(
             status: event.status,
             facts,
             shared,
+            inputs: callInputs(read?.input),
+            table: event.status === 'done' ? (read?.table ?? null) : null,
           }
         } else if (event.type === 'error') yield { type: 'error', message: FAILED }
       }

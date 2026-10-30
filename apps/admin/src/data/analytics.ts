@@ -305,6 +305,11 @@ export const analyticsContent = {
       netProfit: 'Net profit',
       estimatedOrders: 'Orders still estimated',
       profitPerUnit: 'Profit per unit',
+      order: 'Order',
+      placed: 'Placed',
+      price: 'Price',
+      handle: 'Handle',
+      collection: 'Collection',
     } as Record<string, string>,
     /** Words for the fixed keys some columns hold (status, COD or prepaid, finance lines). */
     labels: {
@@ -415,6 +420,15 @@ export const analyticsContent = {
     compareLabel: 'Compare',
     chartType: { bars: 'Bar', line: 'Line' },
     details: 'Details',
+    /** An AI answer's table opened as a report (#102). */
+    answer: {
+      title: 'AI answer',
+      snapshot: (when: string) =>
+        `A snapshot of the AI's answer from ${when}. The numbers do not update, because this answer cannot be written as a custom query.`,
+      asked: (question: string) => `You asked: "${question}"`,
+      empty: 'There is no AI answer to show. Ask on the Reports page or in the AI bar, then pick Open as report.',
+      saveHelp: 'Saved as a snapshot under Saved reports. The numbers stay as they were.',
+    },
   },
   live: {
     title: 'Live view',
