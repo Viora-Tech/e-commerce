@@ -13,6 +13,8 @@ import type { StoreContext } from '../context'
 import { applyDiscount, subtotalPaise } from '../discounts/evaluate'
 import { resolveCartDiscount } from '../discounts/resolve'
 import { CommerceError } from '../errors'
+import { localOptions, withLocalOptions } from './local-options'
+import { loadLocalOptionLocations } from './local-service'
 import {
   type ProfileCartPart,
   profilesFreeShippingThreshold,
@@ -252,9 +254,11 @@ export async function quoteProfileLines(
     groups.set(id, [...(groups.get(id) ?? []), l])
   }
   const entries = [...groups]
+  // Local delivery and pickup in store at the store's locations come after the zone rates.
+  const local = localOptions(await loadLocalOptionLocations(tx), to, valuePaise)
   if (entries.length <= 1) {
     const parts: ProfileCartPart[] = [{ profileId: entries[0]?.[0] ?? general.id, measure }]
-    return { quote: quoteProfiles(profiles, parts, to), measure }
+    return { quote: withLocalOptions(quoteProfiles(profiles, parts, to), local), measure }
   }
   const values = splitValue(
     valuePaise,
@@ -264,7 +268,7 @@ export async function quoteProfileLines(
     profileId,
     measure: { valuePaise: values[i] ?? 0, weightGrams: weightOf(ls) },
   }))
-  return { quote: quoteProfiles(profiles, parts, to), measure }
+  return { quote: withLocalOptions(quoteProfiles(profiles, parts, to), local), measure }
 }
 
 /**

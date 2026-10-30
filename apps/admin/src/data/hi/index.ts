@@ -68,6 +68,7 @@ import indiaPost from './india-post'
 import installedApps from './installed-apps'
 import inventory from './inventory'
 import layout from './layout'
+import localDelivery from './local-delivery'
 import login from './login'
 import marketingAutomations from './marketing-automations'
 import marketingCampaigns from './marketing-campaigns'
@@ -255,6 +256,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...shipments,
   ...shipping,
   ...shippingRates,
+  ...localDelivery,
   ...shopifyImport,
   ...shopifyAppInstall,
   ...notifications,

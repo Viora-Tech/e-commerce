@@ -1324,6 +1324,13 @@
       "when": 1793390749337,
       "tag": "0204_product_tax",
       "breakpoints": true
+    },
+    {
+      "idx": 189,
+      "version": "7",
+      "when": 1793391059112,
+      "tag": "0205_local_delivery_pickup",
+      "breakpoints": true
     }
   ]
 }

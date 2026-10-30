@@ -140,6 +140,8 @@ export type CheckoutRate = {
   fastest: boolean
   /** Delivery options app: COD, the sub-choices and the struck-through price of this card. */
   delivery?: DeliveryCardExtras | undefined
+  /** Local delivery or pickup in store: the location's pickup time and instructions. */
+  instructions?: string | null | undefined
 }
 
 export type CheckoutShipping = {
@@ -165,18 +167,23 @@ function datedRates(
   now: Date,
 ): CheckoutRate[] {
   const policy = toShippingPolicy(settings)
-  const cheapest = Math.min(...options.map((o) => o.pricePaise))
+  // Pickup (free) and local delivery are not the courier's standard service.
+  const shipped = options.filter((o) => !o.local)
+  const cheapest = Math.min(...shipped.map((o) => o.pricePaise))
   const dated = options.map((o, i) => ({
     o,
-    window: rateWindow({
-      rate: o,
-      // The first of the cheapest options is the courier's standard service.
-      standard:
-        o.pricePaise === cheapest && options.findIndex((x) => x.pricePaise === cheapest) === i,
-      delivery,
-      policy,
-      now,
-    }),
+    // Local delivery and pickup run on the store's own clock, not a courier's.
+    window: o.local
+      ? null
+      : rateWindow({
+          rate: o,
+          // The first of the cheapest options is the courier's standard service.
+          standard:
+            o.pricePaise === cheapest && shipped.findIndex((x) => x.pricePaise === cheapest) === i,
+          delivery,
+          policy,
+          now,
+        }),
   }))
   const fastest = fastestRate(dated)
   return dated.map(({ o, window }) => ({
@@ -187,6 +194,7 @@ function datedRates(
     codSurchargePaise: o.codSurchargePaise,
     arrives: window ? arrivalLabel(window, now, policy.timeZone) : null,
     fastest: fastest?.o === o,
+    instructions: o.local?.instructions || null,
   }))
 }
 

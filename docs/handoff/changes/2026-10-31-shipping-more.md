@@ -34,3 +34,27 @@ tsc, vitest, lint, builds. Run them on `dev`.
 - Shopify import: Admin API 2026-10 still has no query that lists saved packages (only
   update/delete/make-default mutations and a write-only `shippingPackageId`), so
   `packages_not_shared` stays; its copy now points at Packages.
+
+## #163 Local delivery, pickup in store, split shipping
+
+- **Data** (migration `0205_local_delivery_pickup`): `location.local_delivery` and
+  `location.store_pickup` (JSONB, null = not offered). Types `LocationLocalDelivery`,
+  `LocationStorePickup`; the order snapshot gains `shipping.local` (`OrderLocalDelivery`).
+- **Rule** (`packages/core/src/shipping/local-options.ts`, pure, tested): local delivery for an
+  Indian address whose PIN code matches the location's list (exact or prefix `*`), from its
+  minimum order, free from its free-above value; pickup for every Indian address, free. Options
+  come after the zone rates (`withLocalOptions`), alone when no zone covers the address; a store
+  with no zones stays "free shipping". Rate ids `local:<location>` / `pickup:<location>`; the
+  order's `shipping_rate_id` stays null (`rateRowId`).
+- **Quote**: `quoteProfileLines` adds them, so the checkout preview and `placeOrder` price the
+  same options. The storefront card shows the instructions/pickup time instead of a date.
+- **Admin**: a location page has **Local delivery** and **Pickup in store** cards
+  (`businessGst.setLocationLocalDelivery` / `setLocationStorePickup`).
+- **Split shipping**: routing already splits an order across locations up to
+  `shipping.routing.maxParcels`, and fulfilment handles several shipments per order. The new
+  switch on Settings › Shipping only moves that limit: off = 1, on = 2 (Locations sets more).
+- **Not done**: a radius around the location (needs geocoding; PIN code lists only); pickup and
+  local delivery are not offered while the Delivery options app quotes checkout; checkout still
+  asks for a delivery address with pickup, and the courier PIN check can still hide all options
+  for a PIN the courier does not serve; Create shipment does not skip these orders (fulfil them
+  by hand).

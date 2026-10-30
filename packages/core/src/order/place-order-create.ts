@@ -17,6 +17,7 @@ import { preorderNoteText } from '../preorder/note'
 import { resolveShipDate } from '../preorder/settings'
 import { parsePreorderStoreSettings } from '../preorder/store-settings'
 import { StoreAddressSchema } from '../settings/general'
+import { rateRowId } from '../shipping/local-options'
 import { primaryRateId } from '../shipping/profiles'
 import { computeOrderGst } from '../tax/gst'
 import { parseStoreTax } from '../tax/settings'
@@ -171,7 +172,7 @@ export const createOrder: WorkflowStep<State> = {
         shippingRateId: delivery
           ? backupRateId && primaryRateId(backupRateId)
           : shipping
-            ? primaryRateId(shipping.rateId)
+            ? rateRowId(shipping.rateId, primaryRateId)
             : null,
         shippingRateName: shipping?.name ?? null,
         shipping: shipping
@@ -199,6 +200,7 @@ export const createOrder: WorkflowStep<State> = {
                   }
                 : {}),
               ...(delivery ? { delivery } : {}),
+              ...(shipping.local && !delivery ? { local: shipping.local } : {}),
             }
           : null,
         paymentAdjustmentPaise: adjustmentPaise,

@@ -142,7 +142,9 @@ export default function DeliveryMethod({
                   description={
                     sub?.arrives ??
                     o.arrives ??
-                    (o.dateRange ? content.rateDelivery(o.dateRange) : null)
+                    (o.dateRange ? content.rateDelivery(o.dateRange) : null) ??
+                    o.instructions ??
+                    null
                   }
                   meta={sub ? price(sub.pricePaise) : meta(o)}
                   note={o.delivery && !o.delivery.codAllowed ? appCopy.prepaidOnly : null}

@@ -13,6 +13,7 @@ import CourierRuleFields from '@/components/settings/courier-rule-fields'
 import HealthLine from '@/components/settings/health-line'
 import ShippingPolicyFields from '@/components/settings/shipping-policy-fields'
 import ShippingTryPin from '@/components/settings/shipping-try-pin'
+import SplitShippingCard from '@/components/settings/split-shipping-card'
 import WhatsThisHelp from '@/components/settings/whats-this-help'
 import ShippingProfilesCard from '@/components/shipping-zones/shipping-profiles-card'
 import { SETTINGS_BACK } from '@/data/settings'
@@ -162,6 +163,12 @@ export default function ShippingPage() {
       </Section>
       <Section id="dispatch">
         <ShippingPolicyFields value={form.policy} onChange={(policy) => patch({ policy })} />
+      </Section>
+      <Section id="split">
+        <SplitShippingCard
+          maxParcels={form.routing.maxParcels}
+          onChange={(maxParcels) => patch({ routing: { ...form.routing, maxParcels } })}
+        />
       </Section>
       <Section id="courier">
         <CourierRuleFields

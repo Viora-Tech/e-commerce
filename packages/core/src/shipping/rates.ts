@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import type { LocalOptionInfo } from './local-options'
 import type { ShippingOptionPart } from './profiles'
 
 /**
@@ -94,6 +95,8 @@ export type ShippingRateOption = {
   maxTransitDays: number | null
   /** A cart from several shipping profiles: the rate each profile's products ship at (`profiles.ts`). */
   parts?: ShippingOptionPart[] | undefined
+  /** Local delivery or pickup in store at a location (`local-options.ts`); no rate row. */
+  local?: LocalOptionInfo | undefined
 }
 
 /** A rule pattern: six digits, or 1 to 5 digits followed by `*`. */

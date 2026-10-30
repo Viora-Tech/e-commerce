@@ -661,10 +661,38 @@ export const location = pgTable(
      * Null: shipments use the store-wide return address in Settings › Shipping, as before.
      */
     courierPickup: jsonb('courier_pickup').$type<LocationCourierPickup>(),
+    /** Delivery by the store's own riders near this location (audit #163). Null: not offered. */
+    localDelivery: jsonb('local_delivery').$type<LocationLocalDelivery>(),
+    /** Shoppers collect their order here (audit #163). Null: not offered. */
+    storePickup: jsonb('store_pickup').$type<LocationStorePickup>(),
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex('location_one_default').on(t.storeId).where(sql`${t.isDefault}`)],
 )
+
+/**
+ * Local delivery from a location: the PIN codes it reaches (six digits or a prefix and `*`), the
+ * price, the smallest order it takes and what the shopper is told. Checkout offers it as one more
+ * delivery option for an address in those PIN codes (core `shipping/local-options.ts`).
+ */
+export type LocationLocalDelivery = {
+  enabled: boolean
+  pincodes: string[]
+  pricePaise: number
+  /** Orders below this value (after discounts) do not get local delivery; null: any order. */
+  minOrderPaise: number | null
+  /** Free from this order value up; null: always the price. */
+  freeAbovePaise: number | null
+  instructions: string
+}
+
+/** Pickup in store at a location: when an order is usually ready, and how to collect it. */
+export type LocationStorePickup = {
+  enabled: boolean
+  /** "Usually ready in 2 hours", shown under the option at checkout. */
+  readyIn: string
+  instructions: string
+}
 
 /** A location's courier pickup: its own address, plus the names the courier knows it by. */
 export type LocationCourierPickup = {
@@ -2113,6 +2141,17 @@ export type OrderShippingSnapshot = {
   profiles?: OrderShippingProfilePart[] | undefined
   /** Delivery options app: the option and the exact route the price was quoted on. */
   delivery?: OrderDeliveryRoute | undefined
+  /** Local delivery or pickup in store at one of the store's locations (audit #163). */
+  local?: OrderLocalDelivery | undefined
+}
+
+/** The location an order is delivered from by the store itself, or collected at. */
+export type OrderLocalDelivery = {
+  kind: 'local_delivery' | 'pickup'
+  locationId: string
+  locationName: string
+  /** What the shopper was told at checkout (pickup time, delivery instructions). */
+  instructions: string
 }
 
 /**
