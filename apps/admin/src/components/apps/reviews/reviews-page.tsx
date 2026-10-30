@@ -187,7 +187,7 @@ function ReviewsList() {
         total={result?.total ?? 0}
         onPageChange={(page) => setQ({ page })}
         bulkActions={(ids, clear) => (
-          <div className="flex flex-wrap items-center gap-2">
+          <>
             <Button
               size="sm"
               variant="outline"
@@ -216,7 +216,7 @@ function ReviewsList() {
               <Trash2 />
               {copy.list.bulk.delete}
             </Button>
-          </div>
+          </>
         )}
         rowActions={(r) => (
           <ReviewRowActions id={r.id} status={r.status} featured={r.featured} onChanged={reload} />

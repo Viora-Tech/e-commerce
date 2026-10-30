@@ -11,7 +11,9 @@ import {
   DropdownMenuTrigger,
 } from '@commerce/ui/shadcn/dropdown-menu'
 import { Fragment, useState } from 'react'
-import RunAutomationButton from '@/components/automations/records/run-automation-button'
+import RunAutomationDialog from '@/components/automations/records/run-automation-dialog'
+import { useRunAutomation } from '@/components/automations/records/use-run-automation'
+import ActionMenu, { type ActionItem } from '@/components/layout/action-menu'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { bulkActionsContent } from '@/data/bulk-actions'
 import { CHANNEL_LABEL } from '@/data/customer-privacy'
@@ -45,7 +47,10 @@ function bulkMailto(rows: CustomerRow[]): string | null {
   return emails.length > 0 ? `mailto:?bcc=${encodeURIComponent(emails.join(','))}` : null
 }
 
-/** The customer list's selection bar: edit, tag, consent, export, email and delete. */
+/**
+ * The customer list's bulk actions: edit, tags and marketing as buttons; export, email, run
+ * automation and delete in More actions.
+ */
 export default function CustomersBulkActions({
   ids,
   rows,
@@ -61,6 +66,7 @@ export default function CustomersBulkActions({
   // Hooks
   const { bulk: copy } = useCopy(customersContent)
   const shared = useCopy(bulkActionsContent)
+  const automation = useRunAutomation('customer', automations)
   const [deleting, setDeleting] = useState(false)
 
   // Event handlers
@@ -77,6 +83,12 @@ export default function CustomersBulkActions({
 
   // Render logic
   const mail = bulkMailto(rows)
+  const moreItems: ActionItem[] = [
+    { label: copy.export, icon: Download, onSelect: onExport },
+    { label: copy.email, icon: Send, hidden: !mail, href: mail ?? undefined },
+    ...automation.items(ids),
+    { label: copy.delete, icon: Trash2, destructive: true, onSelect: () => setDeleting(true) },
+  ]
 
   return (
     <>
@@ -113,26 +125,19 @@ export default function CustomersBulkActions({
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
-      <Button variant="outline" size="sm" onClick={onExport}>
-        <Download aria-hidden="true" />
-        {copy.export}
-      </Button>
-      {mail ? (
-        <Button variant="outline" size="sm" render={<a href={mail} />} nativeButton={false}>
-          <Send aria-hidden="true" />
-          {copy.email}
-        </Button>
-      ) : null}
-      <RunAutomationButton
+      <ActionMenu
+        label={copy.more}
+        trigger="button"
+        align="start"
+        items={moreItems}
+        triggerClassName="h-8 rounded-sm px-3"
+      />
+      <RunAutomationDialog
         subjectType="customer"
-        ids={ids}
-        installed={automations}
+        ids={automation.target}
+        onClose={automation.close}
         onDone={onAutomationDone}
       />
-      <Button variant="outline" size="sm" onClick={() => setDeleting(true)}>
-        <Trash2 aria-hidden="true" />
-        {copy.delete}
-      </Button>
       <ConfirmDialog
         open={deleting}
         onOpenChange={setDeleting}

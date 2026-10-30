@@ -18,7 +18,6 @@ import BulkWriteBanner from '@/components/products/bulk-write/bulk-write-banner'
 import { downloadProductCsv } from '@/components/products/export-products'
 import ImportDialog from '@/components/products/import-dialog'
 import ProductBulkActions from '@/components/products/product-bulk-actions'
-import ProductBulkMore from '@/components/products/product-bulk-more'
 import { productColumns } from '@/components/products/product-columns'
 import ProductRowMenu from '@/components/products/product-row-menu'
 import ProductTiles from '@/components/products/product-tiles'
@@ -286,19 +285,6 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
             onTag={() => setTagging({ ids, clear })}
             onBulkEdit={() => router.push(routes.products.bulkEdit(ids))}
             onDelete={() => setDeleting({ ids, clear })}
-            onDone={() => {
-              clear()
-              void refresh()
-            }}
-          />
-        )}
-        bulkMore={(ids, clear) => (
-          <ProductBulkMore
-            ids={ids}
-            busy={busy}
-            onStatus={(status) =>
-              runBulk(ids, { kind: 'status', status }, clear, (r) => copy.bulk.updated(r.changed))
-            }
             onWriteAi={
               initial.aiBulk ? () => router.push(routes.products.bulkWrite({ ids })) : undefined
             }

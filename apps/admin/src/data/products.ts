@@ -101,8 +101,8 @@ export const productsListContent = {
     delete: 'Delete',
     exportSelected: 'Export',
     addToCollection: 'Add to collection',
-    /** The selection header's ⋯ menu: the less common bulk actions. */
-    more: 'More bulk actions',
+    /** The bulk bar's More menu: the less common bulk actions. */
+    more: 'More actions',
     collection: {
       title: 'Add to collection',
       label: 'Collection',

@@ -99,6 +99,7 @@ export default [
       removeTag: 'टैग हटाएँ',
       export: 'चुने हुए एक्सपोर्ट करें',
       email: 'ईमेल',
+      more: 'और कार्रवाइयाँ',
       tagHeading: 'ग्राहकों को टैग करें',
       tagLabel: 'टैग का नाम',
       tagPlaceholder: 'vip',

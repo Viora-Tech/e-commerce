@@ -118,6 +118,8 @@ export const customersContent = {
     removeTag: 'Remove tag',
     export: 'Export selection',
     email: 'Email',
+    /** The bulk bar's More menu: export, email, automations and delete. */
+    more: 'More actions',
     tagHeading: 'Tag customers',
     tagLabel: 'Tag name',
     tagPlaceholder: 'vip',

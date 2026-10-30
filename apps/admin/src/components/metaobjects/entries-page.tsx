@@ -216,7 +216,12 @@ export default function EntriesPage({ definition, initial, initialPerPage }: Ent
               setPage(1)
             }}
             bulkActions={(ids, clear) => (
-              <Button variant="outline" disabled={busy} onClick={() => setDeleting({ ids, clear })}>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={busy}
+                onClick={() => setDeleting({ ids, clear })}
+              >
                 <Trash2 />
                 {copy.bulk.delete}
               </Button>

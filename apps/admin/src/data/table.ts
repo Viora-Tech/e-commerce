@@ -29,6 +29,13 @@ export const tableContent = {
   /** The selection bar's offer once the whole page is ticked. */
   selectAllMatching: (n: string, plural: string) => `Select all ${n} ${plural}`,
   allSelected: (n: string, plural: string) => `All ${n} ${plural} selected`,
+  /** The bulk bar's "3 orders selected ▾" menu. */
+  selectionMenu: 'Selection options',
+  selectPage: 'Select all on this page',
+  clearAllSelected: 'Clear selection',
+  /** The bulk bar's toggle: only the ticked rows, then back to every row. */
+  showSelected: 'Show all selected',
+  showAllRows: 'Show all rows',
   removeFilter: (label: string) => `Remove ${label}`,
   showing: (from: number, to: number, total: number) => `Showing ${from}–${to} of ${total}`,
   rowsPerPage: 'Rows per page',
