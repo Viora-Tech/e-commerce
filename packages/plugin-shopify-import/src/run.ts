@@ -215,6 +215,9 @@ export async function executeRun(deps: RunDeps, runId: string): Promise<void> {
             ? { kind: 'reuse', snapshot: reuse }
             : { kind: 'off' },
     onReuse: saveUse,
+    // "Import remaining" writes only what is missing, so the preview's count would overstate it.
+    onCount: run.onlyMissing ? undefined : (resource, count) => report.expect(resource, count),
+    onDone: (resource) => report.settle(resource),
   })
   const ctx: ImportContext = {
     storeId: deps.storeId,

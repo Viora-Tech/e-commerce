@@ -85,6 +85,8 @@ export class Reporter {
    */
   lastActivity: number
   private closed = false
+  /** Records handed to the writers so far, per resource; `total` never shows less than this. */
+  private readonly seen: Partial<Record<ImportResource, number>> = {}
 
   constructor(
     private readonly inStore: InStore,
@@ -121,9 +123,27 @@ export class Reporter {
     this.of(resource).total = total
   }
 
+  /**
+   * The resource's size when it is known up front (the preview's saved copy), so the run page
+   * shows "308 to bring over" from the start instead of a total growing a batch at a time.
+   */
+  expect(resource: ImportResource, total: number) {
+    const p = this.of(resource)
+    p.total = Math.max(total, this.seen[resource] ?? 0)
+  }
+
+  /** The resource is read to the end: its total is what was really handed on, not the estimate. */
+  settle(resource: ImportResource) {
+    const seen = this.seen[resource]
+    if (seen !== undefined) this.of(resource).total = seen
+  }
+
   addTotal(resource: ImportResource, n: number) {
     this.touch()
-    this.of(resource).total += n
+    const seen = (this.seen[resource] ?? 0) + n
+    this.seen[resource] = seen
+    const p = this.of(resource)
+    p.total = Math.max(p.total, seen)
   }
 
   count(resource: ImportResource, outcome: 'created' | 'updated' | 'skipped' | 'failed') {

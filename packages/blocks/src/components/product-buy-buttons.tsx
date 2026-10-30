@@ -49,6 +49,9 @@ export default function ProductBuyButtons({
   const [pending, startTransition] = useTransition()
   const [added, setAdded] = useState(false)
   const [quantity, setQuantity] = useState(1)
+  // Set once Buy it now heads to checkout: the button stays off while the page changes, so a
+  // second click on a slow load does not add the item again.
+  const [leaving, setLeaving] = useState(false)
   const reduceMotion = useReducedMotion()
 
   // Helpers
@@ -87,9 +90,15 @@ export default function ProductBuyButtons({
   }
 
   const handleBuyNow = () => {
-    if (!variant || !onAddToCart) return
+    if (!variant || !onAddToCart || leaving) return
+    setLeaving(true)
     startTransition(async () => {
-      await onAddToCart(variant.id, pickedQuantity())
+      try {
+        await onAddToCart(variant.id, pickedQuantity())
+      } catch (err) {
+        setLeaving(false)
+        throw err
+      }
       reportAdd(variant.id, variant.pricePaise)
       window.location.assign('/checkout')
     })
@@ -215,7 +224,7 @@ export default function ProductBuyButtons({
             <button
               type="button"
               className="btn btn--primary buy-buttons__buy-now"
-              disabled={pending || !onAddToCart}
+              disabled={pending || leaving || !onAddToCart}
               onClick={handleBuyNow}
             >
               <span className="btn__label">{ui.buyNow}</span>

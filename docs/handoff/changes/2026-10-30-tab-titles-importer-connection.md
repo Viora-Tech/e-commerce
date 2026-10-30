@@ -8,3 +8,11 @@ Found re-testing the admin audit fixes (PR #987).
   (`/apps/shopify-import/connect?edit=1`, Cancel goes back); the Connection card has a Change
   button. Connecting again replaces the saved connection.
 - The importer's connect tabs fit their text and are taller (local classes; shared tabs unchanged).
+
+## Later the same day (direct to dev)
+
+- Buy it now turns off once it heads to checkout, so a second click on a slow page does not
+  add the item again (`product-buy-buttons.tsx`).
+- Shopify import progress shows each resource's full count from the preview at the start
+  (`Reporter.expect`), settling to the real count when the resource is read (`settle`); not for
+  "Import remaining" runs, which write only what is missing.
