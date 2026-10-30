@@ -1,12 +1,15 @@
 'use client'
 
-import type { DomainView, MarketView } from '@commerce/core'
+import type { CatalogSummary, DomainView, MarketView } from '@commerce/core'
 import { permissions } from '@commerce/core/permissions'
 import { Earth, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import type { StoreDefaults } from '@/app/(admin)/markets/load'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import EmptyState from '@/components/layout/empty-state'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
@@ -16,39 +19,40 @@ import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
-import MarketDialog from './market-dialog'
 import MarketRow from './market-row'
+import MarketsGraph from './markets-graph'
 
 type MarketsListProps = {
   /** Every market, the primary one (India) first. */
   markets: MarketView[]
   domains: DomainView[]
+  /** For the Graph view: catalog names on the market cards. */
+  catalogs: CatalogSummary[]
+  /** What every market starts from (the Graph view's Store defaults card). */
+  defaults: StoreDefaults
 }
 
-/** The dialog open: a new market, or the one being changed. */
-type Editing = { market: MarketView | null } | null
+type View = 'list' | 'graph'
 
 /**
  * Markets (Shopify Markets style, a top-level page): the primary market first, then each market with
  * its countries, currency, languages and the address shoppers reach it on.
  */
-export default function MarketsList({ markets, domains }: MarketsListProps) {
+export default function MarketsList({ markets, domains, catalogs, defaults }: MarketsListProps) {
   // Hooks
   const copy = useCopy(marketsContent)
   const router = useRouter()
   const { hasPermission } = usePermissions()
-  const [editing, setEditing] = useState<Editing>(null)
+  const [view, setView] = useState<View>('list')
   const [deleting, setDeleting] = useState<MarketView | null>(null)
   const [switching, setSwitching] = useState<string | null>(null)
   // A switch flips at once and stays flipped while the page reloads its markets.
   const [enabledNow, setEnabledNow] = useState<Record<string, boolean>>({})
 
   // Event handlers
-  // A new market opens on its own page, where the rest of its settings are.
-  const handleSaved = (created?: MarketView) => {
-    setEditing(null)
-    if (created) router.push(routes.markets.detail(created.id))
-    else router.refresh()
+  const handleView = (next: string[]) => {
+    const picked = next[0]
+    if (picked === 'list' || picked === 'graph') setView(picked)
   }
   const handleToggle = async (market: MarketView, enabled: boolean) => {
     setSwitching(market.id)
@@ -85,66 +89,83 @@ export default function MarketsList({ markets, domains }: MarketsListProps) {
   const onlyPrimary = markets.every((m) => m.isPrimary)
   const shown = markets.map((m) => ({ ...m, enabled: enabledNow[m.id] ?? m.enabled }))
   const addButton = canManage ? (
-    <Button onClick={() => setEditing({ market: null })}>
+    <Button render={<Link href={routes.markets.new()} />} nativeButton={false}>
       <Plus aria-hidden="true" />
       {copy.add}
     </Button>
   ) : null
+  const viewSwitch = (
+    <ToggleGroup
+      aria-label={copy.view.label}
+      value={[view]}
+      onValueChange={handleView}
+      variant="outline"
+      spacing={0}
+      className="self-start"
+    >
+      <ToggleGroupItem value="list">{copy.view.list}</ToggleGroupItem>
+      <ToggleGroupItem value="graph">{copy.view.graph}</ToggleGroupItem>
+    </ToggleGroup>
+  )
 
   return (
-    <ProoflyListPage title={copy.title} summary={copy.intro} actions={addButton}>
-      <SettingsTable
-        heading={copy.listTitle}
-        columns={[
-          { label: copy.columns.market },
-          { label: copy.columns.countries, className: 'hidden sm:table-cell' },
-          { label: copy.columns.currency },
-          { label: copy.columns.languages, className: 'hidden md:table-cell' },
-          { label: copy.columns.active, center: true },
-        ]}
-        actions={canManage}
-        after={
-          onlyPrimary ? (
-            <div className="border-line border-t">
-              <EmptyState
-                icon={Earth}
-                heading={copy.empty.heading}
-                body={copy.empty.body}
-                action={
-                  canManage ? (
-                    <Button variant="outline" onClick={() => setEditing({ market: null })}>
-                      {copy.empty.action}
-                    </Button>
-                  ) : undefined
-                }
-              />
-            </div>
-          ) : undefined
-        }
-      >
-        {shown.map((m) => (
-          <MarketRow
-            key={m.id}
-            market={m}
-            primaryHost={primaryHost}
-            canManage={canManage}
-            switching={switching === m.id}
-            href={routes.markets.detail(m.id)}
-            onEdit={() => router.push(routes.markets.detail(m.id))}
-            onDelete={() => setDeleting(m)}
-            onToggle={(enabled) => handleToggle(m, enabled)}
-          />
-        ))}
-      </SettingsTable>
-      {editing ? (
-        <MarketDialog
-          market={editing.market}
-          markets={markets}
-          domains={domains}
-          onClose={() => setEditing(null)}
-          onSaved={handleSaved}
-        />
-      ) : null}
+    <ProoflyListPage
+      title={copy.title}
+      summary={copy.intro}
+      actions={addButton}
+      controls={viewSwitch}
+    >
+      {view === 'graph' ? (
+        <MarketsGraph markets={shown} domains={domains} catalogs={catalogs} defaults={defaults} />
+      ) : (
+        <SettingsTable
+          heading={copy.listTitle}
+          columns={[
+            { label: copy.columns.market },
+            { label: copy.columns.countries, className: 'hidden sm:table-cell' },
+            { label: copy.columns.currency },
+            { label: copy.columns.languages, className: 'hidden md:table-cell' },
+            { label: copy.columns.active, center: true },
+          ]}
+          actions={canManage}
+          after={
+            onlyPrimary ? (
+              <div className="border-line border-t">
+                <EmptyState
+                  icon={Earth}
+                  heading={copy.empty.heading}
+                  body={copy.empty.body}
+                  action={
+                    canManage ? (
+                      <Button
+                        variant="outline"
+                        render={<Link href={routes.markets.new()} />}
+                        nativeButton={false}
+                      >
+                        {copy.empty.action}
+                      </Button>
+                    ) : undefined
+                  }
+                />
+              </div>
+            ) : undefined
+          }
+        >
+          {shown.map((m) => (
+            <MarketRow
+              key={m.id}
+              market={m}
+              primaryHost={primaryHost}
+              canManage={canManage}
+              switching={switching === m.id}
+              href={routes.markets.detail(m.id)}
+              onEdit={() => router.push(routes.markets.detail(m.id))}
+              onDelete={() => setDeleting(m)}
+              onToggle={(enabled) => handleToggle(m, enabled)}
+            />
+          ))}
+        </SettingsTable>
+      )}
       <ConfirmDialog
         open={deleting !== null}
         onOpenChange={(open) => {

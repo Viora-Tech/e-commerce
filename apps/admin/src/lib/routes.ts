@@ -195,6 +195,7 @@ export const routes = {
   /** The countries the store sells to (top-level, like Shopify; was under Settings). */
   markets: {
     list: () => '/markets',
+    new: () => '/markets/new',
     detail: (marketId: string) => `/markets/${id(marketId)}`,
   },
 
