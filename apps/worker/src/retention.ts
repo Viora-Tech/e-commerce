@@ -19,7 +19,7 @@ export function createRetentionPrune(connection: IORedis, db: Db) {
       const r = await runRetentionJob(db, new Date(), {
         log: (m) => logger.warn(m, { area: 'retention' }),
       })
-      if (r.carts || r.outboxEvents || r.paymentPayloads || r.shipmentPayloads) {
+      if (r.carts || r.outboxEvents || r.paymentPayloads || r.shipmentPayloads || r.discoveryEvents) {
         logger.info('retention pruned', { area: 'retention', ...r })
       }
       return r

@@ -119,6 +119,10 @@ const WIPE = [
   'marketing_session',
   'web_vital',
   'product_view',
+  // Search & discovery: events, search pins and picked recommendations point at products
+  'discovery_event',
+  'search_pin',
+  'product_recommendation',
   'automation_run',
   'automation_run_record',
   'automation_step_run',

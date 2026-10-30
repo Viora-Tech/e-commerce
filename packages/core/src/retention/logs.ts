@@ -1,11 +1,19 @@
-/** SOURCE OF TRUTH: Log retention — WHAT: dispatched outbox rows are deleted after 30 days; gateway and courier webhook payloads are emptied after 180 days, keeping each row / WHY: the outbox only grows, and the raw payloads hold shoppers' emails, phones, card digits and addresses, which the DPDP Act says to keep only as long as needed (180 days covers disputes) */
-import { outboxEvent, paymentEvent, type StoreTx, shipmentWebhookEvent } from '@commerce/db'
+/** SOURCE OF TRUTH: Log retention — WHAT: dispatched outbox rows are deleted after 30 days; Search & discovery events after 90 days; gateway and courier webhook payloads are emptied after 180 days, keeping each row / WHY: the outbox only grows, and the raw payloads hold shoppers' emails, phones, card digits and addresses, which the DPDP Act says to keep only as long as needed (180 days covers disputes) */
+import {
+  discoveryEvent,
+  outboxEvent,
+  paymentEvent,
+  type StoreTx,
+  shipmentWebhookEvent,
+} from '@commerce/db'
 import { and, inArray, lt, sql } from 'drizzle-orm'
 
 /** Dispatched outbox rows are kept this long (consumers read a row within minutes of dispatch). */
 const OUTBOX_RETENTION_DAYS = 30
 /** Webhook payloads are kept this long; the row (ids, type, status, error, times) stays for dedupe and history. */
 const WEBHOOK_PAYLOAD_RETENTION_DAYS = 180
+/** Search & discovery events (searches, clicks, recommendation views) are kept this long. */
+const DISCOVERY_RETENTION_DAYS = 90
 
 const DAY_MS = 86_400_000
 /** Only settled events are emptied; a pending one may still be processed. */
@@ -86,5 +94,25 @@ export async function scrubShipmentWebhookEventBatch(
     .set({ payload: {} })
     .where(inArray(shipmentWebhookEvent.id, due))
     .returning({ id: shipmentWebhookEvent.id })
+  return rows.length
+}
+
+/** Delete up to `limit` search and recommendation events over 90 days old; returns how many. */
+export async function deleteOldDiscoveryEventBatch(
+  tx: StoreTx,
+  now: Date,
+  limit: number,
+): Promise<number> {
+  const cutoff = new Date(now.getTime() - DISCOVERY_RETENTION_DAYS * DAY_MS)
+  const due = tx
+    .select({ id: discoveryEvent.id })
+    .from(discoveryEvent)
+    .where(lt(discoveryEvent.createdAt, cutoff))
+    .limit(limit)
+    .for('update', { skipLocked: true })
+  const rows = await tx
+    .delete(discoveryEvent)
+    .where(inArray(discoveryEvent.id, due))
+    .returning({ id: discoveryEvent.id })
   return rows.length
 }

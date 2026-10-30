@@ -1,5 +1,8 @@
 import { type StoreTx, store } from '@commerce/db'
 import { eq, type SQL, sql } from 'drizzle-orm'
+import { boostClauses } from '../discovery/boost-sql'
+import { type CompiledBoosts, NO_BOOSTS } from '../discovery/boosts'
+import { searchBoostsFor } from '../discovery/service'
 import { soldInRequestCatalog } from '../markets/catalog-rules'
 import { FILTERABLE_FIELD_TYPES } from '../metaobjects/schemas'
 import {
@@ -101,23 +104,36 @@ const inList = (values: string[]): SQL =>
 
 /**
  * Every active product in scope with the fields filters and sorts need. `ranked` is the search
- * engine's answer for the query; null means search in SQL.
+ * engine's answer for the query; null means search in SQL. A search runs with the store's
+ * boosts (Search & discovery): pinned products join the matches and lead the relevance order
+ * (`pin`), boosted and buried ones move in `relevance`, all from the row's own columns.
  */
 function baseQuery(
   input: BrowseInput,
   ranked: string[] | null = null,
   plan: SearchPlan | null = null,
+  boosts: CompiledBoosts = NO_BOOSTS,
 ): SQL {
   const search = ranked ? rankedClauses(ranked) : searchClauses(plan)
+  const boost = search ? boostClauses(boosts) : null
   const join = input.collectionId
     ? sql`join collection_product cp on cp.product_id = p.id and cp.collection_id = ${input.collectionId}`
     : sql``
-  const match = search ? sql`and ${search.match}` : sql``
-  const relevance = search?.relevance ?? sql`0`
+  const match = search
+    ? boost?.pinned
+      ? sql`and (${search.match} or ${boost.pinned})`
+      : sql`and ${search.match}`
+    : sql``
+  const relevance = search
+    ? boost?.adjust
+      ? sql`(${search.relevance}) + ${boost.adjust}`
+      : search.relevance
+    : sql`0`
   return sql`
     select p.id, p.handle, p.title, p.created_at, p.product_type, p.vendor, p.tags, p.is_gift_card,
       ${input.collectionId ? sql`cp.position` : sql`0`} as position,
       ${relevance} as relevance,
+      ${boost?.pin ?? sql`null::int`} as pin,
       (select min(v.price_paise) from variant v where v.product_id = p.id and v.archived_at is null and v.hidden_on_store = false) as min_price,
       exists (
         select 1 from variant v
@@ -268,9 +284,9 @@ function orderBy(sort: BrowseSort, unavailable: UnavailableProducts = 'show'): S
   if (unavailable === 'last') return sql`${SELLABLE} desc, ${orderBy(sort)}`
   switch (sort) {
     case 'relevance':
-      // Equally relevant: the ones a shopper can buy now first, then the newest (a drop store's
-      // latest pads before last year's).
-      return sql`b.relevance, ${SELLABLE} desc, b.created_at desc, b.title, b.id`
+      // Pinned products first in the merchant's order; equally relevant: the ones a shopper can
+      // buy now first, then the newest (a drop store's latest pads before last year's).
+      return sql`b.pin nulls last, b.relevance, ${SELLABLE} desc, b.created_at desc, b.title, b.id`
     case 'best-selling':
       return sql`(
         select coalesce(sum(ol.quantity), 0) from order_line ol
@@ -303,6 +319,16 @@ async function rankedFor(tx: StoreTx, storeId: string | undefined, query: string
   return engineProductIds(tx, storeId, query.trim().slice(0, 100))
 }
 
+/** The store's search boosts and the pins for these words; none without a store or a search. */
+async function boostsFor(
+  tx: StoreTx,
+  storeId: string | undefined,
+  query: string | undefined,
+): Promise<CompiledBoosts> {
+  if (!storeId || !query?.trim()) return NO_BOOSTS
+  return searchBoostsFor(tx, query)
+}
+
 /**
  * A listing (a collection, or a search): its page of handles, total and facets. The search
  * engine's answer wins when the store has one; otherwise the shopper's words run in SQL
@@ -313,9 +339,10 @@ export async function browseProducts(tx: StoreTx, input: BrowseInput): Promise<B
   const filterConfig = input.storeId ? await getFilterConfig(tx, input.storeId) : null
   const fieldKeys = configMetafieldKeys(filterConfig)
   const ranked = await rankedFor(tx, input.storeId, input.query)
+  const boosts = await boostsFor(tx, input.storeId, input.query)
   if (ranked) {
     return {
-      ...(await runBrowse(tx, input, fieldKeys, ranked, null)),
+      ...(await runBrowse(tx, input, fieldKeys, ranked, null, boosts)),
       corrected: null,
       filterConfig,
     }
@@ -325,7 +352,7 @@ export async function browseProducts(tx: StoreTx, input: BrowseInput): Promise<B
     return { ...(await runBrowse(tx, input, fieldKeys, null, null)), corrected: null, filterConfig }
   }
   const { result, corrected } = await bestPlan(words, async (plan) => {
-    const listing = await runBrowse(tx, input, fieldKeys, null, plan)
+    const listing = await runBrowse(tx, input, fieldKeys, null, plan, boosts)
     return { listing, found: listing.total }
   })
   return { ...result.listing, corrected, filterConfig }
@@ -349,8 +376,9 @@ async function runBrowse(
   fieldKeys: string[] | null,
   ranked: string[] | null,
   plan: SearchPlan | null,
+  boosts: CompiledBoosts = NO_BOOSTS,
 ): Promise<Omit<BrowseResult, 'corrected' | 'filterConfig'>> {
-  const base = baseQuery(input, ranked, plan)
+  const base = baseQuery(input, ranked, plan, boosts)
   const unavailable = input.unavailable ?? 'show'
   const filters = filterWhere(input.filters, fieldKeys)
   const where = unavailable === 'hide' ? sql`${filters} and ${SELLABLE}` : filters
@@ -467,6 +495,7 @@ export async function suggestProducts(
   const q = query.trim().slice(0, 100)
   if (q.length < 2) return []
   const ranked = storeId ? await engineProductIds(tx, storeId, q, limit * 4) : null
+  const boosts = await boostsFor(tx, storeId, q)
   const input = {
     query: q,
     filters: EMPTY_FILTERS,
@@ -477,7 +506,7 @@ export async function suggestProducts(
   const hide = unavailable === 'hide' ? sql`where ${SELLABLE}` : sql``
   const run = async (plan: SearchPlan | null) => {
     const rows = await tx.execute<Row>(sql`
-      with b as (${baseQuery(input, ranked, plan)})
+      with b as (${baseQuery(input, ranked, plan, boosts)})
       select b.handle from b ${hide} order by ${orderBy('relevance', unavailable)} limit ${limit}`)
     return rows.map((r) => String(r.handle))
   }

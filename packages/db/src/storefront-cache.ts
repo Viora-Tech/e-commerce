@@ -53,11 +53,15 @@ export const STOREFRONT_CACHE_TABLES = [
   'product_media',
   'product_option',
   'product_option_value',
+  // Search & discovery (0209): hand-picked recommendations, search pins and boosts.
+  'product_recommendation',
   'review',
   'review_media',
   // Reviews app (0203): the AI summary and answered questions on product pages.
   'review_question',
   'review_summary',
+  'search_boost',
+  'search_pin',
   // Shipping profiles: which rates the cart's free-shipping line reads (0193).
   'shipping_profile',
   'shipping_profile_product',
@@ -125,6 +129,8 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   customer_segment: ADMIN,
   customer_session: SHOPPER,
   data_request: SHOPPER,
+  // Search & discovery (0209): search and recommendation events for the app's Overview.
+  discovery_event: LOG,
   discount_usage: LOG,
   experiment_event: LOG,
   fulfillment_order: SHOPPER,

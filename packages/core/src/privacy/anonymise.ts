@@ -153,6 +153,8 @@ export async function anonymiseCustomer(
   await tx.delete(customerPasskey).where(eq(customerPasskey.customerId, id))
   // Browse abandonment: which products they looked at.
   await tx.delete(productView).where(eq(productView.customerId, id))
+  // Search & discovery events (`discovery_event`) hold no customer, only a hashed browser id,
+  // so there is nothing of theirs to erase there; the retention job deletes them after 90 days.
   await tx.delete(customerLoginTicket).where(eq(customerLoginTicket.customerId, id))
   if (cu.email) await tx.delete(customerLoginTicket).where(eq(customerLoginTicket.email, cu.email))
   if (cu.email) await tx.delete(customerLoginCode).where(eq(customerLoginCode.email, cu.email))

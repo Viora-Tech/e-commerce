@@ -50,6 +50,7 @@
     "./browse": "./src/catalog/browse-params.ts",
     "./filter-config": "./src/catalog/filter-config.ts",
     "./search": "./src/catalog/search-limits.ts",
+    "./discovery": "./src/discovery/client.ts",
     "./accounts": "./src/accounts/schemas.ts",
     "./account-patterns": "./src/accounts/patterns.ts",
     "./phone": "./src/accounts/phone.ts",

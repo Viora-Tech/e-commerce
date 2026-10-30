@@ -1,8 +1,9 @@
-/** SOURCE OF TRUTH: Retention job — WHAT: the daily `{retention}-prune` at 03:30 India time: for every store with something due (`stores_with_retention_due`, migration 0177), carts past retention (`carts.ts`), then dispatched outbox rows and old webhook payloads (`logs.ts`), 500 rows per statement, each batch in its own short transaction / WHY: a long delete holds row locks a shopper's checkout or a webhook may be waiting on; small batches commit fast and one store or table failing never stops the rest */
+/** SOURCE OF TRUTH: Retention job — WHAT: the daily `{retention}-prune` at 03:30 India time: for every store with something due (`stores_with_retention_due`, migration 0177), carts past retention (`carts.ts`), then dispatched outbox rows, old webhook payloads and Search & discovery events over 90 days old (`logs.ts`), 500 rows per statement, each batch in its own short transaction / WHY: a long delete holds row locks a shopper's checkout or a webhook may be waiting on; small batches commit fast and one store or table failing never stops the rest */
 import { type Db, type StoreTx, storesWithRetentionDue, withStore } from '@commerce/db'
 import { pruneCartBatch } from './carts'
 import {
   deleteDispatchedOutboxBatch,
+  deleteOldDiscoveryEventBatch,
   scrubPaymentEventBatch,
   scrubShipmentWebhookEventBatch,
 } from './logs'
@@ -23,6 +24,7 @@ export type RetentionOutcome = {
   outboxEvents: number
   paymentPayloads: number
   shipmentPayloads: number
+  discoveryEvents: number
 }
 
 type Part = Exclude<keyof RetentionOutcome, 'stores'>
@@ -32,6 +34,7 @@ const PARTS: [Part, (tx: StoreTx, now: Date, limit: number) => Promise<number>][
   ['outboxEvents', deleteDispatchedOutboxBatch],
   ['paymentPayloads', scrubPaymentEventBatch],
   ['shipmentPayloads', scrubShipmentWebhookEventBatch],
+  ['discoveryEvents', deleteOldDiscoveryEventBatch],
 ]
 
 /**
@@ -50,6 +53,7 @@ export async function runRetentionJob(
     outboxEvents: 0,
     paymentPayloads: 0,
     shipmentPayloads: 0,
+    discoveryEvents: 0,
   }
   for (const storeId of await storesWithRetentionDue(db, now)) {
     out.stores += 1
