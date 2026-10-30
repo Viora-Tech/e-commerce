@@ -4,3 +4,7 @@
   "full_bleed" (`customize-liquid-tree.ts`, `OPTION_VALUE`).
 - Setting help text sits below its input with a gap; a negative margin pulled it over the
   input's bottom edge (`customize-overrides.tsx` `SettingHelp`).
+- No sideways scrollbar in an imported theme's canvas: hidden variant radios inside a scrolling
+  carousel escaped its clip in the editor (the section wrapper is positioned) and widened the
+  frame; the canvas now clips horizontal overflow, as the storefront page has none
+  (`preview-frame.tsx`).

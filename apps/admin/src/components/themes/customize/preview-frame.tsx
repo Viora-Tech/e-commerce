@@ -40,6 +40,14 @@ const CANVAS_PAGE_CSS =
   ':root{background:var(--color-bg)}body{background:var(--color-bg);color:var(--color-ink);font-family:var(--font-body)}'
 
 /**
+ * No sideways scroll in an imported theme's canvas. The editor wraps each section in a
+ * positioned element, so a theme's absolutely placed bits inside a scrolling carousel (the
+ * hidden variant radios on product cards) escape the carousel's clip and widened the frame
+ * to thousands of pixels; on the storefront the same page has no horizontal scroll.
+ */
+const CANVAS_NO_SIDE_SCROLL_CSS = 'html{overflow-x:clip}'
+
+/**
  * Paints the theme being edited into Puck's preview iframe, as the storefront
  * preview bridge does: the same CSS and root attributes. The theme and mode
  * come from context (see `PreviewModeContext`) so this stays one stable override. It goes into the frame
@@ -91,7 +99,7 @@ export default function PreviewFrame({ children, document }: PreviewFrameProps) 
     if (!document || !liquid) return
     const holder = document.createElement('template')
     const fonts = liquid.fontsHref ? `<link rel="stylesheet" href="${liquid.fontsHref}">` : ''
-    holder.innerHTML = `${fonts}${liquid.head}`
+    holder.innerHTML = `${fonts}${liquid.head}<style>${CANVAS_NO_SIDE_SCROLL_CSS}</style>`
     const added = Array.from(holder.content.childNodes)
     for (const node of added) document.head.appendChild(node)
     const sprite = document.createElement('div')
