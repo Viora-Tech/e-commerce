@@ -74,5 +74,7 @@ function checkoutRuleMessage(err: CheckoutRuleViolation, pincode: string): strin
       return e.codHighRisk
     case 'cod_prepaid_only_option':
       return deliveryOptionsContent.codPrepaidOnlyOption
+    case 'cod_abroad':
+      return e.codAbroad
   }
 }

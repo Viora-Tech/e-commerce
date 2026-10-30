@@ -5,10 +5,12 @@ import {
   getCart,
   listAddresses,
   publishedPolicyLinks,
+  storeCheckoutCountries,
   storeCheckoutLook,
   storeCheckoutSettings,
   storefrontOriginFor,
 } from '@commerce/core'
+import { defaultCheckoutCountry } from '@commerce/core/checkout-address'
 import { initiateCheckoutEventId } from '@commerce/core/pixels'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
@@ -53,21 +55,34 @@ export default async function CheckoutPage({ params }: Params) {
   // Settings → Customer accounts can require an account: the contact step then signs the
   // shopper in with the store's own codes and providers before anything else (`checkoutAction`
   // refuses an order without one regardless).
-  const [signIn, methods, discount, me, deposit, settings, policies, look, emiApp, methodRules] =
-    await Promise.all([
-      storeSignIn(storeId),
-      inStore(storeId, (tx) => storeCheckoutMethods(tx, storeId)),
-      cartDiscountView(cart.id, cart.discountCode),
-      currentCustomer(storeId),
-      inStore(storeId, (tx) => cartDepositTerms(tx, storeId, cart.id)),
-      inStore(storeId, (tx) => storeCheckoutSettings({ tx, storeId })),
-      inStore(storeId, (tx) => publishedPolicyLinks({ tx, storeId })),
-      inStore(storeId, (tx) => storeCheckoutLook({ tx, storeId })).then((l) =>
-        withThemeLogo(storeId, l),
-      ),
-      inStore(storeId, (tx) => storeEmiOffers(tx, storeId)),
-      inStore(storeId, (tx) => storePaymentMethodRules(tx, storeId)),
-    ])
+  const [
+    signIn,
+    methods,
+    discount,
+    me,
+    deposit,
+    settings,
+    policies,
+    look,
+    emiApp,
+    methodRules,
+    countries,
+  ] = await Promise.all([
+    storeSignIn(storeId),
+    inStore(storeId, (tx) => storeCheckoutMethods(tx, storeId)),
+    cartDiscountView(cart.id, cart.discountCode),
+    currentCustomer(storeId),
+    inStore(storeId, (tx) => cartDepositTerms(tx, storeId, cart.id)),
+    inStore(storeId, (tx) => storeCheckoutSettings({ tx, storeId })),
+    inStore(storeId, (tx) => publishedPolicyLinks({ tx, storeId })),
+    inStore(storeId, (tx) => storeCheckoutLook({ tx, storeId })).then((l) =>
+      withThemeLogo(storeId, l),
+    ),
+    inStore(storeId, (tx) => storeEmiOffers(tx, storeId)),
+    inStore(storeId, (tx) => storePaymentMethodRules(tx, storeId)),
+    // The Country picker: India plus every country a shipping zone covers.
+    inStore(storeId, (tx) => storeCheckoutCountries(tx)),
+  ])
   // The EMI line under the total: the EMI app's own minimum once installed, else the older hint's.
   const emiMinPaise = emiApp.installed
     ? (emiApp.config?.minPricePaise ?? null)
@@ -78,9 +93,12 @@ export default async function CheckoutPage({ params }: Params) {
   const addresses = me ? await inStore(storeId, (tx) => listAddresses({ storeId, tx }, me.id)) : []
   const itemCount = cart.lines.reduce((n, l) => n + l.quantity, 0)
   // Settings → Checkout → Checkout content (#158): the store's wording in the shopper's language.
-  const text = checkoutTextFor(
-    settings.content,
-    (await headers()).get(MARKET_HEADERS.locale) ?? 'en',
+  const requestHeaders = await headers()
+  const text = checkoutTextFor(settings.content, requestHeaders.get(MARKET_HEADERS.locale) ?? 'en')
+  // A new address opens in the shopper's market country when the store ships there.
+  const defaultCountry = defaultCheckoutCountry(
+    requestHeaders.get(MARKET_HEADERS.country),
+    countries,
   )
   return (
     <>
@@ -106,6 +124,8 @@ export default async function CheckoutPage({ params }: Params) {
         settings={settings}
         text={text}
         methodRules={methodRules}
+        countries={countries}
+        defaultCountry={defaultCountry}
         policies={policies}
         look={look}
         emiMinPaise={emiMinPaise}

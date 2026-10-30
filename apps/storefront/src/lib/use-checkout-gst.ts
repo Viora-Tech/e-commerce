@@ -13,11 +13,18 @@ export function useCheckoutGst(input: {
   totalPaise: number
   reductionPaise: number
   stateCode: string | null
+  /** An export (address abroad): no GST line, "Inclusive of all taxes" stays. */
+  abroad?: boolean | undefined
 }): number | null {
   const [gstPaise, setGstPaise] = useState<number | null>(null)
   const { totalPaise, reductionPaise, stateCode } = input
+  const abroad = input.abroad === true
 
   useEffect(() => {
+    if (abroad) {
+      setGstPaise(null)
+      return
+    }
     let live = true
     const timer = setTimeout(() => {
       retryOnce(() => checkoutGstAction({ totalPaise, reductionPaise, stateCode }))
@@ -28,7 +35,7 @@ export function useCheckoutGst(input: {
       live = false
       clearTimeout(timer)
     }
-  }, [totalPaise, reductionPaise, stateCode])
+  }, [totalPaise, reductionPaise, stateCode, abroad])
 
   return gstPaise
 }

@@ -12,6 +12,7 @@ import {
   type ShippingSettings,
   toShippingPolicy,
 } from '@commerce/core'
+import { isAbroad } from '@commerce/core/checkout-address'
 import { registriesForStore } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
 import { store } from '@commerce/db'
@@ -24,6 +25,7 @@ import {
   sharedRedis,
 } from '@commerce/queue'
 import {
+  computeDeliveryEstimate,
   describeCourierFailure,
   estimateDelivery,
   formatDeliveryRange,
@@ -217,9 +219,10 @@ export async function checkoutShipping(
   tx: StoreTx,
   storeId: string,
   cartId: string,
-  to: { pincode: string; stateCode: string },
+  to: { pincode: string; stateCode: string; countryCode?: string | undefined },
   opts: { declineInsurance?: boolean | undefined; quoteId?: string | null | undefined } = {},
 ): Promise<CheckoutShipping> {
+  if (isAbroad(to.countryCode)) return abroadShipping(tx, storeId, cartId, to)
   const fromApp = await deliveryOptionsShipping(tx, storeId, cartId, to, opts)
   if (fromApp) return fromApp
   const delivery = await estimateForPincode(tx, storeId, to.pincode)
@@ -241,6 +244,74 @@ export async function checkoutShipping(
     arrives,
     rates: { kind: 'rates', options: datedRates(quote.options, settings, delivery, now) },
   }
+}
+
+/**
+ * An address abroad: the country zones' rates for the cart (`placeOrder` prices the same), with
+ * no Indian courier asked and no cash on delivery. A rate with its own transit days shows its
+ * dates; others show none, as the store's Indian dispatch days do not say when a parcel abroad
+ * lands. `delivery` stands in as "serviceable, prepaid only" for the rest of the checkout.
+ */
+async function abroadShipping(
+  tx: StoreTx,
+  storeId: string,
+  cartId: string,
+  to: { pincode: string; stateCode: string; countryCode?: string | undefined },
+): Promise<CheckoutShipping> {
+  const delivery: DeliveryEstimate = {
+    ok: true,
+    serviceable: true,
+    pincode: to.pincode,
+    codAvailable: false,
+    dateRange: '',
+    earliestDate: '',
+    latestDate: '',
+    dispatchDate: '',
+    dispatchLabel: '',
+    dispatchesToday: false,
+    fallback: true,
+    provider: 'abroad',
+  }
+  const quote = await quoteCartShipping({ storeId, tx }, cartId, {
+    pincode: to.pincode,
+    stateCode: to.stateCode,
+    countryCode: to.countryCode,
+  })
+  if (quote.kind === 'not_configured') {
+    return { delivery, rates: { kind: 'free' }, parcels: [], arrives: null }
+  }
+  if (quote.kind === 'no_rates') {
+    return { delivery, rates: { kind: 'none' }, parcels: [], arrives: null }
+  }
+  const policy = toShippingPolicy(await loadShippingSettings(tx, storeId))
+  const now = new Date()
+  const windowOf = (o: ShippingRateOption): RateWindow | null => {
+    if (o.minTransitDays === null || o.maxTransitDays === null) return null
+    try {
+      const e = computeDeliveryEstimate({
+        now,
+        minTransitDays: o.minTransitDays,
+        maxTransitDays: o.maxTransitDays,
+        policy,
+      })
+      return { earliest: e.earliestDate, latest: e.latestDate, source: 'rate' }
+    } catch {
+      return null
+    }
+  }
+  const options: CheckoutRate[] = quote.options.map((o) => {
+    const window = windowOf(o)
+    return {
+      id: o.rateId,
+      name: o.name,
+      pricePaise: o.pricePaise,
+      dateRange: window ? formatDeliveryRange(window.earliest, window.latest) : null,
+      codSurchargePaise: null,
+      arrives: window ? arrivalLabel(window, now, policy.timeZone) : null,
+      fastest: false,
+    }
+  })
+  return { delivery, rates: { kind: 'rates', options }, parcels: [], arrives: null }
 }
 
 /**

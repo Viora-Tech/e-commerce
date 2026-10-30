@@ -507,6 +507,7 @@ export class DhlExpressProvider implements ShippingProvider {
             phone: input.to.phone,
             companyName: input.to.name.slice(0, 100),
             fullName: input.to.name.slice(0, 255),
+            ...(input.to.email ? { email: input.to.email.slice(0, 70) } : {}),
           },
           typeCode: 'private',
         },

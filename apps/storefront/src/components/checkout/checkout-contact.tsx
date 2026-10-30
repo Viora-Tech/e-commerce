@@ -31,6 +31,7 @@ export default function CheckoutContact({ ck }: CheckoutContactProps) {
       onField={ck.set}
       onPhone={ck.handlePhone}
       onLeave={ck.handleLeave}
+      countryCode={ck.form.countryCode}
     />
   )
 

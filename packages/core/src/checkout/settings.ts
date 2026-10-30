@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { MOBILE_PATTERN, normaliseMobile, PINCODE_PATTERN } from '../accounts/schemas'
 import { CheckoutRuleViolation } from '../errors'
 import { GSTIN_MESSAGES, validateGstin } from '../tax/gstin'
+import { abroadPhone, checkoutCountry, isAbroad } from './address-abroad'
 import { CheckoutBrandingSchema } from './branding'
 import { CartLimitSchema } from './cart-limit'
 import { CheckoutTextSchema } from './content'
@@ -181,11 +182,13 @@ export type CheckoutContactInput = {
   gstin?: string | null | undefined
   businessName?: string | null | undefined
   note?: string | null | undefined
+  /** The delivery country (ISO 3166-1); left out means India. Abroad any valid phone will do. */
+  countryCode?: string | null | undefined
 }
 
 export type CheckoutContact = {
   email: string | null
-  /** Ten digits, without +91. */
+  /** Ten digits, without +91, for an address in India; E.164 (`+61…`) for one abroad. */
   phone: string
   gstin: string | null
   businessName: string | null
@@ -226,8 +229,13 @@ export function validateCheckoutContact(
   } else if (!EMAIL.safeParse(email).success) {
     errors.email = 'Enter a valid email address'
   }
-  const phone = normaliseMobile(input.phone)
-  if (!phone || !MOBILE_PATTERN.test(phone)) {
+  const abroad = isAbroad(input.countryCode)
+  const phone = abroad
+    ? abroadPhone(input.phone, checkoutCountry(input.countryCode))
+    : normaliseMobile(input.phone)
+  if (abroad && !phone) {
+    errors.phone = 'Enter a phone number with its country code, like +61 412 345 678'
+  } else if (!abroad && (!phone || !MOBILE_PATTERN.test(phone))) {
     errors.phone = 'Enter a 10 digit mobile number, like 98765 43210'
   }
   let gstin: string | null = null
@@ -277,7 +285,13 @@ export function checkCheckoutRules(
   settings: CheckoutSettings,
   order: {
     checkout:
-      | (CheckoutContactInput & { address: { pincode: string; line2?: string | undefined } })
+      | (CheckoutContactInput & {
+          address: {
+            pincode: string
+            line2?: string | undefined
+            countryCode?: string | undefined
+          }
+        })
       | null
     paymentProviderId: string
     giftCardsOnly: boolean
@@ -293,6 +307,7 @@ export function checkCheckoutRules(
     const checked = validateCheckoutContact(settings, {
       ...order.checkout,
       line2: order.checkout.line2 ?? order.checkout.address.line2,
+      countryCode: order.checkout.address.countryCode,
     })
     if (!checked.ok) {
       throw new CheckoutRuleViolation('contact', { storeId, fields: checked.errors })
@@ -305,6 +320,10 @@ export function checkCheckoutRules(
     : minimumOrderShortfall(settings, order.ruleSubtotalPaise)
   if (shortfall > 0) {
     throw new CheckoutRuleViolation('minimum_order', { storeId, amountPaise: shortfall })
+  }
+  // Cash on delivery is for Indian couriers only: never an address abroad.
+  if (order.paymentProviderId === 'cod' && isAbroad(order.checkout?.address.countryCode)) {
+    throw new CheckoutRuleViolation('cod_abroad', { storeId })
   }
   if (order.paymentProviderId === 'cod' && order.checkout) {
     const cod = codDecision(settings.cod, {

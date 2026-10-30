@@ -3,8 +3,9 @@
  *        order lines and fulfillment orders, inside placeOrder's transaction.
  * WHY:   Split from place-order.ts (#973) to keep the workflow file readable; placeOrder runs it.
  */
-import { newId, order, orderLine, store } from '@commerce/db'
-import { eq } from 'drizzle-orm'
+import { newId, order, orderLine, type StoreTx, store } from '@commerce/db'
+import { eq, sql } from 'drizzle-orm'
+import { isAbroad, taxRegimeFor } from '../checkout/address-abroad'
 import { requestCodConfirmation } from '../cod-rto/confirm'
 import { tagsForRisk } from '../cod-rto/risk'
 import { applyDiscount } from '../discounts/evaluate'
@@ -125,7 +126,13 @@ export const createOrder: WorkflowStep<State> = {
     const grossOf = (key: string, quantity: number) =>
       quantity * (lines[Number(key)]?.unitPricePaise ?? 0)
     const storeState = storeAddress.success ? storeAddress.data.state : null
-    const shipToState = input.checkout?.address.stateCode ?? null
+    // An export (address abroad) has no Indian GST state; under a LUT it carries no GST at all.
+    const countryCode = input.checkout?.address.countryCode
+    const abroad = isAbroad(countryCode)
+    const mode = abroad ? await exportMode(ctx.tx, ctx.storeId) : null
+    const taxRegime = taxRegimeFor(countryCode, mode)
+    const zeroRated = taxRegime === 'export_lut'
+    const shipToState = abroad ? null : (input.checkout?.address.stateCode ?? null)
     // Each parcel splits its own GST from its GSTIN; the order's is their sum (parcel-tax.ts).
     const billed = await taxParcels(ctx.tx, {
       parcels,
@@ -133,7 +140,7 @@ export const createOrder: WorkflowStep<State> = {
         const line = lines[Number(key)]
         return {
           grossPaise: grossOf(key, quantity),
-          ratePercent: line ? lineGstRate(line, s.gstRatePercent, storeTax) : 0,
+          ratePercent: line && !zeroRated ? lineGstRate(line, s.gstRatePercent, storeTax) : 0,
         }
       },
       discountPaise,
@@ -148,7 +155,7 @@ export const createOrder: WorkflowStep<State> = {
       computeOrderGst({
         lines: lines.map((l) => ({
           grossPaise: l.quantity * l.unitPricePaise,
-          ratePercent: lineGstRate(l, s.gstRatePercent, storeTax),
+          ratePercent: zeroRated ? 0 : lineGstRate(l, s.gstRatePercent, storeTax),
         })),
         totalPaise,
         reductionPaise: discountPaise + Math.max(0, -adjustmentPaise),
@@ -164,6 +171,7 @@ export const createOrder: WorkflowStep<State> = {
         subtotalPaise,
         taxPaise: tax.taxPaise,
         taxBreakdown: tax,
+        taxRegime,
         gstRegistrationId: origin.gstRegistrationId,
         taxOrigin: origin,
         shippingPaise,
@@ -299,4 +307,15 @@ export const createOrder: WorkflowStep<State> = {
     await ctx.tx.delete(orderLine).where(eq(orderLine.orderId, orderId))
     await ctx.tx.delete(order).where(eq(order.id, orderId))
   },
+}
+
+/**
+ * The GST invoices app's export setting (`invoice_settings.settings.exportMode`): `igst` when
+ * the store pays IGST on exports and claims it back, else `lut` (no row, or the app's default).
+ */
+async function exportMode(tx: StoreTx, storeId: string): Promise<'lut' | 'igst'> {
+  const rows = await tx.execute<{ mode: string | null }>(
+    sql`select settings ->> 'exportMode' as mode from invoice_settings where store_id = ${storeId} limit 1`,
+  )
+  return rows[0]?.mode === 'igst' ? 'igst' : 'lut'
 }

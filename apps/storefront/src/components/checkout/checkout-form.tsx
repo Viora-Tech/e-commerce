@@ -15,6 +15,7 @@ import ExpressPay from '@/components/checkout/express-pay'
 import SummaryDisclosure from '@/components/checkout/summary-disclosure'
 import { checkoutContent as content } from '@/data/checkout'
 import { CK_LINK } from '@/lib/checkout-classes'
+import { countryName } from '@/lib/checkout-countries'
 import { processorNames, shippingRow } from '@/lib/checkout-preview'
 import { type CheckoutSection, sectionDomId, sectionHeadingId } from '@/lib/checkout-sections'
 import { cleanPincode } from '@/lib/checkout-validation'
@@ -45,6 +46,7 @@ export default function CheckoutForm(props: CheckoutFormProps) {
     totalPaise: ck.totals.totalPaise,
     reductionPaise: (ck.discount?.amountPaise ?? 0) + Math.max(0, -ck.totals.adjustmentPaise),
     stateCode: ck.form.stateCode || null,
+    abroad: ck.abroad,
   })
 
   // Render logic
@@ -54,7 +56,13 @@ export default function CheckoutForm(props: CheckoutFormProps) {
   const { totals, deposit, look, shipping, rate, done, sections } = ck
   const { digitalOnly } = totals
   const pincode = cleanPincode(ck.form.pincode)
-  const fullPincode = /^[1-9]\d{5}$/.test(pincode)
+  // Abroad there is no PIN code line: Shipping names the country instead.
+  const fullPincode = !ck.abroad && /^[1-9]\d{5}$/.test(pincode)
+  const shippingAside = ck.abroad
+    ? countryName(ck.form.countryCode)
+    : fullPincode
+      ? copy.shippingTo(pincode)
+      : null
   const shortfall =
     ck.shortfall > 0
       ? content.minimumOrder(formatPaise(ck.settings.minimumOrderPaise), formatPaise(ck.shortfall))
@@ -215,8 +223,8 @@ export default function CheckoutForm(props: CheckoutFormProps) {
             title={copy.label.shipping}
             done={done.shipping}
             aside={
-              fullPincode ? (
-                <span className="text-[0.75rem] text-ck-muted">{copy.shippingTo(pincode)}</span>
+              shippingAside ? (
+                <span className="text-[0.75rem] text-ck-muted">{shippingAside}</span>
               ) : null
             }
           >

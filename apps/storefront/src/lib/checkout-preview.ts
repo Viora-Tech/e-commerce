@@ -147,6 +147,8 @@ export type CheckoutTotalsInput = {
   laterPaise: number
   /** Settings → Payments → Payment rules (#150): ways to pay hidden for some orders. */
   methodRules?: readonly PaymentMethodRule[] | undefined
+  /** The address is outside India: cash on delivery is not offered at all. */
+  abroad?: boolean | undefined
 }
 
 /**
@@ -171,7 +173,9 @@ export function checkoutTotals(input: CheckoutTotalsInput) {
     pincode: input.pincode,
     productIds: cart.lines.flatMap((l) => l.productId ?? []),
   })
-  const offered = offeredMethods(cart, methods).filter((m) => !hidden.has(m.id))
+  const offered = offeredMethods(cart, methods).filter(
+    (m) => !hidden.has(m.id) && !(input.abroad && m.id === 'cod'),
+  )
   // Delivery options app: Express (any prepaid-only option) refuses cash on delivery.
   const optionPrepaid = rate?.delivery?.codAllowed === false
   const codBlocked =
@@ -249,7 +253,12 @@ export function deliveryLine(s: CheckoutShipping | null, checking: boolean): str
   const d = s?.delivery
   if (!d?.ok) return null
   if (!d.serviceable) return content.delivery.unserviceable(d.pincode)
-  if (s?.rates.kind === 'none') return content.delivery.noRates(d.pincode)
+  if (s?.rates.kind === 'none') {
+    // `abroadShipping`: no courier was asked, so it is the country nobody ships to.
+    return d.provider === 'abroad'
+      ? content.delivery.noRatesAbroad
+      : content.delivery.noRates(d.pincode)
+  }
   // Several rates carry their own dates on the options below.
   if (s?.rates.kind === 'rates' && s.rates.options.length > 1) return null
   const own = s?.rates.kind === 'rates' ? s.rates.options[0]?.dateRange : null

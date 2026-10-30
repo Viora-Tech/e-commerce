@@ -5,6 +5,7 @@
  */
 import { address, customer } from '@commerce/db'
 import { and, desc, eq, isNull, sql } from 'drizzle-orm'
+import { abroadRegion, checkoutCountry, isAbroad } from '../checkout/address-abroad'
 import type { CheckoutContact } from '../checkout/settings'
 import type { StoreContext } from '../context'
 import { recordCustomerChange } from '../customers/changes'
@@ -24,6 +25,11 @@ export async function upsertCheckoutCustomer(
 ): Promise<{ customerId: string | null; shippingAddressId: string | null }> {
   const co = { ...checkout, phone: contact?.phone ?? checkout.phone }
   const email = contact ? (contact.email ?? '') : co.email.trim().toLowerCase()
+  // Abroad, `stateCode` holds the region's code (as Shopify imports keep it); `province` its name.
+  const country = checkoutCountry(co.address.countryCode)
+  const province = isAbroad(country)
+    ? (abroadRegion(country, co.address.stateCode)?.name ?? null)
+    : null
   const defaultAddress = {
     name: co.name,
     line1: co.address.line1,
@@ -31,7 +37,7 @@ export async function upsertCheckoutCustomer(
     city: co.address.city,
     stateCode: co.address.stateCode,
     pincode: co.address.pincode,
-    country: 'IN',
+    country,
     phone: co.phone,
   }
   /* One customer per email per store; a repeat order refreshes name, phone and address.
@@ -81,6 +87,8 @@ export async function upsertCheckoutCustomer(
       city: co.address.city,
       stateCode: co.address.stateCode,
       pincode: co.address.pincode,
+      country,
+      province,
       phone: co.phone,
     })
     .returning({ id: address.id })

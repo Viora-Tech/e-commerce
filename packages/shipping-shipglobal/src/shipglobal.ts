@@ -306,8 +306,8 @@ export class ShipglobalProvider implements ShippingProvider {
         customer_shipping_firstname: buyer.first,
         customer_shipping_lastname: buyer.last,
         customer_shipping_mobile: phoneOf(input.to.phone, toCountry),
-        // VERIFY: the shopper's email is not in the shipment contract; the seller's stands in.
-        customer_shipping_email: this.config.email,
+        // The shopper's email when the order has one; the seller's stands in otherwise.
+        customer_shipping_email: input.to.email || this.config.email,
         customer_shipping_company: input.to.name,
         customer_shipping_address: buyerLine1,
         customer_shipping_address_2: buyerLine2,

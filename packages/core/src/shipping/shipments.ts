@@ -291,6 +291,7 @@ export async function createShipmentForOrder(
       pincode: to.pincode,
       country: to.country,
       phone: to.phone,
+      ...(o.email ? { email: o.email } : {}),
     },
     from: shipFrom.address,
     ...(shipFrom.pickupLocationName ? { pickupLocationName: shipFrom.pickupLocationName } : {}),

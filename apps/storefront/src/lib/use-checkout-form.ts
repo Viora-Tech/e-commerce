@@ -1,5 +1,6 @@
 import { formatPaise } from '@commerce/blocks'
 import type { CartView, CheckoutLook, SavedAddress, SignedInCustomer } from '@commerce/core'
+import { cleanPostalCode, isAbroad } from '@commerce/core/checkout-address'
 import {
   applyCheckoutText,
   type CheckoutSettings,
@@ -21,6 +22,7 @@ import { deleteAddressAction, saveAddressAction } from '@/lib/account-actions'
 import { captureContactAction, checkoutAction } from '@/lib/cart-actions'
 import { readDraft, writeDraft } from '@/lib/checkout-draft'
 import {
+  addressForCountry,
   type CheckoutFormState,
   fullNameOf,
   NEW_ADDRESS,
@@ -53,7 +55,7 @@ import type { CartDiscountView } from '@/lib/discount-view'
 import type { AppliedGiftCard } from '@/lib/gift-card-actions'
 import type { CheckoutMethod } from '@/lib/payments'
 import type { CartDepositTerms } from '@/lib/preorder'
-import { isFullPincode, useCheckoutShipping } from '@/lib/use-checkout-shipping'
+import { isQuotable, useCheckoutShipping } from '@/lib/use-checkout-shipping'
 import { applyPendingDiscountCode } from './pending-code'
 
 /** Settings → Customer accounts, as the Contact card needs it. */
@@ -91,6 +93,10 @@ export type CheckoutFormInput = {
   text?: CheckoutTextOverrides
   /** Settings → Payments → Payment rules (#150): ways to pay hidden for some orders. */
   methodRules?: PaymentMethodRule[]
+  /** The Country picker: India, then the countries the store's shipping zones cover. */
+  countries?: string[]
+  /** The country a new address opens in: the shopper's market country when offered. */
+  defaultCountry?: string
 }
 
 type ChangeHandler = (
@@ -98,6 +104,9 @@ type ChangeHandler = (
 ) => void
 
 const NO_DEPOSIT: CartDepositTerms = { laterPaise: 0, nonRefundableDays: null }
+const INDIA_ONLY = ['IN']
+/** The fields a new country empties, so their checks start over. */
+const PLACE_KEYS: readonly string[] = ['pincode', 'stateCode', 'city']
 const GUEST_EMAIL: CheckoutSignIn = { methods: ['email'], checkout: 'guest', options: null }
 /** The Send code button in Contact; Pay points here until the shopper signs in. */
 export const SEND_CODE_ID = 'checkout-send-code'
@@ -130,6 +139,11 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   const deposit = input.deposit ?? NO_DEPOSIT
   const emiMinPaise = input.emiMinPaise ?? null
   const signIn = input.signIn ?? GUEST_EMAIL
+  const countries = input.countries?.length ? input.countries : INDIA_ONLY
+  /** A country the picker offers; anything else (an old draft) is India. */
+  const offeredCountry = (code: string | undefined) =>
+    code && countries.includes(code) ? code : 'IN'
+  const startCountry = offeredCountry(input.defaultCountry)
   /** Settings → Checkout → Form fields (#154). */
   const splitName = settings.fields.name === 'split'
   const companyShown = settings.fields.company !== 'hidden'
@@ -140,7 +154,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   const [pending, start] = useTransition()
   const [savingAddress, startSave] = useTransition()
   const [form, setForm] = useState<CheckoutFormState>(() => ({
-    ...prefillCheckout(customer, addresses[0], settings.fields.name),
+    ...prefillCheckout(customer, addresses[0], settings.fields.name, startCountry),
     payment: offeredMethods(cart, methods)[0]?.id ?? 'cod',
   }))
   const [savedId, setSavedId] = useState<string>(addresses[0]?.id ?? NEW_ADDRESS)
@@ -184,6 +198,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     if (draft) {
       opened = {
         ...draft.form,
+        countryCode: offeredCountry(draft.form.countryCode),
         // A signed-in shopper's email is theirs; the payment pick must still be on offer.
         email: customer?.email ?? draft.form.email,
         payment: methods.some((m) => m.id === draft.form.payment)
@@ -198,12 +213,19 @@ export function useCheckoutForm(input: CheckoutFormInput) {
       // A guest back on the same browser: start from the details they used last time.
       const remembered = readRemembered()
       if (remembered) {
-        opened = { ...form, ...remembered }
+        const country = offeredCountry(remembered.countryCode)
+        // An address remembered in a country the store no longer ships to starts over.
+        opened =
+          country === (remembered.countryCode ?? 'IN')
+            ? { ...form, ...remembered, countryCode: country }
+            : { ...form, ...remembered, ...addressForCountry(country) }
         setForm(opened)
         setGuest(true)
       }
     }
-    if (isFullPincode(opened.pincode)) checkPincode(opened.pincode, opened.stateCode)
+    if (isQuotable(opened.pincode, opened.countryCode)) {
+      checkPincode(opened.pincode, opened.stateCode, opened.countryCode)
+    }
     setSettled(true)
     followLegacyStep(sectionsFor(isDigitalOnly(cart)))
   }, [])
@@ -215,7 +237,9 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   // A code applied in the summary can move the cart across a band or make shipping free.
   // biome-ignore lint/correctness/useExhaustiveDependencies: re-quote only when the discount changes.
   useEffect(() => {
-    if (settled && isFullPincode(form.pincode)) checkPincode(form.pincode, form.stateCode)
+    if (settled && isQuotable(form.pincode, form.countryCode)) {
+      checkPincode(form.pincode, form.stateCode, form.countryCode)
+    }
   }, [discount?.amountPaise, discount?.freeShipping])
 
   const fieldErrors = checkoutFieldErrors(form, {
@@ -228,7 +252,8 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     : Object.fromEntries(
         Object.entries(fieldErrors).filter(([k]) => touched[k as CheckoutFieldKey]),
       )
-  const wrongFields = fieldOrder(true).filter((k) => fieldErrors[k])
+  const abroad = isAbroad(form.countryCode)
+  const wrongFields = fieldOrder(!abroad).filter((k) => fieldErrors[k])
   const accountRequired = signIn.checkout === 'account_required'
   /** Contact is settled: signed in, or a guest where the store allows one. */
   const contactReady = customer !== null || (!accountRequired && guest)
@@ -244,6 +269,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     pincode: form.pincode,
     laterPaise: deposit.laterPaise,
     methodRules: input.methodRules,
+    abroad,
   })
   const { digitalOnly, offered, payment, coveredByCards, payNowPaise } = totals
   const contactFieldsOk = !wrongFields.some((k) => CONTACT_KEYS.includes(k))
@@ -309,7 +335,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
         ...(splitName
           ? { name: fullNameOf(form), firstName: form.name, lastName: lastName ?? '' }
           : {}),
-        pincode: cleanPincode(form.pincode),
+        pincode: abroad ? cleanPostalCode(form.pincode) : cleanPincode(form.pincode),
         payment: paymentId,
         giftCards: giftCards.map((c) => c.code),
         ...ship.formFields,
@@ -321,6 +347,12 @@ export function useCheckoutForm(input: CheckoutFormInput) {
 
   /** A PIN code whose prefix allows one state fills it in, unless the shopper picked one. */
   const handlePincode = (pincode: string) => {
+    if (abroad) {
+      // A postcode abroad fills nothing in; its country zone prices it.
+      setForm((prev) => ({ ...prev, pincode }))
+      checkPincode(pincode, form.stateCode, form.countryCode)
+      return
+    }
     const guess = touched.stateCode ? null : stateForPincode(cleanPincode(pincode))
     const stateCode = guess ?? form.stateCode
     setForm((prev) => ({ ...prev, pincode, stateCode }))
@@ -330,7 +362,26 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   const handleState = (stateCode: string) => {
     setForm((prev) => ({ ...prev, stateCode }))
     touch('stateCode')
-    checkPincode(form.pincode, stateCode)
+    // Abroad the region is typed: zones there go by country, so nothing re-prices.
+    if (!abroad) checkPincode(form.pincode, stateCode)
+  }
+  /**
+   * A new country empties the address's place fields (a PIN code is not a postcode) and
+   * quotes again; cash on delivery moves to the first online method outside India.
+   */
+  const handleCountry = (countryCode: string) => {
+    const next = addressForCountry(offeredCountry(countryCode))
+    const online = methods.find((m) => m.id !== 'cod')?.id
+    setForm((prev) => ({
+      ...prev,
+      ...next,
+      payment:
+        isAbroad(next.countryCode) && prev.payment === 'cod' && online ? online : prev.payment,
+    }))
+    setTouched((prev) =>
+      Object.fromEntries(Object.entries(prev).filter(([k]) => !PLACE_KEYS.includes(k))),
+    )
+    checkPincode(next.pincode, next.stateCode, next.countryCode)
   }
   /** PIN code first: the directory's city and state, still editable; shipping re-quotes for the state. */
   const handlePlace = (place: { city: string; stateCode: string }, pincode: string) => {
@@ -345,13 +396,13 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     const next = picked
       ? prefillCheckout(customer, picked, settings.fields.name)
       : {
-          ...prefillCheckout(customer, undefined, settings.fields.name),
+          ...prefillCheckout(customer, undefined, settings.fields.name, form.countryCode),
           name: form.name,
           ...(splitName ? { lastName: form.lastName ?? '' } : {}),
           phone: form.phone,
         }
     setForm((prev) => ({ ...prev, ...next }))
-    checkPincode(next.pincode, next.stateCode)
+    checkPincode(next.pincode, next.stateCode, next.countryCode)
   }
   /* Leaving a field shows its check; leaving the contact saves it, so a basket left here can be recovered. */
   const handleLeave = (key: CheckoutFieldKey) => {
@@ -526,9 +577,14 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     sections,
     gates,
     done,
+    countries,
+    abroad,
+    /** Enough of the address to quote shipping (six PIN digits, or a postcode that will do). */
+    addressQuotable: isQuotable(form.pincode, form.countryCode),
     set,
     handlePincode,
     handleState,
+    handleCountry,
     handlePlace,
     handlePickAddress,
     handleLeave,

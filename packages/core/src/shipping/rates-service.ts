@@ -7,6 +7,7 @@ import {
   variant,
 } from '@commerce/db'
 import { and, asc, eq, inArray, isNull, max, notInArray } from 'drizzle-orm'
+import { checkoutCountries } from '../checkout/address-abroad'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
 import {
@@ -40,6 +41,15 @@ export type ShippingProfileRow = typeof shippingProfile.$inferSelect
 export type ShippingZoneRow = typeof shippingZone.$inferSelect
 export type ShippingRateRow = typeof shippingRate.$inferSelect
 export type ShippingZoneWithRates = ShippingZoneRow & { rates: ShippingRateRow[] }
+
+/**
+ * The countries checkout offers in its Country picker: India, then every country a shipping
+ * zone names (all of them with a "Rest of world" zone). RLS scopes the zones.
+ */
+export async function storeCheckoutCountries(tx: StoreTx): Promise<string[]> {
+  const zones = await tx.select({ countries: shippingZone.countryCodes }).from(shippingZone)
+  return checkoutCountries(zones.map((z) => z.countries))
+}
 
 /** Every zone of the store with its rates, in the merchant's order. RLS scopes the rows. */
 export async function listShippingZones(tx: StoreTx): Promise<ShippingZoneWithRates[]> {

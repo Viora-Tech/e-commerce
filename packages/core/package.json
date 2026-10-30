@@ -108,6 +108,7 @@
     "./store-health": "./src/store-health/checks.ts",
     "./sales-channels": "./src/sales-channels/client.ts",
     "./checkout-settings": "./src/checkout/settings.ts",
+    "./checkout-address": "./src/checkout/address-abroad.ts",
     "./checkout-handoff": "./src/checkout/handoff.ts",
     "./checkout-redeem": "./src/checkout/redeem.ts",
     "./privacy": "./src/privacy/client.ts",

@@ -24,6 +24,7 @@ import {
   syncOpenQrAttempt,
   thankYouPath,
 } from '@commerce/core'
+import { checkoutCountry, isAbroad } from '@commerce/core/checkout-address'
 import { CONSENT_COOKIE, currentConsent, decodeConsent } from '@commerce/core/consent'
 import { collectorStore, withdrawCartMarketingConsent } from '@commerce/core/pixels/server'
 import { type ParcelDeliveryEstimate, payment } from '@commerce/db'
@@ -202,8 +203,12 @@ export type CheckoutForm = {
   line1: string
   line2: string
   city: string
+  /** An Indian state code; abroad, the state, province or region as typed (may be blank). */
   stateCode: string
+  /** A PIN code in India; the postcode abroad. */
   pincode: string
+  /** ISO 3166-1 country of the address; left out means India. */
+  countryCode?: string
   payment: string
   /** Gift card codes applied in the summary; each is re-checked here before it is spent. */
   giftCards?: string[]
@@ -286,6 +291,10 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
   // Gift cards are emailed, so a basket of only gift cards has nothing to ship.
   const current = await inStore(storeId, (tx) => getCart({ storeId, tx }, cartId))
   const digitalOnly = !!current?.lines.length && current.lines.every((l) => l.giftCard)
+  // An address abroad is priced by its country zone: no Indian courier, no COD (placeOrder agrees).
+  const countryCode = checkoutCountry(form.countryCode)
+  const abroad = isAbroad(countryCode)
+  if (abroad && form.payment === 'cod') return { error: checkoutContent.errors.codAbroad }
 
   /** The delivery window each warehouse's parcel was shown with, stored on the order's parcels. */
   let deliveryEstimates: Record<string, ParcelDeliveryEstimate> = {}
@@ -294,7 +303,7 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
   const to = { pincode: form.pincode, stateCode: form.stateCode }
   const appQuote = form.deliveryQuote
   const delivery =
-    !digitalOnly && appQuote && form.shippingRate
+    !digitalOnly && !abroad && appQuote && form.shippingRate
       ? await inStore(storeId, (tx) =>
           deliveryForOrder(tx, storeId, cartId, to, {
             quoteId: typeof appQuote.quoteId === 'string' ? appQuote.quoteId : null,
@@ -311,7 +320,7 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
     deliveryEstimates = Object.fromEntries(
       parcels.flatMap((p) => (p.estimate ? [[p.locationId, p.estimate] as const] : [])),
     )
-  } else if (!digitalOnly) {
+  } else if (!digitalOnly && !abroad) {
     // The courier's word on the destination, never the client's. A cached answer makes this cheap.
     const delivery = await inStore(storeId, (tx) => estimateForPincode(tx, storeId, form.pincode))
     if (!delivery.ok) return { error: delivery.error }
@@ -371,6 +380,7 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
             city: form.city,
             stateCode: form.stateCode,
             pincode: form.pincode,
+            countryCode,
           },
         },
       }),
@@ -388,7 +398,8 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
   // `placeOrder` returns early on replay, before the workflow step that writes
   // order.placed ever runs).
   if (result.replayed) return await redirectAfterCheckout(result)
-  if (me) {
+  // The address book holds Indian addresses (PIN codes); an address abroad is not added to it.
+  if (me && !abroad) {
     // Convenience only: never let the address book block an order that is already placed.
     await inStore(storeId, (tx) => rememberCheckoutAddress({ storeId, tx }, me.id, form)).catch(
       (err) => logger.error('could not save the checkout address', { storeId, error: err }),

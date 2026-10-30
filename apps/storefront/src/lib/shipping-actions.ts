@@ -3,6 +3,7 @@
 import 'server-only'
 
 import type { DeliveryEstimate } from '@commerce/core'
+import { checkoutCountry } from '@commerce/core/checkout-address'
 import { headers } from 'next/headers'
 import { deliveryEstimateContent } from '@/data/product'
 import { checkoutCartId } from './checkout-context'
@@ -32,7 +33,8 @@ export async function estimateDeliveryAction(pincode: string): Promise<DeliveryE
 
 /** Checkout: the courier's answer and the shipping choices for the cart in the cookie. */
 export async function checkoutShippingAction(
-  to: { pincode: string; stateCode: string },
+  /** `countryCode` abroad (ISO 3166-1); left out means India. */
+  to: { pincode: string; stateCode: string; countryCode?: string | undefined },
   /** Delivery options app: the insurance tick, and the quote to reuse the answers of. */
   opts: { declineInsurance?: boolean; quoteId?: string | null } = {},
 ): Promise<CheckoutShipping | null> {
@@ -41,8 +43,13 @@ export async function checkoutShippingAction(
   if (!cartId) return null
   const quoteId =
     typeof opts.quoteId === 'string' && /^[0-9a-f-]{36}$/.test(opts.quoteId) ? opts.quoteId : null
+  const address = {
+    pincode: String(to.pincode).slice(0, 20),
+    stateCode: String(to.stateCode).slice(0, 80),
+    countryCode: checkoutCountry(to.countryCode),
+  }
   return inStore(storeId, (tx) =>
-    checkoutShipping(tx, storeId, cartId, to, {
+    checkoutShipping(tx, storeId, cartId, address, {
       declineInsurance: opts.declineInsurance === true,
       quoteId,
     }),

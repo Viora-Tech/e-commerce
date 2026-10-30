@@ -1,10 +1,18 @@
 /** SOURCE OF TRUTH: checkGiftCardRules, checkCheckoutPincode, paymentAdjustmentFor, lineGstRate
  * WHAT:  The small rules checkout prices and checks with: gift-card checkout limits, the payment
- *        fee (a rate's COD fee or the store's), each line's GST rate, the PIN code check,
+ *        fee (a rate's COD fee or the store's), each line's GST rate, the PIN code check (or
+ *        the postcode check abroad),
  *        and what is charged now versus left to gift cards or a pre-order balance.
  * WHY:   Split from place-order.ts (#973); `checkGiftCardRules` is re-exported from there.
  */
 import { loadPincodeDirectory } from '@commerce/shipping/pincode-directory'
+import {
+  abroadAddressErrors,
+  abroadRegion,
+  checkoutCountry,
+  cleanPostalCode,
+  isAbroad,
+} from '../checkout/address-abroad'
 import { stateMatchesPincode } from '../checkout/pincode-state'
 import { checkoutPincode } from '../checkout/settings'
 import { CheckoutRuleViolation } from '../errors'
@@ -92,6 +100,7 @@ export async function checkCheckoutPincode(
   storeId: string,
   checkout: CheckoutDetails,
 ): Promise<CheckoutDetails> {
+  if (isAbroad(checkout.address.countryCode)) return checkAbroadAddress(storeId, checkout)
   const pincode = checkoutPincode(checkout.address.pincode)
   if (!pincode) {
     throw new CheckoutRuleViolation('contact', {
@@ -105,7 +114,42 @@ export async function checkCheckoutPincode(
       fields: { stateCode: 'The state does not match this PIN code' },
     })
   }
-  return { ...checkout, address: { ...checkout.address, pincode } }
+  return { ...checkout, address: { ...checkout.address, pincode, countryCode: 'IN' } }
+}
+
+/** Server messages for an address abroad; the storefront shows its own words first. */
+export const ABROAD_MESSAGES = {
+  postcode: 'Enter the postcode',
+  postcodeInvalid: 'Enter a valid postcode for this country',
+  region: 'Enter the state or province',
+  regionInvalid: 'Pick the state or province from the list',
+} as const
+
+/**
+ * An address abroad as it is judged and stored: the country upper case, the postcode cleaned
+ * and checked loosely for its country, the region (kept in `stateCode`, as Shopify imports
+ * keep it) as its code where the country's regions are listed, else as typed. No PIN code or
+ * Indian state check: those are India's.
+ */
+export function checkAbroadAddress(storeId: string, checkout: CheckoutDetails): CheckoutDetails {
+  const countryCode = checkoutCountry(checkout.address.countryCode)
+  const fields = abroadAddressErrors(
+    { countryCode, stateCode: checkout.address.stateCode, pincode: checkout.address.pincode },
+    ABROAD_MESSAGES,
+  )
+  if (Object.keys(fields).length > 0) {
+    throw new CheckoutRuleViolation('contact', { storeId, fields })
+  }
+  return {
+    ...checkout,
+    address: {
+      ...checkout.address,
+      countryCode,
+      // A listed country's region as its code ("CA"), which couriers abroad need.
+      stateCode: abroadRegion(countryCode, checkout.address.stateCode)?.code ?? '',
+      pincode: cleanPostalCode(checkout.address.pincode),
+    },
+  }
 }
 
 /** What must be collected today: the order total less whatever a deposit-mode pre-order defers. */

@@ -1,9 +1,12 @@
 import type { SavedAddress, SignedInCustomer } from '@commerce/core'
+import { isAbroad } from '@commerce/core/checkout-address'
 import { type NameFormat, splitFullName } from '@commerce/core/checkout-settings'
 import type { CheckoutForm } from '@/lib/cart-actions'
 
 /** Everything the checkout form holds; the action's fields plus the optional extras. */
 export type CheckoutFormState = CheckoutForm & {
+  /** The Country picker; `IN` keeps the PIN code first form. */
+  countryCode: string
   gstin: string
   businessName: string
   note: string
@@ -25,6 +28,7 @@ const EMPTY_FORM: Omit<CheckoutFormState, 'payment'> = {
   city: '',
   stateCode: 'HR',
   pincode: '',
+  countryCode: 'IN',
   gstin: '',
   businessName: '',
   note: '',
@@ -34,16 +38,33 @@ const EMPTY_FORM: Omit<CheckoutFormState, 'payment'> = {
 /** The address book's "Use a new address" choice. */
 export const NEW_ADDRESS = 'new'
 
-/** Contact and address fields from the account, so a returning shopper types nothing. */
+/** The form's address fields for a new country: empty, with India's default state back home. */
+export function addressForCountry(
+  countryCode: string,
+): Pick<CheckoutFormState, 'countryCode' | 'stateCode' | 'pincode' | 'city'> {
+  return {
+    countryCode,
+    stateCode: isAbroad(countryCode) ? '' : EMPTY_FORM.stateCode,
+    pincode: '',
+    city: '',
+  }
+}
+
+/**
+ * Contact and address fields from the account, so a returning shopper types nothing. Saved
+ * addresses are Indian (the address book takes PIN codes); a new address opens in `country`.
+ */
 export function prefillCheckout(
   customer: SignedInCustomer | null,
   address: SavedAddress | undefined,
   nameFormat: NameFormat = 'full',
+  country = 'IN',
 ): Omit<CheckoutFormState, 'payment'> {
   const fullName = address?.name ?? customer?.name ?? ''
   const parts = nameFormat === 'split' ? splitFullName(fullName) : null
   return {
     ...EMPTY_FORM,
+    ...(address ? {} : addressForCountry(country)),
     name: parts ? parts.first : fullName,
     ...(parts ? { lastName: parts.last } : {}),
     email: customer?.email ?? '',
@@ -55,6 +76,7 @@ export function prefillCheckout(
           city: address.city,
           stateCode: address.stateCode,
           pincode: address.pincode,
+          countryCode: 'IN',
           label: address.label ?? '',
         }
       : {}),

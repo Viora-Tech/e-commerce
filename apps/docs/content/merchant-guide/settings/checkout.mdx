@@ -143,6 +143,32 @@ checkout with a hint of your colour.
 - **Thank-you page** in the same look: a calm tick, the order number, what happens next, the UPI
   QR or app buttons when payment is still due, and the order details.
 
+## Shoppers outside India
+
+When a delivery area in **Settings › Shipping** names a country abroad (or ticks **Rest of
+world**), checkout gets a **Country** picker above the address. India stays first and is the
+default; a shopper whose market is a country you ship to starts on that country.
+
+- **The address abroad**: Address, Apartment, City, State or province, and Postcode, as that
+  country writes them. The US, Canada and Australia pick their state from a list (couriers need
+  its code); elsewhere it is typed, and optional where addresses usually have none. The
+  postcode is checked loosely for the country ("Enter a valid postcode for this country") and
+  is optional where most addresses have none, like the UAE.
+- **Phone**: any number with its country code, like +61 412 345 678. The courier may call it.
+- **Shipping**: the prices of the area that covers the country. No PIN code check and no Indian
+  courier is asked. A country no area covers shows "We do not ship to this country yet."
+- **No cash on delivery** abroad: it is hidden, and an order that still asks for it is refused
+  with "Cash on delivery is only offered in India."
+- **GST**: an order abroad is an export. With the GST invoices app on its default (Letter of
+  Undertaking), no GST is charged; set it to "IGST paid" to charge IGST and claim it back.
+- **Booking**: the order keeps the country, the state code and name, the postcode, the phone
+  and the email, which is what DHL Express, FedEx and ShipGlobal need (see
+  [International couriers](/merchant-guide/apps/international-couriers)). Every item still
+  needs an HS code before you book.
+
+Signed-in shoppers' saved addresses are Indian; an address abroad is used for the order but
+not added to their address book.
+
 ## What shoppers see
 
 | Your setting | At checkout |

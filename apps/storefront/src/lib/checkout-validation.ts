@@ -1,4 +1,5 @@
 import { normaliseMobile } from '@commerce/core/accounts'
+import { abroadAddressErrors, abroadPhone, isAbroad } from '@commerce/core/checkout-address'
 import {
   type CheckoutFields,
   GSTIN_MESSAGES,
@@ -30,7 +31,10 @@ export type CheckoutFieldKey =
 type ExtraKey = 'lastName' | 'line2' | 'businessName'
 
 export type CheckoutFieldValues = Record<Exclude<CheckoutFieldKey, ExtraKey>, string> &
-  Partial<Record<ExtraKey, string>>
+  Partial<Record<ExtraKey, string>> & {
+    /** The delivery country; left out means India. Abroad `stateCode` is the region. */
+    countryCode?: string | undefined
+  }
 
 export type CheckoutFieldRules = {
   /** Settings → Checkout: email can be left empty. */
@@ -44,6 +48,7 @@ export type CheckoutFieldRules = {
 export type CheckoutFieldErrors = Partial<Record<CheckoutFieldKey, string>>
 
 const v = checkoutContent.validation
+const abroadCopy = checkoutContent.abroad
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 const PINCODE = /^[1-9]\d{5}$/
 
@@ -62,17 +67,37 @@ export function checkoutFieldErrors(
   } else if (!EMAIL.test(email)) {
     errors.email = v.emailInvalid
   }
-  if (!normaliseMobile(values.phone)) errors.phone = v.phone
-  const pincode = cleanPincode(values.pincode)
-  if (!PINCODE.test(pincode)) errors.pincode = v.pincode
-  else if (!stateMatchesPincode(pincode, values.stateCode)) {
-    errors.stateCode = v.stateMismatch(pincode)
+  const country = values.countryCode ?? 'IN'
+  if (isAbroad(country)) {
+    // Abroad: any valid phone with its country code, a loose postcode, the region where needed.
+    if (!abroadPhone(values.phone, country)) errors.phone = abroadCopy.phoneInvalid
+    Object.assign(
+      errors,
+      abroadAddressErrors(
+        { countryCode: country, stateCode: values.stateCode, pincode: values.pincode },
+        {
+          postcode: abroadCopy.postcodeMissing,
+          postcodeInvalid: abroadCopy.postcodeInvalid,
+          region: abroadCopy.regionMissing,
+          regionInvalid: abroadCopy.regionInvalid,
+        },
+      ),
+    )
+  } else {
+    if (!normaliseMobile(values.phone)) errors.phone = v.phone
+    const pincode = cleanPincode(values.pincode)
+    if (!PINCODE.test(pincode)) errors.pincode = v.pincode
+    else if (!stateMatchesPincode(pincode, values.stateCode)) {
+      errors.stateCode = v.stateMismatch(pincode)
+    }
   }
   const split = rules.fields?.name === 'split'
   if (!values.name.trim()) errors.name = split ? v.firstName : v.name
   if (split && !(values.lastName ?? '').trim()) errors.lastName = v.lastName
   if (!values.line1.trim()) errors.line1 = v.line1
-  if (rules.fields?.line2 === 'required' && !(values.line2 ?? '').trim()) errors.line2 = v.line2
+  if (rules.fields?.line2 === 'required' && !(values.line2 ?? '').trim()) {
+    errors.line2 = isAbroad(country) ? abroadCopy.line2Missing : v.line2
+  }
   if (rules.fields?.company === 'required' && !(values.businessName ?? '').trim()) {
     errors.businessName = v.company
   }
@@ -88,7 +113,10 @@ export function checkoutFieldErrors(
   return errors
 }
 
-/** The fields in the order the form shows them, so the first wrong one gets the focus. */
+/**
+ * The fields in the order the form shows them, so the first wrong one gets the focus. India is
+ * PIN code first; an address abroad ends with city, region and postcode.
+ */
 export function fieldOrder(pincodeFirst: boolean): CheckoutFieldKey[] {
   const people: CheckoutFieldKey[] = ['name', 'lastName', 'businessName', 'line1', 'line2']
   const address: CheckoutFieldKey[] = pincodeFirst

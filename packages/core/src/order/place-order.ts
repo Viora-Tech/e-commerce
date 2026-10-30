@@ -11,6 +11,7 @@ import {
 } from '@commerce/db'
 import { eq } from 'drizzle-orm'
 import { effectiveGstRatePercent, effectiveHsCode } from '../catalog/effective-tax'
+import { isAbroad } from '../checkout/address-abroad'
 import {
   cartLimitBreach,
   checkCheckoutRules,
@@ -301,7 +302,7 @@ const resolveDiscount: WorkflowStep<State> = {
     const { outcome, codeRejected } = await resolveCartDiscount(ctx, input.cartId, code, {
       email: input.checkout?.email,
       phone: input.checkout?.phone,
-      stateCode: input.checkout?.address?.stateCode,
+      stateCode: buyerStateOf(input.checkout),
     })
     if (code && codeRejected) throw new DiscountCodeRefused(code, codeRejected, ctx.storeId)
     return { discount: outcome }
@@ -326,14 +327,16 @@ const resolveShipping: WorkflowStep<State> = {
       pincode: to.pincode,
       countryCode: to.countryCode,
     })
-    const fromApp = input.delivery
-      ? await priceOrderDelivery(ctx, input.delivery, {
-          lines,
-          valuePaise: discountedSubtotalPaise,
-          zone: quote,
-          payment: input.paymentProvider.id === 'cod' ? 'cod' : 'prepaid',
-        })
-      : null
+    // The Delivery options app quotes Indian couriers by PIN code; abroad prices by country zone.
+    const fromApp =
+      input.delivery && !isAbroad(to.countryCode)
+        ? await priceOrderDelivery(ctx, input.delivery, {
+            lines,
+            valuePaise: discountedSubtotalPaise,
+            zone: quote,
+            payment: input.paymentProvider.id === 'cod' ? 'cod' : 'prepaid',
+          })
+        : null
     if (fromApp) return fromApp
     if (quote.kind === 'not_configured') return { shipping: null }
     if (quote.kind === 'no_rates') throw new ShippingUnavailable(to.pincode, ctx.storeId)
@@ -424,7 +427,8 @@ const reserveStock: WorkflowStep<State> = {
         giftCard: l.giftCard,
         preorder: l.preorder.enabled ? { enabled: true, limit: l.preorder.limit } : null,
       })),
-      buyerState: input.checkout?.address.stateCode ?? null,
+      // Abroad there is no Indian state to route by (a composition GSTIN's limit is India's).
+      buyerState: buyerStateOf(input.checkout),
     })
     // Mixed carts set to ship together (#143): every parcel waits with the pre-order, as a
     // pre-order parcel does (`on_hold`: ships when it arrives), so nothing goes out first.
@@ -510,6 +514,10 @@ const recordPaymentAttempt: WorkflowStep<State> = {
     return { attemptId: attempt.id }
   },
 }
+
+/** The Indian state an order goes to; null abroad, where `stateCode` holds the region. */
+const buyerStateOf = (co: PlaceOrderInput['checkout']): string | null =>
+  co && !isAbroad(co.address.countryCode) ? co.address.stateCode : null
 
 const markCartConverted: WorkflowStep<State> = {
   name: 'markCartConverted',

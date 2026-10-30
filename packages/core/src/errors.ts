@@ -209,6 +209,8 @@ export class CheckoutRuleViolation extends CommerceError {
     | 'cod_high_risk'
     /** Delivery options app: the picked option (Express) is prepaid only. */
     | 'cod_prepaid_only_option'
+    /** Cash on delivery to an address outside India. */
+    | 'cod_abroad'
   readonly fields: Readonly<Record<string, string>>
   /** Minimum order: what is still missing. COD limit: the limit. In paise. */
   readonly amountPaise: number | null

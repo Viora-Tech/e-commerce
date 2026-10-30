@@ -41,6 +41,7 @@ const FORM_KEYS = [
 ] as const satisfies readonly (keyof CheckoutFormState)[]
 
 const isField = (v: unknown): v is string => typeof v === 'string' && v.length <= MAX_FIELD
+const isCountry = (v: unknown): v is string => typeof v === 'string' && /^[A-Z]{2}$/.test(v)
 
 /** The draft saved for this cart, or null for another cart's draft or anything malformed. */
 export function parseDraft(raw: string | null, cartId: string): CheckoutDraft | null {
@@ -61,6 +62,8 @@ export function parseDraft(raw: string | null, cartId: string): CheckoutDraft | 
   const form = Object.fromEntries(FORM_KEYS.map((k) => [k, f[k]])) as CheckoutFormState
   // Only on stores that split the name (#154); older drafts have none.
   if (isField(f.lastName)) form.lastName = f.lastName
+  // The Country picker; drafts from before it are Indian addresses.
+  form.countryCode = isCountry(f.countryCode) ? f.countryCode : 'IN'
   return {
     form,
     savedId: d.savedId,

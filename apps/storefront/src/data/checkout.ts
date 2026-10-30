@@ -417,6 +417,31 @@ export const checkoutContent = {
         ? 'Check the highlighted field to continue.'
         : `Check the ${n} highlighted fields to continue.`,
   },
+  /** An address outside India (country zones): no PIN code, a free-text region and postcode. */
+  abroad: {
+    country: 'Country',
+    line1: 'Address',
+    line1Placeholder: 'Street address and number',
+    line2: 'Apartment, suite, etc. (optional)',
+    line2Required: 'Apartment, suite, etc.',
+    line2Placeholder: 'Apartment 12',
+    region: 'State, province or region',
+    regionOptional: 'State, province or region (optional)',
+    postcode: 'Postcode',
+    postcodeOptional: 'Postcode (optional)',
+    phone: 'Phone number',
+    phoneHint: 'With the country code. The courier may call it on delivery.',
+    phoneInvalid: 'Enter a phone number with its country code, like +61 412 345 678',
+    postcodeMissing: 'Enter the postcode',
+    postcodeInvalid: 'Enter a valid postcode for this country',
+    regionMissing: 'Enter the state or province',
+    regionInvalid: 'Pick the state or province from the list',
+    /** The first entry of a listed country's region select (US states, Canadian provinces). */
+    regionPick: 'Select',
+    line2Missing: 'Enter the apartment or suite',
+    shipsTo: (country: string) => `Ships to ${country}`,
+    noCod: 'Cash on delivery is only offered for addresses in India.',
+  },
   pincodeFirst: {
     finding: 'Finding your city…',
     found: (city: string, state: string) => `${city}, ${state}`,
@@ -438,6 +463,8 @@ export const checkoutContent = {
     codUnavailable: 'Cash on delivery is not available for this PIN code.',
     unserviceable: (pincode: string) => `We cannot deliver to ${pincode} yet.`,
     noRates: (pincode: string) => `We do not ship to ${pincode} yet.`,
+    /** An address abroad that no shipping zone covers. */
+    noRatesAbroad: 'We do not ship to this country yet.',
     pending: 'Enter your PIN code to see delivery options.',
     free: 'Free delivery',
     standard: 'Standard delivery',
@@ -478,6 +505,7 @@ export const checkoutContent = {
     codUnavailable:
       'Cash on delivery is not available for this PIN code. Pick another payment method.',
     pickShipping: 'Pick a shipping option to pay.',
+    codAbroad: 'Cash on delivery is only offered in India. Pick another payment method.',
     noShipping: (pincode: string) => `We do not ship to ${pincode} yet. Try another address.`,
     cannotShipToState: "We can't deliver this item to your state yet.",
     priceNotSet:
