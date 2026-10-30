@@ -294,6 +294,10 @@ export default [
     templates: {
       title: 'टेम्पलेट',
       intro: 'हर टेम्पलेट से एक रुकी हुई कॉपी बनती है, जिसे चालू करने से पहले बदल सकते हैं।',
+      marketingTitle: 'मार्केटिंग फ़्लो',
+      marketingIntro:
+        'कार्ट और चेकआउट रिकवरी, वेलकम, थैंक-यू और विन-बैक ईमेल व WhatsApp। इन्हें Growth में सेट करें, जहाँ हर एक से वापस आए ऑर्डर दिखते हैं।',
+      openInGrowth: 'Growth में सेट करें',
       all: 'सभी',
       categories: {
         orders: 'ऑर्डर',
