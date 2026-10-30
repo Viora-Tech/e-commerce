@@ -25,12 +25,13 @@ import {
   useTable,
 } from '@tanstack/react-table'
 import { useRouter } from 'next/navigation'
-import { type CSSProperties, type ReactNode, useState } from 'react'
+import { type CSSProperties, type ReactNode, useEffect, useState } from 'react'
 import EmptyState from '@/components/layout/empty-state'
 import { type FilterGroup, hasFilter } from '@/components/table/filter-panel'
 import RowActionsCell from '@/components/table/row-actions-cell'
 import { tableContent } from '@/data/table'
 import { useCopy } from '@/hooks/use-copy'
+import { publishListSelection } from '@/lib/list-selection'
 import {
   type CellAlign,
   defineColumns,
@@ -243,6 +244,15 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
   const [rowSelection, setRowSelection] = useRowSelection(props.selection)
   const [onlySelected, setOnlySelected] = useState(false)
   const [selectingAll, setSelectingAll] = useState(false)
+  // The AI assistant acts on the rows ticked now (#983); leaving the list clears them.
+  useEffect(() => {
+    const path = window.location.pathname
+    publishListSelection(
+      path,
+      Object.keys(rowSelection).filter((id) => rowSelection[id]),
+    )
+    return () => publishListSelection(path, [])
+  }, [rowSelection])
   const [expanded, setExpanded] = useExpanded(props.tree)
   const table = useTable({
     features: resourceTableFeatures,

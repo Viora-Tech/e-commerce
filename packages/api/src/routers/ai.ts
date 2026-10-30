@@ -2,6 +2,7 @@ import {
   AI_FEATURES,
   ASSISTANT_MAX_HISTORY,
   ASSISTANT_MAX_MESSAGE,
+  ASSISTANT_MAX_SELECTED,
   ASSISTANT_PAGES,
   BULK_WRITE_FIELDS,
   SEO_KEYWORD_LENGTH_MAX,
@@ -91,7 +92,12 @@ const AssistantInput = z.object({
     .default([]),
   /** Where the merchant is: the page kind and the record's id (resolved under RLS, never trusted as text). */
   page: z
-    .object({ page: z.enum(ASSISTANT_PAGES), entityId: z.uuid().nullable().default(null) })
+    .object({
+      page: z.enum(ASSISTANT_PAGES),
+      entityId: z.uuid().nullable().default(null),
+      /** On a list: the ids of the rows ticked now (resolved under RLS like `entityId`). */
+      selectedIds: z.array(z.uuid()).max(ASSISTANT_MAX_SELECTED).default([]),
+    })
     .default({ page: 'other', entityId: null }),
   language: z.enum(['en', 'hi']).default('en'),
   /**

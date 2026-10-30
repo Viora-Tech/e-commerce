@@ -8,6 +8,7 @@ export {
   ASSISTANT_LIMITS,
   ASSISTANT_MAX_HISTORY,
   ASSISTANT_MAX_MESSAGE,
+  ASSISTANT_MAX_SELECTED,
   ASSISTANT_PAGES,
   type AssistantPage,
   type AssistantPageContext,

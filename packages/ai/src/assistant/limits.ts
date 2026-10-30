@@ -45,8 +45,18 @@ export const ASSISTANT_PAGES = [
 ] as const
 export type AssistantPage = (typeof ASSISTANT_PAGES)[number]
 
-/** Where the merchant is: the page kind, and the record's id on a detail page. */
-export type AssistantPageContext = { page: AssistantPage; entityId: string | null }
+/** Most ticked list rows sent with one message. */
+export const ASSISTANT_MAX_SELECTED = 100
+
+/**
+ * Where the merchant is: the page kind, the record's id on a detail page, and on a list the
+ * rows ticked right now (so "these" means them, not records from earlier in the chat, #983).
+ */
+export type AssistantPageContext = {
+  page: AssistantPage
+  entityId: string | null
+  selectedIds?: string[] | undefined
+}
 
 const DETAIL: { prefix: string; page: AssistantPage; list: AssistantPage }[] = [
   { prefix: '/products/collections', page: 'collection', list: 'collections' },
