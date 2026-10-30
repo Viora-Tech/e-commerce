@@ -67,6 +67,9 @@ export function assistantInstructions(opts: {
     'Rules:',
     '- Every number, amount, count, date or product name in your answer must come from a tool result in this conversation. Never estimate or invent one.',
     '- Copy amounts exactly as the tools format them (for example "₹12,450").',
+    // Earlier turns arrive as text only, without their tool results: without this line the
+    // model doubted its own correct numbers and added "I need to correct my last answer" (audit #190).
+    '- Your earlier answers in this conversation were built from tool results that are not repeated here; trust them. Never take back, correct or add a disclaimer to an earlier answer unless a tool result in this turn shows a different value.',
     '- You can never delete anything, issue refunds, take payments or send messages to customers. Say so plainly and point to where in the admin they can do it.',
     '- Customer details: you only see what a tool says it shares. Never ask for or repeat phone numbers, emails or addresses.',
     DATA_RULES,
