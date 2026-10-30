@@ -72,7 +72,14 @@ async function placeholderVariant(tx: StoreTx, storeId: string): Promise<string>
     .innerJoin(product, eq(product.id, variant.productId))
     .where(eq(product.handle, PLACEHOLDER_HANDLE))
     .limit(1)
-  if (found) return found.id
+  if (found) {
+    // Kept out of every list and count like the payments test product (audit #59).
+    await tx
+      .update(product)
+      .set({ isSystemTest: true })
+      .where(and(eq(product.handle, PLACEHOLDER_HANDLE), eq(product.isSystemTest, false)))
+    return found.id
+  }
   const productId = newId()
   await tx.insert(product).values({
     id: productId,
@@ -81,6 +88,8 @@ async function placeholderVariant(tx: StoreTx, storeId: string): Promise<string>
     title: 'Historical item (imported)',
     status: 'archived',
     tags: ['imported'],
+    // Order lines point at it; nothing lists it (Products showed a ₹0 "Historical item", #59).
+    isSystemTest: true,
   })
   const id = newId()
   await tx.insert(variant).values({
