@@ -31,6 +31,7 @@ import {
 } from './automation-steps'
 import { applyMergeTags, type EmailCartLine, type MergeValues } from './email'
 import { markEngineConversions } from './growth-engine'
+import { issuePersonalCode } from './personal-code'
 import { RECIPIENT_MISMATCH, recipientIsCustomers } from './recipient'
 import {
   firstName,
@@ -714,9 +715,24 @@ export async function processDueRuns(
             await skipMessage(tx, id, RECIPIENT_MISMATCH)
           } else if (id) {
             const discount = step.blocks.find((b) => b.type === 'discount')
+            // "A unique code for each shopper": made now, single use, for this customer only.
+            const personal =
+              discount?.type === 'discount' && discount.unique
+                ? await issuePersonalCode(tx, storeId, {
+                    messageId: id,
+                    prefix: ctx.automation.name.split(/\s+/)[0] ?? 'THANKS',
+                    offer: discount.unique,
+                    customerId: cu?.id ?? null,
+                    title: ctx.automation.name,
+                    now,
+                  })
+                : null
+            const blocks = personal
+              ? step.blocks.map((b) => (b.type === 'discount' ? { ...b, code: personal } : b))
+              : step.blocks
             const stepMerge = {
               ...merge,
-              discount_code: discount?.type === 'discount' ? discount.code : '',
+              discount_code: personal ?? (discount?.type === 'discount' ? discount.code : ''),
             }
             const r = await sendMarketingEmail(tx, storeId, deps, channels.email, sender, {
               messageId: id,
@@ -724,7 +740,7 @@ export async function processDueRuns(
               customerId: cu?.id ?? null,
               subject: applyMergeTags(step.subject, stepMerge),
               previewText: step.previewText,
-              blocks: step.blocks,
+              blocks,
               merge: stepMerge,
               cart: cartInfo
                 ? { lines: cartInfo.lines, totalLabel: formatMoney(cartInfo.totalPaise) }

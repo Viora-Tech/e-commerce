@@ -59,6 +59,13 @@ export const EmailBlockSchema = z.discriminatedUnion('type', [
     code: Text(60).default(''),
     heading: Text(200).optional(),
     note: Text(300).optional(),
+    /** Automations only: each shopper gets their own single-use code instead of `code`. */
+    unique: z
+      .object({
+        percent: z.number().int().min(1).max(90),
+        days: z.number().int().min(1).max(365),
+      })
+      .optional(),
   }),
   /** The shopper's basket; only meaningful in cart and checkout automations. */
   z.object({ id: Id, type: z.literal('cart') }),
@@ -248,7 +255,8 @@ function blockHtml(block: EmailBlock, ctx: EmailRenderContext, labels: EmailLabe
       )
     }
     case 'discount': {
-      const code = merge(block.code).trim()
+      // A unique-code block shows a sample in previews; the send puts the shopper's code in.
+      const code = merge(block.code).trim() || (block.unique ? 'WELCOME-7K2QX9FD' : '')
       if (!code) return ''
       const heading = escapeHtml(merge(block.heading || labels.discountHeading))
       const note = block.note
