@@ -189,7 +189,8 @@ export const draftEditorContent = {
         min_subtotal: 'The order is below the minimum for this code.',
         min_quantity: 'The order has fewer items than this code needs.',
         not_eligible: 'This customer is not eligible for this code.',
-        first_order_only: 'This code is for first-time buyers, and this customer has ordered before.',
+        first_order_only:
+          'This code is for first-time buyers, and this customer has ordered before.',
         limit_reached: 'This code has reached its usage limit.',
       },
     },

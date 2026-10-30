@@ -4,7 +4,12 @@ import { CONSENT_COOKIE, decodeConsent } from '@commerce/core/consent'
 export type DiscoveryBeaconEvent =
   | { kind: 'search'; query: string; results: number }
   | { kind: 'impression'; source: 'related' | 'complementary'; handle: string }
-  | { kind: 'click'; source: 'search' | 'related' | 'complementary'; handle: string; query?: string }
+  | {
+      kind: 'click'
+      source: 'search' | 'related' | 'complementary'
+      handle: string
+      query?: string
+    }
 
 const BEACON_PATH = '/api/beacon'
 

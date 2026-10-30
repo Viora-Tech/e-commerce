@@ -46,7 +46,7 @@ type MetricKey = (typeof METRICS)[number]
  */
 export default function RolloutResultsCard({ results, outcome }: RolloutResultsCardProps) {
   // Hooks
-  const { results: copy, audience } = useCopy(rolloutsContent).form
+  const { form } = useCopy(rolloutsContent)
   const fmt = useFormat()
 
   // Helpers
@@ -60,6 +60,7 @@ export default function RolloutResultsCard({ results, outcome }: RolloutResultsC
   }
 
   // Render logic
+  const { results: copy, audience } = form
   const { reached, target, verdict } = results
   const share = target ? Math.min(1, reached / target) : reached > 0 ? 1 : 0
   const reachedLabel = target

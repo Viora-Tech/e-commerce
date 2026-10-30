@@ -45,7 +45,8 @@ export default function ProductPreorderSection({
     api.preorders.campaigns
       .list()
       .then((rows) => {
-        if (!cancelled) setCampaigns(rows.map((c) => ({ id: c.id, name: c.name, status: c.status })))
+        if (!cancelled)
+          setCampaigns(rows.map((c) => ({ id: c.id, name: c.name, status: c.status })))
       })
       .catch(() => {
         if (!cancelled) setCampaigns([])

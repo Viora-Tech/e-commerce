@@ -14,10 +14,7 @@ type RelatedProductsProps = {
 }
 
 /** The merchant's picks for the row (Search & discovery) as handles, in their order. */
-async function pickedHandles(
-  tx: StoreTx,
-  productId: string,
-): Promise<string[]> {
+async function pickedHandles(tx: StoreTx, productId: string): Promise<string[]> {
   const ids = await pickedRecommendationIdsFor(tx, productId, 'related')
   if (ids.length === 0) return []
   const rows = await tx

@@ -79,16 +79,18 @@ export function resolvePreorderSettings(
   /** The product's campaign, only when it applies here (`campaignApplies`). */
   campaign?: PreorderCampaignTerms | null,
 ): PreorderSettings {
-  const base: PreorderSettings = campaign ? campaignBase(product, campaign) : {
-    enabled: product.preorderEnabled,
-    shipDate: product.preorderShipDate,
-    shipsInDays: product.preorderShipsInDays,
-    limit: product.preorderLimit,
-    buttonLabel: product.preorderButtonLabel,
-    paymentMode: product.preorderPaymentMode,
-    depositPaise: product.preorderDepositPaise,
-    depositPercent: product.preorderDepositPercent,
-  }
+  const base: PreorderSettings = campaign
+    ? campaignBase(product, campaign)
+    : {
+        enabled: product.preorderEnabled,
+        shipDate: product.preorderShipDate,
+        shipsInDays: product.preorderShipsInDays,
+        limit: product.preorderLimit,
+        buttonLabel: product.preorderButtonLabel,
+        paymentMode: product.preorderPaymentMode,
+        depositPaise: product.preorderDepositPaise,
+        depositPercent: product.preorderDepositPercent,
+      }
   if (!override) return base
   return {
     ...(base.campaignId ? { campaignId: base.campaignId } : {}),

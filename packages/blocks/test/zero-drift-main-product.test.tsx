@@ -57,7 +57,7 @@ const html = (el: ReturnType<typeof createElement>) => renderToStaticMarkup(el)
 
 describe('MainProduct (ProductView)', () => {
   it('renders with the old props only', () => {
-    const out = html(createElement(ProductView, { product, onAddToCart: async () => {} }))
+    const out = html(createElement(ProductView, { product, onAddToCart: async () => undefined }))
     expect(out).toContain('Viper V3')
     expect(out).toContain('variant-picker')
     expect(out).toContain('data-buy-buttons')
@@ -163,7 +163,7 @@ describe('StickyAtc', () => {
   })
 
   it('renders the bar with the product, price and Add to cart', () => {
-    const out = render({ product, productActions: { addToCart: async () => {} } })
+    const out = render({ product, productActions: { addToCart: async () => undefined } })
     expect(out).toContain('sticky-atc sticky-atc--corner')
     expect(out).toContain('Viper V3')
     expect(out).toContain('price__current')

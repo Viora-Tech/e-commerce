@@ -97,7 +97,12 @@ export const searchRouter = {
       .handler(async ({ context, input }) => {
         await requireInstalled(context)
         try {
-          return await setSearchPins(context.tx, context.scope.storeId, input.term, input.productIds)
+          return await setSearchPins(
+            context.tx,
+            context.scope.storeId,
+            input.term,
+            input.productIds,
+          )
         } catch (err) {
           if (err instanceof SearchPinLimitError) {
             throw new ORPCError('BAD_REQUEST', { message: err.message })

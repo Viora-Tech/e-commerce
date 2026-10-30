@@ -58,11 +58,12 @@ export default function RecommendationRowCard({
     }
   }
 
+  const statusLabel = (status: string) =>
+    status === 'draft' ? copy.editor.draft : status === 'archived' ? copy.editor.archived : null
+
   // Render logic
   const e = copy.editor
   const dirty = ids(draft) !== ids(picks)
-  const statusLabel = (status: string) =>
-    status === 'draft' ? e.draft : status === 'archived' ? e.archived : null
 
   return (
     <DataCard
@@ -94,7 +95,9 @@ export default function RecommendationRowCard({
         labels={{ moveUp: e.moveUp, moveDown: e.moveDown, remove: e.remove }}
         statusLabel={statusLabel}
       />
-      <p className="mt-2 text-caption text-muted-foreground">{e.limit(MAX_PICKED_RECOMMENDATIONS)}</p>
+      <p className="mt-2 text-caption text-muted-foreground">
+        {e.limit(MAX_PICKED_RECOMMENDATIONS)}
+      </p>
       <SelectProductsDialog
         open={choosing}
         onOpenChange={setChoosing}

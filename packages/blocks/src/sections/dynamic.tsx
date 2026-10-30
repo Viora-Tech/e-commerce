@@ -80,9 +80,7 @@ export type SectionMetadata = {
    * bar adds the selected variant with `addToCart`. Unset in the Customize canvas, where
    * those buttons stay inert.
    */
-  productActions?:
-    | { addToCart?: AddToCart | undefined }
-    | undefined
+  productActions?: { addToCart?: AddToCart | undefined } | undefined
 }
 
 type Def = { label: string; fields: Fields; defaultProps: SectionSettings }

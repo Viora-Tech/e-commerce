@@ -307,7 +307,9 @@ export function storeTools(env: ToolEnv): AiToolSet {
               })),
               chart: { kind: 'bar', x: 'product', y: 'units' },
               query:
-                env.store.timezone === QUERY_TIME_ZONE ? topProductsQuery(range, input.limit) : null,
+                env.store.timezone === QUERY_TIME_ZONE
+                  ? topProductsQuery(range, input.limit)
+                  : null,
               range,
             }),
           }

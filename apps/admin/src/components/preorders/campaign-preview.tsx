@@ -107,7 +107,10 @@ export default function CampaignPreview({ form }: CampaignPreviewProps) {
         ) : null}
         {deposit && deposit.balancePaise > 0 ? (
           <span className="text-caption text-muted-foreground">
-            {copy.previewDeposit(formatPaise(deposit.depositPaise), formatPaise(deposit.balancePaise))}
+            {copy.previewDeposit(
+              formatPaise(deposit.depositPaise),
+              formatPaise(deposit.balancePaise),
+            )}
           </span>
         ) : null}
         <span

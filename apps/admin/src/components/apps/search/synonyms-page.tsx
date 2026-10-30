@@ -30,7 +30,7 @@ function withNewLine(groups: string[][], add: string): string {
 export default function SynonymsPage() {
   // Hooks
   const copy = useCopy(searchAppContent)
-  const add = useSearchParams().get('add') ?? ''
+  const searchParams = useSearchParams()
   const [saved, setSaved] = useState<string[][] | null>(null)
   const [text, setText] = useState('')
   const [saving, setSaving] = useState(false)
@@ -39,7 +39,7 @@ export default function SynonymsPage() {
   useEffect(() => {
     api.search.synonyms.get().then((groups) => {
       setSaved(groups)
-      setText(withNewLine(groups, add))
+      setText(withNewLine(groups, searchParams.get('add') ?? ''))
     })
   }, [])
 

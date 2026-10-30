@@ -41,7 +41,7 @@ export default function RolloutAudienceCard({
   onChange,
 }: RolloutAudienceCardProps) {
   // Hooks
-  const { audience: copy } = useCopy(rolloutsContent).form
+  const { form } = useCopy(rolloutsContent)
 
   // Helpers
   const patch = (p: Partial<AudienceForm>) => {
@@ -56,6 +56,9 @@ export default function RolloutAudienceCard({
     const rest = audience.marketIds.filter((m) => m !== id)
     patch({ marketIds: on ? [...rest, id] : rest })
   }
+
+  // Render logic
+  const copy = form.audience
 
   return (
     <DataCard title={copy.heading} subtitle={copy.subtitle}>

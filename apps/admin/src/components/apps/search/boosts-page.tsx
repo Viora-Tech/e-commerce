@@ -10,8 +10,8 @@ import { searchDiscoveryContent } from '@/data/search-discovery'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import BoostRulesCard, { type BoostValueChoices } from './boost-rules-card'
-import PinDialog from './pin-dialog'
 import type { PickedItem } from './picked-list'
+import PinDialog from './pin-dialog'
 import PinsCard from './pins-card'
 
 type Loaded = { rules: SearchBoostRule[]; pins: SearchPinGroup[] }
@@ -31,7 +31,7 @@ const errorText = (err: unknown, fallback: string) =>
 export default function BoostsPage() {
   // Hooks
   const copy = useCopy(searchDiscoveryContent)
-  const pinParam = useSearchParams().get('pin') ?? ''
+  const searchParams = useSearchParams()
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [choices, setChoices] = useState<BoostValueChoices>(NO_CHOICES)
   const [editing, setEditing] = useState<Editing | null>(null)
@@ -40,6 +40,7 @@ export default function BoostsPage() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: the shortcut's search is read once, on load.
   useEffect(() => {
     api.search.boosts.get().then((data) => {
+      const pinParam = searchParams.get('pin') ?? ''
       setLoaded(data)
       if (!pinParam) return
       const existing = data.pins.find((g) => g.term === normaliseSearchQuery(pinParam))

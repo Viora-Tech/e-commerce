@@ -13,18 +13,31 @@ export const preordersContent = {
   products: {
     heading: 'Products on pre-order',
     description: 'Every product taking pre-orders, on its own or through a campaign.',
-    columns: { product: 'Product', campaign: 'Campaign', orders: 'Orders', limit: 'Limit', status: 'Status' },
+    columns: {
+      product: 'Product',
+      campaign: 'Campaign',
+      orders: 'Orders',
+      limit: 'Limit',
+      status: 'Status',
+    },
     ownSettings: 'Own settings',
     unlimited: 'No limit',
     left: (left: number, limit: number) => `${left} of ${limit} left`,
     leftAria: (left: number, limit: number) => `${left} of ${limit} pre-orders left`,
     statuses: { active: 'Taking pre-orders', full: 'Limit reached', off: 'Off' },
-    empty: 'No product takes pre-orders yet. Turn it on in a product’s Pre-order card, or add products to a campaign.',
+    empty:
+      'No product takes pre-orders yet. Turn it on in a product’s Pre-order card, or add products to a campaign.',
   },
   campaigns: {
     heading: 'Campaigns',
     description: 'One rule set for many products, for a launch or a restock.',
-    columns: { name: 'Campaign', products: 'Products', orders: 'Orders', revenue: 'Revenue', status: 'Status' },
+    columns: {
+      name: 'Campaign',
+      products: 'Products',
+      orders: 'Orders',
+      revenue: 'Revenue',
+      status: 'Status',
+    },
     productCount: (n: number) => `${n} ${n === 1 ? 'product' : 'products'}`,
     empty: {
       heading: 'Run your first pre-order campaign',
@@ -44,7 +57,8 @@ export const preordersContent = {
     name: 'Name',
     namePlaceholder: 'Lofree launch',
     status: 'Status',
-    statusHelp: 'A paused campaign is kept; its products sell by their own pre-order settings meanwhile.',
+    statusHelp:
+      'A paused campaign is kept; its products sell by their own pre-order settings meanwhile.',
     products: 'Products',
     productsHelp:
       'Products in this campaign take its settings. A product in another campaign moves to this one when you save.',
@@ -86,8 +100,13 @@ export const preordersContent = {
       'Whose stock decides “sold out”. None ticked: every location that ships online orders.',
     noLocations: 'No locations yet.',
     channels: 'Sales channels',
-    channelsHelp: 'Online store covers the cart and checkout; the others mark sold-out items as pre-order in their feeds.',
-    channelNames: { online_store: 'Online store', social: 'Social (Meta, Google)', ai_agents: 'AI agents' },
+    channelsHelp:
+      'Online store covers the cart and checkout; the others mark sold-out items as pre-order in their feeds.',
+    channelNames: {
+      online_store: 'Online store',
+      social: 'Social (Meta, Google)',
+      ai_agents: 'AI agents',
+    },
     mixedCart: 'Pre-orders and in-stock items in one cart',
     mixedCartOptions: {
       split: 'Allow, ship in-stock items now',
@@ -116,7 +135,8 @@ export const preordersContent = {
     productNote: 'Note under the button',
     cartLineText: 'Cart line text',
     orderNote: 'Note on the order',
-    noteHelp: '{ship_date} becomes the ship date, {ship_month} the month. Blank keeps the product’s or the store’s note.',
+    noteHelp:
+      '{ship_date} becomes the ship date, {ship_month} the month. Blank keeps the product’s or the store’s note.',
     blockMessage: 'Message when a mixed cart is refused',
     blockMessagePlaceholder: 'Pre-orders ship on their own. Please check them out separately.',
     buttonBackground: 'Button colour',
@@ -147,6 +167,7 @@ export const preordersContent = {
     deleted: 'Campaign deleted',
     failed: 'Could not save the campaign',
     nameNeeded: 'Give the campaign a name',
-    badNumber: 'Check the numbers: limit, days, deposit and discount must be whole numbers above zero',
+    badNumber:
+      'Check the numbers: limit, days, deposit and discount must be whole numbers above zero',
   },
 }

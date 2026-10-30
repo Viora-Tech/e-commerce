@@ -54,8 +54,8 @@ import { importMetafields } from './write-metafields'
 import { importMetaobjects } from './write-metaobjects'
 import { orderSourceId, writeOrders } from './write-orders'
 import {
-  applyPreorderCampaigns as joinPreorderCampaigns,
   applyPreorders,
+  applyPreorderCampaigns as joinPreorderCampaigns,
   localHandle,
   productSourceId,
   writeProducts,

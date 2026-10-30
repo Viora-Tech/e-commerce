@@ -80,7 +80,10 @@ const hits = (lists: BoostLists, p: BoostTarget): boolean =>
   (p.vendor !== null && lists.vendor.includes(p.vendor))
 
 /** Whether a product is boosted and whether it is buried (the SQL's two flags, in TypeScript). */
-export function boostFlags(b: CompiledBoosts, p: BoostTarget): { boosted: boolean; buried: boolean } {
+export function boostFlags(
+  b: CompiledBoosts,
+  p: BoostTarget,
+): { boosted: boolean; buried: boolean } {
   return { boosted: hits(b.boost, p), buried: hits(b.bury, p) }
 }
 

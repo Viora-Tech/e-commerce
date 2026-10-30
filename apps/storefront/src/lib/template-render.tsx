@@ -75,9 +75,7 @@ export async function isThemePreview(storeId: string): Promise<boolean> {
  * rollout's Treatment theme for a visitor in that arm (`rollout-ab.ts`).
  */
 export async function liveThemeId(storeId: string): Promise<string | null> {
-  return (
-    (await abThemeId(storeId)) ?? storeRead(storeId, 'main-theme', (tx) => mainThemeId(tx))
-  )
+  return (await abThemeId(storeId)) ?? storeRead(storeId, 'main-theme', (tx) => mainThemeId(tx))
 }
 
 /** Which theme this request renders, and whether it is the Customize preview. */

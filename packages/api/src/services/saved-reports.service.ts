@@ -76,11 +76,7 @@ export async function saveReport(
       reportSlug: input.reportSlug,
       range: input.range,
       /* A snapshot's JSON shares the `query` column: no migration, and a query slug never reads it. */
-      query: isQuery
-        ? checkedQuery(input.query)
-        : isAnswer
-          ? JSON.stringify(input.snapshot)
-          : null,
+      query: isQuery ? checkedQuery(input.query) : isAnswer ? JSON.stringify(input.snapshot) : null,
       createdBy,
     })
     .returning()

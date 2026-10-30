@@ -179,9 +179,7 @@ export default function ProductBuyButtons({
   const buttonStyle =
     colours && (colours.buttonBackground || colours.buttonText)
       ? ({
-          ...(colours.buttonBackground
-            ? { '--preorder-button-bg': colours.buttonBackground }
-            : {}),
+          ...(colours.buttonBackground ? { '--preorder-button-bg': colours.buttonBackground } : {}),
           ...(colours.buttonText ? { '--preorder-button-text': colours.buttonText } : {}),
         } as CSSProperties)
       : undefined

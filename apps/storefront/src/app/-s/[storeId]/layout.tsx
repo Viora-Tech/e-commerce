@@ -26,7 +26,6 @@ import {
   themeRootAttrs,
   themeToCss,
   toFooterColumns,
-  toNavLinks,
 } from '@commerce/core'
 import { navigationMenu, store } from '@commerce/db'
 import { browserSentryMeta } from '@commerce/observability'
@@ -46,7 +45,6 @@ import LiquidBoot from '@/components/theme/liquid-boot'
 import LiquidHtml from '@/components/theme/liquid-html'
 import PreviewBar from '@/components/theme/preview-bar'
 import ThemePreviewBridge from '@/components/theme/theme-preview-bridge'
-import { collectionsContent } from '@/data/collections'
 import { policyPageContent } from '@/data/policies'
 import { privacyContent } from '@/data/privacy'
 import { searchContent } from '@/data/search'
@@ -71,6 +69,7 @@ import { requestCart } from '@/lib/request-cart'
 import { abThemeId } from '@/lib/rollout-ab'
 import { heightForWidth } from '@/lib/section-images'
 import { requestOrigin, verificationMeta } from '@/lib/seo'
+import { menuLinks, starterFooterColumns } from '@/lib/starter-menus'
 import { storeRead } from '@/lib/store-cache'
 import { inStore } from '@/lib/store-context'
 import { readPreview } from '@/lib/storefront-gate'
@@ -95,61 +94,6 @@ async function previewRequest(storeId: string) {
 async function themedRerender() {
   const pathname = (await headers()).get('x-pathname') ?? '/'
   return isRerender((await cookies()).get(RERENDER_COOKIE)?.value, pathname)
-}
-
-/** Collections a store with no menu at all shows in its header, after "Shop all". */
-const STARTER_MENU_COLLECTIONS = 4
-
-/** A store with no footer menu yet gets two plain columns, so its footer is never blank. */
-function starterFooterColumns(collections: readonly { handle: string; title: string }[]) {
-  const copy = collectionsContent.starterFooter
-  return [
-    {
-      id: 'starter-shop',
-      heading: copy.shop,
-      links: [
-        { id: 'starter-all', label: collectionsContent.shopAll, href: '/collections/all' },
-        ...collections.slice(0, STARTER_MENU_COLLECTIONS).map((c) => ({
-          id: `starter-${c.handle}`,
-          label: c.title,
-          href: `/collections/${c.handle}`,
-        })),
-      ],
-    },
-    {
-      id: 'starter-help',
-      heading: copy.help,
-      links: [
-        { id: 'starter-search', label: copy.search, href: '/search' },
-        { id: 'starter-track', label: copy.trackOrder, href: '/track-order' },
-        { id: 'starter-account', label: copy.account, href: '/account' },
-      ],
-    },
-  ]
-}
-
-/**
- * The Header section's menu, or the Navigation setting's main menu when it names none. A store
- * that has no such menu yet (a new store) gets Shopify's starter: Shop all and its first
- * collections, so the header is never empty. A menu the merchant emptied stays empty.
- */
-function menuLinks(
-  menus: Map<string, { items: Parameters<typeof toNavLinks>[0] }>,
-  handle: unknown,
-  fallback: string | null,
-  collections: readonly { handle: string; title: string }[],
-) {
-  const picked = typeof handle === 'string' && handle ? handle : fallback
-  const menu = picked === null ? undefined : menus.get(picked)
-  if (menu) return toNavLinks(menu.items)
-  return [
-    { id: 'starter-all', label: collectionsContent.shopAll, href: '/collections/all' },
-    ...collections.slice(0, STARTER_MENU_COLLECTIONS).map((c) => ({
-      id: `starter-${c.handle}`,
-      label: c.title,
-      href: `/collections/${c.handle}`,
-    })),
-  ]
 }
 
 /**

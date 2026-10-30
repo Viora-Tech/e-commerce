@@ -426,7 +426,8 @@ export const analyticsContent = {
       snapshot: (when: string) =>
         `A snapshot of the AI's answer from ${when}. The numbers do not update, because this answer cannot be written as a custom query.`,
       asked: (question: string) => `You asked: "${question}"`,
-      empty: 'There is no AI answer to show. Ask on the Reports page or in the AI bar, then pick Open as report.',
+      empty:
+        'There is no AI answer to show. Ask on the Reports page or in the AI bar, then pick Open as report.',
       saveHelp: 'Saved as a snapshot under Saved reports. The numbers stay as they were.',
     },
   },

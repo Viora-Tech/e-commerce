@@ -27,7 +27,9 @@ const welcome: DiscountRule = {
 }
 
 const cart: DiscountCart = {
-  lines: [{ productId: '00000000-0000-4000-8000-000000000001', quantity: 1, unitPricePaise: 100_000 }],
+  lines: [
+    { productId: '00000000-0000-4000-8000-000000000001', quantity: 1, unitPricePaise: 100_000 },
+  ],
 }
 
 describe('first-time buyers only', () => {
@@ -61,7 +63,12 @@ describe('first-time buyers only', () => {
 })
 
 describe('DiscountInputSchema first_time', () => {
-  const base = { title: 'Welcome', kind: 'automatic' as const, method: 'percent' as const, value: 1000 }
+  const base = {
+    title: 'Welcome',
+    kind: 'automatic' as const,
+    method: 'percent' as const,
+    value: 1000,
+  }
 
   it('needs no picked ids', () => {
     const r = DiscountInputSchema.safeParse({ ...base, customerEligibility: 'first_time' })

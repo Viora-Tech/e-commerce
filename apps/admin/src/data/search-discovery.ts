@@ -9,10 +9,7 @@ export const searchDiscoveryContent = {
     summary:
       'What shoppers search for on your store, what they click, and how your product recommendations do. Counted only for shoppers who allow analytics.',
     period: 'Period',
-    periods: { 7: 'Last 7 days', 30: 'Last 30 days', 90: 'Last 90 days' } as Record<
-      number,
-      string
-    >,
+    periods: { 7: 'Last 7 days', 30: 'Last 30 days', 90: 'Last 90 days' } as Record<number, string>,
     vsBefore: 'vs the period before',
     funnel: {
       title: 'Search funnel',
@@ -75,7 +72,8 @@ export const searchDiscoveryContent = {
     pinDialog: {
       title: 'Pin products to a search',
       term: 'Search',
-      termHelp: 'Matched however the shopper types it: capitals, extra spaces and a question mark do not matter.',
+      termHelp:
+        'Matched however the shopper types it: capitals, extra spaces and a question mark do not matter.',
       termPlaceholder: 'wireless keyboard',
       products: 'Products, in order',
       choose: 'Choose products',

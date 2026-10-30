@@ -18,8 +18,8 @@ import {
   type PreorderCampaignDesign,
   preorderCampaign,
   product,
-  sellableStock,
   type StoreTx,
+  sellableStock,
   variant,
 } from '@commerce/db'
 import {
@@ -137,7 +137,11 @@ export type PreorderCampaignSummary = PreorderCampaignTerms & {
 export type PreorderCampaignView = PreorderCampaignSummary & { productIds: string[] }
 
 /** Lines that count as sales: real orders that were not cancelled. */
-const countedOrder = and(eq(order.isTest, false), ne(order.status, 'cancelled'), ne(order.status, 'draft'))
+const countedOrder = and(
+  eq(order.isTest, false),
+  ne(order.status, 'cancelled'),
+  ne(order.status, 'draft'),
+)
 
 async function campaignSummaries(tx: StoreTx, id?: string): Promise<PreorderCampaignSummary[]> {
   const rows = await tx
@@ -183,7 +187,8 @@ export async function getPreorderCampaign(
   id: string,
 ): Promise<PreorderCampaignView> {
   const [summary] = await campaignSummaries(ctx.tx, id)
-  if (!summary) throw new PreorderCampaignError('CAMPAIGN_NOT_FOUND', 'Campaign not found', ctx.storeId)
+  if (!summary)
+    throw new PreorderCampaignError('CAMPAIGN_NOT_FOUND', 'Campaign not found', ctx.storeId)
   const members = await ctx.tx
     .select({ id: product.id })
     .from(product)
@@ -306,7 +311,10 @@ const DAY_MS = 24 * 60 * 60 * 1000
 const NONE = '00000000-0000-0000-0000-000000000000'
 
 /** Products › Pre-orders: the numbers, the products and the campaigns. */
-export async function preorderOverview(ctx: StoreContext, now = new Date()): Promise<PreorderOverview> {
+export async function preorderOverview(
+  ctx: StoreContext,
+  now = new Date(),
+): Promise<PreorderOverview> {
   const tx = ctx.tx
   const since = new Date(now.getTime() - 30 * DAY_MS)
   const [recent, campaigns, products, markets, locations] = await Promise.all([
@@ -368,10 +376,7 @@ export async function preorderOverview(ctx: StoreContext, now = new Date()): Pro
       .from(variant)
       .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
       .where(
-        and(
-          inArray(variant.productId, ids.length ? ids : [NONE]),
-          isNull(variant.archivedAt),
-        ),
+        and(inArray(variant.productId, ids.length ? ids : [NONE]), isNull(variant.archivedAt)),
       ),
     tx
       .select({

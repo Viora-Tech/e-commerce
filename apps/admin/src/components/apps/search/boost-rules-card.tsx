@@ -35,7 +35,9 @@ type BoostRulesCardProps = {
 
 /** What is saved, for the dirty check: blank values dropped. */
 const snapshot = (rules: SearchBoostRule[]): string =>
-  JSON.stringify(rules.filter((r) => r.value.trim()).map((r) => [r.field, r.value.trim(), r.action]))
+  JSON.stringify(
+    rules.filter((r) => r.value.trim()).map((r) => [r.field, r.value.trim(), r.action]),
+  )
 
 /** The Boosts page's "Boost and bury" card: one row per rule, saved together. */
 export default function BoostRulesCard({ rules, choices, onSave }: BoostRulesCardProps) {

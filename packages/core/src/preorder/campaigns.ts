@@ -74,7 +74,7 @@ export function ownFields(value: readonly string[] | null | undefined): Preorder
  * do not know the market (product cards) pass `marketId: undefined` and get the market left out.
  */
 export function campaignApplies(c: PreorderCampaignTerms | null | undefined, at: CampaignPlace) {
-  if (!c || c.status !== 'active') return false
+  if (c?.status !== 'active') return false
   if (!c.channels.includes(at.channel)) return false
   if (c.marketIds.length === 0 || at.marketId === undefined) return true
   const market = at.marketId ?? at.primaryMarketId ?? null
@@ -188,7 +188,12 @@ export function campaignNoteSource(input: {
   const product = input.productNote?.trim() || null
   if (!input.campaign || ownFields(input.own).includes('note')) return product
   const c = input.campaign.content
-  const text = input.place === 'product' ? c.productNote : input.place === 'cart' ? c.cartLineText : c.orderNote
+  const text =
+    input.place === 'product'
+      ? c.productNote
+      : input.place === 'cart'
+        ? c.cartLineText
+        : c.orderNote
   return text?.trim() || product
 }
 
@@ -264,7 +269,11 @@ type CampaignShape = {
 /** The checks a deposit and a discount need beyond their own field (shared by create and update). */
 function checkMoney(v: CampaignShape, ctx: z.RefinementCtx) {
   if (v.paymentMode === 'fixed' && !v.depositPaise) {
-    ctx.addIssue({ code: 'custom', path: ['depositPaise'], message: 'A fixed deposit needs an amount' })
+    ctx.addIssue({
+      code: 'custom',
+      path: ['depositPaise'],
+      message: 'A fixed deposit needs an amount',
+    })
   }
   if (v.paymentMode === 'percentage' && !v.depositPercent) {
     ctx.addIssue({

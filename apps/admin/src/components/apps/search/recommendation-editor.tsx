@@ -19,10 +19,9 @@ type Loaded = Awaited<ReturnType<typeof api.search.recommendations.get>>
  * One product's hand-picked recommendations (`recommendations/[productId]`): the "You may also
  * like" and "Pairs well with" rows, each ordered and saved on its own. A full page.
  */
-export default function RecommendationEditor({ params }: AppPageProps) {
+export default function RecommendationEditor({ params: { productId = '' } }: AppPageProps) {
   // Hooks
   const copy = useCopy(searchDiscoveryContent)
-  const productId = params.productId ?? ''
   const [loaded, setLoaded] = useState<Loaded | undefined>(undefined)
 
   useEffect(() => {

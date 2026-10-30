@@ -23,7 +23,8 @@ async function campaignErrors<T>(fn: () => Promise<T>): Promise<T> {
   try {
     return await fn()
   } catch (err) {
-    if (err instanceof PreorderCampaignError) throw new ORPCError('NOT_FOUND', { message: err.message })
+    if (err instanceof PreorderCampaignError)
+      throw new ORPCError('NOT_FOUND', { message: err.message })
     throw err
   }
 }

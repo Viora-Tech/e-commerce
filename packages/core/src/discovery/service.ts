@@ -27,8 +27,8 @@ import {
   type DiscoveryOverview,
   type DiscoverySource,
   LINK_WINDOW_MINUTES,
-  MAX_PICKED_RECOMMENDATIONS,
   loggableQuery,
+  MAX_PICKED_RECOMMENDATIONS,
   normaliseSearchQuery,
   type RecommendationIntentKind,
   type RecommendationStat,
@@ -278,9 +278,9 @@ export async function setSearchPins(
   const wanted = [...new Set(productIds)].slice(0, MAX_PINS_PER_TERM)
   const known = wanted.length
     ? new Set(
-        (
-          await tx.select({ id: product.id }).from(product).where(inArray(product.id, wanted))
-        ).map((r) => r.id),
+        (await tx.select({ id: product.id }).from(product).where(inArray(product.id, wanted))).map(
+          (r) => r.id,
+        ),
       )
     : new Set<string>()
   const ids = wanted.filter((id) => known.has(id))
@@ -334,7 +334,12 @@ export async function recommendationTarget(
   productId: string,
 ): Promise<PinnedProduct | null> {
   const [row] = await tx
-    .select({ id: product.id, title: product.title, handle: product.handle, status: product.status })
+    .select({
+      id: product.id,
+      title: product.title,
+      handle: product.handle,
+      status: product.status,
+    })
     .from(product)
     .where(eq(product.id, productId))
   return row ?? null
@@ -351,9 +356,9 @@ export async function setProductRecommendations(
   const wanted = [...new Set(ids)].filter((id) => id !== productId)
   const known = wanted.length
     ? new Set(
-        (
-          await tx.select({ id: product.id }).from(product).where(inArray(product.id, wanted))
-        ).map((r) => r.id),
+        (await tx.select({ id: product.id }).from(product).where(inArray(product.id, wanted))).map(
+          (r) => r.id,
+        ),
       )
     : new Set<string>()
   const picks = wanted.filter((id) => known.has(id)).slice(0, MAX_PICKED_RECOMMENDATIONS)
@@ -496,7 +501,10 @@ async function searchQueryStats(tx: StoreTx, { from, to }: Range): Promise<Searc
   }))
 }
 
-async function recommendationStats(tx: StoreTx, { from, to }: Range): Promise<RecommendationStat[]> {
+async function recommendationStats(
+  tx: StoreTx,
+  { from, to }: Range,
+): Promise<RecommendationStat[]> {
   const rows = await tx.execute<Row>(sql`
     select source,
       count(*) filter (where kind = 'impression') as impressions,

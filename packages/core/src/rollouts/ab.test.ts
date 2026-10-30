@@ -94,7 +94,9 @@ describe('assignArm', () => {
 
 describe('twoProportionZ', () => {
   it('is 0 without visitors or without a difference', () => {
-    expect(twoProportionZ({ visitors: 0, conversions: 0 }, { visitors: 10, conversions: 1 })).toBe(0)
+    expect(twoProportionZ({ visitors: 0, conversions: 0 }, { visitors: 10, conversions: 1 })).toBe(
+      0,
+    )
     expect(
       twoProportionZ({ visitors: 1000, conversions: 50 }, { visitors: 1000, conversions: 50 }),
     ).toBe(0)

@@ -66,10 +66,7 @@ export function answerReport(
     ? Object.fromEntries(
         snapshot.columns
           .filter((c) => SUMMED.has(c.kind))
-          .map((c) => [
-            c.id,
-            rows.reduce((n, r) => n + numberOf(r.values[c.id]), 0),
-          ]),
+          .map((c) => [c.id, rows.reduce((n, r) => n + numberOf(r.values[c.id]), 0)]),
       )
     : {}
   const range = snapshot.range ?? {

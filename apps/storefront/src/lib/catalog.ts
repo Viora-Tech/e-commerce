@@ -125,7 +125,9 @@ export async function storefrontCampaigns(
 ): Promise<Map<string, PreorderCampaignTerms>> {
   const all = await campaignsByIds(tx, campaignIds)
   return new Map(
-    [...all].filter(([, c]) => campaignApplies(c, { marketId: undefined, channel: 'online_store' })),
+    [...all].filter(([, c]) =>
+      campaignApplies(c, { marketId: undefined, channel: 'online_store' }),
+    ),
   )
 }
 

@@ -111,18 +111,10 @@ describe('series helpers', () => {
 
   it('reads a window as store days with the end exclusive', () => {
     // 1 Oct 00:00 IST to 31 Oct 10:00 IST.
-    const days = windowDays(
-      new Date('2026-09-30T18:30:00Z'),
-      new Date('2026-10-31T04:30:00Z'),
-      TZ,
-    )
+    const days = windowDays(new Date('2026-09-30T18:30:00Z'), new Date('2026-10-31T04:30:00Z'), TZ)
     expect(days).toEqual({ from: '2026-10-01', to: '2026-10-31' })
     // A whole month ends the day before the next one starts.
-    const last = windowDays(
-      new Date('2026-08-31T18:30:00Z'),
-      new Date('2026-09-30T18:30:00Z'),
-      TZ,
-    )
+    const last = windowDays(new Date('2026-08-31T18:30:00Z'), new Date('2026-09-30T18:30:00Z'), TZ)
     expect(last).toEqual({ from: '2026-09-01', to: '2026-09-30' })
   })
 

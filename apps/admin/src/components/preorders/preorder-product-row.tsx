@@ -46,13 +46,16 @@ export default function PreorderProductRow({ product: p }: PreorderProductRowPro
           t.ownSettings
         )}
       </SettingsTableCell>
-      <SettingsTableCell className="hidden tabular-nums sm:table-cell">{p.orderCount}</SettingsTableCell>
+      <SettingsTableCell className="hidden tabular-nums sm:table-cell">
+        {p.orderCount}
+      </SettingsTableCell>
       <SettingsTableCell>
         {p.limit != null && p.left != null ? (
           <div className="flex min-w-32 flex-col gap-1">
             <span className="text-caption tabular-nums text-muted-foreground">
               {t.left(p.left, p.limit)}
             </span>
+            {/* biome-ignore lint/a11y/useSemanticElements: a native <meter> cannot take the theme bar styles */}
             <div
               role="meter"
               aria-label={t.leftAria(p.left, p.limit)}

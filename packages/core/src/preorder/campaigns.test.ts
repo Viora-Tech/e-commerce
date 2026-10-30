@@ -7,8 +7,8 @@ import {
   mixedCartVerdict,
   ownFields,
   PreorderCampaignCreateSchema,
-  PreorderCampaignUpdateSchema,
   type PreorderCampaignTerms,
+  PreorderCampaignUpdateSchema,
   preorderUnitPrice,
   soldOutInCartOutcome,
 } from './campaigns'
@@ -31,7 +31,11 @@ const campaign: PreorderCampaignTerms = {
   channels: ['online_store', 'social', 'ai_agents'],
   mixedCart: 'split',
   soldOutInCart: 'preorder',
-  content: { buttonText: 'Pre-order now', badgeText: 'Launching soon', orderNote: 'Ships {ship_date}' },
+  content: {
+    buttonText: 'Pre-order now',
+    badgeText: 'Launching soon',
+    orderNote: 'Ships {ship_date}',
+  },
   design: {},
 }
 
@@ -89,7 +93,10 @@ describe('campaignApplies', () => {
   it('needs the campaign active and the channel on', () => {
     expect(campaignApplies(campaign, { channel: 'online_store', marketId: null })).toBe(true)
     expect(
-      campaignApplies({ ...campaign, status: 'paused' }, { channel: 'online_store', marketId: null }),
+      campaignApplies(
+        { ...campaign, status: 'paused' },
+        { channel: 'online_store', marketId: null },
+      ),
     ).toBe(false)
     expect(
       campaignApplies(
@@ -127,7 +134,9 @@ describe('preorderUnitPrice', () => {
   })
 
   it('caps a percent at 90', () => {
-    expect(preorderUnitPrice(10_000, { discountType: 'percentage', discountValue: 100 })).toBe(1_000)
+    expect(preorderUnitPrice(10_000, { discountType: 'percentage', discountValue: 100 })).toBe(
+      1_000,
+    )
   })
 
   it('changes nothing without a discount', () => {
@@ -208,9 +217,9 @@ describe('mixedCartVerdict', () => {
 
 describe('campaignNoteSource', () => {
   it("uses the campaign's text for each place", () => {
-    expect(
-      campaignNoteSource({ productNote: 'Own', own: [], campaign, place: 'order' }),
-    ).toBe('Ships {ship_date}')
+    expect(campaignNoteSource({ productNote: 'Own', own: [], campaign, place: 'order' })).toBe(
+      'Ships {ship_date}',
+    )
   })
 
   it("falls back to the product's note where the campaign has none", () => {
@@ -243,9 +252,9 @@ describe('campaignColours', () => {
 
 describe('campaign schemas', () => {
   it('needs a deposit amount for a fixed deposit and a value for a discount', () => {
-    expect(PreorderCampaignCreateSchema.safeParse({ name: 'X', paymentMode: 'fixed' }).success).toBe(
-      false,
-    )
+    expect(
+      PreorderCampaignCreateSchema.safeParse({ name: 'X', paymentMode: 'fixed' }).success,
+    ).toBe(false)
     expect(
       PreorderCampaignCreateSchema.safeParse({ name: 'X', discountType: 'percentage' }).success,
     ).toBe(false)

@@ -164,8 +164,7 @@ const loadCart: WorkflowStep<State> = {
         return { r, campaign: null, settings, unitPricePaise }
       }
       const tracked = r.trackInventory && !r.giftCard
-      const available =
-        located.get(r.variantId) ?? Math.max(0, (r.onHand ?? 0) - (r.reserved ?? 0))
+      const available = located.get(r.variantId) ?? Math.max(0, (r.onHand ?? 0) - (r.reserved ?? 0))
       const outcome = soldOutInCartOutcome({
         wasPreorder: r.linePreorder,
         soldOut: tracked && available < r.quantity,

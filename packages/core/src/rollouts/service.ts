@@ -94,7 +94,7 @@ function windowOf(r: {
   if (!r.startsAt) return null
   const end =
     r.kind === 'event' || r.audience
-      ? (r.kind === 'event' ? r.endsAt : null) ?? new Date(8.64e15)
+      ? ((r.kind === 'event' ? r.endsAt : null) ?? new Date(8.64e15))
       : r.startsAt
   return { start: r.startsAt.getTime(), end: end.getTime() }
 }
@@ -360,10 +360,7 @@ async function treatmentThemeMustExist(ctx: StoreContext, changes: ChangeRow[]):
   if (!change?.targetId) {
     throw new RolloutError('ROLLOUT_INVALID', 'Add a theme for the Treatment to see', ctx.storeId)
   }
-  const [t] = await ctx.tx
-    .select({ id: theme.id })
-    .from(theme)
-    .where(eq(theme.id, change.targetId))
+  const [t] = await ctx.tx.select({ id: theme.id }).from(theme).where(eq(theme.id, change.targetId))
   if (!t) {
     throw new RolloutError(
       'ROLLOUT_INVALID',
