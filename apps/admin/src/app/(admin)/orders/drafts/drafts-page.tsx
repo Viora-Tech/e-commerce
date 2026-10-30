@@ -10,6 +10,7 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { draftColumns } from '@/components/drafts/draft-columns'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
+import EmptyState from '@/components/layout/empty-state'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import StatStrip from '@/components/layout/stat-strip'
 import SendMessageDialog, { type CustomMessage } from '@/components/orders/send-message-dialog'
@@ -170,6 +171,7 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
   const { page, query, status } = q
   const perPage = parseRowsPerPage(q.perPage)
   const filtered = hasDraftFilters(q)
+  const blank = tiles.total === 0 && !q.query && !filtered && q.status === null
   const groups = draftFilterGroups(q, filterCopy, (patch) => setQ({ ...patch, page: 1 }))
 
   return (
@@ -192,6 +194,7 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
         </Tooltip>
       }
       stats={
+        blank ? undefined : (
         <StatStrip
           tiles={[
             {
@@ -214,8 +217,24 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
             },
           ]}
         />
+        )
       }
     >
+      {/* No drafts at all: one plain empty state with Create, not ₹0 tiles, filters, column
+          headers and a pager (audit #34). */}
+      {blank ? (
+        <EmptyState
+          variant="page"
+          heading={copy.empty}
+          body={copy.intro}
+          action={
+            <Button render={<Link href={routes.orders.newDraft()} />} nativeButton={false}>
+              <SquarePlus strokeWidth={1.6} />
+              {copy.create}
+            </Button>
+          }
+        />
+      ) : (
       <ResourceTable
         resourceName={copy.resource}
         columns={draftColumns(copy, fmt)}
@@ -302,6 +321,7 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
             : { heading: copy.empty, body: copy.intro }
         }
       />
+      )}
       <SendMessageDialog
         orderId={invoicing}
         template="draft_invoice"
