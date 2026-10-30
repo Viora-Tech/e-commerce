@@ -59,6 +59,7 @@ import { marketPricingFor, pricingKey } from './market-pricing'
 import { MARKET_HEADERS } from './markets'
 import { cartIsEmpty, requestCart } from './request-cart'
 import './search-engine'
+import { abThemeId } from './rollout-ab'
 import { requestOrigin } from './seo'
 import { CACHE_TTL_MS, cachedForStore, peekForStore, rememberForStore } from './store-cache'
 import { inStore } from './store-context'
@@ -466,10 +467,13 @@ export async function liquidLayoutFor(
   return layoutWithNonce(layout, scope.nonce)
 }
 
-/** The theme this request renders: the verified preview's, else the live one. */
+/**
+ * The theme this request renders: the verified preview's, else an A/B rollout's Treatment theme
+ * for a visitor in that arm, else the live one.
+ */
 export async function requestThemeId(tx: StoreTx, storeId: string): Promise<string | null> {
   const preview = readPreview(storeId, (await headers()).get('x-theme-preview'))
-  return preview?.themeId ?? (await mainThemeId(tx))
+  return preview?.themeId ?? (await abThemeId(storeId)) ?? (await mainThemeId(tx))
 }
 
 /**

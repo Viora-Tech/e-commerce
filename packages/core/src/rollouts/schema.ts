@@ -32,12 +32,30 @@ const ChangeSchema = z.discriminatedUnion('kind', [
 ])
 export type RolloutChangeInput = z.input<typeof ChangeSchema>
 
+/**
+ * An A/B test's audience (#120): Treatment's share of the tested visitors, the share of all
+ * visitors in the test, the markets it runs in (none: all) and the visitors it aims to reach.
+ */
+export const RolloutAudienceSchema = z.object({
+  split: z.number().int().min(1).max(99).default(50),
+  traffic: z.number().int().min(1).max(100).default(100),
+  marketIds: z.array(z.uuid()).max(50).default([]),
+  target: z.number().int().min(1).max(100_000_000).nullable().default(null),
+})
+export type RolloutAudienceInput = z.input<typeof RolloutAudienceSchema>
+
+/** Change kinds an A/B test can show to some visitors only: drawn per request on the storefront. */
+export const AB_SPLITTABLE_KINDS = ['theme'] as const
+
 export const RolloutSaveSchema = z.object({
   name: z.string().trim().min(1).max(120),
   kind: z.enum(ROLLOUT_KINDS).default('launch'),
   startsAt: z.coerce.date().nullable().default(null),
   endsAt: z.coerce.date().nullable().default(null),
   endAction: z.enum(ROLLOUT_END_ACTIONS).default('rollback'),
+  notes: z.string().trim().max(2000).default(''),
+  /** Null: the changes go live for everyone. Set: an A/B test, Control vs Treatment. */
+  audience: RolloutAudienceSchema.nullable().default(null),
   changes: z
     .array(ChangeSchema)
     .max(MAX_ROLLOUT_DISCOUNTS + 2)
@@ -50,3 +68,6 @@ export const RolloutStatusSchema = z.enum(ROLLOUT_STATUSES)
 
 /** How an event ends: roll back what it changed, or keep it. */
 export const RolloutEndActionSchema = z.enum(ROLLOUT_END_ACTIONS)
+
+/** How an A/B test ends: ship the Treatment to everyone, or keep the Control. */
+export const RolloutAbOutcomeSchema = z.enum(['treatment', 'control'])

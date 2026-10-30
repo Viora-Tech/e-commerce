@@ -9,6 +9,7 @@
     "./errors": "./src/errors.ts",
     "./outbox-types": "./src/outbox/types.ts",
     "./emi": "./src/payments/emi.ts",
+    "./rollout-ab": "./src/rollouts/ab.ts",
     "./adjustments": "./src/payments/adjustments.ts",
     "./adjustment-math": "./src/payments/adjustment-math.ts",
     "./payment-methods": "./src/payments/methods.ts",

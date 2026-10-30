@@ -47,7 +47,7 @@ rollout starts.
 | --- | --- |
 | Draft | No start date, or no changes yet. Nothing will happen. |
 | Scheduled | It will start by itself at its start time. |
-| Active | Its changes are live. An event shows when it will end. |
+| Active | Its changes are live (an A/B test: its Treatment visitors see them). An event shows when it will end. |
 | Paused | An event rolled back early. **Resume** puts its changes back until the end. |
 | Ended | Done. A launch ends as soon as it starts. |
 | Archived | Kept for the record only. |
@@ -62,6 +62,49 @@ rollout starts.
 Rolling back puts back **what was replaced**, as it is now. If you edited your everyday theme while
 the sale ran, those edits stay. If you changed something the rollout set by hand (turned a sale
 discount off yourself, for example), rolling back leaves your choice alone.
+
+## A/B test a theme
+
+Not sure the new look sells better? Run the rollout as an **A/B test** first. Under **Audience**,
+turn on **Run as an A/B test**:
+
+- **Control** visitors see the store as it is. **Treatment** visitors see the rollout's theme.
+  Nothing changes for everyone until you decide.
+- **Traffic split**: how the tested visitors divide between Control and Treatment, 50/50 unless
+  you move it.
+- **Traffic allocation**: the share of all visitors in the test. The rest see the store as it is
+  and are not counted.
+- **Eligible markets**: test in chosen markets only (leave all unticked for every market).
+- **Target visitors**: how many visitors the test should reach before you decide. The **Reached**
+  ring on the results fills up towards it.
+- **Notes**: write down what you are testing and what would make you ship it. Only your team sees
+  them.
+
+A visitor stays in the same arm on every visit. Only visitors who accepted analytics cookies are
+tested; everyone else, and every search engine bot, sees the Control.
+
+**What can be tested.** An A/B test splits **theme changes only**. Checkout branding and discounts
+apply to every shopper at once (a discount decides the price in the cart, the checkout and the
+order), so a rollout with those cannot be an A/B test. Test the theme first, then run a normal
+rollout for the sale.
+
+### Results
+
+Once the test starts, **Results** shows, for Control and Treatment side by side: visitors,
+sessions, add-to-cart rate, conversion rate, orders and revenue per visitor. Above them a hint
+reads **Not enough data yet** until each arm has 100 visitors and there are 10 orders in all, then
+**Treatment ahead with ~95% confidence** (or Control, at ~90, 95 or 99%), or **No clear winner
+yet**. The hint is a two-proportion z-test on conversion rate.
+
+### Ending the test
+
+- **Ship Treatment** publishes the rollout's theme for every visitor and ends the test.
+- **Keep Control** ends the test and leaves the store as it is.
+- **Pause** shows everyone the Control until you resume; the numbers so far are kept.
+
+An **Event** that is also an A/B test ends by itself at its end time: **Keep the changes** ships
+the Treatment, **Roll back** keeps the Control. While a test runs, its split, traffic and markets
+stay fixed so the numbers stay fair; its name, notes, target and end can still change.
 
 ## Conflicts
 

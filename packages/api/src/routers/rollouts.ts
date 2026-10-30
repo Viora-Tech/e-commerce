@@ -14,7 +14,9 @@ import {
   resumeRollout,
   rolloutConflicts,
   rolloutDiscountOptions,
+  rolloutAbResults,
   rolloutHolds,
+  rolloutMarketOptions,
   rolloutThemeOptions,
   startRollout,
   updateRollout,
@@ -81,6 +83,16 @@ export const rolloutsRouter = {
   /** The theme library, the live theme first: what a rollout can publish. */
   listThemes: read().handler(({ context }) => rolloutThemeOptions(ctxOf(context))),
 
+  /** The store's markets: where an A/B test can be limited to. */
+  listMarkets: read().handler(({ context }) => rolloutMarketOptions(ctxOf(context))),
+
+  /** An A/B rollout's numbers per arm and the z-test hint; null without a test. */
+  results: read()
+    .input(IdSchema)
+    .handler(({ context, input }) =>
+      rolloutErrors(() => rolloutAbResults(ctxOf(context), input.id)),
+    ),
+
   /** Discounts by title or code, a page at a time: what a rollout can switch on or off. */
   listDiscounts: read()
     .input(
@@ -134,7 +146,10 @@ export const rolloutsRouter = {
     .input(IdSchema)
     .handler(({ context, input }) => rolloutErrors(() => resumeRollout(ctxOf(context), input.id))),
 
-  /** End a running event now: roll back what it changed, or keep its changes for good. */
+  /**
+   * End a running event now: roll back what it changed, or keep its changes for good. An A/B
+   * test: `apply` ships the Treatment to everyone, `rollback` keeps the Control.
+   */
   end: manage()
     .input(IdSchema.extend({ action: RolloutEndActionSchema }))
     .handler(({ context, input }) =>

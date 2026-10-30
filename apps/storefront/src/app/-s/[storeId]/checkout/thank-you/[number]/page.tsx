@@ -30,6 +30,7 @@ import { experimentsEnabled, requestExperiments } from '@/lib/experiments'
 import { orderPageToken } from '@/lib/order-view-cookie'
 import { shopperParcels } from '@/lib/parcels'
 import { balanceView, storePreorderPolicy } from '@/lib/preorder'
+import { abPurchaseMeasured } from '@/lib/rollout-ab'
 import { inStore } from '@/lib/store-context'
 
 /** Attempts still waiting on the shopper or the gateway. */
@@ -147,9 +148,12 @@ export default async function ThankYouPage({ params, searchParams }: Params) {
       env.SETTINGS_SECRET,
     )
   const payToken = tokenFits ? token : orderViewToken(data.order.id, env.SETTINGS_SECRET)
-  // A purchase for the store's A/B tests (the GrowthBook app), after a yes to analytics.
+  // A purchase for the store's A/B tests (the GrowthBook app and A/B rollouts), after a yes to
+  // analytics.
   const measured =
-    (await requestExperiments(storeId)).visitorId !== null && (await experimentsEnabled(storeId))
+    ((await requestExperiments(storeId)).visitorId !== null &&
+      (await experimentsEnabled(storeId))) ||
+    (await abPurchaseMeasured(storeId))
   return (
     <>
       {measured ? <ExperimentBeacon order={data.order.id} /> : null}

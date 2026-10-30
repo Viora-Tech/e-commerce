@@ -156,6 +156,7 @@ const READ_NAMES = new Set([
 const READ_PATHS = new Set([
   'payments.setup',
   'rollouts.holds',
+  'rollouts.results',
   'payments.testMode',
   'gstInvoices.bulkDownload',
   'inbox.sync',
@@ -268,7 +269,7 @@ const SENSITIVE_PATHS: Record<string, string> = {
   'automations.runNow': 'runs a workflow on records now',
   'automations.runs.retry': 'runs a workflow step again',
   'rollouts.end':
-    'ends a running sale: rolls the theme, checkout and discounts back, or keeps them',
+    'ends a running sale: rolls the theme, checkout and discounts back, or keeps them (an A/B test: ships the Treatment or keeps the Control)',
 }
 
 /** Writes that turn sensitive for some inputs. */

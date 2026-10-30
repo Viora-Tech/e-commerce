@@ -68,6 +68,7 @@ import { mediaByUrl } from '@/lib/media-lookup'
 import { subscribeAction } from '@/lib/newsletter-actions'
 import { storePixels } from '@/lib/pixels/pixels'
 import { requestCart } from '@/lib/request-cart'
+import { abThemeId } from '@/lib/rollout-ab'
 import { heightForWidth } from '@/lib/section-images'
 import { requestOrigin, verificationMeta } from '@/lib/seo'
 import { storeRead } from '@/lib/store-cache'
@@ -151,9 +152,19 @@ function menuLinks(
   ]
 }
 
-/** The live theme's settings, cached per store version. */
-function liveTheme(storeId: string) {
-  return storeRead(storeId, 'live-theme-settings', (tx) => liveThemeSettings(tx, storeId))
+/**
+ * The live theme's settings, cached per store version; an A/B rollout's Treatment theme's for a
+ * visitor in that arm (`lib/rollout-ab.ts`).
+ */
+async function liveTheme(storeId: string) {
+  const tested = await abThemeId(storeId)
+  const treatment = tested
+    ? await storeRead(storeId, `theme-settings|${tested}`, (tx) => getTheme(tx, tested))
+    : null
+  return (
+    treatment?.settings ??
+    storeRead(storeId, 'live-theme-settings', (tx) => liveThemeSettings(tx, storeId))
+  )
 }
 
 /** What every page's layout reads from the store, cached per store version. */

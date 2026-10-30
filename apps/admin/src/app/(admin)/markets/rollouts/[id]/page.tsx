@@ -20,12 +20,17 @@ export default async function RolloutPage({ params }: Params) {
   const rollout = await call(appRouter.rollouts.get, { id }, { context }).catch(missing)
   if (rollout === undefined) redirect(routes.selectStore())
   if (!rollout) notFound()
-  const data = await loadRolloutPage(context)
+  const [data, results] = await Promise.all([
+    loadRolloutPage(context),
+    // An A/B test's numbers per arm; null for a rollout without a test.
+    rollout.audience ? call(appRouter.rollouts.results, { id }, { context }) : null,
+  ])
   return (
     <RolloutForm
       key={`${rollout.id}-${rollout.status}-${rollout.endsAt?.toISOString() ?? ''}`}
       rollout={rollout}
       data={data}
+      results={results}
     />
   )
 }

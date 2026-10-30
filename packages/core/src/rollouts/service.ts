@@ -10,6 +10,7 @@
  */
 import {
   discount,
+  type RolloutAudience,
   type RolloutEndAction,
   type RolloutKind,
   type RolloutStatus,
@@ -26,7 +27,12 @@ import {
   revertRolloutChange,
   type StoredRolloutChange,
 } from './changes'
-import { RolloutError, type RolloutSaveInput, RolloutSaveSchema } from './schema'
+import {
+  AB_SPLITTABLE_KINDS,
+  RolloutError,
+  type RolloutSaveInput,
+  RolloutSaveSchema,
+} from './schema'
 import { type ChangeRow, changesOf, getRollout, mustGet, type RolloutView, UNENDED } from './views'
 
 export { getRollout, listRollouts, type RolloutChangeView, type RolloutView } from './views'
@@ -57,6 +63,16 @@ function validate(p: Parsed, storeId: string): void {
   if (new Set(discounts.map((d) => d.discountId)).size !== discounts.length) {
     throw new RolloutError('ROLLOUT_INVALID', 'A discount is listed twice', storeId)
   }
+  if (p.audience) {
+    const splittable: readonly string[] = AB_SPLITTABLE_KINDS
+    if (p.changes.some((c) => !splittable.includes(c.kind))) {
+      throw new RolloutError(
+        'ROLLOUT_INVALID',
+        'An A/B test can split theme changes only. Remove the checkout and discount changes, or turn the test off.',
+        storeId,
+      )
+    }
+  }
   if (p.kind === 'event' && p.startsAt && !p.endsAt) {
     throw new RolloutError('ROLLOUT_INVALID', 'An event needs an end date', storeId)
   }
@@ -65,10 +81,21 @@ function validate(p: Parsed, storeId: string): void {
   }
 }
 
-/** When a rollout holds its change: an event from start to end; a launch at its start. */
-function windowOf(r: { kind: RolloutKind; startsAt: Date | null; endsAt: Date | null }) {
+/**
+ * When a rollout holds its change: an event from start to end; a launch at its start; an A/B
+ * test from its start until it ends (a launch's test runs until the merchant picks an arm).
+ */
+function windowOf(r: {
+  kind: RolloutKind
+  startsAt: Date | null
+  endsAt: Date | null
+  audience?: RolloutAudience | null
+}) {
   if (!r.startsAt) return null
-  const end = r.kind === 'event' ? (r.endsAt ?? new Date(8.64e15)) : r.startsAt
+  const end =
+    r.kind === 'event' || r.audience
+      ? (r.kind === 'event' ? r.endsAt : null) ?? new Date(8.64e15)
+      : r.startsAt
   return { start: r.startsAt.getTime(), end: end.getTime() }
 }
 
@@ -210,6 +237,8 @@ export async function createRollout(
       startsAt: p.startsAt,
       endsAt: p.kind === 'event' ? p.endsAt : null,
       endAction: p.endAction,
+      notes: p.notes,
+      audience: p.audience,
       createdBy,
     })
     .returning()
@@ -218,7 +247,11 @@ export async function createRollout(
   return getRollout(ctx, r.id)
 }
 
-/** Drafts and scheduled rollouts change freely; an active one only its end (time and action). */
+/**
+ * Drafts and scheduled rollouts change freely; an active one only its name, end (time and
+ * action), notes and an A/B test's target: the split, traffic and markets stay as the test
+ * started, or its numbers would mix two audiences.
+ */
 export async function updateRollout(
   ctx: StoreContext,
   id: string,
@@ -233,7 +266,14 @@ export async function updateRollout(
     }
     await ctx.tx
       .update(rollout)
-      .set({ name: p.name, endsAt: p.endsAt, endAction: p.endAction })
+      .set({
+        name: p.name,
+        endsAt: p.endsAt,
+        endAction: p.endAction,
+        notes: p.notes,
+        audience:
+          r.audience && p.audience ? { ...r.audience, target: p.audience.target } : r.audience,
+      })
       .where(eq(rollout.id, id))
     return getRollout(ctx, id)
   }
@@ -250,6 +290,8 @@ export async function updateRollout(
       startsAt: p.startsAt,
       endsAt: p.kind === 'event' ? p.endsAt : null,
       endAction: p.endAction,
+      notes: p.notes,
+      audience: p.audience,
       error: null,
     })
     .where(eq(rollout.id, id))
@@ -286,6 +328,16 @@ export async function startRollout(
   if (r.kind === 'event' && (!r.endsAt || r.endsAt <= at)) {
     throw new RolloutError('ROLLOUT_INVALID', 'An event needs an end after now', ctx.storeId)
   }
+  if (r.audience) {
+    // An A/B test changes nothing on the store: the storefront draws the Treatment's theme for
+    // its visitors only. It needs that theme to exist, like a publish would.
+    await treatmentThemeMustExist(ctx, changes)
+    await ctx.tx
+      .update(rollout)
+      .set({ status: 'active', startsAt: r.startsAt ?? at, startedAt: at, error: null })
+      .where(eq(rollout.id, id))
+    return getRollout(ctx, id)
+  }
   try {
     for (const c of changes) await applyRolloutChange(ctx, stored(c), at)
   } catch (e) {
@@ -301,6 +353,24 @@ export async function startRollout(
     )
     .where(eq(rollout.id, id))
   return getRollout(ctx, id)
+}
+
+async function treatmentThemeMustExist(ctx: StoreContext, changes: ChangeRow[]): Promise<void> {
+  const change = changes.find((c) => c.kind === 'theme')
+  if (!change?.targetId) {
+    throw new RolloutError('ROLLOUT_INVALID', 'Add a theme for the Treatment to see', ctx.storeId)
+  }
+  const [t] = await ctx.tx
+    .select({ id: theme.id })
+    .from(theme)
+    .where(eq(theme.id, change.targetId))
+  if (!t) {
+    throw new RolloutError(
+      'ROLLOUT_INVALID',
+      'The theme this rollout publishes was deleted.',
+      ctx.storeId,
+    )
+  }
 }
 
 /** Records why a due start failed and turns the rollout back into a draft (the tick moves on). */
@@ -322,6 +392,28 @@ export async function endRollout(
   if (r.status !== 'active' && r.status !== 'paused') {
     throw new RolloutError('ROLLOUT_STATE', 'Only an active rollout can end', ctx.storeId)
   }
+  if (r.audience) {
+    // A test applied nothing: "Ship Treatment" (apply) publishes its changes for everyone now,
+    // "Keep Control" (rollback) leaves the store as it is.
+    if (action === 'apply') {
+      try {
+        for (const c of await changesOf(ctx, [id])) await applyRolloutChange(ctx, stored(c), at)
+      } catch (e) {
+        if (!(e instanceof RolloutChangeError)) throw e
+        throw new RolloutError('ROLLOUT_INVALID', e.message, ctx.storeId)
+      }
+    }
+    await ctx.tx
+      .update(rollout)
+      .set({
+        status: 'ended',
+        endedAt: at,
+        endAction: action,
+        abOutcome: action === 'apply' ? 'treatment' : 'control',
+      })
+      .where(eq(rollout.id, id))
+    return getRollout(ctx, id)
+  }
   if (r.status === 'active' && action === 'rollback') {
     for (const c of await changesOf(ctx, [id])) {
       if (c.appliedAt) await revertRolloutChange(ctx, stored(c))
@@ -340,10 +432,11 @@ export async function endRollout(
 /** Rolls an active event back early; `resumeRollout` applies it again. */
 export async function pauseRollout(ctx: StoreContext, id: string): Promise<RolloutView> {
   const r = await mustGet(ctx, id)
-  if (r.status !== 'active' || r.kind !== 'event') {
+  if (r.status !== 'active' || (r.kind !== 'event' && !r.audience)) {
     throw new RolloutError('ROLLOUT_STATE', 'Only an active event can pause', ctx.storeId)
   }
-  for (const c of await changesOf(ctx, [id])) {
+  // A paused A/B test shows everyone the Control; nothing was applied, so nothing rolls back.
+  for (const c of r.audience ? [] : await changesOf(ctx, [id])) {
     if (c.appliedAt) await revertRolloutChange(ctx, stored(c))
   }
   await ctx.tx.update(rollout).set({ status: 'paused' }).where(eq(rollout.id, id))
@@ -363,7 +456,8 @@ export async function resumeRollout(
     throw new RolloutError('ROLLOUT_STATE', 'This event’s end has passed', ctx.storeId)
   }
   try {
-    for (const c of await changesOf(ctx, [id])) await applyRolloutChange(ctx, stored(c), at)
+    if (r.audience) await treatmentThemeMustExist(ctx, await changesOf(ctx, [id]))
+    else for (const c of await changesOf(ctx, [id])) await applyRolloutChange(ctx, stored(c), at)
   } catch (e) {
     if (!(e instanceof RolloutChangeError)) throw e
     throw new RolloutError('ROLLOUT_INVALID', e.message, ctx.storeId)

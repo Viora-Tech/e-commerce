@@ -50,6 +50,7 @@ import { nudgeOutbox } from './outbox'
 import { storePaymentFallbacks, storePaymentProviders } from './payments'
 import { clientIp, rateLimited } from './rate-limit'
 import { requestStoreId } from './request-store'
+import { noteAbAddToCart } from './rollout-ab'
 import { cartShippingHint, checkoutParcels, estimateForPincode } from './shipping'
 import { storeSignIn } from './sign-in-methods'
 import { inStore } from './store-context'
@@ -96,6 +97,8 @@ export async function addLineAction(
   }
   if (cartId !== existing) await writeCartId(cartId)
   await chatCartLine(storeId, cartId, 'add', variantId, Math.max(1, quantity))
+  // A/B rollouts: the visitor's first add to cart counts for the arm they are in.
+  await noteAbAddToCart(storeId)
   revalidatePath('/', 'layout')
   return undefined
 }

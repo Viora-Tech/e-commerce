@@ -11,6 +11,16 @@ export type DiscountPick = {
   status: 'active' | 'disabled'
 }
 
+/** An A/B test's audience as the form edits it; the target is the field's text. */
+export type AudienceForm = {
+  split: number
+  traffic: number
+  marketIds: string[]
+  target: string
+}
+
+export const DEFAULT_AUDIENCE: AudienceForm = { split: 50, traffic: 100, marketIds: [], target: '' }
+
 /** The rollout page's form: `null` means that kind of change is not in the rollout. */
 export type RolloutFormState = {
   name: string
@@ -22,6 +32,9 @@ export type RolloutFormState = {
   themeId: string | null
   branding: CheckoutBranding | null
   discounts: DiscountPick[]
+  notes: string
+  /** Null: the changes go live for everyone; set: an A/B test, Control vs Treatment. */
+  audience: AudienceForm | null
 }
 
 /** Server-checked clashes, as the conflict banner shows them. */
@@ -39,6 +52,8 @@ export function emptyRollout(): RolloutFormState {
     themeId: null,
     branding: null,
     discounts: [],
+    notes: '',
+    audience: null,
   }
 }
 
@@ -57,7 +72,22 @@ export function fromRollout(r: RolloutView): RolloutFormState {
     discounts: r.changes.flatMap((c) =>
       c.kind === 'discount' ? [{ id: c.discountId, title: c.label, status: c.status }] : [],
     ),
+    notes: r.notes,
+    audience: r.audience
+      ? {
+          split: r.audience.split,
+          traffic: r.audience.traffic,
+          marketIds: r.audience.marketIds,
+          target: r.audience.target ? String(r.audience.target) : '',
+        }
+      : null,
   }
+}
+
+/** The target field as a whole number of visitors; null when empty or not a number. */
+function targetOf(text: string): number | null {
+  const n = Number.parseInt(text.replace(/[^0-9]/g, ''), 10)
+  return Number.isFinite(n) && n > 0 ? n : null
 }
 
 /** What `rollouts.create` / `update` / `checkConflicts` take. */
@@ -77,6 +107,15 @@ export function toRolloutInput(f: RolloutFormState) {
     startsAt: fromLocalInput(f.startsAt),
     endsAt: f.kind === 'event' ? fromLocalInput(f.endsAt) : null,
     endAction: f.endAction,
+    notes: f.notes.trim(),
+    audience: f.audience
+      ? {
+          split: f.audience.split,
+          traffic: f.audience.traffic,
+          marketIds: f.audience.marketIds,
+          target: targetOf(f.audience.target),
+        }
+      : null,
     changes,
   }
 }
@@ -100,6 +139,7 @@ export function changesSummary(r: RolloutView, copy: Copy): string {
     r.changes.some((c) => c.kind === 'checkout_branding') ? copy.summary.checkout : null,
     discounts > 0 ? copy.summary.discounts(discounts) : null,
   ].filter((p): p is string => p !== null)
+  if (r.audience) parts.unshift(copy.summary.abTest)
   return parts.length > 0 ? parts.join(' · ') : copy.summary.none
 }
 

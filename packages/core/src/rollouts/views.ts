@@ -5,6 +5,8 @@
  */
 import {
   discount,
+  type RolloutAbOutcome,
+  type RolloutAudience,
   type RolloutEndAction,
   type RolloutKind,
   type RolloutStatus,
@@ -40,6 +42,11 @@ export type RolloutView = {
   startedAt: Date | null
   endedAt: Date | null
   error: string | null
+  notes: string
+  /** An A/B test's audience; null when the changes go live for everyone. */
+  audience: RolloutAudience | null
+  /** An ended A/B test: the arm the store kept. */
+  abOutcome: RolloutAbOutcome | null
   changes: RolloutChangeView[]
   createdAt: Date
 }
@@ -98,6 +105,9 @@ function view(r: RolloutRow, changes: ChangeRow[], labels: Labels): RolloutView 
     startedAt: r.startedAt,
     endedAt: r.endedAt,
     error: r.error,
+    notes: r.notes,
+    audience: r.audience ?? null,
+    abOutcome: r.abOutcome ?? null,
     changes: changes.filter((c) => c.rolloutId === r.id).map((c) => changeView(c, labels)),
     createdAt: r.createdAt,
   }

@@ -20,9 +20,12 @@ type RolloutActionsProps = {
   dirty: boolean
 }
 
-type Confirming = 'start' | 'pause' | 'delete' | null
+type Confirming = 'start' | 'pause' | 'delete' | 'ship' | 'keep' | null
 
-/** The rollout page's header actions: start now, pause or resume, end now, archive, delete. */
+/**
+ * The rollout page's header actions: start now, pause or resume, end now, archive, delete. A
+ * running A/B test ends with "Keep Control" or "Ship Treatment" instead of "End now".
+ */
 export default function RolloutActions({ rollout: r, dirty }: RolloutActionsProps) {
   // Hooks
   const { form: copy } = useCopy(rolloutsContent)
@@ -55,6 +58,10 @@ export default function RolloutActions({ rollout: r, dirty }: RolloutActionsProp
     run(() => api.rollouts.end({ id: r.id, action }), copy.toasts.ended).then(() =>
       setEnding(false),
     )
+  const handleShip = () =>
+    run(() => api.rollouts.end({ id: r.id, action: 'apply' }), copy.toasts.shipped)
+  const handleKeep = () =>
+    run(() => api.rollouts.end({ id: r.id, action: 'rollback' }), copy.toasts.kept)
   const handleArchive = () =>
     run(() => api.rollouts.archive({ id: r.id }), copy.toasts.archived).catch(() => undefined)
   const handleDelete = async () => {
@@ -65,7 +72,9 @@ export default function RolloutActions({ rollout: r, dirty }: RolloutActionsProp
   // Render logic
   const canStart = r.status === 'draft' || r.status === 'scheduled'
   const running = r.status === 'active' || r.status === 'paused'
-  const isEventRunning = running && r.kind === 'event'
+  const abTest = r.audience !== null
+  const isEventRunning = running && r.kind === 'event' && !abTest
+  const canPause = r.status === 'active' && (r.kind === 'event' || abTest)
 
   return (
     <>
@@ -92,7 +101,7 @@ export default function RolloutActions({ rollout: r, dirty }: RolloutActionsProp
           ]}
         />
       )}
-      {r.status === 'active' && r.kind === 'event' ? (
+      {canPause ? (
         <Button variant="outline" disabled={busy} onClick={() => setConfirming('pause')}>
           <Pause aria-hidden="true" />
           {copy.actions.pause}
@@ -103,6 +112,16 @@ export default function RolloutActions({ rollout: r, dirty }: RolloutActionsProp
           <Play aria-hidden="true" />
           {copy.actions.resume}
         </Button>
+      ) : null}
+      {running && abTest ? (
+        <>
+          <Button variant="outline" disabled={busy} onClick={() => setConfirming('keep')}>
+            {copy.actions.keepControl}
+          </Button>
+          <Button disabled={busy} onClick={() => setConfirming('ship')}>
+            {copy.actions.shipTreatment}
+          </Button>
+        </>
       ) : null}
       {isEventRunning ? (
         <Button disabled={busy} onClick={() => setEnding(true)}>
@@ -124,7 +143,7 @@ export default function RolloutActions({ rollout: r, dirty }: RolloutActionsProp
         open={confirming === 'start'}
         onOpenChange={(open) => setConfirming(open ? 'start' : null)}
         title={copy.confirmStart.title(r.name)}
-        body={copy.confirmStart.body}
+        body={abTest ? copy.confirmStartAb : copy.confirmStart.body}
         confirmLabel={copy.confirmStart.confirm}
         onConfirm={handleStart}
       />
@@ -132,9 +151,25 @@ export default function RolloutActions({ rollout: r, dirty }: RolloutActionsProp
         open={confirming === 'pause'}
         onOpenChange={(open) => setConfirming(open ? 'pause' : null)}
         title={copy.confirmPause.title(r.name)}
-        body={copy.confirmPause.body}
+        body={abTest ? copy.confirmPauseAb : copy.confirmPause.body}
         confirmLabel={copy.confirmPause.confirm}
         onConfirm={handlePause}
+      />
+      <ConfirmDialog
+        open={confirming === 'ship'}
+        onOpenChange={(open) => setConfirming(open ? 'ship' : null)}
+        title={copy.confirmShip.title(r.name)}
+        body={copy.confirmShip.body}
+        confirmLabel={copy.confirmShip.confirm}
+        onConfirm={handleShip}
+      />
+      <ConfirmDialog
+        open={confirming === 'keep'}
+        onOpenChange={(open) => setConfirming(open ? 'keep' : null)}
+        title={copy.confirmKeep.title(r.name)}
+        body={copy.confirmKeep.body}
+        confirmLabel={copy.confirmKeep.confirm}
+        onConfirm={handleKeep}
       />
       <ConfirmDialog
         open={confirming === 'delete'}

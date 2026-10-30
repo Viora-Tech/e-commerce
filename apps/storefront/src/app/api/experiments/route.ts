@@ -5,6 +5,7 @@ import { cookies, headers } from 'next/headers'
 import { analyticsAllowed } from '@/lib/consent-cookie'
 import { assignVisitor, experimentsEnabled } from '@/lib/experiments'
 import { withEvlog } from '@/lib/request-log'
+import { recordAbOrder, runningAbTests } from '@/lib/rollout-ab'
 import { inStore } from '@/lib/store-context'
 import { parseVisitorId, VISITOR_COOKIE } from '@/lib/visitor-cookie'
 
@@ -31,7 +32,7 @@ async function readBody(request: Request): Promise<Body> {
 /**
  * GrowthBook app events from the page (`components/analytics/experiment-beacon.tsx`): the
  * experiments a page was drawn with ("experiment viewed"), or the order its thank-you page
- * shows (a purchase). The variation is worked out again here from the visitor id, never taken
+ * shows (a purchase, for GrowthBook and for the store's running A/B rollouts). The variation is worked out again here from the visitor id, never taken
  * from the body, and nothing is written without a yes to analytics.
  */
 export const POST = withEvlog(async (request: Request) => {
@@ -43,6 +44,12 @@ export const POST = withEvlog(async (request: Request) => {
   }
   const { seen, order: placed } = await readBody(request)
   const order = placed && (await experimentsEnabled(storeId)) ? placed : null
+  // A/B rollouts: the arm comes from the visitor's exposure row, never from the body.
+  if (placed && (await runningAbTests(storeId)).length > 0) {
+    await recordAbOrder(storeId, visitorId, placed).catch((err) =>
+      logger.warn('could not record a rollout purchase', { storeId, error: err }),
+    )
+  }
   const assignments = seen.length ? await assignVisitor(storeId, visitorId) : {}
   const exposed = seen.flatMap((key) => {
     const a = Object.hasOwn(assignments, key) ? assignments[key] : undefined

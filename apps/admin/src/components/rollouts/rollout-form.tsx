@@ -1,6 +1,6 @@
 'use client'
 
-import type { RolloutView } from '@commerce/core'
+import type { RolloutAbResults, RolloutView } from '@commerce/core'
 import { permissions } from '@commerce/core/permissions'
 import { CircleAlert, Plus, Save } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
@@ -19,6 +19,7 @@ import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import AddChangesDialog, { type ChangeKind } from './add-changes-dialog'
 import RolloutActions from './rollout-actions'
+import RolloutAudienceCard from './rollout-audience-card'
 import RolloutBrandingChange from './rollout-branding-change'
 import RolloutConflictsBanner from './rollout-conflicts-banner'
 import RolloutDetailsCard from './rollout-details-card'
@@ -30,7 +31,9 @@ import {
   type RolloutFormState,
   toRolloutInput,
 } from './rollout-form-state'
+import RolloutNotesCard from './rollout-notes-card'
 import type { RolloutPageData } from './rollout-page-data'
+import RolloutResultsCard from './rollout-results-card'
 import RolloutScheduleCard from './rollout-schedule-card'
 import RolloutStatusChip from './rollout-status-chip'
 import RolloutThemeChange from './rollout-theme-change'
@@ -40,6 +43,8 @@ type RolloutFormProps = {
   /** The rollout being edited; null creates one. */
   rollout: RolloutView | null
   data: RolloutPageData
+  /** A started A/B test's numbers per arm. */
+  results?: RolloutAbResults | null
 }
 
 const initialForm = (r: RolloutView | null): RolloutFormState =>
@@ -50,7 +55,7 @@ const initialForm = (r: RolloutView | null): RolloutFormState =>
  * checkout branding, discounts), when it runs and what happens at the end, with the clashes
  * with other rollouts checked as it is edited.
  */
-export default function RolloutForm({ rollout, data }: RolloutFormProps) {
+export default function RolloutForm({ rollout, data, results = null }: RolloutFormProps) {
   // Hooks
   const { title: listTitle, form: copy } = useCopy(rolloutsContent)
   const fmt = useFormat()
@@ -127,6 +132,11 @@ export default function RolloutForm({ rollout, data }: RolloutFormProps) {
     ...(showDiscounts ? (['discounts'] as const) : []),
   ]
   const noChanges = added.length === 0
+  // An A/B test splits theme changes only: the rest apply to every visitor at once.
+  const unavailable: ChangeKind[] = [
+    ...(data.checkout && !form.audience ? [] : (['checkout'] as const)),
+    ...(form.audience ? (['discounts'] as const) : []),
+  ]
   const headerActions = rollout ? (
     canManage ? (
       <RolloutActions rollout={rollout} dirty={dirty} />
@@ -237,6 +247,19 @@ export default function RolloutForm({ rollout, data }: RolloutFormProps) {
         )}
       </DataCard>
 
+      {results && rollout?.startedAt ? (
+        <RolloutResultsCard results={results} outcome={rollout.abOutcome} />
+      ) : null}
+
+      <RolloutAudienceCard
+        audience={form.audience}
+        markets={data.markets}
+        toggleDisabled={!changesEditable}
+        audienceLocked={!changesEditable}
+        targetDisabled={!canManage || ended}
+        onChange={(audience) => patch({ audience })}
+      />
+
       <RolloutScheduleCard
         form={form}
         endError={endError}
@@ -245,10 +268,16 @@ export default function RolloutForm({ rollout, data }: RolloutFormProps) {
         onChange={patch}
       />
 
+      <RolloutNotesCard
+        notes={form.notes}
+        disabled={!canManage || ended}
+        onChange={(notes) => patch({ notes })}
+      />
+
       <AddChangesDialog
         open={adding}
         added={added}
-        unavailable={data.checkout ? [] : ['checkout']}
+        unavailable={unavailable}
         onClose={() => setAdding(false)}
         onAdd={handleAdd}
       />

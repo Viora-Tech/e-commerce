@@ -382,7 +382,10 @@ export const ACTION_DOCS: Record<string, string> = {
     'Images still processing and a running import: the "store may be slower" notice.',
   'media.confirm':
     'Step 2: the PUT succeeded; the object is HEAD-checked for its real size (see confirmUpload).',
+  'media.deleteFolder': 'Only an empty folder; one with files is refused with how many.',
+  'media.folders': 'Files folders with their file counts (#91).',
   'media.get': 'One file for its page in the library.',
+  'media.moveToFolder': 'Moves files into a folder, or out of any with folderId null.',
   'media.neighbours':
     "The files before and after one in the library's order, for the file page's arrows.",
   'media.presign':
@@ -427,6 +430,8 @@ export const ACTION_DOCS: Record<string, string> = {
     '"Cancel order": a reason, restock on or off, tell the customer or not, and how the money goes back (original payment, recorded by hand, or not at all).',
   'orders.cancelShipment':
     'Cancel a booked shipment with its courier, before it is collected or put on a manifest.',
+  'orders.capture':
+    '"Capture payment" (#150): take the money a manual-capture checkout only authorised.',
   'orders.checkDraftDiscount':
     "Check a store discount code against a draft's lines and customer with checkout's rules (dates, minimums, products and collections, eligibility, per-customer cap).",
   'orders.collectPayment': 'Record money collected outside a gateway; the order becomes paid.',
@@ -516,8 +521,12 @@ export const ACTION_DOCS: Record<string, string> = {
   'payments.razorpayOAuthComplete':
     "The OAuth callback route hands the code here; the state must be this store's, and fresh.",
   'payments.razorpayOAuthStart': 'Where "Connect Razorpay" sends the merchant.',
+  'payments.saveCapture':
+    '"Payment capture" (#150): automatic, or authorise now and capture from the order page.',
   'payments.saveManual':
     'One "Manual payment methods" row (UPI ID, bank transfer): details, on/off and note (#149).',
+  'payments.saveMethodRules':
+    '"Payment rules" (#150): hide a way to pay by order total, PIN code or product.',
   'payments.saveMethods': '"Shoppers can pay with": on/off and order.',
   'payments.saveRouting':
     '"Active providers" and "Route methods": which gateways are on together, their fallback order, and which one takes each online method (audit #148/#150).',
@@ -629,8 +638,10 @@ export const ACTION_DOCS: Record<string, string> = {
   'rollouts.list': 'Every rollout with its changes, the newest first; statuses narrows the list.',
   'rollouts.listDiscounts':
     'Discounts by title or code, a page at a time: what a rollout can switch on or off.',
+  'rollouts.listMarkets': "The store's markets: where an A/B test can be limited to.",
   'rollouts.listThemes': 'The theme library, the live theme first: what a rollout can publish.',
   'rollouts.pause': 'Roll a running event back early; resume applies it again.',
+  'rollouts.results': "An A/B rollout's numbers per arm and the z-test hint; null without a test.",
   'rollouts.resume': "Apply a paused event's changes again until its end.",
   'rollouts.startNow':
     "Apply a rollout's changes now instead of at its start; a launch ends at once.",
