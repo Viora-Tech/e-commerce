@@ -103,11 +103,16 @@ export type ThemeValue = string | number | boolean
 
 const sizeOf = (outline: ThemeOutline) => JSON.stringify(outline).length
 
+/** What a merchant asks the AI to change most: words, links and pictures, kept longest. */
+const KEPT_LONGEST = new Set<ThemeSettingKind>(['text', 'textarea', 'richtext', 'url', 'image'])
+
 /**
- * The outline cut to `max` characters of JSON: first the settings, section by section from the
- * bottom of the page up (its blocks' settings, then its own; the selected section last), so the
- * top of the page keeps its detail; then whole sections from the bottom (the selected one kept).
- * Marks it `partial` when anything went.
+ * The outline cut to `max` characters of JSON. First the lesser settings (switches, numbers and
+ * choices) go everywhere, bottom of the page up, so every section keeps its words, links and
+ * pictures; on a long imported page the lower sections otherwise lost all their settings and the AI
+ * said a section near the bottom had none. Then the settings, section by section from the bottom
+ * up (its blocks' settings, then its own; the selected section last); then whole sections from
+ * the bottom (the selected one kept). Marks it `partial` when anything went.
  */
 export function fitOutline(outline: ThemeOutline, max: number = L.maxSize): ThemeOutline {
   if (sizeOf(outline) <= max) return outline
@@ -118,6 +123,19 @@ export function fitOutline(outline: ThemeOutline, max: number = L.maxSize): Them
       const sel = (id: string) => (id === outline.selectedSectionId ? 1 : 0)
       return sel(a.id) - sel(b.id) || b.i - a.i
     })
+  const keep = (list: ThemeOutlineSetting[]) => list.filter((s) => KEPT_LONGEST.has(s.kind))
+  for (const { i } of order) {
+    if (sizeOf(next) <= max) return next
+    const section = next.sections[i]
+    if (!section || section.id === outline.selectedSectionId) continue
+    const sections = [...next.sections]
+    sections[i] = {
+      ...section,
+      settings: keep(section.settings),
+      blocks: section.blocks.map((b) => ({ ...b, settings: keep(b.settings) })),
+    }
+    next = { ...next, sections }
+  }
   for (const { i } of order) {
     for (const step of ['blocks', 'settings'] as const) {
       if (sizeOf(next) <= max) return next

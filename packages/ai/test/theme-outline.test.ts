@@ -141,6 +141,26 @@ describe('fitOutline', () => {
     })),
   })
 
+  it('drops switches, numbers and choices everywhere before any words or pictures', () => {
+    const page = big()
+    for (const s of page.sections) {
+      s.settings.push(
+        { key: 'show', label: 'Show', kind: 'checkbox', value: true },
+        { key: 'speed', label: 'Speed', kind: 'number', value: 5 },
+        { key: 'image', label: 'Image', kind: 'image', value: '/pad.jpg' },
+      )
+    }
+    const fitted = fitOutline(page, JSON.stringify(big()).length + 30 * 80)
+    const last = fitted.sections.at(-1)
+    expect(last?.settings.map((s) => s.key)).toEqual(['heading', 'image'])
+    expect(fitted.sections[0]?.settings.map((s) => s.key)).toEqual([
+      'heading',
+      'show',
+      'speed',
+      'image',
+    ])
+  })
+
   it('leaves an outline that fits alone', () => {
     const small = outline()
     expect(fitOutline(small)).toBe(small)

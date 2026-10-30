@@ -12,3 +12,5 @@
   lost all their settings, so the AI said the newsletter had "no editable settings".
 - Rollouts sits under Markets in the sidebar (Shopify's Markets › Rollouts): `/markets/rollouts`.
   `/rollouts` (live for a few hours) and the old Settings addresses redirect there.
+- When a page is still too long, switches, numbers and choices are dropped everywhere first
+  (bottom up), so every section keeps its words, links and pictures (`fitOutline`).
