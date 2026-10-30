@@ -60,6 +60,7 @@ was held for you and why, and when it was published or answered.
 | **Who can write a review** | **Only customers who bought the product** (from the link in their review email, or signed in to their account) or **Anyone**. | Only buyers |
 | **Most reviews one customer can send in a day** | A limit per email address. Bots are always blocked with a hidden trap field and a limit per visitor. | 3 |
 | **Send review request emails** | Ask customers for a review after delivery. | On |
+| **Send requests by** | **Email**, **WhatsApp** or **Email and WhatsApp**. See [Requests on WhatsApp](#requests-on-whatsapp). | Email |
 | **Send after delivery** | How many days after the order is delivered. | 7 days |
 | **Reminder if no review** | One reminder this many days later. 0 sends none. | 5 days |
 | **Email subject** | `{{ product.title }}` becomes the product's name. **Preview email** shows it. | `How was your {{ product.title }}?` |
@@ -72,6 +73,21 @@ was held for you and why, and when it was published or answered.
 The emails go out by themselves once an order is delivered (by the courier's tracking, or when
 you mark it delivered). Every email has a **Stop review emails** link; customers who used it,
 or who unsubscribed from your marketing emails, are never asked again.
+
+### Requests on WhatsApp
+
+Pick **WhatsApp** or **Email and WhatsApp** under **Send requests by** to reach customers on
+the phone number of their order. It uses your WhatsApp connection (Settings → Notifications) and,
+like every WhatsApp message a business starts, needs templates approved by Meta:
+
+| Template name | Body placeholders |
+| --- | --- |
+| `review_request` | `{{1}}` customer name, `{{2}}` store name, `{{3}}` review link |
+| `review_reminder` | the same |
+
+Orders without a phone number get nothing on WhatsApp (with **Email and WhatsApp** they still
+get the email). The **Send after delivery** and **Reminder** days apply to both. Customers who
+used the stop link are not asked again on either channel.
 
 Just switched from Shopify? Click **Ask for reviews** on the Reviews page: everyone whose
 order was delivered in the last 60 days and was never asked gets one email within minutes.

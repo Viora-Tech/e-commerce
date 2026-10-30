@@ -100,6 +100,7 @@ import purchasing from './purchasing'
 import razorpayWebsites from './razorpay-websites'
 import resourcePicker from './resource-picker'
 import returns from './returns'
+import reviewTools from './review-tools'
 import reviews from './reviews'
 import rollouts from './rollouts'
 import searchApp from './search-app'
@@ -240,6 +241,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...purchasing,
   ...selectProducts,
   ...returns,
+  ...reviewTools,
   ...reviews,
   ...settings,
   ...shipments,

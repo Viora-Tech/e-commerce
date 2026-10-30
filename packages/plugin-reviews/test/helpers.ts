@@ -44,6 +44,7 @@ export async function addOrder(
   storeId: string,
   input: {
     email: string
+    phone?: string | null
     customerId?: string | null
     variantIds: string[]
     status?: 'open' | 'completed' | 'cancelled'
@@ -56,6 +57,7 @@ export async function addOrder(
     storeId,
     number: orderNumber,
     email: input.email,
+    phone: input.phone ?? null,
     customerId: input.customerId ?? null,
     status: input.status ?? 'open',
     fulfillmentStatus: 'delivered',

@@ -308,6 +308,14 @@ export async function storesWithDueReviewRequests(db: Db): Promise<string[]> {
   return rows.map((r) => r.id)
 }
 
+/** Store ids with an AI review summary to (re)write (Reviews app), for the worker. SECURITY DEFINER backed. */
+export async function storesWithStaleReviewSummaries(db: Db): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(
+    sql`select stores_with_stale_review_summaries() as id`,
+  )
+  return rows.map((r) => r.id)
+}
+
 /** Store ids where a member asked for a daily summary (Account → Notifications). SECURITY DEFINER backed. */
 export async function storesWithMemberDailySummaries(db: Db): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(

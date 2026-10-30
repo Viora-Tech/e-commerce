@@ -19,6 +19,10 @@ export type WhoCanReview = (typeof WHO_CAN_REVIEW)[number]
 export const REVIEW_SORTS = ['helpful', 'newest', 'highest', 'lowest'] as const
 export type ReviewSort = (typeof REVIEW_SORTS)[number]
 
+/** How review requests reach the buyer: email, WhatsApp (an approved template) or both. */
+export const REQUEST_CHANNELS = ['email', 'whatsapp', 'both'] as const
+export type RequestChannel = (typeof REQUEST_CHANNELS)[number]
+
 /** The most photos one review may carry. */
 export const MAX_REVIEW_PHOTOS = 5
 
@@ -39,12 +43,14 @@ export const ReviewsSettingsSchema = z.object({
       /** Days after the request with no review before one reminder; 0 sends none. */
       reminderDays: z.number().int().min(0).max(60).default(5),
       subject: z.string().trim().max(150).default(DEFAULT_REQUEST_SUBJECT),
+      channel: z.enum(REQUEST_CHANNELS).default('email'),
     })
     .default({
       enabled: true,
       daysAfterDelivery: 7,
       reminderDays: 5,
       subject: DEFAULT_REQUEST_SUBJECT,
+      channel: 'email',
     }),
   storefront: z
     .object({
@@ -63,6 +69,20 @@ export const defaultReviewsSettings: ReviewsSettings = ReviewsSettingsSchema.par
 export function parseReviewsSettings(raw: unknown): ReviewsSettings {
   const r = ReviewsSettingsSchema.safeParse(raw ?? {})
   return r.success ? r.data : defaultReviewsSettings
+}
+
+/**
+ * Where one order's review request goes under the store's channel choice: the order's email
+ * for email, its phone for WhatsApp, both for both. Null when the chosen channel has no
+ * address to reach (a WhatsApp-only store and an order without a phone).
+ */
+export function requestContact(
+  channel: RequestChannel,
+  contact: { email?: string | null | undefined; phone?: string | null | undefined },
+): { email: string | null; phone: string | null } | null {
+  const email = channel === 'whatsapp' ? null : contact.email?.trim().toLowerCase() || null
+  const phone = channel === 'email' ? null : contact.phone?.replace(/[^\d+]/g, '') || null
+  return email || phone ? { email, phone } : null
 }
 
 /** The review request subject with the product's name in. */

@@ -60,6 +60,7 @@ export {
   storesWithSenderEmailChecks,
   storesWithShopifyConnections,
   storesWithStaleImportSnapshots,
+  storesWithStaleReviewSummaries,
   storesWithUndispatchedOutboxEvents,
   storesWithUnknownPaymentFees,
   storesWithUnpaidOnlineOrders,

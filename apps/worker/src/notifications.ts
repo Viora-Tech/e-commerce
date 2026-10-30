@@ -2,6 +2,7 @@ import {
   type AppEventQueue,
   appEventForTemplate,
   deliverEmailTo,
+  deliverMessageTo,
   deliverNewsletterConfirm,
   deliverNotification,
   deliverToStoreContact,
@@ -129,7 +130,8 @@ export function createNotificationWorker(
         if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
         return sent
       }
-      // Reviews app: the request or reminder for an order's products, and the store's reply.
+      // Reviews app: the request or reminder for an order's products (email, WhatsApp or both,
+      // by the store's channel), and the store's reply.
       if (template === 'review_request' || template === 'review_reminder') {
         const fallback = opts.storefrontUrl
         if (!fallback) return []
@@ -147,7 +149,7 @@ export function createNotificationWorker(
             },
           )
           if (!email) return []
-          return deliverEmailTo({ storeId, tx }, template, email.to, email.data, {
+          return deliverMessageTo({ storeId, tx }, template, email.contact, email.data, {
             registry: (await registriesForStore(tx, storeId)).notifications,
             settingsSecret: opts.settingsSecret,
           })
