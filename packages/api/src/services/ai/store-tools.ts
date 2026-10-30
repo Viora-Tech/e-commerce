@@ -8,7 +8,7 @@
  */
 import { type AiRuntime, type AiToolSet, defineAiTool, guardData } from '@commerce/ai'
 import { abandonedStats, notSystemTest, notTestOrder, UNFULFILLED_STATUSES } from '@commerce/core'
-import { formatInZone, startOfDay } from '@commerce/dates'
+import { formatInZone } from '@commerce/dates'
 import {
   type Db,
   marketingSession,
@@ -26,6 +26,7 @@ import { and, asc, desc, eq, gte, inArray, lt, lte, ne, sql, sum } from 'drizzle
 import { z } from 'zod'
 import type { Taint } from './assistant/taint'
 import type { StoreFacts } from './guard'
+import { periodInput, resolvePeriod } from './periods'
 
 export type Fact = { label: string; value: string }
 export type ToolOutput = { facts: Fact[] }
@@ -137,20 +138,17 @@ export function storeTools(env: ToolEnv): AiToolSet {
   return {
     salesSummary: defineAiTool({
       description:
-        'Sales for the last N days including today (India time) and the N days before: net sales (gross minus cancellations and refunds), gross, orders, average order, cancelled orders and their value, refunds, discounts, store visits and conversion. Use the parts to explain why sales changed.',
-      input: z.object({ days: z.number().int().min(1).max(90).default(7) }),
+        'Sales for a period and the same length before it: net sales (gross minus cancellations and refunds), gross, orders, average order, cancelled orders and their value, refunds, discounts, store visits and conversion. Pick the period the merchant asked for ("this month" is period this_month, not 30 days). Use the parts to explain why sales changed.',
+      input: z.object(periodInput(7)),
       risk: 'read',
       run: (input, runtime) =>
         read(env, runtime, async (tx): Promise<ToolOutput> => {
-          const now = env.now()
-          const from = startOfDay(now, env.store.timezone, -(input.days - 1))
-          const before = new Date(from.getTime() - input.days * DAY_MS)
-          const cur = await salesWindow(tx, from, now)
-          const prev = await salesWindow(tx, before, from)
+          const p = resolvePeriod(input, env.now(), env.store.timezone)
+          const cur = await salesWindow(tx, p.from, p.to)
+          const prev = await salesWindow(tx, p.prevFrom, p.prevTo)
           const change = pct(cur.net, prev.net)
-          const period = input.days === 1 ? 'today' : `last ${input.days} days`
-          const both = (now: string, then: string) =>
-            `${now} (the ${input.days} days before: ${then})`
+          const period = p.label
+          const both = (now: string, then: string) => `${now} (the same length before: ${then})`
           return {
             facts: [
               {
@@ -198,15 +196,16 @@ export function storeTools(env: ToolEnv): AiToolSet {
     }),
 
     topProducts: defineAiTool({
-      description: 'Best-selling products by units sold over the last N days, with revenue.',
+      description:
+        'Best-selling products by units sold in a period ("this month" is period this_month), with revenue.',
       input: z.object({
-        days: z.number().int().min(1).max(90).default(30),
+        ...periodInput(30),
         limit: z.number().int().min(1).max(10).default(5),
       }),
       risk: 'read',
       run: (input, runtime) =>
         read(env, runtime, async (tx): Promise<ToolOutput> => {
-          const from = startOfDay(env.now(), env.store.timezone, -(input.days - 1))
+          const p = resolvePeriod(input, env.now(), env.store.timezone)
           const rows = await tx
             .select({
               title: product.title,
@@ -219,13 +218,13 @@ export function storeTools(env: ToolEnv): AiToolSet {
             .innerJoin(order, eq(order.id, orderLine.orderId))
             .innerJoin(variant, eq(variant.id, orderLine.variantId))
             .innerJoin(product, eq(product.id, variant.productId))
-            .where(and(live, gte(order.placedAt, from)))
+            .where(and(live, gte(order.placedAt, p.from), lt(order.placedAt, p.to)))
             .groupBy(product.id, product.title)
             .orderBy(desc(sum(orderLine.quantity)))
             .limit(input.limit)
           if (!rows.length)
             return {
-              facts: [{ label: `Sold in the last ${input.days} days`, value: 'nothing yet' }],
+              facts: [{ label: `Sold in ${p.label}`, value: 'nothing yet' }],
             }
           return {
             facts: rows.map((r, i) => ({
