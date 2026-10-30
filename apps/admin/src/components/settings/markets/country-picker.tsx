@@ -1,8 +1,9 @@
 'use client'
 
 import { COUNTRY_CODES } from '@commerce/core/markets'
-import { Search, XIcon } from '@commerce/ui/icons'
+import { Plus, Search, XIcon } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@commerce/ui/shadcn/input-group'
 import { Label } from '@commerce/ui/shadcn/label'
@@ -20,6 +21,21 @@ type CountryPickerProps = {
   invalid: boolean
   onChange: (next: string[]) => void
 }
+
+/** Countries a merchant usually sells to together, one click each (audit #115). */
+const REGIONS = {
+  eu: [
+    'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU', 'IE',
+    'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE',
+  ],
+  gulf: ['AE', 'SA', 'QA', 'KW', 'BH', 'OM'],
+  northAmerica: ['US', 'CA'],
+  oceania: ['AU', 'NZ'],
+} as const
+
+/** A country's flag from its code (regional indicator letters); no images to ship. */
+const flagOf = (code: string) =>
+  String.fromCodePoint(...[...code.toUpperCase()].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65))
 
 /** One `Intl.DisplayNames` per language tag, made on first use. */
 const regionNames = new Map<string, Intl.DisplayNames>()
@@ -53,6 +69,12 @@ export default function CountryPicker({ id, value, taken, invalid, onChange }: C
     onChange(on ? [...value, code] : value.filter((c) => c !== code))
   }
 
+  /** Every country of a region not already here or held by another market. */
+  const handleRegion = (codes: readonly string[]) => {
+    const add = codes.filter((c) => !value.includes(c) && !taken[c])
+    if (add.length > 0) onChange([...value, ...add])
+  }
+
   // Render logic
   const text = copy.dialog.countries
   const q = query.trim().toLowerCase()
@@ -77,6 +99,7 @@ export default function CountryPicker({ id, value, taken, invalid, onChange }: C
                 key={code}
                 className="inline-flex h-6 items-center gap-1 rounded-md border border-line bg-muted pr-0.5 pl-2 text-caption text-ink-strong"
               >
+                <span aria-hidden="true">{flagOf(code)}</span>
                 {name}
                 <button
                   type="button"
@@ -91,6 +114,21 @@ export default function CountryPicker({ id, value, taken, invalid, onChange }: C
           })}
         </ul>
       ) : null}
+      <div className="flex flex-wrap gap-1.5">
+        {(Object.keys(REGIONS) as (keyof typeof REGIONS)[]).map((key) => (
+          <Button
+            key={key}
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => handleRegion(REGIONS[key])}
+            aria-label={text.addRegion(text.regions[key])}
+          >
+            <Plus aria-hidden="true" />
+            {text.regions[key]}
+          </Button>
+        ))}
+      </div>
       <InputGroup>
         <InputGroupAddon>
           <Search aria-hidden="true" />
@@ -123,6 +161,7 @@ export default function CountryPicker({ id, value, taken, invalid, onChange }: C
                   disabled={Boolean(owner)}
                   onCheckedChange={(on) => handleToggle(r.code, on === true)}
                 />
+                <span aria-hidden="true">{flagOf(r.code)}</span>
                 <span className="min-w-0 flex-1 truncate">{r.shown}</span>
                 <span className="shrink-0 text-caption text-muted-foreground">
                   {owner ? text.inMarket(owner) : r.code}
