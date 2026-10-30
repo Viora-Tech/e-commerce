@@ -43,6 +43,13 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
       return [d.totalLabel, d.storeName, n]
     case 'order_shipped':
       return [d.storeName, n, d.trackingUrl ?? '-']
+    case 'order_edited':
+    case 'payment_pending':
+      return [d.customerName, d.storeName, n, d.totalLabel, d.orderUrl ?? '-']
+    case 'shipping_update':
+      return [d.storeName, n, d.waybill ?? '-', d.trackingUrl ?? '-']
+    case 'order_link':
+      return [d.customerName, d.storeName, n, d.orderUrl ?? '-']
     case 'draft_invoice':
       return [
         d.customerName,

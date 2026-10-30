@@ -56,6 +56,19 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
       etaLabel: '5 to 7 working days',
     },
   },
+  order_edited: { ...base, orderUrl: 'https://waimers.example/orders/42' },
+  payment_pending: {
+    ...base,
+    paymentMethodLabel: 'UPI',
+    orderUrl: 'https://waimers.example/orders/42',
+  },
+  shipping_update: {
+    ...base,
+    waybill: 'AWB987654321',
+    courierLabel: 'Blue Dart',
+    trackingUrl: 'https://waimers.example/track/42',
+  },
+  order_link: { ...base, orderUrl: 'https://waimers.example/orders/42' },
   draft_invoice: { ...base, draftNumber: 12, actionUrl: 'https://waimers.example/pay/42' },
   checkout_recovery: {
     ...base,

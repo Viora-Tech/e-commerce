@@ -10,6 +10,7 @@ import {
   ReminderTooSoon,
   requestBalance,
   sendManualPaymentReminder,
+  sendOrderLink,
   storeNotificationChannels,
   WHATSAPP_CHAT_TEMPLATES,
   whatsappChatContext,
@@ -116,6 +117,30 @@ export const orderMessageRoutes = {
             data: { nextAt: err.nextAt.toISOString() },
           })
         }
+        if (err instanceof CommerceError) {
+          throw new ORPCError('BAD_REQUEST', { message: err.message })
+        }
+        throw err
+      }
+    }),
+
+  /**
+   * "Send order link": the signed link to the order's page, by email and WhatsApp (when set up).
+   * Can be sent again; the timeline records each send.
+   */
+  sendOrderLink: can(permissions.ORDERS_WRITE)
+    .input(z.object({ orderId: z.uuid(), custom: customMessage }))
+    .handler(async ({ context, input }) => {
+      try {
+        return await sendOrderLink(
+          { storeId: context.scope.storeId, tx: context.tx },
+          input.orderId,
+          {
+            author: context.session.user.email,
+            custom: input.custom,
+          },
+        )
+      } catch (err) {
         if (err instanceof CommerceError) {
           throw new ORPCError('BAD_REQUEST', { message: err.message })
         }

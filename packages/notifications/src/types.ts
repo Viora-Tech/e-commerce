@@ -18,6 +18,17 @@ export type TemplateId =
   | 'order_cancelled'
   /** Money went back on an order, outside a return's own refund message. */
   | 'refund_issued'
+  /** Staff edited a placed order and its items or total changed; lists the order as it is now. */
+  | 'order_edited'
+  /**
+   * An online payment failed or was never finished (the shopper closed the gateway): one nudge
+   * a short while after checkout, with the link to retry the payment. Never once it is paid.
+   */
+  | 'payment_pending'
+  /** A shipment's tracking number or courier changed after the shopper was told it shipped. */
+  | 'shipping_update'
+  /** Staff sent the shopper the link to their order's status page ("Send order link"). */
+  | 'order_link'
   | 'draft_invoice'
   | 'checkout_recovery'
   /** A copy of an order document (invoice, credit note) sent on request, with the file attached. */
@@ -189,6 +200,10 @@ export type TemplateData = {
   trackingUrl?: string | undefined
   /** Courier tracking number, printed so the shopper can quote it. */
   waybill?: string | undefined
+  /** For shipping_update: the courier that now carries the parcel, when known ("Blue Dart"). */
+  courierLabel?: string | undefined
+  /** A repeat of a hand-sent message the shopper already got (a draft invoice sent again). */
+  reminder?: boolean | undefined
   /** Where the shopper can see the order (thank-you page). */
   orderUrl?: string | undefined
   /** Pay link on a draft invoice, or the restore link on an abandoned cart. */

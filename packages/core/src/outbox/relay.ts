@@ -116,6 +116,7 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
       key: REPEATABLE_OUTBOX_EVENTS.has(type) ? row.id : undefined,
       returnId: payload.returnId,
       refundId: payload.refundId,
+      shipmentId: payload.shipmentId,
       custom: payload.custom,
       requires: payload.requires,
     })

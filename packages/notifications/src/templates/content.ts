@@ -2,6 +2,7 @@ import type { TemplateData, TemplateId } from '../types'
 import {
   backInStockTemplates,
   balanceTemplates,
+  orderUpdateTemplates,
   platformTemplates,
   returnTemplates,
   shipmentTemplates,
@@ -22,6 +23,7 @@ export const templateContent: Record<TemplateId, TemplateCopy> = {
   ...backInStockTemplates,
   ...returnTemplates,
   ...shipmentTemplates,
+  ...orderUpdateTemplates,
   cod_confirm: {
     subject: (d) => `${d.storeName}: please confirm your cash on delivery order #${d.orderNumber}`,
     heading: (d) => `Hi ${d.customerName}, is this order yours?`,
@@ -63,9 +65,15 @@ export const templateContent: Record<TemplateId, TemplateCopy> = {
       `${d.storeName} order #${d.orderNumber} has shipped.${d.waybill ? ` AWB ${d.waybill}.` : ''}${d.trackingUrl ? ` Track: ${d.trackingUrl}` : ''}`,
   },
   draft_invoice: {
-    subject: (d) => `${d.storeName}: your order #${draftRef(d)} is ready to pay`,
+    subject: (d) =>
+      d.reminder
+        ? `${d.storeName}: reminder, order #${draftRef(d)} is waiting for payment`
+        : `${d.storeName}: your order #${draftRef(d)} is ready to pay`,
     heading: (d) => `Hi ${d.customerName}`,
-    intro: (d) => `We have prepared order #${draftRef(d)} for ${d.totalLabel}.`,
+    intro: (d) =>
+      d.reminder
+        ? `A quick reminder: order #${draftRef(d)} for ${d.totalLabel} is still waiting for your payment.`
+        : `We have prepared order #${draftRef(d)} for ${d.totalLabel}.`,
     outro: (d) => (d.actionUrl ? `Pay securely here: ${d.actionUrl}` : 'Reply to confirm.'),
     whatsapp: (d) =>
       `${d.storeName}: order #${draftRef(d)} for ${d.totalLabel} is ready.${d.actionUrl ? ` Pay: ${d.actionUrl}` : ''}`,

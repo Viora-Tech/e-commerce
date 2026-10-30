@@ -1,4 +1,5 @@
 import {
+  editTrackingContent,
   shipmentDetailsContent,
   shipmentPanelContent,
   shippingSettingsContent,
@@ -215,5 +216,19 @@ export default [
       connect: 'Delhivery Connect खोलें',
       name: 'पिकअप लोकेशन का नाम',
     },
+  }),
+  translation(editTrackingContent, {
+    action: 'ट्रैकिंग बदलें',
+    title: 'ट्रैकिंग की जानकारी बदलें',
+    body: 'ट्रैकिंग नंबर या कूरियर ठीक करें। अगर ग्राहक को शिप होने का मैसेज मिल चुका है, तो उसे नई जानकारी भी मिलेगी।',
+    waybill: 'ट्रैकिंग नंबर',
+    courier: 'कूरियर',
+    courierPlaceholder: 'Blue Dart',
+    trackingUrl: 'ट्रैकिंग लिंक',
+    trackingUrlPlaceholder: 'https://',
+    cancel: 'रद्द करें',
+    save: 'सेव करें',
+    saved: 'ट्रैकिंग की जानकारी सेव हो गई',
+    failed: 'ट्रैकिंग की जानकारी सेव नहीं हो पाई',
   }),
 ]

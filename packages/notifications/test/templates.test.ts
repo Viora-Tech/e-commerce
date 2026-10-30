@@ -208,6 +208,34 @@ describe('templates', () => {
     expect(e.text).toContain('\nPlease confirm the order')
   })
 
+  it('the order update messages carry their links and details (#168)', async () => {
+    const edited = await renderEmail('order_edited', sampleTemplateDataByTemplate.order_edited)
+    expect(edited.subject).toBe('Waimers: order #42 was updated')
+    expect(edited.text).toContain('new total of ₹2,048')
+    expect(edited.text).toContain('Maboroshi mousepad x1, ')
+    const pending = await renderEmail(
+      'payment_pending',
+      sampleTemplateDataByTemplate.payment_pending,
+    )
+    expect(pending.text).toContain('Retry your payment here: https://waimers.example/orders/42')
+    expect(pending.html).toContain('Retry payment')
+    const tracking = sampleTemplateDataByTemplate.shipping_update
+    const update = await renderEmail('shipping_update', tracking)
+    expect(update.text).toContain('now ships with Blue Dart')
+    expect(update.text).toContain('AWB987654321')
+    expect(renderWhatsapp('shipping_update', tracking).text).toContain('AWB AWB987654321')
+    const link = await renderEmail('order_link', sampleTemplateDataByTemplate.order_link)
+    expect(link.text).toContain('See your order: https://waimers.example/orders/42')
+  })
+
+  it('a draft invoice sent again reads as a reminder', async () => {
+    const data = sampleTemplateDataByTemplate.draft_invoice
+    expect((await renderEmail('draft_invoice', data)).subject).toContain('is ready to pay')
+    const again = await renderEmail('draft_invoice', { ...data, reminder: true })
+    expect(again.subject).toBe('Waimers: reminder, order #D12 is waiting for payment')
+    expect(again.text).toContain('still waiting for your payment')
+  })
+
   it('keeps platform templates out of the store message list', () => {
     expect(PLATFORM_TEMPLATE_IDS).toContain('staff_invite')
     expect(TEMPLATE_IDS).toContain('staff_invite')

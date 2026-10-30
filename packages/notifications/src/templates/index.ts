@@ -16,6 +16,10 @@ export const TEMPLATE_IDS: TemplateId[] = [
   'delivery_failed',
   'order_cancelled',
   'refund_issued',
+  'order_edited',
+  'payment_pending',
+  'shipping_update',
+  'order_link',
   'draft_invoice',
   'checkout_recovery',
   'document_copy',
@@ -79,6 +83,10 @@ export const TEMPLATE_NAMES: Record<TemplateId, string> = {
   delivery_failed: 'Delivery attempt failed',
   order_cancelled: 'Order cancelled',
   refund_issued: 'Refund issued',
+  order_edited: 'Order edited',
+  payment_pending: 'Payment not finished',
+  shipping_update: 'Shipping update',
+  order_link: 'Order link',
   draft_invoice: 'Draft invoice',
   checkout_recovery: 'Checkout recovery',
   document_copy: 'Document copy',
@@ -202,6 +210,14 @@ function primaryActionFor(
         : d.orderUrl
           ? { label: shared.viewOrder, url: d.orderUrl }
           : undefined
+    case 'shipping_update':
+      return d.trackingUrl
+        ? { label: 'Track your order', url: d.trackingUrl }
+        : d.orderUrl
+          ? { label: shared.viewOrder, url: d.orderUrl }
+          : undefined
+    case 'payment_pending':
+      return d.orderUrl ? { label: 'Retry payment', url: d.orderUrl } : undefined
     case 'draft_invoice':
       return d.actionUrl ? { label: 'Pay securely', url: d.actionUrl } : undefined
     case 'checkout_recovery':

@@ -125,11 +125,21 @@ export type OutboxEventType =
   /** COD & RTO app: a cash on delivery order waits for the shopper's confirm / cancel answer. */
   | 'order.cod_confirm_requested'
   /**
-   * Staff edited a placed order's items, shipping or discount (`order/edit.ts`). No shopper
-   * message of its own (a balance request or a refund sends theirs); apps re-bill (GST invoices)
-   * and recompute (affiliate commission). Each edit is its own app job.
+   * Staff edited a placed order's items, shipping or discount (`order/edit.ts`). The shopper gets
+   * `order_edited` when the items or total changed (`notifyCustomer` false otherwise, and when the
+   * edit's balance request already told them); apps re-bill (GST invoices) and recompute
+   * (affiliate commission). Each edit is its own job.
    */
   | 'order.edited'
+  /**
+   * An online checkout's payment failed or was never finished a short while after it was placed
+   * (`payments/pending-nudge.ts`): the shopper is asked once to retry. Written at most once per order.
+   */
+  | 'order.payment_pending'
+  /** A shipment's tracking number or courier changed (re-booked after a cancel, or edited by hand). */
+  | 'shipment.tracking_updated'
+  /** Staff sent the shopper the link to their order page ("Send order link"). */
+  | 'order.link_sent'
 
 /**
  * `orderId` is required for every order-lifecycle type; `variantId` (and
@@ -202,6 +212,8 @@ export type OutboxPayload = {
         limit?: number | undefined
       }
     | undefined
+  /** The shipment a `shipment.tracking_updated` event is about. */
+  shipmentId?: string | undefined
   /** For `automation.order_update`: the order email template to send. */
   notificationTemplate?: string | undefined
   /** Set when an automation run caused this event (loop guard, design §8.5). */
@@ -319,7 +331,10 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   'pixel.connection_failed': null,
   // COD & RTO app: the confirm / cancel link (WhatsApp when the store has it, else email).
   'order.cod_confirm_requested': 'cod_confirm',
-  'order.edited': null,
+  'order.edited': 'order_edited',
+  'order.payment_pending': 'payment_pending',
+  'shipment.tracking_updated': 'shipping_update',
+  'order.link_sent': 'order_link',
 }
 
 /**
@@ -328,6 +343,11 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
  * the outbox row, not just (order, template), so each one is sent.
  */
 export const REPEATABLE_OUTBOX_EVENTS: ReadonlySet<OutboxEventType> = new Set([
+  // "Send invoice" again on a draft is the reminder: each send goes out.
+  'draft.invoice_sent',
+  'order.edited',
+  'shipment.tracking_updated',
+  'order.link_sent',
   'order.balance_requested',
   'order.balance_reminder',
   'order.payment_reminder',
@@ -404,4 +424,7 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'pixel.connection_failed': null,
   'order.cod_confirm_requested': null,
   'order.edited': 'order.edited',
+  'order.payment_pending': null,
+  'shipment.tracking_updated': null,
+  'order.link_sent': null,
 }

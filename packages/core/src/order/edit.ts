@@ -133,6 +133,11 @@ export type EditOrderOptions = {
   requestPayment: boolean
   /** Shown on the timeline beside the change list. */
   note?: string | undefined
+  /**
+   * Email (and WhatsApp) the shopper the updated order (`order_edited`) when its items or total
+   * changed. On unless false; skipped when the edit's balance request already told them.
+   */
+  notifyCustomer?: boolean | undefined
   author: string
 }
 
@@ -339,7 +344,16 @@ export async function editOrder(
     author: opts.author,
   })
   await recomputeOrderStatuses(ctx, o.id)
-  await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.edited', { orderId: o.id })
+  // The shopper hears about an edit that changed what they get or pay, once: a balance request
+  // with the pay link already says the order was updated.
+  const changed =
+    plan.lines.some((l) => l.change !== 'same') || plan.after.totalPaise !== plan.before.totalPaise
+  const toldByRequest = settlement.kind === 'requested' && settlement.emailed
+  const notify = opts.notifyCustomer !== false && changed && !toldByRequest
+  await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.edited', {
+    orderId: o.id,
+    ...(notify ? {} : { notifyCustomer: false }),
+  })
   const [after] = await ctx.tx.select().from(order).where(eq(order.id, o.id))
   return { order: after ?? o, plan, settlement }
 }

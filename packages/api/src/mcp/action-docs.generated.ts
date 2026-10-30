@@ -485,6 +485,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'orders.sendInvoice': 'Email the shopper a pay link for the draft.',
   'orders.sendInvoices':
     'The list\'s bulk "Send invoices": each selected draft with an email gets its pay link.',
+  'orders.sendOrderLink':
+    '"Send order link": the signed link to the order\'s page, by email and WhatsApp (when set up).',
   'orders.sendPaymentReminder':
     '"Send payment reminder" on an unpaid UPI / bank transfer order: by email, WhatsApp (when set up) or both (the default), with the QR and bank details.',
   'orders.sendRecovery': 'Email the shopper a reminder with a link back to their abandoned cart.',
@@ -591,8 +593,15 @@ export const ACTION_DOCS: Record<string, string> = {
   'reviews.pastOrdersPreview':
     '"Request reviews from past orders": how many delivered orders in the range would be asked.',
   'reviews.products': "Products that have reviews, for the list's product filter.",
+  'reviews.qrLinks':
+    "The links a review QR card encodes (order-<id> or product-<id>): the product's review form, or a signed link per product of the order so the buyer reviews as a verified buyer.",
+  'reviews.questions.answer': 'Saves the answer; publish shows it on the product page.',
+  'reviews.refreshSummary':
+    '"Refresh": the worker writes the product\'s summary again on its next tick.',
   'reviews.reply': "The store's public reply; the first one emails the customer.",
   'reviews.setStatus': 'Approve (publish), hide, or move back to waiting, one or many.',
+  'reviews.summary':
+    "A product's AI review summary for its Reviews card; enabled false when summaries are off.",
   'reviews.widgets':
     "The published reviews a Reviews theme section draws, for the theme editor's canvas (the storefront reads the same query itself).",
   'reviews.writeReply': '"Write with AI" on the reply box: a suggestion only.',
@@ -654,6 +663,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'Ready to ship tab: paid, unfulfilled orders - the main Shopify-style booking flow.',
   'shipments.recordStatus':
     "A status set by hand, for a courier with no tracking feed (India Post): appended to the shipment's timeline and applied like a scan (delivered closes the order, RTO opens its task).",
+  'shipments.updateTracking':
+    "Correct a hand-entered shipment's tracking number, courier or tracking link.",
   'shipments.wallets': 'One card per connected courier - each has its own account and balance.',
   'shipping.profiles.collectionProducts':
     'Products of the picked collections, for "Add a collection\'s products".',

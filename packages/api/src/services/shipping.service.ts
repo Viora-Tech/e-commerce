@@ -20,6 +20,8 @@ import {
   shipmentInManifest,
   shipmentLabelUrl,
   shippingProviderById,
+  TrackingEditRefused,
+  updateShipmentTracking,
 } from '@commerce/core'
 import { getRegistries } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
@@ -356,6 +358,8 @@ async function describeShipment(
     ...row,
     labelUrl: shipmentLabelUrl(row),
     providerLabel: registry.get(row.provider)?.label ?? row.provider,
+    /* Entered by hand (no courier app behind it): its tracking number and courier can be corrected. */
+    canEditTracking: !registry.get(row.provider) && row.status !== 'cancelled',
     pickup: pickup ?? null,
     /* Not on a pickup yet, still at the store, and the courier takes requests: offer one. */
     canRequestPickup:
@@ -390,6 +394,36 @@ export async function shipmentDetails(
   const [row] = await tx.select().from(shipment).where(eq(shipment.id, shipmentId))
   if (!row) throw new ORPCError('NOT_FOUND', { message: 'Shipment not found.' })
   return describeShipment(tx, registry, row)
+}
+
+/**
+ * "Edit tracking" on a shipment entered by hand: a new tracking number, courier or link. A
+ * shipment a courier app booked keeps the courier's own AWB. Returns the details view again.
+ */
+export async function editShipmentTracking(
+  tx: StoreTx,
+  storeId: string,
+  registry: ShippingRegistry,
+  shipmentId: string,
+  input: { waybill: string; courier?: string | undefined; trackingUrl?: string | undefined },
+  author: string,
+): Promise<ShipmentDetails> {
+  const [row] = await tx.select().from(shipment).where(eq(shipment.id, shipmentId))
+  if (!row) throw new ORPCError('NOT_FOUND', { message: 'Shipment not found.' })
+  if (registry.get(row.provider)) {
+    throw new ORPCError('PRECONDITION_FAILED', {
+      message: 'The courier set this tracking number; cancel and book again to change it.',
+    })
+  }
+  const r = await updateShipmentTracking({ storeId, tx }, shipmentId, input, author).catch(
+    (err: unknown) => {
+      if (err instanceof TrackingEditRefused) {
+        throw new ORPCError('BAD_REQUEST', { message: err.message })
+      }
+      throw err
+    },
+  )
+  return describeShipment(tx, registry, r.shipment)
 }
 
 /**

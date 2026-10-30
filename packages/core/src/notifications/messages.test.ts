@@ -13,6 +13,10 @@ describe('message catalogue', () => {
     expect(messageSwitchable('order_placed')).toBe(true)
     expect(messageSwitchable('login_code')).toBe(false)
     expect(messageSwitchable('payment_reminder')).toBe(false)
+    expect(messageSwitchable('order_edited')).toBe(true)
+    expect(messageSwitchable('payment_pending')).toBe(true)
+    expect(messageSwitchable('shipping_update')).toBe(true)
+    expect(messageSwitchable('order_link')).toBe(false)
     expect(isMessageOn({ off: ['login_code'] }, 'login_code')).toBe(true)
   })
 

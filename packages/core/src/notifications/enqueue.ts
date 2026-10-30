@@ -18,6 +18,8 @@ export type NotificationJob = {
   returnId?: string | undefined
   /** For refund_issued: which refund the message reports. */
   refundId?: string | undefined
+  /** For shipping_update: the shipment whose tracking changed. */
+  shipmentId?: string | undefined
   /** A hand-sent message's edited subject and note. */
   custom?: CustomMessage | undefined
   /** Only the channels that need this recipient field (a reminder sent by email or WhatsApp only). */

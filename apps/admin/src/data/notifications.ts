@@ -114,6 +114,18 @@ export const notificationsSettingsContent = {
       name: 'Refund issued',
       when: 'When you refund an order directly, outside a return. Says the amount and method.',
     },
+    order_edited: {
+      name: 'Order edited',
+      when: 'When you edit an order and its items or total change. Shows the order as it is now.',
+    },
+    payment_pending: {
+      name: 'Payment not finished',
+      when: 'Once, about 10 minutes after an online payment fails or is left unfinished. Links to retry the payment.',
+    },
+    shipping_update: {
+      name: 'Shipping update',
+      when: 'When the tracking number or courier of a shipped order changes.',
+    },
     unpaid_cancelled: {
       name: 'Order cancelled for not paying',
       when: 'When an unpaid UPI or bank transfer order is cancelled.',
@@ -136,7 +148,11 @@ export const notificationsSettingsContent = {
     },
     draft_invoice: {
       name: 'Invoice with a pay link',
-      when: 'When you send an invoice from a draft order.',
+      when: 'When you send an invoice from a draft order. Sending it again sends a reminder.',
+    },
+    order_link: {
+      name: 'Link to their order',
+      when: 'When you click "Send order link" on an order.',
     },
     checkout_recovery: {
       name: 'Left items in their cart',

@@ -99,6 +99,9 @@ export const orderEditContent = {
   requestPaymentHint:
     'They get a link to pay the difference online. You can also collect it by hand from the order page.',
   noEmail: 'The customer has no email address: collect the difference from the order page.',
+  notifyCustomer: 'Send the customer the updated order',
+  notifyCustomerHint:
+    'By email, and WhatsApp when it is connected. Skipped when the payment link above already goes out.',
   note: 'Note for the timeline',
   notePlaceholder: 'Why the order changed (optional)',
   keepEditing: 'Back to editing',

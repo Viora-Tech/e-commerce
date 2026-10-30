@@ -161,13 +161,18 @@ export async function createShipmentForOrder(
   /* A live booking is reused (for the parcel, when one was named); a cancelled label or a
      parcel that came back (RTO) gets a new one. */
   const parcelOnly = options.fulfillmentOrderId
-  const existing = (await ctx.tx.select().from(shipment).where(eq(shipment.orderId, orderId))).find(
+  const earlier = await ctx.tx.select().from(shipment).where(eq(shipment.orderId, orderId))
+  const existing = earlier.find(
     (s) =>
       s.status !== 'cancelled' &&
       s.status !== 'rto' &&
       (!parcelOnly || s.fulfillmentOrderId === parcelOnly),
   )
   if (existing) return existing
+  // A cancelled label booked again: the shopper may hold its old AWB (`shipping_update`).
+  const replacesCancelled = earlier.some(
+    (s) => s.status === 'cancelled' && (!parcelOnly || s.fulfillmentOrderId === parcelOnly),
+  )
   // A held parcel (or, booking the whole order, any held parcel) is not booked until released.
   await assertNotHeld(ctx, o.id, parcelOnly ?? null)
 
@@ -397,6 +402,12 @@ export async function createShipmentForOrder(
   if (named) await fulfilParcelLines(ctx, o.id, named.id)
   else await fulfilRemainingLines(ctx, o.id)
   await recomputeOrderStatuses(ctx, o.id)
+  if (replacesCancelled) {
+    await insertOutboxEvent(ctx.tx, ctx.storeId, 'shipment.tracking_updated', {
+      orderId: o.id,
+      shipmentId: booked.id,
+    })
+  }
   return booked
 }
 

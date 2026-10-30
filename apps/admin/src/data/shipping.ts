@@ -216,3 +216,19 @@ export const shipmentPanelContent = {
     cancelled: 'Cancelled',
   } as Record<string, string>,
 } as const
+
+/** "Edit tracking" on a shipment entered by hand (no courier app behind it). */
+export const editTrackingContent = {
+  action: 'Edit tracking',
+  title: 'Edit tracking details',
+  body: 'Fix the tracking number or courier. If the customer already got the shipped message, they get the new details too.',
+  waybill: 'Tracking number',
+  courier: 'Courier',
+  courierPlaceholder: 'Blue Dart',
+  trackingUrl: 'Tracking link',
+  trackingUrlPlaceholder: 'https://',
+  cancel: 'Cancel',
+  save: 'Save',
+  saved: 'Tracking details saved',
+  failed: 'Could not save the tracking details',
+} as const

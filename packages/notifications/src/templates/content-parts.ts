@@ -312,6 +312,55 @@ export const shipmentTemplates = {
   TemplateCopy
 >
 
+const withCourier = (d: TemplateData): string => (d.courierLabel ? ` with ${d.courierLabel}` : '')
+
+/** Order updates the shopper gets between the order and its delivery: edits, payment, tracking, the order link. */
+export const orderUpdateTemplates = {
+  order_edited: {
+    subject: (d) => `${d.storeName}: order #${d.orderNumber} was updated`,
+    heading: (d) => `Hi ${d.customerName}, we updated your order`,
+    intro: (d) =>
+      `We made changes to order #${d.orderNumber}. Here is the order as it stands now, with a new total of ${d.totalLabel}.`,
+    outro: () =>
+      'If you paid already, any difference is settled separately: we send a link for anything more and refund anything less. Reply to this email if something looks wrong.',
+    whatsapp: (d) =>
+      `${d.storeName}: order #${d.orderNumber} was updated. New total ${d.totalLabel}.${d.orderUrl ? ` See it: ${d.orderUrl}` : ''}`,
+  },
+  payment_pending: {
+    subject: (d) => `${d.storeName}: your payment for order #${d.orderNumber} did not go through`,
+    heading: (d) => `Hi ${d.customerName}, your payment is not finished`,
+    intro: (d) =>
+      `We could not confirm the ${d.totalLabel} payment for order #${d.orderNumber}. If the payment failed or the page closed, you can try again. We are holding your items for now.`,
+    outro: (d) =>
+      `${d.orderUrl ? `Retry your payment here: ${d.orderUrl}. ` : ''}If money left your account, it is not lost: it either confirms the order or goes back to you by itself.`,
+    whatsapp: (d) =>
+      `${d.storeName}: the ${d.totalLabel} payment for order #${d.orderNumber} did not go through.${d.orderUrl ? ` Retry: ${d.orderUrl}` : ''}`,
+  },
+  shipping_update: {
+    subject: (d) => `${d.storeName}: new tracking details for order #${d.orderNumber}`,
+    heading: () => 'Your tracking details changed',
+    intro: (d) =>
+      `Order #${d.orderNumber} now ships${withCourier(d)}.${d.waybill ? ` The new tracking number is ${d.waybill}.` : ''} Please use these details from now on.`,
+    outro: (d) =>
+      d.trackingUrl ? `Track it here: ${d.trackingUrl}` : 'Tracking updates follow shortly.',
+    whatsapp: (d) =>
+      `${d.storeName} order #${d.orderNumber} has new tracking details${withCourier(d)}.${d.waybill ? ` AWB ${d.waybill}.` : ''}${d.trackingUrl ? ` Track: ${d.trackingUrl}` : ''}`,
+  },
+  order_link: {
+    subject: (d) => `${d.storeName}: your order #${d.orderNumber}`,
+    heading: (d) => `Hi ${d.customerName}`,
+    intro: (d) =>
+      `Here is the link to order #${d.orderNumber} (${d.totalLabel}). It shows what you ordered, the payment and where your parcel is.`,
+    outro: (d) =>
+      d.orderUrl ? `See your order: ${d.orderUrl}` : 'Reply to this email with any questions.',
+    whatsapp: (d) =>
+      `${d.storeName}: here is your order #${d.orderNumber}.${d.orderUrl ? ` See it: ${d.orderUrl}` : ''}`,
+  },
+} satisfies Record<
+  'order_edited' | 'payment_pending' | 'shipping_update' | 'order_link',
+  TemplateCopy
+>
+
 const platformName = (d: TemplateData): string =>
   d.staffInvite?.platformName || siteConfig.brand.name
 const asRole = (d: TemplateData): string =>

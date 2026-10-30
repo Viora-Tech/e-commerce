@@ -84,7 +84,9 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
   const [refunding, setRefunding] = useState<OrderPayment | null>(null)
   const [fulfilling, setFulfilling] = useState(false)
   /** The hand-sent message whose "Review email" dialog is open. */
-  const [reviewing, setReviewing] = useState<'balance_request' | 'payment_reminder' | null>(null)
+  const [reviewing, setReviewing] = useState<
+    'balance_request' | 'payment_reminder' | 'order_link' | null
+  >(null)
   const [collecting, setCollecting] = useState(false)
   const [cancelling, setCancelling] = useState(false)
 
@@ -135,6 +137,18 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
     try {
       await api.orders.sendPaymentReminder({ orderId: order.id, custom, channel })
       toast.success(copy.payment.transfer.sentToast)
+      refresh()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : listCopy.bulk.failed)
+    } finally {
+      setBusy(false)
+    }
+  }
+  const handleSendOrderLink = async (custom?: CustomMessage) => {
+    setBusy(true)
+    try {
+      await api.orders.sendOrderLink({ orderId: order.id, custom })
+      toast.success(copy.actions.orderLinkSent)
       refresh()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : listCopy.bulk.failed)
@@ -206,6 +220,12 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
       ? () => setReviewing('payment_reminder')
       : undefined
 
+  // A placed order the customer can be reached on: its order page link can be sent.
+  const sendOrderLink =
+    !readOnly && order.status !== 'draft' && (order.email || order.phone)
+      ? () => setReviewing('order_link')
+      : undefined
+
   const awaitingTransfer = live && !order.checkoutPaidAt && order.paymentMethod === 'manual'
   const stepKind = nextStepKind(order, { readOnly, canCollect, canFulfil, awaitingTransfer })
   const canShip = !readOnly && readyToShip(order) && hasPermission(permissions.ORDERS_FULFIL)
@@ -237,6 +257,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
                   : undefined
               }
               onSendReminder={sendReminder}
+              onSendOrderLink={sendOrderLink}
               onDuplicate={
                 duplicateOrder.allowed && !readOnly
                   ? () => duplicateOrder.duplicate(order.id)
@@ -374,7 +395,13 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
       <SendMessageDialog
         orderId={reviewing ? order.id : null}
         template={reviewing ?? 'payment_reminder'}
-        onSend={reviewing === 'balance_request' ? handleRequestBalance : handleSendReminder}
+        onSend={
+          reviewing === 'balance_request'
+            ? handleRequestBalance
+            : reviewing === 'order_link'
+              ? handleSendOrderLink
+              : handleSendReminder
+        }
         chooseChannel={
           reviewing === 'payment_reminder' ? { onChatOpened: handleReminderChat } : undefined
         }

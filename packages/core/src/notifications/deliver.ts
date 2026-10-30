@@ -27,7 +27,7 @@ import type {
   TemplateId,
 } from '@commerce/notifications'
 import { formatDeliveryRange } from '@commerce/shipping'
-import { and, desc, eq, inArray, or, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, ne, or, sql } from 'drizzle-orm'
 import { codConfirmDelivery } from '../cod-rto/confirm'
 import type { StoreContext } from '../context'
 import { newsletterConfirmToken, newsletterConfirmUrl } from '../customers/newsletter'
@@ -265,7 +265,10 @@ export async function buildTemplateData(
       ndrReason: shipment.ndrReason,
     })
     .from(shipment)
-    .where(eq(shipment.orderId, orderId))
+    // The live booking, newest first: a label cancelled and booked again carries the new AWB.
+    .where(and(eq(shipment.orderId, orderId), ne(shipment.status, 'cancelled')))
+    .orderBy(desc(shipment.createdAt))
+    .limit(1)
   const method = o.paymentMethod ?? ''
   const parcels = emailParcels(await orderParcelsView(ctx.tx, orderId))
   // An unpaid UPI / bank transfer order: the details to pay to, as the thank-you page shows them.
@@ -542,6 +545,73 @@ export async function deliverCartRecovery(
   return results
 }
 
+/** Paid outside a gateway: never a "your payment did not go through" order. */
+const OFFLINE_METHODS: ReadonlySet<string> = new Set(['cod', 'manual', GIFT_CARD_PROVIDER])
+
+/**
+ * Whether an order is still a "Payment pending" order (#1001 rules: a storefront checkout whose
+ * online payment never finished) that the shopper can still pay: open, unpaid, not imported.
+ * A cancelled one (the unpaid expiry ran) cannot be retried, so it is not nudged.
+ */
+async function stillPaymentPending(ctx: StoreContext, orderId: string): Promise<boolean> {
+  const [o] = await ctx.tx
+    .select({
+      status: order.status,
+      checkoutPaidAt: order.checkoutPaidAt,
+      cartId: order.cartId,
+      importedFrom: order.importedFrom,
+      paymentMethod: order.paymentMethod,
+    })
+    .from(order)
+    .where(eq(order.id, orderId))
+  if (!o || o.status !== 'open' || o.checkoutPaidAt || o.importedFrom || !o.cartId) return false
+  return !OFFLINE_METHODS.has(o.paymentMethod ?? 'manual')
+}
+
+/** A typed courier name ("Blue Dart") reads well; a courier app id ("delhivery") does not. */
+const courierName = (carrier: string | null, provider: string): string | undefined =>
+  carrier?.trim() || (/^[a-z0-9_-]+$/.test(provider) ? undefined : provider)
+
+/**
+ * The new tracking details for shipping_update, from the shipment that changed. Null when it
+ * is gone or cancelled, or when the shopper never got the shipped message (nothing to correct).
+ */
+async function trackingUpdateData(
+  ctx: StoreContext,
+  orderId: string,
+  shipmentId: string | undefined,
+): Promise<Partial<TemplateData> | null> {
+  if (!shipmentId) return null
+  const [row] = await ctx.tx
+    .select({
+      waybill: shipment.waybill,
+      trackingUrl: shipment.trackingUrl,
+      carrier: shipment.carrier,
+      provider: shipment.provider,
+      status: shipment.status,
+    })
+    .from(shipment)
+    .where(and(eq(shipment.id, shipmentId), eq(shipment.orderId, orderId)))
+  if (!row || row.status === 'cancelled') return null
+  const [told] = await ctx.tx
+    .select({ id: notification.id })
+    .from(notification)
+    .where(
+      and(
+        eq(notification.orderId, orderId),
+        eq(notification.template, 'order_shipped'),
+        eq(notification.status, 'sent'),
+      ),
+    )
+    .limit(1)
+  if (!told) return null
+  return {
+    waybill: row.waybill,
+    trackingUrl: row.trackingUrl ?? undefined,
+    courierLabel: courierName(row.carrier, row.provider),
+  }
+}
+
 /**
  * Send one template for one order through every enabled channel and record
  * the outcome. A channel that already sent this template is skipped, so a
@@ -554,6 +624,7 @@ export async function deliverNotification(
     template: TemplateId
     returnId?: string | undefined
     refundId?: string | undefined
+    shipmentId?: string | undefined
   },
   opts: DeliverOptions,
 ): Promise<DeliveryResult[]> {
@@ -584,6 +655,24 @@ export async function deliverNotification(
       .where(eq(order.id, input.orderId))
     if (o?.status !== 'open' || o.checkoutPaidAt) return []
   }
+  // "Your payment did not go through": only while the order still waits on an online payment.
+  if (input.template === 'payment_pending' && !(await stillPaymentPending(ctx, input.orderId))) {
+    return []
+  }
+  // An edit message for an order cancelled meanwhile would only confuse.
+  if (input.template === 'order_edited') {
+    const [o] = await ctx.tx
+      .select({ status: order.status })
+      .from(order)
+      .where(eq(order.id, input.orderId))
+    if (o?.status !== 'open') return []
+  }
+  // shipping_update carries the changed shipment's details, not the order's first booking.
+  const tracking =
+    input.template === 'shipping_update'
+      ? await trackingUpdateData(ctx, input.orderId, input.shipmentId)
+      : null
+  if (input.template === 'shipping_update' && !tracking) return []
   // A return message lists the items going back, not the whole order.
   const returned = input.returnId ? await returnTemplateData(ctx, input.returnId) : null
   if (input.template.startsWith('return_') && !returned) return []
@@ -605,21 +694,25 @@ export async function deliverNotification(
   // The exchange message is about the new order: its own items, only the return's label.
   const returnData =
     input.template === 'return_exchanged' ? { returnInfo: returned?.returnInfo } : returned
+  const already = await ctx.tx
+    .select({ channel: notification.channel, status: notification.status })
+    .from(notification)
+    .where(and(eq(notification.orderId, input.orderId), eq(notification.template, input.template)))
+  // A draft invoice sent again is a reminder, and says so.
+  const reminder = input.template === 'draft_invoice' && already.some((n) => n.status === 'sent')
   const data = {
     ...built.data,
     ...(actionUrl ? { actionUrl } : {}),
     ...returnData,
     ...refunded,
+    ...tracking,
     ...merchant?.data,
+    ...(reminder ? { reminder: true } : {}),
     ...opts.data,
     ...(extras?.links.length ? { links: extras.links } : {}),
   }
   const attachments = extras?.attachments.length ? extras.attachments : undefined
 
-  const already = await ctx.tx
-    .select({ channel: notification.channel, status: notification.status })
-    .from(notification)
-    .where(and(eq(notification.orderId, input.orderId), eq(notification.template, input.template)))
   const sent = new Set(
     opts.resend ? [] : already.filter((n) => n.status === 'sent').map((n) => n.channel),
   )

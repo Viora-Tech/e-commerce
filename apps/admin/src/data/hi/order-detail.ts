@@ -21,6 +21,8 @@ export default [
       printShort: 'प्रिंट',
       more: 'और विकल्प',
       invoices: 'इनवॉइस देखें',
+      sendOrderLink: 'ऑर्डर का लिंक भेजें',
+      orderLinkSent: 'ऑर्डर का लिंक ग्राहक को भेज दिया',
     },
     duplicate: {
       action: 'ऑर्डर की कॉपी बनाएँ',

@@ -324,6 +324,7 @@ export const sendMessageContent = {
     draft_invoice: { title: 'Send invoice', send: 'Send invoice' },
     balance_request: { title: 'Request balance', send: 'Send request' },
     payment_reminder: { title: 'Send payment reminder', send: 'Send reminder' },
+    order_link: { title: 'Send order link', send: 'Send link' },
     checkout_recovery: { title: 'Send checkout reminder', send: 'Send reminder' },
   },
 }

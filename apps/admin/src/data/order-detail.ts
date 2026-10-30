@@ -29,6 +29,8 @@ export const orderDetailContent = {
     printShort: 'Print',
     more: 'More actions',
     invoices: 'View invoices',
+    sendOrderLink: 'Send order link',
+    orderLinkSent: 'Order link sent to the customer',
   },
   duplicate: {
     action: 'Duplicate order',

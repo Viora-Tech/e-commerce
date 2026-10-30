@@ -9,6 +9,7 @@ import {
   Copy,
   FileEdit,
   FileText,
+  LinkIcon,
   Package,
   PackageCheck,
   Pencil,
@@ -54,6 +55,8 @@ type OrderActionsProps = {
   onCancelShipment?: (() => void) | undefined
   /** Nudges the customer about an unmatched UPI or bank transfer. */
   onSendReminder?: (() => void) | undefined
+  /** "Send order link": the customer's link to their order page; undefined hides it. */
+  onSendOrderLink?: (() => void) | undefined
   /** Starts a new draft from this order ("Duplicate order"); undefined hides it. */
   onDuplicate?: (() => void) | undefined
   /** Opens "Cancel order" (reason, restock, notify, refund); undefined once it cannot be cancelled. */
@@ -86,6 +89,7 @@ export default function OrderActions({
   onShip,
   onCancelShipment,
   onSendReminder,
+  onSendOrderLink,
   onDuplicate,
   onCancel,
   onEdit,
@@ -206,6 +210,13 @@ export default function OrderActions({
             hidden: !onSendReminder || readOnly,
             disabled: busy,
             onSelect: onSendReminder,
+          },
+          {
+            label: copy.actions.sendOrderLink,
+            icon: LinkIcon,
+            hidden: !onSendOrderLink || readOnly,
+            disabled: busy,
+            onSelect: onSendOrderLink,
           },
           {
             label: copy.duplicate.action,

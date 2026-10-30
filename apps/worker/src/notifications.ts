@@ -72,6 +72,7 @@ export function createNotificationWorker(
         key,
         returnId,
         refundId,
+        shipmentId,
         signupId,
         contactMessageId,
         reviewId,
@@ -319,7 +320,7 @@ export function createNotificationWorker(
       const results = await withStore(db, storeId, async (tx) =>
         deliverNotification(
           { storeId, tx },
-          { orderId, template, returnId, refundId },
+          { orderId, template, returnId, refundId, shipmentId },
           {
             registry: (await registriesForStore(tx, storeId)).notifications,
             settingsSecret: opts.settingsSecret,

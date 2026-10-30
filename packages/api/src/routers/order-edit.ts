@@ -112,17 +112,19 @@ export const orderEditRoutes = {
         refund: editRefundRoute,
         requestPayment: z.boolean(),
         note: z.string().trim().max(500).optional(),
+        /** Send the customer the updated order (`order_edited`); on unless false. */
+        notifyCustomer: z.boolean().optional(),
       }),
     )
     .handler(async ({ context, input }) => {
       assertCanRefund(context.scope, input.refund)
-      const { refund, requestPayment, note, ...edit } = input
+      const { refund, requestPayment, note, notifyCustomer, ...edit } = input
       return editStoreOrder(
         context.tx,
         context.scope.storeId,
         await paymentsDeps(context.tx, context.scope.storeId),
         edit,
-        { refund, requestPayment, note, author: context.session.user.email },
+        { refund, requestPayment, note, notifyCustomer, author: context.session.user.email },
       )
     }),
 }
