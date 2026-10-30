@@ -494,7 +494,11 @@ export const ACTION_DOCS: Record<string, string> = {
   'payments.razorpayOAuthComplete':
     "The OAuth callback route hands the code here; the state must be this store's, and fresh.",
   'payments.razorpayOAuthStart': 'Where "Connect Razorpay" sends the merchant.',
+  'payments.saveManual':
+    'One "Manual payment methods" row (UPI ID, bank transfer): details, on/off and note (#149).',
   'payments.saveMethods': '"Shoppers can pay with": on/off and order.',
+  'payments.saveRouting':
+    '"Active providers" and "Route methods": which gateways are on together, their fallback order, and which one takes each online method (audit #148/#150).',
   'payments.setActive':
     'The Active/Inactive switch: off leaves checkout at once, keys and settings kept.',
   'payments.setup': 'Everything Settings → Payments and the first-time setup show.',

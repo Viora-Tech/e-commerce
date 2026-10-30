@@ -10,7 +10,9 @@ import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
 import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
 import { type AppliedPayment, applyPaymentStatus } from './confirm'
-import { checkoutMethodsOf, isGatewayProvider, onlineMethodsOn } from './methods'
+import { type FallbackTry, runWithFallbacks } from './fallback'
+import { isGatewayProvider, type OnlineMethodId } from './methods'
+import { methodsForGateway } from './routing'
 import { parsePaymentSettings } from './settings'
 import { OPEN_ATTEMPT_STATUSES, type PaymentRowStatus } from './transitions'
 
@@ -96,7 +98,11 @@ export async function createPaymentAttempt(
  * Claim the attempt (only one caller gets to ask the gateway), and gather what
  * the gateway needs from the order. Null when someone else already claimed it.
  */
-async function claimAttempt(ctx: StoreContext, attemptId: string) {
+async function claimAttempt(
+  ctx: StoreContext,
+  attemptId: string,
+  methodsOverride?: OnlineMethodId[] | undefined,
+) {
   const [claimed] = await ctx.tx
     .update(payment)
     .set({ gatewayRequestedAt: new Date() })
@@ -115,8 +121,11 @@ async function claimAttempt(ctx: StoreContext, attemptId: string) {
   const [ship] = o.shippingAddressId
     ? await ctx.tx.select().from(address).where(eq(address.id, o.shippingAddressId))
     : []
-  // The main gateway's window offers only the methods the merchant turned on, in their order.
-  const methods = isGatewayProvider(claimed.provider) ? await gatewayMethods(ctx) : undefined
+  // A gateway's window offers only the methods the merchant turned on and routed to it, in
+  // their order; a fallback try offers what the gateway that failed was going to.
+  const methods =
+    methodsOverride ??
+    (isGatewayProvider(claimed.provider) ? await gatewayMethods(ctx, claimed.provider) : undefined)
   const request: CreatePaymentInput = {
     orderId: o.id,
     orderNumber: o.number,
@@ -152,16 +161,17 @@ async function claimAttempt(ctx: StoreContext, attemptId: string) {
   return { attempt: claimed, request }
 }
 
-/** Online methods on for this store, or undefined for stores that never saved the method row. */
-async function gatewayMethods(ctx: StoreContext) {
+/**
+ * Online methods on for this store and routed to this gateway, or undefined for stores that
+ * never saved the method row (the gateway then shows everything it has).
+ */
+async function gatewayMethods(ctx: StoreContext, gatewayId: string) {
   const [s] = await ctx.tx
     .select({ payments: store.payments })
     .from(store)
     .where(eq(store.id, ctx.storeId))
-  const settings = parsePaymentSettings(s?.payments)
-  if (!settings.methods?.length) return undefined
-  const on = onlineMethodsOn(checkoutMethodsOf(settings))
-  return on.length ? on : undefined
+  const on = methodsForGateway(parsePaymentSettings(s?.payments), gatewayId)
+  return on?.length ? on : undefined
 }
 
 const sessionOf = (p: PaymentAttempt): CheckoutSession | null =>
@@ -192,6 +202,26 @@ async function markFailed(db: Db, storeId: string, attemptId: string, error: str
 /** Gateway SDKs reject with plain objects; `String()` stored those as "[object Object]". */
 const message = readableError
 
+/** Rejects when the gateway has not answered in `ms`; no limit when `ms` is undefined. */
+function withTimeout<T>(work: Promise<T>, ms: number | undefined, gatewayId: string): Promise<T> {
+  if (!ms) return work
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`${gatewayId} did not answer in ${Math.round(ms / 1000)}s`)),
+      ms,
+    )
+  })
+  return Promise.race([work, timeout]).finally(() => clearTimeout(timer))
+}
+
+export type StartOptions = {
+  /** What the gateway's window offers instead of the store's routing (a fallback try). */
+  methods?: OnlineMethodId[] | undefined
+  /** Give up on a gateway that has not opened the payment in this long. */
+  timeoutMs?: number | undefined
+}
+
 /**
  * Ask the gateway for this attempt, outside any transaction that holds stock
  * locks, then record the answer in a short transaction of its own.
@@ -208,8 +238,11 @@ export async function startPaymentAttempt(
   attemptId: string,
   provider: PaymentProvider,
   log: Pick<Console, 'error'> = console,
+  options: StartOptions = {},
 ): Promise<StartedPayment> {
-  const claim = await withStore(db, storeId, (tx) => claimAttempt({ storeId, tx }, attemptId))
+  const claim = await withStore(db, storeId, (tx) =>
+    claimAttempt({ storeId, tx }, attemptId, options.methods),
+  )
   if (!claim) {
     const current = await withStore(
       db,
@@ -222,7 +255,11 @@ export async function startPaymentAttempt(
 
   let result: Awaited<ReturnType<PaymentProvider['createPayment']>>
   try {
-    result = await provider.createPayment(claim.request)
+    result = await withTimeout(
+      provider.createPayment(claim.request),
+      options.timeoutMs,
+      provider.id,
+    )
   } catch (err) {
     const failed = await markFailed(db, storeId, attemptId, message(err))
     return {
@@ -278,6 +315,59 @@ export async function startPaymentAttempt(
       error: message(err),
     }
   }
+}
+
+/**
+ * A failed attempt's next try on another gateway: same order, amount and
+ * purpose, a new attempt number and idempotency key. Null when the order was
+ * paid, cancelled or retried meanwhile (the order row is locked meanwhile).
+ */
+async function reopenOnGateway(
+  db: Db,
+  storeId: string,
+  failedAttemptId: string,
+  providerId: string,
+): Promise<string | null> {
+  return withStore(db, storeId, async (tx) => {
+    const [failed] = await tx.select().from(payment).where(eq(payment.id, failedAttemptId))
+    if (failed?.status !== 'failed') return null
+    const [o] = await tx.select().from(order).where(eq(order.id, failed.orderId)).for('update')
+    if (!o || o.status !== 'open' || o.checkoutPaidAt) return null
+    const [latest] = await paymentAttempts({ storeId, tx }, failed.orderId)
+    if (latest?.id !== failed.id) return null
+    const next = await createPaymentAttempt(
+      { storeId, tx },
+      {
+        orderId: failed.orderId,
+        provider: providerId,
+        amountPaise: failed.amountPaise,
+        purpose: failed.purpose === 'balance' ? 'balance' : 'order',
+      },
+    )
+    return next.id
+  })
+}
+
+/**
+ * `startPaymentAttempt`, and when the gateway cannot open the payment (an
+ * error or no answer in `timeoutMs`), the next active gateway in the
+ * merchant's fallback order on a fresh attempt (audit #150). Every try is its
+ * own `payment` row with its own gateway, idempotency key and webhook route.
+ */
+export async function startPaymentWithFallback(
+  db: Db,
+  storeId: string,
+  attemptId: string,
+  provider: PaymentProvider,
+  fallbacks: FallbackTry<PaymentProvider>[],
+  options: { timeoutMs?: number | undefined } = {},
+  log: Pick<Console, 'error'> = console,
+): Promise<StartedPayment> {
+  return runWithFallbacks({ attemptId, provider }, fallbacks, {
+    start: (id, p, methods) =>
+      startPaymentAttempt(db, storeId, id, p, log, { methods, timeoutMs: options.timeoutMs }),
+    reopen: (failedId, p) => reopenOnGateway(db, storeId, failedId, p.id),
+  })
 }
 
 /**

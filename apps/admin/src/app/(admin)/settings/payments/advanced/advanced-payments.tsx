@@ -34,8 +34,11 @@ const RAZORPAY_WEBHOOK_METHODS = new Set(['razorpay', 'razorpay_upi'])
 
 const WORKER_URL = process.env.NEXT_PUBLIC_WORKER_URL ?? 'http://localhost:4100'
 
-/** Set up on the main Payments page (connect, "Shoppers can pay with"), so not repeated here. */
-const MAIN_PAGE_METHODS = new Set(['razorpay', 'cashfree', 'cod'])
+/**
+ * Set up on the main Payments page (connect, "Shoppers can pay with", "Manual payment
+ * methods"), so not repeated here.
+ */
+const MAIN_PAGE_METHODS = new Set(['razorpay', 'cashfree', 'cod', 'manual'])
 
 const load = () =>
   api.store.getPayments().then((r) => ({

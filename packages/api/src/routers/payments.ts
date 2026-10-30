@@ -3,7 +3,10 @@ import {
   CheckoutMethodSchema,
   checkRateLimit,
   createMemoryRateLimitStore,
+  MANUAL_ROW_IDS,
   MODE_GATEWAY_IDS,
+  ONLINE_METHOD_IDS,
+  PaymentAdjustmentSchema,
   parsePreviousSecrets,
   permissions,
   rateLimitKey,
@@ -24,7 +27,9 @@ import {
   paymentsTestMode,
   paymentTestOrderLink,
   razorpayRedirectUri,
+  saveManualPaymentMethod,
   savePaymentMethods,
+  savePaymentRouting,
   setPaymentGatewayActive,
   signOAuthState,
   skipPaymentSetup,
@@ -92,6 +97,49 @@ export const paymentsRouter = {
         paymentsEnv(),
         input.methods,
       )
+      return { ok: true }
+    }),
+
+  /**
+   * "Active providers" and "Route methods": which gateways are on together, their fallback
+   * order, and which one takes each online method (audit #148/#150).
+   */
+  saveRouting: can(permissions.PAYMENTS_MANAGE)
+    .input(
+      z.object({
+        order: z.array(z.enum(KEY_GATEWAYS)).max(8),
+        methods: z.partialRecord(z.enum(ONLINE_METHOD_IDS), z.enum(KEY_GATEWAYS)).optional(),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const { payments } = await storeRegistries(context.tx, context.scope.storeId)
+      await savePaymentRouting(context.tx, context.scope.storeId, payments, paymentsEnv(), {
+        order: input.order,
+        methods: input.methods ?? {},
+      })
+      return { ok: true }
+    }),
+
+  /** One "Manual payment methods" row (UPI ID, bank transfer): details, on/off and note (#149). */
+  saveManual: can(permissions.PAYMENTS_MANAGE)
+    .input(
+      z.object({
+        kind: z.enum(MANUAL_ROW_IDS),
+        on: z.boolean(),
+        note: z.string().max(500),
+        fields: z.record(z.string().max(32), z.string().max(200)),
+        adjustment: PaymentAdjustmentSchema.nullable().optional(),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const { payments } = await storeRegistries(context.tx, context.scope.storeId)
+      await saveManualPaymentMethod(context.tx, context.scope.storeId, payments, paymentsEnv(), {
+        kind: input.kind,
+        on: input.on,
+        note: input.note,
+        fields: input.fields,
+        adjustment: input.adjustment,
+      })
       return { ok: true }
     }),
 

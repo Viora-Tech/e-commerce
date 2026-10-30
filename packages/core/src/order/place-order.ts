@@ -58,7 +58,13 @@ import {
 import { unsoldInMarket } from '../markets/catalogs'
 import { insertOutboxEvent } from '../outbox/write'
 import { applyPaymentAdjustment, type PaymentAdjustment } from '../payments/adjustments'
-import { createPaymentAttempt, startPaymentAttempt } from '../payments/attempts'
+import {
+  createPaymentAttempt,
+  startPaymentAttempt,
+  startPaymentWithFallback,
+} from '../payments/attempts'
+import type { FallbackTry } from '../payments/fallback'
+import { GATEWAY_START_TIMEOUT_MS } from '../payments/routing'
 import { parsePaymentSettings } from '../payments/settings'
 import type { PaymentRowStatus } from '../payments/transitions'
 import { computeDepositFromSettings } from '../preorder/deposit'
@@ -103,6 +109,11 @@ export type CheckoutDetails = {
 export type PlaceOrderInput = {
   cartId: string
   paymentProvider: PaymentProvider
+  /**
+   * Gateways to try, in order, when `paymentProvider` cannot open the payment (an error, or no
+   * answer in time): the store's fallback order (`fallbackChain`). Empty or unset: no fallback.
+   */
+  paymentFallbacks?: FallbackTry<PaymentProvider>[] | undefined
   /** Optional in tests; required by the storefront checkout. */
   checkout?: CheckoutDetails
   /**
@@ -1176,7 +1187,17 @@ export async function placeOrderAndPay(
     const byCards = !placed.replayed && placed.paymentStatus === 'captured'
     return { ...placed, becameCaptured: byCards, paymentError: null }
   }
-  const started = await startPaymentAttempt(db, storeId, placed.attemptId, input.paymentProvider)
+  const fallbacks = input.paymentFallbacks ?? []
+  const started = fallbacks.length
+    ? await startPaymentWithFallback(
+        db,
+        storeId,
+        placed.attemptId,
+        input.paymentProvider,
+        fallbacks,
+        { timeoutMs: GATEWAY_START_TIMEOUT_MS },
+      )
+    : await startPaymentAttempt(db, storeId, placed.attemptId, input.paymentProvider)
   return {
     ...placed,
     paymentStatus: started.status,

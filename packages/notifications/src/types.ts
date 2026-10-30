@@ -174,6 +174,11 @@ export type TemplateData = {
    */
   parcels?: EmailParcel[] | undefined
   paymentMethodLabel: string
+  /**
+   * For an unpaid manual UPI / bank transfer order: how to pay, one line each (UPI ID, bank
+   * details, reference, the shop's instructions). Shown on order_placed.
+   */
+  paymentInstructions?: string[] | undefined
   /** Printed in the footer under the store name, when the store has set one. */
   storeAddress?: string | undefined
   /** Set on order_shipped when the carrier gave us one. */

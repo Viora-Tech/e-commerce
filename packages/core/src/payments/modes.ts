@@ -1,5 +1,6 @@
 /** SOURCE OF TRUTH: gateway Live/Test key sets and Active/Inactive — WHAT a gateway's two key sets and on/off switch are / WHY flipping either never loses a saved key */
 import { type CheckoutMethod, enabledForMethods, isGatewayProvider } from './methods'
+import { enabledForGateways, type PaymentRouting } from './routing'
 
 /*
  * Pure (no database, no gateway SDK), so admin client components import it
@@ -141,6 +142,8 @@ type ActivationSource = {
   enabled: string[]
   inactive?: Record<string, string[]> | undefined
   methods?: CheckoutMethod[] | undefined
+  /** Set once the merchant runs several gateways together (./routing). */
+  routing?: PaymentRouting | undefined
 }
 
 /** True when the merchant switched this gateway off (its keys are kept). */
@@ -163,13 +166,19 @@ export function deactivateGateway<S extends ActivationSource>(
     ...s,
     enabled: s.enabled.filter((x) => !members.has(x)),
     inactive: { ...(s.inactive ?? {}), [id]: wasOn.length ? wasOn : [id] },
+    // Its routes fall to the next active gateway; switching it on again puts it last in line.
+    ...(s.routing
+      ? { routing: { ...s.routing, order: s.routing.order.filter((x) => x !== id) } }
+      : {}),
   }
 }
 
 /**
  * Switch a gateway back on, restoring the providers it had on. A main gateway
  * (Razorpay, Cashfree) takes the online methods again, so the other main
- * gateway is switched off (keys kept), as connecting one always did.
+ * gateway is switched off (keys kept), as connecting one always did. A store
+ * that runs several gateways together (a saved routing) keeps the others on
+ * and adds this one at the end of the fallback order instead.
  */
 export function activateGateway<S extends ActivationSource>(
   s: S,
@@ -182,6 +191,17 @@ export function activateGateway<S extends ActivationSource>(
   if (!isGatewayProvider(id)) {
     const extra = restore.filter((x) => !s.enabled.includes(x))
     return { ...s, enabled: [...s.enabled, ...extra], inactive }
+  }
+  if (s.routing) {
+    const order = s.routing.order.includes(id) ? s.routing.order : [...s.routing.order, id]
+    const extra = restore.filter((x) => !s.enabled.includes(x) && !isGatewayProvider(x))
+    const gateways = order.filter((x) => x === id || s.enabled.includes(x))
+    return {
+      ...s,
+      routing: { ...s.routing, order },
+      enabled: enabledForGateways([...s.enabled, ...extra], methods, gateways),
+      inactive,
+    }
   }
   for (const other of s.enabled) {
     if (isGatewayProvider(other) && other !== id) inactive[other] = [other]

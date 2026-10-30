@@ -1,12 +1,19 @@
 import 'server-only'
 import { settingsSecret } from '@commerce/config'
 import {
-  checkoutMethodsOf,
+  type FallbackTry,
+  fallbackChain,
+  type GatewaySupports,
   gatewayOffersEmi,
   isGatewayProvider,
+  MANUAL_ROW_IDS,
+  type ManualRowId,
+  manualRowOn,
+  manualRowReady,
+  methodsForGateway,
   type OnlineMethodId,
-  onlineMethodsOn,
   type PaymentAdjustment,
+  type PaymentRegistry,
   parsePaymentSettings,
   refreshPaymentCredentials,
   resolvePaymentProviders,
@@ -14,6 +21,7 @@ import {
 import { registriesForStore } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
 import { store } from '@commerce/db'
+import type { PaymentProvider } from '@commerce/payments'
 import { logger } from '@commerce/observability/logging'
 import { eq } from 'drizzle-orm'
 
@@ -26,7 +34,15 @@ export type CheckoutMethod = {
   methods?: OnlineMethodId[] | undefined
   /** The gateway runs on its test keys: shown as "Test mode", no real money moves. */
   test?: boolean | undefined
+  /** For the shop's own UPI ID / bank transfer: which of the two rows are on. */
+  manualKinds?: ManualRowId[] | undefined
 }
+
+/** The online methods each gateway can take, from its app's factory. */
+const supportsOf =
+  (registry: PaymentRegistry): GatewaySupports =>
+  (id) =>
+    registry.get(id)?.methods
 
 async function loadSettings(tx: StoreTx, storeId: string) {
   const [s] = await tx.select({ payments: store.payments }).from(store).where(eq(store.id, storeId))
@@ -66,16 +82,52 @@ export async function storeCheckoutMethods(
 ): Promise<CheckoutMethod[]> {
   const providers = await storePaymentProviders(tx, storeId)
   const settings = await loadSettings(tx, storeId)
-  const online = settings.methods?.length ? onlineMethodsOn(checkoutMethodsOf(settings)) : null
-  return providers
-    .filter((p) => !(online && online.length === 0 && isGatewayProvider(p.id)))
-    .map((p) => ({
-      id: p.id,
-      label: p.label,
-      adjustment: settings.adjustments[p.id],
-      methods: online && isGatewayProvider(p.id) ? online : undefined,
-      test: p.mode === 'test' ? true : undefined,
-    }))
+  const supports = supportsOf((await registriesForStore(tx, storeId)).payments)
+  const manual = settings.providers.manual
+  // Each gateway carries the methods routed to it (all of them for a single gateway); a
+  // gateway that takes none is left out.
+  return providers.flatMap((p) => {
+    const methods = isGatewayProvider(p.id)
+      ? methodsForGateway(settings, p.id, supports)
+      : undefined
+    if (methods && methods.length === 0) return []
+    return [
+      {
+        id: p.id,
+        label: p.label,
+        adjustment: settings.adjustments[p.id],
+        methods,
+        test: p.mode === 'test' ? true : undefined,
+        manualKinds:
+          p.id === 'manual'
+            ? MANUAL_ROW_IDS.filter(
+                (k) => manualRowOn(settings.manualRows, k) && manualRowReady(k, manual),
+              )
+            : undefined,
+      },
+    ]
+  })
+}
+
+/**
+ * The gateways checkout tries next when `providerId` cannot open the payment, in the
+ * merchant's fallback order, each offering the methods the shopper was shown (audit #150).
+ * Empty for a store with one gateway or without a saved routing.
+ */
+export async function storePaymentFallbacks(
+  tx: StoreTx,
+  storeId: string,
+  providers: PaymentProvider[],
+  providerId: string,
+): Promise<FallbackTry<PaymentProvider>[]> {
+  if (!isGatewayProvider(providerId)) return []
+  const settings = await loadSettings(tx, storeId)
+  const supports = supportsOf((await registriesForStore(tx, storeId)).payments)
+  const offered = methodsForGateway(settings, providerId, supports)
+  return fallbackChain(settings, providerId, offered, supports).flatMap((step) => {
+    const provider = providers.find((p) => p.id === step.gatewayId)
+    return provider ? [{ provider, methods: step.methods }] : []
+  })
 }
 
 /** True when Razorpay or Cashfree is enabled with EMI on (the method row, or the older EMI switch). */

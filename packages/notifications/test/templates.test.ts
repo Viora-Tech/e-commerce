@@ -33,6 +33,15 @@ describe('templates', () => {
     expect(renderWhatsapp('order_placed', sampleTemplateData).text).toContain('#42')
   })
 
+  it('order_placed tells a manual transfer shopper how to pay', async () => {
+    const paymentInstructions = ['UPI ID: shop@hdfcbank (Shop)', 'Reference: Order 42']
+    const e = await renderEmail('order_placed', { ...sampleTemplateData, paymentInstructions })
+    expect(e.text).toContain('UPI ID: shop@hdfcbank (Shop). Reference: Order 42.')
+    expect(
+      renderWhatsapp('order_placed', { ...sampleTemplateData, paymentInstructions }).text,
+    ).toContain('shop@hdfcbank')
+  })
+
   it('an order from two warehouses lists its parcels with dates; one parcel lists none', async () => {
     const parcels = [
       {

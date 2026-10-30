@@ -99,8 +99,15 @@ export function methodView(m: CheckoutMethod): MethodView {
       brand: content.upiBrand,
     }
   if (m.id === 'manual') {
+    const kinds = m.manualKinds
+    const title =
+      kinds?.length === 1
+        ? kinds[0] === 'upi'
+          ? content.methods.manualUpi
+          : content.methods.manualBank
+        : content.methods.manual
     return {
-      title: content.methods.manual,
+      title,
       hint: content.methods.manualHint,
       icon: 'bank',
       brand: null,

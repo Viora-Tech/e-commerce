@@ -33,9 +33,12 @@ export const templateContent: Record<TemplateId, TemplateCopy> = {
     heading: (d) => `Thanks, ${d.customerName}`,
     intro: (d) =>
       `We have your order #${d.orderNumber} for ${d.totalLabel} (${d.paymentMethodLabel}).`,
-    outro: () => 'We will message you again as soon as it ships.',
+    outro: (d) =>
+      d.paymentInstructions?.length
+        ? `To pay ${d.totalLabel}: ${d.paymentInstructions.join('. ')}. We ship once your payment arrives.`
+        : 'We will message you again as soon as it ships.',
     whatsapp: (d) =>
-      `Hi ${d.customerName}, ${d.storeName} has received order #${d.orderNumber} for ${d.totalLabel}. We will update you when it ships.`,
+      `Hi ${d.customerName}, ${d.storeName} has received order #${d.orderNumber} for ${d.totalLabel}.${d.paymentInstructions?.length ? ` To pay: ${d.paymentInstructions.join('. ')}.` : ''} We will update you when it ships.`,
   },
   payment_received: {
     subject: (d) => `${d.storeName}: payment for order #${d.orderNumber} received`,

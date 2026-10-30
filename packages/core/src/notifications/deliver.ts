@@ -27,7 +27,7 @@ import type {
   TemplateId,
 } from '@commerce/notifications'
 import { formatDeliveryRange } from '@commerce/shipping'
-import { and, eq, inArray, or, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, or, sql } from 'drizzle-orm'
 import { codConfirmDelivery } from '../cod-rto/confirm'
 import type { StoreContext } from '../context'
 import { newsletterConfirmToken, newsletterConfirmUrl } from '../customers/newsletter'
@@ -46,6 +46,7 @@ import { storeNotificationChannels } from '../sender-email/channels'
 import { type GstBreakdown, gstRowsToShow } from '../tax/gst'
 import { balanceData } from './balance-data'
 import { isMessageOn } from './messages'
+import { paymentInstructionsOf } from './payment-instructions'
 import { parseNotificationSettings } from './settings'
 
 export type DeliveryResult = {
@@ -267,6 +268,17 @@ export async function buildTemplateData(
     .where(eq(shipment.orderId, orderId))
   const method = o.paymentMethod ?? ''
   const parcels = emailParcels(await orderParcelsView(ctx.tx, orderId))
+  // An unpaid UPI / bank transfer order: the details to pay to, as the thank-you page shows them.
+  const [transfer] =
+    method === 'manual' && !o.checkoutPaidAt
+      ? await ctx.tx
+          .select({ session: payment.checkoutSession })
+          .from(payment)
+          .where(and(eq(payment.orderId, orderId), eq(payment.provider, 'manual')))
+          .orderBy(desc(payment.attempt))
+          .limit(1)
+      : []
+  const paymentInstructions = paymentInstructionsOf(transfer?.session)
   return {
     data: {
       storeName: s?.name ?? '',
@@ -291,6 +303,7 @@ export async function buildTemplateData(
       taxBreakdown: taxLines(o),
       ...(parcels ? { parcels } : {}),
       paymentMethodLabel: PAYMENT_LABELS[method] ?? method,
+      ...(paymentInstructions ? { paymentInstructions } : {}),
       orderUrl:
         storefrontUrl && settingsSecret
           ? thankYouUrl(o.id, o.number, settingsSecret, storefrontUrl)

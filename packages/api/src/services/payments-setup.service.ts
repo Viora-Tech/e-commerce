@@ -1,26 +1,40 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import {
   activateGateway,
+  activeGatewaysOf,
+  anyManualRowLive,
   type CheckoutMethod,
   checkoutMethodsOf,
   checkoutTestMode,
+  cleanRouting,
   createPaymentTestCart,
   DEFAULT_CHECKOUT_METHODS,
   deactivateGateway,
   decryptPaymentSettings,
+  enabledForGateways,
   enabledForMethods,
   GATEWAY_PROVIDER_IDS,
+  type GatewaySupports,
   gatewayKeySets,
   isGatewayInactive,
   isGatewayProvider,
   isMaskedSecret,
   keySetMode,
+  type ManualRow,
+  type ManualRowId,
+  type ManualRows,
+  manualRowOn,
+  manualRowReady,
+  ONLINE_METHOD_IDS,
+  type OnlineMethodId,
   onlineMethodsOn,
+  type PaymentAdjustment,
   type PaymentMode,
   type PaymentRegistry,
   type PaymentSettings,
   parsePaymentSettings,
   recoveryUrl,
+  routeMethods,
   storefrontOriginFor,
   switchKeySet,
   withKeySet,
@@ -195,6 +209,31 @@ async function gatewayStatus(
   }
 }
 
+/** The online methods each gateway can take, from its app's factory. */
+const supportsOf =
+  (registry: PaymentRegistry): GatewaySupports =>
+  (id) =>
+    registry.get(id)?.methods
+
+/** A gateway with saved keys and its app installed: it can be switched on at checkout. */
+const usableGateway = (registry: PaymentRegistry, s: PaymentSettings) => (id: string) =>
+  !!registry.get(id) && gatewayKeySets(s.providers, id).active !== null
+
+/** The gateway and the methods that run on its keys (Razorpay and Razorpay UPI QR). */
+const gatewayFamily = (registry: PaymentRegistry, id: string) =>
+  registry.ids().filter((x) => x === id || registry.get(x)?.credentialsFrom === id)
+
+/** Connected gateways for the "Active providers" card: active ones in fallback order, then the rest. */
+function routingGateways(settings: PaymentSettings, registry: PaymentRegistry) {
+  const active = activeGatewaysOf(settings)
+  const usable = usableGateway(registry, settings)
+  const rest = GATEWAY_PROVIDER_IDS.filter((id) => usable(id) && !active.includes(id))
+  return [
+    ...active.map((id) => ({ id, label: registry.get(id)?.label ?? id, active: true })),
+    ...rest.map((id) => ({ id, label: registry.get(id)?.label ?? id, active: false })),
+  ]
+}
+
 /**
  * Everything Settings → Payments shows: saved settings (secrets masked), the
  * method row, the main gateway's health, the gateway apps on offer, and
@@ -226,6 +265,16 @@ export async function paymentsSetup(
   const gateways = gatewayApps(new Set(installedApps), settings)
   const manual = decrypted.providers.manual ?? {}
   const manualOn = settings.enabled.includes('manual')
+  const manualRow = (id: ManualRowId) => {
+    const ready = manualRowReady(id, manual)
+    return {
+      ready,
+      on: manualOn && ready && manualRowOn(settings.manualRows, id),
+      note: settings.manualRows?.[id]?.note ?? '',
+    }
+  }
+  const supports = supportsOf(registry)
+  const route = routeMethods(settings, supports)
   return {
     settings: presentProviderSettings(settings, env.secret, registry, env.previousSecrets),
     available: availableProviders(registry),
@@ -241,11 +290,35 @@ export async function paymentsSetup(
      * deposit): each is live when manual payments are on and its details are filled (audit #149).
      */
     manualMethods: {
-      upi: { ready: Boolean(manual.upiId?.trim()), on: manualOn && Boolean(manual.upiId?.trim()) },
-      bank: {
-        ready: Boolean(manual.accountNumber?.trim() && manual.ifsc?.trim()),
-        on: manualOn && Boolean(manual.accountNumber?.trim() && manual.ifsc?.trim()),
+      upi: manualRow('upi'),
+      bank: manualRow('bank'),
+      /** The details both rows edit (UPI ID, payee, bank account); none of them is secret. */
+      details: {
+        upiId: manual.upiId ?? '',
+        payeeName: manual.payeeName ?? '',
+        bankName: manual.bankName ?? '',
+        accountName: manual.accountName ?? '',
+        accountNumber: manual.accountNumber ?? '',
+        ifsc: manual.ifsc ?? '',
       },
+      /** The fee or discount for paying this way, shared by both rows. */
+      adjustment: settings.adjustments.manual ?? null,
+      cod: settings.enabled.includes('cod'),
+    },
+    /**
+     * Several gateways at once (audit #148/#150): the connected ones in fallback order with
+     * their on/off, and which one takes each online method now.
+     */
+    routing: {
+      saved: !!settings.routing,
+      gateways: routingGateways(settings, registry),
+      methods: Object.fromEntries(ONLINE_METHOD_IDS.map((m) => [m, route[m]])) as Record<
+        OnlineMethodId,
+        string | null
+      >,
+      supports: Object.fromEntries(
+        GATEWAY_PROVIDER_IDS.map((id) => [id, [...(supports(id) ?? ONLINE_METHOD_IDS)]]),
+      ) as Record<string, string[]>,
     },
     showSetup: !gatewayOn && !settings.setupSkippedAt,
     razorpayOAuth: env.razorpayOAuth,
@@ -311,7 +384,120 @@ export function savePaymentMethods(
       GATEWAY_PROVIDER_IDS.find((id) => usable(id) && s.providers[id]?.appId) ??
       null
     const full = checkoutMethodsOf({ ...s, methods })
+    // Several gateways on: every routed gateway follows the online methods.
+    if (s.routing) {
+      const gateways = s.routing.order.filter(usable)
+      return { ...s, methods: full, enabled: enabledForGateways(s.enabled, full, gateways) }
+    }
     return { ...s, methods: full, enabled: enabledForMethods(s.enabled, full, gateway) }
+  })
+}
+
+/**
+ * Save the "Active providers" and "Route methods" cards (audit #148/#150): which connected
+ * gateways are on at checkout and in what fallback order, and which one takes each online
+ * method. A gateway left out is switched off with its keys kept, as its Active switch does.
+ */
+export function savePaymentRouting(
+  tx: StoreTx,
+  storeId: string,
+  registry: PaymentRegistry,
+  env: Pick<PaymentsEnv, 'secret' | 'previousSecrets'>,
+  input: { order: string[]; methods: Partial<Record<string, string>> },
+) {
+  return writeSettings(tx, storeId, registry, env, (s) => {
+    const usable = usableGateway(registry, s)
+    const routing = cleanRouting(input, usable, supportsOf(registry))
+    const inactive = { ...(s.inactive ?? {}) }
+    let enabled = [...s.enabled]
+    for (const id of GATEWAY_PROVIDER_IDS) {
+      if (!usable(id)) continue
+      const family = gatewayFamily(registry, id)
+      if (routing.order.includes(id)) {
+        // Back on: the methods that ran on its keys (Razorpay UPI QR) come back too.
+        const restore = inactive[id] ?? []
+        delete inactive[id]
+        enabled.push(...restore.filter((x) => !isGatewayProvider(x) && !enabled.includes(x)))
+      } else if (enabled.includes(id) || !inactive[id]) {
+        const wasOn = enabled.filter((x) => family.includes(x))
+        inactive[id] = wasOn.length ? wasOn : [id]
+        enabled = enabled.filter((x) => !family.includes(x))
+      }
+    }
+    return {
+      ...s,
+      routing,
+      inactive,
+      enabled: enabledForGateways(enabled, checkoutMethodsOf(s), routing.order),
+    }
+  })
+}
+
+const MANUAL_ROW_FIELDS: Record<ManualRowId, readonly string[]> = {
+  upi: ['upiId', 'payeeName'],
+  bank: ['bankName', 'accountName', 'accountNumber', 'ifsc'],
+}
+
+/**
+ * One row of "Manual payment methods" (audit #149): its details, its on/off and the note the
+ * shopper reads. The built-in `manual` provider is at checkout while at least one row is on.
+ */
+export function saveManualPaymentMethod(
+  tx: StoreTx,
+  storeId: string,
+  registry: PaymentRegistry,
+  env: Pick<PaymentsEnv, 'secret' | 'previousSecrets'>,
+  input: {
+    kind: ManualRowId
+    on: boolean
+    note: string
+    fields: Record<string, string>
+    /** Undefined keeps the saved one; null removes it. */
+    adjustment?: PaymentAdjustment | null | undefined
+  },
+) {
+  return writeSettings(tx, storeId, registry, env, (s) => {
+    const manual = { ...(s.providers.manual ?? {}) }
+    for (const k of MANUAL_ROW_FIELDS[input.kind]) {
+      const v = input.fields[k]
+      if (v === undefined) continue
+      if (v.trim()) manual[k] = k === 'ifsc' ? v.trim().toUpperCase() : v.trim()
+      else delete manual[k]
+    }
+    if (input.on && !manualRowReady(input.kind, manual)) {
+      throw new ORPCError('BAD_REQUEST', {
+        message:
+          input.kind === 'upi'
+            ? 'Enter your UPI ID and payee name first.'
+            : 'Enter the bank, account holder, account number and IFSC first.',
+      })
+    }
+    // The first save of a row fixes the other row's switch where it stood, so a row that was
+    // never shown to shoppers does not start showing.
+    const wasOn = s.enabled.includes('manual')
+    const rows: Record<ManualRowId, ManualRow> = {
+      upi: s.manualRows?.upi ?? { on: wasOn && manualRowOn(s.manualRows, 'upi') },
+      bank: s.manualRows?.bank ?? { on: wasOn && manualRowOn(s.manualRows, 'bank') },
+    }
+    const note = input.note.trim()
+    rows[input.kind] = note ? { on: input.on, note } : { on: input.on }
+    const manualRows: ManualRows = { upi: rows.upi, bank: rows.bank }
+    const live = anyManualRowLive(manual, manualRows)
+    const enabled = live
+      ? wasOn
+        ? s.enabled
+        : [...s.enabled, 'manual']
+      : s.enabled.filter((x) => x !== 'manual')
+    const adjustments = { ...s.adjustments }
+    if (input.adjustment === null) delete adjustments.manual
+    else if (input.adjustment) adjustments.manual = input.adjustment
+    return {
+      ...s,
+      providers: { ...s.providers, manual },
+      manualRows,
+      enabled,
+      adjustments,
+    }
   })
 }
 

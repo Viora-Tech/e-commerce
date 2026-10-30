@@ -18,3 +18,19 @@ export type ModeGatewayId = (typeof MODE_GATEWAYS)[number]
 
 export const isModeGateway = (id: string): id is ModeGatewayId =>
   (MODE_GATEWAYS as readonly string[]).includes(id)
+
+/** "Route methods": online method → the gateway that takes it (`payments.saveRouting`). */
+export type RouteMap = NonNullable<Parameters<typeof api.payments.saveRouting>[0]['methods']>
+export type RoutedMethodId = keyof RouteMap
+
+/** The saved routes that point at a gateway still in `active`, typed for `payments.saveRouting`. */
+export function routesFor(
+  methods: Record<string, string | null>,
+  active: readonly string[],
+): RouteMap {
+  const out: RouteMap = {}
+  for (const [m, id] of Object.entries(methods)) {
+    if (id && isGatewayId(id) && active.includes(id)) out[m as RoutedMethodId] = id
+  }
+  return out
+}

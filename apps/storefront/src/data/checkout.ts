@@ -286,6 +286,10 @@ export const checkoutContent = {
     cod: 'Cash on delivery',
     codHint: 'Pay in cash when your order arrives',
     manual: 'UPI or bank transfer to the shop',
+    /** Only the shop's UPI ID is on. */
+    manualUpi: 'UPI to the shop',
+    /** Only bank transfer is on. */
+    manualBank: 'Bank transfer / deposit',
     manualHint: 'We confirm your order once the money arrives',
   },
   /** What opens under the picked way to pay. */

@@ -47,3 +47,41 @@ what it had on (for Razorpay, its UPI QR too).
 
 If it is your only online way to get paid, you are warned first: shoppers will then only see
 cash on delivery or bank transfer, if you have those on.
+
+## Several payment companies at once
+
+Once two payment companies are connected (say Cashfree and Razorpay), **Settings → Payments**
+shows two more cards:
+
+- **Active providers** lists every connected payment company with an on/off switch. Drag them
+  into order: the first one that is on is your main way to get paid. If a payment company cannot
+  open a payment for a shopper (it is down, or does not answer within about 15 seconds), checkout
+  quietly tries the next one that is on and takes the same way to pay. The shopper does not have
+  to do anything, and each try is kept on the order's payment history with the company it used.
+- **Route methods** (shown when two or more are on) picks which payment company takes each way
+  to pay, for example **UPI → Cashfree** and **Cards → Razorpay**. A company that cannot take a
+  way to pay is not offered for it. Anything you leave alone goes to the first company that is on.
+
+At checkout, each company that is on shows as its own option with the ways to pay routed to it.
+If you only ever connect one payment company, nothing changes: it takes every way to pay.
+
+Turning a company off with its **Active** switch also takes it out of this order; turning it
+back on puts it at the end.
+
+## Manual payment methods
+
+The **Manual payment methods** card holds the ways shoppers pay you directly:
+
+- **UPI ID** — the shopper pays your own UPI ID (or scans its QR code).
+- **Bank transfer / deposit** — the shopper sends NEFT, IMPS or RTGS to your account. Your bank
+  name, account number and IFSC are shown on the thank-you page and in the order email.
+- **Cash on delivery** — the shopper pays the courier. **COD rules** opens its settings
+  (Settings → Checkout).
+
+Press **Set up** or **Edit** on UPI ID or Bank transfer to fill in the details, write
+instructions for the shopper (for example "Add your order number as the payment note"), and add
+an optional fee or discount for paying this way. Each row has its own switch.
+
+Orders paid by UPI ID or bank transfer wait as **Payment pending**. When the money reaches your
+account, open the order and use **Mark as paid** (you can note the UTR and the date). Unpaid
+transfer orders can be cancelled automatically from **Advanced → Unpaid orders**.

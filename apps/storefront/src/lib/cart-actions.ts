@@ -45,7 +45,7 @@ import { requestMarketId } from './market-catalog'
 import { accessibleOrderId } from './order-access'
 import { redirectToOrderPage } from './order-view-cookie'
 import { nudgeOutbox } from './outbox'
-import { storePaymentProviders } from './payments'
+import { storePaymentFallbacks, storePaymentProviders } from './payments'
 import { clientIp, rateLimited } from './rate-limit'
 import { requestStoreId } from './request-store'
 import { cartShippingHint, checkoutParcels, estimateForPincode } from './shipping'
@@ -303,16 +303,19 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
     const providers = await storePaymentProviders(tx, storeId)
     const provider = providers.find((p) => p.id === form.payment)
     if (!provider) throw new Error(`payment method ${form.payment} is not enabled`)
+    // Several gateways on: who to try next if this one cannot open the payment.
+    const fallbacks = await storePaymentFallbacks(tx, storeId, providers, provider.id)
     const giftCardIds: string[] = []
     for (const code of form.giftCards ?? []) {
       giftCardIds.push((await findRedeemableGiftCard({ storeId, tx }, code)).id)
     }
-    return { provider, giftCardIds }
+    return { provider, fallbacks, giftCardIds }
   })
-    .then(({ provider, giftCardIds }) =>
+    .then(({ provider, fallbacks, giftCardIds }) =>
       placeOrderAndPay(db(), storeId, {
         cartId,
         paymentProvider: provider,
+        paymentFallbacks: fallbacks,
         giftCardIds,
         // A delivery option id is not a rate row: the app prices it instead.
         shippingRateId: delivery ? null : form.shippingRate || null,

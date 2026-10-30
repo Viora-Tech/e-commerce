@@ -3,12 +3,10 @@
 import { ExternalLink, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
-import StatusChip from '@/components/layout/status-chip'
 import SettingsCard from '@/components/settings/settings-card'
 import { paymentModesContent } from '@/data/payment-modes'
 import { paymentsSetupContent } from '@/data/payments-setup'
@@ -18,15 +16,18 @@ import { useCopy } from '@/hooks/use-copy'
 import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
+import ActiveProvidersCard from './active-providers-card'
 import AddGatewayDialog from './add-gateway-dialog'
 import AdvancedSection from './advanced-section'
 import HelpFooter from './help-footer'
 import MainGatewayCard from './main-gateway-card'
+import ManualMethodsCard from './manual-methods-card'
 import MethodsList from './methods-list'
 import { openTestOrder } from './open-test-order'
 import OtherGatewayCard from './other-gateway-card'
 import RazorpayWebsiteBanner from './razorpay-website-banner'
 import RazorpayWebsiteList from './razorpay-website-list'
+import RouteMethodsCard from './route-methods-card'
 import StatusBanner from './status-banner'
 import TestModeBar from './test-mode-bar'
 import type { CheckoutMethodRow, PaymentsSetup } from './types'
@@ -94,6 +95,9 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
 
   const handleOpenAdd = () => setAddOpen(true)
 
+  const handleCod = (on: boolean) =>
+    saveMethods(methods.map((m) => (m.id === 'cod' ? { ...m, on } : m)))
+
   const handleConnect = async (id: string) => {
     try {
       if (!setup.gateways.find((g) => g.id === id)?.installed) await api.apps.install({ id })
@@ -109,6 +113,10 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
   const hasGateway = setup.primary !== null
   const others = setup.gateways.filter((g) => g.configured && g.id !== setup.primary?.id)
   const razorpay = setup.gateways.some((g) => g.id === 'razorpay' && g.configured)
+  // Several gateways together (audit #148/#150): only worth showing with two to choose from.
+  const routable = setup.routing.gateways.length > 1
+  const activeCount = setup.routing.gateways.filter((g) => g.active).length
+  const codOn = methods.some((m) => m.id === 'cod' && m.on)
   const actions = (
     <Button variant="outline" className="gap-1.5" onClick={handleTestOrder} disabled={opening}>
       {opening ? <Spinner /> : null}
@@ -171,6 +179,22 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
         </section>
       ) : null}
 
+      {routable ? (
+        <ActiveProvidersCard
+          key={JSON.stringify(setup.routing.gateways)}
+          setup={setup}
+          onReload={onReload}
+        />
+      ) : null}
+      {routable && activeCount > 1 ? (
+        <RouteMethodsCard
+          key={JSON.stringify(setup.routing.methods)}
+          setup={setup}
+          methods={methods}
+          onReload={onReload}
+        />
+      ) : null}
+
       {razorpay || setup.razorpayWebsiteBlock ? (
         <SettingsCard id={WEBSITES_ID} title={sites.list.label} description={sites.list.help}>
           <RazorpayWebsiteList websites={setup.razorpayWebsites} />
@@ -190,37 +214,13 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
         />
       </SettingsCard>
 
-      <SettingsCard
-        id="payments-manual"
-        title={copy.manualMethods.heading}
-        description={copy.manualMethods.help}
-        bodyClassName="gap-0 divide-y divide-border"
-      >
-        {(['upi', 'bank'] as const).map((key) => {
-          const m = setup.manualMethods[key]
-          return (
-            <div key={key} className="flex flex-wrap items-center gap-3 py-3 first:pt-0 last:pb-0">
-              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <p className="text-body font-medium text-foreground">
-                  {copy.manualMethods[key].title}
-                </p>
-                <p className="text-caption text-muted-foreground">{copy.manualMethods[key].help}</p>
-              </div>
-              <StatusChip tone={m.on ? 'success' : 'neutral'}>
-                {m.on ? copy.manualMethods.active : copy.manualMethods.off}
-              </StatusChip>
-              <Button
-                variant="outline"
-                size="sm"
-                nativeButton={false}
-                render={<Link href={routes.settings.paymentsAdvanced()} />}
-              >
-                {m.ready ? copy.manualMethods.edit : copy.manualMethods.setUp}
-              </Button>
-            </div>
-          )
-        })}
-      </SettingsCard>
+      <ManualMethodsCard
+        setup={setup}
+        codOn={codOn}
+        disabled={savingMethods}
+        onCodChange={handleCod}
+        onReload={onReload}
+      />
 
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" size="lg" className="gap-1.5" onClick={handleOpenAdd}>
