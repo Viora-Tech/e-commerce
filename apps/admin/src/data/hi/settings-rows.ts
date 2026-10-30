@@ -95,5 +95,26 @@ export default [
       ratesSet: (n, total) => `${total} में से ${n} भरे`,
       noGateways: 'अभी कोई गेटवे नहीं',
     },
+
+    mcp: {
+      connect: 'ऐप कनेक्ट करें',
+      connectValue: 'पता और तरीका',
+      apps: 'कनेक्टेड ऐप',
+      appsValue: (n) => (n === 0 ? 'अभी कोई नहीं' : `${n} कनेक्टेड`),
+      permissions: 'अनुमतियाँ',
+      permissionsValue: (changes, customers) =>
+        `${changes ? 'बदलाव कर सकते हैं' : 'सिर्फ़ देख सकते हैं'}${customers ? ' · ग्राहक दिखते हैं' : ''}`,
+      tokens: 'API टोकन',
+      tokensValue: (n) => (n === 0 ? 'कोई नहीं' : `${n} चालू`),
+      activity: 'गतिविधि',
+      activityValue: 'ऐप की हर रिक्वेस्ट',
+    },
+
+    billing: {
+      autopayOn: 'UPI AutoPay चालू',
+      payByLink: 'लिंक से पेमेंट',
+      count: (n) => (n === 0 ? 'अभी कोई नहीं' : String(n)),
+      downgradeTo: (plan) => `${plan} पर जाएँ`,
+    },
   }),
 ]

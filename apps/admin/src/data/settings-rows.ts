@@ -99,4 +99,25 @@ export const settingsRowsContent = {
     ratesSet: (n: number, total: number) => `${n} of ${total} set`,
     noGateways: 'No gateways yet',
   },
+
+  mcp: {
+    connect: 'Connect an app',
+    connectValue: 'Address and steps',
+    apps: 'Connected apps',
+    appsValue: (n: number) => (n === 0 ? 'None yet' : `${n} connected`),
+    permissions: 'Permissions',
+    permissionsValue: (changes: boolean, customers: boolean) =>
+      `${changes ? 'Can make changes' : 'Read only'}${customers ? ' · sees customers' : ''}`,
+    tokens: 'API tokens',
+    tokensValue: (n: number) => (n === 0 ? 'None' : n === 1 ? '1 active' : `${n} active`),
+    activity: 'Activity',
+    activityValue: 'Every request an app made',
+  },
+
+  billing: {
+    autopayOn: 'UPI AutoPay on',
+    payByLink: 'Pay by link',
+    count: (n: number) => (n === 0 ? 'None yet' : String(n)),
+    downgradeTo: (plan: string) => `Move to ${plan}`,
+  },
 } as const

@@ -14,9 +14,12 @@ import KeyValueList from '@/components/layout/key-value-list'
 import PageHeader from '@/components/layout/page-header'
 import { billingContent } from '@/data/billing'
 import { SETTINGS_BACK } from '@/data/settings'
+import { settingsRowsContent } from '@/data/settings-rows'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { daysUntil } from '@/lib/billing'
+import SettingsDrill from '../settings/settings-drill'
+import SettingsDrillPanel from '../settings/settings-drill-panel'
 import AppsCard, { type BoughtApp } from './apps-card'
 import AutopayRow, { type AutopayState } from './autopay-row'
 import BillsCard from './bills-card'
@@ -27,10 +30,15 @@ import UsageBillsCard from './usage-bills-card'
 
 type BillingPageProps = { view: PlanView; apps: BoughtApp[]; autopay: AutopayState }
 
-/** Figma "Settings · Plan & billing" (707:119179): plan and usage, payment, invoices, downgrade. */
+/**
+ * Figma "Settings · Plan & billing" (707:119179), Shopify-style (#147): the plan and usage on
+ * top, then rows for payment, paid apps, invoices, per-order fee bills and downgrading, each
+ * opening in place (`?open=`).
+ */
 export default function BillingPage({ view, apps, autopay }: BillingPageProps) {
   // Hooks
   const copy = useCopy(billingContent)
+  const rowsCopy = useCopy(settingsRowsContent)
   const format = useFormat()
   const router = useRouter()
   const [comparing, setComparing] = useState(false)
@@ -88,15 +96,38 @@ export default function BillingPage({ view, apps, autopay }: BillingPageProps) {
   // A Koomerce store: nothing to choose, pay or downgrade; its apps still show.
   if (view.unlimited)
     return (
-      <div className="flex w-full flex-col gap-5 px-4 py-6 md:px-8">
+      <div className="flex w-full flex-col gap-4">
         <PageHeader title={copy.title} subtitle={copy.subtitle} back={SETTINGS_BACK} />
         <UnlimitedPlanCard view={view} />
         <AppsCard apps={apps} />
       </div>
     )
 
+  const b = rowsCopy.billing
+  const canDowngrade =
+    lower !== null && view.status === 'active' && !!view.periodEnd && !view.nextPlan
+  const rows = [
+    {
+      id: 'payment',
+      title: copy.payment.heading,
+      value: autopay.mandate?.status === 'active' ? b.autopayOn : b.payByLink,
+    },
+    { id: 'apps', title: copy.apps.heading, value: b.count(apps.length) },
+    { id: 'invoices', title: copy.bills.heading, value: b.count(view.bills.length) },
+    { id: 'fee-bills', title: copy.feeBills.heading, value: b.count(view.usageBills.length) },
+    ...(canDowngrade && lower
+      ? [
+          {
+            id: 'downgrade',
+            title: copy.change.heading,
+            value: b.downgradeTo(copy.plans[lower].name),
+          },
+        ]
+      : []),
+  ]
+
   return (
-    <div className="flex w-full flex-col gap-5 px-4 py-6 md:px-8">
+    <div className="flex w-full flex-col gap-4">
       <PageHeader
         title={copy.title}
         subtitle={copy.subtitle}
@@ -148,27 +179,39 @@ export default function BillingPage({ view, apps, autopay }: BillingPageProps) {
         onKeepPlan={handleKeepPlan}
         onCompare={() => setComparing(true)}
       />
-      <DataCard title={copy.payment.heading} subtitle={copy.payment.body}>
-        <KeyValueList
-          variant="grid"
-          rows={[{ label: copy.payment.invoiceEmail, value: view.invoiceEmail ?? '—' }]}
-        />
-        <AutopayRow autopay={autopay} billingReady={view.billingReady} />
-      </DataCard>
-      <AppsCard apps={apps} />
-      <BillsCard bills={view.bills} />
-      <UsageBillsCard bills={view.usageBills} />
-      {lower && view.status === 'active' && view.periodEnd && !view.nextPlan ? (
-        <DataCard
-          title={copy.change.heading}
-          subtitle={copy.change.body(copy.plans[lower].name, format.date(view.periodEnd))}
-          bodyClassName="flex justify-end"
-        >
-          <Button variant="outline" onClick={() => setDowngrading(true)}>
-            {copy.change.action(copy.plans[lower].name)}
-          </Button>
-        </DataCard>
-      ) : null}
+      <SettingsDrill rows={rows} backLabel={copy.title}>
+        <SettingsDrillPanel id="payment">
+          <DataCard title={copy.payment.heading} subtitle={copy.payment.body}>
+            <KeyValueList
+              variant="grid"
+              rows={[{ label: copy.payment.invoiceEmail, value: view.invoiceEmail ?? '—' }]}
+            />
+            <AutopayRow autopay={autopay} billingReady={view.billingReady} />
+          </DataCard>
+        </SettingsDrillPanel>
+        <SettingsDrillPanel id="apps">
+          <AppsCard apps={apps} />
+        </SettingsDrillPanel>
+        <SettingsDrillPanel id="invoices">
+          <BillsCard bills={view.bills} />
+        </SettingsDrillPanel>
+        <SettingsDrillPanel id="fee-bills">
+          <UsageBillsCard bills={view.usageBills} />
+        </SettingsDrillPanel>
+        {canDowngrade && lower && view.periodEnd ? (
+          <SettingsDrillPanel id="downgrade">
+            <DataCard
+              title={copy.change.heading}
+              subtitle={copy.change.body(copy.plans[lower].name, format.date(view.periodEnd))}
+              bodyClassName="flex justify-end"
+            >
+              <Button variant="outline" onClick={() => setDowngrading(true)}>
+                {copy.change.action(copy.plans[lower].name)}
+              </Button>
+            </DataCard>
+          </SettingsDrillPanel>
+        ) : null}
+      </SettingsDrill>
       <ComparePlansDialog
         open={comparing}
         onOpenChange={setComparing}
