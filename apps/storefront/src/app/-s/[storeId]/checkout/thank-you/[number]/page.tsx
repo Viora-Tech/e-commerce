@@ -31,6 +31,7 @@ import { discoveryVisitor, recordDiscoveryOrder } from '@/lib/discovery-events'
 import { experimentsEnabled, requestExperiments } from '@/lib/experiments'
 import { orderPageToken } from '@/lib/order-view-cookie'
 import { shopperParcels } from '@/lib/parcels'
+import { payOnlineGateway } from '@/lib/payments'
 import { balanceView, storePreorderPolicy } from '@/lib/preorder'
 import { abPurchaseMeasured } from '@/lib/rollout-ab'
 import { inStore } from '@/lib/store-context'
@@ -106,7 +107,16 @@ export default async function ThankYouPage({ params, searchParams }: Params) {
       .limit(1)
     const trackingUrl =
       ship?.trackingUrl ?? (ship?.tracking as Tracking | null | undefined)?.trackingUrl ?? null
+    // A transfer still waiting: offer the store's gateway as well (issue 1010).
+    const transferOpen =
+      o.paymentMethod === 'manual' &&
+      o.status === 'open' &&
+      !o.checkoutPaidAt &&
+      !!pay &&
+      OPEN_STATUSES.has(pay.status)
+    const canPayOnline = transferOpen ? !!(await payOnlineGateway(tx, storeId, o.isTest)) : false
     return {
+      canPayOnline,
       owned: ownedBySession,
       shipmentStatus: ship?.status ?? null,
       trackingUrl,
@@ -183,6 +193,7 @@ export default async function ThankYouPage({ params, searchParams }: Params) {
         giftCards={data.giftCards}
         links={links}
         payPath={buildPayPath(data.order.number, payToken)}
+        canPayOnline={data.canPayOnline}
         look={await withThemeLogo(storeId, data.look)}
         images={data.images}
         shipTo={data.shipTo}

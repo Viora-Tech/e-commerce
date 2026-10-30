@@ -161,3 +161,23 @@ export async function storePaymentMethodRules(
 ): Promise<PaymentMethodRule[]> {
   return (await loadSettings(tx, storeId)).methodRules ?? []
 }
+
+/** Paid outside a gateway; never the target of "Pay online instead". */
+const OFFLINE_METHODS: ReadonlySet<string> = new Set(['manual', 'cod', 'gift_card'])
+
+/**
+ * The gateway a transfer order can pay through instead (issue 1010): the first online option in
+ * the store's checkout order. A gateway on its test keys is offered only for a test order, so a
+ * real order never "pays" with test money. Null when the store takes no online payments.
+ */
+export async function payOnlineGateway(
+  tx: StoreTx,
+  storeId: string,
+  isTestOrder: boolean,
+): Promise<{ method: CheckoutMethod; provider: PaymentProvider } | null> {
+  const methods = await storeCheckoutMethods(tx, storeId)
+  const method = methods.find((m) => !OFFLINE_METHODS.has(m.id) && (isTestOrder || !m.test))
+  if (!method) return null
+  const provider = (await storePaymentProviders(tx, storeId)).find((p) => p.id === method.id)
+  return provider ? { method, provider } : null
+}

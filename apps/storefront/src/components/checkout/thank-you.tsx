@@ -15,7 +15,7 @@ import ThankYouCard from '@/components/checkout/thank-you-card'
 import TransferInstructions from '@/components/checkout/transfer-instructions'
 import UpiQrPayment from '@/components/checkout/upi-qr-payment'
 import { thankYouContent as content } from '@/data/checkout'
-import { retryPaymentAction } from '@/lib/cart-actions'
+import { payOnlineAction, retryPaymentAction } from '@/lib/cart-actions'
 import { CK_BUTTON_PRIMARY, CK_BUTTON_SECONDARY, CK_HEADING } from '@/lib/checkout-classes'
 import type { ShopperParcel } from '@/lib/parcels'
 import { deliveryWindow, firstName, thankYouProgress } from '@/lib/thank-you'
@@ -46,6 +46,8 @@ type ThankYouTemplateProps = {
   shipmentStatus?: string | null
   /** "Track your order": the courier's tracking page, else the signed-in owner's order page. */
   track?: { href: string; external: boolean } | null
+  /** A transfer order can pay through the store's gateway instead; false when it has none. */
+  canPayOnline?: boolean
 }
 
 /** Attempts still waiting on the shopper or the gateway. */
@@ -95,6 +97,7 @@ export default function ThankYouTemplate({
   parcels = [],
   shipmentStatus = null,
   track = null,
+  canPayOnline = false,
 }: ThankYouTemplateProps) {
   // Render logic
   const awaiting = o.paymentMethod !== 'cod' && OPEN_STATUSES.has(pay?.status ?? '')
@@ -142,6 +145,7 @@ export default function ThankYouTemplate({
             .join(' ')
   const retry = failed || notStarted
   const payClient = awaiting && session?.kind === 'client'
+  const payOnline = manual !== null && canPayOnline
   const trackLink = settled && !progress.end ? track : null
 
   return (
@@ -186,6 +190,21 @@ export default function ThankYouTemplate({
             <OrderProgress reached={progress.reached} />
           ) : null}
           {manual ? <TransferInstructions instructions={manual} amountLabel={due} /> : null}
+          {payOnline ? (
+            <form
+              action={payOnlineAction.bind(null, o.number, viewToken)}
+              className="flex flex-col gap-3 border-t border-ck-line pt-5"
+            >
+              <h2 className={`${CK_HEADING} text-[1rem]!`}>{content.payOnline.heading}</h2>
+              <p className="text-[0.9375rem] text-pretty text-ck-muted">{content.payOnline.body}</p>
+              <button type="submit" className={CK_BUTTON_PRIMARY}>
+                {content.payOnline.action}
+              </button>
+              <p className="text-[0.875rem] text-pretty text-ck-muted">
+                {content.payOnline.alreadySent}
+              </p>
+            </form>
+          ) : null}
           {qr ? (
             <UpiQrPayment orderNumber={o.number} viewToken={viewToken} qr={qr} amountLabel={due} />
           ) : null}

@@ -15,6 +15,7 @@ import {
   PaymentNotRetryable,
   type PlaceOrderResult,
   PreorderMixedCart,
+  payOnlineInstead,
   payPath,
   placeOrderAndPay,
   rememberCheckoutAddress,
@@ -27,7 +28,7 @@ import {
 import { checkoutCountry, isAbroad } from '@commerce/core/checkout-address'
 import { CONSENT_COOKIE, currentConsent, decodeConsent } from '@commerce/core/consent'
 import { collectorStore, withdrawCartMarketingConsent } from '@commerce/core/pixels/server'
-import { type ParcelDeliveryEstimate, payment } from '@commerce/db'
+import { order, type ParcelDeliveryEstimate, payment } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
 import type { ClientConfirmation } from '@commerce/payments'
 import { and, desc, eq, ne } from 'drizzle-orm'
@@ -50,7 +51,7 @@ import { requestMarketId } from './market-catalog'
 import { accessibleOrderId } from './order-access'
 import { redirectToOrderPage } from './order-view-cookie'
 import { nudgeOutbox } from './outbox'
-import { storePaymentFallbacks, storePaymentProviders } from './payments'
+import { payOnlineGateway, storePaymentFallbacks, storePaymentProviders } from './payments'
 import { clientIp, rateLimited } from './rate-limit'
 import { requestStoreId } from './request-store'
 import { noteAbAddToCart } from './rollout-ab'
@@ -477,6 +478,40 @@ export async function retryPaymentAction(orderNumber: number, viewToken: string 
   })
   // payment_received was already written to the outbox, in the same
   // transaction as the capture (applyPaymentStatus, via startPaymentAttempt).
+  if (started?.becameCaptured) await nudgeOutbox(storeId)
+  await redirectAfterCheckout({ session: started?.session ?? null, orderNumber, orderId: oid })
+}
+
+/**
+ * "Pay online instead" on a transfer order's page (issue 1010): the open UPI / bank transfer
+ * attempt gives way to one on the store's gateway, then on to the gateway as checkout does.
+ * Same access rule and rate limit as "Retry payment"; a store without an online gateway, or an
+ * order paid or cancelled meanwhile, lands back on the order page.
+ */
+export async function payOnlineAction(orderNumber: number, viewToken: string | null) {
+  const storeId = await requestStoreId()
+  const orderId = await accessibleOrderId(storeId, orderNumber, viewToken)
+  if (!orderId) redirect(`/checkout/thank-you/${orderNumber}`)
+  const oid: string = orderId
+  const backToThankYou = (): Promise<never> =>
+    redirectToOrderPage(thankYouPath(orderNumber, orderViewToken(oid, settingsSecret())))
+  const ip = clientIp(await headers())
+  const [byIp, byOrder] = await Promise.all([
+    rateLimited('payment-retry:ip', ip, PAYMENT_RETRY_IP_RULE),
+    rateLimited('payment-retry:order', `${storeId}:${orderNumber}`, PAYMENT_RETRY_IP_RULE),
+  ])
+  if (!byIp.ok || !byOrder.ok) await backToThankYou()
+  const gateway = await inStore(storeId, async (tx) => {
+    const [o] = await tx.select({ isTest: order.isTest }).from(order).where(eq(order.id, oid))
+    return payOnlineGateway(tx, storeId, o?.isTest ?? false)
+  })
+  if (!gateway) return backToThankYou()
+  const started = await payOnlineInstead(db(), storeId, oid, gateway.provider).catch(
+    (err: unknown) => {
+      if (err instanceof PaymentNotRetryable) return null
+      throw err
+    },
+  )
   if (started?.becameCaptured) await nudgeOutbox(storeId)
   await redirectAfterCheckout({ session: started?.session ?? null, orderNumber, orderId: oid })
 }

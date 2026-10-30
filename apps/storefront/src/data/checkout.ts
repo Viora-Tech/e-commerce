@@ -105,6 +105,13 @@ export const thankYouContent = {
   payNow: 'Pay now',
   retryPayment: 'Retry payment',
   newQr: 'Get a new UPI QR',
+  /** A transfer order's way to pay through the store's gateway instead (issue 1010). */
+  payOnline: {
+    heading: 'Or pay online',
+    body: 'Pay now with UPI, card or netbanking and your order is confirmed straight away.',
+    action: 'Pay online now',
+    alreadySent: 'Already sent the transfer? You do not need to pay again; we will confirm it.',
+  },
   continueShopping: 'Continue shopping',
   subtotal: 'Subtotal',
   discount: 'Discount',
