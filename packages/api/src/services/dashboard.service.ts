@@ -23,7 +23,7 @@ import {
   store,
   variant,
 } from '@commerce/db'
-import { GST_INVOICES_ID, invoice } from '@commerce/plugin-gst-invoices/server'
+import { GST_INVOICES_ID, invoice, queuedInvoiceDrafts } from '@commerce/plugin-gst-invoices/server'
 import { and, asc, count, desc, eq, gte, inArray, isNull, lt, ne, sql, sum } from 'drizzle-orm'
 import type { LiveVisitors, VisitorSource } from '../context'
 import { istIsoDate } from './analytics-buckets'
@@ -750,7 +750,7 @@ export async function dashboardSummary(
       const [queuedRow] = await tx
         .select({ n: count() })
         .from(invoice)
-        .where(and(eq(invoice.kind, 'tax_invoice'), eq(invoice.status, 'draft')))
+        .where(queuedInvoiceDrafts())
       gstQueued = { count: queuedRow?.n ?? 0, href: '/apps/gst-invoices' }
     }
     const storeAddress = StoreAddressSchema.safeParse(storeRow?.address ?? {})
