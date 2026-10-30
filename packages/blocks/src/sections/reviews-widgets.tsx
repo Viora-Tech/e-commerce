@@ -3,6 +3,7 @@ import type { ReviewsLoader } from '../types'
 import { type AllReviewsProps, allReviewsSection } from './reviews-widgets/all-reviews'
 import { type ReviewsCarouselProps, reviewsCarouselSection } from './reviews-widgets/carousel'
 import { type ReviewPhotosProps, reviewPhotosSection } from './reviews-widgets/photo-grid'
+import { type ProductQuestionsProps, productQuestionsSection } from './reviews-widgets/questions'
 import { type ReviewSnippetProps, reviewSnippetSection } from './reviews-widgets/snippet'
 import { type ReviewSummaryProps, reviewSummarySection } from './reviews-widgets/summary'
 import {
@@ -13,7 +14,8 @@ import {
 /**
  * SOURCE OF TRUTH KEYWORDS: reviewsWidgetSections, REVIEWS_WIDGET_SECTIONS, Reviews app sections
  * WHAT:  The Reviews app's theme sections (Judge.me's widgets, rebuilt): carousel, testimonials,
- *        all reviews, review photos, the snippet near Add to cart and the AI summary. Their types are namespaced
+ *        all reviews, review photos, the snippet near Add to cart, the AI summary
+ *        and questions and answers. Their types are namespaced
  *        `reviews/<Name>` like app blocks, so the editor files them under Apps › Reviews.
  * WHY:   They read the store's published reviews through `loadReviews` (storefront: the
  *        database; editor: the API), which a plugin's own blocks cannot reach.
@@ -29,6 +31,7 @@ export type ReviewsWidgetProps = {
   'reviews/Photos': ReviewPhotosProps
   'reviews/Snippet': ReviewSnippetProps
   'reviews/Summary': ReviewSummaryProps
+  'reviews/Questions': ProductQuestionsProps
 }
 
 const BUILDERS: {
@@ -40,6 +43,7 @@ const BUILDERS: {
   'reviews/Photos': reviewPhotosSection,
   'reviews/Snippet': () => reviewSnippetSection(),
   'reviews/Summary': () => reviewSummarySection(),
+  'reviews/Questions': () => productQuestionsSection(),
 }
 
 /** Every Reviews app section type, in the Apps tab's order. */

@@ -8,6 +8,9 @@ import {
   openRequestLink,
   parseReviewForm,
   photoToken,
+  askQuestion,
+  parseQuestionForm,
+  QuestionRejected,
   ReviewRejected,
   reviewsState,
   submitReview,
@@ -32,6 +35,7 @@ export const REVIEW_HONEYPOT = 'review_website'
 
 const PHOTO_RULE = { limit: 30, windowMs: 10 * 60_000 }
 const SUBMIT_RULE = { limit: 10, windowMs: 60 * 60_000 }
+const QUESTION_RULE = { limit: 10, windowMs: 60 * 60_000 }
 /** One helpful vote per visitor and review a month. */
 const HELPFUL_RULE = { limit: 1, windowMs: 30 * 24 * 60 * 60_000 }
 
@@ -130,6 +134,32 @@ export async function submitReviewForm(form: FormData): Promise<ReviewJson> {
     if (err instanceof ReviewRejected) {
       return { ok: false, error: err.reason === 'invalid' ? (err.field ?? 'generic') : err.reason }
     }
+    return { ok: false, error: 'generic' }
+  }
+}
+
+/**
+ * "Ask a question" (product Q&A): saved waiting for the merchant's answer. A filled honeypot
+ * answers "sent" without saving, like the review form.
+ */
+export async function submitQuestionForm(form: FormData): Promise<ReviewJson> {
+  const storeId = await requestStoreId()
+  if (!(await rateLimited('review-question:ip', await ipKey(storeId), QUESTION_RULE)).ok) {
+    return { ok: false, error: 'busy' }
+  }
+  const trap = form.get(REVIEW_HONEYPOT)
+  if (typeof trap === 'string' && trap.trim() !== '') return { ok: true, status: 'pending' }
+  const parsed = parseQuestionForm(form)
+  if (!parsed.ok) return { ok: false, error: parsed.field, field: parsed.field }
+  const me = await currentCustomer(storeId)
+  try {
+    await inStore(storeId, async (tx) => {
+      if (!(await reviewsState(tx, storeId)).installed) throw new QuestionRejected('product')
+      return askQuestion(tx, storeId, { ...parsed.value, customerId: me?.id ?? null })
+    })
+    return { ok: true, status: 'pending' }
+  } catch (err) {
+    if (err instanceof QuestionRejected) return { ok: false, error: err.reason }
     return { ok: false, error: 'generic' }
   }
 }

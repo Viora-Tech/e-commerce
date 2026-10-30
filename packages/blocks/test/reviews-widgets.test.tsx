@@ -131,7 +131,7 @@ describe('Reviews app sections', () => {
     }),
   })
   const storeWide = REVIEWS_WIDGET_SECTIONS.filter(
-    (t) => t !== 'reviews/Snippet' && t !== 'reviews/Summary',
+    (t) => t !== 'reviews/Snippet' && t !== 'reviews/Summary' && t !== 'reviews/Questions',
   )
 
   it('are on the Apps tab, by Reviews, only while the app is installed', () => {

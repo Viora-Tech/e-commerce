@@ -2,19 +2,24 @@ import { loadEnv, settingsSecret } from '@commerce/config'
 import { CommerceError, enqueueAppJob, permissions, storefrontOriginFor } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import {
+  ANSWER_MAX,
+  answerQuestion,
   askForRecentReviews,
   askPastOrders,
   COPY_PHOTOS_JOB,
+  deleteQuestions,
   deleteReviews,
   getReview,
   importJudgemeReviews,
   JUDGEME_MAX_BYTES,
+  listQuestions,
   listReviews,
   loadReviewsSettings,
   markSummariesStale,
   parseQrTarget,
   previewJudgemeImport,
   previewPastOrders,
+  QUESTION_STATUSES,
   REPLY_MAX,
   REVIEW_SOURCES,
   REVIEW_STATUSES,
@@ -27,6 +32,7 @@ import {
   reviewStats,
   reviewsState,
   saveReviewsSettings,
+  setQuestionStatus,
   setReviewFeatured,
   setReviewStatus,
   storeWidgetReviews,
@@ -263,6 +269,52 @@ export const reviewsRouter = {
       const state = await reviewsState(context.tx, context.scope.storeId)
       return state.installed ? storeWidgetReviews(context.tx, state.settings, input) : null
     }),
+
+  /** Product questions (Q&A): shoppers ask on the product page, the store answers here. */
+  questions: {
+    list: can(permissions.PRODUCTS_READ)
+      .input(
+        z.object({
+          page: z.number().int().min(1).max(PAGE_MAX).default(1),
+          perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(20),
+          status: z.enum(QUESTION_STATUSES).optional(),
+          unanswered: z.boolean().optional(),
+          productId: z.uuid().optional(),
+          q: z.string().trim().max(SEARCH_MAX).optional(),
+        }),
+      )
+      .handler(async ({ context, input }) => {
+        await requireInstalled(context)
+        return listQuestions(context.tx, input)
+      }),
+
+    /** Saves the answer; `publish` shows it on the product page. Empty text removes it. */
+    answer: can(permissions.PRODUCTS_WRITE)
+      .input(z.object({ id: z.uuid(), answer: z.string().max(ANSWER_MAX), publish: z.boolean() }))
+      .handler(async ({ context, input }) => {
+        await requireInstalled(context)
+        return answerQuestion(context.tx, input.id, input).catch((err: unknown) => {
+          if (err instanceof CommerceError && err.code === 'NOT_FOUND') {
+            throw new ORPCError('NOT_FOUND', { message: 'Question not found' })
+          }
+          throw err
+        })
+      }),
+
+    setStatus: can(permissions.PRODUCTS_WRITE)
+      .input(Ids.extend({ status: z.enum(QUESTION_STATUSES) }))
+      .handler(async ({ context, input }) => {
+        await requireInstalled(context)
+        return { updated: await setQuestionStatus(context.tx, input.ids, input.status) }
+      }),
+
+    delete: can(permissions.PRODUCTS_WRITE)
+      .input(Ids)
+      .handler(async ({ context, input }) => {
+        await requireInstalled(context)
+        return { deleted: await deleteQuestions(context.tx, input.ids) }
+      }),
+  },
 
   settings: {
     get: can(permissions.PRODUCTS_READ).handler(async ({ context }) => {

@@ -5,6 +5,7 @@ import {
   openRequestLink,
   productReviewsFor,
   productSummary,
+  publishedQuestions,
   purchaseOf,
   type RatingSummary,
   requestLinkBuyer,
@@ -56,10 +57,11 @@ export async function productReviews(
       aiSummary: state.settings.aiSummary.enabled
         ? ((await productSummary(tx, product.id))?.text ?? null)
         : null,
+      questions: await publishedQuestions(tx, product.id),
     }
   })
   if (!shared) return undefined
-  const { settings, summary, reviews, aiSummary } = shared
+  const { settings, summary, reviews, aiSummary, questions } = shared
   // Whether this shopper bought it: through a review request link, or their signed-in account.
   const link = opts.requestToken
     ? openRequestLink(settingsSecret(), opts.requestToken, storeId, now)
@@ -112,6 +114,7 @@ export async function productReviews(
       onlyVerified,
       showPhotos: settings.storefront.showPhotos,
       aiSummary,
+      questions: questions.map((q) => ({ ...q, whenLabel: ageLabel(q.answeredAt, now) })),
     },
   }
 }

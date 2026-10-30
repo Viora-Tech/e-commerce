@@ -98,6 +98,7 @@ export const reviewsPlugin = definePlugin({
     icon: 'Star',
     pages: [
       { path: '', title: 'Reviews', navLabel: 'Reviews', icon: 'Star' },
+      { path: 'questions', title: 'Questions', navLabel: 'Questions', icon: 'MessageSquare' },
       { path: 'import', title: 'Import from Judge.me', navLabel: 'Import', icon: 'Upload' },
       { path: 'settings', title: 'Review settings', navLabel: 'Settings', icon: 'Settings' },
       { path: 'reviews/[id]', title: 'Review' },

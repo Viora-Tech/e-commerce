@@ -108,6 +108,7 @@ export const addSectionContent = {
       'reviews/Photos': "Customers' review photos in a grid",
       'reviews/Snippet': "The product's rating and its best review, under the buy box",
       'reviews/Summary': 'An AI summary of what customers say about the product',
+      'reviews/Questions': 'Shoppers ask about the product; your answers show here',
     } as Record<string, string>,
     tabs: { sections: 'Sections', apps: 'Apps', mine: 'My sections' },
     appsEmpty: {

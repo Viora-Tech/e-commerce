@@ -83,3 +83,31 @@ Follows the widgets step (`2026-10-30-reviews-widgets.md`). Migration **0197_rev
   "What customers say (AI)" (`packages/blocks/src/sections/reviews-widgets/summary.tsx`,
   `components/reviews/widgets/review-ai-summary.tsx`), marked "Summarised by AI".
 - Tests: `packages/ai/test/review-summary.test.ts`, `packages/plugin-reviews/test/summary.test.ts`.
+
+## 6. Product questions (Q&A)
+
+- Table `review_question` (0197, cache trigger 0203): question, asker name as shown (first name,
+  last initial), private email, `pending | published | hidden`, answer. Service
+  `packages/plugin-reviews/src/questions.ts`: `parseQuestionForm`, `askQuestion` (active products,
+  5 per email a day), `listQuestions` (tabs: to answer, waiting, published, hidden; search),
+  `answerQuestion` (save, or save and publish), `setQuestionStatus` (publishing skips unanswered),
+  `deleteQuestions`, `publishedQuestions` (the 20 newest answers).
+- Storefront: `POST /reviews/question` (`submitQuestionForm` in `lib/review-actions.ts`: per-IP rate
+  limit, honeypot, store from the hostname); `productReviews` adds `questions` to the widget
+  context. New product section `reviews/Questions` "Questions and answers"
+  (`sections/reviews-widgets/questions.tsx`, client `components/reviews/widgets/product-questions.tsx`):
+  answered questions with "Show all", and an "Ask a question" form.
+- Admin: Apps › Reviews › **Questions** (`questions-page.tsx`, `question-card.tsx`; plugin page
+  `questions`, a Questions button on the Reviews page), API `reviews.questions.*`.
+- Tests: `packages/plugin-reviews/test/questions.test.ts`.
+
+## Left out
+
+- No email to the shopper when their question is answered (the form says the email stays private).
+- No merchant alert for a new question; the Questions tab shows a "To answer" count.
+- No Hindi for storefront copy (the blocks package has none), as before.
+- Section preview pictures for the two new sections (`bun run section-previews`).
+
+## Checks
+
+Not run here (owner rule: one tsc + vitest pass on dev after merging).

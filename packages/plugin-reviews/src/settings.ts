@@ -32,6 +32,11 @@ export const PAST_ORDERS_PER_HOUR = 200
 /** The widest date range one run may cover. */
 export const PAST_ORDERS_MAX_DAYS = 366
 
+/** Shortest and longest product question (Q&A) we take, and the longest answer. */
+export const QUESTION_MIN = 5
+export const QUESTION_MAX = 500
+export const ANSWER_MAX = 2000
+
 /** The most photos one review may carry. */
 export const MAX_REVIEW_PHOTOS = 5
 

@@ -14,6 +14,7 @@ export const reviewsWidgetsContent = {
     photos: 'Review photos',
     snippet: 'Review snippet',
     summary: 'What customers say (AI)',
+    questions: 'Questions and answers',
     floating: 'Floating reviews tab',
   },
   defaults: {
@@ -25,6 +26,7 @@ export const reviewsWidgetsContent = {
     floatingLabel: 'Reviews',
     floatingHeading: 'What customers say',
     summaryHeading: 'What customers say',
+    questionsHeading: 'Questions and answers',
   },
   fields: {
     kicker: 'Small line above the heading',
@@ -46,6 +48,7 @@ export const reviewsWidgetsContent = {
     readMore: 'Link to all reviews (leave empty to hide)',
     showQuote: 'Quote the best review',
     quoteLength: 'Longest quote (characters)',
+    questionsLimit: 'Questions shown before "Show all"',
     position: 'Side of the screen',
     label: 'Tab text',
     yes: 'Yes',
@@ -63,6 +66,8 @@ export const reviewsWidgetsContent = {
     snippetNoProduct: 'The review snippet shows on a product page. Preview a product to see it.',
     snippetEmpty:
       'The review snippet shows the rating and the best review once this product has reviews.',
+    questionsNoProduct:
+      'Questions and answers show on a product page. Preview a product to see them.',
     summaryNoProduct:
       'The review summary shows on a product page. Preview a product to see it.',
     summaryEmpty:
@@ -70,6 +75,32 @@ export const reviewsWidgetsContent = {
   },
   verified: 'Verified buyer',
   aiNote: 'Summarised by AI from customer reviews',
+  questions: {
+    ask: 'Ask a question',
+    question: 'Your question',
+    name: 'Your name',
+    email: 'Your email',
+    emailNote: 'Only your first name shows with the question. Your email stays private.',
+    send: 'Send question',
+    sending: 'Sending...',
+    cancel: 'Cancel',
+    thanks: 'Thanks! Your question is with the store. The answer shows here once they reply.',
+    none: 'No questions yet. Ask the first one.',
+    q: 'Q:',
+    a: 'A:',
+    meta: (name: string, when: string) =>
+      `Asked by ${name || 'a shopper'} · answered ${when.toLowerCase()}`,
+    showAll: (n: number) => `Show all ${n} questions`,
+    errors: {
+      question: 'Write a question of at least 5 characters.',
+      name: 'Add your name.',
+      email: 'Add a valid email address.',
+      limit: 'You have asked a few questions today. Please try again tomorrow.',
+      busy: 'Too many tries. Please wait a little and try again.',
+      product: 'This product cannot take questions right now.',
+      generic: 'Your question could not be sent. Please try again.',
+    },
+  },
   basedOn: (n: number) => `Based on ${n} ${n === 1 ? 'review' : 'reviews'}`,
   reviewsCount: (n: number) => `${n} ${n === 1 ? 'review' : 'reviews'}`,
   readAll: (n: number) => `Read all ${n} ${n === 1 ? 'review' : 'reviews'}`,

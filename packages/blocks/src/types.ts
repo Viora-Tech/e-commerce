@@ -194,6 +194,19 @@ export type ReviewsWidgetContext = {
   showPhotos: boolean
   /** The AI "What customers say" text, when the store has summaries on and one is written. */
   aiSummary?: string | null | undefined
+  /** Answered product questions (Q&A), newest answer first. */
+  questions?: PublicQuestion[] | undefined
+}
+
+/** One answered question as a product page shows it. */
+export type PublicQuestion = {
+  id: string
+  question: string
+  /** First name and last initial of who asked. */
+  name: string
+  answer: string
+  /** "2 days ago": when the store answered. */
+  whenLabel: string
 }
 
 /** One published review as the Reviews app's theme sections draw it (carousel, wall, photos). */
