@@ -22,6 +22,9 @@ import {
   saveReviewsSettings,
   setReviewFeatured,
   setReviewStatus,
+  storeWidgetReviews,
+  WIDGET_PRODUCTS_MAX,
+  WIDGET_REVIEWS_MAX,
 } from '@commerce/plugin-reviews/server'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
@@ -144,6 +147,25 @@ export const reviewsRouter = {
       throw err
     }
   }),
+
+  /**
+   * The published reviews a Reviews theme section draws, for the theme editor's canvas (the
+   * storefront reads the same query itself). Null when the app is not installed, so the section
+   * shows its hint instead of an error.
+   */
+  widgets: can(permissions.ONLINE_STORE_READ)
+    .input(
+      z.object({
+        limit: z.number().int().min(1).max(WIDGET_REVIEWS_MAX),
+        minRating: z.number().int().min(1).max(5).optional(),
+        withPhotos: z.boolean().optional(),
+        productHandles: z.array(z.string().trim().max(255)).max(WIDGET_PRODUCTS_MAX).optional(),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const state = await reviewsState(context.tx, context.scope.storeId)
+      return state.installed ? storeWidgetReviews(context.tx, state.settings, input) : null
+    }),
 
   settings: {
     get: can(permissions.PRODUCTS_READ).handler(async ({ context }) => {

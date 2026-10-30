@@ -897,6 +897,7 @@
       "name": "@commerce/plugin-reviews",
       "version": "0.0.0",
       "dependencies": {
+        "@commerce/blocks": "workspace:*",
         "@commerce/core": "workspace:*",
         "@commerce/db": "workspace:*",
         "@commerce/plugins": "workspace:*",

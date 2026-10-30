@@ -27,10 +27,16 @@ import {
 } from './sections/library'
 import { liquidSectionConfig } from './sections/liquid'
 import { type ModernProps, modernSections } from './sections/modern'
+import {
+  REVIEWS_APP_ID,
+  REVIEWS_WIDGET_SECTIONS,
+  type ReviewsWidgetProps,
+  reviewsWidgetSections,
+} from './sections/reviews-widgets'
 import { type ZeroDriftProps, zeroDriftSections } from './sections/zero-drift'
 import { type ProductGridProps, tabbedProductsSection } from './sections/zero-drift/tabbed-products'
 import { type ZeroDriftProductProps, zeroDriftProductSections } from './sections/zero-drift-product'
-import type { CardProduct } from './types'
+import type { CardProduct, ReviewsLoader } from './types'
 
 export type { ArticleLoader, BlogPostsProps } from './blog-posts-block'
 export type { NewsletterAction, NewsletterState } from './components/sections/newsletter'
@@ -60,6 +66,10 @@ export type { EngageProps } from './sections/engage'
 export type { KitProps } from './sections/kit'
 export type { CollectionLoader, LibraryProps, SingleProductLoader } from './sections/library'
 export type { ModernProps } from './sections/modern'
+export {
+  REVIEWS_WIDGET_SECTIONS,
+  type ReviewsWidgetProps,
+} from './sections/reviews-widgets'
 export type { SectionSource } from './sections/sources'
 export { SECTION_SOURCES } from './sections/sources'
 export { ZERO_DRIFT_SECTIONS, type ZeroDriftProps } from './sections/zero-drift'
@@ -133,6 +143,8 @@ export type BlocksConfigOptions = {
   loadCollections?: CollectionLoader | undefined
   /** One product for the featured product section. */
   loadProduct?: SingleProductLoader | undefined
+  /** Published reviews for the Reviews app's sections; without it they draw nothing. */
+  loadReviews?: ReviewsLoader | undefined
   /**
    * The store's opt-in theme packs (`store.apps.settings.core.themePacks`). Only decides which
    * sections the Add menu offers (`sectionCategories`); every section still renders.
@@ -153,6 +165,7 @@ export type BlockProps = {
   ModernProps &
   EngageProps &
   KitProps &
+  ReviewsWidgetProps &
   CustomProps &
   Record<DynamicSection | 'LiquidSection', SectionSettings>
 
@@ -203,8 +216,16 @@ export function createBlocksConfig(
   enabledAppIds: ReadonlySet<string> = new Set(),
 ): BlocksConfig {
   const appBlocks = buildAppBlocks(appBlockSources, enabledAppIds)
+  // The Reviews app's sections sit on the Apps tab beside plugin blocks while it is installed.
+  const reviewsOn = enabledAppIds.has(REVIEWS_APP_ID)
+  const reviewsOwner = { appName: 'Reviews', appIcon: 'Star' }
   return {
-    appBlockOwners: appBlocks.owners,
+    appBlockOwners: {
+      ...appBlocks.owners,
+      ...(reviewsOn
+        ? Object.fromEntries(REVIEWS_WIDGET_SECTIONS.map((t) => [t, reviewsOwner]))
+        : {}),
+    },
     categories: {
       // Our own groups first; a theme pack's sections only for a store that turned it on.
       ...(sectionCategories(options.themePacks) as Record<
@@ -215,7 +236,10 @@ export function createBlocksConfig(
       // components list is cast the same way `components` below is for library/dynamic sections.
       [APPS_CATEGORY]: {
         title: 'Apps',
-        components: appBlocks.categoryComponents as unknown as (keyof BlockProps)[],
+        components: [
+          ...appBlocks.categoryComponents,
+          ...(reviewsOn ? REVIEWS_WIDGET_SECTIONS : []),
+        ] as unknown as (keyof BlockProps)[],
       },
     },
     components: {
@@ -235,6 +259,10 @@ export function createBlocksConfig(
       ...(modernSections() as unknown as Pick<Config<BlockProps>['components'], keyof ModernProps>),
       ...(engageSections() as unknown as Pick<Config<BlockProps>['components'], keyof EngageProps>),
       ...(kitSections() as unknown as Pick<Config<BlockProps>['components'], keyof KitProps>),
+      ...(reviewsWidgetSections(options.loadReviews) as unknown as Pick<
+        Config<BlockProps>['components'],
+        keyof ReviewsWidgetProps
+      >),
       ...(customSections({
         loadProduct: options.loadProduct,
         richtextExtensions: options.richtextExtensions,

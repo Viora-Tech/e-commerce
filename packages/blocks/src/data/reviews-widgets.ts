@@ -1,0 +1,91 @@
+/**
+ * SOURCE OF TRUTH KEYWORDS: reviews widgets copy, reviews carousel, all reviews, review photos
+ * WHAT:  Every string of the Reviews app's theme sections (carousel, testimonials, all reviews,
+ *        photo grid, snippet near Add to cart, floating tab): what shoppers read, the settings'
+ *        labels and the hints the theme editor shows when a section has nothing to draw.
+ * WHY:   One place for the words, in plain English.
+ * WHERE: `sections/reviews-widgets/*`, `components/reviews/widgets/*`.
+ */
+export const reviewsWidgetsContent = {
+  labels: {
+    carousel: 'Reviews carousel',
+    testimonials: 'Review testimonials',
+    all: 'All reviews',
+    photos: 'Review photos',
+    snippet: 'Review snippet',
+    floating: 'Floating reviews tab',
+  },
+  defaults: {
+    carouselKicker: 'Reviews',
+    carouselHeading: 'What our customers say',
+    testimonialsHeading: 'Loved by our customers',
+    allHeading: 'Customer reviews',
+    photosHeading: 'From our customers',
+    floatingLabel: 'Reviews',
+    floatingHeading: 'What customers say',
+  },
+  fields: {
+    kicker: 'Small line above the heading',
+    heading: 'Heading',
+    limit: 'Reviews to show',
+    minRating: 'Lowest star rating to show',
+    products: 'Only these products (handles, comma separated; blank shows the whole store)',
+    showSummary: 'Show the average rating',
+    showProduct: 'Show the product name',
+    showPhotos: 'Show customer photos',
+    showDate: 'Show the date',
+    autoplay: 'Move on by itself',
+    speed: 'Seconds per review',
+    cardStyle: 'Card style',
+    columns: 'Columns on desktop',
+    perPage: 'Reviews per page',
+    showBreakdown: 'Show the stars breakdown',
+    showFilters: 'Let shoppers filter by stars and photos',
+    readMore: 'Link to all reviews (leave empty to hide)',
+    showQuote: 'Quote the best review',
+    quoteLength: 'Longest quote (characters)',
+    position: 'Side of the screen',
+    label: 'Tab text',
+    yes: 'Yes',
+    no: 'No',
+    any: 'Any',
+    stars: (n: number) => `${n} stars and up`,
+    left: 'Left',
+    right: 'Right',
+    styles: { card: 'Card', plain: 'Plain', outline: 'Outline' },
+  },
+  hints: {
+    notInstalled: 'Install the Reviews app to show your reviews here.',
+    noReviews: 'Your published reviews will show here. There are none to show yet.',
+    noPhotos: 'Reviews with customer photos will show here. There are none to show yet.',
+    snippetNoProduct: 'The review snippet shows on a product page. Preview a product to see it.',
+    snippetEmpty:
+      'The review snippet shows the rating and the best review once this product has reviews.',
+  },
+  verified: 'Verified buyer',
+  basedOn: (n: number) => `Based on ${n} ${n === 1 ? 'review' : 'reviews'}`,
+  reviewsCount: (n: number) => `${n} ${n === 1 ? 'review' : 'reviews'}`,
+  readAll: (n: number) => `Read all ${n} ${n === 1 ? 'review' : 'reviews'}`,
+  carouselLabel: 'Customer reviews',
+  previous: 'Previous review',
+  next: 'Next review',
+  pause: 'Pause',
+  play: 'Play',
+  slide: (n: number, of: number) => `Review ${n} of ${of}`,
+  photoAlt: (name: string) => `Photo from ${name}'s review`,
+  openPhoto: (name: string) => `Open the photo from ${name}'s review`,
+  close: 'Close',
+  filters: {
+    label: 'Filter reviews',
+    all: 'All',
+    stars: (n: number) => `${n}★`,
+    photos: 'With photos',
+  },
+  noMatch: 'No reviews match this filter yet.',
+  more: 'Show more reviews',
+  showing: (shown: number, total: number) => `Showing ${shown} of ${total}`,
+  openTab: 'Open customer reviews',
+  of: (product: string) => `on ${product}`,
+}
+
+export type ReviewsWidgetsCopy = typeof reviewsWidgetsContent

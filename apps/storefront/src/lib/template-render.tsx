@@ -22,6 +22,7 @@ import { preorderBlocks } from '@commerce/core/preorder-block'
 import { appBlockSourcesForStore } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
 import { type Assignments, variantMatches } from '@commerce/plugin-growthbook/assign'
+import { reviewsState, storeWidgetReviews } from '@commerce/plugin-reviews/server'
 import type { ComponentConfig } from '@puckeditor/core'
 import { resolveAllData } from '@puckeditor/core'
 import { headers } from 'next/headers'
@@ -129,6 +130,12 @@ async function blocksConfig(storeId: string, read: ReturnType<typeof readerFor>)
           `card-product|${handle}`,
           async (tx) => (await listCardProducts(tx, 1, undefined, [handle]))[0] ?? null,
         ),
+      // The Reviews app's sections: published reviews only, null without the app.
+      loadReviews: (query) =>
+        read(`widget-reviews|${digest(query)}`, async (tx) => {
+          const state = await reviewsState(tx, storeId)
+          return state.installed ? storeWidgetReviews(tx, state.settings, query) : null
+        }),
     },
     sources,
     enabledIds,

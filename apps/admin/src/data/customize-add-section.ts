@@ -101,6 +101,12 @@ export const addSectionContent = {
       Badge: 'A small label such as New or Sale',
       ProductCard: 'One product you choose, as a card',
       CustomHtml: 'Your own HTML or an embed code, checked for safety',
+      // The Reviews app's sections (Apps tab, while the app is installed).
+      'reviews/Carousel': 'Your published reviews in a row that moves by itself',
+      'reviews/Testimonials': 'A few of your best reviews as large quotes',
+      'reviews/AllReviews': 'Every review with the star breakdown and filters, for a Reviews page',
+      'reviews/Photos': "Customers' review photos in a grid",
+      'reviews/Snippet': "The product's rating and its best review, under the buy box",
     } as Record<string, string>,
     tabs: { sections: 'Sections', apps: 'Apps', mine: 'My sections' },
     appsEmpty: {

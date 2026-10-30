@@ -184,6 +184,44 @@ export type ReviewsWidgetContext = {
   showPhotos: boolean
 }
 
+/** One published review as the Reviews app's theme sections draw it (carousel, wall, photos). */
+export type StoreReviewCard = {
+  id: string
+  rating: number
+  title: string
+  body: string
+  /** First name and last initial. */
+  name: string
+  verified: boolean
+  /** ISO date the review was written. */
+  createdAt: string
+  /** The product reviewed; null on a store review. */
+  product: { title: string; handle: string } | null
+  /** Photo URLs, empty when the store hides customer photos. */
+  photos: string[]
+}
+
+/** What a Reviews section asks for. */
+export type StoreReviewsQuery = {
+  limit: number
+  minRating?: number | undefined
+  withPhotos?: boolean | undefined
+  /** Only these products' reviews; empty is the whole store. */
+  productHandles?: string[] | undefined
+}
+
+/** The published reviews a Reviews section draws, with the rating summary of the same products. */
+export type StoreReviews = {
+  summary: { rating: number; count: number; stars: number[] }
+  reviews: StoreReviewCard[]
+}
+
+/**
+ * How a Reviews section gets its reviews: the storefront reads the database, the theme editor
+ * calls the API. Null when the store has not installed the Reviews app.
+ */
+export type ReviewsLoader = (query: StoreReviewsQuery) => Promise<StoreReviews | null>
+
 /** A collection as the collection list section renders it. */
 export type CardCollection = {
   handle: string

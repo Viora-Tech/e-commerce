@@ -1,4 +1,5 @@
 import { definePlugin } from '@commerce/plugins'
+import { reviewsEmbeds } from './blocks'
 import { COPY_PHOTOS_JOB, copyReviewPhotos } from './photos'
 import { scheduleReviewRequests } from './requests'
 import { REVIEWS_ID } from './settings'
@@ -60,6 +61,8 @@ export const reviewsPlugin = definePlugin({
     summary: 'collects reviews',
   },
   provides: {},
+  // The floating reviews tab; the other widgets are theme sections (`reviews/*` in @commerce/blocks).
+  storefront: { embeds: reviewsEmbeds },
   hooks: {
     // Plans the review request emails; the worker's sweep sends them when they are due.
     'order.delivered': async (ctx, payload) => {

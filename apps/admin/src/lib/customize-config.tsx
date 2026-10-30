@@ -156,6 +156,12 @@ export function createCustomizeConfig(
       },
       loadProduct: async (handle) =>
         (await catalogCards()).find((c) => c.handle === handle) ?? null,
+      // A member who cannot read the online store sees the sections' empty hint, not an error.
+      loadReviews: (query) =>
+        api.reviews.widgets(query).catch(() => ({
+          summary: { rating: 0, count: 0, stars: [0, 0, 0, 0, 0] },
+          reviews: [],
+        })),
       themePacks,
     },
     APP_BLOCK_SOURCES,
