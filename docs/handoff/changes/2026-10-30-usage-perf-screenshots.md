@@ -16,7 +16,7 @@ Owner audit items #145, #90, #92, #124, #123.
   `navigation.themePlacements`) reads the live theme's templates and JSON files for menu-picking
   settings (`menu`, `*_menu`, `link_list`…) naming a menu handle, placed by header / footer group or
   "Theme sections". The admin unions it with the Navigation setting.
-- **Web performance (#124).** New `web_vital` table (migration 0193, anonymous: metric, value,
+- **Web performance (#124).** New `web_vital` table (migration 0196, anonymous: metric, value,
   device class, path). The storefront reports LCP, INP and CLS with Next's `useReportWebVitals`
   (`web-vitals-beacon.tsx`, not in theme previews or iframes) to `/api/vitals` (same-origin,
   rate-limited, bots skipped). `themes.webPerformance` gives the p75 of 28 days with Google's bands
