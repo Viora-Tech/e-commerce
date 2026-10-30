@@ -66,6 +66,7 @@ import RapidshypOverviewPage from '@/components/apps/rapidshyp/overview-page'
 import RazorpayConnectPage from '@/components/apps/razorpay/connect-page'
 import RazorpayOverviewPage from '@/components/apps/razorpay/overview-page'
 import ReviewsImportPage from '@/components/apps/reviews/import-page'
+import ReviewsQrPage from '@/components/apps/reviews/qr-page'
 import ReviewDetail from '@/components/apps/reviews/review-detail'
 import ReviewsPage from '@/components/apps/reviews/reviews-page'
 import ReviewsSettingsPage from '@/components/apps/reviews/settings-page'
@@ -291,6 +292,7 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       import: ReviewsImportPage,
       settings: ReviewsSettingsPage,
       'reviews/[id]': ReviewDetail,
+      'qr/[target]': ReviewsQrPage,
     },
   },
   s3: {

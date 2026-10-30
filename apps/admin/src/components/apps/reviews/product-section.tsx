@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import type { ProductSectionProps } from '@/apps/product-sections'
 import OrderChip from '@/components/orders/order-chip'
 import { productPageContent } from '@/data/product-page'
+import { reviewToolsContent } from '@/data/review-tools'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -20,6 +21,7 @@ export default function ProductSection({ productId }: ProductSectionProps) {
   // Hooks
   const copy = useCopy(productPageContent)
   const reviewsCopy = useCopy(reviewsContent)
+  const { qr: qrCopy } = useCopy(reviewToolsContent)
   const [page, setPage] = useState<Page | null>(null)
   const [failed, setFailed] = useState(false)
 
@@ -69,9 +71,17 @@ export default function ProductSection({ productId }: ProductSectionProps) {
           </ul>
         </>
       )}
-      <Link href={href} className="self-start text-body font-medium text-link hover:underline">
-        {copy.reviews.viewAll}
-      </Link>
+      <div className="flex flex-wrap gap-4">
+        <Link href={href} className="text-body font-medium text-link hover:underline">
+          {copy.reviews.viewAll}
+        </Link>
+        <Link
+          href={routes.apps.page('reviews', 'qr', `product-${productId}`)}
+          className="text-body font-medium text-link hover:underline"
+        >
+          {qrCopy.open}
+        </Link>
+      </div>
     </div>
   )
 }

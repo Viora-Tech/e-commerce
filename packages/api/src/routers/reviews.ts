@@ -1,4 +1,5 @@
-import { CommerceError, enqueueAppJob, permissions } from '@commerce/core'
+import { loadEnv, settingsSecret } from '@commerce/config'
+import { CommerceError, enqueueAppJob, permissions, storefrontOriginFor } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import {
   askForRecentReviews,
@@ -10,6 +11,7 @@ import {
   JUDGEME_MAX_BYTES,
   listReviews,
   loadReviewsSettings,
+  parseQrTarget,
   previewJudgemeImport,
   previewPastOrders,
   REPLY_MAX,
@@ -19,6 +21,7 @@ import {
   ReviewsSettingsSchema,
   replyToReview,
   reviewedProducts,
+  reviewQrLinks,
   reviewStats,
   reviewsState,
   saveReviewsSettings,
@@ -188,6 +191,27 @@ export const reviewsRouter = {
       return askPastOrders(context.tx, context.scope.storeId, settings, pastRange(input)).catch(
         askError,
       )
+    }),
+
+  /**
+   * The links a review QR card encodes (`order-<id>` or `product-<id>`): the product's review
+   * form, or a signed link per product of the order so the buyer reviews as a verified buyer.
+   */
+  qrLinks: can(permissions.PRODUCTS_READ)
+    .input(z.object({ target: z.string().max(64) }))
+    .handler(async ({ context, input }) => {
+      await requireInstalled(context)
+      const target = parseQrTarget(input.target)
+      if (!target) throw new ORPCError('NOT_FOUND', { message: 'Nothing to make a card for' })
+      const { storeId } = context.scope
+      return reviewQrLinks(context.tx, storeId, target, {
+        secret: settingsSecret(),
+        storefrontUrl: await storefrontOriginFor(
+          context.tx,
+          storeId,
+          loadEnv(process.env).STOREFRONT_URL,
+        ),
+      })
     }),
 
   /**

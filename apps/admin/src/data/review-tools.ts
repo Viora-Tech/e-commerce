@@ -30,4 +30,23 @@ export const reviewToolsContent = {
         ? 'Nobody to ask: every order was already asked or opted out.'
         : `Review requests planned for ${orders} ${orders === 1 ? 'order' : 'orders'}.`,
   },
+  qr: {
+    title: 'Review QR card',
+    subtitle: (order: number | null) =>
+      order === null
+        ? 'Print it or put it on your packaging. Scanning it opens the review form for this product.'
+        : `For order #${order}. Pack it in the parcel: each code opens the review form for one product, and the review gets the verified buyer badge.`,
+    back: 'Reviews',
+    open: 'Review QR card',
+    heading: 'Loved it? Leave a review',
+    scan: 'Scan with your phone camera',
+    png: 'Download card',
+    svg: 'Download QR (SVG)',
+    copyLink: 'Copy link',
+    copied: 'Link copied',
+    alt: (title: string) => `QR code to review ${title}`,
+    expires: 'Order links stay valid for 60 days.',
+    empty: 'Nothing to make a card for: the product or order is gone, or has no products.',
+    failed: 'The QR code could not be made. Please try again.',
+  },
 }

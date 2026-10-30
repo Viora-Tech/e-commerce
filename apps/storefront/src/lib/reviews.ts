@@ -41,7 +41,7 @@ export type ProductReviews = {
 export async function productReviews(
   storeId: string,
   product: ProductDetail,
-  opts: { requestToken: string | null; storeName: string; now?: Date },
+  opts: { requestToken: string | null; openForm?: boolean; storeName: string; now?: Date },
 ): Promise<ProductReviews | undefined> {
   const now = opts.now ?? new Date()
   const me = await currentCustomer(storeId)
@@ -104,7 +104,7 @@ export async function productReviews(
       requestToken: fromLink ? opts.requestToken : null,
       knownName: fromLink?.name || me?.name || '',
       emailKnown: Boolean(fromLink || me?.email),
-      openForm: Boolean(fromLink),
+      openForm: Boolean(fromLink) || (opts.openForm === true && write === 'open'),
       onlyVerified,
       showPhotos: settings.storefront.showPhotos,
     },

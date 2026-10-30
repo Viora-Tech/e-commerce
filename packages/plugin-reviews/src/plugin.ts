@@ -101,6 +101,16 @@ export const reviewsPlugin = definePlugin({
       { path: 'import', title: 'Import from Judge.me', navLabel: 'Import', icon: 'Upload' },
       { path: 'settings', title: 'Review settings', navLabel: 'Settings', icon: 'Settings' },
       { path: 'reviews/[id]', title: 'Review' },
+      { path: 'qr/[target]', title: 'Review QR card' },
+    ],
+    orderActions: [
+      {
+        id: 'review-qr',
+        label: { en: 'Review QR card', hi: 'रिव्यू QR कार्ड' },
+        targets: ['detail'],
+        handler: { type: 'link', path: '/apps/reviews/qr/order-{orderId}' },
+        permission: 'products.read',
+      },
     ],
   },
 })

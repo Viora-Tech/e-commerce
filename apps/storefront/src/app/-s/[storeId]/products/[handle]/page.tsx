@@ -50,7 +50,7 @@ function defaultVariant(product: ProductDetail) {
 
 type Params = {
   params: Promise<{ storeId: string; handle: string }>
-  searchParams: Promise<{ view?: string; review?: string }>
+  searchParams: Promise<{ view?: string; review?: string; write?: string }>
 }
 
 /**
@@ -126,13 +126,15 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
 export default async function ProductPage({ params, searchParams }: Params) {
   const { storeId, handle } = await params
-  const { view, review } = await searchParams
+  const { view, review, write } = await searchParams
   const found = await loadProduct(storeId, handle)
   if (!found) notFound()
   const { product } = found
   // Reviews app: the widget's data, and the real rating for the stars under the title.
   const reviews = await productReviews(storeId, product, {
     requestToken: typeof review === 'string' ? review : null,
+    // A review QR card's link (`?write=1`) opens the form straight away.
+    openForm: write === '1',
     storeName: found.storeName,
   })
   const extras = await storeRead(storeId, `product-extras|${product.id}`, (tx) =>

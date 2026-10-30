@@ -30,3 +30,17 @@ Follows the widgets step (`2026-10-30-reviews-widgets.md`). Migration **0197_rev
   has waiting. API `reviews.pastOrdersPreview` / `reviews.askPastOrders` (PRODUCTS_WRITE).
   The old `reviews.ask` (60 days, all at once) stays for compatibility; the admin no longer calls it.
 - Tests: `packages/plugin-reviews/test/past-orders.test.ts`.
+
+## 3. Review QR cards
+
+- Admin page `/apps/reviews/qr/[target]` (`qr-page.tsx`, `review-qr-card.tsx`), target
+  `product-<id>` (link "Review QR card" on a product's Reviews card) or `order-<id>` (new order
+  action **Review QR card** on the order page's More actions, `admin.orderActions` in the plugin).
+  Each card: the QR (the `qrcode` package the admin already uses for Growth links, MIT), a
+  printable 1200x1500 PNG card drawn on a canvas (heading, product, code, store name), the SVG
+  code and the link.
+- Links (`packages/plugin-reviews/src/qr.ts`, API `reviews.qrLinks`): a product's card opens
+  `/products/<handle>?write=1#reviews`, which now opens the form when the shopper may write
+  (`openForm` in `apps/storefront/src/lib/reviews.ts`); an order's card carries one signed
+  request link per product (60-day token), so the review is a verified buyer's.
+- Tests: `src/qr.test.ts`, `test/qr.test.ts`.
