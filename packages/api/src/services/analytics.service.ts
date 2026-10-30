@@ -90,6 +90,8 @@ type OrderRow = {
   customerId: string | null
   email: string | null
   paymentMethod: string | null
+  /** The old platform's gateway names on an imported order (`UPI Id`, `Cards, UPI… by Razorpay`). */
+  importedGateway: string | null
   /** Placed through a tracked storefront session; only these convert sessions (audit #95). */
   tracked: boolean
 }
@@ -103,6 +105,7 @@ async function ordersIn(tx: StoreTx, from: Date, to: Date): Promise<OrderRow[]> 
       customerId: order.customerId,
       email: order.email,
       paymentMethod: order.paymentMethod,
+      importedGateway: sql<string | null>`${order.importMeta}->>'paymentMethod'`,
       tracked: sql<boolean>`(${order.attribution}->>'channel') is not null`,
     })
     .from(order)
@@ -126,6 +129,25 @@ async function returningOrderIds(tx: StoreTx, rows: OrderRow[]): Promise<Set<str
     if (first && r.placedAt.getTime() > first.getTime()) out.add(r.id)
   }
   return out
+}
+
+/**
+ * An imported order's payment method from the old platform's gateway names, in our keys where
+ * one matches (Shopify: "Cards, UPI, NB, Wallets by Razorpay", "Cash on Delivery (COD)", "UPI Id").
+ * Imports leave `order.payment_method` empty on purpose (it drives checkout behaviour), so
+ * Analytics read "Unknown" for 100 of Waimers' orders (audit #96).
+ */
+export function importedMethod(gateways: string | null): string | null {
+  const first = gateways?.split(',')[0]?.trim()
+  if (!first) return null
+  const g = gateways?.toLowerCase() ?? ''
+  if (g.includes('razorpay')) return 'razorpay'
+  if (g.includes('cashfree')) return 'cashfree'
+  if (g.includes('decentro')) return 'decentro'
+  if (/cash on delivery|cod/.test(g)) return 'cod'
+  if (g.includes('gift_card') || g.includes('gift card')) return 'gift_card'
+  if (/upi|bank deposit|manual/.test(g)) return 'manual'
+  return first
 }
 
 function share(value: number, total: number): number {
@@ -285,7 +307,7 @@ export async function analyticsOverview(
 
   const byMethod = new Map<string, { orders: number; revenuePaise: number }>()
   for (const r of current) {
-    const key = r.paymentMethod ?? 'unknown'
+    const key = r.paymentMethod ?? importedMethod(r.importedGateway) ?? 'unknown'
     const entry = byMethod.get(key) ?? { orders: 0, revenuePaise: 0 }
     entry.orders += 1
     entry.revenuePaise += r.totalPaise

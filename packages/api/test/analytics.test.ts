@@ -22,6 +22,7 @@ import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type { ApiContext } from '../src/context'
 import { appRouter } from '../src/routers/_app'
+import { importedMethod } from '../src/services/analytics.service'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
@@ -1062,3 +1063,15 @@ describe('analytics.live', () => {
 function kpiValue(result: { kpis: { id: string; value: number }[] }, id: string): number {
   return result.kpis.find((k) => k.id === id)?.value ?? -1
 }
+
+describe('payment methods of imported orders', () => {
+  it('reads the old platform gateway names into our methods', () => {
+    expect(importedMethod('Cards, UPI, NB, Wallets by Razorpay')).toBe('razorpay')
+    expect(importedMethod('1Cashfree Payments(UPI,Cards,Net Banking,Wallets)')).toBe('cashfree')
+    expect(importedMethod('Cash on Delivery (COD)')).toBe('cod')
+    expect(importedMethod('UPI Id')).toBe('manual')
+    expect(importedMethod('gift_card, Cards, UPI, NB, Wallets by Razorpay')).toBe('razorpay')
+    expect(importedMethod('Snapmint')).toBe('Snapmint')
+    expect(importedMethod(null)).toBeNull()
+  })
+})
