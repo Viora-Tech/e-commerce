@@ -225,7 +225,12 @@ export default [
       status: 'स्थिति',
       channel: 'चैनल',
       tags: 'टैग',
+      items: 'आइटम',
+      delivery: 'डिलीवरी',
+      phone: 'फ़ोन',
+      city: 'शहर',
     },
+    noDelivery: 'अभी नहीं भेजा',
     sortTitles: {
       order: 'ऑर्डर नंबर',
       customer: 'ग्राहक का नाम',

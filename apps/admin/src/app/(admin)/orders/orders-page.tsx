@@ -258,7 +258,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
         )}
         loading={loading}
         defaultSort={{ id: 'date', desc: true }}
-        defaultHidden={['fulfilment', 'channel', 'tags']}
+        defaultHidden={['fulfilment', 'channel', 'tags', 'items', 'delivery', 'phone', 'city']}
         query={query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ query: '', status: null, ...NO_FILTERS, page: 1 })}

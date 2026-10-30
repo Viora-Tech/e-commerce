@@ -217,7 +217,13 @@ export const ordersContent = {
     status: 'Status',
     channel: 'Channel',
     tags: 'Tags',
+    items: 'Items',
+    delivery: 'Delivery',
+    phone: 'Phone',
+    city: 'City',
   },
+  /** The Delivery column before any shipment is booked. */
+  noDelivery: 'Not shipped',
   /** The sort menu's names where they differ from the header (Figma "State · Sort open"). */
   sortTitles: {
     order: 'Order number',

@@ -95,6 +95,13 @@ export async function listOrders(
         select ol.title from ${orderLine} ol where ol.order_id = ${order.id}
         order by ol.id limit 1)`,
       lineCount: sql<number>`(select count(*)::int from ${orderLine} ol where ol.order_id = ${order.id})`,
+      /* The optional Items, Delivery, Phone and City columns (audit #7, #49). */
+      itemCount: sql<number>`(select coalesce(sum(ol.quantity), 0)::int from ${orderLine} ol where ol.order_id = ${order.id})`,
+      deliveryStatus: sql<string | null>`(
+        select s.status from shipment s where s.order_id = ${order.id}
+        order by s.created_at desc limit 1)`,
+      shipCity: sql<string | null>`(select a.city from ${address} a where a.id = ${order.shippingAddressId})`,
+      shipPhone: sql<string | null>`(select a.phone from ${address} a where a.id = ${order.shippingAddressId})`,
       firstLineImage: sql<string | null>`(
         select coalesce(vm.url, (
           select m.url from ${productMedia} pm join ${media} m on m.id = pm.media_id

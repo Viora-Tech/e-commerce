@@ -199,5 +199,34 @@ export function orderColumns(
           </span>
         ) : null,
     },
+    {
+      id: 'items',
+      title: copy.columns.items,
+      sortValue: (o) => o.itemCount,
+      align: 'end',
+      render: (o) => <span className="tabular-nums">{fmt.number(o.itemCount)}</span>,
+    },
+    {
+      id: 'delivery',
+      title: copy.columns.delivery,
+      sortValue: (o) => o.deliveryStatus ?? '',
+      render: (o) =>
+        o.deliveryStatus ? (
+          <OrderChip kind="shipment" value={o.deliveryStatus} />
+        ) : (
+          <span className="text-muted-foreground">{copy.noDelivery}</span>
+        ),
+    },
+    {
+      id: 'phone',
+      title: copy.columns.phone,
+      render: (o) => <span className="tabular-nums">{o.shipPhone ?? ''}</span>,
+    },
+    {
+      id: 'city',
+      title: copy.columns.city,
+      sortValue: (o) => (o.shipCity ?? '').toLowerCase(),
+      render: (o) => o.shipCity ?? '',
+    },
   ]
 }
