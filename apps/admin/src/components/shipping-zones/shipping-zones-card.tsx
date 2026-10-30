@@ -1,6 +1,7 @@
 'use client'
 
 import { permissions } from '@commerce/core/permissions'
+import { REST_OF_WORLD } from '@commerce/core/shipping-rates'
 import { Plus, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
@@ -18,6 +19,10 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { routes } from '@/lib/routes'
 import { describePrice, fromRate, type LoadedZone } from './form-state'
 
+/** A country's name in the admin's language ("United Arab Emirates"). */
+const regionName = (code: string, tag: string): string =>
+  new Intl.DisplayNames([tag], { type: 'region' }).of(code) ?? code
+
 type ShippingZonesCardProps = {
   /** The profile's zones, with their rates. */
   zones: LoadedZone[]
@@ -29,7 +34,18 @@ type ShippingZonesCardProps = {
 type ListCopy = (typeof shippingRatesContent)['list']
 
 /** "Karnataka, Kerala · 2 PIN code rules", or "All of India". */
-function coverage(copy: ListCopy, zone: LoadedZone): string {
+function coverage(copy: ListCopy, zone: LoadedZone, countryName: (code: string) => string) {
+  const abroad = zone.countryCodes.filter((c) => c !== 'IN')
+  if (abroad.length > 0) {
+    const names = abroad.map((c) => (c === REST_OF_WORLD ? copy.restOfWorld : countryName(c)))
+    const india = zone.countryCodes.includes('IN') ? [indiaCoverage(copy, zone)] : []
+    return [...india, copy.countries(names)].join(' · ')
+  }
+  return indiaCoverage(copy, zone)
+}
+
+/** The India part of a zone: its states and PIN code rules. */
+function indiaCoverage(copy: ListCopy, zone: LoadedZone): string {
   const includes = zone.pincodeRules.filter((r) => r.mode === 'include').length
   const excludes = zone.pincodeRules.length - includes
   if (zone.stateCodes.length === 0 && includes === 0) {
@@ -98,10 +114,12 @@ export default function ShippingZonesCard({ zones, profileId, general }: Shippin
             >
               {z.name}
             </Link>
-            <div className="text-caption text-muted-foreground md:hidden">{coverage(copy, z)}</div>
+            <div className="text-caption text-muted-foreground md:hidden">
+              {coverage(copy, z, (c) => regionName(c, fmt.intl))}
+            </div>
           </SettingsTableCell>
           <SettingsTableCell className="hidden text-muted-foreground md:table-cell">
-            {coverage(copy, z)}
+            {coverage(copy, z, (c) => regionName(c, fmt.intl))}
           </SettingsTableCell>
           <SettingsTableCell className="whitespace-normal">
             {z.rates.length === 0 ? (

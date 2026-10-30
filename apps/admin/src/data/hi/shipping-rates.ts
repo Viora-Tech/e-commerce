@@ -15,6 +15,11 @@ export default [
           ? names.join(', ')
           : `${names.slice(0, 3).join(', ')} +${names.length - 3}`,
       pincodes: (n) => `${n} पिनकोड नियम`,
+      countries: (names) =>
+        names.length <= 3
+          ? names.join(', ')
+          : `${names.slice(0, 3).join(', ')} +${names.length - 3}`,
+      restOfWorld: 'बाकी दुनिया',
       noRates: 'अभी कोई कीमत नहीं: यहाँ के ग्राहक चेकआउट नहीं कर सकते',
       rateCount: (n) => `${n} रेट`,
       empty: {
@@ -89,6 +94,17 @@ export default [
         name: 'ज़ोन का नाम',
         namePlaceholder: 'पूरा भारत, दक्षिण भारत, बेंगलुरु',
         nameHelp: 'यह सिर्फ़ आपको दिखता है। ग्राहकों को रेट के नाम दिखते हैं।',
+      },
+      countries: {
+        heading: 'देश',
+        meta: 'भारत के लिए नीचे के राज्य और पिनकोड चलते हैं। किसी दूसरे देश में ये रेट पूरे देश पर लगते हैं।',
+        selected: (n) => `${n} देश`,
+        restOfWorld: 'बाकी दुनिया',
+        restOfWorldHelp:
+          'हर वह देश जिसे कोई दूसरा ज़ोन नहीं चुनता। जिस ज़ोन में देश का नाम है, या भारत के अपने ज़ोन, हमेशा पहले आते हैं।',
+        none: 'कम से कम एक देश चुनें, या बाकी दुनिया।',
+        abroadNote:
+          'चेकआउट विदेश के पतों की कीमत इन्हीं रेट से आपकी स्टोर करेंसी में लगाता है। अंतरराष्ट्रीय पार्सल DHL Express या FedEx से बुक करें।',
       },
       regions: {
         heading: 'राज्य',

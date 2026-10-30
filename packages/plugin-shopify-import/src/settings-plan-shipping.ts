@@ -1,5 +1,11 @@
 /** Store settings › shipping and packages: Shopify's delivery profiles against this store's zones and rates. Pure. */
-import { type ShippingZoneWrite, ShippingZoneWriteSchema, stateCode } from '@commerce/core'
+import {
+  HOME_COUNTRY,
+  REST_OF_WORLD,
+  type ShippingZoneWrite,
+  ShippingZoneWriteSchema,
+  stateCode,
+} from '@commerce/core'
 import type { NDeliveryMethod, NDeliveryProfile, NDeliveryZone, NLocation } from './api-settings'
 import type { SettingsItem, SettingsRatePreview } from './settings-client'
 import {
@@ -73,7 +79,7 @@ const preview = (r: Omit<LocalRate, 'id'>): SettingsRatePreview => ({
 })
 
 function zoneStates(zone: NDeliveryZone, items: SettingsItem[]): string[] | null {
-  const india = zone.countries.find((c) => c.code === 'IN')
+  const india = zone.countries.find((c) => c.code === HOME_COUNTRY)
   if (!india) return null
   if (india.provinces.length === 0 || india.provinces.length >= INDIA_STATES) return []
   const codes = new Set<string>()
@@ -92,6 +98,36 @@ function zoneStates(zone: NDeliveryZone, items: SettingsItem[]): string[] | null
   return codes.size ? [...codes].sort() : null
 }
 
+/**
+ * Where a Shopify zone ships here: its countries (Shopify's "Rest of world" as `*`) and, when
+ * India is one of them, its states. India with none of its regions recognised is left out of
+ * the zone (the warnings say which); a zone left with no country is null.
+ */
+export function zoneCoverage(
+  zone: NDeliveryZone,
+  items: SettingsItem[],
+): { countryCodes: string[]; stateCodes: string[] } | null {
+  const states = zoneStates(zone, items)
+  const codes = new Set<string>()
+  for (const c of zone.countries) {
+    if (c.restOfWorld) codes.add(REST_OF_WORLD)
+    else if (c.code && /^[A-Z]{2}$/.test(c.code) && (c.code !== HOME_COUNTRY || states !== null)) {
+      codes.add(c.code)
+    }
+  }
+  if (codes.size === 0) return null
+  // India first, then the rest as Shopify lists them, Rest of world last.
+  const countryCodes = [...codes].sort(
+    (a, b) =>
+      Number(b === HOME_COUNTRY) - Number(a === HOME_COUNTRY) ||
+      Number(a === REST_OF_WORLD) - Number(b === REST_OF_WORLD),
+  )
+  return { countryCodes, stateCodes: states ?? [] }
+}
+
+const sameCountries = (a: readonly string[] | undefined, b: readonly string[]) =>
+  [...(a?.length ? a : [HOME_COUNTRY])].sort().join() === [...b].sort().join()
+
 type ZoneScope = {
   /** The Shopify profile the zones belong to; null for the default one (General here). */
   profileSourceId: string | null
@@ -109,24 +145,19 @@ function planZones(
   const { items, ops } = out
   const { profileSourceId } = scope
   for (const zone of zones) {
-    const others = zone.countries.filter((c) => c.code !== 'IN')
-    const states = zoneStates(zone, items)
-    if (states === null) {
-      const reason = zone.countries.some((c) => c.code === 'IN')
-        ? 'zone_no_rates'
-        : 'zone_outside_india'
-      items.push({ action: 'manual', subject: 'shipping_zone', name: zone.name, reason })
-      continue
-    }
-    if (others.length) {
+    // Zones abroad come over as country zones (audit #160); India keeps its states.
+    const coverage = zoneCoverage(zone, items)
+    if (coverage === null) {
       items.push({
-        action: 'warn',
+        action: 'manual',
         subject: 'shipping_zone',
         name: zone.name,
-        reason: 'zone_other_countries',
-        detail: others.map((c) => (c.restOfWorld ? '*' : c.code)).join(', '),
+        reason: 'zone_no_rates',
       })
+      continue
     }
+    const { countryCodes, stateCodes: states } = coverage
+    const india = countryCodes.includes(HOME_COUNTRY)
     const rates: Omit<LocalRate, 'id'>[] = []
     for (const m of zone.methods.filter((x) => x.active)) {
       const planned = planRate(m)
@@ -142,8 +173,9 @@ function planZones(
     const reused = new Set<string>()
     const write: ShippingZoneWrite = {
       name: (match?.name ?? zone.name).slice(0, 80) || 'Shipping zone',
+      countryCodes,
       stateCodes: states,
-      pincodeRules: match?.pincodeRules ?? [],
+      pincodeRules: india ? (match?.pincodeRules ?? []) : [],
       rates: rates.map((r) => {
         const old = match?.rates.find((x) => same(x.name, r.name) && !reused.has(x.id))
         if (old) reused.add(old.id)
@@ -176,6 +208,7 @@ function planZones(
     }
     taken.add(match.id)
     const unchanged =
+      sameCountries(match.countryCodes, countryCodes) &&
       [...match.stateCodes].sort().join() === states.join() &&
       match.rates.map(rateKey).join('\n') === write.rates.map(rateKey).join('\n')
     if (unchanged) {

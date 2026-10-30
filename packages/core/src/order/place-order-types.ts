@@ -28,7 +28,15 @@ export type CheckoutDetails = {
   email: string
   phone: string
   name: string
-  address: { line1: string; line2?: string; city: string; stateCode: string; pincode: string }
+  address: {
+    line1: string
+    line2?: string
+    city: string
+    stateCode: string
+    pincode: string
+    /** ISO 3166-1; left out means India (country zones price an address abroad, audit #160). */
+    countryCode?: string | undefined
+  }
   /** Business buyer's GSTIN; kept only when the store shows the GSTIN field and it validates. */
   gstin?: string | null | undefined
   businessName?: string | null | undefined

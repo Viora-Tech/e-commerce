@@ -93,9 +93,9 @@ const SETTINGS_REASONS = [
   'app_location',
   /** In-store pickup at a location: not available here yet. */
   'local_pickup',
-  /** A shipping zone with no Indian states in it. */
+  /** Older imports: a shipping zone with no Indian states in it (zones abroad come over now). */
   'zone_outside_india',
-  /** A zone that also covers other countries; only its Indian part came over. */
+  /** Older imports: a zone that also covered other countries (they come over now). */
   'zone_other_countries',
   /** A zone whose rates could not be brought over, so it was not created. */
   'zone_no_rates',

@@ -18,7 +18,7 @@ import {
 import { planFields, planPolicies } from '../src/settings-plan-content'
 import { planMarkets } from '../src/settings-plan-markets'
 import { planSegments, segmentRules } from '../src/settings-plan-segments'
-import { planShipping } from '../src/settings-plan-shipping'
+import { planShipping, zoneCoverage } from '../src/settings-plan-shipping'
 import { planPurchaseOrders, planTransfers } from '../src/settings-plan-stock'
 import { ShopifyClient } from '../src/shopify-client'
 import { settingsShopify } from './fixtures/settings'
@@ -479,9 +479,14 @@ describe('shipping', () => {
       reason: 'carrier_rates',
       detail: 'Shiprocket',
     })
+    // A zone abroad comes over as a country zone: Rest of world at ₹1,500 (audit #160).
     expect(find(plan.items, { name: 'International' })).toMatchObject({
-      reason: 'zone_outside_india',
+      action: 'create',
+      rates: [{ name: 'World', condition: 'none', min: null, max: null, pricePaise: 150_000 }],
     })
+    const world = plan.ops.find((o) => o.kind === 'zone' && o.write.name === 'International')
+    expect(world && world.kind === 'zone' ? world.write.countryCodes : []).toEqual(['*'])
+    expect(world && world.kind === 'zone' ? world.write.stateCodes : null).toEqual([])
     // The custom profile comes over with the products the import has, its zone inside it.
     expect(find(plan.items, { name: 'Heavy chairs', action: 'create' })).toMatchObject({
       subject: 'delivery_profile',
@@ -865,5 +870,52 @@ describe('purchase orders and transfers (audit #75)', () => {
     ])
     expect(source.purchaseOrders).toMatchObject({ ok: false, access: true })
     expect(source.transfers).toMatchObject({ ok: false, access: true })
+  })
+})
+
+describe('zones abroad (audit #160)', () => {
+  const zone = (
+    countries: {
+      code: string | null
+      restOfWorld?: boolean
+      provinces?: { name: string; code: string }[]
+    }[],
+  ) => ({
+    sourceId: 'gid://shopify/DeliveryZone/9',
+    name: 'Zone',
+    countries: countries.map((c) => ({
+      code: c.code,
+      restOfWorld: c.restOfWorld ?? false,
+      provinces: c.provinces ?? [],
+    })),
+    methods: [],
+  })
+
+  it('keeps every country, India first and Rest of world last', () => {
+    const items: SettingsItem[] = []
+    expect(
+      zoneCoverage(
+        zone([{ code: null, restOfWorld: true }, { code: 'AE' }, { code: 'IN' }, { code: 'AU' }]),
+        items,
+      ),
+    ).toEqual({ countryCodes: ['IN', 'AE', 'AU', '*'], stateCodes: [] })
+    expect(items).toEqual([])
+  })
+
+  it('keeps India’s states, and drops India when none of its regions is known', () => {
+    const items: SettingsItem[] = []
+    expect(
+      zoneCoverage(zone([{ code: 'IN', provinces: [{ name: 'Karnataka', code: 'KA' }] }]), items),
+    ).toEqual({ countryCodes: ['IN'], stateCodes: ['KA'] })
+    expect(
+      zoneCoverage(
+        zone([{ code: 'IN', provinces: [{ name: 'Atlantis', code: 'XX' }] }, { code: 'AE' }]),
+        items,
+      ),
+    ).toEqual({ countryCodes: ['AE'], stateCodes: [] })
+    expect(items.map((i) => i.reason)).toEqual(['unknown_state'])
+    expect(
+      zoneCoverage(zone([{ code: 'IN', provinces: [{ name: 'Atlantis', code: 'XX' }] }]), []),
+    ).toBeNull()
   })
 })

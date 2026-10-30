@@ -29,6 +29,8 @@ export type RateDraft = {
 
 export type ZoneFormState = {
   name: string
+  /** ISO codes and `*` (Rest of world); `['IN']` for a zone in India only. */
+  countryCodes: string[]
   stateCodes: string[]
   pincodeRules: PincodeRule[]
   rates: RateDraft[]
@@ -60,6 +62,7 @@ export function fromRate(r: LoadedRate): RateDraft {
 export function fromZone(zone: LoadedZone): ZoneFormState {
   return {
     name: zone.name,
+    countryCodes: zone.countryCodes.length ? [...zone.countryCodes] : ['IN'],
     stateCodes: [...zone.stateCodes],
     pincodeRules: zone.pincodeRules.map((r) => ({ pattern: r.pattern, mode: r.mode })),
     rates: zone.rates.map(fromRate),
@@ -68,6 +71,7 @@ export function fromZone(zone: LoadedZone): ZoneFormState {
 
 export const emptyZone = (): ZoneFormState => ({
   name: '',
+  countryCodes: ['IN'],
   stateCodes: [],
   pincodeRules: [],
   rates: [],
@@ -142,8 +146,9 @@ export function toRateInput(r: RateDraft): ShippingZoneWrite['rates'][number] {
 export function toZoneInput(f: ZoneFormState): ShippingZoneWrite {
   return {
     name: f.name.trim(),
-    stateCodes: f.stateCodes,
-    pincodeRules: f.pincodeRules,
+    countryCodes: f.countryCodes,
+    stateCodes: f.countryCodes.includes('IN') ? f.stateCodes : [],
+    pincodeRules: f.countryCodes.includes('IN') ? f.pincodeRules : [],
     rates: f.rates.map(toRateInput),
   }
 }

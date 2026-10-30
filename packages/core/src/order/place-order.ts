@@ -185,6 +185,7 @@ const resolveShipping: WorkflowStep<State> = {
     const { quote } = await quoteProfileLines(ctx.tx, lines, discountedSubtotalPaise, {
       stateCode: to.stateCode,
       pincode: to.pincode,
+      countryCode: to.countryCode,
     })
     const fromApp = input.delivery
       ? await priceOrderDelivery(ctx, input.delivery, {

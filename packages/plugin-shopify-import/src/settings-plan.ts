@@ -47,6 +47,8 @@ export type LocalZone = {
   /** Its shipping profile; null counts as General. */
   profileId: string | null
   name: string
+  /** ISO countries and `*` (Rest of world); missing or empty means India. */
+  countryCodes?: string[] | undefined
   stateCodes: string[]
   pincodeRules: ShippingZoneWrite['pincodeRules']
   rates: LocalRate[]

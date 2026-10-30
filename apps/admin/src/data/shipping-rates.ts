@@ -11,6 +11,9 @@ export const shippingRatesContent = {
     states: (names: string[]) =>
       names.length <= 3 ? names.join(', ') : `${names.slice(0, 3).join(', ')} +${names.length - 3}`,
     pincodes: (n: number) => `${n} PIN code ${n === 1 ? 'rule' : 'rules'}`,
+    countries: (names: string[]) =>
+      names.length <= 3 ? names.join(', ') : `${names.slice(0, 3).join(', ')} +${names.length - 3}`,
+    restOfWorld: 'Rest of world',
     noRates: 'No price yet: customers here cannot check out',
     rateCount: (n: number) => `${n} ${n === 1 ? 'rate' : 'rates'}`,
     empty: {
@@ -85,6 +88,17 @@ export const shippingRatesContent = {
       name: 'Zone name',
       namePlaceholder: 'All India, South India, Bengaluru',
       nameHelp: 'Only you see this. Shoppers see the rate names.',
+    },
+    countries: {
+      heading: 'Countries',
+      meta: 'India uses the states and PIN codes below. Any other country gets these rates for the whole country.',
+      selected: (n: number) => `${n} ${n === 1 ? 'country' : 'countries'}`,
+      restOfWorld: 'Rest of world',
+      restOfWorldHelp:
+        'Every country no other zone names. A zone that names the country, or India’s own zones, always comes first.',
+      none: 'Pick at least one country, or Rest of world.',
+      abroadNote:
+        'Checkout prices addresses abroad from these rates in your store currency. Book international parcels with DHL Express or FedEx.',
     },
     regions: {
       heading: 'States',

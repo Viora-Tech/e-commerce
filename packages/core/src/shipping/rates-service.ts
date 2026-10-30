@@ -9,7 +9,12 @@ import {
 import { and, asc, eq, inArray, isNull, max, notInArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
-import { freeShippingThreshold, type ShippingZoneInput, type ShippingZoneWrite } from './rates'
+import {
+  freeShippingThreshold,
+  HOME_COUNTRY,
+  type ShippingZoneInput,
+  type ShippingZoneWrite,
+} from './rates'
 
 export const GENERAL_PROFILE_NAME = 'General'
 
@@ -70,6 +75,24 @@ export async function getShippingZone(
   return { ...zone, rates }
 }
 
+/** A zone as the service saves it; no countries means India, as before country zones. */
+export type ShippingZoneSave = Omit<ShippingZoneWrite, 'countryCodes'> & {
+  countryCodes?: string[] | undefined
+}
+
+/** Where a zone ships: its countries, and the states and PIN rules only when India is one. */
+const coverage = (input: ShippingZoneSave) => {
+  // A caller that skipped the schema (seeds, the importer's executor) still means India.
+  const listed = input.countryCodes?.length ? input.countryCodes : [HOME_COUNTRY]
+  const countryCodes = [...new Set(listed)]
+  const india = countryCodes.includes(HOME_COUNTRY)
+  return {
+    countryCodes,
+    stateCodes: india ? [...new Set(input.stateCodes)] : [],
+    pincodeRules: india ? input.pincodeRules : [],
+  }
+}
+
 const rateValues = (r: ShippingZoneWrite['rates'][number], position: number) => ({
   name: r.name,
   condition: r.condition,
@@ -118,7 +141,7 @@ async function syncRates(
 export async function createShippingZone(
   tx: StoreTx,
   storeId: string,
-  input: ShippingZoneWrite,
+  input: ShippingZoneSave,
 ): Promise<ShippingZoneWithRates> {
   const profileId = input.profileId ?? (await ensureGeneralProfile(tx, storeId)).id
   const [last] = await tx.select({ n: max(shippingZone.position) }).from(shippingZone)
@@ -128,8 +151,7 @@ export async function createShippingZone(
       storeId,
       profileId,
       name: input.name,
-      stateCodes: [...new Set(input.stateCodes)],
-      pincodeRules: input.pincodeRules,
+      ...coverage(input),
       position: (last?.n ?? -1) + 1,
     })
     .returning()
@@ -142,14 +164,13 @@ export async function updateShippingZone(
   tx: StoreTx,
   storeId: string,
   id: string,
-  input: ShippingZoneWrite,
+  input: ShippingZoneSave,
 ): Promise<ShippingZoneWithRates> {
   const [zone] = await tx
     .update(shippingZone)
     .set({
       name: input.name,
-      stateCodes: [...new Set(input.stateCodes)],
-      pincodeRules: input.pincodeRules,
+      ...coverage(input),
       updatedAt: new Date(),
     })
     .where(eq(shippingZone.id, id))

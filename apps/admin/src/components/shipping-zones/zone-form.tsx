@@ -20,6 +20,7 @@ import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import { emptyZone, fromZone, type LoadedZone, toZoneInput, type ZoneFormState } from './form-state'
+import ZoneCountriesCard from './zone-countries-card'
 import ZonePincodesCard from './zone-pincodes-card'
 import ZoneRatesCard from './zone-rates-card'
 import ZoneStatesCard from './zone-states-card'
@@ -56,7 +57,7 @@ export default function ZoneForm({ zone, profileId = null }: ZoneFormProps) {
   // Event handlers
   const handleSave = async () => {
     setAttempted(true)
-    if (!form.name.trim()) return
+    if (!form.name.trim() || form.countryCodes.length === 0) return
     setBusy(true)
     setServerError(null)
     try {
@@ -108,6 +109,8 @@ export default function ZoneForm({ zone, profileId = null }: ZoneFormProps) {
   const canManage = hasPermission(permissions.SETTINGS_MANAGE)
   const dirty = JSON.stringify(form) !== saved
   const nameError = attempted && !form.name.trim() ? copy.errors.name : null
+  const countriesMissing = attempted && form.countryCodes.length === 0
+  const india = form.countryCodes.includes('IN')
   const title = zone ? zone.name : copy.newTitle
   const owner = zone?.profileId ?? profileId
   const backHref = owner ? routes.settings.shippingProfile(owner) : LIST_HREF
@@ -172,16 +175,26 @@ export default function ZoneForm({ zone, profileId = null }: ZoneFormProps) {
         onChange={(rates) => patch({ rates })}
         disabled={!canManage}
       />
-      <ZoneStatesCard
-        value={form.stateCodes}
-        onChange={(stateCodes) => patch({ stateCodes })}
+      <ZoneCountriesCard
+        value={form.countryCodes}
+        onChange={(countryCodes) => patch({ countryCodes })}
+        invalid={countriesMissing}
         disabled={!canManage}
       />
-      <ZonePincodesCard
-        value={form.pincodeRules}
-        onChange={(pincodeRules) => patch({ pincodeRules })}
-        disabled={!canManage}
-      />
+      {india ? (
+        <>
+          <ZoneStatesCard
+            value={form.stateCodes}
+            onChange={(stateCodes) => patch({ stateCodes })}
+            disabled={!canManage}
+          />
+          <ZonePincodesCard
+            value={form.pincodeRules}
+            onChange={(pincodeRules) => patch({ pincodeRules })}
+            disabled={!canManage}
+          />
+        </>
+      ) : null}
 
       <ConfirmDialog
         open={confirmDelete}
