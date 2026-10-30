@@ -77,6 +77,8 @@ export default function ShipmentRowMenu({ row, onChanged }: ShipmentRowMenuProps
 
   return (
     <>
+      {/* To book, the menu held only "View order", which the row itself opens (audit #41). */}
+      {booked ? (
       <RowMenu
         items={[
           {
@@ -116,6 +118,7 @@ export default function ShipmentRowMenu({ row, onChanged }: ShipmentRowMenuProps
           },
         ]}
       />
+      ) : null}
       <ConfirmDialog
         open={confirmCancel}
         onOpenChange={setConfirmCancel}

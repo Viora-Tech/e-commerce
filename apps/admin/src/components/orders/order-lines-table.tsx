@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import ProductThumb from '@/components/products/product-thumb'
 import RowMenu from '@/components/table/row-menu'
 import { orderDetailContent } from '@/data/order-detail'
@@ -45,9 +46,20 @@ export default function OrderLinesTable({ rows }: OrderLinesTableProps) {
               className="size-9 rounded-lg border border-border bg-muted"
             />
             <span className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate text-body text-ink-strong" title={line.title ?? undefined}>
-                {line.title}
-              </span>
+              {/* The name opens the product; a menu holding only "View product" is gone (#21). */}
+              {line.productId ? (
+                <Link
+                  href={routes.products.detail(line.productId)}
+                  className="truncate text-body text-ink-strong hover:underline"
+                  title={line.title ?? undefined}
+                >
+                  {line.title}
+                </Link>
+              ) : (
+                <span className="truncate text-body text-ink-strong" title={line.title ?? undefined}>
+                  {line.title}
+                </span>
+              )}
               {sub ? (
                 <span className="truncate text-xs text-muted-foreground" title={sub}>
                   {sub}
@@ -60,21 +72,17 @@ export default function OrderLinesTable({ rows }: OrderLinesTableProps) {
             <span className="w-20 shrink-0 text-right text-body font-medium text-ink-strong tabular-nums">
               {fmt.money(line.unitPricePaise * quantity)}
             </span>
-            {line.productId ? (
+            {line.productId && line.sku ? (
               <RowMenu
                 items={[
                   {
                     label: copy.items.viewProduct,
                     href: routes.products.detail(line.productId),
                   },
-                  ...(line.sku
-                    ? [
-                        {
-                          label: copy.items.stockForSku,
-                          href: `${routes.stock.inventory()}?query=${encodeURIComponent(line.sku)}`,
-                        },
-                      ]
-                    : []),
+                  {
+                    label: copy.items.stockForSku,
+                    href: `${routes.stock.inventory()}?query=${encodeURIComponent(line.sku)}`,
+                  },
                 ]}
               />
             ) : null}
