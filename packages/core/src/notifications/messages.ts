@@ -87,9 +87,10 @@ export const MESSAGE_CATALOGUE: readonly MessageDef[] = [
   { id: 'staff_new_order', group: 'you', trigger: 'auto', channels: BOTH },
   { id: 'staff_daily_summary', group: 'you', trigger: 'auto', channels: BOTH },
   { id: 'contact_message', group: 'app', trigger: 'app', channels: EMAIL, appId: 'forms' },
-  { id: 'review_request', group: 'app', trigger: 'app', channels: EMAIL, appId: 'reviews' },
-  { id: 'review_reminder', group: 'app', trigger: 'app', channels: EMAIL, appId: 'reviews' },
+  { id: 'review_request', group: 'app', trigger: 'app', channels: BOTH, appId: 'reviews' },
+  { id: 'review_reminder', group: 'app', trigger: 'app', channels: BOTH, appId: 'reviews' },
   { id: 'review_reply', group: 'app', trigger: 'app', channels: EMAIL, appId: 'reviews' },
+  { id: 'review_reward', group: 'app', trigger: 'app', channels: EMAIL, appId: 'reviews' },
   { id: 'affiliate_update', group: 'app', trigger: 'app', channels: BOTH, appId: 'affiliates' },
   { id: 'cod_confirm', group: 'app', trigger: 'app', channels: BOTH, appId: 'cod-rto' },
   {

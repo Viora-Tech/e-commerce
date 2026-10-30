@@ -36,6 +36,7 @@ export const TEMPLATE_IDS: TemplateId[] = [
   'review_request',
   'review_reminder',
   'review_reply',
+  'review_reward',
   'affiliate_update',
   'affiliate_application',
   'unpaid_cancelled',
@@ -98,6 +99,7 @@ export const TEMPLATE_NAMES: Record<TemplateId, string> = {
   review_request: 'Review request',
   review_reminder: 'Review reminder',
   review_reply: 'Reply to a review',
+  review_reward: 'Photo review thanks',
   affiliate_update: 'Affiliate update (to the affiliate)',
   affiliate_application: 'New affiliate application (merchant)',
   unpaid_cancelled: 'Unpaid order cancelled',
@@ -137,6 +139,7 @@ function eyebrowFor(template: TemplateId, d: TemplateData): string {
     case 'review_request':
     case 'review_reminder':
     case 'review_reply':
+    case 'review_reward':
       return 'Your review'
     case 'affiliate_update':
     case 'affiliate_application':
@@ -241,6 +244,8 @@ function primaryActionFor(
         : undefined
     case 'review_reply':
       return d.review?.productUrl ? { label: 'See the reply', url: d.review.productUrl } : undefined
+    case 'review_reward':
+      return d.actionUrl ? { label: 'Shop with your code', url: d.actionUrl } : undefined
     case 'back_in_stock_alert':
       return d.backInStock?.productUrl
         ? { label: 'Shop now', url: d.backInStock.productUrl }

@@ -61,6 +61,19 @@ export const ReviewsSettingsSchema = z.object({
       subject: DEFAULT_REQUEST_SUBJECT,
       channel: 'email',
     }),
+  /**
+   * Thanks for a photo review: a one-time discount code, made when the review is published
+   * (reviews written on the store only, never imports) and emailed to the reviewer.
+   */
+  photoReward: z
+    .object({
+      enabled: z.boolean().default(false),
+      /** Whole percent off one order. */
+      percent: z.number().int().min(1).max(90).default(10),
+      /** Days the code works for. */
+      days: z.number().int().min(1).max(365).default(30),
+    })
+    .default({ enabled: false, percent: 10, days: 30 }),
   storefront: z
     .object({
       starsOnCards: z.boolean().default(true),

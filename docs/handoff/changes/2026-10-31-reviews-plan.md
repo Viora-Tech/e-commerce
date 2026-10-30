@@ -44,3 +44,19 @@ Follows the widgets step (`2026-10-30-reviews-widgets.md`). Migration **0197_rev
   (`openForm` in `apps/storefront/src/lib/reviews.ts`); an order's card carries one signed
   request link per product (60-day token), so the review is a verified buyer's.
 - Tests: `src/qr.test.ts`, `test/qr.test.ts`.
+
+## 4. Photo review reward
+
+- Setting `photoReward` (`enabled` off by default, `percent` 10, `days` 30); admin card
+  "Reward photo reviews" (`reward-settings.tsx`) under the publishing settings.
+- `rewardPhotoReviews` (`packages/plugin-reviews/src/rewards.ts`): published storefront reviews
+  with a copied photo and an email, not rewarded yet, get a code from core's `issuePersonalCode`
+  (the discounts table: single use, that customer only when known, ends after `days`), named
+  `PHOTO-<last 8 of the review id>` so a retry finds the same code. Called from `submitReview`
+  (published at once) and `reviews.setStatus` (approved later). Writes `review.reward_code` /
+  `reward_sent_at` and a `review.rewarded` outbox row.
+- New notification `review_reward` ("Photo review thanks", email; WhatsApp params
+  `[store, "10% off", code]` if a store ever sends it there): types, content, samples, templates,
+  `messages.ts`, admin Notifications copy (en + hi), relay and worker. `review_request` /
+  `review_reminder` now list both channels in `messages.ts`.
+- Tests: `packages/plugin-reviews/test/rewards.test.ts`.

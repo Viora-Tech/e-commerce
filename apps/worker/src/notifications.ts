@@ -21,6 +21,8 @@ import { getContactMessage, messageText } from '@commerce/plugin-forms/server'
 import {
   loadReviewsSettings,
   replyEmailData,
+  rewardEmailData,
+  rewardLabel,
   reviewRequestEmail,
 } from '@commerce/plugin-reviews/server'
 import { fairProcessor, type IORedis, KEEP_FINISHED, QUEUE_LIMITS, Worker } from '@commerce/queue'
@@ -215,6 +217,45 @@ export function createNotificationWorker(
                     : `${base}/`
                   : undefined,
                 reply: r.reply,
+              },
+            },
+            {
+              registry: (await registriesForStore(tx, storeId)).notifications,
+              settingsSecret: opts.settingsSecret,
+            },
+          )
+        })
+        const bad = sent.filter((r) => !r.ok)
+        if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
+        return sent
+      }
+      // Reviews app: the photo review reward code.
+      if (template === 'review_reward') {
+        if (!reviewId) return []
+        const fallback = opts.storefrontUrl ?? ''
+        const sent = await withStore(db, storeId, async (tx) => {
+          const r = await rewardEmailData(tx, reviewId)
+          if (!r) return []
+          const base = (await storefrontOriginFor(tx, storeId, fallback)).replace(/\/+$/, '')
+          return deliverEmailTo(
+            { storeId, tx },
+            template,
+            r.email,
+            {
+              customerName: r.name.split(' ')[0] || 'there',
+              actionUrl: base ? `${base}/` : undefined,
+              review: {
+                productTitle: r.productTitle ?? undefined,
+                rewardCode: r.code,
+                rewardLabel: rewardLabel(r.percent),
+                rewardUntil: r.endsAt
+                  ? r.endsAt.toLocaleDateString('en-IN', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                      timeZone: 'Asia/Kolkata',
+                    })
+                  : undefined,
               },
             },
             {

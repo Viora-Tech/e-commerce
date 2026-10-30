@@ -49,4 +49,13 @@ export const reviewToolsContent = {
     empty: 'Nothing to make a card for: the product or order is gone, or has no products.',
     failed: 'The QR code could not be made. Please try again.',
   },
+  reward: {
+    title: 'Reward photo reviews',
+    help: 'Thank customers who add photos: when their review is published, they get a one-time discount code by email.',
+    enabled: 'Send a discount code for photo reviews',
+    percent: 'Discount',
+    days: 'Code works for',
+    daysUnit: 'days',
+    note: 'One code per review, for that customer only, used once. Only reviews written on your store count, not imported ones. The email is "Photo review thanks" in Settings, Notifications.',
+  },
 }

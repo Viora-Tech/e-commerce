@@ -62,6 +62,8 @@ export type OutboxEventType =
   | 'review.request_due'
   /** The store replied to a review for the first time (Reviews app); the reviewer is emailed. */
   | 'review.replied'
+  /** A photo review earned its reward code (Reviews app); the reviewer is emailed the code. */
+  | 'review.rewarded'
   /** A live custom domain needs its HTTPS route on the proxy (`domains/routes.ts`). */
   | 'domain.route_requested'
   /** A removed custom domain's HTTPS route should be deleted from the proxy. */
@@ -277,6 +279,8 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   'review.request_due': null,
   // The relay queues `review_reply` with the review id itself (`dispatchRow`).
   'review.replied': null,
+  // The relay queues `review_reward` with the review id itself (`dispatchRow`).
+  'review.rewarded': null,
   // Platform work, no message: the relay queues a `{domains}-route` job (`dispatchRow`).
   'domain.route_requested': null,
   'domain.route_removed': null,
@@ -371,6 +375,7 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'contact.message_received': null,
   'review.request_due': null,
   'review.replied': null,
+  'review.rewarded': null,
   'domain.route_requested': null,
   'domain.route_removed': null,
   'catalog.products_changed': null,

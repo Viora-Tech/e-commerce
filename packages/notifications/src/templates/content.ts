@@ -163,6 +163,20 @@ ${d.review?.reply ?? ''}`,
     whatsapp: (d) =>
       `${d.storeName} replied to your review of ${d.review?.productTitle ?? 'your purchase'}.`,
   },
+  review_reward: {
+    subject: (d) => `A thank-you from ${d.storeName} for your photo review`,
+    heading: (d) => `Thanks for the photos, ${d.customerName}`,
+    intro: (d) =>
+      `Your review of ${d.review?.productTitle ?? 'your purchase'} is live, photos and all. Here is ${d.review?.rewardLabel ?? 'a discount'} on your next order with this code:
+
+${d.review?.rewardCode ?? ''}`,
+    outro: (d) =>
+      d.review?.rewardUntil
+        ? `The code works once, until ${d.review.rewardUntil}.`
+        : 'The code works once.',
+    whatsapp: (d) =>
+      `${d.storeName}: thanks for your photo review! ${d.review?.rewardLabel ?? 'A discount'} with code ${d.review?.rewardCode ?? ''}`,
+  },
   affiliate_update: {
     subject: (d) => {
       const a = d.affiliate

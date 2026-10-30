@@ -222,6 +222,15 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
       reviewId: payload.reviewId,
     })
   }
+  if (type === 'review.rewarded' && payload.reviewId) {
+    await enqueueNotification(deps.notifications, {
+      storeId: row.storeId,
+      orderId: '',
+      template: 'review_reward',
+      key: row.id,
+      reviewId: payload.reviewId,
+    })
+  }
   if (type === 'affiliate.applied' && payload.affiliateId) {
     // Affiliates app: to the merchant, no order; the worker reads the application from the app.
     await enqueueNotification(deps.notifications, {

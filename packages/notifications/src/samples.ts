@@ -220,6 +220,19 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
       reply: 'Thanks for the kind words, Asha! Enjoy the glide.',
     },
   },
+  review_reward: {
+    ...base,
+    orderNumber: undefined,
+    lines: [],
+    taxBreakdown: undefined,
+    actionUrl: 'https://waimers.example/',
+    review: {
+      productTitle: 'Maboroshi mousepad',
+      rewardCode: 'PHOTO-7K2QX9FD',
+      rewardLabel: '10% off',
+      rewardUntil: '30 November 2026',
+    },
+  },
   unpaid_cancelled: { ...base },
   back_in_stock_confirm: {
     ...base,

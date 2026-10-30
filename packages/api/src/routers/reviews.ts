@@ -22,6 +22,7 @@ import {
   replyToReview,
   reviewedProducts,
   reviewQrLinks,
+  rewardPhotoReviews,
   reviewStats,
   reviewsState,
   saveReviewsSettings,
@@ -128,7 +129,14 @@ export const reviewsRouter = {
     .input(Ids.extend({ status: z.enum(REVIEW_STATUSES) }))
     .handler(async ({ context, input }) => {
       await requireInstalled(context)
-      return { updated: await setReviewStatus(context.tx, input.ids, input.status) }
+      const { storeId } = context.scope
+      const updated = await setReviewStatus(context.tx, input.ids, input.status)
+      if (input.status === 'published') {
+        // Photo reviews approved now earn the reward code, when the store offers one.
+        const settings = await loadReviewsSettings(context.tx, storeId)
+        await rewardPhotoReviews(context.tx, storeId, input.ids, settings)
+      }
+      return { updated }
     }),
 
   delete: can(permissions.PRODUCTS_WRITE)

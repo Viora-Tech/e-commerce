@@ -218,6 +218,10 @@ export const notificationsSettingsContent = {
       name: 'Reply to a review',
       when: 'The first time you reply to a customer review (Reviews app).',
     },
+    review_reward: {
+      name: 'Photo review thanks',
+      when: 'When a review with photos is published, with a one-time discount code (Reviews app settings).',
+    },
     cod_confirm: {
       name: 'Confirm your COD order',
       when: 'Right after a cash on delivery order, with a confirm or cancel link (COD & RTO app).',

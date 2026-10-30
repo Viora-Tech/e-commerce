@@ -2,6 +2,7 @@ import { CommerceError } from '@commerce/core'
 import { media, order, product, type StoreTx } from '@commerce/db'
 import { and, eq, gt, inArray, isNull, sql } from 'drizzle-orm'
 import { purchaseOf, requestLinkBuyer } from './reviews'
+import { rewardPhotoReviews } from './rewards'
 import { review, reviewMedia, reviewRequest } from './schema'
 import { displayName, MAX_REVIEW_PHOTOS, publishDecision, type ReviewsSettings } from './settings'
 
@@ -194,6 +195,10 @@ export async function submitReview(
         isNull(reviewRequest.reviewedAt),
       ),
     )
+  // Published straight away with a photo: the photo review reward goes out now.
+  if (decision.status === 'published' && kept.length > 0) {
+    await rewardPhotoReviews(tx, storeId, [row.id], settings, now)
+  }
   return { id: row.id, status: decision.status, verified }
 }
 

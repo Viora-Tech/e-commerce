@@ -44,12 +44,14 @@ export type TemplateId =
   | 'payment_reminder'
   /** To the MERCHANT: a shopper sent a message from a contact or advice form (Forms app). Email only. */
   | 'contact_message'
-  /** Asks the shopper to review what a delivered order brought (Reviews app). Email only. */
+  /** Asks the shopper to review what a delivered order brought (Reviews app). Email, WhatsApp or both (app setting). */
   | 'review_request'
-  /** The one reminder when no review came after a review request (Reviews app). Email only. */
+  /** The one reminder when no review came after a review request (Reviews app). Same channels. */
   | 'review_reminder'
   /** The store replied to the shopper's review (Reviews app). Email only. */
   | 'review_reply'
+  /** Thanks for a published photo review, with a one-time discount code (Reviews app). Email only. */
+  | 'review_reward'
   /** To the MERCHANT: someone applied to the affiliate program and waits for approval. Email only. */
   | 'affiliate_application'
   /** To an AFFILIATE (Affiliates app): approved, a new sale, or a payout sent. Email, and WhatsApp with an approved template. */
@@ -260,6 +262,7 @@ export type TemplateData = {
   /**
    * For review_request / review_reminder: the products to review, each with its own link, the
    * merchant's subject and the stop-these-emails link. For review_reply: the product and reply.
+   * For review_reward: the product, the code, what it is worth and its last day.
    */
   review?:
     | {
@@ -270,6 +273,11 @@ export type TemplateData = {
         productTitle?: string | undefined
         productUrl?: string | undefined
         reply?: string | undefined
+        rewardCode?: string | undefined
+        /** "10% off". */
+        rewardLabel?: string | undefined
+        /** "30 November 2026". */
+        rewardUntil?: string | undefined
       }
     | undefined
   /**
