@@ -64,6 +64,8 @@ type GOrder = {
       product: { handle: string } | null
     }[]
   }
+  /** Shopify's timeline (bulk reads only: page by page it would cost too much per order). */
+  events?: { nodes: { createdAt: string; message: string | null }[] }
 }
 
 /**
@@ -78,6 +80,29 @@ function subtotalBeforeDiscounts(o: GOrder): number {
     return lines.reduce((n, l) => n + l.quantity * money(l.originalUnitPriceSet), 0)
   }
   return money(o.subtotalPriceSet) + money(o.totalDiscountsSet)
+}
+
+/** Most events an imported order keeps; Shopify's longest timelines are notes and emails. */
+const HISTORY_LIMIT = 50
+
+/** Shopify's timeline as plain text, oldest first ("Confirmation #ABC was generated…"). */
+function historyOf(o: GOrder): NOrder['history'] {
+  if (!o.events) return undefined
+  return o.events.nodes
+    .map((e) => ({
+      at: e.createdAt,
+      message: (e.message ?? '')
+        .replace(/<[^>]*>/g, '')
+        .replace(/&amp;/g, '&')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 300),
+    }))
+    .filter((e) => e.message)
+    .sort((a, b) => a.at.localeCompare(b.at))
+    .slice(-HISTORY_LIMIT)
 }
 
 function mapOrder(o: GOrder): NOrder {
@@ -109,6 +134,7 @@ function mapOrder(o: GOrder): NOrder {
     tags: o.tags,
     note: o.note || null,
     shippingAddress: mapAddress(o.shippingAddress),
+    history: historyOf(o),
     lines: o.lineItems.nodes
       .filter((l) => l.quantity > 0)
       .map((l) => ({
@@ -147,6 +173,9 @@ const ORDERS_BULK_QUERY = `{
             }
           }
         }
+        events {
+          edges { node { id createdAt message } }
+        }
       }
     }
   }
@@ -157,7 +186,12 @@ async function* fetchOrdersBulk(client: ShopifyClient): AsyncGenerator<NOrder[]>
   if (!url) return
   for await (const nodes of streamBulkRoots<GOrder>(
     streamJsonl(url, client.fetchImpl),
-    (type) => (type === 'LineItem' ? { field: 'lineItems', asPage: false } : null),
+    (type) =>
+      type === 'LineItem'
+        ? { field: 'lineItems', asPage: false }
+        : type.endsWith('Event')
+          ? { field: 'events', asPage: false }
+          : null,
     [{ field: 'lineItems', asPage: false }],
     BULK_BATCH_SIZE,
   )) {

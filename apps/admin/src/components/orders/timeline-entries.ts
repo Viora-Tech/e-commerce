@@ -35,6 +35,17 @@ export function buildEntries(
     { id: 'placed', at: new Date(order.placedAt), kind: 'order', title: t.placed },
   ]
 
+  // What happened on the old platform before the move (audit #20), in its own words.
+  for (const [i, e] of (order.importMeta?.history ?? []).entries()) {
+    entries.push({
+      id: `ih-${i}`,
+      at: new Date(e.at),
+      kind: 'order',
+      title: e.message,
+      detail: t.fromImport,
+    })
+  }
+
   for (const e of order.paymentEvents) {
     entries.push({
       id: `pe-${e.id}`,

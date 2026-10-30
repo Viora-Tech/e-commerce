@@ -263,6 +263,7 @@ export const orderDetailContent = {
     } as Record<string, string>,
   },
   timeline: {
+    fromImport: 'Before the move, on Shopify',
     heading: 'Timeline',
     today: 'Today',
     placed: 'Order placed',

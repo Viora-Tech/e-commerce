@@ -143,6 +143,8 @@ export type NOrder = {
   note: string | null
   shippingAddress: NAddress | null
   lines: NOrderLine[]
+  /** The old platform's timeline, oldest first; undefined when it was not read (CSV, page by page). */
+  history?: { at: string; message: string }[] | undefined
   row?: number | undefined
 }
 

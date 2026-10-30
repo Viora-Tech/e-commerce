@@ -246,6 +246,7 @@ export default [
       },
     },
     timeline: {
+      fromImport: 'मूव से पहले, Shopify पर',
       heading: 'टाइमलाइन',
       today: 'आज',
       placed: 'ऑर्डर आया',

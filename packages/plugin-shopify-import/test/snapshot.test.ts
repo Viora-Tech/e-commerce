@@ -420,6 +420,32 @@ describe('streaming bulk results', () => {
     }
     await expect(read()).rejects.toThrow(BulkUnavailableError)
   })
+
+  it('collects child types that share a field (an order's basic and comment events)', async () => {
+    const event = (type: string, n: number) => ({
+      id: `gid://shopify/${type}/${n}`,
+      __parentId: 'gid://shopify/Order/1',
+      message: `${type} ${n}`,
+    })
+    const rows = [order(1), line(11, 1), event('BasicEvent', 1), event('CommentEvent', 2), event('BasicEvent', 3)]
+    const out: { events: { nodes: { message: string }[] } }[] = []
+    for await (const b of streamBulkRoots<{ events: { nodes: { message: string }[] } }>(
+      lines(rows),
+      (type) =>
+        type === 'LineItem'
+          ? { field: 'lineItems', asPage: false }
+          : type.endsWith('Event')
+            ? { field: 'events', asPage: false }
+            : null,
+    )) {
+      out.push(...b)
+    }
+    expect(out[0]?.events.nodes.map((e) => e.message).sort()).toEqual([
+      'BasicEvent 1',
+      'BasicEvent 3',
+      'CommentEvent 2',
+    ])
+  })
 })
 
 describe('snapshot cleanup', () => {

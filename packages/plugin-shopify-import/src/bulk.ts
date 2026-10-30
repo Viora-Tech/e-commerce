@@ -203,13 +203,19 @@ export async function* streamBulkRoots<T>(
         ? { pageInfo: { hasNextPage: false, endCursor: null }, nodes: [] }
         : { nodes: [] }
     }
+    // Several child types can share one field (BasicEvent and CommentEvent are both `events`).
+    const filled = new Set<string>()
     for (const [type, children] of node.__children) {
       const mapping = childFieldOf(type)
       if (!mapping) continue
       const mapped = children.map((c) => attach(c))
+      const before = filled.has(mapping.field)
+        ? ((out[mapping.field] as { nodes: unknown[] }).nodes ?? [])
+        : []
+      filled.add(mapping.field)
       out[mapping.field] = mapping.asPage
-        ? { pageInfo: { hasNextPage: false, endCursor: null }, nodes: mapped }
-        : { nodes: mapped }
+        ? { pageInfo: { hasNextPage: false, endCursor: null }, nodes: [...before, ...mapped] }
+        : { nodes: [...before, ...mapped] }
     }
     return out
   }

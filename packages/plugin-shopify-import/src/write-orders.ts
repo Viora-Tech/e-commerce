@@ -268,6 +268,7 @@ async function applyOrder(
     paymentMethod: o.paymentMethod,
     cancelledAt: o.cancelledAt,
     refundedPaise: o.refundedPaise || null,
+    ...(o.history ? { history: o.history } : {}),
   }
   const statuses = statusFor(o)
   const placedAt = o.createdAt ? new Date(o.createdAt) : new Date()
