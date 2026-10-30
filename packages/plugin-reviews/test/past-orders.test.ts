@@ -78,7 +78,7 @@ describe('past orders', () => {
     const preview = await withStore(app, storeId, (tx) =>
       previewPastOrders(tx, settings, range, now),
     )
-    expect(preview).toEqual({ orders: 1, capped: false, hours: 1 })
+    expect(preview).toEqual({ orders: 1, capped: false, hours: 0 })
 
     const r = await withStore(app, storeId, (tx) =>
       askPastOrders(tx, storeId, settings, range, now),
@@ -88,8 +88,23 @@ describe('past orders', () => {
       .select()
       .from(reviewRequest)
       .where(eq(reviewRequest.orderId, fresh.orderId))
-    // Queued after the request the earlier order still has waiting.
-    expect(rows[0]?.dueAt.getTime()).toBeGreaterThan(now.getTime())
+    // The other order's request is due in 7 days, so it does not hold this run back.
+    expect(rows[0]?.dueAt).toEqual(now)
+    // A second run straight after waits an hour behind the first one's waiting request.
+    const again = await addOrder(storeId, {
+      email: 'five@example.com',
+      variantIds: [a.variantId],
+    })
+    await owner.update(order).set({ deliveredAt: inRange }).where(eq(order.id, again.orderId))
+    expect(
+      await withStore(app, storeId, (tx) => previewPastOrders(tx, settings, range, now)),
+    ).toEqual({ orders: 1, capped: false, hours: 1 })
+    await withStore(app, storeId, (tx) => askPastOrders(tx, storeId, settings, range, now))
+    const [later] = await owner
+      .select()
+      .from(reviewRequest)
+      .where(eq(reviewRequest.orderId, again.orderId))
+    expect(later?.dueAt.getTime()).toBe(now.getTime() + HOUR)
 
     expect(
       await withStore(app, storeId, (tx) => previewPastOrders(tx, settings, range, now)),

@@ -84,14 +84,27 @@ async function candidates(tx: StoreTx, settings: ReviewsSettings, range: PastOrd
     .limit(PAST_ORDERS_MAX + 1)
 }
 
-/** Requests still waiting to go out (an earlier run's tail); a new run queues after them. */
+/**
+ * Where a new run starts: now, or later by an hour per `PAST_ORDERS_PER_HOUR` orders already
+ * waiting to go out in the next day (an earlier run's tail), so runs started back to back still
+ * leave at the hourly rate. Requests due further out (the usual days-after-delivery ones) do not
+ * hold a run back.
+ */
 async function queuedUntil(tx: StoreTx, now: Date): Promise<Date> {
   const [row] = await tx
-    .select({ last: sql<Date | null>`max(${reviewRequest.dueAt})` })
+    .select({ n: sql<number>`count(distinct ${reviewRequest.orderId})::int` })
     .from(reviewRequest)
-    .where(and(isNull(reviewRequest.sentAt), gte(reviewRequest.dueAt, now)))
-  const last = row?.last ? new Date(row.last) : null
-  return last && last > now ? new Date(last.getTime() + HOUR) : now
+    .where(
+      and(
+        isNull(reviewRequest.sentAt),
+        isNull(reviewRequest.optedOutAt),
+        gte(reviewRequest.dueAt, now),
+        lte(reviewRequest.dueAt, new Date(now.getTime() + DAY)),
+      ),
+    )
+  const waiting = Number(row?.n ?? 0)
+  if (waiting === 0) return now
+  return new Date(now.getTime() + Math.ceil(waiting / PAST_ORDERS_PER_HOUR) * HOUR)
 }
 
 export type PastOrdersPreview = {
