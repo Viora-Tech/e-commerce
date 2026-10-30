@@ -16,6 +16,7 @@ import {
   markShopperSeen,
   messageCards,
   messageEvents,
+  publishedKnowledge,
   publishInboxEvents,
   type ShopperMessage,
   seenEvents,
@@ -59,6 +60,13 @@ export async function chatStateAction() {
     const featured = state.settings.widget.showFeaturedProducts
       ? await featuredProducts(tx, state.settings.widget.featuredProductIds)
       : []
+    // The merchant's question buttons; else, while the AI answers, the first published answers.
+    const ai = state.settings.ai
+    const questions = ai.questions.length
+      ? ai.questions
+      : ai.mode === 'off'
+        ? []
+        : (await publishedKnowledge(tx)).slice(0, 3).map((k) => k.title)
     return {
       storeName: state.storeName,
       greeting: state.settings.greeting,
@@ -72,6 +80,7 @@ export async function chatStateAction() {
       thread,
       cards,
       featured,
+      questions,
     }
   })
 }

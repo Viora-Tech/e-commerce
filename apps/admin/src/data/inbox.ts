@@ -101,6 +101,12 @@ export const inboxContent = {
         placeholder: 'Warm and short. Call shoppers "aap". Sign off with "Team Waimers".',
         count: (n: number, max: number) => `${n} / ${max}`,
       },
+      questions: {
+        label: 'Suggested questions',
+        help: 'Buttons shoppers tap before they write. Leave them empty to show your first published answers while the AI is on.',
+        placeholder: 'How long does delivery take?',
+        slot: (n: number) => `Question ${n}`,
+      },
       knowledgeBase: {
         label: 'Knowledge base',
         help: 'Questions and answers the AI quotes: shipping time, warranty, returns, COD. Publish the ones it may use.',

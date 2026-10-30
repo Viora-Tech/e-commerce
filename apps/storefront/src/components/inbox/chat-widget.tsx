@@ -342,6 +342,7 @@ export default function ChatWidget({
             greeting={state.greeting}
             awayMessage={state.available ? null : state.awayMessage || copy.away}
             featured={visible.length === 0 && !tracking ? state.featured : []}
+            questions={visible.length === 0 && !tracking ? state.questions : []}
             onAsk={(text) => send({ body: text })}
             onTrack={() => setTracking(true)}
           />

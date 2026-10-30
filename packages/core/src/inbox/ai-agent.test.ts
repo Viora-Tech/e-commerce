@@ -47,7 +47,7 @@ let n = 0
 async function newStore(mode: InboxAiMode, voice = '') {
   const settings = {
     ...DEFAULT_INBOX_SETTINGS,
-    ai: { mode, knowledge: 'We ship in 3 days.', learn: true, voice },
+    ai: { mode, knowledge: 'We ship in 3 days.', learn: true, voice, questions: [] },
   }
   const [s] = await owner
     .insert(store)

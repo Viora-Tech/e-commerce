@@ -4,9 +4,12 @@ import {
   INBOX_AI_KNOWLEDGE_MAX,
   INBOX_AI_MODES,
   INBOX_AI_VOICE_MAX,
+  INBOX_QUESTION_MAX,
+  INBOX_QUESTIONS_MAX,
   type InboxAiSettings,
 } from '@commerce/core/inbox'
 import { Button } from '@commerce/ui/shadcn/button'
+import { Input } from '@commerce/ui/shadcn/input'
 import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
@@ -76,6 +79,28 @@ export default function AiAgentSettings({ value, onChange }: AiAgentSettingsProp
           </div>
         </SettingsRow>
       )}
+      <SettingsRow label={a.questions.label} description={a.questions.help}>
+        <div className="flex flex-col gap-2">
+          {Array.from({ length: INBOX_QUESTIONS_MAX }, (_, i) => (
+            <Input
+              // biome-ignore lint/suspicious/noArrayIndexKey: a fixed box per question slot
+              key={i}
+              aria-label={a.questions.slot(i + 1)}
+              maxLength={INBOX_QUESTION_MAX}
+              placeholder={i === 0 ? a.questions.placeholder : undefined}
+              value={value.questions[i] ?? ''}
+              onChange={(e) =>
+                onChange({
+                  ...value,
+                  questions: Array.from({ length: INBOX_QUESTIONS_MAX }, (_, j) =>
+                    j === i ? e.target.value : (value.questions[j] ?? ''),
+                  ),
+                })
+              }
+            />
+          ))}
+        </div>
+      </SettingsRow>
       <SettingsRow label={a.knowledgeBase.label} description={a.knowledgeBase.help}>
         <Button
           variant="outline"
