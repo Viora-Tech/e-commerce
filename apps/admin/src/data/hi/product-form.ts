@@ -54,6 +54,7 @@ export default [
       noOptions: 'कोई विकल्प नहीं',
       variants: (n: number) => `${n} वेरिएंट`,
       inStock: (n: number) => `${n} स्टॉक में`,
+      held: (n: number) => `${n} ऑर्डर के लिए रखे`,
       typeBy: (type: string | null, vendor: string | null) =>
         type && vendor ? `${vendor} का ${type}` : (type ?? vendor),
     },

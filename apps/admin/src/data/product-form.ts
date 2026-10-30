@@ -13,6 +13,8 @@ export const productFormContent = {
     noOptions: 'No options',
     variants: (n: number) => `${n} ${n === 1 ? 'variant' : 'variants'}`,
     inStock: (n: number) => `${n} in stock`,
+    /** Units unpaid or unshipped orders hold: why the products list shows fewer available. */
+    held: (n: number) => `${n} held for orders`,
     typeBy: (type: string | null, vendor: string | null) =>
       type && vendor ? `${type} by ${vendor}` : (type ?? vendor),
   },
