@@ -183,6 +183,22 @@ export const paymentsSetupContent = {
     },
     offNote: 'Both are off. Turn them on with Open, below.',
   },
+  manualMethods: {
+    heading: 'Manual payment methods',
+    help: 'Shoppers pay you directly and you mark the order paid when the money arrives.',
+    upi: {
+      title: 'UPI to your own ID',
+      help: 'The shopper pays your UPI ID or scans its QR code.',
+    },
+    bank: {
+      title: 'Bank transfer',
+      help: 'The shopper sends NEFT, IMPS or RTGS to your account.',
+    },
+    active: 'Active',
+    off: 'Off',
+    setUp: 'Set up',
+    edit: 'Edit',
+  },
   advanced: {
     heading: 'Advanced',
     help: 'Extra settings most shops never need.',
