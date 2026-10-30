@@ -174,6 +174,9 @@ export function validateRows(
     if (isDirty(r, b, 'businessName') && r.businessName.trim().length > 120) {
       bad('businessName', copy.businessName)
     }
+    for (const key of PHONE_CONSENT_KEYS) {
+      if (isDirty(r, b, key) && r[key] === 'yes' && !canSubscribe(r, key)) bad(key, copy.needsPhone)
+    }
     // An address is resaved whole, so its cells are checked like the address form's.
     if (r.address && ADDRESS_KEYS.some((k) => isDirty(r, b, k))) {
       const city = r.city.trim()
@@ -231,9 +234,20 @@ function consentFromPaste(value: string, current: string) {
 /** The keys of every column, for paste to count across. */
 export const COLUMN_KEYS = ['email', ...EDITABLE_KEYS] as string[]
 
-/** The columns shown: consent columns only for channels the store can send on. */
-export const visibleKeys = (sendable: readonly ConsentChannel[]): string[] =>
-  COLUMN_KEYS.filter((k) => !isConsentKey(k) || sendable.includes(CONSENT_KEYS[k]))
+/** Columns off until the person turns them on: consent for channels the store cannot send on. */
+export const defaultHiddenKeys = (sendable: readonly ConsentChannel[]): string[] =>
+  COLUMN_KEYS.filter((k) => isConsentKey(k) && !sendable.includes(CONSENT_KEYS[k]))
+
+/** The columns shown, in sheet order; email always (it says which customer the row is). */
+export const shownKeys = (hidden: ReadonlySet<string>): string[] =>
+  COLUMN_KEYS.filter((k) => k === 'email' || !hidden.has(k))
+
+/** SMS and WhatsApp reach a phone, so subscribing to them needs one (#999). */
+export const PHONE_CONSENT_KEYS: readonly ConsentKey[] = ['acceptsWhatsapp', 'acceptsSms']
+
+/** Whether a consent column can be turned on: email needs an email, SMS and WhatsApp a phone. */
+export const canSubscribe = (row: GridRow, key: ConsentKey) =>
+  PHONE_CONSENT_KEYS.includes(key) ? row.phone.trim() !== '' : row.email.trim() !== ''
 
 /**
  * A pasted block of tab-separated text (from Sheets or Excel) laid over the grid from the

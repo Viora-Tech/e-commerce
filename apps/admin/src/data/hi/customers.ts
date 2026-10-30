@@ -111,6 +111,22 @@ export default [
       marketing: 'मार्केटिंग',
       subscribe: (channel: string) => `${channel} के लिए सब्सक्राइब करें`,
       unsubscribe: (channel: string) => `${channel} से अनसब्सक्राइब करें`,
+      notSendable: (channel: string) => `${channel}: अभी सेट अप नहीं, फिर भी सहमति दर्ज होगी`,
+      consentNeedsPhone: 'जिन ग्राहकों का फ़ोन नंबर नहीं है, वे छोड़ दिए जाएंगे।',
+      consentNeedsEmail: 'जिन ग्राहकों का ईमेल नहीं है, वे छोड़ दिए जाएंगे।',
+      saveSelection: {
+        action: 'सेगमेंट के रूप में सेव करें',
+        title: (n: number) => `${n} ग्राहकों को सेगमेंट के रूप में सेव करें`,
+        body: 'उन्हें सेगमेंट के नाम वाला टैग मिलता है, और सेगमेंट में वे सभी आते हैं जिन पर यह टैग है। बाद में टैग जोड़कर या हटाकर सेगमेंट बदलें।',
+        name: 'सेगमेंट का नाम',
+        placeholder: 'दिवाली VIP',
+        tooLong: 'अधिकतम 40 अक्षर, ताकि यह टैग में आ जाए',
+        save: 'सेगमेंट सेव करें',
+        cancel: 'रद्द करें',
+        saved: (name: string) => `सेगमेंट "${name}" सेव हुआ`,
+        open: 'खोलें',
+        failed: 'सेगमेंट सेव नहीं हुआ',
+      },
       consentTitle: (granted: boolean, channel: string, n: number) =>
         granted
           ? `${n} ग्राहकों को ${channel} मार्केटिंग के लिए सब्सक्राइब करें?`

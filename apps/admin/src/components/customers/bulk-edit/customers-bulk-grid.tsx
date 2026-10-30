@@ -20,7 +20,7 @@ type CustomersBulkGridProps = {
   /** The sheet as loaded, to light up changed cells. */
   base: Map<string, GridRow>
   errors: CellErrors
-  /** Column keys in order (`visibleKeys`). */
+  /** Column keys in order (`shownKeys`). */
   keys: readonly string[]
   onRowsChange: (rows: GridRow[]) => void
 }

@@ -131,6 +131,24 @@ export const customersContent = {
     marketing: 'Marketing',
     subscribe: (channel: string) => `Subscribe to ${channel}`,
     unsubscribe: (channel: string) => `Unsubscribe from ${channel}`,
+    notSendable: (channel: string) => `${channel}: not set up yet, consent is still recorded`,
+    consentNeedsPhone: 'Customers without a phone number are skipped.',
+    consentNeedsEmail: 'Customers without an email are skipped.',
+    /** "Save as segment" on the bulk bar (#998): keep the ticked customers as a segment. */
+    saveSelection: {
+      action: 'Save as segment',
+      title: (n: number) =>
+        n === 1 ? 'Save 1 customer as a segment' : `Save ${n} customers as a segment`,
+      body: 'They get a tag with the segment name, and the segment lists everyone with that tag. Add or remove the tag later to change who is in it.',
+      name: 'Segment name',
+      placeholder: 'Diwali VIPs',
+      tooLong: 'At most 40 characters, so it fits in a tag',
+      save: 'Save segment',
+      cancel: 'Cancel',
+      saved: (name: string) => `Segment "${name}" saved`,
+      open: 'Open',
+      failed: 'Could not save the segment',
+    },
     consentTitle: (granted: boolean, channel: string, n: number) => {
       const who = n === 1 ? '1 customer' : `${n} customers`
       return granted

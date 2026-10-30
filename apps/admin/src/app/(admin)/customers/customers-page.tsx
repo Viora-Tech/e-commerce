@@ -115,7 +115,7 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
   const [tagIds, setTagIds] = useState<string[]>([])
   const [consentChange, setConsentChange] = useState<ConsentChange | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
-  /** Channels the store can send on; the Marketing menu offers only these. */
+  /** Channels the store can send on; the Marketing menu marks the others (#999). */
   const [sendable, setSendable] = useState<readonly ConsentChannel[]>(['email'])
 
   useEffect(() => {
@@ -328,6 +328,10 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
               }}
               automations={initial.automations}
               onAutomationDone={clear}
+              onSegmentSaved={() => {
+                clear()
+                handleReload()
+              }}
             />
           )}
           empty={filtered ? copy.noResults : copy.empty}
@@ -352,7 +356,20 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
               )
             : ''
         }
-        body={consentChange ? copy.bulk.consentBody(consentChange.granted) : undefined}
+        body={
+          consentChange
+            ? [
+                copy.bulk.consentBody(consentChange.granted),
+                consentChange.granted
+                  ? consentChange.channel === 'email'
+                    ? copy.bulk.consentNeedsEmail
+                    : copy.bulk.consentNeedsPhone
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(' ')
+            : undefined
+        }
         confirmLabel={copy.bulk.consentConfirm(consentChange?.granted ?? true)}
         tone={consentChange?.granted === false ? 'destructive' : 'default'}
         onConfirm={handleConfirmConsent}
