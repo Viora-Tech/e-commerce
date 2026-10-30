@@ -357,11 +357,12 @@ async function sellsOnOnlineStore(client: ShopifyClient): Promise<boolean> {
 const SELLING_PLAN_GROUPS_QUERY = `query SellingPlanGroups($cursor: String) {
   sellingPlanGroups(first: 25, after: $cursor) {
     ${PAGE_INFO}
-    nodes { name merchantCode products(first: 250) { nodes { id } } }
+    nodes { id name merchantCode products(first: 250) { nodes { id } } }
   }
 }`
 
 type GSellingPlanGroup = {
+  id: string
   name: string
   merchantCode: string
   products: { nodes: { id: string }[] }
@@ -369,13 +370,22 @@ type GSellingPlanGroup = {
 
 const PREORDER_PLAN = /pre[-s]?order/i
 
+/** A pre-order selling plan group: what becomes one pre-order campaign here (#142). */
+export type PreorderPlanGroup = {
+  /** Shopify gid of the selling plan group. */
+  id: string
+  name: string
+  /** Shopify gids of its products. */
+  productIds: string[]
+}
+
 /**
- * Shopify ids of the products sold through a pre-order purchase option: a selling plan group
- * named (or coded) like "Pre-order", as Shopify's pre-order apps make them. Needs
+ * The store's pre-order purchase options: selling plan groups named (or coded) like
+ * "Pre-order", as Shopify's pre-order apps make them, each with its products. Needs
  * `read_purchase_options`; Shopify refuses the query without it (a `scope` error).
  */
-export async function fetchPreorderProductIds(client: ShopifyClient): Promise<Set<string>> {
-  const ids = new Set<string>()
+export async function fetchPreorderGroups(client: ShopifyClient): Promise<PreorderPlanGroup[]> {
+  const out: PreorderPlanGroup[] = []
   for await (const groups of client.paginate<GSellingPlanGroup>(
     SELLING_PLAN_GROUPS_QUERY,
     (d) =>
@@ -388,8 +398,8 @@ export async function fetchPreorderProductIds(client: ShopifyClient): Promise<Se
   )) {
     for (const g of groups) {
       if (!PREORDER_PLAN.test(g.name) && !PREORDER_PLAN.test(g.merchantCode)) continue
-      for (const p of g.products.nodes) ids.add(p.id)
+      out.push({ id: g.id, name: g.name, productIds: g.products.nodes.map((p) => p.id) })
     }
   }
-  return ids
+  return out
 }
