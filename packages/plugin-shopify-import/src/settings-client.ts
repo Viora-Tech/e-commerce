@@ -42,6 +42,8 @@ const SETTINGS_SUBJECTS = [
   'timezone',
   'weight_unit',
   'money_format',
+  'home_seo_title',
+  'home_seo_description',
   'prices_include_tax',
   'gstin',
   'location',

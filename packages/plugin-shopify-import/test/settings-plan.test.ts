@@ -45,6 +45,7 @@ function emptyLocal(): LocalSettings {
       pricesIncludeGst: true,
       moneyFormat: null,
     },
+    seo: { title: '', description: '' },
     defaultGstin: null,
     gstins: [],
     locations: [
@@ -254,6 +255,33 @@ describe('store details and tax', () => {
       kind: 'location',
       id: 'loc-home',
       details: { name: 'Default location', stateCode: 'KA', pincode: '560001' },
+    })
+  })
+
+  it('brings over the home page title and description only where this store has none', async () => {
+    const source = await read()
+    expect(source.shop.seo).toEqual({
+      title: 'Waimers',
+      description: 'Premium gaming peripherals for India.',
+    })
+    const fresh = planStore(source.shop, emptyLocal())
+    expect(find(fresh.items, { subject: 'home_seo_title' })).toMatchObject({
+      action: 'update',
+      to: 'Waimers',
+    })
+    expect(fresh.ops).toContainEqual({
+      kind: 'seo',
+      title: 'Waimers',
+      description: 'Premium gaming peripherals for India.',
+    })
+    const written = planStore(source.shop, {
+      ...emptyLocal(),
+      seo: { title: 'Our own title', description: '' },
+    })
+    expect(find(written.items, { subject: 'home_seo_title' })).toMatchObject({ action: 'same' })
+    expect(written.ops).toContainEqual({
+      kind: 'seo',
+      description: 'Premium gaming peripherals for India.',
     })
   })
 

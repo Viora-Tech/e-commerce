@@ -66,6 +66,8 @@ export type LocalField = {
 
 export type LocalSettings = {
   profile: StoreProfile
+  /** Online store › Preferences: the home page title and meta description here. */
+  seo: { title: string; description: string }
   /** The default GST registration's number, and every active one. */
   defaultGstin: string | null
   gstins: string[]
@@ -96,6 +98,8 @@ export type SettingsOp =
   | { kind: 'profile'; patch: StoreProfilePatch }
   | { kind: 'location'; id: string | null; sourceId: string | null; details: LocationDetails }
   | { kind: 'gstin'; gstin: string }
+  /** Home page title / meta description for search results (only the parts given). */
+  | { kind: 'seo'; title?: string | undefined; description?: string | undefined }
   | { kind: 'zone'; id: string | null; sourceId: string; write: ShippingZoneWrite }
   | { kind: 'policy'; type: PolicyType; title: string; body: RichText; published: boolean }
   | { kind: 'field'; sourceId: string; write: MetafieldDefinitionWrite }
@@ -290,6 +294,24 @@ export function planStore(shop: NShopSettings, local: LocalSettings): PartPlan {
   } else if (shop.moneyFormat) {
     items.push({ action: 'same', subject: 'money_format', to: here.moneyFormat })
   }
+  // Home page title and meta description: brought over when this store has none yet, never
+  // over one the merchant wrote here. Search engines show them, so losing them at the move
+  // costs rankings (audit #131).
+  const seo: Extract<SettingsOp, { kind: 'seo' }> = { kind: 'seo' }
+  for (const [part, subject] of [
+    ['title', 'home_seo_title'],
+    ['description', 'home_seo_description'],
+  ] as const) {
+    const theirs = shop.seo[part]
+    if (!theirs) continue
+    const ours = local.seo[part]
+    if (!ours) {
+      items.push({ action: 'update', subject, from: null, to: theirs })
+      seo[part] = theirs
+    } else items.push({ action: 'same', subject, to: ours })
+  }
+  if (seo.title || seo.description) ops.push(seo)
+
   if (shop.weightUnit === 'POUNDS' || shop.weightUnit === 'OUNCES') {
     items.push({
       action: 'warn',

@@ -95,6 +95,8 @@ export default [
       timezone: 'टाइम ज़ोन',
       weight_unit: 'वज़न की इकाई',
       money_format: 'कीमत का फ़ॉर्मेट',
+      home_seo_title: 'होम पेज का टाइटल (सर्च रिज़ल्ट)',
+      home_seo_description: 'होम पेज का विवरण (सर्च रिज़ल्ट)',
       prices_include_tax: 'कीमतों में टैक्स शामिल',
       gstin: 'GST नंबर',
       location: 'लोकेशन',

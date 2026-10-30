@@ -42,6 +42,12 @@ export const SHOP_FIELDS = {
       nodes: [
         { namespace: 'custom', key: 'tagline', value: 'Play louder' },
         { namespace: 'gst_app', key: 'gstin', value: '29AAGCB7383J1Z4' },
+        { namespace: 'global', key: 'title_tag', value: 'Waimers' },
+        {
+          namespace: 'global',
+          key: 'description_tag',
+          value: 'Premium gaming peripherals for India.',
+        },
       ],
     },
   },

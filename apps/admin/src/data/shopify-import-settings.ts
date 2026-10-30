@@ -108,6 +108,8 @@ export const shopifyImportSettingsContent = {
     timezone: 'Time zone',
     weight_unit: 'Weight unit',
     money_format: 'Price format',
+    home_seo_title: 'Home page title (search results)',
+    home_seo_description: 'Home page description (search results)',
     prices_include_tax: 'Prices include tax',
     gstin: 'GST number',
     location: 'Location',
