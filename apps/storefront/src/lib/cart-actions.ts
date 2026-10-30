@@ -124,6 +124,9 @@ export async function cartDrawerAction() {
     return {
       lines: (open?.lines ?? []).map((l) => ({
         id: l.id,
+        // The variant and one unit's price: a market catalog's fixed price prices the line.
+        variantId: l.variantId,
+        unitPricePaise: l.unitPricePaise,
         handle: l.productHandle,
         title: l.productTitle,
         variantTitle: l.variantTitle === 'Default' ? null : l.variantTitle,

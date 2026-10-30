@@ -49,7 +49,7 @@ export { default as StoreActionsProvider } from './components/store-actions-prov
 export { default as ThemeToggle } from './components/theme-toggle'
 export { type MenuCollection, type SearchShortcut, searchShortcuts } from './header-menu'
 export { formatPaise } from './money'
-export { useFormatPaise, useMarketPricing } from './money-format'
+export { useFormatCart, useFormatPaise, useMarketPricing } from './money-format'
 export { variantOnPreorder } from './preorder-state'
 export { type SectionExperiment, sectionExperimentGate } from './section-experiment'
 export {

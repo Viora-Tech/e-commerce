@@ -1,6 +1,6 @@
 'use client'
 
-import { formatPaise, useFormatPaise, useMarketPricing } from '@commerce/blocks'
+import { formatPaise, useFormatCart, useFormatPaise, useMarketPricing } from '@commerce/blocks'
 import type { CartView } from '@commerce/core'
 import CheckoutDiscount from '@/components/checkout/checkout-discount'
 import GiftCardField from '@/components/checkout/gift-card-field'
@@ -72,7 +72,13 @@ export default function CheckoutSummary({
   // Hooks
   // On a market in another currency (`/ae`) the summary reads in it; Pay still charges rupees.
   const money = useFormatPaise()
+  const cartMoney = useFormatCart()
   const pricing = useMarketPricing()
+
+  // Helpers
+  // Markets › Catalogs: lines with a fixed price read as on the product page, and the subtotal,
+  // total and amount to pay move with them. The note below still names the rupees charged.
+  const onCart = (paise: number) => cartMoney.cart(paise, cart.lines, cart.subtotalPaise)
 
   // Render logic
   const discountPaise = discount?.amountPaise ?? 0
@@ -106,6 +112,7 @@ export default function CheckoutSummary({
               preorder={l.preorder}
               preorderNote={l.preorderNote}
               format={money}
+              price={cartMoney.line(l)}
             />
           ))}
         </ul>
@@ -122,7 +129,7 @@ export default function CheckoutSummary({
         )}
 
         <dl className="flex flex-col gap-2 border-t border-ck-summary-line pt-4">
-          <SummaryRow label={content.subtotal} value={money(cart.subtotalPaise)} />
+          <SummaryRow label={content.subtotal} value={onCart(cart.subtotalPaise)} />
           {discount?.label && discountPaise > 0 ? (
             <SummaryRow tone="saving" label={discount.label} value={`−${money(discountPaise)}`} />
           ) : null}
@@ -161,7 +168,7 @@ export default function CheckoutSummary({
                   aria-live="polite"
                   className="inline-block text-[1.375rem] font-semibold tracking-[-0.025em] tabular-nums transition-[opacity,translate] duration-200 ease-out starting:translate-y-0.5 starting:opacity-0 motion-reduce:starting:translate-y-0 lg:text-[1.5rem]"
                 >
-                  {updating ? shimmer : money(totalPaise)}
+                  {updating ? shimmer : onCart(totalPaise)}
                 </span>
               }
             />
@@ -175,7 +182,7 @@ export default function CheckoutSummary({
             />
           ))}
           {giftCards.length > 0 ? (
-            <SummaryRow tone="total" label={content.totalDue} value={money(duePaise)} />
+            <SummaryRow tone="total" label={content.totalDue} value={onCart(duePaise)} />
           ) : null}
           {laterPaise > 0 ? (
             <>

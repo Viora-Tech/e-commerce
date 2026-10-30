@@ -1,6 +1,13 @@
 'use client'
 
-import { formatPresentment, formatStoreMoney, type MarketPricing } from '@commerce/money'
+import {
+  formatPresentment,
+  formatPresentmentCart,
+  formatPresentmentLine,
+  formatStoreMoney,
+  type MarketPricing,
+  type PresentmentLine,
+} from '@commerce/money'
 import { createContext, use } from 'react'
 
 /**
@@ -25,6 +32,27 @@ export function useFormatPaise(): (paise: number, variantId?: string) => string 
   const pricing = use(MarketPricingContext)
   return (paise, variantId) =>
     pricing ? formatPresentment(paise, pricing, variantId) : formatStoreMoney(paise, format)
+}
+
+/**
+ * Formats cart amounts the way this page shows prices (Markets › Catalogs): `line` is a cart
+ * line's total (a fixed unit price × quantity where the market's catalog has one), `cart` an
+ * amount built on the subtotal (subtotal, total, to pay) that agrees with those lines.
+ */
+export function useFormatCart(): {
+  line: (line: PresentmentLine) => string
+  cart: (paise: number, lines: readonly PresentmentLine[], subtotalPaise: number) => string
+} {
+  const format = use(MoneyFormatContext)
+  const pricing = use(MarketPricingContext)
+  return {
+    line: (l) =>
+      pricing ? formatPresentmentLine(l, pricing) : formatStoreMoney(l.linePaise, format),
+    cart: (paise, lines, subtotalPaise) =>
+      pricing
+        ? formatPresentmentCart(paise, lines, subtotalPaise, pricing)
+        : formatStoreMoney(paise, format),
+  }
 }
 
 /** The page's market pricing when it shows another currency; null for rupees. */

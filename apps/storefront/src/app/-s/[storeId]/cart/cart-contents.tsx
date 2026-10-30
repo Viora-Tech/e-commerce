@@ -46,6 +46,16 @@ export default async function CartContents({ storeId }: CartContentsProps) {
   const hint = await inStore(storeId, (tx) => cartShippingHint(tx, cart.id))
   const threshold = discount?.freeShipping ? null : hint.freeAbovePaise
   const freeNow = discount?.freeShipping === true || (threshold !== null && total >= threshold)
+  // Subtotal and total agree with the lines' fixed catalog prices in a market (Markets › Catalogs).
+  const priced = {
+    lines: lines.map((l) => ({
+      variantId: l.variantId,
+      unitPricePaise: l.unitPricePaise,
+      quantity: l.quantity,
+      linePaise: l.linePaise,
+    })),
+    subtotalPaise: cart.subtotalPaise,
+  }
 
   return (
     <section className="section-cart page-width">
@@ -70,7 +80,7 @@ export default async function CartContents({ storeId }: CartContentsProps) {
             <div className="cart-summary__row">
               <span>{content.subtotal}</span>
               <span>
-                <Money paise={cart.subtotalPaise} />
+                <Money paise={cart.subtotalPaise} cart={priced} />
               </span>
             </div>
             {discount?.label && discountPaise > 0 ? (
@@ -91,7 +101,7 @@ export default async function CartContents({ storeId }: CartContentsProps) {
             <div className="cart-summary__row cart-summary__row--total">
               <span>{content.total}</span>
               <span>
-                <Money paise={total} />
+                <Money paise={total} cart={priced} />
               </span>
             </div>
             <p className="text-caption">{content.taxesAtCheckout}</p>

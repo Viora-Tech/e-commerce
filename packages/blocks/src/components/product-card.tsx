@@ -104,6 +104,7 @@ export default function ProductCard({
               pricePaise={product.pricePaise}
               mrpPaise={product.mrpPaise}
               variantId={product.quickAddVariantId}
+              variants={product.variantPrices}
             />
           </div>
         </div>

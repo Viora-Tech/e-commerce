@@ -38,6 +38,19 @@ function availableFor(v: {
   return Math.max(0, (v.onHand ?? 0) - (v.reserved ?? 0))
 }
 
+/**
+ * A card's variant prices when it has several priced ones (the card's "From" price, Markets ›
+ * Catalogs); undefined for one, where the card prices that variant itself.
+ */
+export function variantPrices(
+  vs: readonly { id: string; pricePaise: number | null }[],
+): { id: string; pricePaise: number }[] | undefined {
+  const priced = vs.flatMap((v) =>
+    v.pricePaise == null ? [] : [{ id: v.id, pricePaise: v.pricePaise }],
+  )
+  return priced.length > 1 ? priced : undefined
+}
+
 /** The card's "from" variant: the cheapest one with a price. Null when none has one yet (#913). */
 export function cheapestPriced<T extends { pricePaise: number | null }>(
   vs: readonly T[],
@@ -190,6 +203,7 @@ export async function listCardProducts(
       available: vs.reduce((n, v) => n + availableFor(v), 0),
       // Quick add needs no choice only when there is one priced variant to add.
       quickAddVariantId: vs.length === 1 && cheapest ? (vs[0]?.id ?? null) : null,
+      variantPrices: variantPrices(vs),
       preorder: cardPreorder(p, vs),
       rating: ratings.get(p.id) ?? null,
       images: images

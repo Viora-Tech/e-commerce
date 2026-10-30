@@ -14,7 +14,13 @@ import {
 } from '@commerce/db'
 import type { RichTextValue } from '@commerce/richtext'
 import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
-import { cardPreorder, cardRatings, cheapestPriced, listCardProducts } from './catalog'
+import {
+  cardPreorder,
+  cardRatings,
+  cheapestPriced,
+  listCardProducts,
+  variantPrices,
+} from './catalog'
 
 export type CollectionDetail = {
   id: string
@@ -224,6 +230,7 @@ export async function listCollectionProducts(
       available: vs.reduce((n, v) => n + availableFor(v), 0),
       // Quick add needs no choice only when there is one priced variant to add.
       quickAddVariantId: vs.length === 1 && cheapest ? (vs[0]?.id ?? null) : null,
+      variantPrices: variantPrices(vs),
       preorder: cardPreorder(p, vs),
       rating: ratings.get(p.id) ?? null,
       images: images

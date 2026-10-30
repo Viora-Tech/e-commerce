@@ -451,3 +451,92 @@ export function formatPresentment(
   if (isRupeePricing(p) && !fixed) return formatMoney(paise, 'INR')
   return formatMoney(presentmentMinor(paise, p, variantId), p.currency)
 }
+
+/*
+ * Cart lines in a market (Markets › Catalogs): a catalog's fixed price is one unit's, so a line
+ * with one is that times the quantity, and the subtotal adds the lines up, the same sums the
+ * Liquid cart makes (`toLiquidCart`). Without fixed prices every amount converts as it did.
+ * Display only: checkout still charges the rupee amounts.
+ */
+
+/** One cart line, as these sums need it. */
+export type PresentmentLine = {
+  variantId: string
+  unitPricePaise: number
+  quantity: number
+  linePaise: number
+}
+
+/** True when the market's catalog fixes this variant's price. */
+export function hasFixedPrice(p: MarketPricing | null, variantId: string): boolean {
+  return p?.fixedMinor?.[variantId] !== undefined
+}
+
+/** A line in the market's currency minor units: the fixed unit price × quantity, else converted. */
+export function presentmentLineMinor(line: PresentmentLine, p: MarketPricing): number {
+  return hasFixedPrice(p, line.variantId)
+    ? presentmentMinor(line.unitPricePaise, p, line.variantId) * line.quantity
+    : presentmentMinor(line.linePaise, p)
+}
+
+/**
+ * An amount built on the cart's subtotal (the subtotal itself, the total, what is left to pay)
+ * in the market's minor units. With a fixed price in the cart the subtotal is the lines added
+ * up, and the amount moves by as much as the subtotal did; never below zero. Without one, the
+ * amount converts on its own, as before.
+ */
+export function presentmentCartMinor(
+  paise: number,
+  lines: readonly PresentmentLine[],
+  subtotalPaise: number,
+  p: MarketPricing,
+): number {
+  if (!lines.some((l) => hasFixedPrice(p, l.variantId))) return presentmentMinor(paise, p)
+  const subtotal = lines.reduce((n, l) => n + presentmentLineMinor(l, p), 0)
+  const shift = subtotal - presentmentMinor(subtotalPaise, p)
+  return Math.max(0, presentmentMinor(paise, p) + shift)
+}
+
+/** A cart line's total as a shopper in this market reads it; rupees without a market. */
+export function formatPresentmentLine(line: PresentmentLine, p: MarketPricing | null): string {
+  if (!p || !isCurrency(p.currency) || !hasFixedPrice(p, line.variantId)) {
+    return formatPresentment(line.linePaise, p)
+  }
+  return formatMoney(presentmentLineMinor(line, p), p.currency)
+}
+
+/** `presentmentCartMinor` formatted: the cart's subtotal, total or amount to pay. */
+export function formatPresentmentCart(
+  paise: number,
+  lines: readonly PresentmentLine[],
+  subtotalPaise: number,
+  p: MarketPricing | null,
+): string {
+  if (!p || !isCurrency(p.currency) || !lines.some((l) => hasFixedPrice(p, l.variantId))) {
+    return formatPresentment(paise, p)
+  }
+  return formatMoney(presentmentCartMinor(paise, lines, subtotalPaise, p), p.currency)
+}
+
+/**
+ * A product's "From" price on a card: the variant whose one unit reads lowest in this market
+ * (its fixed price, else converted; rupees without a market), and whether the variants' prices
+ * read differently at all. Null when no variant has a price.
+ */
+export function lowestPresentment(
+  variants: readonly { id: string; pricePaise: number }[],
+  p: MarketPricing | null,
+): { id: string; pricePaise: number; varies: boolean } | null {
+  const shown = variants.map((v) => ({
+    ...v,
+    minor: p ? presentmentMinor(v.pricePaise, p, v.id) : v.pricePaise,
+  }))
+  const [first, ...rest] = shown
+  if (!first) return null
+  const lowest = rest.reduce((low, v) => (v.minor < low.minor ? v : low), first)
+  return {
+    id: lowest.id,
+    pricePaise: lowest.pricePaise,
+    varies: rest.some((v) => v.minor !== first.minor),
+  }
+}

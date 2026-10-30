@@ -29,6 +29,11 @@ export type CardProduct = {
   /** The variant a card's Quick add puts in the cart: set only when the product has exactly one. */
   quickAddVariantId?: string | null | undefined
   /**
+   * Each priced variant's one-unit price, set when the product has several: the card reads
+   * "From" the lowest as the shopper's market shows it (a catalog's fixed price, else converted).
+   */
+  variantPrices?: readonly { id: string; pricePaise: number }[] | undefined
+  /**
    * Out of stock but still selling as a pre-order (the product page's rule): the card shows a
    * "Pre-order" badge and its button reads `buttonLabel` instead of "Sold out". Null otherwise.
    */

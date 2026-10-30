@@ -1,5 +1,6 @@
 'use client'
 
+import { hasFixedPrice, lowestPresentment } from '@commerce/money'
 import { priceContent as copy } from '../data/price'
 import { useFormatPaise, useMarketPricing } from '../money-format'
 
@@ -10,6 +11,7 @@ export default function Price({
   mrpPaise,
   percentBadge = false,
   variantId,
+  variants,
 }: {
   /** Null: the merchant listed the item before setting a price (#913). */
   pricePaise: number | null
@@ -18,6 +20,11 @@ export default function Price({
   percentBadge?: boolean | undefined
   /** The variant priced: a market catalog's fixed price for it wins (Markets › Catalogs). */
   variantId?: string | null | undefined
+  /**
+   * A card's priced variants when it has several: it reads "From" the lowest as this market
+   * shows it (a fixed catalog price, else converted) when their prices differ.
+   */
+  variants?: readonly { id: string; pricePaise: number }[] | undefined
 }) {
   // Hooks
   const formatPaise = useFormatPaise()
@@ -33,13 +40,18 @@ export default function Price({
   }
 
   // Render logic
-  const fixed = variantId != null && pricing?.fixedMinor?.[variantId] !== undefined
-  // A fixed price is its own: no MRP or saving converted from rupees beside it.
-  const onSale = !fixed && mrpPaise != null && mrpPaise > pricePaise
+  const lowest = variants ? lowestPresentment(variants, pricing) : null
+  const shownPaise = lowest?.pricePaise ?? pricePaise
+  const shownId = lowest?.id ?? variantId ?? undefined
+  const fixed = shownId !== undefined && hasFixedPrice(pricing, shownId)
+  // A fixed price is its own: no MRP or saving converted from rupees beside it. The card's MRP
+  // is its cheapest rupee price's, so it shows only while that is the price shown.
+  const onSale = !fixed && shownPaise === pricePaise && mrpPaise != null && mrpPaise > pricePaise
+  const current = formatPaise(shownPaise, shownId)
 
   return (
     <div className={`price${onSale ? ' price--on-sale' : ''}`}>
-      <span className="price__current">{formatPaise(pricePaise, variantId ?? undefined)}</span>
+      <span className="price__current">{lowest?.varies ? copy.from(current) : current}</span>
       {onSale ? (
         <>
           <span className="price__compare">
