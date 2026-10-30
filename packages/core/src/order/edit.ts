@@ -15,6 +15,7 @@ import {
 import { formatMoney } from '@commerce/money'
 import type { PaymentProvider } from '@commerce/payments'
 import { and, eq, inArray, isNull, ne } from 'drizzle-orm'
+import { effectiveGstRatePercent, effectiveHsCode } from '../catalog/effective-tax'
 import type { StoreContext } from '../context'
 import { insertOutboxEvent } from '../outbox/write'
 import { chargedGstRate, parseStoreTax } from '../tax/settings'
@@ -67,8 +68,8 @@ async function loadForEdit(ctx: StoreContext, edit: OrderEdit, lock: boolean) {
           pricePaise: variant.pricePaise,
           giftCard: product.isGiftCard,
           taxable: variant.taxable,
-          gstRatePercent: variant.gstRatePercent,
-          hsCode: variant.hsCode,
+          gstRatePercent: effectiveGstRatePercent,
+          hsCode: effectiveHsCode,
           costPaise: variant.costPaise,
         })
         .from(variant)

@@ -41,6 +41,7 @@ import {
 import ProductAppsPanel, { productAppSections } from './product-apps-panel'
 import ProductBanner from './product-banner'
 import { productChecklist } from './product-checklist'
+import { missingHsCode, variantTax } from './product-tax'
 import ProductHeader from './product-header'
 import ProductImageCard from './product-image-card'
 import ProductMainCard from './product-main-card'
@@ -171,6 +172,15 @@ export default function ProductForm({
   const handleOpenTab: ProductSectionProps['onOpenTab'] = (tab, focus) => {
     handleSelectTab(tab)
     if (focus) window.setTimeout(() => document.getElementById(focus)?.focus(), 50)
+  }
+
+  /* "No HS code" on the checklist opens the product's HSN field itself (#63), not just its tab. */
+  const handleChecklistSelect = (id: string) => {
+    if (id === 'shipping' && missingHsCode(form.tax, form.variants)) {
+      handleOpenTab('shipping', 'product-hs')
+      return
+    }
+    handleSelectTab(id)
   }
 
   const handleSave = async (status?: ProductStatus) => {
@@ -304,6 +314,7 @@ export default function ProductForm({
         options={form.options}
         variants={form.variants}
         media={form.media}
+        tax={form.tax}
         facets={facets}
         error={showErrors ? errors.variants : undefined}
         onOptions={setOptions}
@@ -354,6 +365,8 @@ export default function ProductForm({
         variant={first}
         singleVariant={single}
         packageError={showErrors ? errors.package : undefined}
+        tax={form.tax}
+        onTax={(tax) => patch({ tax })}
         onChange={(vp) => patchVariant(0, vp)}
         onPackage={patchPackage}
       />
@@ -372,7 +385,7 @@ export default function ProductForm({
         apps={apps}
         productId={product?.id ?? null}
         title={form.title}
-        variants={form.variants}
+        variants={form.variants.map((v) => ({ ...v, ...variantTax(form.tax, v) }))}
         onOpenTab={handleOpenTab}
       />
     ),
@@ -451,7 +464,7 @@ export default function ProductForm({
           busy={working}
           live={Boolean(product) && form.status === 'active'}
           onPatch={patch}
-          onSelectTab={(id) => handleSelectTab(id)}
+          onSelectTab={handleChecklistSelect}
           onPublish={() => void handleSave('active')}
           onSaveDraft={() => void handleSave('draft')}
         />

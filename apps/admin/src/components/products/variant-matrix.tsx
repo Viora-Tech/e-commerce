@@ -9,6 +9,7 @@ import { productFormContent } from '@/data/product-form'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { bestMargin } from '@/lib/variant-margin'
 import type { MediaItem, VariantRow } from './form-state'
+import type { ProductTax } from './product-tax'
 import { generateSku } from './sku'
 import VariantEditDialog from './variant-edit-dialog'
 import VariantGroupRow from './variant-group-row'
@@ -22,6 +23,8 @@ type VariantMatrixProps = {
   /** What to draw: variant rows, flat or under group rows (`matrixLines`). */
   lines: MatrixLine[]
   media: MediaItem[]
+  /** The product's HSN and GST rate, for the variant dialog (#63). */
+  tax: ProductTax
   selected: number[]
   onSelectedChange: (next: number[]) => void
   onToggleGroup: (value: string) => void
@@ -50,6 +53,7 @@ export default function VariantMatrix({
   variants,
   lines,
   media,
+  tax,
   selected,
   onSelectedChange,
   onToggleGroup,
@@ -165,6 +169,7 @@ export default function VariantMatrix({
           onSave={onVariant}
           onMove={setEditing}
           onClose={() => setEditing(null)}
+          tax={tax}
         />
       ) : null}
     </div>

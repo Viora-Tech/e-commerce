@@ -116,6 +116,12 @@ export const product = pgTable(
       .default('draft'),
     /** Prices already carry tax; the GST split is extracted rather than added at checkout. */
     taxIncluded: boolean('tax_included').notNull().default(true),
+    /**
+     * HSN code and GST rate for the whole product (#63). A variant's own value wins; a variant
+     * without one uses these, and a null rate here falls back to the store default.
+     */
+    hsCode: text('hs_code'),
+    gstRatePercent: integer('gst_rate_percent'),
     /** Shown in the storefront's featured section. */
     featured: boolean('featured').notNull().default(false),
     /** Sold as a gift card: digital, never shipped or taxed at sale; paid lines issue a card by email. */

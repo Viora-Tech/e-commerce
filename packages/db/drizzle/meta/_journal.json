@@ -1317,6 +1317,13 @@
       "when": 1793388128495,
       "tag": "0203_review_cache_triggers",
       "breakpoints": true
+    },
+    {
+      "idx": 188,
+      "version": "7",
+      "when": 1793390749337,
+      "tag": "0204_product_tax",
+      "breakpoints": true
     }
   ]
 }

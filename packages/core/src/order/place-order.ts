@@ -6,6 +6,7 @@ import {
   checkoutRuleSubtotalPaise,
   parseCheckoutSettings,
 } from '../checkout/settings'
+import { effectiveGstRatePercent, effectiveHsCode } from '../catalog/effective-tax'
 import { assessCheckoutRisk } from '../cod-rto/risk'
 import type { StoreContext } from '../context'
 import { applyDiscount } from '../discounts/evaluate'
@@ -72,9 +73,9 @@ const loadCart: WorkflowStep<State> = {
         hiddenOnStore: variant.hiddenOnStore,
         title: product.title,
         variantTitle: variant.title,
-        gstRatePercent: variant.gstRatePercent,
+        gstRatePercent: effectiveGstRatePercent,
         taxable: variant.taxable,
-        hsCode: variant.hsCode,
+        hsCode: effectiveHsCode,
         giftCard: product.isGiftCard,
         weightGrams: variant.weightGrams,
         costPaise: variant.costPaise,

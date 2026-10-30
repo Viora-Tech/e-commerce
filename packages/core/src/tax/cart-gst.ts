@@ -1,6 +1,7 @@
 /** SOURCE OF TRUTH: previewCartGst — WHAT: the GST contained in what a shopper is about to pay for a cart, worked out the way placing the order does (each line's rate, gift cards and untaxed lines at 0, composition stores at 0, the discount spread over the lines) / WHY: checkout's summary says "Includes ₹X GST" before the order exists; the invoice stays the authority (a multi-warehouse order may bill parcels from different GSTINs, which moves CGST/SGST vs IGST but not the total) */
 import { cart, cartLine, product, type StoreTx, store, variant } from '@commerce/db'
 import { eq } from 'drizzle-orm'
+import { effectiveGstRatePercent } from '../catalog/effective-tax'
 import { StoreAddressSchema } from '../settings/general'
 import { computeOrderGst } from './gst'
 import { chargedGstRate, parseStoreTax } from './settings'
@@ -42,7 +43,7 @@ export async function previewCartGst(
     .select({
       quantity: cartLine.quantity,
       unitPricePaise: cartLine.unitPricePaise,
-      gstRatePercent: variant.gstRatePercent,
+      gstRatePercent: effectiveGstRatePercent,
       taxable: variant.taxable,
       giftCard: product.isGiftCard,
     })

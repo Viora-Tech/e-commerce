@@ -290,6 +290,10 @@ export const productFormContent = {
       pricing: 'Pricing',
       inventory: 'Inventory',
       tax: 'Tax',
+      /** Variant dialog, when HSN and GST are set once for the product (#63). */
+      taxFromProduct: 'HSN code and GST rate are set for the whole product on the Shipping tab.',
+      /** Placeholder of a per-variant field left blank: the product's value applies. */
+      fromProduct: (value: string) => `Product: ${value}`,
       shipping: 'Shipping',
       track: 'Track quantity',
       trackHelp: 'Off sells it without counting stock.',
@@ -369,6 +373,13 @@ export const productFormContent = {
     hsCodeHelp: 'Used on customs forms and printed on GST invoices.',
     gstRate: 'GST rate (%)',
     gstRateHelp: 'Leave blank to use the store rate from Settings, GST & invoices.',
+    /** With options: one HSN for every variant (#63). */
+    hsCodeAllHelp: 'Applies to every variant. Used on customs forms and printed on GST invoices.',
+    taxPerVariant: 'Different per variant',
+    taxPerVariantOffHelp:
+      'Turn on only when variants are classed differently. Saving with it off uses these values for every variant.',
+    taxPerVariantOnHelp:
+      "Set a variant's own HSN code or GST rate in its Edit dialog under Variants. A variant left blank uses the values above.",
     country: 'Country of origin',
     countryHelp: 'Where the product was made or assembled.',
     countryPlaceholder: 'Select a country',
@@ -379,7 +390,7 @@ export const productFormContent = {
     packageAllVariants: 'Applies to every variant of this product.',
     /** With options, weight and customs move into each variant's Edit dialog. */
     perVariant:
-      'Weight, HSN code, GST rate and country of origin are set on each variant. Open a variant under Variants to edit them.',
+      'Weight and country of origin are set on each variant. Open a variant under Variants to edit them.',
     packageStoreDefault: "Use the store's default box",
     packageCustom: 'Custom size',
     packageOption: (name: string, l: number, w: number, h: number) =>

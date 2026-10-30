@@ -12,6 +12,7 @@ import {
 } from '@commerce/db'
 import { and, desc, eq, gte, inArray, lt, lte, sql } from 'drizzle-orm'
 import { z } from 'zod'
+import { effectiveGstRatePercent, effectiveHsCode } from '../catalog/effective-tax'
 import type { StoreContext } from '../context'
 import { recordDiscountUse } from '../discounts/usage'
 import { CommerceError, PriceNotSet } from '../errors'
@@ -130,8 +131,8 @@ export async function resolveLines(ctx: StoreContext, lines: DraftInput['lines']
             title: variant.title,
             pricePaise: variant.pricePaise,
             taxable: variant.taxable,
-            gstRatePercent: variant.gstRatePercent,
-            hsCode: variant.hsCode,
+            gstRatePercent: effectiveGstRatePercent,
+            hsCode: effectiveHsCode,
             productTitle: product.title,
             giftCard: product.isGiftCard,
           })

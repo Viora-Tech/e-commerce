@@ -21,6 +21,7 @@ import {
   type VariantRow,
 } from './form-state'
 import OptionChip from './option-chip'
+import type { ProductTax } from './product-tax'
 import OptionEditor from './option-editor'
 import { generateSku } from './sku'
 import VariantBulkBar, { type VariantBulkPatch } from './variant-bulk-bar'
@@ -34,6 +35,8 @@ type VariantsCardProps = {
   variants: VariantRow[]
   /** Gallery, so a variant can use its images. */
   media: MediaItem[]
+  /** The product's HSN and GST rate, for the variant dialog (#63). */
+  tax: ProductTax
   /** Option names and values the store's other products use, offered first. */
   facets?: Facets | undefined
   error?: string | undefined
@@ -51,6 +54,7 @@ export default function VariantsCard({
   options,
   variants,
   media,
+  tax,
   facets,
   error,
   onOptions,
@@ -239,6 +243,7 @@ export default function VariantsCard({
           variants={variants}
           lines={lines}
           media={media}
+          tax={tax}
           selected={selected}
           onSelectedChange={setSelected}
           onToggleGroup={handleToggleGroup}

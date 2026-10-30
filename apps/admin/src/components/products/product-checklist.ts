@@ -5,6 +5,7 @@ import { rupees } from '@/data/products'
 import type { Formatters } from '@/lib/format'
 import { type FormErrors, type ProductFormState, stockOf } from './form-state'
 import { type ProductTabId, tabOfError, tabsFor } from './product-tab-list'
+import { missingHsCode } from './product-tax'
 
 type Copy = typeof productFormContent
 type PageCopy = typeof productPageContent
@@ -43,7 +44,7 @@ export function productChecklist(
       case 'shipping':
         if (form.variants.some((v) => !v.weight.trim())) return { state: 'todo', note: c.noWeight }
         /* GST invoices print the HSN code, so a product without one needs fixing. */
-        if (form.variants.some((v) => !v.hsCode.trim())) return { state: 'warn', note: c.noHsCode }
+        if (missingHsCode(form.tax, form.variants)) return { state: 'warn', note: c.noHsCode }
         return { state: 'done' }
       case 'seo':
         return form.seoTitle.trim() || form.seoDescription.trim()

@@ -92,6 +92,9 @@ export const ProductFieldsSchema = z
     status: ProductStatusSchema.optional(),
     /** Prices already carry tax; the GST split is extracted rather than added. */
     taxIncluded: z.boolean().optional(),
+    /** HSN code and GST rate for every variant without its own (#63). Undefined leaves them. */
+    hsCode: z.string().trim().max(20).nullable().optional(),
+    gstRatePercent: z.number().int().min(0).max(40).nullable().optional(),
     /** Shown in the storefront's featured section. */
     featured: z.boolean().optional(),
     /** Window the compare-at price applies in; both null means it always applies. */

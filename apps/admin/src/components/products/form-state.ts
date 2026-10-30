@@ -10,6 +10,7 @@ import { isRichTextEmpty, parseRichText, type RichTextValue } from '@commerce/ri
 import type { productFormContent } from '@/data/product-form'
 import { rupees } from '@/data/products'
 import type { api } from '@/lib/api-client'
+import { liftTax, type ProductTax } from './product-tax'
 import { DEFAULT_WEIGHT_UNIT, fromGrams, toGrams } from './weight-units'
 
 export type LoadedProduct = NonNullable<Awaited<ReturnType<typeof api.products.get>>>
@@ -72,6 +73,8 @@ export type ProductFormState = {
   taxIncluded: boolean
   /** Highlights the product in the storefront's featured section. */
   featured: boolean
+  /** HSN code and GST rate for the whole product, or per variant (#63). */
+  tax: ProductTax
   /** `yyyy-mm-dd` bounds for the compare-at price; empty means no bound. */
   saleStartsAt: string
   saleEndsAt: string
@@ -142,6 +145,7 @@ export function emptyForm(): ProductFormState {
     handle: '',
     taxIncluded: true,
     featured: false,
+    tax: { hsCode: '', gstRate: '', perVariant: false },
     saleStartsAt: '',
     saleEndsAt: '',
     preorderEnabled: false,
@@ -163,6 +167,7 @@ export function emptyForm(): ProductFormState {
 }
 
 export function fromProduct(p: LoadedProduct): ProductFormState {
+  const variants = fromVariants(p)
   return {
     title: p.title,
     description: parseRichText(p.description),
@@ -178,6 +183,7 @@ export function fromProduct(p: LoadedProduct): ProductFormState {
     handle: p.handle,
     taxIncluded: p.taxIncluded,
     featured: p.featured,
+    tax: liftTax(p, variants),
     saleStartsAt: toDateField(p.saleStartsAt),
     saleEndsAt: toDateField(p.saleEndsAt),
     preorderEnabled: p.preorderEnabled,
@@ -197,38 +203,42 @@ export function fromProduct(p: LoadedProduct): ProductFormState {
       name: o.name,
       values: o.values.map((v) => v.value),
     })),
-    // A product imported without variants (Shopify "historical" items) still needs one row,
-    // or the editor has nothing to show and renders a blank page.
-    variants:
-      p.variants.length === 0
-        ? [emptyVariant([])]
-        : p.variants.map((v) => ({
-            id: v.id,
-            optionValues: v.optionValues,
-            price: rupees.toField(v.pricePaise),
-            mrp: rupees.toField(v.mrpPaise),
-            cost: rupees.toField(v.costPaise),
-            sku: v.sku ?? '',
-            barcode: v.barcode ?? '',
-            taxable: v.taxable,
-            trackInventory: v.trackInventory,
-            hiddenOnStore: v.hiddenOnStore,
-            preorderAllowed: v.preorderAllowed,
-            quantity: String(v.onHand ?? 0),
-            weight: fromGrams(v.weightGrams, v.weightUnit ?? DEFAULT_WEIGHT_UNIT),
-            weightUnit: v.weightUnit ?? DEFAULT_WEIGHT_UNIT,
-            hsCode: v.hsCode ?? '',
-            countryOfOrigin: v.countryOfOrigin ?? '',
-            gstRate: v.gstRatePercent == null ? '' : String(v.gstRatePercent),
-            boxPresetId: v.boxPresetId ?? null,
-            packageLengthCm: v.packageLengthCm ?? null,
-            packageWidthCm: v.packageWidthCm ?? null,
-            packageHeightCm: v.packageHeightCm ?? null,
-            mediaIds: v.mediaIds,
-          })),
+    variants,
     media: p.images.map((i) => ({ id: i.id, url: i.url, alt: i.alt, contentType: i.contentType })),
     inventoryReason: 'correction',
   }
+}
+
+/** Variant rows of a loaded product. */
+function fromVariants(p: LoadedProduct): VariantRow[] {
+  // A product imported without variants (Shopify "historical" items) still needs one row,
+  // or the editor has nothing to show and renders a blank page.
+  return p.variants.length === 0
+    ? [emptyVariant([])]
+    : p.variants.map((v) => ({
+        id: v.id,
+        optionValues: v.optionValues,
+        price: rupees.toField(v.pricePaise),
+        mrp: rupees.toField(v.mrpPaise),
+        cost: rupees.toField(v.costPaise),
+        sku: v.sku ?? '',
+        barcode: v.barcode ?? '',
+        taxable: v.taxable,
+        trackInventory: v.trackInventory,
+        hiddenOnStore: v.hiddenOnStore,
+        preorderAllowed: v.preorderAllowed,
+        quantity: String(v.onHand ?? 0),
+        weight: fromGrams(v.weightGrams, v.weightUnit ?? DEFAULT_WEIGHT_UNIT),
+        weightUnit: v.weightUnit ?? DEFAULT_WEIGHT_UNIT,
+        hsCode: v.hsCode ?? '',
+        countryOfOrigin: v.countryOfOrigin ?? '',
+        gstRate: v.gstRatePercent == null ? '' : String(v.gstRatePercent),
+        boxPresetId: v.boxPresetId ?? null,
+        packageLengthCm: v.packageLengthCm ?? null,
+        packageWidthCm: v.packageWidthCm ?? null,
+        packageHeightCm: v.packageHeightCm ?? null,
+        mediaIds: v.mediaIds,
+      }))
 }
 
 /**
@@ -365,6 +375,8 @@ export function toWrite(form: ProductFormState): ProductWrite {
     templateSuffix: form.templateSuffix || null,
     status: form.status,
     taxIncluded: form.taxIncluded,
+    hsCode: form.tax.hsCode.trim() || null,
+    gstRatePercent: form.tax.gstRate.trim() === '' ? null : Number(form.tax.gstRate),
     featured: form.featured,
     saleStartsAt: fromDateField(form.saleStartsAt),
     saleEndsAt: fromDateField(form.saleEndsAt),
@@ -401,9 +413,12 @@ export function toWrite(form: ProductFormState): ProductWrite {
       preorderAllowed: v.preorderAllowed,
       weightGrams: toGrams(v.weight, v.weightUnit),
       weightUnit: v.weightUnit,
-      hsCode: v.hsCode.trim() || null,
+      // One HSN and rate for the product unless "Different per variant" is on (#63): then a
+      // variant's own value wins and a blank one uses the product's.
+      hsCode: form.tax.perVariant ? v.hsCode.trim() || null : null,
       countryOfOrigin: v.countryOfOrigin.trim() || null,
-      gstRatePercent: v.gstRate.trim() === '' ? null : Number(v.gstRate),
+      gstRatePercent:
+        form.tax.perVariant && v.gstRate.trim() !== '' ? Number(v.gstRate) : null,
       boxPresetId: v.boxPresetId,
       packageLengthCm: v.packageLengthCm,
       packageWidthCm: v.packageWidthCm,

@@ -26,7 +26,7 @@ describe('PRODUCT_APP_ACTIONS', () => {
     expect(PRODUCT_APP_ACTIONS['gst-invoices']?.[0]?.target).toEqual({
       kind: 'tab',
       tab: 'shipping',
-      focus: 'variant-hs',
+      focus: 'product-hs',
     })
   })
 })

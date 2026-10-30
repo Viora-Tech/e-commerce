@@ -4,12 +4,14 @@ import {
   fulfillmentOrderLine,
   order,
   orderLine,
+  product,
   shipment,
   store,
   variant,
 } from '@commerce/db'
 import { ASSUMED_WEIGHT_GRAMS, type ShippingProvider, type Tracking } from '@commerce/shipping'
 import { and, eq, inArray, ne } from 'drizzle-orm'
+import { effectiveHsCode } from '../catalog/effective-tax'
 import type { StoreContext } from '../context'
 import { fulfilParcelLines, fulfilRemainingLines } from '../order/fulfil'
 import { assertNotHeld } from '../order/fulfillment-hold'
@@ -190,7 +192,7 @@ export async function createShipmentForOrder(
       /* Customs fields, for a parcel going abroad: the HS code as it stood at order time,
          else the variant's own. */
       lineHsCode: orderLine.hsCode,
-      variantHsCode: variant.hsCode,
+      variantHsCode: effectiveHsCode,
       countryOfOrigin: variant.countryOfOrigin,
       sku: variant.sku,
       variantWeightGrams: variant.weightGrams,
@@ -201,6 +203,7 @@ export async function createShipmentForOrder(
     })
     .from(orderLine)
     .leftJoin(variant, eq(variant.id, orderLine.variantId))
+    .leftJoin(product, eq(product.id, variant.productId))
     .where(eq(orderLine.orderId, orderId))
   /* The parcel's location (the order's, when it ships whole) when it has courier pickup on,
      else Settings › Shipping - unless the merchant picked where it leaves from. */

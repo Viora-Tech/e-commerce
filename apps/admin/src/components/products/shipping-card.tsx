@@ -27,6 +27,8 @@ import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import type { VariantRow } from './form-state'
+import type { ProductTax } from './product-tax'
+import ProductTaxFields from './product-tax-fields'
 import WeightInput from './weight-input'
 import { toGrams } from './weight-units'
 
@@ -35,6 +37,9 @@ type ShippingCardProps = {
   /** Without options the card edits the only variant; with them, the package still covers all. */
   singleVariant: boolean
   packageError?: string | undefined
+  /** HSN code and GST rate for the whole product (#63). */
+  tax: ProductTax
+  onTax: (tax: ProductTax) => void
   /** Weight and customs fields, for the variant shown. */
   onChange: (patch: Partial<VariantRow>) => void
   /** Package fields, applied to every variant. */
@@ -75,6 +80,8 @@ export default function ShippingCard({
   variant,
   singleVariant,
   packageError,
+  tax,
+  onTax,
   onChange,
   onPackage,
 }: ShippingCardProps) {
@@ -138,7 +145,8 @@ export default function ShippingCard({
   return (
     <DataCard title={copy.heading}>
       <FieldGroup>
-        {/* With options these are per variant, in each variant's Edit dialog (#914). */}
+        {/* HSN and GST once for the product (#63); weight and origin stay per variant (#914). */}
+        <ProductTaxFields tax={tax} singleVariant={singleVariant} onChange={onTax} />
         {singleVariant ? null : (
           <p className="text-body text-muted-foreground">{copy.perVariant}</p>
         )}
@@ -151,30 +159,6 @@ export default function ShippingCard({
                 weight={variant.weight}
                 unit={variant.weightUnit}
                 onChange={onChange}
-              />
-            </SettingsRow>
-            <SettingsRow label={copy.hsCode} description={copy.hsCodeHelp} htmlFor="variant-hs">
-              <Input
-                size="lg"
-                id="variant-hs"
-                value={variant.hsCode}
-                onChange={(e) => onChange({ hsCode: e.target.value })}
-                autoComplete="off"
-                inputMode="numeric"
-                className="md:max-w-[20.75rem]"
-              />
-            </SettingsRow>
-            <SettingsRow label={copy.gstRate} description={copy.gstRateHelp} htmlFor="variant-gst">
-              <Input
-                size="lg"
-                id="variant-gst"
-                value={variant.gstRate}
-                onChange={(e) =>
-                  onChange({ gstRate: e.target.value.replace(/\D/g, '').slice(0, 2) })
-                }
-                autoComplete="off"
-                inputMode="numeric"
-                className="md:max-w-[20.75rem]"
               />
             </SettingsRow>
             <SettingsRow
