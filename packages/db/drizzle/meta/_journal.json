@@ -1247,6 +1247,13 @@
       "when": 1793376704515,
       "tag": "0193_shipping_profiles",
       "breakpoints": true
+    },
+    {
+      "idx": 178,
+      "version": "7",
+      "when": 1793385847556,
+      "tag": "0194_catalogs",
+      "breakpoints": true
     }
   ]
 }

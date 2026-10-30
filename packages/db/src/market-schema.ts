@@ -126,7 +126,7 @@ export type CatalogScope = (typeof CATALOG_SCOPES)[number]
 
 /**
  * SOURCE OF TRUTH: catalog, catalogProduct, catalogCollection, catalogPrice
- * WHAT:  Shopify-style catalogs (0193): the products a market sells and its price changes on
+ * WHAT:  Shopify-style catalogs (0194): the products a market sells and its price changes on
  *        top of the market's conversion (a percent, and fixed prices per variant in the
  *        market's currency). A market points at one catalog (`market.catalog_id`).
  * WHY:   A market abroad may sell only part of the range, or price it its own way, while
