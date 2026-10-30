@@ -21,6 +21,9 @@ type Mode = 'install' | 'app' | 'token'
 
 const MODES: readonly Mode[] = ['install', 'app', 'token']
 
+// Roomier than the shared tabs' compact h-8: these are the main choice on the page.
+const TRIGGER = 'gap-2 px-3 py-2'
+
 const isMode = (value: string): value is Mode => (MODES as readonly string[]).includes(value)
 
 /**
@@ -46,18 +49,18 @@ export default function ConnectForm({ onConnected }: ConnectFormProps) {
 
   return (
     <Tabs value={mode} onValueChange={(v) => isMode(v) && setMode(v)}>
-      <TabsList className="w-full">
+      <TabsList className="w-fit max-w-full p-1 group-data-horizontal/tabs:h-auto">
         {installable ? (
-          <TabsTrigger value="install" className="gap-2">
+          <TabsTrigger value="install" className={TRIGGER}>
             {copy.mode.install}
             <Badge variant="secondary">{install.badge}</Badge>
           </TabsTrigger>
         ) : null}
-        <TabsTrigger value="app" className="gap-2">
+        <TabsTrigger value="app" className={TRIGGER}>
           {copy.mode.app}
           {installable ? null : <Badge variant="secondary">{copy.app.badge}</Badge>}
         </TabsTrigger>
-        <TabsTrigger value="token">{copy.mode.token}</TabsTrigger>
+        <TabsTrigger value="token" className={TRIGGER}>{copy.mode.token}</TabsTrigger>
       </TabsList>
       {installable ? (
         <TabsContent value="install" className="pt-4">

@@ -200,6 +200,10 @@ export const shopifyImportContent = {
     } satisfies Record<AuthMode, string>,
     verified: 'Checked',
     disconnect: 'Disconnect',
+    change: 'Change',
+    changeIntro:
+      'Connect again with the new details. The current connection keeps working until the new one is checked.',
+    cancelChange: 'Cancel',
     disconnected: 'Store disconnected',
     testHeading: 'Test connection',
     test: 'Test connection',

@@ -10,10 +10,12 @@ import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 const connectHref = `${shopifyImportContent.base}/connect`
+const editHref = `${connectHref}?edit=1`
 
 /**
  * App header button, on every tab: a primary "Connect Shopify store" while nothing is
- * connected, then a secondary one that shows the connected domain and opens the connection.
+ * connected, then a secondary one that shows the connected domain and opens the connection form
+ * to change it (`?edit=1`; a plain link to the connect page did nothing while already on it).
  */
 export default function ConnectHeaderButton() {
   // Hooks
@@ -39,7 +41,7 @@ export default function ConnectHeaderButton() {
       {copy.headerConnect}
     </Button>
   ) : (
-    <Button variant="outline" nativeButton={false} render={<Link href={connectHref} />}>
+    <Button variant="outline" nativeButton={false} render={<Link href={editHref} />}>
       <Store aria-hidden="true" />
       <span className="max-w-48 truncate">{domain}</span>
       <span className="text-muted-foreground">{copy.headerEdit}</span>
