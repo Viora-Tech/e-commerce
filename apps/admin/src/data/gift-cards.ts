@@ -216,6 +216,20 @@ export const giftCardDetailContent = {
     cancel: 'Cancel',
     saved: 'Expiration date saved',
   },
+  /** How many checkouts may spend the card (#993). */
+  usage: {
+    heading: 'Usage limit',
+    none: 'No limit',
+    used: (n: number, limit: number | null) =>
+      limit === null ? `Used ${n} ${n === 1 ? 'time' : 'times'}` : `Used ${n} of ${limit} times`,
+    label: 'Times it can be used',
+    help: 'Each checkout that spends the card counts once.',
+    edit: 'Edit',
+    remove: 'Remove limit',
+    save: 'Save',
+    cancel: 'Cancel',
+    saved: 'Usage limit saved',
+  },
   note: {
     heading: 'Notes',
     placeholder: 'Only staff see this',

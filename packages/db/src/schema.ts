@@ -2417,6 +2417,10 @@ export const giftCard = pgTable(
     /** Last day the card can be used, in the store's time zone. Null never expires. */
     expiresOn: date('expires_on', { mode: 'string' }),
     disabledAt: timestamp('disabled_at', { withTimezone: true }),
+    /** Most checkouts that may spend this card (#993). Null: no limit. */
+    usageLimit: integer('usage_limit'),
+    /** Checkouts that have spent it, counted against `usage_limit`. */
+    useCount: integer('use_count').notNull().default(0),
     customerId: uuid('customer_id').references(() => customer.id),
     recipientEmail: text('recipient_email'),
     recipientName: text('recipient_name'),

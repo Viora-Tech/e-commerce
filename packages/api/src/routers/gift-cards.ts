@@ -138,6 +138,8 @@ export const giftCardsRouter = {
         customerId: z.uuid().nullable().optional(),
         recipientEmail: z.email().nullable().optional(),
         recipientName: z.string().trim().max(120).nullable().optional(),
+        /** Most checkouts that may spend it (#993); null removes the limit. */
+        usageLimit: z.number().int().min(1).max(100000).nullable().optional(),
       }),
     )
     .handler(({ context, input }) => {

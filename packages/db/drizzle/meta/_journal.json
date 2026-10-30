@@ -1282,6 +1282,13 @@
       "when": 1793387289623,
       "tag": "0198_inbox_knowledge",
       "breakpoints": true
+    },
+    {
+      "idx": 183,
+      "version": "7",
+      "when": 1793387455283,
+      "tag": "0199_gift_card_usage_limit",
+      "breakpoints": true
     }
   ]
 }
