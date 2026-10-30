@@ -161,6 +161,9 @@ export default function OrdersBulkActions({
         items={moreItems}
         disabled={apps.busy}
         triggerClassName="h-8 rounded-sm px-3"
+        // Wide enough that "Send payment reminders" fits on one line, and tall enough not to
+        // scroll inside itself (audit #9).
+        contentClassName="min-w-64 max-h-none"
       />
       <ConfirmDialog
         open={confirmCancel}
