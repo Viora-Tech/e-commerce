@@ -174,8 +174,10 @@ reference to it (see `addOrderNote` and `assertOwnSegment` in campaigns, the two
 found when it was added). **SKIP** (top of the file) is only for procedures that reach an
 outside service (gateway, courier, mailer, Shopify, DNS) or that would end the walk (switch
 or delete the store under test), each with its reason. The test also asserts a coverage
-floor (60% of callable procedures answer at least one call without an error) so a broken
-input generator cannot pass silently, and it checks its own detector on a planted leak.
+floor (62% of callable procedures answer at least one call without an error) so a broken
+input generator cannot pass silently, and it checks its own detector on a planted leak. AI
+runs on the mock model (`AI_PROVIDER=mock`) during the walk, so AI procedures are walked too;
+a new namespace whose `id` is not a product gets a `NAMESPACE_TABLE` entry.
 
 ### j. `pinned-actions` (`scripts/sweeps/pinned-actions.test.ts`)
 

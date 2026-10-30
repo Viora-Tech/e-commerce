@@ -36,6 +36,26 @@ import { type PickId, sampleInput, uuidsIn } from './support/sample-input'
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
 
+/**
+ * AI runs on the built-in mock model (AI_PROVIDER=mock: offline, deterministic), so the AI
+ * procedures answer instead of refusing "AI is off", and a dev .env key never reaches a real
+ * gateway. Both test stores are unlimited, so the walk's many AI calls never hit the quota.
+ */
+const AI_ENV: Record<string, string | undefined> = {
+  AI_PROVIDER: 'mock',
+  AI_GATEWAY_API_KEY: undefined,
+  OPENROUTER_API_KEY: undefined,
+  AI_UNLIMITED_STORES: 'leak-a,leak-b',
+}
+const savedAiEnv = Object.fromEntries(Object.keys(AI_ENV).map((k) => [k, process.env[k]]))
+
+function setEnv(values: Record<string, string | undefined>) {
+  for (const [k, v] of Object.entries(values)) {
+    if (v === undefined) delete process.env[k]
+    else process.env[k] = v
+  }
+}
+
 /** Never call outside services from tests: these reach a gateway, courier, mailer, Shopify or DNS. */
 const PLATFORM =
   'platform console: owner connection + staff guard, NOT_FOUND here; covered by platform.test.ts'
@@ -100,12 +120,6 @@ const SKIP: Record<string, string> = {
   'searchConsole.refresh': 'Google Search Console API',
   'searchConsole.sitemaps': 'Google Search Console API',
   'searchConsole.submitSitemap': 'Google Search Console API',
-  'ai.writeProduct': 'AI model provider (a dev .env key would reach the real gateway)',
-  'ai.suggestKeywords': 'AI model provider (a dev .env key would reach the real gateway)',
-  'ai.assistant': 'AI model provider (a dev .env key would reach the real gateway)',
-  'reviews.writeReply': 'AI model provider (a dev .env key would reach the real gateway)',
-  'inbox.suggestReplies': 'AI model provider (a dev .env key would reach the real gateway)',
-  'inbox.summarise': 'AI model provider (a dev .env key would reach the real gateway)',
   'ai.bulkWrite':
     'AI model provider (runs in the request without a queue); covered by ai-assistant.test.ts',
   'purchaseDocuments.read':
@@ -285,6 +299,34 @@ const NAMESPACE_TABLE: Record<string, string> = {
   deliveryOptions: 'delivery_option',
   bugReports: 'bug_report',
   rollouts: 'rollout',
+  catalogs: 'catalog',
+  'shipping.profiles': 'shipping_profile',
+  inbox: 'inbox_conversation',
+  'inbox.quickReplies': 'inbox_quick_reply',
+  'inbox.knowledge': 'inbox_knowledge',
+  'inbox.blocks': 'inbox_block',
+  reviews: 'review',
+  suppliers: 'supplier',
+  inboundShipments: 'inbound_shipment',
+  purchaseCharges: 'purchase_charge',
+  purchaseDocuments: 'purchase_document',
+  apiAccess: 'api_grant',
+  billing: 'usage_bill',
+  automations: 'automation_workflow',
+  'automations.runs': 'automation_run',
+  shortLinks: 'short_link',
+  businessGst: 'gst_registration',
+  monthlyExpenses: 'monthly_expense',
+  affiliates: 'affiliate',
+  'affiliates.programs': 'affiliate_program',
+  'affiliates.creatives': 'affiliate_creative',
+  'affiliates.blocklist': 'affiliate_blocklist',
+  'affiliates.commissions': 'affiliate_commission',
+  'affiliates.payouts': 'affiliate_payout',
+  pixels: 'pixel_connection',
+  'pixels.log': 'pixel_event_log',
+  analytics: 'saved_report',
+  ai: 'ai_action',
 }
 
 /** Procedure-name hints that beat the namespace (`blog.updateBlog` edits a blog, not an article). */
@@ -304,6 +346,9 @@ const NAME_HINTS: [RegExp, string][] = [
 const PROCEDURE_KEY_TABLE: Record<string, string> = {
   'purchaseOrders.receive.lineId': 'purchase_order_line',
   'themes.code.version.versionId': 'theme_file_version',
+  'inbox.get.beforeId': 'inbox_message',
+  'businessGst.updateBusiness.id': 'business',
+  'automations.restoreVersion.versionId': 'automation_version',
 }
 
 const KEY_ALIAS: Record<string, string> = {
@@ -328,6 +373,8 @@ const KEY_ALIAS: Record<string, string> = {
   addressId: 'customer_address',
   articleId: 'article',
   periodId: 'invoice_period',
+  workflowId: 'automation_workflow',
+  programId: 'affiliate_program',
 }
 
 const snake = (s: string) => s.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`)
@@ -347,10 +394,15 @@ function tableFor(key: string, path: string[], tables: Set<string>): string {
   return 'product'
 }
 
+/**
+ * Each store has two rows per table. Deletes take the last one and everything else the first,
+ * so a delete early in the walk leaves the row the later procedures of the namespace need.
+ */
 function picker(target: StoreUnderTest, path: string[], tables: Set<string>): PickId {
+  const deletes = /^(delete|remove)/.test(path.at(-1) ?? '')
   return (key) => {
     const ids = target.ids.get(tableFor(key, path, tables)) ?? target.ids.get('product') ?? []
-    return ids[0]
+    return deletes ? ids.at(-1) : ids[0]
   }
 }
 
@@ -402,6 +454,7 @@ const findings: string[] = []
 
 beforeAll(async () => {
   process.env.LOCAL_STORAGE_DIR = mkdtempSync(join(tmpdir(), 'leak-test-uploads-'))
+  setEnv(AI_ENV)
   await resetDb(owner)
   a = await storeUnderTest('leak-a@example.com', 'leak-a')
   b = await storeUnderTest('leak-b@example.com', 'leak-b')
@@ -415,6 +468,7 @@ beforeAll(async () => {
 }, 120_000)
 
 afterAll(async () => {
+  setEnv(savedAiEnv)
   await owner.$client.end()
   await app.$client.end()
 })
@@ -582,9 +636,11 @@ describe('cross-store leak guardrail', () => {
       }
     }
     expect(findings).toEqual([])
-    // Coverage floor (a ratchet: raise it as the input generator learns more shapes). Lowered from
-    // 0.6 on 29 Oct 2026: new procedures (rollouts, bug reports, approvals, delivery options) mostly
-    // refuse on state or plan preconditions, and AI is off in tests (#969 raises it back).
-    expect(covered / callable).toBeGreaterThan(0.59)
+    // Coverage floor (a ratchet: raise it as the input generator learns more shapes). Raised
+    // back from 0.59 on 31 Oct 2026 (#969): AI runs on the mock model, and the namespaces added
+    // since (catalogs, shipping profiles, inbox knowledge, reviews, affiliates, pixels,
+    // automations, purchasing) map their ids to their own tables. Some procedures still refuse
+    // on state or plan preconditions (rollouts not active, staff plan limit, bug reports off).
+    expect(covered / callable).toBeGreaterThan(0.62)
   }, 600_000)
 })
