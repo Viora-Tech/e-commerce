@@ -1,6 +1,6 @@
 import {
   aiModel,
-  clampSummary,
+  clampReviewSummary,
   generateStructured,
   ReviewSummarySchema,
   reviewSummaryContent,
@@ -19,13 +19,7 @@ import {
   storeNameOf,
   summarySource,
 } from '@commerce/plugin-reviews/server'
-import {
-  type IORedis,
-  KEEP_FINISHED,
-  Queue,
-  REVIEW_SUMMARIES_QUEUE,
-  Worker,
-} from '@commerce/queue'
+import { type IORedis, KEEP_FINISHED, Queue, REVIEW_SUMMARIES_QUEUE, Worker } from '@commerce/queue'
 
 /** New reviews show in the summary within about this long. */
 export const REVIEW_SUMMARIES_EVERY_MS = 15 * 60_000
@@ -79,7 +73,7 @@ async function refreshStore(db: Db, storeId: string): Promise<number> {
       })
       await withStore(db, storeId, (tx) =>
         saveSummary(tx, productId, {
-          summary: clampSummary(output),
+          summary: clampReviewSummary(output),
           reviewCount: source.reviews.length,
         }),
       )

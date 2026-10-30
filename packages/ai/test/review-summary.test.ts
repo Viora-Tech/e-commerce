@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  clampSummary,
+  clampReviewSummary,
   REVIEW_SUMMARY_MAX,
   REVIEW_SUMMARY_REVIEWS,
   reviewSummaryContent,
@@ -24,9 +24,9 @@ describe('review summary writer', () => {
   })
 
   it('keeps a short summary and cuts a long one at a sentence', () => {
-    expect(clampSummary({ summary: '  Customers like it.\n' })).toBe('Customers like it.')
+    expect(clampReviewSummary({ summary: '  Customers like it.\n' })).toBe('Customers like it.')
     const long = `${'Customers like the grip. '.repeat(40)}`
-    const cut = clampSummary({ summary: long })
+    const cut = clampReviewSummary({ summary: long })
     expect(cut.length).toBeLessThanOrEqual(REVIEW_SUMMARY_MAX)
     expect(cut.endsWith('.')).toBe(true)
   })

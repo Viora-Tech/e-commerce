@@ -20,11 +20,7 @@ const SWEEP_LIMIT = 200
  * The customer a basket's contact belongs to: the signed-in customer on it, else a customer
  * with the email or phone typed at checkout. Null for a basket nobody is known by.
  */
-async function customerOfCart(
-  tx: StoreTx,
-  cartId: string,
-  secret: string,
-): Promise<string | null> {
+async function customerOfCart(tx: StoreTx, cartId: string, secret: string): Promise<string | null> {
   const [c] = await tx
     .select({ customerId: cart.customerId, email: cart.email, phone: cart.phone })
     .from(cart)
@@ -172,7 +168,7 @@ export async function dueBrowseViews(
  * `{product_url}` (its page on the storefront) and `{product_price}` (the lowest variant price).
  * Empty when the product is gone.
  */
-export async function productFacts(
+export async function browseProductFacts(
   tx: StoreTx,
   productId: string,
   storefrontUrl: string,
@@ -181,7 +177,9 @@ export async function productFacts(
     .select({
       title: product.title,
       handle: product.handle,
-      pricePaise: sql<number | null>`(select min(${variant.pricePaise}) from ${variant} where ${variant.productId} = ${product.id})`,
+      pricePaise: sql<
+        number | null
+      >`(select min(${variant.pricePaise}) from ${variant} where ${variant.productId} = ${product.id})`,
     })
     .from(product)
     .where(eq(product.id, productId))

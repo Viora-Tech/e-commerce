@@ -58,7 +58,7 @@ export function reviewSummaryContent(input: {
 }
 
 /** The summary trimmed to what the store keeps, cut at a sentence when it runs long. */
-export function clampSummary(r: ReviewSummary): string {
+export function clampReviewSummary(r: ReviewSummary): string {
   const text = r.summary.replace(/\s+/g, ' ').trim()
   if (text.length <= REVIEW_SUMMARY_MAX) return text
   const cut = text.slice(0, REVIEW_SUMMARY_MAX)

@@ -92,7 +92,7 @@ export {
   reviewReplyInstructions,
 } from './review-reply'
 export {
-  clampSummary,
+  clampReviewSummary,
   REVIEW_SUMMARY_MAX,
   REVIEW_SUMMARY_REVIEWS,
   type ReviewSummary,

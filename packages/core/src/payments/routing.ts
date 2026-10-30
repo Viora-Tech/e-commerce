@@ -121,7 +121,7 @@ export function fallbackChain(
   if (!s.routing) return []
   return activeGatewaysOf(s)
     .filter((id) => id !== failedId)
-    .flatMap((id) => {
+    .flatMap((id): FallbackStep[] => {
       if (!methods) return [{ gatewayId: id, methods: undefined }]
       const can = methods.filter((m) => canTake(supports, id, m))
       return can.length ? [{ gatewayId: id, methods: can }] : []

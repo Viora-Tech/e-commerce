@@ -12,8 +12,6 @@ import { formatMoney } from '@commerce/money'
 import { and, asc, desc, eq, inArray, isNull, lte, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { recoveryUrl } from '../cart/abandoned'
-import { dueBrowseViews, productFacts } from './browse'
-import { BROWSE_DEFAULT_AFTER_MINUTES, browseKey } from './browse-rules'
 import { decryptCustomerPhone } from '../customers/phone-crypto'
 import { insertOutboxEvent } from '../outbox/write'
 import { hasMarketingConsent } from '../privacy/client'
@@ -31,6 +29,8 @@ import {
   parseAutomationSteps,
   STOPS_ON_ORDER,
 } from './automation-steps'
+import { browseProductFacts, dueBrowseViews } from './browse'
+import { BROWSE_DEFAULT_AFTER_MINUTES, browseKey } from './browse-rules'
 import { applyMergeTags, type EmailCartLine, type MergeValues } from './email'
 import { markEngineConversions } from './growth-engine'
 import { issuePersonalCode } from './personal-code'
@@ -718,7 +718,7 @@ export async function processDueRuns(
         : deps.storefrontUrl,
       cart_total: cartInfo ? formatMoney(cartInfo.totalPaise) : o ? formatMoney(o.totalPaise) : '',
       order_number: o ? `#${o.number}` : '',
-      ...(run.productId ? await productFacts(tx, run.productId, deps.storefrontUrl) : {}),
+      ...(run.productId ? await browseProductFacts(tx, run.productId, deps.storefrontUrl) : {}),
     }
 
     const sentBefore = sent
