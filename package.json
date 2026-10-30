@@ -14,6 +14,7 @@
     "test": "bun scripts/turbo.ts run test",
     "test:coverage": "bun scripts/turbo.ts run test:coverage",
     "affected": "bun scripts/turbo.ts run typecheck test --filter=...[origin/main]",
+    "check:changed": "bun scripts/check-changed.ts",
     "turbo:shared": "bun scripts/turbo.ts",
     "lint": "biome check --error-on-warnings . && bun run lint:components",
     "lint:fix": "biome check --write .",
