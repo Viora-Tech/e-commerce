@@ -109,6 +109,7 @@ export const NAV_GROUPS: NavGroup[] = [
           { href: routes.products.list(), label: 'All products' },
           { href: routes.products.collections(), label: 'Collections' },
           { href: routes.products.giftCards(), label: 'Gift cards' },
+          { href: routes.products.preorders(), label: 'Pre-orders' },
         ],
       },
       {

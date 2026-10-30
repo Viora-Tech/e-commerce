@@ -427,6 +427,22 @@ export const productFormContent = {
     launchHeading: 'Launch countdown',
     launchAt: 'Launches at',
     launchAtHelp: 'Store time (Asia/Kolkata). Leave blank to sell right away.',
+    campaign: 'Pre-order campaign',
+    campaignNone: 'None: use this product’s own settings',
+    campaignHelp:
+      'A campaign sets the ship date, limit, button and payment for all its products. Manage campaigns in Products, Pre-orders.',
+    campaignPaused: (name: string) => `${name} (paused)`,
+    campaignLoading: 'Loading campaigns…',
+    manageCampaigns: 'Manage campaigns',
+    ownHeading: 'Keep this product’s own',
+    ownHelp: 'Ticked settings use the values below instead of the campaign’s.',
+    own: {
+      shipping: 'Ship date',
+      limit: 'Limit',
+      button: 'Button label',
+      payment: 'Payment',
+      note: 'Note',
+    },
   },
   /** "Sales past 90 days" on the product page (#56). */
   sales: {

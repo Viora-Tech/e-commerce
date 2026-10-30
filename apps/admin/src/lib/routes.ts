@@ -110,6 +110,10 @@ export const routes = {
     giftCards: () => '/products/gift-cards',
     newGiftCard: () => '/products/gift-cards/new',
     giftCard: (giftCardId: string) => `/products/gift-cards/${id(giftCardId)}`,
+    /** Products › Pre-orders: the overview, then each campaign (#141, #142). */
+    preorders: () => '/products/preorders',
+    newPreorderCampaign: () => '/products/preorders/campaigns/new',
+    preorderCampaign: (campaignId: string) => `/products/preorders/campaigns/${id(campaignId)}`,
   },
 
   /** Buying and moving stock: inventory, purchase orders, inbound shipments, suppliers, transfers. */

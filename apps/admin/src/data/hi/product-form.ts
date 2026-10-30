@@ -392,6 +392,22 @@ export default [
       launchHeading: 'लॉन्च काउंटडाउन',
       launchAt: 'लॉन्च का समय',
       launchAtHelp: 'स्टोर का समय (Asia/Kolkata)। अभी से बेचना हो तो खाली छोड़ें।',
+      campaign: 'प्री-ऑर्डर कैंपेन',
+      campaignNone: 'कोई नहीं: इस प्रोडक्ट की अपनी सेटिंग',
+      campaignHelp:
+        'कैंपेन अपने सभी प्रोडक्ट के लिए भेजने की तारीख, लिमिट, बटन और पेमेंट तय करता है। कैंपेन Products, Pre-orders में संभालें।',
+      campaignPaused: (name) => `${name} (रुका हुआ)`,
+      campaignLoading: 'कैंपेन लोड हो रहे हैं…',
+      manageCampaigns: 'कैंपेन संभालें',
+      ownHeading: 'इस प्रोडक्ट की अपनी रखें',
+      ownHelp: 'टिक की गई सेटिंग कैंपेन की जगह नीचे दी गई वैल्यू लेती हैं।',
+      own: {
+        shipping: 'भेजने की तारीख',
+        limit: 'लिमिट',
+        button: 'बटन का टेक्स्ट',
+        payment: 'पेमेंट',
+        note: 'नोट',
+      },
     },
     sales: {
       heading: (days) => `पिछले ${days} दिन की बिक्री`,

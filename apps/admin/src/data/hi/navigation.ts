@@ -31,6 +31,7 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
   '/stock/inbound-shipments': { title: 'आने वाली खेप' },
   '/stock/suppliers': { title: 'सप्लायर' },
   '/products/gift-cards': { title: 'गिफ़्ट कार्ड' },
+  '/products/preorders': { title: 'प्री-ऑर्डर' },
   '/customers': { title: 'ग्राहक' },
   '/customers/segments': { title: 'सेगमेंट' },
   '/content': { title: 'कंटेंट' },

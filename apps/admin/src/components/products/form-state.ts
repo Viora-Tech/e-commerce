@@ -6,6 +6,7 @@ import {
   variantTitle,
   type WeightUnit,
 } from '@commerce/core/catalog'
+import { ownFields } from '@commerce/core/preorder'
 import { isRichTextEmpty, parseRichText, type RichTextValue } from '@commerce/richtext'
 import type { productFormContent } from '@/data/product-form'
 import { rupees } from '@/data/products'
@@ -91,6 +92,10 @@ export type ProductFormState = {
   preorderDeposit: string
   preorderDepositPercent: string
   preorderHideFromCollectionsUntilLaunch: boolean
+  /** Pre-order campaign the product sells under (Products › Pre-orders); null = its own settings. */
+  preorderCampaignId: string | null
+  /** In a campaign, the settings it keeps its own (`PREORDER_OWN_FIELDS`). */
+  preorderOwn: string[]
   /** `yyyy-mm-ddThh:mm`, Asia/Kolkata as typed; blank means always on sale. */
   launchAt: string
   options: OptionRow[]
@@ -158,6 +163,8 @@ export function emptyForm(): ProductFormState {
     preorderDeposit: '',
     preorderDepositPercent: '',
     preorderHideFromCollectionsUntilLaunch: false,
+    preorderCampaignId: null,
+    preorderOwn: [],
     launchAt: '',
     options: [],
     variants: [emptyVariant([])],
@@ -197,6 +204,8 @@ export function fromProduct(p: LoadedProduct): ProductFormState {
     preorderDepositPercent:
       p.preorderDepositPercent == null ? '' : String(p.preorderDepositPercent),
     preorderHideFromCollectionsUntilLaunch: p.preorderHideFromCollectionsUntilLaunch,
+    preorderCampaignId: p.preorderCampaignId ?? null,
+    preorderOwn: p.preorderOwn ?? [],
     launchAt: toDateTimeField(p.launchAt),
     options: p.options.map((o) => ({
       id: o.id,
@@ -390,6 +399,8 @@ export function toWrite(form: ProductFormState): ProductWrite {
     preorderDepositPaise: rupees.toPaise(form.preorderDeposit),
     preorderDepositPercent: intOrNull(form.preorderDepositPercent),
     preorderHideFromCollectionsUntilLaunch: form.preorderHideFromCollectionsUntilLaunch,
+    preorderCampaignId: form.preorderCampaignId,
+    preorderOwn: ownFields(form.preorderOwn),
     launchAt: fromDateTimeField(form.launchAt),
     inventoryReason: form.inventoryReason,
     mediaIds: form.media.map((m) => m.id),
@@ -452,7 +463,11 @@ export function formErrors(copy: typeof productFormContent, form: ProductFormSta
   if (dims.some((d) => d.some((n) => n != null) && d.some((n) => n == null))) {
     errors.package = copy.shipping.packageIncomplete
   }
-  if (form.preorderEnabled) {
+  // In a campaign the product's payment only counts when it keeps its own (#142).
+  const ownPayment = form.preorderCampaignId
+    ? form.preorderOwn.includes('payment')
+    : form.preorderEnabled
+  if (ownPayment) {
     if (form.preorderPaymentMode === 'fixed') {
       const deposit = rupees.toPaise(form.preorderDeposit)
       const lowestPrice = Math.min(

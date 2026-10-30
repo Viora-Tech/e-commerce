@@ -20,6 +20,7 @@ const PAGE_TITLES: [prefix: string, title: string][] = [
   ['/stock/inbound-shipments', 'Inbound shipments'],
   ['/stock/suppliers', 'Suppliers'],
   ['/products/gift-cards', 'Gift cards'],
+  ['/products/preorders', 'Pre-orders'],
   ['/customers', 'Customers'],
   ['/customers/segments', 'Segments'],
   ['/content', 'Content'],
