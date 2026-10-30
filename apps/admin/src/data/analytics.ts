@@ -48,6 +48,20 @@ export const analyticsContent = {
   },
   topProducts: { title: 'Top products', empty: 'No sales in this range yet.', units: 'sold' },
   byState: { title: 'Sales by state', empty: 'No shipped orders in this range yet.' },
+  /** Audit #100: Shopify's sales breakdown. */
+  salesBreakdown: {
+    title: 'Sales breakdown',
+    previous: 'Period before',
+    lines: {
+      gross: 'Gross sales',
+      discounts: 'Discounts',
+      returns: 'Returns',
+      net: 'Net sales',
+      shipping: 'Shipping charges',
+      tax: 'GST (included in prices)',
+      total: 'Total sales',
+    },
+  },
   paymentMethods: { title: 'Payment methods', empty: 'No payments in this range yet.' },
   funnel: {
     title: 'From visit to order',

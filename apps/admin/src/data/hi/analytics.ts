@@ -52,6 +52,19 @@ export default [
     },
     topProducts: { title: 'टॉप प्रोडक्ट', empty: 'इस रेंज में अभी कोई बिक्री नहीं।', units: 'बिके' },
     byState: { title: 'राज्य के हिसाब से बिक्री', empty: 'इस रेंज में अभी कोई शिप ऑर्डर नहीं।' },
+    salesBreakdown: {
+      title: 'बिक्री का ब्यौरा',
+      previous: 'पिछली अवधि',
+      lines: {
+        gross: 'कुल बिक्री (ग्रॉस)',
+        discounts: 'डिस्काउंट',
+        returns: 'रिटर्न',
+        net: 'नेट बिक्री',
+        shipping: 'शिपिंग चार्ज',
+        tax: 'GST (क़ीमतों में शामिल)',
+        total: 'कुल बिक्री',
+      },
+    },
     paymentMethods: { title: 'पेमेंट के तरीके', empty: 'इस रेंज में अभी कोई पेमेंट नहीं।' },
     funnel: {
       title: 'विज़िट से ऑर्डर तक',

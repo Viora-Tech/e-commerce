@@ -19,6 +19,7 @@ import BreakdownCard, { type BreakdownRow } from './breakdown-card'
 import FunnelCard from './funnel-card'
 import KpiStrip from './kpi-strip'
 import RangePicker from './range-picker'
+import SalesBreakdownCard from './sales-breakdown-card'
 import TopProductsCard from './top-products-card'
 import VisitorsSection from './visitors-section'
 
@@ -147,6 +148,7 @@ export default function AnalyticsOverviewPage({
         <FunnelCard steps={data.funnel} />
         <TopProductsCard products={data.topProducts} />
       </div>
+      <SalesBreakdownCard copy={copy.salesBreakdown} breakdown={data.salesBreakdown} />
       <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-2">
         <BreakdownCard
           title={copy.byState.title}

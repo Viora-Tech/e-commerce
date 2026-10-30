@@ -29,6 +29,7 @@ import {
   toDailyPoints,
   toWeeklyPoints,
 } from './analytics-buckets'
+import { breakdownLines, type SalesBreakdownLine, salesBreakdownSums } from './sales-breakdown'
 import { countSessions, totalSessions } from './sessions'
 
 /** Drafts are not orders: they never reach revenue, counts or the funnel. */
@@ -66,6 +67,8 @@ export type AnalyticsOverview = {
   paymentMethods: { method: string; orders: number; revenuePaise: number; share: number }[]
   channels: { channel: string; orders: number; revenuePaise: number; share: number }[]
   funnel: FunnelStep[]
+  /** Gross → discounts → returns → net → shipping → total, now and for the period before. */
+  salesBreakdown: { current: SalesBreakdownLine[]; previous: SalesBreakdownLine[] }
 }
 
 export type AnalyticsLive = {
@@ -342,6 +345,10 @@ export async function analyticsOverview(
       checkouts: checkoutRow?.n ?? 0,
       orders: trackedNow.length,
     }),
+    salesBreakdown: {
+      current: breakdownLines(await salesBreakdownSums(tx, range.from, range.to)),
+      previous: breakdownLines(await salesBreakdownSums(tx, range.previousFrom, range.previousTo)),
+    },
   }
 }
 
