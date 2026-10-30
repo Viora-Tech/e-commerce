@@ -1,13 +1,16 @@
 'use client'
 
+import { permissions } from '@commerce/core/permissions'
 import PageChecklist, { type ChecklistItem } from '@/components/layout/page-checklist'
 import TemplateSelectCard from '@/components/themes/template-select-card'
 import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
+import { usePermissions } from '@/hooks/use-permissions'
 import type { Facets, OptionRow, ProductFormState } from './form-state'
 import ProductCategoriesCard from './product-categories-card'
 import ProductCollectionsCard from './product-collections-card'
 import ProductPageActions from './product-page-actions'
+import ProductSalesCard from './product-sales-card'
 import StatusCard from './status-card'
 
 type ProductSideProps = {
@@ -56,6 +59,7 @@ export default function ProductSide({
 }: ProductSideProps) {
   // Hooks
   const copy = useCopy(productFormContent)
+  const { hasPermission } = usePermissions()
 
   // Render logic
   const toFix = checklist.filter((item) => item.state === 'warn').length
@@ -76,6 +80,9 @@ export default function ProductSide({
         onChange={(status) => onPatch({ status })}
         onVendor={(vendor) => onPatch({ vendor })}
       />
+      {productId && hasPermission(permissions.ORDERS_READ) ? (
+        <ProductSalesCard productId={productId} productTitle={form.title} />
+      ) : null}
       <ProductCategoriesCard
         categoryId={form.categoryId}
         productType={form.productType}

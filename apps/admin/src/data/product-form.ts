@@ -417,6 +417,15 @@ export const productFormContent = {
     launchAt: 'Launches at',
     launchAtHelp: 'Store time (Asia/Kolkata). Leave blank to sell right away.',
   },
+  /** "Sales past 90 days" on the product page (#56). */
+  sales: {
+    heading: (days: number) => `Sales past ${days} days`,
+    units: 'Units sold',
+    buyers: 'Buyers',
+    net: 'Net revenue',
+    empty: 'No sales yet in this window. Test, draft and cancelled orders are left out.',
+    viewOrders: (n: number) => `View ${n} order${n === 1 ? '' : 's'}`,
+  },
   history: {
     heading: 'Stock history',
     empty: 'No stock movements yet. Changes you make to quantities show up here.',

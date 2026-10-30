@@ -39,6 +39,7 @@ import {
   updateVariant,
 } from '../services/product.service'
 import { pickProducts, searchVariants } from '../services/product-picker.service'
+import { productSales } from '../services/product-sales.service'
 import { productAdjustments, productStats } from '../services/product-stats.service'
 
 const ListFiltersSchema = z.object({
@@ -94,6 +95,11 @@ export const productsRouter = {
   adjustments: can(permissions.INVENTORY_READ)
     .input(z.object({ productId: z.uuid(), limit: z.number().int().min(1).max(100).default(20) }))
     .handler(({ context, input }) => productAdjustments(context.tx, input.productId, input.limit)),
+
+  /** "Sales past 90 days" on the product page (#56): units, buyers and net revenue. */
+  sales: can(permissions.ORDERS_READ)
+    .input(z.object({ productId: z.uuid() }))
+    .handler(({ context, input }) => productSales(context.tx, input.productId)),
 
   get: can(permissions.PRODUCTS_READ)
     .input(z.object({ id: z.uuid() }))
