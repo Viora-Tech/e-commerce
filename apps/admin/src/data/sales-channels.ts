@@ -111,6 +111,7 @@ export const salesChannelsContent = {
       `Your products are hidden in ${name}. Orders already placed are not affected.`,
     started: (when: string) => `Started ${when}`,
     lastTried: (when: string) => `Last tried ${when}`,
+    lastSynced: (when: string) => `Last synced ${when}`,
     paused: 'Listings paused',
     syncNow: 'Sync now',
     reconnect: 'Reconnect',
@@ -422,6 +423,20 @@ export const salesChannelsContent = {
     beforeHeading: 'Before you connect',
     beforeBody: (partner: string) =>
       `Fix these so ${partner} approves every product on the first sync.`,
+    /** Once connected the list is what keeps products out, not a step before connecting (#136). */
+    fixHeading: 'Fix to get every product approved',
+    fixBody: (partner: string) => `${partner} holds back products with these problems.`,
+    /** The readiness notes in the channel's words; the Agentic page keeps "Agents" (#136). */
+    rules: {
+      no_description: (partner: string) =>
+        `No description. ${partner} needs size, material and what it works with.`,
+      short_description: (partner: string, n: number) =>
+        `Description is ${n} words. ${partner} needs size, material and what it works with.`,
+      no_identifier: (partner: string) =>
+        `No GTIN or brand. ${partner} can’t match it to what shoppers search for.`,
+      few_images: (partner: string, n: number) =>
+        `Only ${n} ${n === 1 ? 'image' : 'images'}. ${partner} shows products with at least 3 better.`,
+    },
     salesHeading: (name: string) => `Sales from ${name}`,
     salesSub: (amount: string) => `${amount} in the last 30 days`,
     thisPeriod: 'This period',
