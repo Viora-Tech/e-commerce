@@ -88,6 +88,7 @@ export const productsListContent = {
   variants: (n: number) => `${n} variant${n === 1 ? '' : 's'}`,
   none: '',
   priceRange: (min: string, max: string) => `${min} to ${max}`,
+  noPrice: 'No price',
   preorderPill: 'Pre-order',
   launching: (date: Date) =>
     `Launching ${date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`,

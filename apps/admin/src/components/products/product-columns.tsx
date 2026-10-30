@@ -27,7 +27,10 @@ function preorderPill(copy: ListCopy, row: ProductRow): string | null {
 }
 
 function priceRange(copy: ListCopy, fmt: Formatters, row: ProductRow): string {
-  if (row.minPricePaise == null) return copy.none
+  // A ₹0 price is a draft nobody priced yet (ATK 68 RX…), not a free product (audit #60).
+  if (row.minPricePaise == null || (row.minPricePaise === 0 && !row.maxPricePaise)) {
+    return copy.noPrice
+  }
   if (row.maxPricePaise == null || row.maxPricePaise === row.minPricePaise) {
     return fmt.money(row.minPricePaise)
   }

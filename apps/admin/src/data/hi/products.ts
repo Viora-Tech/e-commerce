@@ -76,6 +76,7 @@ export default [
     variants: (n) => `${n} वेरिएंट`,
     none: '',
     priceRange: (min, max) => `${min} से ${max}`,
+    noPrice: 'कोई कीमत नहीं',
     preorderPill: 'प्री-ऑर्डर',
     launching: (date) =>
       `${date.toLocaleDateString('hi-IN', { day: 'numeric', month: 'short' })} को लॉन्च`,
