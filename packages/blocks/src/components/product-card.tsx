@@ -3,16 +3,9 @@ import type { CardProduct } from '../types'
 import Picture from './picture'
 import Price from './price'
 import ProductCardQuickAdd from './product-card-quick-add'
+import ProductCardSaleBadge from './product-card-sale-badge'
 import ProductCardWishlist from './product-card-wishlist'
 import ProductImagePlaceholder from './product-image-placeholder'
-
-const saleLabel = (percent: number) => `−${percent}%`
-
-/** Whole-percent saving against MRP, or null when the product is not discounted. */
-function salePercent(pricePaise: number | null, mrpPaise: number | null): number | null {
-  if (pricePaise == null || !mrpPaise || mrpPaise <= pricePaise) return null
-  return Math.round(((mrpPaise - pricePaise) / mrpPaise) * 100)
-}
 
 // Port of snippets/product-card.liquid. Hover swap only; cursor scrubbing
 // (card-scrub.js) comes with the interactive pass. The vendor line and sale
@@ -31,7 +24,6 @@ export default function ProductCard({
   const preorder = product.available <= 0 ? (product.preorder ?? null) : null
   const soldOut = product.available <= 0 && !preorder
   const lowStock = !soldOut && !preorder && product.available <= 5
-  const sale = salePercent(product.pricePaise, product.mrpPaise)
 
   return (
     <div
@@ -50,11 +42,14 @@ export default function ProductCard({
             </span>
           ) : lowStock ? (
             <span className="badge product-card__badge product-card__badge--urgent">Low stock</span>
-          ) : sale ? (
-            <span className="badge badge--sale product-card__badge product-card__badge--sale">
-              {saleLabel(sale)}
-            </span>
-          ) : null}
+          ) : (
+            <ProductCardSaleBadge
+              pricePaise={product.pricePaise}
+              mrpPaise={product.mrpPaise}
+              variantId={product.quickAddVariantId}
+              variants={product.variantPrices}
+            />
+          )}
           {primary ? (
             <Picture
               image={primary}
