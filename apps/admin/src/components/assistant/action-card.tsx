@@ -119,7 +119,7 @@ export default function ActionCard({ action, onChange }: ActionCardProps) {
           <h3 className="text-body font-semibold break-words text-ink-strong">
             {action.preview.title}
           </h3>
-          {open ? (
+          {open && action.preview.undoable !== null ? (
             <p className="text-caption text-muted-foreground">
               {action.preview.undoable ? copy.card.willUndo : copy.card.noUndo}
             </p>
