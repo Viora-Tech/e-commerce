@@ -78,7 +78,16 @@ export function orderColumns(
       className: 'w-[9%]',
       render: (o) => (
         <span className="inline-flex items-center gap-1.5">
-          <span className="text-body font-medium text-ink-strong tabular-nums">#{o.number}</span>
+          {/* Cancelled reads as gone at a glance, like Shopify's struck-through rows (audit #6). */}
+          <span
+            className={
+              o.status === 'cancelled'
+                ? 'text-body font-medium text-muted-foreground line-through tabular-nums'
+                : 'text-body font-medium text-ink-strong tabular-nums'
+            }
+          >
+            #{o.number}
+          </span>
           {o.isTest ? (
             <span title={copy.testChipHint}>
               <StatusChip tone="attention">{copy.testChip}</StatusChip>
@@ -120,7 +129,17 @@ export function orderColumns(
       sortValue: (o) => o.totalPaise,
       sortRank: 2,
       align: 'end',
-      render: (o) => <span className="font-medium tabular-nums">{fmt.money(o.totalPaise)}</span>,
+      render: (o) => (
+        <span
+          className={
+            o.status === 'cancelled'
+              ? 'font-medium text-muted-foreground line-through tabular-nums'
+              : 'font-medium tabular-nums'
+          }
+        >
+          {fmt.money(o.totalPaise)}
+        </span>
+      ),
     },
     {
       id: 'payment',
