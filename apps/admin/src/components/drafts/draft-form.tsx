@@ -5,7 +5,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DraftActionsCard from '@/components/drafts/draft-actions-card'
 import DraftAddressCard from '@/components/drafts/draft-address-card'
@@ -68,6 +68,12 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [reviewing, setReviewing] = useState(false)
   const [chatting, setChatting] = useState(false)
+
+  // A draft saved on "Create draft order" stays on this page (the address is swapped in place),
+  // so the tab title follows it: "Draft #2374" (audit #32).
+  useEffect(() => {
+    if (number !== null) document.title = copy.editTitle(number)
+  }, [number, copy])
   const [resetKey, setResetKey] = useState(0)
   const [sent, setSent] = useState(invoiceSent)
 
