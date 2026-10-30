@@ -8,3 +8,5 @@
   carousel escaped its clip in the editor (the section wrapper is positioned) and widened the
   frame; the canvas now clips horizontal overflow, as the storefront page has none
   (`preview-frame.tsx`).
+- Theme editor layers: the "insert here" line has its + in the middle, line on both sides,
+  as on the canvas (`add-section-popover.tsx`).
