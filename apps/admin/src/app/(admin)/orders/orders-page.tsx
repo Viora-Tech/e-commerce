@@ -277,8 +277,10 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
             value={status}
             onChange={(s) => setQ({ status: s, page: 1 })}
             formatCount={fmt.number}
+            // A search or filter counts what it found, not the whole store: "All orders 1,357"
+            // stayed beside "No orders match" (audit #50).
             custom={
-              filtered
+              filtered || query.length > 0
                 ? { label: status ? copy.tabs[status] : copy.customView, count: total }
                 : undefined
             }
