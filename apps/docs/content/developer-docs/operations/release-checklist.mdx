@@ -9,6 +9,18 @@ deployed and **before** opening the `dev` → `main` release PR. Unit tests chec
 its own; this checks the whole flow on a real server, real DNS, real email and real storage,
 which is where the 2026-10-05 bugs hid (issues #255–#266).
 
+## Before the smoke test — local gates
+
+Run these locally first; any failure blocks the release the same way a smoke row does:
+
+- `bun run audit` — dependency CVE gate (`scripts/security-audit.ts`). Fails on a **high/critical
+  advisory whose fix our declared version floor can still resolve below** (a real direct exposure).
+  This is the gate that would have caught the Sep-2026 `better-auth` OAuth account-takeover the day
+  it was disclosed — a point-in-time audit cannot, because the CVE can land after the audit. If it
+  fails, bump the version (or triage the advisory id into `ALLOW` with a reason). Transitive and
+  already-patched copies print as warnings, not blockers.
+- `bun run typecheck` and `bun run test` — the tsc + vitest pass on `dev` before the release.
+
 ## First: the checkout smoke test
 
 Before anything else, run the scripted checkout from your machine against the store you are about

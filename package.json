@@ -21,6 +21,7 @@
     "lint:components": "bun scripts/check-components.ts",
     "typecheck": "bun scripts/turbo.ts run typecheck",
     "test:sweeps": "vitest run --config scripts/sweeps/vitest.config.ts",
+    "audit": "bun scripts/security-audit.ts",
     "db:generate": "bun run --cwd packages/db generate",
     "db:migrate": "bun run --cwd packages/db migrate",
     "db:seed": "bun run --cwd packages/db seed",
