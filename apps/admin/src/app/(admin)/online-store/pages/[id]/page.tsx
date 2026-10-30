@@ -2,14 +2,14 @@ import { notFound, redirect } from 'next/navigation'
 import PageForm from '@/components/online-store/page-form'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { customizeHref } from '@/lib/customize-href'
-import { orNoStore } from '@/lib/store-guard'
+import { orNoStoreOrMissing } from '@/lib/store-guard'
 import { storefrontOrigin } from '@/lib/storefront-origin'
 
 export default async function PageRoute({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const context = await serverContext()
   const [page, themes] = await Promise.all([
-    call(appRouter.pages.get, { id }, { context }).catch(orNoStore(undefined)),
+    call(appRouter.pages.get, { id }, { context }).catch(orNoStoreOrMissing(undefined)),
     call(appRouter.themes.list, undefined, { context }).catch(() => []),
   ])
 

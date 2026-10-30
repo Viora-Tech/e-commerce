@@ -3,7 +3,7 @@ import CustomerView from '@/components/customers/customer-view'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { routes } from '@/lib/routes'
 import { listApps } from '@/lib/shell-data'
-import { orNoStore } from '@/lib/store-guard'
+import { orNoStoreOrMissing } from '@/lib/store-guard'
 
 type Params = {
   params: Promise<{ id: string }>
@@ -15,7 +15,7 @@ export default async function CustomerPage({ params, searchParams }: Params) {
   const { edit } = await searchParams
   const context = await serverContext()
   const [customer, apps] = await Promise.all([
-    call(appRouter.customers.get, { id }, { context }).catch(orNoStore(undefined)),
+    call(appRouter.customers.get, { id }, { context }).catch(orNoStoreOrMissing(undefined)),
     listApps().catch(() => []),
   ])
   if (customer === undefined) redirect(routes.selectStore())
