@@ -220,7 +220,7 @@ export default function CustomerPrivacySettings() {
             <Button
               variant="outline"
               className="self-end"
-              render={<Link href={`${routes.settings.policies()}#grievance`} />}
+              render={<Link href={`${routes.settings.policies()}?open=grievance`} />}
               nativeButton={false}
             >
               <Pencil aria-hidden="true" />

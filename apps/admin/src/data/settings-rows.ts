@@ -24,4 +24,41 @@ export const settingsRowsContent = {
     einvoice: 'E-invoicing (IRN)',
     einvoiceValue: 'Coming soon',
   },
+
+  notifications: {
+    back: 'Notifications',
+    customers: 'Customer messages',
+    you: 'Messages to you',
+    countOn: (on: number, total: number) => `${on} of ${total} on`,
+    sender: 'Sender email',
+    senderValue: 'Who your emails come from',
+    sending: 'How messages are sent',
+    email: 'Email',
+    whatsapp: 'WhatsApp',
+    notConnected: 'Not connected',
+    advanced: 'Advanced',
+    advancedValue: 'Developer log and email designs',
+  },
+
+  policies: {
+    back: 'Policies',
+    list: 'Your policies',
+    published: (n: number, total: number) => `${n} of ${total} published`,
+    business: 'Business name on policies',
+    grievance: 'Grievance officer',
+  },
+
+  returns: {
+    back: 'Returns',
+    requests: 'Online return requests',
+    window: (days: number) => `On · ${days} days after delivery`,
+    reasons: 'Return reasons',
+    reasonsValue: (n: number, total: number) => `${n} of ${total}`,
+    rules: 'Exchanges and auto-approval',
+    exchanges: 'Exchanges',
+    autoApprove: 'Auto-approval',
+    refund: 'Refund suggestion',
+    original: 'How they paid',
+    storeCredit: 'Store credit',
+  },
 } as const

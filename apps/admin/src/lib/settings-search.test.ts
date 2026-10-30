@@ -30,7 +30,7 @@ describe('searchSettings', () => {
     expect(first('r2')?.href).toBe('/content/files/storage')
     expect(first('dark mode')?.href).toBe('/settings/appearance')
     expect(first('hindi')?.href).toBe('/account/language')
-    expect(first('sender')?.href).toBe('/settings/notifications#notifications-sender')
+    expect(first('sender')?.href).toBe('/settings/notifications?open=sender')
   })
 
   it('never points at an address that is now a redirect', () => {
@@ -43,7 +43,7 @@ describe('searchSettings', () => {
 
   it('finds Policies and Checkout', () => {
     expect(first('refund policy')?.href).toBe('/settings/policies')
-    expect(first('grievance')?.href).toBe('/settings/policies#grievance')
+    expect(first('grievance')?.href).toBe('/settings/policies?open=grievance')
     expect(first('minimum order')?.href).toBe('/settings/checkout#minimum')
     expect(first('block pincode')?.href).toBe('/settings/checkout#cod')
     expect(first('business buyer')?.href).toBe('/settings/checkout?open=branding#gstin')

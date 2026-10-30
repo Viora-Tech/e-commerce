@@ -260,19 +260,19 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'WhatsApp messages',
     where: 'Messages › Notifications',
-    href: '/settings/notifications#how-messages-are-sent',
+    href: '/settings/notifications?open=how-messages-are-sent',
     keywords: ['whatsapp', 'wa', 'meta', 'template'],
   },
   {
     title: 'Email sending (Amazon SES)',
     where: 'Messages › Notifications',
-    href: '/settings/notifications#how-messages-are-sent',
+    href: '/settings/notifications?open=how-messages-are-sent',
     keywords: ['ses', 'amazon', 'aws', 'smtp', 'email sending', 'from address'],
   },
   {
     title: 'Send from your own email address',
     where: 'Messages › Notifications',
-    href: '/settings/notifications#notifications-sender',
+    href: '/settings/notifications?open=sender',
     keywords: ['sender', 'from address', 'own email', 'domain email', 'dkim', 'spf', 'reply to'],
   },
   // Moved out of Settings: file storage sits with Content › Files
@@ -425,7 +425,7 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'Grievance officer',
     where: 'Customers › Policies',
-    href: '/settings/policies#grievance',
+    href: '/settings/policies?open=grievance',
     keywords: ['grievance', 'complaint', 'legal name', 'consumer protection', 'e-commerce rules'],
   },
   {
