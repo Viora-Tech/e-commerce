@@ -22,7 +22,9 @@ export default function OrderPageFrame({
 }: OrderPageFrameProps) {
   return (
     <>
-      <PageBody className="gap-6 md:pt-5 md:pb-8 print:hidden">
+      {/* Detail pages are centred at 75rem (1,200px) like Shopify's: at full width the order
+          page ran 1,615px wide and felt crowded (audit #14). Lists stay full width. */}
+      <PageBody className="mx-auto max-w-[75rem] gap-6 md:pt-5 md:pb-8 print:hidden">
         {header}
         {nextStep}
         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_23.5rem]">
