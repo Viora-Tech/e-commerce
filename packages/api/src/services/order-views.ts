@@ -41,11 +41,11 @@ export function viewFilter(view: OrderView): SQL | undefined {
         paymentFinished,
       )
     case 'unfulfilled':
-      // Imported history is a read-only record: nothing on it is left to ship.
+      // Imported orders count too: an order still open on the old platform when the store
+      // moved is real work to ship, and "Ready to ship" and the sidebar pill count it (audit #43).
       return and(
         eq(order.status, 'open'),
         inArray(order.fulfillmentStatus, [...UNFULFILLED_STATUSES]),
-        isNull(order.importedFrom),
         paymentFinished,
       )
     case 'pending_upi':
