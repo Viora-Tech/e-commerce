@@ -240,7 +240,10 @@ export function createMerchantAuth(opts: MerchantAuthOptions) {
       },
     },
     session: {
-      expiresIn: 60 * 60 * 24 * 30,
+      // A1 (session hardening): a 7-day sliding window, not 30. A stolen session cookie is
+      // bearer-only (no device binding yet), so a shorter life bounds how long a clone works;
+      // `updateAge` still refreshes it on activity, so active admins are not logged out weekly.
+      expiresIn: 60 * 60 * 24 * 7,
       updateAge: 60 * 60 * 24,
       cookieCache: { enabled: true, maxAge: 5 * 60 },
     },
