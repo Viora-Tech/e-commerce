@@ -70,6 +70,9 @@ export const routes = {
     bulkEdit: () => '/orders/bulk-edit',
     /** Packing slips for these orders, one per page, printed straight away. */
     packingSlips: (orderIds: string[]) => `/orders/packing-slips?ids=${orderIds.map(id).join(',')}`,
+    /** The print view for one template kind (`packing_slip`, `pick_list`, `invoice`). */
+    printDocuments: (kind: string, orderIds: string[]) =>
+      `/orders/packing-slips?doc=${id(kind)}&ids=${orderIds.map(id).join(',')}`,
     drafts: () => '/orders/drafts',
     /** With a customer: the draft starts with them filled in ("Create order" on their page). */
     newDraft: (customerId?: string) =>
@@ -302,6 +305,9 @@ export const routes = {
     /** One kind of record's extra fields (`products`, `blog-posts`, `store`…). */
     customDataOwner: (slug: string) => `/settings/custom-data/${id(slug)}`,
     returns: () => '/settings/returns',
+    /** Settings › Printed documents: the packing slip, pick list and invoice templates. */
+    templates: () => '/settings/templates',
+    template: (kind: string) => `/settings/templates/${id(kind)}`,
     staff: () => '/settings/staff',
     /** Settings → Staff with its Roles row open. */
     staffRoles: () => '/settings/staff?open=roles',

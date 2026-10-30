@@ -102,9 +102,9 @@ export default function OrdersBulkActions({
       setExporting(false)
     }
   }
-  const handlePrint = () => {
+  const handlePrint = (kind: 'packing_slip' | 'pick_list' | 'invoice') => {
     if (ids.length > PRINT_MAX) return void toast.error(bulkCopy.printTooMany(PRINT_MAX))
-    window.open(routes.orders.packingSlips(ids), '_blank', 'noopener')
+    window.open(routes.orders.printDocuments(kind, ids), '_blank', 'noopener')
   }
   const handleShippingClosed = () => {
     apps.closeShipping()
@@ -124,7 +124,9 @@ export default function OrdersBulkActions({
       onSelect: () => onRequest('remind', ids),
     },
     { label: bulkCopy.export, icon: Download, disabled: exporting, onSelect: handleExport },
-    { label: bulkCopy.print, icon: Printer, onSelect: handlePrint },
+    { label: bulkCopy.print, icon: Printer, onSelect: () => handlePrint('packing_slip') },
+    { label: bulkCopy.printPickList, icon: Printer, onSelect: () => handlePrint('pick_list') },
+    { label: bulkCopy.printInvoices, icon: Printer, onSelect: () => handlePrint('invoice') },
     ...[...automation.items(ids), ...appItems].map((item, i) =>
       i === 0 ? { ...item, separatorBefore: true } : item,
     ),

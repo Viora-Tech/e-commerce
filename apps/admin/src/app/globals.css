@@ -43,9 +43,9 @@
 }
 
 /*
- * Packing slip: the order page hides its chrome with `print:hidden` and shows
- * `.packing-slip`; the shell's fixed-height scroll containers would clip it,
- * so let the document grow and drop the sidebar and top bar.
+ * Printing an admin page: the shell's fixed-height scroll containers would clip it,
+ * so let the document grow and drop the sidebar and top bar. Packing slips, pick lists
+ * and invoices print from their own sandboxed frame (components/documents).
  */
 @media print {
   [data-slot='sidebar-wrapper'],
@@ -58,10 +58,5 @@
   [data-slot='sidebar-container'],
   header {
     display: none !important;
-  }
-  .packing-slip {
-    padding: 24px;
-    color: #1a1a1a;
-    background: #fff;
   }
 }

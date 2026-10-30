@@ -58,3 +58,27 @@ tsc, vitest, lint, builds. Run them on `dev`.
   asks for a delivery address with pickup, and the courier PIN check can still hide all options
   for a PIN the courier does not serve; Create shipment does not skip these orders (fulfil them
   by hand).
+
+## #164 Printed documents (templates)
+
+- **Data** (migration `0207_document_templates`): `document_template` (one row per store and
+  kind `packing_slip` | `pick_list` | `invoice`; no row = the default). RLS via
+  `apply_store_rls()`.
+- **Templates** (`packages/core/src/documents/templates.ts`, pure, tested; client subpath
+  `@commerce/core/document-templates`): Mustache-style merge tags (`{{ x }}` escaped, `{{#x}}`
+  list/if, `{{^x}}` if empty; no raw tag), defaults for each kind, data builders
+  (`packingSlipData`, `pickListData` adds up items across orders by SKU), `printDocument` (one
+  page each), and a made-up `SAMPLE_ORDER` for the preview. Amounts use the store currency via
+  `@commerce/money`.
+- **Service/API**: `documents.{templates,get,save,reset}` (read: `orders.read`; write:
+  `settings.manage`). `documentStore` prints the store header from Settings › Store details.
+- **Admin**: Settings › **Printed documents** (`/settings/templates`, `/settings/templates/[kind]`):
+  HTML editor, merge tag list, live preview (sandboxed iframe, scripts off), Save bar, Reset to
+  default. Orders › More actions: **Print packing slips** (now the template), **Print pick list**,
+  **Print invoices**; the order page's Print opens the same view. The old `PackingSlip`
+  component and its print CSS are gone.
+- **GST invoice**: when the GST invoices app is installed, the Invoice template is not printed
+  and the pages link to the app's settings (its existing editor allows branding and fields
+  only), so the tax invoice stays compliant.
+- **Not done**: the print view does not pass the store time zone or currency yet (dates use the
+  browser's zone, amounts the default currency); no rich-text editor (HTML textarea).

@@ -166,10 +166,14 @@ export const ACTION_DOCS: Record<string, string> = {
   'bugReports.unreadCount':
     "How many of the member's own reports changed since they last opened My reports (the menu's dot).",
   'businessGst.reorderLocations': 'The order checkout tries locations in.',
+  'businessGst.setLocationLocalDelivery':
+    'Local delivery from this location (audit #163): PIN codes, price, minimum; null turns it off.',
   'businessGst.setLocationPickup':
     "Couriers collect from this location's address (Settings › Locations), or not.",
   'businessGst.setLocationSelling':
     'Checkout routes online orders to this location, or not (the default always ships).',
+  'businessGst.setLocationStorePickup':
+    'Pickup in store at this location (audit #163); null turns it off.',
   'businessGst.setMaxParcels': 'The most parcels one order may be split into.',
   'catalogs.create': 'Add a catalog: its products, price change and the markets that sell from it.',
   'catalogs.delete': 'Delete a catalog; its markets sell every product at their own prices again.',
@@ -237,6 +241,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'dashboard.tiles': 'Which metric this member keeps in each Home tile (Customize).',
   'deliveryOptions.tryPin':
     "Try a PIN: the cards checkout would show, every route's quote, and why.",
+  'documents.templates':
+    "Every template (the merchant's or the default), the store header, and whether the GST app owns invoices.",
   'domains.connect':
     'Connect a custom domain (and optionally its www twin as a redirect); starts pending.',
   'domains.list': 'Every hostname this store answers on, with the records each still needs.',
@@ -547,6 +553,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'products.previewImport': 'Dry run: parse the file and say what would change, writing nothing.',
   'products.removeVariants':
     'The bulk editor\'s "Delete variants": archived when history points at them, else deleted.',
+  'products.sales':
+    '"Sales past 90 days" on the product page (#56): units, buyers and net revenue.',
   'products.save':
     'Full write from the product form: options, variants and inventory in one transaction.',
   'products.searchVariants': 'Variant picker for the draft order editor and combo deals.',

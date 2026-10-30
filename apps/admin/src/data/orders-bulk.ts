@@ -23,6 +23,8 @@ export const ordersBulkContent = {
   exportFailed: 'Could not export orders',
   print: 'Print packing slips',
   printTooMany: (max: number) => `Print up to ${max} packing slips at a time`,
+  printPickList: 'Print pick list',
+  printInvoices: 'Print invoices',
   csv: {
     order: 'Order',
     date: 'Date',
@@ -46,6 +48,7 @@ export const ordersBulkContent = {
 export const packingSlipsContent = {
   title: 'Packing slips',
   ready: (n: number) => `${n} packing ${n === 1 ? 'slip' : 'slips'} ready to print`,
+  readyOrders: (n: number) => `${n} ${n === 1 ? 'order' : 'orders'} ready to print`,
   none: 'No orders to print. Pick orders on the Orders list first.',
   failed: 'Some of the selected orders could not be found, so their slips are missing.',
   print: 'Print',

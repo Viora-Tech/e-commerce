@@ -25,6 +25,7 @@ import { customersRouter } from './customers'
 import { dashboardRouter } from './dashboard'
 import { deliveryOptionsRouter } from './delivery-options'
 import { discountsRouter } from './discounts'
+import { documentsRouter } from './documents'
 import { domainsRouter } from './domains'
 import { emiRouter } from './emi'
 import { formsRouter } from './forms'
@@ -146,6 +147,7 @@ export const appRouter = {
   approvals: approvalsRouter,
   media: mediaRouter,
   staff: staffRouter,
+  documents: documentsRouter,
   domains: domainsRouter,
   markets: marketsRouter,
   catalogs: catalogsRouter,

@@ -45,6 +45,7 @@ import dates from './dates'
 import deliveryOptions from './delivery-options'
 import dhlExpress from './dhl-express'
 import discounts from './discounts'
+import documentTemplates from './document-templates'
 import domains from './domains'
 import drafts from './drafts'
 import dtdc from './dtdc'
@@ -259,6 +260,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...shipping,
   ...shippingRates,
   ...localDelivery,
+  ...documentTemplates,
   ...shopifyImport,
   ...shopifyAppInstall,
   ...notifications,

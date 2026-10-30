@@ -65,6 +65,8 @@ type OrderActionsProps = {
   onEdit?: (() => void) | undefined
   /** Where the order's invoices are on the page ("View invoices"); undefined hides it. */
   invoicesHref?: string | undefined
+  /** The print view of this order's packing slip (Settings › Printed documents). */
+  printHref: string
   /** The order's number, for "Copy order number". */
   orderNumber?: number | undefined
   /** The customer's email, for "Orders from this customer". */
@@ -94,6 +96,7 @@ export default function OrderActions({
   onCancel,
   onEdit,
   invoicesHref,
+  printHref,
   orderNumber,
   customerEmail,
   appItems = [],
@@ -155,7 +158,11 @@ export default function OrderActions({
           {editCopy.short}
         </Button>
       ) : null}
-      <Button variant="outline" title={copy.actions.print} onClick={() => window.print()}>
+      <Button
+        variant="outline"
+        title={copy.actions.print}
+        onClick={() => window.open(printHref, '_blank', 'noopener')}
+      >
         <Printer aria-hidden="true" />
         {copy.actions.printShort}
       </Button>

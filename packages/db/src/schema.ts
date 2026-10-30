@@ -2038,6 +2038,23 @@ export const shippingProfileProduct = pgTable(
   ],
 )
 
+/**
+ * The merchant's own HTML for a printed document (audit #164): `packing_slip`, `pick_list` or
+ * `invoice`, with merge tags (core `documents/templates.ts`). No row: the built-in default.
+ */
+export const documentTemplate = pgTable(
+  'document_template',
+  {
+    id: id(),
+    storeId: storeId(),
+    kind: text('kind', { enum: ['packing_slip', 'pick_list', 'invoice'] }).notNull(),
+    html: text('html').notNull(),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('document_template_kind').on(t.storeId, t.kind)],
+)
+
 /** One PIN code rule of a shipping zone: `560*` (prefix) or `560001` (exact). */
 export type ShippingPincodeRule = { pattern: string; mode: 'include' | 'exclude' }
 

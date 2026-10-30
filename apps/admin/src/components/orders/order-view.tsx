@@ -42,7 +42,6 @@ import OrderNextStep from './order-next-step'
 import { nextStepKind } from './order-next-step-kind'
 import OrderPageFrame from './order-page-frame'
 import OrderReturnsCard from './order-returns-card'
-import PackingSlip from './packing-slip'
 import ParcelsCard from './parcels-card'
 import PaymentCard from './payment-card'
 import ProfitCard from './profit-card'
@@ -257,6 +256,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
           back={back}
           actions={(n) => (
             <OrderActions
+              printHref={routes.orders.packingSlips([order.id])}
               status={order.status}
               paymentStatus={order.paymentStatus}
               fulfillmentStatus={order.fulfillmentStatus}
@@ -402,7 +402,6 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
         </>
       }
     >
-      <PackingSlip order={order} />
       <RunAutomationDialog
         subjectType="order"
         ids={automation.target}
