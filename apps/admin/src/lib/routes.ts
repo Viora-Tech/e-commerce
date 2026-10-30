@@ -240,6 +240,8 @@ export const routes = {
     inboxConversation: (conversationId: string, view?: string) =>
       `/sales-channels/inbox/conversations?id=${id(conversationId)}${view ? `&view=${id(view)}` : ''}`,
     inboxQuickReplies: () => '/sales-channels/inbox/quick-replies',
+    /** The answers the Inbox AI agent quotes. */
+    inboxKnowledge: () => '/sales-channels/inbox/knowledge',
     inboxSettings: () => '/sales-channels/inbox/settings',
     /** Facebook, Instagram and WhatsApp share one Meta page, a tab each. */
     socialMeta: () => '/sales-channels/social/meta',

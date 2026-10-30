@@ -16,8 +16,15 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type { StoreContext } from '../context'
 import { runInboxAiReply } from './ai-agent'
 import { asksForHuman } from './ai-rules'
-import { inboxCounts, listConversations, staffSend } from './conversations'
+import {
+  getConversation,
+  inboxCounts,
+  listConversations,
+  staffSend,
+  takeOverConversation,
+} from './conversations'
 import { hashChatToken, newChatToken } from './identity'
+import { createKnowledge } from './knowledge'
 import type { ShopperIdentity } from './rules'
 import { DEFAULT_INBOX_SETTINGS, type InboxAiMode } from './settings'
 import { shopperSend } from './shopper'
@@ -37,8 +44,11 @@ beforeEach(async () => {
 
 let n = 0
 
-async function newStore(mode: InboxAiMode) {
-  const settings = { ...DEFAULT_INBOX_SETTINGS, ai: { mode, knowledge: 'We ship in 3 days.' } }
+async function newStore(mode: InboxAiMode, voice = '') {
+  const settings = {
+    ...DEFAULT_INBOX_SETTINGS,
+    ai: { mode, knowledge: 'We ship in 3 days.', learn: true, voice },
+  }
   const [s] = await owner
     .insert(store)
     .values({
@@ -199,7 +209,7 @@ describe('runInboxAiReply', () => {
 
   it('hands off when the model is unsure or fails', async () => {
     const s = await newStore('all')
-    const first = await say(s, guest(), 'Where is my refund?')
+    const first = await say(s, guest(), 'Where is my parcel?')
     const unsure = await run(s, first.conversation.id, first.message.id, answer({ confidence: 30 }))
     expect(unsure.done).toBe('handed_off')
 
@@ -243,6 +253,63 @@ describe('runInboxAiReply', () => {
     expect(await run(s, first.conversation.id, first.message.id)).toMatchObject({
       done: 'skipped',
       why: 'superseded',
+    })
+  })
+
+  it('hands a refund or cancellation to staff without a model call', async () => {
+    const s = await newStore('all')
+    const { conversation, message } = await say(s, guest(), 'Please cancel my order #1042')
+    const result = await run(s, conversation.id, message.id, textModel('not json'))
+    expect(result).toMatchObject({ done: 'handed_off', reason: 'order_problem' })
+    const c = await conversationRow(conversation.id)
+    expect(c?.needsHuman).toBe(true)
+    expect(c?.handoffSummary).toContain('cancel my order')
+  })
+
+  it('reads published knowledge base answers and the brand voice, never drafts', async () => {
+    const s = await newStore('all', 'Warm and short, call shoppers aap.')
+    await inStore(s, (ctx) =>
+      createKnowledge(ctx, {
+        title: 'How long does shipping take?',
+        answer: 'Orders reach most cities in 3 to 5 days.',
+      }),
+    )
+    await inStore(s, (ctx) =>
+      createKnowledge(ctx, {
+        title: 'Warranty',
+        answer: 'Secret draft warranty answer.',
+        published: false,
+      }),
+    )
+    let seen = ''
+    const model = textModelSpy((prompt) => {
+      seen = prompt
+    })
+    const asked = await say(s, guest(), 'how long does shipping take to Pune?')
+    expect((await run(s, asked.conversation.id, asked.message.id, model)).done).toBe('answered')
+    expect(seen).toContain('STORE ANSWERS')
+    expect(seen).toContain('3 to 5 days')
+    expect(seen).not.toContain('Secret draft')
+    expect(seen).toContain('BRAND VOICE')
+    expect(seen).toContain('call shoppers aap')
+  })
+
+  it('stays quiet after staff take over, and the admin shows the AI as active until then', async () => {
+    const s = await newStore('all')
+    const who = guest()
+    const q = await say(s, who, 'Is the blue kurta in stock?')
+    await run(s, q.conversation.id, q.message.id)
+    const before = await inStore(s, (ctx) =>
+      getConversation(ctx, { id: q.conversation.id }, SECRET),
+    )
+    expect(before.conversation.aiActive).toBe(true)
+    await inStore(s, (ctx) => takeOverConversation(ctx, q.conversation.id))
+    const after = await inStore(s, (ctx) => getConversation(ctx, { id: q.conversation.id }, SECRET))
+    expect(after.conversation.aiActive).toBe(false)
+    const next = await say(s, who, 'and in size L?')
+    expect(await run(s, next.conversation.id, next.message.id)).toMatchObject({
+      done: 'skipped',
+      why: 'not_allowed',
     })
   })
 })

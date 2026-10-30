@@ -62,6 +62,12 @@ export default function InboxFilters({ view, counts, onChange, className }: Inbo
           {f.quickReplies}
         </Link>
         <Link
+          href={routes.salesChannels.inboxKnowledge()}
+          className="flex h-8 items-center rounded-md px-2.5 text-body text-foreground hover:bg-accent/60"
+        >
+          {f.knowledge}
+        </Link>
+        <Link
           href={routes.salesChannels.inboxSettings()}
           className="flex h-8 items-center gap-2 rounded-md px-2.5 text-body text-foreground hover:bg-accent/60"
         >

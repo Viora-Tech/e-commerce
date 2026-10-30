@@ -226,8 +226,12 @@ export const ACTION_DOCS: Record<string, string> = {
     '"WhatsApp" click to chat from the customer page: their phone and name, plus their latest order\'s links for the order and shipping messages.',
   'dashboard.analytics':
     "Home's analytics card for any date range (Figma 580:692): every tile metric, with comparison.",
+  'dashboard.cards':
+    "Home's smart cards: suggestions from the store's own numbers, rebuilt daily, best first.",
   'dashboard.charts':
     'The "How you\'re doing" charts area for one range; the only part of the home page that refetches.',
+  'dashboard.dismissCard':
+    'Hide one smart card for 30 days for the whole store; dismissed: false is Undo.',
   'dashboard.summary':
     'Stat windows, weekly report, recent orders, top products, live visitors and quick lists for the home page.',
   'dashboard.tiles': 'Which metric this member keeps in each Home tile (Customize).',
@@ -288,6 +292,15 @@ export const ACTION_DOCS: Record<string, string> = {
   'inbox.counts': 'How many conversations each tab holds, and how many open ones are unread.',
   'inbox.get':
     'One conversation with the newest page of its thread (staff notes included), or an older page.',
+  'inbox.knowledge.bringOver':
+    'Copies the imported Shopify "Knowledge Base Facts" not copied before.',
+  'inbox.knowledge.create': 'Adds an answer.',
+  'inbox.knowledge.delete': 'Deletes an answer.',
+  'inbox.knowledge.list':
+    'The knowledge base, its "6 of 18 published" counts and the imported Shopify facts, if any.',
+  'inbox.knowledge.reorder': 'Puts the answers in this order.',
+  'inbox.knowledge.setPublished': "The list's publish switch.",
+  'inbox.knowledge.update': 'Changes an answer.',
   'inbox.list':
     'One page of conversations in a tab (Open, Mine, Unassigned, Closed, Blocked), newest first, with search.',
   'inbox.markSeen': 'Marks everything in the thread read for staff.',
@@ -313,6 +326,7 @@ export const ACTION_DOCS: Record<string, string> = {
     'A long chat in two lines: what it is about and what the shopper still waits for.',
   'inbox.sync':
     'The polling fallback: messages and changed conversations since a message id, and the counts.',
+  'inbox.takeOver': 'Take a conversation over from the AI agent: it stops answering there.',
   'inbox.typing': '"Typing…" to the shopper; never stored, at most one every 3 seconds.',
   'inventory.bulkEdit': 'Same edit across selected rows; all or nothing.',
   'inventory.edit': 'One inline edit: returns the new on-hand count.',
@@ -567,11 +581,15 @@ export const ACTION_DOCS: Record<string, string> = {
     "The order page's Returns card: what can still go back and every return so far.",
   'returns.rtoSummary': 'Shipments workspace: RTO counts and costs over the last N days.',
   'reviews.ask': 'Plans review requests, due now, for recently delivered orders never asked.',
+  'reviews.askPastOrders':
+    'Plans the requests the preview counted, a batch an hour, after any still waiting.',
   'reviews.judgeme.import':
     'Imports what the preview showed (store reviews too, and missing-product rows as store reviews when asked); photos are copied by a background job.',
   'reviews.judgeme.preview':
     'Step 3 of the import: counts and the first rows with how each matched.',
   'reviews.list': "One page of reviews with the tiles' and tabs' numbers.",
+  'reviews.pastOrdersPreview':
+    '"Request reviews from past orders": how many delivered orders in the range would be asked.',
   'reviews.products': "Products that have reviews, for the list's product filter.",
   'reviews.reply': "The store's public reply; the first one emails the customer.",
   'reviews.setStatus': 'Approve (publish), hide, or move back to waiting, one or many.',
@@ -637,6 +655,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'shipments.recordStatus':
     "A status set by hand, for a courier with no tracking feed (India Post): appended to the shipment's timeline and applied like a scan (delivered closes the order, RTO opens its task).",
   'shipments.wallets': 'One card per connected courier - each has its own account and balance.',
+  'shipping.profiles.collectionProducts':
+    'Products of the picked collections, for "Add a collection\'s products".',
   'shopifyImport.appInstall':
     'Whether this deployment has the platform\'s own Shopify app, so "Install the app" can show.',
   'shopifyImport.claimAppInstall':

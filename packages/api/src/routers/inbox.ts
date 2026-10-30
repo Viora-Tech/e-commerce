@@ -8,21 +8,29 @@ import {
 } from '@commerce/core'
 import {
   assignConversation,
+  bringOverImportedFacts,
+  createKnowledge,
   createQuickReply,
   customerPanel,
+  deleteKnowledge,
   deleteQuickReply,
   getConversation,
   INBOX_LIMITS,
   InboxSettingsPatchSchema,
+  importedFactsSource,
   inboxAssignees,
   inboxCounts,
   inboxLimitKey,
   inboxMetrics,
   inboxState,
   inboxSync,
+  KnowledgeInputSchema,
+  KnowledgeUpdateSchema,
+  knowledgeCounts,
   ListConversationsSchema,
   listBlocks,
   listConversations,
+  listKnowledge,
   listQuickReplies,
   markStaffSeen,
   messageCards,
@@ -32,16 +40,20 @@ import {
   QuickReplyInputSchema,
   QuickReplyUpdateSchema,
   removeBlock,
+  reorderKnowledge,
   reorderQuickReplies,
   SetStatusSchema,
   StaffSendSchema,
   saveInboxSettings,
   seenEvents,
   setConversationStatus,
+  setKnowledgePublished,
   shareableDiscounts,
   staffSend,
   statusEvents,
+  takeOverConversation,
   typingEvent,
+  updateKnowledge,
   updateQuickReply,
 } from '@commerce/core/inbox/server'
 import type { StoreTx } from '@commerce/db'
@@ -177,6 +189,15 @@ export const inboxRouter = {
       publishAfterCommit(context, statusEvents(context.scope.storeId, row))
       return row
     }),
+  /** Take a conversation over from the AI agent: it stops answering there. */
+  takeOver: can(permissions.INBOX_REPLY)
+    .input(Id)
+    .handler(async ({ context, input }) => {
+      await requireInstalled(context)
+      const row = await refusal(() => takeOverConversation(storeCtx(context), input.id))
+      publishAfterCommit(context, statusEvents(context.scope.storeId, row))
+      return row
+    }),
   /** Close, reopen or block a conversation; blocking also blocks the sender's browser and email. */
   setStatus: can(permissions.INBOX_REPLY)
     .input(SetStatusSchema)
@@ -304,6 +325,60 @@ export const inboxRouter = {
         await reorderQuickReplies(storeCtx(context), input.ids)
         return { ok: true }
       }),
+  },
+  knowledge: {
+    /** The knowledge base, its "6 of 18 published" counts and the imported Shopify facts, if any. */
+    list: can(permissions.INBOX_READ).handler(async ({ context }) => {
+      await requireInstalled(context)
+      const ctx = storeCtx(context)
+      return {
+        entries: await listKnowledge(ctx),
+        counts: await knowledgeCounts(ctx),
+        imported: await importedFactsSource(ctx),
+      }
+    }),
+    /** Adds an answer. */
+    create: can(permissions.INBOX_MANAGE)
+      .input(KnowledgeInputSchema)
+      .handler(async ({ context, input }) => {
+        await requireInstalled(context)
+        return refusal(() => createKnowledge(storeCtx(context), input, context.scope.userId))
+      }),
+    /** Changes an answer. */
+    update: can(permissions.INBOX_MANAGE)
+      .input(KnowledgeUpdateSchema)
+      .handler(async ({ context, input }) => {
+        await requireInstalled(context)
+        return refusal(() => updateKnowledge(storeCtx(context), input))
+      }),
+    /** The list's publish switch. */
+    setPublished: can(permissions.INBOX_MANAGE)
+      .input(z.object({ id: z.uuid(), published: z.boolean() }))
+      .handler(async ({ context, input }) => {
+        await requireInstalled(context)
+        return refusal(() => setKnowledgePublished(storeCtx(context), input))
+      }),
+    /** Deletes an answer. */
+    delete: can(permissions.INBOX_MANAGE)
+      .input(Id)
+      .handler(async ({ context, input }) => {
+        await requireInstalled(context)
+        await refusal(() => deleteKnowledge(storeCtx(context), input.id))
+        return { ok: true }
+      }),
+    /** Puts the answers in this order. */
+    reorder: can(permissions.INBOX_MANAGE)
+      .input(z.object({ ids: z.array(z.uuid()).max(BULK_MAX) }))
+      .handler(async ({ context, input }) => {
+        await requireInstalled(context)
+        await reorderKnowledge(storeCtx(context), input.ids)
+        return { ok: true }
+      }),
+    /** Copies the imported Shopify "Knowledge Base Facts" not copied before. */
+    bringOver: can(permissions.INBOX_MANAGE).handler(async ({ context }) => {
+      await requireInstalled(context)
+      return bringOverImportedFacts(storeCtx(context), context.scope.userId)
+    }),
   },
   blocks: {
     /** Blocked browsers, emails and IPs (hashes only; never the raw value). */

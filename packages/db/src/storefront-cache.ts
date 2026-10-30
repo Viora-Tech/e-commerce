@@ -132,6 +132,7 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   inbox_ai_event: ADMIN,
   inbox_block: ADMIN,
   inbox_conversation: 'chat threads load in the widget, never in a cached page',
+  inbox_knowledge: ADMIN,
   inbox_message: 'chat messages load in the widget, never in a cached page',
   inbox_quick_reply: ADMIN,
   inventory_adjustment: LOG,

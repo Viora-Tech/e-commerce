@@ -56,6 +56,7 @@ export const INBOX_NAV: NavItem = {
   children: [
     { href: routes.salesChannels.inboxConversations(), label: 'Conversations' },
     { href: routes.salesChannels.inboxQuickReplies(), label: 'Quick replies' },
+    { href: routes.salesChannels.inboxKnowledge(), label: 'Knowledge base' },
     { href: routes.salesChannels.inboxSettings(), label: 'Settings' },
   ],
 }

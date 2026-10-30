@@ -29,6 +29,8 @@ import { recordAiUsage } from '../ai/usage'
 import { POLICY_TYPES, policyHandle } from '../policies/client'
 import { aiMayAnswer, asksForHuman } from './ai-rules'
 import { messageEvents, statusEvents } from './events'
+import { publishedKnowledge } from './knowledge'
+import { asksForRefundOrCancel, pickKnowledge, questionWords } from './knowledge-rules'
 import { appendMessage, type InboxConversationRow, type InboxMessageRow } from './messages'
 import { productCards } from './panel'
 import type { InboxPublish } from './realtime'
@@ -78,21 +80,12 @@ export type InboxAiRunResult =
   | { done: 'answered'; events: InboxPublish[] }
   | { done: 'handed_off'; reason: InboxAgentHandoffReason; events: InboxPublish[] }
 
-/** Words worth searching the catalogue for: three letters or more, at most five. */
-function searchWords(text: string): string[] {
-  const words = text
-    .toLowerCase()
-    .split(/[^\p{L}\p{N}]+/u)
-    .filter((w) => w.length >= 3)
-  return [...new Set(words)].slice(0, 5)
-}
-
 /** Active products whose title matches a word of `question`, as the AI reads them. */
 export async function inboxAiProducts(
   tx: StoreTx,
   question: string,
 ): Promise<InboxAgentInput['products']> {
-  const words = searchWords(question)
+  const words = questionWords(question)
   if (words.length === 0) return []
   const rows = await tx
     .select({ id: product.id, description: product.description })
@@ -170,7 +163,7 @@ async function loadPastAnswers(
   question: string,
   conversationId: string,
 ): Promise<InboxAgentInput['pastAnswers']> {
-  const words = searchWords(question)
+  const words = questionWords(question)
   if (words.length === 0) return []
   const m = inboxMessage
   const asked = await tx
@@ -372,6 +365,7 @@ export async function runInboxAiReply(opts: RunInboxAiOptions): Promise<InboxAiR
     status: l.conversation.status,
     needsHuman: l.conversation.needsHuman,
     staffReplied: l.staffReplied,
+    aiPaused: l.conversation.aiPausedAt !== null,
   })
   if (!mayAnswer) return { done: 'skipped', why: 'not_allowed' }
 
@@ -385,6 +379,22 @@ export async function runInboxAiReply(opts: RunInboxAiOptions): Promise<InboxAiR
     return { done: 'handed_off', reason: 'asked_for_human', events }
   }
 
+  // Refunds, returns, cancellations and exchanges are always staff's call.
+  if (asksForRefundOrCancel(l.question.body)) {
+    const events = await withStore(db, job.storeId, async (tx) => {
+      const out = await handOff(
+        tx,
+        job.storeId,
+        l,
+        `The shopper asked for a refund, return, cancellation or exchange: ${l.question.body.slice(0, 200)}`,
+        now,
+      )
+      await logEvent(tx, job.storeId, l, { kind: 'handoff', reason: 'order_problem' })
+      return out
+    })
+    return { done: 'handed_off', reason: 'order_problem', events }
+  }
+
   // The store's AI switch and allowance (counted under the assistant for now).
   const admission = await withStore(db, job.storeId, (tx) =>
     admitAiCall({ storeId: job.storeId, tx }, 'assistant', now),
@@ -395,6 +405,7 @@ export async function runInboxAiReply(opts: RunInboxAiOptions): Promise<InboxAiR
 
   const pack = await withStore(db, job.storeId, async (tx) => ({
     products: await inboxAiProducts(tx, l.question.body),
+    answers: pickKnowledge(await publishedKnowledge(tx), l.question.body),
     policies: await inboxAiPolicies(tx),
     orders: await loadOrders(tx, l.conversation.customerId),
     pastAnswers: l.state.settings.ai.learn
@@ -411,6 +422,7 @@ export async function runInboxAiReply(opts: RunInboxAiOptions): Promise<InboxAiR
       instructions: inboxAgentInstructions(l.state.storeName),
       content: inboxAgentContent({
         knowledge: l.state.settings.ai.knowledge,
+        voice: l.state.settings.ai.voice,
         ...pack,
         thread: l.thread,
       }),

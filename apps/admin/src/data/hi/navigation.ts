@@ -14,6 +14,7 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
   '/sales-channels/inbox': { title: 'इनबॉक्स' },
   '/sales-channels/inbox/conversations': { title: 'बातचीत' },
   '/sales-channels/inbox/quick-replies': { title: 'झटपट जवाब' },
+  '/sales-channels/inbox/knowledge': { title: 'नॉलेज बेस' },
   '/sales-channels/inbox/settings': { title: 'इनबॉक्स सेटिंग्स' },
   '/orders/drafts': { title: 'ड्राफ़्ट' },
   '/orders/abandoned-checkouts': { title: 'अधूरे चेकआउट' },

@@ -240,6 +240,8 @@ export type ConversationDetail = ConversationSummary & {
   firstResponseAt: Date | null
   closedAt: Date | null
   shopperSeenMessageId: string | null
+  /** The AI agent has answered here and still answers: no hand-off, no staff message, no take-over. */
+  aiActive: boolean
 }
 
 /** One conversation with the newest page of its thread (notes included), or older pages by `beforeId`. */
@@ -256,12 +258,25 @@ export async function getConversation(
       firstResponseAt: inboxConversation.firstResponseAt,
       closedAt: inboxConversation.closedAt,
       shopperSeenMessageId: inboxConversation.shopperSeenMessageId,
+      aiPausedAt: inboxConversation.aiPausedAt,
     })
     .from(inboxConversation)
     .leftJoin(customer, eq(customer.id, inboxConversation.customerId))
     .where(eq(inboxConversation.id, input.id))
   if (!row) throw new InboxError('INBOX_NOT_FOUND', 'Conversation not found', ctx.storeId)
   const page = await threadPage(ctx.tx, input.id, input.beforeId ?? null, { includeNotes: true })
+  const senders = await ctx.tx
+    .selectDistinct({ sender: inboxMessage.sender })
+    .from(inboxMessage)
+    .where(
+      and(eq(inboxMessage.conversationId, input.id), inArray(inboxMessage.sender, ['ai', 'staff'])),
+    )
+  const aiActive =
+    row.status === 'open' &&
+    !row.needsHuman &&
+    row.aiPausedAt === null &&
+    senders.some((s) => s.sender === 'ai') &&
+    !senders.some((s) => s.sender === 'staff')
   return {
     conversation: {
       ...summaryOf(row),
@@ -270,6 +285,7 @@ export async function getConversation(
       firstResponseAt: row.firstResponseAt,
       closedAt: row.closedAt,
       shopperSeenMessageId: row.shopperSeenMessageId,
+      aiActive,
     },
     ...page,
   }
@@ -424,6 +440,23 @@ export async function assignConversation(
     },
   })
   return loadConversation(ctx.tx, ctx.storeId, input.id)
+}
+
+/**
+ * Staff take a conversation over from the AI agent without writing yet: the AI stays quiet in it
+ * from now on (a staff reply does the same).
+ */
+export async function takeOverConversation(
+  ctx: StoreContext,
+  id: string,
+): Promise<InboxConversationRow> {
+  const now = new Date()
+  const [row] = await ctx.tx
+    .update(inboxConversation)
+    .set({ aiPausedAt: now, updatedAt: now })
+    .where(and(eq(inboxConversation.id, id), isNull(inboxConversation.aiPausedAt)))
+    .returning()
+  return row ?? loadConversation(ctx.tx, ctx.storeId, id)
 }
 
 export const SetStatusSchema = z.object({

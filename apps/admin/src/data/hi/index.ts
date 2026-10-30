@@ -61,6 +61,7 @@ import home from './home'
 import imageEditor from './image-editor'
 import inbox from './inbox'
 import inboxConversations from './inbox-conversations'
+import inboxKnowledge from './inbox-knowledge'
 import indiaPost from './india-post'
 import installedApps from './installed-apps'
 import inventory from './inventory'
@@ -237,6 +238,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...profitReport,
   ...inbox,
   ...inboxConversations,
+  ...inboxKnowledge,
   ...monthlyExpenses,
   ...purchasing,
   ...selectProducts,

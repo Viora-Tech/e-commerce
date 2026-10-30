@@ -3,6 +3,7 @@
 export * from './ai-rules'
 export * from './connection'
 export * from './constants'
+export * from './knowledge-rules'
 export * from './rules'
 export * from './settings'
 export * from './widget'
