@@ -121,6 +121,26 @@ export const settingsRowsContent = {
     downgradeTo: (plan: string) => `Move to ${plan}`,
   },
 
+  shipping: {
+    back: 'Shipping & delivery',
+    rates: 'Shipping rates',
+    ratesValue: 'Zones, profiles and rates',
+    packages: 'Packages',
+    packagesValue: (n: number) =>
+      n === 0 ? 'None saved' : n === 1 ? '1 package' : `${n} packages`,
+    dispatch: 'Dispatch',
+    dispatchValue: (pincode: string, cutoff: string) => `From ${pincode} · orders by ${cutoff}`,
+    split: 'Split shipping',
+    splitValue: (n: number) => (n === 1 ? 'Never split' : `Up to ${n} parcels`),
+    courier: 'Which courier ships',
+    cheapest: 'Cheapest',
+    preferred: (courier: string) => `Always ${courier}`,
+    perZone: 'By region',
+    pincode: 'Check a PIN code',
+    pincodeValue: 'Delivery dates and couriers',
+    demo: 'Demo courier',
+  },
+
   approvals: {
     waitingValue: (n: number) => (n === 0 ? 'Nothing waiting' : `${n} waiting`),
     mineValue: (n: number) => (n === 0 ? 'None in 30 days' : `${n} in 30 days`),

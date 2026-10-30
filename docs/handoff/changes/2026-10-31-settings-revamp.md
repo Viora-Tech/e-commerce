@@ -21,6 +21,7 @@ that id). Only the layout changed; every form, dialog, save bar and permission c
 | MCP & API | status card on top, then `connect`, `apps`, `permissions`, `tokens`; a link row to Activity |
 | Plan & billing | plan card and banners on top, then `payment`, `apps`, `invoices`, `fee-bills`, `downgrade` |
 | Approvals | `waiting`, `mine` |
+| Shipping | courier status line on top, then `rates` (profiles and zones), `boxes` (Packages), `dispatch`, `split`, `courier`, `pincode`, `demo` (dev only) |
 
 ## Lists as rows in a card
 
@@ -41,7 +42,6 @@ edit dialog, delete stays at the row end), and inside Policies and MCP.
 
 - **Payments** (another branch is revamping it) and **Store health** (a list of problems with fix
   buttons; it already reads as rows).
-- Shipping: see the commit log of this branch; it waits for the shipping zones work.
 
 ## Test
 

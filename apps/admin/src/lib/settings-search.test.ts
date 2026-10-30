@@ -51,7 +51,7 @@ describe('searchSettings', () => {
 
   it('offers both Shipping and the App Store for "courier"', () => {
     const hrefs = searchSettings(SETTINGS_SEARCH_INDEX, 'courier').map((e) => e.href)
-    expect(hrefs).toContain('/settings/shipping#courier')
+    expect(hrefs).toContain('/settings/shipping?open=courier')
     expect(hrefs).toContain(appStoreUrl({ category: 'shipping' }))
   })
 

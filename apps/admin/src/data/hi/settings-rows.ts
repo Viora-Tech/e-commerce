@@ -117,6 +117,25 @@ export default [
       downgradeTo: (plan) => `${plan} पर जाएँ`,
     },
 
+    shipping: {
+      back: 'शिपिंग और डिलीवरी',
+      rates: 'शिपिंग रेट',
+      ratesValue: 'ज़ोन, प्रोफ़ाइल और रेट',
+      packages: 'पैकेज',
+      packagesValue: (n) => (n === 0 ? 'कोई सेव नहीं' : `${n} पैकेज`),
+      dispatch: 'डिस्पैच',
+      dispatchValue: (pincode, cutoff) => `${pincode} से · ${cutoff} तक के ऑर्डर`,
+      split: 'अलग-अलग पार्सल',
+      splitValue: (n) => (n === 1 ? 'कभी नहीं बाँटते' : `${n} पार्सल तक`),
+      courier: 'कौन-सा कूरियर भेजे',
+      cheapest: 'सबसे सस्ता',
+      preferred: (courier) => `हमेशा ${courier}`,
+      perZone: 'इलाके के हिसाब से',
+      pincode: 'PIN कोड जाँचें',
+      pincodeValue: 'डिलीवरी की तारीख़ और कूरियर',
+      demo: 'डेमो कूरियर',
+    },
+
     approvals: {
       waitingValue: (n) => (n === 0 ? 'कुछ बाकी नहीं' : `${n} बाकी`),
       mineValue: (n) => (n === 0 ? '30 दिन में कोई नहीं' : `30 दिन में ${n}`),

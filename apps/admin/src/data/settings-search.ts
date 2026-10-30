@@ -171,7 +171,7 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'Where you ship and what it costs',
     where: 'Selling › Shipping & delivery',
-    href: '/settings/shipping#rates',
+    href: '/settings/shipping?open=rates',
     keywords: [
       'rates',
       'shipping rate',
@@ -184,19 +184,19 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'Your boxes',
     where: 'Selling › Shipping & delivery',
-    href: '/settings/shipping#boxes',
+    href: '/settings/shipping?open=boxes',
     keywords: ['box', 'boxes', 'package', 'packaging', 'weight', 'size', 'dimensions'],
   },
   {
     title: 'When orders go out',
     where: 'Selling › Shipping & delivery',
-    href: '/settings/shipping#dispatch',
+    href: '/settings/shipping?open=dispatch',
     keywords: ['dispatch', 'cutoff', 'holiday', 'holidays', 'working days', 'return address'],
   },
   {
     title: 'Which courier ships',
     where: 'Selling › Shipping & delivery',
-    href: '/settings/shipping#courier',
+    href: '/settings/shipping?open=courier',
     keywords: [
       'courier',
       'delhivery',
@@ -259,7 +259,7 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'Check delivery to a pincode',
     where: 'Selling › Shipping & delivery',
-    href: '/settings/shipping#pincode',
+    href: '/settings/shipping?open=pincode',
     keywords: ['pincode', 'pin code', 'serviceable', 'delivery date', 'estimate'],
   },
   // Messages › Notifications
