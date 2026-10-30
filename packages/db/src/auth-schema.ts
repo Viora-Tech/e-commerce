@@ -30,6 +30,11 @@ export const session = pgTable('session', {
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
   activeOrganizationId: text('active_organization_id'),
+  // Step-up auth (A5): when the member last re-verified (fresh OTP/passkey). The sensitive-action
+  // guard treats a session as stale once `now - reauthenticatedAt` exceeds the step-up window.
+  // Defaults to the session's own creation time (a fresh sign-in is itself a recent verification);
+  // the re-auth endpoint bumps it to now() on each successful step-up.
+  reauthenticatedAt: timestamp('reauthenticated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
 export const account = pgTable('account', {

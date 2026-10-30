@@ -1233,6 +1233,13 @@
       "when": 1793303519171,
       "tag": "0191_shopify_token_sweep",
       "breakpoints": true
+    },
+    {
+      "idx": 176,
+      "version": "7",
+      "when": 1793367655650,
+      "tag": "0192_session_reauth",
+      "breakpoints": true
     }
   ]
-}
+}
