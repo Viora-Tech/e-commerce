@@ -36,6 +36,13 @@ type PostalAddress = {
   pincode: string
 }
 
+/** An address as lines, as on a parcel. */
+function linesOf(x: PostalAddress): string[] {
+  return [x.line1, x.line2, `${x.city}, ${stateName(x.stateCode)} ${x.pincode}`].filter(
+    (l): l is string => Boolean(l?.trim()),
+  )
+}
+
 type AddressBlockProps = { lines: string[]; what: string }
 
 /** A postal address as lines, with one copy button for all of it. */
@@ -49,8 +56,7 @@ function AddressBlock({ lines, what }: AddressBlockProps) {
           </span>
         ))}
       </p>
-      <CopyButton value={lines.join('
-')} what={what} visible />
+      <CopyButton value={lines.join('\n')} what={what} visible />
     </div>
   )
 }
@@ -88,10 +94,6 @@ export default function CustomerCard({ order }: CustomerCardProps) {
   ]
   // An address reads as a block, as on a parcel: one row per labelled field made the card very
   // tall (audit #13). One copy button takes the whole address.
-  const linesOf = (x: PostalAddress) =>
-    [x.line1, x.line2, `${x.city}, ${stateName(x.stateCode)} ${x.pincode}`].filter(
-      (l): l is string => Boolean(l?.trim()),
-    )
   const bill = order.billingAddress
   const billingLines = bill
     ? [bill.name, ...linesOf(bill), bill.phone].filter((l): l is string => Boolean(l?.trim()))

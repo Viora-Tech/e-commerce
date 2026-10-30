@@ -4,8 +4,8 @@ import {
   ReviewsWidget,
   variantOnPreorder,
 } from '@commerce/blocks'
-import { seoSnippet } from '@commerce/core/catalog'
 import { loadProductPageExtras } from '@commerce/core'
+import { seoSnippet } from '@commerce/core/catalog'
 import {
   depositIsNonRefundable,
   type PreorderStoreSettings,

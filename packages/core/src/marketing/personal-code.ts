@@ -17,8 +17,15 @@ export type PersonalCodeOffer = {
 
 /** `WELCOME-7K2QX9FD`: the prefix (letters only) and eight characters from the message id. */
 export function personalCodeFor(messageId: string, prefix: string): string {
-  const head = prefix.replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 12) || 'THANKS'
-  const tail = messageId.replace(/[^A-Za-z0-9]/g, '').slice(-8).toUpperCase()
+  const head =
+    prefix
+      .replace(/[^A-Za-z]/g, '')
+      .toUpperCase()
+      .slice(0, 12) || 'THANKS'
+  const tail = messageId
+    .replace(/[^A-Za-z0-9]/g, '')
+    .slice(-8)
+    .toUpperCase()
   return `${head}-${tail}`
 }
 

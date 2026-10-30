@@ -231,7 +231,9 @@ describe('field types and values', () => {
     expect(refusal({ ...base, minQuantity: 3, minSubtotalPaise: 100 })?.reason).toBe(
       'minimum_quantity',
     )
-    expect(refusal({ ...base, allCustomers: false, customerIds: ['gid://shopify/Customer/1'] })).toBeNull()
+    expect(
+      refusal({ ...base, allCustomers: false, customerIds: ['gid://shopify/Customer/1'] }),
+    ).toBeNull()
     expect(refusal({ ...base, allCustomers: false })?.reason).toBe('customer_specific')
     expect(refusal({ ...base, appliesOnEachItem: true })?.reason).toBe('per_item_amount')
     expect(

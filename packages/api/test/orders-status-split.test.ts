@@ -253,9 +253,23 @@ describe('order list tabs and filters on the split statuses', () => {
       .set({ shippingAddressId: a?.id })
       .where(and(eq(order.storeId, m.storeId), eq(order.number, 2)))
       .returning()
+    const [p] = await owner
+      .insert(product)
+      .values({ storeId: m.storeId, handle: 'beastx', title: 'WLMOUSE BeastX V2' })
+      .returning()
+    const [v] = await owner
+      .insert(variant)
+      .values({
+        storeId: m.storeId,
+        productId: p?.id as string,
+        title: 'Max / Black',
+        pricePaise: 1000,
+      })
+      .returning()
     await owner.insert(orderLine).values({
       storeId: m.storeId,
       orderId: o?.id as string,
+      variantId: v?.id as string,
       title: 'WLMOUSE BeastX V2',
       variantTitle: 'Max / Black',
       quantity: 1,

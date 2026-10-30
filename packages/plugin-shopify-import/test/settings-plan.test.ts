@@ -95,6 +95,13 @@ function applyToLocal(local: LocalSettings, ops: SettingsOp[]): LocalSettings {
       next.defaultGstin = op.gstin
       next.gstins.push(op.gstin)
     }
+    if (op.kind === 'seo') {
+      next.seo = {
+        title: op.title ?? next.seo.title,
+        description: op.description ?? next.seo.description,
+      }
+    }
+    if (op.kind === 'segment') next.segments = [...next.segments, op.name]
     if (op.kind === 'location') {
       const id = op.id ?? `loc-${++n}`
       const at = next.locations.findIndex((l) => l.id === id)
@@ -558,7 +565,9 @@ describe('customer segments (audit #87)', () => {
     ])
     // A filter we cannot express, or AND mixed with OR: left for the merchant, never half-imported.
     expect(segmentRules("customer_cities CONTAINS 'IN-HR-Sonipat'")).toBeNull()
-    expect(segmentRules("customer_tags CONTAINS 'a' AND number_of_orders >= 1 OR amount_spent > 5")).toBeNull()
+    expect(
+      segmentRules("customer_tags CONTAINS 'a' AND number_of_orders >= 1 OR amount_spent > 5"),
+    ).toBeNull()
   })
 
   it('creates the ones it can, keeps same-named ones, lists the rest', async () => {
@@ -577,7 +586,10 @@ describe('customer segments (audit #87)', () => {
       {
         kind: 'segment',
         name: 'Restock list: Mio',
-        rules: { match: 'all', conditions: [{ field: 'tag', op: 'contains', value: 'restock-dysphoria-mio' }] },
+        rules: {
+          match: 'all',
+          conditions: [{ field: 'tag', op: 'contains', value: 'restock-dysphoria-mio' }],
+        },
       },
     ])
   })

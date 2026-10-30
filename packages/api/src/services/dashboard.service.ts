@@ -757,10 +757,7 @@ export async function dashboardSummary(
       .from(store)
       .where(eq(store.id, opts.storeId))
     if (parseAppsSettings(storeRow?.apps).installed.includes(GST_INVOICES_ID)) {
-      const [queuedRow] = await tx
-        .select({ n: count() })
-        .from(invoice)
-        .where(queuedInvoiceDrafts())
+      const [queuedRow] = await tx.select({ n: count() }).from(invoice).where(queuedInvoiceDrafts())
       gstQueued = { count: queuedRow?.n ?? 0, href: '/apps/gst-invoices' }
     }
     const storeAddress = StoreAddressSchema.safeParse(storeRow?.address ?? {})

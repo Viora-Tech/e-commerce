@@ -1,4 +1,5 @@
 import { createMerchantAuth } from '@commerce/auth'
+import { importedMethod } from '@commerce/core'
 import {
   address,
   cart,
@@ -22,7 +23,6 @@ import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type { ApiContext } from '../src/context'
 import { appRouter } from '../src/routers/_app'
-import { importedMethod } from '@commerce/core'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
@@ -108,7 +108,13 @@ describe('analytics.overview', () => {
         phone: '9999999999',
       })
       .returning()
-    const base = { storeId: a.storeId, customerId: c?.id, subtotalPaise: 100000 }
+    // Placed through a tracked storefront session (conversion counts only those).
+    const base = {
+      storeId: a.storeId,
+      customerId: c?.id,
+      subtotalPaise: 100000,
+      attribution: { channel: 'direct', at: new Date().toISOString() },
+    }
     await owner.insert(order).values([
       {
         ...base,
@@ -119,7 +125,6 @@ describe('analytics.overview', () => {
         paymentMethod: 'razorpay',
         placedAt: hoursAgo(2),
         shippingAddressId: addr?.id,
-        attribution: { channel: 'direct' },
       },
       {
         ...base,
@@ -129,7 +134,6 @@ describe('analytics.overview', () => {
         paymentMethod: 'cod',
         placedAt: daysAgo(2),
         shippingAddressId: addr?.id,
-        attribution: { channel: 'direct' },
       },
       { ...base, number: 3, totalPaise: 90000, status: 'cancelled', placedAt: daysAgo(3) },
       { ...base, number: 4, totalPaise: 40000, status: 'draft', placedAt: daysAgo(1) },

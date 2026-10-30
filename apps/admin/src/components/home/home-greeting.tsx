@@ -1,5 +1,5 @@
 import { wallClock } from '@commerce/dates'
-import { greetingTitle, greetingWord, homeContent, homePageContent, summaryLine } from '@/data/home'
+import { greetingTitle, greetingWord, homeContent, summaryLine } from '@/data/home'
 import { getCopy, getLocale } from '@/lib/copy-server'
 import { formatters } from '@/lib/format'
 import GreetingLine from './greeting-line'
@@ -31,7 +31,6 @@ export default async function HomeGreeting({
   const greetingFor = await getCopy(greetingWord)
   const lineFor = await getCopy(summaryLine)
   const titleFor = await getCopy(greetingTitle)
-  const page = await getCopy(homePageContent)
   const fmt = formatters(await getLocale())
   const hour = wallClock(now).getUTCHours()
   const name = firstName === (await getCopy(homeContent)).briefing.fallbackName ? '' : firstName

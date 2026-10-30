@@ -3,13 +3,13 @@ import type { StoreTx } from '@commerce/db'
 import {
   BACK_IN_STOCK_ID,
   BackInStockStoreSettingsSchema,
+  importRestockTags,
   listSignups,
   loadPlatformQuota,
   loadStoreSettings,
   maskContact,
   SIGNUP_STATUSES,
   saveStoreSettings,
-  importRestockTags,
   topVariantsByWaiting,
   usageOverview,
 } from '@commerce/plugin-back-in-stock/server'

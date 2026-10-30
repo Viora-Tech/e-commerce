@@ -227,7 +227,9 @@ export function settingField(
   options: LiquidFieldOptions = {},
 ): LiquidField | null {
   const field = bareSettingField(setting, locale, options)
-  const help = schemaText(setting.info, locale).replace(/<[^>]*>/g, '').trim()
+  const help = schemaText(setting.info, locale)
+    .replace(/<[^>]*>/g, '')
+    .trim()
   if (!field || !help) return field
   if (field.type === 'object' || field.type === 'array') return field
   return { ...field, metadata: { help } }

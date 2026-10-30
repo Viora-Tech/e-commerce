@@ -56,7 +56,7 @@ function rowLabel({ copy, regions }: Labels, list: Breakdown, label: string | nu
   if (list === 'countries') return countryName(regions, label)
   if (list === 'devices') return (copy.devices as Record<string, string>)[label] ?? label
   // "ios" was listed as a browser; it is Umami's id for Safari on an iPhone (audit #99).
-  if (list === 'browsers') return copy.browsers[label] ?? label
+  if (list === 'browsers') return copy.browserNames[label] ?? label
   return label
 }
 

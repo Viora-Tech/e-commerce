@@ -31,7 +31,11 @@ export default function CustomerStatsCard({ customer }: CustomerStatsCardProps) 
         rows={[
           { label: copy.orders, value: String(t.orderCount), strong: true },
           { label: copy.spent, value: formatPaiseWhole(t.spentPaise), strong: true },
-          { label: copy.average, value: none ? '-' : formatPaiseWhole(t.averagePaise), strong: true },
+          {
+            label: copy.average,
+            value: none ? '-' : formatPaiseWhole(t.averagePaise),
+            strong: true,
+          },
           {
             label: copy.firstOrder,
             value: t.firstOrderAt ? day(t.firstOrderAt, locale) : none ? '-' : never,

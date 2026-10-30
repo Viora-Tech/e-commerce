@@ -80,9 +80,10 @@ async function salesWindow(tx: StoreTx, from: Date, to: Date) {
       gross: sql<number>`coalesce(sum(${order.totalPaise}), 0)::bigint`.mapWith(Number),
       discounts: sql<number>`coalesce(sum(${order.discountPaise}), 0)::bigint`.mapWith(Number),
       cancelled: sql<number>`(count(*) filter (where ${cancelledOrder}))::int`,
-      cancelledValue: sql<number>`coalesce(sum(${order.totalPaise}) filter (where ${cancelledOrder}), 0)::bigint`.mapWith(
-        Number,
-      ),
+      cancelledValue:
+        sql<number>`coalesce(sum(${order.totalPaise}) filter (where ${cancelledOrder}), 0)::bigint`.mapWith(
+          Number,
+        ),
       tracked: sql<number>`(count(*) filter (where not ${cancelledOrder} and (${order.attribution}->>'channel') is not null))::int`,
     })
     .from(order)

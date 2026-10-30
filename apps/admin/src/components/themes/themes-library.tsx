@@ -173,21 +173,21 @@ export default function ThemesLibrary({
         summary={copy.subtitle}
         actions={
           <>
-          <Link
-            href={`${routes.onlineStore.preferences()}#password`}
-            title={copy.visibility.change}
-            className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <StatusChip tone={passwordOn ? 'attention' : 'success'}>
-              {passwordOn ? copy.visibility.locked : copy.visibility.public}
-            </StatusChip>
-          </Link>
-          <AddThemeMenu
-            disabled={busy}
-            onAddPreset={() => setAdding('preset')}
-            onStartBlank={() => setAdding('blank')}
-            onDuplicateLive={live ? () => handleAction(live, 'duplicate') : undefined}
-          />
+            <Link
+              href={`${routes.onlineStore.preferences()}#password`}
+              title={copy.visibility.change}
+              className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <StatusChip tone={passwordOn ? 'attention' : 'success'}>
+                {passwordOn ? copy.visibility.locked : copy.visibility.public}
+              </StatusChip>
+            </Link>
+            <AddThemeMenu
+              disabled={busy}
+              onAddPreset={() => setAdding('preset')}
+              onStartBlank={() => setAdding('blank')}
+              onDuplicateLive={live ? () => handleAction(live, 'duplicate') : undefined}
+            />
           </>
         }
       />

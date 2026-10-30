@@ -11,8 +11,8 @@ export function importedMethod(gateways: string | null): string | null {
   if (g.includes('razorpay')) return 'razorpay'
   if (g.includes('cashfree')) return 'cashfree'
   if (g.includes('decentro')) return 'decentro'
-  if (/cash on delivery|cod/.test(g)) return 'cod'
+  if (/cash on delivery|\bcod\b/.test(g)) return 'cod'
   if (g.includes('gift_card') || g.includes('gift card')) return 'gift_card'
-  if (/upi|bank deposit|manual/.test(g)) return 'manual'
+  if (/\bupi\b|bank deposit|manual/.test(g)) return 'manual'
   return first
 }

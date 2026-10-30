@@ -12,7 +12,9 @@ type Params = { params: Promise<{ id: string }> }
 export default async function GiftCardPage({ params }: Params) {
   const { id } = await params
   const context = await serverContext()
-  const card = await call(appRouter.giftCards.get, { id }, { context }).catch(orNoStoreOrMissing(undefined))
+  const card = await call(appRouter.giftCards.get, { id }, { context }).catch(
+    orNoStoreOrMissing(undefined),
+  )
   if (card === undefined) redirect(routes.selectStore())
   if (!card) notFound()
   return <GiftCardDetail initial={card} />

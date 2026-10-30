@@ -100,8 +100,12 @@ export async function listOrders(
       deliveryStatus: sql<string | null>`(
         select s.status from shipment s where s.order_id = ${order.id}
         order by s.created_at desc limit 1)`,
-      shipCity: sql<string | null>`(select a.city from ${address} a where a.id = ${order.shippingAddressId})`,
-      shipPhone: sql<string | null>`(select a.phone from ${address} a where a.id = ${order.shippingAddressId})`,
+      shipCity: sql<
+        string | null
+      >`(select a.city from ${address} a where a.id = ${order.shippingAddressId})`,
+      shipPhone: sql<
+        string | null
+      >`(select a.phone from ${address} a where a.id = ${order.shippingAddressId})`,
       firstLineImage: sql<string | null>`(
         select coalesce(vm.url, (
           select m.url from ${productMedia} pm join ${media} m on m.id = pm.media_id

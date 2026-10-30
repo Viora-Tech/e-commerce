@@ -33,10 +33,7 @@ function productFor(handle: string, products: { id: string; handle: string }[]) 
  * list of the product's sold-out variants, already confirmed (they asked on Shopify), carrying
  * the usual unsubscribe link. Running it again adds nothing twice.
  */
-export async function importRestockTags(
-  tx: StoreTx,
-  storeId: string,
-): Promise<RestockTagsResult> {
+export async function importRestockTags(tx: StoreTx, storeId: string): Promise<RestockTagsResult> {
   const tagged = await tx
     .select({ email: customer.email, tags: customer.tags })
     .from(customer)

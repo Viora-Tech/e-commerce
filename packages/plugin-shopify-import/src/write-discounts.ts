@@ -55,7 +55,8 @@ export function refusal(d: NDiscount): Refusal | null {
   if (d.appliesOnEachItem && d.items.kind !== 'products') {
     return {
       reason: 'per_item_amount',
-      message: 'Takes the amount off each item of a whole store or collection; pick the products here',
+      message:
+        'Takes the amount off each item of a whole store or collection; pick the products here',
     }
   }
   if (d.method === 'free_shipping') {
@@ -279,7 +280,8 @@ async function writeDiscount(
     ctx.report.issue({
       resource: R,
       ref,
-      message: 'None of the customers it is for were imported; import customers first, then run this again',
+      message:
+        'None of the customers it is for were imported; import customers first, then run this again',
     })
     return
   }

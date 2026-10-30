@@ -79,8 +79,17 @@ export const umamiContent = {
         none: 'No campaign',
       },
       devices: { title: 'Devices', empty: 'No visits yet.', none: 'Unknown' },
+      browsers: { title: 'Browsers', empty: 'No visits yet.', none: 'Unknown' },
+      countries: { title: 'Countries', empty: 'No visits yet.', none: 'Unknown' },
+    },
+    devices: {
+      desktop: 'Desktop',
+      laptop: 'Laptop',
+      mobile: 'Phone',
+      tablet: 'Tablet',
+    },
     /** Umami's browser ids as people name them ("ios" is Safari on an iPhone). */
-    browsers: {
+    browserNames: {
       ios: 'Safari (iPhone)',
       'ios-webview': 'In-app browser (iPhone)',
       safari: 'Safari',
@@ -99,15 +108,6 @@ export const umamiContent = {
       miui: 'Mi Browser',
       yandexbrowser: 'Yandex',
     } as Record<string, string>,
-      browsers: { title: 'Browsers', empty: 'No visits yet.', none: 'Unknown' },
-      countries: { title: 'Countries', empty: 'No visits yet.', none: 'Unknown' },
-    },
-    devices: {
-      desktop: 'Desktop',
-      laptop: 'Laptop',
-      mobile: 'Phone',
-      tablet: 'Tablet',
-    },
     empty: {
       notInstalled: {
         title: 'See who visits your store',

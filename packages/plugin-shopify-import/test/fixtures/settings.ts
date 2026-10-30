@@ -274,7 +274,11 @@ export const SEGMENTS = {
   segments: {
     pageInfo,
     nodes: [
-      { id: 'gid://shopify/Segment/1', name: 'Restock list: Mio', query: "customer_tags CONTAINS 'restock-dysphoria-mio'" },
+      {
+        id: 'gid://shopify/Segment/1',
+        name: 'Restock list: Mio',
+        query: "customer_tags CONTAINS 'restock-dysphoria-mio'",
+      },
       {
         id: 'gid://shopify/Segment/2',
         name: 'Email subscribers',
@@ -283,7 +287,7 @@ export const SEGMENTS = {
       {
         id: 'gid://shopify/Segment/3',
         name: 'Bought TenZ',
-        query: "products_purchased(id: 1234) = true",
+        query: 'products_purchased(id: 1234) = true',
       },
     ],
   },
@@ -299,18 +303,18 @@ export function settingsShopify(deny: readonly string[] = [], log: string[] = []
     const op = query.includes('segments(')
       ? 'segments'
       : query.includes('shopPolicies')
-      ? 'policies'
-      : query.includes('metafields(first')
-        ? 'shopFields'
-        : query.includes('locations(')
-          ? 'locations'
-          : query.includes('deliveryProfiles(')
-            ? 'profiles'
-            : query.includes('deliveryProfile(')
-              ? 'zones'
-              : query.includes('metafieldDefinitions(')
-                ? `fields:${variables.ownerType}`
-                : 'shop'
+        ? 'policies'
+        : query.includes('metafields(first')
+          ? 'shopFields'
+          : query.includes('locations(')
+            ? 'locations'
+            : query.includes('deliveryProfiles(')
+              ? 'profiles'
+              : query.includes('deliveryProfile(')
+                ? 'zones'
+                : query.includes('metafieldDefinitions(')
+                  ? `fields:${variables.ownerType}`
+                  : 'shop'
     log.push(variables.id ? `${op}:${variables.id}` : op)
     if (deny.some((d) => op === d || op.startsWith(`${d}:`))) {
       return new Response(

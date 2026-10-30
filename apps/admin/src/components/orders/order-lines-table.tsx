@@ -56,7 +56,10 @@ export default function OrderLinesTable({ rows }: OrderLinesTableProps) {
                   {line.title}
                 </Link>
               ) : (
-                <span className="truncate text-body text-ink-strong" title={line.title ?? undefined}>
+                <span
+                  className="truncate text-body text-ink-strong"
+                  title={line.title ?? undefined}
+                >
                   {line.title}
                 </span>
               )}

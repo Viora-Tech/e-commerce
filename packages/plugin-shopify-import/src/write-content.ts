@@ -256,7 +256,11 @@ export async function linkCollectionMembers(
       )
       .onConflictDoNothing()
       .returning({ id: collectionProduct.id })
-    await followShopifyOrder(tx, id, c.productHandles.map((h) => handleOf(h, 'product')))
+    await followShopifyOrder(
+      tx,
+      id,
+      c.productHandles.map((h) => handleOf(h, 'product')),
+    )
     return added.length
   })
 }
@@ -286,10 +290,7 @@ async function followShopifyOrder(tx: StoreTx, collectionId: string, shopifyHand
   })
   for (const [position, m] of ordered.entries()) {
     if (m.position !== position) {
-      await tx
-        .update(collectionProduct)
-        .set({ position })
-        .where(eq(collectionProduct.id, m.id))
+      await tx.update(collectionProduct).set({ position }).where(eq(collectionProduct.id, m.id))
     }
   }
 }

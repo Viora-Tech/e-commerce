@@ -4,12 +4,13 @@
  * definitions, mapped onto small shapes the planner (`settings-plan.ts`) reads.
  * Each part is read on its own, so a scope the connection lacks fails only that part.
  */
-import type { NSegment } from './settings-plan-segments'
+
 import { validateGstin } from '@commerce/core/gstin'
 import { cleanMoneyFormat } from '@commerce/money'
 import { definitionsOf } from './api-metafields'
 import { mapFieldDefinition } from './api-metaobjects'
 import type { SettingsPart } from './settings-client'
+import type { NSegment } from './settings-plan-segments'
 import { type ShopifyClient, ShopifyError } from './shopify-client'
 import type { NFieldDefinition } from './types'
 
@@ -200,8 +201,7 @@ async function shopExtras(client: ShopifyClient): Promise<ShopExtras> {
     for (const m of data.shop.metafields.nodes) {
       const value = m.value?.trim() ?? ''
       if (m.namespace === 'global' && m.key === 'title_tag') out.seo.title = value
-      else if (m.namespace === 'global' && m.key === 'description_tag')
-        out.seo.description = value
+      else if (m.namespace === 'global' && m.key === 'description_tag') out.seo.description = value
       else if (!out.gstin) {
         const check = validateGstin(value)
         if (check.ok) out.gstin = check.gstin

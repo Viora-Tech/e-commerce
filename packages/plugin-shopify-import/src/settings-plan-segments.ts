@@ -14,7 +14,10 @@ export type NSegment = { sourceId: string; name: string; query: string }
 
 /** One Shopify filter (`number_of_orders >= 2`) as our condition; null when ours has none. */
 function conditionOf(clause: string): SegmentCondition | null {
-  const c = clause.trim().replace(/^\((.*)\)$/, '$1').trim()
+  const c = clause
+    .trim()
+    .replace(/^\((.*)\)$/, '$1')
+    .trim()
   const text = c.match(/^customer_tags\s+(NOT\s+)?CONTAINS\s+'([^']*)'$/i)
   if (text) {
     return { field: 'tag', op: text[1] ? 'neq' : 'contains', value: text[2] ?? '' }

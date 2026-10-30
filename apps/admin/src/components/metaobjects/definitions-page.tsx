@@ -65,6 +65,9 @@ const columnsFor = (
 ]
 
 /** Content → Content types: every metaobject definition, or an empty state that starts the guided flow. */
+/** Shopify's category value types, imported with the taxonomy (shopify_battery_type…). */
+const fromShopify = (type: string) => type.startsWith('shopify')
+
 export default function DefinitionsPage({ definitions }: DefinitionsPageProps) {
   // Hooks
   const copy = useCopy(metaobjectListContent)
@@ -90,7 +93,6 @@ export default function DefinitionsPage({ definitions }: DefinitionsPageProps) {
   const columns = columnsFor(copy, fmt)
   const q = query.trim().toLowerCase()
   // Imported Shopify taxonomy types (46 of them at Waimers) crowded out the store's own (#93).
-  const fromShopify = (type: string) => type.startsWith('shopify')
   const inView = definitions.filter((d) => fromShopify(d.type) === (view === 'shopify'))
   const shopifyCount = definitions.filter((d) => fromShopify(d.type)).length
   const matching = q

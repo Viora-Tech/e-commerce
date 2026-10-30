@@ -2,12 +2,12 @@
  * Store settings: what Shopify has against what this store has, part by part. Pure:
  * it takes what `api-settings.ts` read and what `settings-import.ts` loaded, and returns
  * the lines the merchant sees plus the writes that make them true. Planning the same
- * input twice gives the same answer, and planning after an import type { SegmentRules } from '@commerce/core'
-import gives only `same`
+ * input twice gives the same answer, and planning after an import gives only `same`
  * lines, which is what makes a second import change nothing. This file holds the shared
  * shapes plus store details, tax and locations; shipping (`settings-plan-shipping.ts`)
  * and policies and extra fields (`settings-plan-content.ts`) sit beside it.
  */
+import type { SegmentRules } from '@commerce/core'
 import {
   type LocationDetails,
   type PolicyType,

@@ -280,8 +280,7 @@ export const orderDetailContent = {
         .filter(Boolean)
         .join(', '),
     notification: (template: string, channel: string) => `${template} sent by ${channel}`,
-    notificationFailed: (template: string, channel: string) =>
-      `${template} by ${channel} failed`,
+    notificationFailed: (template: string, channel: string) => `${template} by ${channel} failed`,
     shipmentBooked: 'Shipment booked',
     shipment: (status: string) => `Shipment: ${status}`,
     note: 'Note',

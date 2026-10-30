@@ -14,7 +14,9 @@ type Params = { params: Promise<{ id: string }> }
 export default async function EditOrderPage({ params }: Params) {
   const { id } = await params
   const context = await serverContext()
-  const order = await call(appRouter.orders.get, { id }, { context }).catch(orNoStoreOrMissing(undefined))
+  const order = await call(appRouter.orders.get, { id }, { context }).catch(
+    orNoStoreOrMissing(undefined),
+  )
   if (order === undefined) redirect(routes.selectStore())
   if (!order) notFound()
   return <OrderEditPage order={order} />
