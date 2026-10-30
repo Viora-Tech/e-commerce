@@ -3,7 +3,7 @@
  * a supplier instead of retyping one, and starts in the supplier's currency.
  */
 import { newId, type StoreTx, supplier } from '@commerce/db'
-import { eq } from 'drizzle-orm'
+import { and, eq, ne, sql } from 'drizzle-orm'
 import { InventoryError } from './levels'
 import type { SupplierInput } from './schemas'
 
@@ -23,6 +23,23 @@ export async function saveSupplier(
     paymentTerms: input.paymentTerms || null,
     notes: input.notes || null,
     updatedAt: new Date(),
+  }
+  // One record per supplier: "Uncle Panda" had been added twice, once per country (audit #76).
+  const [clash] = await tx
+    .select({ id: supplier.id })
+    .from(supplier)
+    .where(
+      and(
+        sql`lower(trim(${supplier.name})) = ${input.name.trim().toLowerCase()}`,
+        input.id ? ne(supplier.id, input.id) : undefined,
+      ),
+    )
+  if (clash) {
+    throw new InventoryError(
+      'SUPPLIER_EXISTS',
+      `A supplier named ${input.name.trim()} already exists; edit that one instead`,
+      { storeId },
+    )
   }
   if (!input.id) {
     const id = newId()
