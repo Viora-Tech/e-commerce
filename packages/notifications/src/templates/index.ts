@@ -41,6 +41,8 @@ export const TEMPLATE_IDS: TemplateId[] = [
   'review_reminder',
   'review_reply',
   'review_reward',
+  'question_answered',
+  'question_asked',
   'affiliate_update',
   'affiliate_application',
   'unpaid_cancelled',
@@ -108,6 +110,8 @@ export const TEMPLATE_NAMES: Record<TemplateId, string> = {
   review_reminder: 'Review reminder',
   review_reply: 'Reply to a review',
   review_reward: 'Photo review thanks',
+  question_answered: 'Product question answered',
+  question_asked: 'New product question (merchant)',
   affiliate_update: 'Affiliate update (to the affiliate)',
   affiliate_application: 'New affiliate application (merchant)',
   unpaid_cancelled: 'Unpaid order cancelled',
@@ -149,6 +153,10 @@ function eyebrowFor(template: TemplateId, d: TemplateData): string {
     case 'review_reply':
     case 'review_reward':
       return 'Your review'
+    case 'question_answered':
+      return 'Your question'
+    case 'question_asked':
+      return 'Product question'
     case 'affiliate_update':
     case 'affiliate_application':
       return 'Affiliate program'
@@ -262,6 +270,12 @@ function primaryActionFor(
       return d.review?.productUrl ? { label: 'See the reply', url: d.review.productUrl } : undefined
     case 'review_reward':
       return d.actionUrl ? { label: 'Shop with your code', url: d.actionUrl } : undefined
+    case 'question_answered':
+      return d.review?.productUrl
+        ? { label: 'See it on the product page', url: d.review.productUrl }
+        : undefined
+    case 'question_asked':
+      return d.actionUrl ? { label: 'Answer the question', url: d.actionUrl } : undefined
     case 'back_in_stock_alert':
       return d.backInStock?.productUrl
         ? { label: 'Shop now', url: d.backInStock.productUrl }

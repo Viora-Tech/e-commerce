@@ -228,6 +228,20 @@ describe('templates', () => {
     expect(link.text).toContain('See your order: https://waimers.example/orders/42')
   })
 
+  it('the product question messages carry the question, the answer and their links', async () => {
+    const answered = sampleTemplateDataByTemplate.question_answered
+    const a = await renderEmail('question_answered', answered)
+    expect(a.subject).toBe('Waimers answered your question')
+    expect(a.text).toContain('"Is it washable?"')
+    expect(a.text).toContain('Yes, by hand in cold water.')
+    expect(a.html).toContain('See it on the product page')
+    const asked = sampleTemplateDataByTemplate.question_asked
+    const q = await renderEmail('question_asked', asked)
+    expect(q.subject).toBe('Waimers: new question about Maboroshi mousepad')
+    expect(q.text).toContain('Asha K. (asha@example.com) asked about Maboroshi mousepad')
+    expect(q.html).toContain('Answer the question')
+  })
+
   it('a draft invoice sent again reads as a reminder', async () => {
     const data = sampleTemplateDataByTemplate.draft_invoice
     expect((await renderEmail('draft_invoice', data)).subject).toContain('is ready to pay')

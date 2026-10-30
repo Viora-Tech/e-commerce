@@ -37,3 +37,18 @@ WhatsApp params (approved template named after the id): `order_edited` / `paymen
 
 Every send is logged in `notification` (order, channel, template) by `deliverNotification`, so
 it shows on the order timeline and the customer page. No migration.
+
+## Reviews Q&A messages
+
+- **`question_answered`** (to the asker, Reviews app, email). `answerQuestion` and
+  `setQuestionStatus` (`plugin-reviews/src/questions.ts`) write `review.question_answered` when
+  a question with an answer goes live for the first time. `review_question.published_at` now
+  means "first went live" (kept on hide / unpublish), so a question re-published later does not
+  email again. The worker re-reads the question and sends only while it is still published with
+  an answer: product, question, answer, link to the product page (`#reviews`).
+- **`question_asked`** (to the store, Reviews app, email). `askQuestion` writes
+  `review.question_asked`; the worker emails the store's contact address (`deliverToStoreContact`,
+  the same path as form messages and affiliate applications; there is no new-review alert to
+  copy) with the product, the question, the asker and a link to Apps › Reviews › Questions.
+- Both are relayed like `review.rewarded` (keyed by the outbox row, `questionId` on the job),
+  have samples, tests and a Settings › Notifications row ("Set in the app").

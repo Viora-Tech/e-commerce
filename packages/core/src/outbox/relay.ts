@@ -232,6 +232,22 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
       reviewId: payload.reviewId,
     })
   }
+  const questionTemplate =
+    type === 'review.question_asked'
+      ? 'question_asked'
+      : type === 'review.question_answered'
+        ? 'question_answered'
+        : null
+  if (questionTemplate && payload.questionId) {
+    // Reviews app, no order: the worker reads the question from the app.
+    await enqueueNotification(deps.notifications, {
+      storeId: row.storeId,
+      orderId: '',
+      template: questionTemplate,
+      key: row.id,
+      questionId: payload.questionId,
+    })
+  }
   if (type === 'affiliate.applied' && payload.affiliateId) {
     // Affiliates app: to the merchant, no order; the worker reads the application from the app.
     await enqueueNotification(deps.notifications, {

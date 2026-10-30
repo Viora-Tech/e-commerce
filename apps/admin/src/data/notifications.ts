@@ -238,6 +238,14 @@ export const notificationsSettingsContent = {
       name: 'Photo review thanks',
       when: 'When a review with photos is published, with a one-time discount code (Reviews app settings).',
     },
+    question_answered: {
+      name: 'Question answered',
+      when: "Once, when you publish your answer to a shopper's product question (Reviews app).",
+    },
+    question_asked: {
+      name: 'New product question',
+      when: 'To your shop email when a shopper asks a question on a product page (Reviews app).',
+    },
     cod_confirm: {
       name: 'Confirm your COD order',
       when: 'Right after a cash on delivery order, with a confirm or cancel link (COD & RTO app).',

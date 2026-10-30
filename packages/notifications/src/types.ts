@@ -63,6 +63,10 @@ export type TemplateId =
   | 'review_reply'
   /** Thanks for a published photo review, with a one-time discount code (Reviews app). Email only. */
   | 'review_reward'
+  /** To the ASKER: the store answered their product question and it is live (Reviews app). Email only. */
+  | 'question_answered'
+  /** To the MERCHANT: a shopper asked a product question (Reviews app); `actionUrl` opens Questions. Email only. */
+  | 'question_asked'
   /** To the MERCHANT: someone applied to the affiliate program and waits for approval. Email only. */
   | 'affiliate_application'
   /** To an AFFILIATE (Affiliates app): approved, a new sale, or a payout sent. Email, and WhatsApp with an approved template. */
@@ -293,6 +297,13 @@ export type TemplateData = {
         rewardLabel?: string | undefined
         /** "30 November 2026". */
         rewardUntil?: string | undefined
+        /** For question_asked / question_answered: the shopper's question, as asked. */
+        question?: string | undefined
+        /** For question_answered: the store's answer. */
+        answer?: string | undefined
+        /** For question_asked: who asked, as the store shows it ("Asha K."), and their email. */
+        askerName?: string | undefined
+        askerEmail?: string | undefined
       }
     | undefined
   /**

@@ -20,6 +20,7 @@ import { applicationNotice } from '@commerce/plugin-affiliates/server'
 import { getContactMessage, messageText } from '@commerce/plugin-forms/server'
 import {
   loadReviewsSettings,
+  questionEmailData,
   replyEmailData,
   reviewRequestEmail,
   rewardEmailData,
@@ -76,6 +77,7 @@ export function createNotificationWorker(
         signupId,
         contactMessageId,
         reviewId,
+        questionId,
         affiliateId,
         affiliateNotice,
         commissionId,
@@ -218,6 +220,69 @@ export function createNotificationWorker(
                     : `${base}/`
                   : undefined,
                 reply: r.reply,
+              },
+            },
+            {
+              registry: (await registriesForStore(tx, storeId)).notifications,
+              settingsSecret: opts.settingsSecret,
+            },
+          )
+        })
+        const bad = sent.filter((r) => !r.ok)
+        if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
+        return sent
+      }
+      // Reviews app: the store answered a product question and it went live (to the asker).
+      if (template === 'question_answered') {
+        if (!questionId) return []
+        const fallback = opts.storefrontUrl ?? ''
+        const sent = await withStore(db, storeId, async (tx) => {
+          const q = await questionEmailData(tx, questionId)
+          if (!q?.askerEmail || !q.answer || q.status !== 'published') return []
+          const base = (await storefrontOriginFor(tx, storeId, fallback)).replace(/\/+$/, '')
+          return deliverEmailTo(
+            { storeId, tx },
+            template,
+            q.askerEmail,
+            {
+              customerName: q.askerName.split(' ')[0] || '',
+              review: {
+                productTitle: q.productTitle ?? undefined,
+                productUrl:
+                  base && q.handle
+                    ? `${base}/products/${encodeURIComponent(q.handle)}#reviews`
+                    : undefined,
+                question: q.question,
+                answer: q.answer,
+              },
+            },
+            {
+              registry: (await registriesForStore(tx, storeId)).notifications,
+              settingsSecret: opts.settingsSecret,
+            },
+          )
+        })
+        const bad = sent.filter((r) => !r.ok)
+        if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
+        return sent
+      }
+      // Reviews app, to the merchant: a shopper asked a product question.
+      if (template === 'question_asked') {
+        if (!questionId) return []
+        const sent = await withStore(db, storeId, async (tx) => {
+          const q = await questionEmailData(tx, questionId)
+          if (!q) return []
+          const admin = opts.adminUrl?.replace(/\/+$/, '')
+          return deliverToStoreContact(
+            { storeId, tx },
+            template,
+            {
+              actionUrl: admin ? `${admin}/apps/reviews/questions` : undefined,
+              review: {
+                productTitle: q.productTitle ?? undefined,
+                question: q.question,
+                askerName: q.askerName || undefined,
+                askerEmail: q.askerEmail ?? undefined,
               },
             },
             {

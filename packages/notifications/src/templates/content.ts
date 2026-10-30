@@ -185,6 +185,34 @@ ${d.review?.rewardCode ?? ''}`,
     whatsapp: (d) =>
       `${d.storeName}: thanks for your photo review! ${d.review?.rewardLabel ?? 'A discount'} with code ${d.review?.rewardCode ?? ''}`,
   },
+  question_answered: {
+    subject: (d) => `${d.storeName} answered your question`,
+    heading: (d) =>
+      d.customerName ? `Hi ${d.customerName}, here is your answer` : 'Here is your answer',
+    intro: (d) =>
+      `You asked about ${d.review?.productTitle ?? 'a product'}:
+
+"${d.review?.question ?? ''}"
+
+${d.storeName} answered:
+
+${d.review?.answer ?? ''}`,
+    outro: () => 'The question and answer now show on the product page for other shoppers too.',
+    whatsapp: (d) =>
+      `${d.storeName} answered your question about ${d.review?.productTitle ?? 'a product'}.${d.review?.productUrl ? ` See it: ${d.review.productUrl}` : ''}`,
+  },
+  question_asked: {
+    subject: (d) => `${d.storeName}: new question about ${d.review?.productTitle ?? 'a product'}`,
+    heading: () => 'A shopper asked a question',
+    intro: (d) =>
+      `${d.review?.askerName || 'A shopper'}${d.review?.askerEmail ? ` (${d.review.askerEmail})` : ''} asked about ${d.review?.productTitle ?? 'a product'}:
+
+"${d.review?.question ?? ''}"`,
+    outro: () =>
+      'Answer it in Apps, Reviews, Questions. Once you publish the answer, it shows on the product page and the shopper gets it by email.',
+    whatsapp: (d) =>
+      `${d.storeName}: new question about ${d.review?.productTitle ?? 'a product'}.${d.actionUrl ? ` Answer: ${d.actionUrl}` : ''}`,
+  },
   affiliate_update: {
     subject: (d) => {
       const a = d.affiliate

@@ -119,6 +119,10 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
       return [d.storeName, d.review?.productTitle ?? '-', d.review?.productUrl ?? '-']
     case 'review_reward':
       return [d.storeName, d.review?.rewardLabel ?? '-', d.review?.rewardCode ?? '-']
+    case 'question_answered':
+      return [d.storeName, d.review?.productTitle ?? '-', d.review?.productUrl ?? '-']
+    case 'question_asked':
+      return [d.storeName, d.review?.productTitle ?? '-', d.actionUrl ?? '-']
     case 'unpaid_cancel_notice':
       return [d.storeName, n, d.totalLabel, d.deadlineLabel ?? '-']
     case 'staff_new_order':

@@ -1,6 +1,19 @@
-import { CommerceError } from '@commerce/core'
+import { CommerceError, insertOutboxEvent } from '@commerce/core'
 import { product, type StoreTx } from '@commerce/db'
-import { and, count, desc, eq, gt, ilike, inArray, isNotNull, or, type SQL, sql } from 'drizzle-orm'
+import {
+  and,
+  count,
+  desc,
+  eq,
+  gt,
+  ilike,
+  inArray,
+  isNotNull,
+  isNull,
+  or,
+  type SQL,
+  sql,
+} from 'drizzle-orm'
 import { type QuestionStatus, reviewQuestion } from './schema'
 import { ANSWER_MAX, displayName, QUESTION_MAX, QUESTION_MIN } from './settings'
 
@@ -48,7 +61,7 @@ export class QuestionRejected extends CommerceError {
 /**
  * Saves a shopper's question, waiting for the merchant (`pending`): only active products, at
  * most `QUESTIONS_PER_DAY` per email a day. The name is stored as shown (first name, last
- * initial); the email stays private.
+ * initial); the email stays private. `review.question_asked` emails the store about it.
  */
 export async function askQuestion(
   tx: StoreTx,
@@ -85,6 +98,7 @@ export async function askQuestion(
     })
     .returning({ id: reviewQuestion.id })
   if (!row) throw new CommerceError('QUESTION_NOT_SAVED', 'question not saved')
+  await insertOutboxEvent(tx, storeId, 'review.question_asked', { questionId: row.id })
   return row
 }
 
@@ -158,24 +172,40 @@ export async function answerQuestion(
 ): Promise<{ status: QuestionStatus }> {
   const answer = input.answer.trim().slice(0, ANSWER_MAX)
   const status: QuestionStatus = answer ? (input.publish ? 'published' : 'pending') : 'pending'
+  const [before] = await tx
+    .select({
+      storeId: reviewQuestion.storeId,
+      publishedAt: reviewQuestion.publishedAt,
+      askerEmail: reviewQuestion.askerEmail,
+    })
+    .from(reviewQuestion)
+    .where(eq(reviewQuestion.id, id))
+    .for('update')
+  if (!before) throw new CommerceError('NOT_FOUND', 'Question not found')
+  // `published_at` is when it FIRST went live: the asker hears about the answer that once.
+  const firstPublish = status === 'published' && !before.publishedAt
   const [row] = await tx
     .update(reviewQuestion)
     .set({
       answer: answer || null,
       answeredAt: answer ? now : null,
       status,
-      publishedAt: status === 'published' ? now : null,
+      publishedAt: firstPublish ? now : before.publishedAt,
       updatedAt: now,
     })
     .where(eq(reviewQuestion.id, id))
     .returning({ status: reviewQuestion.status })
   if (!row) throw new CommerceError('NOT_FOUND', 'Question not found')
+  if (firstPublish && before.askerEmail) {
+    await insertOutboxEvent(tx, before.storeId, 'review.question_answered', { questionId: id })
+  }
   return row
 }
 
 /**
  * Publish, hide, or move back to waiting, one or many. A question without an answer cannot go
- * live (it would show an empty answer), so publishing skips it.
+ * live (it would show an empty answer), so publishing skips it. A question going live for the
+ * first time emails its asker the answer (`review.question_answered`).
  */
 export async function setQuestionStatus(
   tx: StoreTx,
@@ -184,12 +214,31 @@ export async function setQuestionStatus(
   now: Date = new Date(),
 ): Promise<number> {
   if (ids.length === 0) return 0
+  const firstLive =
+    status === 'published'
+      ? await tx
+          .select({ id: reviewQuestion.id, storeId: reviewQuestion.storeId })
+          .from(reviewQuestion)
+          .where(
+            and(
+              inArray(reviewQuestion.id, ids),
+              isNotNull(reviewQuestion.answer),
+              isNull(reviewQuestion.publishedAt),
+              isNotNull(reviewQuestion.askerEmail),
+            ),
+          )
+      : []
   const rows = await tx
     .update(reviewQuestion)
     .set({
       status,
       updatedAt: now,
-      ...(status === 'published' ? { publishedAt: now } : {}),
+      // Kept from the first time it went live (see `answerQuestion`).
+      ...(status === 'published'
+        ? {
+            publishedAt: sql`coalesce(${reviewQuestion.publishedAt}, ${now.toISOString()}::timestamptz)`,
+          }
+        : {}),
     })
     .where(
       and(
@@ -198,6 +247,9 @@ export async function setQuestionStatus(
       ),
     )
     .returning({ id: reviewQuestion.id })
+  for (const q of firstLive) {
+    await insertOutboxEvent(tx, q.storeId, 'review.question_answered', { questionId: q.id })
+  }
   return rows.length
 }
 
@@ -237,4 +289,25 @@ export async function publishedQuestions(tx: StoreTx, productId: string) {
     answer: r.answer ?? '',
     answeredAt: (r.answeredAt ?? new Date(0)).toISOString(),
   }))
+}
+
+/**
+ * What the question emails need: the question, its answer, who asked (name as shown, private
+ * email), whether it is live, and the product's title and handle. Null when it is gone.
+ */
+export async function questionEmailData(tx: StoreTx, id: string) {
+  const [r] = await tx
+    .select({
+      question: reviewQuestion.question,
+      answer: reviewQuestion.answer,
+      askerName: reviewQuestion.askerName,
+      askerEmail: reviewQuestion.askerEmail,
+      status: reviewQuestion.status,
+      productTitle: product.title,
+      handle: product.handle,
+    })
+    .from(reviewQuestion)
+    .leftJoin(product, eq(product.id, reviewQuestion.productId))
+    .where(eq(reviewQuestion.id, id))
+  return r ?? null
 }

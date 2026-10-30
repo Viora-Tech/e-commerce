@@ -246,6 +246,33 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
       rewardUntil: '30 November 2026',
     },
   },
+  question_answered: {
+    ...base,
+    orderNumber: undefined,
+    lines: [],
+    taxBreakdown: undefined,
+    review: {
+      productTitle: 'Maboroshi mousepad',
+      productUrl: 'https://waimers.example/products/maboroshi#reviews',
+      question: 'Is it washable?',
+      answer: 'Yes, by hand in cold water. Let it dry flat.',
+    },
+  },
+  question_asked: {
+    ...base,
+    customerName: '',
+    orderNumber: undefined,
+    lines: [],
+    taxBreakdown: undefined,
+    totalLabel: '',
+    actionUrl: 'https://admin.koomerce.app/apps/reviews/questions',
+    review: {
+      productTitle: 'Maboroshi mousepad',
+      question: 'Is it washable?',
+      askerName: 'Asha K.',
+      askerEmail: 'asha@example.com',
+    },
+  },
   unpaid_cancelled: { ...base },
   back_in_stock_confirm: {
     ...base,

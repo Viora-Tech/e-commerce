@@ -64,6 +64,10 @@ export type OutboxEventType =
   | 'review.replied'
   /** A photo review earned its reward code (Reviews app); the reviewer is emailed the code. */
   | 'review.rewarded'
+  /** A shopper asked a product question (Reviews app); the store's contact address is emailed. */
+  | 'review.question_asked'
+  /** A product question went live with its answer for the first time; the asker is emailed. */
+  | 'review.question_answered'
   /** A live custom domain needs its HTTPS route on the proxy (`domains/routes.ts`). */
   | 'domain.route_requested'
   /** A removed custom domain's HTTPS route should be deleted from the proxy. */
@@ -167,6 +171,8 @@ export type OutboxPayload = {
   reviewRequestKind?: 'request' | 'reminder' | undefined
   /** The `review` a `review.replied` event is about. */
   reviewId?: string | undefined
+  /** The `review_question` a `review.question_*` event is about (Reviews app). */
+  questionId?: string | undefined
   /** The `store_domain` a `domain.route_requested` event is about. */
   domainId?: string | undefined
   /** For `domain.route_requested`: delete and re-create the Dokploy domain to force a new certificate attempt. */
@@ -293,6 +299,9 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   'review.replied': null,
   // The relay queues `review_reward` with the review id itself (`dispatchRow`).
   'review.rewarded': null,
+  // The relay queues `question_asked` / `question_answered` with the question id (`dispatchRow`).
+  'review.question_asked': null,
+  'review.question_answered': null,
   // Platform work, no message: the relay queues a `{domains}-route` job (`dispatchRow`).
   'domain.route_requested': null,
   'domain.route_removed': null,
@@ -396,6 +405,8 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'review.request_due': null,
   'review.replied': null,
   'review.rewarded': null,
+  'review.question_asked': null,
+  'review.question_answered': null,
   'domain.route_requested': null,
   'domain.route_removed': null,
   'catalog.products_changed': null,

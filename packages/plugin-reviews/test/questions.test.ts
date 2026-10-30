@@ -1,4 +1,5 @@
-import { withStore } from '@commerce/db'
+import { outboxEvent, withStore } from '@commerce/db'
+import { eq } from 'drizzle-orm'
 import { resetDb } from '@commerce/db/test'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import {
@@ -94,6 +95,19 @@ describe('product questions', () => {
 
     await withStore(app, storeId, (tx) => setQuestionStatus(tx, [id], 'hidden'))
     expect(await withStore(app, storeId, (tx) => publishedQuestions(tx, p.productId))).toEqual([])
+
+    // The store heard about the question once; the asker about the answer once, even after
+    // the question is hidden and published again.
+    await withStore(app, storeId, (tx) => setQuestionStatus(tx, [id], 'published'))
+    const events = await withStore(app, storeId, (tx) =>
+      tx
+        .select({ type: outboxEvent.type })
+        .from(outboxEvent)
+        .where(eq(outboxEvent.storeId, storeId)),
+    )
+    const types = events.map((e) => e.type)
+    expect(types.filter((t) => t === 'review.question_asked')).toHaveLength(1)
+    expect(types.filter((t) => t === 'review.question_answered')).toHaveLength(1)
   })
 
   it('limits questions per email a day and refuses unknown products', async () => {
