@@ -239,6 +239,9 @@ export default [
       },
       remove: 'ऑप्शन हटाएं',
       done: 'हो गया',
+      editOption: (name) => `ऑप्शन ${name} बदलें`,
+      moreValues: (n) => `+${n} और`,
+      noMatches: 'खोज से कोई वेरिएंट नहीं मिला।',
       maxOptions: 'ज़्यादा से ज़्यादा 3 ऑप्शन',
       count: (n) => `${n} वेरिएंट`,
       columns: {
@@ -290,6 +293,16 @@ export default [
         `${n} वेरिएंट हटेंगे, जिनमें ${units} पीस स्टॉक में हैं। पुराने ऑर्डर का रिकॉर्ड बना रहेगा।`,
       confirmRemoveCancel: 'रहने दें',
       confirmRemoveConfirm: 'फिर भी हटाएं',
+    },
+    variantGroups: {
+      search: 'वेरिएंट या SKU खोजें',
+      groupBy: 'ग्रुप करें',
+      noGrouping: 'कोई नहीं',
+      noPrice: 'अभी कीमत नहीं',
+      blank: '(खाली)',
+      selectGroup: (value) => `सभी ${value} वेरिएंट चुनें`,
+      variants: (n) => `${n} वेरिएंट`,
+      stock: (n) => `${n} स्टॉक में`,
     },
     status: {
       heading: 'स्टेटस',

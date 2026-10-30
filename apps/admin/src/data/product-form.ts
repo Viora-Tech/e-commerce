@@ -264,6 +264,10 @@ export const productFormContent = {
     },
     remove: 'Remove option',
     done: 'Done',
+    /** A folded option chip (#54): click to edit it. */
+    editOption: (name: string) => `Edit option ${name}`,
+    moreValues: (n: number) => `+${n} more`,
+    noMatches: 'No variants match the search.',
     maxOptions: 'Up to 3 options',
     count: (n: number) => `${n} variant${n === 1 ? '' : 's'}`,
     columns: { variant: 'Variant', price: 'Price', mrp: 'MRP', sku: 'SKU', available: 'Available' },
@@ -318,6 +322,17 @@ export const productFormContent = {
       `${n} variant${n === 1 ? '' : 's'} holding ${units} unit${units === 1 ? '' : 's'} in stock will be removed. Past orders keep their own record.`,
     confirmRemoveCancel: 'Keep them',
     confirmRemoveConfirm: 'Remove anyway',
+  },
+  /** Search and "Group by" above the variants table (#54). */
+  variantGroups: {
+    search: 'Search variants or SKU',
+    groupBy: 'Group by',
+    noGrouping: 'None',
+    noPrice: 'No price yet',
+    blank: '(blank)',
+    selectGroup: (value: string) => `Select all ${value} variants`,
+    variants: (n: number) => `${n} variant${n === 1 ? '' : 's'}`,
+    stock: (n: number) => `${n} in stock`,
   },
   status: {
     heading: 'Status',
