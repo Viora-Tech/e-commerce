@@ -22,6 +22,7 @@ import {
   parsePage,
   parseUnavailable,
 } from '../catalog/browse-params'
+import { pickedRecommendationIdsFor } from '../discovery/service'
 import { soldInRequestCatalog } from '../markets/catalog-rules'
 import type { MarketPricing } from '../markets/presentment'
 import { keyFromName } from '../metaobjects/validate'
@@ -280,9 +281,17 @@ export async function storeLiquidData(
         const wanted = Math.min(Math.max(1, Math.trunc(limit) || 4), MAX_RECOMMENDATIONS)
         // The merchant's picks first (Search & Discovery). Complementary is only the picks;
         // with none picked it falls back to the related row so the theme's block still fills.
+        // Picks made in our Search & discovery app win; without them, the ones a Shopify import
+        // brought in the product's extra fields.
         const fields = (await loadMetafields(tx, 'product', [productId])).metafields[productId]
+        const own = {
+          related: await pickedRecommendationIdsFor(tx, productId, 'related'),
+          complementary: await pickedRecommendationIdsFor(tx, productId, 'complementary'),
+        }
         const pick = (i: typeof intent) =>
-          pickedRecommendationIds(fields ?? [], i).filter((id) => id !== productId)
+          (own[i].length ? own[i] : pickedRecommendationIds(fields ?? [], i)).filter(
+            (id) => id !== productId,
+          )
         const load = (chunk: string[]) => loadProducts(tx, chunk, pricing)
         // Sold-out products are dropped after loading (stock lives on the variants), so the
         // ranked list is read in chunks until enough are in stock: the closest matches (same

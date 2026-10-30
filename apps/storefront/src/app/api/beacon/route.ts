@@ -27,23 +27,27 @@ import {
 } from '@/lib/attribution-cookie'
 import { readCartId } from '@/lib/cart-cookie'
 import { analyticsAllowed } from '@/lib/consent-cookie'
+import { parseDiscoveryEvent, recordBeaconDiscovery } from '@/lib/discovery-events'
 import { CUSTOMER_COOKIE } from '@/lib/customer-session'
 import { recordShopperProductView } from '@/lib/product-view'
 import { withEvlog } from '@/lib/request-log'
 import { inStore } from '@/lib/store-context'
 import { parseVisitorId, VISITOR_COOKIE, VISITOR_COOKIE_MAX_AGE } from '@/lib/visitor-cookie'
 
-type BeaconBody = { href?: unknown; referrer?: unknown }
+type BeaconBody = { href?: unknown; referrer?: unknown; discovery?: unknown }
 
-async function readBody(request: Request): Promise<{ href: string; referrer: string | null }> {
+async function readBody(
+  request: Request,
+): Promise<{ href: string; referrer: string | null; discovery: unknown }> {
   try {
     const body = (await request.json()) as BeaconBody
     return {
       href: typeof body.href === 'string' ? body.href.slice(0, 2000) : '',
       referrer: typeof body.referrer === 'string' ? body.referrer.slice(0, 2000) : null,
+      discovery: body.discovery,
     }
   } catch {
-    return { href: '', referrer: null }
+    return { href: '', referrer: null, discovery: null }
   }
 }
 
@@ -101,9 +105,20 @@ export const POST = withEvlog(async (request: Request) => {
     })
   }
 
+  const { href, referrer, discovery } = await readBody(request)
+  // A Search & discovery event (a search, a result or recommendation click, a row seen) rides
+  // the same consent check but is no page view: written after the response, nothing else runs.
+  if (discovery !== undefined) {
+    const event = parseDiscoveryEvent(discovery)
+    const visitor = visitorId
+    if (event && !isBotUserAgent(h.get('user-agent'))) {
+      after(() => recordBeaconDiscovery(request, storeId, visitor, event))
+    }
+    return new Response(null, { status: 204 })
+  }
+
   await recordVisit(sharedRedis(loadEnv(process.env).REDIS_URL), storeId, visitorId)
 
-  const { href, referrer } = await readBody(request)
   // Browse abandonment: a known shopper's product page view, written after the response.
   const viewedHandle = isBotUserAgent(h.get('user-agent')) ? null : productHandleFromHref(href)
   if (viewedHandle) {

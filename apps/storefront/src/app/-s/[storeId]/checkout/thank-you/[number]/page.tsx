@@ -19,6 +19,7 @@ import type { CheckoutSession } from '@commerce/payments'
 import type { Tracking } from '@commerce/shipping'
 import { desc, eq, inArray } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
+import { after } from 'next/server'
 import ExperimentBeacon from '@/components/analytics/experiment-beacon'
 import PixelTrack from '@/components/analytics/pixel-track'
 import CheckoutBalance from '@/components/checkout/checkout-balance'
@@ -26,6 +27,7 @@ import ThankYouTemplate from '@/components/checkout/thank-you'
 import { withThemeLogo } from '@/lib/checkout-look'
 import { currentCustomer } from '@/lib/customer-session'
 import { db } from '@/lib/db'
+import { discoveryVisitor, recordDiscoveryOrder } from '@/lib/discovery-events'
 import { experimentsEnabled, requestExperiments } from '@/lib/experiments'
 import { orderPageToken } from '@/lib/order-view-cookie'
 import { shopperParcels } from '@/lib/parcels'
@@ -154,6 +156,10 @@ export default async function ThankYouPage({ params, searchParams }: Params) {
     ((await requestExperiments(storeId)).visitorId !== null &&
       (await experimentsEnabled(storeId))) ||
     (await abPurchaseMeasured(storeId))
+  // Search & discovery: the funnel's last step, when this browser added from a search or a
+  // recommendation in the last 30 minutes (a reload within the window is not counted again).
+  const discoveryShopper = data.order.isTest ? null : await discoveryVisitor()
+  if (discoveryShopper) after(() => recordDiscoveryOrder(storeId, discoveryShopper))
   return (
     <>
       {measured ? <ExperimentBeacon order={data.order.id} /> : null}

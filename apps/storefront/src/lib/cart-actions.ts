@@ -33,6 +33,7 @@ import { and, desc, eq, ne } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { after } from 'next/server'
 import { cartContent } from '@/data/cart'
 import { checkoutContent } from '@/data/checkout'
 import { readAttribution } from './attribution-cookie'
@@ -42,6 +43,7 @@ import { checkoutErrorMessage } from './checkout-errors'
 import { currentCustomer } from './customer-session'
 import { db } from './db'
 import { deliveryForOrder } from './delivery-options'
+import { discoveryVisitor, recordDiscoveryCartAdd } from './discovery-events'
 import { hasChatCookie, postChatCartLine } from './inbox'
 import { requestMarketId } from './market-catalog'
 import { accessibleOrderId } from './order-access'
@@ -99,6 +101,9 @@ export async function addLineAction(
   await chatCartLine(storeId, cartId, 'add', variantId, Math.max(1, quantity))
   // A/B rollouts: the visitor's first add to cart counts for the arm they are in.
   await noteAbAddToCart(storeId)
+  // Search & discovery: an add after a search result or recommendation click, after the response.
+  const visitor = await discoveryVisitor()
+  if (visitor) after(() => recordDiscoveryCartAdd(storeId, visitor, variantId))
   revalidatePath('/', 'layout')
   return undefined
 }

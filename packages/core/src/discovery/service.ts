@@ -106,7 +106,7 @@ export async function recordDiscoveryEvent(
 }
 
 /**
- * An add to cart, written only when the session clicked a search result or a recommendation in
+ * An add to cart (the variant added), written only when the session clicked a search result or a recommendation in
  * the last 30 minutes, under that click's source (a click on the same product wins). One
  * statement: a shopper who never searched costs an index probe and no row.
  */
@@ -114,15 +114,16 @@ export async function recordDiscoveryAdd(
   tx: StoreTx,
   storeId: string,
   visitorId: string,
-  productId: string,
+  variantId: string,
 ): Promise<void> {
   const sessionKey = discoverySessionKey(storeId, visitorId)
   await tx.execute(sql`
     insert into discovery_event (id, store_id, session_key, source, kind, product_id)
-    select ${newId()}::uuid, ${storeId}::uuid, ${sessionKey}::text, e.source, 'add', ${productId}::uuid
+    select ${newId()}::uuid, ${storeId}::uuid, ${sessionKey}::text, e.source, 'add', v.product_id
     from discovery_event e
+    join variant v on v.id = ${variantId}::uuid
     where e.session_key = ${sessionKey} and e.kind = 'click' and e.created_at > now() - ${WINDOW}
-    order by (e.product_id = ${productId}::uuid) desc, e.created_at desc
+    order by (e.product_id = v.product_id) desc, e.created_at desc
     limit 1`)
 }
 
