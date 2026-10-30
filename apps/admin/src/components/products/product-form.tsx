@@ -12,6 +12,7 @@ import RunAutomationDialog from '@/components/automations/records/run-automation
 import { useRunAutomation } from '@/components/automations/records/use-run-automation'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
+import LeaveGuard from '@/components/layout/leave-guard'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import SaveBar from '@/components/layout/save-bar'
 import MetafieldsCard from '@/components/metaobjects/metafields-card'
@@ -90,6 +91,7 @@ export default function ProductForm({
   const [busy, setBusy] = useState(false)
   // The variant metafields grid's own save and whether it has edits (saved with the page, #894).
   const variantFieldsSave = useRef<(() => Promise<boolean>) | null>(null)
+  const pendingCollections = useRef<string[]>([])
   const [variantFieldsDirty, setVariantFieldsDirty] = useState(false)
   const [variantFieldsReset, setVariantFieldsReset] = useState(0)
   const [uploading, setUploading] = useState(false)
@@ -195,6 +197,13 @@ export default function ProductForm({
       // Then each variant whose metafields changed; one that fails names its variant and stays
       // unsaved (the save bar stays up), the product itself is saved.
       const fieldsSaved = variantFieldsSave.current ? await variantFieldsSave.current() : true
+      // Collections picked before the first save join the new product now (audit #200).
+      if (!product && pendingCollections.current.length > 0) {
+        await api.collections.setForProduct({
+          productId: result.id,
+          collectionIds: pendingCollections.current,
+        })
+      }
       if (fieldsSaved) toast.success(product ? copy.toasts.saved : copy.toasts.created)
       if (!product) router.replace(routes.products.detail(result.id))
       else router.refresh()
@@ -329,7 +338,7 @@ export default function ProductForm({
         />
         {mainCard('details')}
         {/* Extra fields stay in view, not inside "More" (#296: nobody found them there). */}
-        <MetafieldsCard ownerType="product" ownerId={product?.id ?? null} />
+        <MetafieldsCard ownerType="product" ownerId={product?.id ?? null} collapseEmpty />
       </>
     ),
     price: (
@@ -373,6 +382,8 @@ export default function ProductForm({
     <ProoflyDetailPage
       header={
         <>
+          {/* A new product has no save bar yet; its typed title still asks before it is lost (#202). */}
+          <LeaveGuard when={!product && isDirty} />
           <SaveBar
             open={Boolean(product) && isDirty}
             message={copy.saveBar.message}
@@ -428,6 +439,9 @@ export default function ProductForm({
       }
       side={
         <ProductSide
+          onPendingCollections={(ids) => {
+            pendingCollections.current = ids
+          }}
           form={form}
           facets={facets}
           productId={product?.id ?? null}

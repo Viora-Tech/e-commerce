@@ -30,7 +30,9 @@ const MINIMUM = `minimumRequirement { __typename
 const SHIPPING = `destinationSelection { __typename ... on DiscountCountries { countries includeRestOfWorld } }
   maximumShippingPrice { amount }`
 const COMMON = 'title status startsAt endsAt asyncUsageCount'
-const CODES = `usageLimit appliesOncePerCustomer customerSelection { __typename }
+const CODES = `usageLimit appliesOncePerCustomer customerSelection { __typename
+    ... on DiscountCustomers { customers { id } }
+  }
   codes(first: 50) { ${PAGE_INFO} nodes { code asyncUsageCount } }`
 
 const DISCOUNTS_QUERY = `query Discounts($cursor: String) {
@@ -75,7 +77,7 @@ export type GDiscount = {
   asyncUsageCount?: number | null
   usageLimit?: number | null
   appliesOncePerCustomer?: boolean | null
-  customerSelection?: { __typename: string } | null
+  customerSelection?: { __typename: string; customers?: { id: string }[] } | null
   codes?: Page<GCode>
   customerGets?: {
     value: {
@@ -168,6 +170,10 @@ function mapDiscount(id: string, d: GDiscount): NDiscount {
         ? Number(min.greaterThanOrEqualToQuantity ?? 0) || null
         : null,
     allCustomers: !d.customerSelection || d.customerSelection.__typename === 'DiscountCustomerAll',
+    customerIds:
+      d.customerSelection?.__typename === 'DiscountCustomers'
+        ? (d.customerSelection.customers ?? []).map((c) => c.id)
+        : [],
     countries:
       dest?.__typename === 'DiscountCountries' && !dest.includeRestOfWorld
         ? (dest.countries ?? [])

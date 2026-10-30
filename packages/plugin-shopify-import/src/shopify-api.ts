@@ -53,6 +53,7 @@ export const PRODUCTS_QUERY = `query Products($cursor: String, $query: String) {
     ${PAGE_INFO}
     nodes {
       id handle title descriptionHtml vendor productType tags status templateSuffix publishedAt isGiftCard
+      category { id }
       seo { title description }
       options { name position }
       hsn: metafield(namespace: "custom", key: "hsn") { value }
@@ -96,6 +97,8 @@ type GProduct = {
   descriptionHtml: string | null
   vendor: string | null
   productType: string | null
+  /** Shopify Standard Product Taxonomy: `gid://shopify/TaxonomyCategory/el-2-6-4`. */
+  category?: { id: string } | null
   tags: string[]
   status: 'ACTIVE' | 'DRAFT' | 'ARCHIVED'
   /** When it went on the Online Store; null while it is not on that sales channel. */
@@ -154,7 +157,8 @@ export function mapVariant(
     taxable: v.taxable,
     trackInventory: v.inventoryItem?.tracked ?? true,
     weightGrams: weight ? Math.round(weight.value * (GRAMS[weight.unit] ?? 1)) : null,
-    onHand: v.inventoryItem?.tracked === false ? null : Math.max(0, v.inventoryQuantity ?? 0),
+    // Negative on Shopify means sold beyond stock (pre-orders still owed): kept as is (audit #53).
+    onHand: v.inventoryItem?.tracked === false ? null : (v.inventoryQuantity ?? 0),
     hsCode: hsnDigits(v.inventoryItem?.harmonizedSystemCode) ?? productHsn,
     imageSrc: v.image?.url ?? null,
     sellsOutOfStock: v.inventoryPolicy === 'CONTINUE',
@@ -205,6 +209,8 @@ export function mapProduct(p: GProduct, variants: GVariant[], onlineStore = fals
     bodyHtml: p.descriptionHtml || null,
     vendor: p.vendor || null,
     productType: p.productType || null,
+    // Same taxonomy ids as ours (`el-2-6-4`): decides where Meta and Google list it (audit #52).
+    categoryId: p.category?.id.split('/').pop() || null,
     tags: p.tags,
     status: productStatus(p, onlineStore),
     seoTitle: p.seo?.title || null,
@@ -230,6 +236,7 @@ export const PRODUCTS_BULK_QUERY = `{
     edges {
       node {
         id handle title descriptionHtml vendor productType tags status templateSuffix publishedAt isGiftCard
+      category { id }
         seo { title description }
         options { name position }
         hsn: metafield(namespace: "custom", key: "hsn") { value }

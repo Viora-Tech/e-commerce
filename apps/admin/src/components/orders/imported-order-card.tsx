@@ -102,6 +102,7 @@ export default function ImportedOrderCard({
         body={takeover.dialogBody}
         confirmLabel={takeover.confirm}
         cancelLabel={takeover.cancel}
+        tone="default"
         onConfirm={handleTakeOver}
       />
     </DataCard>

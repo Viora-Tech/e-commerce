@@ -31,7 +31,7 @@ import StatusChip from '@/components/layout/status-chip'
 import { automationEditorContent as copy } from '@/data/marketing-automations'
 import { campaignReportContent } from '@/data/marketing-campaigns'
 import { api } from '@/lib/api-client'
-import { formatPaise } from '@/lib/money'
+import { formatPaiseWhole } from '@/lib/money'
 import { routes } from '@/lib/routes'
 import AutomationFlow from './automation-flow'
 import AutomationPalette from './automation-palette'
@@ -164,7 +164,7 @@ export default function AutomationEditor({
     { label: copy.tiles.sent, value: formatNumber(s.sent) },
     { label: copy.tiles.clicked, value: campaignReportContent.rate(s.clicked, s.sent) },
     { label: copy.tiles.converted, value: formatNumber(s.converted) },
-    { label: copy.tiles.sales, value: formatPaise(s.revenuePaise) },
+    { label: copy.tiles.sales, value: formatPaiseWhole(s.revenuePaise) },
   ]
 
   return (

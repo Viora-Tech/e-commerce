@@ -22,7 +22,13 @@ import { api } from '@/lib/api-client'
 import type { HomeRange, RangeCompare } from '@/lib/home-range'
 import { routes } from '@/lib/routes'
 import ChannelMenu, { type Channel } from './analytics/channel-menu'
-import { formatMetric, METRIC_META, metricChange, shapeHourly } from './analytics/metric-meta'
+import {
+  formatMetric,
+  formatTick,
+  METRIC_META,
+  metricChange,
+  shapeHourly,
+} from './analytics/metric-meta'
 import HeroGlass from './hero-glass'
 import SalesHeroChart, { type SalesChartPoint } from './sales-hero-chart'
 import SalesMetricTiles from './sales-metric-tiles'
@@ -242,7 +248,7 @@ export default function SalesHero({ initial, liveNow }: SalesHeroProps) {
           emptyText={emptyText}
           swapKey={`${range.from}-${range.to}-${metric}-${compare}`}
           formatTooltip={(v) => formatMetric(fmt, metric, v)}
-          formatTick={(v) => (METRIC_META[metric].kind === 'percent' ? `${v}%` : fmt.compact(v))}
+          formatTick={(v) => formatTick(fmt, metric, v)}
         />
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-3 pb-4">

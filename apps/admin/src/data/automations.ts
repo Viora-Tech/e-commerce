@@ -312,6 +312,10 @@ export const automationsContent = {
     } as Record<string, string>,
     use: 'Use template',
     preview: 'Preview',
+    marketingTitle: 'Marketing flows',
+    marketingIntro:
+      'Cart and checkout recovery, welcome, thank-you and win-back emails and WhatsApp. Set them up in Growth, where you see the orders each one brings back.',
+    openInGrowth: 'Set up in Growth',
     requiresApp: 'Needs an app you have not installed',
     created: 'Workflow made from the template. It is paused until you publish it.',
     failed: 'Could not make the workflow. Try again.',

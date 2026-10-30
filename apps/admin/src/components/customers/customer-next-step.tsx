@@ -6,7 +6,7 @@ import { useState } from 'react'
 import { customerDetailContent } from '@/data/customers'
 import { useCopy } from '@/hooks/use-copy'
 import { whatsappUrl } from '@/lib/customer-contact'
-import { formatPaise } from '@/lib/money'
+import { formatPaiseWhole } from '@/lib/money'
 import type { CustomerDetail, NextStep } from './customer-detail-types'
 
 type CustomerNextStepProps = {
@@ -34,7 +34,10 @@ export default function CustomerNextStep({ customer, step }: CustomerNextStepPro
   const Icon = step.kind === 'vip' ? Gift : Clock
   const content =
     step.kind === 'vip'
-      ? { title: copy.vip.title, body: copy.vip.body(step.orders, formatPaise(step.spentPaise)) }
+      ? {
+          title: copy.vip.title,
+          body: copy.vip.body(step.orders, formatPaiseWhole(step.spentPaise)),
+        }
       : { title: copy.winBack.title, body: copy.winBack.body(step.days) }
 
   return (

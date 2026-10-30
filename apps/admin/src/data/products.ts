@@ -83,10 +83,12 @@ export const productsListContent = {
   sortAlpha: { desc: 'Z to A', asc: 'A to Z', first: 'asc' as const },
   inventory: (available: number, variants: number) =>
     `${available} in stock for ${variants} variant${variants === 1 ? '' : 's'}`,
-  inStock: (available: number) => `${available} in stock`,
+  inStock: (available: number) =>
+    available < 0 ? `Oversold by ${-available}` : `${available} in stock`,
   variants: (n: number) => `${n} variant${n === 1 ? '' : 's'}`,
   none: '',
   priceRange: (min: string, max: string) => `${min} to ${max}`,
+  noPrice: 'No price',
   preorderPill: 'Pre-order',
   launching: (date: Date) =>
     `Launching ${date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`,

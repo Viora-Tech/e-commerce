@@ -143,7 +143,11 @@ export default function PreferencesForm({ initial, storefrontOrigin }: Preferenc
               ) : null}
             </SettingsCard>
 
-            <SettingsCard title={copy.password.heading} description={copy.password.body}>
+            <SettingsCard
+              id="password"
+              title={copy.password.heading}
+              description={copy.password.body}
+            >
               <SettingsToggleRow
                 id="password-enabled"
                 label={copy.password.enabled}

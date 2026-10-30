@@ -1,12 +1,18 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import DraftForm from '@/components/drafts/draft-form'
-import { draftsContent } from '@/data/drafts'
+import { draftEditorContent, draftsContent } from '@/data/drafts'
 import { appRouter, call, serverContext } from '@/lib/api'
 
-export const metadata: Metadata = { title: draftsContent.title }
-
 type Props = { params: Promise<{ id: string }> }
+
+/** "Draft #2374" in the tab, not "Draft orders" (audit #32). */
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params
+  const context = await serverContext()
+  const draft = await call(appRouter.orders.getDraft, { id }, { context }).catch(() => null)
+  return { title: draft ? draftEditorContent.editTitle(draft.number) : draftsContent.title }
+}
 
 export default async function Page({ params }: Props) {
   const { id } = await params

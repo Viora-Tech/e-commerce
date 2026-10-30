@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
 import { cart, cartLine } from '@commerce/db'
 import { and, desc, eq, gte, isNotNull, isNull, lt, or, type SQL, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { notTestCartContact } from './test-contact'
 
 /**
  * Abandoned checkouts: carts that captured a contact at checkout and then went
@@ -79,6 +80,7 @@ export type AbandonedListFilters = {
 function abandonedWhere(now: Date, since: Date) {
   return and(
     or(isNotNull(cart.email), isNotNull(cart.phone)),
+    notTestCartContact,
     gte(cart.updatedAt, since),
     lt(cart.updatedAt, new Date(now.getTime() - ABANDONED_AFTER_MS)),
     sql`${lineCount} > 0`,
@@ -263,6 +265,7 @@ export async function cartsAwaitingRecovery(
       and(
         eq(cart.status, 'open'),
         isNotNull(cart.email),
+        notTestCartContact,
         isNull(cart.recoverySentAt),
         lt(cart.updatedAt, cutoff),
         sql`${lineCount} > 0`,

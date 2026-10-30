@@ -16,6 +16,7 @@ import {
   type SettingsOp,
 } from '../src/settings-plan'
 import { planFields, planPolicies } from '../src/settings-plan-content'
+import { planSegments, segmentRules } from '../src/settings-plan-segments'
 import { planShipping } from '../src/settings-plan-shipping'
 import { ShopifyClient } from '../src/shopify-client'
 import { settingsShopify } from './fixtures/settings'
@@ -45,6 +46,7 @@ function emptyLocal(): LocalSettings {
       pricesIncludeGst: true,
       moneyFormat: null,
     },
+    seo: { title: '', description: '' },
     defaultGstin: null,
     gstins: [],
     locations: [
@@ -70,6 +72,7 @@ function emptyLocal(): LocalSettings {
       published: false,
     })),
     fields: [],
+    segments: [],
     mapped: { locations: new Map(), zones: new Map(), fields: new Map(), contentTypes: new Map() },
   }
 }
@@ -92,6 +95,13 @@ function applyToLocal(local: LocalSettings, ops: SettingsOp[]): LocalSettings {
       next.defaultGstin = op.gstin
       next.gstins.push(op.gstin)
     }
+    if (op.kind === 'seo') {
+      next.seo = {
+        title: op.title ?? next.seo.title,
+        description: op.description ?? next.seo.description,
+      }
+    }
+    if (op.kind === 'segment') next.segments = [...next.segments, op.name]
     if (op.kind === 'location') {
       const id = op.id ?? `loc-${++n}`
       const at = next.locations.findIndex((l) => l.id === id)
@@ -254,6 +264,33 @@ describe('store details and tax', () => {
       kind: 'location',
       id: 'loc-home',
       details: { name: 'Default location', stateCode: 'KA', pincode: '560001' },
+    })
+  })
+
+  it('brings over the home page title and description only where this store has none', async () => {
+    const source = await read()
+    expect(source.shop.seo).toEqual({
+      title: 'Waimers',
+      description: 'Premium gaming peripherals for India.',
+    })
+    const fresh = planStore(source.shop, emptyLocal())
+    expect(find(fresh.items, { subject: 'home_seo_title' })).toMatchObject({
+      action: 'update',
+      to: 'Waimers',
+    })
+    expect(fresh.ops).toContainEqual({
+      kind: 'seo',
+      title: 'Waimers',
+      description: 'Premium gaming peripherals for India.',
+    })
+    const written = planStore(source.shop, {
+      ...emptyLocal(),
+      seo: { title: 'Our own title', description: '' },
+    })
+    expect(find(written.items, { subject: 'home_seo_title' })).toMatchObject({ action: 'same' })
+    expect(written.ops).toContainEqual({
+      kind: 'seo',
+      description: 'Premium gaming peripherals for India.',
     })
   })
 
@@ -504,5 +541,56 @@ describe('running it again', () => {
     // Matches are remembered, so a later rename on either side keeps them paired.
     expect(after.mapped.locations.size).toBe(2)
     expect(after.mapped.zones.size).toBe(2)
+  })
+})
+
+describe('customer segments (audit #87)', () => {
+  it('turns Shopify segment queries into our conditions', () => {
+    expect(segmentRules("customer_tags CONTAINS 'vip' AND number_of_orders >= 2")).toEqual({
+      match: 'all',
+      conditions: [
+        { field: 'tag', op: 'contains', value: 'vip' },
+        { field: 'orders', op: 'gte', value: '2' },
+      ],
+    })
+    expect(segmentRules('amount_spent > 1000 OR last_order_date > -30d')).toEqual({
+      match: 'any',
+      conditions: [
+        { field: 'spend', op: 'gte', value: '100001' },
+        { field: 'last_order_days', op: 'lte', value: '30' },
+      ],
+    })
+    expect(segmentRules("email_subscription_status != 'SUBSCRIBED'")?.conditions).toEqual([
+      { field: 'marketing', op: 'eq', value: 'false' },
+    ])
+    // A filter we cannot express, or AND mixed with OR: left for the merchant, never half-imported.
+    expect(segmentRules("customer_cities CONTAINS 'IN-HR-Sonipat'")).toBeNull()
+    expect(
+      segmentRules("customer_tags CONTAINS 'a' AND number_of_orders >= 1 OR amount_spent > 5"),
+    ).toBeNull()
+  })
+
+  it('creates the ones it can, keeps same-named ones, lists the rest', async () => {
+    const source = await read()
+    expect(source.segments?.ok).toBe(true)
+    const plan = planSegments(source.segments?.ok ? source.segments.data : [], {
+      ...emptyLocal(),
+      segments: ['Email subscribers'],
+    })
+    expect(plan.items.map((i) => [i.name, i.action])).toEqual([
+      ['Restock list: Mio', 'create'],
+      ['Email subscribers', 'same'],
+      ['Bought TenZ', 'manual'],
+    ])
+    expect(plan.ops).toEqual([
+      {
+        kind: 'segment',
+        name: 'Restock list: Mio',
+        rules: {
+          match: 'all',
+          conditions: [{ field: 'tag', op: 'contains', value: 'restock-dysphoria-mio' }],
+        },
+      },
+    ])
   })
 })

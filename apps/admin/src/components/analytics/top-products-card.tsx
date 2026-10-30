@@ -2,7 +2,7 @@ import type { AnalyticsOverview } from '@commerce/api'
 import { Card } from '@commerce/ui/shadcn/card'
 import KitListRow from '@/components/kit/kit-list-row'
 import { analyticsContent as copy } from '@/data/analytics'
-import { formatPaise } from '@/lib/money'
+import { formatPaiseWhole } from '@/lib/money'
 
 type TopProductsCardProps = { products: AnalyticsOverview['topProducts'] }
 
@@ -25,7 +25,7 @@ export default function TopProductsCard({ products }: TopProductsCardProps) {
                 image={p.imageUrl}
                 title={p.title}
                 meta={`${p.units} ${c.units}`}
-                value={formatPaise(p.revenuePaise)}
+                value={formatPaiseWhole(p.revenuePaise)}
               />
             </li>
           ))}

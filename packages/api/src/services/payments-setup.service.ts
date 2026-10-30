@@ -224,6 +224,8 @@ export async function paymentsSetup(
   const online = gatewayOn && onlineMethodsOn(methods).length > 0
   const offline = settings.enabled.some((id) => id === 'cod' || id === 'manual')
   const gateways = gatewayApps(new Set(installedApps), settings)
+  const manual = decrypted.providers.manual ?? {}
+  const manualOn = settings.enabled.includes('manual')
   return {
     settings: presentProviderSettings(settings, env.secret, registry, env.previousSecrets),
     available: availableProviders(registry),
@@ -234,6 +236,17 @@ export async function paymentsSetup(
     testMode: gateways.some((g) => g.connected && g.mode === 'test'),
     canTakePayments: online || offline,
     canTakeOnline: online,
+    /**
+     * The manual methods as their own rows (Shopify's "Manual payment methods": UPI ID, Bank
+     * deposit): each is live when manual payments are on and its details are filled (audit #149).
+     */
+    manualMethods: {
+      upi: { ready: Boolean(manual.upiId?.trim()), on: manualOn && Boolean(manual.upiId?.trim()) },
+      bank: {
+        ready: Boolean(manual.accountNumber?.trim() && manual.ifsc?.trim()),
+        on: manualOn && Boolean(manual.accountNumber?.trim() && manual.ifsc?.trim()),
+      },
+    },
     showSetup: !gatewayOn && !settings.setupSkippedAt,
     razorpayOAuth: env.razorpayOAuth,
     webhookUrls: Object.fromEntries(

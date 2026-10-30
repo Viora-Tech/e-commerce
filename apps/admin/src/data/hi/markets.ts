@@ -107,6 +107,13 @@ export default [
         missing: 'कम से कम एक देश चुनें।',
         inMarket: (name) => `${name} में`,
         remove: (name) => `${name} हटाएँ`,
+        regions: {
+          eu: 'यूरोपियन यूनियन',
+          gulf: 'खाड़ी देश (GCC)',
+          northAmerica: 'नॉर्थ अमेरिका',
+          oceania: 'ऑस्ट्रेलिया और NZ',
+        },
+        addRegion: (name) => `${name} जोड़ें`,
       },
       currency: {
         label: 'करेंसी',

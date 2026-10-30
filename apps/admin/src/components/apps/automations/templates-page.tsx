@@ -6,10 +6,12 @@ import {
   type TemplateView,
   walkNodes,
 } from '@commerce/core/automations'
+import { AUTOMATION_TEMPLATES } from '@commerce/core/marketing'
 import { Eye, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -22,6 +24,7 @@ import { useCopy, useLocale } from '@/hooks/use-copy'
 import { automationApi } from '@/lib/automation-api'
 import { triggerLabel } from '@/lib/automation-labels'
 import { automationRoutes } from '@/lib/automation-routes'
+import { routes } from '@/lib/routes'
 import TemplatePreviewDialog from './template-preview-dialog'
 import TriggerPickerDialog from './trigger-picker-dialog'
 
@@ -80,8 +83,13 @@ export default function TemplatesPage() {
 
   // Render logic
   const copy = all.templates
-  const used = TEMPLATE_CATEGORIES.filter((c) => templates?.some((t) => t.category === c))
+  // The marketing flows (cart recovery, welcome, thank-you, win-back) live in Growth, with
+  // their emails and recovered-revenue numbers; the gallery lists them too (audit #181).
+  const used = TEMPLATE_CATEGORIES.filter(
+    (c) => c === 'marketing' || templates?.some((t) => t.category === c),
+  )
   const shown = (templates ?? []).filter((t) => category === 'all' || t.category === category)
+  const marketing = category === 'all' || category === 'marketing' ? AUTOMATION_TEMPLATES : []
 
   return (
     <div className="flex flex-col gap-4">
@@ -156,6 +164,38 @@ export default function TemplatesPage() {
           })}
         </ul>
       )}
+      {templates !== null && marketing.length > 0 ? (
+        <div className="flex flex-col gap-3">
+          <SectionHead title={copy.marketingTitle} intro={copy.marketingIntro} />
+          <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {marketing.map((t) => (
+              <li key={t.id}>
+                <Card gap={4} inset={4} className="h-full justify-between">
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="text-body-strong text-ink-strong">{t.name}</h3>
+                      <span className="shrink-0 text-caption text-muted-foreground">
+                        {copy.categories.marketing}
+                      </span>
+                    </div>
+                    <p className="text-caption text-muted-foreground">{t.description}</p>
+                  </div>
+                  <div className="flex items-center justify-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      nativeButton={false}
+                      render={<Link href={routes.growth.automations()} />}
+                    >
+                      {copy.openInGrowth}
+                    </Button>
+                  </div>
+                </Card>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
       {catalogue && previewing ? (
         <TemplatePreviewDialog
           open

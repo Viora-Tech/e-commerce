@@ -178,7 +178,7 @@ export async function pickProducts(
         sku: v.sku,
         pricePaise: v.pricePaise,
         costPaise: v.costPaise,
-        available: Math.max(0, (v.onHand ?? 0) - (v.reserved ?? 0)),
+        available: (v.onHand ?? 0) - (v.reserved ?? 0),
       }))
     return {
       ...r,

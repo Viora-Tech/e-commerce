@@ -200,6 +200,10 @@ export default [
         cash: 'कैश',
         cheque: 'चेक',
         other: 'दूसरा',
+        razorpay: 'Razorpay',
+        cashfree: 'Cashfree',
+        decentro: 'Decentro',
+        gift_card: 'गिफ़्ट कार्ड',
       },
       reference: 'रेफ़रेंस',
       gatewayId: 'गेटवे पेमेंट ID',
@@ -242,6 +246,7 @@ export default [
       },
     },
     timeline: {
+      fromImport: 'मूव से पहले, Shopify पर',
       heading: 'टाइमलाइन',
       today: 'आज',
       placed: 'ऑर्डर आया',

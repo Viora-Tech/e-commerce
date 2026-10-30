@@ -160,6 +160,16 @@ describe('products imported after their collections', () => {
     expect(await members('mice')).toEqual(['tee', 'product-3', 'product-4'])
   })
 
+  it('follows Shopify’s manual order, not the order products happened to be written', async () => {
+    const s = await store()
+    await s.importAll(['products', 'collections'])
+    // On Shopify the new product is pinned to the top of Mice.
+    s.fake.data.products.push(productNode(3))
+    s.cols[0]?.members.unshift('product-3')
+    await s.importAll(['products'])
+    expect(await members('mice')).toEqual(['product-3', 'tee', 'product-2'])
+  })
+
   it('a products-only import links products to collections imported earlier', async () => {
     const s = await store()
     await s.importAll(['products', 'collections'])

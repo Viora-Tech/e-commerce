@@ -79,7 +79,7 @@ function readVariant(
     weightGrams: grams
       ? int(grams)
       : toGrams(row.get('variant weight'), row.get('variant weight unit') || 'g'),
-    onHand: columns.qty ? Math.max(0, int(row.get('variant inventory qty')) ?? 0) : null,
+    onHand: columns.qty ? (int(row.get('variant inventory qty')) ?? 0) : null,
     hsCode: readHsn(row),
     imageSrc: row.get('variant image') || null,
     ...(columns.policy

@@ -216,7 +216,8 @@ export async function listProducts(
         variantCount: vs.length,
         minPricePaise: priceRange(vs.map((v) => v.pricePaise))?.min ?? null,
         maxPricePaise: priceRange(vs.map((v) => v.pricePaise))?.max ?? null,
-        available: vs.reduce((n, v) => n + Math.max(0, (v.onHand ?? 0) - (v.reserved ?? 0)), 0),
+        // Not clamped: below zero is oversold (pre-orders owed), which the merchant must see (#53).
+        available: vs.reduce((n, v) => n + (v.onHand ?? 0) - (v.reserved ?? 0), 0),
       }
     }),
   }

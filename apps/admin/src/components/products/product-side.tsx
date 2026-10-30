@@ -15,6 +15,8 @@ type ProductSideProps = {
   facets: Facets
   /** Null while the product is unsaved. */
   productId: string | null
+  /** A new product's collection picks, saved right after it is created. */
+  onPendingCollections?: ((collectionIds: string[]) => void) | undefined
   /** Bumped after each save so the collections card refetches. */
   revision: number
   checklist: ChecklistItem[]
@@ -41,6 +43,7 @@ export default function ProductSide({
   form,
   facets,
   productId,
+  onPendingCollections,
   revision,
   checklist,
   activeTab,
@@ -83,20 +86,28 @@ export default function ProductSide({
         onProductType={(productType) => onPatch({ productType })}
         onTags={(tags) => onPatch({ tags })}
       />
-      <ProductCollectionsCard productId={productId} revision={revision} />
+      <ProductCollectionsCard
+        productId={productId}
+        revision={revision}
+        onPendingChange={onPendingCollections}
+      />
       <TemplateSelectCard
         kind="product"
         value={form.templateSuffix}
         onChange={(templateSuffix) => onPatch({ templateSuffix })}
       />
-      <div className="flex flex-wrap justify-end gap-2">
-        <ProductPageActions
-          busy={busy}
-          live={live}
-          onPublish={onPublish}
-          onSaveDraft={onSaveDraft}
-        />
-      </div>
+      {/* A saved product saves from the header and the save bar; a second pair of buttons down
+          here made two places to save (audit #58). A new one keeps Save to draft / Publish. */}
+      {productId ? null : (
+        <div className="flex flex-wrap justify-end gap-2">
+          <ProductPageActions
+            busy={busy}
+            live={live}
+            onPublish={onPublish}
+            onSaveDraft={onSaveDraft}
+          />
+        </div>
+      )}
     </>
   )
 }

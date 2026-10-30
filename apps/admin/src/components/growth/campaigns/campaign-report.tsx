@@ -20,7 +20,7 @@ import {
 } from '@/data/marketing-campaigns'
 import { api } from '@/lib/api-client'
 import { formatDate, formatDateTime } from '@/lib/format-date'
-import { formatPaise } from '@/lib/money'
+import { formatPaise, formatPaiseWhole } from '@/lib/money'
 import { routes } from '@/lib/routes'
 import CampaignPerformance from './campaign-performance'
 import EmailPreview from './email-preview'
@@ -189,7 +189,7 @@ export default function CampaignReport({
           {
             id: 'sales',
             label: t.sales,
-            value: waiting ? dash : formatPaise(s.revenuePaise),
+            value: waiting ? dash : formatPaiseWhole(s.revenuePaise),
             note: n.fromOrders(waiting ? 0 : s.orders),
           },
         ]}

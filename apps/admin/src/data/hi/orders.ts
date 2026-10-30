@@ -225,7 +225,12 @@ export default [
       status: 'स्थिति',
       channel: 'चैनल',
       tags: 'टैग',
+      items: 'आइटम',
+      delivery: 'डिलीवरी',
+      phone: 'फ़ोन',
+      city: 'शहर',
     },
+    noDelivery: 'अभी नहीं भेजा',
     sortTitles: {
       order: 'ऑर्डर नंबर',
       customer: 'ग्राहक का नाम',
@@ -238,6 +243,11 @@ export default [
       bulkEdit: 'एक साथ बदलें',
       updated: (n, status) => `${n} ऑर्डर "${status}" मार्क किए गए`,
       failed: 'ऑर्डर अपडेट नहीं हो पाए',
+      cancelTitle: (n) => `${n} ऑर्डर कैंसल करें?`,
+      cancelBody:
+        'इनका स्टॉक वापस जाएगा और ये शिप करने की लिस्ट से हटेंगे। पहले से मिला पैसा यहाँ से रिफ़ंड नहीं होता: हर ऑर्डर उसके पेज से रिफ़ंड करें।',
+      cancelConfirm: 'ऑर्डर कैंसल करें',
+      keep: 'रहने दें',
     },
     empty: {
       heading: 'अभी कोई ऑर्डर नहीं',

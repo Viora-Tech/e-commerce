@@ -33,7 +33,7 @@ export type ChannelBar = {
   detail: string
   /** "Last tried 12 min ago", "Started 1 min ago". */
   metaAt: string | null
-  metaKind: 'tried' | 'started' | null
+  metaKind: 'tried' | 'synced' | 'started' | null
   /** The bar's own button, when it has one. */
   action: 'reconnect' | 'withdraw' | null
   /** 0–1 while products are being sent. */
@@ -110,7 +110,8 @@ export function channelBar(
         title: b.synced,
         detail: sync.total !== null ? b.sentOf(sync.sent ?? sync.total, sync.total) : b.syncedBody,
         metaAt: sync.lastTriedAt,
-        metaKind: 'tried',
+        // Healthy: the last try worked, so say so ("Last synced"), not "Last tried" (audit #138).
+        metaKind: 'synced',
       }
     default:
       return { ...base, tone: 'idle', title: b.notConnected, detail: b.notConnectedBody }

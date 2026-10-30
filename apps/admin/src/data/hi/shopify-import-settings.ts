@@ -62,6 +62,10 @@ export default [
         title: 'एक्स्ट्रा फ़ील्ड',
         body: 'प्रोडक्ट, वेरिएंट, कलेक्शन, ग्राहक और ऑर्डर के एक्स्ट्रा फ़ील्ड, जहाँ वह फ़ील्ड टाइप यहाँ मौजूद है।',
       },
+      segments: {
+        title: 'ग्राहक सेगमेंट',
+        body: 'आपके सेव किए ग्राहक ग्रुप, उनके नियमों से दोबारा बने: टैग, ऑर्डर, खर्च, ईमेल सब्सक्रिप्शन और आख़िरी ऑर्डर। दूसरे फ़िल्टर वाले यहाँ बनाने के लिए दिखाए जाते हैं।',
+      },
     },
     state: {
       ready: 'लाने लायक बदलाव',
@@ -95,6 +99,8 @@ export default [
       timezone: 'टाइम ज़ोन',
       weight_unit: 'वज़न की इकाई',
       money_format: 'कीमत का फ़ॉर्मेट',
+      home_seo_title: 'होम पेज का टाइटल (सर्च रिज़ल्ट)',
+      home_seo_description: 'होम पेज का विवरण (सर्च रिज़ल्ट)',
       prices_include_tax: 'कीमतों में टैक्स शामिल',
       gstin: 'GST नंबर',
       location: 'लोकेशन',
@@ -103,6 +109,7 @@ export default [
       packages: 'पैकेज',
       policy: 'पॉलिसी',
       field: 'एक्स्ट्रा फ़ील्ड',
+      segment: 'ग्राहक सेगमेंट',
     },
     owners: {
       product: 'प्रोडक्ट',
@@ -162,6 +169,8 @@ export default [
         `${v.name} ऐसे कंटेंट टाइप से जुड़ा है जो अभी इंपोर्ट नहीं हुआ। कंटेंट टाइप इंपोर्ट करें, फिर दोबारा जाँचें।`,
       field_exists: (v) => `${v.name} यहाँ पहले से दूसरे टाइप में है, इसलिए आपका रखा गया।`,
       owner_access: (v) => `${v.name} के एक्स्ट्रा फ़ील्ड पढ़े नहीं जा सके: ${v.detail}`,
+      segment_rule: (v) =>
+        `${v.name} में ऐसा फ़िल्टर है जो यहाँ नहीं है (${v.detail})। इसे Customers › Segments में बनाएँ।`,
     },
     fixHref: {
       store: '/settings/store',
@@ -171,6 +180,7 @@ export default [
       packages: '/settings/shipping',
       policies: '/settings/policies',
       fields: '/settings/custom-data',
+      segments: '/customers/segments',
     },
   }),
 ]

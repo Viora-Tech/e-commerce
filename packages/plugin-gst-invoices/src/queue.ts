@@ -58,6 +58,15 @@ export async function isTestOrder(tx: StoreTx, orderId: string): Promise<boolean
   return o?.isTest === true
 }
 
+/** A cancelled order supplied nothing: it never waits in the queue for a tax invoice. */
+export async function isCancelledOrder(tx: StoreTx, orderId: string): Promise<boolean> {
+  const [o] = await tx.select({ status: order.status }).from(order).where(eq(order.id, orderId))
+  return o?.status === 'cancelled'
+}
+
+const CANCELLED_ORDER_MESSAGE =
+  'This order is cancelled, so nothing was supplied and it gets no GST invoice.'
+
 const TEST_ORDER_MESSAGE =
   'This is a test order (paid with the payment gateway in test mode). No real money moved, so it gets no GST invoice.'
 
@@ -84,6 +93,10 @@ export async function enqueueOrderParcels(
 ): Promise<{ row: InvoiceRow; created: boolean }[]> {
   if (await isTestOrder(tx, orderId)) {
     if (reason === 'manual') throw new InvoiceError('invalid', TEST_ORDER_MESSAGE)
+    return []
+  }
+  if (await isCancelledOrder(tx, orderId)) {
+    if (reason === 'manual') throw new InvoiceError('invalid', CANCELLED_ORDER_MESSAGE)
     return []
   }
   const settings = await loadSettings(tx, storeId)
@@ -194,10 +207,20 @@ export type QueueFilter = {
   gstRegistrationId?: string | null | undefined
 }
 
-export async function listQueue(tx: StoreTx, filter: QueueFilter) {
-  const conds: (SQL | undefined)[] = [
+/**
+ * Tax invoices waiting to be issued. Drafts queued before their order was cancelled
+ * stay out of the queue and its counts.
+ */
+export const queuedInvoiceDrafts = (): SQL =>
+  and(
     eq(invoice.kind, 'tax_invoice'),
     eq(invoice.status, 'draft'),
+    sql`not exists (select 1 from ${order} where ${order.id} = ${invoice.orderId} and ${order.status} = 'cancelled')`,
+  ) as SQL
+
+export async function listQueue(tx: StoreTx, filter: QueueFilter) {
+  const conds: (SQL | undefined)[] = [
+    queuedInvoiceDrafts(),
     filter.gstRegistrationId === undefined
       ? undefined
       : sameRegistration(invoice.gstRegistrationId, filter.gstRegistrationId),

@@ -23,7 +23,7 @@ import {
   saveSettings,
 } from '../src/issue'
 import { markFiled, setClosed } from '../src/periods'
-import { cancelInvoice, enqueueOrder, issueDrafts } from '../src/queue'
+import { cancelInvoice, enqueueOrder, issueDrafts, listQueue } from '../src/queue'
 import { gstr1ForPeriod } from '../src/reports'
 import { invoice, invoiceSequence } from '../src/schema'
 import { issueReceiptVoucher, issueRefundVoucher } from '../src/vouchers'
@@ -224,6 +224,22 @@ describe('invoice queue', () => {
       inStore(storeId, (tx) => enqueueOrder(tx, storeId, orderId, 'manual')),
     ).rejects.toThrow(/gift cards/)
     expect(await owner.select().from(invoice)).toHaveLength(0)
+  })
+
+  it('never queues a cancelled order, and hides drafts whose order was cancelled later', async () => {
+    const { storeId, variantId } = await seedStore()
+    const cancelled = await seedOrder(storeId, variantId, 1)
+    await owner.update(order).set({ status: 'cancelled' }).where(eq(order.id, cancelled))
+    expect(await inStore(storeId, (tx) => enqueueOrder(tx, storeId, cancelled, 'paid'))).toBeNull()
+    await expect(
+      inStore(storeId, (tx) => enqueueOrder(tx, storeId, cancelled, 'manual')),
+    ).rejects.toThrow(/cancelled/)
+
+    const later = await seedOrder(storeId, variantId, 2)
+    await inStore(storeId, (tx) => enqueueOrder(tx, storeId, later, 'paid'))
+    expect(await inStore(storeId, (tx) => listQueue(tx, {}))).toHaveLength(1)
+    await owner.update(order).set({ status: 'cancelled' }).where(eq(order.id, later))
+    expect(await inStore(storeId, (tx) => listQueue(tx, {}))).toHaveLength(0)
   })
 
   it('a pre-order waits for dispatch and takes the next number in the dispatch month', async () => {

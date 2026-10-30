@@ -1,5 +1,6 @@
 'use client'
 
+import { seoSnippet } from '@commerce/core/catalog'
 import { type RichTextValue, richTextToPlainText } from '@commerce/richtext'
 import { Pencil } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
@@ -65,7 +66,7 @@ export default function SeoCard({
 
   // Render logic
   const previewTitle = seoTitle || title
-  const previewDescription = (seoDescription || richTextToPlainText(description)).slice(
+  const previewDescription = (seoDescription || seoSnippet(richTextToPlainText(description))).slice(
     0,
     PREVIEW_CHARS,
   )

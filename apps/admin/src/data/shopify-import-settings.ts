@@ -75,6 +75,10 @@ export const shopifyImportSettingsContent = {
       title: 'Extra field definitions',
       body: 'Extra fields on products, variants, collections, customers and orders, where the field type exists here.',
     },
+    segments: {
+      title: 'Customer segments',
+      body: 'Your saved customer groups, rebuilt from their rules: tags, orders, amount spent, email subscription and last order. Ones that use other filters are listed for you to make here.',
+    },
   } satisfies Record<SettingsPart, { title: string; body: string }>,
   state: {
     ready: 'Changes to bring over',
@@ -108,6 +112,8 @@ export const shopifyImportSettingsContent = {
     timezone: 'Time zone',
     weight_unit: 'Weight unit',
     money_format: 'Price format',
+    home_seo_title: 'Home page title (search results)',
+    home_seo_description: 'Home page description (search results)',
     prices_include_tax: 'Prices include tax',
     gstin: 'GST number',
     location: 'Location',
@@ -116,6 +122,7 @@ export const shopifyImportSettingsContent = {
     packages: 'Packages',
     policy: 'Policy',
     field: 'Extra field',
+    segment: 'Customer segment',
   } satisfies Record<SettingsSubject, string>,
   owners: {
     product: 'Products',
@@ -184,6 +191,8 @@ export const shopifyImportSettingsContent = {
       `${v.name} already exists here as another type, so yours was kept.`,
     owner_access: (v: ReasonValues) =>
       `Extra fields on ${v.name.toLowerCase()} could not be read: ${v.detail}`,
+    segment_rule: (v: ReasonValues) =>
+      `${v.name} uses a filter that has no match here (${v.detail}). Make it in Customers › Segments.`,
   } satisfies Record<SettingsReason, (v: ReasonValues) => string>,
   fixHref: {
     store: '/settings/store',
@@ -193,5 +202,6 @@ export const shopifyImportSettingsContent = {
     packages: '/settings/shipping',
     policies: '/settings/policies',
     fields: '/settings/custom-data',
+    segments: '/customers/segments',
   } satisfies Record<SettingsPart, string>,
 } as const

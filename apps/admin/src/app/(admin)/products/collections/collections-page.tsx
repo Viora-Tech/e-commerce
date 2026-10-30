@@ -8,7 +8,7 @@ import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } f
 import { Suspense, useState } from 'react'
 import { toast } from 'sonner'
 import { collectionListColumns } from '@/components/collections/collection-list-columns'
-import CollectionTiles, { type CollectionTab } from '@/components/collections/collection-tiles'
+import type { CollectionTab } from '@/components/collections/collection-tiles'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import {
@@ -129,11 +129,6 @@ function CollectionsContent({ initial }: { initial: CollectionsInitial }) {
           <Plus strokeWidth={1.6} />
           {copy.newCollection}
         </Button>
-      }
-      stats={
-        rows.length === 0 ? undefined : (
-          <CollectionTiles stats={stats} tab={q.tab} onSelect={(tab) => setQ({ tab, page: 1 })} />
-        )
       }
     >
       <ResourceTable

@@ -3,6 +3,7 @@
 import type { EmailBlock } from '@commerce/core/marketing'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
+import { Switch } from '@commerce/ui/shadcn/switch'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import { campaignEditorContent } from '@/data/marketing-campaigns'
@@ -34,6 +35,37 @@ function TextField({ id, label, value, onChange, help, placeholder }: TextFieldP
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
+      />
+      {help ? <FieldDescription>{help}</FieldDescription> : null}
+    </Field>
+  )
+}
+
+type NumberFieldProps = {
+  id: string
+  label: string
+  value: number
+  min: number
+  max: number
+  onChange: (v: number) => void
+  help?: string | undefined
+}
+
+function NumberField({ id, label, value, min, max, onChange, help }: NumberFieldProps) {
+  return (
+    <Field>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <Input
+        id={id}
+        type="number"
+        inputMode="numeric"
+        min={min}
+        max={max}
+        value={value}
+        onChange={(e) => {
+          const n = Math.round(Number(e.target.value))
+          if (Number.isFinite(n)) onChange(Math.min(max, Math.max(min, n)))
+        }}
       />
       {help ? <FieldDescription>{help}</FieldDescription> : null}
     </Field>
@@ -152,11 +184,47 @@ export default function EmailBlockFields({ block, onChange }: EmailBlockFieldsPr
     case 'discount':
       return (
         <FieldGroup>
-          <DiscountCodeField
-            id={id('code')}
-            value={block.code}
-            onChange={(code) => onChange({ ...block, code })}
-          />
+          <Field orientation="horizontal">
+            <Switch
+              id={id('unique')}
+              checked={Boolean(block.unique)}
+              onCheckedChange={(on) =>
+                onChange({ ...block, unique: on ? { percent: 10, days: 14 } : undefined })
+              }
+            />
+            <FieldLabel htmlFor={id('unique')}>{copy.uniqueCode}</FieldLabel>
+          </Field>
+          {block.unique ? (
+            <>
+              <NumberField
+                id={id('percent')}
+                label={copy.uniquePercent}
+                value={block.unique.percent}
+                min={1}
+                max={90}
+                onChange={(percent) =>
+                  onChange({ ...block, unique: { days: 14, ...block.unique, percent } })
+                }
+              />
+              <NumberField
+                id={id('days')}
+                label={copy.uniqueDays}
+                help={copy.uniqueHelp}
+                value={block.unique.days}
+                min={1}
+                max={365}
+                onChange={(days) =>
+                  onChange({ ...block, unique: { percent: 10, ...block.unique, days } })
+                }
+              />
+            </>
+          ) : (
+            <DiscountCodeField
+              id={id('code')}
+              value={block.code}
+              onChange={(code) => onChange({ ...block, code })}
+            />
+          )}
           <TextField
             id={id('heading')}
             label={copy.heading}

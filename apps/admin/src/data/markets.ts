@@ -104,6 +104,14 @@ export const marketsContent = {
       missing: 'Pick at least one country.',
       inMarket: (name: string) => `In ${name}`,
       remove: (name: string) => `Remove ${name}`,
+      /** One-click groups, like Shopify's regions (audit #115). */
+      regions: {
+        eu: 'European Union',
+        gulf: 'Gulf (GCC)',
+        northAmerica: 'North America',
+        oceania: 'Australia and NZ',
+      },
+      addRegion: (name: string) => `Add ${name}`,
     },
     currency: {
       label: 'Currency',

@@ -21,7 +21,9 @@ import {
   saveStoreProfile,
   updateShippingZone,
 } from '@commerce/core'
-import type { StoreTx } from '@commerce/db'
+import { PREFERENCE_LIMITS, parsePreferences } from '@commerce/core/preferences'
+import { customerSegment, type StoreTx, store } from '@commerce/db'
+import { eq } from 'drizzle-orm'
 import { fetchSettingsSource, type Read, type SettingsSource } from './api-settings'
 import { type ClientForOptions, clientFor } from './connection'
 import { findMappings, saveMapping } from './runtime'
@@ -45,6 +47,7 @@ import {
   type SettingsOp,
 } from './settings-plan'
 import { planFields, planPolicies } from './settings-plan-content'
+import { planSegments } from './settings-plan-segments'
 import { planPackages, planShipping } from './settings-plan-shipping'
 
 type PlannedPart = SettingsPartPlan & { ops: SettingsOp[] }
@@ -58,6 +61,40 @@ const FIELD_OWNER_TYPES: MetafieldOwnerType[] = [
 ]
 
 /** What this store has now, with the import mappings of the Shopify records just read. */
+/** The home page title and meta description this store has now (Online store › Preferences). */
+async function readHomeSeo(tx: StoreTx, storeId: string) {
+  const [row] = await tx
+    .select({ preferences: store.preferences })
+    .from(store)
+    .where(eq(store.id, storeId))
+  const { seo } = parsePreferences(row?.preferences)
+  return { title: seo.title, description: seo.description }
+}
+
+/** Fill the home page SEO, keeping every other preference (and the share image) as it is. */
+async function saveHomeSeo(
+  tx: StoreTx,
+  storeId: string,
+  op: { title?: string | undefined; description?: string | undefined },
+) {
+  const [row] = await tx
+    .select({ preferences: store.preferences })
+    .from(store)
+    .where(eq(store.id, storeId))
+  const prefs = parsePreferences(row?.preferences)
+  const seo = {
+    ...prefs.seo,
+    ...(op.title ? { title: op.title.slice(0, PREFERENCE_LIMITS.seoTitle) } : {}),
+    ...(op.description
+      ? { description: op.description.slice(0, PREFERENCE_LIMITS.seoDescription) }
+      : {}),
+  }
+  await tx
+    .update(store)
+    .set({ preferences: { ...((row?.preferences as object | null) ?? {}), seo } })
+    .where(eq(store.id, storeId))
+}
+
 async function loadLocal(
   tx: StoreTx,
   storeId: string,
@@ -77,6 +114,7 @@ async function loadLocal(
   )
   return {
     profile: await readStoreProfile(ctx),
+    seo: await readHomeSeo(tx, storeId),
     defaultGstin: await defaultRegistrationGstin(tx),
     gstins: gst.registrations.filter((r) => r.active).map((r) => r.gstin),
     locations: (await listLocations(tx, storeId)).map((l) => ({
@@ -99,6 +137,9 @@ async function loadLocal(
       body: p.body,
       published: p.published,
     })),
+    segments: (await tx.select({ name: customerSegment.name }).from(customerSegment)).map(
+      (r) => r.name,
+    ),
     fields: fields.map((f) => ({
       id: f.id,
       ownerType: f.ownerType,
@@ -159,6 +200,11 @@ function planPart(part: SettingsPart, source: SettingsSource, local: LocalSettin
       const r = source.policies
       if (!r) return ready(part, { items: [], ops: [] })
       return r.ok ? ready(part, planPolicies(r.data, local)) : unread(part, r)
+    }
+    case 'segments': {
+      const r = source.segments
+      if (!r) return ready(part, { items: [], ops: [] })
+      return r.ok ? ready(part, planSegments(r.data, local)) : unread(part, r)
     }
     case 'fields': {
       const reads = source.fields ?? []
@@ -224,6 +270,15 @@ async function apply(tx: StoreTx, storeId: string, op: SettingsOp): Promise<void
     }
     case 'gstin':
       await addRegistration(tx, storeId, { gstin: op.gstin, makeDefault: true })
+      return
+    case 'seo':
+      return saveHomeSeo(tx, storeId, op)
+    case 'segment':
+      // The name is unique per store; one made here meanwhile is kept as it is.
+      await tx
+        .insert(customerSegment)
+        .values({ storeId, name: op.name, rules: op.rules })
+        .onConflictDoNothing()
       return
     case 'zone': {
       const zone = op.id

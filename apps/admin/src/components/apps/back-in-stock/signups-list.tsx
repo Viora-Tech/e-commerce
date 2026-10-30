@@ -1,7 +1,9 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
+import { Button } from '@commerce/ui/shadcn/button'
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
 import RelativeTime from '@/components/layout/relative-time'
 import OrderChip from '@/components/orders/order-chip'
@@ -50,6 +52,7 @@ export default function SignupsList() {
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState<number>(siteConfig.ui.rowsPerPage.default)
+  const [importing, setImporting] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -70,6 +73,18 @@ export default function SignupsList() {
     setPerPage(next)
     setPage(1)
   }
+  const handleRestockTags = async () => {
+    setImporting(true)
+    try {
+      const r = await api.backInStock.signups.importRestockTags()
+      toast.success(copy.restockTagsDone(r.added, r.unmatched.length))
+      setRows(await api.backInStock.signups.list({}))
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err))
+    } finally {
+      setImporting(false)
+    }
+  }
 
   // Render logic
   const needle = query.trim().toLowerCase()
@@ -83,7 +98,15 @@ export default function SignupsList() {
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader title={copy.title} summary={copy.subtitle} />
+      <PageHeader
+        title={copy.title}
+        summary={copy.subtitle}
+        actions={
+          <Button variant="outline" disabled={importing} onClick={handleRestockTags}>
+            {importing ? copy.restockTagsBusy : copy.restockTags}
+          </Button>
+        }
+      />
       <ResourceTable
         resourceName={copy.resource}
         columns={columns}

@@ -169,16 +169,23 @@ export function schemaText(value: string | undefined, locale: Record<string, unk
  * package casts them to Puck's `Fields`). Images use the `{ url, alt }` object the
  * Customize image picker edits.
  */
+/** The setting's own help (`info` in the schema), shown under the field in Customize (#129). */
+type FieldHelp = { metadata?: { help?: string | undefined } | undefined }
+
 export type LiquidField =
-  | { type: 'text' | 'textarea'; label: string; placeholder?: string | undefined }
-  | {
+  | ({ type: 'text' | 'textarea'; label: string; placeholder?: string | undefined } & FieldHelp)
+  | ({
       type: 'number'
       label: string
       min?: number | undefined
       max?: number | undefined
       step?: number | undefined
-    }
-  | { type: 'select' | 'radio'; label: string; options: { label: string; value: unknown }[] }
+    } & FieldHelp)
+  | ({
+      type: 'select' | 'radio'
+      label: string
+      options: { label: string; value: unknown }[]
+    } & FieldHelp)
   | {
       type: 'object'
       label: string
@@ -209,11 +216,29 @@ export type LiquidFieldOptions = { colorSchemes?: string[] | undefined }
 /** `scheme-1` → `Scheme 1`. */
 const schemeLabel = (id: string) => id.replace(/[-_]+/g, ' ').replace(/^\w/, (c) => c.toUpperCase())
 
-/** One schema setting as an editor field, or null for label-only settings. */
+/**
+ * One schema setting as an editor field, or null for label-only settings. Shopify explains
+ * settings in `info` ("Full width suits slides designed edge-to-edge…"); it rides along as the
+ * field's help so merchants are not guessing (audit #129).
+ */
 export function settingField(
   setting: ShopifySetting,
   locale: Record<string, unknown>,
   options: LiquidFieldOptions = {},
+): LiquidField | null {
+  const field = bareSettingField(setting, locale, options)
+  const help = schemaText(setting.info, locale)
+    .replace(/<[^>]*>/g, '')
+    .trim()
+  if (!field || !help) return field
+  if (field.type === 'object' || field.type === 'array') return field
+  return { ...field, metadata: { help } }
+}
+
+function bareSettingField(
+  setting: ShopifySetting,
+  locale: Record<string, unknown>,
+  options: LiquidFieldOptions,
 ): LiquidField | null {
   if (!isValueSetting(setting)) return null
   const label = schemaText(setting.label, locale) || setting.id

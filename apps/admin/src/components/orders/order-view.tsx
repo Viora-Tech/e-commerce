@@ -310,7 +310,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
           <div id="order-returns" className="scroll-mt-6">
             <OrderReturnsCard orderId={order.id} readOnly={readOnly} onChanged={refresh} />
           </div>
-          <MetafieldsCard ownerType="order" ownerId={order.id} />
+          <MetafieldsCard ownerType="order" ownerId={order.id} hideWhenEmpty />
           <div id="order-timeline" className="scroll-mt-6">
             <TimelineCard order={order} onChanged={refresh} />
           </div>

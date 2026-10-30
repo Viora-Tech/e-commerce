@@ -12,6 +12,14 @@ export const dialogContent = {
   close: 'Close',
 } as const
 
+/** "Leave without saving?": asked when unsaved changes would be lost (LeaveGuard). */
+export const leaveGuardContent = {
+  title: 'Leave without saving?',
+  body: 'Your changes on this page are not saved yet. If you leave now, they are lost.',
+  leave: 'Leave page',
+  stay: 'Keep editing',
+} as const
+
 /** The red asterisk on a required field's label; screen readers hear the word instead. */
 export const requiredMarkContent = {
   required: 'required',

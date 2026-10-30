@@ -20,7 +20,7 @@ import { growthOverviewContent as copy, SOURCE_LABELS } from '@/data/growth'
 import { growthSplitContent } from '@/data/growth-report'
 import { useCopy } from '@/hooks/use-copy'
 import { formatRate } from '@/lib/analytics-range'
-import { formatPaise } from '@/lib/money'
+import { formatPaiseWhole } from '@/lib/money'
 import SourceIcon from './source-icon'
 import SplitCell from './split-cell'
 
@@ -91,7 +91,7 @@ export default function SourceTableCard({ rows, campaigns }: SourceTableCardProp
                       {formatNumber(row.orders)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {formatPaise(row.salesPaise)}
+                      {formatPaiseWhole(row.salesPaise)}
                     </TableCell>
                     <TableCell className="text-right">
                       <SplitCell
@@ -156,7 +156,7 @@ export default function SourceTableCard({ rows, campaigns }: SourceTableCardProp
                                   <span className="text-foreground">{crow.name}</span>
                                 )}
                                 <span className="tabular-nums text-muted-foreground">
-                                  {formatPaise(crow.salesPaise)}
+                                  {formatPaiseWhole(crow.salesPaise)}
                                 </span>
                               </li>
                             ))}

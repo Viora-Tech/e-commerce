@@ -71,10 +71,11 @@ export default [
     sortTitles: { product: 'प्रोडक्ट का नाम', type: 'प्रोडक्ट टाइप' },
     sortAlpha: { desc: 'Z से A', asc: 'A से Z', first: 'asc' },
     inventory: (available, variants) => `${variants} वेरिएंट में ${available} स्टॉक में`,
-    inStock: (available) => `${available} स्टॉक में`,
+    inStock: (available) => (available < 0 ? `${-available} ज़्यादा बिक गए` : `${available} स्टॉक में`),
     variants: (n) => `${n} वेरिएंट`,
     none: '',
     priceRange: (min, max) => `${min} से ${max}`,
+    noPrice: 'कोई कीमत नहीं',
     preorderPill: 'प्री-ऑर्डर',
     launching: (date) =>
       `${date.toLocaleDateString('hi-IN', { day: 'numeric', month: 'short' })} को लॉन्च`,

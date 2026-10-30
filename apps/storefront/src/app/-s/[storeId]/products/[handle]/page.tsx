@@ -5,6 +5,7 @@ import {
   variantOnPreorder,
 } from '@commerce/blocks'
 import { loadProductPageExtras } from '@commerce/core'
+import { seoSnippet } from '@commerce/core/catalog'
 import {
   depositIsNonRefundable,
   type PreorderStoreSettings,
@@ -97,7 +98,7 @@ const loadProduct = cache((storeId: string, handle: string) =>
     return {
       product,
       title: seo?.seoTitle || product.title,
-      description: metaDescription(seo?.seoDescription || text),
+      description: metaDescription(seo?.seoDescription || seoSnippet(text)),
       storeName: s?.name ?? '',
       currency: s?.currency ?? 'INR',
     }

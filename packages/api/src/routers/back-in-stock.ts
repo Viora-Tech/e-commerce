@@ -3,6 +3,7 @@ import type { StoreTx } from '@commerce/db'
 import {
   BACK_IN_STOCK_ID,
   BackInStockStoreSettingsSchema,
+  importRestockTags,
   listSignups,
   loadPlatformQuota,
   loadStoreSettings,
@@ -65,6 +66,11 @@ export const backInStockRouter = {
           })),
         )
       }),
+    /** "Bring over restock tags": Shopify restock-app customer tags become waiting signups. */
+    importRestockTags: can(permissions.SETTINGS_MANAGE).handler(async ({ context }) => {
+      await requireInstalled(context)
+      return importRestockTags(context.tx, context.scope.storeId)
+    }),
   },
   settings: {
     get: can(permissions.SETTINGS_READ).handler(async ({ context }) => {

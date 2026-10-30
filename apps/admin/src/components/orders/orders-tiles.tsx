@@ -51,7 +51,7 @@ export default function OrdersTiles({ tiles, status, onSelect }: OrdersTilesProp
         {
           id: 'sales',
           label: copy.tiles.sales.label,
-          value: fmt.money(tiles.salesWeek.paise),
+          value: fmt.moneyWhole(tiles.salesWeek.paise),
           trend: percent(tiles.salesWeek.paise, tiles.salesWeek.previousPaise),
           trendNote: copy.tiles.sales.trendNote,
         },

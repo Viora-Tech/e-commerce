@@ -159,15 +159,17 @@ export const productFormContent = {
       'From Shopify’s open standard product taxonomy. Optional, but helps search and marketplaces.',
     type: 'Product type',
     typePlaceholder: 'Select a category',
-    tag: 'Product tag',
-    colour: 'Select your colour',
-    colourHelp: 'From the colour option on this product.',
+    // "Product tag" over a row of colour swatches read as one field (audit #57).
+    tag: 'Tags',
+    colour: 'Colours',
+    colourHelp: 'From this product’s Colour option.',
   },
   pricing: {
     heading: 'Pricing',
     price: 'Product price',
     currency: 'INR',
-    mrp: 'Compare at price',
+    // One name for it: the variants table already says MRP, as Indian merchants do (audit #55).
+    mrp: 'MRP',
     mrpOptional: '(optional)',
     /** Under the price field: a blank price is allowed (#913). */
     priceHelp:

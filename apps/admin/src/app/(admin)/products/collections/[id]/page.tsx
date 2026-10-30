@@ -6,9 +6,15 @@ import { collectionFormContent } from '@/data/collections'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { storefrontOrigin } from '@/lib/storefront-origin'
 
-export const metadata: Metadata = { title: collectionFormContent.editTitle }
-
 type Props = { params: Promise<{ id: string }> }
+
+/** The collection's name in the tab ("Mice"), not "Edit collection" (audit #70). */
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params
+  const context = await serverContext()
+  const collection = await call(appRouter.collections.get, { id }, { context }).catch(() => null)
+  return { title: collection?.title || collectionFormContent.editTitle }
+}
 
 export default async function Page({ params }: Props) {
   const { id } = await params

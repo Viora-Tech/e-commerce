@@ -215,6 +215,10 @@ export const orderDetailContent = {
       cash: 'Cash',
       cheque: 'Cheque',
       other: 'Other',
+      razorpay: 'Razorpay',
+      cashfree: 'Cashfree',
+      decentro: 'Decentro',
+      gift_card: 'Gift card',
     } as Record<string, string>,
     reference: 'Reference',
     gatewayId: 'Gateway payment id',
@@ -259,6 +263,7 @@ export const orderDetailContent = {
     } as Record<string, string>,
   },
   timeline: {
+    fromImport: 'Before the move, on Shopify',
     heading: 'Timeline',
     today: 'Today',
     placed: 'Order placed',
@@ -274,8 +279,8 @@ export const orderDetailContent = {
       ]
         .filter(Boolean)
         .join(', '),
-    notification: (template: string, channel: string) => `${template} sent via ${channel}`,
-    notificationFailed: (template: string, channel: string) => `${template} via ${channel} failed`,
+    notification: (template: string, channel: string) => `${template} sent by ${channel}`,
+    notificationFailed: (template: string, channel: string) => `${template} by ${channel} failed`,
     shipmentBooked: 'Shipment booked',
     shipment: (status: string) => `Shipment: ${status}`,
     note: 'Note',

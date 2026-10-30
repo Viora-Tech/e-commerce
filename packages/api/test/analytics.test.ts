@@ -1,4 +1,5 @@
 import { createMerchantAuth } from '@commerce/auth'
+import { importedMethod } from '@commerce/core'
 import {
   address,
   cart,
@@ -107,7 +108,13 @@ describe('analytics.overview', () => {
         phone: '9999999999',
       })
       .returning()
-    const base = { storeId: a.storeId, customerId: c?.id, subtotalPaise: 100000 }
+    // Placed through a tracked storefront session (conversion counts only those).
+    const base = {
+      storeId: a.storeId,
+      customerId: c?.id,
+      subtotalPaise: 100000,
+      attribution: { channel: 'direct', at: new Date().toISOString() },
+    }
     await owner.insert(order).values([
       {
         ...base,
@@ -171,6 +178,7 @@ describe('analytics.overview', () => {
     ])
     expect(kpi('sessions')?.value).toBe(4)
     expect(kpi('sessions')?.previous).toBe(1)
+    // Both orders came through a tracked session; an imported order would not count.
     expect(kpi('conversion')?.value).toBeCloseTo(2 / 4)
     expect(kpi('aov')?.value).toBe(80000)
     expect(week.range.days).toHaveLength(7)
@@ -1059,3 +1067,15 @@ describe('analytics.live', () => {
 function kpiValue(result: { kpis: { id: string; value: number }[] }, id: string): number {
   return result.kpis.find((k) => k.id === id)?.value ?? -1
 }
+
+describe('payment methods of imported orders', () => {
+  it('reads the old platform gateway names into our methods', () => {
+    expect(importedMethod('Cards, UPI, NB, Wallets by Razorpay')).toBe('razorpay')
+    expect(importedMethod('1Cashfree Payments(UPI,Cards,Net Banking,Wallets)')).toBe('cashfree')
+    expect(importedMethod('Cash on Delivery (COD)')).toBe('cod')
+    expect(importedMethod('UPI Id')).toBe('manual')
+    expect(importedMethod('gift_card, Cards, UPI, NB, Wallets by Razorpay')).toBe('razorpay')
+    expect(importedMethod('Snapmint')).toBe('Snapmint')
+    expect(importedMethod(null)).toBeNull()
+  })
+})

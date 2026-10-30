@@ -10,6 +10,7 @@ import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyPageBody from '@/components/layout/proofly-page-body'
+import StatusChip from '@/components/layout/status-chip'
 import { themesContent } from '@/data/themes'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -32,6 +33,8 @@ type ThemesLibraryProps = {
   canManagePacks?: boolean
   /** The unended rollout that will publish each theme, by theme id ("In rollout: Diwali sale"). */
   holds?: Record<string, RolloutHold>
+  /** The storefront asks for a password (Online store › Preferences). */
+  passwordOn?: boolean
 }
 
 /** Live first, then the library by last saved, as the server orders them. */
@@ -68,6 +71,7 @@ export default function ThemesLibrary({
   canPublish,
   canManagePacks = false,
   holds = {},
+  passwordOn = false,
 }: ThemesLibraryProps) {
   // Hooks
   const [themes, setThemes] = useState(initial)
@@ -168,12 +172,23 @@ export default function ThemesLibrary({
         title={title}
         summary={copy.subtitle}
         actions={
-          <AddThemeMenu
-            disabled={busy}
-            onAddPreset={() => setAdding('preset')}
-            onStartBlank={() => setAdding('blank')}
-            onDuplicateLive={live ? () => handleAction(live, 'duplicate') : undefined}
-          />
+          <>
+            <Link
+              href={`${routes.onlineStore.preferences()}#password`}
+              title={copy.visibility.change}
+              className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <StatusChip tone={passwordOn ? 'attention' : 'success'}>
+                {passwordOn ? copy.visibility.locked : copy.visibility.public}
+              </StatusChip>
+            </Link>
+            <AddThemeMenu
+              disabled={busy}
+              onAddPreset={() => setAdding('preset')}
+              onStartBlank={() => setAdding('blank')}
+              onDuplicateLive={live ? () => handleAction(live, 'duplicate') : undefined}
+            />
+          </>
         }
       />
       {live ? (

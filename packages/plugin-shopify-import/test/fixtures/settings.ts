@@ -42,6 +42,12 @@ export const SHOP_FIELDS = {
       nodes: [
         { namespace: 'custom', key: 'tagline', value: 'Play louder' },
         { namespace: 'gst_app', key: 'gstin', value: '29AAGCB7383J1Z4' },
+        { namespace: 'global', key: 'title_tag', value: 'Waimers' },
+        {
+          namespace: 'global',
+          key: 'description_tag',
+          value: 'Premium gaming peripherals for India.',
+        },
       ],
     },
   },
@@ -263,6 +269,30 @@ const json = (data: unknown, status = 200) =>
     headers: { 'content-type': 'application/json' },
   })
 
+/** Waimers' segments: two our rules can express, one that filters by products bought. */
+export const SEGMENTS = {
+  segments: {
+    pageInfo,
+    nodes: [
+      {
+        id: 'gid://shopify/Segment/1',
+        name: 'Restock list: Mio',
+        query: "customer_tags CONTAINS 'restock-dysphoria-mio'",
+      },
+      {
+        id: 'gid://shopify/Segment/2',
+        name: 'Email subscribers',
+        query: "email_subscription_status = 'SUBSCRIBED'",
+      },
+      {
+        id: 'gid://shopify/Segment/3',
+        name: 'Bought TenZ',
+        query: 'products_purchased(id: 1234) = true',
+      },
+    ],
+  },
+}
+
 /** A fake Admin API for the settings queries; `deny` lists the operations the token may not read. */
 export function settingsShopify(deny: readonly string[] = [], log: string[] = []): typeof fetch {
   return (async (_input: string | URL | Request, init?: RequestInit) => {
@@ -270,19 +300,21 @@ export function settingsShopify(deny: readonly string[] = [], log: string[] = []
       query: string
       variables: { ownerType?: string; id?: string }
     }
-    const op = query.includes('shopPolicies')
-      ? 'policies'
-      : query.includes('metafields(first')
-        ? 'shopFields'
-        : query.includes('locations(')
-          ? 'locations'
-          : query.includes('deliveryProfiles(')
-            ? 'profiles'
-            : query.includes('deliveryProfile(')
-              ? 'zones'
-              : query.includes('metafieldDefinitions(')
-                ? `fields:${variables.ownerType}`
-                : 'shop'
+    const op = query.includes('segments(')
+      ? 'segments'
+      : query.includes('shopPolicies')
+        ? 'policies'
+        : query.includes('metafields(first')
+          ? 'shopFields'
+          : query.includes('locations(')
+            ? 'locations'
+            : query.includes('deliveryProfiles(')
+              ? 'profiles'
+              : query.includes('deliveryProfile(')
+                ? 'zones'
+                : query.includes('metafieldDefinitions(')
+                  ? `fields:${variables.ownerType}`
+                  : 'shop'
     log.push(variables.id ? `${op}:${variables.id}` : op)
     if (deny.some((d) => op === d || op.startsWith(`${d}:`))) {
       return new Response(
@@ -298,6 +330,7 @@ export function settingsShopify(deny: readonly string[] = [], log: string[] = []
     if (op === 'profiles') return json(PROFILES)
     if (op === 'zones') return json(PROFILE_ZONES)
     if (op === 'policies') return json(POLICIES)
+    if (op === 'segments') return json(SEGMENTS)
     const owner = variables.ownerType ?? ''
     return json({ metafieldDefinitions: { pageInfo, nodes: FIELD_DEFINITIONS[owner] ?? [] } })
   }) as typeof fetch

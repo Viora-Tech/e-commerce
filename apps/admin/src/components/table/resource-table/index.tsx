@@ -83,9 +83,8 @@ export type ResourceTableProps<T extends RowData> = {
   /** The main bulk actions, in the floating bar at the bottom; call `clear` after one runs. */
   bulkActions?: (selectedIds: string[], clear: () => void) => ReactNode
   /**
-   * The less common bulk actions, behind a ⋯ menu in the selection header at the top of the
-   * table. The header never repeats `bulkActions` (#808): without this it shows only the
-   * selection ("3 products selected", Select all, Clear).
+   * The less common bulk actions (a ⋯ menu), last in the floating bar after `bulkActions`. The
+   * header row at the top shows only the selection ("3 products selected", Select all, Clear).
    */
   bulkMore?: (selectedIds: string[], clear: () => void) => ReactNode
   /**
@@ -347,7 +346,6 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
                 singular={props.resourceName.singular}
                 onSelectAll={props.loadAllIds ? selectAllMatching : undefined}
                 selectingAll={selectingAll}
-                actions={props.bulkMore?.(selectedIds, clearSelection)}
                 onClear={clearSelection}
               />
             </div>
@@ -454,20 +452,12 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
         onPageChange={props.onPageChange}
         onPerPageChange={props.onPerPageChange}
       />
-      {/* The floating bar at the bottom holds the main bulk actions, in reach while scrolling a
-          long list; the header row shows the selection and only the ⋯ extras (#808). */}
+      {/* One place for actions: the floating bar holds every bulk action, the ⋯ extras last
+          (Write with AI hid in a second bar's ⋯ at the top, audit #8, #204); the header row only
+          says what is selected, with Select all and Clear. */}
       <FloatingBar open={selecting}>
-        <span className="text-caption font-medium whitespace-nowrap text-foreground tabular-nums">
-          {tableCopy.selected(
-            selectedIds.length,
-            props.resourceName.singular,
-            props.resourceName.plural,
-          )}
-        </span>
         {props.bulkActions?.(selectedIds, clearSelection)}
-        <Button variant="ghost" size="sm" className="rounded-full" onClick={clearSelection}>
-          {tableCopy.clearSelection}
-        </Button>
+        {props.bulkMore?.(selectedIds, clearSelection)}
       </FloatingBar>
     </Card>
   )

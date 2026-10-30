@@ -42,6 +42,9 @@ export default function CustomerActivityCard({ customer }: CustomerActivityCardP
   const visible = all ? events : events.slice(0, SHOWN)
   const hidden = events.length - visible.length
 
+  // No activity yet: no empty card (audit #84).
+  if (events.length === 0) return null
+
   return (
     <DataCard title={copy.activity.heading} className="rounded-xl">
       {events.length === 0 ? (

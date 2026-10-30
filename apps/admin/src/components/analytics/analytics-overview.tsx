@@ -13,7 +13,7 @@ import { useCopy } from '@/hooks/use-copy'
 import { formatDay, type RangeState, rangeQuery, sameRange } from '@/lib/analytics-range'
 import { api } from '@/lib/api-client'
 import { downloadCsv, toCsv } from '@/lib/csv'
-import { formatPaise, formatPaiseCompact } from '@/lib/money'
+import { formatPaiseCompact, formatPaiseWhole } from '@/lib/money'
 import { routes } from '@/lib/routes'
 import BreakdownCard, { type BreakdownRow } from './breakdown-card'
 import FunnelCard from './funnel-card'
@@ -131,7 +131,7 @@ export default function AnalyticsOverviewPage({
       <ChartCard
         title={copy.salesOverTime.title}
         subtitle={copy.salesOverTime.subtitle(
-          formatPaise(totalPaise),
+          formatPaiseWhole(totalPaise),
           copy.salesOverTime.spans[range.key],
           best ? formatDay(best.label) : null,
         )}

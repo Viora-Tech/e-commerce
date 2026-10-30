@@ -70,6 +70,7 @@ export default [
     tabs: { all: 'सभी', live: 'चालू', hidden: 'छिपे' },
     columns: { title: 'नाम', template: 'टेम्पलेट', visibility: 'दिखना', updated: 'बदलाव' },
     template: { default: 'आम पेज' },
+    policy: 'पॉलिसी',
     visibility: { live: 'चालू', hidden: 'छिपा' },
     empty: {
       heading: 'अभी कोई पेज नहीं',

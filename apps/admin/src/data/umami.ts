@@ -88,6 +88,26 @@ export const umamiContent = {
       mobile: 'Phone',
       tablet: 'Tablet',
     },
+    /** Umami's browser ids as people name them ("ios" is Safari on an iPhone). */
+    browserNames: {
+      ios: 'Safari (iPhone)',
+      'ios-webview': 'In-app browser (iPhone)',
+      safari: 'Safari',
+      chrome: 'Chrome',
+      crios: 'Chrome (iPhone)',
+      'chromium-webview': 'In-app browser (Android)',
+      firefox: 'Firefox',
+      fxios: 'Firefox (iPhone)',
+      edge: 'Edge',
+      'edge-chromium': 'Edge',
+      'edge-ios': 'Edge (iPhone)',
+      opera: 'Opera',
+      samsung: 'Samsung Internet',
+      facebook: 'Facebook app',
+      instagram: 'Instagram app',
+      miui: 'Mi Browser',
+      yandexbrowser: 'Yandex',
+    } as Record<string, string>,
     empty: {
       notInstalled: {
         title: 'See who visits your store',

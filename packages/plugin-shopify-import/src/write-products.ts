@@ -135,6 +135,7 @@ function toWrite(
     description,
     vendor: clip(p.vendor, 100),
     productType: clip(p.productType, 100),
+    ...(p.categoryId ? { categoryId: p.categoryId.slice(0, 40) } : {}),
     tags: p.tags.slice(0, 100).map((t) => t.slice(0, 50)),
     seoTitle: clip(p.seoTitle, 70),
     seoDescription: clip(p.seoDescription, 320),

@@ -19,6 +19,10 @@ export default function MessagesCard({ messages }: MessagesCardProps) {
   // Hooks
   const detail = useCopy(customerDetailContent)
 
+  // Early returns
+  // Nothing sent yet: no empty card (audit #84).
+  if (messages.length === 0) return null
+
   // Render logic
   const copy = detail.timeline
 

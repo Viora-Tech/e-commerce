@@ -60,15 +60,13 @@ export default function ConversationsCard({ kind, id }: ConversationsCardProps) 
 
   // Early returns
   if (!view || view.state === 'not-installed') return null
+  // Nothing to show is no card: order and customer pages stacked empty ones (audit #12, #84).
+  if (view.state === 'not-connected' || view.state === 'no-contact') return null
+  if (view.state === 'ready' && view.conversations.length === 0) return null
 
   // Render logic
   const copy = content.card
-  const openLink =
-    view.state === 'ready'
-      ? view.contactUrl
-      : view.state === 'no-contact'
-        ? view.dashboardUrl
-        : null
+  const openLink = view.state === 'ready' ? view.contactUrl : null
   const conversations = view.state === 'ready' ? view.conversations : []
 
   return (
@@ -94,19 +92,10 @@ export default function ConversationsCard({ kind, id }: ConversationsCardProps) 
       }
     >
       <div className="flex flex-col gap-2">
-        {view.state === 'not-connected' ? (
-          <p className="text-body text-muted-foreground">{copy.notConnected}</p>
-        ) : null}
         {view.state === 'error' ? (
           <p className="text-body text-muted-foreground">
             {copy.error} {view.message}
           </p>
-        ) : null}
-        {view.state === 'no-contact' ? (
-          <p className="text-body text-muted-foreground">{copy.noContact}</p>
-        ) : null}
-        {view.state === 'ready' && conversations.length === 0 ? (
-          <p className="text-body text-muted-foreground">{copy.empty}</p>
         ) : null}
         {conversations.map((c) => (
           <a

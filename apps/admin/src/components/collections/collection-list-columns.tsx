@@ -28,9 +28,12 @@ export function collectionListColumns(
           <ProductThumb url={c.imageUrl} />
           <span className="flex min-w-0 flex-col">
             <span className="line-clamp-1 text-body text-ink-strong">{c.title}</span>
-            <span className="line-clamp-1 text-caption text-muted-foreground">
-              {c.kind === 'automatic' ? ruleSummary(c.rules, copy, fmt.money) : copy.kind.manual}
-            </span>
+            {/* The Type column already says Manual; the line under the name is for rules (#68). */}
+            {c.kind === 'automatic' ? (
+              <span className="line-clamp-1 text-caption text-muted-foreground">
+                {ruleSummary(c.rules, copy, fmt.money)}
+              </span>
+            ) : null}
           </span>
         </span>
       ),

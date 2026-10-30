@@ -9,6 +9,7 @@ import {
 } from '@commerce/db'
 import { and, eq, inArray, isNull, lte, sql } from 'drizzle-orm'
 import type { WorkflowDefinition } from '../automations/definition'
+import { notTestCartContact } from '../cart/test-contact'
 import { decryptCustomerPhone } from '../customers/phone-crypto'
 import { SEND_WHATSAPP_ACTION } from './automation-engine-map'
 import { CONVERSION_WINDOW_DAYS } from './automations'
@@ -102,6 +103,7 @@ export async function growthSweep(
         and(
           eq(cart.status, 'open'),
           sql`(${cart.email} is not null or ${cart.phone} is not null)`,
+          notTestCartContact,
           isNull(cart.recoverySentAt),
           lte(cart.updatedAt, ago(after * 60_000)),
           lookback,

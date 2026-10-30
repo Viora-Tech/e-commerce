@@ -258,7 +258,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
         )}
         loading={loading}
         defaultSort={{ id: 'date', desc: true }}
-        defaultHidden={['fulfilment', 'channel', 'tags']}
+        defaultHidden={['fulfilment', 'channel', 'tags', 'items', 'delivery', 'phone', 'city']}
         query={query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ query: '', status: null, ...NO_FILTERS, page: 1 })}
@@ -277,8 +277,10 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
             value={status}
             onChange={(s) => setQ({ status: s, page: 1 })}
             formatCount={fmt.number}
+            // A search or filter counts what it found, not the whole store: "All orders 1,357"
+            // stayed beside "No orders match" (audit #50).
             custom={
-              filtered
+              filtered || query.length > 0
                 ? { label: status ? copy.tabs[status] : copy.customView, count: total }
                 : undefined
             }

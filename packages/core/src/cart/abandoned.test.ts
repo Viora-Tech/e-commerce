@@ -136,6 +136,22 @@ describe('abandoned carts', () => {
     expect(listed.total).toBe(0)
   })
 
+  it('skips the release smoke test carts (SES simulator contact) everywhere', async () => {
+    const { storeId, variantId } = await seed()
+    await quietCart(storeId, variantId, 120, 'success@simulator.amazonses.com')
+    const real = await quietCart(storeId, variantId, 120)
+    const list = await withStore(app, storeId, (tx) =>
+      listAbandoned({ storeId, tx }, { page: 1, perPage: 20 }),
+    )
+    expect(list.items.map((c) => c.id)).toEqual([real])
+    const stats = await withStore(app, storeId, (tx) => abandonedStats({ storeId, tx }))
+    expect(stats.carts).toBe(1)
+    const due = await withStore(app, storeId, (tx) =>
+      cartsAwaitingRecovery({ storeId, tx }, { afterMs: ABANDONED_AFTER_MS }),
+    )
+    expect(due.map((c) => c.id)).toEqual([real])
+  })
+
   it('counts a converted cart as recovered in the stats', async () => {
     const { storeId, variantId } = await seed()
     const lost = await quietCart(storeId, variantId, 180, 'lost@example.in')

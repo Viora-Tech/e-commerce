@@ -23,7 +23,7 @@ import {
   store,
   variant,
 } from '@commerce/db'
-import { GST_INVOICES_ID, invoice } from '@commerce/plugin-gst-invoices/server'
+import { GST_INVOICES_ID, invoice, queuedInvoiceDrafts } from '@commerce/plugin-gst-invoices/server'
 import { and, asc, count, desc, eq, gte, inArray, isNull, lt, ne, sql, sum } from 'drizzle-orm'
 import type { LiveVisitors, VisitorSource } from '../context'
 import { istIsoDate } from './analytics-buckets'
@@ -436,10 +436,8 @@ export async function dashboardSummary(
       .length
 
   const [customersRow] = await tx.select({ n: count() }).from(customer)
-  const [productsRow] = await tx
-    .select({ n: count() })
-    .from(product)
-    .where(and(ne(product.status, 'archived'), notSystemTest))
+  // The same count as the Products list's "All" (archived included): Home read 307, the list 309 (#61).
+  const [productsRow] = await tx.select({ n: count() }).from(product).where(notSystemTest)
   const stockRows = await tx
     .select({
       variantId: sellableStock.variantId,
@@ -447,7 +445,15 @@ export async function dashboardSummary(
     })
     .from(sellableStock)
     .innerJoin(variant, eq(variant.id, sellableStock.variantId))
-    .where(eq(variant.trackInventory, true))
+    .innerJoin(product, eq(product.id, variant.productId))
+    // The same rule as Inventory's "Out of stock": live variants of products not archived (#72).
+    .where(
+      and(
+        eq(variant.trackInventory, true),
+        isNull(variant.archivedAt),
+        ne(product.status, 'archived'),
+      ),
+    )
   const inStock = stockRows.filter((r) => r.available > 0).length
   const outOfStock = stockRows.length - inStock
   const newCustomers = await tx
@@ -541,6 +547,7 @@ export async function dashboardSummary(
     .where(
       and(
         eq(variant.trackInventory, true),
+        isNull(variant.archivedAt),
         ne(product.status, 'archived'),
         lt(sql`${sellableStock.onHand} - ${sellableStock.reserved}`, lowStockThreshold + 1),
       ),
@@ -723,14 +730,17 @@ export async function dashboardSummary(
         isNull(order.importedFrom),
       ),
     )
+  // "Restock N products" counts products (one with three sold-out sizes is one), not variants,
+  // and skips archived variants: it read 1,219 on a store of 307 products (audit #2).
   const [lowStockCountRow] = await tx
-    .select({ n: count() })
+    .select({ n: sql<number>`count(distinct ${product.id})`.mapWith(Number) })
     .from(sellableStock)
     .innerJoin(variant, eq(variant.id, sellableStock.variantId))
     .innerJoin(product, eq(product.id, variant.productId))
     .where(
       and(
         eq(variant.trackInventory, true),
+        isNull(variant.archivedAt),
         ne(product.status, 'archived'),
         lt(sql`${sellableStock.onHand} - ${sellableStock.reserved}`, lowStockThreshold + 1),
       ),
@@ -747,10 +757,7 @@ export async function dashboardSummary(
       .from(store)
       .where(eq(store.id, opts.storeId))
     if (parseAppsSettings(storeRow?.apps).installed.includes(GST_INVOICES_ID)) {
-      const [queuedRow] = await tx
-        .select({ n: count() })
-        .from(invoice)
-        .where(and(eq(invoice.kind, 'tax_invoice'), eq(invoice.status, 'draft')))
+      const [queuedRow] = await tx.select({ n: count() }).from(invoice).where(queuedInvoiceDrafts())
       gstQueued = { count: queuedRow?.n ?? 0, href: '/apps/gst-invoices' }
     }
     const storeAddress = StoreAddressSchema.safeParse(storeRow?.address ?? {})

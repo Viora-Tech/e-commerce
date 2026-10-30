@@ -4,11 +4,13 @@
  * definitions, mapped onto small shapes the planner (`settings-plan.ts`) reads.
  * Each part is read on its own, so a scope the connection lacks fails only that part.
  */
+
 import { validateGstin } from '@commerce/core/gstin'
 import { cleanMoneyFormat } from '@commerce/money'
 import { definitionsOf } from './api-metafields'
 import { mapFieldDefinition } from './api-metaobjects'
 import type { SettingsPart } from './settings-client'
+import type { NSegment } from './settings-plan-segments'
 import { type ShopifyClient, ShopifyError } from './shopify-client'
 import type { NFieldDefinition } from './types'
 
@@ -43,6 +45,8 @@ export type NShopSettings = {
   gstin: string | null
   /** The shop's price format as plain text (`Rs. {{amount}}`); null when it has no usable one. */
   moneyFormat: string | null
+  /** Online Store › Preferences: the home page title and meta description ('' when unset). */
+  seo: { title: string; description: string }
 }
 
 export type NLocation = {
@@ -107,6 +111,7 @@ export type SettingsSource = {
   profiles: Read<NDeliveryProfile[]> | null
   policies: Read<NPolicy[]> | null
   fields: { owner: FieldOwner; read: Read<NOwnerDefinition[]> }[] | null
+  segments: Read<NSegment[]> | null
 }
 
 /* ----------------------------------------------------------------- helpers */
@@ -180,27 +185,38 @@ type GShop = {
   shopAddress: GAddress
 }
 
-/** A GSTIN some app saved on the shop: the first extra field value that is one. */
-async function shopGstin(client: ShopifyClient): Promise<string | null> {
+type ShopExtras = { gstin: string | null; seo: { title: string; description: string } }
+
+/**
+ * What the shop keeps in its own extra fields: a GSTIN some app saved there, and the home page
+ * title and meta description (Shopify stores Online Store › Preferences as `global.title_tag`
+ * and `global.description_tag`) (audit #131).
+ */
+async function shopExtras(client: ShopifyClient): Promise<ShopExtras> {
+  const out: ShopExtras = { gstin: null, seo: { title: '', description: '' } }
   try {
-    const data = await client.query<{ shop: { metafields: { nodes: { value: string }[] } } }>(
-      SHOP_FIELDS_QUERY,
-      {},
-      20,
-    )
+    const data = await client.query<{
+      shop: { metafields: { nodes: { namespace: string; key: string; value: string }[] } }
+    }>(SHOP_FIELDS_QUERY, {}, 20)
     for (const m of data.shop.metafields.nodes) {
-      const check = validateGstin(m.value?.trim())
-      if (check.ok) return check.gstin
+      const value = m.value?.trim() ?? ''
+      if (m.namespace === 'global' && m.key === 'title_tag') out.seo.title = value
+      else if (m.namespace === 'global' && m.key === 'description_tag') out.seo.description = value
+      else if (!out.gstin) {
+        const check = validateGstin(value)
+        if (check.ok) out.gstin = check.gstin
+      }
     }
   } catch (err) {
-    // Not every token may read the shop's extra fields; the GST number is then not known.
+    // Not every token may read the shop's extra fields; the GST number and SEO are then not known.
     if (!(err instanceof ShopifyError)) throw err
   }
-  return null
+  return out
 }
 
 async function fetchShop(client: ShopifyClient): Promise<NShopSettings> {
   const { shop } = await client.query<{ shop: GShop }>(SHOP_SETTINGS_QUERY, {}, 10)
+  const extras = await shopExtras(client)
   return {
     name: shop.name.trim(),
     email: (shop.contactEmail || shop.email || '').trim(),
@@ -209,8 +225,9 @@ async function fetchShop(client: ShopifyClient): Promise<NShopSettings> {
     timezone: shop.ianaTimezone,
     weightUnit: shop.weightUnit,
     taxesIncluded: shop.taxesIncluded,
-    gstin: await shopGstin(client),
+    gstin: extras.gstin,
     moneyFormat: cleanMoneyFormat(shop.currencyFormats?.moneyFormat),
+    seo: extras.seo,
   }
 }
 
@@ -439,6 +456,30 @@ async function fetchPolicies(client: ShopifyClient): Promise<NPolicy[]> {
   return data.shop.shopPolicies.map((p) => ({ type: p.type, title: p.title.trim(), body: p.body }))
 }
 
+const SEGMENTS_QUERY = `query Segments($cursor: String) {
+  segments(first: 100, after: $cursor) {
+    pageInfo { hasNextPage endCursor }
+    nodes { id name query }
+  }
+}`
+
+async function fetchSegments(client: ShopifyClient): Promise<NSegment[]> {
+  const out: NSegment[] = []
+  let cursor: string | null = null
+  for (let page = 0; page < 20; page++) {
+    const data: {
+      segments: {
+        pageInfo: { hasNextPage: boolean; endCursor: string | null }
+        nodes: { id: string; name: string; query: string }[]
+      }
+    } = await client.query(SEGMENTS_QUERY, { cursor }, 10)
+    for (const n of data.segments.nodes) out.push({ sourceId: n.id, name: n.name, query: n.query })
+    if (!data.segments.pageInfo.hasNextPage) break
+    cursor = data.segments.pageInfo.endCursor
+  }
+  return out
+}
+
 async function fetchOwnerDefinitions(
   client: ShopifyClient,
   owner: FieldOwner,
@@ -471,5 +512,6 @@ export async function fetchSettingsSource(
       fields.push({ owner, read: await read(() => fetchOwnerDefinitions(client, owner)) })
     }
   }
-  return { shop, locations, profiles, policies, fields }
+  const segments = wants('segments') ? await read(() => fetchSegments(client)) : null
+  return { shop, locations, profiles, policies, fields, segments }
 }

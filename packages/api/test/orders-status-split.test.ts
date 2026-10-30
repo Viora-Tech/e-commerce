@@ -1,5 +1,6 @@
 import { createMerchantAuth } from '@commerce/auth'
 import {
+  address,
   createDb,
   order,
   orderLine,
@@ -11,7 +12,7 @@ import {
 } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { call } from '@orpc/server'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type { ApiContext } from '../src/context'
 import { appRouter } from '../src/routers/_app'
@@ -230,6 +231,55 @@ describe('order list tabs and filters on the split statuses', () => {
     expect(await numbers(m, { search: '4' })).toEqual([4])
     expect(await numbers(m, { search: '6' })).toEqual([])
     expect(await numbers(m, { search: 'nobody' })).toEqual([])
+  })
+
+  it('search finds an order by phone (any format), city, PIN code or product', async () => {
+    const m = await merchant('details@example.com', 'details')
+    await seedOrders(m.storeId)
+    const [a] = await owner
+      .insert(address)
+      .values({
+        storeId: m.storeId,
+        name: 'Shreyas Singh',
+        line1: 'House 891-C, Eldeco City',
+        city: 'Lucknow',
+        stateCode: 'UP',
+        pincode: '226013',
+        phone: '+91 79774 37620',
+      })
+      .returning()
+    const [o] = await owner
+      .update(order)
+      .set({ shippingAddressId: a?.id })
+      .where(and(eq(order.storeId, m.storeId), eq(order.number, 2)))
+      .returning()
+    const [p] = await owner
+      .insert(product)
+      .values({ storeId: m.storeId, handle: 'beastx', title: 'WLMOUSE BeastX V2' })
+      .returning()
+    const [v] = await owner
+      .insert(variant)
+      .values({
+        storeId: m.storeId,
+        productId: p?.id as string,
+        title: 'Max / Black',
+        pricePaise: 1000,
+      })
+      .returning()
+    await owner.insert(orderLine).values({
+      storeId: m.storeId,
+      orderId: o?.id as string,
+      variantId: v?.id as string,
+      title: 'WLMOUSE BeastX V2',
+      variantTitle: 'Max / Black',
+      quantity: 1,
+      unitPricePaise: 1000,
+    })
+    expect(await numbers(m, { search: '7977437620' })).toEqual([2])
+    expect(await numbers(m, { search: '+91-79774-37620' })).toEqual([2])
+    expect(await numbers(m, { search: 'lucknow' })).toEqual([2])
+    expect(await numbers(m, { search: '226013' })).toEqual([2])
+    expect(await numbers(m, { search: 'beastx' })).toEqual([2])
   })
 
   it('the rows carry both derived statuses for the list pills', async () => {

@@ -3,10 +3,12 @@
 import { ExternalLink, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
+import StatusChip from '@/components/layout/status-chip'
 import SettingsCard from '@/components/settings/settings-card'
 import { paymentModesContent } from '@/data/payment-modes'
 import { paymentsSetupContent } from '@/data/payments-setup'
@@ -186,6 +188,38 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
           disabled={savingMethods}
           onChange={saveMethods}
         />
+      </SettingsCard>
+
+      <SettingsCard
+        id="payments-manual"
+        title={copy.manualMethods.heading}
+        description={copy.manualMethods.help}
+        bodyClassName="gap-0 divide-y divide-border"
+      >
+        {(['upi', 'bank'] as const).map((key) => {
+          const m = setup.manualMethods[key]
+          return (
+            <div key={key} className="flex flex-wrap items-center gap-3 py-3 first:pt-0 last:pb-0">
+              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <p className="text-body font-medium text-foreground">
+                  {copy.manualMethods[key].title}
+                </p>
+                <p className="text-caption text-muted-foreground">{copy.manualMethods[key].help}</p>
+              </div>
+              <StatusChip tone={m.on ? 'success' : 'neutral'}>
+                {m.on ? copy.manualMethods.active : copy.manualMethods.off}
+              </StatusChip>
+              <Button
+                variant="outline"
+                size="sm"
+                nativeButton={false}
+                render={<Link href={routes.settings.paymentsAdvanced()} />}
+              >
+                {m.ready ? copy.manualMethods.edit : copy.manualMethods.setUp}
+              </Button>
+            </div>
+          )
+        })}
       </SettingsCard>
 
       <div className="flex flex-wrap gap-2">

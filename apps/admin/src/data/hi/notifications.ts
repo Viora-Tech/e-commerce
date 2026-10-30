@@ -222,6 +222,22 @@ export default [
         name: 'रोज़ का सारांश (टीम)',
         when: 'दिन में एक बार, उस समय जो टीम के हर सदस्य ने अकाउंट → नोटिफ़िकेशन में चुना।',
       },
+      account_deletion_code: {
+        name: 'अकाउंट डिलीट करने का कोड',
+        when: 'जब ग्राहक अपना अकाउंट डिलीट करना चाहे; कोड से पक्का होता है कि वही है।',
+      },
+      affiliate_application: {
+        name: 'नया एफ़िलिएट आवेदन (टीम)',
+        when: 'जब कोई आपके एफ़िलिएट प्रोग्राम में आवेदन करे (Affiliates ऐप)।',
+      },
+    },
+    channels: {
+      email: 'ईमेल',
+      platform_email: 'ईमेल',
+      mail: 'ईमेल',
+      whatsapp: 'WhatsApp',
+      sms: 'SMS',
+      log: 'टेस्ट लॉग',
     },
 
     channelNames: { email: 'ईमेल', whatsapp: 'WhatsApp' },

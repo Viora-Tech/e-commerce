@@ -11,6 +11,7 @@ import {
 } from '@commerce/ui/shadcn/table'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { CELL, HEAD } from '@/components/apps/gst-invoices/table-classes'
 import PageHeader from '@/components/layout/page-header'
 import StatStrip from '@/components/layout/stat-strip'
@@ -33,6 +34,7 @@ export default function OverviewPage() {
   const f = useFormat()
   const [period, setPeriod] = useState<Period>('30')
   const [data, setData] = useState<Overview | null>(null)
+  const [scoring, setScoring] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -46,6 +48,20 @@ export default function OverviewPage() {
 
   // Helpers
   const pct = (n: number) => `${f.number(n)}%`
+
+  // Handlers
+  const handleScoreOpen = async () => {
+    setScoring(true)
+    try {
+      const r = await api.codRto.scoreOpen()
+      toast.success(copy.overview.scored(r.scored, r.left))
+      setData(await api.codRto.overview({ days: Number(period) }))
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err))
+    } finally {
+      setScoring(false)
+    }
+  }
 
   // Render logic
   const o = copy.overview
@@ -134,6 +150,14 @@ export default function OverviewPage() {
                 </span>
               ))}
             </div>
+            {data.unscored > 0 ? (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-muted px-3 py-2">
+                <p className="text-caption text-muted-foreground">{o.unscored(data.unscored)}</p>
+                <Button size="sm" variant="outline" disabled={scoring} onClick={handleScoreOpen}>
+                  {scoring ? o.scoring : o.scoreOpen}
+                </Button>
+              </div>
+            ) : null}
           </div>
           <div className="overflow-hidden rounded-xl surface-card">
             <h2 className="px-6 pt-5 pb-3 text-body font-semibold text-ink-strong">

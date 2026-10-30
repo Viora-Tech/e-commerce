@@ -1327,6 +1327,8 @@ export type OrderImportMeta = {
    * from is kept here. From then on it is worked like an order placed here.
    */
   takenOver?: { at: string; by: string; source: string } | null
+  /** The source's own order timeline (paid, emails sent, edits…), oldest first, as plain text. */
+  history?: { at: string; message: string }[] | null
 }
 
 export const orderLine = pgTable(

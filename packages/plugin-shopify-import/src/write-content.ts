@@ -256,8 +256,43 @@ export async function linkCollectionMembers(
       )
       .onConflictDoNothing()
       .returning({ id: collectionProduct.id })
+    await followShopifyOrder(
+      tx,
+      id,
+      c.productHandles.map((h) => handleOf(h, 'product')),
+    )
     return added.length
   })
+}
+
+/**
+ * Put a manual collection's products in Shopify's order (the order shoppers see). Members are
+ * linked as their products get written, batch by batch, so appending left late batches at the
+ * end: on Shopify the Mice collection opens Hitscan, ATK Phantom, TenZ…, here ATK Phantom sat
+ * far down (audit #66). Products only this store has keep their order, after Shopify's.
+ */
+async function followShopifyOrder(tx: StoreTx, collectionId: string, shopifyHandles: string[]) {
+  const rank = new Map<string, number>()
+  for (const h of shopifyHandles) if (!rank.has(h)) rank.set(h, rank.size)
+  const members = await tx
+    .select({
+      id: collectionProduct.id,
+      position: collectionProduct.position,
+      handle: product.handle,
+    })
+    .from(collectionProduct)
+    .innerJoin(product, eq(product.id, collectionProduct.productId))
+    .where(eq(collectionProduct.collectionId, collectionId))
+  const ordered = [...members].sort((a, b) => {
+    const ra = rank.get(a.handle) ?? Number.MAX_SAFE_INTEGER
+    const rb = rank.get(b.handle) ?? Number.MAX_SAFE_INTEGER
+    return ra - rb || a.position - b.position
+  })
+  for (const [position, m] of ordered.entries()) {
+    if (m.position !== position) {
+      await tx.update(collectionProduct).set({ position }).where(eq(collectionProduct.id, m.id))
+    }
+  }
 }
 
 export async function writePage(ctx: ImportContext, p: NPage) {
@@ -279,7 +314,8 @@ export async function writePage(ctx: ImportContext, p: NPage) {
           seoDescription: clip(p.seoDescription, 400),
           publishedAt: p.published ? (p.publishedAt ? new Date(p.publishedAt) : new Date()) : null,
           templateSuffix: p.templateSuffix,
-          updatedAt: new Date(),
+          // Shopify's last edit, so the list reads "19 Sept", not the day of the move (audit #132).
+          updatedAt: p.updatedAt ? new Date(p.updatedAt) : new Date(),
         }
         let id = existing
         if (id) await tx.update(page).set(fields).where(eq(page.id, id))

@@ -154,6 +154,8 @@ export const metaobjectListContent = {
     'Your own kinds of content, like size guides, FAQs or store locations, to show on your store.',
   add: 'New content type',
   fromTemplate: 'Start from template',
+  /** Shopify's category value types (shopify_battery_type…) kept apart from the store's own (#93). */
+  views: { own: 'Yours', shopify: 'Shopify category values' },
   summary: (types: number, entries: number) =>
     types === 0
       ? 'Your own kinds of content, like size guides and FAQs.'
@@ -485,6 +487,8 @@ export const metafieldsCardContent = {
   empty: 'Add your own fields, like a care guide or warranty, to show more details.',
   manage: 'Manage metafields',
   addField: 'Add a field',
+  showEmpty: (n: number) => (n === 1 ? 'Show 1 empty field' : `Show ${n} empty fields`),
+  hideEmpty: 'Hide empty fields',
   saveFirst: 'Save first, then fill in the extra fields.',
   variant: 'Variant',
   variantHeading: 'Variant metafields',

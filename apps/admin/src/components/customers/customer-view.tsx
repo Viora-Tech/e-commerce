@@ -165,7 +165,7 @@ export default function CustomerView({
     CONSENT_CHANNELS.some((c) => draft.consent[c] !== saved.consent[c])
 
   return (
-    <PageBody width="frame" className="gap-6">
+    <PageBody width="frame" className="mx-auto max-w-[75rem] gap-6">
       <SaveBar
         open={dirty}
         message={detail.changes.unsaved}
@@ -232,7 +232,7 @@ export default function CustomerView({
               onChange={(tags) => setDraft((d) => ({ ...d, tags }))}
             />
             <CustomerStatsCard customer={customer} />
-            <MetafieldsCard ownerType="customer" ownerId={customer.id} />
+            <MetafieldsCard ownerType="customer" ownerId={customer.id} hideWhenEmpty />
           </>
         }
       />

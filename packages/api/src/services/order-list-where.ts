@@ -2,6 +2,7 @@ import type { OrderFulfillmentStatus, OrderPaymentStatus, OrderStatus } from '@c
 import { MARKETING_CHANNELS } from '@commerce/core/marketing'
 import type { StoreTx } from '@commerce/db'
 import {
+  address,
   collection,
   collectionProduct,
   customer,
@@ -120,6 +121,31 @@ function hasProductLine(text: string) {
       and (ol.title ilike ${pattern} or ol.variant_title ilike ${pattern} or v.sku ilike ${pattern}))`
 }
 
+/**
+ * The search box beyond email and customer name: the phone (digits only, so "+91 79774 37620"
+ * finds "7977437620"), the shipping address's name, city or PIN code, and the products sold
+ * (title, variant or SKU). Indian merchants look orders up by phone and city first (audit #44).
+ */
+function searchesOrderDetails(text: string) {
+  const pattern = `%${escapeLike(text.trim())}%`
+  const digits = text.replace(/\D/g, '')
+  // Six digits or more is a phone fragment; shorter numbers are PIN codes or order numbers.
+  const phoneLike = digits.length >= 6 ? `%${digits}%` : null
+  const addressPhone = phoneLike
+    ? sql`regexp_replace(a.phone, '\\D', '', 'g') like ${phoneLike}`
+    : sql`false`
+  return or(
+    sql`exists (
+      select 1 from ${address} a
+      where a.id = ${order.shippingAddressId}
+        and (a.name ilike ${pattern} or a.city ilike ${pattern} or a.pincode ilike ${pattern} or ${addressPhone}))`,
+    phoneLike
+      ? sql`regexp_replace(coalesce(${order.phone}, ''), '\\D', '', 'g') like ${phoneLike}`
+      : undefined,
+    hasProductLine(text.trim()),
+  )
+}
+
 /** Every condition of the Orders list: tab, search and the filter panel. */
 export function orderListWhere(input: OrderListFilters) {
   const byNumber = input.search ? orderNumberFromSearch(input.search) : null
@@ -132,6 +158,7 @@ export function orderListWhere(input: OrderListFilters) {
           ilike(order.email, `%${input.search}%`),
           ilike(customer.name, `%${input.search}%`),
           byNumber === null ? undefined : eq(order.number, byNumber),
+          searchesOrderDetails(input.search),
         )
       : undefined,
     input.status ? eq(order.status, input.status) : undefined,

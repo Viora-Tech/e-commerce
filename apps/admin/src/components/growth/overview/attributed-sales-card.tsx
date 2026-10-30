@@ -87,7 +87,7 @@ export default function AttributedSalesCard({
           {fmt.money(attributed?.value ?? 0)}
         </span>
         <span className="text-caption text-muted-foreground">
-          {copy.ofTotal(fmt.money(total?.value ?? 0))}
+          {copy.ofTotal(fmt.moneyWhole(total?.value ?? 0))}
         </span>
       </p>
       <GrowthTrendChart

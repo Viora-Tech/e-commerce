@@ -130,22 +130,16 @@ export default function ArticleForm({
           back={{ label: copy.back, href: routes.content.blogPosts() }}
           actions={
             article ? (
-              <>
-                {liveUrl && article.status !== 'draft' ? (
-                  <Button
-                    variant="outline"
-                    render={<a href={liveUrl} target="_blank" rel="noreferrer" />}
-                    nativeButton={false}
-                  >
-                    <ExternalLink />
-                    {copy.viewLive}
-                  </Button>
-                ) : null}
-                <Button variant="outline" onClick={() => setConfirmDelete(true)} disabled={busy}>
-                  <Trash2 aria-hidden="true" />
-                  {copy.delete.action}
+              liveUrl && article.status !== 'draft' ? (
+                <Button
+                  variant="outline"
+                  render={<a href={liveUrl} target="_blank" rel="noreferrer" />}
+                  nativeButton={false}
+                >
+                  <ExternalLink />
+                  {copy.viewLive}
                 </Button>
-              </>
+              ) : null
             ) : (
               <Button onClick={handleSave} disabled={busy}>
                 <Save aria-hidden="true" />
@@ -175,6 +169,15 @@ export default function ArticleForm({
             onChange={patch}
           />
           <MetafieldsCard ownerType="article" ownerId={article?.id ?? null} />
+          {/* Delete sits at the bottom, away from View on store, like Shopify (audit #94). */}
+          {article ? (
+            <div className="flex justify-start">
+              <Button variant="destructive" onClick={() => setConfirmDelete(true)} disabled={busy}>
+                <Trash2 aria-hidden="true" />
+                {copy.delete.action}
+              </Button>
+            </div>
+          ) : null}
         </>
       }
       side={
