@@ -3,6 +3,7 @@
 import type { MarketView } from '@commerce/core'
 import { Pencil, Trash2 } from '@commerce/ui/icons'
 import { Switch } from '@commerce/ui/shadcn/switch'
+import Link from 'next/link'
 import ActionMenu from '@/components/layout/action-menu'
 import StatusChip from '@/components/layout/status-chip'
 import SettingsTableCell from '@/components/settings/settings-table-cell'
@@ -15,6 +16,8 @@ type MarketRowProps = {
   market: MarketView
   /** The store's main domain, which subfolders hang off (`waimers.koomerce.app`). */
   primaryHost: string
+  /** The market's own page. */
+  href: string
   canManage: boolean
   switching: boolean
   onEdit: () => void
@@ -29,6 +32,7 @@ const SHOWN_COUNTRIES = 3
 export default function MarketRow({
   market: m,
   primaryHost,
+  href,
   canManage,
   switching,
   onEdit,
@@ -54,17 +58,12 @@ export default function MarketRow({
       <SettingsTableCell>
         <div className="flex min-w-0 flex-col">
           <span className="flex min-w-0 items-center gap-2">
-            {canManage ? (
-              <button
-                type="button"
-                onClick={onEdit}
-                className="truncate text-left font-semibold text-ink-strong hover:underline focus-visible:underline focus-visible:outline-none"
-              >
-                {m.name}
-              </button>
-            ) : (
-              <span className="truncate font-semibold text-ink-strong">{m.name}</span>
-            )}
+            <Link
+              href={href}
+              className="truncate text-left font-semibold text-ink-strong hover:underline focus-visible:underline focus-visible:outline-none"
+            >
+              {m.name}
+            </Link>
             {m.isPrimary ? <StatusChip>{copy.primary}</StatusChip> : null}
           </span>
           <span className="truncate text-caption text-muted-foreground">{reach}</span>

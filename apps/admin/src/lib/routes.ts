@@ -193,6 +193,7 @@ export const routes = {
   /** The countries the store sells to (top-level, like Shopify; was under Settings). */
   markets: {
     list: () => '/markets',
+    detail: (marketId: string) => `/markets/${id(marketId)}`,
   },
 
   /** Store changes that go live at a set time: under Markets, as in Shopify (Markets › Rollouts). */

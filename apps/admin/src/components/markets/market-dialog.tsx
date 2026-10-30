@@ -31,14 +31,20 @@ import MarketLanguageFields from './market-language-fields'
 import MarketPricingFields from './market-pricing-fields'
 import MarketReachField from './market-reach-field'
 
+/** Which fields the dialog shows: all of them (adding), or the one row opened on the market page. */
+export type MarketPart = 'all' | 'name' | 'countries' | 'prices' | 'languages' | 'address'
+
 type MarketDialogProps = {
   /** The market being changed; null adds a new one. */
   market: MarketView | null
+  /** The fields to show; the rest keep their saved values. Default: all. */
+  part?: MarketPart
   /** Every market of the store, for countries already taken and addresses already in use. */
   markets: MarketView[]
   domains: DomainView[]
   onClose: () => void
-  onSaved: () => void
+  /** After saving; a new market comes with what the server made of it. */
+  onSaved: (created?: MarketView) => void
 }
 
 /** Every market but the one in the dialog. */
@@ -52,6 +58,7 @@ function otherMarkets(markets: MarketView[], market: MarketView | null): MarketV
  */
 export default function MarketDialog({
   market,
+  part = 'all',
   markets,
   domains,
   onClose,
@@ -93,9 +100,12 @@ export default function MarketDialog({
       } else if (market) {
         await api.markets.update({ id: market.id, ...marketInput(form) })
       } else {
-        await api.markets.create(marketInput(form))
+        const created = await api.markets.create(marketInput(form))
+        toast.success(copy.toasts.added(form.name.trim()))
+        onSaved(created)
+        return
       }
-      toast.success(market ? copy.toasts.saved : copy.toasts.added(form.name.trim()))
+      toast.success(copy.toasts.saved)
       onSaved()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.toasts.failed)
@@ -106,6 +116,7 @@ export default function MarketDialog({
   // Render logic
   const d = copy.dialog
   const isPrimary = market?.isPrimary ?? false
+  const shows = (p: MarketPart) => part === 'all' || part === p
   const others = otherMarkets(markets, market)
   const shown = problemsOf(tried)
   const taken = Object.fromEntries(others.flatMap((m) => m.countries.map((c) => [c, m.name])))
@@ -126,82 +137,94 @@ export default function MarketDialog({
       title={market ? d.editTitle(market.name) : d.addTitle}
       submitLabel={market ? d.save : d.add}
       onSubmit={handleSubmit}
-      size="lg"
+      size={part === 'all' ? 'lg' : 'md'}
     >
       <div className="-mx-4 flex max-h-[60dvh] flex-col gap-5 overflow-y-auto overscroll-contain px-4">
         {isPrimary ? <NoticeBar>{d.primaryNote}</NoticeBar> : null}
-        <Field data-invalid={shown.name ? true : undefined}>
-          <FieldLabel htmlFor="market-name">{d.name}</FieldLabel>
-          <Input
-            id="market-name"
-            value={form.name}
-            maxLength={80}
-            placeholder={d.namePlaceholder}
-            aria-invalid={shown.name ? true : undefined}
-            onChange={(e) => patch({ name: e.target.value })}
-          />
-          {shown.name ? <FieldError>{shown.name}</FieldError> : null}
-        </Field>
+        {shows('name') ? (
+          <Field data-invalid={shown.name ? true : undefined}>
+            <FieldLabel htmlFor="market-name">{d.name}</FieldLabel>
+            <Input
+              id="market-name"
+              value={form.name}
+              maxLength={80}
+              placeholder={d.namePlaceholder}
+              aria-invalid={shown.name ? true : undefined}
+              onChange={(e) => patch({ name: e.target.value })}
+            />
+            {shown.name ? <FieldError>{shown.name}</FieldError> : null}
+          </Field>
+        ) : null}
         {isPrimary ? null : (
           <>
-            <Field data-invalid={shown.countries ? true : undefined}>
-              <FieldLabel htmlFor="market-countries">{d.countries.label}</FieldLabel>
-              <FieldDescription>{d.countries.help}</FieldDescription>
-              <CountryPicker
-                id="market-countries"
-                value={form.countries}
-                taken={taken}
-                invalid={Boolean(shown.countries)}
-                onChange={handleCountries}
-              />
-              {shown.countries ? <FieldError>{shown.countries}</FieldError> : null}
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="market-currency">{d.currency.label}</FieldLabel>
-              <Select
-                value={form.currency}
-                onValueChange={(v) => v && patch({ currency: String(v), currencyPicked: true })}
-              >
-                <SelectTrigger id="market-currency" className="w-full">
-                  <SelectValue>{currencyLabel(form.currency)}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {currencies.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {currencyLabel(c)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FieldDescription>{d.currency.help}</FieldDescription>
-            </Field>
+            {shows('countries') ? (
+              <Field data-invalid={shown.countries ? true : undefined}>
+                <FieldLabel htmlFor="market-countries">{d.countries.label}</FieldLabel>
+                <FieldDescription>{d.countries.help}</FieldDescription>
+                <CountryPicker
+                  id="market-countries"
+                  value={form.countries}
+                  taken={taken}
+                  invalid={Boolean(shown.countries)}
+                  onChange={handleCountries}
+                />
+                {shown.countries ? <FieldError>{shown.countries}</FieldError> : null}
+              </Field>
+            ) : null}
+            {shows('prices') ? (
+              <Field>
+                <FieldLabel htmlFor="market-currency">{d.currency.label}</FieldLabel>
+                <Select
+                  value={form.currency}
+                  onValueChange={(v) => v && patch({ currency: String(v), currencyPicked: true })}
+                >
+                  <SelectTrigger id="market-currency" className="w-full">
+                    <SelectValue>{currencyLabel(form.currency)}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {currencies.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {currencyLabel(c)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FieldDescription>{d.currency.help}</FieldDescription>
+              </Field>
+            ) : null}
           </>
         )}
-        <MarketLanguageFields
-          locale={form.locale}
-          locales={form.locales}
-          error={shown.languages}
-          onChange={patch}
-        />
+        {shows('languages') ? (
+          <MarketLanguageFields
+            locale={form.locale}
+            locales={form.locales}
+            error={shown.languages}
+            onChange={patch}
+          />
+        ) : null}
         {isPrimary ? null : (
           <>
-            <MarketReachField
-              access={form.access}
-              subfolder={form.subfolder}
-              domainId={form.domainId}
-              primaryHost={primaryHost}
-              domains={domainOptions(domains, others)}
-              subfolderError={shown.subfolder}
-              domainError={shown.domain}
-              onChange={patch}
-            />
-            <MarketPricingFields
-              form={form}
-              storeCurrency={storeCurrency}
-              adjustmentError={shown.adjustment}
-              rateError={shown.rate}
-              onChange={patch}
-            />
+            {shows('address') ? (
+              <MarketReachField
+                access={form.access}
+                subfolder={form.subfolder}
+                domainId={form.domainId}
+                primaryHost={primaryHost}
+                domains={domainOptions(domains, others)}
+                subfolderError={shown.subfolder}
+                domainError={shown.domain}
+                onChange={patch}
+              />
+            ) : null}
+            {shows('prices') ? (
+              <MarketPricingFields
+                form={form}
+                storeCurrency={storeCurrency}
+                adjustmentError={shown.adjustment}
+                rateError={shown.rate}
+                onChange={patch}
+              />
+            ) : null}
           </>
         )}
       </div>

@@ -15,6 +15,7 @@ import { marketsContent } from '@/data/markets'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import MarketDialog from './market-dialog'
 import MarketRow from './market-row'
 
@@ -43,9 +44,11 @@ export default function MarketsList({ markets, domains }: MarketsListProps) {
   const [enabledNow, setEnabledNow] = useState<Record<string, boolean>>({})
 
   // Event handlers
-  const handleSaved = () => {
+  // A new market opens on its own page, where the rest of its settings are.
+  const handleSaved = (created?: MarketView) => {
     setEditing(null)
-    router.refresh()
+    if (created) router.push(routes.markets.detail(created.id))
+    else router.refresh()
   }
   const handleToggle = async (market: MarketView, enabled: boolean) => {
     setSwitching(market.id)
@@ -126,7 +129,8 @@ export default function MarketsList({ markets, domains }: MarketsListProps) {
             primaryHost={primaryHost}
             canManage={canManage}
             switching={switching === m.id}
-            onEdit={() => setEditing({ market: m })}
+            href={routes.markets.detail(m.id)}
+            onEdit={() => router.push(routes.markets.detail(m.id))}
             onDelete={() => setDeleting(m)}
             onToggle={(enabled) => handleToggle(m, enabled)}
           />
