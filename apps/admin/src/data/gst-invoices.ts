@@ -241,8 +241,25 @@ export const gstInvoicesContent = {
     openQueue: 'Open queue',
     issueSlip: 'Packing slip',
     issueConfirmation: 'Order confirmation',
+    view: 'View',
     download: 'Download',
     regenerate: 'Regenerate',
+    /** Why an issued invoice is not edited, and the lawful ways to change it (issue 1009). */
+    changes: {
+      toggle: 'Need to change this invoice?',
+      body: 'An issued tax invoice cannot be edited. GST law keeps it exactly as issued; changes go through a new document.',
+      open: [
+        'Items or shipping changed: edit the order. When the edit adds to the bill, this invoice is cancelled and re-issued for you; when it lowers it, refund the difference and issue a credit note.',
+        'Anything else: open the invoice, cancel it (its number stays used), then add the order to the queue again.',
+        'Missing the buyer GSTIN: save it below and the invoice is redrawn.',
+      ],
+      reported: [
+        'This invoice is already in a filed GSTR-1, so it can no longer be cancelled.',
+        'To reduce it: refund the amount on the order, then issue a credit note here.',
+        'To add to it: issue a new invoice for the extra amount.',
+      ],
+      openInvoice: 'Open invoice',
+    },
     creditNote: 'Issue credit note',
     refundLabel: (amount: string) => `Refund of ${amount}`,
     buyerGstin: 'Buyer GSTIN',

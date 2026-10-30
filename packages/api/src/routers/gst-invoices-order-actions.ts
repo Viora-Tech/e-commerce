@@ -103,7 +103,14 @@ export const generateInvoice = can(permissions.ORDERS_WRITE)
           )
         }
       }
-      return { issued: plan.map((p) => p.number), alreadyIssued }
+      // Ids too, so the admin's toast can open or download what was issued (issue 1009).
+      const invoices = [
+        ...queued.flatMap((q) =>
+          q.row.status === 'issued' && q.row.number ? [{ id: q.row.id, number: q.row.number }] : [],
+        ),
+        ...plan.map((p) => ({ id: p.id, number: p.number })),
+      ]
+      return { issued: plan.map((p) => p.number), alreadyIssued, invoices }
     } catch (err) {
       asOrpc(err)
     }

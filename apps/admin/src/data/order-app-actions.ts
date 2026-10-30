@@ -12,6 +12,11 @@ export const orderAppActionsContent = {
         : `Issued ${numbers.length} GST invoices: ${numbers.join(', ')}`,
     alreadyIssued: (numbers: string[]) => `Already invoiced: ${numbers.join(', ')}`,
     nothingIssued: 'No invoice was issued for this order.',
+    /** The toast's buttons after an invoice was issued or queued (issue 1009). */
+    view: 'View',
+    download: 'Download',
+    viewAll: 'View invoices',
+    openQueue: 'Open queue',
     queued: (added: number, skipped: number) => {
       const done =
         added === 0
