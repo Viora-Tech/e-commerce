@@ -18,6 +18,7 @@ import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import { emptyZone, fromZone, type LoadedZone, toZoneInput, type ZoneFormState } from './form-state'
 import ZonePincodesCard from './zone-pincodes-card'
 import ZoneRatesCard from './zone-rates-card'
@@ -26,6 +27,8 @@ import ZoneStatesCard from './zone-states-card'
 type ZoneFormProps = {
   /** The zone being edited; null creates one. */
   zone: LoadedZone | null
+  /** The shipping profile a new zone joins; null means General. */
+  profileId?: string | null | undefined
 }
 
 const LIST_HREF = '/settings/shipping?tab=section-rates'
@@ -34,7 +37,7 @@ const initialForm = (zone: LoadedZone | null): ZoneFormState =>
   zone ? fromZone(zone) : emptyZone()
 
 /** Create or edit a shipping zone: its name, states, PIN code rules and rates. */
-export default function ZoneForm({ zone }: ZoneFormProps) {
+export default function ZoneForm({ zone, profileId = null }: ZoneFormProps) {
   // Hooks
   const announceSetup = useSetupNext()
   const { zone: copy } = useCopy(shippingRatesContent)
@@ -57,7 +60,7 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
     setBusy(true)
     setServerError(null)
     try {
-      const data = toZoneInput(form)
+      const data = { ...toZoneInput(form), profileId }
       if (!zone) {
         const created = await api.shipping.zones.create(data)
         setSaved(JSON.stringify(form))
@@ -92,7 +95,7 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
     try {
       await api.shipping.zones.delete({ id: zone.id })
       toast.success(copy.toasts.deleted)
-      router.push(LIST_HREF)
+      router.push(backHref)
       router.refresh()
     } catch (err) {
       setServerError(err instanceof Error ? err.message : copy.toasts.failed)
@@ -106,6 +109,8 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
   const dirty = JSON.stringify(form) !== saved
   const nameError = attempted && !form.name.trim() ? copy.errors.name : null
   const title = zone ? zone.name : copy.newTitle
+  const owner = zone?.profileId ?? profileId
+  const backHref = owner ? routes.settings.shippingProfile(owner) : LIST_HREF
 
   return (
     <div className="flex flex-col gap-4">
@@ -121,7 +126,7 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
       <PageHeader
         title={title}
         subtitle={copy.meta}
-        back={{ label: copy.backLabel, href: LIST_HREF }}
+        back={{ label: copy.backLabel, href: backHref }}
         actions={
           !canManage ? null : zone ? (
             <Button variant="outline" onClick={() => setConfirmDelete(true)} disabled={busy}>

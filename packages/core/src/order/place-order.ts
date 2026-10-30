@@ -67,8 +67,9 @@ import { parsePreorderStoreSettings } from '../preorder/store-settings'
 import { setMarketingConsents } from '../privacy/marketing-consent'
 import { StoreAddressSchema } from '../settings/general'
 import { type OrderDeliveryInput, priceOrderDelivery } from '../shipping/delivery-options/order'
-import { quoteShipping, type ShippingRateOption } from '../shipping/rates'
-import { loadRateZones } from '../shipping/rates-service'
+import { primaryRateId } from '../shipping/profiles'
+import { quoteProfileLines } from '../shipping/profiles-service'
+import type { ShippingRateOption } from '../shipping/rates'
 import { computeOrderGst } from '../tax/gst'
 import { chargedGstRate, parseStoreTax, type StoreTaxSettings } from '../tax/settings'
 import { runWorkflow, type WorkflowLog, type WorkflowStep } from '../workflow/run'
@@ -151,6 +152,8 @@ export type PlaceOrderResult = {
 
 type Line = {
   variantId: string
+  /** Which shipping profile the line ships under. */
+  productId: string
   quantity: number
   unitPricePaise: number
   title: string
@@ -220,6 +223,7 @@ const loadCart: WorkflowStep<State> = {
     const rows = await ctx.tx
       .select({
         variantId: cartLine.variantId,
+        productId: product.id,
         quantity: cartLine.quantity,
         unitPricePaise: cartLine.unitPricePaise,
         variantPricePaise: variant.pricePaise,
@@ -257,6 +261,7 @@ const loadCart: WorkflowStep<State> = {
     if (hidden) throw new VariantHidden(hidden.variantId, ctx.storeId)
     const lines: Line[] = rows.map((r) => ({
       variantId: r.variantId,
+      productId: r.productId,
       quantity: r.quantity,
       unitPricePaise: r.unitPricePaise,
       title: r.title,
@@ -357,14 +362,11 @@ const resolveShipping: WorkflowStep<State> = {
     const to = input.checkout?.address
     if (!to || lines.every((l) => l.giftCard)) return { shipping: null }
     const { discountedSubtotalPaise } = applyDiscount(sumPaise(lines), 0, applied)
-    const quote = quoteShipping(
-      await loadRateZones(ctx.tx),
-      { stateCode: to.stateCode, pincode: to.pincode },
-      {
-        valuePaise: discountedSubtotalPaise,
-        weightGrams: lines.reduce((sum, l) => sum + l.quantity * (l.weightGrams ?? 0), 0),
-      },
-    )
+    // One rate per shipping profile in the cart, summed (rule in shipping/profiles.ts).
+    const { quote } = await quoteProfileLines(ctx.tx, lines, discountedSubtotalPaise, {
+      stateCode: to.stateCode,
+      pincode: to.pincode,
+    })
     const fromApp = input.delivery
       ? await priceOrderDelivery(ctx, input.delivery, {
           lines,
@@ -703,7 +705,12 @@ const createOrder: WorkflowStep<State> = {
         taxOrigin: origin,
         shippingPaise,
         // A delivery option has no rate row: only a backup order points at its zone rate.
-        shippingRateId: delivery ? backupRateId : (shipping?.rateId ?? null),
+        // A rate joined from several profiles keeps its first part here; the snapshot has all.
+        shippingRateId: delivery
+          ? backupRateId && primaryRateId(backupRateId)
+          : shipping
+            ? primaryRateId(shipping.rateId)
+            : null,
         shippingRateName: shipping?.name ?? null,
         shipping: shipping
           ? {
@@ -716,6 +723,19 @@ const createOrder: WorkflowStep<State> = {
               codSurchargePaise: shipping.codSurchargePaise,
               minTransitDays: shipping.minTransitDays,
               maxTransitDays: shipping.maxTransitDays,
+              ...(shipping.parts && !delivery
+                ? {
+                    profiles: shipping.parts.map((p) => ({
+                      profileId: p.profileId,
+                      profileName: p.profileName,
+                      rateId: p.rateId,
+                      rateName: p.name,
+                      zoneId: p.zoneId,
+                      zoneName: p.zoneName,
+                      pricePaise: p.pricePaise,
+                    })),
+                  }
+                : {}),
               ...(delivery ? { delivery } : {}),
             }
           : null,

@@ -65,6 +65,7 @@ function emptyLocal(): LocalSettings {
       },
     ],
     zones: [],
+    shippingProfiles: [{ id: 'profile-general', name: 'General', isDefault: true, productIds: [] }],
     policies: POLICY_TYPES.map((type) => ({
       type,
       exists: false,
@@ -75,7 +76,17 @@ function emptyLocal(): LocalSettings {
     fields: [],
     segments: [],
     markets: [{ name: 'India', isPrimary: true, countries: ['IN'] }],
-    mapped: { locations: new Map(), zones: new Map(), fields: new Map(), contentTypes: new Map() },
+    mapped: {
+      locations: new Map(),
+      zones: new Map(),
+      shippingProfiles: new Map(),
+      products: new Map([
+        ['gid://shopify/Product/11', 'product-11'],
+        ['gid://shopify/Product/12', 'product-12'],
+      ]),
+      fields: new Map(),
+      contentTypes: new Map(),
+    },
   }
 }
 
@@ -85,6 +96,7 @@ function applyToLocal(local: LocalSettings, ops: SettingsOp[]): LocalSettings {
   const maps = {
     settings_locations: new Map(local.mapped.locations),
     settings_shipping_zones: new Map(local.mapped.zones),
+    settings_shipping_profiles: new Map(local.mapped.shippingProfiles),
     metafield_definitions: new Map(local.mapped.fields),
   } as Record<string, Map<string, string>>
   let n = 0
@@ -122,10 +134,20 @@ function applyToLocal(local: LocalSettings, ops: SettingsOp[]): LocalSettings {
       else next.locations.push(row)
       if (op.sourceId) maps.settings_locations?.set(op.sourceId, id)
     }
+    if (op.kind === 'shipping_profile') {
+      const id = op.id ?? `profile-${++n}`
+      const row = { id, name: op.name, isDefault: false, productIds: op.productIds }
+      next.shippingProfiles = [...next.shippingProfiles.filter((p) => p.id !== id), row]
+      maps.settings_shipping_profiles?.set(op.sourceId, id)
+    }
     if (op.kind === 'zone') {
       const id = op.id ?? `zone-${++n}`
+      const owner = op.profileSourceId
+        ? (maps.settings_shipping_profiles?.get(op.profileSourceId) ?? null)
+        : null
       const zone = {
         id,
+        profileId: op.id ? (next.zones.find((z) => z.id === id)?.profileId ?? null) : owner,
         name: op.write.name,
         stateCodes: op.write.stateCodes,
         pincodeRules: op.write.pincodeRules,
@@ -169,6 +191,8 @@ function applyToLocal(local: LocalSettings, ops: SettingsOp[]): LocalSettings {
   next.mapped = {
     locations: maps.settings_locations ?? new Map(),
     zones: maps.settings_shipping_zones ?? new Map(),
+    shippingProfiles: maps.settings_shipping_profiles ?? new Map(),
+    products: local.mapped.products,
     fields: maps.metafield_definitions ?? new Map(),
     contentTypes: local.mapped.contentTypes,
   }
@@ -218,11 +242,13 @@ describe('reading store settings from Shopify', () => {
     ])
   })
 
-  it('reads zones only for the general profile, with weights in grams and prices in paise', async () => {
+  it('reads every profile’s zones and a custom profile’s products, in grams and paise', async () => {
     const log: string[] = []
     const source = await fetchSettingsSource(client([], log), ['shipping'])
-    expect(log.filter((l) => l.startsWith('zones:'))).toEqual([
+    expect(log.filter((l) => l.startsWith('zones:') || l.startsWith('items:'))).toEqual([
       'zones:gid://shopify/DeliveryProfile/1',
+      'zones:gid://shopify/DeliveryProfile/2',
+      'items:gid://shopify/DeliveryProfile/2',
     ])
     const profiles = source.profiles?.ok ? source.profiles.data : []
     const light = profiles[0]?.zones[1]?.methods[0]
@@ -230,7 +256,17 @@ describe('reading store settings from Shopify', () => {
       price: { amount: 6000, currency: 'INR' },
       conditions: [{ field: 'weight', operator: 'max', grams: 500 }],
     })
-    expect(profiles[1]).toMatchObject({ name: 'Heavy chairs', default: false, zones: [] })
+    expect(profiles[0]?.productIds).toEqual([])
+    expect(profiles[1]).toMatchObject({
+      name: 'Heavy chairs',
+      default: false,
+      productIds: [
+        'gid://shopify/Product/11',
+        'gid://shopify/Product/12',
+        'gid://shopify/Product/13',
+      ],
+    })
+    expect(profiles[1]?.zones.map((z) => z.name)).toEqual(['Heavy India'])
   })
 
   it('turns a missing scope into "needs access" for that part only', async () => {
@@ -420,7 +456,26 @@ describe('shipping', () => {
     expect(find(plan.items, { name: 'International' })).toMatchObject({
       reason: 'zone_outside_india',
     })
-    expect(find(plan.items, { name: 'Heavy chairs' })).toMatchObject({ reason: 'product_profile' })
+    // The custom profile comes over with the products the import has, its zone inside it.
+    expect(find(plan.items, { name: 'Heavy chairs', action: 'create' })).toMatchObject({
+      subject: 'delivery_profile',
+      to: '2',
+    })
+    expect(find(plan.items, { name: 'Heavy chairs', action: 'warn' })).toMatchObject({
+      reason: 'profile_products_missing',
+      detail: '1',
+    })
+    expect(plan.ops.find((o) => o.kind === 'shipping_profile')).toMatchObject({
+      id: null,
+      sourceId: 'gid://shopify/DeliveryProfile/2',
+      productIds: ['product-11', 'product-12'],
+    })
+    expect(plan.ops.find((o) => o.kind === 'zone' && o.write.name === 'Heavy India')).toMatchObject(
+      { profileSourceId: 'gid://shopify/DeliveryProfile/2' },
+    )
+    expect(plan.ops.find((o) => o.kind === 'zone' && o.write.name === 'South India')).toMatchObject(
+      { profileSourceId: null },
+    )
     expect(find(plan.items, { name: 'Bengaluru warehouse' })).toMatchObject({
       reason: 'local_pickup',
     })
@@ -434,6 +489,7 @@ describe('shipping', () => {
     local.zones = [
       {
         id: 'zone-mine',
+        profileId: null,
         name: 'south india',
         stateCodes: ['KA'],
         pincodeRules: [{ pattern: '560*', mode: 'include' }],
@@ -542,13 +598,19 @@ describe('running it again', () => {
     expect(sameLines.filter((i) => i.subject === 'shipping_zone').map((i) => i.name)).toEqual([
       'South India',
       'Rest of India',
+      'Heavy India',
+    ])
+    // The custom profile is matched again, with the same products.
+    expect(sameLines.filter((i) => i.subject === 'delivery_profile').map((i) => i.name)).toEqual([
+      'Heavy chairs',
     ])
     expect(sameLines.filter((i) => i.subject === 'location')).toHaveLength(2)
     expect(sameLines.filter((i) => i.subject === 'policy')).toHaveLength(3)
     expect(sameLines.filter((i) => i.subject === 'field')).toHaveLength(4)
     // Matches are remembered, so a later rename on either side keeps them paired.
     expect(after.mapped.locations.size).toBe(2)
-    expect(after.mapped.zones.size).toBe(2)
+    expect(after.mapped.zones.size).toBe(3)
+    expect(after.mapped.shippingProfiles.size).toBe(1)
   })
 })
 

@@ -8,13 +8,16 @@ import {
   addRegistration,
   createMarket,
   createMetafieldDefinition,
+  createShippingProfile,
   createShippingZone,
   defaultRegistrationGstin,
+  getShippingProfile,
   listBusinessGst,
   listLocations,
   listMarkets,
   listMetafieldDefinitions,
   listPolicies,
+  listShippingProfiles,
   listShippingZones,
   type MetafieldOwnerType,
   readStoreProfile,
@@ -22,6 +25,7 @@ import {
   savePolicy,
   saveStoreProfile,
   setMarketEnabled,
+  updateShippingProfile,
   updateShippingZone,
 } from '@commerce/core'
 import { PREFERENCE_LIMITS, parsePreferences } from '@commerce/core/preferences'
@@ -29,7 +33,7 @@ import { customerSegment, type StoreTx, store } from '@commerce/db'
 import { eq } from 'drizzle-orm'
 import { fetchSettingsSource, type Read, type SettingsSource } from './api-settings'
 import { type ClientForOptions, clientFor } from './connection'
-import { findMappings, saveMapping } from './runtime'
+import { findMapping, findMappings, saveMapping } from './runtime'
 import { ImportError } from './service'
 import {
   changes,
@@ -109,7 +113,14 @@ async function loadLocal(
   const fields = []
   for (const owner of FIELD_OWNER_TYPES) fields.push(...(await listMetafieldDefinitions(tx, owner)))
   const okData = <T>(r: Read<T> | null): T | null => (r?.ok ? r.data : null)
-  const zoneIds = (okData(source.profiles) ?? []).flatMap((p) => p.zones.map((z) => z.sourceId))
+  const shopifyProfiles = okData(source.profiles) ?? []
+  const zoneIds = shopifyProfiles.flatMap((p) => p.zones.map((z) => z.sourceId))
+  const profiles = await listShippingProfiles(tx, storeId)
+  const profileProducts = await Promise.all(
+    profiles.map(async (p) =>
+      p.isDefault ? [] : ((await getShippingProfile(tx, storeId, p.id))?.productIds ?? []),
+    ),
+  )
   const defs = (source.fields ?? []).flatMap((f) =>
     f.read.ok ? f.read.data.map((d) => ({ owner: f.owner, def: d })) : [],
   )
@@ -134,6 +145,12 @@ async function loadLocal(
       phone: l.phone ?? '',
     })),
     zones: await listShippingZones(tx),
+    shippingProfiles: profiles.map((p, i) => ({
+      id: p.id,
+      name: p.name,
+      isDefault: p.isDefault,
+      productIds: profileProducts[i] ?? [],
+    })),
     policies: (await listPolicies(ctx)).map((p) => ({
       type: p.type,
       exists: p.pageId !== null,
@@ -164,6 +181,16 @@ async function loadLocal(
         (okData(source.locations) ?? []).map((l) => l.sourceId),
       ),
       zones: await findMappings(tx, SETTINGS_MAPPINGS.zones, zoneIds),
+      shippingProfiles: await findMappings(
+        tx,
+        SETTINGS_MAPPINGS.shippingProfiles,
+        shopifyProfiles.map((p) => p.sourceId),
+      ),
+      products: await findMappings(
+        tx,
+        'products',
+        shopifyProfiles.flatMap((p) => p.productIds),
+      ),
       fields: await findMappings(
         tx,
         SETTINGS_MAPPINGS.fields,
@@ -301,10 +328,21 @@ async function apply(tx: StoreTx, storeId: string, op: SettingsOp): Promise<void
       if (!enabled) await setMarketEnabled(ctx, { id: created.id, enabled: false })
       return
     }
+    case 'shipping_profile': {
+      const write = { name: op.name, productIds: op.productIds }
+      const profile = op.id
+        ? await updateShippingProfile(tx, storeId, op.id, write)
+        : await createShippingProfile(tx, storeId, write)
+      return saveMapping(tx, storeId, SETTINGS_MAPPINGS.shippingProfiles, op.sourceId, profile.id)
+    }
     case 'zone': {
+      // A custom profile's op runs before its zones, so its mapping is already saved.
+      const profileId = op.profileSourceId
+        ? await findMapping(tx, SETTINGS_MAPPINGS.shippingProfiles, op.profileSourceId)
+        : null
       const zone = op.id
         ? await updateShippingZone(tx, storeId, op.id, op.write)
-        : await createShippingZone(tx, storeId, op.write)
+        : await createShippingZone(tx, storeId, { ...op.write, profileId })
       return saveMapping(tx, storeId, SETTINGS_MAPPINGS.zones, op.sourceId, zone.id)
     }
     case 'policy':

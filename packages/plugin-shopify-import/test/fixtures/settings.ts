@@ -147,6 +147,44 @@ const weight = (operator: string, value: number) => ({
   conditionCriteria: { __typename: 'Weight', unit: 'KILOGRAMS', value },
 })
 
+/** The custom profile's products: two the products import brought over, one it did not. */
+export const PROFILE_ITEMS = {
+  deliveryProfile: {
+    profileItems: {
+      pageInfo,
+      nodes: [
+        { product: { id: 'gid://shopify/Product/11' } },
+        { product: { id: 'gid://shopify/Product/12' } },
+        { product: { id: 'gid://shopify/Product/13' } },
+      ],
+    },
+  },
+}
+
+/** The custom profile's one zone: all of India at ₹299. */
+export const HEAVY_ZONES = {
+  deliveryProfile: {
+    profileLocationGroups: [
+      {
+        locationGroup: { id: 'gid://shopify/DeliveryLocationGroup/2' },
+        locationGroupZones: {
+          pageInfo,
+          nodes: [
+            {
+              zone: {
+                id: 'gid://shopify/DeliveryZone/20',
+                name: 'Heavy India',
+                countries: [{ code: { countryCode: 'IN', restOfWorld: false }, provinces: [] }],
+              },
+              methodDefinitions: { nodes: [flat('20', 'Freight', '299.00')] },
+            },
+          ],
+        },
+      },
+    ],
+  },
+}
+
 export const PROFILE_ZONES = {
   deliveryProfile: {
     profileLocationGroups: [
@@ -358,11 +396,13 @@ export function settingsShopify(deny: readonly string[] = [], log: string[] = []
               ? 'locations'
               : query.includes('deliveryProfiles(')
                 ? 'profiles'
-                : query.includes('deliveryProfile(')
-                  ? 'zones'
-                  : query.includes('metafieldDefinitions(')
-                    ? `fields:${variables.ownerType}`
-                    : 'shop'
+                : query.includes('profileItems(')
+                  ? 'items'
+                  : query.includes('deliveryProfile(')
+                    ? 'zones'
+                    : query.includes('metafieldDefinitions(')
+                      ? `fields:${variables.ownerType}`
+                      : 'shop'
     log.push(variables.id ? `${op}:${variables.id}` : op)
     if (deny.some((d) => op === d || op.startsWith(`${d}:`))) {
       return new Response(
@@ -376,7 +416,10 @@ export function settingsShopify(deny: readonly string[] = [], log: string[] = []
     if (op === 'shopFields') return json(SHOP_FIELDS)
     if (op === 'locations') return json(LOCATIONS)
     if (op === 'profiles') return json(PROFILES)
-    if (op === 'zones') return json(PROFILE_ZONES)
+    if (op === 'items') return json(PROFILE_ITEMS)
+    if (op === 'zones') {
+      return json(variables.id === 'gid://shopify/DeliveryProfile/2' ? HEAVY_ZONES : PROFILE_ZONES)
+    }
     if (op === 'policies') return json(POLICIES)
     if (op === 'segments') return json(SEGMENTS)
     if (op === 'markets') return json(MARKETS)

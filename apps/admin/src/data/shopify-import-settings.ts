@@ -176,8 +176,8 @@ export const shopifyImportSettingsContent = {
     zone_no_rates: (v: ReasonValues) =>
       `${v.name} has no rates that could come over, so it was not created.`,
     unknown_state: (v: ReasonValues) => `${v.detail} in ${v.name} is not an Indian state here.`,
-    product_profile: (v: ReasonValues) =>
-      `${v.name} has rates for some products only. Rates here apply to every product.`,
+    profile_products_missing: (v: ReasonValues) =>
+      `${v.detail} products of ${v.name} are not imported yet. Import products, then import settings again to add them.`,
     carrier_rates: (v: ReasonValues) =>
       `${v.name} is calculated live by ${v.detail || 'a carrier'}. Connect a courier here instead.`,
     mixed_conditions: (v: ReasonValues) =>

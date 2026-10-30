@@ -1,10 +1,9 @@
 import 'server-only'
 import { loadEnv } from '@commerce/config'
 import {
+  cartShippingHintFor,
   type DeliveryEstimate,
   domesticShippingProvider,
-  freeShippingThreshold,
-  loadRateZones,
   parseShippingSettings,
   previewCartParcels,
   quoteCartShipping,
@@ -116,13 +115,14 @@ export async function estimateForPincode(
 /**
  * What the cart can say about shipping before there is an address: whether
  * the store charges for it at all, and the order value from which it is free
- * everywhere (null when there is no such promise).
+ * everywhere for the cart's products, by their shipping profiles (null when
+ * there is no such promise).
  */
 export async function cartShippingHint(
   tx: StoreTx,
+  cartId: string | null,
 ): Promise<{ charged: boolean; freeAbovePaise: number | null }> {
-  const zones = await loadRateZones(tx)
-  return { charged: zones.length > 0, freeAbovePaise: freeShippingThreshold(zones) }
+  return cartShippingHintFor(tx, cartId)
 }
 
 /** One shipping choice as the checkout shows it. */

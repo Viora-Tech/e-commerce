@@ -43,10 +43,20 @@ export type LocalRate = {
 
 export type LocalZone = {
   id: string
+  /** Its shipping profile; null counts as General. */
+  profileId: string | null
   name: string
   stateCodes: string[]
   pincodeRules: ShippingZoneWrite['pincodeRules']
   rates: LocalRate[]
+}
+
+export type LocalShippingProfile = {
+  id: string
+  name: string
+  isDefault: boolean
+  /** Products placed in it (empty for General, which holds the rest). */
+  productIds: string[]
 }
 
 export type LocalPolicy = {
@@ -75,6 +85,7 @@ export type LocalSettings = {
   gstins: string[]
   locations: LocalLocation[]
   zones: LocalZone[]
+  shippingProfiles: LocalShippingProfile[]
   policies: LocalPolicy[]
   /** Names of the customer segments here. */
   segments: string[]
@@ -84,6 +95,9 @@ export type LocalSettings = {
   mapped: {
     locations: ReadonlyMap<string, string>
     zones: ReadonlyMap<string, string>
+    shippingProfiles: ReadonlyMap<string, string>
+    /** Shopify product ids → ours, from the products import (custom shipping profiles). */
+    products: ReadonlyMap<string, string>
     fields: ReadonlyMap<string, string>
     /** Shopify content type ids → ours, for extra fields that link to entries. */
     contentTypes: ReadonlyMap<string, string>
@@ -96,6 +110,7 @@ export type LocalSettings = {
 export const SETTINGS_MAPPINGS = {
   locations: 'settings_locations',
   zones: 'settings_shipping_zones',
+  shippingProfiles: 'settings_shipping_profiles',
   fields: 'metafield_definitions',
 } as const
 
@@ -107,7 +122,22 @@ export type SettingsOp =
   | { kind: 'segment'; name: string; rules: SegmentRules }
   /** Home page title / meta description for search results (only the parts given). */
   | { kind: 'seo'; title?: string | undefined; description?: string | undefined }
-  | { kind: 'zone'; id: string | null; sourceId: string; write: ShippingZoneWrite }
+  /** A custom shipping profile and its products; zones follow as `zone` ops naming it. */
+  | {
+      kind: 'shipping_profile'
+      id: string | null
+      sourceId: string
+      name: string
+      productIds: string[]
+    }
+  /** `profileSourceId`: the Shopify profile a new zone joins; null for General. */
+  | {
+      kind: 'zone'
+      id: string | null
+      sourceId: string
+      profileSourceId: string | null
+      write: ShippingZoneWrite
+    }
   | { kind: 'policy'; type: PolicyType; title: string; body: RichText; published: boolean }
   | { kind: 'field'; sourceId: string; write: MetafieldDefinitionWrite }
   /** A Shopify market for other countries (settings-plan-markets). */

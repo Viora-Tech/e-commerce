@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import type { ShippingOptionPart } from './profiles'
 
 /**
  * Shipping rates: which zone an address falls in and what each of its rates
@@ -63,6 +64,8 @@ export type ShippingRateOption = {
   codSurchargePaise: number | null
   minTransitDays: number | null
   maxTransitDays: number | null
+  /** A cart from several shipping profiles: the rate each profile's products ship at (`profiles.ts`). */
+  parts?: ShippingOptionPart[] | undefined
 }
 
 /** A rule pattern: six digits, or 1 to 5 digits followed by `*`. */
@@ -257,6 +260,8 @@ export type ShippingRateWrite = z.infer<typeof ShippingRateWriteSchema>
 
 export const ShippingZoneWriteSchema = z.object({
   name: z.string().trim().min(1, 'Give the zone a name').max(80),
+  /** The shipping profile a new zone belongs to; omitted means General. Ignored on update. */
+  profileId: z.uuid().nullable().optional(),
   stateCodes: z
     .array(
       z

@@ -262,7 +262,12 @@ export const routes = {
     paymentsAdvanced: () => '/settings/payments/advanced',
     checkout: () => '/settings/checkout',
     shipping: () => '/settings/shipping',
-    newShippingZone: () => '/settings/shipping/zones/new',
+    newShippingZone: (profileId?: string) =>
+      profileId
+        ? `/settings/shipping/zones/new?profile=${id(profileId)}`
+        : '/settings/shipping/zones/new',
+    newShippingProfile: () => '/settings/shipping/profiles/new',
+    shippingProfile: (profileId: string) => `/settings/shipping/profiles/${id(profileId)}`,
     shippingZone: (zoneId: string) => `/settings/shipping/zones/${id(zoneId)}`,
     taxes: () => '/settings/taxes',
     costs: () => '/settings/costs',

@@ -1240,6 +1240,13 @@
       "when": 1793367655650,
       "tag": "0192_session_reauth",
       "breakpoints": true
+    },
+    {
+      "idx": 177,
+      "version": "7",
+      "when": 1793376704515,
+      "tag": "0193_shipping_profiles",
+      "breakpoints": true
     }
   ]
 }

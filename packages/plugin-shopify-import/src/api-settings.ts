@@ -90,6 +90,8 @@ export type NDeliveryProfile = {
   name: string
   default: boolean
   zones: NDeliveryZone[]
+  /** Shopify product ids in the profile; empty for the default one (it holds the rest). */
+  productIds: string[]
 }
 
 export type NPolicy = { type: string; title: string; body: string }
@@ -318,6 +320,13 @@ const PROFILE_ZONES_QUERY = `query DeliveryProfileZones($id: ID!, $group: ID, $c
   }
 }`
 
+/** The products of a custom profile, a page at a time. */
+const PROFILE_ITEMS_QUERY = `query DeliveryProfileItems($id: ID!, $cursor: String) {
+  deliveryProfile(id: $id) {
+    profileItems(first: 250, after: $cursor) { ${PAGE_INFO} nodes { product { id } } }
+  }
+}`
+
 type GCondition = {
   field: string
   operator: string
@@ -425,6 +434,24 @@ async function profileZones(client: ShopifyClient, id: string): Promise<NDeliver
   return zones
 }
 
+async function profileProducts(client: ShopifyClient, id: string): Promise<string[]> {
+  const ids: string[] = []
+  for await (const nodes of client.paginate<{ product: { id: string } | null }>(
+    PROFILE_ITEMS_QUERY,
+    (d) =>
+      (d as { deliveryProfile: { profileItems: Page<{ product: { id: string } | null }> } | null })
+        .deliveryProfile?.profileItems ?? {
+        nodes: [],
+        pageInfo: { hasNextPage: false, endCursor: null },
+      },
+    { id },
+    260,
+  )) {
+    for (const n of nodes) if (n.product) ids.push(n.product.id)
+  }
+  return ids
+}
+
 async function fetchProfiles(client: ShopifyClient): Promise<NDeliveryProfile[]> {
   const out: NDeliveryProfile[] = []
   for await (const nodes of client.paginate<{ id: string; name: string; default: boolean }>(
@@ -436,13 +463,14 @@ async function fetchProfiles(client: ShopifyClient): Promise<NDeliveryProfile[]>
     60,
   )) {
     for (const p of nodes) {
-      // Only the default profile's rates can come over (they apply to every product here);
-      // the others are named in the report, so their zones are not read.
+      // The default profile becomes General; a custom one becomes a shipping profile here,
+      // with its products (matched to the products the import brought over).
       out.push({
         sourceId: p.id,
         name: p.name.trim(),
         default: p.default,
-        zones: p.default ? await profileZones(client, p.id) : [],
+        zones: await profileZones(client, p.id),
+        productIds: p.default ? [] : await profileProducts(client, p.id),
       })
     }
   }

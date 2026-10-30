@@ -5,9 +5,10 @@ import type { SettingsItem, SettingsRatePreview } from './settings-client'
 import {
   type LocalRate,
   type LocalSettings,
+  type LocalShippingProfile,
+  type LocalZone,
   type PartPlan,
   SETTINGS_MAPPINGS,
-  type SettingsOp,
   same,
 } from './settings-plan'
 
@@ -91,25 +92,22 @@ function zoneStates(zone: NDeliveryZone, items: SettingsItem[]): string[] | null
   return codes.size ? [...codes].sort() : null
 }
 
-export function planShipping(
-  profiles: readonly NDeliveryProfile[],
-  locations: readonly NLocation[] | null,
+type ZoneScope = {
+  /** The Shopify profile the zones belong to; null for the default one (General here). */
+  profileSourceId: string | null
+  /** This store's zones in the matching profile (none for a profile still to be created). */
+  localZones: readonly LocalZone[]
+}
+
+function planZones(
+  zones: readonly NDeliveryZone[],
+  scope: ZoneScope,
   local: LocalSettings,
-): PartPlan {
-  const items: SettingsItem[] = []
-  const ops: SettingsOp[] = []
-  const taken = new Set<string>()
-  for (const p of profiles) {
-    if (!p.default) {
-      items.push({
-        action: 'manual',
-        subject: 'delivery_profile',
-        name: p.name,
-        reason: 'product_profile',
-      })
-    }
-  }
-  const zones = profiles.find((p) => p.default)?.zones ?? []
+  taken: Set<string>,
+  out: PartPlan,
+): void {
+  const { items, ops } = out
+  const { profileSourceId } = scope
   for (const zone of zones) {
     const others = zone.countries.filter((c) => c.code !== 'IN')
     const states = zoneStates(zone, items)
@@ -137,8 +135,8 @@ export function planShipping(
     }
     const mappedId = local.mapped.zones.get(zone.sourceId)
     const match =
-      local.zones.find((z) => z.id === mappedId && !taken.has(z.id)) ??
-      local.zones.find((z) => same(z.name, zone.name) && !taken.has(z.id)) ??
+      scope.localZones.find((z) => z.id === mappedId && !taken.has(z.id)) ??
+      scope.localZones.find((z) => same(z.name, zone.name) && !taken.has(z.id)) ??
       null
     // Rates the merchant already has keep their id, COD fee, free-above and delivery days.
     const reused = new Set<string>()
@@ -173,7 +171,7 @@ export function planShipping(
     const shown = rates.map(preview)
     if (!match) {
       items.push({ action: 'create', subject: 'shipping_zone', name: write.name, rates: shown })
-      ops.push({ kind: 'zone', id: null, sourceId: zone.sourceId, write })
+      ops.push({ kind: 'zone', id: null, sourceId: zone.sourceId, profileSourceId, write })
       continue
     }
     taken.add(match.id)
@@ -190,15 +188,102 @@ export function planShipping(
       })
     } else {
       items.push({ action: 'update', subject: 'shipping_zone', name: match.name, rates: shown })
-      ops.push({ kind: 'zone', id: match.id, sourceId: zone.sourceId, write })
+      ops.push({ kind: 'zone', id: match.id, sourceId: zone.sourceId, profileSourceId, write })
     }
+  }
+}
+
+/**
+ * A custom Shopify profile as a shipping profile here, matched by import mapping, then name.
+ * Its products are the ones the products import brought over; the rest are counted in a warning.
+ */
+function planProfile(
+  p: NDeliveryProfile,
+  local: LocalSettings,
+  out: PartPlan,
+): LocalShippingProfile | null {
+  const custom = local.shippingProfiles.filter((x) => !x.isDefault)
+  const mappedId = local.mapped.shippingProfiles.get(p.sourceId)
+  const match =
+    custom.find((x) => x.id === mappedId) ?? custom.find((x) => same(x.name, p.name)) ?? null
+  const productIds = [
+    ...new Set(p.productIds.flatMap((id) => local.mapped.products.get(id) ?? [])),
+  ].sort()
+  const missing = p.productIds.length - productIds.length
+  const name = (match?.name ?? p.name).slice(0, 80) || 'Shipping profile'
+  const to = String(productIds.length)
+  if (missing > 0) {
+    out.items.push({
+      action: 'warn',
+      subject: 'delivery_profile',
+      name: p.name,
+      reason: 'profile_products_missing',
+      detail: String(missing),
+    })
+  }
+  if (match && [...match.productIds].sort().join() === productIds.join()) {
+    out.items.push({ action: 'same', subject: 'delivery_profile', name, to })
+    out.ops.push({
+      kind: 'map',
+      resource: SETTINGS_MAPPINGS.shippingProfiles,
+      sourceId: p.sourceId,
+      localId: match.id,
+    })
+    return match
+  }
+  out.items.push({
+    action: match ? 'update' : 'create',
+    subject: 'delivery_profile',
+    name,
+    from: match ? String(match.productIds.length) : null,
+    to,
+  })
+  out.ops.push({
+    kind: 'shipping_profile',
+    id: match?.id ?? null,
+    sourceId: p.sourceId,
+    name,
+    productIds,
+  })
+  return match
+}
+
+/**
+ * Shopify's default profile becomes General's zones; each custom profile becomes a shipping
+ * profile here with its products, then its own zones and rates.
+ */
+export function planShipping(
+  profiles: readonly NDeliveryProfile[],
+  locations: readonly NLocation[] | null,
+  local: LocalSettings,
+): PartPlan {
+  const out: PartPlan = { items: [], ops: [] }
+  const taken = new Set<string>()
+  const general = local.shippingProfiles.find((x) => x.isDefault) ?? null
+  const ordered = [...profiles].sort((a, b) => Number(b.default) - Number(a.default))
+  for (const p of ordered) {
+    if (p.default) {
+      const localZones = local.zones.filter(
+        (z) => z.profileId === null || z.profileId === general?.id,
+      )
+      planZones(p.zones, { profileSourceId: null, localZones }, local, taken, out)
+      continue
+    }
+    const match = planProfile(p, local, out)
+    const localZones = match ? local.zones.filter((z) => z.profileId === match.id) : []
+    planZones(p.zones, { profileSourceId: p.sourceId, localZones }, local, taken, out)
   }
   for (const l of locations ?? []) {
     if (l.localPickup && !l.app) {
-      items.push({ action: 'manual', subject: 'location', name: l.name, reason: 'local_pickup' })
+      out.items.push({
+        action: 'manual',
+        subject: 'location',
+        name: l.name,
+        reason: 'local_pickup',
+      })
     }
   }
-  return { items, ops }
+  return out
 }
 
 /* ------------------------------------------------------------------ packages */

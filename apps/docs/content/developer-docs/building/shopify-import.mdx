@@ -361,13 +361,15 @@ Every plan line is codes (`action`, `subject`, `reason`), turned into words by
 - New locations are created with `saveLocationDetails`: no stock, not the default, not selling
   online. Shopify's first shipping location only takes over the store's first location while it
   still has the generic name `Default location`.
-- Shipping maps only the default delivery profile. Shopify's upper bounds are inclusive and ours
+- Shipping maps the default delivery profile to General and each custom profile to a shipping
+  profile with its products (matched through the products import's `products` mapping; ones not
+  imported yet are counted in a warning), each with its own zones. Shopify's upper bounds are inclusive and ours
   exclusive, so a `<=` bound becomes `max + 1` (paise or grams). A rate the merchant already has
   (same name) keeps its id, COD fee, free-above and delivery days.
 - Saved packages cannot be read over the Admin API (only update/delete mutations exist), so that
   part only says so.
 - Matches are stored in `shopify_import_mapping` (`settings_locations`,
-  `settings_shipping_zones`, and `metafield_definitions` shared with the main import), so a second
+  `settings_shipping_zones`, `settings_shipping_profiles`, and `metafield_definitions` shared with the main import), so a second
   import plans only `same` lines.
 
 ## Tests

@@ -3,6 +3,9 @@ import ZoneForm from '@/components/shipping-zones/zone-form'
 
 export const metadata: Metadata = { title: 'Create shipping zone' }
 
-export default function NewShippingZonePage() {
-  return <ZoneForm zone={null} />
+type Props = { searchParams: Promise<{ profile?: string | string[] }> }
+
+export default async function NewShippingZonePage({ searchParams }: Props) {
+  const { profile } = await searchParams
+  return <ZoneForm zone={null} profileId={typeof profile === 'string' ? profile : null} />
 }

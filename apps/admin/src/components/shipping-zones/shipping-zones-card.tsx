@@ -3,9 +3,7 @@
 import { permissions } from '@commerce/core/permissions'
 import { Plus, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
 import EmptyState from '@/components/layout/empty-state'
 import StatusChip from '@/components/layout/status-chip'
 import SettingsCard from '@/components/settings/settings-card'
@@ -17,9 +15,16 @@ import { stateName } from '@/data/india'
 import { shippingRatesContent } from '@/data/shipping-rates'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
-import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import { describePrice, fromRate, type LoadedZone } from './form-state'
+
+type ShippingZonesCardProps = {
+  /** The profile's zones, with their rates. */
+  zones: LoadedZone[]
+  profileId: string
+  /** The General profile: an empty list there means delivery is free. */
+  general: boolean
+}
 
 type ListCopy = (typeof shippingRatesContent)['list']
 
@@ -38,59 +43,36 @@ function coverage(copy: ListCopy, zone: LoadedZone): string {
 
 const zoneHref = (id: string) => routes.settings.shippingZone(id)
 
-/** Settings → Shipping → Shipping rates: every zone with what it covers and charges. */
-export default function ShippingZonesCard() {
+/** A shipping profile's delivery areas: every zone with what it covers and charges. */
+export default function ShippingZonesCard({ zones, profileId, general }: ShippingZonesCardProps) {
   // Hooks
   const ratesCopy = useCopy(shippingRatesContent)
   const fmt = useFormat()
   const { hasPermission } = usePermissions()
-  const [zones, setZones] = useState<LoadedZone[] | null>(null)
-  const [failed, setFailed] = useState(false)
-
-  useEffect(() => {
-    let live = true
-    api.shipping.zones
-      .list()
-      .then((z) => {
-        if (live) setZones(z)
-      })
-      .catch(() => {
-        if (live) setFailed(true)
-      })
-    return () => {
-      live = false
-    }
-  }, [])
 
   // Render logic
   const copy = ratesCopy.list
   const canManage = hasPermission(permissions.SETTINGS_MANAGE)
   const create = canManage ? (
-    <Button nativeButton={false} render={<Link href={routes.settings.newShippingZone()} />}>
+    <Button
+      nativeButton={false}
+      render={<Link href={routes.settings.newShippingZone(profileId)} />}
+    >
       <Plus />
       {copy.create}
     </Button>
   ) : null
 
   // Early returns
-  if (failed || zones === null || zones.length === 0) {
+  if (zones.length === 0) {
     return (
       <SettingsCard title={copy.heading} description={copy.meta}>
-        {failed ? (
-          <p className="text-body text-danger">{copy.loadFailed}</p>
-        ) : zones === null ? (
-          <div className="flex flex-col gap-2">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-          </div>
-        ) : (
-          <EmptyState
-            icon={Truck}
-            heading={copy.empty.heading}
-            body={copy.empty.body}
-            action={create}
-          />
-        )}
+        <EmptyState
+          icon={Truck}
+          heading={general ? copy.empty.heading : ratesCopy.profile.zones.noAreasHeading}
+          body={general ? copy.empty.body : ratesCopy.profile.zones.noAreasBody}
+          action={create}
+        />
       </SettingsCard>
     )
   }

@@ -43,7 +43,7 @@ export default async function CartContents({ storeId }: CartContentsProps) {
   const discount = await cartDiscountView(cart.id, cart.discountCode)
   const discountPaise = discount?.amountPaise ?? 0
   const total = Math.max(0, cart.subtotalPaise - discountPaise)
-  const hint = await inStore(storeId, (tx) => cartShippingHint(tx))
+  const hint = await inStore(storeId, (tx) => cartShippingHint(tx, cart.id))
   const threshold = discount?.freeShipping ? null : hint.freeAbovePaise
   const freeNow = discount?.freeShipping === true || (threshold !== null && total >= threshold)
 

@@ -14,7 +14,7 @@ import HealthLine from '@/components/settings/health-line'
 import ShippingPolicyFields from '@/components/settings/shipping-policy-fields'
 import ShippingTryPin from '@/components/settings/shipping-try-pin'
 import WhatsThisHelp from '@/components/settings/whats-this-help'
-import ShippingZonesCard from '@/components/shipping-zones/shipping-zones-card'
+import ShippingProfilesCard from '@/components/shipping-zones/shipping-profiles-card'
 import { SETTINGS_BACK } from '@/data/settings'
 import { shippingSettingsContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
@@ -152,7 +152,7 @@ export default function ShippingPage() {
       />
 
       <Section id="rates">
-        <ShippingZonesCard />
+        <ShippingProfilesCard />
       </Section>
       <Section id="boxes">
         <BoxPresetsFields

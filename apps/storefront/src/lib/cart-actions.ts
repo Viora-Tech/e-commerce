@@ -117,7 +117,7 @@ export async function cartDrawerAction() {
   return inStore(storeId, async (tx) => {
     const cart = cartId ? await getCart({ storeId, tx }, cartId) : null
     const open = cart?.status === 'open' ? cart : null
-    const hint = await cartShippingHint(tx)
+    const hint = await cartShippingHint(tx, open?.id ?? null)
     return {
       lines: (open?.lines ?? []).map((l) => ({
         id: l.id,

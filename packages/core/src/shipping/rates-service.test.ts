@@ -19,11 +19,11 @@ import { ShippingRateUnavailable, ShippingUnavailable } from '../errors'
 import { placeOrder } from '../order/place-order'
 import { FakePaymentProvider } from '../providers/payment'
 import { computeGst } from '../tax/gst'
+import { quoteCartShipping } from './profiles-service'
 import {
   createShippingZone,
   deleteShippingZone,
   listShippingZones,
-  quoteCartShipping,
   storeFreeShippingThreshold,
   updateShippingZone,
 } from './rates-service'

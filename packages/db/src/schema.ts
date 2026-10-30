@@ -1922,6 +1922,49 @@ export const courierWalletBalance = pgTable(
   (t) => [uniqueIndex('courier_wallet_balance_store_provider').on(t.storeId, t.provider)],
 )
 
+/**
+ * A shipping profile: a set of products with their own zones and rates (Shopify's delivery
+ * profiles). Every store has one General profile (`is_default`) holding every product not
+ * placed in another profile; a product sits in at most one custom profile. A cart with
+ * products from several profiles pays one rate per profile, summed (core `quoteProfiles`).
+ */
+export const shippingProfile = pgTable(
+  'shipping_profile',
+  {
+    id: id(),
+    storeId: storeId(),
+    name: text('name').notNull(),
+    isDefault: boolean('is_default').notNull().default(false),
+    position: integer('position').notNull().default(0),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('shipping_profile_one_default').on(t.storeId).where(sql`${t.isDefault}`),
+    index('shipping_profile_store').on(t.storeId, t.position),
+  ],
+)
+
+/** A product placed in a custom shipping profile; the General profile keeps no rows. */
+export const shippingProfileProduct = pgTable(
+  'shipping_profile_product',
+  {
+    id: id(),
+    storeId: storeId(),
+    profileId: uuid('profile_id')
+      .notNull()
+      .references(() => shippingProfile.id, { onDelete: 'cascade' }),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => product.id, { onDelete: 'cascade' }),
+  },
+  (t) => [
+    // One profile per product: adding it to another profile moves it.
+    uniqueIndex('shipping_profile_product_unique').on(t.storeId, t.productId),
+    index('shipping_profile_product_profile').on(t.profileId),
+  ],
+)
+
 /** One PIN code rule of a shipping zone: `560*` (prefix) or `560001` (exact). */
 export type ShippingPincodeRule = { pattern: string; mode: 'include' | 'exclude' }
 
@@ -1940,6 +1983,11 @@ export const shippingZone = pgTable(
     storeId: storeId(),
     name: text('name').notNull(),
     /**
+     * The shipping profile whose products these rates price. Null counts as the store's
+     * General profile, so a zone written without one (seeds, older code) still applies.
+     */
+    profileId: uuid('profile_id').references(() => shippingProfile.id, { onDelete: 'cascade' }),
+    /**
      * ISO 3166-1 countries the zone covers (Markets). `{IN}` is the zone as it always was;
      * `state_codes` and the PIN rules only narrow it inside India.
      */
@@ -1951,7 +1999,10 @@ export const shippingZone = pgTable(
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index('shipping_zone_store').on(t.storeId, t.position)],
+  (t) => [
+    index('shipping_zone_store').on(t.storeId, t.position),
+    index('shipping_zone_profile').on(t.profileId),
+  ],
 )
 
 export type ShippingRateCondition = 'none' | 'order_value' | 'weight'
@@ -2015,7 +2066,18 @@ export type OrderTaxOrigin = {
 }
 
 /** What the shopper picked at checkout, kept on the order as it was charged. */
+export type OrderShippingProfilePart = {
+  profileId: string
+  profileName: string
+  rateId: string
+  rateName: string
+  zoneId: string
+  zoneName: string
+  pricePaise: number
+}
+
 export type OrderShippingSnapshot = {
+  /** The rate's id; rates from several shipping profiles join theirs with `+`. */
   rateId: string
   rateName: string
   zoneId: string
@@ -2028,6 +2090,8 @@ export type OrderShippingSnapshot = {
   codSurchargePaise: number | null
   minTransitDays: number | null
   maxTransitDays: number | null
+  /** A cart from several shipping profiles: the rate charged for each profile's products. */
+  profiles?: OrderShippingProfilePart[] | undefined
   /** Delivery options app: the option and the exact route the price was quoted on. */
   delivery?: OrderDeliveryRoute | undefined
 }

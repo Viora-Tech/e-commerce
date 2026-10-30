@@ -94,8 +94,8 @@ const SETTINGS_REASONS = [
   'zone_no_rates',
   /** A Shopify region name that is not an Indian state here. */
   'unknown_state',
-  /** A shipping profile for some products only; rates here apply to every product. */
-  'product_profile',
+  /** Products of a Shopify shipping profile not imported here yet; import products, then again. */
+  'profile_products_missing',
   /** Rates calculated live by a carrier or app. */
   'carrier_rates',
   /** A rate limited by order value and weight at once. */
