@@ -12,7 +12,7 @@ import { CardContent } from '@commerce/ui/shadcn/card'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
@@ -28,7 +28,11 @@ type Connection = Awaited<ReturnType<typeof api.shopifyImport.connection>>
 
 const base = shopifyImportContent.base
 
-/** Connect with a custom-app token, then choose what to bring over. */
+/**
+ * Connect with a custom-app token, then choose what to bring over. `?edit=1` (the header's
+ * "Edit connection", or Change on the card) shows the connect form again over a saved
+ * connection; connecting there replaces it.
+ */
 export default function ConnectPage() {
   // Hooks
   const copy = useCopy(shopifyImportContent.connect)
@@ -36,6 +40,7 @@ export default function ConnectPage() {
   const resources = useCopy(shopifyImportContent.resources)
   const fmt = useFormat()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [connection, setConnection] = useState<Connection | undefined>(undefined)
   const [chosen, setChosen] = useState<ImportResource[]>([...IMPORT_RESOURCES])
   const [busy, setBusy] = useState(false)
@@ -97,6 +102,15 @@ export default function ConnectPage() {
     }
   }
 
+  const handleChange = () => router.replace(`${base}/connect?edit=1`)
+
+  const handleCancelChange = () => router.replace(`${base}/connect`)
+
+  const handleReconnected = (next: NonNullable<Connection>) => {
+    setConnection(next)
+    router.replace(`${base}/connect`)
+  }
+
   const handlePreview = async () => {
     setBusy(true)
     try {
@@ -121,6 +135,19 @@ export default function ConnectPage() {
   }
   if (connection === null) {
     return <ConnectForm onConnected={setConnection} />
+  }
+  if (searchParams.get('edit') === '1') {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between gap-4">
+          <p className="text-body text-muted-foreground">{copy.changeIntro}</p>
+          <Button type="button" variant="outline" size="sm" onClick={handleCancelChange}>
+            {copy.cancelChange}
+          </Button>
+        </div>
+        <ConnectForm onConnected={handleReconnected} />
+      </div>
+    )
   }
 
   // Render logic
@@ -147,15 +174,20 @@ export default function ConnectPage() {
       <DataCard
         title={copy.connection}
         action={
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleDisconnect}
-            disabled={busy}
-          >
-            {copy.disconnect}
-          </Button>
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={handleChange}>
+              {copy.change}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleDisconnect}
+              disabled={busy}
+            >
+              {copy.disconnect}
+            </Button>
+          </div>
         }
       >
         <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-body">

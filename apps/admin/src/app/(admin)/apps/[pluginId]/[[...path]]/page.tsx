@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import { ADMIN_APPS, matchAppPage } from '@/apps/registry'
 import AppListing from '@/components/apps/app-listing'
@@ -8,6 +9,21 @@ import { routes } from '@/lib/routes'
 import { orNoStore } from '@/lib/store-guard'
 
 type Params = { params: Promise<{ pluginId: string; path?: string[] }> }
+
+/** The tab reads the app's name, with the page's tab label after the first page. */
+export async function generateMetadata({ params }: Params): Promise<Metadata> {
+  const { pluginId, path = [] } = await params
+  const context = await serverContext()
+  const apps = await call(appRouter.apps.list, undefined, { context }).catch(() => [])
+  const app = apps.find((a) => a.id === pluginId)
+  if (!app) return { title: 'Apps' }
+  const page = app.installed ? matchAppPage(app.admin.pages, path)?.page : undefined
+  const first = app.admin.pages.find((p) => p.navLabel)
+  return {
+    title:
+      page?.navLabel && page.path !== first?.path ? `${page.navLabel} · ${app.name}` : app.name,
+  }
+}
 
 /**
  * An installed app's pages, Shopify style: `/apps/<pluginId>/<path>` inside the
