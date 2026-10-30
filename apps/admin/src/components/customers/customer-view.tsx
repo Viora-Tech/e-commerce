@@ -18,6 +18,7 @@ import CustomerActivityCard from './customer-activity-card'
 import CustomerAddressesCard from './customer-addresses-card'
 import CustomerBusinessCard from './customer-business-card'
 import { type CustomerDetail, nextStepFor } from './customer-detail-types'
+import CustomerGiftCardsCard from './customer-gift-cards-card'
 import CustomerHeader from './customer-header'
 import CustomerNextStep from './customer-next-step'
 import CustomerNoteCard from './customer-note-card'
@@ -188,6 +189,7 @@ export default function CustomerView({
             <CustomerOrdersCard customer={customer} />
             <CustomerActivityCard customer={customer} />
             <MessagesCard messages={customer.notifications} />
+            <CustomerGiftCardsCard customerId={customer.id} />
             {appCards.map((id) => {
               const Card = ADMIN_APPS[id]?.CustomerCard
               return Card ? <Card key={id} customerId={customer.id} /> : null
