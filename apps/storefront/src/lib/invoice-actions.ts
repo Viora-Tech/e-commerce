@@ -59,8 +59,10 @@ export async function payInvoiceAction(token: string): Promise<PayInvoiceResult>
   })
   if (!found) return { error: content.unavailable }
   const secret = settingsSecret()
+  // A draft takes its order number when it converts below, so the pages follow the new one.
+  let orderNumber = found.number
   const thankYou = (): Promise<never> =>
-    redirectToOrderPage(thankYouPath(found.number, orderViewToken(orderId, secret)))
+    redirectToOrderPage(thankYouPath(orderNumber, orderViewToken(orderId, secret)))
   if (!found.payable) await thankYou()
   if (!found.provider) return { error: content.noGateway }
   const provider = found.provider
@@ -72,6 +74,7 @@ export async function payInvoiceAction(token: string): Promise<PayInvoiceResult>
         convertDraftForOnlinePayment({ storeId, tx }, orderId, provider.id),
       )
       if (!converted) return { error: content.unavailable }
+      orderNumber = converted.orderNumber
       await nudgeOutbox(storeId)
       started = await startPaymentAttempt(db(), storeId, converted.attemptId, provider)
     } else {
@@ -86,7 +89,7 @@ export async function payInvoiceAction(token: string): Promise<PayInvoiceResult>
   }
   if (started?.becameCaptured) await nudgeOutbox(storeId)
   const view = orderViewToken(orderId, secret)
-  if (started?.session?.kind === 'client') await redirectToOrderPage(payPath(found.number, view))
+  if (started?.session?.kind === 'client') await redirectToOrderPage(payPath(orderNumber, view))
   if (started?.session?.kind === 'redirect') redirect(started.session.url)
   await thankYou()
 }

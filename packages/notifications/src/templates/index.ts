@@ -169,6 +169,7 @@ function eyebrowFor(template: TemplateId, d: TemplateData): string {
     case 'return_exchanged':
       return d.returnInfo ? `Return ${d.returnInfo.label}` : `Order #${d.orderNumber}`
     default:
+      if (d.draftNumber) return `Order #D${d.draftNumber}`
       return d.orderNumber ? `Order #${d.orderNumber}` : d.storeName
   }
 }

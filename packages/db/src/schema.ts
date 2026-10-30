@@ -1082,7 +1082,16 @@ export const order = pgTable(
   {
     id: id(),
     storeId: storeId(),
+    /**
+     * The order number (#2374). A draft saved since 0200 holds minus its draft number here
+     * until it converts and takes the next order number, so drafts leave no gaps in the series.
+     */
     number: integer('number').notNull(),
+    /**
+     * The draft's own number (#D12, audit #26), from `store_counter` `draft`. Kept after the
+     * draft converts. Null on orders that never were drafts.
+     */
+    draftNumber: integer('draft_number'),
     customerId: uuid('customer_id').references(() => customer.id),
     email: text('email'),
     phone: text('phone'),
@@ -1268,6 +1277,10 @@ export const order = pgTable(
     /* Thank-you, pay and track pages find an order by its number. Unique per store (0177);
        numbers come from `store_counter`. */
     uniqueIndex('order_store_number').on(t.storeId, t.number),
+    /** A draft is found by its #D number (search "D12"); one per store. */
+    uniqueIndex('order_store_draft_number')
+      .on(t.storeId, t.draftNumber)
+      .where(sql`${t.draftNumber} is not null`),
     /** The All orders list: newest first. */
     index('order_store_placed').on(t.storeId, t.placedAt),
     index('order_customer').on(t.customerId).where(sql`${t.customerId} is not null`),

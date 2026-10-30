@@ -56,7 +56,7 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
       etaLabel: '5 to 7 working days',
     },
   },
-  draft_invoice: { ...base, actionUrl: 'https://waimers.example/pay/42' },
+  draft_invoice: { ...base, draftNumber: 12, actionUrl: 'https://waimers.example/pay/42' },
   checkout_recovery: {
     ...base,
     orderNumber: undefined,

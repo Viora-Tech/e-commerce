@@ -10,6 +10,10 @@ import {
   transferTemplates,
 } from './content-parts'
 
+/** A draft invoice's number after the #: "D12" while it is a draft, else the order number. */
+export const draftRef = (d: TemplateData): string =>
+  d.draftNumber ? `D${d.draftNumber}` : String(d.orderNumber)
+
 export const templateContent: Record<TemplateId, TemplateCopy> = {
   ...platformTemplates,
   ...supplierTemplates,
@@ -59,12 +63,12 @@ export const templateContent: Record<TemplateId, TemplateCopy> = {
       `${d.storeName} order #${d.orderNumber} has shipped.${d.waybill ? ` AWB ${d.waybill}.` : ''}${d.trackingUrl ? ` Track: ${d.trackingUrl}` : ''}`,
   },
   draft_invoice: {
-    subject: (d) => `${d.storeName}: your order #${d.orderNumber} is ready to pay`,
+    subject: (d) => `${d.storeName}: your order #${draftRef(d)} is ready to pay`,
     heading: (d) => `Hi ${d.customerName}`,
-    intro: (d) => `We have prepared order #${d.orderNumber} for ${d.totalLabel}.`,
+    intro: (d) => `We have prepared order #${draftRef(d)} for ${d.totalLabel}.`,
     outro: (d) => (d.actionUrl ? `Pay securely here: ${d.actionUrl}` : 'Reply to confirm.'),
     whatsapp: (d) =>
-      `${d.storeName}: order #${d.orderNumber} for ${d.totalLabel} is ready.${d.actionUrl ? ` Pay: ${d.actionUrl}` : ''}`,
+      `${d.storeName}: order #${draftRef(d)} for ${d.totalLabel} is ready.${d.actionUrl ? ` Pay: ${d.actionUrl}` : ''}`,
   },
   checkout_recovery: {
     subject: (d) => `${d.storeName}: you left something behind`,

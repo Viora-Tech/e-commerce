@@ -677,7 +677,12 @@ export async function getReturn(ctx: StoreContext, id: string) {
     : []
   const [exchange] = r.exchangeOrderId
     ? await ctx.tx
-        .select({ id: order.id, number: order.number, status: order.status })
+        .select({
+          id: order.id,
+          number: order.number,
+          draftNumber: order.draftNumber,
+          status: order.status,
+        })
         .from(order)
         .where(eq(order.id, r.exchangeOrderId))
     : []

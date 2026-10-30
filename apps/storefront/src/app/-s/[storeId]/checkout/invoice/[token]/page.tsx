@@ -43,7 +43,7 @@ export default async function InvoicePage({ params }: Params) {
       {data?.payable ? (
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
-            <h1 className={`${CK_HEADING} text-[1.75rem]!`}>{content.pageTitle(data.number)}</h1>
+            <h1 className={`${CK_HEADING} text-[1.75rem]!`}>{content.pageTitle(data.ref)}</h1>
             <p className="text-[1rem] text-ck-muted">{content.intro(data.storeName)}</p>
           </div>
           <ul className="flex flex-col gap-4">

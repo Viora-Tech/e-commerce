@@ -1,5 +1,6 @@
 'use client'
 
+import { orderRef } from '@commerce/core/draft-number'
 import { CircleCheck, FileEdit, Send, Trash2, WhatsappLogo } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
@@ -66,7 +67,8 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
   const fmt = useFormat()
   const chatCopy = useCopy(whatsappChatContent)
   const [id, setId] = useState<string | null>(draft?.id ?? null)
-  const [number, setNumber] = useState<number | null>(draft?.number ?? null)
+  // What follows the # in the title: "D12" (audit #26).
+  const [number, setNumber] = useState<string | null>(draft ? orderRef(draft) : null)
   const [saved, setSaved] = useState<DraftFormState>(draft ? draftToForm(draft) : emptyDraft())
   const [form, setForm] = useState<DraftFormState>(initial ?? saved)
   const [busy, setBusy] = useState(false)
@@ -75,7 +77,7 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
   const [chatting, setChatting] = useState(false)
 
   // A draft saved on "Create draft order" stays on this page (the address is swapped in place),
-  // so the tab title follows it: "Draft #2374" (audit #32).
+  // so the tab title follows it: "Draft #D12" (audit #32).
   useEffect(() => {
     if (number !== null) document.title = copy.editTitle(number)
   }, [number, copy])
@@ -103,7 +105,7 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
     setSaved(form)
     if (!number) {
       const fresh = await api.orders.getDraft({ id: r.id })
-      setNumber(fresh?.number ?? null)
+      setNumber(fresh ? orderRef(fresh) : null)
       window.history.replaceState(null, '', `/orders/drafts/${r.id}`)
     }
     return r.id

@@ -283,6 +283,8 @@ export async function buildTemplateData(
     data: {
       storeName: s?.name ?? '',
       orderNumber: o.number,
+      /* Still a draft (an invoice): it goes by its #D number, it has no order number yet. */
+      ...(o.status === 'draft' && o.draftNumber ? { draftNumber: o.draftNumber } : {}),
       customerName: cu?.name || 'there',
       totalLabel: formatMoney(o.totalPaise),
       lines: lines.map((l) => ({

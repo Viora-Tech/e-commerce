@@ -22,7 +22,8 @@ export const balanceContent = {
 
 /** The signed page a draft invoice email's "Pay securely" button opens. */
 export const invoiceContent = {
-  pageTitle: (number: number) => `Invoice #${number}`,
+  /** `ref` follows the #: "D12" while the invoice is a draft. */
+  pageTitle: (ref: string) => `Invoice #${ref}`,
   intro: (store: string) =>
     `${store} sent you this invoice. Check the items, then pay securely online.`,
   quantity: (n: number) => `Qty ${n}`,

@@ -23,7 +23,8 @@ import { CustomItemSchema, ensureCustomItemVariant } from './custom-item'
 import { DraftAddressSchema, DraftBillingSchema, writeAddress, writeBilling } from './draft-billing'
 import { draftMoney } from './draft-discount'
 import { createFulfillmentOrders } from './fulfillment-orders'
-import { takeOrderNumber } from './order-number'
+import { draftPlaceholder, isDraftPlaceholder, parseDraftSearch } from './draft-ref'
+import { takeDraftNumber, takeOrderNumber } from './order-number'
 import { taxParcels } from './parcel-tax'
 import { recomputeOrderStatuses } from './recompute'
 import { routeAndReserve } from './routing-service'
@@ -96,6 +97,9 @@ export type DraftInput = z.infer<typeof DraftInputSchema>
 
 export type DraftListItem = {
   id: string
+  /** The draft's own number (#D12); null only on a draft older than 0200 that it missed. */
+  draftNumber: number | null
+  /** The order number a pre-0200 draft reserved; below zero (a placeholder) otherwise. */
   number: number
   customerName: string | null
   email: string | null
@@ -169,8 +173,11 @@ export async function resolveLines(ctx: StoreContext, lines: DraftInput['lines']
   })
 }
 
-/** Draft numbers come from the same counter as orders, so a converted draft keeps its number. */
-const nextNumber = (ctx: StoreContext): Promise<number> => takeOrderNumber(ctx.tx, ctx.storeId)
+/**
+ * A new draft takes the next draft number (#D12) and keeps minus it in `order.number` until it
+ * converts, so drafts never use up order numbers (audit #26).
+ */
+const nextDraftNumber = (ctx: StoreContext): Promise<number> => takeDraftNumber(ctx.tx, ctx.storeId)
 
 async function writeLines(ctx: StoreContext, orderId: string, input: DraftInput) {
   const lines = await resolveLines(ctx, input.lines)
@@ -185,14 +192,15 @@ async function writeLines(ctx: StoreContext, orderId: string, input: DraftInput)
 
 export async function createDraft(ctx: StoreContext, input: DraftInput) {
   await assertCustomerInStore(ctx.tx, input.customerId, ctx.storeId)
-  const number = await nextNumber(ctx)
+  const draftNumber = await nextDraftNumber(ctx)
   const shippingAddressId = await writeAddress(ctx, input.shipping)
   const billing = await writeBilling(ctx, input)
   const [o] = await ctx.tx
     .insert(order)
     .values({
       storeId: ctx.storeId,
-      number,
+      number: draftPlaceholder(draftNumber),
+      draftNumber,
       status: 'draft',
       customerId: input.customerId ?? null,
       email: input.email ?? null,
@@ -213,7 +221,8 @@ export async function createDraft(ctx: StoreContext, input: DraftInput) {
   const t = await draftMoney(ctx, lines, input)
   await ctx.tx.update(order).set(t).where(eq(order.id, o.id))
   if (input.note) await setDraftNote(ctx, o.id, input.note)
-  return { id: o.id, number }
+  /* `number` is the draft number: what the merchant sees as #D12 until it converts. */
+  return { id: o.id, number: draftNumber, draftNumber }
 }
 
 export async function updateDraft(ctx: StoreContext, id: string, input: DraftInput) {
@@ -276,6 +285,9 @@ export async function listDrafts(
   input: DraftListFilters & { page: number; perPage: number },
 ): Promise<{ items: DraftListItem[]; total: number }> {
   const search = input.search?.trim()
+  /* "D12" or "#D12" finds that draft; anything else matches emails, names and numbers. */
+  const draftSearch = search ? parseDraftSearch(search) : null
+  const numberSearch = search?.replace(/^#/, '')
   const invoiceSent = sql`exists (
     select 1 from notification n
     where n.order_id = ${order.id} and n.template = 'draft_invoice' and n.status = 'sent')`
@@ -283,9 +295,11 @@ export async function listDrafts(
     eq(order.status, 'draft'),
     input.status === 'open' ? sql`not ${invoiceSent}` : undefined,
     input.status === 'invoice_sent' ? invoiceSent : undefined,
-    search
-      ? sql`(${order.email} ilike ${`%${search}%`} or ${customer.name} ilike ${`%${search}%`} or cast(${order.number} as text) like ${`%${search}%`})`
-      : undefined,
+    draftSearch !== null
+      ? eq(order.draftNumber, draftSearch)
+      : search
+        ? sql`(${order.email} ilike ${`%${search}%`} or ${customer.name} ilike ${`%${search}%`} or (${order.number} > 0 and cast(${order.number} as text) like ${`%${numberSearch}%`}) or cast(${order.draftNumber} as text) like ${`%${numberSearch}%`})`
+        : undefined,
     /* A draft's creation time is kept in placed_at until it converts. */
     input.createdFrom ? gte(order.placedAt, new Date(input.createdFrom)) : undefined,
     input.createdTo ? lt(order.placedAt, new Date(input.createdTo)) : undefined,
@@ -300,6 +314,7 @@ export async function listDrafts(
   const items = await ctx.tx
     .select({
       id: order.id,
+      draftNumber: order.draftNumber,
       number: order.number,
       customerName: customer.name,
       email: order.email,
@@ -478,9 +493,14 @@ export async function convertDraft(
     .where(and(eq(orderLine.orderId, id), eq(orderLine.giftCard, false)))
 
   const method = opts.paymentMethod ?? o.paymentMethod ?? 'manual'
+  /* The order number is taken only now; a draft from before 0200 keeps the one it reserved. */
+  const number = isDraftPlaceholder(o.number)
+    ? await takeOrderNumber(ctx.tx, ctx.storeId)
+    : o.number
   const [updated] = await ctx.tx
     .update(order)
     .set({
+      number,
       status: 'open',
       paymentMethod: method,
       placedAt: new Date(),

@@ -151,6 +151,8 @@ export type TemplateData = {
   custom?: CustomMessage | undefined
   /** Absent for messages about a cart that is not an order yet. */
   orderNumber?: number | undefined
+  /** Set while the order is still a draft (a draft invoice): shown as #D12 instead. */
+  draftNumber?: number | undefined
   customerName: string
   totalLabel: string
   lines: {

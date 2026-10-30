@@ -69,7 +69,8 @@ export const draftEditorContent = {
   newTitle: 'Create draft order',
   /** A variant listed without a price yet (#913): the line starts at ₹0 for you to type one. */
   noPrice: 'No price yet',
-  editTitle: (n: number) => `Draft #${n}`,
+  /** `ref` is the draft's number after the #: "D12". */
+  editTitle: (ref: string) => `Draft #${ref}`,
   subtitle: {
     for: (name: string) => `For ${name}`,
     items: (n: number) => (n === 1 ? '1 item' : `${n} items`),
