@@ -330,7 +330,7 @@ export default function ProductForm({
         />
         {mainCard('details')}
         {/* Extra fields stay in view, not inside "More" (#296: nobody found them there). */}
-        <MetafieldsCard ownerType="product" ownerId={product?.id ?? null} />
+        <MetafieldsCard ownerType="product" ownerId={product?.id ?? null} collapseEmpty />
       </>
     ),
     price: (

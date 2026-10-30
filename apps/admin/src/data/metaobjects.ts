@@ -487,6 +487,8 @@ export const metafieldsCardContent = {
   empty: 'Add your own fields, like a care guide or warranty, to show more details.',
   manage: 'Manage metafields',
   addField: 'Add a field',
+  showEmpty: (n: number) => (n === 1 ? 'Show 1 empty field' : `Show ${n} empty fields`),
+  hideEmpty: 'Hide empty fields',
   saveFirst: 'Save first, then fill in the extra fields.',
   variant: 'Variant',
   variantHeading: 'Variant metafields',
