@@ -143,7 +143,8 @@ export default function VariantsCard({
   const pendingDropped = pending ? reconcileVariants(pending, options, variants).dropped : []
   const waiting = options.some((o) => !o.values.some((v) => v.trim()))
   const storeOptions = facets?.options ?? []
-  const picked = groupChoice === undefined ? defaultGroupBy(built.length, variants.length) : groupChoice
+  const picked =
+    groupChoice === undefined ? defaultGroupBy(built.length, variants.length) : groupChoice
   const groupBy = picked != null && picked < built.length && built.length >= 2 ? picked : null
   const lines = matrixLines(variants, { query, groupBy, open })
 

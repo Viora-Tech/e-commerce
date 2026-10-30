@@ -37,7 +37,11 @@ export default function DraftCustomItemDialog({
 }: DraftCustomItemDialogProps) {
   // Hooks
   const { customItem: copy } = useCopy(draftEditorContent)
-  const ids = { title: useId(), price: useId(), quantity: useId(), taxable: useId(), hs: useId() }
+  const titleId = useId()
+  const priceId = useId()
+  const quantityId = useId()
+  const taxableId = useId()
+  const hsId = useId()
   const [fields, setFields] = useState<CustomItemFields>(EMPTY)
   const [touched, setTouched] = useState(false)
 
@@ -64,6 +68,7 @@ export default function DraftCustomItemDialog({
   }
 
   // Render logic
+  const ids = { title: titleId, price: priceId, quantity: quantityId, taxable: taxableId, hs: hsId }
   const errors = touched ? customItemErrors(fields, parseRupees) : []
 
   return (

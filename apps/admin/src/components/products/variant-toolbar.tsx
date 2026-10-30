@@ -58,20 +58,21 @@ export default function VariantToolbar({
         />
       </div>
       {canGroup ? (
-        <label className="flex items-center gap-2 text-body text-muted-foreground">
-          {copy.groupBy}
+        <div className="flex items-center gap-2 text-body text-muted-foreground">
+          <label htmlFor="variant-group-by">{copy.groupBy}</label>
           <NativeSelect
+            id="variant-group-by"
             value={groupBy == null ? NONE : String(groupBy)}
             onChange={(e) => handleGroupBy(e.target.value)}
           >
             <NativeSelectOption value={NONE}>{copy.noGrouping}</NativeSelectOption>
             {optionNames.map((name, i) => (
-              <NativeSelectOption key={`${name}-${i}`} value={String(i)}>
+              <NativeSelectOption key={name} value={String(i)}>
                 {name}
               </NativeSelectOption>
             ))}
           </NativeSelect>
-        </label>
+        </div>
       ) : null}
       <span className="ml-auto text-body-strong text-ink-strong">
         {variantsCopy.footer.stockAcross(stock, variantCount)}

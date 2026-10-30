@@ -73,14 +73,16 @@ export const reviewToolsContent = {
   },
   questions: {
     title: 'Questions',
-    subtitle: 'What shoppers ask on your product pages. Answer and publish to show it on the product.',
+    subtitle:
+      'What shoppers ask on your product pages. Answer and publish to show it on the product.',
     back: 'Reviews',
     open: 'Questions',
     tabs: { unanswered: 'To answer', pending: 'Waiting', published: 'Published', hidden: 'Hidden' },
     search: 'Search questions or products',
     asked: (name: string, date: string) => `${name || 'A shopper'} asked on ${date} about`,
     answer: 'Your answer',
-    answerPlaceholder: 'Answer in a sentence or two. It shows under the question on the product page.',
+    answerPlaceholder:
+      'Answer in a sentence or two. It shows under the question on the product page.',
     save: 'Save',
     publish: 'Publish answer',
     republish: 'Published',

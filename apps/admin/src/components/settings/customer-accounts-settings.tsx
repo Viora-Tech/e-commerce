@@ -98,6 +98,8 @@ export default function CustomerAccountsSettings() {
     }
   }
 
+  const listOr = (names: string[]) => (names.length ? names.join(', ') : copy.rows.none)
+
   // Early returns
   if (failed) return <p className="text-body text-muted-foreground">{copy.loadFailed}</p>
 
@@ -106,7 +108,6 @@ export default function CustomerAccountsSettings() {
   const none = form !== null && form.loginMethods.length === 0
   const stale = loaded?.unavailable ?? []
   const hidden = loaded?.needsSetup ?? []
-  const listOr = (names: string[]) => (names.length ? names.join(', ') : copy.rows.none)
   const rows = form
     ? [
         {

@@ -44,7 +44,7 @@ function slug(text: string): string {
 }
 
 /** The text cut to fit `maxWidth` on the canvas. */
-function fit(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string {
+function fitText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string {
   if (ctx.measureText(text).width <= maxWidth) return text
   let cut = text
   while (cut.length > 1 && ctx.measureText(`${cut}...`).width > maxWidth) cut = cut.slice(0, -1)
@@ -67,7 +67,7 @@ async function drawCard(
   const line = (value: string, font: string, color: string, y: number) => {
     ctx.font = font
     ctx.fillStyle = color
-    ctx.fillText(fit(ctx, value, CARD.width - 120), CARD.width / 2, y)
+    ctx.fillText(fitText(ctx, value, CARD.width - 120), CARD.width / 2, y)
   }
   ctx.fillStyle = INK.paper
   ctx.fillRect(0, 0, CARD.width, CARD.height)

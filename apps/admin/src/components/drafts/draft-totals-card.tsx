@@ -34,10 +34,10 @@ export default function DraftTotalsCard({ form, tax, savedCheck, onChange }: Dra
   const fmt = useFormat()
   const { check, apply } = useDraftCodeCheck(form, savedCheck)
   const [editing, setEditing] = useState<'discount' | 'shipping' | null>(null)
-  const totals = draftTotals(form, check)
-  const gst = useDraftGst(form, totals, tax)
+  const gst = useDraftGst(form, draftTotals(form, check), tax)
 
   // Render logic
+  const totals = draftTotals(form, check)
   const t = copy.totals
   const itemCount = form.lines.reduce((sum, l) => sum + l.quantity, 0)
   const coded = form.discountCode && check?.ok ? check : null

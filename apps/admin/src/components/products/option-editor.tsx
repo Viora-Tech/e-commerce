@@ -51,22 +51,14 @@ function union(...lists: (readonly string[])[]): string[] {
 }
 
 /** Values the store already uses for this option name, then the common ones. */
-function valueSuggestions(
-  copy: VariantsCopy,
-  store: Facets['options'],
-  name: string,
-): string[] {
+function valueSuggestions(copy: VariantsCopy, store: Facets['options'], name: string): string[] {
   const key = name.trim().toLowerCase()
   const used = store.find((o) => o.name.toLowerCase() === key)?.values ?? []
   return union(used, presetValues(copy, name))
 }
 
 /** Option names the store uses, then the common ones, minus names this product already has. */
-function nameSuggestions(
-  copy: VariantsCopy,
-  store: Facets['options'],
-  taken: string[],
-): string[] {
+function nameSuggestions(copy: VariantsCopy, store: Facets['options'], taken: string[]): string[] {
   const own = new Set(taken.map((n) => n.trim().toLowerCase()))
   return union(
     store.map((o) => o.name),

@@ -39,6 +39,7 @@ export default function QuestionsPage() {
   const [page, setPage] = useState(1)
   const [result, setResult] = useState<Page | null>(null)
   const [version, setVersion] = useState(0)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `version` re-runs the load after a change
   useEffect(() => {
     let live = true
     api.reviews.questions

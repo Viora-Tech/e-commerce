@@ -36,12 +36,7 @@ export async function searchVariants(
 ): Promise<VariantSearchRow[]> {
   const search = input.search?.trim()
   const only = input.ids?.length ? inArray(variant.id, input.ids) : undefined
-  const live = and(
-    isNull(variant.archivedAt),
-    ne(product.status, 'archived'),
-    notSystemTest,
-    only,
-  )
+  const live = and(isNull(variant.archivedAt), ne(product.status, 'archived'), notSystemTest, only)
   const matches = await tx
     .selectDistinct({ id: product.id, title: product.title })
     .from(variant)

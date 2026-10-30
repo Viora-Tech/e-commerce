@@ -82,7 +82,10 @@ export function matrixLines(
     const open = searching || options.open.includes(group.value)
     const head: MatrixLine = { kind: 'group', group, open }
     if (!open) return [head]
-    return [head, ...group.indexes.map((index) => ({ kind: 'variant' as const, index, nested: true }))]
+    return [
+      head,
+      ...group.indexes.map((index) => ({ kind: 'variant' as const, index, nested: true })),
+    ]
   })
 }
 

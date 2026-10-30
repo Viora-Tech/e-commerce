@@ -65,6 +65,13 @@ async function signInSession(email: string): Promise<{ sessionId: string; userId
   return { sessionId: s?.session.id as string, userId: s?.user.id as string }
 }
 
+/** The session's re-auth time; the test fails here when it was never set. */
+async function reauthAt(sessionId: string): Promise<Date> {
+  const at = await readReauth(sessionId)
+  if (!at) throw new Error(`no re-auth time on ${sessionId}`)
+  return at
+}
+
 async function readReauth(sessionId: string): Promise<Date | null> {
   const [r] = await app
     .select({ at: authSchema.session.reauthenticatedAt })
@@ -103,15 +110,17 @@ describe('markReauthenticated', () => {
   it('stamps only its own session row, scoped by id and user', async () => {
     const a = await signInSession('owner@example.com')
     const when = new Date(Date.now() + 60_000)
-    expect(await stepUp.markReauthenticated(app, { sessionId: a.sessionId, userId: a.userId }, when)).toBe(true)
-    expect(Math.abs((await readReauth(a.sessionId))!.getTime() - when.getTime())).toBeLessThan(1000)
+    expect(
+      await stepUp.markReauthenticated(app, { sessionId: a.sessionId, userId: a.userId }, when),
+    ).toBe(true)
+    expect(Math.abs((await reauthAt(a.sessionId)).getTime() - when.getTime())).toBeLessThan(1000)
 
     // A mismatched user can never bump someone else's session row.
-    const before = (await readReauth(a.sessionId))!.getTime()
+    const before = (await reauthAt(a.sessionId)).getTime()
     expect(
       await stepUp.markReauthenticated(app, { sessionId: a.sessionId, userId: 'not-the-owner' }),
     ).toBe(false)
-    expect((await readReauth(a.sessionId))!.getTime()).toBe(before)
+    expect((await reauthAt(a.sessionId)).getTime()).toBe(before)
   })
 })
 
@@ -125,7 +134,7 @@ describe('OTP step-up', () => {
     expect(
       await stepUp.verifyStepUpOtp(app, { sessionId: a.sessionId, userId: a.userId, otp }, when),
     ).toEqual({ ok: true })
-    expect(Math.abs((await readReauth(a.sessionId))!.getTime() - when.getTime())).toBeLessThan(1000)
+    expect(Math.abs((await reauthAt(a.sessionId)).getTime() - when.getTime())).toBeLessThan(1000)
 
     // A consumed code cannot be replayed.
     expect(
@@ -136,12 +145,12 @@ describe('OTP step-up', () => {
   it('rejects a wrong code and leaves the session un-stamped', async () => {
     const a = await signInSession('owner@example.com')
     const otp = await stepUp.createStepUpOtp(app, a.userId)
-    const before = (await readReauth(a.sessionId))!.getTime()
+    const before = (await reauthAt(a.sessionId)).getTime()
     const wrong = otp === '000000' ? '111111' : '000000'
     expect(
       await stepUp.verifyStepUpOtp(app, { sessionId: a.sessionId, userId: a.userId, otp: wrong }),
     ).toEqual({ ok: false, reason: 'invalid' })
-    expect((await readReauth(a.sessionId))!.getTime()).toBe(before)
+    expect((await reauthAt(a.sessionId)).getTime()).toBe(before)
 
     // A few more wrong guesses and the code is burned; even the right one no longer works.
     for (let i = 0; i < 4; i++) {
@@ -150,7 +159,7 @@ describe('OTP step-up', () => {
     expect(
       await stepUp.verifyStepUpOtp(app, { sessionId: a.sessionId, userId: a.userId, otp }),
     ).toEqual({ ok: false, reason: 'invalid' })
-    expect((await readReauth(a.sessionId))!.getTime()).toBe(before)
+    expect((await reauthAt(a.sessionId)).getTime()).toBe(before)
   })
 })
 
@@ -187,7 +196,7 @@ describe('passkey step-up', () => {
       expectedRPID: RP.rpId,
       requireUserVerification: true,
     })
-    expect(Math.abs((await readReauth(a.sessionId))!.getTime() - when.getTime())).toBeLessThan(1000)
+    expect(Math.abs((await reauthAt(a.sessionId)).getTime() - when.getTime())).toBeLessThan(1000)
 
     // The same challenge cannot be answered twice.
     expect(
@@ -204,7 +213,11 @@ describe('passkey step-up', () => {
     const a = await signInSession('owner@example.com')
     await insertPasskey(a.userId, 'cred-1', [9, 9, 9])
 
-    await stepUp.stepUpPasskeyOptions(app, { sessionId: a.sessionId, userId: a.userId, rpId: RP.rpId })
+    await stepUp.stepUpPasskeyOptions(app, {
+      sessionId: a.sessionId,
+      userId: a.userId,
+      rpId: RP.rpId,
+    })
     const late = new Date(Date.now() + 5 * 60_000 + 1)
     expect(
       await stepUp.verifyStepUpPasskey(
@@ -214,7 +227,11 @@ describe('passkey step-up', () => {
       ),
     ).toEqual({ ok: false, reason: 'invalid' })
 
-    await stepUp.stepUpPasskeyOptions(app, { sessionId: a.sessionId, userId: a.userId, rpId: RP.rpId })
+    await stepUp.stepUpPasskeyOptions(app, {
+      sessionId: a.sessionId,
+      userId: a.userId,
+      rpId: RP.rpId,
+    })
     expect(
       await stepUp.verifyStepUpPasskey(app, {
         sessionId: a.sessionId,
@@ -239,7 +256,11 @@ describe('freshness window', () => {
     const atFive = await stepUp.stepUpAgeMs(app, a.sessionId, new Date(t0.getTime() + 5 * 60_000))
     expect(stepUp.isFresh(atFive)).toBe(true)
 
-    const atEleven = await stepUp.stepUpAgeMs(app, a.sessionId, new Date(t0.getTime() + 10 * 60_000 + 1))
+    const atEleven = await stepUp.stepUpAgeMs(
+      app,
+      a.sessionId,
+      new Date(t0.getTime() + 10 * 60_000 + 1),
+    )
     expect(stepUp.isFresh(atEleven)).toBe(false)
 
     expect(await stepUp.stepUpAgeMs(app, 'no-such-session')).toBeNull()

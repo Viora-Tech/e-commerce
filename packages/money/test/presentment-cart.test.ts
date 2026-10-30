@@ -85,7 +85,11 @@ describe('lowestPresentment (a card’s "From" price)', () => {
   })
 
   it('compares rupees without a market', () => {
-    expect(lowestPresentment(variants, null)).toEqual({ id: 'v2', pricePaise: 50_000, varies: true })
+    expect(lowestPresentment(variants, null)).toEqual({
+      id: 'v2',
+      pricePaise: 50_000,
+      varies: true,
+    })
   })
 
   it('says when the variants read the same, and null without any', () => {

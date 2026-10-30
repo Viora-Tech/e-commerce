@@ -73,10 +73,7 @@ async function candidates(tx: StoreTx, settings: ReviewsSettings, range: PastOrd
             .where(sql`${reviewRequest.orderId} = ${order.id}`),
         ),
         notExists(
-          tx
-            .select({ one: sql`1` })
-            .from(review)
-            .where(sql`${review.orderId} = ${order.id}`),
+          tx.select({ one: sql`1` }).from(review).where(sql`${review.orderId} = ${order.id}`),
         ),
       ),
     )

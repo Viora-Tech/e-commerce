@@ -38,7 +38,9 @@ export default function DraftDiscountDialog({
 }: DraftDiscountDialogProps) {
   // Hooks
   const { totals: copy } = useCopy(draftEditorContent)
-  const ids = { code: useId(), amount: useId(), reason: useId() }
+  const codeId = useId()
+  const amountId = useId()
+  const reasonId = useId()
   const [mode, setMode] = useState<Mode>('manual')
   const [code, setCode] = useState('')
   const [amount, setAmount] = useState('')
@@ -81,6 +83,7 @@ export default function DraftDiscountDialog({
   }
 
   // Render logic
+  const ids = { code: codeId, amount: amountId, reason: reasonId }
   const ready = mode === 'code' ? code.trim().length > 0 : parseRupees(amount) !== null
   const editing = Boolean(form.discountCode) || form.discountPaise > 0
 

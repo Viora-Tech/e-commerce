@@ -70,9 +70,7 @@ function takeSet(
 export function comboAmount(lines: DiscountCartLine[], combos: DiscountCombo[]): ComboMatch {
   const left = lines.map((l) => Math.max(0, l.quantity))
   const uses: ComboUse[] = combos.map((_, combo) => ({ combo, times: 0, savingPaise: 0 }))
-  const usable = combos.filter(
-    (c) => c.items.length > 0 && c.items.every((i) => i.quantity >= 1),
-  )
+  const usable = combos.filter((c) => c.items.length > 0 && c.items.every((i) => i.quantity >= 1))
   if (usable.length === 0) return { amountPaise: 0, uses: [] }
 
   for (;;) {

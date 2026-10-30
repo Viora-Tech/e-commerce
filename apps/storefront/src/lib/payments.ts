@@ -21,8 +21,8 @@ import {
 import { registriesForStore } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
 import { store } from '@commerce/db'
-import type { PaymentProvider } from '@commerce/payments'
 import { logger } from '@commerce/observability/logging'
+import type { PaymentProvider } from '@commerce/payments'
 import { eq } from 'drizzle-orm'
 
 export type CheckoutMethod = {

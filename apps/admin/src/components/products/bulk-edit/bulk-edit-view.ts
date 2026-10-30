@@ -35,10 +35,7 @@ const isProductKey = (key: string) =>
 const isStockKey = (key: string) => key.startsWith(STOCK_PREFIX)
 
 /** Every per-variant cell key of a row: the variant columns and one stock cell per location. */
-const variantKeysOf = (row: GridRow) => [
-  ...VARIANT_COLUMNS,
-  ...Object.keys(row).filter(isStockKey),
-]
+const variantKeysOf = (row: GridRow) => [...VARIANT_COLUMNS, ...Object.keys(row).filter(isStockKey)]
 
 /** One product row for a product with several variants: shared values, blanks where they differ. */
 function summaryRow(members: GridRow[]): ViewRow {

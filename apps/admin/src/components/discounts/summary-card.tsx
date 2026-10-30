@@ -68,7 +68,11 @@ function scopeLines(copy: Copy, form: DiscountFormState, input: DiscountInput): 
           : copy.comboOff(
               valid ? (c.method === 'percent' ? `${c.value / 100}%` : formatPaise(c.value)) : '…',
             )
-      return copy.combo(i + 1, c.items.reduce((n, it) => n + it.quantity, 0), how)
+      return copy.combo(
+        i + 1,
+        c.items.reduce((n, it) => n + it.quantity, 0),
+        how,
+      )
     })
     lines.push(copy.comboEach)
     return lines
@@ -139,7 +143,7 @@ export default function SummaryCard({ form, discount }: SummaryCardProps) {
         <p className="text-caption">{copy.details}</p>
         <ul className="list-disc pl-4 text-body">
           {detailLines(copy, form, discount).map((line, i) => (
-            // Two combos can read the same, so the position keeps keys apart.
+            // biome-ignore lint/suspicious/noArrayIndexKey: two combos can read the same; the position keeps keys apart
             <li key={`${i}-${line}`}>{line}</li>
           ))}
         </ul>

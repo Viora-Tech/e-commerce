@@ -178,7 +178,10 @@ describe('review requests', () => {
       ...settings,
       requestEmail: { ...settings.requestEmail, channel: 'whatsapp' },
     }
-    const noPhone = await addOrder(storeId, { email: 'mail@example.com', variantIds: [a.variantId] })
+    const noPhone = await addOrder(storeId, {
+      email: 'mail@example.com',
+      variantIds: [a.variantId],
+    })
     expect(
       await withStore(app, storeId, (tx) =>
         scheduleReviewRequests(tx, storeId, noPhone.orderId, whatsapp, t0),

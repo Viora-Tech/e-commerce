@@ -67,10 +67,7 @@ export async function markReauthenticated(
     .update(authSchema.session)
     .set({ reauthenticatedAt: now })
     .where(
-      and(
-        eq(authSchema.session.id, input.sessionId),
-        eq(authSchema.session.userId, input.userId),
-      ),
+      and(eq(authSchema.session.id, input.sessionId), eq(authSchema.session.userId, input.userId)),
     )
     .returning({ id: authSchema.session.id })
   return rows.length > 0
@@ -151,7 +148,10 @@ export async function verifyStepUpOtp(
     else
       await db
         .update(authSchema.verification)
-        .set({ value: JSON.stringify({ hash: parsed.hash, attempts: attempts + 1 }), updatedAt: now })
+        .set({
+          value: JSON.stringify({ hash: parsed.hash, attempts: attempts + 1 }),
+          updatedAt: now,
+        })
         .where(eq(authSchema.verification.identifier, identifier))
     return { ok: false, reason: 'invalid' }
   }
@@ -193,7 +193,10 @@ async function takeChallenge(
   const [row] = await db
     .delete(authSchema.verification)
     .where(eq(authSchema.verification.identifier, challengeKey(sessionId)))
-    .returning({ value: authSchema.verification.value, expiresAt: authSchema.verification.expiresAt })
+    .returning({
+      value: authSchema.verification.value,
+      expiresAt: authSchema.verification.expiresAt,
+    })
   if (!row) return null
   if (row.expiresAt.getTime() <= expect.now.getTime()) return null
   let parsed: { challenge?: unknown; rpId?: unknown }

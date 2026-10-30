@@ -45,8 +45,7 @@ export const isPercentAction = (action: SetAllAction) =>
   action === 'increasePercent' || action === 'decreasePercent'
 
 /** Actions with nothing to type (the vendor and type may be set to blank to clear them). */
-export const needsValue = (action: SetAllAction) =>
-  action !== 'clearAmount' && action !== 'setText'
+export const needsValue = (action: SetAllAction) => action !== 'clearAmount' && action !== 'setText'
 
 /**
  * The typed amount as minor units (₹ amounts) or a percent; null when it cannot be used.
@@ -104,10 +103,7 @@ function changeRow(row: GridRow, { key, action, value }: SetAllChange): GridRow 
     if (!isMoneyAction(action)) return row
     const by = parseChangeValue(action, value)
     if (by === null) return row
-    return cells.reduce(
-      (r, k) => withCell(r, k, adjustMoneyText(cellValue(r, k), action, by)),
-      row,
-    )
+    return cells.reduce((r, k) => withCell(r, k, adjustMoneyText(cellValue(r, k), action, by)), row)
   }
   if (key === 'tags') return withCell(row, 'tags', nextTags(row.tags, action, value))
   return withCell(row, key, value.trim())
@@ -128,9 +124,7 @@ export function applyToRows(
     rows.filter((r) => only === null || only.has(r.variantId)).map((r) => r.productId),
   )
   return rows.map((r) => {
-    const chosen = productLevel
-      ? products.has(r.productId)
-      : only === null || only.has(r.variantId)
+    const chosen = productLevel ? products.has(r.productId) : only === null || only.has(r.variantId)
     return chosen ? changeRow(r, change) : r
   })
 }

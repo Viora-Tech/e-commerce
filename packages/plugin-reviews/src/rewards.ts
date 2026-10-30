@@ -56,10 +56,7 @@ export async function rewardPhotoReviews(
       title: `Photo review thanks${s?.name ? ` (${s.name})` : ''}`,
       now,
     })
-    await tx
-      .update(review)
-      .set({ rewardCode: code, rewardSentAt: now })
-      .where(eq(review.id, r.id))
+    await tx.update(review).set({ rewardCode: code, rewardSentAt: now }).where(eq(review.id, r.id))
     await insertOutboxEvent(tx, storeId, 'review.rewarded', { reviewId: r.id })
   }
   return due.length

@@ -97,6 +97,7 @@ export default function ThemeEditCard({ edit, live, onStatus }: ThemeEditCardPro
               // A picture reads as a picture, not its address: old one faded, new one beside it.
               <span className="flex items-center gap-2">
                 {typeof change.before === 'string' && change.before ? (
+                  // biome-ignore lint/performance/noImgElement: a small preview of the store's own image
                   <img
                     src={change.before}
                     alt=""
@@ -109,6 +110,7 @@ export default function ThemeEditCard({ edit, live, onStatus }: ThemeEditCardPro
                   →
                 </span>
                 {typeof change.value === 'string' && change.value ? (
+                  // biome-ignore lint/performance/noImgElement: a small preview of the store's own image
                   <img
                     src={change.value}
                     alt=""

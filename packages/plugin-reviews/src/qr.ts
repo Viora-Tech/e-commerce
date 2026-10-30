@@ -50,10 +50,7 @@ export async function reviewQrLinks(
         : [],
     }
   }
-  const [o] = await tx
-    .select({ number: order.number })
-    .from(order)
-    .where(eq(order.id, target.id))
+  const [o] = await tx.select({ number: order.number }).from(order).where(eq(order.id, target.id))
   if (!o) return { storeName, orderNumber: null, links: [] }
   const rows = await tx
     .selectDistinct({ id: product.id, title: product.title, handle: product.handle })

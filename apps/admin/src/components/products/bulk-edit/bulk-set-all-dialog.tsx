@@ -129,12 +129,7 @@ export default function BulkSetAllDialog({
           <DialogTitle>{copy.setAll.title}</DialogTitle>
           <DialogDescription>{copy.setAll.description}</DialogDescription>
         </DialogHeader>
-        <PickField
-          label={copy.setAll.column}
-          items={keyItems}
-          value={key}
-          onChange={handleKey}
-        />
+        <PickField label={copy.setAll.column} items={keyItems} value={key} onChange={handleKey} />
         {actionItems.length > 1 ? (
           <PickField
             label={copy.setAll.action}

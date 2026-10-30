@@ -60,7 +60,9 @@ export default function ConnectForm({ onConnected }: ConnectFormProps) {
           {copy.mode.app}
           {installable ? null : <Badge variant="secondary">{copy.app.badge}</Badge>}
         </TabsTrigger>
-        <TabsTrigger value="token" className={TRIGGER}>{copy.mode.token}</TabsTrigger>
+        <TabsTrigger value="token" className={TRIGGER}>
+          {copy.mode.token}
+        </TabsTrigger>
       </TabsList>
       {installable ? (
         <TabsContent value="install" className="pt-4">

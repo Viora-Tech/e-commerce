@@ -102,7 +102,8 @@ export async function runBulkQuery(
   const maxPolls = opts.maxPolls ?? 400
   for (let poll = 0; poll < maxPolls; poll++) {
     const op = await bulkOperation(client, created.id)
-    if (!op || op.id !== created.id) throw new BulkUnavailableError('Lost track of the bulk operation')
+    if (!op || op.id !== created.id)
+      throw new BulkUnavailableError('Lost track of the bulk operation')
     if (op.status === 'COMPLETED') return op.url
     if (op.status === 'FAILED' || op.status === 'CANCELED' || op.status === 'CANCELING') {
       throw new BulkUnavailableError(op.errorCode ?? `Bulk operation ${op.status.toLowerCase()}`)

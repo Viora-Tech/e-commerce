@@ -77,9 +77,7 @@ describe('product questions', () => {
     expect(await withStore(app, storeId, (tx) => publishedQuestions(tx, p.productId))).toEqual([])
 
     // Publishing without an answer does nothing: an empty answer never shows.
-    expect(
-      await withStore(app, storeId, (tx) => setQuestionStatus(tx, [id], 'published')),
-    ).toBe(0)
+    expect(await withStore(app, storeId, (tx) => setQuestionStatus(tx, [id], 'published'))).toBe(0)
     const list = await withStore(app, storeId, (tx) =>
       listQuestions(tx, { page: 1, perPage: 20, unanswered: true }),
     )

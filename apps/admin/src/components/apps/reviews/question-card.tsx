@@ -51,10 +51,7 @@ export default function QuestionCard({ question, onChanged }: QuestionCardProps)
       answer.trim() ? copy.published : copy.saved,
     )
   const handleSave = () =>
-    run(
-      () => api.reviews.questions.answer({ id: question.id, answer, publish: false }),
-      copy.saved,
-    )
+    run(() => api.reviews.questions.answer({ id: question.id, answer, publish: false }), copy.saved)
   const handleHide = () =>
     run(
       () => api.reviews.questions.setStatus({ ids: [question.id], status: 'hidden' }),

@@ -48,9 +48,9 @@ export default function RouteMethodsCard({ setup, methods, onReload }: RouteMeth
   const [saving, setSaving] = useState(false)
 
   // Helpers
-  const active = setup.routing.gateways.filter((g) => g.active).map((g) => g.id)
+  const activeIds = () => setup.routing.gateways.filter((g) => g.active).map((g) => g.id)
   const takers = (m: RoutedMethodId) =>
-    active.filter((id) => setup.routing.supports[id]?.includes(m) ?? true)
+    activeIds().filter((id) => setup.routing.supports[id]?.includes(m) ?? true)
 
   // Event handlers
   const handlePick = (m: RoutedMethodId, id: string | null) => {
@@ -61,8 +61,8 @@ export default function RouteMethodsCard({ setup, methods, onReload }: RouteMeth
     setSaving(true)
     try {
       await api.payments.saveRouting({
-        order: active.filter(isGatewayId),
-        methods: routesFor(routes, active),
+        order: activeIds().filter(isGatewayId),
+        methods: routesFor(routes, activeIds()),
       })
       toast.success(copy.saved)
       await onReload()

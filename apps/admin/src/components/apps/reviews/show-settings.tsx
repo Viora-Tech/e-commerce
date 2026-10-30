@@ -2,8 +2,8 @@
 
 import {
   REQUEST_CHANNELS,
-  type RequestChannel,
   REVIEW_SORTS,
+  type RequestChannel,
   type ReviewSort,
   type ReviewsSettings,
   requestSubject,

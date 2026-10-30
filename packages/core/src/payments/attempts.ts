@@ -332,7 +332,7 @@ async function reopenOnGateway(
     const [failed] = await tx.select().from(payment).where(eq(payment.id, failedAttemptId))
     if (failed?.status !== 'failed') return null
     const [o] = await tx.select().from(order).where(eq(order.id, failed.orderId)).for('update')
-    if (!o || o.status !== 'open' || o.checkoutPaidAt) return null
+    if (o?.status !== 'open' || o.checkoutPaidAt) return null
     const [latest] = await paymentAttempts({ storeId, tx }, failed.orderId)
     if (latest?.id !== failed.id) return null
     const next = await createPaymentAttempt(

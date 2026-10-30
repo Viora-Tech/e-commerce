@@ -125,7 +125,11 @@ async function loadStock(tx: StoreTx, source: SettingsSource): Promise<LocalStoc
   const pos = source.purchaseOrders?.ok ? source.purchaseOrders.data : []
   const transfers = source.transfers?.ok ? source.transfers.data : []
   const lines = [...pos.flatMap((p) => p.lines), ...transfers.flatMap((t) => t.lines)]
-  const products = await findMappings(tx, 'products', lines.map((l) => l.productSourceId))
+  const products = await findMappings(
+    tx,
+    'products',
+    lines.map((l) => l.productSourceId),
+  )
   const productIds = [...new Set(products.values())]
   const variants = productIds.length
     ? await tx
@@ -138,7 +142,11 @@ async function loadStock(tx: StoreTx, source: SettingsSource): Promise<LocalStoc
         .from(variant)
         .where(and(inArray(variant.productId, productIds), isNull(variant.archivedAt)))
     : []
-  const poIds = await findMappings(tx, SETTINGS_MAPPINGS.purchaseOrders, pos.map((p) => p.sourceId))
+  const poIds = await findMappings(
+    tx,
+    SETTINGS_MAPPINGS.purchaseOrders,
+    pos.map((p) => p.sourceId),
+  )
   const transferIds = await findMappings(
     tx,
     SETTINGS_MAPPINGS.transfers,

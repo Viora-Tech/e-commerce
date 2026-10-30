@@ -23,7 +23,11 @@ export default async function Page({ params }: Props) {
   // The draft record has no invoice history; the list's row for it does.
   const row = await call(
     appRouter.orders.listDrafts,
-    { page: 1, perPage: 10, search: draft.draftNumber ? draftLabel(draft.draftNumber) : String(draft.number) },
+    {
+      page: 1,
+      perPage: 10,
+      search: draft.draftNumber ? draftLabel(draft.draftNumber) : String(draft.number),
+    },
     { context },
   )
   const invoiceSent = row.items.some((d) => d.id === id && d.invoiceSentAt !== null)

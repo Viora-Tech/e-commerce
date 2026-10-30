@@ -68,8 +68,7 @@ export const reviewsWidgetsContent = {
       'The review snippet shows the rating and the best review once this product has reviews.',
     questionsNoProduct:
       'Questions and answers show on a product page. Preview a product to see them.',
-    summaryNoProduct:
-      'The review summary shows on a product page. Preview a product to see it.',
+    summaryNoProduct: 'The review summary shows on a product page. Preview a product to see it.',
     summaryEmpty:
       'The AI summary shows once this product has three published reviews and AI review summaries are on in the Reviews app settings.',
   },

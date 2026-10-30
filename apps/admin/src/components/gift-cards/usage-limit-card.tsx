@@ -62,9 +62,10 @@ export default function UsageLimitCard({ card, onChanged }: UsageLimitCardProps)
     >
       {editing ? (
         <div className="flex flex-col gap-3">
-          <label className="flex flex-col gap-1.5 text-body">
-            {copy.label}
+          <div className="flex flex-col gap-1.5 text-body">
+            <label htmlFor={`usage-limit-${card.id}`}>{copy.label}</label>
             <Input
+              id={`usage-limit-${card.id}`}
               type="number"
               inputMode="numeric"
               min={1}
@@ -73,7 +74,7 @@ export default function UsageLimitCard({ card, onChanged }: UsageLimitCardProps)
               onChange={(e) => setValue(e.target.value)}
             />
             <span className="text-caption text-muted-foreground">{copy.help}</span>
-          </label>
+          </div>
           <div className="flex flex-wrap gap-2">
             <Button size="sm" onClick={() => save(limit)} disabled={busy || !valid}>
               <Save aria-hidden="true" />

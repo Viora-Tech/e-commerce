@@ -12,12 +12,7 @@ import { mapFieldDefinition } from './api-metaobjects'
 import type { SettingsPart } from './settings-client'
 import type { NMarket } from './settings-plan-markets'
 import type { NSegment } from './settings-plan-segments'
-import type {
-  NPurchaseOrder,
-  NStockLine,
-  NStockLocation,
-  NTransfer,
-} from './settings-plan-stock'
+import type { NPurchaseOrder, NStockLine, NStockLocation, NTransfer } from './settings-plan-stock'
 import { type ShopifyClient, ShopifyError } from './shopify-client'
 import type { NFieldDefinition } from './types'
 

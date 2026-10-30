@@ -45,6 +45,18 @@ export default function ComboEditor({
   const setQuantity = (id: string, quantity: string) =>
     onChange({ ...combo, quantities: { ...combo.quantities, [id]: quantity } })
 
+  const rowExtra = (p: PickItem) => (
+    <Input
+      type="number"
+      inputMode="numeric"
+      min={1}
+      placeholder="1"
+      aria-label={all.combos.quantityFor(p.title)}
+      value={combo.quantities[p.id] ?? ''}
+      onChange={(e) => setQuantity(p.id, e.target.value)}
+    />
+  )
+
   // Event handlers
   const handleItems = (next: { kind: string; ids: string[] }) =>
     onChange({ ...combo, scope: next.kind as ComboKind, ids: next.ids })
@@ -53,17 +65,6 @@ export default function ComboEditor({
   const copy = all.combos
   const isPercent = combo.method === 'percent'
   const id = `combo-${position}`
-  const rowExtra = (p: PickItem) => (
-    <Input
-      type="number"
-      inputMode="numeric"
-      min={1}
-      placeholder="1"
-      aria-label={copy.quantityFor(p.title)}
-      value={combo.quantities[p.id] ?? ''}
-      onChange={(e) => setQuantity(p.id, e.target.value)}
-    />
-  )
 
   return (
     <section
@@ -96,9 +97,7 @@ export default function ComboEditor({
           title={copy.pickerTitle}
           search={combo.scope === 'variants' ? copy.variantSearch : all.value.productSearch}
           labels={all.value}
-          loadPicked={(k, missing) =>
-            loadComboPicked(k as ComboKind, missing, all.value, locale)
-          }
+          loadPicked={(k, missing) => loadComboPicked(k as ComboKind, missing, all.value, locale)}
           onChange={handleItems}
           rowExtra={rowExtra}
         />

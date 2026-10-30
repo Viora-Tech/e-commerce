@@ -51,9 +51,9 @@ import type { Line, PlaceOrderInput, PlaceOrderResult, State } from './place-ord
 import { recomputeOrderStatuses } from './recompute'
 import { releaseReserved, routeAndReserve } from './routing-service'
 
+export { checkGiftCardRules } from './place-order-rules'
 // Re-exported from their sibling modules so callers keep this import path (#973).
 export type { CheckoutDetails, PlaceOrderInput, PlaceOrderResult } from './place-order-types'
-export { checkGiftCardRules } from './place-order-rules'
 
 const loadCart: WorkflowStep<State> = {
   name: 'loadCart',

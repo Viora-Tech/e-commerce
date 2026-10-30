@@ -4,7 +4,6 @@ import { and, count, desc, eq, gt, ilike, inArray, isNotNull, or, type SQL, sql 
 import { type QuestionStatus, reviewQuestion } from './schema'
 import { ANSWER_MAX, displayName, QUESTION_MAX, QUESTION_MIN } from './settings'
 
-
 /** Most questions one email may ask a day, and how many answered ones a product page lists. */
 export const QUESTIONS_PER_DAY = 5
 export const QUESTIONS_SHOWN = 20

@@ -52,8 +52,8 @@ export default function CombosCard({ form, error, onChange }: CombosCardProps) {
     >
       <FieldDescription>{copy.help}</FieldDescription>
       {form.combos.map((combo, i) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: combos have no id; "Combo 2" is a position
         <ComboEditor
+          // biome-ignore lint/suspicious/noArrayIndexKey: combos have no id; "Combo 2" is a position
           key={i}
           combo={combo}
           position={i + 1}

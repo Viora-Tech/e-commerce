@@ -21,9 +21,9 @@ import { getContactMessage, messageText } from '@commerce/plugin-forms/server'
 import {
   loadReviewsSettings,
   replyEmailData,
+  reviewRequestEmail,
   rewardEmailData,
   rewardLabel,
-  reviewRequestEmail,
 } from '@commerce/plugin-reviews/server'
 import { fairProcessor, type IORedis, KEEP_FINISHED, QUEUE_LIMITS, Worker } from '@commerce/queue'
 import { deliverAffiliateUpdate } from './affiliates'

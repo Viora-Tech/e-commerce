@@ -51,6 +51,9 @@ function moneyFormatHelp(format: string): string {
 }
 
 /** Zod issues keyed by dotted path, e.g. `address.pincode`. */
+/** Whether any of `keys` failed validation (a row shows "Needs a fix"). */
+const errorIn = (errors: Errors, keys: string[]) => keys.some((k) => errors[k])
+
 function validate(form: StoreGeneral): Errors {
   const r = StoreGeneralSchema.safeParse(form)
   if (r.success) return {}
@@ -137,18 +140,19 @@ export default function GeneralSettings() {
   const errors = form && attempted ? validate(form) : {}
   const savedDetails = saved ? (JSON.parse(saved) as Loaded) : null
   const addressMissing = savedDetails ? !detailsDone(savedDetails).address : false
-  const errorIn = (keys: string[]) => keys.some((k) => errors[k as keyof typeof errors])
   const rows = form
     ? [
         {
           id: 'store-details',
           title: copy.details.heading,
-          value: errorIn(['name', 'contactEmail', 'contactPhone']) ? copy.rows.needsFix : form.name,
+          value: errorIn(errors, ['name', 'contactEmail', 'contactPhone'])
+            ? copy.rows.needsFix
+            : form.name,
         },
         {
           id: 'address',
           title: copy.address.heading,
-          value: errorIn(['address.pincode'])
+          value: errorIn(errors, ['address.pincode'])
             ? copy.rows.needsFix
             : addressMissing
               ? copy.rows.notAdded
@@ -157,7 +161,7 @@ export default function GeneralSettings() {
         {
           id: 'formats',
           title: copy.locale.heading,
-          value: errorIn(['moneyFormat'])
+          value: errorIn(errors, ['moneyFormat'])
             ? copy.rows.needsFix
             : `${form.currency} · ${timezoneItems[form.timezone] ?? form.timezone}`,
         },
