@@ -224,6 +224,8 @@ export const ordersContent = {
   },
   /** The Delivery column before any shipment is booked. */
   noDelivery: 'Not shipped',
+  /** Fulfilled without a courier booking. */
+  noTracking: 'No tracking',
   /** The sort menu's names where they differ from the header (Figma "State · Sort open"). */
   sortTitles: {
     order: 'Order number',

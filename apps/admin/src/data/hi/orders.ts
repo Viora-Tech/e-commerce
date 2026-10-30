@@ -231,6 +231,7 @@ export default [
       city: 'शहर',
     },
     noDelivery: 'अभी नहीं भेजा',
+    noTracking: 'ट्रैकिंग नहीं',
     sortTitles: {
       order: 'ऑर्डर नंबर',
       customer: 'ग्राहक का नाम',

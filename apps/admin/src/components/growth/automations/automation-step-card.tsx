@@ -56,7 +56,9 @@ export default function AutomationStepCard({
     step.type === 'condition' &&
     (step.field === 'has_ordered' || step.field === 'accepts_marketing')
   const missingCode =
-    step.type === 'email' && step.blocks.some((b) => b.type === 'discount' && !b.code.trim())
+    step.type === 'email' &&
+    // A block that makes each shopper their own code needs no fixed one.
+    step.blocks.some((b) => b.type === 'discount' && !b.unique && !b.code.trim())
 
   return (
     <DataCard

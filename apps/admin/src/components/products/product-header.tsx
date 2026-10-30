@@ -59,10 +59,16 @@ export default function ProductHeader({
       {copy.saveBar.save}
     </Button>
   )
+  // The list counts what is free to sell; say what orders hold so the two numbers agree.
+  const held = (product?.variants ?? []).reduce(
+    (n, v) => n + (v.trackInventory ? Math.max(0, v.reserved ?? 0) : 0),
+    0,
+  )
   const summary = product
     ? [
         single ? s.noOptions : s.variants(form.variants.length),
         s.inStock(stockOf(form.variants)),
+        held > 0 ? s.held(held) : null,
         s.typeBy(form.productType || null, form.vendor || null),
       ]
         .filter(Boolean)

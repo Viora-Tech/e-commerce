@@ -170,11 +170,10 @@ export default function PaymentCard({
           </section>
         ) : null}
 
-        <section className="border-t border-line pt-4">
-          <p className="text-eyebrow mb-2">{copy.payment.events}</p>
-          {events.length === 0 ? (
-            <p className="text-body text-muted-foreground">{copy.payment.noEvents}</p>
-          ) : (
+        {/* None yet (manual and COD payments never have any): no empty section (audit #12). */}
+        {events.length === 0 ? null : (
+          <section className="border-t border-line pt-4">
+            <p className="text-eyebrow mb-2">{copy.payment.events}</p>
             <ul className="flex flex-col gap-2">
               {events.map((e) => (
                 <li key={e.id} className="flex items-center justify-between gap-3 text-body">
@@ -192,8 +191,8 @@ export default function PaymentCard({
                 </li>
               ))}
             </ul>
-          )}
-        </section>
+          </section>
+        )}
       </div>
     </DataCard>
   )

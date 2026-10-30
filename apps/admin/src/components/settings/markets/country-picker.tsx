@@ -58,10 +58,6 @@ const REGIONS = {
   oceania: ['AU', 'NZ'],
 } as const
 
-/** A country's flag from its code (regional indicator letters); no images to ship. */
-const flagOf = (code: string) =>
-  String.fromCodePoint(...[...code.toUpperCase()].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65))
-
 /** One `Intl.DisplayNames` per language tag, made on first use. */
 const regionNames = new Map<string, Intl.DisplayNames>()
 
@@ -124,7 +120,6 @@ export default function CountryPicker({ id, value, taken, invalid, onChange }: C
                 key={code}
                 className="inline-flex h-6 items-center gap-1 rounded-md border border-line bg-muted pr-0.5 pl-2 text-caption text-ink-strong"
               >
-                <span aria-hidden="true">{flagOf(code)}</span>
                 {name}
                 <button
                   type="button"
@@ -186,7 +181,6 @@ export default function CountryPicker({ id, value, taken, invalid, onChange }: C
                   disabled={Boolean(owner)}
                   onCheckedChange={(on) => handleToggle(r.code, on === true)}
                 />
-                <span aria-hidden="true">{flagOf(r.code)}</span>
                 <span className="min-w-0 flex-1 truncate">{r.shown}</span>
                 <span className="shrink-0 text-caption text-muted-foreground">
                   {owner ? text.inMarket(owner) : r.code}

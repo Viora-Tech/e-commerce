@@ -19,7 +19,7 @@
  * the vulnerable range can't be proven excluded (open-ended, `||`, or unparseable), we block, so a
  * real direct exposure is never hidden by a parsing gap.
  */
-import { readFileSync, readdirSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 /** Severities that block when they hit a direct dependency. */
@@ -50,7 +50,12 @@ function declaredDependencies(): Map<string, string[]> {
     } catch {
       return
     }
-    for (const field of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']) {
+    for (const field of [
+      'dependencies',
+      'devDependencies',
+      'peerDependencies',
+      'optionalDependencies',
+    ]) {
       for (const [name, range] of Object.entries(pkg[field] ?? {})) {
         ranges.set(name, [...(ranges.get(name) ?? []), range])
       }
