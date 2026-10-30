@@ -2,13 +2,16 @@ import {
   createMarket,
   deleteMarket,
   getMarket,
+  getMarketSettings,
   listMarkets,
   MarketCreateSchema,
   MarketEnabledSchema,
   MarketError,
   MarketIdSchema,
+  MarketSettingsSchema,
   MarketUpdateSchema,
   permissions,
+  saveMarketSettings,
   setMarketEnabled,
   updateMarket,
 } from '@commerce/core'
@@ -64,6 +67,14 @@ export const marketsRouter = {
   setEnabled: manage()
     .input(MarketEnabledSchema)
     .handler(({ context, input }) => marketErrors(() => setMarketEnabled(ctxOf(context), input))),
+
+  /** Settings for every market: whether the storefront suggests the visitor's market. */
+  settings: read().handler(({ context }) => getMarketSettings(ctxOf(context))),
+
+  /** Save the settings for every market. */
+  saveSettings: manage()
+    .input(MarketSettingsSchema)
+    .handler(({ context, input }) => saveMarketSettings(ctxOf(context), input)),
 
   /** Delete a market; one with orders is turned off instead, so its orders keep it. */
   delete: manage()

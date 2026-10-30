@@ -376,7 +376,10 @@ export const ACTION_DOCS: Record<string, string> = {
     'Delete a market; one with orders is turned off instead, so its orders keep it.',
   'markets.get': 'One market with its countries.',
   'markets.list': 'Every market with its countries, the primary market (India) first.',
+  'markets.saveSettings': 'Save the settings for every market.',
   'markets.setEnabled': 'Turn a market on or off for shoppers; the primary market is always on.',
+  'markets.settings':
+    "Settings for every market: whether the storefront suggests the visitor's market.",
   'markets.update': 'Change a market; the primary market only changes its name and languages.',
   'media.backgroundWork':
     'Images still processing and a running import: the "store may be slower" notice.',

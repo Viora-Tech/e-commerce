@@ -4,7 +4,7 @@ import { addLineAction, cartCountAction } from '@/lib/cart-actions'
 import { submitContact } from '@/lib/contact-actions'
 import { renderStaticLiquidSection } from '@/lib/liquid-theme'
 import { requestPriceCents } from '@/lib/market-pricing'
-import { localizationAction } from '@/lib/market-switch'
+import { localizationAction, marketSuggestionAction } from '@/lib/market-switch'
 import { subscribeAction } from '@/lib/newsletter-actions'
 import { recommendationsResponse } from '@/lib/recommendations-route'
 import { withEvlog } from '@/lib/request-log'
@@ -110,6 +110,8 @@ export const GET = withEvlog(async (req: Request, { params }: Params) => {
       total_price: await requestPriceCents(storeId, cart.total_price),
     })
   }
+  // The "Shopping from …?" banner: this visitor's market suggestion, never cached.
+  if (action === 'market-suggestion') return marketSuggestionAction(req, storeId)
   // Older pages' shim sent recommendations here; the store-domain route answers them now.
   if (action === 'recommendations') return recommendationsResponse(req, storeId, false)
   if (action === 'section') {

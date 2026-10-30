@@ -138,6 +138,16 @@ export const marketsContent = {
     catalogFailed:
       'The market was created, but its catalog could not be set. Set it on the market page.',
   },
+  /** Settings for every market (the card under the list). */
+  suggestion: {
+    heading: 'Visitors from other countries',
+    body: 'How the online store treats a visitor whose country belongs to another market.',
+    label: 'Suggest the visitor’s market',
+    help: 'A small card offers their own market, like “Shopping from the UAE? Shop in AED”. It never switches by itself, so search engines keep seeing the page they asked for. Their answer is remembered.',
+    on: 'Visitors are offered their market',
+    off: 'Visitors are no longer offered their market',
+    failed: 'Could not save the setting',
+  },
   confirmDelete: {
     title: (name: string) => `Delete ${name}?`,
     body: 'Its countries go back to your primary market. If it already has orders, it is turned off instead, so those orders keep it.',

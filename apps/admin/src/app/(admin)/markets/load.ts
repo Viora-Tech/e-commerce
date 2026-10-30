@@ -23,13 +23,14 @@ async function orNull<T>(read: Promise<T>): Promise<T | null> {
 
 /** The Markets home and the New market page: markets, domains, catalogs and the store defaults. */
 export async function loadMarketsHome(context: Context) {
-  const [markets, domains, catalogs, products, discounts, taxes] = await Promise.all([
+  const [markets, domains, catalogs, products, discounts, taxes, settings] = await Promise.all([
     call(appRouter.markets.list, undefined, { context }),
     call(appRouter.domains.list, undefined, { context }),
     orNull(call(appRouter.catalogs.list, undefined, { context })),
     orNull(call(appRouter.products.stats, undefined, { context })),
     orNull(call(appRouter.discounts.stats, undefined, { context })),
     orNull(call(appRouter.taxes.get, undefined, { context })),
+    orNull(call(appRouter.markets.settings, undefined, { context })),
   ])
   const defaults: StoreDefaults = {
     productCount: products ? Number(products.active) : null,
@@ -37,5 +38,11 @@ export async function loadMarketsHome(context: Context) {
     legalName: taxes?.form.legalName.trim() || null,
     gstRatePercent: taxes ? Number(taxes.form.gstRatePercent) : null,
   }
-  return { markets, domains, catalogs: catalogs ?? [], defaults }
+  return {
+    markets,
+    domains,
+    catalogs: catalogs ?? [],
+    defaults,
+    suggestMarket: settings?.suggestMarket ?? true,
+  }
 }

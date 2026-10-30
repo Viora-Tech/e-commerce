@@ -19,6 +19,7 @@ import {
   grievanceOfficerOf,
   liveThemeSettings,
   parseCustomerPrivacySettings,
+  parseMarketSettings,
   parseNavigationSettings,
   parsePreferences,
   publishedPolicyLinks,
@@ -27,7 +28,7 @@ import {
   themeToCss,
   toFooterColumns,
 } from '@commerce/core'
-import { navigationMenu, store } from '@commerce/db'
+import { market, navigationMenu, store } from '@commerce/db'
 import { browserSentryMeta } from '@commerce/observability'
 import { eq } from 'drizzle-orm'
 import type { Metadata, Viewport } from 'next'
@@ -38,6 +39,7 @@ import ExperimentBeacon from '@/components/analytics/experiment-beacon'
 import CartDrawer from '@/components/cart/cart-drawer'
 import StoreChrome from '@/components/checkout/store-chrome'
 import InboxLauncher from '@/components/inbox/inbox-launcher'
+import MarketSuggestion from '@/components/markets/market-suggestion'
 import ConsentManager from '@/components/privacy/consent-manager'
 import PredictiveSearch from '@/components/search/predictive-search'
 import AppEmbeds from '@/components/theme/app-embeds'
@@ -132,6 +134,14 @@ function layoutData(storeId: string) {
   })
 }
 
+/** How many markets shoppers can be in (the primary is always on), cached per store version. */
+function liveMarketCount(storeId: string) {
+  return storeRead(storeId, 'live-market-count', async (tx) => {
+    const rows = await tx.select({ id: market.id }).from(market).where(eq(market.enabled, true))
+    return rows.length
+  })
+}
+
 /** Browser chrome and colour-scheme hint in the mode this request renders. */
 export async function generateViewport({ params }: Pick<Props, 'params'>): Promise<Viewport> {
   const { storeId } = await params
@@ -205,6 +215,12 @@ export default async function StoreLayout({ children, params }: Props) {
   const jar = await cookies()
   const mode = resolveThemeMode(jar.get(THEME_COOKIE)?.value, theme.darkMode)
   const prefs = parsePreferences(current.preferences)
+  // Markets › "Suggest the visitor's market": the banner asks per visitor after load, so only
+  // whether it may ask at all is in the page. Never in a preview, nor with one live market.
+  const suggestMarket =
+    !preview &&
+    parseMarketSettings(current.preferences).suggestMarket &&
+    (await liveMarketCount(storeId)) > 1
   const privacy = parseCustomerPrivacySettings(current.preferences)
   const officer = grievanceOfficerOf(current.preferences)
   const env = loadEnv(process.env)
@@ -397,6 +413,7 @@ export default async function StoreLayout({ children, params }: Props) {
           {tested.length ? <ExperimentBeacon seen={tested} /> : null}
           <ThemePreviewBridge adminOrigin={adminOrigin} />
           {preview ? null : <ConsentManager {...consent} themeBanner={themedConsent} />}
+          {suggestMarket ? <MarketSuggestion /> : null}
           {inboxChat ? (
             <InboxLauncher widget={inboxChat} storeName={current.name} logoUrl={chatLogo} />
           ) : null}
@@ -438,6 +455,7 @@ export default async function StoreLayout({ children, params }: Props) {
           </StoreChrome>
           <ThemePreviewBridge adminOrigin={adminOrigin} />
           {preview || themedConsent ? null : <ConsentManager {...consent} />}
+          {suggestMarket ? <MarketSuggestion /> : null}
           <StoreChrome>{footer}</StoreChrome>
           {inboxChat ? (
             <InboxLauncher widget={inboxChat} storeName={current.name} logoUrl={chatLogo} />

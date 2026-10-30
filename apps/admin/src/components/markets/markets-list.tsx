@@ -20,6 +20,7 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import MarketRow from './market-row'
+import MarketSuggestionCard from './market-suggestion-card'
 import MarketsGraph from './markets-graph'
 
 type MarketsListProps = {
@@ -30,6 +31,8 @@ type MarketsListProps = {
   catalogs: CatalogSummary[]
   /** What every market starts from (the Graph view's Store defaults card). */
   defaults: StoreDefaults
+  /** Settings for every market: whether the online store suggests the visitor's market. */
+  suggestMarket: boolean
 }
 
 type View = 'list' | 'graph'
@@ -38,7 +41,13 @@ type View = 'list' | 'graph'
  * Markets (Shopify Markets style, a top-level page): the primary market first, then each market with
  * its countries, currency, languages and the address shoppers reach it on.
  */
-export default function MarketsList({ markets, domains, catalogs, defaults }: MarketsListProps) {
+export default function MarketsList({
+  markets,
+  domains,
+  catalogs,
+  defaults,
+  suggestMarket,
+}: MarketsListProps) {
   // Hooks
   const copy = useCopy(marketsContent)
   const router = useRouter()
@@ -166,6 +175,7 @@ export default function MarketsList({ markets, domains, catalogs, defaults }: Ma
           ))}
         </SettingsTable>
       )}
+      <MarketSuggestionCard suggestMarket={suggestMarket} canManage={canManage} />
       <ConfirmDialog
         open={deleting !== null}
         onOpenChange={(open) => {
