@@ -89,14 +89,18 @@ export default function ProductSide({
         value={form.templateSuffix}
         onChange={(templateSuffix) => onPatch({ templateSuffix })}
       />
-      <div className="flex flex-wrap justify-end gap-2">
-        <ProductPageActions
-          busy={busy}
-          live={live}
-          onPublish={onPublish}
-          onSaveDraft={onSaveDraft}
-        />
-      </div>
+      {/* A saved product saves from the header and the save bar; a second pair of buttons down
+          here made two places to save (audit #58). A new one keeps Save to draft / Publish. */}
+      {productId ? null : (
+        <div className="flex flex-wrap justify-end gap-2">
+          <ProductPageActions
+            busy={busy}
+            live={live}
+            onPublish={onPublish}
+            onSaveDraft={onSaveDraft}
+          />
+        </div>
+      )}
     </>
   )
 }
