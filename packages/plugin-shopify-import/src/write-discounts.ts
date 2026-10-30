@@ -32,16 +32,17 @@ export function refusal(d: NDiscount): Refusal | null {
   if (!d.method) {
     return { reason: 'buy_x_get_y', message: 'This kind of discount value is not supported yet' }
   }
-  if (!d.allCustomers) {
+  // Chosen customers come over (their ids mapped); segments wait for the segments import.
+  if (!d.allCustomers && !d.customerIds?.length) {
     return {
       reason: 'customer_specific',
-      message: 'Only for chosen customers or segments; ours apply to every customer',
+      message: 'Only for chosen segments; segments are not imported yet, so pick them here',
     }
   }
-  if (d.minQuantity) {
+  if (d.minQuantity && d.minSubtotalPaise) {
     return {
       reason: 'minimum_quantity',
-      message: `Needs at least ${d.minQuantity} items; ours can only ask for a minimum amount`,
+      message: 'Needs both a minimum amount and a minimum number of items; ours ask for one',
     }
   }
   if (d.items.kind === 'products' && d.items.variants) {
@@ -50,10 +51,11 @@ export function refusal(d: NDiscount): Refusal | null {
       message: 'Applies to single variants; ours apply to whole products',
     }
   }
-  if (d.appliesOnEachItem) {
+  // An amount off each item works here as the same amount on every chosen product.
+  if (d.appliesOnEachItem && d.items.kind !== 'products') {
     return {
       reason: 'per_item_amount',
-      message: 'Takes the amount off each item; ours take it off the order once',
+      message: 'Takes the amount off each item of a whole store or collection; pick the products here',
     }
   }
   if (d.method === 'free_shipping') {
@@ -96,11 +98,26 @@ async function scopeIds(ctx: ImportContext, d: NDiscount): Promise<string[]> {
   })
 }
 
+/** Our customer ids for a discount made for chosen Shopify customers (those imported). */
+async function eligibleCustomers(ctx: ImportContext, d: NDiscount): Promise<string[]> {
+  if (d.allCustomers || !d.customerIds?.length) return []
+  const gids = d.customerIds
+  return ctx.inStore(async (tx) => {
+    const ids: string[] = []
+    for (const gid of gids) {
+      const id = await findMapping(tx, 'customers', gid)
+      if (id && !ids.includes(id)) ids.push(id)
+    }
+    return ids
+  })
+}
+
 async function writeOne(
   ctx: ImportContext,
   d: NDiscount,
   code: { code: string; used: number } | null,
   appliesToIds: string[],
+  eligibleIds: string[],
 ) {
   const ref = code?.code ?? d.title
   const sourceId = code ? `${d.sourceId}#${normaliseCode(code.code)}` : d.sourceId
@@ -111,8 +128,15 @@ async function writeOne(
     method: d.method,
     value: d.method === 'free_shipping' ? 0 : d.value,
     minSubtotalPaise: d.minSubtotalPaise,
+    minQuantity: d.minQuantity,
     appliesTo: d.items.kind,
     appliesToIds,
+    productValues:
+      d.appliesOnEachItem && d.method === 'fixed'
+        ? Object.fromEntries(appliesToIds.map((id) => [id, d.value]))
+        : null,
+    customerEligibility: eligibleIds.length > 0 ? 'customers' : 'all',
+    eligibleIds,
     usageLimit: d.usageLimit,
     usagePerCustomer: d.oncePerCustomer ? 1 : null,
     startsAt: d.startsAt,
@@ -163,8 +187,12 @@ async function writeOne(
       method: input.method,
       value: input.method === 'free_shipping' ? 0 : input.value,
       minSubtotalPaise: input.minSubtotalPaise ?? null,
+      minQuantity: input.minQuantity ?? null,
       appliesTo: input.appliesTo,
       appliesToIds: input.appliesTo === 'all' ? [] : input.appliesToIds,
+      productValues: input.productValues ?? null,
+      customerEligibility: input.customerEligibility,
+      eligibleIds: input.customerEligibility === 'all' ? [] : input.eligibleIds,
       usageLimit: input.usageLimit ?? null,
       usagePerCustomer: input.usagePerCustomer ?? null,
       usedCount: used,
@@ -243,8 +271,24 @@ async function writeDiscount(
       })
     }
   }
+  const eligibleIds = await eligibleCustomers(ctx, d)
+  if (!d.allCustomers && eligibleIds.length === 0 && !ctx.dryRun) {
+    // Writing it for every customer would hand a private code to anyone.
+    for (let i = 0; i < units; i++) ctx.report.count(R, 'skipped')
+    ctx.report.leave(R, 'customer_specific', units)
+    ctx.report.issue({
+      resource: R,
+      ref,
+      message: 'None of the customers it is for were imported; import customers first, then run this again',
+    })
+    return
+  }
   const placeholder = ctx.dryRun && d.items.kind !== 'all' && appliesToIds.length === 0
   const ids = placeholder ? ['00000000-0000-4000-8000-000000000000'] : appliesToIds
+  const who =
+    ctx.dryRun && !d.allCustomers && eligibleIds.length === 0
+      ? ['00000000-0000-4000-8000-000000000000']
+      : eligibleIds
   for (const code of codes) {
     if (code && !CODE.test(code.code)) {
       ctx.report.count(R, 'skipped')
@@ -257,7 +301,7 @@ async function writeDiscount(
       })
       continue
     }
-    await writeOne(ctx, d, code, ids)
+    await writeOne(ctx, d, code, ids, who)
   }
 }
 

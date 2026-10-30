@@ -309,6 +309,8 @@ export type NDiscount = {
   minSubtotalPaise: number | null
   minQuantity: number | null
   allCustomers: boolean
+  /** Shopify customer ids when it is only for chosen customers (not segments). */
+  customerIds?: string[] | undefined
   /** Free shipping: every country, or the ones listed. */
   countries: string[] | 'all'
   maxShippingPaise: number | null
