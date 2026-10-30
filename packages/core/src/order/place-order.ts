@@ -1,6 +1,7 @@
 import { cart, cartLine, type Db, order, product, store, variant, withStore } from '@commerce/db'
 import { eq } from 'drizzle-orm'
 import {
+  cartLimitBreach,
   checkCheckoutRules,
   checkoutRuleSubtotalPaise,
   parseCheckoutSettings,
@@ -11,6 +12,7 @@ import { applyDiscount } from '../discounts/evaluate'
 import { resolveCartDiscount } from '../discounts/resolve'
 import {
   CartEmpty,
+  CartLimitExceeded,
   CartNotOpen,
   DiscountCodeRefused,
   NotLaunchedYet,
@@ -219,6 +221,9 @@ const enforceCheckoutRules: WorkflowStep<State> = {
       .from(store)
       .where(eq(store.id, ctx.storeId))
     const settings = parseCheckoutSettings(s?.preferences)
+    // Cart limit (#156): a cart filled before the limit was set, or past the storefront, stops here.
+    const over = cartLimitBreach(settings.cartLimit, lines)
+    if (over) throw new CartLimitExceeded(over.productId, over.title, over.max, ctx.storeId)
     const { discountPaise, shippingPaise } = applyDiscount(
       sumPaise(lines),
       shipping?.pricePaise ?? 0,

@@ -8,9 +8,12 @@ import {
   store,
   variant,
 } from '@commerce/db'
-import { and, asc, eq, inArray } from 'drizzle-orm'
+import { and, asc, eq, inArray, ne } from 'drizzle-orm'
+import { type CartLimit, lineRoom, productCartLimit } from '../checkout/cart-limit'
+import { parseCheckoutSettings } from '../checkout/settings'
 import type { StoreContext } from '../context'
 import {
+  CartLimitExceeded,
   CartNotOpen,
   NotLaunchedYet,
   NotSoldInMarket,
@@ -117,6 +120,52 @@ async function preorderCap(ctx: StoreContext, variantId: string): Promise<number
   return lineAvailable(r)
 }
 
+/** Settings → Checkout → Cart limit (#156). */
+async function storeCartLimit(ctx: StoreContext): Promise<CartLimit> {
+  const [s] = await ctx.tx
+    .select({ preferences: store.preferences })
+    .from(store)
+    .where(eq(store.id, ctx.storeId))
+  return parseCheckoutSettings(s?.preferences).cartLimit
+}
+
+/** Units of this product the cart holds on lines other than this variant's. */
+async function otherLinesOfProduct(
+  ctx: StoreContext,
+  cartId: string,
+  productId: string,
+  variantId: string,
+): Promise<number> {
+  const rows = await ctx.tx
+    .select({ quantity: cartLine.quantity })
+    .from(cartLine)
+    .innerJoin(variant, eq(variant.id, cartLine.variantId))
+    .where(
+      and(
+        eq(cartLine.cartId, cartId),
+        eq(variant.productId, productId),
+        ne(cartLine.variantId, variantId),
+      ),
+    )
+  return rows.reduce((n, r) => n + r.quantity, 0)
+}
+
+/**
+ * How many units this variant's line may hold under the cart limit; null when the product has
+ * none (or is a gift card).
+ */
+async function limitRoom(
+  ctx: StoreContext,
+  cartId: string,
+  line: { productId: string; variantId: string; giftCard: boolean },
+): Promise<number | null> {
+  if (line.giftCard) return null
+  const limit = await storeCartLimit(ctx)
+  if (productCartLimit(limit, line.productId) === null) return null
+  const others = await otherLinesOfProduct(ctx, cartId, line.productId, line.variantId)
+  return lineRoom(limit, line.productId, others)
+}
+
 export async function createCart(ctx: StoreContext): Promise<string> {
   const [c] = await ctx.tx.insert(cart).values({ storeId: ctx.storeId }).returning({ id: cart.id })
   if (!c) throw new Error('cart insert returned nothing')
@@ -201,6 +250,16 @@ export async function getCart(ctx: StoreContext, cartId: string): Promise<CartVi
           shipDate: resolveShipDate(resolvePreorderSettings(r, r.preorderOverride)),
         })
       : null
+  // Cart limit (#156): the stepper stops at what the store allows of each product.
+  const limit = rows.length > 0 ? await storeCartLimit(ctx) : null
+  const roomOf = (r: (typeof rows)[number]) => {
+    if (!limit || r.giftCard) return null
+    const others = rows.reduce(
+      (n, x) => (x.productId === r.productId && x.id !== r.id ? n + x.quantity : n),
+      0,
+    )
+    return lineRoom(limit, r.productId, others)
+  }
   const lines: CartLineView[] = rows.map((r) => ({
     id: r.id,
     variantId: r.variantId,
@@ -210,7 +269,7 @@ export async function getCart(ctx: StoreContext, cartId: string): Promise<CartVi
     quantity: r.quantity,
     unitPricePaise: r.unitPricePaise,
     linePaise: r.quantity * r.unitPricePaise,
-    available: lineAvailable(r),
+    available: Math.min(lineAvailable(r), roomOf(r) ?? Number.POSITIVE_INFINITY),
     imageUrl: r.imageUrl ?? firstImages.get(r.productId) ?? null,
     giftCard: r.giftCard,
     preorder: r.preorder,
@@ -278,7 +337,14 @@ export async function addToCart(
   // A pre-order with a limit holds no more than the stock and pre-order room left (#939).
   const cap = preorder ? await preorderCap(ctx, variantId) : null
   const wanted = (existing?.quantity ?? 0) + quantity
-  const next = cap === null ? wanted : Math.min(wanted, cap)
+  const capped = cap === null ? wanted : Math.min(wanted, cap)
+  // Cart limit (#156): never more of one product than the store allows per cart.
+  const room = await limitRoom(ctx, cartId, { productId: p.id, variantId, giftCard: p.isGiftCard })
+  const next = room === null ? capped : Math.min(capped, room)
+  if (room !== null && next < 1 && !existing) {
+    const max = productCartLimit(await storeCartLimit(ctx), p.id) ?? 0
+    throw new CartLimitExceeded(p.id, p.title, max, ctx.storeId)
+  }
   if (existing) {
     // Already at the limit: the line stays as it is.
     await ctx.tx
@@ -309,14 +375,24 @@ export async function setLineQuantity(
     return
   }
   const [line] = await ctx.tx
-    .select({ variantId: cartLine.variantId, preorder: cartLine.preorder })
+    .select({
+      variantId: cartLine.variantId,
+      preorder: cartLine.preorder,
+      productId: variant.productId,
+      giftCard: product.isGiftCard,
+    })
     .from(cartLine)
+    .innerJoin(variant, eq(variant.id, cartLine.variantId))
+    .innerJoin(product, eq(product.id, variant.productId))
     .where(and(eq(cartLine.id, lineId), eq(cartLine.cartId, cartId)))
   if (!line) return
   // A pre-order line stops at its limit (#939), as the product page's stepper does.
   const cap = line.preorder ? await preorderCap(ctx, line.variantId) : null
+  // And every line at the store's cart limit (#156).
+  const room = await limitRoom(ctx, cartId, line)
+  const most = Math.min(cap ?? Number.POSITIVE_INFINITY, room ?? Number.POSITIVE_INFINITY)
   await ctx.tx
     .update(cartLine)
-    .set({ quantity: cap === null ? quantity : Math.max(1, Math.min(quantity, cap)) })
+    .set({ quantity: Number.isFinite(most) ? Math.max(1, Math.min(quantity, most)) : quantity })
     .where(and(eq(cartLine.id, lineId), eq(cartLine.cartId, cartId)))
 }

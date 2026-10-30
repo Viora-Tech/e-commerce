@@ -38,6 +38,18 @@ then fill in from it, and the shopper can still change them. The page tells you 
 code lookup data is not installed on your server yet; until it is, shoppers type city and
 state themselves.
 
+### Form fields
+
+- **Customer name**: one **Full name** field (quickest), or **First name and last name**, both
+  required.
+- **Company name**: **Hidden**, **Optional** or **Required**. Business buyers want their company
+  on the GST invoice; make it required if you sell mostly to businesses. Hidden keeps the old
+  behaviour: a business name is asked for only next to a GSTIN.
+- **Address line 2 (landmark)**: **Hidden**, **Optional** or **Required**. Couriers in some
+  areas need a landmark to find the door.
+
+The same rules are checked when the order is placed.
+
 ### Minimum order value
 
 Checkout will not place an order below this amount, counted after discounts and before
@@ -56,6 +68,22 @@ These show only when cash on delivery is on in **Settings → Payments**.
   or upload a CSV file. Anything that is not a PIN code is left out and listed. Up to 5,000.
 - **Confirm cash on delivery orders on WhatsApp**: saves your choice for a WhatsApp
   confirmation step that is coming soon. It does nothing yet.
+
+### Cart limit
+
+**Most of each product per cart** caps how many of one product (all its variants together) a
+shopper can put in one cart. It stops bots from reading your stock by adding thousands, and
+resellers from buying a whole drop. Leave it at 0 for no limit. Under **Products with their own
+limit**, pick products with **Browse** and type each one's number; it replaces the store-wide
+one for that product. Gift cards are never limited. The cart stops at the limit, and an order
+over it is refused.
+
+### Checkout content
+
+**Edit checkout content** opens a list of the checkout's headings, labels and hints, with our
+wording shown in each box. Type your own words in **English** and **Hindi**; leave a box empty
+to keep ours. A shopper browsing in Hindi sees your Hindi words, then your English ones, then
+ours. Press **Done**, then **Save**.
 
 </Steps>
 

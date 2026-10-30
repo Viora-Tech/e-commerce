@@ -3,11 +3,13 @@ import 'server-only'
 
 import {
   CannotShipToState,
+  CartLimitExceeded,
   CheckoutRuleViolation,
   DiscountCodeRefused,
   DiscountUnavailable,
   GiftCardError,
   NotSoldInMarket,
+  PaymentMethodHidden,
   PriceNotSet,
   ShippingRateUnavailable,
   ShippingUnavailable,
@@ -42,6 +44,10 @@ export function checkoutErrorMessage(err: unknown, pincode: string): string | nu
   // The cart's market sells from a catalog that leaves it out (Markets › Catalogs).
   if (err instanceof NotSoldInMarket) return e.notSoldInMarket
   if (err instanceof ShippingRateUnavailable) return e.rateChanged
+  // Settings → Checkout → Cart limit (#156).
+  if (err instanceof CartLimitExceeded) return e.cartLimit(err.title, err.max)
+  // Settings → Payments → Payment rules (#150): this way to pay is not offered for this order.
+  if (err instanceof PaymentMethodHidden) return e.paymentMethodHidden
   // Settings → Checkout, re-checked by placeOrder whatever the form showed.
   if (err instanceof CheckoutRuleViolation) return checkoutRuleMessage(err, pincode)
   return null

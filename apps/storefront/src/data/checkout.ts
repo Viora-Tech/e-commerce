@@ -373,10 +373,18 @@ export const checkoutContent = {
     emailPlaceholder: 'you@example.com',
     phonePlaceholder: '98765 43210',
     namePlaceholder: 'As on your ID',
+    /** Settings → Checkout → Form fields: the name in two parts (#154). */
+    firstName: 'First name',
+    lastName: 'Last name',
+    /** The company name in Delivery, when the store asks for it. */
+    company: 'Company name',
+    companyOptional: 'Company name (optional)',
     line1: 'House number, street, area',
     line1Placeholder: 'Flat 4B, Palm Residency, Sector 14',
     line2: 'Landmark (optional)',
     line2Placeholder: 'Near the metro',
+    /** Address line 2 when the store makes it required. */
+    line2Required: 'Landmark',
     city: 'City',
     state: 'State',
     pincode: 'PIN code',
@@ -393,6 +401,10 @@ export const checkoutContent = {
   /** Inline messages, shown once a field has been left or the shopper tried to pay. */
   validation: {
     name: 'Enter your full name',
+    firstName: 'Enter your first name',
+    lastName: 'Enter your last name',
+    line2: 'Enter a landmark',
+    company: 'Enter your company name',
     email: 'Enter your email address',
     emailInvalid: 'Enter a valid email address, like name@example.com',
     phone: 'Enter a 10 digit mobile number, like 98765 43210',
@@ -483,6 +495,10 @@ export const checkoutContent = {
     discountRefused: (code: string, why: string) =>
       `${code} can't be used on this order: ${why} Your order was not placed. Remove the code to pay the full price, or try another code.`,
     rateLimited: 'Too many attempts. Please wait a minute and try again.',
+    cartLimit: (title: string, max: number) =>
+      `You can buy up to ${max} of ${title || 'this item'} in one order. Lower the quantity in your cart and try again.`,
+    paymentMethodHidden:
+      'That way to pay is not available for this order. Pick another payment method.',
     contact: 'Check your contact details and try again.',
     minimumOrder: (missing: string) =>
       `Your order is below this shop's minimum. Add ${missing} more and try again.`,
@@ -494,6 +510,13 @@ export const checkoutContent = {
       `The state you picked does not match PIN code ${pincode}. Check the state and the PIN code, then try again.`,
   },
 } as const
+
+/**
+ * The checkout's words as a card reads them: `checkoutContent` with the store's own wording
+ * written over the strings it may change (Settings → Checkout → Checkout content, #158;
+ * `applyCheckoutText`, `CHECKOUT_TEXT_KEYS`).
+ */
+export type CheckoutCopy = typeof checkoutContent
 
 export const giftCardFieldContent = {
   label: 'Gift card',

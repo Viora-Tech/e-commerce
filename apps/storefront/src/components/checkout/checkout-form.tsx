@@ -24,8 +24,6 @@ import { useCheckoutGst } from '@/lib/use-checkout-gst'
 type CheckoutFormProps = CheckoutFormInput
 
 const FORM_ID = 'checkout-form'
-const copy = content.sections
-const express = content.express
 
 /** A card's number on this page: 1 Contact, 2 Delivery, then Shipping when there is one. */
 const numberIn = (sections: readonly CheckoutSection[], s: CheckoutSection): number =>
@@ -50,6 +48,9 @@ export default function CheckoutForm(props: CheckoutFormProps) {
   })
 
   // Render logic
+  // The store's own wording over ours (#158).
+  const copy = ck.copy.sections
+  const express = ck.copy.express
   const { totals, deposit, look, shipping, rate, done, sections } = ck
   const { digitalOnly } = totals
   const pincode = cleanPincode(ck.form.pincode)
@@ -111,10 +112,12 @@ export default function CheckoutForm(props: CheckoutFormProps) {
       look={look}
       backHref="/cart"
       backLabel={content.backToCart}
+      secureLabel={ck.copy.secure}
       policies={ck.policies ?? []}
       summary={
         <SummaryDisclosure totalLabel={ck.payNow} updating={ck.updating}>
           <CheckoutSummary
+            words={ck.copy}
             cart={ck.cart}
             discount={ck.discount}
             digitalOnly={digitalOnly}
@@ -177,6 +180,7 @@ export default function CheckoutForm(props: CheckoutFormProps) {
         <h1 className="sr-only">{content.title}</h1>
         {showExpress ? (
           <ExpressPay
+            heading={express.heading}
             line={expressLine}
             pending={ck.pending}
             disabled={ck.updating || ck.unserviceable || ck.shortfall > 0}

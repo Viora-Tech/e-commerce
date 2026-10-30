@@ -1,6 +1,7 @@
 import { loadEnv } from '@commerce/config'
 import {
   checkoutOriginFor,
+  checkoutTextFor,
   getCart,
   listAddresses,
   publishedPolicyLinks,
@@ -9,12 +10,14 @@ import {
   storefrontOriginFor,
 } from '@commerce/core'
 import { initiateCheckoutEventId } from '@commerce/core/pixels'
+import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import PixelTrack from '@/components/analytics/pixel-track'
 import CheckoutForm from '@/components/checkout/checkout-form'
 import { emiHintContent } from '@/data/product'
 import { readCartId } from '@/lib/cart-cookie'
 import { withThemeLogo } from '@/lib/checkout-look'
+import { MARKET_HEADERS } from '@/lib/markets'
 import { readCheckoutSession } from '@/lib/checkout-session'
 import { currentCustomer } from '@/lib/customer-session'
 import { cartDiscountView } from '@/lib/discount-view'
@@ -73,6 +76,11 @@ export default async function CheckoutPage({ params }: Params) {
   // A signed-in shopper checks out as themselves, with their address book to pick from.
   const addresses = me ? await inStore(storeId, (tx) => listAddresses({ storeId, tx }, me.id)) : []
   const itemCount = cart.lines.reduce((n, l) => n + l.quantity, 0)
+  // Settings → Checkout → Checkout content (#158): the store's wording in the shopper's language.
+  const text = checkoutTextFor(
+    settings.content,
+    (await headers()).get(MARKET_HEADERS.locale) ?? 'en',
+  )
   return (
     <>
       {/* Pixels app: InitiateCheckout, one per cart (`ic_<cartId>`). */}
@@ -95,6 +103,7 @@ export default async function CheckoutPage({ params }: Params) {
         addresses={addresses}
         deposit={deposit}
         settings={settings}
+        text={text}
         policies={policies}
         look={look}
         emiMinPaise={emiMinPaise}

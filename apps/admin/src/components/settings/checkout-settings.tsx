@@ -10,12 +10,16 @@ import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import ChoiceList from '@/components/returns/choice-list'
 import RolloutHoldChip from '@/components/rollouts/rollout-hold-chip'
+import CartLimitCard from '@/components/settings/cart-limit-card'
 import CheckoutBrandingSettings from '@/components/settings/checkout-branding-settings'
+import CheckoutFieldsCard from '@/components/settings/checkout-fields-card'
+import CheckoutTextCard, { editedCount } from '@/components/settings/checkout-text-card'
 import CheckoutToggleRow from '@/components/settings/checkout-toggle-row'
 import CodRulesCard from '@/components/settings/cod-rules-card'
 import RupeeInput from '@/components/settings/rupee-input'
 import SettingsDrill from '@/components/settings/settings-drill'
 import SettingsDrillPanel from '@/components/settings/settings-drill-panel'
+import { checkoutRulesContent } from '@/data/checkout-rules'
 import { checkoutBrandingContent, checkoutSettingsContent as copy } from '@/data/checkout-settings'
 import { SETTINGS_BACK, settingsContent } from '@/data/settings'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -36,6 +40,7 @@ const formOf = (v: Loaded): Form => ({ settings: v.settings, codFee: v.codFee })
 export default function CheckoutSettings() {
   // Hooks
   const brandingCopy = useCopy(checkoutBrandingContent)
+  const rules = useCopy(checkoutRulesContent)
   const fmt = useFormat()
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [form, setForm] = useState<Form | null>(null)
@@ -93,6 +98,7 @@ export default function CheckoutSettings() {
   const dirty = form !== null && saved !== null && JSON.stringify(form) !== saved
   const s = form?.settings
   const r = brandingCopy.rows
+  const textEdits = s ? editedCount(s.content.en) + editedCount(s.content.hi) : 0
   const rows =
     s && loaded
       ? [
@@ -107,7 +113,35 @@ export default function CheckoutSettings() {
             title: r.minimum,
             value: s.minimumOrderPaise > 0 ? fmt.money(s.minimumOrderPaise) : r.noMinimum,
           },
+          {
+            id: 'fields',
+            title: rules.rows.fields,
+            value: rules.rows.fieldsValue(
+              s.fields.name === 'split' ? rules.rows.nameSplit : rules.rows.nameFull,
+              s.fields.company === 'required'
+                ? rules.rows.companyRequired
+                : s.fields.company === 'optional'
+                  ? rules.rows.companyOptional
+                  : rules.rows.companyHidden,
+            ),
+          },
           { id: 'cod', title: r.cod, value: loaded.codEnabled ? r.codOn : r.codOff },
+          {
+            id: 'cart-limit',
+            title: rules.rows.cartLimit,
+            value:
+              s.cartLimit.maxPerProduct > 0
+                ? rules.rows.limitValue(s.cartLimit.maxPerProduct)
+                : s.cartLimit.overrides.length > 0
+                  ? rules.rows.overrides(s.cartLimit.overrides.length)
+                  : rules.rows.noLimit,
+          },
+          {
+            id: 'content',
+            title: rules.rows.content,
+            value:
+              textEdits > 0 ? rules.rows.contentEdited(textEdits) : rules.rows.contentDefault,
+          },
           { id: 'branding', title: r.branding, value: r.brandingValue },
         ]
       : []
@@ -194,6 +228,15 @@ export default function CheckoutSettings() {
               onRules={(cod) => patch({ cod })}
               onFee={(codFee) => setForm((f) => (f ? { ...f, codFee } : f))}
             />
+          </SettingsDrillPanel>
+          <SettingsDrillPanel id="fields">
+            <CheckoutFieldsCard fields={s.fields} onChange={(fields) => patch({ fields })} />
+          </SettingsDrillPanel>
+          <SettingsDrillPanel id="cart-limit">
+            <CartLimitCard limit={s.cartLimit} onChange={(cartLimit) => patch({ cartLimit })} />
+          </SettingsDrillPanel>
+          <SettingsDrillPanel id="content">
+            <CheckoutTextCard text={s.content} onChange={(content) => patch({ content })} />
           </SettingsDrillPanel>
           <SettingsDrillPanel id="branding" className="flex flex-col gap-3">
             {hold ? (

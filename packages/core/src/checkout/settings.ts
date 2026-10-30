@@ -4,8 +4,19 @@ import { MOBILE_PATTERN, normaliseMobile, PINCODE_PATTERN } from '../accounts/sc
 import { CheckoutRuleViolation } from '../errors'
 import { GSTIN_MESSAGES, validateGstin } from '../tax/gstin'
 import { CheckoutBrandingSchema } from './branding'
+import { CartLimitSchema } from './cart-limit'
+import { CheckoutTextSchema } from './content'
+import {
+  type AddressFieldErrors,
+  addressFieldErrors,
+  CheckoutFieldsSchema,
+  keptBusinessName,
+} from './fields'
 
 export * from './branding'
+export * from './cart-limit'
+export * from './content'
+export * from './fields'
 /** The browser checks the state against the PIN code as the shopper types; `placeOrder` re-checks. */
 export { stateForPincode, stateMatchesPincode } from './pincode-state'
 
@@ -51,6 +62,12 @@ export const CheckoutSettingsSchema = z.object({
   cod: CodRulesSchema.prefault({}),
   /** Settings → Checkout → Branding: the checkout's own look, never the theme's. */
   branding: CheckoutBrandingSchema.prefault({}),
+  /** Settings → Checkout → Form fields (#154): name format, company name, address line 2. */
+  fields: CheckoutFieldsSchema.prefault({}),
+  /** Settings → Checkout → Cart limit (#156): most units of one product per cart. */
+  cartLimit: CartLimitSchema.prefault({}),
+  /** Settings → Checkout → Checkout content (#158): the merchant's own wording, per language. */
+  content: CheckoutTextSchema.prefault({}),
 })
 export type CheckoutSettings = z.infer<typeof CheckoutSettingsSchema>
 export type CheckoutSettingsInput = z.input<typeof CheckoutSettingsSchema>
@@ -153,6 +170,14 @@ export { GSTIN_MESSAGES } from '../tax/gstin'
 export type CheckoutContactInput = {
   email: string
   phone: string
+  /**
+   * The full name, the first and last name when the store splits it, and address line 2.
+   * Checked against Settings → Checkout → Form fields only when `name` is given (#154).
+   */
+  name?: string | null | undefined
+  firstName?: string | null | undefined
+  lastName?: string | null | undefined
+  line2?: string | null | undefined
   gstin?: string | null | undefined
   businessName?: string | null | undefined
   note?: string | null | undefined
@@ -169,7 +194,8 @@ export type CheckoutContact = {
 
 export type CheckoutFieldErrors = Partial<
   Record<'email' | 'phone' | 'gstin' | 'businessName' | 'note' | 'pincode', string>
->
+> &
+  AddressFieldErrors
 
 /**
  * The PIN code a checkout is judged and stored by: six digits, spaces and dashes dropped.
@@ -214,9 +240,18 @@ export function validateCheckoutContact(
         GSTIN_MESSAGES[check.reason as keyof typeof GSTIN_MESSAGES] ?? GSTIN_MESSAGES.shape
     }
   }
-  const businessName = gstin
-    ? (input.businessName ?? '').trim().slice(0, CHECKOUT_LIMITS.businessName) || null
-    : null
+  if (input.name !== undefined) {
+    // Split names: `name` is the joined full name, the parts come alongside.
+    const split = settings.fields.name === 'split' && input.firstName != null
+    Object.assign(
+      errors,
+      addressFieldErrors(settings.fields, { ...input, name: split ? input.firstName : input.name }),
+    )
+  }
+  const businessName = keptBusinessName(settings.fields, {
+    businessName: input.businessName,
+    hasGstin: gstin !== null,
+  })
   const rawNote = settings.orderNotes ? (input.note ?? '').trim() : ''
   if (rawNote.length > CHECKOUT_LIMITS.note) {
     errors.note = `Keep the note under ${CHECKOUT_LIMITS.note} characters`
@@ -241,7 +276,9 @@ export function validateCheckoutContact(
 export function checkCheckoutRules(
   settings: CheckoutSettings,
   order: {
-    checkout: (CheckoutContactInput & { address: { pincode: string } }) | null
+    checkout:
+      | (CheckoutContactInput & { address: { pincode: string; line2?: string | undefined } })
+      | null
     paymentProviderId: string
     giftCardsOnly: boolean
     /** `checkoutRuleSubtotalPaise`: items that are not gift cards, after the discount. */
@@ -253,7 +290,10 @@ export function checkCheckoutRules(
   const { storeId } = order
   let contact: CheckoutContact | null = null
   if (order.checkout) {
-    const checked = validateCheckoutContact(settings, order.checkout)
+    const checked = validateCheckoutContact(settings, {
+      ...order.checkout,
+      line2: order.checkout.line2 ?? order.checkout.address.line2,
+    })
     if (!checked.ok) {
       throw new CheckoutRuleViolation('contact', { storeId, fields: checked.errors })
     }

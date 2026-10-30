@@ -6,7 +6,7 @@ import CheckoutDiscount from '@/components/checkout/checkout-discount'
 import GiftCardField from '@/components/checkout/gift-card-field'
 import SummaryLine from '@/components/checkout/summary-line'
 import SummaryRow from '@/components/checkout/summary-row'
-import { checkoutContent as content } from '@/data/checkout'
+import { type CheckoutCopy, checkoutContent as content } from '@/data/checkout'
 import { CK_HEADING } from '@/lib/checkout-classes'
 import type { ShippingRow } from '@/lib/checkout-preview'
 import type { CartDiscountView } from '@/lib/discount-view'
@@ -38,6 +38,8 @@ type CheckoutSummaryProps = {
   notice?: string | null | undefined
   /** Shipping is being re-quoted: amounts shimmer instead of showing a stale number. */
   updating: boolean
+  /** The store's own wording for the heading and the taxes line (#158); ours when unset. */
+  words?: Pick<CheckoutCopy, 'summary' | 'taxes'> | undefined
 }
 
 function shippingValue(row: ShippingRow, money: (paise: number) => string): string {
@@ -68,6 +70,7 @@ export default function CheckoutSummary({
   emiMonthly,
   notice = null,
   updating,
+  words = content,
 }: CheckoutSummaryProps) {
   // Hooks
   // On a market in another currency (`/ae`) the summary reads in it; Pay still charges rupees.
@@ -93,13 +96,13 @@ export default function CheckoutSummary({
   return (
     <div className="flex flex-col gap-4.5">
       <div className="hidden items-center justify-between gap-4 lg:flex">
-        <h2 className={`${CK_HEADING} text-[1.0625rem]!`}>{content.summary}</h2>
+        <h2 className={`${CK_HEADING} text-[1.0625rem]!`}>{words.summary}</h2>
         <p className="flex h-6 items-center rounded-[0.5rem] bg-ck-summary-line px-2 text-[0.75rem] font-medium text-ck-summary-muted tabular-nums">
           {content.itemCount(itemCount)}
         </p>
       </div>
 
-      <section aria-label={content.summary} className="flex flex-col gap-4">
+      <section aria-label={words.summary} className="flex flex-col gap-4">
         <ul className="flex flex-col gap-4">
           {cart.lines.map((l) => (
             <SummaryLine
@@ -158,7 +161,7 @@ export default function CheckoutSummary({
                   <span className="text-[0.75rem] font-normal text-ck-summary-muted">
                     {gstPaise && gstPaise > 0 && !updating
                       ? content.taxesIncluded(money(gstPaise))
-                      : content.taxes}
+                      : words.taxes}
                   </span>
                 </span>
               }

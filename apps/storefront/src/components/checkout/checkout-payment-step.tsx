@@ -79,14 +79,14 @@ export default function CheckoutPaymentStep({ ck }: CheckoutPaymentStepProps) {
       {ck.settings.orderNotes ? (
         <div className="flex flex-col gap-1.5">
           <label htmlFor="checkout-note" className={CK_LABEL}>
-            {content.fields.note}
+            {ck.copy.fields.note}
           </label>
           <textarea
             id="checkout-note"
             className={`${CK_INPUT} min-h-[5.5rem] resize-y py-3`}
             rows={3}
             maxLength={CHECKOUT_LIMITS.note}
-            placeholder={content.fields.notePlaceholder}
+            placeholder={ck.copy.fields.notePlaceholder}
             value={ck.form.note}
             onChange={ck.set('note')}
           />
@@ -97,6 +97,8 @@ export default function CheckoutPaymentStep({ ck }: CheckoutPaymentStepProps) {
           values={ck.form}
           errors={ck.shownErrors}
           business={ck.business}
+          companyShown={ck.settings.fields.company !== 'hidden'}
+          copy={ck.copy}
           onBusiness={ck.handleBusiness}
           onField={ck.set}
           onLeave={ck.handleLeave}

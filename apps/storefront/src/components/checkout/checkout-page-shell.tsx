@@ -22,6 +22,8 @@ type CheckoutPageShellProps = {
   bottomBar?: ReactNode
   /** Replaces the "Secure" pill on the right of the header, e.g. "Continue shopping" after the order. */
   headerEnd?: ReactNode
+  /** The "Secure checkout" pill, in the store's own words when it set some (#158). */
+  secureLabel?: string
   children: ReactNode
 }
 
@@ -43,6 +45,7 @@ export default function CheckoutPageShell({
   policies = [],
   bottomBar = null,
   headerEnd = null,
+  secureLabel = content.secure,
   children,
 }: CheckoutPageShellProps) {
   // Render logic
@@ -82,7 +85,7 @@ export default function CheckoutPageShell({
               <p className="flex h-[1.625rem] items-center gap-1.5 rounded-[0.5rem] bg-ck-soft px-2 text-[0.6875rem] sm:h-7 sm:px-2.5 sm:text-[0.75rem]">
                 <CheckoutIcon name="lock" className="size-3 sm:size-3.5" />
                 <span className="sm:hidden">{content.secureShort}</span>
-                <span className="hidden sm:inline">{content.secure}</span>
+                <span className="hidden sm:inline">{secureLabel}</span>
               </p>
             )}
           </div>

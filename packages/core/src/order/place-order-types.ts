@@ -27,7 +27,10 @@ export type CheckoutDetails = {
   /** Blank is allowed only when Settings → Checkout makes email optional. */
   email: string
   phone: string
+  /** The full name. With Settings → Checkout splitting it (#154), the parts come too. */
   name: string
+  firstName?: string | null | undefined
+  lastName?: string | null | undefined
   address: {
     line1: string
     line2?: string

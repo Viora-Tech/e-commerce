@@ -167,7 +167,10 @@ export async function setQuantityAction(lineId: string, quantity: number) {
 }
 
 export type CheckoutForm = {
+  /** The full name; with Settings → Checkout splitting it (#154), its parts come too. */
   name: string
+  firstName?: string
+  lastName?: string
   email: string
   phone: string
   line1: string
@@ -327,6 +330,9 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
         secret: settingsSecret(),
         checkout: {
           name: form.name,
+          ...(typeof form.firstName === 'string'
+            ? { firstName: form.firstName, lastName: form.lastName ?? '' }
+            : {}),
           email: form.email,
           phone: form.phone,
           gstin: form.gstin ?? null,

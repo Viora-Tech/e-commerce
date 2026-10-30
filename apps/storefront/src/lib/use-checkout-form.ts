@@ -1,6 +1,11 @@
 import { formatPaise } from '@commerce/blocks'
 import type { CartView, CheckoutLook, SavedAddress, SignedInCustomer } from '@commerce/core'
-import { type CheckoutSettings, stateForPincode } from '@commerce/core/checkout-settings'
+import {
+  applyCheckoutText,
+  type CheckoutSettings,
+  type CheckoutTextOverrides,
+  stateForPincode,
+} from '@commerce/core/checkout-settings'
 import type {
   CheckoutAccountMode,
   LoginMethod,
@@ -14,7 +19,12 @@ import { checkoutContent as content } from '@/data/checkout'
 import { deleteAddressAction, saveAddressAction } from '@/lib/account-actions'
 import { captureContactAction, checkoutAction } from '@/lib/cart-actions'
 import { readDraft, writeDraft } from '@/lib/checkout-draft'
-import { type CheckoutFormState, NEW_ADDRESS, prefillCheckout } from '@/lib/checkout-form-state'
+import {
+  type CheckoutFormState,
+  fullNameOf,
+  NEW_ADDRESS,
+  prefillCheckout,
+} from '@/lib/checkout-form-state'
 import {
   checkoutTotals,
   deliveryBy,
@@ -76,6 +86,8 @@ export type CheckoutFormInput = {
   emiMinPaise?: number | null
   /** How shoppers sign in here, and whether a guest may check out. */
   signIn?: CheckoutSignIn
+  /** Settings → Checkout → Checkout content (#158): the store's wording in this language. */
+  text?: CheckoutTextOverrides
 }
 
 type ChangeHandler = (
@@ -90,7 +102,16 @@ export const SEND_CODE_ID = 'checkout-send-code'
 export const SAVE_ADDRESS_ID = 'checkout-address-save'
 
 /** What an address book entry needs before Save writes it. */
-const ADDRESS_KEYS = ['pincode', 'name', 'line1', 'city', 'stateCode', 'phone'] as const
+const ADDRESS_KEYS = [
+  'pincode',
+  'name',
+  'lastName',
+  'line1',
+  'line2',
+  'city',
+  'stateCode',
+  'phone',
+] as const
 /** The fields the Contact card shows; every other field is the Delivery card's. */
 const CONTACT_KEYS: readonly CheckoutFieldKey[] = ['email', 'phone']
 
@@ -106,12 +127,17 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   const deposit = input.deposit ?? NO_DEPOSIT
   const emiMinPaise = input.emiMinPaise ?? null
   const signIn = input.signIn ?? GUEST_EMAIL
+  /** Settings → Checkout → Form fields (#154). */
+  const splitName = settings.fields.name === 'split'
+  const companyShown = settings.fields.company !== 'hidden'
+  /** Our checkout words with the store's own wording over them (#158). */
+  const copy = applyCheckoutText(content, input.text ?? {})
   const router = useRouter()
 
   const [pending, start] = useTransition()
   const [savingAddress, startSave] = useTransition()
   const [form, setForm] = useState<CheckoutFormState>(() => ({
-    ...prefillCheckout(customer, addresses[0]),
+    ...prefillCheckout(customer, addresses[0], settings.fields.name),
     payment: offeredMethods(cart, methods)[0]?.id ?? 'cod',
   }))
   const [savedId, setSavedId] = useState<string>(addresses[0]?.id ?? NEW_ADDRESS)
@@ -192,6 +218,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   const fieldErrors = checkoutFieldErrors(form, {
     emailRequired: settings.email === 'required' || Boolean(customer?.email),
     gstin: business,
+    fields: settings.fields,
   })
   const shownErrors = attempted
     ? fieldErrors
@@ -269,11 +296,15 @@ export function useCheckoutForm(input: CheckoutFormInput) {
       return false
     }
     setError(null)
-    const { label, ...details } = form
+    const { label, lastName, ...details } = form
     start(async () => {
       const r = await checkoutAction({
         ...details,
         ...(label ? { label } : {}),
+        // Settings → Checkout splits the name (#154): the full name, and its parts for the check.
+        ...(splitName
+          ? { name: fullNameOf(form), firstName: form.name, lastName: lastName ?? '' }
+          : {}),
         pincode: cleanPincode(form.pincode),
         payment: paymentId,
         giftCards: giftCards.map((c) => c.code),
@@ -308,8 +339,13 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     setAddressError(null)
     const picked = addresses.find((a) => a.id === id)
     const next = picked
-      ? prefillCheckout(customer, picked)
-      : { ...prefillCheckout(customer, undefined), name: form.name, phone: form.phone }
+      ? prefillCheckout(customer, picked, settings.fields.name)
+      : {
+          ...prefillCheckout(customer, undefined, settings.fields.name),
+          name: form.name,
+          ...(splitName ? { lastName: form.lastName ?? '' } : {}),
+          phone: form.phone,
+        }
     setForm((prev) => ({ ...prev, ...next }))
     checkPincode(next.pincode, next.stateCode)
   }
@@ -318,11 +354,18 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     touch(key)
     if (key !== 'email' && key !== 'phone') return
     if (!form.email.includes('@') && form.phone.replace(/\D/g, '').length < 10) return
-    void captureContactAction({ email: form.email, phone: form.phone, name: form.name })
+    void captureContactAction({ email: form.email, phone: form.phone, name: fullNameOf(form) })
   }
   const handleBusiness = (on: boolean) => {
     setBusiness(on)
-    if (!on) setForm((prev) => ({ ...prev, gstin: '', businessName: '' }))
+    // A company name typed in Delivery (#154) stays when the GST box is unticked.
+    if (!on) {
+      setForm((prev) => ({
+        ...prev,
+        gstin: '',
+        businessName: companyShown ? prev.businessName : '',
+      }))
+    }
   }
   const handleMarketing = (channel: 'email' | 'whatsapp', on: boolean) =>
     setForm((prev) => ({
@@ -356,7 +399,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     const id = editingId
     startSave(async () => {
       const r = await saveAddressAction(id, {
-        name: form.name,
+        name: fullNameOf(form),
         line1: form.line1,
         line2: form.line2,
         city: form.city,
@@ -431,13 +474,14 @@ export function useCheckoutForm(input: CheckoutFormInput) {
       ? formatPaise(lowestEmiPaise(payNowPaise))
       : null
   const payLabel = coveredByCards
-    ? content.placeOrder
+    ? copy.placeOrder
     : payment === 'cod'
       ? content.placeOrderAmount(payNow)
       : content.pay(payNow)
 
   return {
     ...input,
+    copy,
     customer,
     addresses,
     deposit,

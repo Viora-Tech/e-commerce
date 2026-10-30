@@ -27,6 +27,7 @@ export default function CheckoutContact({ ck }: CheckoutContactProps) {
       errors={ck.shownErrors}
       customer={customer}
       emailOptional={settings.email === 'optional'}
+      copy={ck.copy}
       onField={ck.set}
       onPhone={ck.handlePhone}
       onLeave={ck.handleLeave}

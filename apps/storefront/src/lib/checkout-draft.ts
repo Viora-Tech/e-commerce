@@ -59,6 +59,8 @@ export function parseDraft(raw: string | null, cartId: string): CheckoutDraft | 
   if (!isField(d.savedId) || typeof d.business !== 'boolean') return null
   if (d.rateId !== null && !isField(d.rateId)) return null
   const form = Object.fromEntries(FORM_KEYS.map((k) => [k, f[k]])) as CheckoutFormState
+  // Only on stores that split the name (#154); older drafts have none.
+  if (isField(f.lastName)) form.lastName = f.lastName
   return {
     form,
     savedId: d.savedId,

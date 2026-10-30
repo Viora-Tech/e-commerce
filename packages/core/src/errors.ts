@@ -27,6 +27,32 @@ export class OutOfStock extends CommerceError {
   }
 }
 
+/** Settings → Checkout → Cart limit (#156): more of one product than one cart may hold. */
+export class CartLimitExceeded extends CommerceError {
+  readonly productId: string
+  readonly title: string
+  readonly max: number
+
+  constructor(productId: string, title: string, max: number, storeId?: string) {
+    super('CART_LIMIT', `At most ${max} of product ${productId} per cart`, { storeId })
+    this.productId = productId
+    this.title = title
+    this.max = max
+  }
+}
+
+/** Settings → Payments → Payment rules (#150): a rule hides the picked way to pay for this order. */
+export class PaymentMethodHidden extends CommerceError {
+  readonly methodId: string
+
+  constructor(methodId: string, storeId?: string) {
+    super('PAYMENT_METHOD_HIDDEN', `Payment method ${methodId} is hidden for this order`, {
+      storeId,
+    })
+    this.methodId = methodId
+  }
+}
+
 export class CartNotOpen extends CommerceError {
   constructor(cartId: string, storeId?: string) {
     super('CART_NOT_OPEN', `Cart ${cartId} is not open`, { storeId })

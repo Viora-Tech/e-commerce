@@ -42,6 +42,8 @@ export default function CheckoutAddressBook({ ck }: CheckoutAddressBookProps) {
     <CheckoutAddressFields
       values={ck.form}
       errors={ck.shownErrors}
+      fields={ck.settings.fields}
+      copy={ck.copy}
       digitalOnly={totals.digitalOnly}
       deliveryBy={ck.deliveryBy}
       unserviceable={ck.unserviceable ? ck.deliveryText : null}

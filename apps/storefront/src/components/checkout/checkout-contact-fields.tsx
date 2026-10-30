@@ -4,7 +4,7 @@ import PhoneInput from '@commerce/blocks/phone-input-lazy'
 import type { SignedInCustomer } from '@commerce/core'
 import CheckoutField from '@/components/checkout/checkout-field'
 import { accountContent } from '@/data/account'
-import { checkoutContent as content } from '@/data/checkout'
+import type { CheckoutCopy } from '@/data/checkout'
 import { CK_INPUT, CK_INPUT_HEIGHT } from '@/lib/checkout-classes'
 import { type CheckoutFieldErrors, fieldId } from '@/lib/checkout-validation'
 
@@ -17,14 +17,14 @@ type CheckoutContactFieldsProps = {
   customer: SignedInCustomer | null
   /** Settings → Checkout: email can be left empty. */
   emailOptional: boolean
+  /** The checkout's words, with the store's own wording over ours (#158). */
+  copy: CheckoutCopy
   onField: (key: ContactKey) => (e: React.ChangeEvent<HTMLInputElement>) => void
   /** The phone picker hands over the number itself (E.164), not an input event. */
   onPhone: (value: string) => void
   /** Leaving a field: show its check, and save the contact so a left basket can be recovered. */
   onLeave: (key: ContactKey) => void
 }
-
-const f = content.fields
 
 /** The locked checkout's box on both halves of the phone field; the picker only changes the corners. */
 const PHONE_INPUT = `${CK_INPUT} ${CK_INPUT_HEIGHT} rounded-s-none!`
@@ -36,11 +36,13 @@ export default function CheckoutContactFields({
   errors,
   customer,
   emailOptional,
+  copy,
   onField,
   onPhone,
   onLeave,
 }: CheckoutContactFieldsProps) {
   // Render logic
+  const f = copy.fields
   const lockedEmail = Boolean(customer?.email)
 
   return (
