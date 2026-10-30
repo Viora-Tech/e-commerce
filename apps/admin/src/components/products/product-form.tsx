@@ -91,6 +91,7 @@ export default function ProductForm({
   const [busy, setBusy] = useState(false)
   // The variant metafields grid's own save and whether it has edits (saved with the page, #894).
   const variantFieldsSave = useRef<(() => Promise<boolean>) | null>(null)
+  const pendingCollections = useRef<string[]>([])
   const [variantFieldsDirty, setVariantFieldsDirty] = useState(false)
   const [variantFieldsReset, setVariantFieldsReset] = useState(0)
   const [uploading, setUploading] = useState(false)
@@ -196,6 +197,13 @@ export default function ProductForm({
       // Then each variant whose metafields changed; one that fails names its variant and stays
       // unsaved (the save bar stays up), the product itself is saved.
       const fieldsSaved = variantFieldsSave.current ? await variantFieldsSave.current() : true
+      // Collections picked before the first save join the new product now (audit #200).
+      if (!product && pendingCollections.current.length > 0) {
+        await api.collections.setForProduct({
+          productId: result.id,
+          collectionIds: pendingCollections.current,
+        })
+      }
       if (fieldsSaved) toast.success(product ? copy.toasts.saved : copy.toasts.created)
       if (!product) router.replace(routes.products.detail(result.id))
       else router.refresh()
@@ -431,6 +439,9 @@ export default function ProductForm({
       }
       side={
         <ProductSide
+          onPendingCollections={(ids) => {
+            pendingCollections.current = ids
+          }}
           form={form}
           facets={facets}
           productId={product?.id ?? null}

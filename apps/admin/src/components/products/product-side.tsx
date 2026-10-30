@@ -15,6 +15,8 @@ type ProductSideProps = {
   facets: Facets
   /** Null while the product is unsaved. */
   productId: string | null
+  /** A new product's collection picks, saved right after it is created. */
+  onPendingCollections?: ((collectionIds: string[]) => void) | undefined
   /** Bumped after each save so the collections card refetches. */
   revision: number
   checklist: ChecklistItem[]
@@ -41,6 +43,7 @@ export default function ProductSide({
   form,
   facets,
   productId,
+  onPendingCollections,
   revision,
   checklist,
   activeTab,
@@ -83,7 +86,11 @@ export default function ProductSide({
         onProductType={(productType) => onPatch({ productType })}
         onTags={(tags) => onPatch({ tags })}
       />
-      <ProductCollectionsCard productId={productId} revision={revision} />
+      <ProductCollectionsCard
+        productId={productId}
+        revision={revision}
+        onPendingChange={onPendingCollections}
+      />
       <TemplateSelectCard
         kind="product"
         value={form.templateSuffix}
