@@ -11,9 +11,11 @@ import { abandonedStats, notSystemTest, notTestOrder, UNFULFILLED_STATUSES } fro
 import { formatInZone, startOfDay } from '@commerce/dates'
 import {
   type Db,
+  marketingSession,
   order,
   orderLine,
   product,
+  refund,
   type StoreTx,
   sellableStock,
   variant,
@@ -44,9 +46,9 @@ export function safeTitle(env: ToolEnv, title: string): string {
   return guarded.text
 }
 
-/** Whole rupees: an answer reads "₹2,37,948", not "₹2,37,948.21". */
-export function money(env: ToolEnv, paise: number): string {
-  return formatMoney(Math.round(paise / 100) * 100, env.store.currency as Currency)
+/** Whole units of the store's currency: an answer reads "₹2,37,948", not "₹2,37,948.21". */
+export function money(env: ToolEnv, minor: number): string {
+  return formatMoney(minor, env.store.currency as Currency, { whole: true })
 }
 
 export function day(env: ToolEnv, at: Date): string {
@@ -64,34 +66,77 @@ export function read<T>(
 const pct = (now: number, before: number): string | null =>
   before > 0 ? `${now >= before ? '+' : ''}${Math.round(((now - before) / before) * 100)}%` : null
 
+/**
+ * One window's sales, the way a merchant (and Shopify) reads them: gross is every order placed,
+ * net takes off what was cancelled and refunded in the window. The parts come back too, so the
+ * assistant can say why sales moved instead of "the tool does not say" (audit #189).
+ */
 async function salesWindow(tx: StoreTx, from: Date, to: Date) {
-  const [row] = await tx
+  const inWindow = and(gte(order.placedAt, from), lt(order.placedAt, to))
+  const cancelledOrder = sql`${order.status} = 'cancelled'`
+  const [placed] = await tx
     .select({
-      orders: sql<number>`count(*)::int`,
-      revenue: sql<number>`coalesce(sum(${order.totalPaise}), 0)::bigint`.mapWith(Number),
+      placed: sql<number>`count(*)::int`,
+      gross: sql<number>`coalesce(sum(${order.totalPaise}), 0)::bigint`.mapWith(Number),
+      discounts: sql<number>`coalesce(sum(${order.discountPaise}), 0)::bigint`.mapWith(Number),
+      cancelled: sql<number>`(count(*) filter (where ${cancelledOrder}))::int`,
+      cancelledValue: sql<number>`coalesce(sum(${order.totalPaise}) filter (where ${cancelledOrder}), 0)::bigint`.mapWith(
+        Number,
+      ),
+      tracked: sql<number>`(count(*) filter (where not ${cancelledOrder} and (${order.attribution}->>'channel') is not null))::int`,
     })
     .from(order)
-    .where(and(live, gte(order.placedAt, from), lt(order.placedAt, to)))
-  const [cancelled] = await tx
-    .select({ n: sql<number>`count(*)::int` })
-    .from(order)
+    .where(and(notDraft, inWindow))
+  // Refunds count when they were made, on orders not cancelled (those are already out of net).
+  const [refunded] = await tx
+    .select({
+      total: sql<number>`coalesce(sum(${refund.amountPaise}), 0)::bigint`.mapWith(Number),
+    })
+    .from(refund)
+    .innerJoin(order, eq(order.id, refund.orderId))
     .where(
       and(
-        eq(order.status, 'cancelled'),
-        notTestOrder,
-        gte(order.placedAt, from),
-        lt(order.placedAt, to),
+        inArray(refund.status, ['processed', 'manual']),
+        gte(refund.createdAt, from),
+        lt(refund.createdAt, to),
+        live,
       ),
     )
-  return { orders: row?.orders ?? 0, revenue: row?.revenue ?? 0, cancelled: cancelled?.n ?? 0 }
+  const [visits] = await tx
+    .select({ n: sql<number>`count(*)::int` })
+    .from(marketingSession)
+    .where(and(gte(marketingSession.startedAt, from), lt(marketingSession.startedAt, to)))
+  const cancelled = placed?.cancelled ?? 0
+  const gross = placed?.gross ?? 0
+  const cancelledValue = placed?.cancelledValue ?? 0
+  const refunds = refunded?.total ?? 0
+  return {
+    orders: (placed?.placed ?? 0) - cancelled,
+    gross,
+    cancelled,
+    cancelledValue,
+    refunds,
+    discounts: placed?.discounts ?? 0,
+    net: gross - cancelledValue - refunds,
+    sessions: visits?.n ?? 0,
+    tracked: placed?.tracked ?? 0,
+  }
 }
+
+type SalesWindow = Awaited<ReturnType<typeof salesWindow>>
+
+/** Orders from tracked visits per visit; sessions are only counted on this storefront. */
+const conversionText = (w: SalesWindow) =>
+  w.sessions > 0
+    ? `${(Math.min(w.tracked / w.sessions, 1) * 100).toFixed(1)}%`
+    : 'no visits tracked'
 
 /** The store's read-only AI tools, bound to its database and formatting. */
 export function storeTools(env: ToolEnv): AiToolSet {
   return {
     salesSummary: defineAiTool({
       description:
-        'Sales for the last N days including today (India time): revenue, orders, average order value, cancelled orders, and the same numbers for the N days before, for comparison.',
+        'Sales for the last N days including today (India time) and the N days before: net sales (gross minus cancellations and refunds), gross, orders, average order, cancelled orders and their value, refunds, discounts, store visits and conversion. Use the parts to explain why sales changed.',
       input: z.object({ days: z.number().int().min(1).max(90).default(7) }),
       risk: 'read',
       run: (input, runtime) =>
@@ -101,22 +146,51 @@ export function storeTools(env: ToolEnv): AiToolSet {
           const before = new Date(from.getTime() - input.days * DAY_MS)
           const cur = await salesWindow(tx, from, now)
           const prev = await salesWindow(tx, before, from)
-          const change = pct(cur.revenue, prev.revenue)
+          const change = pct(cur.net, prev.net)
           const period = input.days === 1 ? 'today' : `last ${input.days} days`
+          const both = (now: string, then: string) =>
+            `${now} (the ${input.days} days before: ${then})`
           return {
             facts: [
-              { label: `Sales, ${period}`, value: money(env, cur.revenue) },
-              { label: `Orders, ${period}`, value: String(cur.orders) },
+              {
+                label: `Net sales, ${period}`,
+                value: both(money(env, cur.net), money(env, prev.net)),
+              },
+              ...(change ? [{ label: 'Change in net sales', value: change }] : []),
+              {
+                label: 'Gross sales (every order placed)',
+                value: both(money(env, cur.gross), money(env, prev.gross)),
+              },
+              {
+                label: 'Orders (not cancelled)',
+                value: both(String(cur.orders), String(prev.orders)),
+              },
+              {
+                label: 'Cancelled orders',
+                value: both(
+                  `${cur.cancelled} worth ${money(env, cur.cancelledValue)}`,
+                  `${prev.cancelled} worth ${money(env, prev.cancelledValue)}`,
+                ),
+              },
+              { label: 'Refunds', value: both(money(env, cur.refunds), money(env, prev.refunds)) },
+              {
+                label: 'Discounts given',
+                value: both(money(env, cur.discounts), money(env, prev.discounts)),
+              },
               {
                 label: 'Average order',
-                value: cur.orders ? money(env, Math.round(cur.revenue / cur.orders)) : 'no orders',
+                value: cur.orders
+                  ? money(env, Math.round((cur.gross - cur.cancelledValue) / cur.orders))
+                  : 'no orders',
               },
               {
-                label: `Sales, the ${input.days} days before`,
-                value: `${money(env, prev.revenue)} from ${prev.orders} orders`,
+                label: 'Store visits',
+                value: both(String(cur.sessions), String(prev.sessions)),
               },
-              ...(change ? [{ label: 'Change in sales', value: change }] : []),
-              { label: `Cancelled, ${period}`, value: String(cur.cancelled) },
+              {
+                label: 'Conversion (orders from tracked visits)',
+                value: both(conversionText(cur), conversionText(prev)),
+              },
             ],
           }
         }),
