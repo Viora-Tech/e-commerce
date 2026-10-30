@@ -53,6 +53,7 @@ import { productsRouter } from './products'
 import { profitCostsRouter } from './profit-costs'
 import { purchaseDocumentsRouter } from './purchase-documents'
 import { inboundShipmentsRouter, purchaseChargesRouter, suppliersRouter } from './purchasing'
+import { reauthRouter } from './reauth'
 import { redirectsRouter } from './redirects'
 import { returnsRouter } from './returns'
 import { reviewsRouter } from './reviews'
@@ -76,6 +77,7 @@ export const appRouter = {
   activity: activityRouter,
   me: protectedProcedure.handler(({ context }) => context.session),
   account: accountRouter,
+  reauth: reauthRouter,
   store: storeRouter,
   storeData: storeDataRouter,
   appearance: appearanceRouter,
