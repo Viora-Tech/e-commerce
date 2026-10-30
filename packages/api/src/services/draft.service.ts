@@ -99,7 +99,9 @@ export async function draftTiles(tx: StoreTx) {
     .select({
       total: count(),
       invoiced:
-        sql<number>`count(*) filter (where exists (select 1 from notification n where n.order_id = ${order.id} and n.template = 'draft_invoice' and n.status = 'sent'))::int`.mapWith(
+        // Qualified by hand: with no join Drizzle prints a bare "id", which inside the subquery
+        // means the notification's own id, so this counted 0 while the list showed sent invoices.
+        sql<number>`count(*) filter (where exists (select 1 from notification n where n.order_id = "order"."id" and n.template = 'draft_invoice' and n.status = 'sent'))::int`.mapWith(
           Number,
         ),
       valuePaise: sql<number>`coalesce(sum(${order.totalPaise}), 0)::bigint`.mapWith(Number),
