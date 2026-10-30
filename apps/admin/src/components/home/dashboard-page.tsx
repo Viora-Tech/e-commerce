@@ -65,7 +65,6 @@ export default function DashboardPage({
             ordersToday={summary.today.ordersCount}
             salesTodayPaise={summary.today.salesPaise}
             toShip={summary.today.toShipCount}
-            liveNow={summary.liveVisitors.last30}
             now={new Date()}
           />
         </HomeEnter>
