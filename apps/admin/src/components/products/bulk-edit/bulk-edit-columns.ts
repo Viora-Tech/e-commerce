@@ -31,6 +31,10 @@ export type ColumnDef = {
 export const COLUMN_DEFS: ColumnDef[] = [
   { key: 'title', group: 'product', width: 240 },
   { key: 'variantTitle', group: 'variant', width: 140, readOnly: true },
+  { key: 'price', group: 'variant', width: 110 },
+  { key: 'mrp', group: 'variant', width: 120 },
+  { key: 'cost', group: 'variant', width: 110 },
+  { key: 'sku', group: 'variant', width: 140 },
   { key: 'status', group: 'product', width: 110 },
   { key: 'handle', group: 'product', width: 200 },
   { key: 'vendor', group: 'product', width: 140 },
@@ -43,10 +47,6 @@ export const COLUMN_DEFS: ColumnDef[] = [
   { key: 'featured', group: 'product', width: 110 },
   { key: 'taxIncluded', group: 'product', width: 150 },
   { key: 'templateSuffix', group: 'product', width: 130 },
-  { key: 'price', group: 'variant', width: 110 },
-  { key: 'mrp', group: 'variant', width: 120 },
-  { key: 'cost', group: 'variant', width: 110 },
-  { key: 'sku', group: 'variant', width: 140 },
   { key: 'barcode', group: 'variant', width: 140 },
   { key: 'weight', group: 'variant', width: 120 },
   { key: 'hsCode', group: 'variant', width: 100 },
@@ -81,6 +81,18 @@ const SELECT_KEYS = new Set(['status', ...BOOLEAN_COLUMNS])
 
 const isShown = (key: string, hidden: Set<string>) => !hidden.has(key)
 
+/** What merchants edit most comes first: price, MRP, cost, SKU, then stock (audit #205). */
+const MONEY_AND_SKU = ['price', 'mrp', 'cost', 'sku']
+
+/** Where the stock columns go: right after the last shown money / SKU column. */
+function afterMoney(keys: string[]): number {
+  let at = 2
+  keys.forEach((k, i) => {
+    if (MONEY_AND_SKU.includes(k)) at = i + 1
+  })
+  return Math.min(at, keys.length)
+}
+
 /**
  * The grid's columns, in sheet order: product cells (the first one frozen), variant cells, then
  * one stock column per location. Cells that differ from the saved sheet get the soft accent
@@ -94,16 +106,16 @@ export function buildColumns(
   hidden: Set<string>,
 ): Column<GridRow>[] {
   const c = copy.columns as Record<string, string | ((location: string) => string)>
-  const specs: ColumnDef[] = [
-    ...COLUMN_DEFS.filter((d) => isShown(d.key, hidden)),
-    ...(hidden.has(STOCK_GROUP_KEY)
-      ? []
-      : locations.map((l) => ({
-          key: `${STOCK_PREFIX}${l.id}`,
-          group: 'variant' as const,
-          width: 150,
-        }))),
-  ]
+  const stock: ColumnDef[] = hidden.has(STOCK_GROUP_KEY)
+    ? []
+    : locations.map((l) => ({
+        key: `${STOCK_PREFIX}${l.id}`,
+        group: 'variant' as const,
+        width: 150,
+      }))
+  const shown = COLUMN_DEFS.filter((d) => isShown(d.key, hidden))
+  const cut = afterMoney(shown.map((d) => d.key))
+  const specs: ColumnDef[] = [...shown.slice(0, cut), ...stock, ...shown.slice(cut)]
   return specs.map((s) => ({
     key: s.key,
     name: s.key.startsWith(STOCK_PREFIX)
@@ -136,10 +148,12 @@ function renderCellOf(copy: Copy, key: string): Column<GridRow>['renderCell'] {
 }
 
 /** Every shown column key in sheet order, for paste, fill and Ctrl+D to count across. */
-export const columnKeys = (locations: SheetLocation[], hidden: Set<string>) => [
-  ...COLUMN_DEFS.filter((d) => isShown(d.key, hidden)).map((d) => d.key),
-  ...(hidden.has(STOCK_GROUP_KEY) ? [] : locations.map((l) => `${STOCK_PREFIX}${l.id}`)),
-]
+export const columnKeys = (locations: SheetLocation[], hidden: Set<string>) => {
+  const shown = COLUMN_DEFS.filter((d) => isShown(d.key, hidden)).map((d) => d.key)
+  const stock = hidden.has(STOCK_GROUP_KEY) ? [] : locations.map((l) => `${STOCK_PREFIX}${l.id}`)
+  const cut = afterMoney(shown)
+  return [...shown.slice(0, cut), ...stock, ...shown.slice(cut)]
+}
 
 /** The cells nobody edits: which variant the row is, and the description preview. */
 export const isEditableKey = (key: string) => !['variantTitle', 'description'].includes(key)
