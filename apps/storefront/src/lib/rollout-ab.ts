@@ -24,7 +24,7 @@ import { parseVisitorId, VISITOR_COOKIE } from './visitor-cookie'
  * the store: each request works out the visitor's arm from the anonymous visitor id hashed with
  * the rollout id (`assignArm`), and a Treatment visitor's page is drawn with the rollout's theme.
  *
- * Caching: the running tests are one cached read per store version (`rollout` notifies, 0208);
+ * Caching: the running tests are one cached read per store version (`rollout` notifies, 0210);
  * with none running nothing else happens, so visitors outside a test cost nothing. Every render
  * cache key already carries the theme id, so the Treatment's sections are cached apart from the
  * Control's. Only visitors with a visitor id are ever in a test, and that `wc_` cookie already
