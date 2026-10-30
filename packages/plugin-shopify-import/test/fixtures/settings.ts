@@ -3,7 +3,7 @@
  * Bengaluru with two locations and an app's fulfilment location, a general shipping
  * profile (flat, price bands, free over ₹999, weight bands in kilograms, a carrier rate,
  * an international zone) plus a product-specific profile, five policies and extra
- * field definitions on products, variants and customers.
+ * field definitions on products, variants and customers, plus purchase orders and transfers.
  */
 
 const cost = {
@@ -377,6 +377,132 @@ export const MARKETS = {
   },
 }
 
+/** A purchase order or transfer line: `variantTitle` null means a product with no options. */
+const stockLine = (
+  product: number,
+  sku: string | null,
+  variantTitle: string,
+  quantity: number,
+  unitCost: string | null,
+) => ({
+  totalQuantity: quantity,
+  title: `Product ${product}`,
+  ...(unitCost === null ? {} : { unitCost: { amount: unitCost } }),
+  inventoryItem: {
+    variant: { sku, title: variantTitle, product: { id: `gid://shopify/Product/${product}` } },
+  },
+})
+
+const snapshot = (id: number | null, name: string) => ({
+  name,
+  location: id === null ? null : { id: `gid://shopify/Location/${id}` },
+})
+
+/**
+ * Waimers' purchase orders (API 2026-10): PO #1 from Kyomi, ₹65,000, ordered (audit #75);
+ * a draft in US dollars; and one for a product not imported here.
+ */
+export const PURCHASE_ORDERS = {
+  inventoryPurchaseOrders: {
+    pageInfo,
+    nodes: [
+      {
+        id: 'gid://shopify/InventoryPurchaseOrder/1',
+        name: '#PO1',
+        status: 'ORDERED',
+        currency: 'INR',
+        orderedAt: '2026-10-20T10:00:00Z',
+        archivedAt: null,
+        origin: { supplierName: 'Kyomi' },
+        destination: snapshot(1, 'Bengaluru warehouse'),
+        transfers: { nodes: [] },
+        lineItems: {
+          pageInfo,
+          nodes: [
+            stockLine(11, 'MIO-BLK', 'Black', 50, '1000.00'),
+            stockLine(12, null, 'Default Title', 10, '1500.00'),
+          ],
+        },
+      },
+      {
+        id: 'gid://shopify/InventoryPurchaseOrder/2',
+        name: '#PO2',
+        status: 'DRAFT',
+        currency: 'USD',
+        orderedAt: null,
+        archivedAt: null,
+        origin: { supplierName: 'Shenzhen Pads' },
+        destination: snapshot(1, 'Bengaluru warehouse'),
+        transfers: { nodes: [] },
+        lineItems: { pageInfo, nodes: [stockLine(11, 'MIO-WHT', 'White', 5, '12.50')] },
+      },
+      {
+        id: 'gid://shopify/InventoryPurchaseOrder/3',
+        name: '#PO3',
+        status: 'DRAFT',
+        currency: 'INR',
+        orderedAt: null,
+        archivedAt: null,
+        origin: { supplierName: 'kyomi ' },
+        destination: snapshot(2, 'Delhi store'),
+        transfers: { nodes: [] },
+        lineItems: {
+          pageInfo,
+          nodes: [
+            stockLine(11, 'MIO-WHT', 'White', 2, '1000.00'),
+            stockLine(99, 'GONE', 'Default Title', 1, '10.00'),
+          ],
+        },
+      },
+    ],
+  },
+}
+
+/** Waimers' transfers: #T0001 on its way to Delhi, a cancelled one, a purchase order's receipt. */
+export const TRANSFERS = {
+  inventoryTransfers: {
+    pageInfo,
+    nodes: [
+      {
+        id: 'gid://shopify/InventoryTransfer/1',
+        name: '#T0001',
+        status: 'IN_PROGRESS',
+        note: 'Diwali stock for the store',
+        dateCreated: '2026-10-22T09:00:00Z',
+        origin: snapshot(1, 'Bengaluru warehouse'),
+        destination: snapshot(2, 'Delhi store'),
+        lineItems: {
+          pageInfo,
+          nodes: [
+            stockLine(11, 'MIO-BLK', 'Black', 3, null),
+            stockLine(11, 'mio-blk', 'Black', 2, null),
+          ],
+        },
+      },
+      {
+        id: 'gid://shopify/InventoryTransfer/2',
+        name: '#T0002',
+        status: 'CANCELED',
+        note: null,
+        dateCreated: '2026-10-23T09:00:00Z',
+        origin: snapshot(1, 'Bengaluru warehouse'),
+        destination: snapshot(2, 'Delhi store'),
+        lineItems: { pageInfo, nodes: [stockLine(12, null, 'Default Title', 1, null)] },
+      },
+      {
+        id: 'gid://shopify/InventoryTransfer/3',
+        name: '#T0003',
+        status: 'TRANSFERRED',
+        note: null,
+        dateCreated: '2026-10-24T09:00:00Z',
+        origin: null,
+        destination: snapshot(1, 'Bengaluru warehouse'),
+        lineItems: { pageInfo, nodes: [stockLine(12, null, 'Default Title', 4, null)] },
+      },
+    ],
+  },
+}
+
 /** A fake Admin API for the settings queries; `deny` lists the operations the token may not read. */
 export function settingsShopify(deny: readonly string[] = [], log: string[] = []): typeof fetch {
   return (async (_input: string | URL | Request, init?: RequestInit) => {
@@ -384,25 +510,29 @@ export function settingsShopify(deny: readonly string[] = [], log: string[] = []
       query: string
       variables: { ownerType?: string; id?: string }
     }
-    const op = query.includes('markets(')
-      ? 'markets'
-      : query.includes('segments(')
-        ? 'segments'
-        : query.includes('shopPolicies')
-          ? 'policies'
-          : query.includes('metafields(first')
-            ? 'shopFields'
-            : query.includes('locations(')
-              ? 'locations'
-              : query.includes('deliveryProfiles(')
-                ? 'profiles'
-                : query.includes('profileItems(')
-                  ? 'items'
-                  : query.includes('deliveryProfile(')
-                    ? 'zones'
-                    : query.includes('metafieldDefinitions(')
-                      ? `fields:${variables.ownerType}`
-                      : 'shop'
+    const op = query.includes('inventoryPurchaseOrders(')
+      ? 'purchaseOrders'
+      : query.includes('inventoryTransfers(')
+        ? 'transfers'
+        : query.includes('markets(')
+          ? 'markets'
+          : query.includes('segments(')
+            ? 'segments'
+            : query.includes('shopPolicies')
+              ? 'policies'
+              : query.includes('metafields(first')
+                ? 'shopFields'
+                : query.includes('locations(')
+                  ? 'locations'
+                  : query.includes('deliveryProfiles(')
+                    ? 'profiles'
+                    : query.includes('profileItems(')
+                      ? 'items'
+                      : query.includes('deliveryProfile(')
+                        ? 'zones'
+                        : query.includes('metafieldDefinitions(')
+                          ? `fields:${variables.ownerType}`
+                          : 'shop'
     log.push(variables.id ? `${op}:${variables.id}` : op)
     if (deny.some((d) => op === d || op.startsWith(`${d}:`))) {
       return new Response(
@@ -423,6 +553,8 @@ export function settingsShopify(deny: readonly string[] = [], log: string[] = []
     if (op === 'policies') return json(POLICIES)
     if (op === 'segments') return json(SEGMENTS)
     if (op === 'markets') return json(MARKETS)
+    if (op === 'purchaseOrders') return json(PURCHASE_ORDERS)
+    if (op === 'transfers') return json(TRANSFERS)
     const owner = variables.ownerType ?? ''
     return json({ metafieldDefinitions: { pageInfo, nodes: FIELD_DEFINITIONS[owner] ?? [] } })
   }) as typeof fetch

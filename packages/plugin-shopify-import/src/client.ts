@@ -227,6 +227,10 @@ export const ALL_SCOPE_HANDLES = [
   'read_purchase_options',
   /** Store settings: markets for other countries (audit #114). Optional. */
   'read_markets',
+  /** Store settings: purchase orders (API 2026-10+; read_inventory no longer covers them). Optional. */
+  'read_inventory_purchase_orders',
+  /** Store settings: transfers between locations. Optional. */
+  'read_inventory_transfers',
 ] as const
 export type ScopeHandle = (typeof ALL_SCOPE_HANDLES)[number]
 

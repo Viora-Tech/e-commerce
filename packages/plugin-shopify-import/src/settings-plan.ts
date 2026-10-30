@@ -23,6 +23,7 @@ import type { NLocation, NSettingsAddress, NShopSettings } from './api-settings'
 import type { RichText } from './html'
 import type { SettingsItem } from './settings-client'
 import type { LocalMarket, MarketWrite } from './settings-plan-markets'
+import type { LocalStock, PurchaseOrderWrite, TransferWrite } from './settings-plan-stock'
 
 /* ------------------------------------------------------------ what is here */
 
@@ -90,6 +91,8 @@ export type LocalSettings = {
   /** Names of the customer segments here. */
   segments: string[]
   markets: LocalMarket[]
+  /** Suppliers, imported products' variants and earlier purchase order and transfer imports. */
+  stock: LocalStock
   fields: LocalField[]
   /** Shopify id → our id from earlier imports. */
   mapped: {
@@ -112,6 +115,8 @@ export const SETTINGS_MAPPINGS = {
   zones: 'settings_shipping_zones',
   shippingProfiles: 'settings_shipping_profiles',
   fields: 'metafield_definitions',
+  purchaseOrders: 'settings_purchase_orders',
+  transfers: 'settings_transfers',
 } as const
 
 export type SettingsOp =
@@ -142,6 +147,9 @@ export type SettingsOp =
   | { kind: 'field'; sourceId: string; write: MetafieldDefinitionWrite }
   /** A Shopify market for other countries (settings-plan-markets). */
   | { kind: 'market'; write: MarketWrite }
+  /** A Shopify purchase order or transfer (settings-plan-stock). */
+  | { kind: 'purchase_order'; write: PurchaseOrderWrite }
+  | { kind: 'transfer'; write: TransferWrite }
   /** Remember a match that needed no change, so a rename on either side keeps it matched. */
   | { kind: 'map'; resource: string; sourceId: string; localId: string }
 

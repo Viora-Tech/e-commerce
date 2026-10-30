@@ -20,7 +20,7 @@ embedded = false
 # read_all_orders also needs Shopify's approval (Partner/Dev Dashboard -> API access requests).
 # read_customers and read_orders need protected customer data access, Level 2 (names, emails,
 # phones, addresses), requested in the Dev Dashboard before review.
-scopes = "read_products,read_inventory,read_customers,read_orders,read_all_orders,read_content,read_online_store_navigation,read_files,read_metaobject_definitions,read_metaobjects,read_discounts,read_gift_cards,read_shipping,read_legal_policies,read_purchase_options,read_markets"
+scopes = "read_products,read_inventory,read_customers,read_orders,read_all_orders,read_content,read_online_store_navigation,read_files,read_metaobject_definitions,read_metaobjects,read_discounts,read_gift_cards,read_shipping,read_legal_policies,read_purchase_options,read_markets,read_inventory_purchase_orders,read_inventory_transfers"
 # The admin builds the authorize URL itself (authorization code grant), with these scopes.
 use_legacy_install_flow = true
 

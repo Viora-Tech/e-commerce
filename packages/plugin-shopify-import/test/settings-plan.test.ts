@@ -19,6 +19,7 @@ import { planFields, planPolicies } from '../src/settings-plan-content'
 import { planMarkets } from '../src/settings-plan-markets'
 import { planSegments, segmentRules } from '../src/settings-plan-segments'
 import { planShipping } from '../src/settings-plan-shipping'
+import { planPurchaseOrders, planTransfers } from '../src/settings-plan-stock'
 import { ShopifyClient } from '../src/shopify-client'
 import { settingsShopify } from './fixtures/settings'
 
@@ -76,6 +77,20 @@ function emptyLocal(): LocalSettings {
     fields: [],
     segments: [],
     markets: [{ name: 'India', isPrimary: true, countries: ['IN'] }],
+    stock: {
+      suppliers: [],
+      products: new Map([
+        ['gid://shopify/Product/11', 'product-11'],
+        ['gid://shopify/Product/12', 'product-12'],
+      ]),
+      variants: [
+        { id: 'v-11-black', productId: 'product-11', sku: 'MIO-BLK', title: 'Black' },
+        { id: 'v-11-white', productId: 'product-11', sku: 'MIO-WHT', title: 'White' },
+        { id: 'v-12', productId: 'product-12', sku: null, title: 'Default' },
+      ],
+      purchaseOrders: new Map(),
+      transfers: new Map(),
+    },
     mapped: {
       locations: new Map(),
       zones: new Map(),
@@ -98,6 +113,8 @@ function applyToLocal(local: LocalSettings, ops: SettingsOp[]): LocalSettings {
     settings_shipping_zones: new Map(local.mapped.zones),
     settings_shipping_profiles: new Map(local.mapped.shippingProfiles),
     metafield_definitions: new Map(local.mapped.fields),
+    settings_purchase_orders: new Map(local.stock.purchaseOrders),
+    settings_transfers: new Map(local.stock.transfers),
   } as Record<string, Map<string, string>>
   let n = 0
   for (const op of ops) {
@@ -186,7 +203,16 @@ function applyToLocal(local: LocalSettings, ops: SettingsOp[]): LocalSettings {
       })
       maps.metafield_definitions?.set(op.sourceId, id)
     }
+    if (op.kind === 'purchase_order') {
+      maps.settings_purchase_orders?.set(op.write.sourceId, `po-${++n}`)
+    }
+    if (op.kind === 'transfer') maps.settings_transfers?.set(op.write.sourceId, `transfer-${++n}`)
     if (op.kind === 'map') maps[op.resource]?.set(op.sourceId, op.localId)
+  }
+  next.stock = {
+    ...next.stock,
+    purchaseOrders: maps.settings_purchase_orders ?? new Map(),
+    transfers: maps.settings_transfers ?? new Map(),
   }
   next.mapped = {
     locations: maps.settings_locations ?? new Map(),
@@ -713,5 +739,131 @@ describe('markets (audit #114)', () => {
       ),
     ]
     expect(planMarkets(markets, after).ops).toEqual([])
+  })
+})
+
+/** Shopify locations the Locations part of the same import creates or matches. */
+function pendingOf(source: SettingsSource, local: LocalSettings): Set<string> {
+  const locations = source.locations?.ok ? source.locations.data : []
+  return new Set(
+    planLocations(locations, local).ops.flatMap((op) =>
+      (op.kind === 'location' || op.kind === 'map') && op.sourceId ? [op.sourceId] : [],
+    ),
+  )
+}
+
+describe('purchase orders and transfers (audit #75)', () => {
+  it('brings PO #1 from Kyomi over as ordered, ₹65,000, and lists the rest', async () => {
+    const source = await read()
+    const local = emptyLocal()
+    const pos = source.purchaseOrders?.ok ? source.purchaseOrders.data : []
+    const plan = planPurchaseOrders(pos, local, pendingOf(source, local))
+    expect(plan.items.map((i) => [i.name, i.action, i.reason ?? null, i.detail ?? null])).toEqual([
+      ['#PO1', 'create', null, null],
+      ['#PO2', 'manual', 'po_currency', 'USD'],
+      ['#PO3', 'manual', 'stock_products_missing', '1'],
+    ])
+    expect(plan.ops).toHaveLength(1)
+    const op = plan.ops[0]
+    const write = op?.kind === 'purchase_order' ? op.write : null
+    expect(write).toEqual({
+      sourceId: 'gid://shopify/InventoryPurchaseOrder/1',
+      name: '#PO1',
+      supplier: { id: null, name: 'Kyomi' },
+      // Made by the Locations part first; the write finds it through the location mapping.
+      location: { id: null, sourceId: 'gid://shopify/Location/1' },
+      currency: 'INR',
+      status: 'ordered',
+      orderedAt: '2026-10-20T10:00:00Z',
+      lines: [
+        { variantId: 'v-11-black', quantity: 50, unitPriceMinor: 100000 },
+        { variantId: 'v-12', quantity: 10, unitPriceMinor: 150000 },
+      ],
+    })
+    expect(write?.lines.reduce((sum, l) => sum + l.quantity * l.unitPriceMinor, 0)).toBe(6_500_000)
+  })
+
+  it('reuses a supplier by name and waits for a location that is not coming', async () => {
+    const source = await read()
+    const local = emptyLocal()
+    local.stock.suppliers = [{ id: 'sup-kyomi', name: ' KYOMI' }]
+    const home = local.locations[0]
+    if (!home) throw new Error('seed')
+    local.locations.push({ ...home, id: 'loc-blr', isDefault: false, name: 'Bengaluru Warehouse' })
+    const pos = source.purchaseOrders?.ok ? source.purchaseOrders.data : []
+    const matched = planPurchaseOrders(pos, local, new Set())
+    const op = matched.ops[0]
+    expect(op?.kind === 'purchase_order' && op.write.supplier).toEqual({
+      id: 'sup-kyomi',
+      name: 'Kyomi',
+    })
+    expect(op?.kind === 'purchase_order' && op.write.location).toEqual({
+      id: 'loc-blr',
+      sourceId: 'gid://shopify/Location/1',
+    })
+
+    const without = planPurchaseOrders(pos, emptyLocal(), new Set())
+    expect(without.items[0]).toMatchObject({
+      name: '#PO1',
+      action: 'manual',
+      reason: 'stock_location_missing',
+      detail: 'Bengaluru warehouse',
+    })
+    expect(without.ops).toEqual([])
+  })
+
+  it('brings #T0001 over in transit and lists cancelled transfers and receipts', async () => {
+    const source = await read()
+    const local = emptyLocal()
+    const transfers = source.transfers?.ok ? source.transfers.data : []
+    const plan = planTransfers(transfers, local, pendingOf(source, local))
+    expect(plan.items.map((i) => [i.name, i.action, i.reason ?? null, i.detail ?? null])).toEqual([
+      ['#T0001', 'create', null, null],
+      ['#T0002', 'manual', 'transfer_status', 'canceled'],
+      ['#T0003', 'manual', 'transfer_origin', null],
+    ])
+    const op = plan.ops[0]
+    expect(op?.kind === 'transfer' ? op.write : null).toEqual({
+      sourceId: 'gid://shopify/InventoryTransfer/1',
+      from: { id: null, sourceId: 'gid://shopify/Location/1' },
+      to: { id: null, sourceId: 'gid://shopify/Location/2' },
+      status: 'in_transit',
+      note: 'Shopify #T0001\nDiwali stock for the store',
+      shippedAt: '2026-10-22T09:00:00Z',
+      // Two lines for one variant (SKUs differ only in case) become one.
+      lines: [{ variantId: 'v-11-black', quantity: 5, unitPriceMinor: 0 }],
+    })
+  })
+
+  it('changes nothing the second time', async () => {
+    const source = await read()
+    if (!source.locations?.ok || !source.purchaseOrders?.ok || !source.transfers?.ok) {
+      throw new Error('read')
+    }
+    const first = emptyLocal()
+    const pending = pendingOf(source, first)
+    const plans = [
+      planLocations(source.locations.data, first),
+      planPurchaseOrders(source.purchaseOrders.data, first, pending),
+      planTransfers(source.transfers.data, first, pending),
+    ]
+    const after = applyToLocal(
+      first,
+      plans.flatMap((p) => p.ops),
+    )
+    const pos = planPurchaseOrders(source.purchaseOrders.data, after, pendingOf(source, after))
+    const transfers = planTransfers(source.transfers.data, after, pendingOf(source, after))
+    expect([...pos.ops, ...transfers.ops]).toEqual([])
+    expect(pos.items.find((i) => i.name === '#PO1')?.action).toBe('same')
+    expect(transfers.items.find((i) => i.name === '#T0001')?.action).toBe('same')
+  })
+
+  it('asks to reconnect when the token lacks the new scopes', async () => {
+    const source = await fetchSettingsSource(client(['purchaseOrders', 'transfers']), [
+      'purchase_orders',
+      'transfers',
+    ])
+    expect(source.purchaseOrders).toMatchObject({ ok: false, access: true })
+    expect(source.transfers).toMatchObject({ ok: false, access: true })
   })
 })

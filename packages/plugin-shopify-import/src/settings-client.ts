@@ -1,6 +1,7 @@
 /**
  * Store settings import: the parts a merchant can bring over from Shopify (store details,
- * tax, locations, shipping, packages, policies, extra field definitions), and the plan and
+ * tax, locations, shipping, packages, policies, extra field definitions, segments, markets,
+ * purchase orders and transfers), and the plan and
  * report shapes the admin shows. Pure: no database, no Node APIs, so the admin can import it
  * through `@commerce/plugin-shopify-import/client`. Every line carries codes, never English,
  * so the admin says it in the merchant's language.
@@ -18,6 +19,8 @@ export const SETTINGS_PARTS = [
   'fields',
   'segments',
   'markets',
+  'purchase_orders',
+  'transfers',
 ] as const
 export type SettingsPart = (typeof SETTINGS_PARTS)[number]
 
@@ -33,6 +36,8 @@ export const SETTINGS_PART_SCOPES: Record<SettingsPart, ScopeHandle[]> = {
   fields: ['read_products'],
   segments: ['read_customers'],
   markets: ['read_markets'],
+  purchase_orders: ['read_inventory_purchase_orders'],
+  transfers: ['read_inventory_transfers'],
 }
 
 /** What one line of the plan is about. */
@@ -58,6 +63,8 @@ const SETTINGS_SUBJECTS = [
   'field',
   'segment',
   'market',
+  'purchase_order',
+  'transfer',
 ] as const
 export type SettingsSubject = (typeof SETTINGS_SUBJECTS)[number]
 
@@ -122,6 +129,18 @@ const SETTINGS_REASONS = [
   'market_countries',
   /** Another market here already sells to some of its countries (`detail`). */
   'market_country_taken',
+  /** Lines (`detail`: how many) whose products are not imported here yet; import products, then again. */
+  'stock_products_missing',
+  /** A location (`detail`) that is not here; bring Locations over (or make it), then again. */
+  'stock_location_missing',
+  /** A purchase order in another currency (`detail`): Shopify gives no exchange rate. */
+  'po_currency',
+  /** Part of the order was already received on Shopify; that stock came over with the products. */
+  'po_receipts',
+  /** A cancelled transfer, or one in a state we do not know (`detail`). */
+  'transfer_status',
+  /** A transfer with no origin (a purchase order's receipt) or the same location at both ends. */
+  'transfer_origin',
 ] as const
 export type SettingsReason = (typeof SETTINGS_REASONS)[number]
 

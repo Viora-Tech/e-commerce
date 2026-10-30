@@ -132,6 +132,9 @@ anything already here shows as matching.
 | Packages | Nothing: Shopify does not share saved packages with apps | Add your box sizes in **Settings › Shipping** |
 | Policies | Refund, privacy, terms of service, shipping and contact policies, with scripts and styling removed | Pictures inside a policy, legal notice, terms of sale and subscription policies |
 | Extra fields | Definitions on products, variants, collections, customers and orders whose type exists here | Types with no match (money, rating, JSON…); a field that already exists here as another type keeps yours |
+| Markets | Markets for other countries, with currency, languages, subfolder and price adjustment. Shopify drafts come over switched off | India stays your primary market; a market whose countries another market here already has |
+| Purchase orders | Purchase orders in rupees with their supplier (matched by name, or added), destination and products. Units still on order show as incoming | Orders in another currency (Shopify gives no exchange rate). Import products first: an order with a product not here yet waits |
+| Transfers | Transfers between your locations, as drafts, in transit or received. Units in transit show as incoming at the destination | Cancelled transfers, and purchase order receipts (they are the purchase order here) |
 
 ## The Koomerce app on Shopify
 
@@ -151,7 +154,8 @@ If you connect your own app instead, give it these read scopes in the Shopify De
 `read_products`, `read_inventory`, `read_customers`, `read_orders`, `read_all_orders`,
 `read_content`, `read_online_store_navigation`, `read_files`, `read_metaobject_definitions`,
 `read_metaobjects`, `read_discounts`, `read_gift_cards`, `read_shipping`, `read_legal_policies`,
-`read_purchase_options`.
+`read_purchase_options`, `read_markets`, `read_inventory_purchase_orders`,
+`read_inventory_transfers`.
 
 `read_purchase_options` brings pre-orders over: products Shopify sells through a pre-order
 purchase option (a selling plan named like "Pre-order") arrive with pre-order switched on.
@@ -165,7 +169,10 @@ campaign sell as pre-orders and the product takes the campaign's message as its 
 note**. Check the note afterwards: a fixed date in it ("end of November 2026") does not move
 when you change the ship date, `{ship_month}` does.
 
-The last two are for **Store settings** (shipping rates and policies). An app connected before
+`read_shipping`, `read_legal_policies`, `read_markets`, `read_inventory_purchase_orders` and
+`read_inventory_transfers` are for **Store settings** (shipping rates, policies, markets,
+purchase orders and transfers). Purchase orders and transfers never change the stock you have:
+it came over with your products. An app connected before
 they were added keeps working: add them in the Dev Dashboard, release a new version, then press
 **Reconnect** on the part that asks for them.
 

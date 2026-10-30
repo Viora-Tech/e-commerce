@@ -448,7 +448,7 @@ Partner account set to **Viora India**.
 | App URL (`application_url`) | `https://admin.koomerce.app/apps/shopify-import/connect` |
 | Embedded | No |
 | Redirect URL | `https://admin.koomerce.app/api/apps/shopify-import/oauth/callback` |
-| Scopes | `read_products, read_inventory, read_customers, read_orders, read_all_orders, read_content, read_online_store_navigation, read_files, read_metaobject_definitions, read_metaobjects, read_discounts, read_gift_cards, read_shipping, read_legal_policies, read_purchase_options, read_markets` |
+| Scopes | `read_products, read_inventory, read_customers, read_orders, read_all_orders, read_content, read_online_store_navigation, read_files, read_metaobject_definitions, read_metaobjects, read_discounts, read_gift_cards, read_shipping, read_legal_policies, read_purchase_options, read_markets, read_inventory_purchase_orders, read_inventory_transfers` |
 | Compliance webhooks (`customers/data_request`, `customers/redact`, `shop/redact`) | `https://api.koomerce.app/webhooks/platform/shopify` |
 | `app/uninstalled` webhook | `https://api.koomerce.app/webhooks/platform/shopify` |
 | Webhook API version | 2026-10 |

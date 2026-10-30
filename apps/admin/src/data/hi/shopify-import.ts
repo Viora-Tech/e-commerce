@@ -213,6 +213,8 @@ const hi = {
       read_legal_policies: 'स्टोर पॉलिसी पढ़ना',
       read_purchase_options: 'प्री-ऑर्डर (परचेज़ ऑप्शन) पढ़ना',
       read_markets: 'मार्केट पढ़ना',
+      read_inventory_purchase_orders: 'परचेज़ ऑर्डर पढ़ना',
+      read_inventory_transfers: 'ट्रांसफ़र पढ़ना',
     },
     chooseHeading: 'क्या इंपोर्ट करना है',
     chooseHelp: 'प्रोडक्ट पहले आते हैं ताकि कलेक्शन, ऑर्डर, डिस्काउंट और एक्स्ट्रा फ़ील्ड उनसे जुड़ सकें।',

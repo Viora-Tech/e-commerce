@@ -83,6 +83,14 @@ export const shopifyImportSettingsContent = {
       title: 'Markets',
       body: 'Your markets for other countries, with their currency, languages, subfolder and price adjustment. Drafts on Shopify come over switched off. India stays your primary market.',
     },
+    purchase_orders: {
+      title: 'Purchase orders',
+      body: 'Your purchase orders in rupees, with their supplier, destination and products. Suppliers are matched by name or added. What is still on order shows as incoming; stock you have is not changed. Import products first.',
+    },
+    transfers: {
+      title: 'Transfers',
+      body: 'Stock moves between your locations, as drafts, in transit or received. Stock you have is not changed; units in transit show as incoming at the destination. Import products first.',
+    },
   } satisfies Record<SettingsPart, { title: string; body: string }>,
   state: {
     ready: 'Changes to bring over',
@@ -128,6 +136,8 @@ export const shopifyImportSettingsContent = {
     field: 'Extra field',
     segment: 'Customer segment',
     market: 'Market',
+    purchase_order: 'Purchase order',
+    transfer: 'Transfer',
   } satisfies Record<SettingsSubject, string>,
   owners: {
     product: 'Products',
@@ -202,6 +212,18 @@ export const shopifyImportSettingsContent = {
       `${v.name} has no country we know, so it was not brought over. Make it in Markets.`,
     market_country_taken: (v: ReasonValues) =>
       `Another market here already sells to ${v.detail}, so ${v.name} was not brought over. Change it in Markets.`,
+    stock_products_missing: (v: ReasonValues) =>
+      `${v.name} has ${v.detail} ${v.detail === '1' ? 'product' : 'products'} not imported here yet. Import products, then check again.`,
+    stock_location_missing: (v: ReasonValues) =>
+      `${v.name} uses the location ${v.detail || 'that was deleted on Shopify'}, which is not here. Bring Locations over, then check again.`,
+    po_currency: (v: ReasonValues) =>
+      `${v.name} is in ${v.detail}, and Shopify gives no exchange rate. Make it in Purchase orders.`,
+    po_receipts: (v: ReasonValues) =>
+      `Some of ${v.name} was already received on Shopify, and that stock came over with your products. Receive only what is still to come.`,
+    transfer_status: (v: ReasonValues) =>
+      `${v.name} is ${v.detail} on Shopify, so it was not brought over.`,
+    transfer_origin: (v: ReasonValues) =>
+      `${v.name} has no location to send from (a purchase order's receipt), so it was not brought over.`,
   } satisfies Record<SettingsReason, (v: ReasonValues) => string>,
   fixHref: {
     store: '/settings/store',
@@ -213,5 +235,7 @@ export const shopifyImportSettingsContent = {
     fields: '/settings/custom-data',
     segments: '/customers/segments',
     markets: '/markets',
+    purchase_orders: '/stock/purchase-orders',
+    transfers: '/stock/transfers',
   } satisfies Record<SettingsPart, string>,
 } as const

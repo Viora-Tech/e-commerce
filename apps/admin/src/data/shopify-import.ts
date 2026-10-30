@@ -233,6 +233,8 @@ export const shopifyImportContent = {
       read_legal_policies: 'Read store policies',
       read_purchase_options: 'Read pre-orders (purchase options)',
       read_markets: 'Read markets',
+      read_inventory_purchase_orders: 'Read purchase orders',
+      read_inventory_transfers: 'Read transfers',
     } satisfies Record<ScopeHandle, string>,
     chooseHeading: 'What to import',
     chooseHelp:

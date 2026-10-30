@@ -1,8 +1,9 @@
 /**
  * Store settings import: read the chosen parts from Shopify, compare them with this
  * store (`settings-plan.ts`) and, on import, write each chosen part in its own savepoint
- * so one part failing leaves the others saved. Never touches orders or stock: new
- * locations hold no stock and neither sell online nor become the default.
+ * so one part failing leaves the others saved. Never touches orders or on-hand stock: new
+ * locations hold no stock and neither sell online nor become the default; purchase orders and
+ * transfers only add what Shopify still has on the way as incoming (`settings-import-stock.ts`).
  */
 import {
   addRegistration,
@@ -29,8 +30,16 @@ import {
   updateShippingZone,
 } from '@commerce/core'
 import { PREFERENCE_LIMITS, parsePreferences } from '@commerce/core/preferences'
-import { customerSegment, type StoreTx, store } from '@commerce/db'
-import { eq } from 'drizzle-orm'
+import {
+  customerSegment,
+  purchaseOrder,
+  type StoreTx,
+  store,
+  supplier,
+  transfer,
+  variant,
+} from '@commerce/db'
+import { and, eq, inArray, isNull } from 'drizzle-orm'
 import { fetchSettingsSource, type Read, type SettingsSource } from './api-settings'
 import { type ClientForOptions, clientFor } from './connection'
 import { findMapping, findMappings, saveMapping } from './runtime'
@@ -44,6 +53,7 @@ import {
   type SettingsPartResult,
   type SettingsPlan,
 } from './settings-client'
+import { importPurchaseOrder, importTransfer } from './settings-import-stock'
 import {
   type LocalSettings,
   type PartPlan,
@@ -57,6 +67,7 @@ import { planFields, planPolicies } from './settings-plan-content'
 import { planMarkets } from './settings-plan-markets'
 import { planSegments } from './settings-plan-segments'
 import { planPackages, planShipping } from './settings-plan-shipping'
+import { type LocalStock, planPurchaseOrders, planTransfers } from './settings-plan-stock'
 
 type PlannedPart = SettingsPartPlan & { ops: SettingsOp[] }
 
@@ -101,6 +112,61 @@ async function saveHomeSeo(
     .update(store)
     .set({ preferences: { ...((row?.preferences as object | null) ?? {}), seo } })
     .where(eq(store.id, storeId))
+}
+
+/** Mapped ids whose record is still here (`existing`); a deleted one may be imported again. */
+function stillHere(mapped: Map<string, string>, existing: { id: string }[]): Map<string, string> {
+  const ids = new Set(existing.map((r) => r.id))
+  return new Map([...mapped].filter(([, id]) => ids.has(id)))
+}
+
+/** Suppliers, variants of the imported products the lines name, and earlier imports. */
+async function loadStock(tx: StoreTx, source: SettingsSource): Promise<LocalStock> {
+  const pos = source.purchaseOrders?.ok ? source.purchaseOrders.data : []
+  const transfers = source.transfers?.ok ? source.transfers.data : []
+  const lines = [...pos.flatMap((p) => p.lines), ...transfers.flatMap((t) => t.lines)]
+  const products = await findMappings(tx, 'products', lines.map((l) => l.productSourceId))
+  const productIds = [...new Set(products.values())]
+  const variants = productIds.length
+    ? await tx
+        .select({
+          id: variant.id,
+          productId: variant.productId,
+          sku: variant.sku,
+          title: variant.title,
+        })
+        .from(variant)
+        .where(and(inArray(variant.productId, productIds), isNull(variant.archivedAt)))
+    : []
+  const poIds = await findMappings(tx, SETTINGS_MAPPINGS.purchaseOrders, pos.map((p) => p.sourceId))
+  const transferIds = await findMappings(
+    tx,
+    SETTINGS_MAPPINGS.transfers,
+    transfers.map((t) => t.sourceId),
+  )
+  return {
+    suppliers: await tx.select({ id: supplier.id, name: supplier.name }).from(supplier),
+    products,
+    variants,
+    purchaseOrders: stillHere(
+      poIds,
+      poIds.size
+        ? await tx
+            .select({ id: purchaseOrder.id })
+            .from(purchaseOrder)
+            .where(inArray(purchaseOrder.id, [...poIds.values()]))
+        : [],
+    ),
+    transfers: stillHere(
+      transferIds,
+      transferIds.size
+        ? await tx
+            .select({ id: transfer.id })
+            .from(transfer)
+            .where(inArray(transfer.id, [...transferIds.values()]))
+        : [],
+    ),
+  }
 }
 
 async function loadLocal(
@@ -166,6 +232,7 @@ async function loadLocal(
       isPrimary: m.isPrimary,
       countries: m.countries,
     })),
+    stock: await loadStock(tx, source),
     fields: fields.map((f) => ({
       id: f.id,
       ownerType: f.ownerType,
@@ -212,7 +279,13 @@ function ready(part: SettingsPart, plan: PartPlan): PlannedPart {
   return { part, state: plan.items.some(changes) ? 'ready' : 'same', ...plan }
 }
 
-function planPart(part: SettingsPart, source: SettingsSource, local: LocalSettings): PlannedPart {
+function planPart(
+  part: SettingsPart,
+  source: SettingsSource,
+  local: LocalSettings,
+  /** Shopify locations the Locations part of this import creates or matches. */
+  pending: ReadonlySet<string>,
+): PlannedPart {
   switch (part) {
     case 'store':
       return ready(part, planStore(source.shop, local))
@@ -241,6 +314,16 @@ function planPart(part: SettingsPart, source: SettingsSource, local: LocalSettin
       const r = source.markets
       if (!r) return ready(part, { items: [], ops: [] })
       return r.ok ? ready(part, planMarkets(r.data, local.markets)) : unread(part, r)
+    }
+    case 'purchase_orders': {
+      const r = source.purchaseOrders
+      if (!r) return ready(part, { items: [], ops: [] })
+      return r.ok ? ready(part, planPurchaseOrders(r.data, local, pending)) : unread(part, r)
+    }
+    case 'transfers': {
+      const r = source.transfers
+      if (!r) return ready(part, { items: [], ops: [] })
+      return r.ok ? ready(part, planTransfers(r.data, local, pending)) : unread(part, r)
     }
     case 'segments': {
       const r = source.segments
@@ -283,7 +366,17 @@ async function plan(
   const chosen = SETTINGS_PARTS.filter((p) => parts.includes(p))
   const source = await fetchSettingsSource(client, chosen)
   const local = await loadLocal(tx, storeId, source)
-  return { shopName: source.shop.name, parts: chosen.map((p) => planPart(p, source, local)) }
+  // Purchase orders and transfers may use a location the Locations part brings over first.
+  const pending = new Set<string>()
+  if (chosen.includes('locations') && source.locations?.ok) {
+    for (const op of planLocations(source.locations.data, local).ops) {
+      if ((op.kind === 'location' || op.kind === 'map') && op.sourceId) pending.add(op.sourceId)
+    }
+  }
+  return {
+    shopName: source.shop.name,
+    parts: chosen.map((p) => planPart(p, source, local, pending)),
+  }
 }
 
 /** "Check Shopify": every part's plan. Reads only; nothing here changes. */
@@ -357,6 +450,10 @@ async function apply(tx: StoreTx, storeId: string, op: SettingsOp): Promise<void
       const created = await createMetafieldDefinition(tx, storeId, op.write)
       return saveMapping(tx, storeId, SETTINGS_MAPPINGS.fields, op.sourceId, created.id)
     }
+    case 'purchase_order':
+      return importPurchaseOrder(tx, storeId, op.write)
+    case 'transfer':
+      return importTransfer(tx, storeId, op.write)
     case 'map':
       return saveMapping(tx, storeId, op.resource, op.sourceId, op.localId)
   }
