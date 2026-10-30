@@ -26,6 +26,7 @@ import { storeRegistries } from '../services/apps.service'
 import { retryCourierPushForOrder } from '../services/courier-push.service'
 import {
   addOrderNote,
+  captureOrderPayment,
   getOrder,
   listOrderIds,
   listOrders,
@@ -461,6 +462,28 @@ export const ordersRouter = {
           await deliverGiftCard(ctx, r.giftCardId, { channels, secret: settingsSecret() })
         }
         return r
+      } catch (err) {
+        if (err instanceof CommerceError)
+          throw new ORPCError('BAD_REQUEST', { message: err.message })
+        throw err
+      }
+    }),
+
+  /** "Capture payment" (#150): take the money a manual-capture checkout only authorised. */
+  capture: can(permissions.ORDERS_REFUND)
+    .input(z.object({ paymentId: z.uuid() }))
+    .handler(async ({ context, input }) => {
+      const { payments } = await storeRegistries(context.tx, context.scope.storeId)
+      try {
+        const r = await captureOrderPayment(
+          context.tx,
+          context.scope.storeId,
+          payments,
+          settingsSecret(),
+          input.paymentId,
+        )
+        if (!r) throw new ORPCError('NOT_FOUND', { message: 'Payment not found' })
+        return { status: r.payment.status }
       } catch (err) {
         if (err instanceof CommerceError)
           throw new ORPCError('BAD_REQUEST', { message: err.message })

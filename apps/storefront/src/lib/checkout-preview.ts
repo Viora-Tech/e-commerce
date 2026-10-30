@@ -6,6 +6,7 @@ import {
   codDecision,
   minimumOrderShortfall,
 } from '@commerce/core/checkout-settings'
+import { hiddenPaymentMethods, type PaymentMethodRule } from '@commerce/core/payment-method-rules'
 import { formatMoney } from '@commerce/money'
 import { checkoutContent as content } from '@/data/checkout'
 import { deliveryOptionsContent as appCopy } from '@/data/delivery-options'
@@ -144,6 +145,8 @@ export type CheckoutTotalsInput = {
   pincode: string
   /** A deposit pre-order's balance, charged later. */
   laterPaise: number
+  /** Settings → Payments → Payment rules (#150): ways to pay hidden for some orders. */
+  methodRules?: readonly PaymentMethodRule[] | undefined
 }
 
 /**
@@ -153,7 +156,6 @@ export type CheckoutTotalsInput = {
 export function checkoutTotals(input: CheckoutTotalsInput) {
   const { cart, methods, settings, discountPaise, shipping, rate, giftCards } = input
   const digitalOnly = isDigitalOnly(cart)
-  const offered = offeredMethods(cart, methods)
   const discounted = Math.max(0, cart.subtotalPaise - discountPaise)
   const shippingPaise = digitalOnly ? 0 : (rate?.pricePaise ?? 0)
   const delivery = shipping?.delivery
@@ -163,6 +165,13 @@ export function checkoutTotals(input: CheckoutTotalsInput) {
     pincode: input.pincode,
     orderValuePaise: ruleSubtotal + shippingPaise,
   })
+  // Payment rules (#150): the ways to pay a rule hides for this total, PIN code or basket.
+  const hidden = hiddenPaymentMethods(input.methodRules, {
+    orderValuePaise: ruleSubtotal + shippingPaise,
+    pincode: input.pincode,
+    productIds: cart.lines.flatMap((l) => l.productId ?? []),
+  })
+  const offered = offeredMethods(cart, methods).filter((m) => !hidden.has(m.id))
   // Delivery options app: Express (any prepaid-only option) refuses cash on delivery.
   const optionPrepaid = rate?.delivery?.codAllowed === false
   const codBlocked =
@@ -170,9 +179,10 @@ export function checkoutTotals(input: CheckoutTotalsInput) {
     (delivery?.ok === true && delivery.serviceable && !delivery.codAvailable) ||
     (giftCards.length > 0 && !coveredByCardsBefore(giftCards, discounted + shippingPaise)) ||
     !codRule.allowed
+  const pickedGone = !offered.some((m) => m.id === input.picked)
   const payment =
-    input.picked === 'cod' && codBlocked
-      ? (offered.find((m) => m.id !== 'cod')?.id ?? input.picked)
+    (input.picked === 'cod' && codBlocked) || pickedGone
+      ? (offered.find((m) => m.id !== 'cod' || !codBlocked)?.id ?? input.picked)
       : input.picked
   const adjustment = previewAdjustment(
     methods.find((m) => m.id === payment),

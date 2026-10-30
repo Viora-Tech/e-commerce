@@ -1,10 +1,11 @@
-import { CircleCheck, RotateCcw } from '@commerce/ui/icons'
+import { CircleCheck, CreditCard, RotateCcw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import DataCard from '@/components/layout/data-card'
 import KeyValueList from '@/components/layout/key-value-list'
 import RelativeTime from '@/components/layout/relative-time'
 import StatusLabel from '@/components/status/status-label'
 import { orderDetailContent } from '@/data/order-detail'
+import { paymentRulesContent } from '@/data/payment-rules'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import FailedAttemptReason from './failed-attempt-reason'
 import OrderChip from './order-chip'
@@ -22,6 +23,8 @@ type PaymentCardProps = {
   order: OrderDetail
   /** Present when at least one payment can still be refunded. */
   onRefund?: (payment: OrderPayment) => void
+  /** Present when the member may capture an authorised (manual-capture) payment (#150). */
+  onCapture?: ((payment: OrderPayment) => void) | undefined
   /** Present when money is still owed and can be recorded by hand. */
   onCollect?: (() => void) | undefined
   /** Present while a deposit pre-order's balance is owed: asks the customer for it. */
@@ -42,6 +45,7 @@ function amountLabel(copy: typeof orderDetailContent, status: OrderPayment['stat
 export default function PaymentCard({
   order,
   onRefund,
+  onCapture,
   onCollect,
   onRequestBalance,
   onSendReminder,
@@ -49,6 +53,7 @@ export default function PaymentCard({
 }: PaymentCardProps) {
   // Hooks
   const copy = useCopy(orderDetailContent)
+  const { order: captureCopy } = useCopy(paymentRulesContent)
   const fmt = useFormat()
 
   // Helpers
@@ -105,6 +110,17 @@ export default function PaymentCard({
                 </p>
                 <div className="flex items-center gap-3">
                   <OrderChip kind="payment" value={pill} />
+                  {p.status === 'authorized' && onCapture ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onCapture(p)}
+                      disabled={busy}
+                    >
+                      <CreditCard aria-hidden="true" />
+                      {busy ? captureCopy.capturing : captureCopy.capture}
+                    </Button>
+                  ) : null}
                   {refundable && onRefund ? (
                     <Button size="sm" variant="outline" onClick={() => onRefund(p)}>
                       <RotateCcw aria-hidden="true" />
@@ -113,6 +129,9 @@ export default function PaymentCard({
                   ) : null}
                 </div>
               </div>
+              {p.status === 'authorized' ? (
+                <p className="text-body text-muted-foreground">{captureCopy.held}</p>
+              ) : null}
               {pill === 'refund_needed' ? (
                 <p className="text-body text-destructive">{copy.payment.refundNeeded}</p>
               ) : null}

@@ -22,7 +22,7 @@ import { readCheckoutSession } from '@/lib/checkout-session'
 import { currentCustomer } from '@/lib/customer-session'
 import { cartDiscountView } from '@/lib/discount-view'
 import { storeEmiOffers } from '@/lib/emi-offers'
-import { storeCheckoutMethods, storeOffersEmi } from '@/lib/payments'
+import { storeCheckoutMethods, storeOffersEmi, storePaymentMethodRules } from '@/lib/payments'
 import { cartDepositTerms } from '@/lib/preorder'
 import { storeSignIn } from '@/lib/sign-in-methods'
 import { inStore } from '@/lib/store-context'
@@ -53,7 +53,7 @@ export default async function CheckoutPage({ params }: Params) {
   // Settings → Customer accounts can require an account: the contact step then signs the
   // shopper in with the store's own codes and providers before anything else (`checkoutAction`
   // refuses an order without one regardless).
-  const [signIn, methods, discount, me, deposit, settings, policies, look, emiApp] =
+  const [signIn, methods, discount, me, deposit, settings, policies, look, emiApp, methodRules] =
     await Promise.all([
       storeSignIn(storeId),
       inStore(storeId, (tx) => storeCheckoutMethods(tx, storeId)),
@@ -66,6 +66,7 @@ export default async function CheckoutPage({ params }: Params) {
         withThemeLogo(storeId, l),
       ),
       inStore(storeId, (tx) => storeEmiOffers(tx, storeId)),
+      inStore(storeId, (tx) => storePaymentMethodRules(tx, storeId)),
     ])
   // The EMI line under the total: the EMI app's own minimum once installed, else the older hint's.
   const emiMinPaise = emiApp.installed
@@ -104,6 +105,7 @@ export default async function CheckoutPage({ params }: Params) {
         deposit={deposit}
         settings={settings}
         text={text}
+        methodRules={methodRules}
         policies={policies}
         look={look}
         emiMinPaise={emiMinPaise}

@@ -1,0 +1,76 @@
+import { paymentRulesContent } from '@/data/payment-rules'
+import { translation } from '@/lib/i18n'
+
+export default [
+  translation(paymentRulesContent, {
+    capture: {
+      heading: 'पेमेंट कैप्चर',
+      description:
+        'ऑटोमैटिक में ग्राहक के पेमेंट करते ही पैसा मिल जाता है। मैनुअल में पैसा सिर्फ़ होल्ड होता है; आप ऑर्डर पेज पर "पेमेंट कैप्चर करें" से उसे लेते हैं, जैसे स्टॉक देखने के बाद।',
+      automatic: 'ऑटोमैटिक',
+      manual: 'मैनुअल',
+      unavailable: 'इस गेटवे पर मैनुअल कैप्चर उपलब्ध नहीं है।',
+      manualNote:
+        'Razorpay होल्ड किया पेमेंट 5 दिन में कैप्चर न करने पर छोड़ देता है, इसलिए ऐसे ऑर्डर जल्दी कैप्चर या रद्द करें।',
+      saved: 'पेमेंट कैप्चर सेव हो गया।',
+      failed: 'पेमेंट कैप्चर सेव नहीं हो सका। फिर से कोशिश करें।',
+      label: (name: string) => `${name} के लिए कैप्चर`,
+    },
+    rules: {
+      heading: 'पेमेंट के नियम',
+      description:
+        'कुछ ऑर्डर पर पेमेंट का कोई तरीका छिपाएँ, जैसे ₹5,000 से ऊपर या ज़्यादा रिटर्न वाले PIN कोड में कैश ऑन डिलीवरी। ऑर्डर लेते समय फिर से जाँचा जाता है।',
+      empty: 'अभी कोई नियम नहीं। हर ऑर्डर पर पेमेंट के सभी तरीके दिखते हैं।',
+      add: 'नियम जोड़ें',
+      edit: 'बदलें',
+      remove: 'हटाएँ',
+      off: 'बंद',
+      untitled: 'बिना नाम का नियम',
+      saved: 'पेमेंट के नियम सेव हो गए।',
+      failed: 'पेमेंट के नियम सेव नहीं हो सके। फिर से कोशिश करें।',
+      hides: (methods: string) => `${methods} छिपाता है`,
+      when: (conditions: string, all: boolean) =>
+        `${all ? 'जब सब सही हों' : 'जब कोई भी सही हो'}: ${conditions}`,
+      above: (amount: string) => `कुल ${amount} से ज़्यादा`,
+      below: (amount: string) => `कुल ${amount} से कम`,
+      pincodes: (n: number) => `${n} PIN कोड`,
+      products: (n: number) => `कार्ट में ${n} में से कोई प्रोडक्ट`,
+    },
+    dialog: {
+      addTitle: 'पेमेंट नियम जोड़ें',
+      editTitle: 'पेमेंट नियम बदलें',
+      description: 'चुनें क्या छिपाना है, फिर कब। जो शर्त नहीं चाहिए उसे ख़ाली छोड़ें।',
+      name: 'नाम',
+      namePlaceholder: 'जैसे, बड़े ऑर्डर पर COD नहीं',
+      enabled: 'नियम चालू है',
+      methods: 'पेमेंट के ये तरीके छिपाएँ',
+      methodsError: 'कम से कम एक तरीका चुनें।',
+      match: 'कब छिपाएँ',
+      matchAny: 'कोई भी शर्त सही हो',
+      matchAll: 'सभी शर्तें सही हों',
+      above: 'ऑर्डर का कुल इससे ज़्यादा',
+      below: 'ऑर्डर का कुल इससे कम',
+      totalHint: 'डिस्काउंट के बाद के सामान और शिपिंग।',
+      pincodes: 'डिलीवरी PIN कोड इनमें से हो',
+      pincodesHint: 'हर लाइन में एक, या कॉमा से अलग।',
+      pincodesInvalid: (list: string) => `ये PIN कोड नहीं हैं, इन्हें छोड़ दिया गया: ${list}`,
+      products: 'कार्ट में इनमें से कोई प्रोडक्ट हो',
+      pickTitle: 'प्रोडक्ट चुनें',
+      search: 'प्रोडक्ट खोजें',
+      browse: 'देखें',
+      nothingPicked: 'कोई प्रोडक्ट नहीं चुना।',
+      removeProduct: (title: string) => `${title} हटाएँ`,
+      conditionsError: 'कम से कम एक शर्त लगाएँ।',
+      cancel: 'रद्द करें',
+      save: 'नियम सेव करें',
+    },
+    methodNames: { cod: 'कैश ऑन डिलीवरी', manual: 'आपको UPI या बैंक ट्रांसफ़र' },
+    order: {
+      capture: 'पेमेंट कैप्चर करें',
+      capturing: 'कैप्चर हो रहा है…',
+      captured: 'पेमेंट कैप्चर हो गया।',
+      failed: 'पेमेंट कैप्चर नहीं हो सका।',
+      held: 'ऑथराइज़्ड: पैसा होल्ड है, अभी लिया नहीं गया।',
+    },
+  }),
+]

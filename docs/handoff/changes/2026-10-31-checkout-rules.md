@@ -52,7 +52,42 @@ Admin audit #150, #154, #156, #158. No migration: everything lives in the store'
 - Not covered: the sign-in (OTP) screen's phone/email labels, payment method names, error
   messages and the thank-you page keep our wording.
 
+## #150 Payment rules and payment capture
+
+- **Payment rules** (Shopify's payment customizations): `packages/core/src/payments/method-rules.ts`
+  (pure, also `@commerce/core/payment-method-rules`): `PaymentMethodRuleSchema` (methods to hide,
+  `match: any|all`, `totalAbovePaise`, `totalBelowPaise`, `pincodes`, `productIds`; at most 20
+  rules), `ruleMatches`, `hiddenPaymentMethods`. Stored on `PaymentSettings.methodRules`. The
+  order total judged is the non-gift-card items after discount plus shipping (as the COD limit).
+  - Server: `placeOrder`'s `enforceCheckoutRules` throws `PaymentMethodHidden` (storefront message
+    `errors.paymentMethodHidden`).
+  - Storefront: the checkout page loads the rules (`storePaymentMethodRules`) and
+    `checkoutTotals` drops hidden methods from `offered` and moves the pick off a hidden one.
+    `CartLineView.productId` was added (optional) for the product condition.
+  - Admin: Settings → Payments → **Payment rules** (`payment-rules-card.tsx`,
+    `payment-rule-dialog.tsx`), `payments.saveMethodRules`; `payments.setup` returns
+    `methodRules` and `ruleMethods` (the enabled provider ids).
+- **Payment capture**: `packages/core/src/payments/capture.ts` (`CaptureModeSchema`,
+  `MANUAL_CAPTURE_GATEWAYS = ['razorpay']`, `captureModeFor`). Stored on
+  `PaymentSettings.capture` (gateway id → `manual`; unset is automatic).
+  - `CreatePaymentInput.capture: 'manual'` and optional `PaymentProvider.capture()` in
+    `@commerce/payments`. Razorpay creates the order with `payment_capture: false` and
+    captures with `payments.capture`. `claimAttempt` sets `capture` for checkout attempts only
+    (never a pre-order balance).
+  - The payment sits as `authorized` (unpaid-order expiry already skips authorised payments).
+    `capturePayment` (`core/src/order/capture.ts`) locks order then payment, asks the gateway,
+    then `applyPaymentStatus` records the capture. API `orders.capture` (ORDERS_REFUND).
+  - Admin: Settings → Payments → **Payment capture** (`payment-capture-card.tsx`,
+    `payments.saveCapture`); order page Payment card shows "Authorised: the money is held" and
+    **Capture payment**.
+  - Not done: Cashfree manual capture (needs Cashfree's pre-auth activation, cards only; shown
+    as not available). Cancelling an authorised order does not void the hold at Razorpay; it
+    lapses after Razorpay's window. Fallback gateways are not re-checked against payment rules.
+- Copy: `apps/admin/src/data/payment-rules.ts` + Hindi overlay.
+
 ## Tests
 
 `fields.test.ts`, `cart-limit.test.ts`, `content.test.ts`, new cases in
-`checkout/settings.test.ts`, storefront `checkout-text.test.ts`. Not run here (checks run on dev).
+`checkout/settings.test.ts`, `payments/method-rules.test.ts` (rules and capture mode),
+storefront `checkout-text.test.ts` and a payment-rule case in `checkout-preview.test.ts`.
+Not run here (checks run on dev).

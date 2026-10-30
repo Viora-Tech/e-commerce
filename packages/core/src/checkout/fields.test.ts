@@ -4,7 +4,7 @@ import {
   CheckoutFieldsSchema,
   joinedName,
   keptBusinessName,
-  splitName,
+  splitFullName,
 } from './fields'
 
 const fields = (over: Parameters<typeof CheckoutFieldsSchema.parse>[0] = {}) =>
@@ -38,9 +38,9 @@ describe('checkout form fields (#154)', () => {
   it('joins and splits names', () => {
     expect(joinedName({ name: 'split' }, { name: ' Asha ', lastName: 'Verma' })).toBe('Asha Verma')
     expect(joinedName({ name: 'full' }, { name: 'Asha Verma', lastName: 'x' })).toBe('Asha Verma')
-    expect(splitName('Asha Rani Verma')).toEqual({ first: 'Asha Rani', last: 'Verma' })
-    expect(splitName('Asha')).toEqual({ first: 'Asha', last: '' })
-    expect(splitName('  ')).toEqual({ first: '', last: '' })
+    expect(splitFullName('Asha Rani Verma')).toEqual({ first: 'Asha Rani', last: 'Verma' })
+    expect(splitFullName('Asha')).toEqual({ first: 'Asha', last: '' })
+    expect(splitFullName('  ')).toEqual({ first: '', last: '' })
   })
 
   it('keeps a company name with a GSTIN, or whenever the field is shown', () => {

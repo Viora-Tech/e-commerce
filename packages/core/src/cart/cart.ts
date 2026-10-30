@@ -30,6 +30,8 @@ import { parsePreorderStoreSettings } from '../preorder/store-settings'
 export type CartLineView = {
   id: string
   variantId: string
+  /** The product the variant belongs to (payment rules by product, #150). */
+  productId?: string | undefined
   productHandle: string
   productTitle: string
   variantTitle: string
@@ -263,6 +265,7 @@ export async function getCart(ctx: StoreContext, cartId: string): Promise<CartVi
   const lines: CartLineView[] = rows.map((r) => ({
     id: r.id,
     variantId: r.variantId,
+    productId: r.productId,
     productHandle: r.productHandle,
     productTitle: r.productTitle,
     variantTitle: r.variantTitle,

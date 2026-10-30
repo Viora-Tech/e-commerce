@@ -3,6 +3,8 @@ import {
   activateGateway,
   activeGatewaysOf,
   anyManualRowLive,
+  type CaptureMode,
+  captureModeFor,
   type CheckoutMethod,
   checkoutMethodsOf,
   checkoutTestMode,
@@ -29,6 +31,7 @@ import {
   type OnlineMethodId,
   onlineMethodsOn,
   type PaymentAdjustment,
+  type PaymentMethodRule,
   type PaymentMode,
   type PaymentRegistry,
   type PaymentSettings,
@@ -36,6 +39,7 @@ import {
   recoveryUrl,
   routeMethods,
   storefrontOriginFor,
+  supportsManualCapture,
   switchKeySet,
   withKeySet,
 } from '@commerce/core'
@@ -320,6 +324,16 @@ export async function paymentsSetup(
         GATEWAY_PROVIDER_IDS.map((id) => [id, [...(supports(id) ?? ONLINE_METHOD_IDS)]]),
       ) as Record<string, string[]>,
     },
+    /** "Payment rules" (#150): rules that hide a way to pay, and the ways a rule can hide. */
+    methodRules: settings.methodRules ?? [],
+    ruleMethods: [...settings.enabled],
+    /** "Payment capture" (#150): each gateway's mode, and whether it can capture by hand. */
+    capture: Object.fromEntries(
+      GATEWAY_PROVIDER_IDS.map((id) => [
+        id,
+        { mode: captureModeFor(settings, id), manualSupported: supportsManualCapture(id) },
+      ]),
+    ) as Record<string, { mode: CaptureMode; manualSupported: boolean }>,
     showSetup: !gatewayOn && !settings.setupSkippedAt,
     razorpayOAuth: env.razorpayOAuth,
     webhookUrls: Object.fromEntries(
@@ -430,6 +444,34 @@ export function savePaymentRouting(
       inactive,
       enabled: enabledForGateways(enabled, checkoutMethodsOf(s), routing.order),
     }
+  })
+}
+
+/** "Payment rules" (#150): the whole list, replacing what was saved. */
+export function savePaymentMethodRules(
+  tx: StoreTx,
+  storeId: string,
+  registry: PaymentRegistry,
+  env: Pick<PaymentsEnv, 'secret' | 'previousSecrets'>,
+  rules: PaymentMethodRule[],
+) {
+  return writeSettings(tx, storeId, registry, env, (s) => ({ ...s, methodRules: rules }))
+}
+
+/** "Payment capture" (#150): one gateway's mode; manual only where the gateway can do it. */
+export function savePaymentCapture(
+  tx: StoreTx,
+  storeId: string,
+  registry: PaymentRegistry,
+  env: Pick<PaymentsEnv, 'secret' | 'previousSecrets'>,
+  input: { gatewayId: string; mode: CaptureMode },
+) {
+  return writeSettings(tx, storeId, registry, env, (s) => {
+    const capture = { ...(s.capture ?? {}) }
+    if (input.mode === 'manual' && supportsManualCapture(input.gatewayId)) {
+      capture[input.gatewayId] = 'manual'
+    } else delete capture[input.gatewayId]
+    return { ...s, capture }
   })
 }
 

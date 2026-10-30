@@ -10,6 +10,7 @@ import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
 import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
 import { type AppliedPayment, applyPaymentStatus } from './confirm'
+import { captureModeFor } from './capture'
 import { type FallbackTry, runWithFallbacks } from './fallback'
 import { isGatewayProvider, type OnlineMethodId } from './methods'
 import { methodsForGateway } from './routing'
@@ -123,9 +124,14 @@ async function claimAttempt(
     : []
   // A gateway's window offers only the methods the merchant turned on and routed to it, in
   // their order; a fallback try offers what the gateway that failed was going to.
-  const methods =
-    methodsOverride ??
-    (isGatewayProvider(claimed.provider) ? await gatewayMethods(ctx, claimed.provider) : undefined)
+  const gateway = isGatewayProvider(claimed.provider)
+    ? await gatewayOptions(ctx, claimed.provider)
+    : null
+  const methods = methodsOverride ?? gateway?.methods
+  // Payment capture (#150): an order's checkout payment only authorises when the store chose
+  // manual capture for this gateway; a pre-order balance is always captured at once.
+  const capture =
+    gateway?.capture === 'manual' && claimed.purpose !== 'balance' ? 'manual' : undefined
   const request: CreatePaymentInput = {
     orderId: o.id,
     orderNumber: o.number,
@@ -157,21 +163,26 @@ async function claimAttempt(
       unitPricePaise: l.unitPricePaise,
     })),
     methods,
+    ...(capture ? { capture } : {}),
   }
   return { attempt: claimed, request }
 }
 
 /**
- * Online methods on for this store and routed to this gateway, or undefined for stores that
- * never saved the method row (the gateway then shows everything it has).
+ * Online methods on for this store and routed to this gateway (undefined for stores that never
+ * saved the method row: the gateway then shows everything it has), and its capture mode.
  */
-async function gatewayMethods(ctx: StoreContext, gatewayId: string) {
+async function gatewayOptions(ctx: StoreContext, gatewayId: string) {
   const [s] = await ctx.tx
     .select({ payments: store.payments })
     .from(store)
     .where(eq(store.id, ctx.storeId))
-  const on = methodsForGateway(parsePaymentSettings(s?.payments), gatewayId)
-  return on?.length ? on : undefined
+  const settings = parsePaymentSettings(s?.payments)
+  const on = methodsForGateway(settings, gatewayId)
+  return {
+    methods: on?.length ? on : undefined,
+    capture: captureModeFor(settings, gatewayId),
+  }
 }
 
 const sessionOf = (p: PaymentAttempt): CheckoutSession | null =>

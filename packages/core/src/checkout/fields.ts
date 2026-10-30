@@ -83,7 +83,7 @@ export function joinedName(fields: Pick<CheckoutFields, 'name'>, input: AddressF
  * A saved full name split for the first + last fields: the last word is the last name.
  * "Asha" stays a first name with no last name (the form then asks for one).
  */
-export function splitName(full: string): { first: string; last: string } {
+export function splitFullName(full: string): { first: string; last: string } {
   const parts = full.trim().split(/\s+/).filter(Boolean)
   if (parts.length < 2) return { first: parts[0] ?? '', last: '' }
   return { first: parts.slice(0, -1).join(' '), last: parts[parts.length - 1] as string }

@@ -90,6 +90,7 @@ import ordersBulk from './orders-bulk'
 import ordersBulkEdit from './orders-bulk-edit'
 import paymentModes from './payment-modes'
 import paymentRouting from './payment-routing'
+import paymentRules from './payment-rules'
 import payments from './payments'
 import paymentsSetup from './payments-setup'
 import pixels from './pixels'
@@ -229,6 +230,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...payments,
   ...paymentModes,
   ...paymentRouting,
+  ...paymentRules,
   ...paymentsSetup,
   ...pixels,
   ...platform,

@@ -13,6 +13,7 @@ import {
   methodsForGateway,
   type OnlineMethodId,
   type PaymentAdjustment,
+  type PaymentMethodRule,
   type PaymentRegistry,
   parsePaymentSettings,
   refreshPaymentCredentials,
@@ -148,4 +149,15 @@ export async function storeUpiDiscount(
   const adjustment = settings.adjustments.manual
   if (!settings.enabled.includes('manual') || !adjustment || adjustment.value >= 0) return null
   return adjustment
+}
+
+/**
+ * Settings → Payments → Payment rules (#150), for the checkout to hide the ways to pay they
+ * hide as the total and PIN code change. `placeOrder` re-checks them.
+ */
+export async function storePaymentMethodRules(
+  tx: StoreTx,
+  storeId: string,
+): Promise<PaymentMethodRule[]> {
+  return (await loadSettings(tx, storeId)).methodRules ?? []
 }

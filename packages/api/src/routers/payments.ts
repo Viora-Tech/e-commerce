@@ -1,5 +1,6 @@
 import { loadEnv } from '@commerce/config'
 import {
+  CaptureModeSchema,
   CheckoutMethodSchema,
   checkRateLimit,
   createMemoryRateLimitStore,
@@ -7,6 +8,7 @@ import {
   MODE_GATEWAY_IDS,
   ONLINE_METHOD_IDS,
   PaymentAdjustmentSchema,
+  PaymentMethodRulesSchema,
   parsePreviousSecrets,
   permissions,
   rateLimitKey,
@@ -28,6 +30,8 @@ import {
   paymentTestOrderLink,
   razorpayRedirectUri,
   saveManualPaymentMethod,
+  savePaymentCapture,
+  savePaymentMethodRules,
   savePaymentMethods,
   savePaymentRouting,
   setPaymentGatewayActive,
@@ -117,6 +121,30 @@ export const paymentsRouter = {
         order: input.order,
         methods: input.methods ?? {},
       })
+      return { ok: true }
+    }),
+
+  /** "Payment rules" (#150): hide a way to pay by order total, PIN code or product. */
+  saveMethodRules: can(permissions.PAYMENTS_MANAGE)
+    .input(z.object({ rules: PaymentMethodRulesSchema }))
+    .handler(async ({ context, input }) => {
+      const { payments } = await storeRegistries(context.tx, context.scope.storeId)
+      await savePaymentMethodRules(
+        context.tx,
+        context.scope.storeId,
+        payments,
+        paymentsEnv(),
+        input.rules,
+      )
+      return { ok: true }
+    }),
+
+  /** "Payment capture" (#150): automatic, or authorise now and capture from the order page. */
+  saveCapture: can(permissions.PAYMENTS_MANAGE)
+    .input(z.object({ gatewayId: z.enum(KEY_GATEWAYS), mode: CaptureModeSchema }))
+    .handler(async ({ context, input }) => {
+      const { payments } = await storeRegistries(context.tx, context.scope.storeId)
+      await savePaymentCapture(context.tx, context.scope.storeId, payments, paymentsEnv(), input)
       return { ok: true }
     }),
 

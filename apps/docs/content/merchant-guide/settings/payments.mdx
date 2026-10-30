@@ -85,3 +85,33 @@ an optional fee or discount for paying this way. Each row has its own switch.
 Orders paid by UPI ID or bank transfer wait as **Payment pending**. When the money reaches your
 account, open the order and use **Mark as paid** (you can note the UTR and the date). Unpaid
 transfer orders can be cancelled automatically from **Advanced → Unpaid orders**.
+
+## Payment rules
+
+**Payment rules** hide a way to pay for some orders, the way Shopify's payment customizations
+do. Cash on delivery is where most returned-to-origin (RTO) losses come from, so this is the
+usual use: no cash on delivery on big orders, in PIN codes with many refused parcels, or for
+fragile products.
+
+Press **Add rule**, then:
+
+- **Hide these ways to pay**: tick cash on delivery, UPI or bank transfer to you, or a payment
+  company.
+- **When**: order total above an amount, order total below an amount, the delivery PIN code is
+  in a list, or the cart has any of some products. The total is the items after discounts plus
+  shipping. Choose whether **any** condition or **all** of them must be true.
+
+The checkout hides the way to pay as soon as the rule applies (when the shopper types the PIN
+code, or the total changes), and an order that tries it anyway is refused. Switch a rule off
+without deleting it with **Rule is on**.
+
+## Payment capture
+
+By default the money is taken when the shopper pays (**Automatic**). With **Manual**, Razorpay
+only holds the amount on the shopper's card or account; the order shows **Authorised** and a
+**Capture payment** button. Capture once you have checked the stock or called the shopper. If
+you cancel the order instead, the money is never taken: Razorpay releases a held payment it is not
+told to capture within 5 days, so deal with these orders quickly.
+
+Manual capture is available for Razorpay. Cashfree's pre-authorisation needs Cashfree to turn
+it on for your account and covers cards only, so it shows as not available.

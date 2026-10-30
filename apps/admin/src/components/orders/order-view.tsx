@@ -12,6 +12,7 @@ import { useRunAutomation } from '@/components/automations/records/use-run-autom
 import MetafieldsCard from '@/components/metaobjects/metafields-card'
 import { orderDetailContent } from '@/data/order-detail'
 import { type OrderMark, ordersContent } from '@/data/orders'
+import { paymentRulesContent } from '@/data/payment-rules'
 import { shipmentPanelContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
@@ -74,6 +75,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
   // Hooks
   const copy = useCopy(orderDetailContent)
   const listCopy = useCopy(ordersContent)
+  const { order: captureCopy } = useCopy(paymentRulesContent)
   const shippingCopy = useCopy(shipmentPanelContent)
   const router = useRouter()
   const { hasPermission } = usePermissions()
@@ -156,6 +158,19 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
       setBusy(false)
     }
   }
+  /** "Capture payment" (#150): take the money a manual-capture checkout only authorised. */
+  const handleCapture = async (p: OrderPayment) => {
+    setBusy(true)
+    try {
+      await api.orders.capture({ paymentId: p.id })
+      toast.success(captureCopy.captured)
+      refresh()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : captureCopy.failed)
+    } finally {
+      setBusy(false)
+    }
+  }
   /** The merchant opened the reminder in their own WhatsApp: put it on the timeline. */
   const handleReminderChat = () => {
     void api.orders.notePaymentReminderChat({ orderId: order.id }).then(refresh, () => undefined)
@@ -232,6 +247,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
   // An imported order still open can be cancelled too (the server takes it over first).
   const canCancel = canStaffCancel(order) && hasPermission(permissions.ORDERS_CANCEL)
   const canEdit = canEditOrder(order) && hasPermission(permissions.ORDERS_WRITE)
+  const canCapture = live && hasPermission(permissions.ORDERS_REFUND)
 
   return (
     <OrderPageFrame
@@ -311,6 +327,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
           <PaymentCard
             order={order}
             onRefund={canRefund ? setRefunding : undefined}
+            onCapture={canCapture ? handleCapture : undefined}
             onCollect={canCollect ? () => setCollecting(true) : undefined}
             onRequestBalance={requestBalance}
             onSendReminder={sendReminder}

@@ -25,6 +25,8 @@ import ManualMethodsCard from './manual-methods-card'
 import MethodsList from './methods-list'
 import { openTestOrder } from './open-test-order'
 import OtherGatewayCard from './other-gateway-card'
+import PaymentCaptureCard from './payment-capture-card'
+import PaymentRulesCard from './payment-rules-card'
 import RazorpayWebsiteBanner from './razorpay-website-banner'
 import RazorpayWebsiteList from './razorpay-website-list'
 import RouteMethodsCard from './route-methods-card'
@@ -221,6 +223,9 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
         onCodChange={handleCod}
         onReload={onReload}
       />
+
+      <PaymentRulesCard setup={setup} onReload={onReload} />
+      {hasGateway ? <PaymentCaptureCard setup={setup} onReload={onReload} /> : null}
 
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" size="lg" className="gap-1.5" onClick={handleOpenAdd}>

@@ -12,6 +12,7 @@ import type {
   SignInOptions,
 } from '@commerce/core/customer-accounts'
 import { lowestEmiPaise } from '@commerce/core/emi'
+import type { PaymentMethodRule } from '@commerce/core/payment-method-rules'
 import type { PolicyLink } from '@commerce/core/policies'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
@@ -88,6 +89,8 @@ export type CheckoutFormInput = {
   signIn?: CheckoutSignIn
   /** Settings → Checkout → Checkout content (#158): the store's wording in this language. */
   text?: CheckoutTextOverrides
+  /** Settings → Payments → Payment rules (#150): ways to pay hidden for some orders. */
+  methodRules?: PaymentMethodRule[]
 }
 
 type ChangeHandler = (
@@ -240,6 +243,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     picked: form.payment,
     pincode: form.pincode,
     laterPaise: deposit.laterPaise,
+    methodRules: input.methodRules,
   })
   const { digitalOnly, offered, payment, coveredByCards, payNowPaise } = totals
   const contactFieldsOk = !wrongFields.some((k) => CONTACT_KEYS.includes(k))

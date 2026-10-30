@@ -45,6 +45,11 @@ export type CreatePaymentInput = {
    * allows it. Undefined means "whatever the gateway account offers".
    */
   methods?: PaymentMethodKind[] | undefined
+  /**
+   * `manual`: authorise only; the merchant captures later (`PaymentProvider.capture`). Adapters
+   * without `capture` ignore it. Undefined means capture at once, as before.
+   */
+  capture?: 'manual' | undefined
 }
 
 export type PaymentShipping = {
@@ -271,6 +276,15 @@ export interface PaymentProvider {
     /** Extra references some gateways refund by (Cashfree refunds per order, not per payment). */
     context?: RefundContext,
   ): Promise<{ providerRefundId: string; status: 'pending' | 'processed' }>
+
+  /**
+   * Optional capability: capture a payment that was only authorised (created with
+   * `capture: 'manual'`). Resolves once the gateway accepts the capture.
+   */
+  capture?(
+    providerPaymentId: string,
+    amountPaise: number,
+  ): Promise<{ status: PaymentStatus; providerPaymentId: string }>
 
   /**
    * Optional read-only check that the saved keys work, for the Connect page's

@@ -1,4 +1,5 @@
 import {
+  capturePayment,
   changeOrderStatus,
   insertOutboxEvent,
   notTestOrder,
@@ -401,6 +402,20 @@ export async function refundOrderPayment(
     await insertOutboxEvent(tx, storeId, 'refund.created', { orderId: p.orderId, refundId: row.id })
   }
   return row
+}
+
+/** "Capture payment" on the order page (#150): take the money a manual-capture checkout authorised. */
+export async function captureOrderPayment(
+  tx: StoreTx,
+  storeId: string,
+  registry: PaymentRegistry,
+  secret: string,
+  paymentId: string,
+) {
+  const [p] = await tx.select().from(payment).where(eq(payment.id, paymentId))
+  if (!p) return null
+  const provider = await providerForPayment(tx, storeId, registry, secret, p.provider)
+  return capturePayment({ tx, storeId }, provider, paymentId)
 }
 
 /**

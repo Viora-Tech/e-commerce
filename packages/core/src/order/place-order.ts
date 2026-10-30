@@ -18,6 +18,7 @@ import {
   DiscountCodeRefused,
   NotLaunchedYet,
   NotSoldInMarket,
+  PaymentMethodHidden,
   PriceNotSet,
   ShippingRateUnavailable,
   ShippingUnavailable,
@@ -35,7 +36,9 @@ import {
   startPaymentAttempt,
   startPaymentWithFallback,
 } from '../payments/attempts'
+import { hiddenPaymentMethods } from '../payments/method-rules'
 import { GATEWAY_START_TIMEOUT_MS } from '../payments/routing'
+import { parsePaymentSettings } from '../payments/settings'
 import { isLaunched } from '../preorder/launch'
 import { resolvePreorderSettings } from '../preorder/settings'
 import { priceOrderDelivery } from '../shipping/delivery-options/order'
@@ -218,7 +221,7 @@ const enforceCheckoutRules: WorkflowStep<State> = {
   name: 'enforceCheckoutRules',
   async run({ ctx, input, lines, discount: applied, shipping }) {
     const [s] = await ctx.tx
-      .select({ preferences: store.preferences })
+      .select({ preferences: store.preferences, payments: store.payments })
       .from(store)
       .where(eq(store.id, ctx.storeId))
     const settings = parseCheckoutSettings(s?.preferences)
@@ -230,12 +233,22 @@ const enforceCheckoutRules: WorkflowStep<State> = {
       shipping?.pricePaise ?? 0,
       applied,
     )
+    const ruleSubtotalPaise = checkoutRuleSubtotalPaise(lines, discountPaise)
+    // Payment rules (#150): a way to pay the store hides for this order is refused here too.
+    const hidden = hiddenPaymentMethods(parsePaymentSettings(s?.payments).methodRules, {
+      orderValuePaise: ruleSubtotalPaise + shippingPaise,
+      pincode: input.checkout?.address.pincode ?? '',
+      productIds: lines.map((l) => l.productId),
+    })
+    if (hidden.has(input.paymentProvider.id)) {
+      throw new PaymentMethodHidden(input.paymentProvider.id, ctx.storeId)
+    }
     return {
       contact: checkCheckoutRules(settings, {
         checkout: input.checkout ?? null,
         paymentProviderId: input.paymentProvider.id,
         giftCardsOnly: lines.every((l) => l.giftCard),
-        ruleSubtotalPaise: checkoutRuleSubtotalPaise(lines, discountPaise),
+        ruleSubtotalPaise,
         shippingPaise,
         storeId: ctx.storeId,
       }),

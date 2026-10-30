@@ -1,5 +1,5 @@
 import type { SavedAddress, SignedInCustomer } from '@commerce/core'
-import { type NameFormat, splitName } from '@commerce/core/checkout-settings'
+import { type NameFormat, splitFullName } from '@commerce/core/checkout-settings'
 import type { CheckoutForm } from '@/lib/cart-actions'
 
 /** Everything the checkout form holds; the action's fields plus the optional extras. */
@@ -41,7 +41,7 @@ export function prefillCheckout(
   nameFormat: NameFormat = 'full',
 ): Omit<CheckoutFormState, 'payment'> {
   const fullName = address?.name ?? customer?.name ?? ''
-  const parts = nameFormat === 'split' ? splitName(fullName) : null
+  const parts = nameFormat === 'split' ? splitFullName(fullName) : null
   return {
     ...EMPTY_FORM,
     name: parts ? parts.first : fullName,
