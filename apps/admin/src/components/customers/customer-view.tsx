@@ -232,7 +232,7 @@ export default function CustomerView({
               onChange={(tags) => setDraft((d) => ({ ...d, tags }))}
             />
             <CustomerStatsCard customer={customer} />
-            <MetafieldsCard ownerType="customer" ownerId={customer.id} />
+            <MetafieldsCard ownerType="customer" ownerId={customer.id} hideWhenEmpty />
           </>
         }
       />

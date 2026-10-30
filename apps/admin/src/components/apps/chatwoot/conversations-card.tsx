@@ -60,6 +60,9 @@ export default function ConversationsCard({ kind, id }: ConversationsCardProps) 
 
   // Early returns
   if (!view || view.state === 'not-installed') return null
+  // Nothing to show is no card: order and customer pages stacked empty ones (audit #12, #84).
+  if (view.state === 'not-connected' || view.state === 'no-contact') return null
+  if (view.state === 'ready' && view.conversations.length === 0) return null
 
   // Render logic
   const copy = content.card

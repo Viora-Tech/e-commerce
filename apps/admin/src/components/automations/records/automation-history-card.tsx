@@ -49,6 +49,8 @@ export default function AutomationHistoryCard({ type, id }: AutomationHistoryCar
 
   // Early returns
   if (!items && !failed) return null
+  // No runs yet is no card (audit #12, #84); Run automation stays in the page's actions.
+  if (!failed && items?.length === 0) return null
 
   // Render logic
   const app = automationRoutes.workflows()
