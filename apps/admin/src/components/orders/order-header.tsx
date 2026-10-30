@@ -64,9 +64,10 @@ export default function OrderHeader({ order, actions, back }: OrderHeaderProps) 
           <>
             {closed ? <OrderChip kind="order" value={order.status} /> : null}
             <OrderChip kind="orderPayment" value={order.paymentStatus} />
+            {/* "Unfulfilled" on a cancelled order is noise: nothing will be shipped (audit #22). */}
             {toShip ? (
               <StatusChip tone="info">{listCopy.toShip}</StatusChip>
-            ) : (
+            ) : order.status === 'cancelled' && order.fulfillmentStatus === 'unfulfilled' ? null : (
               <OrderChip kind="fulfilment" value={order.fulfillmentStatus} />
             )}
             {order.isTest ? (
