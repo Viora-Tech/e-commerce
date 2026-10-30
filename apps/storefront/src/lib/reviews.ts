@@ -4,6 +4,7 @@ import { settingsSecret } from '@commerce/config'
 import {
   openRequestLink,
   productReviewsFor,
+  productSummary,
   purchaseOf,
   type RatingSummary,
   requestLinkBuyer,
@@ -52,10 +53,13 @@ export async function productReviews(
     return {
       settings: state.settings,
       ...(await productReviewsFor(tx, product.id, state.settings)),
+      aiSummary: state.settings.aiSummary.enabled
+        ? ((await productSummary(tx, product.id))?.text ?? null)
+        : null,
     }
   })
   if (!shared) return undefined
-  const { settings, summary, reviews } = shared
+  const { settings, summary, reviews, aiSummary } = shared
   // Whether this shopper bought it: through a review request link, or their signed-in account.
   const link = opts.requestToken
     ? openRequestLink(settingsSecret(), opts.requestToken, storeId, now)
@@ -107,6 +111,7 @@ export async function productReviews(
       openForm: Boolean(fromLink) || (opts.openForm === true && write === 'open'),
       onlyVerified,
       showPhotos: settings.storefront.showPhotos,
+      aiSummary,
     },
   }
 }

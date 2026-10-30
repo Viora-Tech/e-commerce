@@ -130,7 +130,9 @@ describe('Reviews app sections', () => {
       reviews: [],
     }),
   })
-  const storeWide = REVIEWS_WIDGET_SECTIONS.filter((t) => t !== 'reviews/Snippet')
+  const storeWide = REVIEWS_WIDGET_SECTIONS.filter(
+    (t) => t !== 'reviews/Snippet' && t !== 'reviews/Summary',
+  )
 
   it('are on the Apps tab, by Reviews, only while the app is installed', () => {
     const on = createBlocksConfig(async () => [], {}, [], new Set(['reviews']))

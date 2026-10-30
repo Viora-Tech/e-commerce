@@ -60,3 +60,26 @@ Follows the widgets step (`2026-10-30-reviews-widgets.md`). Migration **0197_rev
   `messages.ts`, admin Notifications copy (en + hi), relay and worker. `review_request` /
   `review_reminder` now list both channels in `messages.ts`.
 - Tests: `packages/plugin-reviews/test/rewards.test.ts`.
+
+## 5. AI review summary ("What customers say")
+
+- Setting `aiSummary.enabled` (off by default; it spends the store's AI allowance under the
+  product writer). Admin: card "What customers say (AI)" in Review settings, and the product's
+  Reviews card shows the text, when it was written, the last error and **Refresh**
+  (`product-summary.tsx`, API `reviews.summary` / `reviews.refreshSummary`).
+- Table `review_summary` (0197): one row per reviewed product, `stale` set by
+  `markSummariesStale` whenever reviews are published, hidden, moved, deleted, submitted live or
+  imported (`reviews.ts`, `submit.ts`, `judgeme.ts`).
+- Writer: `packages/ai/src/review-summary.ts` (instructions, up to 60 newest published reviews,
+  guarded as data, clamp to 500 chars; mock answer in `mock.ts`). Worker
+  `apps/worker/src/review-summaries.ts` (`{reviews}-summaries`, every 15 minutes, 20 per store per
+  tick): stores from `stores_with_stale_review_summaries()`, admitted and metered through core's
+  `admitAiCall` / `recordAiUsage`; fewer than 3 reviews clears it without a call; out of
+  allowance or switched off saves the reason and stops for that store. The worker now depends
+  on `@commerce/ai`.
+- Storefront: `productReviews` adds `aiSummary` to the widget context (cached with the reviews);
+  migration **0203_review_cache_triggers** puts the cache trigger on `review_summary` and
+  `review_question` (`storefront-cache.ts` lists both). New product section `reviews/Summary`
+  "What customers say (AI)" (`packages/blocks/src/sections/reviews-widgets/summary.tsx`,
+  `components/reviews/widgets/review-ai-summary.tsx`), marked "Summarised by AI".
+- Tests: `packages/ai/test/review-summary.test.ts`, `packages/plugin-reviews/test/summary.test.ts`.

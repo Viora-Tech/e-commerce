@@ -58,4 +58,17 @@ export const reviewToolsContent = {
     daysUnit: 'days',
     note: 'One code per review, for that customer only, used once. Only reviews written on your store count, not imported ones. The email is "Photo review thanks" in Settings, Notifications.',
   },
+  summary: {
+    title: 'What customers say (AI)',
+    enabled: "Write an AI summary of each product's reviews",
+    help: 'Two or three sentences on what customers like and any common complaint, on the product page.',
+    note: 'Needs three published reviews. It is written again within about 15 minutes of new reviews and uses your AI allowance (product writer, Settings, AI). Add the "What customers say (AI)" section to your product template in Customize.',
+    refresh: 'Refresh',
+    pending: 'Refreshing soon',
+    queued: 'The summary will be written again within about 15 minutes.',
+    none: 'No summary yet. It is written once the product has three published reviews.',
+    written: (date: string, reviews: number) =>
+      `Written ${date} from ${reviews} ${reviews === 1 ? 'review' : 'reviews'}`,
+    failed: 'That did not work. Please try again.',
+  },
 }

@@ -192,6 +192,8 @@ export type ReviewsWidgetContext = {
   onlyVerified: boolean
   /** The store shows customer photos (Reviews settings). */
   showPhotos: boolean
+  /** The AI "What customers say" text, when the store has summaries on and one is written. */
+  aiSummary?: string | null | undefined
 }
 
 /** One published review as the Reviews app's theme sections draw it (carousel, wall, photos). */

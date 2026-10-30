@@ -10,6 +10,7 @@ import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
+import ProductSummary from './product-summary'
 import ReviewStars from './review-stars'
 
 type Page = Awaited<ReturnType<typeof api.reviews.list>>
@@ -45,6 +46,7 @@ export default function ProductSection({ productId }: ProductSectionProps) {
 
   return (
     <div className="flex flex-col gap-3">
+      <ProductSummary productId={productId} />
       {page.total === 0 ? (
         <p className="text-body text-muted-foreground">{copy.reviews.empty}</p>
       ) : (

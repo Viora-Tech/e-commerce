@@ -243,6 +243,7 @@
       "name": "@commerce/worker",
       "version": "0.0.0",
       "dependencies": {
+        "@commerce/ai": "workspace:*",
         "@commerce/config": "workspace:*",
         "@commerce/core": "workspace:*",
         "@commerce/db": "workspace:*",

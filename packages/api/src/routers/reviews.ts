@@ -11,6 +11,7 @@ import {
   JUDGEME_MAX_BYTES,
   listReviews,
   loadReviewsSettings,
+  markSummariesStale,
   parseQrTarget,
   previewJudgemeImport,
   previewPastOrders,
@@ -29,6 +30,7 @@ import {
   setReviewFeatured,
   setReviewStatus,
   storeWidgetReviews,
+  summaryState,
   WIDGET_PRODUCTS_MAX,
   WIDGET_REVIEWS_MAX,
 } from '@commerce/plugin-reviews/server'
@@ -199,6 +201,27 @@ export const reviewsRouter = {
       return askPastOrders(context.tx, context.scope.storeId, settings, pastRange(input)).catch(
         askError,
       )
+    }),
+
+  /** A product's AI review summary for its Reviews card; `enabled` false when summaries are off. */
+  summary: can(permissions.PRODUCTS_READ)
+    .input(z.object({ productId: z.uuid() }))
+    .handler(async ({ context, input }) => {
+      await requireInstalled(context)
+      const settings = await loadReviewsSettings(context.tx, context.scope.storeId)
+      return {
+        enabled: settings.aiSummary.enabled,
+        summary: await summaryState(context.tx, input.productId),
+      }
+    }),
+
+  /** "Refresh": the worker writes the product's summary again on its next tick. */
+  refreshSummary: can(permissions.PRODUCTS_WRITE)
+    .input(z.object({ productId: z.uuid() }))
+    .handler(async ({ context, input }) => {
+      await requireInstalled(context)
+      await markSummariesStale(context.tx, context.scope.storeId, [input.productId])
+      return { ok: true }
     }),
 
   /**

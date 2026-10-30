@@ -12,6 +12,7 @@ import {
 import { and, desc, eq, exists, inArray, isNull, or, sql } from 'drizzle-orm'
 import { hasPhotosSql, type ReviewListInput, reviewListWhere } from './review-list-where'
 import { type ReviewStatus, review, reviewMedia, reviewRequest } from './schema'
+import { markSummariesStale } from './summary'
 
 export type { ReviewListInput } from './review-list-where'
 
@@ -295,13 +296,34 @@ export async function setReviewStatus(
       ...(status === 'hidden' ? { hiddenAt: now } : {}),
     })
     .where(inArray(review.id, ids))
-    .returning({ id: review.id })
+    .returning({ id: review.id, storeId: review.storeId, productId: review.productId })
+  await staleSummariesFor(tx, rows, now)
   return rows.length
+}
+
+/** Published, hidden or deleted reviews change what their products' summaries should say. */
+async function staleSummariesFor(
+  tx: StoreTx,
+  rows: { storeId: string; productId: string | null }[],
+  now: Date = new Date(),
+): Promise<void> {
+  const first = rows[0]
+  if (!first) return
+  await markSummariesStale(
+    tx,
+    first.storeId,
+    rows.map((r) => r.productId),
+    now,
+  )
 }
 
 export async function deleteReviews(tx: StoreTx, ids: string[]): Promise<number> {
   if (ids.length === 0) return 0
-  const rows = await tx.delete(review).where(inArray(review.id, ids)).returning({ id: review.id })
+  const rows = await tx
+    .delete(review)
+    .where(inArray(review.id, ids))
+    .returning({ id: review.id, storeId: review.storeId, productId: review.productId })
+  await staleSummariesFor(tx, rows)
   return rows.length
 }
 

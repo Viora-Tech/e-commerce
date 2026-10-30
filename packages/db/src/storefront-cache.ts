@@ -55,6 +55,9 @@ export const STOREFRONT_CACHE_TABLES = [
   'product_option_value',
   'review',
   'review_media',
+  // Reviews app (0203): the AI summary and answered questions on product pages.
+  'review_question',
+  'review_summary',
   // Shipping profiles: which rates the cart's free-shipping line reads (0193).
   'shipping_profile',
   'shipping_profile_product',

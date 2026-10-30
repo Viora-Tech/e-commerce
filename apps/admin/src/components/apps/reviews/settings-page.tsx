@@ -12,6 +12,7 @@ import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
+import AiSummarySettings from './ai-summary-settings'
 import CollectSettings from './collect-settings'
 import RewardSettings from './reward-settings'
 import ShowSettings from './show-settings'
@@ -84,6 +85,7 @@ export default function SettingsPage() {
         </div>
         <div className="flex min-w-0 flex-col gap-5">
           <ShowSettings value={form} storeName={storeName} onChange={handlePatch} />
+          <AiSummarySettings value={form} onChange={handlePatch} />
         </div>
       </div>
     </div>

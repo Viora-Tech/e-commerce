@@ -13,6 +13,7 @@ export const reviewsWidgetsContent = {
     all: 'All reviews',
     photos: 'Review photos',
     snippet: 'Review snippet',
+    summary: 'What customers say (AI)',
     floating: 'Floating reviews tab',
   },
   defaults: {
@@ -23,6 +24,7 @@ export const reviewsWidgetsContent = {
     photosHeading: 'From our customers',
     floatingLabel: 'Reviews',
     floatingHeading: 'What customers say',
+    summaryHeading: 'What customers say',
   },
   fields: {
     kicker: 'Small line above the heading',
@@ -61,8 +63,13 @@ export const reviewsWidgetsContent = {
     snippetNoProduct: 'The review snippet shows on a product page. Preview a product to see it.',
     snippetEmpty:
       'The review snippet shows the rating and the best review once this product has reviews.',
+    summaryNoProduct:
+      'The review summary shows on a product page. Preview a product to see it.',
+    summaryEmpty:
+      'The AI summary shows once this product has three published reviews and AI review summaries are on in the Reviews app settings.',
   },
   verified: 'Verified buyer',
+  aiNote: 'Summarised by AI from customer reviews',
   basedOn: (n: number) => `Based on ${n} ${n === 1 ? 'review' : 'reviews'}`,
   reviewsCount: (n: number) => `${n} ${n === 1 ? 'review' : 'reviews'}`,
   readAll: (n: number) => `Read all ${n} ${n === 1 ? 'review' : 'reviews'}`,

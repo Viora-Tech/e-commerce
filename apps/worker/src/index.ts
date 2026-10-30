@@ -46,6 +46,7 @@ import { BALANCE_EVERY_MS, createPreorderBalanceJob } from './preorder-balance'
 import { createPurchaseDocumentWorker } from './purchase-documents'
 import { createConnection, createHeartbeat } from './queues'
 import { createRetentionPrune, RETENTION_SCHEDULE } from './retention'
+import { createReviewSummarySweep, REVIEW_SUMMARIES_EVERY_MS } from './review-summaries'
 import { createReviewRequestSweep, REVIEW_REQUESTS_EVERY_MS } from './reviews'
 import { createRolloutsTick, scheduleRolloutsTick } from './rollouts'
 import { createSearchConsoleSweep, SEARCH_CONSOLE_EVERY_MS } from './search-console'
@@ -142,6 +143,7 @@ const importSnapshots = createImportSnapshotCleanup(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
 })
 const reviewRequests = createReviewRequestSweep(redis, db)
+const reviewSummaries = createReviewSummarySweep(redis, db)
 const affiliateCommissions = createAffiliateCommissionSweep(redis, db)
 const memberDailySummary = createMemberDailySummary(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
@@ -220,6 +222,7 @@ const watched = [
   [purchaseDocuments.worker, 'purchase-documents'],
   [importSnapshots.worker, 'import-snapshot-cleanup'],
   [reviewRequests.worker, 'review-requests'],
+  [reviewSummaries.worker, 'review-summaries'],
   [affiliateCommissions.worker, 'affiliate-commissions'],
   [memberDailySummary.worker, 'member-daily-summary'],
   [homeCards.worker, 'home-cards'],
@@ -318,6 +321,11 @@ await importSnapshots.queue.upsertJobScheduler(
 await reviewRequests.queue.upsertJobScheduler(
   'queue-review-requests',
   { every: REVIEW_REQUESTS_EVERY_MS },
+  { name: 'sweep' },
+)
+await reviewSummaries.queue.upsertJobScheduler(
+  'refresh-review-summaries',
+  { every: REVIEW_SUMMARIES_EVERY_MS },
   { name: 'sweep' },
 )
 await affiliateCommissions.queue.upsertJobScheduler(
@@ -474,6 +482,8 @@ const shutdown = async () => {
   await importSnapshots.queue.close()
   await reviewRequests.worker.close()
   await reviewRequests.queue.close()
+  await reviewSummaries.worker.close()
+  await reviewSummaries.queue.close()
   await affiliateCommissions.worker.close()
   await affiliateCommissions.queue.close()
   await memberDailySummary.worker.close()

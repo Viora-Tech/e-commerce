@@ -74,6 +74,11 @@ export const ReviewsSettingsSchema = z.object({
       days: z.number().int().min(1).max(365).default(30),
     })
     .default({ enabled: false, percent: 10, days: 30 }),
+  /**
+   * The AI "What customers say" summary on product pages, refreshed by the worker when new
+   * reviews arrive. Off by default: it uses the store's AI allowance (product writer).
+   */
+  aiSummary: z.object({ enabled: z.boolean().default(false) }).default({ enabled: false }),
   storefront: z
     .object({
       starsOnCards: z.boolean().default(true),
