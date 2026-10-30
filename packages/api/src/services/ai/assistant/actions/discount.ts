@@ -61,6 +61,18 @@ type Raw = z.infer<typeof Input>
 
 type Resolved = { discount: DiscountInput; targets: string[] }
 
+/** "Other product discounts, free shipping" or "No other discounts". */
+function combinesText(c: { products: boolean; order: boolean; shipping: boolean }): string {
+  const parts = [
+    c.products ? 'other product discounts' : null,
+    c.order ? 'order discounts' : null,
+    c.shipping ? 'free shipping' : null,
+  ].filter(Boolean)
+  if (!parts.length) return 'No other discounts'
+  const text = parts.join(', ')
+  return text.charAt(0).toUpperCase() + text.slice(1)
+}
+
 function amountLabel(env: ActionEnv, raw: Raw): string {
   if (raw.type === 'freeShipping') return 'Free shipping'
   if (raw.type === 'amount') return `${rupees(env, toMinor(raw.value ?? 0))} off`
@@ -181,10 +193,15 @@ export const discountAction = defineAction<Raw, Resolved>({
                 : `${listed(targets.names)} (${targets.products} products)`,
           },
           { label: 'Active', value: when.charAt(0).toUpperCase() + when.slice(1) },
-          ...(raw.minimumOrderRupees
-            ? [{ label: 'Minimum order', value: rupees(env, toMinor(raw.minimumOrderRupees)) }]
-            : []),
-          ...(raw.usageLimit ? [{ label: 'Uses', value: `${raw.usageLimit} in total` }] : []),
+          // Every setting, defaults too, so the merchant approves what will exist (audit #193).
+          { label: 'Customers', value: 'All customers' },
+          {
+            label: 'Minimum order',
+            value: raw.minimumOrderRupees ? rupees(env, toMinor(raw.minimumOrderRupees)) : 'None',
+          },
+          { label: 'Uses', value: raw.usageLimit ? `${raw.usageLimit} in total` : 'No limit' },
+          { label: 'Combines with', value: combinesText(parsed.data.combinesWith) },
+          ...(endsAt ? [{ label: 'Ends at', value: '11:59 pm on the last day (India time)' }] : []),
         ],
         rows: [],
         more: 0,
