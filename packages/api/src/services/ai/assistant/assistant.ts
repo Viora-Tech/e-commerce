@@ -15,6 +15,7 @@ import {
   type AssistantPageContext,
   assistantInstructions,
   defineAiTool,
+  fitOutline,
   streamAnswer,
   ThemeEditInput,
   type ThemeEditRequest,
@@ -141,6 +142,10 @@ function toolsFor(
   return { ...allowedReads, ...proposes }
 }
 
+const SectionSettingsInput = z.object({
+  sectionId: z.string().min(1).max(120).describe('The section id, exactly as in the page outline.'),
+})
+
 const FindImagesInput = z.object({
   query: z
     .string()
@@ -163,6 +168,20 @@ function themeEditTool(
   lookup: (query: string) => Promise<FoundImage[]>,
 ): AiToolSet {
   return {
+    sectionSettings: defineAiTool({
+      description:
+        'Read one section of the open page in full: all its settings and its blocks with their current values. Use it when the page outline is partial and a section you need to change shows no settings there.',
+      input: SectionSettingsInput,
+      risk: 'read',
+      run: async (input: z.infer<typeof SectionSettingsInput>) => {
+        const section = outline.sections.find((s) => s.id === input.sectionId)
+        if (!section) return { error: `No section "${input.sectionId}" on this page.` }
+        // Page text goes through the same guard as the outline in the prompt.
+        const one = themeOutlineForPrompt({ ...outline, partial: false, sections: [section] })
+        if (one.flagged) taint.flagged = true
+        return { section: JSON.parse(one.text).sections[0] }
+      },
+    }),
     findImages: defineAiTool({
       description:
         "Find the store's products and collections by name, each with its main picture (imageUrl) and its storefront link. Use the imageUrl for an image setting and the link for a button or url setting in proposeThemeEdit.",
@@ -218,7 +237,8 @@ export async function runAssistant(
         )
       : {}),
   }
-  const guarded = outline ? themeOutlineForPrompt(outline) : null
+  // The prompt gets the page cut to size; the whole outline stays for checks and sectionSettings.
+  const guarded = outline ? themeOutlineForPrompt(fitOutline(outline)) : null
   // Page text that read like orders to the AI was hidden; later proposals carry the warning.
   if (guarded?.flagged) taint.flagged = true
   const page = await withStore(context.db, call.runtime.storeId, (tx) => pageLine(tx, input.page))

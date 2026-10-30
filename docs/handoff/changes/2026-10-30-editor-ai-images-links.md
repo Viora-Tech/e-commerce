@@ -14,3 +14,6 @@
   `/rollouts` (live for a few hours) and the old Settings addresses redirect there.
 - When a page is still too long, switches, numbers and choices are dropped everywhere first
   (bottom up), so every section keeps its words, links and pictures (`fitOutline`).
+- The editor now sends the whole page outline (cap `maxSentSize` 200,000); only the prompt copy is
+  cut to 32,000. New `sectionSettings` tool reads one section in full, so a section trimmed from
+  the prompt can still be edited without selecting it first.

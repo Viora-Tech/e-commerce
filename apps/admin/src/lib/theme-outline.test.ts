@@ -219,7 +219,7 @@ describe('buildThemeOutline', () => {
       section('Hero', { id: `Hero-${i}`, heading: 'h'.repeat(180), body: 'b'.repeat(180) }),
     )
     const outline = buildThemeOutline(source({ doc: many, selectedSectionId: 'Hero-110' }))
-    expect(JSON.stringify(outline).length).toBeLessThanOrEqual(THEME_OUTLINE_LIMITS.maxSize)
+    expect(JSON.stringify(outline).length).toBeLessThanOrEqual(THEME_OUTLINE_LIMITS.maxSentSize)
     expect(outline.partial).toBe(true)
     expect(outline.sections.length).toBeLessThanOrEqual(THEME_OUTLINE_LIMITS.maxSections)
     // The selected section stays even past the section cap.

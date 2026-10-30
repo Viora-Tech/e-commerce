@@ -314,7 +314,10 @@ function nativeSection(
   }
 }
 
-/** The outline of the open page, fitted to `THEME_OUTLINE_LIMITS.maxSize`. */
+/**
+ * The outline of the open page, fitted to `THEME_OUTLINE_LIMITS.maxSentSize`: the whole page as a
+ * rule. The server cuts the prompt's copy to `maxSize` and keeps this one for `sectionSettings`.
+ */
 export function buildThemeOutline(source: OutlineSource): ThemeOutline {
   const zones: [ThemeOutlineSection['zone'], TemplateSection[]][] = [
     ['header', source.doc.zones[HEADER_ZONE] ?? []],
@@ -336,12 +339,15 @@ export function buildThemeOutline(source: OutlineSource): ThemeOutline {
     selected && !kept.some((s) => s.id === selected)
       ? [...kept.slice(0, -1), ...sections.filter((s) => s.id === selected)]
       : kept
-  return fitOutline({
-    themeName: source.theme.name.slice(0, 120),
-    templateLabel: source.templateLabel.slice(0, 120),
-    published: source.theme.published,
-    selectedSectionId: selected && chosen.some((s) => s.id === selected) ? selected : null,
-    partial: sections.length > chosen.length,
-    sections: chosen,
-  })
+  return fitOutline(
+    {
+      themeName: source.theme.name.slice(0, 120),
+      templateLabel: source.templateLabel.slice(0, 120),
+      published: source.theme.published,
+      selectedSectionId: selected && chosen.some((s) => s.id === selected) ? selected : null,
+      partial: sections.length > chosen.length,
+      sections: chosen,
+    },
+    L.maxSentSize,
+  )
 }

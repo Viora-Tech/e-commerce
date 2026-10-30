@@ -26,6 +26,11 @@ export const THEME_OUTLINE_LIMITS = {
    * 12,000, so the AI said the newsletter had "no editable settings".
    */
   maxSize: 32_000,
+  /**
+   * Characters of the outline the editor sends: the whole page, so a section trimmed from the
+   * prompt can still be read in full (`sectionSettings`) and edited. Only the prompt is cut.
+   */
+  maxSentSize: 200_000,
   /** Changes in one proposed theme edit, and the longest new value. */
   maxEdits: 20,
   maxEditValue: 2000,
@@ -93,7 +98,9 @@ export const ThemeOutlineSchema = z
     partial: z.boolean().default(false),
     sections: z.array(SectionSchema).max(L.maxSections),
   })
-  .refine((o) => JSON.stringify(o).length <= L.maxSize, { message: 'Page outline is too large' })
+  .refine((o) => JSON.stringify(o).length <= L.maxSentSize, {
+    message: 'Page outline is too large',
+  })
 
 export type ThemeOutline = z.infer<typeof ThemeOutlineSchema>
 export type ThemeOutlineSection = ThemeOutline['sections'][number]
