@@ -412,6 +412,9 @@ export type AppSetupState = {
   problem: string | null
 }
 
+/** An app's newest use, in its own words ("New review on Linen shirt"); null text when unsaid. */
+export type AppLastUsed = { at: Date; summary: string | null }
+
 export type PluginManifest = {
   /** Stable lowercase id, e.g. `razorpay`, `delhivery`, `fedex`. Unique per deployment. */
   id: string
@@ -449,6 +452,12 @@ export type PluginManifest = {
    * judged by the store's enabled providers instead.
    */
   setupState?: ((settings: unknown) => AppSetupState) | undefined
+  /**
+   * When the app was last used, read from its own data (the newest review, signup, message), for
+   * apps whose work does not run through hooks or providers. The Installed apps list shows the
+   * newer of this and recorded activity. Must be cheap: one indexed query.
+   */
+  lastUsed?: ((tx: StoreTx, storeId: string) => Promise<AppLastUsed | null>) | undefined
   /** Triggers, actions and templates the app adds to Automations (Flow-style connectors). */
   automations?: AppAutomations | undefined
 }

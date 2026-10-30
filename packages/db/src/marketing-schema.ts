@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm'
 import {
   check,
   date,
+  doublePrecision,
   index,
   integer,
   jsonb,
@@ -323,4 +324,36 @@ export const shortLinkClickDay = pgTable(
     clicks: integer('clicks').notNull().default(0),
   },
   (t) => [uniqueIndex('short_link_click_day_link_day').on(t.linkId, t.day)],
+)
+
+/** Core Web Vitals a storefront page reports (Google's three that rank pages). */
+export const WEB_VITAL_METRICS = ['LCP', 'INP', 'CLS'] as const
+export type WebVitalMetric = (typeof WEB_VITAL_METRICS)[number]
+/** Device class from the screen width, the split Shopify's Web performance report shows. */
+export const WEB_VITAL_DEVICES = ['mobile', 'desktop'] as const
+export type WebVitalDevice = (typeof WEB_VITAL_DEVICES)[number]
+
+/**
+ * One Core Web Vitals reading from a shopper's browser (real-user monitoring): the metric, its
+ * value (milliseconds; CLS unitless) and the device class. Anonymous: no visitor id, address or
+ * IP. The Online store page's Web performance strip reads the p75 of the last 28 days (older
+ * rows are not read; pruning them is a follow-up for the retention job).
+ */
+export const webVital = pgTable(
+  'web_vital',
+  {
+    id: id(),
+    storeId: storeId(),
+    metric: text('metric', { enum: WEB_VITAL_METRICS }).notNull(),
+    value: doublePrecision('value').notNull(),
+    device: text('device', { enum: WEB_VITAL_DEVICES }).notNull(),
+    /** The page path without its query, so a report can name the slow pages. */
+    path: text('path').notNull().default('/'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    check('web_vital_metric', sql`${t.metric} in ('LCP','INP','CLS')`),
+    check('web_vital_device', sql`${t.device} in ('mobile','desktop')`),
+    index('web_vital_store_created').on(t.storeId, t.createdAt),
+  ],
 )

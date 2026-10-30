@@ -1,7 +1,9 @@
 import { definePlugin } from '@commerce/plugins'
+import { desc, eq } from 'drizzle-orm'
 import { reviewsEmbeds } from './blocks'
 import { COPY_PHOTOS_JOB, copyReviewPhotos } from './photos'
 import { scheduleReviewRequests } from './requests'
+import { review } from './schema'
 import { REVIEWS_ID } from './settings'
 import { loadReviewsSettings } from './store-settings'
 
@@ -59,6 +61,16 @@ export const reviewsPlugin = definePlugin({
       { resource: 'order-events', level: 'read', why: 'Reacts when an order is delivered' },
     ],
     summary: 'collects reviews',
+  },
+  // The newest review is the app's last use, for the Installed apps list.
+  lastUsed: async (tx, storeId) => {
+    const [row] = await tx
+      .select({ at: review.createdAt })
+      .from(review)
+      .where(eq(review.storeId, storeId))
+      .orderBy(desc(review.createdAt))
+      .limit(1)
+    return row ? { at: row.at, summary: 'Got a review' } : null
   },
   provides: {},
   // The floating reviews tab; the other widgets are theme sections (`reviews/*` in @commerce/blocks).

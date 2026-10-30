@@ -14,6 +14,7 @@ import { pruneVariantMedia, syncFeaturedMedia, variantsUsingMedia } from '../cat
 import { CommerceError } from '../errors'
 import { memberAccess } from '../permissions/service'
 import { permissions } from '../permissions/statement'
+import { mediaUseCount } from './references'
 import { fileTypeWhere, type MediaFileType, USABLE_MEDIA_STATUSES } from './usage'
 
 export const UploadIntentSchema = z.object({
@@ -225,8 +226,6 @@ const SIZE_BUCKETS: Record<MediaSizeBucket, [number, number | null]> = {
   large: [2_000_000, null],
 }
 
-const usedSubquery = sql`(select count(*)::int from product_media pm where pm.media_id = media.id)`
-
 /** What the library shows of a file: the list item and the file page read the same columns. */
 export const libraryColumns = {
   id: media.id,
@@ -243,8 +242,8 @@ export const libraryColumns = {
   /* `processing` files are listed too (#811): the tile says "Optimising" until the worker is done. */
   status: media.status,
   createdAt: media.createdAt,
-  /* Drizzle renders correlated columns unqualified inside a single-table select, so spell the join out. */
-  usedBy: sql<number>`(select count(*)::int from product_media pm where pm.media_id = media.id)`,
+  /* Products, collections, blog posts, pages, reviews and themes using the file (`references.ts`). */
+  usedBy: mediaUseCount,
 }
 
 /**
@@ -263,15 +262,15 @@ export function libraryWhere(input: Pick<MediaListInput, 'search' | 'fileType'>)
   )
 }
 
-/** Library listing: usable (ready or processing) items newest first, with how many products use each. */
+/** Library listing: usable (ready or processing) items newest first, with how many things use each. */
 export async function listMedia(tx: StoreTx, input: MediaListInput) {
   const [sizeMin, sizeMax] = input.size ? SIZE_BUCKETS[input.size] : [null, null]
   const where = and(
     libraryWhere(input),
     sizeMin !== null ? sql`${media.size} >= ${sizeMin}` : undefined,
     sizeMax !== null ? sql`${media.size} < ${sizeMax}` : undefined,
-    input.used === 'used' ? sql`${usedSubquery} > 0` : undefined,
-    input.used === 'unused' ? sql`${usedSubquery} = 0` : undefined,
+    input.used === 'used' ? sql`${mediaUseCount} > 0` : undefined,
+    input.used === 'unused' ? sql`${mediaUseCount} = 0` : undefined,
   )
   const orderBy =
     input.sort === 'oldest'

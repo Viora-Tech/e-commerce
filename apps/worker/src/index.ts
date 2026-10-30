@@ -54,6 +54,7 @@ import { shipmentWebhooks } from './shipments-webhook'
 import { createShippingTracker, TRACK_EVERY_MS } from './shipping'
 import { createShopifyTokenSweep, SHOPIFY_TOKEN_SWEEP_EVERY_MS } from './shopify-token-sweep'
 import { createStoreExportWorker } from './store-export'
+import { createThemeScreenshotWorker } from './theme-screenshot'
 
 /* The local storage provider writes relative to the admin app, which serves
    the folder; point this process at the same place for generated files. */
@@ -127,6 +128,13 @@ const backInStock = createBackInStockWorker(redis, db, {
   storefrontUrl: env.STOREFRONT_URL,
 })
 const storeExport = createStoreExportWorker(redis, db, { settingsSecret: env.SETTINGS_SECRET })
+const themeScreenshots = createThemeScreenshotWorker(redis, db, {
+  settingsSecret: env.SETTINGS_SECRET,
+  storefrontUrl: env.STOREFRONT_URL,
+  chromiumPath: env.THEME_SCREENSHOT_CHROMIUM,
+  // A production image has no Playwright download: only the Chromium the env names.
+  disabled: env.NODE_ENV === 'production' && !env.THEME_SCREENSHOT_CHROMIUM,
+})
 const aiBulkWrite = createAiBulkWriteWorker(redis, db, { settingsSecret: env.SETTINGS_SECRET })
 const inboxAi = createInboxAiReplyWorker(redis, db)
 const purchaseDocuments = createPurchaseDocumentWorker(redis, db)
@@ -206,6 +214,7 @@ const watched = [
   [backInStock.worker, 'back-in-stock'],
   [mediaProcess.worker, 'media-process'],
   [storeExport.worker, 'store-export'],
+  [themeScreenshots.worker, 'theme-screenshot'],
   [aiBulkWrite.worker, 'ai-bulk-write'],
   [inboxAi.worker, 'inbox-ai-reply'],
   [purchaseDocuments.worker, 'purchase-documents'],
@@ -453,6 +462,8 @@ const shutdown = async () => {
   await backInStock.queue.close()
   await storeExport.worker.close()
   await storeExport.queue.close()
+  await themeScreenshots.worker.close()
+  await themeScreenshots.queue.close()
   await aiBulkWrite.worker.close()
   await aiBulkWrite.queue.close()
   await inboxAi.worker.close()

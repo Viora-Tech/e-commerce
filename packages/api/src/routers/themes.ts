@@ -13,6 +13,7 @@ import {
   liveThemeLogoUrl,
   permissions,
   publishTheme,
+  queueThemeScreenshot,
   renameTheme,
   restoreThemeVersion,
   saveImportedThemeSettings,
@@ -29,6 +30,7 @@ import {
   themePacksOf,
   themesWithDrafts,
   updateThemeSettings,
+  webPerformance,
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
@@ -297,8 +299,19 @@ export const themesRouter = {
     await ensureMainTheme(context.tx, storeId)
     const themes = await listThemes(context.tx)
     const facts = await libraryFacts(context.tx, storeId)
+    // A live theme with no picture (an imported theme Customize cannot photograph) gets one
+    // from the worker; repeat visits inside the delay share the same job.
+    const live = themes.find((t) => t.role === 'main')
+    if (live && !live.thumbnailUrl) {
+      await queueThemeScreenshot(context.themeScreenshots, { storeId, themeId: live.id })
+    }
     return themes.map((t) => present(storeId, t, facts(t.id)))
   }),
+
+  /** Real shoppers' page speed for the Online store page: Core Web Vitals p75 and loads by device. */
+  webPerformance: can(permissions.ONLINE_STORE_READ).handler(({ context }) =>
+    webPerformance(context.tx),
+  ),
 
   get: can(permissions.ONLINE_STORE_READ)
     .input(IdInput)
@@ -412,6 +425,11 @@ export const themesRouter = {
             by: savedBy(context),
           })
         }
+        // The Themes page's picture of the live theme, taken in a real browser by the worker.
+        await queueThemeScreenshot(context.themeScreenshots, {
+          storeId: context.scope.storeId,
+          themeId: live.id,
+        })
         return presentOne(context.tx, context.scope.storeId, live)
       }),
     ),

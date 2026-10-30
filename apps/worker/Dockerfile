@@ -55,6 +55,12 @@ COPY --from=pruner /repo/scripts/platform-unlimited.ts ./apps/worker/ops/platfor
 
 # --- Minimal runtime image -------------------------------------------------------------------
 FROM installer AS runner
+# Theme pictures for the Themes page (`src/theme-screenshot.ts`): opt in with
+# `--build-arg THEME_SCREENSHOTS=1`, which adds Alpine's Chromium (~150 MB on disk) and needs the
+# worker's mem_limit raised to at least 768m. Without it the screenshot jobs are skipped.
+ARG THEME_SCREENSHOTS=
+RUN if [ "$THEME_SCREENSHOTS" = "1" ]; then apk add --no-cache chromium nss freetype harfbuzz ttf-freefont font-noto-emoji; fi
+ENV THEME_SCREENSHOT_CHROMIUM=${THEME_SCREENSHOTS:+/usr/bin/chromium-browser}
 RUN addgroup -S bunapp && adduser -S worker -G bunapp \
   && chown -R worker:bunapp /repo/apps/worker
 ENV WORKER_PORT=4100

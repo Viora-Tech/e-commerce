@@ -384,6 +384,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'navigation.checkLinks':
     "Items whose destination is gone or hidden from shoppers (the editor's broken-link check).",
   'navigation.settings': 'Which menus the storefront header and footer render, by handle.',
+  'navigation.themePlacements':
+    "Per menu handle, where the live theme's sections pick it (header, footer or a page).",
   'notifications.checkSenderEmail': '"Check now": ask SES again.',
   'notifications.overview':
     'Settings → Notifications: every message the shop sends and how messages go out.',
@@ -742,6 +744,8 @@ export const ACTION_DOCS: Record<string, string> = {
     "Values of connected sources for the Customize preview's chosen product or collection.",
   'themes.thumbnail':
     'The home page picture Customize takes on Save (a webp data URL, see theme-thumbnail.service).',
+  'themes.webPerformance':
+    "Real shoppers' page speed for the Online store page: Core Web Vitals p75 and loads by device.",
   'umami.report':
     'Visitors, page views and the ranked lists for one range; a drawable state, never an error.',
   'umami.settings.createWebsite': 'Creates a website for this store in Umami and saves its id.',

@@ -1,6 +1,6 @@
 'use client'
 
-import type { RolloutHold } from '@commerce/core'
+import type { RolloutHold, WebPerformance } from '@commerce/core'
 import type { ThemePackId } from '@commerce/core/theme'
 import { Copy, Plus, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
@@ -24,6 +24,7 @@ import ThemeLibraryRow from './theme-library-row'
 import ThemePacksCard from './theme-packs-card'
 import type { ThemeItem } from './theme-types'
 import ThemeVersionsDialog from './theme-versions-dialog'
+import WebPerformanceStrip from './web-performance-strip'
 
 type ThemesLibraryProps = {
   initial: ThemeItem[]
@@ -35,6 +36,8 @@ type ThemesLibraryProps = {
   holds?: Record<string, RolloutHold>
   /** The storefront asks for a password (Online store › Preferences). */
   passwordOn?: boolean
+  /** Real shoppers' page speed; null when it could not be read. */
+  performance?: WebPerformance | null
 }
 
 /** Live first, then the library by last saved, as the server orders them. */
@@ -72,6 +75,7 @@ export default function ThemesLibrary({
   canManagePacks = false,
   holds = {},
   passwordOn = false,
+  performance = null,
 }: ThemesLibraryProps) {
   // Hooks
   const [themes, setThemes] = useState(initial)
@@ -199,6 +203,7 @@ export default function ThemesLibrary({
           onAction={(action) => handleAction(live, action)}
         />
       ) : null}
+      {performance ? <WebPerformanceStrip data={performance} /> : null}
       <section className="overflow-hidden rounded-2xl border border-border surface-card">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-4 md:px-5">
           <div className="flex min-w-0 flex-col gap-0.5">

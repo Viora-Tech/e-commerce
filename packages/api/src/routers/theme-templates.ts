@@ -16,6 +16,7 @@ import {
   loadTemplate,
   permissions,
   previewCollectionProducts,
+  queueThemeScreenshot,
   renameCustomSection,
   renameTemplateAlternate,
   SECTION_GROUPS,
@@ -97,6 +98,10 @@ export const templatesRouter = {
         const saved = await commitTemplateDrafts(context.tx, input.themeId)
         if (saved > 0) {
           await touchTheme(context.tx, input.themeId, savedBy(context))
+          await queueThemeScreenshot(context.themeScreenshots, {
+            storeId: context.scope.storeId,
+            themeId: input.themeId,
+          })
           // Saving the live theme is what shoppers see next: remember it in the history.
           const current = await getTheme(context.tx, input.themeId)
           if (current?.role === 'main') {

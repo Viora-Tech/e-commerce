@@ -62,6 +62,31 @@ export const themesContent = {
     off: (pack: string, theme: string) => `${pack} turned off for ${theme}`,
     failed: 'Could not save. Try again.',
   },
+  /** Online Store › Themes: real shoppers' page speed (Core Web Vitals, p75 of 28 days). */
+  performance: {
+    heading: 'Web performance',
+    body: (days: number) =>
+      `How fast your store loads for real shoppers, last ${days} days (75th percentile).`,
+    collecting: 'Collecting data',
+    collectingBody:
+      'Page speed is measured in shoppers’ browsers. It shows here once enough visits come in.',
+    metrics: {
+      LCP: 'Loading (LCP)',
+      INP: 'Responsiveness (INP)',
+      CLS: 'Visual stability (CLS)',
+    } as Record<string, string>,
+    hints: {
+      LCP: 'Time until the biggest image or text block shows. Good is 2.5 s or less.',
+      INP: 'Delay between a tap or click and the page responding. Good is 200 ms or less.',
+      CLS: 'How much the page jumps while it loads. Good is 0.1 or less.',
+    } as Record<string, string>,
+    ratings: { good: 'Good', 'needs-work': 'Needs work', poor: 'Poor' } as Record<string, string>,
+    samples: (n: number) => (n === 1 ? '1 reading' : `${n} readings`),
+    devices: 'Page loads by device',
+    mobile: 'Mobile',
+    desktop: 'Desktop',
+    loads: (n: number) => (n === 1 ? '1 load' : `${n} loads`),
+  },
   addDialog: {
     title: 'Add theme',
     body: 'Start from a preset, or from scratch. Your logo and favicon come along; the theme stays unpublished until you publish it.',

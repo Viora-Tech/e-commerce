@@ -18,6 +18,7 @@ import {
   queueHealth,
   sharedRedis,
   storeExportQueue,
+  themeScreenshotQueue,
 } from '@commerce/queue'
 import { call } from '@orpc/server'
 import { headers } from 'next/headers'
@@ -36,6 +37,7 @@ export function apiHost() {
     appJobs: appJobQueue(loadEnv(process.env).REDIS_URL),
     mediaProcess: mediaProcessQueue(loadEnv(process.env).REDIS_URL),
     storeExport: storeExportQueue(loadEnv(process.env).REDIS_URL),
+    themeScreenshots: themeScreenshotQueue(loadEnv(process.env).REDIS_URL),
     aiBulk: aiBulkQueue(loadEnv(process.env).REDIS_URL),
     purchaseDocuments: purchaseDocumentQueue(loadEnv(process.env).REDIS_URL),
     channelSync: channelSyncQueue(loadEnv(process.env).REDIS_URL),

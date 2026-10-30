@@ -1,5 +1,4 @@
-import { CommerceError } from '@commerce/core'
-import type { StorageProvider } from '@commerce/storage'
+import { CommerceError, uploadThemeThumbnail } from '@commerce/core'
 
 /**
  * The theme library's pictures: Customize draws the home page into a small webp in the browser
@@ -37,17 +36,5 @@ export function decodeThumbnail(dataUrl: string): Uint8Array {
   return bytes
 }
 
-/** The object key of a theme's picture: one per theme, under the store's folder. */
-const thumbnailKey = (storeId: string, themeId: string): string =>
-  `stores/${storeId}/themes/${themeId}/thumbnail.webp`
-
-/** Writes the picture and resolves the URL to store, versioned by `now` so caches refresh. */
-export async function uploadThumbnail(
-  storage: Pick<StorageProvider, 'put' | 'publicUrl'>,
-  input: { storeId: string; themeId: string; bytes: Uint8Array; now?: Date },
-): Promise<string> {
-  const key = thumbnailKey(input.storeId, input.themeId)
-  await storage.put({ key, body: input.bytes, contentType: 'image/webp' })
-  const url = storage.publicUrl(key)
-  return `${url}${url.includes('?') ? '&' : '?'}v=${(input.now ?? new Date()).getTime()}`
-}
+/** Writes the picture and resolves the URL to store (shared with the worker's screenshots). */
+export const uploadThumbnail = uploadThemeThumbnail

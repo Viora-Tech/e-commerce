@@ -11,10 +11,13 @@ type Props = { params: Promise<{ id: string }> }
 export default async function Page({ params }: Props) {
   const { id } = await params
   const context = await serverContext()
-  const [menu, settings] = await Promise.all([
+  const [menu, settings, themePlacements] = await Promise.all([
     call(appRouter.navigation.get, { id }, { context }),
     call(appRouter.navigation.settings, undefined, { context }),
+    call(appRouter.navigation.themePlacements, undefined, { context }),
   ])
   if (!menu) notFound()
-  return <MenuEditor menu={menu} placements={placementsFor(menu.handle, settings)} />
+  return (
+    <MenuEditor menu={menu} placements={placementsFor(menu.handle, settings, themePlacements)} />
+  )
 }

@@ -117,6 +117,7 @@ const WIPE = [
   'marketing_automation_run',
   'marketing_message',
   'marketing_session',
+  'web_vital',
   'automation_run',
   'automation_run_record',
   'automation_step_run',

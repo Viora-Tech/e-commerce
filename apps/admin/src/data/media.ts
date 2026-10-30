@@ -67,11 +67,11 @@ export const mediaContent = {
       action: 'Upload files',
     },
     used: (n: number) =>
-      n === 0 ? 'Not used' : n === 1 ? 'Used on 1 product' : `Used on ${n} products`,
+      n === 0 ? 'Not used' : n === 1 ? 'Used in 1 place' : `Used in ${n} places`,
     deleteTitle: 'Delete this file?',
     deleteBody: (n: number) =>
       n > 0
-        ? `It is used on ${n} ${n === 1 ? 'product' : 'products'}. Those galleries lose it immediately.`
+        ? `It is used in ${n} ${n === 1 ? 'place' : 'places'}. They lose it immediately.`
         : 'The file is removed from storage. This cannot be undone.',
     deleteConfirm: 'Delete',
     cancel: 'Cancel',
@@ -113,7 +113,15 @@ export const mediaContent = {
     saved: 'Alt text saved',
     saveFailed: 'Could not save the alt text',
     usedIn: 'Used in',
-    usedInEmpty: 'Not used on any product',
+    usedInEmpty: 'Not used by any product, collection, post, page, review or theme',
+    usedKinds: {
+      product: 'Product',
+      collection: 'Collection',
+      article: 'Blog post',
+      page: 'Page',
+      review: 'Review',
+      theme: 'Theme',
+    } as Record<string, string>,
     download: 'Download',
     delete: 'Delete file',
     more: 'More actions',
@@ -157,7 +165,7 @@ export const mediaContent = {
       saved: 'Alt text saved',
       failed: 'Could not save the alt text',
       used: (n: number) =>
-        n === 0 ? 'Not used yet' : n === 1 ? 'Used on 1 product' : `Used on ${n} products`,
+        n === 0 ? 'Not used yet' : n === 1 ? 'Used in 1 place' : `Used in ${n} places`,
     },
     sort: {
       label: 'Sort',
@@ -176,7 +184,7 @@ export const mediaContent = {
         medium: '200 KB - 2 MB',
         large: 'Over 2 MB',
       },
-      used: { label: 'Used in', all: 'Any', used: 'Used on a product', unused: 'Not used' },
+      used: { label: 'Used in', all: 'Any', used: 'Used somewhere', unused: 'Not used' },
     },
     loading: 'Loading files…',
     recent: 'Recently used',
@@ -199,7 +207,7 @@ export const mediaContent = {
       usedOn: 'Used on',
       uploaded: (when: string) => `Uploaded ${when}`,
       unused: 'Not used',
-      products: (n: number) => (n === 1 ? '1 product' : `${n} products`),
+      products: (n: number) => (n === 1 ? '1 place' : `${n} places`),
       footer: (n: number) =>
         n === 1 ? 'Showing the largest file' : `Showing the ${n} largest files`,
       viewAll: 'View all files',

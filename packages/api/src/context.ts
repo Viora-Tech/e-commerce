@@ -12,6 +12,7 @@ import type {
   PurchaseDocumentQueue,
   RateLimitStore,
   StoreExportQueue,
+  ThemeScreenshotQueue,
 } from '@commerce/core'
 import type { AutomationStepQueue } from '@commerce/core/automations/server'
 import type { PubSubPublisher } from '@commerce/core/inbox/server'
@@ -34,6 +35,8 @@ export type ApiContext = {
   mediaProcess?: MediaProcessQueue | undefined
   /** Full store exports, built by the worker. Absent in tests: the export is then built in the request. */
   storeExport?: StoreExportQueue | undefined
+  /** Home page pictures of themes, taken by the worker after Publish and Save. Absent in tests: nothing is queued. */
+  themeScreenshots?: ThemeScreenshotQueue | undefined
   /** Bulk "Write with AI" runs, worked through by the worker. Absent in tests: the run happens in the request. */
   aiBulk?: AiBulkQueue | undefined
   /** AI reads of uploaded purchase documents, done by the worker. Absent in tests: the read happens in the request. */

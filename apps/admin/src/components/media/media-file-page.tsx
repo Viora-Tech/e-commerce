@@ -1,5 +1,6 @@
 'use client'
 
+import type { MediaReference } from '@commerce/core'
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -37,7 +38,7 @@ export type MediaFileData = Awaited<ReturnType<typeof api.media.get>>
 
 type MediaFilePageProps = {
   file: MediaFileData
-  usedIn: { productId: string; title: string }[]
+  usedIn: MediaReference[]
   /** The files either side in the library's order under its filter; null at either end. */
   neighbours: { previous: string | null; next: string | null }
   /** The library's search and type, carried to the previous / next links. */

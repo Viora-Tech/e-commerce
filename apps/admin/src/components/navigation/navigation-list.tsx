@@ -15,15 +15,20 @@ import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
 import CreateMenuDialog from './create-menu-dialog'
 import MenuActions from './menu-actions'
-import { placementsFor } from './placements'
+import { placementsFor, type ThemeMenuPlacements } from './placements'
 import StorefrontNavigationDialog from './storefront-navigation-dialog'
 
 type NavigationListProps = {
   initialMenus: MenuListItem[]
   initialSettings: NavigationSettings
+  themePlacements: ThemeMenuPlacements
 }
 
-export default function NavigationList({ initialMenus, initialSettings }: NavigationListProps) {
+export default function NavigationList({
+  initialMenus,
+  initialSettings,
+  themePlacements,
+}: NavigationListProps) {
   // Hooks
   const copy = useCopy(menusContent)
   const router = useRouter()
@@ -35,7 +40,7 @@ export default function NavigationList({ initialMenus, initialSettings }: Naviga
   const [settings, setSettings] = useState(initialSettings)
 
   // Helpers
-  const usedIn = (m: MenuListItem) => placementsFor(m.handle, settings)
+  const usedIn = (m: MenuListItem) => placementsFor(m.handle, settings, themePlacements)
 
   // Event handlers
   const handleSettingsSaved = (next: NavigationSettings) => {

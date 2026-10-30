@@ -22,6 +22,9 @@ import {
   STORE_EXPORT_QUEUE,
   type StoreExportJob,
   type StoreExportQueue,
+  THEME_SCREENSHOT_QUEUE,
+  type ThemeScreenshotJob,
+  type ThemeScreenshotQueue,
 } from '@commerce/core'
 import {
   AUTOMATION_STEP_QUEUE,
@@ -277,6 +280,19 @@ export function storeExportQueue(redisUrl: string): StoreExportQueue {
     g.__storeExportQueue = createStoreExportQueue(createConnection(redisUrl))
   }
   return g.__storeExportQueue
+}
+
+export type { ThemeScreenshotJob, ThemeScreenshotQueue }
+
+/** Process-wide theme screenshot queue (after Publish and Save), cached like the others. */
+export function themeScreenshotQueue(redisUrl: string): ThemeScreenshotQueue {
+  const g = globalThis as { __themeScreenshotQueue?: ThemeScreenshotQueue }
+  if (!g.__themeScreenshotQueue) {
+    g.__themeScreenshotQueue = new Queue<ThemeScreenshotJob>(THEME_SCREENSHOT_QUEUE, {
+      connection: createConnection(redisUrl),
+    })
+  }
+  return g.__themeScreenshotQueue
 }
 
 export type { AiBulkJob, AiBulkQueue }
