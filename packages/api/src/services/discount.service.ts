@@ -73,7 +73,66 @@ async function usageOf(tx: StoreTx, ids: string[]): Promise<Map<string, Discount
       lastUsedAt: r.lastUsedAt,
     })
   }
+  await addImportedUsage(tx, ids, byId)
   return byId
+}
+
+/**
+ * Orders brought over from another platform carry the code they used (`discount_code`, several
+ * joined by commas) but no `discount_usage` row, so a code's revenue read ₹0 however often it
+ * was used there (#994). They are added here, matched by code; the amount given is the order's
+ * whole discount.
+ */
+async function addImportedUsage(
+  tx: StoreTx,
+  ids: string[],
+  byId: Map<string, DiscountUsageSummary>,
+): Promise<void> {
+  const codes = await tx
+    .select({ id: discount.id, code: discount.code })
+    .from(discount)
+    .where(and(inArray(discount.id, ids), isNotNull(discount.code)))
+  const idByCode = new Map(codes.flatMap((c) => (c.code ? [[c.code.toUpperCase(), c.id]] : [])))
+  if (idByCode.size === 0) return
+  const used = sql`string_to_array(upper(replace(${order.discountCode}, ' ', '')), ',')`
+  const rows = await tx
+    .select({
+      code: sql<string>`c.code`,
+      orders: count(),
+      revenuePaise:
+        sql<number>`coalesce(sum(${order.totalPaise}) filter (where ${kept}), 0)::bigint`.mapWith(
+          Number,
+        ),
+      amountPaise:
+        sql<number>`coalesce(sum(${order.discountPaise}) filter (where ${kept}), 0)::bigint`.mapWith(
+          Number,
+        ),
+      lastUsedAt: max(order.placedAt),
+    })
+    .from(order)
+    .innerJoin(
+      sql`unnest(${sql.param([...idByCode.keys()])}::text[]) as c(code)`,
+      sql`c.code = any(${used})`,
+    )
+    .where(
+      and(isNotNull(order.importedFrom), isNotNull(order.discountCode), eq(order.isTest, false)),
+    )
+    .groupBy(sql`c.code`)
+  for (const r of rows) {
+    const id = idByCode.get(r.code)
+    if (!id) continue
+    const now = byId.get(id) ?? EMPTY_USAGE
+    const last =
+      now.lastUsedAt && r.lastUsedAt
+        ? new Date(Math.max(now.lastUsedAt.getTime(), new Date(r.lastUsedAt).getTime()))
+        : (now.lastUsedAt ?? (r.lastUsedAt ? new Date(r.lastUsedAt) : null))
+    byId.set(id, {
+      orders: now.orders + r.orders,
+      revenuePaise: now.revenuePaise + r.revenuePaise,
+      amountPaise: now.amountPaise + r.amountPaise,
+      lastUsedAt: last,
+    })
+  }
 }
 
 /**

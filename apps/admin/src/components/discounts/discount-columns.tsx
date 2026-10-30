@@ -51,7 +51,17 @@ export function discountColumns(
         </span>
       ),
     },
-    { id: 'method', title: copy.columns.method, render: (d) => describeDiscountValue(d) },
+    {
+      id: 'method',
+      title: copy.columns.method,
+      // A long value ("₹6998 to ₹11498 off each item") wraps in its column instead of running
+      // over Type (#996).
+      render: (d) => (
+        <span className="line-clamp-2 block max-w-48 whitespace-normal">
+          {describeDiscountValue(d)}
+        </span>
+      ),
+    },
     { id: 'kind', title: copy.columns.kind, render: (d) => copy.kind[d.kind] },
     {
       id: 'used',
