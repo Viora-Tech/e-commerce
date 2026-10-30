@@ -9,6 +9,7 @@ import {
   maskContact,
   SIGNUP_STATUSES,
   saveStoreSettings,
+  importRestockTags,
   topVariantsByWaiting,
   usageOverview,
 } from '@commerce/plugin-back-in-stock/server'
@@ -65,6 +66,11 @@ export const backInStockRouter = {
           })),
         )
       }),
+    /** "Bring over restock tags": Shopify restock-app customer tags become waiting signups. */
+    importRestockTags: can(permissions.SETTINGS_MANAGE).handler(async ({ context }) => {
+      await requireInstalled(context)
+      return importRestockTags(context.tx, context.scope.storeId)
+    }),
   },
   settings: {
     get: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
