@@ -225,6 +225,9 @@ export const settingsContent = {
   nav: {
     label: 'Settings sections',
     back: 'Settings',
+    /** Top of the settings menu that replaces the main sidebar inside Settings. */
+    exit: 'Back to admin',
+    title: 'Settings',
   },
   groups: {
     store: 'Store',
@@ -308,6 +311,14 @@ export const settingsContent = {
       { value: 'Europe/London', label: 'London (Europe/London)' },
       { value: 'America/New_York', label: 'New York (America/New_York)' },
     ],
+    /** The row list Settings → Store details opens on (#147). */
+    rows: {
+      back: 'Store details',
+      notAdded: 'Not added yet',
+      needsFix: 'Needs a fix',
+      data: 'Your store’s data',
+      dataValue: 'Export or delete',
+    },
     saved: 'Store details saved',
     failed: 'Could not save store details',
     unsaved: 'Unsaved changes',

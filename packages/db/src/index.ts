@@ -12,6 +12,7 @@ export { seedWaimersShipping } from './default-shipping'
 export * from './delivery-schema'
 export { isUniqueViolation } from './errors'
 export * from './finance-schema'
+export * from './home-card-schema'
 export * from './inbox-schema'
 export * from './market-schema'
 export * from './marketing-schema'
@@ -42,6 +43,7 @@ export {
   storesWithChannelConnections,
   storesWithDueAffiliateCommissions,
   storesWithDueReviewRequests,
+  storesWithHomeCardsDue,
   storesWithMarketingWork,
   storesWithMemberDailySummaries,
   storesWithOldApiActivity,

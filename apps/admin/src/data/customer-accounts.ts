@@ -77,6 +77,15 @@ export const customerAccountsContent = {
     copied: 'Copied',
     secretKept: 'Saved. Leave as it is to keep it.',
   },
+  /** The row list the page opens on (#147): each row's current value. */
+  rows: {
+    back: 'Customer accounts',
+    guest: 'Anyone can check out',
+    required: 'Sign-in required',
+    none: 'None',
+    extrasValue: 'Sign-in link, Truecaller and more',
+    deletionValue: 'From their account page',
+  },
   deletion: {
     heading: 'Deleting an account',
     body: 'Customers can delete their account from their account page. They confirm with a code, are signed out everywhere, and a deletion request lands in Customer privacy for you to finish.',

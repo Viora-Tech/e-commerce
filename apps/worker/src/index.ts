@@ -26,6 +26,7 @@ import {
   VERIFY_EVERY_MS,
 } from './domains'
 import { createFxRates, FX_RATES_SCHEDULE } from './fx-rates'
+import { createHomeCardsRefresh, HOME_CARDS_EVERY_MS } from './home-cards'
 import { createImportSnapshotCleanup, SNAPSHOT_CLEANUP_EVERY_MS } from './import-snapshots'
 import { createInboxAiReplyWorker } from './inbox-ai-reply'
 import { createMarketingWorker, MARKETING_TICK_MS, retireAbandonedSweep } from './marketing'
@@ -138,6 +139,7 @@ const memberDailySummary = createMemberDailySummary(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
   adminUrl: env.ADMIN_URL,
 })
+const homeCards = createHomeCardsRefresh(redis, db)
 const searchConsole = createSearchConsoleSweep(redis, db)
 const billing = createBillingSweep(redis, db, {
   salesStoreId: env.PLATFORM_SALES_STORE_ID,
@@ -211,6 +213,7 @@ const watched = [
   [reviewRequests.worker, 'review-requests'],
   [affiliateCommissions.worker, 'affiliate-commissions'],
   [memberDailySummary.worker, 'member-daily-summary'],
+  [homeCards.worker, 'home-cards'],
   [searchConsole.worker, 'search-console-sweep'],
   [billing.worker, 'billing-sweep'],
   [apiActivityPrune.worker, 'api-activity-prune'],
@@ -316,6 +319,11 @@ await affiliateCommissions.queue.upsertJobScheduler(
 await memberDailySummary.queue.upsertJobScheduler(
   'member-daily-summary',
   { every: DAILY_SUMMARY_EVERY_MS },
+  { name: 'sweep' },
+)
+await homeCards.queue.upsertJobScheduler(
+  'home-cards',
+  { every: HOME_CARDS_EVERY_MS },
   { name: 'sweep' },
 )
 await searchConsole.queue.upsertJobScheduler(
@@ -459,6 +467,8 @@ const shutdown = async () => {
   await affiliateCommissions.queue.close()
   await memberDailySummary.worker.close()
   await memberDailySummary.queue.close()
+  await homeCards.worker.close()
+  await homeCards.queue.close()
   await searchConsole.worker.close()
   await searchConsole.queue.close()
   await searchConsole.appJobs.close()

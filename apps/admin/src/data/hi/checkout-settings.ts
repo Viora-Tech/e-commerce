@@ -7,6 +7,22 @@ export default [
       form: { id: 'form', label: 'चेकआउट फ़ॉर्म' },
       branding: { id: 'branding', label: 'ब्रांडिंग' },
     },
+    rows: {
+      back: 'चेकआउट',
+      contact: 'संपर्क जानकारी',
+      emailRequired: 'ईमेल ज़रूरी',
+      emailOptional: 'ईमेल वैकल्पिक',
+      address: 'पता',
+      pincodeFirst: 'पहले PIN कोड',
+      standard: 'सामान्य क्रम',
+      minimum: 'कम से कम ऑर्डर',
+      noMinimum: 'कोई सीमा नहीं',
+      cod: 'कैश ऑन डिलीवरी',
+      codOff: 'बंद',
+      codOn: 'चालू',
+      branding: 'ब्रांडिंग',
+      brandingValue: 'लोगो, रंग और फ़ॉन्ट',
+    },
     intro:
       'आपका चेकआउट Shopify की तरह लॉक है: थीम इसे कभी नहीं बदलती, इसलिए यह हमेशा चलता है। यहाँ इसे अपने ब्रांड जैसा बनाइए।',
     look: {

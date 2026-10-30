@@ -66,6 +66,23 @@ export const checkoutBrandingContent = {
     form: { id: 'form', label: 'Checkout form' },
     branding: { id: 'branding', label: 'Branding' },
   },
+  /** The row list Settings → Checkout opens on (#147): each row's name and current value. */
+  rows: {
+    back: 'Checkout',
+    contact: 'Contact details',
+    emailRequired: 'Email required',
+    emailOptional: 'Email optional',
+    address: 'Address',
+    pincodeFirst: 'PIN code first',
+    standard: 'Standard order',
+    minimum: 'Minimum order value',
+    noMinimum: 'No minimum',
+    cod: 'Cash on delivery',
+    codOff: 'Off',
+    codOn: 'On',
+    branding: 'Branding',
+    brandingValue: 'Logo, colours and type',
+  },
   intro:
     'Your checkout is locked, like Shopify’s: themes never change it, so it always works. Make it look like your brand here.',
   look: {

@@ -424,3 +424,11 @@ export async function storesWithBugReports(db: Db, openOnly: boolean): Promise<s
   )
   return rows.map((r) => r.id)
 }
+
+/** Store ids whose Home cards were not rebuilt in the last 20 hours. SECURITY DEFINER backed. */
+export async function storesWithHomeCardsDue(db: Db, now = new Date()): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(
+    sql`select stores_with_home_cards_due(${now.toISOString()}::timestamptz) as id`,
+  )
+  return rows.map((r) => r.id)
+}

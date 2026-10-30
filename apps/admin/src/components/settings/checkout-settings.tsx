@@ -14,11 +14,11 @@ import CheckoutBrandingSettings from '@/components/settings/checkout-branding-se
 import CheckoutToggleRow from '@/components/settings/checkout-toggle-row'
 import CodRulesCard from '@/components/settings/cod-rules-card'
 import RupeeInput from '@/components/settings/rupee-input'
-import SectionTabs from '@/components/settings/section-tabs'
-import SettingsSection from '@/components/settings/settings-section'
+import SettingsDrill from '@/components/settings/settings-drill'
+import SettingsDrillPanel from '@/components/settings/settings-drill-panel'
 import { checkoutBrandingContent, checkoutSettingsContent as copy } from '@/data/checkout-settings'
 import { SETTINGS_BACK, settingsContent } from '@/data/settings'
-import { useCopy } from '@/hooks/use-copy'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import SettingsCard from './settings-card'
 
@@ -29,13 +29,14 @@ type Loaded = CheckoutSettingsView & { pincodeDirectory: boolean }
 const formOf = (v: Loaded): Form => ({ settings: v.settings, codFee: v.codFee })
 
 /**
- * Settings → Checkout, in two tabs: the form (contact, address, minimum order, cash on
- * delivery rules, the last only when COD is on) and Branding (the locked checkout's look,
- * with a live preview). One save covers both.
+ * Settings → Checkout, Shopify-style (#147): a short list of rows (contact, address, minimum
+ * order, cash on delivery, branding), each with its current value, opening its detail in
+ * place. One save covers every detail.
  */
 export default function CheckoutSettings() {
   // Hooks
   const brandingCopy = useCopy(checkoutBrandingContent)
+  const fmt = useFormat()
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [form, setForm] = useState<Form | null>(null)
   const [saved, setSaved] = useState<string | null>(null)
@@ -91,6 +92,25 @@ export default function CheckoutSettings() {
   // Render logic
   const dirty = form !== null && saved !== null && JSON.stringify(form) !== saved
   const s = form?.settings
+  const r = brandingCopy.rows
+  const rows =
+    s && loaded
+      ? [
+          {
+            id: 'contact',
+            title: r.contact,
+            value: s.email === 'optional' ? r.emailOptional : r.emailRequired,
+          },
+          { id: 'address', title: r.address, value: s.pincodeFirst ? r.pincodeFirst : r.standard },
+          {
+            id: 'minimum',
+            title: r.minimum,
+            value: s.minimumOrderPaise > 0 ? fmt.money(s.minimumOrderPaise) : r.noMinimum,
+          },
+          { id: 'cod', title: r.cod, value: loaded.codEnabled ? r.codOn : r.codOff },
+          { id: 'branding', title: r.branding, value: r.brandingValue },
+        ]
+      : []
 
   return (
     <div className="flex flex-col gap-4">
@@ -112,8 +132,8 @@ export default function CheckoutSettings() {
       {!form || !s || !loaded ? (
         <Skeleton className="h-96 w-full rounded-2xl" />
       ) : (
-        <SectionTabs tabs={[brandingCopy.tabs.form, brandingCopy.tabs.branding]}>
-          <SettingsSection id={brandingCopy.tabs.form.id} className="flex flex-col gap-4">
+        <SettingsDrill rows={rows} backLabel={r.back}>
+          <SettingsDrillPanel id="contact">
             <SettingsCard
               title={copy.contact.heading}
               description={`${copy.contact.phone}. ${copy.contact.phoneHint}`}
@@ -131,7 +151,9 @@ export default function CheckoutSettings() {
                 />
               </Field>
             </SettingsCard>
+          </SettingsDrillPanel>
 
+          <SettingsDrillPanel id="address">
             <SettingsCard title={copy.address.heading}>
               <FieldGroup>
                 <CheckoutToggleRow
@@ -148,8 +170,10 @@ export default function CheckoutSettings() {
                 ) : null}
               </FieldGroup>
             </SettingsCard>
+          </SettingsDrillPanel>
 
-            <SettingsCard id="minimum" title={copy.minimum.heading}>
+          <SettingsDrillPanel id="minimum">
+            <SettingsCard title={copy.minimum.heading}>
               <RupeeInput
                 key={`min-${codKey}`}
                 id="checkout-minimum"
@@ -159,7 +183,9 @@ export default function CheckoutSettings() {
                 onChange={(minimumOrderPaise) => patch({ minimumOrderPaise })}
               />
             </SettingsCard>
+          </SettingsDrillPanel>
 
+          <SettingsDrillPanel id="cod">
             <CodRulesCard
               key={`cod-${codKey}`}
               codEnabled={loaded.codEnabled}
@@ -168,8 +194,8 @@ export default function CheckoutSettings() {
               onRules={(cod) => patch({ cod })}
               onFee={(codFee) => setForm((f) => (f ? { ...f, codFee } : f))}
             />
-          </SettingsSection>
-          <SettingsSection id={brandingCopy.tabs.branding.id} className="flex flex-col gap-3">
+          </SettingsDrillPanel>
+          <SettingsDrillPanel id="branding" className="flex flex-col gap-3">
             {hold ? (
               <div>
                 <RolloutHoldChip hold={hold} />
@@ -184,8 +210,8 @@ export default function CheckoutSettings() {
               onGstin={(gstin) => patch({ gstin })}
               onOrderNotes={(orderNotes) => patch({ orderNotes })}
             />
-          </SettingsSection>
-        </SectionTabs>
+          </SettingsDrillPanel>
+        </SettingsDrill>
       )}
     </div>
   )

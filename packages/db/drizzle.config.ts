@@ -12,6 +12,7 @@ export default defineConfig({
     './src/bug-report-schema.ts',
     './src/channel-schema.ts',
     './src/delivery-schema.ts',
+    './src/home-card-schema.ts',
     './src/content-schema.ts',
     './src/finance-schema.ts',
     './src/inbox-schema.ts',

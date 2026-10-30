@@ -467,13 +467,13 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'Business buyers at checkout',
     where: 'Selling › Checkout',
-    href: '/settings/checkout?tab=branding#gstin',
+    href: '/settings/checkout?open=branding#gstin',
     keywords: ['gstin', 'b2b', 'business buyer', 'gst invoice', 'company'],
   },
   {
     title: 'Checkout branding',
     where: 'Selling › Checkout',
-    href: '/settings/checkout?tab=branding',
+    href: '/settings/checkout?open=branding',
     keywords: [
       'checkout logo',
       'checkout colour',

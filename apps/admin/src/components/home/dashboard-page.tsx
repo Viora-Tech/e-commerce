@@ -1,4 +1,5 @@
 import type { DashboardChartsData, DashboardSummary, HomeAnalytics } from '@commerce/api'
+import type { HomeCard } from '@commerce/core/home-cards'
 import type { HomeMetric } from '@commerce/core/home-metrics'
 import type { StoreHealthReport } from '@commerce/core/store-health'
 import PageBody from '@/components/layout/page-body'
@@ -33,10 +34,10 @@ type DashboardPageProps = {
   assistant?: boolean
   /** What the store's apps say; null when the member cannot read apps (set-up cards hide). */
   signals: HomeSignals | null
-  /** Carts left behind this week; null when the member cannot read orders. */
-  abandoned: { carts: number; valuePaise: number } | null
   /** Store health; null when the member cannot read settings (the card hides). */
   health: StoreHealthReport | null
+  /** Smart cards built daily from the store's numbers; null when they could not be read. */
+  cards: HomeCard[] | null
 }
 
 /**
@@ -51,8 +52,8 @@ export default function DashboardPage({
   firstName,
   assistant = false,
   signals,
-  abandoned,
   health,
+  cards,
 }: DashboardPageProps) {
   return (
     <PageBody width="frame" className="mx-auto max-w-[68rem] gap-10 md:pt-5">
@@ -98,7 +99,7 @@ export default function DashboardPage({
         </div>
       </HomeEnter>
       <HomeEnter index={6}>
-        <Suggestions summary={summary} signals={signals} abandoned={abandoned} />
+        <Suggestions cards={cards} signals={signals} />
       </HomeEnter>
       <HomeEnter index={7}>
         <MoreNumbers

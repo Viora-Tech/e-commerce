@@ -76,6 +76,7 @@
     "./pixels/server": "./src/pixels/server.ts",
     "./email-design-compile": "./src/marketing/email-design-compile.ts",
     "./admin-accent": "./src/admin-accent/accent.ts",
+    "./home-cards": "./src/home-cards/rules.ts",
     "./home-metrics": "./src/home-metrics/metrics.ts",
     "./shipping-rates": "./src/shipping/rates.ts",
     "./parcel": "./src/shipping/parcel.ts",

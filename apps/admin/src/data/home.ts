@@ -175,23 +175,41 @@ export const homePageContent = {
     dismiss: 'Hide this suggestion',
     hidden: 'Suggestion hidden',
     undo: 'Undo',
-    restockTitle: 'Restock your best seller',
-    restockBody: (title: string, units: number, left: number) =>
-      `${title} sold ${units} in the last 30 days and only ${left} ${left === 1 ? 'is' : 'are'} left.`,
-    restockCta: 'Restock',
-    abandonedTitle: 'Recover abandoned carts',
-    abandonedBody: (carts: number, value: string) =>
-      `${carts} ${carts === 1 ? 'cart' : 'carts'} worth ${value} were left behind this week. Send a gentle reminder.`,
-    abandonedCta: 'Open',
     reviewsTitle: 'Collect product reviews',
     reviewsBody: 'Install the Reviews app so shoppers can rate what they bought.',
     reviewsCta: 'Open',
-    describeTitle: 'Write product descriptions',
-    describeBody: 'Draft them with AI in English and Hindi; you approve each one.',
-    describeCta: 'Open',
-    saleTitle: 'Plan a sale',
-    saleBody: 'Create a discount for your next sale in one step, ready in minutes.',
-    saleCta: 'Open',
+    /* Smart cards (#101): built daily from the store's own numbers (`@commerce/core` home-cards). */
+    weakPageTitle: (title: string) => `${title}: the page is not selling`,
+    weakPageBody: (sessions: number, carts: number) =>
+      `${sessions} sessions and ${carts} ${carts === 1 ? 'add to cart' : 'adds to cart'} in 30 days. Better photos and a video usually help.`,
+    weakPageCta: 'Improve its media',
+    staleTitle: (title: string) => `${title} is still live`,
+    staleSeasonBody: 'Its season is over. Unpublish it so shoppers do not land on an old offer.',
+    staleYearBody: 'Its name still has an old year in it. Unpublish or rename it.',
+    staleCta: 'Unpublish',
+    repeatTitle: (n: number) => `${n} repeat buyers`,
+    repeatBody:
+      'Customers with 2 or more orders. Make a segment to thank them or give them early access.',
+    repeatCta: 'Make a segment',
+    repeatSegmentName: 'Repeat buyers',
+    restockTitle: (title: string) => `Restock ${title}`,
+    restockBody: (units: number, left: number, days: number) =>
+      `Sold ${units} in 30 days and ${left} left: about ${days} ${days === 1 ? 'day' : 'days'} at this pace.`,
+    restockCta: 'Restock',
+    unfulfilledTitle: (n: number) => `${n} ${n === 1 ? 'order' : 'orders'} waiting to ship`,
+    unfulfilledBody: (days: number) =>
+      `The oldest has waited ${days} days. Late parcels bring cancellations and bad reviews.`,
+    unfulfilledCta: 'Ship them',
+    abandonedTitle: 'Recover abandoned checkouts',
+    abandonedBody: (carts: number, value: string) =>
+      `${carts} ${carts === 1 ? 'checkout' : 'checkouts'} worth ${value} were left this week. Send a gentle reminder.`,
+    abandonedCta: 'Open',
+    trendingTitle: (title: string, percent: number) => `${title} sales up ${percent}%`,
+    trendingBody: (revenue: string) =>
+      `${revenue} in the last 30 days, against the 30 before. Keep it in stock and in front of shoppers.`,
+    trendingCta: 'Ask AI what to do',
+    trendingPrompt: (title: string, percent: number) =>
+      `${title} sales are up ${percent}% on last month. Suggest what I should do next (stock, a collection, a discount or its price) and propose the changes.`,
     whatsappTitle: 'Send order updates on WhatsApp',
     whatsappBody: 'Connect WhatsApp so shoppers hear about their order without calling you.',
     whatsappCta: 'Connect',

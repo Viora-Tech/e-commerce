@@ -76,6 +76,8 @@ export const REVIEW_REQUESTS_QUEUE = '{reviews}-requests'
 export const AFFILIATE_COMMISSIONS_QUEUE = '{affiliates}-commissions'
 /** Repeat job that sends team members their daily summary at the hour each chose. */
 export const MEMBER_DAILY_SUMMARY_QUEUE = '{members}-daily-summary'
+/** Hourly: Home's smart cards rebuilt for each store not refreshed in the last 20 hours. */
+export const HOME_CARDS_QUEUE = '{home}-cards'
 /** Repeat job that queues each connected store's daily Google Search Console sync. */
 export const SEARCH_CONSOLE_SWEEP_QUEUE = '{search-console}-sweep'
 /** Hourly: plan renewals billed ahead, unpaid plans marked due, then paused after grace. */

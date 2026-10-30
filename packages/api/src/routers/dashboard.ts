@@ -1,4 +1,4 @@
-import { permissions } from '@commerce/core'
+import { dismissHomeCard, listHomeCards, permissions } from '@commerce/core'
 import { HOME_METRICS, HOME_TILE_COUNT } from '@commerce/core/home-metrics'
 import { z } from 'zod'
 import { can, storeProcedure } from '../procedures'
@@ -61,5 +61,21 @@ export const dashboardRouter = {
     .input(z.object({ tiles: z.array(z.enum(HOME_METRICS)).length(HOME_TILE_COUNT) }))
     .handler(({ context, input }) =>
       saveHomeTiles(context.tx, context.scope.storeId, context.scope.userId, input.tiles),
+    ),
+
+  /** Home's smart cards: suggestions from the store's own numbers, rebuilt daily, best first. */
+  cards: can(permissions.ANALYTICS_READ).handler(({ context }) =>
+    listHomeCards({ storeId: context.scope.storeId, tx: context.tx }),
+  ),
+
+  /** Hide one smart card for 30 days for the whole store; `dismissed: false` is Undo. */
+  dismissCard: can(permissions.ANALYTICS_READ)
+    .input(z.object({ key: z.string().min(1).max(200), dismissed: z.boolean().default(true) }))
+    .handler(({ context, input }) =>
+      dismissHomeCard(
+        { storeId: context.scope.storeId, tx: context.tx },
+        input.key,
+        input.dismissed,
+      ),
     ),
 }
