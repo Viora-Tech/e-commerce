@@ -11,6 +11,7 @@ export default [
   }),
   translation(themesContent.library, {
     subtitle: 'आपके स्टोर का लुक। एक थीम लाइव रहती है; बाकी पब्लिश के लिए तैयार रखें।',
+    visibility: { public: 'सबके लिए', locked: 'पासवर्ड चालू', change: 'स्टोर कौन देख सकता है, बदलें' },
     live: 'लाइव',
     lastSaved: (when: string) => `आख़िरी बार सेव: ${when}`,
     savedBy: (saved: string, who: string) => `${saved} · ${who} ने`,
