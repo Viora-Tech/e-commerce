@@ -17,12 +17,14 @@ export const MarketPricingContext = createContext<MarketPricing | null>(null)
 
 /**
  * Formats paise the way this page shows prices: in the market's currency (`AED 23.50`), else
- * the store's own format ("Rs. 6,499.00" or "₹6,499").
+ * the store's own format ("Rs. 6,499.00" or "₹6,499"). With `variantId`, one unit of that
+ * variant: its catalog's fixed price wins (Markets › Catalogs).
  */
-export function useFormatPaise(): (paise: number) => string {
+export function useFormatPaise(): (paise: number, variantId?: string) => string {
   const format = use(MoneyFormatContext)
   const pricing = use(MarketPricingContext)
-  return (paise) => (pricing ? formatPresentment(paise, pricing) : formatStoreMoney(paise, format))
+  return (paise, variantId) =>
+    pricing ? formatPresentment(paise, pricing, variantId) : formatStoreMoney(paise, format)
 }
 
 /** The page's market pricing when it shows another currency; null for rupees. */

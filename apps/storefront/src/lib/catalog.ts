@@ -1,5 +1,6 @@
 import 'server-only'
 import type { CardProduct, ProductDetail } from '@commerce/blocks'
+import { soldInRequestCatalog } from '@commerce/core'
 import {
   computeDepositFromSettings,
   depositPreview,
@@ -127,6 +128,8 @@ export async function listCardProducts(
     .where(
       and(
         eq(product.status, 'active'),
+        // Markets › Catalogs: a market's catalog lists only its products.
+        soldInRequestCatalog(product.id),
         productType ? eq(product.productType, productType) : undefined,
         handles ? inArray(product.handle, handles) : undefined,
       ),
@@ -207,11 +210,13 @@ export async function getProductByHandle(
   /** The store's default pre-order note (`store.preorder.note`), for a product without its own. */
   storeNote: string | null = null,
 ): Promise<ProductDetail | null> {
-  const [p] = await tx
-    .select()
+  const [found] = await tx
+    .select({ p: product, soldHere: sql<boolean>`${soldInRequestCatalog(product.id)}` })
     .from(product)
     .where(and(eq(product.handle, handle), eq(product.status, 'active')))
-  if (!p) return null
+  if (!found) return null
+  const { p, soldHere } = found
+  // Outside the market's catalog (Markets › Catalogs) the page still shows, never sells.
   const launched = isLaunched(p.launchAt)
 
   const imageRows = await tx
@@ -304,7 +309,7 @@ export async function getProductByHandle(
 
   // A variant listed without a price (#913) is shown but never sold.
   const purchasable = (v: (typeof vs)[number]) =>
-    v.pricePaise != null && purchasableFor(p, v, launched)
+    soldHere && v.pricePaise != null && purchasableFor(p, v, launched)
 
   // Pre-order units left under the limit, beyond stock (#939); null when unlimited or off.
   const preorderRoom = (v: (typeof vs)[number]): number | null => {
@@ -336,6 +341,7 @@ export async function getProductByHandle(
     images,
     templateSuffix: p.templateSuffix,
     launchAt: p.launchAt ? p.launchAt.toISOString() : null,
+    ...(soldHere ? {} : { notSoldHere: true }),
     preorder: preorderSettings.enabled
       ? {
           enabled: true,

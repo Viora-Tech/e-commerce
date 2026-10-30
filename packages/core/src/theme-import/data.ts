@@ -22,6 +22,7 @@ import {
   parsePage,
   parseUnavailable,
 } from '../catalog/browse-params'
+import { soldInRequestCatalog } from '../markets/catalog-rules'
 import type { MarketPricing } from '../markets/presentment'
 import { keyFromName } from '../metaobjects/validate'
 import { toNavLinks } from '../navigation/resolve'
@@ -187,7 +188,7 @@ export async function storeLiquidData(
           imageAlt: media.alt,
           width: media.width,
           height: media.height,
-          count: sql<number>`(select count(*) from ${collectionProduct} cp join ${product} p on p.id = cp.product_id where cp.collection_id = ${collection.id} and p.status = 'active')`,
+          count: sql<number>`(select count(*) from ${collectionProduct} cp join ${product} p on p.id = cp.product_id where cp.collection_id = ${collection.id} and p.status = 'active' and ${soldInRequestCatalog(sql`p.id`)})`,
         })
         .from(collection)
         .leftJoin(media, eq(media.id, collection.imageMediaId))
@@ -213,7 +214,10 @@ export async function storeLiquidData(
           .select({ id: product.id })
           .from(product)
           .where(and(eq(product.handle, handle), eq(product.status, 'active')))
-        return row ? ((await loadProducts(tx, [row.id], pricing))[0] ?? null) : null
+        // Outside the market's catalog the page still shows, with nothing for sale.
+        return row
+          ? ((await loadProducts(tx, [row.id], pricing, { keepUnsold: true }))[0] ?? null)
+          : null
       }),
     products: (handles) => productsByHandles(tx, handles, pricing),
     collection: async (handle) => {
@@ -221,7 +225,7 @@ export async function storeLiquidData(
         const [count] = await tx
           .select({ n: sql<number>`count(*)` })
           .from(product)
-          .where(eq(product.status, 'active'))
+          .where(and(eq(product.status, 'active'), soldInRequestCatalog(product.id)))
         return {
           id: 'all',
           handle: 'all',
@@ -240,7 +244,7 @@ export async function storeLiquidData(
           const rows = await tx
             .select({ id: product.id })
             .from(product)
-            .where(eq(product.status, 'active'))
+            .where(and(eq(product.status, 'active'), soldInRequestCatalog(product.id)))
             .orderBy(asc(product.title), asc(product.id))
             .limit(limit)
           return loadProducts(
@@ -254,7 +258,13 @@ export async function storeLiquidData(
           .from(collectionProduct)
           .innerJoin(collection, eq(collection.id, collectionProduct.collectionId))
           .innerJoin(product, eq(product.id, collectionProduct.productId))
-          .where(and(eq(collection.handle, handle), eq(product.status, 'active')))
+          .where(
+            and(
+              eq(collection.handle, handle),
+              eq(product.status, 'active'),
+              soldInRequestCatalog(product.id),
+            ),
+          )
           .orderBy(asc(collectionProduct.position))
           .limit(limit)
         return loadProducts(

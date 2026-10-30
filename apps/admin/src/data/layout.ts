@@ -39,6 +39,7 @@ const PAGE_TITLES: [prefix: string, title: string][] = [
   ['/growth/links', 'Tracking links'],
   ['/discounts', 'Discounts'],
   ['/markets', 'Markets'],
+  ['/markets/catalogs', 'Catalogs'],
   ['/markets/rollouts', 'Rollouts'],
   ['/online-store', 'Online Store'],
   ['/online-store/themes', 'Themes'],

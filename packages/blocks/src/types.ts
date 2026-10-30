@@ -81,6 +81,11 @@ export type ProductDetail = {
   }[]
   /** Store-timezone instant the product goes on sale; null = already on sale. */
   launchAt?: string | null | undefined
+  /**
+   * The shopper's market sells from a catalog that leaves this product out (Markets ›
+   * Catalogs): the page shows it as not available in their country, never sold.
+   */
+  notSoldHere?: boolean | undefined
   preorder?:
     | {
         enabled: boolean

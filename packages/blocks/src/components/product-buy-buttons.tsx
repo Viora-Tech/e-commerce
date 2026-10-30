@@ -110,21 +110,30 @@ export default function ProductBuyButtons({
   const deposit = isPreorder ? preorder?.depositPreview : null
   // Listed before its price is set (#913): not sold, and not "sold out" either.
   const unpriced = variant != null && variant.pricePaise == null
-  const buyLabel = launching
-    ? ui.launchingIn(formatCountdown(countdown))
-    : unpriced
-      ? ui.priceComingSoon
-      : !variant?.purchasable
-        ? ui.soldOut
-        : added
-          ? ui.added
-          : isPreorder
-            ? (preorder?.buttonLabel ?? ui.preorderLabel)
-            : ui.addToCart
+  // The shopper's market sells from a catalog that leaves this product out (Markets › Catalogs).
+  const notSoldHere = Boolean(product.notSoldHere)
+  const buyLabel = notSoldHere
+    ? ui.notSoldHere
+    : launching
+      ? ui.launchingIn(formatCountdown(countdown))
+      : unpriced
+        ? ui.priceComingSoon
+        : !variant?.purchasable
+          ? ui.soldOut
+          : added
+            ? ui.added
+            : isPreorder
+              ? (preorder?.buttonLabel ?? ui.preorderLabel)
+              : ui.addToCart
   // Sold out and not on pre-order: the panel takes the buy buttons' place (the theme's
   // snippets/product-notify), with the back-in-stock form when the app is installed.
   const soldOut =
-    Boolean(variant) && !variant?.purchasable && !isPreorder && !launching && !unpriced
+    !notSoldHere &&
+    Boolean(variant) &&
+    !variant?.purchasable &&
+    !isPreorder &&
+    !launching &&
+    !unpriced
   const allSoldOut = soldOut && product.variants.every((v) => !v.purchasable)
   const notify = soldOut && variant && NotifyMe && notifyMeProps ? variant.id : null
   // The store's pre-order note (#936) says it all under the button, as Shopify's pre-order apps
@@ -177,7 +186,14 @@ export default function ProductBuyButtons({
           {ui.nonRefundable(preorder.nonRefundableDepositDays)}
         </p>
       ) : null}
-      {soldOut ? (
+      {notSoldHere ? (
+        <div className="product-notify" data-buy-buttons>
+          <div className="product-notify__head">
+            <p className="product-notify__heading h4">{ui.notSoldHereHeading}</p>
+            <p className="product-notify__text text-body">{ui.notSoldHereText}</p>
+          </div>
+        </div>
+      ) : soldOut ? (
         <div className="product-notify product-notify--sold-out" data-buy-buttons>
           <div className="product-notify__head">
             <span className="status-chip status-chip--out">

@@ -20,6 +20,7 @@ import bugReport from './bug-report'
 import bulkActions from './bulk-actions'
 import bulkEdit from './bulk-edit'
 import businessGst from './business-gst'
+import catalogs from './catalogs'
 import chatwoot from './chatwoot'
 import checkoutSettings from './checkout-settings'
 import codRto from './cod-rto'
@@ -199,6 +200,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...marketingAutomations,
   ...marketingCampaigns,
   ...markets,
+  ...catalogs,
   ...rollouts,
   ...login,
   ...metaobjects,

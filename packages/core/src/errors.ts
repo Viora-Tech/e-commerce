@@ -124,6 +124,19 @@ export class VariantHidden extends CommerceError {
   }
 }
 
+/**
+ * The shopper's market sells from a catalog (Markets › Catalogs) that leaves this product out:
+ * it shows as not available in their country, and the cart and checkout refuse it.
+ */
+export class NotSoldInMarket extends CommerceError {
+  readonly variantId: string
+
+  constructor(variantId: string, storeId?: string) {
+    super('NOT_SOLD_IN_MARKET', `Variant ${variantId} is not sold in this market`, { storeId })
+    this.variantId = variantId
+  }
+}
+
 /** A product's `launchAt` has not passed: nothing can be added to cart or ordered yet. */
 export class NotLaunchedYet extends CommerceError {
   constructor(variantId: string, launchAt: Date, storeId?: string) {

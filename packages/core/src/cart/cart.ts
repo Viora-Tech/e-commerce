@@ -10,7 +10,15 @@ import {
 } from '@commerce/db'
 import { and, asc, eq, inArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
-import { CartNotOpen, NotLaunchedYet, OutOfStock, PriceNotSet, VariantHidden } from '../errors'
+import {
+  CartNotOpen,
+  NotLaunchedYet,
+  NotSoldInMarket,
+  OutOfStock,
+  PriceNotSet,
+  VariantHidden,
+} from '../errors'
+import { unsoldInMarket } from '../markets/catalogs'
 import { isLaunched } from '../preorder/launch'
 import { preorderNoteText } from '../preorder/note'
 import { resolvePreorderSettings, resolveShipDate } from '../preorder/settings'
@@ -218,15 +226,21 @@ export async function getCart(ctx: StoreContext, cartId: string): Promise<CartVi
   }
 }
 
-/** Add a variant, merging into an existing line. Price is snapshotted from the variant now. */
+/**
+ * Add a variant, merging into an existing line. Price is snapshotted from the variant now.
+ * `marketId` is the storefront's market for this request: the cart keeps it, and a market whose
+ * catalog leaves the product out refuses it (Markets › Catalogs).
+ */
 export async function addToCart(
   ctx: StoreContext,
   cartId: string,
   variantId: string,
   quantity = 1,
+  options: { marketId?: string | null | undefined } = {},
 ): Promise<void> {
   const [c] = await ctx.tx.select().from(cart).where(eq(cart.id, cartId))
   if (c?.status !== 'open') throw new CartNotOpen(cartId, ctx.storeId)
+  const marketId = options.marketId ?? c.marketId
   const [row] = await ctx.tx
     .select({ variant, product })
     .from(variant)
@@ -235,6 +249,12 @@ export async function addToCart(
   if (!row) throw new Error(`variant ${variantId} not found`)
   const { variant: v, product: p } = row
   if (v.hiddenOnStore) throw new VariantHidden(variantId, ctx.storeId)
+  if ((await unsoldInMarket(ctx.tx, marketId, [p.id])).length > 0) {
+    throw new NotSoldInMarket(variantId, ctx.storeId)
+  }
+  if (options.marketId && options.marketId !== c.marketId) {
+    await ctx.tx.update(cart).set({ marketId: options.marketId }).where(eq(cart.id, cartId))
+  }
   if (!isLaunched(p.launchAt)) throw new NotLaunchedYet(variantId, p.launchAt as Date, ctx.storeId)
   // Listed before its price was confirmed (#913): on show, never sold, so no ₹0 line.
   const unitPricePaise = v.pricePaise

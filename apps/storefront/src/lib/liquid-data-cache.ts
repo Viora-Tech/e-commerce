@@ -46,7 +46,7 @@ export function cachedLiquidData(
   storeId: string,
   origin: string,
   source: LiquidDataSource,
-  /** `pricingKey` of the page's market; '' for rupees. */
+  /** `pricingKey` of the page's market and its catalog; '' for rupees and every product. */
   pricing = '',
 ): LiquidDataSource {
   const prefix = `liquid-data|${origin}|${pricing ? `${pricing}|` : ''}`

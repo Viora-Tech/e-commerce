@@ -176,7 +176,10 @@ export const NAV_GROUPS: NavGroup[] = [
         label: 'Markets',
         icon: Earth,
         permission: permissions.SETTINGS_READ,
-        children: [{ href: routes.rollouts.list(), label: 'Rollouts' }],
+        children: [
+          { href: routes.catalogs.list(), label: 'Catalogs' },
+          { href: routes.rollouts.list(), label: 'Rollouts' },
+        ],
       },
     ],
   },

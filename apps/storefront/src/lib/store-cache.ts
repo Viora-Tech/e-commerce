@@ -7,6 +7,7 @@ import { cache } from 'react'
 import { SOFT_DELAY_MS, StoreVersions } from './cache-versions'
 import { scheduleWarm, WARM_QUIET_MS } from './cache-warm'
 import { approxSize, LruCache } from './lru-cache'
+import { requestCatalogId } from './market-catalog'
 import { inStore } from './store-context'
 
 /**
@@ -142,7 +143,15 @@ export function storeRead<T>(
   read: (tx: StoreTx) => Promise<T>,
   options?: CacheOptions,
 ): Promise<T> {
-  return cachedForStore(storeId, key, () => inStore(storeId, read), options)
+  return requestCatalogId(storeId).then((catalogId) =>
+    // A market's catalog changes what a read lists: its rows are cached apart.
+    cachedForStore(
+      storeId,
+      catalogId ? `${key}|catalog:${catalogId}` : key,
+      () => inStore(storeId, read),
+      options,
+    ),
+  )
 }
 
 /** A cached value, if there is one (`cachedForStore` stores it); no load on a miss. */

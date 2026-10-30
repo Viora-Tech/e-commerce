@@ -7,6 +7,7 @@ import {
   DiscountCodeRefused,
   DiscountUnavailable,
   GiftCardError,
+  NotSoldInMarket,
   PriceNotSet,
   ShippingRateUnavailable,
   ShippingUnavailable,
@@ -38,6 +39,8 @@ export function checkoutErrorMessage(err: unknown, pincode: string): string | nu
   if (err instanceof PriceNotSet) return e.priceNotSet
   // Hidden on the storefront after it went into the cart (#934).
   if (err instanceof VariantHidden) return e.variantHidden
+  // The cart's market sells from a catalog that leaves it out (Markets › Catalogs).
+  if (err instanceof NotSoldInMarket) return e.notSoldInMarket
   if (err instanceof ShippingRateUnavailable) return e.rateChanged
   // Settings → Checkout, re-checked by placeOrder whatever the form showed.
   if (err instanceof CheckoutRuleViolation) return checkoutRuleMessage(err, pincode)

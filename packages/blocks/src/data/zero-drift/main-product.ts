@@ -159,6 +159,10 @@ export const mainProductContent = {
     inStockShips: 'In stock, ships today if ordered before 12 pm',
     onlyLeft: (n: number) => `Only ${n} left`,
     soldOutHeading: 'Currently out of stock',
+    /** Markets › Catalogs: the shopper's market does not sell this product. */
+    notSoldHere: 'Not available',
+    notSoldHereHeading: 'Not available in your country',
+    notSoldHereText: 'This product is not sold where you are shopping from.',
     soldOutAllNotify:
       "Every variant is gone. Leave your details and we'll let you know when it's back.",
     soldOutOneNotify:

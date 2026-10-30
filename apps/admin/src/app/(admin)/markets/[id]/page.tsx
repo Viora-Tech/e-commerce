@@ -9,11 +9,14 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 async function load(id: string) {
   const context = await serverContext()
-  const [markets, domains] = await Promise.all([
+  const [markets, domains, catalogs] = await Promise.all([
     call(appRouter.markets.list, undefined, { context }),
     call(appRouter.domains.list, undefined, { context }),
+    call(appRouter.catalogs.list, undefined, { context }),
   ])
-  return { markets, domains, market: markets.find((m) => m.id === id) ?? null }
+  const market = markets.find((m) => m.id === id) ?? null
+  const catalog = catalogs.find((c) => c.id === market?.catalogId) ?? null
+  return { markets, domains, market, catalog }
 }
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
@@ -27,7 +30,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 export default async function Page({ params }: Params) {
   const { id } = await params
   if (!UUID.test(id)) notFound()
-  const { markets, domains, market } = await load(id)
+  const { markets, domains, market, catalog } = await load(id)
   if (!market) notFound()
-  return <MarketPage market={market} markets={markets} domains={domains} />
+  return <MarketPage market={market} markets={markets} domains={domains} catalog={catalog} />
 }

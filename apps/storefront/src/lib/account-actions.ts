@@ -11,6 +11,7 @@ import {
   deliverLoginCode,
   getCart,
   linkIdentity,
+  NotSoldInMarket,
   openToken,
   otpLimiterId,
   reorderLines,
@@ -36,6 +37,7 @@ import {
 } from './customer-session'
 import { devOtpEnabled, rememberDevOtp } from './dev-otp'
 import type { PendingLink } from './login-errors'
+import { requestMarketId } from './market-catalog'
 import { clientIp, rateLimited } from './rate-limit'
 import { lifetimeFor, PENDING_LINK_COOKIE, takeCookie } from './shopper-login'
 import { inStore } from './store-context'
@@ -212,7 +214,13 @@ export async function reorderAction(number: number): Promise<void> {
     if (lines.length === 0) return null
     const current = existing ? await getCart(ctx, existing) : null
     const id = current?.status === 'open' ? (existing as string) : await createCart(ctx)
-    for (const l of lines) await addToCart(ctx, id, l.variantId, l.quantity)
+    // Lines this market's catalog does not sell stay out, as hidden ones do.
+    const marketId = await requestMarketId()
+    for (const l of lines) {
+      await addToCart(ctx, id, l.variantId, l.quantity, { marketId }).catch((err: unknown) => {
+        if (!(err instanceof NotSoldInMarket)) throw err
+      })
+    }
     return id
   })
   if (cartId && cartId !== existing) await writeCartId(cartId)

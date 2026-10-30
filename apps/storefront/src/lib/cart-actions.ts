@@ -41,6 +41,7 @@ import { currentCustomer } from './customer-session'
 import { db } from './db'
 import { deliveryForOrder } from './delivery-options'
 import { hasChatCookie, postChatCartLine } from './inbox'
+import { requestMarketId } from './market-catalog'
 import { accessibleOrderId } from './order-access'
 import { redirectToOrderPage } from './order-view-cookie'
 import { nudgeOutbox } from './outbox'
@@ -63,6 +64,8 @@ export async function addLineAction(variantId: string, quantity: number) {
   const storeId = await requestStoreId()
   const existing = await readCartId()
   const attribution = await readAttribution()
+  // The market this page is in: the cart keeps it, and its catalog decides what may go in.
+  const marketId = await requestMarketId()
   const cartId = await inStore(storeId, async (tx) => {
     const ctx = { storeId, tx }
     let id = existing
@@ -71,7 +74,7 @@ export async function addLineAction(variantId: string, quantity: number) {
       id = await createCart(ctx)
       await setCartAttribution(tx, id, attribution)
     }
-    await addToCart(ctx, id as string, variantId, Math.max(1, quantity))
+    await addToCart(ctx, id as string, variantId, Math.max(1, quantity), { marketId })
     return id as string
   })
   if (cartId !== existing) await writeCartId(cartId)

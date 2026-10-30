@@ -104,7 +104,11 @@ export default function StickyAtc({
             </span>
             {variant ? (
               <span className="sticky-atc__price">
-                <Price pricePaise={variant.pricePaise} mrpPaise={variant.mrpPaise} />
+                <Price
+                  pricePaise={variant.pricePaise}
+                  mrpPaise={variant.mrpPaise}
+                  variantId={variant.id}
+                />
               </span>
             ) : null}
           </span>

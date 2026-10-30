@@ -352,6 +352,7 @@ const NAMESPACE_AREA: Record<string, ApiArea> = {
   staff: 'settings',
   domains: 'settings',
   markets: 'settings',
+  catalogs: 'settings',
   rollouts: 'settings',
 }
 

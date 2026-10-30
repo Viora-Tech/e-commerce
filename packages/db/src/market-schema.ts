@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm'
 import {
+  type AnyPgColumn,
   bigint,
   boolean,
   check,
@@ -15,7 +16,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core'
 import { v7 as uuidv7 } from 'uuid'
-import { store, storeDomain } from './schema'
+import { collection, product, store, storeDomain, variant } from './schema'
 
 /*
  * Markets (0177): markets and their countries, reference exchange rates, translations, and the
@@ -85,6 +86,13 @@ export const market = pgTable(
     /** Null: the latest reference rate (`exchange_rate`). Set: the store's own presentment units per rupee. */
     manualRate: numeric('manual_rate', { precision: 18, scale: 8 }),
     duties: text('duties', { enum: MARKET_DUTIES }).notNull().default('dap'),
+    /**
+     * The catalog this market sells (Markets › Catalogs): which products and at what prices.
+     * Null, or a draft catalog: every product at the market's own prices, as before catalogs.
+     */
+    catalogId: uuid('catalog_id').references((): AnyPgColumn => catalog.id, {
+      onDelete: 'set null',
+    }),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -105,6 +113,109 @@ export const market = pgTable(
     check('market_duties', sql`${t.duties} in (${oneOf(MARKET_DUTIES)})`),
     check('market_adjustment', sql`${t.priceAdjustmentBp} between -5000 and 20000`),
     check('market_manual_rate', sql`${t.manualRate} is null or ${t.manualRate} > 0`),
+  ],
+)
+
+/** A catalog is live in its markets, or a draft (kept, not applied: the market sells as without one). */
+export const CATALOG_STATUSES = ['active', 'draft'] as const
+export type CatalogStatus = (typeof CATALOG_STATUSES)[number]
+
+/** Which products a catalog sells: every product, or the chosen products and collections. */
+export const CATALOG_SCOPES = ['all', 'chosen'] as const
+export type CatalogScope = (typeof CATALOG_SCOPES)[number]
+
+/**
+ * SOURCE OF TRUTH: catalog, catalogProduct, catalogCollection, catalogPrice
+ * WHAT:  Shopify-style catalogs (0193): the products a market sells and its price changes on
+ *        top of the market's conversion (a percent, and fixed prices per variant in the
+ *        market's currency). A market points at one catalog (`market.catalog_id`).
+ * WHY:   A market abroad may sell only part of the range, or price it its own way, while
+ *        India (no catalog) sells everything at the product's own price.
+ */
+export const catalog = pgTable(
+  'catalog',
+  {
+    id: id(),
+    storeId: storeId(),
+    name: text('name').notNull(),
+    status: text('status', { enum: CATALOG_STATUSES }).notNull().default('active'),
+    scope: text('scope', { enum: CATALOG_SCOPES }).notNull().default('all'),
+    /** Basis points on top of the market's converted price (and its adjustment): -1000 is 10% off. */
+    priceAdjustmentBp: integer('price_adjustment_bp').notNull().default(0),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('catalog_store').on(t.storeId),
+    check('catalog_status', sql`${t.status} in (${oneOf(CATALOG_STATUSES)})`),
+    check('catalog_scope', sql`${t.scope} in (${oneOf(CATALOG_SCOPES)})`),
+    check('catalog_adjustment', sql`${t.priceAdjustmentBp} between -9000 and 20000`),
+  ],
+)
+
+/** A product a `chosen` catalog sells by name. */
+export const catalogProduct = pgTable(
+  'catalog_product',
+  {
+    id: id(),
+    storeId: storeId(),
+    catalogId: uuid('catalog_id')
+      .notNull()
+      .references(() => catalog.id, { onDelete: 'cascade' }),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => product.id, { onDelete: 'cascade' }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex('catalog_product_unique').on(t.catalogId, t.productId),
+    index('catalog_product_product').on(t.productId),
+  ],
+)
+
+/** A collection whose products (today's and later ones) a `chosen` catalog sells. */
+export const catalogCollection = pgTable(
+  'catalog_collection',
+  {
+    id: id(),
+    storeId: storeId(),
+    catalogId: uuid('catalog_id')
+      .notNull()
+      .references(() => catalog.id, { onDelete: 'cascade' }),
+    collectionId: uuid('collection_id')
+      .notNull()
+      .references(() => collection.id, { onDelete: 'cascade' }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex('catalog_collection_unique').on(t.catalogId, t.collectionId),
+    index('catalog_collection_collection').on(t.collectionId),
+  ],
+)
+
+/**
+ * A variant's fixed price in a catalog, in `currency` minor units (cents; fils have 3
+ * decimals). Used as typed (no conversion, adjustment or rounding) in a market of that currency.
+ */
+export const catalogPrice = pgTable(
+  'catalog_price',
+  {
+    id: id(),
+    storeId: storeId(),
+    catalogId: uuid('catalog_id')
+      .notNull()
+      .references(() => catalog.id, { onDelete: 'cascade' }),
+    variantId: uuid('variant_id')
+      .notNull()
+      .references(() => variant.id, { onDelete: 'cascade' }),
+    currency: text('currency').notNull(),
+    amountMinor: bigint('amount_minor', { mode: 'number' }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex('catalog_price_unique').on(t.catalogId, t.variantId),
+    check('catalog_price_currency', sql`${t.currency} ~ '^[A-Z]{3}$'`),
+    check('catalog_price_positive', sql`${t.amountMinor} > 0`),
   ],
 )
 

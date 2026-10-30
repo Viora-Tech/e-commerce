@@ -42,6 +42,7 @@ import {
   CheckoutRuleViolation,
   DiscountCodeRefused,
   NotLaunchedYet,
+  NotSoldInMarket,
   PriceNotSet,
   ShippingRateUnavailable,
   ShippingUnavailable,
@@ -54,6 +55,7 @@ import {
   redeemGiftCards,
   reverseGiftCardRedemptions,
 } from '../gift-cards/service'
+import { unsoldInMarket } from '../markets/catalogs'
 import { insertOutboxEvent } from '../outbox/write'
 import { applyPaymentAdjustment, type PaymentAdjustment } from '../payments/adjustments'
 import { createPaymentAttempt, startPaymentAttempt } from '../payments/attempts'
@@ -228,6 +230,7 @@ const loadCart: WorkflowStep<State> = {
         unitPricePaise: cartLine.unitPricePaise,
         variantPricePaise: variant.pricePaise,
         hiddenOnStore: variant.hiddenOnStore,
+        productId: product.id,
         title: product.title,
         variantTitle: variant.title,
         gstRatePercent: variant.gstRatePercent,
@@ -259,6 +262,16 @@ const loadCart: WorkflowStep<State> = {
     // Hidden after it went into the cart (#934): the shopper can no longer buy it.
     const hidden = rows.find((r) => r.hiddenOnStore)
     if (hidden) throw new VariantHidden(hidden.variantId, ctx.storeId)
+    // The cart's market sells from a catalog that leaves it out (Markets › Catalogs).
+    const unsold = new Set(
+      await unsoldInMarket(
+        ctx.tx,
+        c.marketId,
+        rows.map((r) => r.productId),
+      ),
+    )
+    const outside = rows.find((r) => unsold.has(r.productId))
+    if (outside) throw new NotSoldInMarket(outside.variantId, ctx.storeId)
     const lines: Line[] = rows.map((r) => ({
       variantId: r.variantId,
       productId: r.productId,

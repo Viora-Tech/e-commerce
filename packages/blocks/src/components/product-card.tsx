@@ -100,7 +100,11 @@ export default function ProductCard({
           <div
             className={`product-card__price${soldOut ? ' product-card__price--unavailable' : ''}`}
           >
-            <Price pricePaise={product.pricePaise} mrpPaise={product.mrpPaise} />
+            <Price
+              pricePaise={product.pricePaise}
+              mrpPaise={product.mrpPaise}
+              variantId={product.quickAddVariantId}
+            />
           </div>
         </div>
       </a>

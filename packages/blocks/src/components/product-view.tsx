@@ -161,7 +161,12 @@ export default function ProductView({
           {s.showRating ? <ProductRating value={s.ratingValue} count={s.ratingCount} /> : null}
           {variant ? (
             <div className="product-info__price product-info__price--large">
-              <Price pricePaise={variant.pricePaise} mrpPaise={variant.mrpPaise} percentBadge />
+              <Price
+                pricePaise={variant.pricePaise}
+                mrpPaise={variant.mrpPaise}
+                variantId={variant.id}
+                percentBadge
+              />
               <p className="product-info__tax-note">{copy.ui.inclusiveOfTaxes}</p>
               {UnderPrice && variant.pricePaise != null ? (
                 <UnderPrice pricePaise={variant.pricePaise} />

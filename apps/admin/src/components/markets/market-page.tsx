@@ -1,6 +1,6 @@
 'use client'
 
-import type { DomainView, MarketView } from '@commerce/core'
+import type { CatalogSummary, DomainView, MarketView } from '@commerce/core'
 import { permissions } from '@commerce/core/permissions'
 import { ChevronRight, Earth, Pencil, Trash2 } from '@commerce/ui/icons'
 import { Switch } from '@commerce/ui/shadcn/switch'
@@ -26,6 +26,8 @@ type MarketPageProps = {
   /** Every market of the store, for the dialog's taken countries and addresses. */
   markets: MarketView[]
   domains: DomainView[]
+  /** The catalog this market sells from (Markets › Catalogs); null sells every product. */
+  catalog: CatalogSummary | null
 }
 
 /** One setting row: its name, its value now, and what opens when it is clicked. */
@@ -48,7 +50,7 @@ function percent(bp: number): string {
   return `${bp < 0 ? '−' : '+'}${Number.isInteger(value) ? value : value.toFixed(1)}%`
 }
 
-/** A row's text: its name, its value, and for the catalog row the note that Catalogs are coming. */
+/** A row's text: its name, its value, and a note under them (the catalog row's). */
 function rowBody(row: HubRow, clickable: boolean, note: string | null) {
   return (
     <>
@@ -67,10 +69,9 @@ function rowBody(row: HubRow, clickable: boolean, note: string | null) {
 /**
  * A market's own page, like Shopify's: the switch that shows it to shoppers at the top, then one
  * row per setting with its current value. A row opens just its part of the market dialog, or the
- * admin page that owns it (shipping, theme, policies). Catalogs are not built yet, so that row
- * says so instead of offering a button that does nothing.
+ * admin page that owns it (shipping, theme, policies, the market's catalog).
  */
-export default function MarketPage({ market, markets, domains }: MarketPageProps) {
+export default function MarketPage({ market, markets, domains, catalog }: MarketPageProps) {
   // Hooks
   const copy = useCopy(marketsContent)
   const router = useRouter()
@@ -123,6 +124,7 @@ export default function MarketPage({ market, markets, domains }: MarketPageProps
       ? `${primaryHost}/${market.subfolder}`
       : (market.hostname ?? copy.choice)
   const rounding = copy.dialog.pricing.roundings[market.rounding] ?? ''
+  const catalogNote = !catalog ? h.catalogPick : catalog.status === 'draft' ? h.catalogDraft : null
   const rows: HubRow[] = [
     {
       key: 'countries',
@@ -165,7 +167,19 @@ export default function MarketPage({ market, markets, domains }: MarketPageProps
       value: address,
       part: market.isPrimary ? undefined : 'address',
     },
-    { key: 'catalog', label: h.rows.catalog, value: h.catalogAll },
+    {
+      key: 'catalog',
+      label: h.rows.catalog,
+      value: catalog
+        ? h.catalogOf(
+            catalog.name,
+            catalog.scope === 'all'
+              ? h.catalogAllProducts
+              : h.catalogProducts(catalog.productCount),
+          )
+        : h.catalogAll,
+      href: catalog ? routes.catalogs.detail(catalog.id) : routes.catalogs.list(),
+    },
     {
       key: 'shipping',
       label: h.rows.shipping,
@@ -229,7 +243,7 @@ export default function MarketPage({ market, markets, domains }: MarketPageProps
               <li key={row.key}>
                 {row.href ? (
                   <Link href={row.href} className={ROW}>
-                    {rowBody(row, true, row.key === 'catalog' ? h.catalogSoon : null)}
+                    {rowBody(row, true, row.key === 'catalog' ? catalogNote : null)}
                   </Link>
                 ) : row.part && canManage ? (
                   <button
@@ -238,11 +252,11 @@ export default function MarketPage({ market, markets, domains }: MarketPageProps
                     aria-label={h.open(row.label)}
                     onClick={() => setPart(row.part ?? null)}
                   >
-                    {rowBody(row, true, row.key === 'catalog' ? h.catalogSoon : null)}
+                    {rowBody(row, true, row.key === 'catalog' ? catalogNote : null)}
                   </button>
                 ) : (
                   <div className="flex min-w-0 items-center gap-4 px-4 py-3.5">
-                    {rowBody(row, false, row.key === 'catalog' ? h.catalogSoon : null)}
+                    {rowBody(row, false, row.key === 'catalog' ? catalogNote : null)}
                   </div>
                 )}
               </li>

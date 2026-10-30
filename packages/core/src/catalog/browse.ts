@@ -1,5 +1,6 @@
 import { type StoreTx, store } from '@commerce/db'
 import { eq, type SQL, sql } from 'drizzle-orm'
+import { soldInRequestCatalog } from '../markets/catalog-rules'
 import { FILTERABLE_FIELD_TYPES } from '../metaobjects/schemas'
 import {
   type BrowseFilters,
@@ -126,7 +127,7 @@ function baseQuery(
       ) as in_stock,
       p.preorder_enabled
     from product p ${join}
-    where p.status = 'active' and not p.is_system_test ${match}`
+    where p.status = 'active' and not p.is_system_test and ${soldInRequestCatalog(sql`p.id`)} ${match}`
 }
 
 /**

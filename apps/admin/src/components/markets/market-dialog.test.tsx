@@ -18,6 +18,7 @@ const market = (fields: Partial<MarketView>): MarketView => ({
   locale: 'en',
   locales: [],
   subfolder: null,
+  catalogId: null,
   storeDomainId: null,
   priceAdjustmentBp: 0,
   rounding: 'none',

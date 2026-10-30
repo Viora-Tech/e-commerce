@@ -1,5 +1,6 @@
 import 'server-only'
 import type { CardProduct } from '@commerce/blocks'
+import { soldInRequestCatalog } from '@commerce/core'
 import type { CollectionSort } from '@commerce/core/collections'
 import type { StoreTx } from '@commerce/db'
 import {
@@ -136,7 +137,12 @@ export async function listCollectionProducts(
   collectionId: string,
   options: { sort: CollectionSort; page: number; perPage: number },
 ): Promise<CollectionProducts> {
-  const where = and(eq(collectionProduct.collectionId, collectionId), eq(product.status, 'active'))
+  const where = and(
+    eq(collectionProduct.collectionId, collectionId),
+    eq(product.status, 'active'),
+    // Markets › Catalogs: a market's catalog lists only its products.
+    soldInRequestCatalog(product.id),
+  )
   const [countRow] = await tx
     .select({ total: sql<number>`count(*)` })
     .from(collectionProduct)

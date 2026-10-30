@@ -171,6 +171,11 @@ export const ACTION_DOCS: Record<string, string> = {
   'businessGst.setLocationSelling':
     'Checkout routes online orders to this location, or not (the default always ships).',
   'businessGst.setMaxParcels': 'The most parcels one order may be split into.',
+  'catalogs.create': 'Add a catalog: its products, price change and the markets that sell from it.',
+  'catalogs.delete': 'Delete a catalog; its markets sell every product at their own prices again.',
+  'catalogs.get': 'One catalog with its chosen products, collections and fixed prices.',
+  'catalogs.list': 'Every catalog with its product count, price change and markets.',
+  'catalogs.update': 'Change a catalog; only the parts sent are replaced.',
   'chatwoot.settings.test': 'Reads the profile and inboxes with the saved token; creates nothing.',
   'codRto.forOrder': "The order page's card.",
   'codRto.markConfirmed': '"Confirmed by phone": the merchant called the shopper.',

@@ -11,6 +11,8 @@
  */
 import { type Db, exchangeRate, market, type StoreTx } from '@commerce/db'
 import { and, desc, eq, inArray } from 'drizzle-orm'
+import { withCatalogPricing } from './catalog-rules'
+import { storeMarketCatalogs } from './catalogs'
 import { type MarketPricing, marketPricing } from './presentment'
 
 /** The ECB's latest euro reference rates (XML, about 30 currencies, INR among them). */
@@ -118,8 +120,9 @@ export async function latestRupeeRates(
 }
 
 /**
- * Each of the store's markets' pricing, by market id (read under the store's RLS). A market
- * with no fixed rate and no reference rate yet maps to null: its shoppers see rupees.
+ * Each of the store's markets' pricing, by market id (read under the store's RLS), with its
+ * active catalog's price changes on top (`withCatalogPricing`). A market with no fixed rate and
+ * no reference rate yet maps to null: its shoppers see rupees.
  */
 export async function storeMarketPricing(tx: StoreTx): Promise<Map<string, MarketPricing | null>> {
   const rows = await tx
@@ -135,5 +138,14 @@ export async function storeMarketPricing(tx: StoreTx): Promise<Map<string, Marke
     tx,
     rows.filter((r) => r.manualRate === null).map((r) => r.currency),
   )
-  return new Map(rows.map((r) => [r.id, marketPricing(r, rates.get(r.currency) ?? null)]))
+  const catalogs = await storeMarketCatalogs(tx)
+  return new Map(
+    rows.map((r) => [
+      r.id,
+      withCatalogPricing(
+        marketPricing(r, rates.get(r.currency) ?? null),
+        catalogs.get(r.id)?.pricing ?? null,
+      ),
+    ]),
+  )
 }

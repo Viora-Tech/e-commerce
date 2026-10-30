@@ -14,6 +14,7 @@ import { billingRouter } from './billing'
 import { blogRouter } from './blog'
 import { bugReportsRouter } from './bug-reports'
 import { businessGstRouter } from './business-gst'
+import { catalogsRouter } from './catalogs'
 import { chatwootRouter } from './chatwoot'
 import { checkoutSettingsRouter } from './checkout-settings'
 import { codRtoRouter } from './cod-rto'
@@ -147,6 +148,7 @@ export const appRouter = {
   staff: staffRouter,
   domains: domainsRouter,
   markets: marketsRouter,
+  catalogs: catalogsRouter,
   rollouts: rolloutsRouter,
   invitations: invitationsRouter,
   onboarding: onboardingRouter,

@@ -7,6 +7,7 @@ import {
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { cachedLiquidData } from './liquid-data-cache'
+import { requestCatalogId } from './market-catalog'
 import { requestOrigin } from './seo'
 
 /**
@@ -24,9 +25,11 @@ export async function recommendedProducts(
   if (!productId) return null
   const origin = await requestOrigin()
   const source = await storeLiquidData(tx, { storeId, host: new URL(origin).host, origin })
-  return cachedLiquidData(storeId, origin, source).relatedProducts(
-    productId,
-    input.limit,
-    input.intent,
-  )
+  const catalogId = await requestCatalogId(storeId)
+  return cachedLiquidData(
+    storeId,
+    origin,
+    source,
+    catalogId ? `catalog:${catalogId}` : '',
+  ).relatedProducts(productId, input.limit, input.intent)
 }

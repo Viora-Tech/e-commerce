@@ -198,6 +198,13 @@ export const routes = {
     detail: (marketId: string) => `/markets/${id(marketId)}`,
   },
 
+  /** Which products each market sells and at what prices (Markets › Catalogs, as in Shopify). */
+  catalogs: {
+    list: () => '/markets/catalogs',
+    new: () => '/markets/catalogs/new',
+    detail: (catalogId: string) => `/markets/catalogs/${id(catalogId)}`,
+  },
+
   /** Store changes that go live at a set time: under Markets, as in Shopify (Markets › Rollouts). */
   rollouts: {
     list: () => '/markets/rollouts',

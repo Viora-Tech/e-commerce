@@ -374,6 +374,11 @@ export type MarketPricing = {
   /** Basis points on top of the converted price: +1000 is 10% above. */
   adjustmentBp: number
   rounding: MarketRoundingRule
+  /**
+   * Markets › Catalogs: a variant's fixed price in `currency` minor units, by variant id. Shown
+   * as typed (no rate, adjustment or rounding) wherever the variant is known.
+   */
+  fixedMinor?: Readonly<Record<string, number>> | undefined
 }
 
 /** Rupees as rupees: the primary market, or a market whose rate is not known yet. */
@@ -400,7 +405,10 @@ function isRupeePricing(p: MarketPricing): boolean {
  * .99 (14.27 → 14.99, 14.00 → 14.99; whole units for a currency without decimals). Zero and
  * negative amounts (a discount line) keep their sign and are rounded by the same rule.
  */
-export function presentmentMinor(paise: number, p: MarketPricing): number {
+export function presentmentMinor(paise: number, p: MarketPricing, variantId?: string): number {
+  // A catalog's fixed price for this variant (one unit's price, never a line or a discount).
+  const fixed = variantId ? p.fixedMinor?.[variantId] : undefined
+  if (fixed !== undefined && paise > 0) return fixed
   if (isRupeePricing(p)) return paise
   if (paise === 0) return 0
   const sign = paise < 0 ? -1 : 1
@@ -421,13 +429,25 @@ export function presentmentMinor(paise: number, p: MarketPricing): number {
  * amounts, also for dinars and yen), so a theme's `| money` and its scripts divide by 100.
  * Rupees stay paise.
  */
-export function presentmentCents(paise: number, p: MarketPricing | null): number {
-  if (!p || isRupeePricing(p)) return paise
-  return Math.round((presentmentMinor(paise, p) / 10 ** minorDigits(p.currency)) * 100)
+export function presentmentCents(
+  paise: number,
+  p: MarketPricing | null,
+  variantId?: string,
+): number {
+  if (!p) return paise
+  if (isRupeePricing(p) && !(variantId && p.fixedMinor?.[variantId] !== undefined)) return paise
+  return Math.round((presentmentMinor(paise, p, variantId) / 10 ** minorDigits(p.currency)) * 100)
 }
 
 /** Paise as a shopper in this market reads them (`AED 23.50`); rupees without a market. */
-export function formatPresentment(paise: number, p: MarketPricing | null): string {
-  if (!p || isRupeePricing(p) || !isCurrency(p.currency)) return formatMoney(paise, 'INR')
-  return formatMoney(presentmentMinor(paise, p), p.currency)
+export function formatPresentment(
+  paise: number,
+  p: MarketPricing | null,
+  /** The variant whose one unit this is: a catalog's fixed price for it wins. */
+  variantId?: string,
+): string {
+  if (!p || !isCurrency(p.currency)) return formatMoney(paise, 'INR')
+  const fixed = variantId !== undefined && p.fixedMinor?.[variantId] !== undefined
+  if (isRupeePricing(p) && !fixed) return formatMoney(paise, 'INR')
+  return formatMoney(presentmentMinor(paise, p, variantId), p.currency)
 }

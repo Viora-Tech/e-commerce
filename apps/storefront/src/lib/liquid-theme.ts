@@ -54,6 +54,7 @@ import { cachedLiquidData } from './liquid-data-cache'
 import { deferThemeScripts } from './liquid-defer'
 import { belowTheFold } from './liquid-fold'
 import { liquidMarketFor } from './liquid-market'
+import { requestCatalogId } from './market-catalog'
 import { marketPricingFor, pricingKey } from './market-pricing'
 import { MARKET_HEADERS } from './markets'
 import { cartIsEmpty, requestCart } from './request-cart'
@@ -105,6 +106,8 @@ const requestScope = cache(async (storeId: string) => {
     market: liquidMarketFor(h),
     // The market's currency, rate and rounding when it shows another currency than rupees.
     pricing: await marketPricingFor(storeId, h.get(MARKET_HEADERS.id)),
+    // Markets › Catalogs: the market lists only its catalog's products (null: every product).
+    catalogId: await requestCatalogId(storeId),
     path,
     listing,
     template,
@@ -116,6 +119,13 @@ const requestScope = cache(async (storeId: string) => {
 })
 
 type RequestScope = Awaited<ReturnType<typeof requestScope>>
+
+/** What a market changes about the data: its prices and its catalog's products. */
+function marketKey(scope: RequestScope): string {
+  return [pricingKey(scope.pricing), scope.catalogId ? `catalog:${scope.catalogId}` : '']
+    .filter(Boolean)
+    .join('|')
+}
 
 /** `listingSearch` params as the Liquid listing reads them: one key, its values. */
 function listingQuery(search: string): Record<string, string[]> {
@@ -191,7 +201,7 @@ async function createLiquidContext(
   })
   return createPageContext({
     bundle: theme.bundle,
-    data: cachedLiquidData(storeId, scope.origin, data, pricingKey(scope.pricing)),
+    data: cachedLiquidData(storeId, scope.origin, data, marketKey(scope)),
     request: {
       template: scope.template,
       path: scope.path,
@@ -296,7 +306,7 @@ function cacheScope(
     postedForm: scope.postedForm,
     experiments: scope.experimentsKey,
     // Subfolder markets share the origin: their prices are their own pages.
-    market: [scope.market.key, pricingKey(scope.pricing)].filter(Boolean).join('|'),
+    market: [scope.market.key, marketKey(scope)].filter(Boolean).join('|'),
   }
 }
 
