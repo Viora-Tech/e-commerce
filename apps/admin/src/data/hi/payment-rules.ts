@@ -17,7 +17,7 @@ export default [
       label: (name: string) => `${name} के लिए कैप्चर`,
     },
     rules: {
-      heading: 'पेमेंट के नियम',
+      heading: 'पेमेंट तरीकों के नियम',
       description:
         'कुछ ऑर्डर पर पेमेंट का कोई तरीका छिपाएँ, जैसे ₹5,000 से ऊपर या ज़्यादा रिटर्न वाले PIN कोड में कैश ऑन डिलीवरी। ऑर्डर लेते समय फिर से जाँचा जाता है।',
       empty: 'अभी कोई नियम नहीं। हर ऑर्डर पर पेमेंट के सभी तरीके दिखते हैं।',
@@ -65,6 +65,27 @@ export default [
       save: 'नियम सेव करें',
     },
     methodNames: { cod: 'कैश ऑन डिलीवरी', manual: 'आपको UPI या बैंक ट्रांसफ़र' },
+    page: {
+      back: 'पेमेंट',
+      providers: 'पेमेंट प्रोवाइडर',
+      providersNone: 'कोई कनेक्ट नहीं',
+      providersValue: (main: string, count: number) =>
+        count > 1 ? `${main} (मुख्य) और ${count - 1} और` : main,
+      methods: 'पेमेंट के तरीके',
+      methodsNone: 'कोई चालू नहीं',
+      manual: 'मैनुअल पेमेंट के तरीके',
+      manualNone: 'सब बंद',
+      manualKinds: { upi: 'UPI ID', bank: 'बैंक ट्रांसफ़र', cod: 'कैश ऑन डिलीवरी' },
+      capture: 'पेमेंट कैप्चर',
+      captureAutomatic: 'ऑटोमैटिक',
+      captureManual: (names: string) => `${names} के लिए मैनुअल`,
+      rules: 'पेमेंट तरीकों के नियम',
+      rulesNone: 'कोई नियम नहीं',
+      rulesCount: (n: number) => `${n} नियम`,
+      more: 'और',
+      moreValue: 'UPI QR, हर तरीके की फ़ीस, बिना पेमेंट वाले ऑर्डर',
+      moreHeading: 'पेमेंट की और सेटिंग',
+    },
     order: {
       capture: 'पेमेंट कैप्चर करें',
       capturing: 'कैप्चर हो रहा है…',

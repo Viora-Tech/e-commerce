@@ -8,8 +8,11 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
 import SettingsCard from '@/components/settings/settings-card'
+import SettingsDrill from '@/components/settings/settings-drill'
+import SettingsDrillPanel from '@/components/settings/settings-drill-panel'
 import { paymentModesContent } from '@/data/payment-modes'
-import { paymentsSetupContent } from '@/data/payments-setup'
+import { paymentRulesContent } from '@/data/payment-rules'
+import { methodNames, PAYMENTS_PAGE_HREF, paymentsSetupContent } from '@/data/payments-setup'
 import { razorpayWebsitesContent } from '@/data/razorpay-websites'
 import { SETTINGS_BACK } from '@/data/settings'
 import { useCopy } from '@/hooks/use-copy'
@@ -27,6 +30,7 @@ import { openTestOrder } from './open-test-order'
 import OtherGatewayCard from './other-gateway-card'
 import PaymentCaptureCard from './payment-capture-card'
 import PaymentRulesCard from './payment-rules-card'
+import { PAYMENT_ROWS, paymentRows } from './payments-rows'
 import RazorpayWebsiteBanner from './razorpay-website-banner'
 import RazorpayWebsiteList from './razorpay-website-list'
 import RouteMethodsCard from './route-methods-card'
@@ -51,9 +55,10 @@ function isOnlyOnline(setup: PaymentsSetup, id: string | undefined): boolean {
 }
 
 /**
- * Settings → Payments for a shop that has set up (or skipped the guide):
- * status, the main way to get paid and its health, the ways shoppers can pay,
- * other payment companies, and Advanced.
+ * Settings → Payments for a shop that has set up (or skipped the guide), Shopify-style: the
+ * status banners over a short row list (payment providers, supported methods, manual methods,
+ * payment capture, payment method customizations, More), each row opening its detail in place
+ * (`?open=`, old `#anchors` too; `payments-rows.ts`).
  */
 export default function PaymentsOverview({ setup, onReload, onOpenGuide }: PaymentsOverviewProps) {
   // Hooks
@@ -61,6 +66,8 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
   const copy = useCopy(paymentsSetupContent)
   const modes = useCopy(paymentModesContent)
   const sites = useCopy(razorpayWebsitesContent)
+  const { page } = useCopy(paymentRulesContent)
+  const names = useCopy(methodNames)
   const router = useRouter()
   const [methods, setMethods] = useState<CheckoutMethodRow[]>(setup.methods)
   const [savingMethods, setSavingMethods] = useState(false)
@@ -119,6 +126,7 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
   const routable = setup.routing.gateways.length > 1
   const activeCount = setup.routing.gateways.filter((g) => g.active).length
   const codOn = methods.some((m) => m.id === 'cod' && m.on)
+  const rows = paymentRows(setup, methods, page, names)
   const actions = (
     <Button variant="outline" className="gap-1.5" onClick={handleTestOrder} disabled={opening}>
       {opening ? <Spinner /> : null}
@@ -147,99 +155,111 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
         <RazorpayWebsiteBanner
           block={setup.razorpayWebsiteBlock}
           websites={setup.razorpayWebsites}
-          listId={WEBSITES_ID}
+          listHref={`${PAYMENTS_PAGE_HREF}&open=${PAYMENT_ROWS.providers}#${WEBSITES_ID}`}
         />
       ) : null}
 
-      <section className="flex flex-col gap-2" aria-labelledby="payments-main">
-        <h2 id="payments-main" className="text-card font-semibold text-foreground">
-          {copy.main.heading}
-        </h2>
-        <MainGatewayCard
-          primary={setup.primary}
-          gateway={setup.gateways.find((g) => g.id === setup.primary?.id)}
-          onlyOnline={isOnlyOnline(setup, setup.primary?.id)}
-          onAdd={handleOpenAdd}
-          onChanged={onReload}
-          onTurnOnUpi={handleTurnOnUpi}
-        />
-      </section>
-
-      {others.length ? (
-        <section className="flex flex-col gap-2" aria-labelledby="payments-others">
-          <h2 id="payments-others" className="text-card font-semibold text-foreground">
-            {modes.others.heading}
-          </h2>
-          {others.map((g) => (
-            <OtherGatewayCard
-              key={g.id}
-              gateway={g}
-              onlyOnline={isOnlyOnline(setup, g.id)}
+      <SettingsDrill rows={rows} backLabel={page.back}>
+        <SettingsDrillPanel id={PAYMENT_ROWS.providers}>
+          <section className="flex flex-col gap-2" aria-labelledby="payments-main">
+            <h2 id="payments-main" className="text-card font-semibold text-foreground">
+              {copy.main.heading}
+            </h2>
+            <MainGatewayCard
+              primary={setup.primary}
+              gateway={setup.gateways.find((g) => g.id === setup.primary?.id)}
+              onlyOnline={isOnlyOnline(setup, setup.primary?.id)}
+              onAdd={handleOpenAdd}
               onChanged={onReload}
+              onTurnOnUpi={handleTurnOnUpi}
             />
-          ))}
-        </section>
-      ) : null}
+          </section>
+          {others.length ? (
+            <section className="flex flex-col gap-2" aria-labelledby="payments-others">
+              <h2 id="payments-others" className="text-card font-semibold text-foreground">
+                {modes.others.heading}
+              </h2>
+              {others.map((g) => (
+                <OtherGatewayCard
+                  key={g.id}
+                  gateway={g}
+                  onlyOnline={isOnlyOnline(setup, g.id)}
+                  onChanged={onReload}
+                />
+              ))}
+            </section>
+          ) : null}
+          {routable ? (
+            <ActiveProvidersCard
+              key={JSON.stringify(setup.routing.gateways)}
+              setup={setup}
+              onReload={onReload}
+            />
+          ) : null}
+          {razorpay || setup.razorpayWebsiteBlock ? (
+            <SettingsCard id={WEBSITES_ID} title={sites.list.label} description={sites.list.help}>
+              <RazorpayWebsiteList websites={setup.razorpayWebsites} />
+            </SettingsCard>
+          ) : null}
+          <div className="flex flex-wrap justify-end gap-2">
+            {hasGateway ? null : (
+              <Button variant="ghost" size="lg" onClick={onOpenGuide}>
+                {copy.openGuide}
+              </Button>
+            )}
+            <Button variant="outline" size="lg" className="gap-1.5" onClick={handleOpenAdd}>
+              <Plus aria-hidden="true" className="size-4" />
+              {copy.add.button}
+            </Button>
+          </div>
+        </SettingsDrillPanel>
 
-      {routable ? (
-        <ActiveProvidersCard
-          key={JSON.stringify(setup.routing.gateways)}
-          setup={setup}
-          onReload={onReload}
-        />
-      ) : null}
-      {routable && activeCount > 1 ? (
-        <RouteMethodsCard
-          key={JSON.stringify(setup.routing.methods)}
-          setup={setup}
-          methods={methods}
-          onReload={onReload}
-        />
-      ) : null}
+        <SettingsDrillPanel id={PAYMENT_ROWS.methods}>
+          <SettingsCard
+            id="payments-methods"
+            title={copy.methods.heading}
+            description={hasGateway ? copy.methods.help : copy.methods.needsGateway}
+          >
+            <MethodsList
+              methods={methods}
+              hasGateway={hasGateway}
+              disabled={savingMethods}
+              onChange={saveMethods}
+            />
+          </SettingsCard>
+          {routable && activeCount > 1 ? (
+            <RouteMethodsCard
+              key={JSON.stringify(setup.routing.methods)}
+              setup={setup}
+              methods={methods}
+              onReload={onReload}
+            />
+          ) : null}
+        </SettingsDrillPanel>
 
-      {razorpay || setup.razorpayWebsiteBlock ? (
-        <SettingsCard id={WEBSITES_ID} title={sites.list.label} description={sites.list.help}>
-          <RazorpayWebsiteList websites={setup.razorpayWebsites} />
-        </SettingsCard>
-      ) : null}
+        <SettingsDrillPanel id={PAYMENT_ROWS.manual}>
+          <ManualMethodsCard
+            setup={setup}
+            codOn={codOn}
+            disabled={savingMethods}
+            onCodChange={handleCod}
+            onReload={onReload}
+          />
+        </SettingsDrillPanel>
 
-      <SettingsCard
-        id="payments-methods"
-        title={copy.methods.heading}
-        description={hasGateway ? copy.methods.help : copy.methods.needsGateway}
-      >
-        <MethodsList
-          methods={methods}
-          hasGateway={hasGateway}
-          disabled={savingMethods}
-          onChange={saveMethods}
-        />
-      </SettingsCard>
+        <SettingsDrillPanel id={PAYMENT_ROWS.capture}>
+          <PaymentCaptureCard setup={setup} onReload={onReload} />
+        </SettingsDrillPanel>
 
-      <ManualMethodsCard
-        setup={setup}
-        codOn={codOn}
-        disabled={savingMethods}
-        onCodChange={handleCod}
-        onReload={onReload}
-      />
+        <SettingsDrillPanel id={PAYMENT_ROWS.rules}>
+          <PaymentRulesCard setup={setup} onReload={onReload} />
+        </SettingsDrillPanel>
 
-      <PaymentRulesCard setup={setup} onReload={onReload} />
-      {hasGateway ? <PaymentCaptureCard setup={setup} onReload={onReload} /> : null}
+        <SettingsDrillPanel id={PAYMENT_ROWS.more}>
+          <AdvancedSection />
+        </SettingsDrillPanel>
+      </SettingsDrill>
 
-      <div className="flex flex-wrap gap-2">
-        <Button variant="outline" size="lg" className="gap-1.5" onClick={handleOpenAdd}>
-          <Plus aria-hidden="true" className="size-4" />
-          {copy.add.button}
-        </Button>
-        {hasGateway ? null : (
-          <Button variant="ghost" size="lg" onClick={onOpenGuide}>
-            {copy.openGuide}
-          </Button>
-        )}
-      </div>
-
-      <AdvancedSection />
       <HelpFooter />
 
       <AddGatewayDialog

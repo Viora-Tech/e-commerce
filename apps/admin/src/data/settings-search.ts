@@ -119,20 +119,32 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'UPI',
     where: 'Selling › Payments',
-    href: '/settings/payments',
+    href: '/settings/payments?open=methods',
     keywords: ['upi', 'gpay', 'google pay', 'phonepe', 'paytm', 'bhim', 'qr', 'qr code'],
   },
   {
     title: 'Turn cash on delivery on or off',
     where: 'Selling › Payments',
-    href: '/settings/payments',
+    href: '/settings/payments?open=manual',
     keywords: ['cod', 'cash', 'cash on delivery', 'pay on delivery'],
   },
   {
     title: 'Razorpay, Cashfree and other payment companies',
     where: 'Selling › Payments',
-    href: '/settings/payments',
+    href: '/settings/payments?open=providers',
     keywords: ['razorpay', 'cashfree', 'decentro', 'card', 'cards', 'netbanking', 'emi', 'wallet'],
+  },
+  {
+    title: 'Payment method customizations',
+    where: 'Selling › Payments',
+    href: '/settings/payments?open=rules',
+    keywords: ['hide cod', 'payment rules', 'rto', 'customization', 'customisation', 'hide payment'],
+  },
+  {
+    title: 'Payment capture',
+    where: 'Selling › Payments',
+    href: '/settings/payments?open=capture',
+    keywords: ['capture', 'authorise', 'authorize', 'manual capture', 'hold payment'],
   },
   {
     title: 'Bank transfer and fees per method',

@@ -10,6 +10,20 @@ Connecting a payment company, choosing how shoppers pay and the ₹1 test order 
 payment company's card in **Settings → Payments**: **Test / Live** and **Active / Inactive**.
 They work the same for Razorpay, Cashfree and Decentro (UPI).
 
+## How the page is laid out
+
+**Settings → Payments** is a short list of rows, each with what is set now. Click a row to open
+it; **‹ Payments** takes you back.
+
+- **Payment providers**: your payment companies, which one is main, their Test / Live and
+  Active / Inactive switches, their order when several are on, and **Add another way to get paid**.
+- **Supported methods**: UPI, cards, netbanking, wallets and EMI on or off, and which company
+  takes each one when several are on.
+- **Manual payment methods**: your UPI ID, bank transfer and cash on delivery.
+- **Payment capture**: take the money at once, or hold it and capture it from the order.
+- **Payment method customizations**: rules that hide a way to pay for some orders.
+- **More**: the two UPI options, fees per method and cancelling unpaid orders.
+
 ## Test keys and live keys
 
 Every payment company gives you two sets of keys: **test** keys, where nothing real is charged,
@@ -84,11 +98,11 @@ an optional fee or discount for paying this way. Each row has its own switch.
 
 Orders paid by UPI ID or bank transfer wait as **Payment pending**. When the money reaches your
 account, open the order and use **Mark as paid** (you can note the UTR and the date). Unpaid
-transfer orders can be cancelled automatically from **Advanced → Unpaid orders**.
+transfer orders can be cancelled automatically from **More → Bank transfer, UPI QR and fees per method → Unpaid orders**.
 
-## Payment rules
+## Payment method customizations
 
-**Payment rules** hide a way to pay for some orders, the way Shopify's payment customizations
+**Payment method customizations** hide a way to pay for some orders, the way Shopify's payment customizations
 do. Cash on delivery is where most returned-to-origin (RTO) losses come from, so this is the
 usual use: no cash on delivery on big orders, in PIN codes with many refused parcels, or for
 fragile products.

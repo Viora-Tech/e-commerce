@@ -14,7 +14,7 @@ export const paymentRulesContent = {
     label: (name: string) => `Capture for ${name}`,
   },
   rules: {
-    heading: 'Payment rules',
+    heading: 'Payment method customizations',
     description:
       'Hide a way to pay for some orders, like cash on delivery above ₹5,000 or in PIN codes with many returns. Checked again when the order is placed.',
     empty: 'No rules yet. Every way to pay shows on every order.',
@@ -65,6 +65,28 @@ export const paymentRulesContent = {
     cod: 'Cash on delivery',
     manual: 'UPI or bank transfer to you',
   } as Record<string, string>,
+  /** Settings → Payments as a row list (Shopify-style): each row's name and current value. */
+  page: {
+    back: 'Payments',
+    providers: 'Payment providers',
+    providersNone: 'None connected',
+    providersValue: (main: string, count: number) =>
+      count > 1 ? `${main} (main) and ${count - 1} more` : main,
+    methods: 'Supported methods',
+    methodsNone: 'None on',
+    manual: 'Manual payment methods',
+    manualNone: 'All off',
+    manualKinds: { upi: 'UPI ID', bank: 'Bank transfer', cod: 'Cash on delivery' },
+    capture: 'Payment capture',
+    captureAutomatic: 'Automatic',
+    captureManual: (names: string) => `Manual for ${names}`,
+    rules: 'Payment method customizations',
+    rulesNone: 'No rules',
+    rulesCount: (n: number) => (n === 1 ? '1 rule' : `${n} rules`),
+    more: 'More',
+    moreValue: 'UPI QR, fees per method, unpaid orders',
+    moreHeading: 'More payment settings',
+  },
   order: {
     capture: 'Capture payment',
     capturing: 'Capturing…',

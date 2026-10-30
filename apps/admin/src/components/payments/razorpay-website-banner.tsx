@@ -8,15 +8,15 @@ type RazorpayWebsiteBannerProps = {
   block: NonNullable<PaymentsSetup['razorpayWebsiteBlock']>
   /** The store's web addresses; Razorpay's payload does not say which one the payment came from. */
   websites: string[]
-  /** The id of the websites card on this page, for the "See the websites" link. */
-  listId: string
+  /** Where the websites card is (the Payment providers row), for the "See the websites" link. */
+  listHref: string
 }
 
 /** "Razorpay is blocking payments from your website": shown for 7 days after such a refusal. */
 export default function RazorpayWebsiteBanner({
   block,
   websites,
-  listId,
+  listHref,
 }: RazorpayWebsiteBannerProps) {
   // Hooks
   const { banner: copy } = useCopy(razorpayWebsitesContent)
@@ -32,7 +32,7 @@ export default function RazorpayWebsiteBanner({
       <AlertDescription className="flex flex-col gap-1">
         <span>{copy.body(sites)}</span>
         <span>{copy.when(fmt.when(block.at))}</span>
-        <a href={`#${listId}`} className="w-fit font-medium underline underline-offset-2">
+        <a href={listHref} className="w-fit font-medium underline underline-offset-2">
           {copy.action}
         </a>
       </AlertDescription>
