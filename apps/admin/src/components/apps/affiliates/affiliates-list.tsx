@@ -184,7 +184,9 @@ function AffiliatesTable() {
         total={ordered.length}
         onPageChange={(page) => setQ({ page })}
         onPerPageChange={(perPage) => setQ({ perPage, page: 1 })}
-        empty={filtered ? filtersCopy.affiliates.noResults : { heading: l.empty }}
+        empty={
+          filtered ? filtersCopy.affiliates.noResults : { heading: l.empty, body: l.emptyBody }
+        }
       />
       <AddAffiliateDialog open={adding} onOpenChange={setAdding} onAdded={handleChanged} />
     </div>

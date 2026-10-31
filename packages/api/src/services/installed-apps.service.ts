@@ -44,6 +44,18 @@ const iso = (d: Date | null | undefined) => (d ? d.toISOString() : null)
 type Activity = { at: Date; summary: string | null }
 
 /** The newer of two activities; recorded activity wins a tie since it carries the app's words. */
+/**
+ * An app's last error as a merchant reads it: queue internals ("job stalled more than allowable
+ * limit", timeouts) become one plain line; any other message, already written for people, stays.
+ */
+export function plainProblem(raw: string | null | undefined): string | null {
+  if (!raw) return null
+  if (/stalled|timed? ?out|ETIMEDOUT|ECONNRESET/i.test(raw)) {
+    return 'The last run stopped before it finished. Run it again.'
+  }
+  return raw
+}
+
 function newer(a: Activity | null, b: Activity | null): Activity | null {
   if (!a) return b
   if (!b) return a
@@ -136,7 +148,7 @@ export async function storeAppSummaries(tx: StoreTx, storeId: string): Promise<S
       ? { at: row.lastActivityAt, summary: row.lastActivity ?? null }
       : null
     const activity = installed ? newer(recorded, derived.get(p.id) ?? null) : null
-    const problem = installed ? (row?.lastError ?? own?.problem ?? null) : null
+    const problem = installed ? (plainProblem(row?.lastError) ?? own?.problem ?? null) : null
     const status: AppStatus | null = !installed
       ? null
       : problem

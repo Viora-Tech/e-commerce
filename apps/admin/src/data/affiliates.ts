@@ -170,7 +170,8 @@ export const affiliatesContent = {
   list: {
     title: 'Affiliates',
     resource: { singular: 'affiliate', plural: 'affiliates' },
-    empty: 'No affiliates yet. Shoppers apply at /affiliate on your store, or add one here.',
+    empty: 'No affiliates yet',
+    emptyBody: 'Shoppers apply at /affiliate on your store, or add one here.',
     add: 'Add affiliate',
     columns: {
       affiliate: 'Affiliate',
