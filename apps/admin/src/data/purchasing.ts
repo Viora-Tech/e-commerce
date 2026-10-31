@@ -76,6 +76,12 @@ export const supplierFormContent = {
   created: 'Supplier added',
   failed: 'Could not save supplier',
   needName: 'Add the supplier name',
+  /** Why a GSTIN was refused, by `validateGstin` reason (same rules as checkout). */
+  gstinErrors: {
+    shape: 'A GSTIN has 15 characters, like 06AAACW1234A1Z5',
+    state: 'The first two digits are not a GST state code',
+    checksum: 'This GSTIN has a typo: its last character does not match the rest',
+  },
   delete: 'Delete',
   deleted: 'Supplier deleted',
   deleteFailed: 'Could not delete the supplier',

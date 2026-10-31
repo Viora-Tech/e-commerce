@@ -73,6 +73,11 @@ export default [
     created: 'सप्लायर जुड़ गया',
     failed: 'सप्लायर सेव नहीं हो सका',
     needName: 'सप्लायर का नाम लिखें',
+    gstinErrors: {
+      shape: 'GSTIN में 15 अक्षर होते हैं, जैसे 06AAACW1234A1Z5',
+      state: 'पहले दो अंक कोई GST राज्य कोड नहीं हैं',
+      checksum: 'इस GSTIN में टाइपो है: आख़िरी अक्षर बाकी से मेल नहीं खाता',
+    },
     delete: 'हटाएँ',
     deleted: 'सप्लायर हटा दिया',
     deleteFailed: 'सप्लायर हटाया नहीं जा सका',
