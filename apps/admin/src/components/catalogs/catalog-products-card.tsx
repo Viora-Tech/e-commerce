@@ -2,10 +2,9 @@
 
 import type { CatalogView } from '@commerce/core'
 import { Field, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
-import { RadioGroup } from '@commerce/ui/shadcn/radio-group'
+import { Switch } from '@commerce/ui/shadcn/switch'
 import DataCard from '@/components/layout/data-card'
 import PickedField from '@/components/pickers/picked-field'
-import RolloutOption from '@/components/rollouts/rollout-option'
 import { catalogsContent } from '@/data/catalogs'
 import { useCopy } from '@/hooks/use-copy'
 import { catalogTab, loadCatalogPicked } from './catalog-pick-sources'
@@ -24,9 +23,10 @@ type CatalogProductsCardProps = {
   }) => void
 }
 
-const SCOPES = ['all', 'chosen'] as const
-
-/** What the catalog sells: every product, or the products and collections chosen here. */
+/**
+ * What the catalog sells, as Shopify's card: "Automatically include all products" on, or off
+ * with the products and collections chosen here.
+ */
 export default function CatalogProductsCard({
   scope,
   productIds,
@@ -40,21 +40,21 @@ export default function CatalogProductsCard({
   return (
     <DataCard title={copy.products}>
       <FieldGroup>
-        <RadioGroup
-          value={scope}
-          disabled={disabled}
-          onValueChange={(v) => onChange({ scope: v === 'chosen' ? 'chosen' : 'all' })}
-        >
-          {SCOPES.map((s) => (
-            <RolloutOption
-              key={s}
-              id={`catalog-scope-${s}`}
-              value={s}
-              label={copy.scope[s]}
-              help={copy.scopeHelp[s]}
-            />
-          ))}
-        </RadioGroup>
+        <label htmlFor="catalog-auto-include" className="flex items-start gap-3">
+          <Switch
+            id="catalog-auto-include"
+            className="mt-0.5"
+            checked={scope === 'all'}
+            disabled={disabled}
+            onCheckedChange={(on) => onChange({ scope: on ? 'all' : 'chosen' })}
+          />
+          <span className="flex min-w-0 flex-col">
+            <span className="text-body font-medium text-ink-strong">{copy.autoInclude}</span>
+            <span className="text-caption text-muted-foreground">
+              {scope === 'all' ? copy.autoIncludeHelp : copy.scopeHelp.chosen}
+            </span>
+          </span>
+        </label>
         {scope === 'chosen' ? (
           <>
             <Field>

@@ -197,55 +197,56 @@ export default function CatalogForm({ catalog, markets, catalogs }: CatalogFormP
 
       <DataCard title={f.details}>
         <FieldGroup>
-          <Field className="max-w-md">
+          {/* Shopify's top card: the title with its status beside it, then the markets row. */}
+          <Field>
             <FieldLabel htmlFor="catalog-name">{f.name}</FieldLabel>
-            <Input
-              id="catalog-name"
-              size="lg"
-              value={form.name}
-              maxLength={80}
-              placeholder={f.namePlaceholder}
-              disabled={!canManage}
-              onChange={(e) => patch({ name: e.target.value })}
-            />
-          </Field>
-          <Field className="max-w-md">
-            <FieldLabel htmlFor="catalog-status">{f.status}</FieldLabel>
-            <NativeSelect
-              id="catalog-status"
-              value={form.status}
-              disabled={!canManage}
-              onChange={(e) => patch({ status: e.target.value === 'draft' ? 'draft' : 'active' })}
-            >
-              <NativeSelectOption value="active">{copy.statuses.active}</NativeSelectOption>
-              <NativeSelectOption value="draft">{copy.statuses.draft}</NativeSelectOption>
-            </NativeSelect>
+            <div className="flex gap-2">
+              <Input
+                id="catalog-name"
+                className="min-w-0 flex-1"
+                value={form.name}
+                maxLength={80}
+                placeholder={f.namePlaceholder}
+                disabled={!canManage}
+                onChange={(e) => patch({ name: e.target.value })}
+              />
+              <NativeSelect
+                id="catalog-status"
+                aria-label={f.status}
+                className="w-32"
+                value={form.status}
+                disabled={!canManage}
+                onChange={(e) => patch({ status: e.target.value === 'draft' ? 'draft' : 'active' })}
+              >
+                <NativeSelectOption value="active">{copy.statuses.active}</NativeSelectOption>
+                <NativeSelectOption value="draft">{copy.statuses.draft}</NativeSelectOption>
+              </NativeSelect>
+            </div>
             <FieldDescription>{f.statusHelp}</FieldDescription>
           </Field>
+          <CatalogMarketsCard
+            catalogId={catalog?.id ?? null}
+            markets={markets}
+            catalogs={catalogs}
+            marketIds={form.marketIds}
+            disabled={!canManage}
+            onChange={(marketIds) => patch({ marketIds })}
+          />
         </FieldGroup>
       </DataCard>
 
-      <CatalogMarketsCard
-        catalogId={catalog?.id ?? null}
-        markets={markets}
-        catalogs={catalogs}
-        marketIds={form.marketIds}
+      <CatalogPricesCard
+        form={form}
+        currency={currency}
+        rupeeLocked={rupeeLocked}
         disabled={!canManage}
-        onChange={(marketIds) => patch({ marketIds })}
+        onChange={patch}
       />
 
       <CatalogProductsCard
         scope={form.scope}
         productIds={form.productIds}
         collectionIds={form.collectionIds}
-        disabled={!canManage}
-        onChange={patch}
-      />
-
-      <CatalogPricesCard
-        form={form}
-        currency={currency}
-        rupeeLocked={rupeeLocked}
         disabled={!canManage}
         onChange={patch}
       />

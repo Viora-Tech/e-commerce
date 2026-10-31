@@ -53,7 +53,6 @@ export default function UnfulfilledCard({
   const [busy, setBusy] = useState(false)
 
   // Helpers
-  const rows = unfulfilledLines(order)
   const quantityFor = (lineId: string, remaining: number) =>
     unticked[lineId] ? 0 : (picks[lineId] ?? remaining)
   const reset = () => {
@@ -75,7 +74,7 @@ export default function UnfulfilledCard({
     setUnticked(({ [lineId]: _, ...rest }) => (on ? rest : { ...rest, [lineId]: true }))
 
   const handleTickAll = (on: boolean) =>
-    setUnticked(on ? {} : Object.fromEntries(rows.map((r) => [r.line.id, true as const])))
+    setUnticked(on ? {} : Object.fromEntries(unfulfilledLines(order).map((r) => [r.line.id, true as const])))
 
   const handleCancel = () => {
     reset()
@@ -83,7 +82,7 @@ export default function UnfulfilledCard({
   }
 
   const handleConfirm = async () => {
-    const lines = rows
+    const lines = unfulfilledLines(order)
       .map(({ line, remaining }) => ({
         lineId: line.id,
         quantity: quantityFor(line.id, remaining),
@@ -109,6 +108,7 @@ export default function UnfulfilledCard({
   }
 
   // Render logic
+  const rows = unfulfilledLines(order)
   const count = rows.reduce((n, r) => n + r.remaining, 0)
   const selected = rows.reduce((n, r) => n + quantityFor(r.line.id, r.remaining), 0)
   const tickedLines = rows.filter((r) => quantityFor(r.line.id, r.remaining) > 0).length
