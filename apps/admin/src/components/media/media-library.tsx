@@ -396,7 +396,11 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
               </ul>
             )}
             {items.length === 0 && queue.pending.length === 0 ? (
-              <EmptyState variant="plain" size="lg" body={copy.noMatch} />
+              <EmptyState
+                variant="plain"
+                size="lg"
+                body={folder && !query && !type ? copy.emptyFolder : copy.noMatch}
+              />
             ) : null}
             {total > 0 ? (
               <ResourceTablePagination

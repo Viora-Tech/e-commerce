@@ -90,6 +90,7 @@ export const mediaContent = {
         : `${n === 1 ? '1 file' : `${n} files`} · ${used} used`,
     tabs: { all: 'All', image: 'Images', video: 'Videos', document: 'Documents' },
     noMatch: 'No files match your search.',
+    emptyFolder: 'This folder is empty. Upload files here, or move them in from All files.',
     storage: 'Storage',
     intro: 'Everything uploaded to this store. Files stay here when removed from a product.',
     search: 'Search files',
