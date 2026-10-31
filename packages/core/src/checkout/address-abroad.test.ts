@@ -30,6 +30,10 @@ describe('checkout addresses abroad', () => {
     expect(checkoutCountries([['*']]).length).toBeGreaterThan(200)
     expect(defaultCheckoutCountry('AE', ['IN', 'US'])).toBe('IN')
     expect(defaultCheckoutCountry('us', ['IN', 'US'])).toBe('US')
+    // On the home market the visitor's own country leads, when the store ships there.
+    expect(defaultCheckoutCountry('IN', ['IN', 'US'], 'us')).toBe('US')
+    expect(defaultCheckoutCountry('IN', ['IN', 'US'], 'FR')).toBe('IN')
+    expect(defaultCheckoutCountry('US', ['IN', 'US', 'CA'], 'CA')).toBe('US')
   })
 
   it('checks postcodes loosely per country', () => {

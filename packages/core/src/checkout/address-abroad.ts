@@ -50,15 +50,19 @@ export function checkoutCountries(zoneCountries: readonly (readonly string[])[])
 }
 
 /**
- * The country the form opens on: the shopper's market country when the store ships there,
- * else India.
+ * The country the form opens on: the shopper's market country when it is abroad and the store
+ * ships there; else, on the home market, the country they browse from (Cloudflare's edge
+ * country) when the store ships there; else India.
  */
 export function defaultCheckoutCountry(
   marketCountry: string | null | undefined,
   offered: readonly string[],
+  visitorCountry?: string | null,
 ): string {
   const code = checkoutCountry(marketCountry)
-  return offered.includes(code) ? code : HOME_COUNTRY
+  if (code !== HOME_COUNTRY && offered.includes(code)) return code
+  const visitor = checkoutCountry(visitorCountry)
+  return offered.includes(visitor) ? visitor : HOME_COUNTRY
 }
 
 type PostcodeRule = { pattern: RegExp; required: boolean }

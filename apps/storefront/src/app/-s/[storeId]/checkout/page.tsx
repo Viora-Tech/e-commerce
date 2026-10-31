@@ -95,10 +95,11 @@ export default async function CheckoutPage({ params }: Params) {
   // Settings → Checkout → Checkout content (#158): the store's wording in the shopper's language.
   const requestHeaders = await headers()
   const text = checkoutTextFor(settings.content, requestHeaders.get(MARKET_HEADERS.locale) ?? 'en')
-  // A new address opens in the shopper's market country when the store ships there.
+  // A new address opens in the shopper's market country, or the country they browse from.
   const defaultCountry = defaultCheckoutCountry(
     requestHeaders.get(MARKET_HEADERS.country),
     countries,
+    requestHeaders.get('x-visitor-country'),
   )
   return (
     <>
