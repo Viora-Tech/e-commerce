@@ -2,6 +2,7 @@
 import { page, shippingRate, store, storeDomain } from '@commerce/db'
 import { and, eq, inArray, isNotNull, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { CommerceError } from '../errors'
 import { parseReturnPolicy } from '../returns/policy'
 import { emptyStoreAddress, StoreAddressSchema } from '../settings/general'
 import { parseShippingSettings } from '../shipping/settings'
@@ -22,6 +23,7 @@ import {
   fillPolicyTemplate,
   type MissingDetail,
   missingTemplateDetails,
+  POLICY_PLACEHOLDERS,
   type PolicyRichText,
   type PolicyTemplateInput,
 } from './templates'
@@ -81,6 +83,16 @@ export type SavePolicyInput = {
 /** Create or update a policy's page. Publishing keeps the first publish date. */
 export async function savePolicy(ctx: StoreContext, input: SavePolicyInput): Promise<StorePolicy> {
   if (!isPolicyType(input.type)) throw new Error(`Unknown policy ${String(input.type)}`)
+  // A template's [gaps] must not reach shoppers (#111, #205): hidden is fine, live is not.
+  const text = JSON.stringify(input.body ?? '')
+  const left = input.published ? POLICY_PLACEHOLDERS.filter((p) => text.includes(p)) : []
+  if (left.length > 0) {
+    throw new CommerceError(
+      'BAD_REQUEST',
+      `Fill in ${left.join(', ')} before showing this policy on your store, or keep it hidden.`,
+      { storeId: ctx.storeId },
+    )
+  }
   const handle = policyHandle(input.type)
   const title = input.title.trim() || POLICY_TITLES[input.type]
   const now = new Date()

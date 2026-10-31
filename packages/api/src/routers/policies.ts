@@ -1,4 +1,5 @@
 import {
+  CommerceError,
   listPolicies,
   loadPolicySettings,
   POLICY_TYPES,
@@ -9,6 +10,7 @@ import {
   savePolicySettings,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
+import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can } from '../procedures'
 
@@ -40,7 +42,17 @@ export const policiesRouter = {
         published: z.boolean(),
       }),
     )
-    .handler(({ context, input }) => savePolicy(ctxOf(context), input)),
+    .handler(async ({ context, input }) => {
+      try {
+        return await savePolicy(ctxOf(context), input)
+      } catch (err) {
+        // "Fill in [email address] … before showing this policy" reaches the editor's toast.
+        if (err instanceof CommerceError) {
+          throw new ORPCError('BAD_REQUEST', { message: err.message })
+        }
+        throw err
+      }
+    }),
 
   saveSettings: can(permissions.SETTINGS_MANAGE)
     .input(PolicySettingsSchema)

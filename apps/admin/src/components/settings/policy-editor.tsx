@@ -71,7 +71,8 @@ export default function PolicyEditor({
       if (startFromTemplate && found.pageId === null) {
         const t = await api.policies.template({ type })
         if (cancelled) return
-        setDraft({ ...loaded, body: t.body as RichTextValue, published: true })
+        // Shown on the store only once nothing is missing: a [gap] must never reach shoppers.
+        setDraft({ ...loaded, body: t.body as RichTextValue, published: t.missing.length === 0 })
         setMissing(t.missing)
         setEditorKey((k) => k + 1)
       }

@@ -51,6 +51,18 @@ const RESOLVE_DAYS = 30
 
 const blank = (field: string) => `[${field}]`
 
+/** Every gap a template can leave; a policy still holding one must not go live (#111, #205). */
+export const POLICY_PLACEHOLDERS = [
+  'store name',
+  'business name',
+  'business address',
+  'email address',
+  'phone number',
+  'grievance officer name',
+  'grievance officer email',
+  'grievance officer phone',
+].map(blank)
+
 function oneLineAddress(a: StoreAddress): string {
   const state = INDIAN_STATE_NAMES[a.state.trim().toUpperCase()] ?? a.state.trim()
   const cityLine = [a.city, state]
