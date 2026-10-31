@@ -173,6 +173,8 @@ export const ordersRouter = {
           .url({ protocol: /^https?$/ })
           .max(500)
           .optional(),
+        /** False: pack without the "order shipped" message (Shopify's "Notify customer"). */
+        notifyCustomer: z.boolean().optional(),
       }),
     )
     .handler(async ({ context, input }) => {

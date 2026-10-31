@@ -130,6 +130,13 @@ export default [
       done: 'आइटम भेज दिए गए',
       failed: 'ये आइटम भेजना नहीं हो पाया',
       nothing: 'पैक करने को कुछ नहीं बचा।',
+      selected: (n) => `${n} आइटम चुने गए`,
+      selectAll: 'सारे आइटम चुनें',
+      pickLine: (title) => `${title} भेजें`,
+      ofQuantity: (n) => `में से ${n}`,
+      notify: 'ग्राहक को बताएं',
+      notifyHint: 'सारा सामान पैक होते ही "ऑर्डर भेजा गया" मैसेज जाएगा।',
+      confirmShort: 'भेजा गया मार्क करें',
     },
     collectDialog: {
       title: 'पेमेंट लें',

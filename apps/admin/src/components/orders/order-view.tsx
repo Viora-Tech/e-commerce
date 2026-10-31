@@ -24,7 +24,6 @@ import CollectPaymentDialog from './collect-payment-dialog'
 import CourierOrdersCard from './courier-orders-card'
 import CustomerCard from './customer-card'
 import DeliveryRouteCard from './delivery-route-card'
-import FulfilDialog from './fulfil-dialog'
 import ImportedOrderCard from './imported-order-card'
 import LineItemsCard from './line-items-card'
 import OrderActions from './order-actions'
@@ -105,6 +104,16 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
   }
 
   // Event handlers
+  /* The next-step bar opens the Unfulfilled card in place; bring it into view. */
+  const handleOpenFulfil = () => {
+    setFulfilling(true)
+    requestAnimationFrame(() =>
+      document
+        .getElementById('fulfil-items')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+    )
+  }
+
   const handleMove = async (to: OrderMark) => {
     // "Mark as paid" asks how the money came in, the same as Collect payment.
     if (to === 'paid' && canCollect) {
@@ -318,7 +327,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
             busy={busy}
             onCollect={() => setCollecting(true)}
             onShip={handleShip}
-            onFulfil={() => setFulfilling(true)}
+            onFulfil={handleOpenFulfil}
             onDelivered={() => handleMove('delivered')}
             onSendReminder={sendReminder}
           />
@@ -338,7 +347,15 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
             canTakeOver={hasPermission(permissions.ORDERS_WRITE)}
             onChanged={refresh}
           />
-          {readOnly ? null : <UnfulfilledCard order={order} onFulfil={() => setFulfilling(true)} />}
+          {readOnly ? null : (
+            <UnfulfilledCard
+              order={order}
+              fulfilling={fulfilling}
+              onFulfil={() => setFulfilling(true)}
+              onCancel={() => setFulfilling(false)}
+              onDone={closeAndRefresh(() => setFulfilling(false))}
+            />
+          )}
           {readOnly ? null : <ParcelsCard order={order} />}
           <LineItemsCard
             order={order}
@@ -456,11 +473,6 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
         imported={readOnly}
         onClose={() => setRefunding(null)}
         onDone={closeAndRefresh(() => setRefunding(null))}
-      />
-      <FulfilDialog
-        order={fulfilling ? order : null}
-        onClose={() => setFulfilling(false)}
-        onDone={closeAndRefresh(() => setFulfilling(false))}
       />
       <CollectPaymentDialog
         order={collecting ? order : null}

@@ -144,6 +144,13 @@ export const orderDetailContent = {
     done: 'Items marked as fulfilled',
     failed: 'Could not fulfil those items',
     nothing: 'Nothing left to pack.',
+    selected: (n: number) => `${n} ${n === 1 ? 'item' : 'items'} selected`,
+    selectAll: 'Select every item',
+    pickLine: (title: string) => `Fulfil ${title}`,
+    ofQuantity: (n: number) => `of ${n}`,
+    notify: 'Notify customer',
+    notifyHint: 'Sends the "order shipped" message once everything is packed.',
+    confirmShort: 'Mark as fulfilled',
   },
   collectDialog: {
     title: 'Collect payment',

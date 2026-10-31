@@ -19,6 +19,8 @@ export type FulfilOrderInput = {
   courier?: string | undefined
   trackingNumber?: string | undefined
   trackingUrl?: string | undefined
+  /** False: no "order shipped" message to the shopper (the merchant's "Notify customer"). */
+  notifyCustomer?: boolean | undefined
 }
 
 export type FulfilOrderResult = {
@@ -256,7 +258,7 @@ export async function fulfilOrderLines(
 
   /* Packing moves only the fulfilment status; an unpaid (cash on delivery)
      order stays unpaid until the money is collected. */
-  await recomputeOrderStatuses(ctx, input.orderId)
+  await recomputeOrderStatuses(ctx, input.orderId, { notifyCustomer: input.notifyCustomer })
 
   return {
     orderId: input.orderId,
