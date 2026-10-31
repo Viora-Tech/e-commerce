@@ -166,6 +166,7 @@ function applyToLocal(local: LocalSettings, ops: SettingsOp[]): LocalSettings {
         id,
         profileId: op.id ? (next.zones.find((z) => z.id === id)?.profileId ?? null) : owner,
         name: op.write.name,
+        countryCodes: op.write.countryCodes,
         stateCodes: op.write.stateCodes,
         pincodeRules: op.write.pincodeRules,
         rates: op.write.rates.map((r, i) => ({
@@ -629,6 +630,7 @@ describe('running it again', () => {
     expect(sameLines.filter((i) => i.subject === 'shipping_zone').map((i) => i.name)).toEqual([
       'South India',
       'Rest of India',
+      'International',
       'Heavy India',
     ])
     // The custom profile is matched again, with the same products.
@@ -640,7 +642,7 @@ describe('running it again', () => {
     expect(sameLines.filter((i) => i.subject === 'field')).toHaveLength(4)
     // Matches are remembered, so a later rename on either side keeps them paired.
     expect(after.mapped.locations.size).toBe(2)
-    expect(after.mapped.zones.size).toBe(3)
+    expect(after.mapped.zones.size).toBe(4)
     expect(after.mapped.shippingProfiles.size).toBe(1)
   })
 })
