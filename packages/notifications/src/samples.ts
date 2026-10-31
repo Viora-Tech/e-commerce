@@ -16,9 +16,10 @@ export const sampleTemplateData: TemplateData = {
     },
   ],
   shipping: { label: 'Bluedart', amount: '₹49' },
+  // ₹2,048 with 18% GST inside it: ₹312 of tax, split evenly within the state.
   taxBreakdown: [
-    { label: 'CGST (9%)', amount: '₹22' },
-    { label: 'SGST (9%)', amount: '₹27' },
+    { label: 'CGST (9%)', amount: '₹156' },
+    { label: 'SGST (9%)', amount: '₹156' },
   ],
   paymentMethodLabel: 'Cash on delivery',
   storeAddress: '221 MG Road, Bengaluru 560001',
