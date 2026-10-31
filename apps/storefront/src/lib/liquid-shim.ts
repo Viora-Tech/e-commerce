@@ -8,7 +8,10 @@
  * - `/cart.js` → our cart's count and total, in the fields themes read.
  * - `/cart/change.js`, `/cart/update.js`, `/cart/clear.js` → our cart page.
  * - `?section_id=` / `?sections=` (section rendering) → our renderer of the theme's
- *   own section (`/theme-actions/section`), so lazy tabs and carousels fill in.
+ *   own section (`/theme-actions/section`), so lazy tabs and carousels fill in: one section's
+ *   HTML, or JSON keyed by every section asked for (`lib/section-rendering.ts`).
+ * - `Node#removeChild` / `Node#insertBefore` → follow a node a theme script moved, so React
+ *   never throws over markup it draws that the theme rearranged (a heading's reveal span).
  * - `/search/suggest(.json)` → passed through untouched: our own predictive search answers it
  *   in Shopify's shape (`lib/predictive-route.ts`), JSON or the theme's section with results.
  * - `/recommendations/products(.json)` → passed through: our related products answer
@@ -63,6 +66,28 @@ const SHIM = `(function () {
   window.Shopify.loadFeatures = function (features, done) {
     setTimeout(function () { if (typeof done === 'function') done(null); }, 0);
   };
+  // React draws parts of the theme's page too (the cart, the account, the product). A theme
+  // script that moves a node React owns (a reveal wrapping a heading's words in a span) leaves
+  // React removing it from, or inserting before it in, a parent it has left: the DOM throws and
+  // the page falls to its error screen. These follow the node to where the theme put it.
+  var NodeType = window.Node;
+  if (NodeType) {
+    var removeChild = NodeType.prototype.removeChild;
+    var insertBefore = NodeType.prototype.insertBefore;
+    NodeType.prototype.removeChild = function (child) {
+      if (child instanceof NodeType && child.parentNode !== this) {
+        if (child.parentNode) removeChild.call(child.parentNode, child);
+        return child;
+      }
+      return removeChild.call(this, child);
+    };
+    NodeType.prototype.insertBefore = function (node, ref) {
+      if (ref instanceof NodeType && ref.parentNode && ref.parentNode !== this) {
+        return insertBefore.call(ref.parentNode, node, ref);
+      }
+      return insertBefore.call(this, node, ref);
+    };
+  }
   var nativeFetch = window.fetch.bind(window);
   var pending = function () { return new Promise(function () {}); };
   var reply = function (body, type) {
@@ -84,8 +109,10 @@ const SHIM = `(function () {
     });
   }
   function sectionUrl(url) {
-    var id = url.searchParams.get('section_id') || (url.searchParams.get('sections') || '').split(',')[0];
-    var q = new URLSearchParams({ section_id: id, path: url.pathname, sections: url.searchParams.has('sections') ? '1' : '' });
+    // \`?sections=a,b\` asks for JSON keyed by every section; \`?section_id=\` for one section's HTML.
+    var q = new URLSearchParams({ path: url.pathname });
+    if (url.searchParams.has('sections')) q.set('sections', url.searchParams.get('sections') || '');
+    else q.set('section_id', url.searchParams.get('section_id') || '');
     return '/theme-actions/section?' + q.toString();
   }
   window.fetch = function (input, init) {

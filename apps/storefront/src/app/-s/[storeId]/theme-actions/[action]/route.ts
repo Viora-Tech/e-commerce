@@ -8,6 +8,7 @@ import { localizationAction, marketSuggestionAction } from '@/lib/market-switch'
 import { subscribeAction } from '@/lib/newsletter-actions'
 import { recommendationsResponse } from '@/lib/recommendations-route'
 import { withEvlog } from '@/lib/request-log'
+import { requestedSections, validSectionId } from '@/lib/section-rendering'
 import { inStore } from '@/lib/store-context'
 
 type Params = { params: Promise<{ storeId: string; action: string }> }
@@ -116,12 +117,29 @@ export const GET = withEvlog(async (req: Request, { params }: Params) => {
   if (action === 'recommendations') return recommendationsResponse(req, storeId, false)
   if (action === 'section') {
     const url = new URL(req.url)
-    const type = url.searchParams.get('section_id') ?? ''
     const path = url.searchParams.get('path') ?? '/'
-    if (!/^[a-z0-9_-]{1,80}$/i.test(type)) return notFound()
+    const list = url.searchParams.get('sections')
+    // `?sections=a,b`: JSON keyed by every section asked for, null for one there is none of.
+    if (list !== null && !url.searchParams.has('section_id')) {
+      const ids = requestedSections(list)
+      if (ids.length === 0) return notFound()
+      const rendered = await inStore(storeId, async (tx) => {
+        const out: Record<string, string | null> = {}
+        for (const id of ids) {
+          out[id] = validSectionId(id)
+            ? await renderStaticLiquidSection(tx, storeId, id, path)
+            : null
+        }
+        return out
+      })
+      return Response.json(rendered)
+    }
+    const type = url.searchParams.get('section_id') ?? ''
+    if (!validSectionId(type)) return notFound()
     const html = await inStore(storeId, (tx) => renderStaticLiquidSection(tx, storeId, type, path))
     if (html === null) return notFound()
-    // `?sections=` asks for JSON keyed by section; `?section_id=` for the HTML itself.
+    // `?section_id=` asks for the HTML itself; a page from before the list (`&sections=1`) for
+    // JSON keyed by that one section.
     return url.searchParams.get('sections')
       ? Response.json({ [type]: html })
       : new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8' } })
