@@ -39,12 +39,18 @@ type CampaignEditorProps = {
   storefrontUrl: string
   merchantEmail: string
   setup: { email: string | null; whatsapp: string | null }
+  /** A new campaign opened from a segment's page, aimed at it (audit #182). */
+  segmentId?: string | null | undefined
 }
 
-function initial(campaign: LoadedCampaign | null, kind: CampaignKind): CampaignForm {
-  return campaign
-    ? fromCampaign(campaign)
-    : emptyForm(kind, kind === 'email' ? copy.newEmail : copy.newWhatsapp)
+function initial(
+  campaign: LoadedCampaign | null,
+  kind: CampaignKind,
+  segmentId: string | null,
+): CampaignForm {
+  if (campaign) return fromCampaign(campaign)
+  const blank = emptyForm(kind, kind === 'email' ? copy.newEmail : copy.newWhatsapp)
+  return segmentId ? { ...blank, segmentId } : blank
 }
 
 /** Draft editor for email campaigns (block composer with live preview) and WhatsApp broadcasts. */
@@ -56,10 +62,11 @@ export default function CampaignEditor({
   storefrontUrl,
   merchantEmail,
   setup,
+  segmentId = null,
 }: CampaignEditorProps) {
   // Hooks
   const router = useRouter()
-  const [start] = useState(() => initial(campaign, kind))
+  const [start] = useState(() => initial(campaign, kind, segmentId))
   const [form, setForm] = useState(start)
   const [saved, setSaved] = useState(() => JSON.stringify(start))
   const [busy, setBusy] = useState(false)

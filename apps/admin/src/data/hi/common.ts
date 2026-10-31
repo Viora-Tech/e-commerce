@@ -4,6 +4,7 @@ import {
   dateFieldContent,
   dialogContent,
   leaveGuardContent,
+  quantityInputContent,
   reorderLabels,
   requiredMarkContent,
   validationContent,
@@ -18,6 +19,10 @@ export default [
   translation(dialogContent, {
     cancel: 'रद्द करें',
     close: 'बंद करें',
+  }),
+  translation(quantityInputContent, {
+    less: 'एक कम',
+    more: 'एक ज़्यादा',
   }),
   translation(dateFieldContent, {
     pick: 'तारीख चुनें',

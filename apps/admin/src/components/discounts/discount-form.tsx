@@ -35,20 +35,27 @@ import ValueCard from './value-card'
 
 type DiscountFormProps = {
   discount: LoadedDiscount | null
+  /** A new discount opened from a segment's page: only its customers (audit #182). */
+  segmentId?: string | null | undefined
 }
 
-function initialForm(discount: LoadedDiscount | null): DiscountFormState {
-  return discount ? fromDiscount(discount) : emptyForm()
+function initialForm(
+  discount: LoadedDiscount | null,
+  segmentId?: string | null,
+): DiscountFormState {
+  if (discount) return fromDiscount(discount)
+  const blank = emptyForm()
+  return segmentId ? { ...blank, eligibility: 'segments', segmentIds: [segmentId] } : blank
 }
 
-export default function DiscountForm({ discount }: DiscountFormProps) {
+export default function DiscountForm({ discount, segmentId = null }: DiscountFormProps) {
   // Hooks
   const copy = useCopy(discountFormContent)
   const list = useCopy(discountsContent)
   const router = useRouter()
   const { hasPermission } = usePermissions()
-  const [form, setForm] = useState<DiscountFormState>(() => initialForm(discount))
-  const [saved, setSaved] = useState(() => JSON.stringify(initialForm(discount)))
+  const [form, setForm] = useState<DiscountFormState>(() => initialForm(discount, segmentId))
+  const [saved, setSaved] = useState(() => JSON.stringify(initialForm(discount, segmentId)))
   const [busy, setBusy] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
   const [attempted, setAttempted] = useState(false)

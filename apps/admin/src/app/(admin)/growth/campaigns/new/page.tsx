@@ -8,7 +8,8 @@ export const metadata: Metadata = { title: 'New campaign' }
 type Props = { searchParams: Promise<SearchParams> }
 
 export default async function Page({ searchParams }: Props) {
-  const kind = (await searchParams).kind === 'whatsapp' ? 'whatsapp' : 'email'
+  const params = await searchParams
+  const kind = params.kind === 'whatsapp' ? 'whatsapp' : 'email'
   const context = await serverContext()
   const [setup, me] = await Promise.all([
     call(appRouter.marketing.setup, undefined, { context }),
@@ -23,6 +24,7 @@ export default async function Page({ searchParams }: Props) {
       storefrontUrl={setup.storefrontUrl}
       merchantEmail={me?.user.email ?? ''}
       setup={setup}
+      segmentId={setup.segments.find((s) => s.id === params.segment)?.id ?? null}
     />
   )
 }

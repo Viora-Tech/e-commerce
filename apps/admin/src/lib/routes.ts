@@ -188,7 +188,11 @@ export const routes = {
     campaigns: () => '/growth/campaigns',
     /** The Campaigns page's Tracking links tab (`/growth/links` redirects here). */
     trackingLinks: () => '/growth/campaigns?tab=links',
-    newCampaign: () => '/growth/campaigns/new',
+    /** `segment` starts the campaign aimed at that segment (a segment's "Email this segment"). */
+    newCampaign: (opts?: { segment?: string }) =>
+      opts?.segment
+        ? `/growth/campaigns/new?segment=${encodeURIComponent(opts.segment)}`
+        : '/growth/campaigns/new',
     campaign: (campaignId: string) => `/growth/campaigns/${id(campaignId)}`,
     automations: () => '/growth/automations',
     automation: (automationId: string) => `/growth/automations/${id(automationId)}`,
@@ -197,7 +201,11 @@ export const routes = {
 
   discounts: {
     list: () => '/discounts',
-    new: () => '/discounts/new',
+    /** `segment` starts the discount for that segment's customers only. */
+    new: (opts?: { segment?: string }) =>
+      opts?.segment
+        ? `/discounts/new?segment=${encodeURIComponent(opts.segment)}`
+        : '/discounts/new',
     detail: (discountId: string) => `/discounts/${id(discountId)}`,
   },
 

@@ -209,6 +209,11 @@ export const discountFormContent = {
     productPercents: 'Enter a percentage between 0.01 and 100 for every product',
     quantity: 'Enter a whole number, 1 or more',
     items: 'Pick at least one product or collection',
+    /* Each card says its own (audit #181: two identical red lines). */
+    buysQuantity: 'Enter how many the customer buys, 1 or more',
+    getsQuantity: 'Enter how many the customer gets, 1 or more',
+    buysItems: 'Pick what the customer buys',
+    getsItems: 'Pick what the customer gets',
     states: 'Pick at least one state',
     combos: 'Add at least one combo',
     combosFix: 'Finish every combo: items, whole-number quantities and a discount',

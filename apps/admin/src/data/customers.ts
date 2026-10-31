@@ -417,6 +417,9 @@ export const segmentsContent = {
     previewLive: 'counted live from your customers',
     previewAll: 'Every customer, until you add a condition',
     newIntro: 'Pick who belongs in it. The count updates as you go.',
+    /** What to do with a saved segment (audit #182). */
+    emailIt: 'Email this segment',
+    discountIt: 'Create discount for it',
     previewEmpty: 'Nothing matches these conditions yet.',
     save: 'Save segment',
     saved: 'Segment saved',

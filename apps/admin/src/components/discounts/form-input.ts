@@ -106,10 +106,10 @@ function typeErrors(f: DiscountFormState, copy: ErrorCopy, e: FormErrors): void 
   if (f.type === 'bxgy') {
     const buysOk =
       f.buysKind === 'quantity' ? positiveWhole(f.buysQuantity) : validAmount('fixed', f.buysAmount)
-    if (!buysOk) e.buys = f.buysKind === 'quantity' ? copy.quantity : copy.value
-    if (f.buysIds.length === 0) e.buysItems = copy.items
-    if (!positiveWhole(f.getsQuantity)) e.gets = copy.quantity
-    if (f.getsIds.length === 0) e.getsItems = copy.items
+    if (!buysOk) e.buys = f.buysKind === 'quantity' ? copy.buysQuantity : copy.value
+    if (f.buysIds.length === 0) e.buysItems = copy.buysItems
+    if (!positiveWhole(f.getsQuantity)) e.gets = copy.getsQuantity
+    if (f.getsIds.length === 0) e.getsItems = copy.getsItems
   }
   if (f.type === 'combo') {
     if (f.combos.length === 0) e.combos = copy.combos

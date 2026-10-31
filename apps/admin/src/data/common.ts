@@ -12,6 +12,12 @@ export const dialogContent = {
   close: 'Close',
 } as const
 
+/** The − and + beside a quantity box (`components/fields/quantity-input.tsx`). */
+export const quantityInputContent = {
+  less: 'One less',
+  more: 'One more',
+} as const
+
 /** The one date picker (`components/fields/date-field.tsx`, audit #33/#71/#83). */
 export const dateFieldContent = {
   pick: 'Pick a date',
