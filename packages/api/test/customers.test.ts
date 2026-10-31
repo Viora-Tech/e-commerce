@@ -1,5 +1,14 @@
 import { createMerchantAuth } from '@commerce/auth'
-import { createDb, customer, customerAddress, notification, order, store } from '@commerce/db'
+import {
+  createDb,
+  customer,
+  customerAddress,
+  notification,
+  order,
+  orderNote,
+  returnRequest,
+  store,
+} from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { call } from '@orpc/server'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
@@ -144,7 +153,7 @@ describe('customers', () => {
       .insert(customer)
       .values({ storeId: a.storeId, name: 'Asha Menon', email: 'asha@example.com' })
       .returning()
-    const [o1] = await owner
+    const [o1, o2] = await owner
       .insert(order)
       .values([
         {
@@ -164,6 +173,7 @@ describe('customers', () => {
           subtotalPaise: 1,
           totalPaise: 70000,
           status: 'cancelled',
+          cancelReason: 'fraud',
           placedAt: daysAgo(1),
         },
       ])
@@ -177,8 +187,25 @@ describe('customers', () => {
       status: 'sent',
     })
 
+    // Cancellations and returns on their orders reach the customer Timeline (#134).
+    await owner.insert(orderNote).values({
+      storeId: a.storeId,
+      orderId: o2?.id as string,
+      body: 'Order cancelled. Reason: Fraudulent or suspicious order.',
+      author: 'staff@example.com',
+    })
+    await owner
+      .insert(returnRequest)
+      .values({ storeId: a.storeId, orderId: o1?.id as string, number: 7, status: 'requested' })
+
     const c = await call(appRouter.customers.get, { id: asha?.id as string }, { context: a.ctx })
     expect(c?.orders.map((o) => o.number)).toEqual([2, 1])
+    expect(
+      c?.orderEvents.map((e) => [e.kind, e.orderNumber, e.reason ?? e.returnNumber]).sort(),
+    ).toEqual([
+      ['cancelled', 2, 'fraud'],
+      ['return', 1, 7],
+    ])
     expect(c?.totals).toMatchObject({ orderCount: 2, spentPaise: 150000 })
     expect(c?.notifications.map((n) => n.template)).toEqual(['order_placed'])
 

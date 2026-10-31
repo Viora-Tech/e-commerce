@@ -1,6 +1,10 @@
 /** SOURCE OF TRUTH: phone picker metadata — WHAT: `phoneInputMetadata`, the numbering metadata both phone inputs (admin `@commerce/ui`, storefront `@commerce/blocks`) pass to react-phone-number-input / WHY: the picker fills its box from `formatNational()`, which adds India's optional trunk 0 (#926) */
 
-import type { MetadataJson } from 'libphonenumber-js/core'
+import {
+  type CountryCode,
+  type MetadataJson,
+  parsePhoneNumberFromString,
+} from 'libphonenumber-js/core'
 import metadata from 'libphonenumber-js/min/metadata'
 
 /**
@@ -28,3 +32,24 @@ export function withoutOptionalTrunkPrefix(meta: MetadataJson): MetadataJson {
 
 /** Pass as the picker's `metadata` prop. */
 export const phoneInputMetadata = withoutOptionalTrunkPrefix(metadata)
+
+/**
+ * A stored phone for reading in the admin (#39): always with its country code and the country's
+ * own grouping, "+91 70218 67918", "+971 50 229 2692". A number without a code is read as
+ * `defaultCountry`'s (India); anything that does not parse is shown exactly as stored.
+ */
+export function formatPhone(raw: string, defaultCountry: CountryCode = 'IN'): string {
+  const trimmed = raw.trim()
+  if (!trimmed) return raw
+  const digits = trimmed.replace(/\D/g, '')
+  // "919876543210" saved without the plus is an Indian number with its code, not a local one.
+  const text =
+    !trimmed.startsWith('+') &&
+    defaultCountry === 'IN' &&
+    digits.length === 12 &&
+    digits.startsWith('91')
+      ? `+${digits}`
+      : trimmed
+  const parsed = parsePhoneNumberFromString(text, defaultCountry, metadata)
+  return parsed?.isValid() ? parsed.formatInternational() : raw
+}

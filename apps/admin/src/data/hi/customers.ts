@@ -147,7 +147,12 @@ export default [
     },
     saveSegment: 'सेगमेंट के रूप में सेव करें',
     exportAll: 'एक्सपोर्ट',
-    statuses: { vip: 'VIP', active: 'सक्रिय', inactive: 'निष्क्रिय' },
+    statuses: { vip: 'VIP', active: 'हाल में खरीदा', inactive: 'हाल में कोई ऑर्डर नहीं' },
+    statusHints: {
+      vip: 'आपके यहाँ सबसे ज़्यादा खर्च किया',
+      active: 'पिछले 90 दिनों में ऑर्डर किया',
+      inactive: 'पिछले 90 दिनों में कोई ऑर्डर नहीं, या कभी ऑर्डर नहीं किया',
+    },
     exported: (n: number) => `${n} पंक्तियाँ एक्सपोर्ट हुईं`,
     exportFailed: 'एक्सपोर्ट नहीं बन पाया',
     unnamed: 'नाम नहीं',
@@ -278,6 +283,13 @@ export default [
       placed: (number: number, total: string) => `${total} का ऑर्डर #${number} दिया`,
       sent: (what: string, channel: string) => `${what}, ${channel} से भेजा गया`,
       failed: (what: string) => `${what} भेजा नहीं जा सका`,
+      cancelled: (number: number, reason: string | null) =>
+        `ऑर्डर #${number} कैंसिल हुआ${reason ? `: ${reason}` : ''}`,
+      returned: (number: number, returnNumber: number) =>
+        `ऑर्डर #${number} लौटाने को कहा (R-${returnNumber})`,
+      rto: (number: number, returnNumber: number) =>
+        `ऑर्डर #${number} डिलीवर हुए बिना वापस आया (R-${returnNumber})`,
+      refunded: (amount: string, number: number) => `ऑर्डर #${number} पर ${amount} रिफ़ंड हुआ`,
       more: (n: number) => `${n} पुराने दिखाएँ`,
       less: 'कम दिखाएँ',
     },

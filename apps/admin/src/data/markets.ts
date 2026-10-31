@@ -145,6 +145,8 @@ export const marketsContent = {
     shipping: 'Your shipping rates per area',
     shippingNote: 'Add rates for these countries in Shipping settings once it is created.',
     create: 'Create market',
+    /** #55: creating can take a while (prices, catalog); the button says it is working. */
+    creating: 'Creating…',
     cancel: 'Cancel',
     apply: 'Done',
     change: (what: string) => `Change ${what.toLowerCase()}`,

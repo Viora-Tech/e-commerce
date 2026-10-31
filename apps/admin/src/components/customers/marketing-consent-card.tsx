@@ -67,8 +67,14 @@ export default function MarketingConsentCard({
     }
   }
 
-  /** "Allowed at checkout": how the channel got its current state, from the newest matching event. */
+  /**
+   * "Allowed at checkout": how the channel got its current state, from the newest matching event.
+   * A switch flipped but not saved yet says its new state at once (#138).
+   */
   const sourceLine = (channel: ConsentChannel) => {
+    if (value[channel] !== consent.channels[channel]) {
+      return copy.unsaved(value[channel] ? copy.granted : copy.notAllowed)
+    }
     if (!consent.channels[channel]) return copy.notAllowed
     const last = consent.history.find((h) => h.channel === channel && h.granted)
     if (!last) return copy.granted

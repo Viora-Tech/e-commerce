@@ -15,6 +15,7 @@ import LabeledGroup from '@/components/layout/labeled-group'
 import { stateName } from '@/data/india'
 import { orderDetailContent } from '@/data/order-detail'
 import { useCopy } from '@/hooks/use-copy'
+import { phoneForDisplay } from '@/lib/phone-display'
 import { routes } from '@/lib/routes'
 import EditOrderContactDialog from './edit-order-contact-dialog'
 import type { OrderDetail } from './order-detail-types'
@@ -90,7 +91,12 @@ export default function CustomerCard({ order }: CustomerCardProps) {
       href: order.email ? `mailto:${order.email}` : undefined,
       copy: true,
     },
-    { label: c.phone, value: phone, href: phone ? `tel:${phone}` : undefined, copy: true },
+    {
+      label: c.phone,
+      value: phone ? phoneForDisplay(phone) : '',
+      href: phone ? `tel:${phone}` : undefined,
+      copy: true,
+    },
   ]
   // An address reads as a block, as on a parcel: one row per labelled field made the card very
   // tall (audit #13). One copy button takes the whole address.

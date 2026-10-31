@@ -103,7 +103,8 @@ export default function CollectPaymentDialog({
 
   return (
     <Dialog open={order !== null} onOpenChange={(open) => (!open ? handleClose() : undefined)}>
-      <DialogContent>
+      {/* A proper width for the amount, method and date row; the default felt cramped (#126). */}
+      <DialogContent className="sm:max-w-lg">
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <DialogHeader>
             <DialogTitle>{copy.collectDialog.title}</DialogTitle>

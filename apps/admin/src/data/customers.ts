@@ -117,7 +117,13 @@ export const customersContent = {
   bulk: customersBulkContent,
   saveSegment: 'Save as segment',
   exportAll: 'Export',
-  statuses: { vip: 'VIP', active: 'Active', inactive: 'Inactive' },
+  /** #38: say what the chip means; "Active / Inactive" left merchants guessing. */
+  statuses: { vip: 'VIP', active: 'Recent buyer', inactive: 'No recent orders' },
+  statusHints: {
+    vip: 'Spent the most with you',
+    active: `Ordered in the last ${ACTIVE_WINDOW_DAYS} days`,
+    inactive: `No order in the last ${ACTIVE_WINDOW_DAYS} days, or never ordered`,
+  },
   exported: (n: number) => (n === 1 ? '1 row exported' : `${n} rows exported`),
   exportFailed: 'Could not build the export',
   unnamed: 'No name',
@@ -196,6 +202,11 @@ export const customerDetailContent = {
     cancel: 'Cancel',
     saved: 'Customer saved',
     failed: 'Could not save the customer',
+    /** #129: closing with Escape or a click outside asks before dropping edits. */
+    discardTitle: 'Discard your changes?',
+    discardBody: 'The name and phone you changed are not saved yet.',
+    discard: 'Discard',
+    keepEditing: 'Keep editing',
   },
   /** The strip under the header (audit #82): what they are worth at a glance. */
   summary: {
@@ -272,6 +283,14 @@ export const customerDetailContent = {
     placed: (number: number, total: string) => `Placed order #${number} for ${total}`,
     sent: (what: string, channel: string) => `${what} sent by ${channel}`,
     failed: (what: string) => `${what} could not be sent`,
+    /** #134: what went wrong or back on their orders. */
+    cancelled: (number: number, reason: string | null) =>
+      `Order #${number} was cancelled${reason ? `: ${reason}` : ''}`,
+    returned: (number: number, returnNumber: number) =>
+      `Asked to return order #${number} (R-${returnNumber})`,
+    rto: (number: number, returnNumber: number) =>
+      `Order #${number} came back undelivered (R-${returnNumber})`,
+    refunded: (amount: string, number: number) => `Refunded ${amount} on order #${number}`,
     more: (n: number) => `Show ${n} older`,
     less: 'Show fewer',
   },

@@ -57,7 +57,8 @@ function draftFrom(a: CustomerAddressRow | null, initialRole: AddressRole | null
       place: EMPTY_ADDRESS,
       businessName: '',
       gstin: '',
-      role: initialRole,
+      // A new address starts as Shipping unless the card asked for another role (#137).
+      role: initialRole ?? 'shipping',
     }
   }
   return {
@@ -169,7 +170,8 @@ export default function CustomerAddressDialog({
                 </ToggleGroupItem>
               ))}
             </ToggleGroup>
-            <FieldDescription>
+            {/* Two lines kept for the help, so picking a role never moves the form (#137). */}
+            <FieldDescription className="min-h-[2lh]">
               {shippingLocked ? `${roleHelp} ${d.role.lockedShipping}` : roleHelp}
             </FieldDescription>
           </Field>

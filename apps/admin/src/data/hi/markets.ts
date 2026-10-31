@@ -141,6 +141,7 @@ export default [
       shipping: 'इलाके के हिसाब से आपके शिपिंग रेट',
       shippingNote: 'बनने के बाद इन देशों के रेट शिपिंग सेटिंग्स में जोड़ें।',
       create: 'मार्केट बनाएं',
+      creating: 'बन रहा है…',
       cancel: 'रद्द करें',
       apply: 'हो गया',
       change: (what) => `${what} बदलें`,

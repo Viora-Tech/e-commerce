@@ -14,6 +14,7 @@ import { useCopy } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
 import type { Formatters } from '@/lib/format'
 import { shownPaymentStatus } from '@/lib/order-next-move'
+import { phoneForDisplay } from '@/lib/phone-display'
 import { routes } from '@/lib/routes'
 
 type Item = Awaited<ReturnType<typeof api.orders.list>>['items'][number]
@@ -283,7 +284,9 @@ export function orderColumns(
     {
       id: 'phone',
       title: copy.columns.phone,
-      render: (o) => <span className="tabular-nums">{o.shipPhone ?? ''}</span>,
+      render: (o) => (
+        <span className="tabular-nums">{o.shipPhone ? phoneForDisplay(o.shipPhone) : ''}</span>
+      ),
     },
     {
       id: 'city',

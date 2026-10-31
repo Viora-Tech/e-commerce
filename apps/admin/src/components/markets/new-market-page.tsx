@@ -256,8 +256,8 @@ export default function NewMarketPage({
             >
               {n.cancel}
             </Button>
-            <Button onClick={handleCreate} disabled={busy}>
-              {n.create}
+            <Button onClick={handleCreate} loading={busy}>
+              {busy ? n.creating : n.create}
             </Button>
           </>
         }
