@@ -185,6 +185,7 @@ export const hindiNavGroups: Record<string, string> = {
 export default [
   translation(navigationContent, {
     pickStore: 'स्टोर चुनें',
+    mainMenu: 'मुख्य मेन्यू',
     stores: 'स्टोर',
     allStores: 'सभी स्टोर',
     storesAvailable: (n) => `${n} उपलब्ध`,

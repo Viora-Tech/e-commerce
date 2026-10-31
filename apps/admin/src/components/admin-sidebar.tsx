@@ -46,6 +46,7 @@ import MemberAvatar from './account/member-avatar'
 import SidebarUsageCard, { type SidebarUsage } from './layout/sidebar-usage-card'
 import UserMenu from './layout/user-menu'
 import NavGroupBlock from './nav-group-block'
+import MainIconRail from './settings/main-icon-rail'
 import SettingsSidebarNav from './settings/settings-sidebar-nav'
 
 type StoreOption = { id: string; name: string; slug: string }
@@ -250,7 +251,19 @@ export default function AdminSidebar({
 
       <SidebarContent className="no-scrollbar gap-0.5 pt-0.5">
         {inSettings ? (
-          <SettingsSidebarNav pathname={pathname} />
+          // The main menu stays beside Settings as an icon column (owner 2026-10-31).
+          <div className="flex min-h-0">
+            <MainIconRail
+              items={localizeNavItems(
+                [...withSalesChannels(NAV_GROUPS, channels).flatMap((g) => g.items), SETTINGS_NAV],
+                locale,
+              )}
+              pathname={pathname}
+            />
+            <div className="min-w-0 flex-1">
+              <SettingsSidebarNav pathname={pathname} />
+            </div>
+          </div>
         ) : (
           <>
             {withSalesChannels(NAV_GROUPS, channels).map((group) => (

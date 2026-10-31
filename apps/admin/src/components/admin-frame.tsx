@@ -8,6 +8,7 @@ import { type CSSProperties, type ReactNode, useEffect, useRef, useState } from 
 import { hasOwnHeading, layoutContent, pagePrefixFor, pageTitleFor } from '@/data/layout'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { pageName } from '@/lib/page-names'
+import { routes } from '@/lib/routes'
 import AdminSidebar from './admin-sidebar'
 import AssistantHost from './assistant/assistant-host'
 import BugReportHost from './bug-report/bug-report-host'
@@ -39,6 +40,8 @@ type AdminFrameProps = {
 }
 
 const SIDEBAR_WIDTH = '16rem'
+/** Inside Settings the main menu's icon column (2.75rem) sits beside the Settings menu. */
+const SETTINGS_SIDEBAR_WIDTH = '18.75rem'
 
 /**
  * Shell (Figma Home frame): the sidebar and the top bar share the shell colour; the content
@@ -76,11 +79,15 @@ export default function AdminFrame({
   const prefix = pagePrefixFor(pathname)
   const title = prefix ? pageName(prefix, pageTitleFor(pathname), locale) : layoutCopy.dashboard
   const ownHeading = hasOwnHeading(pathname)
+  const settingsHome = routes.settings.home()
+  const inSettings = pathname === settingsHome || pathname.startsWith(`${settingsHome}/`)
 
   return (
     <SidebarProvider
       className="h-svh overflow-hidden [--sidebar-ms:320ms] in-data-[sidebar-instant]:[--sidebar-ms:0ms] motion-reduce:[--sidebar-ms:0ms] [&_[data-slot=sidebar-container]]:duration-(--sidebar-ms) [&_[data-slot=sidebar-container]]:ease-drawer [&_[data-slot=sidebar-gap]]:duration-(--sidebar-ms) [&_[data-slot=sidebar-gap]]:ease-drawer"
-      style={{ '--sidebar-width': SIDEBAR_WIDTH } as CSSProperties}
+      style={
+        { '--sidebar-width': inSettings ? SETTINGS_SIDEBAR_WIDTH : SIDEBAR_WIDTH } as CSSProperties
+      }
     >
       <SidebarShortcutGuard />
       <AdminSidebar

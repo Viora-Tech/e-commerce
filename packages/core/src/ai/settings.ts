@@ -10,8 +10,8 @@ import {
   type WritingQuality,
 } from '@commerce/ai/client'
 import { aiSettings, storePlan } from '@commerce/db'
-import { PLANS } from '../billing/plans'
 import { eq, sql } from 'drizzle-orm'
+import { PLANS } from '../billing/plans'
 import type { StoreContext } from '../context'
 
 export type StoreAiSettings = {

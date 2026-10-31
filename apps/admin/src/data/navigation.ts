@@ -246,6 +246,7 @@ export const SETTINGS_NAV: NavItem = {
 
 export const navigationContent = {
   pickStore: 'Pick a store',
+  mainMenu: 'Main menu',
   stores: 'Stores',
   allStores: 'All stores',
   storesAvailable: (n: number) => `${n} available`,
