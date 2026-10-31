@@ -1,6 +1,7 @@
 import {
   capturePayment,
   changeOrderStatus,
+  heldParcels,
   insertOutboxEvent,
   notTestOrder,
   type OrderStatus,
@@ -63,7 +64,7 @@ export {
 export type { OrderStatus }
 
 import { eventsForPayments, withThumbnails } from './order-detail.service'
-import { notDraft, type OrderListFilters, orderListWhere } from './order-list-where'
+import { notDraft, type OrderListFilters, onHoldSql, orderListWhere } from './order-list-where'
 
 /** The most ids "Select all" takes at once; bulk actions above this would need a background job. */
 const SELECT_ALL_MAX = 5000
@@ -106,6 +107,8 @@ export async function listOrders(
       channel: sql<string | null>`${order.attribution}->>'channel'`,
       tags: order.tags,
       archivedAt: order.archivedAt,
+      /* Fulfilment held (#1011): the row shows an "On hold" chip. */
+      onHold: onHoldSql,
       /* Frame 5:2353 shows the first product with its picture; the rest is a count. */
       firstLineTitle: sql<string | null>`(
         select ol.title from ${orderLine} ol where ol.order_id = ${order.id}
@@ -328,6 +331,22 @@ export async function getOrder(tx: StoreTx, id: string) {
     billingAddress: bill ?? null,
     /** Where each part ships from: one parcel per warehouse (order/routing.ts). */
     parcels: await orderParcelsView(tx, id),
+    /** Fulfilment on hold (#1011): why, who and when; null while it can ship. */
+    hold: await orderHold(tx, id),
+  }
+}
+
+/** The order's hold as the page shows it, from its first held parcel (holds cover them all). */
+async function orderHold(tx: StoreTx, orderId: string) {
+  const held = await heldParcels(tx, orderId)
+  const first = held[0]
+  if (!first) return null
+  return {
+    code: first.code,
+    note: first.reason,
+    heldBy: first.heldBy,
+    heldAt: first.heldAt,
+    parcels: held.length,
   }
 }
 

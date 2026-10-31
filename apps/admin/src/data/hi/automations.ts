@@ -17,6 +17,8 @@ export default [
     'automations.trigger.order.fulfilled': 'ऑर्डर भेजा गया',
     'automations.trigger.order.cancelled': 'ऑर्डर रद्द हुआ',
     'automations.trigger.order.delivered': 'ऑर्डर पहुँच गया',
+    'automations.trigger.order.fulfillment_held': 'फ़ुलफ़िलमेंट रोका गया',
+    'automations.trigger.order.fulfillment_released': 'फ़ुलफ़िलमेंट की रोक हटी',
     'automations.trigger.order.cod_placed': 'COD ऑर्डर आया',
     'automations.trigger.refund.created': 'रिफ़ंड बना',
     'automations.trigger.return.requested': 'रिटर्न माँगा गया',

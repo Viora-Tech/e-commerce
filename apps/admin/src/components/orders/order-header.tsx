@@ -5,6 +5,7 @@ import { type ReactNode, useEffect, useState } from 'react'
 import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
 import { orderDetailContent } from '@/data/order-detail'
+import { orderHoldContent } from '@/data/order-hold'
 import { ordersContent } from '@/data/orders'
 import { salesChannelsContent } from '@/data/sales-channels'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -33,6 +34,7 @@ export default function OrderHeader({ order, actions, back }: OrderHeaderProps) 
   // Hooks
   const copy = useCopy(orderDetailContent)
   const listCopy = useCopy(ordersContent)
+  const holdCopy = useCopy(orderHoldContent)
   const fmt = useFormat()
   const [neighbours, setNeighbours] = useState<Neighbours | null>(null)
 
@@ -78,6 +80,7 @@ export default function OrderHeader({ order, actions, back }: OrderHeaderProps) 
             ) : order.status === 'cancelled' && order.fulfillmentStatus === 'unfulfilled' ? null : (
               <OrderChip kind="fulfilment" value={order.fulfillmentStatus} />
             )}
+            {order.hold ? <StatusChip tone="attention">{holdCopy.chip}</StatusChip> : null}
             {order.isTest ? (
               <span title={listCopy.testChipHint}>
                 <StatusChip tone="attention">{listCopy.testChip}</StatusChip>

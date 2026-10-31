@@ -13,6 +13,8 @@ export const listFilters = z.object({
   /** Payment pending (#11): an online payment not finished, or a manual UPI transfer to match. */
   paymentPending: z.boolean().optional(),
   fulfillmentStatus: z.array(z.enum(ORDER_FULFILLMENT_STATUSES)).max(10).optional(),
+  /** Fulfilment on hold (#1011). */
+  onHold: z.boolean().optional(),
   /** Placed at or after this moment (the filter panel's Date). */
   placedFrom: z.iso.datetime().optional(),
   placedTo: z.iso.datetime().optional(),

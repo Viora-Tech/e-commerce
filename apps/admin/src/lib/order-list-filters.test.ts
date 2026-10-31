@@ -67,4 +67,13 @@ describe('order list filters (#884)', () => {
     expect(patches).toContainEqual({ product: null })
     expect(patches).toContainEqual({ fulfilment: [] })
   })
+
+  it('sends "On hold" as its own flag, beside any stored statuses', () => {
+    expect(orderFilterInput({ ...NO_FILTERS, fulfilment: ['on_hold'] }, NOW)).toEqual({
+      onHold: true,
+    })
+    expect(
+      orderFilterInput({ ...NO_FILTERS, fulfilment: ['unfulfilled', 'on_hold'] }, NOW),
+    ).toEqual({ fulfillmentStatus: ['unfulfilled', 'partially_fulfilled'], onHold: true })
+  })
 })

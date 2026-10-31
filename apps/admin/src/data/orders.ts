@@ -103,6 +103,8 @@ export const ordersContent = {
   toShip: 'To ship',
   /** Chip on an order paid with the payment gateway in test mode (no real money). */
   testChip: 'Test',
+  /** Fulfilment held (#1011), in the Status column. */
+  holdChip: 'On hold',
   testChipHint:
     'Paid in test mode: no real money moved. Left out of analytics, reports and GST invoices.',
   /** "Delete test orders" in More actions, shown only while test orders exist. */
@@ -153,6 +155,7 @@ export const ordersContent = {
       shipped: 'Shipped',
       delivered: 'Delivered',
       returned: 'Returned',
+      on_hold: 'On hold',
     } satisfies Record<FulfilmentFilter, string>,
     dateOptions: {
       today: 'Today',

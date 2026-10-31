@@ -8,6 +8,7 @@ import { applyPaymentStatus } from '../payments/confirm'
 import { OPEN_ATTEMPT_STATUSES } from '../payments/transitions'
 import { capturedPaise, checkoutDuePaise } from './aggregate-status'
 import { fulfilRemainingLines } from './fulfil'
+import { assertNotHeld } from './fulfillment-hold'
 import { ensureFulfillmentOrders, releaseFulfillmentOrders } from './fulfillment-orders'
 import { recomputeOrderStatuses } from './recompute'
 import { refundedPaise, refundPayment } from './refund'
@@ -178,6 +179,8 @@ export async function changeOrderStatus(
   }
   if (change === 'paid') await markPaid(ctx, current)
   if (change === 'fulfilled' || change === 'delivered') {
+    // "Mark as fulfilled / delivered" on a held order is refused until the hold is released.
+    await assertNotHeld(ctx, orderId)
     await fulfilRemainingLines(ctx, orderId)
   }
   if (change === 'delivered') {

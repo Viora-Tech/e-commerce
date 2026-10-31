@@ -101,6 +101,7 @@ export default [
     viewLabel: 'ऑर्डर व्यू',
     toShip: 'भेजना है',
     testChip: 'टेस्ट',
+    holdChip: 'रुका हुआ',
     testChipHint:
       'टेस्ट मोड में पेमेंट हुआ: कोई असली पैसा नहीं आया। एनालिटिक्स, रिपोर्ट और GST इनवॉइस में नहीं गिना जाता।',
     deleteTests: {
@@ -146,6 +147,7 @@ export default [
         shipped: 'भेज दिया',
         delivered: 'डिलीवर हुआ',
         returned: 'वापस आया',
+        on_hold: 'रुका हुआ',
       },
       dateOptions: {
         today: 'आज',

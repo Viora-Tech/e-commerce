@@ -1672,7 +1672,12 @@ export const fulfillmentOrder = pgTable(
      * `on_hold` means pre-order goods waiting for stock.
      */
     heldAt: timestamp('held_at', { withTimezone: true }),
+    /** Free text: an automation's reason, or the note staff typed with their pick. */
     holdReason: text('hold_reason'),
+    /** The reason staff picked (`FULFILLMENT_HOLD_REASONS` in core); null for an automation's hold. */
+    holdCode: text('hold_code'),
+    /** Who held it (staff email, or the automation author). */
+    heldBy: text('held_by'),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

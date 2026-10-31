@@ -2,6 +2,7 @@ import { fulfillmentOrderLine, order, orderLine, shipment } from '@commerce/db'
 import { and, eq, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { BalanceDue, CommerceError } from '../errors'
+import { assertNotHeld } from './fulfillment-hold'
 import {
   ensureFulfillmentOrders,
   type PackPick,
@@ -194,6 +195,8 @@ export async function fulfilOrderLines(
     throw new OrderNotFulfillable(input.orderId, o.status, ctx.storeId)
   }
   assertNoBalanceDue(ctx, input.orderId, o)
+  // A held order packs nothing by hand either, not only through a courier booking (#1011).
+  await assertNotHeld(ctx, input.orderId)
   const byId = new Map(lines.map((l) => [l.id, l]))
 
   const wanted = input.lines.filter((l) => l.quantity > 0)

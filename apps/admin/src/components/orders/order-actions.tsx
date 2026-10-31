@@ -13,6 +13,7 @@ import {
   LinkIcon,
   Package,
   PackageCheck,
+  Pause,
   Pencil,
   Printer,
   RotateCcw,
@@ -29,6 +30,7 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { orderAppActionsContent } from '@/data/order-app-actions'
 import { orderDetailContent } from '@/data/order-detail'
 import { orderEditContent } from '@/data/order-edit'
+import { orderHoldContent } from '@/data/order-hold'
 import {
   type OrderFulfillmentStatus,
   type OrderMark,
@@ -66,6 +68,8 @@ type OrderActionsProps = {
   onArchive?: (() => void) | undefined
   /** Opens "Cancel order" (reason, restock, notify, refund); undefined once it cannot be cancelled. */
   onCancel?: (() => void) | undefined
+  /** Opens "Hold fulfilment" (#1011); undefined when it cannot be held (or already is). */
+  onHold?: (() => void) | undefined
   /** Opens the order edit page; undefined when the order cannot be edited. */
   onEdit?: (() => void) | undefined
   /** Where the order's invoices are on the page ("View invoices"); undefined hides it. */
@@ -101,6 +105,7 @@ export default function OrderActions({
   onDuplicate,
   onArchive,
   onCancel,
+  onHold,
   onEdit,
   invoicesHref,
   printHref,
@@ -116,6 +121,7 @@ export default function OrderActions({
   const list = useCopy(ordersContent)
   const appCopy = useCopy(orderAppActionsContent)
   const editCopy = useCopy(orderEditContent)
+  const holdCopy = useCopy(orderHoldContent)
   const [confirm, setConfirm] = useState<'cancelShipment' | null>(null)
 
   // Event handlers
@@ -203,6 +209,13 @@ export default function OrderActions({
             hidden: !onCancelShipment || readOnly,
             disabled: busy,
             onSelect: () => setConfirm('cancelShipment'),
+          },
+          {
+            label: holdCopy.action,
+            icon: Pause,
+            hidden: !onHold || readOnly,
+            disabled: busy,
+            onSelect: onHold,
           },
           {
             label: copy.actions.refund,

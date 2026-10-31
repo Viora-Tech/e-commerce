@@ -24,7 +24,14 @@ export const PAYMENT_FILTERS = [
   'refunded',
   'refund_needed',
 ] as const
-export const FULFILMENT_FILTERS = ['unfulfilled', 'shipped', 'delivered', 'returned'] as const
+/** `on_hold` is not a stored status: fulfilment held (#1011), sent as its own flag. */
+export const FULFILMENT_FILTERS = [
+  'unfulfilled',
+  'shipped',
+  'delivered',
+  'returned',
+  'on_hold',
+] as const
 export const DATE_FILTERS = ['today', '7d', '30d', '90d'] as const
 /** Stored payment methods are gateway names, so the panel splits only cash on delivery from prepaid. */
 export const METHOD_FILTERS = ['cod', 'prepaid'] as const
@@ -98,7 +105,10 @@ const PAYMENT_STATUSES: Record<Exclude<PaymentFilter, 'payment_pending'>, OrderP
   refund_needed: ['refund_needed'],
 }
 
-const FULFILMENT_STATUSES: Record<FulfilmentFilter, OrderFulfillmentStatus[]> = {
+const FULFILMENT_STATUSES: Record<
+  Exclude<FulfilmentFilter, 'on_hold'>,
+  OrderFulfillmentStatus[]
+> = {
   unfulfilled: ['unfulfilled', 'partially_fulfilled'],
   shipped: ['shipped', 'partially_delivered'],
   delivered: ['delivered'],
@@ -147,13 +157,15 @@ export function orderFilterInput(f: OrderFilters, now = new Date()) {
   const paymentStatuses = f.payment.flatMap((p) =>
     p === 'payment_pending' ? [] : PAYMENT_STATUSES[p],
   )
+  const fulfillmentStatuses = f.fulfilment.flatMap((s) =>
+    s === 'on_hold' ? [] : FULFILMENT_STATUSES[s],
+  )
   return {
     ...(product ? { product } : {}),
     ...(paymentStatuses.length ? { paymentStatus: paymentStatuses } : {}),
     ...(f.payment.includes('payment_pending') ? { paymentPending: true } : {}),
-    ...(f.fulfilment.length
-      ? { fulfillmentStatus: f.fulfilment.flatMap((s) => FULFILMENT_STATUSES[s]) }
-      : {}),
+    ...(fulfillmentStatuses.length ? { fulfillmentStatus: fulfillmentStatuses } : {}),
+    ...(f.fulfilment.includes('on_hold') ? { onHold: true } : {}),
     ...(placed.from ? { placedFrom: placed.from } : {}),
     ...(placed.to ? { placedTo: placed.to } : {}),
     ...(f.method.length === 1 && f.method[0] ? { paymentMethod: f.method[0] } : {}),

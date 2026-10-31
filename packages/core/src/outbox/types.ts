@@ -46,6 +46,10 @@ export type OutboxEventType =
   | 'return.exchanged'
   /** A shipment came back to the merchant undelivered (RTO); an RTO task was opened on the order. */
   | 'order.rto'
+  /** Staff held the order's fulfilment from the order page (#1011): no shipment until released. */
+  | 'order.fulfillment_held'
+  /** Staff released a held fulfilment. */
+  | 'order.fulfillment_released'
   /** A shipment's tracking says the courier is out with it today. */
   | 'shipment.out_for_delivery'
   /** An order's fulfilment became delivered, from tracking or a manual "mark delivered". */
@@ -286,6 +290,8 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   'return.exchanged': 'return_exchanged',
   // The merchant sees the RTO task on the order and in Shipments; the shopper is not emailed.
   'order.rto': null,
+  'order.fulfillment_held': null,
+  'order.fulfillment_released': null,
   'shipment.out_for_delivery': 'out_for_delivery',
   'order.delivered': 'delivered',
   'order.cancel_notice': 'order_cancelled',
@@ -396,6 +402,8 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'return.refunded': null,
   'return.exchanged': null,
   'order.rto': 'order.rto',
+  'order.fulfillment_held': null,
+  'order.fulfillment_released': null,
   'shipment.out_for_delivery': null,
   'order.delivered': 'order.delivered',
   // The merchant's own cancel writes only this row; apps hear it as a cancel (one job per order).

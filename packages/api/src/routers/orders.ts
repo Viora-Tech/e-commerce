@@ -54,6 +54,7 @@ import {
 import { assertNotImported } from './imported-order'
 import { draftAndAbandonedRoutes } from './order-drafts'
 import { orderEditRoutes } from './order-edit'
+import { orderHoldRoutes } from './order-hold'
 import { orderListRoutes } from './order-list'
 import { listFilters } from './order-list-filters'
 import { orderMessageRoutes } from './order-messages'
@@ -478,4 +479,5 @@ export const ordersRouter = {
   ...orderMessageRoutes,
   ...draftAndAbandonedRoutes,
   ...orderEditRoutes,
+  ...orderHoldRoutes,
 }

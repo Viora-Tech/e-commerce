@@ -3,9 +3,26 @@ import { fulfillmentOrder, order, type StoreTx } from '@commerce/db'
 import { and, eq, inArray, isNotNull, isNull } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
+import type { FulfillmentHoldReason } from './edit-rules'
 
 /** Parcels that can still ship, so a hold means something on them. */
 const SHIPPABLE = ['open', 'on_hold'] as const
+
+/** The staff reasons in words, for the timeline and refusals (the admin has its own copy). */
+export const HOLD_REASON_WORDS: Record<FulfillmentHoldReason, string> = {
+  awaiting_stock: 'Awaiting stock',
+  address_check: 'Address check',
+  payment_check: 'Payment check',
+  customer_request: 'Customer request',
+  other: 'Other',
+}
+
+/** Why a parcel is held, in words: the picked reason and its note, or an automation's text. */
+export function holdWords(p: Pick<HeldParcel, 'code' | 'reason'>): string | null {
+  const picked = p.code ? HOLD_REASON_WORDS[p.code as FulfillmentHoldReason] : undefined
+  if (picked && p.reason) return `${picked}: ${p.reason}`
+  return picked ?? p.reason
+}
 
 /** A booking was refused because the parcel (or the order) is held. */
 export class FulfillmentOnHold extends CommerceError {
@@ -26,10 +43,18 @@ export async function holdFulfillment(
   ctx: StoreContext,
   orderId: string,
   reason: string | null,
+  /** Staff's picked reason and who held it; an automation leaves both out. */
+  by: { code?: string | null; heldBy?: string | null } = {},
 ): Promise<string[]> {
   const held = await ctx.tx
     .update(fulfillmentOrder)
-    .set({ heldAt: new Date(), holdReason: reason || null, updatedAt: new Date() })
+    .set({
+      heldAt: new Date(),
+      holdReason: reason || null,
+      holdCode: by.code ?? null,
+      heldBy: by.heldBy ?? null,
+      updatedAt: new Date(),
+    })
     .where(
       and(
         eq(fulfillmentOrder.orderId, orderId),
@@ -45,19 +70,30 @@ export async function holdFulfillment(
 export async function releaseFulfillment(ctx: StoreContext, orderId: string): Promise<string[]> {
   const released = await ctx.tx
     .update(fulfillmentOrder)
-    .set({ heldAt: null, holdReason: null, updatedAt: new Date() })
+    .set({ heldAt: null, holdReason: null, holdCode: null, heldBy: null, updatedAt: new Date() })
     .where(and(eq(fulfillmentOrder.orderId, orderId), isNotNull(fulfillmentOrder.heldAt)))
     .returning({ id: fulfillmentOrder.id })
   return released.map((p) => p.id)
 }
 
-/** The order's held parcels (still shippable), with why. */
-export async function heldParcels(
-  tx: StoreTx,
-  orderId: string,
-): Promise<{ id: string; reason: string | null }[]> {
+export type HeldParcel = {
+  id: string
+  reason: string | null
+  code: string | null
+  heldBy: string | null
+  heldAt: Date | null
+}
+
+/** The order's held parcels (still shippable), with why, who and when. */
+export async function heldParcels(tx: StoreTx, orderId: string): Promise<HeldParcel[]> {
   const rows = await tx
-    .select({ id: fulfillmentOrder.id, reason: fulfillmentOrder.holdReason })
+    .select({
+      id: fulfillmentOrder.id,
+      reason: fulfillmentOrder.holdReason,
+      code: fulfillmentOrder.holdCode,
+      heldBy: fulfillmentOrder.heldBy,
+      heldAt: fulfillmentOrder.heldAt,
+    })
     .from(fulfillmentOrder)
     .where(
       and(
@@ -82,5 +118,5 @@ export async function assertNotHeld(
   const hit = fulfillmentOrderId ? held.find((p) => p.id === fulfillmentOrderId) : held[0]
   if (!hit) return
   const [o] = await ctx.tx.select({ number: order.number }).from(order).where(eq(order.id, orderId))
-  throw new FulfillmentOnHold(o?.number ?? null, hit.reason, ctx.storeId)
+  throw new FulfillmentOnHold(o?.number ?? null, holdWords(hit), ctx.storeId)
 }

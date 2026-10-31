@@ -11,6 +11,7 @@ import {
   collection,
   collectionProduct,
   customer,
+  fulfillmentOrder,
   order,
   orderLine,
   returnRequest,
@@ -39,6 +40,9 @@ import { type OrderView, paymentFinished, paymentNotFinished, viewFilter } from 
 /** Drafts live in the same table but are not orders yet; every list and tile hides them. */
 export const notDraft = ne(order.status, 'draft')
 
+/** Fulfilment on hold (#1011): a parcel still to ship is held (staff or an automation). */
+export const onHoldSql = sql<boolean>`exists (select 1 from ${fulfillmentOrder} where ${fulfillmentOrder.orderId} = ${order.id} and ${fulfillmentOrder.heldAt} is not null and ${fulfillmentOrder.status} in ('open', 'on_hold'))`
+
 /** "#1234" or "1234" is an order number; anything else is a name or an email. */
 export function orderNumberFromSearch(search: string): number | null {
   const match = /^#?(\d{1,9})$/.exec(search.trim())
@@ -54,6 +58,8 @@ export type OrderListFilters = {
   /** Money is expected but not in yet: an online payment not finished, or a UPI transfer to match. */
   paymentPending?: boolean | undefined
   fulfillmentStatus?: OrderFulfillmentStatus[] | undefined
+  /** Only orders whose fulfilment is on hold (the Fulfilment filter's "On hold"). */
+  onHold?: boolean | undefined
   placedFrom?: string | undefined
   /** Placed before this time (the end of a custom date range). */
   placedTo?: string | undefined
@@ -218,6 +224,7 @@ export function orderListWhere(input: OrderListFilters) {
     input.fulfillmentStatus?.length
       ? inArray(order.fulfillmentStatus, input.fulfillmentStatus)
       : undefined,
+    input.onHold ? onHoldSql : undefined,
     input.placedFrom ? gte(order.placedAt, new Date(input.placedFrom)) : undefined,
     input.placedTo ? lt(order.placedAt, new Date(input.placedTo)) : undefined,
     /* An order with no recorded method (imported history) is neither. */

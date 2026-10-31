@@ -1,6 +1,6 @@
 'use client'
 
-import { canEditOrder, canStaffCancel } from '@commerce/core/order-edit-rules'
+import { canEditOrder, canHoldFulfillment, canStaffCancel } from '@commerce/core/order-edit-rules'
 import { permissions } from '@commerce/core/permissions'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -24,6 +24,7 @@ import CollectPaymentDialog from './collect-payment-dialog'
 import CourierOrdersCard from './courier-orders-card'
 import CustomerCard from './customer-card'
 import DeliveryRouteCard from './delivery-route-card'
+import HoldFulfillmentDialog from './hold-fulfillment-dialog'
 import ImportedOrderCard from './imported-order-card'
 import LineItemsCard from './line-items-card'
 import { openOrderStatusPage } from './open-status-page'
@@ -39,6 +40,7 @@ import {
   unfulfilledLines,
 } from './order-detail-types'
 import OrderHeader from './order-header'
+import OrderHoldBanner from './order-hold-banner'
 import OrderNextStep from './order-next-step'
 import { nextStepKind } from './order-next-step-kind'
 import OrderPageFrame from './order-page-frame'
@@ -47,15 +49,15 @@ import ParcelsCard from './parcels-card'
 import PaymentCard from './payment-card'
 import ProfitCard from './profit-card'
 import RefundDialog from './refund-dialog'
-import type { SendChannel } from './reminder-channel-picker'
 import SalesChannelCard from './sales-channel-card'
-import SendMessageDialog, { type CustomMessage } from './send-message-dialog'
+import SendMessageDialog from './send-message-dialog'
 import ShipmentPanel from './shipment-panel'
 import TagsCard from './tags-card'
 import TimelineCard from './timeline-card'
 import UnfulfilledCard from './unfulfilled-card'
 import { useDuplicateOrder } from './use-duplicate-order'
 import { useOrderAppActions } from './use-order-app-actions'
+import { useOrderMessages } from './use-order-messages'
 
 /** The GST invoices app's card, drawn high in the side column and linked from "More actions". */
 const INVOICES_APP = 'gst-invoices'
@@ -91,6 +93,8 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
   >(null)
   const [collecting, setCollecting] = useState(false)
   const [cancelling, setCancelling] = useState(false)
+  const [holding, setHolding] = useState(false)
+  const messages = useOrderMessages(order.id, setBusy, () => router.refresh())
 
   // Helpers
   const appCard = (id: string) => {
@@ -145,42 +149,6 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
     }
   }
   const handleViewStatusPage = () => openOrderStatusPage(order.id, copy.actions.statusPageFailed)
-  const handleRequestBalance = async (custom?: CustomMessage) => {
-    setBusy(true)
-    try {
-      await api.orders.requestBalance({ orderId: order.id, custom })
-      toast.success(copy.payment.preorder.requestedToast)
-      refresh()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : listCopy.bulk.failed)
-    } finally {
-      setBusy(false)
-    }
-  }
-  const handleSendReminder = async (custom?: CustomMessage, channel?: SendChannel) => {
-    setBusy(true)
-    try {
-      await api.orders.sendPaymentReminder({ orderId: order.id, custom, channel })
-      toast.success(copy.payment.transfer.sentToast)
-      refresh()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : listCopy.bulk.failed)
-    } finally {
-      setBusy(false)
-    }
-  }
-  const handleSendOrderLink = async (custom?: CustomMessage) => {
-    setBusy(true)
-    try {
-      await api.orders.sendOrderLink({ orderId: order.id, custom })
-      toast.success(copy.actions.orderLinkSent)
-      refresh()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : listCopy.bulk.failed)
-    } finally {
-      setBusy(false)
-    }
-  }
   /** "Capture payment" (#150): take the money a manual-capture checkout only authorised. */
   const handleCapture = async (p: OrderPayment) => {
     setBusy(true)
@@ -266,7 +234,10 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
 
   const awaitingTransfer = live && !order.checkoutPaidAt && order.paymentMethod === 'manual'
   const stepKind = nextStepKind(order, { readOnly, canCollect, canFulfil, awaitingTransfer })
-  const canShip = !readOnly && readyToShip(order) && hasPermission(permissions.ORDERS_FULFIL)
+  const canFulfilOrders = hasPermission(permissions.ORDERS_FULFIL)
+  // A held order books nothing (#1011): the banner's "Release hold" comes first.
+  const canShip = !readOnly && !order.hold && readyToShip(order) && canFulfilOrders
+  const canHold = !order.hold && canHoldFulfillment(order) && canFulfilOrders
   // An imported order still open can be cancelled too (the server takes it over first).
   const canCancel = canStaffCancel(order) && hasPermission(permissions.ORDERS_CANCEL)
   const canEdit = canEditOrder(order) && hasPermission(permissions.ORDERS_WRITE)
@@ -306,6 +277,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
                   : undefined
               }
               onCancel={canCancel ? () => setCancelling(true) : undefined}
+              onHold={canHold ? () => setHolding(true) : undefined}
               onEdit={canEdit ? () => router.push(routes.orders.edit(order.id)) : undefined}
               invoicesHref={appCards.includes(INVOICES_APP) ? `#${INVOICES_ANCHOR}` : undefined}
               orderNumber={order.number}
@@ -329,6 +301,13 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
             archivedAt={order.archivedAt}
             busy={busy}
             onUnarchive={canArchive ? () => handleArchive(false) : undefined}
+          />
+        ) : order.hold ? (
+          <OrderHoldBanner
+            orderId={order.id}
+            hold={order.hold}
+            canRelease={canFulfilOrders}
+            onChanged={refresh}
           />
         ) : stepKind ? (
           <OrderNextStep
@@ -463,15 +442,20 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
         template={reviewing ?? 'payment_reminder'}
         onSend={
           reviewing === 'balance_request'
-            ? handleRequestBalance
+            ? messages.requestBalance
             : reviewing === 'order_link'
-              ? handleSendOrderLink
-              : handleSendReminder
+              ? messages.sendOrderLink
+              : messages.sendReminder
         }
         chooseChannel={
           reviewing === 'payment_reminder' ? { onChatOpened: handleReminderChat } : undefined
         }
         onClose={() => setReviewing(null)}
+      />
+      <HoldFulfillmentDialog
+        orderId={holding ? order.id : null}
+        onClose={() => setHolding(false)}
+        onDone={closeAndRefresh(() => setHolding(false))}
       />
       <CancelOrderDialog
         order={cancelling ? order : null}

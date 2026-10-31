@@ -15,6 +15,8 @@ export const automationPiecesContent: Record<string, string> = {
   'automations.trigger.order.fulfilled': 'Order fulfilled',
   'automations.trigger.order.cancelled': 'Order cancelled',
   'automations.trigger.order.delivered': 'Order delivered',
+  'automations.trigger.order.fulfillment_held': 'Fulfilment put on hold',
+  'automations.trigger.order.fulfillment_released': 'Fulfilment hold released',
   'automations.trigger.order.cod_placed': 'COD order placed',
   'automations.trigger.refund.created': 'Refund created',
   'automations.trigger.return.requested': 'Return requested',

@@ -50,6 +50,8 @@ export const BUILTIN_TRIGGER_IDS = [
   'order.fulfilled',
   'order.cancelled',
   'order.delivered',
+  'order.fulfillment_held',
+  'order.fulfillment_released',
   'order.cod_placed',
   'refund.created',
   'return.requested',
@@ -95,6 +97,8 @@ export const BUILTIN_TRIGGERS: readonly TriggerDescriptor[] = [
   orderTrigger('order.fulfilled', ['order.fulfilled']),
   orderTrigger('order.cancelled', ['order.cancelled']),
   orderTrigger('order.delivered', ['order.delivered']),
+  orderTrigger('order.fulfillment_held', ['order.fulfillment_held']),
+  orderTrigger('order.fulfillment_released', ['order.fulfillment_released']),
   // order.placed where the payment method is COD (Growth's cod_order_placed).
   orderTrigger('order.cod_placed', ['order.placed'], { marketing: true, group: 'marketing' }),
   orderTrigger('refund.created', ['refund.created']),

@@ -1,4 +1,4 @@
-/** SOURCE OF TRUTH: canTakeOver, canStaffCancel, canEditOrder, editsAfterShipping — WHAT: which orders staff may take over, cancel and edit / WHY: the admin hides the actions and the server refuses them by the same rules; pure, so the browser can import it (`@commerce/core/order-edit-rules`) */
+/** SOURCE OF TRUTH: canTakeOver, canStaffCancel, canEditOrder, editsAfterShipping, canHoldFulfillment — WHAT: which orders staff may take over, cancel, edit and hold / WHY: the admin hides the actions and the server refuses them by the same rules; pure, so the browser can import it (`@commerce/core/order-edit-rules`) */
 import { UNFULFILLED_STATUSES } from './aggregate-status'
 
 type OrderFacts = { importedFrom: string | null; status: string; fulfillmentStatus: string }
@@ -32,4 +32,19 @@ export function canEditOrder(o: OrderFacts): boolean {
 /** Everything is packed or already on its way: an edit will not change what was sent. */
 export function editsAfterShipping(o: Pick<OrderFacts, 'fulfillmentStatus'>): boolean {
   return !(UNFULFILLED_STATUSES as readonly string[]).includes(o.fulfillmentStatus)
+}
+
+/** Why staff hold an order's fulfilment (#1011); `other` leans on the note. */
+export const FULFILLMENT_HOLD_REASONS = [
+  'awaiting_stock',
+  'address_check',
+  'payment_check',
+  'customer_request',
+  'other',
+] as const
+export type FulfillmentHoldReason = (typeof FULFILLMENT_HOLD_REASONS)[number]
+
+/** "Hold fulfilment": open, worked here, and something is still left to pack. */
+export function canHoldFulfillment(o: OrderFacts): boolean {
+  return o.importedFrom === null && notShipped(o)
 }

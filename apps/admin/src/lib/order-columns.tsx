@@ -199,6 +199,7 @@ export function orderColumns(
       align: 'center',
       minWidth: 6.5,
       render: (o) => {
+        if (o.onHold) return <StatusChip tone="attention">{copy.holdChip}</StatusChip>
         if (
           o.status === 'open' &&
           o.fulfillmentStatus === 'unfulfilled' &&
