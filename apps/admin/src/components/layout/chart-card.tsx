@@ -12,7 +12,29 @@ import { base, instant } from '@/lib/motion'
 import ActionMenu, { type ActionItem } from './action-menu'
 import { type ChartPoint, chartConfig } from './chart-config'
 
-type PeriodOption = { id: string; label: string; data: ChartPoint[] }
+type PeriodOption = {
+  id: string
+  label: string
+  data: ChartPoint[]
+  /** The last point is a period still running (today): drawn as a dashed line (audit #147). */
+  partialLast?: boolean | undefined
+}
+
+type Row = { label: string; value?: number | undefined; live?: number | undefined }
+
+/**
+ * The solid series stops at the last finished point; `live` carries that point and the running
+ * one, so the dashed piece joins on. A single point (Today) is all live, drawn as a dot.
+ */
+function splitLive(data: ChartPoint[], partialLast: boolean): Row[] {
+  const n = data.length
+  if (!partialLast || n === 0) return data
+  return data.map((p, i) => ({
+    label: p.label,
+    value: i === n - 1 && n > 1 ? undefined : p.value,
+    live: i >= n - 2 ? p.value : undefined,
+  }))
+}
 
 type ChartCardProps = {
   title: string
@@ -54,7 +76,8 @@ export default function ChartCard({
 
   // Render logic
   const period = periods.find((p) => p.id === periodId) ?? periods[0]
-  const data = period?.data ?? []
+  const partial = period?.partialLast === true
+  const data = splitLive(period?.data ?? [], partial)
   const fade = reduced ? instant : base
   const config = seriesLabel ? { value: { ...chartConfig.value, label: seriesLabel } } : chartConfig
 
@@ -120,12 +143,17 @@ export default function ChartCard({
                 content={
                   <ChartTooltipContent
                     hideIndicator
-                    formatter={(v, name) => (
-                      <span className="flex w-full items-center justify-between gap-3">
-                        <span className="text-muted-foreground">{seriesLabel ?? String(name)}</span>
-                        <span className="font-bold tabular-nums">{formatValue(Number(v))}</span>
-                      </span>
-                    )}
+                    formatter={(v, name, item) =>
+                      // The joining point carries both series; list it once.
+                      name === 'live' && (item.payload as Row).value !== undefined ? null : (
+                        <span className="flex w-full items-center justify-between gap-3">
+                          <span className="text-muted-foreground">
+                            {seriesLabel ?? String(name)}
+                          </span>
+                          <span className="font-bold tabular-nums">{formatValue(Number(v))}</span>
+                        </span>
+                      )
+                    }
                   />
                 }
               />
@@ -138,6 +166,19 @@ export default function ChartCard({
                 isAnimationActive={false}
                 activeDot={{ r: 5, fill: 'var(--chart-1)', strokeWidth: 0 }}
               />
+              {partial ? (
+                <Area
+                  dataKey="live"
+                  type="monotone"
+                  stroke="var(--chart-1)"
+                  strokeWidth={2}
+                  strokeDasharray="4 4"
+                  fill="none"
+                  isAnimationActive={false}
+                  dot={data.length === 1 ? { r: 4, fill: 'var(--chart-1)', strokeWidth: 0 } : false}
+                  activeDot={{ r: 5, fill: 'var(--chart-1)', strokeWidth: 0 }}
+                />
+              ) : null}
             </AreaChart>
           </ChartContainer>
         </motion.div>

@@ -9,7 +9,7 @@ import { methodLabel } from '@/components/orders/order-detail-types'
 import { analyticsContent } from '@/data/analytics'
 import { INDIAN_STATES } from '@/data/india'
 import { formatDay, formatRate } from './analytics-range'
-import { formatPaise, formatPaiseCompact } from './money'
+import { formatPaiseCompact, formatPaiseWhole } from './money'
 
 const copy = analyticsContent.reports
 const STATE_NAMES = new Map(INDIAN_STATES.map((s) => [s.code, s.name]))
@@ -51,7 +51,8 @@ export function formatCell(kind: ReportColumnKind, value: ReportValue | undefine
     return isNumericKind(kind) ? '-' : copy.notSet
   }
   if (typeof value === 'string') return formatWord(kind, value)
-  if (kind === 'money') return formatPaise(value)
+  // Whole rupees, as the tiles show them; totals were in paise (audit #148). Never "-₹0".
+  if (kind === 'money') return formatPaiseWhole(Math.round(value / 100) === 0 ? 0 : value)
   if (kind === 'percent') return formatRate(value)
   if (kind === 'decimal') return decimal(value)
   if (kind === 'hours') return copy.hours(decimal(value))

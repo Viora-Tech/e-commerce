@@ -103,7 +103,7 @@ export default function RecentCampaignsCard({ rows }: RecentCampaignsCardProps) 
                     {r.sessions ? fmt.number(r.sessions) : dash}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {r.salesPaise ? fmt.money(r.salesPaise) : dash}
+                    {r.salesPaise ? fmt.moneyWhole(r.salesPaise) : dash}
                   </TableCell>
                 </TableRow>
               ))}

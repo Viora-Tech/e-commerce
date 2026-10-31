@@ -52,6 +52,7 @@ export const analyticsContent = {
   salesBreakdown: {
     title: 'Sales breakdown',
     previous: 'Period before',
+    current: 'This period',
     lines: {
       gross: 'Gross sales',
       discounts: 'Discounts',

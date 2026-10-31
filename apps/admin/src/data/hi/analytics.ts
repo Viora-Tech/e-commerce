@@ -55,6 +55,7 @@ export default [
     salesBreakdown: {
       title: 'बिक्री का ब्यौरा',
       previous: 'पिछली अवधि',
+      current: 'यह अवधि',
       lines: {
         gross: 'कुल बिक्री (ग्रॉस)',
         discounts: 'डिस्काउंट',

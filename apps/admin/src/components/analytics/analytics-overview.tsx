@@ -101,6 +101,8 @@ export default function AnalyticsOverviewPage({
   // Render logic
   const dayPoints = data.salesOverTime.day.map((p) => ({ ...p, label: formatDay(p.label) }))
   const weekPoints = data.salesOverTime.week.map((p) => ({ ...p, label: formatDay(p.label) }))
+  /* A preset range ends today, still running: its last point is drawn dashed (audit #147). */
+  const live = range.key !== 'custom'
   const totalPaise = data.salesOverTime.day.reduce((sum, p) => sum + p.value, 0)
   const best = data.salesOverTime.day.reduce<(typeof data.salesOverTime.day)[number] | null>(
     (top, p) => (p.value > (top?.value ?? 0) ? p : top),
@@ -137,8 +139,8 @@ export default function AnalyticsOverviewPage({
           best ? formatDay(best.label) : null,
         )}
         periods={[
-          { id: 'day', label: copy.salesOverTime.day, data: dayPoints },
-          { id: 'week', label: copy.salesOverTime.week, data: weekPoints },
+          { id: 'day', label: copy.salesOverTime.day, data: dayPoints, partialLast: live },
+          { id: 'week', label: copy.salesOverTime.week, data: weekPoints, partialLast: live },
         ]}
         seriesKey={`sales-${range.key}`}
         seriesLabel={copy.salesOverTime.series}
