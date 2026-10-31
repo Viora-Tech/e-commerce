@@ -204,7 +204,7 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
               {
                 id: 'value',
                 label: copy.tiles.value.label,
-                value: fmt.money(tiles.valuePaise),
+                value: fmt.moneyWhole(tiles.valuePaise),
                 note: copy.tiles.value.note(tiles.total),
               },
             ]}

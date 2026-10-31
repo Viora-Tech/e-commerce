@@ -5,7 +5,7 @@ import ProoflyPageBody from '@/components/layout/proofly-page-body'
 export default function ThemesSkeleton() {
   // Render logic
   return (
-    <ProoflyPageBody>
+    <ProoflyPageBody width="full">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex flex-col gap-2">
           <Skeleton className="h-9 w-40" />

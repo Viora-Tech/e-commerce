@@ -75,19 +75,22 @@ export default function UsageLimitCard({ card, onChanged }: UsageLimitCardProps)
             />
             <span className="text-caption text-muted-foreground">{copy.help}</span>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" onClick={() => save(limit)} disabled={busy || !valid}>
-              <Save aria-hidden="true" />
-              {copy.save}
-            </Button>
+          {/* Footer order (audit #31): Remove limit on the left; Cancel then Save on the right. */}
+          <div className="flex flex-wrap items-center gap-2">
             {card.usageLimit !== null ? (
               <Button size="sm" variant="outline" onClick={() => save(null)} disabled={busy}>
                 {copy.remove}
               </Button>
             ) : null}
-            <Button size="sm" variant="ghost" onClick={() => setEditing(false)} disabled={busy}>
-              {copy.cancel}
-            </Button>
+            <div className="ml-auto flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => setEditing(false)} disabled={busy}>
+                {copy.cancel}
+              </Button>
+              <Button size="sm" onClick={() => save(limit)} disabled={busy || !valid}>
+                <Save aria-hidden="true" />
+                {copy.save}
+              </Button>
+            </div>
           </div>
         </div>
       ) : (

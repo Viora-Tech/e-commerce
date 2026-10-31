@@ -171,7 +171,7 @@ export default function ThemesLibrary({
   const library = themes.filter((t) => t.role !== 'main')
 
   return (
-    <ProoflyPageBody>
+    <ProoflyPageBody width="full">
       <PageHeader
         title={title}
         summary={copy.subtitle}
