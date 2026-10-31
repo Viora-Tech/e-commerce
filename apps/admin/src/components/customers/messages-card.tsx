@@ -4,6 +4,7 @@ import DataCard from '@/components/layout/data-card'
 import RelativeTime from '@/components/layout/relative-time'
 import StatusChip from '@/components/layout/status-chip'
 import { customerDetailContent } from '@/data/customers'
+import { notificationsSettingsContent } from '@/data/notifications'
 import { useCopy } from '@/hooks/use-copy'
 import type { CustomerMessage } from './customer-detail-types'
 
@@ -18,6 +19,7 @@ const SHOWN = 5
 export default function MessagesCard({ messages }: MessagesCardProps) {
   // Hooks
   const detail = useCopy(customerDetailContent)
+  const names = useCopy(notificationsSettingsContent)
 
   // Early returns
   // Nothing sent yet: no empty card (audit #84).
@@ -39,10 +41,11 @@ export default function MessagesCard({ messages }: MessagesCardProps) {
             >
               <div className="min-w-0">
                 <p className="truncate text-body text-foreground">
-                  {copy.template[m.template] ?? m.template}
+                  {copy.template[m.template] ?? names.messages[m.template]?.name ?? m.template}
                 </p>
                 <p className="text-caption text-muted-foreground">
-                  <RelativeTime value={m.createdAt} /> {copy.via(m.channel)}
+                  <RelativeTime value={m.createdAt} />{' '}
+                  {copy.via(names.channels[m.channel] ?? m.channel)}
                 </p>
               </div>
               {m.status === 'sent' ? null : (
