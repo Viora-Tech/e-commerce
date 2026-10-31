@@ -1,5 +1,5 @@
 import { settingsSecret } from '@commerce/config'
-import { OrderEditSchema, permissions, REFUND_ROUTES } from '@commerce/core'
+import { ORDER_CANCEL_REASONS, OrderEditSchema, permissions, REFUND_ROUTES } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can, type StoreScope } from '../procedures'
@@ -57,6 +57,9 @@ export const orderEditRoutes = {
     .input(
       z.object({
         orderId: z.uuid(),
+        /** The reason picked from the list (#125). */
+        reasonCode: z.enum(ORDER_CANCEL_REASONS).optional(),
+        /** An optional note with it; older clients send their free-text reason here. */
         reason: z.string().trim().max(500).optional(),
         restock: z.boolean(),
         notifyCustomer: z.boolean(),

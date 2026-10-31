@@ -23,9 +23,24 @@ class OrderNotCancellable extends CommerceError {
   }
 }
 
+/** Why staff cancelled, Shopify-style (#125); stored on the order with the optional note. */
+export const ORDER_CANCEL_REASONS = ['customer', 'inventory', 'fraud', 'declined', 'other'] as const
+export type OrderCancelReason = (typeof ORDER_CANCEL_REASONS)[number]
+
+/** The timeline's words for each reason. */
+const REASON_WORDS: Record<OrderCancelReason, string> = {
+  customer: 'Customer changed their mind',
+  inventory: 'Out of stock',
+  fraud: 'Fraudulent or suspicious order',
+  declined: 'Payment declined',
+  other: 'Other',
+}
+
 export type StaffCancelInput = {
   orderId: string
-  /** Why, in the merchant's words; on the timeline. */
+  /** The reason picked from the list. */
+  reasonCode?: OrderCancelReason | undefined
+  /** An optional note in the merchant's words (before #125, the only reason); on the timeline. */
   reason?: string | undefined
   /** Put the unsent items back on sale. Off: written off, availability stays as it is. */
   restock: boolean
@@ -47,6 +62,7 @@ const ROUTE_WORDS: Record<RefundRoute, string> = {
 
 /** The timeline line: who cancelled, why, and what happened to the stock and the money. */
 const CANCEL_NOTE = (input: {
+  reasonCode?: OrderCancelReason | undefined
   reason?: string | undefined
   restock: boolean
   notifyCustomer: boolean
@@ -57,7 +73,8 @@ const CANCEL_NOTE = (input: {
 }) =>
   [
     'Order cancelled.',
-    input.reason?.trim() ? `Reason: ${input.reason.trim()}.` : '',
+    input.reasonCode ? `Reason: ${REASON_WORDS[input.reasonCode]}.` : '',
+    input.reason?.trim() ? `${input.reasonCode ? 'Note' : 'Reason'}: ${input.reason.trim()}.` : '',
     input.restock ? 'Items restocked.' : 'Items not restocked.',
     input.refundedPaise > 0
       ? `${formatMoney(input.refundedPaise, 'INR', { showZeroDecimals: true })} ${ROUTE_WORDS[input.refund]}.`
@@ -103,6 +120,10 @@ export async function cancelOrderByStaff(
     restock: input.restock,
     notifyCustomer: input.notifyCustomer,
   })
+  await ctx.tx
+    .update(order)
+    .set({ cancelReason: input.reasonCode ?? null, cancelNote: input.reason?.trim() || null })
+    .where(eq(order.id, input.orderId))
   // `order.cancel_notice` already reaches apps as a cancel; without it they still must hear it.
   if (!input.notifyCustomer) {
     await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.cancelled', { orderId: input.orderId })
@@ -114,7 +135,10 @@ export async function cancelOrderByStaff(
     orderId: input.orderId,
     amountPaise: refundedPaise,
     route: input.refund,
-    reason: input.reason?.trim() || 'Order cancelled',
+    reason:
+      input.reason?.trim() ||
+      (input.reasonCode ? REASON_WORDS[input.reasonCode] : null) ||
+      'Order cancelled',
     providers,
     storeCredit:
       input.refund === 'store_credit' && input.settingsSecret

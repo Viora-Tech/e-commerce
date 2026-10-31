@@ -207,6 +207,31 @@ describe('cancelOrderByStaff', () => {
     expect(notes.at(-1)?.author).toBe(STAFF)
   })
 
+  it('stores the picked reason code and its note (#125)', async () => {
+    const { storeId, black } = await seed()
+    const id = await placed(storeId, black)
+    await withStore(app, storeId, (tx) =>
+      cancelOrderByStaff(
+        { storeId, tx },
+        {
+          orderId: id,
+          reasonCode: 'inventory',
+          reason: 'Supplier delayed',
+          restock: true,
+          notifyCustomer: false,
+          refund: 'manual',
+          author: STAFF,
+        },
+        [gateway()],
+      ),
+    )
+    const o = await orderRow(id)
+    expect(o.cancelReason).toBe('inventory')
+    expect(o.cancelNote).toBe('Supplier delayed')
+    const notes = await owner.select().from(orderNote).where(eq(orderNote.orderId, id))
+    expect(notes.at(-1)?.body).toContain('Reason: Out of stock. Note: Supplier delayed.')
+  })
+
   it('writes stock off without restock, records a manual refund and stays quiet when asked', async () => {
     const { storeId, black } = await seed()
     const id = await placed(storeId, black)

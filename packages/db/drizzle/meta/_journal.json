@@ -1394,6 +1394,13 @@
       "when": 1793548763262,
       "tag": "0214_stock_adjustment_actor",
       "breakpoints": true
+    },
+    {
+      "idx": 199,
+      "version": "7",
+      "when": 1793548823262,
+      "tag": "0215_order_cancel_reason",
+      "breakpoints": true
     }
   ]
 }

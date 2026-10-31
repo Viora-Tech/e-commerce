@@ -71,7 +71,8 @@ export default function OrderEditPage({ order }: OrderEditPageProps) {
   const diff = totals.totalPaise - paid
 
   return (
-    <PageBody className="gap-6 md:pt-5 md:pb-8">
+    // The order page's centred 75rem frame, so editing does not jump wider and left (#19).
+    <PageBody className="mx-auto max-w-[75rem] gap-6 md:pt-5 md:pb-8">
       <PageHeader
         title={copy.pageTitle(order.number)}
         subtitle={copy.intro}
@@ -141,7 +142,9 @@ export default function OrderEditPage({ order }: OrderEditPageProps) {
                 </>
               }
             >
+              {/* Label left, amount right, like the order page's payment summary (#19). */}
               <KeyValueList
+                variant="grid"
                 rows={[
                   { label: copy.subtotal, value: fmt.money(totals.subtotalPaise) },
                   {
@@ -156,6 +159,7 @@ export default function OrderEditPage({ order }: OrderEditPageProps) {
                   },
                   {
                     label: copy.total,
+                    strong: true,
                     value: `${fmt.money(totals.totalPaise)} (${copy.totalWas(fmt.money(order.totalPaise))})`,
                   },
                   { label: copy.paid, value: fmt.money(paid), hidden: !settles },

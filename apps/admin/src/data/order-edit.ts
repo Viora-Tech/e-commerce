@@ -1,5 +1,6 @@
 /** Copy for "Cancel order", taking over an imported order, and the order edit page. */
 import { siteConfig } from '@commerce/config/site'
+import type { OrderCancelReason } from '@commerce/core'
 
 /** The three ways money goes back, shared by the cancel dialog and the edit review. */
 export const refundRouteContent = {
@@ -22,7 +23,16 @@ export const orderCancelContent = {
   title: 'Cancel this order?',
   body: 'The order closes and cannot be reopened. Cancel any booked courier pickup separately.',
   reason: 'Reason',
-  reasonPlaceholder: 'Customer changed their mind, out of stock, fraud...',
+  /** #125: Shopify-style reasons, stored as a code with the optional note. */
+  reasons: {
+    customer: 'Customer changed their mind',
+    inventory: 'Out of stock',
+    fraud: 'Fraudulent or suspicious order',
+    declined: 'Payment declined',
+    other: 'Other',
+  } satisfies Record<OrderCancelReason, string>,
+  note: 'Note (optional)',
+  reasonPlaceholder: 'Anything staff should know, for example which item ran out',
   restock: 'Restock items',
   restockHint: 'Put the unsent items back on sale.',
   restockImported:

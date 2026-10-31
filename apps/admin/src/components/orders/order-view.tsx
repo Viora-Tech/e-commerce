@@ -322,8 +322,15 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
           )}
         />
       }
+      // An archived order leads with its notice and shows no next step (#4).
       nextStep={
-        stepKind ? (
+        order.archivedAt ? (
+          <OrderArchivedNotice
+            archivedAt={order.archivedAt}
+            busy={busy}
+            onUnarchive={canArchive ? () => handleArchive(false) : undefined}
+          />
+        ) : stepKind ? (
           <OrderNextStep
             order={order}
             kind={stepKind}
@@ -338,13 +345,6 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
       }
       main={
         <>
-          {order.archivedAt ? (
-            <OrderArchivedNotice
-              archivedAt={order.archivedAt}
-              busy={busy}
-              onUnarchive={canArchive ? () => handleArchive(false) : undefined}
-            />
-          ) : null}
           <ImportedOrderCard
             order={order}
             canTakeOver={hasPermission(permissions.ORDERS_WRITE)}

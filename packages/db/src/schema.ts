@@ -1348,6 +1348,13 @@ export const order = pgTable(
     /** When every item was last packed (`order.fulfilled`), for the order's timeline (#121). */
     fulfilledAt: timestamp('fulfilled_at', { withTimezone: true }),
     /**
+     * Why staff cancelled it (#125): a code from `ORDER_CANCEL_REASONS` (customer, inventory,
+     * fraud, declined, other) and the optional note typed with it. Null on orders cancelled
+     * before the list (their free-text reason stays on the timeline) or cancelled by expiry.
+     */
+    cancelReason: text('cancel_reason'),
+    cancelNote: text('cancel_note'),
+    /**
      * Archived by the merchant (#1007): a record kept off the default list views, shown under
      * the "Archived" view. Nothing else about the order changes; unarchiving clears it.
      */
