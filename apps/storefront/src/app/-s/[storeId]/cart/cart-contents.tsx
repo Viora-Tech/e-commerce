@@ -8,8 +8,8 @@ import FreeShippingProgress from '@/components/cart/free-shipping-progress'
 import { cartContent as content } from '@/data/cart'
 import { readCartId } from '@/lib/cart-cookie'
 import { cartDiscountView } from '@/lib/discount-view'
+import { MARKET_HEADERS, marketPath } from '@/lib/markets'
 import { cartShippingHint } from '@/lib/shipping'
-import { MARKET_HEADERS } from '@/lib/markets'
 import { inStore } from '@/lib/store-context'
 import CartLines from './cart-lines'
 
@@ -26,6 +26,12 @@ export default async function CartContents({ storeId }: CartContentsProps) {
   const cartId = await readCartId()
   const cart = cartId ? await inStore(storeId, (tx) => getCart({ storeId, tx }, cartId)) : null
   const lines = cart?.status === 'open' ? cart.lines : []
+  const requestHeaders = await headers()
+  // Back to the shop inside the shopper's market (`/ae/collections`), not the default one.
+  const collectionsHref = marketPath(
+    requestHeaders.get(MARKET_HEADERS.prefix) ?? '',
+    '/collections',
+  )
 
   // Early returns
   if (!cart || lines.length === 0) {
@@ -36,7 +42,7 @@ export default async function CartContents({ storeId }: CartContentsProps) {
           icon="bag"
           title={content.empty.heading}
           body={content.empty.body}
-          action={{ label: content.empty.cta, href: '/collections' }}
+          action={{ label: content.empty.cta, href: collectionsHref }}
         />
       </section>
     )
@@ -48,7 +54,7 @@ export default async function CartContents({ storeId }: CartContentsProps) {
   const total = Math.max(0, cart.subtotalPaise - discountPaise)
   const india = await inStore(storeId, (tx) => cartShippingHint(tx, cart.id))
   // The hint is India's rates; a market abroad ships on its own zone's rates, priced at checkout.
-  const abroad = isAbroad((await headers()).get(MARKET_HEADERS.country) ?? 'IN')
+  const abroad = isAbroad(requestHeaders.get(MARKET_HEADERS.country) ?? 'IN')
   const hint = abroad ? { charged: true, freeAbovePaise: null } : india
   const threshold = discount?.freeShipping ? null : hint.freeAbovePaise
   const freeNow = discount?.freeShipping === true || (threshold !== null && total >= threshold)
@@ -74,7 +80,7 @@ export default async function CartContents({ storeId }: CartContentsProps) {
       <div className="cart-layout">
         <div className="cart-layout__lines">
           <CartLines lines={lines} />
-          <a href="/collections" className="cart-page__continue">
+          <a href={collectionsHref} className="cart-page__continue">
             <Icon name="arrow-right" size={16} />
             {content.continueShopping}
           </a>

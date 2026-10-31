@@ -95,9 +95,12 @@ export default function CheckoutForm(props: CheckoutFormProps) {
   // No way to pay left (a payment rule hid the only one): nothing for Place order to do.
   const noWayToPay = !totals.coveredByCards && totals.offered.length === 0
   const payDisabled = ck.unserviceable || ck.shortfall > 0 || noWayToPay
-  const footnote = look.branding.trustBadges
-    ? content.payFootnote(totals.coveredByCards ? [] : processorNames(totals.offered))
-    : null
+  // Cash on delivery or a transfer to the shop: no gateway takes a card or UPI PIN, so no note.
+  const offline = totals.offered.every((m) => m.id === 'cod' || m.id === 'manual')
+  const footnote =
+    look.branding.trustBadges && !(offline && !totals.coveredByCards)
+      ? content.payFootnote(totals.coveredByCards ? [] : processorNames(totals.offered))
+      : null
   const pay = (
     <CheckoutPayButton
       form={FORM_ID}
