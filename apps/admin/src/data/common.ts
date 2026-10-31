@@ -12,6 +12,16 @@ export const dialogContent = {
   close: 'Close',
 } as const
 
+/** The one date picker (`components/fields/date-field.tsx`, audit #33/#71/#83). */
+export const dateFieldContent = {
+  pick: 'Pick a date',
+  pickMonth: 'Pick a month',
+  time: 'Time',
+  clear: 'Clear',
+  previousYear: 'Previous year',
+  nextYear: 'Next year',
+} as const
+
 /** "Leave without saving?": asked when unsaved changes would be lost (LeaveGuard). */
 export const leaveGuardContent = {
   title: 'Leave without saving?',

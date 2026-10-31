@@ -1,8 +1,8 @@
 'use client'
 
 import { TrendingUp } from '@commerce/ui/icons'
-import { Input } from '@commerce/ui/shadcn/input'
 import { Switch } from '@commerce/ui/shadcn/switch'
+import DateField from '@/components/fields/date-field'
 import MoneyInput from '@/components/fields/money-input'
 import KitField from '@/components/kit/kit-field'
 import ChoiceCard from '@/components/layout/choice-card'
@@ -191,25 +191,17 @@ export default function ProductPricingSection({
             <label htmlFor="sale-starts-at" className="text-caption text-muted-foreground">
               {copy.expirationStart}
             </label>
-            <Input
+            <DateField
               id="sale-starts-at"
-              size="kit"
-              type="date"
               value={saleStartsAt}
-              onChange={(e) => onSaleStartsAt(e.target.value)}
+              onChange={(v) => onSaleStartsAt(v)}
             />
           </div>
           <div className="flex flex-col gap-1.5 md:flex-1">
             <label htmlFor="sale-ends-at" className="text-caption text-muted-foreground">
               {copy.expirationEnd}
             </label>
-            <Input
-              id="sale-ends-at"
-              size="kit"
-              type="date"
-              value={saleEndsAt}
-              onChange={(e) => onSaleEndsAt(e.target.value)}
-            />
+            <DateField id="sale-ends-at" value={saleEndsAt} onChange={(v) => onSaleEndsAt(v)} />
           </div>
         </div>
       </KitField>

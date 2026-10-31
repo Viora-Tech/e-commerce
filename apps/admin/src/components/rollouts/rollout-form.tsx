@@ -151,7 +151,8 @@ export default function RolloutForm({ rollout, data, results = null }: RolloutFo
     ? copy.ended(fmt.dateTime(rollout.endedAt))
     : rollout?.startedAt
       ? copy.started(fmt.dateTime(rollout.startedAt))
-      : copy.meta
+      : // The schedule card already says times are IST (audit #83: it showed twice).
+        undefined
 
   return (
     // One form column, centred at the width it had beside the Settings nav.

@@ -7,8 +7,8 @@ import {
   FieldGroup,
   FieldLabel,
 } from '@commerce/ui/shadcn/field'
-import { Input } from '@commerce/ui/shadcn/input'
 import { RadioGroup } from '@commerce/ui/shadcn/radio-group'
+import DateField from '@/components/fields/date-field'
 import DataCard from '@/components/layout/data-card'
 import { rolloutsContent } from '@/data/rollouts'
 import { useCopy } from '@/hooks/use-copy'
@@ -45,28 +45,26 @@ export default function RolloutScheduleCard({
         <div className="grid gap-4 md:grid-cols-2">
           <Field>
             <FieldLabel htmlFor="rollout-start">{copy.start}</FieldLabel>
-            <Input
-              size="lg"
+            <DateField
+              mode="datetime"
               id="rollout-start"
-              type="datetime-local"
               value={form.startsAt}
               disabled={startDisabled}
-              onChange={(e) => onChange({ startsAt: e.target.value })}
+              onChange={(v) => onChange({ startsAt: v })}
             />
             <FieldDescription>{copy.startHelp}</FieldDescription>
           </Field>
           {isEvent ? (
             <Field data-invalid={endError ? true : undefined}>
               <FieldLabel htmlFor="rollout-end">{copy.end}</FieldLabel>
-              <Input
-                size="lg"
+              <DateField
+                mode="datetime"
                 id="rollout-end"
-                type="datetime-local"
                 value={form.endsAt}
                 min={form.startsAt || undefined}
                 disabled={endDisabled}
                 aria-invalid={endError ? true : undefined}
-                onChange={(e) => onChange({ endsAt: e.target.value })}
+                onChange={(v) => onChange({ endsAt: v })}
               />
               {endError ? <FieldError>{copy.endError}</FieldError> : null}
             </Field>

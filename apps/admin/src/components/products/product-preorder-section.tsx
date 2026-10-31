@@ -9,6 +9,7 @@ import { Switch } from '@commerce/ui/shadcn/switch'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import DateField from '@/components/fields/date-field'
 import MoneyInput from '@/components/fields/money-input'
 import KitField from '@/components/kit/kit-field'
 import { productFormContent } from '@/data/product-form'
@@ -148,12 +149,10 @@ export default function ProductPreorderSection({
       {shows('shipping') ? (
         <div className="flex flex-col gap-4 md:flex-row md:gap-4">
           <KitField label={copy.shipDate} htmlFor="preorder-ship-date">
-            <Input
-              size="kit"
-              type="date"
+            <DateField
               id="preorder-ship-date"
               value={form.preorderShipDate}
-              onChange={(e) => onPatch({ preorderShipDate: e.target.value })}
+              onChange={(v) => onPatch({ preorderShipDate: v })}
             />
           </KitField>
           <KitField
@@ -283,12 +282,11 @@ export default function ProductPreorderSection({
       <div className="flex flex-col gap-1.5 border-border border-t pt-4">
         <span className="text-body text-foreground">{copy.launchHeading}</span>
         <KitField label={copy.launchAt} htmlFor="launch-at" help={copy.launchAtHelp}>
-          <Input
-            size="kit"
-            type="datetime-local"
+          <DateField
+            mode="datetime"
             id="launch-at"
             value={form.launchAt}
-            onChange={(e) => onPatch({ launchAt: e.target.value })}
+            onChange={(v) => onPatch({ launchAt: v })}
           />
         </KitField>
       </div>

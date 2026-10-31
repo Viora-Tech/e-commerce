@@ -1,6 +1,7 @@
 import {
   contactContent,
   copyButtonContent,
+  dateFieldContent,
   dialogContent,
   leaveGuardContent,
   reorderLabels,
@@ -17,6 +18,14 @@ export default [
   translation(dialogContent, {
     cancel: 'रद्द करें',
     close: 'बंद करें',
+  }),
+  translation(dateFieldContent, {
+    pick: 'तारीख चुनें',
+    pickMonth: 'महीना चुनें',
+    time: 'समय',
+    clear: 'हटाएँ',
+    previousYear: 'पिछला साल',
+    nextYear: 'अगला साल',
   }),
   translation(leaveGuardContent, {
     title: 'बिना सेव किए जाएँ?',

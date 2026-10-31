@@ -1,7 +1,7 @@
 'use client'
 
 import { Field, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
-import { Input } from '@commerce/ui/shadcn/input'
+import DateField from '@/components/fields/date-field'
 import LocationSelect, { type StoreLocation } from '@/components/inventory/location-select'
 import DataCard from '@/components/layout/data-card'
 import { purchaseOrderFormContent } from '@/data/inventory'
@@ -45,12 +45,11 @@ export default function DestinationCard({
         </Field>
         <Field>
           <FieldLabel htmlFor="po-expected">{copy.expected}</FieldLabel>
-          <Input
+          <DateField
             id="po-expected"
-            type="date"
             value={expectedAt}
             disabled={disabled}
-            onChange={(e) => onChange({ expectedAt: e.target.value })}
+            onChange={(v) => onChange({ expectedAt: v })}
           />
         </Field>
       </FieldGroup>
