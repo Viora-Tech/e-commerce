@@ -137,7 +137,10 @@ export function ItemsTable({ lines }: { lines: Line[] }) {
 
 export type TaxLine = { label: string; amount: string }
 
-/** Totals block: an optional GST split above the bold grand total. */
+/**
+ * Totals block: shipping above the bold grand total, and the GST inside the prices as one small
+ * "Includes GST" line under it. Rows above the total read as tax added on top (audit #189).
+ */
 export function TotalsBlock({
   totalLabel,
   shipping,
@@ -151,7 +154,7 @@ export function TotalsBlock({
     <Section
       style={{ margin: '0 0 8px', paddingTop: '8px', borderTop: `1px solid ${theme.border}` }}
     >
-      {[...(shipping ? [shipping] : []), ...(taxBreakdown ?? [])].map((t) => (
+      {(shipping ? [shipping] : []).map((t) => (
         <Row key={t.label} style={{ padding: '2px 0' }}>
           <Column>
             <Text style={{ fontSize: '12px', color: theme.muted, margin: 0 }}>{t.label}</Text>
@@ -173,6 +176,13 @@ export function TotalsBlock({
           </Text>
         </Column>
       </Row>
+      {taxBreakdown?.length ? (
+        <Text
+          style={{ fontSize: '12px', color: theme.muted, margin: '4px 0 0', textAlign: 'right' }}
+        >
+          Includes GST: {taxBreakdown.map((t) => `${t.label} ${t.amount}`).join(' · ')}
+        </Text>
+      ) : null}
     </Section>
   )
 }
