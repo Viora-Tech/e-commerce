@@ -1,4 +1,4 @@
-import { order, payment } from '@commerce/db'
+import { order, payment, shipment } from '@commerce/db'
 import { and, desc, eq, inArray, isNull, notInArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
@@ -189,6 +189,16 @@ export async function changeOrderStatus(
     // Tracking may already have flipped the shipment to delivered (see `applyTracking`),
     // which sends the same message; the notification job id makes a repeat harmless.
     if (marked) await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.delivered', { orderId })
+    // The hand-over happened: its parcels read Delivered too, not "Label created" (audit #122).
+    await ctx.tx
+      .update(shipment)
+      .set({ status: 'delivered', updatedAt: new Date() })
+      .where(
+        and(
+          eq(shipment.orderId, orderId),
+          notInArray(shipment.status, ['delivered', 'cancelled', 'rto']),
+        ),
+      )
   }
   await recomputeOrderStatuses(ctx, orderId)
   const [o] = await ctx.tx.select().from(order).where(eq(order.id, orderId))
