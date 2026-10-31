@@ -235,7 +235,8 @@ export const inboundShipmentFormContent = {
   discard: 'Discard',
   confirmDelete: {
     title: 'Delete this shipment?',
-    body: 'Its shared charges are deleted too. Remove its purchase orders first.',
+    body: 'Its shared charges are deleted too.',
+    blocked: 'This shipment still has purchase orders. Remove them first, then delete it.',
     confirm: 'Delete shipment',
     cancel: 'Cancel',
   },
@@ -246,7 +247,7 @@ export const chargesContent = {
   shipmentHeading: 'Shared charges',
   summary: 'Freight, customs duty, clearing and bank charges become part of each product’s cost.',
   empty: 'No charges yet.',
-  saveFirst: 'Save the order first, then add its charges.',
+  saveFirst: 'Save first, then add charges.',
   add: 'Add charge',
   edit: 'Edit',
   remove: 'Remove',
