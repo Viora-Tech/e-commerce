@@ -10,6 +10,8 @@ import { productFormContent } from '@/data/product-form'
 import { rupees } from '@/data/products'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { type Facets, margin, type VariantRow } from './form-state'
+import { type ProductTax, variantTax } from './product-tax'
+import ProductTaxFields from './product-tax-fields'
 import ZeroPriceWarning from './zero-price-warning'
 
 type ProductPricingSectionProps = {
@@ -19,6 +21,9 @@ type ProductPricingSectionProps = {
   taxIncluded: boolean
   saleStartsAt: string
   saleEndsAt: string
+  /** The product's GST rate, edited under "Charge tax" (audit #135). */
+  tax: ProductTax
+  onTax: (tax: ProductTax) => void
   onVariant: (patch: Partial<VariantRow>) => void
   onTaxIncluded: (value: boolean) => void
   onSaleStartsAt: (value: string) => void
@@ -55,6 +60,8 @@ export default function ProductPricingSection({
   taxIncluded,
   saleStartsAt,
   saleEndsAt,
+  tax,
+  onTax,
   onVariant,
   onTaxIncluded,
   onSaleStartsAt,
@@ -73,7 +80,8 @@ export default function ProductPricingSection({
     variant.mrp.trim() !== ''
 
   const profit = margin(variant.price, variant.cost)
-  const ownRate = variant.gstRate.trim() === '' ? null : Number(variant.gstRate)
+  const billedRate = variantTax(tax, variant).gstRate
+  const ownRate = billedRate === '' ? null : Number(billedRate)
   // Under the composition scheme no GST is charged, whatever the rate says.
   const rate = gst?.composition ? 0 : (ownRate ?? gst?.ratePercent ?? null)
   const pricePaise = rupees.toPaise(variant.price)
@@ -152,6 +160,9 @@ export default function ProductPricingSection({
             onCheckedChange={(taxable) => onVariant({ taxable })}
           />
         </div>
+        {variant.taxable ? (
+          <ProductTaxFields tax={tax} singleVariant part="rate" onChange={onTax} />
+        ) : null}
         {variant.taxable ? (
           <KitField label={copy.taxIncluded} help={copy.taxIncludedHelp}>
             <div className="grid gap-2 md:grid-cols-2">

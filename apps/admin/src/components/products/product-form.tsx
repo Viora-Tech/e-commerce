@@ -23,6 +23,7 @@ import { api } from '@/lib/api-client'
 import type { ProductLayout } from '@/lib/product-layout'
 import { routes } from '@/lib/routes'
 import AiWriterButton from './ai-writer-button'
+import DuplicateProductDialog from './duplicate-product-dialog'
 import {
   emptyForm,
   type Facets,
@@ -98,6 +99,7 @@ export default function ProductForm({
   const [serverError, setServerError] = useState<string | null>(null)
   const [attempted, setAttempted] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [duplicating, setDuplicating] = useState(false)
   /* Bumped after each save so cards that load their own data (collections) refetch. */
   const [revision, setRevision] = useState(0)
   const appItems = useProductAppActions(apps, product?.id ?? null, (tab, focus) =>
@@ -175,7 +177,7 @@ export default function ProductForm({
 
   /* "No HS code" on the checklist opens the product's HSN field itself (#63), not just its tab. */
   const handleChecklistSelect = (id: string) => {
-    if (id === 'shipping' && missingHsCode(form.tax, form.variants)) {
+    if (id === 'shipping' && !product?.isGiftCard && missingHsCode(form.tax, form.variants)) {
       handleOpenTab('shipping', 'product-hs')
       return
     }
@@ -239,19 +241,6 @@ export default function ProductForm({
     setServerError(null)
   }
 
-  const handleDuplicate = async () => {
-    if (!product) return
-    setBusy(true)
-    try {
-      const { id } = await api.products.duplicate({ id: product.id })
-      toast.success(copy.duplicate.toast)
-      router.push(routes.products.detail(id))
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.duplicate.failed)
-      setBusy(false)
-    }
-  }
-
   const handleArchive = () => void handleSave(form.status === 'archived' ? 'draft' : 'archived')
 
   const handleRemove = async () => {
@@ -289,10 +278,15 @@ export default function ProductForm({
   const tabIds = tabsFor(single)
   const activeTab = tabFromParam(searchParams.get('tab'), single)
   const failing = new Set<ProductTabId>(showErrors ? tabsWithErrors(errors, single) : [])
-  const checklist = productChecklist(copy, fmt, form, errors, single, {
-    count: productAppSections(apps).length,
-    copy: pageCopy.checklist,
-  })
+  const checklist = productChecklist(
+    copy,
+    fmt,
+    form,
+    errors,
+    single,
+    { count: productAppSections(apps).length, copy: pageCopy.checklist },
+    product?.isGiftCard === true,
+  )
   const tabs = tabIds.map((id) => ({
     id,
     label: copy.tabs.labels[id],
@@ -413,7 +407,7 @@ export default function ProductForm({
             dirty={isDirty}
             storefrontOrigin={storefrontOrigin}
             onSave={() => void handleSave()}
-            onDuplicate={handleDuplicate}
+            onDuplicate={() => setDuplicating(true)}
             onArchive={handleArchive}
             onDelete={() => setConfirmDelete(true)}
             appItems={[
@@ -479,6 +473,13 @@ export default function ProductForm({
         busy={busy}
         onConfirm={handleRemove}
       />
+      {product ? (
+        <DuplicateProductDialog
+          productId={product.id}
+          open={duplicating}
+          onOpenChange={setDuplicating}
+        />
+      ) : null}
       <RunAutomationDialog
         subjectType="product"
         ids={automation.target}

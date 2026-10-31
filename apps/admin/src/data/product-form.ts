@@ -363,11 +363,22 @@ export const productFormContent = {
     empty: 'No stock movements yet. Changes you make to quantities show up here.',
     columns: { when: 'When', variant: 'Variant', change: 'Change', reason: 'Reason' },
     failed: 'Could not load stock history',
+    /** Who made a change; system rows (orders, imports) have no member (audit #139). */
+    by: (name: string) => `by ${name}`,
+    bySystem: 'by Koomerce',
   },
   duplicate: {
     action: 'Duplicate',
     toast: 'Product duplicated',
     failed: 'Could not duplicate',
+    /** The "What to copy" dialog (audit #136). */
+    title: 'Duplicate product',
+    body: 'The copy starts as a draft with the same text, prices and variants. SKUs and barcodes are left blank.',
+    photos: 'Photos',
+    photosHelp: 'The same photos, in the same order.',
+    stock: 'Stock on hand',
+    stockHelp: 'Off: the copy starts at 0, so nothing is sold twice.',
+    submit: 'Duplicate',
   },
   unsaved: 'Leave without saving? Your changes will be lost.',
   variantBulk: {

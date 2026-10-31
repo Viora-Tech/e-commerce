@@ -2,7 +2,7 @@
 
 import { Input } from '@commerce/ui/shadcn/input'
 import { Switch } from '@commerce/ui/shadcn/switch'
-import SettingsRow from '@/components/settings/settings-row'
+import KitField from '@/components/kit/kit-field'
 import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 import type { ProductTax } from './product-tax'
@@ -11,6 +11,9 @@ type ProductTaxFieldsProps = {
   tax: ProductTax
   /** No options: one variant, so "Different per variant" has nothing to differ. */
   singleVariant: boolean
+  /** Which fields: the HSN code and per-variant switch (Shipping), the GST rate (beside
+   *  "Charge tax", audit #135), or all of them. */
+  part?: 'customs' | 'rate' | 'all'
   onChange: (tax: ProductTax) => void
 }
 
@@ -22,50 +25,69 @@ const rateText = (text: string) => text.replace(/\D/g, '').slice(0, 2)
  * the rare product whose variants are classed differently. `product-hs` is the field the
  * "No HS code" checklist row and the GST app jump to.
  */
-export default function ProductTaxFields({ tax, singleVariant, onChange }: ProductTaxFieldsProps) {
+export default function ProductTaxFields({
+  tax,
+  singleVariant,
+  part = 'all',
+  onChange,
+}: ProductTaxFieldsProps) {
   // Hooks
   const { shipping: copy } = useCopy(productFormContent)
 
+  // Render logic
+  const customs = part !== 'rate'
+  const rate = part !== 'customs'
+
   return (
     <>
-      <SettingsRow
-        label={copy.hsCode}
-        description={singleVariant ? copy.hsCodeHelp : copy.hsCodeAllHelp}
-        htmlFor="product-hs"
-      >
-        <Input
-          size="lg"
-          id="product-hs"
-          value={tax.hsCode}
-          onChange={(e) => onChange({ ...tax, hsCode: e.target.value })}
-          autoComplete="off"
-          inputMode="numeric"
-          className="md:max-w-[20.75rem]"
-        />
-      </SettingsRow>
-      <SettingsRow label={copy.gstRate} description={copy.gstRateHelp} htmlFor="product-gst">
-        <Input
-          size="lg"
-          id="product-gst"
-          value={tax.gstRate}
-          onChange={(e) => onChange({ ...tax, gstRate: rateText(e.target.value) })}
-          autoComplete="off"
-          inputMode="numeric"
-          className="md:max-w-[20.75rem]"
-        />
-      </SettingsRow>
-      {singleVariant ? null : (
-        <SettingsRow
-          label={copy.taxPerVariant}
-          description={tax.perVariant ? copy.taxPerVariantOnHelp : copy.taxPerVariantOffHelp}
-          htmlFor="product-tax-per-variant"
-        >
+      {customs || rate ? (
+        <div className="grid gap-4 md:grid-cols-2">
+          {customs ? (
+            <KitField
+              label={copy.hsCode}
+              help={singleVariant ? copy.hsCodeHelp : copy.hsCodeAllHelp}
+              htmlFor="product-hs"
+            >
+              <Input
+                size="kit"
+                id="product-hs"
+                value={tax.hsCode}
+                onChange={(e) => onChange({ ...tax, hsCode: e.target.value })}
+                autoComplete="off"
+                inputMode="numeric"
+              />
+            </KitField>
+          ) : null}
+          {rate ? (
+            <KitField label={copy.gstRate} help={copy.gstRateHelp} htmlFor="product-gst">
+              <Input
+                size="kit"
+                id="product-gst"
+                value={tax.gstRate}
+                onChange={(e) => onChange({ ...tax, gstRate: rateText(e.target.value) })}
+                autoComplete="off"
+                inputMode="numeric"
+              />
+            </KitField>
+          ) : null}
+        </div>
+      ) : null}
+      {singleVariant || !customs ? null : (
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-0.5">
+            <label htmlFor="product-tax-per-variant" className="text-body-strong text-foreground">
+              {copy.taxPerVariant}
+            </label>
+            <p className="text-caption text-muted-foreground">
+              {tax.perVariant ? copy.taxPerVariantOnHelp : copy.taxPerVariantOffHelp}
+            </p>
+          </div>
           <Switch
             id="product-tax-per-variant"
             checked={tax.perVariant}
             onCheckedChange={(perVariant) => onChange({ ...tax, perVariant })}
           />
-        </SettingsRow>
+        </div>
       )}
     </>
   )

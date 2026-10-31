@@ -19,6 +19,8 @@ export function productChecklist(
   single: boolean,
   /** Installed apps that add a section to the More tab. */
   apps: { count: number; copy: PageCopy['checklist'] },
+  /** A gift card is never shipped: no weight or HS code to ask for (audit #193). */
+  giftCard = false,
 ): ChecklistItem[] {
   const c = copy.checklist
   const broken = new Set<ProductTabId>(
@@ -42,6 +44,7 @@ export function productChecklist(
       case 'variants':
         return { state: 'done', note: fmt.number(form.variants.length) }
       case 'shipping':
+        if (giftCard) return { state: 'done' }
         if (form.variants.some((v) => !v.weight.trim())) return { state: 'todo', note: c.noWeight }
         /* GST invoices print the HSN code, so a product without one needs fixing. */
         if (missingHsCode(form.tax, form.variants)) return { state: 'warn', note: c.noHsCode }

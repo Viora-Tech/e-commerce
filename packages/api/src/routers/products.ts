@@ -206,10 +206,20 @@ export const productsRouter = {
     }),
 
   duplicate: can(permissions.PRODUCTS_WRITE)
-    .input(z.object({ id: z.uuid() }))
+    .input(
+      z.object({
+        id: z.uuid(),
+        /** What to copy besides text and prices (audit #136): photos on, stock off by default. */
+        photos: z.boolean().default(true),
+        stock: z.boolean().default(false),
+      }),
+    )
     .handler(({ context, input }) =>
       invalidToBadRequest(async () => ({
-        id: await duplicateProduct(context.tx, context.scope.storeId, input.id),
+        id: await duplicateProduct(context.tx, context.scope.storeId, input.id, {
+          photos: input.photos,
+          stock: input.stock,
+        }),
       })),
     ),
 
