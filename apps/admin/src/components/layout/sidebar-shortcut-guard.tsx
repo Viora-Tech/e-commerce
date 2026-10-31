@@ -11,7 +11,8 @@ const isToggleKey = (event: KeyboardEvent) =>
 /** Typing in a field or rich-text editor: there Cmd/Ctrl+B means bold, not "toggle the rail". */
 const isEditable = (target: EventTarget | null) =>
   target instanceof HTMLElement &&
-  (target.isContentEditable || target.closest('input, textarea, select, [contenteditable]') !== null)
+  (target.isContentEditable ||
+    target.closest('input, textarea, select, [contenteditable]') !== null)
 
 /**
  * Cmd/Ctrl+B is a frequent keyboard action, so the rail snaps instead of animating: for a
