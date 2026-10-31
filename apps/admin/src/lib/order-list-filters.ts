@@ -16,7 +16,14 @@ import {
 import { moneyRangeGroup, paiseBound } from '@/lib/list-filter-groups'
 
 /** The Orders filter panel (Figma "Orders · Filter"): what a merchant ticks, by group. */
-export const PAYMENT_FILTERS = ['paid', 'unpaid', 'partially_refunded', 'refund_needed'] as const
+export const PAYMENT_FILTERS = [
+  'paid',
+  'unpaid',
+  'payment_pending',
+  'partially_refunded',
+  'refunded',
+  'refund_needed',
+] as const
 export const FULFILMENT_FILTERS = ['unfulfilled', 'shipped', 'delivered', 'returned'] as const
 export const DATE_FILTERS = ['today', '7d', '30d', '90d'] as const
 /** Stored payment methods are gateway names, so the panel splits only cash on delivery from prepaid. */
@@ -80,11 +87,14 @@ function productText(f: OrderFilters): string | null {
   return text ? text : null
 }
 
-/* One ticked box can stand for several stored statuses ("Unpaid" includes authorised and part paid). */
-const PAYMENT_STATUSES: Record<PaymentFilter, OrderPaymentStatus[]> = {
+/* One ticked box can stand for several stored statuses ("Unpaid" includes authorised and part
+   paid; the API counts them on open orders only, like the Unpaid tab). Payment pending is not a
+   stored status: it goes as its own flag. */
+const PAYMENT_STATUSES: Record<Exclude<PaymentFilter, 'payment_pending'>, OrderPaymentStatus[]> = {
   paid: ['paid'],
   unpaid: ['unpaid', 'authorized', 'partially_paid'],
   partially_refunded: ['partially_refunded'],
+  refunded: ['refunded'],
   refund_needed: ['refund_needed'],
 }
 
@@ -134,9 +144,13 @@ export function orderFilterInput(f: OrderFilters, now = new Date()) {
   const placed = dateFilterBounds(f.date, presetStart, now)
   const min = paiseBound(f.totalMin)
   const max = paiseBound(f.totalMax)
+  const paymentStatuses = f.payment.flatMap((p) =>
+    p === 'payment_pending' ? [] : PAYMENT_STATUSES[p],
+  )
   return {
     ...(product ? { product } : {}),
-    ...(f.payment.length ? { paymentStatus: f.payment.flatMap((p) => PAYMENT_STATUSES[p]) } : {}),
+    ...(paymentStatuses.length ? { paymentStatus: paymentStatuses } : {}),
+    ...(f.payment.includes('payment_pending') ? { paymentPending: true } : {}),
     ...(f.fulfilment.length
       ? { fulfillmentStatus: f.fulfilment.flatMap((s) => FULFILMENT_STATUSES[s]) }
       : {}),

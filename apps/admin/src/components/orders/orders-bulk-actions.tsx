@@ -22,12 +22,10 @@ import { ORDER_MARKS, type OrderMark, ordersContent } from '@/data/orders'
 import { ordersBulkContent } from '@/data/orders-bulk'
 import { BULK_EDIT_IDS_KEY } from '@/data/orders-bulk-edit'
 import { useCopy } from '@/hooks/use-copy'
-import { api } from '@/lib/api-client'
-import { downloadCsv } from '@/lib/csv'
-import { ordersCsv } from '@/lib/orders-csv'
 import { routes } from '@/lib/routes'
 import type { OrdersBulkRequest } from './orders-bulk-dialogs'
 import { useOrderAppActions } from './use-order-app-actions'
+import { useOrdersExport } from './use-orders-export'
 
 type OrdersBulkActionsProps = {
   ids: string[]
@@ -46,8 +44,6 @@ type OrdersBulkActionsProps = {
 
 /** Most packing slips one print view loads (the ids ride in its URL). */
 const PRINT_MAX = 100
-/** Most ids one `orders.sheet` call takes. */
-const SHEET_CHUNK = 5000
 
 /**
  * Buttons for the selected orders: open them in the bulk-edit sheet, mark them all, and in
@@ -74,7 +70,7 @@ export default function OrdersBulkActions({
   /* The dialog stays open on its Booked step; the list reloads once the merchant closes it. */
   const [booked, setBooked] = useState(false)
   const [confirmCancel, setConfirmCancel] = useState(false)
-  const [exporting, setExporting] = useState(false)
+  const { exporting, exportOrders } = useOrdersExport()
 
   // Event handlers
   /* Thousands of ids don't fit in a URL: hand them to the sheet through sessionStorage. */
@@ -87,24 +83,7 @@ export default function OrdersBulkActions({
     }
     router.push(routes.orders.bulkEdit())
   }
-  const handleExport = async () => {
-    setExporting(true)
-    try {
-      const rows = []
-      for (let i = 0; i < ids.length; i += SHEET_CHUNK) {
-        rows.push(...(await api.orders.sheet({ ids: ids.slice(i, i + SHEET_CHUNK) })))
-      }
-      downloadCsv(
-        `orders-${new Date().toISOString().slice(0, 10)}.csv`,
-        ordersCsv(copy, bulkCopy, rows),
-      )
-      toast.success(bulkCopy.exportDone(rows.length))
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : bulkCopy.exportFailed)
-    } finally {
-      setExporting(false)
-    }
-  }
+  const handleExport = () => exportOrders(ids)
   const handlePrint = (kind: 'packing_slip' | 'pick_list' | 'invoice') => {
     if (ids.length > PRINT_MAX) return void toast.error(bulkCopy.printTooMany(PRINT_MAX))
     window.open(routes.orders.printDocuments(kind, ids), '_blank', 'noopener')

@@ -1,4 +1,9 @@
-import type { OrderFulfillmentStatus, OrderPaymentStatus, OrderStatus } from '@commerce/core'
+import {
+  type OrderFulfillmentStatus,
+  type OrderPaymentStatus,
+  type OrderStatus,
+  UNPAID_PAYMENT_STATUSES,
+} from '@commerce/core'
 import { MARKETING_CHANNELS } from '@commerce/core/marketing'
 import type { StoreTx } from '@commerce/db'
 import {
@@ -12,8 +17,22 @@ import {
   shipment,
   variant,
 } from '@commerce/db'
-import { and, asc, eq, gte, ilike, inArray, isNotNull, lt, lte, ne, or, sql } from 'drizzle-orm'
-import { type OrderView, viewFilter } from './order-views'
+import {
+  and,
+  asc,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  isNotNull,
+  isNull,
+  lt,
+  lte,
+  ne,
+  or,
+  sql,
+} from 'drizzle-orm'
+import { type OrderView, paymentFinished, paymentNotFinished, viewFilter } from './order-views'
 
 /* The Orders list's where clause and the filter panel's options, shared by the list and its ids. */
 
@@ -32,6 +51,8 @@ export type OrderListFilters = {
   view?: OrderView | undefined
   status?: OrderStatus | undefined
   paymentStatus?: OrderPaymentStatus[] | undefined
+  /** Money is expected but not in yet: an online payment not finished, or a UPI transfer to match. */
+  paymentPending?: boolean | undefined
   fulfillmentStatus?: OrderFulfillmentStatus[] | undefined
   placedFrom?: string | undefined
   /** Placed before this time (the end of a custom date range). */
@@ -147,6 +168,37 @@ function searchesOrderDetails(text: string) {
 }
 
 /** Every condition of the Orders list: tab, search and the filter panel. */
+/**
+ * The filter panel's Payment boxes, any of them (#2, #11). An unpaid status counts the way the
+ * Unpaid tab does: open orders whose checkout finished, so a cancelled one (shown as Voided) or a
+ * checkout still at the gateway never makes the filter disagree with the tab. Payment pending is
+ * money on its way: an online payment not finished yet, or a manual UPI transfer to match.
+ */
+function paymentWhere(statuses: OrderPaymentStatus[], pending: boolean) {
+  if (statuses.length === 0 && !pending) return undefined
+  const unpaid = statuses.filter((s) => UNPAID_PAYMENT_STATUSES.includes(s))
+  const settled = statuses.filter((s) => !UNPAID_PAYMENT_STATUSES.includes(s))
+  return or(
+    settled.length ? inArray(order.paymentStatus, settled) : undefined,
+    unpaid.length
+      ? and(eq(order.status, 'open'), inArray(order.paymentStatus, unpaid), paymentFinished)
+      : undefined,
+    pending
+      ? and(
+          eq(order.status, 'open'),
+          or(
+            paymentNotFinished,
+            and(
+              isNull(order.checkoutPaidAt),
+              eq(order.paymentMethod, 'manual'),
+              isNull(order.importedFrom),
+            ),
+          ),
+        )
+      : undefined,
+  )
+}
+
 export function orderListWhere(input: OrderListFilters) {
   const byNumber = input.search ? orderNumberFromSearch(input.search) : null
   return and(
@@ -162,7 +214,7 @@ export function orderListWhere(input: OrderListFilters) {
         )
       : undefined,
     input.status ? eq(order.status, input.status) : undefined,
-    input.paymentStatus?.length ? inArray(order.paymentStatus, input.paymentStatus) : undefined,
+    paymentWhere(input.paymentStatus ?? [], input.paymentPending ?? false),
     input.fulfillmentStatus?.length
       ? inArray(order.fulfillmentStatus, input.fulfillmentStatus)
       : undefined,

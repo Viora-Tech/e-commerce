@@ -53,6 +53,7 @@ export default [
       apps: 'ऐप्स',
       copyNumber: 'ऑर्डर नंबर कॉपी करें',
       numberCopied: 'ऑर्डर नंबर कॉपी हो गया',
+      unarchive: 'ऑर्डर आर्काइव से वापस लाएँ',
     },
     title: 'ऑर्डर',
     heading: 'ऑर्डर लिस्ट',
@@ -90,6 +91,7 @@ export default [
     addOrder: 'ऑर्डर जोड़ें',
     moreActions: 'और विकल्प',
     menu: {
+      exportView: 'ऑर्डर एक्सपोर्ट करें (CSV)',
       drafts: 'ड्राफ़्ट ऑर्डर',
       abandoned: 'अधूरे चेकआउट',
       returns: 'रिटर्न',
@@ -134,7 +136,9 @@ export default [
       paymentOptions: {
         paid: 'पेमेंट हो गया',
         unpaid: 'पेमेंट बाकी',
+        payment_pending: 'पेमेंट आने वाला है',
         partially_refunded: 'कुछ रिफ़ंड हुआ',
+        refunded: 'पूरा रिफ़ंड हुआ',
         refund_needed: 'रिफ़ंड करना है',
       },
       fulfilmentOptions: {

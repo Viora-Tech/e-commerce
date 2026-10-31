@@ -25,8 +25,8 @@ export type OrderView = (typeof ORDER_VIEWS)[number]
  * (#1001, #997). COD and manual UPI orders are real orders. Every part is non-null, so `not`
  * of it is never null.
  */
-const paymentNotFinished = sql`(${order.cartId} is not null and ${order.checkoutPaidAt} is null and ${order.importedFrom} is null and coalesce(${order.paymentMethod}, 'manual') not in ('cod', 'manual') and ${order.status} in ('open', 'cancelled'))`
-const paymentFinished = sql`not ${paymentNotFinished}`
+export const paymentNotFinished = sql`(${order.cartId} is not null and ${order.checkoutPaidAt} is null and ${order.importedFrom} is null and coalesce(${order.paymentMethod}, 'manual') not in ('cod', 'manual') and ${order.status} in ('open', 'cancelled'))`
+export const paymentFinished = sql`not ${paymentNotFinished}`
 
 /**
  * What each tab shows. Unpaid and Unfulfilled are work still to do, so only

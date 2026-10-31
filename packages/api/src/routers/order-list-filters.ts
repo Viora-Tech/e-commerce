@@ -10,6 +10,8 @@ export const listFilters = z.object({
   /** The list tab. */
   view: z.enum(ORDER_VIEWS).optional(),
   paymentStatus: z.array(z.enum(ORDER_PAYMENT_STATUSES)).max(10).optional(),
+  /** Payment pending (#11): an online payment not finished, or a manual UPI transfer to match. */
+  paymentPending: z.boolean().optional(),
   fulfillmentStatus: z.array(z.enum(ORDER_FULFILLMENT_STATUSES)).max(10).optional(),
   /** Placed at or after this moment (the filter panel's Date). */
   placedFrom: z.iso.datetime().optional(),

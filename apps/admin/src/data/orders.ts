@@ -61,6 +61,7 @@ export const ordersContent = {
     apps: 'Apps',
     copyNumber: 'Copy order number',
     numberCopied: 'Order number copied',
+    unarchive: 'Unarchive order',
   },
   title: 'Orders',
   /* Frame 5:2353: "Order List" heading, Add Order + More Action, four tiles, tab group. */
@@ -87,7 +88,13 @@ export const ordersContent = {
   loadFailed: 'Could not load orders',
   addOrder: 'Add order',
   moreActions: 'More actions',
-  menu: { drafts: 'Draft orders', abandoned: 'Abandoned checkouts', returns: 'Returns' },
+  menu: {
+    /** #12: a CSV of every order the current tab, search and filters match. */
+    exportView: 'Export orders (CSV)',
+    drafts: 'Draft orders',
+    abandoned: 'Abandoned checkouts',
+    returns: 'Returns',
+  },
   export: 'Export',
   resource: { singular: 'order', plural: 'orders' },
   /** The table's View select (Figma "Table / View select"). */
@@ -136,7 +143,9 @@ export const ordersContent = {
     paymentOptions: {
       paid: 'Paid',
       unpaid: 'Unpaid',
+      payment_pending: 'Payment pending',
       partially_refunded: 'Partially refunded',
+      refunded: 'Refunded',
       refund_needed: 'Refund needed',
     } satisfies Record<PaymentFilter, string>,
     fulfilmentOptions: {

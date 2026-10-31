@@ -97,7 +97,8 @@ export function orderColumns(
       sortTitle: copy.sortTitles.order,
       sortRank: 1,
       hideable: false,
-      className: 'w-[9%]',
+      className: 'w-[7%]',
+      minWidth: 6,
       render: (o) => (
         <span className="inline-flex items-center gap-1.5">
           {/* Cancelled reads as gone at a glance, like Shopify's struck-through rows (audit #6). */}
@@ -128,13 +129,15 @@ export function orderColumns(
       sortValue: (o) => (o.customerName ?? o.email ?? '').toLowerCase(),
       sortTitle: copy.sortTitles.customer,
       sortRank: 3,
-      className: 'w-[20%] whitespace-normal',
+      className: 'w-[16%] whitespace-normal',
+      minWidth: 12,
       render: (o) => <CustomerCell item={o} />,
     },
     {
       id: 'product',
       title: copy.columns.product,
-      className: 'w-[20%] whitespace-normal',
+      className: 'w-[16%] whitespace-normal',
+      minWidth: 12,
       render: (o) => <ProductCell item={o} />,
     },
     {
@@ -143,6 +146,7 @@ export function orderColumns(
       sortValue: (o) => new Date(o.placedAt).getTime(),
       sortLabels: { desc: copy.sortNewest, asc: copy.sortOldest },
       sortRank: 0,
+      minWidth: 7.5,
       render: (o) => (
         <span className="text-[0.8125rem] text-muted-foreground tabular-nums">
           {fmt.when(o.placedAt)}
@@ -155,6 +159,7 @@ export function orderColumns(
       sortValue: (o) => o.totalPaise,
       sortRank: 2,
       align: 'end',
+      minWidth: 6,
       render: (o) => (
         <span
           className={
@@ -174,6 +179,7 @@ export function orderColumns(
       sortTitle: copy.sortTitles.payment,
       sortRank: 4,
       align: 'center',
+      minWidth: 6.5,
       render: (o) => <OrderChip kind="orderPayment" value={shownPaymentStatus(o)} />,
     },
     {
@@ -183,12 +189,14 @@ export function orderColumns(
       sortTitle: copy.sortTitles.fulfilment,
       sortRank: 5,
       align: 'center',
+      minWidth: 7,
       render: (o) => <OrderChip kind="fulfilment" value={o.fulfillmentStatus} />,
     },
     {
       id: 'status',
       title: copy.columns.status,
       align: 'center',
+      minWidth: 6.5,
       render: (o) => {
         if (
           o.status === 'open' &&
@@ -203,7 +211,8 @@ export function orderColumns(
     {
       id: 'channel',
       title: copy.columns.channel,
-      className: 'w-[9%]',
+      className: 'w-[7%]',
+      minWidth: 6,
       render: (o) => (
         <span className="block truncate text-[0.8125rem] text-muted-foreground">
           {CHANNEL_LABELS[o.channel as OverviewChannel] ?? CHANNEL_LABELS.untracked}
@@ -213,7 +222,8 @@ export function orderColumns(
     {
       id: 'tags',
       title: copy.columns.tags,
-      className: 'w-[12%] whitespace-normal',
+      className: 'w-[10%] whitespace-normal',
+      minWidth: 7,
       render: (o) =>
         o.tags.length ? (
           // A long tag ("Essential Preorder") is cut with "…" inside the column instead of
@@ -237,12 +247,14 @@ export function orderColumns(
       title: copy.columns.items,
       sortValue: (o) => o.itemCount,
       align: 'end',
+      minWidth: 5,
       render: (o) => <span className="tabular-nums">{fmt.number(o.itemCount)}</span>,
     },
     {
       id: 'delivery',
       title: copy.columns.delivery,
       sortValue: (o) => o.deliveryStatus ?? '',
+      minWidth: 7,
       render: (o) =>
         o.deliveryStatus ? (
           webUrl(o.trackingUrl) ? (
@@ -276,6 +288,7 @@ export function orderColumns(
     {
       id: 'city',
       title: copy.columns.city,
+      minWidth: 7,
       sortValue: (o) => (o.shipCity ?? '').toLowerCase(),
       render: (o) => o.shipCity ?? '',
     },

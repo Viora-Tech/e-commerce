@@ -14,13 +14,10 @@ import {
   TableRow,
 } from '@commerce/ui/shadcn/table'
 import {
-  type ColumnOrderState,
-  type ColumnVisibilityState,
   createColumnHelper,
   type ExpandedState,
   type RowData,
   type RowSelectionState,
-  type SortingState,
   type Updater,
   useTable,
 } from '@tanstack/react-table'
@@ -42,11 +39,12 @@ import {
 import { type ResourceTableFeatures, resourceTableFeatures } from './features'
 import ResourceTablePagination from './pagination'
 import SelectionBar from './selection-bar'
+import { type TableSort, tableMinWidth, useColumnPrefs, useTableSorting } from './table-state'
 import ResourceTableToolbar, { type AppliedFilter } from './toolbar'
 
-export type { AppliedFilter, ResourceColumnSpec }
+export type { AppliedFilter, ResourceColumnSpec, TableSort }
 
-type CellMeta = { align?: CellAlign; className?: string }
+type CellMeta = { align?: CellAlign; className?: string; minWidth?: number }
 
 export type ResourceTableProps<T extends RowData> = {
   resourceName: { singular: string; plural: string }
@@ -109,9 +107,17 @@ export type ResourceTableProps<T extends RowData> = {
   /** Kept for older call sites; every table now uses the one Saleor-style density. */
   size?: 'compact' | 'frame'
   /** The order the server sends, shown ticked in the sort menu (Orders: Date, newest first). */
-  defaultSort?: { id: string; desc: boolean } | undefined
+  defaultSort?: TableSort | undefined
+  /**
+   * The page's own sort (kept in its URL, #7); `null` is the default sort. Pass both or neither;
+   * without them the table keeps the sort itself.
+   */
+  sort?: TableSort | null | undefined
+  onSortChange?: ((sort: TableSort | null) => void) | undefined
   /** Columns that start hidden; the columns menu can show them. */
   defaultHidden?: string[] | undefined
+  /** Remembers the viewer's shown columns and their order in this browser under this key (#9). */
+  columnsStorageKey?: string | undefined
   /**
    * A tree table (Inventory's Products view): rows with sub rows fold them underneath. A click
    * on such a row toggles it; sorting keeps sub rows under their row; ticking it ticks its sub
@@ -127,11 +133,6 @@ export type ResourceTableProps<T extends RowData> = {
 }
 
 const SKELETON_ROWS = 6
-
-/** The page's default-hidden columns as TanStack visibility (`false` = hidden). */
-function hiddenColumns(ids: string[] | undefined): ColumnVisibilityState {
-  return Object.fromEntries((ids ?? []).map((id) => [id, false]))
-}
 
 /** The table's row selection: the page's own (`selection`) when given, else kept here. */
 function useRowSelection(
@@ -236,11 +237,11 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
   // Hooks
   const tableCopy = useCopy(tableContent)
   const router = useRouter()
-  const [sorting, setSorting] = useState<SortingState>(props.defaultSort ? [props.defaultSort] : [])
-  const [columnVisibility, setColumnVisibility] = useState<ColumnVisibilityState>(() =>
-    hiddenColumns(props.defaultHidden),
-  )
-  const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([])
+  const [sorting, setSorting] = useTableSorting(props.defaultSort, {
+    sort: props.sort,
+    onSortChange: props.onSortChange,
+  })
+  const columnPrefs = useColumnPrefs(props.columnsStorageKey, props.defaultHidden)
   const [rowSelection, setRowSelection] = useRowSelection(props.selection)
   const [onlySelected, setOnlySelected] = useState(false)
   const [selectingAll, setSelectingAll] = useState(false)
@@ -268,8 +269,8 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
     // The page owns the expanded rows; a refresh after an edit keeps them open.
     autoResetExpanded: false,
     onSortingChange: setSorting,
-    onColumnVisibilityChange: setColumnVisibility,
-    onColumnOrderChange: setColumnOrder,
+    onColumnVisibilityChange: columnPrefs.changeVisibility,
+    onColumnOrderChange: columnPrefs.changeOrder,
     onRowSelectionChange: setRowSelection,
     onExpandedChange: (next) =>
       setExpanded(next, () =>
@@ -278,7 +279,13 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
           .flatRows.filter((r) => r.subRows.length > 0)
           .map((r) => r.id),
       ),
-    state: { sorting, columnVisibility, columnOrder, rowSelection, expanded },
+    state: {
+      sorting,
+      columnVisibility: columnPrefs.visibility,
+      columnOrder: columnPrefs.order,
+      rowSelection,
+      expanded,
+    },
   })
 
   // Helpers
@@ -300,10 +307,7 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
     props.onClearAll?.()
     if (props.query) props.onQueryChange('')
   }
-  const resetColumns = () => {
-    setColumnVisibility(hiddenColumns(props.defaultHidden))
-    setColumnOrder([])
-  }
+  const resetColumns = () => columnPrefs.reset()
 
   // Render logic
   const columnTitles = Object.fromEntries(props.columns.map((c) => [c.id, c.title]))
@@ -325,10 +329,13 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
   const rows = showSelected
     ? table.getRowModel().rows.filter((r) => r.getIsSelected() || r.getIsSomeSelected())
     : table.getRowModel().rows
-  const visibleCount = table.getVisibleLeafColumns().length
-  /* The grid never squeezes a column below ~8rem: on a phone it scrolls sideways instead of
-     letting dates, totals and pills run into each other (#895). */
-  const minWidth = { '--table-min-width': `${Math.max(40, visibleCount * 8)}rem` } as CSSProperties
+  const visibleColumns = table.getVisibleLeafColumns()
+  const visibleCount = visibleColumns.length
+  /* The grid never squeezes a column below its minimum (~8rem): it scrolls sideways instead of
+     letting dates, totals and pills run into each other (#895, #10). */
+  const minWidth = {
+    '--table-min-width': `${tableMinWidth(visibleColumns.map((c) => (c.columnDef.meta ?? {}) as CellMeta))}rem`,
+  } as CSSProperties
   const isEmpty = !props.loading && props.items.length === 0
   /** A search or a filter is narrowing the list (so empty means "no results", not "none yet"). */
   const narrowed = props.query.length > 0 || (props.filterGroups ?? []).some(hasFilter)
@@ -346,7 +353,7 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
         sortTitles={sortTitles}
         sortOrder={sortOrder}
         sortLabels={sortLabels}
-        columnOrder={columnOrder}
+        columnOrder={columnPrefs.order}
         onResetColumns={resetColumns}
       />
       <div className="relative">
