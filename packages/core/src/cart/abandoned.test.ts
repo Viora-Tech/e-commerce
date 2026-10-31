@@ -152,13 +152,19 @@ describe('abandoned carts', () => {
     expect(due.map((c) => c.id)).toEqual([real])
   })
 
-  it('counts a converted cart as recovered in the stats', async () => {
+  it('counts a cart converted after a reminder as recovered in the stats', async () => {
     const { storeId, variantId } = await seed()
     const lost = await quietCart(storeId, variantId, 180, 'lost@example.in')
     const won = await quietCart(storeId, variantId, 200, 'won@example.in')
-    await withStore(app, storeId, (tx) =>
-      tx.update(cart).set({ status: 'converted' }).where(eq(cart.id, won)),
-    )
+    const straight = await quietCart(storeId, variantId, 220, 'straight@example.in')
+    await withStore(app, storeId, async (tx) => {
+      await tx
+        .update(cart)
+        .set({ status: 'converted', recoverySentAt: new Date() })
+        .where(eq(cart.id, won))
+      // Ordered with no reminder: never abandoned, so neither listed nor "recovered" (#187).
+      await tx.update(cart).set({ status: 'converted' }).where(eq(cart.id, straight))
+    })
     const stats = await withStore(app, storeId, (tx) => abandonedStats({ storeId, tx }))
     expect(stats.carts).toBe(2)
     expect(stats.recovered).toBe(1)

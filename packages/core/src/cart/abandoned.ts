@@ -84,6 +84,9 @@ function abandonedWhere(now: Date, since: Date) {
     gte(cart.updatedAt, since),
     lt(cart.updatedAt, new Date(now.getTime() - ABANDONED_AFTER_MS)),
     sql`${lineCount} > 0`,
+    // A cart that became an order with no reminder was never abandoned: the shopper simply
+    // checked out. Counting it as "recovered" inflated the recovery rate (audit #187).
+    or(sql`${cart.status} <> 'converted'`, isNotNull(cart.recoverySentAt)),
   )
 }
 
