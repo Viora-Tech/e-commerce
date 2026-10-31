@@ -6,6 +6,7 @@ import { headers } from 'next/headers'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import type { ReactNode } from 'react'
 import './globals.css'
+import StepUpProvider from '@/components/auth/step-up-dialog'
 import LocaleProvider from '@/components/layout/locale-provider'
 import MotionProvider from '@/components/layout/motion-provider'
 import ThemeProvider from '@/components/layout/theme-provider'
@@ -80,7 +81,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <ThemeProvider nonce={nonce}>
           <NuqsAdapter>
             <LocaleProvider locale={locale} region={region}>
-              <MotionProvider>{children}</MotionProvider>
+              <MotionProvider>
+                <StepUpProvider>{children}</StepUpProvider>
+              </MotionProvider>
             </LocaleProvider>
           </NuqsAdapter>
         </ThemeProvider>

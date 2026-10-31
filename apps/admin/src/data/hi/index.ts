@@ -132,6 +132,7 @@ import shopifyImportSettings from './shopify-import-settings'
 import staff from './staff'
 import staffInvites from './staff-invites'
 import states from './states'
+import stepUp from './step-up'
 import storageWarning from './storage-warning'
 import storeData from './store-data'
 import storeHealth from './store-health'
@@ -272,6 +273,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...staff,
   ...staffInvites,
   ...states,
+  ...stepUp,
   ...storeData,
   ...storeHealth,
   ...storageWarning,
