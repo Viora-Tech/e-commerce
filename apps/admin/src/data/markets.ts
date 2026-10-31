@@ -11,6 +11,9 @@ export const marketsContent = {
     currency: 'Currency',
     languages: 'Languages',
     active: 'On',
+    status: 'Status',
+    includes: 'Includes',
+    customizations: 'Customizations',
   },
   primary: 'Primary',
   moreCountries: (shown: string, more: number) => `${shown} and ${more} more`,
@@ -25,6 +28,8 @@ export const marketsContent = {
     label: 'Market actions',
     edit: 'Edit',
     delete: 'Delete',
+    turnOn: 'Turn on',
+    turnOff: 'Turn off',
   },
   /** One market's page (Shopify's market page): a row per setting, each with its value. */
   hub: {
@@ -62,6 +67,14 @@ export const marketsContent = {
     theme: 'The live theme, as in India',
     policies: 'Your store’s policies',
     open: (what: string) => `Change ${what.toLowerCase()}`,
+    name: 'Name',
+    status: 'Status',
+    includes: 'Includes',
+    editCountries: 'Edit',
+    customized: 'Customized',
+    customizedEmpty: 'Create unique settings for shoppers in this market',
+    inherited: 'Inherited',
+    customize: (what: string) => `Customize ${what.toLowerCase()}`,
   },
   /** List / Graph switch over the markets (audit #117). */
   view: { label: 'View', list: 'List', graph: 'Graph' },

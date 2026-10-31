@@ -2,17 +2,34 @@
 
 import type { CatalogSummary, DomainView, MarketView } from '@commerce/core'
 import { permissions } from '@commerce/core/permissions'
-import { ChevronRight, Earth, Pencil, Trash2 } from '@commerce/ui/icons'
-import { Switch } from '@commerce/ui/shadcn/switch'
+import {
+  ArrowRight,
+  ChevronRight,
+  Earth,
+  FileText,
+  type IconComponent,
+  Language,
+  Layers,
+  LinkIcon,
+  Palette,
+  Pencil,
+  Plus,
+  ReceiptIcon,
+  ShieldCheck,
+  Store,
+  Trash2,
+  Truck,
+} from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
+import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ActionMenu from '@/components/layout/action-menu'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
-import DataCard from '@/components/layout/data-card'
+import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
-import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import StatusChip from '@/components/layout/status-chip'
 import { marketsContent } from '@/data/markets'
 import { useCopy } from '@/hooks/use-copy'
@@ -20,6 +37,7 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import MarketDialog, { type MarketPart } from './market-dialog'
+import { adjustmentText } from './market-overrides'
 
 type MarketPageProps = {
   market: MarketView
@@ -30,46 +48,34 @@ type MarketPageProps = {
   catalog: CatalogSummary | null
 }
 
-/** One setting row: its name, its value now, and what opens when it is clicked. */
-type HubRow = {
+/** One setting: its value here, whether the market changes it, and what opens it. */
+type Setting = {
   key: string
+  icon: IconComponent
   label: string
   value: string
+  customized: boolean
   /** A part of the market dialog, or another admin page. Neither: shown, not clickable. */
   part?: MarketPart
   href?: string
-  muted?: boolean
 }
 
-const ROW =
-  'flex w-full min-w-0 items-center gap-4 px-4 py-3.5 text-left transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none'
-
-/** How a price adjustment reads: +10%, −5%. */
-function percent(bp: number): string {
-  const value = Math.abs(bp) / 100
-  return `${bp < 0 ? '−' : '+'}${Number.isInteger(value) ? value : value.toFixed(1)}%`
+type SettingRowProps = {
+  setting: Setting
+  canManage: boolean
+  /** "Customize currency and prices": the inherited row's add button. */
+  customizeLabel: string
+  openLabel: string
+  onOpen: (part: MarketPart) => void
 }
 
-/** A row's text: its name, its value, and a note under them (the catalog row's). */
-function rowBody(row: HubRow, clickable: boolean, note: string | null) {
-  return (
-    <>
-      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="font-medium text-ink-strong">{row.label}</span>
-        <span className="truncate text-caption text-muted-foreground">{row.value}</span>
-        {note ? <span className="text-caption text-muted-foreground/80">{note}</span> : null}
-      </span>
-      {clickable ? (
-        <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
-      ) : null}
-    </>
-  )
-}
+const CARD = 'rounded-xl border border-border bg-card'
 
 /**
- * A market's own page, like Shopify's: the switch that shows it to shoppers at the top, then one
- * row per setting with its current value. A row opens just its part of the market dialog, or the
- * admin page that owns it (shipping, theme, policies, the market's catalog).
+ * A market's own page, laid out as Shopify's: the name with its status beside it and the
+ * countries it includes, then the settings this market changes (Customized) and the ones it
+ * takes from the store (Inherited, store → value, with a plus to customize). Each row opens its
+ * part of the market dialog, or the admin page that owns it.
  */
 export default function MarketPage({ market, markets, domains, catalog }: MarketPageProps) {
   // Hooks
@@ -80,6 +86,11 @@ export default function MarketPage({ market, markets, domains, catalog }: Market
   const [enabled, setEnabled] = useState(market.enabled)
   const [switching, setSwitching] = useState(false)
   const [deleting, setDeleting] = useState(false)
+
+  // Helpers
+  const languagesOf = (m: MarketView) =>
+    [m.locale, ...m.locales].map((l) => copy.languages[l] ?? l).join(', ')
+  const currencyOf = (code: string) => `${copy.currencies[code] ?? code} (${code})`
 
   // Event handlers
   const handleToggle = async (next: boolean) => {
@@ -114,173 +125,232 @@ export default function MarketPage({ market, markets, domains, catalog }: Market
   // Render logic
   const h = copy.hub
   const canManage = hasPermission(permissions.SETTINGS_MANAGE)
+  const primary = markets.find((m) => m.isPrimary) ?? market
   const primaryHost = domains.find((d) => d.isPrimary)?.hostname ?? ''
-  const shownCountries = market.countries.slice(0, 3).join(', ')
-  const moreCountries = market.countries.length - 3
-  const languages = [market.locale, ...market.locales].map((l) => copy.languages[l] ?? l).join(', ')
-  const address = market.isPrimary
-    ? primaryHost
-    : market.subfolder
-      ? `${primaryHost}/${market.subfolder}`
-      : (market.hostname ?? copy.choice)
+  const own = !market.isPrimary
+  const pricesCustomized =
+    own &&
+    (market.currency !== primary.currency ||
+      market.priceAdjustmentBp !== 0 ||
+      market.rounding !== 'none')
+  const languagesCustomized = own && languagesOf(market) !== languagesOf(primary)
+  const address = market.subfolder
+    ? `${primaryHost}/${market.subfolder}`
+    : (market.hostname ?? primaryHost)
   const rounding = copy.dialog.pricing.roundings[market.rounding] ?? ''
-  const catalogNote = !catalog ? h.catalogPick : catalog.status === 'draft' ? h.catalogDraft : null
-  const rows: HubRow[] = [
-    {
-      key: 'countries',
-      label: h.rows.countries,
-      value: market.isPrimary
-        ? h.primaryCountry
-        : moreCountries > 0
-          ? copy.moreCountries(shownCountries, moreCountries)
-          : shownCountries || h.allCountries(0),
-      part: market.isPrimary ? undefined : 'countries',
-    },
+  const catalogValue = catalog
+    ? h.catalogOf(
+        catalog.name,
+        catalog.scope === 'all' ? h.catalogAllProducts : h.catalogProducts(catalog.productCount),
+      )
+    : h.catalogAll
+  const settings: Setting[] = [
     {
       key: 'prices',
+      icon: ReceiptIcon,
       label: h.rows.prices,
-      value: market.isPrimary
-        ? h.storePrices
-        : h.prices(
-            `${market.currency} · ${copy.currencies[market.currency] ?? market.currency}`,
+      value: pricesCustomized
+        ? h.prices(
+            currencyOf(market.currency),
             market.priceAdjustmentBp === 0
               ? h.noAdjustment
-              : h.adjustment(percent(market.priceAdjustmentBp)),
+              : h.adjustment(adjustmentText(market.priceAdjustmentBp)),
             market.rounding === 'none' ? '' : rounding,
-          ),
-      part: market.isPrimary ? undefined : 'prices',
+          )
+        : currencyOf(primary.currency),
+      customized: pricesCustomized,
+      part: own ? 'prices' : undefined,
     },
-    ...(market.isPrimary
-      ? []
-      : [
+    ...(own
+      ? [
           {
             key: 'duties',
+            icon: ShieldCheck,
             label: h.rows.duties,
             value: market.duties === 'ddp' ? copy.dialog.duties.ddp : copy.dialog.duties.dap,
+            customized: true,
             part: 'prices' as const,
           },
-        ]),
-    { key: 'languages', label: h.rows.languages, value: languages, part: 'languages' },
-    {
-      key: 'address',
-      label: h.rows.address,
-      value: address,
-      part: market.isPrimary ? undefined : 'address',
-    },
+        ]
+      : []),
     {
       key: 'catalog',
+      icon: Layers,
       label: h.rows.catalog,
-      value: catalog
-        ? h.catalogOf(
-            catalog.name,
-            catalog.scope === 'all'
-              ? h.catalogAllProducts
-              : h.catalogProducts(catalog.productCount),
-          )
-        : h.catalogAll,
+      value: catalog?.status === 'draft' ? `${catalogValue} · ${h.catalogDraft}` : catalogValue,
+      customized: catalog !== null,
       href: catalog ? routes.catalogs.detail(catalog.id) : routes.catalogs.list(),
     },
     {
-      key: 'shipping',
-      label: h.rows.shipping,
-      value: h.shipping,
-      href: routes.settings.shipping(),
+      key: 'languages',
+      icon: Language,
+      label: h.rows.languages,
+      value: languagesOf(market),
+      customized: languagesCustomized,
+      part: 'languages',
+    },
+    {
+      key: 'address',
+      icon: LinkIcon,
+      label: h.rows.address,
+      value: address,
+      customized: own && Boolean(market.subfolder || market.hostname),
+      part: own ? 'address' : undefined,
     },
     {
       key: 'theme',
+      icon: Palette,
       label: h.rows.theme,
       value: h.theme,
+      customized: false,
       href: routes.onlineStore.themes(),
     },
     {
+      key: 'shipping',
+      icon: Truck,
+      label: h.rows.shipping,
+      value: h.shipping,
+      customized: false,
+      href: routes.settings.shipping(),
+    },
+    {
       key: 'policies',
+      icon: FileText,
       label: h.rows.policies,
       value: h.policies,
+      customized: false,
       href: routes.settings.policies(),
     },
   ]
+  const customized = settings.filter((s) => s.customized)
+  const inherited = settings.filter((s) => !s.customized)
+  const countries = market.isPrimary ? [h.primaryCountry] : market.countries
 
   return (
-    <ProoflyDetailPage
-      header={
-        <PageHeader
-          title={market.name}
-          summary={address}
-          back={{ label: h.back, href: routes.markets.list() }}
-          lead={{ kind: 'icon', node: <Earth aria-hidden="true" /> }}
-          size="sm"
-          badges={
-            <>
-              {market.isPrimary ? <StatusChip>{copy.primary}</StatusChip> : null}
-              <StatusChip tone={enabled ? 'success' : 'neutral'}>
-                {enabled ? h.on : h.off}
-              </StatusChip>
-            </>
-          }
-          actions={
-            canManage ? (
-              <ActionMenu
-                label={copy.actions.label}
-                items={[
-                  { label: h.rename, icon: Pencil, onSelect: () => setPart('name') },
-                  {
-                    label: copy.actions.delete,
-                    icon: Trash2,
-                    destructive: true,
-                    hidden: market.isPrimary,
-                    onSelect: () => setDeleting(true),
-                  },
-                ]}
-              />
-            ) : null
-          }
-        />
-      }
-      main={
-        <DataCard title={h.settings} bodyClassName="p-0">
-          <ul className="flex flex-col divide-y divide-border">
-            {rows.map((row) => (
-              <li key={row.key}>
-                {row.href ? (
-                  <Link href={row.href} className={ROW}>
-                    {rowBody(row, true, row.key === 'catalog' ? catalogNote : null)}
-                  </Link>
-                ) : row.part && canManage ? (
-                  <button
-                    type="button"
-                    className={ROW}
-                    aria-label={h.open(row.label)}
-                    onClick={() => setPart(row.part ?? null)}
-                  >
-                    {rowBody(row, true, row.key === 'catalog' ? catalogNote : null)}
-                  </button>
-                ) : (
-                  <div className="flex min-w-0 items-center gap-4 px-4 py-3.5">
-                    {rowBody(row, false, row.key === 'catalog' ? catalogNote : null)}
-                  </div>
-                )}
-              </li>
+    // One column, centred, as Shopify's market page and our Catalogs and Rollouts.
+    <PageBody className="mx-auto max-w-[52rem] gap-4">
+      <PageHeader
+        title={market.name}
+        summary={address}
+        back={{ label: h.back, href: routes.markets.list() }}
+        lead={{ kind: 'icon', node: <Earth aria-hidden="true" /> }}
+        size="sm"
+        badges={
+          <>
+            {market.isPrimary ? <StatusChip>{copy.primary}</StatusChip> : null}
+            <StatusChip tone={enabled ? 'success' : 'neutral'}>{enabled ? h.on : h.off}</StatusChip>
+          </>
+        }
+        actions={
+          canManage ? (
+            <ActionMenu
+              label={copy.actions.label}
+              items={[
+                { label: h.rename, icon: Pencil, onSelect: () => setPart('name') },
+                {
+                  label: copy.actions.delete,
+                  icon: Trash2,
+                  destructive: true,
+                  hidden: market.isPrimary,
+                  onSelect: () => setDeleting(true),
+                },
+              ]}
+            />
+          ) : null
+        }
+      />
+
+      <section className={`${CARD} flex flex-col gap-3 p-4`}>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-body font-medium text-ink-strong">{h.name}</span>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={!canManage}
+              onClick={() => setPart('name')}
+              aria-label={h.rename}
+              className="flex h-9 min-w-0 flex-1 items-center rounded-md border border-input px-3 text-left text-body text-ink-strong hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default disabled:hover:bg-transparent"
+            >
+              <span className="truncate">{market.name}</span>
+            </button>
+            <NativeSelect
+              aria-label={h.status}
+              className="w-28"
+              value={enabled ? 'on' : 'off'}
+              disabled={!canManage || switching || market.isPrimary}
+              onChange={(e) => handleToggle(e.target.value === 'on')}
+            >
+              <NativeSelectOption value="on">{h.on}</NativeSelectOption>
+              <NativeSelectOption value="off">{h.off}</NativeSelectOption>
+            </NativeSelect>
+          </div>
+          {market.isPrimary ? null : (
+            <span className="text-caption text-muted-foreground">{h.switchHelp}</span>
+          )}
+        </div>
+        <div className="flex flex-col gap-2 rounded-lg border border-border p-3 sm:flex-row sm:items-center">
+          <span className="w-40 shrink-0 text-body font-medium text-ink-strong">{h.includes}</span>
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+            {countries.slice(0, 6).map((c) => (
+              <span
+                key={c}
+                className="inline-flex h-7 items-center gap-1.5 rounded-md bg-secondary px-2 text-body text-ink-strong"
+              >
+                <Earth className="size-4 text-muted-foreground" aria-hidden="true" />
+                {c}
+              </span>
             ))}
-          </ul>
-        </DataCard>
-      }
-      side={
-        market.isPrimary ? null : (
-          <DataCard title={h.on}>
-            <label htmlFor="market-on" className="flex items-start justify-between gap-4">
-              <span className="text-body text-muted-foreground">{h.switchHelp}</span>
-              <Switch
-                id="market-on"
-                aria-label={copy.switchLabel(market.name)}
-                checked={enabled}
-                disabled={!canManage || switching}
-                onCheckedChange={handleToggle}
-              />
-            </label>
-          </DataCard>
-        )
-      }
-    >
+            {countries.length > 6 ? (
+              <span className="text-caption text-muted-foreground">+{countries.length - 6}</span>
+            ) : null}
+            {own && canManage ? (
+              <Button variant="ghost" size="sm" onClick={() => setPart('countries')}>
+                <Pencil aria-hidden="true" />
+                {h.editCountries}
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h2 className="text-card-title text-ink-strong">{h.customized}</h2>
+        <div className={CARD}>
+          {customized.length === 0 ? (
+            <p className="p-4 text-body text-muted-foreground">{h.customizedEmpty}</p>
+          ) : (
+            <ul className="flex flex-col divide-y divide-border">
+              {customized.map((s) => (
+                <SettingRow
+                  key={s.key}
+                  setting={s}
+                  canManage={canManage}
+                  customizeLabel={h.customize(s.label)}
+                  openLabel={h.open(s.label)}
+                  onOpen={setPart}
+                />
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h2 className="text-card-title text-ink-strong">{h.inherited}</h2>
+        <ul className="flex flex-col">
+          {inherited.map((s) => (
+            <SettingRow
+              key={s.key}
+              setting={s}
+              canManage={canManage}
+              customizeLabel={h.customize(s.label)}
+              openLabel={h.open(s.label)}
+              onOpen={setPart}
+            />
+          ))}
+        </ul>
+      </section>
+
       {part ? (
         <MarketDialog
           market={market}
@@ -300,6 +370,60 @@ export default function MarketPage({ market, markets, domains, catalog }: Market
         tone="destructive"
         onConfirm={handleDelete}
       />
-    </ProoflyDetailPage>
+    </PageBody>
+  )
+}
+
+/**
+ * One setting row: icon and name, then its value. An inherited row reads "store → value" with a
+ * plus to customize it; a customized row shows its own value and a chevron.
+ */
+function SettingRow({ setting: s, canManage, customizeLabel, openLabel, onOpen }: SettingRowProps) {
+  const Icon = s.icon
+  const action = s.customized ? (
+    <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+  ) : (
+    <Plus aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+  )
+  const body = (
+    <>
+      <span className="flex w-48 shrink-0 items-center gap-2 font-medium text-ink-strong">
+        <Icon aria-hidden="true" className="size-4 text-muted-foreground" />
+        {s.label}
+      </span>
+      <span className="flex min-w-0 flex-1 items-center gap-1.5 text-muted-foreground">
+        {s.customized ? null : (
+          <>
+            <Store aria-hidden="true" className="size-4 shrink-0" />
+            <ArrowRight aria-hidden="true" className="size-3.5 shrink-0" />
+          </>
+        )}
+        <span className="truncate text-ink-strong">{s.value}</span>
+      </span>
+    </>
+  )
+  const row =
+    'flex w-full min-w-0 items-center gap-3 rounded-md px-3 py-2.5 text-left text-body transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none'
+  return (
+    <li>
+      {s.href ? (
+        <Link href={s.href} className={row} aria-label={s.customized ? openLabel : customizeLabel}>
+          {body}
+          {action}
+        </Link>
+      ) : s.part && canManage ? (
+        <button
+          type="button"
+          className={row}
+          aria-label={s.customized ? openLabel : customizeLabel}
+          onClick={() => s.part && onOpen(s.part)}
+        >
+          {body}
+          {action}
+        </button>
+      ) : (
+        <div className="flex min-w-0 items-center gap-3 px-3 py-2.5 text-body">{body}</div>
+      )}
+    </li>
   )
 }

@@ -19,6 +19,7 @@ import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
+import { marketOverrides } from './market-overrides'
 import MarketRow from './market-row'
 import MarketSuggestionCard from './market-suggestion-card'
 import MarketsGraph from './markets-graph'
@@ -38,8 +39,8 @@ type MarketsListProps = {
 type View = 'list' | 'graph'
 
 /**
- * Markets (Shopify Markets style, a top-level page): the primary market first, then each market with
- * its countries, currency, languages and the address shoppers reach it on.
+ * Markets, laid out as Shopify's list: each market with its status, the countries it includes and
+ * what it customizes, the primary market first.
  */
 export default function MarketsList({
   markets,
@@ -97,6 +98,22 @@ export default function MarketsList({
   const primaryHost = domains.find((d) => d.isPrimary)?.hostname ?? ''
   const onlyPrimary = markets.every((m) => m.isPrimary)
   const shown = markets.map((m) => ({ ...m, enabled: enabledNow[m.id] ?? m.enabled }))
+  const primary = markets.find((m) => m.isPrimary)
+  // What each market changes from the store, as the Graph view reads it (Shopify's Customizations).
+  const customizations = new Map(
+    shown.map((m) => [
+      m.id,
+      m.isPrimary
+        ? ''
+        : marketOverrides(m, primary, {
+            primaryHost,
+            catalogName: (id) => catalogs.find((c) => c.id === id)?.name ?? null,
+            languageName: (code) => copy.languages[code] ?? code,
+          })
+            .map((o) => o.value)
+            .join(' · '),
+    ]),
+  )
   const addButton = canManage ? (
     <Button render={<Link href={routes.markets.new()} />} nativeButton={false}>
       <Plus aria-hidden="true" />
@@ -131,10 +148,9 @@ export default function MarketsList({
           heading={copy.listTitle}
           columns={[
             { label: copy.columns.market },
-            { label: copy.columns.countries, className: 'hidden sm:table-cell' },
-            { label: copy.columns.currency },
-            { label: copy.columns.languages, className: 'hidden md:table-cell' },
-            { label: copy.columns.active, center: true },
+            { label: copy.columns.status },
+            { label: copy.columns.includes, className: 'hidden sm:table-cell' },
+            { label: copy.columns.customizations, className: 'hidden md:table-cell' },
           ]}
           actions={canManage}
           after={
@@ -165,6 +181,7 @@ export default function MarketsList({
               key={m.id}
               market={m}
               primaryHost={primaryHost}
+              customizations={customizations.get(m.id) ?? ''}
               canManage={canManage}
               switching={switching === m.id}
               href={routes.markets.detail(m.id)}
