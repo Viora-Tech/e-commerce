@@ -46,6 +46,7 @@ import AppEmbeds from '@/components/theme/app-embeds'
 import LiquidBoot from '@/components/theme/liquid-boot'
 import LiquidHtml from '@/components/theme/liquid-html'
 import PreviewBar from '@/components/theme/preview-bar'
+import ThemeCartAdded from '@/components/theme/theme-cart-added'
 import ThemePreviewBridge from '@/components/theme/theme-preview-bridge'
 import { policyPageContent } from '@/data/policies'
 import { privacyContent } from '@/data/privacy'
@@ -408,6 +409,7 @@ export default async function StoreLayout({ children, params }: Props) {
             {footer}
           </MoneyFormatProvider>
           <LiquidHtml html={liquid.afterFooter} />
+          <ThemeCartAdded cartHref={`${(await headers()).get(MARKET_HEADERS.prefix) ?? ''}/cart`} />
           <LiquidBoot />
           <AppEmbeds storeId={storeId} appEmbeds={theme.appEmbeds} />
           {tested.length ? <ExperimentBeacon seen={tested} /> : null}
