@@ -114,6 +114,31 @@ export type LiquidCartData = {
   }[]
 }
 
+/** The signed-in shopper, as the Liquid `customer` global reads them (null signed out). */
+export type LiquidCustomerData = {
+  id: string
+  email: string | null
+  name: string | null
+  phone: string | null
+  acceptsMarketing: boolean
+  tags: string[]
+  /** Orders placed (not drafts, cancelled or test orders). */
+  ordersCount: number
+  /** What those orders came to, in hundredths of the page's currency like every price here. */
+  totalSpent: number
+  /** The address of the latest order, without its phone. */
+  defaultAddress: {
+    name: string
+    line1: string
+    line2: string | null
+    city: string
+    stateCode: string
+    pincode: string
+    country: string
+  } | null
+  addressesCount: number
+}
+
 export type LiquidShopData = {
   name: string
   email: string
@@ -233,6 +258,8 @@ export type LiquidDataSource = {
   blog(handle: string): Promise<LiquidBlogData | null>
   page(handle: string): Promise<LiquidPageData | null>
   cart(): Promise<LiquidCartData>
+  /** The signed-in shopper; absent or null when nobody is signed in (the editor, a cache warm). */
+  customer?: (() => Promise<LiquidCustomerData | null>) | undefined
   /** Extra fields of many owners at once (one batch per render pass). */
   metafields(ownerType: LiquidMetafieldOwner, ownerIds: string[]): Promise<LiquidCustomData>
   /** Every published entry of one content type, in order, with the entries they link to. */

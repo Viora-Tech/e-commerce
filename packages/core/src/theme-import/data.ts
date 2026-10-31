@@ -13,6 +13,7 @@ import {
   variant,
 } from '@commerce/db'
 import { and, asc, desc, eq, isNotNull, like, sql } from 'drizzle-orm'
+import type { SignedInCustomer } from '../accounts/auth'
 import { excerptText } from '../blog/text'
 import { browseProducts } from '../catalog/browse'
 import {
@@ -29,6 +30,7 @@ import { keyFromName } from '../metaobjects/validate'
 import { toNavLinks } from '../navigation/resolve'
 import { publishedPolicyLinks } from '../policies/service'
 import { loadMetafields, loadMetaobjects, loadMetaobjectsOfType } from './custom-data'
+import { loadLiquidCustomer } from './customer-data'
 import type {
   LiquidBlogData,
   LiquidCartData,
@@ -57,6 +59,8 @@ export type StoreLiquidDataOptions = {
   origin: string
   /** The shopper's cart, from the storefront cart cookie; empty in the editor. */
   cart?: (() => Promise<LiquidCartData>) | undefined
+  /** The signed-in shopper (`currentCustomer`), for the `customer` global; null signed out. */
+  customer?: SignedInCustomer | null | undefined
   /** The Reviews app's data, when the store installed it (see `withReviewMetafields`). */
   reviews?: LiquidReviewsSource | undefined
   /** The page's market when it shows another currency: prices and `shop.currency` in it. */
@@ -364,6 +368,11 @@ export async function storeLiquidData(
           : null
       }),
     cart: () => once('cart', () => options.cart?.() ?? Promise.resolve(EMPTY_CART)),
+    customer: () =>
+      once('customer', async () => {
+        const who = options.customer
+        return who ? loadLiquidCustomer(tx, who, pricing) : null
+      }),
     metafields: async (ownerType, ownerIds) => {
       const data = await loadMetafields(tx, ownerType, ownerIds)
       if (ownerType !== 'product' || !options.reviews) return data

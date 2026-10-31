@@ -7,6 +7,7 @@ import { MetaobjectsDrop, ShopMetafieldsDrop } from './custom-drops'
 import {
   imageDrop,
   type LiquidCartData,
+  type LiquidCustomerData,
   type LiquidDataSource,
   type LiquidPolicyData,
 } from './drops'
@@ -218,6 +219,7 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
   const entry = engineFor(bundle)
   const collectionList = await data.collections()
   const cart = await data.cart()
+  const customer = (await data.customer?.()) ?? null
   const cache = new LiquidDataCache(data, collectionList)
   const settings = await themeSettingsFor(bundle, cache)
   const resource = await resourceGlobals(request, cache)
@@ -301,7 +303,8 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
     pages: new PagesDrop(cache),
     metaobjects,
     cart: cartDrop(cart, cache, currency),
-    customer: null,
+    // Nil signed out, as on Shopify; the storefront never caches a render that read it signed in.
+    customer: customerDrop(customer),
     content_for_header: '',
     content_for_index: '',
     // Shopify prints "Powered by Shopify" here; our own storefront shows no platform credit.
@@ -345,6 +348,53 @@ function shopPolicies(policies: LiquidPolicyData[]): Record<string, unknown> {
     shipping_policy: of('shipping-policy'),
     terms_of_service: of('terms-of-service'),
     contact_information: of('contact-information'),
+  }
+}
+
+/** First word, then the rest: Shopify keeps the two apart, we keep one name. */
+function splitName(name: string | null): { first: string; last: string } {
+  const [first = '', ...rest] = (name ?? '').trim().split(/\s+/)
+  return { first, last: rest.join(' ') }
+}
+
+/**
+ * Shopify's `customer` object for the signed-in shopper, or nil. Money in hundredths, like every
+ * price here. Orders and the address book are left out: themes link to the account pages for them.
+ */
+export function customerDrop(c: LiquidCustomerData | null): Record<string, unknown> | null {
+  if (!c) return null
+  const { first, last } = splitName(c.name)
+  const a = c.defaultAddress
+  const addressName = a ? splitName(a.name) : null
+  return {
+    id: numericId(c.id),
+    email: c.email ?? '',
+    first_name: first,
+    last_name: last,
+    name: c.name?.trim() || c.email || c.phone || '',
+    phone: c.phone,
+    orders_count: c.ordersCount,
+    total_spent: c.totalSpent,
+    tags: c.tags,
+    accepts_marketing: c.acceptsMarketing,
+    has_account: true,
+    addresses_count: c.addressesCount,
+    default_address: a
+      ? {
+          name: a.name,
+          first_name: addressName?.first ?? '',
+          last_name: addressName?.last ?? '',
+          address1: a.line1,
+          address2: a.line2 ?? '',
+          street: [a.line1, a.line2].filter(Boolean).join(', '),
+          city: a.city,
+          province_code: a.stateCode,
+          zip: a.pincode,
+          country_code: a.country,
+          company: '',
+          phone: '',
+        }
+      : null,
   }
 }
 

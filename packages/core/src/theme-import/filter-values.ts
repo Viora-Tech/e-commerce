@@ -24,6 +24,11 @@ export type LiquidRuntime = {
   importedFileUrl?: ((name: string) => string | null) | undefined
   /** Told when a render reads the clock (`'now' | date`), so a cache keeps that output briefly. */
   onClock?: (() => void) | undefined
+  /**
+   * Told when a render reads the `customer` global (signed in or nil), so a cache never shares
+   * a signed-in shopper's render and serves a signed-out one only to signed-out shoppers.
+   */
+  onCustomer?: (() => void) | undefined
 }
 
 export type Named = Record<string, unknown>

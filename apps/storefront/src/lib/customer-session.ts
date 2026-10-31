@@ -1,6 +1,7 @@
 import 'server-only'
 import { settingsSecret } from '@commerce/config'
 import { customerForSession, type SignedInCustomer, safeNextPath } from '@commerce/core'
+import type { StoreTx } from '@commerce/db'
 import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { cache } from 'react'
@@ -46,9 +47,19 @@ export async function clearCustomerToken(): Promise<void> {
 export const currentCustomer = cache(async (storeId: string): Promise<SignedInCustomer | null> => {
   const token = await readCustomerToken()
   if (!token) return null
-  const secret = settingsSecret()
-  return inStore(storeId, (tx) => customerForSession({ storeId, tx }, token, secret))
+  return inStore(storeId, (tx) => customerIn(tx, storeId, token))
 })
+
+/** As `currentCustomer`, read in the caller's transaction (no second connection taken). */
+export async function customerIn(
+  tx: StoreTx,
+  storeId: string,
+  token?: string | null,
+): Promise<SignedInCustomer | null> {
+  const t = token ?? (await readCustomerToken())
+  if (!t) return null
+  return customerForSession({ storeId, tx }, t, settingsSecret())
+}
 
 /** For account pages: the shopper, or a redirect to sign in that comes back here. */
 export async function requireCustomer(

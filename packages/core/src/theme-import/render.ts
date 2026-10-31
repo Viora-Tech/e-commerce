@@ -105,13 +105,33 @@ export async function renderLiquidSection(
         ctx.budget,
         tpl,
         { section: sectionObject(ctx, section) },
-        { ...ctx.globals, _rt: runtime },
+        renderGlobals(ctx, runtime),
       ),
     )
   } catch (err) {
     onError?.(err)
     return `<!-- section ${escapeAttr(section.type)} could not render -->`
   }
+}
+
+/**
+ * The globals one render reads: the page's, with its runtime. With `onCustomer` set, the
+ * `customer` global tells it when read (a Proxy cannot wrap nil, so the read itself is traced).
+ */
+function renderGlobals(ctx: LiquidPageContext, runtime: EngineRuntime): Record<string, unknown> {
+  const globals: Record<string, unknown> = { ...ctx.globals, _rt: runtime }
+  const onCustomer = runtime.onCustomer
+  if (!onCustomer) return globals
+  const value = globals.customer
+  Object.defineProperty(globals, 'customer', {
+    enumerable: true,
+    configurable: true,
+    get() {
+      onCustomer()
+      return value
+    },
+  })
+  return globals
 }
 
 /** Runtime hooks for one render: static sections and theme blocks call back into this module. */
@@ -136,7 +156,7 @@ function withHooks(ctx: LiquidPageContext): EngineRuntime {
         ctx.budget,
         tpl,
         { section: sectionObject(ctx, section) },
-        { ...ctx.globals, _rt: withHooks(ctx) },
+        renderGlobals(ctx, withHooks(ctx)),
       )
       return `<${wrapper.tag} id="${wrapper.id}" class="${wrapper.className}">${html}</${wrapper.tag}>`
     },
@@ -314,7 +334,7 @@ export async function renderLiquidLayout(
         ctx.budget,
         tpl,
         { content_for_layout: MARK.content },
-        { ...ctx.globals, _rt: runtime },
+        renderGlobals(ctx, runtime),
       ),
     )
   } catch (err) {

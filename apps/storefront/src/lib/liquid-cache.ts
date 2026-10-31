@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto'
+import type { LiquidPageContext } from '@commerce/core'
 
 /**
  * Keys and helpers for caching an imported theme's rendered Liquid (`liquid-theme.ts`). Pure:
@@ -76,6 +77,8 @@ export function layoutCacheKey(scope: LiquidRenderScope): string {
 export type RenderTrace = {
   /** Read the shopper's cart (a cart count, the cart drawer). */
   cart: boolean
+  /** Read the `customer` global (the signed-in shopper, or nil). */
+  customer: boolean
   /** Read the clock (`'now' | date`). */
   clock: boolean
   /** Failed, or ran out of passes before every value had loaded. */
@@ -83,7 +86,7 @@ export type RenderTrace = {
 }
 
 export function newTrace(): RenderTrace {
-  return { cart: false, clock: false, failed: false }
+  return { cart: false, customer: false, clock: false, failed: false }
 }
 
 /**
@@ -110,27 +113,48 @@ export function traceCartReads<T extends object>(cart: T, current: () => RenderT
   })
 }
 
-/** A section's cached render: the HTML and whether it depends on the cart. */
-export type CachedLiquid = { html: string; cart: boolean }
+/**
+ * Traces every render of `ctx` into the current trace: cart reads, clock reads and reads of the
+ * `customer` global (signed in or nil).
+ */
+export function traceContextReads(ctx: LiquidPageContext, current: () => RenderTrace): void {
+  ctx.globals.cart = traceCartReads(ctx.globals.cart as object, current)
+  ctx.runtime.onClock = () => {
+    current().clock = true
+  }
+  ctx.runtime.onCustomer = () => {
+    current().customer = true
+  }
+}
+
+/** What a cached render depends on besides its key: the cart, the signed-in shopper. */
+export type CachedReads = { cart: boolean; customer: boolean }
+
+/** A section's cached render: the HTML and what it read. */
+export type CachedLiquid = { html: string } & CachedReads
 
 /**
- * Whether a cached render can be served: anything not reading the cart, and a cart-reading one
- * only to a shopper whose cart is empty (that is what it was rendered with). The cart is only
- * looked at for a render that read it.
+ * Whether a cached render can be served: anything not reading the cart or the shopper; a
+ * cart-reading one only to a shopper whose cart is empty, and a `customer`-reading one only to
+ * a signed-out shopper (that is what each was rendered with). Each is only looked at for a
+ * render that read it.
  */
 export async function servable(
-  entry: { cart: boolean },
+  entry: CachedReads,
   cartEmpty: () => Promise<boolean>,
+  signedOut: () => Promise<boolean>,
 ): Promise<boolean> {
-  return !entry.cart || (await cartEmpty())
+  if (entry.cart && !(await cartEmpty())) return false
+  return !entry.customer || (await signedOut())
 }
 
 /**
  * Whether a fresh render may be kept: a cart-reading one only when it was rendered with an empty
- * cart (a shopper's own cart is never cached).
+ * cart, a `customer`-reading one only when nobody was signed in (a shopper's own cart, name or
+ * email is never cached).
  */
-export function keepable(trace: RenderTrace, cartEmpty: boolean): boolean {
-  return !trace.cart || cartEmpty
+export function keepable(trace: RenderTrace, cartEmpty: boolean, signedIn: boolean): boolean {
+  return (!trace.cart || cartEmpty) && (!trace.customer || !signedIn)
 }
 
 /** A failed render is kept this long: long enough to spare the CPU, short enough to recover. */

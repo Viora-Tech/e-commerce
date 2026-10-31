@@ -107,22 +107,48 @@ describe('cart and clock tracing', () => {
       return true
     }
     const full = async () => false
-    expect(await servable({ cart: false }, empty)).toBe(true)
+    const out = async () => true
+    expect(await servable({ cart: false, customer: false }, empty, out)).toBe(true)
     expect(asked).toBe(0)
-    expect(await servable({ cart: true }, empty)).toBe(true)
-    expect(await servable({ cart: true }, full)).toBe(false)
+    expect(await servable({ cart: true, customer: false }, empty, out)).toBe(true)
+    expect(await servable({ cart: true, customer: false }, full, out)).toBe(false)
   })
 
-  it('never keeps a render made with a shopper’s own cart', () => {
-    expect(keepable({ cart: true, clock: false, failed: false }, false)).toBe(false)
-    expect(keepable({ cart: true, clock: false, failed: false }, true)).toBe(true)
-    expect(keepable({ cart: false, clock: false, failed: false }, false)).toBe(true)
+  it('serves a customer-reading render only signed out, and never asks otherwise', async () => {
+    let asked = 0
+    const signedOut = async () => {
+      asked++
+      return true
+    }
+    const signedIn = async () => false
+    const empty = async () => true
+    expect(await servable({ cart: false, customer: false }, empty, signedIn)).toBe(true)
+    expect(asked).toBe(0)
+    expect(await servable({ cart: false, customer: true }, empty, signedOut)).toBe(true)
+    expect(await servable({ cart: false, customer: true }, empty, signedIn)).toBe(false)
+    expect(await servable({ cart: true, customer: true }, async () => false, signedOut)).toBe(false)
+  })
+
+  it('never keeps a render made with a shopper’s own cart or account', () => {
+    const t = (cart: boolean, customer: boolean) => ({ ...newTrace(), cart, customer })
+    expect(keepable(t(true, false), false, false)).toBe(false)
+    expect(keepable(t(true, false), true, false)).toBe(true)
+    expect(keepable(t(false, false), false, false)).toBe(true)
+    expect(keepable(t(false, true), true, true)).toBe(false)
+    expect(keepable(t(false, true), true, false)).toBe(true)
+    expect(keepable(t(false, false), true, true)).toBe(true)
   })
 
   it('keeps clock-reading and failed renders briefly', () => {
     const hour = 3_600_000
-    expect(renderTtl({ cart: false, clock: false, failed: false }, hour)).toBe(hour)
-    expect(renderTtl({ cart: false, clock: true, failed: false }, hour)).toBe(60_000)
-    expect(renderTtl({ cart: false, clock: false, failed: true }, hour)).toBe(30_000)
+    expect(renderTtl({ cart: false, customer: false, clock: false, failed: false }, hour)).toBe(
+      hour,
+    )
+    expect(renderTtl({ cart: false, customer: false, clock: true, failed: false }, hour)).toBe(
+      60_000,
+    )
+    expect(renderTtl({ cart: false, customer: false, clock: false, failed: true }, hour)).toBe(
+      30_000,
+    )
   })
 })
