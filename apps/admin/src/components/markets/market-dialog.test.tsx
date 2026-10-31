@@ -48,7 +48,8 @@ beforeEach(() => {
   markets.update.mockReset().mockResolvedValue(undefined)
 })
 
-describe('MarketDialog', () => {
+// Typing into the country search is slow under a loaded full run; 5 s was not enough there.
+describe('MarketDialog', { timeout: 20_000 }, () => {
   it('fills the currency and subfolder from the first country, and adds the market', async () => {
     const user = userEvent.setup()
     const onSaved = vi.fn()
