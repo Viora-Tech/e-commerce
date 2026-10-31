@@ -34,13 +34,18 @@ export default function ProductBanner({
     return stockStateOf({ trackInventory: true, available }, lowStockThreshold) === 'low'
   })
   const lowVariant = lowIndex === -1 ? null : tracked[lowIndex]
+  // A pre-order keeps selling at 0: "Shoppers cannot buy it until you add stock" would be wrong.
+  const sellsOnPreorder =
+    form.preorderEnabled ||
+    form.preorderCampaignId !== null ||
+    tracked.some((v) => v.preorderAllowed)
 
   let banner: { heading: string; body: string; action: string; onAction: () => void } | null = null
   if (form.status === 'archived') {
     banner = { ...copy.archived, onAction: () => onSetStatus('active') }
   } else if (form.status === 'draft') {
     banner = { ...copy.draft, onAction: () => onSetStatus('active') }
-  } else if (tracked.length > 0 && total === 0) {
+  } else if (tracked.length > 0 && total === 0 && !sellsOnPreorder) {
     banner = { ...copy.out, onAction: onUpdateInventory }
   } else if (lowVariant) {
     const what = lowVariant.optionValues.filter(Boolean).join(' / ') || form.title
