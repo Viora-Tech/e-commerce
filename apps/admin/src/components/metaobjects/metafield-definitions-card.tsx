@@ -135,9 +135,10 @@ export default function MetafieldDefinitionsCard({
       {definitions === null ? (
         <Skeleton className="h-16 w-full" />
       ) : rows.length === 0 ? (
+        // `section`, not `dashed`: dashed draws the words alone and drops the Add field button,
+        // leaving no way to create the first field.
         <EmptyState
-          variant="dashed"
-          size="md"
+          variant="section"
           icon={Braces}
           heading={copy.metafields.emptyHeading(owner)}
           body={copy.metafields.emptyBody(owner)}
