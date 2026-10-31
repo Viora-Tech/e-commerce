@@ -85,6 +85,7 @@ export default [
       setDraft: 'ड्राफ़्ट बनाएं',
       archive: 'आर्काइव करें',
       addTag: 'टैग जोड़ें',
+      removeTag: 'टैग हटाएं',
       delete: 'हटाएं',
       exportSelected: 'एक्सपोर्ट',
       addToCollection: 'कलेक्शन में जोड़ें',
@@ -100,12 +101,15 @@ export default [
         cancel: 'रहने दें',
       },
       tagPrompt: 'कौन सा टैग जोड़ना है',
+      untagPrompt: 'कौन सा टैग हटाना है',
       tagPlaceholder: 'summer',
       tagHelp: (n) => `चुने हुए ${n} प्रोडक्ट में जोड़ा जाएगा। उनके बाकी टैग बने रहेंगे।`,
       apply: 'लागू करें',
       cancel: 'रहने दें',
       updated: (n) => `${n} प्रोडक्ट अपडेट हो गए`,
       tagged: (n, tag) => `${n} प्रोडक्ट में ${tag} जोड़ दिया`,
+      untagged: (n, tag) => `${n} प्रोडक्ट से ${tag} हटा दिया`,
+      untagHelp: (n) => `चुने हुए ${n} प्रोडक्ट में से जिन पर यह टैग है, उनसे हटेगा। बाकी टैग बने रहेंगे।`,
       removed: (deleted, archived) =>
         archived === 0
           ? `${deleted} प्रोडक्ट हटा दिए`

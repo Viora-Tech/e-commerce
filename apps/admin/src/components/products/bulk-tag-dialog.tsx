@@ -19,12 +19,20 @@ type BulkTagDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   onApply: (tag: string) => void
+  /** Add the tag, or take it off (#26). */
+  mode: 'add' | 'remove'
   /** How many products are selected, for the help line (Figma 627:3614). */
   count: number
 }
 
-/** Asks for the tag to add to every selected product. */
-export default function BulkTagDialog({ open, onOpenChange, onApply, count }: BulkTagDialogProps) {
+/** Asks for the tag to add to, or remove from, every selected product. */
+export default function BulkTagDialog({
+  open,
+  onOpenChange,
+  onApply,
+  mode,
+  count,
+}: BulkTagDialogProps) {
   // Hooks
   const { bulk: copy } = useCopy(productsListContent)
   const [tag, setTag] = useState('')
@@ -38,14 +46,17 @@ export default function BulkTagDialog({ open, onOpenChange, onApply, count }: Bu
     onOpenChange(false)
   }
 
+  // Render logic
+  const adding = mode === 'add'
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>{copy.addTag}</DialogTitle>
+          <DialogTitle>{adding ? copy.addTag : copy.removeTag}</DialogTitle>
         </DialogHeader>
         <Field>
-          <FieldLabel htmlFor="bulk-tag">{copy.tagPrompt}</FieldLabel>
+          <FieldLabel htmlFor="bulk-tag">{adding ? copy.tagPrompt : copy.untagPrompt}</FieldLabel>
           <Input
             id="bulk-tag"
             value={tag}
@@ -56,7 +67,9 @@ export default function BulkTagDialog({ open, onOpenChange, onApply, count }: Bu
               if (e.key === 'Enter') handleApply()
             }}
           />
-          <FieldDescription>{copy.tagHelp(count)}</FieldDescription>
+          <FieldDescription>
+            {adding ? copy.tagHelp(count) : copy.untagHelp(count)}
+          </FieldDescription>
         </Field>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

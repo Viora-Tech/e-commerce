@@ -35,6 +35,8 @@ type ProductBulkActionsProps = {
   busy: boolean
   onStatus: (status: ProductStatus) => void
   onTag: () => void
+  /** "Remove tag" (#26), as on Orders. */
+  onUntag: () => void
   onBulkEdit: () => void
   onDelete: () => void
   /** Bulk "Write with AI"; absent when AI is off or the role cannot write products. */
@@ -62,6 +64,7 @@ export default function ProductBulkActions({
   busy,
   onStatus,
   onTag,
+  onUntag,
   onBulkEdit,
   onDelete,
   onWriteAi,
@@ -106,6 +109,7 @@ export default function ProductBulkActions({
   const disabled = busy || working
   const moreItems: ActionItem[] = [
     { label: copy.addTag, icon: Tag, onSelect: onTag },
+    { label: copy.removeTag, icon: Tag, onSelect: onUntag },
     { label: copy.addToCollection, icon: Folder, onSelect: () => setPicking(true) },
     { label: ai.button, icon: AiIcon, hidden: !onWriteAi, onSelect: onWriteAi },
     {

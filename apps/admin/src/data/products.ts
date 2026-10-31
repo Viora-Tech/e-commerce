@@ -98,6 +98,7 @@ export const productsListContent = {
     setDraft: 'Set as draft',
     archive: 'Archive',
     addTag: 'Add tag',
+    removeTag: 'Remove tag',
     delete: 'Delete',
     exportSelected: 'Export',
     addToCollection: 'Add to collection',
@@ -114,6 +115,7 @@ export const productsListContent = {
       cancel: 'Cancel',
     },
     tagPrompt: 'Tag to add',
+    untagPrompt: 'Tag to remove',
     tagPlaceholder: 'summer',
     tagHelp: (n: number) =>
       `Added to the ${n} selected product${n === 1 ? '' : 's'}. Their other tags stay.`,
@@ -121,6 +123,9 @@ export const productsListContent = {
     cancel: 'Cancel',
     updated: (n: number) => `${n} product${n === 1 ? '' : 's'} updated`,
     tagged: (n: number, tag: string) => `${tag} added to ${n} product${n === 1 ? '' : 's'}`,
+    untagged: (n: number, tag: string) => `${tag} removed from ${n} product${n === 1 ? '' : 's'}`,
+    untagHelp: (n: number) =>
+      `Taken off the ${n} selected product${n === 1 ? '' : 's'} that have it. Their other tags stay.`,
     removed: (deleted: number, archived: number) =>
       archived === 0
         ? `${deleted} product${deleted === 1 ? '' : 's'} deleted`

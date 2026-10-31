@@ -96,7 +96,11 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
   const [total, setTotal] = useState(initial.result.total)
   const [loading, setLoading] = useState(false)
   const [importing, setImporting] = useState(false)
-  const [tagging, setTagging] = useState<{ ids: string[]; clear: () => void } | null>(null)
+  const [tagging, setTagging] = useState<{
+    ids: string[]
+    clear: () => void
+    mode: 'add' | 'remove'
+  } | null>(null)
   const [deleting, setDeleting] = useState<{ ids: string[]; clear: () => void } | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -172,9 +176,11 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
 
   const handleApplyTag = (tag: string) => {
     if (!tagging) return
-    const { ids, clear } = tagging
+    const { ids, clear, mode } = tagging
     setTagging(null)
-    void runBulk(ids, { kind: 'addTag', tag }, clear, (r) => copy.bulk.tagged(r.changed, tag))
+    void runBulk(ids, { kind: mode === 'add' ? 'addTag' : 'removeTag', tag }, clear, (r) =>
+      mode === 'add' ? copy.bulk.tagged(r.changed, tag) : copy.bulk.untagged(r.changed, tag),
+    )
   }
 
   const handleConfirmDelete = () => {
@@ -282,7 +288,8 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
             onStatus={(status) =>
               runBulk(ids, { kind: 'status', status }, clear, (r) => copy.bulk.updated(r.changed))
             }
-            onTag={() => setTagging({ ids, clear })}
+            onTag={() => setTagging({ ids, clear, mode: 'add' })}
+            onUntag={() => setTagging({ ids, clear, mode: 'remove' })}
             onBulkEdit={() => router.push(routes.products.bulkEdit(ids))}
             onDelete={() => setDeleting({ ids, clear })}
             onWriteAi={
@@ -312,6 +319,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
         open={tagging !== null}
         onOpenChange={(open) => !open && setTagging(null)}
         onApply={handleApplyTag}
+        mode={tagging?.mode ?? 'add'}
         count={tagging?.ids.length ?? 0}
       />
       <ConfirmDialog
