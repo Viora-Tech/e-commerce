@@ -13,7 +13,7 @@ import { orderChannel } from '@/lib/order-channel'
 import { shownPaymentStatus } from '@/lib/order-next-move'
 import { routes } from '@/lib/routes'
 import OrderChip from './order-chip'
-import { methodLabel, type OrderDetail } from './order-detail-types'
+import { importedGatewayLabel, methodLabel, type OrderDetail } from './order-detail-types'
 
 export type Neighbours = Awaited<ReturnType<typeof api.orders.neighbours>>
 
@@ -47,6 +47,13 @@ export default function OrderHeader({ order, actions, back }: OrderHeaderProps) 
   }, [order.id])
 
   // Render logic
+  // An imported order names Shopify's gateways (its own method reads 'manual'), cleaned (#13).
+  const imported = order.importMeta?.paymentMethod
+  const paidVia = imported
+    ? importedGatewayLabel(imported, copy)
+    : order.paymentMethod
+      ? methodLabel(order.paymentMethod, copy)
+      : null
   const soldThrough = orderChannel(order.attribution)
   /* Open is the everyday state; only a closed order earns its own lifecycle chip. */
   const closed = order.status !== 'open'
@@ -86,10 +93,10 @@ export default function OrderHeader({ order, actions, back }: OrderHeaderProps) 
         summary={
           <>
             <span title={fmt.dateTime(order.placedAt)}>{copy.placed(fmt.ago(order.placedAt))}</span>
-            {order.paymentMethod ? (
+            {paidVia ? (
               <>
                 {' · '}
-                {copy.paidVia}: {methodLabel(order.paymentMethod, copy)}
+                {copy.paidVia}: {paidVia}
               </>
             ) : null}
           </>

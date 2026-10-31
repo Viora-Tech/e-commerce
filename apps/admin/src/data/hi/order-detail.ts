@@ -223,6 +223,7 @@ export default [
         cashfree: 'Cashfree',
         decentro: 'Decentro',
         gift_card: 'गिफ़्ट कार्ड',
+        store_credit: 'स्टोर क्रेडिट',
       },
       reference: 'रेफ़रेंस',
       gatewayId: 'गेटवे पेमेंट ID',

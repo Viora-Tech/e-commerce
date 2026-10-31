@@ -39,6 +39,8 @@ export function buildEntries(
 
   // What happened on the old platform before the move (audit #20), in its own words.
   for (const [i, e] of (order.importMeta?.history ?? []).entries()) {
+    // Shopify's own bookkeeping ("Unknown event Order#tax_finalization_…") means nothing here (#14).
+    if (e.message.startsWith('Unknown event')) continue
     entries.push({
       id: `ih-${i}`,
       at: new Date(e.at),

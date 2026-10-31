@@ -241,6 +241,7 @@ export const orderDetailContent = {
       cashfree: 'Cashfree',
       decentro: 'Decentro',
       gift_card: 'Gift card',
+      store_credit: 'Store credit',
     } as Record<string, string>,
     reference: 'Reference',
     gatewayId: 'Gateway payment id',
