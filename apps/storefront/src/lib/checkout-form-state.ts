@@ -51,6 +51,17 @@ export function addressForCountry(
 }
 
 /**
+ * The phone as the field for `countryCode` reads it. India's field holds the ten digits; abroad
+ * it holds the number with its country code, so a saved Indian number gains its +91 there
+ * instead of being read as a number of the new country (+971 98765…), and loses it back home.
+ */
+export function phoneForCountry(phone: string, countryCode: string): string {
+  const digits = phone.replace(/[\s-]/g, '')
+  if (isAbroad(countryCode)) return /^\d{10}$/.test(digits) ? `+91${digits}` : phone
+  return /^\+91\d{10}$/.test(digits) ? digits.slice(3) : phone
+}
+
+/**
  * Contact and address fields from the account, so a returning shopper types nothing. Saved
  * addresses are Indian (the address book takes PIN codes); a new address opens in `country`.
  */
@@ -68,7 +79,7 @@ export function prefillCheckout(
     name: parts ? parts.first : fullName,
     ...(parts ? { lastName: parts.last } : {}),
     email: customer?.email ?? '',
-    phone: address?.phone ?? customer?.phone ?? '',
+    phone: phoneForCountry(address?.phone ?? customer?.phone ?? '', address ? 'IN' : country),
     ...(address
       ? {
           line1: address.line1,

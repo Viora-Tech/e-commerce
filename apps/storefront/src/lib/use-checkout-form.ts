@@ -11,6 +11,7 @@ import {
   type CheckoutFormState,
   fullNameOf,
   NEW_ADDRESS,
+  phoneForCountry,
   prefillCheckout,
 } from '@/lib/checkout-form-state'
 import {
@@ -300,6 +301,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     setForm((prev) => ({
       ...prev,
       ...next,
+      phone: phoneForCountry(prev.phone, next.countryCode),
       payment:
         isAbroad(next.countryCode) && prev.payment === 'cod' && online ? online : prev.payment,
     }))
@@ -325,7 +327,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
           ...prefillCheckout(customer, undefined, settings.fields.name, startCountry),
           name: form.name,
           ...(splitName ? { lastName: form.lastName ?? '' } : {}),
-          phone: form.phone,
+          phone: phoneForCountry(form.phone, startCountry),
         }
     setForm((prev) => ({ ...prev, ...next }))
     checkPincode(next.pincode, next.stateCode, next.countryCode)
