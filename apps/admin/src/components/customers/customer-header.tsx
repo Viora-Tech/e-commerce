@@ -68,13 +68,20 @@ export default function CustomerHeader({
   const title = customer.name ?? customer.email ?? customersCopy.unnamed
   const orderCount = customer.totals.orderCount
   const vip = customer.totals.spentPaise >= VIP_SPEND_PAISE
-  const created = formatDay(customer.createdAt, new Date(), locale)
+  // A customer is one from their first order on, even when their record is newer (an import
+  // or a later sign-up made it after they had ordered, audit #43).
+  const first = customer.totals.firstOrderAt
+  const start =
+    first && new Date(first).getTime() < new Date(customer.createdAt).getTime()
+      ? first
+      : customer.createdAt
+  const created = formatDay(start, new Date(), locale)
   const since =
     created === dates.today
       ? copy.sinceToday
       : created === dates.yesterday
         ? copy.sinceYesterday
-        : copy.since(day(customer.createdAt, locale))
+        : copy.since(day(start, locale))
   const city = customer.defaultAddress?.city ?? customer.addresses[0]?.city
   const subtitle = city ? copy.withCity(since, city) : since
 
