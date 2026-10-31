@@ -2,11 +2,13 @@
 import { customer, customerSegment, order, type StoreTx } from '@commerce/db'
 import { and, eq, inArray, ne, notInArray, or, type SQL, sql } from 'drizzle-orm'
 import { evaluateSegment, type SegmentRules } from '../customers/segments'
+import { customerSpentSql } from '../customers/spent'
 import type { DiscountContext, DiscountRule } from './evaluate'
 
 /* Same figures segments are built on (marketing/audience.ts). */
 const orderCount = sql<number>`(select count(*)::int from "order" o where o.customer_id = customer.id and o.status not in ('draft', 'cancelled') and not o.is_test)`
-const spent = sql<number>`(select coalesce(sum(o.total_paise), 0)::int from "order" o where o.customer_id = customer.id and o.status not in ('draft', 'cancelled') and not o.is_test)`
+/* Paid and kept, not every order's total (audit #132). */
+const spent = customerSpentSql(sql`${customer.id}`)
 const lastOrder = sql<
   string | null
 >`(select max(o.placed_at) from "order" o where o.customer_id = customer.id and o.status not in ('draft', 'cancelled') and not o.is_test)`

@@ -109,7 +109,8 @@ describe('customers', () => {
     expect(list.total).toBe(2)
     expect(list.items.map((c) => c.name)).toEqual(['Asha Menon', 'Ravi Iyer'])
     expect(list.items[0]).toMatchObject({ orderCount: 3, spentPaise: 200000 })
-    expect(list.items[1]).toMatchObject({ orderCount: 1, spentPaise: 20000 })
+    // Ravi's order is unpaid: nothing spent yet (audit #132).
+    expect(list.items[1]).toMatchObject({ orderCount: 1, spentPaise: 0 })
 
     const returning = await call(
       appRouter.customers.list,
@@ -132,7 +133,8 @@ describe('customers', () => {
       newPrevious7: 0,
       returning: 1,
       marketing: 1,
-      averageLifetimePaise: 110000,
+      // Asha paid ₹2,000; Ravi's order is unpaid, so ₹0 (audit #132).
+      averageLifetimePaise: 100000,
     })
   })
 

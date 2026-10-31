@@ -1,4 +1,5 @@
 import {
+  customerSpentSql,
   decryptCustomerPhone,
   deleteMetafieldsOf,
   encryptCustomerPhone,
@@ -107,9 +108,8 @@ const c = alias(customer, 'c')
 const orderCountSql = sql<number>`(
   select count(*)::int from ${order} o
   where o.customer_id = c.id and o.status <> 'draft' and not o.is_test)`
-const spentSql = sql<number>`(
-  select coalesce(sum(o.total_paise), 0)::int from ${order} o
-  where o.customer_id = c.id and o.status not in ('cancelled', 'draft') and not o.is_test)`
+// Paid and kept, not every order's total (audit #132).
+const spentSql = customerSpentSql(sql.raw('c.id'))
 const lastOrderSql = sql<Date | null>`(
   select max(o.placed_at) from ${order} o
   where o.customer_id = c.id and o.status <> 'draft' and not o.is_test)`
@@ -383,7 +383,12 @@ export async function getCustomer(tx: StoreTx, id: string, secret: string) {
   // The list still shows test-mode orders; the totals leave them out.
   const real = orders.filter((o) => !o.isTest)
   const live = real.filter((o) => o.status !== 'cancelled')
-  const spentPaise = live.reduce((sum, o) => sum + o.totalPaise, 0)
+  // Money received and kept, the same figure the list, segments and discounts use (audit #132).
+  const [spent] = await tx
+    .select({ paise: customerSpentSql(sql`${customer.id}`) })
+    .from(customer)
+    .where(eq(customer.id, id))
+  const spentPaise = spent?.paise ?? 0
   const { phoneIndex: _phoneIndex, ...customerFields } = row
   return {
     ...customerFields,

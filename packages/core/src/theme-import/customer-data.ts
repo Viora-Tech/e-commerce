@@ -3,6 +3,7 @@ import { customer, customerAddress, order, type StoreTx } from '@commerce/db'
 import { type MarketPricing, presentmentCents } from '@commerce/money'
 import { eq, sql } from 'drizzle-orm'
 import type { SignedInCustomer } from '../accounts/auth'
+import { customerSpentSql } from '../customers/spent'
 import type { LiquidCustomerData } from './drops'
 
 /** Orders that count toward `orders_count` and `total_spent`, as on the admin's customer page. */
@@ -22,7 +23,7 @@ export async function loadLiquidCustomer(
       tags: customer.tags,
       defaultAddress: customer.defaultAddress,
       ordersCount: sql<number>`(select count(*)::int from ${order} where ${PLACED})`,
-      totalSpent: sql<number>`(select coalesce(sum(${order.totalPaise}), 0)::bigint from ${order} where ${PLACED})`,
+      totalSpent: customerSpentSql(sql`${customer.id}`),
       addressesCount: sql<number>`(select count(*)::int from ${customerAddress} where ${customerAddress.customerId} = ${customer.id})`,
     })
     .from(customer)

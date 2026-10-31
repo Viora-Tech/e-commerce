@@ -72,8 +72,8 @@ async function setup() {
 
 async function addOrder(storeId: string, customerId: string, number: number, totalPaise: number) {
   await owner.execute(sql`
-    insert into "order" (id, store_id, number, customer_id, subtotal_paise, total_paise, status)
-    values (gen_random_uuid(), ${storeId}, ${number}, ${customerId}, ${totalPaise}, ${totalPaise}, 'open')`)
+    insert into "order" (id, store_id, number, customer_id, subtotal_paise, total_paise, status, payment_status)
+    values (gen_random_uuid(), ${storeId}, ${number}, ${customerId}, ${totalPaise}, ${totalPaise}, 'open', 'paid')`)
 }
 
 describe('customer panel', () => {

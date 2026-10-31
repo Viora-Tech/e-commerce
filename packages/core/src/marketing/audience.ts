@@ -2,6 +2,7 @@ import { customer, customerSegment, type StoreTx } from '@commerce/db'
 import { and, eq, isNull, sql } from 'drizzle-orm'
 import { decryptCustomerPhone } from '../customers/phone-crypto'
 import { evaluateSegment, type SegmentRules } from '../customers/segments'
+import { customerSpentSql } from '../customers/spent'
 
 export type AudienceMember = {
   customerId: string
@@ -17,7 +18,8 @@ export type AudienceKind = 'email' | 'whatsapp'
  * cart/abandoned.ts about interpolated columns in projection subqueries.
  */
 const orderCount = sql<number>`(select count(*)::int from "order" o where o.customer_id = customer.id and o.status not in ('draft', 'cancelled') and not o.is_test)`
-const spent = sql<number>`(select coalesce(sum(o.total_paise), 0)::int from "order" o where o.customer_id = customer.id and o.status not in ('draft', 'cancelled') and not o.is_test)`
+/* Paid and kept, not every order's total (audit #132). */
+const spent = customerSpentSql(sql`${customer.id}`)
 const lastOrder = sql<
   string | null
 >`(select max(o.placed_at) from "order" o where o.customer_id = customer.id and o.status not in ('draft', 'cancelled') and not o.is_test)`
