@@ -7,11 +7,11 @@ import {
   FEATURE_MODELS,
   type ModelTier,
   PLAN_QUOTAS,
-  parseAiPlan,
 } from '@commerce/ai/client'
 import { aiSettings, aiUsage } from '@commerce/db'
 import { and, eq, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { loadAiSettings } from './settings'
 
 export type AiMonthUsage = {
   month: string
@@ -109,7 +109,7 @@ async function spendExtraCredits(
 ): Promise<void> {
   if (callMillis <= 0) return
   const [settings] = await ctx.tx
-    .select({ plan: aiSettings.plan, extra: aiSettings.extraCreditMillis })
+    .select({ extra: aiSettings.extraCreditMillis })
     .from(aiSettings)
     .where(eq(aiSettings.storeId, ctx.storeId))
   if (!settings || settings.extra <= 0) return
@@ -117,7 +117,7 @@ async function spendExtraCredits(
     .select({ total: sql<number>`coalesce(sum(${aiUsage.creditMillis}), 0)::int` })
     .from(aiUsage)
     .where(and(eq(aiUsage.storeId, ctx.storeId), eq(aiUsage.month, month)))
-  const allowance = PLAN_QUOTAS[parseAiPlan(settings.plan)].credits * 1000
+  const allowance = PLAN_QUOTAS[(await loadAiSettings(ctx)).plan].credits * 1000
   const after = row?.total ?? 0
   const before = after - callMillis
   const spill = Math.max(0, after - allowance) - Math.max(0, before - allowance)

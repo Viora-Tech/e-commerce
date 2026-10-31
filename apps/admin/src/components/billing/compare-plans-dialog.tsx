@@ -96,7 +96,8 @@ export default function ComparePlansDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl">
+      {/* The shell's own sm:max-w-sm beats a plain max-w-*: four plans need the sm: width. */}
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-6xl">
         <DialogHeader>
           <DialogTitle>{d.title}</DialogTitle>
           <DialogDescription>{d.subtitle}</DialogDescription>

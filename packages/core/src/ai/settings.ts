@@ -9,7 +9,8 @@ import {
   parseWritingQuality,
   type WritingQuality,
 } from '@commerce/ai/client'
-import { aiSettings } from '@commerce/db'
+import { aiSettings, storePlan } from '@commerce/db'
+import { PLANS } from '../billing/plans'
 import { eq, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 
@@ -21,6 +22,25 @@ export type StoreAiSettings = {
   writingQuality: WritingQuality
   /** Bought AI credits still left (whole credits, fractions kept); used after the allowance. */
   extraCredits: number
+}
+
+/** Plan states that still give the plan's AI allowance (a bill due is in its grace days). */
+const PLAN_IN_FORCE = new Set(['trialing', 'active', 'due'])
+
+/**
+ * The AI plan in force: Koomerce's own stores stay internal; otherwise the store's Koomerce
+ * plan while it is trialing or paid, so a trial gets the same credits Plan & billing shows.
+ * Without a plan in force, the stored AI plan (the default for a new store).
+ */
+async function planInForce(ctx: StoreContext, stored: AiPlan): Promise<AiPlan> {
+  if (stored === 'internal') return stored
+  const [row] = await ctx.tx
+    .select({ plan: storePlan.plan, status: storePlan.status, unlimited: storePlan.unlimited })
+    .from(storePlan)
+    .where(eq(storePlan.storeId, ctx.storeId))
+  if (!row) return stored
+  if (row.unlimited) return 'internal'
+  return PLAN_IN_FORCE.has(row.status) && row.plan in PLANS ? PLANS[row.plan].ai : stored
 }
 
 /** The store's AI settings; a store that never saved any gets the defaults (every feature on). */
@@ -36,14 +56,14 @@ export async function loadAiSettings(ctx: StoreContext): Promise<StoreAiSettings
     .where(eq(aiSettings.storeId, ctx.storeId))
   if (!row) {
     return {
-      plan: DEFAULT_AI_PLAN,
+      plan: await planInForce(ctx, DEFAULT_AI_PLAN),
       features: parseFeatureToggles(null),
       writingQuality: 'standard',
       extraCredits: 0,
     }
   }
   return {
-    plan: parseAiPlan(row.plan),
+    plan: await planInForce(ctx, parseAiPlan(row.plan)),
     features: parseFeatureToggles(row.features),
     writingQuality: parseWritingQuality(row.writingQuality),
     extraCredits: row.extraCreditMillis / 1000,
