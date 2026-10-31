@@ -29,8 +29,15 @@ export function liquidMarketFor(h: Headers): LiquidMarketScope {
   const locale = h.get(MARKET_HEADERS.locale) ?? languages[0]?.code ?? 'en'
   const country = h.get(MARKET_HEADERS.country) ?? countries[0] ?? ''
   const prefix = h.get(MARKET_HEADERS.prefix) ?? ''
+  // `IN:INR,AE:AED` → { IN: 'INR', AE: 'AED' }
+  const currencies = Object.fromEntries(
+    (h.get(MARKET_HEADERS.countryCurrencies) ?? '')
+      .split(',')
+      .map((pair) => pair.split(':'))
+      .filter((p): p is [string, string] => p.length === 2 && Boolean(p[0]) && Boolean(p[1])),
+  )
   return {
-    market: { id, handle: '', locale, languages, country, countries, prefix },
+    market: { id, handle: '', locale, languages, country, countries, currencies, prefix },
     key: [id, locale, country, prefix].join(':'),
   }
 }

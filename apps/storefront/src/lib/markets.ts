@@ -27,6 +27,8 @@ export const MARKET_HEADERS = {
   prefix: 'x-market-prefix',
   /** Every country the store sells to, across its markets: `IN,AE,OM`. */
   countries: 'x-market-countries',
+  /** Each country's currency, from the market selling there: `IN:INR,AE:AED`. */
+  countryCurrencies: 'x-market-country-currencies',
   /** The market's languages, its own first, each with where it lives: `en=/ae,ar=/ar-ae`. */
   languages: 'x-market-languages',
 } as const
@@ -185,6 +187,13 @@ export function pickMarket(input: {
   return finish(primary, primary.locale, 'primary')
 }
 
+/** `IN:INR,AE:AED`: each country once, priced in the first live market that sells there. */
+function countryCurrencies(live: StoreMarketRoute[]): string {
+  const seen = new Map<string, string>()
+  for (const m of live) for (const c of m.countries) if (!seen.has(c)) seen.set(c, m.currency)
+  return [...seen].map(([country, currency]) => `${country}:${currency}`).join(',')
+}
+
 /**
  * The market headers the app reads (`MARKET_HEADERS`), from the pick and the store's markets:
  * an imported theme's country and language selector renders from them without a lookup.
@@ -207,6 +216,7 @@ export function marketHeaders(
     [MARKET_HEADERS.locale, pick.locale],
     [MARKET_HEADERS.prefix, pick.root.hostname ? '' : pick.root.prefix],
     [MARKET_HEADERS.countries, [...new Set(live.flatMap((m) => m.countries))].join(',')],
+    [MARKET_HEADERS.countryCurrencies, countryCurrencies(live)],
     [MARKET_HEADERS.languages, languages.join(',')],
   ]
   if (pick.market.id) out.push([MARKET_HEADERS.id, pick.market.id])
