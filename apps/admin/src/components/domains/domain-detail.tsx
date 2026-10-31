@@ -149,6 +149,7 @@ export default function DomainDetail({ initial, primaryHostname }: DomainDetailP
               <Button
                 variant="outline"
                 size="sm"
+                nativeButton={false}
                 render={<a href={visitUrl} target="_blank" rel="noreferrer" />}
               >
                 <ExternalLink className="size-4" />

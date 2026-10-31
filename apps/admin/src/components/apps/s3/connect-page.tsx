@@ -159,6 +159,7 @@ export default function ConnectPage() {
             <Button
               variant="outline"
               className="w-fit gap-1.5"
+              nativeButton={false}
               render={<a href={copy.consoleUrl} target="_blank" rel="noreferrer" />}
             >
               {copy.openConsole}
@@ -174,6 +175,7 @@ export default function ConnectPage() {
             <Button
               variant="outline"
               className="w-fit gap-1.5"
+              nativeButton={false}
               render={<a href={copy.iamUrl} target="_blank" rel="noreferrer" />}
             >
               {copy.openIam}

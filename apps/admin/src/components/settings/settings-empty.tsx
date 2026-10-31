@@ -17,7 +17,7 @@ export default function SettingsEmpty({ heading, body, action, icon }: SettingsE
         icon={icon}
         action={
           action ? (
-            <Button variant="outline" render={<Link href={action.href} />}>
+            <Button variant="outline" nativeButton={false} render={<Link href={action.href} />}>
               {action.label}
             </Button>
           ) : undefined
