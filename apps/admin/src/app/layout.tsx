@@ -3,12 +3,12 @@ import { browserSentryMeta } from '@commerce/observability'
 import type { Metadata } from 'next'
 import { Geist_Mono, Noto_Sans_Devanagari, Plus_Jakarta_Sans } from 'next/font/google'
 import { headers } from 'next/headers'
-import { ThemeProvider } from 'next-themes'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import type { ReactNode } from 'react'
 import './globals.css'
 import LocaleProvider from '@/components/layout/locale-provider'
 import MotionProvider from '@/components/layout/motion-provider'
+import ThemeProvider from '@/components/layout/theme-provider'
 import { layoutContent } from '@/data/layout'
 import { localize } from '@/lib/copy'
 import { getLocale, getRegion } from '@/lib/copy-server'
@@ -77,7 +77,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         >
           {copy.skipToContent}
         </a>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem nonce={nonce}>
+        <ThemeProvider nonce={nonce}>
           <NuqsAdapter>
             <LocaleProvider locale={locale} region={region}>
               <MotionProvider>{children}</MotionProvider>
