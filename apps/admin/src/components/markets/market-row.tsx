@@ -9,7 +9,8 @@ import SettingsTableCell from '@/components/settings/settings-table-cell'
 import SettingsTableRow from '@/components/settings/settings-table-row'
 import RowActionsCell from '@/components/table/row-actions-cell'
 import { marketsContent } from '@/data/markets'
-import { useCopy } from '@/hooks/use-copy'
+import { useCopy, useLocale } from '@/hooks/use-copy'
+import { INTL_LOCALE } from '@/lib/i18n'
 
 type MarketRowProps = {
   market: MarketView
@@ -43,10 +44,14 @@ export default function MarketRow({
 }: MarketRowProps) {
   // Hooks
   const copy = useCopy(marketsContent)
+  const locale = useLocale()
 
   // Render logic
-  const shown = m.countries.slice(0, SHOWN_COUNTRIES).join(', ')
-  const more = m.countries.length - SHOWN_COUNTRIES
+  // Country names, as Shopify's Includes column shows them, in the admin's language.
+  const regions = new Intl.DisplayNames([INTL_LOCALE[locale]], { type: 'region' })
+  const names = m.countries.map((c) => regions.of(c) ?? c)
+  const shown = names.slice(0, SHOWN_COUNTRIES).join(', ')
+  const more = names.length - SHOWN_COUNTRIES
   const countries = more > 0 ? copy.moreCountries(shown, more) : shown
   const reach = m.isPrimary
     ? primaryHost

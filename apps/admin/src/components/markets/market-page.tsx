@@ -32,9 +32,10 @@ import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
 import { marketsContent } from '@/data/markets'
-import { useCopy } from '@/hooks/use-copy'
+import { useCopy, useLocale } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { INTL_LOCALE } from '@/lib/i18n'
 import { routes } from '@/lib/routes'
 import MarketDialog, { type MarketPart } from './market-dialog'
 import { adjustmentText } from './market-overrides'
@@ -80,6 +81,7 @@ const CARD = 'rounded-xl border border-border bg-card'
 export default function MarketPage({ market, markets, domains, catalog }: MarketPageProps) {
   // Hooks
   const copy = useCopy(marketsContent)
+  const locale = useLocale()
   const router = useRouter()
   const { hasPermission } = usePermissions()
   const [part, setPart] = useState<MarketPart | null>(null)
@@ -224,7 +226,10 @@ export default function MarketPage({ market, markets, domains, catalog }: Market
   ]
   const customized = settings.filter((s) => s.customized)
   const inherited = settings.filter((s) => !s.customized)
-  const countries = market.isPrimary ? [h.primaryCountry] : market.countries
+  const regions = new Intl.DisplayNames([INTL_LOCALE[locale]], { type: 'region' })
+  const countries = market.isPrimary
+    ? [h.primaryCountry]
+    : market.countries.map((c) => regions.of(c) ?? c)
 
   return (
     // One column, centred, as Shopify's market page and our Catalogs and Rollouts.
