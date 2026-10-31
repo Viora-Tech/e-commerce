@@ -109,13 +109,30 @@ export function buildEntries(
     })
   }
 
+  if (order.fulfilledAt) {
+    entries.push({
+      id: 'fulfilled',
+      at: new Date(order.fulfilledAt),
+      kind: 'shipment',
+      title: t.fulfilled,
+    })
+  }
+  if (order.deliveredAt) {
+    entries.push({
+      id: 'delivered',
+      at: new Date(order.deliveredAt),
+      kind: 'shipment',
+      title: t.deliveredByHand,
+    })
+  }
+
   const tracking = (order.shipment?.tracking ?? null) as Tracking | null
   if (order.shipment) {
     entries.push({
       id: `sh-${order.shipment.id}`,
       at: new Date(order.shipment.createdAt),
       kind: 'shipment',
-      title: t.shipmentBooked,
+      title: order.shipment.canEditTracking ? t.trackingAdded : t.shipmentBooked,
       detail: `${shipping.waybill} ${order.shipment.waybill}`,
     })
     for (const e of tracking?.events ?? []) {

@@ -184,6 +184,8 @@ export async function recomputeOrderStatuses(
     fullyPacked &&
     UNFULFILLED_STATUSES.includes(before.fulfillmentStatus)
   if (becameFulfilled) {
+    // The outbox row is pruned after 90 days; the order keeps when, for its timeline (#121).
+    await ctx.tx.update(order).set({ fulfilledAt: new Date() }).where(eq(order.id, orderId))
     await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.fulfilled', {
       orderId,
       ...(opts.notifyCustomer === false ? { notifyCustomer: false } : {}),

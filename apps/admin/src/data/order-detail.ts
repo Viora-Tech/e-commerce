@@ -304,6 +304,10 @@ export const orderDetailContent = {
     notification: (template: string, channel: string) => `${template} sent by ${channel}`,
     notificationFailed: (template: string, channel: string) => `${template} by ${channel} failed`,
     shipmentBooked: 'Shipment booked',
+    /** A tracking number typed in by hand: nothing was booked with a courier (#121). */
+    trackingAdded: 'Tracking added',
+    fulfilled: 'Fulfilled: every item packed',
+    deliveredByHand: 'Marked as delivered',
     shipment: (status: string) => `Shipment: ${status}`,
     note: 'Note',
     addNote: 'Add note',

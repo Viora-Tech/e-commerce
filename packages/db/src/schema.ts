@@ -1342,6 +1342,8 @@ export const order = pgTable(
     checkoutPaidAt: timestamp('checkout_paid_at', { withTimezone: true }),
     /** When the merchant marked the order delivered by hand; courier deliveries come from `shipment`. */
     deliveredAt: timestamp('delivered_at', { withTimezone: true }),
+    /** When every item was last packed (`order.fulfilled`), for the order's timeline (#121). */
+    fulfilledAt: timestamp('fulfilled_at', { withTimezone: true }),
     /**
      * Archived by the merchant (#1007): a record kept off the default list views, shown under
      * the "Archived" view. Nothing else about the order changes; unarchiving clears it.
