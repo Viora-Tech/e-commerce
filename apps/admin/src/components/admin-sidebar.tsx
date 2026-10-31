@@ -46,8 +46,6 @@ import MemberAvatar from './account/member-avatar'
 import SidebarUsageCard, { type SidebarUsage } from './layout/sidebar-usage-card'
 import UserMenu from './layout/user-menu'
 import NavGroupBlock from './nav-group-block'
-import MainIconRail from './settings/main-icon-rail'
-import SettingsSidebarNav from './settings/settings-sidebar-nav'
 
 type StoreOption = { id: string; name: string; slug: string }
 
@@ -159,9 +157,6 @@ export default function AdminSidebar({
   const storeName = active?.name ?? copy.pickStore
   const role = member ? (member.isOwner ? copy.storeRole.owner : member.roleName) : null
   const domain = hostOf(storefrontUrl)
-  // Inside Settings the settings menu takes the rail's place (Shopify-style, #147).
-  const settingsHome = routes.settings.home()
-  const inSettings = pathname === settingsHome || pathname.startsWith(`${settingsHome}/`)
 
   return (
     <Sidebar collapsible="icon" className="group-data-[side=left]:border-r-0">
@@ -250,43 +245,25 @@ export default function AdminSidebar({
       </SidebarHeader>
 
       <SidebarContent className="no-scrollbar gap-0.5 pt-0.5">
-        {inSettings ? (
-          // The main menu stays beside Settings as an icon column (owner 2026-10-31).
-          <div className="flex min-h-0">
-            <MainIconRail
-              items={localizeNavItems(
-                [...withSalesChannels(NAV_GROUPS, channels).flatMap((g) => g.items), SETTINGS_NAV],
-                locale,
-              )}
-              pathname={pathname}
-            />
-            <div className="min-w-0 flex-1">
-              <SettingsSidebarNav pathname={pathname} />
-            </div>
-          </div>
-        ) : (
-          <>
-            {withSalesChannels(NAV_GROUPS, channels).map((group) => (
-              <NavGroupBlock
-                key={group.label}
-                label={group.label ? navGroupName(group.label, locale) : undefined}
-                items={
-                  group.label === APPS_GROUP
-                    ? nestApps(localizeNavItems(group.items, locale), apps, layoutCopy)
-                    : localizeNavItems(group.items, locale)
-                }
-                pathname={pathname}
-                counts={navCounts}
-              />
-            ))}
-            <NavGroupBlock
-              label={navGroupName(SETTINGS_GROUP, locale)}
-              items={localizeNavItems([SETTINGS_NAV], locale)}
-              pathname={pathname}
-              counts={navCounts}
-            />
-          </>
-        )}
+        {withSalesChannels(NAV_GROUPS, channels).map((group) => (
+          <NavGroupBlock
+            key={group.label}
+            label={group.label ? navGroupName(group.label, locale) : undefined}
+            items={
+              group.label === APPS_GROUP
+                ? nestApps(localizeNavItems(group.items, locale), apps, layoutCopy)
+                : localizeNavItems(group.items, locale)
+            }
+            pathname={pathname}
+            counts={navCounts}
+          />
+        ))}
+        <NavGroupBlock
+          label={navGroupName(SETTINGS_GROUP, locale)}
+          items={localizeNavItems([SETTINGS_NAV], locale)}
+          pathname={pathname}
+          counts={navCounts}
+        />
       </SidebarContent>
 
       <SidebarFooter

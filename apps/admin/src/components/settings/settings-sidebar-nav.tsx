@@ -1,9 +1,9 @@
 'use client'
 
-import { ArrowLeft } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { motion, useReducedMotion } from 'motion/react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import {
   SETTINGS_GROUPS,
@@ -19,8 +19,6 @@ import { pageName } from '@/lib/page-names'
 import { routes } from '@/lib/routes'
 import { SIDEBAR_CONTROL, SIDEBAR_DURATION, SIDEBAR_LABEL } from '@/lib/sidebar-motion'
 import SettingsSearch from './settings-search'
-
-type SettingsSidebarNavProps = { pathname: string }
 
 const FOCUS =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar'
@@ -47,12 +45,13 @@ function isActive(pathname: string, href: string): boolean {
 }
 
 /**
- * Settings' own menu (Shopify-style, #147): inside Settings it replaces the main rail, full
- * height, under the store switcher and domain. "Back to admin" on top, the settings search,
- * then Overview and the six groups. The active page sits on a sliding pill.
+ * Settings' own menu, a column beside the settings page while the main sidebar stays as it is
+ * (owner 2026-10-31: both menus side by side, the main one with its names). The settings
+ * search, then Overview and the six groups; the active page sits on a sliding pill.
  */
-export default function SettingsSidebarNav({ pathname }: SettingsSidebarNavProps) {
+export default function SettingsSidebarNav() {
   // Hooks
+  const pathname = usePathname()
   const copy = useCopy(settingsContent)
   const locale = useLocale()
   const reduced = useReducedMotion()
@@ -73,18 +72,6 @@ export default function SettingsSidebarNav({ pathname }: SettingsSidebarNavProps
   return (
     <nav aria-label={copy.nav.label} className="flex flex-col gap-0.5">
       <div className={cn(BLOCK, 'pt-1')}>
-        <Link href={routes.home()} className={cn(ROW, 'text-muted-foreground')}>
-          <ArrowLeft aria-hidden="true" />
-          <span className={cn('min-w-0 truncate', SIDEBAR_LABEL)}>{copy.nav.exit}</span>
-        </Link>
-        <p
-          className={cn(
-            'px-2 pt-3 pb-1.5 text-body font-semibold text-sidebar-foreground',
-            SIDEBAR_LABEL,
-          )}
-        >
-          {copy.nav.title}
-        </p>
         <div className={cn('pb-1', SIDEBAR_CONTROL)}>
           <SettingsSearch />
         </div>
