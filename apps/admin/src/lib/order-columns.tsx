@@ -133,7 +133,7 @@ export function orderColumns(
     {
       id: 'product',
       title: copy.columns.product,
-      className: 'w-[24%] whitespace-normal',
+      className: 'w-[20%] whitespace-normal',
       render: (o) => <ProductCell item={o} />,
     },
     {
@@ -202,8 +202,9 @@ export function orderColumns(
     {
       id: 'channel',
       title: copy.columns.channel,
+      className: 'w-[9%]',
       render: (o) => (
-        <span className="text-[0.8125rem] text-muted-foreground">
+        <span className="block truncate text-[0.8125rem] text-muted-foreground">
           {CHANNEL_LABELS[o.channel as OverviewChannel] ?? CHANNEL_LABELS.untracked}
         </span>
       ),
@@ -211,12 +212,18 @@ export function orderColumns(
     {
       id: 'tags',
       title: copy.columns.tags,
-      className: 'whitespace-normal',
+      className: 'w-[12%] whitespace-normal',
       render: (o) =>
         o.tags.length ? (
-          <span className="flex flex-wrap gap-1">
+          // A long tag ("Essential Preorder") is cut with "…" inside the column instead of
+          // running into Delivery; hover shows it whole.
+          <span className="flex min-w-0 flex-wrap gap-1">
             {o.tags.slice(0, 2).map((t) => (
-              <StatusChip key={t}>{t}</StatusChip>
+              <StatusChip key={t} className="max-w-full min-w-0">
+                <span className="truncate" title={t}>
+                  {t}
+                </span>
+              </StatusChip>
             ))}
             {o.tags.length > 2 ? (
               <span className="text-xs text-muted-foreground">+{o.tags.length - 2}</span>
