@@ -99,7 +99,7 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'E-invoicing (IRN)',
     where: 'Taxes & GST › GST & invoices',
-    href: '/settings/taxes?open=e-invoice',
+    href: '/settings/taxes',
     keywords: ['e-invoice', 'einvoice', 'irn', 'irp', 'qr code', 'e invoice'],
   },
   // Store › Locations & warehouses
@@ -348,8 +348,8 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   },
   {
     title: 'Appearance',
-    where: 'Team & advanced',
-    href: routes.settings.appearance(),
+    where: 'Account menu › Appearance',
+    href: routes.account.appearance(),
     keywords: ['dark mode', 'light mode', 'theme', 'colour', 'color', 'accent'],
   },
   // Your own preferences: the account menu, top right
@@ -486,7 +486,7 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'Business buyers at checkout',
     where: 'Selling › Checkout',
-    href: '/settings/checkout?open=branding#gstin',
+    href: '/settings/checkout?open=fields',
     keywords: ['gstin', 'b2b', 'business buyer', 'gst invoice', 'company'],
   },
   {

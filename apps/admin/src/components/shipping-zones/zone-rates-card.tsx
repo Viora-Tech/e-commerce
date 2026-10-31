@@ -21,10 +21,12 @@ type ZoneRatesCardProps = {
   value: RateDraft[]
   onChange: (next: RateDraft[]) => void
   disabled?: boolean
+  /** The zone includes India, where cash on delivery runs. */
+  cod: boolean
 }
 
 /** The rates of a zone: a table, with the add and edit dialog. */
-export default function ZoneRatesCard({ value, onChange, disabled }: ZoneRatesCardProps) {
+export default function ZoneRatesCard({ value, onChange, disabled, cod }: ZoneRatesCardProps) {
   // Hooks
   const ratesCopy = useCopy(shippingRatesContent)
   const fmt = useFormat()
@@ -130,7 +132,7 @@ export default function ZoneRatesCard({ value, onChange, disabled }: ZoneRatesCa
           </TableBody>
         </Table>
       )}
-      <RateDialog open={open} rate={editing} onOpenChange={setOpen} onDone={handleDone} />
+      <RateDialog open={open} rate={editing} onOpenChange={setOpen} onDone={handleDone} cod={cod} />
     </DataCard>
   )
 }

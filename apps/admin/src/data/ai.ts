@@ -78,7 +78,6 @@ export const aiContent = {
         scale: 'Scale',
         internal: 'Unlimited',
       },
-      requests: 'AI requests',
       credits: 'AI credits',
       creditsHelp:
         'Each answer or write uses a few credits, depending on how much the AI reads and writes.',
@@ -89,7 +88,8 @@ export const aiContent = {
       wordsHelp: 'Measured in tokens: about four characters each.',
       of: (used: string, limit: string) => `${used} of ${limit}`,
       byFeature: 'By feature',
-      requestCount: (n: number) => (n === 1 ? '1 request' : `${n} requests`),
+      /** Times a feature was used this month; the allowance itself is in credits (#114). */
+      requestCount: (n: number) => (n === 1 ? 'Used once' : `Used ${n} times`),
     },
     features: {
       heading: 'AI features',
@@ -113,7 +113,7 @@ export const aiContent = {
     },
     quality: {
       label: 'Writing quality',
-      help: 'Best uses a stronger AI for product writing. Each write then counts as 3 requests.',
+      help: 'Best uses a stronger AI for product writing. Each write then uses about 3 times the credits.',
       standard: 'Standard',
       best: 'Best',
     },

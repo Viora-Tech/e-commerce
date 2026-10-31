@@ -56,8 +56,18 @@ describe('describeValidation (#804)', () => {
       { code: 'custom', path: [], message: 'Pick one' },
     ])
     expect(describeValidation(e, validationContent)).toBe(
-      'Variants (item 1) › SKU: too long, keep it to 70 characters or fewer. Title: required. ' +
+      'Variant 1 › SKU: too long, keep it to 70 characters or fewer. Title: required. ' +
         'Weight unit grams: must be at least 0. 1 more to fix',
+    )
+  })
+
+  it('names list entries and leaves out wrappers the member never sees (#101)', () => {
+    const e = err([
+      { code: 'too_small', origin: 'string', minimum: 1, path: ['boxPresets', 0, 'name'] },
+      { code: 'invalid_format', format: 'regex', path: ['policy', 'originPincode'] },
+    ])
+    expect(describeValidation(e, validationContent)).toBe(
+      'Package 1 › Name: required. PIN code to ship from: not in the right format',
     )
   })
 

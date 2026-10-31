@@ -26,6 +26,21 @@ export const MODEL_TIERS = {
 export type ModelTier = keyof typeof MODEL_TIERS
 
 /**
+ * A model id as people read it: `anthropic/claude-haiku-5.5` → "Claude Haiku 5.5". Settings → AI
+ * shows the models in use from `MODEL_TIERS` (or the environment's override) this way, never
+ * the raw id (#114).
+ */
+export function modelLabel(id: string): string {
+  const name = id.split('/').at(-1) ?? id
+  // `claude-sonnet-5-5` and `claude-sonnet-5.5` both read "Claude Sonnet 5.5".
+  return name
+    .replace(/(\d)-(?=\d)/g, '$1.')
+    .split('-')
+    .map((part) => (/^\d/.test(part) ? part : `${part.charAt(0).toUpperCase()}${part.slice(1)}`))
+    .join(' ')
+}
+
+/**
  * How many requests of the monthly allowance one call costs. The strong model costs about
  * three times as much per token, so one "Best" write counts as three requests.
  */

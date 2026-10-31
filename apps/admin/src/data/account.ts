@@ -154,9 +154,10 @@ export const accountContent = {
       'WhatsApp alerts appear here once your store sets up WhatsApp in Settings → Notifications.',
     needPhone: 'Add your mobile number on your Profile to get WhatsApp alerts.',
     addPhone: 'Add mobile number',
-    soon: 'Coming soon: these switches are saved now and start sending in an update.',
-    soonBadge: 'Soon',
-    storeWide: 'The store can switch team alerts off for everyone in Settings → Notifications.',
+    soon: 'Alerts marked Coming soon do not send yet, so their switches stay off until they do.',
+    soonBadge: 'Coming soon',
+    storeWide:
+      'These switches are just for you. The store-level switches in Settings → Notifications turn a team alert on or off for everyone; you get it only when both are on.',
     save: 'Save',
     discard: 'Discard',
     unsaved: 'Unsaved changes',

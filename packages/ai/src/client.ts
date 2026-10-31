@@ -41,6 +41,7 @@ export {
   FEATURE_MODELS,
   MODEL_TIERS,
   type ModelTier,
+  modelLabel,
   parseFeatureToggles,
   parseWritingQuality,
   TIER_CALL_WEIGHT,

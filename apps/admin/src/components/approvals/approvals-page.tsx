@@ -9,7 +9,6 @@ import PageHeader from '@/components/layout/page-header'
 import SettingsDrill from '@/components/settings/settings-drill'
 import SettingsDrillPanel from '@/components/settings/settings-drill-panel'
 import { approvalsContent } from '@/data/approvals'
-import { SETTINGS_BACK } from '@/data/settings'
 import { settingsRowsContent } from '@/data/settings-rows'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -63,7 +62,7 @@ export default function ApprovalsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={copy.title} subtitle={copy.intro} back={SETTINGS_BACK} />
+      <PageHeader title={copy.title} subtitle={copy.intro} />
       {failed ? (
         <p className="text-body text-muted-foreground">{copy.failed}</p>
       ) : (

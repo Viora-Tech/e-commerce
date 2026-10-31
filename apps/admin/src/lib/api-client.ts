@@ -3,7 +3,7 @@
 import { createApiClient } from '@commerce/api/client'
 import { approvalsContent } from '@/data/approvals'
 import { validationContent } from '@/data/common'
-import { withReadableValidation } from '@/lib/api-errors'
+import { focusFirstIssue, withReadableValidation } from '@/lib/api-errors'
 import { localize } from '@/lib/copy'
 import { localeFromCookieHeader } from '@/lib/i18n'
 import { isStepUpRequired, requestStepUp } from '@/lib/step-up-gate'
@@ -23,6 +23,8 @@ function readable(err: unknown): unknown {
     err.message = data?.alreadyRequested ? copy.already : copy.sent
     return err
   }
+  // Next frame: the toast shows the plain sentence and the cursor lands in the field it names.
+  if (typeof window !== 'undefined') window.requestAnimationFrame(() => focusFirstIssue(err))
   return withReadableValidation(err, localize(validationContent, locale))
 }
 

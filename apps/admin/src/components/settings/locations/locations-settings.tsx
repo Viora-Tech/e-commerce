@@ -24,7 +24,6 @@ import SettingsLinkRow from '@/components/settings/settings-link-row'
 import SettingsList from '@/components/settings/settings-list'
 import { businessGstContent } from '@/data/business-gst'
 import { reorderLabels } from '@/data/common'
-import { SETTINGS_BACK } from '@/data/settings'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
@@ -119,7 +118,6 @@ export default function LocationsSettings({ view }: LocationsSettingsProps) {
             {copy.add}
           </Button>
         }
-        back={SETTINGS_BACK}
       />
       <SettingsList heading={copy.heading}>
         <DndContext

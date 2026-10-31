@@ -8,7 +8,6 @@ import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
 import SettingsCard from '@/components/settings/settings-card'
 import { documentTemplatesContent } from '@/data/document-templates'
-import { SETTINGS_BACK } from '@/data/settings'
 import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
 
@@ -27,7 +26,7 @@ export default function TemplatesList({ templates, gstApp }: TemplatesListProps)
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={copy.title} subtitle={copy.meta} back={SETTINGS_BACK} />
+      <PageHeader title={copy.title} subtitle={copy.meta} />
       {templates.map((t) => {
         const kind = copy.kinds[t.kind]
         return (

@@ -3,6 +3,7 @@
 import {
   AI_FEATURES,
   type AiFeatureToggles,
+  modelLabel,
   WRITING_QUALITIES,
   type WritingQuality,
 } from '@commerce/ai/client'
@@ -20,7 +21,7 @@ import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { aiContent } from '@/data/ai'
-import { SETTINGS_BACK, settingsContent } from '@/data/settings'
+import { settingsContent } from '@/data/settings'
 import { settingsRowsContent } from '@/data/settings-rows'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -162,7 +163,6 @@ export default function AiSettings() {
       <PageHeader
         title={copy.settings.title}
         subtitle={copy.settings.subtitle}
-        back={SETTINGS_BACK}
         save={{ dirty, saving: busy, onSave: handleSave, label: copy.settings.save }}
       />
       {!loaded || !features || !usage ? (
@@ -282,7 +282,10 @@ export default function AiSettings() {
                 </ul>
                 {loaded.configured ? (
                   <p className="text-caption text-muted-foreground">
-                    {copy.settings.privacy.model(loaded.models.fast, loaded.models.strong)}
+                    {copy.settings.privacy.model(
+                      modelLabel(loaded.models.fast),
+                      modelLabel(loaded.models.strong),
+                    )}
                   </p>
                 ) : null}
               </DataCard>

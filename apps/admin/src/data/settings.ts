@@ -214,9 +214,9 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
         icon: Braces,
       },
       {
-        // Your own light/dark and accent, plus the owner's store default accent. The account
-        // menu opens the same page under Account.
-        href: routes.settings.appearance(),
+        // Your own light/dark and accent, plus the owner's store default accent. It lives under
+        // Account only (#81); this entry is the way there from Settings.
+        href: routes.account.appearance(),
         title: 'Appearance',
         body: 'Light or dark mode and your accent colour, just for you.',
         icon: Palette,
@@ -425,4 +425,3 @@ export const settingsHomeContent = {
 } as const
 
 /** The "‹ Settings" link every settings page shows above its title. */
-export const SETTINGS_BACK = { href: SETTINGS_HOME.href, label: settingsContent.nav.back }

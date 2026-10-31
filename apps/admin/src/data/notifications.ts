@@ -80,7 +80,7 @@ export const notificationsSettingsContent = {
     },
     you: {
       title: 'Messages you get',
-      help: 'Sent to your shop email or to each team member who asked, never to customers.',
+      help: 'Sent to your shop email or to team members, never to customers. These switches are store-level: off stops a team alert for everyone. On, each person still picks their own in Account → Notifications, so a daily summary can be on here and off for you.',
     },
   } satisfies Record<MessageGroupId, { title: string; help: string }>,
 

@@ -14,7 +14,6 @@ import { api } from '@/lib/api-client'
 import SettingsDrill from '../settings-drill'
 import SettingsDrillPanel from '../settings-drill-panel'
 import ChargingCard from './charging-card'
-import EinvoiceCard from './einvoice-card'
 import GstExplainer from './gst-explainer'
 import NumberingCard from './numbering-card'
 import RegistrationCard from './registration-card'
@@ -181,7 +180,7 @@ export default function TaxesSettings({
               rowsCopy.needsFix,
             ),
           },
-          { id: 'e-invoice', title: t.einvoice, value: t.einvoiceValue },
+          { id: 'e-invoice', title: t.einvoice, value: t.einvoiceValue, disabled: true },
         ]
       : []
 
@@ -226,9 +225,6 @@ export default function TaxesSettings({
               errors={errors}
               onChange={(numbering) => patch({ numbering })}
             />
-          </SettingsDrillPanel>
-          <SettingsDrillPanel id="e-invoice">
-            <EinvoiceCard />
           </SettingsDrillPanel>
         </SettingsDrill>
       )}

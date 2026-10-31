@@ -12,7 +12,7 @@ import SettingsDrillPanel from '@/components/settings/settings-drill-panel'
 import SettingsLinkRow from '@/components/settings/settings-link-row'
 import SettingsList from '@/components/settings/settings-list'
 import { mcpContent } from '@/data/mcp'
-import { SETTINGS_BACK, settingsContent } from '@/data/settings'
+import { settingsContent } from '@/data/settings'
 import { settingsRowsContent } from '@/data/settings-rows'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -102,7 +102,6 @@ export default function McpPage({ overview, grants, serverUrl }: McpPageProps) {
       <PageHeader
         title={copy.title}
         subtitle={copy.subtitle(store)}
-        back={SETTINGS_BACK}
         save={{ dirty, saving, onSave: handleSave, label: copy.save }}
       />
       <McpStatusCard

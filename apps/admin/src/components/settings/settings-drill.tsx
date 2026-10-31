@@ -9,6 +9,10 @@ export type DrillRow = {
   title: string
   /** The current value or status in a few words ("Required", "₹499", "On"). */
   value?: string | undefined
+  /** Not built yet: a plain line with its value ("Coming soon"), not a row that opens (#69). */
+  disabled?: boolean
+  /** A one-switch setting: the switch sits in the row itself, with `value` as its hint (#100). */
+  control?: ReactNode
 }
 
 type SettingsDrillProps = {
@@ -64,7 +68,7 @@ export default function SettingsDrill({ rows, backLabel, home, children }: Setti
   }
 
   // Render logic
-  const current = rows.some((r) => r.id === open) ? open : null
+  const current = rows.some((r) => r.id === open && !r.disabled && !r.control) ? open : null
 
   return (
     <NavContext.Provider value={handleOpen}>
@@ -84,24 +88,47 @@ export default function SettingsDrill({ rows, backLabel, home, children }: Setti
           <ul className="flex flex-col overflow-hidden rounded-xl surface-card">
             {rows.map((r) => (
               <li key={r.id} className="border-hairline border-b last:border-b-0">
-                <button
-                  type="button"
-                  onClick={() => handleOpen(r.id)}
-                  className={`group flex w-full items-center gap-3 px-5 py-4 text-left transition-colors hover:bg-muted/60 ${FOCUS}`}
-                >
-                  <span className="min-w-0 flex-1 text-body font-medium text-ink-strong">
-                    {r.title}
-                  </span>
-                  {r.value ? (
-                    <span className="max-w-[55%] truncate text-body text-muted-foreground">
-                      {r.value}
+                {r.control ? (
+                  <div className="flex w-full items-center gap-3 px-5 py-4">
+                    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                      <span className="text-body font-medium text-ink-strong">{r.title}</span>
+                      {r.value ? (
+                        <span className="text-caption text-muted-foreground">{r.value}</span>
+                      ) : null}
                     </span>
-                  ) : null}
-                  <ChevronRight
-                    aria-hidden="true"
-                    className="size-4 shrink-0 text-muted-foreground group-hover:text-foreground"
-                  />
-                </button>
+                    {r.control}
+                  </div>
+                ) : r.disabled ? (
+                  <div className="flex w-full items-center gap-3 px-5 py-4" aria-disabled="true">
+                    <span className="min-w-0 flex-1 text-body font-medium text-muted-foreground">
+                      {r.title}
+                    </span>
+                    {r.value ? (
+                      <span className="max-w-[55%] truncate text-body text-muted-foreground">
+                        {r.value}
+                      </span>
+                    ) : null}
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleOpen(r.id)}
+                    className={`group flex w-full items-center gap-3 px-5 py-4 text-left transition-colors hover:bg-muted/60 ${FOCUS}`}
+                  >
+                    <span className="min-w-0 flex-1 text-body font-medium text-ink-strong">
+                      {r.title}
+                    </span>
+                    {r.value ? (
+                      <span className="max-w-[55%] truncate text-body text-muted-foreground">
+                        {r.value}
+                      </span>
+                    ) : null}
+                    <ChevronRight
+                      aria-hidden="true"
+                      className="size-4 shrink-0 text-muted-foreground group-hover:text-foreground"
+                    />
+                  </button>
+                )}
               </li>
             ))}
           </ul>

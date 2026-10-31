@@ -14,7 +14,7 @@ import {
   type NotificationRegistry,
   renderEmail,
   renderWhatsapp,
-  sampleTemplateDataByTemplate,
+  sampleTemplateDataFor,
   type TemplateData,
   type TemplateId,
 } from '@commerce/notifications'
@@ -119,7 +119,7 @@ export async function setMessageOn(tx: StoreTx, storeId: string, id: string, on:
 
 /** Sample data with this store's name, so the preview reads like the shop's own message. */
 function sampleFor(template: TemplateId, storeName: string | undefined): TemplateData {
-  const base = sampleTemplateDataByTemplate[template]
+  const base = sampleTemplateDataFor(template)
   return storeName ? { ...base, storeName } : base
 }
 

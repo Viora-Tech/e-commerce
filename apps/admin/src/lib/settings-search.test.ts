@@ -28,7 +28,7 @@ describe('searchSettings', () => {
     expect(first('cookie')?.href).toBe('/settings/privacy?open=banner')
     expect(first('data request')?.href).toBe('/settings/privacy/requests')
     expect(first('r2')?.href).toBe('/content/files/storage')
-    expect(first('dark mode')?.href).toBe('/settings/appearance')
+    expect(first('dark mode')?.href).toBe('/account/appearance')
     expect(first('hindi')?.href).toBe('/account/language')
     expect(first('sender')?.href).toBe('/settings/notifications?open=sender')
   })
@@ -46,7 +46,7 @@ describe('searchSettings', () => {
     expect(first('grievance')?.href).toBe('/settings/policies?open=grievance')
     expect(first('minimum order')?.href).toBe('/settings/checkout#minimum')
     expect(first('block pincode')?.href).toBe('/settings/checkout#cod')
-    expect(first('business buyer')?.href).toBe('/settings/checkout?open=branding#gstin')
+    expect(first('business buyer')?.href).toBe('/settings/checkout?open=fields')
   })
 
   it('offers both Shipping and the App Store for "courier"', () => {

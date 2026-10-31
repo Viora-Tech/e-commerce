@@ -10,7 +10,6 @@ import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
 import SettingsCard from '@/components/settings/settings-card'
 import { gatewayGuides, paymentsSetupContent } from '@/data/payments-setup'
-import { SETTINGS_BACK } from '@/data/settings'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { base, instant } from '@/lib/motion'
@@ -161,7 +160,6 @@ export default function SetupWizard({ setup, onReload, onDone }: SetupWizardProp
             </Button>
           )
         }
-        back={SETTINGS_BACK}
       />
       <div
         role="progressbar"

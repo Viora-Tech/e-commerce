@@ -83,7 +83,7 @@ export default function BoxPresetsFields({ value, onChange }: BoxPresetsFieldsPr
           <EmptyState icon={Package} heading={copy.empty} />
         ) : (
           <div className="flex flex-col gap-3">
-            {boxes.map((box) => (
+            {boxes.map((box, i) => (
               <div
                 key={box.id}
                 className="grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-[1.5fr_1.2fr_1fr_1fr_1fr_1fr_1fr_auto] sm:items-end"
@@ -92,6 +92,7 @@ export default function BoxPresetsFields({ value, onChange }: BoxPresetsFieldsPr
                   <FieldLabel htmlFor={`box-name-${box.id}`}>{copy.name}</FieldLabel>
                   <Input
                     id={`box-name-${box.id}`}
+                    data-field-path={`boxPresets.${i}.name`}
                     placeholder={copy.namePlaceholder}
                     value={box.name}
                     onChange={(e) => handlePatch(box.id, { name: e.target.value })}
@@ -101,6 +102,7 @@ export default function BoxPresetsFields({ value, onChange }: BoxPresetsFieldsPr
                   <FieldLabel htmlFor={`box-kind-${box.id}`}>{copy.kind}</FieldLabel>
                   <NativeSelect
                     id={`box-kind-${box.id}`}
+                    data-field-path={`boxPresets.${i}.kind`}
                     className="w-full"
                     value={box.kind}
                     onChange={(e) => handleKind(box.id, e.target.value as PackageKind)}
@@ -116,6 +118,7 @@ export default function BoxPresetsFields({ value, onChange }: BoxPresetsFieldsPr
                   <FieldLabel htmlFor={`box-length-${box.id}`}>{copy.length}</FieldLabel>
                   <Input
                     id={`box-length-${box.id}`}
+                    data-field-path={`boxPresets.${i}.lengthCm`}
                     type="number"
                     value={box.lengthCm}
                     onChange={(e) => handlePatch(box.id, { lengthCm: Number(e.target.value) })}
@@ -125,6 +128,7 @@ export default function BoxPresetsFields({ value, onChange }: BoxPresetsFieldsPr
                   <FieldLabel htmlFor={`box-width-${box.id}`}>{copy.width}</FieldLabel>
                   <Input
                     id={`box-width-${box.id}`}
+                    data-field-path={`boxPresets.${i}.widthCm`}
                     type="number"
                     value={box.widthCm}
                     onChange={(e) => handlePatch(box.id, { widthCm: Number(e.target.value) })}
@@ -134,6 +138,7 @@ export default function BoxPresetsFields({ value, onChange }: BoxPresetsFieldsPr
                   <FieldLabel htmlFor={`box-height-${box.id}`}>{copy.height}</FieldLabel>
                   <Input
                     id={`box-height-${box.id}`}
+                    data-field-path={`boxPresets.${i}.heightCm`}
                     type="number"
                     value={box.heightCm}
                     disabled={box.kind === 'envelope'}
@@ -144,6 +149,7 @@ export default function BoxPresetsFields({ value, onChange }: BoxPresetsFieldsPr
                   <FieldLabel htmlFor={`box-weight-${box.id}`}>{copy.weight}</FieldLabel>
                   <Input
                     id={`box-weight-${box.id}`}
+                    data-field-path={`boxPresets.${i}.weightGrams`}
                     type="number"
                     value={box.weightGrams}
                     onChange={(e) => handlePatch(box.id, { weightGrams: Number(e.target.value) })}

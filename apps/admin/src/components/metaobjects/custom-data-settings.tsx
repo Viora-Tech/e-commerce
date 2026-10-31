@@ -13,7 +13,6 @@ import SettingsLinkRow from '@/components/settings/settings-link-row'
 import SettingsList from '@/components/settings/settings-list'
 import { CUSTOM_DATA_OWNERS, customDataOverviewContent } from '@/data/custom-data'
 import { customDataContent } from '@/data/metaobjects'
-import { SETTINGS_BACK } from '@/data/settings'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
@@ -76,7 +75,7 @@ export default function CustomDataSettings() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={copy.title} subtitle={copy.intro} back={SETTINGS_BACK} />
+      <PageHeader title={copy.title} subtitle={copy.intro} />
       <SettingsList heading={page.overview.fieldsHeading} description={page.overview.fieldsBody}>
         {CUSTOM_DATA_OWNERS.map((o) => {
           const Icon = o.icon

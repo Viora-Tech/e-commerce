@@ -9,7 +9,7 @@ import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import ChoiceList from '@/components/returns/choice-list'
 import { returnSettingsContent as copy, returnsContent } from '@/data/returns'
-import { SETTINGS_BACK, settingsContent } from '@/data/settings'
+import { settingsContent } from '@/data/settings'
 import { settingsRowsContent } from '@/data/settings-rows'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -119,7 +119,6 @@ export default function ReturnsSettings() {
       <PageHeader
         title={copy.title}
         subtitle={copy.subtitle}
-        back={SETTINGS_BACK}
         save={{ dirty, saving: busy, onSave: handleSave, label: copy.save }}
       />
       {!form ? (

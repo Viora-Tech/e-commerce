@@ -156,10 +156,6 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
     body: 'प्रोडक्ट और कलेक्शन के एक्स्ट्रा फ़ील्ड, और आपके कंटेंट टाइप।',
   },
   '/settings/invoices': { title: 'इनवॉइस' },
-  '/settings/appearance': {
-    title: 'रंग-रूप',
-    body: 'लाइट या डार्क मोड और आपका एक्सेंट रंग, सिर्फ़ आपके लिए।',
-  },
   '/account': { title: 'अकाउंट' },
   '/account/security': { title: 'साइन-इन और सुरक्षा' },
   '/account/sessions': { title: 'सेशन' },

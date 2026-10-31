@@ -96,5 +96,25 @@ export const validationContent = {
     email: 'Email',
     phone: 'Phone',
     name: 'Name',
+    // Settings forms (#101): plain names, and the wrappers members never see left out.
+    boxPresets: 'Packages',
+    lengthCm: 'Length',
+    widthCm: 'Width',
+    heightCm: 'Height',
+    originPincode: 'PIN code to ship from',
+    policy: '',
+    routing: '',
+    settings: '',
+    numbering: 'Invoice numbers',
+    gstin: 'GSTIN',
+    legalName: 'Legal name',
+    rates: 'Rates',
+    countryCodes: 'Countries',
+  } as Record<string, string>,
+  /** One entry of a list, numbered: "Package 2 › Name". */
+  items: {
+    boxPresets: 'Package',
+    rates: 'Rate',
+    variants: 'Variant',
   } as Record<string, string>,
 }

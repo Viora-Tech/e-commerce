@@ -14,7 +14,6 @@ import StatStrip from '@/components/layout/stat-strip'
 import SettingsLinkRow from '@/components/settings/settings-link-row'
 import SettingsList from '@/components/settings/settings-list'
 import { monthlyExpensesContent } from '@/data/monthly-expenses'
-import { SETTINGS_BACK } from '@/data/settings'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
@@ -90,12 +89,7 @@ export default function MonthlyExpensesSettings() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        title={copy.title}
-        subtitle={copy.intro}
-        back={SETTINGS_BACK}
-        actions={addButton}
-      />
+      <PageHeader title={copy.title} subtitle={copy.intro} actions={addButton} />
       {!view ? (
         <Skeleton className="h-64 w-full rounded-2xl" />
       ) : (

@@ -13,7 +13,6 @@ import DataCard from '@/components/layout/data-card'
 import KeyValueList from '@/components/layout/key-value-list'
 import PageHeader from '@/components/layout/page-header'
 import { billingContent } from '@/data/billing'
-import { SETTINGS_BACK } from '@/data/settings'
 import { settingsRowsContent } from '@/data/settings-rows'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -97,7 +96,7 @@ export default function BillingPage({ view, apps, autopay }: BillingPageProps) {
   if (view.unlimited)
     return (
       <div className="flex w-full flex-col gap-4">
-        <PageHeader title={copy.title} subtitle={copy.subtitle} back={SETTINGS_BACK} />
+        <PageHeader title={copy.title} subtitle={copy.subtitle} />
         <UnlimitedPlanCard view={view} />
         <AppsCard apps={apps} />
       </div>
@@ -131,7 +130,6 @@ export default function BillingPage({ view, apps, autopay }: BillingPageProps) {
       <PageHeader
         title={copy.title}
         subtitle={copy.subtitle}
-        back={SETTINGS_BACK}
         actions={
           <Button variant="outline" onClick={() => setComparing(true)}>
             {copy.compare}

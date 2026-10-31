@@ -14,7 +14,6 @@ import InviteDialog from '@/components/staff/invite-dialog'
 import MembersCard, { type StaffMemberRow } from '@/components/staff/members-card'
 import PendingInvitesCard, { type PendingInviteRow } from '@/components/staff/pending-invites-card'
 import RolesCard, { type RoleRow } from '@/components/staff/roles-card'
-import { SETTINGS_BACK } from '@/data/settings'
 import { settingsRowsContent } from '@/data/settings-rows'
 import { staffContent } from '@/data/staff'
 import { useCopy } from '@/hooks/use-copy'
@@ -130,7 +129,6 @@ export default function StaffSettings() {
       <PageHeader
         title={copy.title}
         subtitle={copy.intro}
-        back={SETTINGS_BACK}
         actions={
           canInvite ? (
             <Button onClick={() => setInviteOpen(true)}>
@@ -191,10 +189,14 @@ export default function StaffSettings() {
         open={pendingDelete !== null}
         onOpenChange={() => setPendingDelete(null)}
         title={copy.roles.confirmDelete.title}
-        body={copy.roles.confirmDelete.body}
+        body={
+          pendingDelete?.memberCount
+            ? copy.roles.confirmDelete.hasMembers(pendingDelete.memberCount)
+            : copy.roles.confirmDelete.body
+        }
         confirmLabel={copy.roles.confirmDelete.confirm}
         cancelLabel={copy.roles.confirmDelete.cancel}
-        tone="default"
+        confirmDisabled={Boolean(pendingDelete?.memberCount)}
         onConfirm={handleDeleteRole}
       />
     </div>

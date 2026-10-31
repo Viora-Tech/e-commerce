@@ -14,7 +14,7 @@ import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import AskAgainDialog from '@/components/settings/ask-again-dialog'
 import { customerPrivacyContent as copy } from '@/data/customer-privacy'
-import { SETTINGS_BACK, settingsContent } from '@/data/settings'
+import { settingsContent } from '@/data/settings'
 import { settingsRowsContent } from '@/data/settings-rows'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -145,7 +145,6 @@ export default function CustomerPrivacySettings() {
       <PageHeader
         title={copy.title}
         subtitle={copy.subtitle}
-        back={SETTINGS_BACK}
         save={{ dirty, saving: busy, onSave: handleSave, label: copy.save }}
       />
       {!overview || !form ? (

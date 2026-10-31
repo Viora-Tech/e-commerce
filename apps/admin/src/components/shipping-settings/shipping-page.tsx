@@ -18,7 +18,6 @@ import ShippingTryPin from '@/components/settings/shipping-try-pin'
 import SplitShippingCard from '@/components/settings/split-shipping-card'
 import WhatsThisHelp from '@/components/settings/whats-this-help'
 import ShippingProfilesCard from '@/components/shipping-zones/shipping-profiles-card'
-import { SETTINGS_BACK } from '@/data/settings'
 import { settingsRowsContent } from '@/data/settings-rows'
 import { shippingSettingsContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
@@ -136,12 +135,15 @@ export default function ShippingPage() {
     {
       id: 'courier',
       title: r.courier,
+      // Same words as the section: no courier connected is not "Cheapest" (#103).
       value:
-        rule.mode === 'preferred'
-          ? r.preferred(labelOf(rule.providerId))
-          : rule.mode === 'per_zone'
-            ? r.perZone
-            : r.cheapest,
+        couriers.length === 0
+          ? r.noCourier
+          : rule.mode === 'preferred'
+            ? r.preferred(labelOf(rule.providerId))
+            : rule.mode === 'per_zone'
+              ? r.perZone
+              : r.cheapest,
     },
     { id: 'pincode', title: r.pincode, value: r.pincodeValue },
     ...(DEV
@@ -178,7 +180,6 @@ export default function ShippingPage() {
             />
           </span>
         }
-        back={SETTINGS_BACK}
         save={{ dirty, saving: busy, onSave: handleSave, label: copy.save }}
       />
 

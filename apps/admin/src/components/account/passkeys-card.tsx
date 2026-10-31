@@ -45,7 +45,12 @@ export default function PasskeysCard() {
   const [busy, setBusy] = useState(false)
   // biome-ignore lint/correctness/useExhaustiveDependencies: `version` re-runs the load after a change
   useEffect(() => {
-    authClient.passkey.listUserPasskeys().then(({ data }) => setPasskeys(data ?? []))
+    // A failed or refused list shows the empty line and the add button, never a grey box that
+    // stays forever (#80).
+    authClient.passkey
+      .listUserPasskeys()
+      .then(({ data }) => setPasskeys(data ?? []))
+      .catch(() => setPasskeys([]))
   }, [version])
 
   // Helpers

@@ -11,7 +11,6 @@ import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { providerSettingsContent as copy } from '@/data/provider-settings'
-import { SETTINGS_BACK } from '@/data/settings'
 import ProviderCard, { type ProviderDef } from './provider-card'
 import SectionTabs, { type SectionTab } from './section-tabs'
 import SettingsSection from './settings-section'
@@ -174,7 +173,7 @@ export default function ProviderSettingsForm<Extra extends object>({
         title={title}
         subtitle={intro}
         actions={headerActions}
-        back={back?.href ? { label: back.label, href: back.href } : SETTINGS_BACK}
+        back={back?.href ? { label: back.label, href: back.href } : undefined}
         save={{ dirty, saving: busy, onSave: handleSave, label: copy.save }}
       />
       {error ? (

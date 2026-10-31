@@ -25,6 +25,16 @@ export const documentTemplatesContent = {
     body: 'It keeps the invoice GST compliant, so only its branding (logo, colours, wording) and which fields show can change. Change them in the app.',
     open: 'Open GST invoice settings',
   },
+  mergeTags: {
+    open: 'Merge tags',
+    title: 'Merge tags',
+    body: 'Put a tag in the template and the print fills it from the order. A block like {{#lines}} … {{/lines}} repeats for each item.',
+    fields: (list: string) => `Inside it: ${list}`,
+    copy: (tag: string) => `Copy ${tag}`,
+    copied: (tag: string) => `${tag} copied`,
+    copyFailed: 'Could not copy. Select the tag and copy it instead.',
+    close: 'Close',
+  },
   editor: {
     html: 'Template (HTML)',
     htmlHelp:

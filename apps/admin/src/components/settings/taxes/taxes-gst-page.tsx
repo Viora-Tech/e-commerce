@@ -3,7 +3,7 @@
 import type { BusinessGstView } from '@commerce/core'
 import { useState } from 'react'
 import PageHeader from '@/components/layout/page-header'
-import { SETTINGS_BACK, settingsContent } from '@/data/settings'
+import { settingsContent } from '@/data/settings'
 import { useCopy } from '@/hooks/use-copy'
 import BusinessGstSettings from '../business-gst/business-gst-settings'
 import TaxesSettings, { type TaxesSaveState } from './taxes-settings'
@@ -31,7 +31,6 @@ export default function TaxesGstPage({ view }: TaxesGstPageProps) {
       <PageHeader
         title={copy.taxesPage.title}
         subtitle={copy.taxesPage.intro}
-        back={SETTINGS_BACK}
         save={
           saveState
             ? { dirty: saveState.dirty, saving: saveState.busy, onSave: saveState.save }

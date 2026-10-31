@@ -130,6 +130,9 @@ export const shippingSettingsContent = {
     serviceable: (range: string, dispatch: string) => `Delivers ${range}. Dispatches ${dispatch}.`,
     cod: (ok: boolean) => (ok ? 'COD available.' : 'Prepaid only.'),
     fallback: 'Courier did not answer; fallback transit days were used.',
+    noCourier: 'No courier connected, so your standard transit days were used.',
+    remote: (days: number) =>
+      `Remote area: ${days === 1 ? '1 extra day' : `${days} extra days`} added to your standard transit days.`,
     unserviceable: (reason: string) => `Not serviceable: ${reason}`,
   },
 } as const

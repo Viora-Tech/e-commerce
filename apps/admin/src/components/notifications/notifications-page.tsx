@@ -5,6 +5,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
+import { useQueryState } from 'nuqs'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
@@ -16,7 +17,6 @@ import SettingsTable from '@/components/settings/settings-table'
 import WhatsThisHelp from '@/components/settings/whats-this-help'
 import { type MessageGroupId, notificationsSettingsContent } from '@/data/notifications'
 import { senderEmailContent } from '@/data/sender-email'
-import { SETTINGS_BACK } from '@/data/settings'
 import { settingsRowsContent } from '@/data/settings-rows'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -26,7 +26,7 @@ import MessageRow from './message-row'
 import PreviewDialog from './preview-dialog'
 import SenderEmailCard from './sender-email-card'
 import SendingCard from './sending-card'
-import type { MessageRowData, NotificationsOverview } from './types'
+import type { MessageRowData, NotificationsOverview, SenderEmailOverview } from './types'
 
 type MessageId = Parameters<typeof api.notifications.setMessage>[0]['id']
 
@@ -65,10 +65,20 @@ export default function NotificationsPage() {
   const [saving, setSaving] = useState<string | null>(null)
   const [testing, setTesting] = useState<string | null>(null)
   const [previewing, setPreviewing] = useState<string | null>(null)
+  const [senderEmail, setSenderEmail] = useState<SenderEmailOverview | null>(null)
+  const [openRow] = useQueryState('open')
 
   useEffect(() => {
     api.notifications.overview().then(setData)
   }, [])
+  // The Sender email row shows the address (#68); reload it on the way back from its detail.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `openRow` re-runs the load
+  useEffect(() => {
+    api.notifications
+      .senderEmail()
+      .then(setSenderEmail)
+      .catch(() => undefined)
+  }, [openRow])
 
   // Helpers
   const reload = async () => {
@@ -175,7 +185,11 @@ export default function NotificationsPage() {
   const drillRows = [
     { id: 'messages', title: r.customers, value: countOn(customerMessages, r.countOn) },
     { id: 'you', title: r.you, value: countOn(rows('you'), r.countOn) },
-    { id: 'sender', title: r.sender, value: r.senderValue },
+    {
+      id: 'sender',
+      title: r.sender,
+      value: senderEmail ? (senderEmail.sender?.email ?? r.senderNotSet) : undefined,
+    },
     {
       id: 'how-messages-are-sent',
       title: r.sending,
@@ -198,7 +212,6 @@ export default function NotificationsPage() {
             />
           </span>
         }
-        back={SETTINGS_BACK}
       />
 
       <HealthLine

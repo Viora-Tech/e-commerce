@@ -13,7 +13,6 @@ import SettingsDrill from '@/components/settings/settings-drill'
 import SettingsDrillPanel from '@/components/settings/settings-drill-panel'
 import { paymentRulesContent } from '@/data/payment-rules'
 import { methodNames, paymentsSetupContent } from '@/data/payments-setup'
-import { SETTINGS_BACK } from '@/data/settings'
 import { useCopy } from '@/hooks/use-copy'
 import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
@@ -162,7 +161,6 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
           </span>
         }
         actions={actions}
-        back={SETTINGS_BACK}
       />
 
       <StatusBanner canTakePayments={setup.canTakePayments} canTakeOnline={setup.canTakeOnline} />

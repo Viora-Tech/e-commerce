@@ -13,7 +13,6 @@ import SettingsCard from '@/components/settings/settings-card'
 import SettingsLinkRow from '@/components/settings/settings-link-row'
 import SettingsList from '@/components/settings/settings-list'
 import { domainsContent as copy } from '@/data/domains'
-import { SETTINGS_BACK } from '@/data/settings'
 import { usePermissions } from '@/hooks/use-permissions'
 import { routes } from '@/lib/routes'
 import ChangePrimaryDialog from './change-primary-dialog'
@@ -59,14 +58,14 @@ export default function DomainsSettings({ domains }: DomainsSettingsProps) {
         title={copy.title}
         subtitle={copy.intro}
         actions={
-          canManage ? (
+          // With no custom domain the empty state carries the one Connect button (#73).
+          canManage && hasCustom ? (
             <Button onClick={() => setConnectOpen(true)}>
               <PlugConnect aria-hidden="true" />
               {copy.connect}
             </Button>
           ) : undefined
         }
-        back={SETTINGS_BACK}
       />
 
       <SettingsCard
@@ -102,7 +101,8 @@ export default function DomainsSettings({ domains }: DomainsSettingsProps) {
               icon={Globe}
               action={
                 canManage ? (
-                  <Button variant="outline" onClick={() => setConnectOpen(true)}>
+                  <Button onClick={() => setConnectOpen(true)}>
+                    <PlugConnect aria-hidden="true" />
                     {copy.empty.action}
                   </Button>
                 ) : undefined

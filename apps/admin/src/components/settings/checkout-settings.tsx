@@ -2,8 +2,9 @@
 
 import type { CheckoutSettingsView, PaymentAdjustment, RolloutHold } from '@commerce/core'
 import type { CheckoutSettings as Settings } from '@commerce/core/checkout-settings'
-import { Field, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
+import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
+import { Switch } from '@commerce/ui/shadcn/switch'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
@@ -14,14 +15,13 @@ import CartLimitCard from '@/components/settings/cart-limit-card'
 import CheckoutBrandingSettings from '@/components/settings/checkout-branding-settings'
 import CheckoutFieldsCard from '@/components/settings/checkout-fields-card'
 import CheckoutTextCard, { editedCount } from '@/components/settings/checkout-text-card'
-import CheckoutToggleRow from '@/components/settings/checkout-toggle-row'
 import CodRulesCard from '@/components/settings/cod-rules-card'
 import RupeeInput from '@/components/settings/rupee-input'
 import SettingsDrill from '@/components/settings/settings-drill'
 import SettingsDrillPanel from '@/components/settings/settings-drill-panel'
 import { checkoutRulesContent } from '@/data/checkout-rules'
 import { checkoutBrandingContent, checkoutSettingsContent as copy } from '@/data/checkout-settings'
-import { SETTINGS_BACK, settingsContent } from '@/data/settings'
+import { settingsContent } from '@/data/settings'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import SettingsCard from './settings-card'
@@ -107,7 +107,22 @@ export default function CheckoutSettings() {
             title: r.contact,
             value: s.email === 'optional' ? r.emailOptional : r.emailRequired,
           },
-          { id: 'address', title: r.address, value: s.pincodeFirst ? r.pincodeFirst : r.standard },
+          {
+            // One switch: in the row itself, not a page of its own (#100).
+            id: 'address',
+            title: copy.address.pincodeFirst,
+            value:
+              s.pincodeFirst && !loaded.pincodeDirectory
+                ? copy.address.directoryMissing
+                : copy.address.pincodeFirstHint,
+            control: (
+              <Switch
+                aria-label={copy.address.pincodeFirst}
+                checked={s.pincodeFirst}
+                onCheckedChange={(pincodeFirst) => patch({ pincodeFirst })}
+              />
+            ),
+          },
           {
             id: 'minimum',
             title: r.minimum,
@@ -159,7 +174,6 @@ export default function CheckoutSettings() {
       <PageHeader
         title={copy.title}
         subtitle={copy.subtitle}
-        back={SETTINGS_BACK}
         save={{ dirty, saving: busy, onSave: handleSave, label: copy.save }}
       />
       {!form || !s || !loaded ? (
@@ -183,25 +197,6 @@ export default function CheckoutSettings() {
                   ]}
                 />
               </Field>
-            </SettingsCard>
-          </SettingsDrillPanel>
-
-          <SettingsDrillPanel id="address">
-            <SettingsCard title={copy.address.heading}>
-              <FieldGroup>
-                <CheckoutToggleRow
-                  id="checkout-pincode-first"
-                  label={copy.address.pincodeFirst}
-                  hint={copy.address.pincodeFirstHint}
-                  checked={s.pincodeFirst}
-                  onChange={(pincodeFirst) => patch({ pincodeFirst })}
-                />
-                {s.pincodeFirst && !loaded.pincodeDirectory ? (
-                  <p className="text-caption text-muted-foreground">
-                    {copy.address.directoryMissing}
-                  </p>
-                ) : null}
-              </FieldGroup>
             </SettingsCard>
           </SettingsDrillPanel>
 
@@ -229,7 +224,13 @@ export default function CheckoutSettings() {
             />
           </SettingsDrillPanel>
           <SettingsDrillPanel id="fields">
-            <CheckoutFieldsCard fields={s.fields} onChange={(fields) => patch({ fields })} />
+            {/* "Company name and GSTIN" lives here only, beside the company field (#67). */}
+            <CheckoutFieldsCard
+              fields={s.fields}
+              gstin={s.gstin}
+              onChange={(fields) => patch({ fields })}
+              onGstin={(gstin) => patch({ gstin })}
+            />
           </SettingsDrillPanel>
           <SettingsDrillPanel id="cart-limit">
             <CartLimitCard limit={s.cartLimit} onChange={(cartLimit) => patch({ cartLimit })} />
@@ -245,11 +246,9 @@ export default function CheckoutSettings() {
             ) : null}
             <CheckoutBrandingSettings
               branding={s.branding}
-              gstin={s.gstin}
               orderNotes={s.orderNotes}
               storeName={loaded.storeName}
               onBranding={patchBranding}
-              onGstin={(gstin) => patch({ gstin })}
               onOrderNotes={(orderNotes) => patch({ orderNotes })}
             />
           </SettingsDrillPanel>

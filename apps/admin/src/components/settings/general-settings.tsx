@@ -20,7 +20,7 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
-import { SETTINGS_BACK, settingsContent } from '@/data/settings'
+import { settingsContent } from '@/data/settings'
 import { taxesContent } from '@/data/taxes'
 import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
@@ -183,7 +183,6 @@ export default function GeneralSettings() {
       <PageHeader
         title={copy.title}
         subtitle={copy.intro}
-        back={SETTINGS_BACK}
         save={{ dirty, saving: busy, onSave: handleSave, label: copy.save }}
       />
       {!form ? (

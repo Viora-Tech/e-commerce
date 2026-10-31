@@ -20,7 +20,7 @@ import SettingsCard from '@/components/settings/settings-card'
 import SettingsDrill from '@/components/settings/settings-drill'
 import SettingsDrillPanel from '@/components/settings/settings-drill-panel'
 import { profitCostsContent } from '@/data/profit-costs'
-import { SETTINGS_BACK, settingsContent } from '@/data/settings'
+import { settingsContent } from '@/data/settings'
 import { settingsRowsContent } from '@/data/settings-rows'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
@@ -226,7 +226,6 @@ export default function CostsSettings() {
       <PageHeader
         title={copy.title}
         subtitle={copy.intro}
-        back={SETTINGS_BACK}
         save={{ dirty, saving: busy, onSave: handleSave, label: copy.save }}
       />
       {!view || !form ? (

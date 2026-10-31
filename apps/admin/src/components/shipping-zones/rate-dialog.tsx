@@ -30,13 +30,15 @@ type RateDialogProps = {
   rate: RateDraft | null
   onOpenChange: (open: boolean) => void
   onDone: (rate: RateDraft) => void
+  /** The zone ships within India: cash on delivery is India-only, so abroad hides its fee (#60). */
+  cod: boolean
 }
 
 let nextKey = 0
 const freshKey = () => `new-${Date.now()}-${nextKey++}`
 
 /** Add or edit one rate of a zone. Saved with the zone, not on its own. */
-export default function RateDialog({ open, rate, onOpenChange, onDone }: RateDialogProps) {
+export default function RateDialog({ open, rate, onOpenChange, onDone, cod }: RateDialogProps) {
   // Hooks
   const ratesCopy = useCopy(shippingRatesContent)
   const [draft, setDraft] = useState<RateDraft>(() => rate ?? emptyRate(freshKey()))
@@ -152,18 +154,20 @@ export default function RateDialog({ open, rate, onOpenChange, onDone }: RateDia
             </div>
             <FieldDescription>{copy.freeAboveHelp}</FieldDescription>
           </Field>
-          <Field>
-            <FieldLabel htmlFor="rate-cod">{copy.codFee}</FieldLabel>
-            <div className="max-w-48">
-              <MoneyInput
-                size="lg"
-                id="rate-cod"
-                value={draft.codFee}
-                onChange={(codFee) => patch({ codFee })}
-              />
-            </div>
-            <FieldDescription>{copy.codFeeHelp}</FieldDescription>
-          </Field>
+          {cod ? (
+            <Field>
+              <FieldLabel htmlFor="rate-cod">{copy.codFee}</FieldLabel>
+              <div className="max-w-48">
+                <MoneyInput
+                  size="lg"
+                  id="rate-cod"
+                  value={draft.codFee}
+                  onChange={(codFee) => patch({ codFee })}
+                />
+              </div>
+              <FieldDescription>{copy.codFeeHelp}</FieldDescription>
+            </Field>
+          ) : null}
           <Field data-invalid={errors.transit ? true : undefined}>
             <FieldLabel>{copy.transit}</FieldLabel>
             <div className="grid max-w-72 grid-cols-2 gap-3">

@@ -15,6 +15,26 @@ function promptsOff(): boolean {
   return document.cookie.split('; ').some((c) => c === `${SETUP_NEXT_OFF_COOKIE}=1`)
 }
 
+/** How many tasks were done when the nudge last showed in this tab (#102). */
+const SHOWN_KEY = 'setup_next_shown_done'
+
+function shownAt(): number | null {
+  try {
+    const raw = window.sessionStorage.getItem(SHOWN_KEY)
+    return raw === null ? null : Number(raw)
+  } catch {
+    return null
+  }
+}
+
+function rememberShown(done: number) {
+  try {
+    window.sessionStorage.setItem(SHOWN_KEY, String(done))
+  } catch {
+    // Private mode: the nudge may show again, which is harmless.
+  }
+}
+
 function turnPromptsOff() {
   // biome-ignore lint/suspicious/noDocumentCookie: a plain first-party preference cookie.
   document.cookie = `${SETUP_NEXT_OFF_COOKIE}=1; path=/; max-age=${ONE_YEAR}; samesite=lax`
@@ -25,7 +45,9 @@ function turnPromptsOff() {
  * with that task. While setup is unfinished it shows one toast ("Store details saved · 3 of 7
  * set up. Next: Payments [Set up now]"), using the same next-task rule as the checklist. It
  * never shows once everything is done, after "Don't show again", or when the task just saved is
- * itself the only one left and still not done. Failures are swallowed: it is only a nudge.
+ * itself the only one left and still not done. Within one browser session it shows once, and
+ * again only when a save finished another setup task, never after every save (#102).
+ * Failures are swallowed: it is only a nudge.
  */
 export function useSetupNext(): (task: SetupItemId) => Promise<void> {
   const router = useRouter()
@@ -39,6 +61,9 @@ export function useSetupNext(): (task: SetupItemId) => Promise<void> {
       if (!next) return
       const saved = progress.items.find((i) => i.id === task)
       if (next === task && !saved?.done) return
+      const last = shownAt()
+      if (last !== null && progress.done <= last) return
+      rememberShown(progress.done)
       const nextWords = checklist.items[next]
       toast(
         saved?.done

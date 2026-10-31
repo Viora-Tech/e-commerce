@@ -24,7 +24,7 @@ import {
   LOGIN_METHOD_COPY,
   PROVIDER_COPY,
 } from '@/data/customer-accounts'
-import { SETTINGS_BACK, settingsContent } from '@/data/settings'
+import { settingsContent } from '@/data/settings'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import SettingsCard from './settings-card'
@@ -148,7 +148,6 @@ export default function CustomerAccountsSettings() {
       <PageHeader
         title={copy.title}
         subtitle={copy.subtitle}
-        back={SETTINGS_BACK}
         save={{ dirty: dirty && !none, saving: busy, onSave: handleSave, label: copy.save }}
       />
       {!form || !loaded ? (

@@ -174,6 +174,7 @@ export default function ZoneForm({ zone, profileId = null }: ZoneFormProps) {
         value={form.rates}
         onChange={(rates) => patch({ rates })}
         disabled={!canManage}
+        cod={form.countryCodes.includes('IN')}
       />
       <ZoneCountriesCard
         value={form.countryCodes}

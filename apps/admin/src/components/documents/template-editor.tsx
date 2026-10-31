@@ -8,7 +8,7 @@ import {
   TEMPLATE_MAX_CHARS,
 } from '@commerce/core/document-templates'
 import { permissions } from '@commerce/core/permissions'
-import { RotateCcw } from '@commerce/ui/icons'
+import { Braces, RotateCcw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
@@ -26,6 +26,7 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import DocumentFrame from './document-frame'
+import MergeTagsDialog from './merge-tags-dialog'
 
 type TemplateEditorProps = {
   template: DocumentTemplateView
@@ -51,6 +52,7 @@ export default function TemplateEditor({ template, store, gstApp }: TemplateEdit
   const [saved, setSaved] = useState(template.html)
   const [busy, setBusy] = useState(false)
   const [confirmReset, setConfirmReset] = useState(false)
+  const [tagsOpen, setTagsOpen] = useState(false)
 
   // Event handlers
   const handleSave = async () => {
@@ -110,16 +112,22 @@ export default function TemplateEditor({ template, store, gstApp }: TemplateEdit
         subtitle={kind.body}
         back={{ label: content.back, href: routes.settings.templates() }}
         actions={
-          canManage ? (
-            <Button
-              variant="outline"
-              onClick={() => setConfirmReset(true)}
-              disabled={busy || isDefault}
-            >
-              <RotateCcw aria-hidden="true" />
-              {copy.reset}
+          <>
+            <Button variant="outline" onClick={() => setTagsOpen(true)}>
+              <Braces aria-hidden="true" />
+              {content.mergeTags.open}
             </Button>
-          ) : null
+            {canManage ? (
+              <Button
+                variant="outline"
+                onClick={() => setConfirmReset(true)}
+                disabled={busy || isDefault}
+              >
+                <RotateCcw aria-hidden="true" />
+                {copy.reset}
+              </Button>
+            ) : null}
+          </>
         }
       />
       {template.kind === 'invoice' && gstApp ? (
@@ -179,6 +187,11 @@ export default function TemplateEditor({ template, store, gstApp }: TemplateEdit
           />
         </DataCard>
       </div>
+      <MergeTagsDialog
+        open={tagsOpen}
+        onOpenChange={setTagsOpen}
+        tags={DOCUMENT_MERGE_TAGS[template.kind]}
+      />
       <ConfirmDialog
         open={confirmReset}
         onOpenChange={setConfirmReset}
