@@ -38,6 +38,7 @@ export default [
       eyebrow: 'समस्या',
       title: 'इस ऐप पर ध्यान देने की ज़रूरत है',
       action: 'ठीक करें',
+      runAgain: 'फिर से चलाएँ',
     },
     statusError: 'गड़बड़ी',
     allInstalled: 'सभी इंस्टॉल किए ऐप्स',

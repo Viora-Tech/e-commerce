@@ -12,6 +12,7 @@ import {
   cancelPayout,
   clearReview,
   commissionLedger,
+  countDueCommissions,
   createPayouts,
   createProgram,
   decideCodeRequest,
@@ -391,6 +392,11 @@ export const affiliatesRouter = {
         if (!row) throw new ORPCError('NOT_FOUND', { message: 'Commission not found' })
         return { id: row.id, status: row.status }
       }),
+    /** How many commissions are due now, so "Approve due now" is off when there are none. */
+    dueCount: can(permissions.MARKETING_READ).handler(async ({ context }) => {
+      await program(context)
+      return countDueCommissions(context.tx)
+    }),
     /** Approves every commission whose hold is over now, instead of waiting for the hourly pass. */
     approveDue: can(permissions.MARKETING_WRITE).handler(async ({ context }) => {
       const settings = await program(context)

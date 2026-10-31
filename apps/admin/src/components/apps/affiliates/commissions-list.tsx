@@ -55,6 +55,7 @@ function CommissionsTable() {
   const [affiliates, setAffiliates] = useState<Affiliate[]>([])
   const [reload, setReload] = useState(0)
   const [busy, setBusy] = useState(false)
+  const [dueCount, setDueCount] = useState(0)
 
   // Search and filters run on the server; paging stays in the browser (newest 1000 matches).
   // biome-ignore lint/correctness/useExhaustiveDependencies: `reload` re-runs the load after a change
@@ -69,6 +70,14 @@ function CommissionsTable() {
       cancelled = true
     }
   }, [q, reload])
+  // "Approve due now" is off while nothing is due (#77).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `reload` re-runs the count after a change
+  useEffect(() => {
+    api.affiliates.commissions
+      .dueCount()
+      .then(setDueCount)
+      .catch(() => setDueCount(0))
+  }, [reload])
   useEffect(() => {
     api.affiliates
       .list()
@@ -106,7 +115,7 @@ function CommissionsTable() {
         title={copy.commissions.title}
         summary={copy.commissions.subtitle}
         actions={
-          <Button variant="outline" onClick={handleApproveDue} disabled={busy}>
+          <Button variant="outline" onClick={handleApproveDue} disabled={busy || dueCount === 0}>
             {copy.commissions.approveDue}
           </Button>
         }

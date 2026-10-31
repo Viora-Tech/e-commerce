@@ -69,13 +69,21 @@ export default async function AppPage({ params }: Params) {
       status={app.status}
       problem={app.problem}
       fixHref={
-        app.admin.pages.some((p) => p.path === 'connect')
-          ? routes.apps.connect(app.id)
-          : app.admin.pages.some((p) => p.path === 'settings')
-            ? routes.apps.settings(app.id)
-            : undefined
+        // A connected app whose last run failed is fixed by running it again from its own
+        // first page, not by connecting again (#76).
+        app.status === 'error' && app.connected
+          ? routes.apps.page(app.id)
+          : app.admin.pages.some((p) => p.path === 'connect')
+            ? routes.apps.connect(app.id)
+            : app.admin.pages.some((p) => p.path === 'settings')
+              ? routes.apps.settings(app.id)
+              : undefined
       }
-      hasSettings={app.admin.pages.some((p) => p.path === 'settings')}
+      // A settings page that is already a tab needs no header button too (#77).
+      hasSettings={
+        app.admin.pages.some((p) => p.path === 'settings') &&
+        !(tabs.length > 1 && tabs.some((t) => t.path === 'settings'))
+      }
       tabs={tabs}
       active={match.page.path}
       headerAction={registered.HeaderAction ? <registered.HeaderAction /> : undefined}

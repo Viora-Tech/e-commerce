@@ -347,6 +347,21 @@ function lateReversal(o: Pick<OrderRow, 'status' | 'fulfillmentStatus' | 'paymen
  * Approves every commission whose hold is over, deducting TDS for the financial year so far
  * (credit time). Re-reads each order first, so a cancel or return no hook saw still reverses.
  */
+/** How many commissions "Approve due now" would act on: pending, not flagged, hold over. */
+export async function countDueCommissions(tx: StoreTx, now = new Date()): Promise<number> {
+  const [row] = await tx
+    .select({ n: sql<number>`count(*)::int` })
+    .from(affiliateCommission)
+    .where(
+      and(
+        eq(affiliateCommission.status, 'pending'),
+        isNull(affiliateCommission.flag),
+        lte(affiliateCommission.eligibleAt, now),
+      ),
+    )
+  return row?.n ?? 0
+}
+
 export async function approveDueCommissions(
   tx: StoreTx,
   storeId: string,

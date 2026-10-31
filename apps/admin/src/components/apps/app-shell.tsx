@@ -145,7 +145,11 @@ export default async function AppShell({
                 </Button>
                 {fixHref ? (
                   <Button nativeButton={false} render={<Link href={fixHref} />}>
-                    {status === 'error' ? copy.errorBanner.action : copy.setupBanner.action}
+                    {status === 'error'
+                      ? problem && /run it again/i.test(problem)
+                        ? copy.errorBanner.runAgain
+                        : copy.errorBanner.action
+                      : copy.setupBanner.action}
                   </Button>
                 ) : null}
               </>

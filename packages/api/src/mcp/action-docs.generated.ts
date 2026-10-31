@@ -28,6 +28,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'affiliates.commissions.approveDue':
     'Approves every commission whose hold is over now, instead of waiting for the hourly pass.',
   'affiliates.commissions.decide': 'Clear a fraud flag (back to pending) or refuse a commission.',
+  'affiliates.commissions.dueCount':
+    'How many commissions are due now, so "Approve due now" is off when there are none.',
   'affiliates.commissions.list':
     'The newest 1000 that match the search and filter panel; the admin pages in the browser.',
   'affiliates.decideCode': "Approve or decline an affiliate's request for their own code.",

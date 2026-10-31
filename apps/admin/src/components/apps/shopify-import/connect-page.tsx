@@ -4,7 +4,7 @@ import {
   IMPORT_RESOURCES,
   type ImportResource,
   type PreflightCheck,
-  REQUIRED_SCOPES,
+  RESOURCE_SCOPES,
 } from '@commerce/plugin-shopify-import/client'
 import { Eye } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
@@ -217,7 +217,8 @@ export default function ConnectPage() {
             <span className="flex flex-col">
               <span className="font-medium text-ink-strong">{resources[resource]}</span>
               <span className="text-caption text-muted-foreground">
-                {copy.scope(REQUIRED_SCOPES[resource])}
+                {/* Plain words, never Shopify's scope handles (#76). */}
+                {copy.scope(RESOURCE_SCOPES[resource].map((s) => copy.scopeNames[s]).join(', '))}
               </span>
             </span>
           </label>
