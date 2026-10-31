@@ -282,7 +282,7 @@ export const returnSettingsContent = {
   enabled: 'Let customers ask for returns online',
   enabledHint: 'They pick the items, a reason and can add photos from their order page.',
   window: 'How many days after delivery can they ask?',
-  windowHint: 'Most Indian shops use 7 days.',
+  windowHint: 'Most Indian shops use 7 days. The longest you can set is 90 days.',
   days: 'days',
   reasons: 'Which reasons do you accept?',
   reasonsHint: 'Only these show up for customers. Keep at least one.',
