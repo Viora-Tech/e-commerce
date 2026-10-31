@@ -10,6 +10,8 @@ export const cartContent = {
   continueShopping: 'Continue shopping',
   paymentMethods: 'Ways to pay',
   payments: ['UPI', 'Cards', 'Cash on delivery', 'EMI'],
+  /** A market abroad pays online only: no cash on delivery, UPI or EMI there. */
+  paymentsAbroad: ['Cards'],
   summary: 'Summary',
   subtotal: 'Subtotal',
   shipping: 'Shipping',
@@ -23,6 +25,7 @@ export const cartContent = {
   total: 'Total',
   taxes: 'Inclusive of all taxes.',
   taxesAtCheckout: 'Taxes included. Shipping and COD fee calculated at checkout.',
+  taxesAtCheckoutAbroad: 'Shipping calculated at checkout.',
   checkout: 'Check out',
   drawer: {
     close: 'Close cart',

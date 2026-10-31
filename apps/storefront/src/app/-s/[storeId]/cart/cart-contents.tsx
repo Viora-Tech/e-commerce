@@ -1,5 +1,7 @@
 import { EmptyState, Icon, Money } from '@commerce/blocks'
 import { getCart } from '@commerce/core'
+import { isAbroad } from '@commerce/core/checkout-address'
+import { headers } from 'next/headers'
 import CartCheckoutLink from '@/components/cart/cart-checkout-link'
 import DiscountCodeField from '@/components/cart/discount-code-field'
 import FreeShippingProgress from '@/components/cart/free-shipping-progress'
@@ -7,6 +9,7 @@ import { cartContent as content } from '@/data/cart'
 import { readCartId } from '@/lib/cart-cookie'
 import { cartDiscountView } from '@/lib/discount-view'
 import { cartShippingHint } from '@/lib/shipping'
+import { MARKET_HEADERS } from '@/lib/markets'
 import { inStore } from '@/lib/store-context'
 import CartLines from './cart-lines'
 
@@ -43,7 +46,10 @@ export default async function CartContents({ storeId }: CartContentsProps) {
   const discount = await cartDiscountView(cart.id, cart.discountCode)
   const discountPaise = discount?.amountPaise ?? 0
   const total = Math.max(0, cart.subtotalPaise - discountPaise)
-  const hint = await inStore(storeId, (tx) => cartShippingHint(tx, cart.id))
+  const india = await inStore(storeId, (tx) => cartShippingHint(tx, cart.id))
+  // The hint is India's rates; a market abroad ships on its own zone's rates, priced at checkout.
+  const abroad = isAbroad((await headers()).get(MARKET_HEADERS.country) ?? 'IN')
+  const hint = abroad ? { charged: true, freeAbovePaise: null } : india
   const threshold = discount?.freeShipping ? null : hint.freeAbovePaise
   const freeNow = discount?.freeShipping === true || (threshold !== null && total >= threshold)
   // Subtotal and total agree with the lines' fixed catalog prices in a market (Markets › Catalogs).
@@ -104,13 +110,15 @@ export default async function CartContents({ storeId }: CartContentsProps) {
                 <Money paise={total} cart={priced} />
               </span>
             </div>
-            <p className="text-caption">{content.taxesAtCheckout}</p>
+            <p className="text-caption">
+              {abroad ? content.taxesAtCheckoutAbroad : content.taxesAtCheckout}
+            </p>
             <CartCheckoutLink className="btn btn--primary cart-summary__checkout">
               {content.checkout}
               <Icon name="arrow-right" size={16} />
             </CartCheckoutLink>
             <ul className="cart-summary__methods" aria-label={content.paymentMethods}>
-              {content.payments.map((p) => (
+              {(abroad ? content.paymentsAbroad : content.payments).map((p) => (
                 <li key={p} className="cart-summary__method">
                   {p}
                 </li>
