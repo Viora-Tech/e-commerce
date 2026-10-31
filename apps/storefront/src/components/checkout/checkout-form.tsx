@@ -92,7 +92,9 @@ export default function CheckoutForm(props: CheckoutFormProps) {
           )
         : express.noShippingYet
   const showExpress = ck.upi !== null && !totals.coveredByCards
-  const payDisabled = ck.unserviceable || ck.shortfall > 0
+  // No way to pay left (a payment rule hid the only one): nothing for Place order to do.
+  const noWayToPay = !totals.coveredByCards && totals.offered.length === 0
+  const payDisabled = ck.unserviceable || ck.shortfall > 0 || noWayToPay
   const footnote = look.branding.trustBadges
     ? content.payFootnote(totals.coveredByCards ? [] : processorNames(totals.offered))
     : null

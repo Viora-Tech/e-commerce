@@ -126,7 +126,7 @@ export default function PaymentRuleDialog({
           <DialogTitle>{rule ? copy.editTitle : copy.addTitle}</DialogTitle>
           <DialogDescription>{copy.description}</DialogDescription>
         </DialogHeader>
-        <div className="flex max-h-[60vh] flex-col gap-5 overflow-y-auto pr-1">
+        <div className="flex max-h-[60vh] min-w-0 flex-col gap-5 overflow-x-hidden overflow-y-auto pr-1">
           <Field>
             <FieldLabel htmlFor="payment-rule-name">{copy.name}</FieldLabel>
             <Input
@@ -229,11 +229,14 @@ export default function PaymentRuleDialog({
               onChange={({ ids }) => patch({ productIds: ids })}
             />
           </Field>
-          {attempted && !hasCondition ? (
-            <p className="text-body text-destructive">{copy.conditionsError}</p>
-          ) : null}
         </div>
         <DialogFooter>
+          {/* Beside Save, not at the end of the scrolled body, so it is seen after the click. */}
+          {attempted && !hasCondition ? (
+            <p role="alert" className="text-body text-destructive sm:mr-auto sm:self-center">
+              {copy.conditionsError}
+            </p>
+          ) : null}
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
             {copy.cancel}
           </Button>

@@ -211,6 +211,9 @@ export const checkoutContent = {
   address: 'Delivery',
   deliveryMethod: 'Delivery method',
   payment: 'Payment',
+  /** Every way to pay is hidden for this order (a payment rule). */
+  noWayToPay:
+    'There is no way to pay for this order right now. Change your cart or delivery address, or contact the store.',
   /** Beside a way to pay whose gateway runs on test keys (Settings → Payments, Test). */
   testMode: 'Test mode',
   testModeHint: 'No real money is charged.',
@@ -419,10 +422,10 @@ export const checkoutContent = {
     fastest: 'Fastest',
     digital: 'Delivered by email',
   },
-  /** When one order ships from more than one warehouse. */
+  /** When one order ships as more than one parcel (several warehouses, or a pre-order held back). */
   parcels: {
     title: (count: number) => `Ships in ${count} parcels`,
-    note: 'One order and one payment. Each parcel comes from a different warehouse, with its own invoice.',
+    note: 'One order and one payment. Each parcel ships on its own, with its own invoice.',
     parcel: (position: number) => `Parcel ${position}`,
     from: (place: string) => `from ${place}`,
     arrives: (range: string) => `Arrives ${range}`,

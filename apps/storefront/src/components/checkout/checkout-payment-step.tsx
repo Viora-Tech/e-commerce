@@ -66,6 +66,14 @@ export default function CheckoutPaymentStep({ ck }: CheckoutPaymentStepProps) {
         <p className="rounded-ck border border-ck-line bg-ck-canvas px-4 py-3 text-[0.875rem] text-ck-ink">
           {content.paidByGiftCard}
         </p>
+      ) : totals.offered.length === 0 ? (
+        // Every way to pay is hidden for this order (Settings → Payments → customizations).
+        <p
+          role="alert"
+          className="rounded-ck border border-ck-line bg-ck-canvas px-4 py-3 text-[0.875rem] text-ck-ink"
+        >
+          {content.noWayToPay}
+        </p>
       ) : (
         <PaymentMethods
           methods={totals.offered}

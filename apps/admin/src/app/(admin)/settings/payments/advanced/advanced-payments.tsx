@@ -2,7 +2,6 @@
 
 import type { PaymentAdjustment } from '@commerce/core'
 import { CreditCard } from '@commerce/ui/icons'
-import BackLink from '@/components/layout/back-link'
 import UpiCompare from '@/components/payments/upi-compare'
 import ManualTransferFields from '@/components/settings/manual-transfer-fields'
 import PaymentAdjustmentFields from '@/components/settings/payment-adjustment-fields'
@@ -131,7 +130,7 @@ export default function AdvancedPayments() {
 
   return (
     <div className="flex flex-col gap-3">
-      <BackLink href={PAYMENTS_PAGE_HREF} label={setupCopy.backToPayments} />
+      {/* One "‹ Payments": the form draws it from `back`. */}
       <ProviderSettingsForm<Extra>
         title={copy.advancedTitle}
         icon={<CreditCard aria-hidden="true" />}
