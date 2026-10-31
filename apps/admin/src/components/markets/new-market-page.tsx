@@ -1,7 +1,21 @@
 'use client'
 
 import type { CatalogSummary, DomainView, MarketView } from '@commerce/core'
-import { ChevronRight, Earth } from '@commerce/ui/icons'
+import {
+  ArrowRight,
+  BadgePercent,
+  ChevronRight,
+  Earth,
+  type IconComponent,
+  Language,
+  Layers,
+  LinkIcon,
+  Plus,
+  ReceiptIcon,
+  ShieldCheck,
+  Store,
+  Truck,
+} from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -10,10 +24,8 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import type { StoreDefaults } from '@/app/(admin)/markets/load'
-import DataCard from '@/components/layout/data-card'
+import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
-import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
-import StatusChip from '@/components/layout/status-chip'
 import { marketsContent } from '@/data/markets'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -41,8 +53,28 @@ type InheritRow = {
   note?: string | undefined
 }
 
+type RowListProps = {
+  rows: InheritRow[]
+  changeLabel: (label: string) => string
+  onOpen: (part: NewMarketPart) => void
+}
+
 const ROW =
-  'flex w-full min-w-0 items-center gap-4 px-4 py-3.5 text-left transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none'
+  'flex w-full min-w-0 items-center gap-3 rounded-md px-3 py-2.5 text-left text-body transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none'
+
+/** Each setting's glyph, as Shopify's market page shows them. */
+const ROW_ICONS: Record<string, IconComponent> = {
+  prices: ReceiptIcon,
+  catalog: Layers,
+  discounts: BadgePercent,
+  address: LinkIcon,
+  languages: Language,
+  taxes: ShieldCheck,
+  shipping: Truck,
+}
+
+/** Settings whose note is a problem to fix before creating, shown in red. */
+const ERROR_KEYS = new Set(['prices', 'address'])
 
 /** A new market starts from the primary market: the store's currency and languages. */
 function startingForm(primary: MarketView | undefined): MarketForm {
@@ -204,122 +236,88 @@ export default function NewMarketPage({
       note: n.shippingNote,
     },
   ]
-  const errorKeys = new Set(['prices', 'address'])
-
+  const customized = rows.filter((r) => r.changed)
+  const inherited = rows.filter((r) => !r.changed)
   return (
-    <ProoflyDetailPage
-      header={
-        <PageHeader
-          title={n.title}
-          summary={n.summary}
-          back={{ label: n.back, href: routes.markets.list() }}
-          lead={{ kind: 'icon', node: <Earth aria-hidden="true" /> }}
-          size="sm"
-        />
-      }
-      main={
-        <>
-          <DataCard title={n.basics} bodyClassName="flex flex-col gap-5">
-            <Field data-invalid={shown.name ? true : undefined}>
-              <FieldLabel htmlFor="new-market-name">{d.name}</FieldLabel>
-              <Input
-                id="new-market-name"
-                value={form.name}
-                maxLength={80}
-                placeholder={d.namePlaceholder}
-                aria-invalid={shown.name ? true : undefined}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              />
-              {shown.name ? <FieldError>{shown.name}</FieldError> : null}
-            </Field>
-            <Field data-invalid={shown.countries ? true : undefined}>
-              <FieldLabel htmlFor="new-market-countries">{d.countries.label}</FieldLabel>
-              <FieldDescription>{d.countries.help}</FieldDescription>
-              <CountryPicker
-                id="new-market-countries"
-                value={form.countries}
-                taken={taken}
-                invalid={Boolean(shown.countries)}
-                onChange={(countries) => setForm((f) => withCountries(f, countries, markets))}
-              />
-              {shown.countries ? <FieldError>{shown.countries}</FieldError> : null}
-            </Field>
-          </DataCard>
-          <DataCard
-            title={n.settings}
-            subtitle={n.settingsNote}
-            bodyClassName="p-0"
-            footer={
-              <>
-                <Button
-                  variant="outline"
-                  render={<Link href={routes.markets.list()} />}
-                  nativeButton={false}
-                >
-                  {n.cancel}
-                </Button>
-                <Button onClick={handleCreate} disabled={busy}>
-                  {n.create}
-                </Button>
-              </>
-            }
+    // One column, centred, as Shopify's New market: name and countries, then settings.
+    <PageBody className="mx-auto max-w-[52rem] gap-4">
+      <PageHeader
+        title={n.title}
+        summary={n.summary}
+        back={{ label: n.back, href: routes.markets.list() }}
+        lead={{ kind: 'icon', node: <Earth aria-hidden="true" /> }}
+        size="sm"
+        actions={
+          <>
+            <Button
+              variant="outline"
+              render={<Link href={routes.markets.list()} />}
+              nativeButton={false}
+            >
+              {n.cancel}
+            </Button>
+            <Button onClick={handleCreate} disabled={busy}>
+              {n.create}
+            </Button>
+          </>
+        }
+      />
+
+      <section className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
+        <Field data-invalid={shown.name ? true : undefined}>
+          <FieldLabel htmlFor="new-market-name">{d.name}</FieldLabel>
+          <Input
+            id="new-market-name"
+            value={form.name}
+            maxLength={80}
+            placeholder={d.namePlaceholder}
+            aria-invalid={shown.name ? true : undefined}
+            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+          />
+          {shown.name ? <FieldError>{shown.name}</FieldError> : null}
+        </Field>
+        <div className="flex flex-col gap-2 rounded-lg border border-border p-3 sm:flex-row sm:items-start">
+          <label
+            htmlFor="new-market-countries"
+            className="w-40 shrink-0 pt-1.5 text-body font-medium text-ink-strong"
           >
-            <ul className="flex flex-col divide-y divide-border">
-              {rows.map((row) => {
-                const body = (
-                  <>
-                    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                      <span className="flex flex-wrap items-center gap-2">
-                        <span className="font-medium text-ink-strong">{row.label}</span>
-                        <StatusChip tone={row.changed ? 'info' : 'neutral'}>
-                          {row.changed ? n.changed : n.storeDefault}
-                        </StatusChip>
-                      </span>
-                      <span className="truncate text-caption text-muted-foreground">
-                        {row.value}
-                      </span>
-                      {row.note ? (
-                        <span
-                          className={
-                            errorKeys.has(row.key)
-                              ? 'text-caption text-destructive'
-                              : 'text-caption text-muted-foreground/80'
-                          }
-                        >
-                          {row.note}
-                        </span>
-                      ) : null}
-                    </span>
-                    {row.part ? (
-                      <ChevronRight
-                        aria-hidden="true"
-                        className="size-4 shrink-0 text-muted-foreground"
-                      />
-                    ) : null}
-                  </>
-                )
-                return (
-                  <li key={row.key}>
-                    {row.part ? (
-                      <button
-                        type="button"
-                        className={ROW}
-                        aria-label={n.change(row.label)}
-                        onClick={() => setPart(row.part ?? null)}
-                      >
-                        {body}
-                      </button>
-                    ) : (
-                      <div className="flex min-w-0 items-center gap-4 px-4 py-3.5">{body}</div>
-                    )}
-                  </li>
-                )
-              })}
-            </ul>
-          </DataCard>
-        </>
-      }
-    >
+            {h.includes}
+          </label>
+          <Field className="min-w-0 flex-1" data-invalid={shown.countries ? true : undefined}>
+            <CountryPicker
+              id="new-market-countries"
+              value={form.countries}
+              taken={taken}
+              invalid={Boolean(shown.countries)}
+              onChange={(countries) => setForm((f) => withCountries(f, countries, markets))}
+            />
+            {shown.countries ? (
+              <FieldError>{shown.countries}</FieldError>
+            ) : (
+              <FieldDescription>{d.countries.help}</FieldDescription>
+            )}
+          </Field>
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h2 className="text-card-title text-ink-strong">{h.customized}</h2>
+        <div className="rounded-xl border border-border bg-card">
+          {customized.length === 0 ? (
+            <p className="p-4 text-body text-muted-foreground">{h.customizedEmpty}</p>
+          ) : (
+            <div className="p-1">
+              <RowList rows={customized} changeLabel={n.change} onOpen={setPart} />
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h2 className="text-card-title text-ink-strong">{h.inherited}</h2>
+        <RowList rows={inherited} changeLabel={n.change} onOpen={setPart} />
+      </section>
+
       {part ? (
         <NewMarketPartDialog
           part={part}
@@ -334,6 +332,74 @@ export default function NewMarketPage({
           onClose={() => setPart(null)}
         />
       ) : null}
-    </ProoflyDetailPage>
+    </PageBody>
+  )
+}
+
+/** Setting rows: icon and name, then the value ("store → value" while inherited), a plus to
+ * customize an inherited one or a chevron to change a customized one. */
+function RowList({ rows, changeLabel, onOpen }: RowListProps) {
+  return (
+    <ul className="flex flex-col">
+      {rows.map((row) => {
+        const Icon = ROW_ICONS[row.key] ?? Store
+        const body = (
+          <>
+            <span className="flex w-48 shrink-0 items-center gap-2 font-medium text-ink-strong">
+              <Icon aria-hidden="true" className="size-4 text-muted-foreground" />
+              {row.label}
+            </span>
+            <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
+                {row.changed ? null : (
+                  <>
+                    <Store aria-hidden="true" className="size-4 shrink-0" />
+                    <ArrowRight aria-hidden="true" className="size-3.5 shrink-0" />
+                  </>
+                )}
+                <span className="truncate text-ink-strong">{row.value}</span>
+              </span>
+              {row.note ? (
+                <span
+                  className={
+                    ERROR_KEYS.has(row.key)
+                      ? 'text-caption text-destructive'
+                      : 'text-caption text-muted-foreground'
+                  }
+                >
+                  {row.note}
+                </span>
+              ) : null}
+            </span>
+            {row.part ? (
+              row.changed ? (
+                <ChevronRight
+                  aria-hidden="true"
+                  className="size-4 shrink-0 text-muted-foreground"
+                />
+              ) : (
+                <Plus aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+              )
+            ) : null}
+          </>
+        )
+        return (
+          <li key={row.key}>
+            {row.part ? (
+              <button
+                type="button"
+                className={ROW}
+                aria-label={changeLabel(row.label)}
+                onClick={() => row.part && onOpen(row.part)}
+              >
+                {body}
+              </button>
+            ) : (
+              <div className="flex min-w-0 items-center gap-3 px-3 py-2.5 text-body">{body}</div>
+            )}
+          </li>
+        )
+      })}
+    </ul>
   )
 }
