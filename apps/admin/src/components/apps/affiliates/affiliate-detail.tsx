@@ -7,6 +7,7 @@ import {
 } from '@commerce/plugin-affiliates/settings'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import type { AppPageProps } from '@/apps/registry'
@@ -30,6 +31,7 @@ type Detail = Awaited<ReturnType<typeof api.affiliates.get>>
 /** One affiliate: their link and code, figures, application, payout details and commissions. */
 export default function AffiliateDetail({ params }: AppPageProps) {
   // Hooks
+  const router = useRouter()
   const copy = useCopy(affiliatesContent)
   const f = useFormat()
   const [data, setData] = useState<Detail | null>(null)
@@ -114,6 +116,7 @@ export default function AffiliateDetail({ params }: AppPageProps) {
             onChanged={handleChanged}
             showOpen={false}
             buttons
+            onRemoved={() => router.push(routes.apps.page('affiliates', 'affiliates'))}
           />
         }
       />

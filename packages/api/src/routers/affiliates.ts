@@ -29,6 +29,7 @@ import {
   ProgramRulesSchema,
   payoutCandidates,
   payoutsCsv,
+  removeAffiliate,
   restoreProgram,
   rotateCoupon,
   StoreAffiliateSettingsSchema,
@@ -333,6 +334,14 @@ export const affiliatesRouter = {
       return refusal(async () =>
         publicAffiliate(await setAffiliateStatus(context.tx, input.id, input.status, input.reason)),
       )
+    }),
+  /** Removes an affiliate added by mistake; refused once they have a commission (pause them then). */
+  remove: can(permissions.MARKETING_WRITE)
+    .input(Id)
+    .handler(async ({ context, input }) => {
+      await program(context)
+      await refusal(() => removeAffiliate(context.tx, input.id))
+      return { ok: true }
     }),
   /** A leaked coupon: the old one stops working and a new one is made. The link is untouched. */
   rotateCoupon: can(permissions.MARKETING_WRITE)

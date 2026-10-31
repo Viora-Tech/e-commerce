@@ -1,6 +1,6 @@
 'use client'
 
-import { CircleCheck, Eye, Pause, Unlink } from '@commerce/ui/icons'
+import { CircleCheck, Eye, Pause, Trash2, Unlink } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useState } from 'react'
@@ -20,6 +20,8 @@ type AffiliateRowActionsProps = {
   showOpen?: boolean
   /** Shows Reject and Approve as buttons while the affiliate waits (the affiliate's own page). */
   buttons?: boolean
+  /** After "Remove" (the affiliate's own page goes back to the list). */
+  onRemoved?: (() => void) | undefined
 }
 
 /** Approve, reject or pause one affiliate; the row's own click is stopped here. */
@@ -29,11 +31,13 @@ export default function AffiliateRowActions({
   onChanged,
   showOpen = true,
   buttons = false,
+  onRemoved,
 }: AffiliateRowActionsProps) {
   // Hooks
   const { list: copy, failed } = useCopy(affiliatesContent)
   const [rejecting, setRejecting] = useState(false)
   const [reason, setReason] = useState('')
+  const [removing, setRemoving] = useState(false)
 
   // Helpers
   const run = async (fn: () => Promise<unknown>, done: string) => {
@@ -55,6 +59,18 @@ export default function AffiliateRowActions({
   }
   const handleSuspend = () =>
     run(() => api.affiliates.setStatus({ id, status: 'suspended' }), copy.suspended)
+  const handleRemove = async () => {
+    try {
+      await api.affiliates.remove({ id })
+      toast.success(copy.removed)
+      setRemoving(false)
+      if (onRemoved) onRemoved()
+      else onChanged()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : failed)
+      throw err
+    }
+  }
 
   // Render logic
   return (
@@ -101,7 +117,23 @@ export default function AffiliateRowActions({
             destructive: true,
             onSelect: handleSuspend,
           },
+          {
+            label: copy.remove,
+            icon: Trash2,
+            destructive: true,
+            separatorBefore: true,
+            onSelect: () => setRemoving(true),
+          },
         ]}
+      />
+      <ConfirmDialog
+        open={removing}
+        onOpenChange={setRemoving}
+        title={copy.removeTitle}
+        body={copy.removeBody}
+        confirmLabel={copy.remove}
+        tone="destructive"
+        onConfirm={handleRemove}
       />
       <ConfirmDialog
         open={rejecting}

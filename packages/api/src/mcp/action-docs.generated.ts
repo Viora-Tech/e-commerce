@@ -48,6 +48,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'affiliates.programs.restore': 'Opens an archived program again.',
   'affiliates.programs.save':
     "Saves a program's name, link and rules; new rules apply to new orders only.",
+  'affiliates.remove':
+    'Removes an affiliate added by mistake; refused once they have a commission (pause them then).',
   'affiliates.rotateCoupon': 'A leaked coupon: the old one stops working and a new one is made.',
   'affiliates.setProgram':
     'Moves an affiliate to another program: new orders earn under it, their code takes its discount.',
