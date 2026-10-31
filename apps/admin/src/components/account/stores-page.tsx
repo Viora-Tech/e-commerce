@@ -144,9 +144,7 @@ export default function StoresPage() {
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-                  {s.isOwner ? (
-                    <StatusChip>{copy.owner}</StatusChip>
-                  ) : (
+                  {s.isOwner ? null : (
                     <Button variant="ghost" size="sm" onClick={() => setLeaving(s)}>
                       <LogOut aria-hidden="true" />
                       {copy.leave}

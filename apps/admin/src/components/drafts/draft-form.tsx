@@ -69,8 +69,11 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
   const [id, setId] = useState<string | null>(draft?.id ?? null)
   // What follows the # in the title: "D12" (audit #26).
   const [number, setNumber] = useState<string | null>(draft ? orderRef(draft) : null)
-  const [saved, setSaved] = useState<DraftFormState>(draft ? draftToForm(draft) : emptyDraft())
-  const [form, setForm] = useState<DraftFormState>(initial ?? saved)
+  /* A customer picked before the page opened is the starting point, not an edit. */
+  const [saved, setSaved] = useState<DraftFormState>(
+    draft ? draftToForm(draft) : (initial ?? emptyDraft()),
+  )
+  const [form, setForm] = useState<DraftFormState>(saved)
   const [busy, setBusy] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [reviewing, setReviewing] = useState(false)
@@ -151,6 +154,18 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
     }
   }
 
+  /** A draft never saved has nothing to go back to: leave for where it was started from. */
+  const handleDiscard = () => {
+    if (!id) {
+      router.push(
+        initial?.customerId ? routes.customers.detail(initial.customerId) : routes.orders.drafts(),
+      )
+      return
+    }
+    setForm(saved)
+    setResetKey((k) => k + 1)
+  }
+
   const handleDelete = async () => {
     if (!id) return
     setBusy(true)
@@ -200,10 +215,7 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
         saveLabel={copy.save}
         discardLabel={copy.discard}
         onSave={handleSave}
-        onDiscard={() => {
-          setForm(saved)
-          setResetKey((k) => k + 1)
-        }}
+        onDiscard={handleDiscard}
         saving={busy}
       />
       <PageHeader

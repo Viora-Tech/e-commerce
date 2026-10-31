@@ -51,7 +51,7 @@ export default function ZoneCountriesCard({
   const abroad = restOfWorld || countries.some((c) => c !== 'IN')
 
   return (
-    <DataCard title={copy.heading} meta={copy.selected(countries.length + Number(restOfWorld))}>
+    <DataCard title={copy.heading} subtitle={copy.selected(countries.length + Number(restOfWorld))}>
       <div className="flex flex-col gap-3">
         <p className="text-body text-muted-foreground">{copy.meta}</p>
         <fieldset disabled={disabled} className="flex flex-col gap-3">

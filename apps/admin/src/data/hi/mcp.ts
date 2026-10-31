@@ -51,7 +51,7 @@ export default [
         'यह पता सिर्फ़ इसी कंप्यूटर पर काम करता है, इसलिए वेब ऐप (claude.ai, ChatGPT) इस तक नहीं पहुँच सकते। यहाँ Claude Code, Cursor या VS Code इस्तेमाल करें, या वेब ऐप अपने लाइव एडमिन से जोड़ें।',
       claude: {
         steps: [
-          { title: 'सर्वर URL कॉपी करें', body: '' },
+          { title: 'सर्वर URL कॉपी करें', body: 'ऊपर MCP सर्वर URL के पास Copy दबाएं।' },
           {
             title: 'Claude में कस्टम कनेक्टर जोड़ें',
             body: 'claude.ai पर: Settings → Connectors → Add custom connector। URL पेस्ट करें और अपने स्टोर का नाम दें। यह Claude Desktop और मोबाइल ऐप में भी दिखता है।',

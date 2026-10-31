@@ -36,7 +36,7 @@ export default function ZoneStatesCard({ value, onChange, disabled }: ZoneStates
   return (
     <DataCard
       title={copy.heading}
-      meta={value.length ? copy.selected(value.length) : copy.meta}
+      subtitle={value.length ? copy.selected(value.length) : copy.meta}
       action={
         <Button variant="outline" size="sm" onClick={handleAll} disabled={disabled}>
           {all ? copy.clear : copy.selectAll}

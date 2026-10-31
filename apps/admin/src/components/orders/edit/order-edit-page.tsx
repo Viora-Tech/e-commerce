@@ -131,11 +131,8 @@ export default function OrderEditPage({ order }: OrderEditPageProps) {
               title={copy.summary}
               footer={
                 <>
-                  <Button
-                    variant="outline"
-                    disabled={!dirty}
-                    onClick={() => setState(startState(order))}
-                  >
+                  {/* Nothing is saved until Review, so discarding is just leaving for the order. */}
+                  <Button variant="outline" onClick={() => router.push(backHref)}>
                     {copy.discard}
                   </Button>
                   <Button disabled={!dirty} onClick={() => setReviewing(editInput(order, state))}>

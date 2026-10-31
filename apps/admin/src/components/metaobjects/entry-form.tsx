@@ -34,7 +34,7 @@ type EntryFormProps = {
 
 /**
  * Create or edit one entry of a content type: an input per field (stacked, one column on phones),
- * its status and handle. New entries keep the save bar on screen; saved ones can be duplicated.
+ * its status and handle. The save bar shows once something changes; saved ones can be duplicated.
  */
 export default function EntryForm({ definition, entry, title }: EntryFormProps) {
   // Hooks
@@ -182,7 +182,7 @@ export default function EntryForm({ definition, entry, title }: EntryFormProps) 
       }
     >
       <SaveBar
-        open={dirty || !entry}
+        open={dirty}
         message={copy.unsaved}
         saveLabel={busy ? copy.saving : copy.save}
         discardLabel={copy.discard}

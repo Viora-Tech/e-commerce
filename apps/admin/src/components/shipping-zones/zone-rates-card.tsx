@@ -57,7 +57,7 @@ export default function ZoneRatesCard({ value, onChange, disabled }: ZoneRatesCa
   return (
     <DataCard
       title={copy.heading}
-      meta={copy.meta}
+      subtitle={copy.meta}
       action={
         <Button variant="outline" onClick={handleAdd} disabled={disabled}>
           <Plus />

@@ -54,22 +54,14 @@ export default function McpConnectGuide({ serverUrl, onCreateToken }: McpConnect
   const [active, setActive] = useState<GuideId>('claude')
 
   // Helpers
-  const urlSnippet = () => <CodeSnippet value={serverUrl} what={copy.server.url} />
-
+  /* The server URL itself shows once, on the status card above; the steps hold commands only. */
   const extraFor = (id: GuideId, step: number): ReactNode => {
-    if (id === 'claude' && step === 0) return urlSnippet()
-    if (id === 'chatgpt' && step === 1) return urlSnippet()
     if (id === 'claudeCode' && step === 0)
       return <CodeSnippet value={claudeCodeCommand(serverUrl)} what={copy.guide.copyWhat} />
     if ((id === 'cursor' || id === 'vscode') && step === 0)
       return <CodeSnippet value={mcpJsonConfig(id, serverUrl)} what={copy.guide.copyJson} />
     if (id === 'other' && step === 0)
-      return (
-        <div className="flex flex-col gap-2">
-          {urlSnippet()}
-          <CodeSnippet value={mcpJsonConfig('generic', serverUrl)} what={copy.guide.copyJson} />
-        </div>
-      )
+      return <CodeSnippet value={mcpJsonConfig('generic', serverUrl)} what={copy.guide.copyJson} />
     if (id === 'other' && step === 1)
       return <CodeSnippet value={mcpJsonConfig('stdio', serverUrl)} what={copy.guide.copyJson} />
     return null

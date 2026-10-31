@@ -66,7 +66,10 @@ export const paymentsSettingsContent = {
       { label: 'Percent of subtotal', value: 'percent' },
     ],
     amountLabel: { fixed: 'Amount in ₹', percent: 'Percent' },
-    amountHelp: 'Use a negative number for a discount, e.g. -2 for 2% off.',
+    amountHelp: {
+      fixed: 'Use a negative number for a discount, e.g. -20 for ₹20 off.',
+      percent: 'Use a negative number for a discount, e.g. -2 for 2% off.',
+    },
     labelLabel: 'Label shown to shoppers',
     labelPlaceholder: { fixed: 'COD handling', percent: 'UPI discount' },
   },

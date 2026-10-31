@@ -61,7 +61,7 @@ export const inboxConversationsContent = {
     knowledge: 'Knowledge base',
   },
   list: {
-    search: 'Search name, email, phone, order or words',
+    search: 'Search conversations',
     allClear: 'All clear',
     allClearBody: 'No conversations here right now.',
     viewClosed: 'View closed conversations',

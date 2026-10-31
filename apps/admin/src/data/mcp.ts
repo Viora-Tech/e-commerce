@@ -52,7 +52,7 @@ export const mcpContent = {
       'This address only works on this computer, so web apps (claude.ai, ChatGPT) cannot reach it. Use Claude Code, Cursor or VS Code here, or connect web apps from your live admin.',
     claude: {
       steps: [
-        { title: 'Copy the server URL', body: '' },
+        { title: 'Copy the server URL', body: 'Use Copy next to the MCP server URL at the top.' },
         {
           title: 'Add a custom connector in Claude',
           body: 'On claude.ai: Settings → Connectors → Add custom connector. Paste the URL and name it after your store. It also shows in Claude Desktop and the mobile app.',

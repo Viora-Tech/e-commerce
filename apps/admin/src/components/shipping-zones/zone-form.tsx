@@ -152,7 +152,7 @@ export default function ZoneForm({ zone, profileId = null }: ZoneFormProps) {
         </Alert>
       ) : null}
 
-      <DataCard title={copy.details.heading} meta={copy.precedence}>
+      <DataCard title={copy.details.heading} subtitle={copy.precedence}>
         <Field data-invalid={nameError ? true : undefined} className="max-w-md">
           <FieldLabel htmlFor="zone-name">{copy.details.name}</FieldLabel>
           <Input

@@ -30,6 +30,8 @@ type PreferencesFormProps = {
   initial: StorePreferences
   /** The storefront's address, for the search and share previews. */
   storefrontOrigin: string
+  /** The store's name, which the storefront uses while the home page title is blank. */
+  storeName: string
 }
 
 type Errors = Partial<Record<string, string>>
@@ -46,7 +48,11 @@ function validate(form: StorePreferences): Errors {
  * AI crawler access, site verification, spam protection, consent, tags, and links to the
  * storefront settings that live elsewhere.
  */
-export default function PreferencesForm({ initial, storefrontOrigin }: PreferencesFormProps) {
+export default function PreferencesForm({
+  initial,
+  storefrontOrigin,
+  storeName,
+}: PreferencesFormProps) {
   // Hooks
   const [form, setForm] = useState(initial)
   const [saved, setSaved] = useState(initial)
@@ -285,7 +291,9 @@ export default function PreferencesForm({ initial, storefrontOrigin }: Preferenc
             <PreferencesRelated />
           </>
         }
-        side={<PreferencesPreviews seo={form.seo} origin={storefrontOrigin} />}
+        side={
+          <PreferencesPreviews seo={form.seo} origin={storefrontOrigin} storeName={storeName} />
+        }
       />
     </PageBody>
   )

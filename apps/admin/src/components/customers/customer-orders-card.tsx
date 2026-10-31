@@ -101,15 +101,9 @@ export default function CustomerOrdersCard({ customer }: CustomerOrdersCardProps
               />
             </Link>
           ))}
-          <div className="flex items-center justify-between gap-3 px-5 pt-4 text-caption text-muted-foreground">
-            <span>{copy.showing(recent.length, orders.length)}</span>
-            <Link
-              href={viewAll}
-              className="font-medium text-primary underline-offset-4 hover:underline"
-            >
-              {copy.viewAll}
-            </Link>
-          </div>
+          <p className="px-5 pt-4 text-caption text-muted-foreground">
+            {copy.showing(recent.length, orders.length)}
+          </p>
         </>
       )}
     </DataCard>
