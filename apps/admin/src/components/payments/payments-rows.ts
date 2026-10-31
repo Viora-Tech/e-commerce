@@ -16,9 +16,18 @@ export const PAYMENT_ROWS = {
   more: 'more',
 } as const
 
+/** The "Payment configuration" section's rows, in order; providers and manual have their own sections. */
+export const CONFIG_ROWS = [
+  PAYMENT_ROWS.capture,
+  PAYMENT_ROWS.rules,
+  PAYMENT_ROWS.methods,
+  PAYMENT_ROWS.more,
+] as const
+
 /**
- * Settings → Payments' row list (Shopify-style): payment providers, supported methods, manual
- * methods, capture, customizations and More, each with its current value in a few words.
+ * Settings → Payments' drill rows (Shopify-style): payment providers, supported methods, manual
+ * methods, capture, customizations and More, each with its current value in a few words. Every
+ * id here is a valid `?open=`; the page's sections show the configuration ones as rows.
  */
 export function paymentRows(
   setup: PaymentsSetup,

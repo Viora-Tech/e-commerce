@@ -13,6 +13,8 @@ import { isGatewayId, type PaymentsSetup } from './types'
 type PaymentCaptureCardProps = {
   setup: PaymentsSetup
   onReload: () => Promise<void>
+  /** Only this gateway's row (its own provider page). */
+  gatewayId?: string
 }
 
 /**
@@ -20,18 +22,22 @@ type PaymentCaptureCardProps = {
  * only authorise it and capture from the order page (manual). Gateways that cannot capture by
  * hand show the choice greyed out with why.
  */
-export default function PaymentCaptureCard({ setup, onReload }: PaymentCaptureCardProps) {
+export default function PaymentCaptureCard({
+  setup,
+  onReload,
+  gatewayId,
+}: PaymentCaptureCardProps) {
   // Hooks
   const { capture: copy } = useCopy(paymentRulesContent)
   const [busy, setBusy] = useState<string | null>(null)
 
   // Event handlers
-  const handleChange = async (gatewayId: string, mode: string) => {
-    if (!isGatewayId(gatewayId)) return
-    setBusy(gatewayId)
+  const handleChange = async (id: string, mode: string) => {
+    if (!isGatewayId(id)) return
+    setBusy(id)
     try {
       await api.payments.saveCapture({
-        gatewayId,
+        gatewayId: id,
         mode: mode === 'manual' ? 'manual' : 'automatic',
       })
       toast.success(copy.saved)
@@ -44,7 +50,9 @@ export default function PaymentCaptureCard({ setup, onReload }: PaymentCaptureCa
   }
 
   // Early returns
-  const rows = setup.gateways.filter((g) => g.configured && isGatewayId(g.id))
+  const rows = setup.gateways.filter(
+    (g) => g.configured && isGatewayId(g.id) && (gatewayId === undefined || g.id === gatewayId),
+  )
   if (rows.length === 0) return null
 
   // Render logic

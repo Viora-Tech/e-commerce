@@ -281,6 +281,7 @@ export const routes = {
     store: () => '/settings/store',
     payments: () => '/settings/payments',
     paymentsAdvanced: () => '/settings/payments/advanced',
+    paymentProvider: (providerId: string) => `/settings/payments/providers/${id(providerId)}`,
     checkout: () => '/settings/checkout',
     shipping: () => '/settings/shipping',
     newShippingZone: (profileId?: string) =>
