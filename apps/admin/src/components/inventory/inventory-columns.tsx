@@ -55,7 +55,7 @@ export function inventoryColumns({
       sortValue: (r) => r.productTitle,
       hideable: false,
       align: 'start',
-      className: 'w-80 px-3 whitespace-normal',
+      className: 'w-1/3 min-w-96 px-3 whitespace-normal',
       render: (r) => (
         <ProductLineCell
           line={r}

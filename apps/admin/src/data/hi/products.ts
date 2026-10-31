@@ -15,6 +15,7 @@ export default [
     export: 'एक्सपोर्ट',
     import: 'इंपोर्ट',
     tabs: { all: 'सभी प्रोडक्ट' },
+    customView: 'कस्टम',
     summary: (total: number, low: number, out: number) =>
       [
         `${total} प्रोडक्ट`,

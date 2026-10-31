@@ -22,6 +22,8 @@ export const productsListContent = {
   export: 'Export',
   import: 'Import',
   tabs: { all: 'All products' },
+  /** The view picker while a search or filter is applied. */
+  customView: 'Custom',
   summary: (total: number, low: number, out: number) =>
     [
       `${total} ${total === 1 ? 'product' : 'products'}`,

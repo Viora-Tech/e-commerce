@@ -266,6 +266,12 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
           <ViewSelect
             value={q.status}
             onChange={(status) => setQ({ status, page: 1 })}
+            // A search or filter counts what it found, as on Orders (audit #24).
+            custom={
+              hasProductFilters(q) || q.query.length > 0
+                ? { label: q.status ? copy.status[q.status] : copy.customView, count: total }
+                : undefined
+            }
             options={[
               { value: null, label: copy.tabs.all, count: stats.total },
               ...PRODUCT_STATUSES.map((s) => ({
