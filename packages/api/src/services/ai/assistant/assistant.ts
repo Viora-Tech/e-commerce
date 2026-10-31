@@ -36,7 +36,7 @@ import { type FoundImage, findImages } from './find-images'
 import { pageLine } from './page-context'
 import { readTools } from './read-tools'
 import { ACTIONS, READ_TOOL_PERMISSION } from './registry'
-import { proposeAction } from './service'
+import { ALREADY_REQUESTED, proposeAction } from './service'
 import { freshTaint, type Taint } from './taint'
 import type { ActionView } from './views'
 
@@ -158,6 +158,15 @@ function toolsFor(
                   { flagged: taint.flagged },
                 ),
               )
+              // Already open (this member asked for the same change): no copy, and the model
+              // tells them it is waiting rather than proposing it again.
+              if (view.alreadyRequested) {
+                const note = `${ALREADY_REQUESTED} Tell the member this change is already waiting for approval; do not propose it again.`
+                // Waiting in Approvals: no card to show. Still on a card: show that one again.
+                if (view.needsApprover) return { note }
+                proposals.set(view.id, view)
+                return { proposal: { id: view.id, summary: view.summary }, note }
+              }
               taint.proposals += 1
               proposals.set(view.id, view)
               return { proposal: { id: view.id, summary: view.summary } }

@@ -28,7 +28,7 @@ import type { StoreScope } from '../procedures'
 import { ProposalProblem } from '../services/ai/assistant/actions/resolve'
 import { readTools } from '../services/ai/assistant/read-tools'
 import { ACTIONS, READ_TOOL_PERMISSION } from '../services/ai/assistant/registry'
-import { approveAction, proposeAction } from '../services/ai/assistant/service'
+import { ALREADY_REQUESTED, approveAction, proposeAction } from '../services/ai/assistant/service'
 import { freshTaint } from '../services/ai/assistant/taint'
 import { type Fact, storeTools, type ToolEnv } from '../services/ai/store-tools'
 import { findCustomerForMcp } from '../services/mcp.service'
@@ -272,12 +272,27 @@ export async function callMcpTool(
         flagged: taint.flagged,
         source: 'mcp',
       })
+      // The same change is already open for this member: say so, never store or run a copy.
+      if (view.alreadyRequested) {
+        return {
+          text: `${ALREADY_REQUESTED} ${view.summary} is already waiting; nothing new was sent. Do not ask again.`,
+          data: { id: view.id, status: view.status, alreadyRequested: true },
+          isError: false,
+        }
+      }
       const access = await memberAccess(tx, p.storeId, p.userId)
       const scope = grantScope(p, {
         isOwner: access?.isOwner ?? false,
         needsApproval: access?.needsApproval ?? [],
       })
       const done = await approveAction(actionEnv, scope, view.id)
+      if (done.alreadyRequested) {
+        return {
+          text: `${ALREADY_REQUESTED} ${view.summary} is already waiting in ${siteConfig.brand.name} (Settings → Approvals); nothing new was sent. Do not ask again.`,
+          data: { id: done.id, status: done.status, alreadyRequested: true },
+          isError: false,
+        }
+      }
       if (done.status === 'proposed') {
         await recordApiActivity(tx, p.storeId, {
           grantId: p.grantId,

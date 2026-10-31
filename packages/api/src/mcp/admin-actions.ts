@@ -19,7 +19,7 @@ import { z } from 'zod'
 import { APPROVAL_QUEUED } from '../procedures'
 import { appRouter } from '../routers/_app'
 import { ProposalProblem } from '../services/ai/assistant/actions/resolve'
-import { proposeAction } from '../services/ai/assistant/service'
+import { ALREADY_REQUESTED, proposeAction } from '../services/ai/assistant/service'
 import {
   type ActionKind,
   areaOf,
@@ -264,7 +264,15 @@ async function runNow(env: McpEnv, entry: Entry, input: unknown): Promise<McpCal
   } catch (err) {
     // The member's role needs approval for it: the store procedure queued it and logged it.
     if (err instanceof ORPCError && err.code === APPROVAL_QUEUED) {
-      const id = (err.data as { approvalId?: string | null } | undefined)?.approvalId ?? null
+      const data = err.data as { approvalId?: string | null; alreadyRequested?: boolean }
+      const id = data?.approvalId ?? null
+      if (data?.alreadyRequested) {
+        return {
+          text: `${ALREADY_REQUESTED} ${entry.name} with this input is already waiting in ${brand} (Settings → Approvals); nothing new was sent. Do not ask again.`,
+          data: { id, status: 'proposed', path: entry.path, alreadyRequested: true },
+          isError: false,
+        }
+      }
       return {
         text: `Waiting for approval: ${entry.name}. The member's role needs approval for this, so it runs once a different member approves it in ${brand} (Settings → Approvals), and changes nothing until then.`,
         data: { id, status: 'proposed', path: entry.path },
@@ -308,6 +316,13 @@ async function queue(env: McpEnv, entry: Entry, kind: ActionKind, input: unknown
       { path: entry.path, input },
       { flagged: false, source: 'mcp' },
     )
+    if (view.alreadyRequested) {
+      return {
+        text: `${ALREADY_REQUESTED} ${entry.name} with this input is already waiting for approval in ${brand}; nothing new was sent. Do not ask again.`,
+        data: { id: view.id, status: view.status, path: entry.path, alreadyRequested: true },
+        isError: false,
+      }
+    }
     await recordApiActivity(tx, p.storeId, {
       grantId: p.grantId,
       kind: 'approval',

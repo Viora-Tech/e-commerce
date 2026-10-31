@@ -732,4 +732,89 @@ describe('role approvals', () => {
       1,
     )
   })
+
+  it('keeps one request per change: asking again says so, and approving one closes its copies', async () => {
+    const m = await merchant('asha@example.com', 'asha')
+    const a = await staffOf(m, 'admin@example.com', 'admin')
+    const b = await staffOf(m, 'admin2@example.com', 'admin')
+    type Input = { title: string; kind: 'code'; code: string; method: 'percent'; value: number }
+    const ask = (who: { ctx: ApiContext }, input: Input) =>
+      call(appRouter.discounts.create, input, {
+        context: who.ctx,
+        path: ['discounts', 'create'],
+      })
+    const rows = () => owner.select().from(aiAction).where(eq(aiAction.storeId, m.storeId))
+
+    await expect(ask(a, { ...discountInput })).rejects.toMatchObject({
+      code: 'APPROVAL_QUEUED',
+      data: { alreadyRequested: false },
+    })
+    const [first] = await rows()
+    // The same change again, keys in another order, from the asker and from another member.
+    const reordered = Object.fromEntries(
+      Object.entries(discountInput).reverse(),
+    ) as unknown as Input
+    for (const who of [a, b]) {
+      await expect(ask(who, reordered)).rejects.toMatchObject({
+        code: 'APPROVAL_QUEUED',
+        message: expect.stringMatching(/Already requested/),
+        data: { approvalId: first?.id, alreadyRequested: true },
+      })
+    }
+    expect(await rows()).toHaveLength(1)
+    // A different change is a new request.
+    await expect(ask(a, { ...discountInput, code: 'MCP20' })).rejects.toMatchObject({
+      data: { alreadyRequested: false },
+    })
+    expect(await rows()).toHaveLength(2)
+
+    // A copy stored before requests were folded: Approvals and the badge show the change once.
+    const { id: _id, ...copyOf } = first as typeof aiAction.$inferSelect
+    const [copy] = await owner
+      .insert(aiAction)
+      .values({ ...copyOf, userId: b.userId, createdAt: new Date(Date.now() + 1000) })
+      .returning()
+    const waiting = await call(appRouter.approvals.waiting, undefined, { context: m.ctx })
+    expect(waiting).toHaveLength(2)
+    expect(await call(appRouter.approvals.counts, undefined, { context: m.ctx })).toEqual({
+      waiting: 2,
+      outcomes: 0,
+    })
+
+    const done = await call(
+      appRouter.ai.approveAction,
+      { id: first?.id as string },
+      { context: m.ctx },
+    )
+    expect(done.status).toBe('executed')
+    expect(await discounts(m.storeId)).toHaveLength(1)
+    const [closed] = await owner
+      .select()
+      .from(aiAction)
+      .where(eq(aiAction.id, copy?.id as string))
+    expect(closed).toMatchObject({
+      status: 'cancelled',
+      result: { duplicateOf: first?.id, message: expect.stringMatching(/Already approved/) },
+    })
+    expect(
+      (await call(appRouter.approvals.waiting, undefined, { context: m.ctx })).map(
+        (v) => v.summary,
+      ),
+    ).toHaveLength(1)
+
+    // Rejecting one closes its copies too.
+    const other = (await rows()).find((r) => r.status === 'proposed')
+    const { id: _otherId, ...otherOf } = other as typeof aiAction.$inferSelect
+    const [otherCopy] = await owner
+      .insert(aiAction)
+      .values({ ...otherOf, userId: b.userId })
+      .returning()
+    await call(appRouter.ai.cancelAction, { id: other?.id as string }, { context: m.ctx })
+    const [rejected] = await owner
+      .select()
+      .from(aiAction)
+      .where(eq(aiAction.id, otherCopy?.id as string))
+    expect(rejected).toMatchObject({ status: 'cancelled', result: { duplicateOf: other?.id } })
+    expect(await call(appRouter.approvals.waiting, undefined, { context: m.ctx })).toEqual([])
+  })
 })

@@ -56,6 +56,8 @@ export type ActionView = {
   executedAt: Date | null
   undoneAt: Date | null
   undoMessage: string | null
+  /** Asked for again while open: this is the earlier request, nothing new was stored. */
+  alreadyRequested?: boolean
 }
 
 export type Row = typeof aiAction.$inferSelect

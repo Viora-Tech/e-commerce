@@ -26,6 +26,9 @@ export const approvalsContent = {
   } as Record<string, string>,
   /** The notice a member sees when their change was queued instead of made. */
   sent: 'Sent for approval. Nothing has changed yet: it runs once a member who can approve it does so in Settings → Approvals.',
+  /** The same change was already waiting, so nothing new was sent. */
+  already:
+    'Already requested — waiting for approval. The same change is already in Settings → Approvals, so nothing new was sent.',
   role: {
     heading: 'Needs approval',
     help: 'Ticked actions do not run when a member on this role does them: they wait in Approvals until a different member approves them. Only the owner can change this.',

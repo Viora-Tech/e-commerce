@@ -11,13 +11,16 @@ import { isStepUpRequired, requestStepUp } from '@/lib/step-up-gate'
 /**
  * "Input validation failed" says nothing; name the field and why, in the member's language. A
  * change the member's role sends for approval comes back as APPROVAL_QUEUED: every page shows
- * the caught error's message, so it says plainly that it was sent for approval.
+ * the caught error's message, so it says plainly that it was sent for approval (or that the
+ * same change was already waiting, so nothing new was sent).
  */
 function readable(err: unknown): unknown {
   const cookie = typeof document === 'undefined' ? '' : document.cookie
   const locale = localeFromCookieHeader(cookie)
   if (err instanceof Error && (err as { code?: unknown }).code === 'APPROVAL_QUEUED') {
-    err.message = localize(approvalsContent, locale).sent
+    const copy = localize(approvalsContent, locale)
+    const data = (err as { data?: { alreadyRequested?: boolean } }).data
+    err.message = data?.alreadyRequested ? copy.already : copy.sent
     return err
   }
   return withReadableValidation(err, localize(validationContent, locale))
