@@ -18,6 +18,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { addToCart, createCart } from '../cart/cart'
 import type { StoreContext } from '../context'
 import { NotSoldInMarket } from '../errors'
+import { catalogProductPrices } from './catalog-product-prices'
 import { combineAdjustments, soldInRequestCatalog, withCatalogPricing } from './catalog-rules'
 import {
   createCatalog,
@@ -231,5 +232,34 @@ describe('catalogs', () => {
     ).rejects.toThrow(/no longer exists/)
     const [n] = await owner.select({ n: sql<number>`count(*)::int` }).from(catalog)
     expect(n?.n).toBe(1)
+  })
+})
+
+describe('catalog price table (audit #161)', () => {
+  it('pages the included and excluded products with their variants', async () => {
+    const storeId = await newStore('waimers')
+    const shirt = await newProduct(storeId, 'shirt')
+    await newProduct(storeId, 'cap')
+    const chosen = await inStore(storeId, (ctx) =>
+      createCatalog(ctx, { name: 'Abroad', scope: 'chosen', productIds: [shirt.productId] }),
+    )
+    const all = await inStore(storeId, (ctx) => createCatalog(ctx, { name: 'All' }))
+    const inChosen = await inStore(storeId, (ctx) => catalogProductPrices(ctx, { id: chosen.id }))
+    expect(inChosen.total).toBe(1)
+    expect(inChosen.rows[0]?.variants).toEqual([
+      { variantId: shirt.variantId, title: 'Default', pricePaise: 100_000 },
+    ])
+    const out = await inStore(storeId, (ctx) =>
+      catalogProductPrices(ctx, { id: chosen.id, included: false }),
+    )
+    expect(out.rows.map((r) => r.title)).toEqual(['cap'])
+    const allOut = await inStore(storeId, (ctx) =>
+      catalogProductPrices(ctx, { id: all.id, included: false }),
+    )
+    expect(allOut.total).toBe(0)
+    const searched = await inStore(storeId, (ctx) =>
+      catalogProductPrices(ctx, { id: all.id, search: 'ca' }),
+    )
+    expect(searched.rows.map((r) => r.title)).toEqual(['cap'])
   })
 })

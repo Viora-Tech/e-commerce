@@ -183,6 +183,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'catalogs.delete': 'Delete a catalog; its markets sell every product at their own prices again.',
   'catalogs.get': 'One catalog with its chosen products, collections and fixed prices.',
   'catalogs.list': 'Every catalog with its product count, price change and markets.',
+  'catalogs.productPrices':
+    "One page of the products a catalog includes or leaves out, with their variants' prices.",
   'catalogs.update': 'Change a catalog; only the parts sent are replaced.',
   'chatwoot.settings.test': 'Reads the profile and inboxes with the saved token; creates nothing.',
   'codRto.forOrder': "The order page's card.",
@@ -461,7 +463,7 @@ export const ACTION_DOCS: Record<string, string> = {
   'orders.duplicateOrder':
     "Start a new draft from an existing order: same customer, address, lines at today's prices (archived products skipped and named), notes and shipping.",
   'orders.edit':
-    'Save an order edit (add, remove, quantities, shipping, discount) on an open order not yet shipped.',
+    'Save an order edit (add catalogue or custom items, remove with or without restock, quantities, prices of unpacked lines, shipping, discount) on an open or completed order, shipped or not (#1014).',
   'orders.editPreview':
     "The edit's review step: new lines and totals, and what is owed either way.",
   'orders.estimateDraftGst':
@@ -474,6 +476,8 @@ export const ACTION_DOCS: Record<string, string> = {
     "One order with its lines, payments, shipment, balance due and the customer's order history.",
   'orders.getAbandoned': 'One abandoned checkout with its cart, contact and recovery link.',
   'orders.getDraft': 'One draft order with its lines, customer, addresses and totals.',
+  'orders.holdFulfillment':
+    'Hold every unshipped parcel with a reason: no shipment, fulfil or "Mark as" until released.',
   'orders.ids':
     'Every order id the list\'s filters match (the table\'s "Select all N orders"), up to 5,000.',
   'orders.linePeek': "An order's lines with pictures, for the list's items popover (up to 20).",
@@ -499,6 +503,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'Send money back through the gateway (or record a cash/UPI refund); partial amounts allowed.',
   'orders.refundOptions':
     'How a refund on this order can go back: how much is left, and to the original payment or not.',
+  'orders.releaseFulfillment':
+    'Release the hold: the order goes back to where it was (to pack, or partly shipped).',
   'orders.requestBalance':
     "Ask the shopper for a deposit pre-order's balance: email and WhatsApp (when set up) with a signed pay link.",
   'orders.retryCourierPush':

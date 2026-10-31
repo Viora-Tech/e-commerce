@@ -128,7 +128,7 @@ export type CatalogView = CatalogSummary & {
 }
 
 /** Products a catalog sells: by name, or through one of its collections. */
-function chosenProducts(catalogId: string | SQL) {
+export function chosenProducts(catalogId: string | SQL) {
   return sql`(
     select cp.product_id from ${catalogProduct} cp where cp.catalog_id = ${catalogId}
     union

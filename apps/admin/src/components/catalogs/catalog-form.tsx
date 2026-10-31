@@ -30,6 +30,7 @@ import {
   fromCatalog,
 } from './catalog-form-state'
 import CatalogMarketsCard from './catalog-markets-card'
+import CatalogPriceTableCard from './catalog-price-table-card'
 import CatalogPricesCard from './catalog-prices-card'
 import CatalogProductsCard from './catalog-products-card'
 
@@ -242,6 +243,17 @@ export default function CatalogForm({ catalog, markets, catalogs }: CatalogFormP
         disabled={!canManage}
         onChange={patch}
       />
+
+      {catalog ? (
+        <CatalogPriceTableCard
+          catalogId={catalog.id}
+          adjustmentBp={rupeeLocked ? 0 : adjustmentBp(form)}
+          currency={rupeeLocked ? null : currency}
+          prices={form.prices}
+          disabled={!canManage}
+          onPrices={(prices) => patch({ prices })}
+        />
+      ) : null}
 
       <CatalogProductsCard
         scope={form.scope}

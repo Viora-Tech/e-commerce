@@ -2,7 +2,9 @@ import {
   CatalogCreateSchema,
   CatalogError,
   CatalogIdSchema,
+  CatalogProductPricesSchema,
   CatalogUpdateSchema,
+  catalogProductPrices,
   createCatalog,
   deleteCatalog,
   getCatalog,
@@ -43,6 +45,13 @@ export const catalogsRouter = {
   get: read()
     .input(CatalogIdSchema)
     .handler(({ context, input }) => catalogErrors(() => getCatalog(ctxOf(context), input.id))),
+
+  /** One page of the products a catalog includes or leaves out, with their variants' prices. */
+  productPrices: read()
+    .input(CatalogProductPricesSchema)
+    .handler(({ context, input }) =>
+      catalogErrors(() => catalogProductPrices(ctxOf(context), input)),
+    ),
 
   /** Add a catalog: its products, price change and the markets that sell from it. */
   create: manage()
