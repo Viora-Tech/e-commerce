@@ -130,6 +130,8 @@ export const settingsRowsContent = {
       n === 0 ? 'None saved' : n === 1 ? '1 package' : `${n} packages`,
     dispatch: 'Dispatch',
     dispatchValue: (pincode: string, cutoff: string) => `From ${pincode} · orders by ${cutoff}`,
+    /** No PIN code saved yet: the 110001 the page would show is only a placeholder (#66). */
+    dispatchNotSet: 'PIN code to ship from not set',
     split: 'Split shipping',
     splitValue: (n: number) => (n === 1 ? 'Never split' : `Up to ${n} parcels`),
     courier: 'Which courier ships',

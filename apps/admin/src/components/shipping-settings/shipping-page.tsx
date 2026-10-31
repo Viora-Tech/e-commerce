@@ -72,6 +72,7 @@ export default function ShippingPage() {
       const next = result ?? form
       setForm(next)
       setSaved(JSON.stringify(next))
+      setLoaded((l) => (l ? { ...l, originSaved: true } : l))
       toast.success(copy.saved)
       void announceSetup('shipping')
     } catch (err) {
@@ -116,13 +117,19 @@ export default function ShippingPage() {
   const couriers = form.enabled.filter((id) => id !== DEMO_COURIER).map(labelOf)
   const r = rowsCopy.shipping
   const rule = form.courierRule
+  // The PIN typed here but not saved yet counts too: the row follows the form.
+  const savedForm = saved ? (JSON.parse(saved) as Settings) : null
+  const originSet =
+    loaded?.originSaved === true || savedForm?.policy.originPincode !== form.policy.originPincode
   const rows = [
     { id: 'rates', title: r.rates, value: r.ratesValue },
     { id: 'boxes', title: r.packages, value: r.packagesValue(form.boxPresets.length) },
     {
       id: 'dispatch',
       title: r.dispatch,
-      value: r.dispatchValue(form.policy.originPincode, form.policy.cutoff),
+      value: originSet
+        ? r.dispatchValue(form.policy.originPincode, form.policy.cutoff)
+        : r.dispatchNotSet,
     },
     { id: 'split', title: r.split, value: r.splitValue(form.routing.maxParcels) },
     {

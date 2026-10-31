@@ -125,6 +125,7 @@ export default [
       packagesValue: (n) => (n === 0 ? 'कोई सेव नहीं' : `${n} पैकेज`),
       dispatch: 'डिस्पैच',
       dispatchValue: (pincode, cutoff) => `${pincode} से · ${cutoff} तक के ऑर्डर`,
+      dispatchNotSet: 'भेजने का PIN कोड नहीं डाला',
       split: 'अलग-अलग पार्सल',
       splitValue: (n) => (n === 1 ? 'कभी नहीं बाँटते' : `${n} पार्सल तक`),
       courier: 'कौन-सा कूरियर भेजे',

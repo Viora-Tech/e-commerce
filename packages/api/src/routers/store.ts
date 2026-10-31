@@ -67,7 +67,7 @@ import {
   updateStorePreferences,
   updateStorePreorder,
 } from '../services/store.service'
-import { storeHealth } from '../services/store-health.service'
+import { savedOriginPincode, storeHealth } from '../services/store-health.service'
 
 const previousSecrets = () => parsePreviousSecrets(loadEnv(process.env).SETTINGS_SECRET_PREVIOUS)
 
@@ -349,6 +349,8 @@ export const storeRouter = {
         previousSecrets(),
       ),
       available: availableProviders(shipping),
+      // The parser fills 110001 when nothing was saved; the page must not show that as set (#66).
+      originSaved: savedOriginPincode(s?.shipping) !== null,
     }
   }),
 

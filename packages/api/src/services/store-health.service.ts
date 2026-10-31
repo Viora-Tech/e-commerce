@@ -132,7 +132,7 @@ async function paymentFacts(tx: StoreTx, raw: unknown) {
 }
 
 /** Settings → Shipping's origin PIN code as saved; the parser's default does not count. */
-function savedOriginPincode(raw: unknown): string | null {
+export function savedOriginPincode(raw: unknown): string | null {
   if (!raw || typeof raw !== 'object') return null
   const policy = (raw as { policy?: { originPincode?: unknown } }).policy
   return typeof policy?.originPincode === 'string' ? policy.originPincode : null
