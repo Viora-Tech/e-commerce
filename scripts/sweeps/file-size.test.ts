@@ -31,7 +31,7 @@ const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
   'apps/storefront/src/lib/liquid-theme.ts': { lines: 560, reason: SPLIT },
   'packages/api/src/routers/store.ts': { lines: 524, reason: SPLIT },
   'packages/api/src/services/analytics-reports.ts': { lines: 554, reason: SPLIT },
-  'packages/api/src/services/dashboard.service.ts': { lines: 1027, reason: SPLIT },
+  'packages/api/src/services/dashboard.service.ts': { lines: 950, reason: SPLIT },
   'packages/api/src/services/payments-setup.service.ts': {
     lines: 626,
     reason:
@@ -56,7 +56,7 @@ const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
       'plan bills, the sales-store order behind every bill and the billing sweep (fee bills moved out in #973)',
   },
   'packages/core/src/gift-cards/service.ts': { lines: 705, reason: SPLIT },
-  'packages/core/src/marketing/automations.ts': { lines: 837, reason: SPLIT },
+  'packages/core/src/marketing/automations.ts': { lines: 765, reason: SPLIT },
   'packages/core/src/marketing/campaigns.ts': { lines: 508, reason: SPLIT },
   'packages/core/src/metaobjects/service.ts': { lines: 768, reason: SPLIT },
   'packages/core/src/notifications/deliver.ts': { lines: 609, reason: SPLIT },

@@ -118,7 +118,7 @@ export async function checkCheckoutPincode(
 }
 
 /** Server messages for an address abroad; the storefront shows its own words first. */
-export const ABROAD_MESSAGES = {
+const ABROAD_MESSAGES = {
   postcode: 'Enter the postcode',
   postcodeInvalid: 'Enter a valid postcode for this country',
   region: 'Enter the state or province',
@@ -131,7 +131,7 @@ export const ABROAD_MESSAGES = {
  * keep it) as its code where the country's regions are listed, else as typed. No PIN code or
  * Indian state check: those are India's.
  */
-export function checkAbroadAddress(storeId: string, checkout: CheckoutDetails): CheckoutDetails {
+function checkAbroadAddress(storeId: string, checkout: CheckoutDetails): CheckoutDetails {
   const countryCode = checkoutCountry(checkout.address.countryCode)
   const fields = abroadAddressErrors(
     { countryCode, stateCode: checkout.address.stateCode, pincode: checkout.address.pincode },

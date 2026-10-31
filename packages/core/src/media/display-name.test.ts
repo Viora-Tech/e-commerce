@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: uploaded file name tests — WHAT: the display name an upload gets / WHY: guard Content › Files names */
 import { describe, expect, it } from 'vitest'
 import { uploadedName } from './display-name'
 

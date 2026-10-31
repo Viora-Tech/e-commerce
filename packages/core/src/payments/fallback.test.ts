@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: payment fallback tests — WHAT: which start errors fall back to the next gateway / WHY: guard runWithFallbacks */
 import { describe, expect, it } from 'vitest'
 import { couldNotStart, runWithFallbacks } from './fallback'
 import type { OnlineMethodId } from './methods'

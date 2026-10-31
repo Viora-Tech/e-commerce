@@ -1,6 +1,6 @@
 /** SOURCE OF TRUTH: extra-field (metafield) filter tests — Shopify's `filter.p.m.<namespace>.<key>` params parsed, written back and removed as chips, and which fields read as filters. No database */
 import { describe, expect, it } from 'vitest'
-import { metafieldFacets } from './browse'
+import { metafieldFacets } from './browse-filters'
 import {
   activeFilters,
   browseHref,

@@ -1,3 +1,4 @@
+import 'server-only'
 import { toNavLinks } from '@commerce/core'
 import { collectionsContent } from '@/data/collections'
 

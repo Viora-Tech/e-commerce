@@ -1,5 +1,4 @@
-/**
- * SOURCE OF TRUTH: browse abandonment — WHAT: records a known shopper's product views (from the
+/** SOURCE OF TRUTH: browse abandonment — WHAT: records a known shopper's product views (from the
  * storefront page-view beacon) and lists the views due for a "Browse abandoned" nudge: quiet for
  * the workflow's wait, within a week, product not added to a cart or bought since, shopper with
  * marketing consent, no run for the same shopper and product in the last 7 days / WHY: audit

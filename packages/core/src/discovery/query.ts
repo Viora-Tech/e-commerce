@@ -12,13 +12,13 @@ export const DISCOVERY_RETENTION_DAYS = 90
 /** Picks per product and row, at most (Shopify's recommendations answer up to 10). */
 export const MAX_PICKED_RECOMMENDATIONS = 10
 
-export const DISCOVERY_SOURCES = ['search', 'related', 'complementary'] as const
+const DISCOVERY_SOURCES = ['search', 'related', 'complementary'] as const
 export type DiscoverySource = (typeof DISCOVERY_SOURCES)[number]
 
 export const RECOMMENDATION_INTENTS = ['related', 'complementary'] as const
 export type RecommendationIntentKind = (typeof RECOMMENDATION_INTENTS)[number]
 
-export const DISCOVERY_KINDS = ['search', 'impression', 'click', 'add', 'checkout'] as const
+const DISCOVERY_KINDS = ['search', 'impression', 'click', 'add', 'checkout'] as const
 export type DiscoveryKind = (typeof DISCOVERY_KINDS)[number]
 
 /** Quotes and punctuation a shopper leaves around a search ("keyboard?", "'mouse'"). */
@@ -109,7 +109,7 @@ export const OVERVIEW_PERIODS = [7, 30, 90] as const
 export type OverviewPeriod = (typeof OVERVIEW_PERIODS)[number]
 
 /** Rows in each Overview list. */
-export const OVERVIEW_LIST_SIZE = 20
+const OVERVIEW_LIST_SIZE = 20
 
 /**
  * The Overview's three lists from one pass over the period's searches (most searched first):

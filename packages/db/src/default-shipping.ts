@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import type { Db } from './client'
-import { shippingRate, shippingZone } from './schema'
+import { shippingRate, shippingZone } from './shipping-schema'
 import type { StoreTx } from './with-store'
 
 /**

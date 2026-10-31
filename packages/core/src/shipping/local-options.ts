@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: local delivery and pickup in store (audit #163) — WHAT: delivery options a location offers on its own, beside the zone rates / WHY: pure, so checkout, place order and the tests run the same rule */
 import { z } from 'zod'
 import {
   destinationCountry,

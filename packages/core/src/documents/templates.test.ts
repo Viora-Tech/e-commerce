@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: printed document tests — WHAT: merge tags and the packing slip, pick list and invoice data / WHY: guard Settings › Printed documents */
 import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_TEMPLATES,

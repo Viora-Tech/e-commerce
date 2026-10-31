@@ -20,26 +20,28 @@ import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can } from '../procedures'
 import { getStoreApps, storeRegistries } from '../services/apps.service'
+import { saveManualPaymentMethod } from '../services/payments-manual.service'
 import {
   completeRazorpayOAuth,
-  connectPaymentGateway,
   fixRazorpayWebhook,
+  paymentTestOrderLink,
+  razorpayRedirectUri,
+  signOAuthState,
+  verifyOAuthState,
+} from '../services/payments-oauth.service'
+import {
+  connectPaymentGateway,
   type PaymentsEnv,
   paymentsSetup,
   paymentsTestMode,
-  paymentTestOrderLink,
-  razorpayRedirectUri,
-  saveManualPaymentMethod,
   savePaymentCapture,
   savePaymentMethodRules,
   savePaymentMethods,
   savePaymentRouting,
   setPaymentGatewayActive,
-  signOAuthState,
   skipPaymentSetup,
   switchPaymentMode,
   testPaymentConnection,
-  verifyOAuthState,
 } from '../services/payments-setup.service'
 import { TEST_CONNECTION_RULE } from '../services/shipping.service'
 

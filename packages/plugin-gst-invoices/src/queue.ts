@@ -59,7 +59,7 @@ export async function isTestOrder(tx: StoreTx, orderId: string): Promise<boolean
 }
 
 /** A cancelled order supplied nothing: it never waits in the queue for a tax invoice. */
-export async function isCancelledOrder(tx: StoreTx, orderId: string): Promise<boolean> {
+async function isCancelledOrder(tx: StoreTx, orderId: string): Promise<boolean> {
   const [o] = await tx.select({ status: order.status }).from(order).where(eq(order.id, orderId))
   return o?.status === 'cancelled'
 }

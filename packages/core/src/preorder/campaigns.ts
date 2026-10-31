@@ -1,5 +1,4 @@
-/**
- * SOURCE OF TRUTH: pre-order campaign rules (pure, client-safe)
+/** SOURCE OF TRUTH: pre-order campaign rules (pure, client-safe)
  * WHAT:  What a campaign (Products › Pre-orders) decides for a product and a cart: which of its
  *        settings a product follows (`PREORDER_OWN_FIELDS`), whether it applies here (status,
  *        market, channel), the pre-order price after its discount, whether a line is a pre-order

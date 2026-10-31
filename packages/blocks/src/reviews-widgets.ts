@@ -5,6 +5,7 @@
  * WHY:   Kept out of the components so the storefront, the editor and the tests share them.
  * WHERE: `sections/reviews-widgets/*`, `components/reviews/widgets/*`.
  */
+import { formatInZone } from '@commerce/dates'
 import type { PublicReviewCard, StoreReviewCard, StoreReviews } from './types'
 
 /** `"glide-pad, veil-pad"` → `['glide-pad', 'veil-pad']`: the products setting, as handles. */
@@ -19,17 +20,16 @@ export function parseHandles(text: string | undefined): string[] {
   ]
 }
 
-const DATE = new Intl.DateTimeFormat('en-GB', {
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric',
-  timeZone: 'UTC',
-})
-
 /** "12 Oct 2026": the same text on the server and in the browser, so the page hydrates cleanly. */
 export function reviewDate(iso: string): string {
   const at = new Date(iso)
-  return Number.isNaN(at.getTime()) ? '' : DATE.format(at)
+  return Number.isNaN(at.getTime())
+    ? ''
+    : formatInZone(
+        at,
+        { day: 'numeric', month: 'short', year: 'numeric' },
+        { locale: 'en-GB', timeZone: 'UTC' },
+      )
 }
 
 /** The all-reviews section's chips: every review, one star rating, or only those with photos. */

@@ -21,7 +21,7 @@ import { and, asc, desc, eq, gte, inArray, isNull, or, sql } from 'drizzle-orm'
 import { getCart } from '../cart/cart'
 import type { StoreContext } from '../context'
 import { decryptCustomerPhone } from '../customers/phone-crypto'
-import { isShareableDiscount } from './conversations'
+import { isShareableDiscount } from './conversations-send'
 import { type InsightLocation, locationOf, pagesViewed, productHandleOf } from './insights'
 import { InboxError } from './messages'
 

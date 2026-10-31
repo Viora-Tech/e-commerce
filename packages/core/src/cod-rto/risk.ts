@@ -218,7 +218,7 @@ export async function rescoreOrder(ctx: StoreContext, orderId: string) {
 }
 
 /** How many open orders "Score open orders" takes in one press. */
-export const SCORE_OPEN_LIMIT = 300
+const SCORE_OPEN_LIMIT = 300
 
 /**
  * "Score open orders": every open, unshipped order without a risk score, oldest first. Scores

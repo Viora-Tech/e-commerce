@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: saved package tests (audit #162) — WHAT: package kinds in the shipping settings / WHY: guard Settings › Shipping › Packages */
 import { describe, expect, it } from 'vitest'
 import { parseShippingSettings } from './settings'
 

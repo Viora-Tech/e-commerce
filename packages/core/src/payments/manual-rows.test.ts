@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: manual payment row tests — WHAT: when a UPI / bank transfer row is ready and live at checkout / WHY: guard Settings › Payments manual methods */
 import { describe, expect, it } from 'vitest'
 import { anyManualRowLive, manualConfigForCheckout, manualRowReady } from './manual-rows'
 

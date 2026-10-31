@@ -16,7 +16,7 @@ export const MarketSettingsSchema = z.object({
 })
 export type MarketSettings = z.infer<typeof MarketSettingsSchema>
 
-export const defaultMarketSettings: MarketSettings = MarketSettingsSchema.parse({})
+const defaultMarketSettings: MarketSettings = MarketSettingsSchema.parse({})
 
 /** The saved settings from `store.preferences`, defaults for anything missing or invalid. */
 export function parseMarketSettings(preferences: unknown): MarketSettings {

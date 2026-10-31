@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: cart limit tests — WHAT: per-product cart caps and the room left on a line / WHY: guard Settings › Checkout › Cart limit */
 import { describe, expect, it } from 'vitest'
 import { CartLimitSchema, cartLimitBreach, lineRoom, productCartLimit } from './cart-limit'
 

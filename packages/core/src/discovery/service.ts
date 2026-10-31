@@ -1,15 +1,8 @@
-/** SOURCE OF TRUTH: Search & discovery in the database — WHAT: recording the storefront's search and recommendation events (hashed session, no personal data, repeats within the link window dropped, adds and orders written only when the session clicked a search result or recommendation in the last 30 minutes), the search boosts and pins (read for a search, saved by the admin), the merchant's picked recommendations, and the Overview's funnel and lists / WHY: the beacon, the storefront search, the product pages and the admin app share one store of these rows, under RLS. */
+/** SOURCE OF TRUTH: Search & discovery in the database — WHAT: recording the storefront's search and recommendation events (hashed session, no personal data, repeats within the link window dropped, adds and orders written only when the session clicked a search result or recommendation in the last 30 minutes) and the search boosts and pins (read for a search, saved by the admin); picked recommendations live in `recommendations.ts`, the Overview in `overview.ts` / WHY: the beacon, the storefront search, the product pages and the admin app share one store of these rows, under RLS. */
 import { createHash } from 'node:crypto'
-import {
-  discoveryEvent,
-  newId,
-  product,
-  productRecommendation,
-  type StoreTx,
-  searchBoost,
-  searchPin,
-} from '@commerce/db'
-import { and, asc, eq, inArray, sql } from 'drizzle-orm'
+import { discoveryEvent, newId, product, type StoreTx, searchBoost, searchPin } from '@commerce/db'
+import { asc, eq, inArray, sql } from 'drizzle-orm'
+import { CommerceError } from '../errors'
 import {
   BOOST_ACTIONS,
   BOOST_FIELDS,
@@ -24,21 +17,14 @@ import {
   type SearchBoostRule,
 } from './boosts'
 import {
-  type DiscoveryOverview,
   type DiscoverySource,
   LINK_WINDOW_MINUTES,
   loggableQuery,
-  MAX_PICKED_RECOMMENDATIONS,
   normaliseSearchQuery,
   type RecommendationIntentKind,
-  type RecommendationStat,
-  type SearchFunnel,
-  type SearchQueryStat,
-  splitSearchLists,
 } from './query'
 
 const WINDOW = sql.raw(`interval '${LINK_WINDOW_MINUTES} minutes'`)
-const DAY_MS = 86_400_000
 
 type Row = Record<string, unknown>
 const num = (v: unknown): number => Number(v ?? 0)
@@ -47,7 +33,7 @@ const num = (v: unknown): number => Number(v ?? 0)
  * The session key the log keeps instead of the browser id: a hash of the store and the
  * anonymous `wc_vid` cookie, so the same browser in two stores never links up.
  */
-export function discoverySessionKey(storeId: string, visitorId: string): string {
+function discoverySessionKey(storeId: string, visitorId: string): string {
   return createHash('sha256').update(`discovery:${storeId}:${visitorId}`).digest('hex').slice(0, 32)
 }
 
@@ -202,7 +188,7 @@ export async function listSearchBoostRules(tx: StoreTx): Promise<SearchBoostRule
 }
 
 /** Rules as the admin may save them: known fields and actions, trimmed values, one per value. */
-export function cleanBoostRules(rules: SearchBoostRule[]): SearchBoostRule[] {
+function cleanBoostRules(rules: SearchBoostRule[]): SearchBoostRule[] {
   const seen = new Set<string>()
   const out: SearchBoostRule[] = []
   for (const r of rules) {
@@ -256,9 +242,9 @@ export async function listSearchPins(tx: StoreTx): Promise<SearchPinGroup[]> {
   return groups
 }
 
-export class SearchPinLimitError extends Error {
+export class SearchPinLimitError extends CommerceError {
   constructor() {
-    super(`Up to ${MAX_PINNED_TERMS} searches can have pinned products`)
+    super('SEARCH_PIN_LIMIT', `Up to ${MAX_PINNED_TERMS} searches can have pinned products`)
   }
 }
 
@@ -297,252 +283,4 @@ export async function setSearchPins(
       .values(ids.map((productId, position) => ({ storeId, term, productId, position })))
   }
   return listSearchPins(tx)
-}
-
-// --- Picked recommendations ------------------------------------------------------------------
-
-export type PickedRecommendations = Record<RecommendationIntentKind, PinnedProduct[]>
-
-/** A product's picked recommendations for both rows, in order. */
-export async function getProductRecommendations(
-  tx: StoreTx,
-  productId: string,
-): Promise<PickedRecommendations> {
-  const rows = await tx
-    .select({
-      intent: productRecommendation.intent,
-      id: product.id,
-      title: product.title,
-      handle: product.handle,
-      status: product.status,
-    })
-    .from(productRecommendation)
-    .innerJoin(product, eq(product.id, productRecommendation.recommendedId))
-    .where(eq(productRecommendation.productId, productId))
-    .orderBy(asc(productRecommendation.position))
-  const out: PickedRecommendations = { related: [], complementary: [] }
-  for (const r of rows) {
-    const intent = r.intent as RecommendationIntentKind
-    out[intent].push({ id: r.id, title: r.title, handle: r.handle, status: r.status })
-  }
-  return out
-}
-
-/** The product a Recommendations editor opens on; null when it is not in the store. */
-export async function recommendationTarget(
-  tx: StoreTx,
-  productId: string,
-): Promise<PinnedProduct | null> {
-  const [row] = await tx
-    .select({
-      id: product.id,
-      title: product.title,
-      handle: product.handle,
-      status: product.status,
-    })
-    .from(product)
-    .where(eq(product.id, productId))
-  return row ?? null
-}
-
-/** Replaces one row's picks for a product. The product itself and unknown ids are dropped. */
-export async function setProductRecommendations(
-  tx: StoreTx,
-  storeId: string,
-  productId: string,
-  intent: RecommendationIntentKind,
-  ids: string[],
-): Promise<PickedRecommendations> {
-  const wanted = [...new Set(ids)].filter((id) => id !== productId)
-  const known = wanted.length
-    ? new Set(
-        (await tx.select({ id: product.id }).from(product).where(inArray(product.id, wanted))).map(
-          (r) => r.id,
-        ),
-      )
-    : new Set<string>()
-  const picks = wanted.filter((id) => known.has(id)).slice(0, MAX_PICKED_RECOMMENDATIONS)
-  await tx
-    .delete(productRecommendation)
-    .where(
-      and(eq(productRecommendation.productId, productId), eq(productRecommendation.intent, intent)),
-    )
-  if (picks.length) {
-    await tx.insert(productRecommendation).values(
-      picks.map((recommendedId, position) => ({
-        storeId,
-        productId,
-        recommendedId,
-        intent,
-        position,
-      })),
-    )
-  }
-  return getProductRecommendations(tx, productId)
-}
-
-/** The active products a merchant picked for one row of a product, in their order. */
-export async function pickedRecommendationIdsFor(
-  tx: StoreTx,
-  productId: string,
-  intent: RecommendationIntentKind,
-): Promise<string[]> {
-  const rows = await tx
-    .select({ id: productRecommendation.recommendedId })
-    .from(productRecommendation)
-    .innerJoin(product, eq(product.id, productRecommendation.recommendedId))
-    .where(
-      and(
-        eq(productRecommendation.productId, productId),
-        eq(productRecommendation.intent, intent),
-        eq(product.status, 'active'),
-      ),
-    )
-    .orderBy(asc(productRecommendation.position))
-  return rows.map((r) => r.id)
-}
-
-/** Products with picks, newest change first, for the Recommendations page's list. */
-export async function productsWithPicks(
-  tx: StoreTx,
-): Promise<(PinnedProduct & { related: number; complementary: number })[]> {
-  const rows = await tx.execute<Row>(sql`
-    select p.id, p.title, p.handle, p.status,
-      count(*) filter (where r.intent = 'related') as related,
-      count(*) filter (where r.intent = 'complementary') as complementary
-    from product_recommendation r join product p on p.id = r.product_id
-    group by p.id, p.title, p.handle, p.status
-    order by p.title
-    limit 500`)
-  return rows.map((r) => ({
-    id: String(r.id),
-    title: String(r.title),
-    handle: String(r.handle),
-    status: String(r.status),
-    related: num(r.related),
-    complementary: num(r.complementary),
-  }))
-}
-
-// --- Overview --------------------------------------------------------------------------------
-
-/** Searches read for the lists: the most searched, enough for three lists of 20. */
-const QUERY_POOL = 500
-
-type Range = { from: Date; to: Date }
-
-async function searchFunnel(tx: StoreTx, { from, to }: Range): Promise<SearchFunnel> {
-  const [r] = await tx.execute<Row>(sql`
-    with s as (
-      select e.session_key, e.created_at from discovery_event e
-      where e.kind = 'search' and e.created_at >= ${from.toISOString()}::timestamptz and e.created_at < ${to.toISOString()}::timestamptz
-    ), c as (
-      select s.session_key, (
-        select min(x.created_at) from discovery_event x
-        where x.session_key = s.session_key and x.kind = 'click' and x.source = 'search'
-          and x.created_at >= s.created_at and x.created_at <= s.created_at + ${WINDOW}
-      ) as clicked_at
-      from s
-    ), a as (
-      select c.session_key, c.clicked_at, case when c.clicked_at is null then null else (
-        select min(x.created_at) from discovery_event x
-        where x.session_key = c.session_key and x.kind = 'add' and x.source = 'search'
-          and x.created_at >= c.clicked_at and x.created_at <= c.clicked_at + ${WINDOW}
-      ) end as added_at
-      from c
-    ), k as (
-      select a.session_key, a.clicked_at, a.added_at, a.added_at is not null and exists (
-        select 1 from discovery_event x
-        where x.session_key = a.session_key and x.kind = 'checkout'
-          and x.created_at >= a.added_at and x.created_at <= a.added_at + ${WINDOW}
-      ) as ordered
-      from a
-    )
-    select count(distinct session_key) as sessions,
-      count(distinct session_key) filter (where clicked_at is not null) as clicked,
-      count(distinct session_key) filter (where added_at is not null) as added,
-      count(distinct session_key) filter (where ordered) as checked_out
-    from k`)
-  return {
-    sessions: num(r?.sessions),
-    clicked: num(r?.clicked),
-    added: num(r?.added),
-    checkedOut: num(r?.checked_out),
-  }
-}
-
-async function searchQueryStats(tx: StoreTx, { from, to }: Range): Promise<SearchQueryStat[]> {
-  const rows = await tx.execute<Row>(sql`
-    with s as (
-      select e.query, e.session_key, e.created_at, e.results from discovery_event e
-      where e.kind = 'search' and e.query is not null
-        and e.created_at >= ${from.toISOString()}::timestamptz and e.created_at < ${to.toISOString()}::timestamptz
-    ), x as (
-      select s.*, exists (
-        select 1 from discovery_event c
-        where c.session_key = s.session_key and c.kind = 'click' and c.source = 'search'
-          and c.created_at >= s.created_at and c.created_at <= s.created_at + ${WINDOW}
-      ) as clicked
-      from s
-    )
-    select query, count(*) as searches, count(distinct session_key) as sessions,
-      (array_agg(results order by created_at desc))[1] as results,
-      count(distinct session_key) filter (where clicked) as clicked_sessions
-    from x
-    group by query
-    order by searches desc, query
-    limit ${QUERY_POOL}`)
-  return rows.map((r) => ({
-    query: String(r.query),
-    searches: num(r.searches),
-    sessions: num(r.sessions),
-    results: num(r.results),
-    clickedSessions: num(r.clicked_sessions),
-  }))
-}
-
-async function recommendationStats(
-  tx: StoreTx,
-  { from, to }: Range,
-): Promise<RecommendationStat[]> {
-  const rows = await tx.execute<Row>(sql`
-    select source,
-      count(*) filter (where kind = 'impression') as impressions,
-      count(*) filter (where kind = 'click') as clicks,
-      count(*) filter (where kind = 'add') as adds
-    from discovery_event
-    where source in ('related', 'complementary') and created_at >= ${from.toISOString()}::timestamptz and created_at < ${to.toISOString()}::timestamptz
-    group by source`)
-  return (['related', 'complementary'] as const).map((intent) => {
-    const r = rows.find((x) => x.source === intent)
-    return {
-      intent,
-      impressions: num(r?.impressions),
-      clicks: num(r?.clicks),
-      adds: num(r?.adds),
-    }
-  })
-}
-
-/** The app's Overview for the last `days` days, with the funnel for the days before. */
-export async function discoveryOverview(
-  tx: StoreTx,
-  days: number,
-  now = new Date(),
-): Promise<DiscoveryOverview> {
-  const current = { from: new Date(now.getTime() - days * DAY_MS), to: now }
-  const previous = { from: new Date(now.getTime() - 2 * days * DAY_MS), to: current.from }
-  const [funnel, before, stats, recommendations] = [
-    await searchFunnel(tx, current),
-    await searchFunnel(tx, previous),
-    await searchQueryStats(tx, current),
-    await recommendationStats(tx, current),
-  ]
-  return {
-    days,
-    funnel,
-    previous: before,
-    ...splitSearchLists(stats),
-    recommendations,
-  }
 }

@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: manual payment instructions — WHAT: how to pay a UPI / bank transfer order, as lines for the order email / WHY: the same details the thank-you page shows */
 import type { CheckoutSession, ManualInstructions } from '@commerce/payments'
 
 /**
@@ -5,7 +6,7 @@ import type { CheckoutSession, ManualInstructions } from '@commerce/payments'
  * shop's UPI ID, its bank details, the reference to quote and the shop's own instructions
  * (audit #149). The same details the thank-you page shows.
  */
-export function manualInstructionLines(i: ManualInstructions): string[] {
+function manualInstructionLines(i: ManualInstructions): string[] {
   const lines: string[] = []
   if (i.upi) lines.push(`UPI ID: ${i.upi.id} (${i.upi.payeeName})`)
   if (i.bank) {

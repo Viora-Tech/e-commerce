@@ -14,6 +14,7 @@ import {
   storefrontOriginFor,
 } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
+import { formatInZone } from '@commerce/dates'
 import { type Db, withStore } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
 import { applicationNotice } from '@commerce/plugin-affiliates/server'
@@ -315,12 +316,7 @@ export function createNotificationWorker(
                 rewardCode: r.code,
                 rewardLabel: rewardLabel(r.percent),
                 rewardUntil: r.endsAt
-                  ? r.endsAt.toLocaleDateString('en-IN', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric',
-                      timeZone: 'Asia/Kolkata',
-                    })
+                  ? formatInZone(r.endsAt, { day: 'numeric', month: 'long', year: 'numeric' })
                   : undefined,
               },
             },

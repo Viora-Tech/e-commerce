@@ -37,7 +37,7 @@ export const CHECKOUT_TEXT_KEYS = [
 ] as const
 export type CheckoutTextKey = (typeof CHECKOUT_TEXT_KEYS)[number]
 
-export const CHECKOUT_TEXT_LANGUAGES = ['en', 'hi'] as const
+const CHECKOUT_TEXT_LANGUAGES = ['en', 'hi'] as const
 export type CheckoutTextLanguage = (typeof CHECKOUT_TEXT_LANGUAGES)[number]
 
 /** Longest override; a label or a short hint, never a paragraph. */

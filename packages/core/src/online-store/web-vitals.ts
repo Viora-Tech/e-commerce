@@ -11,7 +11,7 @@ import { and, eq, gte, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 /** Google's thresholds (web.dev/vitals): at or under `good` is Good, over `poor` is Poor. */
-export const WEB_VITAL_THRESHOLDS: Record<WebVitalMetric, { good: number; poor: number }> = {
+const WEB_VITAL_THRESHOLDS: Record<WebVitalMetric, { good: number; poor: number }> = {
   LCP: { good: 2500, poor: 4000 },
   INP: { good: 200, poor: 500 },
   CLS: { good: 0.1, poor: 0.25 },
@@ -26,9 +26,9 @@ export function rateWebVital(metric: WebVitalMetric, value: number): WebVitalRat
 }
 
 /** The days the summary covers, as Google's CrUX report does. */
-export const WEB_VITAL_WINDOW_DAYS = 28
+const WEB_VITAL_WINDOW_DAYS = 28
 /** Readings a metric needs before its p75 means anything; under it the strip says "Collecting data". */
-export const WEB_VITAL_MIN_SAMPLES = 20
+const WEB_VITAL_MIN_SAMPLES = 20
 /** Readings one beacon may carry (a page sends at most one of each metric). */
 const MAX_READINGS = 3
 

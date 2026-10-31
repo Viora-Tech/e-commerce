@@ -1,15 +1,12 @@
-import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import {
   activateGateway,
   activeGatewaysOf,
-  anyManualRowLive,
   type CaptureMode,
   type CheckoutMethod,
   captureModeFor,
   checkoutMethodsOf,
   checkoutTestMode,
   cleanRouting,
-  createPaymentTestCart,
   DEFAULT_CHECKOUT_METHODS,
   deactivateGateway,
   decryptPaymentSettings,
@@ -22,23 +19,18 @@ import {
   isGatewayProvider,
   isMaskedSecret,
   keySetMode,
-  type ManualRow,
   type ManualRowId,
-  type ManualRows,
   manualRowOn,
   manualRowReady,
   ONLINE_METHOD_IDS,
   type OnlineMethodId,
   onlineMethodsOn,
-  type PaymentAdjustment,
   type PaymentMethodRule,
   type PaymentMode,
   type PaymentRegistry,
   type PaymentSettings,
   parsePaymentSettings,
-  recoveryUrl,
   routeMethods,
-  storefrontOriginFor,
   supportsManualCapture,
   switchKeySet,
   withKeySet,
@@ -47,14 +39,7 @@ import { getRegistries } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
 import { payment, paymentEvent, store } from '@commerce/db'
 import type { ConnectionTestResult } from '@commerce/payments'
-import {
-  exchangeRazorpayCode,
-  oauthConfigFields,
-  RAZORPAY_WEBHOOK_EVENTS,
-  type RazorpayOAuthApp,
-  registerRazorpayWebhook,
-  updateRazorpayWebhook,
-} from '@commerce/payments-razorpay'
+import { RAZORPAY_WEBHOOK_EVENTS } from '@commerce/payments-razorpay'
 import { ORPCError } from '@orpc/server'
 import { and, desc, eq, inArray } from 'drizzle-orm'
 import {
@@ -118,10 +103,10 @@ export type GatewayApp = {
   keys: Record<PaymentMode, boolean>
 }
 
-const webhookUrlFor = (workerUrl: string, providerId: string, storeId: string) =>
+export const webhookUrlFor = (workerUrl: string, providerId: string, storeId: string) =>
   `${workerUrl.replace(/\/$/, '')}/webhooks/payments/${providerId}/${storeId}`
 
-async function loadSettings(tx: StoreTx, storeId: string): Promise<PaymentSettings> {
+export async function loadSettings(tx: StoreTx, storeId: string): Promise<PaymentSettings> {
   const [s] = await tx.select({ payments: store.payments }).from(store).where(eq(store.id, storeId))
   return parsePaymentSettings(s?.payments)
 }
@@ -361,7 +346,7 @@ async function paymentsEverSaved(tx: StoreTx, storeId: string): Promise<boolean>
 }
 
 /** Read, change and save the settings blob the way the admin form does: validated and encrypted. */
-async function writeSettings(
+export async function writeSettings(
   tx: StoreTx,
   storeId: string,
   registry: PaymentRegistry,
@@ -472,74 +457,6 @@ export function savePaymentCapture(
       capture[input.gatewayId] = 'manual'
     } else delete capture[input.gatewayId]
     return { ...s, capture }
-  })
-}
-
-const MANUAL_ROW_FIELDS: Record<ManualRowId, readonly string[]> = {
-  upi: ['upiId', 'payeeName'],
-  bank: ['bankName', 'accountName', 'accountNumber', 'ifsc'],
-}
-
-/**
- * One row of "Manual payment methods" (audit #149): its details, its on/off and the note the
- * shopper reads. The built-in `manual` provider is at checkout while at least one row is on.
- */
-export function saveManualPaymentMethod(
-  tx: StoreTx,
-  storeId: string,
-  registry: PaymentRegistry,
-  env: Pick<PaymentsEnv, 'secret' | 'previousSecrets'>,
-  input: {
-    kind: ManualRowId
-    on: boolean
-    note: string
-    fields: Record<string, string>
-    /** Undefined keeps the saved one; null removes it. */
-    adjustment?: PaymentAdjustment | null | undefined
-  },
-) {
-  return writeSettings(tx, storeId, registry, env, (s) => {
-    const manual = { ...(s.providers.manual ?? {}) }
-    for (const k of MANUAL_ROW_FIELDS[input.kind]) {
-      const v = input.fields[k]
-      if (v === undefined) continue
-      if (v.trim()) manual[k] = k === 'ifsc' ? v.trim().toUpperCase() : v.trim()
-      else delete manual[k]
-    }
-    if (input.on && !manualRowReady(input.kind, manual)) {
-      throw new ORPCError('BAD_REQUEST', {
-        message:
-          input.kind === 'upi'
-            ? 'Enter your UPI ID and payee name first.'
-            : 'Enter the bank, account holder, account number and IFSC first.',
-      })
-    }
-    // The first save of a row fixes the other row's switch where it stood, so a row that was
-    // never shown to shoppers does not start showing.
-    const wasOn = s.enabled.includes('manual')
-    const rows: Record<ManualRowId, ManualRow> = {
-      upi: s.manualRows?.upi ?? { on: wasOn && manualRowOn(s.manualRows, 'upi') },
-      bank: s.manualRows?.bank ?? { on: wasOn && manualRowOn(s.manualRows, 'bank') },
-    }
-    const note = input.note.trim()
-    rows[input.kind] = note ? { on: input.on, note } : { on: input.on }
-    const manualRows: ManualRows = { upi: rows.upi, bank: rows.bank }
-    const live = anyManualRowLive(manual, manualRows)
-    const enabled = live
-      ? wasOn
-        ? s.enabled
-        : [...s.enabled, 'manual']
-      : s.enabled.filter((x) => x !== 'manual')
-    const adjustments = { ...s.adjustments }
-    if (input.adjustment === null) delete adjustments.manual
-    else if (input.adjustment) adjustments.manual = input.adjustment
-    return {
-      ...s,
-      providers: { ...s.providers, manual },
-      manualRows,
-      enabled,
-      adjustments,
-    }
   })
 }
 
@@ -708,175 +625,4 @@ export async function testPaymentConnection(
     return { ok: false, message: `${factory.label} can't be tested from here yet.` }
   }
   return built.provider.testConnection()
-}
-
-/** Where Razorpay sends the merchant back after "Connect Razorpay"; registered on the partner app. */
-export const razorpayRedirectUri = (adminUrl: string) =>
-  `${adminUrl.replace(/\/$/, '')}/api/apps/razorpay/oauth/callback`
-
-/** An OAuth `state` lives this long: enough to log in to Razorpay, too short to be replayed later. */
-const OAUTH_STATE_TTL_MS = 30 * 60_000
-
-type OAuthState = { storeId: string; mode: 'test' | 'live' }
-
-const stateMac = (payload: string, secret: string) =>
-  createHmac('sha256', `razorpay-oauth:${secret}`).update(payload).digest('base64url')
-
-/**
- * The OAuth `state`: which store and mode started the connection, signed so a
- * forged or swapped callback (CSRF) is refused, and dated so it expires.
- */
-export function signOAuthState(state: OAuthState, secret: string, now: Date = new Date()): string {
-  const payload = Buffer.from(
-    JSON.stringify({
-      ...state,
-      exp: now.getTime() + OAUTH_STATE_TTL_MS,
-      n: randomBytes(8).toString('hex'),
-    }),
-  ).toString('base64url')
-  return `${payload}.${stateMac(payload, secret)}`
-}
-
-/** The store and mode inside a `state` we signed, or null when it is forged or expired. */
-export function verifyOAuthState(
-  raw: string,
-  secret: string,
-  now: Date = new Date(),
-): OAuthState | null {
-  const [payload, mac] = raw.split('.')
-  if (!payload || !mac) return null
-  const expected = Buffer.from(stateMac(payload, secret))
-  const given = Buffer.from(mac)
-  if (expected.length !== given.length || !timingSafeEqual(expected, given)) return null
-  try {
-    const s = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as {
-      storeId?: unknown
-      mode?: unknown
-      exp?: unknown
-    }
-    if (typeof s.storeId !== 'string' || typeof s.exp !== 'number' || s.exp < now.getTime()) {
-      return null
-    }
-    return { storeId: s.storeId, mode: s.mode === 'live' ? 'live' : 'test' }
-  } catch {
-    return null
-  }
-}
-
-/** A random secret for a new webhook; the merchant copies it into the gateway's dashboard. */
-const newWebhookSecret = (): string => randomBytes(18).toString('base64url')
-
-/**
- * Finish "Connect Razorpay": swap the code for tokens, point the account's
- * payment updates at our webhook with a fresh secret, and save it all as the
- * main gateway. A webhook Razorpay refuses (a localhost worker, say) doesn't
- * block the connection; the health line offers "Fix" once the URL is public.
- */
-export async function completeRazorpayOAuth(
-  tx: StoreTx,
-  storeId: string,
-  registry: PaymentRegistry,
-  env: Pick<PaymentsEnv, 'secret' | 'previousSecrets' | 'workerUrl'>,
-  app: RazorpayOAuthApp,
-  input: { code: string; mode: 'test' | 'live'; redirectUri: string },
-  fetchImpl: typeof fetch = fetch,
-): Promise<{ webhook: 'registered' | 'failed'; webhookError?: string | undefined }> {
-  const tokens = await exchangeRazorpayCode(app, input, fetchImpl)
-  const webhookSecret = newWebhookSecret()
-  let webhookId = ''
-  let webhookError: string | undefined
-  try {
-    webhookId = await registerRazorpayWebhook(
-      {
-        accessToken: tokens.accessToken,
-        accountId: tokens.accountId,
-        url: webhookUrlFor(env.workerUrl, 'razorpay', storeId),
-        secret: webhookSecret,
-      },
-      fetchImpl,
-    )
-  } catch (err) {
-    webhookError = err instanceof Error ? err.message : String(err)
-  }
-  await connectPaymentGateway(
-    tx,
-    storeId,
-    registry,
-    env,
-    'razorpay',
-    {
-      ...oauthConfigFields(tokens),
-      keySecret: '',
-      webhookSecret,
-      webhookId,
-      oauthMode: input.mode,
-    },
-    input.mode,
-  )
-  return webhookError ? { webhook: 'failed', webhookError } : { webhook: 'registered' }
-}
-
-/**
- * "Payment updates aren't arriving: Fix" for a Connect Razorpay account:
- * re-point the saved webhook at our URL, or create a new one (with a new
- * secret) when Razorpay no longer has it. Pasted-key connections can't be
- * fixed through the API; the admin shows the dashboard steps instead.
- */
-export async function fixRazorpayWebhook(
-  tx: StoreTx,
-  storeId: string,
-  registry: PaymentRegistry,
-  env: Pick<PaymentsEnv, 'secret' | 'previousSecrets' | 'workerUrl'>,
-  fetchImpl: typeof fetch = fetch,
-): Promise<ConnectionTestResult> {
-  const saved =
-    decryptPaymentSettings(await loadSettings(tx, storeId), env.secret, env.previousSecrets)
-      .providers.razorpay ?? {}
-  if (!saved.accessToken || !saved.accountId) {
-    return { ok: false, message: 'Only a "Connect Razorpay" account can be fixed from here.' }
-  }
-  const url = webhookUrlFor(env.workerUrl, 'razorpay', storeId)
-  try {
-    if (saved.webhookId) {
-      const updated = await updateRazorpayWebhook(
-        {
-          accessToken: saved.accessToken,
-          accountId: saved.accountId,
-          webhookId: saved.webhookId,
-          url,
-        },
-        fetchImpl,
-      )
-      if (updated) return { ok: true, message: 'Payment updates are switched back on.' }
-    }
-    const webhookSecret = newWebhookSecret()
-    const webhookId = await registerRazorpayWebhook(
-      { accessToken: saved.accessToken, accountId: saved.accountId, url, secret: webhookSecret },
-      fetchImpl,
-    )
-    await writeSettings(tx, storeId, registry, env, (s) => ({
-      ...s,
-      providers: {
-        ...s.providers,
-        razorpay: { ...(s.providers.razorpay ?? {}), webhookSecret, webhookId },
-      },
-    }))
-    return { ok: true, message: 'Payment updates are switched back on.' }
-  } catch (err) {
-    return {
-      ok: false,
-      message: `Razorpay said no: ${err instanceof Error ? err.message : String(err)}`,
-    }
-  }
-}
-
-/** A signed link that opens the storefront checkout with just the ₹1 test product in the basket. */
-export async function paymentTestOrderLink(
-  tx: StoreTx,
-  storeId: string,
-  env: Pick<PaymentsEnv, 'secret' | 'storefrontUrl'>,
-): Promise<string> {
-  const cartId = await createPaymentTestCart({ storeId, tx })
-  // The checkout (and the gateway's return to it) must run on a host that serves this store.
-  return recoveryUrl(cartId, env.secret, await storefrontOriginFor(tx, storeId, env.storefrontUrl))
 }

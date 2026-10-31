@@ -6,8 +6,8 @@ import { toDataURL } from 'qrcode'
 import { useEffect, useState, useTransition } from 'react'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
 import { upiQrContent as content, UPI_QR_SIZE } from '@/data/checkout'
-import { checkQrPaymentAction, retryPaymentAction } from '@/lib/cart-actions'
 import { CK_BUTTON_PRIMARY, CK_BUTTON_SECONDARY, CK_HEADING } from '@/lib/checkout-classes'
+import { checkQrPaymentAction, retryPaymentAction } from '@/lib/payment-actions'
 
 type UpiQrPaymentProps = {
   orderNumber: number

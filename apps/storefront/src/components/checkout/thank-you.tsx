@@ -15,9 +15,9 @@ import ThankYouCard from '@/components/checkout/thank-you-card'
 import TransferInstructions from '@/components/checkout/transfer-instructions'
 import UpiQrPayment from '@/components/checkout/upi-qr-payment'
 import { thankYouContent as content } from '@/data/checkout'
-import { payOnlineAction, retryPaymentAction } from '@/lib/cart-actions'
 import { CK_BUTTON_PRIMARY, CK_BUTTON_SECONDARY, CK_HEADING } from '@/lib/checkout-classes'
 import type { ShopperParcel } from '@/lib/parcels'
+import { payOnlineAction, retryPaymentAction } from '@/lib/payment-actions'
 import { deliveryWindow, firstName, thankYouProgress } from '@/lib/thank-you'
 
 type ThankYouTemplateProps = {

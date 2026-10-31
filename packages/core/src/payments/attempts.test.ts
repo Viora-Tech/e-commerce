@@ -16,8 +16,9 @@ import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { placeOrder, placeOrderAndPay } from '../order/place-order'
 import { cancelOrder } from '../order/status'
-import { PaymentNotRetryable, retryAndStartPayment, retryPayment } from './attempts'
+import { PaymentNotRetryable, retryPayment } from './attempts'
 import { type Delivery, GatewayDouble } from './gateway-double.test-util'
+import { retryAndStartPayment } from './qr-attempts'
 import { handlePaymentWebhook } from './webhook'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)

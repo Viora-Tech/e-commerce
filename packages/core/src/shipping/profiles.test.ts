@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: shipping profile rule tests — WHAT: quotes across profiles, free shipping and value splits / WHY: guard the rule in profiles.ts */
 import { describe, expect, it } from 'vitest'
 import {
   primaryRateId,

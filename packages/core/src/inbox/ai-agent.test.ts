@@ -20,9 +20,9 @@ import {
   getConversation,
   inboxCounts,
   listConversations,
-  staffSend,
   takeOverConversation,
 } from './conversations'
+import { staffSend } from './conversations-send'
 import { hashChatToken, newChatToken } from './identity'
 import { createKnowledge } from './knowledge'
 import type { ShopperIdentity } from './rules'

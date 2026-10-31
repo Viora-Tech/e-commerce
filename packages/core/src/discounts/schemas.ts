@@ -37,7 +37,7 @@ const DiscountBxgySchema = z.object({
 
 /** Most combos one combo deal holds, and most items in one combo. */
 export const MAX_COMBOS = 20
-export const MAX_COMBO_ITEMS = 20
+const MAX_COMBO_ITEMS = 20
 
 /** One combo: a set of products or variants with quantities, and its own discount. */
 const DiscountComboSchema = z

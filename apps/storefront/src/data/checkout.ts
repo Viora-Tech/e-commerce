@@ -1,3 +1,7 @@
+import { checkoutAbroadContent } from './checkout-abroad'
+import { checkoutErrorsContent } from './checkout-errors'
+import { checkoutExpressContent } from './checkout-express'
+import { checkoutFieldsContent } from './checkout-fields'
 /**
  * Every string the checkout, payment and thank-you screens show. Change copy here,
  * never inside a component.
@@ -312,20 +316,7 @@ export const checkoutContent = {
   },
   /** Under the Pay button: the gateways that handle the money. */
   processors: (names: string[]) => `Payments processed by ${names.join(' · ')}`,
-  express: {
-    heading: 'Express checkout',
-    /** The three app buttons; each pays by UPI and opens that app (or its QR) next. */
-    apps: { gpay: 'Google Pay', phonepe: 'PhonePe', paytm: 'Paytm' },
-    payWith: (app: string) => `Pay with ${app}`,
-    /** Under the buttons: what one tap pays, shipping included. */
-    total: (amount: string, shipping: string) => `Pays ${amount} by UPI, with ${shipping}.`,
-    totalOnly: (amount: string) => `Pays ${amount} by UPI.`,
-    shippingLine: (name: string, price: string) => `${name} shipping (${price})`,
-    freeShipping: 'free shipping',
-    noShippingYet: 'Add your PIN code below to see shipping, then pay in one tap.',
-    needDetails: 'Add your contact and delivery details below, then tap again.',
-    needShipping: 'Pick a shipping option below, then tap again.',
-  },
+  express: checkoutExpressContent,
   summary: 'Order summary',
   orderTotal: 'Order total',
   showSummary: 'Show order summary',
@@ -373,38 +364,7 @@ export const checkoutContent = {
     encrypted:
       'Payments are encrypted and handled by the payment provider. We never see your card or UPI PIN.',
   },
-  fields: {
-    name: 'Full name',
-    email: 'Email for the receipt',
-    phone: 'Mobile number',
-    emailPlaceholder: 'you@example.com',
-    phonePlaceholder: '98765 43210',
-    namePlaceholder: 'As on your ID',
-    /** Settings → Checkout → Form fields: the name in two parts (#154). */
-    firstName: 'First name',
-    lastName: 'Last name',
-    /** The company name in Delivery, when the store asks for it. */
-    company: 'Company name',
-    companyOptional: 'Company name (optional)',
-    line1: 'House number, street, area',
-    line1Placeholder: 'Flat 4B, Palm Residency, Sector 14',
-    line2: 'Landmark (optional)',
-    line2Placeholder: 'Near the metro',
-    /** Address line 2 when the store makes it required. */
-    line2Required: 'Landmark',
-    city: 'City',
-    state: 'State',
-    pincode: 'PIN code',
-    pincodePlaceholder: '110001',
-    emailOptional: 'Email for the receipt (optional)',
-    phoneHint: 'The courier calls this number on delivery.',
-    gstin: 'GSTIN',
-    gstinPlaceholder: '06ABCDE1234F1Z5',
-    gstinHint: 'For a GST invoice in your business name.',
-    businessName: 'Business name',
-    note: 'Order note (optional)',
-    notePlaceholder: 'For example, please call before delivery',
-  },
+  fields: checkoutFieldsContent,
   /** Inline messages, shown once a field has been left or the shopper tried to pay. */
   validation: {
     name: 'Enter your full name',
@@ -424,31 +384,7 @@ export const checkoutContent = {
         ? 'Check the highlighted field to continue.'
         : `Check the ${n} highlighted fields to continue.`,
   },
-  /** An address outside India (country zones): no PIN code, a free-text region and postcode. */
-  abroad: {
-    country: 'Country',
-    line1: 'Address',
-    line1Placeholder: 'Street address and number',
-    line2: 'Apartment, suite, etc. (optional)',
-    line2Required: 'Apartment, suite, etc.',
-    line2Placeholder: 'Apartment 12',
-    region: 'State, province or region',
-    regionOptional: 'State, province or region (optional)',
-    postcode: 'Postcode',
-    postcodeOptional: 'Postcode (optional)',
-    phone: 'Phone number',
-    phoneHint: 'With the country code. The courier may call it on delivery.',
-    phoneInvalid: 'Enter a phone number with its country code, like +61 412 345 678',
-    postcodeMissing: 'Enter the postcode',
-    postcodeInvalid: 'Enter a valid postcode for this country',
-    regionMissing: 'Enter the state or province',
-    regionInvalid: 'Pick the state or province from the list',
-    /** The first entry of a listed country's region select (US states, Canadian provinces). */
-    regionPick: 'Select',
-    line2Missing: 'Enter the apartment or suite',
-    shipsTo: (country: string) => `Ships to ${country}`,
-    noCod: 'Cash on delivery is only offered for addresses in India.',
-  },
+  abroad: checkoutAbroadContent,
   pincodeFirst: {
     finding: 'Finding your city…',
     found: (city: string, state: string) => `${city}, ${state}`,
@@ -507,45 +443,7 @@ export const checkoutContent = {
     'Your bank converts it at its own rate.',
   totalDue: 'To pay',
   codWithGiftCard: 'Not available with a gift card',
-  errors: {
-    unserviceable: (pincode: string) => `We cannot deliver to ${pincode} yet. Try another address.`,
-    codUnavailable:
-      'Cash on delivery is not available for this PIN code. Pick another payment method.',
-    pickShipping: 'Pick a shipping option to pay.',
-    codAbroad: 'Cash on delivery is only offered in India. Pick another payment method.',
-    noShipping: (pincode: string) => `We do not ship to ${pincode} yet. Try another address.`,
-    cannotShipToState: "We can't deliver this item to your state yet.",
-    priceNotSet:
-      'An item in your cart is not for sale yet, so your order was not placed. Remove it and try again.',
-    variantHidden:
-      'An item in your cart is no longer available, so your order was not placed. Remove it and try again.',
-    notSoldInMarket:
-      'An item in your cart is not sold in your country, so your order was not placed. Remove it and try again.',
-    rateChanged:
-      'The shipping options for your order changed, so it was not placed. Pick a shipping method and place it again.',
-    discountUnavailable:
-      'That discount has just run out, so your order was not placed. Check the new total and place it again.',
-    discountNotApplied: (code: string) =>
-      `We applied ${code} for you. Check the new total, then tap Pay again.`,
-    discountRefused: (code: string, why: string) =>
-      `${code} can't be used on this order: ${why} Your order was not placed. Remove the code to pay the full price, or try another code.`,
-    rateLimited: 'Too many attempts. Please wait a minute and try again.',
-    cartLimit: (title: string, max: number) =>
-      `You can buy up to ${max} of ${title || 'this item'} in one order. Lower the quantity in your cart and try again.`,
-    preorderMixedCart:
-      'Pre-orders in your cart ship on their own. Check out the pre-order separately from your other items.',
-    paymentMethodHidden:
-      'That way to pay is not available for this order. Pick another payment method.',
-    contact: 'Check your contact details and try again.',
-    minimumOrder: (missing: string) =>
-      `Your order is below this shop's minimum. Add ${missing} more and try again.`,
-    codOverLimit: (limit: string) =>
-      `Cash on delivery is available on orders up to ${limit}. Please pay online.`,
-    codHighRisk:
-      'Cash on delivery is not available for this order. Please pay online, it only takes a moment.',
-    stateMismatch: (pincode: string) =>
-      `The state you picked does not match PIN code ${pincode}. Check the state and the PIN code, then try again.`,
-  },
+  errors: checkoutErrorsContent,
 } as const
 
 /**

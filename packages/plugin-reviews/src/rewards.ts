@@ -5,7 +5,7 @@ import { review, reviewMedia } from './schema'
 import type { ReviewsSettings } from './settings'
 
 /** The code's prefix: `PHOTO-7K2QX9FD`. */
-export const PHOTO_REWARD_PREFIX = 'PHOTO'
+const PHOTO_REWARD_PREFIX = 'PHOTO'
 
 /** "10% off": how the reward reads in the email. */
 export function rewardLabel(percent: number): string {

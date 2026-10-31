@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: checkout text tests — WHAT: the merchant's checkout wording per language over the defaults / WHY: guard Settings › Checkout › Checkout text */
 import { describe, expect, it } from 'vitest'
 import { applyCheckoutText, CheckoutTextSchema, checkoutTextFor } from './content'
 

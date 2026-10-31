@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: importedMethod — WHAT: an imported order's payment method from the old platform's gateway names / WHY: Analytics read "Unknown" for imported orders (audit #96) */
 /**
  * An imported order's payment method from the old platform's gateway names, in our keys where
  * one matches (Shopify: "Cards, UPI, NB, Wallets by Razorpay", "Cash on Delivery (COD)", "UPI Id").

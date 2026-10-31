@@ -7,13 +7,12 @@ import {
   shipmentWebhookEvent,
 } from '@commerce/db'
 import { and, inArray, lt, sql } from 'drizzle-orm'
+import { DISCOVERY_RETENTION_DAYS } from '../discovery/query'
 
 /** Dispatched outbox rows are kept this long (consumers read a row within minutes of dispatch). */
 const OUTBOX_RETENTION_DAYS = 30
 /** Webhook payloads are kept this long; the row (ids, type, status, error, times) stays for dedupe and history. */
 const WEBHOOK_PAYLOAD_RETENTION_DAYS = 180
-/** Search & discovery events (searches, clicks, recommendation views) are kept this long. */
-const DISCOVERY_RETENTION_DAYS = 90
 
 const DAY_MS = 86_400_000
 /** Only settled events are emptied; a pending one may still be processed. */

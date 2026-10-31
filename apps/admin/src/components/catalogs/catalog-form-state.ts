@@ -1,4 +1,5 @@
 import type { CatalogView } from '@commerce/core'
+import { minorDigits } from '@commerce/money'
 import type { PickItem } from '@/components/pickers/resource-pick-types'
 
 /** One fixed price as the form edits it: the amount as typed, in the market's major units. */
@@ -18,16 +19,6 @@ export type CatalogFormState = {
   collectionIds: string[]
   marketIds: string[]
   prices: FixedPriceDraft[]
-}
-
-/** Decimal places of a currency's minor unit (fils and dinars have 3, yen none). */
-export function minorDigits(currency: string): number {
-  try {
-    return new Intl.NumberFormat('en', { style: 'currency', currency }).resolvedOptions()
-      .maximumFractionDigits as number
-  } catch {
-    return 2
-  }
 }
 
 /** How a catalog's adjustment reads: +10%, −5%. */

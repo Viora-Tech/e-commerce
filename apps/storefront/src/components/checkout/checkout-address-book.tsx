@@ -9,8 +9,9 @@ import SavedAddressCard from '@/components/checkout/saved-address-card'
 import { checkoutContent as content } from '@/data/checkout'
 import { CK_BUTTON_PRIMARY, CK_BUTTON_SECONDARY, CK_HEADING } from '@/lib/checkout-classes'
 import { countryOptions } from '@/lib/checkout-countries'
+import { SAVE_ADDRESS_ID } from '@/lib/checkout-form-input'
 import { NEW_ADDRESS } from '@/lib/checkout-form-state'
-import { type CheckoutFormModel, SAVE_ADDRESS_ID } from '@/lib/use-checkout-form'
+import type { CheckoutFormModel } from '@/lib/use-checkout-form'
 
 type CheckoutAddressBookProps = { ck: CheckoutFormModel }
 

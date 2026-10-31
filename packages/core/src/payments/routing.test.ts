@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: payment routing tests — WHAT: which gateway takes each method, defaults and cleaning / WHY: guard Settings › Payments routing */
 import { describe, expect, it } from 'vitest'
 import type { CheckoutMethod } from './methods'
 import { activateGateway, deactivateGateway } from './modes'

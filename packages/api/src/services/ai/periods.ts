@@ -5,12 +5,12 @@
  * where days, weeks (Monday first) and months start. Each period comes with the window before
  * it, the same length, for "compared with".
  */
-import { dayKey, dayStart, startOfDay, startOfMonth } from '@commerce/dates'
+import { dayKey, dayStart, formatInZone, startOfDay, startOfMonth } from '@commerce/dates'
 import { z } from 'zod'
 
 const DAY_MS = 86_400_000
 
-export const AI_PERIODS = [
+const AI_PERIODS = [
   'days',
   'today',
   'yesterday',
@@ -54,8 +54,7 @@ export type ResolvedPeriod = {
 }
 
 function span(from: Date, to: Date, timeZone: string): string {
-  const fmt = (d: Date) =>
-    new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', timeZone }).format(d)
+  const fmt = (d: Date) => formatInZone(d, { day: 'numeric', month: 'short' }, { timeZone })
   const last = new Date(to.getTime() - 1)
   return dayKey(from, timeZone) === dayKey(last, timeZone)
     ? fmt(from)
@@ -98,9 +97,7 @@ export function resolvePeriod(input: PeriodInput, now: Date, timeZone: string): 
       name = 'last month'
       break
     case 'this_year': {
-      const month = Number(
-        new Intl.DateTimeFormat('en-US', { month: 'numeric', timeZone }).format(now),
-      )
+      const month = Number(dayKey(now, timeZone).slice(5, 7))
       from = startOfMonth(now, timeZone, -(month - 1))
       name = 'this year'
       break

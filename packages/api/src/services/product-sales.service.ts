@@ -5,7 +5,7 @@ import { type ProductSales, summariseProductSales } from './product-sales'
 import { counted } from './reports/types'
 
 /** The window the product page's sales card covers. */
-export const PRODUCT_SALES_DAYS = 90
+const PRODUCT_SALES_DAYS = 90
 
 export type ProductSalesCard = ProductSales & { days: number; from: Date }
 

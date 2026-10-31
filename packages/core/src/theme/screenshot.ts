@@ -24,7 +24,7 @@ export type ThemeScreenshotQueue = {
  * Waits this long before the shot: the request's transaction has committed and the storefront
  * has dropped its cached page by then. Saves inside the window share one job (same `jobId`).
  */
-export const THEME_SCREENSHOT_DELAY_MS = 20_000
+const THEME_SCREENSHOT_DELAY_MS = 20_000
 
 /**
  * Asks the worker to photograph a theme. Never fails the caller: a lost picture leaves the
@@ -49,7 +49,7 @@ export async function queueThemeScreenshot(
 }
 
 /** The object key of a theme's picture: one per theme, under the store's folder. */
-export const themeThumbnailKey = (storeId: string, themeId: string): string =>
+const themeThumbnailKey = (storeId: string, themeId: string): string =>
   `stores/${storeId}/themes/${themeId}/thumbnail.webp`
 
 /** Writes the picture and resolves the URL to store, versioned by `now` so caches refresh. */

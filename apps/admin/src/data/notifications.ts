@@ -3,6 +3,7 @@
  * Plain words for a shop owner: what each message is, when it goes, and how
  * messages are sent.
  */
+import { siteConfig } from '@commerce/config/site'
 
 export type MessageGroupId =
   | 'orders'
@@ -280,7 +281,7 @@ export const notificationsSettingsContent = {
       when: 'When a team member changes their sign-in email.',
     },
     email_changed: { name: 'Email changed', when: 'After a team member’s sign-in email changes.' },
-    plan_bill: { name: 'Plan bill', when: 'When your Koomerce plan is billed.' },
+    plan_bill: { name: 'Plan bill', when: `When your ${siteConfig.brand.name} plan is billed.` },
     bug_report_update: {
       name: 'Bug report update',
       when: 'When a bug you reported is updated.',

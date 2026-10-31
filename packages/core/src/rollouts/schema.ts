@@ -36,7 +36,7 @@ export type RolloutChangeInput = z.input<typeof ChangeSchema>
  * An A/B test's audience (#120): Treatment's share of the tested visitors, the share of all
  * visitors in the test, the markets it runs in (none: all) and the visitors it aims to reach.
  */
-export const RolloutAudienceSchema = z.object({
+const RolloutAudienceSchema = z.object({
   split: z.number().int().min(1).max(99).default(50),
   traffic: z.number().int().min(1).max(100).default(100),
   marketIds: z.array(z.uuid()).max(50).default([]),
@@ -68,6 +68,3 @@ export const RolloutStatusSchema = z.enum(ROLLOUT_STATUSES)
 
 /** How an event ends: roll back what it changed, or keep it. */
 export const RolloutEndActionSchema = z.enum(ROLLOUT_END_ACTIONS)
-
-/** How an A/B test ends: ship the Treatment to everyone, or keep the Control. */
-export const RolloutAbOutcomeSchema = z.enum(['treatment', 'control'])

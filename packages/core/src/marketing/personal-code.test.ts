@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: personal discount code tests — WHAT: one code per shopper and message, the same on a retry / WHY: guard the email discount block */
 import { describe, expect, it } from 'vitest'
 import { personalCodeFor } from './personal-code'
 

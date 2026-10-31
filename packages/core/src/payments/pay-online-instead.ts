@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: payOnlineInstead — WHAT: a transfer order's shopper switches to a gateway, under the order's row lock / WHY: one attempt per switch, and the merchant's reminders keep working */
 import { type Db, order, orderNote, payment, withStore } from '@commerce/db'
 import type { PaymentProvider } from '@commerce/payments'
 import { eq } from 'drizzle-orm'
@@ -27,14 +28,14 @@ import { OPEN_ATTEMPT_STATUSES } from './transitions'
 
 const OPEN: readonly string[] = OPEN_ATTEMPT_STATUSES
 
-export const PAY_ONLINE_NOTE = (gateway: string) =>
+const PAY_ONLINE_NOTE = (gateway: string) =>
   `The customer chose to pay online with ${gateway} instead of a transfer.`
 
 /**
  * Switch a transfer order's open attempt to `providerId`, under the order's row lock. Two taps
  * make one gateway attempt: the second finds it open and gets it back.
  */
-export async function switchToOnlinePayment(
+async function switchToOnlinePayment(
   ctx: StoreContext,
   orderId: string,
   provider: { id: string; label: string },

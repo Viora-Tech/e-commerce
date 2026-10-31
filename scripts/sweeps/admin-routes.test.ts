@@ -47,7 +47,7 @@ const ALLOWLIST: Record<string, number> = {
   'apps/admin/src/data/media.ts': 1,
   'apps/admin/src/data/orders.ts': 2,
   'apps/admin/src/data/policies.ts': 5,
-  'apps/admin/src/data/settings-search.ts': 43,
+  'apps/admin/src/data/settings-search.ts': 29,
   'apps/admin/src/lib/auth-paths.ts': 1,
 }
 

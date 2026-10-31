@@ -12,6 +12,7 @@
  * `{{^name}}…{{/name}}` shows when empty. There is no raw (unescaped) tag, so order data can never
  * add markup. Templates print in a sandboxed frame with scripts off.
  */
+import { formatInZone } from '@commerce/dates'
 import { type Currency, DEFAULT_CURRENCY, formatMoney } from '@commerce/money'
 import { z } from 'zod'
 import { INDIAN_STATE_NAMES } from '../tax/states'
@@ -175,12 +176,14 @@ export type DocOptions = {
 }
 
 const dateOf = (d: Date | string, o: DocOptions) =>
-  new Date(d).toLocaleDateString(o.locale ?? 'en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    ...(o.timeZone ? { timeZone: o.timeZone } : {}),
-  })
+  formatInZone(
+    d,
+    { day: 'numeric', month: 'short', year: 'numeric' },
+    {
+      ...(o.locale ? { locale: o.locale } : {}),
+      ...(o.timeZone ? { timeZone: o.timeZone } : {}),
+    },
+  )
 
 /** "Default" is how a product without options names its only variant: not worth printing. */
 const variantOf = (v: string | null) => (v && v !== 'Default' && v !== 'Default Title' ? v : '')

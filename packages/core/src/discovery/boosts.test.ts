@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: search boost tests — WHAT: boost/bury rules compiled to SQL and the same order in TypeScript / WHY: guard Search & discovery ranking */
 import { PgDialect } from 'drizzle-orm/pg-core'
 import { describe, expect, it } from 'vitest'
 import { boostClauses } from './boost-sql'

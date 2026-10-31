@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: draft order GST tests — WHAT: a draft line's rate and the estimated GST / WHY: guard the draft order editor's tax line */
 import { describe, expect, it } from 'vitest'
 import { draftLineRate, estimateDraftGst } from './draft-gst'
 

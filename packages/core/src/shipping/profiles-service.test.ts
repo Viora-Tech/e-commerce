@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: shipping profile service tests — WHAT: migration 0193, checkout across profiles and the profile service / WHY: guard Settings › Shipping › profiles */
 import { readFileSync } from 'node:fs'
 import {
   cart,

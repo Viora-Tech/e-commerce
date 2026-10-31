@@ -1,5 +1,4 @@
-/**
- * SOURCE OF TRUTH: listPreorderCampaigns, getPreorderCampaign, createPreorderCampaign,
+/** SOURCE OF TRUTH: listPreorderCampaigns, getPreorderCampaign, createPreorderCampaign,
  *   updatePreorderCampaign, deletePreorderCampaign, preorderOverview, campaignsByIds,
  *   campaignSelection, cartPrimaryMarketId, availableAtLocations
  * WHAT:  Products › Pre-orders: campaigns (one rule set for many products) and the overview
@@ -56,7 +55,7 @@ export class PreorderCampaignError extends CommerceError {
 }
 
 /** The columns `PreorderCampaignTerms` reads; select it (or join it) under any name. */
-export const campaignSelection = {
+const campaignSelection = {
   id: preorderCampaign.id,
   name: preorderCampaign.name,
   status: preorderCampaign.status,

@@ -30,16 +30,8 @@ import {
   updateShippingZone,
 } from '@commerce/core'
 import { PREFERENCE_LIMITS, parsePreferences } from '@commerce/core/preferences'
-import {
-  customerSegment,
-  purchaseOrder,
-  type StoreTx,
-  store,
-  supplier,
-  transfer,
-  variant,
-} from '@commerce/db'
-import { and, eq, inArray, isNull } from 'drizzle-orm'
+import { customerSegment, type StoreTx, store } from '@commerce/db'
+import { eq } from 'drizzle-orm'
 import { fetchSettingsSource, type Read, type SettingsSource } from './api-settings'
 import { type ClientForOptions, clientFor } from './connection'
 import { findMapping, findMappings, saveMapping } from './runtime'
@@ -53,6 +45,7 @@ import {
   type SettingsPartResult,
   type SettingsPlan,
 } from './settings-client'
+import { loadStock } from './settings-import-load'
 import { importPurchaseOrder, importTransfer } from './settings-import-stock'
 import {
   type LocalSettings,
@@ -67,7 +60,7 @@ import { planFields, planPolicies } from './settings-plan-content'
 import { planMarkets } from './settings-plan-markets'
 import { planSegments } from './settings-plan-segments'
 import { planPackages, planShipping } from './settings-plan-shipping'
-import { type LocalStock, planPurchaseOrders, planTransfers } from './settings-plan-stock'
+import { planPurchaseOrders, planTransfers } from './settings-plan-stock'
 
 type PlannedPart = SettingsPartPlan & { ops: SettingsOp[] }
 
@@ -112,69 +105,6 @@ async function saveHomeSeo(
     .update(store)
     .set({ preferences: { ...((row?.preferences as object | null) ?? {}), seo } })
     .where(eq(store.id, storeId))
-}
-
-/** Mapped ids whose record is still here (`existing`); a deleted one may be imported again. */
-function stillHere(mapped: Map<string, string>, existing: { id: string }[]): Map<string, string> {
-  const ids = new Set(existing.map((r) => r.id))
-  return new Map([...mapped].filter(([, id]) => ids.has(id)))
-}
-
-/** Suppliers, variants of the imported products the lines name, and earlier imports. */
-async function loadStock(tx: StoreTx, source: SettingsSource): Promise<LocalStock> {
-  const pos = source.purchaseOrders?.ok ? source.purchaseOrders.data : []
-  const transfers = source.transfers?.ok ? source.transfers.data : []
-  const lines = [...pos.flatMap((p) => p.lines), ...transfers.flatMap((t) => t.lines)]
-  const products = await findMappings(
-    tx,
-    'products',
-    lines.map((l) => l.productSourceId),
-  )
-  const productIds = [...new Set(products.values())]
-  const variants = productIds.length
-    ? await tx
-        .select({
-          id: variant.id,
-          productId: variant.productId,
-          sku: variant.sku,
-          title: variant.title,
-        })
-        .from(variant)
-        .where(and(inArray(variant.productId, productIds), isNull(variant.archivedAt)))
-    : []
-  const poIds = await findMappings(
-    tx,
-    SETTINGS_MAPPINGS.purchaseOrders,
-    pos.map((p) => p.sourceId),
-  )
-  const transferIds = await findMappings(
-    tx,
-    SETTINGS_MAPPINGS.transfers,
-    transfers.map((t) => t.sourceId),
-  )
-  return {
-    suppliers: await tx.select({ id: supplier.id, name: supplier.name }).from(supplier),
-    products,
-    variants,
-    purchaseOrders: stillHere(
-      poIds,
-      poIds.size
-        ? await tx
-            .select({ id: purchaseOrder.id })
-            .from(purchaseOrder)
-            .where(inArray(purchaseOrder.id, [...poIds.values()]))
-        : [],
-    ),
-    transfers: stillHere(
-      transferIds,
-      transferIds.size
-        ? await tx
-            .select({ id: transfer.id })
-            .from(transfer)
-            .where(inArray(transfer.id, [...transferIds.values()]))
-        : [],
-    ),
-  }
 }
 
 async function loadLocal(

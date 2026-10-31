@@ -4,6 +4,7 @@ export default defineConfig({
   dialect: 'postgresql',
   schema: [
     './src/schema.ts',
+    './src/shipping-schema.ts',
     './src/ai-schema.ts',
     './src/api-access-schema.ts',
     './src/app-schema.ts',

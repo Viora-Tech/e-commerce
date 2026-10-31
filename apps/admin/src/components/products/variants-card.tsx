@@ -13,9 +13,7 @@ import {
   type Facets,
   MAX_OPTIONS,
   type MediaItem,
-  matrixOptions,
   type OptionRow,
-  reconcileVariants,
   stockOf,
   suggestSku,
   type VariantRow,
@@ -27,6 +25,7 @@ import { generateSku } from './sku'
 import VariantBulkBar, { type VariantBulkPatch } from './variant-bulk-bar'
 import { defaultGroupBy, matrixLines } from './variant-groups'
 import VariantMatrix from './variant-matrix'
+import { matrixOptions, reconcileVariants } from './variant-reconcile'
 import VariantToolbar from './variant-toolbar'
 
 type VariantsCardProps = {

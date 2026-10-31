@@ -30,10 +30,8 @@ import {
   fromProduct,
   type LoadedProduct,
   type MediaItem,
-  matrixOptions,
   type OptionRow,
   type ProductFormState,
-  reconcileVariants,
   snapshot,
   toWrite,
   type VariantRow,
@@ -55,6 +53,7 @@ import ShippingCard from './shipping-card'
 import StockHistoryCard from './stock-history-card'
 import { useProductAppActions } from './use-product-app-actions'
 import VariantMetafieldsCard from './variant-metafields-card'
+import { matrixOptions, reconcileVariants } from './variant-reconcile'
 import VariantsCard from './variants-card'
 
 type ProductFormProps = {

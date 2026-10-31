@@ -21,7 +21,7 @@ import {
   DocumentTemplateWriteSchema,
 } from './templates'
 
-export const GST_INVOICES_APP_ID = 'gst-invoices'
+const GST_INVOICES_APP_ID = 'gst-invoices'
 
 export type DocumentTemplateView = {
   kind: DocumentKind

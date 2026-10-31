@@ -49,7 +49,7 @@ function language(locale: string | null | undefined): string | null {
 }
 
 /** The market as a write here, or null when it has no country we know. */
-export function marketWrite(m: NMarket): MarketWrite | null {
+function marketWrite(m: NMarket): MarketWrite | null {
   const countries = [...new Set(m.countries.map((c) => c.toUpperCase()))].filter((c) =>
     COUNTRIES.has(c),
   )

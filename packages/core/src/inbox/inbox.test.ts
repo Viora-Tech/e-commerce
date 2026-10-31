@@ -6,12 +6,8 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type { StoreContext } from '../context'
 import { createMemoryRateLimitStore } from '../rate-limit/memory-store'
 import { isSenderBlocked, listBlocks } from './blocks'
-import {
-  getConversation,
-  listConversations,
-  setConversationStatus,
-  staffSend,
-} from './conversations'
+import { getConversation, listConversations, setConversationStatus } from './conversations'
+import { staffSend } from './conversations-send'
 import { hashChatToken, inboxHash, newChatToken } from './identity'
 import { messagesAfter } from './messages'
 import type { ShopperIdentity } from './rules'

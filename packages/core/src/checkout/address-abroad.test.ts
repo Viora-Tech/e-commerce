@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: checkout addresses abroad tests — WHAT: address and phone checks for an international order / WHY: guard the international checkout rules */
 import { describe, expect, it } from 'vitest'
 import {
   abroadAddressErrors,

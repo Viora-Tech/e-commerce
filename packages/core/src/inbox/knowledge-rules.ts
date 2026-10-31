@@ -5,8 +5,8 @@ export const KNOWLEDGE_ANSWER_MAX = 2000
 /** Most entries a store keeps; a knowledge base is short answers, not a help centre. */
 export const KNOWLEDGE_ENTRIES_MAX = 200
 /** Most answers the AI reads for one question, and the characters they may add up to. */
-export const KNOWLEDGE_PICK_MAX = 12
-export const KNOWLEDGE_PICK_BUDGET = 6000
+const KNOWLEDGE_PICK_MAX = 12
+const KNOWLEDGE_PICK_BUDGET = 6000
 
 export type KnowledgeEntry = { title: string; answer: string }
 

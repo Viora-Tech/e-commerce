@@ -1664,9 +1664,12 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     category: 'search',
     company: null,
     description:
-      'Tune your store’s search and filters: words that mean the same thing, and the filters shoppers see on collection and search pages.',
+      'Tune your store’s search and filters: see what shoppers search for, pin and boost products, pick recommendations, add words that mean the same thing, and choose the filters on collection and search pages.',
     tagline: 'Words that mean the same thing, so shoppers find what they mean.',
     highlights: [
+      'See top searches, searches with no results and the search funnel',
+      'Pin products to a search, boost or bury by tag, type or vendor',
+      'Pick related and complementary products for each product',
       'Synonyms for your store search',
       'Choose the filters on collection and search pages, from options, product fields or tags',
       'Works with the built-in search and Meilisearch',
@@ -1674,7 +1677,7 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     guide: null,
     worksWith: ['The Meilisearch app'],
     screenshots: [],
-    keywords: ['search', 'synonyms', 'filters'],
+    keywords: ['search', 'synonyms', 'filters', 'boosts', 'recommendations', 'search analytics'],
     faq: [
       {
         question: 'Do I need Meilisearch for this?',
@@ -1687,13 +1690,13 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
       resources: [
         {
           resource: 'products',
-          level: 'read',
-          why: 'Matches searches against your products',
+          level: 'write',
+          why: 'Matches searches against your products and saves the recommendations you pick',
         },
       ],
       shares: [],
     },
-    adminPages: ['Synonyms', 'Filters'],
+    adminPages: ['Overview', 'Synonyms', 'Filters', 'Boosts', 'Recommendations'],
     themeBlocks: [],
     credits: [],
   },

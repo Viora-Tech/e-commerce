@@ -1,7 +1,5 @@
 import { type ProductDetail, ProductRecommendations } from '@commerce/blocks'
-import { pickedRecommendationIdsFor } from '@commerce/core'
-import { product as productTable, type StoreTx } from '@commerce/db'
-import { inArray } from 'drizzle-orm'
+import { pickedRecommendationHandlesFor } from '@commerce/core'
 import { listCardProducts } from '@/lib/catalog'
 import { relatedHandles } from '@/lib/related'
 import { storeRead } from '@/lib/store-cache'
@@ -11,21 +9,6 @@ type RelatedProductsProps = {
   product: ProductDetail
   heading: string
   limit: number
-}
-
-/** The merchant's picks for the row (Search & discovery) as handles, in their order. */
-async function pickedHandles(tx: StoreTx, productId: string): Promise<string[]> {
-  const ids = await pickedRecommendationIdsFor(tx, productId, 'related')
-  if (ids.length === 0) return []
-  const rows = await tx
-    .select({ id: productTable.id, handle: productTable.handle })
-    .from(productTable)
-    .where(inArray(productTable.id, ids))
-  const byId = new Map(rows.map((r) => [r.id, r.handle]))
-  return ids.flatMap((id) => {
-    const handle = byId.get(id)
-    return handle ? [handle] : []
-  })
 }
 
 /**
@@ -43,7 +26,7 @@ export default async function RelatedProducts({
   const type = product.productType ?? undefined
   const [fromCollections, sameType] = await Promise.all([
     storeRead(storeId, `related|${product.id}|${limit}`, async (tx) => {
-      const picked = await pickedHandles(tx, product.id)
+      const picked = await pickedRecommendationHandlesFor(tx, product.id, 'related')
       const handles = [
         ...new Set([...picked, ...(await relatedHandles(tx, product.id, limit))]),
       ].slice(0, Math.max(limit, picked.length))

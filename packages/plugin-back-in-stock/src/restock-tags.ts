@@ -6,7 +6,7 @@ import { backInStockSignup } from './schema'
 import { availableStockFor } from './stock'
 
 /** The customer tag a Shopify restock app leaves: `restock-<product handle>`. */
-export const RESTOCK_TAG = /^restock-(.+)$/i
+const RESTOCK_TAG = /^restock-(.+)$/i
 
 export type RestockTagsResult = {
   /** Signups added (one per customer and sold-out variant). */

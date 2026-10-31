@@ -1,3 +1,4 @@
+import { formatPaise } from '@commerce/blocks'
 import type { CartView } from '@commerce/core'
 import { applyPaymentAdjustment, type PaymentAdjustmentValue } from '@commerce/core/adjustment-math'
 import {
@@ -6,6 +7,7 @@ import {
   codDecision,
   minimumOrderShortfall,
 } from '@commerce/core/checkout-settings'
+import { lowestEmiPaise } from '@commerce/core/emi'
 import { hiddenPaymentMethods, type PaymentMethodRule } from '@commerce/core/payment-method-rules'
 import { formatMoney } from '@commerce/money'
 import { checkoutContent as content } from '@/data/checkout'
@@ -307,4 +309,22 @@ export function shippingRow(
   if (!rate) return { kind: 'pending' }
   const cod = payment === 'cod' ? (rate.delivery?.codPricePaise ?? null) : null
   return { kind: 'price', paise: cod ?? rate.pricePaise, name: rate.name }
+}
+
+/** The Pay button's amount and words, and the EMI line's monthly amount when the store offers EMI on it. */
+export function payView(
+  payNowPaise: number,
+  o: { emiMinPaise: number | null; coveredByCards: boolean; cod: boolean; placeOrder: string },
+): { payNow: string; emiMonthly: string | null; payLabel: string } {
+  const payNow = formatPaise(payNowPaise)
+  const emiMonthly =
+    o.emiMinPaise !== null && payNowPaise >= o.emiMinPaise && payNowPaise > 0
+      ? formatPaise(lowestEmiPaise(payNowPaise))
+      : null
+  const payLabel = o.coveredByCards
+    ? o.placeOrder
+    : o.cod
+      ? content.placeOrderAmount(payNow)
+      : content.pay(payNow)
+  return { payNow, emiMonthly, payLabel }
 }

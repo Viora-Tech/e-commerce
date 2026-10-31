@@ -29,7 +29,7 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'Setup checklist',
     where: 'Settings',
-    href: '/settings',
+    href: routes.settings.home(),
     keywords: ['start', 'setup', 'getting started', 'progress', 'todo', 'launch', 'go live'],
   },
   // Store › Store details
@@ -106,14 +106,14 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'Locations & warehouses',
     where: 'Store',
-    href: '/settings/locations',
+    href: routes.settings.locations(),
     keywords: ['warehouse', 'godown', 'location', 'bills under', 'dispatch from'],
   },
   // Payments
   {
     title: 'Payments',
     where: 'Selling',
-    href: '/settings/payments',
+    href: routes.settings.payments(),
     keywords: ['payment', 'get paid', 'money', 'gateway', 'checkout', 'pay'],
   },
   {
@@ -156,7 +156,7 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'Bank transfer and fees per method',
     where: 'Selling › Payments › Advanced',
-    href: '/settings/payments/advanced',
+    href: routes.settings.paymentsAdvanced(),
     keywords: [
       'bank',
       'bank transfer',
@@ -172,7 +172,7 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'Shipping & delivery',
     where: 'Selling',
-    href: '/settings/shipping',
+    href: routes.settings.shipping(),
     keywords: ['delivery', 'ship', 'shipping', 'parcel', 'dispatch'],
   },
   {
@@ -273,7 +273,7 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'Messages your customers get',
     where: 'Messages › Notifications',
-    href: '/settings/notifications',
+    href: routes.settings.notifications(),
     keywords: ['notification', 'email', 'emails', 'message', 'sms', 'order confirmation', 'alert'],
   },
   {
@@ -298,26 +298,26 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'Where files and images are stored',
     where: 'Content › Files',
-    href: '/content/files/storage',
+    href: routes.content.storage(),
     keywords: ['files', 'images', 'photos', 'storage', 'r2', 's3', 'bucket', 'upload'],
   },
   // Team & advanced
   {
     title: 'Staff',
     where: 'Team & advanced',
-    href: '/settings/staff',
+    href: routes.settings.staff(),
     keywords: ['staff', 'team', 'users', 'invite', 'permissions', 'roles', 'employee'],
   },
   {
     title: 'Custom data',
     where: 'Team & advanced',
-    href: '/settings/custom-data',
+    href: routes.settings.customData(),
     keywords: ['metafields', 'metaobjects', 'custom fields', 'extra fields', 'content types'],
   },
   {
     title: 'Domains',
     where: 'Store',
-    href: '/settings/domains',
+    href: routes.settings.domains(),
     keywords: ['domain', 'website address', 'url', 'dns', 'www', '.com', '.in'],
   },
   // Markets and Rollouts are top-level pages now; settings search still finds them.
@@ -336,7 +336,7 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'AI',
     where: 'Team & advanced',
-    href: '/settings/ai',
+    href: routes.settings.ai(),
     keywords: [
       'ai',
       'artificial intelligence',
@@ -425,7 +425,7 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'Policies',
     where: 'Customers',
-    href: '/settings/policies',
+    href: routes.settings.policies(),
     keywords: [
       'policy',
       'policies',
@@ -450,7 +450,7 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'Checkout',
     where: 'Selling',
-    href: '/settings/checkout',
+    href: routes.settings.checkout(),
     keywords: ['checkout', 'phone', 'mobile', 'email', 'pin code', 'pincode', 'order notes'],
   },
   {
@@ -506,7 +506,7 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'Privacy & data requests',
     where: 'Customers',
-    href: '/settings/privacy',
+    href: routes.settings.privacy(),
     keywords: ['privacy', 'dpdp', 'data protection', 'gdpr', 'personal data', 'consent'],
   },
   {
@@ -518,13 +518,13 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'Data requests',
     where: 'Customers › Privacy & data requests',
-    href: '/settings/privacy/requests',
+    href: routes.settings.privacyRequests(),
     keywords: ['data request', 'export data', 'delete data', 'erase', 'right to erasure', 'dsar'],
   },
   {
     title: 'Customer accounts',
     where: 'Customers',
-    href: '/settings/customer-accounts',
+    href: routes.settings.customerAccounts(),
     keywords: ['login', 'sign in', 'otp', 'guest checkout', 'customer login', 'account'],
   },
   {

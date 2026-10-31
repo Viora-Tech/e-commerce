@@ -1,5 +1,4 @@
-/**
- * SOURCE OF TRUTH: draft numbers (#D12) — WHAT: how a draft order is named and found by its own
+/** SOURCE OF TRUTH: draft numbers (#D12) — WHAT: how a draft order is named and found by its own
  * number / WHY: drafts count on their own series (audit #26), so the admin list, the draft page,
  * the invoice and search all show and accept "D12" the same way.
  *

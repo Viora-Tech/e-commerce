@@ -21,7 +21,7 @@ import type {
 import { asc, eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { placeOrderAndPay } from '../order/place-order'
-import { retryAndStartPayment, syncOpenQrAttempt } from './attempts'
+import { retryAndStartPayment, syncOpenQrAttempt } from './qr-attempts'
 import { handlePaymentWebhook } from './webhook'
 
 /*

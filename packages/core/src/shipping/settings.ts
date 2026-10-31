@@ -97,7 +97,7 @@ export type CourierRuleSettings = z.infer<typeof CourierRuleSchema>
 export const defaultCourierRule: CourierRuleSettings = { mode: 'cheapest' }
 
 /** What a saved package is (Shopify's package types, audit #162): an envelope is flat. */
-export const PACKAGE_KINDS = ['box', 'envelope', 'soft_package'] as const
+const PACKAGE_KINDS = ['box', 'envelope', 'soft_package'] as const
 export type PackageKind = (typeof PACKAGE_KINDS)[number]
 
 /** A named box the merchant packs into, for pre-filling the booking dimensions/weight. */

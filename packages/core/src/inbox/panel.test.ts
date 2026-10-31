@@ -15,7 +15,8 @@ import { resetDb } from '@commerce/db/test'
 import { sql } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type { StoreContext } from '../context'
-import { inboxCounts, listConversations, staffSend } from './conversations'
+import { inboxCounts, listConversations } from './conversations'
+import { staffSend } from './conversations-send'
 import { hashChatToken, newChatToken } from './identity'
 import {
   customerPanel,

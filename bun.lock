@@ -249,6 +249,7 @@
         "@commerce/ai": "workspace:*",
         "@commerce/config": "workspace:*",
         "@commerce/core": "workspace:*",
+        "@commerce/dates": "workspace:*",
         "@commerce/db": "workspace:*",
         "@commerce/notifications": "workspace:*",
         "@commerce/observability": "workspace:*",

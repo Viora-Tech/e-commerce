@@ -22,7 +22,7 @@ import {
   parsePage,
   parseUnavailable,
 } from '../catalog/browse-params'
-import { pickedRecommendationIdsFor } from '../discovery/service'
+import { pickedRecommendationIdsFor } from '../discovery/recommendations'
 import { soldInRequestCatalog } from '../markets/catalog-rules'
 import type { MarketPricing } from '../markets/presentment'
 import { keyFromName } from '../metaobjects/validate'

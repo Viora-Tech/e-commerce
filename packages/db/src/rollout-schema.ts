@@ -67,11 +67,11 @@ export type RolloutAudience = {
 }
 
 /** How an A/B test ended: the Treatment shipped to everyone, or the Control kept. */
-export const ROLLOUT_AB_OUTCOMES = ['treatment', 'control'] as const
+const ROLLOUT_AB_OUTCOMES = ['treatment', 'control'] as const
 export type RolloutAbOutcome = (typeof ROLLOUT_AB_OUTCOMES)[number]
 
 /** Control sees the store as it is; Treatment sees the rollout's changes. */
-export const ROLLOUT_ARMS = ['control', 'treatment'] as const
+const ROLLOUT_ARMS = ['control', 'treatment'] as const
 export type RolloutArm = (typeof ROLLOUT_ARMS)[number]
 
 /** A visitor first drawn in an arm, their first add to cart, or one order. */

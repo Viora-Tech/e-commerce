@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: A/B rollout tests — WHAT: the visitor hash, buckets, arm assignment and the significance test / WHY: guard Rollouts A/B tests */
 import { describe, expect, it } from 'vitest'
 import {
   AB_MIN_VISITORS,

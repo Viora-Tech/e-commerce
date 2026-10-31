@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: Web Vitals tests — WHAT: the good / needs work / poor rating and the beacon schema / WHY: guard Online store › Speed */
 import { describe, expect, it } from 'vitest'
 import { rateWebVital, WebVitalBeaconSchema } from './web-vitals'
 

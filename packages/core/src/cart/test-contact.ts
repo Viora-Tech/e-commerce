@@ -3,7 +3,7 @@ import { cart } from '@commerce/db'
 import { type SQL, sql } from 'drizzle-orm'
 
 /** Amazon SES's simulator domain: mail to it is accepted and dropped, so no shopper uses it. */
-export const TEST_CONTACT_DOMAIN = 'simulator.amazonses.com'
+const TEST_CONTACT_DOMAIN = 'simulator.amazonses.com'
 
 /** Where-clause fragment: true for carts whose contact is not a test address. */
 export const notTestCartContact: SQL = sql`coalesce(${cart.email}, '') not ilike ${`%@${TEST_CONTACT_DOMAIN}`}`

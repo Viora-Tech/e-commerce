@@ -6,7 +6,7 @@ import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
 import { applyPaymentStatus } from '../payments/confirm'
 
-export class CaptureNotAllowed extends CommerceError {
+class CaptureNotAllowed extends CommerceError {
   constructor(message: string, storeId?: string) {
     super('CAPTURE_NOT_ALLOWED', message, { storeId })
   }

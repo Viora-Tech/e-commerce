@@ -6,13 +6,13 @@ import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
 import { insertOutboxEvent } from '../outbox/write'
 
-export class OrderLinkNotSendable extends CommerceError {
+class OrderLinkNotSendable extends CommerceError {
   constructor(message: string, storeId?: string) {
     super('ORDER_LINK_NOT_SENDABLE', message, { storeId })
   }
 }
 
-export const ORDER_LINK_NOTE = 'Order link sent to the customer.'
+const ORDER_LINK_NOTE = 'Order link sent to the customer.'
 
 /**
  * Queue `order_link` for a placed order (every channel the store has and the order can be

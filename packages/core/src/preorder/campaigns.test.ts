@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: pre-order campaign rule tests — WHAT: which settings a campaign gives a product, where it applies, its price and cart lines / WHY: guard Products › Pre-orders */
 import { describe, expect, it } from 'vitest'
 import {
   campaignApplies,

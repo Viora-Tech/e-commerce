@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: local delivery and pickup tests (audit #163) — WHAT: which local options an address gets and their rate ids / WHY: guard the rule in local-options.ts */
 import { describe, expect, it } from 'vitest'
 import {
   isLocalRateId,

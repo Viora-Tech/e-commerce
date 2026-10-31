@@ -1,15 +1,15 @@
 import { product, type StoreTx, store } from '@commerce/db'
-import { and, asc, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm'
 import { review, reviewSummary } from './schema'
 
 /** Fewer published reviews than this get no summary: there is nothing to sum up yet. */
-export const SUMMARY_MIN_REVIEWS = 3
+const SUMMARY_MIN_REVIEWS = 3
 
 /** Most reviews one summary reads, newest first (`REVIEW_SUMMARY_REVIEWS` in @commerce/ai). */
 const SUMMARY_READS = 60
 
 /** Most summaries one store refreshes per worker tick, so one big import cannot hog the AI. */
-export const SUMMARIES_PER_TICK = 20
+const SUMMARIES_PER_TICK = 20
 
 /**
  * Marks the summaries of these products for a refresh (a review was published, hidden,
@@ -38,16 +38,6 @@ export async function markSummariesStale(
       target: [reviewSummary.storeId, reviewSummary.productId],
       set: { stale: true, updatedAt: now },
     })
-}
-
-/** The products of these reviews (store reviews have none), read before they change or go. */
-export async function productsOfReviews(tx: StoreTx, ids: readonly string[]): Promise<string[]> {
-  if (ids.length === 0) return []
-  const rows = await tx
-    .selectDistinct({ productId: review.productId })
-    .from(review)
-    .where(and(inArray(review.id, [...ids]), isNotNull(review.productId)))
-  return rows.flatMap((r) => (r.productId ? [r.productId] : []))
 }
 
 /** The summaries waiting for a refresh, oldest first. */

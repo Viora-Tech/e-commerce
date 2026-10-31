@@ -16,10 +16,11 @@ import SummaryDisclosure from '@/components/checkout/summary-disclosure'
 import { checkoutContent as content } from '@/data/checkout'
 import { CK_LINK } from '@/lib/checkout-classes'
 import { countryName } from '@/lib/checkout-countries'
+import type { CheckoutFormInput } from '@/lib/checkout-form-input'
 import { processorNames, shippingRow } from '@/lib/checkout-preview'
 import { type CheckoutSection, sectionDomId, sectionHeadingId } from '@/lib/checkout-sections'
 import { cleanPincode } from '@/lib/checkout-validation'
-import { type CheckoutFormInput, useCheckoutForm } from '@/lib/use-checkout-form'
+import { useCheckoutForm } from '@/lib/use-checkout-form'
 import { useCheckoutGst } from '@/lib/use-checkout-gst'
 
 type CheckoutFormProps = CheckoutFormInput

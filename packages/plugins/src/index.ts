@@ -9,4 +9,5 @@ export {
   shipmentActionId,
   validateOrderActions,
 } from './order-actions'
+export type * from './storefront-types'
 export type * from './types'

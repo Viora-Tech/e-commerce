@@ -25,19 +25,17 @@ import {
   type CONDITION_FIELDS,
   parseAutomationSteps,
 } from './automation-steps'
+import { type AutomationInput, type AutomationRow, recentRuns } from './automations'
 import {
-  type AutomationInput,
-  type AutomationRow,
   type AutomationStats,
   automationStats,
   createAutomationFromTemplate,
   deleteAutomation,
   getAutomation,
   listAutomations,
-  recentRuns,
   setAutomationStatus,
   updateAutomation,
-} from './automations'
+} from './automations-crud'
 
 /** A Growth automation as the admin reads it, whichever runner owns the store. */
 export type GrowthAutomation = AutomationRow & {

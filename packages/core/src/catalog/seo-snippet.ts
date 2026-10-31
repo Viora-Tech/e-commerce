@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: seoSnippet — WHAT: a product's fallback SEO description from its first real sentences / WHY: one rule for the admin preview and the storefront meta tag */
 /**
  * The search-result description a product gets when it has no SEO description of its own:
  * its first real sentences, not whatever line comes first. Imported descriptions often open

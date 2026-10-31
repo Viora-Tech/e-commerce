@@ -10,7 +10,8 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core'
-import { giftCard, newId, order, orderLine, shipment, store, variant } from './schema'
+import { giftCard, newId, order, orderLine, store, variant } from './schema'
+import { shipment } from './shipping-schema'
 
 /* Returns: a shopper's return request or a courier's RTO, and the order lines it covers. */
 

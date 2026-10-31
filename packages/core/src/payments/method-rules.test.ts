@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: payment method rule tests (#150) — WHAT: rules that hide ways to pay, and the capture mode / WHY: guard Settings › Payments › Payment rules */
 import { describe, expect, it } from 'vitest'
 import { captureModeFor, supportsManualCapture } from './capture'
 import {

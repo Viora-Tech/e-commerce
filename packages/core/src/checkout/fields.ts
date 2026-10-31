@@ -1,10 +1,10 @@
 /** SOURCE OF TRUTH: checkout field rules — WHAT: Settings → Checkout → Form fields (#154): the name as one field or first + last, the company name hidden, optional or required, and address line 2 hidden, optional or required, with the pure check the storefront form and `placeOrder` both run / WHY: GST buyers need a company name, some couriers need a landmark, and the server must refuse what the form would have refused */
 import { z } from 'zod'
 
-export const NAME_FORMATS = ['full', 'split'] as const
+const NAME_FORMATS = ['full', 'split'] as const
 export type NameFormat = (typeof NAME_FORMATS)[number]
 
-export const FIELD_REQUIREMENTS = ['hidden', 'optional', 'required'] as const
+const FIELD_REQUIREMENTS = ['hidden', 'optional', 'required'] as const
 export type FieldRequirement = (typeof FIELD_REQUIREMENTS)[number]
 
 export const CheckoutFieldsSchema = z.object({
@@ -19,8 +19,6 @@ export const CheckoutFieldsSchema = z.object({
   line2: z.enum(FIELD_REQUIREMENTS).default('optional'),
 })
 export type CheckoutFields = z.infer<typeof CheckoutFieldsSchema>
-
-export const defaultCheckoutFields: CheckoutFields = CheckoutFieldsSchema.parse({})
 
 /** Longest name part and company name a shopper can type. */
 const NAME_MAX = 120
@@ -37,7 +35,7 @@ export type AddressFieldErrors = Partial<
   Record<'name' | 'lastName' | 'line2' | 'businessName', string>
 >
 
-export const ADDRESS_FIELD_MESSAGES = {
+const ADDRESS_FIELD_MESSAGES = {
   name: 'Enter your full name',
   firstName: 'Enter your first name',
   lastName: 'Enter your last name',

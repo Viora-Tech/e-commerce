@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: checkout field tests — WHAT: required/optional/hidden address fields and the split name / WHY: guard Settings › Checkout › Customer information */
 import { describe, expect, it } from 'vitest'
 import {
   addressFieldErrors,

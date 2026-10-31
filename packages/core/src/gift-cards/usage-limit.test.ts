@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: gift card usage limit tests (#993) — WHAT: when a card with a use cap is used up / WHY: guard the usage limit */
 import { describe, expect, it } from 'vitest'
 import { usedUp } from './service'
 

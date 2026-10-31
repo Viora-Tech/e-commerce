@@ -18,16 +18,13 @@ import { NotificationRegistry } from '@commerce/notifications'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type { AutomationStep } from './automation-steps'
+import { enrolDue, enrolSubscriber, onOrderPlaced, processDueRuns } from './automations'
 import {
   automationStats,
   createAutomationFromTemplate,
-  enrolDue,
-  enrolSubscriber,
-  onOrderPlaced,
-  processDueRuns,
   setAutomationStatus,
   updateAutomation,
-} from './automations'
+} from './automations-crud'
 import type { MarketingDeps } from './send'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)

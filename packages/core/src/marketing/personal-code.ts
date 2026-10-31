@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: personalCodeFor — WHAT: a discount code made for one shopper when an automation email goes out / WHY: a retried send finds the code it made the first time */
 /**
  * A discount code made for one shopper when an automation email goes out ("Make a unique code
  * for each shopper" on the email's discount block). Shopify's welcome flow sends each new

@@ -36,6 +36,12 @@ const PLUGIN = 'plugin owns its own schema/queries; not yet routed through packa
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    path: 'packages/auth/src/step-up.ts',
+    exact: true,
+    reason:
+      "step-up re-auth (A5) stamps Better Auth's own session, passkey and verification tables, which the auth package owns (platform-level, no RLS)",
+  },
+  {
     path: 'apps/admin/src/app/api/health/route.ts',
     exact: true,
     reason:
@@ -98,7 +104,7 @@ const ALLOWLIST: AllowEntry[] = [
   { path: 'apps/storefront/src/lib/account.ts', exact: true, reason: STOREFRONT_LIB },
   { path: 'apps/storefront/src/lib/back-in-stock-context.ts', exact: true, reason: STOREFRONT_LIB },
   { path: 'apps/storefront/src/lib/balance-actions.ts', exact: true, reason: STOREFRONT_LIB },
-  { path: 'apps/storefront/src/lib/cart-actions.ts', exact: true, reason: STOREFRONT_LIB },
+  { path: 'apps/storefront/src/lib/payment-actions.ts', exact: true, reason: STOREFRONT_LIB },
   { path: 'apps/storefront/src/lib/catalog.ts', exact: true, reason: STOREFRONT_LIB },
   { path: 'apps/storefront/src/lib/collections.ts', exact: true, reason: STOREFRONT_LIB },
   {
@@ -114,6 +120,12 @@ const ALLOWLIST: AllowEntry[] = [
     exact: true,
     reason:
       'the theme country selector form action reads the store markets — move behind a core service',
+  },
+  {
+    path: 'apps/storefront/src/lib/market-catalog.ts',
+    exact: true,
+    reason:
+      'opens its own withStore for storeMarketCatalogs (core): inStore asks this module for the catalog, so it cannot go through inStore itself',
   },
   { path: 'apps/storefront/src/lib/media-lookup.ts', exact: true, reason: STOREFRONT_LIB },
   { path: 'apps/storefront/src/lib/password-actions.ts', exact: true, reason: STOREFRONT_LIB },
@@ -221,6 +233,9 @@ const ALLOWLIST: AllowEntry[] = [
   { path: 'apps/worker/src/shipping.ts', exact: true, reason: WORKER },
   { path: 'apps/worker/src/order-push.ts', exact: true, reason: WORKER },
   { path: 'apps/worker/src/store-export.ts', exact: true, reason: WORKER },
+  { path: 'apps/worker/src/home-cards.ts', exact: true, reason: WORKER },
+  { path: 'apps/worker/src/review-summaries.ts', exact: true, reason: WORKER },
+  { path: 'apps/worker/src/theme-screenshot.ts', exact: true, reason: WORKER },
   {
     path: 'packages/api/src/procedures/store.ts',
     exact: true,
@@ -233,6 +248,8 @@ const ALLOWLIST: AllowEntry[] = [
   { path: 'packages/plugin-back-in-stock/src/settings.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-back-in-stock/src/signups.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-back-in-stock/src/stock.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-back-in-stock/src/plugin.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-back-in-stock/src/restock-tags.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-chatwoot/src/server.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-affiliates/src/affiliates.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-affiliates/src/blocklist.ts', exact: true, reason: PLUGIN },
@@ -254,6 +271,7 @@ const ALLOWLIST: AllowEntry[] = [
   { path: 'packages/plugin-forms/src/messages.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-meilisearch/src/server.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-forms/src/schema.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-forms/src/plugin.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-growthbook/src/schema.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-growthbook/src/server.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-reviews/src/judgeme.ts', exact: true, reason: PLUGIN },
@@ -267,6 +285,13 @@ const ALLOWLIST: AllowEntry[] = [
   },
   { path: 'packages/plugin-reviews/src/reviews.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-reviews/src/schema.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-reviews/src/past-orders.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-reviews/src/plugin.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-reviews/src/qr.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-reviews/src/questions.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-reviews/src/rewards.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-reviews/src/summary.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-reviews/src/widgets.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-reviews/src/store-settings.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-reviews/src/storefront.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-reviews/src/submit.ts', exact: true, reason: PLUGIN },
@@ -306,6 +331,17 @@ const ALLOWLIST: AllowEntry[] = [
   { path: 'packages/plugin-shopify-import/src/write-customers.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-shopify-import/src/write-orders.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-shopify-import/src/write-products.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-shopify-import/src/settings-import.ts', exact: true, reason: PLUGIN },
+  {
+    path: 'packages/plugin-shopify-import/src/settings-import-stock.ts',
+    exact: true,
+    reason: PLUGIN,
+  },
+  {
+    path: 'packages/plugin-shopify-import/src/settings-import-load.ts',
+    exact: true,
+    reason: PLUGIN,
+  },
   {
     path: 'packages/plugin-shopify-import/test/helpers.ts',
     exact: true,

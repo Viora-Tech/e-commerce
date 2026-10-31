@@ -11,12 +11,3 @@ export const effectiveHsCode = sql<
 export const effectiveGstRatePercent = sql<
   number | null
 >`coalesce(${variant.gstRatePercent}, ${product.gstRatePercent})`
-
-/** The same rule for values already loaded (blank counts as unset). */
-export function resolveTaxField<T extends string | number>(
-  own: T | null | undefined,
-  fallback: T | null | undefined,
-): T | null {
-  const set = (v: T | null | undefined): v is T => v != null && v !== ''
-  return set(own) ? own : set(fallback) ? fallback : null
-}

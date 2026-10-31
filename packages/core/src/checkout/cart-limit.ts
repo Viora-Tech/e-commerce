@@ -3,9 +3,9 @@ import { z } from 'zod'
 
 /** Highest limit a merchant can set, and most products with their own limit. */
 export const CART_LIMIT_MAX = 9_999
-export const CART_LIMIT_OVERRIDES_MAX = 500
+const CART_LIMIT_OVERRIDES_MAX = 500
 
-export const CartLimitOverrideSchema = z.object({
+const CartLimitOverrideSchema = z.object({
   productId: z.string().uuid(),
   max: z.number().int().min(1).max(CART_LIMIT_MAX),
 })

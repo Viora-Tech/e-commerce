@@ -97,7 +97,7 @@ export type TransferWrite = {
 }
 
 /** Shopify's supplier name when it gave none (the order still needs one). */
-export const UNNAMED_SUPPLIER = 'Supplier from Shopify'
+const UNNAMED_SUPPLIER = 'Supplier from Shopify'
 
 /** Orders in other currencies need an exchange rate, and Shopify gives none. */
 const IMPORTABLE_CURRENCY = 'INR'
@@ -122,7 +122,7 @@ function locationRef(
  * The variant here for a Shopify line: by SKU, then by title ("Red / Small"; Shopify's
  * "Default Title" is our "Default"), then the product's only variant.
  */
-export function variantFor(line: NStockLine, stock: LocalStock): string | null {
+function variantFor(line: NStockLine, stock: LocalStock): string | null {
   const productId = line.productSourceId ? stock.products.get(line.productSourceId) : undefined
   if (!productId) return null
   const options = stock.variants.filter((v) => v.productId === productId)

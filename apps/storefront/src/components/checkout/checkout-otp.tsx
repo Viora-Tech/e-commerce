@@ -15,6 +15,7 @@ import {
   CK_LABEL,
   CK_LINK,
 } from '@/lib/checkout-classes'
+import { SEND_CODE_ID } from '@/lib/checkout-form-input'
 import {
   type OtpActions,
   type OtpChannel,
@@ -25,7 +26,6 @@ import {
 import { fieldId } from '@/lib/checkout-validation'
 import { displayPhone } from '@/lib/display-phone'
 import { requestPhoneCodeAction, verifyPhoneCodeAction } from '@/lib/privacy-actions'
-import { SEND_CODE_ID } from '@/lib/use-checkout-form'
 
 type CheckoutOtpProps = {
   /** The checkout's own contact fields: the number (or email) typed here is the order's. */

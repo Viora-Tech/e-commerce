@@ -19,7 +19,7 @@ import { ANSWER_MAX, displayName, QUESTION_MAX, QUESTION_MIN } from './settings'
 
 /** Most questions one email may ask a day, and how many answered ones a product page lists. */
 export const QUESTIONS_PER_DAY = 5
-export const QUESTIONS_SHOWN = 20
+const QUESTIONS_SHOWN = 20
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 

@@ -144,7 +144,7 @@ async function salesBetween(
 }
 
 /** Everything the card rules read, for one store at `now`. */
-export async function homeCardFacts(ctx: StoreContext, now: Date): Promise<HomeCardFacts> {
+async function homeCardFacts(ctx: StoreContext, now: Date): Promise<HomeCardFacts> {
   const month = new Date(now.getTime() - 30 * DAY_MS)
   const monthBefore = new Date(now.getTime() - 60 * DAY_MS)
 

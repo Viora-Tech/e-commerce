@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: shipping profiles in the database — WHAT: the General and custom profiles with their products, and the cart quote split by profile / WHY: the rule itself is pure, in profiles.ts */
 import {
   cart,
   cartLine,
@@ -183,7 +184,7 @@ export async function collectionProductIds(
  * The profiles in the shape the pure engine takes. Read-only: a store without a General row
  * yet gets one in memory (empty id), holding the zones that have no profile.
  */
-export async function loadRateProfiles(tx: StoreTx): Promise<ShippingProfileInput[]> {
+async function loadRateProfiles(tx: StoreTx): Promise<ShippingProfileInput[]> {
   const rows = await tx.select().from(shippingProfile)
   const general = rows.find((p) => p.isDefault) ?? {
     id: '',
@@ -203,7 +204,7 @@ export async function loadRateProfiles(tx: StoreTx): Promise<ShippingProfileInpu
 }
 
 /** The custom profile each product is in; products missing from the map ship under General. */
-export async function productProfiles(
+async function productProfiles(
   tx: StoreTx,
   productIds: readonly string[],
 ): Promise<Map<string, string>> {

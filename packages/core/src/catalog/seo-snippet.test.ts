@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: seoSnippet tests — WHAT: spec rows skipped, first real sentences kept / WHY: the snippet Google shows */
 import { describe, expect, it } from 'vitest'
 import { seoSnippet } from './seo-snippet'
 

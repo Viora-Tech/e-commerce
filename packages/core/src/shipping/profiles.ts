@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: shipping profiles — WHAT: the rates for a cart split by profile (products with their own zones and rates) / WHY: pure, so checkout, the order and the tests run the same rule */
 import { z } from 'zod'
 import {
   freeShippingThreshold,
@@ -53,7 +54,7 @@ export type ShippingOptionPart = {
 }
 
 /** Rates of several profiles join their ids with this; a single rate's id is its own. */
-export const RATE_ID_JOIN = '+'
+const RATE_ID_JOIN = '+'
 
 /** The rate id an order row keeps (a uuid column): the first part of a joined id. */
 export const primaryRateId = (rateId: string): string => rateId.split(RATE_ID_JOIN)[0] ?? rateId

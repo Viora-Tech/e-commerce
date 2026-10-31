@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: combo deal tests — WHAT: what a combo takes off a cart and its saving / WHY: guard the combo deals discount type */
 import type { DiscountCombo } from '@commerce/db'
 import { describe, expect, it } from 'vitest'
 import { comboAmount, comboSaving } from './combo'

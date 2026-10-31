@@ -1,14 +1,13 @@
-/**
- * SOURCE OF TRUTH: browse abandonment rules — WHAT: which page views count as a product view,
+/** SOURCE OF TRUTH: browse abandonment rules — WHAT: which page views count as a product view,
  * the run key that keeps one run per shopper, product and week, and when a view is due /
  * WHY: the storefront beacon, the legacy Growth runner and the Automations engine sweep must
  * agree on the same rules (audit #183). Pure: no database import.
  */
 
 /** A shopper is nudged about one product at most once a week. */
-export const BROWSE_REPEAT_DAYS = 7
+const BROWSE_REPEAT_DAYS = 7
 /** Views older than this are not chased, however the settings read. */
-export const BROWSE_LOOKBACK_DAYS = 7
+const BROWSE_LOOKBACK_DAYS = 7
 /** The default wait after a view before it counts as abandoned. */
 export const BROWSE_DEFAULT_AFTER_MINUTES = 4 * 60
 /** A repeat view of the same product within this window does not write again. */

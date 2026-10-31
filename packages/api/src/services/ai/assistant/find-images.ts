@@ -19,7 +19,7 @@ export type FoundImage = {
 }
 
 /** Most results one lookup returns, products and collections together. */
-export const MAX_FOUND_IMAGES = 10
+const MAX_FOUND_IMAGES = 10
 
 /** `%` and `_` typed by the model match literally. */
 const likeText = (text: string) => `%${text.replace(/[\\%_]/g, (c) => `\\${c}`)}%`

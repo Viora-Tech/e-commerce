@@ -8,7 +8,7 @@ import { EXPIRY_EXEMPT_METHODS } from './expiry'
 import { parsePaymentSettings } from './settings'
 
 /** How long after checkout the shopper is nudged, unless the store's expiry is sooner. */
-export const PAYMENT_PENDING_AFTER_MINUTES = 10
+const PAYMENT_PENDING_AFTER_MINUTES = 10
 
 /** Orders older than this are never nudged: the scan stays small and outbox rows outlive it. */
 const NUDGE_WINDOW_MS = 86_400_000
@@ -20,7 +20,7 @@ const BATCH = 50
  * Minutes after checkout to nudge: ten, or half the store's "cancel unpaid orders after"
  * window when that is shorter, so the retry link still works when the message lands.
  */
-export function paymentNudgeAfterMinutes(expireAfterMinutes: number): number {
+function paymentNudgeAfterMinutes(expireAfterMinutes: number): number {
   if (!expireAfterMinutes) return PAYMENT_PENDING_AFTER_MINUTES
   return Math.max(1, Math.min(PAYMENT_PENDING_AFTER_MINUTES, Math.floor(expireAfterMinutes / 2)))
 }

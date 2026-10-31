@@ -12,7 +12,7 @@ import {
 } from './content-parts'
 
 /** A draft invoice's number after the #: "D12" while it is a draft, else the order number. */
-export const draftRef = (d: TemplateData): string =>
+const draftRef = (d: TemplateData): string =>
   d.draftNumber ? `D${d.draftNumber}` : String(d.orderNumber)
 
 export const templateContent: Record<TemplateId, TemplateCopy> = {

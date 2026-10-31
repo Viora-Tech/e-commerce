@@ -44,7 +44,7 @@ export function withCatalogPricing(
  * The transaction setting that names the request's catalog when it sells chosen products only.
  * The storefront sets it per request (`inStore`); unset or empty, every product is sold.
  */
-export const CATALOG_SETTING = 'app.catalog_id'
+const CATALOG_SETTING = 'app.catalog_id'
 
 /**
  * True when the product is sold in the request's catalog (`app.catalog_id`): always without

@@ -1,25 +1,10 @@
-import { formatPaise } from '@commerce/blocks'
-import type { CartView, CheckoutLook, SavedAddress, SignedInCustomer } from '@commerce/core'
 import { cleanPostalCode, isAbroad } from '@commerce/core/checkout-address'
-import {
-  applyCheckoutText,
-  type CheckoutSettings,
-  type CheckoutTextOverrides,
-  stateForPincode,
-} from '@commerce/core/checkout-settings'
-import type {
-  CheckoutAccountMode,
-  LoginMethod,
-  SignInOptions,
-} from '@commerce/core/customer-accounts'
-import { lowestEmiPaise } from '@commerce/core/emi'
-import type { PaymentMethodRule } from '@commerce/core/payment-method-rules'
-import type { PolicyLink } from '@commerce/core/policies'
+import { applyCheckoutText, stateForPincode } from '@commerce/core/checkout-settings'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
 import { checkoutContent as content } from '@/data/checkout'
-import { deleteAddressAction, saveAddressAction } from '@/lib/account-actions'
 import { captureContactAction, checkoutAction } from '@/lib/cart-actions'
+import { addressBookHandlers } from '@/lib/checkout-address-book'
 import { readDraft, writeDraft } from '@/lib/checkout-draft'
 import {
   addressForCountry,
@@ -34,6 +19,7 @@ import {
   deliveryLine,
   isDigitalOnly,
   offeredMethods,
+  payView,
   takesUpi,
 } from '@/lib/checkout-preview'
 import { readRemembered, writeRemembered } from '@/lib/checkout-remember'
@@ -51,81 +37,20 @@ import {
   fieldId,
   fieldOrder,
 } from '@/lib/checkout-validation'
-import type { CartDiscountView } from '@/lib/discount-view'
 import type { AppliedGiftCard } from '@/lib/gift-card-actions'
-import type { CheckoutMethod } from '@/lib/payments'
-import type { CartDepositTerms } from '@/lib/preorder'
 import { isQuotable, useCheckoutShipping } from '@/lib/use-checkout-shipping'
+import {
+  type ChangeHandler,
+  type CheckoutFormInput,
+  CONTACT_KEYS,
+  GUEST_EMAIL,
+  INDIA_ONLY,
+  NO_DEPOSIT,
+  PLACE_KEYS,
+  SAVE_ADDRESS_ID,
+  SEND_CODE_ID,
+} from './checkout-form-input'
 import { applyPendingDiscountCode } from './pending-code'
-
-/** Settings → Customer accounts, as the Contact card needs it. */
-export type CheckoutSignIn = {
-  /** Code methods the store can send, in order; never empty. */
-  methods: LoginMethod[]
-  /** `account_required`: the shopper signs in before anything else. */
-  checkout: CheckoutAccountMode
-  /** Providers, passkeys and the rest the store switched on. */
-  options: SignInOptions | null
-}
-
-export type CheckoutFormInput = {
-  cart: CartView
-  methods: CheckoutMethod[]
-  /** Discount in force for this cart, resolved on the server. */
-  discount: CartDiscountView | null
-  /** The signed-in shopper, or null for guest checkout. */
-  customer?: SignedInCustomer | null
-  /** Their saved addresses, default first. */
-  addresses?: SavedAddress[]
-  /** Deposit pre-orders: the balance left for later and the store's deposit terms. */
-  deposit?: CartDepositTerms
-  /** Settings → Checkout; the server re-checks every rule on submit. */
-  settings: CheckoutSettings
-  /** Published store policies, linked above the button. */
-  policies?: PolicyLink[]
-  /** Settings → Checkout → Branding, the store name and logo. */
-  look: CheckoutLook
-  /** The smallest amount the store offers EMI on; null when it offers none. */
-  emiMinPaise?: number | null
-  /** How shoppers sign in here, and whether a guest may check out. */
-  signIn?: CheckoutSignIn
-  /** Settings → Checkout → Checkout content (#158): the store's wording in this language. */
-  text?: CheckoutTextOverrides
-  /** Settings → Payments → Payment rules (#150): ways to pay hidden for some orders. */
-  methodRules?: PaymentMethodRule[]
-  /** The Country picker: India, then the countries the store's shipping zones cover. */
-  countries?: string[]
-  /** The country a new address opens in: the shopper's market country when offered. */
-  defaultCountry?: string
-}
-
-type ChangeHandler = (
-  e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
-) => void
-
-const NO_DEPOSIT: CartDepositTerms = { laterPaise: 0, nonRefundableDays: null }
-const INDIA_ONLY = ['IN']
-/** The fields a new country empties, so their checks start over. */
-const PLACE_KEYS: readonly string[] = ['pincode', 'stateCode', 'city']
-const GUEST_EMAIL: CheckoutSignIn = { methods: ['email'], checkout: 'guest', options: null }
-/** The Send code button in Contact; Pay points here until the shopper signs in. */
-export const SEND_CODE_ID = 'checkout-send-code'
-/** The Save button of an address being edited. */
-export const SAVE_ADDRESS_ID = 'checkout-address-save'
-
-/** What an address book entry needs before Save writes it. */
-const ADDRESS_KEYS = [
-  'pincode',
-  'name',
-  'lastName',
-  'line1',
-  'line2',
-  'city',
-  'stateCode',
-  'phone',
-] as const
-/** The fields the Contact card shows; every other field is the Delivery card's. */
-const CONTACT_KEYS: readonly CheckoutFieldKey[] = ['email', 'phone']
 
 /**
  * Everything the one-page checkout knows and does, so `CheckoutForm` and its cards only
@@ -431,53 +356,20 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     setGuest(on)
     setAttempted(false)
   }
-  /** Edit a saved address in place: its values fill the fields, Save writes the address book. */
-  const handleEdit = (id: string) => {
-    handlePickAddress(id)
-    setEditingId(id)
-  }
-  /** Leave the edit (or the new address form) and go back to a saved address. */
-  const handleCancelAddress = () => {
-    const back = addresses.find((a) => a.id === editingId) ?? addresses[0]
-    if (back) handlePickAddress(back.id)
-    else setEditingId(null)
-  }
-  const handleSaveAddress = () => {
-    if (!editingId) return
-    const wrong = ADDRESS_KEYS.find((k) => fieldErrors[k])
-    if (wrong) {
-      setAttempted(true)
-      document.getElementById(fieldId(wrong))?.focus()
-      return
-    }
-    setAddressError(null)
-    const id = editingId
-    startSave(async () => {
-      const r = await saveAddressAction(id, {
-        name: fullNameOf(form),
-        line1: form.line1,
-        line2: form.line2,
-        city: form.city,
-        stateCode: form.stateCode,
-        pincode: cleanPincode(form.pincode),
-        phone: form.phone,
-        label: form.label || null,
-      })
-      if (!r.ok) {
-        setAddressError(content.addressBook.saveFailed)
-        return
-      }
-      setEditingId(null)
-      router.refresh()
+  const { handleEdit, handleCancelAddress, handleSaveAddress, handleDeleteAddress } =
+    addressBookHandlers({
+      addresses,
+      editingId,
+      setEditingId,
+      savedId,
+      form,
+      fieldErrors,
+      setAttempted,
+      setAddressError,
+      startSave,
+      pickAddress: handlePickAddress,
+      refresh: () => router.refresh(),
     })
-  }
-  const handleDeleteAddress = (id: string) => {
-    startSave(async () => {
-      await deleteAddressAction(id)
-      if (savedId === id) handlePickAddress(addresses.find((a) => a.id !== id)?.id ?? NEW_ADDRESS)
-      router.refresh()
-    })
-  }
   const handleLabel = (label: string) => setForm((prev) => ({ ...prev, label }))
   const handlePayment = (id: string) => setForm((prev) => ({ ...prev, payment: id }))
   const handlePhone = (phone: string) => setForm((prev) => ({ ...prev, phone }))
@@ -522,17 +414,13 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   }
 
   const shortfall = totals.shortfallPaise
-  const payNow = formatPaise(payNowPaise)
   const updating = checking && !digitalOnly
-  const emiMonthly =
-    emiMinPaise !== null && payNowPaise >= emiMinPaise && payNowPaise > 0
-      ? formatPaise(lowestEmiPaise(payNowPaise))
-      : null
-  const payLabel = coveredByCards
-    ? copy.placeOrder
-    : payment === 'cod'
-      ? content.placeOrderAmount(payNow)
-      : content.pay(payNow)
+  const { payNow, emiMonthly, payLabel } = payView(payNowPaise, {
+    emiMinPaise,
+    coveredByCards,
+    cod: payment === 'cod',
+    placeOrder: copy.placeOrder,
+  })
 
   return {
     ...input,

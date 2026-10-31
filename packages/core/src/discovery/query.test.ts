@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: Search & discovery query tests — WHAT: the search normaliser, loggable queries, rates and the Overview's lists / WHY: guard what the event log records and shows */
 import { describe, expect, it } from 'vitest'
 import {
   discoveryChange,

@@ -3,7 +3,7 @@ import { createDb, store, withStore } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type { StoreContext } from '../context'
-import { staffSend } from './conversations'
+import { staffSend } from './conversations-send'
 import {
   inboxSync,
   messageEvents,
