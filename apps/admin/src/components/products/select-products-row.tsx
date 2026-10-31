@@ -28,7 +28,7 @@ function priceText(
   money: (paise: number) => string,
 ): string {
   if (min === null || max === null) return ''
-  return min === max ? money(min) : `${money(min)} to ${money(max)}`
+  return min === max ? money(min) : `${money(min)} – ${money(max)}`
 }
 
 export default function SelectProductsRow({

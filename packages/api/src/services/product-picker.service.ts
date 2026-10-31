@@ -1,4 +1,4 @@
-import { notSystemTest, priceRange } from '@commerce/core'
+import { listedPriceRange, notSystemTest } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { media, product, productMedia, sellableStock, variant } from '@commerce/db'
 import { and, asc, eq, ilike, inArray, isNull, ne, or, sql } from 'drizzle-orm'
@@ -162,6 +162,7 @@ export async function pickProducts(
       sku: variant.sku,
       pricePaise: variant.pricePaise,
       costPaise: variant.costPaise,
+      hiddenOnStore: variant.hiddenOnStore,
       onHand: sellableStock.onHand,
       reserved: sellableStock.reserved,
     })
@@ -179,21 +180,20 @@ export async function pickProducts(
     .orderBy(asc(variant.position))
 
   return rows.map((r) => {
-    const vs = variants
-      .filter((v) => v.productId === r.id)
-      .map((v) => ({
-        id: v.id,
-        title: v.title,
-        sku: v.sku,
-        pricePaise: v.pricePaise,
-        costPaise: v.costPaise,
-        available: (v.onHand ?? 0) - (v.reserved ?? 0),
-      }))
+    const shown = variants.filter((v) => v.productId === r.id)
+    const vs = shown.map((v) => ({
+      id: v.id,
+      title: v.title,
+      sku: v.sku,
+      pricePaise: v.pricePaise,
+      costPaise: v.costPaise,
+      available: (v.onHand ?? 0) - (v.reserved ?? 0),
+    }))
     return {
       ...r,
       sku: vs[0]?.sku ?? null,
-      pricePaiseMin: priceRange(vs.map((v) => v.pricePaise))?.min ?? null,
-      pricePaiseMax: priceRange(vs.map((v) => v.pricePaise))?.max ?? null,
+      pricePaiseMin: listedPriceRange(shown)?.min ?? null,
+      pricePaiseMax: listedPriceRange(shown)?.max ?? null,
       available: vs.reduce((n, v) => n + v.available, 0),
       variants: vs,
     }
