@@ -22,6 +22,12 @@ export type ProviderValues = Record<string, Record<string, string>>
 /** The enabled list plus per-provider config; the generic part of every settings blob. */
 export type ProviderState = { enabled: string[]; providers: ProviderValues }
 
+/**
+ * A card on the same page that keeps its own data (Pre-orders), saved by the page's one Save
+ * and save bar instead of a button of its own (#94). `save` throws when it fails.
+ */
+export type LinkedSave = { dirty: boolean; save: () => Promise<void>; discard: () => void }
+
 type Loaded<Extra> = { settings: ProviderState & Extra; available: ProviderDef[] }
 
 type ProviderSettingsFormProps<Extra> = {
@@ -54,6 +60,8 @@ type ProviderSettingsFormProps<Extra> = {
   /** In-page anchors shown on the left; the provider list itself takes the first id. */
   sections?: readonly SectionTab[] | undefined
   /** Anchor id placed on the first enabled provider's extra block (e.g. fees). */
+  /** Other cards on the page that the one Save also saves. */
+  linked?: readonly LinkedSave[] | undefined
 }
 
 type FormState<Extra> = { enabled: string[]; providers: ProviderValues; extra: Extra }
@@ -97,6 +105,7 @@ export default function ProviderSettingsForm<Extra extends object>({
   renderFooter,
   noConfigText,
   sections,
+  linked = [],
 }: ProviderSettingsFormProps<Extra>) {
   // Hooks
   const [available, setAvailable] = useState<ProviderDef[] | null>(null)
@@ -136,10 +145,17 @@ export default function ProviderSettingsForm<Extra extends object>({
     setBusy(true)
     setError(null)
     try {
-      const result = await save({ enabled: form.enabled, providers: form.providers, ...form.extra })
-      const next = result ? split(result) : form
-      setForm(next)
-      setSaved(JSON.stringify(next))
+      if (ownDirty) {
+        const result = await save({
+          enabled: form.enabled,
+          providers: form.providers,
+          ...form.extra,
+        })
+        const next = result ? split(result) : form
+        setForm(next)
+        setSaved(JSON.stringify(next))
+      }
+      for (const l of linked) if (l.dirty) await l.save()
       toast.success(copy.saved)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.saveFailed)
@@ -150,11 +166,13 @@ export default function ProviderSettingsForm<Extra extends object>({
 
   const handleDiscard = () => {
     if (saved) setForm(JSON.parse(saved) as FormState<Extra>)
+    for (const l of linked) l.discard()
     setError(null)
   }
 
   // Render logic
-  const dirty = saved !== null && JSON.stringify(form) !== saved
+  const ownDirty = saved !== null && JSON.stringify(form) !== saved
+  const dirty = ownDirty || linked.some((l) => l.dirty)
 
   const providersSectionId = sections?.[0]?.id
 

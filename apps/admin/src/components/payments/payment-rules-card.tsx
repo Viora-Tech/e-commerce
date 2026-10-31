@@ -5,6 +5,7 @@ import { Pencil, Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import StatusChip from '@/components/layout/status-chip'
 import SettingsCard from '@/components/settings/settings-card'
 import { paymentRulesContent } from '@/data/payment-rules'
@@ -33,17 +34,18 @@ export default function PaymentRulesCard({ setup, onReload }: PaymentRulesCardPr
   // A fresh dialog (and draft) each time one opens.
   const [opened, setOpened] = useState(0)
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState<PaymentMethodRule | null>(null)
 
   // Helpers
   const nameOf = (id: string): string =>
     copy.methodNames[id] ?? setup.gateways.find((g) => g.id === id)?.name ?? id
-  const persist = async (next: PaymentMethodRule[]) => {
+  const persist = async (next: PaymentMethodRule[], done: string = copy.rules.saved) => {
     const before = rules
     setRules(next)
     setSaving(true)
     try {
       await api.payments.saveMethodRules({ rules: next })
-      toast.success(copy.rules.saved)
+      toast.success(done)
       setEditing(null)
       await onReload()
     } catch {
@@ -75,7 +77,15 @@ export default function PaymentRulesCard({ setup, onReload }: PaymentRulesCardPr
         ? rules.map((r) => (r.id === rule.id ? rule : r))
         : [...rules, rule],
     )
-  const handleRemove = (id: string) => persist(rules.filter((r) => r.id !== id))
+  // Asks first, and says what happened: "Rule deleted", not "Payment rules saved" (#95).
+  const handleRemove = async () => {
+    if (!deleting) return
+    await persist(
+      rules.filter((r) => r.id !== deleting.id),
+      copy.rules.deleted,
+    )
+    setDeleting(null)
+  }
 
   // Render logic
   const methods = setup.ruleMethods.map((id) => ({ id, name: nameOf(id) }))
@@ -118,7 +128,7 @@ export default function PaymentRulesCard({ setup, onReload }: PaymentRulesCardPr
                   variant="ghost"
                   size="icon-sm"
                   aria-label={copy.rules.remove}
-                  onClick={() => handleRemove(r.id)}
+                  onClick={() => setDeleting(r)}
                   disabled={saving}
                 >
                   <Trash2 />
@@ -128,6 +138,15 @@ export default function PaymentRulesCard({ setup, onReload }: PaymentRulesCardPr
           ))}
         </ul>
       )}
+      <ConfirmDialog
+        open={deleting !== null}
+        onOpenChange={(open) => (open ? undefined : setDeleting(null))}
+        title={copy.rules.deleteDialog.title(deleting?.name || copy.rules.untitled)}
+        body={copy.rules.deleteDialog.body}
+        confirmLabel={copy.rules.deleteDialog.confirm}
+        busy={saving}
+        onConfirm={handleRemove}
+      />
       <PaymentRuleDialog
         key={opened}
         open={editing !== null}

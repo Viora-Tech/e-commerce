@@ -56,9 +56,13 @@ export function paymentRows(
     {
       id: PAYMENT_ROWS.methods,
       title: copy.methods,
-      value: online.length
-        ? online.map((m) => names[m.id as MethodId]?.name ?? m.id).join(', ')
-        : copy.methodsNone,
+      // UPI, cards and netbanking need a connected provider; without one none is offered (#70).
+      value:
+        setup.primary === null
+          ? copy.methodsNoProvider
+          : online.length
+            ? online.map((m) => names[m.id as MethodId]?.name ?? m.id).join(', ')
+            : copy.methodsNone,
     },
     {
       id: PAYMENT_ROWS.manual,

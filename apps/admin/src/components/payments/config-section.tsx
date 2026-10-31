@@ -4,6 +4,7 @@ import {
   Clock,
   CreditCard,
   type IconComponent,
+  ReceiptIcon,
   Settings,
   SlidersHorizontal,
 } from '@commerce/ui/icons'
@@ -11,7 +12,9 @@ import type { DrillRow } from '@/components/settings/settings-drill'
 import { useDrillNav } from '@/components/settings/settings-drill'
 import SettingsLinkRow from '@/components/settings/settings-link-row'
 import { paymentProvidersContent } from '@/data/payment-providers'
+import { paymentRulesContent } from '@/data/payment-rules'
 import { useCopy } from '@/hooks/use-copy'
+import { routes } from '@/lib/routes'
 import { CONFIG_ROWS, PAYMENT_ROWS } from './payments-rows'
 import PaymentsSection from './payments-section'
 
@@ -34,6 +37,7 @@ const ICONS: Record<(typeof CONFIG_ROWS)[number], IconComponent> = {
 export default function ConfigSection({ rows }: ConfigSectionProps) {
   // Hooks
   const { overview } = useCopy(paymentProvidersContent)
+  const { page } = useCopy(paymentRulesContent)
   const open = useDrillNav()
 
   return (
@@ -64,6 +68,21 @@ export default function ConfigSection({ rows }: ConfigSectionProps) {
           </li>,
         ]
       })}
+      <li>
+        <SettingsLinkRow
+          href={routes.settings.paymentsAdvanced()}
+          leading={
+            <span
+              aria-hidden="true"
+              className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground [&_svg]:size-4"
+            >
+              <ReceiptIcon />
+            </span>
+          }
+          title={page.advanced}
+          value={page.advancedValue}
+        />
+      </li>
     </PaymentsSection>
   )
 }

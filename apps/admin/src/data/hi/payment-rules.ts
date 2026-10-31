@@ -27,6 +27,12 @@ export default [
       off: 'बंद',
       untitled: 'बिना नाम का नियम',
       saved: 'पेमेंट के नियम सेव हो गए।',
+      deleted: 'नियम हटा दिया गया',
+      deleteDialog: {
+        title: (name) => `"${name}" हटाएँ?`,
+        body: 'यह जिन पेमेंट तरीकों को छिपाता है, वे फिर हर ऑर्डर पर दिखेंगे।',
+        confirm: 'नियम हटाएँ',
+      },
       failed: 'पेमेंट के नियम सेव नहीं हो सके। फिर से कोशिश करें।',
       hides: (methods: string) => `${methods} छिपाता है`,
       when: (conditions: string, all: boolean) =>
@@ -73,6 +79,7 @@ export default [
         count > 1 ? `${main} (मुख्य) और ${count - 1} और` : main,
       methods: 'पेमेंट के तरीके',
       methodsNone: 'कोई चालू नहीं',
+      methodsNoProvider: 'पहले कोई प्रोवाइडर जोड़ें',
       manual: 'मैनुअल पेमेंट के तरीके',
       manualNone: 'सब बंद',
       manualKinds: { upi: 'UPI ID', bank: 'बैंक ट्रांसफ़र', cod: 'कैश ऑन डिलीवरी' },
@@ -83,7 +90,9 @@ export default [
       rulesNone: 'कोई नियम नहीं',
       rulesCount: (n: number) => `${n} नियम`,
       more: 'और',
-      moreValue: 'UPI QR, हर तरीके की फ़ीस, बिना पेमेंट वाले ऑर्डर',
+      moreValue: 'UPI के दो विकल्प',
+      advanced: 'बैंक ट्रांसफ़र, UPI QR और फ़ीस',
+      advancedValue: 'हर तरीके की फ़ीस, बिना पेमेंट वाले ऑर्डर, प्री-ऑर्डर',
       moreHeading: 'पेमेंट की और सेटिंग',
     },
     order: {

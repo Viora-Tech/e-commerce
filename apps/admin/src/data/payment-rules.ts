@@ -24,6 +24,12 @@ export const paymentRulesContent = {
     off: 'Off',
     untitled: 'Untitled rule',
     saved: 'Payment rules saved.',
+    deleted: 'Rule deleted',
+    deleteDialog: {
+      title: (name: string) => `Delete "${name}"?`,
+      body: 'The ways to pay it hides show on every order again.',
+      confirm: 'Delete rule',
+    },
     failed: 'Could not save payment rules. Please try again.',
     hides: (methods: string) => `Hides ${methods}`,
     when: (conditions: string, all: boolean) =>
@@ -75,6 +81,7 @@ export const paymentRulesContent = {
       count > 1 ? `${main} (main) and ${count - 1} more` : main,
     methods: 'Supported methods',
     methodsNone: 'None on',
+    methodsNoProvider: 'Connect a provider first',
     manual: 'Manual payment methods',
     manualNone: 'All off',
     manualKinds: { upi: 'UPI ID', bank: 'Bank transfer', cod: 'Cash on delivery' },
@@ -85,7 +92,10 @@ export const paymentRulesContent = {
     rulesNone: 'No rules',
     rulesCount: (n: number) => (n === 1 ? '1 rule' : `${n} rules`),
     more: 'More',
-    moreValue: 'UPI QR, fees per method, unpaid orders',
+    moreValue: 'The two UPI options',
+    /** A row of its own, straight to the page (#92): no More › Open on the way. */
+    advanced: 'Bank transfer, UPI QR and fees',
+    advancedValue: 'Fees per method, unpaid orders, pre-orders',
     moreHeading: 'More payment settings',
   },
   order: {
