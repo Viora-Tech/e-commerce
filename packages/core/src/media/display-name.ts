@@ -6,7 +6,7 @@ const NAME_MAX = 120
 /** "Mouse pad_final.JPG" → "Mouse pad_final": the uploaded file's name without its extension. */
 export function uploadedName(filename: string): string | null {
   const base = filename
-    .split(/[/]/)
+    .split(/[\\/]/)
     .pop()
     ?.replace(/\.[a-z0-9]{1,5}$/i, '')
     .trim()

@@ -63,8 +63,9 @@ async function candidates(tx: StoreTx, settings: ReviewsSettings, range: PastOrd
       and(
         inArray(order.fulfillmentStatus, ['delivered', 'partially_delivered']),
         inArray(order.status, ['open', 'completed']),
-        gte(when, range.from),
-        lte(when, range.to),
+        // `when` is an expression, not a column, so the dates go in as timestamptz text.
+        gte(when, sql`${range.from.toISOString()}::timestamptz`),
+        lte(when, sql`${range.to.toISOString()}::timestamptz`),
         reachable,
         notExists(
           tx

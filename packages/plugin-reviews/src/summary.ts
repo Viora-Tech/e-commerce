@@ -21,7 +21,15 @@ export async function markSummariesStale(
   productIds: readonly (string | null)[],
   now: Date = new Date(),
 ): Promise<void> {
-  const ids = [...new Set(productIds.filter((id): id is string => Boolean(id)))]
+  const wanted = [...new Set(productIds.filter((id): id is string => Boolean(id)))]
+  if (wanted.length === 0) return
+  // Only this store's products: an id from another store, or a
+  // deleted product, never gets a summary row here.
+  const own = await tx
+    .select({ id: product.id })
+    .from(product)
+    .where(and(eq(product.storeId, storeId), inArray(product.id, wanted)))
+  const ids = own.map((p) => p.id)
   if (ids.length === 0) return
   await tx
     .insert(reviewSummary)

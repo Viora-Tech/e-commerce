@@ -214,7 +214,8 @@ describe('GST invoices order actions', () => {
     expect(first.issued).toHaveLength(1)
     expect(first.alreadyIssued).toEqual([])
     const again = await call(appRouter.gstInvoices.generate, { orderId }, { context: m.ctx })
-    expect(again).toEqual({ issued: [], alreadyIssued: first.issued })
+    expect(again).toMatchObject({ issued: [], alreadyIssued: first.issued })
+    expect(again.invoices).toHaveLength(1)
   })
 
   it('generate refuses a test order', async () => {

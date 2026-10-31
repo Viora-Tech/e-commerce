@@ -338,6 +338,7 @@ const NAMESPACE_AREA: Record<string, ApiArea> = {
   checkoutSettings: 'settings',
   customerAccounts: 'settings',
   notifications: 'settings',
+  documents: 'settings',
   apps: 'settings',
   taxes: 'settings',
   businessGst: 'settings',

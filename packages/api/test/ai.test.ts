@@ -354,9 +354,10 @@ describe('assistant: answering questions', () => {
     expect(sources.map((s) => s.status)).toEqual(['running', 'done'])
     expect(sources[1]).toMatchObject({ tool: 'salesSummary' })
     const done = sources[1] as Extract<AssistantEvent, { type: 'source' }>
+    // The label carries the dates (calendar periods, #103).
     expect(done.facts).toContainEqual({
-      label: 'Net sales, last 7 days',
-      value: '₹2,450 (the 7 days before: ₹0)',
+      label: expect.stringMatching(/^Net sales, last 7 days/),
+      value: '₹2,450 (the same length before: ₹0)',
     })
     const text = events.flatMap((e) => (e.type === 'text' ? [e.delta] : [])).join('')
     expect(text).toContain('₹2,450')

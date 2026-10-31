@@ -181,8 +181,13 @@ describe('customer privacy API', () => {
     const rows = await owner
       .insert(customer)
       .values([
-        { storeId: boss.storeId, email: 'asha@example.com' },
-        { storeId: boss.storeId, email: 'ravi@example.com', acceptsSms: true },
+        { storeId: boss.storeId, email: 'asha@example.com', phone: '+919876543210' },
+        {
+          storeId: boss.storeId,
+          email: 'ravi@example.com',
+          phone: '+919876543211',
+          acceptsSms: true,
+        },
       ])
       .returning()
     const ids = rows.map((r) => r.id)
