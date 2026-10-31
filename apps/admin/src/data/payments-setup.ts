@@ -132,6 +132,12 @@ export const paymentsSetupContent = {
     needsGateway: 'Connect a way to get paid first',
     saved: 'Saved. Checkout is updated.',
     saveFailed: 'Could not save. Try again.',
+    /** #90: cash on delivery is the only way to pay left. */
+    lastWayTitle: 'Turn off the only way to pay?',
+    lastWayBody:
+      'Cash on delivery is the only way shoppers can pay right now. With it off, nobody can place an order until you connect a payment provider or turn on UPI or bank transfer.',
+    lastWayConfirm: 'Turn off',
+    lastWayCancel: 'Keep it on',
   },
   add: {
     button: 'Add another way to get paid',

@@ -6,6 +6,7 @@ import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsDrill from '@/components/settings/settings-drill'
@@ -64,6 +65,7 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
   const [savingMethods, setSavingMethods] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
   const [opening, setOpening] = useState(false)
+  const [confirmingCodOff, setConfirmingCodOff] = useState(false)
 
   // Helpers
   const saveMethods = async (next: CheckoutMethodRow[]) => {
@@ -92,8 +94,21 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
 
   const handleOpenAdd = () => setAddOpen(true)
 
-  const handleCod = (on: boolean) =>
+  const saveCod = (on: boolean) =>
     saveMethods(methods.map((m) => (m.id === 'cod' ? { ...m, on } : m)))
+
+  // #90: switching off the last way to pay asks first, since checkout then takes no orders.
+  const handleCod = (on: boolean) => {
+    const lastWay =
+      !setup.canTakeOnline && !setup.manualMethods.upi.on && !setup.manualMethods.bank.on
+    if (!on && lastWay) setConfirmingCodOff(true)
+    else void saveCod(on)
+  }
+
+  const handleCodOff = () => {
+    setConfirmingCodOff(false)
+    void saveCod(false)
+  }
 
   const handleConnect = async (id: string) => {
     try {
@@ -222,6 +237,15 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
         onOpenChange={setAddOpen}
         gateways={setup.gateways}
         onConnect={handleConnect}
+      />
+      <ConfirmDialog
+        open={confirmingCodOff}
+        onOpenChange={setConfirmingCodOff}
+        title={copy.methods.lastWayTitle}
+        body={copy.methods.lastWayBody}
+        confirmLabel={copy.methods.lastWayConfirm}
+        cancelLabel={copy.methods.lastWayCancel}
+        onConfirm={handleCodOff}
       />
     </div>
   )
