@@ -220,6 +220,9 @@ export const assistantContent = {
           : `Uses ${n * perProduct} AI requests, ${perProduct} per product (keywords, then the writing).`,
     progress: (done: number, total: number) => `${done} of ${total} written`,
     background: 'It keeps going if you leave this page. Come back to review.',
+    /** Still queued after 30 seconds (audit #171). */
+    slowStart:
+      'Taking longer than usual… The writer may be busy or offline. It starts on its own once it is back, or try again later.',
     optionsHeading: 'Settings for this run',
     backTo: { products: 'Products', seo: 'SEO', readiness: 'Catalog readiness' },
     cancelRun: 'Stop',

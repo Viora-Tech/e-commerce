@@ -114,8 +114,9 @@ export default function Composer({
 
   return (
     <div className="relative border-t border-hairline p-3">
+      {/* In the flow above the box, not floating: it covered Suggested replies (audit #169). */}
       {matches ? (
-        <div className="absolute right-3 bottom-full left-3 mb-2 max-h-60 overflow-y-auto rounded-xl surface-card p-1 shadow-lg">
+        <div className="mb-2 max-h-48 overflow-y-auto rounded-xl surface-card p-1 shadow-sm">
           {matches.length === 0 ? (
             <p className="px-3 py-2 text-caption text-muted-foreground">{c.noQuickReplies}</p>
           ) : (

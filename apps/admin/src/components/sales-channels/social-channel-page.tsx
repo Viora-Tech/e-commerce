@@ -252,9 +252,9 @@ export default function SocialChannelPage({ data, issues }: SocialChannelPagePro
                         ? copy.rules.short_description(info.partner, i.n ?? 0)
                         : i.rule === 'few_images'
                           ? copy.rules.few_images(info.partner, i.n ?? 0)
-                          : i.rule === 'no_description' || i.rule === 'no_identifier'
-                            ? copy.rules[i.rule](info.partner)
-                            : shared.readiness.rules[i.rule]
+                          : i.rule === 'no_images' || i.rule === 'no_category'
+                            ? shared.readiness.rules[i.rule]
+                            : copy.rules[i.rule](info.partner)
                     }
                     action={
                       <KitButton

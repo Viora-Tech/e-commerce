@@ -436,6 +436,12 @@ export const salesChannelsContent = {
         `No GTIN or brand. ${partner} can’t match it to what shoppers search for.`,
       few_images: (partner: string, n: number) =>
         `Only ${n} ${n === 1 ? 'image' : 'images'}. ${partner} shows products with at least 3 better.`,
+      /* Policies in the channel's words, not the Agentic "checkout" note (audit #172). */
+      no_refund_policy: (partner: string) =>
+        `No return policy published. ${partner} asks shops to show one before listing products.`,
+      no_shipping_policy: (partner: string) =>
+        `No delivery estimate. Add one so ${partner} shoppers know when it arrives.`,
+      no_terms: (partner: string) => `No terms of service published. ${partner} may ask for them.`,
     },
     salesHeading: (name: string) => `Sales from ${name}`,
     salesSub: (amount: string) => `${amount} in the last 30 days`,
