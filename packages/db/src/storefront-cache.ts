@@ -49,6 +49,8 @@ export const STOREFRONT_CACHE_TABLES = [
   'page',
   // Pixels app: the pixel ids the storefront initialises (0164).
   'pixel_connection',
+  // Pre-orders (0208, trigger 0212): campaign button, badge, price and notes.
+  'preorder_campaign',
   'product',
   'product_media',
   'product_option',
@@ -134,6 +136,11 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   // Search & discovery (0209): search and recommendation events for the app's Overview.
   discovery_event: LOG,
   discount_usage: LOG,
+  document_template: ADMIN,
+  home_card: ADMIN,
+  home_card_run: LOG,
+  media_folder: ADMIN,
+  web_vital: LOG,
   experiment_event: LOG,
   fulfillment_order: SHOPPER,
   fulfillment_order_line: SHOPPER,
