@@ -31,6 +31,7 @@ import {
   setStock,
   shipTransfer,
   storeNotificationChannels,
+  syncStockCollections,
   TransferInputSchema,
   updateLocation,
 } from '@commerce/core'
@@ -161,7 +162,11 @@ export const inventoryRouter = {
   edit: can(permissions.INVENTORY_WRITE)
     .input(StockEditSchema)
     .handler(({ context, input }) =>
-      friendly(() => applyEdit(context.tx, context.scope.storeId, input)),
+      friendly(async () => {
+        const out = await applyEdit(context.tx, context.scope.storeId, input)
+        await syncStockCollections(context.tx, context.scope.storeId)
+        return out
+      }),
     ),
 
   /** Same edit across selected rows; all or nothing. */
@@ -180,11 +185,13 @@ export const inventoryRouter = {
             reason: edit.reason,
             note: edit.note,
           })
+          await syncStockCollections(context.tx, context.scope.storeId)
           return { updated }
         }
         for (const variantId of variantIds) {
           await applyEdit(context.tx, context.scope.storeId, { ...edit, variantId })
         }
+        await syncStockCollections(context.tx, context.scope.storeId)
         return { updated: variantIds.length }
       }),
     ),

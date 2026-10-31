@@ -437,7 +437,16 @@ export const productMedia = pgTable(
 )
 
 /** Rule fields an automatic collection can match on; the evaluator lives in @commerce/core/collections. */
-export type CollectionField = 'title' | 'type' | 'vendor' | 'tag' | 'price'
+export type CollectionField =
+  | 'title'
+  | 'type'
+  | 'vendor'
+  | 'tag'
+  | 'price'
+  | 'compare_at'
+  | 'stock'
+  | 'weight'
+  | 'variant_title'
 export type CollectionOp = 'eq' | 'neq' | 'contains' | 'starts_with' | 'gt' | 'lt'
 export type CollectionCondition = { field: CollectionField; op: CollectionOp; value: string }
 export type CollectionRules = { match: 'all' | 'any'; conditions: CollectionCondition[] }

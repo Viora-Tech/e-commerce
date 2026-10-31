@@ -1,5 +1,13 @@
-import { collection, collectionProduct, newId, product, type StoreTx } from '@commerce/db'
-import { and, asc, eq, inArray, sql } from 'drizzle-orm'
+import {
+  collection,
+  collectionProduct,
+  newId,
+  product,
+  type StoreTx,
+  sellableStock,
+  variant,
+} from '@commerce/db'
+import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { slugify } from '../catalog/products'
 import { onHandleChange } from '../redirects/handle-change'
 import { type CollectionRules, type RuleProduct, selectMembers } from './rules'
@@ -46,10 +54,37 @@ export async function ruleProducts(
     .from(product)
     .where(eq(product.status, 'active'))
     .orderBy(asc(product.createdAt))
-  return rows.map((r) => ({
-    ...r,
-    pricePaise: r.pricePaise === null ? null : Number(r.pricePaise),
-  }))
+  /* The variant facts the stock, compare-at, weight and variant-title rules read (audit #153):
+     live variants shown on the store, folded per product below. */
+  const variants = await tx
+    .select({
+      productId: variant.productId,
+      title: variant.title,
+      mrpPaise: variant.mrpPaise,
+      weightGrams: variant.weightGrams,
+      onHand: sellableStock.onHand,
+      reserved: sellableStock.reserved,
+    })
+    .from(variant)
+    .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
+    .where(and(isNull(variant.archivedAt), eq(variant.hiddenOnStore, false)))
+  const byProduct = new Map<string, typeof variants>()
+  for (const v of variants) byProduct.set(v.productId, [...(byProduct.get(v.productId) ?? []), v])
+  const least = (values: (number | null)[]) => {
+    const set = values.filter((n): n is number => n !== null)
+    return set.length ? Math.min(...set) : null
+  }
+  return rows.map((r) => {
+    const vs = byProduct.get(r.id) ?? []
+    return {
+      ...r,
+      pricePaise: r.pricePaise === null ? null : Number(r.pricePaise),
+      compareAtPaise: least(vs.map((v) => v.mrpPaise)),
+      stock: vs.reduce((n, v) => n + (v.onHand ?? 0) - (v.reserved ?? 0), 0),
+      weightGrams: least(vs.map((v) => v.weightGrams)),
+      variantTitles: vs.map((v) => v.title),
+    }
+  })
 }
 
 async function writeMembers(
@@ -113,6 +148,21 @@ export async function syncAutomaticCollections(tx: StoreTx, storeId: string): Pr
       members.map((m) => m.id),
     )
   }
+}
+
+/**
+ * Re-sync only the automatic collections with a stock rule (audit #153): a stock edit does not
+ * touch the product, so nothing else would move a product in or out of "Stock > 0".
+ */
+export async function syncStockCollections(tx: StoreTx, storeId: string): Promise<void> {
+  const rows = await tx
+    .select({ id: collection.id, rules: collection.rules })
+    .from(collection)
+    .where(eq(collection.kind, 'automatic'))
+  const stocky = rows.filter((r) =>
+    (r.rules as CollectionRules | null)?.conditions?.some((c) => c.field === 'stock'),
+  )
+  for (const row of stocky) await syncAutomaticCollection(tx, storeId, row.id)
 }
 
 /** How many products a rule set would hold, without saving it. */

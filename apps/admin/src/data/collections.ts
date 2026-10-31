@@ -45,6 +45,10 @@ export const collectionsListContent = {
       vendor: 'Vendor',
       tag: 'Tag',
       price: 'Price',
+      compare_at: 'Compare-at price',
+      stock: 'Stock',
+      weight: 'Weight (g)',
+      variant_title: 'Variant title',
     },
     ruleOp: {
       eq: 'is',
@@ -199,6 +203,10 @@ export const FIELD_LABELS: Record<CollectionField, string> = {
   vendor: 'Vendor',
   tag: 'Tag',
   price: 'Price',
+  compare_at: 'Compare-at price',
+  stock: 'Inventory stock',
+  weight: 'Weight (grams)',
+  variant_title: 'Variant title',
 }
 
 export const OP_LABELS: Record<CollectionOp, string> = {

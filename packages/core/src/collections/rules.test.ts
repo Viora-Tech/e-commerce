@@ -111,4 +111,23 @@ describe('collection rules', () => {
     expect(COLLECTION_OPS_BY_FIELD.price).not.toContain('contains')
     expect(COLLECTION_OPS_BY_FIELD.tag).toEqual(['eq', 'neq'])
   })
+
+  it('reads stock, compare-at, weight and variant titles (audit #153)', () => {
+    const p: RuleProduct = {
+      ...pad,
+      compareAtPaise: 249900,
+      stock: 4,
+      weightGrams: 350,
+      variantTitles: ['Black / XL', 'White / L'],
+    }
+    const hit = (field: string, op: string, value: string) =>
+      matchesCollectionCondition(p, { field, op, value } as never)
+    expect(hit('stock', 'gt', '0')).toBe(true)
+    expect(hit('stock', 'lt', '4')).toBe(false)
+    expect(hit('compare_at', 'gt', '2000')).toBe(true)
+    expect(hit('weight', 'lt', '500')).toBe(true)
+    expect(hit('variant_title', 'contains', 'xl')).toBe(true)
+    expect(hit('variant_title', 'neq', 'white / l')).toBe(false)
+    expect(matchesCollectionCondition(pad, { field: 'stock', op: 'eq', value: '0' })).toBe(true)
+  })
 })

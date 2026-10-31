@@ -46,6 +46,10 @@ export default [
         vendor: 'वेंडर',
         tag: 'टैग',
         price: 'कीमत',
+        compare_at: 'तुलना कीमत (MRP)',
+        stock: 'स्टॉक',
+        weight: 'वज़न (ग्राम)',
+        variant_title: 'वेरिएंट का नाम',
       },
       ruleOp: {
         eq: 'है',
