@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import RolloutForm from '@/components/rollouts/rollout-form'
 import { appRouter, call, serverContext } from '@/lib/api'
@@ -6,6 +7,13 @@ import { orNoStore } from '@/lib/store-guard'
 import { loadRolloutPage } from '../load'
 
 type Params = { params: Promise<{ id: string }> }
+
+export async function generateMetadata({ params }: Params): Promise<Metadata> {
+  const { id } = await params
+  const context = await serverContext()
+  const found = await call(appRouter.rollouts.get, { id }, { context }).catch(() => null)
+  return { title: found?.name || 'Rollout' }
+}
 
 /** A missing rollout (another store's, or a malformed id) is a 404, not an error page. */
 const missing = (error: unknown) => {

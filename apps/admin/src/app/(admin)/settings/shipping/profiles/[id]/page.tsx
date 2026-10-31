@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import ProfileForm from '@/components/shipping-zones/profile-form'
 import { appRouter, call, serverContext } from '@/lib/api'
@@ -5,6 +6,13 @@ import { routes } from '@/lib/routes'
 import { orNoStoreOrMissing } from '@/lib/store-guard'
 
 type Params = { params: Promise<{ id: string }> }
+
+export async function generateMetadata({ params }: Params): Promise<Metadata> {
+  const { id } = await params
+  const context = await serverContext()
+  const found = await call(appRouter.shipping.profiles.get, { id }, { context }).catch(() => null)
+  return { title: found?.name || 'Shipping profile' }
+}
 
 export default async function ShippingProfilePage({ params }: Params) {
   const { id } = await params

@@ -3,14 +3,18 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import type { OrderDetail } from '@/components/orders/order-detail-types'
 import PackingSlipsView from '@/components/orders/packing-slips-view'
-import { packingSlipsContent } from '@/data/orders-bulk'
+import { documentTemplatesContent } from '@/data/document-templates'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { routes } from '@/lib/routes'
 import { orNoStore } from '@/lib/store-guard'
 
-export const metadata: Metadata = { title: packingSlipsContent.title }
-
 type Props = { searchParams: Promise<{ ids?: string; doc?: string }> }
+
+/** The tab names what is printing: packing slips, the pick list or invoices. */
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+  const { doc } = await searchParams
+  return { title: documentTemplatesContent.print.titles[kindOf(doc)] }
+}
 
 /** The list prints at most this many at once; anything past it in the URL is ignored. */
 const PRINT_MAX = 100

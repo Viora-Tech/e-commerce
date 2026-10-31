@@ -1,5 +1,8 @@
 import { appStoreUrl } from '@commerce/config/site'
+import type { Metadata } from 'next'
 import { permanentRedirect } from 'next/navigation'
+
+export const metadata: Metadata = { title: 'App Store' }
 
 /**
  * The App Store moved out of the admin to its own website (owner decision, 2026-10-23): apps are

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import CatalogForm from '@/components/catalogs/catalog-form'
 import { appRouter, call, serverContext } from '@/lib/api'
@@ -6,6 +7,13 @@ import { orNoStore } from '@/lib/store-guard'
 import { loadCatalogPage } from '../load'
 
 type Params = { params: Promise<{ id: string }> }
+
+export async function generateMetadata({ params }: Params): Promise<Metadata> {
+  const { id } = await params
+  const context = await serverContext()
+  const found = await call(appRouter.catalogs.get, { id }, { context }).catch(() => null)
+  return { title: found?.name || 'Catalog' }
+}
 
 /** A missing catalog (another store's, or a malformed id) is a 404, not an error page. */
 const missing = (error: unknown) => {
