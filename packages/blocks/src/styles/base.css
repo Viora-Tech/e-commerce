@@ -1565,7 +1565,11 @@ html.js
      123px tall, also refused to fire. */
     .drop-reveal__heading,
     .perfect-match__heading,
-    .tabbed-products__heading
+    .tabbed-products__heading,
+    /* Product card titles: a collection's filters and sort swap the grid in place, and
+       the reveal script only watches headings present at page load, so every card title
+       that arrived with a filter stayed at opacity 0 (prices showed, names did not). */
+    .product-card__title
   ) {
   opacity: 1;
   translate: 0 0;
