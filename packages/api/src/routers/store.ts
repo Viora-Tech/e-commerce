@@ -57,6 +57,7 @@ import {
   tryEstimate,
   updateStoreShipping,
   verifyShippingCredentials,
+  withOrigin,
 } from '../services/shipping.service'
 import {
   getStore,
@@ -355,13 +356,29 @@ export const storeRouter = {
   }),
 
   updateShipping: can(permissions.SETTINGS_MANAGE)
-    .input(ShippingSettingsSchema)
+    .input(
+      ShippingSettingsSchema.extend({
+        /** The merchant set the ship-from PIN code (saved before, or typed on the page). */
+        originPincodeSet: z.boolean().optional(),
+      }),
+    )
     .handler(async ({ context, input }) => {
-      const current = parseShippingSettings(
-        (await getStore(context.tx, context.scope.storeId))?.shipping,
-      )
+      const { originPincodeSet, ...settings } = input
+      const raw = (await getStore(context.tx, context.scope.storeId))?.shipping
+      const current = parseShippingSettings(raw)
       const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
-      const next = prepareProviderSettings(input, current, shipping, settingsSecret(), 'courier')
+      const prepared = prepareProviderSettings(
+        settings,
+        current,
+        shipping,
+        settingsSecret(),
+        'courier',
+      )
+      const next = await withOrigin(
+        context.tx,
+        prepared,
+        originPincodeSet === true || savedOriginPincode(raw) !== null,
+      )
       const saved = await updateStoreShipping(context.tx, context.scope.storeId, next)
       return saved
         ? presentProviderSettings(

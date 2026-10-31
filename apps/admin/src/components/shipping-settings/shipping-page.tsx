@@ -68,11 +68,12 @@ export default function ShippingPage() {
     if (!form) return
     setBusy(true)
     try {
-      const result = await api.store.updateShipping(form)
+      // A PIN code the merchant never set is not saved as the 110001 placeholder (#66).
+      const result = await api.store.updateShipping({ ...form, originPincodeSet: originSet })
       const next = result ?? form
       setForm(next)
       setSaved(JSON.stringify(next))
-      setLoaded((l) => (l ? { ...l, originSaved: true } : l))
+      setLoaded((l) => (l ? { ...l, originSaved: l.originSaved || originSet } : l))
       toast.success(copy.saved)
       void announceSetup('shipping')
     } catch (err) {

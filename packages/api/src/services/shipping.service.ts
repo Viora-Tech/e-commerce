@@ -25,14 +25,38 @@ import {
 } from '@commerce/core'
 import { getRegistries } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
-import { shipment, shipmentPickup, store } from '@commerce/db'
+import { location, shipment, shipmentPickup, store } from '@commerce/db'
 import { CourierError, describeCourierFailure, isValidPincode } from '@commerce/shipping'
 import { ORPCError } from '@orpc/server'
-import { desc, eq } from 'drizzle-orm'
+import { and, desc, eq } from 'drizzle-orm'
 
 export async function updateStoreShipping(tx: StoreTx, storeId: string, shipping: unknown) {
   const [s] = await tx.update(store).set({ shipping }).where(eq(store.id, storeId)).returning()
   return s ?? null
+}
+
+/**
+ * The settings to save with an honest ship-from PIN code (audit #66). The parser fills 110001
+ * when none was saved, and saving wrote that placeholder back, so a store that never set its
+ * PIN looked set (Store health, Dispatch). Unless the merchant set it, the default warehouse's
+ * PIN code is used, else none is saved.
+ */
+export async function withOrigin<P extends { originPincode: string }, S extends { policy: P }>(
+  tx: StoreTx,
+  settings: S,
+  set: boolean,
+): Promise<S | (Omit<S, 'policy'> & { policy: Omit<P, 'originPincode'> })> {
+  if (set) return settings
+  const [home] = await tx
+    .select({ pincode: location.pincode })
+    .from(location)
+    .where(and(eq(location.isDefault, true), eq(location.active, true)))
+  const pincode = home?.pincode?.trim()
+  if (pincode && isValidPincode(pincode)) {
+    return { ...settings, policy: { ...settings.policy, originPincode: pincode } }
+  }
+  const { originPincode: _placeholder, ...policy } = settings.policy
+  return { ...settings, policy }
 }
 
 export async function loadShippingSettings(
