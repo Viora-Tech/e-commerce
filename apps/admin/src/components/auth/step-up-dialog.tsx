@@ -98,10 +98,6 @@ export default function StepUpProvider({ children }: StepUpProviderProps) {
     return () => setStepUpOpener(null)
   }, [copy.otp.sendFailed])
 
-  // Derived
-  const submitLabel = phase === 'passkey' ? copy.passkey.button : copy.otp.submit
-  const submitDisabled = phase === 'loading' || (phase === 'otp' && otp.length < 6)
-
   // Event handlers
   const finish = (ok: boolean) => {
     resolveRef.current?.(ok)
@@ -174,6 +170,8 @@ export default function StepUpProvider({ children }: StepUpProviderProps) {
   }
 
   // Render logic
+  const submitLabel = phase === 'passkey' ? copy.passkey.button : copy.otp.submit
+  const submitDisabled = phase === 'loading' || (phase === 'otp' && otp.length < 6)
   return (
     <>
       {children}
