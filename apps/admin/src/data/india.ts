@@ -1,11 +1,13 @@
 /** Indian states and union territories by the two-letter code stored on addresses. */
 const PAIRS: readonly [string, string][] = [
+  ['AN', 'Andaman and Nicobar Islands'],
   ['AP', 'Andhra Pradesh'],
   ['AR', 'Arunachal Pradesh'],
   ['AS', 'Assam'],
   ['BR', 'Bihar'],
   ['CG', 'Chhattisgarh'],
   ['CH', 'Chandigarh'],
+  ['DN', 'Dadra and Nagar Haveli and Daman and Diu'],
   ['DL', 'Delhi'],
   ['GA', 'Goa'],
   ['GJ', 'Gujarat'],
@@ -16,6 +18,7 @@ const PAIRS: readonly [string, string][] = [
   ['KA', 'Karnataka'],
   ['KL', 'Kerala'],
   ['LA', 'Ladakh'],
+  ['LD', 'Lakshadweep'],
   ['MP', 'Madhya Pradesh'],
   ['MH', 'Maharashtra'],
   ['MN', 'Manipur'],

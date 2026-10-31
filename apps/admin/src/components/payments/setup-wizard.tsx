@@ -253,7 +253,7 @@ export default function SetupWizard({ setup, onReload, onDone }: SetupWizardProp
         </motion.div>
       </AnimatePresence>
 
-      <HelpFooter />
+      <HelpFooter page="payments" />
     </div>
   )
 }

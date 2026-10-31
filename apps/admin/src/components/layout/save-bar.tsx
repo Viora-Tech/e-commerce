@@ -2,6 +2,7 @@
 
 import { Pencil } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import { useEffect } from 'react'
 import FloatingBar from './floating-bar'
 import LeaveGuard from './leave-guard'
 
@@ -30,6 +31,18 @@ export default function SaveBar({
   onDiscard,
   saving = false,
 }: SaveBarProps) {
+  // Hooks
+  // While the bar floats, the page gets room under its last row (admin-frame's `main`), so
+  // the bar never sits on top of what the merchant just added.
+  useEffect(() => {
+    const main = document.getElementById('main')
+    if (!open || !main) return
+    main.dataset.saveBar = ''
+    return () => {
+      delete main.dataset.saveBar
+    }
+  }, [open])
+
   return (
     <>
       <LeaveGuard when={open && !saving} />

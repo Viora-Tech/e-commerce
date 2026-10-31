@@ -275,7 +275,7 @@ export default function NotificationsPage() {
           </SettingsDrillPanel>
         ) : null}
       </SettingsDrill>
-      <HelpFooter />
+      <HelpFooter page="notifications" />
 
       <PreviewDialog
         messageId={previewing}

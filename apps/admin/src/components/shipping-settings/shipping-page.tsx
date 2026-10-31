@@ -221,7 +221,7 @@ export default function ShippingPage() {
           </SettingsDrillPanel>
         ) : null}
       </SettingsDrill>
-      <HelpFooter />
+      <HelpFooter page="shipping" />
     </div>
   )
 }

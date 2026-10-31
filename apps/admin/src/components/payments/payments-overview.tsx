@@ -260,7 +260,7 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
         </SettingsDrillPanel>
       </SettingsDrill>
 
-      <HelpFooter />
+      <HelpFooter page="payments" />
 
       <AddGatewayDialog
         open={addOpen}

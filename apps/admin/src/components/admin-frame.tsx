@@ -119,7 +119,7 @@ export default function AdminFrame({
           ref={mainRef}
           id="main"
           data-scrolled={scrolled || undefined}
-          className="group/main no-scrollbar min-h-0 min-w-0 flex-1 overflow-y-auto bg-background md:rounded-tl-lg md:rounded-tr-lg md:rounded-bl-lg md:border-panel-border md:border-t md:border-l"
+          className="group/main no-scrollbar min-h-0 min-w-0 flex-1 overflow-y-auto bg-background data-[save-bar]:pb-24 md:rounded-tl-lg md:rounded-tr-lg md:rounded-bl-lg md:border-panel-border md:border-t md:border-l"
         >
           {ownHeading ? null : (
             <div className="sticky top-0 z-10 border-panel-border border-b bg-background px-4 py-5 transition-shadow duration-200 group-data-[scrolled]/main:shadow-[0_6px_16px_-10px_var(--shadow-14)] md:px-6">
