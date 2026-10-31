@@ -723,6 +723,15 @@ html.has-cursor-fill .btn--secondary:hover {
   border-color: var(--color-ink);
 }
 
+/* A disabled button has no hover. Under the cursor fill the hover above paints the background
+   ink while the :hover swap paints the label ink too, and no sweep runs on a disabled button:
+   its label vanished ("Sign in" while the code was still empty). It keeps its resting colours.
+   `html` and the order (after the rules above) let it win over html.has-cursor-fill. */
+html .btn--primary:is(:disabled, [aria-disabled="true"]):hover {
+  color: var(--btn-text, var(--color-bg));
+  background-color: var(--btn-bg, var(--color-ink));
+}
+
 /* Both directions have to be stated, and neither can rely on a per-variant
    rule catching every case:
    - :hover  -> the label/border swap should keep pace with the sweep arriving
