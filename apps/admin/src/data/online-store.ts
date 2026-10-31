@@ -20,6 +20,8 @@ export const onlineStoreContent = {
   },
   form: {
     back: 'Pages',
+    /** Opened from an SEO issue's Edit (audit #176). */
+    backSeo: 'SEO',
     title: 'Title',
     content: 'Content',
     unsaved: 'Unsaved changes',
@@ -49,6 +51,10 @@ export const onlineStoreContent = {
       help: 'The live theme lays the page out with this template.',
       editContent: 'Edit content',
       editHelp: 'Opens the template in Customize to arrange its sections.',
+      /** In place of an empty Content box on a template page (audit #145). */
+      inTemplate: (name: string) =>
+        `This page's content comes from its theme template "${name}". Edit it in Customize.`,
+      writeHere: 'Write text here instead',
     },
   },
 } as const

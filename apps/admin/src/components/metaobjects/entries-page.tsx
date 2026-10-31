@@ -184,6 +184,7 @@ export default function EntriesPage({ definition, initial, initialPerPage }: Ent
           <div className="rounded-2xl border surface-card">
             <EmptyState
               icon={Braces}
+              size="lg"
               heading={copy.empty.heading(definition.name)}
               body={copy.empty.body}
               action={

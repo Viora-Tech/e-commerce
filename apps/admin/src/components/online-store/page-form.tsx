@@ -1,11 +1,12 @@
 'use client'
 
-import type { RichTextValue } from '@commerce/richtext'
+import { isRichTextEmpty, type RichTextValue } from '@commerce/richtext'
 import { ExternalLink } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Field, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -31,6 +32,8 @@ type PageFormProps = {
   /** Customize on this page's template. */
   contentHref: string
   storefrontOrigin: string
+  /** Opened from an SEO issue: Back returns to SEO (audit #176). */
+  fromSeo?: boolean
 }
 
 type FormState = {
@@ -54,13 +57,21 @@ const fromPage = (p: PageRow): FormState => ({
 })
 
 /** Online Store › Pages › page: details, SEO, visibility and theme template; layout lives in Customize. */
-export default function PageForm({ page, suffixes, contentHref, storefrontOrigin }: PageFormProps) {
+export default function PageForm({
+  page,
+  suffixes,
+  contentHref,
+  storefrontOrigin,
+  fromSeo = false,
+}: PageFormProps) {
   // Hooks
   const { form: copy } = useCopy(onlineStoreContent)
   const router = useRouter()
   const [form, setForm] = useState(() => fromPage(page))
   const [saved, setSaved] = useState(() => JSON.stringify(fromPage(page)))
   const [busy, setBusy] = useState(false)
+  /* A template page with no text of its own shows where its content lives; this opens the box. */
+  const [writing, setWriting] = useState(false)
 
   // Helpers
   const patch = (next: Partial<FormState>) => setForm((f) => ({ ...f, ...next }))
@@ -92,13 +103,18 @@ export default function PageForm({ page, suffixes, contentHref, storefrontOrigin
   // Render logic
   const dirty = JSON.stringify(form) !== saved
   const path = page.handle === 'home' ? '/' : `/pages/${page.handle}`
+  const fromTemplate = form.templateSuffix !== '' && isRichTextEmpty(form.body) && !writing
 
   return (
     <ProoflyDetailPage
       header={
         <PageHeader
           title={page.title}
-          back={{ label: copy.back, href: routes.onlineStore.pages() }}
+          back={
+            fromSeo
+              ? { label: copy.backSeo, href: routes.onlineStore.seo() }
+              : { label: copy.back, href: routes.onlineStore.pages() }
+          }
           actions={
             page.publishedAt ? (
               <Button
@@ -127,12 +143,28 @@ export default function PageForm({ page, suffixes, contentHref, storefrontOrigin
                     onChange={(e) => patch({ title: e.target.value })}
                   />
                 </Field>
-                <RichTextField
-                  label={copy.content}
-                  value={form.body}
-                  onChange={(body) => patch({ body })}
-                  minHeight={240}
-                />
+                {fromTemplate ? (
+                  <div className="flex flex-col gap-3 rounded-lg border border-dashed border-line p-4">
+                    <p className="text-body text-foreground">
+                      {copy.template.inTemplate(form.templateSuffix)}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button nativeButton={false} render={<Link href={contentHref} />}>
+                        {copy.template.editContent}
+                      </Button>
+                      <Button variant="ghost" onClick={() => setWriting(true)}>
+                        {copy.template.writeHere}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <RichTextField
+                    label={copy.content}
+                    value={form.body}
+                    onChange={(body) => patch({ body })}
+                    minHeight={240}
+                  />
+                )}
               </FieldGroup>
             </CardContent>
           </Card>
