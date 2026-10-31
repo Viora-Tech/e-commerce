@@ -124,12 +124,13 @@ export default function OrderDetail({
             <ul className="flex flex-col divide-y divide-line">
               {o.lines.map((l) => (
                 <li key={l.id} className="flex gap-4 py-4 first:pt-0 last:pb-0">
-                  <div className="size-16 shrink-0 overflow-hidden rounded-xl bg-surface">
-                    {l.imageUrl ? (
-                      // biome-ignore lint/performance/noImgElement: product media is on the store's CDN.
+                  {/* No picture, no empty grey box (#163). */}
+                  {l.imageUrl ? (
+                    <div className="size-16 shrink-0 overflow-hidden rounded-xl bg-surface">
+                      {/* biome-ignore lint/performance/noImgElement: product media is on the store's CDN. */}
                       <img src={l.imageUrl} alt="" className="size-full object-cover" />
-                    ) : null}
-                  </div>
+                    </div>
+                  ) : null}
                   <div className="flex min-w-0 flex-1 flex-col gap-1">
                     {l.productHandle ? (
                       <Link

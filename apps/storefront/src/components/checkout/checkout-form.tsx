@@ -101,6 +101,15 @@ export default function CheckoutForm(props: CheckoutFormProps) {
     look.branding.trustBadges && !(offline && !totals.coveredByCards)
       ? content.payFootnote(totals.coveredByCards ? [] : processorNames(totals.offered))
       : null
+  // The minimum-order line sits right above the Place order button it keeps off (#96).
+  const shortfallNote = shortfall ? (
+    <p
+      role="status"
+      className="rounded-ck border border-ck-line bg-ck-bg px-4 py-3 text-[0.875rem] text-ck-ink"
+    >
+      {shortfall}
+    </p>
+  ) : null
   const pay = (
     <CheckoutPayButton
       form={FORM_ID}
@@ -155,6 +164,7 @@ export default function CheckoutForm(props: CheckoutFormProps) {
                 : null
             }
             updating={ck.updating}
+            abroad={ck.abroad}
           />
         </SummaryDisclosure>
       }
@@ -169,6 +179,7 @@ export default function CheckoutForm(props: CheckoutFormProps) {
               </span>
             </p>
           ) : null}
+          {shortfallNote}
           {pay}
           {footnote ? (
             <p className="text-center text-[0.75rem] text-ck-summary-muted">{footnote}</p>
@@ -177,6 +188,7 @@ export default function CheckoutForm(props: CheckoutFormProps) {
       }
       bottomBar={
         <>
+          {shortfallNote}
           {pay}
           {footnote ? (
             <p className="text-center text-[0.6875rem] text-ck-muted">{footnote}</p>
@@ -245,6 +257,7 @@ export default function CheckoutForm(props: CheckoutFormProps) {
               onRoute={ck.deliveryApp.setRouteKey}
               insurance={ck.deliveryApp.insurance}
               onInsurance={ck.deliveryApp.toggleInsurance}
+              abroad={ck.abroad}
             />
           </CheckoutCard>
         )}
@@ -257,14 +270,6 @@ export default function CheckoutForm(props: CheckoutFormProps) {
         >
           <CheckoutPaymentStep ck={ck} />
         </CheckoutCard>
-        {shortfall ? (
-          <p
-            role="status"
-            className="rounded-ck border border-ck-line bg-ck-bg px-4 py-3 text-[0.875rem] text-ck-ink"
-          >
-            {shortfall}
-          </p>
-        ) : null}
         {/* Out of the flow while empty, still in the accessibility tree so it announces. */}
         <div aria-live="assertive" className="empty:absolute">
           {error ? (

@@ -13,7 +13,11 @@ import { cartShippingHint } from '@/lib/shipping'
 import { inStore } from '@/lib/store-context'
 import CartLines from './cart-lines'
 
-type CartContentsProps = { storeId: string }
+type CartContentsProps = {
+  storeId: string
+  /** Items "Buy again" left out (sold out, hidden, not sold here), named above the lines. */
+  reorderSkipped?: { titles: string[]; more: number } | undefined
+}
 
 /** The shipping row before there is an address: free, free from here, or worked out at checkout. */
 function shippingLabel(charged: boolean, freeNow: boolean): string {
@@ -21,7 +25,7 @@ function shippingLabel(charged: boolean, freeNow: boolean): string {
 }
 
 /** The cart template's main section: lines, discount code and summary. */
-export default async function CartContents({ storeId }: CartContentsProps) {
+export default async function CartContents({ storeId, reorderSkipped }: CartContentsProps) {
   // Hooks
   const cartId = await readCartId()
   const cart = cartId ? await inStore(storeId, (tx) => getCart({ storeId, tx }, cartId)) : null
@@ -77,6 +81,22 @@ export default async function CartContents({ storeId }: CartContentsProps) {
           {content.itemCount(lines.reduce((n, l) => n + l.quantity, 0))}
         </span>
       </h1>
+      {reorderSkipped && reorderSkipped.titles.length > 0 ? (
+        <div
+          role="status"
+          className="mb-6 flex flex-col gap-2 rounded-[var(--radius-card)] border border-line bg-surface p-4"
+        >
+          <p className="text-body">{content.reorderSkipped.heading}</p>
+          <ul className="list-disc pl-5 text-small text-muted">
+            {reorderSkipped.titles.map((title) => (
+              <li key={title}>{title}</li>
+            ))}
+            {reorderSkipped.more > 0 ? (
+              <li>{content.reorderSkipped.more(reorderSkipped.more)}</li>
+            ) : null}
+          </ul>
+        </div>
+      ) : null}
       <div className="cart-layout">
         <div className="cart-layout__lines">
           <CartLines lines={lines} />

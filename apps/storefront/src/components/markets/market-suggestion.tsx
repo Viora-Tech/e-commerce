@@ -15,6 +15,16 @@ const BUTTON = 'btn btn--small min-w-fit grow basis-32'
 
 const here = () => window.location.pathname + window.location.search
 
+/** Our header and the common theme ones (Dawn's `.header-wrapper`, `sticky-header`). */
+const HEADER = 'sticky-header, .header-wrapper, .shopify-section-header, header'
+
+/** Where the card's top sits: just under the header bar, so it never covers its icons (#56). */
+function belowHeader(): number {
+  const header = document.querySelector(HEADER)
+  const bottom = header ? header.getBoundingClientRect().bottom : 0
+  return Math.max(12, Math.round(bottom) + 12)
+}
+
 /**
  * "Shopping from the UAE? Shop in AED": a small card offering the market of the visitor's
  * country when the page shows another one. Asked for after the page loads
@@ -28,6 +38,7 @@ export default function MarketSuggestion() {
   const pathname = usePathname()
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null)
   const [closed, setClosed] = useState(false)
+  const [top, setTop] = useState<number | null>(null)
 
   useEffect(() => {
     if (window.self !== window.top) return
@@ -48,6 +59,17 @@ export default function MarketSuggestion() {
       .catch(() => {})
     return () => controller.abort()
   }, [])
+  useEffect(() => {
+    if (!suggestion) return
+    const place = () => setTop(belowHeader())
+    place()
+    window.addEventListener('resize', place)
+    window.addEventListener('scroll', place, { passive: true })
+    return () => {
+      window.removeEventListener('resize', place)
+      window.removeEventListener('scroll', place)
+    }
+  }, [suggestion])
 
   // Event handlers
   const handleSwitch = (event: FormEvent<HTMLFormElement>) => {
@@ -68,13 +90,16 @@ export default function MarketSuggestion() {
   }
 
   // Early returns
-  if (!suggestion || closed || isSuggestionFreePath(pathname)) return null
+  if (!suggestion || closed || top === null || isSuggestionFreePath(pathname)) return null
 
   // Render logic
   const country = countryName(suggestion.country)
 
   return (
-    <div className="pointer-events-none fixed inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] z-50 flex justify-center sm:inset-x-auto sm:top-5 sm:right-5 sm:justify-end">
+    <div
+      style={{ top }}
+      className="pointer-events-none fixed inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] z-50 flex justify-center sm:inset-x-auto sm:right-5 sm:justify-end"
+    >
       <section
         aria-label={copy.label}
         className="pointer-events-auto flex w-full min-w-0 flex-col gap-3 rounded-lg border border-line bg-surface p-4 text-ink shadow-lg transition-[opacity,scale] duration-200 ease-out [overflow-wrap:anywhere] starting:scale-[0.97] starting:opacity-0 motion-reduce:starting:scale-100 sm:w-[22rem]"

@@ -40,10 +40,17 @@ type CheckoutSummaryProps = {
   updating: boolean
   /** The store's own wording for the heading and the taxes line (#158); ours when unset. */
   words?: Pick<CheckoutCopy, 'summary' | 'taxes'> | undefined
+  /** Shipping abroad: no PIN code to ask for, and no Indian "inclusive of taxes" line (#64, #210). */
+  abroad?: boolean
 }
 
-function shippingValue(row: ShippingRow, money: (paise: number) => string): string {
-  if (row.kind === 'pending') return content.shippingPending
+function shippingValue(
+  row: ShippingRow,
+  money: (paise: number) => string,
+  abroad: boolean,
+): string {
+  if (row.kind === 'pending')
+    return abroad ? content.shippingPendingAbroad : content.shippingPending
   return row.paise === 0 ? content.shippingFree : money(row.paise)
 }
 
@@ -71,6 +78,7 @@ export default function CheckoutSummary({
   notice = null,
   updating,
   words = content,
+  abroad = false,
 }: CheckoutSummaryProps) {
   // Hooks
   // On a market in another currency (`/ae`) the summary reads in it; Pay still charges rupees.
@@ -143,7 +151,7 @@ export default function CheckoutSummary({
                   ? `${content.shipping} · ${shipping.name}`
                   : content.shipping
               }
-              value={updating ? shimmer : shippingValue(shipping, money)}
+              value={updating ? shimmer : shippingValue(shipping, money, abroad)}
             />
           ) : null}
           {adjustmentPaise !== 0 ? (
@@ -158,11 +166,15 @@ export default function CheckoutSummary({
               label={
                 <span className="flex flex-col gap-0.5">
                   {content.total}
-                  <span className="text-[0.75rem] font-normal text-ck-summary-muted">
-                    {gstPaise && gstPaise > 0 && !updating
-                      ? content.taxesIncluded(money(gstPaise))
-                      : words.taxes}
-                  </span>
+                  {gstPaise && gstPaise > 0 && !updating ? (
+                    <span className="text-[0.75rem] font-normal text-ck-summary-muted">
+                      {content.taxesIncluded(money(gstPaise))}
+                    </span>
+                  ) : abroad ? null : (
+                    <span className="text-[0.75rem] font-normal text-ck-summary-muted">
+                      {words.taxes}
+                    </span>
+                  )}
                 </span>
               }
               value={

@@ -181,3 +181,19 @@ export function lowestPresentment(
     varies: rest.some((v) => v.minor !== first.minor),
   }
 }
+
+/**
+ * "Save AED 7.73": the gap between the two prices as the shopper reads them, each converted
+ * and rounded first. Converting the paise difference instead could read a fils off the two
+ * prices shown beside it (30.90 − 23.17 shown as 7.74, #57).
+ */
+export function formatPresentmentSaving(
+  mrpPaise: number,
+  pricePaise: number,
+  p: MarketPricing | null,
+): string {
+  if (!p || !isCurrency(p.currency) || isRupeePricing(p)) {
+    return formatMoney(mrpPaise - pricePaise, 'INR')
+  }
+  return formatMoney(presentmentMinor(mrpPaise, p) - presentmentMinor(pricePaise, p), p.currency)
+}

@@ -2,7 +2,7 @@
 
 import { hasFixedPrice, lowestPresentment } from '@commerce/money'
 import { priceContent as copy } from '../data/price'
-import { useFormatPaise, useMarketPricing } from '../money-format'
+import { useFormatPaise, useFormatSaving, useMarketPricing } from '../money-format'
 
 // Port of snippets/price.liquid, as Figma Store / Price (691:85138): the price (in the sale
 // colour when discounted), the MRP struck through and the saving in rupees.
@@ -28,6 +28,7 @@ export default function Price({
 }) {
   // Hooks
   const formatPaise = useFormatPaise()
+  const formatSaving = useFormatSaving()
   const pricing = useMarketPricing()
 
   // Early returns
@@ -57,7 +58,7 @@ export default function Price({
           <span className="price__compare">
             <s>{formatPaise(mrpPaise)}</s>
           </span>
-          <span className="price__save">Save {formatPaise(mrpPaise - pricePaise)}</span>
+          <span className="price__save">Save {formatSaving(mrpPaise, pricePaise)}</span>
           {percentBadge ? (
             <span className="badge badge--sale price__badge">
               {`−${Math.round((1 - pricePaise / mrpPaise) * 100)}%`}

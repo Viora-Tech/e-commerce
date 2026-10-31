@@ -3,6 +3,7 @@
 import { msUntil } from '@commerce/dates'
 import { type ComponentType, type ReactNode, useEffect, useState } from 'react'
 import { mainProductContent as copy } from '../data/zero-drift/main-product'
+import { useMarketPricing } from '../money-format'
 import { variantOnPreorder } from '../preorder-state'
 import { galleryForVariant, slideForVariant, variantImageUrls } from '../product-gallery-order'
 import { announceVariant } from '../product-variant-event'
@@ -87,6 +88,7 @@ export default function ProductView({
   const [variantId, setVariantId] = useState(defaultVariant(product)?.id)
   const [slide, setSlide] = useState(() => slideFor(product, defaultVariant(product)))
   const [countdown, setCountdown] = useState(() => msUntil(product.launchAt))
+  const pricing = useMarketPricing()
   const [pageUrl, setPageUrl] = useState(`/products/${product.handle}`)
 
   useEffect(() => {
@@ -113,6 +115,7 @@ export default function ProductView({
 
   // Render logic
   const s = settings ?? mainProductSettings()
+  const abroadPrices = pricing !== null && pricing.currency !== 'INR'
   const variant = product.variants.find((v) => v.id === variantId) ?? defaultVariant(product)
   const launching = countdown > 0
   const isPreorder = variantOnPreorder(product, variant)
@@ -168,7 +171,10 @@ export default function ProductView({
                 variantId={variant.id}
                 percentBadge
               />
-              <p className="product-info__tax-note">{copy.ui.inclusiveOfTaxes}</p>
+              {/* Indian GST is inside rupee prices; an export price abroad carries none (#210). */}
+              {abroadPrices ? null : (
+                <p className="product-info__tax-note">{copy.ui.inclusiveOfTaxes}</p>
+              )}
               {UnderPrice && variant.pricePaise != null ? (
                 <UnderPrice pricePaise={variant.pricePaise} />
               ) : null}

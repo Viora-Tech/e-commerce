@@ -331,6 +331,8 @@ export const checkoutContent = {
   shippingFree: 'Free',
   /** Summary row before an address has been checked. */
   shippingPending: 'Enter your PIN code',
+  /** Abroad there is no PIN code: the address decides the options (#64). */
+  shippingPendingAbroad: 'Enter your address',
   shippingMethod: 'Shipping method',
   rateDelivery: (range: string) => `Delivery by ${range}`,
   total: 'Total',
@@ -411,6 +413,7 @@ export const checkoutContent = {
     /** An address abroad that no shipping zone covers. */
     noRatesAbroad: 'We do not ship to this country yet.',
     pending: 'Enter your PIN code to see delivery options.',
+    pendingAbroad: 'Enter your address to see delivery options.',
     free: 'Free delivery',
     standard: 'Standard delivery',
     /** Each option's arrival, counted from today in the store's time zone. */

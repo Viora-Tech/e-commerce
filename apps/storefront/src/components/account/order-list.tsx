@@ -45,16 +45,17 @@ export default function OrderList({ orders, timeZone }: OrderListProps) {
             href={`/account/orders/${o.number}`}
             className="flex h-full gap-4 rounded-[var(--radius-card)] bg-surface p-5 transition-[scale] duration-(--duration-press) ease-out active:scale-(--motion-card-press-scale)"
           >
-            <div className="size-16 shrink-0 overflow-hidden rounded-xl bg-surface">
-              {o.firstImage ? (
-                // biome-ignore lint/performance/noImgElement: product media is on the store's CDN, as in the blocks package.
+            {/* No picture, no empty box (#163). */}
+            {o.firstImage ? (
+              <div className="size-16 shrink-0 overflow-hidden rounded-xl bg-surface">
+                {/* biome-ignore lint/performance/noImgElement: product media is on the store's CDN, as in the blocks package. */}
                 <img
                   src={o.firstImage.url}
                   alt={o.firstImage.alt ?? ''}
                   className="size-full object-cover"
                 />
-              ) : null}
-            </div>
+              </div>
+            ) : null}
             <div className="flex min-w-0 flex-1 flex-col gap-2">
               <div className="flex items-baseline justify-between gap-3">
                 <span className="text-body font-semibold">{copy.order(o.number)}</span>

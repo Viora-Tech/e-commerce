@@ -13,7 +13,7 @@ export function useCheckoutGst(input: {
   totalPaise: number
   reductionPaise: number
   stateCode: string | null
-  /** An export (address abroad): no GST line, "Inclusive of all taxes" stays. */
+  /** An export (address abroad): no GST line and no "Inclusive of all taxes" either (#210). */
   abroad?: boolean | undefined
 }): number | null {
   const [gstPaise, setGstPaise] = useState<number | null>(null)

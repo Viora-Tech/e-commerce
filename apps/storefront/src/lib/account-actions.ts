@@ -11,6 +11,7 @@ import {
   deleteAddress,
   deliverLoginCode,
   getCart,
+  getCustomerOrder,
   linkIdentity,
   openToken,
   otpLimiterId,
@@ -203,21 +204,25 @@ export async function saveProfileAction(input: Record<string, unknown>): Promise
   return { ok: true }
 }
 
+/** How many left-out items the cart names before "and N more". */
+const REORDER_SKIPPED_SHOWN = 5
+
 /** "Buy again": put the order's still-available lines in the cart and open it. */
 export async function reorderAction(number: number): Promise<void> {
   const sid = await storeId()
   const c = await me(sid)
   const existing = await readCartId()
-  const cartId = await inStore(sid, async (tx) => {
+  const result = await inStore(sid, async (tx) => {
     const ctx = { storeId: sid, tx }
     const lines = await reorderLines(ctx, c.id, number)
     if (lines.length === 0) return null
+    const order = await getCustomerOrder(ctx, c.id, number)
     const current = existing ? await getCart(ctx, existing) : null
     const id = current?.status === 'open' ? (existing as string) : await createCart(ctx)
     // A line the store refuses today (out of stock, not sold in this market, hidden, over its
     // limit) stays out; the rest still go in, as Shopify's "Buy again" does.
     const marketId = await requestMarketId()
-    let added = 0
+    const added = new Set<string>()
     for (const l of lines) {
       const ok = await addToCart(ctx, id, l.variantId, l.quantity, { marketId }).then(
         () => true,
@@ -226,11 +231,23 @@ export async function reorderAction(number: number): Promise<void> {
           throw err
         },
       )
-      if (ok) added += 1
+      if (ok) added.add(l.variantId)
     }
-    return added > 0 ? id : null
+    if (added.size === 0) return null
+    // The cart names what was left out, rather than leaving the shopper to spot it (#162).
+    const skipped = (order?.lines ?? [])
+      .filter((l) => !added.has(l.variantId))
+      .map((l) => (l.variantTitle ? `${l.title} (${l.variantTitle})` : l.title))
+    return { id, skipped }
   })
+  const cartId = result?.id ?? null
   if (cartId && cartId !== existing) await writeCartId(cartId)
   revalidatePath('/', 'layout')
-  redirect(cartId ? '/cart' : `/account/orders/${number}?reorder=none`)
+  if (!result) redirect(`/account/orders/${number}?reorder=none`)
+  const query = new URLSearchParams()
+  for (const title of result.skipped.slice(0, REORDER_SKIPPED_SHOWN)) query.append('skipped', title)
+  if (result.skipped.length > REORDER_SKIPPED_SHOWN) {
+    query.set('skipped_more', String(result.skipped.length - REORDER_SKIPPED_SHOWN))
+  }
+  redirect(query.size > 0 ? `/cart?${query}` : '/cart')
 }

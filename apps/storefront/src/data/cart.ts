@@ -23,6 +23,12 @@ export const cartContent = {
     label: 'Progress towards free shipping',
   },
   total: 'Total',
+  /** After "Buy again", the order's items that could not go in the cart (#162). */
+  reorderSkipped: {
+    heading:
+      'Some items from your order could not be added, as they are sold out or no longer sold here:',
+    more: (n: number) => (n === 1 ? 'and 1 more' : `and ${n} more`),
+  },
   taxes: 'Inclusive of all taxes.',
   taxesAtCheckout: 'Taxes included. Shipping and COD fee calculated at checkout.',
   taxesAtCheckoutAbroad: 'Shipping calculated at checkout.',

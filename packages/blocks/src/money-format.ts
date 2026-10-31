@@ -4,6 +4,7 @@ import {
   formatPresentment,
   formatPresentmentCart,
   formatPresentmentLine,
+  formatPresentmentSaving,
   formatStoreMoney,
   type MarketPricing,
   type PresentmentLine,
@@ -32,6 +33,19 @@ export function useFormatPaise(): (paise: number, variantId?: string) => string 
   const pricing = use(MarketPricingContext)
   return (paise, variantId) =>
     pricing ? formatPresentment(paise, pricing, variantId) : formatStoreMoney(paise, format)
+}
+
+/**
+ * Formats a sale's saving the way this page shows prices: in a market, the difference of the
+ * two converted prices, so it always matches them (#57); else the store's own format.
+ */
+export function useFormatSaving(): (mrpPaise: number, pricePaise: number) => string {
+  const format = use(MoneyFormatContext)
+  const pricing = use(MarketPricingContext)
+  return (mrpPaise, pricePaise) =>
+    pricing
+      ? formatPresentmentSaving(mrpPaise, pricePaise, pricing)
+      : formatStoreMoney(mrpPaise - pricePaise, format)
 }
 
 /**

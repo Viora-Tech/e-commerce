@@ -1584,6 +1584,14 @@ html.js
   translate: 0 0;
 }
 
+/* Account pages swap in place on the client (Orders → Profile), and the reveal script only
+   watches headings present at page load, so a page's heading stayed at opacity 0 until a
+   click happened to re-run it (#200). They are a working area, not a showcase: no rise. */
+html.js main .account-layout :is(h1, h2, h3) {
+  opacity: 1;
+  translate: 0 0;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   html.js main :is(h1, h2, h3) {
     transition:

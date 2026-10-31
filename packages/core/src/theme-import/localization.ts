@@ -54,7 +54,24 @@ function endonymOf(code: string): string {
   }
 }
 
-const symbolOf = (currency: string) => CURRENCIES[currency as Currency]?.symbol ?? currency
+/**
+ * Shopify's own symbols where our money format writes the code: themes print
+ * `{{ currency.iso_code }} {{ currency.symbol }}`, which read "AED AED" (#86).
+ */
+const LIQUID_SYMBOLS: Record<string, string> = {
+  AED: 'د.إ',
+  SAR: 'ر.س',
+  QAR: 'ر.ق',
+  KWD: 'د.ك',
+  OMR: 'ر.ع.',
+  BHD: 'د.ب',
+}
+
+/** A currency's symbol as Liquid themes read it. */
+export const liquidCurrencySymbol = (currency: string) =>
+  LIQUID_SYMBOLS[currency] ?? CURRENCIES[currency as Currency]?.symbol ?? currency
+
+const symbolOf = liquidCurrencySymbol
 
 /** Shopify's `routes` inside a market: every own URL under its prefix. */
 function routesFor(prefix: string) {
