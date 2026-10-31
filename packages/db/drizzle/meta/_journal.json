@@ -1387,6 +1387,13 @@
       "when": 1793462363262,
       "tag": "0213_order_fulfilled_at",
       "breakpoints": true
+    },
+    {
+      "idx": 198,
+      "version": "7",
+      "when": 1793548763262,
+      "tag": "0214_stock_adjustment_actor",
+      "breakpoints": true
     }
   ]
 }

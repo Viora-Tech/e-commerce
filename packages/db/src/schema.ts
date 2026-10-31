@@ -898,6 +898,9 @@ export const inventoryAdjustment = pgTable(
       enum: ['correction', 'received', 'damaged', 'returned', 'theft', 'transfer', 'sold', 'other'],
     }).notNull(),
     note: text('note'),
+    /** The member who made the change (audit #139); null for orders, imports and older rows.
+     *  Filled by the column default from `app.actor_name`, which the admin API sets. */
+    actorName: text('actor_name').default(sql`nullif(current_setting('app.actor_name', true), '')`),
     createdAt: createdAt(),
   },
   (t) => [index('inventory_adjustment_variant').on(t.variantId, t.createdAt)],

@@ -76,7 +76,8 @@ export default function StockHistoryCard({ productId }: StockHistoryCardProps) {
                   {row.delta > 0 ? `+${row.delta}` : row.delta}
                 </span>
                 <span className="text-caption text-muted-foreground">
-                  {when.format(new Date(row.createdAt))}
+                  {when.format(new Date(row.createdAt))} ·{' '}
+                  {row.actorName ? copy.by(row.actorName) : copy.bySystem}
                 </span>
                 <span className="text-caption text-muted-foreground">
                   {reasonLabels[row.reason] ?? row.reason}

@@ -15,6 +15,7 @@ import {
 import type { StoreTx } from '@commerce/db'
 import { organizationMembership, withStore } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
+import { sql } from 'drizzle-orm'
 import { approvalKind, isReadPath, kindForInput } from '../mcp/action-catalogue'
 import { ALREADY_REQUESTED, queueForApprover } from '../services/ai/assistant/service'
 import { mustAsk } from './approval-rules'
@@ -228,6 +229,9 @@ function storeProcedureWith(required?: Permission | readonly Permission[]) {
       // needs a recent step-up when enforcement is on. Checked here, after approval, so a role
       // that would queue is never also asked to step up.
       await requireStepUp(context, path, input)
+      // Who is acting, for rows that record it by column default (stock history, audit #139).
+      const actor = context.session.user.name?.trim() || context.session.user.email
+      await tx.execute(sql`select set_config('app.actor_name', ${actor}, true)`)
       try {
         const out = await next({ context: { scope, tx, afterCommit } })
         await logTokenCall(context, tx, member.storeId, path, required)

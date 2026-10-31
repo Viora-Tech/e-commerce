@@ -334,6 +334,8 @@ export async function inventoryHistory(
       delta: inventoryAdjustment.delta,
       reason: inventoryAdjustment.reason,
       note: inventoryAdjustment.note,
+      /** Who changed it (audit #139); null for orders, imports and older rows. */
+      actorName: inventoryAdjustment.actorName,
       locationId: inventoryAdjustment.locationId,
       createdAt: inventoryAdjustment.createdAt,
     })
