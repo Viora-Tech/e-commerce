@@ -26,6 +26,15 @@ export function orNoStoreOrMissing<T>(fallback: T) {
   }
 }
 
+/**
+ * For a page outside the store-picker flow: a malformed id in the address resolves to null so
+ * the page calls notFound(); any other error is rethrown.
+ */
+export function orMissing(error: unknown): null {
+  if (isInvalidInput(error)) return null
+  throw error
+}
+
 /** The API refused the call's input (e.g. an id that is not a UUID). */
 function isInvalidInput(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false
