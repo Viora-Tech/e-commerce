@@ -1,12 +1,17 @@
+import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import ProductForm from '@/components/products/product-form'
+import { productFormContent } from '@/data/product-form'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { PRODUCT_LAYOUT_COOKIE, parseProductLayout } from '@/lib/product-layout'
 import { routes } from '@/lib/routes'
 import { listApps } from '@/lib/shell-data'
 import { orNoStore } from '@/lib/store-guard'
 import { storefrontOrigin } from '@/lib/storefront-origin'
+
+/** "Add new product" in the browser tab, not "Admin". */
+export const metadata: Metadata = { title: productFormContent.newTitle }
 
 export default async function NewProductPage() {
   const context = await serverContext()
