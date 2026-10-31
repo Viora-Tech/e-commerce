@@ -49,6 +49,13 @@ export function useSetupNext(): (task: SetupItemId) => Promise<void> {
           action: { label: copy.setUp, onClick: () => router.push(nextWords.href) },
           cancel: { label: copy.dontShow, onClick: turnPromptsOff },
           duration: 12000,
+          // Two buttons beside the words squeezed them into a narrow column: the words take the
+          // full width and the buttons sit on their own row under them, on the right.
+          classNames: {
+            toast: 'flex-wrap! gap-y-3!',
+            content: 'basis-full',
+            cancelButton: 'ml-auto!',
+          },
         },
       )
     } catch {
