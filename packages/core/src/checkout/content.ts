@@ -32,7 +32,6 @@ export const CHECKOUT_TEXT_KEYS = [
   'business',
   'summary',
   'placeOrder',
-  'secure',
   'taxes',
 ] as const
 export type CheckoutTextKey = (typeof CHECKOUT_TEXT_KEYS)[number]

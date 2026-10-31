@@ -123,7 +123,6 @@ export default function CheckoutForm(props: CheckoutFormProps) {
       look={look}
       backHref="/cart"
       backLabel={content.backToCart}
-      secureLabel={ck.copy.secure}
       policies={ck.policies ?? []}
       summary={
         <SummaryDisclosure totalLabel={ck.payNow} updating={ck.updating}>

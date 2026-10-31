@@ -68,8 +68,6 @@ export default [
       desktop: 'कंप्यूटर',
       phone: 'फ़ोन',
       label: 'चेकआउट प्रीव्यू',
-      secure: 'सुरक्षित चेकआउट',
-      secureShort: 'सुरक्षित',
       express: 'एक्सप्रेस चेकआउट',
       expressApps: ['GPay', 'PhonePe', 'Paytm'],
       sections: ['संपर्क', 'डिलीवरी', 'शिपिंग', 'पेमेंट'],

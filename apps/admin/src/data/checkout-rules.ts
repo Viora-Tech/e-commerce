@@ -102,7 +102,6 @@ export const checkoutRulesContent = {
       business: 'GST invoice tick box',
       summary: 'Order summary heading',
       placeOrder: 'Place order button (fully paid by gift card)',
-      secure: 'Secure checkout badge',
       taxes: 'Taxes line under the total',
     },
     defaults: {
@@ -132,7 +131,6 @@ export const checkoutRulesContent = {
       business: 'Get a GST invoice for my business',
       summary: 'Order summary',
       placeOrder: 'Place order',
-      secure: 'Secure checkout',
       taxes: 'Inclusive of all taxes',
     },
   },

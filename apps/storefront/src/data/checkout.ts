@@ -276,7 +276,6 @@ export const checkoutContent = {
   },
   secure: 'Secure checkout',
   policiesLabel: 'Policies',
-  secureShort: 'Secure',
   itemCount: (n: number) => (n === 1 ? '1 item' : `${n} items`),
   /** The main gateway's option when the merchant chose which online methods to offer. */
   payOnline: 'Pay online',

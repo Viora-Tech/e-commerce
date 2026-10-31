@@ -7,7 +7,7 @@ import {
   checkoutBrandingVars,
 } from '@commerce/core/checkout-settings'
 import { THEME_FONTS } from '@commerce/core/theme'
-import { CheckIcon, ChevronDown, Lock } from '@commerce/ui/icons'
+import { CheckIcon, ChevronDown, Lock, ShoppingBag } from '@commerce/ui/icons'
 import type { CSSProperties, ReactNode } from 'react'
 import { checkoutBrandingContent } from '@/data/checkout-settings'
 import { useCopy } from '@/hooks/use-copy'
@@ -103,12 +103,7 @@ export default function CheckoutBrandingPreview({
           {storeName}
         </span>
       )}
-      <span
-        className={`flex shrink-0 items-center gap-1 rounded-[0.3125rem] bg-[var(--ck-soft)] px-1.5 py-0.5 text-[0.5rem] font-medium ${MUTED}`}
-      >
-        <Lock aria-hidden className="size-2" />
-        {phone ? copy.secureShort : copy.secure}
-      </span>
+      <ShoppingBag aria-hidden className="size-3 shrink-0" />
     </div>
   )
 

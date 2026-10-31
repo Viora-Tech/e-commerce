@@ -99,7 +99,6 @@ export default [
         business: 'GST इनवॉइस वाला टिक बॉक्स',
         summary: 'ऑर्डर सारांश का शीर्षक',
         placeOrder: 'ऑर्डर दें बटन (पूरा गिफ़्ट कार्ड से)',
-        secure: 'सुरक्षित चेकआउट बैज',
         taxes: 'कुल के नीचे टैक्स वाली लाइन',
       },
       // The storefront's own English words, shown as placeholders: they stay as they are.

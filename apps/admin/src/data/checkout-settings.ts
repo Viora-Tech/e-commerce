@@ -130,8 +130,6 @@ export const checkoutBrandingContent = {
     desktop: 'Computer',
     phone: 'Phone',
     label: 'Checkout preview',
-    secure: 'Secure checkout',
-    secureShort: 'Secure',
     express: 'Express checkout',
     expressApps: ['GPay', 'PhonePe', 'Paytm'],
     sections: ['Contact', 'Delivery', 'Shipping', 'Payment'],
