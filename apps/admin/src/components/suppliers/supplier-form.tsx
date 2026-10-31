@@ -17,6 +17,7 @@ import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import CountrySelect from '@/components/fields/country-select'
 import CurrencySelect from '@/components/landed-cost/currency-select'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
@@ -195,13 +196,11 @@ export default function SupplierForm({ supplier }: SupplierFormProps) {
                 <div className="grid gap-4 sm:grid-cols-3">
                   <Field>
                     <FieldLabel htmlFor="supplier-country">{copy.details.country}</FieldLabel>
-                    <Input
+                    <CountrySelect
                       id="supplier-country"
                       value={d.country}
-                      maxLength={2}
-                      onChange={(e) => patch({ country: e.target.value.toUpperCase() })}
+                      onChange={(country) => patch({ country })}
                     />
-                    <FieldDescription>{copy.details.countryHint}</FieldDescription>
                   </Field>
                   <Field>
                     <FieldLabel htmlFor="supplier-currency">{copy.details.currency}</FieldLabel>

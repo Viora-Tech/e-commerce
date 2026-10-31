@@ -52,7 +52,6 @@ export default [
       gstin: 'GSTIN',
       gstinHint: 'सिर्फ़ भारत में रजिस्टर्ड सप्लायर के लिए',
       country: 'देश का कोड',
-      countryHint: 'दो अक्षर, जैसे IN, CN या US',
       currency: 'बिल की करेंसी',
     },
     contact: { heading: 'संपर्क', email: 'ईमेल', phone: 'फ़ोन', address: 'पता' },
@@ -101,6 +100,8 @@ export default [
     creating: 'जुड़ रहा है',
     cancel: 'रद्द करें',
     failed: 'सप्लायर नहीं जुड़ सका',
+    saveTyped: 'सप्लायर के रूप में सेव करें',
+    saveTypedHelp: 'अभी आपके सप्लायर में नहीं है।',
   }),
   translation(poCurrencyContent, {
     heading: 'करेंसी',

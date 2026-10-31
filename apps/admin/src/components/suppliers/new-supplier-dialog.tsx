@@ -6,6 +6,7 @@ import { Field, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import CountrySelect from '@/components/fields/country-select'
 import CurrencySelect from '@/components/landed-cost/currency-select'
 import FormDialog from '@/components/layout/form-dialog'
 import { supplierFormContent, supplierPickerContent } from '@/data/purchasing'
@@ -24,6 +25,9 @@ type NewSupplierDialogProps = {
   open: boolean
   /** What was typed in the search box, as a starting name. */
   initialName: string
+  /** Contact typed on the purchase order, kept when it is saved as a supplier (audit #157). */
+  initialEmail?: string | undefined
+  initialPhone?: string | undefined
   onOpenChange: (open: boolean) => void
   onCreated: (supplier: PickedSupplier) => void
 }
@@ -32,6 +36,8 @@ type NewSupplierDialogProps = {
 export default function NewSupplierDialog({
   open,
   initialName,
+  initialEmail = '',
+  initialPhone = '',
   onOpenChange,
   onCreated,
 }: NewSupplierDialogProps) {
@@ -41,8 +47,8 @@ export default function NewSupplierDialog({
   const [name, setName] = useState(initialName)
   const [country, setCountry] = useState('IN')
   const [currency, setCurrency] = useState<PurchaseCurrency>('INR')
-  const [email, setEmail] = useState('')
-  const [phone, setPhone] = useState('')
+  const [email, setEmail] = useState(initialEmail)
+  const [phone, setPhone] = useState(initialPhone)
   const [busy, setBusy] = useState(false)
 
   // Event handlers
@@ -96,12 +102,7 @@ export default function NewSupplierDialog({
         <div className="grid gap-4 sm:grid-cols-2">
           <Field>
             <FieldLabel htmlFor="new-supplier-country">{fields.details.country}</FieldLabel>
-            <Input
-              id="new-supplier-country"
-              value={country}
-              maxLength={2}
-              onChange={(e) => setCountry(e.target.value.toUpperCase())}
-            />
+            <CountrySelect id="new-supplier-country" value={country} onChange={setCountry} />
           </Field>
           <Field>
             <FieldLabel htmlFor="new-supplier-currency">{fields.details.currency}</FieldLabel>

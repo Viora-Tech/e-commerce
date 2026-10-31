@@ -55,7 +55,6 @@ export const supplierFormContent = {
     gstin: 'GSTIN',
     gstinHint: 'Only for suppliers registered in India',
     country: 'Country code',
-    countryHint: 'Two letters, like IN, CN or US',
     currency: 'Bills in',
   },
   contact: { heading: 'Contact', email: 'Email', phone: 'Phone', address: 'Address' },
@@ -106,6 +105,9 @@ export const supplierPickerContent = {
   creating: 'Adding',
   cancel: 'Cancel',
   failed: 'Could not add supplier',
+  /** A name typed on the purchase order, offered to Suppliers (audit #157). */
+  saveTyped: 'Save as supplier',
+  saveTypedHelp: 'Not in your suppliers yet.',
 } as const
 
 export const poCurrencyContent = {

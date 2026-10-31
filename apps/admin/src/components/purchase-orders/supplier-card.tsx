@@ -5,8 +5,9 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import Link from 'next/link'
+import { useState } from 'react'
 import DataCard from '@/components/layout/data-card'
-import type { PickedSupplier } from '@/components/suppliers/new-supplier-dialog'
+import NewSupplierDialog, { type PickedSupplier } from '@/components/suppliers/new-supplier-dialog'
 import SupplierPicker from '@/components/suppliers/supplier-picker'
 import { purchaseOrderFormContent } from '@/data/inventory'
 import { supplierPickerContent } from '@/data/purchasing'
@@ -41,8 +42,17 @@ export default function SupplierCard({
   // Hooks
   const { supplier: copy } = useCopy(purchaseOrderFormContent)
   const picker = useCopy(supplierPickerContent)
+  const [saving, setSaving] = useState(false)
+
+  // Event handlers
+  const handleSaved = (supplier: PickedSupplier) => {
+    setSaving(false)
+    onPick(supplier)
+  }
 
   // Render logic
+  const typedOnly = !supplierId && !disabled && name.trim() !== ''
+
   return (
     <DataCard title={copy.heading}>
       <FieldGroup>
@@ -75,6 +85,14 @@ export default function SupplierCard({
             disabled={disabled}
             onChange={(e) => onChange({ supplierName: e.target.value })}
           />
+          {typedOnly ? (
+            <div className="flex items-center justify-between gap-3 text-caption text-muted-foreground">
+              <span>{picker.saveTypedHelp}</span>
+              <Button variant="outline" size="sm" onClick={() => setSaving(true)}>
+                {picker.saveTyped}
+              </Button>
+            </div>
+          ) : null}
         </Field>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field>
@@ -99,6 +117,16 @@ export default function SupplierCard({
           </Field>
         </div>
       </FieldGroup>
+      {saving ? (
+        <NewSupplierDialog
+          open={saving}
+          initialName={name.trim()}
+          initialEmail={email}
+          initialPhone={phone}
+          onOpenChange={setSaving}
+          onCreated={handleSaved}
+        />
+      ) : null}
     </DataCard>
   )
 }
