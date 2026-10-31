@@ -111,6 +111,11 @@ const SHIM = `(function () {
   function sectionUrl(url) {
     // \`?sections=a,b\` asks for JSON keyed by every section; \`?section_id=\` for one section's HTML.
     var q = new URLSearchParams({ path: url.pathname });
+    // The page's own query goes along: a collection's filters, sort and page shape the section
+    // (a product finder asks for \`/collections/mice?filter.p.m.custom.grip=Claw&section_id=…\`).
+    url.searchParams.forEach(function (value, key) {
+      if (key !== 'path' && key !== 'section_id' && key !== 'sections') q.append(key, value);
+    });
     if (url.searchParams.has('sections')) q.set('sections', url.searchParams.get('sections') || '');
     else q.set('section_id', url.searchParams.get('section_id') || '');
     return '/theme-actions/section?' + q.toString();

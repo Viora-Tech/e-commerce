@@ -125,6 +125,19 @@ const requestScope = cache(async (storeId: string) => {
 
 type RequestScope = Awaited<ReturnType<typeof requestScope>>
 
+/**
+ * The scope of a section rendered for another page (`theme-actions/section?path=`): that page's
+ * template and, on a collection or search page, the filters, sort and page the request carried.
+ */
+async function scopeAt(scope: RequestScope, path: string): Promise<RequestScope> {
+  const template = liquidTemplateFor(path)
+  const listing =
+    template === 'collection' || template === 'search'
+      ? ((await headers()).get('x-listing') ?? '')
+      : ''
+  return { ...scope, path, template, listing }
+}
+
 /** True when nobody is signed in; needs no query without a session cookie. */
 async function signedOut(storeId: string): Promise<boolean> {
   return (await currentCustomer(storeId)) === null
@@ -287,10 +300,12 @@ export async function liquidContextFor(
   tx: StoreTx,
   storeId: string,
   themeId: string,
+  pagePath?: string,
 ): Promise<LiquidPageContext | null> {
   const theme = await importedTheme(storeId, themeId, tx)
   if (!theme) return null
-  const scope = await requestScope(storeId)
+  const request = await requestScope(storeId)
+  const scope = pagePath ? await scopeAt(request, pagePath) : request
   const cartId = await readCartId()
   const cart = cartId ? await getCart({ storeId, tx }, cartId) : null
   return createLiquidContext(
@@ -525,7 +540,7 @@ export async function renderStaticLiquidSection(
   prepare?: (ctx: LiquidPageContext) => Promise<void>,
 ): Promise<string | null> {
   const themeId = await requestThemeId(tx, storeId)
-  const ctx = themeId ? await liquidContextFor(tx, storeId, themeId) : null
+  const ctx = themeId ? await liquidContextFor(tx, storeId, themeId, path) : null
   if (!themeId || !ctx) return null
   // Shopify's section ids read `template--123__<key>`; the key is the section's type for
   // the sections a theme ships by default.
@@ -539,7 +554,12 @@ export async function renderStaticLiquidSection(
   const product = /^\/products\/([^/]+)/.exec(path)?.[1]
   if (collection) {
     const found = await ctx.options.data.collection(decodedSegment(collection))
-    if (found) ctx.globals.collection = new CollectionDrop(found, ctx.cache)
+    if (found) {
+      const drop = new CollectionDrop(found, ctx.cache)
+      // As on the page itself: the request's filters, sort and page shape its products.
+      if (ctx.options.request.listing) drop.listOn(ctx.options.request.listing)
+      ctx.globals.collection = drop
+    }
   }
   if (product) {
     const found = await ctx.options.data.product(decodedSegment(product))
