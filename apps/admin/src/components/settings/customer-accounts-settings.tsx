@@ -171,6 +171,9 @@ export default function CustomerAccountsSettings() {
                   { value: 'account_required', ...copy.checkout.choices.account_required },
                 ]}
               />
+              {loaded.available.length === 0 ? (
+                <p className="pt-3 text-caption text-muted-foreground">{copy.checkout.noSender}</p>
+              ) : null}
             </SettingsCard>
           </SettingsDrillPanel>
 

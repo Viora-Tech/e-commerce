@@ -20,6 +20,9 @@ export const customerAccountsContent = {
         hint: 'Every buyer signs in with a code before paying. Fewer quick orders, but every order has an account.',
       },
     },
+    /** #108: said before saving, not after the save is refused. */
+    noSender:
+      'Sign-in codes need an app that sends them (email, SMS or WhatsApp). Turn one on in Apps before asking customers to sign in.',
   },
   methods: {
     heading: 'Ways to sign in',
