@@ -108,7 +108,15 @@ export default function AddRegistrationDialog({
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     setTouched(true)
-    if (!RegistrationInputSchema.safeParse(input()).success) return
+    if (!RegistrationInputSchema.safeParse(input()).success) {
+      // The dialog scrolls: bring the first wrong field into view, or Save seems to do nothing.
+      requestAnimationFrame(() => {
+        const first = document.querySelector<HTMLElement>('[role="dialog"] [aria-invalid="true"]')
+        first?.scrollIntoView({ block: 'center' })
+        first?.focus()
+      })
+      return
+    }
     setSaving(true)
     try {
       await api.businessGst.addRegistration(input())
@@ -127,7 +135,8 @@ export default function AddRegistrationDialog({
   }
 
   // Render logic
-  const state = gstinStateOf(form.gstin)
+  // Only a whole GSTIN names its state: "12ABC" is not "Registered in Arunachal Pradesh".
+  const state = form.gstin.length === 15 ? gstinStateOf(form.gstin) : null
   const businessOptions = businesses.map((b) => ({
     value: b.id,
     label: `${b.legalName} · ${b.pan}`,

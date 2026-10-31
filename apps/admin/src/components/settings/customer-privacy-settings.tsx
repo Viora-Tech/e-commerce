@@ -155,17 +155,17 @@ export default function CustomerPrivacySettings() {
           <SettingsDrill rows={rows} backLabel={r.back}>
             <SettingsDrillPanel id="banner">
               <SettingsCard
-                id="privacy-banner"
+                id="privacy-consent-card"
                 title={copy.banner.heading}
                 description={copy.banner.body}
               >
                 <SettingsRow
                   label={copy.banner.message}
                   description={copy.banner.messageHelp}
-                  htmlFor="privacy-banner-message"
+                  htmlFor="privacy-consent-message"
                 >
                   <Textarea
-                    id="privacy-banner-message"
+                    id="privacy-consent-message"
                     rows={3}
                     maxLength={PRIVACY_LIMITS.bannerMessage}
                     placeholder={copy.banner.messagePlaceholder}
