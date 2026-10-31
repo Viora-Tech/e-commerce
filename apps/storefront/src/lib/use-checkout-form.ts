@@ -321,7 +321,8 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     const next = picked
       ? prefillCheckout(customer, picked, settings.fields.name)
       : {
-          ...prefillCheckout(customer, undefined, settings.fields.name, form.countryCode),
+          // A new address opens in the market's country, not the saved (Indian) one it replaces.
+          ...prefillCheckout(customer, undefined, settings.fields.name, startCountry),
           name: form.name,
           ...(splitName ? { lastName: form.lastName ?? '' } : {}),
           phone: form.phone,
