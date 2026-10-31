@@ -305,12 +305,12 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
               invoicesHref={appCards.includes(INVOICES_APP) ? `#${INVOICES_ANCHOR}` : undefined}
               orderNumber={order.number}
               customerEmail={order.email}
+              onArchive={
+                canArchive && !order.archivedAt && !readOnly ? () => handleArchive(true) : undefined
+              }
               appItems={[
                 ...automation.items([order.id], { runsLink: true }),
                 ...apps.items('detail', order, [order.id]),
-                ...(canArchive && !order.archivedAt
-                  ? [{ label: copy.archive.action, onSelect: () => handleArchive(true) }]
-                  : []),
               ]}
               readOnly={readOnly}
               previousId={n?.previous?.id}
@@ -385,7 +385,14 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
             </div>
           )}
           <div id="order-returns" className="scroll-mt-6">
-            <OrderReturnsCard orderId={order.id} readOnly={readOnly} onChanged={refresh} />
+            {/* Keyed on the order's progress: it reads eligibility once, so marking the order
+                delivered on this page has to load it again, or "Start a return" finds no card. */}
+            <OrderReturnsCard
+              key={`${order.status}:${order.fulfillmentStatus}`}
+              orderId={order.id}
+              readOnly={readOnly}
+              onChanged={refresh}
+            />
           </div>
           <MetafieldsCard ownerType="order" ownerId={order.id} hideWhenEmpty />
           <div id="order-timeline" className="scroll-mt-6">

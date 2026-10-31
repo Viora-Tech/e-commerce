@@ -59,6 +59,8 @@ type OrderActionsProps = {
   onSendOrderLink?: (() => void) | undefined
   /** Starts a new draft from this order ("Duplicate order"); undefined hides it. */
   onDuplicate?: (() => void) | undefined
+  /** "Archive order": off the working tabs; undefined hides it (no right, or already archived). */
+  onArchive?: (() => void) | undefined
   /** Opens "Cancel order" (reason, restock, notify, refund); undefined once it cannot be cancelled. */
   onCancel?: (() => void) | undefined
   /** Opens the order edit page; undefined when the order cannot be edited. */
@@ -93,6 +95,7 @@ export default function OrderActions({
   onSendReminder,
   onSendOrderLink,
   onDuplicate,
+  onArchive,
   onCancel,
   onEdit,
   invoicesHref,
@@ -245,6 +248,12 @@ export default function OrderActions({
             icon: Users,
             hidden: !customerEmail,
             href: `${routes.orders.list()}?query=${encodeURIComponent(customerEmail ?? '')}`,
+          },
+          // The order's own action, not an app's: it sits above the Apps group.
+          {
+            label: copy.archive.action,
+            hidden: !onArchive,
+            onSelect: onArchive,
           },
           ...(readOnly ? [] : appItems).map((item, i) => ({
             ...item,
