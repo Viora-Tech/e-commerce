@@ -5,13 +5,13 @@ import 'server-only'
 import { loadEnv, settingsSecret } from '@commerce/config'
 import {
   addToCart,
+  CommerceError,
   createAddress,
   createCart,
   deleteAddress,
   deliverLoginCode,
   getCart,
   linkIdentity,
-  NotSoldInMarket,
   openToken,
   otpLimiterId,
   reorderLines,
@@ -214,14 +214,21 @@ export async function reorderAction(number: number): Promise<void> {
     if (lines.length === 0) return null
     const current = existing ? await getCart(ctx, existing) : null
     const id = current?.status === 'open' ? (existing as string) : await createCart(ctx)
-    // Lines this market's catalog does not sell stay out, as hidden ones do.
+    // A line the store refuses today (out of stock, not sold in this market, hidden, over its
+    // limit) stays out; the rest still go in, as Shopify's "Buy again" does.
     const marketId = await requestMarketId()
+    let added = 0
     for (const l of lines) {
-      await addToCart(ctx, id, l.variantId, l.quantity, { marketId }).catch((err: unknown) => {
-        if (!(err instanceof NotSoldInMarket)) throw err
-      })
+      const ok = await addToCart(ctx, id, l.variantId, l.quantity, { marketId }).then(
+        () => true,
+        (err: unknown) => {
+          if (err instanceof CommerceError) return false
+          throw err
+        },
+      )
+      if (ok) added += 1
     }
-    return id
+    return added > 0 ? id : null
   })
   if (cartId && cartId !== existing) await writeCartId(cartId)
   revalidatePath('/', 'layout')
