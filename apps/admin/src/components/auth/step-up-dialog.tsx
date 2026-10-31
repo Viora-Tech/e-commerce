@@ -1,18 +1,10 @@
 'use client'
 
-import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
 import { Field, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import { startAuthentication } from '@simplewebauthn/browser'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 import OtpInput from '@/components/auth/otp-input'
+import FormDialog from '@/components/layout/form-dialog'
 import { stepUpContent } from '@/data/step-up'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -39,7 +31,8 @@ const browserSupportsPasskeys = () =>
  * Mounts once near the app root and drives step-up re-authentication (A5). The api-client
  * interceptor, on a `STEP_UP_REQUIRED` refusal, calls `requestStepUp()`, which opens this dialog;
  * once the member re-verifies with a passkey or an emailed code (stamping the SAME session's
- * `reauthenticated_at`, no new session), the blocked call is retried transparently.
+ * `reauthenticated_at`, no new session), the blocked call is retried transparently. The popup is
+ * the shared `FormDialog` so it stays symmetric with every other admin dialog.
  */
 export default function StepUpProvider({ children }: StepUpProviderProps) {
   // Hooks
@@ -105,6 +98,10 @@ export default function StepUpProvider({ children }: StepUpProviderProps) {
     return () => setStepUpOpener(null)
   }, [copy.otp.sendFailed])
 
+  // Derived
+  const submitLabel = phase === 'passkey' ? copy.passkey.button : copy.otp.submit
+  const submitDisabled = phase === 'loading' || (phase === 'otp' && otp.length < 6)
+
   // Event handlers
   const finish = (ok: boolean) => {
     resolveRef.current?.(ok)
@@ -164,101 +161,86 @@ export default function StepUpProvider({ children }: StepUpProviderProps) {
     }
   }
 
+  const handleSubmit = () => {
+    if (phase === 'passkey') {
+      void handlePasskey()
+      return
+    }
+    if (phase === 'otp') void handleVerifyOtp(otp)
+  }
+
   const handleOpenChange = (next: boolean) => {
-    if (next || busy) return
-    finish(false)
+    if (!next) finish(false)
   }
 
   // Render logic
   return (
     <>
       {children}
-      <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{copy.title}</DialogTitle>
-            <DialogDescription>{copy.body}</DialogDescription>
-          </DialogHeader>
-          {phase === 'loading' ? (
-            <p className="text-body text-helper">{copy.loading}</p>
-          ) : phase === 'passkey' ? (
-            <div className="flex flex-col gap-3">
-              <Button
-                type="button"
-                size="lg"
-                className="w-full"
-                onClick={handlePasskey}
-                loading={busy}
-              >
-                {copy.passkey.button}
-              </Button>
-              <p className="text-caption text-helper">{copy.passkey.hint}</p>
-              {error ? <p className="text-caption text-destructive">{error}</p> : null}
-              <button
-                type="button"
-                onClick={handleUseCode}
-                disabled={busy}
-                className="self-start text-body font-medium text-primary hover:underline"
-              >
-                {copy.passkey.useCode}
-              </button>
-            </div>
-          ) : (
-            <form
-              onSubmit={(event) => {
-                event.preventDefault()
-                void handleVerifyOtp(otp)
-              }}
-              className="flex flex-col gap-4"
+      <FormDialog
+        open={open}
+        onOpenChange={handleOpenChange}
+        title={copy.title}
+        description={copy.body}
+        submitLabel={submitLabel}
+        busy={busy}
+        submitDisabled={submitDisabled}
+        onSubmit={handleSubmit}
+        size="md"
+        secondaryAction={
+          phase === 'passkey' ? (
+            <button
+              type="button"
+              onClick={handleUseCode}
+              disabled={busy}
+              className="text-body font-medium text-primary hover:underline"
             >
-              <p className="text-body text-helper">{copy.otp.body}</p>
-              <Field data-invalid={error ? true : undefined}>
-                <FieldLabel htmlFor="step-up-otp">{copy.otp.label}</FieldLabel>
-                <OtpInput
-                  id="step-up-otp"
-                  value={otp}
-                  onChange={setOtp}
-                  onComplete={handleVerifyOtp}
-                  label={copy.otp.label}
-                  invalid={Boolean(error)}
+              {copy.passkey.useCode}
+            </button>
+          ) : undefined
+        }
+      >
+        {phase === 'loading' ? (
+          <p className="text-body text-helper">{copy.loading}</p>
+        ) : phase === 'passkey' ? (
+          <div className="flex flex-col gap-3">
+            <p className="text-body text-helper">{copy.passkey.hint}</p>
+            {error ? <p className="text-caption text-destructive">{error}</p> : null}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            <p className="text-body text-helper">{copy.otp.body}</p>
+            <Field data-invalid={error ? true : undefined}>
+              <FieldLabel htmlFor="step-up-otp">{copy.otp.label}</FieldLabel>
+              <OtpInput
+                id="step-up-otp"
+                value={otp}
+                onChange={setOtp}
+                onComplete={handleVerifyOtp}
+                label={copy.otp.label}
+                invalid={Boolean(error)}
+                disabled={busy}
+              />
+              {error ? <FieldError>{error}</FieldError> : null}
+            </Field>
+            <div className="flex items-center gap-4 text-body">
+              {wait > 0 ? (
+                <span className="text-helper tabular-nums">{copy.otp.resendIn(clock(wait))}</span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleResend}
                   disabled={busy}
-                />
-                {error ? <FieldError>{error}</FieldError> : null}
-              </Field>
-              <div className="flex items-center gap-4 text-body">
-                {wait > 0 ? (
-                  <span className="text-helper tabular-nums">{copy.otp.resendIn(clock(wait))}</span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleResend}
-                    disabled={busy}
-                    className="font-medium text-primary hover:underline"
-                  >
-                    {copy.otp.resend}
-                  </button>
-                )}
-              </div>
-              <p className="text-caption text-helper">{copy.otp.devHint}</p>
-            </form>
-          )}
-          <DialogFooter>
-            <Button type="button" variant="outline" disabled={busy} onClick={() => finish(false)}>
-              {copy.cancel}
-            </Button>
-            {phase === 'otp' ? (
-              <Button
-                type="button"
-                loading={busy}
-                disabled={otp.length < 6}
-                onClick={() => handleVerifyOtp(otp)}
-              >
-                {busy ? copy.otp.verifying : copy.otp.submit}
-              </Button>
-            ) : null}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                  className="font-medium text-primary hover:underline"
+                >
+                  {copy.otp.resend}
+                </button>
+              )}
+            </div>
+            <p className="text-caption text-helper">{copy.otp.devHint}</p>
+          </div>
+        )}
+      </FormDialog>
     </>
   )
 }
