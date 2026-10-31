@@ -25,6 +25,8 @@ type CampaignRulesCardProps = {
   markets: PreorderOverview['markets']
   locations: PreorderOverview['locations']
   disabled: boolean
+  /** Which card (audit #34): the pre-order discount, or where the campaign applies. */
+  section: 'discount' | 'where'
   onChange: (patch: Partial<CampaignFormState>) => void
 }
 
@@ -45,16 +47,19 @@ export default function CampaignRulesCard({
   markets,
   locations,
   disabled,
+  section,
   onChange,
 }: CampaignRulesCardProps) {
   // Hooks
   const { rules: copy } = useCopy(preordersContent)
 
-  return (
-    <DataCard title={copy.heading}>
-      <FieldGroup>
+  if (section === 'discount') {
+    return (
+      <DataCard title={copy.discount}>
         <Field>
-          <FieldLabel htmlFor="campaign-discount-type">{copy.discount}</FieldLabel>
+          <FieldLabel htmlFor="campaign-discount-type" className="sr-only">
+            {copy.discount}
+          </FieldLabel>
           <div className="flex flex-wrap items-center gap-3">
             <NativeSelect
               id="campaign-discount-type"
@@ -97,7 +102,13 @@ export default function CampaignRulesCard({
           </div>
           <FieldDescription>{copy.discountHelp}</FieldDescription>
         </Field>
+      </DataCard>
+    )
+  }
 
+  return (
+    <DataCard title={copy.whereHeading}>
+      <FieldGroup>
         <fieldset className="flex flex-col gap-2">
           <legend className="text-body font-medium">{copy.markets}</legend>
           <p className="text-caption text-muted-foreground">{copy.marketsHelp}</p>

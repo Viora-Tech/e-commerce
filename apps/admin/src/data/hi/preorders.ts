@@ -88,6 +88,7 @@ export default [
     },
     rules: {
       heading: 'नियम',
+      whereHeading: 'कहाँ लागू होगा',
       discount: 'प्री-ऑर्डर डिस्काउंट',
       discountHelp: 'जब प्रोडक्ट इस कैंपेन में प्री-ऑर्डर पर बिके, तब कीमत पर छूट।',
       discountTypes: { none: 'कोई डिस्काउंट नहीं', percentage: 'प्रतिशत छूट', fixed: 'रकम की छूट' },
@@ -130,7 +131,7 @@ export default [
       heading: 'स्टोरफ़्रंट',
       tabs: { content: 'कंटेंट', design: 'डिज़ाइन' },
       buttonText: 'बटन का टेक्स्ट',
-      buttonTextPlaceholder: 'Pre-order now',
+      buttonTextPlaceholder: 'Pre-order',
       badgeText: 'बैज का टेक्स्ट',
       badgeTextPlaceholder: 'Pre-order',
       productNote: 'बटन के नीचे का नोट',

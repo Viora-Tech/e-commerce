@@ -6,7 +6,13 @@ import { CircleAlert, Trash2 } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@commerce/ui/shadcn/select'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -14,11 +20,14 @@ import { catalogTab, loadCatalogPicked } from '@/components/catalogs/catalog-pic
 import ActionMenu from '@/components/layout/action-menu'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
-import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
+import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import SaveBar from '@/components/layout/save-bar'
 import StatusChip from '@/components/layout/status-chip'
 import PickedField from '@/components/pickers/picked-field'
+import SelectProductsDialog, {
+  type PickedProducts,
+} from '@/components/products/select-products-dialog'
 import { catalogsContent } from '@/data/catalogs'
 import { preordersContent } from '@/data/preorders'
 import { useCopy } from '@/hooks/use-copy'
@@ -62,6 +71,7 @@ export default function CampaignForm({ campaign, markets, locations }: CampaignF
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [picking, setPicking] = useState(false)
 
   // Helpers
   const patch = (p: Partial<CampaignFormState>) => setForm((f) => ({ ...f, ...p }))
@@ -100,6 +110,12 @@ export default function CampaignForm({ campaign, markets, locations }: CampaignF
     }
   }
 
+  const handlePick = (picked: PickedProducts) => {
+    const added = picked.map((p) => p.product.id).filter((id) => !form.productIds.includes(id))
+    patch({ productIds: [...form.productIds, ...added] })
+    setPicking(false)
+  }
+
   const handleDiscard = () => {
     setForm(JSON.parse(saved) as CampaignFormState)
     setError(null)
@@ -121,9 +137,10 @@ export default function CampaignForm({ campaign, markets, locations }: CampaignF
   const f = copy.form
   const canManage = hasPermission(permissions.PRODUCTS_WRITE)
   const dirty = JSON.stringify(form) !== saved
+  const statusItems = { active: copy.statuses.active, paused: copy.statuses.paused }
 
-  return (
-    <PageBody className="mx-auto max-w-[64rem] gap-4">
+  const header = (
+    <>
       <SaveBar
         open={dirty && canManage}
         message={f.unsaved}
@@ -171,60 +188,100 @@ export default function CampaignForm({ campaign, markets, locations }: CampaignF
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       ) : null}
+    </>
+  )
 
-      <DataCard title={f.details}>
-        <FieldGroup>
-          <Field className="max-w-md">
-            <FieldLabel htmlFor="campaign-name">{f.name}</FieldLabel>
-            <Input
-              id="campaign-name"
-              size="lg"
-              value={form.name}
-              maxLength={80}
-              placeholder={f.namePlaceholder}
-              disabled={!canManage}
-              onChange={(e) => patch({ name: e.target.value })}
+  return (
+    // The product page's frame (audit #30, #159): a centred main column and a side column.
+    <ProoflyDetailPage
+      header={header}
+      main={
+        <>
+          <DataCard title={f.products} subtitle={f.productsHelp}>
+            {/* The purchase order's picker, with its filters and stock (audit #159). */}
+            <PickedField
+              kind="products"
+              ids={form.productIds}
+              tabs={[catalogTab('products', pickCopy)]}
+              title={f.pickProducts}
+              search={f.searchProducts}
+              labels={{ browse: f.browse, nothingPicked: f.nothingPicked, remove: f.remove }}
+              loadPicked={(_, ids) => loadCatalogPicked('products', ids, pickCopy)}
+              onChange={(next) => patch({ productIds: next.ids })}
+              onBrowse={canManage ? () => setPicking(true) : undefined}
             />
-          </Field>
-          <Field className="max-w-md">
-            <FieldLabel htmlFor="campaign-status">{f.status}</FieldLabel>
-            <NativeSelect
-              id="campaign-status"
-              value={form.status}
-              disabled={!canManage}
-              onChange={(e) => patch({ status: e.target.value === 'paused' ? 'paused' : 'active' })}
-            >
-              <NativeSelectOption value="active">{copy.statuses.active}</NativeSelectOption>
-              <NativeSelectOption value="paused">{copy.statuses.paused}</NativeSelectOption>
-            </NativeSelect>
-            <FieldDescription>{f.statusHelp}</FieldDescription>
-          </Field>
-        </FieldGroup>
-      </DataCard>
-
-      <DataCard title={f.products} subtitle={f.productsHelp}>
-        <PickedField
-          kind="products"
-          ids={form.productIds}
-          tabs={[catalogTab('products', pickCopy)]}
-          title={f.pickProducts}
-          search={f.searchProducts}
-          labels={{ browse: f.browse, nothingPicked: f.nothingPicked, remove: f.remove }}
-          loadPicked={(_, ids) => loadCatalogPicked('products', ids, pickCopy)}
-          onChange={(next) => patch({ productIds: next.ids })}
-        />
-      </DataCard>
-
-      <CampaignTermsCard form={form} disabled={!canManage} onChange={patch} />
-      <CampaignRulesCard
-        form={form}
-        markets={markets}
-        locations={locations}
-        disabled={!canManage}
-        onChange={patch}
+          </DataCard>
+          {/* One card per question (audit #34): when it ships, how it is paid, its discount,
+              where it applies, then how it looks. */}
+          <CampaignTermsCard
+            form={form}
+            disabled={!canManage}
+            section="shipping"
+            onChange={patch}
+          />
+          <CampaignTermsCard form={form} disabled={!canManage} section="payment" onChange={patch} />
+          <CampaignRulesCard
+            form={form}
+            markets={markets}
+            locations={locations}
+            disabled={!canManage}
+            section="discount"
+            onChange={patch}
+          />
+          <CampaignRulesCard
+            form={form}
+            markets={markets}
+            locations={locations}
+            disabled={!canManage}
+            section="where"
+            onChange={patch}
+          />
+          <CampaignLookCard form={form} disabled={!canManage} onChange={patch} />
+        </>
+      }
+      side={
+        <DataCard title={f.details}>
+          <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor="campaign-name">{f.name}</FieldLabel>
+              <Input
+                id="campaign-name"
+                size="lg"
+                value={form.name}
+                maxLength={80}
+                placeholder={f.namePlaceholder}
+                disabled={!canManage}
+                onChange={(e) => patch({ name: e.target.value })}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="campaign-status">{f.status}</FieldLabel>
+              <Select
+                items={statusItems}
+                value={form.status}
+                disabled={!canManage}
+                onValueChange={(v) => patch({ status: v === 'paused' ? 'paused' : 'active' })}
+              >
+                <SelectTrigger size="lg" id="campaign-status" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">{copy.statuses.active}</SelectItem>
+                  <SelectItem value="paused">{copy.statuses.paused}</SelectItem>
+                </SelectContent>
+              </Select>
+              <FieldDescription>{f.statusHelp}</FieldDescription>
+            </Field>
+          </FieldGroup>
+        </DataCard>
+      }
+    >
+      <SelectProductsDialog
+        open={picking}
+        onOpenChange={setPicking}
+        addedProductIds={form.productIds}
+        onConfirm={handlePick}
       />
-      <CampaignLookCard form={form} disabled={!canManage} onChange={patch} />
-
       <ConfirmDialog
         open={deleting}
         onOpenChange={setDeleting}
@@ -234,6 +291,6 @@ export default function CampaignForm({ campaign, markets, locations }: CampaignF
         tone="destructive"
         onConfirm={handleDelete}
       />
-    </PageBody>
+    </ProoflyDetailPage>
   )
 }

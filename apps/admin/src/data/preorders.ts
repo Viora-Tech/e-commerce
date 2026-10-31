@@ -86,6 +86,8 @@ export const preordersContent = {
   },
   rules: {
     heading: 'Rules',
+    /** The card with markets, locations, channels and cart rules (audit #34). */
+    whereHeading: 'Where it applies',
     discount: 'Pre-order discount',
     discountHelp: 'Off the price while a product sells as a pre-order under this campaign.',
     discountTypes: { none: 'No discount', percentage: 'Percent off', fixed: 'Amount off' },
@@ -129,7 +131,8 @@ export const preordersContent = {
     heading: 'Storefront',
     tabs: { content: 'Content', design: 'Design' },
     buttonText: 'Button text',
-    buttonTextPlaceholder: 'Pre-order now',
+    /** What the storefront shows when blank, so the field and the preview agree (audit #35). */
+    buttonTextPlaceholder: 'Pre-order',
     badgeText: 'Badge text',
     badgeTextPlaceholder: 'Pre-order',
     productNote: 'Note under the button',

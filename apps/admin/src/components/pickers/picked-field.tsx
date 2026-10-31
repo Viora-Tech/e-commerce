@@ -22,6 +22,9 @@ type PickedFieldProps = {
   onChange: (next: { kind: string; ids: string[] }) => void
   /** Extra control on each picked row, before the remove button (e.g. an amount input). */
   rowExtra?: ((item: PickItem) => ReactNode) | undefined
+  /** Opens the caller's own picker instead of the Browse dialog (the products picker with its
+   *  filters and stock); picks come back through `onChange` and show by `loadPicked`. */
+  onBrowse?: (() => void) | undefined
 }
 
 /**
@@ -38,6 +41,7 @@ export default function PickedField({
   loadPicked,
   onChange,
   rowExtra,
+  onBrowse,
 }: PickedFieldProps) {
   // Hooks
   const [open, setOpen] = useState(false)
@@ -70,6 +74,8 @@ export default function PickedField({
     setOpen(false)
   }
 
+  const handleOpen = () => (onBrowse ? onBrowse() : setOpen(true))
+
   const handleRemove = (id: string) => onChange({ kind, ids: ids.filter((x) => x !== id) })
 
   // Render logic
@@ -82,13 +88,13 @@ export default function PickedField({
       <div className="flex gap-2">
         <button
           type="button"
-          onClick={() => setOpen(true)}
+          onClick={handleOpen}
           className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-md border border-input bg-background px-3 text-left text-body text-muted-foreground transition-[border-color] hover:border-ring/60"
         >
           <Search className="size-4 shrink-0" aria-hidden="true" />
           <span className="truncate">{search}</span>
         </button>
-        <Button type="button" variant="outline" size="lg" onClick={() => setOpen(true)}>
+        <Button type="button" variant="outline" size="lg" onClick={handleOpen}>
           {labels.browse}
         </Button>
       </div>

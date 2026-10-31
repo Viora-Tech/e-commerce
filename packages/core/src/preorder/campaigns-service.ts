@@ -142,6 +142,15 @@ const countedOrder = and(
   ne(order.status, 'draft'),
 )
 
+/**
+ * A pre-order line: sold as one here, or on an order imported from Shopify that its pre-order
+ * app tagged ("Essential Preorder", "pre-order"), whose lines arrive without the flag (audit #32).
+ */
+const preorderLine = or(
+  eq(orderLine.preorder, true),
+  sql`exists (select 1 from unnest(${order.tags}) as t(tag) where t.tag ~* 'pre-?order')`,
+)
+
 async function campaignSummaries(tx: StoreTx, id?: string): Promise<PreorderCampaignSummary[]> {
   const rows = await tx
     .select({ ...campaignSelection, updatedAt: preorderCampaign.updatedAt })
@@ -325,7 +334,7 @@ export async function preorderOverview(
       })
       .from(orderLine)
       .innerJoin(order, eq(order.id, orderLine.orderId))
-      .where(and(eq(orderLine.preorder, true), countedOrder, gte(order.placedAt, since))),
+      .where(and(preorderLine, countedOrder, gte(order.placedAt, since))),
     campaignSummaries(tx),
     tx
       .select({
@@ -385,13 +394,7 @@ export async function preorderOverview(
       .from(orderLine)
       .innerJoin(order, eq(order.id, orderLine.orderId))
       .innerJoin(variant, eq(variant.id, orderLine.variantId))
-      .where(
-        and(
-          eq(orderLine.preorder, true),
-          countedOrder,
-          inArray(variant.productId, ids.length ? ids : [NONE]),
-        ),
-      )
+      .where(and(preorderLine, countedOrder, inArray(variant.productId, ids.length ? ids : [NONE])))
       .groupBy(variant.productId),
   ])
   const byId = new Map(campaigns.map((c) => [c.id, c]))

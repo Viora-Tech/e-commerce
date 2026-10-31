@@ -11,7 +11,7 @@ import type { CSSProperties } from 'react'
 import { preordersContent } from '@/data/preorders'
 import { rupees } from '@/data/products'
 import { useCopy } from '@/hooks/use-copy'
-import { formatPaise } from '@/lib/money'
+import { formatPaiseWhole } from '@/lib/money'
 import type { CampaignFormState } from './campaign-form-state'
 
 type CampaignPreviewProps = {
@@ -93,10 +93,10 @@ export default function CampaignPreview({ form }: CampaignPreviewProps) {
         </span>
         <span className="text-body-strong">{copy.previewTitle}</span>
         <span className="flex items-baseline gap-2 tabular-nums">
-          <span className="text-body-strong">{formatPaise(price)}</span>
+          <span className="text-body-strong">{formatPaiseWhole(price)}</span>
           {price !== SAMPLE_PRICE_PAISE ? (
             <span className="text-caption text-muted-foreground line-through">
-              {formatPaise(SAMPLE_PRICE_PAISE)}
+              {formatPaiseWhole(SAMPLE_PRICE_PAISE)}
             </span>
           ) : null}
         </span>
@@ -108,8 +108,8 @@ export default function CampaignPreview({ form }: CampaignPreviewProps) {
         {deposit && deposit.balancePaise > 0 ? (
           <span className="text-caption text-muted-foreground">
             {copy.previewDeposit(
-              formatPaise(deposit.depositPaise),
-              formatPaise(deposit.balancePaise),
+              formatPaiseWhole(deposit.depositPaise),
+              formatPaiseWhole(deposit.balancePaise),
             )}
           </span>
         ) : null}
@@ -126,7 +126,7 @@ export default function CampaignPreview({ form }: CampaignPreviewProps) {
         <span className="text-caption text-muted-foreground">{copy.previewCart}</span>
         <span className="flex items-center justify-between gap-2">
           <span className="text-body">{copy.previewTitle}</span>
-          <span className="text-body tabular-nums">{formatPaise(price)}</span>
+          <span className="text-body tabular-nums">{formatPaiseWhole(price)}</span>
         </span>
         <span
           className="self-start rounded-md bg-muted px-2 py-0.5 text-caption font-medium"

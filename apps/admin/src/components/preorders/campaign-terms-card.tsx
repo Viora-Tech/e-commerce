@@ -3,6 +3,7 @@
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
+import DateField from '@/components/fields/date-field'
 import MoneyInput from '@/components/fields/money-input'
 import DataCard from '@/components/layout/data-card'
 import { preordersContent } from '@/data/preorders'
@@ -12,6 +13,8 @@ import type { CampaignFormState } from './campaign-form-state'
 type CampaignTermsCardProps = {
   form: CampaignFormState
   disabled: boolean
+  /** Which card (audit #34): ship date and limit, or how it is paid. */
+  section: 'shipping' | 'payment'
   onChange: (patch: Partial<CampaignFormState>) => void
 }
 
@@ -21,7 +24,12 @@ const asMode = (value: unknown): CampaignFormState['paymentMode'] =>
   MODES.find((m) => m === value) ?? 'full'
 
 /** What every product in the campaign takes (#142): ship date, limit, and how it is paid. */
-export default function CampaignTermsCard({ form, disabled, onChange }: CampaignTermsCardProps) {
+export default function CampaignTermsCard({
+  form,
+  disabled,
+  section,
+  onChange,
+}: CampaignTermsCardProps) {
   // Hooks
   const { form: copy } = useCopy(preordersContent)
 
@@ -32,47 +40,55 @@ export default function CampaignTermsCard({ form, disabled, onChange }: Campaign
     percentage: copy.paymentPercentage,
   }
 
+  if (section === 'shipping') {
+    return (
+      <DataCard title={copy.shipping}>
+        <FieldGroup>
+          <div className="grid gap-4 md:grid-cols-3">
+            <Field>
+              <FieldLabel htmlFor="campaign-ship-date">{copy.shipDate}</FieldLabel>
+              <DateField
+                id="campaign-ship-date"
+                value={form.shipDate}
+                disabled={disabled}
+                onChange={(v) => onChange({ shipDate: v })}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="campaign-ships-in">{copy.shipsInDays}</FieldLabel>
+              <Input
+                id="campaign-ships-in"
+                type="number"
+                min={0}
+                value={form.shipsInDays}
+                disabled={disabled}
+                onChange={(e) => onChange({ shipsInDays: e.target.value })}
+              />
+              <FieldDescription>{copy.shipsInDaysHelp}</FieldDescription>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="campaign-limit">{copy.limit}</FieldLabel>
+              <Input
+                id="campaign-limit"
+                type="number"
+                min={1}
+                value={form.limit}
+                disabled={disabled}
+                onChange={(e) => onChange({ limit: e.target.value })}
+              />
+              <FieldDescription>{copy.limitHelp}</FieldDescription>
+            </Field>
+          </div>
+        </FieldGroup>
+      </DataCard>
+    )
+  }
+
   return (
-    <DataCard title={copy.shipping}>
+    <DataCard title={copy.payment}>
       <FieldGroup>
-        <div className="grid gap-4 md:grid-cols-3">
-          <Field>
-            <FieldLabel htmlFor="campaign-ship-date">{copy.shipDate}</FieldLabel>
-            <Input
-              id="campaign-ship-date"
-              type="date"
-              value={form.shipDate}
-              disabled={disabled}
-              onChange={(e) => onChange({ shipDate: e.target.value })}
-            />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="campaign-ships-in">{copy.shipsInDays}</FieldLabel>
-            <Input
-              id="campaign-ships-in"
-              type="number"
-              min={0}
-              value={form.shipsInDays}
-              disabled={disabled}
-              onChange={(e) => onChange({ shipsInDays: e.target.value })}
-            />
-            <FieldDescription>{copy.shipsInDaysHelp}</FieldDescription>
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="campaign-limit">{copy.limit}</FieldLabel>
-            <Input
-              id="campaign-limit"
-              type="number"
-              min={1}
-              value={form.limit}
-              disabled={disabled}
-              onChange={(e) => onChange({ limit: e.target.value })}
-            />
-            <FieldDescription>{copy.limitHelp}</FieldDescription>
-          </Field>
-        </div>
         <Field>
-          <FieldLabel>{copy.payment}</FieldLabel>
+          <FieldLabel className="sr-only">{copy.payment}</FieldLabel>
           <RadioGroup
             value={form.paymentMode}
             disabled={disabled}
