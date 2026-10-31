@@ -347,13 +347,25 @@ export async function setGiftCardDisabled(
   ctx: StoreContext,
   id: string,
   disabled: boolean,
+  author?: string,
 ): Promise<GiftCardRow | null> {
   const [row] = await ctx.tx
     .update(giftCard)
     .set({ disabledAt: disabled ? new Date() : null, updatedAt: new Date() })
     .where(eq(giftCard.id, id))
     .returning()
-  return row ?? null
+  if (!row) return null
+  // History shows who switched the card off and on (audit #155): a zero-amount line.
+  await ctx.tx.insert(giftCardTransaction).values({
+    storeId: ctx.storeId,
+    giftCardId: row.id,
+    kind: 'adjustment',
+    amountPaise: 0,
+    balanceAfterPaise: row.balancePaise,
+    note: disabled ? 'Card disabled' : 'Card enabled',
+    author: author ?? null,
+  })
+  return row
 }
 
 export async function updateGiftCard(

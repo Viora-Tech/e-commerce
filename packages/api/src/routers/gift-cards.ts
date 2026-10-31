@@ -154,6 +154,7 @@ export const giftCardsRouter = {
         { storeId: context.scope.storeId, tx: context.tx },
         input.id,
         input.disabled,
+        context.session.user.email,
       ),
     ),
 
