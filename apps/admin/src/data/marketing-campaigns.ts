@@ -11,7 +11,7 @@ export const campaignsContent = {
   resource: { singular: 'campaign', plural: 'campaigns' },
   create: 'Create campaign',
   createEmail: 'Email campaign',
-  createEmailHint: 'Designed email to a segment, Shopify Email style.',
+  createEmailHint: 'A designed email to a group of customers.',
   createWhatsapp: 'WhatsApp broadcast',
   createWhatsappHint: 'An approved template to customers who opted in.',
   tabs: { all: 'All', sent: 'Sent', scheduled: 'Scheduled', draft: 'Draft' },
@@ -215,7 +215,7 @@ export const campaignEditorContent = {
   },
   channel: {
     noEmail:
-      'No email channel can send marketing yet. Enable Amazon SES (or the worker log while developing) in Settings > Notifications.',
+      'Marketing emails can’t be sent yet. Set up an email channel in Settings > Notifications.',
     noWhatsapp:
       'WhatsApp is not connected. Enable it in Settings > Notifications and add your Business Account ID so approved templates show here.',
     settings: 'Open notification settings',

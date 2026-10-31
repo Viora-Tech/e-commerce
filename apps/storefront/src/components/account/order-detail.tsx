@@ -246,7 +246,10 @@ export default function OrderDetail({
             </h3>
             <p className="text-body">
               {paymentMethodLabel ?? paymentLabels[o.payment]}
-              <span className="block text-small text-muted">{paymentLabels[o.payment]}</span>
+              {/* "Cash on delivery" is both the method and the state: say it once. */}
+              {paymentMethodLabel && paymentMethodLabel !== paymentLabels[o.payment] ? (
+                <span className="block text-small text-muted">{paymentLabels[o.payment]}</span>
+              ) : null}
             </p>
             {o.email ? <p className="text-small text-muted">{o.email}</p> : null}
           </section>
