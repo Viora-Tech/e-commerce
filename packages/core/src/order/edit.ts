@@ -1,4 +1,4 @@
-/** SOURCE OF TRUTH: previewOrderEdit, editOrder — WHAT: Shopify-style editing of an open order, shipped or not (add, remove, quantity, price, shipping, discount and their labels) and settling the difference / WHY: staff fix orders after payment without cancelling and re-placing them */
+/** SOURCE OF TRUTH: previewOrderEdit, editOrder — WHAT: Shopify-style editing of an open or completed order, shipped, delivered or not (add catalogue or custom items, remove with or without restock, quantity, price of unpacked lines, shipping, discount and their labels) and settling the difference / WHY: staff fix orders after payment without cancelling and re-placing them */
 
 import { siteConfig } from '@commerce/config/site'
 import {
@@ -19,6 +19,7 @@ import { effectiveGstRatePercent, effectiveHsCode } from '../catalog/effective-t
 import type { StoreContext } from '../context'
 import { insertOutboxEvent } from '../outbox/write'
 import { chargedGstRate, parseStoreTax } from '../tax/settings'
+import { ensureCustomItemVariant } from './custom-item'
 import {
   type EditPlan,
   type EditTotals,
@@ -36,6 +37,7 @@ import {
   retaxOrder,
   settleEditedParcels,
 } from './edit-stock'
+import { heldParcels, holdFulfillment } from './fulfillment-hold'
 import { ensureFulfillmentOrders } from './fulfillment-orders'
 import { recomputeOrderStatuses } from './recompute'
 import { type RefundOptions, type RefundRoute, refundOptions } from './refund-routes'
@@ -53,7 +55,7 @@ async function loadForEdit(ctx: StoreContext, edit: OrderEdit, lock: boolean) {
       'not_editable',
       o?.importedFrom
         ? `This order was imported. Manage it in ${siteConfig.brand.name} first, then edit it.`
-        : 'Only an open order can be edited',
+        : 'A cancelled order cannot be edited',
       ctx.storeId,
     )
   }
@@ -164,11 +166,14 @@ function editNote(
 ): string {
   const parts: string[] = []
   for (const l of plan.lines) {
-    if (l.change === 'added') parts.push(`+ Added ${l.quantity} × ${qty(l)}`)
-    if (l.change === 'removed') parts.push(`− Removed ${qty(l)}`)
+    const kept = l.restock === false ? ' (not restocked)' : ''
+    if (l.change === 'added') {
+      parts.push(`+ Added ${l.quantity} × ${qty(l)}${l.custom ? ' (custom item)' : ''}`)
+    }
+    if (l.change === 'removed') parts.push(`− Removed ${qty(l)}${kept}`)
     if (l.change !== 'changed') continue
     if (l.quantity !== l.quantityBefore) {
-      parts.push(`${qty(l)} ${l.quantityBefore} → ${l.quantity}`)
+      parts.push(`${qty(l)} ${l.quantityBefore} → ${l.quantity}${kept}`)
     }
     if (l.unitPricePaise !== l.unitPriceBefore) {
       parts.push(`${qty(l)} price ${rupees(l.unitPriceBefore)} → ${rupees(l.unitPricePaise)}`)
@@ -216,8 +221,11 @@ function editNote(
 
 /**
  * Save an edit. Under the order's row lock: lines change (a removed line goes, nothing packed
- * can go: a shipped unit comes back through a return), stock follows (units taken off are released where their parcel holds them, units
- * added are routed and held like a checkout, so OutOfStock refuses the whole edit), parcels and
+ * can go or be repriced: a shipped unit comes back through a return), stock follows (units taken
+ * off are released where their parcel holds them, or written off with restock off; units added,
+ * custom items included, are routed and held like a checkout, so OutOfStock refuses the whole
+ * edit, and go in a new parcel once the others are packed, which reopens a delivered order;
+ * a held order's new parcel is held too), parcels and
  * GST are worked out again, totals move by the difference, then the difference is settled
  * (`edit-settle.ts`: a payment request, or a refund the chosen way). The timeline records it and
  * `order.edited` tells apps (GST invoices re-bill, affiliate commission is recomputed). An unpaid
@@ -282,6 +290,7 @@ export async function editOrder(
           variantId: line.variantId,
           quantity: line.quantity - l.quantity,
           remove,
+          restock: l.restock,
         })
       } else if (l.quantity > line.quantity && !line.giftCard) {
         added.push({
@@ -296,6 +305,26 @@ export async function editOrder(
           .update(orderLine)
           .set({ quantity: l.quantity, unitPricePaise: l.unitPricePaise })
           .where(eq(orderLine.id, line.id))
+      continue
+    }
+    if (l.custom) {
+      // Booked against the hidden "Custom item" variant, which tracks no stock (`custom-item.ts`).
+      const customVariantId = await ensureCustomItemVariant(ctx)
+      const [row] = await ctx.tx
+        .insert(orderLine)
+        .values({
+          storeId: ctx.storeId,
+          orderId: o.id,
+          variantId: customVariantId,
+          title: l.title,
+          variantTitle: null,
+          quantity: l.quantity,
+          unitPricePaise: l.unitPricePaise,
+          gstRatePercent: l.custom.taxable ? chargedGstRate(s?.gstRatePercent ?? 18, storeTax) : 0,
+          hsCode: l.custom.hsCode,
+        })
+        .returning({ id: orderLine.id })
+      if (row) added.push({ orderLineId: row.id, variantId: customVariantId, quantity: l.quantity })
       continue
     }
     const v = variants.find((x) => x.id === l.variantId)
@@ -320,6 +349,9 @@ export async function editOrder(
     if (row) added.push({ orderLineId: row.id, variantId: v.id, quantity: l.quantity })
   }
   await holdAddedUnits(ctx, { orderId: o.id, units: added, registrationId: o.gstRegistrationId })
+  // A held order stays held: a parcel the edit opened waits for the same release (#1011).
+  const [hold] = await heldParcels(ctx.tx, o.id)
+  if (hold) await holdFulfillment(ctx, o.id, hold.reason, { code: hold.code, heldBy: hold.heldBy })
   await settleEditedParcels(ctx, o.id)
   await ctx.tx
     .update(order)

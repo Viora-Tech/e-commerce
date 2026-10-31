@@ -21,12 +21,13 @@ export function canStaffCancel(o: OrderFacts): boolean {
 }
 
 /**
- * "Edit order": worked here (an import is taken over first) and open. A shipped order can be
- * edited too (owner decision after #923); the edit then leaves the shipment as it is, so the page
- * warns (`editsAfterShipping`). A completed or cancelled order cannot.
+ * "Edit order": worked here (an import is taken over first) and open or completed (delivered). A
+ * shipped or delivered order can be edited too (owner decision after #923, #1014): what was packed
+ * stays as it is (no fewer units, no new price), new items go out in a new parcel and the order
+ * reopens. A cancelled order cannot.
  */
 export function canEditOrder(o: OrderFacts): boolean {
-  return o.importedFrom === null && o.status === 'open'
+  return o.importedFrom === null && (o.status === 'open' || o.status === 'completed')
 }
 
 /** Everything is packed or already on its way: an edit will not change what was sent. */

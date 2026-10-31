@@ -10,6 +10,7 @@ type DraftMoneyInputProps = {
   valuePaise: number
   onChangePaise: (paise: number) => void
   className?: string
+  disabled?: boolean | undefined
 }
 
 /**
@@ -23,6 +24,7 @@ export default function DraftMoneyInput({
   valuePaise,
   onChangePaise,
   className,
+  disabled,
 }: DraftMoneyInputProps) {
   // Hooks
   const [text, setText] = useState<string | null>(null)
@@ -47,6 +49,7 @@ export default function DraftMoneyInput({
       onChange={(e) => handleChange(e.target.value)}
       onBlur={() => setText(null)}
       className={className}
+      disabled={disabled}
     />
   )
 }

@@ -1,6 +1,7 @@
 /** SOURCE OF TRUTH: OrderEditSchema, planOrderEdit — WHAT: the arithmetic of an order edit (new lines, totals, what the customer owes or is owed) with no database / WHY: the review step and the save must agree to the paisa, so both run this */
 import { z } from 'zod'
 import { CommerceError } from '../errors'
+import { CustomItemSchema } from './custom-item'
 
 /** Most lines one edit adds; an order page is not a bulk import. */
 const EDIT_ADD_MAX = 50
@@ -19,6 +20,11 @@ export const OrderEditSchema = z.object({
         lineId: z.uuid(),
         quantity: z.number().int().min(0).max(QTY_MAX),
         unitPricePaise: z.number().int().min(0).max(1_000_000_000).optional(),
+        /**
+         * Units taken off go back on sale (on by default). False writes them off: on hand drops
+         * with committed, as a cancel without restock does.
+         */
+        restock: z.boolean().optional(),
       }),
     )
     .max(200)
@@ -30,6 +36,20 @@ export const OrderEditSchema = z.object({
         variantId: z.uuid(),
         quantity: z.number().int().min(1).max(QTY_MAX),
         unitPricePaise: z.number().int().min(0).max(1_000_000_000).optional(),
+      }),
+    )
+    .max(EDIT_ADD_MAX)
+    .default([]),
+  /** One-off items not in the catalogue ("Gift wrap"), booked like a draft's custom item. */
+  custom: z
+    .array(
+      z.object({
+        title: z.string().trim().min(1).max(200),
+        quantity: z.number().int().min(1).max(QTY_MAX),
+        unitPricePaise: z.number().int().min(0).max(1_000_000_000),
+        /** False: no GST on this line. */
+        taxable: z.boolean().default(true),
+        hsCode: CustomItemSchema.shape.hsCode,
       }),
     )
     .max(EDIT_ADD_MAX)
@@ -113,6 +133,10 @@ export type PlannedLine = {
   quantity: number
   fulfilledQuantity: number
   change: EditLineChange
+  /** Set on a one-off item the edit adds (`variantId` is then empty until it is booked). */
+  custom?: { taxable: boolean; hsCode: string | null } | undefined
+  /** False: the units taken off are written off, not put back on sale. */
+  restock?: boolean | undefined
 }
 
 export type EditPlan = {
@@ -170,6 +194,13 @@ export function planOrderEdit(input: {
         `${l.title ?? 'This item'}: ${l.fulfilledQuantity} already packed, so it cannot go below that`,
       )
     }
+    // What was packed went out at its price (and on its invoice): only unpacked lines reprice.
+    if (price !== l.unitPricePaise && l.fulfilledQuantity > 0) {
+      throw new OrderEditRefused(
+        'fulfilled_line',
+        `${l.title ?? 'This item'}: ${l.fulfilledQuantity} already packed, so its price cannot change`,
+      )
+    }
     return {
       lineId: l.id,
       variantId: l.variantId,
@@ -180,6 +211,7 @@ export function planOrderEdit(input: {
       quantityBefore: l.quantity,
       quantity: next,
       fulfilledQuantity: l.fulfilledQuantity,
+      ...(next < l.quantity ? { restock: asked?.restock !== false } : {}),
       change:
         next === 0
           ? 'removed'
@@ -208,6 +240,21 @@ export function planOrderEdit(input: {
       quantity: a.quantity,
       fulfilledQuantity: 0,
       change: 'added',
+    })
+  }
+  for (const c of edit.custom) {
+    lines.push({
+      lineId: null,
+      variantId: '',
+      title: c.title,
+      variantTitle: null,
+      unitPricePaise: c.unitPricePaise,
+      unitPriceBefore: c.unitPricePaise,
+      quantityBefore: 0,
+      quantity: c.quantity,
+      fulfilledQuantity: 0,
+      change: 'added',
+      custom: { taxable: c.taxable, hsCode: c.hsCode || null },
     })
   }
   const kept = lines.filter((l) => l.quantity > 0)

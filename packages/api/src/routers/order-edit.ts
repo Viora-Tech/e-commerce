@@ -105,9 +105,11 @@ export const orderEditRoutes = {
     ),
 
   /**
-   * Save an order edit (add, remove, quantities, shipping, discount) on an open order not yet
-   * shipped. Stock, parcels and GST follow; a higher total opens a balance (emailed as a pay
-   * link with `requestPayment`), a lower one is refunded the chosen way.
+   * Save an order edit (add catalogue or custom items, remove with or without restock,
+   * quantities, prices of unpacked lines, shipping, discount) on an open or completed order,
+   * shipped or not (#1014). Stock, parcels and GST follow; new items after fulfilment go in a new
+   * parcel; a higher total opens a balance (emailed as a pay link with `requestPayment`), a lower
+   * one is refunded the chosen way.
    */
   edit: can(permissions.ORDERS_WRITE)
     .input(

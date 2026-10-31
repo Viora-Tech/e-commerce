@@ -41,12 +41,13 @@ function changeList(
 ): string[] {
   const items = p.lines.flatMap((l) => {
     const name = lineName(l.title, l.variantTitle)
+    const kept = (line: string) => (l.restock === false ? words.notRestocked(line) : line)
     if (l.change === 'added') return [words.added(l.quantity, name)]
-    if (l.change === 'removed') return [words.removed(name)]
+    if (l.change === 'removed') return [kept(words.removed(name))]
     if (l.change !== 'changed') return []
     return [
       ...(l.quantity !== l.quantityBefore
-        ? [words.changed(name, l.quantityBefore, l.quantity)]
+        ? [kept(words.changed(name, l.quantityBefore, l.quantity))]
         : []),
       ...(l.unitPricePaise !== l.unitPriceBefore
         ? [words.price(name, money(l.unitPriceBefore), money(l.unitPricePaise))]

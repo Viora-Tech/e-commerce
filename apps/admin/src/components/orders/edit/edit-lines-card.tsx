@@ -1,19 +1,27 @@
 'use client'
 
-import { RotateCcw, X } from '@commerce/ui/icons'
-import { cn } from '@commerce/ui/lib/utils'
+import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Input } from '@commerce/ui/shadcn/input'
-import DraftMoneyInput from '@/components/drafts/draft-money-input'
+import { useState } from 'react'
+import DraftCustomItemDialog from '@/components/drafts/draft-custom-item-dialog'
+import type { DraftLine } from '@/components/drafts/draft-form-state'
 import DataCard from '@/components/layout/data-card'
-import LineItemRow from '@/components/layout/line-item-row'
-import StatusChip from '@/components/layout/status-chip'
 import { orderEditContent } from '@/data/order-edit'
 import { useCopy } from '@/hooks/use-copy'
-import { formatPaise } from '@/lib/money'
 import type { OrderDetail } from '../order-detail-types'
 import EditAddSearch from './edit-add-search'
-import { type EditState, lineName, priceOf, quantityOf, type VariantResult } from './edit-state'
+import EditLineDiscountDialog, { type DiscountTarget } from './edit-line-discount-dialog'
+import EditLineRow from './edit-line-row'
+import EditNewRow from './edit-new-row'
+import {
+  type CustomLine,
+  type EditState,
+  lineName,
+  priceOf,
+  quantityOf,
+  restocks,
+  type VariantResult,
+} from './edit-state'
 
 type EditLinesCardProps = {
   order: OrderDetail
@@ -21,22 +29,37 @@ type EditLinesCardProps = {
   onChange: (patch: Partial<EditState>) => void
 }
 
-const toCount = (value: string, min: number) => Math.max(min, Number.parseInt(value, 10) || min)
+/** Which line "Add discount" is open on: one already on the order, an added one or a custom one. */
+type Discounting = DiscountTarget & { apply: (unitPricePaise: number) => void }
 
-/** The order's items as they would be: change quantities and prices, remove, undo, and add new ones. */
+/**
+ * The order's items as they would be: change quantities and prices, remove (with restock), undo,
+ * give a line a discount, and add catalogue or custom items.
+ */
 export default function EditLinesCard({ order, state, onChange }: EditLinesCardProps) {
   // Hooks
   const copy = useCopy(orderEditContent)
+  const [addingCustom, setAddingCustom] = useState(false)
+  const [discounting, setDiscounting] = useState<Discounting | null>(null)
+
+  // Helpers
+  const patchCustom = (key: string, patch: Partial<CustomLine>) =>
+    onChange({ custom: state.custom.map((c) => (c.key === key ? { ...c, ...patch } : c)) })
+  const patchAdded = (variantId: string, patch: { quantity?: number; unitPricePaise?: number }) =>
+    onChange({
+      added: state.added.map((a) => (a.variantId === variantId ? { ...a, ...patch } : a)),
+    })
 
   // Event handlers
   const handleQuantity = (lineId: string, quantity: number) => {
     onChange({ quantities: { ...state.quantities, [lineId]: quantity } })
   }
-
   const handlePrice = (lineId: string, unitPricePaise: number) => {
     onChange({ prices: { ...state.prices, [lineId]: unitPricePaise } })
   }
-
+  const handleRestock = (lineId: string, restock: boolean) => {
+    onChange({ restock: { ...state.restock, [lineId]: restock } })
+  }
   const handleAdd = (v: VariantResult) => {
     const existing = state.added.find((a) => a.variantId === v.variantId)
     onChange({
@@ -59,142 +82,106 @@ export default function EditLinesCard({ order, state, onChange }: EditLinesCardP
           ],
     })
   }
-
-  const handleAddedChange = (
-    variantId: string,
-    patch: { quantity?: number; unitPricePaise?: number },
-  ) => {
+  /* The draft editor's "Add custom item" dialog (same fields), kept as an edit's custom line. */
+  const handleAddCustom = (line: DraftLine) => {
     onChange({
-      added: state.added.map((a) => (a.variantId === variantId ? { ...a, ...patch } : a)),
+      custom: [
+        ...state.custom,
+        {
+          key: line.key,
+          title: line.title,
+          quantity: line.quantity,
+          unitPricePaise: line.unitPricePaise,
+          taxable: line.custom?.taxable ?? true,
+          hsCode: line.custom?.hsCode ?? '',
+        },
+      ],
     })
-  }
-
-  const handleAddedRemove = (variantId: string) => {
-    onChange({ added: state.added.filter((a) => a.variantId !== variantId) })
   }
 
   // Render logic
   return (
-    <DataCard title={copy.items} bodyClassName="flex flex-col gap-4">
+    <DataCard
+      title={copy.items}
+      bodyClassName="flex flex-col gap-4"
+      action={
+        <Button variant="outline" size="sm" onClick={() => setAddingCustom(true)}>
+          <Plus aria-hidden="true" />
+          {copy.addCustom}
+        </Button>
+      }
+    >
       <ul className="flex flex-col divide-y divide-line">
-        {order.lines.map((l) => {
-          const quantity = quantityOf(state, l)
-          const price = priceOf(state, l)
-          const removed = quantity === 0
-          const packed = l.fulfilledQuantity
-          return (
-            <LineItemRow
-              key={l.id}
-              imageUrl={l.imageUrl}
-              title={lineName(l.title, l.variantTitle)}
-              className={cn(removed && 'opacity-60')}
-              subtitle={
-                l.giftCard
-                  ? copy.giftCard
-                  : packed > 0
-                    ? copy.packed(packed)
-                    : `${formatPaise(l.unitPricePaise)} × ${l.quantity}`
-              }
-              controls={
-                removed ? (
-                  <StatusChip tone="neutral">{copy.removed}</StatusChip>
-                ) : (
-                  <>
-                    <Input
-                      aria-label={copy.quantity}
-                      type="number"
-                      min={Math.max(1, packed)}
-                      value={quantity}
-                      disabled={l.giftCard}
-                      onChange={(e) =>
-                        handleQuantity(l.id, toCount(e.target.value, Math.max(1, packed)))
-                      }
-                      className="w-20 text-right tabular-nums"
-                    />
-                    {l.giftCard ? null : (
-                      <DraftMoneyInput
-                        aria-label={copy.price}
-                        valuePaise={price}
-                        onChangePaise={(paise) => handlePrice(l.id, paise)}
-                        className="w-28 text-right tabular-nums"
-                      />
-                    )}
-                  </>
-                )
-              }
-              amount={formatPaise(quantity * price)}
-              aside={
-                l.giftCard || packed > 0 ? (
-                  <span className="size-9" />
-                ) : removed ? (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label={copy.restore}
-                    title={copy.restore}
-                    onClick={() => handleQuantity(l.id, l.quantity)}
-                  >
-                    <RotateCcw />
-                  </Button>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label={copy.remove}
-                    title={copy.remove}
-                    onClick={() => handleQuantity(l.id, 0)}
-                  >
-                    <X />
-                  </Button>
-                )
-              }
-            />
-          )
-        })}
-        {state.added.map((a) => (
-          <LineItemRow
-            key={a.variantId}
-            imageUrl={a.imageUrl}
-            title={lineName(a.title, a.variantTitle)}
-            subtitle={<StatusChip tone="info">{copy.added}</StatusChip>}
-            controls={
-              <>
-                <Input
-                  aria-label={copy.quantity}
-                  type="number"
-                  min={1}
-                  value={a.quantity}
-                  onChange={(e) =>
-                    handleAddedChange(a.variantId, { quantity: toCount(e.target.value, 1) })
-                  }
-                  className="w-20 text-right tabular-nums"
-                />
-                <DraftMoneyInput
-                  aria-label={copy.price}
-                  valuePaise={a.unitPricePaise}
-                  onChangePaise={(paise) =>
-                    handleAddedChange(a.variantId, { unitPricePaise: paise })
-                  }
-                  className="w-28 text-right tabular-nums"
-                />
-              </>
+        {order.lines.map((l) => (
+          <EditLineRow
+            key={l.id}
+            line={l}
+            quantity={quantityOf(state, l)}
+            unitPricePaise={priceOf(state, l)}
+            restock={restocks(state, l)}
+            onQuantity={(q) => handleQuantity(l.id, q)}
+            onPrice={(p) => handlePrice(l.id, p)}
+            onRestock={(r) => handleRestock(l.id, r)}
+            onDiscount={() =>
+              setDiscounting({
+                name: lineName(l.title, l.variantTitle),
+                unitPricePaise: priceOf(state, l),
+                apply: (p) => handlePrice(l.id, p),
+              })
             }
-            amount={formatPaise(a.quantity * a.unitPricePaise)}
-            aside={
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label={copy.remove}
-                title={copy.remove}
-                onClick={() => handleAddedRemove(a.variantId)}
-              >
-                <X />
-              </Button>
+          />
+        ))}
+        {state.added.map((a) => (
+          <EditNewRow
+            key={a.variantId}
+            title={lineName(a.title, a.variantTitle)}
+            imageUrl={a.imageUrl}
+            quantity={a.quantity}
+            unitPricePaise={a.unitPricePaise}
+            onChange={(patch) => patchAdded(a.variantId, patch)}
+            onRemove={() =>
+              onChange({ added: state.added.filter((x) => x.variantId !== a.variantId) })
+            }
+            onDiscount={() =>
+              setDiscounting({
+                name: lineName(a.title, a.variantTitle),
+                unitPricePaise: a.unitPricePaise,
+                apply: (p) => patchAdded(a.variantId, { unitPricePaise: p }),
+              })
+            }
+          />
+        ))}
+        {state.custom.map((c) => (
+          <EditNewRow
+            key={c.key}
+            title={c.title}
+            imageUrl={null}
+            custom
+            quantity={c.quantity}
+            unitPricePaise={c.unitPricePaise}
+            onChange={(patch) => patchCustom(c.key, patch)}
+            onRemove={() => onChange({ custom: state.custom.filter((x) => x.key !== c.key) })}
+            onDiscount={() =>
+              setDiscounting({
+                name: c.title,
+                unitPricePaise: c.unitPricePaise,
+                apply: (p) => patchCustom(c.key, { unitPricePaise: p }),
+              })
             }
           />
         ))}
       </ul>
       <EditAddSearch onAdd={handleAdd} />
+      <DraftCustomItemDialog
+        open={addingCustom}
+        onOpenChange={setAddingCustom}
+        onAdd={handleAddCustom}
+      />
+      <EditLineDiscountDialog
+        target={discounting}
+        onClose={() => setDiscounting(null)}
+        onApply={(p) => discounting?.apply(p)}
+      />
     </DataCard>
   )
 }
