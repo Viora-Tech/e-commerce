@@ -227,7 +227,8 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   const { page, query, status } = q
   const filtered = hasOrderFilters(q)
   const groups = orderFilterGroups(q, copy.filters, setFilters, facets)
-  const searching = query.length > 0 || status !== null || filtered
+  const searching = query.length > 0 || filtered
+  const tabEmpty = status === 'archived' ? copy.emptyArchived : copy.emptyView
   const tabCounts: Partial<Record<OrderListFilter, number>> = {
     unpaid: initial.counts.unpaid,
     unfulfilled: initial.counts.unfulfilled,
@@ -354,7 +355,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
             }}
           />
         )}
-        empty={searching ? copy.noResults : copy.empty}
+        empty={searching ? copy.noResults : status !== null ? tabEmpty : copy.empty}
       />
       <OrdersBulkDialogs
         request={bulkRequest}

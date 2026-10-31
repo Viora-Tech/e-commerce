@@ -45,7 +45,6 @@ export default [
     previous: 'पिछला पेज',
     next: 'अगला पेज',
     emptyHeading: (plural) => `अभी कोई ${plural} नहीं`,
-    emptyBody: 'कुछ और खोजें या फ़िल्टर हटा दें।',
     noResultsBody: 'इस खोज और इन फ़िल्टर से कुछ नहीं मिला।',
     clearSearchAndFilters: 'फ़िल्टर हटाएँ',
   }),

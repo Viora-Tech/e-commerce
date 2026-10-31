@@ -466,19 +466,21 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
           ) : isEmpty ? (
             <EmptyState
               heading={props.empty?.heading ?? tableCopy.emptyHeading(props.resourceName.plural)}
-              body={props.empty?.body ?? tableCopy.emptyBody}
+              body={props.empty?.body}
               action={props.empty?.action}
             />
           ) : null}
         </div>
       </div>
-      <ResourceTablePagination
-        page={props.page}
-        perPage={props.perPage}
-        total={props.total}
-        onPageChange={props.onPageChange}
-        onPerPageChange={props.onPerPageChange}
-      />
+      {props.total > 0 ? (
+        <ResourceTablePagination
+          page={props.page}
+          perPage={props.perPage}
+          total={props.total}
+          onPageChange={props.onPageChange}
+          onPerPageChange={props.onPerPageChange}
+        />
+      ) : null}
     </Card>
   )
 }

@@ -245,6 +245,9 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
 
   // Render logic
   const empty = items.length === 0 && queue.pending.length === 0 && !query && !type && !folder
+  /* Inside a folder the store-wide counts would mislead: All counts the folder, types go blank. */
+  const openFolder = folder ? folders.find((f) => f.id === folder) : undefined
+  const typeCounts = folder ? null : counts
 
   return (
     <ProoflyListPage
@@ -302,10 +305,18 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
                 value={type}
                 onChange={(next) => setQ({ type: next, page: 1 })}
                 options={[
-                  { value: null, label: copy.tabs.all, count: counts.all },
-                  { value: 'image', label: copy.tabs.image, count: counts.image },
-                  { value: 'video', label: copy.tabs.video, count: counts.video },
-                  { value: 'document', label: copy.tabs.document, count: counts.document },
+                  {
+                    value: null,
+                    label: copy.tabs.all,
+                    count: folder ? openFolder?.files : counts.all,
+                  },
+                  { value: 'image', label: copy.tabs.image, count: typeCounts?.image },
+                  { value: 'video', label: copy.tabs.video, count: typeCounts?.video },
+                  {
+                    value: 'document',
+                    label: copy.tabs.document,
+                    count: typeCounts?.document,
+                  },
                 ]}
               />
               <span aria-hidden="true" className="h-5 w-px bg-line" />

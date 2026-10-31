@@ -48,7 +48,6 @@ export const tableContent = {
   previous: 'Previous page',
   next: 'Next page',
   emptyHeading: (plural: string) => `No ${plural} yet`,
-  emptyBody: 'Try a different search or clear the filters.',
   /** Figma "Feedback state · No results": a search found nothing; one button clears it. */
   noResultsBody: 'Nothing matches this search and these filters.',
   clearSearchAndFilters: 'Clear filters',

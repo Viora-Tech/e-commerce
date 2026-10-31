@@ -276,6 +276,15 @@ export const ordersContent = {
     heading: 'No orders yet',
     body: 'Orders appear here as soon as a customer checks out.',
   },
+  /** A status tab with no orders, before any search or filter. */
+  emptyView: {
+    heading: 'No orders here',
+    body: 'Orders show up in this view as soon as one matches it.',
+  },
+  emptyArchived: {
+    heading: 'No archived orders yet',
+    body: 'Orders you archive move here, out of the main list.',
+  },
 } as const
 
 /** Sub-sections under Orders that have no records yet. */

@@ -86,7 +86,7 @@ export default function SelectionBar({
           className="-ml-2 shrink-0 tabular-nums"
         >
           {selectingAll ? <Spinner className="size-3.5" /> : null}
-          {everything
+          {everything && total > 1
             ? tableCopy.allSelected(fmt.number(total), plural)
             : tableCopy.selected(count, singular, plural)}
           <ChevronDown aria-hidden="true" />
