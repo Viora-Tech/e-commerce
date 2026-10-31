@@ -26,6 +26,7 @@ import CustomerCard from './customer-card'
 import DeliveryRouteCard from './delivery-route-card'
 import ImportedOrderCard from './imported-order-card'
 import LineItemsCard from './line-items-card'
+import { openOrderStatusPage } from './open-status-page'
 import OrderActions from './order-actions'
 import OrderArchivedNotice from './order-archived-notice'
 import {
@@ -143,6 +144,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
       setBusy(false)
     }
   }
+  const handleViewStatusPage = () => openOrderStatusPage(order.id, copy.actions.statusPageFailed)
   const handleRequestBalance = async (custom?: CustomMessage) => {
     setBusy(true)
     try {
@@ -224,6 +226,8 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
     )
 
   // Render logic
+  // #1012: "Ships from" leads only while a parcel waits on a transfer; archive works on imports too.
+  const parcelsFirst = order.parcels.some((p) => p.needsTransfer && p.status === 'open')
   const soldThrough = orderChannel(order.attribution)
   const payment = primaryPayment(order.payments)
   const pay = paymentStatus(payment, order.refunds)
@@ -295,6 +299,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
               }
               onSendReminder={sendReminder}
               onSendOrderLink={sendOrderLink}
+              onViewStatusPage={handleViewStatusPage}
               onDuplicate={
                 duplicateOrder.allowed && !readOnly
                   ? () => duplicateOrder.duplicate(order.id)
@@ -305,9 +310,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
               invoicesHref={appCards.includes(INVOICES_APP) ? `#${INVOICES_ANCHOR}` : undefined}
               orderNumber={order.number}
               customerEmail={order.email}
-              onArchive={
-                canArchive && !order.archivedAt && !readOnly ? () => handleArchive(true) : undefined
-              }
+              onArchive={canArchive && !order.archivedAt ? () => handleArchive(true) : undefined}
               appItems={[
                 ...automation.items([order.id], { runsLink: true }),
                 ...apps.items('detail', order, [order.id]),
@@ -356,7 +359,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
               onDone={closeAndRefresh(() => setFulfilling(false))}
             />
           )}
-          {readOnly ? null : <ParcelsCard order={order} />}
+          {readOnly || !parcelsFirst ? null : <ParcelsCard order={order} />}
           <LineItemsCard
             order={order}
             payment={pay}
@@ -372,6 +375,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
             onSendReminder={sendReminder}
             busy={busy}
           />
+          {readOnly || parcelsFirst ? null : <ParcelsCard order={order} />}
           {readOnly ? null : (
             <div id="order-shipment" className="scroll-mt-6">
               <ShipmentPanel

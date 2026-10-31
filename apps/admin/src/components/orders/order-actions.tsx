@@ -7,6 +7,7 @@ import {
   ChevronRightIcon,
   CircleCheck,
   Copy,
+  ExternalLink,
   FileEdit,
   FileText,
   LinkIcon,
@@ -57,6 +58,8 @@ type OrderActionsProps = {
   onSendReminder?: (() => void) | undefined
   /** "Send order link": the customer's link to their order page; undefined hides it. */
   onSendOrderLink?: (() => void) | undefined
+  /** "View order status page": the shopper's own page for this order, in a new tab. */
+  onViewStatusPage?: (() => void) | undefined
   /** Starts a new draft from this order ("Duplicate order"); undefined hides it. */
   onDuplicate?: (() => void) | undefined
   /** "Archive order": off the working tabs; undefined hides it (no right, or already archived). */
@@ -94,6 +97,7 @@ export default function OrderActions({
   onCancelShipment,
   onSendReminder,
   onSendOrderLink,
+  onViewStatusPage,
   onDuplicate,
   onArchive,
   onCancel,
@@ -227,6 +231,12 @@ export default function OrderActions({
             hidden: !onSendOrderLink || readOnly,
             disabled: busy,
             onSelect: onSendOrderLink,
+          },
+          {
+            label: copy.actions.viewStatusPage,
+            icon: ExternalLink,
+            hidden: !onViewStatusPage,
+            onSelect: onViewStatusPage,
           },
           {
             label: copy.duplicate.action,

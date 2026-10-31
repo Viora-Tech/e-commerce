@@ -164,8 +164,8 @@ function editNote(
 ): string {
   const parts: string[] = []
   for (const l of plan.lines) {
-    if (l.change === 'added') parts.push(`added ${l.quantity} × ${qty(l)}`)
-    if (l.change === 'removed') parts.push(`removed ${qty(l)}`)
+    if (l.change === 'added') parts.push(`+ Added ${l.quantity} × ${qty(l)}`)
+    if (l.change === 'removed') parts.push(`− Removed ${qty(l)}`)
     if (l.change !== 'changed') continue
     if (l.quantity !== l.quantityBefore) {
       parts.push(`${qty(l)} ${l.quantityBefore} → ${l.quantity}`)
@@ -201,14 +201,17 @@ function editNote(
           : settlement.kind === 'kept'
             ? `${rupees(settlement.amountPaise)} owed back, not refunded.`
             : ''
+  // One change per line (#1014): the timeline keeps a note's line breaks, so an added or removed
+  // item reads as its own "+ Added" / "− Removed" line instead of a word inside one sentence.
   return [
-    `Order edited${afterShipping ? ' after shipping (the shipment was not changed)' : ''}: ${parts.join(', ')}.`,
+    `Order edited${afterShipping ? ' after shipping (the shipment was not changed)' : ''}:`,
+    ...parts,
     `Total ${rupees(plan.before.totalPaise)} → ${rupees(plan.after.totalPaise)}.`,
     money,
     note?.trim() ? `Note: ${note.trim()}` : '',
   ]
     .filter(Boolean)
-    .join(' ')
+    .join('\n')
 }
 
 /**

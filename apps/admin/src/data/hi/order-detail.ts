@@ -31,6 +31,8 @@ export default [
       invoices: 'इनवॉइस देखें',
       sendOrderLink: 'ऑर्डर का लिंक भेजें',
       orderLinkSent: 'ऑर्डर का लिंक ग्राहक को भेज दिया',
+      viewStatusPage: 'ऑर्डर स्टेटस पेज देखें',
+      statusPageFailed: 'ऑर्डर स्टेटस पेज नहीं खुला। फिर से कोशिश करें।',
     },
     duplicate: {
       action: 'ऑर्डर की कॉपी बनाएँ',

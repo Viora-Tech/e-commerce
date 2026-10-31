@@ -41,6 +41,9 @@ export const orderDetailContent = {
     invoices: 'View invoices',
     sendOrderLink: 'Send order link',
     orderLinkSent: 'Order link sent to the customer',
+    /** #1015: the page the shopper sees for this order, in a new tab. */
+    viewStatusPage: 'View order status page',
+    statusPageFailed: 'Could not open the order status page. Try again.',
   },
   duplicate: {
     action: 'Duplicate order',

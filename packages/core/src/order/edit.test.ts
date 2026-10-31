@@ -382,9 +382,9 @@ describe('editOrder', () => {
     )
     // Collected by hand later: the balance settles and the order is paid again.
     const notes = await owner.select().from(orderNote).where(eq(orderNote.orderId, id))
-    expect(notes.some((n) => n.body.startsWith('Order edited: added 1 × Glasspad (White)'))).toBe(
-      true,
-    )
+    expect(
+      notes.some((n) => n.body.startsWith('Order edited:\n+ Added 1 × Glasspad (White)')),
+    ).toBe(true)
   })
 
   it('lowers a quantity: stock released, the difference refunded and tagged as an edit', async () => {
