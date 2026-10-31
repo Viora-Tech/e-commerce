@@ -25,8 +25,8 @@ const FILTERS = ['active', 'scheduled', 'draft', 'paused', 'ended'] as const
 type Filter = (typeof FILTERS)[number] | null
 
 /**
- * Rollouts (Shopify's, a top-level page): every launch and event with what it changes, when
- * it runs and its status, filtered by status.
+ * Rollouts, as Shopify's list: status tabs over one table with each launch or event's status,
+ * type, start, end, audience and changes.
  */
 export default function RolloutsList({ rollouts }: RolloutsListProps) {
   // Hooks
@@ -68,12 +68,14 @@ export default function RolloutsList({ rollouts }: RolloutsListProps) {
             <PillTabs tabs={tabs} value={filter} onChange={setFilter} />
           </div>
           <SettingsTable
-            heading={copy.listTitle}
             columns={[
               { label: copy.columns.name },
-              { label: copy.columns.changes, className: 'hidden sm:table-cell' },
-              { label: copy.columns.when, className: 'hidden md:table-cell' },
-              { label: copy.columns.status, center: true },
+              { label: copy.columns.status },
+              { label: copy.columns.type, className: 'hidden sm:table-cell' },
+              { label: copy.columns.start, className: 'hidden md:table-cell' },
+              { label: copy.columns.end, className: 'hidden md:table-cell' },
+              { label: copy.columns.audience, className: 'hidden lg:table-cell' },
+              { label: copy.columns.changes, className: 'hidden xl:table-cell' },
             ]}
             after={
               shown.length === 0 ? (

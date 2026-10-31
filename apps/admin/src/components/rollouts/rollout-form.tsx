@@ -196,6 +196,14 @@ export default function RolloutForm({ rollout, data, results = null }: RolloutFo
         onChange={patch}
       />
 
+      <RolloutScheduleCard
+        form={form}
+        endError={endError}
+        startDisabled={!changesEditable}
+        endDisabled={!canManage || ended}
+        onChange={patch}
+      />
+
       <DataCard
         title={copy.changes.heading}
         subtitle={changesEditable || noChanges ? copy.changes.subtitle : copy.changes.locked}
@@ -247,10 +255,6 @@ export default function RolloutForm({ rollout, data, results = null }: RolloutFo
         )}
       </DataCard>
 
-      {results && rollout?.startedAt ? (
-        <RolloutResultsCard results={results} outcome={rollout.abOutcome} />
-      ) : null}
-
       <RolloutAudienceCard
         audience={form.audience}
         markets={data.markets}
@@ -260,13 +264,9 @@ export default function RolloutForm({ rollout, data, results = null }: RolloutFo
         onChange={(audience) => patch({ audience })}
       />
 
-      <RolloutScheduleCard
-        form={form}
-        endError={endError}
-        startDisabled={!changesEditable}
-        endDisabled={!canManage || ended}
-        onChange={patch}
-      />
+      {results && rollout?.startedAt ? (
+        <RolloutResultsCard results={results} outcome={rollout.abOutcome} />
+      ) : null}
 
       <RolloutNotesCard
         notes={form.notes}

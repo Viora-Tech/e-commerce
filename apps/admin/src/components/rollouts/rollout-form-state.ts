@@ -2,7 +2,6 @@ import type { RolloutChangeInput, RolloutConflict, RolloutView } from '@commerce
 import type { CheckoutBranding } from '@commerce/core/checkout-settings'
 import { fromLocalInput, toLocalInput } from '@/components/discounts/form-state'
 import type { rolloutsContent } from '@/data/rollouts'
-import type { Formatters } from '@/lib/format'
 
 /** One discount the rollout switches, with what the picker or the server said about it. */
 export type DiscountPick = {
@@ -141,13 +140,4 @@ export function changesSummary(r: RolloutView, copy: Copy): string {
   ].filter((p): p is string => p !== null)
   if (r.audience) parts.unshift(copy.summary.abTest)
   return parts.length > 0 ? parts.join(' · ') : copy.summary.none
-}
-
-/** When it runs, in the store's zone. */
-export function whenLabel(r: RolloutView, copy: Copy, fmt: Formatters): string {
-  if (r.status === 'ended' && r.endedAt) return copy.when.endedOn(fmt.dateTime(r.endedAt))
-  if (!r.startsAt) return copy.when.notScheduled
-  const start = fmt.dateTime(r.startsAt)
-  if (r.kind === 'event' && r.endsAt) return copy.when.range(start, fmt.dateTime(r.endsAt))
-  return copy.when.from(start)
 }
