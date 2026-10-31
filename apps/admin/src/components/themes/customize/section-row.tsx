@@ -2,7 +2,9 @@
 
 import type { TemplateSection } from '@commerce/core/theme'
 import {
+  ArrowDown,
   ArrowLeft,
+  ArrowUp,
   Bookmark,
   ChevronRight,
   Copy,
@@ -58,6 +60,9 @@ type SectionRowProps = {
   /** Set for a nested block: the container's name and moving the block out of it. */
   moveOutLabel?: string | undefined
   onMoveOut?: (() => void) | undefined
+  /** One place up or down among its siblings; left out at either end (audit #196). */
+  onMoveUp?: (() => void) | undefined
+  onMoveDown?: (() => void) | undefined
 }
 
 const copy = customizeContent.tree
@@ -85,6 +90,8 @@ export default function SectionRow({
   onSaveAsSection,
   moveOutLabel,
   onMoveOut,
+  onMoveUp,
+  onMoveDown,
 }: SectionRowProps) {
   // Hooks
   const [renaming, setRenaming] = useState(false)
@@ -286,6 +293,18 @@ export default function SectionRow({
                 {hidden ? toolbar.show : toolbar.hide}
                 <DropdownMenuShortcut aria-hidden>⌘⇧H</DropdownMenuShortcut>
               </DropdownMenuItem>
+              {onMoveUp ? (
+                <DropdownMenuItem onClick={onMoveUp}>
+                  <ArrowUp aria-hidden />
+                  {copy.moveUpItem}
+                </DropdownMenuItem>
+              ) : null}
+              {onMoveDown ? (
+                <DropdownMenuItem onClick={onMoveDown}>
+                  <ArrowDown aria-hidden />
+                  {copy.moveDownItem}
+                </DropdownMenuItem>
+              ) : null}
               {onMoveOut && moveOutLabel ? (
                 <DropdownMenuItem onClick={onMoveOut}>
                   <ArrowLeft aria-hidden />

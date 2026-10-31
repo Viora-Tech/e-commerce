@@ -227,6 +227,7 @@ export default function ImageField({ value, onChange }: ImageFieldProps) {
         </label>
         <Input
           id={altId}
+          data-alt-input=""
           value={image.alt ?? ''}
           onChange={(e) => set({ ...image, alt: e.target.value })}
           placeholder={copy.altPlaceholder}
