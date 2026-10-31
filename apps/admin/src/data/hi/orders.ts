@@ -199,6 +199,7 @@ export default [
       refunded: 'रिफ़ंड हो गया',
       refund_needed: 'रिफ़ंड करना है',
     },
+    paymentVoided: 'वॉइड (पेमेंट नहीं लिया)',
     fulfillmentStatus: {
       unfulfilled: 'भेजना बाकी',
       partially_fulfilled: 'कुछ भेज दिया',

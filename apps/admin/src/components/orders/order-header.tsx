@@ -10,6 +10,7 @@ import { salesChannelsContent } from '@/data/sales-channels'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { orderChannel } from '@/lib/order-channel'
+import { shownPaymentStatus } from '@/lib/order-next-move'
 import { routes } from '@/lib/routes'
 import OrderChip from './order-chip'
 import { methodLabel, type OrderDetail } from './order-detail-types'
@@ -63,7 +64,7 @@ export default function OrderHeader({ order, actions, back }: OrderHeaderProps) 
         badges={
           <>
             {closed ? <OrderChip kind="order" value={order.status} /> : null}
-            <OrderChip kind="orderPayment" value={order.paymentStatus} />
+            <OrderChip kind="orderPayment" value={shownPaymentStatus(order)} />
             {/* "Unfulfilled" on a cancelled order is noise: nothing will be shipped (audit #22). */}
             {toShip ? (
               <StatusChip tone="info">{listCopy.toShip}</StatusChip>

@@ -13,6 +13,7 @@ import { ordersContent } from '@/data/orders'
 import { useCopy } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
 import type { Formatters } from '@/lib/format'
+import { shownPaymentStatus } from '@/lib/order-next-move'
 import { routes } from '@/lib/routes'
 
 type Item = Awaited<ReturnType<typeof api.orders.list>>['items'][number]
@@ -173,7 +174,7 @@ export function orderColumns(
       sortTitle: copy.sortTitles.payment,
       sortRank: 4,
       align: 'center',
-      render: (o) => <OrderChip kind="orderPayment" value={o.paymentStatus} />,
+      render: (o) => <OrderChip kind="orderPayment" value={shownPaymentStatus(o)} />,
     },
     {
       id: 'fulfilment',

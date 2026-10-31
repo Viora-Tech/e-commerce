@@ -262,7 +262,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
 
   // A placed order the customer can be reached on: its order page link can be sent.
   const sendOrderLink =
-    !readOnly && (order.email || order.phone) ? () => setReviewing('order_link') : undefined
+    live && (order.email || order.phone) ? () => setReviewing('order_link') : undefined
 
   const awaitingTransfer = live && !order.checkoutPaidAt && order.paymentMethod === 'manual'
   const stepKind = nextStepKind(order, { readOnly, canCollect, canFulfil, awaitingTransfer })

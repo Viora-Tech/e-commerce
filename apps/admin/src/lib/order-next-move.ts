@@ -45,3 +45,8 @@ export function canRemindToPay(o: {
 }): boolean {
   return o.status === 'open' && o.paymentMethod === MANUAL_TRANSFER && o.paymentStatus === 'unpaid'
 }
+
+/** The payment chip's value: a cancelled order nobody paid reads "Voided", not "Unpaid" (#123). */
+export function shownPaymentStatus(o: { status: string; paymentStatus: string }): string {
+  return o.status === 'cancelled' && o.paymentStatus === 'unpaid' ? 'voided' : o.paymentStatus
+}

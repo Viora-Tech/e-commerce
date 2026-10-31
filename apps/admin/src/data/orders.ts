@@ -191,6 +191,8 @@ export const ordersContent = {
     refunded: 'Refunded',
     refund_needed: 'Refund needed',
   } satisfies Record<OrderPaymentStatus, string>,
+  /** A cancelled order nobody paid (#123): nothing is pending any more, as Shopify's "Voided". */
+  paymentVoided: 'Voided',
   fulfillmentStatus: {
     unfulfilled: 'Unfulfilled',
     partially_fulfilled: 'Partially fulfilled',
