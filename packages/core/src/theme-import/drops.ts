@@ -139,6 +139,47 @@ export type LiquidCustomerData = {
   addressesCount: number
 }
 
+/** A courier consignment on one of the shopper's orders (`line_item.fulfillment`). */
+export type LiquidFulfillmentData = {
+  id: string
+  createdAt: Date
+  /** The carrier that delivers it, else the courier app it was booked with. */
+  trackingCompany: string
+  trackingNumber: string
+  trackingUrl: string | null
+  /** The order lines it carries, by id, with how many of each. */
+  lines: { lineId: string; quantity: number }[]
+}
+
+/** One of the signed-in shopper's orders (`customer.orders`), priced like every price here. */
+export type LiquidOrderData = {
+  id: string
+  number: number
+  /** `#1001`: the source platform's name for an imported order. */
+  name: string
+  createdAt: Date
+  cancelled: boolean
+  cancelledAt: string | null
+  /** Our payment status (`paid`, `unpaid`, `partially_refunded`...). */
+  paymentStatus: string
+  /** Our fulfilment status (`unfulfilled`, `shipped`, `delivered`...). */
+  fulfillmentStatus: string
+  totalPrice: number
+  subtotalPrice: number
+  shippingPrice: number
+  lineItems: {
+    id: string
+    title: string
+    variantTitle: string
+    quantity: number
+    price: number
+    linePrice: number
+    image: LiquidImageData | null
+    url: string | null
+    fulfillment: LiquidFulfillmentData | null
+  }[]
+}
+
 export type LiquidShopData = {
   name: string
   email: string
@@ -260,6 +301,8 @@ export type LiquidDataSource = {
   cart(): Promise<LiquidCartData>
   /** The signed-in shopper; absent or null when nobody is signed in (the editor, a cache warm). */
   customer?: (() => Promise<LiquidCustomerData | null>) | undefined
+  /** The signed-in shopper's latest orders, newest first; loaded only when a theme reads them. */
+  customerOrders?: (() => Promise<LiquidOrderData[]>) | undefined
   /** Extra fields of many owners at once (one batch per render pass). */
   metafields(ownerType: LiquidMetafieldOwner, ownerIds: string[]): Promise<LiquidCustomData>
   /** Every published entry of one content type, in order, with the entries they link to. */

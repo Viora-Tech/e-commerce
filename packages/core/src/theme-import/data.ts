@@ -31,6 +31,7 @@ import { toNavLinks } from '../navigation/resolve'
 import { publishedPolicyLinks } from '../policies/service'
 import { loadMetafields, loadMetaobjects, loadMetaobjectsOfType } from './custom-data'
 import { loadLiquidCustomer } from './customer-data'
+import { loadCustomerOrders } from './customer-orders'
 import type {
   LiquidBlogData,
   LiquidCartData,
@@ -372,6 +373,11 @@ export async function storeLiquidData(
       once('customer', async () => {
         const who = options.customer
         return who ? loadLiquidCustomer(tx, who, pricing) : null
+      }),
+    customerOrders: () =>
+      once('customer-orders', async () => {
+        const who = options.customer
+        return who ? loadCustomerOrders(tx, who.id, pricing) : []
       }),
     metafields: async (ownerType, ownerIds) => {
       const data = await loadMetafields(tx, ownerType, ownerIds)

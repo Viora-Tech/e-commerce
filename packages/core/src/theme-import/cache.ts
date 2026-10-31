@@ -9,6 +9,7 @@ import type {
   LiquidMetafieldData,
   LiquidMetafieldOwner,
   LiquidMetaobjectData,
+  LiquidOrderData,
   LiquidPageData,
   LiquidProductData,
 } from './drops'
@@ -42,6 +43,8 @@ export class LiquidDataCache {
   readonly #pending = new Map<string, () => Promise<void>>()
   /** Collection and search listings with the request's filters, by collection and query. */
   readonly #listings: Store<LiquidBrowseData> = new Map()
+  /** The signed-in shopper's latest orders (`customer.orders`; one value per request). */
+  readonly #customerOrders: Store<LiquidOrderData[]> = new Map()
   /** Judge.me's shop data from the Reviews app (one value per request). */
   readonly #judgeme: Store<Record<string, unknown>> = new Map()
   /** Every collection, titles and images only, in title order (`{% for c in collections %}`). */
@@ -138,6 +141,16 @@ export class LiquidDataCache {
       'jm',
       'shop',
       async () => (await this.source.judgeme?.()) ?? null,
+    )
+  }
+
+  /** `customer.orders`: loaded the first time a render reads it, never otherwise. */
+  customerOrders(): LiquidOrderData[] | null {
+    return this.#read(
+      this.#customerOrders,
+      'co',
+      'me',
+      async () => (await this.source.customerOrders?.()) ?? [],
     )
   }
 
