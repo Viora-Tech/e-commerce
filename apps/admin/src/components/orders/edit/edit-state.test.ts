@@ -50,7 +50,7 @@ describe('order edit state (#1014)', () => {
       'Glasspad / Black: 2 → 1 (not restocked)',
     ])
     const ticked = { ...state, restock: {} }
-    expect(editInput(order, ticked).lines[0]?.restock).toBe(true)
+    expect(editInput(order, ticked).lines?.[0]?.restock).toBe(true)
   })
 
   it('a custom item counts as a change, moves the total and goes to the server', () => {
