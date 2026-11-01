@@ -104,6 +104,12 @@ export default [
         body: (names) => `बाकी: ${names}। भारतीय कानून इन्हें माँगता है, और पेमेंट गेटवे भी इन्हें देखते हैं।`,
         fix: 'पॉलिसी जोड़ें',
       },
+      policies_unfilled: {
+        title: (n) => `${n} लाइव पॉलिसी में [email address] जैसी खाली जगहें दिख रही हैं`,
+        body: (names) =>
+          `${names}। ग्राहक ये खाली जगहें देखते हैं। Store details में अपनी जानकारी जोड़ें, फिर पॉलिसी खोलकर भरें।`,
+        fix: 'पॉलिसी ठीक करें',
+      },
       sender_unverified: {
         title: (email) => `${email} वेरिफ़ाई नहीं है`,
         body: (failed) =>

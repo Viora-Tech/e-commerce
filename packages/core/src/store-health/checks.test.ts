@@ -260,6 +260,22 @@ describe('storeChecks', () => {
     ])
   })
 
+  it('flags a live policy that still shows a template gap', () => {
+    expect(
+      storeChecks({
+        publishedPolicies: POLICY_TYPES,
+        unfilledPolicies: ['refund-policy'],
+        sender: verified,
+      }),
+    ).toEqual([
+      expect.objectContaining({
+        code: 'policies_unfilled',
+        severity: 'should_fix',
+        policies: ['refund-policy'],
+      }),
+    ])
+  })
+
   it('flags a sender that is not verified yet', () => {
     expect(
       storeChecks({
