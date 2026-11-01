@@ -50,7 +50,7 @@ export default function OrderSummary({ order: o, lines, images, giftCards }: Ord
           {o.discountPaise > 0 ? (
             <SummaryRow
               tone="saving"
-              label={o.discountLabel ?? content.discount}
+              label={o.discountCode ?? o.discountLabel ?? content.discount}
               value={`−${formatPaise(o.discountPaise)}`}
             />
           ) : null}

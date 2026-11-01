@@ -35,13 +35,24 @@ type PostalAddress = {
   city: string
   stateCode: string
   pincode: string
+  /** ISO country; an address outside India names it (a courier abroad needs it). */
+  country?: string | null
+}
+
+/** The country line of an address outside India; nothing for India. */
+function countryLine(code: string | null | undefined): string | null {
+  if (!code || code === 'IN') return null
+  return new Intl.DisplayNames(['en'], { type: 'region' }).of(code) ?? code
 }
 
 /** An address as lines, as on a parcel. */
 function linesOf(x: PostalAddress): string[] {
-  return [x.line1, x.line2, `${x.city}, ${stateName(x.stateCode)} ${x.pincode}`].filter(
-    (l): l is string => Boolean(l?.trim()),
-  )
+  return [
+    x.line1,
+    x.line2,
+    `${x.city}, ${stateName(x.stateCode)} ${x.pincode}`,
+    countryLine(x.country),
+  ].filter((l): l is string => Boolean(l?.trim()))
 }
 
 type AddressBlockProps = { lines: string[]; what: string }
@@ -113,6 +124,7 @@ export default function CustomerCard({ order }: CustomerCardProps) {
     a?.city,
     a ? stateName(a.stateCode) : '',
     a?.pincode,
+    countryLine(a?.country),
   ]
     .filter((v): v is string => Boolean(v))
     .join('\n')

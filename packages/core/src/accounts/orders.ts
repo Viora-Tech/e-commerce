@@ -289,7 +289,8 @@ export async function getCustomerOrder(
     subtotalPaise: o.subtotalPaise,
     shippingPaise: o.shippingPaise,
     discountPaise: o.discountPaise,
-    discountLabel: o.discountLabel ?? o.discountCode,
+    // The shopper sees the code they typed, not the merchant's own name for the discount.
+    discountLabel: o.discountCode ?? o.discountLabel,
     paymentAdjustmentPaise: o.paymentAdjustmentPaise,
     paymentAdjustmentLabel: o.paymentAdjustmentLabel,
     taxPaise: o.taxPaise,
