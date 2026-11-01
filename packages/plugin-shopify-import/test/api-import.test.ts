@@ -446,9 +446,14 @@ describe('API import run', () => {
     const cols = await owner.select().from(collection).orderBy(asc(collection.handle))
     expect(cols.map((c) => [c.handle, c.kind, c.sortOrder])).toEqual([
       ['audio', 'automatic', 'price_asc'],
-      ['in-stock', 'manual', 'manual'],
+      ['in-stock', 'automatic', 'manual'],
       ['staff-picks', 'manual', 'manual'],
     ])
+    // Shopify's stock rule (`VARIANT_INVENTORY > 0`) maps to ours.
+    expect(cols[1]?.rules).toEqual({
+      match: 'all',
+      conditions: [{ field: 'stock', op: 'gt', value: '0' }],
+    })
     expect(cols[0]?.rules).toEqual({
       match: 'all',
       conditions: [
@@ -460,7 +465,8 @@ describe('API import run', () => {
       .select()
       .from(collectionProduct)
       .where(eq(collectionProduct.collectionId, cols[1]?.id as string))
-    expect(inStock).toHaveLength(2)
+    // Matched on our stock now, and only active products join: Keycaps is a draft.
+    expect(inStock.map((m) => m.productId)).toEqual([aria?.id])
     const audio = await owner
       .select()
       .from(collectionProduct)

@@ -15,7 +15,9 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
   return (
     <PageBody className="mx-auto max-w-[68rem] md:flex-row md:items-start md:gap-8">
       <SettingsNav />
-      <aside className="sticky top-0 hidden w-60 shrink-0 md:block">
+      {/* The menu is taller than the screen: capped to it and scrolling on its own, it stays put
+          while the page scrolls (owner 2026-11-01). */}
+      <aside className="no-scrollbar sticky top-5 hidden max-h-[calc(100dvh-6rem)] w-60 shrink-0 overflow-y-auto md:block">
         <SettingsSidebarNav />
       </aside>
       <div className="flex w-full min-w-0 flex-1 flex-col gap-6">{children}</div>
