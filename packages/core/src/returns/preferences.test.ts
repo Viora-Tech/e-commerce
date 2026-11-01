@@ -19,7 +19,7 @@ import { resetDb } from '@commerce/db/test'
 import { and, eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type { StoreContext } from '../context'
-import { defaultReturnPolicy, qualifiesForAutoApprove } from './policy'
+import { defaultReturnPolicy, qualifiesForAutoApprove, returnReasonLabel } from './policy'
 import { exchangeOptions } from './preferences'
 import { returnReasonsReport } from './report'
 import { exchangeReturn } from './resolve'
@@ -239,5 +239,29 @@ describe('returns gaps', () => {
       ['quality', 1, 1, 50],
     ])
     expect(report.products[0]).toMatchObject({ title: 'Tee', returns: 2, units: 2 })
+  })
+})
+
+describe('custom return reasons (#180)', () => {
+  it('takes a reason the store wrote, and refuses one it did not', async () => {
+    const s = await seed()
+    await inStore(s.storeId, (ctx) =>
+      saveReturnPolicy(ctx, { reasons: ['damaged'], customReasons: ['Too loud on the road'] }),
+    )
+    const ask = {
+      orderId: s.orderId,
+      lines: [{ orderLineId: s.lineId, quantity: 1 }],
+      requestedBy: 'customer' as const,
+      customerId: s.customerId,
+    }
+    await expect(
+      inStore(s.storeId, (ctx) => requestReturn(ctx, { ...ask, reason: 'custom:Not offered' })),
+    ).rejects.toThrow(/that reason/)
+    const r = await inStore(s.storeId, (ctx) =>
+      requestReturn(ctx, { ...ask, reason: 'custom:Too loud on the road' }),
+    )
+    const [row] = await owner.select().from(returnRequest).where(eq(returnRequest.id, r.id))
+    expect(row?.reason).toBe('custom:Too loud on the road')
+    expect(returnReasonLabel(row?.reason ?? '')).toBe('Too loud on the road')
   })
 })

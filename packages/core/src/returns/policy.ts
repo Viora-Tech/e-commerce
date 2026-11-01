@@ -8,9 +8,23 @@ import { z } from 'zod'
 
 // The reason list has no zod, so the storefront's return form can import it in the browser
 // (`@commerce/core/return-reasons`); re-exported here so nothing else changes.
-import { RETURN_REASONS, type ReturnReason } from './reasons'
+import {
+  CUSTOM_REASON_MAX_LENGTH,
+  MAX_CUSTOM_REASONS,
+  RETURN_REASONS,
+  type ReturnReason,
+} from './reasons'
 
-export { RETURN_REASON_LABELS, RETURN_REASONS, type ReturnReason } from './reasons'
+export {
+  CUSTOM_REASON_MAX_LENGTH,
+  CUSTOM_REASON_PREFIX,
+  customReasonCode,
+  MAX_CUSTOM_REASONS,
+  RETURN_REASON_LABELS,
+  RETURN_REASONS,
+  type ReturnReason,
+  returnReasonLabel,
+} from './reasons'
 
 /** Reasons on by default: problems with the product, not "changed my mind". */
 export const DEFAULT_RETURN_REASONS: ReturnReason[] = [
@@ -34,6 +48,12 @@ export const ReturnPolicySchema = z.object({
     .min(1)
     .default(DEFAULT_RETURN_REASONS)
     .transform((r) => RETURN_REASONS.filter((code) => r.includes(code))),
+  /** The merchant's own reasons, in their words, shown after the built-in ones (#180). */
+  customReasons: z
+    .array(z.string().trim().min(1).max(CUSTOM_REASON_MAX_LENGTH))
+    .max(MAX_CUSTOM_REASONS)
+    .default([])
+    .transform((r) => [...new Set(r)]),
   /** Put items back in stock as soon as they arrive in good condition. */
   restockAutomatically: z.boolean().default(true),
   /** What the admin suggests first when giving money back. */
@@ -89,11 +109,11 @@ export type ReturnPreference = (typeof RETURN_PREFERENCES)[number]
 /** Whether the store's auto-approve rule takes this shopper request without a person. */
 export function qualifiesForAutoApprove(
   policy: ReturnPolicy,
-  request: { reason: ReturnReason; valuePaise: number; requestedBy: 'customer' | 'merchant' },
+  request: { reason: string; valuePaise: number; requestedBy: 'customer' | 'merchant' },
 ): boolean {
   const rule = policy.autoApprove
   if (!rule.enabled || request.requestedBy !== 'customer') return false
-  if (!rule.reasons.includes(request.reason)) return false
+  if (!(rule.reasons as readonly string[]).includes(request.reason)) return false
   return rule.maxValuePaise === 0 || request.valuePaise <= rule.maxValuePaise
 }
 

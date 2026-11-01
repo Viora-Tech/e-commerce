@@ -1,4 +1,9 @@
-import { exchangeOptions, getCustomerOrder, orderReturnState } from '@commerce/core'
+import {
+  customReasonCode,
+  exchangeOptions,
+  getCustomerOrder,
+  orderReturnState,
+} from '@commerce/core'
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import ReturnForm, { type ReturnFormLine } from '@/components/account/return-form'
@@ -45,6 +50,13 @@ export default async function AccountReturnPage({ params }: ReturnPageProps) {
     why: why.get(l.id)?.why ?? 'not_shipped',
     swaps: exchanges ? (data.swaps.get(l.id) ?? []) : [],
   }))
+  // The store's own reasons go before "Something else", which stays last (#180).
+  const { reasons: builtIn, customReasons } = data.state.policy
+  const reasons = [
+    ...builtIn.filter((r) => r !== 'other'),
+    ...customReasons.map(customReasonCode),
+    ...builtIn.filter((r) => r === 'other'),
+  ]
   const closes = data.state.eligibility.closesAt
     ? formatAccountDate(data.state.eligibility.closesAt, data.timeZone)
     : ''
@@ -54,7 +66,7 @@ export default async function AccountReturnPage({ params }: ReturnPageProps) {
       orderNumber={data.order.number}
       closesLabel={closes}
       lines={lines}
-      reasons={data.state.policy.reasons}
+      reasons={reasons}
       exchanges={exchanges}
     />
   )

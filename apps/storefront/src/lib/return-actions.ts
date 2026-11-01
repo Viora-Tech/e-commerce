@@ -7,7 +7,6 @@ import {
   CommerceError,
   getCustomerOrder,
   type ReturnPreference,
-  type ReturnReason,
   requestReturn,
   storageForStore,
 } from '@commerce/core'
@@ -87,7 +86,8 @@ export async function uploadReturnPhotoAction(form: FormData): Promise<PhotoUplo
 export type ReturnRequestInput = {
   orderNumber: number
   lines: { orderLineId: string; quantity: number }[]
-  reason: ReturnReason
+  /** A built-in code, or `custom:<words>` for one of the store's own reasons. */
+  reason: string
   note: string
   photos: string[]
   preference: ReturnPreference

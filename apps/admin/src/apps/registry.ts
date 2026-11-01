@@ -123,7 +123,8 @@ export type AdminApp = {
   HeaderAction?: ComponentType
   /**
    * Pages drawn edge to edge without the app header and tabs, for full-screen tools such as
-   * the Automations workflow editor (Shopify Flow's editor fills the window too).
+   * the Automations workflow editor (Shopify Flow's editor fills the window too), and Connect
+   * pages, which draw their own header with the way back to the app.
    */
   fullPages?: readonly string[]
 }
@@ -168,12 +169,14 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       '': BluedartOverviewPage,
       connect: BluedartConnectPage,
     },
+    fullPages: ['connect'],
   },
   cashfree: {
     pages: {
       '': CashfreeOverviewPage,
       connect: CashfreeConnectPage,
     },
+    fullPages: ['connect'],
   },
   chatwoot: {
     pages: { '': ChatwootSettingsPage },
@@ -200,24 +203,28 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       '': DecentroOverviewPage,
       connect: DecentroConnectPage,
     },
+    fullPages: ['connect'],
   },
   delhivery: {
     pages: {
       '': DelhiveryOverviewPage,
       connect: DelhiveryConnectPage,
     },
+    fullPages: ['connect'],
   },
   dtdc: {
     pages: {
       '': DtdcOverviewPage,
       connect: DtdcConnectPage,
     },
+    fullPages: ['connect'],
   },
   ekart: {
     pages: {
       '': EkartOverviewPage,
       connect: EkartConnectPage,
     },
+    fullPages: ['connect'],
   },
   'emi-pay-later': {
     pages: {
@@ -290,18 +297,21 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       connect: IndiaPostConnectPage,
       'labels/[waybill]': IndiaPostLabelPage,
     },
+    fullPages: ['connect'],
   },
   rapidshyp: {
     pages: {
       '': RapidshypOverviewPage,
       connect: RapidshypConnectPage,
     },
+    fullPages: ['connect'],
   },
   razorpay: {
     pages: {
       '': RazorpayOverviewPage,
       connect: RazorpayConnectPage,
     },
+    fullPages: ['connect'],
   },
   reviews: {
     pages: {
@@ -317,6 +327,7 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
     pages: {
       '': S3ConnectPage,
     },
+    fullPages: ['connect'],
   },
   ses: {
     pages: {
@@ -329,12 +340,14 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       '': ShadowfaxOverviewPage,
       connect: ShadowfaxConnectPage,
     },
+    fullPages: ['connect'],
   },
   shiprocket: {
     pages: {
       '': ShiprocketOverviewPage,
       connect: ShiprocketConnectPage,
     },
+    fullPages: ['connect'],
   },
   whatsapp: {
     pages: {
@@ -366,6 +379,7 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       '': XpressbeesOverviewPage,
       connect: XpressbeesConnectPage,
     },
+    fullPages: ['connect'],
   },
 }
 

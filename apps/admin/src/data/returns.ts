@@ -299,6 +299,18 @@ export const returnSettingsContent = {
   atLeastOne: 'Choose at least one reason.',
 } as const
 
+/** Settings → Returns → Reasons: the store's own reasons, in its words (#180). */
+export const returnCustomReasonsContent = {
+  title: 'Your own reasons',
+  description: 'Add reasons in your words. Customers see them after the ones above.',
+  label: 'New reason',
+  placeholder: 'For example: It did not fit my bike',
+  add: 'Add',
+  remove: (reason: string) => `Remove "${reason}"`,
+  duplicate: 'You already have that reason.',
+  limit: (max: number) => `You can add up to ${max} reasons.`,
+} as const
+
 /** Settings → Returns: exchanges for another variant and the auto-approve rule. */
 export const returnRulesContent = {
   exchangesTitle: 'Exchanges',

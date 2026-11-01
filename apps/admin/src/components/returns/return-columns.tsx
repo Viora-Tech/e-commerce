@@ -1,4 +1,4 @@
-import type { ReturnReason } from '@commerce/core/returns'
+import { returnReasonLabel } from '@commerce/core/returns'
 import OrderChip from '@/components/orders/order-chip'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import type { returnsContent } from '@/data/returns'
@@ -8,11 +8,7 @@ import type { Formatters } from '@/lib/format'
 type Item = Awaited<ReturnType<typeof api.returns.list>>['items'][number]
 
 const reasonOf = (copy: typeof returnsContent, i: Item): string =>
-  i.kind === 'rto'
-    ? copy.rtoReason
-    : i.reason
-      ? (copy.reasons[i.reason as ReturnReason] ?? i.reason)
-      : ''
+  i.kind === 'rto' ? copy.rtoReason : i.reason ? returnReasonLabel(i.reason, copy.reasons) : ''
 
 /** The Returns table: number and kind, order, customer, reason, items, value, status, date. */
 export function returnColumns(

@@ -5,7 +5,7 @@ import type { TemplateData } from '@commerce/notifications'
 import { and, eq, isNull, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { insertOutboxEvent } from '../outbox/write'
-import { RETURN_REASON_LABELS, type ReturnReason, returnLabel } from './policy'
+import { returnLabel, returnReasonLabel } from './policy'
 
 export async function returnTemplateData(
   ctx: StoreContext,
@@ -28,7 +28,6 @@ export async function returnTemplateData(
     .select({ number: order.number })
     .from(order)
     .where(eq(order.id, r.orderId))
-  const reason = r.reason as ReturnReason | null
   return {
     lines: lines.map((l) => ({
       title: [l.title, l.variantTitle !== 'Default' ? l.variantTitle : null]
@@ -41,7 +40,7 @@ export async function returnTemplateData(
     taxBreakdown: undefined,
     returnInfo: {
       label: returnLabel(r.number),
-      reasonLabel: reason ? RETURN_REASON_LABELS[reason] : undefined,
+      reasonLabel: r.reason ? returnReasonLabel(r.reason) : undefined,
       decisionNote: r.decisionNote ?? undefined,
       pickup: r.pickupMethod ?? undefined,
       pickupWaybill: r.pickupWaybill ?? undefined,

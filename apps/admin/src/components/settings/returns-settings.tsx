@@ -13,6 +13,7 @@ import { settingsContent } from '@/data/settings'
 import { settingsRowsContent } from '@/data/settings-rows'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import ReturnCustomReasons from './return-custom-reasons'
 import ReturnsRulesCard from './returns-rules-card'
 import SettingsCard from './settings-card'
 import SettingsDrill from './settings-drill'
@@ -94,7 +95,10 @@ export default function ReturnsSettings() {
         {
           id: 'reasons',
           title: r.reasons,
-          value: r.reasonsValue(form.reasons.length, RETURN_REASONS.length),
+          value: r.reasonsValue(
+            form.reasons.length + form.customReasons.length,
+            RETURN_REASONS.length + form.customReasons.length,
+          ),
         },
         { id: 'rules', title: r.rules, value: rules || rowsCopy.off },
         {
@@ -177,6 +181,10 @@ export default function ReturnsSettings() {
                 />
               ))}
             </SettingsCard>
+            <ReturnCustomReasons
+              reasons={form.customReasons}
+              onChange={(customReasons) => patch({ customReasons })}
+            />
           </SettingsDrillPanel>
 
           <SettingsDrillPanel id="rules">
