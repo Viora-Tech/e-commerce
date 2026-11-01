@@ -6,6 +6,7 @@
   "description": "Reviews app: product reviews with photos, moderation, store replies, review request emails and a Judge.me import.",
   "exports": {
     ".": "./src/index.ts",
+    "./blocks": "./src/blocks.tsx",
     "./schema": "./src/schema.ts",
     "./settings": "./src/settings.ts",
     "./server": "./src/server.ts"
@@ -15,12 +16,13 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@commerce/blocks": "workspace:*",
     "@commerce/core": "workspace:*",
     "@commerce/db": "workspace:*",
     "@commerce/plugins": "workspace:*",
     "@commerce/storage": "workspace:*",
     "drizzle-orm": "^0.45.2",
-    "zod": "^4.6.5"
+    "zod": "^4.6.7"
   },
   "peerDependencies": {
     "react": "^19.0.0"

@@ -99,4 +99,9 @@ describe('localization in an imported theme', () => {
       name: 'Indian Rupee',
     })
   })
+
+  it('gives dirhams their own symbol, never the code twice (#86)', () => {
+    const { localization } = liquidLocalization(GULF, 'AED')
+    expect(localization.country?.currency.symbol).toBe('د.إ')
+  })
 })

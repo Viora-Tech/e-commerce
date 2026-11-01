@@ -20,7 +20,7 @@ type CustomersBulkGridProps = {
   /** The sheet as loaded, to light up changed cells. */
   base: Map<string, GridRow>
   errors: CellErrors
-  /** Column keys in order (`visibleKeys`). */
+  /** Column keys in order (`shownKeys`). */
   keys: readonly string[]
   onRowsChange: (rows: GridRow[]) => void
 }
@@ -28,6 +28,8 @@ type CustomersBulkGridProps = {
 const ROW_HEIGHT = 40
 /** The same row height in rem, to size the grid to its rows. */
 const ROW_REM = ROW_HEIGHT / 16
+/** Room for the horizontal scrollbar, so it never sits over the last row. */
+const SCROLLBAR_REM = 1
 
 const rowKey = (row: GridRow) => row.id
 
@@ -121,7 +123,9 @@ export default function CustomersBulkGrid({
         onCellCopy={handleCopy}
         onActivePositionChange={handleActive}
         onCellKeyDown={handleKeyDown}
-        style={{ height: `min(${(rows.length + 1) * ROW_REM}rem, calc(100dvh - 18rem))` }}
+        style={{
+          height: `min(${(rows.length + 1) * ROW_REM + SCROLLBAR_REM}rem, calc(100dvh - 18rem))`,
+        }}
         className="border-0 [--rdg-background-color:var(--card)] [--rdg-border-color:var(--hairline)] [--rdg-color:var(--foreground)] [--rdg-header-background-color:var(--muted)] [--rdg-row-hover-background-color:var(--muted)] [--rdg-selection-color:var(--primary)]"
       />
     </div>

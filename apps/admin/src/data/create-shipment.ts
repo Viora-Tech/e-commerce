@@ -193,6 +193,8 @@ export const createShipmentContent = {
     cod: 'Cash on delivery',
     shipFrom: 'Ship from',
     shipTo: 'Ship to',
+    /** #17: the store has no pickup address yet, only a PIN code. */
+    addPickupAddress: 'Add your pickup address',
     package: 'Package',
     summary: 'Summary',
     route: 'Route',
@@ -231,6 +233,8 @@ export const createShipmentContent = {
     tomorrow: 'Tomorrow',
     cutoff: 'book before 2 pm',
     unavailable: 'This courier does not take pickup requests. Drop the parcel off yourself.',
+    /** #18: before a courier is picked, nothing is known about pickups yet. */
+    chooseCourier: 'Pick a courier above to ask it for a pickup.',
     dayLabel: 'Pickup day',
   },
 }

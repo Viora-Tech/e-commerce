@@ -1,5 +1,8 @@
 import { settingsSecret } from '@commerce/config'
 import {
+  CUSTOM_REASON_MAX_LENGTH,
+  CUSTOM_REASON_PREFIX,
+  MAX_CUSTOM_REASONS,
   permissions,
   REFUND_METHODS,
   RETURN_REASONS,
@@ -88,7 +91,13 @@ export const returnsRouter = {
           .array(z.object({ orderLineId: z.uuid(), quantity: z.number().int().min(1).max(999) }))
           .min(1)
           .max(100),
-        reason: z.enum(RETURN_REASONS),
+        reason: z.union([
+          z.enum(RETURN_REASONS),
+          z
+            .string()
+            .startsWith(CUSTOM_REASON_PREFIX)
+            .max(CUSTOM_REASON_PREFIX.length + CUSTOM_REASON_MAX_LENGTH),
+        ]),
         note: z.string().trim().max(1000).optional(),
       }),
     )
@@ -244,8 +253,21 @@ export const returnsRouter = {
         enabled: z.boolean(),
         windowDays: z.number().int().min(1).max(90),
         reasons: z.array(z.enum(RETURN_REASONS)).min(1),
+        customReasons: z
+          .array(z.string().trim().min(1).max(CUSTOM_REASON_MAX_LENGTH))
+          .max(MAX_CUSTOM_REASONS)
+          .optional(),
         restockAutomatically: z.boolean(),
         refundMethod: z.enum(['original', 'store_credit']),
+        // Kept: without them every save turned exchanges and auto-approval back off.
+        exchanges: z.boolean().optional(),
+        autoApprove: z
+          .object({
+            enabled: z.boolean(),
+            reasons: z.array(z.enum(RETURN_REASONS)),
+            maxValuePaise: z.number().int().min(0),
+          })
+          .optional(),
       }),
     )
     .handler(({ context, input }) =>

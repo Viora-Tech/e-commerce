@@ -111,6 +111,13 @@ export const storeHealthContent = {
         `Missing: ${names}. Indian law expects them, and payment gateways check for them.`,
       fix: 'Add policies',
     },
+    policies_unfilled: {
+      title: (n: number) =>
+        `${plural(n, 'live policy shows', 'live policies show')} blanks like [email address]`,
+      body: (names: string) =>
+        `${names}. Shoppers see the gaps. Add your details in Store details, then open the policy and fill them in.`,
+      fix: 'Fix policies',
+    },
     sender_unverified: {
       title: (email: string) => `${email} is not verified`,
       body: (failed: boolean) =>

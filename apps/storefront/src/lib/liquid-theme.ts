@@ -19,6 +19,7 @@ import {
   renderLiquidLayout,
   renderLiquidSection,
   resolveThemeProductId,
+  type SignedInCustomer,
   sectionWrapper,
   storeLiquidData,
   type TemplateKey,
@@ -33,10 +34,12 @@ import { headers } from 'next/headers'
 import { cache } from 'react'
 import { readCartId } from './cart-cookie'
 import { NONCE_HEADER } from './csp'
+import { currentCustomer, customerIn } from './customer-session'
 import { liquidExperimentsFor } from './experiments'
 import { formsInstalled } from './forms-context'
 import {
   type CachedLiquid,
+  type CachedReads,
   keepable,
   type LiquidRenderScope,
   layoutCacheKey,
@@ -46,7 +49,7 @@ import {
   renderTtl,
   sectionCacheKey,
   servable,
-  traceCartReads,
+  traceContextReads,
   withNonce,
 } from './liquid-cache'
 import { toLiquidCart } from './liquid-cart'
@@ -54,10 +57,13 @@ import { cachedLiquidData } from './liquid-data-cache'
 import { deferThemeScripts } from './liquid-defer'
 import { belowTheFold } from './liquid-fold'
 import { liquidMarketFor } from './liquid-market'
+import { withMarketPrefix } from './liquid-market-links'
+import { requestCatalogId } from './market-catalog'
 import { marketPricingFor, pricingKey } from './market-pricing'
 import { MARKET_HEADERS } from './markets'
 import { cartIsEmpty, requestCart } from './request-cart'
 import './search-engine'
+import { abThemeId } from './rollout-ab'
 import { requestOrigin } from './seo'
 import { CACHE_TTL_MS, cachedForStore, peekForStore, rememberForStore } from './store-cache'
 import { inStore } from './store-context'
@@ -70,7 +76,8 @@ import { readPreview } from './storefront-gate'
  *
  * Rendered Liquid is cached per store version (`store-cache.ts`, `liquid-cache.ts`): a page
  * whose sections are all cached renders no Liquid and reads no theme data. Sections that read
- * the cart are kept only as rendered for an empty cart; a theme preview is never cached.
+ * the cart are kept only as rendered for an empty cart, and sections that read `customer` only
+ * as rendered for a signed-out shopper; a theme preview is never cached.
  */
 
 /** Payment marks the theme's footer draws, from the methods this store offers. */
@@ -105,6 +112,8 @@ const requestScope = cache(async (storeId: string) => {
     market: liquidMarketFor(h),
     // The market's currency, rate and rounding when it shows another currency than rupees.
     pricing: await marketPricingFor(storeId, h.get(MARKET_HEADERS.id)),
+    // Markets › Catalogs: the market lists only its catalog's products (null: every product).
+    catalogId: await requestCatalogId(storeId),
     path,
     listing,
     template,
@@ -116,6 +125,35 @@ const requestScope = cache(async (storeId: string) => {
 })
 
 type RequestScope = Awaited<ReturnType<typeof requestScope>>
+
+/** Rendered theme HTML for this request: its nonce, and its links under the market prefix. */
+const finish = (html: string, scope: RequestScope) =>
+  withMarketPrefix(withNonce(html, scope.nonce), scope.market.market?.prefix ?? '')
+
+/**
+ * The scope of a section rendered for another page (`theme-actions/section?path=`): that page's
+ * template and, on a collection or search page, the filters, sort and page the request carried.
+ */
+async function scopeAt(scope: RequestScope, path: string): Promise<RequestScope> {
+  const template = liquidTemplateFor(path)
+  const listing =
+    template === 'collection' || template === 'search'
+      ? ((await headers()).get('x-listing') ?? '')
+      : ''
+  return { ...scope, path, template, listing }
+}
+
+/** True when nobody is signed in; needs no query without a session cookie. */
+async function signedOut(storeId: string): Promise<boolean> {
+  return (await currentCustomer(storeId)) === null
+}
+
+/** What a market changes about the data: its prices and its catalog's products. */
+function marketKey(scope: RequestScope): string {
+  return [pricingKey(scope.pricing), scope.catalogId ? `catalog:${scope.catalogId}` : '']
+    .filter(Boolean)
+    .join('|')
+}
 
 /** `listingSearch` params as the Liquid listing reads them: one key, its values. */
 function listingQuery(search: string): Record<string, string[]> {
@@ -178,6 +216,7 @@ async function createLiquidContext(
   theme: ImportedTheme,
   scope: RequestScope,
   cart: LiquidCartData,
+  customer: SignedInCustomer | null,
   nonce: string,
 ): Promise<LiquidPageContext> {
   const host = new URL(scope.origin).host
@@ -186,12 +225,13 @@ async function createLiquidContext(
     host,
     origin: scope.origin,
     cart: async () => cart,
+    customer,
     reviews: await reviewsLiquidSource(tx, storeId),
     pricing: scope.pricing,
   })
   return createPageContext({
     bundle: theme.bundle,
-    data: cachedLiquidData(storeId, scope.origin, data, pricingKey(scope.pricing)),
+    data: cachedLiquidData(storeId, scope.origin, data, marketKey(scope)),
     request: {
       template: scope.template,
       path: scope.path,
@@ -222,8 +262,9 @@ async function createLiquidContext(
 }
 
 /**
- * A context whose renders are traced (cart and clock reads, failures), written with the nonce
- * placeholder so its output can be cached. `start()` begins a new trace for the next render.
+ * A context whose renders are traced (cart, customer and clock reads, failures), written with
+ * the nonce placeholder so its output can be cached. `start()` begins a new trace for the next
+ * render.
  */
 async function tracedContext(
   tx: StoreTx,
@@ -232,13 +273,20 @@ async function tracedContext(
   theme: ImportedTheme,
   scope: RequestScope,
   cart: LiquidCartData,
+  customer: SignedInCustomer | null,
 ) {
   let current = newTrace()
-  const ctx = await createLiquidContext(tx, storeId, themeId, theme, scope, cart, NONCE_MARK)
-  ctx.globals.cart = traceCartReads(ctx.globals.cart as object, () => current)
-  ctx.runtime.onClock = () => {
-    current.clock = true
-  }
+  const ctx = await createLiquidContext(
+    tx,
+    storeId,
+    themeId,
+    theme,
+    scope,
+    cart,
+    customer,
+    NONCE_MARK,
+  )
+  traceContextReads(ctx, () => current)
   return {
     ctx,
     start: (): RenderTrace => {
@@ -257,10 +305,12 @@ export async function liquidContextFor(
   tx: StoreTx,
   storeId: string,
   themeId: string,
+  pagePath?: string,
 ): Promise<LiquidPageContext | null> {
   const theme = await importedTheme(storeId, themeId, tx)
   if (!theme) return null
-  const scope = await requestScope(storeId)
+  const request = await requestScope(storeId)
+  const scope = pagePath ? await scopeAt(request, pagePath) : request
   const cartId = await readCartId()
   const cart = cartId ? await getCart({ storeId, tx }, cartId) : null
   return createLiquidContext(
@@ -270,6 +320,7 @@ export async function liquidContextFor(
     theme,
     scope,
     toLiquidCart(cart, scope.pricing),
+    await customerIn(tx, storeId),
     scope.nonce,
   )
 }
@@ -296,7 +347,7 @@ function cacheScope(
     postedForm: scope.postedForm,
     experiments: scope.experimentsKey,
     // Subfolder markets share the origin: their prices are their own pages.
-    market: [scope.market.key, pricingKey(scope.pricing)].filter(Boolean).join('|'),
+    market: [scope.market.key, marketKey(scope)].filter(Boolean).join('|'),
   }
 }
 
@@ -354,8 +405,15 @@ export async function renderLiquidSections(
   const missing: typeof placed = []
   for (const p of placed) {
     const hit = p.key ? await peekForStore<CachedLiquid>(storeId, p.key) : undefined
-    if (hit && (await servable(hit, () => cartIsEmpty(storeId)))) {
-      out.set(p.id, { html: withNonce(hit.html, scope.nonce), ...p.wrapper })
+    if (
+      hit &&
+      (await servable(
+        hit,
+        () => cartIsEmpty(storeId),
+        () => signedOut(storeId),
+      ))
+    ) {
+      out.set(p.id, { html: finish(hit.html, scope), ...p.wrapper })
     } else missing.push(p)
   }
   if (missing.length === 0) return out
@@ -363,8 +421,9 @@ export async function renderLiquidSections(
   // The cart is read before the transaction: a second connection taken inside one could wait
   // on a pool that busy requests have filled.
   const cart = toLiquidCart(await requestCart(storeId), scope.pricing)
+  const customer = await currentCustomer(storeId)
   const rendered = await inStore(storeId, async (tx) => {
-    const live = await tracedContext(tx, storeId, themeId, theme, scope, cart)
+    const live = await tracedContext(tx, storeId, themeId, theme, scope, cart, customer)
     const done: { p: (typeof placed)[number]; html: string; trace: RenderTrace }[] = []
     for (const p of missing) {
       const trace = live.start()
@@ -382,9 +441,9 @@ export async function renderLiquidSections(
     return done
   })
   for (const { p, html, trace } of rendered) {
-    out.set(p.id, { html: withNonce(html, scope.nonce), ...p.wrapper })
-    if (p.key && keepable(trace, cart.itemCount === 0)) {
-      const entry: CachedLiquid = { html, cart: trace.cart }
+    out.set(p.id, { html: finish(html, scope), ...p.wrapper })
+    if (p.key && keepable(trace, cart.itemCount === 0, customer !== null)) {
+      const entry: CachedLiquid = { html, cart: trace.cart, customer: trace.customer }
       await rememberForStore(storeId, p.key, entry, {
         size: html.length,
         ttlMs: renderTtl(trace, CACHE_TTL_MS),
@@ -398,15 +457,15 @@ export type LiquidLayout = Awaited<ReturnType<typeof renderLiquidLayout>> & {
   fontsHref: string | null
 }
 
-type CachedLayout = { layout: LiquidLayout; cart: boolean }
+type CachedLayout = { layout: LiquidLayout } & CachedReads
 
-/** `withNonce` over every HTML part of a layout. */
-function layoutWithNonce(layout: LiquidLayout, nonce: string): LiquidLayout {
+/** `finish` over every HTML part of a layout. */
+function layoutWithNonce(layout: LiquidLayout, scope: RequestScope): LiquidLayout {
   return {
     ...layout,
-    head: withNonce(layout.head, nonce),
-    beforeHeader: withNonce(layout.beforeHeader, nonce),
-    afterFooter: withNonce(layout.afterFooter, nonce),
+    head: finish(layout.head, scope),
+    beforeHeader: finish(layout.beforeHeader, scope),
+    afterFooter: finish(layout.afterFooter, scope),
   }
 }
 
@@ -424,13 +483,21 @@ export async function liquidLayoutFor(
   const cacheKey = cacheScope(scope, themeId, theme.bundle)
   const key = cacheKey ? layoutCacheKey(cacheKey) : null
   const hit = key ? await peekForStore<CachedLayout>(storeId, key) : undefined
-  if (hit && (await servable(hit, () => cartIsEmpty(storeId)))) {
-    return layoutWithNonce(hit.layout, scope.nonce)
+  if (
+    hit &&
+    (await servable(
+      hit,
+      () => cartIsEmpty(storeId),
+      () => signedOut(storeId),
+    ))
+  ) {
+    return layoutWithNonce(hit.layout, scope)
   }
 
   const cart = toLiquidCart(await requestCart(storeId), scope.pricing)
+  const customer = await currentCustomer(storeId)
   const { layout, trace } = await inStore(storeId, async (tx) => {
-    const live = await tracedContext(tx, storeId, themeId, theme, scope, cart)
+    const live = await tracedContext(tx, storeId, themeId, theme, scope, cart, customer)
     const trace = live.start()
     const parts = await renderLiquidLayout(live.ctx, (err) => {
       trace.failed = true
@@ -446,20 +513,23 @@ export async function liquidLayoutFor(
     }
     return { layout, trace }
   })
-  if (key && keepable(trace, cart.itemCount === 0)) {
-    const entry: CachedLayout = { layout, cart: trace.cart }
+  if (key && keepable(trace, cart.itemCount === 0, customer !== null)) {
+    const entry: CachedLayout = { layout, cart: trace.cart, customer: trace.customer }
     await rememberForStore(storeId, key, entry, {
       size: layout.head.length + layout.beforeHeader.length + layout.afterFooter.length,
       ttlMs: renderTtl(trace, CACHE_TTL_MS),
     })
   }
-  return layoutWithNonce(layout, scope.nonce)
+  return layoutWithNonce(layout, scope)
 }
 
-/** The theme this request renders: the verified preview's, else the live one. */
+/**
+ * The theme this request renders: the verified preview's, else an A/B rollout's Treatment theme
+ * for a visitor in that arm, else the live one.
+ */
 export async function requestThemeId(tx: StoreTx, storeId: string): Promise<string | null> {
   const preview = readPreview(storeId, (await headers()).get('x-theme-preview'))
-  return preview?.themeId ?? (await mainThemeId(tx))
+  return preview?.themeId ?? (await abThemeId(storeId)) ?? (await mainThemeId(tx))
 }
 
 /**
@@ -475,7 +545,7 @@ export async function renderStaticLiquidSection(
   prepare?: (ctx: LiquidPageContext) => Promise<void>,
 ): Promise<string | null> {
   const themeId = await requestThemeId(tx, storeId)
-  const ctx = themeId ? await liquidContextFor(tx, storeId, themeId) : null
+  const ctx = themeId ? await liquidContextFor(tx, storeId, themeId, path) : null
   if (!themeId || !ctx) return null
   // Shopify's section ids read `template--123__<key>`; the key is the section's type for
   // the sections a theme ships by default.
@@ -489,7 +559,12 @@ export async function renderStaticLiquidSection(
   const product = /^\/products\/([^/]+)/.exec(path)?.[1]
   if (collection) {
     const found = await ctx.options.data.collection(decodedSegment(collection))
-    if (found) ctx.globals.collection = new CollectionDrop(found, ctx.cache)
+    if (found) {
+      const drop = new CollectionDrop(found, ctx.cache)
+      // As on the page itself: the request's filters, sort and page shape its products.
+      if (ctx.options.request.listing) drop.listOn(ctx.options.request.listing)
+      ctx.globals.collection = drop
+    }
   }
   if (product) {
     const found = await ctx.options.data.product(decodedSegment(product))
@@ -504,7 +579,10 @@ export async function renderStaticLiquidSection(
     location: 'template',
     index: 0,
   }
-  const html = await renderLiquidSection(ctx, section)
+  const html = withMarketPrefix(
+    await renderLiquidSection(ctx, section),
+    (await requestScope(storeId)).market.market?.prefix ?? '',
+  )
   const w = sectionWrapper(ctx.bundle, section)
   return `<${w.tag} id="${w.id}" class="${w.className}">${html}</${w.tag}>`
 }

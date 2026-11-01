@@ -1,12 +1,12 @@
-/** SOURCE OF TRUTH: hand-sent order message previews — WHAT: renders a draft invoice, balance request or payment reminder exactly as delivery would, without sending / WHY: the "Review email" dialog must show what the customer will get */
-import { order } from '@commerce/db'
+/** SOURCE OF TRUTH: hand-sent order message previews — WHAT: renders a draft invoice, balance request, payment reminder or order link exactly as delivery would, without sending / WHY: the "Review email" dialog must show what the customer will get */
+import { notification, order } from '@commerce/db'
 import {
   type CustomMessage,
   renderEmail,
   renderWhatsapp,
   type TemplateId,
 } from '@commerce/notifications'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { storefrontOriginFor } from '../domains/origin'
 import { balanceOwed } from '../preorder/balance'
@@ -19,6 +19,7 @@ export const ORDER_PREVIEW_TEMPLATES = [
   'draft_invoice',
   'balance_request',
   'payment_reminder',
+  'order_link',
 ] as const satisfies readonly TemplateId[]
 export type OrderPreviewTemplate = (typeof ORDER_PREVIEW_TEMPLATES)[number]
 
@@ -40,18 +41,34 @@ export async function previewOrderMessage(
     const [o] = await ctx.tx.select().from(order).where(eq(order.id, input.orderId))
     if (o && balanceOwed(o) > 0) actionUrl = balanceUrl(o.id, opts.settingsSecret, origin)
   }
+  let reminder = false
   if (input.template === 'draft_invoice') {
     actionUrl = invoiceUrl(input.orderId, opts.settingsSecret, origin)
+    // Sent before: the next one goes out as a reminder (see `deliverNotification`).
+    const [sent] = await ctx.tx
+      .select({ id: notification.id })
+      .from(notification)
+      .where(
+        and(
+          eq(notification.orderId, input.orderId),
+          eq(notification.template, 'draft_invoice'),
+          eq(notification.status, 'sent'),
+        ),
+      )
+      .limit(1)
+    reminder = Boolean(sent)
   }
   const data = {
     ...built.data,
     ...(actionUrl ? { actionUrl } : {}),
+    ...(reminder ? { reminder: true } : {}),
     ...(input.custom ? { custom: input.custom } : {}),
   }
   const email = await renderEmail(input.template, data)
   // The template's own subject, so the dialog can prefill it and tell an edit apart.
   const defaultSubject = input.custom?.subject
-    ? (await renderEmail(input.template, built.data)).subject
+    ? (await renderEmail(input.template, { ...built.data, ...(reminder ? { reminder } : {}) }))
+        .subject
     : email.subject
   const chat = messageDef(input.template)?.channels.includes('whatsapp')
     ? renderWhatsapp(input.template, data).text

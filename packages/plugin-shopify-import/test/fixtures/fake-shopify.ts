@@ -157,6 +157,8 @@ export function fakeShopify(opts: { customers: number; orders: number; products:
   const calls: Call[] = []
   /** How long Shopify takes to prepare each bulk export. */
   const state = { bulkDelayMs: 0, op: null as null | { id: string; readyAt: number; url: string } }
+  /** Every bulk operation started, by id: 2026-10 polls `bulkOperation(id:)`. */
+  const started = new Map<string, { id: string; readyAt: number; url: string }>()
   let ops = 0
 
   const changedAfter = (search: string | null) => {
@@ -175,6 +177,7 @@ export function fakeShopify(opts: { customers: number; orders: number; products:
         readyAt: Date.now() + state.bulkDelayMs,
         url: `https://bulk.test/${resource}-${ops}.jsonl`,
       }
+      started.set(id, state.op)
       return json({
         data: {
           bulkOperationRunQuery: { bulkOperation: { id, status: 'CREATED' }, userErrors: [] },
@@ -182,12 +185,12 @@ export function fakeShopify(opts: { customers: number; orders: number; products:
         extensions: { cost },
       })
     }
-    if (query.includes('currentBulkOperation')) {
-      const op = state.op
+    if (query.includes('bulkOperation(id:')) {
+      const op = started.get(String(variables.id)) ?? null
       const done = op ? Date.now() >= op.readyAt : false
       return json({
         data: {
-          currentBulkOperation: op
+          bulkOperation: op
             ? {
                 id: op.id,
                 status: done ? 'COMPLETED' : 'RUNNING',

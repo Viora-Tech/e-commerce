@@ -65,6 +65,11 @@ export type ShipmentAddress = {
   pincode: string
   country: string
   phone: string
+  /**
+   * The receiver's email, sent on a parcel abroad: DHL, FedEx and ShipGlobal mail delivery
+   * and import-duty notices to it. Domestic adapters ignore it.
+   */
+  email?: string | undefined
 }
 
 export type ShipmentLine = {

@@ -5,6 +5,7 @@ import {
   cancelRegistration,
   createBusiness,
   GstRegistrationError,
+  LocalDeliverySchema,
   LocationOrderInputSchema,
   LocationPickupInputSchema,
   LocationRegistrationSchema,
@@ -17,14 +18,18 @@ import {
   RegistrationInputSchema,
   RegistrationUpdateSchema,
   reorderLocations,
+  StorePickupSchema,
   setDefaultRegistration,
   setLocationCourierPickup,
+  setLocationLocalDelivery,
   setLocationSelling,
+  setLocationStorePickup,
   setMaxParcels,
   updateBusiness,
   updateRegistration,
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
+import { z } from 'zod'
 import { can } from '../procedures'
 
 /**
@@ -117,5 +122,29 @@ export const businessGstRouter = {
     .input(LocationPickupInputSchema)
     .handler(({ context, input }) =>
       refusing(() => setLocationCourierPickup(context.tx, context.scope.storeId, input)),
+    ),
+
+  /** Local delivery from this location (audit #163): PIN codes, price, minimum; null turns it off. */
+  setLocationLocalDelivery: can(permissions.SETTINGS_MANAGE)
+    .input(z.object({ locationId: z.uuid(), localDelivery: LocalDeliverySchema.nullable() }))
+    .handler(({ context, input }) =>
+      setLocationLocalDelivery(
+        context.tx,
+        context.scope.storeId,
+        input.locationId,
+        input.localDelivery,
+      ),
+    ),
+
+  /** Pickup in store at this location (audit #163); null turns it off. */
+  setLocationStorePickup: can(permissions.SETTINGS_MANAGE)
+    .input(z.object({ locationId: z.uuid(), storePickup: StorePickupSchema.nullable() }))
+    .handler(({ context, input }) =>
+      setLocationStorePickup(
+        context.tx,
+        context.scope.storeId,
+        input.locationId,
+        input.storePickup,
+      ),
     ),
 }

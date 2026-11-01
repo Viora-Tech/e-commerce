@@ -84,7 +84,9 @@ export const STATUS = {
     partially_refunded: entry(ordersContent.paymentStatus.partially_refunded, 'neutral'),
     refunded: entry(ordersContent.paymentStatus.refunded, 'neutral'),
     refund_needed: entry(ordersContent.paymentStatus.refund_needed, 'error'),
-  } satisfies Record<OrderPaymentStatus, StatusEntry>,
+    // Shown only, never stored: a cancelled order nobody paid (`shownPaymentStatus`).
+    voided: entry(ordersContent.paymentVoided, 'neutral'),
+  } satisfies Record<OrderPaymentStatus | 'voided', StatusEntry>,
   /** One payment attempt (payment card rows, the summary box). */
   payment: {
     created: entry(orderDetailContent.pills.payment.created, 'neutral'),

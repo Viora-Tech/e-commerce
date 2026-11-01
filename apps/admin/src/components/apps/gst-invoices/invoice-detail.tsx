@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import type { AppPageProps } from '@/apps/registry'
 import CopyButton from '@/components/fields/copy-button'
+import DateField from '@/components/fields/date-field'
 import PageHeader from '@/components/layout/page-header'
 import OrderChip from '@/components/orders/order-chip'
 import SettingsCard from '@/components/settings/settings-card'
@@ -171,12 +172,10 @@ export default function InvoiceDetail({ params }: AppPageProps) {
               <label htmlFor="exp-date" className="text-body font-medium">
                 {copy.billDate}
               </label>
-              <Input
+              <DateField
                 id="exp-date"
-                size="lg"
-                type="date"
                 value={ship.shippingBillDate}
-                onChange={(e) => setShipField('shippingBillDate')(e.target.value)}
+                onChange={(v) => setShipField('shippingBillDate')(v)}
               />
             </div>
             <TextField

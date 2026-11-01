@@ -6,7 +6,9 @@ type TagFilterProps = { path: string; tags: string[]; active: string | undefined
 const PILL = 'rounded-[var(--radius-button)] border px-3 py-1.5 text-sm transition-colors'
 /* The theme's unlayered link colour outranks utilities, so the colours are marked important. */
 const IDLE = 'border-line text-muted! hover:text-ink!'
-const ACTIVE = 'border-line bg-surface text-ink!'
+/* Filled, so the picked tag reads as picked; a surface fill on the surface page looked the same
+   as All posts (#207). */
+const ACTIVE = 'border-ink! bg-ink! text-surface!'
 
 const pill = (active: boolean) => `${PILL} ${active ? ACTIVE : IDLE}`
 

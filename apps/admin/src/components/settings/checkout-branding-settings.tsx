@@ -24,12 +24,11 @@ import SettingsCard from './settings-card'
 
 type CheckoutBrandingSettingsProps = {
   branding: CheckoutBranding
-  gstin?: boolean
   orderNotes: boolean
   storeName: string
   onBranding: (patch: Partial<CheckoutBranding>) => void
-  /** Leave out (with `onOrderNotes`) where only the branding changes, as in a rollout. */
-  onGstin?: (on: boolean) => void
+  /** Leave out where only the branding changes, as in a rollout. The GSTIN box is a form
+   *  field, set in Form fields (#67). */
   onOrderNotes?: (on: boolean) => void
 }
 
@@ -40,11 +39,9 @@ type CheckoutBrandingSettingsProps = {
  */
 export default function CheckoutBrandingSettings({
   branding,
-  gstin,
   orderNotes,
   storeName,
   onBranding,
-  onGstin,
   onOrderNotes,
 }: CheckoutBrandingSettingsProps) {
   // Hooks
@@ -163,15 +160,6 @@ export default function CheckoutBrandingSettings({
 
         <SettingsCard id="gstin" title={copy.shown.heading}>
           <FieldGroup>
-            {onGstin ? (
-              <CheckoutToggleRow
-                id="checkout-gstin"
-                label={copy.shown.gstin}
-                hint={copy.shown.gstinHint}
-                checked={gstin ?? false}
-                onChange={onGstin}
-              />
-            ) : null}
             {onOrderNotes ? (
               <CheckoutToggleRow
                 id="checkout-notes"
@@ -192,36 +180,44 @@ export default function CheckoutBrandingSettings({
         </SettingsCard>
       </div>
 
-      <DataCard
-        title={copy.preview.heading}
-        subtitle={copy.preview.description}
-        action={
-          <ToggleGroup value={[device]} onValueChange={handleDevice} variant="outline" spacing={0}>
-            <ToggleGroupItem
-              value="desktop"
-              aria-label={copy.preview.desktop}
-              title={copy.preview.desktop}
+      {/* Stays in view while the choices scroll, and scrolls on its own when taller than the
+          screen (#67); a sticky card taller than the screen looked like it scrolled away. */}
+      <div className="no-scrollbar min-w-0 xl:sticky xl:top-6 xl:max-h-[calc(100dvh-6rem)] xl:self-start xl:overflow-y-auto">
+        <DataCard
+          title={copy.preview.heading}
+          subtitle={copy.preview.description}
+          action={
+            <ToggleGroup
+              value={[device]}
+              onValueChange={handleDevice}
+              variant="outline"
+              spacing={0}
             >
-              <Monitor aria-hidden />
-            </ToggleGroupItem>
-            <ToggleGroupItem
-              value="phone"
-              aria-label={copy.preview.phone}
-              title={copy.preview.phone}
-            >
-              <Smartphone aria-hidden />
-            </ToggleGroupItem>
-          </ToggleGroup>
-        }
-        className="xl:sticky xl:top-20"
-      >
-        <CheckoutBrandingPreview
-          branding={branding}
-          orderNotes={orderNotes}
-          device={device}
-          storeName={storeName}
-        />
-      </DataCard>
+              <ToggleGroupItem
+                value="desktop"
+                aria-label={copy.preview.desktop}
+                title={copy.preview.desktop}
+              >
+                <Monitor aria-hidden />
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="phone"
+                aria-label={copy.preview.phone}
+                title={copy.preview.phone}
+              >
+                <Smartphone aria-hidden />
+              </ToggleGroupItem>
+            </ToggleGroup>
+          }
+        >
+          <CheckoutBrandingPreview
+            branding={branding}
+            orderNotes={orderNotes}
+            device={device}
+            storeName={storeName}
+          />
+        </DataCard>
+      </div>
     </div>
   )
 }

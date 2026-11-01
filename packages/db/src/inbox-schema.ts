@@ -114,6 +114,8 @@ export const inboxConversation = pgTable(
     /** The AI agent's short summary for staff, written when it handed off. */
     handoffSummary: text('handoff_summary'),
     handoffAt: at('handoff_at'),
+    /** Staff pressed Take over: the AI agent stays quiet in this conversation from then on. */
+    aiPausedAt: at('ai_paused_at'),
     anonymisedAt: at('anonymised_at'),
     createdAt: createdAt(),
     updatedAt: at('updated_at').notNull().defaultNow(),
@@ -189,6 +191,33 @@ export const inboxQuickReply = pgTable(
     updatedAt: at('updated_at').notNull().defaultNow(),
   },
   (t) => [uniqueIndex('inbox_quick_reply_shortcut').on(t.storeId, t.shortcut)],
+)
+
+/**
+ * The store's knowledge base: short answers (shipping time, warranty, returns, COD) the Inbox AI
+ * agent quotes when published. `source_metaobject_id` is the imported Shopify "Knowledge Base
+ * Facts" entry it was copied from, so bringing them over twice never duplicates.
+ */
+export const inboxKnowledge = pgTable(
+  'inbox_knowledge',
+  {
+    id: id(),
+    storeId: storeId(),
+    title: text('title').notNull(),
+    answer: text('answer').notNull(),
+    published: boolean('published').notNull().default(true),
+    position: integer('position').notNull().default(0),
+    sourceMetaobjectId: uuid('source_metaobject_id'),
+    createdBy: text('created_by'),
+    createdAt: createdAt(),
+    updatedAt: at('updated_at').notNull().defaultNow(),
+  },
+  (t) => [
+    index('inbox_knowledge_store_position').on(t.storeId, t.position),
+    uniqueIndex('inbox_knowledge_source').on(t.storeId, t.sourceMetaobjectId),
+    check('inbox_knowledge_title_length', sql`char_length(${t.title}) <= 200`),
+    check('inbox_knowledge_answer_length', sql`char_length(${t.answer}) <= 2000`),
+  ],
 )
 
 /**

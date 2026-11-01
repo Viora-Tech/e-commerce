@@ -20,6 +20,7 @@ import StorageNotice from './storage-notice'
 import { type RunListItem, totals } from './types'
 
 const base = shopifyImportContent.base
+const REFRESH_MS = 4000
 
 const columnsFor = (
   all: typeof shopifyImportContent,
@@ -71,7 +72,9 @@ const columnsFor = (
             ? all.home.result(t.created, t.updated, t.failed)
             : r.status === 'failed'
               ? (r.error ?? all.home.failedNoReason)
-              : null}
+              : r.status === 'running' || r.status === 'queued'
+                ? all.home.progress(t.processed, t.total)
+                : null}
         </span>
       )
     },
@@ -87,22 +90,33 @@ export default function ImportsPage() {
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState<number>(siteConfig.ui.rowsPerPage.default)
   const [data, setData] = useState<{ items: RunListItem[]; total: number } | null>(null)
+  const [failed, setFailed] = useState(false)
   const [shop, setShop] = useState<string | null | undefined>(undefined)
 
+  // Refreshes every few seconds so running imports show their progress. The next request
+  // waits for the last one, so a slow server never piles requests up.
   useEffect(() => {
     let live = true
-    const load = () =>
-      api.shopifyImport.runs({ page, perPage }).then((next) => {
-        if (live) setData(next)
-      })
-    load().catch(() => {})
-    // Refresh while anything is still in flight.
-    const timer = setInterval(() => {
-      load().catch(() => {})
-    }, 4000)
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const load = () => {
+      api.shopifyImport
+        .runs({ page, perPage })
+        .then((next) => {
+          if (!live) return
+          setData(next)
+          setFailed(false)
+        })
+        .catch(() => {
+          if (live) setFailed(true)
+        })
+        .finally(() => {
+          if (live) timer = setTimeout(load, REFRESH_MS)
+        })
+    }
+    load()
     return () => {
       live = false
-      clearInterval(timer)
+      clearTimeout(timer)
     }
   }, [page, perPage])
 
@@ -179,7 +193,7 @@ export default function ImportsPage() {
         items={data?.items ?? []}
         getId={(r) => r.id}
         href={(r) => `${base}/runs/${r.id}`}
-        loading={data === null}
+        loading={data === null && !failed}
         query=""
         onQueryChange={() => {}}
         page={page}
@@ -191,7 +205,11 @@ export default function ImportsPage() {
         total={data?.total ?? 0}
         onPageChange={setPage}
         selectable={false}
-        empty={{ heading: copy.empty.heading, body: copy.empty.body }}
+        empty={
+          failed && data === null
+            ? { heading: copy.loadFailed }
+            : { heading: copy.empty.heading, body: copy.empty.body }
+        }
       />
     </div>
   )

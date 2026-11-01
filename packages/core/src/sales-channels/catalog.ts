@@ -19,6 +19,8 @@ import {
 } from '@commerce/db'
 import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { notSystemTest } from '../catalog/system-test'
+import { campaignApplies } from '../preorder/campaigns'
+import { campaignsByIds } from '../preorder/campaigns-service'
 import { seoBodyText } from '../seo/checks'
 import type { AgentControls } from './client'
 
@@ -35,7 +37,8 @@ export type ChannelItem = {
   pricePaise: number
   /** The MRP when the price is below it (shown struck out). */
   mrpPaise: number | null
-  availability: 'in_stock' | 'out_of_stock'
+  /** `preorder`: sold out, still selling under a pre-order campaign open to this channel (#143). */
+  availability: 'in_stock' | 'out_of_stock' | 'preorder'
   quantity: number | null
   brand: string
   gtin: string | null
@@ -78,6 +81,7 @@ export async function buildChannelCatalog(
       description: product.description,
       seoDescription: product.seoDescription,
       vendor: product.vendor,
+      preorderCampaignId: product.preorderCampaignId,
     })
     .from(product)
     .where(and(...where))
@@ -133,6 +137,17 @@ export async function buildChannelCatalog(
   }
   const available = new Map(stock.map((r) => [r.variantId, r.available]))
   const byProduct = new Map(products.map((p) => [p.id, p]))
+  // Pre-order campaigns open to this feed: AI agents (with controls) or the social catalogs.
+  const campaigns = await campaignsByIds(
+    tx,
+    products.map((p) => p.preorderCampaignId),
+  )
+  const channel = controls ? 'ai_agents' : 'social'
+  const onPreorder = (campaignId: string | null) =>
+    campaignApplies(campaignId ? campaigns.get(campaignId) : null, {
+      marketId: undefined,
+      channel,
+    })
 
   const items: ChannelItem[] = []
   for (const v of variants) {
@@ -154,7 +169,12 @@ export async function buildChannelCatalog(
       additionalImages: gallery.filter((g) => g !== own).slice(0, 10),
       pricePaise: v.pricePaise,
       mrpPaise: v.mrpPaise && v.mrpPaise > v.pricePaise ? v.mrpPaise : null,
-      availability: qty === null || qty > 0 ? 'in_stock' : 'out_of_stock',
+      availability:
+        qty === null || qty > 0
+          ? 'in_stock'
+          : onPreorder(p.preorderCampaignId)
+            ? 'preorder'
+            : 'out_of_stock',
       quantity: qty,
       brand: p.vendor?.trim() || s?.name || '',
       gtin: v.barcode?.trim() || null,

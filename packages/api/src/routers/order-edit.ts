@@ -1,5 +1,5 @@
 import { settingsSecret } from '@commerce/config'
-import { OrderEditSchema, permissions, REFUND_ROUTES } from '@commerce/core'
+import { ORDER_CANCEL_REASONS, OrderEditSchema, permissions, REFUND_ROUTES } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can, type StoreScope } from '../procedures'
@@ -57,6 +57,9 @@ export const orderEditRoutes = {
     .input(
       z.object({
         orderId: z.uuid(),
+        /** The reason picked from the list (#125). */
+        reasonCode: z.enum(ORDER_CANCEL_REASONS).optional(),
+        /** An optional note with it; older clients send their free-text reason here. */
         reason: z.string().trim().max(500).optional(),
         restock: z.boolean(),
         notifyCustomer: z.boolean(),
@@ -102,9 +105,11 @@ export const orderEditRoutes = {
     ),
 
   /**
-   * Save an order edit (add, remove, quantities, shipping, discount) on an open order not yet
-   * shipped. Stock, parcels and GST follow; a higher total opens a balance (emailed as a pay
-   * link with `requestPayment`), a lower one is refunded the chosen way.
+   * Save an order edit (add catalogue or custom items, remove with or without restock,
+   * quantities, prices of unpacked lines, shipping, discount) on an open or completed order,
+   * shipped or not (#1014). Stock, parcels and GST follow; new items after fulfilment go in a new
+   * parcel; a higher total opens a balance (emailed as a pay link with `requestPayment`), a lower
+   * one is refunded the chosen way.
    */
   edit: can(permissions.ORDERS_WRITE)
     .input(
@@ -112,17 +117,19 @@ export const orderEditRoutes = {
         refund: editRefundRoute,
         requestPayment: z.boolean(),
         note: z.string().trim().max(500).optional(),
+        /** Send the customer the updated order (`order_edited`); on unless false. */
+        notifyCustomer: z.boolean().optional(),
       }),
     )
     .handler(async ({ context, input }) => {
       assertCanRefund(context.scope, input.refund)
-      const { refund, requestPayment, note, ...edit } = input
+      const { refund, requestPayment, note, notifyCustomer, ...edit } = input
       return editStoreOrder(
         context.tx,
         context.scope.storeId,
         await paymentsDeps(context.tx, context.scope.storeId),
         edit,
-        { refund, requestPayment, note, author: context.session.user.email },
+        { refund, requestPayment, note, notifyCustomer, author: context.session.user.email },
       )
     }),
 }

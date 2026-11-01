@@ -9,12 +9,7 @@ import { Suspense, useEffect, useState } from 'react'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import { supplierColumns } from '@/components/suppliers/supplier-columns'
 import DeleteRowMenu from '@/components/table/delete-row-menu'
-import {
-  appliedFromGroups,
-  clearGroups,
-  FILTER_PANEL_CLASS,
-  FilterPanel,
-} from '@/components/table/filter-panel'
+import { appliedFromGroups } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import { filterPanelContent } from '@/data/filter-panel'
 import { supplierFormContent, suppliersContent } from '@/data/purchasing'
@@ -133,15 +128,7 @@ function SuppliersContent({ initial }: { initial: SuppliersInitial }) {
         query={state.query}
         onQueryChange={(query) => setState({ query, page: 1 })}
         onClearAll={() => setState({ ...CLEAR_SUPPLIER_FILTERS, query: '', page: 1 })}
-        filters={(close) => (
-          <FilterPanel
-            groups={groups}
-            onClear={() => clearGroups(groups)}
-            footer={{ label: panelCopy.show(result.total), onDone: close }}
-          />
-        )}
-        filtersClassName={FILTER_PANEL_CLASS}
-        applied={applied}
+        filterGroups={groups}
         page={state.page}
         perPage={state.perPage}
         onPerPageChange={(perPage) => setState({ perPage, page: 1 })}

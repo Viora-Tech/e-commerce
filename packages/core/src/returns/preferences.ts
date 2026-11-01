@@ -10,12 +10,7 @@ import {
 import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
-import {
-  qualifiesForAutoApprove,
-  type ReturnPolicy,
-  type ReturnPreference,
-  type ReturnReason,
-} from './policy'
+import { qualifiesForAutoApprove, type ReturnPolicy, type ReturnPreference } from './policy'
 
 export type ExchangeOption = { variantId: string; title: string }
 
@@ -80,7 +75,7 @@ export async function applyReturnWishes(
   ctx: StoreContext,
   r: { id: string; orderId: string },
   input: ReturnWishes & {
-    reason: ReturnReason
+    reason: string
     requestedBy: 'customer' | 'merchant'
     lines: Map<string, number>
   },

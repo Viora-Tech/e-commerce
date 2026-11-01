@@ -1,12 +1,12 @@
 'use client'
 
-import { formatPaise, useFormatPaise, useMarketPricing } from '@commerce/blocks'
+import { formatPaise, useFormatCart, useFormatPaise, useMarketPricing } from '@commerce/blocks'
 import type { CartView } from '@commerce/core'
 import CheckoutDiscount from '@/components/checkout/checkout-discount'
 import GiftCardField from '@/components/checkout/gift-card-field'
 import SummaryLine from '@/components/checkout/summary-line'
 import SummaryRow from '@/components/checkout/summary-row'
-import { checkoutContent as content } from '@/data/checkout'
+import { type CheckoutCopy, checkoutContent as content } from '@/data/checkout'
 import { CK_HEADING } from '@/lib/checkout-classes'
 import type { ShippingRow } from '@/lib/checkout-preview'
 import type { CartDiscountView } from '@/lib/discount-view'
@@ -38,10 +38,19 @@ type CheckoutSummaryProps = {
   notice?: string | null | undefined
   /** Shipping is being re-quoted: amounts shimmer instead of showing a stale number. */
   updating: boolean
+  /** The store's own wording for the heading and the taxes line (#158); ours when unset. */
+  words?: Pick<CheckoutCopy, 'summary' | 'taxes'> | undefined
+  /** Shipping abroad: no PIN code to ask for, and no Indian "inclusive of taxes" line (#64, #210). */
+  abroad?: boolean
 }
 
-function shippingValue(row: ShippingRow, money: (paise: number) => string): string {
-  if (row.kind === 'pending') return content.shippingPending
+function shippingValue(
+  row: ShippingRow,
+  money: (paise: number) => string,
+  abroad: boolean,
+): string {
+  if (row.kind === 'pending')
+    return abroad ? content.shippingPendingAbroad : content.shippingPending
   return row.paise === 0 ? content.shippingFree : money(row.paise)
 }
 
@@ -68,11 +77,19 @@ export default function CheckoutSummary({
   emiMonthly,
   notice = null,
   updating,
+  words = content,
+  abroad = false,
 }: CheckoutSummaryProps) {
   // Hooks
   // On a market in another currency (`/ae`) the summary reads in it; Pay still charges rupees.
   const money = useFormatPaise()
+  const cartMoney = useFormatCart()
   const pricing = useMarketPricing()
+
+  // Helpers
+  // Markets › Catalogs: lines with a fixed price read as on the product page, and the subtotal,
+  // total and amount to pay move with them. The note below still names the rupees charged.
+  const onCart = (paise: number) => cartMoney.cart(paise, cart.lines, cart.subtotalPaise)
 
   // Render logic
   const discountPaise = discount?.amountPaise ?? 0
@@ -87,13 +104,13 @@ export default function CheckoutSummary({
   return (
     <div className="flex flex-col gap-4.5">
       <div className="hidden items-center justify-between gap-4 lg:flex">
-        <h2 className={`${CK_HEADING} text-[1.0625rem]!`}>{content.summary}</h2>
+        <h2 className={`${CK_HEADING} text-[1.0625rem]!`}>{words.summary}</h2>
         <p className="flex h-6 items-center rounded-[0.5rem] bg-ck-summary-line px-2 text-[0.75rem] font-medium text-ck-summary-muted tabular-nums">
           {content.itemCount(itemCount)}
         </p>
       </div>
 
-      <section aria-label={content.summary} className="flex flex-col gap-4">
+      <section aria-label={words.summary} className="flex flex-col gap-4">
         <ul className="flex flex-col gap-4">
           {cart.lines.map((l) => (
             <SummaryLine
@@ -106,6 +123,7 @@ export default function CheckoutSummary({
               preorder={l.preorder}
               preorderNote={l.preorderNote}
               format={money}
+              price={cartMoney.line(l)}
             />
           ))}
         </ul>
@@ -122,7 +140,7 @@ export default function CheckoutSummary({
         )}
 
         <dl className="flex flex-col gap-2 border-t border-ck-summary-line pt-4">
-          <SummaryRow label={content.subtotal} value={money(cart.subtotalPaise)} />
+          <SummaryRow label={content.subtotal} value={onCart(cart.subtotalPaise)} />
           {discount?.label && discountPaise > 0 ? (
             <SummaryRow tone="saving" label={discount.label} value={`−${money(discountPaise)}`} />
           ) : null}
@@ -133,7 +151,7 @@ export default function CheckoutSummary({
                   ? `${content.shipping} · ${shipping.name}`
                   : content.shipping
               }
-              value={updating ? shimmer : shippingValue(shipping, money)}
+              value={updating ? shimmer : shippingValue(shipping, money, abroad)}
             />
           ) : null}
           {adjustmentPaise !== 0 ? (
@@ -148,11 +166,15 @@ export default function CheckoutSummary({
               label={
                 <span className="flex flex-col gap-0.5">
                   {content.total}
-                  <span className="text-[0.75rem] font-normal text-ck-summary-muted">
-                    {gstPaise && gstPaise > 0 && !updating
-                      ? content.taxesIncluded(money(gstPaise))
-                      : content.taxes}
-                  </span>
+                  {gstPaise && gstPaise > 0 && !updating ? (
+                    <span className="text-[0.75rem] font-normal text-ck-summary-muted">
+                      {content.taxesIncluded(money(gstPaise))}
+                    </span>
+                  ) : abroad ? null : (
+                    <span className="text-[0.75rem] font-normal text-ck-summary-muted">
+                      {words.taxes}
+                    </span>
+                  )}
                 </span>
               }
               value={
@@ -161,7 +183,7 @@ export default function CheckoutSummary({
                   aria-live="polite"
                   className="inline-block text-[1.375rem] font-semibold tracking-[-0.025em] tabular-nums transition-[opacity,translate] duration-200 ease-out starting:translate-y-0.5 starting:opacity-0 motion-reduce:starting:translate-y-0 lg:text-[1.5rem]"
                 >
-                  {updating ? shimmer : money(totalPaise)}
+                  {updating ? shimmer : onCart(totalPaise)}
                 </span>
               }
             />
@@ -175,7 +197,7 @@ export default function CheckoutSummary({
             />
           ))}
           {giftCards.length > 0 ? (
-            <SummaryRow tone="total" label={content.totalDue} value={money(duePaise)} />
+            <SummaryRow tone="total" label={content.totalDue} value={onCart(duePaise)} />
           ) : null}
           {laterPaise > 0 ? (
             <>

@@ -11,7 +11,7 @@ import PageHeader from '@/components/layout/page-header'
 import { analyticsContent } from '@/data/analytics'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { formatCompact, formatPaise } from '@/lib/money'
+import { formatCompact, formatPaiseWhole } from '@/lib/money'
 import { routes } from '@/lib/routes'
 import LiveEventRow from './live-event-row'
 import LiveGlobeHero from './live-globe/live-globe-hero'
@@ -90,7 +90,7 @@ export default function LiveView({ initial, globe }: LiveViewProps) {
               <div>
                 <p className="text-caption text-muted-foreground">{c.revenueLastHour}</p>
                 <p className="mt-1 text-stat-sm text-foreground tabular-nums">
-                  {formatPaise(data.revenueLastHourPaise)}
+                  {formatPaiseWhole(data.revenueLastHourPaise)}
                 </p>
               </div>
             </div>

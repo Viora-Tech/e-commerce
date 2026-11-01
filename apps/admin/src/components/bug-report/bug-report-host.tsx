@@ -26,8 +26,10 @@ const BUTTON_PLACEMENT = {
     'fixed right-4 bottom-[calc(max(1rem,env(safe-area-inset-bottom))+0.25rem)] md:right-5 md:bottom-5',
 } as const
 
+/* Smaller and half-faded until hovered or focused: it sat over page content (audit #24); the
+   account menu opens the same flow. */
 const BUTTON_LOOK =
-  'z-30 flex size-10 touch-manipulation items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-popover transition-[color,border-color,scale] duration-150 ease-out hover:border-border-strong hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96] disabled:cursor-progress [body:has([data-save-bar])_&]:hidden'
+  'z-30 flex size-8 touch-manipulation items-center justify-center rounded-full border border-border bg-card text-muted-foreground opacity-50 shadow-popover transition-[color,border-color,scale,opacity] duration-150 ease-out hover:border-border-strong hover:text-foreground hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96] disabled:cursor-progress [body:has([data-save-bar])_&]:hidden'
 
 type Flow = {
   busy: RefObject<boolean>

@@ -14,6 +14,16 @@ export const orderDetailContent = {
   back: 'Orders',
   title: (n: number) => `Order #${n}`,
   placed: (when: string) => `Placed ${when}`,
+  /** #1007: archived orders sit only under the list's Archived tab. */
+  archive: {
+    action: 'Archive order',
+    notice: (when: string) =>
+      `Archived ${when}. It is off the working tabs and shows only under Archived.`,
+    unarchive: 'Unarchive',
+    archived: 'Order archived',
+    unarchived: 'Order unarchived',
+    failed: 'Could not change the order. Try again.',
+  },
   paidVia: 'Payment',
   previous: 'Previous order',
   next: 'Next order',
@@ -29,6 +39,11 @@ export const orderDetailContent = {
     printShort: 'Print',
     more: 'More actions',
     invoices: 'View invoices',
+    sendOrderLink: 'Send order link',
+    orderLinkSent: 'Order link sent to the customer',
+    /** #1015: the page the shopper sees for this order, in a new tab. */
+    viewStatusPage: 'View order status page',
+    statusPageFailed: 'Could not open the order status page. Try again.',
   },
   duplicate: {
     action: 'Duplicate order',
@@ -132,6 +147,13 @@ export const orderDetailContent = {
     done: 'Items marked as fulfilled',
     failed: 'Could not fulfil those items',
     nothing: 'Nothing left to pack.',
+    selected: (n: number) => `${n} ${n === 1 ? 'item' : 'items'} selected`,
+    selectAll: 'Select every item',
+    pickLine: (title: string) => `Fulfil ${title}`,
+    ofQuantity: (n: number) => `of ${n}`,
+    notify: 'Notify customer',
+    notifyHint: 'Sends the "order shipped" message once everything is packed.',
+    confirmShort: 'Mark as fulfilled',
   },
   collectDialog: {
     title: 'Collect payment',
@@ -215,6 +237,11 @@ export const orderDetailContent = {
       cash: 'Cash',
       cheque: 'Cheque',
       other: 'Other',
+      razorpay: 'Razorpay',
+      cashfree: 'Cashfree',
+      decentro: 'Decentro',
+      gift_card: 'Gift card',
+      store_credit: 'Store credit',
     } as Record<string, string>,
     reference: 'Reference',
     gatewayId: 'Gateway payment id',
@@ -259,6 +286,7 @@ export const orderDetailContent = {
     } as Record<string, string>,
   },
   timeline: {
+    fromImport: 'Before the move, on Shopify',
     heading: 'Timeline',
     today: 'Today',
     placed: 'Order placed',
@@ -274,9 +302,13 @@ export const orderDetailContent = {
       ]
         .filter(Boolean)
         .join(', '),
-    notification: (template: string, channel: string) => `${template} sent via ${channel}`,
-    notificationFailed: (template: string, channel: string) => `${template} via ${channel} failed`,
+    notification: (template: string, channel: string) => `${template} sent by ${channel}`,
+    notificationFailed: (template: string, channel: string) => `${template} by ${channel} failed`,
     shipmentBooked: 'Shipment booked',
+    /** A tracking number typed in by hand: nothing was booked with a courier (#121). */
+    trackingAdded: 'Tracking added',
+    fulfilled: 'Fulfilled: every item packed',
+    deliveredByHand: 'Marked as delivered',
     shipment: (status: string) => `Shipment: ${status}`,
     note: 'Note',
     addNote: 'Add note',

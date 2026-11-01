@@ -1,7 +1,8 @@
 'use client'
 
-import { Pencil, Send, Trash2 } from '@commerce/ui/icons'
+import { Pencil, Plus, Send, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -15,11 +16,13 @@ import { customerDetailContent, customersContent, VIP_SPEND_PAISE } from '@/data
 import { datesContent } from '@/data/dates'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { customerStart } from '@/lib/customer-start'
 import { formatDay } from '@/lib/format-date'
 import { routes } from '@/lib/routes'
 import CustomerAvatar from './customer-avatar'
 import type { CustomerDetail } from './customer-detail-types'
 import { day } from './customer-detail-types'
+import CustomerEmailDialog from './customer-email-dialog'
 
 type CustomerHeaderProps = {
   customer: CustomerDetail
@@ -43,6 +46,7 @@ export default function CustomerHeader({
   const automation = useRunAutomation('customer', automations)
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [emailing, setEmailing] = useState(false)
 
   // Event handlers
   const handleDelete = async () => {
@@ -65,13 +69,14 @@ export default function CustomerHeader({
   const title = customer.name ?? customer.email ?? customersCopy.unnamed
   const orderCount = customer.totals.orderCount
   const vip = customer.totals.spentPaise >= VIP_SPEND_PAISE
-  const created = formatDay(customer.createdAt, new Date(), locale)
+  const start = customerStart(customer)
+  const created = formatDay(start, new Date(), locale)
   const since =
     created === dates.today
       ? copy.sinceToday
       : created === dates.yesterday
         ? copy.sinceYesterday
-        : copy.since(day(customer.createdAt, locale))
+        : copy.since(day(start, locale))
   const city = customer.defaultAddress?.city ?? customer.addresses[0]?.city
   const subtitle = city ? copy.withCity(since, city) : since
 
@@ -104,15 +109,19 @@ export default function CustomerHeader({
         actions={
           <>
             {customer.email ? (
-              <Button
-                variant="outline"
-                render={<a href={`mailto:${customer.email}`} />}
-                nativeButton={false}
-              >
+              <Button variant="outline" onClick={() => setEmailing(true)}>
                 <Send />
                 {copy.actions.email}
               </Button>
             ) : null}
+            {/* A draft with this customer, their email, phone and saved addresses filled in (#81). */}
+            <Button
+              render={<Link href={routes.orders.newDraft(customer.id)} />}
+              nativeButton={false}
+            >
+              <Plus />
+              {copy.actions.createOrder}
+            </Button>
             <ActionMenu
               label={copy.actions.more}
               trigger="button"
@@ -140,6 +149,15 @@ export default function CustomerHeader({
         busy={busy}
         onConfirm={handleDelete}
       />
+      {customer.email ? (
+        <CustomerEmailDialog
+          open={emailing}
+          onOpenChange={setEmailing}
+          customerId={customer.id}
+          email={customer.email}
+          onSent={() => router.refresh()}
+        />
+      ) : null}
       <RunAutomationDialog
         subjectType="customer"
         ids={automation.target}

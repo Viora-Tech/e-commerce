@@ -4,6 +4,7 @@ import { aiAction } from '@commerce/db'
 import { and, desc, eq, gte, inArray, isNull, lt, ne } from 'drizzle-orm'
 import { canApprove } from '../../../procedures/approval-rules'
 import type { StoreScope } from '../../../procedures/store'
+import { keyOfRow, onePerRequest } from './duplicates'
 import { type ActionView, approvalTtlMs, oneView, permissionOf, type Row, viewsOf } from './views'
 
 /** One action, for "Open approval" (Settings → MCP & API → Activity). Null when it is gone. */
@@ -40,7 +41,10 @@ export async function listActivity(
   }
 }
 
-/** Settings → Approvals: changes waiting for a different member, and recent expired ones. */
+/**
+ * Settings → Approvals: changes waiting for a different member, and recent expired ones. Copies
+ * of the same request (asked before duplicates were folded) show once.
+ */
 export async function listWaitingApprovals(
   ctx: StoreContext,
   now: Date = new Date(),
@@ -57,7 +61,7 @@ export async function listWaitingApprovals(
     )
     .orderBy(desc(aiAction.createdAt))
     .limit(200)
-  return viewsOf(ctx.tx, rows, now)
+  return viewsOf(ctx.tx, onePerRequest(rows), now)
 }
 
 /**
@@ -109,6 +113,7 @@ export async function approvalCounts(
       userId: aiAction.userId,
       status: aiAction.status,
       tool: aiAction.tool,
+      input: aiAction.input,
       permission: aiAction.permission,
       expiresAt: aiAction.expiresAt,
       outcomeSeenAt: aiAction.outcomeSeenAt,
@@ -122,12 +127,16 @@ export async function approvalCounts(
     )
   let waiting = 0
   let outcomes = 0
+  // Copies of one request count once, as Approvals shows them once.
+  const counted = new Set<string>()
   for (const r of rows) {
     const open = r.status === 'proposed' && r.expiresAt.getTime() > now.getTime()
     if (r.userId === scope.userId) {
       if (!open && r.status !== 'proposed' && !r.outcomeSeenAt) outcomes++
     } else if (open && canApprove(scope, permissionOf(r as Row))) {
-      waiting++
+      const key = keyOfRow(r as Row)
+      if (!counted.has(key)) waiting++
+      counted.add(key)
     }
   }
   return { waiting, outcomes }

@@ -2,8 +2,8 @@
 
 import type { ArticleStatus } from '@commerce/core/blog'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
-import { Input } from '@commerce/ui/shadcn/input'
 import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
+import DateField from '@/components/fields/date-field'
 import DataCard from '@/components/layout/data-card'
 import { articleFormContent } from '@/data/blog'
 import { useCopy } from '@/hooks/use-copy'
@@ -59,12 +59,11 @@ export default function ArticleVisibilityCard({
       {status === 'scheduled' ? (
         <Field>
           <FieldLabel htmlFor="article-published-at">{copy.when}</FieldLabel>
-          <Input
+          <DateField
+            mode="datetime"
             id="article-published-at"
-            size="lg"
-            type="datetime-local"
             value={publishedAt}
-            onChange={(e) => onChange({ publishedAt: e.target.value })}
+            onChange={(v) => onChange({ publishedAt: v })}
           />
           <FieldDescription>{copy.tz}</FieldDescription>
         </Field>

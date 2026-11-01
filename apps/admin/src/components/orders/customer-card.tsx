@@ -15,6 +15,7 @@ import LabeledGroup from '@/components/layout/labeled-group'
 import { stateName } from '@/data/india'
 import { orderDetailContent } from '@/data/order-detail'
 import { useCopy } from '@/hooks/use-copy'
+import { phoneForDisplay } from '@/lib/phone-display'
 import { routes } from '@/lib/routes'
 import EditOrderContactDialog from './edit-order-contact-dialog'
 import type { OrderDetail } from './order-detail-types'
@@ -28,6 +29,39 @@ type CustomerCardProps = {
  * in the order courier apps ask for them. "Copy all" puts the same fields on
  * the clipboard one per line: name, phone, address, city, state, PIN code.
  */
+type PostalAddress = {
+  line1: string
+  line2?: string | null
+  city: string
+  stateCode: string
+  pincode: string
+}
+
+/** An address as lines, as on a parcel. */
+function linesOf(x: PostalAddress): string[] {
+  return [x.line1, x.line2, `${x.city}, ${stateName(x.stateCode)} ${x.pincode}`].filter(
+    (l): l is string => Boolean(l?.trim()),
+  )
+}
+
+type AddressBlockProps = { lines: string[]; what: string }
+
+/** A postal address as lines, with one copy button for all of it. */
+function AddressBlock({ lines, what }: AddressBlockProps) {
+  return (
+    <div className="flex items-start justify-between gap-2">
+      <p className="min-w-0 break-words">
+        {lines.map((l) => (
+          <span key={l} className="block">
+            {l}
+          </span>
+        ))}
+      </p>
+      <CopyButton value={lines.join('\n')} what={what} visible />
+    </div>
+  )
+}
+
 export default function CustomerCard({ order }: CustomerCardProps) {
   // Hooks
   const copy = useCopy(orderDetailContent)
@@ -57,28 +91,18 @@ export default function CustomerCard({ order }: CustomerCardProps) {
       href: order.email ? `mailto:${order.email}` : undefined,
       copy: true,
     },
-    { label: c.phone, value: phone, href: phone ? `tel:${phone}` : undefined, copy: true },
+    {
+      label: c.phone,
+      value: phone ? phoneForDisplay(phone) : '',
+      href: phone ? `tel:${phone}` : undefined,
+      copy: true,
+    },
   ]
-  const place: KeyValueRow[] = a
-    ? [
-        { label: c.line1, value: a.line1, copy: true },
-        { label: c.line2, value: a.line2, copy: true, hidden: !a.line2 },
-        { label: c.city, value: a.city, copy: true },
-        { label: c.state, value: stateName(a.stateCode), copy: true },
-        { label: c.pincode, value: a.pincode, copy: true },
-      ]
-    : []
+  // An address reads as a block, as on a parcel: one row per labelled field made the card very
+  // tall (audit #13). One copy button takes the whole address.
   const bill = order.billingAddress
-  const billing: KeyValueRow[] = bill
-    ? [
-        { label: c.name, value: bill.name, copy: true },
-        { label: c.line1, value: bill.line1, copy: true },
-        { label: c.line2, value: bill.line2, copy: true, hidden: !bill.line2 },
-        { label: c.city, value: bill.city, copy: true },
-        { label: c.state, value: stateName(bill.stateCode), copy: true },
-        { label: c.pincode, value: bill.pincode, copy: true },
-        { label: c.phone, value: bill.phone, copy: true, hidden: !bill.phone },
-      ]
+  const billingLines = bill
+    ? [bill.name, ...linesOf(bill), bill.phone].filter((l): l is string => Boolean(l?.trim()))
     : []
   // Courier-app order: name, phone, address, city, state, PIN code.
   const allText = [
@@ -153,14 +177,14 @@ export default function CustomerCard({ order }: CustomerCardProps) {
         </LabeledGroup>
         <LabeledGroup label={c.address}>
           {a ? (
-            <KeyValueList rows={place} />
+            <AddressBlock lines={linesOf(a)} what={c.address} />
           ) : (
             <p className="text-muted-foreground">{c.noAddress}</p>
           )}
         </LabeledGroup>
         {bill ? (
           <LabeledGroup label={c.billingAddress}>
-            <KeyValueList rows={billing} />
+            <AddressBlock lines={billingLines} what={c.billingAddress} />
           </LabeledGroup>
         ) : a ? (
           <p className="text-xs text-muted-foreground">{c.billingSame}</p>

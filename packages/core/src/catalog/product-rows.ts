@@ -21,6 +21,9 @@ export function productRow(fields: ProductFields) {
       : { templateSuffix: fields.templateSuffix || null }),
     status: fields.status ?? 'draft',
     taxIncluded: fields.taxIncluded ?? true,
+    // Writers that never show the product-level tax fields (imports, bulk tools) keep them.
+    ...(fields.hsCode === undefined ? {} : { hsCode: fields.hsCode || null }),
+    ...(fields.gstRatePercent === undefined ? {} : { gstRatePercent: fields.gstRatePercent }),
     featured: fields.featured ?? false,
     saleStartsAt: fields.saleStartsAt ?? null,
     saleEndsAt: fields.saleEndsAt ?? null,
@@ -35,6 +38,11 @@ export function productRow(fields: ProductFields) {
     preorderDepositPaise: fields.preorderDepositPaise ?? null,
     preorderDepositPercent: fields.preorderDepositPercent ?? null,
     preorderHideFromCollectionsUntilLaunch: fields.preorderHideFromCollectionsUntilLaunch ?? false,
+    // Writers that never show campaigns (imports, bulk tools) keep the product's.
+    ...(fields.preorderCampaignId === undefined
+      ? {}
+      : { preorderCampaignId: fields.preorderCampaignId }),
+    ...(fields.preorderOwn === undefined ? {} : { preorderOwn: [...new Set(fields.preorderOwn)] }),
     launchAt: fields.launchAt ?? null,
     updatedAt: new Date(),
   }

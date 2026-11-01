@@ -3,12 +3,15 @@ import type { SavedReportRange, StoreTx } from '@commerce/db'
 import { savedReport } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
 import { and, desc, eq } from 'drizzle-orm'
+import { ANSWER_REPORT_SLUG, type AnswerSnapshot } from './ai/answer-table'
 import { findReport } from './analytics-reports'
 
 /** The report slug a saved custom query is filed under; its text lives in `query`. */
 const QUERY_REPORT_SLUG = 'query'
 
 const QUERY_REPORT_TITLE = 'Custom query'
+
+const ANSWER_REPORT_TITLE = 'AI answer'
 
 /** The query text checked by the same parser that runs it; never saved when it does not parse. */
 function checkedQuery(query: string | null | undefined): string {
@@ -23,6 +26,7 @@ function checkedQuery(query: string | null | undefined): string {
 
 function titleOf(reportSlug: string): string | null {
   if (reportSlug === QUERY_REPORT_SLUG) return QUERY_REPORT_TITLE
+  if (reportSlug === ANSWER_REPORT_SLUG) return ANSWER_REPORT_TITLE
   const report = findReport(reportSlug)
   return report?.available ? report.title : null
 }
@@ -46,11 +50,22 @@ export async function getSavedReport(tx: StoreTx, id: string) {
 export async function saveReport(
   tx: StoreTx,
   storeId: string,
-  input: { name: string; reportSlug: string; range: SavedReportRange; query?: string | undefined },
+  input: {
+    name: string
+    reportSlug: string
+    range: SavedReportRange
+    query?: string | undefined
+    /** An AI answer's table kept as it was (`reportSlug` 'answer'), checked by the router. */
+    snapshot?: AnswerSnapshot | undefined
+  },
   createdBy: string | null,
 ) {
   const isQuery = input.reportSlug === QUERY_REPORT_SLUG
-  if (!isQuery && !findReport(input.reportSlug)?.available) {
+  const isAnswer = input.reportSlug === ANSWER_REPORT_SLUG
+  if (isAnswer && !input.snapshot) {
+    throw new ORPCError('BAD_REQUEST', { message: 'Nothing to save from this answer.' })
+  }
+  if (!isQuery && !isAnswer && !findReport(input.reportSlug)?.available) {
     throw new ORPCError('BAD_REQUEST', { message: 'That report is not available.' })
   }
   const [row] = await tx
@@ -60,7 +75,8 @@ export async function saveReport(
       name: input.name.trim(),
       reportSlug: input.reportSlug,
       range: input.range,
-      query: isQuery ? checkedQuery(input.query) : null,
+      /* A snapshot's JSON shares the `query` column: no migration, and a query slug never reads it. */
+      query: isQuery ? checkedQuery(input.query) : isAnswer ? JSON.stringify(input.snapshot) : null,
       createdBy,
     })
     .returning()

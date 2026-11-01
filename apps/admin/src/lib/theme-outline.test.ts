@@ -60,7 +60,19 @@ const components: OutlineSource['components'] = {
           { label: 'No', value: false },
         ],
       },
-      image: { type: 'object', label: 'Image', objectFields: {} },
+      image: {
+        type: 'object',
+        label: 'Image',
+        objectFields: { url: { type: 'text', label: 'Image URL' }, alt: { type: 'text' } },
+      },
+      button: {
+        type: 'object',
+        label: 'Button',
+        objectFields: {
+          label: { type: 'text', label: 'Label' },
+          href: { type: 'text', label: 'Link' },
+        },
+      },
       items: { type: 'array', label: 'Items', arrayFields: {} },
     },
   },
@@ -78,6 +90,7 @@ const doc = (): CustomizeDoc => ({
       align: 'center',
       fullWidth: true,
       image: { url: 'x.png' },
+      button: { label: 'Shop now', href: '/collections/all' },
       items: [],
     }),
   ],
@@ -141,6 +154,7 @@ describe('buildThemeOutline', () => {
         settings: [
           { key: 'text', label: 'Text', kind: 'text', value: 'Free shipping' },
           { key: 'link', label: 'Link', kind: 'url', value: '' },
+          { key: 'icon', label: 'Icon', kind: 'image', value: '' },
         ],
       },
       {
@@ -150,12 +164,13 @@ describe('buildThemeOutline', () => {
         settings: [
           { key: 'text', label: 'Text', kind: 'text', value: 'Second' },
           { key: 'link', label: 'Link', kind: 'url', value: '' },
+          { key: 'icon', label: 'Icon', kind: 'image', value: '' },
         ],
       },
     ])
   })
 
-  it('reads our own sections from their Puck fields, simple settings only', () => {
+  it('reads our own sections from their Puck fields: simple ones, pictures and buttons', () => {
     const hero = buildThemeOutline(source()).sections[1]
     expect(hero?.settings).toEqual([
       { key: 'heading', label: 'Heading', kind: 'text', value: 'Diwali sale' },
@@ -175,6 +190,9 @@ describe('buildThemeOutline', () => {
         options: ['left', 'center'],
       },
       { key: 'fullWidth', label: 'Full width', kind: 'checkbox', value: true },
+      { key: 'image', label: 'Image', kind: 'image', value: 'x.png' },
+      { key: 'button.label', label: 'Button · Label', kind: 'text', value: 'Shop now' },
+      { key: 'button.href', label: 'Button · Link', kind: 'url', value: '/collections/all' },
     ])
     expect(hero?.blocks).toEqual([])
   })
@@ -201,7 +219,7 @@ describe('buildThemeOutline', () => {
       section('Hero', { id: `Hero-${i}`, heading: 'h'.repeat(180), body: 'b'.repeat(180) }),
     )
     const outline = buildThemeOutline(source({ doc: many, selectedSectionId: 'Hero-110' }))
-    expect(JSON.stringify(outline).length).toBeLessThanOrEqual(THEME_OUTLINE_LIMITS.maxSize)
+    expect(JSON.stringify(outline).length).toBeLessThanOrEqual(THEME_OUTLINE_LIMITS.maxSentSize)
     expect(outline.partial).toBe(true)
     expect(outline.sections.length).toBeLessThanOrEqual(THEME_OUTLINE_LIMITS.maxSections)
     // The selected section stays even past the section cap.

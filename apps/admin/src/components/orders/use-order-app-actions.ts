@@ -4,7 +4,11 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { appIcon } from '@/apps/app-icons'
-import { isRunnable, ORDER_ACTION_PROCEDURES } from '@/apps/order-action-procedures'
+import {
+  isRunnable,
+  ORDER_ACTION_PROCEDURES,
+  type OrderActionButton,
+} from '@/apps/order-action-procedures'
 import {
   actionLabel,
   actionsFor,
@@ -26,7 +30,8 @@ export type ShippingWith = { orderIds: string[]; providerId: string }
  * Installed apps' order actions as menu items, Shopify style: each app's name heads its
  * actions, each with the app's icon. Runs them too: a link opens its admin route, Create
  * shipment opens the order's Create shipment page (several orders: `shipping` opens the bulk
- * dialog), a procedure calls the API and toasts its answer, then `onDone` reloads.
+ * dialog), a procedure calls the API and toasts its answer (with its View, Download or Open
+ * buttons), then `onDone` reloads.
  */
 export function useOrderAppActions(groups: readonly OrderActionGroup[], onDone: () => void) {
   // Hooks
@@ -37,6 +42,17 @@ export function useOrderAppActions(groups: readonly OrderActionGroup[], onDone: 
   const [shipping, setShipping] = useState<ShippingWith | null>(null)
 
   // Helpers
+  const toastButton = (b: OrderActionButton) => ({
+    label: b.label,
+    onClick: () => {
+      if (b.href) router.push(b.href)
+      else
+        b.run?.().catch((err: unknown) =>
+          toast.error(err instanceof Error ? err.message : copy.failed),
+        )
+    },
+  })
+
   const run = async (action: OrderAction, orderIds: string[]) => {
     const h = action.handler
     const [first] = orderIds
@@ -54,7 +70,13 @@ export function useOrderAppActions(groups: readonly OrderActionGroup[], onDone: 
     if (!call) return
     setBusy(true)
     try {
-      toast.success(await call(orderIds, copy))
+      const result = await call(orderIds, copy)
+      toast.success(result.message, {
+        action: result.action ? toastButton(result.action) : undefined,
+        cancel: result.secondary ? toastButton(result.secondary) : undefined,
+        // Long enough to reach for View or Download.
+        duration: result.action ? 10_000 : undefined,
+      })
       onDone()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.failed)

@@ -1,6 +1,6 @@
 'use client'
 
-import type { RolloutHold } from '@commerce/core'
+import type { RolloutHold, WebPerformance } from '@commerce/core'
 import type { ThemePackId } from '@commerce/core/theme'
 import { Copy, Plus, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
@@ -10,6 +10,7 @@ import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyPageBody from '@/components/layout/proofly-page-body'
+import StatusChip from '@/components/layout/status-chip'
 import { themesContent } from '@/data/themes'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -23,6 +24,7 @@ import ThemeLibraryRow from './theme-library-row'
 import ThemePacksCard from './theme-packs-card'
 import type { ThemeItem } from './theme-types'
 import ThemeVersionsDialog from './theme-versions-dialog'
+import WebPerformanceStrip from './web-performance-strip'
 
 type ThemesLibraryProps = {
   initial: ThemeItem[]
@@ -32,6 +34,10 @@ type ThemesLibraryProps = {
   canManagePacks?: boolean
   /** The unended rollout that will publish each theme, by theme id ("In rollout: Diwali sale"). */
   holds?: Record<string, RolloutHold>
+  /** The storefront asks for a password (Online store › Preferences). */
+  passwordOn?: boolean
+  /** Real shoppers' page speed; null when it could not be read. */
+  performance?: WebPerformance | null
 }
 
 /** Live first, then the library by last saved, as the server orders them. */
@@ -68,6 +74,8 @@ export default function ThemesLibrary({
   canPublish,
   canManagePacks = false,
   holds = {},
+  passwordOn = false,
+  performance = null,
 }: ThemesLibraryProps) {
   // Hooks
   const [themes, setThemes] = useState(initial)
@@ -163,17 +171,28 @@ export default function ThemesLibrary({
   const library = themes.filter((t) => t.role !== 'main')
 
   return (
-    <ProoflyPageBody>
+    <ProoflyPageBody width="full">
       <PageHeader
         title={title}
         summary={copy.subtitle}
         actions={
-          <AddThemeMenu
-            disabled={busy}
-            onAddPreset={() => setAdding('preset')}
-            onStartBlank={() => setAdding('blank')}
-            onDuplicateLive={live ? () => handleAction(live, 'duplicate') : undefined}
-          />
+          <>
+            <Link
+              href={`${routes.onlineStore.preferences()}#password`}
+              title={copy.visibility.change}
+              className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <StatusChip tone={passwordOn ? 'attention' : 'success'}>
+                {passwordOn ? copy.visibility.locked : copy.visibility.public}
+              </StatusChip>
+            </Link>
+            <AddThemeMenu
+              disabled={busy}
+              onAddPreset={() => setAdding('preset')}
+              onStartBlank={() => setAdding('blank')}
+              onDuplicateLive={live ? () => handleAction(live, 'duplicate') : undefined}
+            />
+          </>
         }
       />
       {live ? (
@@ -184,6 +203,7 @@ export default function ThemesLibrary({
           onAction={(action) => handleAction(live, action)}
         />
       ) : null}
+      {performance ? <WebPerformanceStrip data={performance} /> : null}
       <section className="overflow-hidden rounded-2xl border border-border surface-card">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-4 md:px-5">
           <div className="flex min-w-0 flex-col gap-0.5">

@@ -39,8 +39,11 @@ export type ActionPreview = {
   more: number
   /** Products, variants or orders the action touches. */
   count: number
-  /** Undo is available after it runs. */
-  undoable: boolean
+  /**
+   * Undo is available after it runs; `null` when the card cannot tell (an admin action run for
+   * an MCP client or a role's approval), so it neither promises Undo nor says "cannot be undone".
+   */
+  undoable: boolean | null
   /** Things to check before approving (in plain words). */
   notes: string[]
 }

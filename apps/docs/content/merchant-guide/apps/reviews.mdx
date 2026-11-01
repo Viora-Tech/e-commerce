@@ -60,9 +60,11 @@ was held for you and why, and when it was published or answered.
 | **Who can write a review** | **Only customers who bought the product** (from the link in their review email, or signed in to their account) or **Anyone**. | Only buyers |
 | **Most reviews one customer can send in a day** | A limit per email address. Bots are always blocked with a hidden trap field and a limit per visitor. | 3 |
 | **Send review request emails** | Ask customers for a review after delivery. | On |
+| **Send requests by** | **Email**, **WhatsApp** or **Email and WhatsApp**. See [Requests on WhatsApp](#requests-on-whatsapp). | Email |
 | **Send after delivery** | How many days after the order is delivered. | 7 days |
 | **Reminder if no review** | One reminder this many days later. 0 sends none. | 5 days |
 | **Email subject** | `{{ product.title }}` becomes the product's name. **Preview email** shows it. | `How was your {{ product.title }}?` |
+| **Send a discount code for photo reviews** | When a review with photos is published, the customer gets a one-time code by email. See [Photo review reward](#photo-review-reward). | Off |
 | **Show star ratings on product cards** | Stars on product cards in your theme's collections and search. | On |
 | **Show customer photos** | Photos on review cards. | On |
 | **Sort reviews by** | Most helpful, newest, highest or lowest rating first. | Most helpful |
@@ -73,8 +75,71 @@ The emails go out by themselves once an order is delivered (by the courier's tra
 you mark it delivered). Every email has a **Stop review emails** link; customers who used it,
 or who unsubscribed from your marketing emails, are never asked again.
 
-Just switched from Shopify? Click **Ask for reviews** on the Reviews page: everyone whose
-order was delivered in the last 60 days and was never asked gets one email within minutes.
+### Requests on WhatsApp
+
+Pick **WhatsApp** or **Email and WhatsApp** under **Send requests by** to reach customers on
+the phone number of their order. It uses your WhatsApp connection (Settings → Notifications) and,
+like every WhatsApp message a business starts, needs templates approved by Meta:
+
+| Template name | Body placeholders |
+| --- | --- |
+| `review_request` | `{{1}}` customer name, `{{2}}` store name, `{{3}}` review link |
+| `review_reminder` | the same |
+
+Orders without a phone number get nothing on WhatsApp (with **Email and WhatsApp** they still
+get the email). The **Send after delivery** and **Reminder** days apply to both. Customers who
+used the stop link are not asked again on either channel.
+
+### Request reviews from past orders
+
+Just switched from Shopify, or never asked before? Click **Ask for reviews** on the Reviews page
+and pick when the orders were delivered (the last 60 days to start with). The dialog counts the
+orders that will be asked before anything is sent: delivered orders with no review, never asked,
+whose customer did not opt out. Requests go out 200 orders an hour, so a long list trickles out
+over a few hours instead of all at once; one run asks up to 2,000 orders, newest first.
+
+### QR cards for your packaging
+
+Two kinds of printable review cards:
+
+- **For a product**: open the product, **More** tab, Reviews card, **Review QR card**. The code
+  opens the product page with the review form ready. Good on the box or a shelf card.
+- **For one order**: on the order page, **More actions → Review QR card**. One code per product
+  in the order; each signs the shopper in as the buyer, so the review gets the **Verified buyer**
+  badge. Print it and pack it in the parcel. These links work for 60 days.
+
+**Download card** saves a ready-to-print PNG with your store's name; **Download QR (SVG)** gives
+the bare code for your own designs.
+
+### Photo review reward
+
+Turn on **Reward photo reviews** in Settings to thank customers who add photos. When such a
+review is published (straight away, or when you approve it), the customer gets the
+**Photo review thanks** email with their own code: the discount you set (10% by default), one
+use, only for them, valid for the days you choose (30 by default). Each review earns one code.
+Imported Judge.me reviews never do. The codes show in **Discounts** as "Photo review thanks".
+
+### What customers say (AI summary)
+
+Turn on **Write an AI summary of each product's reviews** in Settings to show two or three
+sentences on what customers like (and any common complaint) on product pages. Then add the
+**What customers say (AI)** section to your product template (Customize → Add section → Apps →
+Reviews). A product needs three published reviews; the summary is written again within about
+15 minutes of new reviews, and shoppers see it marked "Summarised by AI from customer reviews".
+It uses your store's AI allowance (Settings → AI, product writer). Each product's **More** tab
+shows its summary with a **Refresh** button.
+
+## Questions and answers
+
+Shoppers can ask about a product on its page: add the **Questions and answers** section to your
+product template (Customize → Add section → Apps → Reviews). Questions wait in **Apps → Reviews →
+Questions**; nothing shows on your store until you answer and click **Publish answer**.
+
+- **To answer** lists every question without an answer yet.
+- **Save** keeps the answer without publishing; **Hide** takes a question off the page;
+  **Delete** removes it for good.
+- Only the first name and last initial of who asked is shown; their email stays private.
+- One email can ask up to five questions a day, and bots are blocked like on the review form.
 
 ## Bring your reviews over from Judge.me
 
@@ -101,6 +166,31 @@ column.
 Photos are copied into your **Files** in the background, with location data removed. It is
 safe to import the same file again, or a newer export later: reviews already imported are
 skipped, so nothing is duplicated.
+
+## Show reviews around your store
+
+Once the app is installed, open **Online Store › Themes › Customize**, choose **Add section**
+and go to the **Apps** tab. Under **Reviews** you can add:
+
+- **Reviews carousel**: your reviews in a row of cards that moves by itself (you can turn that
+  off, and shoppers can pause it). Choose how many, the lowest star rating, the card style and
+  whether to show the average, product names, photos and dates.
+- **Review testimonials**: a few of your best reviews as large quotes.
+- **All reviews**: every review with the star breakdown, and chips to see one star rating or
+  only reviews with photos. Add it to a page such as **Reviews** (`/pages/reviews`).
+- **Review photos**: customers' review photos in a grid; a photo opens with its review.
+- **Review snippet**: on a product page, the rating and a short quote from the best review.
+  Place it just under the product section, near Add to cart.
+
+The carousel, testimonials, all reviews and photos sections show the whole store's reviews, or
+only the products you list (their handles, separated by commas).
+
+For a **floating reviews tab** on every page, go to the theme editor's **Apps** panel and turn
+on **Floating reviews tab**. It sits on the side of the screen with your rating and opens your
+latest reviews.
+
+Only published reviews show, with the reviewer's first name and last initial. A section with no
+reviews to show stays hidden on your store.
 
 ## Imported Shopify themes
 

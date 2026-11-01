@@ -8,7 +8,8 @@ import { CommerceError } from '../errors'
 import type { DraftInput } from './drafts'
 
 export type DraftCodeLine = {
-  variantId: string
+  /** Absent on a custom item: it counts toward order-wide codes, never product-scoped ones. */
+  variantId?: string | undefined
   quantity: number
   /** The draft's price for the line; blank reads the catalogue price. */
   unitPricePaise?: number | undefined
@@ -52,6 +53,7 @@ const REJECTION_TEXT: Record<CodeRejection, string> = {
   min_subtotal: 'the order is below the minimum for this code',
   min_quantity: 'the order has fewer items than this code needs',
   not_eligible: 'this customer is not eligible for this code',
+  first_order_only: 'this code is for first-time buyers, and this customer has ordered before',
   limit_reached: 'this code has reached its usage limit',
 }
 
@@ -67,7 +69,7 @@ export async function checkDraftDiscountCode(
 ): Promise<DraftCodeResult> {
   const code = normaliseCode(input.code)
   const shippingPaise = input.shippingPaise ?? 0
-  const ids = [...new Set(input.lines.map((l) => l.variantId))]
+  const ids = [...new Set(input.lines.flatMap((l) => (l.variantId ? [l.variantId] : [])))]
   const rows =
     ids.length === 0
       ? []
@@ -84,11 +86,22 @@ export async function checkDraftDiscountCode(
   const byId = new Map(rows.map((r) => [r.id, r]))
   if (rows.some((r) => r.giftCard)) return { ok: false, code, reason: 'not_applicable' }
   const lines = input.lines.flatMap((l) => {
+    if (!l.variantId) {
+      // A custom item belongs to no product or collection, so only order-wide codes see it.
+      return [
+        {
+          productId: CUSTOM_LINE_PRODUCT,
+          quantity: l.quantity,
+          unitPricePaise: l.unitPricePaise ?? 0,
+        },
+      ]
+    }
     const v = byId.get(l.variantId)
     return v
       ? [
           {
             productId: v.productId,
+            variantId: l.variantId,
             quantity: l.quantity,
             // No price yet (#913) counts as nothing until the line is given one.
             unitPricePaise: l.unitPricePaise ?? v.pricePaise ?? 0,
@@ -113,6 +126,9 @@ export async function checkDraftDiscountCode(
     shippingPaise: priced.shippingPaise,
   }
 }
+
+/** Stands in for a custom item's product while checking a code: in no collection, matches no product. */
+const CUSTOM_LINE_PRODUCT = '00000000-0000-0000-0000-000000000000'
 
 const sumPaise = (lines: { quantity: number; unitPricePaise: number }[]) =>
   lines.reduce((sum, l) => sum + l.quantity * l.unitPricePaise, 0)

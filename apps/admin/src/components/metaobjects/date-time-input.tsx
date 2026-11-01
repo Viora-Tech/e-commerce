@@ -1,7 +1,7 @@
 'use client'
 
 import { DEFAULT_TIME_ZONE, wallClock, zoneOffsetMs } from '@commerce/dates'
-import { Input } from '@commerce/ui/shadcn/input'
+import DateField from '@/components/fields/date-field'
 
 type DateTimeInputProps = {
   id: string
@@ -33,13 +33,12 @@ function fromWallTime(text: string): string | null {
 export default function DateTimeInput({ id, value, invalid, onChange }: DateTimeInputProps) {
   // Render logic
   return (
-    <Input
+    <DateField
+      mode="datetime"
       id={id}
-      size="lg"
-      type="datetime-local"
       value={toWallTime(value)}
       aria-invalid={invalid || undefined}
-      onChange={(e) => onChange(fromWallTime(e.target.value))}
+      onChange={(v) => onChange(fromWallTime(v))}
       className="sm:max-w-80"
     />
   )

@@ -1,11 +1,9 @@
 'use client'
 
-import { Plus, Trash2 } from '@commerce/ui/icons'
+import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
+import { FieldError } from '@commerce/ui/shadcn/field'
 import { useState } from 'react'
-import SuggestInput from '@/components/fields/suggest-input'
-import TagInput from '@/components/fields/tag-input'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
 import StatusChip from '@/components/layout/status-chip'
@@ -15,16 +13,20 @@ import {
   type Facets,
   MAX_OPTIONS,
   type MediaItem,
-  matrixOptions,
   type OptionRow,
-  reconcileVariants,
   stockOf,
   suggestSku,
   type VariantRow,
 } from './form-state'
+import OptionChip from './option-chip'
+import OptionEditor from './option-editor'
+import type { ProductTax } from './product-tax'
 import { generateSku } from './sku'
 import VariantBulkBar, { type VariantBulkPatch } from './variant-bulk-bar'
+import { defaultGroupBy, matrixLines } from './variant-groups'
 import VariantMatrix from './variant-matrix'
+import { matrixOptions, reconcileVariants } from './variant-reconcile'
+import VariantToolbar from './variant-toolbar'
 
 type VariantsCardProps = {
   title: string
@@ -32,6 +34,8 @@ type VariantsCardProps = {
   variants: VariantRow[]
   /** Gallery, so a variant can use its images. */
   media: MediaItem[]
+  /** The product's HSN and GST rate, for the variant dialog (#63). */
+  tax: ProductTax
   /** Option names and values the store's other products use, offered first. */
   facets?: Facets | undefined
   error?: string | undefined
@@ -41,55 +45,15 @@ type VariantsCardProps = {
   onAddMedia: (items: MediaItem[]) => void
 }
 
-type VariantsCopy = (typeof productFormContent)['variants']
-
-type StoreOptions = Facets['options']
-
-/** Common values for a well-known option name; custom names get none. */
-function presetValues(copy: VariantsCopy, name: string): readonly string[] {
-  const key = name.trim().toLowerCase()
-  const presets = copy.optionValueSuggestions
-  if (/colou?r/.test(key)) return presets.colour
-  if (key.startsWith('pack')) return presets.packSize
-  const known = Object.keys(presets) as (keyof typeof presets)[]
-  const match = known.find((k) => k.toLowerCase() === key)
-  return match ? presets[match] : []
-}
-
-/** Case-insensitive union, first spelling wins, order kept. */
-function union(...lists: (readonly string[])[]): string[] {
-  const seen = new Set<string>()
-  const out: string[] = []
-  for (const value of lists.flat()) {
-    const key = value.trim().toLowerCase()
-    if (!key || seen.has(key)) continue
-    seen.add(key)
-    out.push(value)
-  }
-  return out
-}
-
-/** Values the store already uses for this option name, then the common ones. */
-function valueSuggestions(copy: VariantsCopy, store: StoreOptions, name: string): string[] {
-  const key = name.trim().toLowerCase()
-  const used = store.find((o) => o.name.toLowerCase() === key)?.values ?? []
-  return union(used, presetValues(copy, name))
-}
-
-/** Option names the store uses, then the common ones, minus names this product already has. */
-function nameSuggestions(copy: VariantsCopy, store: StoreOptions, taken: string[]): string[] {
-  const own = new Set(taken.map((n) => n.trim().toLowerCase()))
-  return union(
-    store.map((o) => o.name),
-    copy.optionNameSuggestions,
-  ).filter((n) => !own.has(n.toLowerCase()))
-}
+/** An option still being set up (no name or no value) stays open; a chip would hide the gap. */
+const unfinished = (o: OptionRow) => !o.name.trim() || !o.values.some((v) => v.trim())
 
 export default function VariantsCard({
   title,
   options,
   variants,
   media,
+  tax,
   facets,
   error,
   onOptions,
@@ -101,6 +65,13 @@ export default function VariantsCard({
   const [selected, setSelected] = useState<number[]>([])
   /** Options change pending a "this drops stock" confirmation. */
   const [pending, setPending] = useState<OptionRow[] | null>(null)
+  /** The option opened from its chip. */
+  const [editing, setEditing] = useState<number | null>(null)
+  const [query, setQuery] = useState('')
+  /** Option index to group by; `undefined` until the merchant picks, then the default applies. */
+  const [groupChoice, setGroupChoice] = useState<number | null | undefined>(undefined)
+  /** Group values opened to their variants. */
+  const [openGroups, setOpenGroups] = useState<string[]>([])
 
   // Helpers
   /** Applies an options edit, asking first when it would remove variants that still hold stock. */
@@ -116,9 +87,17 @@ export default function VariantsCard({
     onOptions(options.map((o, j) => (j === i ? { ...o, ...patch } : o)))
 
   // Event handlers
-  const handleAddOption = () => onOptions([...options, { name: '', values: [] }])
+  const handleAddOption = () => {
+    onOptions([...options, { name: '', values: [] }])
+    setEditing(options.length)
+  }
 
-  const handleRemoveOption = (i: number) => propose(options.filter((_, j) => j !== i))
+  const handleRemoveOption = (i: number) => {
+    propose(options.filter((_, j) => j !== i))
+    setEditing(null)
+    setGroupChoice(undefined)
+    setOpenGroups([])
+  }
 
   const handleValues = (i: number, values: string[]) =>
     propose(options.map((o, j) => (j === i ? { ...o, values } : o)))
@@ -128,6 +107,14 @@ export default function VariantsCard({
     setPending(null)
     setSelected([])
   }
+
+  const handleGroupBy = (next: number | null) => {
+    setGroupChoice(next)
+    setOpenGroups([])
+  }
+
+  const handleToggleGroup = (value: string) =>
+    setOpenGroups((now) => (now.includes(value) ? now.filter((v) => v !== value) : [...now, value]))
 
   const handleBulkApply = ({ price, quantity, skuPrefix }: VariantBulkPatch) => {
     for (const index of selected) {
@@ -153,11 +140,16 @@ export default function VariantsCard({
 
   // Render logic
   const hasOptions = options.length > 0
-  const hasMatrix = matrixOptions(options).length > 0
+  const built = matrixOptions(options)
+  const hasMatrix = built.length > 0
   const atMax = options.length >= MAX_OPTIONS
   const pendingDropped = pending ? reconcileVariants(pending, options, variants).dropped : []
   const waiting = options.some((o) => !o.values.some((v) => v.trim()))
   const storeOptions = facets?.options ?? []
+  const picked =
+    groupChoice === undefined ? defaultGroupBy(built.length, variants.length) : groupChoice
+  const groupBy = picked != null && picked < built.length && built.length >= 2 ? picked : null
+  const lines = matrixLines(variants, { query, groupBy, open: openGroups })
 
   return (
     <DataCard
@@ -197,49 +189,27 @@ export default function VariantsCard({
       className="pb-0"
       bodyClassName="flex flex-col gap-4 pb-(--card-spacing)"
     >
-      {options.map((o, i) => (
-        <div
-          key={o.id ?? `new-${i}`}
-          className="grid gap-3 md:grid-cols-[1fr_2fr_auto] md:items-start"
-        >
-          <Field>
-            <FieldLabel htmlFor={`option-name-${i}`}>{copy.optionName}</FieldLabel>
-            <SuggestInput
-              id={`option-name-${i}`}
-              size="lg"
-              value={o.name}
-              suggestions={nameSuggestions(
-                copy,
-                storeOptions,
-                options.filter((_, j) => j !== i).map((other) => other.name),
-              )}
-              onChange={(name) => setOption(i, { name })}
-              placeholder={copy.optionNamePlaceholder}
-            />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor={`option-values-${i}`}>{copy.optionValues}</FieldLabel>
-            <TagInput
-              id={`option-values-${i}`}
-              tags={o.values}
-              suggestions={valueSuggestions(copy, storeOptions, o.name)}
-              onChange={(values) => handleValues(i, values)}
-              placeholder={copy.optionValuesPlaceholder}
-            />
-            <FieldDescription>{copy.optionValuesHelp}</FieldDescription>
-          </Field>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="text-muted-foreground hover:text-destructive md:mt-6"
-            onClick={() => handleRemoveOption(i)}
-            aria-label={copy.remove}
-          >
-            <Trash2 />
-          </Button>
+      {hasOptions ? (
+        <div className="flex flex-col gap-2">
+          {options.map((o, i) =>
+            editing === i || unfinished(o) ? (
+              <OptionEditor
+                key={o.id ?? `new-${i}`}
+                index={i}
+                option={o}
+                otherNames={options.filter((_, j) => j !== i).map((other) => other.name)}
+                storeOptions={storeOptions}
+                onName={(name) => setOption(i, { name })}
+                onValues={(values) => handleValues(i, values)}
+                onRemove={() => handleRemoveOption(i)}
+                onDone={() => setEditing(null)}
+              />
+            ) : (
+              <OptionChip key={o.id ?? `new-${i}`} option={o} onEdit={() => setEditing(i)} />
+            ),
+          )}
         </div>
-      ))}
+      ) : null}
       {atMax ? <span className="text-xs text-muted-foreground">{copy.maxOptions}</span> : null}
       {waiting && !error ? (
         <p className="text-caption text-muted-foreground">{copy.needsValues}</p>
@@ -247,6 +217,17 @@ export default function VariantsCard({
       {error ? <FieldError>{error}</FieldError> : null}
       {variants.length > 30 ? (
         <p className="text-xs text-muted-foreground">{copy.tooMany(variants.length)}</p>
+      ) : null}
+      {hasMatrix ? (
+        <VariantToolbar
+          query={query}
+          optionNames={built.map((o) => o.name)}
+          groupBy={groupBy}
+          stock={stockOf(variants)}
+          variantCount={variants.length}
+          onQuery={setQuery}
+          onGroupBy={handleGroupBy}
+        />
       ) : null}
       {hasMatrix && selected.length > 0 ? (
         <VariantBulkBar
@@ -259,9 +240,12 @@ export default function VariantsCard({
         <VariantMatrix
           productTitle={title}
           variants={variants}
+          lines={lines}
           media={media}
+          tax={tax}
           selected={selected}
           onSelectedChange={setSelected}
+          onToggleGroup={handleToggleGroup}
           onVariant={onVariant}
           onAddMedia={onAddMedia}
         />

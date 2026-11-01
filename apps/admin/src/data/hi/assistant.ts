@@ -86,6 +86,48 @@ export default [
       orderDetails: 'ऑर्डर',
     },
 
+    table: {
+      label: (what: string) => `टेबल: ${what}`,
+      rows: (n: number) => `${n} पंक्तियां`,
+      open: 'रिपोर्ट की तरह खोलें',
+      live: 'कस्टम क्वेरी की तरह खुलेगा, आंकड़े ताज़ा रहेंगे।',
+      snapshot: 'कॉपी की तरह खुलेगा: ये आंकड़े अपडेट नहीं होंगे।',
+    },
+
+    query: {
+      show: 'क्वेरी दिखाएं',
+      hide: 'क्वेरी छिपाएं',
+      ran: (what: string) => `${what} देखा गया`,
+      noInputs: 'सामान्य सेटिंग के साथ',
+      inputs: {
+        period: 'समय',
+        days: 'दिन',
+        from: 'से',
+        to: 'तक',
+        limit: 'कितने',
+        threshold: 'इतना या कम स्टॉक',
+        olderThanDays: 'इतने दिन से ज़्यादा इंतज़ार',
+        search: 'खोज',
+        tag: 'टैग',
+        collection: 'कलेक्शन',
+        product: 'प्रोडक्ट',
+        number: 'ऑर्डर नंबर',
+        query: 'खोज',
+        sectionId: 'सेक्शन',
+      },
+      periods: {
+        days: 'पिछले N दिन',
+        today: 'आज',
+        yesterday: 'कल',
+        this_week: 'इस हफ़्ते',
+        last_week: 'पिछले हफ़्ते',
+        this_month: 'इस महीने',
+        last_month: 'पिछले महीने',
+        this_year: 'इस साल',
+        custom: 'चुनी गई तारीखें',
+      },
+    },
+
     card: {
       approve: 'मंज़ूर करें',
       edit: 'बदलें',
@@ -164,6 +206,8 @@ export default [
           : `${n * perProduct} AI रिक्वेस्ट, हर प्रोडक्ट की ${perProduct} (कीवर्ड, फिर लिखना)।`,
       progress: (done, total) => `${total} में से ${done} लिखे गए`,
       background: 'यह पेज छोड़ने पर भी काम चलता रहेगा। जांचने के लिए वापस आएं।',
+      slowStart:
+        'सामान्य से ज़्यादा समय लग रहा है… राइटर व्यस्त या बंद हो सकता है। वापस आते ही अपने आप शुरू होगा, या बाद में फिर कोशिश करें।',
       optionsHeading: 'इस रन की सेटिंग',
       backTo: { products: 'प्रोडक्ट', seo: 'SEO', readiness: 'कैटलॉग की तैयारी' },
       cancelRun: 'रोकें',

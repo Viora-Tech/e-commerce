@@ -168,3 +168,32 @@ describe('Growth → engine run mapping', () => {
     )
   })
 })
+
+describe('browse abandonment on the engine', () => {
+  it('maps to browse.abandoned with its 4-hour default and exits on an order', () => {
+    const t = AUTOMATION_TEMPLATES.find((x) => x.id === 'browse_abandoned')
+    expect(t?.trigger).toBe('browse_abandoned')
+    const m = mapAutomation({ ...legacy('browse_abandoned', t?.steps ?? []), template: 'x' })
+    expect(m?.definition.trigger).toEqual({
+      type: 'browse.abandoned',
+      config: { afterMinutes: 240 },
+    })
+    expect(m?.definition.settings).toEqual({ exitOnOrder: true })
+  })
+
+  it('keeps a browse run about the customer', () => {
+    const m = mapRun('browse_abandoned', ['email-1'], {
+      status: 'active',
+      stepIndex: 0,
+      customerId: 'c1',
+      cartId: null,
+      orderId: null,
+    })
+    expect(m).toEqual({
+      status: 'waiting',
+      cursor: 'email-1',
+      subjectType: 'customer',
+      subjectId: 'c1',
+    })
+  })
+})

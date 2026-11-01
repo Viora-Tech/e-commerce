@@ -7,7 +7,9 @@ import { assistantContent } from '@/data/assistant'
 import type { ActionView, AssistantTurn } from '@/hooks/use-assistant'
 import { useCopy } from '@/hooks/use-copy'
 import ActionCard from './action-card'
+import AnswerTableCard from './answer-table-card'
 import AssistantAnswer from './assistant-answer'
+import AssistantQuery from './assistant-query'
 import AssistantSources from './assistant-sources'
 
 type AssistantTurnProps = {
@@ -17,7 +19,10 @@ type AssistantTurnProps = {
   children?: ReactNode
 }
 
-/** One message and its answer: what was checked, the streamed words, and any change cards. */
+/**
+ * One message and its answer: what was checked, the streamed words, the tables the tools read
+ * (#192), any change cards, then "Data used" and "Show query".
+ */
 export default function AssistantTurnView({ turn, onAction, children }: AssistantTurnProps) {
   // Hooks
   const copy = useCopy(assistantContent)
@@ -29,6 +34,7 @@ export default function AssistantTurnView({ turn, onAction, children }: Assistan
   const status = running
     ? copy.panel.checking(copy.tools[running.tool] ?? running.tool)
     : copy.panel.thinking
+  const tables = turn.sources.filter((s) => s.status === 'done' && s.table)
 
   return (
     <li className="flex flex-col gap-3">
@@ -43,6 +49,16 @@ export default function AssistantTurnView({ turn, onAction, children }: Assistan
           </p>
         ) : null}
         {turn.answer ? <AssistantAnswer text={turn.answer} /> : null}
+        {tables.map((source) =>
+          source.table ? (
+            <AnswerTableCard
+              key={source.id}
+              table={source.table}
+              tool={source.tool}
+              question={turn.message}
+            />
+          ) : null,
+        )}
         {turn.actions.map((action) => (
           <ActionCard key={action.id} action={action} onChange={onAction} />
         ))}
@@ -56,7 +72,12 @@ export default function AssistantTurnView({ turn, onAction, children }: Assistan
         {turn.status === 'stopped' ? (
           <p className="text-caption text-muted-foreground">{copy.panel.stopped}</p>
         ) : null}
-        {turn.status !== 'streaming' ? <AssistantSources sources={turn.sources} /> : null}
+        {turn.status !== 'streaming' ? (
+          <div className="flex flex-col gap-2">
+            <AssistantSources sources={turn.sources} />
+            <AssistantQuery sources={turn.sources} />
+          </div>
+        ) : null}
       </div>
     </li>
   )

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import TransferForm from '@/components/transfers/transfer-form'
 import { transfersContent } from '@/data/inventory'
 import { appRouter, call, serverContext } from '@/lib/api'
+import { orMissing } from '@/lib/store-guard'
 
 export const metadata: Metadata = { title: transfersContent.heading }
 
@@ -12,7 +13,7 @@ export default async function Page({ params }: Props) {
   const { id } = await params
   const context = await serverContext()
   const [transfer, locations] = await Promise.all([
-    call(appRouter.transfers.get, { id }, { context }),
+    call(appRouter.transfers.get, { id }, { context }).catch(orMissing),
     call(appRouter.inventory.locations, undefined, { context }),
   ])
   if (!transfer) notFound()

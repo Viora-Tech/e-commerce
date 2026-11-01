@@ -172,6 +172,42 @@ describe('orders list filters (F3)', () => {
     expect(facets.discountCodes).toEqual(['DIWALI10'])
     expect(facets.collections).toEqual([{ id: collectionId, title: 'Pads' }])
   })
+
+  it('counts Unpaid like the Unpaid tab, and filters Refunded and Payment pending (#2, #11)', async () => {
+    const m = await merchant('pay-filter@example.com', 'pay-filter')
+    const pad = await seedVariant(m.storeId, 'Pad')
+    const v = pad.variantId
+    await seedOrder(m.storeId, {
+      number: 1,
+      variantId: v,
+      paymentStatus: 'unpaid',
+      paymentMethod: 'cod',
+    })
+    // Cancelled while unpaid reads as Voided: in neither the tab nor the filter.
+    await seedOrder(m.storeId, {
+      number: 2,
+      variantId: v,
+      status: 'cancelled',
+      paymentStatus: 'unpaid',
+    })
+    await seedOrder(m.storeId, { number: 3, variantId: v, paymentStatus: 'refunded' })
+    // A manual UPI transfer still to match.
+    await seedOrder(m.storeId, {
+      number: 4,
+      variantId: v,
+      paymentStatus: 'unpaid',
+      paymentMethod: 'manual',
+    })
+
+    const tab = await numbers(m, { view: 'unpaid' })
+    expect(await numbers(m, { paymentStatus: ['unpaid', 'authorized', 'partially_paid'] })).toEqual(
+      tab,
+    )
+    expect(tab).toEqual([1, 4])
+    expect(await numbers(m, { paymentStatus: ['refunded'] })).toEqual([3])
+    expect(await numbers(m, { paymentPending: true })).toEqual([4])
+    expect(await numbers(m, { paymentStatus: ['refunded'], paymentPending: true })).toEqual([3, 4])
+  })
 })
 
 describe('drafts, abandoned, returns and shipments filters (F3)', () => {

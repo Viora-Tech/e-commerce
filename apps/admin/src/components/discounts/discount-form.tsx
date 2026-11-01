@@ -19,6 +19,7 @@ import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import BxgyCard from './bxgy-card'
 import CombinationsCard from './combinations-card'
+import CombosCard from './combos-card'
 import DatesCard from './dates-card'
 import DiscountStatusCard from './discount-status-card'
 import EligibilityCard from './eligibility-card'
@@ -34,20 +35,27 @@ import ValueCard from './value-card'
 
 type DiscountFormProps = {
   discount: LoadedDiscount | null
+  /** A new discount opened from a segment's page: only its customers (audit #182). */
+  segmentId?: string | null | undefined
 }
 
-function initialForm(discount: LoadedDiscount | null): DiscountFormState {
-  return discount ? fromDiscount(discount) : emptyForm()
+function initialForm(
+  discount: LoadedDiscount | null,
+  segmentId?: string | null,
+): DiscountFormState {
+  if (discount) return fromDiscount(discount)
+  const blank = emptyForm()
+  return segmentId ? { ...blank, eligibility: 'segments', segmentIds: [segmentId] } : blank
 }
 
-export default function DiscountForm({ discount }: DiscountFormProps) {
+export default function DiscountForm({ discount, segmentId = null }: DiscountFormProps) {
   // Hooks
   const copy = useCopy(discountFormContent)
   const list = useCopy(discountsContent)
   const router = useRouter()
   const { hasPermission } = usePermissions()
-  const [form, setForm] = useState<DiscountFormState>(() => initialForm(discount))
-  const [saved, setSaved] = useState(() => JSON.stringify(initialForm(discount)))
+  const [form, setForm] = useState<DiscountFormState>(() => initialForm(discount, segmentId))
+  const [saved, setSaved] = useState(() => JSON.stringify(initialForm(discount, segmentId)))
   const [busy, setBusy] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
   const [attempted, setAttempted] = useState(false)
@@ -233,10 +241,13 @@ export default function DiscountForm({ discount }: DiscountFormProps) {
             />
           ) : null}
           {form.type === 'bxgy' ? <BxgyCard form={form} errors={errors} onChange={patch} /> : null}
+          {form.type === 'combo' ? (
+            <CombosCard form={form} error={errors.combos} onChange={patch} />
+          ) : null}
           {form.type === 'shipping' ? (
             <ShippingCard form={form} error={errors.states} onChange={patch} />
           ) : null}
-          {form.type === 'bxgy' ? null : (
+          {form.type === 'bxgy' || form.type === 'combo' ? null : (
             <MinimumCard form={form} error={errors.minimum} onChange={patch} />
           )}
           <EligibilityCard form={form} error={errors.eligibility} onChange={patch} />

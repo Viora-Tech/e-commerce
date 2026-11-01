@@ -10,16 +10,11 @@ import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import DiscountBulkActions from '@/components/discounts/discount-bulk-actions'
-import { discountColumns } from '@/components/discounts/discount-columns'
+import { DISCOUNT_HIDDEN_COLUMNS, discountColumns } from '@/components/discounts/discount-columns'
 import DiscountRowMenu from '@/components/discounts/discount-row-menu'
 import DiscountTiles, { type DiscountStats } from '@/components/discounts/discount-tiles'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
-import {
-  appliedFromGroups,
-  clearGroups,
-  FILTER_PANEL_CLASS,
-  FilterPanel,
-} from '@/components/table/filter-panel'
+import { appliedFromGroups } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
 import { DISCOUNT_LIFECYCLES, type DiscountLifecycle, discountsContent } from '@/data/discounts'
@@ -144,6 +139,7 @@ function DiscountsContent({ initial }: { initial: DiscountsInitial }) {
       <ResourceTable
         resourceName={copy.resource}
         columns={discountColumns(copy, fmt, initial.holds)}
+        defaultHidden={DISCOUNT_HIDDEN_COLUMNS}
         items={items}
         getId={(d) => d.id}
         href={(d) => routes.discounts.detail(d.id)}
@@ -154,15 +150,7 @@ function DiscountsContent({ initial }: { initial: DiscountsInitial }) {
         query={q.query}
         onQueryChange={(next) => setQ({ query: next, page: 1 })}
         onClearAll={() => setQ({ ...CLEAR_DISCOUNT_FILTERS, query: '', status: null, page: 1 })}
-        filters={(close) => (
-          <FilterPanel
-            groups={groups}
-            onClear={() => clearGroups(groups)}
-            footer={{ label: panelCopy.show(total), onDone: close }}
-          />
-        )}
-        filtersClassName={FILTER_PANEL_CLASS}
-        applied={applied}
+        filterGroups={groups}
         views={
           <ViewSelect
             value={q.status}

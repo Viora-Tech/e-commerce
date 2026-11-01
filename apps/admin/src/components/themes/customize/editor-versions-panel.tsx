@@ -4,12 +4,12 @@ import { ExternalLink, RotateCcw } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@commerce/ui/shadcn/sheet'
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@commerce/ui/shadcn/dialog'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
@@ -37,7 +37,7 @@ type EditorVersionsPanelProps = {
 }
 
 /**
- * Version history beside the canvas (Figma 697:4526), from the bar's ⋯ menu: "Now" (the
+ * Version history in a dialog over the editor (Figma 697:4526), from the bar's ⋯ menu: "Now" (the
  * current draft), then each time the theme went live, newest first, with who and when; the
  * newest of a live theme is tagged Live. Picking one offers Preview (that version of the store
  * in a new tab) and Restore (it becomes the draft; nothing goes live until Publish).
@@ -97,13 +97,14 @@ export default function EditorVersionsPanel({
   const live = theme.role === 'main'
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-[20rem] gap-0 p-0 sm:max-w-[20rem]">
-        <SheetHeader className="gap-1 p-4">
-          <SheetTitle>{copy.title}</SheetTitle>
-          <SheetDescription>{copy.body(displayThemeName(theme.name))}</SheetDescription>
-        </SheetHeader>
-        <ul className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-2 pb-4">
+    // A dialog, not a right-side drawer (audit #143).
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{copy.title}</DialogTitle>
+          <DialogDescription>{copy.body(displayThemeName(theme.name))}</DialogDescription>
+        </DialogHeader>
+        <ul className="-mx-2 flex max-h-[60vh] min-h-0 flex-col gap-1 overflow-y-auto">
           <li className="flex items-center gap-3 rounded-lg px-2 py-2">
             <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-[0.6875rem] font-semibold text-foreground">
               {initials(me)}
@@ -190,7 +191,7 @@ export default function EditorVersionsPanel({
             })
           )}
         </ul>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   )
 }

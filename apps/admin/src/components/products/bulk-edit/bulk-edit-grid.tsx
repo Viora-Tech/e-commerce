@@ -10,15 +10,16 @@ import {
 import 'react-data-grid/lib/styles.css'
 import { bulkEditContent } from '@/data/bulk-edit'
 import { useCopy } from '@/hooks/use-copy'
-import { buildColumns, columnKeys, isEditableKey, type SheetLocation } from './bulk-edit-columns'
+import { buildColumns, columnKeys, type SheetLocation } from './bulk-edit-columns'
+import { type CellErrors, cellValue, type GridRow, withCell } from './bulk-edit-model'
 import {
-  applyPaste,
-  type CellErrors,
-  cellValue,
-  type GridRow,
-  syncProductCell,
-  withCell,
-} from './bulk-edit-model'
+  applyViewChanges,
+  buildView,
+  isViewEditable,
+  pasteIntoView,
+  setViewCell,
+  type ViewRow,
+} from './bulk-edit-view'
 
 type BulkEditGridProps = {
   rows: GridRow[]
@@ -28,8 +29,11 @@ type BulkEditGridProps = {
   locations: SheetLocation[]
   /** Column keys switched off in the Columns menu. */
   hidden: Set<string>
-  /** Ticked rows (variant ids), for "Delete variants". */
+  /** Ticked rows (`ViewRow.viewKey`): product rows and variant rows. */
   selected: ReadonlySet<string>
+  /** Products whose variant rows are shown under them. */
+  expanded: ReadonlySet<string>
+  onExpandedChange: (expanded: Set<string>) => void
   onRowsChange: (rows: GridRow[]) => void
   onSelectedChange: (selected: Set<string>) => void
 }
@@ -37,10 +41,15 @@ type BulkEditGridProps = {
 const ROW_HEIGHT = 40
 /** The same row height in rem, to size the grid to its rows. */
 const ROW_REM = ROW_HEIGHT / 16
+/** Room for the horizontal scrollbar, so it never sits over the last row. */
+const SCROLLBAR_REM = 1
 
-const rowKey = (row: GridRow) => row.variantId
+const rowKey = (row: ViewRow) => row.viewKey
 
-/** The spreadsheet: type, paste a block, drag the corner or press Ctrl+D to fill down. */
+/**
+ * The spreadsheet: one row per product, expanding to its variants (#985). Type, paste a block,
+ * drag the corner or press Ctrl+D to fill down.
+ */
 export default function BulkEditGrid({
   rows,
   base,
@@ -48,6 +57,8 @@ export default function BulkEditGrid({
   locations,
   hidden,
   selected,
+  expanded,
+  onExpandedChange,
   onRowsChange,
   onSelectedChange,
 }: BulkEditGridProps) {
@@ -56,13 +67,14 @@ export default function BulkEditGrid({
   const active = useRef<{ rowIdx: number; key: string } | null>(null)
 
   // Event handlers
-  const handleChange = (next: GridRow[], data: { indexes: number[]; column: { key: string } }) => {
-    let synced = next
-    for (const i of data.indexes) {
-      const row = next[i]
-      if (row) synced = syncProductCell(synced, row, data.column.key)
-    }
-    onRowsChange(synced)
+  const handleChange = (next: ViewRow[], data: { indexes: number[]; column: { key: string } }) =>
+    onRowsChange(applyViewChanges(rows, view, next, data.indexes, data.column.key))
+
+  const handleToggle = (productId: string) => {
+    const next = new Set(expanded)
+    if (next.has(productId)) next.delete(productId)
+    else next.add(productId)
+    onExpandedChange(next)
   }
 
   const handleFill = ({
@@ -71,15 +83,15 @@ export default function BulkEditGrid({
     targetRow,
   }: {
     columnKey: string
-    sourceRow: GridRow
-    targetRow: GridRow
+    sourceRow: ViewRow
+    targetRow: ViewRow
   }) =>
-    isEditableKey(columnKey)
+    isViewEditable(targetRow, columnKey) && !sourceRow.mixedKeys.includes(columnKey)
       ? withCell(targetRow, columnKey, cellValue(sourceRow, columnKey))
       : targetRow
 
   const handleCopy = (
-    { row, column }: { row: GridRow; column: { key: string } },
+    { row, column }: { row: ViewRow; column: { key: string } },
     event: ClipboardEvent<HTMLDivElement>,
   ) => {
     event.clipboardData.setData('text/plain', cellValue(row, column.key))
@@ -97,17 +109,14 @@ export default function BulkEditGrid({
   }
 
   /** Ctrl+D (Cmd+D): copy the cell above into the active cell, like a spreadsheet's fill down. */
-  const handleKeyDown = (args: CellKeyDownArgs<GridRow>, event: CellKeyboardEvent) => {
+  const handleKeyDown = (args: CellKeyDownArgs<ViewRow>, event: CellKeyboardEvent) => {
     if (args.mode !== 'ACTIVE' || !args.row || !args.column) return
     if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'd') return
-    const above = rows[args.rowIdx - 1]
+    const above = view[args.rowIdx - 1]
     const key = args.column.key
-    if (!above || !isEditableKey(key)) return
+    if (!above || above.mixedKeys.includes(key) || !isViewEditable(args.row, key)) return
     event.preventDefault()
-    const next = rows.map((r, i) =>
-      i === args.rowIdx ? withCell(r, key, cellValue(above, key)) : r,
-    )
-    onRowsChange(syncProductCell(next, next[args.rowIdx] as GridRow, key))
+    onRowsChange(setViewCell(rows, args.row, key, cellValue(above, key)))
   }
 
   const handlePaste = (event: ClipboardEvent<HTMLDivElement>) => {
@@ -119,19 +128,23 @@ export default function BulkEditGrid({
     const colIdx = keys.indexOf(at.key)
     if (colIdx < 0) return
     onRowsChange(
-      applyPaste(
+      pasteIntoView(
         rows,
+        view,
         keys,
         { rowIdx: at.rowIdx, colIdx },
         event.clipboardData.getData('text/plain'),
-        isEditableKey,
       ),
     )
   }
 
   // Render logic
+  const view = buildView(rows, expanded)
   const keys = columnKeys(locations, hidden)
-  const columns = [SelectColumn, ...buildColumns(copy, locations, base, errors, hidden)]
+  const columns = [
+    SelectColumn,
+    ...buildColumns(copy, locations, base, errors, hidden, { expanded, onToggle: handleToggle }),
+  ]
 
   return (
     <div
@@ -141,7 +154,7 @@ export default function BulkEditGrid({
       <DataGrid
         aria-label={copy.title}
         columns={columns}
-        rows={rows}
+        rows={view}
         rowKeyGetter={rowKey}
         selectedRows={selected}
         onSelectedRowsChange={onSelectedChange}
@@ -153,7 +166,9 @@ export default function BulkEditGrid({
         onCellCopy={handleCopy}
         onActivePositionChange={handleActive}
         onCellKeyDown={handleKeyDown}
-        style={{ height: `min(${(rows.length + 1) * ROW_REM}rem, calc(100dvh - 18rem))` }}
+        style={{
+          height: `min(${(view.length + 1) * ROW_REM + SCROLLBAR_REM}rem, calc(100dvh - 18rem))`,
+        }}
         className="border-0 [--rdg-background-color:var(--card)] [--rdg-border-color:var(--hairline)] [--rdg-color:var(--foreground)] [--rdg-header-background-color:var(--muted)] [--rdg-row-hover-background-color:var(--muted)] [--rdg-selection-color:var(--primary)]"
       />
     </div>

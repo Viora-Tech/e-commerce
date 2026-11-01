@@ -1,6 +1,7 @@
 'use client'
 
-import { X } from '@commerce/ui/icons'
+import { Plus, X } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import {
   Select,
@@ -9,9 +10,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
+import { useState } from 'react'
 import { productCollectionsContent } from '@/data/collections'
 import { useCopy } from '@/hooks/use-copy'
 import { withCollection } from './collection-pick'
+import NewCollectionDialog from './new-collection-dialog'
 
 export type CollectionOption = { id: string; title: string }
 
@@ -20,6 +23,8 @@ type ProductCollectionsFieldProps = {
   options: CollectionOption[]
   value: string[]
   onChange: (ids: string[]) => void
+  /** A collection made with "Create collection" (#982); the card adds it to the options. */
+  onCreated?: ((collection: CollectionOption) => void) | undefined
 }
 
 /** Which manual collections this product sits in, shown in the organisation card. */
@@ -27,9 +32,11 @@ export default function ProductCollectionsField({
   options,
   value,
   onChange,
+  onCreated,
 }: ProductCollectionsFieldProps) {
   // Hooks
   const copy = useCopy(productCollectionsContent)
+  const [creating, setCreating] = useState(false)
 
   // Event handlers
   /* Base UI also calls this with `null` when its item list changes (the picked collection
@@ -42,7 +49,7 @@ export default function ProductCollectionsField({
   const handleRemove = (id: string) => onChange(value.filter((v) => v !== id))
 
   // Early returns
-  if (options.length === 0) return null
+  if (options.length === 0 && !onCreated) return null
 
   // Render logic
   const available = options.filter((o) => !value.includes(o.id))
@@ -87,7 +94,22 @@ export default function ProductCollectionsField({
           </SelectContent>
         </Select>
       ) : null}
+      {onCreated ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="self-start"
+          onClick={() => setCreating(true)}
+        >
+          <Plus aria-hidden="true" />
+          {copy.create.action}
+        </Button>
+      ) : null}
       <FieldDescription>{copy.help}</FieldDescription>
+      {onCreated ? (
+        <NewCollectionDialog open={creating} onOpenChange={setCreating} onCreated={onCreated} />
+      ) : null}
     </Field>
   )
 }

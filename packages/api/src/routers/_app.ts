@@ -14,6 +14,7 @@ import { billingRouter } from './billing'
 import { blogRouter } from './blog'
 import { bugReportsRouter } from './bug-reports'
 import { businessGstRouter } from './business-gst'
+import { catalogsRouter } from './catalogs'
 import { chatwootRouter } from './chatwoot'
 import { checkoutSettingsRouter } from './checkout-settings'
 import { codRtoRouter } from './cod-rto'
@@ -24,6 +25,7 @@ import { customersRouter } from './customers'
 import { dashboardRouter } from './dashboard'
 import { deliveryOptionsRouter } from './delivery-options'
 import { discountsRouter } from './discounts'
+import { documentsRouter } from './documents'
 import { domainsRouter } from './domains'
 import { emiRouter } from './emi'
 import { formsRouter } from './forms'
@@ -49,10 +51,12 @@ import { pixelsRouter } from './pixels'
 import { platformRouter } from './platform'
 import { platformAppsRouter } from './platform-apps'
 import { policiesRouter } from './policies'
+import { preordersRouter } from './preorders'
 import { productsRouter } from './products'
 import { profitCostsRouter } from './profit-costs'
 import { purchaseDocumentsRouter } from './purchase-documents'
 import { inboundShipmentsRouter, purchaseChargesRouter, suppliersRouter } from './purchasing'
+import { reauthRouter } from './reauth'
 import { redirectsRouter } from './redirects'
 import { returnsRouter } from './returns'
 import { reviewsRouter } from './reviews'
@@ -76,6 +80,7 @@ export const appRouter = {
   activity: activityRouter,
   me: protectedProcedure.handler(({ context }) => context.session),
   account: accountRouter,
+  reauth: reauthRouter,
   store: storeRouter,
   storeData: storeDataRouter,
   appearance: appearanceRouter,
@@ -115,6 +120,7 @@ export const appRouter = {
   automations: automationsRouter,
   shortLinks: shortLinksRouter,
   giftCards: giftCardsRouter,
+  preorders: preordersRouter,
   apps: appsRouter,
   gstInvoices: gstInvoicesRouter,
   taxes: taxesRouter,
@@ -143,8 +149,10 @@ export const appRouter = {
   approvals: approvalsRouter,
   media: mediaRouter,
   staff: staffRouter,
+  documents: documentsRouter,
   domains: domainsRouter,
   markets: marketsRouter,
+  catalogs: catalogsRouter,
   rollouts: rolloutsRouter,
   invitations: invitationsRouter,
   onboarding: onboardingRouter,

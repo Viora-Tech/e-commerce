@@ -4,6 +4,7 @@ import { formatMoney } from '@commerce/money'
 import { eq, sql } from 'drizzle-orm'
 import { recoveryUrl } from '../../cart/abandoned'
 import { normalisePhone } from '../../marketing/audience'
+import { browseProductFacts } from '../../marketing/browse'
 import { applyMergeTags, escapeHtml, type MergeValues } from '../../marketing/email'
 import { firstName, marketingChannels, storeSender } from '../../marketing/send'
 import type { WhatsappTemplateRef } from '../../marketing/whatsapp'
@@ -82,6 +83,11 @@ export async function mergeValues(
       merge.order_number = `#${o.number}`
       merge.cart_total = formatMoney(o.total)
     }
+  }
+  // Browse abandonment: the product the shopper looked at (`{product_title}`, `{product_url}`).
+  const productId = ctx.triggerData.productId
+  if (typeof productId === 'string' && productId) {
+    Object.assign(merge, await browseProductFacts(tx, productId, deps.storefrontUrl))
   }
   return merge
 }

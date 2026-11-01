@@ -16,9 +16,10 @@ export const sampleTemplateData: TemplateData = {
     },
   ],
   shipping: { label: 'Bluedart', amount: '₹49' },
+  // ₹2,048 with 18% GST inside it: ₹312 of tax, split evenly within the state.
   taxBreakdown: [
-    { label: 'CGST (9%)', amount: '₹22' },
-    { label: 'SGST (9%)', amount: '₹27' },
+    { label: 'CGST (9%)', amount: '₹156' },
+    { label: 'SGST (9%)', amount: '₹156' },
   ],
   paymentMethodLabel: 'Cash on delivery',
   storeAddress: '221 MG Road, Bengaluru 560001',
@@ -56,7 +57,20 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
       etaLabel: '5 to 7 working days',
     },
   },
-  draft_invoice: { ...base, actionUrl: 'https://waimers.example/pay/42' },
+  order_edited: { ...base, orderUrl: 'https://waimers.example/orders/42' },
+  payment_pending: {
+    ...base,
+    paymentMethodLabel: 'UPI',
+    orderUrl: 'https://waimers.example/orders/42',
+  },
+  shipping_update: {
+    ...base,
+    waybill: 'AWB987654321',
+    courierLabel: 'Blue Dart',
+    trackingUrl: 'https://waimers.example/track/42',
+  },
+  order_link: { ...base, orderUrl: 'https://waimers.example/orders/42' },
+  draft_invoice: { ...base, draftNumber: 12, actionUrl: 'https://waimers.example/pay/42' },
   checkout_recovery: {
     ...base,
     orderNumber: undefined,
@@ -66,6 +80,17 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
     ...base,
     documentLabel: 'tax invoice INV/25-26/0007',
     links: [{ label: 'Download tax invoice', url: 'https://waimers.example/docs/inv-7.pdf' }],
+  },
+  customer_message: {
+    ...base,
+    orderNumber: undefined,
+    lines: [],
+    taxBreakdown: undefined,
+    totalLabel: '',
+    custom: {
+      subject: 'Your mousepad is back in stock',
+      message: 'Hi Asha, the large Maboroshi pad you asked about is back. Shall I keep one aside?',
+    },
   },
   login_code: {
     ...base,
@@ -207,6 +232,46 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
       productTitle: 'Maboroshi mousepad',
       productUrl: 'https://waimers.example/products/maboroshi#reviews',
       reply: 'Thanks for the kind words, Asha! Enjoy the glide.',
+    },
+  },
+  review_reward: {
+    ...base,
+    orderNumber: undefined,
+    lines: [],
+    taxBreakdown: undefined,
+    actionUrl: 'https://waimers.example/',
+    review: {
+      productTitle: 'Maboroshi mousepad',
+      rewardCode: 'PHOTO-7K2QX9FD',
+      rewardLabel: '10% off',
+      rewardUntil: '30 November 2026',
+    },
+  },
+  question_answered: {
+    ...base,
+    orderNumber: undefined,
+    lines: [],
+    taxBreakdown: undefined,
+    review: {
+      productTitle: 'Maboroshi mousepad',
+      productUrl: 'https://waimers.example/products/maboroshi#reviews',
+      question: 'Is it washable?',
+      answer: 'Yes, by hand in cold water. Let it dry flat.',
+    },
+  },
+  question_asked: {
+    ...base,
+    customerName: '',
+    orderNumber: undefined,
+    lines: [],
+    taxBreakdown: undefined,
+    totalLabel: '',
+    actionUrl: 'https://admin.koomerce.app/apps/reviews/questions',
+    review: {
+      productTitle: 'Maboroshi mousepad',
+      question: 'Is it washable?',
+      askerName: 'Asha K.',
+      askerEmail: 'asha@example.com',
     },
   },
   unpaid_cancelled: { ...base },
@@ -367,4 +432,39 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
       message: 'Please pack the sleeves separately.',
     },
   },
+}
+
+const DAY = 86_400_000
+
+/** "10 Oct 2026" (or "30 November 2026" with `long`), the way the templates print dates. */
+function dateLabel(now: Date, days: number, long = false): string {
+  return new Date(now.getTime() + days * DAY).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: long ? 'long' : 'short',
+    year: 'numeric',
+  })
+}
+
+/**
+ * The sample for one template with its dates a few days after `now`, so the admin's preview
+ * never shows a deadline that is already past (#116). The conformance suite keeps the fixed
+ * `sampleTemplateDataByTemplate` so its output stays the same from run to run.
+ */
+export function sampleTemplateDataFor(template: TemplateId, now: Date = new Date()): TemplateData {
+  const s = sampleTemplateDataByTemplate[template]
+  return {
+    ...s,
+    ...(s.balance ? { balance: { ...s.balance, payByLabel: dateLabel(now, 7) } } : {}),
+    ...(s.deadlineLabel ? { deadlineLabel: dateLabel(now, 2) } : {}),
+    ...(s.giftCard?.expiresLabel
+      ? { giftCard: { ...s.giftCard, expiresLabel: dateLabel(now, 365) } }
+      : {}),
+    ...(s.review?.rewardUntil
+      ? { review: { ...s.review, rewardUntil: dateLabel(now, 30, true) } }
+      : {}),
+    ...(s.planBill?.dueLabel ? { planBill: { ...s.planBill, dueLabel: dateLabel(now, 5) } } : {}),
+    ...(s.purchaseOrder?.expectedLabel
+      ? { purchaseOrder: { ...s.purchaseOrder, expectedLabel: dateLabel(now, 14) } }
+      : {}),
+  }
 }

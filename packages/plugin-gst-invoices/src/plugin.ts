@@ -118,6 +118,21 @@ async function onRefund(ctx: AppHookContext, orderId: string, refundId: string) 
   ctx.reportActivity?.(`Issued refund voucher ${voucher.row.number}`)
 }
 
+/** The order was cancelled: its queued (unnumbered) tax invoices go; issued ones stay for a credit note. */
+async function onOrderCancelled(ctx: AppHookContext, orderId: string) {
+  const drafts = (await ctx.inStore((tx) => liveDocuments(tx, orderId, 'tax_invoice'))).filter(
+    (d) => d.status === 'draft',
+  )
+  if (!drafts.length) return
+  await ctx.inStore((tx) =>
+    removeFromQueue(
+      tx,
+      drafts.map((d) => d.id),
+    ),
+  )
+  ctx.log(`order ${orderId} cancelled: removed ${drafts.length} queued invoice(s)`)
+}
+
 /**
  * Staff edited the order (`order.edited`): queued invoices follow it, an issued one that now
  * bills too little or names the old shipping rate is cancelled and issued again (or reported when
@@ -265,6 +280,7 @@ export const gstInvoicesPlugin = definePlugin({
       if (p.refundId) await onRefund(ctx, p.orderId, p.refundId)
     },
     'order.edited': (ctx, p) => onOrderEdited(ctx, p.orderId),
+    'order.cancelled': (ctx, p) => onOrderCancelled(ctx, p.orderId),
   },
   jobs: {
     render: async (ctx, data) => {

@@ -1,12 +1,9 @@
 /** SOURCE OF TRUTH: listConversations, inboxCounts, getConversation, staffSend, markStaffSeen, assignConversation, setConversationStatus — WHAT: the staff side of Inbox: the list with its views and search, one thread, replies and notes (text, product, discount and image cards), assignment, and Open/Closed/Blocked / WHY: the admin `/inbox` page and its API (design §6, §7). */
 import {
   customer,
-  discount,
   inboxConversation,
   inboxMessage,
-  media,
   order,
-  product,
   type StoreTx,
   storeMember,
 } from '@commerce/db'
@@ -32,15 +29,7 @@ import {
   phoneBlindIndex,
 } from '../customers/phone-crypto'
 import { blockSender, removeConversationBlocks } from './blocks'
-import {
-  type ConversationStatus,
-  INBOX_VIEWS,
-  type InboxView,
-  LIST_PAGE,
-  MESSAGE_MAX,
-  PRODUCTS_PER_CARD_MAX,
-  STAFF_MESSAGE_KINDS,
-} from './constants'
+import { type ConversationStatus, INBOX_VIEWS, type InboxView, LIST_PAGE } from './constants'
 import { contactPhoneIndex, inboxHash } from './identity'
 import {
   appendMessage,
@@ -227,7 +216,7 @@ export async function inboxCounts(ctx: StoreContext, userId: string): Promise<In
   return row ?? (Object.fromEntries(INBOX_VIEWS.map((v) => [v, 0])) as InboxCounts)
 }
 
-async function loadConversation(tx: StoreTx, storeId: string, id: string) {
+export async function loadConversation(tx: StoreTx, storeId: string, id: string) {
   const [row] = await tx.select().from(inboxConversation).where(eq(inboxConversation.id, id))
   if (!row) throw new InboxError('INBOX_NOT_FOUND', 'Conversation not found', storeId)
   return row
@@ -240,6 +229,8 @@ export type ConversationDetail = ConversationSummary & {
   firstResponseAt: Date | null
   closedAt: Date | null
   shopperSeenMessageId: string | null
+  /** The AI agent has answered here and still answers: no hand-off, no staff message, no take-over. */
+  aiActive: boolean
 }
 
 /** One conversation with the newest page of its thread (notes included), or older pages by `beforeId`. */
@@ -256,12 +247,25 @@ export async function getConversation(
       firstResponseAt: inboxConversation.firstResponseAt,
       closedAt: inboxConversation.closedAt,
       shopperSeenMessageId: inboxConversation.shopperSeenMessageId,
+      aiPausedAt: inboxConversation.aiPausedAt,
     })
     .from(inboxConversation)
     .leftJoin(customer, eq(customer.id, inboxConversation.customerId))
     .where(eq(inboxConversation.id, input.id))
   if (!row) throw new InboxError('INBOX_NOT_FOUND', 'Conversation not found', ctx.storeId)
   const page = await threadPage(ctx.tx, input.id, input.beforeId ?? null, { includeNotes: true })
+  const senders = await ctx.tx
+    .selectDistinct({ sender: inboxMessage.sender })
+    .from(inboxMessage)
+    .where(
+      and(eq(inboxMessage.conversationId, input.id), inArray(inboxMessage.sender, ['ai', 'staff'])),
+    )
+  const aiActive =
+    row.status === 'open' &&
+    !row.needsHuman &&
+    row.aiPausedAt === null &&
+    senders.some((s) => s.sender === 'ai') &&
+    !senders.some((s) => s.sender === 'staff')
   return {
     conversation: {
       ...summaryOf(row),
@@ -270,112 +274,9 @@ export async function getConversation(
       firstResponseAt: row.firstResponseAt,
       closedAt: row.closedAt,
       shopperSeenMessageId: row.shopperSeenMessageId,
+      aiActive,
     },
     ...page,
-  }
-}
-
-export const StaffSendSchema = z.object({
-  conversationId: z.uuid(),
-  kind: z.enum(STAFF_MESSAGE_KINDS).default('text'),
-  body: z.string().max(MESSAGE_MAX).default(''),
-  /** Product card: up to 3 products. */
-  productIds: z.array(z.uuid()).min(1).max(PRODUCTS_PER_CARD_MAX).optional(),
-  /** Discount card: an active code. */
-  discountId: z.uuid().optional(),
-  /** Image: an uploaded media row. */
-  mediaId: z.uuid().optional(),
-  clientId: z.string().min(8).max(64).optional(),
-})
-export type StaffSendInput = z.input<typeof StaffSendSchema>
-
-/** A code is shareable while it is on, has a code, and is inside its dates. */
-export function isShareableDiscount(
-  d: {
-    kind: string
-    code: string | null
-    status: string
-    startsAt: Date | null
-    endsAt: Date | null
-  },
-  now: Date = new Date(),
-): boolean {
-  return (
-    d.kind === 'code' &&
-    Boolean(d.code) &&
-    d.status === 'active' &&
-    (!d.startsAt || d.startsAt <= now) &&
-    (!d.endsAt || d.endsAt > now)
-  )
-}
-
-async function cardPayload(
-  ctx: StoreContext,
-  input: z.output<typeof StaffSendSchema>,
-): Promise<Record<string, unknown> | null> {
-  const invalid = (message: string) => new InboxError('INBOX_INVALID', message, ctx.storeId)
-  if (input.kind === 'product') {
-    const ids = [...new Set(input.productIds ?? [])]
-    if (ids.length === 0) throw invalid('Pick at least one product')
-    const found = await ctx.tx
-      .select({ id: product.id })
-      .from(product)
-      .where(and(inArray(product.id, ids), eq(product.status, 'active')))
-    if (found.length !== ids.length) throw invalid('Only active products can be shared')
-    return { productIds: ids }
-  }
-  if (input.kind === 'discount') {
-    if (!input.discountId) throw invalid('Pick a discount code')
-    const [d] = await ctx.tx.select().from(discount).where(eq(discount.id, input.discountId))
-    if (!d || !isShareableDiscount(d)) throw invalid('Only active discount codes can be shared')
-    return { discountId: d.id, code: d.code }
-  }
-  if (input.kind === 'image') {
-    if (!input.mediaId) throw invalid('Pick an image')
-    const [m] = await ctx.tx
-      .select({ id: media.id, url: media.url })
-      .from(media)
-      .where(eq(media.id, input.mediaId))
-    if (!m) throw invalid('Image not found')
-    return { mediaId: m.id, url: m.url }
-  }
-  if (!input.body.trim()) throw invalid('Write a message')
-  return null
-}
-
-/**
- * A staff reply or note. Replying to a closed conversation opens it again; a blocked one
- * refuses (unblock first). Notes stay staff-only and change no counter the shopper sees.
- */
-export async function staffSend(
-  ctx: StoreContext,
-  raw: StaffSendInput,
-  userId: string,
-): Promise<{ conversation: InboxConversationRow; message: InboxMessageRow; created: boolean }> {
-  const input = StaffSendSchema.parse(raw)
-  const conversation = await loadConversation(ctx.tx, ctx.storeId, input.conversationId)
-  if (conversation.status === 'blocked' && input.kind !== 'note') {
-    throw new InboxError('INBOX_BLOCKED', 'Unblock this conversation to reply', ctx.storeId)
-  }
-  const payload = await cardPayload(ctx, input)
-  const { message, created } = await appendMessage(ctx.tx, ctx.storeId, conversation, {
-    sender: 'staff',
-    kind: input.kind,
-    body: input.body.trim(),
-    payload,
-    memberUserId: userId,
-    clientId: input.clientId ?? null,
-  })
-  if (created && conversation.status === 'closed' && input.kind !== 'note') {
-    await ctx.tx
-      .update(inboxConversation)
-      .set({ status: 'open', closedAt: null, closedBy: null })
-      .where(eq(inboxConversation.id, conversation.id))
-  }
-  return {
-    conversation: await loadConversation(ctx.tx, ctx.storeId, conversation.id),
-    message,
-    created,
   }
 }
 
@@ -424,6 +325,23 @@ export async function assignConversation(
     },
   })
   return loadConversation(ctx.tx, ctx.storeId, input.id)
+}
+
+/**
+ * Staff take a conversation over from the AI agent without writing yet: the AI stays quiet in it
+ * from now on (a staff reply does the same).
+ */
+export async function takeOverConversation(
+  ctx: StoreContext,
+  id: string,
+): Promise<InboxConversationRow> {
+  const now = new Date()
+  const [row] = await ctx.tx
+    .update(inboxConversation)
+    .set({ aiPausedAt: now, updatedAt: now })
+    .where(and(eq(inboxConversation.id, id), isNull(inboxConversation.aiPausedAt)))
+    .returning()
+  return row ?? loadConversation(ctx.tx, ctx.storeId, id)
 }
 
 export const SetStatusSchema = z.object({

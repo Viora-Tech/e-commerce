@@ -8,18 +8,21 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
+import { useHiddenColumns } from '@/components/products/bulk-edit/use-hidden-columns'
 import { customersBulkEditContent } from '@/data/customers-bulk-edit'
 import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
+import CustomersBulkColumnsMenu from './customers-bulk-columns-menu'
 import CustomersBulkGrid from './customers-bulk-grid'
 import {
   type CellErrors,
+  defaultHiddenKeys,
   dirtyCount,
   errorKey,
   type GridRow,
+  shownKeys,
   toGridRow,
   validateRows,
-  visibleKeys,
 } from './customers-bulk-model'
 import { dirtyRows, saveRows } from './customers-bulk-save'
 import { applyToAll, type SetAllChange, setAllKeys } from './customers-bulk-set-all'
@@ -32,6 +35,9 @@ type CustomersBulkEditorProps = {
 }
 
 const SHOWN_ERRORS = 5
+
+/** Where this browser remembers the columns switched off in the Columns menu (#1000). */
+const HIDDEN_COLUMNS_KEY = 'customers-bulk-edit:hidden-columns'
 
 const baseOf = (rows: GridRow[]) => new Map(rows.map((r) => [r.id, r]))
 
@@ -46,6 +52,7 @@ export default function CustomersBulkEditor({ sheet, sendable }: CustomersBulkEd
   const [attempted, setAttempted] = useState(false)
   const [saving, setSaving] = useState(false)
   const [setAllOpen, setSetAllOpen] = useState(false)
+  const { hidden, toggle } = useHiddenColumns(HIDDEN_COLUMNS_KEY, defaultHiddenKeys(sendable))
 
   // Helpers
   const label = (key: string) => {
@@ -108,7 +115,7 @@ export default function CustomersBulkEditor({ sheet, sendable }: CustomersBulkEd
   const errors: CellErrors = new Map([...validation, ...serverErrors])
   const changed = dirtyCount(rows, base)
   const shown = attempted ? [...validation] : []
-  const keys = visibleKeys(sendable)
+  const keys = shownKeys(hidden)
   const changeKeys = setAllKeys(keys)
   return (
     <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-8 md:pt-5 md:pb-8">
@@ -121,6 +128,7 @@ export default function CustomersBulkEditor({ sheet, sendable }: CustomersBulkEd
             <span className="text-caption text-muted-foreground">
               {changed > 0 ? copy.unsaved(changed) : copy.noChanges}
             </span>
+            <CustomersBulkColumnsMenu hidden={hidden} sendable={sendable} onToggle={toggle} />
             <Button variant="outline" disabled={saving} onClick={() => setSetAllOpen(true)}>
               <Layers aria-hidden="true" />
               {copy.setAll.trigger}

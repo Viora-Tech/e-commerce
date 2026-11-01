@@ -1051,12 +1051,20 @@
 .cart-page__title:not(:where(.shopify-section *)) {
   display: flex;
   align-items: baseline;
-  gap: var(--space-3);
+  /* An imported theme does not define our spacing tokens: without the fallback the gap is 0
+     and the title read "Your cart9 items". */
+  gap: var(--space-3, 0.75rem);
   margin-block: var(--space-5) var(--space-6);
   font-size: calc(2rem * var(--font-heading-scale, 1));
   line-height: 1.1;
   letter-spacing: -0.015em;
   text-transform: none;
+}
+
+/* A theme's heading animation wraps the title's contents in one span (`.heading-rise__inner`),
+   so the flex gap no longer separates the count: it read "Your cart9 items". */
+.heading-rise__inner > .cart-page__count {
+  margin-inline-start: var(--space-3, 0.75rem);
 }
 
 .cart-page__count:not(:where(.shopify-section *)) {

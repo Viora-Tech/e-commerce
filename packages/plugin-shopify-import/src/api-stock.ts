@@ -33,7 +33,8 @@ async function fetchVariantStock(client: ShopifyClient): Promise<Map<string, num
     for (const v of nodes) {
       stock.set(
         v.id,
-        v.inventoryItem?.tracked === false ? null : Math.max(0, v.inventoryQuantity ?? 0),
+        // Negative means oversold: the units still owed, kept as on Shopify (audit #53).
+        v.inventoryItem?.tracked === false ? null : (v.inventoryQuantity ?? 0),
       )
     }
   }

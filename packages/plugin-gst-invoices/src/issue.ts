@@ -1,7 +1,16 @@
 import { validateGstin } from '@commerce/core/gstin'
 import { StoreAddressSchema } from '@commerce/core/store-settings'
 import { chargedGstRate, parseStoreTax } from '@commerce/core/tax-settings'
-import { address, customer, order, orderLine, type StoreTx, store, variant } from '@commerce/db'
+import {
+  address,
+  customer,
+  order,
+  orderLine,
+  product,
+  type StoreTx,
+  store,
+  variant,
+} from '@commerce/db'
 import {
   addressParty,
   buildDocument,
@@ -131,10 +140,14 @@ export async function orderSnapshot(
       rate: orderLine.gstRatePercent,
       lineHsn: orderLine.hsCode,
       sku: variant.sku,
-      variantHsn: variant.hsCode,
+      /* The variant's own HSN, else its product's (#63); orders placed since snapshot it. */
+      variantHsn: sql<
+        string | null
+      >`coalesce(nullif(${variant.hsCode}, ''), nullif(${product.hsCode}, ''))`,
     })
     .from(orderLine)
     .leftJoin(variant, eq(variant.id, orderLine.variantId))
+    .leftJoin(product, eq(product.id, variant.productId))
     .where(eq(orderLine.orderId, orderId))
     .orderBy(orderLine.id)
   // A parcel's invoice prints its own units; a composition GSTIN's carries no GST.

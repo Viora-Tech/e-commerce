@@ -13,12 +13,13 @@ import { useCopy } from '@/hooks/use-copy'
 import { formatDay, type RangeState, rangeQuery, sameRange } from '@/lib/analytics-range'
 import { api } from '@/lib/api-client'
 import { downloadCsv, toCsv } from '@/lib/csv'
-import { formatPaise, formatPaiseCompact } from '@/lib/money'
+import { formatPaiseCompact, formatPaiseWhole } from '@/lib/money'
 import { routes } from '@/lib/routes'
 import BreakdownCard, { type BreakdownRow } from './breakdown-card'
 import FunnelCard from './funnel-card'
 import KpiStrip from './kpi-strip'
 import RangePicker from './range-picker'
+import SalesBreakdownCard from './sales-breakdown-card'
 import TopProductsCard from './top-products-card'
 import VisitorsSection from './visitors-section'
 
@@ -100,6 +101,8 @@ export default function AnalyticsOverviewPage({
   // Render logic
   const dayPoints = data.salesOverTime.day.map((p) => ({ ...p, label: formatDay(p.label) }))
   const weekPoints = data.salesOverTime.week.map((p) => ({ ...p, label: formatDay(p.label) }))
+  /* A preset range ends today, still running: its last point is drawn dashed (audit #147). */
+  const live = range.key !== 'custom'
   const totalPaise = data.salesOverTime.day.reduce((sum, p) => sum + p.value, 0)
   const best = data.salesOverTime.day.reduce<(typeof data.salesOverTime.day)[number] | null>(
     (top, p) => (p.value > (top?.value ?? 0) ? p : top),
@@ -131,13 +134,13 @@ export default function AnalyticsOverviewPage({
       <ChartCard
         title={copy.salesOverTime.title}
         subtitle={copy.salesOverTime.subtitle(
-          formatPaise(totalPaise),
+          formatPaiseWhole(totalPaise),
           copy.salesOverTime.spans[range.key],
           best ? formatDay(best.label) : null,
         )}
         periods={[
-          { id: 'day', label: copy.salesOverTime.day, data: dayPoints },
-          { id: 'week', label: copy.salesOverTime.week, data: weekPoints },
+          { id: 'day', label: copy.salesOverTime.day, data: dayPoints, partialLast: live },
+          { id: 'week', label: copy.salesOverTime.week, data: weekPoints, partialLast: live },
         ]}
         seriesKey={`sales-${range.key}`}
         seriesLabel={copy.salesOverTime.series}
@@ -147,6 +150,7 @@ export default function AnalyticsOverviewPage({
         <FunnelCard steps={data.funnel} />
         <TopProductsCard products={data.topProducts} />
       </div>
+      <SalesBreakdownCard copy={copy.salesBreakdown} breakdown={data.salesBreakdown} />
       <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-2">
         <BreakdownCard
           title={copy.byState.title}

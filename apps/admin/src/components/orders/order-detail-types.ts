@@ -68,3 +68,29 @@ export function isOfflineMethod(method: string | null): boolean {
 export function methodLabel(provider: string, copy = orderDetailContent): string {
   return copy.payment.method[provider] ?? cap(provider)
 }
+
+/** Shopify's own gateway codes on imported orders, in words. */
+const SHOPIFY_GATEWAYS: Record<string, string> = {
+  shopify_store_credit: 'store_credit',
+  gift_card: 'gift_card',
+  manual: 'other',
+  cash_on_delivery: 'cod',
+}
+
+/**
+ * An imported order's gateways as Shopify named them ("1 Razorpay", "1Cashfree Payments(UPI,
+ * Cards,…)", "shopify_store_credit"), cleaned for people: "Razorpay", "Cashfree Payments",
+ * "Store credit" (audit #13).
+ */
+export function importedGatewayLabel(raw: string, copy = orderDetailContent): string {
+  return raw
+    .split(/,(?![^(]*\))/)
+    .map((g) => g.trim())
+    .filter(Boolean)
+    .map((g) => {
+      const known = SHOPIFY_GATEWAYS[g]
+      if (known) return copy.payment.method[known] ?? cap(known)
+      return g.replace(/^\d+\s*/, '').replace(/\s*\(.*\)\s*$/, '')
+    })
+    .join(', ')
+}

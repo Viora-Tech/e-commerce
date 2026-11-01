@@ -61,32 +61,35 @@ export default function MetaConnectionCard({ channel, surfaces }: MetaConnection
         {surfaces.map((s) => {
           const on = isLive(s.state) && s.state.status !== 'disconnected'
           return (
-            <li key={s.channel} className="flex items-center gap-3 px-4 py-3">
+            // Wraps in the narrow side column instead of clipping at the right (audit #173).
+            <li key={s.channel} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
               <ChannelLogo channel={s.channel} size="sm" />
-              <div className="flex min-w-0 flex-1 flex-col">
+              <div className="flex min-w-0 flex-1 basis-28 flex-col">
                 <span className="truncate text-body font-medium">{names[s.channel].name}</span>
                 <span className="text-caption text-muted-foreground">
                   {copy.sales(format.money(s.revenuePaise))}
                 </span>
               </div>
-              <ChannelStatusChip status={chipStatus(s.state)} />
-              {s.channel === channel ? (
-                <span className="w-16 text-right text-caption text-muted-foreground">
-                  {copy.thisPage}
-                </span>
-              ) : signedIn && !on ? (
-                <KitButton
-                  variant="pill"
-                  disabled={busy !== null}
-                  onClick={() => handleTurnOn(s.channel)}
-                >
-                  {copy.turnOn}
-                </KitButton>
-              ) : (
-                <KitButton variant="pill" href={routes.salesChannels.socialChannel(s.channel)}>
-                  {copy.open}
-                </KitButton>
-              )}
+              <div className="ml-auto flex shrink-0 items-center gap-2">
+                <ChannelStatusChip status={chipStatus(s.state)} />
+                {s.channel === channel ? (
+                  <span className="text-right text-caption text-muted-foreground">
+                    {copy.thisPage}
+                  </span>
+                ) : signedIn && !on ? (
+                  <KitButton
+                    variant="pill"
+                    disabled={busy !== null}
+                    onClick={() => handleTurnOn(s.channel)}
+                  >
+                    {copy.turnOn}
+                  </KitButton>
+                ) : (
+                  <KitButton variant="pill" href={routes.salesChannels.socialChannel(s.channel)}>
+                    {copy.open}
+                  </KitButton>
+                )}
+              </div>
             </li>
           )
         })}

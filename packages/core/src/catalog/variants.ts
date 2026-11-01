@@ -140,3 +140,15 @@ export function priceRange(
   const set = prices.filter((p): p is number => p != null)
   return set.length ? { min: Math.min(...set), max: Math.max(...set) } : null
 }
+
+/**
+ * The range an admin list or picker shows: the variants shoppers can buy, so a SKU hidden on
+ * the store (Shopify imports unavailable ones at ₹0) does not drag a product's price to ₹0
+ * (audit #140). Falls back to every variant when all are hidden.
+ */
+export function listedPriceRange(
+  variants: readonly { pricePaise: number | null; hiddenOnStore: boolean }[],
+): { min: number; max: number } | null {
+  const shown = variants.filter((v) => !v.hiddenOnStore)
+  return priceRange((shown.length ? shown : variants).map((v) => v.pricePaise))
+}

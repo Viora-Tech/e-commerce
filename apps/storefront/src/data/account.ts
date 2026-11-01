@@ -158,6 +158,9 @@ export const accountContent = {
     expected: (date: string) => `Expected by ${date}`,
     trackOnSite: 'Track with courier',
     noTracking: 'We will share tracking details as soon as your order ships.',
+    /** Handed over without courier tracking (the shop marked it delivered or shipped it by hand). */
+    noTrackingDelivered: 'Your order was delivered.',
+    noTrackingShipped: 'Your order is on its way. The shop did not add courier tracking.',
     noEvents: 'The courier has not reported any scans yet.',
     /** Figma "Track — cancelled" and "Track — delivery failed / returning". */
     notices: {

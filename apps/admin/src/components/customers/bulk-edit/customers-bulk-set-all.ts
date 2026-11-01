@@ -1,4 +1,4 @@
-import { type GridRow, parseTags } from './customers-bulk-model'
+import { canSubscribe, type GridRow, isConsentKey, parseTags } from './customers-bulk-model'
 
 /** What "Change for all" can do to each column. Name and phone belong to one person each. */
 export const SET_ALL_ACTIONS = {
@@ -41,13 +41,14 @@ function nextValue(row: GridRow, { key, action, value }: SetAllChange): string {
   return action === 'subscribe' ? 'yes' : 'no'
 }
 
-/** Erased customers never change, and email marketing needs an email. */
-const applies = (row: GridRow, key: SetAllKey) =>
-  !row.anonymised && !(key === 'acceptsMarketing' && !row.email)
+/**
+ * Erased customers never change. Subscribing needs a way to reach them: email marketing an
+ * email, SMS and WhatsApp a phone (#999); unsubscribing always applies.
+ */
+const applies = (row: GridRow, { key, action }: SetAllChange) =>
+  !row.anonymised && !(action === 'subscribe' && isConsentKey(key) && !canSubscribe(row, key))
 
 /** One change laid over every row that can take it; the grid still needs Save to keep it. */
 export function applyToAll(rows: GridRow[], change: SetAllChange): GridRow[] {
-  return rows.map((r) =>
-    applies(r, change.key) ? { ...r, [change.key]: nextValue(r, change) } : r,
-  )
+  return rows.map((r) => (applies(r, change) ? { ...r, [change.key]: nextValue(r, change) } : r))
 }

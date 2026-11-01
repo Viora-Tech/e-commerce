@@ -1,10 +1,9 @@
 import 'server-only'
 import { loadEnv } from '@commerce/config'
 import {
+  cartShippingHintFor,
   type DeliveryEstimate,
   domesticShippingProvider,
-  freeShippingThreshold,
-  loadRateZones,
   parseShippingSettings,
   previewCartParcels,
   quoteCartShipping,
@@ -13,6 +12,7 @@ import {
   type ShippingSettings,
   toShippingPolicy,
 } from '@commerce/core'
+import { isAbroad } from '@commerce/core/checkout-address'
 import { registriesForStore } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
 import { store } from '@commerce/db'
@@ -25,6 +25,7 @@ import {
   sharedRedis,
 } from '@commerce/queue'
 import {
+  computeDeliveryEstimate,
   describeCourierFailure,
   estimateDelivery,
   formatDeliveryRange,
@@ -116,13 +117,14 @@ export async function estimateForPincode(
 /**
  * What the cart can say about shipping before there is an address: whether
  * the store charges for it at all, and the order value from which it is free
- * everywhere (null when there is no such promise).
+ * everywhere for the cart's products, by their shipping profiles (null when
+ * there is no such promise).
  */
 export async function cartShippingHint(
   tx: StoreTx,
+  cartId: string | null,
 ): Promise<{ charged: boolean; freeAbovePaise: number | null }> {
-  const zones = await loadRateZones(tx)
-  return { charged: zones.length > 0, freeAbovePaise: freeShippingThreshold(zones) }
+  return cartShippingHintFor(tx, cartId)
 }
 
 /** One shipping choice as the checkout shows it. */
@@ -140,6 +142,8 @@ export type CheckoutRate = {
   fastest: boolean
   /** Delivery options app: COD, the sub-choices and the struck-through price of this card. */
   delivery?: DeliveryCardExtras | undefined
+  /** Local delivery or pickup in store: the location's pickup time and instructions. */
+  instructions?: string | null | undefined
 }
 
 export type CheckoutShipping = {
@@ -165,18 +169,23 @@ function datedRates(
   now: Date,
 ): CheckoutRate[] {
   const policy = toShippingPolicy(settings)
-  const cheapest = Math.min(...options.map((o) => o.pricePaise))
+  // Pickup (free) and local delivery are not the courier's standard service.
+  const shipped = options.filter((o) => !o.local)
+  const cheapest = Math.min(...shipped.map((o) => o.pricePaise))
   const dated = options.map((o, i) => ({
     o,
-    window: rateWindow({
-      rate: o,
-      // The first of the cheapest options is the courier's standard service.
-      standard:
-        o.pricePaise === cheapest && options.findIndex((x) => x.pricePaise === cheapest) === i,
-      delivery,
-      policy,
-      now,
-    }),
+    // Local delivery and pickup run on the store's own clock, not a courier's.
+    window: o.local
+      ? null
+      : rateWindow({
+          rate: o,
+          // The first of the cheapest options is the courier's standard service.
+          standard:
+            o.pricePaise === cheapest && shipped.findIndex((x) => x.pricePaise === cheapest) === i,
+          delivery,
+          policy,
+          now,
+        }),
   }))
   const fastest = fastestRate(dated)
   return dated.map(({ o, window }) => ({
@@ -187,6 +196,7 @@ function datedRates(
     codSurchargePaise: o.codSurchargePaise,
     arrives: window ? arrivalLabel(window, now, policy.timeZone) : null,
     fastest: fastest?.o === o,
+    instructions: o.local?.instructions || null,
   }))
 }
 
@@ -209,9 +219,10 @@ export async function checkoutShipping(
   tx: StoreTx,
   storeId: string,
   cartId: string,
-  to: { pincode: string; stateCode: string },
+  to: { pincode: string; stateCode: string; countryCode?: string | undefined },
   opts: { declineInsurance?: boolean | undefined; quoteId?: string | null | undefined } = {},
 ): Promise<CheckoutShipping> {
+  if (isAbroad(to.countryCode)) return abroadShipping(tx, storeId, cartId, to)
   const fromApp = await deliveryOptionsShipping(tx, storeId, cartId, to, opts)
   if (fromApp) return fromApp
   const delivery = await estimateForPincode(tx, storeId, to.pincode)
@@ -233,6 +244,74 @@ export async function checkoutShipping(
     arrives,
     rates: { kind: 'rates', options: datedRates(quote.options, settings, delivery, now) },
   }
+}
+
+/**
+ * An address abroad: the country zones' rates for the cart (`placeOrder` prices the same), with
+ * no Indian courier asked and no cash on delivery. A rate with its own transit days shows its
+ * dates; others show none, as the store's Indian dispatch days do not say when a parcel abroad
+ * lands. `delivery` stands in as "serviceable, prepaid only" for the rest of the checkout.
+ */
+async function abroadShipping(
+  tx: StoreTx,
+  storeId: string,
+  cartId: string,
+  to: { pincode: string; stateCode: string; countryCode?: string | undefined },
+): Promise<CheckoutShipping> {
+  const delivery: DeliveryEstimate = {
+    ok: true,
+    serviceable: true,
+    pincode: to.pincode,
+    codAvailable: false,
+    dateRange: '',
+    earliestDate: '',
+    latestDate: '',
+    dispatchDate: '',
+    dispatchLabel: '',
+    dispatchesToday: false,
+    fallback: true,
+    provider: 'abroad',
+  }
+  const quote = await quoteCartShipping({ storeId, tx }, cartId, {
+    pincode: to.pincode,
+    stateCode: to.stateCode,
+    countryCode: to.countryCode,
+  })
+  if (quote.kind === 'not_configured') {
+    return { delivery, rates: { kind: 'free' }, parcels: [], arrives: null }
+  }
+  if (quote.kind === 'no_rates') {
+    return { delivery, rates: { kind: 'none' }, parcels: [], arrives: null }
+  }
+  const policy = toShippingPolicy(await loadShippingSettings(tx, storeId))
+  const now = new Date()
+  const windowOf = (o: ShippingRateOption): RateWindow | null => {
+    if (o.minTransitDays === null || o.maxTransitDays === null) return null
+    try {
+      const e = computeDeliveryEstimate({
+        now,
+        minTransitDays: o.minTransitDays,
+        maxTransitDays: o.maxTransitDays,
+        policy,
+      })
+      return { earliest: e.earliestDate, latest: e.latestDate, source: 'rate' }
+    } catch {
+      return null
+    }
+  }
+  const options: CheckoutRate[] = quote.options.map((o) => {
+    const window = windowOf(o)
+    return {
+      id: o.rateId,
+      name: o.name,
+      pricePaise: o.pricePaise,
+      dateRange: window ? formatDeliveryRange(window.earliest, window.latest) : null,
+      codSurchargePaise: null,
+      arrives: window ? arrivalLabel(window, now, policy.timeZone) : null,
+      fastest: false,
+    }
+  })
+  return { delivery, rates: { kind: 'rates', options }, parcels: [], arrives: null }
 }
 
 /**

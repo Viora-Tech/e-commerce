@@ -1,15 +1,16 @@
 import {
-  buildMatrix,
   type InventoryReason,
   type ProductStatus,
   type ProductWrite,
   variantTitle,
   type WeightUnit,
 } from '@commerce/core/catalog'
+import { ownFields } from '@commerce/core/preorder'
 import { isRichTextEmpty, parseRichText, type RichTextValue } from '@commerce/richtext'
 import type { productFormContent } from '@/data/product-form'
 import { rupees } from '@/data/products'
 import type { api } from '@/lib/api-client'
+import { liftTax, type ProductTax } from './product-tax'
 import { DEFAULT_WEIGHT_UNIT, fromGrams, toGrams } from './weight-units'
 
 export type LoadedProduct = NonNullable<Awaited<ReturnType<typeof api.products.get>>>
@@ -72,6 +73,8 @@ export type ProductFormState = {
   taxIncluded: boolean
   /** Highlights the product in the storefront's featured section. */
   featured: boolean
+  /** HSN code and GST rate for the whole product, or per variant (#63). */
+  tax: ProductTax
   /** `yyyy-mm-dd` bounds for the compare-at price; empty means no bound. */
   saleStartsAt: string
   saleEndsAt: string
@@ -88,6 +91,10 @@ export type ProductFormState = {
   preorderDeposit: string
   preorderDepositPercent: string
   preorderHideFromCollectionsUntilLaunch: boolean
+  /** Pre-order campaign the product sells under (Products › Pre-orders); null = its own settings. */
+  preorderCampaignId: string | null
+  /** In a campaign, the settings it keeps its own (`PREORDER_OWN_FIELDS`). */
+  preorderOwn: string[]
   /** `yyyy-mm-ddThh:mm`, Asia/Kolkata as typed; blank means always on sale. */
   launchAt: string
   options: OptionRow[]
@@ -142,6 +149,7 @@ export function emptyForm(): ProductFormState {
     handle: '',
     taxIncluded: true,
     featured: false,
+    tax: { hsCode: '', gstRate: '', perVariant: false },
     saleStartsAt: '',
     saleEndsAt: '',
     preorderEnabled: false,
@@ -154,6 +162,8 @@ export function emptyForm(): ProductFormState {
     preorderDeposit: '',
     preorderDepositPercent: '',
     preorderHideFromCollectionsUntilLaunch: false,
+    preorderCampaignId: null,
+    preorderOwn: [],
     launchAt: '',
     options: [],
     variants: [emptyVariant([])],
@@ -163,6 +173,7 @@ export function emptyForm(): ProductFormState {
 }
 
 export function fromProduct(p: LoadedProduct): ProductFormState {
+  const variants = fromVariants(p)
   return {
     title: p.title,
     description: parseRichText(p.description),
@@ -178,6 +189,7 @@ export function fromProduct(p: LoadedProduct): ProductFormState {
     handle: p.handle,
     taxIncluded: p.taxIncluded,
     featured: p.featured,
+    tax: liftTax(p, variants),
     saleStartsAt: toDateField(p.saleStartsAt),
     saleEndsAt: toDateField(p.saleEndsAt),
     preorderEnabled: p.preorderEnabled,
@@ -191,44 +203,50 @@ export function fromProduct(p: LoadedProduct): ProductFormState {
     preorderDepositPercent:
       p.preorderDepositPercent == null ? '' : String(p.preorderDepositPercent),
     preorderHideFromCollectionsUntilLaunch: p.preorderHideFromCollectionsUntilLaunch,
+    preorderCampaignId: p.preorderCampaignId ?? null,
+    preorderOwn: p.preorderOwn ?? [],
     launchAt: toDateTimeField(p.launchAt),
     options: p.options.map((o) => ({
       id: o.id,
       name: o.name,
       values: o.values.map((v) => v.value),
     })),
-    // A product imported without variants (Shopify "historical" items) still needs one row,
-    // or the editor has nothing to show and renders a blank page.
-    variants:
-      p.variants.length === 0
-        ? [emptyVariant([])]
-        : p.variants.map((v) => ({
-            id: v.id,
-            optionValues: v.optionValues,
-            price: rupees.toField(v.pricePaise),
-            mrp: rupees.toField(v.mrpPaise),
-            cost: rupees.toField(v.costPaise),
-            sku: v.sku ?? '',
-            barcode: v.barcode ?? '',
-            taxable: v.taxable,
-            trackInventory: v.trackInventory,
-            hiddenOnStore: v.hiddenOnStore,
-            preorderAllowed: v.preorderAllowed,
-            quantity: String(v.onHand ?? 0),
-            weight: fromGrams(v.weightGrams, v.weightUnit ?? DEFAULT_WEIGHT_UNIT),
-            weightUnit: v.weightUnit ?? DEFAULT_WEIGHT_UNIT,
-            hsCode: v.hsCode ?? '',
-            countryOfOrigin: v.countryOfOrigin ?? '',
-            gstRate: v.gstRatePercent == null ? '' : String(v.gstRatePercent),
-            boxPresetId: v.boxPresetId ?? null,
-            packageLengthCm: v.packageLengthCm ?? null,
-            packageWidthCm: v.packageWidthCm ?? null,
-            packageHeightCm: v.packageHeightCm ?? null,
-            mediaIds: v.mediaIds,
-          })),
+    variants,
     media: p.images.map((i) => ({ id: i.id, url: i.url, alt: i.alt, contentType: i.contentType })),
     inventoryReason: 'correction',
   }
+}
+
+/** Variant rows of a loaded product. */
+function fromVariants(p: LoadedProduct): VariantRow[] {
+  // A product imported without variants (Shopify "historical" items) still needs one row,
+  // or the editor has nothing to show and renders a blank page.
+  return p.variants.length === 0
+    ? [emptyVariant([])]
+    : p.variants.map((v) => ({
+        id: v.id,
+        optionValues: v.optionValues,
+        price: rupees.toField(v.pricePaise),
+        mrp: rupees.toField(v.mrpPaise),
+        cost: rupees.toField(v.costPaise),
+        sku: v.sku ?? '',
+        barcode: v.barcode ?? '',
+        taxable: v.taxable,
+        trackInventory: v.trackInventory,
+        hiddenOnStore: v.hiddenOnStore,
+        preorderAllowed: v.preorderAllowed,
+        quantity: String(v.onHand ?? 0),
+        weight: fromGrams(v.weightGrams, v.weightUnit ?? DEFAULT_WEIGHT_UNIT),
+        weightUnit: v.weightUnit ?? DEFAULT_WEIGHT_UNIT,
+        hsCode: v.hsCode ?? '',
+        countryOfOrigin: v.countryOfOrigin ?? '',
+        gstRate: v.gstRatePercent == null ? '' : String(v.gstRatePercent),
+        boxPresetId: v.boxPresetId ?? null,
+        packageLengthCm: v.packageLengthCm ?? null,
+        packageWidthCm: v.packageWidthCm ?? null,
+        packageHeightCm: v.packageHeightCm ?? null,
+        mediaIds: v.mediaIds,
+      }))
 }
 
 /**
@@ -240,72 +258,6 @@ export function snapshot(form: ProductFormState): string {
     ...form,
     description: form.description && isRichTextEmpty(form.description) ? null : form.description,
   })
-}
-
-/** Options that take part in the matrix: at least one non-blank value. A half-typed option waits. */
-export function matrixOptions(options: OptionRow[]): OptionRow[] {
-  return options.filter((o) => o.values.some((v) => v.trim()))
-}
-
-/** Option name -> value for one row, keyed case-insensitively (blank names fall back to position). */
-function valuesByName(options: OptionRow[], optionValues: string[]): Map<string, string> {
-  return new Map(
-    options.map((o, i) => [o.name.trim().toLowerCase() || `#${i}`, optionValues[i] ?? '']),
-  )
-}
-
-/** Every option both rows know about has the same value (vacuously true with none shared). */
-function agrees(a: Map<string, string>, b: Map<string, string>): boolean {
-  for (const [key, value] of a) {
-    if (b.has(key) && b.get(key) !== value) return false
-  }
-  return true
-}
-
-/**
- * Rebuilds the variant matrix after an options edit, carrying existing rows (and so their ids,
- * prices, SKUs and stock) over wherever they still fit. A row keeps its place when its
- * combination survives; otherwise it moves to the first new combination that agrees with it
- * on every option both share. So the default variant becomes the first row when the first
- * option arrives, "S" becomes "S / Red" when Colour is added, and one of "S / Red" and
- * "S / Blue" becomes "S" when Colour goes. Rows `variants` were built from `before`'s
- * matrix options; `dropped` are the rows nothing took over.
- */
-export function reconcileVariants(
-  after: OptionRow[],
-  before: OptionRow[],
-  variants: VariantRow[],
-): { variants: VariantRow[]; dropped: VariantRow[] } {
-  const nextOptions = matrixOptions(after)
-  const prevOptions = matrixOptions(before)
-  const combos = buildMatrix(
-    nextOptions.map((o) => ({ name: o.name, values: o.values.map((value) => ({ value })) })),
-  )
-  const used = new Set<number>()
-  const taken: (number | undefined)[] = combos.map((combo) => {
-    const title = variantTitle(combo)
-    const i = variants.findIndex((v, j) => !used.has(j) && variantTitle(v.optionValues) === title)
-    if (i !== -1) used.add(i)
-    return i === -1 ? undefined : i
-  })
-  const prevKeys = variants.map((v) => valuesByName(prevOptions, v.optionValues))
-  combos.forEach((combo, c) => {
-    if (taken[c] !== undefined) return
-    const keys = valuesByName(nextOptions, combo)
-    const i = variants.findIndex((_, j) => !used.has(j) && agrees(prevKeys[j] ?? new Map(), keys))
-    if (i === -1) return
-    used.add(i)
-    taken[c] = i
-  })
-  const template = variants[0]
-  return {
-    variants: combos.map((combo, c) => {
-      const i = taken[c]
-      const kept = i === undefined ? undefined : variants[i]
-      return kept ? { ...kept, optionValues: combo } : emptyVariant(combo, template)
-    }),
-    dropped: variants.filter((_, j) => !used.has(j)),
-  }
 }
 
 /** Units on hand across rows, for the "these variants still have stock" confirmation. */
@@ -365,6 +317,8 @@ export function toWrite(form: ProductFormState): ProductWrite {
     templateSuffix: form.templateSuffix || null,
     status: form.status,
     taxIncluded: form.taxIncluded,
+    hsCode: form.tax.hsCode.trim() || null,
+    gstRatePercent: form.tax.gstRate.trim() === '' ? null : Number(form.tax.gstRate),
     featured: form.featured,
     saleStartsAt: fromDateField(form.saleStartsAt),
     saleEndsAt: fromDateField(form.saleEndsAt),
@@ -378,6 +332,8 @@ export function toWrite(form: ProductFormState): ProductWrite {
     preorderDepositPaise: rupees.toPaise(form.preorderDeposit),
     preorderDepositPercent: intOrNull(form.preorderDepositPercent),
     preorderHideFromCollectionsUntilLaunch: form.preorderHideFromCollectionsUntilLaunch,
+    preorderCampaignId: form.preorderCampaignId,
+    preorderOwn: ownFields(form.preorderOwn),
     launchAt: fromDateTimeField(form.launchAt),
     inventoryReason: form.inventoryReason,
     mediaIds: form.media.map((m) => m.id),
@@ -401,9 +357,11 @@ export function toWrite(form: ProductFormState): ProductWrite {
       preorderAllowed: v.preorderAllowed,
       weightGrams: toGrams(v.weight, v.weightUnit),
       weightUnit: v.weightUnit,
-      hsCode: v.hsCode.trim() || null,
+      // One HSN and rate for the product unless "Different per variant" is on (#63): then a
+      // variant's own value wins and a blank one uses the product's.
+      hsCode: form.tax.perVariant ? v.hsCode.trim() || null : null,
       countryOfOrigin: v.countryOfOrigin.trim() || null,
-      gstRatePercent: v.gstRate.trim() === '' ? null : Number(v.gstRate),
+      gstRatePercent: form.tax.perVariant && v.gstRate.trim() !== '' ? Number(v.gstRate) : null,
       boxPresetId: v.boxPresetId,
       packageLengthCm: v.packageLengthCm,
       packageWidthCm: v.packageWidthCm,
@@ -438,7 +396,11 @@ export function formErrors(copy: typeof productFormContent, form: ProductFormSta
   if (dims.some((d) => d.some((n) => n != null) && d.some((n) => n == null))) {
     errors.package = copy.shipping.packageIncomplete
   }
-  if (form.preorderEnabled) {
+  // In a campaign the product's payment only counts when it keeps its own (#142).
+  const ownPayment = form.preorderCampaignId
+    ? form.preorderOwn.includes('payment')
+    : form.preorderEnabled
+  if (ownPayment) {
     if (form.preorderPaymentMode === 'fixed') {
       const deposit = rupees.toPaise(form.preorderDeposit)
       const lowestPrice = Math.min(

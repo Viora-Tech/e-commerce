@@ -13,3 +13,31 @@ export function orNoStore<T>(fallback: T) {
     throw error
   }
 }
+
+/**
+ * `orNoStore` for a page that loads one record by the id in its address: a malformed id
+ * (/orders/abandoned, /products/xyz) resolves to null, so the page calls notFound() and shows
+ * "Page not found" instead of crashing with a React error (audit #36).
+ */
+export function orNoStoreOrMissing<T>(fallback: T) {
+  return (error: unknown): T | null => {
+    if (isInvalidInput(error)) return null
+    return orNoStore(fallback)(error)
+  }
+}
+
+/**
+ * For a page outside the store-picker flow: a malformed id in the address resolves to null so
+ * the page calls notFound(); any other error is rethrown.
+ */
+export function orMissing(error: unknown): null {
+  if (isInvalidInput(error)) return null
+  throw error
+}
+
+/** The API refused the call's input (e.g. an id that is not a UUID). */
+function isInvalidInput(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false
+  const e = error as { code?: unknown; message?: unknown }
+  return e.code === 'BAD_REQUEST' && /input validation/i.test(String(e.message ?? ''))
+}

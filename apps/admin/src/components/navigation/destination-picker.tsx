@@ -1,7 +1,7 @@
 'use client'
 
 import { POLICY_TITLES, POLICY_TYPES } from '@commerce/core/policies'
-import { Search } from '@commerce/ui/icons'
+import { CheckIcon, Search } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useEffect, useState } from 'react'
@@ -108,7 +108,17 @@ export default function DestinationPicker({
                 selectedValue === c.value && 'bg-primary-soft',
               )}
             >
-              <span className="truncate text-foreground">{c.title}</span>
+              <span className="flex min-w-0 items-center gap-2">
+                {/* The picked row is ticked, not only tinted (audit #160). */}
+                <CheckIcon
+                  aria-hidden="true"
+                  className={cn(
+                    'size-4 shrink-0 text-foreground',
+                    selectedValue !== c.value && 'invisible',
+                  )}
+                />
+                <span className="truncate text-foreground">{c.title}</span>
+              </span>
               <span className="shrink-0 text-caption text-muted-foreground">/{c.value}</span>
             </button>
           ))

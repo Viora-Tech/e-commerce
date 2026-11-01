@@ -31,6 +31,7 @@ import { fedexPlugin } from '@commerce/shipping-fedex'
 import { indiaPostPlugin } from '@commerce/shipping-indiapost'
 import { rapidshypPlugin } from '@commerce/shipping-rapidshyp'
 import { shadowfaxPlugin } from '@commerce/shipping-shadowfax'
+import { shipglobalPlugin } from '@commerce/shipping-shipglobal'
 import { shiprocketPlugin } from '@commerce/shipping-shiprocket'
 import { xpressbeesPlugin } from '@commerce/shipping-xpressbees'
 import { r2Plugin } from '@commerce/storage-r2'
@@ -58,6 +59,7 @@ export default defineConfig({
     shadowfaxPlugin,
     dhlExpressPlugin,
     fedexPlugin,
+    shipglobalPlugin,
     sesPlugin,
     whatsappPlugin,
     r2Plugin,

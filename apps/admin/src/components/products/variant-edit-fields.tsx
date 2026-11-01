@@ -18,6 +18,7 @@ import { COUNTRIES } from '@/data/countries'
 import { productFormContent } from '@/data/product-form'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { margin, type VariantRow } from './form-state'
+import type { ProductTax } from './product-tax'
 import WeightInput from './weight-input'
 import ZeroPriceWarning from './zero-price-warning'
 
@@ -26,6 +27,8 @@ type VariantEditFieldsProps = {
   onPatch: (patch: Partial<VariantRow>) => void
   /** Fills the SKU from the product and this variant's option values. */
   onGenerateSku: () => void
+  /** The product's HSN and GST rate; the variant edits its own only when `perVariant` (#63). */
+  tax: ProductTax
 }
 
 const NONE = '__none'
@@ -38,6 +41,7 @@ export default function VariantEditFields({
   draft,
   onPatch,
   onGenerateSku,
+  tax,
 }: VariantEditFieldsProps) {
   // Hooks
   const formCopy = useCopy(productFormContent)
@@ -198,19 +202,44 @@ export default function VariantEditFields({
             onCheckedChange={(taxable) => onPatch({ taxable })}
           />
         </div>
-        {draft.taxable ? (
-          <KitField label={shipping.gstRate} htmlFor="edit-variant-gst" help={shipping.gstRateHelp}>
-            <Input
-              size="kit"
-              id="edit-variant-gst"
-              value={draft.gstRate}
-              onChange={(e) => onPatch({ gstRate: e.target.value.replace(/\D/g, '').slice(0, 2) })}
-              autoComplete="off"
-              inputMode="numeric"
-              className="md:max-w-[12rem]"
-            />
-          </KitField>
-        ) : null}
+        {tax.perVariant ? (
+          <div className="grid gap-4 md:grid-cols-2">
+            {draft.taxable ? (
+              <KitField
+                label={shipping.gstRate}
+                htmlFor="edit-variant-gst"
+                help={shipping.gstRateHelp}
+              >
+                <Input
+                  size="kit"
+                  id="edit-variant-gst"
+                  value={draft.gstRate}
+                  placeholder={
+                    tax.gstRate.trim() ? copy.fromProduct(tax.gstRate.trim()) : undefined
+                  }
+                  onChange={(e) =>
+                    onPatch({ gstRate: e.target.value.replace(/\D/g, '').slice(0, 2) })
+                  }
+                  autoComplete="off"
+                  inputMode="numeric"
+                />
+              </KitField>
+            ) : null}
+            <KitField label={shipping.hsCode} htmlFor="edit-variant-hs" help={shipping.hsCodeHelp}>
+              <Input
+                size="kit"
+                id="edit-variant-hs"
+                value={draft.hsCode}
+                placeholder={tax.hsCode.trim() ? copy.fromProduct(tax.hsCode.trim()) : undefined}
+                onChange={(e) => onPatch({ hsCode: e.target.value })}
+                autoComplete="off"
+                inputMode="numeric"
+              />
+            </KitField>
+          </div>
+        ) : (
+          <p className="text-caption text-muted-foreground">{copy.taxFromProduct}</p>
+        )}
       </Group>
 
       <Group title={copy.shipping}>
@@ -223,16 +252,6 @@ export default function VariantEditFields({
           />
         </KitField>
         <div className="grid gap-4 md:grid-cols-2">
-          <KitField label={shipping.hsCode} htmlFor="edit-variant-hs" help={shipping.hsCodeHelp}>
-            <Input
-              size="kit"
-              id="edit-variant-hs"
-              value={draft.hsCode}
-              onChange={(e) => onPatch({ hsCode: e.target.value })}
-              autoComplete="off"
-              inputMode="numeric"
-            />
-          </KitField>
           <KitField label={shipping.country} htmlFor="edit-variant-origin">
             <Select
               items={countries}

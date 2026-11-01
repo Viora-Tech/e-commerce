@@ -1,5 +1,6 @@
 import 'server-only'
 import type { CardProduct } from '@commerce/blocks'
+import { soldInRequestCatalog } from '@commerce/core'
 import type { CollectionSort } from '@commerce/core/collections'
 import type { StoreTx } from '@commerce/db'
 import {
@@ -13,7 +14,15 @@ import {
 } from '@commerce/db'
 import type { RichTextValue } from '@commerce/richtext'
 import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
-import { cardPreorder, cardRatings, cheapestPriced, listCardProducts } from './catalog'
+import {
+  campaignFor,
+  cardPreorder,
+  cardRatings,
+  cheapestPriced,
+  listCardProducts,
+  storefrontCampaigns,
+  variantPrices,
+} from './catalog'
 
 export type CollectionDetail = {
   id: string
@@ -136,7 +145,12 @@ export async function listCollectionProducts(
   collectionId: string,
   options: { sort: CollectionSort; page: number; perPage: number },
 ): Promise<CollectionProducts> {
-  const where = and(eq(collectionProduct.collectionId, collectionId), eq(product.status, 'active'))
+  const where = and(
+    eq(collectionProduct.collectionId, collectionId),
+    eq(product.status, 'active'),
+    // Markets › Catalogs: a market's catalog lists only its products.
+    soldInRequestCatalog(product.id),
+  )
   const [countRow] = await tx
     .select({ total: sql<number>`count(*)` })
     .from(collectionProduct)
@@ -160,6 +174,8 @@ export async function listCollectionProducts(
       preorderPaymentMode: product.preorderPaymentMode,
       preorderDepositPaise: product.preorderDepositPaise,
       preorderDepositPercent: product.preorderDepositPercent,
+      preorderOwn: product.preorderOwn,
+      preorderCampaignId: product.preorderCampaignId,
     })
     .from(collectionProduct)
     .innerJoin(product, eq(product.id, collectionProduct.productId))
@@ -203,6 +219,10 @@ export async function listCollectionProducts(
     .where(and(inArray(productMedia.productId, ids), sql`${productMedia.position} < 2`))
     .orderBy(asc(productMedia.position))
   const ratings = await cardRatings(tx, ids)
+  const campaigns = await storefrontCampaigns(
+    tx,
+    rows.map((r) => r.preorderCampaignId),
+  )
 
   const items = rows.map((p) => {
     const vs = variants.filter((v) => v.productId === p.id)
@@ -218,7 +238,8 @@ export async function listCollectionProducts(
       available: vs.reduce((n, v) => n + availableFor(v), 0),
       // Quick add needs no choice only when there is one priced variant to add.
       quickAddVariantId: vs.length === 1 && cheapest ? (vs[0]?.id ?? null) : null,
-      preorder: cardPreorder(p, vs),
+      variantPrices: variantPrices(vs),
+      preorder: cardPreorder(p, vs, campaignFor(campaigns, p)),
       rating: ratings.get(p.id) ?? null,
       images: images
         .filter((i) => i.productId === p.id)

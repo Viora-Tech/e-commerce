@@ -7,10 +7,13 @@ import {
   ChevronRightIcon,
   CircleCheck,
   Copy,
+  ExternalLink,
   FileEdit,
   FileText,
+  LinkIcon,
   Package,
   PackageCheck,
+  Pause,
   Pencil,
   Printer,
   RotateCcw,
@@ -27,6 +30,7 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { orderAppActionsContent } from '@/data/order-app-actions'
 import { orderDetailContent } from '@/data/order-detail'
 import { orderEditContent } from '@/data/order-edit'
+import { orderHoldContent } from '@/data/order-hold'
 import {
   type OrderFulfillmentStatus,
   type OrderMark,
@@ -54,14 +58,24 @@ type OrderActionsProps = {
   onCancelShipment?: (() => void) | undefined
   /** Nudges the customer about an unmatched UPI or bank transfer. */
   onSendReminder?: (() => void) | undefined
+  /** "Send order link": the customer's link to their order page; undefined hides it. */
+  onSendOrderLink?: (() => void) | undefined
+  /** "View order status page": the shopper's own page for this order, in a new tab. */
+  onViewStatusPage?: (() => void) | undefined
   /** Starts a new draft from this order ("Duplicate order"); undefined hides it. */
   onDuplicate?: (() => void) | undefined
+  /** "Archive order": off the working tabs; undefined hides it (no right, or already archived). */
+  onArchive?: (() => void) | undefined
   /** Opens "Cancel order" (reason, restock, notify, refund); undefined once it cannot be cancelled. */
   onCancel?: (() => void) | undefined
+  /** Opens "Hold fulfilment" (#1011); undefined when it cannot be held (or already is). */
+  onHold?: (() => void) | undefined
   /** Opens the order edit page; undefined when the order cannot be edited. */
   onEdit?: (() => void) | undefined
   /** Where the order's invoices are on the page ("View invoices"); undefined hides it. */
   invoicesHref?: string | undefined
+  /** The print view of this order's packing slip (Settings › Printed documents). */
+  printHref: string
   /** The order's number, for "Copy order number". */
   orderNumber?: number | undefined
   /** The customer's email, for "Orders from this customer". */
@@ -86,10 +100,15 @@ export default function OrderActions({
   onShip,
   onCancelShipment,
   onSendReminder,
+  onSendOrderLink,
+  onViewStatusPage,
   onDuplicate,
+  onArchive,
   onCancel,
+  onHold,
   onEdit,
   invoicesHref,
+  printHref,
   orderNumber,
   customerEmail,
   appItems = [],
@@ -102,6 +121,7 @@ export default function OrderActions({
   const list = useCopy(ordersContent)
   const appCopy = useCopy(orderAppActionsContent)
   const editCopy = useCopy(orderEditContent)
+  const holdCopy = useCopy(orderHoldContent)
   const [confirm, setConfirm] = useState<'cancelShipment' | null>(null)
 
   // Event handlers
@@ -151,7 +171,11 @@ export default function OrderActions({
           {editCopy.short}
         </Button>
       ) : null}
-      <Button variant="outline" title={copy.actions.print} onClick={() => window.print()}>
+      <Button
+        variant="outline"
+        title={copy.actions.print}
+        onClick={() => window.open(printHref, '_blank', 'noopener')}
+      >
         <Printer aria-hidden="true" />
         {copy.actions.printShort}
       </Button>
@@ -187,6 +211,13 @@ export default function OrderActions({
             onSelect: () => setConfirm('cancelShipment'),
           },
           {
+            label: holdCopy.action,
+            icon: Pause,
+            hidden: !onHold || readOnly,
+            disabled: busy,
+            onSelect: onHold,
+          },
+          {
             label: copy.actions.refund,
             icon: RotateCcw,
             hidden: !refundable,
@@ -208,6 +239,19 @@ export default function OrderActions({
             onSelect: onSendReminder,
           },
           {
+            label: copy.actions.sendOrderLink,
+            icon: LinkIcon,
+            hidden: !onSendOrderLink || readOnly,
+            disabled: busy,
+            onSelect: onSendOrderLink,
+          },
+          {
+            label: copy.actions.viewStatusPage,
+            icon: ExternalLink,
+            hidden: !onViewStatusPage,
+            onSelect: onViewStatusPage,
+          },
+          {
             label: copy.duplicate.action,
             icon: FileEdit,
             hidden: !onDuplicate,
@@ -227,6 +271,12 @@ export default function OrderActions({
             icon: Users,
             hidden: !customerEmail,
             href: `${routes.orders.list()}?query=${encodeURIComponent(customerEmail ?? '')}`,
+          },
+          // The order's own action, not an app's: it sits above the Apps group.
+          {
+            label: copy.archive.action,
+            hidden: !onArchive,
+            onSelect: onArchive,
           },
           ...(readOnly ? [] : appItems).map((item, i) => ({
             ...item,

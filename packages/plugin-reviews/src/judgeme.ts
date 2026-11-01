@@ -4,6 +4,7 @@ import { product, type StoreTx, variant } from '@commerce/db'
 import { inArray, sql } from 'drizzle-orm'
 import { type ReviewStatus, review, reviewMedia } from './schema'
 import { MAX_REVIEW_PHOTOS } from './settings'
+import { markSummariesStale } from './summary'
 
 /*
  * Judge.me's review CSV (Judge.me → Settings → Data export → Export reviews). Column names
@@ -399,6 +400,7 @@ export async function importJudgemeReviews(
   let imported = 0
   let storeReviews = 0
   let photosToCopy = 0
+  const touched = new Set<string>()
   for (const part of chunks(todo, 200)) {
     const inserted = await tx
       .insert(review)
@@ -431,6 +433,7 @@ export async function importJudgemeReviews(
       .returning({ id: review.id, externalId: review.externalId, productId: review.productId })
     imported += inserted.length
     storeReviews += inserted.filter((r) => r.productId === null).length
+    for (const r of inserted) if (r.productId) touched.add(r.productId)
     if (!options.copyPhotos) continue
     const photoRows = inserted.flatMap((ins) => {
       const row = part.find((t) => t.row.externalId === ins.externalId)?.row
@@ -446,6 +449,8 @@ export async function importJudgemeReviews(
       photosToCopy += photoRows.length
     }
   }
+  // The products' "What customers say" summaries read the new reviews on the next refresh.
+  await markSummariesStale(tx, storeId, [...touched], now)
   const counts = countJudgemeRows(parsed.rows, matches)
   return {
     ok: true as const,

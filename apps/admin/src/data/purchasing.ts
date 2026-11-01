@@ -55,7 +55,6 @@ export const supplierFormContent = {
     gstin: 'GSTIN',
     gstinHint: 'Only for suppliers registered in India',
     country: 'Country code',
-    countryHint: 'Two letters, like IN, CN or US',
     currency: 'Bills in',
   },
   contact: { heading: 'Contact', email: 'Email', phone: 'Phone', address: 'Address' },
@@ -76,6 +75,12 @@ export const supplierFormContent = {
   created: 'Supplier added',
   failed: 'Could not save supplier',
   needName: 'Add the supplier name',
+  /** Why a GSTIN was refused, by `validateGstin` reason (same rules as checkout). */
+  gstinErrors: {
+    shape: 'A GSTIN has 15 characters, like 06AAACW1234A1Z5',
+    state: 'The first two digits are not a GST state code',
+    checksum: 'This GSTIN has a typo: its last character does not match the rest',
+  },
   delete: 'Delete',
   deleted: 'Supplier deleted',
   deleteFailed: 'Could not delete the supplier',
@@ -100,6 +105,9 @@ export const supplierPickerContent = {
   creating: 'Adding',
   cancel: 'Cancel',
   failed: 'Could not add supplier',
+  /** A name typed on the purchase order, offered to Suppliers (audit #157). */
+  saveTyped: 'Save as supplier',
+  saveTypedHelp: 'Not in your suppliers yet.',
 } as const
 
 export const poCurrencyContent = {
@@ -229,7 +237,8 @@ export const inboundShipmentFormContent = {
   discard: 'Discard',
   confirmDelete: {
     title: 'Delete this shipment?',
-    body: 'Its shared charges are deleted too. Remove its purchase orders first.',
+    body: 'Its shared charges are deleted too.',
+    blocked: 'This shipment still has purchase orders. Remove them first, then delete it.',
     confirm: 'Delete shipment',
     cancel: 'Cancel',
   },
@@ -240,7 +249,7 @@ export const chargesContent = {
   shipmentHeading: 'Shared charges',
   summary: 'Freight, customs duty, clearing and bank charges become part of each product’s cost.',
   empty: 'No charges yet.',
-  saveFirst: 'Save the order first, then add its charges.',
+  saveFirst: 'Save first, then add charges.',
   add: 'Add charge',
   edit: 'Edit',
   remove: 'Remove',

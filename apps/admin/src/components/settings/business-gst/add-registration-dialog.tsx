@@ -108,7 +108,15 @@ export default function AddRegistrationDialog({
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     setTouched(true)
-    if (!RegistrationInputSchema.safeParse(input()).success) return
+    if (!RegistrationInputSchema.safeParse(input()).success) {
+      // The dialog scrolls: bring the first wrong field into view, or Save seems to do nothing.
+      requestAnimationFrame(() => {
+        const first = document.querySelector<HTMLElement>('[role="dialog"] [aria-invalid="true"]')
+        first?.scrollIntoView({ block: 'center' })
+        first?.focus()
+      })
+      return
+    }
     setSaving(true)
     try {
       await api.businessGst.addRegistration(input())
@@ -127,7 +135,8 @@ export default function AddRegistrationDialog({
   }
 
   // Render logic
-  const state = gstinStateOf(form.gstin)
+  // Only a whole GSTIN names its state: "12ABC" is not "Registered in Arunachal Pradesh".
+  const state = form.gstin.length === 15 ? gstinStateOf(form.gstin) : null
   const businessOptions = businesses.map((b) => ({
     value: b.id,
     label: `${b.legalName} · ${b.pan}`,
@@ -135,132 +144,135 @@ export default function AddRegistrationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <DialogContent className="flex max-h-[90dvh] flex-col sm:max-w-lg">
+        {/* Header and footer stay put; only the fields scroll, so Save is always in view (#107). */}
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col gap-4">
           <DialogHeader>
             <DialogTitle>{copy.title}</DialogTitle>
             <DialogDescription>{copy.body}</DialogDescription>
           </DialogHeader>
-          <FieldGroup>
-            <div className="flex flex-col gap-2">
-              <GeneralTextField
-                id="gst-reg-gstin"
-                label={copy.gstin}
-                value={form.gstin}
-                onChange={(gstin) => patch({ gstin: gstin.toUpperCase().replace(/\s/g, '') })}
-                error={errorAt('gstin')}
-              />
-              {state ? (
-                <p
-                  aria-live="polite"
-                  className="flex items-center gap-1.5 text-caption font-medium text-foreground"
-                >
-                  <MapPinLineIcon aria-hidden="true" className="size-4 text-muted-foreground" />
-                  {copy.registeredIn(state.name)}
-                </p>
-              ) : null}
-            </div>
-            {businesses.length > 1 ? (
-              <ChoiceField
-                id="gst-reg-business"
-                label={copy.business}
-                value={form.businessId || (businesses[0]?.id ?? '')}
-                options={businessOptions}
-                onChange={(businessId) => patch({ businessId })}
-              />
-            ) : null}
-            {businesses.length === 0 ? (
-              <GeneralTextField
-                id="gst-reg-legal-name"
-                label={copy.legalName}
-                value={form.legalName}
-                onChange={(legalName) => patch({ legalName })}
-                help={copy.legalNameHelp}
-                autoComplete="organization"
-              />
-            ) : null}
-            <GeneralTextField
-              id="gst-reg-trade-name"
-              label={copy.tradeName}
-              value={form.tradeName}
-              onChange={(tradeName) => patch({ tradeName })}
-              help={copy.tradeNameHelp}
-            />
-            <Label className="flex items-start gap-2 font-normal text-body">
-              <Checkbox
-                checked={form.composition}
-                onCheckedChange={(checked) => patch({ composition: checked === true })}
-                className="mt-0.5"
-              />
-              <span>{copy.composition}</span>
-            </Label>
-            <GeneralTextField
-              id="gst-reg-prefix"
-              label={copy.prefix}
-              value={form.invoicePrefix}
-              onChange={(invoicePrefix) => patch({ invoicePrefix: invoicePrefix.toUpperCase() })}
-              error={errorAt('invoicePrefix')}
-              help={copy.prefixHelp}
-            />
-            <FieldSet>
-              <FieldLegend variant="label">{copy.addressHeading}</FieldLegend>
-              <GeneralTextField
-                id="gst-reg-line1"
-                label={copy.line1}
-                value={form.line1}
-                onChange={(line1) => patch({ line1 })}
-                autoComplete="address-line1"
-              />
-              <GeneralTextField
-                id="gst-reg-line2"
-                label={copy.line2}
-                value={form.line2}
-                onChange={(line2) => patch({ line2 })}
-                autoComplete="address-line2"
-              />
-              <div className="grid gap-4 sm:grid-cols-2">
+          <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-1">
+            <FieldGroup>
+              <div className="flex flex-col gap-2">
                 <GeneralTextField
-                  id="gst-reg-city"
-                  label={copy.city}
-                  value={form.city}
-                  onChange={(city) => patch({ city })}
-                  autoComplete="address-level2"
+                  id="gst-reg-gstin"
+                  label={copy.gstin}
+                  value={form.gstin}
+                  onChange={(gstin) => patch({ gstin: gstin.toUpperCase().replace(/\s/g, '') })}
+                  error={errorAt('gstin')}
                 />
-                <GeneralTextField
-                  id="gst-reg-pincode"
-                  label={copy.pincode}
-                  value={form.pincode}
-                  onChange={(pincode) => patch({ pincode })}
-                  error={errorAt('legalAddress.pincode')}
-                  autoComplete="postal-code"
-                  inputMode="numeric"
-                />
+                {state ? (
+                  <p
+                    aria-live="polite"
+                    className="flex items-center gap-1.5 text-caption font-medium text-foreground"
+                  >
+                    <MapPinLineIcon aria-hidden="true" className="size-4 text-muted-foreground" />
+                    {copy.registeredIn(state.name)}
+                  </p>
+                ) : null}
               </div>
-            </FieldSet>
-            {businesses.length > 0 ? (
+              {businesses.length > 1 ? (
+                <ChoiceField
+                  id="gst-reg-business"
+                  label={copy.business}
+                  value={form.businessId || (businesses[0]?.id ?? '')}
+                  options={businessOptions}
+                  onChange={(businessId) => patch({ businessId })}
+                />
+              ) : null}
+              {businesses.length === 0 ? (
+                <GeneralTextField
+                  id="gst-reg-legal-name"
+                  label={copy.legalName}
+                  value={form.legalName}
+                  onChange={(legalName) => patch({ legalName })}
+                  help={copy.legalNameHelp}
+                  autoComplete="organization"
+                />
+              ) : null}
+              <GeneralTextField
+                id="gst-reg-trade-name"
+                label={copy.tradeName}
+                value={form.tradeName}
+                onChange={(tradeName) => patch({ tradeName })}
+                help={copy.tradeNameHelp}
+              />
               <Label className="flex items-start gap-2 font-normal text-body">
                 <Checkbox
-                  checked={form.makeDefault}
-                  onCheckedChange={(checked) => patch({ makeDefault: checked === true })}
+                  checked={form.composition}
+                  onCheckedChange={(checked) => patch({ composition: checked === true })}
                   className="mt-0.5"
                 />
-                <span>{copy.makeDefault}</span>
+                <span>{copy.composition}</span>
               </Label>
-            ) : null}
-          </FieldGroup>
-          {refused ? (
-            <div
-              role="alert"
-              className="flex flex-col items-start gap-2 text-body text-destructive"
-            >
-              <p>{refused.message}</p>
-              {refused.code === 'PAN_MISMATCH' ? (
-                <Button type="button" variant="outline" size="sm" onClick={onAnotherBusiness}>
-                  {copy.anotherBusiness}
-                </Button>
+              <GeneralTextField
+                id="gst-reg-prefix"
+                label={copy.prefix}
+                value={form.invoicePrefix}
+                onChange={(invoicePrefix) => patch({ invoicePrefix: invoicePrefix.toUpperCase() })}
+                error={errorAt('invoicePrefix')}
+                help={copy.prefixHelp}
+              />
+              <FieldSet>
+                <FieldLegend variant="label">{copy.addressHeading}</FieldLegend>
+                <GeneralTextField
+                  id="gst-reg-line1"
+                  label={copy.line1}
+                  value={form.line1}
+                  onChange={(line1) => patch({ line1 })}
+                  autoComplete="address-line1"
+                />
+                <GeneralTextField
+                  id="gst-reg-line2"
+                  label={copy.line2}
+                  value={form.line2}
+                  onChange={(line2) => patch({ line2 })}
+                  autoComplete="address-line2"
+                />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <GeneralTextField
+                    id="gst-reg-city"
+                    label={copy.city}
+                    value={form.city}
+                    onChange={(city) => patch({ city })}
+                    autoComplete="address-level2"
+                  />
+                  <GeneralTextField
+                    id="gst-reg-pincode"
+                    label={copy.pincode}
+                    value={form.pincode}
+                    onChange={(pincode) => patch({ pincode })}
+                    error={errorAt('legalAddress.pincode')}
+                    autoComplete="postal-code"
+                    inputMode="numeric"
+                  />
+                </div>
+              </FieldSet>
+              {businesses.length > 0 ? (
+                <Label className="flex items-start gap-2 font-normal text-body">
+                  <Checkbox
+                    checked={form.makeDefault}
+                    onCheckedChange={(checked) => patch({ makeDefault: checked === true })}
+                    className="mt-0.5"
+                  />
+                  <span>{copy.makeDefault}</span>
+                </Label>
               ) : null}
-            </div>
-          ) : null}
+            </FieldGroup>
+            {refused ? (
+              <div
+                role="alert"
+                className="flex flex-col items-start gap-2 text-body text-destructive"
+              >
+                <p>{refused.message}</p>
+                {refused.code === 'PAN_MISMATCH' ? (
+                  <Button type="button" variant="outline" size="sm" onClick={onAnotherBusiness}>
+                    {copy.anotherBusiness}
+                  </Button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
           <DialogFooter>
             <DialogClose render={<Button variant="outline" type="button" />}>
               {copy.cancel}

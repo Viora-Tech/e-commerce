@@ -42,10 +42,28 @@ const labelOf = (key: string) => {
   return spaced.charAt(0).toUpperCase() + spaced.slice(1)
 }
 
+/** A value as a person reads it: switches say On / Off, not true / false. */
+const shown = (value: unknown) =>
+  value === true ? 'On' : value === false ? 'Off' : clip(String(value), MAX_VALUE)
+
+/** What names a list item ("upi" in `{ id: 'upi', on: false }`), when it has one. */
+function itemName(item: unknown): string | null {
+  if (!item || typeof item !== 'object' || Array.isArray(item)) return null
+  for (const key of ['id', 'key', 'name', 'handle', 'title']) {
+    const v = (item as Record<string, unknown>)[key]
+    if (typeof v === 'string' && v) return v
+  }
+  return null
+}
+
+/**
+ * Rows a person can read: "Methods › upi › On: Off", not "Methods 1 › Id upi · On false"
+ * (audit #174). List items go by their own id when they have one.
+ */
 function flatten(value: unknown, label: string, out: PreviewRow[]) {
   if (value === undefined) return
   if (value === null || typeof value !== 'object') {
-    out.push({ label: label || 'Input', before: '', after: clip(String(value), MAX_VALUE) })
+    out.push({ label: label || 'Input', before: '', after: shown(value) })
     return
   }
   if (Array.isArray(value)) {
@@ -54,9 +72,15 @@ function flatten(value: unknown, label: string, out: PreviewRow[]) {
       out.push({ label: label || 'Input', before: '', after: clip(list, MAX_VALUE) })
       return
     }
-    value.forEach((item, i) => {
-      flatten(item, `${label || 'Item'} ${i + 1}`, out)
-    })
+    for (const [i, item] of value.entries()) {
+      const name = itemName(item)
+      if (name) {
+        const rest = Object.fromEntries(
+          Object.entries(item as Record<string, unknown>).filter(([, v]) => v !== name),
+        )
+        flatten(rest, `${label || 'Item'} › ${name}`, out)
+      } else flatten(item, `${label || 'Item'} ${i + 1}`, out)
+    }
     return
   }
   for (const [key, child] of Object.entries(value)) {
@@ -96,7 +120,7 @@ function proposalOf(raw: Raw, kind: ActionKind, queued: boolean) {
       rows,
       more,
       count: 1,
-      undoable: false,
+      undoable: null,
       notes: [
         'Runs as you, with what your role allows, when you approve.',
         ...(queued ? ["The asker's role needs approval for this."] : []),

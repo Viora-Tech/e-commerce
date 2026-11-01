@@ -1,4 +1,6 @@
 import { definePlugin } from '@commerce/plugins'
+import { desc, eq } from 'drizzle-orm'
+import { contactMessage } from './schema'
 
 export const FORMS_ID = 'forms'
 
@@ -43,6 +45,16 @@ export const formsPlugin = definePlugin({
       },
     ],
     summary: 'saves messages',
+  },
+  // The newest contactMessage is the app's last use, for the Installed apps list.
+  lastUsed: async (tx, storeId) => {
+    const [row] = await tx
+      .select({ at: contactMessage.createdAt })
+      .from(contactMessage)
+      .where(eq(contactMessage.storeId, storeId))
+      .orderBy(desc(contactMessage.createdAt))
+      .limit(1)
+    return row ? { at: row.at, summary: 'Got a form message' } : null
   },
   provides: {},
   admin: {

@@ -53,6 +53,7 @@ export default async function PlatformStorePage({ params }: StorePageProps) {
           storefront ? (
             <Button
               variant="outline"
+              nativeButton={false}
               render={<a href={storefront} target="_blank" rel="noopener noreferrer" />}
             >
               <ExternalLink />

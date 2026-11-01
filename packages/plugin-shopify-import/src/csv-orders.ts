@@ -73,7 +73,8 @@ export function parseOrdersCsv(text: string): { orders: NOrder[]; issues: Issue[
         financialStatus: row.get('financial status').toLowerCase() || null,
         fulfillmentStatus: row.get('fulfillment status').toLowerCase() || null,
         currency: row.get('currency') || null,
-        subtotalPaise: paise(row.get('subtotal')) ?? 0,
+        // Shopify's Subtotal is after discounts; ours is before (the discount is its own line).
+        subtotalPaise: (paise(row.get('subtotal')) ?? 0) + (paise(row.get('discount amount')) ?? 0),
         shippingPaise: paise(row.get('shipping')) ?? 0,
         taxPaise: paise(row.get('taxes')) ?? 0,
         totalPaise: paise(row.get('total')) ?? 0,

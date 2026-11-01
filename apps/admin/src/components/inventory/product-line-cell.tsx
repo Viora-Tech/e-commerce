@@ -1,5 +1,6 @@
 import { ChevronRight } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import StatusChip from '@/components/layout/status-chip'
 import ProductThumb from '@/components/products/product-thumb'
 import type { inventoryContent } from '@/data/inventory'
@@ -66,16 +67,24 @@ export default function ProductLineCell({ line, copy, tree }: ProductLineCellPro
         <span className="flex min-w-0 items-center gap-2">
           <span
             className={cn(
-              'line-clamp-1 text-body',
+              'line-clamp-2 text-body',
               line.nested ? 'text-foreground' : 'text-ink-strong',
             )}
           >
             {line.nested ? line.variantTitle : line.productTitle}
           </span>
           {line.hiddenOnStore ? (
-            <StatusChip tone="neutral" variant="outline">
-              {copy.tree.hidden}
-            </StatusChip>
+            <Tooltip>
+              <TooltipTrigger
+                render={<span className="shrink-0" />}
+                aria-label={copy.tree.hiddenWhy}
+              >
+                <StatusChip tone="neutral" variant="outline">
+                  {copy.tree.hidden}
+                </StatusChip>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">{copy.tree.hiddenWhy}</TooltipContent>
+            </Tooltip>
           ) : null}
         </span>
         {subtitle ? (

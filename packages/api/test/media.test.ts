@@ -112,7 +112,7 @@ describe('media', () => {
       }),
     )
     expect(await call(appRouter.media.usedIn, { id: ticket.mediaId }, { context: a.ctx })).toEqual([
-      { productId, title: 'Pad' },
+      { kind: 'product', id: productId, title: 'Pad' },
     ])
     expect(await call(appRouter.media.usedIn, { id: ticket.mediaId }, { context: b.ctx })).toEqual(
       [],

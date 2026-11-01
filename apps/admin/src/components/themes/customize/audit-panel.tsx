@@ -14,6 +14,7 @@ import { sectionName } from '@/lib/customize-insert'
 import { useCustomizePuck } from '@/lib/customize-puck'
 import { findBlock, locateBlock } from '@/lib/customize-slots'
 import { useThemePreview } from '@/lib/customize-theme-context'
+import { focusAndFlash } from '@/lib/focus-flash'
 import SectionIcon from './section-icon'
 
 type AuditPanelProps = {
@@ -50,6 +51,13 @@ export default function AuditPanel({ onOpenTheme }: AuditPanelProps) {
     if (!located) return
     dispatch({ type: 'setUi', ui: { itemSelector: { index: located.index, zone: located.zone } } })
     scrollToSection(issue.blockId, reducedMotion === true)
+    // A missing description lands in the inspector's Alt text box, ringed (audit #146).
+    if (issue.kind === 'alt') {
+      focusAndFlash(() => {
+        const boxes = Array.from(document.querySelectorAll<HTMLInputElement>('[data-alt-input]'))
+        return boxes.find((b) => b.value.trim() === '') ?? boxes[0] ?? null
+      })
+    }
   }
 
   // Render logic

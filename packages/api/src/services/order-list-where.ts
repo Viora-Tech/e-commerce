@@ -1,23 +1,47 @@
-import type { OrderFulfillmentStatus, OrderPaymentStatus, OrderStatus } from '@commerce/core'
+import {
+  type OrderFulfillmentStatus,
+  type OrderPaymentStatus,
+  type OrderStatus,
+  UNPAID_PAYMENT_STATUSES,
+} from '@commerce/core'
 import { MARKETING_CHANNELS } from '@commerce/core/marketing'
 import type { StoreTx } from '@commerce/db'
 import {
+  address,
   collection,
   collectionProduct,
   customer,
+  fulfillmentOrder,
   order,
   orderLine,
   returnRequest,
   shipment,
   variant,
 } from '@commerce/db'
-import { and, asc, eq, gte, ilike, inArray, isNotNull, lt, lte, ne, or, sql } from 'drizzle-orm'
-import { type OrderView, viewFilter } from './order-views'
+import {
+  and,
+  asc,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  isNotNull,
+  isNull,
+  lt,
+  lte,
+  ne,
+  or,
+  sql,
+} from 'drizzle-orm'
+import { type OrderView, paymentFinished, paymentNotFinished, viewFilter } from './order-views'
 
 /* The Orders list's where clause and the filter panel's options, shared by the list and its ids. */
 
 /** Drafts live in the same table but are not orders yet; every list and tile hides them. */
 export const notDraft = ne(order.status, 'draft')
+
+/** Fulfilment on hold (#1011): a parcel still to ship is held (staff or an automation). */
+export const onHoldSql = sql<boolean>`exists (select 1 from ${fulfillmentOrder} where ${fulfillmentOrder.orderId} = ${order.id} and ${fulfillmentOrder.heldAt} is not null and ${fulfillmentOrder.status} in ('open', 'on_hold'))`
 
 /** "#1234" or "1234" is an order number; anything else is a name or an email. */
 export function orderNumberFromSearch(search: string): number | null {
@@ -31,7 +55,11 @@ export type OrderListFilters = {
   view?: OrderView | undefined
   status?: OrderStatus | undefined
   paymentStatus?: OrderPaymentStatus[] | undefined
+  /** Money is expected but not in yet: an online payment not finished, or a UPI transfer to match. */
+  paymentPending?: boolean | undefined
   fulfillmentStatus?: OrderFulfillmentStatus[] | undefined
+  /** Only orders whose fulfilment is on hold (the Fulfilment filter's "On hold"). */
+  onHold?: boolean | undefined
   placedFrom?: string | undefined
   /** Placed before this time (the end of a custom date range). */
   placedTo?: string | undefined
@@ -120,7 +148,63 @@ function hasProductLine(text: string) {
       and (ol.title ilike ${pattern} or ol.variant_title ilike ${pattern} or v.sku ilike ${pattern}))`
 }
 
+/**
+ * The search box beyond email and customer name: the phone (digits only, so "+91 79774 37620"
+ * finds "7977437620"), the shipping address's name, city or PIN code, and the products sold
+ * (title, variant or SKU). Indian merchants look orders up by phone and city first (audit #44).
+ */
+function searchesOrderDetails(text: string) {
+  const pattern = `%${escapeLike(text.trim())}%`
+  const digits = text.replace(/\D/g, '')
+  // Six digits or more is a phone fragment; shorter numbers are PIN codes or order numbers.
+  const phoneLike = digits.length >= 6 ? `%${digits}%` : null
+  const addressPhone = phoneLike
+    ? sql`regexp_replace(a.phone, '\\D', '', 'g') like ${phoneLike}`
+    : sql`false`
+  return or(
+    sql`exists (
+      select 1 from ${address} a
+      where a.id = ${order.shippingAddressId}
+        and (a.name ilike ${pattern} or a.city ilike ${pattern} or a.pincode ilike ${pattern} or ${addressPhone}))`,
+    phoneLike
+      ? sql`regexp_replace(coalesce(${order.phone}, ''), '\\D', '', 'g') like ${phoneLike}`
+      : undefined,
+    hasProductLine(text.trim()),
+  )
+}
+
 /** Every condition of the Orders list: tab, search and the filter panel. */
+/**
+ * The filter panel's Payment boxes, any of them (#2, #11). An unpaid status counts the way the
+ * Unpaid tab does: open orders whose checkout finished, so a cancelled one (shown as Voided) or a
+ * checkout still at the gateway never makes the filter disagree with the tab. Payment pending is
+ * money on its way: an online payment not finished yet, or a manual UPI transfer to match.
+ */
+function paymentWhere(statuses: OrderPaymentStatus[], pending: boolean) {
+  if (statuses.length === 0 && !pending) return undefined
+  const unpaid = statuses.filter((s) => UNPAID_PAYMENT_STATUSES.includes(s))
+  const settled = statuses.filter((s) => !UNPAID_PAYMENT_STATUSES.includes(s))
+  return or(
+    settled.length ? inArray(order.paymentStatus, settled) : undefined,
+    unpaid.length
+      ? and(eq(order.status, 'open'), inArray(order.paymentStatus, unpaid), paymentFinished)
+      : undefined,
+    pending
+      ? and(
+          eq(order.status, 'open'),
+          or(
+            paymentNotFinished,
+            and(
+              isNull(order.checkoutPaidAt),
+              eq(order.paymentMethod, 'manual'),
+              isNull(order.importedFrom),
+            ),
+          ),
+        )
+      : undefined,
+  )
+}
+
 export function orderListWhere(input: OrderListFilters) {
   const byNumber = input.search ? orderNumberFromSearch(input.search) : null
   return and(
@@ -132,13 +216,15 @@ export function orderListWhere(input: OrderListFilters) {
           ilike(order.email, `%${input.search}%`),
           ilike(customer.name, `%${input.search}%`),
           byNumber === null ? undefined : eq(order.number, byNumber),
+          searchesOrderDetails(input.search),
         )
       : undefined,
     input.status ? eq(order.status, input.status) : undefined,
-    input.paymentStatus?.length ? inArray(order.paymentStatus, input.paymentStatus) : undefined,
+    paymentWhere(input.paymentStatus ?? [], input.paymentPending ?? false),
     input.fulfillmentStatus?.length
       ? inArray(order.fulfillmentStatus, input.fulfillmentStatus)
       : undefined,
+    input.onHold ? onHoldSql : undefined,
     input.placedFrom ? gte(order.placedAt, new Date(input.placedFrom)) : undefined,
     input.placedTo ? lt(order.placedAt, new Date(input.placedTo)) : undefined,
     /* An order with no recorded method (imported history) is neither. */

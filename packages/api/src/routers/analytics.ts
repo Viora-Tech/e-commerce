@@ -2,6 +2,7 @@ import { QUERY_WRITER_REQUEST_MAX } from '@commerce/ai/client'
 import { permissions } from '@commerce/core'
 import { z } from 'zod'
 import { can, canDetached } from '../procedures'
+import { AnswerSnapshotSchema } from '../services/ai/answer-table'
 import { refineQuery } from '../services/ai/query-writer'
 import { analyticsLive, analyticsOverview, bigSaleDays } from '../services/analytics.service'
 import { runCustomQuery } from '../services/analytics-query.service'
@@ -93,6 +94,8 @@ export const analyticsRouter = {
         range: rangeInput,
         /** The query text, for a saved custom query (`reportSlug` 'query'). */
         query: z.string().max(QUERY_MAX).optional(),
+        /** An AI answer's table kept as it was (`reportSlug` 'answer'). */
+        snapshot: AnswerSnapshotSchema.optional(),
       }),
     )
     .handler(({ context, input }) =>

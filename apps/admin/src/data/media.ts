@@ -21,11 +21,45 @@ export const mediaContent = {
     editAlt: 'Edit alt text',
     remove: 'Remove from product',
     delete: 'Delete file',
+    /** Files (#91): put the file in a folder or take it out. */
+    moveToFolder: 'Move to folder',
     video: 'Video',
     /** A stored image the worker has not optimised yet; it is usable already. */
     optimising: 'Optimising',
     /** Neither the optimised copy nor the original loaded (missing file, or a format browsers can't draw). */
     cantShow: "Can't show this file",
+  },
+  /** Folders in Content › Files and the file picker (#91). */
+  folders: {
+    all: 'All files',
+    label: 'Folders',
+    filter: 'Folder',
+    newFolder: 'New folder',
+    rename: 'Rename folder',
+    delete: 'Delete folder',
+    menu: (name: string) => `${name} folder options`,
+    count: (n: number) => `${n}`,
+    nameLabel: 'Folder name',
+    namePlaceholder: 'Product photos',
+    createTitle: 'New folder',
+    renameTitle: 'Rename folder',
+    create: 'Create folder',
+    save: 'Save',
+    cancel: 'Cancel',
+    created: 'Folder created',
+    renamed: 'Folder renamed',
+    deleted: 'Folder deleted',
+    deleteTitle: (name: string) => `Delete "${name}"?`,
+    deleteBody: 'Only an empty folder can be deleted. Its files are never deleted with it.',
+    notEmpty: (n: number) =>
+      `This folder still holds ${n} file${n === 1 ? '' : 's'}. Move or delete them first.`,
+    moveTitle: 'Move to folder',
+    moveBody: (name: string) => `Pick where ${name} goes. Its address stays the same.`,
+    moveTarget: 'Folder',
+    noFolder: 'No folder',
+    move: 'Move',
+    moved: (folder: string) => `Moved to ${folder}`,
+    failed: 'Could not update the folder. Try again.',
   },
   altDialog: {
     title: 'Alt text',
@@ -56,6 +90,7 @@ export const mediaContent = {
         : `${n === 1 ? '1 file' : `${n} files`} · ${used} used`,
     tabs: { all: 'All', image: 'Images', video: 'Videos', document: 'Documents' },
     noMatch: 'No files match your search.',
+    emptyFolder: 'This folder is empty. Upload files here, or move them in from All files.',
     storage: 'Storage',
     intro: 'Everything uploaded to this store. Files stay here when removed from a product.',
     search: 'Search files',
@@ -67,15 +102,22 @@ export const mediaContent = {
       action: 'Upload files',
     },
     used: (n: number) =>
-      n === 0 ? 'Not used' : n === 1 ? 'Used on 1 product' : `Used on ${n} products`,
+      n === 0 ? 'Not used' : n === 1 ? 'Used in 1 place' : `Used in ${n} places`,
     deleteTitle: 'Delete this file?',
     deleteBody: (n: number) =>
       n > 0
-        ? `It is used on ${n} ${n === 1 ? 'product' : 'products'}. Those galleries lose it immediately.`
+        ? `It is used in ${n} ${n === 1 ? 'place' : 'places'}. They lose it immediately.`
         : 'The file is removed from storage. This cannot be undone.',
     deleteConfirm: 'Delete',
     cancel: 'Cancel',
     pagination: (from: number, to: number, total: number) => `${from}-${to} of ${total}`,
+    /** List view's alt text column, edited in place (#91). */
+    nameColumn: 'Name',
+    altColumn: 'Alt text',
+    altEdit: (name: string) => `Alt text for ${name}`,
+    altEmpty: 'Add alt text',
+    altSaved: 'Alt text saved',
+    altFailed: 'Could not save the alt text',
     previous: 'Previous',
     next: 'Next',
   },
@@ -113,7 +155,15 @@ export const mediaContent = {
     saved: 'Alt text saved',
     saveFailed: 'Could not save the alt text',
     usedIn: 'Used in',
-    usedInEmpty: 'Not used on any product',
+    usedInEmpty: 'Not used by any product, collection, post, page, review or theme',
+    usedKinds: {
+      product: 'Product',
+      collection: 'Collection',
+      article: 'Blog post',
+      page: 'Page',
+      review: 'Review',
+      theme: 'Theme',
+    } as Record<string, string>,
     download: 'Download',
     delete: 'Delete file',
     more: 'More actions',
@@ -157,7 +207,7 @@ export const mediaContent = {
       saved: 'Alt text saved',
       failed: 'Could not save the alt text',
       used: (n: number) =>
-        n === 0 ? 'Not used yet' : n === 1 ? 'Used on 1 product' : `Used on ${n} products`,
+        n === 0 ? 'Not used yet' : n === 1 ? 'Used in 1 place' : `Used in ${n} places`,
     },
     sort: {
       label: 'Sort',
@@ -176,7 +226,7 @@ export const mediaContent = {
         medium: '200 KB - 2 MB',
         large: 'Over 2 MB',
       },
-      used: { label: 'Used in', all: 'Any', used: 'Used on a product', unused: 'Not used' },
+      used: { label: 'Used in', all: 'Any', used: 'Used somewhere', unused: 'Not used' },
     },
     loading: 'Loading files…',
     recent: 'Recently used',
@@ -199,7 +249,7 @@ export const mediaContent = {
       usedOn: 'Used on',
       uploaded: (when: string) => `Uploaded ${when}`,
       unused: 'Not used',
-      products: (n: number) => (n === 1 ? '1 product' : `${n} products`),
+      products: (n: number) => (n === 1 ? '1 place' : `${n} places`),
       footer: (n: number) =>
         n === 1 ? 'Showing the largest file' : `Showing the ${n} largest files`,
       viewAll: 'View all files',

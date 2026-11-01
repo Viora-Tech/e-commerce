@@ -15,6 +15,7 @@ export default [
     export: 'एक्सपोर्ट',
     import: 'इंपोर्ट',
     tabs: { all: 'सभी प्रोडक्ट' },
+    customView: 'कस्टम',
     summary: (total: number, low: number, out: number) =>
       [
         `${total} प्रोडक्ट`,
@@ -71,10 +72,11 @@ export default [
     sortTitles: { product: 'प्रोडक्ट का नाम', type: 'प्रोडक्ट टाइप' },
     sortAlpha: { desc: 'Z से A', asc: 'A से Z', first: 'asc' },
     inventory: (available, variants) => `${variants} वेरिएंट में ${available} स्टॉक में`,
-    inStock: (available) => `${available} स्टॉक में`,
+    inStock: (available) => (available < 0 ? `${-available} ज़्यादा बिक गए` : `${available} स्टॉक में`),
     variants: (n) => `${n} वेरिएंट`,
     none: '',
     priceRange: (min, max) => `${min} से ${max}`,
+    noPrice: 'कोई कीमत नहीं',
     preorderPill: 'प्री-ऑर्डर',
     launching: (date) =>
       `${date.toLocaleDateString('hi-IN', { day: 'numeric', month: 'short' })} को लॉन्च`,
@@ -84,10 +86,11 @@ export default [
       setDraft: 'ड्राफ़्ट बनाएं',
       archive: 'आर्काइव करें',
       addTag: 'टैग जोड़ें',
+      removeTag: 'टैग हटाएं',
       delete: 'हटाएं',
       exportSelected: 'एक्सपोर्ट',
       addToCollection: 'कलेक्शन में जोड़ें',
-      more: 'और बल्क एक्शन',
+      more: 'और कार्रवाइयाँ',
       collection: {
         title: 'कलेक्शन में जोड़ें',
         label: 'कलेक्शन',
@@ -99,12 +102,15 @@ export default [
         cancel: 'रहने दें',
       },
       tagPrompt: 'कौन सा टैग जोड़ना है',
+      untagPrompt: 'कौन सा टैग हटाना है',
       tagPlaceholder: 'summer',
       tagHelp: (n) => `चुने हुए ${n} प्रोडक्ट में जोड़ा जाएगा। उनके बाकी टैग बने रहेंगे।`,
       apply: 'लागू करें',
       cancel: 'रहने दें',
       updated: (n) => `${n} प्रोडक्ट अपडेट हो गए`,
       tagged: (n, tag) => `${n} प्रोडक्ट में ${tag} जोड़ दिया`,
+      untagged: (n, tag) => `${n} प्रोडक्ट से ${tag} हटा दिया`,
+      untagHelp: (n) => `चुने हुए ${n} प्रोडक्ट में से जिन पर यह टैग है, उनसे हटेगा। बाकी टैग बने रहेंगे।`,
       removed: (deleted, archived) =>
         archived === 0
           ? `${deleted} प्रोडक्ट हटा दिए`

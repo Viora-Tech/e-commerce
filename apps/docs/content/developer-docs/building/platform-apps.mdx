@@ -100,8 +100,9 @@ the Facebook user is linked for the deletion callbacks. Graph version: `META_GRA
   it (imported data stays); `customers/data_request` and `customers/redact` are acknowledged
   (the app keeps no copy of Shopify customers outside the merchant's own store).
 - The app config lives in `integrations/shopify/shopify.app.toml`, pushed with Shopify CLI by the
-  owner. Admin API version for the importer: `SHOPIFY_API_VERSION` (still `2025-07`, which
-  Shopify serves as its oldest supported version; bump with a live check).
+  owner. Admin API version for the importer: `SHOPIFY_API_VERSION` (`2026-10` since 31 Oct 2026;
+  every importer query was validated against Shopify's 2026-10 schema, and bulk reads ask for
+  `groupObjects: true` because 2026-01 changed that default).
 
 ## Rejected items (Google and Meta)
 

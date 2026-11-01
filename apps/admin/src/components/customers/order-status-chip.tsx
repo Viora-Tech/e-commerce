@@ -10,14 +10,18 @@ import type { CustomerOrder } from './customer-detail-types'
 
 type OrderStatusChipProps = { order: CustomerOrder }
 
-/** An order's stage (to ship, fulfilled, cancelled) as a Proofly status chip. */
+/** An order's stage (to ship, fulfilled, cancelled, refunded) as a Proofly status chip. */
 export default function OrderStatusChip({ order }: OrderStatusChipProps) {
   // Hooks
   const locale = useLocale()
 
   // Render logic
   const stage = orderStage(order)
-  const entry = statusEntry(stage.kind, stage.value)
+  // A closed order whose money all went back reads "Refunded", not "Completed".
+  const entry =
+    order.status === 'completed' && order.paymentStatus === 'refunded'
+      ? statusEntry('orderPayment', 'refunded')
+      : statusEntry(stage.kind, stage.value)
 
   return (
     <StatusChip tone={toneFor(entry.tone)}>{localizeStatusLabel(entry.label, locale)}</StatusChip>

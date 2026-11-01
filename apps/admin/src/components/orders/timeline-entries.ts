@@ -1,5 +1,6 @@
 import type { Tracking } from '@commerce/core'
 import { readManualCollection } from '@commerce/core/manual-payments'
+import type { notificationsSettingsContent } from '@/data/notifications'
 import type { orderDetailContent } from '@/data/order-detail'
 import type { shipmentPanelContent } from '@/data/shipping'
 import type { Formatters } from '@/lib/format'
@@ -29,11 +30,25 @@ export function buildEntries(
   copy: typeof orderDetailContent,
   shipping: typeof shipmentPanelContent,
   fmt: Formatters,
+  names: Pick<typeof notificationsSettingsContent, 'messages' | 'channels'>,
 ): Entry[] {
   const t = copy.timeline
   const entries: Entry[] = [
     { id: 'placed', at: new Date(order.placedAt), kind: 'order', title: t.placed },
   ]
+
+  // What happened on the old platform before the move (audit #20), in its own words.
+  for (const [i, e] of (order.importMeta?.history ?? []).entries()) {
+    // Shopify's own bookkeeping ("Unknown event Order#tax_finalization_…") means nothing here (#14).
+    if (e.message.startsWith('Unknown event')) continue
+    entries.push({
+      id: `ih-${i}`,
+      at: new Date(e.at),
+      kind: 'order',
+      title: e.message,
+      detail: t.fromImport,
+    })
+  }
 
   for (const e of order.paymentEvents) {
     entries.push({
@@ -80,18 +95,36 @@ export function buildEntries(
     })
   }
 
+  // Plain names, never codes: "Refund confirmation sent by email", not "refund_issued sent via
+  // platform_email" (audit #16).
   for (const n of order.notifications) {
-    const template = t.templates[n.template] ?? n.template
+    const template = names.messages[n.template]?.name ?? t.templates[n.template] ?? n.template
+    const channel = names.channels[n.channel] ?? n.channel
     const failed = n.status === 'failed'
     entries.push({
       id: `nt-${n.id}`,
       at: new Date(n.createdAt),
       kind: 'notification',
-      title: failed
-        ? t.notificationFailed(template, n.channel)
-        : t.notification(template, n.channel),
+      title: failed ? t.notificationFailed(template, channel) : t.notification(template, channel),
       detail: failed ? (n.error ?? undefined) : n.to,
       tone: failed ? 'destructive' : undefined,
+    })
+  }
+
+  if (order.fulfilledAt) {
+    entries.push({
+      id: 'fulfilled',
+      at: new Date(order.fulfilledAt),
+      kind: 'shipment',
+      title: t.fulfilled,
+    })
+  }
+  if (order.deliveredAt) {
+    entries.push({
+      id: 'delivered',
+      at: new Date(order.deliveredAt),
+      kind: 'shipment',
+      title: t.deliveredByHand,
     })
   }
 
@@ -101,7 +134,7 @@ export function buildEntries(
       id: `sh-${order.shipment.id}`,
       at: new Date(order.shipment.createdAt),
       kind: 'shipment',
-      title: t.shipmentBooked,
+      title: order.shipment.canEditTracking ? t.trackingAdded : t.shipmentBooked,
       detail: `${shipping.waybill} ${order.shipment.waybill}`,
     })
     for (const e of tracking?.events ?? []) {

@@ -4,6 +4,8 @@ import { checkoutContent as content } from '@/data/checkout'
 import { CK_CARD, CK_HEADING } from '@/lib/checkout-classes'
 
 type ExpressPayProps = {
+  /** The card's heading, in the store's own words when it set some (#158). */
+  heading: string
   /** Under the buttons: what one tap pays, with which shipping ("Pays ₹648 by UPI, with Standard shipping (₹49)."). */
   line: string
   pending: boolean
@@ -30,7 +32,14 @@ const APPS: { mark: PaymentMarkName; name: string }[] = [
  * and what it adds. Before the PIN code is quoted there is no price to pay, so the tap points
  * at what is missing instead (`handleExpress`), as it does for a missing name or address.
  */
-export default function ExpressPay({ line, pending, disabled, message, onPay }: ExpressPayProps) {
+export default function ExpressPay({
+  heading,
+  line,
+  pending,
+  disabled,
+  message,
+  onPay,
+}: ExpressPayProps) {
   return (
     <section
       aria-labelledby="checkout-express-title"
@@ -40,7 +49,7 @@ export default function ExpressPay({ line, pending, disabled, message, onPay }: 
         id="checkout-express-title"
         className={`${CK_HEADING} text-[0.875rem]! sm:text-[0.9375rem]!`}
       >
-        {copy.heading}
+        {heading}
       </h2>
       <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
         {APPS.map((app) => (

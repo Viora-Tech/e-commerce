@@ -15,6 +15,7 @@ import { useState } from 'react'
 import { productFormContent } from '@/data/product-form'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { VariantRow } from './form-state'
+import type { ProductTax } from './product-tax'
 import { generateSku } from './sku'
 import VariantEditFields from './variant-edit-fields'
 
@@ -29,6 +30,8 @@ type VariantEditDialogProps = {
   /** Saves the draft, then opens the previous or next row. */
   onMove: (index: number) => void
   onClose: () => void
+  /** The product's HSN and GST rate (#63). */
+  tax: ProductTax
 }
 
 /**
@@ -42,6 +45,7 @@ export default function VariantEditDialog({
   onSave,
   onMove,
   onClose,
+  tax,
 }: VariantEditDialogProps) {
   // Hooks
   const { variants: variantsCopy } = useCopy(productFormContent)
@@ -92,7 +96,12 @@ export default function VariantEditDialog({
         </DialogHeader>
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
-          <VariantEditFields draft={draft} onPatch={patch} onGenerateSku={handleGenerateSku} />
+          <VariantEditFields
+            draft={draft}
+            onPatch={patch}
+            onGenerateSku={handleGenerateSku}
+            tax={tax}
+          />
         </div>
 
         <DialogFooter className="mx-0 mb-0 items-center gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:justify-between">

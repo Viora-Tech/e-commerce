@@ -8,7 +8,7 @@ const PAGES_QUERY = `query Pages($cursor: String, $query: String) {
   pages(first: 50, after: $cursor, query: $query) {
     ${PAGE_INFO}
     nodes {
-      id handle title body isPublished publishedAt templateSuffix
+      id handle title body isPublished publishedAt updatedAt templateSuffix
       seoTitle: metafield(namespace: "global", key: "title_tag") { value }
       seoDescription: metafield(namespace: "global", key: "description_tag") { value }
     }
@@ -22,6 +22,7 @@ type GPage = {
   body: string | null
   isPublished: boolean
   publishedAt: string | null
+  updatedAt?: string | null
   templateSuffix: string | null
   seoTitle: { value: string } | null
   seoDescription: { value: string } | null
@@ -46,6 +47,7 @@ export async function* fetchPages(
       seoDescription: p.seoDescription?.value || null,
       published: p.isPublished,
       publishedAt: p.publishedAt,
+      updatedAt: p.updatedAt ?? null,
       templateSuffix: templateSuffix(p.templateSuffix),
     }))
   }

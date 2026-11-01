@@ -18,6 +18,8 @@ export type NotificationJob = {
   returnId?: string | undefined
   /** For refund_issued: which refund the message reports. */
   refundId?: string | undefined
+  /** For shipping_update: the shipment whose tracking changed. */
+  shipmentId?: string | undefined
   /** A hand-sent message's edited subject and note. */
   custom?: CustomMessage | undefined
   /** Only the channels that need this recipient field (a reminder sent by email or WhatsApp only). */
@@ -28,6 +30,8 @@ export type NotificationJob = {
   contactMessageId?: string | undefined
   /** For review_reply: the `review` the store answered (Reviews app). */
   reviewId?: string | undefined
+  /** For question_asked / question_answered: the `review_question` (Reviews app). */
+  questionId?: string | undefined
   /** For affiliate_update: the affiliate it goes to and what happened (Affiliates app). */
   affiliateId?: string | undefined
   affiliateNotice?: 'approved' | 'sale' | 'payout' | 'rejected' | undefined

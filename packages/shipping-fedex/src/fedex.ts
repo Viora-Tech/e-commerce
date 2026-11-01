@@ -550,6 +550,7 @@ export class FedexProvider implements ShippingProvider {
             contact: {
               personName: input.to.name.slice(0, 70),
               phoneNumber: digits(input.to.phone),
+              ...(input.to.email ? { emailAddress: input.to.email.slice(0, 80) } : {}),
             },
             address: { ...fedexAddress(input.to), residential: true },
           },

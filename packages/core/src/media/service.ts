@@ -14,6 +14,8 @@ import { pruneVariantMedia, syncFeaturedMedia, variantsUsingMedia } from '../cat
 import { CommerceError } from '../errors'
 import { memberAccess } from '../permissions/service'
 import { permissions } from '../permissions/statement'
+import { uploadedName } from './display-name'
+import { mediaUseCount } from './references'
 import { fileTypeWhere, type MediaFileType, USABLE_MEDIA_STATUSES } from './usage'
 
 export const UploadIntentSchema = z.object({
@@ -71,6 +73,8 @@ export async function createUploadIntent(
     provider: provider.id,
     contentType: input.contentType,
     size: input.size,
+    /* The name the merchant's file had, for Files to show instead of the key (#91). */
+    name: uploadedName(input.filename),
     width: input.width ?? null,
     height: input.height ?? null,
     status: 'pending',
@@ -217,6 +221,8 @@ export type MediaListInput = {
   fileType?: MediaFileType | undefined
   size?: MediaSizeBucket | undefined
   used?: MediaUsedFilter | undefined
+  /** Only files in this folder (#91); absent lists every folder. */
+  folderId?: string | undefined
 }
 
 const SIZE_BUCKETS: Record<MediaSizeBucket, [number, number | null]> = {
@@ -225,14 +231,15 @@ const SIZE_BUCKETS: Record<MediaSizeBucket, [number, number | null]> = {
   large: [2_000_000, null],
 }
 
-const usedSubquery = sql`(select count(*)::int from product_media pm where pm.media_id = media.id)`
-
 /** What the library shows of a file: the list item and the file page read the same columns. */
 export const libraryColumns = {
   id: media.id,
   url: media.url,
   key: media.key,
   alt: media.alt,
+  /* Saved display name (#91); null shows a name read from the key (`displayNameOf`). */
+  name: media.name,
+  folderId: media.folderId,
   contentType: media.contentType,
   size: media.size,
   width: media.width,
@@ -243,8 +250,8 @@ export const libraryColumns = {
   /* `processing` files are listed too (#811): the tile says "Optimising" until the worker is done. */
   status: media.status,
   createdAt: media.createdAt,
-  /* Drizzle renders correlated columns unqualified inside a single-table select, so spell the join out. */
-  usedBy: sql<number>`(select count(*)::int from product_media pm where pm.media_id = media.id)`,
+  /* Products, collections, blog posts, pages, reviews and themes using the file (`references.ts`). */
+  usedBy: mediaUseCount,
 }
 
 /**
@@ -253,31 +260,36 @@ export const libraryColumns = {
  * (see `setProductMedia`), so it is listed straight away. Listing only `ready` rows made a fresh
  * upload vanish from Files until the worker got to it (#811).
  */
-export function libraryWhere(input: Pick<MediaListInput, 'search' | 'fileType'>) {
+export function libraryWhere(input: Pick<MediaListInput, 'search' | 'fileType' | 'folderId'>) {
   return and(
     inArray(media.status, USABLE_MEDIA_STATUSES),
     input.search
-      ? or(ilike(media.alt, `%${input.search}%`), ilike(media.key, `%${input.search}%`))
+      ? or(
+          ilike(media.alt, `%${input.search}%`),
+          ilike(media.key, `%${input.search}%`),
+          ilike(media.name, `%${input.search}%`),
+        )
       : undefined,
     input.fileType ? fileTypeWhere(input.fileType) : undefined,
+    input.folderId ? eq(media.folderId, input.folderId) : undefined,
   )
 }
 
-/** Library listing: usable (ready or processing) items newest first, with how many products use each. */
+/** Library listing: usable (ready or processing) items newest first, with how many things use each. */
 export async function listMedia(tx: StoreTx, input: MediaListInput) {
   const [sizeMin, sizeMax] = input.size ? SIZE_BUCKETS[input.size] : [null, null]
   const where = and(
     libraryWhere(input),
     sizeMin !== null ? sql`${media.size} >= ${sizeMin}` : undefined,
     sizeMax !== null ? sql`${media.size} < ${sizeMax}` : undefined,
-    input.used === 'used' ? sql`${usedSubquery} > 0` : undefined,
-    input.used === 'unused' ? sql`${usedSubquery} = 0` : undefined,
+    input.used === 'used' ? sql`${mediaUseCount} > 0` : undefined,
+    input.used === 'unused' ? sql`${mediaUseCount} = 0` : undefined,
   )
   const orderBy =
     input.sort === 'oldest'
       ? [asc(media.createdAt), asc(media.id)]
       : input.sort === 'name'
-        ? [asc(media.key), asc(media.id)]
+        ? [asc(sql`coalesce(${media.name}, ${media.key})`), asc(media.id)]
         : input.sort === 'size'
           ? [desc(media.size), desc(media.id)]
           : [desc(media.createdAt), desc(media.id)]
@@ -292,8 +304,22 @@ export async function listMedia(tx: StoreTx, input: MediaListInput) {
   return { items: rows, total: countRow?.n ?? 0 }
 }
 
-export async function updateMedia(tx: StoreTx, id: string, patch: { alt?: string | null }) {
-  const [row] = await tx.update(media).set(patch).where(eq(media.id, id)).returning()
+export async function updateMedia(
+  tx: StoreTx,
+  id: string,
+  patch: { alt?: string | null | undefined; name?: string | null | undefined },
+) {
+  const set = {
+    ...(patch.alt === undefined ? {} : { alt: patch.alt }),
+    /* A blank name goes back to the one read from the key. */
+    ...(patch.name === undefined ? {} : { name: patch.name?.trim() || null }),
+  }
+  if (Object.keys(set).length === 0) {
+    const [same] = await tx.select().from(media).where(eq(media.id, id))
+    if (!same) throw new CommerceError('NOT_FOUND', `Media ${id} not found`)
+    return same
+  }
+  const [row] = await tx.update(media).set(set).where(eq(media.id, id)).returning()
   if (!row) throw new CommerceError('NOT_FOUND', `Media ${id} not found`)
   return row
 }

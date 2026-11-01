@@ -26,6 +26,7 @@ import {
   VERIFY_EVERY_MS,
 } from './domains'
 import { createFxRates, FX_RATES_SCHEDULE } from './fx-rates'
+import { createHomeCardsRefresh, HOME_CARDS_EVERY_MS } from './home-cards'
 import { createImportSnapshotCleanup, SNAPSHOT_CLEANUP_EVERY_MS } from './import-snapshots'
 import { createInboxAiReplyWorker } from './inbox-ai-reply'
 import { createMarketingWorker, MARKETING_TICK_MS, retireAbandonedSweep } from './marketing'
@@ -45,6 +46,7 @@ import { BALANCE_EVERY_MS, createPreorderBalanceJob } from './preorder-balance'
 import { createPurchaseDocumentWorker } from './purchase-documents'
 import { createConnection, createHeartbeat } from './queues'
 import { createRetentionPrune, RETENTION_SCHEDULE } from './retention'
+import { createReviewSummarySweep, REVIEW_SUMMARIES_EVERY_MS } from './review-summaries'
 import { createReviewRequestSweep, REVIEW_REQUESTS_EVERY_MS } from './reviews'
 import { createRolloutsTick, scheduleRolloutsTick } from './rollouts'
 import { createSearchConsoleSweep, SEARCH_CONSOLE_EVERY_MS } from './search-console'
@@ -53,6 +55,7 @@ import { shipmentWebhooks } from './shipments-webhook'
 import { createShippingTracker, TRACK_EVERY_MS } from './shipping'
 import { createShopifyTokenSweep, SHOPIFY_TOKEN_SWEEP_EVERY_MS } from './shopify-token-sweep'
 import { createStoreExportWorker } from './store-export'
+import { createThemeScreenshotWorker } from './theme-screenshot'
 
 /* The local storage provider writes relative to the admin app, which serves
    the folder; point this process at the same place for generated files. */
@@ -126,6 +129,13 @@ const backInStock = createBackInStockWorker(redis, db, {
   storefrontUrl: env.STOREFRONT_URL,
 })
 const storeExport = createStoreExportWorker(redis, db, { settingsSecret: env.SETTINGS_SECRET })
+const themeScreenshots = createThemeScreenshotWorker(redis, db, {
+  settingsSecret: env.SETTINGS_SECRET,
+  storefrontUrl: env.STOREFRONT_URL,
+  chromiumPath: env.THEME_SCREENSHOT_CHROMIUM,
+  // A production image has no Playwright download: only the Chromium the env names.
+  disabled: env.NODE_ENV === 'production' && !env.THEME_SCREENSHOT_CHROMIUM,
+})
 const aiBulkWrite = createAiBulkWriteWorker(redis, db, { settingsSecret: env.SETTINGS_SECRET })
 const inboxAi = createInboxAiReplyWorker(redis, db)
 const purchaseDocuments = createPurchaseDocumentWorker(redis, db)
@@ -133,11 +143,13 @@ const importSnapshots = createImportSnapshotCleanup(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
 })
 const reviewRequests = createReviewRequestSweep(redis, db)
+const reviewSummaries = createReviewSummarySweep(redis, db)
 const affiliateCommissions = createAffiliateCommissionSweep(redis, db)
 const memberDailySummary = createMemberDailySummary(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
   adminUrl: env.ADMIN_URL,
 })
+const homeCards = createHomeCardsRefresh(redis, db)
 const searchConsole = createSearchConsoleSweep(redis, db)
 const billing = createBillingSweep(redis, db, {
   salesStoreId: env.PLATFORM_SALES_STORE_ID,
@@ -204,13 +216,16 @@ const watched = [
   [backInStock.worker, 'back-in-stock'],
   [mediaProcess.worker, 'media-process'],
   [storeExport.worker, 'store-export'],
+  [themeScreenshots.worker, 'theme-screenshot'],
   [aiBulkWrite.worker, 'ai-bulk-write'],
   [inboxAi.worker, 'inbox-ai-reply'],
   [purchaseDocuments.worker, 'purchase-documents'],
   [importSnapshots.worker, 'import-snapshot-cleanup'],
   [reviewRequests.worker, 'review-requests'],
+  [reviewSummaries.worker, 'review-summaries'],
   [affiliateCommissions.worker, 'affiliate-commissions'],
   [memberDailySummary.worker, 'member-daily-summary'],
+  [homeCards.worker, 'home-cards'],
   [searchConsole.worker, 'search-console-sweep'],
   [billing.worker, 'billing-sweep'],
   [apiActivityPrune.worker, 'api-activity-prune'],
@@ -308,6 +323,11 @@ await reviewRequests.queue.upsertJobScheduler(
   { every: REVIEW_REQUESTS_EVERY_MS },
   { name: 'sweep' },
 )
+await reviewSummaries.queue.upsertJobScheduler(
+  'refresh-review-summaries',
+  { every: REVIEW_SUMMARIES_EVERY_MS },
+  { name: 'sweep' },
+)
 await affiliateCommissions.queue.upsertJobScheduler(
   'approve-affiliate-commissions',
   { every: AFFILIATE_COMMISSIONS_EVERY_MS },
@@ -316,6 +336,11 @@ await affiliateCommissions.queue.upsertJobScheduler(
 await memberDailySummary.queue.upsertJobScheduler(
   'member-daily-summary',
   { every: DAILY_SUMMARY_EVERY_MS },
+  { name: 'sweep' },
+)
+await homeCards.queue.upsertJobScheduler(
+  'home-cards',
+  { every: HOME_CARDS_EVERY_MS },
   { name: 'sweep' },
 )
 await searchConsole.queue.upsertJobScheduler(
@@ -445,6 +470,8 @@ const shutdown = async () => {
   await backInStock.queue.close()
   await storeExport.worker.close()
   await storeExport.queue.close()
+  await themeScreenshots.worker.close()
+  await themeScreenshots.queue.close()
   await aiBulkWrite.worker.close()
   await aiBulkWrite.queue.close()
   await inboxAi.worker.close()
@@ -455,10 +482,14 @@ const shutdown = async () => {
   await importSnapshots.queue.close()
   await reviewRequests.worker.close()
   await reviewRequests.queue.close()
+  await reviewSummaries.worker.close()
+  await reviewSummaries.queue.close()
   await affiliateCommissions.worker.close()
   await affiliateCommissions.queue.close()
   await memberDailySummary.worker.close()
   await memberDailySummary.queue.close()
+  await homeCards.worker.close()
+  await homeCards.queue.close()
   await searchConsole.worker.close()
   await searchConsole.queue.close()
   await searchConsole.appJobs.close()

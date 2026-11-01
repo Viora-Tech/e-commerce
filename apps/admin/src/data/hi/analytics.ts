@@ -52,6 +52,20 @@ export default [
     },
     topProducts: { title: 'टॉप प्रोडक्ट', empty: 'इस रेंज में अभी कोई बिक्री नहीं।', units: 'बिके' },
     byState: { title: 'राज्य के हिसाब से बिक्री', empty: 'इस रेंज में अभी कोई शिप ऑर्डर नहीं।' },
+    salesBreakdown: {
+      title: 'बिक्री का ब्यौरा',
+      previous: 'पिछली अवधि',
+      current: 'यह अवधि',
+      lines: {
+        gross: 'कुल बिक्री (ग्रॉस)',
+        discounts: 'डिस्काउंट',
+        returns: 'रिटर्न',
+        net: 'नेट बिक्री',
+        shipping: 'शिपिंग चार्ज',
+        tax: 'GST (क़ीमतों में शामिल)',
+        total: 'कुल बिक्री',
+      },
+    },
     paymentMethods: { title: 'पेमेंट के तरीके', empty: 'इस रेंज में अभी कोई पेमेंट नहीं।' },
     funnel: {
       title: 'विज़िट से ऑर्डर तक',
@@ -204,6 +218,11 @@ export default [
         marketing: 'मार्केटिंग',
       },
       columns: {
+        order: 'ऑर्डर',
+        placed: 'ऑर्डर की तारीख',
+        price: 'कीमत',
+        handle: 'हैंडल',
+        collection: 'कलेक्शन',
         day: 'दिन',
         product: 'प्रोडक्ट',
         variant: 'वेरिएंट',
@@ -401,6 +420,15 @@ export default [
       compareLabel: 'तुलना',
       chartType: { bars: 'बार', line: 'लाइन' },
       details: 'ब्यौरा',
+      answer: {
+        title: 'AI जवाब',
+        snapshot: (when: string) =>
+          `${when} के AI जवाब की कॉपी। आंकड़े अपडेट नहीं होते, क्योंकि यह जवाब कस्टम क्वेरी में नहीं लिखा जा सकता।`,
+        asked: (question: string) => `आपने पूछा: "${question}"`,
+        empty:
+          'दिखाने के लिए कोई AI जवाब नहीं है। रिपोर्ट पेज या AI बार में पूछें, फिर "रिपोर्ट की तरह खोलें" चुनें।',
+        saveHelp: 'सेव की गई रिपोर्ट में कॉपी की तरह सेव होगी। आंकड़े जैसे थे वैसे ही रहेंगे।',
+      },
     },
     live: {
       title: 'लाइव व्यू',

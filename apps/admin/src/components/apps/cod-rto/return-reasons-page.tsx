@@ -1,5 +1,6 @@
 'use client'
 
+import { returnReasonLabel } from '@commerce/core/returns'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Table,
@@ -94,7 +95,9 @@ export default function ReturnReasonsPage() {
             ) : null}
             {(data?.reasons ?? []).map((r) => (
               <TableRow key={r.reason}>
-                <TableCell className={`${CELL} font-medium`}>{labels.reasons[r.reason]}</TableCell>
+                <TableCell className={`${CELL} font-medium`}>
+                  {returnReasonLabel(r.reason, labels.reasons)}
+                </TableCell>
                 <TableCell className={`${CELL} text-right tabular-nums`}>
                   {f.number(r.returns)}
                 </TableCell>
@@ -139,7 +142,7 @@ export default function ReturnReasonsPage() {
                   {f.money(p.valuePaise)}
                 </TableCell>
                 <TableCell className={`${CELL} text-muted-foreground`}>
-                  {p.topReason ? labels.reasons[p.topReason] : null}
+                  {p.topReason ? returnReasonLabel(p.topReason, labels.reasons) : null}
                 </TableCell>
               </TableRow>
             ))}

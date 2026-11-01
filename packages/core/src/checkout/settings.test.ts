@@ -39,7 +39,42 @@ describe('checkout settings', () => {
       minimumOrderPaise: 0,
       cod: { maxOrderPaise: 0, blockedPincodes: [], confirmOnWhatsApp: false },
       branding: CheckoutSettingsSchema.shape.branding.parse({}),
+      fields: { name: 'full', company: 'hidden', line2: 'optional' },
+      cartLimit: { maxPerProduct: 0, overrides: [] },
+      content: { en: {}, hi: {} },
     })
+  })
+
+  it('checks the form field rules on the server when a name is sent (#154)', () => {
+    const split = settings({ fields: { name: 'split', company: 'required', line2: 'required' } })
+    const r = validateCheckoutContact(split, {
+      email: 'a@b.in',
+      phone: '9876543210',
+      name: 'Asha',
+      firstName: 'Asha',
+      lastName: ' ',
+    })
+    expect(!r.ok && Object.keys(r.errors).sort()).toEqual(['businessName', 'lastName', 'line2'])
+    const ok = validateCheckoutContact(split, {
+      email: 'a@b.in',
+      phone: '9876543210',
+      name: 'Asha Verma',
+      firstName: 'Asha',
+      lastName: 'Verma',
+      line2: 'Near the metro',
+      businessName: 'Verma Traders',
+    })
+    expect(ok.ok && ok.value.businessName).toBe('Verma Traders')
+    // No name sent (older callers): the field rules are not judged.
+    expect(validateCheckoutContact(split, { email: 'a@b.in', phone: '9876543210' }).ok).toBe(true)
+  })
+
+  it('keeps a company name without a GSTIN only when the store shows the field', () => {
+    const input = { email: 'a@b.in', phone: '9876543210', businessName: 'Verma Traders' }
+    const hidden = validateCheckoutContact(settings(), input)
+    expect(hidden.ok && hidden.value.businessName).toBeNull()
+    const shown = validateCheckoutContact(settings({ fields: { company: 'optional' } }), input)
+    expect(shown.ok && shown.value.businessName).toBe('Verma Traders')
   })
 
   it('reads the checkout key of store preferences and falls back on garbage', () => {

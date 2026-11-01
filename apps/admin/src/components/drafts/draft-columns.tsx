@@ -1,3 +1,4 @@
+import { orderRef } from '@commerce/core/draft-number'
 import CustomerAvatar from '@/components/customers/customer-avatar'
 import StatusChip from '@/components/layout/status-chip'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
@@ -16,10 +17,10 @@ export function draftColumns(
     {
       id: 'number',
       title: copy.columns.number,
-      sortValue: (d) => d.number,
+      sortValue: (d) => d.draftNumber ?? d.number,
       hideable: false,
       className: 'w-24',
-      render: (d) => <span className="font-medium tabular-nums">#{d.number}</span>,
+      render: (d) => <span className="font-medium tabular-nums">#{orderRef(d)}</span>,
     },
     {
       id: 'customer',

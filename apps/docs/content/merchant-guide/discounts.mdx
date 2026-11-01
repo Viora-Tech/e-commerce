@@ -1,6 +1,6 @@
 ---
 title: Discounts
-description: Make discount codes and automatic offers of four types (amount off products, amount off order, buy X get Y, free shipping), limit who can use them, let them combine, and pause, resume or duplicate them.
+description: Make discount codes and automatic offers of five types (amount off products, amount off order, buy X get Y, free shipping, combo deal), limit who can use them, let them combine, and pause, resume or duplicate them.
 ---
 
 # Discounts
@@ -18,6 +18,7 @@ Pick the type first, at the top of the page. It is fixed once the discount is sa
 | **Amount off order** | A percentage or rupee amount off the whole order. |
 | **Buy X get Y** | Buy some items (or spend an amount) and get other items free or cheaper. |
 | **Free shipping** | Shipping is free on qualifying orders, in every state or the ones you pick. |
+| **Combo deal** | Sets of products bought together (Combo 1, Combo 2 …), each at its own combo price or discount. |
 
 A fixed amount is taken once from the order and never more than the items it covers are worth.
 
@@ -65,6 +66,35 @@ ones discounted, and an item never counts as both bought and given. Example: "Bu
 free" on three ₹1,000 shirts makes one shirt free. With a minimum amount, every multiple of
 the amount spent earns another round.
 
+## Combo deal
+
+One combo deal holds several combos. Each combo is a set of items and its own discount, so you
+can run "Shirt + cap for ₹1,499" and "Any 3 socks for ₹499" from one discount.
+
+1. Under **Combos**, select **Browse** in **Combo 1**. The picker has a **Products (any
+   variant)** tab and a **Specific variants** tab (for example only the size L shirt). Pick the
+   items and select **Done**.
+2. Type a quantity next to each item (blank means 1). "Any 3 socks" is one item, socks, with
+   quantity 3.
+3. Choose the **Combo discount**: a **Combo price** for the whole set, a **Percentage off** the
+   set, or an **Amount off** the set, and type it.
+4. Select **Add combo** for the next one (up to 20); the bin icon removes a combo.
+
+How it works in the cart:
+
+- A combo applies once for every full set in the cart: two shirts and two caps get the
+  "shirt + cap" combo twice. A set that is not complete gets nothing.
+- An item counts towards one combo only. When combos share items, the combo that saves the
+  shopper most is used first, then the next, until nothing else fits.
+- With a product combo, the dearer variants are used first, so the shopper saves the most.
+- A combo price higher than what the set already costs gives nothing off.
+- The saving shows in the cart and at checkout under the discount's title, like other
+  discounts, and GST is worked out on the discounted prices.
+
+A combo deal stacks as a **product discount** under **Combinations**. Customer eligibility,
+usage limits and active dates work as for any discount; there is no minimum purchase setting.
+The **Value** column on the discount list shows the number of combos, for example "3 combos".
+
 ## Free shipping
 
 - **All states** or **Selected states**: tick the states that get free shipping. The state is
@@ -85,10 +115,16 @@ the amount spent earns another round.
 - **Specific customer segments**: browse to the segments you made under Customers → Segments.
   A shopper qualifies while they match the segment's rules.
 - **Specific customers**: browse to the customers by name or email.
+- **First-time buyers only**: a welcome offer. It applies only when the shopper has no earlier
+  paid order with your store, matched by their email (and the customer it belongs to) or their
+  phone number. Cancelled and test orders do not count, and neither does an order still waiting
+  for its payment (a cash on delivery parcel on its way). The list shows "First-time buyers" in
+  the Eligibility column and at the end of the discount's summary line. Tick **Limit to one use
+  per customer** as well if a shopper should not use it twice before their first order is paid.
 
 Eligibility is checked when a signed-in shopper views the cart, or at checkout once the
 shopper enters their email. A shopper who does not qualify is told the code is not available
-for their account.
+for their account; for a first-time code they are told it is for first orders only.
 
 ## Maximum discount uses
 

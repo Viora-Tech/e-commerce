@@ -4,12 +4,12 @@ import { useCopy } from '@/hooks/use-copy'
 import { cellValue, type GridRow, STATUSES, withCell } from './bulk-edit-model'
 
 /** Select cell editor (status, Yes/No): a native select that commits as soon as one is picked. */
-export default function BulkSelectEditor({
+export default function BulkSelectEditor<R extends GridRow>({
   row,
   column,
   onRowChange,
   onClose,
-}: RenderEditCellProps<GridRow>) {
+}: RenderEditCellProps<R>) {
   // Hooks
   const copy = useCopy(bulkEditContent)
 

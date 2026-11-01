@@ -3,6 +3,7 @@
 import { type ReactNode, useEffect, useState, useTransition } from 'react'
 import { stickyAtcContent as copy } from '../data/zero-drift/sticky-atc'
 import { onVariantChange } from '../product-variant-event'
+import type { AddToCart } from '../store-actions'
 import type { ProductDetail } from '../types'
 import Picture from './picture'
 import Price from './price'
@@ -13,7 +14,7 @@ type StickyAtcProps = {
   addLabel: ReactNode
   soldOutLabel: ReactNode
   /** The storefront's add-to-cart action; absent in the Customize canvas (button inert). */
-  onAddToCart?: ((variantId: string, quantity: number) => Promise<void>) | undefined
+  onAddToCart?: AddToCart | undefined
   /** Customize canvas: drawn in place and always visible, so it can be selected. */
   preview: boolean
 }
@@ -69,7 +70,8 @@ export default function StickyAtc({
   const handleAdd = () => {
     if (!variant?.purchasable || !onAddToCart) return
     startTransition(async () => {
-      await onAddToCart(variant.id, 1)
+      // Refused (a pre-order campaign keeping pre-orders apart, #143): nothing was added.
+      if (await onAddToCart(variant.id, 1)) return
       setAdded(true)
       setTimeout(() => setAdded(false), 2000)
     })
@@ -104,7 +106,11 @@ export default function StickyAtc({
             </span>
             {variant ? (
               <span className="sticky-atc__price">
-                <Price pricePaise={variant.pricePaise} mrpPaise={variant.mrpPaise} />
+                <Price
+                  pricePaise={variant.pricePaise}
+                  mrpPaise={variant.mrpPaise}
+                  variantId={variant.id}
+                />
               </span>
             ) : null}
           </span>

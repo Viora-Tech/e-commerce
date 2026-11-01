@@ -28,6 +28,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'affiliates.commissions.approveDue':
     'Approves every commission whose hold is over now, instead of waiting for the hourly pass.',
   'affiliates.commissions.decide': 'Clear a fraud flag (back to pending) or refuse a commission.',
+  'affiliates.commissions.dueCount':
+    'How many commissions are due now, so "Approve due now" is off when there are none.',
   'affiliates.commissions.list':
     'The newest 1000 that match the search and filter panel; the admin pages in the browser.',
   'affiliates.decideCode': "Approve or decline an affiliate's request for their own code.",
@@ -46,6 +48,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'affiliates.programs.restore': 'Opens an archived program again.',
   'affiliates.programs.save':
     "Saves a program's name, link and rules; new rules apply to new orders only.",
+  'affiliates.remove':
+    'Removes an affiliate added by mistake; refused once they have a commission (pause them then).',
   'affiliates.rotateCoupon': 'A leaked coupon: the old one stops working and a new one is made.',
   'affiliates.setProgram':
     'Moves an affiliate to another program: new orders earn under it, their code takes its discount.',
@@ -135,6 +139,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'automations.update':
     'Saves the name, description or draft; the live version keeps running until Publish.',
   'automations.usage': "Monthly runs and active workflows against the plan's limits.",
+  'backInStock.signups.importRestockTags':
+    '"Bring over restock tags": Shopify restock-app customer tags become waiting signups.',
   'billing.apps':
     "Paid apps: what each one costs on this plan, bought months, and the store's app bills.",
   'billing.autopay': "UPI AutoPay: whether it can be turned on here, and the store's mandate.",
@@ -164,14 +170,27 @@ export const ACTION_DOCS: Record<string, string> = {
   'bugReports.unreadCount':
     "How many of the member's own reports changed since they last opened My reports (the menu's dot).",
   'businessGst.reorderLocations': 'The order checkout tries locations in.',
+  'businessGst.setLocationLocalDelivery':
+    'Local delivery from this location (audit #163): PIN codes, price, minimum; null turns it off.',
   'businessGst.setLocationPickup':
     "Couriers collect from this location's address (Settings › Locations), or not.",
   'businessGst.setLocationSelling':
     'Checkout routes online orders to this location, or not (the default always ships).',
+  'businessGst.setLocationStorePickup':
+    'Pickup in store at this location (audit #163); null turns it off.',
   'businessGst.setMaxParcels': 'The most parcels one order may be split into.',
+  'catalogs.create': 'Add a catalog: its products, price change and the markets that sell from it.',
+  'catalogs.delete': 'Delete a catalog; its markets sell every product at their own prices again.',
+  'catalogs.get': 'One catalog with its chosen products, collections and fixed prices.',
+  'catalogs.list': 'Every catalog with its product count, price change and markets.',
+  'catalogs.productPrices':
+    "One page of the products a catalog includes or leaves out, with their variants' prices.",
+  'catalogs.update': 'Change a catalog; only the parts sent are replaced.',
   'chatwoot.settings.test': 'Reads the profile and inboxes with the saved token; creates nothing.',
   'codRto.forOrder': "The order page's card.",
   'codRto.markConfirmed': '"Confirmed by phone": the merchant called the shopper.',
+  'codRto.scoreOpen':
+    '"Score open orders": open orders with no score (imported ones), up to a batch per press.',
   'collections.forProduct':
     "Manual collections a product sits in, for the product form's organisation card.",
   'collections.preview': 'Live "matches N products" while the merchant writes rules.',
@@ -205,6 +224,8 @@ export const ACTION_DOCS: Record<string, string> = {
     "The merchant opened a click-to-chat WhatsApp: the line goes on the customer's Timeline.",
   'customers.overview': 'Headline figures and the weekly series behind the Customer Overview card.',
   'customers.previewSegment': 'Live count and a sample for the rule builder.',
+  'customers.sendEmail':
+    "\"Email customer\": a plain email with the merchant's subject and message, sent through the store's email channels, listed under the customer's messages and noted on their timeline.",
   'customers.setDefaultAddress':
     "Make one saved address the customer's default (the profile card shows it).",
   'customers.setDefaultBillingAddress':
@@ -215,13 +236,21 @@ export const ACTION_DOCS: Record<string, string> = {
     '"WhatsApp" click to chat from the customer page: their phone and name, plus their latest order\'s links for the order and shipping messages.',
   'dashboard.analytics':
     "Home's analytics card for any date range (Figma 580:692): every tile metric, with comparison.",
+  'dashboard.cards':
+    "Home's smart cards: suggestions from the store's own numbers, rebuilt daily, best first.",
   'dashboard.charts':
     'The "How you\'re doing" charts area for one range; the only part of the home page that refetches.',
+  'dashboard.dismissCard':
+    'Hide one smart card for 30 days for the whole store; dismissed: false is Undo.',
   'dashboard.summary':
     'Stat windows, weekly report, recent orders, top products, live visitors and quick lists for the home page.',
   'dashboard.tiles': 'Which metric this member keeps in each Home tile (Customize).',
+  'dashboard.todos':
+    'Which to-do cards this store hides on Home ("Edit to-dos"); one setting for the whole store.',
   'deliveryOptions.tryPin':
     "Try a PIN: the cards checkout would show, every route's quote, and why.",
+  'documents.templates':
+    "Every template (the merchant's or the default), the store header, and whether the GST app owns invoices.",
   'domains.connect':
     'Connect a custom domain (and optionally its www twin as a redirect); starts pending.',
   'domains.list': 'Every hostname this store answers on, with the records each still needs.',
@@ -277,6 +306,15 @@ export const ACTION_DOCS: Record<string, string> = {
   'inbox.counts': 'How many conversations each tab holds, and how many open ones are unread.',
   'inbox.get':
     'One conversation with the newest page of its thread (staff notes included), or an older page.',
+  'inbox.knowledge.bringOver':
+    'Copies the imported Shopify "Knowledge Base Facts" not copied before.',
+  'inbox.knowledge.create': 'Adds an answer.',
+  'inbox.knowledge.delete': 'Deletes an answer.',
+  'inbox.knowledge.list':
+    'The knowledge base, its "6 of 18 published" counts and the imported Shopify facts, if any.',
+  'inbox.knowledge.reorder': 'Puts the answers in this order.',
+  'inbox.knowledge.setPublished': "The list's publish switch.",
+  'inbox.knowledge.update': 'Changes an answer.',
   'inbox.list':
     'One page of conversations in a tab (Open, Mine, Unassigned, Closed, Blocked), newest first, with search.',
   'inbox.markSeen': 'Marks everything in the thread read for staff.',
@@ -302,6 +340,7 @@ export const ACTION_DOCS: Record<string, string> = {
     'A long chat in two lines: what it is about and what the shopper still waits for.',
   'inbox.sync':
     'The polling fallback: messages and changed conversations since a message id, and the counts.',
+  'inbox.takeOver': 'Take a conversation over from the AI agent: it stops answering there.',
   'inbox.typing': '"Typing…" to the shopper; never stored, at most one every 3 seconds.',
   'inventory.bulkEdit': 'Same edit across selected rows; all or nothing.',
   'inventory.edit': 'One inline edit: returns the new on-hand count.',
@@ -345,13 +384,19 @@ export const ACTION_DOCS: Record<string, string> = {
     'Delete a market; one with orders is turned off instead, so its orders keep it.',
   'markets.get': 'One market with its countries.',
   'markets.list': 'Every market with its countries, the primary market (India) first.',
+  'markets.saveSettings': 'Save the settings for every market.',
   'markets.setEnabled': 'Turn a market on or off for shoppers; the primary market is always on.',
+  'markets.settings':
+    "Settings for every market: whether the storefront suggests the visitor's market.",
   'markets.update': 'Change a market; the primary market only changes its name and languages.',
   'media.backgroundWork':
     'Images still processing and a running import: the "store may be slower" notice.',
   'media.confirm':
     'Step 2: the PUT succeeded; the object is HEAD-checked for its real size (see confirmUpload).',
+  'media.deleteFolder': 'Only an empty folder; one with files is refused with how many.',
+  'media.folders': 'Files folders with their file counts (#91).',
   'media.get': 'One file for its page in the library.',
+  'media.moveToFolder': 'Moves files into a folder, or out of any with folderId null.',
   'media.neighbours':
     "The files before and after one in the library's order, for the file page's arrows.",
   'media.presign':
@@ -373,6 +418,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'navigation.checkLinks':
     "Items whose destination is gone or hidden from shoppers (the editor's broken-link check).",
   'navigation.settings': 'Which menus the storefront header and footer render, by handle.',
+  'navigation.themePlacements':
+    "Per menu handle, where the live theme's sections pick it (header, footer or a page).",
   'notifications.checkSenderEmail': '"Check now": ask SES again.',
   'notifications.overview':
     'Settings → Notifications: every message the shop sends and how messages go out.',
@@ -390,10 +437,14 @@ export const ACTION_DOCS: Record<string, string> = {
   'orders.abandonedStats':
     'Abandoned checkouts in a period: how many, their value, and how many were recovered.',
   'orders.addNote': "Add a staff note to the order's timeline.",
+  'orders.archiveMany':
+    'The list\'s bulk "Archive" / "Unarchive" (#1007): off the working tabs, or back onto them.',
   'orders.cancel':
     '"Cancel order": a reason, restock on or off, tell the customer or not, and how the money goes back (original payment, recorded by hand, or not at all).',
   'orders.cancelShipment':
     'Cancel a booked shipment with its courier, before it is collected or put on a manifest.',
+  'orders.capture':
+    '"Capture payment" (#150): take the money a manual-capture checkout only authorised.',
   'orders.checkDraftDiscount':
     "Check a store discount code against a draft's lines and customer with checkout's rules (dates, minimums, products and collections, eligibility, per-customer cap).",
   'orders.collectPayment': 'Record money collected outside a gateway; the order becomes paid.',
@@ -412,9 +463,11 @@ export const ACTION_DOCS: Record<string, string> = {
   'orders.duplicateOrder':
     "Start a new draft from an existing order: same customer, address, lines at today's prices (archived products skipped and named), notes and shipping.",
   'orders.edit':
-    'Save an order edit (add, remove, quantities, shipping, discount) on an open order not yet shipped.',
+    'Save an order edit (add catalogue or custom items, remove with or without restock, quantities, prices of unpacked lines, shipping, discount) on an open or completed order, shipped or not (#1014).',
   'orders.editPreview':
     "The edit's review step: new lines and totals, and what is owed either way.",
+  'orders.estimateDraftGst':
+    "The GST inside a draft's total as converting would bill it (each line's rate, the discount spread over the lines, shipping with the goods).",
   'orders.facets':
     'What the Orders filter panel offers: tags, discount codes, couriers and collections in use.',
   'orders.fulfil':
@@ -423,8 +476,11 @@ export const ACTION_DOCS: Record<string, string> = {
     "One order with its lines, payments, shipment, balance due and the customer's order history.",
   'orders.getAbandoned': 'One abandoned checkout with its cart, contact and recovery link.',
   'orders.getDraft': 'One draft order with its lines, customer, addresses and totals.',
+  'orders.holdFulfillment':
+    'Hold every unshipped parcel with a reason: no shipment, fulfil or "Mark as" until released.',
   'orders.ids':
     'Every order id the list\'s filters match (the table\'s "Select all N orders"), up to 5,000.',
+  'orders.linePeek': "An order's lines with pictures, for the list's items popover (up to 20).",
   'orders.list':
     'Orders, a page at a time, by list tab, status, payment, fulfilment, date, product or a search.',
   'orders.listAbandoned':
@@ -447,6 +503,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'Send money back through the gateway (or record a cash/UPI refund); partial amounts allowed.',
   'orders.refundOptions':
     'How a refund on this order can go back: how much is left, and to the original payment or not.',
+  'orders.releaseFulfillment':
+    'Release the hold: the order goes back to where it was (to pack, or partly shipped).',
   'orders.requestBalance':
     "Ask the shopper for a deposit pre-order's balance: email and WhatsApp (when set up) with a signed pay link.",
   'orders.retryCourierPush':
@@ -456,6 +514,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'orders.sendInvoice': 'Email the shopper a pay link for the draft.',
   'orders.sendInvoices':
     'The list\'s bulk "Send invoices": each selected draft with an email gets its pay link.',
+  'orders.sendOrderLink':
+    '"Send order link": the signed link to the order\'s page, by email and WhatsApp (when set up).',
   'orders.sendPaymentReminder':
     '"Send payment reminder" on an unpaid UPI / bank transfer order: by email, WhatsApp (when set up) or both (the default), with the QR and bank details.',
   'orders.sendRecovery': 'Email the shopper a reminder with a link back to their abandoned cart.',
@@ -479,7 +539,15 @@ export const ACTION_DOCS: Record<string, string> = {
   'payments.razorpayOAuthComplete':
     "The OAuth callback route hands the code here; the state must be this store's, and fresh.",
   'payments.razorpayOAuthStart': 'Where "Connect Razorpay" sends the merchant.',
+  'payments.saveCapture':
+    '"Payment capture" (#150): automatic, or authorise now and capture from the order page.',
+  'payments.saveManual':
+    'One "Manual payment methods" row (UPI ID, bank transfer): details, on/off and note (#149).',
+  'payments.saveMethodRules':
+    '"Payment rules" (#150): hide a way to pay by order total, PIN code or product.',
   'payments.saveMethods': '"Shoppers can pay with": on/off and order.',
+  'payments.saveRouting':
+    '"Active providers" and "Route methods": which gateways are on together, their fallback order, and which one takes each online method (audit #148/#150).',
   'payments.setActive':
     'The Active/Inactive switch: off leaves checkout at once, keys and settings kept.',
   'payments.setup': 'Everything Settings → Payments and the first-time setup show.',
@@ -501,6 +569,9 @@ export const ACTION_DOCS: Record<string, string> = {
     'Whether Embedded Signup is set up here, what the SDK needs, and the linked account.',
   'policies.template':
     "A policy's template filled from the store as it is now; the editor shows it, nothing is saved.",
+  'preorders.campaigns.delete': 'Its products sell by their own pre-order settings again.',
+  'preorders.overview':
+    'Last 30 days, every pre-order product with its limit, every campaign with its sales.',
   'products.adjustments': "Stock movements for the product form's inventory history.",
   'products.bulk': 'One action over many products: status, tags or delete.',
   'products.bulkEdit':
@@ -512,9 +583,11 @@ export const ACTION_DOCS: Record<string, string> = {
   'products.previewImport': 'Dry run: parse the file and say what would change, writing nothing.',
   'products.removeVariants':
     'The bulk editor\'s "Delete variants": archived when history points at them, else deleted.',
+  'products.sales':
+    '"Sales past 90 days" on the product page (#56): units, buyers and net revenue.',
   'products.save':
     'Full write from the product form: options, variants and inventory in one transaction.',
-  'products.searchVariants': 'Variant picker for the draft order editor.',
+  'products.searchVariants': 'Variant picker for the draft order editor and combo deals.',
   'products.setVariantImages':
     "Set one variant's images in order (first = the variant's main image); a file not yet in the product's gallery is added to it.",
   'products.stats': 'Tiles above the list.',
@@ -534,6 +607,13 @@ export const ACTION_DOCS: Record<string, string> = {
     "Email the PDF to the supplier through the store's sender email; optionally mark a draft ordered.",
   'purchaseOrders.pdf': 'The purchase order as a PDF for the supplier: print it or save it.',
   'purchaseOrders.reopen': 'Undo a close or a cancel.',
+  'reauth.passkeyOptions':
+    'WebAuthn options for a passkey step-up; the challenge is kept server-side on the session.',
+  'reauth.sendOtp': "Mail a fresh step-up code to the member's own address.",
+  'reauth.status':
+    'What the dialog needs: which factor to offer, and whether a step-up is even needed now.',
+  'reauth.verify':
+    'Verify an OTP or a passkey answer; on success the session is stamped re-authenticated.',
   'redirects.exportCsv': "Every redirect as Shopify's two-column CSV (Redirect from, Redirect to).",
   'redirects.importCsv': 'Add or update redirects from a CSV.',
   'returns.create': "Open a return on the shopper's behalf.",
@@ -541,14 +621,27 @@ export const ACTION_DOCS: Record<string, string> = {
     "The order page's Returns card: what can still go back and every return so far.",
   'returns.rtoSummary': 'Shipments workspace: RTO counts and costs over the last N days.',
   'reviews.ask': 'Plans review requests, due now, for recently delivered orders never asked.',
+  'reviews.askPastOrders':
+    'Plans the requests the preview counted, a batch an hour, after any still waiting.',
   'reviews.judgeme.import':
     'Imports what the preview showed (store reviews too, and missing-product rows as store reviews when asked); photos are copied by a background job.',
   'reviews.judgeme.preview':
     'Step 3 of the import: counts and the first rows with how each matched.',
   'reviews.list': "One page of reviews with the tiles' and tabs' numbers.",
+  'reviews.pastOrdersPreview':
+    '"Request reviews from past orders": how many delivered orders in the range would be asked.',
   'reviews.products': "Products that have reviews, for the list's product filter.",
+  'reviews.qrLinks':
+    "The links a review QR card encodes (order-<id> or product-<id>): the product's review form, or a signed link per product of the order so the buyer reviews as a verified buyer.",
+  'reviews.questions.answer': 'Saves the answer; publish shows it on the product page.',
+  'reviews.refreshSummary':
+    '"Refresh": the worker writes the product\'s summary again on its next tick.',
   'reviews.reply': "The store's public reply; the first one emails the customer.",
   'reviews.setStatus': 'Approve (publish), hide, or move back to waiting, one or many.',
+  'reviews.summary':
+    "A product's AI review summary for its Reviews card; enabled false when summaries are off.",
+  'reviews.widgets':
+    "The published reviews a Reviews theme section draws, for the theme editor's canvas (the storefront reads the same query itself).",
   'reviews.writeReply': '"Write with AI" on the reply box: a suggestion only.',
   'rollouts.archive': 'Keep a rollout that is not running for the record only.',
   'rollouts.checkConflicts':
@@ -563,8 +656,10 @@ export const ACTION_DOCS: Record<string, string> = {
   'rollouts.list': 'Every rollout with its changes, the newest first; statuses narrows the list.',
   'rollouts.listDiscounts':
     'Discounts by title or code, a page at a time: what a rollout can switch on or off.',
+  'rollouts.listMarkets': "The store's markets: where an A/B test can be limited to.",
   'rollouts.listThemes': 'The theme library, the live theme first: what a rollout can publish.',
   'rollouts.pause': 'Roll a running event back early; resume applies it again.',
+  'rollouts.results': "An A/B rollout's numbers per arm and the z-test hint; null without a test.",
   'rollouts.resume': "Apply a paused event's changes again until its end.",
   'rollouts.startNow':
     "Apply a rollout's changes now instead of at its start; a launch ends at once.",
@@ -578,8 +673,11 @@ export const ACTION_DOCS: Record<string, string> = {
     'One social channel, and whether Connect signs in to the platform now or sends a request.',
   'salesChannels.syncNow':
     '"Sync now": the platform gets this store\'s catalog again within a minute.',
+  'search.boosts.setPins':
+    "Pins products (in order) for one search; an empty list removes the search's pins.",
   'search.filters.get':
     "The store's filter settings (null: the default filters) and what it can filter by.",
+  'search.recommendations.list': "Products with picks, for the Recommendations page's list.",
   'searchConsole.connectComplete':
     "The OAuth callback route hands the code here; the state must be this store's, and fresh.",
   'searchConsole.connectStart': 'Where "Connect Google Search Console" sends the merchant.',
@@ -608,7 +706,11 @@ export const ACTION_DOCS: Record<string, string> = {
     'Ready to ship tab: paid, unfulfilled orders - the main Shopify-style booking flow.',
   'shipments.recordStatus':
     "A status set by hand, for a courier with no tracking feed (India Post): appended to the shipment's timeline and applied like a scan (delivered closes the order, RTO opens its task).",
+  'shipments.updateTracking':
+    "Correct a hand-entered shipment's tracking number, courier or tracking link.",
   'shipments.wallets': 'One card per connected courier - each has its own account and balance.',
+  'shipping.profiles.collectionProducts':
+    'Products of the picked collections, for "Add a collection\'s products".',
   'shopifyImport.appInstall':
     'Whether this deployment has the platform\'s own Shopify app, so "Install the app" can show.',
   'shopifyImport.claimAppInstall':
@@ -720,6 +822,8 @@ export const ACTION_DOCS: Record<string, string> = {
     "Values of connected sources for the Customize preview's chosen product or collection.",
   'themes.thumbnail':
     'The home page picture Customize takes on Save (a webp data URL, see theme-thumbnail.service).',
+  'themes.webPerformance':
+    "Real shoppers' page speed for the Online store page: Core Web Vitals p75 and loads by device.",
   'umami.report':
     'Visitors, page views and the ranked lists for one range; a drawable state, never an error.',
   'umami.settings.createWebsite': 'Creates a website for this store in Umami and saves its id.',

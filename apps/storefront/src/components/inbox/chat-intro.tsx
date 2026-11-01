@@ -11,6 +11,8 @@ type ChatIntroProps = {
   awayMessage: string | null
   /** "Popular right now"; empty once the shopper has written or is tracking an order. */
   featured: CardProduct[]
+  /** Questions the shopper can tap to send (audit #139); empty once they have written. */
+  questions: string[]
   onAsk: (text: string) => void
   onTrack: () => void
 }
@@ -36,6 +38,7 @@ export default function ChatIntro({
   greeting,
   awayMessage,
   featured,
+  questions,
   onAsk,
   onTrack,
 }: ChatIntroProps) {
@@ -59,6 +62,23 @@ export default function ChatIntro({
           <p className="text-[0.8125rem]! leading-relaxed! text-pretty opacity-65">{awayMessage}</p>
         ) : null}
       </div>
+      {questions.length > 0 ? (
+        <section className="flex flex-col gap-2">
+          <h3 className="text-[0.75rem]! font-medium! opacity-60">{copy.commonQuestions}</h3>
+          <div className="flex flex-wrap gap-2">
+            {questions.map((q) => (
+              <button
+                key={q}
+                type="button"
+                onClick={() => onAsk(q)}
+                className="touch-manipulation rounded-full px-3 py-1.5 text-left text-[0.8125rem]! ring-1 ring-[color-mix(in_srgb,currentColor_12%,transparent)] transition-[background-color] duration-(--duration-press) ease-out hover:bg-[color-mix(in_srgb,currentColor_3%,transparent)] active:bg-[color-mix(in_srgb,currentColor_6%,transparent)]"
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        </section>
+      ) : null}
       <nav
         aria-label={copy.quickHelp}
         className="flex flex-col overflow-hidden rounded-[0.875rem] ring-1 ring-[color-mix(in_srgb,currentColor_8%,transparent)]"

@@ -67,7 +67,10 @@ export default [
         { label: 'सबटोटल का प्रतिशत', value: 'percent' },
       ],
       amountLabel: { fixed: 'रकम ₹ में', percent: 'प्रतिशत' },
-      amountHelp: 'डिस्काउंट के लिए माइनस नंबर डालें, जैसे 2% छूट के लिए -2।',
+      amountHelp: {
+        fixed: 'डिस्काउंट के लिए माइनस नंबर डालें, जैसे ₹20 छूट के लिए -20।',
+        percent: 'डिस्काउंट के लिए माइनस नंबर डालें, जैसे 2% छूट के लिए -2।',
+      },
       labelLabel: 'ग्राहक को दिखने वाला नाम',
       labelPlaceholder: { fixed: 'COD चार्ज', percent: 'UPI डिस्काउंट' },
     },

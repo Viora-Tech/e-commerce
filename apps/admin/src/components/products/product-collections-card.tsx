@@ -8,7 +8,7 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
-import { productCollectionsCardContent } from '@/data/collections'
+import { productCollectionsCardContent, productCollectionsContent } from '@/data/collections'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { collectionIdsToSave } from './collection-pick'
@@ -17,6 +17,11 @@ import ProductCollectionsField, { type CollectionOption } from './product-collec
 type ProductCollectionsCardProps = {
   /** Null while the product is unsaved. */
   productId: string | null
+  /**
+   * A new product's picks, held until it is created and then saved with it: Shopify lets you
+   * choose collections before the first save (audit #200).
+   */
+  onPendingChange?: ((collectionIds: string[]) => void) | undefined
   /** Changes after each product save; smart collections re-evaluate on save, so refetch. */
   revision?: number
 }
@@ -32,13 +37,31 @@ type Loaded = { manual: CollectionOption[]; automatic: CollectionOption[]; membe
 export default function ProductCollectionsCard({
   productId,
   revision = 0,
+  onPendingChange,
 }: ProductCollectionsCardProps) {
   // Hooks
   const copy = useCopy(productCollectionsCardContent)
+  const fieldCopy = useCopy(productCollectionsContent)
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [value, setValue] = useState<string[]>([])
   const [saved, setSaved] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
+
+  // A new product: the manual collections to pick from, nothing chosen yet.
+  useEffect(() => {
+    if (productId) return
+    let live = true
+    api.collections
+      .list()
+      .then((all) => {
+        if (!live) return
+        setLoaded({ manual: all.filter((c) => c.kind === 'manual'), automatic: [], memberOf: [] })
+      })
+      .catch(() => live && setLoaded({ manual: [], automatic: [], memberOf: [] }))
+    return () => {
+      live = false
+    }
+  }, [productId])
 
   useEffect(() => {
     if (!productId || revision < 0) return
@@ -76,6 +99,23 @@ export default function ProductCollectionsCard({
     }
   }
 
+  const handlePick = (next: string[]) => {
+    setValue(next)
+    if (!productId) onPendingChange?.(next)
+  }
+
+  /** A collection made in the picker (#982): offered from now on and picked for this product. */
+  const handleCreated = (collection: CollectionOption) => {
+    if (!loaded) return
+    setLoaded({ ...loaded, manual: [...loaded.manual, collection] })
+    handlePick([...value, collection.id])
+    toast.success(
+      productId
+        ? fieldCopy.create.created(collection.title)
+        : fieldCopy.create.createdNew(collection.title),
+    )
+  }
+
   // Render logic
   const dirty = JSON.stringify(value) !== JSON.stringify(saved)
 
@@ -92,13 +132,16 @@ export default function ProductCollectionsCard({
       }
       bodyClassName="flex flex-col gap-4"
     >
-      {!productId ? (
-        <p className="text-body text-muted-foreground">{copy.saveFirst}</p>
-      ) : loaded === null ? (
+      {loaded === null ? (
         <Skeleton className="h-16 w-full" />
       ) : (
         <>
-          <ProductCollectionsField options={loaded.manual} value={value} onChange={setValue} />
+          <ProductCollectionsField
+            options={loaded.manual}
+            value={value}
+            onChange={handlePick}
+            onCreated={handleCreated}
+          />
           <div className="flex flex-col gap-1.5">
             <FieldLabel>{copy.automaticLabel}</FieldLabel>
             {loaded.automatic.length > 0 ? (

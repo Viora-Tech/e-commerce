@@ -57,7 +57,11 @@ export default function ThemePreviewStage({
               />
             ) : (
               <span role="img" aria-label={copy.thumbnail(name)} title={copy.pictureHint}>
-                <ThemeSwatch theme={settings} className="absolute inset-0 border-0 p-8" />
+                <ThemeSwatch
+                  theme={settings}
+                  name={name}
+                  className="absolute inset-0 border-0 p-8"
+                />
               </span>
             )}
           </div>
@@ -77,7 +81,7 @@ export default function ThemePreviewStage({
                 className="size-full bg-card object-contain object-top"
               />
             ) : (
-              <ThemeSwatch theme={settings} className="absolute inset-0 border-0 p-4" />
+              <ThemeSwatch theme={settings} name={name} className="absolute inset-0 border-0 p-4" />
             )}
           </div>
         </div>

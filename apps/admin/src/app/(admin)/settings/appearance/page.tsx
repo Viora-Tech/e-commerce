@@ -1,8 +1,7 @@
-import type { Metadata } from 'next'
-import AppearanceSettings from '@/components/settings/appearance-settings'
+import { redirect } from 'next/navigation'
+import { routes } from '@/lib/routes'
 
-export const metadata: Metadata = { title: 'Appearance' }
-
+/** Appearance is your own preference, so it lives under Account only (#81); old links land there. */
 export default function Page() {
-  return <AppearanceSettings />
+  redirect(routes.account.appearance())
 }

@@ -1,3 +1,7 @@
+import { checkoutAbroadContent } from './checkout-abroad'
+import { checkoutErrorsContent } from './checkout-errors'
+import { checkoutExpressContent } from './checkout-express'
+import { checkoutFieldsContent } from './checkout-fields'
 /**
  * Every string the checkout, payment and thank-you screens show. Change copy here,
  * never inside a component.
@@ -22,7 +26,8 @@ export const balanceContent = {
 
 /** The signed page a draft invoice email's "Pay securely" button opens. */
 export const invoiceContent = {
-  pageTitle: (number: number) => `Invoice #${number}`,
+  /** `ref` follows the #: "D12" while the invoice is a draft. */
+  pageTitle: (ref: string) => `Invoice #${ref}`,
   intro: (store: string) =>
     `${store} sent you this invoice. Check the items, then pay securely online.`,
   quantity: (n: number) => `Qty ${n}`,
@@ -104,6 +109,13 @@ export const thankYouContent = {
   payNow: 'Pay now',
   retryPayment: 'Retry payment',
   newQr: 'Get a new UPI QR',
+  /** A transfer order's way to pay through the store's gateway instead (issue 1010). */
+  payOnline: {
+    heading: 'Or pay online',
+    body: 'Pay now with UPI, card or netbanking and your order is confirmed straight away.',
+    action: 'Pay online now',
+    alreadySent: 'Already sent the transfer? You do not need to pay again; we will confirm it.',
+  },
   continueShopping: 'Continue shopping',
   subtotal: 'Subtotal',
   discount: 'Discount',
@@ -188,12 +200,20 @@ export const payClientContent = {
 } as const
 
 export const checkoutContent = {
+  /** The marketing ticks under Contact; never ticked for the shopper. */
+  marketing: {
+    email: 'Email me news and offers',
+    whatsapp: 'Send me offers on WhatsApp',
+  },
   title: 'Checkout',
   backToCart: 'Back to cart',
   contact: 'Contact',
   address: 'Delivery',
   deliveryMethod: 'Delivery method',
   payment: 'Payment',
+  /** Every way to pay is hidden for this order (a payment rule). */
+  noWayToPay:
+    'There is no way to pay for this order right now. Change your cart or delivery address, or contact the store.',
   /** Beside a way to pay whose gateway runs on test keys (Settings → Payments, Test). */
   testMode: 'Test mode',
   testModeHint: 'No real money is charged.',
@@ -256,7 +276,6 @@ export const checkoutContent = {
   },
   secure: 'Secure checkout',
   policiesLabel: 'Policies',
-  secureShort: 'Secure',
   itemCount: (n: number) => (n === 1 ? '1 item' : `${n} items`),
   /** The main gateway's option when the merchant chose which online methods to offer. */
   payOnline: 'Pay online',
@@ -281,6 +300,10 @@ export const checkoutContent = {
     cod: 'Cash on delivery',
     codHint: 'Pay in cash when your order arrives',
     manual: 'UPI or bank transfer to the shop',
+    /** Only the shop's UPI ID is on. */
+    manualUpi: 'UPI to the shop',
+    /** Only bank transfer is on. */
+    manualBank: 'Bank transfer / deposit',
     manualHint: 'We confirm your order once the money arrives',
   },
   /** What opens under the picked way to pay. */
@@ -295,20 +318,7 @@ export const checkoutContent = {
   },
   /** Under the Pay button: the gateways that handle the money. */
   processors: (names: string[]) => `Payments processed by ${names.join(' · ')}`,
-  express: {
-    heading: 'Express checkout',
-    /** The three app buttons; each pays by UPI and opens that app (or its QR) next. */
-    apps: { gpay: 'Google Pay', phonepe: 'PhonePe', paytm: 'Paytm' },
-    payWith: (app: string) => `Pay with ${app}`,
-    /** Under the buttons: what one tap pays, shipping included. */
-    total: (amount: string, shipping: string) => `Pays ${amount} by UPI, with ${shipping}.`,
-    totalOnly: (amount: string) => `Pays ${amount} by UPI.`,
-    shippingLine: (name: string, price: string) => `${name} shipping (${price})`,
-    freeShipping: 'free shipping',
-    noShippingYet: 'Add your PIN code below to see shipping, then pay in one tap.',
-    needDetails: 'Add your contact and delivery details below, then tap again.',
-    needShipping: 'Pick a shipping option below, then tap again.',
-  },
+  express: checkoutExpressContent,
   summary: 'Order summary',
   orderTotal: 'Order total',
   showSummary: 'Show order summary',
@@ -321,6 +331,8 @@ export const checkoutContent = {
   shippingFree: 'Free',
   /** Summary row before an address has been checked. */
   shippingPending: 'Enter your PIN code',
+  /** Abroad there is no PIN code: the address decides the options (#64). */
+  shippingPendingAbroad: 'Enter your address',
   shippingMethod: 'Shipping method',
   rateDelivery: (range: string) => `Delivery by ${range}`,
   total: 'Total',
@@ -356,33 +368,14 @@ export const checkoutContent = {
     encrypted:
       'Payments are encrypted and handled by the payment provider. We never see your card or UPI PIN.',
   },
-  fields: {
-    name: 'Full name',
-    email: 'Email for the receipt',
-    phone: 'Mobile number',
-    emailPlaceholder: 'you@example.com',
-    phonePlaceholder: '98765 43210',
-    namePlaceholder: 'As on your ID',
-    line1: 'House number, street, area',
-    line1Placeholder: 'Flat 4B, Palm Residency, Sector 14',
-    line2: 'Landmark (optional)',
-    line2Placeholder: 'Near the metro',
-    city: 'City',
-    state: 'State',
-    pincode: 'PIN code',
-    pincodePlaceholder: '110001',
-    emailOptional: 'Email for the receipt (optional)',
-    phoneHint: 'The courier calls this number on delivery.',
-    gstin: 'GSTIN',
-    gstinPlaceholder: '06ABCDE1234F1Z5',
-    gstinHint: 'For a GST invoice in your business name.',
-    businessName: 'Business name',
-    note: 'Order note (optional)',
-    notePlaceholder: 'For example, please call before delivery',
-  },
+  fields: checkoutFieldsContent,
   /** Inline messages, shown once a field has been left or the shopper tried to pay. */
   validation: {
     name: 'Enter your full name',
+    firstName: 'Enter your first name',
+    lastName: 'Enter your last name',
+    line2: 'Enter a landmark',
+    company: 'Enter your company name',
     email: 'Enter your email address',
     emailInvalid: 'Enter a valid email address, like name@example.com',
     phone: 'Enter a 10 digit mobile number, like 98765 43210',
@@ -395,6 +388,7 @@ export const checkoutContent = {
         ? 'Check the highlighted field to continue.'
         : `Check the ${n} highlighted fields to continue.`,
   },
+  abroad: checkoutAbroadContent,
   pincodeFirst: {
     finding: 'Finding your city…',
     found: (city: string, state: string) => `${city}, ${state}`,
@@ -416,7 +410,10 @@ export const checkoutContent = {
     codUnavailable: 'Cash on delivery is not available for this PIN code.',
     unserviceable: (pincode: string) => `We cannot deliver to ${pincode} yet.`,
     noRates: (pincode: string) => `We do not ship to ${pincode} yet.`,
+    /** An address abroad that no shipping zone covers. */
+    noRatesAbroad: 'We do not ship to this country yet.',
     pending: 'Enter your PIN code to see delivery options.',
+    pendingAbroad: 'Enter your address to see delivery options.',
     free: 'Free delivery',
     standard: 'Standard delivery',
     /** Each option's arrival, counted from today in the store's time zone. */
@@ -427,10 +424,10 @@ export const checkoutContent = {
     fastest: 'Fastest',
     digital: 'Delivered by email',
   },
-  /** When one order ships from more than one warehouse. */
+  /** When one order ships as more than one parcel (several warehouses, or a pre-order held back). */
   parcels: {
     title: (count: number) => `Ships in ${count} parcels`,
-    note: 'One order and one payment. Each parcel comes from a different warehouse, with its own invoice.',
+    note: 'One order and one payment. Each parcel ships on its own, with its own invoice.',
     parcel: (position: number) => `Parcel ${position}`,
     from: (place: string) => `from ${place}`,
     arrives: (range: string) => `Arrives ${range}`,
@@ -442,42 +439,24 @@ export const checkoutContent = {
   depositNonRefundable: (days: number) =>
     `Pre-order deposits are non-refundable if the balance is not paid within ${days} days of our request.`,
   paidByGiftCard: 'Paid by gift card',
-  /** Under the summary on a market in another currency: Pay still charges rupees (Markets M2). */
+  /**
+   * Under the summary and in the Payment card on a market in another currency: Pay still
+   * charges rupees (Markets M2). `approx` is the rupees converted, not the catalog prices.
+   */
   chargedInRupees: (rupees: string, approx: string) =>
-    `You'll be charged ${rupees} (about ${approx}). Your bank converts it at its own rate.`,
+    `You'll be charged ${rupees} in Indian rupees (about ${approx}). ` +
+    'Your bank converts it at its own rate.',
   totalDue: 'To pay',
   codWithGiftCard: 'Not available with a gift card',
-  errors: {
-    unserviceable: (pincode: string) => `We cannot deliver to ${pincode} yet. Try another address.`,
-    codUnavailable:
-      'Cash on delivery is not available for this PIN code. Pick another payment method.',
-    pickShipping: 'Pick a shipping option to pay.',
-    noShipping: (pincode: string) => `We do not ship to ${pincode} yet. Try another address.`,
-    cannotShipToState: "We can't deliver this item to your state yet.",
-    priceNotSet:
-      'An item in your cart is not for sale yet, so your order was not placed. Remove it and try again.',
-    variantHidden:
-      'An item in your cart is no longer available, so your order was not placed. Remove it and try again.',
-    rateChanged:
-      'The shipping options for your order changed, so it was not placed. Pick a shipping method and place it again.',
-    discountUnavailable:
-      'That discount has just run out, so your order was not placed. Check the new total and place it again.',
-    discountNotApplied: (code: string) =>
-      `We applied ${code} for you. Check the new total, then tap Pay again.`,
-    discountRefused: (code: string, why: string) =>
-      `${code} can't be used on this order: ${why} Your order was not placed. Remove the code to pay the full price, or try another code.`,
-    rateLimited: 'Too many attempts. Please wait a minute and try again.',
-    contact: 'Check your contact details and try again.',
-    minimumOrder: (missing: string) =>
-      `Your order is below this shop's minimum. Add ${missing} more and try again.`,
-    codOverLimit: (limit: string) =>
-      `Cash on delivery is available on orders up to ${limit}. Please pay online.`,
-    codHighRisk:
-      'Cash on delivery is not available for this order. Please pay online, it only takes a moment.',
-    stateMismatch: (pincode: string) =>
-      `The state you picked does not match PIN code ${pincode}. Check the state and the PIN code, then try again.`,
-  },
+  errors: checkoutErrorsContent,
 } as const
+
+/**
+ * The checkout's words as a card reads them: `checkoutContent` with the store's own wording
+ * written over the strings it may change (Settings → Checkout → Checkout content, #158;
+ * `applyCheckoutText`, `CHECKOUT_TEXT_KEYS`).
+ */
+export type CheckoutCopy = typeof checkoutContent
 
 export const giftCardFieldContent = {
   label: 'Gift card',

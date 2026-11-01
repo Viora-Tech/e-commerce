@@ -227,6 +227,8 @@ export const consentCardContent = {
   granted: 'Allowed',
   withdrawn: 'Withdrawn',
   notAllowed: 'Not allowed',
+  /** #138: the label follows the switch at once; the save bar records it. */
+  unsaved: (state: string) => `${state}, not saved yet`,
   sources: {
     account: 'in their account',
     newsletter: 'newsletter signup',

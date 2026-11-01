@@ -1,9 +1,10 @@
 /** SOURCE OF TRUTH: the Liquid page context — WHAT: what one request renders with: the request and render options, the Shopify globals (shop, settings, routes, request, localization, collections, linklists, metaobjects, cart...) and our routes and cart in Shopify's shape / WHY: every section on a page shares one context, so they all see the same data and cost one set of loads */
 
-import { CURRENCIES, type Currency, isCurrency, moneyFormatOf } from '@commerce/money'
+import { type Currency, isCurrency, moneyFormatOf } from '@commerce/money'
 import { type EngineEntry, engineFor, type ThemeBundle, usesFileUrl } from './bundle'
 import { LiquidDataCache } from './cache'
 import { MetaobjectsDrop, ShopMetafieldsDrop } from './custom-drops'
+import { customerDrop } from './customer-drops'
 import {
   imageDrop,
   type LiquidCartData,
@@ -12,7 +13,12 @@ import {
 } from './drops'
 import { type EngineRuntime, newRenderBudget, type RenderBudget } from './engine'
 import { importedFileKey } from './filter-values'
-import { DEFAULT_LIQUID_MARKET, type LiquidMarket, liquidLocalization } from './localization'
+import {
+  DEFAULT_LIQUID_MARKET,
+  type LiquidMarket,
+  liquidCurrencySymbol,
+  liquidLocalization,
+} from './localization'
 import { numericId } from './numeric-id'
 import {
   AllProductsDrop,
@@ -218,6 +224,7 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
   const entry = engineFor(bundle)
   const collectionList = await data.collections()
   const cart = await data.cart()
+  const customer = (await data.customer?.()) ?? null
   const cache = new LiquidDataCache(data, collectionList)
   const settings = await themeSettingsFor(bundle, cache)
   const resource = await resourceGlobals(request, cache)
@@ -266,7 +273,7 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
       money_with_currency_format: `${moneyFormat ?? '₹{{amount}}'} ${currency}`,
       description: shop.description,
       locale: loc.locale.iso_code,
-      enabled_currencies: [{ iso_code: currency, symbol: CURRENCIES[currency].symbol }],
+      enabled_currencies: [{ iso_code: currency, symbol: liquidCurrencySymbol(currency) }],
       enabled_payment_types: options.paymentTypes,
       published_locales: loc.publishedLocales,
       ...shopPolicies(shop.policies),
@@ -301,7 +308,8 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
     pages: new PagesDrop(cache),
     metaobjects,
     cart: cartDrop(cart, cache, currency),
-    customer: null,
+    // Nil signed out, as on Shopify; the storefront never caches a render that read it signed in.
+    customer: customerDrop(customer, cache),
     content_for_header: '',
     content_for_index: '',
     // Shopify prints "Powered by Shopify" here; our own storefront shows no platform credit.
@@ -360,7 +368,7 @@ function cartDrop(
     original_total_price: cart.totalPrice,
     total_discount: 0,
     total_weight: 0,
-    currency: { iso_code: currency, symbol: CURRENCIES[currency].symbol },
+    currency: { iso_code: currency, symbol: liquidCurrencySymbol(currency) },
     note: '',
     attributes: {},
     cart_level_discount_applications: [],

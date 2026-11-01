@@ -64,6 +64,12 @@ const REASON_MESSAGES: Record<Exclude<GiftCardState, 'active'>, string> = {
 
 export type GiftCardRow = typeof giftCard.$inferSelect
 
+const USED_UP = 'This gift card has been used the most times allowed'
+
+/** A card with a usage limit that checkouts have already reached (#993). */
+export const usedUp = (card: { usageLimit: number | null; useCount: number }): boolean =>
+  card.usageLimit !== null && card.useCount >= card.usageLimit
+
 /**
  * Lookup hash. Generated codes carry 60 bits of randomness, so a plain SHA-256 is enough;
  * the store id is mixed in so the same code in two stores hashes differently.
@@ -202,6 +208,7 @@ export async function findRedeemableGiftCard(
   if (!card) throw new GiftCardError('not_found', 'Enter a valid gift card code', ctx.storeId)
   const state = giftCardState(card, await storeToday(ctx))
   if (state !== 'active') throw new GiftCardError(state, REASON_MESSAGES[state], ctx.storeId)
+  if (usedUp(card)) throw new GiftCardError('not_allowed', USED_UP, ctx.storeId)
   return {
     id: card.id,
     lastCharacters: card.lastCharacters,
@@ -232,6 +239,7 @@ export async function redeemGiftCards(
     if (!card) throw new GiftCardError('not_found', 'Enter a valid gift card code', ctx.storeId)
     const state = giftCardState(card, today)
     if (state !== 'active') throw new GiftCardError(state, REASON_MESSAGES[state], ctx.storeId)
+    if (usedUp(card)) throw new GiftCardError('not_allowed', USED_UP, ctx.storeId)
     const amount = Math.min(card.balancePaise, due)
     const [p] = await ctx.tx
       .insert(payment)
@@ -248,7 +256,11 @@ export async function redeemGiftCards(
     if (!p) throw new Error('payment insert returned nothing')
     const [after] = await ctx.tx
       .update(giftCard)
-      .set({ balancePaise: sql`${giftCard.balancePaise} - ${amount}`, updatedAt: new Date() })
+      .set({
+        balancePaise: sql`${giftCard.balancePaise} - ${amount}`,
+        useCount: sql`${giftCard.useCount} + 1`,
+        updatedAt: new Date(),
+      })
       .where(eq(giftCard.id, card.id))
       .returning({ balancePaise: giftCard.balancePaise })
     await ctx.tx.insert(giftCardTransaction).values({
@@ -335,13 +347,25 @@ export async function setGiftCardDisabled(
   ctx: StoreContext,
   id: string,
   disabled: boolean,
+  author?: string,
 ): Promise<GiftCardRow | null> {
   const [row] = await ctx.tx
     .update(giftCard)
     .set({ disabledAt: disabled ? new Date() : null, updatedAt: new Date() })
     .where(eq(giftCard.id, id))
     .returning()
-  return row ?? null
+  if (!row) return null
+  // History shows who switched the card off and on (audit #155): a zero-amount line.
+  await ctx.tx.insert(giftCardTransaction).values({
+    storeId: ctx.storeId,
+    giftCardId: row.id,
+    kind: 'adjustment',
+    amountPaise: 0,
+    balanceAfterPaise: row.balancePaise,
+    note: disabled ? 'Card disabled' : 'Card enabled',
+    author: author ?? null,
+  })
+  return row
 }
 
 export async function updateGiftCard(
@@ -353,6 +377,8 @@ export async function updateGiftCard(
     customerId?: string | null | undefined
     recipientEmail?: string | null | undefined
     recipientName?: string | null | undefined
+    /** Most checkouts that may spend it; null removes the limit. */
+    usageLimit?: number | null | undefined
   },
 ): Promise<GiftCardRow | null> {
   const set: Partial<typeof giftCard.$inferInsert> = { updatedAt: new Date() }
@@ -366,6 +392,7 @@ export async function updateGiftCard(
     set.recipientEmail = patch.recipientEmail?.trim().toLowerCase() || null
   }
   if (patch.recipientName !== undefined) set.recipientName = patch.recipientName?.trim() || null
+  if (patch.usageLimit !== undefined) set.usageLimit = patch.usageLimit
   const [row] = await ctx.tx.update(giftCard).set(set).where(eq(giftCard.id, id)).returning()
   return row ?? null
 }
@@ -487,6 +514,8 @@ export async function getGiftCard(ctx: StoreContext, id: string) {
       deliveredAt: giftCard.deliveredAt,
       createdBy: giftCard.createdBy,
       canResend: sql<boolean>`${giftCard.codeCipher} is not null`,
+      usageLimit: giftCard.usageLimit,
+      useCount: giftCard.useCount,
     })
     .from(giftCard)
     .leftJoin(customer, eq(customer.id, giftCard.customerId))

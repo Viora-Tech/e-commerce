@@ -84,10 +84,13 @@ export const policyEditorContent = {
     address: { label: 'Business address', href: '/settings/store' },
     email: { label: 'Contact email', href: '/settings/store' },
     phone: { label: 'Contact phone', href: '/settings/store' },
-    grievanceOfficerName: { label: 'Grievance officer name', href: '/settings/policies#grievance' },
+    grievanceOfficerName: {
+      label: 'Grievance officer name',
+      href: '/settings/policies?open=grievance',
+    },
     grievanceOfficerContact: {
       label: 'Grievance officer email or phone',
-      href: '/settings/policies#grievance',
+      href: '/settings/policies?open=grievance',
     },
   } satisfies Record<MissingDetail, { label: string; href: string }>,
   updated: (date: string) => `Last updated ${date}`,

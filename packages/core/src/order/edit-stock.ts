@@ -13,7 +13,7 @@ import { StoreAddressSchema } from '../settings/general'
 import type { OrderGst } from '../tax/gst'
 import { mergeOrderGst } from '../tax/parcel-gst'
 import { chargedGstRate, parseStoreTax } from '../tax/settings'
-import { releaseCommittedStock } from './committed-stock'
+import { releaseCommittedStock, writeOffCommittedStock } from './committed-stock'
 import { createFulfillmentOrders } from './fulfillment-orders'
 import { taxParcels } from './parcel-tax'
 import type { RoutedParcel } from './routing'
@@ -43,8 +43,9 @@ async function lineParcels(ctx: StoreContext, orderId: string, orderLineId: stri
 
 /**
  * Units taken off a line: each comes out of the newest parcel still holding it unpacked and its
- * committed stock is released at that parcel's location (on hand stays). `remove` drops the
- * line's parcel rows altogether (the order line itself is about to go).
+ * committed stock is released at that parcel's location (on hand stays), or written off with
+ * `restock: false` (on hand drops too). `remove` drops the line's parcel rows altogether (the
+ * order line itself is about to go).
  */
 export async function releaseLineUnits(
   ctx: StoreContext,
@@ -54,13 +55,19 @@ export async function releaseLineUnits(
     variantId: string
     quantity: number
     remove: boolean
+    /** False: the units are not put back on sale ("Restock" off). */
+    restock?: boolean | undefined
   },
 ): Promise<void> {
+  const free = (move: { variantId: string; quantity: number; locationId?: string }) =>
+    input.restock === false
+      ? writeOffCommittedStock(ctx, move, 'Removed in an order edit without restocking')
+      : releaseCommittedStock(ctx, move)
   let left = input.quantity
   for (const row of await lineParcels(ctx, input.orderId, input.orderLineId)) {
     const take = Math.min(left, row.quantity - row.fulfilledQuantity)
     if (take > 0) {
-      await releaseCommittedStock(ctx, {
+      await free({
         variantId: input.variantId,
         quantity: take,
         locationId: row.locationId,
@@ -78,7 +85,7 @@ export async function releaseLineUnits(
   }
   // Units no parcel held (a parcel row lost or edited by hand) still leave where they sell.
   if (left > 0) {
-    await releaseCommittedStock(ctx, { variantId: input.variantId, quantity: left })
+    await free({ variantId: input.variantId, quantity: left })
   }
 }
 

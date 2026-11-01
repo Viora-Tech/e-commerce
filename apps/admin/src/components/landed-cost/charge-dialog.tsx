@@ -19,6 +19,7 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import DateField from '@/components/fields/date-field'
 import { chargesContent, PURCHASE_CHARGE_KINDS, SPLIT_METHODS } from '@/data/purchasing'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -192,11 +193,10 @@ export default function ChargeDialog({
             </Field>
             <Field>
               <FieldLabel htmlFor="charge-date">{copy.dialog.incurredAt}</FieldLabel>
-              <Input
+              <DateField
                 id="charge-date"
-                type="date"
                 value={d.incurredAt}
-                onChange={(e) => patch({ incurredAt: e.target.value })}
+                onChange={(v) => patch({ incurredAt: v })}
               />
             </Field>
           </div>

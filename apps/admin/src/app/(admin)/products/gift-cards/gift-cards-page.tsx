@@ -21,12 +21,6 @@ import EmptyState from '@/components/layout/empty-state'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import RelativeTime from '@/components/layout/relative-time'
 import OrderChip from '@/components/orders/order-chip'
-import {
-  appliedFromGroups,
-  clearGroups,
-  FILTER_PANEL_CLASS,
-  FilterPanel,
-} from '@/components/table/filter-panel'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { filterPanelContent } from '@/data/filter-panel'
 import { GIFT_CARD_STATES, type GiftCardStateFilter, giftCardsContent } from '@/data/gift-cards'
@@ -151,7 +145,7 @@ const columns: ResourceColumnSpec<Item>[] = [
 function GiftCardsContent({ initial }: { initial: GiftCardsInitial }) {
   // Hooks
   usePrimaryAction(routes.products.newGiftCard())
-  const panelCopy = useCopy(filterPanelContent)
+  const _panelCopy = useCopy(filterPanelContent)
   const [q, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
@@ -274,15 +268,7 @@ function GiftCardsContent({ initial }: { initial: GiftCardsInitial }) {
           query={q.query}
           onQueryChange={(query) => setQ({ query, page: 1 })}
           onClearAll={() => setQ({ ...CLEAR_GIFT_CARD_FILTERS, query: '', status: null, page: 1 })}
-          filters={(close) => (
-            <FilterPanel
-              groups={groups}
-              onClear={() => clearGroups(groups)}
-              footer={{ label: panelCopy.show(result.total), onDone: close }}
-            />
-          )}
-          filtersClassName={FILTER_PANEL_CLASS}
-          applied={appliedFromGroups(groups, panelCopy)}
+          filterGroups={groups}
           views={
             <GiftCardStateTabs
               value={q.status}

@@ -1,3 +1,4 @@
+import { productVariantsContent } from './product-form-variants'
 /** Every string the product form shows. Change copy here, never in a component. */
 export const productFormContent = {
   newTitle: 'Add new product',
@@ -13,6 +14,8 @@ export const productFormContent = {
     noOptions: 'No options',
     variants: (n: number) => `${n} ${n === 1 ? 'variant' : 'variants'}`,
     inStock: (n: number) => `${n} in stock`,
+    /** Units unpaid or unshipped orders hold: why the products list shows fewer available. */
+    held: (n: number) => `${n} held for orders`,
     typeBy: (type: string | null, vendor: string | null) =>
       type && vendor ? `${type} by ${vendor}` : (type ?? vendor),
   },
@@ -159,15 +162,17 @@ export const productFormContent = {
       'From Shopify’s open standard product taxonomy. Optional, but helps search and marketplaces.',
     type: 'Product type',
     typePlaceholder: 'Select a category',
-    tag: 'Product tag',
-    colour: 'Select your colour',
-    colourHelp: 'From the colour option on this product.',
+    // "Product tag" over a row of colour swatches read as one field (audit #57).
+    tag: 'Tags',
+    colour: 'Colours',
+    colourHelp: 'From this product’s Colour option.',
   },
   pricing: {
     heading: 'Pricing',
     price: 'Product price',
     currency: 'INR',
-    mrp: 'Compare at price',
+    // One name for it: the variants table already says MRP, as Indian merchants do (audit #55).
+    mrp: 'MRP',
     mrpOptional: '(optional)',
     /** Under the price field: a blank price is allowed (#913). */
     priceHelp:
@@ -188,10 +193,10 @@ export const productFormContent = {
     taxIncludedNo: 'No',
     taxIncludedHelp:
       'Yes means the price already carries GST and the split is extracted on the order.',
-    expiration: 'Expiration',
+    expiration: 'Sale dates',
     expirationStart: 'Start',
     expirationEnd: 'End',
-    expirationHelp: 'When the compare at price applies. Leave empty to run it always.',
+    expirationHelp: 'When the MRP shows struck out next to your price. Leave empty to show it always.',
   },
   inventory: {
     heading: 'Inventory',
@@ -226,94 +231,17 @@ export const productFormContent = {
       { label: 'Other', value: 'other' },
     ],
   },
-  variants: {
-    heading: 'Variants',
-    addOption: 'Add options like size or colour',
-    addAnother: 'Add another option',
-    optionNameSuggestions: [
-      'Size',
-      'Colour',
-      'Material',
-      'Style',
-      'Length',
-      'Weight',
-      'Capacity',
-      'Storage',
-      'Pack size',
-    ],
-    optionName: 'Option name',
-    optionNamePlaceholder: 'Size',
-    optionValues: 'Option values',
-    optionValuesPlaceholder: 'Type a value and press Enter',
-    optionValuesHelp: 'Press Enter or comma after each value.',
-    optionValueRemove: (value: string) => `Remove ${value}`,
-    optionValueSuggestions: {
-      size: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
-      colour: ['Black', 'White', 'Grey', 'Red', 'Blue', 'Green', 'Yellow', 'Pink', 'Beige'],
-      material: ['Cotton', 'Polyester', 'Linen', 'Wool', 'Silk', 'Leather'],
-      style: ['Regular fit', 'Slim fit', 'Oversized', 'Classic', 'Casual', 'Formal'],
-      length: ['Short', 'Regular', 'Long', '1 m', '2 m', '3 m'],
-      weight: ['100 g', '250 g', '500 g', '1 kg', '2 kg', '5 kg'],
-      capacity: ['250 ml', '500 ml', '750 ml', '1 L', '2 L', '5 L'],
-      storage: ['64GB', '128GB', '256GB', '512GB', '1TB'],
-      packSize: ['Pack of 1', 'Pack of 2', 'Pack of 3', 'Pack of 6', 'Pack of 12'],
-    },
-    remove: 'Remove option',
-    done: 'Done',
-    maxOptions: 'Up to 3 options',
-    count: (n: number) => `${n} variant${n === 1 ? '' : 's'}`,
-    columns: { variant: 'Variant', price: 'Price', mrp: 'MRP', sku: 'SKU', available: 'Available' },
-    /** Price cell of a variant listed without a price (#913). */
+  variants: productVariantsContent,
+  /** Search and "Group by" above the variants table (#54). */
+  variantGroups: {
+    search: 'Search variants or SKU',
+    groupBy: 'Group by',
+    noGrouping: 'None',
     noPrice: 'No price yet',
-    /** Chip on a variant hidden on the storefront (#934). */
-    hidden: 'Hidden',
-    /** Chip on a variant whose "Allow pre-order" is off: crossed out on the store once sold out. */
-    noPreorder: 'No pre-order',
-    /** A visible variant priced ₹0 (#934): allowed (free items), but staff should know. */
-    zeroPrice: 'Price is ₹0, shoppers can get this free',
-    unlimited: 'Unlimited',
-    edit: 'Edit',
-    editVariant: (title: string) => `Edit ${title}`,
-    /** The centred dialog that edits one variant's details (#914). */
-    dialog: {
-      title: (title: string) => `Edit variant: ${title}`,
-      description:
-        'Price, stock, tax and shipping for this variant. Save the product to keep the changes.',
-      pricing: 'Pricing',
-      inventory: 'Inventory',
-      tax: 'Tax',
-      shipping: 'Shipping',
-      track: 'Track quantity',
-      trackHelp: 'Off sells it without counting stock.',
-      visibility: 'Visibility',
-      hide: 'Hide on store',
-      hideHelp:
-        "Shoppers can't see, pick or buy it. It stays here, in orders and in reports. Use it instead of deleting.",
-      preorder: 'Allow pre-order',
-      preorderHelp:
-        'When the product is on pre-order, this variant keeps selling after it runs out. Off: once sold out it shows crossed out and cannot be bought.',
-      previous: 'Previous variant',
-      next: 'Next variant',
-      position: (n: string, of: string) => `${n} of ${of}`,
-      cancel: 'Cancel',
-      done: 'Done',
-    },
-    footer: {
-      stockAcross: (units: number, n: number) =>
-        `${units} in stock across ${n} variant${n === 1 ? '' : 's'}`,
-      marginOn: (pct: string, profit: string, title: string) =>
-        `Margin ${pct}, profit ${profit} on ${title}`,
-    },
-    tooMany: (n: number) =>
-      `${n} variants. Large matrices are slow to edit; consider fewer values.`,
-    autoFillSku: 'Suggest SKUs',
-    autoFillSkuHelp: 'Fills blank SKUs from the product title and variant.',
-    needsValues: 'Add at least one value to each option to build the variants.',
-    confirmRemoveTitle: 'Remove variants that have stock?',
-    confirmRemoveBody: (n: number, units: number) =>
-      `${n} variant${n === 1 ? '' : 's'} holding ${units} unit${units === 1 ? '' : 's'} in stock will be removed. Past orders keep their own record.`,
-    confirmRemoveCancel: 'Keep them',
-    confirmRemoveConfirm: 'Remove anyway',
+    blank: '(blank)',
+    selectGroup: (value: string) => `Select all ${value} variants`,
+    variants: (n: number) => `${n} variant${n === 1 ? '' : 's'}`,
+    stock: (n: number) => `${n} in stock`,
   },
   status: {
     heading: 'Status',
@@ -350,6 +278,13 @@ export const productFormContent = {
     hsCodeHelp: 'Used on customs forms and printed on GST invoices.',
     gstRate: 'GST rate (%)',
     gstRateHelp: 'Leave blank to use the store rate from Settings, GST & invoices.',
+    /** With options: one HSN for every variant (#63). */
+    hsCodeAllHelp: 'Applies to every variant. Used on customs forms and printed on GST invoices.',
+    taxPerVariant: 'Different per variant',
+    taxPerVariantOffHelp:
+      'Turn on only when variants are classed differently. Saving with it off uses these values for every variant.',
+    taxPerVariantOnHelp:
+      "Set a variant's own HSN code or GST rate in its Edit dialog under Variants. A variant left blank uses the values above.",
     country: 'Country of origin',
     countryHelp: 'Where the product was made or assembled.',
     countryPlaceholder: 'Select a country',
@@ -360,7 +295,7 @@ export const productFormContent = {
     packageAllVariants: 'Applies to every variant of this product.',
     /** With options, weight and customs move into each variant's Edit dialog. */
     perVariant:
-      'Weight, HSN code, GST rate and country of origin are set on each variant. Open a variant under Variants to edit them.',
+      'Weight and country of origin are set on each variant. Open a variant under Variants to edit them.',
     packageStoreDefault: "Use the store's default box",
     packageCustom: 'Custom size',
     packageOption: (name: string, l: number, w: number, h: number) =>
@@ -397,17 +332,53 @@ export const productFormContent = {
     launchHeading: 'Launch countdown',
     launchAt: 'Launches at',
     launchAtHelp: 'Store time (Asia/Kolkata). Leave blank to sell right away.',
+    campaign: 'Pre-order campaign',
+    campaignNone: 'None: use this product’s own settings',
+    campaignHelp:
+      'A campaign sets the ship date, limit, button and payment for all its products. Manage campaigns in Products, Pre-orders.',
+    campaignPaused: (name: string) => `${name} (paused)`,
+    campaignLoading: 'Loading campaigns…',
+    manageCampaigns: 'Manage campaigns',
+    ownHeading: 'Keep this product’s own',
+    ownHelp: 'Ticked settings use the values below instead of the campaign’s.',
+    own: {
+      shipping: 'Ship date',
+      limit: 'Limit',
+      button: 'Button label',
+      payment: 'Payment',
+      note: 'Note',
+    },
+  },
+  /** "Sales past 90 days" on the product page (#56). */
+  sales: {
+    heading: (days: number) => `Sales past ${days} days`,
+    units: 'Units sold',
+    buyers: 'Buyers',
+    net: 'Net revenue',
+    empty: 'No sales yet in this window. Test, draft and cancelled orders are left out.',
+    viewOrders: (n: number) => `View ${n} order${n === 1 ? '' : 's'}`,
   },
   history: {
     heading: 'Stock history',
     empty: 'No stock movements yet. Changes you make to quantities show up here.',
     columns: { when: 'When', variant: 'Variant', change: 'Change', reason: 'Reason' },
     failed: 'Could not load stock history',
+    /** Who made a change; system rows (orders, imports) have no member (audit #139). */
+    by: (name: string) => `by ${name}`,
+    bySystem: 'by Koomerce',
   },
   duplicate: {
     action: 'Duplicate',
     toast: 'Product duplicated',
     failed: 'Could not duplicate',
+    /** The "What to copy" dialog (audit #136). */
+    title: 'Duplicate product',
+    body: 'The copy starts as a draft with the same text, prices and variants. SKUs and barcodes are left blank.',
+    photos: 'Photos',
+    photosHelp: 'The same photos, in the same order.',
+    stock: 'Stock on hand',
+    stockHelp: 'Off: the copy starts at 0, so nothing is sold twice.',
+    submit: 'Duplicate',
   },
   unsaved: 'Leave without saving? Your changes will be lost.',
   variantBulk: {

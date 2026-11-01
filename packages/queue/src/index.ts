@@ -22,6 +22,9 @@ import {
   STORE_EXPORT_QUEUE,
   type StoreExportJob,
   type StoreExportQueue,
+  THEME_SCREENSHOT_QUEUE,
+  type ThemeScreenshotJob,
+  type ThemeScreenshotQueue,
 } from '@commerce/core'
 import {
   AUTOMATION_STEP_QUEUE,
@@ -72,10 +75,14 @@ export const IMPORT_SNAPSHOT_CLEANUP_QUEUE = '{imports}-snapshot-cleanup'
 export const MEDIA_PROCESS_QUEUE = '{media}-process'
 /** Repeat job that queues due review request and reminder emails (Reviews app). */
 export const REVIEW_REQUESTS_QUEUE = '{reviews}-requests'
+/** Reviews app: refreshes the AI "What customers say" summaries when new reviews arrive. */
+export const REVIEW_SUMMARIES_QUEUE = '{reviews}-summaries'
 /** Repeat job that approves affiliate commissions whose hold is over (Affiliates app). */
 export const AFFILIATE_COMMISSIONS_QUEUE = '{affiliates}-commissions'
 /** Repeat job that sends team members their daily summary at the hour each chose. */
 export const MEMBER_DAILY_SUMMARY_QUEUE = '{members}-daily-summary'
+/** Hourly: Home's smart cards rebuilt for each store not refreshed in the last 20 hours. */
+export const HOME_CARDS_QUEUE = '{home}-cards'
 /** Repeat job that queues each connected store's daily Google Search Console sync. */
 export const SEARCH_CONSOLE_SWEEP_QUEUE = '{search-console}-sweep'
 /** Hourly: plan renewals billed ahead, unpaid plans marked due, then paused after grace. */
@@ -275,6 +282,19 @@ export function storeExportQueue(redisUrl: string): StoreExportQueue {
     g.__storeExportQueue = createStoreExportQueue(createConnection(redisUrl))
   }
   return g.__storeExportQueue
+}
+
+export type { ThemeScreenshotJob, ThemeScreenshotQueue }
+
+/** Process-wide theme screenshot queue (after Publish and Save), cached like the others. */
+export function themeScreenshotQueue(redisUrl: string): ThemeScreenshotQueue {
+  const g = globalThis as { __themeScreenshotQueue?: ThemeScreenshotQueue }
+  if (!g.__themeScreenshotQueue) {
+    g.__themeScreenshotQueue = new Queue<ThemeScreenshotJob>(THEME_SCREENSHOT_QUEUE, {
+      connection: createConnection(redisUrl),
+    })
+  }
+  return g.__themeScreenshotQueue
 }
 
 export type { AiBulkJob, AiBulkQueue }

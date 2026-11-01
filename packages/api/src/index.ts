@@ -33,6 +33,14 @@ export {
 export { type AppRouter, appRouter } from './routers/_app'
 export { channelDeps, queueChannelSync } from './routers/sales-channels'
 export type {
+  AnswerChart,
+  AnswerColumn,
+  AnswerSnapshot,
+  AnswerTable,
+  CallInput,
+} from './services/ai/answer-table'
+export { ANSWER_REPORT_SLUG, parseSnapshot } from './services/ai/answer-table'
+export type {
   AnalyticsKpi,
   AnalyticsLive,
   AnalyticsOverview,

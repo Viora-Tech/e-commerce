@@ -61,9 +61,10 @@ export default [
       blocked: 'ब्लॉक',
       settings: 'सेटिंग्स',
       quickReplies: 'झटपट जवाब',
+      knowledge: 'नॉलेज बेस',
     },
     list: {
-      search: 'नाम, ईमेल, फ़ोन, ऑर्डर या शब्द खोजें',
+      search: 'बातचीत खोजें',
       allClear: 'सब साफ़',
       allClearBody: 'अभी यहाँ कोई बातचीत नहीं है।',
       viewClosed: 'बंद बातचीत देखें',

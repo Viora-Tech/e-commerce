@@ -1,5 +1,7 @@
 import type { DashboardChartsData, DashboardSummary, HomeAnalytics } from '@commerce/api'
+import type { HomeCard } from '@commerce/core/home-cards'
 import type { HomeMetric } from '@commerce/core/home-metrics'
+import type { HomeTodo } from '@commerce/core/home-todos'
 import type { StoreHealthReport } from '@commerce/core/store-health'
 import PageBody from '@/components/layout/page-body'
 import BackgroundWorkNotice from '@/components/media/background-work-notice'
@@ -33,15 +35,17 @@ type DashboardPageProps = {
   assistant?: boolean
   /** What the store's apps say; null when the member cannot read apps (set-up cards hide). */
   signals: HomeSignals | null
-  /** Carts left behind this week; null when the member cannot read orders. */
-  abandoned: { carts: number; valuePaise: number } | null
   /** Store health; null when the member cannot read settings (the card hides). */
   health: StoreHealthReport | null
+  /** Smart cards built daily from the store's numbers; null when they could not be read. */
+  cards: HomeCard[] | null
+  /** To-dos the store hid ("Edit to-dos"); null when the setting could not be read. */
+  hiddenTodos: HomeTodo[] | null
 }
 
 /**
  * The home page, top to bottom: greeting and one plain sentence, the AI ask box, set-up
- * cards (only while something is open), the to-do cards, the sales hero, latest orders next
+ * cards (only while a step is open), the to-do cards, the sales hero, latest orders next
  * to Live now, and suggestions. Every other chart sits in the collapsed "More numbers".
  */
 export default function DashboardPage({
@@ -51,8 +55,9 @@ export default function DashboardPage({
   firstName,
   assistant = false,
   signals,
-  abandoned,
   health,
+  cards,
+  hiddenTodos,
 }: DashboardPageProps) {
   return (
     <PageBody width="frame" className="mx-auto max-w-[68rem] gap-10 md:pt-5">
@@ -65,7 +70,6 @@ export default function DashboardPage({
             ordersToday={summary.today.ordersCount}
             salesTodayPaise={summary.today.salesPaise}
             toShip={summary.today.toShipCount}
-            liveNow={summary.liveVisitors.last30}
             now={new Date()}
           />
         </HomeEnter>
@@ -90,7 +94,7 @@ export default function DashboardPage({
         </HomeEnter>
       ) : null}
       <HomeEnter index={4}>
-        <TodoCards needsYou={summary.needsYou} />
+        <TodoCards needsYou={summary.needsYou} hidden={hiddenTodos} />
       </HomeEnter>
       <HomeEnter index={5}>
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,640fr)_minmax(0,424fr)]">
@@ -99,7 +103,7 @@ export default function DashboardPage({
         </div>
       </HomeEnter>
       <HomeEnter index={6}>
-        <Suggestions summary={summary} signals={signals} abandoned={abandoned} />
+        <Suggestions cards={cards} signals={signals} />
       </HomeEnter>
       <HomeEnter index={7}>
         <MoreNumbers

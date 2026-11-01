@@ -3,6 +3,7 @@ import type { StoreTx } from '@commerce/db'
 import { media } from '@commerce/db'
 import { and, desc, inArray, isNotNull, sql } from 'drizzle-orm'
 import { CONTENT_TYPE_BY_EXTENSION } from './content-type'
+import { mediaUseCount } from './references'
 
 /** Media a product or metaobject may point at, and Files lists: confirmed and stored, optimised or not yet. */
 export const USABLE_MEDIA_STATUSES: ('processing' | 'ready')[] = ['processing', 'ready']
@@ -51,7 +52,7 @@ export async function mediaUsage(tx: StoreTx, largest = 4) {
         size: media.size,
         createdAt: media.createdAt,
         kind: kindOf,
-        usedBy: sql<number>`(select count(*)::int from product_media pm where pm.media_id = media.id)`,
+        usedBy: mediaUseCount,
       })
       .from(media)
       .where(and(inArray(media.status, USABLE_MEDIA_STATUSES), isNotNull(media.size)))

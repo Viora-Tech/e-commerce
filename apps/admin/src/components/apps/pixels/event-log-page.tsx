@@ -6,13 +6,7 @@ import { useEffect, useState } from 'react'
 import EventDialog from '@/components/apps/pixels/event-dialog'
 import { type LogRow, logColumns } from '@/components/apps/pixels/log-columns'
 import PageHeader from '@/components/layout/page-header'
-import {
-  appliedFromGroups,
-  clearGroups,
-  FILTER_PANEL_CLASS,
-  type FilterGroup,
-  FilterPanel,
-} from '@/components/table/filter-panel'
+import { appliedFromGroups, type FilterGroup } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
 import { filterPanelContent } from '@/data/filter-panel'
@@ -133,7 +127,7 @@ export default function EventLogPage() {
       anyLabel: l.filters.allOrigins,
     },
   ]
-  const applied = appliedFromGroups(groups, panelCopy)
+  const _applied = appliedFromGroups(groups, panelCopy)
   // The search box looks within this page (event id or order number).
   const needle = query.trim().toLowerCase()
   const visible = (rows ?? []).filter((r) => !needle || r.eventId.toLowerCase().includes(needle))
@@ -161,15 +155,7 @@ export default function EventLogPage() {
             ]}
           />
         }
-        filters={(close) => (
-          <FilterPanel
-            groups={groups}
-            onClear={() => clearGroups(groups)}
-            footer={{ label: panelCopy.show(total), onDone: close }}
-          />
-        )}
-        filtersClassName={FILTER_PANEL_CLASS}
-        applied={applied}
+        filterGroups={groups}
         page={page}
         perPage={perPage}
         total={total}

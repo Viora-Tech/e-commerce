@@ -141,7 +141,10 @@ async function summarise(
         .select({ productId: productMedia.productId, url: media.url, alt: media.alt })
         .from(productMedia)
         .innerJoin(media, eq(media.id, productMedia.mediaId))
-        .where(and(inArray(productMedia.productId, productIds), eq(productMedia.position, 0)))
+        // The lowest position first: imported products count from 1, ours from 0, so
+        // `position = 0` left imported orders without a thumbnail (#163).
+        .where(inArray(productMedia.productId, productIds))
+        .orderBy(asc(productMedia.position))
     : []
   return rows.map((o) => {
     const mine = lines.filter((l) => l.orderId === o.id)
@@ -266,7 +269,10 @@ export async function getCustomerOrder(
         .select({ productId: productMedia.productId, url: media.url })
         .from(productMedia)
         .innerJoin(media, eq(media.id, productMedia.mediaId))
-        .where(and(inArray(productMedia.productId, productIds), eq(productMedia.position, 0)))
+        // The lowest position first: imported products count from 1, ours from 0, so
+        // `position = 0` left imported orders without a thumbnail (#163).
+        .where(inArray(productMedia.productId, productIds))
+        .orderBy(asc(productMedia.position))
     : []
   const [addr] = o.shippingAddressId
     ? await ctx.tx.select().from(address).where(eq(address.id, o.shippingAddressId))

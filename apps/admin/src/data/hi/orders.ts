@@ -53,6 +53,7 @@ export default [
       apps: 'ऐप्स',
       copyNumber: 'ऑर्डर नंबर कॉपी करें',
       numberCopied: 'ऑर्डर नंबर कॉपी हो गया',
+      unarchive: 'ऑर्डर आर्काइव से वापस लाएँ',
     },
     title: 'ऑर्डर',
     heading: 'ऑर्डर लिस्ट',
@@ -90,6 +91,7 @@ export default [
     addOrder: 'ऑर्डर जोड़ें',
     moreActions: 'और विकल्प',
     menu: {
+      exportView: 'ऑर्डर एक्सपोर्ट करें (CSV)',
       drafts: 'ड्राफ़्ट ऑर्डर',
       abandoned: 'अधूरे चेकआउट',
       returns: 'रिटर्न',
@@ -99,6 +101,7 @@ export default [
     viewLabel: 'ऑर्डर व्यू',
     toShip: 'भेजना है',
     testChip: 'टेस्ट',
+    holdChip: 'रुका हुआ',
     testChipHint:
       'टेस्ट मोड में पेमेंट हुआ: कोई असली पैसा नहीं आया। एनालिटिक्स, रिपोर्ट और GST इनवॉइस में नहीं गिना जाता।',
     deleteTests: {
@@ -134,7 +137,9 @@ export default [
       paymentOptions: {
         paid: 'पेमेंट हो गया',
         unpaid: 'पेमेंट बाकी',
+        payment_pending: 'पेमेंट आने वाला है',
         partially_refunded: 'कुछ रिफ़ंड हुआ',
+        refunded: 'पूरा रिफ़ंड हुआ',
         refund_needed: 'रिफ़ंड करना है',
       },
       fulfilmentOptions: {
@@ -142,6 +147,7 @@ export default [
         shipped: 'भेज दिया',
         delivered: 'डिलीवर हुआ',
         returned: 'वापस आया',
+        on_hold: 'रुका हुआ',
       },
       dateOptions: {
         today: 'आज',
@@ -181,7 +187,8 @@ export default [
       balance_due: 'बाकी रकम',
       completed: 'पूरे हुए',
       cancelled: 'कैंसिल',
-      payment_not_finished: 'पेमेंट अधूरा',
+      payment_not_finished: 'पेमेंट पेंडिंग',
+      archived: 'आर्काइव',
     },
     status: {
       draft: 'ड्राफ़्ट',
@@ -198,6 +205,7 @@ export default [
       refunded: 'रिफ़ंड हो गया',
       refund_needed: 'रिफ़ंड करना है',
     },
+    paymentVoided: 'वॉइड (पेमेंट नहीं लिया)',
     fulfillmentStatus: {
       unfulfilled: 'भेजना बाकी',
       partially_fulfilled: 'कुछ भेज दिया',
@@ -225,7 +233,13 @@ export default [
       status: 'स्थिति',
       channel: 'चैनल',
       tags: 'टैग',
+      items: 'आइटम',
+      delivery: 'डिलीवरी',
+      phone: 'फ़ोन',
+      city: 'शहर',
     },
+    noDelivery: 'अभी नहीं भेजा',
+    noTracking: 'ट्रैकिंग नहीं',
     sortTitles: {
       order: 'ऑर्डर नंबर',
       customer: 'ग्राहक का नाम',
@@ -233,15 +247,43 @@ export default [
       fulfilment: 'भेजने की स्थिति',
     },
     moreLines: (n) => `+${n} और`,
+    linePeek: {
+      open: (n) => `सभी ${n} आइटम देखें`,
+      title: (n) => `${n} आइटम`,
+      loading: 'आइटम लोड हो रहे हैं…',
+      failed: 'आइटम लोड नहीं हो पाए',
+      untitled: 'बिना नाम का आइटम',
+      quantity: (n) => `× ${n}`,
+      more: 'सभी आइटम देखने के लिए ऑर्डर खोलें',
+    },
+    archivedChip: 'आर्काइव',
+    trackDelivery: 'ट्रैकिंग नए टैब में खोलें',
     bulk: {
       markAs: 'मार्क करें',
       bulkEdit: 'एक साथ बदलें',
       updated: (n, status) => `${n} ऑर्डर "${status}" मार्क किए गए`,
+      updatedSkipped: (n, status, skipped) =>
+        `${n} ऑर्डर "${status}" मार्क किए गए, ${skipped} छोड़े गए (कैंसल या इम्पोर्ट किए हुए)`,
+      partlyFailed: (n, failed) => `${n} अपडेट हुए, ${failed} अपडेट नहीं हो पाए। उन्हें फिर से कोशिश करें।`,
+      noneUpdated: (skipped) => `${skipped} ऑर्डर छोड़े गए: कैंसल या इम्पोर्ट किए हुए ऑर्डर नहीं बदलते`,
       failed: 'ऑर्डर अपडेट नहीं हो पाए',
+      cancelTitle: (n) => `${n} ऑर्डर कैंसल करें?`,
+      cancelBody:
+        'इनका स्टॉक वापस जाएगा और ये शिप करने की लिस्ट से हटेंगे। पहले से मिला पैसा यहाँ से रिफ़ंड नहीं होता: हर ऑर्डर उसके पेज से रिफ़ंड करें।',
+      cancelConfirm: 'ऑर्डर कैंसल करें',
+      keep: 'रहने दें',
     },
     empty: {
       heading: 'अभी कोई ऑर्डर नहीं',
       body: 'जैसे ही कोई ग्राहक चेकआउट करेगा, ऑर्डर यहाँ दिखने लगेंगे।',
+    },
+    emptyView: {
+      heading: 'यहाँ कोई ऑर्डर नहीं',
+      body: 'जैसे ही कोई ऑर्डर इस व्यू से मेल खाएगा, यहाँ दिखेगा।',
+    },
+    emptyArchived: {
+      heading: 'अभी कोई आर्काइव ऑर्डर नहीं',
+      body: 'जिन ऑर्डर को आप आर्काइव करेंगे, वे मुख्य सूची से हटकर यहाँ आएंगे।',
     },
   }),
 
@@ -352,6 +394,7 @@ export default [
       draft_invoice: { title: 'इनवॉइस भेजें', send: 'इनवॉइस भेजें' },
       balance_request: { title: 'बाकी रकम मांगें', send: 'रिक्वेस्ट भेजें' },
       payment_reminder: { title: 'पेमेंट रिमाइंडर भेजें', send: 'रिमाइंडर भेजें' },
+      order_link: { title: 'ऑर्डर का लिंक भेजें', send: 'लिंक भेजें' },
       checkout_recovery: { title: 'चेकआउट रिमाइंडर भेजें', send: 'रिमाइंडर भेजें' },
     },
   }),

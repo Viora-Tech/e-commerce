@@ -94,6 +94,7 @@ Every app is one of two kinds. On the App Store, **Built by Koomerce** shows onl
 | Shadowfax | Connection, by Shadowfax | Bookings, labels, return pickups, tracking (webhook or schedule), cancel and NDR. No rate lookup. See [Couriers](/merchant-guide/apps/couriers). |
 | DHL Express | Connection, by DHL | Ships orders abroad: rates in rupees, a label with the commercial invoice, a pickup with each shipment and tracking. See [International couriers](/merchant-guide/apps/international-couriers). |
 | FedEx | Connection, by FedEx | Ships orders abroad: rates in rupees, a label with the commercial invoice, pickups, tracking and cancel. See [International couriers](/merchant-guide/apps/international-couriers). |
+| ShipGlobal | Connection, by ShipGlobal | Ships orders abroad through ShipGlobal: export bookings with the customs lines and the label. No rate lookup or tracking feed: you set each parcel's status on the app page. See [International couriers](/merchant-guide/apps/international-couriers). |
 | Umami | Connection, by Umami | Visitor analytics without cookies: a **Visitors** section on Analytics. See [Visitor analytics (Umami)](/merchant-guide/analytics/visitor-analytics). |
 | GrowthBook | Connection, by GrowthBook | A/B tests on your sections: each shopper sees one version, with no flicker. See [A/B tests (GrowthBook)](/merchant-guide/apps/growthbook). |
 | Google Search Console | Connection, by Google | The Google searches that find you, top pages, pages almost on page 1, pages losing clicks, sitemaps, a **Google search** card on products and search issues in the SEO report. Pages: Overview, Top searches, Top pages, Almost page 1, Losing traffic, Sitemaps, Settings. See [Google Search Console](/merchant-guide/apps/google-search-console). |
@@ -124,9 +125,10 @@ two ways in. Both are read-only: the import never writes anything back to Shopif
   2. Give it these read scopes: `read_products`, `read_inventory`, `read_customers`,
      `read_orders`, `read_all_orders`, `read_content`, `read_online_store_navigation`,
      `read_files`, `read_metaobject_definitions`, `read_metaobjects`, `read_discounts`,
-     `read_gift_cards`, `read_shipping`, `read_legal_policies`, `read_purchase_options` (the
-     files, content type, discount and gift card scopes bring those over; shipping and policies
-     are for Store settings; purchase options bring pre-orders over;
+     `read_gift_cards`, `read_shipping`, `read_legal_policies`, `read_purchase_options`,
+     `read_markets`, `read_inventory_purchase_orders`, `read_inventory_transfers` (the files,
+     content type, discount and gift card scopes bring those over; shipping, policies, markets,
+     purchase orders and transfers are for Store settings; purchase options bring pre-orders over;
      see [Move from Shopify](/merchant-guide/start-here/move-from-shopify)).
   3. Release a version, then install the app on your own store.
   4. Copy the **client ID** and **client secret** from the app's API credentials page and paste

@@ -30,6 +30,11 @@ export const customersBulkEditContent = {
     acceptsSms: 'SMS marketing',
   },
   consent: { yes: 'Subscribed', no: 'Not subscribed' },
+  /** The Columns menu (#1000): switch columns off to narrow the sheet; remembered in this browser. */
+  columnsMenu: {
+    label: 'Columns',
+    notSendable: 'not set up yet',
+  },
   /** "Change for all": one column changed on every row; Save still sends it. */
   setAll: {
     trigger: 'Change for all',
@@ -74,6 +79,7 @@ export const customersBulkEditContent = {
     city: 'Enter a city, at most 80 characters',
     stateCode: 'Enter a state code like HR, or the state name',
     pincode: 'Enter a six digit PIN code',
+    needsPhone: 'Add a phone number first: SMS and WhatsApp need one',
   },
   /** Shown in the address cells of a customer with no default address. */
   noAddress: 'No default address',

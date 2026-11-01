@@ -1,4 +1,4 @@
-import { permissions } from '@commerce/core'
+import { permissions, setOrdersArchived } from '@commerce/core'
 import { z } from 'zod'
 import { BULK_MAX, can, heavy } from '../procedures'
 import { setOrderTags } from '../services/order.service'
@@ -27,4 +27,16 @@ export const orderListRoutes = {
       }),
     )
     .handler(({ context, input }) => tagOrders(context.tx, input)),
+
+  /** The list's bulk "Archive" / "Unarchive" (#1007): off the working tabs, or back onto them. */
+  archiveMany: can(permissions.ORDERS_WRITE)
+    .use(heavy('bulk'))
+    .input(z.object({ ids: z.array(z.uuid()).min(1).max(BULK_MAX), archived: z.boolean() }))
+    .handler(({ context, input }) =>
+      setOrdersArchived(
+        { tx: context.tx, storeId: context.scope.storeId },
+        input.ids,
+        input.archived,
+      ),
+    ),
 }

@@ -18,10 +18,12 @@ import {
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import DateField from '@/components/fields/date-field'
 import FormDialog from '@/components/layout/form-dialog'
 import { monthlyExpensesContent } from '@/data/monthly-expenses'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { focusField } from '@/lib/api-errors'
 
 type ExpenseDialogProps = {
   /** The version being changed; null adds a new expense. */
@@ -50,10 +52,12 @@ export default function ExpenseDialog({ expense, month, onClose, onSaved }: Expe
     const amountPaise = parseRupees(amount)
     if (!name.trim()) {
       toast.error(copy.invalidName)
+      focusField('expense-name')
       return
     }
     if (amountPaise === null) {
       toast.error(copy.invalidAmount)
+      focusField('expense-amount')
       return
     }
     const last = repeats ? endsOn || null : startsOn
@@ -131,11 +135,11 @@ export default function ExpenseDialog({ expense, month, onClose, onSaved }: Expe
           </Field>
           <Field>
             <FieldLabel htmlFor="expense-starts">{expense ? d.fromMonth : d.startsOn}</FieldLabel>
-            <Input
+            <DateField
+              mode="month"
               id="expense-starts"
-              type="month"
               value={startsOn}
-              onChange={(e) => setStartsOn(e.target.value)}
+              onChange={(v) => setStartsOn(v)}
             />
           </Field>
         </div>
@@ -146,12 +150,12 @@ export default function ExpenseDialog({ expense, month, onClose, onSaved }: Expe
         {repeats ? (
           <Field>
             <FieldLabel htmlFor="expense-ends">{d.endsOn}</FieldLabel>
-            <Input
+            <DateField
+              mode="month"
               id="expense-ends"
-              type="month"
               value={endsOn}
               min={startsOn}
-              onChange={(e) => setEndsOn(e.target.value)}
+              onChange={(v) => setEndsOn(v)}
             />
             <FieldDescription>{d.endsOnHelp}</FieldDescription>
           </Field>

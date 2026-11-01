@@ -1,7 +1,10 @@
 import type { OverviewChannel } from '@commerce/api'
+import Link from 'next/link'
+import type { MouseEvent } from 'react'
 import CustomerAvatar from '@/components/customers/customer-avatar'
 import StatusChip from '@/components/layout/status-chip'
 import OrderChip from '@/components/orders/order-chip'
+import OrderLinesPopover from '@/components/orders/order-lines-popover'
 import { orderStage } from '@/components/orders/order-stage'
 import ProductThumb from '@/components/products/product-thumb'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
@@ -10,8 +13,22 @@ import { ordersContent } from '@/data/orders'
 import { useCopy } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
 import type { Formatters } from '@/lib/format'
+import { shownPaymentStatus } from '@/lib/order-next-move'
+import { phoneForDisplay } from '@/lib/phone-display'
+import { routes } from '@/lib/routes'
 
 type Item = Awaited<ReturnType<typeof api.orders.list>>['items'][number]
+
+/* A link inside a row: the row's own click (which navigates) must not also run. Ctrl/Cmd-click
+   then opens a new tab only, and a plain click is handled by the link alone. */
+function stopRowClick(e: MouseEvent) {
+  e.stopPropagation()
+}
+
+/** A tracking link typed by hand is linked only when it is a web address. */
+function webUrl(url: string | null): string | null {
+  return url && /^https?:\/\//i.test(url) ? url : null
+}
 
 /* Figma "Table / Cell · Avatar": a 24px muted initials disc, the customer's name 14/20 medium
    and their email 12/16 muted beneath (owner: a Customer column of its own). */
@@ -55,7 +72,13 @@ function ProductCell({ item }: { item: Item }) {
           {item.firstLineTitle ?? copy.guest}
         </span>
         {extra > 0 ? (
-          <span className="block text-xs text-muted-foreground">{copy.moreLines(extra)}</span>
+          <span className="block">
+            <OrderLinesPopover
+              orderId={item.id}
+              lineCount={item.lineCount}
+              label={copy.moreLines(extra)}
+            />
+          </span>
         ) : null}
       </span>
     </span>
@@ -75,10 +98,24 @@ export function orderColumns(
       sortTitle: copy.sortTitles.order,
       sortRank: 1,
       hideable: false,
-      className: 'w-[9%]',
+      className: 'w-[7%]',
+      minWidth: 6,
       render: (o) => (
         <span className="inline-flex items-center gap-1.5">
-          <span className="text-body font-medium text-ink-strong tabular-nums">#{o.number}</span>
+          {/* Cancelled reads as gone at a glance, like Shopify's struck-through rows (audit #6). */}
+          {/* A real link (#1008): middle-click and Ctrl-click open the order in a new tab. */}
+          <Link
+            href={routes.orders.detail(o.id)}
+            onClick={stopRowClick}
+            className={
+              o.status === 'cancelled'
+                ? 'rounded-sm text-body font-medium text-muted-foreground line-through tabular-nums hover:underline'
+                : 'rounded-sm text-body font-medium text-ink-strong tabular-nums hover:underline'
+            }
+          >
+            #{o.number}
+          </Link>
+          {o.archivedAt ? <StatusChip>{copy.archivedChip}</StatusChip> : null}
           {o.isTest ? (
             <span title={copy.testChipHint}>
               <StatusChip tone="attention">{copy.testChip}</StatusChip>
@@ -93,13 +130,15 @@ export function orderColumns(
       sortValue: (o) => (o.customerName ?? o.email ?? '').toLowerCase(),
       sortTitle: copy.sortTitles.customer,
       sortRank: 3,
-      className: 'w-[20%] whitespace-normal',
+      className: 'w-[16%] whitespace-normal',
+      minWidth: 12,
       render: (o) => <CustomerCell item={o} />,
     },
     {
       id: 'product',
       title: copy.columns.product,
-      className: 'w-[24%] whitespace-normal',
+      className: 'w-[16%] whitespace-normal',
+      minWidth: 12,
       render: (o) => <ProductCell item={o} />,
     },
     {
@@ -108,6 +147,7 @@ export function orderColumns(
       sortValue: (o) => new Date(o.placedAt).getTime(),
       sortLabels: { desc: copy.sortNewest, asc: copy.sortOldest },
       sortRank: 0,
+      minWidth: 7.5,
       render: (o) => (
         <span className="text-[0.8125rem] text-muted-foreground tabular-nums">
           {fmt.when(o.placedAt)}
@@ -120,7 +160,18 @@ export function orderColumns(
       sortValue: (o) => o.totalPaise,
       sortRank: 2,
       align: 'end',
-      render: (o) => <span className="font-medium tabular-nums">{fmt.money(o.totalPaise)}</span>,
+      minWidth: 6,
+      render: (o) => (
+        <span
+          className={
+            o.status === 'cancelled'
+              ? 'font-medium text-muted-foreground line-through tabular-nums'
+              : 'font-medium tabular-nums'
+          }
+        >
+          {fmt.money(o.totalPaise)}
+        </span>
+      ),
     },
     {
       id: 'payment',
@@ -129,7 +180,8 @@ export function orderColumns(
       sortTitle: copy.sortTitles.payment,
       sortRank: 4,
       align: 'center',
-      render: (o) => <OrderChip kind="orderPayment" value={o.paymentStatus} />,
+      minWidth: 6.5,
+      render: (o) => <OrderChip kind="orderPayment" value={shownPaymentStatus(o)} />,
     },
     {
       id: 'fulfilment',
@@ -138,13 +190,16 @@ export function orderColumns(
       sortTitle: copy.sortTitles.fulfilment,
       sortRank: 5,
       align: 'center',
+      minWidth: 7,
       render: (o) => <OrderChip kind="fulfilment" value={o.fulfillmentStatus} />,
     },
     {
       id: 'status',
       title: copy.columns.status,
       align: 'center',
+      minWidth: 6.5,
       render: (o) => {
+        if (o.onHold) return <StatusChip tone="attention">{copy.holdChip}</StatusChip>
         if (
           o.status === 'open' &&
           o.fulfillmentStatus === 'unfulfilled' &&
@@ -158,8 +213,10 @@ export function orderColumns(
     {
       id: 'channel',
       title: copy.columns.channel,
+      className: 'w-[7%]',
+      minWidth: 6,
       render: (o) => (
-        <span className="text-[0.8125rem] text-muted-foreground">
+        <span className="block truncate text-[0.8125rem] text-muted-foreground">
           {CHANNEL_LABELS[o.channel as OverviewChannel] ?? CHANNEL_LABELS.untracked}
         </span>
       ),
@@ -167,18 +224,77 @@ export function orderColumns(
     {
       id: 'tags',
       title: copy.columns.tags,
-      className: 'whitespace-normal',
+      className: 'w-[10%] whitespace-normal',
+      minWidth: 7,
       render: (o) =>
         o.tags.length ? (
-          <span className="flex flex-wrap gap-1">
+          // A long tag ("Essential Preorder") is cut with "…" inside the column instead of
+          // running into Delivery; hover shows it whole.
+          <span className="flex min-w-0 flex-wrap gap-1">
             {o.tags.slice(0, 2).map((t) => (
-              <StatusChip key={t}>{t}</StatusChip>
+              <StatusChip key={t} className="max-w-full min-w-0">
+                <span className="truncate" title={t}>
+                  {t}
+                </span>
+              </StatusChip>
             ))}
             {o.tags.length > 2 ? (
               <span className="text-xs text-muted-foreground">+{o.tags.length - 2}</span>
             ) : null}
           </span>
         ) : null,
+    },
+    {
+      id: 'items',
+      title: copy.columns.items,
+      sortValue: (o) => o.itemCount,
+      align: 'end',
+      minWidth: 5,
+      render: (o) => <span className="tabular-nums">{fmt.number(o.itemCount)}</span>,
+    },
+    {
+      id: 'delivery',
+      title: copy.columns.delivery,
+      sortValue: (o) => o.deliveryStatus ?? '',
+      minWidth: 7,
+      render: (o) =>
+        o.deliveryStatus ? (
+          webUrl(o.trackingUrl) ? (
+            // The courier's tracking page, in a new tab (#1008); middle-click works too.
+            <a
+              href={webUrl(o.trackingUrl) ?? undefined}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={copy.trackDelivery}
+              aria-label={copy.trackDelivery}
+              onClick={stopRowClick}
+              className="inline-flex rounded-full hover:opacity-80"
+            >
+              <OrderChip kind="shipment" value={o.deliveryStatus} />
+            </a>
+          ) : (
+            <OrderChip kind="shipment" value={o.deliveryStatus} />
+          )
+        ) : (
+          // Fulfilled by hand (no courier booking) is not "not shipped": it went, untracked.
+          <span className="text-muted-foreground">
+            {o.fulfillmentStatus === 'unfulfilled' ? copy.noDelivery : copy.noTracking}
+          </span>
+        ),
+    },
+    {
+      id: 'phone',
+      title: copy.columns.phone,
+      render: (o) => (
+        <span className="tabular-nums">{o.shipPhone ? phoneForDisplay(o.shipPhone) : ''}</span>
+      ),
+    },
+    {
+      id: 'city',
+      title: copy.columns.city,
+      minWidth: 7,
+      sortValue: (o) => (o.shipCity ?? '').toLowerCase(),
+      render: (o) => o.shipCity ?? '',
     },
   ]
 }

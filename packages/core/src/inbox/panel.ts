@@ -21,7 +21,8 @@ import { and, asc, desc, eq, gte, inArray, isNull, or, sql } from 'drizzle-orm'
 import { getCart } from '../cart/cart'
 import type { StoreContext } from '../context'
 import { decryptCustomerPhone } from '../customers/phone-crypto'
-import { isShareableDiscount } from './conversations'
+import { customerSpentSql } from '../customers/spent'
+import { isShareableDiscount } from './conversations-send'
 import { type InsightLocation, locationOf, pagesViewed, productHandleOf } from './insights'
 import { InboxError } from './messages'
 
@@ -287,7 +288,7 @@ export async function customerPanel(
         phone: customer.phone,
         defaultAddress: customer.defaultAddress,
         orderCount: sql<number>`(select count(*)::int from ${order} where ${order.customerId} = ${c.customerId} and ${order.status} <> 'draft')`,
-        totalSpentPaise: sql<number>`(select coalesce(sum(${order.totalPaise}), 0)::int from ${order} where ${order.customerId} = ${c.customerId} and ${order.status} not in ('draft', 'cancelled'))`,
+        totalSpentPaise: customerSpentSql(sql`${customer.id}`),
       })
       .from(customer)
       .where(eq(customer.id, c.customerId))

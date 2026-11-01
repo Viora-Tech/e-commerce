@@ -68,11 +68,10 @@ export const automationsContent = {
   },
   status: { active: 'Active', paused: 'Off' },
   created: 'Automation created. Review it, then switch it on.',
-  browseNote:
-    'Browse abandonment needs product views tied to a known shopper, which the storefront does not record yet.',
   triggers: {
     checkout_abandoned: 'Shopper leaves checkout after entering an email or phone',
     cart_abandoned: 'Signed-in shopper leaves products in the cart',
+    browse_abandoned: 'Known shopper views a product and does not add it to the cart',
     customer_subscribed: 'Someone subscribes to email marketing',
     first_order: 'Customer places their first order',
     customer_lapsed: 'Customer has not ordered for a while',
@@ -81,6 +80,7 @@ export const automationsContent = {
   templateChannels: {
     abandoned_checkout: 'Email, WhatsApp',
     abandoned_cart: 'Email',
+    browse_abandoned: 'Email',
     welcome_subscriber: 'Email',
     first_purchase: 'Email',
     win_back: 'Email',

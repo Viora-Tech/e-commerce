@@ -19,6 +19,7 @@ import type { CheckoutSession } from '@commerce/payments'
 import type { Tracking } from '@commerce/shipping'
 import { desc, eq, inArray } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
+import { after } from 'next/server'
 import ExperimentBeacon from '@/components/analytics/experiment-beacon'
 import PixelTrack from '@/components/analytics/pixel-track'
 import CheckoutBalance from '@/components/checkout/checkout-balance'
@@ -26,10 +27,13 @@ import ThankYouTemplate from '@/components/checkout/thank-you'
 import { withThemeLogo } from '@/lib/checkout-look'
 import { currentCustomer } from '@/lib/customer-session'
 import { db } from '@/lib/db'
+import { discoveryVisitor, recordDiscoveryOrder } from '@/lib/discovery-events'
 import { experimentsEnabled, requestExperiments } from '@/lib/experiments'
 import { orderPageToken } from '@/lib/order-view-cookie'
 import { shopperParcels } from '@/lib/parcels'
+import { payOnlineGateway } from '@/lib/payments'
 import { balanceView, storePreorderPolicy } from '@/lib/preorder'
+import { abPurchaseMeasured } from '@/lib/rollout-ab'
 import { inStore } from '@/lib/store-context'
 
 /** Attempts still waiting on the shopper or the gateway. */
@@ -103,7 +107,16 @@ export default async function ThankYouPage({ params, searchParams }: Params) {
       .limit(1)
     const trackingUrl =
       ship?.trackingUrl ?? (ship?.tracking as Tracking | null | undefined)?.trackingUrl ?? null
+    // A transfer still waiting: offer the store's gateway as well (issue 1010).
+    const transferOpen =
+      o.paymentMethod === 'manual' &&
+      o.status === 'open' &&
+      !o.checkoutPaidAt &&
+      !!pay &&
+      OPEN_STATUSES.has(pay.status)
+    const canPayOnline = transferOpen ? !!(await payOnlineGateway(tx, storeId, o.isTest)) : false
     return {
+      canPayOnline,
       owned: ownedBySession,
       shipmentStatus: ship?.status ?? null,
       trackingUrl,
@@ -147,9 +160,16 @@ export default async function ThankYouPage({ params, searchParams }: Params) {
       env.SETTINGS_SECRET,
     )
   const payToken = tokenFits ? token : orderViewToken(data.order.id, env.SETTINGS_SECRET)
-  // A purchase for the store's A/B tests (the GrowthBook app), after a yes to analytics.
+  // A purchase for the store's A/B tests (the GrowthBook app and A/B rollouts), after a yes to
+  // analytics.
   const measured =
-    (await requestExperiments(storeId)).visitorId !== null && (await experimentsEnabled(storeId))
+    ((await requestExperiments(storeId)).visitorId !== null &&
+      (await experimentsEnabled(storeId))) ||
+    (await abPurchaseMeasured(storeId))
+  // Search & discovery: the funnel's last step, when this browser added from a search or a
+  // recommendation in the last 30 minutes (a reload within the window is not counted again).
+  const discoveryShopper = data.order.isTest ? null : await discoveryVisitor()
+  if (discoveryShopper) after(() => recordDiscoveryOrder(storeId, discoveryShopper))
   return (
     <>
       {measured ? <ExperimentBeacon order={data.order.id} /> : null}
@@ -173,6 +193,7 @@ export default async function ThankYouPage({ params, searchParams }: Params) {
         giftCards={data.giftCards}
         links={links}
         payPath={buildPayPath(data.order.number, payToken)}
+        canPayOnline={data.canPayOnline}
         look={await withThemeLogo(storeId, data.look)}
         images={data.images}
         shipTo={data.shipTo}

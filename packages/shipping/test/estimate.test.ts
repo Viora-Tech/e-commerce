@@ -204,3 +204,27 @@ describe('registry and fake provider', () => {
 })
 
 describeShippingProvider('fake', { create: () => new FakeShippingProvider() })
+
+describe('remote PIN codes (#104)', () => {
+  it('adds island days to the store defaults when no courier answers', async () => {
+    const r = await estimateDelivery({
+      pincode: '744101',
+      policy,
+      provider: null,
+      now: monday10,
+    })
+    expect(r.ok && r.serviceable && r.remoteExtraDays).toBe(4)
+  })
+  it('keeps the mainland on the defaults', async () => {
+    const r = await estimateDelivery({ pincode: '110001', policy, provider: null, now: monday10 })
+    expect(r.ok && r.serviceable && r.remoteExtraDays).toBe(0)
+  })
+  it('trusts a courier that gave its own transit days', async () => {
+    const provider = {
+      id: 'stub',
+      checkServiceability: async () => answer({ minTransitDays: 6, maxTransitDays: 8 }),
+    }
+    const r = await estimateDelivery({ pincode: '744101', policy, provider, now: monday10 })
+    expect(r.ok && r.serviceable && r.remoteExtraDays).toBe(0)
+  })
+})

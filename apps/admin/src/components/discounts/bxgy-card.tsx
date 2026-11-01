@@ -11,6 +11,7 @@ import {
 import { Input } from '@commerce/ui/shadcn/input'
 import { RadioGroup } from '@commerce/ui/shadcn/radio-group'
 import MoneyInput from '@/components/fields/money-input'
+import QuantityInput from '@/components/fields/quantity-input'
 import RadioOption from '@/components/fields/radio-option'
 import RequiredMark from '@/components/fields/required-mark'
 import DataCard from '@/components/layout/data-card'
@@ -67,15 +68,11 @@ export default function BxgyCard({ form, errors, onChange }: BxgyCardProps) {
               <RequiredMark />
             </FieldLabel>
             {quantityMode ? (
-              <Input
-                size="lg"
+              <QuantityInput
                 id="buys-value"
-                type="number"
-                inputMode="numeric"
-                min={1}
                 value={form.buysQuantity}
-                onChange={(e) => onChange({ buysQuantity: e.target.value })}
-                aria-invalid={errors.buys ? true : undefined}
+                onChange={(buysQuantity) => onChange({ buysQuantity })}
+                invalid={Boolean(errors.buys)}
               />
             ) : (
               <MoneyInput
@@ -110,15 +107,11 @@ export default function BxgyCard({ form, errors, onChange }: BxgyCardProps) {
               {copy.quantity}
               <RequiredMark />
             </FieldLabel>
-            <Input
-              size="lg"
+            <QuantityInput
               id="gets-quantity"
-              type="number"
-              inputMode="numeric"
-              min={1}
               value={form.getsQuantity}
-              onChange={(e) => onChange({ getsQuantity: e.target.value })}
-              aria-invalid={errors.gets ? true : undefined}
+              onChange={(getsQuantity) => onChange({ getsQuantity })}
+              invalid={Boolean(errors.gets)}
             />
             {errors.gets ? <FieldError>{errors.gets}</FieldError> : null}
           </Field>

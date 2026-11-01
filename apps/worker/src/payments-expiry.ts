@@ -1,6 +1,7 @@
 import {
   expireUnpaidOrders,
   parsePaymentSettings,
+  queuePaymentPendingNudges,
   refreshPaymentCredentials,
   resolvePaymentProviders,
   runCodConfirmationSweep,
@@ -35,6 +36,9 @@ export const EXPIRY_EVERY_MS = 60_000
  * hours ahead, then the order is cancelled. Shoppers are never reminded
  * automatically; the merchant sends that from the order.
  *
+ * Before that, each store's unfinished online payments get their one "payment not finished"
+ * nudge (`queuePaymentPendingNudges`), a few minutes after checkout.
+ *
  * And the COD & RTO app's confirmation deadlines: COD orders nobody confirmed are flagged
  * for a call, and cancelled when the store turned auto-cancel on.
  */
@@ -50,7 +54,15 @@ export function createUnpaidOrderExpiry(
       const storeIds = await storesWithUnpaidOnlineOrders(db)
       let cancelled = 0
       let paid = 0
+      let nudged = 0
       for (const storeId of storeIds) {
+        // "Your payment did not go through" (once per order, with the retry link), before the
+        // expiry below can cancel it. A failure here never stops the expiry.
+        try {
+          nudged += await withStore(db, storeId, (tx) => queuePaymentPendingNudges({ storeId, tx }))
+        } catch (err) {
+          logger.warn('payment pending nudge failed', { storeId, error: err })
+        }
         try {
           const providers = await withStore(db, storeId, async (tx) => {
             const { payments } = await registriesForStore(tx, storeId)
@@ -82,9 +94,10 @@ export function createUnpaidOrderExpiry(
         }
       }
       if (cancelled || paid) logger.info('unpaid orders expired', { cancelled, paid })
+      if (nudged) logger.info('payment pending nudges queued', { nudged })
       const transfers = await followUpManualTransfers(db)
       const cod = await sweepCodConfirmations(db)
-      return { stores: storeIds.length, cancelled, paid, ...transfers, ...cod }
+      return { stores: storeIds.length, cancelled, paid, nudged, ...transfers, ...cod }
     },
     { connection, ...KEEP_FINISHED },
   )

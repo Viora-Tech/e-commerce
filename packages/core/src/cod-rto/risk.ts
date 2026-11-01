@@ -8,10 +8,11 @@ import {
   shipment,
   store,
 } from '@commerce/db'
-import { and, eq, inArray, ne, or, sql } from 'drizzle-orm'
+import { and, eq, inArray, isNull, ne, or, sql } from 'drizzle-orm'
 import { parseAppsSettings, withAppSettings } from '../apps/settings'
 import type { StoreContext } from '../context'
 import { CheckoutRuleViolation } from '../errors'
+import { importedMethod } from '../order/imported-method'
 import { type PincodeHistory, type ShopperHistory, scoreRtoRisk } from './score'
 import {
   COD_RTO_APP_ID,
@@ -203,7 +204,8 @@ export async function rescoreOrder(ctx: StoreContext, orderId: string) {
       line1: a.line1,
       line2: a.line2,
       orderValuePaise: o.totalPaise,
-      paymentMethod: o.paymentMethod,
+      // Imported orders keep the old platform's gateway in import_meta (COD counts as COD).
+      paymentMethod: o.paymentMethod ?? importedMethod(o.importMeta?.paymentMethod ?? null),
       excludeOrderId: o.id,
     },
     settings,
@@ -213,4 +215,33 @@ export async function rescoreOrder(ctx: StoreContext, orderId: string) {
     .set({ rtoRisk: risk, tags: tagsForRisk(o.tags, risk, settings) })
     .where(eq(order.id, o.id))
   return risk
+}
+
+/** How many open orders "Score open orders" takes in one press. */
+const SCORE_OPEN_LIMIT = 300
+
+/**
+ * "Score open orders": every open, unshipped order without a risk score, oldest first. Scores
+ * are made at checkout, so orders imported from Shopify (Waimers: 61 waiting to ship, 1 scored)
+ * and orders placed before the app was installed had none (audit #199).
+ */
+export async function scoreOpenOrders(
+  ctx: StoreContext,
+): Promise<{ scored: number; left: number }> {
+  const open = and(
+    eq(order.status, 'open'),
+    eq(order.fulfillmentStatus, 'unfulfilled'),
+    isNull(order.rtoRisk),
+    sql`${order.shippingAddressId} is not null`,
+  )
+  const rows = await ctx.tx
+    .select({ id: order.id })
+    .from(order)
+    .where(open)
+    .orderBy(order.placedAt)
+    .limit(SCORE_OPEN_LIMIT)
+  let scored = 0
+  for (const r of rows) if (await rescoreOrder(ctx, r.id)) scored += 1
+  const [rest] = await ctx.tx.select({ n: sql<number>`count(*)::int` }).from(order).where(open)
+  return { scored, left: Number(rest?.n ?? 0) }
 }

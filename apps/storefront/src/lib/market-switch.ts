@@ -2,6 +2,7 @@ import 'server-only'
 import { resolveHost, storeMarkets } from '@commerce/db'
 import { cookies, headers } from 'next/headers'
 import { db } from './db'
+import { marketSuggestion } from './market-suggestion'
 import { MARKET_COOKIE, MARKET_COOKIE_MAX_AGE, switchMarket } from './markets'
 import { hostnameFromHeader } from './store-resolver'
 
@@ -56,4 +57,35 @@ export async function localizationAction(req: Request, storeId: string): Promise
     })
   }
   return new Response(null, { status: 303, headers: { location } })
+}
+
+/**
+ * `GET /theme-actions/market-suggestion?path=<the page>`: the "Shopping from …?" banner's
+ * answer for this visitor (`marketSuggestion`). Asked by the browser after the page loads, so a
+ * page a CDN keeps for everyone never carries one visitor's country; this answer is never stored.
+ * Outside production `?country=XX` stands in for Cloudflare's country, for testing.
+ */
+export async function marketSuggestionAction(req: Request, storeId: string): Promise<Response> {
+  const url = new URL(req.url)
+  const hostname = hostnameFromHeader(req.headers.get('host')) ?? ''
+  const fake = process.env.NODE_ENV !== 'production' ? url.searchParams.get('country') : null
+  const [markets, route] = await Promise.all([
+    storeMarkets(db(), storeId).catch(() => []),
+    hostname ? resolveHost(db(), hostname) : null,
+  ])
+  const suggestion = marketSuggestion({
+    markets,
+    hostname,
+    primaryHostname: route?.primaryHostname ?? null,
+    pathname: sameSitePathname(url.searchParams.get('path') ?? '/'),
+    cookie: (await cookies()).get(MARKET_COOKIE)?.value,
+    visitorCountry: fake || req.headers.get('x-visitor-country'),
+    userAgent: req.headers.get('user-agent'),
+  })
+  return Response.json({ suggestion }, { headers: { 'cache-control': 'private, no-store' } })
+}
+
+/** Only the path of a page on this site; anything else is the home page. */
+function sameSitePathname(value: string): string {
+  return value.startsWith('/') && !value.startsWith('//') ? value.split(/[?#]/)[0] || '/' : '/'
 }

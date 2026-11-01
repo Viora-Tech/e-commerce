@@ -29,6 +29,11 @@ export type CardProduct = {
   /** The variant a card's Quick add puts in the cart: set only when the product has exactly one. */
   quickAddVariantId?: string | null | undefined
   /**
+   * Each priced variant's one-unit price, set when the product has several: the card reads
+   * "From" the lowest as the shopper's market shows it (a catalog's fixed price, else converted).
+   */
+  variantPrices?: readonly { id: string; pricePaise: number }[] | undefined
+  /**
    * Out of stock but still selling as a pre-order (the product page's rule): the card shows a
    * "Pre-order" badge and its button reads `buttonLabel` instead of "Sold out". Null otherwise.
    */
@@ -81,6 +86,11 @@ export type ProductDetail = {
   }[]
   /** Store-timezone instant the product goes on sale; null = already on sale. */
   launchAt?: string | null | undefined
+  /**
+   * The shopper's market sells from a catalog that leaves this product out (Markets ›
+   * Catalogs): the page shows it as not available in their country, never sold.
+   */
+  notSoldHere?: boolean | undefined
   preorder?:
     | {
         enabled: boolean
@@ -99,6 +109,20 @@ export type ProductDetail = {
          * this many days of being requested; the product page says so up front.
          */
         nonRefundableDepositDays?: number | null | undefined
+        /** The pre-order campaign's badge (#144), shown beside the button; absent without one. */
+        badgeText?: string | null | undefined
+        /** The campaign's price per unit while on pre-order, after its discount; absent without one. */
+        preorderPricePaise?: number | null | undefined
+        /** The campaign's colours (hex, already checked); null keys keep the theme's. */
+        colours?:
+          | {
+              buttonBackground: string | null
+              buttonText: string | null
+              badgeBackground: string | null
+              badgeText: string | null
+            }
+          | null
+          | undefined
       }
     | null
     | undefined
@@ -182,7 +206,60 @@ export type ReviewsWidgetContext = {
   onlyVerified: boolean
   /** The store shows customer photos (Reviews settings). */
   showPhotos: boolean
+  /** The AI "What customers say" text, when the store has summaries on and one is written. */
+  aiSummary?: string | null | undefined
+  /** Answered product questions (Q&A), newest answer first. */
+  questions?: PublicQuestion[] | undefined
 }
+
+/** One answered question as a product page shows it. */
+export type PublicQuestion = {
+  id: string
+  question: string
+  /** First name and last initial of who asked. */
+  name: string
+  answer: string
+  /** "2 days ago": when the store answered. */
+  whenLabel: string
+}
+
+/** One published review as the Reviews app's theme sections draw it (carousel, wall, photos). */
+export type StoreReviewCard = {
+  id: string
+  rating: number
+  title: string
+  body: string
+  /** First name and last initial. */
+  name: string
+  verified: boolean
+  /** ISO date the review was written. */
+  createdAt: string
+  /** The product reviewed; null on a store review. */
+  product: { title: string; handle: string } | null
+  /** Photo URLs, empty when the store hides customer photos. */
+  photos: string[]
+}
+
+/** What a Reviews section asks for. */
+export type StoreReviewsQuery = {
+  limit: number
+  minRating?: number | undefined
+  withPhotos?: boolean | undefined
+  /** Only these products' reviews; empty is the whole store. */
+  productHandles?: string[] | undefined
+}
+
+/** The published reviews a Reviews section draws, with the rating summary of the same products. */
+export type StoreReviews = {
+  summary: { rating: number; count: number; stars: number[] }
+  reviews: StoreReviewCard[]
+}
+
+/**
+ * How a Reviews section gets its reviews: the storefront reads the database, the theme editor
+ * calls the API. Null when the store has not installed the Reviews app.
+ */
+export type ReviewsLoader = (query: StoreReviewsQuery) => Promise<StoreReviews | null>
 
 /** A collection as the collection list section renders it. */
 export type CardCollection = {

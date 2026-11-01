@@ -88,6 +88,10 @@ export default function SectionTreeItem({
   const [savingCopy, setSavingCopy] = useState(false)
 
   // Helpers
+  const moveTo = (to: number) => () => {
+    dispatch({ type: 'reorder', sourceIndex: index, destinationIndex: to, destinationZone: zone })
+    dispatch({ type: 'setUi', ui: { itemSelector: { index: to, zone } } })
+  }
   const replaceProps = (props: Record<string, unknown>) =>
     dispatch({
       type: 'replace',
@@ -207,6 +211,8 @@ export default function SectionTreeItem({
         onSaveAsSection={() => setSavingCopy(true)}
         moveOutLabel={parentName}
         onMoveOut={moveOut}
+        onMoveUp={index > 0 ? moveTo(index - 1) : undefined}
+        onMoveDown={index < count - 1 ? moveTo(index + 1) : undefined}
         onRemove={(el) =>
           deleteWithCollapse(
             dispatch,

@@ -41,12 +41,13 @@ function changeList(
 ): string[] {
   const items = p.lines.flatMap((l) => {
     const name = lineName(l.title, l.variantTitle)
+    const kept = (line: string) => (l.restock === false ? words.notRestocked(line) : line)
     if (l.change === 'added') return [words.added(l.quantity, name)]
-    if (l.change === 'removed') return [words.removed(name)]
+    if (l.change === 'removed') return [kept(words.removed(name))]
     if (l.change !== 'changed') return []
     return [
       ...(l.quantity !== l.quantityBefore
-        ? [words.changed(name, l.quantityBefore, l.quantity)]
+        ? [kept(words.changed(name, l.quantityBefore, l.quantity))]
         : []),
       ...(l.unitPricePaise !== l.unitPriceBefore
         ? [words.price(name, money(l.unitPriceBefore), money(l.unitPricePaise))]
@@ -89,6 +90,7 @@ export default function EditReviewDialog({
   // The edit offers no store credit yet (the field leaves it out; the API refuses it).
   const [route, setRoute] = useState<Exclude<RefundRoute, 'store_credit'>>('none')
   const [requestPayment, setRequestPayment] = useState(true)
+  const [notifyCustomer, setNotifyCustomer] = useState(true)
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -98,6 +100,7 @@ export default function EditReviewDialog({
     setPreview(null)
     setError(null)
     setNote('')
+    setNotifyCustomer(true)
     api.orders
       .editPreview(input)
       .then((p) => {
@@ -122,6 +125,7 @@ export default function EditReviewDialog({
         refund: owedBack > 0 ? route : 'none',
         requestPayment: owes > 0 && requestPayment,
         note: note.trim() || undefined,
+        notifyCustomer,
       })
       toast.success(copy.saved)
       onSaved()
@@ -196,6 +200,17 @@ export default function EditReviewDialog({
                 idPrefix="edit-refund"
               />
             ) : null}
+            <Field>
+              <Label htmlFor="edit-notify" className="flex items-center gap-2 font-normal">
+                <Switch
+                  id="edit-notify"
+                  checked={notifyCustomer}
+                  onCheckedChange={setNotifyCustomer}
+                />
+                {copy.notifyCustomer}
+              </Label>
+              <FieldDescription>{copy.notifyCustomerHint}</FieldDescription>
+            </Field>
             <Field>
               <FieldLabel htmlFor="edit-note">{copy.note}</FieldLabel>
               <Textarea

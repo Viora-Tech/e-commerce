@@ -1,9 +1,12 @@
 'use client'
 
 import type { SegmentRules } from '@commerce/core/segments'
+import { BadgePercent, Send } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -84,7 +87,29 @@ export default function SegmentForm({ id, initialName, initialRules }: SegmentFo
         title={id ? name || builder.editHeading : builder.newHeading}
         subtitle={id ? undefined : builder.newIntro}
         back={{ label: builder.back, href: routes.customers.segments() }}
-        actions={id ? <DeleteSegmentButton id={id} /> : null}
+        actions={
+          id ? (
+            <>
+              <DeleteSegmentButton id={id} />
+              <Button
+                variant="outline"
+                nativeButton={false}
+                render={<Link href={routes.discounts.new({ segment: id })} />}
+              >
+                <BadgePercent aria-hidden="true" />
+                {builder.discountIt}
+              </Button>
+              <Button
+                variant="outline"
+                nativeButton={false}
+                render={<Link href={routes.growth.newCampaign({ segment: id })} />}
+              >
+                <Send aria-hidden="true" />
+                {builder.emailIt}
+              </Button>
+            </>
+          ) : null
+        }
         save={{ dirty: true, saving, onSave: handleSave, label: builder.save }}
       />
       <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">

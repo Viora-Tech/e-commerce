@@ -1,8 +1,8 @@
 'use client'
 
 import { TrendingUp } from '@commerce/ui/icons'
-import { Input } from '@commerce/ui/shadcn/input'
 import { Switch } from '@commerce/ui/shadcn/switch'
+import DateField from '@/components/fields/date-field'
 import MoneyInput from '@/components/fields/money-input'
 import KitField from '@/components/kit/kit-field'
 import ChoiceCard from '@/components/layout/choice-card'
@@ -10,6 +10,8 @@ import { productFormContent } from '@/data/product-form'
 import { rupees } from '@/data/products'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { type Facets, margin, type VariantRow } from './form-state'
+import { type ProductTax, variantTax } from './product-tax'
+import ProductTaxFields from './product-tax-fields'
 import ZeroPriceWarning from './zero-price-warning'
 
 type ProductPricingSectionProps = {
@@ -19,6 +21,9 @@ type ProductPricingSectionProps = {
   taxIncluded: boolean
   saleStartsAt: string
   saleEndsAt: string
+  /** The product's GST rate, edited under "Charge tax" (audit #135). */
+  tax: ProductTax
+  onTax: (tax: ProductTax) => void
   onVariant: (patch: Partial<VariantRow>) => void
   onTaxIncluded: (value: boolean) => void
   onSaleStartsAt: (value: string) => void
@@ -55,6 +60,8 @@ export default function ProductPricingSection({
   taxIncluded,
   saleStartsAt,
   saleEndsAt,
+  tax,
+  onTax,
   onVariant,
   onTaxIncluded,
   onSaleStartsAt,
@@ -73,7 +80,8 @@ export default function ProductPricingSection({
     variant.mrp.trim() !== ''
 
   const profit = margin(variant.price, variant.cost)
-  const ownRate = variant.gstRate.trim() === '' ? null : Number(variant.gstRate)
+  const billedRate = variantTax(tax, variant).gstRate
+  const ownRate = billedRate === '' ? null : Number(billedRate)
   // Under the composition scheme no GST is charged, whatever the rate says.
   const rate = gst?.composition ? 0 : (ownRate ?? gst?.ratePercent ?? null)
   const pricePaise = rupees.toPaise(variant.price)
@@ -153,6 +161,9 @@ export default function ProductPricingSection({
           />
         </div>
         {variant.taxable ? (
+          <ProductTaxFields tax={tax} singleVariant part="rate" onChange={onTax} />
+        ) : null}
+        {variant.taxable ? (
           <KitField label={copy.taxIncluded} help={copy.taxIncludedHelp}>
             <div className="grid gap-2 md:grid-cols-2">
               <ChoiceCard
@@ -180,25 +191,17 @@ export default function ProductPricingSection({
             <label htmlFor="sale-starts-at" className="text-caption text-muted-foreground">
               {copy.expirationStart}
             </label>
-            <Input
+            <DateField
               id="sale-starts-at"
-              size="kit"
-              type="date"
               value={saleStartsAt}
-              onChange={(e) => onSaleStartsAt(e.target.value)}
+              onChange={(v) => onSaleStartsAt(v)}
             />
           </div>
           <div className="flex flex-col gap-1.5 md:flex-1">
             <label htmlFor="sale-ends-at" className="text-caption text-muted-foreground">
               {copy.expirationEnd}
             </label>
-            <Input
-              id="sale-ends-at"
-              size="kit"
-              type="date"
-              value={saleEndsAt}
-              onChange={(e) => onSaleEndsAt(e.target.value)}
-            />
+            <DateField id="sale-ends-at" value={saleEndsAt} onChange={(v) => onSaleEndsAt(v)} />
           </div>
         </div>
       </KitField>

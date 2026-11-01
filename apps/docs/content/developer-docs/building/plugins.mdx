@@ -208,10 +208,12 @@ Rules that keep every adapter interchangeable:
   `requiresTrackingNumber = true`: the Create shipment flow asks the merchant for the number on
   the receipt and passes it as `CreateShipmentInput.trackingNumber`. A courier with no tracking
   feed sets `tracksManually = true`: the poll job skips it and the merchant records statuses
-  with `shipments.recordStatus` (`recordManualTracking` in core).
+  with `shipments.recordStatus` (`recordManualTracking` in core); the app page lists those
+  parcels with the shared `ManualParcelsCard` (India Post, ShipGlobal).
 - **Say where you deliver.** `coverage` on the provider is `domestic` (the default: Indian
-  PIN codes only), `international` (exports only: `packages/shipping-dhl-express` and
-  `packages/shipping-fedex`, the real versions of this sketch) or `both`. The rate table
+  PIN codes only), `international` (exports only: `packages/shipping-dhl-express`,
+  `packages/shipping-fedex` and `packages/shipping-shipglobal`, the real versions of this
+  sketch) or `both`. The rate table
   never asks a courier about a country it does not cover, and the storefront's PIN-code
   estimate never asks an export-only one. Rate and serviceability queries carry
   `destinationCountry` (ISO alpha-2, absent means India) and `destinationCity`; shipment lines

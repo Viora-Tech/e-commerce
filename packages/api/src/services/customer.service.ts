@@ -1,4 +1,5 @@
 import {
+  customerSpentSql,
   decryptCustomerPhone,
   deleteMetafieldsOf,
   encryptCustomerPhone,
@@ -8,7 +9,15 @@ import {
   phoneBlindIndex,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
-import { customer, customerNote, notification, order } from '@commerce/db'
+import {
+  customer,
+  customerNote,
+  notification,
+  order,
+  orderNote,
+  refund,
+  returnRequest,
+} from '@commerce/db'
 import { and, asc, count, desc, eq, gte, ilike, inArray, lt, lte, ne, or, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import type { VisitorSource } from '../context'
@@ -107,9 +116,8 @@ const c = alias(customer, 'c')
 const orderCountSql = sql<number>`(
   select count(*)::int from ${order} o
   where o.customer_id = c.id and o.status <> 'draft' and not o.is_test)`
-const spentSql = sql<number>`(
-  select coalesce(sum(o.total_paise), 0)::int from ${order} o
-  where o.customer_id = c.id and o.status not in ('cancelled', 'draft') and not o.is_test)`
+// Paid and kept, not every order's total (audit #132).
+const spentSql = customerSpentSql(sql.raw('c.id'))
 const lastOrderSql = sql<Date | null>`(
   select max(o.placed_at) from ${order} o
   where o.customer_id = c.id and o.status <> 'draft' and not o.is_test)`
@@ -338,11 +346,90 @@ export async function listAllCustomers(
   return items.map((item) => decryptListItem(item, secret))
 }
 
+/** Most of each kind of order event the customer Timeline loads. */
+const ORDER_EVENTS_MAX = 30
+
+export type CustomerOrderEvent = {
+  id: string
+  kind: 'cancelled' | 'return' | 'refund'
+  at: Date
+  orderId: string
+  orderNumber: number
+  /** Refunds: how much went back. */
+  amountPaise: number | null
+  /** Returns: the R-12 number and whether the courier brought it back undelivered. */
+  returnNumber: number | null
+  rto: boolean
+  /** Cancellations: the reason picked from the list (#125), when there is one. */
+  reason: string | null
+}
+
+/**
+ * What went wrong or back on a customer's orders (#134): each staff cancel (its timeline note
+ * marks when), each return or courier return, and each refund that did not fail. Newest first.
+ */
+async function customerOrderEvents(tx: StoreTx, customerId: string): Promise<CustomerOrderEvent[]> {
+  const theirs = eq(order.customerId, customerId)
+  const [cancels, returns, refunds] = await Promise.all([
+    tx
+      .select({
+        id: orderNote.id,
+        at: orderNote.createdAt,
+        orderId: order.id,
+        orderNumber: order.number,
+        reason: order.cancelReason,
+      })
+      .from(orderNote)
+      .innerJoin(order, eq(order.id, orderNote.orderId))
+      .where(and(theirs, eq(order.status, 'cancelled'), ilike(orderNote.body, 'Order cancelled.%')))
+      .orderBy(desc(orderNote.createdAt))
+      .limit(ORDER_EVENTS_MAX),
+    tx
+      .select({
+        id: returnRequest.id,
+        at: returnRequest.createdAt,
+        orderId: order.id,
+        orderNumber: order.number,
+        returnNumber: returnRequest.number,
+        kind: returnRequest.kind,
+      })
+      .from(returnRequest)
+      .innerJoin(order, eq(order.id, returnRequest.orderId))
+      .where(theirs)
+      .orderBy(desc(returnRequest.createdAt))
+      .limit(ORDER_EVENTS_MAX),
+    tx
+      .select({
+        id: refund.id,
+        at: refund.createdAt,
+        orderId: order.id,
+        orderNumber: order.number,
+        amountPaise: refund.amountPaise,
+      })
+      .from(refund)
+      .innerJoin(order, eq(order.id, refund.orderId))
+      .where(and(theirs, ne(refund.status, 'failed')))
+      .orderBy(desc(refund.createdAt))
+      .limit(ORDER_EVENTS_MAX),
+  ])
+  const none = { amountPaise: null, returnNumber: null, rto: false, reason: null }
+  return [
+    ...cancels.map((c) => ({ ...none, ...c, kind: 'cancelled' as const })),
+    ...returns.map(({ kind, ...r }) => ({
+      ...none,
+      ...r,
+      rto: kind === 'rto',
+      kind: 'return' as const,
+    })),
+    ...refunds.map((r) => ({ ...none, ...r, kind: 'refund' as const })),
+  ].sort((a, b) => b.at.getTime() - a.at.getTime())
+}
+
 export async function getCustomer(tx: StoreTx, id: string, secret: string) {
   const [raw] = await tx.select().from(customer).where(eq(customer.id, id))
   if (!raw) return null
   const row = { ...raw, phone: decryptCustomerPhone(raw.phone, secret) }
-  const [orders, sent, notes] = await Promise.all([
+  const [orders, sent, notes, orderEvents] = await Promise.all([
     tx
       .select({
         id: order.id,
@@ -379,11 +466,17 @@ export async function getCustomer(tx: StoreTx, id: string, secret: string) {
       .where(eq(customerNote.customerId, id))
       .orderBy(desc(customerNote.createdAt))
       .limit(50),
+    customerOrderEvents(tx, id),
   ])
   // The list still shows test-mode orders; the totals leave them out.
   const real = orders.filter((o) => !o.isTest)
   const live = real.filter((o) => o.status !== 'cancelled')
-  const spentPaise = live.reduce((sum, o) => sum + o.totalPaise, 0)
+  // Money received and kept, the same figure the list, segments and discounts use (audit #132).
+  const [spent] = await tx
+    .select({ paise: customerSpentSql(sql`${customer.id}`) })
+    .from(customer)
+    .where(eq(customer.id, id))
+  const spentPaise = spent?.paise ?? 0
   const { phoneIndex: _phoneIndex, ...customerFields } = row
   return {
     ...customerFields,
@@ -391,6 +484,8 @@ export async function getCustomer(tx: StoreTx, id: string, secret: string) {
     notifications: sent,
     /** Staff actions on them, such as an opened WhatsApp chat. */
     notes,
+    /** Cancellations, returns and refunds on their orders, for the Timeline (#134). */
+    orderEvents,
     totals: {
       orderCount: real.length,
       spentPaise,

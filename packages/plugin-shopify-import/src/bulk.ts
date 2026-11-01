@@ -4,13 +4,15 @@
  * throttles `ShopifyClient.paginate`. Bulk queries run asynchronously on
  * Shopify's side and answer with a JSONL file instead of a normal response.
  *
- * Shapes and limits verified against shopify.dev on 2026-09-27, API version
- * 2025-07 (this package's `SHOPIFY_API_VERSION`):
+ * Shapes and limits verified against shopify.dev on 2026-10-31, API version
+ * 2026-10 (this package's `SHOPIFY_API_VERSION`):
  *  - https://shopify.dev/docs/api/usage/bulk-operations/queries
- *    - `bulkOperationRunQuery(query: String!)`, `bulkOperation { id status }`.
- *    - Poll `currentBulkOperation { status errorCode url partialDataUrl }`
- *      (this API version predates 2026-01, so there is no `bulkOperation(id:)`
- *      lookup and only one bulk query per app per shop can run at a time).
+ *    - Poll `bulkOperation(id:) { id status errorCode url partialDataUrl }`
+ *      ("In API version 2026-01 and higher, use the bulkOperation(id:) query").
+ *      `currentBulkOperation` is deprecated ("Use bulkOperations with status
+ *      filter instead"), so it is no longer asked.
+ *    - From 2026-01 an app can run up to five bulk queries per shop at once, so
+ *      another one running (an earlier import) no longer blocks this one.
  *    - The query string uses the normal `edges { node { ... } }` connection
  *      shape; no pagination arguments (`first`/`after`) are allowed inside it.
  *    - At most 5 connections total and 2 levels of nested connections.
@@ -21,14 +23,20 @@
  *    - An operation can take up to 10 days; Shopify recommends polling less
  *      often for bigger shops (their example: about once a minute, not once
  *      every 10 seconds).
+ *  - https://shopify.dev/docs/api/admin-graphql/2026-10/mutations/bulkOperationRunQuery
+ *    - `bulkOperationRunQuery(query: String!, groupObjects: Boolean! = false)`.
+ *      The default changed from true to false in 2026-01 (a breaking change in
+ *      the changelog). Ungrouped output no longer promises a record's children
+ *      sit right after it, which `streamBulkRoots` relies on, so every run asks
+ *      for `groupObjects: true` (Shopify warns it is slower; correctness first).
  */
 import type { ShopifyClient } from './shopify-client'
 
 export class BulkUnavailableError extends Error {}
 
-type BulkStatus = 'CREATED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELED'
+type BulkStatus = 'CREATED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELED' | 'CANCELING'
 
-type CurrentBulkOperation = {
+type BulkOperation = {
   id: string
   status: BulkStatus
   errorCode: string | null
@@ -36,14 +44,14 @@ type CurrentBulkOperation = {
   partialDataUrl: string | null
 } | null
 
-const CURRENT_BULK_OPERATION_QUERY = `{
-  currentBulkOperation {
+const BULK_OPERATION_QUERY = `query BulkOperation($id: ID!) {
+  bulkOperation(id: $id) {
     id status errorCode url partialDataUrl
   }
 }`
 
 const RUN_QUERY_MUTATION = `mutation RunBulkQuery($query: String!) {
-  bulkOperationRunQuery(query: $query) {
+  bulkOperationRunQuery(query: $query, groupObjects: true) {
     bulkOperation { id status }
     userErrors { field message }
   }
@@ -55,54 +63,49 @@ export type BulkPollOptions = {
   maxPolls?: number
 }
 
-async function currentBulkOperation(client: ShopifyClient): Promise<CurrentBulkOperation> {
-  const data = await client.query<{ currentBulkOperation: CurrentBulkOperation }>(
-    CURRENT_BULK_OPERATION_QUERY,
-    {},
+async function bulkOperation(client: ShopifyClient, id: string): Promise<BulkOperation> {
+  const data = await client.query<{ bulkOperation?: BulkOperation }>(
+    BULK_OPERATION_QUERY,
+    { id },
     1,
   )
-  return data.currentBulkOperation
+  return data.bulkOperation ?? null
 }
 
 /**
  * Submit `query` (a bulk-shaped query string, `edges { node { ... } }`, no
- * pagination args) and poll until it finishes. Throws `BulkUnavailableError`
- * for anything the caller should treat as "fall back to paged fetching":
- * another bulk op already running for this app/shop, Shopify rejecting the
- * query, or the operation itself failing.
+ * pagination args) and poll our own operation until it finishes. Throws
+ * `BulkUnavailableError` for anything the caller should treat as "fall back to
+ * paged fetching": Shopify refusing the query (including too many bulk
+ * operations running at once), or the operation itself failing.
  */
 export async function runBulkQuery(
   client: ShopifyClient,
   query: string,
   opts: BulkPollOptions = {},
 ): Promise<string | null> {
-  const already = await currentBulkOperation(client)
-  if (already && (already.status === 'CREATED' || already.status === 'RUNNING')) {
-    throw new BulkUnavailableError('A bulk operation is already running for this app and shop')
-  }
-
   const started = await client.query<{
-    bulkOperationRunQuery: {
+    bulkOperationRunQuery?: {
       bulkOperation: { id: string; status: BulkStatus } | null
       userErrors: { field: string[] | null; message: string }[]
-    }
+    } | null
   }>(RUN_QUERY_MUTATION, { query }, 10)
-  const { bulkOperation, userErrors } = started.bulkOperationRunQuery
-  if (userErrors.length > 0) {
-    throw new BulkUnavailableError(userErrors.map((e) => e.message).join('; '))
+  const payload = started.bulkOperationRunQuery
+  if (!payload) throw new BulkUnavailableError('Shopify did not start the bulk operation')
+  if (payload.userErrors.length > 0) {
+    throw new BulkUnavailableError(payload.userErrors.map((e) => e.message).join('; '))
   }
-  if (!bulkOperation) throw new BulkUnavailableError('Shopify did not start the bulk operation')
+  const created = payload.bulkOperation
+  if (!created) throw new BulkUnavailableError('Shopify did not start the bulk operation')
 
   const intervalMs = opts.intervalMs ?? 1500
   const maxPolls = opts.maxPolls ?? 400
   for (let poll = 0; poll < maxPolls; poll++) {
-    const op = await currentBulkOperation(client)
-    if (!op || op.id !== bulkOperation.id) {
-      // Someone else's operation replaced ours in `currentBulkOperation` before we saw completion.
+    const op = await bulkOperation(client, created.id)
+    if (!op || op.id !== created.id)
       throw new BulkUnavailableError('Lost track of the bulk operation')
-    }
     if (op.status === 'COMPLETED') return op.url
-    if (op.status === 'FAILED' || op.status === 'CANCELED') {
+    if (op.status === 'FAILED' || op.status === 'CANCELED' || op.status === 'CANCELING') {
       throw new BulkUnavailableError(op.errorCode ?? `Bulk operation ${op.status.toLowerCase()}`)
     }
     await client.wait(intervalMs)
@@ -203,13 +206,19 @@ export async function* streamBulkRoots<T>(
         ? { pageInfo: { hasNextPage: false, endCursor: null }, nodes: [] }
         : { nodes: [] }
     }
+    // Several child types can share one field (BasicEvent and CommentEvent are both `events`).
+    const filled = new Set<string>()
     for (const [type, children] of node.__children) {
       const mapping = childFieldOf(type)
       if (!mapping) continue
       const mapped = children.map((c) => attach(c))
+      const before = filled.has(mapping.field)
+        ? ((out[mapping.field] as { nodes: unknown[] }).nodes ?? [])
+        : []
+      filled.add(mapping.field)
       out[mapping.field] = mapping.asPage
-        ? { pageInfo: { hasNextPage: false, endCursor: null }, nodes: mapped }
-        : { nodes: mapped }
+        ? { pageInfo: { hasNextPage: false, endCursor: null }, nodes: [...before, ...mapped] }
+        : { nodes: [...before, ...mapped] }
     }
     return out
   }

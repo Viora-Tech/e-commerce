@@ -2,7 +2,7 @@
 
 import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { type ReactNode, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import AppStoreLink from '@/components/apps/app-store-link'
 import PageHeader from '@/components/layout/page-header'
@@ -11,11 +11,14 @@ import HelpFooter from '@/components/payments/help-footer'
 import BoxPresetsFields from '@/components/settings/box-presets-fields'
 import CourierRuleFields from '@/components/settings/courier-rule-fields'
 import HealthLine from '@/components/settings/health-line'
+import SettingsDrill from '@/components/settings/settings-drill'
+import SettingsDrillPanel from '@/components/settings/settings-drill-panel'
 import ShippingPolicyFields from '@/components/settings/shipping-policy-fields'
 import ShippingTryPin from '@/components/settings/shipping-try-pin'
+import SplitShippingCard from '@/components/settings/split-shipping-card'
 import WhatsThisHelp from '@/components/settings/whats-this-help'
-import ShippingZonesCard from '@/components/shipping-zones/shipping-zones-card'
-import { SETTINGS_BACK } from '@/data/settings'
+import ShippingProfilesCard from '@/components/shipping-zones/shipping-profiles-card'
+import { settingsRowsContent } from '@/data/settings-rows'
 import { shippingSettingsContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
 import { useSetupNext } from '@/hooks/use-setup-next'
@@ -30,17 +33,17 @@ const DEMO_COURIER = 'fake'
 
 const DEV = process.env.NODE_ENV !== 'production'
 
-type SectionProps = { id: string; children: ReactNode }
-
 /**
- * Settings → Shipping in plain sections: where you ship and what it costs,
- * your boxes, when orders go out, which courier ships, and a pincode check.
- * Couriers themselves are connected in Apps; the demo courier is dev-only.
+ * Settings → Shipping, Shopify-style (#147): the courier status line, then rows for where you
+ * ship and what it costs, your packages, when orders go out, split shipping, which courier
+ * ships and a pincode check, each opening in place (`?open=`; the old `#rates`-style anchors
+ * open the same rows). Couriers themselves are connected in Apps; the demo courier is dev-only.
  */
 export default function ShippingPage() {
   // Hooks
   const announceSetup = useSetupNext()
   const copy = useCopy(shippingSettingsContent)
+  const rowsCopy = useCopy(settingsRowsContent)
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [form, setForm] = useState<Settings | null>(null)
   const [saved, setSaved] = useState<string | null>(null)
@@ -64,10 +67,12 @@ export default function ShippingPage() {
     if (!form) return
     setBusy(true)
     try {
-      const result = await api.store.updateShipping(form)
+      // A PIN code the merchant never set is not saved as the 110001 placeholder (#66).
+      const result = await api.store.updateShipping({ ...form, originPincodeSet: originSet })
       const next = result ?? form
       setForm(next)
       setSaved(JSON.stringify(next))
+      setLoaded((l) => (l ? { ...l, originSaved: l.originSaved || originSet } : l))
       toast.success(copy.saved)
       void announceSetup('shipping')
     } catch (err) {
@@ -110,6 +115,47 @@ export default function ShippingPage() {
   // Render logic
   const dirty = saved !== null && JSON.stringify(form) !== saved
   const couriers = form.enabled.filter((id) => id !== DEMO_COURIER).map(labelOf)
+  const r = rowsCopy.shipping
+  const rule = form.courierRule
+  // The PIN typed here but not saved yet counts too: the row follows the form.
+  const savedForm = saved ? (JSON.parse(saved) as Settings) : null
+  const originSet =
+    loaded?.originSaved === true || savedForm?.policy.originPincode !== form.policy.originPincode
+  const rows = [
+    { id: 'rates', title: r.rates, value: r.ratesValue },
+    { id: 'boxes', title: r.packages, value: r.packagesValue(form.boxPresets.length) },
+    {
+      id: 'dispatch',
+      title: r.dispatch,
+      value: originSet
+        ? r.dispatchValue(form.policy.originPincode, form.policy.cutoff)
+        : r.dispatchNotSet,
+    },
+    { id: 'split', title: r.split, value: r.splitValue(form.routing.maxParcels) },
+    {
+      id: 'courier',
+      title: r.courier,
+      // Same words as the section: no courier connected is not "Cheapest" (#103).
+      value:
+        couriers.length === 0
+          ? r.noCourier
+          : rule.mode === 'preferred'
+            ? r.preferred(labelOf(rule.providerId))
+            : rule.mode === 'per_zone'
+              ? r.perZone
+              : r.cheapest,
+    },
+    { id: 'pincode', title: r.pincode, value: r.pincodeValue },
+    ...(DEV
+      ? [
+          {
+            id: 'demo',
+            title: r.demo,
+            value: form.enabled.includes(DEMO_COURIER) ? rowsCopy.on : rowsCopy.off,
+          },
+        ]
+      : []),
+  ]
 
   return (
     <div className="flex flex-col gap-5">
@@ -134,7 +180,6 @@ export default function ShippingPage() {
             />
           </span>
         }
-        back={SETTINGS_BACK}
         save={{ dirty, saving: busy, onSave: handleSave, label: copy.save }}
       />
 
@@ -151,41 +196,41 @@ export default function ShippingPage() {
         }
       />
 
-      <Section id="rates">
-        <ShippingZonesCard />
-      </Section>
-      <Section id="boxes">
-        <BoxPresetsFields
-          value={form.boxPresets}
-          onChange={(boxPresets) => patch({ boxPresets })}
-        />
-      </Section>
-      <Section id="dispatch">
-        <ShippingPolicyFields value={form.policy} onChange={(policy) => patch({ policy })} />
-      </Section>
-      <Section id="courier">
-        <CourierRuleFields
-          value={form.courierRule}
-          onChange={(courierRule) => patch({ courierRule })}
-        />
-      </Section>
-      <Section id="pincode">
-        <ShippingTryPin />
-      </Section>
-
-      {DEV ? (
-        <DemoCourierSection on={form.enabled.includes(DEMO_COURIER)} onChange={handleDemo} />
-      ) : null}
-      <HelpFooter />
+      <SettingsDrill rows={rows} backLabel={r.back}>
+        <SettingsDrillPanel id="rates">
+          <ShippingProfilesCard />
+        </SettingsDrillPanel>
+        <SettingsDrillPanel id="boxes">
+          <BoxPresetsFields
+            value={form.boxPresets}
+            onChange={(boxPresets) => patch({ boxPresets })}
+          />
+        </SettingsDrillPanel>
+        <SettingsDrillPanel id="dispatch">
+          <ShippingPolicyFields value={form.policy} onChange={(policy) => patch({ policy })} />
+        </SettingsDrillPanel>
+        <SettingsDrillPanel id="split">
+          <SplitShippingCard
+            maxParcels={form.routing.maxParcels}
+            onChange={(maxParcels) => patch({ routing: { ...form.routing, maxParcels } })}
+          />
+        </SettingsDrillPanel>
+        <SettingsDrillPanel id="courier">
+          <CourierRuleFields
+            value={form.courierRule}
+            onChange={(courierRule) => patch({ courierRule })}
+          />
+        </SettingsDrillPanel>
+        <SettingsDrillPanel id="pincode">
+          <ShippingTryPin />
+        </SettingsDrillPanel>
+        {DEV ? (
+          <SettingsDrillPanel id="demo">
+            <DemoCourierSection on={form.enabled.includes(DEMO_COURIER)} onChange={handleDemo} />
+          </SettingsDrillPanel>
+        ) : null}
+      </SettingsDrill>
+      <HelpFooter page="shipping" />
     </div>
-  )
-}
-
-/** One block of the page, with an anchor the settings search links to. */
-function Section({ id, children }: SectionProps) {
-  return (
-    <section id={id} className="flex scroll-mt-6 flex-col gap-2">
-      {children}
-    </section>
   )
 }

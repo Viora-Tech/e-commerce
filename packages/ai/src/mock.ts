@@ -23,6 +23,7 @@ import {
 } from './purchase-documents/schema'
 import { QUERY_WRITER_MARKER } from './query-writer'
 import { REVIEW_REPLY_MARKER } from './review-reply'
+import { REVIEW_SUMMARY_MARKER } from './review-summary'
 import { SECTION_WRITER_MARKER } from './section-writer'
 import { SEO_KEYWORDS_MARKER } from './seo-keywords/prompt'
 
@@ -182,6 +183,12 @@ function generated(prompt: Prompt): string {
     return JSON.stringify({
       about: 'The shopper asked about a product and their order.',
       pending: 'They are waiting for the team to confirm the details.',
+    })
+  }
+  if (system.includes(REVIEW_SUMMARY_MARKER)) {
+    return JSON.stringify({
+      summary:
+        'Customers say it is well made and works as described. Several mention quick delivery and good value for the price.',
     })
   }
   if (system.includes(REVIEW_REPLY_MARKER)) {

@@ -51,7 +51,7 @@ export default function RegistrationCard({
             <Button
               variant="outline"
               size="sm"
-              render={<Link href={routes.settings.taxes()} />}
+              render={<Link href={`${routes.settings.taxes()}?open=gst-numbers`} />}
               nativeButton={false}
             >
               {copy.manage}

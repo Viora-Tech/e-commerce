@@ -32,8 +32,9 @@ export default function ProductCardQuickAdd({
     if (!variantId || !addToCart) return
     setState('adding')
     try {
-      await addToCart(variantId, 1)
-      setState('added')
+      // Refused (a pre-order campaign keeping pre-orders apart, #143): nothing was added.
+      const refused = await addToCart(variantId, 1)
+      setState(refused ? 'failed' : 'added')
     } catch {
       setState('failed')
     }

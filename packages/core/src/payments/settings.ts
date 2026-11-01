@@ -8,8 +8,12 @@ import {
   maskProviderSettings,
 } from '../settings/secrets'
 import { PaymentAdjustmentSchema } from './adjustments'
+import { CaptureModeSchema } from './capture'
+import { ManualRowsSchema, manualConfigForCheckout } from './manual-rows'
+import { PaymentMethodRulesSchema } from './method-rules'
 import { CheckoutMethodSchema } from './methods'
 import { baseProviderId, isGatewayInactive } from './modes'
+import { PaymentRoutingSchema } from './routing'
 
 /** Stored on store.payments. Secret fields are encrypted before they reach the row. */
 export const PaymentSettingsSchema = z.object({
@@ -45,6 +49,21 @@ export const PaymentSettingsSchema = z.object({
    * `checkoutMethodsOf` (./methods) fills the defaults.
    */
   methods: z.array(CheckoutMethodSchema).max(12).optional(),
+  /**
+   * Several gateways on at once: their fallback order and which one takes each online method
+   * (./routing). Unset: the main gateway takes everything and nothing falls back.
+   */
+  routing: PaymentRoutingSchema.optional(),
+  /** "Manual payment methods": the UPI ID and Bank transfer rows' switches and notes (./manual-rows). */
+  manualRows: ManualRowsSchema.optional(),
+  /** "Payment rules" (#150): hide a way to pay by order total, PIN code or product (./method-rules). */
+  methodRules: PaymentMethodRulesSchema.optional(),
+  /**
+   * "Payment capture" (#150), per gateway id: `manual` only authorises at checkout and the
+   * merchant captures from the order page. Unset is automatic. Only gateways that support it
+   * (`MANUAL_CAPTURE_GATEWAYS`, ./capture) honour `manual`.
+   */
+  capture: z.record(z.string(), CaptureModeSchema).optional(),
   /** Set when the merchant chose "Skip for now" on the first-time payment setup. */
   setupSkippedAt: z.string().max(40).optional(),
 })
@@ -109,7 +128,14 @@ export function resolvePaymentProviders(
   for (const id of decrypted.enabled) {
     // A switched-off gateway never reaches checkout, even if `enabled` still lists it.
     if (isGatewayInactive(decrypted, registry.get(id)?.credentialsFrom ?? id)) continue
-    const r = registry.create(id, registry.configFor(id, decrypted.providers))
+    const config = registry.configFor(id, decrypted.providers)
+    // The manual provider shows only the rows (UPI ID, bank transfer) that are on.
+    const r = registry.create(
+      id,
+      id === 'manual'
+        ? manualConfigForCheckout(config as Record<string, string>, decrypted.manualRows)
+        : config,
+    )
     if (r.ok) providers.push(r.provider)
     else errors.push(`${id}: ${r.errors.join(', ')}`)
   }

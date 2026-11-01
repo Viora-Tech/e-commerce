@@ -12,6 +12,30 @@ export const dialogContent = {
   close: 'Close',
 } as const
 
+/** The − and + beside a quantity box (`components/fields/quantity-input.tsx`). */
+export const quantityInputContent = {
+  less: 'One less',
+  more: 'One more',
+} as const
+
+/** The one date picker (`components/fields/date-field.tsx`, audit #33/#71/#83). */
+export const dateFieldContent = {
+  pick: 'Pick a date',
+  pickMonth: 'Pick a month',
+  time: 'Time',
+  clear: 'Clear',
+  previousYear: 'Previous year',
+  nextYear: 'Next year',
+} as const
+
+/** "Leave without saving?": asked when unsaved changes would be lost (LeaveGuard). */
+export const leaveGuardContent = {
+  title: 'Leave without saving?',
+  body: 'Your changes on this page are not saved yet. If you leave now, they are lost.',
+  leave: 'Leave page',
+  stay: 'Keep editing',
+} as const
+
 /** The red asterisk on a required field's label; screen readers hear the word instead. */
 export const requiredMarkContent = {
   required: 'required',
@@ -88,5 +112,25 @@ export const validationContent = {
     email: 'Email',
     phone: 'Phone',
     name: 'Name',
+    // Settings forms (#101): plain names, and the wrappers members never see left out.
+    boxPresets: 'Packages',
+    lengthCm: 'Length',
+    widthCm: 'Width',
+    heightCm: 'Height',
+    originPincode: 'PIN code to ship from',
+    policy: '',
+    routing: '',
+    settings: '',
+    numbering: 'Invoice numbers',
+    gstin: 'GSTIN',
+    legalName: 'Legal name',
+    rates: 'Rates',
+    countryCodes: 'Countries',
+  } as Record<string, string>,
+  /** One entry of a list, numbered: "Package 2 › Name". */
+  items: {
+    boxPresets: 'Package',
+    rates: 'Rate',
+    variants: 'Variant',
   } as Record<string, string>,
 }

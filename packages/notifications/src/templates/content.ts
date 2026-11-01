@@ -2,6 +2,7 @@ import type { TemplateData, TemplateId } from '../types'
 import {
   backInStockTemplates,
   balanceTemplates,
+  orderUpdateTemplates,
   platformTemplates,
   returnTemplates,
   shipmentTemplates,
@@ -9,6 +10,10 @@ import {
   type TemplateCopy,
   transferTemplates,
 } from './content-parts'
+
+/** A draft invoice's number after the #: "D12" while it is a draft, else the order number. */
+const draftRef = (d: TemplateData): string =>
+  d.draftNumber ? `D${d.draftNumber}` : String(d.orderNumber)
 
 export const templateContent: Record<TemplateId, TemplateCopy> = {
   ...platformTemplates,
@@ -18,6 +23,7 @@ export const templateContent: Record<TemplateId, TemplateCopy> = {
   ...backInStockTemplates,
   ...returnTemplates,
   ...shipmentTemplates,
+  ...orderUpdateTemplates,
   cod_confirm: {
     subject: (d) => `${d.storeName}: please confirm your cash on delivery order #${d.orderNumber}`,
     heading: (d) => `Hi ${d.customerName}, is this order yours?`,
@@ -33,9 +39,12 @@ export const templateContent: Record<TemplateId, TemplateCopy> = {
     heading: (d) => `Thanks, ${d.customerName}`,
     intro: (d) =>
       `We have your order #${d.orderNumber} for ${d.totalLabel} (${d.paymentMethodLabel}).`,
-    outro: () => 'We will message you again as soon as it ships.',
+    outro: (d) =>
+      d.paymentInstructions?.length
+        ? `To pay ${d.totalLabel}: ${d.paymentInstructions.join('. ')}. We ship once your payment arrives.`
+        : 'We will message you again as soon as it ships.',
     whatsapp: (d) =>
-      `Hi ${d.customerName}, ${d.storeName} has received order #${d.orderNumber} for ${d.totalLabel}. We will update you when it ships.`,
+      `Hi ${d.customerName}, ${d.storeName} has received order #${d.orderNumber} for ${d.totalLabel}.${d.paymentInstructions?.length ? ` To pay: ${d.paymentInstructions.join('. ')}.` : ''} We will update you when it ships.`,
   },
   payment_received: {
     subject: (d) => `${d.storeName}: payment for order #${d.orderNumber} received`,
@@ -56,12 +65,18 @@ export const templateContent: Record<TemplateId, TemplateCopy> = {
       `${d.storeName} order #${d.orderNumber} has shipped.${d.waybill ? ` AWB ${d.waybill}.` : ''}${d.trackingUrl ? ` Track: ${d.trackingUrl}` : ''}`,
   },
   draft_invoice: {
-    subject: (d) => `${d.storeName}: your order #${d.orderNumber} is ready to pay`,
+    subject: (d) =>
+      d.reminder
+        ? `${d.storeName}: reminder, order #${draftRef(d)} is waiting for payment`
+        : `${d.storeName}: your order #${draftRef(d)} is ready to pay`,
     heading: (d) => `Hi ${d.customerName}`,
-    intro: (d) => `We have prepared order #${d.orderNumber} for ${d.totalLabel}.`,
+    intro: (d) =>
+      d.reminder
+        ? `A quick reminder: order #${draftRef(d)} for ${d.totalLabel} is still waiting for your payment.`
+        : `We have prepared order #${draftRef(d)} for ${d.totalLabel}.`,
     outro: (d) => (d.actionUrl ? `Pay securely here: ${d.actionUrl}` : 'Reply to confirm.'),
     whatsapp: (d) =>
-      `${d.storeName}: order #${d.orderNumber} for ${d.totalLabel} is ready.${d.actionUrl ? ` Pay: ${d.actionUrl}` : ''}`,
+      `${d.storeName}: order #${draftRef(d)} for ${d.totalLabel} is ready.${d.actionUrl ? ` Pay: ${d.actionUrl}` : ''}`,
   },
   checkout_recovery: {
     subject: (d) => `${d.storeName}: you left something behind`,
@@ -81,6 +96,14 @@ export const templateContent: Record<TemplateId, TemplateCopy> = {
     outro: () => 'Keep it for your records.',
     whatsapp: (d) =>
       `${d.storeName}: your ${d.documentLabel ?? 'invoice'} for order #${d.orderNumber}.${d.links?.[0] ? ` Download: ${d.links[0].url}` : ''}`,
+  },
+  // The merchant's subject and message ride on `custom`; the message prints under the greeting.
+  customer_message: {
+    subject: (d) => `A message from ${d.storeName}`,
+    heading: (d) => (d.customerName ? `Hi ${d.customerName}` : 'Hi'),
+    intro: () => '',
+    outro: () => '',
+    whatsapp: (d) => `${d.storeName}: ${d.custom?.message ?? ''}`,
   },
   login_code: {
     subject: (d) => `${d.code} is your ${d.storeName} sign-in code`,
@@ -147,6 +170,48 @@ ${d.review?.reply ?? ''}`,
     outro: () => 'The reply shows under your review on the product page.',
     whatsapp: (d) =>
       `${d.storeName} replied to your review of ${d.review?.productTitle ?? 'your purchase'}.`,
+  },
+  review_reward: {
+    subject: (d) => `A thank-you from ${d.storeName} for your photo review`,
+    heading: (d) => `Thanks for the photos, ${d.customerName}`,
+    intro: (d) =>
+      `Your review of ${d.review?.productTitle ?? 'your purchase'} is live, photos and all. Here is ${d.review?.rewardLabel ?? 'a discount'} on your next order with this code:
+
+${d.review?.rewardCode ?? ''}`,
+    outro: (d) =>
+      d.review?.rewardUntil
+        ? `The code works once, until ${d.review.rewardUntil}.`
+        : 'The code works once.',
+    whatsapp: (d) =>
+      `${d.storeName}: thanks for your photo review! ${d.review?.rewardLabel ?? 'A discount'} with code ${d.review?.rewardCode ?? ''}`,
+  },
+  question_answered: {
+    subject: (d) => `${d.storeName} answered your question`,
+    heading: (d) =>
+      d.customerName ? `Hi ${d.customerName}, here is your answer` : 'Here is your answer',
+    intro: (d) =>
+      `You asked about ${d.review?.productTitle ?? 'a product'}:
+
+"${d.review?.question ?? ''}"
+
+${d.storeName} answered:
+
+${d.review?.answer ?? ''}`,
+    outro: () => 'The question and answer now show on the product page for other shoppers too.',
+    whatsapp: (d) =>
+      `${d.storeName} answered your question about ${d.review?.productTitle ?? 'a product'}.${d.review?.productUrl ? ` See it: ${d.review.productUrl}` : ''}`,
+  },
+  question_asked: {
+    subject: (d) => `${d.storeName}: new question about ${d.review?.productTitle ?? 'a product'}`,
+    heading: () => 'A shopper asked a question',
+    intro: (d) =>
+      `${d.review?.askerName || 'A shopper'}${d.review?.askerEmail ? ` (${d.review.askerEmail})` : ''} asked about ${d.review?.productTitle ?? 'a product'}:
+
+"${d.review?.question ?? ''}"`,
+    outro: () =>
+      'Answer it in Apps, Reviews, Questions. Once you publish the answer, it shows on the product page and the shopper gets it by email.',
+    whatsapp: (d) =>
+      `${d.storeName}: new question about ${d.review?.productTitle ?? 'a product'}.${d.actionUrl ? ` Answer: ${d.actionUrl}` : ''}`,
   },
   affiliate_update: {
     subject: (d) => {

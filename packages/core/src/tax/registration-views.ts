@@ -1,5 +1,6 @@
 /** SOURCE OF TRUTH: Business, GstRegistrationView, LocationBillingView, BusinessGstView — WHAT: the shapes the Taxes & GST page reads / WHY: types only, split from registrations.ts so the rules and the shapes each stay small; registrations.ts re-exports them */
 import type { business, gstRegistration, LocationCourierPickup } from '@commerce/db'
+import type { LocalDelivery, StorePickup } from '../shipping/local-options'
 import type { LegalAddress } from './registration-schemas'
 
 export type Business = typeof business.$inferSelect
@@ -30,6 +31,10 @@ export type LocationBillingView = {
   phone: string | null
   /** Couriers collect from here (shipping/ship-from.ts); null uses Settings › Shipping. */
   courierPickup: LocationCourierPickup | null
+  /** Local delivery from here (shipping/local-options.ts); null: not set up. */
+  localDelivery: LocalDelivery | null
+  /** Pickup in store here; null: not set up. */
+  storePickup: StorePickup | null
   /** Checkout routes orders here (order/routing.ts); the default location always does. */
   fulfilsOnlineOrders: boolean
   /** Routing order among locations that ship online orders: lower ships first. */

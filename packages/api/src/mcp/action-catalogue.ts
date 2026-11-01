@@ -16,6 +16,7 @@
  */
 import type { ApiArea } from '@commerce/core/api-access'
 import { type AnyProcedure, isProcedure } from '@orpc/server'
+import { NAMESPACE_AREA, PATH_AREA } from './action-areas'
 import { ACTION_DOCS } from './action-docs.generated'
 
 export type ActionKind = 'read' | 'write' | 'sensitive'
@@ -156,6 +157,7 @@ const READ_NAMES = new Set([
 const READ_PATHS = new Set([
   'payments.setup',
   'rollouts.holds',
+  'rollouts.results',
   'payments.testMode',
   'gstInvoices.bulkDownload',
   'inbox.sync',
@@ -167,6 +169,7 @@ const READ_PATHS = new Set([
   'apps.testConnection',
   'collections.products',
   'giftCards.products',
+  'preorders.overview',
   'reviews.products',
   'marketing.emailBrand',
   'marketing.setup',
@@ -190,6 +193,7 @@ const READ_PATHS = new Set([
 const EXCLUDED_NAMESPACES: Record<string, string> = {
   account: "the member's own sign-in, sessions and account deletion",
   me: "the member's own session",
+  reauth: "the member's own step-up re-verification (people only)",
   onboarding: 'creating a new store (cross-store)',
   invitations: 'accepting an invitation to another store (cross-store)',
   bugReports: 'files issues with the platform team (internal)',
@@ -266,7 +270,7 @@ const SENSITIVE_PATHS: Record<string, string> = {
   'automations.runNow': 'runs a workflow on records now',
   'automations.runs.retry': 'runs a workflow step again',
   'rollouts.end':
-    'ends a running sale: rolls the theme, checkout and discounts back, or keeps them',
+    'ends a running sale: rolls the theme, checkout and discounts back, or keeps them (an A/B test: ships the Treatment or keeps the Control)',
 }
 
 /** Writes that turn sensitive for some inputs. */
@@ -279,90 +283,6 @@ const SENSITIVE_WHEN: Record<string, { note: string; when: (input: unknown) => b
     note: 'deleting products',
     when: (input) => field(field(input, 'action'), 'kind') === 'delete',
   },
-}
-
-const NAMESPACE_AREA: Record<string, ApiArea> = {
-  products: 'products',
-  collections: 'products',
-  reviews: 'products',
-  orders: 'orders',
-  returns: 'orders',
-  codRto: 'orders',
-  shipments: 'orders',
-  gstInvoices: 'orders',
-  customers: 'customers',
-  customerPrivacy: 'customers',
-  inbox: 'customers',
-  forms: 'customers',
-  inventory: 'inventory',
-  purchaseOrders: 'inventory',
-  transfers: 'inventory',
-  suppliers: 'inventory',
-  inboundShipments: 'inventory',
-  purchaseCharges: 'inventory',
-  purchaseDocuments: 'inventory',
-  discounts: 'discounts',
-  giftCards: 'discounts',
-  metaobjects: 'content',
-  media: 'content',
-  analytics: 'analytics',
-  dashboard: 'analytics',
-  activity: 'analytics',
-  seo: 'analytics',
-  marketing: 'marketing',
-  automations: 'settings',
-  affiliates: 'marketing',
-  pixels: 'marketing',
-  backInStock: 'marketing',
-  shortLinks: 'marketing',
-  salesChannels: 'marketing',
-  themes: 'online_store',
-  pages: 'online_store',
-  blog: 'online_store',
-  navigation: 'online_store',
-  redirects: 'online_store',
-  policies: 'online_store',
-  search: 'online_store',
-  store: 'settings',
-  storeData: 'settings',
-  appearance: 'settings',
-  apiAccess: 'settings',
-  billing: 'settings',
-  shipping: 'settings',
-  deliveryOptions: 'settings',
-  payments: 'settings',
-  checkoutSettings: 'settings',
-  customerAccounts: 'settings',
-  notifications: 'settings',
-  apps: 'settings',
-  taxes: 'settings',
-  businessGst: 'settings',
-  profitCosts: 'settings',
-  monthlyExpenses: 'settings',
-  shopifyImport: 'settings',
-  emi: 'settings',
-  umami: 'settings',
-  chatwoot: 'settings',
-  growthbook: 'settings',
-  platformApps: 'settings',
-  searchConsole: 'settings',
-  meilisearch: 'settings',
-  ai: 'settings',
-  staff: 'settings',
-  domains: 'settings',
-  markets: 'settings',
-  rollouts: 'settings',
-}
-
-/** AI features that work on products rather than on settings. */
-const PATH_AREA: Record<string, ApiArea> = {
-  'ai.writeProduct': 'products',
-  'ai.suggestKeywords': 'products',
-  'ai.bulkWrite': 'products',
-  'ai.bulkJob': 'products',
-  'ai.bulkJobs': 'products',
-  'ai.cancelBulk': 'products',
-  'ai.applyBulk': 'products',
 }
 
 function field(value: unknown, key: string): unknown {

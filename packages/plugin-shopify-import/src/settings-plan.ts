@@ -7,6 +7,7 @@
  * shapes plus store details, tax and locations; shipping (`settings-plan-shipping.ts`)
  * and policies and extra fields (`settings-plan-content.ts`) sit beside it.
  */
+import type { SegmentRules } from '@commerce/core'
 import {
   type LocationDetails,
   type PolicyType,
@@ -21,6 +22,8 @@ import { normalisePhone } from '@commerce/core/phone'
 import type { NLocation, NSettingsAddress, NShopSettings } from './api-settings'
 import type { RichText } from './html'
 import type { SettingsItem } from './settings-client'
+import type { LocalMarket, MarketWrite } from './settings-plan-markets'
+import type { LocalStock, PurchaseOrderWrite, TransferWrite } from './settings-plan-stock'
 
 /* ------------------------------------------------------------ what is here */
 
@@ -41,10 +44,22 @@ export type LocalRate = {
 
 export type LocalZone = {
   id: string
+  /** Its shipping profile; null counts as General. */
+  profileId: string | null
   name: string
+  /** ISO countries and `*` (Rest of world); missing or empty means India. */
+  countryCodes?: string[] | undefined
   stateCodes: string[]
   pincodeRules: ShippingZoneWrite['pincodeRules']
   rates: LocalRate[]
+}
+
+export type LocalShippingProfile = {
+  id: string
+  name: string
+  isDefault: boolean
+  /** Products placed in it (empty for General, which holds the rest). */
+  productIds: string[]
 }
 
 export type LocalPolicy = {
@@ -66,17 +81,28 @@ export type LocalField = {
 
 export type LocalSettings = {
   profile: StoreProfile
+  /** Online store › Preferences: the home page title and meta description here. */
+  seo: { title: string; description: string }
   /** The default GST registration's number, and every active one. */
   defaultGstin: string | null
   gstins: string[]
   locations: LocalLocation[]
   zones: LocalZone[]
+  shippingProfiles: LocalShippingProfile[]
   policies: LocalPolicy[]
+  /** Names of the customer segments here. */
+  segments: string[]
+  markets: LocalMarket[]
+  /** Suppliers, imported products' variants and earlier purchase order and transfer imports. */
+  stock: LocalStock
   fields: LocalField[]
   /** Shopify id → our id from earlier imports. */
   mapped: {
     locations: ReadonlyMap<string, string>
     zones: ReadonlyMap<string, string>
+    shippingProfiles: ReadonlyMap<string, string>
+    /** Shopify product ids → ours, from the products import (custom shipping profiles). */
+    products: ReadonlyMap<string, string>
     fields: ReadonlyMap<string, string>
     /** Shopify content type ids → ours, for extra fields that link to entries. */
     contentTypes: ReadonlyMap<string, string>
@@ -89,16 +115,43 @@ export type LocalSettings = {
 export const SETTINGS_MAPPINGS = {
   locations: 'settings_locations',
   zones: 'settings_shipping_zones',
+  shippingProfiles: 'settings_shipping_profiles',
   fields: 'metafield_definitions',
+  purchaseOrders: 'settings_purchase_orders',
+  transfers: 'settings_transfers',
 } as const
 
 export type SettingsOp =
   | { kind: 'profile'; patch: StoreProfilePatch }
   | { kind: 'location'; id: string | null; sourceId: string | null; details: LocationDetails }
   | { kind: 'gstin'; gstin: string }
-  | { kind: 'zone'; id: string | null; sourceId: string; write: ShippingZoneWrite }
+  /** A customer segment from Shopify's query (settings-plan-segments). */
+  | { kind: 'segment'; name: string; rules: SegmentRules }
+  /** Home page title / meta description for search results (only the parts given). */
+  | { kind: 'seo'; title?: string | undefined; description?: string | undefined }
+  /** A custom shipping profile and its products; zones follow as `zone` ops naming it. */
+  | {
+      kind: 'shipping_profile'
+      id: string | null
+      sourceId: string
+      name: string
+      productIds: string[]
+    }
+  /** `profileSourceId`: the Shopify profile a new zone joins; null for General. */
+  | {
+      kind: 'zone'
+      id: string | null
+      sourceId: string
+      profileSourceId: string | null
+      write: ShippingZoneWrite
+    }
   | { kind: 'policy'; type: PolicyType; title: string; body: RichText; published: boolean }
   | { kind: 'field'; sourceId: string; write: MetafieldDefinitionWrite }
+  /** A Shopify market for other countries (settings-plan-markets). */
+  | { kind: 'market'; write: MarketWrite }
+  /** A Shopify purchase order or transfer (settings-plan-stock). */
+  | { kind: 'purchase_order'; write: PurchaseOrderWrite }
+  | { kind: 'transfer'; write: TransferWrite }
   /** Remember a match that needed no change, so a rename on either side keeps it matched. */
   | { kind: 'map'; resource: string; sourceId: string; localId: string }
 
@@ -290,6 +343,24 @@ export function planStore(shop: NShopSettings, local: LocalSettings): PartPlan {
   } else if (shop.moneyFormat) {
     items.push({ action: 'same', subject: 'money_format', to: here.moneyFormat })
   }
+  // Home page title and meta description: brought over when this store has none yet, never
+  // over one the merchant wrote here. Search engines show them, so losing them at the move
+  // costs rankings (audit #131).
+  const seo: Extract<SettingsOp, { kind: 'seo' }> = { kind: 'seo' }
+  for (const [part, subject] of [
+    ['title', 'home_seo_title'],
+    ['description', 'home_seo_description'],
+  ] as const) {
+    const theirs = shop.seo[part]
+    if (!theirs) continue
+    const ours = local.seo[part]
+    if (!ours) {
+      items.push({ action: 'update', subject, from: null, to: theirs })
+      seo[part] = theirs
+    } else items.push({ action: 'same', subject, to: ours })
+  }
+  if (seo.title || seo.description) ops.push(seo)
+
   if (shop.weightUnit === 'POUNDS' || shop.weightUnit === 'OUNCES') {
     items.push({
       action: 'warn',

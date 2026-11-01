@@ -5,6 +5,8 @@ import { dateFilterBounds, hasDateFilter, parseAsDateFilter } from '@/lib/date-f
 
 /** Shown on the online store, or hidden (the Visibility column). */
 export const VISIBILITY_FILTERS = ['active', 'draft'] as const
+/** Hand picked or rule based (the Type column, audit #29). */
+export const KIND_FILTERS = ['manual', 'automatic'] as const
 export const UPDATED_FILTERS = ['7d', '30d', '90d'] as const
 type UpdatedFilter = (typeof UPDATED_FILTERS)[number]
 
@@ -13,6 +15,7 @@ const DAYS: Record<UpdatedFilter, number> = { '7d': 7, '30d': 30, '90d': 90 }
 /** The Collections filter panel. The list is loaded whole, so it filters in the browser. */
 export type CollectionFilters = {
   visibility: (typeof VISIBILITY_FILTERS)[number][]
+  kind: (typeof KIND_FILTERS)[number][]
   /** "yes" has an image, "no" has none; null for either. */
   image: 'yes' | 'no' | null
   /** Whole numbers as typed; empty for no bound. */
@@ -23,6 +26,7 @@ export type CollectionFilters = {
 
 type Row = {
   status: string
+  kind: string
   imageUrl: string | null
   productCount: number
   updatedAt: Date | string
@@ -30,6 +34,7 @@ type Row = {
 
 export const COLLECTION_FILTER_PARAMS = {
   visibility: parseAsArrayOf(parseAsStringLiteral(VISIBILITY_FILTERS)).withDefault([]),
+  kind: parseAsArrayOf(parseAsStringLiteral(KIND_FILTERS)).withDefault([]),
   image: parseAsStringLiteral(['yes', 'no'] as const),
   minProducts: parseAsString.withDefault(''),
   maxProducts: parseAsString.withDefault(''),
@@ -38,6 +43,7 @@ export const COLLECTION_FILTER_PARAMS = {
 
 export const CLEAR_COLLECTION_FILTERS = {
   visibility: null,
+  kind: null,
   image: null,
   minProducts: null,
   maxProducts: null,
@@ -63,6 +69,7 @@ export function collectionMatcher(f: CollectionFilters, now = new Date()): (row:
   const to = bounds.to ? new Date(bounds.to).getTime() : null
   return (row) => {
     if (f.visibility.length && !f.visibility.some((v) => v === row.status)) return false
+    if (f.kind.length && !f.kind.some((k) => k === row.kind)) return false
     if (f.image === 'yes' && !row.imageUrl) return false
     if (f.image === 'no' && row.imageUrl) return false
     if (min !== null && row.productCount < min) return false
@@ -89,6 +96,14 @@ export function collectionFilterGroups(
       value: f.visibility,
       onChange: (next) =>
         onChange({ visibility: VISIBILITY_FILTERS.filter((v) => next.includes(v)) }),
+    },
+    {
+      key: 'kind',
+      label: copy.columns.type,
+      type: 'checks',
+      options: KIND_FILTERS.map((k) => ({ value: k, label: copy.kind[k] })),
+      value: f.kind,
+      onChange: (next) => onChange({ kind: KIND_FILTERS.filter((k) => next.includes(k)) }),
     },
     {
       key: 'image',

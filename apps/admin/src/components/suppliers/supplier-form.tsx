@@ -1,15 +1,23 @@
 'use client'
 
+import { validateGstin } from '@commerce/core/gstin'
 import type { PurchaseCurrency } from '@commerce/core/inventory'
 import { Save, Store, Trash2 } from '@commerce/ui/icons'
 import PhoneInput from '@commerce/ui/phone-input'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import CountrySelect from '@/components/fields/country-select'
 import CurrencySelect from '@/components/landed-cost/currency-select'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
@@ -20,6 +28,7 @@ import SaveBar from '@/components/layout/save-bar'
 import { supplierFormContent } from '@/data/purchasing'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { focusField } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import SupplierOrdersCard from './supplier-orders-card'
 
@@ -64,6 +73,7 @@ export default function SupplierForm({ supplier }: SupplierFormProps) {
   const [saved, setSaved] = useState(() => JSON.stringify(draftFrom(supplier)))
   const [busy, setBusy] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [triedSave, setTriedSave] = useState(false)
 
   // Helpers
   const patch = (next: Partial<Draft>) => setD((prev) => ({ ...prev, ...next }))
@@ -72,6 +82,12 @@ export default function SupplierForm({ supplier }: SupplierFormProps) {
   const handleSave = async () => {
     if (d.name.trim() === '') {
       toast.error(copy.needName)
+      focusField('supplier-name')
+      return
+    }
+    if (d.gstin.trim() !== '' && !validateGstin(d.gstin).ok) {
+      setTriedSave(true)
+      document.getElementById('supplier-gstin')?.focus()
       return
     }
     setBusy(true)
@@ -111,6 +127,12 @@ export default function SupplierForm({ supplier }: SupplierFormProps) {
   }
 
   // Render logic
+  // Same rules as checkout; shown once all 15 characters are in, or after a save attempt.
+  const gstinCheck = d.gstin.trim() === '' ? null : validateGstin(d.gstin)
+  const gstinError =
+    gstinCheck && !gstinCheck.ok && (triedSave || d.gstin.trim().length === 15)
+      ? copy.gstinErrors[gstinCheck.reason as keyof typeof copy.gstinErrors]
+      : null
   const dirty = JSON.stringify(d) !== saved
 
   return (
@@ -176,13 +198,11 @@ export default function SupplierForm({ supplier }: SupplierFormProps) {
                 <div className="grid gap-4 sm:grid-cols-3">
                   <Field>
                     <FieldLabel htmlFor="supplier-country">{copy.details.country}</FieldLabel>
-                    <Input
+                    <CountrySelect
                       id="supplier-country"
                       value={d.country}
-                      maxLength={2}
-                      onChange={(e) => patch({ country: e.target.value.toUpperCase() })}
+                      onChange={(country) => patch({ country })}
                     />
-                    <FieldDescription>{copy.details.countryHint}</FieldDescription>
                   </Field>
                   <Field>
                     <FieldLabel htmlFor="supplier-currency">{copy.details.currency}</FieldLabel>
@@ -193,15 +213,20 @@ export default function SupplierForm({ supplier }: SupplierFormProps) {
                       onChange={(currency) => patch({ currency })}
                     />
                   </Field>
-                  <Field>
+                  <Field data-invalid={gstinError ? true : undefined}>
                     <FieldLabel htmlFor="supplier-gstin">{copy.details.gstin}</FieldLabel>
                     <Input
                       id="supplier-gstin"
                       value={d.gstin}
                       maxLength={15}
+                      aria-invalid={gstinError ? true : undefined}
                       onChange={(e) => patch({ gstin: e.target.value.toUpperCase() })}
                     />
-                    <FieldDescription>{copy.details.gstinHint}</FieldDescription>
+                    {gstinError ? (
+                      <FieldError>{gstinError}</FieldError>
+                    ) : (
+                      <FieldDescription>{copy.details.gstinHint}</FieldDescription>
+                    )}
                   </Field>
                 </div>
               </FieldGroup>

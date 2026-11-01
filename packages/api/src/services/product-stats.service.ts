@@ -76,6 +76,8 @@ export type AdjustmentRow = {
   delta: number
   reason: string
   note: string | null
+  /** Who changed it (audit #139); null for orders, imports and older rows. */
+  actorName: string | null
   createdAt: Date
 }
 
@@ -92,6 +94,7 @@ export async function productAdjustments(
       delta: inventoryAdjustment.delta,
       reason: inventoryAdjustment.reason,
       note: inventoryAdjustment.note,
+      actorName: inventoryAdjustment.actorName,
       createdAt: inventoryAdjustment.createdAt,
     })
     .from(inventoryAdjustment)

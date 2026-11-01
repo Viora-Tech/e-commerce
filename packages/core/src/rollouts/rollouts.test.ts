@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type { StoreContext } from '../context'
 import { defaultTheme } from '../theme/schema'
+import { activeAbTests, recordAbExposure, rolloutAbResults } from './ab-service'
 import { runRolloutsTick } from './job'
 import { RolloutError, type RolloutSaveInput } from './schema'
 import {
@@ -331,5 +332,72 @@ describe('what the admin shows', () => {
       rolloutDiscountOptions(ctx, { page: 1, perPage: 30, search: 'diwali' }),
     )
     expect(found).toMatchObject({ total: 1, items: [{ id: s.on, status: 'disabled' }] })
+  })
+})
+
+describe('A/B rollouts', () => {
+  const abInput = (themeId: string): RolloutSaveInput => ({
+    name: 'New homepage',
+    kind: 'launch',
+    audience: { split: 50, traffic: 100, marketIds: [], target: 1000 },
+    changes: [{ kind: 'theme', themeId }],
+  })
+
+  it('refuses changes it cannot split', async () => {
+    const s = await seed()
+    await expect(
+      inStore(s.storeId, (ctx) =>
+        createRollout(ctx, {
+          ...abInput(s.sale),
+          changes: [
+            { kind: 'theme', themeId: s.sale },
+            { kind: 'discount', discountId: s.on, status: 'active' },
+          ],
+        }),
+      ),
+    ).rejects.toBeInstanceOf(RolloutError)
+  })
+
+  it('starts without publishing, then Ship Treatment publishes', async () => {
+    const s = await seed()
+    const r = await inStore(s.storeId, (ctx) => createRollout(ctx, abInput(s.sale)))
+    const started = await inStore(s.storeId, (ctx) => startRollout(ctx, r.id, at(0)))
+    expect(started.status).toBe('active')
+    expect(await liveTheme(s.storeId)).toBe(s.live)
+    const tests = await inStore(s.storeId, (ctx) => activeAbTests(ctx.tx))
+    expect(tests).toEqual([{ id: r.id, themeId: s.sale, audience: expect.any(Object) }])
+    const ended = await inStore(s.storeId, (ctx) => endRollout(ctx, r.id, 'apply', at(1)))
+    expect(ended.abOutcome).toBe('treatment')
+    expect(await liveTheme(s.storeId)).toBe(s.sale)
+  })
+
+  it('Keep Control leaves the store as it is', async () => {
+    const s = await seed()
+    const r = await inStore(s.storeId, (ctx) => createRollout(ctx, abInput(s.sale)))
+    await inStore(s.storeId, (ctx) => startRollout(ctx, r.id, at(0)))
+    const ended = await inStore(s.storeId, (ctx) => endRollout(ctx, r.id, 'rollback', at(1)))
+    expect(ended.abOutcome).toBe('control')
+    expect(await liveTheme(s.storeId)).toBe(s.live)
+  })
+
+  it('counts visitors per arm, once each', async () => {
+    const s = await seed()
+    const r = await inStore(s.storeId, (ctx) => createRollout(ctx, abInput(s.sale)))
+    await inStore(s.storeId, (ctx) => startRollout(ctx, r.id, at(0)))
+    await inStore(s.storeId, async (ctx) => {
+      for (const [visitorId, arm] of [
+        ['v1', 'control'],
+        ['v1', 'treatment'],
+        ['v2', 'treatment'],
+      ] as const) {
+        await recordAbExposure(ctx.tx, s.storeId, { rolloutId: r.id, visitorId, arm })
+      }
+    })
+    const results = await inStore(s.storeId, (ctx) => rolloutAbResults(ctx, r.id))
+    expect(results?.control.visitors).toBe(1)
+    expect(results?.treatment.visitors).toBe(1)
+    expect(results?.reached).toBe(2)
+    expect(results?.target).toBe(1000)
+    expect(results?.verdict).toEqual({ kind: 'not_enough' })
   })
 })

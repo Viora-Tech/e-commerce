@@ -25,3 +25,19 @@ export const RETURN_REASON_LABELS: Record<ReturnReason, string> = {
   changed_mind: 'I changed my mind',
   other: 'Something else',
 }
+
+/** A reason the merchant wrote (Settings › Returns) is stored as `custom:<their words>` (#180). */
+export const CUSTOM_REASON_PREFIX = 'custom:'
+export const MAX_CUSTOM_REASONS = 8
+export const CUSTOM_REASON_MAX_LENGTH = 60
+
+export const customReasonCode = (label: string) => `${CUSTOM_REASON_PREFIX}${label.trim()}`
+
+/** The words for a stored reason: the merchant's own, the built-in label, or the raw value. */
+export function returnReasonLabel(
+  reason: string,
+  labels: Record<ReturnReason, string> = RETURN_REASON_LABELS,
+): string {
+  if (reason.startsWith(CUSTOM_REASON_PREFIX)) return reason.slice(CUSTOM_REASON_PREFIX.length)
+  return labels[reason as ReturnReason] ?? reason
+}

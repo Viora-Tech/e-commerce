@@ -14,12 +14,14 @@ type PickupCardProps = {
   onChange: (plan: PickupPlan) => void
   /** The picked courier takes pickup requests. */
   canPickup: boolean
+  /** A courier is picked; until then the card says to pick one, not that pickups are refused (#18). */
+  courierChosen: boolean
 }
 
 /** Figma "Pickup and updates": whether to ask the courier to collect, which day and from when.
  *  The request goes out right after the booking. The WhatsApp update row is left out: no
  *  shipping-update setting exists to switch. */
-export default function PickupCard({ plan, onChange, canPickup }: PickupCardProps) {
+export default function PickupCard({ plan, onChange, canPickup, courierChosen }: PickupCardProps) {
   // Hooks
   const copy = useCopy(createShipmentContent.pickup)
   const fmt = useFormat()
@@ -53,7 +55,7 @@ export default function PickupCard({ plan, onChange, canPickup }: PickupCardProp
           <div className="flex flex-col gap-0.5">
             <p className="text-body font-medium text-ink-strong">{copy.heading}</p>
             <p className="text-caption text-muted-foreground">
-              {canPickup ? copy.help : copy.unavailable}
+              {canPickup ? copy.help : courierChosen ? copy.unavailable : copy.chooseCourier}
             </p>
           </div>
           <Switch

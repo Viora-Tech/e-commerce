@@ -18,11 +18,12 @@ import CustomerActivityCard from './customer-activity-card'
 import CustomerAddressesCard from './customer-addresses-card'
 import CustomerBusinessCard from './customer-business-card'
 import { type CustomerDetail, nextStepFor } from './customer-detail-types'
+import CustomerGiftCardsCard from './customer-gift-cards-card'
 import CustomerHeader from './customer-header'
 import CustomerNextStep from './customer-next-step'
 import CustomerNoteCard from './customer-note-card'
 import CustomerOrdersCard from './customer-orders-card'
-import CustomerStatsCard from './customer-stats-card'
+import CustomerSummaryStrip from './customer-summary-strip'
 import CustomerTagsCard from './customer-tags-card'
 import EditCustomerDialog from './edit-customer-dialog'
 import MarketingConsentCard, { type ConsentWithChannels } from './marketing-consent-card'
@@ -165,7 +166,7 @@ export default function CustomerView({
     CONSENT_CHANNELS.some((c) => draft.consent[c] !== saved.consent[c])
 
   return (
-    <PageBody width="frame" className="gap-6">
+    <PageBody width="frame" className="mx-auto max-w-[75rem] gap-6">
       <SaveBar
         open={dirty}
         message={detail.changes.unsaved}
@@ -180,6 +181,7 @@ export default function CustomerView({
         onEdit={() => setEditing(true)}
         automations={appCards.includes('automations')}
       />
+      <CustomerSummaryStrip customer={customer} />
       {step ? <CustomerNextStep customer={customer} step={step} /> : null}
       <PageColumns
         main={
@@ -187,6 +189,7 @@ export default function CustomerView({
             <CustomerOrdersCard customer={customer} />
             <CustomerActivityCard customer={customer} />
             <MessagesCard messages={customer.notifications} />
+            <CustomerGiftCardsCard customerId={customer.id} />
             {appCards.map((id) => {
               const Card = ADMIN_APPS[id]?.CustomerCard
               return Card ? <Card key={id} customerId={customer.id} /> : null
@@ -231,8 +234,7 @@ export default function CustomerView({
               tags={draft.tags}
               onChange={(tags) => setDraft((d) => ({ ...d, tags }))}
             />
-            <CustomerStatsCard customer={customer} />
-            <MetafieldsCard ownerType="customer" ownerId={customer.id} />
+            <MetafieldsCard ownerType="customer" ownerId={customer.id} hideWhenEmpty />
           </>
         }
       />

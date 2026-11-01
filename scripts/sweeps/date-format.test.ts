@@ -32,7 +32,6 @@ const STOREFRONT = 'storefront date text — move to formatInZone with the store
 const ALLOWLIST: AllowEntry[] = [
   { file: 'apps/admin/src/components/home/charts/sales-orders-chart.tsx', reason: ADMIN },
   { file: 'apps/admin/src/components/notifications/sender-email-card.tsx', reason: ADMIN },
-  { file: 'apps/admin/src/components/orders/packing-slip.tsx', reason: ADMIN },
   { file: 'apps/admin/src/components/products/stock-history-card.tsx', reason: ADMIN },
   { file: 'apps/admin/src/data/hi/products.ts', reason: ADMIN_LIB },
   { file: 'apps/admin/src/data/products.ts', reason: ADMIN_LIB },
@@ -59,7 +58,6 @@ const ALLOWLIST: AllowEntry[] = [
   { file: 'packages/core/src/blog/text.ts', reason: CORE },
   { file: 'packages/core/src/gift-cards/client.ts', reason: CORE },
   { file: 'packages/core/src/gift-cards/service.ts', reason: CORE },
-  { file: 'packages/core/src/notifications/deliver.ts', reason: CORE },
   { file: 'packages/core/src/payments/manual-followup.ts', reason: CORE },
   {
     file: 'packages/shipping/src/delivery-date.ts',

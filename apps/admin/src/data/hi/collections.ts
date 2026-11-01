@@ -1,4 +1,8 @@
-import { collectionDetailContent, collectionsListContent } from '@/data/collections'
+import {
+  collectionDetailContent,
+  collectionsListContent,
+  productCollectionsContent,
+} from '@/data/collections'
 import { translation } from '@/lib/i18n'
 
 export default [
@@ -42,6 +46,10 @@ export default [
         vendor: 'वेंडर',
         tag: 'टैग',
         price: 'कीमत',
+        compare_at: 'तुलना कीमत (MRP)',
+        stock: 'स्टॉक',
+        weight: 'वज़न (ग्राम)',
+        variant_title: 'वेरिएंट का नाम',
       },
       ruleOp: {
         eq: 'है',
@@ -174,6 +182,14 @@ export default [
       open: 'प्रोडक्ट खोलें',
       remove: 'कलेक्शन से हटाएँ',
       reorder: 'क्रम बदलने के लिए खींचें',
+      move: {
+        button: (position: number, title: string) => `नंबर ${position}: ${title} को खिसकाएँ`,
+        title: (name: string) => `${name} को खिसकाएँ`,
+        label: 'नंबर',
+        help: (total: number) => `1 से यह सबसे पहले आएगा, ${total} से सबसे आख़िर में।`,
+        invalid: (total: number) => `1 से ${total} तक कोई नंबर लिखें।`,
+        submit: 'खिसकाएँ',
+      },
       emptyManual: 'अभी कोई प्रोडक्ट नहीं',
       emptyManualBody: 'कलेक्शन बनाने के लिए प्रोडक्ट जोड़ें।',
       emptyAutomatic: 'अभी कोई प्रोडक्ट मेल नहीं खाता',
@@ -191,6 +207,24 @@ export default [
           `${title} ${total} में से ${position} नंबर पर रखा गया`,
         cancelled: (title: string) => `${title} को खिसकाना रद्द हुआ`,
       },
+    },
+  }),
+  translation(productCollectionsContent, {
+    label: 'कलेक्शन',
+    help: 'वे मैन्युअल कलेक्शन जिनमें यह प्रोडक्ट है।',
+    none: 'किसी कलेक्शन में नहीं',
+    placeholder: 'किसी कलेक्शन में जोड़ें',
+    create: {
+      action: 'कलेक्शन बनाएं',
+      title: 'नया कलेक्शन बनाएं',
+      body: 'मैन्युअल कलेक्शन: इसके प्रोडक्ट आप चुनते हैं। इमेज, विवरण और SEO बाद में कलेक्शन पेज पर जोड़ें।',
+      name: 'टाइटल',
+      placeholder: 'समर सेल',
+      save: 'बनाएं',
+      cancel: 'रद्द करें',
+      created: (title) => `कलेक्शन "${title}" बन गया। इस प्रोडक्ट को जोड़ने के लिए सेव करें।`,
+      createdNew: (title) => `कलेक्शन "${title}" बन गया`,
+      failed: 'कलेक्शन नहीं बन पाया',
     },
   }),
 ]

@@ -10,20 +10,14 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { draftColumns } from '@/components/drafts/draft-columns'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
+import EmptyState from '@/components/layout/empty-state'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import StatStrip from '@/components/layout/stat-strip'
 import SendMessageDialog, { type CustomMessage } from '@/components/orders/send-message-dialog'
-import {
-  appliedFromGroups,
-  clearGroups,
-  FILTER_PANEL_CLASS,
-  FilterPanel,
-} from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
 import ViewSelect from '@/components/table/view-select'
 import { DRAFT_LIST_FILTERS, type DraftListFilter, draftsContent } from '@/data/drafts'
-import { filterPanelContent } from '@/data/filter-panel'
 import { draftFiltersContent } from '@/data/order-list-filters'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -65,7 +59,6 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
   // Hooks
   const copy = useCopy(draftsContent)
   const filterCopy = useCopy(draftFiltersContent)
-  const panelCopy = useCopy(filterPanelContent)
   const fmt = useFormat()
   usePrimaryAction(routes.orders.newDraft())
   const [q, setQ] = useQueryStates(
@@ -170,6 +163,7 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
   const { page, query, status } = q
   const perPage = parseRowsPerPage(q.perPage)
   const filtered = hasDraftFilters(q)
+  const blank = tiles.total === 0 && !q.query && !filtered && q.status === null
   const groups = draftFilterGroups(q, filterCopy, (patch) => setQ({ ...patch, page: 1 }))
 
   return (
@@ -192,116 +186,126 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
         </Tooltip>
       }
       stats={
-        <StatStrip
-          tiles={[
-            {
-              id: 'open',
-              label: copy.tiles.open.label,
-              value: fmt.number(tiles.open),
-              note: copy.tiles.open.note,
-            },
-            {
-              id: 'invoiced',
-              label: copy.tiles.invoiced.label,
-              value: fmt.number(tiles.invoiced),
-              note: copy.tiles.invoiced.note,
-            },
-            {
-              id: 'value',
-              label: copy.tiles.value.label,
-              value: fmt.money(tiles.valuePaise),
-              note: copy.tiles.value.note(tiles.total),
-            },
-          ]}
-        />
+        blank ? undefined : (
+          <StatStrip
+            tiles={[
+              {
+                id: 'open',
+                label: copy.tiles.open.label,
+                value: fmt.number(tiles.open),
+                note: copy.tiles.open.note,
+              },
+              {
+                id: 'invoiced',
+                label: copy.tiles.invoiced.label,
+                value: fmt.number(tiles.invoiced),
+                note: copy.tiles.invoiced.note,
+              },
+              {
+                id: 'value',
+                label: copy.tiles.value.label,
+                value: fmt.moneyWhole(tiles.valuePaise),
+                note: copy.tiles.value.note(tiles.total),
+              },
+            ]}
+          />
+        )
       }
     >
-      <ResourceTable
-        resourceName={copy.resource}
-        columns={draftColumns(copy, fmt)}
-        items={items}
-        getId={(d) => d.id}
-        href={(d) => routes.orders.draft(d.id)}
-        rowActions={(d) => (
-          <RowMenu
-            items={[
-              { label: copy.openDraft, href: routes.orders.draft(d.id), icon: AppWindow },
-              {
-                label: d.invoiceSentAt ? copy.resendInvoice : copy.sendInvoice,
-                icon: Send,
-                hidden: !d.email,
-                onSelect: () => setInvoicing(d.id),
-              },
-              {
-                label: copy.deleteDraft,
-                icon: Trash2,
-                destructive: true,
-                onSelect: () => setRemoving({ ids: [d.id], clear: () => {} }),
-              },
-            ]}
-          />
-        )}
-        selectable
-        bulkActions={(ids, clear) => (
-          <>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setSending({ ids, clear })}
-            >
-              <Send aria-hidden="true" />
-              {copy.sendSelected(ids.length)}
+      {/* No drafts at all: one plain empty state with Create, not ₹0 tiles, filters, column
+          headers and a pager (audit #34). */}
+      {blank ? (
+        <EmptyState
+          variant="page"
+          heading={copy.empty}
+          body={copy.intro}
+          action={
+            <Button render={<Link href={routes.orders.newDraft()} />} nativeButton={false}>
+              <SquarePlus strokeWidth={1.6} />
+              {copy.create}
             </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              onClick={() => setRemoving({ ids, clear })}
-            >
-              <Trash2 strokeWidth={1.6} aria-hidden="true" />
-              {copy.deleteSelected(ids.length)}
-            </Button>
-          </>
-        )}
-        loading={loading}
-        defaultSort={{ id: 'created', desc: true }}
-        query={query}
-        onQueryChange={(query) => setQ({ query, page: 1 })}
-        onClearAll={() => setQ({ ...CLEAR_DRAFT_FILTERS, query: '', status: null, page: 1 })}
-        filters={(close) => (
-          <FilterPanel
-            groups={groups}
-            onClear={() => clearGroups(groups)}
-            footer={{ label: filterCopy.show(total), onDone: close }}
-          />
-        )}
-        filtersClassName={FILTER_PANEL_CLASS}
-        applied={appliedFromGroups(groups, panelCopy)}
-        views={
-          <ViewSelect<DraftListFilter | null>
-            label={copy.viewLabel}
-            value={status}
-            onChange={(s) => setQ({ status: s, page: 1 })}
-            formatCount={fmt.number}
-            options={[
-              { value: null, label: copy.tabs.all, count: tiles.total },
-              { value: 'open', label: copy.tabs.open, count: tiles.open },
-              { value: 'invoice_sent', label: copy.tabs.invoice_sent, count: tiles.invoiced },
-            ]}
-          />
-        }
-        page={page}
-        perPage={perPage}
-        total={total}
-        onPageChange={(page) => setQ({ page })}
-        onPerPageChange={(n) => setQ({ perPage: n, page: 1 })}
-        empty={
-          query || filtered
-            ? { heading: copy.noResults }
-            : { heading: copy.empty, body: copy.intro }
-        }
-      />
+          }
+        />
+      ) : (
+        <ResourceTable
+          resourceName={copy.resource}
+          columns={draftColumns(copy, fmt)}
+          items={items}
+          getId={(d) => d.id}
+          href={(d) => routes.orders.draft(d.id)}
+          rowActions={(d) => (
+            <RowMenu
+              items={[
+                { label: copy.openDraft, href: routes.orders.draft(d.id), icon: AppWindow },
+                {
+                  label: d.invoiceSentAt ? copy.resendInvoice : copy.sendInvoice,
+                  icon: Send,
+                  hidden: !d.email,
+                  onSelect: () => setInvoicing(d.id),
+                },
+                {
+                  label: copy.deleteDraft,
+                  icon: Trash2,
+                  destructive: true,
+                  onSelect: () => setRemoving({ ids: [d.id], clear: () => {} }),
+                },
+              ]}
+            />
+          )}
+          selectable
+          bulkActions={(ids, clear) => (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setSending({ ids, clear })}
+              >
+                <Send aria-hidden="true" />
+                {copy.sendSelected(ids.length)}
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={() => setRemoving({ ids, clear })}
+              >
+                <Trash2 strokeWidth={1.6} aria-hidden="true" />
+                {copy.deleteSelected(ids.length)}
+              </Button>
+            </>
+          )}
+          loading={loading}
+          defaultSort={{ id: 'created', desc: true }}
+          query={query}
+          onQueryChange={(query) => setQ({ query, page: 1 })}
+          onClearAll={() => setQ({ ...CLEAR_DRAFT_FILTERS, query: '', status: null, page: 1 })}
+          filterGroups={groups}
+          views={
+            <ViewSelect<DraftListFilter | null>
+              label={copy.viewLabel}
+              value={status}
+              onChange={(s) => setQ({ status: s, page: 1 })}
+              formatCount={fmt.number}
+              options={[
+                { value: null, label: copy.tabs.all, count: tiles.total },
+                { value: 'open', label: copy.tabs.open, count: tiles.open },
+                { value: 'invoice_sent', label: copy.tabs.invoice_sent, count: tiles.invoiced },
+              ]}
+            />
+          }
+          page={page}
+          perPage={perPage}
+          total={total}
+          onPageChange={(page) => setQ({ page })}
+          onPerPageChange={(n) => setQ({ perPage: n, page: 1 })}
+          empty={
+            query || filtered
+              ? { heading: copy.noResults }
+              : { heading: copy.empty, body: copy.intro }
+          }
+        />
+      )}
       <SendMessageDialog
         orderId={invoicing}
         template="draft_invoice"

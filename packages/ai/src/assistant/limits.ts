@@ -36,6 +36,8 @@ export const ASSISTANT_PAGES = [
   'customers',
   'customer',
   'analytics',
+  'markets',
+  'rollouts',
   'settings',
   /** Online store → Themes → Customize; the record id is the theme's. */
   'theme-editor',
@@ -43,8 +45,18 @@ export const ASSISTANT_PAGES = [
 ] as const
 export type AssistantPage = (typeof ASSISTANT_PAGES)[number]
 
-/** Where the merchant is: the page kind, and the record's id on a detail page. */
-export type AssistantPageContext = { page: AssistantPage; entityId: string | null }
+/** Most ticked list rows sent with one message. */
+export const ASSISTANT_MAX_SELECTED = 100
+
+/**
+ * Where the merchant is: the page kind, the record's id on a detail page, and on a list the
+ * rows ticked right now (so "these" means them, not records from earlier in the chat, #983).
+ */
+export type AssistantPageContext = {
+  page: AssistantPage
+  entityId: string | null
+  selectedIds?: string[] | undefined
+}
 
 const DETAIL: { prefix: string; page: AssistantPage; list: AssistantPage }[] = [
   { prefix: '/products/collections', page: 'collection', list: 'collections' },
@@ -75,6 +87,11 @@ export function pageContextFor(pathname: string): AssistantPageContext {
   }
   if (path.startsWith('/discounts')) return { page: 'discounts', entityId: null }
   if (path.startsWith('/analytics')) return { page: 'analytics', entityId: null }
+  if (path === '/markets/rollouts' || path.startsWith('/markets/rollouts/')) {
+    return { page: 'rollouts', entityId: null }
+  }
+  if (path === '/markets' || path.startsWith('/markets/'))
+    return { page: 'markets', entityId: null }
   if (path.startsWith('/settings')) return { page: 'settings', entityId: null }
   return { page: 'other', entityId: null }
 }

@@ -39,7 +39,7 @@ export default function ProductSection({ variants, onOpenTab }: ProductSectionPr
         variant="outline"
         size="sm"
         className="self-end"
-        onClick={() => onOpenTab('shipping', 'variant-hs')}
+        onClick={() => onOpenTab('shipping', 'product-hs')}
       >
         <Pencil aria-hidden="true" />
         {copy.edit}

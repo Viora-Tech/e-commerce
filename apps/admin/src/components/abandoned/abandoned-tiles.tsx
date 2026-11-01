@@ -48,7 +48,7 @@ export default function AbandonedTiles({ stats, status, onSelect }: AbandonedTil
           id: 'value',
           label: copy.tiles.value,
           note: copy.tiles.period,
-          value: fmt.money(stats.valuePaise),
+          value: fmt.moneyWhole(stats.valuePaise),
         },
         {
           id: 'reminders',

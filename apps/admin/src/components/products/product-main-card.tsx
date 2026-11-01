@@ -72,6 +72,8 @@ export default function ProductMainCard({
           taxIncluded={form.taxIncluded}
           saleStartsAt={form.saleStartsAt}
           saleEndsAt={form.saleEndsAt}
+          tax={form.tax}
+          onTax={(tax) => onPatch({ tax })}
           onVariant={onVariant}
           onTaxIncluded={(taxIncluded) => onPatch({ taxIncluded })}
           onSaleStartsAt={(saleStartsAt) => onPatch({ saleStartsAt })}

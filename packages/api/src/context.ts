@@ -12,6 +12,7 @@ import type {
   PurchaseDocumentQueue,
   RateLimitStore,
   StoreExportQueue,
+  ThemeScreenshotQueue,
 } from '@commerce/core'
 import type { AutomationStepQueue } from '@commerce/core/automations/server'
 import type { PubSubPublisher } from '@commerce/core/inbox/server'
@@ -34,6 +35,8 @@ export type ApiContext = {
   mediaProcess?: MediaProcessQueue | undefined
   /** Full store exports, built by the worker. Absent in tests: the export is then built in the request. */
   storeExport?: StoreExportQueue | undefined
+  /** Home page pictures of themes, taken by the worker after Publish and Save. Absent in tests: nothing is queued. */
+  themeScreenshots?: ThemeScreenshotQueue | undefined
   /** Bulk "Write with AI" runs, worked through by the worker. Absent in tests: the run happens in the request. */
   aiBulk?: AiBulkQueue | undefined
   /** AI reads of uploaded purchase documents, done by the worker. Absent in tests: the read happens in the request. */
@@ -75,6 +78,16 @@ export type ApiContext = {
   deliveryHealth?: HealthStore | undefined
   /** Background job counts per worker queue, for the console's Overview. Absent: not shown. */
   queueHealth?: (() => Promise<QueueHealth[]>) | undefined
+  /** Step-up re-auth (A5): when true, a browser session must have re-verified within the window
+   *  before a `sensitive` action runs; otherwise the call is refused with `STEP_UP_REQUIRED` and
+   *  the admin re-auth dialog opens. Off (absent/false) by default, and never applies to access
+   *  tokens or MCP (they carry no real session to step up). The admin host sets it from
+   *  `STEP_UP_ENFORCE`. */
+  stepUpEnforce?: boolean | undefined
+  /** The admin's own URL (`ADMIN_URL`), pinned server-side as the passkey rpID/origin for
+   *  step-up — never read from the request. Absent: step-up by passkey is unavailable (tests
+   *  that exercise it pass one). */
+  appUrl?: string | undefined
 }
 
 /** One worker queue's job counts (BullMQ), as the platform console shows them. */

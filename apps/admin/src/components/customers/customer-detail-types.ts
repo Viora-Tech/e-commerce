@@ -52,8 +52,16 @@ export type ActivityEvent =
       failed: boolean
     }
   | { id: string; kind: 'note'; at: Date | string; body: string }
+  | ({ kind: 'orderEvent' } & Omit<CustomerOrderEvent, 'kind'> & {
+        event: CustomerOrderEvent['kind']
+      })
 
-/** Orders placed, messages sent and staff notes, newest first: everything recorded about them. */
+type CustomerOrderEvent = CustomerDetail['orderEvents'][number]
+
+/**
+ * Orders placed, messages sent, staff notes and the cancellations, returns and refunds on their
+ * orders (#134), newest first: everything recorded about them.
+ */
 export function activityFor(customer: CustomerDetail): ActivityEvent[] {
   const orders = customer.orders.map(
     (o): ActivityEvent => ({
@@ -77,7 +85,15 @@ export function activityFor(customer: CustomerDetail): ActivityEvent[] {
   const notes = customer.notes.map(
     (n): ActivityEvent => ({ id: `note-${n.id}`, kind: 'note', at: n.createdAt, body: n.body }),
   )
-  return [...orders, ...messages, ...notes].sort(
+  const orderEvents = customer.orderEvents.map(
+    ({ kind, ...e }): ActivityEvent => ({
+      ...e,
+      id: `${kind}-${e.id}`,
+      kind: 'orderEvent',
+      event: kind,
+    }),
+  )
+  return [...orders, ...messages, ...notes, ...orderEvents].sort(
     (a, b) => new Date(b.at).getTime() - new Date(a.at).getTime(),
   )
 }

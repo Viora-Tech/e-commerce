@@ -7,6 +7,7 @@ import {
   listShippingZones,
   MODE_GATEWAY_IDS,
   onlineMethodsOn,
+  POLICY_PLACEHOLDERS,
   type PolicyType,
   parsePaymentSettings,
   parseShippingSettings,
@@ -16,7 +17,7 @@ import {
 } from '@commerce/core'
 import { getRegistries } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
-import { payment, paymentEvent, product, productMedia, variant } from '@commerce/db'
+import { page, payment, paymentEvent, product, productMedia, variant } from '@commerce/db'
 import {
   and,
   count,
@@ -24,6 +25,7 @@ import {
   desc,
   eq,
   inArray,
+  isNotNull,
   isNull,
   notExists,
   or,
@@ -132,7 +134,7 @@ async function paymentFacts(tx: StoreTx, raw: unknown) {
 }
 
 /** Settings → Shipping's origin PIN code as saved; the parser's default does not count. */
-function savedOriginPincode(raw: unknown): string | null {
+export function savedOriginPincode(raw: unknown): string | null {
   if (!raw || typeof raw !== 'object') return null
   const policy = (raw as { policy?: { originPincode?: unknown } }).policy
   return typeof policy?.originPincode === 'string' ? policy.originPincode : null
@@ -160,6 +162,15 @@ export async function storeHealth(
     const type = p.publishedAt ? policyTypeOfHandle(p.handle) : null
     return type ? [type] : []
   })
+  // A policy live with a template gap left in it: published before the guard on saving (#111).
+  const livePolicyText = await tx
+    .select({ handle: page.handle, text: sql<string>`${page.body}::text` })
+    .from(page)
+    .where(isNotNull(page.publishedAt))
+  const unfilledPolicies = livePolicyText.flatMap((p): PolicyType[] => {
+    const type = policyTypeOfHandle(p.handle)
+    return type && POLICY_PLACEHOLDERS.some((gap) => (p.text ?? '').includes(gap)) ? [type] : []
+  })
   return storeHealthReport(
     {
       shipping: {
@@ -178,6 +189,7 @@ export async function storeHealth(
       payments,
       store: {
         publishedPolicies,
+        unfilledPolicies,
         sender: sender ? { email: sender.email, status: sender.status } : null,
       },
     },

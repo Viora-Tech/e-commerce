@@ -152,11 +152,26 @@ export default function MenuEditor({ menu, placements }: MenuEditorProps) {
       side={
         <>
           <DataCard title={copy.editor.previewHeading}>
-            <div className="flex min-h-14 flex-wrap items-center gap-x-5 gap-y-1 rounded-lg bg-muted px-4 py-3 text-caption text-ink-strong">
+            {/* Each top item with what drops down under it, two levels deep (audit #160). */}
+            <div className="flex min-h-14 flex-wrap items-start gap-x-6 gap-y-3 rounded-lg bg-muted px-4 py-3 text-caption text-ink-strong">
               {draft.items.length === 0 ? (
                 <span className="text-muted-foreground">{copy.editor.previewEmpty}</span>
               ) : (
-                draft.items.map((item) => <span key={item.id}>{item.title}</span>)
+                draft.items.map((item) => (
+                  <div key={item.id} className="flex min-w-0 flex-col gap-1">
+                    <span className="font-medium">{item.title}</span>
+                    {item.children?.map((child) => (
+                      <div key={child.id} className="flex flex-col gap-0.5 pl-2">
+                        <span className="text-foreground">{child.title}</span>
+                        {child.children?.map((leaf) => (
+                          <span key={leaf.id} className="pl-2 text-muted-foreground">
+                            {leaf.title}
+                          </span>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                ))
               )}
             </div>
           </DataCard>

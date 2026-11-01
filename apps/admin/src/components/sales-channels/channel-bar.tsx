@@ -26,7 +26,9 @@ export default function ChannelBar({ state, name, onReconnect, onWithdraw }: Cha
   const meta = bar.metaAt
     ? bar.metaKind === 'started'
       ? copy.bar.started(format.ago(bar.metaAt))
-      : copy.bar.lastTried(format.ago(bar.metaAt))
+      : bar.metaKind === 'synced'
+        ? copy.bar.lastSynced(format.ago(bar.metaAt))
+        : copy.bar.lastTried(format.ago(bar.metaAt))
     : undefined
 
   return (

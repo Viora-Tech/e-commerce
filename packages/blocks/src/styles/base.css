@@ -723,6 +723,15 @@ html.has-cursor-fill .btn--secondary:hover {
   border-color: var(--color-ink);
 }
 
+/* A disabled button has no hover. Under the cursor fill the hover above paints the background
+   ink while the :hover swap paints the label ink too, and no sweep runs on a disabled button:
+   its label vanished ("Sign in" while the code was still empty). It keeps its resting colours.
+   `html` and the order (after the rules above) let it win over html.has-cursor-fill. */
+html .btn--primary:is(:disabled, [aria-disabled="true"]):hover {
+  color: var(--btn-text, var(--color-bg));
+  background-color: var(--btn-bg, var(--color-ink));
+}
+
 /* Both directions have to be stated, and neither can rely on a per-variant
    rule catching every case:
    - :hover  -> the label/border swap should keep pace with the sweep arriving
@@ -1565,8 +1574,20 @@ html.js
      123px tall, also refused to fire. */
     .drop-reveal__heading,
     .perfect-match__heading,
-    .tabbed-products__heading
+    .tabbed-products__heading,
+    /* Product card titles: a collection's filters and sort swap the grid in place, and
+       the reveal script only watches headings present at page load, so every card title
+       that arrived with a filter stayed at opacity 0 (prices showed, names did not). */
+    .product-card__title
   ) {
+  opacity: 1;
+  translate: 0 0;
+}
+
+/* Account pages swap in place on the client (Orders → Profile), and the reveal script only
+   watches headings present at page load, so a page's heading stayed at opacity 0 until a
+   click happened to re-run it (#200). They are a working area, not a showcase: no rise. */
+html.js main .account-layout :is(h1, h2, h3) {
   opacity: 1;
   translate: 0 0;
 }

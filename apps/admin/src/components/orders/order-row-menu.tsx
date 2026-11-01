@@ -1,6 +1,8 @@
 'use client'
 
+import { permissions } from '@commerce/core/permissions'
 import {
+  Archive,
   Bell,
   CancelCircle,
   CircleCheck,
@@ -8,6 +10,7 @@ import {
   FileEdit,
   Package,
   PackageCheck,
+  Undo,
 } from '@commerce/ui/icons'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -22,6 +25,7 @@ import { orderDetailContent } from '@/data/order-detail'
 import { ordersContent } from '@/data/orders'
 import { shipmentPanelContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
+import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { canRemindToPay, MOVE_ACTION, nextOrderMove, type OrderMove } from '@/lib/order-next-move'
 import { routes } from '@/lib/routes'
@@ -35,6 +39,10 @@ type OrderRowMenuProps = {
     paymentMethod: string | null
     fulfillmentStatus: string | null
     tags: string[] | null
+    /** Set while the order is archived (#1007): the menu offers Unarchive instead of Archive. */
+    archivedAt?: string | Date | null
+    /** A read-only import: shipping, moves and cancel happen on its page, after taking it over. */
+    importedFrom?: string | null
   }
   /** The row's own items (open, new tab, same customer). */
   items: readonly ActionItem[]
@@ -73,6 +81,7 @@ export default function OrderRowMenu({
   const list = useCopy(ordersContent)
   const shipping = useCopy(shipmentPanelContent)
   const duplicateOrder = useDuplicateOrder()
+  const { hasPermission } = usePermissions()
   const [dialog, setDialog] = useState<Dialog>(null)
   const [tags, setTags] = useState<string[]>([])
 
@@ -129,6 +138,16 @@ export default function OrderRowMenu({
     }
   }
 
+  const handleArchive = async (archived: boolean) => {
+    try {
+      await api.orders.archiveMany({ ids: [order.id], archived })
+      toast.success(archived ? detail.archive.archived : detail.archive.unarchived)
+      onChanged()
+    } catch {
+      toast.error(detail.archive.failed)
+    }
+  }
+
   const handleSaveTags = async () => {
     const lower = new Set(tags.map((t) => t.toLowerCase()))
     const next =
@@ -153,7 +172,9 @@ export default function OrderRowMenu({
   }
 
   // Render logic
-  const open = order.status === 'open'
+  // The order page asks to take an import over before shipping or cancelling it; the row menu
+  // follows the same rule instead of offering those straight away (audit #47).
+  const open = order.status === 'open' && !order.importedFrom
   const current = order.tags ?? []
   const fulfilment = order.fulfillmentStatus ?? 'unfulfilled'
   const canShip =
@@ -162,9 +183,12 @@ export default function OrderRowMenu({
     (PAID.includes(order.paymentStatus) || order.paymentMethod === 'cod')
   const canCancelShipment = open && BOOKED.includes(fulfilment)
   const cancellable = open && fulfilment !== 'delivered'
-  const move = nextOrderMove(order.status, order.paymentStatus, order.fulfillmentStatus)
-  const remindable = canRemindToPay(order)
+  const move = order.importedFrom
+    ? null
+    : nextOrderMove(order.status, order.paymentStatus, order.fulfillmentStatus)
+  const remindable = !order.importedFrom && canRemindToPay(order)
 
+  const canArchive = hasPermission(permissions.ORDERS_WRITE)
   const tagging = dialog === 'addTags' || dialog === 'removeTags'
 
   return (
@@ -212,6 +236,13 @@ export default function OrderRowMenu({
             label: list.row.removeTags,
             hidden: current.length === 0,
             onSelect: () => openTags('removeTags'),
+          },
+          {
+            // Archive works on imports and cancelled orders too, as on the order page (#6).
+            label: order.archivedAt ? list.row.unarchive : detail.archive.action,
+            icon: order.archivedAt ? Undo : Archive,
+            hidden: !canArchive,
+            onSelect: () => handleArchive(!order.archivedAt),
           },
           {
             label: list.row.copyNumber,

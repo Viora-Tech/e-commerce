@@ -1,0 +1,43 @@
+---
+title: Printed documents
+description: Edit your packing slip, pick list and invoice, and print them from Orders.
+---
+
+# Printed documents
+
+**Settings → Printed documents** holds the three documents you print from **Orders**:
+
+- **Packing slip**: goes in the parcel. The order number, date, delivery address and what is
+  inside, without prices.
+- **Pick list**: for the warehouse. Every item across the orders you selected, how many to
+  pick, and which orders each one goes to, sorted by SKU.
+- **Invoice**: a simple invoice with prices and totals, for stores that do not use the GST
+  invoices app.
+
+## Edit a template
+
+Select **Edit**. The template is HTML (a `<style>` tag is fine; scripts never run). The preview
+on the right fills it from a made-up order with your store's details, as you type. **Save**
+keeps your version; **Reset to default** brings the built-in one back.
+
+Merge tags are filled from the order:
+
+- `{{ order.number }}`, `{{ order.date }}`, `{{ store.name }}`: print a value.
+- `{{#lines}} … {{/lines}}`: repeat for each item (`{{ title }}`, `{{ variant }}`, `{{ sku }}`,
+  `{{ quantity }}`, `{{ price }}`, `{{ total }}`).
+- `{{#order.note}} … {{/order.note}}`: show only when there is a note;
+  `{{^order.note}} … {{/order.note}}` shows when there is none.
+
+The editor lists every tag a template can use.
+
+## The GST invoice
+
+With the **GST invoices** app installed, the app makes your tax invoice and keeps it GST
+compliant, so only its branding and the fields it shows can change, in the app's settings. The
+Invoice template here is then not printed.
+
+## Print
+
+On **Orders**, select orders, then **More actions → Print packing slips**, **Print pick list**
+or **Print invoices**. On an order, **Print** prints its packing slip. The print dialog opens
+by itself.

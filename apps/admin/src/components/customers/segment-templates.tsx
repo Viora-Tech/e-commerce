@@ -61,6 +61,9 @@ export default function SegmentTemplates({ savedNames }: SegmentTemplatesProps) 
           <Link
             key={t.id}
             href={templateHref(t.name, t.rules)}
+            // Each card is the same page with its own query: prefetching all eight sent eight
+            // requests on every visit, and a slow server left the click stuck behind them (audit #85).
+            prefetch={false}
             className="group flex flex-col gap-1 rounded-lg border border-line p-4 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <span className="flex items-center justify-between gap-2 text-body text-ink-strong">

@@ -10,12 +10,7 @@ import { statusTone } from '@/components/apps/affiliates/tones'
 import PageHeader from '@/components/layout/page-header'
 import RelativeTime from '@/components/layout/relative-time'
 import StatusChip from '@/components/layout/status-chip'
-import {
-  appliedFromGroups,
-  clearGroups,
-  FILTER_PANEL_CLASS,
-  FilterPanel,
-} from '@/components/table/filter-panel'
+import { appliedFromGroups } from '@/components/table/filter-panel'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { affiliateFiltersContent } from '@/data/affiliate-filters'
 import { affiliatesContent } from '@/data/affiliates'
@@ -183,21 +178,15 @@ function AffiliatesTable() {
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ ...CLEAR_AFFILIATE_FILTERS, query: '', page: 1 })}
-        filters={(close) => (
-          <FilterPanel
-            groups={groups}
-            onClear={() => clearGroups(groups)}
-            footer={{ label: panelCopy.show(ordered.length), onDone: close }}
-          />
-        )}
-        filtersClassName={FILTER_PANEL_CLASS}
-        applied={applied}
+        filterGroups={groups}
         page={q.page}
         perPage={q.perPage}
         total={ordered.length}
         onPageChange={(page) => setQ({ page })}
         onPerPageChange={(perPage) => setQ({ perPage, page: 1 })}
-        empty={filtered ? filtersCopy.affiliates.noResults : { heading: l.empty }}
+        empty={
+          filtered ? filtersCopy.affiliates.noResults : { heading: l.empty, body: l.emptyBody }
+        }
       />
       <AddAffiliateDialog open={adding} onOpenChange={setAdding} onAdded={handleChanged} />
     </div>

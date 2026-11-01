@@ -201,7 +201,7 @@ export const parseTags = (value: string) => [
 export const cellValue = (row: GridRow, key: string): string =>
   String((row as Record<string, unknown>)[key] ?? '')
 
-export const withCell = (row: GridRow, key: string, value: string): GridRow => ({
+export const withCell = <R extends GridRow>(row: R, key: string, value: string): R => ({
   ...row,
   [key]: value,
 })

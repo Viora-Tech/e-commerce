@@ -1,6 +1,7 @@
 'use client'
 
-import type { LineEligibility, ReturnPreference, ReturnReason } from '@commerce/core/returns'
+import { returnReasonLabel } from '@commerce/core/return-reasons'
+import type { LineEligibility, ReturnPreference } from '@commerce/core/returns'
 import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import { returnReasonLabels, returnsContent } from '@/data/returns'
@@ -23,7 +24,8 @@ type ReturnFormProps = {
   orderNumber: number
   closesLabel: string
   lines: ReturnFormLine[]
-  reasons: ReturnReason[]
+  /** Built-in codes, then the store's own as `custom:<words>`. */
+  reasons: string[]
   /** The store takes exchanges for another variant. */
   exchanges: boolean
 }
@@ -41,7 +43,7 @@ export default function ReturnForm({
   // Hooks
   const [pending, start] = useTransition()
   const [qty, setQty] = useState<Record<string, number>>({})
-  const [reason, setReason] = useState<ReturnReason | null>(null)
+  const [reason, setReason] = useState<string | null>(null)
   const [note, setNote] = useState('')
   const [photos, setPhotos] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -169,7 +171,7 @@ export default function ReturnForm({
                 disabled={pending}
                 onChange={() => setReason(r)}
               />
-              {returnReasonLabels[r]}
+              {returnReasonLabel(r, returnReasonLabels)}
             </label>
           ))}
         </div>

@@ -1,6 +1,7 @@
 import {
   MenuItemsSchema,
   menuLinkProblems,
+  menuThemePlacements,
   NavigationSettingsSchema,
   parseNavigationSettings,
   permissions,
@@ -48,6 +49,11 @@ export const navigationRouter = {
       }
       return handle !== null
     }),
+
+  /** Per menu handle, where the live theme's sections pick it (header, footer or a page). */
+  themePlacements: can(permissions.ONLINE_STORE_READ).handler(({ context }) =>
+    menuThemePlacements(context.tx),
+  ),
 
   /** Which menus the storefront header and footer render, by handle. */
   settings: can(permissions.ONLINE_STORE_READ).handler(async ({ context }) => {

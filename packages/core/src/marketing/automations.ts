@@ -1,7 +1,6 @@
 import {
   cart,
   customer,
-  type MarketingAutomationStatus,
   marketingAutomation,
   marketingAutomationRun,
   marketingMessage,
@@ -22,15 +21,18 @@ import {
   type AutomationStep,
   AutomationStepsSchema,
   type AutomationTrigger,
-  automationTemplate,
   conditionHolds,
   isTransactionalStep,
   parseAutomationSettings,
   parseAutomationSteps,
   STOPS_ON_ORDER,
 } from './automation-steps'
+import { getAutomation } from './automations-crud'
+import { browseProductFacts, dueBrowseViews } from './browse'
+import { BROWSE_DEFAULT_AFTER_MINUTES, browseKey } from './browse-rules'
 import { applyMergeTags, type EmailCartLine, type MergeValues } from './email'
 import { markEngineConversions } from './growth-engine'
+import { issuePersonalCode } from './personal-code'
 import { RECIPIENT_MISMATCH, recipientIsCustomers } from './recipient'
 import {
   firstName,
@@ -59,149 +61,6 @@ export const AutomationInputSchema = z.object({
 export type AutomationInput = z.infer<typeof AutomationInputSchema>
 
 // ---------------------------------------------------------------------------
-// CRUD
-
-export async function createAutomationFromTemplate(
-  tx: StoreTx,
-  storeId: string,
-  templateId: string,
-): Promise<AutomationRow | null> {
-  const t = automationTemplate(templateId)
-  if (!t) return null
-  const [row] = await tx
-    .insert(marketingAutomation)
-    .values({
-      storeId,
-      template: t.id,
-      trigger: t.trigger,
-      name: t.name,
-      status: 'paused',
-      steps: t.steps,
-      settings: t.settings,
-    })
-    .returning()
-  return row ?? null
-}
-
-export async function getAutomation(tx: StoreTx, id: string): Promise<AutomationRow | null> {
-  const [row] = await tx.select().from(marketingAutomation).where(eq(marketingAutomation.id, id))
-  return row ?? null
-}
-
-export async function updateAutomation(tx: StoreTx, id: string, input: AutomationInput) {
-  const [row] = await tx
-    .update(marketingAutomation)
-    .set({ ...input, updatedAt: new Date() })
-    .where(eq(marketingAutomation.id, id))
-    .returning()
-  return row ?? null
-}
-
-/** Pausing holds every run where it is; resuming picks up at the next tick. */
-export async function setAutomationStatus(
-  tx: StoreTx,
-  id: string,
-  status: MarketingAutomationStatus,
-) {
-  const [row] = await tx
-    .update(marketingAutomation)
-    .set({ status, updatedAt: new Date() })
-    .where(eq(marketingAutomation.id, id))
-    .returning()
-  return row ?? null
-}
-
-export async function deleteAutomation(tx: StoreTx, id: string) {
-  await tx.delete(marketingAutomation).where(eq(marketingAutomation.id, id))
-}
-
-export type AutomationStats = {
-  runs: number
-  active: number
-  converted: number
-  sent: number
-  opened: number
-  clicked: number
-  orders: number
-  revenuePaise: number
-}
-
-const EMPTY: AutomationStats = {
-  runs: 0,
-  active: 0,
-  converted: 0,
-  sent: 0,
-  opened: 0,
-  clicked: 0,
-  orders: 0,
-  revenuePaise: 0,
-}
-
-/**
- * Runs, messages and the orders that ended a run (the shopper converted
- * while in the sequence), per automation.
- */
-export async function automationStats(
-  tx: StoreTx,
-  ids: string[],
-): Promise<Map<string, AutomationStats>> {
-  const out = new Map<string, AutomationStats>(ids.map((id) => [id, { ...EMPTY }]))
-  if (ids.length === 0) return out
-  const runs = await tx
-    .select({
-      id: marketingAutomationRun.automationId,
-      runs: sql<number>`count(*)::int`,
-      active: sql<number>`count(*) filter (where ${marketingAutomationRun.status} = 'active')::int`,
-      converted: sql<number>`count(*) filter (where ${marketingAutomationRun.status} = 'converted')::int`,
-      revenue: sql<number>`coalesce(sum(o.total_paise) filter (where ${marketingAutomationRun.status} = 'converted' and not o.is_test), 0)::int`,
-    })
-    .from(marketingAutomationRun)
-    .leftJoin(sql`"order" o`, sql`o.id = ${marketingAutomationRun.convertedOrderId}`)
-    .where(inArray(marketingAutomationRun.automationId, ids))
-    .groupBy(marketingAutomationRun.automationId)
-  const messages = await tx
-    .select({
-      id: marketingMessage.automationId,
-      sent: sql<number>`count(*) filter (where ${marketingMessage.status} = 'sent')::int`,
-      opened: sql<number>`count(${marketingMessage.openedAt})::int`,
-      clicked: sql<number>`count(${marketingMessage.clickedAt})::int`,
-    })
-    .from(marketingMessage)
-    .where(inArray(marketingMessage.automationId, ids))
-    .groupBy(marketingMessage.automationId)
-  for (const r of runs) {
-    const s = out.get(r.id)
-    if (s)
-      Object.assign(s, {
-        runs: r.runs,
-        active: r.active,
-        converted: r.converted,
-        orders: r.converted,
-        revenuePaise: r.revenue,
-      })
-  }
-  for (const m of messages) {
-    const s = m.id ? out.get(m.id) : undefined
-    if (s) Object.assign(s, { sent: m.sent, opened: m.opened, clicked: m.clicked })
-  }
-  return out
-}
-
-export type AutomationListItem = AutomationRow & { stats: AutomationStats }
-
-export async function listAutomations(tx: StoreTx): Promise<AutomationListItem[]> {
-  const rows = await tx
-    .select()
-    .from(marketingAutomation)
-    .orderBy(desc(marketingAutomation.createdAt))
-  const stats = await automationStats(
-    tx,
-    rows.map((r) => r.id),
-  )
-  return rows.map((r) => ({ ...r, stats: stats.get(r.id) ?? { ...EMPTY } }))
-}
-
-// ---------------------------------------------------------------------------
 // Enrolment
 
 type Enrolment = {
@@ -209,6 +68,8 @@ type Enrolment = {
   customerId?: string | null | undefined
   cartId?: string | null | undefined
   orderId?: string | null | undefined
+  /** Browse abandonment: the product looked at. */
+  productId?: string | null | undefined
   email?: string | null | undefined
   phone?: string | null | undefined
   name?: string | null | undefined
@@ -238,6 +99,7 @@ async function enrol(
       customerId: e.customerId ?? null,
       cartId: e.cartId ?? null,
       orderId: e.orderId ?? null,
+      productId: e.productId ?? null,
       email: e.email?.trim().toLowerCase() || null,
       phone: e.phone ?? null,
       name: e.name ?? null,
@@ -340,6 +202,40 @@ export async function enrolDue(
       ) {
         enrolled += 1
       }
+    }
+  }
+
+  for (const a of await activeAutomations(tx, 'browse_abandoned')) {
+    const after = parseAutomationSettings(a.settings).afterMinutes ?? BROWSE_DEFAULT_AFTER_MINUTES
+    const views = await dueBrowseViews(tx, {
+      afterMinutes: after,
+      now,
+      secret,
+      // One nudge per shopper and product a week, per automation.
+      ran: (prefix, since) => sql`exists (
+        select 1 from marketing_automation_run r
+        where r.automation_id = ${a.id}
+          and starts_with(r.trigger_key, ${prefix})
+          and r.started_at > ${since.toISOString()}::timestamptz)`,
+    })
+    for (const v of views) {
+      if (
+        await enrol(
+          tx,
+          storeId,
+          a,
+          {
+            triggerKey: browseKey(v.customerId, v.productId, v.viewedAt),
+            customerId: v.customerId,
+            productId: v.productId,
+            email: v.email,
+            phone: v.phone,
+            name: v.name,
+          },
+          now,
+        )
+      )
+        enrolled += 1
     }
   }
 
@@ -678,6 +574,7 @@ export async function processDueRuns(
         : deps.storefrontUrl,
       cart_total: cartInfo ? formatMoney(cartInfo.totalPaise) : o ? formatMoney(o.totalPaise) : '',
       order_number: o ? `#${o.number}` : '',
+      ...(run.productId ? await browseProductFacts(tx, run.productId, deps.storefrontUrl) : {}),
     }
 
     const sentBefore = sent
@@ -714,9 +611,24 @@ export async function processDueRuns(
             await skipMessage(tx, id, RECIPIENT_MISMATCH)
           } else if (id) {
             const discount = step.blocks.find((b) => b.type === 'discount')
+            // "A unique code for each shopper": made now, single use, for this customer only.
+            const personal =
+              discount?.type === 'discount' && discount.unique
+                ? await issuePersonalCode(tx, storeId, {
+                    messageId: id,
+                    prefix: ctx.automation.name.split(/\s+/)[0] ?? 'THANKS',
+                    offer: discount.unique,
+                    customerId: cu?.id ?? null,
+                    title: ctx.automation.name,
+                    now,
+                  })
+                : null
+            const blocks = personal
+              ? step.blocks.map((b) => (b.type === 'discount' ? { ...b, code: personal } : b))
+              : step.blocks
             const stepMerge = {
               ...merge,
-              discount_code: discount?.type === 'discount' ? discount.code : '',
+              discount_code: personal ?? (discount?.type === 'discount' ? discount.code : ''),
             }
             const r = await sendMarketingEmail(tx, storeId, deps, channels.email, sender, {
               messageId: id,
@@ -724,7 +636,7 @@ export async function processDueRuns(
               customerId: cu?.id ?? null,
               subject: applyMergeTags(step.subject, stepMerge),
               previewText: step.previewText,
-              blocks: step.blocks,
+              blocks,
               merge: stepMerge,
               cart: cartInfo
                 ? { lines: cartInfo.lines, totalLabel: formatMoney(cartInfo.totalPaise) }

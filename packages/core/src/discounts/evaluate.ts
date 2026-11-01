@@ -2,13 +2,16 @@ import type {
   DiscountAppliesTo,
   DiscountBxgy,
   DiscountCombinesWith,
+  DiscountCombo,
   DiscountEligibility,
   DiscountKind,
   DiscountMethod,
   DiscountStatus,
   DiscountType,
 } from '@commerce/db'
+import { roundToWholeUnit } from '@commerce/money'
 import { bxgyAmount } from './bxgy'
+import { comboAmount } from './combo'
 
 /** The subset of a `discount` row the evaluator needs; the DB row satisfies it directly. */
 export type DiscountRule = {
@@ -34,6 +37,8 @@ export type DiscountRule = {
   /** Minimum items in the cart (eligible items for a products discount). */
   minQuantity?: number | null | undefined
   bxgy?: DiscountBxgy | null | undefined
+  /** Combo deal: Combo 1..N, each a set of items with its own discount. */
+  combos?: DiscountCombo[] | null | undefined
   /** Free shipping only to these state codes; empty or missing means everywhere. */
   shippingStates?: string[] | undefined
   /** Free shipping skips rates above this price. */
@@ -52,6 +57,8 @@ export type DiscountRule = {
 
 export type DiscountCartLine = {
   productId: string
+  /** The exact variant; combo deals made of variants match on it. */
+  variantId?: string | undefined
   /** Collections the product belongs to (`collection_product`); `loadDiscountCart` fills it. */
   collectionIds?: string[]
   quantity: number
@@ -72,6 +79,11 @@ export type DiscountContext = {
    * segments they are in. Left out (the cart, before an email) the eligibility check waits.
    */
   customer?: { id: string | null; segmentIds: string[] } | undefined
+  /**
+   * "First-time buyers only": false when the shopper (by customer, email or phone) already has
+   * a paid order (`firstOrderFor`). Left out, before checkout knows who it is, the check waits.
+   */
+  firstOrder?: boolean | undefined
   /** Delivery state code once an address is known; free shipping limited to states reads it. */
   stateCode?: string | null | undefined
   /** Already taken off by product discounts it combines with; an order discount works on the rest. */
@@ -87,6 +99,8 @@ export type DiscountRejection =
   | 'min_subtotal'
   | 'min_quantity'
   | 'customer_not_eligible'
+  /** "First-time buyers only", and this shopper has ordered before. */
+  | 'not_first_order'
   | 'region'
   | 'no_eligible_items'
 
@@ -104,9 +118,6 @@ export type DiscountOutcome =
       parts?: Extract<DiscountOutcome, { ok: true }>[] | undefined
     }
   | { ok: false; reason: DiscountRejection; discount: DiscountRule }
-
-/** Round half away from zero, same as payment adjustments, so ₹99.99 at 10% is ₹10.00. */
-const roundHalfUp = (n: number): number => Math.sign(n) * Math.round(Math.abs(n))
 
 export const subtotalPaise = (lines: DiscountCartLine[]): number =>
   lines.reduce((sum, l) => sum + l.quantity * l.unitPricePaise, 0)
@@ -137,19 +148,23 @@ export function discountType(d: Pick<DiscountRule, 'type' | 'method' | 'appliesT
   return d.appliesTo === 'all' ? 'order' : 'products'
 }
 
-/** The class a discount stacks as: buy X get Y counts as a product discount, like Shopify. */
+/**
+ * The class a discount stacks as: buy X get Y counts as a product discount, like Shopify, and
+ * so does a combo deal (it prices sets of products).
+ */
 export type DiscountClass = keyof DiscountCombinesWith
 
 export function discountClass(
   d: Pick<DiscountRule, 'type' | 'method' | 'appliesTo'>,
 ): DiscountClass {
   const t = discountType(d)
-  return t === 'bxgy' ? 'products' : t
+  return t === 'bxgy' || t === 'combo' ? 'products' : t
 }
 
 /** Whether the shopper may use it; unknown shoppers (no email yet) are let through for now. */
 function customerAllowed(d: DiscountRule, ctx: DiscountContext): boolean {
   const who = d.customerEligibility ?? 'all'
+  if (who === 'first_time') return ctx.firstOrder !== false
   if (who === 'all' || !ctx.customer) return true
   const ids = new Set(d.eligibleIds ?? [])
   if (who === 'customers') return ctx.customer.id !== null && ids.has(ctx.customer.id)
@@ -173,7 +188,7 @@ export function perProductValues(
  * basis points of the unit price rounded like the order-level percent.
  */
 function perUnitAmount(method: 'percent' | 'fixed', value: number, unitPricePaise: number): number {
-  const raw = method === 'percent' ? roundHalfUp((unitPricePaise * value) / 10_000) : value
+  const raw = method === 'percent' ? roundToWholeUnit((unitPricePaise * value) / 10_000) : value
   return Math.max(0, Math.min(raw, unitPricePaise))
 }
 
@@ -217,7 +232,10 @@ export function evaluateDiscount(
   if (d.usagePerCustomer !== null && (ctx.customerUses ?? 0) >= d.usagePerCustomer) {
     return reject('customer_limit')
   }
-  if (!customerAllowed(d, ctx)) return reject('customer_not_eligible')
+  if (!customerAllowed(d, ctx)) {
+    const firstTime = d.customerEligibility === 'first_time'
+    return reject(firstTime ? 'not_first_order' : 'customer_not_eligible')
+  }
 
   const type = discountType(d)
   const total = subtotalPaise(cart.lines)
@@ -227,6 +245,12 @@ export function evaluateDiscount(
     const raw =
       d.bxgy && d.method !== 'free_shipping' ? bxgyAmount(cart.lines, d.method, d.value, d.bxgy) : 0
     const amountPaise = Math.min(raw, total)
+    if (amountPaise <= 0) return reject('no_eligible_items')
+    return { ok: true, discount: d, amountPaise, freeShipping: false, label: d.title }
+  }
+
+  if (type === 'combo') {
+    const amountPaise = Math.min(comboAmount(cart.lines, d.combos ?? []).amountPaise, total)
     if (amountPaise <= 0) return reject('no_eligible_items')
     return { ok: true, discount: d, amountPaise, freeShipping: false, label: d.title }
   }
@@ -257,7 +281,7 @@ export function evaluateDiscount(
   const raw = perItem
     ? perItemAmount(lines, d.method, perItem)
     : d.method === 'percent'
-      ? roundHalfUp((base * d.value) / 10_000)
+      ? roundToWholeUnit((base * d.value) / 10_000)
       : d.value
   // A per-product discount whose cart products all lack an amount gives nothing: not applicable.
   if (perItem && raw === 0) return reject('no_eligible_items')
@@ -300,8 +324,12 @@ const rupeeText = (paise: number): string => {
  */
 export function describeDiscountValue(
   d: Pick<DiscountRule, 'method' | 'value'> &
-    Partial<Pick<DiscountRule, 'appliesTo' | 'productValues' | 'type'>>,
+    Partial<Pick<DiscountRule, 'appliesTo' | 'productValues' | 'type' | 'combos'>>,
 ): string {
+  if (d.type === 'combo') {
+    const n = d.combos?.length ?? 0
+    return n === 1 ? '1 combo' : `${n} combos`
+  }
   if (d.method === 'free_shipping') return 'Free shipping'
   if (d.type === 'bxgy') {
     const off =

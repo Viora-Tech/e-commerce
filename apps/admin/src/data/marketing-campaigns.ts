@@ -11,7 +11,7 @@ export const campaignsContent = {
   resource: { singular: 'campaign', plural: 'campaigns' },
   create: 'Create campaign',
   createEmail: 'Email campaign',
-  createEmailHint: 'Designed email to a segment, Shopify Email style.',
+  createEmailHint: 'A designed email to a group of customers.',
   createWhatsapp: 'WhatsApp broadcast',
   createWhatsappHint: 'An approved template to customers who opted in.',
   tabs: { all: 'All', sent: 'Sent', scheduled: 'Scheduled', draft: 'Draft' },
@@ -154,6 +154,10 @@ export const campaignEditorContent = {
     productsHeading: 'Heading (optional)',
     pickProducts: 'Choose products',
     code: 'Discount code',
+    uniqueCode: 'A unique code for each shopper (automations)',
+    uniquePercent: 'Percent off',
+    uniqueDays: 'Works for (days)',
+    uniqueHelp: 'Each email gets its own code, usable once and only by that customer.',
     pickCode: 'Choose a code',
     noCodes: 'No active codes. Create one in Discounts first.',
     note: 'Note (optional)',
@@ -211,7 +215,7 @@ export const campaignEditorContent = {
   },
   channel: {
     noEmail:
-      'No email channel can send marketing yet. Enable Amazon SES (or the worker log while developing) in Settings > Notifications.',
+      'Marketing emails can’t be sent yet. Set up an email channel in Settings > Notifications.',
     noWhatsapp:
       'WhatsApp is not connected. Enable it in Settings > Notifications and add your Business Account ID so approved templates show here.',
     settings: 'Open notification settings',
@@ -241,6 +245,9 @@ export const MERGE_TAG_LABELS: Record<MergeTag, string> = {
   checkout_url: 'Checkout link',
   cart_total: 'Cart total',
   order_number: 'Order number',
+  product_title: 'Viewed product',
+  product_url: 'Viewed product link',
+  product_price: 'Viewed product price',
 }
 
 export const campaignReportContent = {

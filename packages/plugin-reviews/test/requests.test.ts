@@ -170,4 +170,46 @@ describe('review requests', () => {
       await withStore(app, storeId, (tx) => queueDueReviewRequests(tx, storeId, settings, now)),
     ).toEqual({ requests: 1, reminders: 0 })
   })
+
+  it('sends by WhatsApp to the phone, and plans nothing for an order the channel cannot reach', async () => {
+    const storeId = await seedStore()
+    const a = await addProduct(storeId, 'veil')
+    const whatsapp: ReviewsSettings = {
+      ...settings,
+      requestEmail: { ...settings.requestEmail, channel: 'whatsapp' },
+    }
+    const noPhone = await addOrder(storeId, {
+      email: 'mail@example.com',
+      variantIds: [a.variantId],
+    })
+    expect(
+      await withStore(app, storeId, (tx) =>
+        scheduleReviewRequests(tx, storeId, noPhone.orderId, whatsapp, t0),
+      ),
+    ).toBe(0)
+    const o = await addOrder(storeId, {
+      email: '',
+      phone: '+91 98765 43210',
+      variantIds: [a.variantId],
+    })
+    expect(
+      await withStore(app, storeId, (tx) =>
+        scheduleReviewRequests(tx, storeId, o.orderId, whatsapp, t0),
+      ),
+    ).toBe(1)
+    const [row] = await owner.select().from(reviewRequest)
+    expect(row?.email).toBeNull()
+    expect(row?.phone).toBe('+919876543210')
+    await withStore(app, storeId, (tx) => queueDueReviewRequests(tx, storeId, whatsapp, at(7)))
+    const message = await withStore(app, storeId, (tx) =>
+      reviewRequestEmail(tx, storeId, o.orderId, 'request', whatsapp, opts),
+    )
+    expect(message?.contact).toEqual({ email: null, phone: '+919876543210' })
+    // Switched back to email only: the same request has nobody to reach.
+    expect(
+      await withStore(app, storeId, (tx) =>
+        reviewRequestEmail(tx, storeId, o.orderId, 'request', settings, opts),
+      ),
+    ).toBeNull()
+  })
 })

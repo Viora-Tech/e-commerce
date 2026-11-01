@@ -8,11 +8,12 @@ import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
 import KeyValueList, { type KeyValueRow } from '@/components/layout/key-value-list'
+import { orderDetailContent } from '@/data/order-detail'
 import { orderTakeoverContent } from '@/data/order-edit'
 import { importedOrderContent } from '@/data/orders'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import type { OrderDetail } from './order-detail-types'
+import { importedGatewayLabel, type OrderDetail } from './order-detail-types'
 
 type ImportedOrderCardProps = {
   order: OrderDetail
@@ -36,6 +37,7 @@ export default function ImportedOrderCard({
   // Hooks
   const copy = useCopy(importedOrderContent)
   const takeover = useCopy(orderTakeoverContent)
+  const detail = useCopy(orderDetailContent)
   const fmt = useFormat()
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -66,7 +68,11 @@ export default function ImportedOrderCard({
     { label: copy.name, value: meta?.name ?? `#${order.number}` },
     { label: copy.financial, value: copy.status(meta?.financialStatus) },
     { label: copy.fulfillment, value: copy.status(meta?.fulfillmentStatus) },
-    { label: copy.payment, value: meta?.paymentMethod, hidden: !meta?.paymentMethod },
+    {
+      label: copy.payment,
+      value: meta?.paymentMethod ? importedGatewayLabel(meta.paymentMethod, detail) : null,
+      hidden: !meta?.paymentMethod,
+    },
     {
       label: copy.cancelled,
       value: meta?.cancelledAt ? fmt.dateTime(meta.cancelledAt) : null,
@@ -102,6 +108,7 @@ export default function ImportedOrderCard({
         body={takeover.dialogBody}
         confirmLabel={takeover.confirm}
         cancelLabel={takeover.cancel}
+        tone="default"
         onConfirm={handleTakeOver}
       />
     </DataCard>

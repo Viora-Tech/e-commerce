@@ -24,6 +24,11 @@ export type ConsentChange = {
   source: ConsentSource
   actor: PrivacyActor
   at?: Date | undefined
+  /**
+   * Skip a grant when the customer cannot be reached on the channel (email needs an email, SMS
+   * and WhatsApp a phone). Staff bulk changes set it (#999); withdrawals always apply.
+   */
+  needsContact?: boolean | undefined
 }
 
 const COLUMN = {
@@ -50,10 +55,16 @@ export async function setMarketingConsent(
       current: COLUMN[flag],
       anonymisedAt: customer.anonymisedAt,
       unsubscribedAt: customer.unsubscribedAt,
+      email: customer.email,
+      phone: customer.phone,
     })
     .from(customer)
     .where(eq(customer.id, change.customerId))
   if (!row || row.anonymisedAt) return false
+  if (change.granted && change.needsContact) {
+    const contact = change.channel === 'email' ? row.email : row.phone
+    if (!contact?.trim()) return false
+  }
   // Already so. (A yes over an old unsubscribe still counts as a fresh opt in.)
   if (row.current === change.granted && !(change.granted && row.unsubscribedAt)) return false
   await ctx.tx

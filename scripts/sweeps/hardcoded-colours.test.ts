@@ -92,6 +92,16 @@ const ALLOWLIST: AllowEntry[] = [
     file: 'apps/admin/src/components/themes/theme-swatch.tsx',
     reason: 'renders a merchant-picked theme colour swatch, inherently a raw colour value',
   },
+  {
+    file: 'apps/admin/src/components/apps/reviews/review-qr-card.tsx',
+    reason:
+      'the printable review QR card is drawn on a <canvas> (which cannot read CSS custom properties) and printed on white paper whatever the admin theme, so its ink is fixed',
+  },
+  {
+    file: 'apps/admin/src/components/preorders/campaign-look-card.tsx',
+    reason:
+      'the pre-order campaign\'s merchant-chosen storefront colours: `<input type="color">` needs a hex start value and the box shows a hex example, neither is app UI colour',
+  },
 ]
 
 const PALETTE_ALLOWLIST: AllowEntry[] = [
@@ -99,11 +109,6 @@ const PALETTE_ALLOWLIST: AllowEntry[] = [
     file: 'apps/admin/src/components/apps/app-logo.tsx',
     reason:
       'one brand gradient per built-in app tile (amber Reviews, blue GST, etc.): each app has its own identity colour that is not a theme role, so no semantic token fits; the glyph on top stays white in both themes',
-  },
-  {
-    file: 'apps/admin/src/components/orders/packing-slip.tsx',
-    reason:
-      'printed packing slip: fixed neutral ink on paper, deliberately not the screen theme (dark mode must not print grey on white)',
   },
 ]
 

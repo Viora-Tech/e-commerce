@@ -8,11 +8,18 @@ export const metadata: Metadata = { title: 'Menus' }
 
 export default async function Page() {
   const context = await serverContext()
-  const [menus, settings] = await Promise.all([
+  const [menus, settings, themePlacements] = await Promise.all([
     call(appRouter.navigation.list, undefined, { context }),
     call(appRouter.navigation.settings, undefined, { context }),
-  ]).catch(orNoStore([undefined, undefined] as const))
-  if (!menus || !settings) redirect('/select-store')
+    call(appRouter.navigation.themePlacements, undefined, { context }),
+  ]).catch(orNoStore([undefined, undefined, undefined] as const))
+  if (!menus || !settings || !themePlacements) redirect('/select-store')
 
-  return <NavigationList initialMenus={menus} initialSettings={settings} />
+  return (
+    <NavigationList
+      initialMenus={menus}
+      initialSettings={settings}
+      themePlacements={themePlacements}
+    />
+  )
 }

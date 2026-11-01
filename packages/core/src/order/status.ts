@@ -1,4 +1,4 @@
-import { order, payment } from '@commerce/db'
+import { order, payment, shipment } from '@commerce/db'
 import { and, desc, eq, inArray, isNull, notInArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
@@ -8,6 +8,7 @@ import { applyPaymentStatus } from '../payments/confirm'
 import { OPEN_ATTEMPT_STATUSES } from '../payments/transitions'
 import { capturedPaise, checkoutDuePaise } from './aggregate-status'
 import { fulfilRemainingLines } from './fulfil'
+import { assertNotHeld } from './fulfillment-hold'
 import { ensureFulfillmentOrders, releaseFulfillmentOrders } from './fulfillment-orders'
 import { recomputeOrderStatuses } from './recompute'
 import { refundedPaise, refundPayment } from './refund'
@@ -178,6 +179,8 @@ export async function changeOrderStatus(
   }
   if (change === 'paid') await markPaid(ctx, current)
   if (change === 'fulfilled' || change === 'delivered') {
+    // "Mark as fulfilled / delivered" on a held order is refused until the hold is released.
+    await assertNotHeld(ctx, orderId)
     await fulfilRemainingLines(ctx, orderId)
   }
   if (change === 'delivered') {
@@ -189,6 +192,16 @@ export async function changeOrderStatus(
     // Tracking may already have flipped the shipment to delivered (see `applyTracking`),
     // which sends the same message; the notification job id makes a repeat harmless.
     if (marked) await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.delivered', { orderId })
+    // The hand-over happened: its parcels read Delivered too, not "Label created" (audit #122).
+    await ctx.tx
+      .update(shipment)
+      .set({ status: 'delivered', updatedAt: new Date() })
+      .where(
+        and(
+          eq(shipment.orderId, orderId),
+          notInArray(shipment.status, ['delivered', 'cancelled', 'rto']),
+        ),
+      )
   }
   await recomputeOrderStatuses(ctx, orderId)
   const [o] = await ctx.tx.select().from(order).where(eq(order.id, orderId))

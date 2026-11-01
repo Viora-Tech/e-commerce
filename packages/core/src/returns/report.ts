@@ -2,7 +2,6 @@
 import { orderLine, returnRequest, returnRequestLine, variant } from '@commerce/db'
 import { and, asc, count, desc, eq, gte, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
-import type { ReturnReason } from './policy'
 
 const DAY_MS = 86_400_000
 
@@ -58,7 +57,7 @@ export async function returnReasonsReport(ctx: StoreContext, days = 90, now = ne
     exchanges: Number(totals?.exchanges ?? 0),
     autoApproved: Number(totals?.autoApproved ?? 0),
     reasons: byReason.map((r) => ({
-      reason: (r.reason ?? 'other') as ReturnReason,
+      reason: r.reason ?? 'other',
       returns: Number(r.returns),
       units: Number(r.units),
       valuePaise: Number(r.valuePaise),
@@ -70,7 +69,7 @@ export async function returnReasonsReport(ctx: StoreContext, days = 90, now = ne
       returns: Number(p.returns),
       units: Number(p.units),
       valuePaise: Number(p.valuePaise),
-      topReason: (p.topReason ?? null) as ReturnReason | null,
+      topReason: p.topReason ?? null,
     })),
   }
 }

@@ -41,6 +41,7 @@ export const SERVER_ONLY_PACKAGES = new Set([
   '@commerce/shipping-fedex',
   '@commerce/shipping-rapidshyp',
   '@commerce/shipping-shadowfax',
+  '@commerce/shipping-shipglobal',
   '@commerce/shipping-shiprocket',
   '@commerce/shipping-xpressbees',
   '@commerce/api',

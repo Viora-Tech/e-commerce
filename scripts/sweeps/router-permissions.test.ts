@@ -17,6 +17,7 @@ type AllowEntry = { site: string; reason: string }
 
 const OWN_ACCOUNT = "the caller's own account (session user only), no store data"
 const OWN_MEMBER = "the caller's own row in this store (keyed on scope.userId), nothing store-wide"
+const REAUTH = "step-up re-auth (A5) of the caller's own session; people only, no store data"
 const NEW_STORE = 'before the user has a store: signing up, creating or joining one'
 
 const ALLOWLIST: AllowEntry[] = [
@@ -34,6 +35,10 @@ const ALLOWLIST: AllowEntry[] = [
   { site: 'account.ts: deletion (protectedProcedure)', reason: OWN_ACCOUNT },
   { site: 'account.ts: sendDeletionCode (protectedProcedure)', reason: OWN_ACCOUNT },
   { site: 'account.ts: deleteAccount (protectedProcedure)', reason: OWN_ACCOUNT },
+  { site: 'reauth.ts: status (protectedProcedure)', reason: REAUTH },
+  { site: 'reauth.ts: sendOtp (protectedProcedure)', reason: REAUTH },
+  { site: 'reauth.ts: passkeyOptions (protectedProcedure)', reason: REAUTH },
+  { site: 'reauth.ts: verify (protectedProcedure)', reason: REAUTH },
   { site: 'account.ts: notifications (storeProcedure)', reason: OWN_MEMBER },
   { site: 'account.ts: updateNotifications (storeProcedure)', reason: OWN_MEMBER },
   { site: 'appearance.ts: get (storeProcedure)', reason: OWN_MEMBER },

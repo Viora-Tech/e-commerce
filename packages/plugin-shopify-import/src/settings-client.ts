@@ -1,6 +1,7 @@
 /**
  * Store settings import: the parts a merchant can bring over from Shopify (store details,
- * tax, locations, shipping, packages, policies, extra field definitions), and the plan and
+ * tax, locations, shipping, packages, policies, extra field definitions, segments, markets,
+ * purchase orders and transfers), and the plan and
  * report shapes the admin shows. Pure: no database, no Node APIs, so the admin can import it
  * through `@commerce/plugin-shopify-import/client`. Every line carries codes, never English,
  * so the admin says it in the merchant's language.
@@ -16,6 +17,10 @@ export const SETTINGS_PARTS = [
   'packages',
   'policies',
   'fields',
+  'segments',
+  'markets',
+  'purchase_orders',
+  'transfers',
 ] as const
 export type SettingsPart = (typeof SETTINGS_PARTS)[number]
 
@@ -29,6 +34,10 @@ export const SETTINGS_PART_SCOPES: Record<SettingsPart, ScopeHandle[]> = {
   packages: [],
   policies: ['read_legal_policies'],
   fields: ['read_products'],
+  segments: ['read_customers'],
+  markets: ['read_markets'],
+  purchase_orders: ['read_inventory_purchase_orders'],
+  transfers: ['read_inventory_transfers'],
 }
 
 /** What one line of the plan is about. */
@@ -42,6 +51,8 @@ const SETTINGS_SUBJECTS = [
   'timezone',
   'weight_unit',
   'money_format',
+  'home_seo_title',
+  'home_seo_description',
   'prices_include_tax',
   'gstin',
   'location',
@@ -50,6 +61,10 @@ const SETTINGS_SUBJECTS = [
   'packages',
   'policy',
   'field',
+  'segment',
+  'market',
+  'purchase_order',
+  'transfer',
 ] as const
 export type SettingsSubject = (typeof SETTINGS_SUBJECTS)[number]
 
@@ -78,16 +93,16 @@ const SETTINGS_REASONS = [
   'app_location',
   /** In-store pickup at a location: not available here yet. */
   'local_pickup',
-  /** A shipping zone with no Indian states in it. */
+  /** Older imports: a shipping zone with no Indian states in it (zones abroad come over now). */
   'zone_outside_india',
-  /** A zone that also covers other countries; only its Indian part came over. */
+  /** Older imports: a zone that also covered other countries (they come over now). */
   'zone_other_countries',
   /** A zone whose rates could not be brought over, so it was not created. */
   'zone_no_rates',
   /** A Shopify region name that is not an Indian state here. */
   'unknown_state',
-  /** A shipping profile for some products only; rates here apply to every product. */
-  'product_profile',
+  /** Products of a Shopify shipping profile not imported here yet; import products, then again. */
+  'profile_products_missing',
   /** Rates calculated live by a carrier or app. */
   'carrier_rates',
   /** A rate limited by order value and weight at once. */
@@ -108,6 +123,24 @@ const SETTINGS_REASONS = [
   'field_exists',
   /** The connection may not read one kind of extra field (customers or orders). */
   'owner_access',
+  /** A segment filter with no condition here (location, products bought, AND with OR…). */
+  'segment_rule',
+  /** A market with no country we know. */
+  'market_countries',
+  /** Another market here already sells to some of its countries (`detail`). */
+  'market_country_taken',
+  /** Lines (`detail`: how many) whose products are not imported here yet; import products, then again. */
+  'stock_products_missing',
+  /** A location (`detail`) that is not here; bring Locations over (or make it), then again. */
+  'stock_location_missing',
+  /** A purchase order in another currency (`detail`): Shopify gives no exchange rate. */
+  'po_currency',
+  /** Part of the order was already received on Shopify; that stock came over with the products. */
+  'po_receipts',
+  /** A cancelled transfer, or one in a state we do not know (`detail`). */
+  'transfer_status',
+  /** A transfer with no origin (a purchase order's receipt) or the same location at both ends. */
+  'transfer_origin',
 ] as const
 export type SettingsReason = (typeof SETTINGS_REASONS)[number]
 

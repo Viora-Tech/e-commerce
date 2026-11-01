@@ -28,6 +28,8 @@ import { shipFromFor } from '../shipping/ship-from'
 import { announceLatePickup } from './notify'
 import {
   ACTIVE_RETURN_STATUSES,
+  CUSTOM_REASON_PREFIX,
+  customReasonCode,
   type Eligibility,
   parseReturnPolicy,
   RETURN_REASONS,
@@ -278,7 +280,8 @@ export async function orderReturnState(
 export type RequestReturnInput = ReturnWishes & {
   orderId: string
   lines: { orderLineId: string; quantity: number }[]
-  reason: ReturnReason
+  /** A built-in code, or `custom:<words>` for one of the store's own reasons. */
+  reason: string
   note?: string | null | undefined
   photos?: string[] | undefined
   /** `customer`: from the storefront, held to the store's window and reasons. */
@@ -312,10 +315,14 @@ export async function requestReturn(ctx: StoreContext, input: RequestReturnInput
   if (!byCustomer && (why === 'cancelled' || why === 'nothing_left')) {
     throw new ReturnNotAllowed(CLOSED_MESSAGES[why], ctx.storeId)
   }
-  if (!(RETURN_REASONS as readonly string[]).includes(input.reason)) {
+  const custom = input.reason.startsWith(CUSTOM_REASON_PREFIX)
+  if (!custom && !(RETURN_REASONS as readonly string[]).includes(input.reason)) {
     throw new ReturnNotAllowed('Pick a reason for the return.', ctx.storeId)
   }
-  if (byCustomer && !state.policy.reasons.includes(input.reason)) {
+  const offered = custom
+    ? state.policy.customReasons.map(customReasonCode).includes(input.reason)
+    : state.policy.reasons.includes(input.reason as ReturnReason)
+  if (byCustomer && !offered) {
     throw new ReturnNotAllowed('This shop does not take returns for that reason.', ctx.storeId)
   }
 
@@ -677,7 +684,12 @@ export async function getReturn(ctx: StoreContext, id: string) {
     : []
   const [exchange] = r.exchangeOrderId
     ? await ctx.tx
-        .select({ id: order.id, number: order.number, status: order.status })
+        .select({
+          id: order.id,
+          number: order.number,
+          draftNumber: order.draftNumber,
+          status: order.status,
+        })
         .from(order)
         .where(eq(order.id, r.exchangeOrderId))
     : []

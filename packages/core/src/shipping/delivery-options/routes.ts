@@ -28,6 +28,7 @@ const CARRIERS: ReadonlyArray<{ key: string; name: string; match: RegExp }> = [
   { key: 'amazon', name: 'Amazon Shipping', match: /amazon/i },
   { key: 'dhl', name: 'DHL', match: /\bdhl\b/i },
   { key: 'fedex', name: 'FedEx', match: /fedex/i },
+  { key: 'shipglobal', name: 'ShipGlobal', match: /ship\s*global/i },
   { key: 'gati', name: 'Gati', match: /\bgati\b/i },
   { key: 'smartr', name: 'Smartr', match: /smartr/i },
   { key: 'professional', name: 'The Professional Couriers', match: /professional/i },

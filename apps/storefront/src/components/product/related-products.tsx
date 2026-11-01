@@ -1,4 +1,5 @@
 import { type ProductDetail, ProductRecommendations } from '@commerce/blocks'
+import { pickedRecommendationHandlesFor } from '@commerce/core'
 import { listCardProducts } from '@/lib/catalog'
 import { relatedHandles } from '@/lib/related'
 import { storeRead } from '@/lib/store-cache'
@@ -11,8 +12,9 @@ type RelatedProductsProps = {
 }
 
 /**
- * Related products: others from the product's own collections first (newest first), then ones of
- * the same type, then the newest in the store, never the product itself.
+ * Related products: the merchant's own picks first (Search & discovery), then others from the
+ * product's own collections (newest first), then ones of the same type, then the newest in the
+ * store, never the product itself.
  */
 export default async function RelatedProducts({
   storeId,
@@ -24,7 +26,10 @@ export default async function RelatedProducts({
   const type = product.productType ?? undefined
   const [fromCollections, sameType] = await Promise.all([
     storeRead(storeId, `related|${product.id}|${limit}`, async (tx) => {
-      const handles = await relatedHandles(tx, product.id, limit)
+      const picked = await pickedRecommendationHandlesFor(tx, product.id, 'related')
+      const handles = [
+        ...new Set([...picked, ...(await relatedHandles(tx, product.id, limit))]),
+      ].slice(0, Math.max(limit, picked.length))
       return handles.length ? listCardProducts(tx, handles.length, undefined, handles) : []
     }),
     storeRead(storeId, `card-products|${limit + 1}|${type ?? ''}`, (tx) =>
@@ -37,5 +42,5 @@ export default async function RelatedProducts({
   const products = [...fromCollections, ...sameType]
     .filter((p) => !seen.has(p.id) && Boolean(seen.add(p.id)))
     .slice(0, limit)
-  return <ProductRecommendations heading={heading} products={products} />
+  return <ProductRecommendations heading={heading} products={products} intent="related" />
 }

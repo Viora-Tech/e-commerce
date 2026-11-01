@@ -7,12 +7,18 @@ import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/sh
 import { Input } from '@commerce/ui/shadcn/input'
 import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
 import { Switch } from '@commerce/ui/shadcn/switch'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { paymentsSettingsContent } from '@/data/payments'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import type { LinkedSave } from './provider-settings-form'
 import SettingsCard from './settings-card'
+
+type PreorderBalanceSettingsProps = {
+  /** Saved by the page's one Save (#94): its own button hides and it reports here. */
+  onSaveState?: ((state: LinkedSave) => void) | undefined
+}
 
 const ACTIONS: UnpaidBalanceAction[] = ['none', 'cancel_refund', 'cancel_keep']
 
@@ -31,38 +37,67 @@ const parseReminders = (raw: string): number[] =>
     .filter((n) => Number.isFinite(n) && n >= 1 && n <= 90)
     .slice(0, 2)
 
+/** What the card holds, as one string to tell an edit from the saved state. */
+const snapshot = (form: PreorderStoreSettings, reminders: string): string =>
+  JSON.stringify({ form, reminders })
+
 /** Settings › Payments › Pre-orders: balance request, reminders and the unpaid-balance rule. */
-export default function PreorderBalanceSettings() {
+export default function PreorderBalanceSettings({ onSaveState }: PreorderBalanceSettingsProps) {
   // Hooks
   const { preorder: copy } = useCopy(paymentsSettingsContent)
   const [form, setForm] = useState<PreorderStoreSettings | null>(null)
   const [reminders, setReminders] = useState('')
   const [saving, setSaving] = useState(false)
+  const [baseline, setBaseline] = useState<string | null>(null)
+  const saveRef = useRef<() => Promise<void>>(async () => undefined)
   useEffect(() => {
     api.store
       .getPreorder()
       .then((s) => {
         setForm(s)
         setReminders(s.reminderDays.join(', '))
+        setBaseline(snapshot(s, s.reminderDays.join(', ')))
       })
       .catch(() => toast.error(copy.saveFailed))
   }, [copy.saveFailed])
+  // `saveRef` always points at the latest `persist`, for the page's Save.
+  useEffect(() => {
+    saveRef.current = persist
+  })
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `onSaveState` is a state setter.
+  useEffect(() => {
+    onSaveState?.({
+      dirty: form !== null && baseline !== null && snapshot(form, reminders) !== baseline,
+      save: () => saveRef.current(),
+      discard: () => {
+        if (!baseline) return
+        const before = JSON.parse(baseline) as { form: PreorderStoreSettings; reminders: string }
+        setForm(before.form)
+        setReminders(before.reminders)
+      },
+    })
+  }, [form, reminders, baseline])
 
   // Helpers
   const patch = (next: Partial<PreorderStoreSettings>) =>
     setForm((f) => (f ? { ...f, ...next } : f))
 
+  const persist = async () => {
+    if (!form) return
+    const saved = await api.store.updatePreorder({
+      ...form,
+      reminderDays: parseReminders(reminders),
+    })
+    setForm(saved)
+    setReminders(saved.reminderDays.join(', '))
+    setBaseline(snapshot(saved, saved.reminderDays.join(', ')))
+  }
+
   // Event handlers
   const handleSave = async () => {
-    if (!form) return
     setSaving(true)
     try {
-      const saved = await api.store.updatePreorder({
-        ...form,
-        reminderDays: parseReminders(reminders),
-      })
-      setForm(saved)
-      setReminders(saved.reminderDays.join(', '))
+      await persist()
       toast.success(copy.saved)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.saveFailed)
@@ -154,12 +189,14 @@ export default function PreorderBalanceSettings() {
           </Field>
         ) : null}
 
-        <div>
-          <Button onClick={handleSave} disabled={saving}>
-            <Save aria-hidden="true" />
-            {copy.save}
-          </Button>
-        </div>
+        {onSaveState ? null : (
+          <div>
+            <Button onClick={handleSave} disabled={saving}>
+              <Save aria-hidden="true" />
+              {copy.save}
+            </Button>
+          </div>
+        )}
       </FieldGroup>
     </SettingsCard>
   )

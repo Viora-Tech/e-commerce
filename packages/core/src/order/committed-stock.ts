@@ -56,8 +56,12 @@ export async function shipCommittedStock(ctx: StoreContext, move: StockMove): Pr
  * A cancelled order's units that do not go back on sale ("Restock" off): on hand and
  * committed drop together, so what is available stays as it was, logged as `other`.
  */
-export async function writeOffCommittedStock(ctx: StoreContext, move: StockMove): Promise<void> {
-  await takeCommittedStock(ctx, move, 'other', 'Order cancelled without restocking')
+export async function writeOffCommittedStock(
+  ctx: StoreContext,
+  move: StockMove,
+  note = 'Order cancelled without restocking',
+): Promise<void> {
+  await takeCommittedStock(ctx, move, 'other', note)
 }
 
 async function takeCommittedStock(

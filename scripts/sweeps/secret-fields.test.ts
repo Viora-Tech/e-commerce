@@ -32,6 +32,7 @@ import { fedexFactory } from '@commerce/shipping-fedex'
 import { indiaPostFactory } from '@commerce/shipping-indiapost'
 import { rapidshypFactory } from '@commerce/shipping-rapidshyp'
 import { shadowfaxFactory } from '@commerce/shipping-shadowfax'
+import { shipglobalFactory } from '@commerce/shipping-shipglobal'
 import { shiprocketFactory } from '@commerce/shipping-shiprocket'
 import { xpressbeesFactory } from '@commerce/shipping-xpressbees'
 import { r2Factory } from '@commerce/storage-r2'
@@ -73,6 +74,7 @@ describe('sweep: secret-fields', () => {
       shadowfaxFactory,
       dhlExpressFactory,
       fedexFactory,
+      shipglobalFactory,
       sesFactory,
       whatsappFactory,
       r2Factory,

@@ -1,10 +1,26 @@
 'use client'
 
-import { QuantityInput, useFormatPaise } from '@commerce/blocks'
+import { QuantityInput, useFormatCart } from '@commerce/blocks'
 import type { CartLineView } from '@commerce/core'
-import { useTransition } from 'react'
+import { type CSSProperties, useTransition } from 'react'
 import { cartContent as content } from '@/data/cart'
 import { setQuantityAction } from '@/lib/cart-actions'
+
+/** A pre-order campaign's badge colours (#144), already checked as hex; the theme's without. */
+function badgeLook(l: CartLineView): { className: string; style: CSSProperties | undefined } {
+  const c = l.preorderColours
+  if (!c?.badgeBackground && !c?.badgeText) return { className: '', style: undefined }
+  return {
+    className: [
+      c.badgeBackground ? 'bg-(--preorder-badge-bg)' : '',
+      c.badgeText ? 'text-(--preorder-badge-text)' : '',
+    ].join(' '),
+    style: {
+      ...(c.badgeBackground ? { '--preorder-badge-bg': c.badgeBackground } : {}),
+      ...(c.badgeText ? { '--preorder-badge-text': c.badgeText } : {}),
+    } as CSSProperties,
+  }
+}
 
 /**
  * Figma Pages · Cart (704:117993): each line is the thumbnail, the name and variant over the
@@ -12,7 +28,7 @@ import { setQuantityAction } from '@/lib/cart-actions'
  */
 export default function CartLines({ lines }: { lines: CartLineView[] }) {
   // Hooks
-  const formatPaise = useFormatPaise()
+  const money = useFormatCart()
   const [pending, start] = useTransition()
 
   // Helpers
@@ -38,7 +54,12 @@ export default function CartLines({ lines }: { lines: CartLineView[] }) {
               <p className="cart-line__variant">{l.variantTitle}</p>
             ) : null}
             {l.preorder ? (
-              <span className="cart-line__preorder-badge">{content.preorder}</span>
+              <span
+                className={`cart-line__preorder-badge ${badgeLook(l).className}`}
+                style={badgeLook(l).style}
+              >
+                {l.preorderBadge ?? content.preorder}
+              </span>
             ) : null}
             {l.preorderNote ? <p className="cart-line__preorder-note">{l.preorderNote}</p> : null}
             <div className="cart-line__actions">
@@ -55,7 +76,7 @@ export default function CartLines({ lines }: { lines: CartLineView[] }) {
               </button>
             </div>
           </div>
-          <span className="cart-line__total-price">{formatPaise(l.linePaise)}</span>
+          <span className="cart-line__total-price">{money.line(l)}</span>
         </li>
       ))}
     </ul>

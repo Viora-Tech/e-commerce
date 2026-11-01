@@ -11,6 +11,8 @@ type Props = { searchParams: Promise<SearchParams> }
 
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export default async function Page({ searchParams }: Props) {
   const sp = await searchParams
   const parsed = Number.parseInt(first(sp.page) ?? '', 10)
@@ -21,11 +23,20 @@ export default async function Page({ searchParams }: Props) {
   const query = first(sp.query) ?? ''
   const rawType = first(sp.type)
   const type: FileTab | null = FILE_TABS.find((t) => t === rawType) ?? null
+  /* The folder being browsed (#91); anything that is not an id shows every file. */
+  const rawFolder = first(sp.folder) ?? ''
+  const folder = UUID.test(rawFolder) ? rawFolder : null
   const context = await serverContext()
   const [result, usage] = await Promise.all([
     call(
       appRouter.media.list,
-      { page, perPage, search: query || undefined, fileType: type ?? undefined },
+      {
+        page,
+        perPage,
+        search: query || undefined,
+        fileType: type ?? undefined,
+        folderId: folder ?? undefined,
+      },
       { context },
     ),
     call(appRouter.media.usage, undefined, { context }),
@@ -37,6 +48,7 @@ export default async function Page({ searchParams }: Props) {
         perPage,
         query,
         type,
+        folder,
         result,
         counts: {
           all: usage.files,

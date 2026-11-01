@@ -46,6 +46,10 @@ export type OutboxEventType =
   | 'return.exchanged'
   /** A shipment came back to the merchant undelivered (RTO); an RTO task was opened on the order. */
   | 'order.rto'
+  /** Staff held the order's fulfilment from the order page (#1011): no shipment until released. */
+  | 'order.fulfillment_held'
+  /** Staff released a held fulfilment. */
+  | 'order.fulfillment_released'
   /** A shipment's tracking says the courier is out with it today. */
   | 'shipment.out_for_delivery'
   /** An order's fulfilment became delivered, from tracking or a manual "mark delivered". */
@@ -62,6 +66,12 @@ export type OutboxEventType =
   | 'review.request_due'
   /** The store replied to a review for the first time (Reviews app); the reviewer is emailed. */
   | 'review.replied'
+  /** A photo review earned its reward code (Reviews app); the reviewer is emailed the code. */
+  | 'review.rewarded'
+  /** A shopper asked a product question (Reviews app); the store's contact address is emailed. */
+  | 'review.question_asked'
+  /** A product question went live with its answer for the first time; the asker is emailed. */
+  | 'review.question_answered'
   /** A live custom domain needs its HTTPS route on the proxy (`domains/routes.ts`). */
   | 'domain.route_requested'
   /** A removed custom domain's HTTPS route should be deleted from the proxy. */
@@ -123,11 +133,21 @@ export type OutboxEventType =
   /** COD & RTO app: a cash on delivery order waits for the shopper's confirm / cancel answer. */
   | 'order.cod_confirm_requested'
   /**
-   * Staff edited a placed order's items, shipping or discount (`order/edit.ts`). No shopper
-   * message of its own (a balance request or a refund sends theirs); apps re-bill (GST invoices)
-   * and recompute (affiliate commission). Each edit is its own app job.
+   * Staff edited a placed order's items, shipping or discount (`order/edit.ts`). The shopper gets
+   * `order_edited` when the items or total changed (`notifyCustomer` false otherwise, and when the
+   * edit's balance request already told them); apps re-bill (GST invoices) and recompute
+   * (affiliate commission). Each edit is its own job.
    */
   | 'order.edited'
+  /**
+   * An online checkout's payment failed or was never finished a short while after it was placed
+   * (`payments/pending-nudge.ts`): the shopper is asked once to retry. Written at most once per order.
+   */
+  | 'order.payment_pending'
+  /** A shipment's tracking number or courier changed (re-booked after a cancel, or edited by hand). */
+  | 'shipment.tracking_updated'
+  /** Staff sent the shopper the link to their order page ("Send order link"). */
+  | 'order.link_sent'
 
 /**
  * `orderId` is required for every order-lifecycle type; `variantId` (and
@@ -155,6 +175,8 @@ export type OutboxPayload = {
   reviewRequestKind?: 'request' | 'reminder' | undefined
   /** The `review` a `review.replied` event is about. */
   reviewId?: string | undefined
+  /** The `review_question` a `review.question_*` event is about (Reviews app). */
+  questionId?: string | undefined
   /** The `store_domain` a `domain.route_requested` event is about. */
   domainId?: string | undefined
   /** For `domain.route_requested`: delete and re-create the Dokploy domain to force a new certificate attempt. */
@@ -200,6 +222,8 @@ export type OutboxPayload = {
         limit?: number | undefined
       }
     | undefined
+  /** The shipment a `shipment.tracking_updated` event is about. */
+  shipmentId?: string | undefined
   /** For `automation.order_update`: the order email template to send. */
   notificationTemplate?: string | undefined
   /** Set when an automation run caused this event (loop guard, design §8.5). */
@@ -266,6 +290,8 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   'return.exchanged': 'return_exchanged',
   // The merchant sees the RTO task on the order and in Shipments; the shopper is not emailed.
   'order.rto': null,
+  'order.fulfillment_held': null,
+  'order.fulfillment_released': null,
   'shipment.out_for_delivery': 'out_for_delivery',
   'order.delivered': 'delivered',
   'order.cancel_notice': 'order_cancelled',
@@ -277,6 +303,11 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   'review.request_due': null,
   // The relay queues `review_reply` with the review id itself (`dispatchRow`).
   'review.replied': null,
+  // The relay queues `review_reward` with the review id itself (`dispatchRow`).
+  'review.rewarded': null,
+  // The relay queues `question_asked` / `question_answered` with the question id (`dispatchRow`).
+  'review.question_asked': null,
+  'review.question_answered': null,
   // Platform work, no message: the relay queues a `{domains}-route` job (`dispatchRow`).
   'domain.route_requested': null,
   'domain.route_removed': null,
@@ -315,7 +346,10 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   'pixel.connection_failed': null,
   // COD & RTO app: the confirm / cancel link (WhatsApp when the store has it, else email).
   'order.cod_confirm_requested': 'cod_confirm',
-  'order.edited': null,
+  'order.edited': 'order_edited',
+  'order.payment_pending': 'payment_pending',
+  'shipment.tracking_updated': 'shipping_update',
+  'order.link_sent': 'order_link',
 }
 
 /**
@@ -324,6 +358,11 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
  * the outbox row, not just (order, template), so each one is sent.
  */
 export const REPEATABLE_OUTBOX_EVENTS: ReadonlySet<OutboxEventType> = new Set([
+  // "Send invoice" again on a draft is the reminder: each send goes out.
+  'draft.invoice_sent',
+  'order.edited',
+  'shipment.tracking_updated',
+  'order.link_sent',
   'order.balance_requested',
   'order.balance_reminder',
   'order.payment_reminder',
@@ -363,6 +402,8 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'return.refunded': null,
   'return.exchanged': null,
   'order.rto': 'order.rto',
+  'order.fulfillment_held': null,
+  'order.fulfillment_released': null,
   'shipment.out_for_delivery': null,
   'order.delivered': 'order.delivered',
   // The merchant's own cancel writes only this row; apps hear it as a cancel (one job per order).
@@ -371,6 +412,9 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'contact.message_received': null,
   'review.request_due': null,
   'review.replied': null,
+  'review.rewarded': null,
+  'review.question_asked': null,
+  'review.question_answered': null,
   'domain.route_requested': null,
   'domain.route_removed': null,
   'catalog.products_changed': null,
@@ -399,4 +443,7 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'pixel.connection_failed': null,
   'order.cod_confirm_requested': null,
   'order.edited': 'order.edited',
+  'order.payment_pending': null,
+  'shipment.tracking_updated': null,
+  'order.link_sent': null,
 }

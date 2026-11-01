@@ -24,6 +24,8 @@ type DeliveryMethodProps = {
   /** Delivery options app: the "Insure this shipment" checkbox, when offered. */
   insurance?: { offered: boolean; on: boolean; pricePaise: number | null } | null
   onInsurance?: (insured: boolean) => void
+  /** The address is outside India: it asks for the address, not a PIN code (#64). */
+  abroad?: boolean
 }
 
 /**
@@ -49,6 +51,7 @@ export default function DeliveryMethod({
   onRoute,
   insurance = null,
   onInsurance,
+  abroad = false,
 }: DeliveryMethodProps) {
   // Hooks
   const money = useFormatPaise()
@@ -80,7 +83,7 @@ export default function DeliveryMethod({
         ) : (
           <>
             <CheckoutIcon name="truck" className="size-4" />
-            {content.delivery.pending}
+            {abroad ? content.delivery.pendingAbroad : content.delivery.pending}
           </>
         )}
       </div>
@@ -142,7 +145,9 @@ export default function DeliveryMethod({
                   description={
                     sub?.arrives ??
                     o.arrives ??
-                    (o.dateRange ? content.rateDelivery(o.dateRange) : null)
+                    (o.dateRange ? content.rateDelivery(o.dateRange) : null) ??
+                    o.instructions ??
+                    null
                   }
                   meta={sub ? price(sub.pricePaise) : meta(o)}
                   note={o.delivery && !o.delivery.codAllowed ? appCopy.prepaidOnly : null}

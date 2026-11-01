@@ -1,4 +1,4 @@
-/** SOURCE OF TRUTH: canTakeOver, canStaffCancel, canEditOrder, editsAfterShipping — WHAT: which orders staff may take over, cancel and edit / WHY: the admin hides the actions and the server refuses them by the same rules; pure, so the browser can import it (`@commerce/core/order-edit-rules`) */
+/** SOURCE OF TRUTH: canTakeOver, canStaffCancel, canEditOrder, editsAfterShipping, canHoldFulfillment — WHAT: which orders staff may take over, cancel, edit and hold / WHY: the admin hides the actions and the server refuses them by the same rules; pure, so the browser can import it (`@commerce/core/order-edit-rules`) */
 import { UNFULFILLED_STATUSES } from './aggregate-status'
 
 type OrderFacts = { importedFrom: string | null; status: string; fulfillmentStatus: string }
@@ -21,15 +21,31 @@ export function canStaffCancel(o: OrderFacts): boolean {
 }
 
 /**
- * "Edit order": worked here (an import is taken over first) and open. A shipped order can be
- * edited too (owner decision after #923); the edit then leaves the shipment as it is, so the page
- * warns (`editsAfterShipping`). A completed or cancelled order cannot.
+ * "Edit order": worked here (an import is taken over first) and open or completed (delivered). A
+ * shipped or delivered order can be edited too (owner decision after #923, #1014): what was packed
+ * stays as it is (no fewer units, no new price), new items go out in a new parcel and the order
+ * reopens. A cancelled order cannot.
  */
 export function canEditOrder(o: OrderFacts): boolean {
-  return o.importedFrom === null && o.status === 'open'
+  return o.importedFrom === null && (o.status === 'open' || o.status === 'completed')
 }
 
 /** Everything is packed or already on its way: an edit will not change what was sent. */
 export function editsAfterShipping(o: Pick<OrderFacts, 'fulfillmentStatus'>): boolean {
   return !(UNFULFILLED_STATUSES as readonly string[]).includes(o.fulfillmentStatus)
+}
+
+/** Why staff hold an order's fulfilment (#1011); `other` leans on the note. */
+export const FULFILLMENT_HOLD_REASONS = [
+  'awaiting_stock',
+  'address_check',
+  'payment_check',
+  'customer_request',
+  'other',
+] as const
+export type FulfillmentHoldReason = (typeof FULFILLMENT_HOLD_REASONS)[number]
+
+/** "Hold fulfilment": open, worked here, and something is still left to pack. */
+export function canHoldFulfillment(o: OrderFacts): boolean {
+  return o.importedFrom === null && notShipped(o)
 }

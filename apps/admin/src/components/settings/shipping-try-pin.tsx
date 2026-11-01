@@ -22,7 +22,9 @@ function describe(copy: TryPinCopy, r: Estimate): { tone: Tone; lines: string[] 
   if (!r.serviceable) return { tone: 'warning', lines: [copy.unserviceable(r.reason)] }
   const lines = [copy.serviceable(r.dateRange, r.dispatchLabel), copy.cod(r.codAvailable)]
 
-  if (r.fallback) lines.push(copy.fallback)
+  if (r.remoteExtraDays) lines.push(copy.remote(r.remoteExtraDays))
+  // With no courier connected nothing was asked, so "did not answer" would be wrong (#104).
+  if (r.fallback) lines.push(r.provider === 'policy' ? copy.noCourier : copy.fallback)
   return { tone: r.fallback ? 'warning' : 'success', lines }
 }
 

@@ -1,22 +1,38 @@
 'use client'
 
 import { ADDRESS_LABELS } from '@commerce/core/accounts'
+import type { CheckoutFields } from '@commerce/core/checkout-settings'
 import { useRef, useState, useTransition } from 'react'
 import CheckoutField from '@/components/checkout/checkout-field'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
+import CheckoutNameFields from '@/components/checkout/checkout-name-fields'
 import CheckoutSelect from '@/components/checkout/checkout-select'
-import { checkoutContent as content } from '@/data/checkout'
+import { type CheckoutCopy, checkoutContent as content } from '@/data/checkout'
 import { INDIAN_STATES } from '@/data/indian-states'
 import { CK_LABEL } from '@/lib/checkout-classes'
 import { type CheckoutFieldErrors, cleanPincode, fieldId } from '@/lib/checkout-validation'
 import { lookupPincodeAction, type PincodePlaceView } from '@/lib/pincode-actions'
 
-type AddressKey = 'name' | 'line1' | 'line2' | 'city'
-type LeaveKey = 'name' | 'line1' | 'city' | 'pincode' | 'stateCode'
+type AddressKey = 'name' | 'lastName' | 'businessName' | 'line1' | 'line2' | 'city'
+type LeaveKey =
+  | 'name'
+  | 'lastName'
+  | 'businessName'
+  | 'line1'
+  | 'line2'
+  | 'city'
+  | 'pincode'
+  | 'stateCode'
 
 type CheckoutAddressFieldsProps = {
-  values: Record<AddressKey | 'stateCode' | 'pincode' | 'label', string>
+  values: Record<Exclude<AddressKey, 'lastName'> | 'stateCode' | 'pincode' | 'label', string> & {
+    lastName?: string | undefined
+  }
   errors: CheckoutFieldErrors
+  /** Settings → Checkout → Form fields (#154): name format, company name, address line 2. */
+  fields: CheckoutFields
+  /** The checkout's words, with the store's own wording over ours (#158). */
+  copy: CheckoutCopy
   digitalOnly: boolean
   /** "Thu, 29 Oct": when the picked option arrives at this PIN code; null until quoted. */
   deliveryBy: string | null
@@ -33,7 +49,6 @@ type CheckoutAddressFieldsProps = {
   onPlace: (place: PincodePlaceView, pincode: string) => void
 }
 
-const f = content.fields
 const tags = content.addressBook.tags
 const isFullPincode = (v: string) => /^[1-9]\d{5}$/.test(cleanPincode(v))
 const stateName = (code: string) => INDIAN_STATES.find(([c]) => c === code)?.[1] ?? code
@@ -48,6 +63,8 @@ const stateName = (code: string) => INDIAN_STATES.find(([c]) => c === code)?.[1]
 export default function CheckoutAddressFields({
   values,
   errors,
+  fields,
+  copy,
   digitalOnly,
   deliveryBy,
   unserviceable,
@@ -82,6 +99,8 @@ export default function CheckoutAddressFields({
   }
 
   // Render logic
+  const f = copy.fields
+  const line2Required = fields.line2 === 'required'
   const busy = finding || checking
   const full = isFullPincode(values.pincode)
   const filled = filledFor !== null && filledFor === cleanPincode(values.pincode)
@@ -150,16 +169,13 @@ export default function CheckoutAddressFields({
           ) : null}
         </div>
       </div>
-      <CheckoutField
-        id={fieldId('name')}
-        label={f.name}
-        required
-        autoComplete="name"
-        placeholder={f.namePlaceholder}
-        value={values.name}
-        onChange={onField('name')}
-        onBlur={() => onLeave('name')}
-        error={errors.name}
+      <CheckoutNameFields
+        values={values}
+        errors={errors}
+        fields={fields}
+        copy={copy}
+        onField={onField}
+        onLeave={onLeave}
       />
       <CheckoutField
         id={fieldId('line1')}
@@ -172,17 +188,24 @@ export default function CheckoutAddressFields({
         onBlur={() => onLeave('line1')}
         error={errors.line1}
       />
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
-        <div className="col-span-2 sm:col-span-1">
-          <CheckoutField
-            id="checkout-line2"
-            label={f.line2}
-            autoComplete="address-line2"
-            placeholder={f.line2Placeholder}
-            value={values.line2}
-            onChange={onField('line2')}
-          />
-        </div>
+      <div
+        className={`grid grid-cols-2 gap-2 sm:gap-3 ${fields.line2 === 'hidden' ? '' : 'sm:grid-cols-3'}`}
+      >
+        {fields.line2 === 'hidden' ? null : (
+          <div className="col-span-2 sm:col-span-1">
+            <CheckoutField
+              id={fieldId('line2')}
+              label={line2Required ? f.line2Required : f.line2}
+              required={line2Required}
+              autoComplete="address-line2"
+              placeholder={f.line2Placeholder}
+              value={values.line2}
+              onChange={onField('line2')}
+              onBlur={() => onLeave('line2')}
+              error={errors.line2}
+            />
+          </div>
+        )}
         <CheckoutField
           id={fieldId('city')}
           label={f.city}

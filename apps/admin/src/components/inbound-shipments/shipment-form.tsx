@@ -139,6 +139,7 @@ export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFor
 
   // Render logic
   const dirty = JSON.stringify(d) !== saved
+  const hasOrders = (shipment?.orders.length ?? 0) > 0
 
   return (
     <ProoflyPageBody>
@@ -236,9 +237,11 @@ export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFor
         open={deleting}
         onOpenChange={setDeleting}
         title={copy.confirmDelete.title}
-        body={copy.confirmDelete.body}
+        // The API refuses while purchase orders are linked: say so up front, not after confirming.
+        body={hasOrders ? copy.confirmDelete.blocked : copy.confirmDelete.body}
         confirmLabel={copy.confirmDelete.confirm}
         cancelLabel={copy.confirmDelete.cancel}
+        confirmDisabled={hasOrders}
         onConfirm={handleDelete}
       />
     </ProoflyPageBody>

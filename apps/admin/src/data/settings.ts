@@ -5,14 +5,13 @@ import {
   Bell,
   Braces,
   ClipboardList,
-  Clock,
   CreditCard,
-  Earth,
   Globe,
   Home,
   MapPinLineIcon,
   Palette,
   PlugConnect,
+  Printer,
   ReceiptIcon,
   ShieldCheck,
   ShoppingCart,
@@ -117,16 +116,10 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
         icon: Undo,
       },
       {
-        href: routes.settings.markets(),
-        title: 'Markets',
-        body: 'The countries you sell to, each with its own currency, language and web address.',
-        icon: Earth,
-      },
-      {
-        href: routes.settings.rollouts(),
-        title: 'Rollouts',
-        body: 'Theme, checkout and discount changes that go live at a set time, like a sale weekend.',
-        icon: Clock,
+        href: routes.settings.templates(),
+        title: 'Printed documents',
+        body: 'Your packing slip, pick list and invoice: edit the template, preview it, print from orders.',
+        icon: Printer,
       },
     ],
   },
@@ -221,9 +214,9 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
         icon: Braces,
       },
       {
-        // Your own light/dark and accent, plus the owner's store default accent. The account
-        // menu opens the same page under Account.
-        href: routes.settings.appearance(),
+        // Your own light/dark and accent, plus the owner's store default accent. It lives under
+        // Account only (#81); this entry is the way there from Settings.
+        href: routes.account.appearance(),
         title: 'Appearance',
         body: 'Light or dark mode and your accent colour, just for you.',
         icon: Palette,
@@ -239,6 +232,9 @@ export const settingsContent = {
   nav: {
     label: 'Settings sections',
     back: 'Settings',
+    /** Top of the settings menu that replaces the main sidebar inside Settings. */
+    exit: 'Back to admin',
+    title: 'Settings',
   },
   groups: {
     store: 'Store',
@@ -322,6 +318,14 @@ export const settingsContent = {
       { value: 'Europe/London', label: 'London (Europe/London)' },
       { value: 'America/New_York', label: 'New York (America/New_York)' },
     ],
+    /** The row list Settings → Store details opens on (#147). */
+    rows: {
+      back: 'Store details',
+      notAdded: 'Not added yet',
+      needsFix: 'Needs a fix',
+      data: 'Your store’s data',
+      dataValue: 'Export or delete',
+    },
     saved: 'Store details saved',
     failed: 'Could not save store details',
     unsaved: 'Unsaved changes',
@@ -421,4 +425,3 @@ export const settingsHomeContent = {
 } as const
 
 /** The "‹ Settings" link every settings page shows above its title. */
-export const SETTINGS_BACK = { href: SETTINGS_HOME.href, label: settingsContent.nav.back }

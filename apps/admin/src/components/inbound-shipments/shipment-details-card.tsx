@@ -3,6 +3,7 @@
 import type { InboundCarrier } from '@commerce/core/inventory'
 import { Field, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
+import DateField from '@/components/fields/date-field'
 import OptionSelect from '@/components/landed-cost/option-select'
 import DataCard from '@/components/layout/data-card'
 import {
@@ -78,11 +79,10 @@ export default function ShipmentDetailsCard({ draft, onChange }: ShipmentDetails
           </Field>
           <Field>
             <FieldLabel htmlFor="shipment-boe-date">{copy.billOfEntryDate}</FieldLabel>
-            <Input
+            <DateField
               id="shipment-boe-date"
-              type="date"
               value={draft.billOfEntryDate}
-              onChange={(e) => onChange({ billOfEntryDate: e.target.value })}
+              onChange={(v) => onChange({ billOfEntryDate: v })}
             />
           </Field>
         </div>
@@ -98,11 +98,10 @@ export default function ShipmentDetailsCard({ draft, onChange }: ShipmentDetails
           </Field>
           <Field>
             <FieldLabel htmlFor="shipment-arrived">{copy.arrivedAt}</FieldLabel>
-            <Input
+            <DateField
               id="shipment-arrived"
-              type="date"
               value={draft.arrivedAt}
-              onChange={(e) => onChange({ arrivedAt: e.target.value })}
+              onChange={(v) => onChange({ arrivedAt: v })}
             />
           </Field>
         </div>

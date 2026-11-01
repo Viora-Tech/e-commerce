@@ -18,6 +18,7 @@ import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
 import Link from 'next/link'
 import { type FormEvent, useState } from 'react'
 import { toast } from 'sonner'
+import DateField from '@/components/fields/date-field'
 import { orderDetailContent } from '@/data/order-detail'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -103,7 +104,8 @@ export default function CollectPaymentDialog({
 
   return (
     <Dialog open={order !== null} onOpenChange={(open) => (!open ? handleClose() : undefined)}>
-      <DialogContent>
+      {/* A proper width for the amount, method and date row; the default felt cramped (#126). */}
+      <DialogContent className="sm:max-w-lg">
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <DialogHeader>
             <DialogTitle>{copy.collectDialog.title}</DialogTitle>
@@ -159,12 +161,11 @@ export default function CollectPaymentDialog({
             </Field>
             <Field>
               <FieldLabel htmlFor="collect-received">{c.receivedOn}</FieldLabel>
-              <Input
+              <DateField
                 id="collect-received"
-                type="date"
                 max={todayKey()}
                 value={day}
-                onChange={(e) => setReceivedOn(e.target.value)}
+                onChange={(v) => setReceivedOn(v)}
               />
             </Field>
           </div>

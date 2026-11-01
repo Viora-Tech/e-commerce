@@ -71,6 +71,9 @@ export default function OrderReturnsCard({ orderId, readOnly, onChanged }: Order
   const openRto = state.returns.filter((r) => r.kind === 'rto' && r.status === 'received')
   const canCreate = !readOnly && state.eligibility.lines.some((l) => l.returnable > 0)
 
+  // No returns and none can be made (unshipped, imported): no empty card (audit #12).
+  if (state.returns.length === 0 && !canCreate) return null
+
   return (
     <DataCard
       title={copy.title}

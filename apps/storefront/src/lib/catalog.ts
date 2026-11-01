@@ -1,11 +1,17 @@
 import 'server-only'
 import type { CardProduct, ProductDetail } from '@commerce/blocks'
+import { campaignsByIds, soldInRequestCatalog } from '@commerce/core'
 import {
+  campaignApplies,
+  campaignColours,
+  campaignNoteSource,
   computeDepositFromSettings,
   depositPreview,
   isLaunched,
+  type PreorderCampaignTerms,
   type ProductPreorderRow,
   preorderNoteText,
+  preorderUnitPrice,
   resolvePreorderSettings,
   resolveShipDate,
 } from '@commerce/core/preorder'
@@ -37,6 +43,19 @@ function availableFor(v: {
   return Math.max(0, (v.onHand ?? 0) - (v.reserved ?? 0))
 }
 
+/**
+ * A card's variant prices when it has several priced ones (the card's "From" price, Markets ›
+ * Catalogs); undefined for one, where the card prices that variant itself.
+ */
+export function variantPrices(
+  vs: readonly { id: string; pricePaise: number | null }[],
+): { id: string; pricePaise: number }[] | undefined {
+  const priced = vs.flatMap((v) =>
+    v.pricePaise == null ? [] : [{ id: v.id, pricePaise: v.pricePaise }],
+  )
+  return priced.length > 1 ? priced : undefined
+}
+
 /** The card's "from" variant: the cheapest one with a price. Null when none has one yet (#913). */
 export function cheapestPriced<T extends { pricePaise: number | null }>(
   vs: readonly T[],
@@ -62,10 +81,15 @@ type StockRow = {
  * pre-order units (reserved beyond on_hand) haven't hit the limit; see reserveStock in
  * @commerce/core/order/place-order for the matching server-side check this only previews.
  */
-function purchasableFor(p: ProductPreorderRow, v: StockRow, launched: boolean): boolean {
+function purchasableFor(
+  p: ProductPreorderRow,
+  v: StockRow,
+  launched: boolean,
+  campaign: PreorderCampaignTerms | null = null,
+): boolean {
   if (!launched) return false
   if (availableFor(v) > 0) return true
-  const settings = resolvePreorderSettings(p, v.preorderOverride)
+  const settings = resolvePreorderSettings(p, v.preorderOverride, campaign)
   if (!settings.enabled) return false
   if (settings.limit == null) return true
   const committed = Math.max(0, (v.reserved ?? 0) - (v.onHand ?? 0))
@@ -81,13 +105,38 @@ function purchasableFor(p: ProductPreorderRow, v: StockRow, launched: boolean): 
 export function cardPreorder(
   p: ProductPreorderRow & { launchAt: Date | null },
   vs: StockRow[],
+  campaign: PreorderCampaignTerms | null = null,
 ): CardProduct['preorder'] {
   const launched = isLaunched(p.launchAt)
   if (vs.some((v) => availableFor(v) > 0)) return null
-  const v = vs.find((x) => purchasableFor(p, x, launched))
+  const v = vs.find((x) => purchasableFor(p, x, launched, campaign))
   if (!v) return null
-  return { buttonLabel: resolvePreorderSettings(p, v.preorderOverride).buttonLabel }
+  return { buttonLabel: resolvePreorderSettings(p, v.preorderOverride, campaign).buttonLabel }
 }
+
+/**
+ * The pre-order campaigns (Products › Pre-orders) of these products that sell on the online
+ * store now, keyed by campaign id. The market is left out here (pages are cached per store,
+ * not per market); the cart and checkout check it.
+ */
+export async function storefrontCampaigns(
+  tx: StoreTx,
+  campaignIds: readonly (string | null)[],
+): Promise<Map<string, PreorderCampaignTerms>> {
+  const all = await campaignsByIds(tx, campaignIds)
+  return new Map(
+    [...all].filter(([, c]) =>
+      campaignApplies(c, { marketId: undefined, channel: 'online_store' }),
+    ),
+  )
+}
+
+/** A product's campaign from `storefrontCampaigns`, or null. */
+export const campaignFor = (
+  campaigns: ReadonlyMap<string, PreorderCampaignTerms>,
+  p: { preorderCampaignId?: string | null },
+): PreorderCampaignTerms | null =>
+  p.preorderCampaignId ? (campaigns.get(p.preorderCampaignId) ?? null) : null
 
 /** Average stars and count of published reviews per product (Reviews app), for the cards. */
 export async function cardRatings(
@@ -127,6 +176,8 @@ export async function listCardProducts(
     .where(
       and(
         eq(product.status, 'active'),
+        // Markets › Catalogs: a market's catalog lists only its products.
+        soldInRequestCatalog(product.id),
         productType ? eq(product.productType, productType) : undefined,
         handles ? inArray(product.handle, handles) : undefined,
       ),
@@ -172,6 +223,10 @@ export async function listCardProducts(
     .where(and(inArray(productMedia.productId, ids), sql`${productMedia.position} < 2`))
     .orderBy(asc(productMedia.position))
   const ratings = await cardRatings(tx, ids)
+  const campaigns = await storefrontCampaigns(
+    tx,
+    products.map((p) => p.preorderCampaignId),
+  )
 
   return products.map((p) => {
     const vs = variants.filter((v) => v.productId === p.id)
@@ -187,7 +242,8 @@ export async function listCardProducts(
       available: vs.reduce((n, v) => n + availableFor(v), 0),
       // Quick add needs no choice only when there is one priced variant to add.
       quickAddVariantId: vs.length === 1 && cheapest ? (vs[0]?.id ?? null) : null,
-      preorder: cardPreorder(p, vs),
+      variantPrices: variantPrices(vs),
+      preorder: cardPreorder(p, vs, campaignFor(campaigns, p)),
       rating: ratings.get(p.id) ?? null,
       images: images
         .filter((i) => i.productId === p.id)
@@ -207,12 +263,16 @@ export async function getProductByHandle(
   /** The store's default pre-order note (`store.preorder.note`), for a product without its own. */
   storeNote: string | null = null,
 ): Promise<ProductDetail | null> {
-  const [p] = await tx
-    .select()
+  const [found] = await tx
+    .select({ p: product, soldHere: sql<boolean>`${soldInRequestCatalog(product.id)}` })
     .from(product)
     .where(and(eq(product.handle, handle), eq(product.status, 'active')))
-  if (!p) return null
+  if (!found) return null
+  const { p, soldHere } = found
+  // Outside the market's catalog (Markets › Catalogs) the page still shows, never sells.
   const launched = isLaunched(p.launchAt)
+  // Its pre-order campaign (#142): ship date, limit, button, payment and words come from it.
+  const campaign = campaignFor(await storefrontCampaigns(tx, [p.preorderCampaignId]), p)
 
   const imageRows = await tx
     .select({
@@ -304,12 +364,12 @@ export async function getProductByHandle(
 
   // A variant listed without a price (#913) is shown but never sold.
   const purchasable = (v: (typeof vs)[number]) =>
-    v.pricePaise != null && purchasableFor(p, v, launched)
+    soldHere && v.pricePaise != null && purchasableFor(p, v, launched, campaign)
 
   // Pre-order units left under the limit, beyond stock (#939); null when unlimited or off.
   const preorderRoom = (v: (typeof vs)[number]): number | null => {
     if (!v.trackInventory) return null
-    const settings = resolvePreorderSettings(p, v.preorderOverride)
+    const settings = resolvePreorderSettings(p, v.preorderOverride, campaign)
     if (!settings.enabled || settings.limit == null) return null
     const committed = Math.max(0, (v.reserved ?? 0) - (v.onHand ?? 0))
     return Math.max(0, settings.limit - committed)
@@ -318,13 +378,23 @@ export async function getProductByHandle(
   // Pre-order is per variant (product on AND the variant allows it): the product's pre-order
   // details come from the first variant that sells on pre-order, so one in-stock variant without
   // it does not hide them from the rest.
-  const preorderOf = (v: (typeof vs)[number]) => resolvePreorderSettings(p, v.preorderOverride)
+  const preorderOf = (v: (typeof vs)[number]) =>
+    resolvePreorderSettings(p, v.preorderOverride, campaign)
   const firstVariant =
     vs.find((v) => purchasable(v) && preorderOf(v).enabled) ??
     vs.find((v) => purchasable(v)) ??
     vs[0]
-  const preorderSettings = firstVariant ? preorderOf(firstVariant) : resolvePreorderSettings(p)
+  const preorderSettings = firstVariant
+    ? preorderOf(firstVariant)
+    : resolvePreorderSettings(p, null, campaign)
   const shipDate = preorderSettings.enabled ? resolveShipDate(preorderSettings) : null
+  // The campaign's pre-order price after its discount (#143), at the first variant's price.
+  const preorderPrice =
+    campaign && firstVariant?.pricePaise != null
+      ? preorderUnitPrice(firstVariant.pricePaise, campaign)
+      : null
+  // Deposits are a share of what the shopper pays: the discounted price under a campaign.
+  const depositBase = preorderPrice ?? firstVariant?.pricePaise ?? null
 
   return {
     id: p.id,
@@ -336,18 +406,32 @@ export async function getProductByHandle(
     images,
     templateSuffix: p.templateSuffix,
     launchAt: p.launchAt ? p.launchAt.toISOString() : null,
+    ...(soldHere ? {} : { notSoldHere: true }),
     preorder: preorderSettings.enabled
       ? {
           enabled: true,
           buttonLabel: preorderSettings.buttonLabel,
           shipDate: shipDate ? shipDate.toISOString() : null,
-          note: preorderNoteText({ productNote: p.preorderNote, storeNote, shipDate }),
+          note: preorderNoteText({
+            productNote: campaignNoteSource({
+              productNote: p.preorderNote,
+              own: p.preorderOwn,
+              campaign,
+              place: 'product',
+            }),
+            storeNote,
+            shipDate,
+          }),
           depositPreview:
-            firstVariant?.pricePaise != null && preorderSettings.paymentMode !== 'full'
-              ? depositPreview(
-                  computeDepositFromSettings(firstVariant.pricePaise, preorderSettings),
-                )
+            depositBase != null && preorderSettings.paymentMode !== 'full'
+              ? depositPreview(computeDepositFromSettings(depositBase, preorderSettings))
               : null,
+          badgeText: campaign?.content.badgeText?.trim() || null,
+          preorderPricePaise:
+            preorderPrice != null && preorderPrice !== firstVariant?.pricePaise
+              ? preorderPrice
+              : null,
+          colours: campaign ? campaignColours(campaign.design) : null,
         }
       : null,
     options: options

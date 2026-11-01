@@ -225,6 +225,12 @@ export const ALL_SCOPE_HANDLES = [
   'read_legal_policies',
   /** Pre-orders: Shopify's purchase options (selling plan groups). Optional. */
   'read_purchase_options',
+  /** Store settings: markets for other countries (audit #114). Optional. */
+  'read_markets',
+  /** Store settings: purchase orders (API 2026-10+; read_inventory no longer covers them). Optional. */
+  'read_inventory_purchase_orders',
+  /** Store settings: transfers between locations. Optional. */
+  'read_inventory_transfers',
 ] as const
 export type ScopeHandle = (typeof ALL_SCOPE_HANDLES)[number]
 
@@ -354,6 +360,16 @@ export type ImportStatus = {
   lastImportAt: string | null
   /** A preview under 24 hours old: the next import reads its copy instead of Shopify. */
   freshPreview: { runId: string; takenAt: string } | null
+  /**
+   * The import or preview queued or running now (newest first). Its numbers are still
+   * moving, so the page says so and links to it instead of offering another import.
+   */
+  running: {
+    runId: string
+    preview: boolean
+    status: Extract<RunStatus, 'queued' | 'running'>
+    startedAt: string
+  } | null
 }
 
 /** Which mode a saved connection authenticates with. */

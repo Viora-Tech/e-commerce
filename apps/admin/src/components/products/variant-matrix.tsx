@@ -1,38 +1,33 @@
 'use client'
 
 import { variantTitle } from '@commerce/core/catalog'
-import { Pencil } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
-import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
-import { Input } from '@commerce/ui/shadcn/input'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@commerce/ui/shadcn/table'
+import { Table, TableBody, TableHead, TableHeader, TableRow } from '@commerce/ui/shadcn/table'
 import { useState } from 'react'
-import MoneyInput from '@/components/fields/money-input'
-import StatusChip from '@/components/layout/status-chip'
 import { productFormContent } from '@/data/product-form'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { bestMargin } from '@/lib/variant-margin'
 import type { MediaItem, VariantRow } from './form-state'
+import type { ProductTax } from './product-tax'
 import { generateSku } from './sku'
 import VariantEditDialog from './variant-edit-dialog'
-import VariantImagePicker from './variant-image-picker'
-import ZeroPriceWarning from './zero-price-warning'
+import VariantGroupRow from './variant-group-row'
+import { type MatrixLine, shownIndexes } from './variant-groups'
+import VariantMatrixRow from './variant-matrix-row'
 
 type VariantMatrixProps = {
   /** The product's title, the stem of a generated SKU. */
   productTitle: string
   variants: VariantRow[]
+  /** What to draw: variant rows, flat or under group rows (`matrixLines`). */
+  lines: MatrixLine[]
   media: MediaItem[]
+  /** The product's HSN and GST rate, for the variant dialog (#63). */
+  tax: ProductTax
   selected: number[]
   onSelectedChange: (next: number[]) => void
+  onToggleGroup: (value: string) => void
   onVariant: (index: number, patch: Partial<VariantRow>) => void
   /** Files uploaded from a variant's images dialog join the product gallery. */
   onAddMedia: (items: MediaItem[]) => void
@@ -41,20 +36,27 @@ type VariantMatrixProps = {
 /** Same grid as ResourceTable: white 40px header on a hairline, rows on lighter hairlines. */
 const HEAD =
   'h-10 border-b border-border bg-muted px-3 text-table-head text-muted-foreground first:pl-5 last:pr-5'
-const CELL = 'border-b border-line px-3 py-2 text-body first:pl-5 last:pr-5'
 
-const rowKey = (v: VariantRow) => v.id ?? variantTitle(v.optionValues)
+/** Columns of the table, for a group row's summary cell to span. */
+const COLUMNS = 8
+
+const rowKey = (v: VariantRow | undefined, index: number) =>
+  v?.id ?? (v ? variantTitle(v.optionValues) : `row-${index}`)
 
 /**
- * One row per option combination, edited in place: price, MRP, SKU and stock. Rows are
- * selectable for bulk edits; Edit opens a dialog with the rest of the variant's fields.
+ * One row per option combination, edited in place: price, MRP, SKU and stock, optionally under
+ * one summary row per value of a grouped option. Rows are selectable for bulk edits; Edit opens
+ * a dialog with the rest of the variant's fields.
  */
 export default function VariantMatrix({
   productTitle,
   variants,
+  lines,
   media,
+  tax,
   selected,
   onSelectedChange,
+  onToggleGroup,
   onVariant,
   onAddMedia,
 }: VariantMatrixProps) {
@@ -62,15 +64,15 @@ export default function VariantMatrix({
   const {
     variants: { columns: copy, footer, ...variantsCopy },
     variantBulk: bulkCopy,
-    inventory: inventoryCopy,
   } = useCopy(productFormContent)
   const fmt = useFormat()
   /** The row whose dialog is open. */
   const [editing, setEditing] = useState<number | null>(null)
 
   // Event handlers
-  const handleToggleAll = (checked: boolean) => {
-    onSelectedChange(checked ? variants.map((_, i) => i) : [])
+  const handleSelectMany = (indexes: number[], checked: boolean) => {
+    const rest = selected.filter((i) => !indexes.includes(i))
+    onSelectedChange(checked ? [...rest, ...indexes] : rest)
   }
 
   const handleGenerateSku = (index: number) => {
@@ -80,13 +82,9 @@ export default function VariantMatrix({
     onVariant(index, { sku: generateSku(productTitle, row.optionValues, taken) })
   }
 
-  const handleToggleRow = (index: number, checked: boolean) => {
-    onSelectedChange(checked ? [...selected, index] : selected.filter((i) => i !== index))
-  }
-
   // Render logic
-  const allSelected = variants.length > 0 && selected.length === variants.length
-  const units = variants.reduce((sum, v) => sum + (Number(v.quantity) || 0), 0)
+  const shown = shownIndexes(lines)
+  const allSelected = shown.length > 0 && shown.every((i) => selected.includes(i))
   const best = bestMargin(variants)
 
   return (
@@ -98,7 +96,7 @@ export default function VariantMatrix({
               <Checkbox
                 aria-label={bulkCopy.selectAll}
                 checked={allSelected}
-                onCheckedChange={(v) => handleToggleAll(Boolean(v))}
+                onCheckedChange={(v) => handleSelectMany(shown, Boolean(v))}
               />
             </TableHead>
             <TableHead className={cn(HEAD, 'w-16')}>{bulkCopy.image}</TableHead>
@@ -113,109 +111,46 @@ export default function VariantMatrix({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {variants.map((v, i) => {
-            const title = variantTitle(v.optionValues)
+          {lines.map((line) => {
+            if (line.kind === 'group') {
+              return (
+                <VariantGroupRow
+                  key={`group-${line.group.value}`}
+                  group={line.group}
+                  open={line.open}
+                  columns={COLUMNS}
+                  selectedCount={line.group.indexes.filter((i) => selected.includes(i)).length}
+                  onToggle={() => onToggleGroup(line.group.value)}
+                  onSelect={(checked) => handleSelectMany(line.group.indexes, checked)}
+                />
+              )
+            }
+            const v = variants[line.index]
+            if (!v) return null
             return (
-              <TableRow key={rowKey(v)} className="border-0 hover:bg-transparent">
-                <TableCell className={CELL}>
-                  <Checkbox
-                    aria-label={bulkCopy.selectOne(title)}
-                    checked={selected.includes(i)}
-                    onCheckedChange={(checked) => handleToggleRow(i, Boolean(checked))}
-                  />
-                </TableCell>
-                <TableCell className={CELL}>
-                  <VariantImagePicker
-                    media={media}
-                    mediaIds={v.mediaIds}
-                    label={title}
-                    onChange={(mediaIds) => onVariant(i, { mediaIds })}
-                    onAddMedia={onAddMedia}
-                  />
-                </TableCell>
-                <TableCell className={cn(CELL, 'font-medium text-ink-strong')}>
-                  <span className="flex min-w-0 items-center gap-2">
-                    <span className="truncate">{title}</span>
-                    {v.hiddenOnStore ? (
-                      <StatusChip tone="neutral" variant="outline">
-                        {variantsCopy.hidden}
-                      </StatusChip>
-                    ) : null}
-                    {v.preorderAllowed ? null : (
-                      <StatusChip tone="neutral" variant="outline">
-                        {variantsCopy.noPreorder}
-                      </StatusChip>
-                    )}
-                  </span>
-                </TableCell>
-                <TableCell className={CELL}>
-                  <MoneyInput
-                    aria-label={`${copy.price} ${title}`}
-                    value={v.price}
-                    onChange={(price) => onVariant(i, { price })}
-                  />
-                  <ZeroPriceWarning variant={v} className="mt-0.5" />
-                </TableCell>
-                <TableCell className={CELL}>
-                  <MoneyInput
-                    aria-label={`${copy.mrp} ${title}`}
-                    value={v.mrp}
-                    onChange={(mrp) => onVariant(i, { mrp })}
-                  />
-                </TableCell>
-                <TableCell className={CELL}>
-                  <div className="flex items-center gap-1">
-                    <Input
-                      aria-label={`${copy.sku} ${title}`}
-                      value={v.sku}
-                      onChange={(e) => onVariant(i, { sku: e.target.value })}
-                      autoComplete="off"
-                    />
-                    {v.sku.trim() ? null : (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="shrink-0"
-                        onClick={() => handleGenerateSku(i)}
-                        title={inventoryCopy.skuGenerateHelp}
-                        aria-label={`${inventoryCopy.skuGenerate} ${copy.sku} ${title}`}
-                      >
-                        {inventoryCopy.skuGenerate}
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell className={CELL}>
-                  <MoneyInput
-                    aria-label={`${copy.available} ${title}`}
-                    currency={false}
-                    className="[&_input]:text-center"
-                    value={v.quantity}
-                    disabled={!v.trackInventory}
-                    onChange={(quantity) => onVariant(i, { quantity })}
-                  />
-                </TableCell>
-                <TableCell className={cn(CELL, 'text-right')}>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setEditing(i)}
-                    aria-label={variantsCopy.editVariant(title)}
-                  >
-                    <Pencil aria-hidden="true" />
-                    {variantsCopy.edit}
-                  </Button>
-                </TableCell>
-              </TableRow>
+              <VariantMatrixRow
+                key={rowKey(v, line.index)}
+                variant={v}
+                media={media}
+                nested={line.nested}
+                selected={selected.includes(line.index)}
+                onSelect={(checked) => handleSelectMany([line.index], checked)}
+                onChange={(patch) => onVariant(line.index, patch)}
+                onGenerateSku={() => handleGenerateSku(line.index)}
+                onEdit={() => setEditing(line.index)}
+                onAddMedia={onAddMedia}
+              />
             )
           })}
         </TableBody>
       </Table>
-      <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-caption text-muted-foreground">
-        <span>{footer.stockAcross(units, variants.length)}</span>
-        {best ? (
+      {lines.length === 0 ? (
+        <p className="px-5 py-6 text-center text-body text-muted-foreground">
+          {variantsCopy.noMatches}
+        </p>
+      ) : null}
+      {best ? (
+        <div className="flex flex-wrap items-center justify-end gap-2 px-5 py-3 text-caption text-muted-foreground">
           <span>
             {footer.marginOn(
               `${best.profit.pct}%`,
@@ -223,8 +158,8 @@ export default function VariantMatrix({
               variantTitle(best.variant.optionValues),
             )}
           </span>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
       {editing !== null ? (
         <VariantEditDialog
           key={editing}
@@ -234,6 +169,7 @@ export default function VariantMatrix({
           onSave={onVariant}
           onMove={setEditing}
           onClose={() => setEditing(null)}
+          tax={tax}
         />
       ) : null}
     </div>

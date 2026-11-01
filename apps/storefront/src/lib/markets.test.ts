@@ -239,6 +239,7 @@ describe('marketHeaders → liquidMarketFor', () => {
       'x-market-country': 'OM',
       'x-market-prefix': '/ar-ae',
       'x-market-countries': 'IN,AE,OM,QA,US,CA,FR,DE',
+      'x-market-country-currencies': 'IN:INR,AE:AED,OM:AED,QA:AED,US:USD,CA:USD,FR:EUR,DE:EUR',
       'x-market-languages': 'en=/ae,ar=/ar-ae',
     })
     expect(liquidMarketFor(h)).toEqual({
@@ -252,6 +253,16 @@ describe('marketHeaders → liquidMarketFor', () => {
         ],
         country: 'OM',
         countries: ['IN', 'AE', 'OM', 'QA', 'US', 'CA', 'FR', 'DE'],
+        currencies: {
+          IN: 'INR',
+          AE: 'AED',
+          OM: 'AED',
+          QA: 'AED',
+          US: 'USD',
+          CA: 'USD',
+          FR: 'EUR',
+          DE: 'EUR',
+        },
         prefix: '/ar-ae',
       },
       key: 'gulf:ar:OM:/ar-ae',

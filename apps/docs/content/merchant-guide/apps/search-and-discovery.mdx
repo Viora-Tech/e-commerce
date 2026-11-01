@@ -1,11 +1,34 @@
 ---
 title: Search & discovery
-description: Synonyms for your store search, and the filters shoppers see on collection and search pages.
+description: See what shoppers search for, pin and boost products in search, pick product recommendations, add synonyms and choose the filters on collection and search pages.
 ---
 
 # Search & discovery
 
-Install **Search & discovery** from the App store. It has two pages.
+Install **Search & discovery** from the App store. It has five pages: Overview, Synonyms,
+Filters, Boosts and Recommendations.
+
+## Overview
+
+What shoppers search for on your store and what happens next, for the last 7, 30 or 90 days,
+compared with the period before.
+
+- **Search funnel**: sessions that searched, then clicked a result, added a product to the cart
+  and placed an order. A step counts when it comes within 30 minutes of the step before.
+- **Top searches**: the most searched words, with how many products they found and how often
+  shoppers clicked a result.
+- **Searches with no results**: shoppers looked for something and found nothing. Click
+  **Add synonym** to tie their word to one your products use (Synonyms opens with the word
+  ready), or **Pin a product** to show a product for it anyway.
+- **Searches with no clicks**: the search found products but nobody clicked one. Usually the
+  best match is missing from the top: **Pin a product**.
+- **Recommendations**: how often the "You may also like" and "Pairs well with" rows on product
+  pages were seen, clicked, and led to an add to cart.
+
+Only shoppers who allow analytics in the cookie banner are counted. The log keeps the search
+words (never ones that look like an email address or a phone number), how many products were
+found, and an anonymous browser code. No names, no IP addresses. Entries are deleted after
+90 days.
 
 ## Synonyms
 
@@ -32,3 +55,30 @@ on a page is hidden there. **Use default filters** goes back to the default list
 
 The same list drives our themes and imported Shopify themes (`collection.filters` and
 `search.filters`).
+
+## Boosts
+
+Put the right products first in search results.
+
+- **Pinned products**: click **Pin products**, type a search (capitals, extra spaces and a
+  question mark do not matter) and choose up to 10 products in order. For that search they show
+  first, even when its words would not find them. Up to 200 searches can have pins.
+- **Boost and bury**: products with a tag, product type or vendor move up (**Boost**) or go to the
+  end (**Bury**) in every search. The value must match the product exactly, so pick it from the
+  list. A boosted product climbs past weaker matches; a buried one always comes after the rest.
+  Up to 50 rules.
+
+Boosts change the order only when results are sorted by relevance (the default); sorting by
+price or name ignores them. Collection pages are not affected.
+
+## Recommendations
+
+Choose the products shown under a product page: **You may also like** (similar items, other
+colours or sizes) and **Pairs well with** (add-ons, accessories, refills). Click
+**Choose a product**, then **Add products** in either row, order them with the arrows and click
+**Save**. Up to 10 per row.
+
+Your picks show first, then the store fills the row by itself (products from the same
+collections, type, brand and tags, then best sellers). Draft and archived picks are skipped on
+the store. Picks brought over from a Shopify import still work until you save your own for that
+row. Imported Shopify themes use the same picks.

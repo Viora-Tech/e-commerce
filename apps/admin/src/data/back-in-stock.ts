@@ -18,6 +18,13 @@ export const backInStockContent = {
     title: 'Signups',
     subtitle: 'Everyone who asked to be notified.',
     empty: 'No signups yet.',
+    restockTags: 'Bring over restock tags',
+    restockTagsBusy: 'Bringing over…',
+    restockTagsDone: (added: number, unmatched: number) =>
+      `${added} ${added === 1 ? 'signup' : 'signups'} added from customers tagged restock-…` +
+      (unmatched > 0
+        ? `; ${unmatched} ${unmatched === 1 ? 'tag names' : 'tags name'} a product not here.`
+        : '.'),
     resource: { singular: 'signup', plural: 'signups' },
     columns: {
       variant: 'Variant',

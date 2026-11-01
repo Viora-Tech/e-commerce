@@ -409,6 +409,9 @@ export const customizeContent = {
     showChildren: (name: string) => `Show what is inside ${name}`,
     hideChildren: (name: string) => `Hide what is inside ${name}`,
     moveOut: (parent: string) => `Move out of ${parent}`,
+    /** The ⋯ menu's keyboard-free reorder, beside drag (audit #196). */
+    moveUpItem: 'Move up',
+    moveDownItem: 'Move down',
     saveAsSection: 'Save as my section',
   },
   mySections: {

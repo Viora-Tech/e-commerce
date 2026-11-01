@@ -12,11 +12,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@better-auth/passkey": "1.7.6",
+    "@better-auth/passkey": "1.7.14",
     "@commerce/config": "workspace:*",
     "@commerce/db": "workspace:*",
     "@commerce/observability": "workspace:*",
-    "better-auth": "1.7.6",
+    "@simplewebauthn/server": "13.3.3",
+    "better-auth": "1.7.14",
     "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {

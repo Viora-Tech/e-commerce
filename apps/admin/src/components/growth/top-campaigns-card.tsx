@@ -12,7 +12,7 @@ import {
 } from '@commerce/ui/shadcn/table'
 import Link from 'next/link'
 import { growthOverviewContent } from '@/data/growth'
-import { formatPaise } from '@/lib/money'
+import { formatPaiseWhole } from '@/lib/money'
 
 type TopCampaignsCardProps = { rows: CampaignRow[] }
 
@@ -70,7 +70,7 @@ export default function TopCampaignsCard({ rows }: TopCampaignsCardProps) {
                   {formatNumber(row.orders)}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
-                  {formatPaise(row.salesPaise)}
+                  {formatPaiseWhole(row.salesPaise)}
                 </TableCell>
               </TableRow>
             ))}

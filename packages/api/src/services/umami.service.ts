@@ -3,6 +3,7 @@ import {
   decryptSecret,
   encryptSecret,
   parseAppsSettings,
+  recordAppActivity,
   storefrontOriginFor,
   withAppSettings,
 } from '@commerce/core'
@@ -145,6 +146,9 @@ export async function testUmami(
   const { settings } = await loadRow(tx, storeId)
   if (!isWebsiteId(settings.websiteId)) throw badRequest('Add the Umami website id first.')
   const website = await clientFor(settings, env).website(settings.websiteId).catch(umamiFailure)
+  await recordAppActivity(tx, storeId, UMAMI_ID, `Connected to ${website.name}`, {
+    clearError: true,
+  })
   return { name: website.name, domain: website.domain }
 }
 
@@ -194,6 +198,11 @@ export async function umamiReportFor(
       { startAt: range.from.getTime(), endAt: range.to.getTime() - 1, days: range.days },
       TIMEZONE,
     )
+    // Reading visits is this app's use: the Installed apps list shows it as last activity.
+    await recordAppActivity(tx, storeId, UMAMI_ID, 'Read visits for Analytics', {
+      clearError: true,
+      now,
+    })
     return {
       state: 'ready',
       range: {

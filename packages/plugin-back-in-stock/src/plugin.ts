@@ -1,5 +1,7 @@
 import { definePlugin } from '@commerce/plugins'
+import { desc, eq } from 'drizzle-orm'
 import { backInStockBlocks } from './blocks'
+import { backInStockSignup } from './schema'
 
 export const BACK_IN_STOCK_ID = 'back-in-stock'
 
@@ -50,6 +52,16 @@ export const backInStockPlugin = definePlugin({
       },
     ],
     summary: 'sends emails',
+  },
+  // The newest backInStockSignup is the app's last use, for the Installed apps list.
+  lastUsed: async (tx, storeId) => {
+    const [row] = await tx
+      .select({ at: backInStockSignup.createdAt })
+      .from(backInStockSignup)
+      .where(eq(backInStockSignup.storeId, storeId))
+      .orderBy(desc(backInStockSignup.createdAt))
+      .limit(1)
+    return row ? { at: row.at, summary: 'Got a Notify me signup' } : null
   },
   provides: {},
   storefront: { blocks: backInStockBlocks },

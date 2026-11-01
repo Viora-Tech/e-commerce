@@ -106,7 +106,7 @@ export default function AgenticOverviewPage({ data }: AgenticOverviewPageProps) 
           {
             id: 'revenue',
             label: copy.stats.revenue,
-            value: format.money(totals.revenuePaise),
+            value: format.moneyWhole(totals.revenuePaise),
             trend: percent(totals.revenuePaise, totals.prevRevenuePaise),
             trendNote: shared.vsLast,
           },

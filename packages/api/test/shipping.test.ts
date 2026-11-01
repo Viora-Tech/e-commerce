@@ -140,3 +140,30 @@ describe('shipping zones router', () => {
     ).rejects.toMatchObject({ code: 'FORBIDDEN' })
   })
 })
+
+describe('ship-from PIN code (audit #66)', () => {
+  it('never saves the 110001 placeholder for a store that did not set its PIN', async () => {
+    const a = await merchant('pin@example.com', 'ship-pin')
+    const loaded = await call(appRouter.store.getShipping, undefined, { context: a.ctx })
+    expect(loaded.originSaved).toBe(false)
+
+    // Saving other settings with the placeholder showing: the PIN stays unset.
+    await call(appRouter.store.updateShipping, loaded.settings, { context: a.ctx })
+    const after = await call(appRouter.store.getShipping, undefined, { context: a.ctx })
+    expect(after.originSaved).toBe(false)
+
+    // The merchant types their PIN: now it is saved.
+    await call(
+      appRouter.store.updateShipping,
+      {
+        ...after.settings,
+        policy: { ...after.settings.policy, originPincode: '560001' },
+        originPincodeSet: true,
+      },
+      { context: a.ctx },
+    )
+    const set = await call(appRouter.store.getShipping, undefined, { context: a.ctx })
+    expect(set.originSaved).toBe(true)
+    expect(set.settings.policy.originPincode).toBe('560001')
+  })
+})

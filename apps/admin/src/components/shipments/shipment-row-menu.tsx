@@ -77,45 +77,52 @@ export default function ShipmentRowMenu({ row, onChanged }: ShipmentRowMenuProps
 
   return (
     <>
-      <RowMenu
-        items={[
-          {
-            label: details.open,
-            icon: PackageCheck,
-            hidden: !booked,
-            onSelect: () => setShowDetails(true),
-          },
-          { label: copy.menu.viewOrder, href: routes.orders.detail(row.orderId), icon: AppWindow },
-          {
-            label: copy.menu.label,
-            href: row.labelUrl ?? undefined,
-            icon: Printer,
-            newTab: true,
-            hidden: !row.labelUrl || row.status === 'cancelled',
-          },
-          {
-            label: copy.menu.track,
-            href: row.trackingUrl ?? undefined,
-            icon: Truck,
-            newTab: true,
-            hidden: !row.trackingUrl,
-          },
-          {
-            label: actions.refreshTracking,
-            icon: RefreshCw,
-            hidden: !trackable,
-            onSelect: handleRefresh,
-          },
-          {
-            label: list.row.cancelShipment,
-            icon: CancelCircle,
-            destructive: true,
-            separatorBefore: true,
-            hidden: row.status !== CANCELLABLE || !row.courierCancels,
-            onSelect: () => setConfirmCancel(true),
-          },
-        ]}
-      />
+      {/* To book, the menu held only "View order", which the row itself opens (audit #41). */}
+      {booked ? (
+        <RowMenu
+          items={[
+            {
+              label: details.open,
+              icon: PackageCheck,
+              hidden: !booked,
+              onSelect: () => setShowDetails(true),
+            },
+            {
+              label: copy.menu.viewOrder,
+              href: routes.orders.detail(row.orderId),
+              icon: AppWindow,
+            },
+            {
+              label: copy.menu.label,
+              href: row.labelUrl ?? undefined,
+              icon: Printer,
+              newTab: true,
+              hidden: !row.labelUrl || row.status === 'cancelled',
+            },
+            {
+              label: copy.menu.track,
+              href: row.trackingUrl ?? undefined,
+              icon: Truck,
+              newTab: true,
+              hidden: !row.trackingUrl,
+            },
+            {
+              label: actions.refreshTracking,
+              icon: RefreshCw,
+              hidden: !trackable,
+              onSelect: handleRefresh,
+            },
+            {
+              label: list.row.cancelShipment,
+              icon: CancelCircle,
+              destructive: true,
+              separatorBefore: true,
+              hidden: row.status !== CANCELLABLE || !row.courierCancels,
+              onSelect: () => setConfirmCancel(true),
+            },
+          ]}
+        />
+      ) : null}
       <ConfirmDialog
         open={confirmCancel}
         onOpenChange={setConfirmCancel}

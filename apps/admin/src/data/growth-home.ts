@@ -7,6 +7,8 @@ export const AUTOPILOT_DOCS_URL = `${siteConfig.urls.docs}/merchant-guide/growth
 
 export const growthHomeContent = {
   title: 'Growth',
+  /** The page header's line (audit #52). */
+  summary: 'How marketing brings visits and sales, and what to try next.',
   hero: {
     title: 'Campaign Autopilot',
     body: 'Campaign Autopilot plans campaigns for your store on email, from cart reminders to festive sales, and keeps refining the plan while you stay in control.',
@@ -21,6 +23,9 @@ export const growthHomeContent = {
   performance: {
     title: 'Performance',
     viewDetails: 'View details',
+    /** The charts live on Attribution only (audit #152). */
+    more: 'Sales over time, channels and traffic types are on Attribution.',
+    open: 'Open Attribution',
   },
   attributed: {
     label: 'Sales attributed to marketing',

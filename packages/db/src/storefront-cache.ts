@@ -27,6 +27,10 @@ export const STOREFRONT_CACHE_TABLES = [
   'back_in_stock_settings',
   'blog',
   'business',
+  'catalog',
+  'catalog_collection',
+  'catalog_price',
+  'catalog_product',
   'collection',
   'collection_product',
   'discount',
@@ -45,12 +49,26 @@ export const STOREFRONT_CACHE_TABLES = [
   'page',
   // Pixels app: the pixel ids the storefront initialises (0164).
   'pixel_connection',
+  // Pre-orders (0208, trigger 0212): campaign button, badge, price and notes.
+  'preorder_campaign',
   'product',
   'product_media',
   'product_option',
   'product_option_value',
+  // Search & discovery (0209): hand-picked recommendations, search pins and boosts.
+  'product_recommendation',
   'review',
   'review_media',
+  // Reviews app (0203): the AI summary and answered questions on product pages.
+  'review_question',
+  'review_summary',
+  // A/B rollouts (0210): a running test picks the theme its Treatment visitors see.
+  'rollout',
+  'search_boost',
+  'search_pin',
+  // Shipping profiles: which rates the cart's free-shipping line reads (0193).
+  'shipping_profile',
+  'shipping_profile_product',
   'shipping_rate',
   'shipping_zone',
   'store_domain',
@@ -115,7 +133,14 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   customer_segment: ADMIN,
   customer_session: SHOPPER,
   data_request: SHOPPER,
+  // Search & discovery (0209): search and recommendation events for the app's Overview.
+  discovery_event: LOG,
   discount_usage: LOG,
+  document_template: ADMIN,
+  home_card: ADMIN,
+  home_card_run: LOG,
+  media_folder: ADMIN,
+  web_vital: LOG,
   experiment_event: LOG,
   fulfillment_order: SHOPPER,
   fulfillment_order_line: SHOPPER,
@@ -125,6 +150,7 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   inbox_ai_event: ADMIN,
   inbox_block: ADMIN,
   inbox_conversation: 'chat threads load in the widget, never in a cached page',
+  inbox_knowledge: ADMIN,
   inbox_message: 'chat messages load in the widget, never in a cached page',
   inbox_quick_reply: ADMIN,
   inventory_adjustment: LOG,
@@ -141,6 +167,8 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   marketing_email_template: ADMIN,
   marketing_message: SHOPPER,
   marketing_session: SHOPPER,
+  // Browse abandonment (0201): which products a known shopper looked at; no page shows it.
+  product_view: SHOPPER,
   member_push_subscription: ADMIN,
   newsletter_signup: SHOPPER,
   notification: SHOPPER,
@@ -188,7 +216,8 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   role_approval: ADMIN,
   role_permission: ADMIN,
   // The changes a rollout applies (theme, discounts, checkout) write their own tables, which notify.
-  rollout: ADMIN,
+  // An A/B rollout's start and end write `rollout`, which is a page table (0210).
+  rollout_ab_event: LOG,
   rollout_change: ADMIN,
   saved_report: ADMIN,
   search_console_row: ADMIN,

@@ -8,6 +8,7 @@ import FallbackImage from '@/components/layout/fallback-image'
 import { mediaContent } from '@/data/media'
 import { useCopy } from '@/hooks/use-copy'
 import { contentTypeOf } from './file-meta'
+import MediaAltCell from './media-alt-cell'
 import type { MediaTileAction } from './media-tile'
 import { tileImageUrls } from './tile-sources'
 import type { PendingUpload } from './use-upload-queue'
@@ -31,16 +32,30 @@ export type MediaFileRow = {
 type MediaFileRowsProps = {
   rows: MediaFileRow[]
   pending: PendingUpload[]
+  /** Turns on the alt text column, edited in place (#91). */
+  onAltSaved?: ((id: string, alt: string | null) => void) | undefined
 }
 
 /** The Files library as a list: thumbnail, name and alt, size and use, and the same ⋯ menu as a tile. */
-export default function MediaFileRows({ rows, pending }: MediaFileRowsProps) {
+export default function MediaFileRows({ rows, pending, onAltSaved }: MediaFileRowsProps) {
   // Hooks
   const copy = useCopy(mediaContent)
 
   // Render logic
   return (
     <ul className="flex flex-col">
+      {onAltSaved && rows.length > 0 ? (
+        <li
+          aria-hidden="true"
+          className="hidden items-center gap-3 border-b border-line bg-muted px-4 py-2 text-table-head text-muted-foreground md:flex"
+        >
+          <span className="w-12 shrink-0" />
+          <span className="min-w-0 flex-1">{copy.library.nameColumn}</span>
+          <span className="w-64 shrink-0">{copy.library.altColumn}</span>
+          <span className="w-40 shrink-0" />
+          <span className="w-7 shrink-0" />
+        </li>
+      ) : null}
       {pending.map((p) => (
         <li key={p.key} className="flex items-center gap-3 border-b border-line px-4 py-2.5">
           <span className="flex size-12 shrink-0 overflow-hidden rounded-md border bg-muted">
@@ -86,11 +101,28 @@ export default function MediaFileRows({ rows, pending }: MediaFileRowsProps) {
             </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-body text-ink-strong">{row.name}</span>
-              {row.alt && row.alt.trim() !== row.name.trim() ? (
+              {!onAltSaved && row.alt && row.alt.trim() !== row.name.trim() ? (
                 <span className="block truncate text-caption text-muted-foreground">{row.alt}</span>
               ) : null}
             </span>
-            <span className="hidden shrink-0 text-caption text-muted-foreground sm:block">
+            {onAltSaved ? (
+              <span className="hidden w-64 shrink-0 md:block">
+                <MediaAltCell
+                  key={`${row.id}-${row.alt ?? ''}`}
+                  id={row.id}
+                  name={row.name}
+                  alt={row.alt}
+                  onSaved={onAltSaved}
+                />
+              </span>
+            ) : null}
+            <span
+              className={
+                onAltSaved
+                  ? 'hidden w-40 shrink-0 truncate text-caption text-muted-foreground sm:block'
+                  : 'hidden shrink-0 text-caption text-muted-foreground sm:block'
+              }
+            >
               {row.meta}
             </span>
             <ActionMenu

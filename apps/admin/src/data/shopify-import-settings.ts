@@ -75,6 +75,22 @@ export const shopifyImportSettingsContent = {
       title: 'Extra field definitions',
       body: 'Extra fields on products, variants, collections, customers and orders, where the field type exists here.',
     },
+    segments: {
+      title: 'Customer segments',
+      body: 'Your saved customer groups, rebuilt from their rules: tags, orders, amount spent, email subscription and last order. Ones that use other filters are listed for you to make here.',
+    },
+    markets: {
+      title: 'Markets',
+      body: 'Your markets for other countries, with their currency, languages, subfolder and price adjustment. Drafts on Shopify come over switched off. India stays your primary market.',
+    },
+    purchase_orders: {
+      title: 'Purchase orders',
+      body: 'Your purchase orders in rupees, with their supplier, destination and products. Suppliers are matched by name or added. What is still on order shows as incoming; stock you have is not changed. Import products first.',
+    },
+    transfers: {
+      title: 'Transfers',
+      body: 'Stock moves between your locations, as drafts, in transit or received. Stock you have is not changed; units in transit show as incoming at the destination. Import products first.',
+    },
   } satisfies Record<SettingsPart, { title: string; body: string }>,
   state: {
     ready: 'Changes to bring over',
@@ -108,6 +124,8 @@ export const shopifyImportSettingsContent = {
     timezone: 'Time zone',
     weight_unit: 'Weight unit',
     money_format: 'Price format',
+    home_seo_title: 'Home page title (search results)',
+    home_seo_description: 'Home page description (search results)',
     prices_include_tax: 'Prices include tax',
     gstin: 'GST number',
     location: 'Location',
@@ -116,6 +134,10 @@ export const shopifyImportSettingsContent = {
     packages: 'Packages',
     policy: 'Policy',
     field: 'Extra field',
+    segment: 'Customer segment',
+    market: 'Market',
+    purchase_order: 'Purchase order',
+    transfer: 'Transfer',
   } satisfies Record<SettingsSubject, string>,
   owners: {
     product: 'Products',
@@ -164,15 +186,15 @@ export const shopifyImportSettingsContent = {
     zone_no_rates: (v: ReasonValues) =>
       `${v.name} has no rates that could come over, so it was not created.`,
     unknown_state: (v: ReasonValues) => `${v.detail} in ${v.name} is not an Indian state here.`,
-    product_profile: (v: ReasonValues) =>
-      `${v.name} has rates for some products only. Rates here apply to every product.`,
+    profile_products_missing: (v: ReasonValues) =>
+      `${v.detail} products of ${v.name} are not imported yet. Import products, then import settings again to add them.`,
     carrier_rates: (v: ReasonValues) =>
       `${v.name} is calculated live by ${v.detail || 'a carrier'}. Connect a courier here instead.`,
     mixed_conditions: (v: ReasonValues) =>
       `${v.name} depends on order value and weight at once. Rates here use one or the other.`,
     rate_currency: (v: ReasonValues) => `${v.name} is priced in ${v.detail}.`,
     packages_not_shared: () =>
-      'Shopify does not share saved packages with apps. Add your box sizes in Settings › Shipping.',
+      'Shopify does not share saved packages with apps. Add your boxes and envelopes in Settings › Shipping › Packages.',
     policy_type: (v: ReasonValues) =>
       `${v.name} has no page here. Copy it into a page if you need it.`,
     policy_images: (v: ReasonValues) =>
@@ -184,6 +206,24 @@ export const shopifyImportSettingsContent = {
       `${v.name} already exists here as another type, so yours was kept.`,
     owner_access: (v: ReasonValues) =>
       `Extra fields on ${v.name.toLowerCase()} could not be read: ${v.detail}`,
+    segment_rule: (v: ReasonValues) =>
+      `${v.name} uses a filter that has no match here (${v.detail}). Make it in Customers › Segments.`,
+    market_countries: (v: ReasonValues) =>
+      `${v.name} has no country we know, so it was not brought over. Make it in Markets.`,
+    market_country_taken: (v: ReasonValues) =>
+      `Another market here already sells to ${v.detail}, so ${v.name} was not brought over. Change it in Markets.`,
+    stock_products_missing: (v: ReasonValues) =>
+      `${v.name} has ${v.detail} ${v.detail === '1' ? 'product' : 'products'} not imported here yet. Import products, then check again.`,
+    stock_location_missing: (v: ReasonValues) =>
+      `${v.name} uses the location ${v.detail || 'that was deleted on Shopify'}, which is not here. Bring Locations over, then check again.`,
+    po_currency: (v: ReasonValues) =>
+      `${v.name} is in ${v.detail}, and Shopify gives no exchange rate. Make it in Purchase orders.`,
+    po_receipts: (v: ReasonValues) =>
+      `Some of ${v.name} was already received on Shopify, and that stock came over with your products. Receive only what is still to come.`,
+    transfer_status: (v: ReasonValues) =>
+      `${v.name} is ${v.detail} on Shopify, so it was not brought over.`,
+    transfer_origin: (v: ReasonValues) =>
+      `${v.name} has no location to send from (a purchase order's receipt), so it was not brought over.`,
   } satisfies Record<SettingsReason, (v: ReasonValues) => string>,
   fixHref: {
     store: '/settings/store',
@@ -193,5 +233,9 @@ export const shopifyImportSettingsContent = {
     packages: '/settings/shipping',
     policies: '/settings/policies',
     fields: '/settings/custom-data',
+    segments: '/customers/segments',
+    markets: '/markets',
+    purchase_orders: '/stock/purchase-orders',
+    transfers: '/stock/transfers',
   } satisfies Record<SettingsPart, string>,
 } as const

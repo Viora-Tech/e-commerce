@@ -29,7 +29,7 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'Setup checklist',
     where: 'Settings',
-    href: '/settings',
+    href: routes.settings.home(),
     keywords: ['start', 'setup', 'getting started', 'progress', 'todo', 'launch', 'go live'],
   },
   // Store › Store details
@@ -61,7 +61,7 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'GST numbers',
     where: 'Taxes & GST › GST & invoices',
-    href: '/settings/taxes',
+    href: '/settings/taxes?open=gst-numbers',
     keywords: [
       'gst',
       'gstin',
@@ -81,63 +81,82 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'Tax rules: GST rate and legal name',
     where: 'Taxes & GST › GST & invoices',
-    href: '/settings/taxes?tab=tax-rules',
+    href: '/settings/taxes?open=registration',
     keywords: ['tax rate', 'gst rate', 'legal name', 'registered address', 'tax rules'],
   },
   {
     title: 'Prices include GST',
     where: 'Taxes & GST › GST & invoices',
-    href: '/settings/taxes?tab=tax-rules#charging',
+    href: '/settings/taxes?open=charging',
     keywords: ['inclusive', 'exclusive', 'mrp', 'tax included', 'hsn', 'composition', 'rate'],
   },
   {
     title: 'Invoice numbers',
     where: 'Taxes & GST › GST & invoices',
-    href: '/settings/taxes?tab=invoices#invoice-numbers',
+    href: '/settings/taxes?open=invoice-numbers',
     keywords: ['invoice', 'invoice number', 'prefix', 'series', 'financial year', 'bill number'],
   },
   {
     title: 'E-invoicing (IRN)',
     where: 'Taxes & GST › GST & invoices',
-    href: '/settings/taxes?tab=invoices#e-invoice',
+    href: '/settings/taxes',
     keywords: ['e-invoice', 'einvoice', 'irn', 'irp', 'qr code', 'e invoice'],
   },
   // Store › Locations & warehouses
   {
     title: 'Locations & warehouses',
     where: 'Store',
-    href: '/settings/locations',
+    href: routes.settings.locations(),
     keywords: ['warehouse', 'godown', 'location', 'bills under', 'dispatch from'],
   },
   // Payments
   {
     title: 'Payments',
     where: 'Selling',
-    href: '/settings/payments',
+    href: routes.settings.payments(),
     keywords: ['payment', 'get paid', 'money', 'gateway', 'checkout', 'pay'],
   },
   {
     title: 'UPI',
     where: 'Selling › Payments',
-    href: '/settings/payments',
+    href: '/settings/payments?open=methods',
     keywords: ['upi', 'gpay', 'google pay', 'phonepe', 'paytm', 'bhim', 'qr', 'qr code'],
   },
   {
     title: 'Turn cash on delivery on or off',
     where: 'Selling › Payments',
-    href: '/settings/payments',
+    href: '/settings/payments?open=manual',
     keywords: ['cod', 'cash', 'cash on delivery', 'pay on delivery'],
   },
   {
     title: 'Razorpay, Cashfree and other payment companies',
     where: 'Selling › Payments',
-    href: '/settings/payments',
+    href: '/settings/payments?open=providers',
     keywords: ['razorpay', 'cashfree', 'decentro', 'card', 'cards', 'netbanking', 'emi', 'wallet'],
+  },
+  {
+    title: 'Payment method customizations',
+    where: 'Selling › Payments',
+    href: '/settings/payments?open=rules',
+    keywords: [
+      'hide cod',
+      'payment rules',
+      'rto',
+      'customization',
+      'customisation',
+      'hide payment',
+    ],
+  },
+  {
+    title: 'Payment capture',
+    where: 'Selling › Payments',
+    href: '/settings/payments?open=capture',
+    keywords: ['capture', 'authorise', 'authorize', 'manual capture', 'hold payment'],
   },
   {
     title: 'Bank transfer and fees per method',
     where: 'Selling › Payments › Advanced',
-    href: '/settings/payments/advanced',
+    href: routes.settings.paymentsAdvanced(),
     keywords: [
       'bank',
       'bank transfer',
@@ -153,13 +172,13 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'Shipping & delivery',
     where: 'Selling',
-    href: '/settings/shipping',
+    href: routes.settings.shipping(),
     keywords: ['delivery', 'ship', 'shipping', 'parcel', 'dispatch'],
   },
   {
     title: 'Where you ship and what it costs',
     where: 'Selling › Shipping & delivery',
-    href: '/settings/shipping#rates',
+    href: '/settings/shipping?open=rates',
     keywords: [
       'rates',
       'shipping rate',
@@ -172,19 +191,19 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'Your boxes',
     where: 'Selling › Shipping & delivery',
-    href: '/settings/shipping#boxes',
+    href: '/settings/shipping?open=boxes',
     keywords: ['box', 'boxes', 'package', 'packaging', 'weight', 'size', 'dimensions'],
   },
   {
     title: 'When orders go out',
     where: 'Selling › Shipping & delivery',
-    href: '/settings/shipping#dispatch',
+    href: '/settings/shipping?open=dispatch',
     keywords: ['dispatch', 'cutoff', 'holiday', 'holidays', 'working days', 'return address'],
   },
   {
     title: 'Which courier ships',
     where: 'Selling › Shipping & delivery',
-    href: '/settings/shipping#courier',
+    href: '/settings/shipping?open=courier',
     keywords: [
       'courier',
       'delhivery',
@@ -247,70 +266,77 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'Check delivery to a pincode',
     where: 'Selling › Shipping & delivery',
-    href: '/settings/shipping#pincode',
+    href: '/settings/shipping?open=pincode',
     keywords: ['pincode', 'pin code', 'serviceable', 'delivery date', 'estimate'],
   },
   // Messages › Notifications
   {
     title: 'Messages your customers get',
     where: 'Messages › Notifications',
-    href: '/settings/notifications',
+    href: routes.settings.notifications(),
     keywords: ['notification', 'email', 'emails', 'message', 'sms', 'order confirmation', 'alert'],
   },
   {
     title: 'WhatsApp messages',
     where: 'Messages › Notifications',
-    href: '/settings/notifications#how-messages-are-sent',
+    href: '/settings/notifications?open=how-messages-are-sent',
     keywords: ['whatsapp', 'wa', 'meta', 'template'],
   },
   {
     title: 'Email sending (Amazon SES)',
     where: 'Messages › Notifications',
-    href: '/settings/notifications#how-messages-are-sent',
+    href: '/settings/notifications?open=how-messages-are-sent',
     keywords: ['ses', 'amazon', 'aws', 'smtp', 'email sending', 'from address'],
   },
   {
     title: 'Send from your own email address',
     where: 'Messages › Notifications',
-    href: '/settings/notifications#notifications-sender',
+    href: '/settings/notifications?open=sender',
     keywords: ['sender', 'from address', 'own email', 'domain email', 'dkim', 'spf', 'reply to'],
   },
   // Moved out of Settings: file storage sits with Content › Files
   {
     title: 'Where files and images are stored',
     where: 'Content › Files',
-    href: '/content/files/storage',
+    href: routes.content.storage(),
     keywords: ['files', 'images', 'photos', 'storage', 'r2', 's3', 'bucket', 'upload'],
   },
   // Team & advanced
   {
     title: 'Staff',
     where: 'Team & advanced',
-    href: '/settings/staff',
+    href: routes.settings.staff(),
     keywords: ['staff', 'team', 'users', 'invite', 'permissions', 'roles', 'employee'],
   },
   {
     title: 'Custom data',
     where: 'Team & advanced',
-    href: '/settings/custom-data',
+    href: routes.settings.customData(),
     keywords: ['metafields', 'metaobjects', 'custom fields', 'extra fields', 'content types'],
   },
   {
     title: 'Domains',
     where: 'Store',
-    href: '/settings/domains',
+    href: routes.settings.domains(),
     keywords: ['domain', 'website address', 'url', 'dns', 'www', '.com', '.in'],
   },
+  // Markets and Rollouts are top-level pages now; settings search still finds them.
   {
     title: 'Markets',
-    where: 'Selling',
-    href: routes.settings.markets(),
+    where: 'Markets',
+    href: routes.markets.list(),
     keywords: ['international', 'countries', 'abroad', 'export', 'foreign currency', 'dollar'],
+  },
+  {
+    title: 'Rollouts',
+    where: 'Rollouts',
+    href: routes.rollouts.list(),
+    keywords: ['rollout', 'scheduled changes', 'schedule theme', 'sale weekend', 'event'],
   },
   {
     title: 'AI',
     where: 'Team & advanced',
-    href: '/settings/ai',
+    href: routes.settings.ai(),
     keywords: [
       'ai',
       'artificial intelligence',
@@ -322,8 +348,8 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   },
   {
     title: 'Appearance',
-    where: 'Team & advanced',
-    href: routes.settings.appearance(),
+    where: 'Account menu › Appearance',
+    href: routes.account.appearance(),
     keywords: ['dark mode', 'light mode', 'theme', 'colour', 'color', 'accent'],
   },
   // Your own preferences: the account menu, top right
@@ -399,7 +425,7 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'Policies',
     where: 'Customers',
-    href: '/settings/policies',
+    href: routes.settings.policies(),
     keywords: [
       'policy',
       'policies',
@@ -418,13 +444,13 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'Grievance officer',
     where: 'Customers › Policies',
-    href: '/settings/policies#grievance',
+    href: '/settings/policies?open=grievance',
     keywords: ['grievance', 'complaint', 'legal name', 'consumer protection', 'e-commerce rules'],
   },
   {
     title: 'Checkout',
     where: 'Selling',
-    href: '/settings/checkout',
+    href: routes.settings.checkout(),
     keywords: ['checkout', 'phone', 'mobile', 'email', 'pin code', 'pincode', 'order notes'],
   },
   {
@@ -442,7 +468,7 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'Cash on delivery fee',
     where: 'Taxes & GST › Costs for profit',
-    href: `${routes.settings.costs()}#cod-fee`,
+    href: `${routes.settings.costs()}?open=cod-fee`,
     keywords: ['cod', 'cash on delivery', 'cod fee', 'cod charges', 'courier cod fee'],
   },
   {
@@ -460,13 +486,13 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'Business buyers at checkout',
     where: 'Selling › Checkout',
-    href: '/settings/checkout?tab=branding#gstin',
+    href: '/settings/checkout?open=fields',
     keywords: ['gstin', 'b2b', 'business buyer', 'gst invoice', 'company'],
   },
   {
     title: 'Checkout branding',
     where: 'Selling › Checkout',
-    href: '/settings/checkout?tab=branding',
+    href: '/settings/checkout?open=branding',
     keywords: [
       'checkout logo',
       'checkout colour',
@@ -480,25 +506,25 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'Privacy & data requests',
     where: 'Customers',
-    href: '/settings/privacy',
+    href: routes.settings.privacy(),
     keywords: ['privacy', 'dpdp', 'data protection', 'gdpr', 'personal data', 'consent'],
   },
   {
     title: 'Cookie banner',
     where: 'Customers › Privacy & data requests',
-    href: '/settings/privacy#banner',
+    href: '/settings/privacy?open=banner',
     keywords: ['cookie', 'cookies', 'consent banner', 'tracking consent', 'pixel consent'],
   },
   {
     title: 'Data requests',
     where: 'Customers › Privacy & data requests',
-    href: '/settings/privacy/requests',
+    href: routes.settings.privacyRequests(),
     keywords: ['data request', 'export data', 'delete data', 'erase', 'right to erasure', 'dsar'],
   },
   {
     title: 'Customer accounts',
     where: 'Customers',
-    href: '/settings/customer-accounts',
+    href: routes.settings.customerAccounts(),
     keywords: ['login', 'sign in', 'otp', 'guest checkout', 'customer login', 'account'],
   },
   {

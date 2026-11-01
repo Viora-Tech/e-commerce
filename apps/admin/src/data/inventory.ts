@@ -97,7 +97,10 @@ export const inventoryContent = {
     expandAll: 'Expand all',
     collapseAll: 'Collapse all',
     /** Chip on a SKU (or a product whose SKUs all are) hidden on the storefront (#934). */
-    hidden: 'Hidden',
+    hidden: 'Hidden on store',
+    /** Why the chip shows (audit #36). */
+    hiddenWhy:
+      'Shoppers can’t see or buy this SKU. Imported from Shopify as unavailable with no price, or hidden on the product page. Turn it back on from the product’s variant.',
   },
   cell: {
     decrease: 'Remove one',
@@ -130,6 +133,9 @@ export const inventoryContent = {
     title: 'Stock history',
     empty: 'No stock changes recorded yet.',
     failed: 'Could not load history',
+    /** Who made a change; system rows (orders, imports) have no member (audit #139). */
+    by: (name: string) => `by ${name}`,
+    bySystem: 'by Koomerce',
   },
   exporting: {
     filename: 'inventory.csv',
@@ -205,7 +211,7 @@ export const purchaseOrdersContent = {
     draftCaption: 'Not sent to a supplier yet',
     openCaption: 'Ordered, waiting on stock',
     incomingCaption: 'Still to arrive',
-    receivedCaption: 'Fully received',
+    receivedCaption: 'Arrived, or closed short',
   },
   columns: {
     number: 'Order',

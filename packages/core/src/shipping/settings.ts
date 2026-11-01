@@ -96,10 +96,16 @@ export const CourierRuleSchema = z.discriminatedUnion('mode', [
 export type CourierRuleSettings = z.infer<typeof CourierRuleSchema>
 export const defaultCourierRule: CourierRuleSettings = { mode: 'cheapest' }
 
+/** What a saved package is (Shopify's package types, audit #162): an envelope is flat. */
+const PACKAGE_KINDS = ['box', 'envelope', 'soft_package'] as const
+export type PackageKind = (typeof PACKAGE_KINDS)[number]
+
 /** A named box the merchant packs into, for pre-filling the booking dimensions/weight. */
 export const BoxPresetSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1).max(60),
+  /** Saved before package types: a box. */
+  kind: z.enum(PACKAGE_KINDS).default('box'),
   lengthCm: z.number().min(1).max(200),
   widthCm: z.number().min(1).max(200),
   heightCm: z.number().min(1).max(200),

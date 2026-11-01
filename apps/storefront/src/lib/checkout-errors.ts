@@ -3,10 +3,14 @@ import 'server-only'
 
 import {
   CannotShipToState,
+  CartLimitExceeded,
   CheckoutRuleViolation,
   DiscountCodeRefused,
   DiscountUnavailable,
   GiftCardError,
+  NotSoldInMarket,
+  PaymentMethodHidden,
+  PreorderMixedCart,
   PriceNotSet,
   ShippingRateUnavailable,
   ShippingUnavailable,
@@ -38,7 +42,15 @@ export function checkoutErrorMessage(err: unknown, pincode: string): string | nu
   if (err instanceof PriceNotSet) return e.priceNotSet
   // Hidden on the storefront after it went into the cart (#934).
   if (err instanceof VariantHidden) return e.variantHidden
+  // The cart's market sells from a catalog that leaves it out (Markets › Catalogs).
+  if (err instanceof NotSoldInMarket) return e.notSoldInMarket
   if (err instanceof ShippingRateUnavailable) return e.rateChanged
+  // Settings → Checkout → Cart limit (#156).
+  if (err instanceof CartLimitExceeded) return e.cartLimit(err.title, err.max)
+  // A pre-order campaign keeps its pre-orders apart from in-stock items (#143).
+  if (err instanceof PreorderMixedCart) return err.shopperMessage ?? e.preorderMixedCart
+  // Settings → Payments → Payment rules (#150): this way to pay is not offered for this order.
+  if (err instanceof PaymentMethodHidden) return e.paymentMethodHidden
   // Settings → Checkout, re-checked by placeOrder whatever the form showed.
   if (err instanceof CheckoutRuleViolation) return checkoutRuleMessage(err, pincode)
   return null
@@ -62,5 +74,7 @@ function checkoutRuleMessage(err: CheckoutRuleViolation, pincode: string): strin
       return e.codHighRisk
     case 'cod_prepaid_only_option':
       return deliveryOptionsContent.codPrepaidOnlyOption
+    case 'cod_abroad':
+      return e.codAbroad
   }
 }

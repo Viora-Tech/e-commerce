@@ -9,9 +9,9 @@ import {
   type StoreTx,
   variant,
 } from '@commerce/db'
-import { and, eq, gt, inArray, isNotNull, isNull, lte, sql } from 'drizzle-orm'
+import { and, eq, gt, inArray, isNotNull, isNull, lte, or, sql } from 'drizzle-orm'
 import { reviewRequest } from './schema'
-import { type ReviewsSettings, requestSubject } from './settings'
+import { type ReviewsSettings, requestContact, requestSubject } from './settings'
 import { requestLinkToken, unsubscribeToken } from './tokens'
 
 const DAY = 24 * 60 * 60 * 1000
@@ -22,12 +22,24 @@ const REQUEST_STALE_AFTER_MS = 30 * DAY
 /** How far back "Ask for reviews" looks for delivered orders. */
 const ASK_LOOKBACK_DAYS = 60
 
-/** An address that asked for no more review emails, or a customer who unsubscribed. */
-async function optedOut(tx: StoreTx, email: string, customerId: string | null): Promise<boolean> {
+/** The request rows for this email or phone (either may be missing). */
+function sameContact(to: { email: string | null; phone: string | null }) {
+  return or(
+    to.email ? sql`lower(${reviewRequest.email}) = ${to.email}` : undefined,
+    to.phone ? eq(reviewRequest.phone, to.phone) : undefined,
+  )
+}
+
+/** An address or phone that asked for no more review requests, or a customer who unsubscribed. */
+async function optedOut(
+  tx: StoreTx,
+  to: { email: string | null; phone: string | null },
+  customerId: string | null,
+): Promise<boolean> {
   const [stopped] = await tx
     .select({ id: reviewRequest.id })
     .from(reviewRequest)
-    .where(and(sql`lower(${reviewRequest.email}) = ${email}`, isNotNull(reviewRequest.optedOutAt)))
+    .where(and(sameContact(to), isNotNull(reviewRequest.optedOutAt)))
     .limit(1)
   if (stopped) return true
   if (!customerId) return false
@@ -41,8 +53,10 @@ async function optedOut(tx: StoreTx, email: string, customerId: string | null): 
 /**
  * Plans one review request per product of a delivered order, due `daysAfterDelivery`
  * later (`dueAt` overrides it, for "Ask for reviews"). Idempotent: an order and product
- * get one request ever. Nothing is planned when request emails are off, the order has no
- * email, or the shopper opted out of review emails or marketing.
+ * get one request ever. Nothing is planned when requests are off, the order has no email
+ * or phone for the store's channel (email, WhatsApp or both), or the shopper opted out of
+ * review requests or marketing. The row keeps both the email and the phone; the channel is
+ * applied again when it is sent, so a changed setting counts from then on.
  */
 export async function scheduleReviewRequests(
   tx: StoreTx,
@@ -54,12 +68,19 @@ export async function scheduleReviewRequests(
 ): Promise<number> {
   if (!settings.requestEmail.enabled) return 0
   const [o] = await tx
-    .select({ email: order.email, customerId: order.customerId, status: order.status })
+    .select({
+      email: order.email,
+      phone: order.phone,
+      customerId: order.customerId,
+      status: order.status,
+    })
     .from(order)
     .where(eq(order.id, orderId))
-  const email = o?.email?.trim().toLowerCase()
-  if (!o || !email || o.status === 'cancelled' || o.status === 'draft') return 0
-  if (await optedOut(tx, email, o.customerId)) return 0
+  if (!o || o.status === 'cancelled' || o.status === 'draft') return 0
+  const to = requestContact(settings.requestEmail.channel, o)
+  if (!to) return 0
+  if (await optedOut(tx, to, o.customerId)) return 0
+  const saved = requestContact('both', o) ?? { email: null, phone: null }
   const lines = await tx
     .selectDistinct({ productId: variant.productId })
     .from(orderLine)
@@ -69,7 +90,16 @@ export async function scheduleReviewRequests(
   const due = dueAt ?? new Date(now.getTime() + settings.requestEmail.daysAfterDelivery * DAY)
   const rows = await tx
     .insert(reviewRequest)
-    .values(lines.map((l) => ({ storeId, orderId, productId: l.productId, email, dueAt: due })))
+    .values(
+      lines.map((l) => ({
+        storeId,
+        orderId,
+        productId: l.productId,
+        email: saved.email,
+        phone: saved.phone,
+        dueAt: due,
+      })),
+    )
     .onConflictDoNothing()
     .returning({ id: reviewRequest.id })
   return rows.length
@@ -150,9 +180,10 @@ async function markAndQueue(
 }
 
 /**
- * The review request (or reminder) email for one order: who to, the products still to
- * review, each with its own signed link, the merchant's subject and the stop link. Null
- * when nothing is left to ask (all reviewed, opted out meanwhile).
+ * The review request (or reminder) for one order: who to (the email, the phone or both, by
+ * the store's channel), the products still to review, each with its own signed link, the
+ * merchant's subject and the stop link. Null when nothing is left to ask (all reviewed,
+ * opted out meanwhile) or the channel has nobody to reach.
  */
 export async function reviewRequestEmail(
   tx: StoreTx,
@@ -166,6 +197,7 @@ export async function reviewRequestEmail(
     .select({
       id: reviewRequest.id,
       email: reviewRequest.email,
+      phone: reviewRequest.phone,
       productId: reviewRequest.productId,
       title: product.title,
       handle: product.handle,
@@ -187,6 +219,8 @@ export async function reviewRequestEmail(
     )
   const first = rows[0]
   if (!first) return null
+  const contact = requestContact(settings.requestEmail.channel, first)
+  if (!contact) return null
   const [o] = await tx
     .select({ number: order.number, customerId: order.customerId })
     .from(order)
@@ -202,7 +236,9 @@ export async function reviewRequestEmail(
   }))
   const unsubscribeUrl = `${base}/reviews/unsubscribe?t=${unsubscribeToken(opts.secret, storeId, first.id)}`
   return {
-    to: first.email,
+    /** The email, when the channel uses it (kept for callers that only email). */
+    to: contact.email,
+    contact,
     data: {
       orderNumber: o?.number,
       customerName: cu?.name?.split(' ')[0] || 'there',
@@ -220,14 +256,14 @@ export async function reviewRequestEmail(
   }
 }
 
-/** The stop link: no more review emails to this address from this store. */
+/** The stop link: no more review requests to this address or phone from this store. */
 export async function optOutOfReviewEmails(
   tx: StoreTx,
   requestId: string,
   now: Date = new Date(),
 ): Promise<boolean> {
   const [r] = await tx
-    .select({ email: reviewRequest.email })
+    .select({ email: reviewRequest.email, phone: reviewRequest.phone })
     .from(reviewRequest)
     .where(eq(reviewRequest.id, requestId))
   if (!r) return false
@@ -236,7 +272,10 @@ export async function optOutOfReviewEmails(
     .set({ optedOutAt: now })
     .where(
       and(
-        sql`lower(${reviewRequest.email}) = ${r.email.toLowerCase()}`,
+        or(
+          eq(reviewRequest.id, requestId),
+          sameContact({ email: r.email?.toLowerCase() ?? null, phone: r.phone }),
+        ),
         isNull(reviewRequest.optedOutAt),
       ),
     )
@@ -263,7 +302,7 @@ export async function askForRecentReviews(
       and(
         inArray(order.fulfillmentStatus, ['delivered', 'partially_delivered']),
         gt(order.placedAt, new Date(now.getTime() - ASK_LOOKBACK_DAYS * DAY)),
-        isNotNull(order.email),
+        or(isNotNull(order.email), isNotNull(order.phone)),
       ),
     )
     .limit(1000)

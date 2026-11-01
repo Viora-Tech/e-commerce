@@ -4,12 +4,14 @@ import {
   fulfillmentOrderLine,
   order,
   orderLine,
+  product,
   shipment,
   store,
   variant,
 } from '@commerce/db'
 import { ASSUMED_WEIGHT_GRAMS, type ShippingProvider, type Tracking } from '@commerce/shipping'
 import { and, eq, inArray, ne } from 'drizzle-orm'
+import { effectiveHsCode } from '../catalog/effective-tax'
 import type { StoreContext } from '../context'
 import { fulfilParcelLines, fulfilRemainingLines } from '../order/fulfil'
 import { assertNotHeld } from '../order/fulfillment-hold'
@@ -161,13 +163,18 @@ export async function createShipmentForOrder(
   /* A live booking is reused (for the parcel, when one was named); a cancelled label or a
      parcel that came back (RTO) gets a new one. */
   const parcelOnly = options.fulfillmentOrderId
-  const existing = (await ctx.tx.select().from(shipment).where(eq(shipment.orderId, orderId))).find(
+  const earlier = await ctx.tx.select().from(shipment).where(eq(shipment.orderId, orderId))
+  const existing = earlier.find(
     (s) =>
       s.status !== 'cancelled' &&
       s.status !== 'rto' &&
       (!parcelOnly || s.fulfillmentOrderId === parcelOnly),
   )
   if (existing) return existing
+  // A cancelled label booked again: the shopper may hold its old AWB (`shipping_update`).
+  const replacesCancelled = earlier.some(
+    (s) => s.status === 'cancelled' && (!parcelOnly || s.fulfillmentOrderId === parcelOnly),
+  )
   // A held parcel (or, booking the whole order, any held parcel) is not booked until released.
   await assertNotHeld(ctx, o.id, parcelOnly ?? null)
 
@@ -185,7 +192,7 @@ export async function createShipmentForOrder(
       /* Customs fields, for a parcel going abroad: the HS code as it stood at order time,
          else the variant's own. */
       lineHsCode: orderLine.hsCode,
-      variantHsCode: variant.hsCode,
+      variantHsCode: effectiveHsCode,
       countryOfOrigin: variant.countryOfOrigin,
       sku: variant.sku,
       variantWeightGrams: variant.weightGrams,
@@ -196,6 +203,7 @@ export async function createShipmentForOrder(
     })
     .from(orderLine)
     .leftJoin(variant, eq(variant.id, orderLine.variantId))
+    .leftJoin(product, eq(product.id, variant.productId))
     .where(eq(orderLine.orderId, orderId))
   /* The parcel's location (the order's, when it ships whole) when it has courier pickup on,
      else Settings › Shipping - unless the merchant picked where it leaves from. */
@@ -283,6 +291,7 @@ export async function createShipmentForOrder(
       pincode: to.pincode,
       country: to.country,
       phone: to.phone,
+      ...(o.email ? { email: o.email } : {}),
     },
     from: shipFrom.address,
     ...(shipFrom.pickupLocationName ? { pickupLocationName: shipFrom.pickupLocationName } : {}),
@@ -397,6 +406,12 @@ export async function createShipmentForOrder(
   if (named) await fulfilParcelLines(ctx, o.id, named.id)
   else await fulfilRemainingLines(ctx, o.id)
   await recomputeOrderStatuses(ctx, o.id)
+  if (replacesCancelled) {
+    await insertOutboxEvent(ctx.tx, ctx.storeId, 'shipment.tracking_updated', {
+      orderId: o.id,
+      shipmentId: booked.id,
+    })
+  }
   return booked
 }
 
@@ -456,42 +471,4 @@ export async function listOpenShipments(ctx: StoreContext): Promise<ShipmentRow[
     .select()
     .from(shipment)
     .where(inArray(shipment.status, [...OPEN_SHIPMENT_STATUSES]))
-}
-
-export type BulkCreateResult = {
-  orderId: string
-  ok: boolean
-  shipmentId?: string
-  waybill?: string
-  labelUrl?: string | null
-  error?: string
-}
-
-/**
- * Book several orders with one courier in one go (the Shipments workspace's
- * bulk action). Each order is its own best-effort attempt: one courier
- * rejection (a bad pincode, a duplicate) never stops the rest from booking.
- */
-export async function bulkCreateShipments(
-  ctx: StoreContext,
-  provider: ShippingProvider,
-  orderIds: string[],
-  options: CreateShipmentOptions = {},
-): Promise<BulkCreateResult[]> {
-  const results: BulkCreateResult[] = []
-  for (const orderId of orderIds) {
-    try {
-      const row = await createShipmentForOrder(ctx, provider, orderId, options)
-      results.push({
-        orderId,
-        ok: true,
-        shipmentId: row.id,
-        waybill: row.waybill,
-        labelUrl: row.labelUrl,
-      })
-    } catch (err) {
-      results.push({ orderId, ok: false, error: err instanceof Error ? err.message : String(err) })
-    }
-  }
-  return results
 }

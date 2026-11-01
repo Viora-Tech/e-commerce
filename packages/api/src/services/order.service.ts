@@ -1,5 +1,7 @@
 import {
+  capturePayment,
   changeOrderStatus,
+  heldParcels,
   insertOutboxEvent,
   notTestOrder,
   type OrderStatus,
@@ -24,14 +26,27 @@ import {
   orderLine,
   orderNote,
   payment,
-  paymentEvent,
   productMedia,
   refund,
   store,
   variant,
 } from '@commerce/db'
 import type { PaymentRegistry } from '@commerce/payments'
-import { and, asc, count, desc, eq, gte, inArray, lte, ne, notInArray, or, sql } from 'drizzle-orm'
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNull,
+  lte,
+  ne,
+  notInArray,
+  or,
+  sql,
+} from 'drizzle-orm'
 
 export { ORDER_VIEWS, type OrderView, viewFilter } from './order-views'
 
@@ -48,7 +63,8 @@ export {
 } from './order-list-where'
 export type { OrderStatus }
 
-import { notDraft, type OrderListFilters, orderListWhere } from './order-list-where'
+import { eventsForPayments, withThumbnails } from './order-detail.service'
+import { notDraft, type OrderListFilters, onHoldSql, orderListWhere } from './order-list-where'
 
 /** The most ids "Select all" takes at once; bulk actions above this would need a background job. */
 const SELECT_ALL_MAX = 5000
@@ -79,6 +95,8 @@ export async function listOrders(
       paymentStatus: order.paymentStatus,
       fulfillmentStatus: order.fulfillmentStatus,
       paymentMethod: order.paymentMethod,
+      /** Set while it is a read-only import; the row menu then offers only safe items (#47). */
+      importedFrom: order.importedFrom,
       totalPaise: order.totalPaise,
       email: order.email,
       customerName: customer.name,
@@ -88,11 +106,29 @@ export async function listOrders(
       /* The Channel and Tags columns (Figma "State · Columns open"): where the visit came from. */
       channel: sql<string | null>`${order.attribution}->>'channel'`,
       tags: order.tags,
+      archivedAt: order.archivedAt,
+      /* Fulfilment held (#1011): the row shows an "On hold" chip. */
+      onHold: onHoldSql,
       /* Frame 5:2353 shows the first product with its picture; the rest is a count. */
       firstLineTitle: sql<string | null>`(
         select ol.title from ${orderLine} ol where ol.order_id = ${order.id}
         order by ol.id limit 1)`,
       lineCount: sql<number>`(select count(*)::int from ${orderLine} ol where ol.order_id = ${order.id})`,
+      /* The optional Items, Delivery, Phone and City columns (audit #7, #49). */
+      itemCount: sql<number>`(select coalesce(sum(ol.quantity), 0)::int from ${orderLine} ol where ol.order_id = ${order.id})`,
+      deliveryStatus: sql<string | null>`(
+        select s.status from shipment s where s.order_id = ${order.id}
+        order by s.created_at desc limit 1)`,
+      /* The same shipment's tracking page: the Delivery chip links to it (#1008). */
+      trackingUrl: sql<string | null>`(
+        select s.tracking_url from shipment s where s.order_id = ${order.id}
+        order by s.created_at desc limit 1)`,
+      shipCity: sql<
+        string | null
+      >`(select a.city from ${address} a where a.id = ${order.shippingAddressId})`,
+      shipPhone: sql<
+        string | null
+      >`(select a.phone from ${address} a where a.id = ${order.shippingAddressId})`,
       firstLineImage: sql<string | null>`(
         select coalesce(vm.url, (
           select m.url from ${productMedia} pm join ${media} m on m.id = pm.media_id
@@ -121,6 +157,29 @@ export async function listOrders(
   return { items, total: countRow?.total ?? 0, testOrders: testRow?.n ?? 0 }
 }
 
+/** Most lines the list's items popover shows; the order page has the rest. */
+const LINE_PEEK_MAX = 20
+
+/** An order's lines with a picture each: the Orders list's items popover (#1008). */
+export async function listOrderLinePeek(tx: StoreTx, orderId: string) {
+  return tx
+    .select({
+      id: orderLine.id,
+      title: orderLine.title,
+      variantTitle: orderLine.variantTitle,
+      quantity: orderLine.quantity,
+      image: sql<string | null>`coalesce(${media.url}, (
+        select m.url from ${productMedia} pm join ${media} m on m.id = pm.media_id
+        where pm.product_id = ${variant.productId} order by pm.position limit 1))`,
+    })
+    .from(orderLine)
+    .leftJoin(variant, eq(variant.id, orderLine.variantId))
+    .leftJoin(media, eq(media.id, variant.mediaId))
+    .where(eq(orderLine.orderId, orderId))
+    .orderBy(asc(orderLine.id))
+    .limit(LINE_PEEK_MAX)
+}
+
 export type OrderTiles = {
   /** Orders placed since midnight (IST) and the count by the same time yesterday. */
   newToday: { value: number; previous: number }
@@ -136,6 +195,7 @@ export type OrderTiles = {
 const readyToShipWhere = () =>
   and(
     eq(order.status, 'open'),
+    isNull(order.archivedAt),
     inArray(order.fulfillmentStatus, [...UNFULFILLED_STATUSES]),
     or(
       notInArray(order.paymentStatus, [...UNPAID_PAYMENT_STATUSES]),
@@ -271,61 +331,23 @@ export async function getOrder(tx: StoreTx, id: string) {
     billingAddress: bill ?? null,
     /** Where each part ships from: one parcel per warehouse (order/routing.ts). */
     parcels: await orderParcelsView(tx, id),
+    /** Fulfilment on hold (#1011): why, who and when; null while it can ship. */
+    hold: await orderHold(tx, id),
   }
 }
 
-type Line = typeof orderLine.$inferSelect
-
-/** Variant image, else the product's first image, else nothing. */
-async function withThumbnails(tx: StoreTx, lines: Line[]) {
-  if (lines.length === 0) return []
-  const ids = lines.map((l) => l.variantId)
-  const rows = await tx
-    .select({
-      variantId: variant.id,
-      productId: variant.productId,
-      sku: variant.sku,
-      variantImage: media.url,
-      productImage: sql<string | null>`(
-        select m.url from ${productMedia} pm join ${media} m on m.id = pm.media_id
-        where pm.product_id = ${variant.productId} order by pm.position limit 1)`,
-    })
-    .from(variant)
-    .leftJoin(media, eq(media.id, variant.mediaId))
-    .where(inArray(variant.id, ids))
-  const byId = new Map(rows.map((r) => [r.variantId, r]))
-  return lines.map((l) => {
-    const v = byId.get(l.variantId)
-    return {
-      ...l,
-      productId: v?.productId ?? null,
-      sku: v?.sku ?? null,
-      imageUrl: v?.variantImage ?? v?.productImage ?? null,
-    }
-  })
-}
-
-type Payment = typeof payment.$inferSelect
-
-/**
- * payment_event has no order column (webhooks arrive before we know the
- * order); match on the gateway's own ids inside the stored payload instead.
- */
-async function eventsForPayments(tx: StoreTx, payments: Payment[]) {
-  const refs = payments.flatMap((p) => [p.providerRef, p.providerPaymentId]).filter(Boolean)
-  if (refs.length === 0) return []
-  return tx
-    .select({
-      id: paymentEvent.id,
-      provider: paymentEvent.provider,
-      type: paymentEvent.type,
-      status: paymentEvent.status,
-      error: paymentEvent.error,
-      receivedAt: paymentEvent.receivedAt,
-    })
-    .from(paymentEvent)
-    .where(or(...refs.map((r) => sql`${paymentEvent.payload}::text like ${`%${r}%`}`)))
-    .orderBy(asc(paymentEvent.receivedAt))
+/** The order's hold as the page shows it, from its first held parcel (holds cover them all). */
+async function orderHold(tx: StoreTx, orderId: string) {
+  const held = await heldParcels(tx, orderId)
+  const first = held[0]
+  if (!first) return null
+  return {
+    code: first.code,
+    note: first.reason,
+    heldBy: first.heldBy,
+    heldAt: first.heldAt,
+    parcels: held.length,
+  }
 }
 
 export async function addOrderNote(
@@ -388,6 +410,20 @@ export async function refundOrderPayment(
     await insertOutboxEvent(tx, storeId, 'refund.created', { orderId: p.orderId, refundId: row.id })
   }
   return row
+}
+
+/** "Capture payment" on the order page (#150): take the money a manual-capture checkout authorised. */
+export async function captureOrderPayment(
+  tx: StoreTx,
+  storeId: string,
+  registry: PaymentRegistry,
+  secret: string,
+  paymentId: string,
+) {
+  const [p] = await tx.select().from(payment).where(eq(payment.id, paymentId))
+  if (!p) return null
+  const provider = await providerForPayment(tx, storeId, registry, secret, p.provider)
+  return capturePayment({ tx, storeId }, provider, paymentId)
 }
 
 /**

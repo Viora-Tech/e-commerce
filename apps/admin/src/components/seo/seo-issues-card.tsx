@@ -22,12 +22,24 @@ const PAGE = 50
 
 const SEVERITY_TONE = { high: 'danger', medium: 'attention', low: 'neutral' } as const
 
-/** Where the merchant fixes an item by hand. */
+/** The page editor's field an issue is about, so Edit lands on it (audit #176). */
+function pageField(kind: SeoIssue['kind']): string | null {
+  if (kind.startsWith('title_')) return 'page-seo-title'
+  if (kind.startsWith('description_')) return 'page-seo-description'
+  if (kind === 'handle_bad') return 'page-handle'
+  return null
+}
+
+/** Where the merchant fixes an item by hand: the right tab or field, with the way back to SEO. */
 function editHref(issue: SeoIssue): string {
-  if (issue.resource === 'product') return routes.products.detail(issue.id)
+  if (issue.resource === 'product') {
+    const tab = issue.kind === 'alt_missing' || issue.kind === 'image_missing' ? 'overview' : 'seo'
+    return `${routes.products.detail(issue.id)}?tab=${tab}`
+  }
   if (issue.resource === 'collection') return routes.products.collection(issue.id)
   if (issue.resource === 'menu') return routes.content.menu(issue.id)
-  return routes.onlineStore.page(issue.id)
+  const field = pageField(issue.kind)
+  return `${routes.onlineStore.page(issue.id)}?from=seo${field ? `&focus=${field}` : ''}`
 }
 
 /** The issues, most important first, filterable by impact, 50 at a time. */

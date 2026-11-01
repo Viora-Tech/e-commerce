@@ -22,7 +22,13 @@ import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
 
 type BalanceCardProps = {
-  card: { id: string; balancePaise: number; initialValuePaise: number }
+  card: {
+    id: string
+    balancePaise: number
+    initialValuePaise: number
+    /** A disabled card can't be spent, so its balance isn't adjusted either (audit #155). */
+    disabledAt: Date | string | null
+  }
   onChanged: () => Promise<void>
 }
 
@@ -70,10 +76,12 @@ export default function BalanceCard({ card, onChanged }: BalanceCardProps) {
     <DataCard
       title={copy.balance.heading}
       action={
-        <Button variant="outline" size="sm" onClick={handleOpen}>
-          <Pencil aria-hidden="true" />
-          {copy.balance.adjust}
-        </Button>
+        card.disabledAt ? undefined : (
+          <Button variant="outline" size="sm" onClick={handleOpen}>
+            <Pencil aria-hidden="true" />
+            {copy.balance.adjust}
+          </Button>
+        )
       }
     >
       <div className="flex flex-col gap-1">

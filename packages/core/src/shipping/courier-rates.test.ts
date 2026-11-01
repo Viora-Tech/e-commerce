@@ -472,4 +472,23 @@ describe('compareCourierRates coverage', () => {
     await compareCourierRates([fedex], { ...abroad, destinationCity: 'Graford' })
     expect(seen[0]).toMatchObject({ destinationCountry: 'US', destinationCity: 'Graford' })
   })
+
+  it('lists an export courier with no rate API (ShipGlobal) as "rate on booking" abroad', async () => {
+    const { quoteRate: _noRates, ...base } = fakeProvider('shipglobal', 'ShipGlobal')
+    const shipglobal: ShippingProvider = {
+      ...base,
+      coverage: 'international',
+      tracksManually: true,
+    }
+    const dhl = counting('dhl-express', [], 'international')
+    const rows = await compareCourierRates([dhl, shipglobal], abroad)
+    expect(rows.find((r) => r.providerId === 'shipglobal')).toMatchObject({
+      problem: null,
+      pricePaise: null,
+      serviceId: null,
+      codAvailable: false,
+    })
+    const home = await compareCourierRates([shipglobal], query)
+    expect(home[0]).toMatchObject({ problem: 'not_serviceable' })
+  })
 })

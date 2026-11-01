@@ -5,6 +5,7 @@ import { printedToMinor, purchaseCurrencyOf } from '@commerce/core/inventory'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Label } from '@commerce/ui/shadcn/label'
+import DateField from '@/components/fields/date-field'
 import { documentReviewContent } from '@/data/purchase-documents'
 import { useCopy } from '@/hooks/use-copy'
 import { formatMinor } from '@/lib/money'
@@ -146,12 +147,11 @@ export default function ReviewDetails({ review, state, onChange }: ReviewDetails
               disabled={!state.saveBillOfEntry}
               onChange={(e) => onChange({ billOfEntry: { ...be, number: e.target.value } })}
             />
-            <Input
+            <DateField
               aria-label={copy.details.date}
-              type="date"
               value={be.date}
               disabled={!state.saveBillOfEntry}
-              onChange={(e) => onChange({ billOfEntry: { ...be, date: e.target.value } })}
+              onChange={(v) => onChange({ billOfEntry: { ...be, date: v } })}
             />
             <Input
               aria-label={copy.details.port}

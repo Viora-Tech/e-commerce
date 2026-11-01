@@ -45,6 +45,10 @@ export const collectionsListContent = {
       vendor: 'Vendor',
       tag: 'Tag',
       price: 'Price',
+      compare_at: 'Compare-at price',
+      stock: 'Stock',
+      weight: 'Weight (g)',
+      variant_title: 'Variant title',
     },
     ruleOp: {
       eq: 'is',
@@ -199,6 +203,10 @@ export const FIELD_LABELS: Record<CollectionField, string> = {
   vendor: 'Vendor',
   tag: 'Tag',
   price: 'Price',
+  compare_at: 'Compare-at price',
+  stock: 'Inventory stock',
+  weight: 'Weight (grams)',
+  variant_title: 'Variant title',
 }
 
 export const OP_LABELS: Record<CollectionOp, string> = {
@@ -216,6 +224,19 @@ export const productCollectionsContent = {
   help: 'Manual collections this product belongs to.',
   none: 'Not in any collection',
   placeholder: 'Add to a collection',
+  /** "Create collection" inside the picker (#982): a manual collection, picked right away. */
+  create: {
+    action: 'Create collection',
+    title: 'Create a collection',
+    body: 'A manual collection: you choose its products. Add an image, description and SEO later on the collection page.',
+    name: 'Title',
+    placeholder: 'Summer sale',
+    save: 'Create',
+    cancel: 'Cancel',
+    created: (title: string) => `Collection "${title}" created. Save to add this product.`,
+    createdNew: (title: string) => `Collection "${title}" created`,
+    failed: 'Could not create the collection',
+  },
 } as const
 
 /** Standalone collections card on the product form (frame: organisation). */
@@ -298,6 +319,14 @@ export const collectionDetailContent = {
     open: 'Open product',
     remove: 'Remove from collection',
     reorder: 'Drag to reorder',
+    move: {
+      button: (position: number, title: string) => `Position ${position}: move ${title}`,
+      title: (name: string) => `Move ${name}`,
+      label: 'Position',
+      help: (total: number) => `1 puts it first, ${total} last.`,
+      invalid: (total: number) => `Type a number from 1 to ${total}.`,
+      submit: 'Move',
+    },
     emptyManual: 'No products yet',
     emptyManualBody: 'Add products to build this collection.',
     emptyAutomatic: 'No products match yet',

@@ -12,8 +12,8 @@ import {
   parseAsDateFilter,
 } from '@/lib/date-filter'
 
-/** Shopify's four types, as stored on the discount. */
-export const DISCOUNT_TYPES = ['products', 'order', 'bxgy', 'shipping'] as const
+/** Shopify's four types plus combo deals, as stored on the discount. */
+export const DISCOUNT_TYPES = ['products', 'order', 'bxgy', 'shipping', 'combo'] as const
 export type DiscountTypeFilter = (typeof DISCOUNT_TYPES)[number]
 
 /** Code (typed at checkout) or automatic. */

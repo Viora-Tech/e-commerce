@@ -39,6 +39,7 @@ export function healthLink(issue: HealthIssue): HealthLink {
     case 'webhook_missing':
       return inside(routes.settings.payments())
     case 'policies_missing':
+    case 'policies_unfilled':
       return inside(routes.settings.policies())
     case 'sender_unverified':
     case 'no_sender_email':
@@ -100,6 +101,12 @@ export function healthText(
         title: c.policies_missing.title(issue.policies.length),
         body: c.policies_missing.body(issue.policies.map((p) => copy.policyNames[p]).join(', ')),
         fix: c.policies_missing.fix,
+      }
+    case 'policies_unfilled':
+      return {
+        title: c.policies_unfilled.title(issue.policies.length),
+        body: c.policies_unfilled.body(issue.policies.map((p) => copy.policyNames[p]).join(', ')),
+        fix: c.policies_unfilled.fix,
       }
     case 'sender_unverified':
       return {

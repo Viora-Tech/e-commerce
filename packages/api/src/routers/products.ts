@@ -39,6 +39,7 @@ import {
   updateVariant,
 } from '../services/product.service'
 import { pickProducts, searchVariants } from '../services/product-picker.service'
+import { productSales } from '../services/product-sales.service'
 import { productAdjustments, productStats } from '../services/product-stats.service'
 
 const ListFiltersSchema = z.object({
@@ -95,6 +96,11 @@ export const productsRouter = {
     .input(z.object({ productId: z.uuid(), limit: z.number().int().min(1).max(100).default(20) }))
     .handler(({ context, input }) => productAdjustments(context.tx, input.productId, input.limit)),
 
+  /** "Sales past 90 days" on the product page (#56): units, buyers and net revenue. */
+  sales: can(permissions.ORDERS_READ)
+    .input(z.object({ productId: z.uuid() }))
+    .handler(({ context, input }) => productSales(context.tx, input.productId)),
+
   get: can(permissions.PRODUCTS_READ)
     .input(z.object({ id: z.uuid() }))
     .handler(({ context, input }) => getProduct(context.tx, input.id)),
@@ -116,12 +122,14 @@ export const productsRouter = {
     )
     .handler(({ context, input }) => pickProducts(context.tx, input)),
 
-  /** Variant picker for the draft order editor. */
+  /** Variant picker for the draft order editor and combo deals. */
   searchVariants: can(permissions.PRODUCTS_READ)
     .input(
       z.object({
         search: z.string().trim().max(SEARCH_MAX).optional(),
         limit: z.number().int().min(1).max(50).default(20),
+        /** Only these variants (a saved combo deal's picks). */
+        ids: z.array(z.uuid()).max(50).optional(),
       }),
     )
     .handler(({ context, input }) => searchVariants(context.tx, input)),
@@ -198,10 +206,20 @@ export const productsRouter = {
     }),
 
   duplicate: can(permissions.PRODUCTS_WRITE)
-    .input(z.object({ id: z.uuid() }))
+    .input(
+      z.object({
+        id: z.uuid(),
+        /** What to copy besides text and prices (audit #136): photos on, stock off by default. */
+        photos: z.boolean().default(true),
+        stock: z.boolean().default(false),
+      }),
+    )
     .handler(({ context, input }) =>
       invalidToBadRequest(async () => ({
-        id: await duplicateProduct(context.tx, context.scope.storeId, input.id),
+        id: await duplicateProduct(context.tx, context.scope.storeId, input.id, {
+          photos: input.photos,
+          stock: input.stock,
+        }),
       })),
     ),
 

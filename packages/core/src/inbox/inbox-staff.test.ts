@@ -21,8 +21,8 @@ import {
   listConversations,
   markStaffSeen,
   setConversationStatus,
-  staffSend,
 } from './conversations'
+import { staffSend } from './conversations-send'
 import { hashChatToken, newChatToken } from './identity'
 import { createQuickReply, listQuickReplies, updateQuickReply } from './quick-replies'
 import type { ShopperIdentity } from './rules'

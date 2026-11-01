@@ -11,6 +11,7 @@ export default [
   }),
   translation(themesContent.library, {
     subtitle: 'आपके स्टोर का लुक। एक थीम लाइव रहती है; बाकी पब्लिश के लिए तैयार रखें।',
+    visibility: { public: 'सबके लिए', locked: 'पासवर्ड चालू', change: 'स्टोर कौन देख सकता है, बदलें' },
     live: 'लाइव',
     lastSaved: (when: string) => `आख़िरी बार सेव: ${when}`,
     savedBy: (saved: string, who: string) => `${saved} · ${who} ने`,
@@ -59,6 +60,29 @@ export default [
     on: (pack: string, theme: string) => `${theme} के लिए ${pack} चालू किए गए`,
     off: (pack: string, theme: string) => `${theme} के लिए ${pack} बंद किए गए`,
     failed: 'सेव नहीं हो सका। फिर कोशिश करें।',
+  }),
+  translation(themesContent.performance, {
+    heading: 'वेब परफ़ॉर्मेंस',
+    body: (days) =>
+      `असली ग्राहकों के लिए आपका स्टोर कितनी तेज़ी से खुलता है, पिछले ${days} दिन (75वां पर्सेंटाइल)।`,
+    collecting: 'डेटा जमा हो रहा है',
+    collectingBody: 'पेज की स्पीड ग्राहकों के ब्राउज़र में मापी जाती है। काफ़ी विज़िट आने पर यहां दिखेगी।',
+    metrics: {
+      LCP: 'लोडिंग (LCP)',
+      INP: 'रिस्पॉन्स (INP)',
+      CLS: 'स्थिरता (CLS)',
+    },
+    hints: {
+      LCP: 'सबसे बड़ी फ़ोटो या टेक्स्ट दिखने तक का समय। 2.5 सेकंड या कम अच्छा है।',
+      INP: 'टैप या क्लिक के बाद पेज के जवाब देने में देरी। 200 ms या कम अच्छा है।',
+      CLS: 'लोड होते समय पेज कितना हिलता है। 0.1 या कम अच्छा है।',
+    },
+    ratings: { good: 'अच्छा', 'needs-work': 'सुधार चाहिए', poor: 'खराब' },
+    samples: (n) => `${n} रीडिंग`,
+    devices: 'डिवाइस के हिसाब से पेज लोड',
+    mobile: 'मोबाइल',
+    desktop: 'डेस्कटॉप',
+    loads: (n) => `${n} लोड`,
   }),
   translation(themesContent.addDialog, {
     title: 'थीम जोड़ें',

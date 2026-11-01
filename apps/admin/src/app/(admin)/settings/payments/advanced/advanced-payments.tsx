@@ -2,13 +2,14 @@
 
 import type { PaymentAdjustment } from '@commerce/core'
 import { CreditCard } from '@commerce/ui/icons'
-import BackLink from '@/components/layout/back-link'
+import { useState } from 'react'
 import UpiCompare from '@/components/payments/upi-compare'
 import ManualTransferFields from '@/components/settings/manual-transfer-fields'
 import PaymentAdjustmentFields from '@/components/settings/payment-adjustment-fields'
 import PreorderBalanceSettings from '@/components/settings/preorder-balance-settings'
 import PreorderNoteSettings from '@/components/settings/preorder-note-settings'
 import ProviderSettingsForm, {
+  type LinkedSave,
   type ProviderDef,
 } from '@/components/settings/provider-settings-form'
 import SettingsSection from '@/components/settings/settings-section'
@@ -34,8 +35,11 @@ const RAZORPAY_WEBHOOK_METHODS = new Set(['razorpay', 'razorpay_upi'])
 
 const WORKER_URL = process.env.NEXT_PUBLIC_WORKER_URL ?? 'http://localhost:4100'
 
-/** Set up on the main Payments page (connect, "Shoppers can pay with"), so not repeated here. */
-const MAIN_PAGE_METHODS = new Set(['razorpay', 'cashfree', 'cod'])
+/**
+ * Set up on the main Payments page (connect, "Shoppers can pay with", "Manual payment
+ * methods"), so not repeated here.
+ */
+const MAIN_PAGE_METHODS = new Set(['razorpay', 'cashfree', 'cod', 'manual'])
 
 const load = () =>
   api.store.getPayments().then((r) => ({
@@ -87,10 +91,16 @@ function adjustmentFields(m: ProviderDef, extra: Extra, setExtra: (next: Extra) 
   )
 }
 
+type PreorderSaves = {
+  onNote: (state: LinkedSave) => void
+  onBalance: (state: LinkedSave) => void
+}
+
 function footer(
   sections: typeof settingsContent.sections.payments,
   extra: Extra,
   setExtra: (next: Extra) => void,
+  preorder: PreorderSaves,
 ) {
   const [, unpaid, preorders] = sections
   return (
@@ -105,10 +115,10 @@ function footer(
           onChange={(manualCancelAfterHours) => setExtra({ ...extra, manualCancelAfterHours })}
         />
       </SettingsSection>
-      {/* Saved on its own (store.preorder), not with the payment methods above. */}
+      {/* Kept in store.preorder, but saved by the page's one Save and save bar (#94). */}
       <SettingsSection id={preorders?.id ?? 'section-preorders'} className="flex flex-col gap-4">
-        <PreorderNoteSettings />
-        <PreorderBalanceSettings />
+        <PreorderNoteSettings onSaveState={preorder.onNote} />
+        <PreorderBalanceSettings onSaveState={preorder.onBalance} />
       </SettingsSection>
     </>
   )
@@ -121,6 +131,8 @@ export default function AdvancedPayments() {
   const {
     sections: { payments: sections },
   } = useCopy(settingsContent)
+  const [noteSave, setNoteSave] = useState<LinkedSave | null>(null)
+  const [balanceSave, setBalanceSave] = useState<LinkedSave | null>(null)
 
   // Render logic
   /** Back to the main Payments page; `view=page` skips the first-time guide. */
@@ -128,7 +140,7 @@ export default function AdvancedPayments() {
 
   return (
     <div className="flex flex-col gap-3">
-      <BackLink href={PAYMENTS_PAGE_HREF} label={setupCopy.backToPayments} />
+      {/* One "‹ Payments": the form draws it from `back`. */}
       <ProviderSettingsForm<Extra>
         title={copy.advancedTitle}
         icon={<CreditCard aria-hidden="true" />}
@@ -144,7 +156,10 @@ export default function AdvancedPayments() {
         renderDescription={(m) => upiDescription(setupCopy.upiOptions, m)}
         back={back}
         renderExtra={adjustmentFields}
-        renderFooter={(extra, setExtra) => footer(sections, extra, setExtra)}
+        renderFooter={(extra, setExtra) =>
+          footer(sections, extra, setExtra, { onNote: setNoteSave, onBalance: setBalanceSave })
+        }
+        linked={[noteSave, balanceSave].filter((l): l is LinkedSave => l !== null)}
         sections={sections}
       />
     </div>

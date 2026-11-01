@@ -4,4 +4,5 @@ export default {
   'search-keywords': 'Search keywords',
   'bulk-edit': 'Bulk edit',
   'extra-fields': 'Extra fields',
+  'pre-orders': 'Pre-orders',
 }

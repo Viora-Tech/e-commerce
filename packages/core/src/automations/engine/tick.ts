@@ -125,8 +125,8 @@ async function publishedDefinition(tx: StoreTx, workflowId: string) {
 }
 
 /**
- * Sweep trigger sources run by the tick (Growth's abandoned checkout, abandoned cart and lapsed
- * customer). Each finds its records and starts runs through `start`; runs it starts are queued
+ * Sweep trigger sources run by the tick (Growth's abandoned checkout, abandoned cart, browse
+ * abandonment and lapsed customer). Each finds its records and starts runs through `start`; runs it starts are queued
  * now, so the due query below returns them in the same tick.
  */
 export type TickSweep = (

@@ -47,13 +47,10 @@ export default function MessageRow({
 
   return (
     <SettingsTableRow>
-      <SettingsTableCell>
-        <label
-          htmlFor={m.switchable ? switchId : undefined}
-          className="block font-semibold text-ink-strong"
-        >
-          {name}
-        </label>
+      {/* Wraps, so the switch stays in view; the name is not a label for it, so clicking the
+          row's text never turns a customer message off by accident. */}
+      <SettingsTableCell className="whitespace-normal">
+        <span className="block font-semibold text-ink-strong">{name}</span>
         <p className="text-caption font-normal text-muted-foreground">
           {copy.messages[m.id]?.when}
         </p>

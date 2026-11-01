@@ -46,7 +46,9 @@ export default function TopSourceCards({ sources }: TopSourceCardsProps) {
               </span>
             </div>
             <div className="flex flex-col gap-1">
-              <p className="text-stat-sm tabular-nums text-foreground">{fmt.money(s.salesPaise)}</p>
+              <p className="text-stat-sm tabular-nums text-foreground">
+                {fmt.moneyWhole(s.salesPaise)}
+              </p>
               <p className="text-caption text-muted-foreground">
                 {copy.orderValue(
                   copy.orders(s.orders, fmt.number(s.orders)),

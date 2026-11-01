@@ -26,7 +26,11 @@ import {
   SHIPMENT_NDR_STATUSES,
   shipmentCounts,
 } from '../services/shipments-workspace.service'
-import { shipmentDetails, shipmentLabelFile } from '../services/shipping.service'
+import {
+  editShipmentTracking,
+  shipmentDetails,
+  shipmentLabelFile,
+} from '../services/shipping.service'
 
 const ndrAction = z.enum(['reattempt', 'change_address', 'rto'])
 
@@ -289,6 +293,32 @@ export const shipmentsRouter = {
         settingsSecret(),
         input.providerId,
         input.lowBalanceThresholdPaise,
+      )
+    }),
+
+  /**
+   * Correct a hand-entered shipment's tracking number, courier or tracking link. The timeline
+   * records it, and the customer gets "Shipping update" once they had the shipped message.
+   */
+  updateTracking: can(permissions.ORDERS_FULFIL)
+    .input(
+      z.object({
+        shipmentId: z.uuid(),
+        waybill: z.string().trim().min(1).max(60),
+        courier: z.string().trim().max(80).optional(),
+        trackingUrl: z.union([z.url().max(500), z.literal('')]).optional(),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
+      const { shipmentId, ...edit } = input
+      return editShipmentTracking(
+        context.tx,
+        context.scope.storeId,
+        shipping,
+        shipmentId,
+        edit,
+        context.session.user.email,
       )
     }),
 

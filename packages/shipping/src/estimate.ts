@@ -21,6 +21,7 @@ import {
   ImpossibleCalendarError,
 } from './delivery-date'
 import { parsePincode } from './pincode'
+import { remoteExtraDays } from './remote-areas'
 import type { Serviceability, ShippingProvider } from './types'
 
 /** Per-store shipping policy, as stored in settings. */
@@ -48,6 +49,8 @@ export type DeliveryEstimate =
       dispatchesToday: boolean
       /** True when the courier did not answer and configured days were used. */
       fallback: boolean
+      /** Days added to the configured ones for a remote PIN code (islands, north-east hills). */
+      remoteExtraDays?: number | undefined
       provider: string
     }
   | { ok: true; serviceable: false; pincode: string; reason: string }
@@ -114,11 +117,16 @@ export async function estimateDelivery(input: {
     }
   }
 
+  // A courier's own transit days already know the route; the store's defaults do not.
+  const extra =
+    answer?.minTransitDays == null && answer?.maxTransitDays == null
+      ? remoteExtraDays(parsed.pincode)
+      : 0
   try {
     const estimate = computeDeliveryEstimate({
       now: input.now,
-      minTransitDays: answer?.minTransitDays ?? policy.defaultMinTransitDays,
-      maxTransitDays: answer?.maxTransitDays ?? policy.defaultMaxTransitDays,
+      minTransitDays: answer?.minTransitDays ?? policy.defaultMinTransitDays + extra,
+      maxTransitDays: answer?.maxTransitDays ?? policy.defaultMaxTransitDays + extra,
       policy,
     })
     return {
@@ -133,6 +141,7 @@ export async function estimateDelivery(input: {
       dispatchLabel: formatShortDate(estimate.dispatchDate),
       dispatchesToday: estimate.dispatchesToday,
       fallback,
+      remoteExtraDays: extra,
       provider: answer?.provider ?? input.provider?.id ?? 'policy',
     }
   } catch (error) {

@@ -207,6 +207,31 @@ describe('cancelOrderByStaff', () => {
     expect(notes.at(-1)?.author).toBe(STAFF)
   })
 
+  it('stores the picked reason code and its note (#125)', async () => {
+    const { storeId, black } = await seed()
+    const id = await placed(storeId, black)
+    await withStore(app, storeId, (tx) =>
+      cancelOrderByStaff(
+        { storeId, tx },
+        {
+          orderId: id,
+          reasonCode: 'inventory',
+          reason: 'Supplier delayed',
+          restock: true,
+          notifyCustomer: false,
+          refund: 'manual',
+          author: STAFF,
+        },
+        [gateway()],
+      ),
+    )
+    const o = await orderRow(id)
+    expect(o.cancelReason).toBe('inventory')
+    expect(o.cancelNote).toBe('Supplier delayed')
+    const notes = await owner.select().from(orderNote).where(eq(orderNote.orderId, id))
+    expect(notes.at(-1)?.body).toContain('Reason: Out of stock. Note: Supplier delayed.')
+  })
+
   it('writes stock off without restock, records a manual refund and stays quiet when asked', async () => {
     const { storeId, black } = await seed()
     const id = await placed(storeId, black)
@@ -382,9 +407,9 @@ describe('editOrder', () => {
     )
     // Collected by hand later: the balance settles and the order is paid again.
     const notes = await owner.select().from(orderNote).where(eq(orderNote.orderId, id))
-    expect(notes.some((n) => n.body.startsWith('Order edited: added 1 × Glasspad (White)'))).toBe(
-      true,
-    )
+    expect(
+      notes.some((n) => n.body.startsWith('Order edited:\n+ Added 1 × Glasspad (White)')),
+    ).toBe(true)
   })
 
   it('lowers a quantity: stock released, the difference refunded and tagged as an edit', async () => {
@@ -669,15 +694,131 @@ describe('editOrder', () => {
     expect(notes.some((n) => n.body.startsWith('Order edited after shipping'))).toBe(true)
   })
 
-  it('refuses a completed order', async () => {
+  it('refuses a cancelled order', async () => {
     const { storeId, black } = await seed()
     const id = await placed(storeId, black)
-    await owner.update(order).set({ status: 'completed' }).where(eq(order.id, id))
+    await owner.update(order).set({ status: 'cancelled' }).where(eq(order.id, id))
     await expect(
       withStore(app, storeId, (tx) =>
         previewOrderEdit({ storeId, tx }, edit({ orderId: id, shippingLabel: 'Bluedart' }), []),
       ),
     ).rejects.toMatchObject({ reason: 'not_editable' })
+  })
+
+  it('edits a delivered (completed) order: the new item goes in a new parcel and fulfilment reopens (#1014)', async () => {
+    const { storeId, black, white } = await seed()
+    const id = await placed(storeId, black)
+    // Packed, handed over and marked delivered: the order completes.
+    await owner.update(orderLine).set({ fulfilledQuantity: 2 }).where(eq(orderLine.orderId, id))
+    await owner.update(fulfillmentOrderLine).set({ fulfilledQuantity: 2 })
+    await owner
+      .update(fulfillmentOrder)
+      .set({ status: 'fulfilled' })
+      .where(eq(fulfillmentOrder.orderId, id))
+    await owner.update(order).set({ deliveredAt: new Date() }).where(eq(order.id, id))
+    await withStore(app, storeId, (tx) => recomputeOrderStatuses({ storeId, tx }, id))
+    expect(await orderRow(id)).toMatchObject({
+      status: 'completed',
+      fulfillmentStatus: 'delivered',
+    })
+
+    await withStore(app, storeId, (tx) =>
+      editOrder(
+        { storeId, tx },
+        edit({ orderId: id, add: [{ variantId: white, quantity: 1 }] }),
+        { refund: 'none', requestPayment: false, author: STAFF, note: 'Forgot the white one' },
+        [gateway()],
+      ),
+    )
+    const o = await orderRow(id)
+    expect(o).toMatchObject({
+      status: 'open',
+      fulfillmentStatus: 'partially_fulfilled',
+      totalPaise: 250000,
+    })
+    const parcels = await owner
+      .select()
+      .from(fulfillmentOrder)
+      .where(eq(fulfillmentOrder.orderId, id))
+    expect(parcels.map((p) => p.status).sort()).toEqual(['fulfilled', 'open'])
+    expect(await level(white)).toEqual({ onHand: 4, reserved: 1 })
+    const notes = await owner.select().from(orderNote).where(eq(orderNote.orderId, id))
+    const body = notes.find((n) => n.body.startsWith('Order edited'))?.body ?? ''
+    expect(body).toContain('+ Added 1 × Glasspad (White)')
+    expect(body).toContain('Note: Forgot the white one')
+  })
+
+  it('refuses a new price on a packed line; more of it is fine', async () => {
+    const { storeId, black } = await seed()
+    const id = await placed(storeId, black)
+    const [line] = await owner.select().from(orderLine).where(eq(orderLine.orderId, id))
+    await owner
+      .update(orderLine)
+      .set({ fulfilledQuantity: 1 })
+      .where(eq(orderLine.id, line?.id as string))
+    await expect(
+      withStore(app, storeId, (tx) =>
+        previewOrderEdit(
+          { storeId, tx },
+          edit({ orderId: id, lines: [{ lineId: line?.id, quantity: 2, unitPricePaise: 90000 }] }),
+          [],
+        ),
+      ),
+    ).rejects.toMatchObject({ reason: 'fulfilled_line' })
+    const p = await withStore(app, storeId, (tx) =>
+      previewOrderEdit(
+        { storeId, tx },
+        edit({ orderId: id, lines: [{ lineId: line?.id, quantity: 3 }] }),
+        [],
+      ),
+    )
+    expect(p.after.subtotalPaise).toBe(300000)
+  })
+
+  it('adds a custom item: its own title, price and GST, no stock held', async () => {
+    const { storeId, black } = await seed()
+    const id = await placed(storeId, black)
+    const r = await withStore(app, storeId, (tx) =>
+      editOrder(
+        { storeId, tx },
+        edit({
+          orderId: id,
+          custom: [{ title: 'Gift wrap', quantity: 2, unitPricePaise: 5000, taxable: false }],
+        }),
+        { refund: 'none', requestPayment: false, author: STAFF },
+        [gateway()],
+      ),
+    )
+    expect(r.plan.after.totalPaise).toBe(210000)
+    const lines = await owner.select().from(orderLine).where(eq(orderLine.orderId, id))
+    const wrap = lines.find((l) => l.title === 'Gift wrap')
+    expect(wrap).toMatchObject({ quantity: 2, unitPricePaise: 5000, gstRatePercent: 0 })
+    expect(wrap?.variantId).not.toBe(black)
+    const parcelLines = await owner
+      .select()
+      .from(fulfillmentOrderLine)
+      .where(eq(fulfillmentOrderLine.orderLineId, wrap?.id as string))
+    expect(parcelLines.map((l) => l.quantity)).toEqual([2])
+    expect(await level(black)).toEqual({ onHand: 10, reserved: 2 })
+    const notes = await owner.select().from(orderNote).where(eq(orderNote.orderId, id))
+    expect(notes.some((n) => n.body.includes('+ Added 2 × Gift wrap (custom item)'))).toBe(true)
+  })
+
+  it('writes a reduced line off with restock off: on hand drops with committed', async () => {
+    const { storeId, black } = await seed()
+    const id = await placed(storeId, black)
+    const [line] = await owner.select().from(orderLine).where(eq(orderLine.orderId, id))
+    await withStore(app, storeId, (tx) =>
+      editOrder(
+        { storeId, tx },
+        edit({ orderId: id, lines: [{ lineId: line?.id, quantity: 1, restock: false }] }),
+        { refund: 'none', requestPayment: false, author: STAFF },
+        [gateway()],
+      ),
+    )
+    expect(await level(black)).toEqual({ onHand: 9, reserved: 1 })
+    const notes = await owner.select().from(orderNote).where(eq(orderNote.orderId, id))
+    expect(notes.some((n) => n.body.includes('2 → 1 (not restocked)'))).toBe(true)
   })
 
   it('refuses an imported order until it is taken over', async () => {

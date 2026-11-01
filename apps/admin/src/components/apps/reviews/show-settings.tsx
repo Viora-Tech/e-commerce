@@ -1,7 +1,9 @@
 'use client'
 
 import {
+  REQUEST_CHANNELS,
   REVIEW_SORTS,
+  type RequestChannel,
   type ReviewSort,
   type ReviewsSettings,
   requestSubject,
@@ -33,6 +35,7 @@ import {
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { useState } from 'react'
 import DataCard from '@/components/layout/data-card'
+import { reviewToolsContent } from '@/data/review-tools'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -48,6 +51,7 @@ const days = (raw: string) => Math.min(60, Math.max(0, Math.round(Number(raw) ||
 export default function ShowSettings({ value, storeName, onChange }: ShowSettingsProps) {
   // Hooks
   const { settings: copy } = useCopy(reviewsContent)
+  const { channel: channelCopy } = useCopy(reviewToolsContent)
   const [previewing, setPreviewing] = useState(false)
 
   // Helpers
@@ -59,6 +63,7 @@ export default function ShowSettings({ value, storeName, onChange }: ShowSetting
   // Render logic
   const e = copy.email
   const sorts = Object.fromEntries(REVIEW_SORTS.map((s) => [s, copy.store.sorts[s]]))
+  const channels = Object.fromEntries(REQUEST_CHANNELS.map((c) => [c, channelCopy.options[c]]))
 
   return (
     <>
@@ -72,6 +77,28 @@ export default function ShowSettings({ value, storeName, onChange }: ShowSetting
               checked={value.requestEmail.enabled}
               onCheckedChange={(v) => email({ enabled: v })}
             />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="reviews-channel">{channelCopy.label}</Label>
+            <Select
+              items={channels}
+              value={value.requestEmail.channel}
+              onValueChange={(v) => email({ channel: v as RequestChannel })}
+            >
+              <SelectTrigger id="reviews-channel" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {REQUEST_CHANNELS.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {channelCopy.options[c]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {value.requestEmail.channel !== 'email' && (
+              <span className="text-caption text-muted-foreground">{channelCopy.whatsappHelp}</span>
+            )}
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">

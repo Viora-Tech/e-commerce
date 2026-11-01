@@ -15,7 +15,8 @@ import { resetDb } from '@commerce/db/test'
 import { sql } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type { StoreContext } from '../context'
-import { inboxCounts, listConversations, staffSend } from './conversations'
+import { inboxCounts, listConversations } from './conversations'
+import { staffSend } from './conversations-send'
 import { hashChatToken, newChatToken } from './identity'
 import {
   customerPanel,
@@ -71,8 +72,8 @@ async function setup() {
 
 async function addOrder(storeId: string, customerId: string, number: number, totalPaise: number) {
   await owner.execute(sql`
-    insert into "order" (id, store_id, number, customer_id, subtotal_paise, total_paise, status)
-    values (gen_random_uuid(), ${storeId}, ${number}, ${customerId}, ${totalPaise}, ${totalPaise}, 'open')`)
+    insert into "order" (id, store_id, number, customer_id, subtotal_paise, total_paise, status, payment_status)
+    values (gen_random_uuid(), ${storeId}, ${number}, ${customerId}, ${totalPaise}, ${totalPaise}, 'open', 'paid')`)
 }
 
 describe('customer panel', () => {

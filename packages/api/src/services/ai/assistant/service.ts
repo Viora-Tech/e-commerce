@@ -20,6 +20,9 @@
  * (`queueForApprover`, from the store procedure). From then on only a different member who may
  * approve it (`canApprove`) can approve it; the asker can only withdraw it.
  *
+ * One request per change (`duplicates.ts`): asking again for an open request returns it with
+ * `alreadyRequested` instead of storing a copy, and deciding one closes its open twins.
+ *
  * Nothing here is reachable by the model: it only ever creates `proposed` rows.
  */
 import { ASSISTANT_LIMITS } from '@commerce/ai'
@@ -32,6 +35,7 @@ import type { StoreScope } from '../../../procedures/store'
 import { adminAction, queuedAdminAction } from './actions/admin-action'
 import { ApproverNotAllowed, NeedsApprover, ProposalProblem } from './actions/resolve'
 import type { ActionEnv, EditField } from './actions/types'
+import { closeTwins, lockRequest, openTwin, requestKey } from './duplicates'
 import { actionFor, undoerFor } from './registry'
 import {
   type ActionView,
@@ -47,9 +51,18 @@ import {
 
 const ttlMs = ASSISTANT_LIMITS.proposalTtlMinutes * 60_000
 
+/** The message an asker gets when the same change is already waiting. */
+export const ALREADY_REQUESTED = 'Already requested — waiting for approval.'
+
+/** An open request returned instead of storing the same one again. */
+async function existing(tx: StoreTx, row: Row, now: Date): Promise<ActionView> {
+  return { ...(await oneView(tx, row, now)), alreadyRequested: true }
+}
+
 /**
  * A change a member made (admin, MCP, API) that their role sends for approval: stored as a
  * `runAdminAction` waiting in Approvals, with the permission that held it back. Runs nothing.
+ * When the same change already waits there (whoever asked), that one is returned instead.
  */
 export async function queueForApprover(
   tx: StoreTx,
@@ -65,6 +78,10 @@ export async function queueForApprover(
 ): Promise<ActionView> {
   const raw = { path: input.path, input: input.input }
   const proposal = queuedAdminAction(input.path, input.input)
+  const ask = { storeId: input.storeId, tool: adminAction.tool, raw, now: input.now }
+  await lockRequest(tx, input.storeId, requestKey(ask.tool, raw))
+  const twin = await openTwin(tx, { ...ask, userId: null })
+  if (twin) return existing(tx, twin, input.now)
   const [row] = await tx
     .insert(aiAction)
     .values({
@@ -83,8 +100,31 @@ export async function queueForApprover(
   return oneView(tx, row as Row, input.now)
 }
 
-/** Hands an open proposal to Approvals: from now on a different member must approve it. */
-async function sendToApprover(env: ActionEnv, id: string, permission: Permission | null) {
+/**
+ * Hands an open proposal to Approvals: from now on a different member must approve it. When the
+ * same change already waits there, this proposal is closed and says so (`alreadyRequested`).
+ */
+async function sendToApprover(env: ActionEnv, row: Row, permission: Permission | null) {
+  const id = row.id
+  const raw = (row.input as Partial<Stored>).raw ?? null
+  await lockRequest(env.tx, env.storeId, requestKey(row.tool, raw))
+  const twin = await openTwin(
+    env.tx,
+    { storeId: env.storeId, tool: row.tool, raw, userId: null, now: env.now },
+    id,
+  )
+  if (twin) {
+    const [closed] = await env.tx
+      .update(aiAction)
+      .set({
+        status: 'cancelled',
+        result: { message: ALREADY_REQUESTED, duplicateOf: twin.id },
+        updatedAt: env.now,
+      })
+      .where(eq(aiAction.id, id))
+      .returning()
+    return existing(env.tx, closed as Row, env.now)
+  }
   const [updated] = await env.tx
     .update(aiAction)
     .set({
@@ -98,7 +138,10 @@ async function sendToApprover(env: ActionEnv, id: string, permission: Permission
   return oneView(env.tx, updated as Row, env.now)
 }
 
-/** Validates a propose tool's input and stores it as a proposal. Changes nothing else. */
+/**
+ * Validates a propose tool's input and stores it as a proposal. Changes nothing else. The asker's
+ * own open request for the same change (a card, or one waiting in Approvals) is returned instead.
+ */
 export async function proposeAction(
   env: ActionEnv,
   tool: string,
@@ -108,6 +151,15 @@ export async function proposeAction(
   const definition = actionFor(tool)
   if (!definition) throw new ProposalProblem(`There is no ${tool} action.`)
   const parsed = definition.input.parse(raw) as Record<string, unknown>
+  await lockRequest(env.tx, env.storeId, requestKey(tool, parsed))
+  const twin = await openTwin(env.tx, {
+    storeId: env.storeId,
+    tool,
+    raw: parsed,
+    userId: env.userId,
+    now: env.now,
+  })
+  if (twin) return existing(env.tx, twin, env.now)
   const proposal = await definition.propose(env, parsed)
   const [row] = await env.tx
     .insert(aiAction)
@@ -263,7 +315,7 @@ export async function approveAction(
   requirePermission(scope, row.tool)
   const permission = permissionOf(row)
   if (!row.needsApprover && permission && mustAsk(scope, permission)) {
-    return sendToApprover(env, id, permission)
+    return sendToApprover(env, row, permission)
   }
   const definition = actionFor(row.tool)
   if (!definition) throw new ORPCError('BAD_REQUEST', { message: 'Unknown AI action.' })
@@ -291,6 +343,8 @@ export async function approveAction(
       })
       .where(eq(aiAction.id, id))
       .returning()
+    // The change is made: copies of the same request leave the queue instead of failing later.
+    await closeTwins(env.tx, row, 'approved', env.email, env.now)
     return oneView(env.tx, updated as Row, env.now)
   } catch (err) {
     if (err instanceof ApproverNotAllowed) {
@@ -298,7 +352,7 @@ export async function approveAction(
     }
     // The admin action's own permission is one this member's role sends for approval.
     if (err instanceof NeedsApprover && !row.needsApprover) {
-      return sendToApprover(env, id, asPermission(err.permission))
+      return sendToApprover(env, row, asPermission(err.permission))
     }
     const message =
       err instanceof ProposalProblem
@@ -320,13 +374,18 @@ export async function approveAction(
   }
 }
 
-/** Cancel (reject): records who did it as `by`. */
+/**
+ * Cancel (reject): records who did it as `by`. A rejection closes the request's open twins too;
+ * the asker withdrawing closes only their own copies.
+ */
 export async function cancelAction(
   env: ActionEnv,
   scope: StoreScope,
   id: string,
 ): Promise<ActionView> {
-  await openFor(env, scope, id, 'cancel')
+  const row = await openFor(env, scope, id, 'cancel')
+  const how = row.userId === env.userId ? 'withdrawn' : 'rejected'
+  await closeTwins(env.tx, row, how, env.email, env.now)
   const [updated] = await env.tx
     .update(aiAction)
     .set({ status: 'cancelled', result: { by: env.email }, updatedAt: env.now })

@@ -1,4 +1,5 @@
 import { routes } from '@/lib/routes'
+import { customersBulkContent } from './customers-bulk'
 
 export const CUSTOMER_SEGMENTS = ['new', 'returning', 'subscribed'] as const
 export type CustomerSegment = (typeof CUSTOMER_SEGMENTS)[number]
@@ -113,45 +114,16 @@ export const customersContent = {
     businessNo: 'No GSTIN',
     tag: 'Tag',
   },
-  bulk: {
-    addTag: 'Add tag',
-    removeTag: 'Remove tag',
-    export: 'Export selection',
-    email: 'Email',
-    tagHeading: 'Tag customers',
-    tagLabel: 'Tag name',
-    tagPlaceholder: 'vip',
-    apply: 'Apply',
-    cancel: 'Cancel',
-    tagged: (n: number) => (n === 1 ? '1 customer updated' : `${n} customers updated`),
-    noChange: 'Nothing to change',
-    failed: 'Could not update the tags',
-    marketing: 'Marketing',
-    subscribe: (channel: string) => `Subscribe to ${channel}`,
-    unsubscribe: (channel: string) => `Unsubscribe from ${channel}`,
-    consentTitle: (granted: boolean, channel: string, n: number) => {
-      const who = n === 1 ? '1 customer' : `${n} customers`
-      return granted
-        ? `Subscribe ${who} to ${channel} marketing?`
-        : `Unsubscribe ${who} from ${channel} marketing?`
-    },
-    consentBody: (granted: boolean) =>
-      granted
-        ? 'Only do this if they agreed to hear from you, for example on a call or a signed form. Each change is kept in their consent history.'
-        : 'They stop getting marketing on this channel. Each change is kept in their consent history.',
-    consentConfirm: (granted: boolean) => (granted ? 'Subscribe' : 'Unsubscribe'),
-    consentFailed: 'Could not update marketing consent',
-    bulkEdit: 'Bulk edit',
-    openFailed: 'Could not open the bulk editor',
-    delete: 'Delete',
-    deleteTitle: (n: number) => (n === 1 ? 'Delete 1 customer?' : `Delete ${n} customers?`),
-    deleteBody:
-      'Their records and notes go away. This cannot be undone. Customers with orders stay, so the order history keeps them.',
-    deleteConfirm: 'Delete',
-  },
+  bulk: customersBulkContent,
   saveSegment: 'Save as segment',
   exportAll: 'Export',
-  statuses: { vip: 'VIP', active: 'Active', inactive: 'Inactive' },
+  /** #38: say what the chip means; "Active / Inactive" left merchants guessing. */
+  statuses: { vip: 'VIP', active: 'Recent buyer', inactive: 'No recent orders' },
+  statusHints: {
+    vip: 'Spent the most with you',
+    active: `Ordered in the last ${ACTIVE_WINDOW_DAYS} days`,
+    inactive: `No order in the last ${ACTIVE_WINDOW_DAYS} days, or never ordered`,
+  },
   exported: (n: number) => (n === 1 ? '1 row exported' : `${n} rows exported`),
   exportFailed: 'Could not build the export',
   unnamed: 'No name',
@@ -202,6 +174,7 @@ export const customerDetailContent = {
     whatsapp: 'WhatsApp',
     call: 'Call',
     email: 'Email customer',
+    createOrder: 'Create order',
     delete: 'Delete customer',
     deleteHeading: 'Delete this customer?',
     deleteBody: 'The record and its notes go away. This cannot be undone.',
@@ -229,6 +202,34 @@ export const customerDetailContent = {
     cancel: 'Cancel',
     saved: 'Customer saved',
     failed: 'Could not save the customer',
+    /** #129: closing with Escape or a click outside asks before dropping edits. */
+    discardTitle: 'Discard your changes?',
+    discardBody: 'The name and phone you changed are not saved yet.',
+    discard: 'Discard',
+    keepEditing: 'Keep editing',
+  },
+  /** The strip under the header (audit #82): what they are worth at a glance. */
+  summary: {
+    spent: 'Amount spent',
+    orders: 'Orders',
+    since: 'Customer since',
+    lastOrder: 'Last order',
+    average: (amount: string) => `${amount} average order`,
+    firstOrder: (date: string) => `First order ${date}`,
+    noOrders: 'No orders yet',
+  },
+  /** "Email customer" (audit #80): a plain email sent through the store's email channels. */
+  email: {
+    title: 'Email customer',
+    to: 'To',
+    subject: 'Subject',
+    message: 'Message',
+    help: 'Sent as plain text from your store’s email. It shows under Messages sent and on the timeline.',
+    send: 'Send email',
+    cancel: 'Cancel',
+    sent: (to: string) => `Email sent to ${to}`,
+    failed: 'Could not send the email',
+    required: 'Add a subject and a message',
   },
   totals: {
     heading: 'Lifetime',
@@ -282,6 +283,14 @@ export const customerDetailContent = {
     placed: (number: number, total: string) => `Placed order #${number} for ${total}`,
     sent: (what: string, channel: string) => `${what} sent by ${channel}`,
     failed: (what: string) => `${what} could not be sent`,
+    /** #134: what went wrong or back on their orders. */
+    cancelled: (number: number, reason: string | null) =>
+      `Order #${number} was cancelled${reason ? `: ${reason}` : ''}`,
+    returned: (number: number, returnNumber: number) =>
+      `Asked to return order #${number} (R-${returnNumber})`,
+    rto: (number: number, returnNumber: number) =>
+      `Order #${number} came back undelivered (R-${returnNumber})`,
+    refunded: (amount: string, number: number) => `Refunded ${amount} on order #${number}`,
     more: (n: number) => `Show ${n} older`,
     less: 'Show fewer',
   },
@@ -294,6 +303,7 @@ export const customerDetailContent = {
       order_shipped: 'Shipping update',
       checkout_recovery: 'Checkout reminder',
       document_copy: 'Invoice copy',
+      customer_message: 'Email from you',
     } as Record<string, string>,
     status: { queued: 'Queued', sent: 'Sent', failed: 'Failed' } as Record<string, string>,
     via: (channel: string) => `via ${channel}`,
@@ -407,6 +417,9 @@ export const segmentsContent = {
     previewLive: 'counted live from your customers',
     previewAll: 'Every customer, until you add a condition',
     newIntro: 'Pick who belongs in it. The count updates as you go.',
+    /** What to do with a saved segment (audit #182). */
+    emailIt: 'Email this segment',
+    discountIt: 'Create discount for it',
     previewEmpty: 'Nothing matches these conditions yet.',
     save: 'Save segment',
     saved: 'Segment saved',

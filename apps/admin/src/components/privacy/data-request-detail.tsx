@@ -84,7 +84,9 @@ export default function DataRequestDetail({ id }: DataRequestDetailProps) {
             <AuditTrail entries={detail.audit} />
           </DataCard>
         </div>
-        <div className="flex flex-col gap-4">
+        {/* Not stretched to the main column's height: DataCard is h-full, so the two cards
+            would shrink into it and cut off the last details (Answer by). */}
+        <div className="flex flex-col gap-4 self-start">
           <DataCard title={copy.customer}>
             {cu ? (
               <div className="flex flex-col gap-2">

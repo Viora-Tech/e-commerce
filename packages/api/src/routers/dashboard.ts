@@ -1,9 +1,11 @@
-import { permissions } from '@commerce/core'
+import { dismissHomeCard, listHomeCards, permissions } from '@commerce/core'
 import { HOME_METRICS, HOME_TILE_COUNT } from '@commerce/core/home-metrics'
+import { HOME_TODOS } from '@commerce/core/home-todos'
 import { z } from 'zod'
 import { can, storeProcedure } from '../procedures'
 import { dashboardCharts, dashboardSummary } from '../services/dashboard.service'
 import { homeAnalytics, loadHomeTiles, saveHomeTiles } from '../services/home-analytics.service'
+import { loadHomeTodos, saveHomeTodos } from '../services/home-todos.service'
 
 /** The Live view globe's "Time range" setting: how far back `mapOrders` looks. */
 const GlobeMapRangeSchema = z.enum(['1h', '24h', '7d'])
@@ -61,5 +63,32 @@ export const dashboardRouter = {
     .input(z.object({ tiles: z.array(z.enum(HOME_METRICS)).length(HOME_TILE_COUNT) }))
     .handler(({ context, input }) =>
       saveHomeTiles(context.tx, context.scope.storeId, context.scope.userId, input.tiles),
+    ),
+
+  /** Which to-do cards this store hides on Home ("Edit to-dos"); one setting for the whole store. */
+  todos: can(permissions.ANALYTICS_READ).handler(({ context }) =>
+    loadHomeTodos(context.tx, context.scope.storeId),
+  ),
+
+  setTodos: can(permissions.ANALYTICS_READ)
+    .input(z.object({ hidden: z.array(z.enum(HOME_TODOS)).max(HOME_TODOS.length) }))
+    .handler(({ context, input }) =>
+      saveHomeTodos(context.tx, context.scope.storeId, input.hidden),
+    ),
+
+  /** Home's smart cards: suggestions from the store's own numbers, rebuilt daily, best first. */
+  cards: can(permissions.ANALYTICS_READ).handler(({ context }) =>
+    listHomeCards({ storeId: context.scope.storeId, tx: context.tx }),
+  ),
+
+  /** Hide one smart card for 30 days for the whole store; `dismissed: false` is Undo. */
+  dismissCard: can(permissions.ANALYTICS_READ)
+    .input(z.object({ key: z.string().min(1).max(200), dismissed: z.boolean().default(true) }))
+    .handler(({ context, input }) =>
+      dismissHomeCard(
+        { storeId: context.scope.storeId, tx: context.tx },
+        input.key,
+        input.dismissed,
+      ),
     ),
 }

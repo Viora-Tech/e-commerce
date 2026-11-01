@@ -1,6 +1,7 @@
-import GatewayOverviewPage from '@/components/payments/gateway-overview-page'
+import { redirect } from 'next/navigation'
+import { routes } from '@/lib/routes'
 
-/** `/apps/cashfree`: Cashfree's health and a way to connect it. */
+/** `/apps/cashfree`: one place to manage Cashfree, its provider page under Settings › Payments. */
 export default function CashfreeOverviewPage() {
-  return <GatewayOverviewPage providerId="cashfree" />
+  return redirect(routes.settings.paymentProvider('cashfree'))
 }

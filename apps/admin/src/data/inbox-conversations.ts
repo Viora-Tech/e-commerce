@@ -58,9 +58,10 @@ export const inboxConversationsContent = {
     blocked: 'Blocked',
     settings: 'Settings',
     quickReplies: 'Quick replies',
+    knowledge: 'Knowledge base',
   },
   list: {
-    search: 'Search name, email, phone, order or words',
+    search: 'Search conversations',
     allClear: 'All clear',
     allClearBody: 'No conversations here right now.',
     viewClosed: 'View closed conversations',

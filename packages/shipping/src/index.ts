@@ -30,5 +30,6 @@ export { type FakeShippingConfig, FakeShippingProvider, fakeShippingFactory } fr
 export { LoginTokenCache } from './login-token'
 export * from './pincode'
 export { ShippingRegistry } from './registry'
+export { remoteExtraDays } from './remote-areas'
 export type * from './types'
 export { firstHeader, hmacSha256Matches, timingSafeEqualString } from './webhook-auth'

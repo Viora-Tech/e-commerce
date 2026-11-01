@@ -56,6 +56,11 @@ describe('settings redirects', () => {
       '/settings/customer-privacy/:path*': '/settings/privacy/:path*',
       '/settings/account': '/account',
       '/settings/files': '/content/files/storage',
+      '/settings/markets': '/markets',
+      '/settings/markets/rollouts': '/markets/rollouts',
+      '/settings/markets/rollouts/:path*': '/markets/rollouts/:path*',
+      '/rollouts': '/markets/rollouts',
+      '/rollouts/:path*': '/markets/rollouts/:path*',
     })
   })
 

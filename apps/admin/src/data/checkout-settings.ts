@@ -1,7 +1,7 @@
 /** Settings → Checkout. */
 export const checkoutSettingsContent = {
   title: 'Checkout',
-  subtitle: 'What shoppers fill in when they order, and when cash on delivery is offered.',
+  subtitle: 'What shoppers fill in when they order, and how your checkout looks.',
   contact: {
     heading: 'Contact details',
     phone: 'Mobile number is always asked for',
@@ -41,7 +41,12 @@ export const checkoutSettingsContent = {
     heading: 'Cash on delivery rules',
     off: 'Cash on delivery is off. Turn it on in Settings → Payments to set these rules.',
     offLink: 'Open Payments',
-    feeHint: 'The same fee as in Settings → Payments. A shipping rate can set its own.',
+    /** Settings → Checkout, since the rules moved to Payments (#97). */
+    moved:
+      'Cash on delivery fee, largest order and blocked PIN codes are now set with the other ways to pay, in Settings → Payments.',
+    saved: 'Cash on delivery rules saved.',
+    discard: 'Discard',
+    feeHint: 'Added to cash on delivery orders. A shipping rate can set its own.',
     max: 'Largest order for cash on delivery',
     maxHint: 'Bigger orders must be paid online. Counted with shipping. Leave at 0 for no limit.',
     blocked: 'PIN codes without cash on delivery',
@@ -65,6 +70,23 @@ export const checkoutBrandingContent = {
   tabs: {
     form: { id: 'form', label: 'Checkout form' },
     branding: { id: 'branding', label: 'Branding' },
+  },
+  /** The row list Settings → Checkout opens on (#147): each row's name and current value. */
+  rows: {
+    back: 'Checkout',
+    contact: 'Contact details',
+    emailRequired: 'Email required',
+    emailOptional: 'Email optional',
+    address: 'Address',
+    pincodeFirst: 'PIN code first',
+    standard: 'Standard order',
+    minimum: 'Minimum order value',
+    noMinimum: 'No minimum',
+    cod: 'Cash on delivery',
+    codOff: 'Off',
+    codOn: 'On',
+    branding: 'Branding',
+    brandingValue: 'Logo, colours and type',
   },
   intro:
     'Your checkout is locked, like Shopify’s: themes never change it, so it always works. Make it look like your brand here.',
@@ -113,8 +135,6 @@ export const checkoutBrandingContent = {
     desktop: 'Computer',
     phone: 'Phone',
     label: 'Checkout preview',
-    secure: 'Secure checkout',
-    secureShort: 'Secure',
     express: 'Express checkout',
     expressApps: ['GPay', 'PhonePe', 'Paytm'],
     sections: ['Contact', 'Delivery', 'Shipping', 'Payment'],

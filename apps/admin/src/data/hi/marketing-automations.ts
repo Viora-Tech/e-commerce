@@ -60,11 +60,10 @@ export default [
     },
     status: { active: 'चालू', paused: 'बंद' },
     created: 'ऑटोमेशन बन गया। देख लें, फिर चालू करें।',
-    browseNote:
-      'ब्राउज़ छोड़ने वालों को पकड़ने के लिए पहचाने हुए ग्राहक के प्रोडक्ट व्यू चाहिए, जो स्टोरफ़्रंट अभी दर्ज नहीं करता।',
     triggers: {
       checkout_abandoned: 'ग्राहक ईमेल या फ़ोन डालकर चेकआउट छोड़ देता है',
       cart_abandoned: 'साइन-इन ग्राहक कार्ट में प्रोडक्ट छोड़ देता है',
+      browse_abandoned: 'पहचाना हुआ ग्राहक प्रोडक्ट देखता है पर कार्ट में नहीं डालता',
       customer_subscribed: 'कोई ईमेल मार्केटिंग के लिए सब्सक्राइब करता है',
       first_order: 'ग्राहक पहला ऑर्डर करता है',
       customer_lapsed: 'ग्राहक ने काफ़ी समय से ऑर्डर नहीं किया',
@@ -73,6 +72,7 @@ export default [
     templateChannels: {
       abandoned_checkout: 'ईमेल, WhatsApp',
       abandoned_cart: 'ईमेल',
+      browse_abandoned: 'ईमेल',
       welcome_subscriber: 'ईमेल',
       first_purchase: 'ईमेल',
       win_back: 'ईमेल',

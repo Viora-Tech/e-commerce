@@ -5,14 +5,16 @@ import { type ReactNode, useEffect, useState } from 'react'
 import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
 import { orderDetailContent } from '@/data/order-detail'
+import { orderHoldContent } from '@/data/order-hold'
 import { ordersContent } from '@/data/orders'
 import { salesChannelsContent } from '@/data/sales-channels'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { orderChannel } from '@/lib/order-channel'
+import { shownPaymentStatus } from '@/lib/order-next-move'
 import { routes } from '@/lib/routes'
 import OrderChip from './order-chip'
-import { methodLabel, type OrderDetail } from './order-detail-types'
+import { importedGatewayLabel, methodLabel, type OrderDetail } from './order-detail-types'
 
 export type Neighbours = Awaited<ReturnType<typeof api.orders.neighbours>>
 
@@ -32,6 +34,7 @@ export default function OrderHeader({ order, actions, back }: OrderHeaderProps) 
   // Hooks
   const copy = useCopy(orderDetailContent)
   const listCopy = useCopy(ordersContent)
+  const holdCopy = useCopy(orderHoldContent)
   const fmt = useFormat()
   const [neighbours, setNeighbours] = useState<Neighbours | null>(null)
 
@@ -46,6 +49,13 @@ export default function OrderHeader({ order, actions, back }: OrderHeaderProps) 
   }, [order.id])
 
   // Render logic
+  // An imported order names Shopify's gateways (its own method reads 'manual'), cleaned (#13).
+  const imported = order.importMeta?.paymentMethod
+  const paidVia = imported
+    ? importedGatewayLabel(imported, copy)
+    : order.paymentMethod
+      ? methodLabel(order.paymentMethod, copy)
+      : null
   const soldThrough = orderChannel(order.attribution)
   /* Open is the everyday state; only a closed order earns its own lifecycle chip. */
   const closed = order.status !== 'open'
@@ -63,12 +73,14 @@ export default function OrderHeader({ order, actions, back }: OrderHeaderProps) 
         badges={
           <>
             {closed ? <OrderChip kind="order" value={order.status} /> : null}
-            <OrderChip kind="orderPayment" value={order.paymentStatus} />
+            <OrderChip kind="orderPayment" value={shownPaymentStatus(order)} />
+            {/* "Unfulfilled" on a cancelled order is noise: nothing will be shipped (audit #22). */}
             {toShip ? (
               <StatusChip tone="info">{listCopy.toShip}</StatusChip>
-            ) : (
+            ) : order.status === 'cancelled' && order.fulfillmentStatus === 'unfulfilled' ? null : (
               <OrderChip kind="fulfilment" value={order.fulfillmentStatus} />
             )}
+            {order.hold ? <StatusChip tone="attention">{holdCopy.chip}</StatusChip> : null}
             {order.isTest ? (
               <span title={listCopy.testChipHint}>
                 <StatusChip tone="attention">{listCopy.testChip}</StatusChip>
@@ -84,10 +96,10 @@ export default function OrderHeader({ order, actions, back }: OrderHeaderProps) 
         summary={
           <>
             <span title={fmt.dateTime(order.placedAt)}>{copy.placed(fmt.ago(order.placedAt))}</span>
-            {order.paymentMethod ? (
+            {paidVia ? (
               <>
                 {' · '}
-                {copy.paidVia}: {methodLabel(order.paymentMethod, copy)}
+                {copy.paidVia}: {paidVia}
               </>
             ) : null}
           </>

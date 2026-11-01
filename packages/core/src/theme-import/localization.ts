@@ -15,6 +15,8 @@ export type LiquidMarket = {
   country: string
   /** Every country the store sells to, across its markets: the theme's country selector. */
   countries: readonly string[]
+  /** Each country's currency, from the market selling there; a country missing here uses the page's. */
+  currencies?: Readonly<Record<string, string>>
   /** `/ae`, `/ar-ae`, `/hi`; '' for the host's own market in its own language. */
   prefix: string
 }
@@ -52,7 +54,24 @@ function endonymOf(code: string): string {
   }
 }
 
-const symbolOf = (currency: string) => CURRENCIES[currency as Currency]?.symbol ?? currency
+/**
+ * Shopify's own symbols where our money format writes the code: themes print
+ * `{{ currency.iso_code }} {{ currency.symbol }}`, which read "AED AED" (#86).
+ */
+const LIQUID_SYMBOLS: Record<string, string> = {
+  AED: 'د.إ',
+  SAR: 'ر.س',
+  QAR: 'ر.ق',
+  KWD: 'د.ك',
+  OMR: 'ر.ع.',
+  BHD: 'د.ب',
+}
+
+/** A currency's symbol as Liquid themes read it. */
+export const liquidCurrencySymbol = (currency: string) =>
+  LIQUID_SYMBOLS[currency] ?? CURRENCIES[currency as Currency]?.symbol ?? currency
+
+const symbolOf = liquidCurrencySymbol
 
 /** Shopify's `routes` inside a market: every own URL under its prefix. */
 function routesFor(prefix: string) {
@@ -62,16 +81,19 @@ function routesFor(prefix: string) {
   ) as Record<keyof typeof LIQUID_ROUTES, string>
 }
 
+/** A Liquid `currency` object. */
+const currencyDrop = (code: string) => ({
+  iso_code: code,
+  symbol: symbolOf(code),
+  name: nameOf(CURRENCY_NAMES, code),
+})
+
 /**
- * The Liquid globals that follow the page's market. Prices stay in the store's own currency
- * until market prices are converted, so every country lists that currency.
+ * The Liquid globals that follow the page's market. Each country in the selector carries the
+ * currency of the market selling there ("India (INR ₹)", "United Arab Emirates (AED)"); one
+ * the markets do not price falls back to the page's currency.
  */
 export function liquidLocalization(market: LiquidMarket, storeCurrency: string) {
-  const currency = {
-    iso_code: storeCurrency,
-    symbol: symbolOf(storeCurrency),
-    name: nameOf(CURRENCY_NAMES, storeCurrency),
-  }
   const own = market.languages[0]?.code ?? market.locale
   const languages = market.languages.map((l) => ({
     iso_code: l.code,
@@ -91,7 +113,7 @@ export function liquidLocalization(market: LiquidMarket, storeCurrency: string) 
     .map((code) => ({
       iso_code: code,
       name: nameOf(REGIONS, code),
-      currency,
+      currency: currencyDrop(market.currencies?.[code] ?? storeCurrency),
       unit_system: 'metric',
     }))
     .sort((a, b) => a.name.localeCompare(b.name))

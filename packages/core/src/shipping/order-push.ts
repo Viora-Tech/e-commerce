@@ -3,8 +3,10 @@ import { address, courierOrder, order, orderLine, shipment, variant } from '@com
 import {
   ASSUMED_WEIGHT_GRAMS,
   type CreateShipmentInput,
+  isDomesticCountry,
   type PushOrderResult,
   type ShippingProvider,
+  servesDestination,
 } from '@commerce/shipping'
 import { and, eq, gte, inArray, isNotNull, ne, notExists, or, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
@@ -100,7 +102,8 @@ async function pushInputFor(
       city: o.to.city,
       state: o.to.stateCode,
       pincode: o.to.pincode,
-      country: 'India',
+      // An order abroad (international checkout) keeps its ISO country code.
+      country: isDomesticCountry(o.to.country) ? 'India' : o.to.country,
       phone: o.to.phone || o.phone || '',
     },
     from: {
@@ -141,7 +144,8 @@ export async function pushOrderTo(
 ): Promise<boolean | null> {
   if (!provider.pushOrder) return null
   const input = await pushInputFor(ctx, orderId, settings, storeName)
-  if (!input) return null
+  // A domestic courier is never sent an order abroad (nor an export-only one an Indian order).
+  if (!input || !servesDestination(provider, input.to.country)) return null
   let result: PushOrderResult | null = null
   let error: string | null = null
   try {

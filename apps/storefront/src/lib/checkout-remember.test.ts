@@ -16,6 +16,7 @@ const details: RememberedDetails = {
   city: 'Jaipur',
   stateCode: 'RJ',
   pincode: '302001',
+  countryCode: 'IN',
 }
 
 describe('remembered guest details', () => {

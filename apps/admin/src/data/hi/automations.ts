@@ -17,6 +17,8 @@ export default [
     'automations.trigger.order.fulfilled': 'ऑर्डर भेजा गया',
     'automations.trigger.order.cancelled': 'ऑर्डर रद्द हुआ',
     'automations.trigger.order.delivered': 'ऑर्डर पहुँच गया',
+    'automations.trigger.order.fulfillment_held': 'फ़ुलफ़िलमेंट रोका गया',
+    'automations.trigger.order.fulfillment_released': 'फ़ुलफ़िलमेंट की रोक हटी',
     'automations.trigger.order.cod_placed': 'COD ऑर्डर आया',
     'automations.trigger.refund.created': 'रिफ़ंड बना',
     'automations.trigger.return.requested': 'रिटर्न माँगा गया',
@@ -31,6 +33,7 @@ export default [
     'automations.trigger.inventory.out': 'स्टॉक खत्म',
     'automations.trigger.checkout.abandoned': 'चेकआउट अधूरा छोड़ा',
     'automations.trigger.cart.abandoned': 'कार्ट अधूरा छोड़ा',
+    'automations.trigger.browse.abandoned': 'प्रोडक्ट देखकर छोड़ा',
     'automations.trigger.schedule': 'तय समय पर',
     'automations.trigger.manual.order': 'किसी ऑर्डर पर चलाएँ',
     'automations.trigger.manual.customer': 'किसी ग्राहक पर चलाएँ',
@@ -253,6 +256,7 @@ export default [
       marketing: 'मार्केटिंग',
       originField: 'कहाँ बना',
       originAutomations: 'ऑटोमेशन',
+      originAny: 'कहीं भी',
       backToGrowth: 'ग्रोथ पर लौटें',
       never: 'कभी नहीं',
       problem: 'बंद किया गया',
@@ -294,6 +298,10 @@ export default [
     templates: {
       title: 'टेम्पलेट',
       intro: 'हर टेम्पलेट से एक रुकी हुई कॉपी बनती है, जिसे चालू करने से पहले बदल सकते हैं।',
+      marketingTitle: 'मार्केटिंग फ़्लो',
+      marketingIntro:
+        'कार्ट और चेकआउट रिकवरी, वेलकम, थैंक-यू और विन-बैक ईमेल व WhatsApp। इन्हें Growth में सेट करें, जहाँ हर एक से वापस आए ऑर्डर दिखते हैं।',
+      openInGrowth: 'Growth में सेट करें',
       all: 'सभी',
       categories: {
         orders: 'ऑर्डर',

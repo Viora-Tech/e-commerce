@@ -49,12 +49,13 @@ export default function AddSectionPopover({
         aria-label={slot ? copy.addToSlotHere : copy.insertHere}
         title={slot ? copy.addToSlotHere : copy.insertHere}
         className={cn(
-          // A 0.5rem band straddling the gap above a row: the line and its "+"
-          // fade in while the pointer is in the band or the popover is open.
+          // A 0.5rem band straddling the gap above a row: the line and its "+" (centred, as on
+          // the canvas) fade in while the pointer is in the band or the popover is open.
           'group/insert absolute inset-x-1 -top-[0.3125rem] z-20 flex h-2 items-center outline-none',
           'focus-visible:[&>*]:opacity-100 data-[popup-open]:[&>*]:opacity-100 hover:[&>*]:opacity-100',
         )}
       >
+        <span className="h-px flex-1 bg-primary opacity-0 transition-opacity duration-150 motion-reduce:transition-none" />
         <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-card text-primary opacity-0 ring-1 ring-primary transition-opacity duration-150 motion-reduce:transition-none">
           <Plus aria-hidden className="size-3" />
         </span>

@@ -15,6 +15,7 @@ import { business, gstRegistration, location, newId, type StoreTx, store } from 
 import { and, asc, desc, eq, isNull, ne, sql } from 'drizzle-orm'
 import { CommerceError } from '../errors'
 import { listLocations } from '../inventory/levels'
+import { parseLocalDelivery, parseStorePickup } from '../shipping/local-options'
 import { parseShippingSettings } from '../shipping/settings'
 import { gstinState, panFromGstin, validateGstin } from './gstin'
 import {
@@ -118,6 +119,8 @@ export async function listBusinessGst(tx: StoreTx, storeId: string): Promise<Bus
         stateUnregistered: stateCode !== null && !registeredStates.has(stateCode),
         phone: l.phone,
         courierPickup: l.courierPickup ?? null,
+        localDelivery: parseLocalDelivery(l.localDelivery),
+        storePickup: parseStorePickup(l.storePickup),
         fulfilsOnlineOrders: l.fulfilsOnlineOrders,
         priority: l.priority,
       }

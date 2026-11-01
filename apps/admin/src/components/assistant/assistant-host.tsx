@@ -12,6 +12,7 @@ import {
   OPEN_ASSISTANT_EVENT,
   type OpenAssistantDetail,
 } from '@/lib/assistant-events'
+import { listSelection } from '@/lib/list-selection'
 import { instant } from '@/lib/motion'
 import AssistantLauncher from './assistant-launcher'
 import AssistantPanel from './assistant-panel'
@@ -83,7 +84,11 @@ export default function AssistantHost({ storeId }: AssistantHostProps) {
 
   // Event handlers
   const handleSend = (message: string) => {
-    void assistant.send(message, pageContextFor(pathname), locale)
+    void assistant.send(
+      message,
+      { ...pageContextFor(pathname), selectedIds: listSelection(pathname) },
+      locale,
+    )
   }
 
   // Early returns

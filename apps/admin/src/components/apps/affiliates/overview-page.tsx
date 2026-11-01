@@ -13,7 +13,6 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import AffiliateTrendCard from '@/components/apps/affiliates/affiliate-trend-card'
 import { CELL, HEAD } from '@/components/apps/gst-invoices/table-classes'
-import PageHeader from '@/components/layout/page-header'
 import StatStrip from '@/components/layout/stat-strip'
 import TableEmptyRow from '@/components/table/table-empty-row'
 import { affiliatesContent } from '@/data/affiliates'
@@ -48,7 +47,7 @@ export default function OverviewPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader title={copy.title} summary={copy.subtitle} />
+      {/* The app header above already names the app (#77). */}
       {data.active ? null : <p className="text-body text-destructive">{copy.paused}</p>}
       <StatStrip
         tiles={[

@@ -12,19 +12,26 @@ type ProductRecommendationsProps = {
   /** The small line over the heading ("Pairs well with"). */
   kicker?: ReactNode
   products: CardProduct[]
+  /**
+   * Which recommendation row this is, marked on the section so the storefront can count it for
+   * Search & discovery (seen, clicked). Left out for rows that are not recommendations
+   * (Recently viewed).
+   */
+  intent?: 'related' | 'complementary' | undefined
 }
 
 export default function ProductRecommendations({
   heading,
   kicker,
   products,
+  intent,
 }: ProductRecommendationsProps) {
   // Early returns
   if (products.length === 0) return null
 
   // Render logic
   return (
-    <section className="section-frame related-products-frame">
+    <section className="section-frame related-products-frame" data-recommendations={intent}>
       <div className="section-related-products page-width">
         {heading ? <SectionHeading kicker={kicker} heading={heading} /> : null}
         <div className="related-products__grid">

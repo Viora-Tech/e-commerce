@@ -49,6 +49,29 @@ function afterParse(fn: () => void): () => void {
   }
 }
 
+const HEADINGS = 'h1, h2, h3'
+
+/**
+ * Headings that arrive after the page loaded (a collection's filters, a client navigation to the
+ * cart, a cart update) are shown at once. The heading reveal (`html.js main :is(h1, h2, h3)`,
+ * blocks' base.css) hides every heading until the theme's script marks it `is-revealed`, and
+ * that script only looks at the headings present when it started: later ones stayed invisible.
+ */
+function revealLaterHeadings(): () => void {
+  const main = document.getElementById('MainContent')
+  if (!main) return () => undefined
+  const reveal = (node: Node) => {
+    if (!(node instanceof Element)) return
+    if (node.matches(HEADINGS)) node.classList.add('is-revealed')
+    for (const h of node.querySelectorAll(HEADINGS)) h.classList.add('is-revealed')
+  }
+  const observer = new MutationObserver((records) => {
+    for (const r of records) r.addedNodes.forEach(reveal)
+  })
+  observer.observe(main, { childList: true, subtree: true })
+  return () => observer.disconnect()
+}
+
 /**
  * Starts an imported Shopify theme's deferred scripts once React has hydrated the page (see
  * `lib/liquid-defer.ts` for why they wait): after this layout's effects, once the page is
@@ -60,6 +83,7 @@ export default function LiquidBoot() {
   useEffect(() => afterParse(() => void window.__commerceBootTheme?.().catch(() => undefined)), [])
   // After the slots' effects, which read the cookie to decide whether to reload.
   useEffect(() => clearRerender(), [])
+  useEffect(revealLaterHeadings, [])
 
   // Render logic
   return null

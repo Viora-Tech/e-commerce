@@ -1,6 +1,7 @@
 'use client'
 
-import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
+import { isPincode } from '@commerce/core/account-patterns'
+import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import {
   Select,
@@ -9,10 +10,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
+import { useRef, useState } from 'react'
 import PhoneField from '@/components/fields/phone-field'
-import { INDIAN_STATES } from '@/data/india'
+import { addressFormContent } from '@/data/customers'
+import { INDIAN_STATES, stateName } from '@/data/india'
 import { locationsContent } from '@/data/inventory'
 import { useCopy } from '@/hooks/use-copy'
+import { api } from '@/lib/api-client'
 
 type LocationAddressFieldsProps = {
   draft: LocationDraft
@@ -58,6 +62,24 @@ const STATE_ITEMS = INDIAN_STATES.map((s) => ({ value: s.code, label: s.name }))
 export default function LocationAddressFields({ draft, onChange }: LocationAddressFieldsProps) {
   // Hooks
   const copy = useCopy(locationsContent)
+  const address = useCopy(addressFormContent)
+  const [found, setFound] = useState<string | null>(null)
+  const latest = useRef('')
+
+  // Event handlers
+  // Six digits fill the city and state, as on a customer's address (Shopify does the same).
+  const handlePincode = async (raw: string) => {
+    const pincode = raw.replace(/\D/g, '').slice(0, 6)
+    latest.current = pincode
+    setFound(null)
+    onChange({ ...draft, pincode })
+    if (!isPincode(pincode)) return
+    const place = await api.customers.lookupPincode({ pincode }).catch(() => null)
+    // A slower answer for a PIN code that has since changed is dropped.
+    if (!place || latest.current !== pincode) return
+    setFound(address.found(place.city, stateName(place.stateCode)))
+    onChange({ ...draft, pincode, city: place.city, stateCode: place.stateCode })
+  }
 
   // Render logic
   const fields = [
@@ -87,8 +109,13 @@ export default function LocationAddressFields({ draft, onChange }: LocationAddre
             value={draft[f.key]}
             placeholder={f.placeholder}
             inputMode={f.key === 'pincode' ? 'numeric' : undefined}
-            onChange={(e) => onChange({ ...draft, [f.key]: e.target.value })}
+            onChange={(e) =>
+              f.key === 'pincode'
+                ? handlePincode(e.target.value)
+                : onChange({ ...draft, [f.key]: e.target.value })
+            }
           />
+          {f.key === 'pincode' && found ? <FieldDescription>{found}</FieldDescription> : null}
         </Field>
       ))}
       <Field className="col-span-2">

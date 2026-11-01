@@ -1,6 +1,6 @@
 'use client'
 
-import { CART_ADDED_EVENT, Icon, useFormatPaise } from '@commerce/blocks'
+import { CART_ADDED_EVENT, Icon, useFormatCart, useMarketPricing } from '@commerce/blocks'
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { cartContent as content } from '@/data/cart'
 import { cartDrawerAction, setQuantityAction } from '@/lib/cart-actions'
@@ -23,7 +23,8 @@ const CLOSE_MS = 320
  */
 export default function CartDrawer({ freeShippingBar }: CartDrawerProps) {
   // Hooks
-  const formatPaise = useFormatPaise()
+  const money = useFormatCart()
+  const pricing = useMarketPricing()
   const dialog = useRef<HTMLDialogElement>(null)
   const [data, setData] = useState<Drawer | null>(null)
   const [failed, setFailed] = useState(false)
@@ -83,6 +84,8 @@ export default function CartDrawer({ freeShippingBar }: CartDrawerProps) {
 
   // Render logic
   const empty = data !== null && data.lines.length === 0
+  // Prices in another currency are export prices: no Indian taxes line (#210).
+  const abroad = pricing !== null && pricing.currency !== 'INR'
   return (
     // biome-ignore lint/a11y/useKeyWithClickEvents: Escape closes the dialog natively (onCancel)
     <dialog
@@ -176,7 +179,7 @@ export default function CartDrawer({ freeShippingBar }: CartDrawerProps) {
                         +
                       </button>
                     </div>
-                    <span className="cart-line__total">{formatPaise(l.linePaise)}</span>
+                    <span className="cart-line__total">{money.line(l)}</span>
                   </li>
                 ))}
               </ul>
@@ -185,9 +188,13 @@ export default function CartDrawer({ freeShippingBar }: CartDrawerProps) {
               <div className="cart-drawer__total">
                 <div className="cart-drawer__total-text">
                   <span className="cart-drawer__total-label">{content.subtotal}</span>
-                  <span className="cart-drawer__total-note">{content.taxesAtCheckout}</span>
+                  <span className="cart-drawer__total-note">
+                    {abroad ? content.taxesAtCheckoutAbroad : content.taxesAtCheckout}
+                  </span>
                 </div>
-                <span className="cart-drawer__total-amount">{formatPaise(data.subtotalPaise)}</span>
+                <span className="cart-drawer__total-amount">
+                  {money.cart(data.subtotalPaise, data.lines, data.subtotalPaise)}
+                </span>
               </div>
               <a className="btn btn--primary" href="/checkout">
                 {content.checkout}

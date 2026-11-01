@@ -8,10 +8,12 @@ export const metadata: Metadata = { title: 'Custom query' }
 
 type Props = { searchParams: Promise<SearchParams> }
 
+const QUERY_PARAM_MAX = 4000
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export default async function Page({ searchParams }: Props) {
-  const { saved: savedParam } = await searchParams
+  const { saved: savedParam, q } = await searchParams
   const savedId = typeof savedParam === 'string' && UUID.test(savedParam) ? savedParam : null
   const context = await serverContext()
   const [row, ai] = await Promise.all([
@@ -24,11 +26,13 @@ export default async function Page({ searchParams }: Props) {
     row?.reportSlug === 'query' && row.query
       ? { id: row.id, name: row.name, source: row.query }
       : null
-  const source = saved?.source ?? STARTER_QUERY
+  /* `?q=`: an AI answer opened as a report (#102); the server parses and checks it like any query. */
+  const asked = typeof q === 'string' && q.trim() && q.length <= QUERY_PARAM_MAX ? q : null
+  const source = saved?.source ?? asked ?? STARTER_QUERY
   const out = await call(appRouter.analytics.query, { source }, { context })
   return (
     <QueryReportView
-      key={saved?.id ?? 'new'}
+      key={saved?.id ?? asked ?? 'new'}
       initialSource={source}
       initial={out.ok ? { report: out.report, result: out.result, ms: out.ms } : null}
       saved={saved}

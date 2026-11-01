@@ -32,6 +32,7 @@ export const ORDER_LIST_FILTERS = [
   'completed',
   'cancelled',
   'payment_not_finished',
+  'archived',
 ] as const
 export type OrderListFilter = (typeof ORDER_LIST_FILTERS)[number]
 
@@ -60,6 +61,7 @@ export const ordersContent = {
     apps: 'Apps',
     copyNumber: 'Copy order number',
     numberCopied: 'Order number copied',
+    unarchive: 'Unarchive order',
   },
   title: 'Orders',
   /* Frame 5:2353: "Order List" heading, Add Order + More Action, four tiles, tab group. */
@@ -86,7 +88,13 @@ export const ordersContent = {
   loadFailed: 'Could not load orders',
   addOrder: 'Add order',
   moreActions: 'More actions',
-  menu: { drafts: 'Draft orders', abandoned: 'Abandoned checkouts', returns: 'Returns' },
+  menu: {
+    /** #12: a CSV of every order the current tab, search and filters match. */
+    exportView: 'Export orders (CSV)',
+    drafts: 'Draft orders',
+    abandoned: 'Abandoned checkouts',
+    returns: 'Returns',
+  },
   export: 'Export',
   resource: { singular: 'order', plural: 'orders' },
   /** The table's View select (Figma "Table / View select"). */
@@ -95,6 +103,8 @@ export const ordersContent = {
   toShip: 'To ship',
   /** Chip on an order paid with the payment gateway in test mode (no real money). */
   testChip: 'Test',
+  /** Fulfilment held (#1011), in the Status column. */
+  holdChip: 'On hold',
   testChipHint:
     'Paid in test mode: no real money moved. Left out of analytics, reports and GST invoices.',
   /** "Delete test orders" in More actions, shown only while test orders exist. */
@@ -135,7 +145,9 @@ export const ordersContent = {
     paymentOptions: {
       paid: 'Paid',
       unpaid: 'Unpaid',
+      payment_pending: 'Payment pending',
       partially_refunded: 'Partially refunded',
+      refunded: 'Refunded',
       refund_needed: 'Refund needed',
     } satisfies Record<PaymentFilter, string>,
     fulfilmentOptions: {
@@ -143,6 +155,7 @@ export const ordersContent = {
       shipped: 'Shipped',
       delivered: 'Delivered',
       returned: 'Returned',
+      on_hold: 'On hold',
     } satisfies Record<FulfilmentFilter, string>,
     dateOptions: {
       today: 'Today',
@@ -172,7 +185,8 @@ export const ordersContent = {
     balance_due: 'Balance due',
     completed: 'Completed',
     cancelled: 'Cancelled',
-    payment_not_finished: 'Payment not finished',
+    payment_not_finished: 'Payment pending',
+    archived: 'Archived',
   } satisfies Record<OrderListFilter | 'all', string>,
   status: {
     draft: 'Draft',
@@ -189,6 +203,8 @@ export const ordersContent = {
     refunded: 'Refunded',
     refund_needed: 'Refund needed',
   } satisfies Record<OrderPaymentStatus, string>,
+  /** A cancelled order nobody paid (#123): nothing is pending any more, as Shopify's "Voided". */
+  paymentVoided: 'Voided',
   fulfillmentStatus: {
     unfulfilled: 'Unfulfilled',
     partially_fulfilled: 'Partially fulfilled',
@@ -217,7 +233,15 @@ export const ordersContent = {
     status: 'Status',
     channel: 'Channel',
     tags: 'Tags',
+    items: 'Items',
+    delivery: 'Delivery',
+    phone: 'Phone',
+    city: 'City',
   },
+  /** The Delivery column before any shipment is booked. */
+  noDelivery: 'Not shipped',
+  /** Fulfilled without a courier booking. */
+  noTracking: 'No tracking',
   /** The sort menu's names where they differ from the header (Figma "State · Sort open"). */
   sortTitles: {
     order: 'Order number',
@@ -226,15 +250,52 @@ export const ordersContent = {
     fulfilment: 'Fulfilment status',
   },
   moreLines: (n: number) => `+${n} more`,
+  /** The arrow by "+n more": a popover with the order's items (#1008). */
+  linePeek: {
+    open: (n: number) => `Show the ${n} items`,
+    title: (n: number) => (n === 1 ? '1 item' : `${n} items`),
+    loading: 'Loading items…',
+    failed: 'Could not load the items',
+    untitled: 'Untitled item',
+    quantity: (n: number) => `× ${n}`,
+    more: 'Open the order to see every item',
+  },
+  /** On an archived order's row (search and the Archived tab). */
+  archivedChip: 'Archived',
+  /** The Delivery chip when its shipment has a tracking page. */
+  trackDelivery: 'Open tracking in a new tab',
   bulk: {
     markAs: 'Mark as',
     bulkEdit: 'Bulk edit',
     updated: (n: number, status: string) => `${n} marked ${status.toLowerCase()}`,
+    /** Some were cancelled, imported or otherwise could not take the change. */
+    updatedSkipped: (n: number, status: string, skipped: number) =>
+      `${n} marked ${status.toLowerCase()}, ${skipped} skipped (cancelled or imported)`,
+    partlyFailed: (n: number, failed: number) =>
+      `${n} updated, ${failed} could not be updated. Try those again.`,
+    noneUpdated: (skipped: number) =>
+      skipped === 1
+        ? '1 order skipped: cancelled or imported orders cannot change'
+        : `${skipped} orders skipped: cancelled or imported orders cannot change`,
     failed: 'Could not update orders',
+    cancelTitle: (n: number) => (n === 1 ? 'Cancel 1 order?' : `Cancel ${n} orders?`),
+    cancelBody:
+      'Their stock goes back and they leave the to-ship lists. Money already paid is not refunded here: refund each one from its page.',
+    cancelConfirm: 'Cancel orders',
+    keep: 'Keep them',
   },
   empty: {
     heading: 'No orders yet',
     body: 'Orders appear here as soon as a customer checks out.',
+  },
+  /** A status tab with no orders, before any search or filter. */
+  emptyView: {
+    heading: 'No orders here',
+    body: 'Orders show up in this view as soon as one matches it.',
+  },
+  emptyArchived: {
+    heading: 'No archived orders yet',
+    body: 'Orders you archive move here, out of the main list.',
   },
 } as const
 
@@ -311,6 +372,7 @@ export const sendMessageContent = {
     draft_invoice: { title: 'Send invoice', send: 'Send invoice' },
     balance_request: { title: 'Request balance', send: 'Send request' },
     payment_reminder: { title: 'Send payment reminder', send: 'Send reminder' },
+    order_link: { title: 'Send order link', send: 'Send link' },
     checkout_recovery: { title: 'Send checkout reminder', send: 'Send reminder' },
   },
 }

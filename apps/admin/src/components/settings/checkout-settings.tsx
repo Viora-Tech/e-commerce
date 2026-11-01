@@ -2,23 +2,29 @@
 
 import type { CheckoutSettingsView, PaymentAdjustment, RolloutHold } from '@commerce/core'
 import type { CheckoutSettings as Settings } from '@commerce/core/checkout-settings'
-import { Field, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
+import { Button } from '@commerce/ui/shadcn/button'
+import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
+import { Switch } from '@commerce/ui/shadcn/switch'
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import ChoiceList from '@/components/returns/choice-list'
+import RolloutHoldChip from '@/components/rollouts/rollout-hold-chip'
+import CartLimitCard from '@/components/settings/cart-limit-card'
 import CheckoutBrandingSettings from '@/components/settings/checkout-branding-settings'
-import CheckoutToggleRow from '@/components/settings/checkout-toggle-row'
-import CodRulesCard from '@/components/settings/cod-rules-card'
-import RolloutHoldChip from '@/components/settings/rollouts/rollout-hold-chip'
+import CheckoutFieldsCard from '@/components/settings/checkout-fields-card'
+import CheckoutTextCard, { editedCount } from '@/components/settings/checkout-text-card'
 import RupeeInput from '@/components/settings/rupee-input'
-import SectionTabs from '@/components/settings/section-tabs'
-import SettingsSection from '@/components/settings/settings-section'
+import SettingsDrill from '@/components/settings/settings-drill'
+import SettingsDrillPanel from '@/components/settings/settings-drill-panel'
+import { checkoutRulesContent } from '@/data/checkout-rules'
 import { checkoutBrandingContent, checkoutSettingsContent as copy } from '@/data/checkout-settings'
-import { SETTINGS_BACK, settingsContent } from '@/data/settings'
-import { useCopy } from '@/hooks/use-copy'
+import { PAYMENTS_PAGE_HREF } from '@/data/payments-setup'
+import { settingsContent } from '@/data/settings'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import SettingsCard from './settings-card'
 
@@ -29,13 +35,15 @@ type Loaded = CheckoutSettingsView & { pincodeDirectory: boolean }
 const formOf = (v: Loaded): Form => ({ settings: v.settings, codFee: v.codFee })
 
 /**
- * Settings → Checkout, in two tabs: the form (contact, address, minimum order, cash on
- * delivery rules, the last only when COD is on) and Branding (the locked checkout's look,
- * with a live preview). One save covers both.
+ * Settings → Checkout, Shopify-style (#147): a short list of rows (contact, address, minimum
+ * order, cash on delivery, branding), each with its current value, opening its detail in
+ * place. One save covers every detail.
  */
 export default function CheckoutSettings() {
   // Hooks
   const brandingCopy = useCopy(checkoutBrandingContent)
+  const rules = useCopy(checkoutRulesContent)
+  const fmt = useFormat()
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [form, setForm] = useState<Form | null>(null)
   const [saved, setSaved] = useState<string | null>(null)
@@ -91,6 +99,68 @@ export default function CheckoutSettings() {
   // Render logic
   const dirty = form !== null && saved !== null && JSON.stringify(form) !== saved
   const s = form?.settings
+  const r = brandingCopy.rows
+  const textEdits = s ? editedCount(s.content.en) + editedCount(s.content.hi) : 0
+  const rows =
+    s && loaded
+      ? [
+          {
+            id: 'contact',
+            title: r.contact,
+            value: s.email === 'optional' ? r.emailOptional : r.emailRequired,
+          },
+          {
+            // One switch: in the row itself, not a page of its own (#100).
+            id: 'address',
+            title: copy.address.pincodeFirst,
+            value:
+              s.pincodeFirst && !loaded.pincodeDirectory
+                ? copy.address.directoryMissing
+                : copy.address.pincodeFirstHint,
+            control: (
+              <Switch
+                aria-label={copy.address.pincodeFirst}
+                checked={s.pincodeFirst}
+                onCheckedChange={(pincodeFirst) => patch({ pincodeFirst })}
+              />
+            ),
+          },
+          {
+            id: 'minimum',
+            title: r.minimum,
+            value: s.minimumOrderPaise > 0 ? fmt.money(s.minimumOrderPaise) : r.noMinimum,
+          },
+          {
+            id: 'fields',
+            title: rules.rows.fields,
+            value: rules.rows.fieldsValue(
+              s.fields.name === 'split' ? rules.rows.nameSplit : rules.rows.nameFull,
+              s.fields.company === 'required'
+                ? rules.rows.companyRequired
+                : s.fields.company === 'optional'
+                  ? rules.rows.companyOptional
+                  : rules.rows.companyHidden,
+            ),
+          },
+          { id: 'cod', title: r.cod, value: loaded.codEnabled ? r.codOn : r.codOff },
+          {
+            id: 'cart-limit',
+            title: rules.rows.cartLimit,
+            value:
+              s.cartLimit.maxPerProduct > 0
+                ? rules.rows.limitValue(s.cartLimit.maxPerProduct)
+                : s.cartLimit.overrides.length > 0
+                  ? rules.rows.overrides(s.cartLimit.overrides.length)
+                  : rules.rows.noLimit,
+          },
+          {
+            id: 'content',
+            title: rules.rows.content,
+            value: textEdits > 0 ? rules.rows.contentEdited(textEdits) : rules.rows.contentDefault,
+          },
+          { id: 'branding', title: r.branding, value: r.brandingValue },
+        ]
+      : []
 
   return (
     <div className="flex flex-col gap-4">
@@ -106,14 +176,13 @@ export default function CheckoutSettings() {
       <PageHeader
         title={copy.title}
         subtitle={copy.subtitle}
-        back={SETTINGS_BACK}
         save={{ dirty, saving: busy, onSave: handleSave, label: copy.save }}
       />
       {!form || !s || !loaded ? (
         <Skeleton className="h-96 w-full rounded-2xl" />
       ) : (
-        <SectionTabs tabs={[brandingCopy.tabs.form, brandingCopy.tabs.branding]}>
-          <SettingsSection id={brandingCopy.tabs.form.id} className="flex flex-col gap-4">
+        <SettingsDrill rows={rows} backLabel={r.back}>
+          <SettingsDrillPanel id="contact">
             <SettingsCard
               title={copy.contact.heading}
               description={`${copy.contact.phone}. ${copy.contact.phoneHint}`}
@@ -131,25 +200,10 @@ export default function CheckoutSettings() {
                 />
               </Field>
             </SettingsCard>
+          </SettingsDrillPanel>
 
-            <SettingsCard title={copy.address.heading}>
-              <FieldGroup>
-                <CheckoutToggleRow
-                  id="checkout-pincode-first"
-                  label={copy.address.pincodeFirst}
-                  hint={copy.address.pincodeFirstHint}
-                  checked={s.pincodeFirst}
-                  onChange={(pincodeFirst) => patch({ pincodeFirst })}
-                />
-                {s.pincodeFirst && !loaded.pincodeDirectory ? (
-                  <p className="text-caption text-muted-foreground">
-                    {copy.address.directoryMissing}
-                  </p>
-                ) : null}
-              </FieldGroup>
-            </SettingsCard>
-
-            <SettingsCard id="minimum" title={copy.minimum.heading}>
+          <SettingsDrillPanel id="minimum">
+            <SettingsCard title={copy.minimum.heading}>
               <RupeeInput
                 key={`min-${codKey}`}
                 id="checkout-minimum"
@@ -159,17 +213,37 @@ export default function CheckoutSettings() {
                 onChange={(minimumOrderPaise) => patch({ minimumOrderPaise })}
               />
             </SettingsCard>
+          </SettingsDrillPanel>
 
-            <CodRulesCard
-              key={`cod-${codKey}`}
-              codEnabled={loaded.codEnabled}
-              rules={s.cod}
-              fee={form.codFee}
-              onRules={(cod) => patch({ cod })}
-              onFee={(codFee) => setForm((f) => (f ? { ...f, codFee } : f))}
+          <SettingsDrillPanel id="cod">
+            {/* Set with the other ways to pay now (#97); this row only points there. */}
+            <SettingsCard title={copy.cod.heading} description={copy.cod.moved}>
+              <Button
+                variant="outline"
+                className="self-start"
+                nativeButton={false}
+                render={<Link href={`${PAYMENTS_PAGE_HREF}&open=manual`} />}
+              >
+                {copy.cod.offLink}
+              </Button>
+            </SettingsCard>
+          </SettingsDrillPanel>
+          <SettingsDrillPanel id="fields">
+            {/* "Company name and GSTIN" lives here only, beside the company field (#67). */}
+            <CheckoutFieldsCard
+              fields={s.fields}
+              gstin={s.gstin}
+              onChange={(fields) => patch({ fields })}
+              onGstin={(gstin) => patch({ gstin })}
             />
-          </SettingsSection>
-          <SettingsSection id={brandingCopy.tabs.branding.id} className="flex flex-col gap-3">
+          </SettingsDrillPanel>
+          <SettingsDrillPanel id="cart-limit">
+            <CartLimitCard limit={s.cartLimit} onChange={(cartLimit) => patch({ cartLimit })} />
+          </SettingsDrillPanel>
+          <SettingsDrillPanel id="content">
+            <CheckoutTextCard text={s.content} onChange={(content) => patch({ content })} />
+          </SettingsDrillPanel>
+          <SettingsDrillPanel id="branding" className="flex flex-col gap-3">
             {hold ? (
               <div>
                 <RolloutHoldChip hold={hold} />
@@ -177,15 +251,13 @@ export default function CheckoutSettings() {
             ) : null}
             <CheckoutBrandingSettings
               branding={s.branding}
-              gstin={s.gstin}
               orderNotes={s.orderNotes}
               storeName={loaded.storeName}
               onBranding={patchBranding}
-              onGstin={(gstin) => patch({ gstin })}
               onOrderNotes={(orderNotes) => patch({ orderNotes })}
             />
-          </SettingsSection>
-        </SectionTabs>
+          </SettingsDrillPanel>
+        </SettingsDrill>
       )}
     </div>
   )

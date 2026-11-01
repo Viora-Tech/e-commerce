@@ -1,7 +1,7 @@
 'use client'
 
-import { Input } from '@commerce/ui/shadcn/input'
 import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
+import DateField from '@/components/fields/date-field'
 import { filterPanelContent } from '@/data/filter-panel'
 import { useCopy } from '@/hooks/use-copy'
 import { DATE_CUSTOM, type DateGroup } from './types'
@@ -47,22 +47,20 @@ export default function DateSection({ group }: DateSectionProps) {
         <div className="flex gap-2">
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <span className="text-xs text-muted-foreground">{copy.from}</span>
-            <Input
-              type="date"
+            <DateField
               aria-label={copy.from}
               value={group.value.from}
               max={group.value.to || undefined}
-              onChange={(e) => group.onChange({ ...group.value, from: e.target.value })}
+              onChange={(v) => group.onChange({ ...group.value, from: v })}
             />
           </div>
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <span className="text-xs text-muted-foreground">{copy.to}</span>
-            <Input
-              type="date"
+            <DateField
               aria-label={copy.to}
               value={group.value.to}
               min={group.value.from || undefined}
-              onChange={(e) => group.onChange({ ...group.value, to: e.target.value })}
+              onChange={(v) => group.onChange({ ...group.value, to: v })}
             />
           </div>
         </div>

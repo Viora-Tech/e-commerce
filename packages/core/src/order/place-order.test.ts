@@ -211,10 +211,11 @@ describe('placeOrder', () => {
       subtotalPaise: 499900,
       discountCode: 'LAUNCH10',
       discountLabel: 'Launch 10% off',
-      discountPaise: 49990,
-      totalPaise: 449910,
+      // 10% of ₹4,999 is ₹499.90, rounded to ₹500 (#141).
+      discountPaise: 50000,
+      totalPaise: 449900,
     })
-    expect(provider.calls).toEqual([`createPayment:${r1.orderId}:449910`])
+    expect(provider.calls).toEqual([`createPayment:${r1.orderId}:449900`])
     const [used] = await owner.select().from(discount).where(eq(discount.id, d.id))
     expect(used?.usedCount).toBe(1)
     const usage = await owner
@@ -269,11 +270,11 @@ describe('placeOrder', () => {
       paymentProvider: ok,
     })
     const [o] = await owner.select().from(order).where(eq(order.id, r.orderId))
-    // 5% of 999800 = 49990 beats the flat 200.
+    // 5% of 999800 = 49990, rounded to ₹500, beats the flat 200.
     expect(o).toMatchObject({
       discountLabel: 'Festive 5%',
-      discountPaise: 49990,
-      totalPaise: 949810,
+      discountPaise: 50000,
+      totalPaise: 949800,
     })
   })
 

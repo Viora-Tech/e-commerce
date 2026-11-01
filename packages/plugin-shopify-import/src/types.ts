@@ -55,6 +55,8 @@ export type NProduct = {
   bodyHtml: string | null
   vendor: string | null
   productType: string | null
+  /** Shopify taxonomy category id (`el-2-6-4`), the same ids as ours; absent from CSV exports. */
+  categoryId?: string | null | undefined
   tags: string[]
   status: 'active' | 'draft' | 'archived'
   seoTitle: string | null
@@ -141,6 +143,8 @@ export type NOrder = {
   note: string | null
   shippingAddress: NAddress | null
   lines: NOrderLine[]
+  /** The old platform's timeline, oldest first; undefined when it was not read (CSV, page by page). */
+  history?: { at: string; message: string }[] | undefined
   row?: number | undefined
 }
 
@@ -173,6 +177,8 @@ export type NPage = {
   seoDescription: string | null
   published: boolean
   publishedAt: string | null
+  /** When it last changed on the old platform; the pages list shows it (not the import time). */
+  updatedAt?: string | null | undefined
   /** Alternate template (`page.<suffix>`); null is the default. */
   templateSuffix: string | null
 }
@@ -305,6 +311,8 @@ export type NDiscount = {
   minSubtotalPaise: number | null
   minQuantity: number | null
   allCustomers: boolean
+  /** Shopify customer ids when it is only for chosen customers (not segments). */
+  customerIds?: string[] | undefined
   /** Free shipping: every country, or the ones listed. */
   countries: string[] | 'all'
   maxShippingPaise: number | null

@@ -3,9 +3,9 @@
 import { dayStart } from '@commerce/dates'
 import { Pencil, Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import DateField from '@/components/fields/date-field'
 import DataCard from '@/components/layout/data-card'
 import { giftCardDetailContent } from '@/data/gift-cards'
 import { api } from '@/lib/api-client'
@@ -67,12 +67,7 @@ export default function ExpiryCard({ card, onChanged }: ExpiryCardProps) {
     >
       {editing ? (
         <div className="flex flex-col gap-3">
-          <Input
-            type="date"
-            min={card.today}
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-          />
+          <DateField min={card.today} value={value} onChange={(v) => setValue(v)} />
           <div className="flex flex-wrap gap-2">
             <Button size="sm" onClick={() => save(value || null)} disabled={busy || !value}>
               <Save aria-hidden="true" />

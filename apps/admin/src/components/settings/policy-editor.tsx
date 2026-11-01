@@ -71,7 +71,8 @@ export default function PolicyEditor({
       if (startFromTemplate && found.pageId === null) {
         const t = await api.policies.template({ type })
         if (cancelled) return
-        setDraft({ ...loaded, body: t.body as RichTextValue, published: true })
+        // Shown on the store only once nothing is missing: a [gap] must never reach shoppers.
+        setDraft({ ...loaded, body: t.body as RichTextValue, published: t.missing.length === 0 })
         setMissing(t.missing)
         setEditorKey((k) => k + 1)
       }
@@ -118,7 +119,9 @@ export default function PolicyEditor({
         body: (draft.body as Record<string, unknown> | null) ?? null,
         published: draft.published,
       })
-      const nextDraft = draftOf(next)
+      // Keep the body the editor holds: swapping in the server's copy makes the editor re-emit
+      // its own normalised version, which reads as a change and leaves the save bar up.
+      const nextDraft = { ...draftOf(next), body: draft.body }
       setPolicy(next)
       setDraft(nextDraft)
       setSaved(JSON.stringify(nextDraft))
@@ -166,6 +169,7 @@ export default function PolicyEditor({
           live ? (
             <Button
               variant="outline"
+              nativeButton={false}
               render={<a href={`${storefrontOrigin}${path}`} target="_blank" rel="noreferrer" />}
             >
               <ExternalLink aria-hidden="true" />

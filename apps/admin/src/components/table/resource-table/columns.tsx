@@ -46,6 +46,8 @@ export type ResourceColumnSpec<T extends RowData> = {
   hideable?: boolean
   /** Tailwind width/utility classes for both header and cells. */
   className?: string
+  /** The smallest width (rem) this column keeps before the table scrolls sideways; default 8. */
+  minWidth?: number | undefined
   render: (item: T) => ReactNode
 }
 
@@ -59,7 +61,7 @@ export function defineColumns<T extends RowData>(
   const helper = createColumnHelper<ResourceTableFeatures, T>()
   return specs.map((spec) => {
     const align = spec.align ?? 'start'
-    const meta = { align, className: spec.className }
+    const meta = { align, className: spec.className, minWidth: spec.minWidth }
     if (!spec.sortValue) {
       return helper.display({
         id: spec.id,

@@ -17,6 +17,7 @@ import DetailsCard from './details-card'
 import ExpiryCard from './expiry-card'
 import HistoryCard from './history-card'
 import NoteCard from './note-card'
+import UsageLimitCard from './usage-limit-card'
 
 export type GiftCardDetailData = NonNullable<Awaited<ReturnType<typeof api.giftCards.get>>>
 
@@ -109,6 +110,7 @@ export default function GiftCardDetail({ initial }: GiftCardDetailProps) {
           <>
             <CustomerCard card={card} />
             <ExpiryCard card={card} onChanged={reload} />
+            <UsageLimitCard card={card} onChanged={reload} />
             <DetailsCard card={card} />
             <NoteCard card={card} onChanged={reload} />
           </>

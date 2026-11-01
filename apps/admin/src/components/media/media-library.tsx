@@ -22,17 +22,23 @@ import { isEditableImage } from '@/lib/image-edit'
 import { routes } from '@/lib/routes'
 import AltTextDialog from './alt-text-dialog'
 import BackgroundWorkNotice from './background-work-notice'
-import { FILE_TABS, type FileTab, fileKind, fileName, formatBytes } from './file-meta'
+import { displayName, FILE_TABS, type FileTab, fileKind, formatBytes } from './file-meta'
 import ImageEditorDialog from './image-editor-dialog'
 import MediaDropzone from './media-dropzone'
 import MediaFileRows from './media-file-rows'
+import MediaFolderBar from './media-folder-bar'
 import MediaTile, { type MediaTileAction } from './media-tile'
+import MoveToFolderDialog from './move-to-folder-dialog'
+import { useMediaFolders } from './use-media-folders'
 import { useUploadQueue } from './use-upload-queue'
 
 type ListResult = Awaited<ReturnType<typeof api.media.list>>
 type Item = ListResult['items'][number]
 
 const VIEWS = ['grid', 'list'] as const
+
+/** A `?folder=` value that can name a folder; anything else lists every file. */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 /** How often the page re-reads while a file on it is still being optimised. */
 const OPTIMISING_POLL_MS = 5_000
@@ -44,6 +50,8 @@ export type MediaLibraryInitial = {
   perPage: number
   query: string
   type: FileTab | null
+  /** The folder being browsed (#91); null is every file. */
+  folder: string | null
   result: ListResult
   counts: FileCounts
   /** Bytes the store's ready files take, for the summary line. */
@@ -63,12 +71,19 @@ async function fetchCounts(): Promise<{ counts: FileCounts; usedBytes: number }>
   }
 }
 
-function fetchMedia(page: number, perPage: number, query: string, type: FileTab | null) {
+function fetchMedia(
+  page: number,
+  perPage: number,
+  query: string,
+  type: FileTab | null,
+  folder: string | null,
+) {
   return api.media.list({
     page,
     perPage,
     search: query || undefined,
     fileType: type ?? undefined,
+    folderId: folder && UUID.test(folder) ? folder : undefined,
   })
 }
 
@@ -77,13 +92,14 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
   const { library: copy } = useCopy(mediaContent)
   const { title: editImageLabel } = useCopy(imageEditorContent)
   const fileInput = useRef<HTMLInputElement>(null)
-  const [{ page, perPage, query, type, view }, setQ] = useQueryStates(
+  const [{ page, perPage, query, type, view, folder }, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
       page: parseAsInteger.withDefault(1),
       perPage: parseAsInteger.withDefault(siteConfig.ui.rowsPerPage.default),
       type: parseAsStringLiteral(FILE_TABS),
       view: parseAsStringLiteral(VIEWS).withDefault('grid'),
+      folder: parseAsString,
     },
     { shallow: true },
   )
@@ -94,10 +110,17 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
   const [editing, setEditing] = useState<Item | null>(null)
   const [retouching, setRetouching] = useState<Item | null>(null)
   const [deleting, setDeleting] = useState<Item | null>(null)
+  const [moving, setMoving] = useState<Item | null>(null)
+  const { folders, reload: reloadFolders } = useMediaFolders()
   const [draft, setDraft] = useState(initial.query)
-  const queue = useUploadQueue(() => {
+  const queue = useUploadQueue(async (done) => {
     setQ({ page: 1 })
-    fetchMedia(1, perPage, query, type).then((r) => {
+    /* Uploaded while a folder is open: it goes in that folder, so it stays in view. */
+    if (folder) {
+      await api.media.moveToFolder({ ids: [done.id], folderId: folder }).catch(() => undefined)
+      reloadFolders()
+    }
+    fetchMedia(1, perPage, query, type, folder).then((r) => {
       setItems(r.items)
       setTotal(r.total)
     })
@@ -111,10 +134,11 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
       page === initial.page &&
       perPage === initial.perPage &&
       query === initial.query &&
-      type === initial.type
+      type === initial.type &&
+      folder === initial.folder
     if (sameAsServer) return
     let cancelled = false
-    fetchMedia(page, perPage, query, type).then((r) => {
+    fetchMedia(page, perPage, query, type, folder).then((r) => {
       if (cancelled) return
       setItems(r.items)
       setTotal(r.total)
@@ -122,13 +146,24 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
     return () => {
       cancelled = true
     }
-  }, [page, perPage, query, type, initial.page, initial.perPage, initial.query, initial.type])
+  }, [
+    page,
+    perPage,
+    query,
+    type,
+    folder,
+    initial.page,
+    initial.perPage,
+    initial.query,
+    initial.type,
+    initial.folder,
+  ])
   /* A fresh image shows at once marked "Optimising"; re-read the page until the worker is done,
      so its tile switches to the small optimised copy without a reload (each read re-arms this). */
   useEffect(() => {
     if (!items.some((i) => i.status === 'processing')) return
     const timer = setTimeout(() => {
-      fetchMedia(page, perPage, query, type)
+      fetchMedia(page, perPage, query, type, folder)
         .then((r) => {
           setItems(r.items)
           setTotal(r.total)
@@ -136,7 +171,7 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
         .catch(() => {})
     }, OPTIMISING_POLL_MS)
     return () => clearTimeout(timer)
-  }, [items, page, perPage, query, type])
+  }, [items, page, perPage, query, type, folder])
 
   // Event handlers
   const handleSearch = (e: FormEvent) => {
@@ -151,7 +186,7 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
   /** An edited copy lands at the top of the first page, like any new upload. */
   const handleRetouched = () => {
     setQ({ page: 1 })
-    fetchMedia(1, perPage, query, type).then((r) => {
+    fetchMedia(1, perPage, query, type, folder).then((r) => {
       setItems(r.items)
       setTotal(r.total)
     })
@@ -162,6 +197,16 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
   }
   const handleAltSaved = (id: string, alt: string | null) =>
     setItems((list) => list.map((i) => (i.id === id ? { ...i, alt } : i)))
+  /** Moved out of the folder on screen: it leaves the page; otherwise it just changes folder. */
+  const handleMoved = (id: string, folderId: string | null) => {
+    if (folder && folderId !== folder) {
+      setItems((list) => list.filter((i) => i.id !== id))
+      setTotal((n) => Math.max(0, n - 1))
+    } else {
+      setItems((list) => list.map((i) => (i.id === id ? { ...i, folderId } : i)))
+    }
+    reloadFolders()
+  }
   const handleDeleted = (id: string) => {
     setItems((list) => list.filter((i) => i.id !== id))
     setTotal((n) => Math.max(0, n - 1))
@@ -169,6 +214,7 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
       setCounts(r.counts)
       setUsedBytes(r.usedBytes)
     })
+    reloadFolders()
     toast.success(mediaContent.toasts.deleted)
   }
   const handleDelete = async () => {
@@ -184,6 +230,7 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
 
   const actionsFor = (item: Item): MediaTileAction[] => [
     { label: mediaContent.tile.editAlt, onSelect: () => setEditing(item) },
+    { label: mediaContent.tile.moveToFolder, onSelect: () => setMoving(item) },
     ...(isEditableImage(item.contentType)
       ? [{ label: editImageLabel, onSelect: () => setRetouching(item) }]
       : []),
@@ -197,7 +244,10 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
       .join(' · ')
 
   // Render logic
-  const empty = items.length === 0 && queue.pending.length === 0 && !query && !type
+  const empty = items.length === 0 && queue.pending.length === 0 && !query && !type && !folder
+  /* Inside a folder the store-wide counts would mislead: All counts the folder, types go blank. */
+  const openFolder = folder ? folders.find((f) => f.id === folder) : undefined
+  const typeCounts = folder ? null : counts
 
   return (
     <ProoflyListPage
@@ -240,114 +290,140 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
           </div>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border surface-card">
-          {/* Figma Files (647:1251): the table toolbar, the grid and the pager in one card. */}
-          <div className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-2">
-            <ViewSelect
-              value={type}
-              onChange={(next) => setQ({ type: next, page: 1 })}
-              options={[
-                { value: null, label: copy.tabs.all, count: counts.all },
-                { value: 'image', label: copy.tabs.image, count: counts.image },
-                { value: 'video', label: copy.tabs.video, count: counts.video },
-                { value: 'document', label: copy.tabs.document, count: counts.document },
-              ]}
-            />
-            <span aria-hidden="true" className="h-5 w-px bg-line" />
-            <form onSubmit={handleSearch} className="relative min-w-0 flex-1">
-              <Search className="pointer-events-none absolute top-1/2 left-0.5 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                placeholder={copy.search}
-                className="border-0 bg-transparent pl-7 shadow-none focus-visible:ring-0 dark:bg-transparent"
-                aria-label={copy.search}
+        <>
+          <MediaFolderBar
+            folders={folders}
+            active={folder}
+            total={counts.all}
+            onSelect={(next) => setQ({ folder: next, page: 1 })}
+            onChanged={reloadFolders}
+          />
+          <div className="overflow-hidden rounded-2xl border surface-card">
+            {/* Figma Files (647:1251): the table toolbar, the grid and the pager in one card. */}
+            <div className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-2">
+              <ViewSelect
+                value={type}
+                onChange={(next) => setQ({ type: next, page: 1 })}
+                options={[
+                  {
+                    value: null,
+                    label: copy.tabs.all,
+                    count: folder ? openFolder?.files : counts.all,
+                  },
+                  { value: 'image', label: copy.tabs.image, count: typeCounts?.image },
+                  { value: 'video', label: copy.tabs.video, count: typeCounts?.video },
+                  {
+                    value: 'document',
+                    label: copy.tabs.document,
+                    count: typeCounts?.document,
+                  },
+                ]}
               />
-            </form>
-            <ToggleGroup
-              value={[view]}
-              onValueChange={(v) => {
-                const next = VIEWS.find((x) => x === v[0])
-                if (next) setQ({ view: next })
-              }}
-              variant="outline"
-              spacing={0}
-            >
-              <ToggleGroupItem value="grid" aria-label={copy.view.grid} title={copy.view.grid}>
-                <LayoutGrid aria-hidden />
-              </ToggleGroupItem>
-              <ToggleGroupItem value="list" aria-label={copy.view.list} title={copy.view.list}>
-                <ListView aria-hidden />
-              </ToggleGroupItem>
-            </ToggleGroup>
-          </div>
-          {view === 'list' ? (
-            <MediaFileRows
-              pending={queue.pending}
-              rows={items.map((item) => ({
-                id: item.id,
-                url: item.url,
-                alt: item.alt,
-                contentType: item.contentType,
-                variants: item.variants,
-                name: item.key ? fileName(item.key) : (item.alt ?? copy.title),
-                meta: metaOf(item),
-                actions: actionsFor(item),
-                href: fileHref(item.id),
-              }))}
-            />
-          ) : (
-            <ul className="grid grid-cols-2 gap-4 p-4 sm:grid-cols-3 lg:grid-cols-5">
-              {queue.pending.map((p) => (
-                <li
-                  key={p.key}
-                  className="relative aspect-[4/3] overflow-hidden rounded-xl border bg-muted"
-                >
-                  {p.file.type.startsWith('video/') ? (
-                    <video
-                      src={p.previewUrl}
-                      muted
-                      playsInline
-                      preload="metadata"
-                      className="size-full object-cover opacity-50"
-                    />
-                  ) : (
-                    /* biome-ignore lint/performance/noImgElement: object URL preview while uploading. */
-                    <img src={p.previewUrl} alt="" className="size-full object-cover opacity-50" />
-                  )}
-                  <span className="absolute inset-x-0 bottom-0 bg-card/90 px-2 py-1 text-center text-caption">
-                    {p.error
-                      ? mediaContent.tile.failed
-                      : mediaContent.tile.uploading(Math.round(p.progress * 100))}
-                  </span>
-                </li>
-              ))}
-              {items.map((item) => (
-                <MediaTile
-                  key={item.id}
-                  item={item}
-                  wide
-                  caption={item.key ? fileName(item.key) : undefined}
-                  meta={metaOf(item)}
-                  actions={actionsFor(item)}
-                  href={fileHref(item.id)}
+              <span aria-hidden="true" className="h-5 w-px bg-line" />
+              <form onSubmit={handleSearch} className="relative min-w-0 flex-1">
+                <Search className="pointer-events-none absolute top-1/2 left-0.5 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  placeholder={copy.search}
+                  className="border-0 bg-transparent pl-7 shadow-none focus-visible:ring-0 dark:bg-transparent"
+                  aria-label={copy.search}
                 />
-              ))}
-            </ul>
-          )}
-          {items.length === 0 && queue.pending.length === 0 ? (
-            <EmptyState variant="plain" size="lg" body={copy.noMatch} />
-          ) : null}
-          {total > 0 ? (
-            <ResourceTablePagination
-              page={page}
-              perPage={perPage}
-              total={total}
-              onPageChange={(p) => setQ({ page: p })}
-              onPerPageChange={(n) => setQ({ perPage: n, page: 1 })}
-            />
-          ) : null}
-        </div>
+              </form>
+              <ToggleGroup
+                value={[view]}
+                onValueChange={(v) => {
+                  const next = VIEWS.find((x) => x === v[0])
+                  if (next) setQ({ view: next })
+                }}
+                variant="outline"
+                spacing={0}
+              >
+                <ToggleGroupItem value="grid" aria-label={copy.view.grid} title={copy.view.grid}>
+                  <LayoutGrid aria-hidden />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="list" aria-label={copy.view.list} title={copy.view.list}>
+                  <ListView aria-hidden />
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+            {view === 'list' ? (
+              <MediaFileRows
+                pending={queue.pending}
+                onAltSaved={handleAltSaved}
+                rows={items.map((item) => ({
+                  id: item.id,
+                  url: item.url,
+                  alt: item.alt,
+                  contentType: item.contentType,
+                  variants: item.variants,
+                  name: displayName(item) || copy.title,
+                  meta: metaOf(item),
+                  actions: actionsFor(item),
+                  href: fileHref(item.id),
+                }))}
+              />
+            ) : (
+              <ul className="grid grid-cols-2 gap-4 p-4 sm:grid-cols-3 lg:grid-cols-5">
+                {queue.pending.map((p) => (
+                  <li
+                    key={p.key}
+                    className="relative aspect-[4/3] overflow-hidden rounded-xl border bg-muted"
+                  >
+                    {p.file.type.startsWith('video/') ? (
+                      <video
+                        src={p.previewUrl}
+                        muted
+                        playsInline
+                        preload="metadata"
+                        className="size-full object-cover opacity-50"
+                      />
+                    ) : (
+                      /* biome-ignore lint/performance/noImgElement: object URL preview while uploading. */
+                      <img
+                        src={p.previewUrl}
+                        alt=""
+                        className="size-full object-cover opacity-50"
+                      />
+                    )}
+                    <span className="absolute inset-x-0 bottom-0 bg-card/90 px-2 py-1 text-center text-caption">
+                      {p.error
+                        ? mediaContent.tile.failed
+                        : mediaContent.tile.uploading(Math.round(p.progress * 100))}
+                    </span>
+                  </li>
+                ))}
+                {items.map((item) => (
+                  <MediaTile
+                    key={item.id}
+                    item={item}
+                    wide
+                    caption={displayName(item) || undefined}
+                    meta={metaOf(item)}
+                    actions={actionsFor(item)}
+                    href={fileHref(item.id)}
+                  />
+                ))}
+              </ul>
+            )}
+            {items.length === 0 && queue.pending.length === 0 ? (
+              <EmptyState
+                variant="plain"
+                size="lg"
+                body={folder && !query && !type ? copy.emptyFolder : copy.noMatch}
+              />
+            ) : null}
+            {total > 0 ? (
+              <ResourceTablePagination
+                page={page}
+                perPage={perPage}
+                total={total}
+                onPageChange={(p) => setQ({ page: p })}
+                onPerPageChange={(n) => setQ({ perPage: n, page: 1 })}
+              />
+            ) : null}
+          </div>
+        </>
       )}
       <AltTextDialog
         key={`alt-${editing?.id ?? 'none'}`}
@@ -362,6 +438,15 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
         onClose={() => setRetouching(null)}
         onSaved={handleRetouched}
       />
+      {moving ? (
+        <MoveToFolderDialog
+          key={moving.id}
+          file={{ id: moving.id, name: displayName(moving), folderId: moving.folderId }}
+          folders={folders}
+          onClose={() => setMoving(null)}
+          onMoved={handleMoved}
+        />
+      ) : null}
       {deleting ? (
         <ConfirmDialog
           open

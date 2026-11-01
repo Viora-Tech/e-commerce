@@ -2,17 +2,18 @@
 
 import type { ApiGrantView, McpOverview } from '@commerce/core'
 import type { McpSettings } from '@commerce/core/api-access'
-import { ArrowRight } from '@commerce/ui/icons'
-import { Button } from '@commerce/ui/shadcn/button'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
-import SettingsCard from '@/components/settings/settings-card'
+import SettingsDrill from '@/components/settings/settings-drill'
+import SettingsDrillPanel from '@/components/settings/settings-drill-panel'
+import SettingsLinkRow from '@/components/settings/settings-link-row'
+import SettingsList from '@/components/settings/settings-list'
 import { mcpContent } from '@/data/mcp'
-import { SETTINGS_BACK, settingsContent } from '@/data/settings'
+import { settingsContent } from '@/data/settings'
+import { settingsRowsContent } from '@/data/settings-rows'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
@@ -31,12 +32,14 @@ type McpPageProps = {
 }
 
 /**
- * Settings → MCP & API, one page: status, the connect guide, connected apps, permissions and
- * approvals, API tokens, and a link to the activity log.
+ * Settings → MCP & API, Shopify-style (#147): the status, then rows for the connect guide,
+ * connected apps, permissions and approvals and API tokens, each opening in place (`?open=`),
+ * and a row to the activity log.
  */
 export default function McpPage({ overview, grants, serverUrl }: McpPageProps) {
   // Hooks
   const copy = useCopy(mcpContent)
+  const rowsCopy = useCopy(settingsRowsContent)
   const settingsCopy = useCopy(settingsContent)
   const router = useRouter()
   const [settings, setSettings] = useState<McpSettings>(overview.settings)
@@ -69,6 +72,21 @@ export default function McpPage({ overview, grants, serverUrl }: McpPageProps) {
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   )
   const live = apps.filter((g) => g.status === 'active').length
+  const m = rowsCopy.mcp
+  const rows = [
+    { id: 'connect', title: m.connect, value: m.connectValue },
+    { id: 'apps', title: m.apps, value: m.appsValue(live) },
+    {
+      id: 'permissions',
+      title: m.permissions,
+      value: m.permissionsValue(settings.allowChanges, settings.readCustomers),
+    },
+    {
+      id: 'tokens',
+      title: m.tokens,
+      value: m.tokensValue(grants.tokens.filter((t) => t.status === 'active').length),
+    },
+  ]
 
   return (
     <div className="flex flex-col gap-4">
@@ -84,7 +102,6 @@ export default function McpPage({ overview, grants, serverUrl }: McpPageProps) {
       <PageHeader
         title={copy.title}
         subtitle={copy.subtitle(store)}
-        back={SETTINGS_BACK}
         save={{ dirty, saving, onSave: handleSave, label: copy.save }}
       />
       <McpStatusCard
@@ -92,32 +109,34 @@ export default function McpPage({ overview, grants, serverUrl }: McpPageProps) {
         lastRequestAt={overview.lastRequestAt}
         serverUrl={serverUrl}
       />
-      <McpConnectGuide serverUrl={serverUrl} onCreateToken={() => setCreating(true)} />
-      <McpConnectedApps apps={apps} onDisconnect={setRevoking} />
-      <McpPermissionsCard settings={settings} onSettings={setSettings} />
-      <McpTokensCard
-        tokens={grants.tokens}
-        onCreate={() => setCreating(true)}
-        onRevoke={setRevoking}
-      />
-      <SettingsCard bodyClassName="flex-row flex-wrap items-center justify-between gap-3">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <h2 className="text-[0.9375rem] leading-[1.375rem] font-semibold text-ink-strong">
-            {copy.activity.heading}
-          </h2>
-          <p className="text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">
-            {copy.activity.help}
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          nativeButton={false}
-          render={<Link href={routes.settings.mcp('activity')} />}
-        >
-          {copy.activity.open}
-          <ArrowRight aria-hidden="true" />
-        </Button>
-      </SettingsCard>
+      <SettingsDrill rows={rows} backLabel={copy.title}>
+        <SettingsDrillPanel id="connect">
+          <McpConnectGuide serverUrl={serverUrl} onCreateToken={() => setCreating(true)} />
+        </SettingsDrillPanel>
+        <SettingsDrillPanel id="apps">
+          <McpConnectedApps apps={apps} onDisconnect={setRevoking} />
+        </SettingsDrillPanel>
+        <SettingsDrillPanel id="permissions">
+          <McpPermissionsCard settings={settings} onSettings={setSettings} />
+        </SettingsDrillPanel>
+        <SettingsDrillPanel id="tokens">
+          <McpTokensCard
+            tokens={grants.tokens}
+            onCreate={() => setCreating(true)}
+            onRevoke={setRevoking}
+          />
+        </SettingsDrillPanel>
+      </SettingsDrill>
+      <SettingsList>
+        <li>
+          <SettingsLinkRow
+            href={routes.settings.mcp('activity')}
+            title={copy.activity.heading}
+            description={copy.activity.help}
+            value={m.activityValue}
+          />
+        </li>
+      </SettingsList>
 
       <CreateTokenDialog open={creating} onOpenChange={setCreating} serverUrl={serverUrl} />
       <RevokeGrantDialog grant={revoking} storeName={store} onClose={() => setRevoking(null)} />

@@ -8,12 +8,14 @@
  */
 import { type AiRuntime, type AiToolSet, defineAiTool, guardData } from '@commerce/ai'
 import { abandonedStats, notSystemTest, notTestOrder, UNFULFILLED_STATUSES } from '@commerce/core'
-import { formatInZone, startOfDay } from '@commerce/dates'
+import { dayKey, formatInZone } from '@commerce/dates'
 import {
   type Db,
+  marketingSession,
   order,
   orderLine,
   product,
+  refund,
   type StoreTx,
   sellableStock,
   variant,
@@ -22,11 +24,27 @@ import {
 import { type Currency, formatMoney } from '@commerce/money'
 import { and, asc, desc, eq, gte, inArray, lt, lte, ne, sql, sum } from 'drizzle-orm'
 import { z } from 'zod'
+import {
+  type AnswerTable,
+  answerTable,
+  DAILY_MAX_DAYS,
+  daysFrom,
+  fillSeries,
+  monthsFrom,
+  salesSeriesQuery,
+  topProductsQuery,
+  windowDays,
+} from './answer-table'
 import type { Taint } from './assistant/taint'
 import type { StoreFacts } from './guard'
+import { periodInput, resolvePeriod } from './periods'
 
 export type Fact = { label: string; value: string }
-export type ToolOutput = { facts: Fact[] }
+/** `table`: the rows behind the facts, for the admin only (taken off before the model reads it). */
+export type ToolOutput = { facts: Fact[]; table?: AnswerTable }
+
+/** The custom query runs in India time; a store elsewhere gets a snapshot instead. */
+const QUERY_TIME_ZONE = 'Asia/Kolkata'
 
 const DAY_MS = 86_400_000
 /** Sales answers leave out drafts and test-mode orders (gateway test keys, no real money). */
@@ -44,9 +62,9 @@ export function safeTitle(env: ToolEnv, title: string): string {
   return guarded.text
 }
 
-/** Whole rupees: an answer reads "₹2,37,948", not "₹2,37,948.21". */
-export function money(env: ToolEnv, paise: number): string {
-  return formatMoney(Math.round(paise / 100) * 100, env.store.currency as Currency)
+/** Whole units of the store's currency: an answer reads "₹2,37,948", not "₹2,37,948.21". */
+export function money(env: ToolEnv, minor: number): string {
+  return formatMoney(minor, env.store.currency as Currency, { whole: true })
 }
 
 export function day(env: ToolEnv, at: Date): string {
@@ -64,74 +82,193 @@ export function read<T>(
 const pct = (now: number, before: number): string | null =>
   before > 0 ? `${now >= before ? '+' : ''}${Math.round(((now - before) / before) * 100)}%` : null
 
+/**
+ * One window's sales, the way a merchant (and Shopify) reads them: gross is every order placed,
+ * net takes off what was cancelled and refunded in the window. The parts come back too, so the
+ * assistant can say why sales moved instead of "the tool does not say" (audit #189).
+ */
 async function salesWindow(tx: StoreTx, from: Date, to: Date) {
-  const [row] = await tx
+  const inWindow = and(gte(order.placedAt, from), lt(order.placedAt, to))
+  const cancelledOrder = sql`${order.status} = 'cancelled'`
+  const [placed] = await tx
     .select({
+      placed: sql<number>`count(*)::int`,
+      gross: sql<number>`coalesce(sum(${order.totalPaise}), 0)::bigint`.mapWith(Number),
+      discounts: sql<number>`coalesce(sum(${order.discountPaise}), 0)::bigint`.mapWith(Number),
+      cancelled: sql<number>`(count(*) filter (where ${cancelledOrder}))::int`,
+      cancelledValue:
+        sql<number>`coalesce(sum(${order.totalPaise}) filter (where ${cancelledOrder}), 0)::bigint`.mapWith(
+          Number,
+        ),
+      tracked: sql<number>`(count(*) filter (where not ${cancelledOrder} and (${order.attribution}->>'channel') is not null))::int`,
+    })
+    .from(order)
+    .where(and(notDraft, inWindow))
+  // Refunds count when they were made, on orders not cancelled (those are already out of net).
+  const [refunded] = await tx
+    .select({
+      total: sql<number>`coalesce(sum(${refund.amountPaise}), 0)::bigint`.mapWith(Number),
+    })
+    .from(refund)
+    .innerJoin(order, eq(order.id, refund.orderId))
+    .where(
+      and(
+        inArray(refund.status, ['processed', 'manual']),
+        gte(refund.createdAt, from),
+        lt(refund.createdAt, to),
+        live,
+      ),
+    )
+  const [visits] = await tx
+    .select({ n: sql<number>`count(*)::int` })
+    .from(marketingSession)
+    .where(and(gte(marketingSession.startedAt, from), lt(marketingSession.startedAt, to)))
+  const cancelled = placed?.cancelled ?? 0
+  const gross = placed?.gross ?? 0
+  const cancelledValue = placed?.cancelledValue ?? 0
+  const refunds = refunded?.total ?? 0
+  return {
+    orders: (placed?.placed ?? 0) - cancelled,
+    gross,
+    cancelled,
+    cancelledValue,
+    refunds,
+    discounts: placed?.discounts ?? 0,
+    net: gross - cancelledValue - refunds,
+    sessions: visits?.n ?? 0,
+    tracked: placed?.tracked ?? 0,
+  }
+}
+
+type SalesWindow = Awaited<ReturnType<typeof salesWindow>>
+
+/**
+ * Sales per day (per month past two months) for `salesSummary`'s table and line: what shoppers
+ * paid on orders not cancelled, and how many, with empty days at zero.
+ */
+async function salesSeries(
+  tx: StoreTx,
+  env: ToolEnv,
+  from: Date,
+  to: Date,
+): Promise<AnswerTable | undefined> {
+  const range = windowDays(from, to, env.store.timezone)
+  const days = daysFrom(range.from, range.to)
+  if (days.length < 2) return undefined
+  const by = days.length > DAILY_MAX_DAYS ? 'month' : 'day'
+  const bucket = sql<string>`to_char(${order.placedAt} at time zone ${env.store.timezone}, ${by === 'day' ? 'YYYY-MM-DD' : 'YYYY-MM'})`
+  const found = await tx
+    .select({
+      bucket,
+      totalSales: sql<number>`coalesce(sum(${order.totalPaise}), 0)::bigint`.mapWith(Number),
       orders: sql<number>`count(*)::int`,
-      revenue: sql<number>`coalesce(sum(${order.totalPaise}), 0)::bigint`.mapWith(Number),
     })
     .from(order)
     .where(and(live, gte(order.placedAt, from), lt(order.placedAt, to)))
-  const [cancelled] = await tx
-    .select({ n: sql<number>`count(*)::int` })
-    .from(order)
-    .where(
-      and(
-        eq(order.status, 'cancelled'),
-        notTestOrder,
-        gte(order.placedAt, from),
-        lt(order.placedAt, to),
-      ),
-    )
-  return { orders: row?.orders ?? 0, revenue: row?.revenue ?? 0, cancelled: cancelled?.n ?? 0 }
+    // By position: the bucket's time zone is a bound parameter, so naming it twice would not match.
+    .groupBy(sql`1`)
+  return answerTable({
+    columns: [
+      { id: by, kind: by === 'day' ? 'date' : 'month' },
+      { id: 'totalSales', kind: 'money' },
+      { id: 'orders', kind: 'count' },
+    ],
+    rows: fillSeries(
+      by,
+      by === 'day' ? days : monthsFrom(range.from, range.to),
+      found.map((f) => ({
+        bucket: f.bucket,
+        values: { totalSales: f.totalSales, orders: f.orders },
+      })),
+      ['totalSales', 'orders'],
+    ),
+    chart: { kind: 'line', x: by, y: 'totalSales' },
+    query: env.store.timezone === QUERY_TIME_ZONE ? salesSeriesQuery(range, by) : null,
+    range,
+  })
 }
+
+/** Orders from tracked visits per visit; sessions are only counted on this storefront. */
+const conversionText = (w: SalesWindow) =>
+  w.sessions > 0
+    ? `${(Math.min(w.tracked / w.sessions, 1) * 100).toFixed(1)}%`
+    : 'no visits tracked'
 
 /** The store's read-only AI tools, bound to its database and formatting. */
 export function storeTools(env: ToolEnv): AiToolSet {
   return {
     salesSummary: defineAiTool({
       description:
-        'Sales for the last N days including today (India time): revenue, orders, average order value, cancelled orders, and the same numbers for the N days before, for comparison.',
-      input: z.object({ days: z.number().int().min(1).max(90).default(7) }),
+        'Sales for a period and the same length before it: net sales (gross minus cancellations and refunds), gross, orders, average order, cancelled orders and their value, refunds, discounts, store visits and conversion. Pick the period the merchant asked for ("this month" is period this_month, not 30 days). Use the parts to explain why sales changed.',
+      input: z.object(periodInput(7)),
       risk: 'read',
       run: (input, runtime) =>
         read(env, runtime, async (tx): Promise<ToolOutput> => {
-          const now = env.now()
-          const from = startOfDay(now, env.store.timezone, -(input.days - 1))
-          const before = new Date(from.getTime() - input.days * DAY_MS)
-          const cur = await salesWindow(tx, from, now)
-          const prev = await salesWindow(tx, before, from)
-          const change = pct(cur.revenue, prev.revenue)
-          const period = input.days === 1 ? 'today' : `last ${input.days} days`
+          const p = resolvePeriod(input, env.now(), env.store.timezone)
+          const cur = await salesWindow(tx, p.from, p.to)
+          const prev = await salesWindow(tx, p.prevFrom, p.prevTo)
+          const table = await salesSeries(tx, env, p.from, p.to)
+          const change = pct(cur.net, prev.net)
+          const period = p.label
+          const both = (now: string, then: string) => `${now} (the same length before: ${then})`
           return {
             facts: [
-              { label: `Sales, ${period}`, value: money(env, cur.revenue) },
-              { label: `Orders, ${period}`, value: String(cur.orders) },
+              {
+                label: `Net sales, ${period}`,
+                value: both(money(env, cur.net), money(env, prev.net)),
+              },
+              ...(change ? [{ label: 'Change in net sales', value: change }] : []),
+              {
+                label: 'Gross sales (every order placed)',
+                value: both(money(env, cur.gross), money(env, prev.gross)),
+              },
+              {
+                label: 'Orders (not cancelled)',
+                value: both(String(cur.orders), String(prev.orders)),
+              },
+              {
+                label: 'Cancelled orders',
+                value: both(
+                  `${cur.cancelled} worth ${money(env, cur.cancelledValue)}`,
+                  `${prev.cancelled} worth ${money(env, prev.cancelledValue)}`,
+                ),
+              },
+              { label: 'Refunds', value: both(money(env, cur.refunds), money(env, prev.refunds)) },
+              {
+                label: 'Discounts given',
+                value: both(money(env, cur.discounts), money(env, prev.discounts)),
+              },
               {
                 label: 'Average order',
-                value: cur.orders ? money(env, Math.round(cur.revenue / cur.orders)) : 'no orders',
+                value: cur.orders
+                  ? money(env, Math.round((cur.gross - cur.cancelledValue) / cur.orders))
+                  : 'no orders',
               },
               {
-                label: `Sales, the ${input.days} days before`,
-                value: `${money(env, prev.revenue)} from ${prev.orders} orders`,
+                label: 'Store visits',
+                value: both(String(cur.sessions), String(prev.sessions)),
               },
-              ...(change ? [{ label: 'Change in sales', value: change }] : []),
-              { label: `Cancelled, ${period}`, value: String(cur.cancelled) },
+              {
+                label: 'Conversion (orders from tracked visits)',
+                value: both(conversionText(cur), conversionText(prev)),
+              },
             ],
+            ...(table ? { table } : {}),
           }
         }),
     }),
 
     topProducts: defineAiTool({
-      description: 'Best-selling products by units sold over the last N days, with revenue.',
+      description:
+        'Best-selling products by units sold in a period ("this month" is period this_month), with revenue.',
       input: z.object({
-        days: z.number().int().min(1).max(90).default(30),
+        ...periodInput(30),
         limit: z.number().int().min(1).max(10).default(5),
       }),
       risk: 'read',
       run: (input, runtime) =>
         read(env, runtime, async (tx): Promise<ToolOutput> => {
-          const from = startOfDay(env.now(), env.store.timezone, -(input.days - 1))
+          const p = resolvePeriod(input, env.now(), env.store.timezone)
           const rows = await tx
             .select({
               title: product.title,
@@ -144,19 +281,37 @@ export function storeTools(env: ToolEnv): AiToolSet {
             .innerJoin(order, eq(order.id, orderLine.orderId))
             .innerJoin(variant, eq(variant.id, orderLine.variantId))
             .innerJoin(product, eq(product.id, variant.productId))
-            .where(and(live, gte(order.placedAt, from)))
+            .where(and(live, gte(order.placedAt, p.from), lt(order.placedAt, p.to)))
             .groupBy(product.id, product.title)
             .orderBy(desc(sum(orderLine.quantity)))
             .limit(input.limit)
           if (!rows.length)
             return {
-              facts: [{ label: `Sold in the last ${input.days} days`, value: 'nothing yet' }],
+              facts: [{ label: `Sold in ${p.label}`, value: 'nothing yet' }],
             }
+          const range = windowDays(p.from, p.to, env.store.timezone)
+          const titles = rows.map((r) => safeTitle(env, r.title))
           return {
             facts: rows.map((r, i) => ({
-              label: `${i + 1}. ${safeTitle(env, r.title)}`,
+              label: `${i + 1}. ${titles[i]}`,
               value: `${r.units} sold, ${money(env, r.revenue)}`,
             })),
+            table: answerTable({
+              columns: [
+                { id: 'product', kind: 'text' },
+                { id: 'units', kind: 'count' },
+                { id: 'grossSales', kind: 'money' },
+              ],
+              rows: rows.map((r, i) => ({
+                values: { product: titles[i] ?? '', units: r.units, grossSales: r.revenue },
+              })),
+              chart: { kind: 'bar', x: 'product', y: 'units' },
+              query:
+                env.store.timezone === QUERY_TIME_ZONE
+                  ? topProductsQuery(range, input.limit)
+                  : null,
+              range,
+            }),
           }
         }),
     }),
@@ -195,15 +350,37 @@ export function storeTools(env: ToolEnv): AiToolSet {
             .innerJoin(product, eq(product.id, variant.productId))
             .where(where)
           const total = count?.n ?? 0
+          const named = rows.map((r) => ({
+            ...r,
+            title: safeTitle(env, r.title),
+            variantTitle:
+              r.variantTitle && r.variantTitle !== 'Default' ? safeTitle(env, r.variantTitle) : '',
+          }))
           return {
+            ...(named.length
+              ? {
+                  table: answerTable({
+                    columns: [
+                      { id: 'product', kind: 'text' },
+                      { id: 'variant', kind: 'text' },
+                      { id: 'available', kind: 'count' },
+                    ],
+                    rows: named.map((r) => ({
+                      values: { product: r.title, variant: r.variantTitle, available: r.available },
+                    })),
+                  }),
+                }
+              : {}),
             facts: [
               { label: `Variants at ${input.threshold} or fewer`, value: String(total) },
-              ...rows.map((r) => ({
-                label:
-                  r.variantTitle && r.variantTitle !== 'Default'
-                    ? `${safeTitle(env, r.title)} (${safeTitle(env, r.variantTitle)})`
-                    : safeTitle(env, r.title),
-                value: r.available <= 0 ? 'out of stock' : `${r.available} left`,
+              ...named.map((r) => ({
+                label: r.variantTitle ? `${r.title} (${r.variantTitle})` : r.title,
+                value:
+                  r.available < 0
+                    ? `oversold by ${-r.available} (owed to buyers)`
+                    : r.available === 0
+                      ? 'out of stock'
+                      : `${r.available} left`,
               })),
             ],
           }
@@ -245,6 +422,23 @@ export function storeTools(env: ToolEnv): AiToolSet {
           const value = rows.reduce((n, r) => n + r.totalPaise, 0)
           const oldest = rows[0] as (typeof rows)[number]
           return {
+            table: answerTable({
+              columns: [
+                { id: 'order', kind: 'text' },
+                { id: 'placed', kind: 'date' },
+                { id: 'amount', kind: 'money' },
+                { id: 'paymentStatus', kind: 'label' },
+              ],
+              rows: rows.map((r) => ({
+                key: String(r.number),
+                values: {
+                  order: `#${r.number}`,
+                  placed: dayKey(r.placedAt, env.store.timezone),
+                  amount: r.totalPaise,
+                  paymentStatus: r.paymentStatus,
+                },
+              })),
+            }),
             facts: [
               {
                 label,

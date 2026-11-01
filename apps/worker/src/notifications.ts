@@ -2,6 +2,7 @@ import {
   type AppEventQueue,
   appEventForTemplate,
   deliverEmailTo,
+  deliverMessageTo,
   deliverNewsletterConfirm,
   deliverNotification,
   deliverToStoreContact,
@@ -13,14 +14,18 @@ import {
   storefrontOriginFor,
 } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
+import { formatInZone } from '@commerce/dates'
 import { type Db, withStore } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
 import { applicationNotice } from '@commerce/plugin-affiliates/server'
 import { getContactMessage, messageText } from '@commerce/plugin-forms/server'
 import {
   loadReviewsSettings,
+  questionEmailData,
   replyEmailData,
   reviewRequestEmail,
+  rewardEmailData,
+  rewardLabel,
 } from '@commerce/plugin-reviews/server'
 import { fairProcessor, type IORedis, KEEP_FINISHED, QUEUE_LIMITS, Worker } from '@commerce/queue'
 import { deliverAffiliateUpdate } from './affiliates'
@@ -69,9 +74,11 @@ export function createNotificationWorker(
         key,
         returnId,
         refundId,
+        shipmentId,
         signupId,
         contactMessageId,
         reviewId,
+        questionId,
         affiliateId,
         affiliateNotice,
         commissionId,
@@ -129,7 +136,8 @@ export function createNotificationWorker(
         if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
         return sent
       }
-      // Reviews app: the request or reminder for an order's products, and the store's reply.
+      // Reviews app: the request or reminder for an order's products (email, WhatsApp or both,
+      // by the store's channel), and the store's reply.
       if (template === 'review_request' || template === 'review_reminder') {
         const fallback = opts.storefrontUrl
         if (!fallback) return []
@@ -147,7 +155,7 @@ export function createNotificationWorker(
             },
           )
           if (!email) return []
-          return deliverEmailTo({ storeId, tx }, template, email.to, email.data, {
+          return deliverMessageTo({ storeId, tx }, template, email.contact, email.data, {
             registry: (await registriesForStore(tx, storeId)).notifications,
             settingsSecret: opts.settingsSecret,
           })
@@ -225,6 +233,103 @@ export function createNotificationWorker(
         if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
         return sent
       }
+      // Reviews app: the store answered a product question and it went live (to the asker).
+      if (template === 'question_answered') {
+        if (!questionId) return []
+        const fallback = opts.storefrontUrl ?? ''
+        const sent = await withStore(db, storeId, async (tx) => {
+          const q = await questionEmailData(tx, questionId)
+          if (!q?.askerEmail || !q.answer || q.status !== 'published') return []
+          const base = (await storefrontOriginFor(tx, storeId, fallback)).replace(/\/+$/, '')
+          return deliverEmailTo(
+            { storeId, tx },
+            template,
+            q.askerEmail,
+            {
+              customerName: q.askerName.split(' ')[0] || '',
+              review: {
+                productTitle: q.productTitle ?? undefined,
+                productUrl:
+                  base && q.handle
+                    ? `${base}/products/${encodeURIComponent(q.handle)}#reviews`
+                    : undefined,
+                question: q.question,
+                answer: q.answer,
+              },
+            },
+            {
+              registry: (await registriesForStore(tx, storeId)).notifications,
+              settingsSecret: opts.settingsSecret,
+            },
+          )
+        })
+        const bad = sent.filter((r) => !r.ok)
+        if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
+        return sent
+      }
+      // Reviews app, to the merchant: a shopper asked a product question.
+      if (template === 'question_asked') {
+        if (!questionId) return []
+        const sent = await withStore(db, storeId, async (tx) => {
+          const q = await questionEmailData(tx, questionId)
+          if (!q) return []
+          const admin = opts.adminUrl?.replace(/\/+$/, '')
+          return deliverToStoreContact(
+            { storeId, tx },
+            template,
+            {
+              actionUrl: admin ? `${admin}/apps/reviews/questions` : undefined,
+              review: {
+                productTitle: q.productTitle ?? undefined,
+                question: q.question,
+                askerName: q.askerName || undefined,
+                askerEmail: q.askerEmail ?? undefined,
+              },
+            },
+            {
+              registry: (await registriesForStore(tx, storeId)).notifications,
+              settingsSecret: opts.settingsSecret,
+            },
+          )
+        })
+        const bad = sent.filter((r) => !r.ok)
+        if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
+        return sent
+      }
+      // Reviews app: the photo review reward code.
+      if (template === 'review_reward') {
+        if (!reviewId) return []
+        const fallback = opts.storefrontUrl ?? ''
+        const sent = await withStore(db, storeId, async (tx) => {
+          const r = await rewardEmailData(tx, reviewId)
+          if (!r) return []
+          const base = (await storefrontOriginFor(tx, storeId, fallback)).replace(/\/+$/, '')
+          return deliverEmailTo(
+            { storeId, tx },
+            template,
+            r.email,
+            {
+              customerName: r.name.split(' ')[0] || 'there',
+              actionUrl: base ? `${base}/` : undefined,
+              review: {
+                productTitle: r.productTitle ?? undefined,
+                rewardCode: r.code,
+                rewardLabel: rewardLabel(r.percent),
+                rewardUntil: r.endsAt
+                  ? formatInZone(r.endsAt, { day: 'numeric', month: 'long', year: 'numeric' })
+                  : undefined,
+              },
+            },
+            {
+              registry: (await registriesForStore(tx, storeId)).notifications,
+              settingsSecret: opts.settingsSecret,
+            },
+          )
+        })
+        const bad = sent.filter((r) => !r.ok)
+        if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
+        return sent
+      }
       // Team members who asked for new-order alerts (Account → Notifications). First attempt
       // only, so a retry for the customer's own message never alerts them twice; a failure
       // here is logged and never fails the customer's job.
@@ -276,7 +381,7 @@ export function createNotificationWorker(
       const results = await withStore(db, storeId, async (tx) =>
         deliverNotification(
           { storeId, tx },
-          { orderId, template, returnId, refundId },
+          { orderId, template, returnId, refundId, shipmentId },
           {
             registry: (await registriesForStore(tx, storeId)).notifications,
             settingsSecret: opts.settingsSecret,

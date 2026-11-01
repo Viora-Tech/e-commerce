@@ -2,7 +2,7 @@
 
 import type { PolicySettings, StorePolicy } from '@commerce/core'
 import { REQUIRED_POLICY_TYPES } from '@commerce/core/policies'
-import { InfoIcon, Pencil, Plus } from '@commerce/ui/icons'
+import { InfoIcon } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
@@ -14,12 +14,18 @@ import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import StatusChip from '@/components/layout/status-chip'
 import { policiesContent as copy } from '@/data/policies'
-import { SETTINGS_BACK, settingsContent } from '@/data/settings'
+import { settingsContent } from '@/data/settings'
+import { settingsRowsContent } from '@/data/settings-rows'
+import { useCopy } from '@/hooks/use-copy'
 import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
 import { formatDate } from '@/lib/format-date'
 import { routes } from '@/lib/routes'
 import SettingsCard from './settings-card'
+import SettingsDrill from './settings-drill'
+import SettingsDrillPanel from './settings-drill-panel'
+import SettingsLinkRow from './settings-link-row'
+import SettingsList from './settings-list'
 import SettingsTextRow from './settings-text-row'
 
 type PolicyRowProps = {
@@ -35,9 +41,13 @@ const OFFICER_FIELDS: { key: keyof Officer; type: string; placeholder?: string }
   { key: 'phone', type: 'tel' },
 ]
 
-/** Settings → Policies: business details every policy prints, then the five policies. */
+/**
+ * Settings → Policies, Shopify-style (#147): rows for the five policies, the business name every
+ * policy prints and the grievance officer, each opening in place (`?open=`).
+ */
 export default function PoliciesSettings() {
   // Hooks
+  const rowsCopy = useCopy(settingsRowsContent)
   const announceSetup = useSetupNext()
   const [policies, setPolicies] = useState<StorePolicy[] | null>(null)
   const [form, setForm] = useState<PolicySettings | null>(null)
@@ -88,6 +98,26 @@ export default function PoliciesSettings() {
 
   // Render logic
   const dirty = form !== null && saved !== null && JSON.stringify(form) !== saved
+  const r = rowsCopy.policies
+  const rows =
+    policies && form
+      ? [
+          {
+            id: 'policies',
+            title: r.list,
+            value: r.published(
+              policies.filter((p) => p.pageId !== null && p.published).length,
+              policies.length,
+            ),
+          },
+          { id: 'business', title: r.business, value: form.legalName || rowsCopy.notSet },
+          {
+            id: 'grievance',
+            title: r.grievance,
+            value: form.grievanceOfficer.name || rowsCopy.notSet,
+          },
+        ]
+      : []
 
   return (
     <div className="flex flex-col gap-4">
@@ -103,7 +133,6 @@ export default function PoliciesSettings() {
       <PageHeader
         title={copy.title}
         subtitle={copy.subtitle}
-        back={SETTINGS_BACK}
         save={{ dirty, saving: busy, onSave: handleSave, label: copy.save }}
       />
       <Alert>
@@ -114,52 +143,56 @@ export default function PoliciesSettings() {
       {!policies || !form ? (
         <Skeleton className="h-64 w-full rounded-2xl" />
       ) : (
-        <>
-          <SettingsCard title={copy.list.heading}>
-            <ul className="flex flex-col divide-y divide-border">
+        <SettingsDrill rows={rows} backLabel={r.back}>
+          <SettingsDrillPanel id="policies">
+            <SettingsList heading={copy.list.heading}>
               {policies.map((p) => (
                 <PolicyRow key={p.type} policy={p} />
               ))}
-            </ul>
-          </SettingsCard>
+            </SettingsList>
+          </SettingsDrillPanel>
 
-          <SettingsCard title={copy.business.heading} description={copy.business.help}>
-            <SettingsTextRow
-              id="policy-legal-name"
-              label={copy.business.legalName}
-              description={copy.business.legalNameHint}
-              value={form.legalName}
-              onChange={(legalName) => setForm({ ...form, legalName })}
-            />
-            <div className="flex justify-end pt-5">
-              <Button
-                variant="outline"
-                render={<Link href={routes.settings.store()} />}
-                nativeButton={false}
-              >
-                {copy.business.generalLink}
-              </Button>
-            </div>
-          </SettingsCard>
-
-          <SettingsCard
-            id="grievance"
-            title={copy.grievance.heading}
-            description={copy.grievance.help}
-          >
-            {OFFICER_FIELDS.map((f) => (
+          <SettingsDrillPanel id="business">
+            <SettingsCard title={copy.business.heading} description={copy.business.help}>
               <SettingsTextRow
-                key={f.key}
-                id={`grievance-${f.key}`}
-                type={f.type}
-                label={copy.grievance[f.key]}
-                value={form.grievanceOfficer[f.key]}
-                onChange={(v) => patchOfficer(f.key, v)}
+                id="policy-legal-name"
+                label={copy.business.legalName}
+                description={copy.business.legalNameHint}
+                value={form.legalName}
+                onChange={(legalName) => setForm({ ...form, legalName })}
               />
-            ))}
-            <p className="mt-3 text-caption text-muted-foreground">{copy.grievance.shownIn}</p>
-          </SettingsCard>
-        </>
+              <div className="flex justify-end pt-5">
+                <Button
+                  variant="outline"
+                  render={<Link href={routes.settings.store()} />}
+                  nativeButton={false}
+                >
+                  {copy.business.generalLink}
+                </Button>
+              </div>
+            </SettingsCard>
+          </SettingsDrillPanel>
+
+          <SettingsDrillPanel id="grievance">
+            <SettingsCard
+              id="grievance-officer"
+              title={copy.grievance.heading}
+              description={copy.grievance.help}
+            >
+              {OFFICER_FIELDS.map((f) => (
+                <SettingsTextRow
+                  key={f.key}
+                  id={`grievance-${f.key}`}
+                  type={f.type}
+                  label={copy.grievance[f.key]}
+                  value={form.grievanceOfficer[f.key]}
+                  onChange={(v) => patchOfficer(f.key, v)}
+                />
+              ))}
+              <p className="mt-3 text-caption text-muted-foreground">{copy.grievance.shownIn}</p>
+            </SettingsCard>
+          </SettingsDrillPanel>
+        </SettingsDrill>
       )}
     </div>
   )
@@ -172,29 +205,25 @@ function PolicyRow({ policy }: PolicyRowProps) {
   const variant = status === 'published' ? 'success' : status === 'draft' ? 'neutral' : 'attention'
   const href = `/settings/policies/${policy.type}${created ? '' : '?template=1'}`
   return (
-    <li className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-body-strong">{copy.names[policy.type]}</span>
-          <StatusChip tone={variant}>{copy.list.status[status]}</StatusChip>
-          {REQUIRED_POLICY_TYPES.includes(policy.type) && status !== 'published' ? (
-            <Badge variant="outline">{copy.list.required}</Badge>
-          ) : null}
-        </div>
-        <span className="text-caption text-muted-foreground">
-          {policy.updatedAt
+    <li>
+      <SettingsLinkRow
+        href={href}
+        title={
+          <>
+            <span>{copy.names[policy.type]}</span>
+            <StatusChip tone={variant}>{copy.list.status[status]}</StatusChip>
+            {REQUIRED_POLICY_TYPES.includes(policy.type) && status !== 'published' ? (
+              <Badge variant="outline">{copy.list.required}</Badge>
+            ) : null}
+          </>
+        }
+        description={
+          policy.updatedAt
             ? copy.list.updated(formatDate(policy.updatedAt))
-            : copy.hints[policy.type]}
-        </span>
-      </div>
-      <Button
-        variant={created ? 'outline' : 'default'}
-        className="self-start sm:self-center"
-        render={<Link href={href} />}
-      >
-        {created ? <Pencil aria-hidden="true" /> : <Plus aria-hidden="true" />}
-        {created ? copy.list.edit : copy.list.create}
-      </Button>
+            : copy.hints[policy.type]
+        }
+        value={created ? copy.list.edit : copy.list.create}
+      />
     </li>
   )
 }

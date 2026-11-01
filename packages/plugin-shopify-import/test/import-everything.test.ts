@@ -226,8 +226,24 @@ describe('field types and values', () => {
       endsAt: null,
     }
     expect(refusal(base)).toBeNull()
-    expect(refusal({ ...base, minQuantity: 3 })?.reason).toBe('minimum_quantity')
+    // Minimum quantity, chosen customers and an amount off each chosen product come over (#119).
+    expect(refusal({ ...base, minQuantity: 3 })).toBeNull()
+    expect(refusal({ ...base, minQuantity: 3, minSubtotalPaise: 100 })?.reason).toBe(
+      'minimum_quantity',
+    )
+    expect(
+      refusal({ ...base, allCustomers: false, customerIds: ['gid://shopify/Customer/1'] }),
+    ).toBeNull()
+    expect(refusal({ ...base, allCustomers: false })?.reason).toBe('customer_specific')
     expect(refusal({ ...base, appliesOnEachItem: true })?.reason).toBe('per_item_amount')
+    expect(
+      refusal({
+        ...base,
+        method: 'fixed',
+        appliesOnEachItem: true,
+        items: { kind: 'products', ids: ['gid://shopify/Product/1'], variants: false, more: false },
+      }),
+    ).toBeNull()
     expect(refusal({ ...base, method: 'free_shipping', countries: ['IN', 'US'] })?.reason).toBe(
       'shipping_rules',
     )

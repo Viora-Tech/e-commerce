@@ -103,7 +103,7 @@ export default function PaymentAdjustmentFields({
                 onChange={(e) => handleAmount(e.target.value)}
                 autoComplete="off"
               />
-              <FieldDescription>{copy.amountHelp}</FieldDescription>
+              <FieldDescription>{copy.amountHelp[type]}</FieldDescription>
             </Field>
           ) : null}
         </div>

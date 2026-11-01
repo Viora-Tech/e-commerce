@@ -6,77 +6,93 @@ import { settingsSecret } from '@commerce/config'
 import {
   addToCart,
   captureCartContact,
-  confirmClientPayment,
   createCart,
   findRedeemableGiftCard,
   getCart,
   onOrderPlaced,
-  orderViewToken,
-  PaymentNotRetryable,
-  type PlaceOrderResult,
-  payPath,
+  PreorderMixedCart,
   placeOrderAndPay,
   rememberCheckoutAddress,
-  retryAndStartPayment,
   setCartAttribution,
   setLineQuantity,
-  syncOpenQrAttempt,
-  thankYouPath,
 } from '@commerce/core'
+import { checkoutCountry, isAbroad } from '@commerce/core/checkout-address'
 import { CONSENT_COOKIE, currentConsent, decodeConsent } from '@commerce/core/consent'
 import { collectorStore, withdrawCartMarketingConsent } from '@commerce/core/pixels/server'
-import { type ParcelDeliveryEstimate, payment } from '@commerce/db'
+import type { ParcelDeliveryEstimate } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
-import type { ClientConfirmation } from '@commerce/payments'
-import { and, desc, eq, ne } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { after } from 'next/server'
+import { cartContent } from '@/data/cart'
 import { checkoutContent } from '@/data/checkout'
 import { readAttribution } from './attribution-cookie'
 import { clearCartId, readCartId, writeCartId } from './cart-cookie'
 import { checkoutCartId } from './checkout-context'
 import { checkoutErrorMessage } from './checkout-errors'
+import { redirectAfterCheckout } from './checkout-redirect'
 import { currentCustomer } from './customer-session'
 import { db } from './db'
 import { deliveryForOrder } from './delivery-options'
+import { discoveryVisitor, recordDiscoveryCartAdd } from './discovery-events'
 import { hasChatCookie, postChatCartLine } from './inbox'
-import { accessibleOrderId } from './order-access'
-import { redirectToOrderPage } from './order-view-cookie'
+import { requestMarketId } from './market-catalog'
 import { nudgeOutbox } from './outbox'
-import { storePaymentProviders } from './payments'
+import { storePaymentFallbacks, storePaymentProviders } from './payments'
 import { clientIp, rateLimited } from './rate-limit'
 import { requestStoreId } from './request-store'
+import { noteAbAddToCart } from './rollout-ab'
 import { cartShippingHint, checkoutParcels, estimateForPincode } from './shipping'
 import { storeSignIn } from './sign-in-methods'
 import { inStore } from './store-context'
 
 const CHECKOUT_CART_RULE = { limit: 10, windowMs: 60_000 }
 const CHECKOUT_IP_RULE = { limit: 30, windowMs: 60_000 }
-const PAYMENT_RETRY_IP_RULE = { limit: 20, windowMs: 60_000 }
-/** The QR page checks every 15 s; a tap on "I've paid" adds a few more. */
-const QR_CHECK_ORDER_RULE = { limit: 8, windowMs: 60_000 }
 
 /** Server actions for the cart. The store id comes from the request's hostname, never the client. */
 
-export async function addLineAction(variantId: string, quantity: number) {
+/**
+ * Add to cart. A refusal the shopper can act on comes back as `{ error }` (server action errors
+ * lose their words in production): a pre-order campaign that keeps its pre-orders apart (#143).
+ */
+export async function addLineAction(
+  variantId: string,
+  quantity: number,
+): Promise<{ error: string } | undefined> {
   const storeId = await requestStoreId()
   const existing = await readCartId()
   const attribution = await readAttribution()
-  const cartId = await inStore(storeId, async (tx) => {
-    const ctx = { storeId, tx }
-    let id = existing
-    const current = id ? await getCart(ctx, id) : null
-    if (current?.status !== 'open') {
-      id = await createCart(ctx)
-      await setCartAttribution(tx, id, attribution)
+  // The market this page is in: the cart keeps it, and its catalog decides what may go in.
+  const marketId = await requestMarketId()
+  let cartId: string
+  try {
+    cartId = await inStore(storeId, async (tx) => {
+      const ctx = { storeId, tx }
+      let id = existing
+      const current = id ? await getCart(ctx, id) : null
+      if (current?.status !== 'open') {
+        id = await createCart(ctx)
+        await setCartAttribution(tx, id, attribution)
+      }
+      await addToCart(ctx, id as string, variantId, Math.max(1, quantity), { marketId })
+      return id as string
+    })
+  } catch (err) {
+    if (err instanceof PreorderMixedCart) {
+      return { error: err.shopperMessage ?? cartContent.preorderMixedCart }
     }
-    await addToCart(ctx, id as string, variantId, Math.max(1, quantity))
-    return id as string
-  })
+    throw err
+  }
   if (cartId !== existing) await writeCartId(cartId)
   await chatCartLine(storeId, cartId, 'add', variantId, Math.max(1, quantity))
+  // A/B rollouts: the visitor's first add to cart counts for the arm they are in.
+  await noteAbAddToCart(storeId)
+  // Search & discovery: an add after a search result or recommendation click, after the response.
+  const visitor = await discoveryVisitor()
+  if (visitor) after(() => recordDiscoveryCartAdd(storeId, visitor, variantId))
   revalidatePath('/', 'layout')
+  return undefined
 }
 
 /** The cart line as Inbox shows it (title from the cart itself), only for a browser that chatted. */
@@ -117,10 +133,13 @@ export async function cartDrawerAction() {
   return inStore(storeId, async (tx) => {
     const cart = cartId ? await getCart({ storeId, tx }, cartId) : null
     const open = cart?.status === 'open' ? cart : null
-    const hint = await cartShippingHint(tx)
+    const hint = await cartShippingHint(tx, open?.id ?? null)
     return {
       lines: (open?.lines ?? []).map((l) => ({
         id: l.id,
+        // The variant and one unit's price: a market catalog's fixed price prices the line.
+        variantId: l.variantId,
+        unitPricePaise: l.unitPricePaise,
         handle: l.productHandle,
         title: l.productTitle,
         variantTitle: l.variantTitle === 'Default' ? null : l.variantTitle,
@@ -161,14 +180,21 @@ export async function setQuantityAction(lineId: string, quantity: number) {
 }
 
 export type CheckoutForm = {
+  /** The full name; with Settings → Checkout splitting it (#154), its parts come too. */
   name: string
+  firstName?: string
+  lastName?: string
   email: string
   phone: string
   line1: string
   line2: string
   city: string
+  /** An Indian state code; abroad, the state, province or region as typed (may be blank). */
   stateCode: string
+  /** A PIN code in India; the postcode abroad. */
   pincode: string
+  /** ISO 3166-1 country of the address; left out means India. */
+  countryCode?: string
   payment: string
   /** Gift card codes applied in the summary; each is re-checked here before it is spent. */
   giftCards?: string[]
@@ -186,6 +212,8 @@ export type CheckoutForm = {
   note?: string
   /** Home, Office or Other: the tag a signed-in shopper's new address is saved with. */
   label?: string
+  /** The marketing ticks under Contact; unticked sends nothing. */
+  marketing?: { email: boolean; whatsapp: boolean }
 }
 
 export type CheckoutResult = { error: string } | undefined
@@ -249,6 +277,10 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
   // Gift cards are emailed, so a basket of only gift cards has nothing to ship.
   const current = await inStore(storeId, (tx) => getCart({ storeId, tx }, cartId))
   const digitalOnly = !!current?.lines.length && current.lines.every((l) => l.giftCard)
+  // An address abroad is priced by its country zone: no Indian courier, no COD (placeOrder agrees).
+  const countryCode = checkoutCountry(form.countryCode)
+  const abroad = isAbroad(countryCode)
+  if (abroad && form.payment === 'cod') return { error: checkoutContent.errors.codAbroad }
 
   /** The delivery window each warehouse's parcel was shown with, stored on the order's parcels. */
   let deliveryEstimates: Record<string, ParcelDeliveryEstimate> = {}
@@ -257,7 +289,7 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
   const to = { pincode: form.pincode, stateCode: form.stateCode }
   const appQuote = form.deliveryQuote
   const delivery =
-    !digitalOnly && appQuote && form.shippingRate
+    !digitalOnly && !abroad && appQuote && form.shippingRate
       ? await inStore(storeId, (tx) =>
           deliveryForOrder(tx, storeId, cartId, to, {
             quoteId: typeof appQuote.quoteId === 'string' ? appQuote.quoteId : null,
@@ -274,7 +306,7 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
     deliveryEstimates = Object.fromEntries(
       parcels.flatMap((p) => (p.estimate ? [[p.locationId, p.estimate] as const] : [])),
     )
-  } else if (!digitalOnly) {
+  } else if (!digitalOnly && !abroad) {
     // The courier's word on the destination, never the client's. A cached answer makes this cheap.
     const delivery = await inStore(storeId, (tx) => estimateForPincode(tx, storeId, form.pincode))
     if (!delivery.ok) return { error: delivery.error }
@@ -298,16 +330,19 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
     const providers = await storePaymentProviders(tx, storeId)
     const provider = providers.find((p) => p.id === form.payment)
     if (!provider) throw new Error(`payment method ${form.payment} is not enabled`)
+    // Several gateways on: who to try next if this one cannot open the payment.
+    const fallbacks = await storePaymentFallbacks(tx, storeId, providers, provider.id)
     const giftCardIds: string[] = []
     for (const code of form.giftCards ?? []) {
       giftCardIds.push((await findRedeemableGiftCard({ storeId, tx }, code)).id)
     }
-    return { provider, giftCardIds }
+    return { provider, fallbacks, giftCardIds }
   })
-    .then(({ provider, giftCardIds }) =>
+    .then(({ provider, fallbacks, giftCardIds }) =>
       placeOrderAndPay(db(), storeId, {
         cartId,
         paymentProvider: provider,
+        paymentFallbacks: fallbacks,
         giftCardIds,
         // A delivery option id is not a rate row: the app prices it instead.
         shippingRateId: delivery ? null : form.shippingRate || null,
@@ -316,17 +351,22 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
         secret: settingsSecret(),
         checkout: {
           name: form.name,
+          ...(typeof form.firstName === 'string'
+            ? { firstName: form.firstName, lastName: form.lastName ?? '' }
+            : {}),
           email: form.email,
           phone: form.phone,
           gstin: form.gstin ?? null,
           businessName: form.businessName ?? null,
           note: form.note ?? null,
+          marketing: form.marketing,
           address: {
             line1: form.line1,
             ...(form.line2 ? { line2: form.line2 } : {}),
             city: form.city,
             stateCode: form.stateCode,
             pincode: form.pincode,
+            countryCode,
           },
         },
       }),
@@ -344,7 +384,8 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
   // `placeOrder` returns early on replay, before the workflow step that writes
   // order.placed ever runs).
   if (result.replayed) return await redirectAfterCheckout(result)
-  if (me) {
+  // The address book holds Indian addresses (PIN codes); an address abroad is not added to it.
+  if (me && !abroad) {
     // Convenience only: never let the address book block an order that is already placed.
     await inStore(storeId, (tx) => rememberCheckoutAddress({ storeId, tx }, me.id, form)).catch(
       (err) => logger.error('could not save the checkout address', { storeId, error: err }),
@@ -364,116 +405,4 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
   // This only wakes the relay so they go out in ~1s instead of up to 5s.
   await nudgeOutbox(storeId)
   await redirectAfterCheckout(result)
-}
-
-/** Open the gateway, or go straight to the thank-you page (which offers a retry when the gateway failed). */
-async function redirectAfterCheckout(
-  result: Pick<PlaceOrderResult, 'session' | 'orderNumber' | 'orderId'>,
-): Promise<never> {
-  const token = orderViewToken(result.orderId, settingsSecret())
-  if (result.session?.kind === 'client') {
-    return redirectToOrderPage(payPath(result.orderNumber, token))
-  }
-  if (result.session?.kind === 'redirect') redirect(result.session.url)
-  return redirectToOrderPage(thankYouPath(result.orderNumber, token))
-}
-
-/**
- * "Retry payment" after a failed attempt: a new attempt on the same order,
- * with the same amount and gateway, then back to the gateway. Two taps make
- * one attempt; the order and its stock are untouched.
- */
-export async function retryPaymentAction(orderNumber: number, viewToken: string | null) {
-  const storeId = await requestStoreId()
-  // The caller must own the order or hold its view token: every exit below mints a fresh
-  // one, which opens the order to whoever holds it (security audit 2026-10-06, A-00).
-  const orderId = await accessibleOrderId(storeId, orderNumber, viewToken)
-  // No order, or not theirs: the untokened link, which a stranger cannot open.
-  if (!orderId) redirect(`/checkout/thank-you/${orderNumber}`)
-  const oid: string = orderId
-  const backToThankYou = (): Promise<never> =>
-    redirectToOrderPage(thankYouPath(orderNumber, orderViewToken(oid, settingsSecret())))
-  const ip = clientIp(await headers())
-  const [byIp, byOrder] = await Promise.all([
-    rateLimited('payment-retry:ip', ip, PAYMENT_RETRY_IP_RULE),
-    rateLimited('payment-retry:order', `${storeId}:${orderNumber}`, PAYMENT_RETRY_IP_RULE),
-  ])
-  // No error slot on this action's return type: over the limit lands back on
-  // the thank-you page, same as a retry that turns out not to be needed.
-  if (!byIp.ok || !byOrder.ok) await backToThankYou()
-  const target = await inStore(storeId, async (tx) => {
-    const [latest] = await tx
-      .select({ provider: payment.provider })
-      .from(payment)
-      .where(and(eq(payment.orderId, oid), ne(payment.provider, 'gift_card')))
-      .orderBy(desc(payment.attempt), desc(payment.id))
-      .limit(1)
-    const providers = await storePaymentProviders(tx, storeId)
-    const provider = providers.find((p) => p.id === latest?.provider)
-    return provider ?? null
-  })
-  if (!target) {
-    return redirectToOrderPage(thankYouPath(orderNumber, orderViewToken(oid, settingsSecret())))
-  }
-  const started = await retryAndStartPayment(db(), storeId, oid, target).catch((err: unknown) => {
-    // Paid or cancelled meanwhile: the thank-you page shows where the order stands.
-    if (err instanceof PaymentNotRetryable) return null
-    throw err
-  })
-  // payment_received was already written to the outbox, in the same
-  // transaction as the capture (applyPaymentStatus, via startPaymentAttempt).
-  if (started?.becameCaptured) await nudgeOutbox(storeId)
-  await redirectAfterCheckout({ session: started?.session ?? null, orderNumber, orderId: oid })
-}
-
-/**
- * The UPI QR page asks: has this QR been paid? Checks the gateway directly, so
- * the order turns paid even when its webhook is late or not set up. True once
- * paid; the page then refreshes to the paid state.
- */
-export async function checkQrPaymentAction(orderNumber: number, viewToken: string | null) {
-  const storeId = await requestStoreId()
-  const limited = await rateLimited(
-    'qr-check:order',
-    `${storeId}:${orderNumber}`,
-    QR_CHECK_ORDER_RULE,
-  )
-  if (!limited.ok) return false
-  // Only for whoever can see the order: a stranger learns nothing about it and cannot make
-  // us call the gateway for it (security audit 2026-10-06, A-00).
-  const orderId = await accessibleOrderId(storeId, orderNumber, viewToken)
-  if (!orderId) return false
-  const target = await inStore(storeId, async (tx) => {
-    const o = { id: orderId }
-    const [latest] = await tx
-      .select({ provider: payment.provider })
-      .from(payment)
-      .where(and(eq(payment.orderId, o.id), ne(payment.provider, 'gift_card')))
-      .orderBy(desc(payment.attempt), desc(payment.id))
-      .limit(1)
-    const providers = await storePaymentProviders(tx, storeId)
-    const provider = providers.find((p) => p.id === latest?.provider)
-    return provider ? { orderId: o.id, provider } : null
-  })
-  if (!target) return false
-  const applied = await syncOpenQrAttempt(db(), storeId, target.orderId, target.provider)
-  if (applied?.becameCaptured) await nudgeOutbox(storeId)
-  return applied?.payment.status === 'captured'
-}
-
-/** Browser posts the gateway's confirmation after a client-side checkout. */
-export async function confirmPaymentAction(providerRef: string, confirmation: ClientConfirmation) {
-  const storeId = await requestStoreId()
-  const applied = await inStore(storeId, async (tx) => {
-    const [p] = await tx.select().from(payment).where(eq(payment.providerRef, providerRef))
-    if (!p) return null
-    const providers = await storePaymentProviders(tx, storeId)
-    const provider = providers.find((x) => x.id === p.provider)
-    if (!provider) return null
-    return confirmClientPayment({ storeId, tx }, provider, providerRef, confirmation)
-  })
-  // payment_received was already written to the outbox inside `inStore`
-  // above, in the same transaction as the capture (applyPaymentStatus).
-  if (applied?.becameCaptured) await nudgeOutbox(storeId)
-  return applied?.payment.status ?? null
 }

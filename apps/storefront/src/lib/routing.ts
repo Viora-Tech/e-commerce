@@ -83,6 +83,7 @@ export const DERIVED_HEADERS = [
   'x-market-country',
   'x-market-prefix',
   'x-market-countries',
+  'x-market-country-currencies',
   'x-market-languages',
 ] as const
 

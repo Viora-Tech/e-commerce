@@ -14,23 +14,21 @@ import {
   TableRow,
 } from '@commerce/ui/shadcn/table'
 import {
-  type ColumnOrderState,
-  type ColumnVisibilityState,
   createColumnHelper,
   type ExpandedState,
   type RowData,
   type RowSelectionState,
-  type SortingState,
   type Updater,
   useTable,
 } from '@tanstack/react-table'
 import { useRouter } from 'next/navigation'
-import { type CSSProperties, type ReactNode, useState } from 'react'
+import { type CSSProperties, type ReactNode, useEffect, useState } from 'react'
 import EmptyState from '@/components/layout/empty-state'
-import FloatingBar from '@/components/layout/floating-bar'
+import { type FilterGroup, hasFilter } from '@/components/table/filter-panel'
 import RowActionsCell from '@/components/table/row-actions-cell'
 import { tableContent } from '@/data/table'
 import { useCopy } from '@/hooks/use-copy'
+import { publishListSelection } from '@/lib/list-selection'
 import {
   type CellAlign,
   defineColumns,
@@ -41,11 +39,12 @@ import {
 import { type ResourceTableFeatures, resourceTableFeatures } from './features'
 import ResourceTablePagination from './pagination'
 import SelectionBar from './selection-bar'
-import ResourceTableToolbar, { type AppliedFilter, type FilterPanel } from './toolbar'
+import { type TableSort, tableMinWidth, useColumnPrefs, useTableSorting } from './table-state'
+import ResourceTableToolbar, { type AppliedFilter } from './toolbar'
 
-export type { AppliedFilter, ResourceColumnSpec }
+export type { AppliedFilter, ResourceColumnSpec, TableSort }
 
-type CellMeta = { align?: CellAlign; className?: string }
+type CellMeta = { align?: CellAlign; className?: string; minWidth?: number }
 
 export type ResourceTableProps<T extends RowData> = {
   resourceName: { singular: string; plural: string }
@@ -62,10 +61,11 @@ export type ResourceTableProps<T extends RowData> = {
    * There are no pill tabs on tables, so every list looks the same.
    */
   views?: ReactNode
-  /** Filter controls rendered as a popover from the filter icon button. */
-  filters?: FilterPanel
-  /** Size and padding of the filter popover (default: 16rem, padded). */
-  filtersClassName?: string | undefined
+  /**
+   * The list's filters (`lib/*-list-filters.ts` groups). The toolbar's Filter menu lists them;
+   * each applied one shows as a chip with its own popover. URL params stay the source of truth.
+   */
+  filterGroups?: FilterGroup[] | undefined | undefined
   applied?: AppliedFilter[]
   onClearAll?: () => void
   page: number
@@ -80,14 +80,12 @@ export type ResourceTableProps<T extends RowData> = {
    * "Book selected"). Without it the table keeps the selection itself.
    */
   selection?: { ids: string[]; onChange: (ids: string[]) => void }
-  /** The main bulk actions, in the floating bar at the bottom; call `clear` after one runs. */
-  bulkActions?: (selectedIds: string[], clear: () => void) => ReactNode
   /**
-   * The less common bulk actions, behind a ⋯ menu in the selection header at the top of the
-   * table. The header never repeats `bulkActions` (#808): without this it shows only the
-   * selection ("3 products selected", Select all, Clear).
+   * The bulk actions. While rows are ticked the header row turns into the bulk bar (Shopify):
+   * the selection menu, these actions (the main ones as buttons, the rest in a More menu), and
+   * "Show all selected". Call `clear` after one runs.
    */
-  bulkMore?: (selectedIds: string[], clear: () => void) => ReactNode
+  bulkActions?: (selectedIds: string[], clear: () => void) => ReactNode
   /**
    * Every id the current search and filters match, for the selection bar's "Select all N"
    * (Shopify-style). Without it, selection stays on the visible page.
@@ -109,9 +107,17 @@ export type ResourceTableProps<T extends RowData> = {
   /** Kept for older call sites; every table now uses the one Saleor-style density. */
   size?: 'compact' | 'frame'
   /** The order the server sends, shown ticked in the sort menu (Orders: Date, newest first). */
-  defaultSort?: { id: string; desc: boolean } | undefined
+  defaultSort?: TableSort | undefined
+  /**
+   * The page's own sort (kept in its URL, #7); `null` is the default sort. Pass both or neither;
+   * without them the table keeps the sort itself.
+   */
+  sort?: TableSort | null | undefined
+  onSortChange?: ((sort: TableSort | null) => void) | undefined
   /** Columns that start hidden; the columns menu can show them. */
   defaultHidden?: string[] | undefined
+  /** Remembers the viewer's shown columns and their order in this browser under this key (#9). */
+  columnsStorageKey?: string | undefined
   /**
    * A tree table (Inventory's Products view): rows with sub rows fold them underneath. A click
    * on such a row toggles it; sorting keeps sub rows under their row; ticking it ticks its sub
@@ -127,11 +133,6 @@ export type ResourceTableProps<T extends RowData> = {
 }
 
 const SKELETON_ROWS = 6
-
-/** The page's default-hidden columns as TanStack visibility (`false` = hidden). */
-function hiddenColumns(ids: string[] | undefined): ColumnVisibilityState {
-  return Object.fromEntries((ids ?? []).map((id) => [id, false]))
-}
 
 /** The table's row selection: the page's own (`selection`) when given, else kept here. */
 function useRowSelection(
@@ -236,13 +237,23 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
   // Hooks
   const tableCopy = useCopy(tableContent)
   const router = useRouter()
-  const [sorting, setSorting] = useState<SortingState>(props.defaultSort ? [props.defaultSort] : [])
-  const [columnVisibility, setColumnVisibility] = useState<ColumnVisibilityState>(() =>
-    hiddenColumns(props.defaultHidden),
-  )
-  const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([])
+  const [sorting, setSorting] = useTableSorting(props.defaultSort, {
+    sort: props.sort,
+    onSortChange: props.onSortChange,
+  })
+  const columnPrefs = useColumnPrefs(props.columnsStorageKey, props.defaultHidden)
   const [rowSelection, setRowSelection] = useRowSelection(props.selection)
+  const [onlySelected, setOnlySelected] = useState(false)
   const [selectingAll, setSelectingAll] = useState(false)
+  // The AI assistant acts on the rows ticked now (#983); leaving the list clears them.
+  useEffect(() => {
+    const path = window.location.pathname
+    publishListSelection(
+      path,
+      Object.keys(rowSelection).filter((id) => rowSelection[id]),
+    )
+    return () => publishListSelection(path, [])
+  }, [rowSelection])
   const [expanded, setExpanded] = useExpanded(props.tree)
   const table = useTable({
     features: resourceTableFeatures,
@@ -258,8 +269,8 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
     // The page owns the expanded rows; a refresh after an edit keeps them open.
     autoResetExpanded: false,
     onSortingChange: setSorting,
-    onColumnVisibilityChange: setColumnVisibility,
-    onColumnOrderChange: setColumnOrder,
+    onColumnVisibilityChange: columnPrefs.changeVisibility,
+    onColumnOrderChange: columnPrefs.changeOrder,
     onRowSelectionChange: setRowSelection,
     onExpandedChange: (next) =>
       setExpanded(next, () =>
@@ -268,11 +279,20 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
           .flatRows.filter((r) => r.subRows.length > 0)
           .map((r) => r.id),
       ),
-    state: { sorting, columnVisibility, columnOrder, rowSelection, expanded },
+    state: {
+      sorting,
+      columnVisibility: columnPrefs.visibility,
+      columnOrder: columnPrefs.order,
+      rowSelection,
+      expanded,
+    },
   })
 
   // Helpers
-  const clearSelection = () => setRowSelection({})
+  const clearSelection = () => {
+    setRowSelection({})
+    setOnlySelected(false)
+  }
   const selectAllMatching = async () => {
     if (!props.loadAllIds) return
     setSelectingAll(true)
@@ -287,10 +307,7 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
     props.onClearAll?.()
     if (props.query) props.onQueryChange('')
   }
-  const resetColumns = () => {
-    setColumnVisibility(hiddenColumns(props.defaultHidden))
-    setColumnOrder([])
-  }
+  const resetColumns = () => columnPrefs.reset()
 
   // Render logic
   const columnTitles = Object.fromEntries(props.columns.map((c) => [c.id, c.title]))
@@ -303,16 +320,25 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
     props.columns.flatMap((c) => (c.sortLabels ? [[c.id, c.sortLabels]] : [])),
   )
   const selectedIds = Object.keys(rowSelection).filter((id) => rowSelection[id])
-  const rows = table.getRowModel().rows
-  const visibleCount = table.getVisibleLeafColumns().length
-  /* The grid never squeezes a column below ~8rem: on a phone it scrolls sideways instead of
-     letting dates, totals and pills run into each other (#895). */
-  const minWidth = { '--table-min-width': `${Math.max(40, visibleCount * 8)}rem` } as CSSProperties
+  /* While rows are ticked the header row turns into the bulk bar. */
+  const selecting = selectedIds.length > 0 && Boolean(props.bulkActions)
+  /* "Show all selected": only the ticked rows (a tree row stays while any sub row is ticked). */
+  const showSelected = onlySelected && selecting
+  // Nothing ticked any more (the last row unticked): the next selection starts on every row.
+  if (onlySelected && !selecting) setOnlySelected(false)
+  const rows = showSelected
+    ? table.getRowModel().rows.filter((r) => r.getIsSelected() || r.getIsSomeSelected())
+    : table.getRowModel().rows
+  const visibleColumns = table.getVisibleLeafColumns()
+  const visibleCount = visibleColumns.length
+  /* The grid never squeezes a column below its minimum (~8rem): it scrolls sideways instead of
+     letting dates, totals and pills run into each other (#895, #10). */
+  const minWidth = {
+    '--table-min-width': `${tableMinWidth(visibleColumns.map((c) => (c.columnDef.meta ?? {}) as CellMeta))}rem`,
+  } as CSSProperties
   const isEmpty = !props.loading && props.items.length === 0
   /** A search or a filter is narrowing the list (so empty means "no results", not "none yet"). */
-  const narrowed = props.query.length > 0 || (props.applied?.length ?? 0) > 0
-  /* While rows are ticked the header row turns into the selection bar (beside the checkbox). */
-  const selecting = selectedIds.length > 0 && Boolean(props.bulkActions)
+  const narrowed = props.query.length > 0 || (props.filterGroups ?? []).some(hasFilter)
 
   return (
     <Card gap="none" inset="y-none" className="overflow-hidden">
@@ -322,153 +348,146 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
         query={props.query}
         onQueryChange={props.onQueryChange}
         views={props.views}
-        filters={props.filters}
-        filtersClassName={props.filtersClassName}
-        applied={props.applied}
-        onClearAll={props.onClearAll}
+        filterGroups={props.filterGroups}
         columnTitles={columnTitles}
         sortTitles={sortTitles}
         sortOrder={sortOrder}
         sortLabels={sortLabels}
-        columnOrder={columnOrder}
+        columnOrder={columnPrefs.order}
         onResetColumns={resetColumns}
       />
-      <div className="no-scrollbar relative overflow-x-auto">
-        {/* While rows are ticked the selection bar lies over the header row, right of the
-            checkbox; the header cells stay underneath so the columns keep their widths. */}
+      <div className="relative">
+        {/* While rows are ticked the bulk bar takes the header row. It sits outside the sideways
+            scroller so its actions stay in view; the header cells stay underneath (inert) so the
+            columns keep their widths. */}
         {selecting ? (
-          <div className="absolute top-0 right-0 left-10 z-10 flex h-10 items-center bg-card pr-3">
-            <div className="min-w-0 flex-1">
-              <SelectionBar
-                count={selectedIds.length}
-                total={props.total}
-                pageFull={table.getIsAllPageRowsSelected()}
-                plural={props.resourceName.plural}
-                singular={props.resourceName.singular}
-                onSelectAll={props.loadAllIds ? selectAllMatching : undefined}
-                selectingAll={selectingAll}
-                actions={props.bulkMore?.(selectedIds, clearSelection)}
-                onClear={clearSelection}
-              />
-            </div>
+          <div className="absolute inset-x-0 top-0 z-10">
+            <SelectionBar
+              count={selectedIds.length}
+              total={props.total}
+              pageFull={table.getIsAllPageRowsSelected()}
+              onTogglePage={(checked) =>
+                checked ? table.toggleAllPageRowsSelected(true) : clearSelection()
+              }
+              plural={props.resourceName.plural}
+              singular={props.resourceName.singular}
+              onSelectAll={props.loadAllIds ? selectAllMatching : undefined}
+              selectingAll={selectingAll}
+              showSelected={showSelected}
+              onShowSelectedChange={setOnlySelected}
+              actions={props.bulkActions?.(selectedIds, clearSelection)}
+              onClear={clearSelection}
+            />
           </div>
         ) : null}
-        <Table
-          className="w-full min-w-(--table-min-width) table-fixed border-separate border-spacing-0"
-          style={minWidth}
-        >
-          <TableHeader className="[&_tr]:border-0">
-            {table.getHeaderGroups().map((hg) => (
-              <TableRow key={hg.id} className="hover:bg-transparent">
-                {hg.headers.map((header) => {
-                  const meta = header.column.columnDef.meta as CellMeta | undefined
-                  return (
-                    <TableHead
-                      key={header.id}
-                      className={cn(HEAD, ALIGN[meta?.align ?? 'start'], meta?.className)}
-                    >
-                      {header.isPlaceholder ? null : <table.FlexRender header={header} />}
-                    </TableHead>
-                  )
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {props.loading
-              ? Array.from({ length: SKELETON_ROWS }, (_, i) => (
-                  <TableRow key={`skeleton-${i.toString()}`} className="hover:bg-transparent">
-                    {Array.from({ length: visibleCount }, (_, j) => (
-                      <TableCell key={`skeleton-${i.toString()}-${j.toString()}`} className={CELL}>
-                        <Skeleton className={cn('h-3.5', j === 0 ? 'w-4' : 'w-full max-w-32')} />
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              : rows.map((row) => {
-                  const target = props.href?.(row.original)
-                  const folds = Boolean(props.tree) && row.getCanExpand()
-                  return (
-                    <TableRow
-                      key={row.id}
-                      data-state={row.getIsSelected() ? 'selected' : undefined}
-                      className={cn(
-                        'group/row border-0 tabular-nums transition-colors duration-150 hover:bg-row-hover data-[state=selected]:bg-primary-soft motion-reduce:transition-none',
-                        (target || folds) && 'cursor-pointer',
-                      )}
-                      onClick={
-                        target
-                          ? () => router.push(target)
-                          : folds
-                            ? () => row.toggleExpanded()
-                            : undefined
-                      }
-                    >
-                      {row.getVisibleCells().map((cell) => {
-                        const meta = cell.column.columnDef.meta as CellMeta | undefined
-                        return (
-                          <TableCell
-                            key={cell.id}
-                            className={cn(
-                              CELL,
-                              'text-foreground',
-                              ALIGN[meta?.align ?? 'start'],
-                              meta?.className,
-                            )}
-                          >
-                            <table.FlexRender cell={cell} />
-                          </TableCell>
-                        )
-                      })}
+        <div className="no-scrollbar overflow-x-auto">
+          <Table
+            className="w-full min-w-(--table-min-width) table-fixed border-separate border-spacing-0"
+            style={minWidth}
+          >
+            <TableHeader className="[&_tr]:border-0" inert={selecting}>
+              {table.getHeaderGroups().map((hg) => (
+                <TableRow key={hg.id} className="hover:bg-transparent">
+                  {hg.headers.map((header) => {
+                    const meta = header.column.columnDef.meta as CellMeta | undefined
+                    return (
+                      <TableHead
+                        key={header.id}
+                        className={cn(HEAD, ALIGN[meta?.align ?? 'start'], meta?.className)}
+                      >
+                        {header.isPlaceholder ? null : <table.FlexRender header={header} />}
+                      </TableHead>
+                    )
+                  })}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {props.loading
+                ? Array.from({ length: SKELETON_ROWS }, (_, i) => (
+                    <TableRow key={`skeleton-${i.toString()}`} className="hover:bg-transparent">
+                      {Array.from({ length: visibleCount }, (_, j) => (
+                        <TableCell
+                          key={`skeleton-${i.toString()}-${j.toString()}`}
+                          className={CELL}
+                        >
+                          <Skeleton className={cn('h-3.5', j === 0 ? 'w-4' : 'w-full max-w-32')} />
+                        </TableCell>
+                      ))}
                     </TableRow>
-                  )
-                })}
-          </TableBody>
-        </Table>
-        {isEmpty && narrowed ? (
-          // Figma "Feedback state · No results": the search or filters found nothing.
-          <EmptyState
-            icon={SearchX}
-            heading={props.noResults?.heading ?? tableCopy.noResults}
-            body={props.noResults?.body ?? tableCopy.noResultsBody}
-            action={
-              props.noResults?.action ?? (
-                <Button variant="outline" size="sm" onClick={handleClearNarrowing}>
-                  {tableCopy.clearSearchAndFilters}
-                </Button>
-              )
-            }
-          />
-        ) : isEmpty ? (
-          <EmptyState
-            heading={props.empty?.heading ?? tableCopy.emptyHeading(props.resourceName.plural)}
-            body={props.empty?.body ?? tableCopy.emptyBody}
-            action={props.empty?.action}
-          />
-        ) : null}
+                  ))
+                : rows.map((row) => {
+                    const target = props.href?.(row.original)
+                    const folds = Boolean(props.tree) && row.getCanExpand()
+                    return (
+                      <TableRow
+                        key={row.id}
+                        data-state={row.getIsSelected() ? 'selected' : undefined}
+                        className={cn(
+                          'group/row border-0 tabular-nums transition-colors duration-150 hover:bg-row-hover data-[state=selected]:bg-primary-soft motion-reduce:transition-none',
+                          (target || folds) && 'cursor-pointer',
+                        )}
+                        onClick={
+                          target
+                            ? () => router.push(target)
+                            : folds
+                              ? () => row.toggleExpanded()
+                              : undefined
+                        }
+                      >
+                        {row.getVisibleCells().map((cell) => {
+                          const meta = cell.column.columnDef.meta as CellMeta | undefined
+                          return (
+                            <TableCell
+                              key={cell.id}
+                              className={cn(
+                                CELL,
+                                'text-foreground',
+                                ALIGN[meta?.align ?? 'start'],
+                                meta?.className,
+                              )}
+                            >
+                              <table.FlexRender cell={cell} />
+                            </TableCell>
+                          )
+                        })}
+                      </TableRow>
+                    )
+                  })}
+            </TableBody>
+          </Table>
+          {isEmpty && narrowed ? (
+            // Figma "Feedback state · No results": the search or filters found nothing.
+            <EmptyState
+              icon={SearchX}
+              heading={props.noResults?.heading ?? tableCopy.noResults}
+              body={props.noResults?.body ?? tableCopy.noResultsBody}
+              action={
+                props.noResults?.action ?? (
+                  <Button variant="outline" size="sm" onClick={handleClearNarrowing}>
+                    {tableCopy.clearSearchAndFilters}
+                  </Button>
+                )
+              }
+            />
+          ) : isEmpty ? (
+            <EmptyState
+              heading={props.empty?.heading ?? tableCopy.emptyHeading(props.resourceName.plural)}
+              body={props.empty?.body}
+              action={props.empty?.action}
+            />
+          ) : null}
+        </div>
       </div>
-      <ResourceTablePagination
-        page={props.page}
-        perPage={props.perPage}
-        total={props.total}
-        onPageChange={props.onPageChange}
-        onPerPageChange={props.onPerPageChange}
-      />
-      {/* The floating bar at the bottom holds the main bulk actions, in reach while scrolling a
-          long list; the header row shows the selection and only the ⋯ extras (#808). */}
-      <FloatingBar open={selecting}>
-        <span className="text-caption font-medium whitespace-nowrap text-foreground tabular-nums">
-          {tableCopy.selected(
-            selectedIds.length,
-            props.resourceName.singular,
-            props.resourceName.plural,
-          )}
-        </span>
-        {props.bulkActions?.(selectedIds, clearSelection)}
-        <Button variant="ghost" size="sm" className="rounded-full" onClick={clearSelection}>
-          {tableCopy.clearSelection}
-        </Button>
-      </FloatingBar>
+      {props.total > 0 ? (
+        <ResourceTablePagination
+          page={props.page}
+          perPage={props.perPage}
+          total={props.total}
+          onPageChange={props.onPageChange}
+          onPerPageChange={props.onPerPageChange}
+        />
+      ) : null}
     </Card>
   )
 }

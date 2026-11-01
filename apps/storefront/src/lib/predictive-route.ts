@@ -1,6 +1,7 @@
 import 'server-only'
 import { CollectionDrop, ProductDrop } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
+import { readCustomerToken } from './customer-session'
 import { renderStaticLiquidSection } from './liquid-theme'
 import { predictiveJson, predictiveParams } from './predictive-json'
 import { predictiveResults } from './predictive-search'
@@ -11,6 +12,8 @@ import { inStore } from './store-context'
 const SUGGEST_IP_RULE = { limit: 60, windowMs: 60_000 }
 
 const CACHE = 'public, max-age=30, stale-while-revalidate=60'
+/** A theme section may read `customer`: a signed-in shopper's copy is theirs alone. */
+const PRIVATE = 'private, no-store'
 
 /**
  * The theme's predictive search section (`/search/suggest?section_id=predictive-search`) with
@@ -93,8 +96,12 @@ export async function predictiveResponse(
   })
   if (sectionId) {
     if (out.html === null) return new Response('Not found', { status: 404 })
+    const signedIn = (await readCustomerToken()) !== null
     return new Response(out.html, {
-      headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': CACHE },
+      headers: {
+        'content-type': 'text/html; charset=utf-8',
+        'cache-control': signedIn ? PRIVATE : CACHE,
+      },
     })
   }
   return Response.json(predictiveJson(out.results, params), {

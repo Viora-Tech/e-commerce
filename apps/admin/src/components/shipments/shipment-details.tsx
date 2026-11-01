@@ -1,16 +1,17 @@
 'use client'
 
-import { CancelCircle, ExternalLink, Printer, Truck } from '@commerce/ui/icons'
+import { CancelCircle, ExternalLink, Pencil, Printer, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { type ReactNode, useState } from 'react'
 import { toast } from 'sonner'
 import CopyButton from '@/components/fields/copy-button'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import OrderChip from '@/components/orders/order-chip'
-import { shipmentDetailsContent } from '@/data/shipping'
+import { editTrackingContent, shipmentDetailsContent } from '@/data/shipping'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import PickupForm from './create-shipment/pickup-form'
+import EditTrackingDialog from './edit-tracking-dialog'
 
 /** A booked shipment as `shipments.get` (and the order's `shipment`) describe it. */
 export type ShipmentDetailsData = Awaited<ReturnType<typeof api.shipments.get>>
@@ -34,9 +35,11 @@ const HHMM = /^(\d{1,2}):(\d{2})$/
 export default function ShipmentDetails({ shipment, onChanged, actions }: ShipmentDetailsProps) {
   // Hooks
   const copy = useCopy(shipmentDetailsContent)
+  const editCopy = useCopy(editTrackingContent)
   const fmt = useFormat()
   const [confirming, setConfirming] = useState(false)
   const [requesting, setRequesting] = useState(false)
+  const [editing, setEditing] = useState(false)
 
   // Event handlers
   const handleCancel = async () => {
@@ -122,6 +125,12 @@ export default function ShipmentDetails({ shipment, onChanged, actions }: Shipme
             {copy.requestPickup}
           </Button>
         ) : null}
+        {shipment.canEditTracking ? (
+          <Button variant="outline" onClick={() => setEditing(true)}>
+            <Pencil aria-hidden="true" />
+            {editCopy.action}
+          </Button>
+        ) : null}
         {shipment.trackingUrl ? (
           <Button
             variant="outline"
@@ -165,6 +174,14 @@ export default function ShipmentDetails({ shipment, onChanged, actions }: Shipme
         confirmLabel={copy.cancelConfirm}
         cancelLabel={copy.keep}
         onConfirm={handleCancel}
+      />
+      <EditTrackingDialog
+        shipment={editing ? shipment : null}
+        onClose={() => setEditing(false)}
+        onSaved={() => {
+          setEditing(false)
+          onChanged?.()
+        }}
       />
     </div>
   )

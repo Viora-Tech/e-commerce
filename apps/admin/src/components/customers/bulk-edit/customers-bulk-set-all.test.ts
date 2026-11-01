@@ -45,7 +45,20 @@ describe('change for all', () => {
     const rows = [row(), row({ id: 'b', email: '' }), row({ id: 'c', anonymised: true })]
     const email = applyToAll(rows, { key: 'acceptsMarketing', action: 'subscribe', value: '' })
     expect(email.map((r) => r.acceptsMarketing)).toEqual(['yes', 'no', 'no'])
+  })
+
+  it('subscribes to SMS only customers with a phone, and unsubscribes everyone', () => {
+    const rows = [
+      row({ phone: '9876543210' }),
+      row({ id: 'b', phone: '' }),
+      row({ id: 'c', phone: '9876543211', anonymised: true }),
+    ]
     const sms = applyToAll(rows, { key: 'acceptsSms', action: 'subscribe', value: '' })
-    expect(sms.map((r) => r.acceptsSms)).toEqual(['yes', 'yes', 'no'])
+    expect(sms.map((r) => r.acceptsSms)).toEqual(['yes', 'no', 'no'])
+    const off = applyToAll(
+      sms.map((r) => ({ ...r, acceptsSms: 'yes' })),
+      { key: 'acceptsSms', action: 'unsubscribe', value: '' },
+    )
+    expect(off.map((r) => r.acceptsSms)).toEqual(['no', 'no', 'yes'])
   })
 })

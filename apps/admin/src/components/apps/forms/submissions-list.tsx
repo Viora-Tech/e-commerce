@@ -51,7 +51,16 @@ export default function SubmissionsList() {
       render: (r) => (
         <span className="flex flex-col text-left">
           <span className="font-medium">{r.name || copy.anonymous}</span>
-          <span className="text-caption text-muted-foreground">{r.email || r.phone}</span>
+          {r.email ? (
+            <a className="text-caption text-muted-foreground underline" href={`mailto:${r.email}`}>
+              {r.email}
+            </a>
+          ) : null}
+          {r.phone ? (
+            <a className="text-caption text-muted-foreground underline" href={`tel:${r.phone}`}>
+              {r.phone}
+            </a>
+          ) : null}
         </span>
       ),
     },
@@ -60,7 +69,8 @@ export default function SubmissionsList() {
       title: copy.columns.message,
       align: 'start',
       className: 'w-96 whitespace-normal',
-      render: (r) => <span className="line-clamp-3 whitespace-pre-wrap text-left">{r.text}</span>,
+      // In full: a shopper's question is the whole point of the row, and there is no detail page.
+      render: (r) => <span className="whitespace-pre-wrap text-left">{r.text}</span>,
     },
     {
       id: 'page',

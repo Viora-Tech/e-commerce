@@ -109,6 +109,24 @@ describe('policy pages', () => {
     expect(rows.map((r) => r.handle).sort()).toEqual(['privacy-policy', 'refund-policy'])
   })
 
+  it('refuses to show a policy that still has a template gap, but saves it hidden', async () => {
+    const { storeId } = await seed()
+    const text = { type: 'text', text: 'Write to us at [email address].' }
+    const body = { root: { type: 'root', children: [{ type: 'paragraph', children: [text] }] } }
+    await inStore(storeId, async (ctx) => {
+      await expect(
+        savePolicy(ctx, { type: 'refund-policy', title: '', body, published: true }),
+      ).rejects.toThrow('Fill in [email address]')
+      const hidden = await savePolicy(ctx, {
+        type: 'refund-policy',
+        title: '',
+        body,
+        published: false,
+      })
+      expect(hidden.published).toBe(false)
+    })
+  })
+
   it('keeps the first publish date when a policy is saved again', async () => {
     const { storeId } = await seed()
     const body = { root: { type: 'root', children: [] } }

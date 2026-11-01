@@ -1,6 +1,7 @@
-import GatewayOverviewPage from '@/components/payments/gateway-overview-page'
+import { redirect } from 'next/navigation'
+import { routes } from '@/lib/routes'
 
-/** `/apps/razorpay`: Razorpay's health and a way to connect it. */
+/** `/apps/razorpay`: one place to manage Razorpay, its provider page under Settings › Payments. */
 export default function RazorpayOverviewPage() {
-  return <GatewayOverviewPage providerId="razorpay" />
+  return redirect(routes.settings.paymentProvider('razorpay'))
 }

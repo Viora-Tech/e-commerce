@@ -70,6 +70,9 @@ export const review = pgTable(
     replyAt: timestamp('reply_at', { withTimezone: true }),
     /** Picked for the home page's reviews showcase. */
     featured: boolean('featured').notNull().default(false),
+    /** The one-time discount code sent as thanks for a photo review (Settings, photo reward). */
+    rewardCode: text('reward_code'),
+    rewardSentAt: timestamp('reward_sent_at', { withTimezone: true }),
     publishedAt: timestamp('published_at', { withTimezone: true }),
     hiddenAt: timestamp('hidden_at', { withTimezone: true }),
     /** When the review was written (an imported review keeps its original date). */
@@ -116,8 +119,9 @@ export const reviewMedia = pgTable(
 )
 
 /**
- * One review request per product of a delivered order: emailed `dueAt` (days after
- * delivery), reminded once if no review came, never again after the customer opts out.
+ * One review request per product of a delivered order: sent `dueAt` (days after delivery) by
+ * email, WhatsApp or both (the store's choice), reminded once if no review came, never again
+ * after the customer opts out. `email` is null for an order with only a phone.
  */
 export const reviewRequest = pgTable(
   'review_request',
@@ -130,7 +134,8 @@ export const reviewRequest = pgTable(
     productId: uuid('product_id')
       .notNull()
       .references(() => product.id, { onDelete: 'cascade' }),
-    email: text('email').notNull(),
+    email: text('email'),
+    phone: text('phone'),
     dueAt: timestamp('due_at', { withTimezone: true }).notNull(),
     sentAt: timestamp('sent_at', { withTimezone: true }),
     reminderSentAt: timestamp('reminder_sent_at', { withTimezone: true }),
@@ -142,5 +147,68 @@ export const reviewRequest = pgTable(
     uniqueIndex('review_request_store_order_product').on(t.storeId, t.orderId, t.productId),
     index('review_request_store_due').on(t.storeId, t.dueAt),
     index('review_request_store_email').on(t.storeId, sql`lower(${t.email})`),
+  ],
+)
+
+export const QUESTION_STATUSES = ['pending', 'published', 'hidden'] as const
+export type QuestionStatus = (typeof QUESTION_STATUSES)[number]
+
+/**
+ * A shopper's question on a product page and the store's answer. It waits (`pending`) until
+ * the merchant answers and publishes it; only published questions with an answer show on the
+ * store. `askerEmail` is private, used for the "your question was answered" email only.
+ */
+export const reviewQuestion = pgTable(
+  'review_question',
+  {
+    id: id(),
+    storeId: storeId(),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => product.id, { onDelete: 'cascade' }),
+    customerId: uuid('customer_id').references(() => customer.id, { onDelete: 'set null' }),
+    question: text('question').notNull(),
+    /** As shown on the store: first name and last initial. */
+    askerName: text('asker_name').notNull().default(''),
+    askerEmail: text('asker_email'),
+    status: text('status', { enum: QUESTION_STATUSES }).notNull().default('pending'),
+    answer: text('answer'),
+    answeredAt: timestamp('answered_at', { withTimezone: true }),
+    publishedAt: timestamp('published_at', { withTimezone: true }),
+    createdAt: at('created_at'),
+    updatedAt: at('updated_at'),
+  },
+  (t) => [
+    check('review_question_status_check', sql`${t.status} in ('pending', 'published', 'hidden')`),
+    index('review_question_store_product_status').on(t.storeId, t.productId, t.status),
+    index('review_question_store_status_created').on(t.storeId, t.status, t.createdAt),
+  ],
+)
+
+/**
+ * The AI "What customers say" summary of one product's published reviews. A newly published
+ * or hidden review marks it `stale`; the worker writes it again (when the store turned the
+ * summaries on), so the storefront always reads a stored text and never waits for a model.
+ */
+export const reviewSummary = pgTable(
+  'review_summary',
+  {
+    id: id(),
+    storeId: storeId(),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => product.id, { onDelete: 'cascade' }),
+    summary: text('summary').notNull().default(''),
+    /** How many published reviews the summary was written from. */
+    reviewCount: integer('review_count').notNull().default(0),
+    stale: boolean('stale').notNull().default(true),
+    /** Why the last refresh failed (AI off, out of allowance); cleared on success. */
+    error: text('error'),
+    generatedAt: timestamp('generated_at', { withTimezone: true }),
+    updatedAt: at('updated_at'),
+  },
+  (t) => [
+    uniqueIndex('review_summary_store_product').on(t.storeId, t.productId),
+    index('review_summary_store_stale').on(t.storeId, t.stale),
   ],
 )

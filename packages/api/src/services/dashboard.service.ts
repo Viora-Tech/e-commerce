@@ -8,7 +8,7 @@ import {
   storeLowStockThreshold,
   UNPAID_PAYMENT_STATUSES,
 } from '@commerce/core'
-import { dayKey, startOfMonth, wallClock, startOfDay as zoneStartOfDay } from '@commerce/dates'
+import { startOfMonth, wallClock } from '@commerce/dates'
 import type { StoreTx } from '@commerce/db'
 import {
   address,
@@ -17,16 +17,30 @@ import {
   media,
   order,
   orderLine,
+  preorderCampaign,
   product,
   productMedia,
+  returnRequest,
   sellableStock,
   store,
   variant,
 } from '@commerce/db'
-import { GST_INVOICES_ID, invoice } from '@commerce/plugin-gst-invoices/server'
+import { GST_INVOICES_ID, invoice, queuedInvoiceDrafts } from '@commerce/plugin-gst-invoices/server'
 import { and, asc, count, desc, eq, gte, inArray, isNull, lt, ne, sql, sum } from 'drizzle-orm'
 import type { LiveVisitors, VisitorSource } from '../context'
 import { istIsoDate } from './analytics-buckets'
+import {
+  buildSeries,
+  dayIndex,
+  hourlyCounts,
+  isoDate,
+  istHour,
+  istWeekday,
+  paymentMethodLabel,
+  startOfDay,
+  statusBucket,
+  zeros,
+} from './dashboard-buckets'
 import { type OrderStatus, viewFilter } from './order.service'
 
 const DAY_MS = 86_400_000
@@ -182,6 +196,12 @@ export type DashboardSummary = {
     gstQueued: { count: number; href: string } | null
     lowStock: { count: number; href: string }
     preorderBalanceDue: { count: number; href: string }
+    /** Open orders still owed money (the Unpaid tab: COD, pending gateway or bank payments). */
+    unpaid: { count: number; href: string }
+    /** Active pre-order campaigns whose ship date falls in the next 7 days. */
+    preorderShipSoon: { count: number; href: string }
+    /** Return requests waiting for the merchant to approve or reject (the Requested tab). */
+    returnsToReview: { count: number; href: string }
     failedDeliveries: { count: number; href: string } | null
   }
   /** Plain-language insight ingredients; the component turns these into sentences. */
@@ -248,150 +268,6 @@ export type DashboardChartsData = {
   }[]
 }
 
-/** Midnight `daysAgo` days before `now` in Indian Standard Time (fixed +05:30, no DST). */
-function startOfDay(now: Date, daysAgo: number): Date {
-  return zoneStartOfDay(now, undefined, -daysAgo)
-}
-
-/** ISO date of an instant, read in IST. */
-function isoDate(d: Date): string {
-  return dayKey(d)
-}
-
-/** Day index of `at` counted from `from` (IST midnight), or -1 when outside `days`. */
-function dayIndex(at: Date, from: Date, days: number): number {
-  const idx = Math.floor((at.getTime() - from.getTime()) / DAY_MS)
-  return idx >= 0 && idx < days ? idx : -1
-}
-
-function zeros(n: number): number[] {
-  return Array.from({ length: n }, () => 0)
-}
-
-/** Hour of the day (0-23) that `at` falls in, read in IST. */
-function istHour(at: Date): number {
-  return wallClock(at).getUTCHours()
-}
-
-/** Day of the week (0 = Sunday) that `at` falls on, read in IST. */
-function istWeekday(at: Date): number {
-  return wallClock(at).getUTCDay()
-}
-
-/** Order counts per hour (0-23, IST) for rows placed in `[from, to)`. */
-function hourlyCounts(rows: { placedAt: Date }[], from: Date, to: Date): number[] {
-  const out = zeros(24)
-  for (const r of rows) {
-    if (r.placedAt < from || r.placedAt >= to) continue
-    const h = istHour(r.placedAt)
-    out[h] = (out[h] ?? 0) + 1
-  }
-  return out
-}
-
-/** Free-text `order.paymentMethod` values, in plain words for the payment-mix donut. */
-const PAYMENT_METHOD_LABELS: Record<string, string> = {
-  cod: 'Cash on delivery',
-  manual: 'UPI or bank transfer',
-  razorpay: 'Card, UPI or netbanking',
-  razorpay_upi: 'UPI',
-  gift_card: 'Gift card',
-}
-
-function paymentMethodLabel(method: string | null): string {
-  if (!method) return 'Other'
-  return PAYMENT_METHOD_LABELS[method] ?? method
-}
-
-/** Where an order sits for the owner: shipped/delivered take priority over a stale "to ship". */
-function statusBucket(r: {
-  status: string
-  fulfillmentStatus: string
-}): 'to_ship' | 'shipped' | 'delivered' | 'cancelled' | null {
-  if (r.status === 'cancelled') return 'cancelled'
-  if (r.fulfillmentStatus === 'delivered' || r.fulfillmentStatus === 'returned') return 'delivered'
-  if (r.fulfillmentStatus === 'shipped' || r.fulfillmentStatus === 'partially_delivered') {
-    return 'shipped'
-  }
-  if (r.fulfillmentStatus === 'unfulfilled' || r.fulfillmentStatus === 'partially_fulfilled') {
-    return 'to_ship'
-  }
-  return null
-}
-
-/** Count `rows` into one bucket per day between `from` (inclusive) and `from + days`. */
-function countByDay(rows: { at: Date; weight?: number }[], from: Date, days: number): number[] {
-  const out = zeros(days)
-  for (const r of rows) {
-    const i = dayIndex(r.at, from, days)
-    if (i >= 0) out[i] = (out[i] ?? 0) + (r.weight ?? 1)
-  }
-  return out
-}
-
-/**
- * End-of-day in-stock / out-of-stock counts for every day in the window, rebuilt
- * from today's levels by undoing the adjustment log backwards. A day with no
- * adjustments carries the next day's state, so the series never goes blank.
- */
-function stockByDay(
-  current: { variantId: string; available: number }[],
-  adjustments: { variantId: string; delta: number; at: Date }[],
-  from: Date,
-  days: number,
-): { inStock: number[]; outOfStock: number[] } {
-  const deltaByDay = new Map<string, number[]>()
-  for (const a of adjustments) {
-    const i = dayIndex(a.at, from, days)
-    if (i < 0) continue
-    const arr = deltaByDay.get(a.variantId) ?? zeros(days)
-    arr[i] = (arr[i] ?? 0) + a.delta
-    deltaByDay.set(a.variantId, arr)
-  }
-  const inStock = zeros(days)
-  const outOfStock = zeros(days)
-  for (const v of current) {
-    const deltas = deltaByDay.get(v.variantId)
-    let available = v.available
-    for (let d = days - 1; d >= 0; d--) {
-      if (available > 0) inStock[d] = (inStock[d] ?? 0) + 1
-      else outOfStock[d] = (outOfStock[d] ?? 0) + 1
-      // Moving to the previous day's close means undoing everything logged on day `d`.
-      available -= deltas?.[d] ?? 0
-    }
-  }
-  return { inStock, outOfStock }
-}
-
-type SeriesInput = {
-  orders: { placedAt: Date; totalPaise: number }[]
-  customers: { at: Date }[]
-  products: { at: Date }[]
-  stock: { variantId: string; available: number }[]
-  adjustments: { variantId: string; delta: number; at: Date }[]
-}
-
-/** One `DashboardSeries` for the `days` starting at `from` (IST midnight). */
-function buildSeries(input: SeriesInput, from: Date, days: number): DashboardSeries {
-  const dayList = Array.from({ length: days }, (_, i) =>
-    isoDate(new Date(from.getTime() + i * DAY_MS)),
-  )
-  const revenuePaise = countByDay(
-    input.orders.map((o) => ({ at: o.placedAt, weight: o.totalPaise })),
-    from,
-    days,
-  )
-  const { inStock, outOfStock } = stockByDay(input.stock, input.adjustments, from, days)
-  return {
-    days: dayList,
-    customers: countByDay(input.customers, from, days),
-    products: countByDay(input.products, from, days),
-    inStock,
-    outOfStock,
-    revenuePaise,
-  }
-}
-
 /**
  * Everything the admin home shows, in one round of queries. Windows are
  * "last 7 days" vs the 7 before, matching the kit's stat cards. Cancelled
@@ -436,10 +312,8 @@ export async function dashboardSummary(
       .length
 
   const [customersRow] = await tx.select({ n: count() }).from(customer)
-  const [productsRow] = await tx
-    .select({ n: count() })
-    .from(product)
-    .where(and(ne(product.status, 'archived'), notSystemTest))
+  // The same count as the Products list's "All" (archived included): Home read 307, the list 309 (#61).
+  const [productsRow] = await tx.select({ n: count() }).from(product).where(notSystemTest)
   const stockRows = await tx
     .select({
       variantId: sellableStock.variantId,
@@ -447,7 +321,15 @@ export async function dashboardSummary(
     })
     .from(sellableStock)
     .innerJoin(variant, eq(variant.id, sellableStock.variantId))
-    .where(eq(variant.trackInventory, true))
+    .innerJoin(product, eq(product.id, variant.productId))
+    // The same rule as Inventory's "Out of stock": live variants of products not archived (#72).
+    .where(
+      and(
+        eq(variant.trackInventory, true),
+        isNull(variant.archivedAt),
+        ne(product.status, 'archived'),
+      ),
+    )
   const inStock = stockRows.filter((r) => r.available > 0).length
   const outOfStock = stockRows.length - inStock
   const newCustomers = await tx
@@ -541,6 +423,7 @@ export async function dashboardSummary(
     .where(
       and(
         eq(variant.trackInventory, true),
+        isNull(variant.archivedAt),
         ne(product.status, 'archived'),
         lt(sql`${sellableStock.onHand} - ${sellableStock.reserved}`, lowStockThreshold + 1),
       ),
@@ -723,14 +606,17 @@ export async function dashboardSummary(
         isNull(order.importedFrom),
       ),
     )
+  // "Restock N products" counts products (one with three sold-out sizes is one), not variants,
+  // and skips archived variants: it read 1,219 on a store of 307 products (audit #2).
   const [lowStockCountRow] = await tx
-    .select({ n: count() })
+    .select({ n: sql<number>`count(distinct ${product.id})`.mapWith(Number) })
     .from(sellableStock)
     .innerJoin(variant, eq(variant.id, sellableStock.variantId))
     .innerJoin(product, eq(product.id, variant.productId))
     .where(
       and(
         eq(variant.trackInventory, true),
+        isNull(variant.archivedAt),
         ne(product.status, 'archived'),
         lt(sql`${sellableStock.onHand} - ${sellableStock.reserved}`, lowStockThreshold + 1),
       ),
@@ -739,6 +625,21 @@ export async function dashboardSummary(
     .select({ n: count() })
     .from(order)
     .where(and(viewFilter('balance_due'), ne(order.status, 'draft')))
+  const [unpaidRow] = await tx.select({ n: count() }).from(order).where(viewFilter('unpaid'))
+  const [preorderShipSoonRow] = await tx
+    .select({ n: count() })
+    .from(preorderCampaign)
+    .where(
+      and(
+        eq(preorderCampaign.status, 'active'),
+        gte(preorderCampaign.shipDate, now),
+        lt(preorderCampaign.shipDate, new Date(now.getTime() + 7 * DAY_MS)),
+      ),
+    )
+  const [returnsToReviewRow] = await tx
+    .select({ n: count() })
+    .from(returnRequest)
+    .where(eq(returnRequest.status, 'requested'))
   let gstQueued: { count: number; href: string } | null = null
   let dispatch: DashboardSummary['dispatch'] = null
   if (opts.storeId) {
@@ -747,10 +648,7 @@ export async function dashboardSummary(
       .from(store)
       .where(eq(store.id, opts.storeId))
     if (parseAppsSettings(storeRow?.apps).installed.includes(GST_INVOICES_ID)) {
-      const [queuedRow] = await tx
-        .select({ n: count() })
-        .from(invoice)
-        .where(and(eq(invoice.kind, 'tax_invoice'), eq(invoice.status, 'draft')))
+      const [queuedRow] = await tx.select({ n: count() }).from(invoice).where(queuedInvoiceDrafts())
       gstQueued = { count: queuedRow?.n ?? 0, href: '/apps/gst-invoices' }
     }
     const storeAddress = StoreAddressSchema.safeParse(storeRow?.address ?? {})
@@ -922,6 +820,12 @@ export async function dashboardSummary(
       preorderBalanceDue: {
         count: preorderBalanceDueRow?.n ?? 0,
         href: '/orders?status=balance_due',
+      },
+      unpaid: { count: unpaidRow?.n ?? 0, href: '/orders?status=unpaid' },
+      preorderShipSoon: { count: preorderShipSoonRow?.n ?? 0, href: '/products/preorders' },
+      returnsToReview: {
+        count: returnsToReviewRow?.n ?? 0,
+        href: '/orders/returns?status=requested',
       },
       failedDeliveries: null,
     },

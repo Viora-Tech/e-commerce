@@ -16,6 +16,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import SetupChecklist from '@/components/apps/setup-checklist'
+import DateField from '@/components/fields/date-field'
 import PageHeader from '@/components/layout/page-header'
 import RelativeTime from '@/components/layout/relative-time'
 import TableEmptyRow from '@/components/table/table-empty-row'
@@ -175,19 +176,15 @@ export default function QueuePage() {
                 {copy.add}
               </Button>
             </div>
-            <Input
-              size="lg"
-              type="date"
+            <DateField
               aria-label={copy.from}
               value={range.from}
-              onChange={(e) => setRange((r) => ({ ...r, from: e.target.value }))}
+              onChange={(v) => setRange((r) => ({ ...r, from: v }))}
             />
-            <Input
-              size="lg"
-              type="date"
+            <DateField
               aria-label={copy.to}
               value={range.to}
-              onChange={(e) => setRange((r) => ({ ...r, to: e.target.value }))}
+              onChange={(v) => setRange((r) => ({ ...r, to: v }))}
             />
           </div>
           {picked.size ? (

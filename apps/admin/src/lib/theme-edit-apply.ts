@@ -32,6 +32,34 @@ export function storedValue(change: Pick<ThemeEditChange, 'kind' | 'value'>): Th
 
 type Block = { id?: unknown; settings?: unknown; blocks?: unknown } & Record<string, unknown>
 
+const asRecord = (raw: unknown): Record<string, unknown> =>
+  raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {}
+
+/**
+ * `values` with one change written in. A picture keeps its alt text and drops the old focal point
+ * (it belonged to the old picture), stored as ImageField's `{ url, alt }` even when the imported
+ * value was a plain string. `button.href` writes into the `button` object, keeping its label.
+ */
+export function withChange(
+  values: Record<string, unknown>,
+  change: Pick<ThemeEditChange, 'kind' | 'value' | 'setting'>,
+): Record<string, unknown> {
+  const value = storedValue(change)
+  if (change.kind === 'image') {
+    const { focal: _old, ...image } = asRecord(values[change.setting])
+    return { ...values, [change.setting]: { ...image, url: value, alt: image.alt ?? '' } }
+  }
+  const dot = change.setting.indexOf('.')
+  if (dot > 0) {
+    const key = change.setting.slice(0, dot)
+    return {
+      ...values,
+      [key]: { ...asRecord(values[key]), [change.setting.slice(dot + 1)]: value },
+    }
+  }
+  return { ...values, [change.setting]: value }
+}
+
 /** The blocks with `blockId`'s settings changed; `found` says whether it was there. */
 function editBlocks(
   raw: unknown,
@@ -68,15 +96,13 @@ function editSection(
 ): TemplateSection {
   let props = { ...section.props } as Record<string, unknown>
   for (const change of changes) {
-    const value = storedValue(change)
     if (!change.blockId) {
-      props[change.setting] = value
+      props = withChange(props, change)
       continue
     }
-    const next = editBlocks(props.blocks, change.blockId, (settings) => ({
-      ...settings,
-      [change.setting]: value,
-    }))
+    const next = editBlocks(props.blocks, change.blockId, (settings) =>
+      withChange(settings, change),
+    )
     if (next.found) props = { ...props, blocks: next.blocks }
     else missing.push(change)
   }

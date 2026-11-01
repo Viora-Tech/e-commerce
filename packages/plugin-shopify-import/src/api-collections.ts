@@ -43,6 +43,10 @@ const RULE_FIELDS: Record<string, CollectionCondition['field']> = {
   VENDOR: 'vendor',
   TAG: 'tag',
   VARIANT_PRICE: 'price',
+  VARIANT_COMPARE_AT_PRICE: 'compare_at',
+  VARIANT_INVENTORY: 'stock',
+  VARIANT_TITLE: 'variant_title',
+  /* VARIANT_WEIGHT stays unmapped: Shopify's value is in the store's weight unit, ours grams. */
 }
 const RULE_OPS: Record<string, CollectionOp> = {
   EQUALS: 'eq',
@@ -58,6 +62,10 @@ const ALLOWED: Record<CollectionCondition['field'], CollectionOp[]> = {
   vendor: ['eq', 'neq', 'contains'],
   tag: ['eq', 'neq'],
   price: ['gt', 'lt', 'eq'],
+  compare_at: ['gt', 'lt', 'eq'],
+  stock: ['gt', 'lt', 'eq'],
+  weight: ['gt', 'lt', 'eq'],
+  variant_title: ['eq', 'neq', 'contains', 'starts_with'],
 }
 
 /** Shopify smart rules → ours, plus the ones we cannot express. */

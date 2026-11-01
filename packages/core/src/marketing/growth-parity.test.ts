@@ -26,15 +26,12 @@ import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { cutoverStoreToEngine } from './automation-cutover'
 import type { AutomationStep } from './automation-steps'
+import { enrolDue, enrolSubscriber, onOrderPlaced, processDueRuns } from './automations'
 import {
   createAutomationFromTemplate,
-  enrolDue,
-  enrolSubscriber,
-  onOrderPlaced,
-  processDueRuns,
   setAutomationStatus,
   updateAutomation,
-} from './automations'
+} from './automations-crud'
 import { growthExitCheck, growthSweep } from './growth-engine'
 import type { MarketingDeps } from './send'
 

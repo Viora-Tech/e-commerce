@@ -1,25 +1,27 @@
 ---
 title: International couriers
-description: Ship orders abroad with DHL Express or FedEx, with the commercial invoice made from your products.
+description: Ship orders abroad with DHL Express, FedEx or ShipGlobal, with the customs lines made from your products.
 ---
 
 # International couriers
 
-DHL Express and FedEx carry orders from India to other countries. Connect your own account
-with either (or both). They sit beside your Indian courier: an order going abroad shows DHL
-Express and FedEx rates in **Create shipment**, and an order inside India keeps using
-Delhivery, Shiprocket or RapidShyp. Neither app carries parcels within India.
+DHL Express, FedEx and ShipGlobal carry orders from India to other countries. Connect your own
+account with any of them. They sit beside your Indian courier: an order going abroad shows
+them in **Create shipment**, and an order inside India keeps using Delhivery, Shiprocket or
+RapidShyp. None of them carries parcels within India.
 
 ## What you need first
 
 - **A business account with the courier.** A DHL Express account number or a FedEx account
   number, both 9 digits. Open one on [mydhl.express.dhl](https://mydhl.express.dhl/in/en/home.html)
-  or [fedex.com](https://www.fedex.com/en-in/open-account.html) if you don't have one.
+  or [fedex.com](https://www.fedex.com/en-in/open-account.html) if you don't have one. For
+  ShipGlobal, a ShipGlobal account with its KYC done ([sign up](https://v2.app.shipglobal.in/auth/signup)).
 - **API keys.** DHL: create an app on [developer.dhl.com](https://developer.dhl.com/api-reference/dhl-express-mydhl-api)
   with **DHL Express - MyDHL API**. FedEx: create a project on
   [developer.fedex.com](https://developer.fedex.com/api/en-in/home.html) with Ship, Rate, Pickup
   Request and Track, and link your shipping account to it. Both give you test keys at once;
-  live keys come after the courier approves you.
+  live keys come after the courier approves you. ShipGlobal: the API login and password in
+  ShipGlobal's **Settings › API** (ask ShipGlobal support if the section is missing).
 - **Your IEC** (Importer-Exporter Code, 10 characters, from DGFT). It goes on the commercial
   invoice; Indian customs needs it to clear a commercial export.
 - **Your GSTIN** in **Settings › Taxes & GST › GST & invoices**. It goes on the invoice as the
@@ -28,9 +30,9 @@ Delhivery, Shiprocket or RapidShyp. Neither app carries parcels within India.
   with **Country of origin** if it was not made in India. Customs reads the commercial
   invoice line by line, so a product without an HS code cannot be booked.
 
-## Connect DHL Express or FedEx
+## Connect DHL Express, FedEx or ShipGlobal
 
-<Tabs items={['DHL Express', 'FedEx']}>
+<Tabs items={['DHL Express', 'FedEx', 'ShipGlobal']}>
 <Tabs.Tab>
 
 From **Apps**, install **DHL Express**, then open its **Connect** page.
@@ -96,6 +98,42 @@ them.
 </Callout>
 
 </Tabs.Tab>
+<Tabs.Tab>
+
+From **Apps**, install **ShipGlobal**, then open its **Connect** page. There is no Test mode:
+ShipGlobal's API has one address, so every booking is a real label.
+
+<Steps>
+
+### Paste your API login
+
+Enter the **API login (email)** and **API password** from ShipGlobal's **Settings › API**.
+
+### Add your export details
+
+Enter your **Seller nickname** (your seller name on ShipGlobal; your store name if unsure), the
+**Origin PIN code** and **Origin city**, your **IEC**, and your **IOSS number** if you sell
+low-value parcels to the EU.
+
+### Pick the service
+
+**Service** is who carries your parcels abroad: DHL eCommerce, DPD, UniUni, UBI, VipParcel,
+or USPS / UPS for the US (USPS up to 5 kg, UPS above; we pick for you by weight).
+
+### Test and save
+
+**Test connection** signs in to ShipGlobal with your API login. Nothing is booked. Select
+**Save and connect**.
+
+</Steps>
+
+<Callout type="info">
+ShipGlobal's API has no rate lookup, tracking or cancel. In **Create shipment** ShipGlobal shows
+"rate on booking"; you see the price in your ShipGlobal account. Cancel a label in ShipGlobal's
+own panel.
+</Callout>
+
+</Tabs.Tab>
 </Tabs>
 
 ## Ship an order abroad
@@ -103,7 +141,8 @@ them.
 Open the order and select **Create shipment**, as for any order
 ([Shipments](/merchant-guide/orders/shipments)). For an address outside India the rate table
 lists every DHL Express and FedEx service with its price in rupees, its transit days and
-what it charges for (freight, fuel). Your Indian couriers show "Delivers within India only".
+what it charges for (freight, fuel), and ShipGlobal with "rate on booking". Your Indian
+couriers show "Delivers within India only".
 
 When you book, the app sends the courier:
 
@@ -113,7 +152,9 @@ When you book, the app sends the courier:
 - your GSTIN and IEC, and the order number as the invoice number.
 
 **Print label** opens one PDF: the label first, then the commercial invoice. Print the invoice
-copies and send them with the parcel.
+copies and send them with the parcel. ShipGlobal sends the label only and files the export
+from the customs lines on its side. Its UPS labels come as an image, so print those from your
+ShipGlobal account.
 
 <Callout type="info">
   The customs value is the order's value in rupees, and the shopper pays any import duty in
@@ -122,12 +163,15 @@ copies and send them with the parcel.
 
 ## Tracking and cancelling
 
-Neither courier pushes tracking updates, so both are checked on the same polling schedule as
-RapidShyp rather than updating instantly. **Cancel** works before the courier collects the parcel:
+DHL Express and FedEx push no tracking updates, so both are checked on the same polling
+schedule as RapidShyp rather than updating instantly. ShipGlobal sends no tracking to apps at
+all: open the **ShipGlobal** app page, check each parcel on ShipGlobal's tracker and set its
+status there (**Delivered** closes the order, **Returned to you** starts the RTO). **Cancel** works before the courier collects the parcel:
 
 - **FedEx** cancels the shipment.
 - **DHL Express** cancels the pickup booked with it. DHL has no "cancel waybill": a waybill
   that is never handed over is never billed.
+- **ShipGlobal** has no cancel for apps: cancel the label in your ShipGlobal panel.
 
 ## Problems
 
@@ -135,5 +179,7 @@ RapidShyp rather than updating instantly. **Cancel** works before the courier co
 | --- | --- |
 | "needs an HS code on every item" | Add the HS code in the product's **Shipping** section, then book again. |
 | "did not accept this API key and secret" | Copy both keys again, and check **Test** or **Live** matches them. |
+| "ShipGlobal did not accept this API login" | Copy the API login and password again from ShipGlobal's **Settings › API**. |
+| "ShipGlobal books USPS and UPS to the US only" | Pick another **Service** on the ShipGlobal Connect page for parcels outside the US. |
 | "needs the destination city" | The order's address has no city. Edit the address, then quote again. |
 | A courier's own message, such as "The postal code is invalid" | Fix what it names in the shopper's address and book again. |

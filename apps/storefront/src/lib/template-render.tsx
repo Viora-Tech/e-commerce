@@ -22,6 +22,7 @@ import { preorderBlocks } from '@commerce/core/preorder-block'
 import { appBlockSourcesForStore } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
 import { type Assignments, variantMatches } from '@commerce/plugin-growthbook/assign'
+import { reviewsState, storeWidgetReviews } from '@commerce/plugin-reviews/server'
 import type { ComponentConfig } from '@puckeditor/core'
 import { resolveAllData } from '@puckeditor/core'
 import { headers } from 'next/headers'
@@ -38,6 +39,7 @@ import { liquidSplit, STREAM_GRACE_MS, settlesWithin } from './liquid-split'
 import { renderLiquidSections } from './liquid-theme'
 import { attachImageMedia } from './media-lookup'
 import { subscribeAction } from './newsletter-actions'
+import { abThemeId } from './rollout-ab'
 import { storeRead } from './store-cache'
 import { inStore } from './store-context'
 import { readPreview } from './storefront-gate'
@@ -68,9 +70,12 @@ export async function isThemePreview(storeId: string): Promise<boolean> {
   return readPreview(storeId, (await headers()).get('x-theme-preview')) !== null
 }
 
-/** The live theme's id, cached per store version. */
-export function liveThemeId(storeId: string): Promise<string | null> {
-  return storeRead(storeId, 'main-theme', (tx) => mainThemeId(tx))
+/**
+ * The theme this visitor sees live, cached per store version: the live theme, or an A/B
+ * rollout's Treatment theme for a visitor in that arm (`rollout-ab.ts`).
+ */
+export async function liveThemeId(storeId: string): Promise<string | null> {
+  return (await abThemeId(storeId)) ?? storeRead(storeId, 'main-theme', (tx) => mainThemeId(tx))
 }
 
 /** Which theme this request renders, and whether it is the Customize preview. */
@@ -129,6 +134,12 @@ async function blocksConfig(storeId: string, read: ReturnType<typeof readerFor>)
           `card-product|${handle}`,
           async (tx) => (await listCardProducts(tx, 1, undefined, [handle]))[0] ?? null,
         ),
+      // The Reviews app's sections: published reviews only, null without the app.
+      loadReviews: (query) =>
+        read(`widget-reviews|${digest(query)}`, async (tx) => {
+          const state = await reviewsState(tx, storeId)
+          return state.installed ? storeWidgetReviews(tx, state.settings, query) : null
+        }),
     },
     sources,
     enabledIds,

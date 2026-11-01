@@ -184,6 +184,7 @@ export default function EntriesPage({ definition, initial, initialPerPage }: Ent
           <div className="rounded-2xl border surface-card">
             <EmptyState
               icon={Braces}
+              size="lg"
               heading={copy.empty.heading(definition.name)}
               body={copy.empty.body}
               action={
@@ -216,7 +217,12 @@ export default function EntriesPage({ definition, initial, initialPerPage }: Ent
               setPage(1)
             }}
             bulkActions={(ids, clear) => (
-              <Button variant="outline" disabled={busy} onClick={() => setDeleting({ ids, clear })}>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={busy}
+                onClick={() => setDeleting({ ids, clear })}
+              >
                 <Trash2 />
                 {copy.bulk.delete}
               </Button>

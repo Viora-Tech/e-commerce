@@ -1,10 +1,9 @@
-/** Copy for Settings › Markets: the countries the store sells to, each in its own currency and language. */
+/** Copy for Markets (top-level page): the countries the store sells to, each in its own currency and language. */
 export const marketsContent = {
   title: 'Markets',
   intro:
     'Sell to shoppers abroad in their own currency and language. India stays your primary market: your prices, GST and reports remain in rupees.',
   add: 'Add market',
-  rollouts: 'Rollouts',
   listTitle: 'Your markets',
   columns: {
     market: 'Market',
@@ -12,6 +11,9 @@ export const marketsContent = {
     currency: 'Currency',
     languages: 'Languages',
     active: 'On',
+    status: 'Status',
+    includes: 'Includes',
+    customizations: 'Customizations',
   },
   primary: 'Primary',
   moreCountries: (shown: string, more: number) => `${shown} and ${more} more`,
@@ -26,6 +28,140 @@ export const marketsContent = {
     label: 'Market actions',
     edit: 'Edit',
     delete: 'Delete',
+    turnOn: 'Turn on',
+    turnOff: 'Turn off',
+  },
+  /** One market's page (Shopify's market page): a row per setting, each with its value. */
+  hub: {
+    back: 'Markets',
+    on: 'Active',
+    off: 'Off',
+    switchHelp: 'Shoppers in these countries see this market only while it is on.',
+    rename: 'Rename',
+    settings: 'Settings',
+    rows: {
+      countries: 'Countries',
+      prices: 'Currency and prices',
+      languages: 'Languages',
+      address: 'Address',
+      duties: 'Import duties',
+      catalog: 'Products and catalog',
+      shipping: 'Shipping',
+      theme: 'Online store theme',
+      policies: 'Policies',
+    },
+    primaryCountry: 'India, your store’s own country',
+    allCountries: (n: number) => `${n} countries`,
+    prices: (currency: string, adjustment: string, rounding: string) =>
+      [currency, adjustment, rounding].filter(Boolean).join(' · '),
+    noAdjustment: 'No adjustment',
+    adjustment: (percent: string) => `${percent} on converted prices`,
+    storePrices: 'Your own prices, in rupees, with GST',
+    catalogAll: 'Every product you sell',
+    catalogPick: 'Choose the products it sells, and its prices, in Catalogs',
+    catalogOf: (name: string, products: string) => `${name} · ${products}`,
+    catalogProducts: (n: number) => `${n} ${n === 1 ? 'product' : 'products'}`,
+    catalogAllProducts: 'All products',
+    catalogDraft: 'Draft, not used yet: every product sells',
+    shipping: 'Rates per area, in Shipping settings',
+    theme: 'The live theme, as in India',
+    policies: 'Your store’s policies',
+    open: (what: string) => `Change ${what.toLowerCase()}`,
+    name: 'Name',
+    status: 'Status',
+    includes: 'Includes',
+    editCountries: 'Edit',
+    customized: 'Customized',
+    customizedEmpty: 'Create unique settings for shoppers in this market',
+    inherited: 'Inherited',
+    customize: (what: string) => `Customize ${what.toLowerCase()}`,
+  },
+  /** List / Graph switch over the markets (audit #117). */
+  view: { label: 'View', list: 'List', graph: 'Graph' },
+  /** Graph view: the store defaults with a line to each market and what it overrides. */
+  graph: {
+    defaults: 'Store defaults',
+    defaultsNote: (name: string) => `${name} and every new market start from these`,
+    rows: {
+      domain: 'Domain',
+      language: 'Language',
+      products: 'Products',
+      currency: 'Currency',
+      discounts: 'Discounts',
+      entity: 'Business entity',
+      checkout: 'Checkout',
+      taxes: 'Taxes by region',
+      returns: 'Return rules',
+    },
+    products: (n: number | null) =>
+      n === null ? 'Every product' : `${n} ${n === 1 ? 'product' : 'products'}`,
+    discounts: (n: number | null) => (n === null ? 'All eligible' : `${n} active`),
+    entityNone: 'Not set yet',
+    checkout: 'One checkout for every market',
+    taxes: (rate: number | null) =>
+      rate === null
+        ? 'GST in India, duties per market'
+        : `GST ${rate}% in India, duties per market`,
+    returns: 'Your return policy',
+    noOverrides: 'Uses the store defaults',
+    override: {
+      currency: 'Currency',
+      catalog: 'Catalog',
+      domain: 'Domain',
+      languages: 'Languages',
+      adjustment: 'Price adjustment',
+    },
+    off: 'Off',
+    countries: (n: number) => `${n} ${n === 1 ? 'country' : 'countries'}`,
+    empty: 'No other markets yet. Add one to see what it changes.',
+  },
+  /** The New market page (audit #118): what the market inherits, each part changeable. */
+  newPage: {
+    title: 'New market',
+    summary: 'It starts from your store defaults. Change any of them before you create it.',
+    back: 'Markets',
+    basics: 'Market',
+    settings: 'What it inherits',
+    settingsNote: 'Each setting comes from your store defaults until you change it.',
+    storeDefault: 'Store default',
+    changed: 'Changed',
+    rows: {
+      prices: 'Currency and prices',
+      catalog: 'Products and catalog',
+      discounts: 'Discounts',
+      address: 'Domain',
+      languages: 'Languages',
+      taxes: 'Taxes and duties',
+      shipping: 'Shipping',
+    },
+    catalogAll: 'All products',
+    catalogLabel: 'Catalog',
+    catalogHelp:
+      'Which products it sells and at what prices. Catalogs are made in Markets › Catalogs.',
+    discounts: (n: number | null) =>
+      n === null ? 'All eligible discounts' : `All eligible discounts (${n} active)`,
+    discountsNote: 'Discounts set to every market apply here. Limit one on its own page.',
+    taxes: (gst: string, duties: string) => `${gst} · ${duties}`,
+    shipping: 'Your shipping rates per area',
+    shippingNote: 'Add rates for these countries in Shipping settings once it is created.',
+    create: 'Create market',
+    /** #55: creating can take a while (prices, catalog); the button says it is working. */
+    creating: 'Creating…',
+    cancel: 'Cancel',
+    apply: 'Done',
+    change: (what: string) => `Change ${what.toLowerCase()}`,
+    catalogFailed:
+      'The market was created, but its catalog could not be set. Set it on the market page.',
+  },
+  /** Settings for every market (the card under the list). */
+  suggestion: {
+    heading: 'Visitors from other countries',
+    body: 'How the online store treats a visitor whose country belongs to another market.',
+    label: 'Suggest the visitor’s market',
+    help: 'A small card offers their own market, like “Shopping from the UAE? Shop in AED”. It never switches by itself, so search engines keep seeing the page they asked for. Their answer is remembered.',
+    on: 'Visitors are offered their market',
+    off: 'Visitors are no longer offered their market',
+    failed: 'Could not save the setting',
   },
   confirmDelete: {
     title: (name: string) => `Delete ${name}?`,
@@ -104,6 +240,14 @@ export const marketsContent = {
       missing: 'Pick at least one country.',
       inMarket: (name: string) => `In ${name}`,
       remove: (name: string) => `Remove ${name}`,
+      /** One-click groups, like Shopify's regions (audit #115). */
+      regions: {
+        eu: 'European Union',
+        gulf: 'Gulf (GCC)',
+        northAmerica: 'North America',
+        oceania: 'Australia and NZ',
+      },
+      addRegion: (name: string) => `Add ${name}`,
     },
     currency: {
       label: 'Currency',

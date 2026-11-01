@@ -13,7 +13,7 @@ export function ruleSummary(
   if (rules.conditions.length === 0) return copy.noRules
   return rules.conditions
     .map((c) => {
-      const paise = c.field === 'price' ? parseRupees(c.value) : null
+      const paise = c.field === 'price' || c.field === 'compare_at' ? parseRupees(c.value) : null
       const value = paise === null ? c.value : money(paise)
       return `${copy.ruleField[c.field]} ${copy.ruleOp[c.op]} ${value}`
     })

@@ -12,6 +12,7 @@ import RunAutomationDialog from '@/components/automations/records/run-automation
 import { useRunAutomation } from '@/components/automations/records/use-run-automation'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
+import LeaveGuard from '@/components/layout/leave-guard'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import SaveBar from '@/components/layout/save-bar'
 import MetafieldsCard from '@/components/metaobjects/metafields-card'
@@ -22,6 +23,7 @@ import { api } from '@/lib/api-client'
 import type { ProductLayout } from '@/lib/product-layout'
 import { routes } from '@/lib/routes'
 import AiWriterButton from './ai-writer-button'
+import DuplicateProductDialog from './duplicate-product-dialog'
 import {
   emptyForm,
   type Facets,
@@ -29,10 +31,8 @@ import {
   fromProduct,
   type LoadedProduct,
   type MediaItem,
-  matrixOptions,
   type OptionRow,
   type ProductFormState,
-  reconcileVariants,
   snapshot,
   toWrite,
   type VariantRow,
@@ -48,11 +48,13 @@ import ProductSeoPanel from './product-seo-panel'
 import ProductSide from './product-side'
 import { type ProductTabId, tabFromParam, tabsFor, tabsWithErrors } from './product-tab-list'
 import ProductTabs from './product-tabs'
+import { missingHsCode, variantTax } from './product-tax'
 import { saveErrorMessage } from './save-error'
 import ShippingCard from './shipping-card'
 import StockHistoryCard from './stock-history-card'
 import { useProductAppActions } from './use-product-app-actions'
 import VariantMetafieldsCard from './variant-metafields-card'
+import { matrixOptions, reconcileVariants } from './variant-reconcile'
 import VariantsCard from './variants-card'
 
 type ProductFormProps = {
@@ -90,12 +92,14 @@ export default function ProductForm({
   const [busy, setBusy] = useState(false)
   // The variant metafields grid's own save and whether it has edits (saved with the page, #894).
   const variantFieldsSave = useRef<(() => Promise<boolean>) | null>(null)
+  const pendingCollections = useRef<string[]>([])
   const [variantFieldsDirty, setVariantFieldsDirty] = useState(false)
   const [variantFieldsReset, setVariantFieldsReset] = useState(0)
   const [uploading, setUploading] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
   const [attempted, setAttempted] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [duplicating, setDuplicating] = useState(false)
   /* Bumped after each save so cards that load their own data (collections) refetch. */
   const [revision, setRevision] = useState(0)
   const appItems = useProductAppActions(apps, product?.id ?? null, (tab, focus) =>
@@ -171,6 +175,15 @@ export default function ProductForm({
     if (focus) window.setTimeout(() => document.getElementById(focus)?.focus(), 50)
   }
 
+  /* "No HS code" on the checklist opens the product's HSN field itself (#63), not just its tab. */
+  const handleChecklistSelect = (id: string) => {
+    if (id === 'shipping' && !product?.isGiftCard && missingHsCode(form.tax, form.variants)) {
+      handleOpenTab('shipping', 'product-hs')
+      return
+    }
+    handleSelectTab(id)
+  }
+
   const handleSave = async (status?: ProductStatus) => {
     setAttempted(true)
     const next = status ? { ...form, status } : form
@@ -195,6 +208,13 @@ export default function ProductForm({
       // Then each variant whose metafields changed; one that fails names its variant and stays
       // unsaved (the save bar stays up), the product itself is saved.
       const fieldsSaved = variantFieldsSave.current ? await variantFieldsSave.current() : true
+      // Collections picked before the first save join the new product now (audit #200).
+      if (!product && pendingCollections.current.length > 0) {
+        await api.collections.setForProduct({
+          productId: result.id,
+          collectionIds: pendingCollections.current,
+        })
+      }
       if (fieldsSaved) toast.success(product ? copy.toasts.saved : copy.toasts.created)
       if (!product) router.replace(routes.products.detail(result.id))
       else router.refresh()
@@ -219,19 +239,6 @@ export default function ProductForm({
     setVariantFieldsReset((n) => n + 1)
     setAttempted(false)
     setServerError(null)
-  }
-
-  const handleDuplicate = async () => {
-    if (!product) return
-    setBusy(true)
-    try {
-      const { id } = await api.products.duplicate({ id: product.id })
-      toast.success(copy.duplicate.toast)
-      router.push(routes.products.detail(id))
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.duplicate.failed)
-      setBusy(false)
-    }
   }
 
   const handleArchive = () => void handleSave(form.status === 'archived' ? 'draft' : 'archived')
@@ -271,10 +278,15 @@ export default function ProductForm({
   const tabIds = tabsFor(single)
   const activeTab = tabFromParam(searchParams.get('tab'), single)
   const failing = new Set<ProductTabId>(showErrors ? tabsWithErrors(errors, single) : [])
-  const checklist = productChecklist(copy, fmt, form, errors, single, {
-    count: productAppSections(apps).length,
-    copy: pageCopy.checklist,
-  })
+  const checklist = productChecklist(
+    copy,
+    fmt,
+    form,
+    errors,
+    single,
+    { count: productAppSections(apps).length, copy: pageCopy.checklist },
+    product?.isGiftCard === true,
+  )
   const tabs = tabIds.map((id) => ({
     id,
     label: copy.tabs.labels[id],
@@ -295,6 +307,7 @@ export default function ProductForm({
         options={form.options}
         variants={form.variants}
         media={form.media}
+        tax={form.tax}
         facets={facets}
         error={showErrors ? errors.variants : undefined}
         onOptions={setOptions}
@@ -329,7 +342,7 @@ export default function ProductForm({
         />
         {mainCard('details')}
         {/* Extra fields stay in view, not inside "More" (#296: nobody found them there). */}
-        <MetafieldsCard ownerType="product" ownerId={product?.id ?? null} />
+        <MetafieldsCard ownerType="product" ownerId={product?.id ?? null} collapseEmpty />
       </>
     ),
     price: (
@@ -345,6 +358,8 @@ export default function ProductForm({
         variant={first}
         singleVariant={single}
         packageError={showErrors ? errors.package : undefined}
+        tax={form.tax}
+        onTax={(tax) => patch({ tax })}
         onChange={(vp) => patchVariant(0, vp)}
         onPackage={patchPackage}
       />
@@ -363,7 +378,7 @@ export default function ProductForm({
         apps={apps}
         productId={product?.id ?? null}
         title={form.title}
-        variants={form.variants}
+        variants={form.variants.map((v) => ({ ...v, ...variantTax(form.tax, v) }))}
         onOpenTab={handleOpenTab}
       />
     ),
@@ -373,6 +388,8 @@ export default function ProductForm({
     <ProoflyDetailPage
       header={
         <>
+          {/* A new product has no save bar yet; its typed title still asks before it is lost (#202). */}
+          <LeaveGuard when={!product && isDirty} />
           <SaveBar
             open={Boolean(product) && isDirty}
             message={copy.saveBar.message}
@@ -390,7 +407,7 @@ export default function ProductForm({
             dirty={isDirty}
             storefrontOrigin={storefrontOrigin}
             onSave={() => void handleSave()}
-            onDuplicate={handleDuplicate}
+            onDuplicate={() => setDuplicating(true)}
             onArchive={handleArchive}
             onDelete={() => setConfirmDelete(true)}
             appItems={[
@@ -428,6 +445,9 @@ export default function ProductForm({
       }
       side={
         <ProductSide
+          onPendingCollections={(ids) => {
+            pendingCollections.current = ids
+          }}
           form={form}
           facets={facets}
           productId={product?.id ?? null}
@@ -437,7 +457,7 @@ export default function ProductForm({
           busy={working}
           live={Boolean(product) && form.status === 'active'}
           onPatch={patch}
-          onSelectTab={(id) => handleSelectTab(id)}
+          onSelectTab={handleChecklistSelect}
           onPublish={() => void handleSave('active')}
           onSaveDraft={() => void handleSave('draft')}
         />
@@ -453,6 +473,13 @@ export default function ProductForm({
         busy={busy}
         onConfirm={handleRemove}
       />
+      {product ? (
+        <DuplicateProductDialog
+          productId={product.id}
+          open={duplicating}
+          onOpenChange={setDuplicating}
+        />
+      ) : null}
       <RunAutomationDialog
         subjectType="product"
         ids={automation.target}

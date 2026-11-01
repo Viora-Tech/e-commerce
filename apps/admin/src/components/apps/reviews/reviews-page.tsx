@@ -1,22 +1,18 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { CircleCheck, EyeOff, Settings, Trash2, Upload } from '@commerce/ui/icons'
+import { CircleCheck, EyeOff, MessageSquare, Settings, Trash2, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
-import {
-  appliedFromGroups,
-  clearGroups,
-  FILTER_PANEL_CLASS,
-  FilterPanel,
-} from '@/components/table/filter-panel'
+import { appliedFromGroups } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
 import { filterPanelContent } from '@/data/filter-panel'
+import { reviewToolsContent } from '@/data/review-tools'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -51,6 +47,7 @@ function ReviewsList() {
   // Hooks
   const copy = useCopy(reviewsContent)
   const panelCopy = useCopy(filterPanelContent)
+  const toolsCopy = useCopy(reviewToolsContent)
   const [q, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
@@ -144,6 +141,14 @@ function ReviewsList() {
             <Button
               variant="outline"
               nativeButton={false}
+              render={<Link href={routes.apps.page('reviews', 'questions')} />}
+            >
+              <MessageSquare aria-hidden="true" />
+              {toolsCopy.questions.open}
+            </Button>
+            <Button
+              variant="outline"
+              nativeButton={false}
               render={<Link href={routes.apps.page('reviews', 'settings')} />}
             >
               <Settings aria-hidden="true" />
@@ -182,15 +187,7 @@ function ReviewsList() {
             ]}
           />
         }
-        filters={(close) => (
-          <FilterPanel
-            groups={groups}
-            onClear={() => clearGroups(groups)}
-            footer={{ label: panelCopy.show(result?.total ?? 0), onDone: close }}
-          />
-        )}
-        filtersClassName={FILTER_PANEL_CLASS}
-        applied={applied}
+        filterGroups={groups}
         page={q.page}
         perPage={perPage}
         onPerPageChange={(next) => {
@@ -200,7 +197,7 @@ function ReviewsList() {
         total={result?.total ?? 0}
         onPageChange={(page) => setQ({ page })}
         bulkActions={(ids, clear) => (
-          <div className="flex flex-wrap items-center gap-2">
+          <>
             <Button
               size="sm"
               variant="outline"
@@ -229,7 +226,7 @@ function ReviewsList() {
               <Trash2 />
               {copy.list.bulk.delete}
             </Button>
-          </div>
+          </>
         )}
         rowActions={(r) => (
           <ReviewRowActions id={r.id} status={r.status} featured={r.featured} onChanged={reload} />

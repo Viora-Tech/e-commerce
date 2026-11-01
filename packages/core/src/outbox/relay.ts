@@ -116,6 +116,7 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
       key: REPEATABLE_OUTBOX_EVENTS.has(type) ? row.id : undefined,
       returnId: payload.returnId,
       refundId: payload.refundId,
+      shipmentId: payload.shipmentId,
       custom: payload.custom,
       requires: payload.requires,
     })
@@ -220,6 +221,31 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
       template: 'review_reply',
       key: row.id,
       reviewId: payload.reviewId,
+    })
+  }
+  if (type === 'review.rewarded' && payload.reviewId) {
+    await enqueueNotification(deps.notifications, {
+      storeId: row.storeId,
+      orderId: '',
+      template: 'review_reward',
+      key: row.id,
+      reviewId: payload.reviewId,
+    })
+  }
+  const questionTemplate =
+    type === 'review.question_asked'
+      ? 'question_asked'
+      : type === 'review.question_answered'
+        ? 'question_answered'
+        : null
+  if (questionTemplate && payload.questionId) {
+    // Reviews app, no order: the worker reads the question from the app.
+    await enqueueNotification(deps.notifications, {
+      storeId: row.storeId,
+      orderId: '',
+      template: questionTemplate,
+      key: row.id,
+      questionId: payload.questionId,
     })
   }
   if (type === 'affiliate.applied' && payload.affiliateId) {

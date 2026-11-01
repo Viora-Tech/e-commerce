@@ -16,9 +16,14 @@ export const TEMPLATE_IDS: TemplateId[] = [
   'delivery_failed',
   'order_cancelled',
   'refund_issued',
+  'order_edited',
+  'payment_pending',
+  'shipping_update',
+  'order_link',
   'draft_invoice',
   'checkout_recovery',
   'document_copy',
+  'customer_message',
   'login_code',
   'account_deletion_code',
   'login_link',
@@ -35,6 +40,9 @@ export const TEMPLATE_IDS: TemplateId[] = [
   'review_request',
   'review_reminder',
   'review_reply',
+  'review_reward',
+  'question_answered',
+  'question_asked',
   'affiliate_update',
   'affiliate_application',
   'unpaid_cancelled',
@@ -77,9 +85,14 @@ export const TEMPLATE_NAMES: Record<TemplateId, string> = {
   delivery_failed: 'Delivery attempt failed',
   order_cancelled: 'Order cancelled',
   refund_issued: 'Refund issued',
+  order_edited: 'Order edited',
+  payment_pending: 'Payment not finished',
+  shipping_update: 'Shipping update',
+  order_link: 'Order link',
   draft_invoice: 'Draft invoice',
   checkout_recovery: 'Checkout recovery',
   document_copy: 'Document copy',
+  customer_message: 'Email from the customer page',
   login_code: 'Sign-in code',
   account_deletion_code: 'Account deletion code',
   login_link: 'Sign-in link',
@@ -96,6 +109,9 @@ export const TEMPLATE_NAMES: Record<TemplateId, string> = {
   review_request: 'Review request',
   review_reminder: 'Review reminder',
   review_reply: 'Reply to a review',
+  review_reward: 'Photo review thanks',
+  question_answered: 'Product question answered',
+  question_asked: 'New product question (merchant)',
   affiliate_update: 'Affiliate update (to the affiliate)',
   affiliate_application: 'New affiliate application (merchant)',
   unpaid_cancelled: 'Unpaid order cancelled',
@@ -135,7 +151,12 @@ function eyebrowFor(template: TemplateId, d: TemplateData): string {
     case 'review_request':
     case 'review_reminder':
     case 'review_reply':
+    case 'review_reward':
       return 'Your review'
+    case 'question_answered':
+      return 'Your question'
+    case 'question_asked':
+      return 'Product question'
     case 'affiliate_update':
     case 'affiliate_application':
       return 'Affiliate program'
@@ -167,6 +188,7 @@ function eyebrowFor(template: TemplateId, d: TemplateData): string {
     case 'return_exchanged':
       return d.returnInfo ? `Return ${d.returnInfo.label}` : `Order #${d.orderNumber}`
     default:
+      if (d.draftNumber) return `Order #D${d.draftNumber}`
       return d.orderNumber ? `Order #${d.orderNumber}` : d.storeName
   }
 }
@@ -196,6 +218,14 @@ function primaryActionFor(
         : d.orderUrl
           ? { label: shared.viewOrder, url: d.orderUrl }
           : undefined
+    case 'shipping_update':
+      return d.trackingUrl
+        ? { label: 'Track your order', url: d.trackingUrl }
+        : d.orderUrl
+          ? { label: shared.viewOrder, url: d.orderUrl }
+          : undefined
+    case 'payment_pending':
+      return d.orderUrl ? { label: 'Retry payment', url: d.orderUrl } : undefined
     case 'draft_invoice':
       return d.actionUrl ? { label: 'Pay securely', url: d.actionUrl } : undefined
     case 'checkout_recovery':
@@ -238,6 +268,14 @@ function primaryActionFor(
         : undefined
     case 'review_reply':
       return d.review?.productUrl ? { label: 'See the reply', url: d.review.productUrl } : undefined
+    case 'review_reward':
+      return d.actionUrl ? { label: 'Shop with your code', url: d.actionUrl } : undefined
+    case 'question_answered':
+      return d.review?.productUrl
+        ? { label: 'See it on the product page', url: d.review.productUrl }
+        : undefined
+    case 'question_asked':
+      return d.actionUrl ? { label: 'Answer the question', url: d.actionUrl } : undefined
     case 'back_in_stock_alert':
       return d.backInStock?.productUrl
         ? { label: 'Shop now', url: d.backInStock.productUrl }

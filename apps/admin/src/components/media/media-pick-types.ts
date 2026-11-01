@@ -3,6 +3,10 @@ export type MediaItem = {
   url: string
   alt: string | null
   key: string | null
+  /** Saved display name (#91); `displayName` falls back to the key and alt text. */
+  name?: string | null | undefined
+  /** Folder in Files (#91). */
+  folderId?: string | null | undefined
   contentType: string | null
   size: number | null
   usedBy?: number

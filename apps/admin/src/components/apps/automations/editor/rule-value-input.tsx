@@ -7,6 +7,7 @@ import {
 } from '@commerce/core/automations'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Input } from '@commerce/ui/shadcn/input'
+import DateField from '@/components/fields/date-field'
 import MoneyInput from '@/components/fields/money-input'
 import TagInput from '@/components/fields/tag-input'
 import { automationEditorContent, automationPiecesContent } from '@/data/automations'
@@ -82,12 +83,11 @@ function valueControl({
   }
   if (field.type === 'date') {
     return (
-      <Input
+      <DateField
         id={id}
-        type="date"
         aria-label={label}
         value={typeof value === 'string' ? value.slice(0, 10) : ''}
-        onChange={(e) => onChange(e.target.value || undefined)}
+        onChange={(v) => onChange(v || undefined)}
       />
     )
   }

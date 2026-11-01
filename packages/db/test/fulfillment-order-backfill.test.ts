@@ -11,10 +11,10 @@ import {
   order,
   orderLine,
   product,
-  shipment,
   store,
   variant,
 } from '../src/schema'
+import { shipment } from '../src/shipping-schema'
 import { resetDb } from './reset'
 import { retryOnDeadlock } from './retry-deadlock'
 

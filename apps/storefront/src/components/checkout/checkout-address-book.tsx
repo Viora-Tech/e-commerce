@@ -1,13 +1,17 @@
 'use client'
 
 import type { ReactNode } from 'react'
+import CheckoutAbroadFields from '@/components/checkout/checkout-abroad-fields'
 import CheckoutAddressFields from '@/components/checkout/checkout-address-fields'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
+import CheckoutSelect from '@/components/checkout/checkout-select'
 import SavedAddressCard from '@/components/checkout/saved-address-card'
 import { checkoutContent as content } from '@/data/checkout'
 import { CK_BUTTON_PRIMARY, CK_BUTTON_SECONDARY, CK_HEADING } from '@/lib/checkout-classes'
+import { countryOptions } from '@/lib/checkout-countries'
+import { SAVE_ADDRESS_ID } from '@/lib/checkout-form-input'
 import { NEW_ADDRESS } from '@/lib/checkout-form-state'
-import { type CheckoutFormModel, SAVE_ADDRESS_ID } from '@/lib/use-checkout-form'
+import type { CheckoutFormModel } from '@/lib/use-checkout-form'
 
 type CheckoutAddressBookProps = { ck: CheckoutFormModel }
 
@@ -20,6 +24,7 @@ type AddressPanelProps = {
 }
 
 const book = content.addressBook
+const COUNTRY_ID = 'checkout-country'
 
 /**
  * Where the order goes. A signed-in shopper with saved addresses picks a card (Home/Office
@@ -38,10 +43,38 @@ export default function CheckoutAddressBook({ ck }: CheckoutAddressBookProps) {
       : ck.unserviceable
         ? { text: ck.deliveryText ?? content.delivery.unserviceable(delivery.pincode), ok: false }
         : { text: book.deliversTo(delivery.pincode), ok: true }
-  const form = (
+  // The Country picker: only when the store ships abroad, and not while a saved (Indian)
+  // address is being edited or for gift cards, which are emailed.
+  const picker =
+    ck.countries.length > 1 && !totals.digitalOnly && ck.editingId === null ? (
+      <CheckoutSelect
+        id={COUNTRY_ID}
+        label={content.abroad.country}
+        value={ck.form.countryCode}
+        options={countryOptions(ck.countries)}
+        autoComplete="country"
+        onChange={ck.handleCountry}
+      />
+    ) : null
+  const fields = ck.abroad ? (
+    <CheckoutAbroadFields
+      values={ck.form}
+      errors={ck.shownErrors}
+      fields={ck.settings.fields}
+      copy={ck.copy}
+      checking={ck.checking}
+      unserviceable={ck.unserviceable ? ck.deliveryText : null}
+      onField={ck.set}
+      onLeave={ck.handleLeave}
+      onPostcode={ck.handlePincode}
+      onRegion={ck.handleState}
+    />
+  ) : (
     <CheckoutAddressFields
       values={ck.form}
       errors={ck.shownErrors}
+      fields={ck.settings.fields}
+      copy={ck.copy}
       digitalOnly={totals.digitalOnly}
       deliveryBy={ck.deliveryBy}
       unserviceable={ck.unserviceable ? ck.deliveryText : null}
@@ -53,6 +86,14 @@ export default function CheckoutAddressBook({ ck }: CheckoutAddressBookProps) {
       onState={ck.handleState}
       onPlace={ck.handlePlace}
     />
+  )
+  const form = picker ? (
+    <div className="flex flex-col gap-3 sm:gap-3.5">
+      {picker}
+      {fields}
+    </div>
+  ) : (
+    fields
   )
   // Early returns
   if (!cards) return form

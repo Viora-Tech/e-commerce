@@ -22,6 +22,7 @@ import {
   type NavigationItemType,
 } from '@/data/menus'
 import { useCopy } from '@/hooks/use-copy'
+import { focusField } from '@/lib/api-errors'
 import DestinationPicker from './destination-picker'
 
 type MenuItemDialogProps = {
@@ -71,10 +72,12 @@ export default function MenuItemDialog({
   const handleSave = () => {
     if (!title.trim()) {
       toast.error(copy.missingTitle)
+      focusField('menu-item-title')
       return
     }
     if (!isValueless(type) && !value.trim()) {
       toast.error(copy.missingValue)
+      focusField('menu-item-url')
       return
     }
     onSave({

@@ -70,6 +70,7 @@ export default [
     tabs: { all: 'सभी', live: 'चालू', hidden: 'छिपे' },
     columns: { title: 'नाम', template: 'टेम्पलेट', visibility: 'दिखना', updated: 'बदलाव' },
     template: { default: 'आम पेज' },
+    policy: 'पॉलिसी',
     visibility: { live: 'चालू', hidden: 'छिपा' },
     empty: {
       heading: 'अभी कोई पेज नहीं',
@@ -102,6 +103,7 @@ export default [
     },
     form: {
       back: 'पेज',
+      backSeo: 'SEO',
       title: 'नाम',
       content: 'कंटेंट',
       unsaved: 'बदलाव सेव नहीं हुए',
@@ -131,6 +133,9 @@ export default [
         help: 'लाइव थीम इसी टेम्पलेट से पेज सजाती है।',
         editContent: 'कंटेंट बदलें',
         editHelp: 'सेक्शन सजाने के लिए टेम्पलेट कस्टमाइज़ में खुलेगा।',
+        inTemplate: (name: string) =>
+          `इस पेज का कंटेंट उसके थीम टेम्पलेट "${name}" से आता है। उसे कस्टमाइज़ में बदलें।`,
+        writeHere: 'इसकी जगह यहाँ टेक्स्ट लिखें',
       },
     },
   }),

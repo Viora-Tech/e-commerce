@@ -1,3 +1,4 @@
+import { formatPaise } from '@commerce/blocks'
 import type { CartView } from '@commerce/core'
 import { applyPaymentAdjustment, type PaymentAdjustmentValue } from '@commerce/core/adjustment-math'
 import {
@@ -6,6 +7,8 @@ import {
   codDecision,
   minimumOrderShortfall,
 } from '@commerce/core/checkout-settings'
+import { lowestEmiPaise } from '@commerce/core/emi'
+import { hiddenPaymentMethods, type PaymentMethodRule } from '@commerce/core/payment-method-rules'
 import { formatMoney } from '@commerce/money'
 import { checkoutContent as content } from '@/data/checkout'
 import { deliveryOptionsContent as appCopy } from '@/data/delivery-options'
@@ -99,8 +102,15 @@ export function methodView(m: CheckoutMethod): MethodView {
       brand: content.upiBrand,
     }
   if (m.id === 'manual') {
+    const kinds = m.manualKinds
+    const title =
+      kinds?.length === 1
+        ? kinds[0] === 'upi'
+          ? content.methods.manualUpi
+          : content.methods.manualBank
+        : content.methods.manual
     return {
-      title: content.methods.manual,
+      title,
       hint: content.methods.manualHint,
       icon: 'bank',
       brand: null,
@@ -137,6 +147,10 @@ export type CheckoutTotalsInput = {
   pincode: string
   /** A deposit pre-order's balance, charged later. */
   laterPaise: number
+  /** Settings → Payments → Payment rules (#150): ways to pay hidden for some orders. */
+  methodRules?: readonly PaymentMethodRule[] | undefined
+  /** The address is outside India: cash on delivery is not offered at all. */
+  abroad?: boolean | undefined
 }
 
 /**
@@ -146,7 +160,6 @@ export type CheckoutTotalsInput = {
 export function checkoutTotals(input: CheckoutTotalsInput) {
   const { cart, methods, settings, discountPaise, shipping, rate, giftCards } = input
   const digitalOnly = isDigitalOnly(cart)
-  const offered = offeredMethods(cart, methods)
   const discounted = Math.max(0, cart.subtotalPaise - discountPaise)
   const shippingPaise = digitalOnly ? 0 : (rate?.pricePaise ?? 0)
   const delivery = shipping?.delivery
@@ -156,6 +169,15 @@ export function checkoutTotals(input: CheckoutTotalsInput) {
     pincode: input.pincode,
     orderValuePaise: ruleSubtotal + shippingPaise,
   })
+  // Payment rules (#150): the ways to pay a rule hides for this total, PIN code or basket.
+  const hidden = hiddenPaymentMethods(input.methodRules, {
+    orderValuePaise: ruleSubtotal + shippingPaise,
+    pincode: input.pincode,
+    productIds: cart.lines.flatMap((l) => l.productId ?? []),
+  })
+  const offered = offeredMethods(cart, methods).filter(
+    (m) => !hidden.has(m.id) && !(input.abroad && m.id === 'cod'),
+  )
   // Delivery options app: Express (any prepaid-only option) refuses cash on delivery.
   const optionPrepaid = rate?.delivery?.codAllowed === false
   const codBlocked =
@@ -163,9 +185,10 @@ export function checkoutTotals(input: CheckoutTotalsInput) {
     (delivery?.ok === true && delivery.serviceable && !delivery.codAvailable) ||
     (giftCards.length > 0 && !coveredByCardsBefore(giftCards, discounted + shippingPaise)) ||
     !codRule.allowed
+  const pickedGone = !offered.some((m) => m.id === input.picked)
   const payment =
-    input.picked === 'cod' && codBlocked
-      ? (offered.find((m) => m.id !== 'cod')?.id ?? input.picked)
+    (input.picked === 'cod' && codBlocked) || pickedGone
+      ? (offered.find((m) => m.id !== 'cod' || !codBlocked)?.id ?? input.picked)
       : input.picked
   const adjustment = previewAdjustment(
     methods.find((m) => m.id === payment),
@@ -232,7 +255,12 @@ export function deliveryLine(s: CheckoutShipping | null, checking: boolean): str
   const d = s?.delivery
   if (!d?.ok) return null
   if (!d.serviceable) return content.delivery.unserviceable(d.pincode)
-  if (s?.rates.kind === 'none') return content.delivery.noRates(d.pincode)
+  if (s?.rates.kind === 'none') {
+    // `abroadShipping`: no courier was asked, so it is the country nobody ships to.
+    return d.provider === 'abroad'
+      ? content.delivery.noRatesAbroad
+      : content.delivery.noRates(d.pincode)
+  }
   // Several rates carry their own dates on the options below.
   if (s?.rates.kind === 'rates' && s.rates.options.length > 1) return null
   const own = s?.rates.kind === 'rates' ? s.rates.options[0]?.dateRange : null
@@ -281,4 +309,22 @@ export function shippingRow(
   if (!rate) return { kind: 'pending' }
   const cod = payment === 'cod' ? (rate.delivery?.codPricePaise ?? null) : null
   return { kind: 'price', paise: cod ?? rate.pricePaise, name: rate.name }
+}
+
+/** The Pay button's amount and words, and the EMI line's monthly amount when the store offers EMI on it. */
+export function payView(
+  payNowPaise: number,
+  o: { emiMinPaise: number | null; coveredByCards: boolean; cod: boolean; placeOrder: string },
+): { payNow: string; emiMonthly: string | null; payLabel: string } {
+  const payNow = formatPaise(payNowPaise)
+  const emiMonthly =
+    o.emiMinPaise !== null && payNowPaise >= o.emiMinPaise && payNowPaise > 0
+      ? formatPaise(lowestEmiPaise(payNowPaise))
+      : null
+  const payLabel = o.coveredByCards
+    ? o.placeOrder
+    : o.cod
+      ? content.placeOrderAmount(payNow)
+      : content.pay(payNow)
+  return { payNow, emiMonthly, payLabel }
 }

@@ -103,6 +103,7 @@ export default function CustomizeLayout({
   const identity = useCopy(customizeContent.identity)
   const [zoomMode, setZoomMode] = useState<CanvasZoom>('fit')
   const dispatch = useCustomizePuck((s) => s.dispatch)
+  const selectedItem = useCustomizePuck((s) => s.selectedItem)
   const getPuck = useGetPuck()
   // Called later, on a key press, so it can use the handler declared below.
   useEditorKeys((key, e) => handleKey(key, e))
@@ -202,7 +203,9 @@ export default function CustomizeLayout({
   const zoomState = { zoom, mode: zoomMode, fit, devicePx, setMode: setZoomMode }
   const resize = reducedMotion ? '' : 'duration-200 ease-out'
   const showLeft = view.left && !view.full
-  const showRight = view.right && !view.full
+  // Nothing picked, nothing to edit: the panel used to sit there saying so and squeeze the
+  // preview (audit #128). It slides in when a section is selected.
+  const showRight = view.right && !view.full && Boolean(selectedItem)
 
   return (
     <EditorViewContext.Provider value={view}>

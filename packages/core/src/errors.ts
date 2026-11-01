@@ -27,6 +27,32 @@ export class OutOfStock extends CommerceError {
   }
 }
 
+/** Settings → Checkout → Cart limit (#156): more of one product than one cart may hold. */
+export class CartLimitExceeded extends CommerceError {
+  readonly productId: string
+  readonly title: string
+  readonly max: number
+
+  constructor(productId: string, title: string, max: number, storeId?: string) {
+    super('CART_LIMIT', `At most ${max} of product ${productId} per cart`, { storeId })
+    this.productId = productId
+    this.title = title
+    this.max = max
+  }
+}
+
+/** Settings → Payments → Payment rules (#150): a rule hides the picked way to pay for this order. */
+export class PaymentMethodHidden extends CommerceError {
+  readonly methodId: string
+
+  constructor(methodId: string, storeId?: string) {
+    super('PAYMENT_METHOD_HIDDEN', `Payment method ${methodId} is hidden for this order`, {
+      storeId,
+    })
+    this.methodId = methodId
+  }
+}
+
 export class CartNotOpen extends CommerceError {
   constructor(cartId: string, storeId?: string) {
     super('CART_NOT_OPEN', `Cart ${cartId} is not open`, { storeId })
@@ -124,6 +150,19 @@ export class VariantHidden extends CommerceError {
   }
 }
 
+/**
+ * The shopper's market sells from a catalog (Markets › Catalogs) that leaves this product out:
+ * it shows as not available in their country, and the cart and checkout refuse it.
+ */
+export class NotSoldInMarket extends CommerceError {
+  readonly variantId: string
+
+  constructor(variantId: string, storeId?: string) {
+    super('NOT_SOLD_IN_MARKET', `Variant ${variantId} is not sold in this market`, { storeId })
+    this.variantId = variantId
+  }
+}
+
 /** A product's `launchAt` has not passed: nothing can be added to cart or ordered yet. */
 export class NotLaunchedYet extends CommerceError {
   constructor(variantId: string, launchAt: Date, storeId?: string) {
@@ -170,6 +209,8 @@ export class CheckoutRuleViolation extends CommerceError {
     | 'cod_high_risk'
     /** Delivery options app: the picked option (Express) is prepaid only. */
     | 'cod_prepaid_only_option'
+    /** Cash on delivery to an address outside India. */
+    | 'cod_abroad'
   readonly fields: Readonly<Record<string, string>>
   /** Minimum order: what is still missing. COD limit: the limit. In paise. */
   readonly amountPaise: number | null
@@ -186,5 +227,25 @@ export class CheckoutRuleViolation extends CommerceError {
     this.rule = rule
     this.fields = opts.fields ?? {}
     this.amountPaise = opts.amountPaise ?? null
+  }
+}
+
+/**
+ * A pre-order campaign keeps its pre-orders apart from in-stock goods (`mixed_cart: 'block'`,
+ * #143): the cart or checkout refuses the mix. `shopperMessage` is the campaign's own words,
+ * null when it has none (the storefront then says it in its own).
+ */
+export class PreorderMixedCart extends CommerceError {
+  readonly shopperMessage: string | null
+  readonly campaignName: string | null
+
+  constructor(shopperMessage: string | null, campaignName: string | null, storeId?: string) {
+    super(
+      'PREORDER_MIXED_CART',
+      shopperMessage ?? 'Pre-orders must be checked out on their own, without in-stock items',
+      { storeId },
+    )
+    this.shopperMessage = shopperMessage
+    this.campaignName = campaignName
   }
 }

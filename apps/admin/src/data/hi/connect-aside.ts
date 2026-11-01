@@ -135,6 +135,16 @@ export default [
         helpBody:
           'developer.fedex.com पर My Projects खोलें, अपना प्रोजेक्ट चुनें और टेस्ट या प्रोडक्शन की कुंजियाँ कॉपी करें। अकाउंट नंबर आपके FedEx इनवॉइस पर है।',
       },
+      shipglobal: {
+        connects: [
+          'HS कोड, GSTIN, IEC और IOSS के साथ एक्सपोर्ट बुकिंग',
+          'ऑर्डर पर लेबल, प्रिंट के लिए तैयार',
+          'हर पार्सल का स्टेटस बदलने के लिए एक पेज',
+        ],
+        helpTitle: 'मेरा API लॉगिन कहाँ है?',
+        helpBody:
+          'ShipGlobal में API लॉगिन (ईमेल) और पासवर्ड के लिए Settings › API खोलें। API सेक्शन न हो तो ShipGlobal सपोर्ट से API एक्सेस चालू करवाएँ।',
+      },
     },
   }),
 ]

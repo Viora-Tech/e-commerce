@@ -46,7 +46,21 @@ export default function PermissionSwitches({ value, disabled, onChange }: Permis
   }
 
   // Event handlers
-  const handleToggle = (permission: Permission, on: boolean) => setMany([permission], on)
+  /*
+   * Every action needs its resource's Read: Fulfil without Read is a role that cannot open the
+   * orders it may fulfil. Turning an action on turns Read on too; turning Read off turns the
+   * resource's other actions off with it.
+   */
+  const handleToggle = (permission: Permission, on: boolean) => {
+    const resource = permission.slice(0, permission.indexOf('.')) as Resource
+    const read = `${resource}.read` as Permission
+    const all = resourcePermissions(resource)
+    if (!all.includes(read) || permission === read) {
+      setMany(on || permission !== read ? [permission] : all, on)
+      return
+    }
+    setMany(on ? [permission, read] : [permission], on)
+  }
 
   const handleToggleResource = (resource: Resource) => {
     const all = resourcePermissions(resource)

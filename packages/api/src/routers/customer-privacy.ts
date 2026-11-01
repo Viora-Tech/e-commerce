@@ -266,6 +266,7 @@ export const customerPrivacyRouter = {
           granted: input.granted,
           source: 'admin',
           actor: staffOf(context),
+          needsContact: true,
         })
         if (changed) updated++
       }

@@ -7,8 +7,8 @@ import { useEffect, useRef, useState } from 'react'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
 import StatusMark from '@/components/checkout/status-mark'
 import { payClientContent as content } from '@/data/checkout'
-import { confirmPaymentAction } from '@/lib/cart-actions'
 import { CK_BUTTON_PRIMARY, CK_BUTTON_SECONDARY, CK_HEADING } from '@/lib/checkout-classes'
+import { confirmPaymentAction } from '@/lib/payment-actions'
 
 type RazorpayCheckout = new (
   options: Record<string, unknown>,

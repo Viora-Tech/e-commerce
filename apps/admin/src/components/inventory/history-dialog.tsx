@@ -89,10 +89,10 @@ export default function HistoryDialog({
                   >
                     {row.delta > 0 ? `+${row.delta}` : row.delta}
                   </span>
-                  <RelativeTime
-                    value={row.createdAt}
-                    className="text-caption text-muted-foreground"
-                  />
+                  <span className="text-caption text-muted-foreground">
+                    <RelativeTime value={row.createdAt} /> ·{' '}
+                    {row.actorName ? copy.by(row.actorName) : copy.bySystem}
+                  </span>
                   {row.note ? (
                     <span className="col-span-2 text-caption text-muted-foreground">
                       {row.note}

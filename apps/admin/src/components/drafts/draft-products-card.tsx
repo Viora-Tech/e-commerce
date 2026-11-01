@@ -1,17 +1,19 @@
 'use client'
 
-import { Search, X } from '@commerce/ui/icons'
-import { cn } from '@commerce/ui/lib/utils'
+import { Plus, Search, X } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import DraftCustomItemDialog from '@/components/drafts/draft-custom-item-dialog'
 import type { DraftLine } from '@/components/drafts/draft-form-state'
 import DraftMoneyInput from '@/components/drafts/draft-money-input'
 import DataCard from '@/components/layout/data-card'
 import LineItemRow from '@/components/layout/line-item-row'
+import SelectProductsDialog, {
+  type PickedProducts,
+} from '@/components/products/select-products-dialog'
 import { draftEditorContent } from '@/data/drafts'
 import { useCopy } from '@/hooks/use-copy'
-import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
 
 type DraftProductsCardProps = {
@@ -19,171 +21,136 @@ type DraftProductsCardProps = {
   onChange: (lines: DraftLine[]) => void
 }
 
-type Result = Awaited<ReturnType<typeof api.products.searchVariants>>[number]
-
-const SEARCH_DEBOUNCE_MS = 250
-
 const isDefault = (variantTitle: string) => !variantTitle || variantTitle === 'Default'
 
 const lineTitle = (l: { title: string; variantTitle: string }) =>
   isDefault(l.variantTitle) ? l.title : `${l.title} / ${l.variantTitle}`
 
-/** Search rows arrive ordered by product; fold them into one group per product. */
-const groupByProduct = (rows: Result[]) =>
-  rows.reduce<{ productId: string; title: string; variants: Result[] }[]>((groups, r) => {
-    const last = groups.at(-1)
-    if (last?.productId === r.productId) last.variants.push(r)
-    else groups.push({ productId: r.productId, title: r.title, variants: [r] })
-    return groups
-  }, [])
+/**
+ * The ticked variants as draft lines. A variant already on the draft gets one more; the rest are
+ * added at their catalogue price (₹0 when listed without one, for the merchant to type).
+ */
+function addPicked(lines: DraftLine[], picked: PickedProducts): DraftLine[] {
+  const next = [...lines]
+  for (const { product, variantIds } of picked) {
+    for (const variantId of variantIds) {
+      const v = product.variants.find((x) => x.id === variantId)
+      if (!v) continue
+      const at = next.findIndex((l) => l.key === variantId)
+      const existing = next[at]
+      if (existing) {
+        next[at] = { ...existing, quantity: Math.min(999, existing.quantity + 1) }
+        continue
+      }
+      next.push({
+        key: variantId,
+        variantId,
+        title: product.title,
+        variantTitle: v.title,
+        sku: v.sku,
+        quantity: 1,
+        unitPricePaise: v.pricePaise ?? 0,
+        imageUrl: product.imageUrl,
+        giftCard: product.giftCard,
+      })
+    }
+  }
+  return next
+}
 
+/**
+ * The draft's lines (Figma "Products"): typing in the search or pressing Browse opens the shared
+ * product picker (photos, stock, many variants at once, audit #27); "Add custom item" adds a
+ * one-off line that is not in the catalogue (#28).
+ */
 export default function DraftProductsCard({ lines, onChange }: DraftProductsCardProps) {
   // Hooks
   const copy = useCopy(draftEditorContent)
   const [search, setSearch] = useState('')
-  const [results, setResults] = useState<Result[]>([])
-  const [searching, setSearching] = useState(false)
-  const [searched, setSearched] = useState('')
-
-  useEffect(() => {
-    const term = search.trim()
-    if (term.length < 2) {
-      setResults([])
-      setSearched('')
-      return
-    }
-    let cancelled = false
-    setSearching(true)
-    const t = setTimeout(() => {
-      api.products
-        .searchVariants({ search: term, limit: 10 })
-        .then((r) => {
-          if (cancelled) return
-          setResults(r)
-          setSearched(term)
-        })
-        .finally(() => !cancelled && setSearching(false))
-    }, SEARCH_DEBOUNCE_MS)
-    return () => {
-      cancelled = true
-      clearTimeout(t)
-    }
-  }, [search])
+  const [picking, setPicking] = useState(false)
+  const [addingCustom, setAddingCustom] = useState(false)
 
   // Event handlers
-  const handleAdd = (r: Result) => {
-    const existing = lines.find((l) => l.variantId === r.variantId)
-    onChange(
-      existing
-        ? lines.map((l) => (l.variantId === r.variantId ? { ...l, quantity: l.quantity + 1 } : l))
-        : [
-            ...lines,
-            {
-              variantId: r.variantId,
-              title: r.title,
-              variantTitle: r.variantTitle,
-              sku: r.sku,
-              quantity: 1,
-              unitPricePaise: r.pricePaise ?? 0,
-              imageUrl: r.imageUrl,
-              giftCard: r.giftCard,
-            },
-          ],
-    )
-    setSearch('')
-    setResults([])
+  const handleSearch = (value: string) => {
+    setSearch(value)
+    if (value.trim()) setPicking(true)
   }
 
-  const handleQuantity = (variantId: string, value: string) => {
-    const quantity = Math.max(1, Number.parseInt(value, 10) || 1)
-    onChange(lines.map((l) => (l.variantId === variantId ? { ...l, quantity } : l)))
+  const handlePickerOpen = (open: boolean) => {
+    setPicking(open)
+    if (!open) setSearch('')
   }
 
-  const handlePrice = (variantId: string, unitPricePaise: number) => {
-    onChange(lines.map((l) => (l.variantId === variantId ? { ...l, unitPricePaise } : l)))
+  const handleQuantity = (key: string, value: string) => {
+    const quantity = Math.min(999, Math.max(1, Number.parseInt(value, 10) || 1))
+    onChange(lines.map((l) => (l.key === key ? { ...l, quantity } : l)))
   }
 
-  const handleRemove = (variantId: string) => {
-    onChange(lines.filter((l) => l.variantId !== variantId))
+  const handlePrice = (key: string, unitPricePaise: number) => {
+    onChange(lines.map((l) => (l.key === key ? { ...l, unitPricePaise } : l)))
+  }
+
+  const handleRemove = (key: string) => {
+    onChange(lines.filter((l) => l.key !== key))
   }
 
   // Render logic
-  const groups = groupByProduct(results)
   return (
     <DataCard title={copy.products.heading}>
       <div className="flex flex-col gap-4">
-        <div className="relative">
-          <Search className="-translate-y-1/2 absolute top-1/2 left-3 size-4 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={copy.products.search}
-            className="pl-9"
-          />
+        <div className="flex flex-wrap gap-2">
+          <div className="relative min-w-48 flex-1">
+            <Search
+              aria-hidden="true"
+              className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-3 size-4 text-muted-foreground"
+            />
+            <Input
+              value={search}
+              onChange={(e) => handleSearch(e.target.value)}
+              placeholder={copy.products.search}
+              aria-label={copy.products.search}
+              className="pl-9"
+            />
+          </div>
+          <Button variant="outline" onClick={() => setPicking(true)}>
+            {copy.products.browse}
+          </Button>
+          <Button variant="outline" onClick={() => setAddingCustom(true)}>
+            <Plus aria-hidden="true" />
+            {copy.products.addCustom}
+          </Button>
         </div>
-        {groups.length > 0 ? (
-          // In the page flow, not a floating dropdown: the card clips anything that overflows
-          // it, which hid most of a product's variants.
-          <ul className="flex max-h-96 flex-col gap-1 overflow-y-auto rounded-lg border border-border p-1">
-            {groups.map((g) =>
-              g.variants.length === 1 && isDefault(g.variants[0]?.variantTitle ?? '') ? (
-                <li key={g.productId}>
-                  <ResultButton
-                    label={g.title}
-                    result={g.variants[0] as Result}
-                    noPrice={copy.noPrice}
-                    onAdd={handleAdd}
-                  />
-                </li>
-              ) : (
-                <li key={g.productId} className="flex flex-col">
-                  <p className="px-2 pt-2 pb-1 font-medium text-body text-ink-strong">{g.title}</p>
-                  <ul className="flex flex-col">
-                    {g.variants.map((r) => (
-                      <li key={r.variantId}>
-                        <ResultButton
-                          label={isDefault(r.variantTitle) ? r.title : r.variantTitle}
-                          result={r}
-                          noPrice={copy.noPrice}
-                          onAdd={handleAdd}
-                          inset
-                        />
-                      </li>
-                    ))}
-                  </ul>
-                </li>
-              ),
-            )}
-          </ul>
-        ) : searched && !searching ? (
-          <p className="text-body text-muted-foreground">{copy.products.noResults}</p>
-        ) : null}
         {lines.length === 0 ? (
-          <p className="text-body text-muted-foreground">
-            {searching ? copy.products.searching : copy.products.empty}
-          </p>
+          <p className="text-body text-muted-foreground">{copy.products.empty}</p>
         ) : (
           <ul className="flex flex-col divide-y divide-line">
             {lines.map((l) => (
               <LineItemRow
-                key={l.variantId}
+                key={l.key}
                 imageUrl={l.imageUrl ?? null}
                 title={lineTitle(l)}
-                subtitle={l.sku}
+                subtitle={
+                  l.custom
+                    ? [copy.products.customLabel, l.custom.taxable ? null : copy.products.noGst]
+                        .filter(Boolean)
+                        .join(' · ')
+                    : l.sku
+                }
                 controls={
                   <>
                     <Input
                       aria-label={copy.products.quantity}
                       type="number"
                       min={1}
+                      max={999}
                       value={l.quantity}
-                      onChange={(e) => handleQuantity(l.variantId, e.target.value)}
+                      onChange={(e) => handleQuantity(l.key, e.target.value)}
                       className="w-20 text-right tabular-nums"
                     />
                     <DraftMoneyInput
                       aria-label={copy.products.price}
                       valuePaise={l.unitPricePaise}
-                      onChangePaise={(paise) => handlePrice(l.variantId, paise)}
+                      onChangePaise={(paise) => handlePrice(l.key, paise)}
                       className="w-28 text-right tabular-nums"
                     />
                   </>
@@ -194,7 +161,7 @@ export default function DraftProductsCard({ lines, onChange }: DraftProductsCard
                     variant="ghost"
                     size="icon"
                     aria-label={copy.products.remove}
-                    onClick={() => handleRemove(l.variantId)}
+                    onClick={() => handleRemove(l.key)}
                   >
                     <X />
                   </Button>
@@ -204,41 +171,17 @@ export default function DraftProductsCard({ lines, onChange }: DraftProductsCard
           </ul>
         )}
       </div>
+      <SelectProductsDialog
+        open={picking}
+        onOpenChange={handlePickerOpen}
+        initialSearch={search.trim()}
+        onConfirm={(picked) => onChange(addPicked(lines, picked))}
+      />
+      <DraftCustomItemDialog
+        open={addingCustom}
+        onOpenChange={setAddingCustom}
+        onAdd={(line) => onChange([...lines, line])}
+      />
     </DataCard>
-  )
-}
-
-function ResultButton({
-  label,
-  result,
-  noPrice,
-  onAdd,
-  inset = false,
-}: {
-  label: string
-  result: Result
-  noPrice: string
-  onAdd: (r: Result) => void
-  inset?: boolean
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => onAdd(result)}
-      className={cn(
-        'flex w-full items-center gap-3 rounded-md px-2 py-2 text-left hover:bg-muted',
-        inset && 'pl-5',
-      )}
-    >
-      <span className="min-w-0 flex-1 truncate text-body">{label}</span>
-      {result.sku ? (
-        <span className="hidden shrink-0 text-caption text-muted-foreground sm:inline">
-          {result.sku}
-        </span>
-      ) : null}
-      <span className="shrink-0 text-body text-muted-foreground tabular-nums">
-        {result.pricePaise == null ? noPrice : formatPaise(result.pricePaise)}
-      </span>
-    </button>
   )
 }

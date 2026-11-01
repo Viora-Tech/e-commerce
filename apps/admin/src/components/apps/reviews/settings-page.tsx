@@ -12,7 +12,9 @@ import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
+import AiSummarySettings from './ai-summary-settings'
 import CollectSettings from './collect-settings'
+import RewardSettings from './reward-settings'
 import ShowSettings from './show-settings'
 
 /** Review settings (Apps, Reviews 20:1408): publishing, who can review, spam, emails, display. */
@@ -79,9 +81,11 @@ export default function SettingsPage() {
       <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-5">
           <CollectSettings value={form} onChange={handlePatch} />
+          <RewardSettings value={form} onChange={handlePatch} />
         </div>
         <div className="flex min-w-0 flex-col gap-5">
           <ShowSettings value={form} storeName={storeName} onChange={handlePatch} />
+          <AiSummarySettings value={form} onChange={handlePatch} />
         </div>
       </div>
     </div>

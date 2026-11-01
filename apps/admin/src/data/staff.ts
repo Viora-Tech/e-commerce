@@ -59,7 +59,9 @@ export const staffContent = {
     saved: 'Role saved',
     confirmDelete: {
       title: 'Delete this role?',
-      body: 'Members on this role must be moved first.',
+      body: 'Nobody is on this role. Deleting it cannot be undone.',
+      hasMembers: (n: number) =>
+        `${n === 1 ? '1 member is' : `${n} members are`} on this role. Move them to another role first.`,
       confirm: 'Delete role',
       cancel: 'Keep role',
     },

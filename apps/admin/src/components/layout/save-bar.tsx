@@ -2,7 +2,9 @@
 
 import { Pencil } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import { useEffect } from 'react'
 import FloatingBar from './floating-bar'
+import LeaveGuard from './leave-guard'
 
 type SaveBarProps = {
   /** Render while the form is dirty; the bar slides in and out on change. */
@@ -29,23 +31,40 @@ export default function SaveBar({
   onDiscard,
   saving = false,
 }: SaveBarProps) {
+  // Hooks
+  // While the bar floats, the page gets room under its last row (admin-frame's `main`), so
+  // the bar never sits on top of what the merchant just added.
+  useEffect(() => {
+    const main = document.getElementById('main')
+    if (!open || !main) return
+    main.dataset.saveBar = ''
+    return () => {
+      delete main.dataset.saveBar
+    }
+  }, [open])
+
   return (
-    <FloatingBar open={open}>
-      <Pencil className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-      <span className="text-caption font-medium whitespace-nowrap text-foreground">{message}</span>
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        className="ml-1 rounded-full"
-        onClick={onDiscard}
-        disabled={saving}
-      >
-        {discardLabel}
-      </Button>
-      <Button type="button" size="sm" className="rounded-full" onClick={onSave} loading={saving}>
-        {saveLabel}
-      </Button>
-    </FloatingBar>
+    <>
+      <LeaveGuard when={open && !saving} />
+      <FloatingBar open={open}>
+        <Pencil className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+        <span className="text-caption font-medium whitespace-nowrap text-foreground">
+          {message}
+        </span>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="ml-1 rounded-full"
+          onClick={onDiscard}
+          disabled={saving}
+        >
+          {discardLabel}
+        </Button>
+        <Button type="button" size="sm" className="rounded-full" onClick={onSave} loading={saving}>
+          {saveLabel}
+        </Button>
+      </FloatingBar>
+    </>
   )
 }

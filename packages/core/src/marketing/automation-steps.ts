@@ -10,6 +10,8 @@ import { WhatsappTemplateRefSchema } from './whatsapp'
 export const AUTOMATION_TRIGGERS = [
   'checkout_abandoned',
   'cart_abandoned',
+  /** A known shopper looked at a product and did not add it to the cart (audit #183). */
+  'browse_abandoned',
   'customer_subscribed',
   'first_order',
   'customer_lapsed',
@@ -64,7 +66,7 @@ export type AutomationStepType = AutomationStep['type']
 export const AutomationStepsSchema = z.array(AutomationStepSchema).max(20)
 
 export const AutomationSettingsSchema = z.object({
-  /** For abandoned carts and checkouts: how long a basket sits before it counts. */
+  /** For abandoned carts, checkouts and browsing: how long it sits quiet before it counts. */
   afterMinutes: z
     .number()
     .int()
@@ -88,6 +90,7 @@ export type AutomationSettings = z.infer<typeof AutomationSettingsSchema>
 export const STOPS_ON_ORDER: Record<AutomationTrigger, boolean> = {
   checkout_abandoned: true,
   cart_abandoned: true,
+  browse_abandoned: true,
   customer_subscribed: true,
   first_order: false,
   customer_lapsed: true,
@@ -98,15 +101,31 @@ export const STOPS_ON_ORDER: Record<AutomationTrigger, boolean> = {
 export const TRIGGER_HAS_CART: Record<AutomationTrigger, boolean> = {
   checkout_abandoned: true,
   cart_abandoned: true,
+  browse_abandoned: false,
   customer_subscribed: false,
   first_order: false,
   customer_lapsed: false,
   cod_order_placed: false,
 }
 
+/**
+ * Triggers that fire once something has sat quiet for `afterMinutes` (a basket, a product
+ * view), with the runner's default when the setting is blank; null for the others.
+ */
+export const TRIGGER_QUIET_MINUTES: Record<AutomationTrigger, number | null> = {
+  checkout_abandoned: 60,
+  cart_abandoned: 120,
+  browse_abandoned: 240,
+  customer_subscribed: null,
+  first_order: null,
+  customer_lapsed: null,
+  cod_order_placed: null,
+}
+
 export type AutomationTemplateId =
   | 'abandoned_checkout'
   | 'abandoned_cart'
+  | 'browse_abandoned'
   | 'welcome_subscriber'
   | 'first_purchase'
   | 'win_back'
@@ -185,7 +204,14 @@ export const AUTOMATION_TEMPLATES: AutomationTemplate[] = [
             'Your basket is still saved. Here is a code for your order, on us.',
             'Come back for less',
           ),
-          { id: 'b3', type: 'discount', code: '', heading: 'Your code', note: '' },
+          {
+            id: 'b3',
+            type: 'discount',
+            code: '',
+            heading: 'Your code',
+            note: 'Works once, for the next 3 days.',
+            unique: { percent: 10, days: 3 },
+          },
           { id: 'b4', type: 'cart' },
           button('b5', 'Complete your order', '{checkout_url}'),
         ],
@@ -219,6 +245,31 @@ export const AUTOMATION_TEMPLATES: AutomationTemplate[] = [
     ],
   },
   {
+    id: 'browse_abandoned',
+    trigger: 'browse_abandoned',
+    name: 'Browse abandonment',
+    description:
+      'Customers who looked at a product but did not add it to their cart get a reminder of it a few hours later. One per product a week.',
+    settings: { afterMinutes: 240, audience: 'subscribed' },
+    steps: [
+      {
+        id: 'email-1',
+        type: 'email',
+        subject: 'Still thinking about {product_title}?',
+        previewText: 'It is still here when you are ready.',
+        blocks: [
+          header('b1'),
+          text(
+            'b2',
+            'Hi {first_name}, you were looking at {product_title} ({product_price}) at {store_name}. It is still here when you are ready.',
+            'Still thinking about {product_title}?',
+          ),
+          button('b3', 'Take another look', '{product_url}'),
+        ],
+      },
+    ],
+  },
+  {
     id: 'welcome_subscriber',
     trigger: 'customer_subscribed',
     name: 'Welcome new subscribers',
@@ -237,7 +288,14 @@ export const AUTOMATION_TEMPLATES: AutomationTemplate[] = [
             'Thanks for joining us. You will be the first to hear about launches, restocks and offers.',
             'Welcome aboard',
           ),
-          { id: 'b3', type: 'discount', code: '', heading: 'Your welcome code', note: '' },
+          {
+            id: 'b3',
+            type: 'discount',
+            code: '',
+            heading: 'Your welcome code',
+            note: 'Works once, on your first order, for 14 days.',
+            unique: { percent: 10, days: 14 },
+          },
           button('b4', 'Start shopping', '{shop_url}'),
         ],
       },
@@ -289,7 +347,14 @@ export const AUTOMATION_TEMPLATES: AutomationTemplate[] = [
             'It has been a while. A lot has changed, come and see what is new.',
             'It has been a while',
           ),
-          { id: 'b3', type: 'discount', code: '', heading: 'Welcome back code', note: '' },
+          {
+            id: 'b3',
+            type: 'discount',
+            code: '',
+            heading: 'Welcome back code',
+            note: 'Works once, for the next 14 days.',
+            unique: { percent: 15, days: 14 },
+          },
           button('b4', 'See what is new', '{shop_url}'),
         ],
       },

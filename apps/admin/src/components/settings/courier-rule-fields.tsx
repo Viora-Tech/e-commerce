@@ -14,6 +14,7 @@ import {
 } from '@commerce/ui/shadcn/select'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import AppStoreLink from '@/components/apps/app-store-link'
 import DataCard from '@/components/layout/data-card'
 import { shippingSettingsContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
@@ -220,14 +221,21 @@ export default function CourierRuleFields({ value, onChange }: CourierRuleFields
             ) : null}
           </FieldGroup>
         )}
-        <Button
-          variant="outline"
-          className="w-fit self-end"
-          nativeButton={false}
-          render={<Link href={routes.apps.list()} />}
-        >
-          {copy.manage}
-        </Button>
+        {/* No courier yet: the App Store's courier apps (Installed apps would list none). */}
+        {couriers !== null && couriers.length === 0 ? (
+          <AppStoreLink category="shipping" className="w-fit self-end">
+            {copy.manage}
+          </AppStoreLink>
+        ) : (
+          <Button
+            variant="outline"
+            className="w-fit self-end"
+            nativeButton={false}
+            render={<Link href={routes.apps.list()} />}
+          >
+            {copy.manage}
+          </Button>
+        )}
       </div>
     </DataCard>
   )

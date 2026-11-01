@@ -7,14 +7,13 @@ import {
   formErrors,
   fromProduct,
   type LoadedProduct,
-  matrixOptions,
   type OptionRow,
-  reconcileVariants,
   stockOf,
   suggestSku,
   toWrite,
   type VariantRow,
 } from './form-state'
+import { matrixOptions, reconcileVariants } from './variant-reconcile'
 
 function variant(optionValues: string[], patch: Partial<VariantRow> = {}): VariantRow {
   return {

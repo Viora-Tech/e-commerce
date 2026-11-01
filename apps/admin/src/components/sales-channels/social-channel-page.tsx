@@ -207,7 +207,7 @@ export default function SocialChannelPage({ data, issues }: SocialChannelPagePro
           {
             id: 'revenue',
             label: copy.stats.revenue(name),
-            value: format.money(totals.revenuePaise),
+            value: format.moneyWhole(totals.revenuePaise),
             trend: percent(totals.revenuePaise, totals.prevRevenuePaise),
             trendNote: shared.vsLast,
           },
@@ -222,8 +222,8 @@ export default function SocialChannelPage({ data, issues }: SocialChannelPagePro
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
         <div className="flex flex-col gap-4">
           <DataCard
-            title={copy.beforeHeading}
-            subtitle={copy.beforeBody(info.partner)}
+            title={isLive(state) ? copy.fixHeading : copy.beforeHeading}
+            subtitle={isLive(state) ? copy.fixBody(info.partner) : copy.beforeBody(info.partner)}
             count={blocking.length}
             flush
             action={
@@ -249,10 +249,12 @@ export default function SocialChannelPage({ data, issues }: SocialChannelPagePro
                     kind={i.kind === 'policy' ? shared.readiness.policy : shared.readiness.product}
                     detail={
                       i.rule === 'short_description'
-                        ? shared.readiness.rules.short_description(i.n ?? 0)
+                        ? copy.rules.short_description(info.partner, i.n ?? 0)
                         : i.rule === 'few_images'
-                          ? shared.readiness.rules.few_images(i.n ?? 0)
-                          : shared.readiness.rules[i.rule]
+                          ? copy.rules.few_images(info.partner, i.n ?? 0)
+                          : i.rule === 'no_images' || i.rule === 'no_category'
+                            ? shared.readiness.rules[i.rule]
+                            : copy.rules[i.rule](info.partner)
                     }
                     action={
                       <KitButton
@@ -275,7 +277,7 @@ export default function SocialChannelPage({ data, issues }: SocialChannelPagePro
           </DataCard>
           <ChartCard
             title={copy.salesHeading(name)}
-            subtitle={copy.salesSub(format.money(totals.revenuePaise))}
+            subtitle={copy.salesSub(format.moneyWhole(totals.revenuePaise))}
             periods={[
               {
                 id: '30d',

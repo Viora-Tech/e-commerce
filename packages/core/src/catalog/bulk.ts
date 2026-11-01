@@ -2,6 +2,7 @@
 import type { StoreTx } from '@commerce/db'
 import {
   product,
+  productMedia,
   productOption,
   productOptionValue,
   sellableStock,
@@ -240,10 +241,32 @@ async function optionsOf(tx: StoreTx, productId: string, variantIds: string[]) {
   }
 }
 
+/** What a duplicate takes along besides the text, prices and variants (audit #136). */
+export type DuplicateOptions = {
+  /** The product's photos and each variant's main image (default on, like Shopify). */
+  photos: boolean
+  /** The stock on hand; off starts the copy at zero so nothing sells twice (default off). */
+  stock: boolean
+}
+
 /** Copy a product, its options and variants under a free handle, as a draft. */
-export async function duplicateProduct(tx: StoreTx, storeId: string, id: string): Promise<string> {
+export async function duplicateProduct(
+  tx: StoreTx,
+  storeId: string,
+  id: string,
+  opts: DuplicateOptions = { photos: true, stock: false },
+): Promise<string> {
   const [source] = await tx.select().from(product).where(eq(product.id, id))
   if (!source) throw new Error('Product not found')
+  const photos = opts.photos
+    ? (
+        await tx
+          .select({ mediaId: productMedia.mediaId })
+          .from(productMedia)
+          .where(eq(productMedia.productId, id))
+          .orderBy(asc(productMedia.position))
+      ).map((m) => m.mediaId)
+    : []
   const variants = (
     await tx.select().from(variant).where(eq(variant.productId, id)).orderBy(asc(variant.position))
   ).filter((v) => v.archivedAt === null)
@@ -278,6 +301,7 @@ export async function duplicateProduct(tx: StoreTx, storeId: string, id: string)
     seoKeywords: source.seoKeywords,
     status: 'draft',
     inventoryReason: 'correction',
+    ...(photos.length ? { mediaIds: photos } : {}),
     options,
     variants: variants.map((v) => ({
       optionValues: valuesFor(v.id),
@@ -294,7 +318,8 @@ export async function duplicateProduct(tx: StoreTx, storeId: string, id: string)
       packageLengthCm: v.packageLengthCm,
       packageWidthCm: v.packageWidthCm,
       packageHeightCm: v.packageHeightCm,
-      onHand: levels.find((l) => l.variantId === v.id)?.onHand ?? 0,
+      onHand: opts.stock ? (levels.find((l) => l.variantId === v.id)?.onHand ?? 0) : 0,
+      ...(opts.photos && v.mediaId ? { mediaId: v.mediaId } : {}),
     })),
   })
 }

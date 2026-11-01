@@ -57,6 +57,7 @@ import {
   tryEstimate,
   updateStoreShipping,
   verifyShippingCredentials,
+  withOrigin,
 } from '../services/shipping.service'
 import {
   getStore,
@@ -67,7 +68,7 @@ import {
   updateStorePreferences,
   updateStorePreorder,
 } from '../services/store.service'
-import { storeHealth } from '../services/store-health.service'
+import { savedOriginPincode, storeHealth } from '../services/store-health.service'
 
 const previousSecrets = () => parsePreviousSecrets(loadEnv(process.env).SETTINGS_SECRET_PREVIOUS)
 
@@ -349,17 +350,35 @@ export const storeRouter = {
         previousSecrets(),
       ),
       available: availableProviders(shipping),
+      // The parser fills 110001 when nothing was saved; the page must not show that as set (#66).
+      originSaved: savedOriginPincode(s?.shipping) !== null,
     }
   }),
 
   updateShipping: can(permissions.SETTINGS_MANAGE)
-    .input(ShippingSettingsSchema)
+    .input(
+      ShippingSettingsSchema.extend({
+        /** The merchant set the ship-from PIN code (saved before, or typed on the page). */
+        originPincodeSet: z.boolean().optional(),
+      }),
+    )
     .handler(async ({ context, input }) => {
-      const current = parseShippingSettings(
-        (await getStore(context.tx, context.scope.storeId))?.shipping,
-      )
+      const { originPincodeSet, ...settings } = input
+      const raw = (await getStore(context.tx, context.scope.storeId))?.shipping
+      const current = parseShippingSettings(raw)
       const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
-      const next = prepareProviderSettings(input, current, shipping, settingsSecret(), 'courier')
+      const prepared = prepareProviderSettings(
+        settings,
+        current,
+        shipping,
+        settingsSecret(),
+        'courier',
+      )
+      const next = await withOrigin(
+        context.tx,
+        prepared,
+        originPincodeSet === true || savedOriginPincode(raw) !== null,
+      )
       const saved = await updateStoreShipping(context.tx, context.scope.storeId, next)
       return saved
         ? presentProviderSettings(
@@ -402,6 +421,7 @@ export const storeRouter = {
   testShadowfaxConnection: courierConnectionTest('shadowfax'),
   testDhlExpressConnection: courierConnectionTest('dhl-express'),
   testFedexConnection: courierConnectionTest('fedex'),
+  testShipglobalConnection: courierConnectionTest('shipglobal'),
 
   /**
    * The Decentro Connect page's "Test connection": the form's values (a

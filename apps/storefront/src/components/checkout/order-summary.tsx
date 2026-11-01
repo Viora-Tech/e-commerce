@@ -74,11 +74,12 @@ export default function OrderSummary({ order: o, lines, images, giftCards }: Ord
               label={
                 <span className="flex flex-col gap-0.5">
                   {content.total}
-                  <span className="text-[0.75rem] font-normal text-ck-summary-muted">
-                    {o.taxPaise > 0
-                      ? checkoutContent.taxesIncluded(formatPaise(o.taxPaise))
-                      : checkoutContent.taxes}
-                  </span>
+                  {/* No GST on the order (an export abroad): no "Inclusive of all taxes" claim (#210). */}
+                  {o.taxPaise > 0 ? (
+                    <span className="text-[0.75rem] font-normal text-ck-summary-muted">
+                      {checkoutContent.taxesIncluded(formatPaise(o.taxPaise))}
+                    </span>
+                  ) : null}
                 </span>
               }
               value={

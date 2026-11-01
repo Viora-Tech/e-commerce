@@ -7,20 +7,17 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import RangePicker from '@/components/analytics/range-picker'
 import PageBody from '@/components/layout/page-body'
+import PageHeader from '@/components/layout/page-header'
 import { growthHomeContent } from '@/data/growth-home'
 import { useCopy } from '@/hooks/use-copy'
 import { type RangeState, rangeQuery, sameRange } from '@/lib/analytics-range'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import GrowthKpiStrip from './growth-kpi-strip'
-import AttributedSalesCard from './overview/attributed-sales-card'
 import AutopilotHero from './overview/autopilot-hero'
 import AutopilotStrip from './overview/autopilot-strip'
-import ChannelsChartCard from './overview/channels-chart-card'
 import RecentCampaignsCard from './overview/recent-campaigns-card'
-import SessionsCard from './overview/sessions-card'
 import TopSourceCards from './overview/top-source-cards'
-import TrafficTypeCard from './overview/traffic-type-card'
 import RecommendationsCard from './recommendations-card'
 
 type GrowthOverviewPageProps = {
@@ -32,11 +29,9 @@ type GrowthOverviewPageProps = {
 }
 
 /**
- * Growth overview, laid out like Shopify's: the Autopilot banner, Performance for the picked
- * range (the tiles with sparklines, sales attributed to marketing and sessions over time
- * against the period before, top channels, sessions by traffic type, the top four sources),
- * recommendations, the Autopilot strip and the recent campaigns.
- * The full report is Attribution ("View details").
+ * Growth overview: the page title, the Autopilot banner, a short Performance summary for the
+ * picked range (the tiles and the top four sources), recommendations, the Autopilot strip and
+ * the recent campaigns. The charts are on Attribution only ("View details", audit #152).
  */
 export default function GrowthOverviewPage({
   initialRange,
@@ -78,40 +73,30 @@ export default function GrowthOverviewPage({
   }
 
   // Render logic
-  const kpi = (id: string) => data.kpis.find((k) => k.id === id)
+  const attribution = `${routes.growth.attribution()}${rangeQuery(range)}`
 
   return (
     <PageBody className="gap-8 md:pt-5 md:pb-8">
-      <h1 className="sr-only">{copy.title}</h1>
+      <PageHeader title={copy.title} summary={copy.summary} />
       <AutopilotHero enabled={autopilot.enabled} waiting={autopilot.waiting} />
       <section className="flex flex-col gap-4" aria-busy={loading || undefined}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-body-strong text-foreground">{copy.performance.title}</h2>
           <div className="flex flex-wrap items-center gap-2">
             <RangePicker value={range} onChange={handleRange} />
-            <Button
-              variant="ghost"
-              render={<Link href={`${routes.growth.attribution()}${rangeQuery(range)}`} />}
-              nativeButton={false}
-            >
+            <Button variant="ghost" render={<Link href={attribution} />} nativeButton={false}>
               {copy.performance.viewDetails}
             </Button>
           </div>
         </div>
         <GrowthKpiStrip kpis={data.kpis} loading={loading} />
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <AttributedSalesCard
-            attributed={kpi('attributed_sales')}
-            total={kpi('total_sales')}
-            days={data.range.days}
-          />
-          <SessionsCard sessions={kpi('sessions')} days={data.range.days} />
-        </div>
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <ChannelsChartCard channels={data.channels} />
-          <TrafficTypeCard counts={data.trafficTypes} />
-        </div>
         <TopSourceCards sources={data.sources} />
+        <p className="text-caption text-muted-foreground">
+          {copy.performance.more}{' '}
+          <Link href={attribution} className="text-foreground underline underline-offset-2">
+            {copy.performance.open}
+          </Link>
+        </p>
       </section>
       <RecommendationsCard initial={recommendations} />
       <AutopilotStrip enabled={autopilot.enabled} waiting={autopilot.waiting} />

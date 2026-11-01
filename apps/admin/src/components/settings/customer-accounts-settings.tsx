@@ -24,10 +24,12 @@ import {
   LOGIN_METHOD_COPY,
   PROVIDER_COPY,
 } from '@/data/customer-accounts'
-import { SETTINGS_BACK, settingsContent } from '@/data/settings'
+import { settingsContent } from '@/data/settings'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import SettingsCard from './settings-card'
+import SettingsDrill from './settings-drill'
+import SettingsDrillPanel from './settings-drill-panel'
 import SettingsToggleRow from './settings-toggle-row'
 
 type Loaded = {
@@ -96,6 +98,8 @@ export default function CustomerAccountsSettings() {
     }
   }
 
+  const listOr = (names: string[]) => (names.length ? names.join(', ') : copy.rows.none)
+
   // Early returns
   if (failed) return <p className="text-body text-muted-foreground">{copy.loadFailed}</p>
 
@@ -104,6 +108,31 @@ export default function CustomerAccountsSettings() {
   const none = form !== null && form.loginMethods.length === 0
   const stale = loaded?.unavailable ?? []
   const hidden = loaded?.needsSetup ?? []
+  const rows = form
+    ? [
+        {
+          id: 'checkout',
+          title: copy.checkout.heading,
+          value: form.checkout === 'account_required' ? copy.rows.required : copy.rows.guest,
+        },
+        {
+          id: 'sign-in',
+          title: copy.methods.heading,
+          value: listOr(form.loginMethods.map((m) => LOGIN_METHOD_COPY[m].label)),
+        },
+        {
+          id: 'providers',
+          title: copy.providers.heading,
+          value: listOr(
+            (Object.keys(form.providers) as LoginProvider[])
+              .filter((p) => form.providers[p].enabled)
+              .map((p) => PROVIDER_COPY[p].label),
+          ),
+        },
+        { id: 'more-sign-in', title: copy.extras.heading, value: copy.rows.extrasValue },
+        { id: 'deletion', title: copy.deletion.heading, value: copy.rows.deletionValue },
+      ]
+    : []
 
   return (
     <div className="flex flex-col gap-4">
@@ -119,86 +148,96 @@ export default function CustomerAccountsSettings() {
       <PageHeader
         title={copy.title}
         subtitle={copy.subtitle}
-        back={SETTINGS_BACK}
         save={{ dirty: dirty && !none, saving: busy, onSave: handleSave, label: copy.save }}
       />
       {!form || !loaded ? (
         <Skeleton className="h-96 w-full rounded-2xl" />
       ) : (
-        <>
-          <SettingsCard id="checkout" title={copy.checkout.heading}>
-            <ChoiceList
-              name="account-checkout"
-              value={form.checkout}
-              onChange={(v) =>
-                setForm({
-                  ...form,
-                  checkout: v === 'account_required' ? 'account_required' : 'guest',
-                })
-              }
-              choices={[
-                { value: 'guest', ...copy.checkout.choices.guest },
-                { value: 'account_required', ...copy.checkout.choices.account_required },
-              ]}
+        <SettingsDrill rows={rows} backLabel={copy.rows.back}>
+          <SettingsDrillPanel id="checkout">
+            <SettingsCard title={copy.checkout.heading}>
+              <ChoiceList
+                name="account-checkout"
+                value={form.checkout}
+                onChange={(v) =>
+                  setForm({
+                    ...form,
+                    checkout: v === 'account_required' ? 'account_required' : 'guest',
+                  })
+                }
+                choices={[
+                  { value: 'guest', ...copy.checkout.choices.guest },
+                  { value: 'account_required', ...copy.checkout.choices.account_required },
+                ]}
+              />
+              {loaded.available.length === 0 ? (
+                <p className="pt-3 text-caption text-muted-foreground">{copy.checkout.noSender}</p>
+              ) : null}
+            </SettingsCard>
+          </SettingsDrillPanel>
+
+          <SettingsDrillPanel id="sign-in">
+            <SettingsCard title={copy.methods.heading} description={copy.methods.body}>
+              {LOGIN_METHODS.map((m) => {
+                const can = loaded.available.includes(m)
+                const text = LOGIN_METHOD_COPY[m]
+                return (
+                  <SettingsToggleRow
+                    key={m}
+                    id={`login-${m}`}
+                    label={
+                      <>
+                        {text.label}
+                        {can ? null : <Badge variant="neutral">{copy.methods.unavailable}</Badge>}
+                      </>
+                    }
+                    description={can ? text.hint : text.needs}
+                    checked={form.loginMethods.includes(m)}
+                    disabled={!can && !form.loginMethods.includes(m)}
+                    onChange={(on) => toggle(m, on)}
+                  />
+                )
+              })}
+              <div className="flex flex-col gap-3 pt-3 empty:hidden">
+                {stale.length > 0 ? (
+                  <p className="text-caption text-warning-foreground dark:text-warning">
+                    {copy.methods.stillOn(stale.map((m) => LOGIN_METHOD_COPY[m].label).join(', '))}
+                  </p>
+                ) : null}
+                {none ? (
+                  <p className="text-caption text-destructive">{copy.methods.needOne}</p>
+                ) : null}
+                {loaded.available.length < LOGIN_METHODS.length ? (
+                  <Button
+                    variant="outline"
+                    className="w-fit"
+                    render={<Link href={routes.settings.notifications()} />}
+                    nativeButton={false}
+                  >
+                    {copy.methods.turnOnApp}
+                  </Button>
+                ) : null}
+              </div>
+            </SettingsCard>
+          </SettingsDrillPanel>
+
+          <SettingsDrillPanel id="providers">
+            <SignInProvidersCard
+              form={form}
+              onChange={setForm}
+              readiness={loaded.readiness}
+              onSetUp={setSetupFor}
             />
-          </SettingsCard>
+            {hidden.length > 0 ? (
+              <p className="text-caption text-warning-foreground dark:text-warning">
+                {copy.providers.stillHidden(hidden.map((p) => PROVIDER_COPY[p].label).join(', '))}
+              </p>
+            ) : null}
+          </SettingsDrillPanel>
 
-          <SettingsCard id="sign-in" title={copy.methods.heading} description={copy.methods.body}>
-            {LOGIN_METHODS.map((m) => {
-              const can = loaded.available.includes(m)
-              const text = LOGIN_METHOD_COPY[m]
-              return (
-                <SettingsToggleRow
-                  key={m}
-                  id={`login-${m}`}
-                  label={
-                    <>
-                      {text.label}
-                      {can ? null : <Badge variant="neutral">{copy.methods.unavailable}</Badge>}
-                    </>
-                  }
-                  description={can ? text.hint : text.needs}
-                  checked={form.loginMethods.includes(m)}
-                  disabled={!can && !form.loginMethods.includes(m)}
-                  onChange={(on) => toggle(m, on)}
-                />
-              )
-            })}
-            <div className="flex flex-col gap-3 pt-3 empty:hidden">
-              {stale.length > 0 ? (
-                <p className="text-caption text-warning-foreground dark:text-warning">
-                  {copy.methods.stillOn(stale.map((m) => LOGIN_METHOD_COPY[m].label).join(', '))}
-                </p>
-              ) : null}
-              {none ? (
-                <p className="text-caption text-destructive">{copy.methods.needOne}</p>
-              ) : null}
-              {loaded.available.length < LOGIN_METHODS.length ? (
-                <Button
-                  variant="outline"
-                  className="w-fit"
-                  render={<Link href={routes.settings.notifications()} />}
-                  nativeButton={false}
-                >
-                  {copy.methods.turnOnApp}
-                </Button>
-              ) : null}
-            </div>
-          </SettingsCard>
-
-          <SignInProvidersCard
-            form={form}
-            onChange={setForm}
-            readiness={loaded.readiness}
-            onSetUp={setSetupFor}
-          />
-          {hidden.length > 0 ? (
-            <p className="text-caption text-warning-foreground dark:text-warning">
-              {copy.providers.stillHidden(hidden.map((p) => PROVIDER_COPY[p].label).join(', '))}
-            </p>
-          ) : null}
-
-          <SignInExtrasCard form={form} onChange={setForm} />
+          <SettingsDrillPanel id="more-sign-in">
+            <SignInExtrasCard form={form} onChange={setForm} />
+          </SettingsDrillPanel>
 
           <LoginAppDialog
             key={setupFor ?? 'closed'}
@@ -212,17 +251,19 @@ export default function CustomerAccountsSettings() {
             onSaved={reloadApps}
           />
 
-          <SettingsCard title={copy.deletion.heading} description={copy.deletion.body}>
-            <Button
-              variant="outline"
-              className="self-end"
-              render={<Link href={routes.settings.privacy()} />}
-              nativeButton={false}
-            >
-              {copy.deletion.link}
-            </Button>
-          </SettingsCard>
-        </>
+          <SettingsDrillPanel id="deletion">
+            <SettingsCard title={copy.deletion.heading} description={copy.deletion.body}>
+              <Button
+                variant="outline"
+                className="self-end"
+                render={<Link href={routes.settings.privacy()} />}
+                nativeButton={false}
+              >
+                {copy.deletion.link}
+              </Button>
+            </SettingsCard>
+          </SettingsDrillPanel>
+        </SettingsDrill>
       )}
     </div>
   )

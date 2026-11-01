@@ -1,4 +1,6 @@
 import { z } from 'zod'
+import type { LocalOptionInfo } from './local-options'
+import type { ShippingOptionPart } from './profiles'
 
 /**
  * Shipping rates: which zone an address falls in and what each of its rates
@@ -37,13 +39,41 @@ export type ShippingZoneRateInput = {
 export type ShippingZoneInput = {
   id: string
   name: string
+  /**
+   * ISO 3166-1 countries the zone ships to; `*` is "Rest of world" (every country no other
+   * zone names). Left out or empty means `['IN']`, the zone as it was before country zones.
+   * The states and PIN code rules below only narrow the India part.
+   */
+  countryCodes?: readonly string[] | undefined
   stateCodes: readonly string[]
   pincodeRules: readonly PincodeRule[]
   position: number
   rates: readonly ShippingZoneRateInput[]
 }
 
-export type ShippingDestination = { stateCode: string | null | undefined; pincode: string }
+export type ShippingDestination = {
+  stateCode: string | null | undefined
+  /** A PIN code in India; the postcode as typed elsewhere (not matched by any rule). */
+  pincode: string
+  /** ISO 3166-1 country; left out or blank means India. */
+  countryCode?: string | null | undefined
+}
+
+/** A zone's "Rest of world" entry: every country no other zone names. */
+export const REST_OF_WORLD = '*'
+export const HOME_COUNTRY = 'IN'
+
+/** The zone's countries, `['IN']` when it names none (zones made before country zones). */
+export const zoneCountries = (zone: Pick<ShippingZoneInput, 'countryCodes'>): readonly string[] =>
+  zone.countryCodes && zone.countryCodes.length > 0 ? zone.countryCodes : [HOME_COUNTRY]
+
+/** The destination's country, upper-cased; India when none was given. */
+export const destinationCountry = (to: Pick<ShippingDestination, 'countryCode'>): string =>
+  to.countryCode?.trim().toUpperCase() || HOME_COUNTRY
+
+/** Whether the zone ships to India at all (states and PIN rules apply only then). */
+export const zoneCoversIndia = (zone: Pick<ShippingZoneInput, 'countryCodes'>): boolean =>
+  zoneCountries(zone).includes(HOME_COUNTRY)
 
 export type ShippingCartMeasure = {
   /** Goods after discounts, before the payment fee and shipping. */
@@ -63,6 +93,10 @@ export type ShippingRateOption = {
   codSurchargePaise: number | null
   minTransitDays: number | null
   maxTransitDays: number | null
+  /** A cart from several shipping profiles: the rate each profile's products ship at (`profiles.ts`). */
+  parts?: ShippingOptionPart[] | undefined
+  /** Local delivery or pickup in store at a location (`local-options.ts`); no rate row. */
+  local?: LocalOptionInfo | undefined
 }
 
 /** A rule pattern: six digits, or 1 to 5 digits followed by `*`. */
@@ -86,14 +120,27 @@ function ruleScore(pattern: string): number {
 
 /**
  * Specificity of `zone` for `to`, or null when the zone does not cover it.
- * An exclude rule always wins inside its zone: `560*` included and `560100`
- * excluded ships to every 560 code but that one. A zone with no states and
- * no include rules is the rest of India.
+ *
+ * In India (every zone before country zones): an exclude rule always wins inside its zone:
+ * `560*` included and `560100` excluded ships to every 560 code but that one. A zone with no
+ * states and no include rules is the rest of India (0). A "Rest of world" zone that does not
+ * name India still covers it, below every Indian zone (-1).
+ *
+ * Abroad: a zone naming the country scores 1, a "Rest of world" zone 0. States and PIN code
+ * rules never apply outside India.
  */
 export function zoneScore(
-  zone: Pick<ShippingZoneInput, 'stateCodes' | 'pincodeRules'>,
+  zone: Pick<ShippingZoneInput, 'stateCodes' | 'pincodeRules' | 'countryCodes'>,
   to: ShippingDestination,
-) {
+): number | null {
+  const countries = zoneCountries(zone)
+  const country = destinationCountry(to)
+  const restOfWorld = countries.includes(REST_OF_WORLD)
+  if (country !== HOME_COUNTRY) {
+    if (countries.includes(country)) return 1
+    return restOfWorld ? 0 : null
+  }
+  if (!countries.includes(HOME_COUNTRY)) return restOfWorld ? -1 : null
   // One spelling of the PIN code (`560 100`, `560-100`) for every rule (security audit
   // 2026-09-28 branch, ported 2026-10-06: a space dodged an exclude rule).
   const pin = to.pincode.replace(/[\s-]/g, '')
@@ -201,14 +248,16 @@ export function quoteShipping(
 /**
  * The order value from which shipping is free wherever the parcel goes, for
  * the cart's "Add ₹X for free shipping" line. Only a promise that holds for
- * every address counts: each zone needs a rate with no weight condition that
+ * every address in India counts: each zone needs a rate with no weight condition that
  * turns free, and the answer is the highest of those zones' thresholds. Null
  * when any zone has none (the cart then says shipping is worked out at checkout).
  */
 export function freeShippingThreshold(zones: readonly ShippingZoneInput[]): number | null {
-  if (zones.length === 0) return null
+  // The cart line speaks to shoppers in India: zones abroad (country zones) do not count.
+  const domestic = zones.filter(zoneCoversIndia)
+  if (domestic.length === 0) return null
   let threshold = 0
-  for (const zone of zones) {
+  for (const zone of domestic) {
     const free = zone.rates
       .filter((r) => r.condition !== 'weight' && r.freeAbovePaise !== null)
       .map((r) => r.freeAbovePaise as number)
@@ -257,6 +306,20 @@ export type ShippingRateWrite = z.infer<typeof ShippingRateWriteSchema>
 
 export const ShippingZoneWriteSchema = z.object({
   name: z.string().trim().min(1, 'Give the zone a name').max(80),
+  /** The shipping profile a new zone belongs to; omitted means General. Ignored on update. */
+  profileId: z.uuid().nullable().optional(),
+  /** `['IN']` is the zone as it always was; other ISO codes and `*` (Rest of world) ship abroad. */
+  countryCodes: z
+    .array(
+      z
+        .string()
+        .trim()
+        .toUpperCase()
+        .regex(/^(?:[A-Z]{2}|\*)$/),
+    )
+    .min(1, 'Pick at least one country')
+    .max(250)
+    .default([HOME_COUNTRY]),
   stateCodes: z
     .array(
       z

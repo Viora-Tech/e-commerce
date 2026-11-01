@@ -30,7 +30,7 @@ type Loaded = Awaited<ReturnType<typeof api.account.notifications>>
 type Form = MemberAlertPrefsInput
 type Channel = 'email' | 'whatsapp'
 
-/** Alerts the worker sends today; the rest are saved for when their senders land. */
+/** Alerts the worker sends today; the rest show off and disabled until their senders land (#79). */
 const WIRED: ReadonlySet<string> = new Set(['newOrder', 'dailySummary', 'bugReports'])
 const HOURS = Array.from({ length: 24 }, (_, h) => h)
 
@@ -198,9 +198,9 @@ export default function NotificationsPage() {
                     >
                       <Switch
                         id={`alert-${alert}-${channel}`}
-                        checked={form[alert][channel]}
+                        checked={WIRED.has(alert) && form[alert][channel]}
                         onCheckedChange={(on) => handleSwitch(alert, channel, on)}
-                        disabled={channel === 'whatsapp' && !loaded.hasPhone}
+                        disabled={!WIRED.has(alert) || (channel === 'whatsapp' && !loaded.hasPhone)}
                       />
                       {copy.channels[channel]}
                     </Label>

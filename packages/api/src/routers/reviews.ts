@@ -1,15 +1,25 @@
-import { CommerceError, enqueueAppJob, permissions } from '@commerce/core'
+import { loadEnv, settingsSecret } from '@commerce/config'
+import { CommerceError, enqueueAppJob, permissions, storefrontOriginFor } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import {
+  ANSWER_MAX,
+  answerQuestion,
   askForRecentReviews,
+  askPastOrders,
   COPY_PHOTOS_JOB,
+  deleteQuestions,
   deleteReviews,
   getReview,
   importJudgemeReviews,
   JUDGEME_MAX_BYTES,
+  listQuestions,
   listReviews,
   loadReviewsSettings,
+  markSummariesStale,
+  parseQrTarget,
   previewJudgemeImport,
+  previewPastOrders,
+  QUESTION_STATUSES,
   REPLY_MAX,
   REVIEW_SOURCES,
   REVIEW_STATUSES,
@@ -17,11 +27,18 @@ import {
   ReviewsSettingsSchema,
   replyToReview,
   reviewedProducts,
+  reviewQrLinks,
   reviewStats,
   reviewsState,
+  rewardPhotoReviews,
   saveReviewsSettings,
+  setQuestionStatus,
   setReviewFeatured,
   setReviewStatus,
+  storeWidgetReviews,
+  summaryState,
+  WIDGET_PRODUCTS_MAX,
+  WIDGET_REVIEWS_MAX,
 } from '@commerce/plugin-reviews/server'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
@@ -45,7 +62,27 @@ function notFound(err: unknown): never {
   throw err
 }
 
+/** A plain CommerceError from the past-orders tools, as the API's error. */
+function askError(err: unknown): never {
+  if (err instanceof CommerceError && err.code === 'REVIEW_EMAILS_OFF') {
+    throw new ORPCError('PRECONDITION_FAILED', { message: err.message })
+  }
+  if (err instanceof CommerceError && err.code === 'REVIEW_RANGE_INVALID') {
+    throw new ORPCError('BAD_REQUEST', { message: err.message })
+  }
+  throw err
+}
+
 const Ids = z.object({ ids: z.array(z.uuid()).min(1).max(BULK_MAX) })
+/** The merchant's date range, start of the first day to end of the last, in their time zone. */
+const PastRange = z.object({
+  from: z.iso.datetime({ offset: true }),
+  to: z.iso.datetime({ offset: true }),
+})
+const pastRange = (input: z.infer<typeof PastRange>) => ({
+  from: new Date(input.from),
+  to: new Date(input.to),
+})
 const Csv = z.string().min(1).max(JUDGEME_MAX_BYTES)
 
 export const reviewsRouter = {
@@ -100,7 +137,14 @@ export const reviewsRouter = {
     .input(Ids.extend({ status: z.enum(REVIEW_STATUSES) }))
     .handler(async ({ context, input }) => {
       await requireInstalled(context)
-      return { updated: await setReviewStatus(context.tx, input.ids, input.status) }
+      const { storeId } = context.scope
+      const updated = await setReviewStatus(context.tx, input.ids, input.status)
+      if (input.status === 'published') {
+        // Photo reviews approved now earn the reward code, when the store offers one.
+        const settings = await loadReviewsSettings(context.tx, storeId)
+        await rewardPhotoReviews(context.tx, storeId, input.ids, settings)
+      }
+      return { updated }
     }),
 
   delete: can(permissions.PRODUCTS_WRITE)
@@ -144,6 +188,133 @@ export const reviewsRouter = {
       throw err
     }
   }),
+
+  /** "Request reviews from past orders": how many delivered orders in the range would be asked. */
+  pastOrdersPreview: can(permissions.PRODUCTS_WRITE)
+    .input(PastRange)
+    .handler(async ({ context, input }) => {
+      await requireInstalled(context)
+      const settings = await loadReviewsSettings(context.tx, context.scope.storeId)
+      return previewPastOrders(context.tx, settings, pastRange(input)).catch(askError)
+    }),
+
+  /** Plans the requests the preview counted, a batch an hour, after any still waiting. */
+  askPastOrders: can(permissions.PRODUCTS_WRITE)
+    .input(PastRange)
+    .handler(async ({ context, input }) => {
+      await requireInstalled(context)
+      const settings = await loadReviewsSettings(context.tx, context.scope.storeId)
+      return askPastOrders(context.tx, context.scope.storeId, settings, pastRange(input)).catch(
+        askError,
+      )
+    }),
+
+  /** A product's AI review summary for its Reviews card; `enabled` false when summaries are off. */
+  summary: can(permissions.PRODUCTS_READ)
+    .input(z.object({ productId: z.uuid() }))
+    .handler(async ({ context, input }) => {
+      await requireInstalled(context)
+      const settings = await loadReviewsSettings(context.tx, context.scope.storeId)
+      return {
+        enabled: settings.aiSummary.enabled,
+        summary: await summaryState(context.tx, input.productId),
+      }
+    }),
+
+  /** "Refresh": the worker writes the product's summary again on its next tick. */
+  refreshSummary: can(permissions.PRODUCTS_WRITE)
+    .input(z.object({ productId: z.uuid() }))
+    .handler(async ({ context, input }) => {
+      await requireInstalled(context)
+      await markSummariesStale(context.tx, context.scope.storeId, [input.productId])
+      return { ok: true }
+    }),
+
+  /**
+   * The links a review QR card encodes (`order-<id>` or `product-<id>`): the product's review
+   * form, or a signed link per product of the order so the buyer reviews as a verified buyer.
+   */
+  qrLinks: can(permissions.PRODUCTS_READ)
+    .input(z.object({ target: z.string().max(64) }))
+    .handler(async ({ context, input }) => {
+      await requireInstalled(context)
+      const target = parseQrTarget(input.target)
+      if (!target) throw new ORPCError('NOT_FOUND', { message: 'Nothing to make a card for' })
+      const { storeId } = context.scope
+      return reviewQrLinks(context.tx, storeId, target, {
+        secret: settingsSecret(),
+        storefrontUrl: await storefrontOriginFor(
+          context.tx,
+          storeId,
+          loadEnv(process.env).STOREFRONT_URL,
+        ),
+      })
+    }),
+
+  /**
+   * The published reviews a Reviews theme section draws, for the theme editor's canvas (the
+   * storefront reads the same query itself). Null when the app is not installed, so the section
+   * shows its hint instead of an error.
+   */
+  widgets: can(permissions.ONLINE_STORE_READ)
+    .input(
+      z.object({
+        limit: z.number().int().min(1).max(WIDGET_REVIEWS_MAX),
+        minRating: z.number().int().min(1).max(5).optional(),
+        withPhotos: z.boolean().optional(),
+        productHandles: z.array(z.string().trim().max(255)).max(WIDGET_PRODUCTS_MAX).optional(),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const state = await reviewsState(context.tx, context.scope.storeId)
+      return state.installed ? storeWidgetReviews(context.tx, state.settings, input) : null
+    }),
+
+  /** Product questions (Q&A): shoppers ask on the product page, the store answers here. */
+  questions: {
+    list: can(permissions.PRODUCTS_READ)
+      .input(
+        z.object({
+          page: z.number().int().min(1).max(PAGE_MAX).default(1),
+          perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(20),
+          status: z.enum(QUESTION_STATUSES).optional(),
+          unanswered: z.boolean().optional(),
+          productId: z.uuid().optional(),
+          q: z.string().trim().max(SEARCH_MAX).optional(),
+        }),
+      )
+      .handler(async ({ context, input }) => {
+        await requireInstalled(context)
+        return listQuestions(context.tx, input)
+      }),
+
+    /** Saves the answer; `publish` shows it on the product page. Empty text removes it. */
+    answer: can(permissions.PRODUCTS_WRITE)
+      .input(z.object({ id: z.uuid(), answer: z.string().max(ANSWER_MAX), publish: z.boolean() }))
+      .handler(async ({ context, input }) => {
+        await requireInstalled(context)
+        return answerQuestion(context.tx, input.id, input).catch((err: unknown) => {
+          if (err instanceof CommerceError && err.code === 'NOT_FOUND') {
+            throw new ORPCError('NOT_FOUND', { message: 'Question not found' })
+          }
+          throw err
+        })
+      }),
+
+    setStatus: can(permissions.PRODUCTS_WRITE)
+      .input(Ids.extend({ status: z.enum(QUESTION_STATUSES) }))
+      .handler(async ({ context, input }) => {
+        await requireInstalled(context)
+        return { updated: await setQuestionStatus(context.tx, input.ids, input.status) }
+      }),
+
+    delete: can(permissions.PRODUCTS_WRITE)
+      .input(Ids)
+      .handler(async ({ context, input }) => {
+        await requireInstalled(context)
+        return { deleted: await deleteQuestions(context.tx, input.ids) }
+      }),
+  },
 
   settings: {
     get: can(permissions.PRODUCTS_READ).handler(async ({ context }) => {

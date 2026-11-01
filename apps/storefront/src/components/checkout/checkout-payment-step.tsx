@@ -1,6 +1,6 @@
 'use client'
 
-import { trackCommerce } from '@commerce/blocks'
+import { trackCommerce, useFormatPaise, useMarketPricing } from '@commerce/blocks'
 import type { CartView } from '@commerce/core'
 import { CHECKOUT_LIMITS } from '@commerce/core/checkout-settings'
 import { addPaymentInfoEventId } from '@commerce/core/pixels'
@@ -40,6 +40,12 @@ function trackPaymentInfo(cart: CartView, methodId: string): void {
  * opens the provider's own window or the UPI QR, as before.
  */
 export default function CheckoutPaymentStep({ ck }: CheckoutPaymentStepProps) {
+  // Hooks
+  // A market in another currency: Pay charges rupees, said here beside the ways to pay too,
+  // since a phone keeps the summary (and its note) folded away.
+  const money = useFormatPaise()
+  const pricing = useMarketPricing()
+
   // Event handlers
   const handleSelect = (id: string) => {
     ck.handlePayment(id)
@@ -51,9 +57,22 @@ export default function CheckoutPaymentStep({ ck }: CheckoutPaymentStepProps) {
 
   return (
     <div className="flex flex-col gap-3.5">
+      {pricing && !totals.coveredByCards ? (
+        <p className="rounded-ck border border-ck-line bg-ck-canvas px-4 py-3 text-[0.8125rem] text-ck-ink">
+          {content.chargedInRupees(ck.payNow, money(totals.payNowPaise))}
+        </p>
+      ) : null}
       {totals.coveredByCards ? (
         <p className="rounded-ck border border-ck-line bg-ck-canvas px-4 py-3 text-[0.875rem] text-ck-ink">
           {content.paidByGiftCard}
+        </p>
+      ) : totals.offered.length === 0 ? (
+        // Every way to pay is hidden for this order (Settings → Payments → customizations).
+        <p
+          role="alert"
+          className="rounded-ck border border-ck-line bg-ck-canvas px-4 py-3 text-[0.875rem] text-ck-ink"
+        >
+          {content.noWayToPay}
         </p>
       ) : (
         <PaymentMethods
@@ -68,14 +87,14 @@ export default function CheckoutPaymentStep({ ck }: CheckoutPaymentStepProps) {
       {ck.settings.orderNotes ? (
         <div className="flex flex-col gap-1.5">
           <label htmlFor="checkout-note" className={CK_LABEL}>
-            {content.fields.note}
+            {ck.copy.fields.note}
           </label>
           <textarea
             id="checkout-note"
             className={`${CK_INPUT} min-h-[5.5rem] resize-y py-3`}
             rows={3}
             maxLength={CHECKOUT_LIMITS.note}
-            placeholder={content.fields.notePlaceholder}
+            placeholder={ck.copy.fields.notePlaceholder}
             value={ck.form.note}
             onChange={ck.set('note')}
           />
@@ -86,6 +105,8 @@ export default function CheckoutPaymentStep({ ck }: CheckoutPaymentStepProps) {
           values={ck.form}
           errors={ck.shownErrors}
           business={ck.business}
+          companyShown={ck.settings.fields.company !== 'hidden'}
+          copy={ck.copy}
           onBusiness={ck.handleBusiness}
           onField={ck.set}
           onLeave={ck.handleLeave}

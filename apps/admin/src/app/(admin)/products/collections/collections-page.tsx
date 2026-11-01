@@ -8,21 +8,14 @@ import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } f
 import { Suspense, useState } from 'react'
 import { toast } from 'sonner'
 import { collectionListColumns } from '@/components/collections/collection-list-columns'
-import CollectionTiles, { type CollectionTab } from '@/components/collections/collection-tiles'
+import type { CollectionTab } from '@/components/collections/collection-tiles'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
-import {
-  appliedFromGroups,
-  clearGroups,
-  FILTER_PANEL_CLASS,
-  FilterPanel,
-} from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
 import ViewSelect from '@/components/table/view-select'
 import { bulkActionsContent } from '@/data/bulk-actions'
 import { collectionFormContent, collectionsListContent } from '@/data/collections'
-import { filterPanelContent } from '@/data/filter-panel'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import {
@@ -58,7 +51,6 @@ function CollectionsContent({ initial }: { initial: CollectionsInitial }) {
   const copy = useCopy(collectionsListContent)
   const { delete: deleteCopy } = useCopy(collectionFormContent)
   const fmt = useFormat()
-  const panelCopy = useCopy(filterPanelContent)
   usePrimaryAction(routes.products.newCollection())
   const [q, setQ] = useQueryStates(
     {
@@ -130,11 +122,6 @@ function CollectionsContent({ initial }: { initial: CollectionsInitial }) {
           {copy.newCollection}
         </Button>
       }
-      stats={
-        rows.length === 0 ? undefined : (
-          <CollectionTiles stats={stats} tab={q.tab} onSelect={(tab) => setQ({ tab, page: 1 })} />
-        )
-      }
     >
       <ResourceTable
         resourceName={copy.list.resource}
@@ -172,15 +159,7 @@ function CollectionsContent({ initial }: { initial: CollectionsInitial }) {
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ ...CLEAR_COLLECTION_FILTERS, query: '', tab: null, page: 1 })}
-        filters={(close) => (
-          <FilterPanel
-            groups={groups}
-            onClear={() => clearGroups(groups)}
-            footer={{ label: panelCopy.show(matching.length), onDone: close }}
-          />
-        )}
-        filtersClassName={FILTER_PANEL_CLASS}
-        applied={appliedFromGroups(groups, panelCopy)}
+        filterGroups={groups}
         views={
           <ViewSelect
             value={q.tab}

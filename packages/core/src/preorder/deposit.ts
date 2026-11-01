@@ -1,3 +1,4 @@
+import { roundToWholeUnit } from '@commerce/money'
 import type { PreorderPaymentMode, PreorderSettings } from './settings'
 
 export type DepositAmounts = {
@@ -11,7 +12,7 @@ export type DepositAmounts = {
  * Split one line's total into what is charged now and what is deferred.
  * `fixed` deposits are a flat amount per unit (so a quantity of 2 charges
  * `depositPaise * 2`, never a partial unit); `percentage` rounds to the
- * nearest paise, since a rupee amount can't be split more finely. `full`
+ * nearest whole rupee (#156), so the shopper never sees ₹119.80 now and ₹479.20 later. `full`
  * charges everything now.
  */
 export function computeDeposit(
@@ -29,7 +30,7 @@ export function computeDeposit(
   }
   // percentage
   const pct = opts.depositPercent ?? 0
-  const deposit = Math.round((linePaise * pct) / 100)
+  const deposit = roundToWholeUnit((linePaise * pct) / 100)
   const clamped = Math.min(Math.max(deposit, 0), linePaise)
   return { depositPaise: clamped, balancePaise: linePaise - clamped }
 }

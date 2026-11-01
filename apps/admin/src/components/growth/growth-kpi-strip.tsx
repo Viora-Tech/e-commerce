@@ -30,7 +30,7 @@ export default function GrowthKpiStrip({ kpis, loading }: GrowthKpiStripProps) {
   const value = (kpi: MarketingKpi) => {
     if (kpi.id === 'conversion') return formatRate(kpi.value)
     if (kpi.id === 'sessions') return fmt.number(kpi.value)
-    return fmt.money(kpi.value)
+    return fmt.moneyWhole(kpi.value)
   }
   const tiles = TILES.flatMap((id) => {
     const kpi = kpis.find((k) => k.id === id)

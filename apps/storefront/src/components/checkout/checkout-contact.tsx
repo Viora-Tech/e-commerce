@@ -27,16 +27,44 @@ export default function CheckoutContact({ ck }: CheckoutContactProps) {
       errors={ck.shownErrors}
       customer={customer}
       emailOptional={settings.email === 'optional'}
+      copy={ck.copy}
       onField={ck.set}
       onPhone={ck.handlePhone}
       onLeave={ck.handleLeave}
+      countryCode={ck.form.countryCode}
     />
   )
 
+  // Shopify asks for email and SMS; here email and WhatsApp, both unticked (audit #153).
+  const optIn = (
+    <div className="flex flex-col gap-2 pt-1">
+      {(['email', 'whatsapp'] as const).map((channel) => (
+        <label
+          key={channel}
+          className="flex w-fit cursor-pointer items-center gap-2 text-[0.8125rem] text-ck-ink/85"
+        >
+          <input
+            type="checkbox"
+            checked={Boolean(ck.form.marketing?.[channel])}
+            onChange={(e) => ck.handleMarketing(channel, e.target.checked)}
+            className="size-4 cursor-pointer rounded accent-[var(--ck-accent)]"
+          />
+          {content.marketing[channel]}
+        </label>
+      ))}
+    </div>
+  )
+  const withOptIn = (
+    <div className="flex flex-col gap-3">
+      {fields}
+      {optIn}
+    </div>
+  )
+
   // Early returns
-  if (customer) return fields
+  if (customer) return withOptIn
   // A guest's "Sign in" sits in the card's heading (`CheckoutForm`).
-  if (ck.guest && !accountRequired) return fields
+  if (ck.guest && !accountRequired) return withOptIn
 
   return (
     <div className="flex flex-col gap-4">

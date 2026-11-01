@@ -15,17 +15,17 @@ import ExpressPay from '@/components/checkout/express-pay'
 import SummaryDisclosure from '@/components/checkout/summary-disclosure'
 import { checkoutContent as content } from '@/data/checkout'
 import { CK_LINK } from '@/lib/checkout-classes'
+import { countryName } from '@/lib/checkout-countries'
+import type { CheckoutFormInput } from '@/lib/checkout-form-input'
 import { processorNames, shippingRow } from '@/lib/checkout-preview'
 import { type CheckoutSection, sectionDomId, sectionHeadingId } from '@/lib/checkout-sections'
 import { cleanPincode } from '@/lib/checkout-validation'
-import { type CheckoutFormInput, useCheckoutForm } from '@/lib/use-checkout-form'
+import { useCheckoutForm } from '@/lib/use-checkout-form'
 import { useCheckoutGst } from '@/lib/use-checkout-gst'
 
 type CheckoutFormProps = CheckoutFormInput
 
 const FORM_ID = 'checkout-form'
-const copy = content.sections
-const express = content.express
 
 /** A card's number on this page: 1 Contact, 2 Delivery, then Shipping when there is one. */
 const numberIn = (sections: readonly CheckoutSection[], s: CheckoutSection): number =>
@@ -47,13 +47,23 @@ export default function CheckoutForm(props: CheckoutFormProps) {
     totalPaise: ck.totals.totalPaise,
     reductionPaise: (ck.discount?.amountPaise ?? 0) + Math.max(0, -ck.totals.adjustmentPaise),
     stateCode: ck.form.stateCode || null,
+    abroad: ck.abroad,
   })
 
   // Render logic
+  // The store's own wording over ours (#158).
+  const copy = ck.copy.sections
+  const express = ck.copy.express
   const { totals, deposit, look, shipping, rate, done, sections } = ck
   const { digitalOnly } = totals
   const pincode = cleanPincode(ck.form.pincode)
-  const fullPincode = /^[1-9]\d{5}$/.test(pincode)
+  // Abroad there is no PIN code line: Shipping names the country instead.
+  const fullPincode = !ck.abroad && /^[1-9]\d{5}$/.test(pincode)
+  const shippingAside = ck.abroad
+    ? countryName(ck.form.countryCode)
+    : fullPincode
+      ? copy.shippingTo(pincode)
+      : null
   const shortfall =
     ck.shortfall > 0
       ? content.minimumOrder(formatPaise(ck.settings.minimumOrderPaise), formatPaise(ck.shortfall))
@@ -82,10 +92,24 @@ export default function CheckoutForm(props: CheckoutFormProps) {
           )
         : express.noShippingYet
   const showExpress = ck.upi !== null && !totals.coveredByCards
-  const payDisabled = ck.unserviceable || ck.shortfall > 0
-  const footnote = look.branding.trustBadges
-    ? content.payFootnote(totals.coveredByCards ? [] : processorNames(totals.offered))
-    : null
+  // No way to pay left (a payment rule hid the only one): nothing for Place order to do.
+  const noWayToPay = !totals.coveredByCards && totals.offered.length === 0
+  const payDisabled = ck.unserviceable || ck.shortfall > 0 || noWayToPay
+  // Cash on delivery or a transfer to the shop: no gateway takes a card or UPI PIN, so no note.
+  const offline = totals.offered.every((m) => m.id === 'cod' || m.id === 'manual')
+  const footnote =
+    look.branding.trustBadges && !(offline && !totals.coveredByCards)
+      ? content.payFootnote(totals.coveredByCards ? [] : processorNames(totals.offered))
+      : null
+  // The minimum-order line sits right above the Place order button it keeps off (#96).
+  const shortfallNote = shortfall ? (
+    <p
+      role="status"
+      className="rounded-ck border border-ck-line bg-ck-bg px-4 py-3 text-[0.875rem] text-ck-ink"
+    >
+      {shortfall}
+    </p>
+  ) : null
   const pay = (
     <CheckoutPayButton
       form={FORM_ID}
@@ -115,6 +139,7 @@ export default function CheckoutForm(props: CheckoutFormProps) {
       summary={
         <SummaryDisclosure totalLabel={ck.payNow} updating={ck.updating}>
           <CheckoutSummary
+            words={ck.copy}
             cart={ck.cart}
             discount={ck.discount}
             digitalOnly={digitalOnly}
@@ -139,6 +164,7 @@ export default function CheckoutForm(props: CheckoutFormProps) {
                 : null
             }
             updating={ck.updating}
+            abroad={ck.abroad}
           />
         </SummaryDisclosure>
       }
@@ -153,6 +179,7 @@ export default function CheckoutForm(props: CheckoutFormProps) {
               </span>
             </p>
           ) : null}
+          {shortfallNote}
           {pay}
           {footnote ? (
             <p className="text-center text-[0.75rem] text-ck-summary-muted">{footnote}</p>
@@ -161,6 +188,7 @@ export default function CheckoutForm(props: CheckoutFormProps) {
       }
       bottomBar={
         <>
+          {shortfallNote}
           {pay}
           {footnote ? (
             <p className="text-center text-[0.6875rem] text-ck-muted">{footnote}</p>
@@ -177,6 +205,7 @@ export default function CheckoutForm(props: CheckoutFormProps) {
         <h1 className="sr-only">{content.title}</h1>
         {showExpress ? (
           <ExpressPay
+            heading={express.heading}
             line={expressLine}
             pending={ck.pending}
             disabled={ck.updating || ck.unserviceable || ck.shortfall > 0}
@@ -211,8 +240,8 @@ export default function CheckoutForm(props: CheckoutFormProps) {
             title={copy.label.shipping}
             done={done.shipping}
             aside={
-              fullPincode ? (
-                <span className="text-[0.75rem] text-ck-muted">{copy.shippingTo(pincode)}</span>
+              shippingAside ? (
+                <span className="text-[0.75rem] text-ck-muted">{shippingAside}</span>
               ) : null
             }
           >
@@ -228,6 +257,7 @@ export default function CheckoutForm(props: CheckoutFormProps) {
               onRoute={ck.deliveryApp.setRouteKey}
               insurance={ck.deliveryApp.insurance}
               onInsurance={ck.deliveryApp.toggleInsurance}
+              abroad={ck.abroad}
             />
           </CheckoutCard>
         )}
@@ -240,14 +270,6 @@ export default function CheckoutForm(props: CheckoutFormProps) {
         >
           <CheckoutPaymentStep ck={ck} />
         </CheckoutCard>
-        {shortfall ? (
-          <p
-            role="status"
-            className="rounded-ck border border-ck-line bg-ck-bg px-4 py-3 text-[0.875rem] text-ck-ink"
-          >
-            {shortfall}
-          </p>
-        ) : null}
         {/* Out of the flow while empty, still in the accessibility tree so it announces. */}
         <div aria-live="assertive" className="empty:absolute">
           {error ? (

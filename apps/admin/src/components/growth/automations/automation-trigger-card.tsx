@@ -4,6 +4,7 @@ import {
   type AutomationSettings,
   type AutomationTrigger,
   STOPS_ON_ORDER,
+  TRIGGER_QUIET_MINUTES,
 } from '@commerce/core/marketing'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -17,7 +18,6 @@ type AutomationTriggerCardProps = {
 }
 
 const copy = automationEditorContent.trigger
-const CART_TRIGGERS: AutomationTrigger[] = ['checkout_abandoned', 'cart_abandoned']
 
 /** What starts the automation, its timing and who it may reach. */
 export default function AutomationTriggerCard({
@@ -26,13 +26,14 @@ export default function AutomationTriggerCard({
   onChange,
 }: AutomationTriggerCardProps) {
   // Render logic
-  const minutes = settings.afterMinutes ?? 60
+  const quietDefault = TRIGGER_QUIET_MINUTES[trigger]
+  const minutes = settings.afterMinutes ?? quietDefault ?? 60
 
   return (
     <DataCard title={copy.title}>
       <FieldGroup>
         <p className="text-body">{automationsContent.triggers[trigger]}</p>
-        {CART_TRIGGERS.includes(trigger) ? (
+        {quietDefault !== null ? (
           <Field className="max-w-72">
             <FieldLabel htmlFor="after-minutes">{copy.afterMinutes}</FieldLabel>
             <div className="flex items-center gap-2">

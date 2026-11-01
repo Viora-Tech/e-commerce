@@ -56,6 +56,8 @@ export type ValidationCopy = {
   notAllowed: string
   badFormat: string
   fields: Record<string, string>
+  /** One entry of a list field, numbered: `boxPresets` → "Package" reads "Package 2" (#101). */
+  items?: Record<string, string>
 }
 
 /** How many failed fields a message names before "and N more". */
@@ -76,17 +78,28 @@ function spellOut(key: string): string {
   return words ? `${words.charAt(0).toUpperCase()}${words.slice(1)}` : key
 }
 
-/** `['variants', 0, 'sku']` → "Variants (item 1) › SKU". */
+/**
+ * `['variants', 0, 'sku']` → "Variants (item 1) › SKU", or "Package 1 › Name" for a list
+ * whose entries have a name in `copy.items`. A field named `''` in `copy.fields` is a wrapper
+ * the member never sees (`policy`, `routing`) and is left out.
+ */
 function fieldName(path: unknown[], copy: ValidationCopy): string {
   const parts: string[] = []
+  let lastKey: string | null = null
   for (const raw of path) {
     const seg = typeof raw === 'object' && raw !== null ? (raw as { key: unknown }).key : raw
     if (typeof seg === 'number') {
-      const label = copy.item(seg + 1)
+      const entry = lastKey ? copy.items?.[lastKey] : undefined
       const last = parts.pop()
-      parts.push(last === undefined ? label : `${last} (${label})`)
+      if (entry) parts.push(`${entry} ${seg + 1}`)
+      else {
+        const label = copy.item(seg + 1)
+        parts.push(last === undefined ? label : `${last} (${label})`)
+      }
     } else if (typeof seg === 'string') {
-      parts.push(copy.fields[seg] ?? spellOut(seg))
+      lastKey = seg
+      const name = copy.fields[seg] ?? spellOut(seg)
+      if (name) parts.push(name)
     }
   }
   return parts.length ? parts.join(' › ') : copy.request
@@ -137,4 +150,54 @@ export function withReadableValidation(err: unknown, copy: ValidationCopy): unkn
   const text = describeValidation(err, copy)
   if (text && err instanceof Error) err.message = text
   return err
+}
+
+/** CSS attribute values may hold dots and brackets; quote them for a selector. */
+const quoted = (value: string) => `"${value.replace(/["\\]/g, '\\$&')}"`
+
+/**
+ * Puts the cursor in the first field a validation error names (#101). A form marks its inputs
+ * with `data-field-path` (the request path, e.g. `boxPresets.0.name`) or a matching `name`;
+ * an input whose id is the field's own key also works, and so does the usual `<form>-<field>`
+ * id (`product-title`, `discount-starts-at`). Does nothing when none is on screen.
+ */
+export function focusFirstIssue(err: unknown): void {
+  if (typeof document === 'undefined') return
+  const [first] = validationIssuesOf(err)
+  if (!first?.path) return
+  const key = first.path.split('.').at(-1) ?? ''
+  const plain = /^[A-Za-z][\w-]*$/.test(key)
+  const kebab = key.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()
+  const suffixes = plain ? [...new Set([key, kebab])].map((k) => `[id$=${quoted(`-${k}`)}]`) : []
+  const selectors = [
+    `[data-field-path=${quoted(first.path)}]`,
+    `[name=${quoted(first.path)}]`,
+    plain ? `#${key}` : null,
+    plain ? `[name=${quoted(key)}]` : null,
+    ...suffixes,
+  ].filter((s): s is string => s !== null)
+  for (const selector of selectors) {
+    const el = document.querySelector<HTMLElement>(selector)
+    if (!el || el.closest('[hidden]')) continue
+    markField(el)
+    return
+  }
+}
+
+/** Scrolls to the field, puts the cursor in it and marks it red until it changes. */
+function markField(el: HTMLElement): void {
+  el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  el.focus({ preventScroll: true })
+  // A field that is already marked invalid keeps its own state.
+  if (!el.hasAttribute('aria-invalid')) {
+    el.setAttribute('aria-invalid', 'true')
+    el.addEventListener('input', () => el.removeAttribute('aria-invalid'), { once: true })
+  }
+}
+
+/** The same for a form's own check before it calls the server (#101): pass the input's id. */
+export function focusField(id: string): void {
+  if (typeof document === 'undefined') return
+  const el = document.getElementById(id)
+  if (el) markField(el)
 }

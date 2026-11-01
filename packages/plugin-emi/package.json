@@ -19,7 +19,7 @@
     "@commerce/blocks": "workspace:*",
     "@commerce/core": "workspace:*",
     "@commerce/plugins": "workspace:*",
-    "zod": "^4.6.5"
+    "zod": "^4.6.7"
   },
   "peerDependencies": {
     "react": "^19.0.0"

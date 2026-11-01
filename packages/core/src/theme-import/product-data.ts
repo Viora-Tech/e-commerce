@@ -13,7 +13,8 @@ import {
   variantMedia,
   variantOptionValue,
 } from '@commerce/db'
-import { and, asc, eq, inArray, isNull } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { soldInRequestCatalog } from '../markets/catalog-rules'
 import { type MarketPricing, presentmentCents } from '../markets/presentment'
 import { variantAllowsPreorder } from '../preorder/settings'
 import type { LiquidImageData, LiquidProductData } from './drops'
@@ -23,17 +24,22 @@ import { richTextHtml } from './rich-html'
 const onHand = (v: { onHand: number | null; reserved: number | null; track: boolean }) =>
   v.track ? Math.max(0, (v.onHand ?? 0) - (v.reserved ?? 0)) : 999
 
-/** Products by id, fully loaded (variants, options, images), in the order given. */
+/**
+ * Products by id, fully loaded (variants, options, images), in the order given. Products the
+ * market's catalog leaves out (Markets › Catalogs) are dropped, or with `keepUnsold` (the
+ * product page) kept with no variant for sale.
+ */
 export async function loadProducts(
   tx: StoreTx,
   ids: string[],
   /** The page's market: prices in its currency (`presentmentCents`); null keeps rupees. */
   pricing: MarketPricing | null = null,
+  options: { keepUnsold?: boolean } = {},
 ): Promise<LiquidProductData[]> {
   if (ids.length === 0) return []
-  const [rows, variants, images, options, memberships] = await Promise.all([
+  const [found, variants, images, optionRows, memberships] = await Promise.all([
     tx
-      .select()
+      .select({ p: product, soldHere: sql<boolean>`${soldInRequestCatalog(product.id)}` })
       .from(product)
       .where(and(inArray(product.id, ids), eq(product.status, 'active'))),
     tx
@@ -120,12 +126,14 @@ export async function loadProducts(
         .where(inArray(variantOptionValue.variantId, variantIds))
         .orderBy(asc(productOption.position))
     : []
+  const unsold = new Set(found.filter((r) => !r.soldHere).map((r) => r.p.id))
+  const rows = found.filter((r) => options.keepUnsold || r.soldHere).map((r) => r.p)
   const byId = new Map(rows.map((r) => [r.id, r]))
   return ids.flatMap((id) => {
     const p = byId.get(id)
     if (!p) return []
     const opts = new Map<string, string[]>()
-    for (const o of options.filter((x) => x.productId === id)) {
+    for (const o of optionRows.filter((x) => x.productId === id)) {
       const list = opts.get(o.name) ?? []
       if (o.value && !list.includes(o.value)) list.push(o.value)
       opts.set(o.name, list)
@@ -195,10 +203,11 @@ export async function loadProducts(
           return {
             id: v.id,
             title: v.title,
-            price: price == null ? 0 : presentmentCents(price, pricing),
+            // A catalog's fixed price for the variant wins (Markets › Catalogs).
+            price: price == null ? 0 : presentmentCents(price, pricing, v.id),
             compareAtPrice:
               price != null && v.mrp && v.mrp > price ? presentmentCents(v.mrp, pricing) : null,
-            available: price != null && (qty > 0 || preorder),
+            available: !unsold.has(p.id) && price != null && (qty > 0 || preorder),
             inventoryQuantity: qty,
             preorder,
             sku: v.sku,
@@ -257,7 +266,13 @@ export async function collectionsProducts(
         .from(collectionProduct)
         .innerJoin(collection, eq(collection.id, collectionProduct.collectionId))
         .innerJoin(product, eq(product.id, collectionProduct.productId))
-        .where(and(inArray(collection.handle, named), eq(product.status, 'active')))
+        .where(
+          and(
+            inArray(collection.handle, named),
+            eq(product.status, 'active'),
+            soldInRequestCatalog(product.id),
+          ),
+        )
         .orderBy(asc(collection.handle), asc(collectionProduct.position))
     : []
   const ids = new Map<string, string[]>()
@@ -270,7 +285,7 @@ export async function collectionsProducts(
     ? await tx
         .select({ id: product.id })
         .from(product)
-        .where(eq(product.status, 'active'))
+        .where(and(eq(product.status, 'active'), soldInRequestCatalog(product.id)))
         .orderBy(asc(product.title), asc(product.id))
         .limit(limit)
     : []

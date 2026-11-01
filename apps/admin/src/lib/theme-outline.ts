@@ -75,6 +75,17 @@ function outlineValue(
   raw: unknown,
 ): Pick<ThemeOutlineSetting, 'value' | 'truncated'> | null {
   if (kind === 'checkbox') return typeof raw === 'boolean' ? { value: raw } : { value: false }
+  // A picture is stored as `{ url, alt }` (ImageField) or, fresh from a Shopify import, a string.
+  if (kind === 'image') {
+    const url =
+      typeof raw === 'string'
+        ? raw
+        : raw && typeof raw === 'object'
+          ? (raw as { url?: unknown }).url
+          : ''
+    const { value, truncated } = outlineText(typeof url === 'string' ? url : '')
+    return truncated ? { value, truncated } : { value }
+  }
   if (kind === 'number') return typeof raw === 'number' ? { value: raw } : { value: null }
   if (raw !== undefined && raw !== null && typeof raw !== 'string' && typeof raw !== 'number') {
     return null
@@ -106,7 +117,36 @@ const optionValues = (options: unknown): (string | number)[] =>
     .map((v) => (typeof v === 'string' ? v.slice(0, L.maxValue) : v))
     .slice(0, L.maxOptions)
 
-const LINKISH = /(^|[a-z])(url|href|link)$/i
+// `buttonUrl`, `href`, and an object part like `button.href`.
+const LINKISH = /(^|[a-z.])(url|href|link)$/i
+
+type ObjectField = { type?: unknown; label?: unknown; objectFields?: unknown }
+
+/**
+ * An object field of our own sections as settings: a picture (`{ url, alt }`, imageField) is one
+ * image setting under its own key; anything else, like a button (`{ label, href }`), gives one
+ * setting per simple part under `key.part`, which the apply step writes back into the object.
+ */
+function objectSettings(key: string, field: ObjectField, raw: unknown): ThemeOutlineSetting[] {
+  const parts =
+    field.objectFields && typeof field.objectFields === 'object'
+      ? (field.objectFields as Record<string, unknown>)
+      : {}
+  const label = typeof field.label === 'string' && field.label ? field.label : key
+  if ('url' in parts && 'alt' in parts) {
+    const one = setting(key, label, 'image', raw)
+    return one ? [one] : []
+  }
+  const value = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {}
+  return Object.entries(parts).flatMap(([part, sub]) => {
+    const s = nativeSetting(`${key}.${part}`, sub, value[part])
+    if (!s) return []
+    const subLabel = (sub as { label?: unknown } | null)?.label
+    return [
+      { ...s, label: `${label} · ${typeof subLabel === 'string' ? subLabel : part}`.slice(0, 120) },
+    ]
+  })
+}
 
 /** A Puck field of our own sections as an outline setting, when it is a simple one. */
 function nativeSetting(key: string, field: unknown, raw: unknown): ThemeOutlineSetting | null {
@@ -162,6 +202,8 @@ function liquidKind(type: string): ThemeSettingKind | null {
       return 'url'
     case 'checkbox':
       return 'checkbox'
+    case 'image_picker':
+      return 'image'
     case 'number':
     case 'range':
       return 'number'
@@ -261,14 +303,21 @@ function nativeSection(
     settings: limitList(
       Object.entries(fields)
         .filter(([key]) => !INTERNAL.has(key))
-        .map(([key, field]) => nativeSetting(key, field, props[key])),
+        .flatMap(([key, field]) =>
+          (field as ObjectField | null)?.type === 'object'
+            ? objectSettings(key, field as ObjectField, props[key])
+            : [nativeSetting(key, field, props[key])],
+        ),
       L.maxSettings,
     ),
     blocks: [],
   }
 }
 
-/** The outline of the open page, fitted to `THEME_OUTLINE_LIMITS.maxSize`. */
+/**
+ * The outline of the open page, fitted to `THEME_OUTLINE_LIMITS.maxSentSize`: the whole page as a
+ * rule. The server cuts the prompt's copy to `maxSize` and keeps this one for `sectionSettings`.
+ */
 export function buildThemeOutline(source: OutlineSource): ThemeOutline {
   const zones: [ThemeOutlineSection['zone'], TemplateSection[]][] = [
     ['header', source.doc.zones[HEADER_ZONE] ?? []],
@@ -290,12 +339,15 @@ export function buildThemeOutline(source: OutlineSource): ThemeOutline {
     selected && !kept.some((s) => s.id === selected)
       ? [...kept.slice(0, -1), ...sections.filter((s) => s.id === selected)]
       : kept
-  return fitOutline({
-    themeName: source.theme.name.slice(0, 120),
-    templateLabel: source.templateLabel.slice(0, 120),
-    published: source.theme.published,
-    selectedSectionId: selected && chosen.some((s) => s.id === selected) ? selected : null,
-    partial: sections.length > chosen.length,
-    sections: chosen,
-  })
+  return fitOutline(
+    {
+      themeName: source.theme.name.slice(0, 120),
+      templateLabel: source.templateLabel.slice(0, 120),
+      published: source.theme.published,
+      selectedSectionId: selected && chosen.some((s) => s.id === selected) ? selected : null,
+      partial: sections.length > chosen.length,
+      sections: chosen,
+    },
+    L.maxSentSize,
+  )
 }

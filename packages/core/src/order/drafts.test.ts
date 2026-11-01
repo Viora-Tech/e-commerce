@@ -16,12 +16,12 @@ import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { OutOfStock } from '../errors'
 import { DraftInvalidGstin } from './draft-billing'
+import { listDrafts } from './draft-list'
 import {
   convertDraft,
   createDraft,
   DraftNeedsShippingAddress,
   deleteDraft,
-  listDrafts,
   updateDraft,
 } from './drafts'
 
@@ -141,7 +141,7 @@ describe('draft orders', () => {
     expect(total).toBe(50000)
   })
 
-  it('converts to a placed order: stock held, pending payment, number kept', async () => {
+  it('converts to a placed order: stock held, pending payment, order number taken', async () => {
     const { storeId, variantId } = await seed()
     const result = await withStore(app, storeId, async (tx) => {
       const ctx = { storeId, tx }
@@ -157,7 +157,8 @@ describe('draft orders', () => {
       return { created, converted, pay }
     })
     expect(result.converted?.status).toBe('open')
-    expect(result.converted?.number).toBe(result.created.number)
+    expect(result.converted?.number).toBeGreaterThan(0)
+    expect(result.converted?.draftNumber).toBe(result.created.draftNumber)
     expect(result.pay?.status).toBe('pending')
     expect(result.pay?.provider).toBe('cod')
     expect(result.pay?.amountPaise).toBe(200000)
@@ -338,5 +339,33 @@ describe('draft billing address', () => {
         ),
       ),
     ).rejects.toThrow(DraftInvalidGstin)
+  })
+
+  it('numbers drafts #D1, #D2 apart from orders, and leaves no order-number gap', async () => {
+    const { storeId, variantId } = await seed()
+    const result = await withStore(app, storeId, async (tx) => {
+      const ctx = { storeId, tx }
+      const draft = (email: string) =>
+        createDraft(ctx, {
+          email,
+          shipping,
+          lines: [{ variantId, quantity: 1 }],
+          discountPaise: 0,
+          shippingPaise: 0,
+        })
+      const first = await draft('a@example.in')
+      const second = await draft('b@example.in')
+      await deleteDraft(ctx, first.id)
+      const converted = await convertDraft(ctx, second.id, { paymentMethod: 'cod' })
+      const third = await draft('c@example.in')
+      const found = await listDrafts(ctx, { page: 1, perPage: 10, search: '#D3' })
+      return { first, second, third, converted, found }
+    })
+    expect(result.first.draftNumber).toBe(1)
+    expect(result.second.draftNumber).toBe(2)
+    expect(result.third.draftNumber).toBe(3)
+    // The deleted draft never took an order number, so the converted one is the store's first.
+    expect(result.converted?.number).toBe(1)
+    expect(result.found.items.map((d) => d.id)).toEqual([result.third.id])
   })
 })

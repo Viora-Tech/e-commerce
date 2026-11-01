@@ -29,7 +29,7 @@ type LogRequestDialogProps = {
   customer?: { id: string; label: string } | undefined
 }
 
-type Match = { id: string; label: string; detail: string }
+type Match = { id: string; label: string; detail: string; email: string; phone: string }
 
 type Source = (typeof STAFF_REQUEST_SOURCES)[number]
 
@@ -69,6 +69,8 @@ export default function LogRequestDialog({
               id: c.id,
               label: c.name || c.email || c.phone || c.id,
               detail: [c.email, c.phone].filter(Boolean).join(' · '),
+              email: c.email ?? '',
+              phone: c.phone ?? '',
             })),
           ),
         )
@@ -78,6 +80,12 @@ export default function LogRequestDialog({
   }, [query, picked])
 
   // Event handlers
+  /* Picking a customer fills in how to reach them; whatever staff already typed stays (#110). */
+  const handlePick = (m: Match) => {
+    setPicked({ id: m.id, label: m.label })
+    if (!contactEmail.trim()) setContactEmail(m.email)
+    if (!contactPhone.trim()) setContactPhone(m.phone)
+  }
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setBusy(true)
@@ -106,7 +114,9 @@ export default function LogRequestDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => (!o ? onClose() : undefined)}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto">
+      {/* Wide enough for the email and phone side by side; the default width left the phone box
+          about 50px wide (#110). */}
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <DialogHeader>
             <DialogTitle>{copy.title}</DialogTitle>
@@ -164,7 +174,7 @@ export default function LogRequestDialog({
                           <button
                             type="button"
                             className="flex w-full flex-col items-start px-3 py-2 text-left hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none"
-                            onClick={() => setPicked({ id: m.id, label: m.label })}
+                            onClick={() => handlePick(m)}
                           >
                             <span className="text-body">{m.label}</span>
                             {m.detail ? (

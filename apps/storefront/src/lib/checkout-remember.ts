@@ -19,7 +19,10 @@ export const REMEMBERED_FIELDS = [
   'pincode',
 ] as const satisfies readonly (keyof CheckoutFormState)[]
 
-export type RememberedDetails = Pick<CheckoutFormState, (typeof REMEMBERED_FIELDS)[number]>
+/** Kept beside the fields: the address's country, absent on entries saved before the picker. */
+export type RememberedDetails = Pick<CheckoutFormState, (typeof REMEMBERED_FIELDS)[number]> & {
+  countryCode?: string | undefined
+}
 
 const KEY = 'checkout-remembered'
 
@@ -44,7 +47,9 @@ export function parseRemembered(raw: string | null, now: number): RememberedDeta
   const d = data as Record<string, unknown>
   if (typeof d.savedAt !== 'number' || now - d.savedAt > REMEMBER_MS) return null
   if (!REMEMBERED_FIELDS.every((k) => isField(d[k]))) return null
-  return Object.fromEntries(REMEMBERED_FIELDS.map((k) => [k, d[k]])) as RememberedDetails
+  const kept = Object.fromEntries(REMEMBERED_FIELDS.map((k) => [k, d[k]])) as RememberedDetails
+  const country = typeof d.countryCode === 'string' && /^[A-Z]{2}$/.test(d.countryCode)
+  return { ...kept, countryCode: country ? (d.countryCode as string) : 'IN' }
 }
 
 /** Worth keeping once the shopper has typed a way to reach them. */
@@ -54,6 +59,7 @@ export const hasContact = (form: RememberedDetails): boolean =>
 export const serialiseRemembered = (form: RememberedDetails, now: number): string =>
   JSON.stringify({
     ...Object.fromEntries(REMEMBERED_FIELDS.map((k) => [k, form[k]])),
+    countryCode: form.countryCode ?? 'IN',
     savedAt: now,
   })
 

@@ -11,8 +11,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@commerce/ai": "workspace:*",
     "@commerce/config": "workspace:*",
     "@commerce/core": "workspace:*",
+    "@commerce/dates": "workspace:*",
     "@commerce/db": "workspace:*",
     "@commerce/notifications": "workspace:*",
     "@commerce/observability": "workspace:*",
@@ -32,6 +34,7 @@
     "@commerce/shipping": "workspace:*",
     "@commerce/storage": "workspace:*",
     "@sentry/bun": "^11.0.0",
+    "playwright-core": "1.63.0",
     "bullmq": "^5.81.5",
     "drizzle-orm": "^0.45.2",
     "evlog": "^2.30.1",

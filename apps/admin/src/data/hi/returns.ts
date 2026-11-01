@@ -1,7 +1,21 @@
-import { returnListActionsContent, returnRulesContent } from '@/data/returns'
+import {
+  returnCustomReasonsContent,
+  returnListActionsContent,
+  returnRulesContent,
+} from '@/data/returns'
 import { translation } from '@/lib/i18n'
 
 export default [
+  translation(returnCustomReasonsContent, {
+    title: 'आपकी अपनी वजहें',
+    description: 'अपने शब्दों में वजहें जोड़ें। ग्राहक इन्हें ऊपर वाली वजहों के बाद देखेंगे।',
+    label: 'नई वजह',
+    placeholder: 'जैसे: यह बहुत देर से पहुंचा',
+    add: 'जोड़ें',
+    remove: (reason) => `"${reason}" हटाएं`,
+    duplicate: 'यह वजह पहले से है।',
+    limit: (max) => `आप ज़्यादा से ज़्यादा ${max} वजहें जोड़ सकते हैं।`,
+  }),
   translation(returnListActionsContent, {
     approve: 'मंज़ूर करें',
     approveSelected: (n) => `${n} मंज़ूर करें`,

@@ -13,6 +13,7 @@ import {
   type SettingsKind,
   sectionSettingsField,
 } from '../section-settings'
+import type { AddToCart } from '../store-actions'
 import type { ProductDetail } from '../types'
 import { SCHEMES } from './framed'
 import { inlineText } from './inline-fields'
@@ -79,9 +80,7 @@ export type SectionMetadata = {
    * bar adds the selected variant with `addToCart`. Unset in the Customize canvas, where
    * those buttons stay inert.
    */
-  productActions?:
-    | { addToCart?: ((variantId: string, quantity: number) => Promise<void>) | undefined }
-    | undefined
+  productActions?: { addToCart?: AddToCart | undefined } | undefined
 }
 
 type Def = { label: string; fields: Fields; defaultProps: SectionSettings }

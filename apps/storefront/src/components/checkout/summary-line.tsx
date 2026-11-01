@@ -12,6 +12,8 @@ type SummaryLineProps = {
   preorderNote?: string | null | undefined
   /** How prices read: the checkout passes the market's (`useFormatPaise`); rupees by default. */
   format?: ((paise: number) => string) | undefined
+  /** The line's price, formatted (a market catalog's fixed price × quantity); wins over `format`. */
+  price?: string | undefined
 }
 
 /** First letter of the product, drawn when a line has no image. */
@@ -27,6 +29,7 @@ export default function SummaryLine({
   preorder = false,
   preorderNote = null,
   format = formatPaise,
+  price,
 }: SummaryLineProps) {
   return (
     <li className="flex items-center gap-3 lg:gap-3.5">
@@ -71,7 +74,7 @@ export default function SummaryLine({
         ) : null}
       </div>
       <p className="shrink-0 text-[0.8125rem] font-semibold tabular-nums lg:text-[0.875rem]">
-        {format(linePaise)}
+        {price ?? format(linePaise)}
       </p>
     </li>
   )

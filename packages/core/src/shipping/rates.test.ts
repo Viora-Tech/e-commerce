@@ -222,3 +222,74 @@ describe('write schemas', () => {
     expect(bad.success).toBe(false)
   })
 })
+
+describe('country zones (audit #160)', () => {
+  const india = zone({
+    id: 'in',
+    name: 'All India',
+    rates: [rate({ id: 'std', pricePaise: 4900 })],
+  })
+  const gulf = zone({
+    id: 'gulf',
+    name: 'Gulf',
+    countryCodes: ['AE', 'SA'],
+    rates: [rate({ id: 'gulf-rate', name: 'International', pricePaise: 170_000 })],
+  })
+  const world = zone({
+    id: 'world',
+    name: 'Rest of world',
+    countryCodes: ['*'],
+    rates: [rate({ id: 'world-rate', name: 'World', pricePaise: 250_000 })],
+  })
+  const dubai = { stateCode: null, pincode: '00000', countryCode: 'ae' }
+  const sydney = { stateCode: 'NSW', pincode: '2000', countryCode: 'AU' }
+
+  it('keeps every zone without countries an India zone', () => {
+    expect(zoneScore(india, blr)).toBe(0)
+    expect(zoneScore(india, { ...blr, countryCode: 'IN' })).toBe(0)
+    expect(zoneScore(india, dubai)).toBeNull()
+  })
+
+  it('quotes a named country, then Rest of world, for an address abroad', () => {
+    const zones = [india, gulf, world]
+    const ae = quoteShipping(zones, dubai, cart(100_000))
+    expect(ae.kind === 'rates' ? ae.options.map((o) => o.rateId) : []).toEqual(['gulf-rate'])
+    const au = quoteShipping(zones, sydney, cart(100_000))
+    expect(au.kind === 'rates' ? au.options.map((o) => o.rateId) : []).toEqual(['world-rate'])
+  })
+
+  it('never lets Rest of world outrank an India zone, but covers India when nothing else does', () => {
+    expect(pickZone([world, india], blr)?.id).toBe('in')
+    expect(pickZone([world], blr)?.id).toBe('world')
+    expect(quoteShipping([gulf], blr, cart(100)).kind).toBe('no_rates')
+  })
+
+  it('ignores PIN code rules and states abroad', () => {
+    const mixed = zone({
+      countryCodes: ['IN', 'AE'],
+      stateCodes: ['KA'],
+      pincodeRules: [{ pattern: '560*', mode: 'exclude' }],
+    })
+    expect(zoneScore(mixed, dubai)).toBe(1)
+    expect(zoneScore(mixed, { stateCode: 'KA', pincode: '560001' })).toBeNull()
+    expect(zoneScore(mixed, { stateCode: 'KA', pincode: '570001' })).toBe(1)
+  })
+
+  it('leaves zones abroad out of the free-shipping promise', () => {
+    const free = zone({ rates: [rate({ freeAbovePaise: 99_900 })] })
+    expect(freeShippingThreshold([free, gulf])).toBe(99_900)
+    expect(freeShippingThreshold([gulf])).toBeNull()
+  })
+
+  it('takes ISO codes and * and needs at least one country', () => {
+    const base = { name: 'Abroad', rates: [] }
+    expect(ShippingZoneWriteSchema.parse(base).countryCodes).toEqual(['IN'])
+    expect(
+      ShippingZoneWriteSchema.parse({ ...base, countryCodes: ['ae', '*'] }).countryCodes,
+    ).toEqual(['AE', '*'])
+    expect(ShippingZoneWriteSchema.safeParse({ ...base, countryCodes: [] }).success).toBe(false)
+    expect(ShippingZoneWriteSchema.safeParse({ ...base, countryCodes: ['UAE'] }).success).toBe(
+      false,
+    )
+  })
+})

@@ -4,6 +4,8 @@ import { settingsSecret } from '@commerce/config'
 import {
   openRequestLink,
   productReviewsFor,
+  productSummary,
+  publishedQuestions,
   purchaseOf,
   type RatingSummary,
   requestLinkBuyer,
@@ -41,7 +43,7 @@ export type ProductReviews = {
 export async function productReviews(
   storeId: string,
   product: ProductDetail,
-  opts: { requestToken: string | null; storeName: string; now?: Date },
+  opts: { requestToken: string | null; openForm?: boolean; storeName: string; now?: Date },
 ): Promise<ProductReviews | undefined> {
   const now = opts.now ?? new Date()
   const me = await currentCustomer(storeId)
@@ -52,10 +54,14 @@ export async function productReviews(
     return {
       settings: state.settings,
       ...(await productReviewsFor(tx, product.id, state.settings)),
+      aiSummary: state.settings.aiSummary.enabled
+        ? ((await productSummary(tx, product.id))?.text ?? null)
+        : null,
+      questions: await publishedQuestions(tx, product.id),
     }
   })
   if (!shared) return undefined
-  const { settings, summary, reviews } = shared
+  const { settings, summary, reviews, aiSummary, questions } = shared
   // Whether this shopper bought it: through a review request link, or their signed-in account.
   const link = opts.requestToken
     ? openRequestLink(settingsSecret(), opts.requestToken, storeId, now)
@@ -104,9 +110,11 @@ export async function productReviews(
       requestToken: fromLink ? opts.requestToken : null,
       knownName: fromLink?.name || me?.name || '',
       emailKnown: Boolean(fromLink || me?.email),
-      openForm: Boolean(fromLink),
+      openForm: Boolean(fromLink) || (opts.openForm === true && write === 'open'),
       onlyVerified,
       showPhotos: settings.storefront.showPhotos,
+      aiSummary,
+      questions: questions.map((q) => ({ ...q, whenLabel: ageLabel(q.answeredAt, now) })),
     },
   }
 }

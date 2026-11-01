@@ -5,8 +5,8 @@ import {
   updateProduct,
   upsertImportedRedirect,
 } from '@commerce/core'
-import { product, type StoreTx } from '@commerce/db'
-import { and, eq, inArray } from 'drizzle-orm'
+import { preorderCampaign, product, type StoreTx } from '@commerce/db'
+import { and, eq, inArray, isNull } from 'drizzle-orm'
 import { mapLimit } from './concurrency'
 import { htmlToRichText, replaceImageSources } from './html'
 import {
@@ -135,6 +135,7 @@ function toWrite(
     description,
     vendor: clip(p.vendor, 100),
     productType: clip(p.productType, 100),
+    ...(p.categoryId ? { categoryId: p.categoryId.slice(0, 40) } : {}),
     tags: p.tags.slice(0, 100).map((t) => t.slice(0, 50)),
     seoTitle: clip(p.seoTitle, 70),
     seoDescription: clip(p.seoDescription, 320),
@@ -322,6 +323,46 @@ export async function writeProducts(ctx: ImportContext, batch: readonly NProduct
     },
     report: (_r, outcome) => ctx.report.count('products', outcome),
     one: (r) => commitOne(ctx, r.p, r.write, r.existingId),
+  })
+}
+
+/**
+ * Each pre-order selling plan group becomes a pre-order campaign (#142), found again by its
+ * Shopify id on a re-import (the merchant's own edits to it are kept). Its products join it
+ * unless they are already in a campaign here. Returns how many products joined one.
+ */
+export async function applyPreorderCampaigns(
+  ctx: ImportContext,
+  groups: readonly { id: string; name: string; productIds: string[] }[],
+): Promise<number> {
+  if (ctx.dryRun || groups.length === 0) return 0
+  return ctx.inStore(async (tx) => {
+    let joined = 0
+    for (const g of groups) {
+      const ids = [...(await findMappings(tx, 'products', g.productIds)).values()]
+      if (ids.length === 0) continue
+      const sourceId = `shopify:${g.id}`
+      const [found] = await tx
+        .select({ id: preorderCampaign.id })
+        .from(preorderCampaign)
+        .where(eq(preorderCampaign.sourceId, sourceId))
+      const campaignId =
+        found?.id ??
+        (
+          await tx
+            .insert(preorderCampaign)
+            .values({ storeId: ctx.storeId, name: g.name.slice(0, 80) || 'Pre-order', sourceId })
+            .returning({ id: preorderCampaign.id })
+        )[0]?.id
+      if (!campaignId) continue
+      const rows = await tx
+        .update(product)
+        .set({ preorderCampaignId: campaignId, updatedAt: new Date() })
+        .where(and(inArray(product.id, ids), isNull(product.preorderCampaignId)))
+        .returning({ id: product.id })
+      joined += rows.length
+    }
+    return joined
   })
 }
 

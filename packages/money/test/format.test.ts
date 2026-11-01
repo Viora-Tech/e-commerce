@@ -98,6 +98,13 @@ describe('market currencies', () => {
     expect(formatMoney(1791, 'JPY')).toBe('¥1,791')
   })
 
+  it('rounds totals to whole units by each currency’s own minor unit', () => {
+    expect(formatMoney(276_370_18, 'INR', { whole: true })).toBe('₹2,76,370')
+    expect(formatMoney(899, 'USD', { whole: true })).toBe('$9')
+    expect(plain(formatMoney(3670, 'KWD', { whole: true }))).toBe('KWD 4')
+    expect(formatMoney(1791, 'JPY', { whole: true })).toBe('¥1,791')
+  })
+
   it('knows which codes it formats', () => {
     expect(isCurrency('AED')).toBe(true)
     expect(isCurrency('XYZ')).toBe(false)

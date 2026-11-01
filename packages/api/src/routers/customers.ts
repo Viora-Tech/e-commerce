@@ -36,6 +36,7 @@ import {
   tagCustomers,
   updateCustomer,
 } from '../services/customer.service'
+import { emailCustomer } from '../services/customer-email.service'
 import {
   deleteSegment,
   getSegment,
@@ -235,6 +236,28 @@ export const customersRouter = {
       if (!chat) throw new ORPCError('NOT_FOUND', { message: 'Customer not found' })
       return chat
     }),
+
+  /**
+   * "Email customer": a plain email with the merchant's subject and message, sent through the
+   * store's email channels, listed under the customer's messages and noted on their timeline.
+   */
+  sendEmail: can(permissions.CUSTOMERS_WRITE)
+    .input(
+      z.object({
+        id: z.uuid(),
+        subject: z.string().trim().min(1).max(200),
+        message: z.string().trim().min(1).max(5000),
+      }),
+    )
+    .handler(({ context, input }) =>
+      emailCustomer(context.tx, context.scope.storeId, {
+        customerId: input.id,
+        subject: input.subject,
+        message: input.message,
+        author: context.session.user.email,
+        settingsSecret: settingsSecret(),
+      }),
+    ),
 
   /** The merchant opened a click-to-chat WhatsApp: the line goes on the customer's Timeline. */
   noteWhatsappChat: can(permissions.CUSTOMERS_WRITE)

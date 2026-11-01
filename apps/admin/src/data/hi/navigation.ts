@@ -11,9 +11,14 @@ import { translation } from '@/lib/i18n'
 export const hindiPageNames: Record<string, { title: string; body?: string }> = {
   '/': { title: 'होम' },
   '/orders': { title: 'ऑर्डर' },
+  '/sales-channels/agentic': { title: 'AI एजेंट से बिक्री' },
+  '/sales-channels/agentic/readiness': { title: 'कैटलॉग की तैयारी' },
+  '/sales-channels/agentic/controls': { title: 'कंट्रोल' },
+  '/sales-channels/social': { title: 'सोशल मीडिया' },
   '/sales-channels/inbox': { title: 'इनबॉक्स' },
   '/sales-channels/inbox/conversations': { title: 'बातचीत' },
   '/sales-channels/inbox/quick-replies': { title: 'झटपट जवाब' },
+  '/sales-channels/inbox/knowledge': { title: 'नॉलेज बेस' },
   '/sales-channels/inbox/settings': { title: 'इनबॉक्स सेटिंग्स' },
   '/orders/drafts': { title: 'ड्राफ़्ट' },
   '/orders/abandoned-checkouts': { title: 'अधूरे चेकआउट' },
@@ -30,6 +35,7 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
   '/stock/inbound-shipments': { title: 'आने वाली खेप' },
   '/stock/suppliers': { title: 'सप्लायर' },
   '/products/gift-cards': { title: 'गिफ़्ट कार्ड' },
+  '/products/preorders': { title: 'प्री-ऑर्डर' },
   '/customers': { title: 'ग्राहक' },
   '/customers/segments': { title: 'सेगमेंट' },
   '/content': { title: 'कंटेंट' },
@@ -48,6 +54,9 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
   '/growth/automations': { title: 'ऑटोमेशन' },
   '/growth/links': { title: 'ट्रैकिंग लिंक' },
   '/discounts': { title: 'डिस्काउंट' },
+  '/markets': { title: 'मार्केट' },
+  '/markets/catalogs': { title: 'कैटलॉग' },
+  '/markets/rollouts': { title: 'रोलआउट' },
   '/online-store': { title: 'ऑनलाइन स्टोर' },
   '/online-store/themes': { title: 'थीम' },
   '/online-store/pages': { title: 'पेज' },
@@ -90,17 +99,13 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
     title: 'शिपिंग और डिलीवरी',
     body: 'आप कहाँ डिलीवर करते हैं, कितना चार्ज है, आपके डिब्बे, कूरियर और डिस्पैच के दिन।',
   },
+  '/settings/templates': {
+    title: 'प्रिंट होने वाले डॉक्यूमेंट',
+    body: 'आपकी पैकिंग स्लिप, पिक लिस्ट और इनवॉइस: टेम्पलेट बदलें, प्रीव्यू देखें, ऑर्डर से प्रिंट करें।',
+  },
   '/settings/returns': {
     title: 'रिटर्न',
     body: 'ग्राहक कितने दिन में रिटर्न कर सकते हैं, कौन से कारण मंज़ूर हैं, और रिफ़ंड।',
-  },
-  '/settings/markets': {
-    title: 'मार्केट',
-    body: 'जिन देशों में आप बेचते हैं, हर एक की अपनी करेंसी, भाषा और वेब पता।',
-  },
-  '/settings/markets/rollouts': {
-    title: 'रोलआउट',
-    body: 'थीम, चेकआउट और डिस्काउंट के बदलाव जो तय समय पर लाइव होते हैं, जैसे सेल वाला वीकेंड।',
   },
   '/settings/taxes': {
     title: 'GST और इनवॉइस',
@@ -151,10 +156,6 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
     body: 'प्रोडक्ट और कलेक्शन के एक्स्ट्रा फ़ील्ड, और आपके कंटेंट टाइप।',
   },
   '/settings/invoices': { title: 'इनवॉइस' },
-  '/settings/appearance': {
-    title: 'रंग-रूप',
-    body: 'लाइट या डार्क मोड और आपका एक्सेंट रंग, सिर्फ़ आपके लिए।',
-  },
   '/account': { title: 'अकाउंट' },
   '/account/security': { title: 'साइन-इन और सुरक्षा' },
   '/account/sessions': { title: 'सेशन' },
@@ -184,6 +185,7 @@ export const hindiNavGroups: Record<string, string> = {
 export default [
   translation(navigationContent, {
     pickStore: 'स्टोर चुनें',
+    mainMenu: 'मुख्य मेन्यू',
     stores: 'स्टोर',
     allStores: 'सभी स्टोर',
     storesAvailable: (n) => `${n} उपलब्ध`,
@@ -202,6 +204,7 @@ export default [
       shortcut: '⌘K',
       askAi: 'AI से पूछें',
       lead: 'खोजें या AI से पूछें',
+      leadNoAi: 'खोजें',
       examples: ['भेजने वाले ऑर्डर', 'इस हफ़्ते सबसे ज़्यादा बिका', 'कम स्टॉक', 'आज की बिक्री'],
       empty: 'कुछ नहीं मिला',
       orders: 'ऑर्डर',

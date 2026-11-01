@@ -6,6 +6,7 @@ import RowMenu from '@/components/table/row-menu'
 import { analyticsContent } from '@/data/analytics'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { rangeQuery } from '@/lib/analytics-range'
+import { ANSWER_SLUG } from '@/lib/answer-report'
 import type { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 
@@ -31,11 +32,14 @@ export default function SavedReportCard({ saved, onRename, onDelete }: SavedRepo
 
   // Render logic
   const r = saved.range
-  /* A saved custom query opens in the query editor with its own text and dates. */
+  /* A saved custom query opens in the query editor with its own text and dates; a saved AI
+     answer opens its snapshot. */
   const href =
     saved.reportSlug === 'query'
       ? `${routes.analytics.query()}?saved=${saved.id}`
-      : `${routes.analytics.report(saved.reportSlug)}${rangeQuery(r)}`
+      : saved.reportSlug === ANSWER_SLUG
+        ? `${routes.analytics.answer()}?saved=${saved.id}`
+        : `${routes.analytics.report(saved.reportSlug)}${rangeQuery(r)}`
   const rangeLabel =
     r.key === 'custom'
       ? copy.ranges.custom(fmt.date(r.from ?? ''), fmt.date(r.to ?? ''))

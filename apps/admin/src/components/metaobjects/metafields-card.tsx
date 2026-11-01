@@ -41,7 +41,17 @@ type MetafieldsCardProps = {
   children?: ReactNode
   /** Render nothing while this owner type has no extra fields (secondary cards). */
   hideWhenEmpty?: boolean | undefined
+  /**
+   * Show only the fields this record has a value in, with "Show N empty fields" for the rest.
+   * Products imported from Shopify carry every category's fields (keyboard layout, fabric…),
+   * about 60 empty boxes on a mouse (audit #51, #177).
+   */
+  collapseEmpty?: boolean | undefined
 }
+
+/** A value worth showing: not blank, not an empty list. */
+const hasValue = (v: unknown) =>
+  v !== null && v !== undefined && v !== '' && !(Array.isArray(v) && v.length === 0)
 
 type Loaded = Awaited<ReturnType<typeof api.metaobjects.metafields>>
 
@@ -63,6 +73,7 @@ export default function MetafieldsCard({
   title,
   children,
   hideWhenEmpty,
+  collapseEmpty,
 }: MetafieldsCardProps) {
   // Hooks
   const copy = useCopy(metafieldsCardContent)
@@ -72,6 +83,7 @@ export default function MetafieldsCard({
   const [saved, setSaved] = useState('{}')
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
+  const [showEmpty, setShowEmpty] = useState(false)
   /** Adding a field right here, so nobody leaves the product page to define one (#296). */
   const [adding, setAdding] = useState(false)
   const [targets, setTargets] = useState<{ id: string; name: string }[]>([])
@@ -149,6 +161,15 @@ export default function MetafieldsCard({
     CUSTOM_DATA_OWNERS.find((o) => o.owner === ownerType)?.slug ?? '',
   )
   const definitions = loaded?.definitions ?? []
+  // Judged on what is saved, so a field does not vanish while it is being typed in.
+  const savedValues = JSON.parse(saved) as Record<string, unknown>
+  const emptyCount = collapseEmpty
+    ? definitions.filter((d) => !hasValue(savedValues[d.id])).length
+    : 0
+  const visible =
+    collapseEmpty && !showEmpty
+      ? definitions.filter((d) => hasValue(savedValues[d.id]))
+      : definitions
 
   return (
     <Card>
@@ -188,7 +209,7 @@ export default function MetafieldsCard({
         <CardContent>
           {ready ? (
             <FieldGroup>
-              {definitions.map((d) => (
+              {visible.map((d) => (
                 <FieldInput
                   key={d.id}
                   rule={{ ...d, validations: d.validations as FieldValidations }}
@@ -197,6 +218,16 @@ export default function MetafieldsCard({
                   onChange={(value) => handleChange(d.id, value)}
                 />
               ))}
+              {emptyCount > 0 ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="self-start"
+                  onClick={() => setShowEmpty((v) => !v)}
+                >
+                  {showEmpty ? copy.hideEmpty : copy.showEmpty(emptyCount)}
+                </Button>
+              ) : null}
             </FieldGroup>
           ) : (
             <p className="text-body text-muted-foreground">{copy.saveFirst}</p>

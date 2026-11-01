@@ -31,7 +31,7 @@ const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
   'apps/storefront/src/lib/liquid-theme.ts': { lines: 560, reason: SPLIT },
   'packages/api/src/routers/store.ts': { lines: 524, reason: SPLIT },
   'packages/api/src/services/analytics-reports.ts': { lines: 554, reason: SPLIT },
-  'packages/api/src/services/dashboard.service.ts': { lines: 1027, reason: SPLIT },
+  'packages/api/src/services/dashboard.service.ts': { lines: 950, reason: SPLIT },
   'packages/api/src/services/payments-setup.service.ts': {
     lines: 626,
     reason:
@@ -51,20 +51,15 @@ const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
       'the worker entry wires every queue, worker, schedule and shutdown in one place; a jobs registry would split it',
   },
   'packages/core/src/billing/service.ts': {
-    lines: 932,
+    lines: 716,
     reason:
-      'plan bills plus the per-order fee bills and the billing sweep — split usage-fee billing into its own module (#973)',
+      'plan bills, the sales-store order behind every bill and the billing sweep (fee bills moved out in #973)',
   },
   'packages/core/src/gift-cards/service.ts': { lines: 705, reason: SPLIT },
-  'packages/core/src/marketing/automations.ts': { lines: 837, reason: SPLIT },
+  'packages/core/src/marketing/automations.ts': { lines: 765, reason: SPLIT },
   'packages/core/src/marketing/campaigns.ts': { lines: 508, reason: SPLIT },
   'packages/core/src/metaobjects/service.ts': { lines: 768, reason: SPLIT },
   'packages/core/src/notifications/deliver.ts': { lines: 609, reason: SPLIT },
-  'packages/core/src/order/place-order.ts': {
-    lines: 1137,
-    reason:
-      'checkout: gift-card rules, payment adjustments, customer upsert and the cart lock around placeOrder — split into sibling modules (#973)',
-  },
   'packages/core/src/returns/service.ts': { lines: 763, reason: SPLIT },
   'packages/core/src/theme-code/files.ts': { lines: 550, reason: SPLIT },
   'packages/core/src/theme-import/resource-drops.ts': {

@@ -19,14 +19,16 @@ import {
 } from '@commerce/ui/shadcn/select'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import KitField from '@/components/kit/kit-field'
 import DataCard from '@/components/layout/data-card'
-import SettingsRow from '@/components/settings/settings-row'
 import { COUNTRIES } from '@/data/countries'
 import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import type { VariantRow } from './form-state'
+import type { ProductTax } from './product-tax'
+import ProductTaxFields from './product-tax-fields'
 import WeightInput from './weight-input'
 import { toGrams } from './weight-units'
 
@@ -35,6 +37,9 @@ type ShippingCardProps = {
   /** Without options the card edits the only variant; with them, the package still covers all. */
   singleVariant: boolean
   packageError?: string | undefined
+  /** HSN code and GST rate for the whole product (#63). */
+  tax: ProductTax
+  onTax: (tax: ProductTax) => void
   /** Weight and customs fields, for the variant shown. */
   onChange: (patch: Partial<VariantRow>) => void
   /** Package fields, applied to every variant. */
@@ -75,6 +80,8 @@ export default function ShippingCard({
   variant,
   singleVariant,
   packageError,
+  tax,
+  onTax,
   onChange,
   onPackage,
 }: ShippingCardProps) {
@@ -138,50 +145,29 @@ export default function ShippingCard({
   return (
     <DataCard title={copy.heading}>
       <FieldGroup>
-        {/* With options these are per variant, in each variant's Edit dialog (#914). */}
+        {/* HSN once for the product (#63); weight and origin stay per variant (#914). Without
+            options the GST rate sits beside "Charge tax" on Price & stock (audit #135). */}
+        <ProductTaxFields
+          tax={tax}
+          singleVariant={singleVariant}
+          part={singleVariant ? 'customs' : 'all'}
+          onChange={onTax}
+        />
         {singleVariant ? null : (
           <p className="text-body text-muted-foreground">{copy.perVariant}</p>
         )}
-        {/* Figma 283:14681 Shipping: label and help on the left, a 330px control on the right. */}
+        {/* One form style across the product page: label above the field (audit #28). */}
         {singleVariant ? (
-          <>
-            <SettingsRow label={copy.weight} description={copy.weightHelp} htmlFor="variant-weight">
+          <div className="grid gap-4 md:grid-cols-2">
+            <KitField label={copy.weight} help={copy.weightHelp} htmlFor="variant-weight">
               <WeightInput
                 id="variant-weight"
                 weight={variant.weight}
                 unit={variant.weightUnit}
                 onChange={onChange}
               />
-            </SettingsRow>
-            <SettingsRow label={copy.hsCode} description={copy.hsCodeHelp} htmlFor="variant-hs">
-              <Input
-                size="lg"
-                id="variant-hs"
-                value={variant.hsCode}
-                onChange={(e) => onChange({ hsCode: e.target.value })}
-                autoComplete="off"
-                inputMode="numeric"
-                className="md:max-w-[20.75rem]"
-              />
-            </SettingsRow>
-            <SettingsRow label={copy.gstRate} description={copy.gstRateHelp} htmlFor="variant-gst">
-              <Input
-                size="lg"
-                id="variant-gst"
-                value={variant.gstRate}
-                onChange={(e) =>
-                  onChange({ gstRate: e.target.value.replace(/\D/g, '').slice(0, 2) })
-                }
-                autoComplete="off"
-                inputMode="numeric"
-                className="md:max-w-[20.75rem]"
-              />
-            </SettingsRow>
-            <SettingsRow
-              label={copy.country}
-              description={copy.countryHelp}
-              htmlFor="variant-origin"
-            >
+            </KitField>
+            <KitField label={copy.country} help={copy.countryHelp} htmlFor="variant-origin">
               <Select
                 items={items}
                 value={variant.countryOfOrigin || NONE}
@@ -189,7 +175,7 @@ export default function ShippingCard({
                   onChange({ countryOfOrigin: next === NONE ? '' : String(next) })
                 }
               >
-                <SelectTrigger size="lg" id="variant-origin" className="w-full md:max-w-[20.75rem]">
+                <SelectTrigger size="lg" id="variant-origin" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -201,10 +187,10 @@ export default function ShippingCard({
                   ))}
                 </SelectContent>
               </Select>
-            </SettingsRow>
-          </>
+            </KitField>
+          </div>
         ) : null}
-        <SettingsRow label={copy.package} description={copy.packageHelp} htmlFor="variant-package">
+        <KitField label={copy.package} htmlFor="variant-package">
           <Select
             items={packageItems}
             value={packageValue}
@@ -224,12 +210,13 @@ export default function ShippingCard({
             </SelectContent>
           </Select>
           <FieldDescription>
+            {`${copy.packageHelp} `}
             {singleVariant ? null : `${copy.packageAllVariants} `}
             <Link href={routes.settings.shipping()} className="underline underline-offset-2">
               {copy.packageManage}
             </Link>
           </FieldDescription>
-        </SettingsRow>
+        </KitField>
         {packageValue === CUSTOM ? (
           <div className="grid gap-4 md:grid-cols-3">
             <Field>

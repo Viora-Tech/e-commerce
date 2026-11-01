@@ -1,18 +1,20 @@
 'use client'
 
 import { validateGstin } from '@commerce/core/gstin'
-import { Download, FileText, Plus, ReceiptIcon, RefreshCw, Save } from '@commerce/ui/icons'
+import { Download, Eye, FileText, Plus, ReceiptIcon, RefreshCw, Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Label } from '@commerce/ui/shadcn/label'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { GST_INVOICES_CHANGED } from '@/apps/order-action-procedures'
 import DataCard from '@/components/layout/data-card'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { api } from '@/lib/api-client'
 import { formatDay } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
+import OrderCardChanges from './order-card-changes'
 import { saveFile } from './save-file'
 
 type OrderCardProps = { orderId: string }
@@ -24,6 +26,18 @@ const APP = '/apps/gst-invoices'
 
 const cleanGstin = (v: string) => (v.trim() ? v.trim().toUpperCase() : null)
 
+const POLL_MS = 5000
+/** Five minutes: a queue the merchant issues by hand can wait for days. */
+const MAX_POLLS = 60
+
+/** A queued tax invoice, or an issued document whose PDF the worker has not drawn yet. */
+const isWaiting = (d: Data) =>
+  d.documents.some(
+    (x) =>
+      (x.kind === 'tax_invoice' && x.status === 'draft') ||
+      (x.status === 'issued' && x.pdfStatus === 'pending'),
+  )
+
 /**
  * GST documents on the order page: queue the order for invoicing, download
  * what was issued, add a buyer GSTIN, credit notes for refunds, slips.
@@ -33,6 +47,7 @@ export default function OrderCard({ orderId }: OrderCardProps) {
   const [data, setData] = useState<Data | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [gstin, setGstin] = useState('')
+  const polls = useRef(0)
 
   useEffect(() => {
     api.gstInvoices.forOrder({ orderId }).then((d) => {
@@ -40,6 +55,28 @@ export default function OrderCard({ orderId }: OrderCardProps) {
       setGstin(d.documents.find((x) => x.kind === 'tax_invoice')?.buyerGstin ?? '')
     })
   }, [orderId])
+
+  // "Generate GST invoice" and "Add to invoice queue" in the page's menus say so (issue 1009).
+  useEffect(() => {
+    const onChanged = () => {
+      polls.current = 0
+      void api.gstInvoices.forOrder({ orderId }).then(setData)
+    }
+    window.addEventListener(GST_INVOICES_CHANGED, onChanged)
+    return () => window.removeEventListener(GST_INVOICES_CHANGED, onChanged)
+  }, [orderId])
+
+  // While an invoice waits in the queue or its PDF is still rendering, look again a little later,
+  // so it turns into a View / Download row without a reload. Each answer sets `data`, which
+  // schedules the next look; it stops once nothing waits or after MAX_POLLS looks.
+  useEffect(() => {
+    if (!data || !isWaiting(data) || polls.current >= MAX_POLLS) return
+    const timer = window.setTimeout(() => {
+      polls.current += 1
+      void api.gstInvoices.forOrder({ orderId }).then(setData)
+    }, POLL_MS)
+    return () => window.clearTimeout(timer)
+  }, [orderId, data])
 
   // Helpers
   const reload = async () => setData(await api.gstInvoices.forOrder({ orderId }))
@@ -63,6 +100,8 @@ export default function OrderCard({ orderId }: OrderCardProps) {
     run(kind, () => api.gstInvoices.issue({ orderId, kind }))
   const handleDownload = (id: string) =>
     run(`dl-${id}`, async () => saveFile(await api.gstInvoices.download({ id })))
+  const handleView = (id: string) =>
+    run(`view-${id}`, async () => saveFile(await api.gstInvoices.download({ id }), 'open'))
   const handleRegenerate = (id: string) =>
     run(`re-${id}`, () => api.gstInvoices.regenerate({ id, buyerGstin: cleanGstin(gstin) }))
   const handleCredit = (refundId: string) =>
@@ -150,6 +189,15 @@ export default function OrderCard({ orderId }: OrderCardProps) {
               </Button>
             ) : null}
             <Button
+              variant="ghost"
+              size="sm"
+              disabled={busy !== null}
+              onClick={() => handleView(d.id)}
+            >
+              <Eye />
+              {copy.view}
+            </Button>
+            <Button
               variant="outline"
               size="sm"
               disabled={busy !== null}
@@ -160,6 +208,9 @@ export default function OrderCard({ orderId }: OrderCardProps) {
             </Button>
           </div>
         ))}
+        {invoice?.status === 'issued' ? (
+          <OrderCardChanges invoiceId={invoice.id} reported={invoice.reportedPeriod !== null} />
+        ) : null}
         {openRefunds.map((r) => (
           <div key={r.id} className="flex items-center justify-between gap-3">
             <span className="text-caption text-muted-foreground">

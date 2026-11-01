@@ -16,7 +16,10 @@ import {
   type SettingsOp,
 } from '../src/settings-plan'
 import { planFields, planPolicies } from '../src/settings-plan-content'
-import { planShipping } from '../src/settings-plan-shipping'
+import { planMarkets } from '../src/settings-plan-markets'
+import { planSegments, segmentRules } from '../src/settings-plan-segments'
+import { planShipping, zoneCoverage } from '../src/settings-plan-shipping'
+import { planPurchaseOrders, planTransfers } from '../src/settings-plan-stock'
 import { ShopifyClient } from '../src/shopify-client'
 import { settingsShopify } from './fixtures/settings'
 
@@ -45,6 +48,7 @@ function emptyLocal(): LocalSettings {
       pricesIncludeGst: true,
       moneyFormat: null,
     },
+    seo: { title: '', description: '' },
     defaultGstin: null,
     gstins: [],
     locations: [
@@ -62,6 +66,7 @@ function emptyLocal(): LocalSettings {
       },
     ],
     zones: [],
+    shippingProfiles: [{ id: 'profile-general', name: 'General', isDefault: true, productIds: [] }],
     policies: POLICY_TYPES.map((type) => ({
       type,
       exists: false,
@@ -70,7 +75,33 @@ function emptyLocal(): LocalSettings {
       published: false,
     })),
     fields: [],
-    mapped: { locations: new Map(), zones: new Map(), fields: new Map(), contentTypes: new Map() },
+    segments: [],
+    markets: [{ name: 'India', isPrimary: true, countries: ['IN'] }],
+    stock: {
+      suppliers: [],
+      products: new Map([
+        ['gid://shopify/Product/11', 'product-11'],
+        ['gid://shopify/Product/12', 'product-12'],
+      ]),
+      variants: [
+        { id: 'v-11-black', productId: 'product-11', sku: 'MIO-BLK', title: 'Black' },
+        { id: 'v-11-white', productId: 'product-11', sku: 'MIO-WHT', title: 'White' },
+        { id: 'v-12', productId: 'product-12', sku: null, title: 'Default' },
+      ],
+      purchaseOrders: new Map(),
+      transfers: new Map(),
+    },
+    mapped: {
+      locations: new Map(),
+      zones: new Map(),
+      shippingProfiles: new Map(),
+      products: new Map([
+        ['gid://shopify/Product/11', 'product-11'],
+        ['gid://shopify/Product/12', 'product-12'],
+      ]),
+      fields: new Map(),
+      contentTypes: new Map(),
+    },
   }
 }
 
@@ -80,7 +111,10 @@ function applyToLocal(local: LocalSettings, ops: SettingsOp[]): LocalSettings {
   const maps = {
     settings_locations: new Map(local.mapped.locations),
     settings_shipping_zones: new Map(local.mapped.zones),
+    settings_shipping_profiles: new Map(local.mapped.shippingProfiles),
     metafield_definitions: new Map(local.mapped.fields),
+    settings_purchase_orders: new Map(local.stock.purchaseOrders),
+    settings_transfers: new Map(local.stock.transfers),
   } as Record<string, Map<string, string>>
   let n = 0
   for (const op of ops) {
@@ -91,6 +125,19 @@ function applyToLocal(local: LocalSettings, ops: SettingsOp[]): LocalSettings {
     if (op.kind === 'gstin') {
       next.defaultGstin = op.gstin
       next.gstins.push(op.gstin)
+    }
+    if (op.kind === 'seo') {
+      next.seo = {
+        title: op.title ?? next.seo.title,
+        description: op.description ?? next.seo.description,
+      }
+    }
+    if (op.kind === 'segment') next.segments = [...next.segments, op.name]
+    if (op.kind === 'market') {
+      next.markets = [
+        ...next.markets,
+        { name: op.write.name, isPrimary: false, countries: op.write.countries },
+      ]
     }
     if (op.kind === 'location') {
       const id = op.id ?? `loc-${++n}`
@@ -104,11 +151,22 @@ function applyToLocal(local: LocalSettings, ops: SettingsOp[]): LocalSettings {
       else next.locations.push(row)
       if (op.sourceId) maps.settings_locations?.set(op.sourceId, id)
     }
+    if (op.kind === 'shipping_profile') {
+      const id = op.id ?? `profile-${++n}`
+      const row = { id, name: op.name, isDefault: false, productIds: op.productIds }
+      next.shippingProfiles = [...next.shippingProfiles.filter((p) => p.id !== id), row]
+      maps.settings_shipping_profiles?.set(op.sourceId, id)
+    }
     if (op.kind === 'zone') {
       const id = op.id ?? `zone-${++n}`
+      const owner = op.profileSourceId
+        ? (maps.settings_shipping_profiles?.get(op.profileSourceId) ?? null)
+        : null
       const zone = {
         id,
+        profileId: op.id ? (next.zones.find((z) => z.id === id)?.profileId ?? null) : owner,
         name: op.write.name,
+        countryCodes: op.write.countryCodes,
         stateCodes: op.write.stateCodes,
         pincodeRules: op.write.pincodeRules,
         rates: op.write.rates.map((r, i) => ({
@@ -146,11 +204,22 @@ function applyToLocal(local: LocalSettings, ops: SettingsOp[]): LocalSettings {
       })
       maps.metafield_definitions?.set(op.sourceId, id)
     }
+    if (op.kind === 'purchase_order') {
+      maps.settings_purchase_orders?.set(op.write.sourceId, `po-${++n}`)
+    }
+    if (op.kind === 'transfer') maps.settings_transfers?.set(op.write.sourceId, `transfer-${++n}`)
     if (op.kind === 'map') maps[op.resource]?.set(op.sourceId, op.localId)
+  }
+  next.stock = {
+    ...next.stock,
+    purchaseOrders: maps.settings_purchase_orders ?? new Map(),
+    transfers: maps.settings_transfers ?? new Map(),
   }
   next.mapped = {
     locations: maps.settings_locations ?? new Map(),
     zones: maps.settings_shipping_zones ?? new Map(),
+    shippingProfiles: maps.settings_shipping_profiles ?? new Map(),
+    products: local.mapped.products,
     fields: maps.metafield_definitions ?? new Map(),
     contentTypes: local.mapped.contentTypes,
   }
@@ -200,11 +269,13 @@ describe('reading store settings from Shopify', () => {
     ])
   })
 
-  it('reads zones only for the general profile, with weights in grams and prices in paise', async () => {
+  it('reads every profile’s zones and a custom profile’s products, in grams and paise', async () => {
     const log: string[] = []
     const source = await fetchSettingsSource(client([], log), ['shipping'])
-    expect(log.filter((l) => l.startsWith('zones:'))).toEqual([
+    expect(log.filter((l) => l.startsWith('zones:') || l.startsWith('items:'))).toEqual([
       'zones:gid://shopify/DeliveryProfile/1',
+      'zones:gid://shopify/DeliveryProfile/2',
+      'items:gid://shopify/DeliveryProfile/2',
     ])
     const profiles = source.profiles?.ok ? source.profiles.data : []
     const light = profiles[0]?.zones[1]?.methods[0]
@@ -212,7 +283,17 @@ describe('reading store settings from Shopify', () => {
       price: { amount: 6000, currency: 'INR' },
       conditions: [{ field: 'weight', operator: 'max', grams: 500 }],
     })
-    expect(profiles[1]).toMatchObject({ name: 'Heavy chairs', default: false, zones: [] })
+    expect(profiles[0]?.productIds).toEqual([])
+    expect(profiles[1]).toMatchObject({
+      name: 'Heavy chairs',
+      default: false,
+      productIds: [
+        'gid://shopify/Product/11',
+        'gid://shopify/Product/12',
+        'gid://shopify/Product/13',
+      ],
+    })
+    expect(profiles[1]?.zones.map((z) => z.name)).toEqual(['Heavy India'])
   })
 
   it('turns a missing scope into "needs access" for that part only', async () => {
@@ -254,6 +335,33 @@ describe('store details and tax', () => {
       kind: 'location',
       id: 'loc-home',
       details: { name: 'Default location', stateCode: 'KA', pincode: '560001' },
+    })
+  })
+
+  it('brings over the home page title and description only where this store has none', async () => {
+    const source = await read()
+    expect(source.shop.seo).toEqual({
+      title: 'Waimers',
+      description: 'Premium gaming peripherals for India.',
+    })
+    const fresh = planStore(source.shop, emptyLocal())
+    expect(find(fresh.items, { subject: 'home_seo_title' })).toMatchObject({
+      action: 'update',
+      to: 'Waimers',
+    })
+    expect(fresh.ops).toContainEqual({
+      kind: 'seo',
+      title: 'Waimers',
+      description: 'Premium gaming peripherals for India.',
+    })
+    const written = planStore(source.shop, {
+      ...emptyLocal(),
+      seo: { title: 'Our own title', description: '' },
+    })
+    expect(find(written.items, { subject: 'home_seo_title' })).toMatchObject({ action: 'same' })
+    expect(written.ops).toContainEqual({
+      kind: 'seo',
+      description: 'Premium gaming peripherals for India.',
     })
   })
 
@@ -372,10 +480,34 @@ describe('shipping', () => {
       reason: 'carrier_rates',
       detail: 'Shiprocket',
     })
+    // A zone abroad comes over as a country zone: Rest of world at ₹1,500 (audit #160).
     expect(find(plan.items, { name: 'International' })).toMatchObject({
-      reason: 'zone_outside_india',
+      action: 'create',
+      rates: [{ name: 'World', condition: 'none', min: null, max: null, pricePaise: 150_000 }],
     })
-    expect(find(plan.items, { name: 'Heavy chairs' })).toMatchObject({ reason: 'product_profile' })
+    const world = plan.ops.find((o) => o.kind === 'zone' && o.write.name === 'International')
+    expect(world && world.kind === 'zone' ? world.write.countryCodes : []).toEqual(['*'])
+    expect(world && world.kind === 'zone' ? world.write.stateCodes : null).toEqual([])
+    // The custom profile comes over with the products the import has, its zone inside it.
+    expect(find(plan.items, { name: 'Heavy chairs', action: 'create' })).toMatchObject({
+      subject: 'delivery_profile',
+      to: '2',
+    })
+    expect(find(plan.items, { name: 'Heavy chairs', action: 'warn' })).toMatchObject({
+      reason: 'profile_products_missing',
+      detail: '1',
+    })
+    expect(plan.ops.find((o) => o.kind === 'shipping_profile')).toMatchObject({
+      id: null,
+      sourceId: 'gid://shopify/DeliveryProfile/2',
+      productIds: ['product-11', 'product-12'],
+    })
+    expect(plan.ops.find((o) => o.kind === 'zone' && o.write.name === 'Heavy India')).toMatchObject(
+      { profileSourceId: 'gid://shopify/DeliveryProfile/2' },
+    )
+    expect(plan.ops.find((o) => o.kind === 'zone' && o.write.name === 'South India')).toMatchObject(
+      { profileSourceId: null },
+    )
     expect(find(plan.items, { name: 'Bengaluru warehouse' })).toMatchObject({
       reason: 'local_pickup',
     })
@@ -389,6 +521,7 @@ describe('shipping', () => {
     local.zones = [
       {
         id: 'zone-mine',
+        profileId: null,
         name: 'south india',
         stateCodes: ['KA'],
         pincodeRules: [{ pattern: '560*', mode: 'include' }],
@@ -497,12 +630,294 @@ describe('running it again', () => {
     expect(sameLines.filter((i) => i.subject === 'shipping_zone').map((i) => i.name)).toEqual([
       'South India',
       'Rest of India',
+      'International',
+      'Heavy India',
+    ])
+    // The custom profile is matched again, with the same products.
+    expect(sameLines.filter((i) => i.subject === 'delivery_profile').map((i) => i.name)).toEqual([
+      'Heavy chairs',
     ])
     expect(sameLines.filter((i) => i.subject === 'location')).toHaveLength(2)
     expect(sameLines.filter((i) => i.subject === 'policy')).toHaveLength(3)
     expect(sameLines.filter((i) => i.subject === 'field')).toHaveLength(4)
     // Matches are remembered, so a later rename on either side keeps them paired.
     expect(after.mapped.locations.size).toBe(2)
-    expect(after.mapped.zones.size).toBe(2)
+    expect(after.mapped.zones.size).toBe(4)
+    expect(after.mapped.shippingProfiles.size).toBe(1)
+  })
+})
+
+describe('customer segments (audit #87)', () => {
+  it('turns Shopify segment queries into our conditions', () => {
+    expect(segmentRules("customer_tags CONTAINS 'vip' AND number_of_orders >= 2")).toEqual({
+      match: 'all',
+      conditions: [
+        { field: 'tag', op: 'contains', value: 'vip' },
+        { field: 'orders', op: 'gte', value: '2' },
+      ],
+    })
+    expect(segmentRules('amount_spent > 1000 OR last_order_date > -30d')).toEqual({
+      match: 'any',
+      conditions: [
+        { field: 'spend', op: 'gte', value: '100001' },
+        { field: 'last_order_days', op: 'lte', value: '30' },
+      ],
+    })
+    expect(segmentRules("email_subscription_status != 'SUBSCRIBED'")?.conditions).toEqual([
+      { field: 'marketing', op: 'eq', value: 'false' },
+    ])
+    // A filter we cannot express, or AND mixed with OR: left for the merchant, never half-imported.
+    expect(segmentRules("customer_cities CONTAINS 'IN-HR-Sonipat'")).toBeNull()
+    expect(
+      segmentRules("customer_tags CONTAINS 'a' AND number_of_orders >= 1 OR amount_spent > 5"),
+    ).toBeNull()
+  })
+
+  it('creates the ones it can, keeps same-named ones, lists the rest', async () => {
+    const source = await read()
+    expect(source.segments?.ok).toBe(true)
+    const plan = planSegments(source.segments?.ok ? source.segments.data : [], {
+      ...emptyLocal(),
+      segments: ['Email subscribers'],
+    })
+    expect(plan.items.map((i) => [i.name, i.action])).toEqual([
+      ['Restock list: Mio', 'create'],
+      ['Email subscribers', 'same'],
+      ['Bought TenZ', 'manual'],
+    ])
+    expect(plan.ops).toEqual([
+      {
+        kind: 'segment',
+        name: 'Restock list: Mio',
+        rules: {
+          match: 'all',
+          conditions: [{ field: 'tag', op: 'contains', value: 'restock-dysphoria-mio' }],
+        },
+      },
+    ])
+  })
+})
+
+describe('markets (audit #114)', () => {
+  it('brings Shopify drafts over switched off and leaves India to the primary market', async () => {
+    const source = await read()
+    expect(source.markets?.ok).toBe(true)
+    const markets = source.markets?.ok ? source.markets.data : []
+    const plan = planMarkets(markets, [
+      { name: 'India', isPrimary: true, countries: ['IN'] },
+      { name: 'North America', isPrimary: false, countries: ['CA'] },
+    ])
+    expect(plan.items.map((i) => [i.name, i.action, i.reason ?? null])).toEqual([
+      ['India', 'same', null],
+      ['United States', 'create', null],
+      ['European Union', 'create', null],
+      ['United Kingdom', 'create', null],
+      ['Canada', 'manual', 'market_country_taken'],
+    ])
+    expect(plan.ops[0]).toEqual({
+      kind: 'market',
+      write: {
+        name: 'United States',
+        countries: ['US'],
+        currency: 'USD',
+        locale: 'en',
+        locales: ['fr'],
+        subfolder: 'us',
+        priceAdjustmentBp: 1000,
+        enabled: false,
+      },
+    })
+    const uk = plan.ops[2]
+    expect(uk?.kind === 'market' && uk.write.subfolder).toBe('en-gb')
+    expect(uk?.kind === 'market' && uk.write.priceAdjustmentBp).toBe(-500)
+  })
+
+  it('changes nothing the second time', async () => {
+    const source = await read()
+    const markets = source.markets?.ok ? source.markets.data : []
+    const local = [{ name: 'India', isPrimary: true, countries: ['IN'] }]
+    const first = planMarkets(markets, local)
+    const after = [
+      ...local,
+      ...first.ops.flatMap((op) =>
+        op.kind === 'market'
+          ? [{ name: op.write.name, isPrimary: false, countries: op.write.countries }]
+          : [],
+      ),
+    ]
+    expect(planMarkets(markets, after).ops).toEqual([])
+  })
+})
+
+/** Shopify locations the Locations part of the same import creates or matches. */
+function pendingOf(source: SettingsSource, local: LocalSettings): Set<string> {
+  const locations = source.locations?.ok ? source.locations.data : []
+  return new Set(
+    planLocations(locations, local).ops.flatMap((op) =>
+      (op.kind === 'location' || op.kind === 'map') && op.sourceId ? [op.sourceId] : [],
+    ),
+  )
+}
+
+describe('purchase orders and transfers (audit #75)', () => {
+  it('brings PO #1 from Kyomi over as ordered, ₹65,000, and lists the rest', async () => {
+    const source = await read()
+    const local = emptyLocal()
+    const pos = source.purchaseOrders?.ok ? source.purchaseOrders.data : []
+    const plan = planPurchaseOrders(pos, local, pendingOf(source, local))
+    expect(plan.items.map((i) => [i.name, i.action, i.reason ?? null, i.detail ?? null])).toEqual([
+      ['#PO1', 'create', null, null],
+      ['#PO2', 'manual', 'po_currency', 'USD'],
+      ['#PO3', 'manual', 'stock_products_missing', '1'],
+    ])
+    expect(plan.ops).toHaveLength(1)
+    const op = plan.ops[0]
+    const write = op?.kind === 'purchase_order' ? op.write : null
+    expect(write).toEqual({
+      sourceId: 'gid://shopify/InventoryPurchaseOrder/1',
+      name: '#PO1',
+      supplier: { id: null, name: 'Kyomi' },
+      // Made by the Locations part first; the write finds it through the location mapping.
+      location: { id: null, sourceId: 'gid://shopify/Location/1' },
+      currency: 'INR',
+      status: 'ordered',
+      orderedAt: '2026-10-20T10:00:00Z',
+      lines: [
+        { variantId: 'v-11-black', quantity: 50, unitPriceMinor: 100000 },
+        { variantId: 'v-12', quantity: 10, unitPriceMinor: 150000 },
+      ],
+    })
+    expect(write?.lines.reduce((sum, l) => sum + l.quantity * l.unitPriceMinor, 0)).toBe(6_500_000)
+  })
+
+  it('reuses a supplier by name and waits for a location that is not coming', async () => {
+    const source = await read()
+    const local = emptyLocal()
+    local.stock.suppliers = [{ id: 'sup-kyomi', name: ' KYOMI' }]
+    const home = local.locations[0]
+    if (!home) throw new Error('seed')
+    local.locations.push({ ...home, id: 'loc-blr', isDefault: false, name: 'Bengaluru Warehouse' })
+    const pos = source.purchaseOrders?.ok ? source.purchaseOrders.data : []
+    const matched = planPurchaseOrders(pos, local, new Set())
+    const op = matched.ops[0]
+    expect(op?.kind === 'purchase_order' && op.write.supplier).toEqual({
+      id: 'sup-kyomi',
+      name: 'Kyomi',
+    })
+    expect(op?.kind === 'purchase_order' && op.write.location).toEqual({
+      id: 'loc-blr',
+      sourceId: 'gid://shopify/Location/1',
+    })
+
+    const without = planPurchaseOrders(pos, emptyLocal(), new Set())
+    expect(without.items[0]).toMatchObject({
+      name: '#PO1',
+      action: 'manual',
+      reason: 'stock_location_missing',
+      detail: 'Bengaluru warehouse',
+    })
+    expect(without.ops).toEqual([])
+  })
+
+  it('brings #T0001 over in transit and lists cancelled transfers and receipts', async () => {
+    const source = await read()
+    const local = emptyLocal()
+    const transfers = source.transfers?.ok ? source.transfers.data : []
+    const plan = planTransfers(transfers, local, pendingOf(source, local))
+    expect(plan.items.map((i) => [i.name, i.action, i.reason ?? null, i.detail ?? null])).toEqual([
+      ['#T0001', 'create', null, null],
+      ['#T0002', 'manual', 'transfer_status', 'canceled'],
+      ['#T0003', 'manual', 'transfer_origin', null],
+    ])
+    const op = plan.ops[0]
+    expect(op?.kind === 'transfer' ? op.write : null).toEqual({
+      sourceId: 'gid://shopify/InventoryTransfer/1',
+      from: { id: null, sourceId: 'gid://shopify/Location/1' },
+      to: { id: null, sourceId: 'gid://shopify/Location/2' },
+      status: 'in_transit',
+      note: 'Shopify #T0001\nDiwali stock for the store',
+      shippedAt: '2026-10-22T09:00:00Z',
+      // Two lines for one variant (SKUs differ only in case) become one.
+      lines: [{ variantId: 'v-11-black', quantity: 5, unitPriceMinor: 0 }],
+    })
+  })
+
+  it('changes nothing the second time', async () => {
+    const source = await read()
+    if (!source.locations?.ok || !source.purchaseOrders?.ok || !source.transfers?.ok) {
+      throw new Error('read')
+    }
+    const first = emptyLocal()
+    const pending = pendingOf(source, first)
+    const plans = [
+      planLocations(source.locations.data, first),
+      planPurchaseOrders(source.purchaseOrders.data, first, pending),
+      planTransfers(source.transfers.data, first, pending),
+    ]
+    const after = applyToLocal(
+      first,
+      plans.flatMap((p) => p.ops),
+    )
+    const pos = planPurchaseOrders(source.purchaseOrders.data, after, pendingOf(source, after))
+    const transfers = planTransfers(source.transfers.data, after, pendingOf(source, after))
+    expect([...pos.ops, ...transfers.ops]).toEqual([])
+    expect(pos.items.find((i) => i.name === '#PO1')?.action).toBe('same')
+    expect(transfers.items.find((i) => i.name === '#T0001')?.action).toBe('same')
+  })
+
+  it('asks to reconnect when the token lacks the new scopes', async () => {
+    const source = await fetchSettingsSource(client(['purchaseOrders', 'transfers']), [
+      'purchase_orders',
+      'transfers',
+    ])
+    expect(source.purchaseOrders).toMatchObject({ ok: false, access: true })
+    expect(source.transfers).toMatchObject({ ok: false, access: true })
+  })
+})
+
+describe('zones abroad (audit #160)', () => {
+  const zone = (
+    countries: {
+      code: string | null
+      restOfWorld?: boolean
+      provinces?: { name: string; code: string }[]
+    }[],
+  ) => ({
+    sourceId: 'gid://shopify/DeliveryZone/9',
+    name: 'Zone',
+    countries: countries.map((c) => ({
+      code: c.code,
+      restOfWorld: c.restOfWorld ?? false,
+      provinces: c.provinces ?? [],
+    })),
+    methods: [],
+  })
+
+  it('keeps every country, India first and Rest of world last', () => {
+    const items: SettingsItem[] = []
+    expect(
+      zoneCoverage(
+        zone([{ code: null, restOfWorld: true }, { code: 'AE' }, { code: 'IN' }, { code: 'AU' }]),
+        items,
+      ),
+    ).toEqual({ countryCodes: ['IN', 'AE', 'AU', '*'], stateCodes: [] })
+    expect(items).toEqual([])
+  })
+
+  it('keeps India’s states, and drops India when none of its regions is known', () => {
+    const items: SettingsItem[] = []
+    expect(
+      zoneCoverage(zone([{ code: 'IN', provinces: [{ name: 'Karnataka', code: 'KA' }] }]), items),
+    ).toEqual({ countryCodes: ['IN'], stateCodes: ['KA'] })
+    expect(
+      zoneCoverage(
+        zone([{ code: 'IN', provinces: [{ name: 'Atlantis', code: 'XX' }] }, { code: 'AE' }]),
+        items,
+      ),
+    ).toEqual({ countryCodes: ['AE'], stateCodes: [] })
+    expect(items.map((i) => i.reason)).toEqual(['unknown_state'])
+    expect(
+      zoneCoverage(zone([{ code: 'IN', provinces: [{ name: 'Atlantis', code: 'XX' }] }]), []),
+    ).toBeNull()
   })
 })

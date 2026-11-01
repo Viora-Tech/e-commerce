@@ -85,7 +85,12 @@ export default function CreateReturnDialog({
   // Render logic
   const returnable = new Map(state.eligibility.lines.map((l) => [l.lineId, l.returnable]))
   const lines = state.lines.filter((l) => (returnable.get(l.id) ?? 0) > 0)
-  const picked = Object.entries(qty).filter(([, n]) => n > 0)
+  // One item to return: start at everything that can come back, not 0.
+  const only = lines.length === 1 ? lines[0] : undefined
+  const chosen: Record<string, number> = only
+    ? { [only.id]: returnable.get(only.id) ?? 0, ...qty }
+    : qty
+  const picked = Object.entries(chosen).filter(([, n]) => n > 0)
 
   return (
     <Dialog open={open} onOpenChange={(o) => (!o ? onClose() : undefined)}>
@@ -114,7 +119,7 @@ export default function CreateReturnDialog({
                       min="0"
                       max={max}
                       className="w-20"
-                      value={qty[l.id] ?? 0}
+                      value={chosen[l.id] ?? 0}
                       onChange={(e) => handleQty(l.id, e.target.value, max)}
                     />
                   </li>

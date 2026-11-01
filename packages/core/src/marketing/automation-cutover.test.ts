@@ -21,13 +21,12 @@ import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { WorkflowDefinitionSchema } from '../automations/definition'
 import { automationsEngineMode, cutoverStoreToEngine, verifyCutover } from './automation-cutover'
+import { enrolDue, processDueRuns } from './automations'
 import {
   automationStats,
   createAutomationFromTemplate,
-  enrolDue,
-  processDueRuns,
   setAutomationStatus,
-} from './automations'
+} from './automations-crud'
 import {
   createGrowthAutomation,
   getGrowthAutomation,

@@ -10,8 +10,10 @@ export { createDb, type Db } from './client'
 export * from './content-schema'
 export { seedWaimersShipping } from './default-shipping'
 export * from './delivery-schema'
+export * from './discovery-schema'
 export { isUniqueViolation } from './errors'
 export * from './finance-schema'
+export * from './home-card-schema'
 export * from './inbox-schema'
 export * from './market-schema'
 export * from './marketing-schema'
@@ -42,6 +44,7 @@ export {
   storesWithChannelConnections,
   storesWithDueAffiliateCommissions,
   storesWithDueReviewRequests,
+  storesWithHomeCardsDue,
   storesWithMarketingWork,
   storesWithMemberDailySummaries,
   storesWithOldApiActivity,
@@ -58,6 +61,7 @@ export {
   storesWithSenderEmailChecks,
   storesWithShopifyConnections,
   storesWithStaleImportSnapshots,
+  storesWithStaleReviewSummaries,
   storesWithUndispatchedOutboxEvents,
   storesWithUnknownPaymentFees,
   storesWithUnpaidOnlineOrders,
@@ -67,6 +71,7 @@ export * from './returns-schema'
 export * from './rollout-schema'
 export * from './schema'
 export * from './search-console-schema'
+export * from './shipping-schema'
 export * from './shopper-login-schema'
 export * from './stock'
 export * from './store-data-schema'

@@ -7,6 +7,7 @@ import {
   type SearchParamsInput,
 } from '@commerce/core/browse'
 import type { Metadata } from 'next'
+import SearchBeacon from '@/components/analytics/search-beacon'
 import MainSearch from '@/components/search/main-search'
 import { SEARCH_SORTS } from '@/data/browse'
 import { SEARCH_PER_PAGE, searchContent } from '@/data/search'
@@ -62,7 +63,7 @@ export default async function SearchPage({ params, searchParams }: Params) {
         },
       )
     : { result: null, products: [] }
-  return renderTemplate(storeId, 'search', {
+  const rendered = await renderTemplate(storeId, 'search', {
     view: text(query.view) || undefined,
     renderers: {
       MainSearch: (settings) => (
@@ -78,4 +79,12 @@ export default async function SearchPage({ params, searchParams }: Params) {
       ),
     },
   })
+  // Search & discovery: the search and its result count, sent from the browser after paint (and
+  // only after a yes to analytics), so the cached results never wait on it.
+  return (
+    <>
+      {rendered}
+      {q && result ? <SearchBeacon query={q} results={result.total} /> : null}
+    </>
+  )
 }

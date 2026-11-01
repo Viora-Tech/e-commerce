@@ -4,6 +4,7 @@ import { and, asc, eq } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { insertOutboxEvent } from '../outbox/write'
 import { createPaymentAttempt } from '../payments/attempts'
+import { orderRef } from './draft-ref'
 import { convertDraft } from './drafts'
 
 /**
@@ -67,6 +68,7 @@ export async function loadDraftInvoice(ctx: StoreContext, orderId: string) {
     .select({
       id: order.id,
       number: order.number,
+      draftNumber: order.draftNumber,
       status: order.status,
       checkoutPaidAt: order.checkoutPaidAt,
       totalPaise: order.totalPaise,
@@ -89,6 +91,8 @@ export async function loadDraftInvoice(ctx: StoreContext, orderId: string) {
   return {
     id: o.id,
     number: o.number,
+    /** What follows the # on the page: "D12" while a draft, the order number once placed. */
+    ref: orderRef(o),
     totalPaise: o.totalPaise,
     payable: invoicePayable(o),
     lines,

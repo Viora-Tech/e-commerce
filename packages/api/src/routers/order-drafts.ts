@@ -17,6 +17,7 @@ import {
   draftEmail,
   draftTiles,
   duplicateStoreOrder,
+  estimateStoreDraftGst,
   getDraft,
   getStoreAbandoned,
   listStoreAbandoned,
@@ -86,6 +87,28 @@ export const draftAndAbandonedRoutes = {
     )
     .handler(({ context, input }) =>
       checkStoreDraftDiscount(context.tx, context.scope.storeId, input),
+    ),
+
+  /**
+   * The GST inside a draft's total as converting would bill it (each line's rate, the discount
+   * spread over the lines, shipping with the goods). Prices include GST, so the total is unchanged.
+   */
+  estimateDraftGst: can(permissions.DRAFTS_WRITE)
+    .input(
+      z.object({
+        lines: DraftInputSchema.shape.lines,
+        totalPaise: z.number().int().min(0),
+        reductionPaise: z.number().int().min(0).default(0),
+        stateCode: z.string().trim().max(3).nullish(),
+      }),
+    )
+    .handler(({ context, input }) =>
+      estimateStoreDraftGst(context.tx, context.scope.storeId, {
+        lines: input.lines,
+        totalPaise: input.totalPaise,
+        reductionPaise: input.reductionPaise,
+        stateCode: input.stateCode ?? null,
+      }),
     ),
 
   /**

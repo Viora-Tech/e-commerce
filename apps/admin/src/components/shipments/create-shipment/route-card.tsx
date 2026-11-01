@@ -40,6 +40,28 @@ type SideProps = {
   place: Place | null
   chip: ReactNode
   actions: ReactNode
+  /** Shown instead of an address the side does not have. */
+  empty: ReactNode
+}
+
+/** A pickup place with no street or city yet: only the PIN code is known (#17). */
+function hasAddress(place: Place | null): place is Place {
+  return Boolean(place?.city?.trim() || place?.line1?.trim())
+}
+
+/** Where a missing pickup address is added: the shipping settings' ship-from address. */
+function AddPickupLink() {
+  // Hooks
+  const copy = useCopy(createShipmentContent.page)
+
+  return (
+    <Link
+      href={routes.settings.shipping()}
+      className="text-body font-medium text-primary hover:underline"
+    >
+      {copy.addPickupAddress}
+    </Link>
+  )
 }
 
 function Address({ place }: { place: Place }) {
@@ -61,7 +83,7 @@ function Address({ place }: { place: Place }) {
   )
 }
 
-function Side({ label, place, chip, actions }: SideProps) {
+function Side({ label, place, chip, actions, empty }: SideProps) {
   return (
     <div className="flex flex-col gap-3 p-4">
       <div className="flex min-h-5.5 items-center justify-between gap-2">
@@ -71,18 +93,29 @@ function Side({ label, place, chip, actions }: SideProps) {
         </p>
         {chip}
       </div>
-      {place ? <Address place={place} /> : <p className="text-muted-foreground">—</p>}
+      {place ? <Address place={place} /> : empty}
       <div className="flex items-center gap-1">{actions}</div>
     </div>
   )
 }
 
-/** The "Gurugram 122001" under a city on the route bar. */
+/** The "Gurugram 122001" under a city on the route bar; a pickup with no address asks for one. */
 function Endpoint({ place, align }: { place: Place | null; align: 'start' | 'end' }) {
+  // Render logic
+  const isOrigin = align === 'start'
+
   return (
     <div className={align === 'end' ? 'text-right' : 'text-left'}>
-      <p className="text-body font-medium text-ink-strong">{place?.city ?? '—'}</p>
-      <p className="text-caption text-muted-foreground">{place?.pincode}</p>
+      {hasAddress(place) ? (
+        <>
+          <p className="text-body font-medium text-ink-strong">{place.city ?? '—'}</p>
+          <p className="text-caption text-muted-foreground">{place.pincode}</p>
+        </>
+      ) : isOrigin ? (
+        <AddPickupLink />
+      ) : (
+        <p className="text-body font-medium text-ink-strong">—</p>
+      )}
     </div>
   )
 }
@@ -103,7 +136,8 @@ export default function RouteCard({
 
   // Render logic
   const to: Place = { ...order, name: order.customerName }
-  const origin: Place | null = from ? { ...from } : null
+  // A pickup place with only a PIN code reads as missing: "— 110001" told the merchant nothing.
+  const origin: Place | null = from && hasAddress(from) ? { ...from } : null
   const isDefault = from !== undefined && from.id === null
 
   return (
@@ -117,6 +151,7 @@ export default function RouteCard({
         <Side
           label={copy.shipFrom}
           place={origin}
+          empty={<AddPickupLink />}
           chip={isDefault ? <StatusChip variant="outline">{copy.defaultPickup}</StatusChip> : null}
           actions={
             <>
@@ -140,6 +175,7 @@ export default function RouteCard({
         <Side
           label={copy.shipTo}
           place={to}
+          empty={<p className="text-muted-foreground">—</p>}
           chip={serviceable ? <StatusChip tone="success">{copy.pinServiceable}</StatusChip> : null}
           actions={
             <Button variant="outline" size="sm" onClick={onEditCustomer}>

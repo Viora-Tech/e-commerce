@@ -20,7 +20,9 @@ import bugReport from './bug-report'
 import bulkActions from './bulk-actions'
 import bulkEdit from './bulk-edit'
 import businessGst from './business-gst'
+import catalogs from './catalogs'
 import chatwoot from './chatwoot'
+import checkoutRules from './checkout-rules'
 import checkoutSettings from './checkout-settings'
 import codRto from './cod-rto'
 import collections from './collections'
@@ -33,6 +35,7 @@ import contentFiles from './content-files'
 import createShipment from './create-shipment'
 import customData from './custom-data'
 import customerAddresses from './customer-addresses'
+import customerGiftCards from './customer-gift-cards'
 import customers from './customers'
 import customersBulkEdit from './customers-bulk-edit'
 import customizeAi from './customize-ai'
@@ -42,6 +45,7 @@ import dates from './dates'
 import deliveryOptions from './delivery-options'
 import dhlExpress from './dhl-express'
 import discounts from './discounts'
+import documentTemplates from './document-templates'
 import domains from './domains'
 import drafts from './drafts'
 import dtdc from './dtdc'
@@ -60,10 +64,12 @@ import home from './home'
 import imageEditor from './image-editor'
 import inbox from './inbox'
 import inboxConversations from './inbox-conversations'
+import inboxKnowledge from './inbox-knowledge'
 import indiaPost from './india-post'
 import installedApps from './installed-apps'
 import inventory from './inventory'
 import layout from './layout'
+import localDelivery from './local-delivery'
 import login from './login'
 import marketingAutomations from './marketing-automations'
 import marketingCampaigns from './marketing-campaigns'
@@ -79,15 +85,20 @@ import orderAppActions from './order-app-actions'
 import orderCards from './order-cards'
 import orderDetail from './order-detail'
 import orderEdit from './order-edit'
+import orderHold from './order-hold'
 import orderListFilters from './order-list-filters'
 import orders from './orders'
 import ordersBulk from './orders-bulk'
 import ordersBulkEdit from './orders-bulk-edit'
 import paymentModes from './payment-modes'
+import paymentProviders from './payment-providers'
+import paymentRouting from './payment-routing'
+import paymentRules from './payment-rules'
 import payments from './payments'
 import paymentsSetup from './payments-setup'
 import pixels from './pixels'
 import platform from './platform'
+import preorders from './preorders'
 import productForm from './product-form'
 import productPage from './product-page'
 import products from './products'
@@ -98,16 +109,20 @@ import purchasing from './purchasing'
 import razorpayWebsites from './razorpay-websites'
 import resourcePicker from './resource-picker'
 import returns from './returns'
+import reviewTools from './review-tools'
 import reviews from './reviews'
 import rollouts from './rollouts'
 import searchApp from './search-app'
 import searchConsole from './search-console'
+import searchDiscovery from './search-discovery'
 import searchFilters from './search-filters'
 import selectProducts from './select-products'
 import seoKeywords from './seo-keywords'
 import seoReport from './seo-report'
 import settings from './settings'
+import settingsRows from './settings-rows'
 import shadowfax from './shadowfax'
+import shipglobal from './shipglobal'
 import shipments from './shipments'
 import shipping from './shipping'
 import shippingRates from './shipping-rates'
@@ -119,6 +134,7 @@ import shopifyImportSettings from './shopify-import-settings'
 import staff from './staff'
 import staffInvites from './staff-invites'
 import states from './states'
+import stepUp from './step-up'
 import storageWarning from './storage-warning'
 import storeData from './store-data'
 import storeHealth from './store-health'
@@ -145,6 +161,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...appInstall,
   ...apps,
   ...abandonedDetail,
+  ...customerGiftCards,
   ...ai,
   ...assistant,
   ...automationRecords,
@@ -158,6 +175,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...bulkActions,
   ...bulkEdit,
   ...businessGst,
+  ...checkoutRules,
   ...checkoutSettings,
   ...codRto,
   ...deliveryOptions,
@@ -177,6 +195,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...dates,
   ...dhlExpress,
   ...fedex,
+  ...shipglobal,
   ...giftCards,
   ...drafts,
   ...domains,
@@ -199,6 +218,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...marketingAutomations,
   ...marketingCampaigns,
   ...markets,
+  ...catalogs,
   ...rollouts,
   ...login,
   ...metaobjects,
@@ -208,6 +228,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...orderCards,
   ...orderDetail,
   ...orderEdit,
+  ...orderHold,
   ...orderListFilters,
   ...shopifyImportFiles,
   ...shopifyImportRun,
@@ -217,6 +238,9 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...ordersBulkEdit,
   ...payments,
   ...paymentModes,
+  ...paymentProviders,
+  ...paymentRouting,
+  ...paymentRules,
   ...paymentsSetup,
   ...pixels,
   ...platform,
@@ -225,6 +249,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...commandPalette,
   ...inventory,
   ...productForm,
+  ...preorders,
   ...productPage,
   ...products,
   ...purchaseDocuments,
@@ -232,21 +257,27 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...profitReport,
   ...inbox,
   ...inboxConversations,
+  ...inboxKnowledge,
   ...monthlyExpenses,
   ...purchasing,
   ...selectProducts,
   ...returns,
+  ...reviewTools,
   ...reviews,
   ...settings,
+  ...settingsRows,
   ...shipments,
   ...shipping,
   ...shippingRates,
+  ...localDelivery,
+  ...documentTemplates,
   ...shopifyImport,
   ...shopifyAppInstall,
   ...notifications,
   ...staff,
   ...staffInvites,
   ...states,
+  ...stepUp,
   ...storeData,
   ...storeHealth,
   ...storageWarning,
@@ -255,6 +286,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...themeImport,
   ...themes,
   ...searchApp,
+  ...searchDiscovery,
   ...searchFilters,
   ...searchConsole,
   ...seoReport,

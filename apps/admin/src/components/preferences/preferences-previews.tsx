@@ -9,13 +9,15 @@ type PreferencesPreviewsProps = {
   seo: StorePreferences['seo']
   /** The storefront's address, e.g. https://waimers.in. */
   origin: string
+  /** Stands in for a blank title, as it does on the storefront. */
+  storeName: string
 }
 
 /** Figma Preferences side column: how the home page shows on Google and when shared on WhatsApp. */
-export default function PreferencesPreviews({ seo, origin }: PreferencesPreviewsProps) {
+export default function PreferencesPreviews({ seo, origin, storeName }: PreferencesPreviewsProps) {
   // Render logic
   const host = origin.replace(/^https?:\/\//, '')
-  const title = seo.title || host
+  const title = seo.title || storeName || host
   const brand = host.split('.')[0] ?? host
 
   return (

@@ -15,6 +15,7 @@ import {
   type AssistantPageContext,
   assistantInstructions,
   defineAiTool,
+  fitOutline,
   streamAnswer,
   ThemeEditInput,
   type ThemeEditRequest,
@@ -26,13 +27,16 @@ import {
 import { permissions } from '@commerce/core'
 import { formatInZone } from '@commerce/dates'
 import { withStore } from '@commerce/db'
+import { z } from 'zod'
+import { type AnswerTable, type CallInput, callInputs, detachTable } from '../answer-table'
 import { type AiCallContext, finishAiCall, type StartedAiCall, startAiCall } from '../guard'
 import { type Fact, storeTools, type ToolEnv } from '../store-tools'
 import { ProposalProblem } from './actions/resolve'
+import { type FoundImage, findImages } from './find-images'
 import { pageLine } from './page-context'
 import { readTools } from './read-tools'
 import { ACTIONS, READ_TOOL_PERMISSION } from './registry'
-import { proposeAction } from './service'
+import { ALREADY_REQUESTED, proposeAction } from './service'
 import { freshTaint, type Taint } from './taint'
 import type { ActionView } from './views'
 
@@ -55,6 +59,10 @@ export type AssistantEvent =
       facts: Fact[]
       /** Personal details the tool sent to the AI (only `orderDetails`: a first name). */
       shared: string[]
+      /** What the model asked the tool, for "Show query". */
+      inputs: CallInput[]
+      /** The tool's rows, straight from the tool (never written by the model). */
+      table: AnswerTable | null
     }
   | { type: 'proposal'; action: ActionView }
   /** A drafted theme edit for the open editor page; the browser applies it, the API never writes it. */
@@ -63,6 +71,9 @@ export type AssistantEvent =
   | { type: 'done' }
 
 type Session = AiCallContext & { email: string }
+
+/** One read tool call: what it was asked and the table it kept back from the model. */
+type ReadCall = { input: unknown; table: AnswerTable | null }
 
 const FAILED = 'Sorry, I could not answer that just now. Please try again in a moment.'
 
@@ -79,12 +90,34 @@ function factsOf(output: unknown): { facts: Fact[]; shared: string[] } {
   return { facts, shared }
 }
 
+/**
+ * A read tool whose table goes to the admin, not the model: the output keeps its facts and a
+ * `ref` to find the call again in the answer's events.
+ */
+function keepingTables(tools: AiToolSet, calls: Map<string, ReadCall>): AiToolSet {
+  return Object.fromEntries(
+    Object.entries(tools).map(([name, t]) => [
+      name,
+      {
+        ...t,
+        run: async (input: unknown, runtime: Parameters<typeof t.run>[1]) => {
+          const ref = randomUUID().slice(0, 8)
+          const { modelOutput, table } = detachTable(await t.run(input, runtime), ref)
+          calls.set(ref, { input, table })
+          return modelOutput
+        },
+      },
+    ]),
+  )
+}
+
 /** The member's tools: read tools and propose tools their role allows. */
 function toolsFor(
   context: Session,
   call: StartedAiCall,
   taint: Taint,
   proposals: Map<string, ActionView>,
+  calls: Map<string, ReadCall>,
 ): AiToolSet {
   const env: ToolEnv = { db: context.db, store: call.store, now: () => new Date(), taint }
   const reads = { ...storeTools(env), ...readTools(env) }
@@ -125,6 +158,15 @@ function toolsFor(
                   { flagged: taint.flagged },
                 ),
               )
+              // Already open (this member asked for the same change): no copy, and the model
+              // tells them it is waiting rather than proposing it again.
+              if (view.alreadyRequested) {
+                const note = `${ALREADY_REQUESTED} Tell the member this change is already waiting for approval; do not propose it again.`
+                // Waiting in Approvals: no card to show. Still on a card: show that one again.
+                if (view.needsApprover) return { note }
+                proposals.set(view.id, view)
+                return { proposal: { id: view.id, summary: view.summary }, note }
+              }
               taint.proposals += 1
               proposals.set(view.id, view)
               return { proposal: { id: view.id, summary: view.summary } }
@@ -136,16 +178,59 @@ function toolsFor(
         }),
       ]),
   )
-  return { ...allowedReads, ...proposes }
+  return { ...keepingTables(allowedReads, calls), ...proposes }
 }
 
-/** The theme editor's tool: checks an edit against this message's outline and drafts it. */
+const SectionSettingsInput = z.object({
+  sectionId: z.string().min(1).max(120).describe('The section id, exactly as in the page outline.'),
+})
+
+const FindImagesInput = z.object({
+  query: z
+    .string()
+    .trim()
+    .min(1)
+    .max(80)
+    .describe(
+      'A product or collection name, or a word in it, e.g. "Dysphoria Maki" or "glasspad".',
+    ),
+})
+
+/**
+ * The theme editor's tools: `findImages` looks up the store's own pictures and links, and
+ * `proposeThemeEdit` checks an edit against this message's outline and drafts it.
+ */
 function themeEditTool(
   outline: ThemeOutline,
   taint: Taint,
   edits: Map<string, ThemeEditView>,
+  lookup: (query: string) => Promise<FoundImage[]>,
 ): AiToolSet {
   return {
+    sectionSettings: defineAiTool({
+      description:
+        'Read one section of the open page in full: all its settings and its blocks with their current values. Use it when the page outline is partial and a section you need to change shows no settings there.',
+      input: SectionSettingsInput,
+      risk: 'read',
+      run: async (input: z.infer<typeof SectionSettingsInput>) => {
+        const section = outline.sections.find((s) => s.id === input.sectionId)
+        if (!section) return { error: `No section "${input.sectionId}" on this page.` }
+        // Page text goes through the same guard as the outline in the prompt.
+        const one = themeOutlineForPrompt({ ...outline, partial: false, sections: [section] })
+        if (one.flagged) taint.flagged = true
+        return { section: JSON.parse(one.text).sections[0] }
+      },
+    }),
+    findImages: defineAiTool({
+      description:
+        "Find the store's products and collections by name, each with its main picture (imageUrl) and its storefront link. Use the imageUrl for an image setting and the link for a button or url setting in proposeThemeEdit.",
+      input: FindImagesInput,
+      risk: 'read',
+      run: async (input: z.infer<typeof FindImagesInput>) => {
+        const found = await lookup(input.query)
+        return found.length ? { results: found } : { results: [], note: 'Nothing by that name.' }
+      },
+    }),
     proposeThemeEdit: defineAiTool({
       description:
         'Draft a change to settings of sections or blocks on the page open in the theme editor (text, links, checkboxes, numbers, choices). Use the ids and setting keys from the page outline. Nothing changes until the merchant applies it in the editor.',
@@ -181,13 +266,19 @@ export async function runAssistant(
   const taint = freshTaint()
   const proposals = new Map<string, ActionView>()
   const themeEdits = new Map<string, ThemeEditView>()
+  const calls = new Map<string, ReadCall>()
   const outline = input.page.page === 'theme-editor' ? input.theme : undefined
   const canEditTheme = Boolean(outline) && context.scope.can(permissions.ONLINE_STORE_WRITE)
   const tools = {
-    ...toolsFor(context, call, taint, proposals),
-    ...(outline && canEditTheme ? themeEditTool(outline, taint, themeEdits) : {}),
+    ...toolsFor(context, call, taint, proposals, calls),
+    ...(outline && canEditTheme
+      ? themeEditTool(outline, taint, themeEdits, (query) =>
+          withStore(context.db, call.runtime.storeId, (tx) => findImages(tx, query)),
+        )
+      : {}),
   }
-  const guarded = outline ? themeOutlineForPrompt(outline) : null
+  // The prompt gets the page cut to size; the whole outline stays for checks and sectionSettings.
+  const guarded = outline ? themeOutlineForPrompt(fitOutline(outline)) : null
   // Page text that read like orders to the AI was hidden; later proposals carry the warning.
   if (guarded?.flagged) taint.flagged = true
   const page = await withStore(context.db, call.runtime.storeId, (tx) => pageLine(tx, input.page))
@@ -232,6 +323,8 @@ export async function runAssistant(
           if (event.name in ACTIONS || event.name === 'proposeThemeEdit') continue
           const { facts, shared } =
             event.status === 'done' ? factsOf(event.output) : { facts: [], shared: [] }
+          const ref = (event.output as { ref?: unknown } | null)?.ref
+          const read = typeof ref === 'string' ? calls.get(ref) : undefined
           yield {
             type: 'source',
             id: event.id,
@@ -239,6 +332,8 @@ export async function runAssistant(
             status: event.status,
             facts,
             shared,
+            inputs: callInputs(read?.input),
+            table: event.status === 'done' ? (read?.table ?? null) : null,
           }
         } else if (event.type === 'error') yield { type: 'error', message: FAILED }
       }

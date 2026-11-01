@@ -23,6 +23,7 @@ import {
 import { type ClientForOptions, clientFor } from './connection'
 import { mediaSourceKey } from './media'
 import { importIssue, importMapping, importRun } from './schema'
+import { failStaleRuns } from './service'
 import type { ShopifyClient } from './shopify-client'
 import { freshSnapshot } from './snapshot'
 import type { NProduct } from './types'
@@ -57,6 +58,8 @@ const COUNT_FIELDS: Partial<Record<ImportResource, string>> = {
 /** Counts are asked once per store per few minutes, however often the page loads. */
 const COUNT_TTL_MS = 3 * 60 * 1000
 const countCache = new Map<string, { at: number; counts: ShopifyCounts }>()
+/** Past this, counting stops and what is left reads from the preview (the request holds a connection). */
+const COUNT_BUDGET_MS = 8000
 
 export type ShopifyCounts = Partial<Record<ImportResource, number>>
 
@@ -69,11 +72,21 @@ export async function shopifyCounts(
   storeId: string,
   client: ShopifyClient,
   now = Date.now(),
+  opts: { budgetMs?: number; clock?: () => number } = {},
 ): Promise<ShopifyCounts> {
   const hit = countCache.get(storeId)
   if (hit && now - hit.at < COUNT_TTL_MS) return hit.counts
+  const clock = opts.clock ?? Date.now
+  const budget = opts.budgetMs ?? COUNT_BUDGET_MS
+  const began = clock()
   const counts: ShopifyCounts = {}
+  let complete = true
   for (const [resource, field] of Object.entries(COUNT_FIELDS) as [ImportResource, string][]) {
+    // A throttled Shopify must not hold the page (and its database connection) for long.
+    if (clock() - began >= budget) {
+      complete = false
+      break
+    }
     try {
       const data = await client.query<Record<string, { count: number } | null>>(
         `{ ${field}(limit: null) { count } }`,
@@ -86,8 +99,15 @@ export async function shopifyCounts(
       // Not readable with this token or API version: the preview's number stands in.
     }
   }
-  countCache.set(storeId, { at: now, counts })
+  // Cut short: the next load asks again for the rest.
+  if (complete) countCache.set(storeId, { at: now, counts })
   return counts
+}
+
+/** Cached Shopify counts only (never asks Shopify): what a page shows while an import runs. */
+export function cachedCounts(storeId: string, now = Date.now()): ShopifyCounts {
+  const hit = countCache.get(storeId)
+  return hit && now - hit.at < COUNT_TTL_MS ? hit.counts : {}
 }
 
 type RunLite = {
@@ -124,6 +144,29 @@ async function recentRuns(tx: StoreTx): Promise<RunLite[]> {
     .where(and(eq(importRun.mode, 'api'), inArray(importRun.status, ENDED)))
     .orderBy(desc(importRun.createdAt), desc(importRun.id))
     .limit(200)
+}
+
+/** The newest run queued or running: the page shows it in progress (`ImportStatus.running`). */
+export async function activeRun(tx: StoreTx): Promise<ImportStatus['running']> {
+  const [row] = await tx
+    .select({
+      id: importRun.id,
+      dryRun: importRun.dryRun,
+      status: importRun.status,
+      startedAt: importRun.startedAt,
+      createdAt: importRun.createdAt,
+    })
+    .from(importRun)
+    .where(inArray(importRun.status, ['queued', 'running']))
+    .orderBy(desc(importRun.createdAt), desc(importRun.id))
+    .limit(1)
+  if (!row || (row.status !== 'queued' && row.status !== 'running')) return null
+  return {
+    runId: row.id,
+    preview: row.dryRun,
+    status: row.status,
+    startedAt: (row.startedAt ?? row.createdAt).toISOString(),
+  }
 }
 
 /** The latest ended real import (or retry) that touched each resource. */
@@ -335,7 +378,13 @@ export async function importStatus(
   const imagesMissing =
     expected === null ? open.images : Math.max(open.images, expected - imagesHere)
   const fresh = runs.find((r) => freshSnapshot(r.snapshot, now))
-  const lastImport = runs.find((r) => !r.dryRun)
+  // Any real import counts here, a CSV upload too (`runs` holds API runs only).
+  const [lastImport] = await tx
+    .select({ finishedAt: importRun.finishedAt })
+    .from(importRun)
+    .where(and(eq(importRun.dryRun, false), inArray(importRun.status, ENDED)))
+    .orderBy(desc(importRun.createdAt), desc(importRun.id))
+    .limit(1)
   const left = new Set(
     resources
       .filter((r) => r.state === 'missing' || r.state === 'not_copied' || r.state === 'never')
@@ -357,6 +406,7 @@ export async function importStatus(
     remaining: IMPORT_RESOURCES.filter((r) => left.has(r)),
     lastImportAt: lastImport?.finishedAt?.toISOString() ?? null,
     freshPreview: fresh?.snapshot ? { runId: fresh.id, takenAt: fresh.snapshot.takenAt } : null,
+    running: await activeRun(tx),
   }
 }
 
@@ -427,13 +477,21 @@ export async function remainingFilter(
   }
 }
 
-/** The status page: Shopify's counts when connected (cached), then `importStatus`. */
+/**
+ * The status page: Shopify's counts when connected (cached), then `importStatus`.
+ * While a run is in flight it uses the cached counts only: the run is spending the
+ * app's Shopify rate limit, so live counts would be throttled and hold this request
+ * (and its database connection) for as long as the run keeps the bucket empty.
+ */
 export async function remainingStatus(
   tx: StoreTx,
   storeId: string,
   secret: string,
   opts: ClientForOptions = {},
 ): Promise<ImportStatus> {
+  // A run whose worker died reads as ended here too, not "in progress" forever.
+  await failStaleRuns(tx)
+  if (await activeRun(tx)) return importStatus(tx, cachedCounts(storeId))
   const client = await clientFor(tx, secret, opts).catch(() => null)
   const counts = client ? await shopifyCounts(storeId, client).catch(() => ({})) : {}
   return importStatus(tx, counts)

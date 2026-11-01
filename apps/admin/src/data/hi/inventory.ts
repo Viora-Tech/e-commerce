@@ -98,7 +98,9 @@ export default [
       collapse: (name: string) => `${name} के वेरिएंट छिपाएं`,
       expandAll: 'सब खोलें',
       collapseAll: 'सब बंद करें',
-      hidden: 'छिपा हुआ',
+      hidden: 'स्टोर पर छिपा',
+      hiddenWhy:
+        'ग्राहक यह SKU न देख सकते हैं, न खरीद सकते हैं। Shopify से बिना कीमत के अनुपलब्ध आया था, या प्रोडक्ट पेज पर छिपाया गया। प्रोडक्ट के वेरिएंट से वापस चालू करें।',
     },
     cell: {
       decrease: 'एक घटाएँ',
@@ -130,6 +132,8 @@ export default [
       title: 'स्टॉक का इतिहास',
       empty: 'अभी तक स्टॉक में कोई बदलाव दर्ज नहीं हुआ।',
       failed: 'इतिहास लोड नहीं हो सका',
+      by: (name: string) => `${name} द्वारा`,
+      bySystem: 'Koomerce द्वारा',
     },
     exporting: {
       filename: 'inventory.csv',
@@ -177,7 +181,7 @@ export default [
       draftCaption: 'अभी सप्लायर को नहीं भेजा',
       openCaption: 'ऑर्डर हो गया, स्टॉक का इंतज़ार',
       incomingCaption: 'अभी पहुँचना बाकी',
-      receivedCaption: 'पूरी तरह मिल गए',
+      receivedCaption: 'आ गए, या कम आए और बंद किए',
     },
     columns: {
       number: 'ऑर्डर',

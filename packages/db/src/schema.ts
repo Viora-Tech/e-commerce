@@ -116,6 +116,12 @@ export const product = pgTable(
       .default('draft'),
     /** Prices already carry tax; the GST split is extracted rather than added at checkout. */
     taxIncluded: boolean('tax_included').notNull().default(true),
+    /**
+     * HSN code and GST rate for the whole product (#63). A variant's own value wins; a variant
+     * without one uses these, and a null rate here falls back to the store default.
+     */
+    hsCode: text('hs_code'),
+    gstRatePercent: integer('gst_rate_percent'),
     /** Shown in the storefront's featured section. */
     featured: boolean('featured').notNull().default(false),
     /** Sold as a gift card: digital, never shipped or taxed at sale; paid lines issue a card by email. */
@@ -151,6 +157,19 @@ export const product = pgTable(
     preorderDepositPaise: integer('preorder_deposit_paise'),
     /** Deposit percent (1-99) when `preorderPaymentMode` is `percentage`. */
     preorderDepositPercent: integer('preorder_deposit_percent'),
+    /**
+     * Pre-order campaign the product sells under (Products › Pre-orders): its ship date, limit,
+     * button, payment, discount and cart rules apply while the campaign is active. Null: the
+     * product's own pre-order settings above, as before campaigns.
+     */
+    preorderCampaignId: uuid('preorder_campaign_id').references(() => preorderCampaign.id, {
+      onDelete: 'set null',
+    }),
+    /**
+     * In a campaign, the settings this product keeps its own (`PREORDER_OWN_FIELDS`:
+     * `shipping`, `limit`, `button`, `payment`, `note`); every other one follows the campaign.
+     */
+    preorderOwn: text('preorder_own').array().notNull().default([]),
     /** Launch-gated products are hidden from collection/browse listings until `launchAt`, if set. */
     preorderHideFromCollectionsUntilLaunch: boolean('preorder_hide_until_launch')
       .notNull()
@@ -169,6 +188,9 @@ export const product = pgTable(
        inserted, so two saves at once could both take one (schema review 2026-10-27). */
     uniqueIndex('product_store_handle').on(t.storeId, t.handle),
     index('product_store_status').on(t.storeId, t.status, t.createdAt),
+    index('product_preorder_campaign')
+      .on(t.preorderCampaignId)
+      .where(sql`${t.preorderCampaignId} is not null`),
   ],
 )
 
@@ -190,6 +212,106 @@ export type VariantPreorderOverride = {
   depositPaise?: number | null
   depositPercent?: number | null
 }
+
+/** How a cart holding a campaign's pre-order beside in-stock goods is handled (#143). */
+const PREORDER_MIXED_CART = ['together', 'split', 'block'] as const
+export type PreorderMixedCart = (typeof PREORDER_MIXED_CART)[number]
+/** What happens to a campaign item added in stock that sold out before checkout. */
+const PREORDER_SOLD_OUT_IN_CART = ['preorder', 'block'] as const
+export type PreorderSoldOutInCart = (typeof PREORDER_SOLD_OUT_IN_CART)[number]
+/** Where a campaign sells as a pre-order: the storefront's cart and checkout, and the catalog feeds. */
+const PREORDER_CAMPAIGN_CHANNELS = ['online_store', 'social', 'ai_agents'] as const
+export type PreorderCampaignChannel = (typeof PREORDER_CAMPAIGN_CHANNELS)[number]
+const PREORDER_DISCOUNT_TYPES = ['none', 'percentage', 'fixed'] as const
+export type PreorderDiscountType = (typeof PREORDER_DISCOUNT_TYPES)[number]
+
+/** A campaign's words (Content tab); blank keys use the product's or the store's. */
+export type PreorderCampaignContent = {
+  buttonText?: string | undefined
+  badgeText?: string | undefined
+  /** Under the button on the product page; may use `{ship_date}` / `{ship_month}`. */
+  productNote?: string | undefined
+  /** On the cart line. */
+  cartLineText?: string | undefined
+  /** Kept on the order line, for the order page and emails. */
+  orderNote?: string | undefined
+  /** Shown when the cart refuses a mixed basket (`mixedCart: 'block'`). */
+  blockMessage?: string | undefined
+}
+
+/** A campaign's colours (Design tab), `#rrggbb`; blank keys use the theme's. */
+export type PreorderCampaignDesign = {
+  buttonBackground?: string | undefined
+  buttonText?: string | undefined
+  badgeBackground?: string | undefined
+  badgeText?: string | undefined
+}
+
+/**
+ * SOURCE OF TRUTH: preorderCampaign
+ * WHAT:  One pre-order rule set for many products (Products › Pre-orders), as Essential
+ *        Pre-Order's campaigns: ship date, limit, payment and button for every product in it
+ *        (`product.preorder_campaign_id`), plus a pre-order discount, where it applies (markets,
+ *        stock locations, channels), the cart rules and its storefront words and colours.
+ * WHY:   A launch of ten products is one setting, not ten. A product keeps any setting it marks
+ *        as its own (`product.preorder_own`); see `resolvePreorderSettings`.
+ */
+export const preorderCampaign = pgTable(
+  'preorder_campaign',
+  {
+    id: id(),
+    storeId: storeId(),
+    name: text('name').notNull(),
+    /** A paused campaign is kept, and its products sell by their own settings again. */
+    status: text('status', { enum: ['active', 'paused'] })
+      .notNull()
+      .default('active'),
+    shipDate: timestamp('ship_date', { withTimezone: true }),
+    shipsInDays: integer('ships_in_days'),
+    /** Pre-order units per variant beyond stock; null = unlimited. */
+    limit: integer('limit'),
+    paymentMode: text('payment_mode', { enum: ['full', 'fixed', 'percentage'] })
+      .notNull()
+      .default('full'),
+    depositPaise: integer('deposit_paise'),
+    depositPercent: integer('deposit_percent'),
+    /** Off while on pre-order: a percent (1-90) or an amount in paise per unit. */
+    discountType: text('discount_type', { enum: PREORDER_DISCOUNT_TYPES })
+      .notNull()
+      .default('none'),
+    discountValue: integer('discount_value'),
+    /** Markets it applies in; empty = every market. */
+    marketIds: uuid('market_ids').array().notNull().default([]),
+    /** Stock locations that decide "sold out" for it; empty = every selling location. */
+    locationIds: uuid('location_ids').array().notNull().default([]),
+    channels: text('channels')
+      .array()
+      .$type<PreorderCampaignChannel[]>()
+      .notNull()
+      .default(['online_store', 'social', 'ai_agents']),
+    mixedCart: text('mixed_cart', { enum: PREORDER_MIXED_CART }).notNull().default('split'),
+    soldOutInCart: text('sold_out_in_cart', { enum: PREORDER_SOLD_OUT_IN_CART })
+      .notNull()
+      .default('preorder'),
+    content: jsonb('content').$type<PreorderCampaignContent>().notNull().default({}),
+    design: jsonb('design').$type<PreorderCampaignDesign>().notNull().default({}),
+    /** Where an imported campaign came from (`shopify:<selling plan group id>`), so a re-import updates it. */
+    sourceId: text('source_id'),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('preorder_campaign_store').on(t.storeId, t.createdAt),
+    uniqueIndex('preorder_campaign_source')
+      .on(t.storeId, t.sourceId)
+      .where(sql`${t.sourceId} is not null`),
+    check(
+      'preorder_campaign_deposit_percent',
+      sql`${t.depositPercent} is null or (${t.depositPercent} between 1 and 99)`,
+    ),
+    check('preorder_campaign_discount', sql`${t.discountValue} is null or ${t.discountValue} >= 0`),
+  ],
+)
 
 /** Structured options: Colour / Size. A variant is one combination of values. */
 export const productOption = pgTable(
@@ -221,6 +343,21 @@ export const productOptionValue = pgTable(
 )
 
 /**
+ * A folder in Content › Files (#91). One level, no nesting; a file sits in at most one, and a
+ * folder can only be deleted once it is empty. Names are unique per store, ignoring case.
+ */
+export const mediaFolder = pgTable(
+  'media_folder',
+  {
+    id: id(),
+    storeId: storeId(),
+    name: text('name').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex('media_folder_store_name').on(t.storeId, sql`lower(${t.name})`)],
+)
+
+/**
  * Uploaded once, referenced anywhere (products, variants, pages). Rows are
  * created `pending` when the browser asks for a presigned upload and become
  * `ready` on confirm; a nightly sweep can drop stale pending rows. `key` is
@@ -240,6 +377,14 @@ export const media = pgTable(
     /** Bytes as declared at presign time; updated to the real size on confirm and again after processing. */
     size: integer('size'),
     alt: text('alt'),
+    /**
+     * Readable name shown in Files (#91): the uploaded file's own name, or what the merchant
+     * renamed it to. Null on older and imported rows, which show a name read from `key`.
+     * Never changes `key` or `url`.
+     */
+    name: text('name'),
+    /** Folder in Files; null is "no folder" (#91). */
+    folderId: uuid('folder_id').references(() => mediaFolder.id, { onDelete: 'set null' }),
     width: integer('width'),
     height: integer('height'),
     /**
@@ -266,7 +411,10 @@ export const media = pgTable(
     processError: text('process_error'),
     createdAt: createdAt(),
   },
-  (t) => [index('media_store_created').on(t.storeId, t.createdAt)],
+  (t) => [
+    index('media_store_created').on(t.storeId, t.createdAt),
+    index('media_in_folder').on(t.folderId),
+  ],
 )
 
 export const productMedia = pgTable(
@@ -289,7 +437,16 @@ export const productMedia = pgTable(
 )
 
 /** Rule fields an automatic collection can match on; the evaluator lives in @commerce/core/collections. */
-export type CollectionField = 'title' | 'type' | 'vendor' | 'tag' | 'price'
+export type CollectionField =
+  | 'title'
+  | 'type'
+  | 'vendor'
+  | 'tag'
+  | 'price'
+  | 'compare_at'
+  | 'stock'
+  | 'weight'
+  | 'variant_title'
 export type CollectionOp = 'eq' | 'neq' | 'contains' | 'starts_with' | 'gt' | 'lt'
 export type CollectionCondition = { field: CollectionField; op: CollectionOp; value: string }
 export type CollectionRules = { match: 'all' | 'any'; conditions: CollectionCondition[] }
@@ -655,10 +812,38 @@ export const location = pgTable(
      * Null: shipments use the store-wide return address in Settings › Shipping, as before.
      */
     courierPickup: jsonb('courier_pickup').$type<LocationCourierPickup>(),
+    /** Delivery by the store's own riders near this location (audit #163). Null: not offered. */
+    localDelivery: jsonb('local_delivery').$type<LocationLocalDelivery>(),
+    /** Shoppers collect their order here (audit #163). Null: not offered. */
+    storePickup: jsonb('store_pickup').$type<LocationStorePickup>(),
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex('location_one_default').on(t.storeId).where(sql`${t.isDefault}`)],
 )
+
+/**
+ * Local delivery from a location: the PIN codes it reaches (six digits or a prefix and `*`), the
+ * price, the smallest order it takes and what the shopper is told. Checkout offers it as one more
+ * delivery option for an address in those PIN codes (core `shipping/local-options.ts`).
+ */
+export type LocationLocalDelivery = {
+  enabled: boolean
+  pincodes: string[]
+  pricePaise: number
+  /** Orders below this value (after discounts) do not get local delivery; null: any order. */
+  minOrderPaise: number | null
+  /** Free from this order value up; null: always the price. */
+  freeAbovePaise: number | null
+  instructions: string
+}
+
+/** Pickup in store at a location: when an order is usually ready, and how to collect it. */
+export type LocationStorePickup = {
+  enabled: boolean
+  /** "Usually ready in 2 hours", shown under the option at checkout. */
+  readyIn: string
+  instructions: string
+}
 
 /** A location's courier pickup: its own address, plus the names the courier knows it by. */
 export type LocationCourierPickup = {
@@ -722,6 +907,9 @@ export const inventoryAdjustment = pgTable(
       enum: ['correction', 'received', 'damaged', 'returned', 'theft', 'transfer', 'sold', 'other'],
     }).notNull(),
     note: text('note'),
+    /** The member who made the change (audit #139); null for orders, imports and older rows.
+     *  Filled by the column default from `app.actor_name`, which the admin API sets. */
+    actorName: text('actor_name').default(sql`nullif(current_setting('app.actor_name', true), '')`),
     createdAt: createdAt(),
   },
   (t) => [index('inventory_adjustment_variant').on(t.variantId, t.createdAt)],
@@ -1065,6 +1253,13 @@ export const cartLine = pgTable(
     unitPricePaise: integer('unit_price_paise').notNull(),
     /** Snapshot of the variant's pre-order state when the line was added; re-checked at checkout. */
     preorder: boolean('preorder').notNull().default(false),
+    /**
+     * The pre-order campaign the line was added under: its discount priced the line, and its
+     * cart rules and words apply to it. Re-checked at checkout (`placeOrder`).
+     */
+    preorderCampaignId: uuid('preorder_campaign_id').references(() => preorderCampaign.id, {
+      onDelete: 'set null',
+    }),
   },
   (t) => [
     /* Every storefront page reads the cart for the header count (layout `requestCart`). */
@@ -1082,7 +1277,16 @@ export const order = pgTable(
   {
     id: id(),
     storeId: storeId(),
+    /**
+     * The order number (#2374). A draft saved since 0200 holds minus its draft number here
+     * until it converts and takes the next order number, so drafts leave no gaps in the series.
+     */
     number: integer('number').notNull(),
+    /**
+     * The draft's own number (#D12, audit #26), from `store_counter` `draft`. Kept after the
+     * draft converts. Null on orders that never were drafts.
+     */
+    draftNumber: integer('draft_number'),
     customerId: uuid('customer_id').references(() => customer.id),
     email: text('email'),
     phone: text('phone'),
@@ -1150,6 +1354,20 @@ export const order = pgTable(
     checkoutPaidAt: timestamp('checkout_paid_at', { withTimezone: true }),
     /** When the merchant marked the order delivered by hand; courier deliveries come from `shipment`. */
     deliveredAt: timestamp('delivered_at', { withTimezone: true }),
+    /** When every item was last packed (`order.fulfilled`), for the order's timeline (#121). */
+    fulfilledAt: timestamp('fulfilled_at', { withTimezone: true }),
+    /**
+     * Why staff cancelled it (#125): a code from `ORDER_CANCEL_REASONS` (customer, inventory,
+     * fraud, declined, other) and the optional note typed with it. Null on orders cancelled
+     * before the list (their free-text reason stays on the timeline) or cancelled by expiry.
+     */
+    cancelReason: text('cancel_reason'),
+    cancelNote: text('cancel_note'),
+    /**
+     * Archived by the merchant (#1007): a record kept off the default list views, shown under
+     * the "Archived" view. Nothing else about the order changes; unarchiving clears it.
+     */
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
     subtotalPaise: integer('subtotal_paise').notNull(),
     shippingPaise: integer('shipping_paise').notNull().default(0),
     /** The shipping rate charged, as it was at checkout. Null before shipping rates existed. */
@@ -1268,6 +1486,10 @@ export const order = pgTable(
     /* Thank-you, pay and track pages find an order by its number. Unique per store (0177);
        numbers come from `store_counter`. */
     uniqueIndex('order_store_number').on(t.storeId, t.number),
+    /** A draft is found by its #D number (search "D12"); one per store. */
+    uniqueIndex('order_store_draft_number')
+      .on(t.storeId, t.draftNumber)
+      .where(sql`${t.draftNumber} is not null`),
     /** The All orders list: newest first. */
     index('order_store_placed').on(t.storeId, t.placedAt),
     index('order_customer').on(t.customerId).where(sql`${t.customerId} is not null`),
@@ -1327,6 +1549,8 @@ export type OrderImportMeta = {
    * from is kept here. From then on it is worked like an order placed here.
    */
   takenOver?: { at: string; by: string; source: string } | null
+  /** The source's own order timeline (paid, emails sent, edits…), oldest first, as plain text. */
+  history?: { at: string; message: string }[] | null
 }
 
 export const orderLine = pgTable(
@@ -1359,6 +1583,10 @@ export const orderLine = pgTable(
     preorderShipDate: timestamp('preorder_ship_date', { withTimezone: true }),
     /** The pre-order note as it read when the order was placed (#936), for the email and order pages. */
     preorderNote: text('preorder_note'),
+    /** The pre-order campaign the line sold under; Products › Pre-orders counts its orders and revenue. */
+    preorderCampaignId: uuid('preorder_campaign_id').references(() => preorderCampaign.id, {
+      onDelete: 'set null',
+    }),
     /**
      * What one unit cost the store when it sold: the variant's weighted average cost
      * (`variant.cost_paise`, landed cost) at placement. Profit reads this, never today's cost.
@@ -1374,6 +1602,9 @@ export const orderLine = pgTable(
     /* Every order page, invoice, parcel and profit report reads lines by order. */
     index('order_line_order').on(t.orderId),
     index('order_line_variant').on(t.variantId),
+    index('order_line_preorder_campaign')
+      .on(t.preorderCampaignId)
+      .where(sql`${t.preorderCampaignId} is not null`),
   ],
 )
 
@@ -1441,7 +1672,12 @@ export const fulfillmentOrder = pgTable(
      * `on_hold` means pre-order goods waiting for stock.
      */
     heldAt: timestamp('held_at', { withTimezone: true }),
+    /** Free text: an automation's reason, or the note staff typed with their pick. */
     holdReason: text('hold_reason'),
+    /** The reason staff picked (`FULFILLMENT_HOLD_REASONS` in core); null for an automation's hold. */
+    holdCode: text('hold_code'),
+    /** Who held it (staff email, or the automation author). */
+    heldBy: text('held_by'),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -1720,278 +1956,21 @@ export const notification = pgTable(
   ],
 )
 
-/** One courier consignment per order. Tracking is the courier's normalised answer, refreshed by the worker. */
-export const shipment = pgTable(
-  'shipment',
+/**
+ * The merchant's own HTML for a printed document (audit #164): `packing_slip`, `pick_list` or
+ * `invoice`, with merge tags (core `documents/templates.ts`). No row: the built-in default.
+ */
+export const documentTemplate = pgTable(
+  'document_template',
   {
     id: id(),
     storeId: storeId(),
-    orderId: uuid('order_id')
-      .notNull()
-      .references(() => order.id),
-    /** The parcel (fulfilment order) this consignment carries; null on shipments booked before parcels. */
-    fulfillmentOrderId: uuid('fulfillment_order_id').references(() => fulfillmentOrder.id),
-    provider: text('provider').notNull(),
-    waybill: text('waybill').notNull(),
-    /** Courier's own id for follow-up calls when not the waybill (RapidShyp); else null. */
-    providerRef: text('provider_ref'),
-    status: text('status', {
-      enum: [
-        'created',
-        'picked_up',
-        'in_transit',
-        'out_for_delivery',
-        'delivered',
-        'rto',
-        'cancelled',
-      ],
-    })
-      .notNull()
-      .default('created'),
-    labelUrl: text('label_url'),
-    trackingUrl: text('tracking_url'),
-    /** Last Tracking payload from the provider. */
-    tracking: jsonb('tracking'),
-    weightGrams: integer('weight_grams'),
-    lengthCm: integer('length_cm'),
-    widthCm: integer('width_cm'),
-    heightCm: integer('height_cm'),
-    /** Whether this parcel is insured, from the per-shipment toggle (defaults from the store's threshold). */
-    insured: boolean('insured').notNull().default(false),
-    declaredValuePaise: integer('declared_value_paise'),
-    /** `none` until the courier reports an NDR; the courier app's queue works from this. */
-    ndrStatus: text('ndr_status', {
-      enum: ['none', 'pending', 'action_taken', 'resolved'],
-    })
-      .notNull()
-      .default('none'),
-    ndrReason: text('ndr_reason'),
-    ndrRaisedAt: timestamp('ndr_raised_at', { withTimezone: true }),
-    ndrAction: text('ndr_action', { enum: ['reattempt', 'change_address', 'rto'] }),
-    ndrActionAt: timestamp('ndr_action_at', { withTimezone: true }),
-    ndrActionRef: text('ndr_action_ref'),
-    rtoDeliveredAt: timestamp('rto_delivered_at', { withTimezone: true }),
-    pickupId: uuid('pickup_id').references(() => shipmentPickup.id, { onDelete: 'set null' }),
-    /** What the courier charged for this consignment (from the booking, or typed by the merchant). */
-    courierChargePaise: integer('courier_charge_paise'),
-    packingCostPaise: integer('packing_cost_paise'), // packing snapshot when booked or packed
-    boxPresetId: text('box_preset_id'),
-    /** COD or prepaid as booked (the merchant can switch it from the order's own); null on older rows. */
-    paymentMode: text('payment_mode', { enum: ['cod', 'prepaid'] }),
-    /** What the courier collects at the door, as booked; 0 for prepaid, null on older rows. */
-    codAmountPaise: integer('cod_amount_paise'),
-    /** Where the courier collects it, as booked: its pickup location name, else the address name. */
-    pickupLocationName: text('pickup_location_name'),
-    /** The courier service booked ("Surface", "Express", an aggregator's carrier), when picked. */
-    serviceLabel: text('service_label'),
-    /** The carrier that delivers it ("Blue Dart" for a Shiprocket booking); null on older rows. */
-    carrier: text('carrier'),
-    /** When the courier's delivered scan landed; null until then (and on older rows). */
-    deliveredAt: timestamp('delivered_at', { withTimezone: true }),
+    kind: text('kind', { enum: ['packing_slip', 'pick_list', 'invoice'] }).notNull(),
+    html: text('html').notNull(),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [
-    uniqueIndex('shipment_provider_waybill').on(t.provider, t.waybill),
-    index('shipment_order').on(t.orderId),
-    index('shipment_store_ndr').on(t.storeId, t.ndrStatus),
-    index('shipment_pickup_id').on(t.pickupId),
-    index('shipment_fulfillment_order').on(t.fulfillmentOrderId),
-  ],
-)
-
-/**
- * An order sent to a courier app (Shiprocket, RapidShyp) as a pending order, without booking:
- * the merchant books it there or here later. One row per order and courier; booking here reuses
- * `externalOrderId`/`externalShipmentId` instead of creating a second order at the courier.
- * Rules: @commerce/core shipping/order-push.ts.
- */
-export const courierOrder = pgTable(
-  'courier_order',
-  {
-    id: id(),
-    storeId: storeId(),
-    orderId: uuid('order_id')
-      .notNull()
-      .references(() => order.id, { onDelete: 'cascade' }),
-    provider: text('provider').notNull(),
-    externalOrderId: text('external_order_id'),
-    externalShipmentId: text('external_shipment_id'),
-    status: text('status', { enum: ['pushed', 'failed', 'booked', 'cancelled'] }).notNull(),
-    error: text('error'),
-    createdAt: createdAt(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [uniqueIndex('courier_order_order_provider').on(t.orderId, t.provider)],
-)
-
-/**
- * A pickup request booked with a courier for a batch of shipments (Delhivery:
- * `schedulePickup`, a Create Pickup API call). `shipment.pickup_id` points
- * back here; a manifest groups some or all of a pickup's shipments into one
- * printable batch of labels.
- */
-export const shipmentPickup = pgTable(
-  'shipment_pickup',
-  {
-    id: id(),
-    storeId: storeId(),
-    provider: text('provider').notNull(),
-    scheduledFor: date('scheduled_for').notNull(),
-    timeFrom: text('time_from').notNull(),
-    timeTo: text('time_to'),
-    expectedPackageCount: integer('expected_package_count').notNull().default(0),
-    /** The courier pickup location (warehouse) asked to be collected from; null on older rows. */
-    pickupLocationName: text('pickup_location_name'),
-    status: text('status', {
-      enum: ['requested', 'scheduled', 'completed', 'failed'],
-    })
-      .notNull()
-      .default('requested'),
-    providerRef: text('provider_ref'),
-    error: text('error'),
-    createdAt: createdAt(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [index('shipment_pickup_store').on(t.storeId, t.scheduledFor)],
-)
-
-/** A batch of shipments handed to the courier together, printed as one sheet. Our own record; not every courier has a matching API concept. */
-export const shipmentManifest = pgTable(
-  'shipment_manifest',
-  {
-    id: id(),
-    storeId: storeId(),
-    provider: text('provider').notNull(),
-    pickupId: uuid('pickup_id').references(() => shipmentPickup.id),
-    shipmentIds: uuid('shipment_ids').array().notNull().default([]),
-    providerRef: text('provider_ref'),
-    createdAt: createdAt(),
-  },
-  (t) => [index('shipment_manifest_store').on(t.storeId, t.createdAt)],
-)
-
-/**
- * Dedupe log for the tracking webhook, the same pattern as `payment_event`:
- * one row per (store, provider, event id), inserted before the tracking
- * update is applied so a retried delivery from the courier is a no-op.
- */
-export const shipmentWebhookEvent = pgTable(
-  'shipment_webhook_event',
-  {
-    id: id(),
-    storeId: storeId(),
-    provider: text('provider').notNull(),
-    eventId: text('event_id').notNull(),
-    waybill: text('waybill').notNull(),
-    payload: jsonb('payload').notNull(),
-    status: text('status', { enum: ['pending', 'processed', 'failed'] })
-      .notNull()
-      .default('pending'),
-    error: text('error'),
-    receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
-    processedAt: timestamp('processed_at', { withTimezone: true }),
-  },
-  (t) => [
-    uniqueIndex('shipment_webhook_event_provider_event').on(t.storeId, t.provider, t.eventId),
-  ],
-)
-
-/**
- * Cached courier wallet balance and the merchant's low-balance threshold, one
- * row per (store, provider). Delhivery has no confirmed public balance API
- * (see packages/shipping-delhivery), so `balancePaise` is often set by the
- * merchant themselves from their courier dashboard rather than fetched; a
- * provider that does implement `getWalletBalance` overwrites it on refresh.
- */
-export const courierWalletBalance = pgTable(
-  'courier_wallet_balance',
-  {
-    id: id(),
-    storeId: storeId(),
-    provider: text('provider').notNull(),
-    balancePaise: integer('balance_paise').notNull().default(0),
-    lowBalanceThresholdPaise: integer('low_balance_threshold_paise').notNull().default(50000),
-    source: text('source', { enum: ['api', 'manual'] })
-      .notNull()
-      .default('manual'),
-    fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [uniqueIndex('courier_wallet_balance_store_provider').on(t.storeId, t.provider)],
-)
-
-/** One PIN code rule of a shipping zone: `560*` (prefix) or `560001` (exact). */
-export type ShippingPincodeRule = { pattern: string; mode: 'include' | 'exclude' }
-
-/**
- * Where a set of shipping rates applies: states and/or PIN code rules. A zone
- * with no states and no include rules covers all of India. When several zones
- * match an address the most specific one wins (see `pickZone` in core).
- *
- * Pattern from Saleor's `ShippingZone` and `ShippingMethodPostalCodeRule`
- * (BSD-3): postal rules include or exclude, kept beside the zone.
- */
-export const shippingZone = pgTable(
-  'shipping_zone',
-  {
-    id: id(),
-    storeId: storeId(),
-    name: text('name').notNull(),
-    /**
-     * ISO 3166-1 countries the zone covers (Markets). `{IN}` is the zone as it always was;
-     * `state_codes` and the PIN rules only narrow it inside India.
-     */
-    countryCodes: text('country_codes').array().notNull().default(['IN']),
-    /** Two-letter state codes (`KA`, `MH`). */
-    stateCodes: text('state_codes').array().notNull().default([]),
-    pincodeRules: jsonb('pincode_rules').$type<ShippingPincodeRule[]>().notNull().default([]),
-    position: integer('position').notNull().default(0),
-    createdAt: createdAt(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [index('shipping_zone_store').on(t.storeId, t.position)],
-)
-
-export type ShippingRateCondition = 'none' | 'order_value' | 'weight'
-
-/**
- * A price the shopper can pick at checkout. `condition` bounds it by order
- * value (paise, after discounts) or cart weight (grams): `min` is included,
- * `max` is not, so bands 0 to 500 and 500 to 1000 meet without a gap.
- * `free_above_paise` makes it free from that order value up.
- *
- * Pattern from Saleor's `ShippingMethod` (BSD-3, price or weight based with
- * bounds) and Medusa's shipping options (MIT, flat or calculated per option).
- */
-export const shippingRate = pgTable(
-  'shipping_rate',
-  {
-    id: id(),
-    storeId: storeId(),
-    zoneId: uuid('zone_id')
-      .notNull()
-      .references(() => shippingZone.id, { onDelete: 'cascade' }),
-    name: text('name').notNull(),
-    condition: text('condition', { enum: ['none', 'order_value', 'weight'] })
-      .notNull()
-      .default('none'),
-    minValue: integer('min_value'),
-    maxValue: integer('max_value'),
-    pricePaise: integer('price_paise').notNull().default(0),
-    freeAbovePaise: integer('free_above_paise'),
-    /**
-     * Cash on delivery fee for this rate. Null keeps the store's COD fee
-     * (Settings → Payments); a number replaces it, 0 waives it. Never both.
-     */
-    codSurchargePaise: integer('cod_surcharge_paise'),
-    /** Delivery promise for this rate; null uses the courier's estimate. */
-    minTransitDays: integer('min_transit_days'),
-    maxTransitDays: integer('max_transit_days'),
-    position: integer('position').notNull().default(0),
-    createdAt: createdAt(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [index('shipping_rate_zone').on(t.zoneId, t.position)],
+  (t) => [uniqueIndex('document_template_kind').on(t.storeId, t.kind)],
 )
 
 /**
@@ -2013,7 +1992,18 @@ export type OrderTaxOrigin = {
 }
 
 /** What the shopper picked at checkout, kept on the order as it was charged. */
+export type OrderShippingProfilePart = {
+  profileId: string
+  profileName: string
+  rateId: string
+  rateName: string
+  zoneId: string
+  zoneName: string
+  pricePaise: number
+}
+
 export type OrderShippingSnapshot = {
+  /** The rate's id; rates from several shipping profiles join theirs with `+`. */
   rateId: string
   rateName: string
   zoneId: string
@@ -2026,8 +2016,21 @@ export type OrderShippingSnapshot = {
   codSurchargePaise: number | null
   minTransitDays: number | null
   maxTransitDays: number | null
+  /** A cart from several shipping profiles: the rate charged for each profile's products. */
+  profiles?: OrderShippingProfilePart[] | undefined
   /** Delivery options app: the option and the exact route the price was quoted on. */
   delivery?: OrderDeliveryRoute | undefined
+  /** Local delivery or pickup in store at one of the store's locations (audit #163). */
+  local?: OrderLocalDelivery | undefined
+}
+
+/** The location an order is delivered from by the store itself, or collected at. */
+export type OrderLocalDelivery = {
+  kind: 'local_delivery' | 'pickup'
+  locationId: string
+  locationName: string
+  /** What the shopper was told at checkout (pickup time, delivery instructions). */
+  instructions: string
 }
 
 /**
@@ -2065,9 +2068,13 @@ export type DiscountKind = 'code' | 'automatic'
 export type DiscountMethod = 'percent' | 'fixed' | 'free_shipping'
 export type DiscountAppliesTo = 'all' | 'products' | 'collections'
 export type DiscountStatus = 'active' | 'disabled'
-/** Shopify's four discount types; `method` still says what a products/order/bxgy discount gives. */
-export type DiscountType = 'products' | 'order' | 'bxgy' | 'shipping'
-export type DiscountEligibility = 'all' | 'segments' | 'customers'
+/**
+ * Shopify's four discount types plus combo deals; `method` still says what a products/order/bxgy
+ * discount gives (a combo keeps its own discount on each combo).
+ */
+export type DiscountType = 'products' | 'order' | 'bxgy' | 'shipping' | 'combo'
+/** `first_time`: only a shopper with no earlier paid order (`discounts/eligibility.ts`). */
+export type DiscountEligibility = 'all' | 'segments' | 'customers' | 'first_time'
 /** Which other discount classes this one may stack with at checkout. */
 export type DiscountCombinesWith = { products: boolean; order: boolean; shipping: boolean }
 /**
@@ -2085,6 +2092,18 @@ export type DiscountBxgy = {
   }
   gets: { quantity: number; appliesTo: 'products' | 'collections'; ids: string[] }
   maxUsesPerOrder: number | null
+}
+
+/**
+ * One combo of a combo deal: a set of products (any variant) or of exact variants, each with
+ * the quantity the set needs, and what the full set costs or takes off. `value` is the combo
+ * price in minor units for `price`, basis points for `percent`, minor units off for `fixed`.
+ */
+export type DiscountCombo = {
+  scope: 'products' | 'variants'
+  items: { id: string; quantity: number }[]
+  method: 'price' | 'percent' | 'fixed'
+  value: number
 }
 
 /**
@@ -2118,6 +2137,8 @@ export const discount = pgTable(
     productValues: jsonb('product_values').$type<Record<string, number>>(),
     /** Buy X get Y settings; only for type `bxgy`. */
     bxgy: jsonb('bxgy').$type<DiscountBxgy>(),
+    /** Combo deal: Combo 1..N; only for type `combo`. */
+    combos: jsonb('combos').$type<DiscountCombo[]>(),
     /** Free shipping only to these Indian state codes; empty means every state. */
     shippingStates: jsonb('shipping_states').$type<string[]>().notNull().default([]),
     /** Free shipping skips rates above this price; null means any rate. */
@@ -2351,6 +2372,10 @@ export const giftCard = pgTable(
     /** Last day the card can be used, in the store's time zone. Null never expires. */
     expiresOn: date('expires_on', { mode: 'string' }),
     disabledAt: timestamp('disabled_at', { withTimezone: true }),
+    /** Most checkouts that may spend this card (#993). Null: no limit. */
+    usageLimit: integer('usage_limit'),
+    /** Checkouts that have spent it, counted against `usage_limit`. */
+    useCount: integer('use_count').notNull().default(0),
     customerId: uuid('customer_id').references(() => customer.id),
     recipientEmail: text('recipient_email'),
     recipientName: text('recipient_name'),

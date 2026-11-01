@@ -92,6 +92,63 @@ export async function loadPicked(
   return pages.flatMap((r) => r.items).map((p) => productItem(p, copy, locale))
 }
 
+/** What one combo of a combo deal is made of: products (any variant) or exact variants. */
+export type ComboKind = 'products' | 'variants'
+
+type ComboCopy = (typeof discountFormContent)['combos']
+type VariantRow = Awaited<ReturnType<typeof api.products.searchVariants>>[number]
+/** The variant search answers at most this many per call. */
+const VARIANT_MAX = 50
+
+function variantItem(v: VariantRow, locale: Locale): PickItem {
+  const named = v.variantTitle && v.variantTitle !== 'Default'
+  const price = v.pricePaise === null ? null : formatPaise(v.pricePaise, locale)
+  return {
+    id: v.variantId,
+    title: named ? `${v.title} · ${v.variantTitle}` : v.title,
+    imageUrl: v.imageUrl,
+    meta: [price, v.sku].filter(Boolean).join(' · ') || undefined,
+  }
+}
+
+/** The Products and Variants tabs of a combo's Browse dialog. */
+export function comboTabs(copy: ValueCopy, comboCopy: ComboCopy, locale: Locale): PickTab[] {
+  const [products] = itemTabs(copy, locale) as [PickTab, ...PickTab[]]
+  return [
+    { ...products, label: comboCopy.scopes.products },
+    {
+      key: 'variants',
+      label: comboCopy.scopes.variants,
+      search: comboCopy.variantSearch,
+      empty: comboCopy.noVariants,
+      // Variant search answers one page of matching products with all their variants.
+      load: async ({ page, search }): Promise<PickPage> => {
+        if (page > 1) return { items: [], total: 0 }
+        const rows = await api.products.searchVariants({ search: search || undefined, limit: 20 })
+        const items = rows.map((v) => variantItem(v, locale))
+        return { items, total: items.length }
+      },
+    },
+  ]
+}
+
+/** Rows for a saved combo's products or variants. */
+export async function loadComboPicked(
+  kind: ComboKind,
+  ids: string[],
+  copy: ValueCopy,
+  locale: Locale,
+): Promise<PickItem[]> {
+  if (ids.length === 0) return []
+  if (kind === 'products') return loadPicked('products', ids, copy, locale)
+  const pages = await Promise.all(
+    chunks(ids, VARIANT_MAX).map((part) =>
+      api.products.searchVariants({ ids: part, limit: VARIANT_MAX }),
+    ),
+  )
+  return pages.flat().map((v) => variantItem(v, locale))
+}
+
 /** Who a discount is limited to: customer segments or individual customers. */
 export type PeopleKind = 'segments' | 'customers'
 

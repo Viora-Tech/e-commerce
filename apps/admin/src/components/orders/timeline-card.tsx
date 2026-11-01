@@ -14,8 +14,8 @@ import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { type FormEvent, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
-import ScrollSection from '@/components/layout/scroll-section'
 import Timeline from '@/components/layout/timeline'
+import { notificationsSettingsContent } from '@/data/notifications'
 import { orderDetailContent } from '@/data/order-detail'
 import { shipmentPanelContent } from '@/data/shipping'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -42,6 +42,7 @@ export default function TimelineCard({ order, onChanged }: TimelineCardProps) {
   // Hooks
   const copy = useCopy(orderDetailContent)
   const shipping = useCopy(shipmentPanelContent)
+  const names = useCopy(notificationsSettingsContent)
   const fmt = useFormat()
   const [note, setNote] = useState('')
   const [saving, setSaving] = useState(false)
@@ -63,7 +64,7 @@ export default function TimelineCard({ order, onChanged }: TimelineCardProps) {
   }
 
   // Render logic
-  const days = groupByDay(buildEntries(order, copy, shipping, fmt), fmt)
+  const days = groupByDay(buildEntries(order, copy, shipping, fmt, names), fmt)
   const groups = days.map((day) => ({
     key: day.key,
     label: day.label,
@@ -95,14 +96,11 @@ export default function TimelineCard({ order, onChanged }: TimelineCardProps) {
         </div>
       </form>
 
-      <ScrollSection
-        id={`order-timeline-${order.id}`}
-        label={copy.timeline.heading}
-        maxHeight="min(32rem, 65vh)"
-        className="mt-4 [--detail-header-height:0rem]"
-      >
+      {/* One list in the page, like Shopify: no scroll box of its own with "Scroll for more" and
+          "Show all" inside the card (audit #18). */}
+      <div className="mt-4">
         <Timeline groups={groups} />
-      </ScrollSection>
+      </div>
     </DataCard>
   )
 }

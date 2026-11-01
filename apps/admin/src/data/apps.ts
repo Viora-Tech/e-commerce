@@ -38,6 +38,8 @@ export const appsContent = {
     eyebrow: 'Problem',
     title: 'This app needs your attention',
     action: 'Fix it',
+    /** A run that stopped before it finished (an import, a sync). */
+    runAgain: 'Run again',
   },
   statusError: 'Error',
   /** The installed app's ⋯ menu: back to the Installed apps list. */

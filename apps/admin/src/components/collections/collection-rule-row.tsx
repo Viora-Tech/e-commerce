@@ -4,6 +4,7 @@ import {
   COLLECTION_OPS_BY_FIELD,
   type CollectionCondition,
   type CollectionField,
+  NUMERIC_COLLECTION_FIELDS,
 } from '@commerce/core/collections'
 import { Trash2 } from '@commerce/ui/icons'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -79,7 +80,7 @@ export default function CollectionRuleRow({
       <Input
         className="min-w-40 flex-1 bg-card"
         value={condition.value}
-        inputMode={condition.field === 'price' ? 'decimal' : 'text'}
+        inputMode={NUMERIC_COLLECTION_FIELDS.includes(condition.field) ? 'decimal' : 'text'}
         onChange={(e) => handleValue(e.target.value)}
         aria-label={FIELD_LABELS[condition.field]}
       />

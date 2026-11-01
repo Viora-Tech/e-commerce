@@ -1,9 +1,8 @@
-/** Copy for Settings › Markets › Rollouts: store changes that go live at a set time, for good or for a sale. */
+/** Copy for Rollouts (top-level page): store changes that go live at a set time, for good or for a sale. */
 export const rolloutsContent = {
   title: 'Rollouts',
   intro:
     'Prepare a new theme, checkout look or discounts ahead of time and let them go live on their own. A launch keeps its changes; an event, like a Diwali sale, ends by itself and puts the store back.',
-  back: 'Markets',
   create: 'Create rollout',
   listTitle: 'Your rollouts',
   filters: {
@@ -15,11 +14,18 @@ export const rolloutsContent = {
     ended: 'Ended',
   },
   columns: {
-    name: 'Rollout',
+    name: 'Name',
     changes: 'Changes',
     when: 'When',
     status: 'Status',
+    type: 'Type',
+    start: 'Start',
+    end: 'End',
+    audience: 'Audience',
   },
+  audienceAll: 'All visitors',
+  audienceMarkets: (n: number) => `${n} ${n === 1 ? 'market' : 'markets'}`,
+  notSet: '—',
   kinds: { launch: 'Launch', event: 'Event' },
   status: {
     draft: 'Draft',
@@ -34,6 +40,7 @@ export const rolloutsContent = {
     checkout: 'Checkout',
     discounts: (n: number) => (n === 1 ? '1 discount' : `${n} discounts`),
     none: 'No changes yet',
+    abTest: 'A/B test',
   },
   when: {
     notScheduled: 'Not scheduled',
@@ -53,7 +60,7 @@ export const rolloutsContent = {
     meta: 'Times are India time (IST).',
     details: {
       heading: 'Details',
-      name: 'Name',
+      name: 'Rollout name',
       namePlaceholder: 'Diwali sale',
       nameError: 'Give the rollout a name.',
       kind: 'Type',
@@ -121,8 +128,8 @@ export const rolloutsContent = {
       max: (n: number) => `A rollout switches at most ${n} discounts.`,
     },
     schedule: {
-      heading: 'Schedule',
-      start: 'Starts',
+      heading: 'Scheduling',
+      start: 'Changes publish',
       end: 'Ends',
       startHelp: 'Leave empty to keep it a draft.',
       endError: 'An event needs an end after its start.',
@@ -132,6 +139,64 @@ export const rolloutsContent = {
       apply: 'Keep the changes',
       applyHelp: 'Everything the event changed stays for good.',
       tz: 'Times are India time (IST).',
+    },
+    audience: {
+      heading: 'Audience',
+      subtitle: 'Try the change on some visitors before everyone sees it.',
+      toggle: 'Run as an A/B test',
+      toggleHelp:
+        'Control visitors see the store as it is; Treatment visitors see this rollout’s theme. Nothing changes for everyone until you ship the Treatment.',
+      splittable:
+        'A/B tests split theme changes only. Checkout branding and discounts apply to every visitor at once, so they can’t be tested here.',
+      split: 'Traffic split',
+      control: 'Control',
+      treatment: 'Treatment',
+      splitValue: (control: number, treatment: number) =>
+        `Control ${control}% · Treatment ${treatment}%`,
+      reset: 'Back to 50/50',
+      traffic: 'Traffic allocation',
+      trafficValue: (n: number) => `${n}% of visitors`,
+      trafficHelp:
+        'The share of all visitors in the test. The rest see the store as it is and aren’t counted.',
+      markets: 'Eligible markets',
+      marketsHelp: 'Leave all unticked to test in every market.',
+      target: 'Target visitors',
+      targetPlaceholder: '2000',
+      targetHelp: 'How many visitors the test should reach before you decide. Optional.',
+      locked: 'The split, traffic and markets stay as the test started, so its numbers stay fair.',
+      who: 'Only visitors who accepted analytics cookies are tested, each in the same arm on every visit. Bots always see the Control.',
+    },
+    notes: {
+      heading: 'Notes',
+      placeholder: 'What are you testing, and what would make you ship it?',
+      help: 'Only your team sees these.',
+    },
+    results: {
+      heading: 'Results',
+      subtitle: 'Since the test started, per arm.',
+      reached: 'Reached',
+      reachedOf: (n: string, target: string) => `${n} of ${target} visitors`,
+      reachedCount: (n: string) => `${n} visitors`,
+      metric: 'Metric',
+      metrics: {
+        visitors: 'Visitors',
+        sessions: 'Sessions',
+        addToCart: 'Add-to-cart rate',
+        conversion: 'Conversion rate',
+        orders: 'Orders',
+        revenuePerVisitor: 'Revenue per visitor',
+      },
+      verdict: {
+        not_enough: 'Not enough data yet',
+        no_difference: 'No clear winner yet',
+        ahead: (arm: string, confidence: number) => `${arm} ahead with ~${confidence}% confidence`,
+      },
+      verdictHelp:
+        'A two-proportion z-test on conversion rate. It waits for 100 visitors in each arm and 10 orders in all.',
+      outcome: {
+        treatment: 'Treatment shipped: its theme is live for every visitor.',
+        control: 'Control kept: the store stayed as it was.',
+      },
     },
     conflicts: {
       block: 'Resolve rollout conflicts',
@@ -148,6 +213,8 @@ export const rolloutsContent = {
       pause: 'Pause',
       resume: 'Resume',
       end: 'End now',
+      shipTreatment: 'Ship Treatment',
+      keepControl: 'Keep Control',
       archive: 'Archive',
       delete: 'Delete',
     },
@@ -156,6 +223,19 @@ export const rolloutsContent = {
       body: 'Its changes go live on the store right away.',
       confirm: 'Start now',
     },
+    confirmStartAb:
+      'Visitors in the test start seeing their arm right away. Nothing changes for anyone else.',
+    confirmShip: {
+      title: (name: string) => `Ship the Treatment of ${name}?`,
+      body: 'Its theme goes live for every visitor and the test ends. This cannot be undone.',
+      confirm: 'Ship Treatment',
+    },
+    confirmKeep: {
+      title: (name: string) => `Keep the Control of ${name}?`,
+      body: 'The test ends and the store stays as it is. This cannot be undone.',
+      confirm: 'Keep Control',
+    },
+    confirmPauseAb: 'Every visitor sees the Control until you resume. The numbers so far are kept.',
     confirmPause: {
       title: (name: string) => `Pause ${name}?`,
       body: 'The store goes back to what was live before. Resume puts the changes back until the end.',
@@ -178,6 +258,8 @@ export const rolloutsContent = {
       paused: 'Rollout paused',
       resumed: 'Rollout resumed',
       ended: 'Rollout ended',
+      shipped: 'Treatment shipped',
+      kept: 'Control kept',
       archived: 'Rollout archived',
       deleted: 'Rollout deleted',
       failed: 'Could not save the rollout',

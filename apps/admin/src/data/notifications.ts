@@ -3,6 +3,7 @@
  * Plain words for a shop owner: what each message is, when it goes, and how
  * messages are sent.
  */
+import { siteConfig } from '@commerce/config/site'
 
 export type MessageGroupId =
   | 'orders'
@@ -79,7 +80,7 @@ export const notificationsSettingsContent = {
     },
     you: {
       title: 'Messages you get',
-      help: 'Sent to your shop email or to each team member who asked, never to customers.',
+      help: 'Sent to your shop email or to team members, never to customers. These switches are store-level: off stops a team alert for everyone. On, each person still picks their own in Account → Notifications, so a daily summary can be on here and off for you.',
     },
   } satisfies Record<MessageGroupId, { title: string; help: string }>,
 
@@ -114,6 +115,18 @@ export const notificationsSettingsContent = {
       name: 'Refund issued',
       when: 'When you refund an order directly, outside a return. Says the amount and method.',
     },
+    order_edited: {
+      name: 'Order edited',
+      when: 'When you edit an order and its items or total change. Shows the order as it is now.',
+    },
+    payment_pending: {
+      name: 'Payment not finished',
+      when: 'Once, about 10 minutes after an online payment fails or is left unfinished. Links to retry the payment.',
+    },
+    shipping_update: {
+      name: 'Shipping update',
+      when: 'When the tracking number or courier of a shipped order changes.',
+    },
     unpaid_cancelled: {
       name: 'Order cancelled for not paying',
       when: 'When an unpaid UPI or bank transfer order is cancelled.',
@@ -136,7 +149,11 @@ export const notificationsSettingsContent = {
     },
     draft_invoice: {
       name: 'Invoice with a pay link',
-      when: 'When you send an invoice from a draft order.',
+      when: 'When you send an invoice from a draft order. Sending it again sends a reminder.',
+    },
+    order_link: {
+      name: 'Link to their order',
+      when: 'When you click "Send order link" on an order.',
     },
     checkout_recovery: {
       name: 'Left items in their cart',
@@ -145,6 +162,10 @@ export const notificationsSettingsContent = {
     document_copy: {
       name: 'Copy of an invoice',
       when: 'When you email an invoice or credit note from an order.',
+    },
+    customer_message: {
+      name: 'Email to a customer',
+      when: 'When you write to a customer from their page with "Email customer".',
     },
     purchase_order: {
       name: 'Purchase order to a supplier',
@@ -214,6 +235,18 @@ export const notificationsSettingsContent = {
       name: 'Reply to a review',
       when: 'The first time you reply to a customer review (Reviews app).',
     },
+    review_reward: {
+      name: 'Photo review thanks',
+      when: 'When a review with photos is published, with a one-time discount code (Reviews app settings).',
+    },
+    question_answered: {
+      name: 'Question answered',
+      when: "Once, when you publish your answer to a shopper's product question (Reviews app).",
+    },
+    question_asked: {
+      name: 'New product question',
+      when: 'To your shop email when a shopper asks a question on a product page (Reviews app).',
+    },
     cod_confirm: {
       name: 'Confirm your COD order',
       when: 'Right after a cash on delivery order, with a confirm or cancel link (COD & RTO app).',
@@ -234,7 +267,35 @@ export const notificationsSettingsContent = {
       name: 'Daily summary (team)',
       when: 'Once a day, at the hour each team member chose in Account → Notifications.',
     },
+    account_deletion_code: {
+      name: 'Account deletion code',
+      when: 'When a shopper asks to delete their account; the code confirms it is them.',
+    },
+    affiliate_application: {
+      name: 'New affiliate application (team)',
+      when: 'When someone applies to your affiliate programme (Affiliates app).',
+    },
+    staff_invite: { name: 'Team invitation', when: 'When you invite someone to your team.' },
+    email_change_code: {
+      name: 'Email change code',
+      when: 'When a team member changes their sign-in email.',
+    },
+    email_changed: { name: 'Email changed', when: 'After a team member’s sign-in email changes.' },
+    plan_bill: { name: 'Plan bill', when: `When your ${siteConfig.brand.name} plan is billed.` },
+    bug_report_update: {
+      name: 'Bug report update',
+      when: 'When a bug you reported is updated.',
+    },
   } as Record<string, { name: string; when: string }>,
+  /** How a message went, in words: the timeline says "sent by email", never `platform_email`. */
+  channels: {
+    email: 'email',
+    platform_email: 'email',
+    mail: 'email',
+    whatsapp: 'WhatsApp',
+    sms: 'SMS',
+    log: 'test log',
+  } as Record<string, string>,
 
   channelNames: { email: 'Email', whatsapp: 'WhatsApp' } satisfies Record<ChannelId, string>,
 

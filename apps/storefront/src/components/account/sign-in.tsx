@@ -72,8 +72,9 @@ export default function SignIn({
   // Unticked counts only when the store offers the choice; otherwise sessions keep their usual length.
   const keep = offerRemember ? remember : true
 
+  // `mx-auto!`: an imported theme's own unlayered margin reset beat the centring (#118).
   return (
-    <div className="mx-auto flex w-full max-w-[26rem] flex-col gap-6 rounded-[var(--radius-card)] bg-surface p-6 md:p-8">
+    <div className="mx-auto! flex w-full max-w-[26rem] flex-col gap-6 rounded-[var(--radius-card)] bg-surface p-6 md:p-8">
       {error ? (
         <p className="text-small text-danger" role="alert">
           {copy.providerErrors[error]}

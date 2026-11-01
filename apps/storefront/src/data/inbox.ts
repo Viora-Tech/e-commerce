@@ -28,6 +28,7 @@ export const inboxChatContent = {
     policies: 'Can you tell me about delivery times, shipping charges and returns?',
   },
   popular: 'Popular right now',
+  commonQuestions: 'Common questions',
   assistant: 'Assistant',
   joined: (store: string) => `Someone from ${store} joined`,
   placeholder: 'Ask anything…',

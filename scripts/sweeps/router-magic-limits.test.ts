@@ -61,6 +61,11 @@ const ALLOWLIST: AllowEntry[] = [
   },
   { site: 'packages/api/src/routers/products.ts: limit.max(100)', reason: SMALL },
   { site: 'packages/api/src/routers/products.ts: limit.max(50)', reason: SMALL },
+  {
+    site: 'packages/api/src/routers/products.ts: ids.max(50)',
+    reason:
+      'variant ids come back in one page of limit <= 50; the combo editor chunks saved picks by the same 50',
+  },
   { site: 'packages/api/src/routers/theme-templates.ts: limit.max(50)', reason: SMALL },
   {
     site: 'packages/api/src/routers/redirects.ts: ids.max(250)',

@@ -12,6 +12,7 @@ import {
   cancelPayout,
   clearReview,
   commissionLedger,
+  countDueCommissions,
   createPayouts,
   createProgram,
   decideCodeRequest,
@@ -28,6 +29,7 @@ import {
   ProgramRulesSchema,
   payoutCandidates,
   payoutsCsv,
+  removeAffiliate,
   restoreProgram,
   rotateCoupon,
   StoreAffiliateSettingsSchema,
@@ -333,6 +335,14 @@ export const affiliatesRouter = {
         publicAffiliate(await setAffiliateStatus(context.tx, input.id, input.status, input.reason)),
       )
     }),
+  /** Removes an affiliate added by mistake; refused once they have a commission (pause them then). */
+  remove: can(permissions.MARKETING_WRITE)
+    .input(Id)
+    .handler(async ({ context, input }) => {
+      await program(context)
+      await refusal(() => removeAffiliate(context.tx, input.id))
+      return { ok: true }
+    }),
   /** A leaked coupon: the old one stops working and a new one is made. The link is untouched. */
   rotateCoupon: can(permissions.MARKETING_WRITE)
     .input(Id)
@@ -391,6 +401,11 @@ export const affiliatesRouter = {
         if (!row) throw new ORPCError('NOT_FOUND', { message: 'Commission not found' })
         return { id: row.id, status: row.status }
       }),
+    /** How many commissions are due now, so "Approve due now" is off when there are none. */
+    dueCount: can(permissions.MARKETING_READ).handler(async ({ context }) => {
+      await program(context)
+      return countDueCommissions(context.tx)
+    }),
     /** Approves every commission whose hold is over now, instead of waiting for the hourly pass. */
     approveDue: can(permissions.MARKETING_WRITE).handler(async ({ context }) => {
       const settings = await program(context)

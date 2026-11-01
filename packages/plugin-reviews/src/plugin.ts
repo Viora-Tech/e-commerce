@@ -1,6 +1,9 @@
 import { definePlugin } from '@commerce/plugins'
+import { desc, eq } from 'drizzle-orm'
+import { reviewsEmbeds } from './blocks'
 import { COPY_PHOTOS_JOB, copyReviewPhotos } from './photos'
 import { scheduleReviewRequests } from './requests'
+import { review } from './schema'
 import { REVIEWS_ID } from './settings'
 import { loadReviewsSettings } from './store-settings'
 
@@ -59,7 +62,19 @@ export const reviewsPlugin = definePlugin({
     ],
     summary: 'collects reviews',
   },
+  // The newest review is the app's last use, for the Installed apps list.
+  lastUsed: async (tx, storeId) => {
+    const [row] = await tx
+      .select({ at: review.createdAt })
+      .from(review)
+      .where(eq(review.storeId, storeId))
+      .orderBy(desc(review.createdAt))
+      .limit(1)
+    return row ? { at: row.at, summary: 'Got a review' } : null
+  },
   provides: {},
+  // The floating reviews tab; the other widgets are theme sections (`reviews/*` in @commerce/blocks).
+  storefront: { embeds: reviewsEmbeds },
   hooks: {
     // Plans the review request emails; the worker's sweep sends them when they are due.
     'order.delivered': async (ctx, payload) => {
@@ -83,9 +98,20 @@ export const reviewsPlugin = definePlugin({
     icon: 'Star',
     pages: [
       { path: '', title: 'Reviews', navLabel: 'Reviews', icon: 'Star' },
+      { path: 'questions', title: 'Questions', navLabel: 'Questions', icon: 'MessageSquare' },
       { path: 'import', title: 'Import from Judge.me', navLabel: 'Import', icon: 'Upload' },
       { path: 'settings', title: 'Review settings', navLabel: 'Settings', icon: 'Settings' },
       { path: 'reviews/[id]', title: 'Review' },
+      { path: 'qr/[target]', title: 'Review QR card' },
+    ],
+    orderActions: [
+      {
+        id: 'review-qr',
+        label: { en: 'Review QR card', hi: 'रिव्यू QR कार्ड' },
+        targets: ['detail'],
+        handler: { type: 'link', path: '/apps/reviews/qr/order-{orderId}' },
+        permission: 'products.read',
+      },
     ],
   },
 })

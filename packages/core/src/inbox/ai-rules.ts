@@ -10,11 +10,14 @@ export type AiAnswerFacts = {
   needsHuman: boolean
   /** A staff member has replied in this conversation: they took over (design §13). */
   staffReplied: boolean
+  /** Staff pressed Take over in the admin thread. */
+  aiPaused?: boolean | undefined
 }
 
 /** Whether the AI agent answers the newest shopper message in a conversation. */
 export function aiMayAnswer(f: AiAnswerFacts): boolean {
-  if (f.mode === 'off' || f.status !== 'open' || f.needsHuman || f.staffReplied) return false
+  if (f.mode === 'off' || f.status !== 'open' || f.needsHuman || f.staffReplied || f.aiPaused)
+    return false
   return f.mode === 'all' || !f.staffAvailable
 }
 

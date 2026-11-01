@@ -9,7 +9,7 @@ import { blockedKinds, fraudIndex, payoutKeys, refreshReview } from './blocklist
 import { ensureCoupon, linkCodeIs, recordCode } from './codes'
 import { phoneKey } from './fraud'
 import { defaultProgram, getProgram, programOf } from './programs'
-import { affiliate, affiliateClickDay } from './schema'
+import { affiliate, affiliateClickDay, affiliateCommission, affiliatePayout } from './schema'
 import type { AffiliateSettings, AffiliateStatus } from './settings'
 import { AffiliateError } from './store-settings'
 
@@ -200,6 +200,36 @@ export async function approveAffiliate(
 }
 
 /** Rejects or suspends; a suspended affiliate's code stops working, earned money stays. */
+/**
+ * Removes an affiliate added by mistake (audit #168). Only one that never earned: anyone with a
+ * commission or payout stays, paused instead, so the money trail is kept. Their coupon is
+ * switched off (orders may still name it); codes and click counts go with them.
+ */
+export async function removeAffiliate(tx: StoreTx, id: string): Promise<void> {
+  const [row] = await tx.select().from(affiliate).where(eq(affiliate.id, id))
+  if (!row) throw new AffiliateError('AFFILIATE_NOT_FOUND', 'Affiliate not found')
+  const [earned] = await tx
+    .select({ n: sql<number>`count(*)::int` })
+    .from(affiliateCommission)
+    .where(eq(affiliateCommission.affiliateId, id))
+  const [paid] = await tx
+    .select({ n: sql<number>`count(*)::int` })
+    .from(affiliatePayout)
+    .where(eq(affiliatePayout.affiliateId, id))
+  if ((earned?.n ?? 0) > 0 || (paid?.n ?? 0) > 0)
+    throw new AffiliateError(
+      'AFFILIATE_HAS_COMMISSIONS',
+      'This affiliate has commissions, so they can only be paused',
+    )
+  if (row.discountId) {
+    await tx
+      .update(discount)
+      .set({ status: 'disabled', updatedAt: new Date() })
+      .where(eq(discount.id, row.discountId))
+  }
+  await tx.delete(affiliate).where(eq(affiliate.id, id))
+}
+
 export async function setAffiliateStatus(
   tx: StoreTx,
   id: string,

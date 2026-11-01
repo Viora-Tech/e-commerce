@@ -6,7 +6,7 @@ description: How the Shopify importer app reads a store over the Admin API (or C
 # Shopify importer
 
 `packages/plugin-shopify-import` is a built-in app (`shopify-import`). It reads a Shopify store
-over the Admin GraphQL API (`2025-07`, `shopify-client.ts`) or from Shopify's three CSV exports,
+over the Admin GraphQL API (`2026-10`, `shopify-client.ts`) or from Shopify's three CSV exports,
 and writes our records. Admin pages: `apps/admin/src/components/apps/shopify-import/`, copy in
 `data/shopify-import.ts` with the Hindi overlay `data/hi/shopify-import.ts`. API:
 `packages/api/src/routers/shopify-import.ts`.
@@ -336,19 +336,25 @@ to Shopify's with an `adjustment` transaction unless the card has a `debit` here
 with `currentAppInstallation.accessScopes`. New in this round: `read_files`,
 `read_metaobject_definitions`, `read_metaobjects`, `read_discounts`, `read_gift_cards`.
 Store settings added `read_shipping` and `read_legal_policies`; locations are read with the
-`read_inventory` the importer already asks for.
+`read_inventory` the importer already asks for. Then `read_markets` (Markets part),
+`read_inventory_purchase_orders` and `read_inventory_transfers` (Purchase orders and Transfers
+parts, API 2026-10: `read_inventory` no longer covers purchase orders). All three are optional:
+without them only that part says "Needs access".
 
 ## Store settings
 
 A separate step (admin page `settings`, router `shopifyImport.settingsPreview` /
 `importSettings`), not a run: it is a handful of queries, so it answers in the request and
-keeps no run row. Seven parts (`SETTINGS_PARTS` in `src/settings-client.ts`):
+keeps no run row. Parts in write order (`SETTINGS_PARTS` in `src/settings-client.ts`): store,
+tax, locations, shipping, packages, policies, fields, segments, markets, purchase orders,
+transfers.
 
 | File | Job |
 | --- | --- |
 | `api-settings.ts` | Reads each part on its own (`Read<T>`); an `ACCESS_DENIED` is `access: true`, so the part says "reconnect" instead of failing the rest |
 | `settings-plan.ts` | Shared shapes (`LocalSettings`, `SettingsOp`), store details, tax, locations |
 | `settings-plan-shipping.ts`, `settings-plan-content.ts` | Shipping and packages; policies and extra field definitions |
+| `settings-plan-stock.ts`, `settings-import-stock.ts` | Purchase orders and transfers: plan (supplier by name, lines to variants, locations) and writes |
 | `settings-import.ts` | Loads this store's side, plans, and on import re-reads Shopify and applies each part's ops in its own savepoint |
 | core `settings/store-profile.ts` | `readStoreProfile`, `saveStoreProfile` (only the fields given), `saveLocationDetails` |
 
@@ -361,13 +367,23 @@ Every plan line is codes (`action`, `subject`, `reason`), turned into words by
 - New locations are created with `saveLocationDetails`: no stock, not the default, not selling
   online. Shopify's first shipping location only takes over the store's first location while it
   still has the generic name `Default location`.
-- Shipping maps only the default delivery profile. Shopify's upper bounds are inclusive and ours
+- Shipping maps the default delivery profile to General and each custom profile to a shipping
+  profile with its products (matched through the products import's `products` mapping; ones not
+  imported yet are counted in a warning), each with its own zones. Shopify's upper bounds are inclusive and ours
   exclusive, so a `<=` bound becomes `max + 1` (paise or grams). A rate the merchant already has
   (same name) keeps its id, COD fee, free-above and delivery days.
 - Saved packages cannot be read over the Admin API (only update/delete mutations exist), so that
   part only says so.
+- Purchase orders and transfers: each line's Shopify product goes through the products
+  mapping, then the variant is found by SKU, title, or the product's only variant; a record with
+  any line not matched waits (`stock_products_missing`). Locations are matched by mapping or
+  name, or are ones the Locations part of the same import brings over (the write then finds them
+  through `settings_locations`). Writes go through `savePurchaseOrder` / `saveTransfer`; status
+  is then set without moving on-hand (it came over with the products). An ordered purchase order
+  and an in-transit transfer add incoming. Only rupee purchase orders come over (no exchange
+  rate from Shopify). Mapped as `settings_purchase_orders` and `settings_transfers`.
 - Matches are stored in `shopify_import_mapping` (`settings_locations`,
-  `settings_shipping_zones`, and `metafield_definitions` shared with the main import), so a second
+  `settings_shipping_zones`, `settings_shipping_profiles`, and `metafield_definitions` shared with the main import), so a second
   import plans only `same` lines.
 
 ## Tests

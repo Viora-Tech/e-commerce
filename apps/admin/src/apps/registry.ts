@@ -66,11 +66,17 @@ import RapidshypOverviewPage from '@/components/apps/rapidshyp/overview-page'
 import RazorpayConnectPage from '@/components/apps/razorpay/connect-page'
 import RazorpayOverviewPage from '@/components/apps/razorpay/overview-page'
 import ReviewsImportPage from '@/components/apps/reviews/import-page'
+import ReviewsQrPage from '@/components/apps/reviews/qr-page'
+import ReviewsQuestionsPage from '@/components/apps/reviews/questions-page'
 import ReviewDetail from '@/components/apps/reviews/review-detail'
 import ReviewsPage from '@/components/apps/reviews/reviews-page'
 import ReviewsSettingsPage from '@/components/apps/reviews/settings-page'
 import S3ConnectPage from '@/components/apps/s3/connect-page'
+import SearchBoostsPage from '@/components/apps/search/boosts-page'
 import SearchFiltersPage from '@/components/apps/search/filters-page'
+import SearchOverviewPage from '@/components/apps/search/overview-page'
+import SearchRecommendationEditor from '@/components/apps/search/recommendation-editor'
+import SearchRecommendationsPage from '@/components/apps/search/recommendations-page'
 import SearchSynonymsPage from '@/components/apps/search/synonyms-page'
 import SearchConsoleAlmostPageOne from '@/components/apps/search-console/almost-page-one-page'
 import SearchConsoleLosingTraffic from '@/components/apps/search-console/losing-traffic-page'
@@ -81,6 +87,8 @@ import SearchConsoleSettings from '@/components/apps/search-console/settings-pag
 import SearchConsoleSitemaps from '@/components/apps/search-console/sitemaps-page'
 import ShadowfaxConnectPage from '@/components/apps/shadowfax/connect-page'
 import ShadowfaxOverviewPage from '@/components/apps/shadowfax/overview-page'
+import ShipglobalConnectPage from '@/components/apps/shipglobal/connect-page'
+import ShipglobalOverviewPage from '@/components/apps/shipglobal/overview-page'
 import ShiprocketConnectPage from '@/components/apps/shiprocket/connect-page'
 import ShiprocketOverviewPage from '@/components/apps/shiprocket/overview-page'
 import ConnectHeaderButton from '@/components/apps/shopify-import/connect-header-button'
@@ -115,7 +123,8 @@ export type AdminApp = {
   HeaderAction?: ComponentType
   /**
    * Pages drawn edge to edge without the app header and tabs, for full-screen tools such as
-   * the Automations workflow editor (Shopify Flow's editor fills the window too).
+   * the Automations workflow editor (Shopify Flow's editor fills the window too), and Connect
+   * pages, which draw their own header with the way back to the app.
    */
   fullPages?: readonly string[]
 }
@@ -160,12 +169,14 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       '': BluedartOverviewPage,
       connect: BluedartConnectPage,
     },
+    fullPages: ['connect'],
   },
   cashfree: {
     pages: {
       '': CashfreeOverviewPage,
       connect: CashfreeConnectPage,
     },
+    fullPages: ['connect'],
   },
   chatwoot: {
     pages: { '': ChatwootSettingsPage },
@@ -192,24 +203,28 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       '': DecentroOverviewPage,
       connect: DecentroConnectPage,
     },
+    fullPages: ['connect'],
   },
   delhivery: {
     pages: {
       '': DelhiveryOverviewPage,
       connect: DelhiveryConnectPage,
     },
+    fullPages: ['connect'],
   },
   dtdc: {
     pages: {
       '': DtdcOverviewPage,
       connect: DtdcConnectPage,
     },
+    fullPages: ['connect'],
   },
   ekart: {
     pages: {
       '': EkartOverviewPage,
       connect: EkartConnectPage,
     },
+    fullPages: ['connect'],
   },
   'emi-pay-later': {
     pages: {
@@ -229,8 +244,12 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
   },
   search: {
     pages: {
-      '': SearchSynonymsPage,
+      '': SearchOverviewPage,
+      synonyms: SearchSynonymsPage,
       filters: SearchFiltersPage,
+      boosts: SearchBoostsPage,
+      recommendations: SearchRecommendationsPage,
+      'recommendations/[productId]': SearchRecommendationEditor,
     },
   },
   'google-search-console': {
@@ -256,6 +275,12 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       connect: FedexConnectPage,
     },
   },
+  shipglobal: {
+    pages: {
+      '': ShipglobalOverviewPage,
+      connect: ShipglobalConnectPage,
+    },
+  },
   'gst-invoices': {
     pages: {
       '': QueuePage,
@@ -272,18 +297,21 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       connect: IndiaPostConnectPage,
       'labels/[waybill]': IndiaPostLabelPage,
     },
+    fullPages: ['connect'],
   },
   rapidshyp: {
     pages: {
       '': RapidshypOverviewPage,
       connect: RapidshypConnectPage,
     },
+    fullPages: ['connect'],
   },
   razorpay: {
     pages: {
       '': RazorpayOverviewPage,
       connect: RazorpayConnectPage,
     },
+    fullPages: ['connect'],
   },
   reviews: {
     pages: {
@@ -291,12 +319,15 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       import: ReviewsImportPage,
       settings: ReviewsSettingsPage,
       'reviews/[id]': ReviewDetail,
+      'qr/[target]': ReviewsQrPage,
+      questions: ReviewsQuestionsPage,
     },
   },
   s3: {
     pages: {
       '': S3ConnectPage,
     },
+    fullPages: ['connect'],
   },
   ses: {
     pages: {
@@ -309,12 +340,14 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       '': ShadowfaxOverviewPage,
       connect: ShadowfaxConnectPage,
     },
+    fullPages: ['connect'],
   },
   shiprocket: {
     pages: {
       '': ShiprocketOverviewPage,
       connect: ShiprocketConnectPage,
     },
+    fullPages: ['connect'],
   },
   whatsapp: {
     pages: {
@@ -346,6 +379,7 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       '': XpressbeesOverviewPage,
       connect: XpressbeesConnectPage,
     },
+    fullPages: ['connect'],
   },
 }
 

@@ -19,6 +19,7 @@ import {
   grievanceOfficerOf,
   liveThemeSettings,
   parseCustomerPrivacySettings,
+  parseMarketSettings,
   parseNavigationSettings,
   parsePreferences,
   publishedPolicyLinks,
@@ -26,9 +27,8 @@ import {
   themeRootAttrs,
   themeToCss,
   toFooterColumns,
-  toNavLinks,
 } from '@commerce/core'
-import { navigationMenu, store } from '@commerce/db'
+import { market, navigationMenu, store } from '@commerce/db'
 import { browserSentryMeta } from '@commerce/observability'
 import { eq } from 'drizzle-orm'
 import type { Metadata, Viewport } from 'next'
@@ -39,14 +39,16 @@ import ExperimentBeacon from '@/components/analytics/experiment-beacon'
 import CartDrawer from '@/components/cart/cart-drawer'
 import StoreChrome from '@/components/checkout/store-chrome'
 import InboxLauncher from '@/components/inbox/inbox-launcher'
+import MarketLinks from '@/components/markets/market-links'
+import MarketSuggestion from '@/components/markets/market-suggestion'
 import ConsentManager from '@/components/privacy/consent-manager'
 import PredictiveSearch from '@/components/search/predictive-search'
 import AppEmbeds from '@/components/theme/app-embeds'
 import LiquidBoot from '@/components/theme/liquid-boot'
 import LiquidHtml from '@/components/theme/liquid-html'
 import PreviewBar from '@/components/theme/preview-bar'
+import ThemeCartAdded from '@/components/theme/theme-cart-added'
 import ThemePreviewBridge from '@/components/theme/theme-preview-bridge'
-import { collectionsContent } from '@/data/collections'
 import { policyPageContent } from '@/data/policies'
 import { privacyContent } from '@/data/privacy'
 import { searchContent } from '@/data/search'
@@ -68,8 +70,10 @@ import { mediaByUrl } from '@/lib/media-lookup'
 import { subscribeAction } from '@/lib/newsletter-actions'
 import { storePixels } from '@/lib/pixels/pixels'
 import { requestCart } from '@/lib/request-cart'
+import { abThemeId } from '@/lib/rollout-ab'
 import { heightForWidth } from '@/lib/section-images'
 import { requestOrigin, verificationMeta } from '@/lib/seo'
+import { menuLinks, starterFooterColumns } from '@/lib/starter-menus'
 import { storeRead } from '@/lib/store-cache'
 import { inStore } from '@/lib/store-context'
 import { readPreview } from '@/lib/storefront-gate'
@@ -96,64 +100,19 @@ async function themedRerender() {
   return isRerender((await cookies()).get(RERENDER_COOKIE)?.value, pathname)
 }
 
-/** Collections a store with no menu at all shows in its header, after "Shop all". */
-const STARTER_MENU_COLLECTIONS = 4
-
-/** A store with no footer menu yet gets two plain columns, so its footer is never blank. */
-function starterFooterColumns(collections: readonly { handle: string; title: string }[]) {
-  const copy = collectionsContent.starterFooter
-  return [
-    {
-      id: 'starter-shop',
-      heading: copy.shop,
-      links: [
-        { id: 'starter-all', label: collectionsContent.shopAll, href: '/collections/all' },
-        ...collections.slice(0, STARTER_MENU_COLLECTIONS).map((c) => ({
-          id: `starter-${c.handle}`,
-          label: c.title,
-          href: `/collections/${c.handle}`,
-        })),
-      ],
-    },
-    {
-      id: 'starter-help',
-      heading: copy.help,
-      links: [
-        { id: 'starter-search', label: copy.search, href: '/search' },
-        { id: 'starter-track', label: copy.trackOrder, href: '/track-order' },
-        { id: 'starter-account', label: copy.account, href: '/account' },
-      ],
-    },
-  ]
-}
-
 /**
- * The Header section's menu, or the Navigation setting's main menu when it names none. A store
- * that has no such menu yet (a new store) gets Shopify's starter: Shop all and its first
- * collections, so the header is never empty. A menu the merchant emptied stays empty.
+ * The live theme's settings, cached per store version; an A/B rollout's Treatment theme's for a
+ * visitor in that arm (`lib/rollout-ab.ts`).
  */
-function menuLinks(
-  menus: Map<string, { items: Parameters<typeof toNavLinks>[0] }>,
-  handle: unknown,
-  fallback: string | null,
-  collections: readonly { handle: string; title: string }[],
-) {
-  const picked = typeof handle === 'string' && handle ? handle : fallback
-  const menu = picked === null ? undefined : menus.get(picked)
-  if (menu) return toNavLinks(menu.items)
-  return [
-    { id: 'starter-all', label: collectionsContent.shopAll, href: '/collections/all' },
-    ...collections.slice(0, STARTER_MENU_COLLECTIONS).map((c) => ({
-      id: `starter-${c.handle}`,
-      label: c.title,
-      href: `/collections/${c.handle}`,
-    })),
-  ]
-}
-
-/** The live theme's settings, cached per store version. */
-function liveTheme(storeId: string) {
-  return storeRead(storeId, 'live-theme-settings', (tx) => liveThemeSettings(tx, storeId))
+async function liveTheme(storeId: string) {
+  const tested = await abThemeId(storeId)
+  const treatment = tested
+    ? await storeRead(storeId, `theme-settings|${tested}`, (tx) => getTheme(tx, tested))
+    : null
+  return (
+    treatment?.settings ??
+    storeRead(storeId, 'live-theme-settings', (tx) => liveThemeSettings(tx, storeId))
+  )
 }
 
 /** What every page's layout reads from the store, cached per store version. */
@@ -174,6 +133,14 @@ function layoutData(storeId: string) {
       menus: await tx.select().from(navigationMenu),
       policies: await publishedPolicyLinks({ tx, storeId }),
     }
+  })
+}
+
+/** How many markets shoppers can be in (the primary is always on), cached per store version. */
+function liveMarketCount(storeId: string) {
+  return storeRead(storeId, 'live-market-count', async (tx) => {
+    const rows = await tx.select({ id: market.id }).from(market).where(eq(market.enabled, true))
+    return rows.length
   })
 }
 
@@ -239,6 +206,8 @@ export default async function StoreLayout({ children, params }: Props) {
   const pathname = (await headers()).get('x-pathname') ?? '/'
   // The page's language: its market's (`lib/markets.ts`).
   const lang = (await headers()).get(MARKET_HEADERS.locale) ?? 'en'
+  // A subfolder market (`/ae`): its links and addresses stay under the folder.
+  const marketPrefix = (await headers()).get(MARKET_HEADERS.prefix) ?? ''
   const themeId = preview?.themeId ?? (await liveThemeId(storeId))
   // A market in another currency (`/ae`): every price block shows its prices (Settings → Markets).
   const pricing = await requestMarketPricing(storeId)
@@ -250,6 +219,12 @@ export default async function StoreLayout({ children, params }: Props) {
   const jar = await cookies()
   const mode = resolveThemeMode(jar.get(THEME_COOKIE)?.value, theme.darkMode)
   const prefs = parsePreferences(current.preferences)
+  // Markets › "Suggest the visitor's market": the banner asks per visitor after load, so only
+  // whether it may ask at all is in the page. Never in a preview, nor with one live market.
+  const suggestMarket =
+    !preview &&
+    parseMarketSettings(current.preferences).suggestMarket &&
+    (await liveMarketCount(storeId)) > 1
   const privacy = parseCustomerPrivacySettings(current.preferences)
   const officer = grievanceOfficerOf(current.preferences)
   const env = loadEnv(process.env)
@@ -424,7 +399,7 @@ export default async function StoreLayout({ children, params }: Props) {
         </head>
         <body {...reactAttrs(liquid.bodyAttrs)} suppressHydrationWarning>
           <LiquidHtml
-            html={`<script${nonce ? ` nonce="${nonce}"` : ''}>${liquidShim({ askConsent: currentConsent(consent.initial, consent.bannerVersion) === null })}</script>${liquid.head}`}
+            html={`<script${nonce ? ` nonce="${nonce}"` : ''}>${liquidShim({ askConsent: currentConsent(consent.initial, consent.bannerVersion) === null, prefix: (await headers()).get(MARKET_HEADERS.prefix) ?? '' })}</script>${liquid.head}`}
           />
           {previewName && !preview?.inFrame ? <PreviewBar themeName={previewName} /> : null}
           <LiquidHtml html={liquid.beforeHeader} />
@@ -437,11 +412,14 @@ export default async function StoreLayout({ children, params }: Props) {
             {footer}
           </MoneyFormatProvider>
           <LiquidHtml html={liquid.afterFooter} />
+          <ThemeCartAdded cartHref={`${(await headers()).get(MARKET_HEADERS.prefix) ?? ''}/cart`} />
           <LiquidBoot />
           <AppEmbeds storeId={storeId} appEmbeds={theme.appEmbeds} />
           {tested.length ? <ExperimentBeacon seen={tested} /> : null}
           <ThemePreviewBridge adminOrigin={adminOrigin} />
           {preview ? null : <ConsentManager {...consent} themeBanner={themedConsent} />}
+          {suggestMarket ? <MarketSuggestion /> : null}
+          {marketPrefix ? <MarketLinks prefix={marketPrefix} /> : null}
           {inboxChat ? (
             <InboxLauncher widget={inboxChat} storeName={current.name} logoUrl={chatLogo} />
           ) : null}
@@ -483,6 +461,8 @@ export default async function StoreLayout({ children, params }: Props) {
           </StoreChrome>
           <ThemePreviewBridge adminOrigin={adminOrigin} />
           {preview || themedConsent ? null : <ConsentManager {...consent} />}
+          {suggestMarket ? <MarketSuggestion /> : null}
+          {marketPrefix ? <MarketLinks prefix={marketPrefix} /> : null}
           <StoreChrome>{footer}</StoreChrome>
           {inboxChat ? (
             <InboxLauncher widget={inboxChat} storeName={current.name} logoUrl={chatLogo} />

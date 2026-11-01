@@ -2,6 +2,8 @@
 export const filterPanelContent = {
   heading: 'Filters',
   clearAll: 'Clear all',
+  /** A chip's popover: empties just that filter. */
+  clear: 'Clear',
   any: 'Any',
   min: 'Min',
   max: 'Max',

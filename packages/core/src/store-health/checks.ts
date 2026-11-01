@@ -37,6 +37,7 @@ export type HealthIssue = Base &
     | { code: 'gateway_test_mode'; gateway: string }
     | { code: 'webhook_missing'; gateway: string; paid: boolean }
     | { code: 'policies_missing'; policies: PolicyType[] }
+    | { code: 'policies_unfilled'; policies: PolicyType[] }
     | { code: 'sender_unverified'; email: string; status: 'pending' | 'failed' }
     | { code: 'no_sender_email' }
   )
@@ -287,6 +288,8 @@ export function paymentChecks(facts: PaymentHealthFacts, now: Date): HealthIssue
 export type StoreHealthFacts = {
   /** Policies published on the storefront. */
   publishedPolicies: readonly PolicyType[]
+  /** Published policies still showing a template gap such as [email address] (#111). */
+  unfilledPolicies?: readonly PolicyType[]
   /** The store's own sender address; null when none was added. */
   sender: { email: string; status: 'pending' | 'verified' | 'failed' } | null
 }
@@ -302,6 +305,15 @@ export function storeChecks(facts: StoreHealthFacts): HealthIssue[] {
       severity: 'should_fix',
       code: 'policies_missing',
       policies: missing,
+    })
+  }
+  if (facts.unfilledPolicies?.length) {
+    issues.push({
+      key: 'policies_unfilled',
+      area: 'store',
+      severity: 'should_fix',
+      code: 'policies_unfilled',
+      policies: [...facts.unfilledPolicies],
     })
   }
   if (!facts.sender) {

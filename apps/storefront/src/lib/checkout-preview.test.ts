@@ -120,6 +120,28 @@ describe('checkoutTotals', () => {
     expect(t.codNote).toContain('₹1,000')
   })
 
+  it('hides a way to pay a payment rule hides, and moves the pick off it (#150)', () => {
+    const methodRules = [
+      {
+        id: 'r1',
+        name: 'No COD in 110001',
+        enabled: true,
+        methods: ['cod'],
+        match: 'any' as const,
+        totalAbovePaise: null,
+        totalBelowPaise: null,
+        pincodes: ['110001'],
+        productIds: [],
+      },
+    ]
+    const t = checkoutTotals({ ...base, methodRules, picked: 'cod' })
+    expect(t.offered.map((m) => m.id)).toEqual(['decentro'])
+    expect(t.payment).toBe('decentro')
+    const elsewhere = checkoutTotals({ ...base, methodRules, pincode: '560001', picked: 'cod' })
+    expect(elsewhere.offered.map((m) => m.id)).toContain('cod')
+    expect(elsewhere.payment).toBe('cod')
+  })
+
   it('treats an order covered by gift cards as paid', () => {
     const t = checkoutTotals({
       ...base,

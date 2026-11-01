@@ -18,10 +18,23 @@ export type TemplateId =
   | 'order_cancelled'
   /** Money went back on an order, outside a return's own refund message. */
   | 'refund_issued'
+  /** Staff edited a placed order and its items or total changed; lists the order as it is now. */
+  | 'order_edited'
+  /**
+   * An online payment failed or was never finished (the shopper closed the gateway): one nudge
+   * a short while after checkout, with the link to retry the payment. Never once it is paid.
+   */
+  | 'payment_pending'
+  /** A shipment's tracking number or courier changed after the shopper was told it shipped. */
+  | 'shipping_update'
+  /** Staff sent the shopper the link to their order's status page ("Send order link"). */
+  | 'order_link'
   | 'draft_invoice'
   | 'checkout_recovery'
   /** A copy of an order document (invoice, credit note) sent on request, with the file attached. */
   | 'document_copy'
+  /** A plain email the merchant writes to one customer from the customer page (`custom` subject and message). Email only. */
+  | 'customer_message'
   /** Storefront account sign-in code. Sent straight away, never queued: it lives ten minutes. */
   | 'login_code'
   /** Confirms a shopper's own account deletion. Sent straight away, like `login_code`. Email only; phone channels send `login_code`. */
@@ -42,12 +55,18 @@ export type TemplateId =
   | 'payment_reminder'
   /** To the MERCHANT: a shopper sent a message from a contact or advice form (Forms app). Email only. */
   | 'contact_message'
-  /** Asks the shopper to review what a delivered order brought (Reviews app). Email only. */
+  /** Asks the shopper to review what a delivered order brought (Reviews app). Email, WhatsApp or both (app setting). */
   | 'review_request'
-  /** The one reminder when no review came after a review request (Reviews app). Email only. */
+  /** The one reminder when no review came after a review request (Reviews app). Same channels. */
   | 'review_reminder'
   /** The store replied to the shopper's review (Reviews app). Email only. */
   | 'review_reply'
+  /** Thanks for a published photo review, with a one-time discount code (Reviews app). Email only. */
+  | 'review_reward'
+  /** To the ASKER: the store answered their product question and it is live (Reviews app). Email only. */
+  | 'question_answered'
+  /** To the MERCHANT: a shopper asked a product question (Reviews app); `actionUrl` opens Questions. Email only. */
+  | 'question_asked'
   /** To the MERCHANT: someone applied to the affiliate program and waits for approval. Email only. */
   | 'affiliate_application'
   /** To an AFFILIATE (Affiliates app): approved, a new sale, or a payout sent. Email, and WhatsApp with an approved template. */
@@ -149,6 +168,8 @@ export type TemplateData = {
   custom?: CustomMessage | undefined
   /** Absent for messages about a cart that is not an order yet. */
   orderNumber?: number | undefined
+  /** Set while the order is still a draft (a draft invoice): shown as #D12 instead. */
+  draftNumber?: number | undefined
   customerName: string
   totalLabel: string
   lines: {
@@ -172,12 +193,21 @@ export type TemplateData = {
    */
   parcels?: EmailParcel[] | undefined
   paymentMethodLabel: string
+  /**
+   * For an unpaid manual UPI / bank transfer order: how to pay, one line each (UPI ID, bank
+   * details, reference, the shop's instructions). Shown on order_placed.
+   */
+  paymentInstructions?: string[] | undefined
   /** Printed in the footer under the store name, when the store has set one. */
   storeAddress?: string | undefined
   /** Set on order_shipped when the carrier gave us one. */
   trackingUrl?: string | undefined
   /** Courier tracking number, printed so the shopper can quote it. */
   waybill?: string | undefined
+  /** For shipping_update: the courier that now carries the parcel, when known ("Blue Dart"). */
+  courierLabel?: string | undefined
+  /** A repeat of a hand-sent message the shopper already got (a draft invoice sent again). */
+  reminder?: boolean | undefined
   /** Where the shopper can see the order (thank-you page). */
   orderUrl?: string | undefined
   /** Pay link on a draft invoice, or the restore link on an abandoned cart. */
@@ -251,6 +281,7 @@ export type TemplateData = {
   /**
    * For review_request / review_reminder: the products to review, each with its own link, the
    * merchant's subject and the stop-these-emails link. For review_reply: the product and reply.
+   * For review_reward: the product, the code, what it is worth and its last day.
    */
   review?:
     | {
@@ -261,6 +292,18 @@ export type TemplateData = {
         productTitle?: string | undefined
         productUrl?: string | undefined
         reply?: string | undefined
+        rewardCode?: string | undefined
+        /** "10% off". */
+        rewardLabel?: string | undefined
+        /** "30 November 2026". */
+        rewardUntil?: string | undefined
+        /** For question_asked / question_answered: the shopper's question, as asked. */
+        question?: string | undefined
+        /** For question_answered: the store's answer. */
+        answer?: string | undefined
+        /** For question_asked: who asked, as the store shows it ("Asha K."), and their email. */
+        askerName?: string | undefined
+        askerEmail?: string | undefined
       }
     | undefined
   /**

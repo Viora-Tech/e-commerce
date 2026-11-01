@@ -170,7 +170,8 @@ export const affiliatesContent = {
   list: {
     title: 'Affiliates',
     resource: { singular: 'affiliate', plural: 'affiliates' },
-    empty: 'No affiliates yet. Shoppers apply at /affiliate on your store, or add one here.',
+    empty: 'No affiliates yet',
+    emptyBody: 'Shoppers apply at /affiliate on your store, or add one here.',
     add: 'Add affiliate',
     columns: {
       affiliate: 'Affiliate',
@@ -194,6 +195,12 @@ export const affiliatesContent = {
     rejectBody:
       'They are emailed that the store did not approve them, with your note if you add one.',
     rejectReason: 'Note to them (optional)',
+    /** Added by mistake (audit #168): only while they have no commissions. */
+    remove: 'Remove',
+    removed: 'Affiliate removed',
+    removeTitle: 'Remove this affiliate?',
+    removeBody:
+      'Their link and code stop working and they leave the list. Anyone who has earned a commission can only be paused.',
     filters: { all: 'All', pending: 'Waiting', approved: 'Approved' },
   },
   addDialog: {

@@ -18,10 +18,12 @@ import {
 } from '@commerce/plugin-chatwoot/widget'
 import { type UmamiTracker, umamiAllowed } from '@commerce/plugin-umami/settings'
 import { useEffect, useState } from 'react'
+import DiscoveryTracker from '@/components/analytics/discovery-tracker'
 import PixelEvents from '@/components/analytics/pixel-events'
 import TrackingTags from '@/components/analytics/tracking-tags'
 import UmamiScript from '@/components/analytics/umami-script'
 import VisitBeacon from '@/components/analytics/visit-beacon'
+import WebVitalsBeacon from '@/components/analytics/web-vitals-beacon'
 import CookieBanner from '@/components/privacy/cookie-banner'
 import ChatwootWidget from '@/components/support/chatwoot-widget'
 import { consentContent } from '@/data/online-store'
@@ -145,6 +147,9 @@ export default function ConsentManager({
   return (
     <>
       {consent?.analytics ? <VisitBeacon /> : null}
+      {consent?.analytics ? <DiscoveryTracker /> : null}
+      {/* Anonymous page speed (no cookies, no ids): reported whatever the consent. */}
+      <WebVitalsBeacon />
       <TrackingTags
         {...tags}
         metaPixel={pixels ? null : tags.metaPixel}

@@ -1,4 +1,4 @@
-import { notSystemTest, priceRange } from '@commerce/core'
+import { listedPriceRange, notSystemTest } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { media, product, productMedia, sellableStock, variant } from '@commerce/db'
 import { and, asc, eq, ilike, inArray, isNull, ne, or, sql } from 'drizzle-orm'
@@ -23,14 +23,20 @@ export type VariantSearchRow = {
 /**
  * Variant picker for the draft order editor: one row per sellable variant. `limit` caps the
  * number of matching *products*; every live variant of each one comes back, so a product with
- * many options is never cut off part way through its variants.
+ * many options is never cut off part way through its variants. With `ids`, only those
+ * variants come back (a saved combo deal showing its picks).
  */
 export async function searchVariants(
   tx: StoreTx,
-  input: { search?: string | undefined; limit?: number | undefined },
+  input: {
+    search?: string | undefined
+    limit?: number | undefined
+    ids?: string[] | undefined
+  },
 ): Promise<VariantSearchRow[]> {
   const search = input.search?.trim()
-  const live = and(isNull(variant.archivedAt), ne(product.status, 'archived'), notSystemTest)
+  const only = input.ids?.length ? inArray(variant.id, input.ids) : undefined
+  const live = and(isNull(variant.archivedAt), ne(product.status, 'archived'), notSystemTest, only)
   const matches = await tx
     .selectDistinct({ id: product.id, title: product.title })
     .from(variant)
@@ -93,6 +99,8 @@ export type PickProductRow = {
   id: string
   title: string
   status: ProductStatus
+  /** A gift card: digital, so a draft of only these needs no shipping address. */
+  giftCard: boolean
   imageUrl: string | null
   sku: string | null
   pricePaiseMin: number | null
@@ -120,6 +128,7 @@ export async function pickProducts(
       id: product.id,
       title: product.title,
       status: product.status,
+      giftCard: product.isGiftCard,
       imageUrl: sql<string | null>`(
         select m.url from ${productMedia} pm join ${media} m on m.id = pm.media_id
         where pm.product_id = product.id order by pm.position limit 1)`,
@@ -153,6 +162,7 @@ export async function pickProducts(
       sku: variant.sku,
       pricePaise: variant.pricePaise,
       costPaise: variant.costPaise,
+      hiddenOnStore: variant.hiddenOnStore,
       onHand: sellableStock.onHand,
       reserved: sellableStock.reserved,
     })
@@ -170,21 +180,20 @@ export async function pickProducts(
     .orderBy(asc(variant.position))
 
   return rows.map((r) => {
-    const vs = variants
-      .filter((v) => v.productId === r.id)
-      .map((v) => ({
-        id: v.id,
-        title: v.title,
-        sku: v.sku,
-        pricePaise: v.pricePaise,
-        costPaise: v.costPaise,
-        available: Math.max(0, (v.onHand ?? 0) - (v.reserved ?? 0)),
-      }))
+    const shown = variants.filter((v) => v.productId === r.id)
+    const vs = shown.map((v) => ({
+      id: v.id,
+      title: v.title,
+      sku: v.sku,
+      pricePaise: v.pricePaise,
+      costPaise: v.costPaise,
+      available: (v.onHand ?? 0) - (v.reserved ?? 0),
+    }))
     return {
       ...r,
       sku: vs[0]?.sku ?? null,
-      pricePaiseMin: priceRange(vs.map((v) => v.pricePaise))?.min ?? null,
-      pricePaiseMax: priceRange(vs.map((v) => v.pricePaise))?.max ?? null,
+      pricePaiseMin: listedPriceRange(shown)?.min ?? null,
+      pricePaiseMax: listedPriceRange(shown)?.max ?? null,
       available: vs.reduce((n, v) => n + v.available, 0),
       variants: vs,
     }

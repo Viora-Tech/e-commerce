@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import SupplierForm from '@/components/suppliers/supplier-form'
 import { suppliersContent } from '@/data/purchasing'
 import { appRouter, call, serverContext } from '@/lib/api'
+import { orMissing } from '@/lib/store-guard'
 
 export const metadata: Metadata = { title: suppliersContent.heading }
 
@@ -15,6 +16,8 @@ export default async function Page({ params }: Props) {
   const supplier = await call(appRouter.suppliers.get, { id }, { context }).catch(
     (err: unknown) => {
       if (err instanceof ORPCError && err.code === 'NOT_FOUND') notFound()
+      // A malformed id in the address is "Page not found" too.
+      if (orMissing(err) === null) notFound()
       throw err
     },
   )

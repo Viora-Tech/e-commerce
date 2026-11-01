@@ -38,6 +38,18 @@ then fill in from it, and the shopper can still change them. The page tells you 
 code lookup data is not installed on your server yet; until it is, shoppers type city and
 state themselves.
 
+### Form fields
+
+- **Customer name**: one **Full name** field (quickest), or **First name and last name**, both
+  required.
+- **Company name**: **Hidden**, **Optional** or **Required**. Business buyers want their company
+  on the GST invoice; make it required if you sell mostly to businesses. Hidden keeps the old
+  behaviour: a business name is asked for only next to a GSTIN.
+- **Address line 2 (landmark)**: **Hidden**, **Optional** or **Required**. Couriers in some
+  areas need a landmark to find the door.
+
+The same rules are checked when the order is placed.
+
 ### Minimum order value
 
 Checkout will not place an order below this amount, counted after discounts and before
@@ -56,6 +68,22 @@ These show only when cash on delivery is on in **Settings → Payments**.
   or upload a CSV file. Anything that is not a PIN code is left out and listed. Up to 5,000.
 - **Confirm cash on delivery orders on WhatsApp**: saves your choice for a WhatsApp
   confirmation step that is coming soon. It does nothing yet.
+
+### Cart limit
+
+**Most of each product per cart** caps how many of one product (all its variants together) a
+shopper can put in one cart. It stops bots from reading your stock by adding thousands, and
+resellers from buying a whole drop. Leave it at 0 for no limit. Under **Products with their own
+limit**, pick products with **Browse** and type each one's number; it replaces the store-wide
+one for that product. Gift cards are never limited. The cart stops at the limit, and an order
+over it is refused.
+
+### Checkout content
+
+**Edit checkout content** opens a list of the checkout's headings, labels and hints, with our
+wording shown in each box. Type your own words in **English** and **Hindi**; leave a box empty
+to keep ours. A shopper browsing in Hindi sees your Hindi words, then your English ones, then
+ours. Press **Done**, then **Save**.
 
 </Steps>
 
@@ -114,6 +142,32 @@ checkout with a hint of your colour.
   delivery.
 - **Thank-you page** in the same look: a calm tick, the order number, what happens next, the UPI
   QR or app buttons when payment is still due, and the order details.
+
+## Shoppers outside India
+
+When a delivery area in **Settings › Shipping** names a country abroad (or ticks **Rest of
+world**), checkout gets a **Country** picker above the address. India stays first and is the
+default; a shopper whose market is a country you ship to starts on that country.
+
+- **The address abroad**: Address, Apartment, City, State or province, and Postcode, as that
+  country writes them. The US, Canada and Australia pick their state from a list (couriers need
+  its code); elsewhere it is typed, and optional where addresses usually have none. The
+  postcode is checked loosely for the country ("Enter a valid postcode for this country") and
+  is optional where most addresses have none, like the UAE.
+- **Phone**: any number with its country code, like +61 412 345 678. The courier may call it.
+- **Shipping**: the prices of the area that covers the country. No PIN code check and no Indian
+  courier is asked. A country no area covers shows "We do not ship to this country yet."
+- **No cash on delivery** abroad: it is hidden, and an order that still asks for it is refused
+  with "Cash on delivery is only offered in India."
+- **GST**: an order abroad is an export. With the GST invoices app on its default (Letter of
+  Undertaking), no GST is charged; set it to "IGST paid" to charge IGST and claim it back.
+- **Booking**: the order keeps the country, the state code and name, the postcode, the phone
+  and the email, which is what DHL Express, FedEx and ShipGlobal need (see
+  [International couriers](/merchant-guide/apps/international-couriers)). Every item still
+  needs an HS code before you book.
+
+Signed-in shoppers' saved addresses are Indian; an address abroad is used for the order but
+not added to their address book.
 
 ## What shoppers see
 

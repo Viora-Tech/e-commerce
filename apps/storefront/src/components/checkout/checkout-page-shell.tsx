@@ -20,14 +20,14 @@ type CheckoutPageShellProps = {
   policies?: PolicyLink[]
   /** Fixed to the bottom of a phone screen (the Pay bar); gone from `lg`, where `summaryEnd` has it. */
   bottomBar?: ReactNode
-  /** Replaces the "Secure" pill on the right of the header, e.g. "Continue shopping" after the order. */
+  /** Replaces the bag (back to the cart) on the right of the header, e.g. "Continue shopping" after the order. */
   headerEnd?: ReactNode
   children: ReactNode
 }
 
 /**
  * The checkout's frame (design: checkout-design Main/Mobile). A quiet white header with the
- * store's name (or logo) and a "Secure checkout" pill, over the #FAFAFA canvas; the cards on
+ * store's name (or logo) and a bag back to the cart, over the #FAFAFA canvas; the cards on
  * the left and the order summary card on the right, sticky, from `lg`; on a phone the summary
  * folds into a card at the top and the cards follow. The store's policies sit under the
  * cards. Its look is only the merchant's checkout branding, set here as --ck-* properties: no
@@ -78,12 +78,16 @@ export default function CheckoutPageShell({
                 <span className="hidden sm:inline">{content.help.label}</span>
               </a>
             ) : null}
+            {/* As Shopify's checkout: a bag back to the cart, not a "Secure" badge. */}
             {headerEnd ?? (
-              <p className="flex h-[1.625rem] items-center gap-1.5 rounded-[0.5rem] bg-ck-soft px-2 text-[0.6875rem] sm:h-7 sm:px-2.5 sm:text-[0.75rem]">
-                <CheckoutIcon name="lock" className="size-3 sm:size-3.5" />
-                <span className="sm:hidden">{content.secureShort}</span>
-                <span className="hidden sm:inline">{content.secure}</span>
-              </p>
+              <a
+                href={backHref}
+                aria-label={backLabel}
+                title={backLabel}
+                className="-my-2! grid size-11 place-items-center rounded-full text-ck-ink! outline-none transition-colors duration-150 hover:bg-ck-soft focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)] motion-reduce:transition-none"
+              >
+                <CheckoutIcon name="bag" className="size-5" />
+              </a>
             )}
           </div>
         </div>

@@ -1,6 +1,13 @@
 import { type DiscountInput, discountType, normaliseCode } from '@commerce/core'
-import type { DiscountType, StoreTx } from '@commerce/db'
-import { discount, discountUsage, order } from '@commerce/db'
+import type {
+  DiscountBxgy,
+  DiscountCombinesWith,
+  DiscountCombo,
+  DiscountEligibility,
+  DiscountType,
+  StoreTx,
+} from '@commerce/db'
+import { discount, discountUsage } from '@commerce/db'
 import {
   and,
   count,
@@ -13,89 +20,17 @@ import {
   isNull,
   lt,
   lte,
-  max,
   or,
   sql,
 } from 'drizzle-orm'
+import {
+  type DiscountUsageSummary,
+  EMPTY_USAGE,
+  recentUses,
+  usageOf,
+} from './discount-usage.service'
 
 const DAY_MS = 86_400_000
-const RECENT_USES = 10
-
-/**
- * What a discount has done, from its `discount_usage` rows (one per order that used it):
- * the orders, what they brought in and what the discount gave away, and the last use.
- * Test orders are left out; a cancelled order still counts as a use (it took one of the
- * limit) but adds nothing to revenue or the amount given.
- */
-export type DiscountUsageSummary = {
-  orders: number
-  revenuePaise: number
-  amountPaise: number
-  lastUsedAt: Date | null
-}
-
-const EMPTY_USAGE: DiscountUsageSummary = {
-  orders: 0,
-  revenuePaise: 0,
-  amountPaise: 0,
-  lastUsedAt: null,
-}
-
-const kept = sql`${order.status} <> 'cancelled'`
-
-/** Usage per discount for the ids given (a list page, or one discount). */
-async function usageOf(tx: StoreTx, ids: string[]): Promise<Map<string, DiscountUsageSummary>> {
-  const byId = new Map<string, DiscountUsageSummary>()
-  if (ids.length === 0) return byId
-  const rows = await tx
-    .select({
-      discountId: discountUsage.discountId,
-      orders: count(),
-      revenuePaise:
-        sql<number>`coalesce(sum(${order.totalPaise}) filter (where ${kept}), 0)::bigint`.mapWith(
-          Number,
-        ),
-      amountPaise:
-        sql<number>`coalesce(sum(${discountUsage.amountPaise}) filter (where ${kept}), 0)::bigint`.mapWith(
-          Number,
-        ),
-      lastUsedAt: max(discountUsage.createdAt),
-    })
-    .from(discountUsage)
-    .innerJoin(order, eq(order.id, discountUsage.orderId))
-    .where(and(inArray(discountUsage.discountId, ids), eq(order.isTest, false)))
-    .groupBy(discountUsage.discountId)
-  for (const r of rows) {
-    byId.set(r.discountId, {
-      orders: r.orders,
-      revenuePaise: r.revenuePaise,
-      amountPaise: r.amountPaise,
-      lastUsedAt: r.lastUsedAt,
-    })
-  }
-  return byId
-}
-
-/**
- * The latest orders that used a discount, newest first, for its detail page. No customer
- * details: a discount reader may not see customers; the order link shows them to those who can.
- */
-async function recentUses(tx: StoreTx, id: string) {
-  return tx
-    .select({
-      orderId: order.id,
-      number: order.number,
-      status: order.status,
-      totalPaise: order.totalPaise,
-      amountPaise: discountUsage.amountPaise,
-      usedAt: discountUsage.createdAt,
-    })
-    .from(discountUsage)
-    .innerJoin(order, eq(order.id, discountUsage.orderId))
-    .where(and(eq(discountUsage.discountId, id), eq(order.isTest, false)))
-    .orderBy(desc(discountUsage.createdAt))
-    .limit(RECENT_USES)
-}
 
 /** Where a discount is in its life right now; derived, not stored. */
 export type DiscountLifecycle = 'active' | 'scheduled' | 'expired' | 'disabled'
@@ -110,6 +45,23 @@ export type DiscountListItem = {
   appliesTo: 'all' | 'products' | 'collections'
   /** Set when the discount takes a different amount off each product. */
   productValues: Record<string, number> | null
+  type: DiscountType
+  /** Combo deal: its combos, for the Value column ("3 combos"); null for other types. */
+  combos: DiscountCombo[] | null
+  /** How many products or collections `appliesTo` narrows to (0 for `all`). */
+  appliesToCount: number
+  minSubtotalPaise: number | null
+  minQuantity: number | null
+  /** Buy X get Y settings, for the list's one-line summary; null for other types. */
+  bxgy: DiscountBxgy | null
+  /** Free shipping: how many states it is limited to (0 = every state) and its rate cap. */
+  shippingStateCount: number
+  maxShippingPaise: number | null
+  customerEligibility: DiscountEligibility
+  /** Segments or customers picked, per `customerEligibility`. */
+  eligibleCount: number
+  combinesWith: DiscountCombinesWith
+  usagePerCustomer: number | null
   usedCount: number
   usageLimit: number | null
   startsAt: Date | null
@@ -239,6 +191,18 @@ export async function listDiscounts(
       value: r.value,
       appliesTo: r.appliesTo,
       productValues: r.productValues,
+      type: r.type,
+      combos: r.combos,
+      appliesToCount: r.appliesTo === 'all' ? 0 : r.appliesToIds.length,
+      minSubtotalPaise: r.minSubtotalPaise,
+      minQuantity: r.minQuantity,
+      bxgy: r.bxgy,
+      shippingStateCount: r.shippingStates.length,
+      maxShippingPaise: r.maxShippingPaise,
+      customerEligibility: r.customerEligibility,
+      eligibleCount: listsIds(r.customerEligibility) ? r.eligibleIds.length : 0,
+      combinesWith: r.combinesWith,
+      usagePerCustomer: r.usagePerCustomer,
       usedCount: r.usedCount,
       usageLimit: r.usageLimit,
       startsAt: r.startsAt,
@@ -284,6 +248,9 @@ export async function getDiscount(tx: StoreTx, id: string) {
 }
 
 /** The per-product map to store: only for product-scoped percent or fixed discounts. */
+/** Segments and specific customers keep their picked ids; everyone and first-time buyers none. */
+const listsIds = (e: DiscountEligibility): boolean => e === 'segments' || e === 'customers'
+
 function productValuesOf(input: DiscountInput): Record<string, number> | null {
   if (input.appliesTo !== 'products' || input.method === 'free_shipping') return null
   const map = input.productValues
@@ -301,8 +268,9 @@ function toRow(storeId: string, input: DiscountInput) {
     kind: input.kind,
     code: input.kind === 'code' && input.code ? normaliseCode(input.code) : null,
     method: input.method,
-    // A per-product discount keeps its amounts in product_values; the single value is unused.
-    value: input.method === 'free_shipping' || productValues ? 0 : input.value,
+    // A per-product discount keeps its amounts in product_values and a combo deal on each
+    // combo; the single value is unused.
+    value: input.method === 'free_shipping' || productValues || type === 'combo' ? 0 : input.value,
     minSubtotalPaise: input.minSubtotalPaise ?? null,
     minQuantity: input.minQuantity ?? null,
     appliesTo: input.appliesTo,
@@ -310,10 +278,11 @@ function toRow(storeId: string, input: DiscountInput) {
     productValues,
     type,
     bxgy: type === 'bxgy' ? (input.bxgy ?? null) : null,
+    combos: type === 'combo' ? (input.combos ?? null) : null,
     shippingStates: type === 'shipping' ? input.shippingStates : [],
     maxShippingPaise: type === 'shipping' ? (input.maxShippingPaise ?? null) : null,
     customerEligibility: input.customerEligibility,
-    eligibleIds: input.customerEligibility === 'all' ? [] : input.eligibleIds,
+    eligibleIds: listsIds(input.customerEligibility) ? input.eligibleIds : [],
     combinesWith: input.combinesWith,
     usageLimit: input.usageLimit ?? null,
     usagePerCustomer: input.usagePerCustomer ?? null,

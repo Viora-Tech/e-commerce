@@ -18,6 +18,115 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/money/src/presentment.ts',
+    names: ['presentmentLineMinor', 'presentmentCartMinor'],
+    reason:
+      'the cart sums behind formatPresentmentLine / formatPresentmentCart, exported for presentment-cart.test.ts',
+  },
+  {
+    file: 'packages/api/src/procedures/store.ts',
+    names: ['STEP_UP_REQUIRED'],
+    reason:
+      "the step-up error code; kept for the admin's re-verify dialog (A5 task 4), which matches on it",
+  },
+  {
+    file: 'packages/api/src/services/ai/answer-table.ts',
+    names: ['ANSWER_TABLE_LIMITS', 'TABLE_SHOWN'],
+    reason: "the AI answer table's caps, exported for ai-answer-table.test.ts",
+  },
+  {
+    file: 'packages/core/src/checkout/fields.ts',
+    names: ['joinedName'],
+    reason: 'the split-name rule for order and address names, exported for fields.test.ts',
+  },
+  {
+    file: 'packages/core/src/discounts/combo.ts',
+    names: ['comboSaving'],
+    reason: "one combo's saving, behind the combo deal discount; exported for combo.test.ts",
+  },
+  {
+    file: 'packages/core/src/discounts/eligibility.ts',
+    names: ['orderPhoneForms'],
+    reason: 'the phone spellings the first-order check matches; exported for first-time.test.ts',
+  },
+  {
+    file: 'packages/core/src/discovery/boosts.ts',
+    names: ['boostFlags', 'searchRank', 'comparePinned'],
+    reason:
+      'the boost/bury/pin order the search SQL applies, in TypeScript; exported for boosts.test.ts',
+  },
+  {
+    file: 'packages/core/src/gift-cards/service.ts',
+    names: ['usedUp'],
+    reason: 'the gift card usage-limit rule; exported for usage-limit.test.ts',
+  },
+  {
+    file: 'packages/core/src/marketing/browse-rules.ts',
+    names: ['browseKeyPrefix', 'productIdFromBrowseKey'],
+    reason: 'browse-abandonment run keys; exported for browse-rules.test.ts',
+  },
+  {
+    file: 'packages/core/src/marketing/personal-code.ts',
+    names: ['personalCodeFor'],
+    reason: 'the personal discount code rule; exported for personal-code.test.ts',
+  },
+  {
+    file: 'packages/core/src/markets/catalog-rules.ts',
+    names: ['combineAdjustments'],
+    reason: 'how a market and its catalog adjustments combine; exported for catalogs.test.ts',
+  },
+  {
+    file: 'packages/core/src/online-store/web-vitals.ts',
+    names: ['rateWebVital'],
+    reason: 'the good / needs work / poor rating per Web Vital; exported for web-vitals.test.ts',
+  },
+  {
+    file: 'packages/core/src/payments/fallback.ts',
+    names: ['couldNotStart'],
+    reason: 'which gateway errors fall back to the next gateway; exported for fallback.test.ts',
+  },
+  {
+    file: 'packages/core/src/tax/draft-gst.ts',
+    names: ['draftLineRate'],
+    reason: "a draft order line's GST rate; exported for draft-gst.test.ts",
+  },
+  {
+    file: 'packages/plugin-reviews/src/past-orders.ts',
+    names: ['checkPastOrdersRange', 'staggeredDue'],
+    reason: 'the past-orders request range and stagger rules; exported for past-orders.test.ts',
+  },
+  {
+    file: 'packages/plugin-reviews/src/qr.ts',
+    names: ['reviewPageUrl'],
+    reason: 'the review QR link; exported for qr.test.ts',
+  },
+  {
+    file: 'packages/plugin-reviews/src/questions.ts',
+    names: ['QUESTIONS_PER_DAY'],
+    reason: 'the daily question cap; exported for questions.test.ts',
+  },
+  {
+    file: 'packages/plugin-reviews/src/widgets.ts',
+    names: ['widgetQuery'],
+    reason: "the reviews widgets' query rule; exported for widgets.test.ts",
+  },
+  {
+    file: 'packages/plugin-shopify-import/src/settings-plan-segments.ts',
+    names: ['segmentRules'],
+    reason: 'a Shopify segment query as segment rules; exported for settings-plan.test.ts',
+  },
+  {
+    file: 'packages/plugin-shopify-import/src/settings-plan-shipping.ts',
+    names: ['zoneCoverage'],
+    reason: 'Shopify zone to delivery coverage; exported for settings-plan.test.ts',
+  },
+  {
+    file: 'packages/plugin-shopify-import/src/status.ts',
+    names: ['cachedCounts', 'activeRun'],
+    reason:
+      'the import status cache and running-run read behind the home card; exported for home-running.test.ts',
+  },
+  {
     file: 'packages/core/src/shipping/delivery-options/price.ts',
     names: ['roundUpToTenRupees'],
     reason:
@@ -137,7 +246,6 @@ const ALLOWLIST: AllowEntry[] = [
       'normaliseCity',
       'normaliseState',
       'normalisePin',
-      'splitName',
     ],
     reason: 'the Meta normalisers behind hashUserData; exported for their unit tests',
   },
@@ -783,7 +891,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/order/place-order.ts',
-    names: ['checkGiftCardRules', 'placeOrder'],
+    names: ['placeOrder'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -793,12 +901,12 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/payments/attempts.ts',
-    names: ['attemptKey', 'retryPayment', 'settleExpiredQrAttempt'],
+    names: ['attemptKey'],
     reason: 'no external importer today — investigate before removing',
   },
   {
     file: 'packages/core/src/payments/expiry.ts',
-    names: ['EXPIRY_EXEMPT_METHODS', 'EXPIRED_NOTE', 'expiredUnpaidOrders', 'expireUnpaidOrder'],
+    names: ['EXPIRED_NOTE', 'expiredUnpaidOrders', 'expireUnpaidOrder'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -809,7 +917,6 @@ const ALLOWLIST: AllowEntry[] = [
   {
     file: 'packages/core/src/payments/manual-followup.ts',
     names: [
-      'MANUAL_METHOD',
       'REMINDER_EVERY_HOURS',
       'CANCEL_NOTICE_HOURS',
       'PaymentNotPending',
@@ -1547,11 +1654,6 @@ const ALLOWLIST: AllowEntry[] = [
     file: 'packages/core/src/billing/service.ts',
     names: ['orderAllowance'],
     reason: 'no external importer today — billing API not wired into the admin yet',
-  },
-  {
-    file: 'packages/core/src/catalog/browse.ts',
-    names: ['metafieldFacets'],
-    reason: 'the extra-field filter grouping behind listing filters, exported for its unit test',
   },
   {
     file: 'packages/core/src/order/test-orders.ts',

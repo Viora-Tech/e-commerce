@@ -1,6 +1,5 @@
 import {
   address,
-  customer,
   notification,
   order,
   orderLine,
@@ -10,8 +9,9 @@ import {
   store,
   variant,
 } from '@commerce/db'
-import { and, desc, eq, gte, inArray, lt, lte, sql } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import { z } from 'zod'
+import { effectiveGstRatePercent, effectiveHsCode } from '../catalog/effective-tax'
 import type { StoreContext } from '../context'
 import { recordDiscountUse } from '../discounts/usage'
 import { CommerceError, PriceNotSet } from '../errors'
@@ -19,10 +19,12 @@ import { announceExchangeOrder } from '../returns/notify'
 import { StoreAddressSchema } from '../settings/general'
 import { assertCustomerInStore } from '../store-scope'
 import { chargedGstRate, parseStoreTax } from '../tax/settings'
+import { CustomItemSchema, ensureCustomItemVariant } from './custom-item'
 import { DraftAddressSchema, DraftBillingSchema, writeAddress, writeBilling } from './draft-billing'
 import { draftMoney } from './draft-discount'
+import { draftPlaceholder, isDraftPlaceholder } from './draft-ref'
 import { createFulfillmentOrders } from './fulfillment-orders'
-import { takeOrderNumber } from './order-number'
+import { takeDraftNumber, takeOrderNumber } from './order-number'
 import { taxParcels } from './parcel-tax'
 import { recomputeOrderStatuses } from './recompute'
 import { routeAndReserve } from './routing-service'
@@ -54,12 +56,19 @@ export class DraftNeedsShippingAddress extends CommerceError {
   }
 }
 
-export const DraftLineSchema = z.object({
-  variantId: z.uuid(),
-  quantity: z.number().int().min(1).max(999),
-  /** Overrides the variant price for this draft only; blank keeps the catalogue price. */
-  unitPricePaise: z.number().int().min(0).optional(),
-})
+export const DraftLineSchema = z
+  .object({
+    /** The catalogue variant; absent on a custom item. */
+    variantId: z.uuid().optional(),
+    /** A one-off item not in the catalogue (its own title and price); replaces `variantId`. */
+    custom: CustomItemSchema.optional(),
+    quantity: z.number().int().min(1).max(999),
+    /** Overrides the variant price for this draft only; blank keeps the catalogue price. */
+    unitPricePaise: z.number().int().min(0).optional(),
+  })
+  .refine((l) => (l.custom ? !l.variantId && l.unitPricePaise !== undefined : !!l.variantId), {
+    message: 'A line is a catalogue variant, or a custom item with its own price',
+  })
 
 export const DraftInputSchema = z.object({
   customerId: z.uuid().nullish(),
@@ -88,6 +97,9 @@ export type DraftInput = z.infer<typeof DraftInputSchema>
 
 export type DraftListItem = {
   id: string
+  /** The draft's own number (#D12); null only on a draft older than 0200 that it missed. */
+  draftNumber: number | null
+  /** The order number a pre-0200 draft reserved; below zero (a placeholder) otherwise. */
   number: number
   customerName: string | null
   email: string | null
@@ -99,25 +111,49 @@ export type DraftListItem = {
 
 const DRAFT_TAG = 'draft'
 
-/** Line snapshot at the catalogue's current price, or the merchant's override. */
-async function resolveLines(ctx: StoreContext, lines: DraftInput['lines']) {
+/**
+ * Line snapshot at the catalogue's current price, or the merchant's override. The variant's GST
+ * rate and HSN are snapshotted as checkout does (untaxed variants at 0), so converting bills the
+ * line at its own rate rather than the store default. A custom item is booked against the hidden
+ * "Custom item" variant with its own title, rate (store default, or 0 when untaxed) and HSN.
+ */
+export async function resolveLines(ctx: StoreContext, lines: DraftInput['lines']) {
   if (lines.length === 0) return []
-  const ids = [...new Set(lines.map((l) => l.variantId))]
-  const rows = await ctx.tx
-    .select({
-      id: variant.id,
-      title: variant.title,
-      pricePaise: variant.pricePaise,
-      productTitle: product.title,
-      giftCard: product.isGiftCard,
-    })
-    .from(variant)
-    .innerJoin(product, eq(product.id, variant.productId))
-    .where(inArray(variant.id, ids))
+  const customVariantId = lines.some((l) => l.custom) ? await ensureCustomItemVariant(ctx) : null
+  const ids = [...new Set(lines.flatMap((l) => (l.variantId ? [l.variantId] : [])))]
+  const rows =
+    ids.length === 0
+      ? []
+      : await ctx.tx
+          .select({
+            id: variant.id,
+            title: variant.title,
+            pricePaise: variant.pricePaise,
+            taxable: variant.taxable,
+            gstRatePercent: effectiveGstRatePercent,
+            hsCode: effectiveHsCode,
+            productTitle: product.title,
+            giftCard: product.isGiftCard,
+          })
+          .from(variant)
+          .innerJoin(product, eq(product.id, variant.productId))
+          .where(inArray(variant.id, ids))
   const byId = new Map(rows.map((r) => [r.id, r]))
   return lines.map((l) => {
-    const v = byId.get(l.variantId)
-    if (!v) {
+    if (l.custom && customVariantId) {
+      return {
+        variantId: customVariantId,
+        title: l.custom.title,
+        variantTitle: null,
+        quantity: l.quantity,
+        unitPricePaise: l.unitPricePaise ?? 0,
+        giftCard: false,
+        gstRatePercent: l.custom.taxable ? null : 0,
+        hsCode: l.custom.hsCode || null,
+      }
+    }
+    const v = l.variantId ? byId.get(l.variantId) : undefined
+    if (!v || !l.variantId) {
       throw new CommerceError('VARIANT_NOT_FOUND', `Variant ${l.variantId} is not in this store`)
     }
     // A variant listed without a price (#913) needs the line's own price typed in.
@@ -126,17 +162,22 @@ async function resolveLines(ctx: StoreContext, lines: DraftInput['lines']) {
     return {
       variantId: l.variantId,
       title: v.productTitle,
-      variantTitle: v.title,
+      variantTitle: v.title as string | null,
       quantity: l.quantity,
       unitPricePaise,
       // Snapshotted like checkout does, so routing, GST and card issue treat it as digital.
       giftCard: v.giftCard,
+      gstRatePercent: v.taxable ? v.gstRatePercent : 0,
+      hsCode: v.hsCode,
     }
   })
 }
 
-/** Draft numbers come from the same counter as orders, so a converted draft keeps its number. */
-const nextNumber = (ctx: StoreContext): Promise<number> => takeOrderNumber(ctx.tx, ctx.storeId)
+/**
+ * A new draft takes the next draft number (#D12) and keeps minus it in `order.number` until it
+ * converts, so drafts never use up order numbers (audit #26).
+ */
+const nextDraftNumber = (ctx: StoreContext): Promise<number> => takeDraftNumber(ctx.tx, ctx.storeId)
 
 async function writeLines(ctx: StoreContext, orderId: string, input: DraftInput) {
   const lines = await resolveLines(ctx, input.lines)
@@ -151,14 +192,15 @@ async function writeLines(ctx: StoreContext, orderId: string, input: DraftInput)
 
 export async function createDraft(ctx: StoreContext, input: DraftInput) {
   await assertCustomerInStore(ctx.tx, input.customerId, ctx.storeId)
-  const number = await nextNumber(ctx)
+  const draftNumber = await nextDraftNumber(ctx)
   const shippingAddressId = await writeAddress(ctx, input.shipping)
   const billing = await writeBilling(ctx, input)
   const [o] = await ctx.tx
     .insert(order)
     .values({
       storeId: ctx.storeId,
-      number,
+      number: draftPlaceholder(draftNumber),
+      draftNumber,
       status: 'draft',
       customerId: input.customerId ?? null,
       email: input.email ?? null,
@@ -179,7 +221,8 @@ export async function createDraft(ctx: StoreContext, input: DraftInput) {
   const t = await draftMoney(ctx, lines, input)
   await ctx.tx.update(order).set(t).where(eq(order.id, o.id))
   if (input.note) await setDraftNote(ctx, o.id, input.note)
-  return { id: o.id, number }
+  /* `number` is the draft number: what the merchant sees as #D12 until it converts. */
+  return { id: o.id, number: draftNumber, draftNumber }
 }
 
 export async function updateDraft(ctx: StoreContext, id: string, input: DraftInput) {
@@ -220,69 +263,6 @@ async function setDraftNote(ctx: StoreContext, orderId: string, body: string) {
       .insert(orderNote)
       .values({ storeId: ctx.storeId, orderId, body: body.trim(), author: DRAFT_TAG })
   }
-}
-
-/** The drafts list's tabs after "All" (`?status=`). */
-export const DRAFT_LIST_STATUSES = ['open', 'invoice_sent'] as const
-export type DraftListStatus = (typeof DRAFT_LIST_STATUSES)[number]
-
-/** The drafts list's filter panel: created window and total, both ends optional. */
-export type DraftListFilters = {
-  search?: string | undefined
-  status?: DraftListStatus | undefined
-  createdFrom?: string | undefined
-  /** Created before this time (the end of a custom date range). */
-  createdTo?: string | undefined
-  totalMinPaise?: number | undefined
-  totalMaxPaise?: number | undefined
-}
-
-export async function listDrafts(
-  ctx: StoreContext,
-  input: DraftListFilters & { page: number; perPage: number },
-): Promise<{ items: DraftListItem[]; total: number }> {
-  const search = input.search?.trim()
-  const invoiceSent = sql`exists (
-    select 1 from notification n
-    where n.order_id = ${order.id} and n.template = 'draft_invoice' and n.status = 'sent')`
-  const where = and(
-    eq(order.status, 'draft'),
-    input.status === 'open' ? sql`not ${invoiceSent}` : undefined,
-    input.status === 'invoice_sent' ? invoiceSent : undefined,
-    search
-      ? sql`(${order.email} ilike ${`%${search}%`} or ${customer.name} ilike ${`%${search}%`} or cast(${order.number} as text) like ${`%${search}%`})`
-      : undefined,
-    /* A draft's creation time is kept in placed_at until it converts. */
-    input.createdFrom ? gte(order.placedAt, new Date(input.createdFrom)) : undefined,
-    input.createdTo ? lt(order.placedAt, new Date(input.createdTo)) : undefined,
-    input.totalMinPaise !== undefined ? gte(order.totalPaise, input.totalMinPaise) : undefined,
-    input.totalMaxPaise !== undefined ? lte(order.totalPaise, input.totalMaxPaise) : undefined,
-  )
-  const [countRow] = await ctx.tx
-    .select({ total: sql<number>`count(*)::int` })
-    .from(order)
-    .leftJoin(customer, eq(customer.id, order.customerId))
-    .where(where)
-  const items = await ctx.tx
-    .select({
-      id: order.id,
-      number: order.number,
-      customerName: customer.name,
-      email: order.email,
-      totalPaise: order.totalPaise,
-      createdAt: order.placedAt,
-      lineCount: sql<number>`(select coalesce(sum(ol.quantity), 0)::int from ${orderLine} ol where ol.order_id = ${order.id})`,
-      invoiceSentAt: sql<Date | null>`(
-        select max(n.created_at) from notification n
-        where n.order_id = ${order.id} and n.template = 'draft_invoice' and n.status = 'sent')`,
-    })
-    .from(order)
-    .leftJoin(customer, eq(customer.id, order.customerId))
-    .where(where)
-    .orderBy(desc(order.placedAt))
-    .limit(input.perPage)
-    .offset((input.page - 1) * input.perPage)
-  return { items, total: countRow?.total ?? 0 }
 }
 
 export async function deleteDraft(ctx: StoreContext, id: string) {
@@ -444,9 +424,14 @@ export async function convertDraft(
     .where(and(eq(orderLine.orderId, id), eq(orderLine.giftCard, false)))
 
   const method = opts.paymentMethod ?? o.paymentMethod ?? 'manual'
+  /* The order number is taken only now; a draft from before 0200 keeps the one it reserved. */
+  const number = isDraftPlaceholder(o.number)
+    ? await takeOrderNumber(ctx.tx, ctx.storeId)
+    : o.number
   const [updated] = await ctx.tx
     .update(order)
     .set({
+      number,
       status: 'open',
       paymentMethod: method,
       placedAt: new Date(),

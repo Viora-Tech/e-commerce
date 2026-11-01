@@ -4,16 +4,20 @@
  * definitions, mapped onto small shapes the planner (`settings-plan.ts`) reads.
  * Each part is read on its own, so a scope the connection lacks fails only that part.
  */
+
 import { validateGstin } from '@commerce/core/gstin'
 import { cleanMoneyFormat } from '@commerce/money'
 import { definitionsOf } from './api-metafields'
 import { mapFieldDefinition } from './api-metaobjects'
+import { type GAddress, mapAddress, PAGE_INFO, type Page, read } from './api-settings-read'
+import { fetchProfiles } from './api-settings-shipping'
+import { fetchPurchaseOrders, fetchTransfers } from './api-settings-stock'
 import type { SettingsPart } from './settings-client'
+import type { NMarket } from './settings-plan-markets'
+import type { NSegment } from './settings-plan-segments'
+import type { NPurchaseOrder, NTransfer } from './settings-plan-stock'
 import { type ShopifyClient, ShopifyError } from './shopify-client'
 import type { NFieldDefinition } from './types'
-
-type Page<N> = { nodes: N[]; pageInfo: { hasNextPage: boolean; endCursor: string | null } }
-const PAGE_INFO = 'pageInfo { hasNextPage endCursor }'
 
 /** One part's read: its data, or why Shopify would not give it. */
 export type Read<T> = { ok: true; data: T } | { ok: false; access: boolean; error: string }
@@ -43,6 +47,8 @@ export type NShopSettings = {
   gstin: string | null
   /** The shop's price format as plain text (`Rs. {{amount}}`); null when it has no usable one. */
   moneyFormat: string | null
+  /** Online Store › Preferences: the home page title and meta description ('' when unset). */
+  seo: { title: string; description: string }
 }
 
 export type NLocation = {
@@ -85,6 +91,8 @@ export type NDeliveryProfile = {
   name: string
   default: boolean
   zones: NDeliveryZone[]
+  /** Shopify product ids in the profile; empty for the default one (it holds the rest). */
+  productIds: string[]
 }
 
 export type NPolicy = { type: string; title: string; body: string }
@@ -107,55 +115,10 @@ export type SettingsSource = {
   profiles: Read<NDeliveryProfile[]> | null
   policies: Read<NPolicy[]> | null
   fields: { owner: FieldOwner; read: Read<NOwnerDefinition[]> }[] | null
-}
-
-/* ----------------------------------------------------------------- helpers */
-
-/** "50.00" rupees → 5000 paise. */
-const paiseOf = (amount: string | number | null | undefined): number =>
-  Math.round(Number(amount ?? 0) * 100)
-
-const GRAMS_PER_UNIT: Record<string, number> = {
-  GRAMS: 1,
-  KILOGRAMS: 1000,
-  OUNCES: 28.349523125,
-  POUNDS: 453.59237,
-}
-
-type GAddress = {
-  address1?: string | null
-  address2?: string | null
-  city?: string | null
-  province?: string | null
-  provinceCode?: string | null
-  countryCodeV2?: string | null
-  countryCode?: string | null
-  zip?: string | null
-  phone?: string | null
-} | null
-
-function mapAddress(a: NonNullable<GAddress>): NSettingsAddress {
-  return {
-    line1: a.address1?.trim() ?? '',
-    line2: a.address2?.trim() ?? '',
-    city: a.city?.trim() ?? '',
-    province: a.province?.trim() ?? '',
-    provinceCode: a.provinceCode?.trim() ?? '',
-    countryCode: (a.countryCodeV2 ?? a.countryCode ?? '').trim().toUpperCase(),
-    zip: a.zip?.trim() ?? '',
-    phone: a.phone?.trim() ?? '',
-  }
-}
-
-async function read<T>(load: () => Promise<T>): Promise<Read<T>> {
-  try {
-    return { ok: true, data: await load() }
-  } catch (err) {
-    if (err instanceof ShopifyError) {
-      return { ok: false, access: err.kind === 'scope', error: err.message }
-    }
-    throw err
-  }
+  segments: Read<NSegment[]> | null
+  markets: Read<NMarket[]> | null
+  purchaseOrders: Read<NPurchaseOrder[]> | null
+  transfers: Read<NTransfer[]> | null
 }
 
 /* -------------------------------------------------------------------- shop */
@@ -180,27 +143,38 @@ type GShop = {
   shopAddress: GAddress
 }
 
-/** A GSTIN some app saved on the shop: the first extra field value that is one. */
-async function shopGstin(client: ShopifyClient): Promise<string | null> {
+type ShopExtras = { gstin: string | null; seo: { title: string; description: string } }
+
+/**
+ * What the shop keeps in its own extra fields: a GSTIN some app saved there, and the home page
+ * title and meta description (Shopify stores Online Store › Preferences as `global.title_tag`
+ * and `global.description_tag`) (audit #131).
+ */
+async function shopExtras(client: ShopifyClient): Promise<ShopExtras> {
+  const out: ShopExtras = { gstin: null, seo: { title: '', description: '' } }
   try {
-    const data = await client.query<{ shop: { metafields: { nodes: { value: string }[] } } }>(
-      SHOP_FIELDS_QUERY,
-      {},
-      20,
-    )
+    const data = await client.query<{
+      shop: { metafields: { nodes: { namespace: string; key: string; value: string }[] } }
+    }>(SHOP_FIELDS_QUERY, {}, 20)
     for (const m of data.shop.metafields.nodes) {
-      const check = validateGstin(m.value?.trim())
-      if (check.ok) return check.gstin
+      const value = m.value?.trim() ?? ''
+      if (m.namespace === 'global' && m.key === 'title_tag') out.seo.title = value
+      else if (m.namespace === 'global' && m.key === 'description_tag') out.seo.description = value
+      else if (!out.gstin) {
+        const check = validateGstin(value)
+        if (check.ok) out.gstin = check.gstin
+      }
     }
   } catch (err) {
-    // Not every token may read the shop's extra fields; the GST number is then not known.
+    // Not every token may read the shop's extra fields; the GST number and SEO are then not known.
     if (!(err instanceof ShopifyError)) throw err
   }
-  return null
+  return out
 }
 
 async function fetchShop(client: ShopifyClient): Promise<NShopSettings> {
   const { shop } = await client.query<{ shop: GShop }>(SHOP_SETTINGS_QUERY, {}, 10)
+  const extras = await shopExtras(client)
   return {
     name: shop.name.trim(),
     email: (shop.contactEmail || shop.email || '').trim(),
@@ -209,8 +183,9 @@ async function fetchShop(client: ShopifyClient): Promise<NShopSettings> {
     timezone: shop.ianaTimezone,
     weightUnit: shop.weightUnit,
     taxesIncluded: shop.taxesIncluded,
-    gstin: await shopGstin(client),
+    gstin: extras.gstin,
     moneyFormat: cleanMoneyFormat(shop.currencyFormats?.moneyFormat),
+    seo: extras.seo,
   }
 }
 
@@ -260,176 +235,6 @@ async function fetchLocations(client: ShopifyClient): Promise<NLocation[]> {
   return out
 }
 
-/* ---------------------------------------------------------------- shipping */
-
-const PROFILES_QUERY = `query DeliveryProfiles($cursor: String) {
-  deliveryProfiles(first: 50, after: $cursor) { ${PAGE_INFO} nodes { id name default } }
-}`
-
-/** One page of a profile's zones; `$group` pages one location group past its first page. */
-const PROFILE_ZONES_QUERY = `query DeliveryProfileZones($id: ID!, $group: ID, $cursor: String) {
-  deliveryProfile(id: $id) {
-    profileLocationGroups(locationGroupId: $group) {
-      locationGroup { id }
-      locationGroupZones(first: 10, after: $cursor) {
-        ${PAGE_INFO}
-        nodes {
-          zone { id name countries { code { countryCode restOfWorld } provinces { name code } } }
-          methodDefinitions(first: 40) {
-            nodes {
-              id name active
-              rateProvider {
-                __typename
-                ... on DeliveryRateDefinition { price { amount currencyCode } }
-                ... on DeliveryParticipant { carrierService { name } }
-              }
-              methodConditions {
-                field operator
-                conditionCriteria {
-                  __typename
-                  ... on MoneyV2 { amount currencyCode }
-                  ... on Weight { unit value }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}`
-
-type GCondition = {
-  field: string
-  operator: string
-  conditionCriteria:
-    | { __typename: 'MoneyV2'; amount: string; currencyCode: string }
-    | { __typename: 'Weight'; unit: string; value: number }
-}
-
-type GMethod = {
-  id: string
-  name: string
-  active: boolean
-  rateProvider:
-    | { __typename: 'DeliveryRateDefinition'; price: { amount: string; currencyCode: string } }
-    | { __typename: 'DeliveryParticipant'; carrierService: { name: string | null } | null }
-  methodConditions: GCondition[]
-}
-
-type GZone = {
-  zone: {
-    id: string
-    name: string
-    countries: {
-      code: { countryCode: string | null; restOfWorld: boolean }
-      provinces: { name: string; code: string }[]
-    }[]
-  }
-  methodDefinitions: { nodes: GMethod[] }
-}
-
-type GLocationGroup = {
-  locationGroup: { id: string }
-  locationGroupZones: Page<GZone>
-}
-
-function mapCondition(c: GCondition): NRateCondition | null {
-  const operator =
-    c.operator === 'GREATER_THAN_OR_EQUAL_TO'
-      ? 'min'
-      : c.operator === 'LESS_THAN_OR_EQUAL_TO'
-        ? 'max'
-        : null
-  if (!operator) return null
-  const v = c.conditionCriteria
-  if (c.field === 'TOTAL_PRICE' && v.__typename === 'MoneyV2') {
-    return { field: 'price', operator, amount: paiseOf(v.amount), currency: v.currencyCode }
-  }
-  if (c.field === 'TOTAL_WEIGHT' && v.__typename === 'Weight') {
-    return { field: 'weight', operator, grams: Math.round(v.value * (GRAMS_PER_UNIT[v.unit] ?? 1)) }
-  }
-  return null
-}
-
-function mapMethod(m: GMethod): NDeliveryMethod {
-  const rate = m.rateProvider.__typename === 'DeliveryRateDefinition' ? m.rateProvider : null
-  const carrier = m.rateProvider.__typename === 'DeliveryParticipant' ? m.rateProvider : null
-  return {
-    sourceId: m.id,
-    name: m.name.trim(),
-    active: m.active,
-    price: rate ? { amount: paiseOf(rate.price.amount), currency: rate.price.currencyCode } : null,
-    carrier: carrier ? (carrier.carrierService?.name ?? m.name) : null,
-    conditions: m.methodConditions.flatMap((c) => {
-      const mapped = mapCondition(c)
-      return mapped ? [mapped] : []
-    }),
-  }
-}
-
-function mapZone(z: GZone): NDeliveryZone {
-  return {
-    sourceId: z.zone.id,
-    name: z.zone.name.trim(),
-    countries: z.zone.countries.map((c) => ({
-      code: c.code.countryCode,
-      restOfWorld: c.code.restOfWorld,
-      provinces: c.provinces,
-    })),
-    methods: z.methodDefinitions.nodes.map(mapMethod),
-  }
-}
-
-async function profileZones(client: ShopifyClient, id: string): Promise<NDeliveryZone[]> {
-  const pick = (d: unknown) =>
-    (d as { deliveryProfile: { profileLocationGroups: GLocationGroup[] } | null }).deliveryProfile
-      ?.profileLocationGroups ?? []
-  const zones: NDeliveryZone[] = []
-  const groups = pick(await client.query<unknown>(PROFILE_ZONES_QUERY, { id }, 600))
-  for (const group of groups) {
-    zones.push(...group.locationGroupZones.nodes.map(mapZone))
-    let page = group.locationGroupZones.pageInfo
-    while (page.hasNextPage && page.endCursor) {
-      const [next] = pick(
-        await client.query<unknown>(
-          PROFILE_ZONES_QUERY,
-          { id, group: group.locationGroup.id, cursor: page.endCursor },
-          600,
-        ),
-      )
-      if (!next) break
-      zones.push(...next.locationGroupZones.nodes.map(mapZone))
-      page = next.locationGroupZones.pageInfo
-    }
-  }
-  return zones
-}
-
-async function fetchProfiles(client: ShopifyClient): Promise<NDeliveryProfile[]> {
-  const out: NDeliveryProfile[] = []
-  for await (const nodes of client.paginate<{ id: string; name: string; default: boolean }>(
-    PROFILES_QUERY,
-    (d) =>
-      (d as { deliveryProfiles: Page<{ id: string; name: string; default: boolean }> })
-        .deliveryProfiles,
-    {},
-    60,
-  )) {
-    for (const p of nodes) {
-      // Only the default profile's rates can come over (they apply to every product here);
-      // the others are named in the report, so their zones are not read.
-      out.push({
-        sourceId: p.id,
-        name: p.name.trim(),
-        default: p.default,
-        zones: p.default ? await profileZones(client, p.id) : [],
-      })
-    }
-  }
-  return out
-}
-
 /* -------------------------------------------------------- policies, fields */
 
 const POLICIES_QUERY = '{ shop { shopPolicies { type title body } } }'
@@ -437,6 +242,107 @@ const POLICIES_QUERY = '{ shop { shopPolicies { type title body } } }'
 async function fetchPolicies(client: ShopifyClient): Promise<NPolicy[]> {
   const data = await client.query<{ shop: { shopPolicies: NPolicy[] } }>(POLICIES_QUERY, {}, 10)
   return data.shop.shopPolicies.map((p) => ({ type: p.type, title: p.title.trim(), body: p.body }))
+}
+
+const SEGMENTS_QUERY = `query Segments($cursor: String) {
+  segments(first: 100, after: $cursor) {
+    pageInfo { hasNextPage endCursor }
+    nodes { id name query }
+  }
+}`
+
+async function fetchSegments(client: ShopifyClient): Promise<NSegment[]> {
+  const out: NSegment[] = []
+  let cursor: string | null = null
+  for (let page = 0; page < 20; page++) {
+    const data: {
+      segments: {
+        pageInfo: { hasNextPage: boolean; endCursor: string | null }
+        nodes: { id: string; name: string; query: string }[]
+      }
+    } = await client.query(SEGMENTS_QUERY, { cursor }, 10)
+    for (const n of data.segments.nodes) out.push({ sourceId: n.id, name: n.name, query: n.query })
+    if (!data.segments.pageInfo.hasNextPage) break
+    cursor = data.segments.pageInfo.endCursor
+  }
+  return out
+}
+
+// Markets as Shopify has had them since 2025-04: status, conditions and web presences.
+const MARKETS_QUERY = `query Markets($cursor: String) {
+  markets(first: 50, after: $cursor) {
+    pageInfo { hasNextPage endCursor }
+    nodes {
+      id name status
+      conditions { regionsCondition { regions(first: 250) { nodes { ... on MarketRegionCountry { code } } } } }
+      currencySettings { baseCurrency { currencyCode } }
+      webPresences(first: 1) { nodes { subfolderSuffix defaultLocale { locale } alternateLocales { locale } } }
+      catalogs(first: 1) { nodes { priceList { parent { adjustment { type value } } } } }
+    }
+  }
+}`
+
+type GMarket = {
+  id: string
+  name: string
+  status: string
+  conditions: {
+    regionsCondition: { regions: { nodes: { code?: string | null }[] } } | null
+  } | null
+  currencySettings: { baseCurrency: { currencyCode: string } | null } | null
+  webPresences: {
+    nodes: {
+      subfolderSuffix: string | null
+      defaultLocale: { locale: string } | null
+      alternateLocales: { locale: string }[] | null
+    }[]
+  } | null
+  catalogs: {
+    nodes: {
+      priceList: { parent: { adjustment: { type: string; value: number } | null } | null } | null
+    }[]
+  } | null
+}
+
+/** A price list adjustment as basis points: `PERCENTAGE_DECREASE` 5 is −500. */
+function adjustmentBp(a: { type: string; value: number } | null | undefined): number {
+  if (!a || !Number.isFinite(a.value)) return 0
+  const bp = Math.round(a.value * 100)
+  return a.type === 'PERCENTAGE_DECREASE' ? -bp : bp
+}
+
+function mapMarket(m: GMarket): NMarket {
+  const web = m.webPresences?.nodes[0]
+  return {
+    sourceId: m.id,
+    name: m.name,
+    active: m.status === 'ACTIVE',
+    countries: (m.conditions?.regionsCondition?.regions.nodes ?? []).flatMap((r) =>
+      r.code ? [r.code] : [],
+    ),
+    currency: m.currencySettings?.baseCurrency?.currencyCode ?? null,
+    locale: web?.defaultLocale?.locale ?? null,
+    locales: (web?.alternateLocales ?? []).map((l) => l.locale),
+    subfolder: web?.subfolderSuffix ?? null,
+    adjustmentBp: adjustmentBp(m.catalogs?.nodes[0]?.priceList?.parent?.adjustment),
+  }
+}
+
+async function fetchMarkets(client: ShopifyClient): Promise<NMarket[]> {
+  const out: NMarket[] = []
+  let cursor: string | null = null
+  for (let page = 0; page < 10; page++) {
+    const data: {
+      markets: {
+        pageInfo: { hasNextPage: boolean; endCursor: string | null }
+        nodes: GMarket[]
+      }
+    } = await client.query(MARKETS_QUERY, { cursor }, 50)
+    out.push(...data.markets.nodes.map(mapMarket))
+    if (!data.markets.pageInfo.hasNextPage) break
+    cursor = data.markets.pageInfo.endCursor
+  }
+  return out
 }
 
 async function fetchOwnerDefinitions(
@@ -461,7 +367,10 @@ export async function fetchSettingsSource(
 ): Promise<SettingsSource> {
   const wants = (...p: SettingsPart[]) => p.some((x) => parts.includes(x))
   const shop = await fetchShop(client)
-  const locations = wants('locations', 'shipping') ? await read(() => fetchLocations(client)) : null
+  // Purchase orders and transfers read locations too, so a location this import creates counts.
+  const locations = wants('locations', 'shipping', 'purchase_orders', 'transfers')
+    ? await read(() => fetchLocations(client))
+    : null
   const profiles = wants('shipping') ? await read(() => fetchProfiles(client)) : null
   const policies = wants('policies') ? await read(() => fetchPolicies(client)) : null
   let fields: SettingsSource['fields'] = null
@@ -471,5 +380,21 @@ export async function fetchSettingsSource(
       fields.push({ owner, read: await read(() => fetchOwnerDefinitions(client, owner)) })
     }
   }
-  return { shop, locations, profiles, policies, fields }
+  const segments = wants('segments') ? await read(() => fetchSegments(client)) : null
+  const markets = wants('markets') ? await read(() => fetchMarkets(client)) : null
+  const purchaseOrders = wants('purchase_orders')
+    ? await read(() => fetchPurchaseOrders(client))
+    : null
+  const transfers = wants('transfers') ? await read(() => fetchTransfers(client)) : null
+  return {
+    shop,
+    locations,
+    profiles,
+    policies,
+    fields,
+    segments,
+    markets,
+    purchaseOrders,
+    transfers,
+  }
 }

@@ -3,6 +3,7 @@
 import { msUntil } from '@commerce/dates'
 import { type ComponentType, type ReactNode, useEffect, useState } from 'react'
 import { mainProductContent as copy } from '../data/zero-drift/main-product'
+import { useMarketPricing } from '../money-format'
 import { variantOnPreorder } from '../preorder-state'
 import { galleryForVariant, slideForVariant, variantImageUrls } from '../product-gallery-order'
 import { announceVariant } from '../product-variant-event'
@@ -12,6 +13,7 @@ import {
   mainProductSettings,
   whatsappHref,
 } from '../sections/main-product-settings'
+import type { AddToCart } from '../store-actions'
 import type { ProductDetail } from '../types'
 import Breadcrumbs from './breadcrumbs'
 import Price from './price'
@@ -34,7 +36,7 @@ type ProductViewProps = {
   product: ProductDetail
   /** Shipping and Returns panels from the store's published policies (`showPolicyPanels`). */
   policyPanels?: PolicyPanel[] | undefined
-  onAddToCart?: ((variantId: string, quantity: number) => Promise<void>) | undefined
+  onAddToCart?: AddToCart | undefined
   /** Rendered below the price with the selected variant's price (EMI hint, offers). */
   UnderPrice?: ComponentType<{ pricePaise: number }> | undefined
   /** Rendered under the buy buttons (delivery estimate). */
@@ -86,6 +88,7 @@ export default function ProductView({
   const [variantId, setVariantId] = useState(defaultVariant(product)?.id)
   const [slide, setSlide] = useState(() => slideFor(product, defaultVariant(product)))
   const [countdown, setCountdown] = useState(() => msUntil(product.launchAt))
+  const pricing = useMarketPricing()
   const [pageUrl, setPageUrl] = useState(`/products/${product.handle}`)
 
   useEffect(() => {
@@ -112,6 +115,7 @@ export default function ProductView({
 
   // Render logic
   const s = settings ?? mainProductSettings()
+  const abroadPrices = pricing !== null && pricing.currency !== 'INR'
   const variant = product.variants.find((v) => v.id === variantId) ?? defaultVariant(product)
   const launching = countdown > 0
   const isPreorder = variantOnPreorder(product, variant)
@@ -161,8 +165,16 @@ export default function ProductView({
           {s.showRating ? <ProductRating value={s.ratingValue} count={s.ratingCount} /> : null}
           {variant ? (
             <div className="product-info__price product-info__price--large">
-              <Price pricePaise={variant.pricePaise} mrpPaise={variant.mrpPaise} percentBadge />
-              <p className="product-info__tax-note">{copy.ui.inclusiveOfTaxes}</p>
+              <Price
+                pricePaise={variant.pricePaise}
+                mrpPaise={variant.mrpPaise}
+                variantId={variant.id}
+                percentBadge
+              />
+              {/* Indian GST is inside rupee prices; an export price abroad carries none (#210). */}
+              {abroadPrices ? null : (
+                <p className="product-info__tax-note">{copy.ui.inclusiveOfTaxes}</p>
+              )}
               {UnderPrice && variant.pricePaise != null ? (
                 <UnderPrice pricePaise={variant.pricePaise} />
               ) : null}

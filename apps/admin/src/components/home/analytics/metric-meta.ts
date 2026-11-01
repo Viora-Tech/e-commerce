@@ -49,8 +49,16 @@ export const METRIC_META: Record<HomeMetric, Meta> = {
 /** A metric's figure as text: ₹ for money, compact counts, one-decimal percentages. */
 export function formatMetric(fmt: Formatters, metric: HomeMetric, value: number): string {
   const { kind } = METRIC_META[metric]
-  if (kind === 'money') return fmt.money(value)
+  if (kind === 'money') return fmt.moneyWhole(value)
   if (kind === 'percent') return `${fmt.number(value)}%`
+  return fmt.compact(value)
+}
+
+/** A chart axis label: money in its currency's units (₹4.5K, never "4.5L" of paise), counts compact. */
+export function formatTick(fmt: Formatters, metric: HomeMetric, value: number): string {
+  const { kind } = METRIC_META[metric]
+  if (kind === 'percent') return `${value}%`
+  if (kind === 'money') return fmt.moneyCompact(value)
   return fmt.compact(value)
 }
 

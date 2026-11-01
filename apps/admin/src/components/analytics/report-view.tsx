@@ -83,6 +83,7 @@ export default function ReportView({ report, initialRange, initial }: ReportView
 
   // Render logic
   const c = analyticsContent.reports
+  const understood = report.ranged || Boolean(data.previousTotals)
 
   return (
     <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-8 md:pt-5 md:pb-8">
@@ -105,7 +106,12 @@ export default function ReportView({ report, initialRange, initial }: ReportView
       />
       <Card gap="none" inset={5}>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-caption text-muted-foreground">{c.understood}</p>
+          {/* Headed only when something sits under it (audit #51). */}
+          {understood ? (
+            <p className="text-caption text-muted-foreground">{c.understood}</p>
+          ) : (
+            <span />
+          )}
           <PillTabs
             variant="segmented"
             value={shape}
@@ -116,15 +122,17 @@ export default function ReportView({ report, initialRange, initial }: ReportView
             ]}
           />
         </div>
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          {report.ranged ? <RangePicker value={range} onChange={handleRange} /> : null}
-          {data.previousTotals ? (
-            <span className="flex items-center gap-2 text-caption text-muted-foreground">
-              {c.compareLabel}
-              <StatusChip>{c.previous}</StatusChip>
-            </span>
-          ) : null}
-        </div>
+        {understood ? (
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            {report.ranged ? <RangePicker value={range} onChange={handleRange} /> : null}
+            {data.previousTotals ? (
+              <span className="flex items-center gap-2 text-caption text-muted-foreground">
+                {c.compareLabel}
+                <StatusChip>{c.previous}</StatusChip>
+              </span>
+            ) : null}
+          </div>
+        ) : null}
       </Card>
       {data.profit ? <ProfitInsightsCard insights={data.profit} /> : null}
       <ReportChart report={report} data={data} shape={shape} />

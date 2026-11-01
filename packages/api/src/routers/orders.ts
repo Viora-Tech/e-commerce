@@ -9,9 +9,7 @@ import {
   InvalidOrderContact,
   isIsoDay,
   MANUAL_PAYMENT_METHODS,
-  ORDER_FULFILLMENT_STATUSES,
   ORDER_MARKS,
-  ORDER_PAYMENT_STATUSES,
   OrderNotFound,
   orderProfit,
   permissions,
@@ -21,17 +19,16 @@ import {
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
+import { can, PAGE_SIZE_MAX } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
 import { retryCourierPushForOrder } from '../services/courier-push.service'
 import {
   addOrderNote,
+  captureOrderPayment,
   getOrder,
   listOrderIds,
+  listOrderLinePeek,
   listOrders,
-  ORDER_CHANNEL_FILTERS,
-  ORDER_RETURN_FILTERS,
-  ORDER_VIEWS,
   orderCouriers,
   orderFacets,
   orderStats,
@@ -57,42 +54,13 @@ import {
 import { assertNotImported } from './imported-order'
 import { draftAndAbandonedRoutes } from './order-drafts'
 import { orderEditRoutes } from './order-edit'
+import { orderHoldRoutes } from './order-hold'
 import { orderListRoutes } from './order-list'
+import { listFilters } from './order-list-filters'
 import { orderMessageRoutes } from './order-messages'
 
 /** What "Mark as" on the order page records; the statuses are then derived. */
 const change = z.enum(ORDER_MARKS)
-
-/** The Orders list's tab, search and filter panel, shared by the list and "Select all". */
-const listFilters = z.object({
-  search: z.string().trim().max(SEARCH_MAX).optional(),
-  /** The list tab. */
-  view: z.enum(ORDER_VIEWS).optional(),
-  paymentStatus: z.array(z.enum(ORDER_PAYMENT_STATUSES)).max(10).optional(),
-  fulfillmentStatus: z.array(z.enum(ORDER_FULFILLMENT_STATUSES)).max(10).optional(),
-  /** Placed at or after this moment (the filter panel's Date). */
-  placedFrom: z.iso.datetime().optional(),
-  placedTo: z.iso.datetime().optional(),
-  /** Cash on delivery, or anything paid up front. */
-  paymentMethod: z.enum(['cod', 'prepaid']).optional(),
-  /** Sent with this courier (the filter panel's Courier). */
-  courier: z.string().trim().min(1).max(60).optional(),
-  /** Has a line whose product title, variant title or SKU contains this (the panel's Product). */
-  product: z.string().trim().min(1).max(SEARCH_MAX).optional(),
-  /** Carries any of these tags. */
-  tags: z.array(z.string().trim().min(1).max(40)).max(50).optional(),
-  /** Came from any of these marketing channels (`untracked`: no attribution recorded). */
-  channels: z.array(z.enum(ORDER_CHANNEL_FILTERS)).max(ORDER_CHANNEL_FILTERS.length).optional(),
-  /** Order total at least / at most, in paise. */
-  totalMinPaise: z.number().int().min(0).optional(),
-  totalMaxPaise: z.number().int().min(0).optional(),
-  /** Used any of these discount codes (any case). */
-  discountCodes: z.array(z.string().trim().min(1).max(60)).max(50).optional(),
-  /** Where the order's returns stand (`none`: never had one). */
-  returnStatus: z.array(z.enum(ORDER_RETURN_FILTERS)).max(ORDER_RETURN_FILTERS.length).optional(),
-  /** Has a line whose product is in any of these collections (#886). */
-  collectionIds: z.array(z.uuid()).max(50).optional(),
-})
 
 export const ordersRouter = {
   /** Orders, a page at a time, by list tab, status, payment, fulfilment, date, product or a search. */
@@ -110,6 +78,11 @@ export const ordersRouter = {
   ids: can(permissions.ORDERS_READ)
     .input(listFilters)
     .handler(({ context, input }) => listOrderIds(context.tx, input)),
+
+  /** An order's lines with pictures, for the list's items popover (up to 20). */
+  linePeek: can(permissions.ORDERS_READ)
+    .input(z.object({ id: z.uuid() }))
+    .handler(({ context, input }) => listOrderLinePeek(context.tx, input.id)),
 
   /** The couriers the store's orders went with (the filter panel's Courier select). */
   couriers: can(permissions.ORDERS_READ).handler(({ context }) => orderCouriers(context.tx)),
@@ -201,6 +174,8 @@ export const ordersRouter = {
           .url({ protocol: /^https?$/ })
           .max(500)
           .optional(),
+        /** False: pack without the "order shipped" message (Shopify's "Notify customer"). */
+        notifyCustomer: z.boolean().optional(),
       }),
     )
     .handler(async ({ context, input }) => {
@@ -468,6 +443,28 @@ export const ordersRouter = {
       }
     }),
 
+  /** "Capture payment" (#150): take the money a manual-capture checkout only authorised. */
+  capture: can(permissions.ORDERS_REFUND)
+    .input(z.object({ paymentId: z.uuid() }))
+    .handler(async ({ context, input }) => {
+      const { payments } = await storeRegistries(context.tx, context.scope.storeId)
+      try {
+        const r = await captureOrderPayment(
+          context.tx,
+          context.scope.storeId,
+          payments,
+          settingsSecret(),
+          input.paymentId,
+        )
+        if (!r) throw new ORPCError('NOT_FOUND', { message: 'Payment not found' })
+        return { status: r.payment.status }
+      } catch (err) {
+        if (err instanceof CommerceError)
+          throw new ORPCError('BAD_REQUEST', { message: err.message })
+        throw err
+      }
+    }),
+
   /** Add a staff note to the order's timeline. */
   addNote: can(permissions.ORDERS_WRITE)
     .input(z.object({ orderId: z.uuid(), body: z.string().trim().min(1).max(2000) }))
@@ -482,4 +479,5 @@ export const ordersRouter = {
   ...orderMessageRoutes,
   ...draftAndAbandonedRoutes,
   ...orderEditRoutes,
+  ...orderHoldRoutes,
 }

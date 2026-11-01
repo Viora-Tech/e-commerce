@@ -24,12 +24,7 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import PageState from '@/components/states/page-state'
-import {
-  appliedFromGroups,
-  clearGroups,
-  FILTER_PANEL_CLASS,
-  FilterPanel,
-} from '@/components/table/filter-panel'
+import { appliedFromGroups } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
 import { CHANNEL_LABEL } from '@/data/customer-privacy'
@@ -120,7 +115,7 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
   const [tagIds, setTagIds] = useState<string[]>([])
   const [consentChange, setConsentChange] = useState<ConsentChange | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
-  /** Channels the store can send on; the Marketing menu offers only these. */
+  /** Channels the store can send on; the Marketing menu marks the others (#999). */
   const [sendable, setSendable] = useState<readonly ConsentChannel[]>(['email'])
 
   useEffect(() => {
@@ -296,15 +291,7 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
           query={q.query}
           onQueryChange={(next) => setQ({ query: next, page: 1 })}
           onClearAll={handleClearAll}
-          filters={(close) => (
-            <FilterPanel
-              groups={groups}
-              onClear={() => clearGroups(groups)}
-              footer={{ label: panelCopy.show(total), onDone: close }}
-            />
-          )}
-          filtersClassName={FILTER_PANEL_CLASS}
-          applied={applied}
+          filterGroups={groups}
           views={
             <ViewSelect
               value={q.status}
@@ -341,6 +328,10 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
               }}
               automations={initial.automations}
               onAutomationDone={clear}
+              onSegmentSaved={() => {
+                clear()
+                handleReload()
+              }}
             />
           )}
           empty={filtered ? copy.noResults : copy.empty}
@@ -365,7 +356,20 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
               )
             : ''
         }
-        body={consentChange ? copy.bulk.consentBody(consentChange.granted) : undefined}
+        body={
+          consentChange
+            ? [
+                copy.bulk.consentBody(consentChange.granted),
+                consentChange.granted
+                  ? consentChange.channel === 'email'
+                    ? copy.bulk.consentNeedsEmail
+                    : copy.bulk.consentNeedsPhone
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(' ')
+            : undefined
+        }
         confirmLabel={copy.bulk.consentConfirm(consentChange?.granted ?? true)}
         tone={consentChange?.granted === false ? 'destructive' : 'default'}
         onConfirm={handleConfirmConsent}

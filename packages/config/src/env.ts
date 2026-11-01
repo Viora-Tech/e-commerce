@@ -157,6 +157,13 @@ const shape = z.object({
   /** Most image jobs of one store at once (capped at the concurrency); unset uses `QUEUE_LIMITS.mediaProcess` (3). */
   MEDIA_PROCESS_PER_STORE: z.coerce.number().int().min(1).max(8).optional(),
   /**
+   * The Chromium the worker photographs theme home pages with (Themes page pictures). The worker
+   * image installs Alpine's `chromium` at `/usr/bin/chromium-browser`; unset on a development
+   * machine uses Playwright's own download (`bunx playwright install chromium`). Without a
+   * browser the job logs and the Themes page keeps its placeholder.
+   */
+  THEME_SCREENSHOT_CHROMIUM: z.string().min(1).optional(),
+  /**
    * Memory the storefront's render cache may hold (rendered theme sections and store data), in
    * MB; unset is 48. 0 turns the cache off (every page renders from the database).
    */

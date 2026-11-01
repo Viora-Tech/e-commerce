@@ -1,5 +1,6 @@
 'use client'
 
+import type { MediaReference } from '@commerce/core'
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -27,7 +28,7 @@ import { api } from '@/lib/api-client'
 import { formatDateTime } from '@/lib/format-date'
 import { isEditableImage } from '@/lib/image-edit'
 import { routes } from '@/lib/routes'
-import { contentTypeOf, fileKind, fileName, formatBytes } from './file-meta'
+import { contentTypeOf, displayName, fileKind, formatBytes } from './file-meta'
 import ImageEditorDialog from './image-editor-dialog'
 import MediaFileAlt from './media-file-alt'
 import MediaFileLink from './media-file-link'
@@ -37,7 +38,7 @@ export type MediaFileData = Awaited<ReturnType<typeof api.media.get>>
 
 type MediaFilePageProps = {
   file: MediaFileData
-  usedIn: { productId: string; title: string }[]
+  usedIn: MediaReference[]
   /** The files either side in the library's order under its filter; null at either end. */
   neighbours: { previous: string | null; next: string | null }
   /** The library's search and type, carried to the previous / next links. */
@@ -70,7 +71,7 @@ export default function MediaFilePage({ file, usedIn, neighbours, filter }: Medi
   }
 
   // Render logic
-  const name = file.key ? fileName(file.key) : (file.alt ?? copy.title)
+  const name = displayName(file) || copy.title
   const type = contentTypeOf(file.contentType, file.key ?? file.url)
   const kind = type?.startsWith('image/')
     ? 'image'

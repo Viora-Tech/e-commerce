@@ -1,6 +1,9 @@
+import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { customizeHref } from '@/lib/customize-href'
+
+export const metadata: Metadata = { title: 'Page' }
 
 /** The old standalone page builder's address now opens the page's template in Customize. */
 export default async function PageContentRoute({ params }: { params: Promise<{ id: string }> }) {

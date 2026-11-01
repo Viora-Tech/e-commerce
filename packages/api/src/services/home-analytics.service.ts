@@ -1,4 +1,4 @@
-import { ABANDONED_AFTER_MS, notTestOrder } from '@commerce/core'
+import { ABANDONED_AFTER_MS, notTestCartContact, notTestOrder } from '@commerce/core'
 import { HOME_METRICS, type HomeMetric, parseHomeTiles } from '@commerce/core/home-metrics'
 import { IST_OFFSET_MS } from '@commerce/dates'
 import type { StoreTx } from '@commerce/db'
@@ -104,6 +104,7 @@ async function load(tx: StoreTx, w: Window) {
         and(
           ne(cart.status, 'converted'),
           or(isNotNull(cart.email), isNotNull(cart.phone)),
+          notTestCartContact,
           sql`exists (select 1 from cart_line cl where cl.cart_id = cart.id)`,
           gte(cart.updatedAt, w.from),
           lt(cart.updatedAt, w.to),

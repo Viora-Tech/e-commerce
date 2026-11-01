@@ -1,6 +1,6 @@
 /** SOURCE OF TRUTH: COD & RTO app reports — WHAT: the overview (RTO rate for COD and prepaid, what the shopper said to the COD confirmation, open orders by risk level, the PIN codes that send parcels back most), the risky-orders list and one order's risk card / WHY: the app's admin pages read these, and they must count shipments the same way the Shipments workspace's RTO numbers do */
 import { address, customer, order, shipment } from '@commerce/db'
-import { and, count, desc, eq, gte, inArray, isNotNull, ne, sql } from 'drizzle-orm'
+import { and, count, desc, eq, gte, inArray, isNotNull, isNull, ne, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { rtoSummary } from '../returns/rto'
 import type { CodVerification, RiskLevel, RiskOrderFilter } from './settings'
@@ -40,6 +40,17 @@ export async function codRtoOverview(ctx: StoreContext, days = 30, now = new Dat
       ),
     )
     .groupBy(sql`${order.rtoRisk}->>'level'`)
+  const [unscored] = await ctx.tx
+    .select({ n: count() })
+    .from(order)
+    .where(
+      and(
+        isNull(order.rtoRisk),
+        eq(order.status, 'open'),
+        eq(order.fulfillmentStatus, 'unfulfilled'),
+        isNotNull(order.shippingAddressId),
+      ),
+    )
   const pincodes = await ctx.tx
     .select({
       pincode: address.pincode,
@@ -81,6 +92,8 @@ export async function codRtoOverview(ctx: StoreContext, days = 30, now = new Dat
       confirmedRate: rate(said('confirmed'), asked),
     },
     openByLevel: { low: open('low'), medium: open('medium'), high: open('high') },
+    /** Open, unshipped orders with no score yet (imported, or placed before the app). */
+    unscored: Number(unscored?.n ?? 0),
     pincodes: pincodes.map((p) => ({
       pincode: p.pincode,
       city: p.city,

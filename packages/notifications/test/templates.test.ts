@@ -33,6 +33,15 @@ describe('templates', () => {
     expect(renderWhatsapp('order_placed', sampleTemplateData).text).toContain('#42')
   })
 
+  it('order_placed tells a manual transfer shopper how to pay', async () => {
+    const paymentInstructions = ['UPI ID: shop@hdfcbank (Shop)', 'Reference: Order 42']
+    const e = await renderEmail('order_placed', { ...sampleTemplateData, paymentInstructions })
+    expect(e.text).toContain('UPI ID: shop@hdfcbank (Shop). Reference: Order 42.')
+    expect(
+      renderWhatsapp('order_placed', { ...sampleTemplateData, paymentInstructions }).text,
+    ).toContain('shop@hdfcbank')
+  })
+
   it('an order from two warehouses lists its parcels with dates; one parcel lists none', async () => {
     const parcels = [
       {
@@ -197,6 +206,48 @@ describe('templates', () => {
     expect(e.text).toContain('attached (USD 1,240.00).\n')
     expect(e.text).not.toContain('expect it to arrive')
     expect(e.text).toContain('\nPlease confirm the order')
+  })
+
+  it('the order update messages carry their links and details (#168)', async () => {
+    const edited = await renderEmail('order_edited', sampleTemplateDataByTemplate.order_edited)
+    expect(edited.subject).toBe('Waimers: order #42 was updated')
+    expect(edited.text).toContain('new total of ₹2,048')
+    expect(edited.text).toContain('Maboroshi mousepad x1, ')
+    const pending = await renderEmail(
+      'payment_pending',
+      sampleTemplateDataByTemplate.payment_pending,
+    )
+    expect(pending.text).toContain('Retry your payment here: https://waimers.example/orders/42')
+    expect(pending.html).toContain('Retry payment')
+    const tracking = sampleTemplateDataByTemplate.shipping_update
+    const update = await renderEmail('shipping_update', tracking)
+    expect(update.text).toContain('now ships with Blue Dart')
+    expect(update.text).toContain('AWB987654321')
+    expect(renderWhatsapp('shipping_update', tracking).text).toContain('AWB AWB987654321')
+    const link = await renderEmail('order_link', sampleTemplateDataByTemplate.order_link)
+    expect(link.text).toContain('See your order: https://waimers.example/orders/42')
+  })
+
+  it('the product question messages carry the question, the answer and their links', async () => {
+    const answered = sampleTemplateDataByTemplate.question_answered
+    const a = await renderEmail('question_answered', answered)
+    expect(a.subject).toBe('Waimers answered your question')
+    expect(a.text).toContain('"Is it washable?"')
+    expect(a.text).toContain('Yes, by hand in cold water.')
+    expect(a.html).toContain('See it on the product page')
+    const asked = sampleTemplateDataByTemplate.question_asked
+    const q = await renderEmail('question_asked', asked)
+    expect(q.subject).toBe('Waimers: new question about Maboroshi mousepad')
+    expect(q.text).toContain('Asha K. (asha@example.com) asked about Maboroshi mousepad')
+    expect(q.html).toContain('Answer the question')
+  })
+
+  it('a draft invoice sent again reads as a reminder', async () => {
+    const data = sampleTemplateDataByTemplate.draft_invoice
+    expect((await renderEmail('draft_invoice', data)).subject).toContain('is ready to pay')
+    const again = await renderEmail('draft_invoice', { ...data, reminder: true })
+    expect(again.subject).toBe('Waimers: reminder, order #D12 is waiting for payment')
+    expect(again.text).toContain('still waiting for your payment')
   })
 
   it('keeps platform templates out of the store message list', () => {

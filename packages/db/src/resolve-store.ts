@@ -308,6 +308,14 @@ export async function storesWithDueReviewRequests(db: Db): Promise<string[]> {
   return rows.map((r) => r.id)
 }
 
+/** Store ids with an AI review summary to (re)write (Reviews app), for the worker. SECURITY DEFINER backed. */
+export async function storesWithStaleReviewSummaries(db: Db): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(
+    sql`select stores_with_stale_review_summaries() as id`,
+  )
+  return rows.map((r) => r.id)
+}
+
 /** Store ids where a member asked for a daily summary (Account → Notifications). SECURITY DEFINER backed. */
 export async function storesWithMemberDailySummaries(db: Db): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(
@@ -421,6 +429,14 @@ export async function storesWithShopifyConnections(db: Db): Promise<string[]> {
 export async function storesWithBugReports(db: Db, openOnly: boolean): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(
     sql`select stores_with_bug_reports(${openOnly}::boolean) as id`,
+  )
+  return rows.map((r) => r.id)
+}
+
+/** Store ids whose Home cards were not rebuilt in the last 20 hours. SECURITY DEFINER backed. */
+export async function storesWithHomeCardsDue(db: Db, now = new Date()): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(
+    sql`select stores_with_home_cards_due(${now.toISOString()}::timestamptz) as id`,
   )
   return rows.map((r) => r.id)
 }

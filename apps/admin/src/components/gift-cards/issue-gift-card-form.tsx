@@ -12,6 +12,7 @@ import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import DateField from '@/components/fields/date-field'
 import MoneyInput from '@/components/fields/money-input'
 import DataCard from '@/components/layout/data-card'
 import PageColumns from '@/components/layout/page-columns'
@@ -161,11 +162,10 @@ export default function IssueGiftCardForm({ today }: IssueGiftCardFormProps) {
                   </Label>
                 </div>
                 {expires ? (
-                  <Input
-                    type="date"
+                  <DateField
                     min={today}
                     value={expiresOn}
-                    onChange={(e) => setExpiresOn(e.target.value)}
+                    onChange={(v) => setExpiresOn(v)}
                     className="w-48"
                   />
                 ) : (

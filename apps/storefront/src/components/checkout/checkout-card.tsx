@@ -47,7 +47,7 @@ export default function CheckoutCard({
           {number === null ? null : (
             <span
               aria-hidden="true"
-              className={`grid size-[1.375rem] shrink-0 place-items-center rounded-[0.4375rem] text-[0.75rem] font-semibold tabular-nums transition-[background-color] duration-200 ease-out motion-reduce:transition-none sm:size-6 sm:rounded-[0.5rem] sm:text-[0.75rem] ${done ? 'bg-ck-success text-ck-bg' : 'bg-ck-button text-ck-button-ink'}`}
+              className="grid size-[1.375rem] shrink-0 place-items-center rounded-full bg-ck-button text-[0.75rem] font-semibold tabular-nums text-ck-button-ink sm:size-6"
             >
               <span
                 className={`col-start-1 row-start-1 transition-[opacity,scale] duration-200 ease-out motion-reduce:scale-100 ${done ? 'scale-[0.6] opacity-0' : 'scale-100 opacity-100'}`}

@@ -1,3 +1,4 @@
+import { orderRef } from '@commerce/core/draft-number'
 import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
 import { returnDetailContent } from '@/data/returns'
@@ -19,7 +20,7 @@ export default function ReturnOutcomeCard({ detail: r, onChanged }: ReturnOutcom
       : r.resolution === 'store_credit'
         ? copy.store_credit(amount, r.giftCard?.lastCharacters ?? null)
         : r.resolution === 'exchange'
-          ? copy.exchange(r.exchangeOrder?.number ?? null)
+          ? copy.exchange(r.exchangeOrder ? orderRef(r.exchangeOrder) : null)
           : r.resolution === 'reship'
             ? copy.reship
             : copy.none

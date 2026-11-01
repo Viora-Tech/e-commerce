@@ -1,11 +1,12 @@
 'use client'
 
+import { orderRef } from '@commerce/core/draft-number'
 import { CircleCheck, FileEdit, Send, Trash2, WhatsappLogo } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DraftActionsCard from '@/components/drafts/draft-actions-card'
 import DraftAddressCard from '@/components/drafts/draft-address-card'
@@ -41,7 +42,12 @@ import { routes } from '@/lib/routes'
 
 type Draft = NonNullable<Awaited<ReturnType<typeof api.orders.getDraft>>>
 
-type DraftFormProps = { draft: Draft | null; invoiceSent?: boolean }
+type DraftFormProps = {
+  draft: Draft | null
+  invoiceSent?: boolean
+  /** A new draft's starting fields (a customer already picked); unsaved until Save. */
+  initial?: DraftFormState | undefined
+}
 
 /** The GST already inside a saved draft's prices, when it recorded a rate. */
 function draftTax(draft: Draft | null) {
@@ -53,7 +59,7 @@ function draftTax(draft: Draft | null) {
 const message = (err: unknown, fallback: string) =>
   err instanceof Error && err.message ? err.message : fallback
 
-export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps) {
+export default function DraftForm({ draft, invoiceSent = false, initial }: DraftFormProps) {
   // Hooks
   const router = useRouter()
   const copy = useCopy(draftEditorContent)
@@ -61,13 +67,23 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
   const fmt = useFormat()
   const chatCopy = useCopy(whatsappChatContent)
   const [id, setId] = useState<string | null>(draft?.id ?? null)
-  const [number, setNumber] = useState<number | null>(draft?.number ?? null)
-  const [saved, setSaved] = useState<DraftFormState>(draft ? draftToForm(draft) : emptyDraft())
+  // What follows the # in the title: "D12" (audit #26).
+  const [number, setNumber] = useState<string | null>(draft ? orderRef(draft) : null)
+  /* A customer picked before the page opened is the starting point, not an edit. */
+  const [saved, setSaved] = useState<DraftFormState>(
+    draft ? draftToForm(draft) : (initial ?? emptyDraft()),
+  )
   const [form, setForm] = useState<DraftFormState>(saved)
   const [busy, setBusy] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [reviewing, setReviewing] = useState(false)
   const [chatting, setChatting] = useState(false)
+
+  // A draft saved on "Create draft order" stays on this page (the address is swapped in place),
+  // so the tab title follows it: "Draft #D12" (audit #32).
+  useEffect(() => {
+    if (number !== null) document.title = copy.editTitle(number)
+  }, [number, copy])
   const [resetKey, setResetKey] = useState(0)
   const [sent, setSent] = useState(invoiceSent)
 
@@ -92,7 +108,7 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
     setSaved(form)
     if (!number) {
       const fresh = await api.orders.getDraft({ id: r.id })
-      setNumber(fresh?.number ?? null)
+      setNumber(fresh ? orderRef(fresh) : null)
       window.history.replaceState(null, '', `/orders/drafts/${r.id}`)
     }
     return r.id
@@ -136,6 +152,18 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
       toast.error(message(err, copy.actions.convertFailed))
       setBusy(false)
     }
+  }
+
+  /** A draft never saved has nothing to go back to: leave for where it was started from. */
+  const handleDiscard = () => {
+    if (!id) {
+      router.push(
+        initial?.customerId ? routes.customers.detail(initial.customerId) : routes.orders.drafts(),
+      )
+      return
+    }
+    setForm(saved)
+    setResetKey((k) => k + 1)
   }
 
   const handleDelete = async () => {
@@ -187,10 +215,7 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
         saveLabel={copy.save}
         discardLabel={copy.discard}
         onSave={handleSave}
-        onDiscard={() => {
-          setForm(saved)
-          setResetKey((k) => k + 1)
-        }}
+        onDiscard={handleDiscard}
         saving={busy}
       />
       <PageHeader
@@ -304,7 +329,7 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
         body={copy.actions.deleteBody}
         confirmLabel={copy.actions.delete}
         cancelLabel={copy.actions.cancel}
-        tone="default"
+        tone="destructive"
         onConfirm={handleDelete}
       />
     </PageBody>

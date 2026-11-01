@@ -20,8 +20,17 @@ export const THEME_OUTLINE_LIMITS = {
   maxValue: 200,
   /** Choices listed for one select setting. */
   maxOptions: 30,
-  /** Characters of the whole outline as JSON; settings go first, then sections, to fit. */
-  maxSize: 12_000,
+  /**
+   * Characters of the whole outline as JSON; settings go first, then sections, to fit. A long
+   * imported home page (Waimers' has 20+ sections) lost every lower section's settings at
+   * 12,000, so the AI said the newsletter had "no editable settings".
+   */
+  maxSize: 32_000,
+  /**
+   * Characters of the outline the editor sends: the whole page, so a section trimmed from the
+   * prompt can still be read in full (`sectionSettings`) and edited. Only the prompt is cut.
+   */
+  maxSentSize: 200_000,
   /** Changes in one proposed theme edit, and the longest new value. */
   maxEdits: 20,
   maxEditValue: 2000,
@@ -36,6 +45,8 @@ export const THEME_SETTING_KINDS = [
   'checkbox',
   'number',
   'select',
+  /** A picture: the value is its URL (`findImages` gives the store's own), '' for none. */
+  'image',
 ] as const
 export type ThemeSettingKind = (typeof THEME_SETTING_KINDS)[number]
 
@@ -87,7 +98,9 @@ export const ThemeOutlineSchema = z
     partial: z.boolean().default(false),
     sections: z.array(SectionSchema).max(L.maxSections),
   })
-  .refine((o) => JSON.stringify(o).length <= L.maxSize, { message: 'Page outline is too large' })
+  .refine((o) => JSON.stringify(o).length <= L.maxSentSize, {
+    message: 'Page outline is too large',
+  })
 
 export type ThemeOutline = z.infer<typeof ThemeOutlineSchema>
 export type ThemeOutlineSection = ThemeOutline['sections'][number]
@@ -97,11 +110,16 @@ export type ThemeValue = string | number | boolean
 
 const sizeOf = (outline: ThemeOutline) => JSON.stringify(outline).length
 
+/** What a merchant asks the AI to change most: words, links and pictures, kept longest. */
+const KEPT_LONGEST = new Set<ThemeSettingKind>(['text', 'textarea', 'richtext', 'url', 'image'])
+
 /**
- * The outline cut to `max` characters of JSON: first the settings, section by section from the
- * bottom of the page up (its blocks' settings, then its own; the selected section last), so the
- * top of the page keeps its detail; then whole sections from the bottom (the selected one kept).
- * Marks it `partial` when anything went.
+ * The outline cut to `max` characters of JSON. First the lesser settings (switches, numbers and
+ * choices) go everywhere, bottom of the page up, so every section keeps its words, links and
+ * pictures; on a long imported page the lower sections otherwise lost all their settings and the AI
+ * said a section near the bottom had none. Then the settings, section by section from the bottom
+ * up (its blocks' settings, then its own; the selected section last); then whole sections from
+ * the bottom (the selected one kept). Marks it `partial` when anything went.
  */
 export function fitOutline(outline: ThemeOutline, max: number = L.maxSize): ThemeOutline {
   if (sizeOf(outline) <= max) return outline
@@ -112,6 +130,19 @@ export function fitOutline(outline: ThemeOutline, max: number = L.maxSize): Them
       const sel = (id: string) => (id === outline.selectedSectionId ? 1 : 0)
       return sel(a.id) - sel(b.id) || b.i - a.i
     })
+  const keep = (list: ThemeOutlineSetting[]) => list.filter((s) => KEPT_LONGEST.has(s.kind))
+  for (const { i } of order) {
+    if (sizeOf(next) <= max) return next
+    const section = next.sections[i]
+    if (!section || section.id === outline.selectedSectionId) continue
+    const sections = [...next.sections]
+    sections[i] = {
+      ...section,
+      settings: keep(section.settings),
+      blocks: section.blocks.map((b) => ({ ...b, settings: keep(b.settings) })),
+    }
+    next = { ...next, sections }
+  }
   for (const { i } of order) {
     for (const step of ['blocks', 'settings'] as const) {
       if (sizeOf(next) <= max) return next
@@ -208,7 +239,7 @@ export const ThemeEditInput = z.object({
         value: z
           .union([z.string().max(L.maxEditValue), z.number(), z.boolean()])
           .describe(
-            'The new value: text for text, textarea, richtext (plain text), url and select settings; true or false for checkbox; a number for number.',
+            'The new value: text for text, textarea, richtext (plain text), url and select settings; true or false for checkbox; a number for number; an image URL from findImages for image.',
           ),
       }),
     )
@@ -240,6 +271,7 @@ export type ThemeEditView = {
 }
 
 const SAFE_URL = /^(\/|#|https?:\/\/|mailto:|tel:|shopify:\/\/)/i
+const IMAGE_URL = /^(\/|https:\/\/)\S+$/i
 
 /** Why `value` cannot go into a setting of this kind, or the value to store. */
 function checkValue(
@@ -260,6 +292,11 @@ function checkValue(
       return value === '' || (SAFE_URL.test(value) && !/\s/.test(value))
         ? { ok: true, value }
         : mismatch('a link starting with /, https:// or mailto:')
+    case 'image':
+      if (typeof value !== 'string') return mismatch('an image URL')
+      return value === '' || IMAGE_URL.test(value)
+        ? { ok: true, value }
+        : mismatch('an image URL from findImages (https://… or /…)')
     case 'checkbox':
       return typeof value === 'boolean' ? { ok: true, value } : mismatch('true or false')
     case 'number': {

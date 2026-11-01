@@ -21,7 +21,7 @@ import { applyPreorderCampaigns, storefrontPreorderCampaigns } from './preorder-
 import { createReferenceResolver } from './references'
 import { errorMessage, type ImportContext, WRITE_BATCH_SIZE } from './runtime'
 import type { ImportResource } from './schema'
-import { fetchPreorderProductIds, fetchProducts } from './shopify-api'
+import { fetchPreorderGroups, fetchProducts } from './shopify-api'
 import { type ShopifyClient, ShopifyError } from './shopify-client'
 import type { ReadSpec, SnapshotSession } from './snapshot'
 import type { KeepTest } from './status'
@@ -53,7 +53,13 @@ import { importGiftCards } from './write-gift-cards'
 import { importMetafields } from './write-metafields'
 import { importMetaobjects } from './write-metaobjects'
 import { orderSourceId, writeOrders } from './write-orders'
-import { applyPreorders, localHandle, productSourceId, writeProducts } from './write-products'
+import {
+  applyPreorders,
+  applyPreorderCampaigns as joinPreorderCampaigns,
+  localHandle,
+  productSourceId,
+  writeProducts,
+} from './write-products'
 
 /** Records per write batch: products are heavy (images, variants), customers light. */
 const PRODUCT_BATCH = 25
@@ -456,9 +462,13 @@ async function optional(ctx: ImportContext, resource: ImportResource, run: () =>
  */
 async function importPreorders(ctx: ImportContext, client: ShopifyClient) {
   try {
-    const changed = await applyPreorders(ctx, await fetchPreorderProductIds(client))
+    const groups = await fetchPreorderGroups(client)
+    const changed = await applyPreorders(ctx, new Set(groups.flatMap((g) => g.productIds)))
     if (changed)
       ctx.log(`Switched pre-order on for ${changed} products sold as pre-orders on Shopify`)
+    // Each pre-order selling plan group comes over as a campaign in Products › Pre-orders.
+    const joined = await joinPreorderCampaigns(ctx, groups)
+    if (joined) ctx.log(`Added ${joined} products to pre-order campaigns from Shopify`)
   } catch (err) {
     // Never the run's end: the products are in; only their pre-order switch is missing.
     if (ctx.signal?.aborted) throw err

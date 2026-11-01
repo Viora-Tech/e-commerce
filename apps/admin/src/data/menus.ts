@@ -80,9 +80,9 @@ export const menusContent = {
   },
   status: { active: 'Active', unused: 'Not used' },
   /** Small badges on the title cell, showing where the storefront uses this menu. */
-  usage: { header: 'Header', footer: 'Footer' },
+  usage: { header: 'Header', footer: 'Footer', page: 'Theme sections' },
   /** Lower-case place names for the summary line. */
-  where: { header: 'header', footer: 'footer' },
+  where: { header: 'header', footer: 'footer', page: 'theme sections' },
   notUsed: 'Not used yet',
   empty: {
     heading: 'No menus yet',

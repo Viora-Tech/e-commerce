@@ -94,10 +94,17 @@ describe('outline schema', () => {
     if (hero?.settings[0]) hero.settings[0].value = 'x'.repeat(THEME_OUTLINE_LIMITS.maxValue + 1)
     expect(ThemeOutlineSchema.safeParse(long).success).toBe(false)
     const huge = outline()
-    huge.sections = Array.from({ length: 50 }, (_, i) => ({
+    // 60 sections of 40 full-length settings each: past maxSentSize.
+    huge.sections = Array.from({ length: THEME_OUTLINE_LIMITS.maxSections }, (_, i) => ({
       ...(outline().sections[1] as ThemeOutline['sections'][number]),
       id: `Hero-${i}`,
       label: 'L'.repeat(120),
+      settings: Array.from({ length: THEME_OUTLINE_LIMITS.maxSettings }, (_, j) => ({
+        key: `text_${j}`,
+        label: 'Text',
+        kind: 'text' as const,
+        value: 'v'.repeat(THEME_OUTLINE_LIMITS.maxValue),
+      })),
     }))
     expect(ThemeOutlineSchema.safeParse(huge).success).toBe(false)
   })
@@ -132,6 +139,26 @@ describe('fitOutline', () => {
         },
       ],
     })),
+  })
+
+  it('drops switches, numbers and choices everywhere before any words or pictures', () => {
+    const page = big()
+    for (const s of page.sections) {
+      s.settings.push(
+        { key: 'show', label: 'Show', kind: 'checkbox', value: true },
+        { key: 'speed', label: 'Speed', kind: 'number', value: 5 },
+        { key: 'image', label: 'Image', kind: 'image', value: '/pad.jpg' },
+      )
+    }
+    const fitted = fitOutline(page, JSON.stringify(big()).length + 30 * 80)
+    const last = fitted.sections.at(-1)
+    expect(last?.settings.map((s) => s.key)).toEqual(['heading', 'image'])
+    expect(fitted.sections[0]?.settings.map((s) => s.key)).toEqual([
+      'heading',
+      'show',
+      'speed',
+      'image',
+    ])
   })
 
   it('leaves an outline that fits alone', () => {

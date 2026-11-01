@@ -5,6 +5,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
 import { SidebarTrigger } from '@commerce/ui/shadcn/sidebar'
 import { navigationContent } from '@/data/navigation'
+import { useAssistantEnabled } from '@/hooks/use-assistant-enabled'
 import { useCopy } from '@/hooks/use-copy'
 import { modKey, openAssistant } from '@/lib/assistant-events'
 import { openPalette } from '@/lib/palette-events'
@@ -56,6 +57,7 @@ export default function TopBar({
 }: TopBarProps) {
   // Hooks
   const copy = useCopy(navigationContent)
+  const aiEnabled = useAssistantEnabled()
 
   // Render logic
   const domain = hostOf(storefrontUrl)
@@ -77,16 +79,22 @@ export default function TopBar({
           className="flex h-9 w-full max-w-80 min-w-0 items-center gap-2 rounded-sm border border-input bg-input-surface pr-1.5 pl-3 text-left shadow-input transition-colors duration-150 ease-out hover:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <Search className="size-4 shrink-0 text-muted-foreground" />
-          <TopBarSearchText lead={copy.search.lead} examples={copy.search.examples} />
+          <TopBarSearchText
+            lead={aiEnabled ? copy.search.lead : copy.search.leadNoAi}
+            examples={copy.search.examples}
+          />
           <Kbd className="hidden sm:inline-flex">{copy.search.shortcut}</Kbd>
         </button>
       </TopBarTip>
-      <TopBarTip label={copy.tips.askAi(modKey())}>
-        <Button size="sm" onClick={() => openAssistant()} className="shrink-0">
-          <AiIcon aria-hidden />
-          {copy.search.askAi}
-        </Button>
-      </TopBarTip>
+      {/* Settings → AI can switch the assistant off; then there is nothing for Ask AI to open. */}
+      {aiEnabled ? (
+        <TopBarTip label={copy.tips.askAi(modKey())}>
+          <Button size="sm" onClick={() => openAssistant()} className="shrink-0">
+            <AiIcon aria-hidden />
+            {copy.search.askAi}
+          </Button>
+        </TopBarTip>
+      ) : null}
 
       <div className="ml-auto flex items-center gap-2">
         <TopBarTip label={copy.tips.viewStore(domain)}>

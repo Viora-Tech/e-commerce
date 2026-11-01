@@ -12,6 +12,7 @@ const draft: CheckoutDraft = {
     city: 'Jaipur',
     stateCode: 'RJ',
     pincode: '302001',
+    countryCode: 'IN',
     payment: 'razorpay',
     gstin: '',
     businessName: '',

@@ -67,7 +67,7 @@ function productWith(storeId: string, title: string, mediaIds: string[]) {
 }
 
 describe('mediaUsedIn', () => {
-  it('lists the products whose gallery holds the file, by title', async () => {
+  it('lists the products whose gallery holds the file, by kind then title', async () => {
     const storeId = await seedStore('w')
     const provider = new MemoryStorageProvider()
     const a = await readyUpload(storeId, provider, 'a.png')
@@ -78,8 +78,8 @@ describe('mediaUsedIn', () => {
 
     const used = await withStore(app, storeId, (tx) => mediaUsedIn(tx, a))
     expect(used).toEqual([
-      { productId: desk, title: 'Desk mat' },
-      { productId: pad, title: 'Pad' },
+      { kind: 'product', id: desk, title: 'Desk mat' },
+      { kind: 'product', id: pad, title: 'Pad' },
     ])
 
     const unused = await readyUpload(storeId, provider, 'c.png')

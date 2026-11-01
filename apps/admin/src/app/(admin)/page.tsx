@@ -24,10 +24,9 @@ export default async function Home() {
     getSession(),
     // AI is optional: any failure just hides "Ask AI".
     call(appRouter.ai.status, undefined, { context }).catch(() => null),
-    // Apps and abandoned carts need their own permissions: without them the set-up cards and
-    // those suggestions just hide. The apps list is the one the layout already read.
+    // Apps need their own permission: without it the set-up cards just hide. The apps list is
+    // the one the layout already read.
     listApps().catch(() => null),
-    call(appRouter.orders.abandonedStats, undefined, { context }).catch(() => null),
     call(
       appRouter.dashboard.analytics,
       { from: opening.from, to: opening.to, compare: 'previous' },
@@ -36,12 +35,16 @@ export default async function Home() {
     call(appRouter.dashboard.tiles, undefined, { context }),
     // Needs settings.read: without it the Store health card just hides.
     call(appRouter.store.health, undefined, { context }).catch(() => null),
+    // Smart cards (#101) are a nice-to-have: any failure just leaves the set-up ideas.
+    call(appRouter.dashboard.cards, undefined, { context }).catch(() => null),
+    // Which to-dos the store hid; on failure every to-do shows and "Edit to-dos" hides.
+    call(appRouter.dashboard.todos, undefined, { context }).catch(() => null),
   ])
   if (!(await memberP)) {
     readsP.catch(() => {})
     redirect('/select-store')
   }
-  const [summary, charts, session, ai, apps, abandoned, analytics, tiles, health] = await readsP
+  const [summary, charts, session, ai, apps, analytics, tiles, health, cards, todos] = await readsP
   const { fallbackName } = (await getCopy(homeContent)).briefing
   const firstName = (session?.user.name ?? fallbackName).trim().split(/\s+/)[0] ?? fallbackName
   return (
@@ -52,8 +55,9 @@ export default async function Home() {
       firstName={firstName}
       assistant={ai?.assistant ?? false}
       signals={apps ? homeSignals(apps, await paymentsTestMode()) : null}
-      abandoned={abandoned}
       health={health}
+      cards={cards}
+      hiddenTodos={todos?.hidden ?? null}
     />
   )
 }

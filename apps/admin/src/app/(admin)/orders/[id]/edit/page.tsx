@@ -4,7 +4,7 @@ import OrderEditPage from '@/components/orders/edit/order-edit-page'
 import { orderEditContent } from '@/data/order-edit'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { routes } from '@/lib/routes'
-import { orNoStore } from '@/lib/store-guard'
+import { orNoStoreOrMissing } from '@/lib/store-guard'
 
 export const metadata: Metadata = { title: orderEditContent.action }
 
@@ -14,7 +14,9 @@ type Params = { params: Promise<{ id: string }> }
 export default async function EditOrderPage({ params }: Params) {
   const { id } = await params
   const context = await serverContext()
-  const order = await call(appRouter.orders.get, { id }, { context }).catch(orNoStore(undefined))
+  const order = await call(appRouter.orders.get, { id }, { context }).catch(
+    orNoStoreOrMissing(undefined),
+  )
   if (order === undefined) redirect(routes.selectStore())
   if (!order) notFound()
   return <OrderEditPage order={order} />

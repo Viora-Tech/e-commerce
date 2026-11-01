@@ -1,6 +1,13 @@
 import type { DiscountInput } from '@commerce/core/discounts'
+import { parseRupees } from '@commerce/money'
 import type { discountFormContent } from '@/data/discounts'
-import { type DiscountFormState, fromLocalInput, scopeIds, usesPerProduct } from './form-state'
+import {
+  type ComboFormRow,
+  type DiscountFormState,
+  fromLocalInput,
+  scopeIds,
+  usesPerProduct,
+} from './form-state'
 
 export type FormErrors = Partial<
   Record<
@@ -13,6 +20,7 @@ export type FormErrors = Partial<
     | 'buysItems'
     | 'gets'
     | 'getsItems'
+    | 'combos'
     | 'states'
     | 'minimum'
     | 'eligibility'
@@ -42,6 +50,32 @@ export function validAmount(
 const toUnits = (method: DiscountFormState['method'], raw: string): number =>
   method === 'percent' ? Math.round(num(raw) * 100) : rupeesToPaise(raw)
 
+/** Combo quantity as typed; blank reads as 1. */
+const comboQuantity = (raw: string | undefined): number =>
+  raw === undefined || raw.trim() === '' ? 1 : whole(raw)
+
+/** The first problem with one combo, or null when it is ready to save. */
+function comboError(c: ComboFormRow, copy: ErrorCopy): string | null {
+  if (c.ids.length === 0) return copy.comboItems
+  const badQuantity = (raw: string | undefined) =>
+    raw !== undefined && raw.trim() !== '' && !positiveWhole(raw)
+  if (c.ids.some((id) => badQuantity(c.quantities[id]))) return copy.quantity
+  if (c.method === 'percent') return validAmount('percent', c.value) ? null : copy.percent
+  return (parseRupees(c.value) ?? 0) > 0 ? null : copy.value
+}
+
+/** Each combo's problem, by position; null where the combo is fine. */
+export const comboErrors = (f: Pick<DiscountFormState, 'combos'>, copy: ErrorCopy) =>
+  f.combos.map((c) => comboError(c, copy))
+
+/** One combo in the stored shape: minor units for a price or amount, basis points for a percent. */
+const comboInput = (c: ComboFormRow): NonNullable<DiscountInput['combos']>[number] => ({
+  scope: c.scope,
+  items: c.ids.map((id) => ({ id, quantity: comboQuantity(c.quantities[id]) || 1 })),
+  method: c.method,
+  value: c.method === 'percent' ? Math.round(num(c.value) * 100) : (parseRupees(c.value) ?? 0),
+})
+
 /** What the "gets" items take off, as the stored method and value. */
 function getsValue(f: DiscountFormState): Pick<DiscountInput, 'method' | 'value'> {
   if (f.getsMode === 'free') return { method: 'percent', value: 10_000 }
@@ -49,7 +83,7 @@ function getsValue(f: DiscountFormState): Pick<DiscountInput, 'method' | 'value'
 }
 
 function valueErrors(f: DiscountFormState, copy: ErrorCopy, e: FormErrors): void {
-  if (f.type === 'shipping') return
+  if (f.type === 'shipping' || f.type === 'combo') return
   if (f.type === 'bxgy') {
     if (f.getsMode !== 'free' && !validAmount(f.getsMode, f.value)) {
       e.value = f.getsMode === 'percent' ? copy.percent : copy.value
@@ -72,10 +106,14 @@ function typeErrors(f: DiscountFormState, copy: ErrorCopy, e: FormErrors): void 
   if (f.type === 'bxgy') {
     const buysOk =
       f.buysKind === 'quantity' ? positiveWhole(f.buysQuantity) : validAmount('fixed', f.buysAmount)
-    if (!buysOk) e.buys = f.buysKind === 'quantity' ? copy.quantity : copy.value
-    if (f.buysIds.length === 0) e.buysItems = copy.items
-    if (!positiveWhole(f.getsQuantity)) e.gets = copy.quantity
-    if (f.getsIds.length === 0) e.getsItems = copy.items
+    if (!buysOk) e.buys = f.buysKind === 'quantity' ? copy.buysQuantity : copy.value
+    if (f.buysIds.length === 0) e.buysItems = copy.buysItems
+    if (!positiveWhole(f.getsQuantity)) e.gets = copy.getsQuantity
+    if (f.getsIds.length === 0) e.getsItems = copy.getsItems
+  }
+  if (f.type === 'combo') {
+    if (f.combos.length === 0) e.combos = copy.combos
+    else if (comboErrors(f, copy).some(Boolean)) e.combos = copy.combosFix
   }
   if (f.type === 'shipping') {
     if (!f.allStates && f.shippingStates.length === 0) e.states = copy.states
@@ -89,7 +127,7 @@ export function formErrors(f: DiscountFormState, copy: ErrorCopy): FormErrors {
   if (f.kind === 'code' && !/^[A-Za-z0-9-]{2,40}$/.test(f.code.trim())) e.code = copy.code
   valueErrors(f, copy, e)
   typeErrors(f, copy, e)
-  if (f.type !== 'bxgy') {
+  if (f.type !== 'bxgy' && f.type !== 'combo') {
     if (f.minimum === 'amount' && !validAmount('fixed', f.minSubtotal)) e.minimum = copy.value
     if (f.minimum === 'quantity' && !positiveWhole(f.minQuantity)) e.minimum = copy.quantity
   }
@@ -105,13 +143,16 @@ export function toInput(f: DiscountFormState): DiscountInput {
   const limit = f.limitTotal ? whole(f.usageLimit) : Number.NaN
   const perProduct = usesPerProduct(f)
   const ids = scopeIds(f)
-  const minimum = f.type === 'bxgy' ? 'none' : f.minimum
+  const minimum = f.type === 'bxgy' || f.type === 'combo' ? 'none' : f.minimum
+  // A combo deal carries a discount on each combo; its single value stays unused.
   const value =
     f.type === 'bxgy'
       ? getsValue(f)
       : f.type === 'shipping'
         ? { method: 'free_shipping' as const, value: 0 }
-        : { method: f.method, value: perProduct ? 0 : toUnits(f.method, f.value) }
+        : f.type === 'combo'
+          ? { method: 'fixed' as const, value: 0 }
+          : { method: f.method, value: perProduct ? 0 : toUnits(f.method, f.value) }
   return {
     type: f.type,
     title: f.title.trim(),
@@ -142,6 +183,7 @@ export function toInput(f: DiscountFormState): DiscountInput {
               f.limitPerOrder && positiveWhole(f.maxUsesPerOrder) ? whole(f.maxUsesPerOrder) : null,
           }
         : null,
+    combos: f.type === 'combo' ? f.combos.map(comboInput) : null,
     shippingStates: f.type === 'shipping' && !f.allStates ? f.shippingStates : [],
     maxShippingPaise:
       f.type === 'shipping' && f.excludeRates && f.maxShipping

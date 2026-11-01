@@ -5,7 +5,7 @@ import { Globe } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import StatusChip from '@/components/layout/status-chip'
-import RolloutHoldChip from '@/components/settings/rollouts/rollout-hold-chip'
+import RolloutHoldChip from '@/components/rollouts/rollout-hold-chip'
 import { themeImportContent } from '@/data/theme-import'
 import { themesContent } from '@/data/themes'
 import { useCopy } from '@/hooks/use-copy'
@@ -58,7 +58,11 @@ export default function ThemeLibraryRow({
             className="size-full object-cover object-top"
           />
         ) : (
-          <ThemeSwatch theme={theme.settings} className="size-full rounded-md border-0 p-2" />
+          <ThemeSwatch
+            theme={theme.settings}
+            name={theme.name}
+            className="size-full rounded-md border-0 p-2"
+          />
         )}
       </span>
       <div className="flex min-w-0 flex-1 basis-48 flex-col gap-1">

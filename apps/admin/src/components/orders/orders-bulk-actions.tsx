@@ -15,22 +15,23 @@ import type { OrderActionGroup } from '@/apps/order-actions'
 import RunAutomationDialog from '@/components/automations/records/run-automation-dialog'
 import { useRunAutomation } from '@/components/automations/records/use-run-automation'
 import ActionMenu, { type ActionItem } from '@/components/layout/action-menu'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import CreateShipmentDialog from '@/components/shipments/create-shipment/create-shipment-dialog'
 import { orderAppActionsContent } from '@/data/order-app-actions'
 import { ORDER_MARKS, type OrderMark, ordersContent } from '@/data/orders'
 import { ordersBulkContent } from '@/data/orders-bulk'
 import { BULK_EDIT_IDS_KEY } from '@/data/orders-bulk-edit'
 import { useCopy } from '@/hooks/use-copy'
-import { api } from '@/lib/api-client'
-import { downloadCsv } from '@/lib/csv'
-import { ordersCsv } from '@/lib/orders-csv'
 import { routes } from '@/lib/routes'
 import type { OrdersBulkRequest } from './orders-bulk-dialogs'
 import { useOrderAppActions } from './use-order-app-actions'
+import { useOrdersExport } from './use-orders-export'
 
 type OrdersBulkActionsProps = {
   ids: string[]
   onMark: (ids: string[], mark: OrderMark) => void
+  /** Archive (true) or unarchive (false) the selected orders. */
+  onArchive: (ids: string[], archived: boolean) => void
   /** Tags and payment reminders ask first: the page opens their dialog for these ids. */
   onRequest: (kind: OrdersBulkRequest['kind'], ids: string[]) => void
   /** Installed apps' order actions; those placed on the bulk bar show in its More actions. */
@@ -43,18 +44,17 @@ type OrdersBulkActionsProps = {
 
 /** Most packing slips one print view loads (the ids ride in its URL). */
 const PRINT_MAX = 100
-/** Most ids one `orders.sheet` call takes. */
-const SHEET_CHUNK = 5000
 
 /**
  * Buttons for the selected orders: open them in the bulk-edit sheet, mark them all, and in
- * More actions add or remove tags, send payment reminders, export a CSV, print packing slips,
+ * More actions add or remove tags, archive or unarchive them, send payment reminders, export a CSV, print packing slips,
  * or run an installed app's action on them (a courier's Create shipment opens the bulk
  * shipment dialog with that courier picked).
  */
 export default function OrdersBulkActions({
   ids,
   onMark,
+  onArchive,
   onRequest,
   appActions = [],
   onAppActionDone,
@@ -69,7 +69,8 @@ export default function OrdersBulkActions({
   const automation = useRunAutomation('order', automations)
   /* The dialog stays open on its Booked step; the list reloads once the merchant closes it. */
   const [booked, setBooked] = useState(false)
-  const [exporting, setExporting] = useState(false)
+  const [confirmCancel, setConfirmCancel] = useState(false)
+  const { exporting, exportOrders } = useOrdersExport()
 
   // Event handlers
   /* Thousands of ids don't fit in a URL: hand them to the sheet through sessionStorage. */
@@ -82,27 +83,10 @@ export default function OrdersBulkActions({
     }
     router.push(routes.orders.bulkEdit())
   }
-  const handleExport = async () => {
-    setExporting(true)
-    try {
-      const rows = []
-      for (let i = 0; i < ids.length; i += SHEET_CHUNK) {
-        rows.push(...(await api.orders.sheet({ ids: ids.slice(i, i + SHEET_CHUNK) })))
-      }
-      downloadCsv(
-        `orders-${new Date().toISOString().slice(0, 10)}.csv`,
-        ordersCsv(copy, bulkCopy, rows),
-      )
-      toast.success(bulkCopy.exportDone(rows.length))
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : bulkCopy.exportFailed)
-    } finally {
-      setExporting(false)
-    }
-  }
-  const handlePrint = () => {
+  const handleExport = () => exportOrders(ids)
+  const handlePrint = (kind: 'packing_slip' | 'pick_list' | 'invoice') => {
     if (ids.length > PRINT_MAX) return void toast.error(bulkCopy.printTooMany(PRINT_MAX))
-    window.open(routes.orders.packingSlips(ids), '_blank', 'noopener')
+    window.open(routes.orders.printDocuments(kind, ids), '_blank', 'noopener')
   }
   const handleShippingClosed = () => {
     apps.closeShipping()
@@ -115,6 +99,8 @@ export default function OrdersBulkActions({
   const moreItems: ActionItem[] = [
     { label: bulkCopy.addTags, onSelect: () => onRequest('addTags', ids) },
     { label: bulkCopy.removeTags, onSelect: () => onRequest('removeTags', ids) },
+    { label: bulkCopy.archive, separatorBefore: true, onSelect: () => onArchive(ids, true) },
+    { label: bulkCopy.unarchive, onSelect: () => onArchive(ids, false) },
     {
       label: bulkCopy.remind,
       icon: Bell,
@@ -122,7 +108,9 @@ export default function OrdersBulkActions({
       onSelect: () => onRequest('remind', ids),
     },
     { label: bulkCopy.export, icon: Download, disabled: exporting, onSelect: handleExport },
-    { label: bulkCopy.print, icon: Printer, onSelect: handlePrint },
+    { label: bulkCopy.print, icon: Printer, onSelect: () => handlePrint('packing_slip') },
+    { label: bulkCopy.printPickList, icon: Printer, onSelect: () => handlePrint('pick_list') },
+    { label: bulkCopy.printInvoices, icon: Printer, onSelect: () => handlePrint('invoice') },
     ...[...automation.items(ids), ...appItems].map((item, i) =>
       i === 0 ? { ...item, separatorBefore: true } : item,
     ),
@@ -141,7 +129,12 @@ export default function OrdersBulkActions({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
           {ORDER_MARKS.map((s) => (
-            <DropdownMenuItem key={s} onClick={() => onMark(ids, s)}>
+            // Cancelling many orders asks first; one click used to do it (audit #48).
+            <DropdownMenuItem
+              key={s}
+              variant={s === 'cancelled' ? 'destructive' : 'default'}
+              onClick={() => (s === 'cancelled' ? setConfirmCancel(true) : onMark(ids, s))}
+            >
               {copy.marks[s]}
             </DropdownMenuItem>
           ))}
@@ -154,6 +147,22 @@ export default function OrdersBulkActions({
         items={moreItems}
         disabled={apps.busy}
         triggerClassName="h-8 rounded-sm px-3"
+        // Wide enough that "Send payment reminders" fits on one line, and tall enough not to
+        // scroll inside itself (audit #9).
+        contentClassName="min-w-64 max-h-none"
+      />
+      <ConfirmDialog
+        open={confirmCancel}
+        onOpenChange={setConfirmCancel}
+        title={copy.bulk.cancelTitle(ids.length)}
+        body={copy.bulk.cancelBody}
+        confirmLabel={copy.bulk.cancelConfirm}
+        cancelLabel={copy.bulk.keep}
+        tone="destructive"
+        onConfirm={() => {
+          setConfirmCancel(false)
+          onMark(ids, 'cancelled')
+        }}
       />
       <CreateShipmentDialog
         orderIds={apps.shipping?.orderIds ?? []}

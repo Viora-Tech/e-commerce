@@ -43,8 +43,20 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
       return [d.totalLabel, d.storeName, n]
     case 'order_shipped':
       return [d.storeName, n, d.trackingUrl ?? '-']
+    case 'order_edited':
+    case 'payment_pending':
+      return [d.customerName, d.storeName, n, d.totalLabel, d.orderUrl ?? '-']
+    case 'shipping_update':
+      return [d.storeName, n, d.waybill ?? '-', d.trackingUrl ?? '-']
+    case 'order_link':
+      return [d.customerName, d.storeName, n, d.orderUrl ?? '-']
     case 'draft_invoice':
-      return [d.customerName, n, d.totalLabel, d.actionUrl ?? '-']
+      return [
+        d.customerName,
+        d.draftNumber ? `D${d.draftNumber}` : n,
+        d.totalLabel,
+        d.actionUrl ?? '-',
+      ]
     case 'checkout_recovery':
       return [d.customerName, d.storeName, d.totalLabel, d.actionUrl ?? '-']
     case 'document_copy':
@@ -96,6 +108,8 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
       ]
     case 'contact_message':
       return [d.storeName, d.contactMessage?.name || '-']
+    case 'customer_message':
+      return [d.storeName, d.custom?.message || '-']
     case 'affiliate_application':
       return [d.storeName, d.affiliate?.name || '-']
     case 'review_request':
@@ -103,6 +117,12 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
       return [d.customerName, d.storeName, d.review?.items?.[0]?.url ?? '-']
     case 'review_reply':
       return [d.storeName, d.review?.productTitle ?? '-', d.review?.productUrl ?? '-']
+    case 'review_reward':
+      return [d.storeName, d.review?.rewardLabel ?? '-', d.review?.rewardCode ?? '-']
+    case 'question_answered':
+      return [d.storeName, d.review?.productTitle ?? '-', d.review?.productUrl ?? '-']
+    case 'question_asked':
+      return [d.storeName, d.review?.productTitle ?? '-', d.actionUrl ?? '-']
     case 'unpaid_cancel_notice':
       return [d.storeName, n, d.totalLabel, d.deadlineLabel ?? '-']
     case 'staff_new_order':

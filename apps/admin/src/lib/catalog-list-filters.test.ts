@@ -49,12 +49,14 @@ describe('productFilterInput', () => {
 describe('collectionMatcher', () => {
   const row = {
     status: 'active',
+    kind: 'manual',
     imageUrl: null,
     productCount: 3,
     updatedAt: '2026-10-27T10:00:00Z',
   }
   const none = {
     visibility: [],
+    kind: [],
     image: null,
     minProducts: '',
     maxProducts: '',
@@ -67,6 +69,8 @@ describe('collectionMatcher', () => {
 
   it('filters by visibility, image, product count and updated date', () => {
     expect(collectionMatcher({ ...none, visibility: ['draft'] }, NOW)(row)).toBe(false)
+    expect(collectionMatcher({ ...none, kind: ['automatic'] }, NOW)(row)).toBe(false)
+    expect(collectionMatcher({ ...none, kind: ['manual'] }, NOW)(row)).toBe(true)
     expect(collectionMatcher({ ...none, image: 'yes' }, NOW)(row)).toBe(false)
     expect(collectionMatcher({ ...none, image: 'no' }, NOW)(row)).toBe(true)
     expect(collectionMatcher({ ...none, minProducts: '4' }, NOW)(row)).toBe(false)

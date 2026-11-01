@@ -30,6 +30,10 @@ export default [
       acceptsSms: 'SMS मार्केटिंग',
     },
     consent: { yes: 'सब्सक्राइब्ड', no: 'सब्सक्राइब्ड नहीं' },
+    columnsMenu: {
+      label: 'कॉलम',
+      notSendable: 'अभी सेट अप नहीं',
+    },
     setAll: {
       trigger: 'सब पर बदलें',
       title: (n) => `सभी ${n} ग्राहक बदलें`,
@@ -72,6 +76,7 @@ export default [
       city: 'शहर लिखें, अधिकतम 80 अक्षर',
       stateCode: 'HR जैसा राज्य कोड या राज्य का नाम लिखें',
       pincode: 'छह अंकों का पिन कोड लिखें',
+      needsPhone: 'पहले फ़ोन नंबर जोड़ें: SMS और WhatsApp के लिए यह ज़रूरी है',
     },
     noAddress: 'कोई डिफ़ॉल्ट पता नहीं',
     errors: {

@@ -32,6 +32,7 @@ import {
 import { poCurrencyContent } from '@/data/purchasing'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { focusField } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import CostSummaryCard from './cost-summary-card'
 import CurrencyCard from './currency-card'
@@ -111,6 +112,7 @@ export default function PurchaseOrderForm({
   const persist = async (order = false): Promise<string | null> => {
     if (form.supplierName.trim() === '') {
       toast.error(copy.needSupplier)
+      focusField('po-supplier')
       return null
     }
     const problem = formProblem(form)

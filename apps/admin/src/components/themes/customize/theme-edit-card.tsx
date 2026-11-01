@@ -93,12 +93,43 @@ export default function ThemeEditCard({ edit, live, onStatus }: ThemeEditCardPro
             <span className="font-medium break-words text-ink-strong">
               {copy.where(change.sectionLabel, change.blockLabel)} · {change.settingLabel}
             </span>
-            <span className="line-clamp-3 break-words text-muted-foreground line-through">
-              {shown(change.before, copy)}
-            </span>
-            <span className="line-clamp-4 break-words whitespace-pre-wrap text-ink-strong">
-              {shown(change.value, copy)}
-            </span>
+            {change.kind === 'image' ? (
+              // A picture reads as a picture, not its address: old one faded, new one beside it.
+              <span className="flex items-center gap-2">
+                {typeof change.before === 'string' && change.before ? (
+                  // biome-ignore lint/performance/noImgElement: a small preview of the store's own image
+                  <img
+                    src={change.before}
+                    alt=""
+                    className="size-12 shrink-0 rounded-md object-cover opacity-50"
+                  />
+                ) : (
+                  <span className="text-muted-foreground line-through">{copy.empty}</span>
+                )}
+                <span aria-hidden="true" className="text-muted-foreground">
+                  →
+                </span>
+                {typeof change.value === 'string' && change.value ? (
+                  // biome-ignore lint/performance/noImgElement: a small preview of the store's own image
+                  <img
+                    src={change.value}
+                    alt=""
+                    className="size-12 shrink-0 rounded-md object-cover"
+                  />
+                ) : (
+                  <span className="text-ink-strong">{copy.empty}</span>
+                )}
+              </span>
+            ) : (
+              <>
+                <span className="line-clamp-3 break-words text-muted-foreground line-through">
+                  {shown(change.before, copy)}
+                </span>
+                <span className="line-clamp-4 break-words whitespace-pre-wrap text-ink-strong">
+                  {shown(change.value, copy)}
+                </span>
+              </>
+            )}
           </li>
         ))}
       </ul>

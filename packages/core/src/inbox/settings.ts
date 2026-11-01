@@ -31,6 +31,11 @@ export type InboxAiMode = (typeof INBOX_AI_MODES)[number]
 
 /** Longest store knowledge the merchant can give the AI agent (FAQ, sizing, delivery notes). */
 export const INBOX_AI_KNOWLEDGE_MAX = 4000
+/** Longest brand voice note: how the AI agent should sound, in the merchant's words. */
+export const INBOX_AI_VOICE_MAX = 500
+/** Question buttons a shopper can tap before writing (audit #139): how many, and how long. */
+export const INBOX_QUESTIONS_MAX = 4
+export const INBOX_QUESTION_MAX = 80
 
 const InboxAiSettingsSchema = z.object({
   /** Off by default (design §13). */
@@ -39,6 +44,15 @@ const InboxAiSettingsSchema = z.object({
   knowledge: z.string().trim().max(INBOX_AI_KNOWLEDGE_MAX).default(''),
   /** Learn from the team's past replies to similar questions (on by default). */
   learn: z.boolean().default(true),
+  /** How the agent sounds ("friendly, short, calls shoppers 'aap'"); tone only, never rules. */
+  voice: z.string().trim().max(INBOX_AI_VOICE_MAX).default(''),
+  /** Buttons in the chat before the shopper writes; empty uses the first published answers. */
+  questions: z
+    .array(z.string().trim().max(INBOX_QUESTION_MAX))
+    .max(INBOX_QUESTIONS_MAX)
+    .default([])
+    // The admin form keeps a box per question; blank boxes are not questions.
+    .transform((qs) => qs.filter(Boolean)),
 })
 export type InboxAiSettings = z.infer<typeof InboxAiSettingsSchema>
 
@@ -60,7 +74,13 @@ export const InboxSettingsSchema = z.object({
   /** The chat button and card's look: the theme editor's Inbox app embed (`widget.ts`). */
   widget: z.preprocess((v) => parseInboxWidget(v), InboxWidgetSchema),
   /** The AI agent: when it answers and what it knows (`ai-agent.ts`). */
-  ai: InboxAiSettingsSchema.default({ mode: 'off', knowledge: '', learn: true }),
+  ai: InboxAiSettingsSchema.default({
+    mode: 'off',
+    knowledge: '',
+    learn: true,
+    voice: '',
+    questions: [],
+  }),
 })
 export type InboxSettings = z.infer<typeof InboxSettingsSchema>
 

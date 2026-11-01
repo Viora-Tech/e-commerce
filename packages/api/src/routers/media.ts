@@ -2,18 +2,26 @@ import { settingsSecret } from '@commerce/config'
 import {
   backgroundWork,
   confirmUpload,
+  createMediaFolder,
   createUploadIntent,
   deleteMedia,
+  deleteMediaFolder,
   enqueueMediaProcess,
   getMedia,
   InvalidUpload,
   listMedia,
+  listMediaFolders,
+  MediaFolderError,
+  MediaFolderNameSchema,
+  MOVE_MEDIA_MAX,
   mediaBacklog,
   mediaNeighbours,
   mediaUsage,
   mediaUsedIn,
+  moveMediaToFolder,
   onPlatformStorage,
   permissions,
+  renameMediaFolder,
   storageRoom,
   UploadIntentSchema,
   updateMedia,
@@ -24,6 +32,19 @@ import { z } from 'zod'
 import { can, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
 import { loadStorageSettings, storageProviderFor } from '../services/media.service'
+
+/** A folder refusal in plain words: missing → 404, taken name or a folder with files → 400. */
+async function folderCall<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn()
+  } catch (err) {
+    if (err instanceof MediaFolderError) {
+      const code = err.code === 'MEDIA_FOLDER_NOT_FOUND' ? 'NOT_FOUND' : 'BAD_REQUEST'
+      throw new ORPCError(code, { message: err.message, data: { reason: err.code } })
+    }
+    throw err
+  }
+}
 
 export const mediaRouter = {
   /** Step 1 of an upload: reserve the row and get a presigned request for the browser. */
@@ -106,9 +127,43 @@ export const mediaRouter = {
         fileType: z.enum(['image', 'video', 'document']).optional(),
         size: z.enum(['small', 'medium', 'large']).optional(),
         used: z.enum(['used', 'unused']).optional(),
+        /** Only this folder's files (#91). */
+        folderId: z.uuid().optional(),
       }),
     )
     .handler(({ context, input }) => listMedia(context.tx, input)),
+
+  /** Files folders with their file counts (#91). */
+  folders: can(permissions.CONTENT_READ).handler(({ context }) => listMediaFolders(context.tx)),
+
+  createFolder: can(permissions.CONTENT_WRITE)
+    .input(z.object({ name: MediaFolderNameSchema }))
+    .handler(({ context, input }) =>
+      folderCall(() => createMediaFolder(context.tx, context.scope.storeId, input.name)),
+    ),
+
+  renameFolder: can(permissions.CONTENT_WRITE)
+    .input(z.object({ id: z.uuid(), name: MediaFolderNameSchema }))
+    .handler(({ context, input }) =>
+      folderCall(() => renameMediaFolder(context.tx, input.id, input.name)),
+    ),
+
+  /** Only an empty folder; one with files is refused with how many. */
+  deleteFolder: can(permissions.CONTENT_WRITE)
+    .input(z.object({ id: z.uuid() }))
+    .handler(({ context, input }) => folderCall(() => deleteMediaFolder(context.tx, input.id))),
+
+  /** Moves files into a folder, or out of any with `folderId` null. */
+  moveToFolder: can(permissions.CONTENT_WRITE)
+    .input(
+      z.object({
+        ids: z.array(z.uuid()).min(1).max(MOVE_MEDIA_MAX),
+        folderId: z.uuid().nullable(),
+      }),
+    )
+    .handler(({ context, input }) =>
+      folderCall(() => moveMediaToFolder(context.tx, input.ids, input.folderId)),
+    ),
 
   usage: can(permissions.CONTENT_READ).handler(({ context }) => mediaUsage(context.tx)),
   /** Images still processing and a running import: the "store may be slower" notice. */
@@ -142,7 +197,14 @@ export const mediaRouter = {
     .handler(({ context, input }) => mediaUsedIn(context.tx, input.id)),
 
   update: can(permissions.CONTENT_WRITE)
-    .input(z.object({ id: z.uuid(), alt: z.string().trim().max(300).nullable() }))
+    .input(
+      z.object({
+        id: z.uuid(),
+        alt: z.string().trim().max(300).nullable().optional(),
+        /** Display name in Files (#91); null goes back to the name read from the key. */
+        name: z.string().trim().max(120).nullable().optional(),
+      }),
+    )
     .handler(({ context, input: { id, ...patch } }) => updateMedia(context.tx, id, patch)),
 
   delete: can(permissions.CONTENT_WRITE)

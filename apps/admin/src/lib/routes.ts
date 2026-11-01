@@ -70,8 +70,13 @@ export const routes = {
     bulkEdit: () => '/orders/bulk-edit',
     /** Packing slips for these orders, one per page, printed straight away. */
     packingSlips: (orderIds: string[]) => `/orders/packing-slips?ids=${orderIds.map(id).join(',')}`,
+    /** The print view for one template kind (`packing_slip`, `pick_list`, `invoice`). */
+    printDocuments: (kind: string, orderIds: string[]) =>
+      `/orders/packing-slips?doc=${id(kind)}&ids=${orderIds.map(id).join(',')}`,
     drafts: () => '/orders/drafts',
-    newDraft: () => '/orders/drafts/new',
+    /** With a customer: the draft starts with them filled in ("Create order" on their page). */
+    newDraft: (customerId?: string) =>
+      customerId ? `/orders/drafts/new?customer=${id(customerId)}` : '/orders/drafts/new',
     draft: (draftId: string) => `/orders/drafts/${id(draftId)}`,
     abandonedCheckouts: () => '/orders/abandoned-checkouts',
     abandonedCheckout: (cartId: string) => `/orders/abandoned-checkouts/${id(cartId)}`,
@@ -105,6 +110,10 @@ export const routes = {
     giftCards: () => '/products/gift-cards',
     newGiftCard: () => '/products/gift-cards/new',
     giftCard: (giftCardId: string) => `/products/gift-cards/${id(giftCardId)}`,
+    /** Products › Pre-orders: the overview, then each campaign (#141, #142). */
+    preorders: () => '/products/preorders',
+    newPreorderCampaign: () => '/products/preorders/campaigns/new',
+    preorderCampaign: (campaignId: string) => `/products/preorders/campaigns/${id(campaignId)}`,
   },
 
   /** Buying and moving stock: inventory, purchase orders, inbound shipments, suppliers, transfers. */
@@ -168,6 +177,8 @@ export const routes = {
     reports: () => '/analytics/reports',
     report: (slug: string) => `/analytics/reports/${id(slug)}`,
     query: () => '/analytics/reports/query',
+    /** An AI answer's table as a report (a snapshot, or a saved one with `?saved=`). */
+    answer: () => '/analytics/reports/answer',
   },
 
   growth: {
@@ -177,7 +188,11 @@ export const routes = {
     campaigns: () => '/growth/campaigns',
     /** The Campaigns page's Tracking links tab (`/growth/links` redirects here). */
     trackingLinks: () => '/growth/campaigns?tab=links',
-    newCampaign: () => '/growth/campaigns/new',
+    /** `segment` starts the campaign aimed at that segment (a segment's "Email this segment"). */
+    newCampaign: (opts?: { segment?: string }) =>
+      opts?.segment
+        ? `/growth/campaigns/new?segment=${encodeURIComponent(opts.segment)}`
+        : '/growth/campaigns/new',
     campaign: (campaignId: string) => `/growth/campaigns/${id(campaignId)}`,
     automations: () => '/growth/automations',
     automation: (automationId: string) => `/growth/automations/${id(automationId)}`,
@@ -186,8 +201,33 @@ export const routes = {
 
   discounts: {
     list: () => '/discounts',
-    new: () => '/discounts/new',
+    /** `segment` starts the discount for that segment's customers only. */
+    new: (opts?: { segment?: string }) =>
+      opts?.segment
+        ? `/discounts/new?segment=${encodeURIComponent(opts.segment)}`
+        : '/discounts/new',
     detail: (discountId: string) => `/discounts/${id(discountId)}`,
+  },
+
+  /** The countries the store sells to (top-level, like Shopify; was under Settings). */
+  markets: {
+    list: () => '/markets',
+    new: () => '/markets/new',
+    detail: (marketId: string) => `/markets/${id(marketId)}`,
+  },
+
+  /** Which products each market sells and at what prices (Markets › Catalogs, as in Shopify). */
+  catalogs: {
+    list: () => '/markets/catalogs',
+    new: () => '/markets/catalogs/new',
+    detail: (catalogId: string) => `/markets/catalogs/${id(catalogId)}`,
+  },
+
+  /** Store changes that go live at a set time: under Markets, as in Shopify (Markets › Rollouts). */
+  rollouts: {
+    list: () => '/markets/rollouts',
+    new: () => '/markets/rollouts/new',
+    detail: (rolloutId: string) => `/markets/rollouts/${id(rolloutId)}`,
   },
 
   onlineStore: {
@@ -218,6 +258,8 @@ export const routes = {
     inboxConversation: (conversationId: string, view?: string) =>
       `/sales-channels/inbox/conversations?id=${id(conversationId)}${view ? `&view=${id(view)}` : ''}`,
     inboxQuickReplies: () => '/sales-channels/inbox/quick-replies',
+    /** The answers the Inbox AI agent quotes. */
+    inboxKnowledge: () => '/sales-channels/inbox/knowledge',
     inboxSettings: () => '/sales-channels/inbox/settings',
     /** Facebook, Instagram and WhatsApp share one Meta page, a tab each. */
     socialMeta: () => '/sales-channels/social/meta',
@@ -247,9 +289,15 @@ export const routes = {
     store: () => '/settings/store',
     payments: () => '/settings/payments',
     paymentsAdvanced: () => '/settings/payments/advanced',
+    paymentProvider: (providerId: string) => `/settings/payments/providers/${id(providerId)}`,
     checkout: () => '/settings/checkout',
     shipping: () => '/settings/shipping',
-    newShippingZone: () => '/settings/shipping/zones/new',
+    newShippingZone: (profileId?: string) =>
+      profileId
+        ? `/settings/shipping/zones/new?profile=${id(profileId)}`
+        : '/settings/shipping/zones/new',
+    newShippingProfile: () => '/settings/shipping/profiles/new',
+    shippingProfile: (profileId: string) => `/settings/shipping/profiles/${id(profileId)}`,
     shippingZone: (zoneId: string) => `/settings/shipping/zones/${id(zoneId)}`,
     taxes: () => '/settings/taxes',
     costs: () => '/settings/costs',
@@ -258,17 +306,13 @@ export const routes = {
     location: (locationId: string) => `/settings/locations/${id(locationId)}`,
     domains: () => '/settings/domains',
     domain: (domainId: string) => `/settings/domains/${id(domainId)}`,
-    markets: () => '/settings/markets',
-    rollouts: () => '/settings/markets/rollouts',
-    newRollout: () => '/settings/markets/rollouts/new',
-    rollout: (rolloutId: string) => `/settings/markets/rollouts/${id(rolloutId)}`,
     notifications: () => '/settings/notifications',
     policies: () => '/settings/policies',
     /** Setups that break or hurt checkout and orders, each with a link to fix it. */
     storeHealth: () => '/settings/store-health',
     policy: (type: string) => `/settings/policies/${id(type)}`,
     privacy: () => '/settings/privacy',
-    privacyBanner: () => '/settings/privacy#banner',
+    privacyBanner: () => '/settings/privacy?open=banner',
     privacyRequests: () => '/settings/privacy/requests',
     privacyRequest: (requestId: string) => `/settings/privacy/requests/${id(requestId)}`,
     customerAccounts: () => '/settings/customer-accounts',
@@ -276,9 +320,12 @@ export const routes = {
     /** One kind of record's extra fields (`products`, `blog-posts`, `store`…). */
     customDataOwner: (slug: string) => `/settings/custom-data/${id(slug)}`,
     returns: () => '/settings/returns',
+    /** Settings › Printed documents: the packing slip, pick list and invoice templates. */
+    templates: () => '/settings/templates',
+    template: (kind: string) => `/settings/templates/${id(kind)}`,
     staff: () => '/settings/staff',
-    /** Settings → Staff on its Roles tab. */
-    staffRoles: () => '/settings/staff?tab=section-roles',
+    /** Settings → Staff with its Roles row open. */
+    staffRoles: () => '/settings/staff?open=roles',
     newRole: () => '/settings/staff/roles/new',
     role: (roleId: string) => `/settings/staff/roles/${id(roleId)}`,
     ai: () => '/settings/ai',

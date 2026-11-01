@@ -10,6 +10,20 @@ Connecting a payment company, choosing how shoppers pay and the ₹1 test order 
 payment company's card in **Settings → Payments**: **Test / Live** and **Active / Inactive**.
 They work the same for Razorpay, Cashfree and Decentro (UPI).
 
+## How the page is laid out
+
+**Settings → Payments** is a short list of rows, each with what is set now. Click a row to open
+it; **‹ Payments** takes you back.
+
+- **Payment providers**: your payment companies, which one is main, their Test / Live and
+  Active / Inactive switches, their order when several are on, and **Add another way to get paid**.
+- **Supported methods**: UPI, cards, netbanking, wallets and EMI on or off, and which company
+  takes each one when several are on.
+- **Manual payment methods**: your UPI ID, bank transfer and cash on delivery.
+- **Payment capture**: take the money at once, or hold it and capture it from the order.
+- **Payment method customizations**: rules that hide a way to pay for some orders.
+- **More**: the two UPI options, fees per method and cancelling unpaid orders.
+
 ## Test keys and live keys
 
 Every payment company gives you two sets of keys: **test** keys, where nothing real is charged,
@@ -47,3 +61,71 @@ what it had on (for Razorpay, its UPI QR too).
 
 If it is your only online way to get paid, you are warned first: shoppers will then only see
 cash on delivery or bank transfer, if you have those on.
+
+## Several payment companies at once
+
+Once two payment companies are connected (say Cashfree and Razorpay), **Settings → Payments**
+shows two more cards:
+
+- **Active providers** lists every connected payment company with an on/off switch. Drag them
+  into order: the first one that is on is your main way to get paid. If a payment company cannot
+  open a payment for a shopper (it is down, or does not answer within about 15 seconds), checkout
+  quietly tries the next one that is on and takes the same way to pay. The shopper does not have
+  to do anything, and each try is kept on the order's payment history with the company it used.
+- **Route methods** (shown when two or more are on) picks which payment company takes each way
+  to pay, for example **UPI → Cashfree** and **Cards → Razorpay**. A company that cannot take a
+  way to pay is not offered for it. Anything you leave alone goes to the first company that is on.
+
+At checkout, each company that is on shows as its own option with the ways to pay routed to it.
+If you only ever connect one payment company, nothing changes: it takes every way to pay.
+
+Turning a company off with its **Active** switch also takes it out of this order; turning it
+back on puts it at the end.
+
+## Manual payment methods
+
+The **Manual payment methods** card holds the ways shoppers pay you directly:
+
+- **UPI ID** — the shopper pays your own UPI ID (or scans its QR code).
+- **Bank transfer / deposit** — the shopper sends NEFT, IMPS or RTGS to your account. Your bank
+  name, account number and IFSC are shown on the thank-you page and in the order email.
+- **Cash on delivery** — the shopper pays the courier. **COD rules** opens its settings
+  (Settings → Checkout).
+
+Press **Set up** or **Edit** on UPI ID or Bank transfer to fill in the details, write
+instructions for the shopper (for example "Add your order number as the payment note"), and add
+an optional fee or discount for paying this way. Each row has its own switch.
+
+Orders paid by UPI ID or bank transfer wait as **Payment pending**. When the money reaches your
+account, open the order and use **Mark as paid** (you can note the UTR and the date). Unpaid
+transfer orders can be cancelled automatically from **More → Bank transfer, UPI QR and fees per method → Unpaid orders**.
+
+## Payment method customizations
+
+**Payment method customizations** hide a way to pay for some orders, the way Shopify's payment customizations
+do. Cash on delivery is where most returned-to-origin (RTO) losses come from, so this is the
+usual use: no cash on delivery on big orders, in PIN codes with many refused parcels, or for
+fragile products.
+
+Press **Add rule**, then:
+
+- **Hide these ways to pay**: tick cash on delivery, UPI or bank transfer to you, or a payment
+  company.
+- **When**: order total above an amount, order total below an amount, the delivery PIN code is
+  in a list, or the cart has any of some products. The total is the items after discounts plus
+  shipping. Choose whether **any** condition or **all** of them must be true.
+
+The checkout hides the way to pay as soon as the rule applies (when the shopper types the PIN
+code, or the total changes), and an order that tries it anyway is refused. Switch a rule off
+without deleting it with **Rule is on**.
+
+## Payment capture
+
+By default the money is taken when the shopper pays (**Automatic**). With **Manual**, Razorpay
+only holds the amount on the shopper's card or account; the order shows **Authorised** and a
+**Capture payment** button. Capture once you have checked the stock or called the shopper. If
+you cancel the order instead, the money is never taken: Razorpay releases a held payment it is not
+told to capture within 5 days, so deal with these orders quickly.
+
+Manual capture is available for Razorpay. Cashfree's pre-authorisation needs Cashfree to turn
+it on for your account and covers cards only, so it shows as not available.

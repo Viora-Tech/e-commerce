@@ -7,6 +7,7 @@ import {
   type NewFileKind,
   permissions,
   publishCodeDrafts,
+  queueThemeScreenshot,
   readCodeFile,
   readCodeFileVersion,
   saveCodeFile,
@@ -49,9 +50,18 @@ export const themeCodeRouter = {
   publish: can(permissions.ONLINE_STORE_WRITE)
     .input(z.object({ themeId: z.string().uuid() }))
     .handler(({ context, input }) =>
-      libraryErrors(() =>
-        publishCodeDrafts(context.tx, context.scope.storeId, { ...input, by: savedBy(context) }),
-      ),
+      libraryErrors(async () => {
+        const result = await publishCodeDrafts(context.tx, context.scope.storeId, {
+          ...input,
+          by: savedBy(context),
+        })
+        // Published code changes what the theme looks like: retake its picture.
+        await queueThemeScreenshot(context.themeScreenshots, {
+          storeId: context.scope.storeId,
+          themeId: input.themeId,
+        })
+        return result
+      }),
     ),
 
   discard: can(permissions.ONLINE_STORE_WRITE)

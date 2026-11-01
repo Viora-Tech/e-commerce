@@ -11,14 +11,16 @@ import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   completeRazorpayOAuth,
+  signOAuthState,
+  verifyOAuthState,
+} from '../src/services/payments-oauth.service'
+import {
   connectPaymentGateway,
   paymentsSetup,
   savePaymentMethods,
   setPaymentGatewayActive,
-  signOAuthState,
   switchPaymentMode,
   testPaymentConnection,
-  verifyOAuthState,
 } from '../src/services/payments-setup.service'
 
 const webhookUrlFor = (workerUrl: string, providerId: string, storeId: string) =>

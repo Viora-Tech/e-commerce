@@ -11,6 +11,9 @@ export const shippingRatesContent = {
     states: (names: string[]) =>
       names.length <= 3 ? names.join(', ') : `${names.slice(0, 3).join(', ')} +${names.length - 3}`,
     pincodes: (n: number) => `${n} PIN code ${n === 1 ? 'rule' : 'rules'}`,
+    countries: (names: string[]) =>
+      names.length <= 3 ? names.join(', ') : `${names.slice(0, 3).join(', ')} +${names.length - 3}`,
+    restOfWorld: 'Rest of world',
     noRates: 'No price yet: customers here cannot check out',
     rateCount: (n: number) => `${n} ${n === 1 ? 'rate' : 'rates'}`,
     empty: {
@@ -18,6 +21,63 @@ export const shippingRatesContent = {
       body: 'Add a delivery area to charge for delivery: one price for all of India, prices by order value or weight, or free delivery above an amount.',
     },
     loadFailed: 'Could not load shipping rates.',
+  },
+  profiles: {
+    heading: 'Shipping profiles',
+    meta: 'Give some products their own delivery prices. In a cart with products from several profiles, each profile charges its price and the prices add up.',
+    create: 'Create profile',
+    columns: { profile: 'Profile', products: 'Products', areas: 'Areas and prices' },
+    allOtherProducts: 'All products not in another profile',
+    productCount: (n: number) => `${n} ${n === 1 ? 'product' : 'products'}`,
+    areaCount: (n: number) => `${n} delivery ${n === 1 ? 'area' : 'areas'}`,
+    freeEverywhere: 'Free delivery, no areas yet',
+    noAreas: 'No delivery areas: these products cannot be bought',
+    loadFailed: 'Could not load shipping profiles.',
+  },
+  profile: {
+    newTitle: 'Create shipping profile',
+    backLabel: 'Shipping',
+    generalMeta: 'Every product not placed in another profile ships at these prices.',
+    meta: "These products ship at this profile's prices, added to the other profiles' prices in a mixed cart.",
+    details: {
+      heading: 'Profile',
+      name: 'Profile name',
+      namePlaceholder: 'Skates, Heavy items',
+      nameHelp: 'Only you see this. Shoppers see the rate names.',
+    },
+    products: {
+      heading: 'Products',
+      meta: 'A product sits in one profile at a time: adding it here moves it out of another profile.',
+      pickTitle: 'Add products',
+      search: 'Search products',
+      browse: 'Browse',
+      nothingPicked: 'No products yet. Products not in any profile ship with General.',
+      remove: (title: string) => `Remove ${title}`,
+      addCollection: "Add a collection's products",
+      collectionTitle: 'Add the products of collections',
+      added: (n: number) => `${n} ${n === 1 ? 'product' : 'products'} added`,
+    },
+    zones: {
+      saveFirst: 'Save the profile first, then add its delivery areas and prices.',
+      noAreasHeading: 'No delivery areas yet',
+      noAreasBody:
+        'Add a delivery area with a price, or these products cannot be bought for delivery.',
+    },
+    saveBar: { message: 'Unsaved profile', save: 'Save', discard: 'Discard' },
+    toasts: {
+      created: 'Profile created',
+      saved: 'Profile saved',
+      deleted: 'Profile deleted',
+      failed: 'Could not save the profile',
+    },
+    errors: { name: 'Give the profile a name.' },
+    delete: {
+      action: 'Delete',
+      title: (name: string) => `Delete ${name}?`,
+      body: 'Its delivery areas and prices are deleted, and its products ship with General again. Orders already placed keep the shipping they paid.',
+      cancel: 'Cancel',
+      confirm: 'Delete profile',
+    },
   },
   zone: {
     newTitle: 'Create shipping zone',
@@ -28,6 +88,17 @@ export const shippingRatesContent = {
       name: 'Zone name',
       namePlaceholder: 'All India, South India, Bengaluru',
       nameHelp: 'Only you see this. Shoppers see the rate names.',
+    },
+    countries: {
+      heading: 'Countries',
+      meta: 'India uses the states and PIN codes below. Any other country gets these rates for the whole country.',
+      selected: (n: number) => `${n} ${n === 1 ? 'country' : 'countries'}`,
+      restOfWorld: 'Rest of world',
+      restOfWorldHelp:
+        'Every country no other zone names. A zone that names the country, or India’s own zones, always comes first.',
+      none: 'Pick at least one country, or Rest of world.',
+      abroadNote:
+        'Checkout prices addresses abroad from these rates in your store currency. Book international parcels with DHL Express or FedEx.',
     },
     regions: {
       heading: 'States',

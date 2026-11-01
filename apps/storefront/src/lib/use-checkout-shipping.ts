@@ -1,4 +1,5 @@
 import type { CartView } from '@commerce/core'
+import { cleanPostalCode, isAbroad, postalCodeProblem } from '@commerce/core/checkout-address'
 import { useState, useTransition } from 'react'
 import { isDigitalOnly } from '@/lib/checkout-preview'
 import type { GateState } from '@/lib/checkout-sections'
@@ -8,6 +9,12 @@ import type { CheckoutRate, CheckoutShipping } from '@/lib/shipping'
 import { checkoutShippingAction } from '@/lib/shipping-actions'
 
 export const isFullPincode = (v: string): boolean => /^[1-9]\d{5}$/.test(cleanPincode(v))
+
+/** Enough of the address to quote: six PIN digits in India, a postcode that will do abroad. */
+export const isQuotable = (raw: string, countryCode: string): boolean =>
+  isAbroad(countryCode) ? postalCodeProblem(countryCode, raw) === null : isFullPincode(raw)
+
+type Asked = { pincode: string; stateCode: string; countryCode: string }
 
 /** The Delivery options app's choice Pay sends: the quote, the sub-choice and the tick. */
 export type DeliveryChoiceForm = { quoteId: string; routeKey: string | null; insured: boolean }
@@ -41,13 +48,13 @@ export function useCheckoutShipping(cart: CartView, onNoCod: () => void) {
   const [rateId, setRateId] = useState<string | null>(null)
   const [routeKey, setRouteKey] = useState<string | null>(null)
   const [declineInsurance, setDeclineInsurance] = useState(false)
-  const [asked, setAsked] = useState<{ pincode: string; stateCode: string } | null>(null)
+  const [asked, setAsked] = useState<Asked | null>(null)
 
-  const ask = (pincode: string, stateCode: string, decline: boolean, keep: boolean) => {
+  const ask = (to: Asked, decline: boolean, keep: boolean) => {
     const quoteId = keep ? (shipping?.deliveryQuote?.quoteId ?? null) : null
     startCheck(async () => {
       const next = await retryOnce(() =>
-        checkoutShippingAction({ pincode, stateCode }, { declineInsurance: decline, quoteId }),
+        checkoutShippingAction(to, { declineInsurance: decline, quoteId }),
       )
       setShipping(next)
       setQuoted(true)
@@ -62,18 +69,21 @@ export function useCheckoutShipping(cart: CartView, onNoCod: () => void) {
     })
   }
 
-  const checkPincode = (raw: string, stateCode: string) => {
+  /** Quote the address on screen: a PIN code in India, the country (and postcode) abroad. */
+  const checkPincode = (raw: string, stateCode: string, countryCode = 'IN') => {
     setShipping(null)
     setQuoted(false)
-    const pincode = cleanPincode(raw)
-    if (isDigitalOnly(cart) || !isFullPincode(pincode)) return
-    setAsked({ pincode, stateCode })
-    ask(pincode, stateCode, declineInsurance, false)
+    const abroad = isAbroad(countryCode)
+    const pincode = abroad ? cleanPostalCode(raw) : cleanPincode(raw)
+    if (isDigitalOnly(cart) || !isQuotable(pincode, countryCode)) return
+    const to = { pincode, stateCode, countryCode }
+    setAsked(to)
+    ask(to, declineInsurance, false)
   }
 
   const toggleInsurance = (insured: boolean) => {
     setDeclineInsurance(!insured)
-    if (asked) ask(asked.pincode, asked.stateCode, !insured, true)
+    if (asked) ask(asked, !insured, true)
   }
 
   const pickRate = (id: string | null) => {

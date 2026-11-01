@@ -135,6 +135,10 @@ type SessionOptions = {
     | { kind: 'off' }
   /** Called after each resource read from the snapshot, so the run page can say so while it runs. */
   onReuse?: ((use: SnapshotUse) => Promise<void>) | undefined
+  /** How many records a resource read from the snapshot holds, before the first is written. */
+  onCount?: ((resource: SnapshotResource, count: number) => void) | undefined
+  /** A resource read from the snapshot has handed on its last record. */
+  onDone?: ((resource: SnapshotResource) => void) | undefined
 }
 
 export type ReadSpec<T> = {
@@ -210,6 +214,7 @@ export class SnapshotSession {
     this.opts.log(
       `${spec.resource}: ${entry.count} from the preview, ${changed.size} changed since`,
     )
+    this.opts.onCount?.(spec.resource, entry.count)
     const use = this.use
     if (use && this.opts.onReuse) await this.opts.onReuse(use)
 
@@ -237,6 +242,7 @@ export class SnapshotSession {
       }
     }
     if (batch.length) yield hand(batch)
+    this.opts.onDone?.(spec.resource)
   }
 
   /**

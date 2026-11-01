@@ -79,6 +79,8 @@ export default function ActionCard({ action, onChange }: ActionCardProps) {
       onChange(view)
       setEditing(false)
       if (view.status === 'failed') toast.error(view.error ?? copy.card.failed)
+      // The same change already waits in Approvals: this card closed, nothing new was sent.
+      if (view.alreadyRequested) toast.info(approvals.already)
       // Approve on a change the member's role sends for approval: it went to Approvals.
       if (kind === 'approve' && view.status === 'proposed' && view.needsApprover) {
         toast.info(approvals.sent)
@@ -119,7 +121,7 @@ export default function ActionCard({ action, onChange }: ActionCardProps) {
           <h3 className="text-body font-semibold break-words text-ink-strong">
             {action.preview.title}
           </h3>
-          {open ? (
+          {open && action.preview.undoable !== null ? (
             <p className="text-caption text-muted-foreground">
               {action.preview.undoable ? copy.card.willUndo : copy.card.noUndo}
             </p>

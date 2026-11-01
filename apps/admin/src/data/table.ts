@@ -12,7 +12,8 @@ export const tableContent = {
   clearSort: 'Clear sort',
   more: 'More',
   clearFilters: 'Clear all',
-  addFilter: 'Add filter',
+  /** The search bar's placeholder once filter pills sit in it. */
+  searchMore: 'Search',
   /** An applied-filter chip: "Payment is" before the bold value. */
   filterIs: (field: string) => `${field} is`,
   view: 'View',
@@ -28,6 +29,13 @@ export const tableContent = {
   /** The selection bar's offer once the whole page is ticked. */
   selectAllMatching: (n: string, plural: string) => `Select all ${n} ${plural}`,
   allSelected: (n: string, plural: string) => `All ${n} ${plural} selected`,
+  /** The bulk bar's "3 orders selected ▾" menu. */
+  selectionMenu: 'Selection options',
+  selectPage: 'Select all on this page',
+  clearAllSelected: 'Clear selection',
+  /** The bulk bar's toggle: only the ticked rows, then back to every row. */
+  showSelected: 'Show all selected',
+  showAllRows: 'Show all rows',
   removeFilter: (label: string) => `Remove ${label}`,
   showing: (from: number, to: number, total: number) => `Showing ${from}–${to} of ${total}`,
   rowsPerPage: 'Rows per page',
@@ -40,7 +48,6 @@ export const tableContent = {
   previous: 'Previous page',
   next: 'Next page',
   emptyHeading: (plural: string) => `No ${plural} yet`,
-  emptyBody: 'Try a different search or clear the filters.',
   /** Figma "Feedback state · No results": a search found nothing; one button clears it. */
   noResultsBody: 'Nothing matches this search and these filters.',
   clearSearchAndFilters: 'Clear filters',

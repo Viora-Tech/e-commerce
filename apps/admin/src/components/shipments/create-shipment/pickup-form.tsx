@@ -6,6 +6,7 @@ import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import DateField from '@/components/fields/date-field'
 import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -65,12 +66,11 @@ export default function PickupForm({ shipmentIds, onRequested }: PickupFormProps
       <div className="flex flex-wrap items-end gap-3">
         <Field className="w-auto">
           <FieldLabel htmlFor="pickup-date">{copy.date}</FieldLabel>
-          <Input
+          <DateField
             id="pickup-date"
-            type="date"
             value={plan.date}
             disabled={done}
-            onChange={(e) => setPlan({ ...plan, date: e.target.value })}
+            onChange={(v) => setPlan({ ...plan, date: v })}
           />
         </Field>
         <Field className="w-auto">

@@ -52,7 +52,7 @@ export const PRODUCT_APP_ACTIONS: Record<string, readonly ProductAppAction[]> = 
       id: 'gst-invoices/hsn',
       label: 'editGst',
       icon: 'FileText',
-      target: { kind: 'tab', tab: 'shipping', focus: 'variant-hs' },
+      target: { kind: 'tab', tab: 'shipping', focus: 'product-hs' },
     },
   ],
   'google-search-console': [

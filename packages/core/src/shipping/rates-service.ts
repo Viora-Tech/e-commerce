@@ -1,30 +1,55 @@
 import {
-  cart,
   cartLine,
-  product,
   type StoreTx,
+  shippingProfile,
   shippingRate,
   shippingZone,
   variant,
 } from '@commerce/db'
-import { and, asc, eq, inArray, max, notInArray } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull, max, notInArray } from 'drizzle-orm'
+import { checkoutCountries } from '../checkout/address-abroad'
 import type { StoreContext } from '../context'
-import { applyDiscount, subtotalPaise } from '../discounts/evaluate'
-import { resolveCartDiscount } from '../discounts/resolve'
 import { CommerceError } from '../errors'
 import {
   freeShippingThreshold,
-  quoteShipping,
-  type ShippingCartMeasure,
-  type ShippingDestination,
-  type ShippingQuote,
+  HOME_COUNTRY,
   type ShippingZoneInput,
   type ShippingZoneWrite,
 } from './rates'
 
+export const GENERAL_PROFILE_NAME = 'General'
+
+/** The store's General profile, made on first use (stores created after migration 0193). */
+export async function ensureGeneralProfile(
+  tx: StoreTx,
+  storeId: string,
+): Promise<ShippingProfileRow> {
+  const [found] = await tx.select().from(shippingProfile).where(eq(shippingProfile.isDefault, true))
+  if (found) return found
+  await tx
+    .insert(shippingProfile)
+    .values({ storeId, name: GENERAL_PROFILE_NAME, isDefault: true, position: 0 })
+    .onConflictDoNothing()
+  const [made] = await tx.select().from(shippingProfile).where(eq(shippingProfile.isDefault, true))
+  if (!made) throw new Error('General shipping profile insert returned nothing')
+  // Zones written before the store had a General profile belong to it.
+  await tx.update(shippingZone).set({ profileId: made.id }).where(isNull(shippingZone.profileId))
+  return made
+}
+
+export type ShippingProfileRow = typeof shippingProfile.$inferSelect
 export type ShippingZoneRow = typeof shippingZone.$inferSelect
 export type ShippingRateRow = typeof shippingRate.$inferSelect
 export type ShippingZoneWithRates = ShippingZoneRow & { rates: ShippingRateRow[] }
+
+/**
+ * The countries checkout offers in its Country picker: India, then every country a shipping
+ * zone names (all of them with a "Rest of world" zone). RLS scopes the zones.
+ */
+export async function storeCheckoutCountries(tx: StoreTx): Promise<string[]> {
+  const zones = await tx.select({ countries: shippingZone.countryCodes }).from(shippingZone)
+  return checkoutCountries(zones.map((z) => z.countries))
+}
 
 /** Every zone of the store with its rates, in the merchant's order. RLS scopes the rows. */
 export async function listShippingZones(tx: StoreTx): Promise<ShippingZoneWithRates[]> {
@@ -58,6 +83,24 @@ export async function getShippingZone(
     .where(eq(shippingRate.zoneId, id))
     .orderBy(asc(shippingRate.position), asc(shippingRate.id))
   return { ...zone, rates }
+}
+
+/** A zone as the service saves it; no countries means India, as before country zones. */
+export type ShippingZoneSave = Omit<ShippingZoneWrite, 'countryCodes'> & {
+  countryCodes?: string[] | undefined
+}
+
+/** Where a zone ships: its countries, and the states and PIN rules only when India is one. */
+const coverage = (input: ShippingZoneSave) => {
+  // A caller that skipped the schema (seeds, the importer's executor) still means India.
+  const listed = input.countryCodes?.length ? input.countryCodes : [HOME_COUNTRY]
+  const countryCodes = [...new Set(listed)]
+  const india = countryCodes.includes(HOME_COUNTRY)
+  return {
+    countryCodes,
+    stateCodes: india ? [...new Set(input.stateCodes)] : [],
+    pincodeRules: india ? input.pincodeRules : [],
+  }
 }
 
 const rateValues = (r: ShippingZoneWrite['rates'][number], position: number) => ({
@@ -108,16 +151,17 @@ async function syncRates(
 export async function createShippingZone(
   tx: StoreTx,
   storeId: string,
-  input: ShippingZoneWrite,
+  input: ShippingZoneSave,
 ): Promise<ShippingZoneWithRates> {
+  const profileId = input.profileId ?? (await ensureGeneralProfile(tx, storeId)).id
   const [last] = await tx.select({ n: max(shippingZone.position) }).from(shippingZone)
   const [zone] = await tx
     .insert(shippingZone)
     .values({
       storeId,
+      profileId,
       name: input.name,
-      stateCodes: [...new Set(input.stateCodes)],
-      pincodeRules: input.pincodeRules,
+      ...coverage(input),
       position: (last?.n ?? -1) + 1,
     })
     .returning()
@@ -130,14 +174,13 @@ export async function updateShippingZone(
   tx: StoreTx,
   storeId: string,
   id: string,
-  input: ShippingZoneWrite,
+  input: ShippingZoneSave,
 ): Promise<ShippingZoneWithRates> {
   const [zone] = await tx
     .update(shippingZone)
     .set({
       name: input.name,
-      stateCodes: [...new Set(input.stateCodes)],
-      pincodeRules: input.pincodeRules,
+      ...coverage(input),
       updatedAt: new Date(),
     })
     .where(eq(shippingZone.id, id))
@@ -156,9 +199,17 @@ export async function deleteShippingZone(tx: StoreTx, id: string): Promise<boole
   return rows.length > 0
 }
 
-/** Zones in the shape the pure rate engine takes. */
+/**
+ * The General profile's zones (every product not in a custom profile), in the shape the pure
+ * rate engine takes. A cart's quote splits lines by profile (`quoteProfileLines`).
+ */
 export async function loadRateZones(tx: StoreTx): Promise<ShippingZoneInput[]> {
-  return listShippingZones(tx)
+  const [general] = await tx
+    .select({ id: shippingProfile.id })
+    .from(shippingProfile)
+    .where(eq(shippingProfile.isDefault, true))
+  const zones = await listShippingZones(tx)
+  return zones.filter((z) => z.profileId === null || z.profileId === general?.id)
 }
 
 /** The store-wide free-shipping threshold for the cart line, or null. */
@@ -174,71 +225,4 @@ export async function cartWeightGrams(ctx: StoreContext, cartId: string): Promis
     .innerJoin(variant, eq(variant.id, cartLine.variantId))
     .where(eq(cartLine.cartId, cartId))
   return rows.reduce((sum, r) => sum + r.quantity * (r.grams ?? 0), 0)
-}
-
-export type CartShippingQuote = ShippingQuote & {
-  /** True when the discount in force makes shipping free (every option is then ₹0). */
-  freeShippingDiscount: boolean
-  /** The value (after the discount) and weight the rates were priced on; null when nothing ships. */
-  measure?: ShippingCartMeasure | null | undefined
-  /** Shipping after the discount in force (a free-shipping discount and its cap). */
-  afterDiscount?: ((shippingPaise: number) => number) | undefined
-}
-
-/**
- * Rates for a cart going to `to`, priced the way `placeOrder` prices them:
- * bands and thresholds read the subtotal after the discount in force, and a
- * free-shipping discount zeroes the price. A basket of only gift cards ships
- * nothing.
- */
-export async function quoteCartShipping(
-  ctx: StoreContext,
-  cartId: string,
-  to: ShippingDestination,
-  opts: { email?: string | null | undefined } = {},
-): Promise<CartShippingQuote> {
-  const [c] = await ctx.tx
-    .select({ discountCode: cart.discountCode })
-    .from(cart)
-    .where(eq(cart.id, cartId))
-  const lines = await ctx.tx
-    .select({
-      quantity: cartLine.quantity,
-      unitPricePaise: cartLine.unitPricePaise,
-      productId: variant.productId,
-      giftCard: product.isGiftCard,
-    })
-    .from(cartLine)
-    .innerJoin(variant, eq(variant.id, cartLine.variantId))
-    .innerJoin(product, eq(product.id, variant.productId))
-    .where(eq(cartLine.cartId, cartId))
-  if (!c || lines.length === 0 || lines.every((l) => l.giftCard)) {
-    return { kind: 'not_configured', freeShippingDiscount: false }
-  }
-  const { outcome } = await resolveCartDiscount(ctx, cartId, c.discountCode, {
-    ...opts,
-    stateCode: to.stateCode,
-  })
-  const { discountedSubtotalPaise } = applyDiscount(subtotalPaise(lines), 0, outcome)
-  const measure: ShippingCartMeasure = {
-    valuePaise: discountedSubtotalPaise,
-    weightGrams: await cartWeightGrams(ctx, cartId),
-  }
-  const quote = quoteShipping(await loadRateZones(ctx.tx), to, measure)
-  const free = outcome?.freeShipping === true
-  const afterDiscount = (paise: number) => applyDiscount(0, paise, outcome).shippingPaise
-  if (quote.kind !== 'rates' || !free) {
-    return { ...quote, freeShippingDiscount: free, measure, afterDiscount }
-  }
-  // A rate above the discount's "exclude rates over" cap keeps its price (applyDiscount).
-  return {
-    kind: 'rates',
-    options: quote.options.map((o) => ({
-      ...o,
-      pricePaise: applyDiscount(0, o.pricePaise, outcome).shippingPaise,
-    })),
-    freeShippingDiscount: true,
-    measure,
-    afterDiscount,
-  }
 }

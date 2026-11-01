@@ -1,0 +1,72 @@
+---
+title: Pre-orders
+description: Take orders before stock arrives, one product at a time or many through a campaign.
+---
+
+# Pre-orders
+
+**Where to find it:** **Products**, then **Pre-orders**. **What to do:** create a campaign and add
+the products of your launch. **What you'll see:** the last 30 days of pre-orders and their revenue,
+every product taking pre-orders with how many are left under its limit, and every campaign with
+its orders and revenue.
+
+## One product, or a campaign
+
+- **One product:** open the product, then the **Pre-order & launch** card. Leave **Pre-order
+  campaign** on **None**, switch pre-order on and set the ship date, limit, button and payment.
+- **A campaign:** one set of rules for many products, for example "Lofree launch" for three
+  keyboards. Change the ship date once and every product in it follows.
+
+A product joins a campaign from the campaign page (**Products** card, **Browse**) or from its own
+**Pre-order campaign** picker. A product is in one campaign at a time.
+
+## What a campaign sets
+
+- **Shipping and limit:** an expected ship date, or "ships in N days"; and how many units of
+  each variant may be sold beyond stock. Leave the limit blank for no limit.
+- **Payment:** charge in full, a fixed deposit per unit, or a percentage deposit. The balance is
+  asked for later, as with a single pre-order product (Settings, Payments, Pre-orders).
+- **A product's own settings win.** In the product's **Pre-order & launch** card, tick **Keep this
+  product's own** for the ship date, limit, button label, payment or note, and fill them in there.
+
+In a campaign, a product sells as a pre-order when its stock runs out. While it has stock it sells
+normally, at its usual price.
+
+## Rules
+
+- **Pre-order discount:** a percent or an amount off while the product sells as a pre-order.
+- **Markets:** where the campaign applies. None ticked means every market.
+- **Stock locations:** whose stock decides "sold out". None ticked means every location that ships
+  online orders.
+- **Sales channels:** **Online store** covers the cart and checkout. **Social** and **AI agents**
+  show sold-out campaign items as "pre-order" in the Meta, Google and ChatGPT feeds.
+- **Pre-orders and in-stock items in one cart:**
+  - **Allow, ship in-stock items now:** the order is split; in-stock items ship first.
+  - **Allow, ship everything together:** every parcel of the order shows as waiting for the
+    pre-order. Pack them all once the pre-order stock arrives.
+  - **Don't allow:** the cart refuses the mix and shows your message (set it in **Content**).
+- **An item sells out while it is in a cart:** turn it into a pre-order at checkout, or stop the
+  checkout with "out of stock".
+
+The cart and checkout check every rule on the server, whatever the page showed.
+
+## Content and design
+
+The **Storefront** card has two tabs, with a live preview of the product button, the cart line and
+the order beside them.
+
+- **Content:** the button text, the badge, the note under the button, the cart line text, the note
+  kept on the order, and the message for a refused mixed cart. Notes may use `{ship_date}` and
+  `{ship_month}`. Blank fields use the product's note, then the store's (Settings, Payments).
+- **Design:** the button and badge colours. Blank uses your theme's colours.
+
+## Pausing and deleting
+
+A **paused** campaign is kept; its products sell by their own pre-order settings meanwhile.
+**Deleting** a campaign takes its products out of it; past orders keep their lines and revenue.
+
+## From Shopify
+
+The Shopify import turns each pre-order purchase option (a selling plan group named like
+"Pre-order") into a campaign with its products. Set its ship date, payment and rules here after the
+import; a later import keeps your changes.

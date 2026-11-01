@@ -197,7 +197,8 @@ export class RazorpayProvider implements PaymentProvider {
       amount: input.amountPaise,
       currency: input.currency,
       receipt: buildReceipt(input),
-      payment_capture: true,
+      // Manual capture (#150): Razorpay only authorises; `capture` takes the money later.
+      payment_capture: input.capture !== 'manual',
       notes: buildOrderNotes(input),
     })
     return {
@@ -248,6 +249,17 @@ export class RazorpayProvider implements PaymentProvider {
       return { status: 'failed' as const, providerPaymentId: paymentId }
     const p = (await this.client.payments.fetch(paymentId)) as unknown as RzpPayment
     return { status: RAZORPAY_STATUS[p.status] ?? 'pending', providerPaymentId: p.id }
+  }
+
+  /** Captures an authorised payment (`POST /payments/:id/capture`) for the amount given. */
+  async capture(providerPaymentId: string, amountPaise: number) {
+    const p = (await this.client.payments.capture(
+      providerPaymentId,
+      amountPaise,
+      'INR',
+    )) as unknown as RzpPayment
+    const status: PaymentStatus = RAZORPAY_STATUS[p.status] ?? 'pending'
+    return { status, providerPaymentId: p.id }
   }
 
   async fetchStatus(providerRef: string) {

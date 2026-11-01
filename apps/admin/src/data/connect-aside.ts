@@ -134,5 +134,15 @@ export const connectAsideContent = {
       helpBody:
         'On developer.fedex.com, open My Projects, pick your project and copy the key pair for test or production. Your account number is on your FedEx invoice.',
     },
+    shipglobal: {
+      connects: [
+        'Export bookings with HS codes, GSTIN, IEC and IOSS',
+        'The label on the order, ready to print',
+        'One page to move each parcel’s status along',
+      ],
+      helpTitle: 'Where is my API login?',
+      helpBody:
+        'In ShipGlobal, open Settings › API for the API login (an email) and password. If there is no API section, ask ShipGlobal support to turn on API access.',
+    },
   } as Record<string, { connects: string[]; helpTitle: string; helpBody: string }>,
 } as const

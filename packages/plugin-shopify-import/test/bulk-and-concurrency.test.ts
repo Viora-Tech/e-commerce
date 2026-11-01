@@ -79,31 +79,24 @@ describe('bulk operations', () => {
       .map((line) => JSON.stringify(line))
       .join('\n')
 
-    const fetchImpl = (async (input: string | URL | Request) => {
-      const url = String(input)
-      if (url === 'https://waimers.myshopify.com/admin/api/2025-07/graphql.json') {
-        return json({ data: { currentBulkOperation: null }, extensions: { cost } })
-      }
-      if (url === 'https://cdn.example.com/bulk/result.jsonl') {
-        return new Response(jsonl, { headers: { 'content-type': 'text/plain' } })
-      }
-      throw new Error(`unexpected fetch: ${url}`)
-    }) as typeof fetch
-
-    // The client answers `currentBulkOperation` first (none running), then the
-    // run mutation, then two polls before COMPLETED — swap in a stateful mock.
-    let calls = 0
+    const endpoint = 'https://waimers.myshopify.com/admin/api/2026-10/graphql.json'
+    const sent: string[] = []
+    // The run mutation first, then our own operation by id: RUNNING once, then COMPLETED.
     const client = new ShopifyClient({
       shopDomain: 'waimers.myshopify.com',
       accessToken: 'shpat_test',
       sleep: async () => {},
       fetch: (async (input, init) => {
         const url = String(input)
-        if (url !== 'https://waimers.myshopify.com/admin/api/2025-07/graphql.json') {
-          return fetchImpl(input)
+        if (url === 'https://cdn.example.com/bulk/result.jsonl') {
+          return new Response(jsonl, { headers: { 'content-type': 'text/plain' } })
         }
-        const body = JSON.parse((init?.body as string) ?? '{}') as { query: string }
-        calls++
+        if (url !== endpoint) throw new Error(`unexpected fetch: ${url}`)
+        const body = JSON.parse((init?.body as string) ?? '{}') as {
+          query: string
+          variables: { id?: string }
+        }
+        sent.push(body.query)
         if (body.query.includes('bulkOperationRunQuery')) {
           return json({
             data: {
@@ -115,13 +108,12 @@ describe('bulk operations', () => {
             extensions: { cost },
           })
         }
-        // currentBulkOperation: none running (first call), then RUNNING, then COMPLETED.
+        expect(body.variables.id).toBe('gid://shopify/BulkOperation/1')
         polls++
-        if (calls === 1) return json({ data: { currentBulkOperation: null }, extensions: { cost } })
         const status = polls < 2 ? 'RUNNING' : 'COMPLETED'
         return json({
           data: {
-            currentBulkOperation: {
+            bulkOperation: {
               id: 'gid://shopify/BulkOperation/1',
               status,
               errorCode: null,
@@ -138,6 +130,10 @@ describe('bulk operations', () => {
       intervalMs: 0,
     })
     expect(url).toBe('https://cdn.example.com/bulk/result.jsonl')
+    // 2026-01 made ungrouped output the default; the reassembly needs children after their parent.
+    expect(sent[0]).toContain('groupObjects: true')
+    // 2026-10: `currentBulkOperation` is deprecated; only our own operation is polled.
+    expect(sent.some((q) => q.includes('currentBulkOperation'))).toBe(false)
 
     const nodes = await reassembleBulkStream<{
       id: string
@@ -166,31 +162,7 @@ describe('bulk operations', () => {
     expect(nodes[1]?.variants.nodes.map((v) => v.title)).toEqual(['Red', 'Blue'])
   })
 
-  it('throws BulkUnavailableError when a bulk op is already running for this app/shop', async () => {
-    const client = new ShopifyClient({
-      shopDomain: 'waimers.myshopify.com',
-      accessToken: 'shpat_test',
-      sleep: async () => {},
-      fetch: (async () =>
-        json({
-          data: {
-            currentBulkOperation: {
-              id: 'gid://shopify/BulkOperation/9',
-              status: 'RUNNING',
-              errorCode: null,
-              url: null,
-              partialDataUrl: null,
-            },
-          },
-          extensions: { cost },
-        })) as typeof fetch,
-    })
-    await expect(runBulkQuery(client, '{ products { edges { node { id } } } }')).rejects.toThrow(
-      BulkUnavailableError,
-    )
-  })
-
-  it('throws BulkUnavailableError when Shopify rejects the bulk query', async () => {
+  it('throws BulkUnavailableError when our bulk operation fails on Shopify', async () => {
     let calls = 0
     const client = new ShopifyClient({
       shopDomain: 'waimers.myshopify.com',
@@ -198,8 +170,43 @@ describe('bulk operations', () => {
       sleep: async () => {},
       fetch: (async () => {
         calls++
-        if (calls === 1) return json({ data: { currentBulkOperation: null }, extensions: { cost } })
+        if (calls === 1) {
+          return json({
+            data: {
+              bulkOperationRunQuery: {
+                bulkOperation: { id: 'gid://shopify/BulkOperation/9', status: 'CREATED' },
+                userErrors: [],
+              },
+            },
+            extensions: { cost },
+          })
+        }
         return json({
+          data: {
+            bulkOperation: {
+              id: 'gid://shopify/BulkOperation/9',
+              status: 'FAILED',
+              errorCode: 'INTERNAL_SERVER_ERROR',
+              url: null,
+              partialDataUrl: null,
+            },
+          },
+          extensions: { cost },
+        })
+      }) as typeof fetch,
+    })
+    await expect(
+      runBulkQuery(client, '{ products { edges { node { id } } } }', { intervalMs: 0 }),
+    ).rejects.toThrow(BulkUnavailableError)
+  })
+
+  it('throws BulkUnavailableError when Shopify rejects the bulk query', async () => {
+    const client = new ShopifyClient({
+      shopDomain: 'waimers.myshopify.com',
+      accessToken: 'shpat_test',
+      sleep: async () => {},
+      fetch: (async () =>
+        json({
           data: {
             bulkOperationRunQuery: {
               bulkOperation: null,
@@ -207,8 +214,7 @@ describe('bulk operations', () => {
             },
           },
           extensions: { cost },
-        })
-      }) as typeof fetch,
+        })) as typeof fetch,
     })
     await expect(runBulkQuery(client, '{ bad }')).rejects.toThrow(BulkUnavailableError)
   })

@@ -1,3 +1,4 @@
+import { isFresh, stepUpAgeMs } from '@commerce/auth'
 import {
   forgetInvitation,
   invitationRoleForUser,
@@ -14,8 +15,9 @@ import {
 import type { StoreTx } from '@commerce/db'
 import { organizationMembership, withStore } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
-import { approvalKind, isReadPath } from '../mcp/action-catalogue'
-import { queueForApprover } from '../services/ai/assistant/service'
+import { approvalKind, isReadPath, kindForInput } from '../mcp/action-catalogue'
+import { setActorName } from '../services/actor.service'
+import { ALREADY_REQUESTED, queueForApprover } from '../services/ai/assistant/service'
 import { mustAsk } from './approval-rules'
 import { memberProcedure, type SessionContext } from './base'
 import { remember } from './request-memo'
@@ -221,9 +223,14 @@ function storeProcedureWith(required?: Permission | readonly Permission[]) {
       if (waits) {
         // An approver running the change for someone: `approveAction` records who must approve.
         if (context.approvalReplay) throw approvalQueued(null, waits)
-        const id = await queue(context, tx, scope, path.join('.'), waits, input)
-        return { [QUEUED]: id }
+        return { [QUEUED]: await queue(context, tx, scope, path.join('.'), waits, input) }
       }
+      // Runs now (the owner, or a role that does not need approval): a sensitive action also
+      // needs a recent step-up when enforcement is on. Checked here, after approval, so a role
+      // that would queue is never also asked to step up.
+      await requireStepUp(context, path, input)
+      const actor = context.session.user.name?.trim() || context.session.user.email
+      await setActorName(tx, actor)
       try {
         const out = await next({ context: { scope, tx, afterCommit } })
         await logTokenCall(context, tx, member.storeId, path, required)
@@ -241,24 +248,61 @@ function storeProcedureWith(required?: Permission | readonly Permission[]) {
     }
     // Queued for approval: the row is committed, and the caller hears it never ran.
     if (result && typeof result === 'object' && QUEUED in result) {
-      throw approvalQueued((result as { [QUEUED]: string })[QUEUED], null)
+      const queued = (result as { [QUEUED]: Queued })[QUEUED]
+      throw approvalQueued(queued.id, null, queued.alreadyRequested)
     }
     return result
   })
 }
 
 const QUEUED = Symbol('queued for approval')
+type Queued = { id: string; alreadyRequested: boolean }
 
-/** Code a caller (admin pages, MCP, the API) reads as "sent for approval, nothing changed yet". */
+/**
+ * Code a caller (admin pages, MCP, the API) reads as "sent for approval, nothing changed yet".
+ * `data.alreadyRequested`: the same change was already waiting, so no new request was made.
+ */
 export const APPROVAL_QUEUED = 'APPROVAL_QUEUED'
 
-function approvalQueued(id: string | null, permission: Permission | null) {
+function approvalQueued(id: string | null, permission: Permission | null, already = false) {
   return new ORPCError(APPROVAL_QUEUED, {
     status: 403,
-    message:
-      'Sent for approval: your role needs approval for this. It runs once a member who can approve it does so in Settings → Approvals.',
-    data: { approvalId: id, permission },
+    message: already
+      ? `${ALREADY_REQUESTED} The same change is already waiting in Settings → Approvals, so nothing new was sent.`
+      : 'Sent for approval: your role needs approval for this. It runs once a member who can approve it does so in Settings → Approvals.',
+    data: { approvalId: id, permission, alreadyRequested: already },
   })
+}
+
+/** Code the admin reads as "re-verify first": it opens the step-up dialog and retries the call. */
+export const STEP_UP_REQUIRED = 'STEP_UP_REQUIRED'
+
+function stepUpRequired(path: string) {
+  return new ORPCError(STEP_UP_REQUIRED, {
+    status: 403,
+    message: "Confirm it's you to continue — this action needs a recent sign-in check.",
+    data: { path },
+  })
+}
+
+/**
+ * Step-up gate (A5), on calls that run now (never queued): when enforcement is on, a sensitive
+ * action from a real browser session is refused unless that session re-verified within the
+ * window. Access tokens and MCP carry no session to step up, so they are never gated here — the
+ * MCP surface already holds sensitive actions for a person's approval. The freshness stamp is
+ * read straight from the session row (`stepUpAgeMs`), not from the cookie-cached `getSession`.
+ */
+async function requireStepUp(
+  context: SessionContext,
+  path: readonly string[],
+  input: unknown,
+): Promise<void> {
+  if (!context.stepUpEnforce || context.apiPrincipal) return
+  const dotted = path.join('.')
+  if (!dotted || kindForInput(dotted, input) !== 'sensitive') return
+  const age = await stepUpAgeMs(context.db, context.session.sessionId)
+  if (isFresh(age)) return
+  throw stepUpRequired(dotted)
 }
 
 /**
@@ -295,7 +339,7 @@ const hasFile = (value: unknown): boolean =>
     typeof value === 'object' &&
     Object.values(value as Record<string, unknown>).some(hasFile))
 
-/** Stores the call in Approvals for a different member to approve. */
+/** Stores the call in Approvals for a different member to approve (or finds it already there). */
 async function queue(
   context: SessionContext,
   tx: StoreTx,
@@ -303,7 +347,7 @@ async function queue(
   path: string,
   permission: Permission,
   input: unknown,
-): Promise<string> {
+): Promise<Queued> {
   const token = context.apiPrincipal
   const view = await queueForApprover(tx, {
     storeId: scope.storeId,
@@ -314,18 +358,19 @@ async function queue(
     permission,
     now: new Date(),
   })
+  const alreadyRequested = view.alreadyRequested === true
   if (token) {
     await recordApiActivity(tx, scope.storeId, {
       grantId: token.grantId,
       kind: 'approval',
       tool: path,
-      summary: `${token.name} asked to run ${path} → waiting approval`,
+      summary: `${token.name} asked to run ${path} → ${alreadyRequested ? 'already requested, ' : ''}waiting approval`,
       detail: `${token.userName} · their role needs approval for ${describe(permission)}`,
       aiActionId: view.id,
       at: new Date(),
     })
   }
-  return view.id
+  return { id: view.id, alreadyRequested }
 }
 
 /** Runs after the store transaction commits; failures are reported, never thrown. */

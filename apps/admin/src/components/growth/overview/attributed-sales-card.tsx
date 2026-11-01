@@ -84,10 +84,10 @@ export default function AttributedSalesCard({
       </div>
       <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <span className="text-stat tabular-nums text-foreground">
-          {fmt.money(attributed?.value ?? 0)}
+          {fmt.moneyWhole(attributed?.value ?? 0)}
         </span>
         <span className="text-caption text-muted-foreground">
-          {copy.ofTotal(fmt.money(total?.value ?? 0))}
+          {copy.ofTotal(fmt.moneyWhole(total?.value ?? 0))}
         </span>
       </p>
       <GrowthTrendChart

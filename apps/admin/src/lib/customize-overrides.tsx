@@ -24,6 +24,14 @@ type FieldOverride<C extends ComponentType<any>> = ComponentProps<C>
  * whole canvas — the flicker the first edit after a save caused. Anything an
  * override needs from the editor comes through context instead.
  */
+/** The setting's own help from the theme's schema, under its field (audit #129). */
+function SettingHelp({ field }: { field: unknown }) {
+  const help = (field as { metadata?: { help?: unknown } } | null)?.metadata?.help
+  return typeof help === 'string' && help ? (
+    <p className="mt-1.5 text-caption text-muted-foreground">{help}</p>
+  ) : null
+}
+
 export const CUSTOMIZE_OVERRIDES: Partial<Overrides> = {
   iframe: ({ children, document }) => <PreviewFrame document={document}>{children}</PreviewFrame>,
   // One toolbar per selected block: BlockToolbar draws it in Puck's overlay, and Puck's
@@ -41,19 +49,34 @@ export const CUSTOMIZE_OVERRIDES: Partial<Overrides> = {
   // Every setting gets the "connect dynamic source" control (see ./customize-dynamic-fields).
   fieldTypes: withDynamicSources({
     text: (props) => (
-      <CustomizeTextField {...(props as FieldOverride<typeof CustomizeTextField>)} />
+      <>
+        <CustomizeTextField {...(props as FieldOverride<typeof CustomizeTextField>)} />
+        <SettingHelp field={props.field} />
+      </>
     ),
     textarea: (props) => (
-      <CustomizeTextField {...(props as FieldOverride<typeof CustomizeTextField>)} />
+      <>
+        <CustomizeTextField {...(props as FieldOverride<typeof CustomizeTextField>)} />
+        <SettingHelp field={props.field} />
+      </>
     ),
     number: (props) => (
-      <CustomizeNumberField {...(props as FieldOverride<typeof CustomizeNumberField>)} />
+      <>
+        <CustomizeNumberField {...(props as FieldOverride<typeof CustomizeNumberField>)} />
+        <SettingHelp field={props.field} />
+      </>
     ),
     select: (props) => (
-      <CustomizeSelectField {...(props as FieldOverride<typeof CustomizeSelectField>)} />
+      <>
+        <CustomizeSelectField {...(props as FieldOverride<typeof CustomizeSelectField>)} />
+        <SettingHelp field={props.field} />
+      </>
     ),
     radio: (props) => (
-      <CustomizeRadioField {...(props as FieldOverride<typeof CustomizeRadioField>)} />
+      <>
+        <CustomizeRadioField {...(props as FieldOverride<typeof CustomizeRadioField>)} />
+        <SettingHelp field={props.field} />
+      </>
     ),
     array: (props) => (
       <CustomizeArrayField {...(props as FieldOverride<typeof CustomizeArrayField>)} />

@@ -13,6 +13,7 @@ import {
   variant,
 } from '@commerce/db'
 import { and, asc, desc, eq, isNotNull, like, sql } from 'drizzle-orm'
+import type { SignedInCustomer } from '../accounts/auth'
 import { excerptText } from '../blog/text'
 import { browseProducts } from '../catalog/browse'
 import {
@@ -22,11 +23,15 @@ import {
   parsePage,
   parseUnavailable,
 } from '../catalog/browse-params'
+import { pickedRecommendationIdsFor } from '../discovery/recommendations'
+import { soldInRequestCatalog } from '../markets/catalog-rules'
 import type { MarketPricing } from '../markets/presentment'
 import { keyFromName } from '../metaobjects/validate'
 import { toNavLinks } from '../navigation/resolve'
 import { publishedPolicyLinks } from '../policies/service'
 import { loadMetafields, loadMetaobjects, loadMetaobjectsOfType } from './custom-data'
+import { loadLiquidCustomer } from './customer-data'
+import { loadCustomerOrders } from './customer-orders'
 import type {
   LiquidBlogData,
   LiquidCartData,
@@ -55,6 +60,8 @@ export type StoreLiquidDataOptions = {
   origin: string
   /** The shopper's cart, from the storefront cart cookie; empty in the editor. */
   cart?: (() => Promise<LiquidCartData>) | undefined
+  /** The signed-in shopper (`currentCustomer`), for the `customer` global; null signed out. */
+  customer?: SignedInCustomer | null | undefined
   /** The Reviews app's data, when the store installed it (see `withReviewMetafields`). */
   reviews?: LiquidReviewsSource | undefined
   /** The page's market when it shows another currency: prices and `shop.currency` in it. */
@@ -187,7 +194,7 @@ export async function storeLiquidData(
           imageAlt: media.alt,
           width: media.width,
           height: media.height,
-          count: sql<number>`(select count(*) from ${collectionProduct} cp join ${product} p on p.id = cp.product_id where cp.collection_id = ${collection.id} and p.status = 'active')`,
+          count: sql<number>`(select count(*) from ${collectionProduct} cp join ${product} p on p.id = cp.product_id where cp.collection_id = ${collection.id} and p.status = 'active' and ${soldInRequestCatalog(sql`p.id`)})`,
         })
         .from(collection)
         .leftJoin(media, eq(media.id, collection.imageMediaId))
@@ -213,7 +220,10 @@ export async function storeLiquidData(
           .select({ id: product.id })
           .from(product)
           .where(and(eq(product.handle, handle), eq(product.status, 'active')))
-        return row ? ((await loadProducts(tx, [row.id], pricing))[0] ?? null) : null
+        // Outside the market's catalog the page still shows, with nothing for sale.
+        return row
+          ? ((await loadProducts(tx, [row.id], pricing, { keepUnsold: true }))[0] ?? null)
+          : null
       }),
     products: (handles) => productsByHandles(tx, handles, pricing),
     collection: async (handle) => {
@@ -221,7 +231,7 @@ export async function storeLiquidData(
         const [count] = await tx
           .select({ n: sql<number>`count(*)` })
           .from(product)
-          .where(eq(product.status, 'active'))
+          .where(and(eq(product.status, 'active'), soldInRequestCatalog(product.id)))
         return {
           id: 'all',
           handle: 'all',
@@ -240,7 +250,7 @@ export async function storeLiquidData(
           const rows = await tx
             .select({ id: product.id })
             .from(product)
-            .where(eq(product.status, 'active'))
+            .where(and(eq(product.status, 'active'), soldInRequestCatalog(product.id)))
             .orderBy(asc(product.title), asc(product.id))
             .limit(limit)
           return loadProducts(
@@ -254,7 +264,13 @@ export async function storeLiquidData(
           .from(collectionProduct)
           .innerJoin(collection, eq(collection.id, collectionProduct.collectionId))
           .innerJoin(product, eq(product.id, collectionProduct.productId))
-          .where(and(eq(collection.handle, handle), eq(product.status, 'active')))
+          .where(
+            and(
+              eq(collection.handle, handle),
+              eq(product.status, 'active'),
+              soldInRequestCatalog(product.id),
+            ),
+          )
           .orderBy(asc(collectionProduct.position))
           .limit(limit)
         return loadProducts(
@@ -270,9 +286,17 @@ export async function storeLiquidData(
         const wanted = Math.min(Math.max(1, Math.trunc(limit) || 4), MAX_RECOMMENDATIONS)
         // The merchant's picks first (Search & Discovery). Complementary is only the picks;
         // with none picked it falls back to the related row so the theme's block still fills.
+        // Picks made in our Search & discovery app win; without them, the ones a Shopify import
+        // brought in the product's extra fields.
         const fields = (await loadMetafields(tx, 'product', [productId])).metafields[productId]
+        const own = {
+          related: await pickedRecommendationIdsFor(tx, productId, 'related'),
+          complementary: await pickedRecommendationIdsFor(tx, productId, 'complementary'),
+        }
         const pick = (i: typeof intent) =>
-          pickedRecommendationIds(fields ?? [], i).filter((id) => id !== productId)
+          (own[i].length ? own[i] : pickedRecommendationIds(fields ?? [], i)).filter(
+            (id) => id !== productId,
+          )
         const load = (chunk: string[]) => loadProducts(tx, chunk, pricing)
         // Sold-out products are dropped after loading (stock lives on the variants), so the
         // ranked list is read in chunks until enough are in stock: the closest matches (same
@@ -345,6 +369,16 @@ export async function storeLiquidData(
           : null
       }),
     cart: () => once('cart', () => options.cart?.() ?? Promise.resolve(EMPTY_CART)),
+    customer: () =>
+      once('customer', async () => {
+        const who = options.customer
+        return who ? loadLiquidCustomer(tx, who, pricing) : null
+      }),
+    customerOrders: () =>
+      once('customer-orders', async () => {
+        const who = options.customer
+        return who ? loadCustomerOrders(tx, who.id, pricing) : []
+      }),
     metafields: async (ownerType, ownerIds) => {
       const data = await loadMetafields(tx, ownerType, ownerIds)
       if (ownerType !== 'product' || !options.reviews) return data

@@ -19,20 +19,36 @@ function lines(r: DeliveryEstimate): string[] {
   return out
 }
 
+/**
+ * The last answer in this tab. Add to cart refreshes the page, which mounts the widget afresh;
+ * the shopper's checked PIN code and its answer stay instead of resetting (#119).
+ */
+let remembered: { pincode: string; result: DeliveryEstimate | null } = {
+  pincode: '',
+  result: null,
+}
+
 /** PIN code → honest delivery window under the add-to-cart button. */
 export default function DeliveryEstimateWidget() {
   // Hooks
-  const [pincode, setPincode] = useState('')
-  const [result, setResult] = useState<DeliveryEstimate | null>(null)
+  const [pincode, setPincode] = useState(() => remembered.pincode)
+  const [result, setResult] = useState<DeliveryEstimate | null>(() => remembered.result)
   const [pending, start] = useTransition()
 
   // Event handlers
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    start(async () => setResult(await estimateDeliveryAction(pincode)))
+    start(async () => {
+      const next = await estimateDeliveryAction(pincode)
+      remembered = { pincode, result: next }
+      setResult(next)
+    })
   }
 
-  const handleChange = () => setResult(null)
+  const handleChange = () => {
+    remembered = { pincode, result: null }
+    setResult(null)
+  }
 
   // Render logic
   const tone = !result ? '' : !result.ok || !result.serviceable ? ' is-negative' : ' is-positive'

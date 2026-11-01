@@ -1,4 +1,5 @@
 import type { FieldType, MeasureKind, MeasureUnit, PresetKey } from '@commerce/core/metaobjects'
+import { customDataDialogContent } from './custom-data-dialog'
 
 /*
  * Merchants see "Content types", "Entries" and "Extra fields"; the code, the API and the
@@ -154,6 +155,8 @@ export const metaobjectListContent = {
     'Your own kinds of content, like size guides, FAQs or store locations, to show on your store.',
   add: 'New content type',
   fromTemplate: 'Start from template',
+  /** Shopify's category value types (shopify_battery_type…) kept apart from the store's own (#93). */
+  views: { own: 'Yours', shopify: 'Shopify category values' },
   summary: (types: number, entries: number) =>
     types === 0
       ? 'Your own kinds of content, like size guides and FAQs.'
@@ -427,29 +430,7 @@ export const customDataContent = {
     delete: 'Delete',
     actions: (name: string) => `Actions for ${name}`,
   },
-  dialog: {
-    addTitle: (owner: string) => `Add ${owner.toLowerCase()} extra field`,
-    editTitle: 'Edit extra field',
-    name: 'Name',
-    namePlaceholder: 'Care guide',
-    namespaceKeyHelp: 'Your theme reads it as metafields.namespace.key. It is fixed once you save.',
-    namespaceKey: 'Theme key',
-    description: 'Hint',
-    descriptionPlaceholder: 'Shown under the field',
-    storefront: 'Show on your store',
-    storefrontHelp: 'Let your theme show this value.',
-    filterable: 'Use as filter',
-    filterableHelp:
-      'Shoppers can narrow collection and search pages by this value, like Grip or Hand size.',
-    privateNote:
-      'Customer and order extra fields stay private: they are never shown on your store.',
-    fixed: 'What goes in it and the key are fixed once the extra field is saved.',
-    save: 'Save',
-    saving: 'Saving',
-    cancel: 'Cancel',
-    saved: 'Extra field saved',
-    failed: 'Could not save. Check your connection and try again.',
-  },
+  dialog: customDataDialogContent,
   remove: {
     title: (name: string) => `Delete ${name}?`,
     body: (n: number) =>
@@ -485,11 +466,13 @@ export const metafieldsCardContent = {
   empty: 'Add your own fields, like a care guide or warranty, to show more details.',
   manage: 'Manage metafields',
   addField: 'Add a field',
+  showEmpty: (n: number) => (n === 1 ? 'Show 1 empty field' : `Show ${n} empty fields`),
+  hideEmpty: 'Hide empty fields',
   saveFirst: 'Save first, then fill in the extra fields.',
   variant: 'Variant',
   variantHeading: 'Variant metafields',
   /** Under the variant grid's heading on the product page. */
-  variantHelp: 'Each variant has its own values. Saved with the page’s Save changes.',
+  variantHelp: 'Each variant has its own values. They save when you press Save.',
   variantNewLater: 'Variants you just added get a row after you save.',
   variantSaveFailed: (variant: string) => `Could not save the fields of ${variant}.`,
   save: 'Save extra fields',

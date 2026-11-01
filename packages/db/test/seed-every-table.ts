@@ -125,6 +125,8 @@ const PATTERNED: Record<string, () => string | number> = {
   // Markets (0177): ISO codes. A country sits in one market of a store, so each row takes the
   // next one (never IN, which the primary market holds).
   'market.currency': () => 'AED',
+  // Catalog prices (0194): a three-letter currency code.
+  'catalog_price.currency': () => 'AED',
   'market_region.country_code': () =>
     SEED_COUNTRIES[seededCountries++ % SEED_COUNTRIES.length] ?? 'AE',
   'translation.locale': () => 'ar',
@@ -141,7 +143,16 @@ function valueFor(col: Column, table: string): unknown {
   const t = col.type
   if (t === 'uuid') return randomUUID()
   if (t.endsWith('[]')) return sql`'{}'`
-  if (t === 'integer' || t === 'bigint' || t === 'smallint' || t.startsWith('numeric')) return 1
+  if (
+    t === 'integer' ||
+    t === 'bigint' ||
+    t === 'smallint' ||
+    t === 'double precision' ||
+    t === 'real' ||
+    t.startsWith('numeric')
+  ) {
+    return 1
+  }
   if (t === 'boolean') return false
   if (t === 'jsonb' || t === 'json') return sql`'{}'::jsonb`
   if (t.startsWith('timestamp')) return sql`now()`

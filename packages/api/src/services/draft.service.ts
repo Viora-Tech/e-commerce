@@ -3,6 +3,7 @@ import {
   abandonedStats,
   CannotShipToState,
   CommerceError,
+  CUSTOM_ITEM_HANDLE,
   captureCartContact,
   checkDraftDiscountCode,
   convertDraft,
@@ -24,6 +25,7 @@ import {
   markRecoverySent,
   OutOfStock,
   previewCartRecovery,
+  previewDraftGst,
   RECOVERY_NO_CONSENT,
   recoveryUrl,
   storefrontOriginFor,
@@ -99,7 +101,9 @@ export async function draftTiles(tx: StoreTx) {
     .select({
       total: count(),
       invoiced:
-        sql<number>`count(*) filter (where exists (select 1 from notification n where n.order_id = ${order.id} and n.template = 'draft_invoice' and n.status = 'sent'))::int`.mapWith(
+        // Qualified by hand: with no join Drizzle prints a bare "id", which inside the subquery
+        // means the notification's own id, so this counted 0 while the list showed sent invoices.
+        sql<number>`count(*) filter (where exists (select 1 from notification n where n.order_id = "order"."id" and n.template = 'draft_invoice' and n.status = 'sent'))::int`.mapWith(
           Number,
         ),
       valuePaise: sql<number>`coalesce(sum(${order.totalPaise}), 0)::bigint`.mapWith(Number),
@@ -128,6 +132,10 @@ export async function getDraft(tx: StoreTx, id: string) {
         quantity: orderLine.quantity,
         unitPricePaise: orderLine.unitPricePaise,
         sku: variant.sku,
+        gstRatePercent: orderLine.gstRatePercent,
+        hsCode: orderLine.hsCode,
+        /** A one-off custom item (the hidden "Custom item" product), not a catalogue variant. */
+        custom: sql<boolean>`coalesce(${product.handle} = ${CUSTOM_ITEM_HANDLE} and ${product.isSystemTest}, false)`,
         /** A gift card ships nothing; every other line needs a shipping address to convert. */
         giftCard: sql<boolean>`(${orderLine.giftCard} or coalesce(${product.isGiftCard}, false))`,
       })
@@ -179,6 +187,19 @@ export async function saveDraft(
 /** The "Apply discount code" check on the draft editor; nothing is written. */
 export const checkStoreDraftDiscount = (tx: StoreTx, storeId: string, input: DraftCodeInput) =>
   checkDraftDiscountCode(ctxOf(tx, storeId), input)
+
+/** The draft editor's "GST (estimated)" line for the lines as typed; nothing is saved. */
+export async function estimateStoreDraftGst(
+  tx: StoreTx,
+  storeId: string,
+  input: Parameters<typeof previewDraftGst>[1],
+) {
+  try {
+    return await previewDraftGst(ctxOf(tx, storeId), input)
+  } catch (err) {
+    draftErrorToRpc(err)
+  }
+}
 
 /** "Duplicate order": a new draft from the order, opened in the draft editor. */
 export async function duplicateStoreOrder(tx: StoreTx, storeId: string, orderId: string) {

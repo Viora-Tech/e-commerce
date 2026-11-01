@@ -7,6 +7,7 @@ import {
   BarChart3,
   Blocks,
   Boxes,
+  Earth,
   FolderOpen,
   Home,
   MessageSquare,
@@ -55,6 +56,7 @@ export const INBOX_NAV: NavItem = {
   children: [
     { href: routes.salesChannels.inboxConversations(), label: 'Conversations' },
     { href: routes.salesChannels.inboxQuickReplies(), label: 'Quick replies' },
+    { href: routes.salesChannels.inboxKnowledge(), label: 'Knowledge base' },
     { href: routes.salesChannels.inboxSettings(), label: 'Settings' },
   ],
 }
@@ -107,6 +109,7 @@ export const NAV_GROUPS: NavGroup[] = [
           { href: routes.products.list(), label: 'All products' },
           { href: routes.products.collections(), label: 'Collections' },
           { href: routes.products.giftCards(), label: 'Gift cards' },
+          { href: routes.products.preorders(), label: 'Pre-orders' },
         ],
       },
       {
@@ -167,6 +170,18 @@ export const NAV_GROUPS: NavGroup[] = [
         label: 'Discounts',
         icon: BadgePercent,
         permission: permissions.DISCOUNTS_READ,
+      },
+      // Top-level like Shopify's Markets, with Rollouts beneath it (owner, 2026-10-30, audit
+      // #113); both were in Settings.
+      {
+        href: routes.markets.list(),
+        label: 'Markets',
+        icon: Earth,
+        permission: permissions.SETTINGS_READ,
+        children: [
+          { href: routes.catalogs.list(), label: 'Catalogs' },
+          { href: routes.rollouts.list(), label: 'Rollouts' },
+        ],
       },
     ],
   },
@@ -231,6 +246,7 @@ export const SETTINGS_NAV: NavItem = {
 
 export const navigationContent = {
   pickStore: 'Pick a store',
+  mainMenu: 'Main menu',
   stores: 'Stores',
   allStores: 'All stores',
   storesAvailable: (n: number) => `${n} available`,
@@ -249,6 +265,8 @@ export const navigationContent = {
     field: `Search or ask ${siteConfig.brand.name} AI…`,
     /** The top bar hint: this part stays, the examples after it take turns. */
     lead: 'Search or ask AI',
+    /** The same hint while Settings → AI has the assistant off. */
+    leadNoAi: 'Search',
     examples: ['orders to ship', 'best sellers this week', 'low stock', 'today’s sales'],
     shortcut: '⌘K',
     askAi: 'Ask AI',

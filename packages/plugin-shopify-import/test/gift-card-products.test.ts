@@ -90,6 +90,18 @@ describe('gift card signal', () => {
     expect(products[0]?.isGiftCard).toBeUndefined()
   })
 
+  it('maps the Admin API taxonomy category to our category id', () => {
+    const node = productNode(7, {
+      category: { id: 'gid://shopify/TaxonomyCategory/el-2-6-4' },
+    } as never) as never
+    const mapped = mapProduct(node, (node as { variants: { nodes: never[] } }).variants.nodes)
+    expect(mapped.categoryId).toBe('el-2-6-4')
+    const none = productNode(8) as never
+    expect(
+      mapProduct(none, (none as { variants: { nodes: never[] } }).variants.nodes).categoryId,
+    ).toBeNull()
+  })
+
   it('maps the Admin API isGiftCard flag', () => {
     const node = productNode(5, { isGiftCard: true, productType: 'Vouchers' }) as never
     const mapped = mapProduct(node, (node as { variants: { nodes: never[] } }).variants.nodes)

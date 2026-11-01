@@ -58,12 +58,14 @@ export const shippingSettingsContent = {
     fallbackLabel: 'For every other state',
   },
   boxPresets: {
-    heading: 'Your boxes',
+    heading: 'Packages',
     intro:
-      'The boxes you pack orders in. Your main box fills in the size and weight when you book a courier, so you do not type them every time.',
+      'The boxes, envelopes and soft packages you pack orders in. Your main box fills in the size and weight when you book a courier, so you do not type them every time.',
     empty: 'No boxes yet. Add the box you use most.',
     name: 'Name',
     namePlaceholder: 'Small box',
+    kind: 'Type',
+    kinds: { box: 'Box', envelope: 'Envelope', soft_package: 'Soft package' },
     length: 'Length (cm)',
     width: 'Width (cm)',
     height: 'Height (cm)',
@@ -128,6 +130,9 @@ export const shippingSettingsContent = {
     serviceable: (range: string, dispatch: string) => `Delivers ${range}. Dispatches ${dispatch}.`,
     cod: (ok: boolean) => (ok ? 'COD available.' : 'Prepaid only.'),
     fallback: 'Courier did not answer; fallback transit days were used.',
+    noCourier: 'No courier connected, so your standard transit days were used.',
+    remote: (days: number) =>
+      `Remote area: ${days === 1 ? '1 extra day' : `${days} extra days`} added to your standard transit days.`,
     unserviceable: (reason: string) => `Not serviceable: ${reason}`,
   },
 } as const
@@ -213,4 +218,20 @@ export const shipmentPanelContent = {
     rto: 'Returning to origin',
     cancelled: 'Cancelled',
   } as Record<string, string>,
+} as const
+
+/** "Edit tracking" on a shipment entered by hand (no courier app behind it). */
+export const editTrackingContent = {
+  action: 'Edit tracking',
+  title: 'Edit tracking details',
+  body: 'Fix the tracking number or courier. If the customer already got the shipped message, they get the new details too.',
+  waybill: 'Tracking number',
+  courier: 'Courier',
+  courierPlaceholder: 'Blue Dart',
+  trackingUrl: 'Tracking link',
+  trackingUrlPlaceholder: 'https://',
+  cancel: 'Cancel',
+  save: 'Save',
+  saved: 'Tracking details saved',
+  failed: 'Could not save the tracking details',
 } as const

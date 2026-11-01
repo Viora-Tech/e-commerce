@@ -1,7 +1,7 @@
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import { customerActivity, type customersContent } from '@/data/customers'
 import type { api } from '@/lib/api-client'
-import { formatPaise } from '@/lib/money'
+import { formatPaiseWhole } from '@/lib/money'
 import { phoneForDisplay } from '@/lib/phone-display'
 import CustomerAvatar from './customer-avatar'
 import CustomerStatusChip from './customer-status-chip'
@@ -67,7 +67,7 @@ export function customerColumns(copy: CustomerColumnCopy): ResourceColumnSpec<Cu
       title: copy.columns.totalSpent,
       align: 'end',
       sortValue: (c) => c.spentPaise,
-      render: (c) => <span className="tabular-nums">{formatPaise(c.spentPaise)}</span>,
+      render: (c) => <span className="tabular-nums">{formatPaiseWhole(c.spentPaise)}</span>,
     },
     {
       id: 'status',

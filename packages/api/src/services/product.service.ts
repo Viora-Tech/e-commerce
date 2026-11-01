@@ -1,6 +1,7 @@
 import {
   DEFAULT_GST_RATE_PERCENT,
   LOW_STOCK_THRESHOLD,
+  listedPriceRange,
   loadVariantMedia,
   noteProductEvent,
   noteProductsChanged,
@@ -8,7 +9,6 @@ import {
   onHandleChange,
   type ProductMissingFilter,
   parseStoreTax,
-  priceRange,
   type StockFilter,
   storeLowStockThreshold,
   watchStockCrossings,
@@ -186,12 +186,13 @@ export async function listProducts(
     .select({
       productId: variant.productId,
       pricePaise: variant.pricePaise,
+      hiddenOnStore: variant.hiddenOnStore,
       onHand: sellableStock.onHand,
       reserved: sellableStock.reserved,
     })
     .from(variant)
     .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
-    .where(inArray(variant.productId, ids))
+    .where(and(inArray(variant.productId, ids), isNull(variant.archivedAt)))
   const images = await tx
     .select({ productId: productMedia.productId, url: media.url })
     .from(productMedia)
@@ -214,9 +215,10 @@ export async function listProducts(
         preorderEnabled: r.preorderEnabled,
         launchAt: r.launchAt,
         variantCount: vs.length,
-        minPricePaise: priceRange(vs.map((v) => v.pricePaise))?.min ?? null,
-        maxPricePaise: priceRange(vs.map((v) => v.pricePaise))?.max ?? null,
-        available: vs.reduce((n, v) => n + Math.max(0, (v.onHand ?? 0) - (v.reserved ?? 0)), 0),
+        minPricePaise: listedPriceRange(vs)?.min ?? null,
+        maxPricePaise: listedPriceRange(vs)?.max ?? null,
+        // Not clamped: below zero is oversold (pre-orders owed), which the merchant must see (#53).
+        available: vs.reduce((n, v) => n + (v.onHand ?? 0) - (v.reserved ?? 0), 0),
       }
     }),
   }

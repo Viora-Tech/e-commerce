@@ -386,6 +386,9 @@ describe('dashboard.summary', () => {
       gstQueued: null,
       lowStock: { count: 0, href: '/stock/inventory' },
       preorderBalanceDue: { count: 0, href: '/orders?status=balance_due' },
+      unpaid: { count: 0, href: '/orders?status=unpaid' },
+      preorderShipSoon: { count: 0, href: '/products/preorders' },
+      returnsToReview: { count: 0, href: '/orders/returns?status=requested' },
       failedDeliveries: null,
     })
     expect(s.insight).toEqual({ salesChange: null, bestSeller: null })

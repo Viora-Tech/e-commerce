@@ -6,11 +6,11 @@ import ContactActions from '@/components/layout/contact-actions'
 import DataCard from '@/components/layout/data-card'
 import KeyValueList from '@/components/layout/key-value-list'
 import { customerDetailContent } from '@/data/customers'
-import { useCopy, useLocale } from '@/hooks/use-copy'
+import { useCopy } from '@/hooks/use-copy'
 import { telUrl } from '@/lib/customer-contact'
+import { phoneForDisplay } from '@/lib/phone-display'
 import ContactPhonePrompt from './contact-phone-prompt'
 import type { CustomerDetail } from './customer-detail-types'
-import { day } from './customer-detail-types'
 
 type ProfileCardProps = {
   customer: CustomerDetail
@@ -27,7 +27,6 @@ type ProfileCardProps = {
 export default function ProfileCard({ customer, onEdit, onChanged }: ProfileCardProps) {
   // Hooks
   const copy = useCopy(customerDetailContent)
-  const locale = useLocale()
 
   // Render logic
   const c = copy.profile
@@ -51,18 +50,17 @@ export default function ProfileCard({ customer, onEdit, onChanged }: ProfileCard
             label: c.email,
             value: customer.email,
             href: customer.email ? `mailto:${customer.email}` : undefined,
+            // Wraps instead of cutting the address short: the card has room (#41).
             copy: true,
-            truncate: true,
             hidden: !customer.email,
           },
           {
             label: c.phone,
-            value: customer.phone || copy.contactPhone.missing,
+            value: customer.phone ? phoneForDisplay(customer.phone) : copy.contactPhone.missing,
             href: call ?? undefined,
             copy: Boolean(customer.phone),
             tone: customer.phone ? 'default' : 'muted',
           },
-          { label: c.created, value: day(customer.createdAt, locale), copy: true },
         ]}
       />
       {customer.phone ? (

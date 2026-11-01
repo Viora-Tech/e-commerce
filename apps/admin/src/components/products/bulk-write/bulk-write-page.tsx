@@ -35,6 +35,8 @@ type BulkWritePageProps = {
 }
 
 const POLL_MS = 1_500
+/** How long "Waiting to start" may last before the page says it is taking longer. */
+const SLOW_MS = 30_000
 const LIVE = new Set(['queued', 'running'])
 
 const BACK: Record<BulkWriteFrom, () => string> = {
@@ -67,8 +69,12 @@ export default function BulkWritePage({
   const [job, setJob] = useState<Job | null>(null)
   const [selected, setSelected] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
+  /** Still "Waiting to start" after SLOW_MS: the worker may be down (audit #171). */
+  const [slow, setSlow] = useState(false)
   /** Suggestions already offered, so a product the merchant unticked stays unticked. */
   const seen = useRef(new Set<string>())
+  /** When this page first saw the run waiting to start. */
+  const queuedAt = useRef<number | null>(null)
 
   useEffect(() => {
     if (!jobId) return
@@ -88,6 +94,18 @@ export default function BulkWritePage({
         .catch(() => undefined)
     }, POLL_MS)
     return () => clearTimeout(timer)
+  }, [job])
+
+  // A run that has not started after SLOW_MS says so instead of waiting silently; every poll
+  // brings a new `job`, so this re-checks as it waits.
+  useEffect(() => {
+    if (job?.status !== 'queued') {
+      queuedAt.current = null
+      setSlow(false)
+      return
+    }
+    queuedAt.current ??= Date.now()
+    setSlow(Date.now() - queuedAt.current > SLOW_MS)
   }, [job])
 
   // Ticks every newly written product by default.
@@ -145,7 +163,8 @@ export default function BulkWritePage({
   const backHref = BACK[from]()
 
   return (
-    <div className="flex flex-col gap-4">
+    // The detail pages' centred frame (proofly-detail-page), so the page has its side gutters.
+    <div className="mx-auto flex w-full max-w-[75rem] flex-col gap-4 px-4 pt-4 pb-6 md:px-8 md:pt-5 md:pb-8">
       <PageHeader
         title={copy.bulk.title}
         subtitle={copy.bulk.subtitle(count)}
@@ -203,7 +222,9 @@ export default function BulkWritePage({
               </div>
               <Progress value={job.total ? (finished / job.total) * 100 : 0} />
               {live ? (
-                <p className="text-caption text-muted-foreground">{copy.bulk.background}</p>
+                <p className="text-caption text-muted-foreground">
+                  {slow ? copy.bulk.slowStart : copy.bulk.background}
+                </p>
               ) : null}
               {job.error ? <p className="text-caption text-destructive">{job.error}</p> : null}
             </div>

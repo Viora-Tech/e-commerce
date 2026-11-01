@@ -189,7 +189,7 @@ export const returnDetailContent = {
     refunded: (amount: string) => `Refund of ${amount} sent.`,
     recorded: (amount: string, how: string) => `Refund of ${amount} by ${how} recorded.`,
     credited: (amount: string) => `Store credit of ${amount} created and emailed.`,
-    exchanged: (n: number) => `Draft order #${n} created. Open it to send the items.`,
+    exchanged: (n: number) => `Draft order #D${n} created. Open it to send the items.`,
     reshipped: 'New shipment booked.',
     closed: 'Closed.',
   },
@@ -204,8 +204,9 @@ export const returnDetailContent = {
     refund: (amount: string) => `Refunded ${amount}.`,
     store_credit: (amount: string, last4: string | null) =>
       `Gave ${amount} as store credit${last4 ? ` (gift card ending ${last4})` : ''}.`,
-    exchange: (n: number | null) =>
-      n ? `Exchange: draft order #${n}.` : 'Exchange draft created.',
+    /** `ref` is what follows the #: "D12" while a draft, "2374" once placed. */
+    exchange: (ref: string | null) =>
+      ref ? `Exchange: order #${ref}.` : 'Exchange draft created.',
     reship: 'Sent out again with a new shipment.',
     none: 'Closed without a refund.',
     openDraft: 'Open draft',
@@ -281,7 +282,7 @@ export const returnSettingsContent = {
   enabled: 'Let customers ask for returns online',
   enabledHint: 'They pick the items, a reason and can add photos from their order page.',
   window: 'How many days after delivery can they ask?',
-  windowHint: 'Most Indian shops use 7 days.',
+  windowHint: 'Most Indian shops use 7 days. The longest you can set is 90 days.',
   days: 'days',
   reasons: 'Which reasons do you accept?',
   reasonsHint: 'Only these show up for customers. Keep at least one.',
@@ -296,6 +297,18 @@ export const returnSettingsContent = {
   saved: 'Return rules saved.',
   failed: 'Could not save. Please try again.',
   atLeastOne: 'Choose at least one reason.',
+} as const
+
+/** Settings → Returns → Reasons: the store's own reasons, in its words (#180). */
+export const returnCustomReasonsContent = {
+  title: 'Your own reasons',
+  description: 'Add reasons in your words. Customers see them after the ones above.',
+  label: 'New reason',
+  placeholder: 'For example: It arrived too late',
+  add: 'Add',
+  remove: (reason: string) => `Remove "${reason}"`,
+  duplicate: 'You already have that reason.',
+  limit: (max: number) => `You can add up to ${max} reasons.`,
 } as const
 
 /** Settings → Returns: exchanges for another variant and the auto-approve rule. */

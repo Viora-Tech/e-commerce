@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm'
 import {
+  bigint,
   check,
   index,
   jsonb,
@@ -52,6 +53,31 @@ export type RolloutStatus = (typeof ROLLOUT_STATUSES)[number]
 export const ROLLOUT_END_ACTIONS = ['rollback', 'apply'] as const
 export type RolloutEndAction = (typeof ROLLOUT_END_ACTIONS)[number]
 
+/**
+ * An A/B test's audience (#120): `split` is the Treatment's share of the tested visitors (%),
+ * `traffic` the share of all visitors in the test (%), `marketIds` the markets it runs in (none:
+ * every market), `target` the visitors it aims to reach (the "Reached" ring). Null: no test, the
+ * rollout changes the store for everyone.
+ */
+export type RolloutAudience = {
+  split: number
+  traffic: number
+  marketIds: string[]
+  target: number | null
+}
+
+/** How an A/B test ended: the Treatment shipped to everyone, or the Control kept. */
+const ROLLOUT_AB_OUTCOMES = ['treatment', 'control'] as const
+export type RolloutAbOutcome = (typeof ROLLOUT_AB_OUTCOMES)[number]
+
+/** Control sees the store as it is; Treatment sees the rollout's changes. */
+const ROLLOUT_ARMS = ['control', 'treatment'] as const
+export type RolloutArm = (typeof ROLLOUT_ARMS)[number]
+
+/** A visitor first drawn in an arm, their first add to cart, or one order. */
+const ROLLOUT_AB_EVENT_KINDS = ['exposure', 'add_to_cart', 'purchase'] as const
+export type RolloutAbEventKind = (typeof ROLLOUT_AB_EVENT_KINDS)[number]
+
 /** The live theme, the checkout branding, or one discount's status. */
 const ROLLOUT_CHANGE_KINDS = ['theme', 'checkout_branding', 'discount'] as const
 export type RolloutChangeKind = (typeof ROLLOUT_CHANGE_KINDS)[number]
@@ -79,6 +105,12 @@ export const rollout = pgTable(
     endedAt: timestamp('ended_at', { withTimezone: true }),
     /** Why the last start or end failed (a theme deleted meanwhile); null when it went through. */
     error: text('error'),
+    /** The merchant's notes on the rollout (why, what to watch). */
+    notes: text('notes').notNull().default(''),
+    /** A/B test audience (0210); null runs the changes for everyone. */
+    audience: jsonb('audience').$type<RolloutAudience>(),
+    /** An ended A/B test: which arm the store kept. */
+    abOutcome: text('ab_outcome', { enum: ROLLOUT_AB_OUTCOMES }),
     createdBy: text('created_by'),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -90,6 +122,7 @@ export const rollout = pgTable(
     check('rollout_kind', sql`${t.kind} in (${oneOf(ROLLOUT_KINDS)})`),
     check('rollout_status', sql`${t.status} in (${oneOf(ROLLOUT_STATUSES)})`),
     check('rollout_end_action', sql`${t.endAction} in (${oneOf(ROLLOUT_END_ACTIONS)})`),
+    check('rollout_ab_outcome', sql`${t.abOutcome} in (${oneOf(ROLLOUT_AB_OUTCOMES)})`),
     check(
       'rollout_event_end',
       sql`${t.kind} <> 'event' or ${t.endsAt} is null or ${t.startsAt} is null or ${t.endsAt} > ${t.startsAt}`,
@@ -131,5 +164,42 @@ export const rolloutChange = pgTable(
       'rollout_change_target',
       sql`(${t.kind} = 'checkout_branding') = (${t.targetId} is null)`,
     ),
+  ],
+)
+
+/**
+ * SOURCE OF TRUTH: rolloutAbEvent
+ * WHAT:  An A/B rollout's measurements per visitor (0210): the first page drawn in an arm
+ *        (`exposure`, which fixes the arm), the first add to cart, and each order placed.
+ *        Sessions come from `marketing_session` by the same visitor id.
+ * WHY:   Orders carry no visitor id, so the thank-you page reports the purchase with the visitor
+ *        cookie, as the GrowthBook app does; the arm is read from the exposure, never the browser.
+ */
+export const rolloutAbEvent = pgTable(
+  'rollout_ab_event',
+  {
+    id: id(),
+    storeId: storeId(),
+    rolloutId: uuid('rollout_id')
+      .notNull()
+      .references(() => rollout.id, { onDelete: 'cascade' }),
+    visitorId: text('visitor_id').notNull(),
+    arm: text('arm', { enum: ROLLOUT_ARMS }).notNull(),
+    kind: text('kind', { enum: ROLLOUT_AB_EVENT_KINDS }).notNull(),
+    orderId: uuid('order_id'),
+    /** A purchase's order total in the store currency's minor unit. */
+    valueMinor: bigint('value_minor', { mode: 'number' }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index('rollout_ab_event_rollout').on(t.rolloutId, t.kind, t.arm),
+    uniqueIndex('rollout_ab_event_once')
+      .on(t.rolloutId, t.visitorId, t.kind)
+      .where(sql`${t.kind} <> 'purchase'`),
+    uniqueIndex('rollout_ab_event_order')
+      .on(t.rolloutId, t.orderId)
+      .where(sql`${t.kind} = 'purchase'`),
+    check('rollout_ab_event_arm', sql`${t.arm} in (${oneOf(ROLLOUT_ARMS)})`),
+    check('rollout_ab_event_kind', sql`${t.kind} in (${oneOf(ROLLOUT_AB_EVENT_KINDS)})`),
   ],
 )

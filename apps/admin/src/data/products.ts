@@ -22,6 +22,8 @@ export const productsListContent = {
   export: 'Export',
   import: 'Import',
   tabs: { all: 'All products' },
+  /** The view picker while a search or filter is applied. */
+  customView: 'Custom',
   summary: (total: number, low: number, out: number) =>
     [
       `${total} ${total === 1 ? 'product' : 'products'}`,
@@ -83,10 +85,12 @@ export const productsListContent = {
   sortAlpha: { desc: 'Z to A', asc: 'A to Z', first: 'asc' as const },
   inventory: (available: number, variants: number) =>
     `${available} in stock for ${variants} variant${variants === 1 ? '' : 's'}`,
-  inStock: (available: number) => `${available} in stock`,
+  inStock: (available: number) =>
+    available < 0 ? `Oversold by ${-available}` : `${available} in stock`,
   variants: (n: number) => `${n} variant${n === 1 ? '' : 's'}`,
   none: '',
   priceRange: (min: string, max: string) => `${min} to ${max}`,
+  noPrice: 'No price',
   preorderPill: 'Pre-order',
   launching: (date: Date) =>
     `Launching ${date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`,
@@ -96,11 +100,12 @@ export const productsListContent = {
     setDraft: 'Set as draft',
     archive: 'Archive',
     addTag: 'Add tag',
+    removeTag: 'Remove tag',
     delete: 'Delete',
     exportSelected: 'Export',
     addToCollection: 'Add to collection',
-    /** The selection header's ⋯ menu: the less common bulk actions. */
-    more: 'More bulk actions',
+    /** The bulk bar's More menu: the less common bulk actions. */
+    more: 'More actions',
     collection: {
       title: 'Add to collection',
       label: 'Collection',
@@ -112,6 +117,7 @@ export const productsListContent = {
       cancel: 'Cancel',
     },
     tagPrompt: 'Tag to add',
+    untagPrompt: 'Tag to remove',
     tagPlaceholder: 'summer',
     tagHelp: (n: number) =>
       `Added to the ${n} selected product${n === 1 ? '' : 's'}. Their other tags stay.`,
@@ -119,6 +125,9 @@ export const productsListContent = {
     cancel: 'Cancel',
     updated: (n: number) => `${n} product${n === 1 ? '' : 's'} updated`,
     tagged: (n: number, tag: string) => `${tag} added to ${n} product${n === 1 ? '' : 's'}`,
+    untagged: (n: number, tag: string) => `${tag} removed from ${n} product${n === 1 ? '' : 's'}`,
+    untagHelp: (n: number) =>
+      `Taken off the ${n} selected product${n === 1 ? '' : 's'} that have it. Their other tags stay.`,
     removed: (deleted: number, archived: number) =>
       archived === 0
         ? `${deleted} product${deleted === 1 ? '' : 's'} deleted`

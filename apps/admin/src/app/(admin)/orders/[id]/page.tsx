@@ -1,16 +1,25 @@
+import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import OrderView from '@/components/orders/order-view'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { listApps } from '@/lib/shell-data'
-import { orNoStore } from '@/lib/store-guard'
+import { orNoStoreOrMissing } from '@/lib/store-guard'
 
 type Params = { params: Promise<{ id: string }> }
+
+/** "Order #19" in the browser tab, not "Admin". */
+export async function generateMetadata({ params }: Params): Promise<Metadata> {
+  const { id } = await params
+  const context = await serverContext()
+  const order = await call(appRouter.orders.get, { id }, { context }).catch(() => null)
+  return { title: order ? `Order #${order.number}` : 'Order' }
+}
 
 export default async function OrderPage({ params }: Params) {
   const { id } = await params
   const context = await serverContext()
   const [order, apps, appActions] = await Promise.all([
-    call(appRouter.orders.get, { id }, { context }).catch(orNoStore(undefined)),
+    call(appRouter.orders.get, { id }, { context }).catch(orNoStoreOrMissing(undefined)),
     listApps().catch(() => []),
     call(appRouter.apps.orderActions, undefined, { context }).catch(() => []),
   ])

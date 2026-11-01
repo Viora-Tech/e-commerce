@@ -10,7 +10,6 @@ import {
   payment,
   product,
   productMedia,
-  refund,
   shipment,
   store,
   variant,
@@ -19,15 +18,13 @@ import { formatMoney } from '@commerce/money'
 import type {
   Attachment,
   CustomMessage,
-  EmailParcel,
   NotificationChannel,
   NotificationRegistry,
   Recipient,
   TemplateData,
   TemplateId,
 } from '@commerce/notifications'
-import { formatDeliveryRange } from '@commerce/shipping'
-import { and, eq, inArray, or, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, ne, or, sql } from 'drizzle-orm'
 import { codConfirmDelivery } from '../cod-rto/confirm'
 import type { StoreContext } from '../context'
 import { newsletterConfirmToken, newsletterConfirmUrl } from '../customers/newsletter'
@@ -35,17 +32,24 @@ import { phoneBlindIndex } from '../customers/phone-crypto'
 import { storefrontOriginFor } from '../domains/origin'
 import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
 import { mayNudgeKnownContact, phoneLookupVariants } from '../marketing/recipient'
-import { orderParcelsView, type ParcelView } from '../order/parcel-view'
-import { manualCancelAt } from '../payments/manual-followup'
-import { parsePaymentSettings } from '../payments/settings'
+import { orderParcelsView } from '../order/parcel-view'
 import { balanceOwed } from '../preorder/balance'
 import { balanceUrl, invoiceUrl, thankYouUrl } from '../preorder/balance-link'
 import { parsePreorderStoreSettings } from '../preorder/store-settings'
 import { returnTemplateData } from '../returns/notify'
 import { storeNotificationChannels } from '../sender-email/channels'
-import { type GstBreakdown, gstRowsToShow } from '../tax/gst'
 import { balanceData } from './balance-data'
+import {
+  BALANCE_ASKS,
+  emailParcels,
+  MERCHANT_TEMPLATES,
+  merchantNotice,
+  PAYMENT_LABELS,
+  refundTemplateData,
+  taxLines,
+} from './deliver-data'
 import { isMessageOn } from './messages'
+import { paymentInstructionsOf } from './payment-instructions'
 import { parseNotificationSettings } from './settings'
 
 export type DeliveryResult = {
@@ -53,14 +57,6 @@ export type DeliveryResult = {
   to: string
   ok: boolean
   error?: string | undefined
-}
-
-/** Human label for the order's payment_method id; adapters own the real label, this is the fallback. */
-const PAYMENT_LABELS: Record<string, string> = {
-  cod: 'Cash on delivery',
-  manual: 'UPI or bank transfer',
-  razorpay: 'Razorpay',
-  razorpay_upi: 'UPI',
 }
 
 export type DeliverOptions = {
@@ -86,137 +82,6 @@ export type DeliverOptions = {
         attachments: Attachment[]
       }>)
     | undefined
-}
-
-const isGst = (v: unknown): v is GstBreakdown =>
-  typeof v === 'object' && v !== null && typeof (v as GstBreakdown).taxPaise === 'number'
-
-/**
- * The GST split for the totals block, straight from what the order already stored at checkout
- * (see `computeOrderGst` in `order/place-order.ts`) - never recomputed, so it always matches the
- * order's own invoice. Omitted when the order carries no tax.
- */
-function taxLines(o: typeof order.$inferSelect): TemplateData['taxBreakdown'] {
-  const t = o.taxBreakdown
-  if (!isGst(t) || t.taxPaise <= 0) return undefined
-  const taxableLabel = formatMoney(o.totalPaise - t.taxPaise)
-  // Parcels from different states put both CGST + SGST and IGST on one order.
-  const show = gstRowsToShow(t)
-  return [
-    { label: 'Taxable value', amount: taxableLabel },
-    ...(show.intraState
-      ? [
-          { label: `CGST (${t.ratePercent / 2}%)`, amount: formatMoney(t.cgstPaise) },
-          { label: `SGST (${t.ratePercent / 2}%)`, amount: formatMoney(t.sgstPaise) },
-        ]
-      : []),
-    ...(show.interState
-      ? [{ label: `IGST (${t.ratePercent}%)`, amount: formatMoney(t.igstPaise) }]
-      : []),
-  ]
-}
-
-/** "Ships in 2 parcels" for an order leaving from several warehouses; undefined for one parcel. */
-function emailParcels(views: readonly ParcelView[]): EmailParcel[] | undefined {
-  const live = views.filter((p) => p.status !== 'cancelled')
-  if (live.length < 2) return undefined
-  return live.map((p) => ({
-    from: [p.city, p.stateName].filter(Boolean).join(', ') || p.locationName,
-    items: p.lines.map((l) => {
-      const variantTitle = l.variantTitle?.trim()
-      const title = l.title?.trim() || 'Item'
-      return {
-        title:
-          variantTitle && variantTitle !== 'Default' && variantTitle !== 'Default Title'
-            ? `${title} / ${variantTitle}`
-            : title,
-        quantity: l.quantity,
-      }
-    }),
-    dateRange: p.deliveryEstimate
-      ? formatDeliveryRange(p.deliveryEstimate.earliest, p.deliveryEstimate.latest)
-      : null,
-    onHold: p.status === 'on_hold',
-  }))
-}
-
-/** Human label for a refund's method, for the refund_issued message. */
-function refundMethodLabel(provider: string): string {
-  if (provider === GIFT_CARD_PROVIDER) return 'your gift card'
-  return PAYMENT_LABELS[provider] ?? 'your original payment method'
-}
-
-/**
- * A gateway refund takes a few days to clear; a gift card or an offline method (COD, manual
- * transfer) the merchant settles directly does not have a bank-side wait to quote.
- */
-function refundEtaLabel(provider: string): string | undefined {
-  if (provider === GIFT_CARD_PROVIDER || provider === 'cod' || provider === 'manual') {
-    return undefined
-  }
-  return '5 to 7 working days'
-}
-
-/** Everything the refund_issued message needs. Null when the refund row is gone. */
-async function refundTemplateData(
-  ctx: StoreContext,
-  refundId: string,
-): Promise<Partial<TemplateData> | null> {
-  const [r] = await ctx.tx.select().from(refund).where(eq(refund.id, refundId))
-  if (!r) return null
-  const [p] = await ctx.tx.select().from(payment).where(eq(payment.id, r.paymentId))
-  const provider = p?.provider ?? ''
-  return {
-    refund: {
-      amountLabel: formatMoney(r.amountPaise),
-      methodLabel: refundMethodLabel(provider),
-      etaLabel: refundEtaLabel(provider),
-    },
-  }
-}
-
-/** Messages asking for the balance: pointless (and confusing) once it is paid or the order is gone. */
-const BALANCE_ASKS: ReadonlySet<TemplateId> = new Set(['balance_request', 'balance_reminder'])
-
-/** Messages for the merchant, not the shopper: sent by email to the store's contact address. */
-const MERCHANT_TEMPLATES: ReadonlySet<TemplateId> = new Set(['unpaid_cancel_notice'])
-
-/**
- * Where a merchant message goes, and what it adds. Null when there is no
- * contact email, or the order no longer waits (paid or cancelled meanwhile).
- */
-async function merchantNotice(
-  ctx: StoreContext,
-  orderId: string,
-): Promise<{ to: Recipient; data: Partial<TemplateData> } | null> {
-  const [s] = await ctx.tx
-    .select({ email: store.contactEmail, payments: store.payments })
-    .from(store)
-    .where(eq(store.id, ctx.storeId))
-  const [o] = await ctx.tx
-    .select({
-      status: order.status,
-      checkoutPaidAt: order.checkoutPaidAt,
-      placedAt: order.placedAt,
-      noticeAt: order.unpaidCancelNoticeAt,
-    })
-    .from(order)
-    .where(eq(order.id, orderId))
-  if (!s?.email || o?.status !== 'open' || o.checkoutPaidAt) return null
-  const at = manualCancelAt(parsePaymentSettings(s.payments).manualCancelAfterHours, {
-    placedAt: o.placedAt,
-    cancelNoticeAt: o.noticeAt,
-  })
-  return {
-    to: { email: s.email },
-    data: {
-      deadlineLabel: at.toLocaleString('en-IN', {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-        timeZone: 'Asia/Kolkata',
-      }),
-    },
-  }
 }
 
 /** Load everything a template needs from the order. Null when the order is not visible. */
@@ -264,13 +129,29 @@ export async function buildTemplateData(
       ndrReason: shipment.ndrReason,
     })
     .from(shipment)
-    .where(eq(shipment.orderId, orderId))
+    // The live booking, newest first: a label cancelled and booked again carries the new AWB.
+    .where(and(eq(shipment.orderId, orderId), ne(shipment.status, 'cancelled')))
+    .orderBy(desc(shipment.createdAt))
+    .limit(1)
   const method = o.paymentMethod ?? ''
   const parcels = emailParcels(await orderParcelsView(ctx.tx, orderId))
+  // An unpaid UPI / bank transfer order: the details to pay to, as the thank-you page shows them.
+  const [transfer] =
+    method === 'manual' && !o.checkoutPaidAt
+      ? await ctx.tx
+          .select({ session: payment.checkoutSession })
+          .from(payment)
+          .where(and(eq(payment.orderId, orderId), eq(payment.provider, 'manual')))
+          .orderBy(desc(payment.attempt))
+          .limit(1)
+      : []
+  const paymentInstructions = paymentInstructionsOf(transfer?.session)
   return {
     data: {
       storeName: s?.name ?? '',
       orderNumber: o.number,
+      /* Still a draft (an invoice): it goes by its #D number, it has no order number yet. */
+      ...(o.status === 'draft' && o.draftNumber ? { draftNumber: o.draftNumber } : {}),
       customerName: cu?.name || 'there',
       totalLabel: formatMoney(o.totalPaise),
       lines: lines.map((l) => ({
@@ -291,6 +172,7 @@ export async function buildTemplateData(
       taxBreakdown: taxLines(o),
       ...(parcels ? { parcels } : {}),
       paymentMethodLabel: PAYMENT_LABELS[method] ?? method,
+      ...(paymentInstructions ? { paymentInstructions } : {}),
       orderUrl:
         storefrontUrl && settingsSecret
           ? thankYouUrl(o.id, o.number, settingsSecret, storefrontUrl)
@@ -527,6 +409,73 @@ export async function deliverCartRecovery(
   return results
 }
 
+/** Paid outside a gateway: never a "your payment did not go through" order. */
+const OFFLINE_METHODS: ReadonlySet<string> = new Set(['cod', 'manual', GIFT_CARD_PROVIDER])
+
+/**
+ * Whether an order is still a "Payment pending" order (#1001 rules: a storefront checkout whose
+ * online payment never finished) that the shopper can still pay: open, unpaid, not imported.
+ * A cancelled one (the unpaid expiry ran) cannot be retried, so it is not nudged.
+ */
+async function stillPaymentPending(ctx: StoreContext, orderId: string): Promise<boolean> {
+  const [o] = await ctx.tx
+    .select({
+      status: order.status,
+      checkoutPaidAt: order.checkoutPaidAt,
+      cartId: order.cartId,
+      importedFrom: order.importedFrom,
+      paymentMethod: order.paymentMethod,
+    })
+    .from(order)
+    .where(eq(order.id, orderId))
+  if (o?.status !== 'open' || o.checkoutPaidAt || o.importedFrom || !o.cartId) return false
+  return !OFFLINE_METHODS.has(o.paymentMethod ?? 'manual')
+}
+
+/** A typed courier name ("Blue Dart") reads well; a courier app id ("delhivery") does not. */
+const courierName = (carrier: string | null, provider: string): string | undefined =>
+  carrier?.trim() || (/^[a-z0-9_-]+$/.test(provider) ? undefined : provider)
+
+/**
+ * The new tracking details for shipping_update, from the shipment that changed. Null when it
+ * is gone or cancelled, or when the shopper never got the shipped message (nothing to correct).
+ */
+async function trackingUpdateData(
+  ctx: StoreContext,
+  orderId: string,
+  shipmentId: string | undefined,
+): Promise<Partial<TemplateData> | null> {
+  if (!shipmentId) return null
+  const [row] = await ctx.tx
+    .select({
+      waybill: shipment.waybill,
+      trackingUrl: shipment.trackingUrl,
+      carrier: shipment.carrier,
+      provider: shipment.provider,
+      status: shipment.status,
+    })
+    .from(shipment)
+    .where(and(eq(shipment.id, shipmentId), eq(shipment.orderId, orderId)))
+  if (!row || row.status === 'cancelled') return null
+  const [told] = await ctx.tx
+    .select({ id: notification.id })
+    .from(notification)
+    .where(
+      and(
+        eq(notification.orderId, orderId),
+        eq(notification.template, 'order_shipped'),
+        eq(notification.status, 'sent'),
+      ),
+    )
+    .limit(1)
+  if (!told) return null
+  return {
+    waybill: row.waybill,
+    trackingUrl: row.trackingUrl ?? undefined,
+    courierLabel: courierName(row.carrier, row.provider),
+  }
+}
+
 /**
  * Send one template for one order through every enabled channel and record
  * the outcome. A channel that already sent this template is skipped, so a
@@ -539,6 +488,7 @@ export async function deliverNotification(
     template: TemplateId
     returnId?: string | undefined
     refundId?: string | undefined
+    shipmentId?: string | undefined
   },
   opts: DeliverOptions,
 ): Promise<DeliveryResult[]> {
@@ -569,6 +519,24 @@ export async function deliverNotification(
       .where(eq(order.id, input.orderId))
     if (o?.status !== 'open' || o.checkoutPaidAt) return []
   }
+  // "Your payment did not go through": only while the order still waits on an online payment.
+  if (input.template === 'payment_pending' && !(await stillPaymentPending(ctx, input.orderId))) {
+    return []
+  }
+  // An edit message for an order cancelled meanwhile would only confuse.
+  if (input.template === 'order_edited') {
+    const [o] = await ctx.tx
+      .select({ status: order.status })
+      .from(order)
+      .where(eq(order.id, input.orderId))
+    if (o?.status !== 'open') return []
+  }
+  // shipping_update carries the changed shipment's details, not the order's first booking.
+  const tracking =
+    input.template === 'shipping_update'
+      ? await trackingUpdateData(ctx, input.orderId, input.shipmentId)
+      : null
+  if (input.template === 'shipping_update' && !tracking) return []
   // A return message lists the items going back, not the whole order.
   const returned = input.returnId ? await returnTemplateData(ctx, input.returnId) : null
   if (input.template.startsWith('return_') && !returned) return []
@@ -590,21 +558,25 @@ export async function deliverNotification(
   // The exchange message is about the new order: its own items, only the return's label.
   const returnData =
     input.template === 'return_exchanged' ? { returnInfo: returned?.returnInfo } : returned
+  const already = await ctx.tx
+    .select({ channel: notification.channel, status: notification.status })
+    .from(notification)
+    .where(and(eq(notification.orderId, input.orderId), eq(notification.template, input.template)))
+  // A draft invoice sent again is a reminder, and says so.
+  const reminder = input.template === 'draft_invoice' && already.some((n) => n.status === 'sent')
   const data = {
     ...built.data,
     ...(actionUrl ? { actionUrl } : {}),
     ...returnData,
     ...refunded,
+    ...tracking,
     ...merchant?.data,
+    ...(reminder ? { reminder: true } : {}),
     ...opts.data,
     ...(extras?.links.length ? { links: extras.links } : {}),
   }
   const attachments = extras?.attachments.length ? extras.attachments : undefined
 
-  const already = await ctx.tx
-    .select({ channel: notification.channel, status: notification.status })
-    .from(notification)
-    .where(and(eq(notification.orderId, input.orderId), eq(notification.template, input.template)))
   const sent = new Set(
     opts.resend ? [] : already.filter((n) => n.status === 'sent').map((n) => n.channel),
   )

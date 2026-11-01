@@ -9,11 +9,13 @@ import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { inboxConversationsContent } from '@/data/inbox-conversations'
+import { inboxKnowledgeContent } from '@/data/inbox-knowledge'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { conversationName, withMessage } from '@/lib/inbox-view'
 import { routes } from '@/lib/routes'
+import AiActiveBanner from './ai-active-banner'
 import Composer, { type ComposerSend } from './composer'
 import CustomerPanel from './customer-panel'
 import HandoffBanner from './handoff-banner'
@@ -65,6 +67,7 @@ export default function ThreadPane({
 }: ThreadPaneProps) {
   // Hooks
   const copy = useCopy(inboxConversationsContent)
+  const knowledgeCopy = useCopy(inboxKnowledgeContent)
   const { hasPermission } = usePermissions()
   const [thread, setThread] = useState<ThreadData | null>(null)
   const [typingAt, setTypingAt] = useState(0)
@@ -176,6 +179,7 @@ export default function ThreadPane({
               status: sent.conversation.status,
               // A reply (not a note) takes the chat over from the AI.
               needsHuman: m.kind === 'note' ? t.conversation.needsHuman : false,
+              aiActive: false,
             },
           }
         : t,
@@ -204,6 +208,16 @@ export default function ThreadPane({
     } catch (err) {
       fail(err)
       throw err
+    }
+  }
+  const handleTakeOver = async () => {
+    try {
+      await api.inbox.takeOver({ id: conversationId })
+      setThread((t) => (t ? { ...t, conversation: { ...t.conversation, aiActive: false } } : t))
+      toast.success(knowledgeCopy.takeOver.done)
+      onChanged()
+    } catch (err) {
+      fail(err)
     }
   }
   const handleOlder = async () => {
@@ -290,6 +304,7 @@ export default function ThreadPane({
           onCustomer={() => setPanelOpen(true)}
         />
         {c.needsHuman ? <HandoffBanner summary={c.handoffSummary} /> : null}
+        {c.aiActive ? <AiActiveBanner canTakeOver={canReply} onTakeOver={handleTakeOver} /> : null}
         {showSummary ? (
           <ThreadSummary conversationId={conversationId} latestId={newest.id} />
         ) : null}

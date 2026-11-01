@@ -112,7 +112,11 @@ export default function OrderDetail({
             <h3 id="order-tracking" className="h4">
               {copy.tracking}
             </h3>
-            <TrackingTimeline tracking={o.tracking} timeZone={timeZone} />
+            <TrackingTimeline
+              tracking={o.tracking}
+              timeZone={timeZone}
+              fulfillmentStatus={o.fulfillmentStatus}
+            />
           </section>
 
           <OrderParcels parcels={shopperParcels(o.parcels)} />
@@ -124,12 +128,13 @@ export default function OrderDetail({
             <ul className="flex flex-col divide-y divide-line">
               {o.lines.map((l) => (
                 <li key={l.id} className="flex gap-4 py-4 first:pt-0 last:pb-0">
-                  <div className="size-16 shrink-0 overflow-hidden rounded-xl bg-surface">
-                    {l.imageUrl ? (
-                      // biome-ignore lint/performance/noImgElement: product media is on the store's CDN.
+                  {/* No picture, no empty grey box (#163). */}
+                  {l.imageUrl ? (
+                    <div className="size-16 shrink-0 overflow-hidden rounded-xl bg-surface">
+                      {/* biome-ignore lint/performance/noImgElement: product media is on the store's CDN. */}
                       <img src={l.imageUrl} alt="" className="size-full object-cover" />
-                    ) : null}
-                  </div>
+                    </div>
+                  ) : null}
                   <div className="flex min-w-0 flex-1 flex-col gap-1">
                     {l.productHandle ? (
                       <Link
@@ -246,7 +251,10 @@ export default function OrderDetail({
             </h3>
             <p className="text-body">
               {paymentMethodLabel ?? paymentLabels[o.payment]}
-              <span className="block text-small text-muted">{paymentLabels[o.payment]}</span>
+              {/* "Cash on delivery" is both the method and the state: say it once. */}
+              {paymentMethodLabel && paymentMethodLabel !== paymentLabels[o.payment] ? (
+                <span className="block text-small text-muted">{paymentLabels[o.payment]}</span>
+              ) : null}
             </p>
             {o.email ? <p className="text-small text-muted">{o.email}</p> : null}
           </section>

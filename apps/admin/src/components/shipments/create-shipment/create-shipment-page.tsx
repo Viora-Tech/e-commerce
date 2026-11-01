@@ -343,7 +343,12 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
               />
             </DataCard>
             {manual ? null : (
-              <PickupCard plan={pickup} onChange={setPickup} canPickup={canPickup} />
+              <PickupCard
+                plan={pickup}
+                onChange={setPickup}
+                canPickup={canPickup}
+                courierChosen={Boolean(chosen)}
+              />
             )}
           </>
         )

@@ -64,7 +64,7 @@ export default function ZonePincodesCard({ value, onChange, disabled }: ZonePinc
   ]
 
   return (
-    <DataCard title={copy.heading} meta={copy.meta}>
+    <DataCard title={copy.heading} subtitle={copy.meta}>
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-end gap-3">
           <Field data-invalid={error ? true : undefined} className="w-full max-w-60">

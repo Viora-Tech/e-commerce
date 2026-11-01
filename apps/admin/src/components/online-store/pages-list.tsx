@@ -1,6 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
+import { POLICY_TYPES } from '@commerce/core/policies'
 import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
@@ -81,7 +82,15 @@ function PagesContent({ storefrontOrigin }: PagesListProps) {
       hideable: false,
       render: (p) => (
         <span className="flex min-w-0 flex-col">
-          <span className="truncate text-ink-strong">{p.title}</span>
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="truncate text-ink-strong">{p.title}</span>
+            {/* Policies sat among the store's own pages unmarked (audit #133). */}
+            {(POLICY_TYPES as readonly string[]).includes(p.handle) ? (
+              <StatusChip tone="neutral" variant="outline">
+                {copy.policy}
+              </StatusChip>
+            ) : null}
+          </span>
           <span className="truncate text-caption text-muted-foreground">{pageUrl(p.handle)}</span>
         </span>
       ),

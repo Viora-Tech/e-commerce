@@ -6,6 +6,8 @@ export default [
     nav: {
       label: 'Settings के हिस्से',
       back: 'Settings',
+      exit: 'एडमिन पर वापस',
+      title: 'Settings',
     },
     groups: {
       store: 'स्टोर',
@@ -89,6 +91,13 @@ export default [
         { value: 'Europe/London', label: 'लंदन (Europe/London)' },
         { value: 'America/New_York', label: 'न्यूयॉर्क (America/New_York)' },
       ],
+      rows: {
+        back: 'स्टोर की जानकारी',
+        notAdded: 'अभी नहीं जोड़ा',
+        needsFix: 'ठीक करना है',
+        data: 'आपके स्टोर का डेटा',
+        dataValue: 'एक्सपोर्ट या डिलीट करें',
+      },
       saved: 'स्टोर की जानकारी सेव हो गई',
       failed: 'स्टोर की जानकारी सेव नहीं हो पाई',
       unsaved: 'बदलाव सेव नहीं हुए',

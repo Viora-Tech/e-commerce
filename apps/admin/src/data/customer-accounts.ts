@@ -20,6 +20,9 @@ export const customerAccountsContent = {
         hint: 'Every buyer signs in with a code before paying. Fewer quick orders, but every order has an account.',
       },
     },
+    /** #108: said before saving, not after the save is refused. */
+    noSender:
+      'Sign-in codes need an app that sends them (email, SMS or WhatsApp). Turn one on in Apps before asking customers to sign in.',
   },
   methods: {
     heading: 'Ways to sign in',
@@ -76,6 +79,15 @@ export const customerAccountsContent = {
     copy: 'Copy',
     copied: 'Copied',
     secretKept: 'Saved. Leave as it is to keep it.',
+  },
+  /** The row list the page opens on (#147): each row's current value. */
+  rows: {
+    back: 'Customer accounts',
+    guest: 'Anyone can check out',
+    required: 'Sign-in required',
+    none: 'None',
+    extrasValue: 'Sign-in link, Truecaller and more',
+    deletionValue: 'From their account page',
   },
   deletion: {
     heading: 'Deleting an account',

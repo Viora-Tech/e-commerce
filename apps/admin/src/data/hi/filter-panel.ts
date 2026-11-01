@@ -5,6 +5,7 @@ export default [
   translation(filterPanelContent, {
     heading: 'फ़िल्टर',
     clearAll: 'सब हटाएं',
+    clear: 'हटाएं',
     any: 'कोई भी',
     min: 'कम से कम',
     max: 'ज़्यादा से ज़्यादा',

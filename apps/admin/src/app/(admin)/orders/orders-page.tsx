@@ -2,7 +2,13 @@
 
 import { AppWindow, ExternalLink, Users } from '@commerce/ui/icons'
 import { useRouter } from 'next/navigation'
-import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
+import {
+  parseAsInteger,
+  parseAsString,
+  parseAsStringLiteral,
+  useQueryState,
+  useQueryStates,
+} from 'nuqs'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import type { OrderActionGroup } from '@/apps/order-actions'
@@ -15,15 +21,8 @@ import OrdersHeaderActions from '@/components/orders/orders-header-actions'
 import OrdersTiles, { type OrderTilesData } from '@/components/orders/orders-tiles'
 import { useOrderAppActions } from '@/components/orders/use-order-app-actions'
 import InlineState from '@/components/states/inline-state'
-import {
-  appliedFromGroups,
-  clearGroups,
-  FILTER_PANEL_CLASS,
-  FilterPanel,
-} from '@/components/table/filter-panel'
-import ResourceTable from '@/components/table/resource-table'
+import ResourceTable, { type TableSort } from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
-import { filterPanelContent } from '@/data/filter-panel'
 import {
   ORDER_LIST_FILTERS,
   type OrderListFilter,
@@ -31,6 +30,7 @@ import {
   ordersContent,
   PENDING_UPI,
 } from '@/data/orders'
+import { ordersBulkContent } from '@/data/orders-bulk'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { type ListQuery, sameListQuery } from '@/lib/list-query'
@@ -49,9 +49,29 @@ import {
 import { usePrimaryAction } from '@/lib/primary-action'
 import { routes } from '@/lib/routes'
 import { parseRowsPerPage } from '@/lib/rows-per-page'
+import { runBatched } from '@/lib/run-batched'
 
-/** How many orders a bulk action updates at once. */
-const BULK_BATCH = 10
+/** Most ids one `orders.archiveMany` call takes (the API's BULK_MAX). */
+const ARCHIVE_CHUNK = 200
+
+const DEFAULT_SORT: TableSort = { id: 'date', desc: true }
+
+/** `?sort=total.asc` as the table's sort; anything else (or none) is the default. */
+function parseSort(param: string | null): TableSort | null {
+  const match = /^([a-z]+)\.(asc|desc)$/.exec(param ?? '')
+  return match?.[1] ? { id: match[1], desc: match[2] === 'desc' } : null
+}
+
+/** The table's sort as `?sort=`; the default sort leaves the URL clean. */
+function sortParam(sort: TableSort | null): string | null {
+  if (!sort || (sort.id === DEFAULT_SORT.id && sort.desc === DEFAULT_SORT.desc)) return null
+  return `${sort.id}.${sort.desc ? 'desc' : 'asc'}`
+}
+
+/** The API refused this one order for a reason that is a skip, not a failure. */
+function isBadRequest(err: unknown): boolean {
+  return (err as { code?: unknown } | null)?.code === 'BAD_REQUEST'
+}
 
 type ListResult = Awaited<ReturnType<typeof api.orders.list>>
 type Item = ListResult['items'][number]
@@ -86,7 +106,7 @@ function fetchOrders(q: Query, perPage: number) {
 function OrdersContent({ initial }: { initial: OrdersInitial }) {
   // Hooks
   const copy = useCopy(ordersContent)
-  const panelCopy = useCopy(filterPanelContent)
+  const bulkCopy = useCopy(ordersBulkContent)
   const fmt = useFormat()
   const router = useRouter()
   usePrimaryAction(routes.orders.drafts())
@@ -100,6 +120,8 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
     },
     { shallow: true },
   )
+  // Its own param: sorting orders the loaded page and never fetches the list again.
+  const [sort, setSort] = useQueryState('sort', parseAsString.withOptions({ shallow: true }))
 
   const [items, setItems] = useState<Item[]>(initial.result.items)
   const [total, setTotal] = useState(initial.result.total)
@@ -151,6 +173,12 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   }, [q, initial.query, initial.perPage])
 
   // Helpers
+  const loadViewIds = () =>
+    api.orders.ids({
+      search: q.query || undefined,
+      ...orderListFilter(q.status),
+      ...orderFilterInput(q),
+    })
   const reload = async () => {
     const r = await fetchOrders(q, parseRowsPerPage(q.perPage))
     setItems(r.items)
@@ -166,18 +194,56 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
     reload().catch(() => setFailed(true))
   }
   const handleBulkSetStatus = async (ids: string[], mark: OrderMark, clear: () => void) => {
-    try {
-      /* "Select all" can hand over thousands of ids: ten requests at a time, never all at once. */
-      for (let i = 0; i < ids.length; i += BULK_BATCH) {
-        await Promise.all(
-          ids.slice(i, i + BULK_BATCH).map((id) => api.orders.setStatus({ id, status: mark })),
-        )
+    /* Cancelled and imported orders on screen cannot take a mark: skipped without a call. */
+    const loaded = new Map(items.map((o) => [o.id, o]))
+    const due = ids.filter((id) => {
+      const o = loaded.get(id)
+      return !o || mark === 'cancelled' || (o.status !== 'cancelled' && !o.importedFrom)
+    })
+    let skipped = ids.length - due.length
+    let updated = 0
+    /* "Select all" can hand over thousands of ids: ten requests at a time, never all at once. */
+    const { failed } = await runBatched(due, async (id) => {
+      try {
+        await api.orders.setStatus({ id, status: mark })
+        updated += 1
+      } catch (err) {
+        // The API refuses a locked (cancelled, imported) order with BAD_REQUEST: a skip.
+        if (!isBadRequest(err)) throw err
+        skipped += 1
       }
-      toast.success(copy.bulk.updated(ids.length, copy.marks[mark]))
+    })
+    if (failed > 0 && updated === 0) toast.error(copy.bulk.failed)
+    else if (failed > 0) toast.warning(copy.bulk.partlyFailed(updated, failed))
+    else if (updated === 0) toast.info(copy.bulk.noneUpdated(skipped))
+    else if (skipped > 0)
+      toast.success(copy.bulk.updatedSkipped(updated, copy.marks[mark], skipped))
+    else toast.success(copy.bulk.updated(updated, copy.marks[mark]))
+    if (updated > 0) {
       clear()
-      await reload()
+      await reload().catch(() => setFailed(true))
+    }
+  }
+
+  const handleBulkArchive = async (ids: string[], archived: boolean, clear: () => void) => {
+    try {
+      let updated = 0
+      let skipped = 0
+      for (let i = 0; i < ids.length; i += ARCHIVE_CHUNK) {
+        const r = await api.orders.archiveMany({ ids: ids.slice(i, i + ARCHIVE_CHUNK), archived })
+        updated += r.updated
+        skipped += r.skipped
+      }
+      const summary = archived
+        ? bulkCopy.archived(updated, skipped)
+        : bulkCopy.unarchived(updated, skipped)
+      if (updated > 0) toast.success(summary)
+      else toast.info(summary)
+      clear()
+      router.refresh()
+      await reload().catch(() => setFailed(true))
     } catch {
-      toast.error(copy.bulk.failed)
+      toast.error(bulkCopy.archiveFailed)
     }
   }
 
@@ -189,7 +255,8 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   const { page, query, status } = q
   const filtered = hasOrderFilters(q)
   const groups = orderFilterGroups(q, copy.filters, setFilters, facets)
-  const searching = query.length > 0 || status !== null || filtered
+  const searching = query.length > 0 || filtered
+  const tabEmpty = status === 'archived' ? copy.emptyArchived : copy.emptyView
   const tabCounts: Partial<Record<OrderListFilter, number>> = {
     unpaid: initial.counts.unpaid,
     unfulfilled: initial.counts.unfulfilled,
@@ -208,6 +275,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
         <OrdersHeaderActions
           testOrders={testOrders}
           onDeleteTests={() => setAskDeleteTests(true)}
+          loadViewIds={loadViewIds}
         />
       }
       stats={
@@ -257,28 +325,27 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
           />
         )}
         loading={loading}
-        defaultSort={{ id: 'date', desc: true }}
-        defaultHidden={['fulfilment', 'channel', 'tags']}
+        defaultSort={DEFAULT_SORT}
+        // The sort rides in the URL beside the filters (#7); the columns are remembered (#9).
+        sort={parseSort(sort)}
+        onSortChange={(s) => setSort(sortParam(s))}
+        columnsStorageKey="orders:columns"
+        // Delivery and Tags show on the row by default (#1007); the rest stay in the columns menu.
+        defaultHidden={['fulfilment', 'channel', 'items', 'phone', 'city']}
         query={query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ query: '', status: null, ...NO_FILTERS, page: 1 })}
-        filters={(close) => (
-          <FilterPanel
-            groups={groups}
-            onClear={() => clearGroups(groups)}
-            footer={{ label: copy.filters.show(total), onDone: close }}
-          />
-        )}
-        filtersClassName={FILTER_PANEL_CLASS}
-        applied={appliedFromGroups(groups, panelCopy)}
+        filterGroups={groups}
         views={
           <ViewSelect<OrderListFilter | null>
             label={copy.viewLabel}
             value={status}
             onChange={(s) => setQ({ status: s, page: 1 })}
             formatCount={fmt.number}
+            // A search or filter counts what it found, not the whole store: "All orders 1,357"
+            // stayed beside "No orders match" (audit #50).
             custom={
-              filtered
+              filtered || query.length > 0
                 ? { label: status ? copy.tabs[status] : copy.customView, count: total }
                 : undefined
             }
@@ -300,17 +367,12 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
         total={total}
         onPageChange={(page) => setQ({ page })}
         onPerPageChange={(n) => setQ({ perPage: n, page: 1 })}
-        loadAllIds={() =>
-          api.orders.ids({
-            search: query || undefined,
-            ...orderListFilter(status),
-            ...orderFilterInput(q),
-          })
-        }
+        loadAllIds={loadViewIds}
         bulkActions={(ids, clear) => (
           <OrdersBulkActions
             ids={ids}
             onMark={(i, m) => handleBulkSetStatus(i, m, clear)}
+            onArchive={(i, archived) => handleBulkArchive(i, archived, clear)}
             onRequest={(kind, i) => setBulkRequest({ kind, ids: i, clear })}
             appActions={initial.appActions}
             automations={initial.automations}
@@ -320,7 +382,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
             }}
           />
         )}
-        empty={searching ? copy.noResults : copy.empty}
+        empty={searching ? copy.noResults : status !== null ? tabEmpty : copy.empty}
       />
       <OrdersBulkDialogs
         request={bulkRequest}

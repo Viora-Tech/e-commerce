@@ -4,6 +4,7 @@ import type { PaymentProviderFactory } from '@commerce/payments'
 import type { ShippingProviderFactory } from '@commerce/shipping'
 import type { StorageProvider, StorageProviderFactory } from '@commerce/storage'
 import type { AppAutomationEvent, AppAutomations } from './automations'
+import type { PluginStorefront } from './storefront-types'
 
 /** The kinds of provider a plugin can contribute. Each maps to one registry. */
 export type ProviderKind = 'payments' | 'shipping' | 'notifications' | 'storage'
@@ -254,62 +255,6 @@ export type AppAdmin = {
 }
 
 /**
- * A storefront section an installed app contributes to the theme editor's
- * Add panel → Apps tab (Shopify's "app blocks"). `type` must be namespaced
- * `<pluginId>/<Name>` so two apps can never collide; `fields`/`defaultProps`
- * drive the Puck editor form and `render` draws it on the storefront.
- * Kept structurally typed (`unknown`) here so this package stays free of a
- * Puck/React dependency — `@commerce/blocks`'s builder (`buildAppBlocks`)
- * casts these back into real Puck `ComponentConfig`s when it assembles the
- * live config from enabled plugins. See docs/plugins.md.
- */
-export type AppBlockDefinition = {
-  /** `<pluginId>/<Name>`, e.g. `back-in-stock/NotifyMe`. */
-  type: string
-  label: string
-  description?: string | undefined
-  /** Icon name from the admin icon set, shown next to the block in the Add panel. */
-  icon?: string | undefined
-  /** Puck `Fields` for the block's settings panel. */
-  fields: Record<string, unknown>
-  defaultProps: Record<string, unknown>
-  /** Puck `ComponentConfig['render']`. Client islands are fine; keep it RSC-safe where possible. */
-  // biome-ignore lint/suspicious/noExplicitAny: erased Puck render signature; re-typed by the blocks builder.
-  render: (props: any) => unknown
-  /** Puck `ComponentConfig['resolveData']`, for a block that needs server data before it draws. */
-  // biome-ignore lint/suspicious/noExplicitAny: erased Puck resolveData signature; re-typed by the blocks builder.
-  resolveData?: ((args: any) => Promise<any>) | undefined
-}
-
-/**
- * A site-wide storefront widget an installed app contributes (Shopify's "app embeds"): a chat
- * bubble, a pop-up, a floating bar. Unlike a block it is not placed on a page; the merchant turns
- * it on per theme in the theme editor's Apps panel and edits its settings there, and the
- * storefront draws every embed that is on, once per page. `type` is namespaced like a block's.
- * Structurally typed for the same reason as `AppBlockDefinition`.
- */
-export type AppEmbedDefinition = {
-  /** `<pluginId>/<Name>`, e.g. `inbox/Chat`. */
-  type: string
-  label: string
-  description?: string | undefined
-  /** Puck `Fields` for the embed's settings in the Apps panel. */
-  fields: Record<string, unknown>
-  defaultProps: Record<string, unknown>
-  /** Off until the merchant turns it on, unless this says otherwise. */
-  enabledByDefault?: boolean | undefined
-  /** Draws the embed with its settings. Client islands are fine. */
-  // biome-ignore lint/suspicious/noExplicitAny: erased render signature, like AppBlockDefinition.
-  render: (props: any) => unknown
-}
-
-/** What a plugin contributes to the storefront beyond providers. */
-export type PluginStorefront = {
-  blocks?: AppBlockDefinition[] | undefined
-  embeds?: AppEmbedDefinition[] | undefined
-}
-
-/**
  * Open-source work an app is built on, shown on its Apps card so merchants see
  * where it comes from. Every app that adapts outside code must list it here
  * (and keep the full licence per THIRD_PARTY_NOTICES.md).
@@ -412,6 +357,9 @@ export type AppSetupState = {
   problem: string | null
 }
 
+/** An app's newest use, in its own words ("New review on Linen shirt"); null text when unsaid. */
+export type AppLastUsed = { at: Date; summary: string | null }
+
 export type PluginManifest = {
   /** Stable lowercase id, e.g. `razorpay`, `delhivery`, `fedex`. Unique per deployment. */
   id: string
@@ -449,6 +397,12 @@ export type PluginManifest = {
    * judged by the store's enabled providers instead.
    */
   setupState?: ((settings: unknown) => AppSetupState) | undefined
+  /**
+   * When the app was last used, read from its own data (the newest review, signup, message), for
+   * apps whose work does not run through hooks or providers. The Installed apps list shows the
+   * newer of this and recorded activity. Must be cheap: one indexed query.
+   */
+  lastUsed?: ((tx: StoreTx, storeId: string) => Promise<AppLastUsed | null>) | undefined
   /** Triggers, actions and templates the app adds to Automations (Flow-style connectors). */
   automations?: AppAutomations | undefined
 }

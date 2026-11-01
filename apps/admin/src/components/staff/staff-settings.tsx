@@ -8,13 +8,13 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
-import SectionTabs from '@/components/settings/section-tabs'
-import SettingsSection from '@/components/settings/settings-section'
+import SettingsDrill from '@/components/settings/settings-drill'
+import SettingsDrillPanel from '@/components/settings/settings-drill-panel'
 import InviteDialog from '@/components/staff/invite-dialog'
 import MembersCard, { type StaffMemberRow } from '@/components/staff/members-card'
 import PendingInvitesCard, { type PendingInviteRow } from '@/components/staff/pending-invites-card'
 import RolesCard, { type RoleRow } from '@/components/staff/roles-card'
-import { SETTINGS_BACK } from '@/data/settings'
+import { settingsRowsContent } from '@/data/settings-rows'
 import { staffContent } from '@/data/staff'
 import { useCopy } from '@/hooks/use-copy'
 import { refreshPermissions, usePermissions } from '@/hooks/use-permissions'
@@ -36,10 +36,14 @@ async function fetchTeam(): Promise<Team> {
   }
 }
 
-/** Team and roles for this store. Server procedures re-check every action. */
+/**
+ * Team and roles for this store, Shopify-style (#147): rows for members, pending invites and
+ * roles, each opening in place (`?open=`). Server procedures re-check every action.
+ */
 export default function StaffSettings() {
   // Hooks
   const copy = useCopy(staffContent)
+  const rowsCopy = useCopy(settingsRowsContent)
   const { member, hasPermission } = usePermissions()
   const [members, setMembers] = useState<StaffMemberRow[] | null>(null)
   const [roles, setRoles] = useState<RoleRow[] | null>(null)
@@ -110,24 +114,32 @@ export default function StaffSettings() {
   }
 
   // Render logic
-  const tabs = [copy.tabs.members, copy.tabs.roles]
   const canManage = hasPermission(permissions.STAFF_MANAGE)
   const canInvite = hasPermission(permissions.STAFF_INVITE)
   const roleOptions = (roles ?? []).map((r) => ({ id: r.id, name: r.name, slug: r.slug }))
+  const s = rowsCopy.staff
+  const rows = [
+    { id: 'members', title: s.members, value: members ? s.membersValue(members.length) : '' },
+    { id: 'invites', title: s.invites, value: s.invitesValue(invites.length) },
+    { id: 'roles', title: s.roles, value: roles ? s.rolesValue(roles.length) : '' },
+  ]
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={copy.title} subtitle={copy.intro} back={SETTINGS_BACK} />
-      <SectionTabs tabs={tabs}>
-        <SettingsSection id={copy.tabs.members.id} className="flex flex-col gap-4">
-          {canInvite ? (
-            <div className="flex justify-end">
-              <Button onClick={() => setInviteOpen(true)}>
-                <UserPlus aria-hidden="true" />
-                {copy.members.invite}
-              </Button>
-            </div>
-          ) : null}
+      <PageHeader
+        title={copy.title}
+        subtitle={copy.intro}
+        actions={
+          canInvite ? (
+            <Button onClick={() => setInviteOpen(true)}>
+              <UserPlus aria-hidden="true" />
+              {copy.members.invite}
+            </Button>
+          ) : undefined
+        }
+      />
+      <SettingsDrill rows={rows} backLabel={copy.title}>
+        <SettingsDrillPanel id="members">
           <MembersCard
             members={members ?? []}
             roles={roleOptions}
@@ -136,9 +148,11 @@ export default function StaffSettings() {
             onChanged={reload}
             onRemove={setPendingRemove}
           />
+        </SettingsDrillPanel>
+        <SettingsDrillPanel id="invites">
           <PendingInvitesCard invites={invites} canInvite={canInvite} onChanged={reload} />
-        </SettingsSection>
-        <SettingsSection id={copy.tabs.roles.id} className="flex flex-col gap-4">
+        </SettingsDrillPanel>
+        <SettingsDrillPanel id="roles">
           {canManage ? (
             <div className="flex justify-end">
               <Button nativeButton={false} render={<Link href={routes.settings.newRole()} />}>
@@ -148,8 +162,8 @@ export default function StaffSettings() {
             </div>
           ) : null}
           <RolesCard roles={roles ?? []} canManage={canManage} onDelete={setPendingDelete} />
-        </SettingsSection>
-      </SectionTabs>
+        </SettingsDrillPanel>
+      </SettingsDrill>
 
       <InviteDialog
         open={inviteOpen}
@@ -175,10 +189,14 @@ export default function StaffSettings() {
         open={pendingDelete !== null}
         onOpenChange={() => setPendingDelete(null)}
         title={copy.roles.confirmDelete.title}
-        body={copy.roles.confirmDelete.body}
+        body={
+          pendingDelete?.memberCount
+            ? copy.roles.confirmDelete.hasMembers(pendingDelete.memberCount)
+            : copy.roles.confirmDelete.body
+        }
         confirmLabel={copy.roles.confirmDelete.confirm}
         cancelLabel={copy.roles.confirmDelete.cancel}
-        tone="default"
+        confirmDisabled={Boolean(pendingDelete?.memberCount)}
         onConfirm={handleDeleteRole}
       />
     </div>

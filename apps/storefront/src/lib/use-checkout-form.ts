@@ -1,26 +1,26 @@
-import { formatPaise } from '@commerce/blocks'
-import type { CartView, CheckoutLook, SavedAddress, SignedInCustomer } from '@commerce/core'
-import { type CheckoutSettings, stateForPincode } from '@commerce/core/checkout-settings'
-import type {
-  CheckoutAccountMode,
-  LoginMethod,
-  SignInOptions,
-} from '@commerce/core/customer-accounts'
-import { lowestEmiPaise } from '@commerce/core/emi'
-import type { PolicyLink } from '@commerce/core/policies'
+import { cleanPostalCode, isAbroad } from '@commerce/core/checkout-address'
+import { applyCheckoutText, stateForPincode } from '@commerce/core/checkout-settings'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
 import { checkoutContent as content } from '@/data/checkout'
-import { deleteAddressAction, saveAddressAction } from '@/lib/account-actions'
 import { captureContactAction, checkoutAction } from '@/lib/cart-actions'
+import { addressBookHandlers } from '@/lib/checkout-address-book'
 import { readDraft, writeDraft } from '@/lib/checkout-draft'
-import { type CheckoutFormState, NEW_ADDRESS, prefillCheckout } from '@/lib/checkout-form-state'
+import {
+  addressForCountry,
+  type CheckoutFormState,
+  fullNameOf,
+  NEW_ADDRESS,
+  phoneForCountry,
+  prefillCheckout,
+} from '@/lib/checkout-form-state'
 import {
   checkoutTotals,
   deliveryBy,
   deliveryLine,
   isDigitalOnly,
   offeredMethods,
+  payView,
   takesUpi,
 } from '@/lib/checkout-preview'
 import { readRemembered, writeRemembered } from '@/lib/checkout-remember'
@@ -38,61 +38,20 @@ import {
   fieldId,
   fieldOrder,
 } from '@/lib/checkout-validation'
-import type { CartDiscountView } from '@/lib/discount-view'
 import type { AppliedGiftCard } from '@/lib/gift-card-actions'
-import type { CheckoutMethod } from '@/lib/payments'
-import type { CartDepositTerms } from '@/lib/preorder'
-import { isFullPincode, useCheckoutShipping } from '@/lib/use-checkout-shipping'
+import { isQuotable, useCheckoutShipping } from '@/lib/use-checkout-shipping'
+import {
+  type ChangeHandler,
+  type CheckoutFormInput,
+  CONTACT_KEYS,
+  GUEST_EMAIL,
+  INDIA_ONLY,
+  NO_DEPOSIT,
+  PLACE_KEYS,
+  SAVE_ADDRESS_ID,
+  SEND_CODE_ID,
+} from './checkout-form-input'
 import { applyPendingDiscountCode } from './pending-code'
-
-/** Settings → Customer accounts, as the Contact card needs it. */
-export type CheckoutSignIn = {
-  /** Code methods the store can send, in order; never empty. */
-  methods: LoginMethod[]
-  /** `account_required`: the shopper signs in before anything else. */
-  checkout: CheckoutAccountMode
-  /** Providers, passkeys and the rest the store switched on. */
-  options: SignInOptions | null
-}
-
-export type CheckoutFormInput = {
-  cart: CartView
-  methods: CheckoutMethod[]
-  /** Discount in force for this cart, resolved on the server. */
-  discount: CartDiscountView | null
-  /** The signed-in shopper, or null for guest checkout. */
-  customer?: SignedInCustomer | null
-  /** Their saved addresses, default first. */
-  addresses?: SavedAddress[]
-  /** Deposit pre-orders: the balance left for later and the store's deposit terms. */
-  deposit?: CartDepositTerms
-  /** Settings → Checkout; the server re-checks every rule on submit. */
-  settings: CheckoutSettings
-  /** Published store policies, linked above the button. */
-  policies?: PolicyLink[]
-  /** Settings → Checkout → Branding, the store name and logo. */
-  look: CheckoutLook
-  /** The smallest amount the store offers EMI on; null when it offers none. */
-  emiMinPaise?: number | null
-  /** How shoppers sign in here, and whether a guest may check out. */
-  signIn?: CheckoutSignIn
-}
-
-type ChangeHandler = (
-  e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
-) => void
-
-const NO_DEPOSIT: CartDepositTerms = { laterPaise: 0, nonRefundableDays: null }
-const GUEST_EMAIL: CheckoutSignIn = { methods: ['email'], checkout: 'guest', options: null }
-/** The Send code button in Contact; Pay points here until the shopper signs in. */
-export const SEND_CODE_ID = 'checkout-send-code'
-/** The Save button of an address being edited. */
-export const SAVE_ADDRESS_ID = 'checkout-address-save'
-
-/** What an address book entry needs before Save writes it. */
-const ADDRESS_KEYS = ['pincode', 'name', 'line1', 'city', 'stateCode', 'phone'] as const
-/** The fields the Contact card shows; every other field is the Delivery card's. */
-const CONTACT_KEYS: readonly CheckoutFieldKey[] = ['email', 'phone']
 
 /**
  * Everything the one-page checkout knows and does, so `CheckoutForm` and its cards only
@@ -106,12 +65,22 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   const deposit = input.deposit ?? NO_DEPOSIT
   const emiMinPaise = input.emiMinPaise ?? null
   const signIn = input.signIn ?? GUEST_EMAIL
+  const countries = input.countries?.length ? input.countries : INDIA_ONLY
+  /** A country the picker offers; anything else (an old draft) is India. */
+  const offeredCountry = (code: string | undefined) =>
+    code && countries.includes(code) ? code : 'IN'
+  const startCountry = offeredCountry(input.defaultCountry)
+  /** Settings → Checkout → Form fields (#154). */
+  const splitName = settings.fields.name === 'split'
+  const companyShown = settings.fields.company !== 'hidden'
+  /** Our checkout words with the store's own wording over them (#158). */
+  const copy = applyCheckoutText(content, input.text ?? {})
   const router = useRouter()
 
   const [pending, start] = useTransition()
   const [savingAddress, startSave] = useTransition()
   const [form, setForm] = useState<CheckoutFormState>(() => ({
-    ...prefillCheckout(customer, addresses[0]),
+    ...prefillCheckout(customer, addresses[0], settings.fields.name, startCountry),
     payment: offeredMethods(cart, methods)[0]?.id ?? 'cod',
   }))
   const [savedId, setSavedId] = useState<string>(addresses[0]?.id ?? NEW_ADDRESS)
@@ -155,6 +124,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     if (draft) {
       opened = {
         ...draft.form,
+        countryCode: offeredCountry(draft.form.countryCode),
         // A signed-in shopper's email is theirs; the payment pick must still be on offer.
         email: customer?.email ?? draft.form.email,
         payment: methods.some((m) => m.id === draft.form.payment)
@@ -169,12 +139,19 @@ export function useCheckoutForm(input: CheckoutFormInput) {
       // A guest back on the same browser: start from the details they used last time.
       const remembered = readRemembered()
       if (remembered) {
-        opened = { ...form, ...remembered }
+        const country = offeredCountry(remembered.countryCode)
+        // An address remembered in a country the store no longer ships to starts over.
+        opened =
+          country === (remembered.countryCode ?? 'IN')
+            ? { ...form, ...remembered, countryCode: country }
+            : { ...form, ...remembered, ...addressForCountry(country) }
         setForm(opened)
         setGuest(true)
       }
     }
-    if (isFullPincode(opened.pincode)) checkPincode(opened.pincode, opened.stateCode)
+    if (isQuotable(opened.pincode, opened.countryCode)) {
+      checkPincode(opened.pincode, opened.stateCode, opened.countryCode)
+    }
     setSettled(true)
     followLegacyStep(sectionsFor(isDigitalOnly(cart)))
   }, [])
@@ -186,19 +163,23 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   // A code applied in the summary can move the cart across a band or make shipping free.
   // biome-ignore lint/correctness/useExhaustiveDependencies: re-quote only when the discount changes.
   useEffect(() => {
-    if (settled && isFullPincode(form.pincode)) checkPincode(form.pincode, form.stateCode)
+    if (settled && isQuotable(form.pincode, form.countryCode)) {
+      checkPincode(form.pincode, form.stateCode, form.countryCode)
+    }
   }, [discount?.amountPaise, discount?.freeShipping])
 
   const fieldErrors = checkoutFieldErrors(form, {
     emailRequired: settings.email === 'required' || Boolean(customer?.email),
     gstin: business,
+    fields: settings.fields,
   })
   const shownErrors = attempted
     ? fieldErrors
     : Object.fromEntries(
         Object.entries(fieldErrors).filter(([k]) => touched[k as CheckoutFieldKey]),
       )
-  const wrongFields = fieldOrder(true).filter((k) => fieldErrors[k])
+  const abroad = isAbroad(form.countryCode)
+  const wrongFields = fieldOrder(!abroad).filter((k) => fieldErrors[k])
   const accountRequired = signIn.checkout === 'account_required'
   /** Contact is settled: signed in, or a guest where the store allows one. */
   const contactReady = customer !== null || (!accountRequired && guest)
@@ -213,6 +194,8 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     picked: form.payment,
     pincode: form.pincode,
     laterPaise: deposit.laterPaise,
+    methodRules: input.methodRules,
+    abroad,
   })
   const { digitalOnly, offered, payment, coveredByCards, payNowPaise } = totals
   const contactFieldsOk = !wrongFields.some((k) => CONTACT_KEYS.includes(k))
@@ -269,12 +252,16 @@ export function useCheckoutForm(input: CheckoutFormInput) {
       return false
     }
     setError(null)
-    const { label, ...details } = form
+    const { label, lastName, ...details } = form
     start(async () => {
       const r = await checkoutAction({
         ...details,
         ...(label ? { label } : {}),
-        pincode: cleanPincode(form.pincode),
+        // Settings → Checkout splits the name (#154): the full name, and its parts for the check.
+        ...(splitName
+          ? { name: fullNameOf(form), firstName: form.name, lastName: lastName ?? '' }
+          : {}),
+        pincode: abroad ? cleanPostalCode(form.pincode) : cleanPincode(form.pincode),
         payment: paymentId,
         giftCards: giftCards.map((c) => c.code),
         ...ship.formFields,
@@ -286,6 +273,12 @@ export function useCheckoutForm(input: CheckoutFormInput) {
 
   /** A PIN code whose prefix allows one state fills it in, unless the shopper picked one. */
   const handlePincode = (pincode: string) => {
+    if (abroad) {
+      // A postcode abroad fills nothing in; its country zone prices it.
+      setForm((prev) => ({ ...prev, pincode }))
+      checkPincode(pincode, form.stateCode, form.countryCode)
+      return
+    }
     const guess = touched.stateCode ? null : stateForPincode(cleanPincode(pincode))
     const stateCode = guess ?? form.stateCode
     setForm((prev) => ({ ...prev, pincode, stateCode }))
@@ -295,7 +288,27 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   const handleState = (stateCode: string) => {
     setForm((prev) => ({ ...prev, stateCode }))
     touch('stateCode')
-    checkPincode(form.pincode, stateCode)
+    // Abroad the region is typed: zones there go by country, so nothing re-prices.
+    if (!abroad) checkPincode(form.pincode, stateCode)
+  }
+  /**
+   * A new country empties the address's place fields (a PIN code is not a postcode) and
+   * quotes again; cash on delivery moves to the first online method outside India.
+   */
+  const handleCountry = (countryCode: string) => {
+    const next = addressForCountry(offeredCountry(countryCode))
+    const online = methods.find((m) => m.id !== 'cod')?.id
+    setForm((prev) => ({
+      ...prev,
+      ...next,
+      phone: phoneForCountry(prev.phone, next.countryCode),
+      payment:
+        isAbroad(next.countryCode) && prev.payment === 'cod' && online ? online : prev.payment,
+    }))
+    setTouched((prev) =>
+      Object.fromEntries(Object.entries(prev).filter(([k]) => !PLACE_KEYS.includes(k))),
+    )
+    checkPincode(next.pincode, next.stateCode, next.countryCode)
   }
   /** PIN code first: the directory's city and state, still editable; shipping re-quotes for the state. */
   const handlePlace = (place: { city: string; stateCode: string }, pincode: string) => {
@@ -308,73 +321,58 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     setAddressError(null)
     const picked = addresses.find((a) => a.id === id)
     const next = picked
-      ? prefillCheckout(customer, picked)
-      : { ...prefillCheckout(customer, undefined), name: form.name, phone: form.phone }
+      ? prefillCheckout(customer, picked, settings.fields.name)
+      : {
+          // A new address opens in the market's country, not the saved (Indian) one it replaces.
+          ...prefillCheckout(customer, undefined, settings.fields.name, startCountry),
+          name: form.name,
+          ...(splitName ? { lastName: form.lastName ?? '' } : {}),
+          phone: phoneForCountry(form.phone, startCountry),
+        }
     setForm((prev) => ({ ...prev, ...next }))
-    checkPincode(next.pincode, next.stateCode)
+    checkPincode(next.pincode, next.stateCode, next.countryCode)
   }
   /* Leaving a field shows its check; leaving the contact saves it, so a basket left here can be recovered. */
   const handleLeave = (key: CheckoutFieldKey) => {
     touch(key)
     if (key !== 'email' && key !== 'phone') return
     if (!form.email.includes('@') && form.phone.replace(/\D/g, '').length < 10) return
-    void captureContactAction({ email: form.email, phone: form.phone, name: form.name })
+    void captureContactAction({ email: form.email, phone: form.phone, name: fullNameOf(form) })
   }
   const handleBusiness = (on: boolean) => {
     setBusiness(on)
-    if (!on) setForm((prev) => ({ ...prev, gstin: '', businessName: '' }))
+    // A company name typed in Delivery (#154) stays when the GST box is unticked.
+    if (!on) {
+      setForm((prev) => ({
+        ...prev,
+        gstin: '',
+        businessName: companyShown ? prev.businessName : '',
+      }))
+    }
   }
+  const handleMarketing = (channel: 'email' | 'whatsapp', on: boolean) =>
+    setForm((prev) => ({
+      ...prev,
+      marketing: { email: false, whatsapp: false, ...prev.marketing, [channel]: on },
+    }))
   const handleGuest = (on: boolean) => {
     setGuest(on)
     setAttempted(false)
   }
-  /** Edit a saved address in place: its values fill the fields, Save writes the address book. */
-  const handleEdit = (id: string) => {
-    handlePickAddress(id)
-    setEditingId(id)
-  }
-  /** Leave the edit (or the new address form) and go back to a saved address. */
-  const handleCancelAddress = () => {
-    const back = addresses.find((a) => a.id === editingId) ?? addresses[0]
-    if (back) handlePickAddress(back.id)
-    else setEditingId(null)
-  }
-  const handleSaveAddress = () => {
-    if (!editingId) return
-    const wrong = ADDRESS_KEYS.find((k) => fieldErrors[k])
-    if (wrong) {
-      setAttempted(true)
-      document.getElementById(fieldId(wrong))?.focus()
-      return
-    }
-    setAddressError(null)
-    const id = editingId
-    startSave(async () => {
-      const r = await saveAddressAction(id, {
-        name: form.name,
-        line1: form.line1,
-        line2: form.line2,
-        city: form.city,
-        stateCode: form.stateCode,
-        pincode: cleanPincode(form.pincode),
-        phone: form.phone,
-        label: form.label || null,
-      })
-      if (!r.ok) {
-        setAddressError(content.addressBook.saveFailed)
-        return
-      }
-      setEditingId(null)
-      router.refresh()
+  const { handleEdit, handleCancelAddress, handleSaveAddress, handleDeleteAddress } =
+    addressBookHandlers({
+      addresses,
+      editingId,
+      setEditingId,
+      savedId,
+      form,
+      fieldErrors,
+      setAttempted,
+      setAddressError,
+      startSave,
+      pickAddress: handlePickAddress,
+      refresh: () => router.refresh(),
     })
-  }
-  const handleDeleteAddress = (id: string) => {
-    startSave(async () => {
-      await deleteAddressAction(id)
-      if (savedId === id) handlePickAddress(addresses.find((a) => a.id !== id)?.id ?? NEW_ADDRESS)
-      router.refresh()
-    })
-  }
   const handleLabel = (label: string) => setForm((prev) => ({ ...prev, label }))
   const handlePayment = (id: string) => setForm((prev) => ({ ...prev, payment: id }))
   const handlePhone = (phone: string) => setForm((prev) => ({ ...prev, phone }))
@@ -419,20 +417,17 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   }
 
   const shortfall = totals.shortfallPaise
-  const payNow = formatPaise(payNowPaise)
   const updating = checking && !digitalOnly
-  const emiMonthly =
-    emiMinPaise !== null && payNowPaise >= emiMinPaise && payNowPaise > 0
-      ? formatPaise(lowestEmiPaise(payNowPaise))
-      : null
-  const payLabel = coveredByCards
-    ? content.placeOrder
-    : payment === 'cod'
-      ? content.placeOrderAmount(payNow)
-      : content.pay(payNow)
+  const { payNow, emiMonthly, payLabel } = payView(payNowPaise, {
+    emiMinPaise,
+    coveredByCards,
+    cod: payment === 'cod',
+    placeOrder: copy.placeOrder,
+  })
 
   return {
     ...input,
+    copy,
     customer,
     addresses,
     deposit,
@@ -473,13 +468,19 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     sections,
     gates,
     done,
+    countries,
+    abroad,
+    /** Enough of the address to quote shipping (six PIN digits, or a postcode that will do). */
+    addressQuotable: isQuotable(form.pincode, form.countryCode),
     set,
     handlePincode,
     handleState,
+    handleCountry,
     handlePlace,
     handlePickAddress,
     handleLeave,
     handleBusiness,
+    handleMarketing,
     handlePayment,
     handlePhone,
     handleGuest,
