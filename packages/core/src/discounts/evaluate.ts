@@ -9,6 +9,7 @@ import type {
   DiscountStatus,
   DiscountType,
 } from '@commerce/db'
+import { roundToWholeUnit } from '@commerce/money'
 import { bxgyAmount } from './bxgy'
 import { comboAmount } from './combo'
 
@@ -118,9 +119,6 @@ export type DiscountOutcome =
     }
   | { ok: false; reason: DiscountRejection; discount: DiscountRule }
 
-/** Round half away from zero, same as payment adjustments, so ₹99.99 at 10% is ₹10.00. */
-const roundHalfUp = (n: number): number => Math.sign(n) * Math.round(Math.abs(n))
-
 export const subtotalPaise = (lines: DiscountCartLine[]): number =>
   lines.reduce((sum, l) => sum + l.quantity * l.unitPricePaise, 0)
 
@@ -190,7 +188,7 @@ export function perProductValues(
  * basis points of the unit price rounded like the order-level percent.
  */
 function perUnitAmount(method: 'percent' | 'fixed', value: number, unitPricePaise: number): number {
-  const raw = method === 'percent' ? roundHalfUp((unitPricePaise * value) / 10_000) : value
+  const raw = method === 'percent' ? roundToWholeUnit((unitPricePaise * value) / 10_000) : value
   return Math.max(0, Math.min(raw, unitPricePaise))
 }
 
@@ -283,7 +281,7 @@ export function evaluateDiscount(
   const raw = perItem
     ? perItemAmount(lines, d.method, perItem)
     : d.method === 'percent'
-      ? roundHalfUp((base * d.value) / 10_000)
+      ? roundToWholeUnit((base * d.value) / 10_000)
       : d.value
   // A per-product discount whose cart products all lack an amount gives nothing: not applicable.
   if (perItem && raw === 0) return reject('no_eligible_items')

@@ -41,7 +41,12 @@ export const checkoutSettingsContent = {
     heading: 'Cash on delivery rules',
     off: 'Cash on delivery is off. Turn it on in Settings → Payments to set these rules.',
     offLink: 'Open Payments',
-    feeHint: 'The same fee as in Settings → Payments. A shipping rate can set its own.',
+    /** Settings → Checkout, since the rules moved to Payments (#97). */
+    moved:
+      'Cash on delivery fee, largest order and blocked PIN codes are now set with the other ways to pay, in Settings → Payments.',
+    saved: 'Cash on delivery rules saved.',
+    discard: 'Discard',
+    feeHint: 'Added to cash on delivery orders. A shipping rate can set its own.',
     max: 'Largest order for cash on delivery',
     maxHint: 'Bigger orders must be paid online. Counted with shipping. Leave at 0 for no limit.',
     blocked: 'PIN codes without cash on delivery',

@@ -2,9 +2,11 @@
 
 import type { CheckoutSettingsView, PaymentAdjustment, RolloutHold } from '@commerce/core'
 import type { CheckoutSettings as Settings } from '@commerce/core/checkout-settings'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Switch } from '@commerce/ui/shadcn/switch'
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
@@ -15,12 +17,12 @@ import CartLimitCard from '@/components/settings/cart-limit-card'
 import CheckoutBrandingSettings from '@/components/settings/checkout-branding-settings'
 import CheckoutFieldsCard from '@/components/settings/checkout-fields-card'
 import CheckoutTextCard, { editedCount } from '@/components/settings/checkout-text-card'
-import CodRulesCard from '@/components/settings/cod-rules-card'
 import RupeeInput from '@/components/settings/rupee-input'
 import SettingsDrill from '@/components/settings/settings-drill'
 import SettingsDrillPanel from '@/components/settings/settings-drill-panel'
 import { checkoutRulesContent } from '@/data/checkout-rules'
 import { checkoutBrandingContent, checkoutSettingsContent as copy } from '@/data/checkout-settings'
+import { PAYMENTS_PAGE_HREF } from '@/data/payments-setup'
 import { settingsContent } from '@/data/settings'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -214,14 +216,17 @@ export default function CheckoutSettings() {
           </SettingsDrillPanel>
 
           <SettingsDrillPanel id="cod">
-            <CodRulesCard
-              key={`cod-${codKey}`}
-              codEnabled={loaded.codEnabled}
-              rules={s.cod}
-              fee={form.codFee}
-              onRules={(cod) => patch({ cod })}
-              onFee={(codFee) => setForm((f) => (f ? { ...f, codFee } : f))}
-            />
+            {/* Set with the other ways to pay now (#97); this row only points there. */}
+            <SettingsCard title={copy.cod.heading} description={copy.cod.moved}>
+              <Button
+                variant="outline"
+                className="self-start"
+                nativeButton={false}
+                render={<Link href={`${PAYMENTS_PAGE_HREF}&open=manual`} />}
+              >
+                {copy.cod.offLink}
+              </Button>
+            </SettingsCard>
           </SettingsDrillPanel>
           <SettingsDrillPanel id="fields">
             {/* "Company name and GSTIN" lives here only, beside the company field (#67). */}

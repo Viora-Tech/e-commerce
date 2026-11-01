@@ -286,7 +286,7 @@ describe('pre-order deposits', () => {
     expect(lines[0]?.preorder).toBe(true)
   })
 
-  it('charges only the percentage deposit and rounds to the nearest paise', async () => {
+  it('charges only the percentage deposit and rounds to the whole rupee', async () => {
     const storeId = await seedStore()
     const { variantId } = await seedProduct(storeId, {
       onHand: 10,
@@ -301,8 +301,9 @@ describe('pre-order deposits', () => {
     const result = await placeOrderAndPay(app, storeId, { cartId, paymentProvider: provider })
 
     const [o] = await owner.select().from(order).where(eq(order.id, result.orderId))
-    expect(o?.depositPaise).toBe(Math.round((333333 * 25) / 100))
-    expect(o?.balanceDuePaise).toBe(333333 - Math.round((333333 * 25) / 100))
+    // 25% of ₹3,333.33 is ₹833.33: ₹833 now (#156), the rest later.
+    expect(o?.depositPaise).toBe(83_300)
+    expect(o?.balanceDuePaise).toBe(333_333 - 83_300)
   })
 
   it('full mode charges everything now with no balance due', async () => {

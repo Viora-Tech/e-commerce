@@ -64,6 +64,15 @@ export function toMinor(major: number, currency: Currency = DEFAULT_CURRENCY): n
   return Math.round(major * 10 ** minorUnit)
 }
 
+/**
+ * A computed share (a percent discount, a deposit) rounded to the currency's whole unit, half
+ * away from zero: ₹10,499.10 → ₹10,499 and ₹119.80 → ₹120 (#141, #156). Amounts in minor units.
+ */
+export function roundToWholeUnit(minor: number, currency: Currency = DEFAULT_CURRENCY): number {
+  const unit = 10 ** CURRENCIES[currency].minorUnit
+  return Math.sign(minor) * Math.round(Math.abs(minor) / unit) * unit
+}
+
 /** Plain decimal rupees: "499", "12.5", ".75". No sign, exponent, grouping or symbol. */
 const RUPEES_TEXT = /^(\d+\.?\d*|\.\d+)$/
 

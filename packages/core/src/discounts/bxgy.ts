@@ -1,5 +1,6 @@
 /** SOURCE OF TRUTH: buy X get Y discount amount — WHAT: how many times a cart qualifies (items bought or amount spent from the "buys" products or collections) and what the "gets" items take off, cheapest first / WHY: Shopify's Buy X get Y type; the evaluator in `evaluate.ts` calls it so checkout, the order and tests share one sum */
 import type { DiscountBxgy } from '@commerce/db'
+import { roundToWholeUnit } from '@commerce/money'
 import type { DiscountCartLine } from './evaluate'
 
 type Unit = { pricePaise: number; buys: boolean; gets: boolean }
@@ -14,7 +15,7 @@ const inScope = (
 
 /** Off one "gets" item: a percent of its price (10000 = free) or a fixed amount, never above it. */
 function unitOff(method: 'percent' | 'fixed', value: number, pricePaise: number): number {
-  const raw = method === 'percent' ? Math.round((pricePaise * value) / 10_000) : value
+  const raw = method === 'percent' ? roundToWholeUnit((pricePaise * value) / 10_000) : value
   return Math.max(0, Math.min(raw, pricePaise))
 }
 

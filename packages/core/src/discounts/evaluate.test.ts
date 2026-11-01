@@ -38,9 +38,9 @@ const cart: DiscountCart = {
 const now = new Date('2026-09-22T10:00:00Z')
 
 describe('evaluateDiscount', () => {
-  it('takes a percentage off the whole cart, rounded half up', () => {
+  it('takes a percentage off the whole cart, rounded to the whole rupee (#141)', () => {
     const r = evaluateDiscount(cart, base, { now })
-    expect(r).toMatchObject({ ok: true, amountPaise: 40_980, freeShipping: false })
+    expect(r).toMatchObject({ ok: true, amountPaise: 41_000, freeShipping: false })
   })
 
   it('fixed amounts never exceed the eligible subtotal', () => {
@@ -130,7 +130,7 @@ describe('applyDiscount and helpers', () => {
     })
     const pct = evaluateDiscount(cart, base, { now })
     if (!pct.ok) throw new Error('expected ok')
-    expect(applyDiscount(409_799, 9_900, pct).discountedSubtotalPaise).toBe(368_819)
+    expect(applyDiscount(409_799, 9_900, pct).discountedSubtotalPaise).toBe(368_799)
   })
 
   it('normalises codes and describes values', () => {
@@ -172,17 +172,17 @@ describe('a different amount for each product (per item)', () => {
     expect(r).toMatchObject({ ok: true, amountPaise: 40_000 })
   })
 
-  it('takes a percent of each unit price, rounded half up', () => {
+  it('takes a percent of each unit price, rounded to the whole rupee', () => {
     const pct: DiscountRule = {
       ...perProduct,
       method: 'percent',
       productValues: { x: 1000, y: 1250 },
     }
-    // X: 10% of ₹999.99 = 9,999.9 paise, so 10,000 per unit, × 2. Y: 12.5% of ₹2,500 = 31,250.
+    // X: 10% of ₹999.99 = 9,999.9 paise, so 10,000 per unit, × 2. Y: 12.5% of ₹2,500 = ₹312.50, so ₹313.
     const r = evaluateDiscount({ lines: [line('x', 2, 99_999), line('y', 1, 250_000)] }, pct, {
       now,
     })
-    expect(r).toMatchObject({ ok: true, amountPaise: 2 * 10_000 + 31_250 })
+    expect(r).toMatchObject({ ok: true, amountPaise: 2 * 10_000 + 31_300 })
   })
 
   it('gives nothing on products outside the map', () => {

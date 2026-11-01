@@ -235,6 +235,7 @@ describe('returns router', () => {
       enabled: true,
       windowDays: 14,
       reasons: ['damaged', 'wrong_item'],
+      customReasons: [],
       restockAutomatically: false,
       refundMethod: 'store_credit',
       exchanges: false,

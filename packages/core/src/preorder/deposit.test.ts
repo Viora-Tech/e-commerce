@@ -20,18 +20,18 @@ describe('computeDeposit', () => {
     })
   })
 
-  it('percentage mode rounds to the nearest paise', () => {
-    // 33% of 100 paise = 33 paise exactly
-    expect(computeDeposit(100, 'percentage', { depositPercent: 33 })).toEqual({
-      depositPaise: 33,
-      balancePaise: 67,
+  it('percentage mode rounds to the nearest whole rupee (#156)', () => {
+    // 20% of ₹599 = ₹119.80, so ₹120 now and ₹479 later
+    expect(computeDeposit(59_900, 'percentage', { depositPercent: 20 })).toEqual({
+      depositPaise: 12_000,
+      balancePaise: 47_900,
     })
     // 33% of 333333 paise = 109999.89 -> rounds to 110000
     expect(computeDeposit(333333, 'percentage', { depositPercent: 33 })).toEqual({
       depositPaise: 110000,
       balancePaise: 223333,
     })
-    // 1% of 1 paise rounds down to 0
+    // 1% of 1 paise is under half a rupee: 0
     expect(computeDeposit(1, 'percentage', { depositPercent: 1 })).toEqual({
       depositPaise: 0,
       balancePaise: 1,

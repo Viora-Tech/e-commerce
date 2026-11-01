@@ -2,7 +2,6 @@
 
 import { Button } from '@commerce/ui/shadcn/button'
 import { Switch } from '@commerce/ui/shadcn/switch'
-import Link from 'next/link'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import StatusChip from '@/components/layout/status-chip'
@@ -10,7 +9,6 @@ import SettingsCard from '@/components/settings/settings-card'
 import { paymentRoutingContent } from '@/data/payment-routing'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { routes } from '@/lib/routes'
 import ManualMethodDialog from './manual-method-dialog'
 import type { PaymentsSetup } from './types'
 
@@ -107,12 +105,7 @@ export default function ManualMethodsCard({
         <StatusChip tone={codOn ? 'success' : 'neutral'}>
           {codOn ? copy.active : copy.off}
         </StatusChip>
-        <Button
-          variant="outline"
-          size="sm"
-          nativeButton={false}
-          render={<Link href={routes.settings.checkout()} />}
-        >
+        <Button variant="outline" size="sm" nativeButton={false} render={<a href="#cod" />}>
           {copy.cod.settings}
         </Button>
         <Switch

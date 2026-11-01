@@ -20,6 +20,7 @@ import { routes } from '@/lib/routes'
 import ActiveProvidersCard from './active-providers-card'
 import AddGatewayDialog from './add-gateway-dialog'
 import AdvancedSection from './advanced-section'
+import CodSettingsSection from './cod-settings-section'
 import ConfigSection from './config-section'
 import HelpFooter from './help-footer'
 import ManualMethodsCard from './manual-methods-card'
@@ -180,6 +181,7 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
             setup={setup}
             onReload={onReload}
           />
+          <CodSettingsSection codOn={codOn} />
         </SettingsDrillPanel>
 
         <SettingsDrillPanel id={PAYMENT_ROWS.methods}>
@@ -213,6 +215,7 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
             onCodChange={handleCod}
             onReload={onReload}
           />
+          <CodSettingsSection codOn={codOn} />
         </SettingsDrillPanel>
 
         <SettingsDrillPanel id={PAYMENT_ROWS.capture}>
