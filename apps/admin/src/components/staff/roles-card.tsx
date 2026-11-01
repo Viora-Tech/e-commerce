@@ -43,7 +43,7 @@ export default function RolesCard({ roles, canManage, onDelete }: RolesCardProps
         </SettingsTableRow>
       ) : (
         roles.map((role) => (
-          <SettingsTableRow key={role.id}>
+          <SettingsTableRow key={role.id} href={routes.settings.role(role.id)}>
             <SettingsTableCell>
               <p className="flex items-center gap-2 font-semibold text-ink-strong">
                 <span className="truncate">{role.name}</span>

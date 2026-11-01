@@ -20,7 +20,7 @@ export default function PreorderCampaignRow({ campaign: c }: PreorderCampaignRow
   const copy = useCopy(preordersContent)
 
   return (
-    <SettingsTableRow>
+    <SettingsTableRow href={routes.products.preorderCampaign(c.id)}>
       <SettingsTableCell>
         <Link
           href={routes.products.preorderCampaign(c.id)}

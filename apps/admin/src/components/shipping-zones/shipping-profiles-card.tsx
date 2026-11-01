@@ -103,7 +103,7 @@ export default function ShippingProfilesCard() {
         const products =
           p.productCount === null ? copy.allOtherProducts : copy.productCount(p.productCount)
         return (
-          <SettingsTableRow key={p.id} className="align-top">
+          <SettingsTableRow key={p.id} href={profileHref(p.id)} className="align-top">
             <SettingsTableCell>
               <Link
                 href={profileHref(p.id)}

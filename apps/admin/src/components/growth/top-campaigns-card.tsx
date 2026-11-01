@@ -11,6 +11,7 @@ import {
   TableRow,
 } from '@commerce/ui/shadcn/table'
 import Link from 'next/link'
+import LinkRow from '@/components/table/link-row'
 import { growthOverviewContent } from '@/data/growth'
 import { formatPaiseWhole } from '@/lib/money'
 
@@ -46,7 +47,7 @@ export default function TopCampaignsCard({ rows }: TopCampaignsCardProps) {
           </TableHeader>
           <TableBody>
             {rows.map((row) => (
-              <TableRow key={row.key}>
+              <LinkRow href={row.href ?? undefined} key={row.key}>
                 <TableCell className="max-w-64 truncate font-medium">
                   {row.href ? (
                     <Link href={row.href} className="hover:underline">
@@ -72,7 +73,7 @@ export default function TopCampaignsCard({ rows }: TopCampaignsCardProps) {
                 <TableCell className="text-right tabular-nums">
                   {formatPaiseWhole(row.salesPaise)}
                 </TableCell>
-              </TableRow>
+              </LinkRow>
             ))}
           </TableBody>
         </Table>

@@ -106,7 +106,7 @@ export default function ShippingZonesCard({ zones, profileId, general }: Shippin
       footer={create}
     >
       {zones.map((z) => (
-        <SettingsTableRow key={z.id} className="align-top">
+        <SettingsTableRow key={z.id} href={zoneHref(z.id)} className="align-top">
           <SettingsTableCell>
             <Link
               href={zoneHref(z.id)}

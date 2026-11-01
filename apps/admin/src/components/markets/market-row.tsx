@@ -60,7 +60,7 @@ export default function MarketRow({
       : (m.hostname ?? copy.choice)
 
   return (
-    <SettingsTableRow>
+    <SettingsTableRow href={href}>
       <SettingsTableCell>
         <div className="flex min-w-0 flex-col">
           <span className="flex min-w-0 items-center gap-2">

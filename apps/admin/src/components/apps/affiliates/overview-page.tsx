@@ -14,6 +14,7 @@ import { useEffect, useState } from 'react'
 import AffiliateTrendCard from '@/components/apps/affiliates/affiliate-trend-card'
 import { CELL, HEAD } from '@/components/apps/gst-invoices/table-classes'
 import StatStrip from '@/components/layout/stat-strip'
+import LinkRow from '@/components/table/link-row'
 import TableEmptyRow from '@/components/table/table-empty-row'
 import { affiliatesContent } from '@/data/affiliates'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -113,7 +114,7 @@ export default function OverviewPage() {
           <TableBody>
             {data.top.length === 0 ? <TableEmptyRow colSpan={4} message={copy.topEmpty} /> : null}
             {data.top.map((a) => (
-              <TableRow key={a.id}>
+              <LinkRow href={routes.apps.page('affiliates', 'affiliates', a.id)} key={a.id}>
                 <TableCell className={`${CELL} font-medium`}>
                   <Link
                     className="hover:underline"
@@ -131,7 +132,7 @@ export default function OverviewPage() {
                 <TableCell className={`${CELL} text-right tabular-nums`}>
                   {f.money(a.commissionPaise)}
                 </TableCell>
-              </TableRow>
+              </LinkRow>
             ))}
           </TableBody>
         </Table>
